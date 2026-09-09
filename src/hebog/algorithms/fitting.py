@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, replace
+from itertools import pairwise
 from math import ceil, floor, isfinite, pi, sqrt
 from typing import Literal, TypeAlias, cast
 
@@ -931,6 +932,9 @@ def _free_preferred_by_bic(
     free: _FitCandidate,
     constrained: _FitCandidate,
     samples: _FitSamples,
+    *,
+    free_parameter_count: int | None = None,
+    constrained_parameter_count: int | None = None,
 ) -> bool:
     """Compare nested models using beam-count-scaled Bayesian information."""
     if (
@@ -950,13 +954,16 @@ def _free_preferred_by_bic(
         independent_samples = max(retained_count / beam_area_pixels, 2.0)
     chi_squared_scale = independent_samples / retained_count
 
-    def bic(candidate: _FitCandidate) -> float:
-        return (
-            candidate.diagnostics.chi_squared * chi_squared_scale
-            + candidate.optimizer_parameters.size * np.log(independent_samples)
-        )
+    def bic(candidate: _FitCandidate, parameter_count: int | None) -> float:
+        return candidate.diagnostics.chi_squared * chi_squared_scale + (
+            candidate.optimizer_parameters.size
+            if parameter_count is None
+            else parameter_count
+        ) * np.log(independent_samples)
 
-    return bic(free) < bic(constrained)
+    return bic(free, free_parameter_count) < bic(
+        constrained, constrained_parameter_count
+    )
 
 
 def _free_model_spec(
@@ -2004,6 +2011,10 @@ def _mixture_initial_bounds(
         ),
         dtype=np.float64,
     )
+    # Orientation is periodic, not a physical acceptance boundary. Centre
+    # the same full-turn interval on the moment initializer so an eigenvector
+    # sign cannot place the optimizer directly against an artificial limit.
+    lower[5], upper[5] = parameters[5] - pi, parameters[5] + pi
     return np.clip(parameters, lower, upper), lower, upper
 
 
@@ -2033,35 +2044,155 @@ def _mixture_jacobian(
     )
 
 
-def _publish_mixture_component(  # noqa: PLR0913, PLR0917
-    context: _FitPublicationContext,
+def _precision_shape_jacobian(
+    parameters: np.ndarray, x: np.ndarray, y: np.ndarray
+) -> np.ndarray:
+    """Differentiate a Gaussian in Cartesian inverse-covariance coordinates.
+
+    Unlike an ellipse angle, Qxx/Qxy/Qyy remain identifiable at a circle.
+    This changes only the information basis, not the fitted emission model.
+    """
+    model = _gaussian_values(parameters, x, y)
+    dx, dy = x - parameters[1], y - parameters[2]
+    return np.column_stack(
+        (
+            _gaussian_parameter_jacobian(parameters, x, y)[:, :3],
+            -0.5 * model * dx**2,
+            -model * dx * dy,
+            -0.5 * model * dy**2,
+        )
+    )
+
+
+def _precision_to_ellipse_differential(parameters: np.ndarray) -> np.ndarray:
+    """Transform identifiable flux/position/area errors into native units.
+
+    At a numerical circle the angle derivative is undefined. Its zero row
+    is an internal unavailable marker: `_formal_uncertainty` rejects that
+    shape covariance, while the invariant area and position errors survive.
+    Ordered-axis/angle errors are never published as zero uncertainties.
+    """
+    first, second, theta = parameters[3:6]
+    cosine, sine = np.cos(theta), np.sin(theta)
+    transform = np.eye(6)
+    transform[3:, 3:] = 0
+    transform[3, 3:] = (
+        -0.5 * first**3 * np.array((cosine**2, 2 * cosine * sine, sine**2))
+    )
+    transform[4, 3:] = (
+        -0.5 * second**3 * np.array((sine**2, -2 * cosine * sine, cosine**2))
+    )
+    gap = 1 / first**2 - 1 / second**2
+    # This is a numerical-coordinate singularity, not a resolved threshold.
+    if abs(gap) > np.sqrt(np.finfo(float).eps) * max(
+        1 / first**2, 1 / second**2
+    ):
+        transform[5, 3:] = (
+            np.array((-cosine * sine, cosine**2 - sine**2, cosine * sine))
+            / gap
+        )
+    return transform
+
+
+def _recover_joint_shape_information(
+    samples: _FitSamples,
+    candidates: tuple[_FitCandidate, ...],
+) -> tuple[_FitCandidate, ...]:
+    """Recover angular-coordinate singularities without masking true blends."""
+    blocks = tuple(
+        _precision_shape_jacobian(
+            candidate.full_parameters, samples.x, samples.y
+        )
+        if candidate.optimizer_parameters.size
+        == len(_FREE_FIXED_BACKGROUND_PARAMETER_NAMES)
+        else candidate.jacobian
+        for candidate in candidates
+    )
+    # Only free blocks need re-whitening; constrained blocks already use the
+    # exact objective's transformed Jacobian.
+    weighted = tuple(
+        samples.residual_transform(block / samples.rms[:, None])
+        if candidate.optimizer_parameters.size
+        == len(_FREE_FIXED_BACKGROUND_PARAMETER_NAMES)
+        else block
+        for candidate, block in zip(candidates, blocks, strict=True)
+    )
+    covariance = _parameter_covariance(
+        np.column_stack(weighted),
+        np.column_stack((samples.x, samples.y)),
+        samples.geometry,
+        correlated_point_estimator=samples.point_estimator == "correlated-gls",
+    )
+    if covariance is None:
+        return candidates
+    output = []
+    start = 0
+    for candidate, jacobian in zip(candidates, weighted, strict=True):
+        stop = start + candidate.optimizer_parameters.size
+        marginal = covariance[start:stop, start:stop]
+        if stop - start == len(_FREE_FIXED_BACKGROUND_PARAMETER_NAMES):
+            transform = _precision_to_ellipse_differential(
+                candidate.full_parameters
+            )
+            marginal = transform @ marginal @ transform.T
+        norms = np.linalg.norm(jacobian, axis=0)
+        condition = float(
+            np.linalg.cond((jacobian / norms).T @ (jacobian / norms))
+        )
+        output.append(
+            replace(
+                candidate,
+                covariance=marginal,
+                diagnostics=replace(
+                    candidate.diagnostics,
+                    information_condition_number=condition
+                    if np.isfinite(condition)
+                    else None,
+                    covariance_parameterization="cartesian-precision",
+                ),
+            )
+        )
+        start = stop
+    return tuple(output)
+
+
+def _mixture_component_candidate(  # noqa: PLR0913, PLR0917
     samples: _FitSamples,
     result: OptimizeResult,
     covariance: np.ndarray | None,
     initial_bounds: tuple[np.ndarray, np.ndarray, np.ndarray],
-    index: int,
-) -> CompactGaussianFitResult:
-    """Publish a marginal fit with joint residual and covariance evidence."""
+    block: slice,
+    full_parameters: np.ndarray,
+    fallback_reason: _FallbackReason | None,
+) -> _FitCandidate:
+    """Keep marginal parameters and errors from the same joint solution."""
     optimizer = result
-    block = slice(6 * index, 6 * (index + 1))
     parameters = np.asarray(optimizer.x[block], dtype=np.float64)
-    full_parameters = np.append(parameters, 0.0)
     _, lower, upper = initial_bounds
+    constrained = parameters.size == len(
+        _CONSTRAINED_FIXED_BACKGROUND_PARAMETER_NAMES
+    )
     diagnostics = _diagnostics(
         converged=bool(optimizer.success),
         function_evaluations=int(optimizer.nfev),
         evidence=_FitEvidence(
             parameters=parameters,
-            lower_bounds=lower,
-            upper_bounds=upper,
+            lower_bounds=lower[: parameters.size],
+            upper_bounds=upper[: parameters.size],
             jacobian=np.asarray(optimizer.jac[:, block]),
             x=samples.x,
             y=samples.y,
             weighted_residual=np.asarray(optimizer.fun),
-            parameter_names=_FREE_FIXED_BACKGROUND_PARAMETER_NAMES,
-            model_identity="free-elliptical",
+            parameter_names=(
+                _CONSTRAINED_FIXED_BACKGROUND_PARAMETER_NAMES
+                if constrained
+                else _FREE_FIXED_BACKGROUND_PARAMETER_NAMES
+            ),
+            model_identity="beam-constrained"
+            if constrained
+            else "free-elliptical",
             full_parameters=full_parameters,
-            fallback_reason=None,
+            fallback_reason=fallback_reason,
             point_estimator=samples.point_estimator,
             point_estimator_fallback_reason=samples.point_estimator_fallback_reason,
         ),
@@ -2076,7 +2207,7 @@ def _publish_mixture_component(  # noqa: PLR0913, PLR0917
             else None
         ),
     )
-    candidate = _FitCandidate(
+    return _FitCandidate(
         success=bool(optimizer.success),
         optimizer_parameters=parameters,
         full_parameters=full_parameters,
@@ -2084,18 +2215,17 @@ def _publish_mixture_component(  # noqa: PLR0913, PLR0917
         covariance=None if covariance is None else covariance[block, block],
         diagnostics=diagnostics,
     )
-    if not candidate.success or not _numerically_valid(
-        candidate, context.config
-    ):
-        return FailedCompactGaussianFit(
-            moment=context.moment,
-            reason="fit-non-convergence"
-            if not candidate.success
-            else "fit-invalid-result",
-            diagnostics=diagnostics,
-            quality_flags=("joint-gaussian-fit", "fit-failed"),
+
+
+def _publish_mixture_component(
+    context: _FitPublicationContext, candidate: _FitCandidate
+) -> CompactGaussianFitResult:
+    """Do not mix parameters, covariance or flux from competing joint fits."""
+    fitted = _selected_fit_result(context, candidate)
+    if not isinstance(fitted, ValidCompactGaussianFit):
+        return replace(
+            fitted, quality_flags=(*fitted.quality_flags, "joint-gaussian-fit")
         )
-    fitted = _valid_fit_result(context, candidate, position_estimate=None)
     return replace(
         fitted,
         quality_flags=tuple(
@@ -2164,6 +2294,14 @@ def fit_compact_gaussian_mixture(  # noqa: PLR0913
         & np.isfinite(compact.rms)
         & (compact.rms > 0.0)
     )
+    # Likelihood support is independent of the much larger adequacy halo.
+    # All neighbours contribute their complete models at every retained
+    # pixel; an ownership boundary never truncates an individual Gaussian.
+    if config.pixel_support == "owned-region":
+        valid &= np.isin(
+            compact.region_labels,
+            tuple(region.region_label for region in compact.regions),
+        )
     parameter_count = 6 * len(ordered)
     pixel_count = int(np.count_nonzero(valid))
     if (
@@ -2212,61 +2350,18 @@ def _solve_joint_components(
     initial_bounds: tuple[tuple[np.ndarray, np.ndarray, np.ndarray], ...],
 ) -> tuple[CompactGaussianFitResult, ...]:
     """Solve admitted joint work and publish all neighbours atomically."""
-    config = samples.config
-    geometry = samples.geometry
-    initial, lower, upper = (
-        np.concatenate([values[index] for values in initial_bounds])
-        for index in range(3)
-    )
-
-    def residual(parameters: np.ndarray) -> np.ndarray:
-        return samples.residual_transform(
-            (_mixture_model(parameters, samples.x, samples.y) - samples.values)
-            / samples.rms
-        )
-
-    def jacobian(parameters: np.ndarray) -> np.ndarray:
-        return samples.residual_transform(
-            _mixture_jacobian(parameters, samples.x, samples.y)
-            / samples.rms[:, None]
-        )
-
     try:
-        result = least_squares(
-            residual,
-            initial,
-            jac=jacobian,  # pyright: ignore[reportArgumentType]
-            bounds=(lower, upper),
-            method="trf",
-            x_scale="jac",
-            ftol=config.convergence_tolerance,
-            xtol=config.convergence_tolerance,
-            gtol=config.convergence_tolerance,
-            max_nfev=config.maximum_function_evaluations,
+        free = _joint_candidates(
+            samples, initial_bounds, (None,) * len(contexts)
         )
-        covariance = _parameter_covariance(
-            np.asarray(result.jac),
-            np.column_stack((samples.x, samples.y)),
-            geometry,
-            correlated_point_estimator=(
-                samples.point_estimator == "correlated-gls"
-            ),
-        )
+        selected = _select_joint_candidates(samples, initial_bounds, free)
         return tuple(
-            _publish_mixture_component(
-                context,
-                samples,
-                result,
-                covariance,
-                initial_bounds[index],
-                index,
-            )
-            for index, context in enumerate(contexts)
+            _publish_mixture_component(context, candidate)
+            for context, candidate in zip(contexts, selected, strict=True)
         )
     except np.linalg.LinAlgError:
-        # A joint solve and its covariance are coupled: never salvage a
-        # subset of neighbours or invent diagnostics when decomposition
-        # fails. Other parent islands can still be measured independently.
+        # Joint parameters and covariance are coupled. Never salvage only
+        # a subset of neighbours after a numerical decomposition failure.
         return tuple(
             FailedCompactGaussianFit(
                 moment=context.moment,
@@ -2276,3 +2371,158 @@ def _solve_joint_components(
             )
             for context in contexts
         )
+
+
+def _select_joint_candidates(
+    samples: _FitSamples,
+    initial_bounds: tuple[tuple[np.ndarray, np.ndarray, np.ndarray], ...],
+    free: tuple[_FitCandidate, ...],
+) -> tuple[_FitCandidate, ...]:
+    """Compare coherent nested joint models with the existing evidence rule.
+
+    Significantly extended neighbours keep free shapes in both models. Other
+    components share one beam-constrained alternative, so selection is
+    permutation invariant and requires at most two bounded joint solves.
+    The BIC counts every fitted parameter once and the joint residual once.
+    """
+    beam = samples.geometry.restoring_beam_covariance_pixels_squared
+    if samples.config.model_selection == "free-only" or beam is None:
+        return free
+    reasons: tuple[_FallbackReason | None, ...] = tuple(
+        _free_fallback_reason(item, beam, samples.config) for item in free
+    )
+    if not any(reasons):
+        return free
+    constrained = _joint_candidates(samples, initial_bounds, reasons)
+    constrained_failed = any(
+        not item.success
+        or not _numerically_valid(item, samples.config)
+        or not _identifiable(item, samples.config)
+        for item in constrained
+    )
+    # A failed or physically invalid free model cannot win on goodness of
+    # fit. Insignificant extension alone may retain it on the existing BIC.
+    retain_free = all(
+        reason in (None, "free-model-not-significantly-extended")
+        for reason in reasons
+    ) and (
+        constrained_failed
+        or _free_preferred_by_bic(
+            free[0],
+            constrained[0],
+            samples,
+            free_parameter_count=sum(
+                item.optimizer_parameters.size for item in free
+            ),
+            constrained_parameter_count=sum(
+                item.optimizer_parameters.size for item in constrained
+            ),
+        )
+    )
+    selected, rejected = (
+        (free, constrained) if retain_free else (constrained, free)
+    )
+    return tuple(
+        _with_rejected_model(chosen, other)
+        for chosen, other in zip(selected, rejected, strict=True)
+    )
+
+
+def _joint_candidates(
+    samples: _FitSamples,
+    initial_bounds: tuple[tuple[np.ndarray, np.ndarray, np.ndarray], ...],
+    reasons: tuple[_FallbackReason | None, ...],
+) -> tuple[_FitCandidate, ...]:
+    """Solve one nested joint model and retain its marginal covariance."""
+    config = samples.config
+    geometry = samples.geometry
+    sizes = tuple(3 if reason else 6 for reason in reasons)
+    offsets = np.cumsum((0, *sizes))
+    blocks = tuple(
+        slice(int(start), int(stop)) for start, stop in pairwise(offsets)
+    )
+    beam = geometry.restoring_beam_covariance_pixels_squared
+    # No constrained block is constructed without a physical beam. The
+    # empty shape is unused by every free block, including free-only fits.
+    beam_shape = _beam_shape(beam) if beam is not None else ()
+    full_indices = np.concatenate(
+        [
+            np.arange(6 * index, 6 * index + size)
+            for index, size in enumerate(sizes)
+        ]
+    )
+    initial, lower, upper = (
+        np.concatenate(
+            [
+                values[index][:size]
+                for values, size in zip(initial_bounds, sizes, strict=True)
+            ]
+        )
+        for index in range(3)
+    )
+
+    def expand(parameters: np.ndarray) -> np.ndarray:
+        return np.concatenate(
+            [
+                np.concatenate((parameters[block], beam_shape))
+                if size == len(_CONSTRAINED_FIXED_BACKGROUND_PARAMETER_NAMES)
+                else parameters[block]
+                for block, size in zip(blocks, sizes, strict=True)
+            ]
+        )
+
+    def residual(parameters: np.ndarray) -> np.ndarray:
+        return samples.residual_transform(
+            (
+                _mixture_model(expand(parameters), samples.x, samples.y)
+                - samples.values
+            )
+            / samples.rms
+        )
+
+    def jacobian(parameters: np.ndarray) -> np.ndarray:
+        return samples.residual_transform(
+            _mixture_jacobian(expand(parameters), samples.x, samples.y)[
+                :, full_indices
+            ]
+            / samples.rms[:, None]
+        )
+
+    result = least_squares(
+        residual,
+        initial,
+        jac=jacobian,  # pyright: ignore[reportArgumentType]
+        bounds=(lower, upper),
+        method="trf",
+        x_scale="jac",
+        ftol=config.convergence_tolerance,
+        xtol=config.convergence_tolerance,
+        gtol=config.convergence_tolerance,
+        max_nfev=config.maximum_function_evaluations,
+    )
+    covariance = _parameter_covariance(
+        np.asarray(result.jac),
+        np.column_stack((samples.x, samples.y)),
+        geometry,
+        correlated_point_estimator=(
+            samples.point_estimator == "correlated-gls"
+        ),
+    )
+    full = expand(np.asarray(result.x)).reshape(-1, 6)
+    candidates = tuple(
+        _mixture_component_candidate(
+            samples,
+            result,
+            covariance,
+            initial_bounds[index],
+            blocks[index],
+            np.append(full[index], 0.0),
+            reasons[index],
+        )
+        for index in range(len(initial_bounds))
+    )
+    return (
+        _recover_joint_shape_information(samples, candidates)
+        if covariance is None
+        else candidates
+    )

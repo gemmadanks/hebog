@@ -242,7 +242,7 @@ class PublicSourceFindingProvenance(BaseModel):
     scientific_profile_sha256: str
     scientific_composition_sha256: str
     scientific_composition: Literal[
-        "phase-5-native-component-and-source-measurements-v9"
+        "phase-5-observable-source-and-joint-estimator-v10"
     ]
     schema_version: Literal[1] = 1
 
@@ -279,7 +279,7 @@ class PublicSourceFindingDiagnostics(BaseModel):
     measurement_dispositions: tuple[MeasurementDisposition, ...] = ()
     rms_scientific_status: Literal["valid", "unavailable"]
     provenance: PublicSourceFindingProvenance
-    schema_version: Literal[6] = 6
+    schema_version: Literal[7] = 7
 
     @model_validator(mode="after")
     def _validate_diagnostics(self) -> Self:

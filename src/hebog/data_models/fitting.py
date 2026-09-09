@@ -128,6 +128,9 @@ class GaussianFitDiagnostics:
     relative_bound_distances: tuple[tuple[str, float], ...] = ()
     minimum_relative_bound_distance: float | None = None
     information_condition_number: float | None = None
+    covariance_parameterization: Literal[
+        "optimizer", "cartesian-precision"
+    ] = "optimizer"
     visible_model_fraction: float | None = None
     retained_pixel_count: int = 0
     retained_bounds_yx: tuple[int, int, int, int] | None = None

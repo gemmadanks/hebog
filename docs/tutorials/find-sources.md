@@ -142,10 +142,13 @@ The three catalogue populations have deliberately different meanings:
 islands. They do not describe the larger, source-owned measurement aperture.
 The published mask contains detections, not every pixel used for photometry.
 
-Compact positions, fluxes and shapes use bounded joint Gaussian fits to the
-original background-subtracted pixels, including signed background context.
-Irregular extended flux uses a signed, non-overlapping source-owned aperture.
-Its centroid can lie between peaks or inside a shell's hole. A denoised
+Gaussian components use bounded joint fits to original background-subtracted
+pixels, with the configured beam/free selection and likelihood support.
+Their flux is the full Gaussian model integral, including any off-image tail.
+Every associated source instead uses a signed, non-overlapping aperture on
+finite valid image pixels, including compact singletons. Source positions use
+the unexpanded source-owned footprint, not measurement-only flux wings.
+A source centroid can lie between peaks or inside a shell's hole. A denoised
 position fallback is explicitly flagged; positive-only pixels never silently
 replace a failed signed flux estimate. An aperture shape is unavailable,
 not a claimed fitted Gaussian or an unresolved source.
@@ -153,10 +156,18 @@ not a claimed fitted Gaussian or an unresolved source.
 `diagnostics.measurement_dispositions` retains every component and associated
 source, including unavailable or bounded-work-deferred measurements. Each
 entry gives its estimator or failure reason, source membership and whether
-a catalogue row was published. A failed fit does not discard its detection
+a catalogue row was published. Component diagnostics retain the fitted model,
+likelihood pixel count, GLS fallback reason, covariance basis and competing
+association group IDs. Source diagnostics retain both signed-original and
+denoised centroids, their selection rule, position/aperture counts and signed
+flux. These are attribution records, not new scientific scores.
+A failed fit does not discard its detection
 or abort an unrelated valid source. Missing uncertainty remains unavailable,
 not zero. The current catalogue JSON, catalogue FITS and public diagnostics
-schemas are versions 3, 4 and 6 respectively; stale versions fail clearly.
+schemas are versions 3, 4 and 7 respectively; stale versions fail clearly.
+Composition `phase-5-observable-source-and-joint-estimator-v10` remains
+development-unqualified pending new candidate-bound evidence. Historical
+campaign results do not qualify these changed measurements.
 
 For a component-level comparison with a PyBDSF Gaussian catalogue, compare
 `catalogue.gaussian_components`, not `catalogue.sources`. Plotting one marker

@@ -2448,6 +2448,29 @@ source measurements, association/position attribution, short joint fixture
 validation and only then new exact cumulative evidence. Review is complete;
 repairs, fresh qualification, Phase 5 closeout and release are not.
 
+## 2026-09-09: Prospective R6 estimator repairs implemented
+
+The approved [estimator/source-domain repairs](phase-5-r6-estimator-repairs.md)
+restore coherent joint beam/free selection and owned-region GLS; retain
+observable, signed source apertures separately from native Gaussian component
+measurements; and add bounded extended-association and centroid attribution.
+Independent regression fixtures also exposed circular-coordinate covariance
+and periodic-angle initialization defects, now covered by focused tests.
+
+The 108-case synthetic development matrix passes across analytic, noisy and
+public-background conditions, including prior geometry guards. Four additional
+open/asymmetric-arc cases, compact-neighbour counterexamples, 192 masked-corner
+noise realizations and public Serial/existing-Dask conformance pass. This is
+development evidence, **not a replacement campaign or a parity verdict**.
+No closed scientific case was rerun, rematched or rescored.
+
+The original terminal remains `7146f2e8...`: 885 pass, 288 fail, 14
+underpowered, all five safety checks pass, and both readiness flags false.
+The new public v10 composition and diagnostics schema 7 require separately
+bound cumulative evidence before fresh qualification. Engineering validation
+and the non-executable freeze are recorded in the plan and `LOG.md`; neither
+grants execution authority. R6 and Phase 5 remain open.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

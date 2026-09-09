@@ -240,6 +240,64 @@ def test_disconnected_loops_in_one_context_do_not_share_fitted_arcs(
     assert set(groups) == {frozenset(range(1, 5)), frozenset(range(5, 9))}
 
 
+@pytest.mark.parametrize(
+    "centres",
+    (
+        ((8.0, 12.0), (16.0, 12.0)),
+        ((8.0, 12.0), (16.0, 12.0), (24.0, 12.0)),
+        ((8.0, 8.0), (24.0, 8.0), (16.0, 20.0)),
+        ((-1.0, 12.0), (34.0, 12.0), (16.0, 26.0)),
+    ),
+)
+def test_open_arc_rejects_insufficient_or_non_tangential_evidence(
+    centres: tuple[tuple[float, float], ...],
+) -> None:
+    """Connected parallel ellipses or collinear centres do not prove an arc."""
+    fitted = _measure().fits[0][1]
+    assert isinstance(fitted, ValidCompactGaussianFit)
+    fits = tuple(
+        (
+            index,
+            replace(
+                fitted,
+                parameters=replace(fitted.parameters, centroid_xy=centre),
+            ),
+        )
+        for index, centre in enumerate(centres, 1)
+    )
+    assert (
+        measurement._resolved_open_arc_groups(
+            np.full((25, 33), 6.0),
+            np.ones((25, 33), dtype=bool),
+            fits,
+            ImageBounds(0, 25, 0, 33),
+            np.eye(2),
+            3.0,
+        )
+        == ()
+    )
+
+
+def test_compact_core_evidence_requires_an_available_local_model() -> None:
+    """Absent models or residual wings cannot override compact protection."""
+    fitted = _measure().fits[0][1]
+    assert isinstance(fitted, ValidCompactGaussianFit)
+    labels = np.zeros((25, 33), dtype=np.int32)
+    labels[0, 0] = 1
+    arguments = (
+        labels,
+        1,
+        ImageBounds(0, 25, 0, 33),
+        labels > 0,
+    )
+    assert not measurement._fit_core_in_feature(1, (), *arguments)
+    assert not measurement._fit_core_in_feature(1, ((1, fitted),), *arguments)
+    labels[12, 16] = 1
+    assert measurement._fit_core_in_feature(
+        1, ((1, fitted),), labels, 1, arguments[2], labels > 0
+    )
+
+
 def test_all_invalid_parent_defers_without_fabricating_measurement() -> None:
     result = _measure(valid=np.zeros((25, 33), dtype=np.bool_))
     assert result.fits == result.compact_groups == ()
@@ -277,6 +335,7 @@ def test_morphology_work_limits_apply_before_context_model_allocation(
             3.0,
             0.5,
             1,
+            measurement_support=labels > 0,
         )
         == ()
     )

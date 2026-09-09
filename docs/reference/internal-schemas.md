@@ -55,12 +55,12 @@ A major-axis-only deconvolution stores one positive
 angle. NaN and legacy zero sentinels are not null values. A fitted Gaussian
 always has a fitted shape; a source-level fitted shape may be unavailable.
 
-The current public v9 composition reports the native fitted Gaussian integral
-for compact components and compact singleton sources. It does not substitute
+The current public v10 composition reports the native fitted Gaussian integral
+for components, not for associated-source rows. It does not substitute
 peak brightness for integrated flux because threshold-truncated moments look
 unresolved. Shape, flux and position errors propagate the fitted covariance;
-missing or singular errors remain unavailable. Irregular extended-source
-measurements use signed, source-owned apertures and explicitly unavailable
+missing or singular errors remain unavailable. All associated-source
+measurements use signed, source-owned observable apertures and unavailable
 fitted/deconvolved shapes. Estimator flags distinguish these from other
 governed pipeline measurements; different estimators must not be pooled as
 like-semantics evidence.
@@ -144,7 +144,7 @@ schema version 1 so its diagnostics bytes do not change. When a
 `MaterializedProduct` record is supplied, the reader also requires its declared
 content schema to match the canonical JSON payload.
 
-`PublicSourceFindingDiagnostics` schema version 6 records the public profile,
+`PublicSourceFindingDiagnostics` schema version 7 records the public profile,
 profile limitations, population counts, RMS status, exact provenance, and the
 numbers of connected parents that were deblended or retained through the
 bounded deblend fallback. Its
@@ -166,6 +166,18 @@ owner. Catalogue FITS `ADDITIONAL_ISLAND_IDS` preserves the multi-island links.
 An island's signed flux statistic can be non-positive without being a valid
 positive source measurement. These schema changes reject stale products
 without a legacy reader.
+
+The optional array-free fit attribution retains the exact optimizer model,
+retained sample count, noise-estimator/fallback reason, bound and conditioning
+evidence, covariance availability and parameterization. Circular-coordinate
+recovery uses Cartesian Gaussian precision; an undefined angle does not
+become a reported zero shape error. Association attribution retains original
+hierarchy, compact-model and extended-morphology group IDs with the selected
+decision, using constant-size references per component rather than repeated
+membership lists. Source-position attribution retains both centroid estimates,
+the selected weighting rule, unavailable reason, separate position/aperture
+counts, signed weights/flux and estimated background mean. It does not claim
+to know background error or true RMS on an arbitrary observed image.
 
 A joint Gaussian linear-algebra exception is retained as
 `fit-linear-algebra-failure` for every component in that coupled fit. These

@@ -4,7 +4,39 @@ from __future__ import annotations
 
 from typing import Literal, Self
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from hebog.data_models.fitting import GaussianFitDiagnostics
+
+
+class SourcePositionDiagnostics(BaseModel):
+    """Small attribution record; no pixels, truth or scheduler objects."""
+
+    model_config = ConfigDict(
+        extra="forbid", frozen=True, strict=True, allow_inf_nan=False
+    )
+
+    signed_original_xy: tuple[float, float] | None
+    denoised_xy: tuple[float, float] | None
+    selected_xy: tuple[float, float] | None
+    selection_reason: str
+    unavailable_reason: str | None
+    position_pixel_count: int = Field(ge=0)
+    aperture_pixel_count: int = Field(ge=0)
+    position_signed_weight: float | None
+    aperture_signed_flux_jy: float | None
+    aperture_background_mean: float | None
+
+
+class AssociationDecisionDiagnostics(BaseModel):
+    """Competing group IDs, linear in component count, with no image arrays."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+
+    hierarchy_group_id: str
+    compact_model_group_id: str | None
+    extended_group_id: str | None
+    decision: Literal["hierarchy", "compact-model", "extended-morphology"]
 
 
 class MeasurementDisposition(BaseModel):
@@ -24,6 +56,10 @@ class MeasurementDisposition(BaseModel):
     reason: str | None
     member_component_ids: tuple[str, ...] = ()
     catalogue_row_published: bool = False
+    fit_diagnostics: GaussianFitDiagnostics | None = None
+    fit_covariance_available: bool | None = None
+    position_diagnostics: SourcePositionDiagnostics | None = None
+    association_diagnostics: AssociationDecisionDiagnostics | None = None
 
     @model_validator(mode="after")
     def _validate_disposition(self) -> Self:

@@ -8,11 +8,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from typing import Any
 
 import numpy as np
 import pytest
 from astropy.modeling import fitting, models
 from scipy.special import ndtr
+from scipy.stats import chi2
 
 from hebog.algorithms import fitting as fitting_algorithm
 from hebog.algorithms.deblending import DeblendedRegion
@@ -33,6 +35,7 @@ from hebog.data_models.fitting import (
 from hebog.data_models.measurement import (
     CompactMeasurementGeometry,
     UnavailableMomentMeasurement,
+    ValidMomentMeasurement,
 )
 from hebog.data_models.partitioning import ImageBounds
 
@@ -302,6 +305,340 @@ def test_joint_fit_separates_neighbour_flux_and_keeps_marginal_errors() -> (
         )
         assert fitted.association_aperture is None
         assert "joint-gaussian-fit" in fitted.quality_flags
+
+
+@pytest.mark.parametrize("joint", (False, True))
+def test_joint_solver_honours_beam_or_free_policy(joint: bool) -> None:
+    """Exact beam sources must not acquire six free shape parameters."""
+    if joint:
+        compact = _joint_input()
+        geometry = CompactMeasurementGeometry(
+            pixel_solid_angle_steradians=1.0,
+            restoring_beam_solid_angle_steradians=6 * np.pi,
+            restoring_beam_covariance_pixels_squared=(4.0, 0.0, 2.25),
+        )
+    else:
+        compact = _gaussian_input(
+            amplitude=0.5,
+            sigma_axes=(1.6, 8 / (2 * np.pi * 1.6)),
+            angle_degrees=20.0,
+        )
+        geometry = _beam_geometry()
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+    fits = fit_compact_gaussian_mixture(
+        compact,
+        moments,
+        geometry,
+        _fit_config(
+            background_model="fixed-zero", model_selection="beam-or-free"
+        ),
+    )
+    for fitted in fits:
+        assert isinstance(fitted, ValidCompactGaussianFit)
+        assert fitted.diagnostics.model_identity == "beam-constrained"
+        assert fitted.diagnostics.rejected_model_identity == "free-elliptical"
+        assert fitted.uncertainty is not None
+        assert fitted.uncertainty.integrated_flux_error_jy > 0
+
+
+def test_joint_owned_region_gls_ignores_adequacy_context() -> None:
+    """A large halo must not change the declared fit sample domain."""
+    compact = _joint_input()
+    geometry = replace(
+        _geometry(),
+        noise_correlation_covariance_pixels_squared=(1.0, 0.0, 1.0),
+    )
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+    config = _fit_config(
+        background_model="fixed-zero",
+        pixel_support="owned-region",
+        point_estimator="correlated-gls",
+    )
+    expected_pixels = int(np.count_nonzero(compact.region_labels))
+    fits = fit_compact_gaussian_mixture(compact, moments, geometry, config)
+    for fitted in fits:
+        assert isinstance(fitted, ValidCompactGaussianFit)
+        assert fitted.diagnostics.retained_pixel_count == expected_pixels
+        assert fitted.diagnostics.point_estimator == "correlated-gls"
+        assert fitted.diagnostics.point_estimator_fallback_reason is None
+    changed = replace(
+        compact,
+        physical_residual=np.where(
+            compact.region_labels > 0, compact.physical_residual, -1000.0
+        ),
+    )
+    assert (
+        fit_compact_gaussian_mixture(changed, moments, geometry, config)
+        == fits
+    )
+
+
+@pytest.mark.parametrize("recover_mixed_information", (False, True))
+def test_joint_mixed_model_selection_is_order_invariant(
+    monkeypatch: pytest.MonkeyPatch, recover_mixed_information: bool
+) -> None:
+    """A resolved neighbour keeps its shape beside a beam-constrained row."""
+    compact = _joint_input()
+    yy, xx = np.mgrid[:25, :33]
+    signal = 50 * np.exp(
+        -0.5 * (((xx - 12) / 2) ** 2 + ((yy - 12) / 1.5) ** 2)
+    )
+    signal += 50 * np.exp(
+        -0.5 * (((xx - 19) / 3.2) ** 2 + ((yy - 12) / 2.2) ** 2)
+    )
+    compact = replace(compact, physical_residual=signal)
+    geometry = replace(
+        _geometry(), restoring_beam_covariance_pixels_squared=(4.0, 0.0, 2.25)
+    )
+    config = _fit_config(
+        background_model="fixed-zero", model_selection="beam-or-free"
+    )
+    if recover_mixed_information:
+        original = fitting_algorithm._parameter_covariance
+        mixed_calls = 0
+
+        def unavailable_optimizer_information(
+            jacobian: np.ndarray, *args: Any, **kwargs: Any
+        ) -> np.ndarray | None:
+            nonlocal mixed_calls
+            if jacobian.shape[1] == 9:
+                mixed_calls += 1
+                if mixed_calls % 2 == 1:
+                    return None
+            return original(jacobian, *args, **kwargs)
+
+        monkeypatch.setattr(
+            fitting_algorithm,
+            "_parameter_covariance",
+            unavailable_optimizer_information,
+        )
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+    fitted = fit_compact_gaussian_mixture(compact, moments, geometry, config)
+    reversed_fits = fit_compact_gaussian_mixture(
+        replace(compact, regions=compact.regions[::-1]),
+        moments[::-1],
+        geometry,
+        config,
+    )[::-1]
+    for first, second, identity, axes in zip(
+        fitted,
+        reversed_fits,
+        ("beam-constrained", "free-elliptical"),
+        ((2.0, 1.5), (3.2, 2.2)),
+        strict=True,
+    ):
+        assert isinstance(first, ValidCompactGaussianFit)
+        assert isinstance(second, ValidCompactGaussianFit)
+        assert (
+            first.diagnostics.model_identity
+            == second.diagnostics.model_identity
+            == identity
+        )
+        assert first.diagnostics.degrees_of_freedom == signal.size - 9
+        assert first.parameters.centroid_xy == pytest.approx(
+            second.parameters.centroid_xy, abs=1e-6
+        )
+        assert (
+            first.parameters.major_sigma_pixels,
+            first.parameters.minor_sigma_pixels,
+        ) == pytest.approx(axes, abs=1e-5)
+        assert first.uncertainty is not None
+        assert second.uncertainty is not None
+        if recover_mixed_information:
+            assert first.diagnostics.covariance_parameterization == (
+                "cartesian-precision"
+            )
+        assert first.uncertainty.integrated_flux_error_jy == pytest.approx(
+            second.uncertainty.integrated_flux_error_jy, rel=1e-5
+        )
+
+
+def test_failed_beam_alternative_keeps_a_valid_joint_free_fit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An unsuccessful alternative cannot invalidate the valid free model."""
+    compact = _joint_input()
+    geometry = replace(
+        _geometry(), restoring_beam_covariance_pixels_squared=(4.0, 0.0, 2.25)
+    )
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+    original = fitting_algorithm.least_squares
+    calls = 0
+
+    def failed_alternative(*args: Any, **kwargs: Any) -> Any:
+        nonlocal calls
+        calls += 1
+        result = original(*args, **kwargs)
+        if calls == 2:
+            result.success = False
+        return result
+
+    monkeypatch.setattr(fitting_algorithm, "least_squares", failed_alternative)
+    results = fit_compact_gaussian_mixture(
+        compact,
+        moments,
+        geometry,
+        _fit_config(
+            background_model="fixed-zero", model_selection="beam-or-free"
+        ),
+    )
+    assert calls == 2
+    assert all(
+        isinstance(result, ValidCompactGaussianFit)
+        and result.diagnostics.model_identity == "free-elliptical"
+        for result in results
+    )
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "center", ((1.0, 1.0), (15.0, 1.0), (1.0, 13.0), (15.0, 13.0))
+)
+def test_joint_corner_covariance_matches_correlated_noise_ensemble(
+    center: tuple[float, float],
+) -> None:
+    """Calibrate joint marginal errors on independent masked corner noise.
+
+    The 99.9% chi-square variance interval is a numerical calibration guard,
+    not the campaign's classification threshold or qualification confidence.
+    No detection-selected pixels or campaign seeds enter this experiment.
+    """
+    compact = _gaussian_input(
+        amplitude=3.0,
+        centroid_xy=center,
+        shape_yx=(15, 17),
+        origin_yx=(0, 0),
+        rms_value=0.12,
+    )
+    valid = compact.valid_pixels.copy()
+    valid[::5, ::7] = False
+    compact = replace(
+        compact,
+        valid_pixels=valid,
+        region_labels=valid.astype(np.int32),
+        regions=(replace(compact.regions[0], pixel_count=int(valid.sum())),),
+        island=replace(compact.island, pixel_count=int(valid.sum())),
+    )
+    geometry = replace(
+        _beam_geometry(),
+        noise_correlation_covariance_pixels_squared=(1.0, 0.0, 1.0),
+    )
+    yy, xx = np.nonzero(valid)
+    coordinates = np.column_stack((xx, yy))
+    distances = coordinates[:, None, :] - coordinates[None, :, :]
+    correlation = np.exp(-0.5 * np.sum(distances**2, axis=2))
+    factor = np.linalg.cholesky(correlation)
+    generator = np.random.default_rng(8_491_277)
+    standardized = []
+    # Fix a positive initialization independently of each noise draw. This
+    # isolates covariance calibration from detection/truncation selection.
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+    for _ in range(48):
+        noisy = compact.physical_residual.copy()
+        noisy[valid] += 0.12 * (factor @ generator.normal(size=len(xx)))
+        observed = replace(compact, physical_residual=noisy)
+        (fitted,) = fit_compact_gaussian_mixture(
+            observed,
+            moments,
+            geometry,
+            _fit_config(
+                background_model="fixed-zero",
+                pixel_support="owned-region",
+                point_estimator="correlated-gls",
+            ),
+        )
+        assert isinstance(fitted, ValidCompactGaussianFit)
+        assert fitted.uncertainty is not None
+        assert fitted.diagnostics.point_estimator == "correlated-gls"
+        errors = fitted.uncertainty
+        assert errors.shape_parameter_covariance is not None
+        measured = np.array(
+            (
+                *fitted.parameters.centroid_xy,
+                fitted.parameters.major_sigma_pixels,
+                fitted.parameters.minor_sigma_pixels,
+            )
+        )
+        variances = np.array(
+            (
+                errors.centroid_covariance_xx_pixels_squared,
+                errors.centroid_covariance_yy_pixels_squared,
+                errors.shape_parameter_covariance[0],
+                errors.shape_parameter_covariance[3],
+            )
+        )
+        standardized.append(
+            (measured - (*center, 2.4, 1.3)) / np.sqrt(variances)
+        )
+    residuals = np.asarray(standardized)
+    bounds = chi2.ppf((0.0005, 0.9995), 47) / 47
+    variance = np.var(residuals, axis=0, ddof=1)
+    assert np.all((variance >= bounds[0]) & (variance <= bounds[1])), variance
+    assert np.all(np.abs(np.mean(residuals, axis=0)) < 0.6)
+
+
+@pytest.mark.parametrize("axes", ((2.0, 2.0), (2.4, 1.3)))
+def test_precision_shape_jacobian_matches_finite_differences(
+    axes: tuple[float, float],
+) -> None:
+    """The circular-safe information basis differentiates the same model."""
+    theta = 0.4
+    rotation = np.array(
+        ((np.cos(theta), -np.sin(theta)), (np.sin(theta), np.cos(theta)))
+    )
+    precision = rotation @ np.diag(1 / np.square(axes)) @ rotation.T
+    parameters = np.array((10.0, 3.0, 4.0, *axes, theta, 0.0))
+    cartesian = np.array(
+        (10.0, 3.0, 4.0, precision[0, 0], precision[0, 1], precision[1, 1])
+    )
+    x, y = np.array((1.0, 2.0, 4.0, 7.0)), np.array((2.0, 3.0, 5.0, 6.0))
+
+    def model(values: np.ndarray) -> np.ndarray:
+        amplitude, cx, cy, qxx, qxy, qyy = values
+        dx, dy = x - cx, y - cy
+        return amplitude * np.exp(
+            -0.5 * (qxx * dx**2 + 2 * qxy * dx * dy + qyy * dy**2)
+        )
+
+    jacobian = fitting_algorithm._precision_shape_jacobian(parameters, x, y)
+    for column in range(6):
+        step = np.eye(6)[column] * 1e-6
+        np.testing.assert_allclose(
+            jacobian[:, column],
+            (model(cartesian + step) - model(cartesian - step)) / 2e-6,
+            rtol=1e-6,
+            atol=1e-8,
+        )
+
+
+@pytest.mark.parametrize("turn", (-360.0, -180.0, 180.0, 360.0))
+def test_joint_initial_orientation_is_periodic(turn: float) -> None:
+    """An eigenvector sign or full turn cannot create an optimizer wall."""
+    compact = _gaussian_input(sigma_axes=(2.4, 1.3), angle_degrees=157.0)
+    geometry = _geometry()
+    moment = measure_compact_moments(compact, geometry, _moment_config())[1]
+    assert isinstance(moment, ValidMomentMeasurement)
+    shifted = replace(
+        moment,
+        initializer=replace(
+            moment.initializer,
+            major_axis_angle_degrees=moment.initializer.major_axis_angle_degrees
+            + turn,
+        ),
+    )
+    fitted = fit_compact_gaussian_mixture(
+        compact,
+        (shifted,),
+        geometry,
+        _fit_config(background_model="fixed-zero"),
+    )[0]
+    assert isinstance(fitted, ValidCompactGaussianFit)
+    assert fitted.parameters.major_axis_angle_degrees % 180 == pytest.approx(
+        157.0, abs=1e-5
+    )
+    assert fitted.parameters.major_sigma_pixels == pytest.approx(2.4, rel=1e-5)
+    assert fitted.parameters.minor_sigma_pixels == pytest.approx(1.3, rel=1e-5)
+    assert "position-angle" not in fitted.diagnostics.bound_parameters
 
 
 def test_joint_gaussian_jacobian_matches_independent_finite_difference() -> (

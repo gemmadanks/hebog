@@ -979,29 +979,47 @@ All of this is development evidence, not replacement parity or qualification.
     corner classification censoring and curved/shell fragmentation. Preserve
     the distinction between confirmed mechanisms and remaining calibration
     hypotheses. Review artifact is non-executable and grants no authority.
-  - [ ] **R6-R1 — Review the prospective repair contract.** Obtain scientific
-    review of C1--C3/E1--E3, including native Gaussian component versus
-    observable source semantics. Freeze independent positive/negative fixture
-    requirements before implementation; no gate, truth, margin or comparator
-    change is implied by acceptance of this review.
-  - [ ] **R6-R2 — Restore compact estimator conformance.** Test-first joint
+  - [x] **R6-R1 — Review the prospective repair contract.** The scientific
+    owner approved the recommended repairs on 2026-09-09. The immutable
+    review `939152d8...` remains non-executable. Native Gaussian components
+    retain whole-model measurements; source rows retain observable, signed,
+    single-owner aperture measurements. Independent fixtures must cover
+    singleton/blended beam/free selection, owned-region versus context GLS,
+    cropped/masked sources, covariance calibration, open arcs/shells versus
+    independent compact neighbours, and centroid attribution. No gate, truth,
+    margin, comparator or execution identity changes with this approval.
+  - [x] **R6-R2 — Restore compact estimator conformance.** Test-first joint
     beam/free policy and bounded correlated-noise likelihood support, distinct
     from model-adequacy halos. Preserve neighbour treatment and coherent fit
     parameters/errors. Calibrate corner/edge covariance and deconvolution on
     independent noisy fixtures; do not lower the five-sigma classification
     rule. Cover support/context limits and retain small per-fit diagnostics.
-  - [ ] **R6-R3 — Correct source measurement-domain consistency.** Keep native
+    Completed on independent fixtures: coherent beam/free joint selection,
+    owned-region GLS, 192 correlated-noise fits at four masked corners,
+    circular-coordinate covariance recovery and periodic-angle initialization.
+    The latter two numerical defects were found during the combined regression
+    checks, not by tuning closed R6 inputs. The five-sigma rule is unchanged.
+  - [x] **R6-R3 — Correct source measurement-domain consistency.** Keep native
     full-model Gaussian quantities as component measurements; ensure published
     source flux/position follow their declared observable-domain contract,
     including clipped and invalid-pixel domains. Reproduce E1 at the complete
     public boundary and test singleton/multi-component consistency, masked
     neighbours, flux ownership and explicit uncertainty/coverage limitations.
-  - [ ] **R6-R4 — Resolve association and residual-position risks.** Use
+    The full public clipped-Gaussian witness now retains native total component
+    flux separately from signed observable source flux; 2/3/4-peak fixtures
+    retain their native components and single-owner source apertures.
+  - [x] **R6-R4 — Resolve association and residual-position risks.** Use
     attribution-first, independent open-arc/incomplete-shell/core-halo fixtures
     paired with independent compact-neighbour counterexamples. A good Gaussian
     sum does not alone prove independent sources. Separate support assignment,
     centroid weighting, mask asymmetry and background effects; retain both
     position estimates and grouping decisions without tuning viewed cases.
+    Completed prospective residual/core and connected tangential-arc repairs,
+    with independent compact-neighbour/polygon/collinear counterexamples.
+    Position uses unexpanded source ownership; flux retains measurement wings.
+    Array-free attribution now records both estimators, their domains,
+    background mean and competing group IDs. This resolves the implementation
+    task, not all real-source ambiguity or the closed campaign's position tails.
   - [ ] **R6-R5 — Qualify the combined repair on a short development ladder.**
     Exercise exact public Serial/existing-Dask composition, every failed
     geometry and neighbouring compact/extended guards, with independent noise,
@@ -1009,6 +1027,15 @@ All of this is development evidence, not replacement parity or qualification.
     branch-aware coverage and patch inspection, `just check`, equivalence,
     docs, package smoke, review and final pre-commit gates before freezing
     non-executable candidate identities. Fixture success is not campaign parity.
+    Engineering validation is complete: all 108 existing matrix cases and
+    the new compact/arc/centroid guards pass, public Serial/existing-Dask
+    conformance passes, and 3,526 coverage tests give 95.1906% coverage with
+    all 184 changed executable lines/branches covered. `just check` passes
+    3,304 tests; 27 frozen equivalence tests, strict docs and wheel smoke pass.
+    The implementation report is
+    [R6 estimator repairs](../docs/reference/phase-5-r6-estimator-repairs.md).
+    Freeze the exact committed identity after clean final hooks; no execution
+    identity is created by this development gate.
   - [ ] **R6-R6 — Admit replacement cumulative and then fresh evidence.**
     Follow the unchanged scientific gates and authority boundaries below.
 

@@ -33,7 +33,7 @@ def test_repaired_science_cannot_inherit_reference_qualification() -> None:
         == "development-unqualified"
     )
     assert public_api._COMPOSITION_NAME == (
-        "phase-5-native-component-and-source-measurements-v9"
+        "phase-5-observable-source-and-joint-estimator-v10"
     )
     assert {
         "hebog.algorithms.component_measurement",
@@ -51,7 +51,7 @@ def _provenance() -> PublicSourceFindingProvenance:
         scientific_profile_sha256="3" * 64,
         scientific_composition_sha256="4" * 64,
         scientific_composition=(
-            "phase-5-native-component-and-source-measurements-v9"
+            "phase-5-observable-source-and-joint-estimator-v10"
         ),
     )
 
@@ -96,7 +96,7 @@ def test_public_diagnostics_round_trip_exact_provenance() -> None:
         )
         == diagnostics
     )
-    assert diagnostics.schema_version == 6
+    assert diagnostics.schema_version == 7
     assert diagnostics.deblended_parent_count == 1
     assert diagnostics.deferred_deblend_parent_count == 0
 

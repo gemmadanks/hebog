@@ -7,7 +7,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from itertools import pairwise
 from math import ceil
 from typing import cast
 
@@ -71,6 +72,7 @@ class ComponentMeasurements:
     deferred_parent_count: int
     measurement_support: np.ndarray | None = None
     extended_groups: tuple[frozenset[int], ...] = ()
+    proposed_compact_groups: tuple[frozenset[int], ...] = ()
 
 
 def _persistent_measurement_support(  # noqa: PLR0913, PLR0917
@@ -442,6 +444,79 @@ def _resolved_emission_loop(  # noqa: PLR0913
     return tuple(frozenset(group) for group in groups)
 
 
+def _resolved_open_arc_groups(  # noqa: PLR0913, PLR0917
+    beam_scale_significance: np.ndarray,
+    valid: np.ndarray,
+    fits: tuple[tuple[int, ValidCompactGaussianFit], ...],
+    bounds: ImageBounds,
+    beam_covariance: np.ndarray,
+    island_sigma: float,
+) -> tuple[frozenset[int], ...]:
+    """Test curved resolved shapes on beam-scale connected emission.
+
+    An open arc need not enclose a hole. A bounded least-squares circle
+    provides only a proposed curvature centre; the existing per-component
+    covariant tangential test must still pass. Require the finest calibrated
+    beam response at island significance connecting the fitted centres, not
+    a coarse multiscale influence bridge.
+    Point-like neighbours, collinear centres and unavailable shape errors
+    supply no evidence for this association.
+    """
+    support, _ = cast(
+        tuple[np.ndarray, int],
+        label(
+            valid & (beam_scale_significance >= island_sigma),
+            np.ones((3, 3)),
+        ),
+    )
+    by_feature: dict[int, list[tuple[int, ValidCompactGaussianFit]]] = {}
+    for index, fit in fits:
+        if (
+            fit.uncertainty is None
+            or fit.uncertainty.shape_parameter_covariance is None
+        ):
+            continue
+        x, y = np.rint(fit.parameters.centroid_xy).astype(int) - (
+            bounds.x_start,
+            bounds.y_start,
+        )
+        if (
+            0 <= y < support.shape[0]
+            and 0 <= x < support.shape[1]
+            and support[y, x] > 0
+        ):
+            by_feature.setdefault(int(support[y, x]), []).append((index, fit))
+    groups = []
+    for members in by_feature.values():
+        if len(members) < _MINIMUM_LOOP_COMPONENTS:
+            continue
+        positions = np.array(
+            [fit.parameters.centroid_xy for _, fit in members]
+        )
+        origin = positions.mean(axis=0)
+        offsets = positions - origin
+        design = np.column_stack((2 * offsets, np.ones(len(members))))
+        solution, _, rank, _ = np.linalg.lstsq(
+            design, np.sum(offsets**2, axis=1), rcond=None
+        )
+        if rank < design.shape[1]:
+            continue
+        center = tuple(float(value) for value in (origin + solution[:2]))
+        selected = frozenset(
+            index
+            for index, fit in members
+            if _tangential_shape_evidence(
+                ((index, fit),),
+                (center[0], center[1]),
+                beam_covariance,
+                island_sigma,
+            )
+        )
+        if len(selected) >= _MINIMUM_LOOP_COMPONENTS:
+            groups.append(selected)
+    return tuple(groups)
+
+
 def _measurement_island(
     regions: tuple[DeblendedRegion, ...],
     seeds: np.ndarray,
@@ -485,15 +560,19 @@ def _cross_parent_loop_groups(  # noqa: PLR0913, PLR0917
     island_sigma: float,
     minimum_support_fraction: float,
     maximum_bounds_pixels: int,
+    *,
+    measurement_support: np.ndarray,
 ) -> tuple[frozenset[int], ...]:
     """Reconcile resolved loops larger than a wavelet-parent footprint.
 
     Reuse local fits; never allocate a joint fit of an extended island. A
     connected region is only a work unit. Actual grouping still requires
-    an image-space hole and resolved tangential shape evidence.
+    resolved tangential shape evidence around a hole or along a connected
+    beam-scale arc.
     """
     connected, _ = cast(
-        tuple[np.ndarray, int], label((labels > 0) & valid, np.ones((3, 3)))
+        tuple[np.ndarray, int],
+        label(measurement_support & valid, np.ones((3, 3))),
     )
     by_label = {
         index: fit
@@ -551,6 +630,22 @@ def _cross_parent_loop_groups(  # noqa: PLR0913, PLR0917
                 minimum_support_fraction=minimum_support_fraction,
             )
         )
+        groups.extend(
+            _resolved_open_arc_groups(
+                _matched_snrs(
+                    residual[window],
+                    rms[window],
+                    valid[window],
+                    plan,
+                    minimum_support_fraction,
+                )[0],
+                valid[window],
+                tuple((index, by_label[index]) for index in sorted(indexes)),
+                bounds,
+                np.array(((xx, xy), (xy, yy))),
+                island_sigma,
+            )
+        )
     return tuple(groups)
 
 
@@ -587,8 +682,9 @@ def _extended_residual_groups(  # noqa: PLR0913, PLR0917
     """Join residual halo fragments, without absorbing proven compact rows.
 
     Shared filtered support is insufficient: require seeded adjacent-scale
-    emission remaining after subtraction of the valid, unconstrained native
-    component models. A fit at a bound cannot explain away that emission.
+    emission remaining after subtraction of the independently admitted
+    compact models. An auxiliary fit that failed the parent's adequacy check
+    cannot explain away the extended emission that prevented its admission.
     The residual determines membership only; flux still uses original pixels.
     """
     protected = {index for group in compact_groups for index in group}
@@ -605,7 +701,7 @@ def _extended_residual_groups(  # noqa: PLR0913, PLR0917
             for index in np.unique(
                 labels[slices][connected[slices] == identity]
             )
-            if index > 0 and index not in protected
+            if index > 0
         )
         if len(indexes) <= 1:
             continue
@@ -626,23 +722,36 @@ def _extended_residual_groups(  # noqa: PLR0913, PLR0917
                 (index, fit)
                 for index, fit in fits
                 if isinstance(fit, ValidCompactGaussianFit)
+                and index in protected
                 and "fit-at-bound" not in fit.quality_flags
                 and np.any(labels[window] == index)
             ),
             bounds,
         )
-        persistent = _persistent_measurement_support(
-            residual[window] - model,
+        remainder = residual[window] - model
+        snrs = _matched_snrs(
+            remainder,
             rms[window],
             valid[window],
             plan,
             minimum_support_fraction,
-            detection_sigma,
-            island_sigma,
-            minimum_pixels,
+        )
+        persistent = persistent_seeded_scale_support(
+            snrs,
+            remainder,
+            valid[window],
+            detection_sigma=detection_sigma,
+            island_sigma=island_sigma,
+            minimum_pixels=minimum_pixels,
         )
         residual_labels, _ = cast(
             tuple[np.ndarray, int], label(persistent, np.ones((3, 3)))
+        )
+        local_residual_support = np.logical_or.reduce(
+            tuple(
+                (first >= island_sigma) & (second >= island_sigma)
+                for first, second in pairwise(snrs)
+            )
         )
         for feature in range(1, int(residual_labels.max()) + 1):
             members = frozenset(
@@ -651,10 +760,54 @@ def _extended_residual_groups(  # noqa: PLR0913, PLR0917
                     labels[window][residual_labels == feature]
                 )
                 if index in indexes
+                and (
+                    index not in protected
+                    or _fit_core_in_feature(
+                        index,
+                        fits,
+                        residual_labels,
+                        feature,
+                        bounds,
+                        local_residual_support,
+                    )
+                )
             )
             if len(members) > 1:
                 groups.append(members)
     return tuple(groups)
+
+
+def _fit_core_in_feature(  # noqa: PLR0913, PLR0917
+    index: int,
+    fits: tuple[tuple[int, CompactGaussianFitResult], ...],
+    labels: np.ndarray,
+    feature: int,
+    bounds: ImageBounds,
+    local_residual_support: np.ndarray,
+) -> bool:
+    """A compact fit cannot veto significant diffuse emission beneath it.
+
+    A mere overlap at a wing or an unrelated feature peak is insufficient.
+    Require adjacent-scale residual evidence inside the fit's half-maximum
+    ellipse as well as the seeded persistent feature. The ellipse uses the
+    same FWHM core as compact separation; a single centre pixel can miss
+    asymmetric residuals after subtracting an extended fitted component.
+    Membership in a broad envelope alone can bridge an empty gap.
+    """
+    fit = next((fit for label, fit in fits if label == index), None)
+    if not isinstance(fit, ValidCompactGaussianFit):
+        return False
+    yy, xx = np.nonzero((labels == feature) & local_residual_support)
+    parameters = fit.parameters
+    dx = xx + bounds.x_start - parameters.centroid_xy[0]
+    dy = yy + bounds.y_start - parameters.centroid_xy[1]
+    angle = np.deg2rad(parameters.major_axis_angle_degrees)
+    major = dx * np.cos(angle) + dy * np.sin(angle)
+    minor = -dx * np.sin(angle) + dy * np.cos(angle)
+    distance = (major / parameters.major_sigma_pixels) ** 2 + (
+        minor / parameters.minor_sigma_pixels
+    ) ** 2
+    return bool(np.any(distance <= 2 * np.log(2)))
 
 
 def measure_component_models(  # noqa: PLR0913, PLR0917, PLR0915
@@ -758,8 +911,18 @@ def measure_component_models(  # noqa: PLR0913, PLR0917, PLR0915
         )
         geometry = compact_geometry_from_wcs(beam, wcs, center_xy)
         moments = measure_compact_moments(compact, geometry, moment_config)[1:]
+        # These are native component measurements, not Gaussian source
+        # surrogates. Apply the already configured component extension rule
+        # to the whole joint solution; do not splice per-component fits from
+        # competing source/component models. Source flux is an aperture.
         fitted = fit_compact_gaussian_mixture(
-            compact, moments, geometry, fit_config
+            compact,
+            moments,
+            geometry,
+            replace(
+                fit_config,
+                extension_significance_sigma=fit_config.component_extension_significance_sigma,
+            ),
         )
         labelled = tuple(zip(indexes, fitted, strict=True))
         output.extend(labelled)
@@ -861,6 +1024,7 @@ def measure_component_models(  # noqa: PLR0913, PLR0917, PLR0915
             island_sigma,
             minimum_support_fraction,
             maximum_bounds_pixels,
+            measurement_support=measurement_support,
         )
     )
     extended_groups.extend(
@@ -881,6 +1045,7 @@ def measure_component_models(  # noqa: PLR0913, PLR0917, PLR0915
         )
     )
     reconciled = _merge_overlapping_groups(extended_groups)
+    proposed_compact_groups = tuple(compact_groups)
     extended_labels = {index for group in reconciled for index in group}
     compact_groups = [
         group - extended_labels
@@ -894,4 +1059,5 @@ def measure_component_models(  # noqa: PLR0913, PLR0917, PLR0915
         deferred,
         measurement_support,
         tuple(reconciled),
+        proposed_compact_groups,
     )

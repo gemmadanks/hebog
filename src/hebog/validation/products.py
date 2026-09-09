@@ -51,7 +51,11 @@ from hebog.algorithms.source_association import (
 from hebog.data_models.catalogues import GaussianShape
 from hebog.data_models.fitting import ValidCompactGaussianFit
 from hebog.data_models.images import RestoringBeam
-from hebog.data_models.measurement_diagnostics import MeasurementDisposition
+from hebog.data_models.measurement_diagnostics import (
+    AssociationDecisionDiagnostics,
+    MeasurementDisposition,
+    SourcePositionDiagnostics,
+)
 from hebog.data_models.source_association import (
     CatalogueSourceMembership,
     SourceAssociationResult,
@@ -930,6 +934,68 @@ def _segment_position(
     )
 
 
+def _validated_centroid_labels(
+    position_labels: npt.ArrayLike | None,
+    aperture_labels: npt.NDArray[np.int64],
+) -> npt.NDArray[np.int64]:
+    """A position domain cannot invent owners outside the flux domain."""
+    if position_labels is None:
+        return aperture_labels
+    values = np.asarray(position_labels)
+    if (
+        values.shape != aperture_labels.shape
+        or not np.issubdtype(values.dtype, np.integer)
+        or np.any(values < 0)
+    ):
+        raise ValueError(
+            "position labels must be aligned non-negative integers"
+        )
+    if np.any((values > 0) & (values != aperture_labels)):
+        raise ValueError(
+            "position ownership must be a subset of aperture ownership"
+        )
+    return np.asarray(values, dtype=np.int64)
+
+
+def _position_attribution(  # noqa: PLR0913, PLR0917
+    residual: npt.NDArray[np.float64],
+    position_signal: npt.NDArray[np.float64] | None,
+    support: npt.NDArray[np.bool_],
+    measurement_support: npt.NDArray[np.bool_],
+    background: npt.ArrayLike,
+    estimate: DetectedSegmentPosition,
+    integrated_flux: float,
+) -> SourcePositionDiagnostics:
+    """Retain both centroid estimators and their distinct flux domain."""
+    original = measure_detected_segment_position(residual, support)
+    denoised = (
+        measure_detected_segment_position(position_signal, support)
+        if position_signal is not None
+        else None
+    )
+    background_values = np.asarray(background)[measurement_support]
+    signed_weight = float(np.sum(residual[support], dtype=np.float64))
+    return SourcePositionDiagnostics(
+        signed_original_xy=original.centroid_xy,
+        denoised_xy=None if denoised is None else denoised.centroid_xy,
+        selected_xy=estimate.centroid_xy,
+        selection_reason="concentration-then-availability:"
+        + estimate.weighting,
+        unavailable_reason=estimate.unavailable_reason,
+        position_pixel_count=int(np.count_nonzero(support)),
+        aperture_pixel_count=int(np.count_nonzero(measurement_support)),
+        position_signed_weight=signed_weight
+        if np.isfinite(signed_weight)
+        else None,
+        aperture_signed_flux_jy=integrated_flux
+        if np.isfinite(integrated_flux)
+        else None,
+        aperture_background_mean=float(np.mean(background_values))
+        if background_values.size
+        else None,
+    )
+
+
 def build_hebog_segment_catalogue(  # noqa: PLR0913
     image_jy_per_beam: npt.ArrayLike,
     background_jy_per_beam: npt.ArrayLike,
@@ -945,6 +1011,8 @@ def build_hebog_segment_catalogue(  # noqa: PLR0913
     aperture_tie_policy: Literal[
         "nearest-support", "canonical-source"
     ] = "nearest-support",
+    position_labels: npt.ArrayLike | None = None,
+    position_diagnostics: dict[int, SourcePositionDiagnostics] | None = None,
 ) -> tuple[CatalogueSource, ...]:
     """Measure catalogue rows for physically measurable blind segments.
 
@@ -987,6 +1055,7 @@ def build_hebog_segment_catalogue(  # noqa: PLR0913
         shape=residual.shape,
         valid_pixels=valid,
     )
+    centroid_labels = _validated_centroid_labels(position_labels, labels)
     aperture_builder = (
         expand_source_measurement_labels
         if aperture_tie_policy == "canonical-source"
@@ -1011,7 +1080,9 @@ def build_hebog_segment_catalogue(  # noqa: PLR0913
     for label_value in sorted(
         int(item) for item in np.unique(labels) if item > 0
     ):
-        support = (labels == label_value) & valid & np.isfinite(residual)
+        support = (
+            (centroid_labels == label_value) & valid & np.isfinite(residual)
+        )
         estimate = _segment_position(
             residual,
             position_signal,
@@ -1020,12 +1091,22 @@ def build_hebog_segment_catalogue(  # noqa: PLR0913
                 denoised_position_maximum_peak_to_mean_ratio
             ),
         )
-        if not estimate.available or estimate.centroid_xy is None:
-            continue
         measurement_support = measurement_labels == label_value
         integrated_weight = float(
             np.sum(residual[measurement_support], dtype=np.float64)
         )
+        if position_diagnostics is not None:
+            position_diagnostics[label_value] = _position_attribution(
+                residual,
+                position_signal,
+                support,
+                measurement_support,
+                background_jy_per_beam,
+                estimate,
+                integrated_weight / beam_area_pixels,
+            )
+        if not estimate.available or estimate.centroid_xy is None:
+            continue
         quality_flags: tuple[str, ...] = ()
         if not np.isfinite(integrated_weight) or integrated_weight <= 0.0:
             exact_positive_support = support & (residual > 0.0)
@@ -1204,6 +1285,8 @@ def build_hebog_segment_moment_catalogue(  # noqa: PLR0913
     aperture_tie_policy: Literal[
         "nearest-support", "canonical-source"
     ] = "nearest-support",
+    position_labels: npt.ArrayLike | None = None,
+    position_diagnostics: dict[int, SourcePositionDiagnostics] | None = None,
 ) -> tuple[CatalogueSource, ...]:
     """Publish exact-support moment shapes without changing photometry."""
     sources = build_hebog_segment_catalogue(
@@ -1220,6 +1303,8 @@ def build_hebog_segment_moment_catalogue(  # noqa: PLR0913
             denoised_position_maximum_peak_to_mean_ratio
         ),
         aperture_tie_policy=aperture_tie_policy,
+        position_labels=position_labels,
+        position_diagnostics=position_diagnostics,
     )
     residual, valid, labels = _validated_hebog_segment_planes(
         image_jy_per_beam,
@@ -1386,9 +1471,28 @@ def _measurement_dispositions(
     association: SourceAssociationResult,
     measurements: ComponentMeasurements,
     sources: tuple[CatalogueSource, ...],
+    source_positions: dict[str, SourcePositionDiagnostics],
+    hierarchy: SourceAssociationResult,
 ) -> tuple[MeasurementDisposition, ...]:
     """Retain all detections, even when no valid measured row exists."""
     by_label = dict(measurements.fits)
+    hierarchy_groups = {
+        component: membership.source_id
+        for membership in hierarchy.memberships
+        for component in membership.component_ids
+    }
+    compact_groups = {
+        index: f"compact-{min(group)}"
+        for group in (
+            measurements.proposed_compact_groups or measurements.compact_groups
+        )
+        for index in group
+    }
+    extended_groups = {
+        index: f"extended-{min(group)}"
+        for group in measurements.extended_groups
+        for index in group
+    }
     dispositions = []
     for record in association.components:
         fitted = by_label.get(record.label_value)
@@ -1412,14 +1516,29 @@ def _measurement_dispositions(
                 if measured
                 else None,
                 reason=reason,
+                fit_diagnostics=getattr(fitted, "diagnostics", None),
+                fit_covariance_available=(fitted.uncertainty is not None)
+                if isinstance(fitted, ValidCompactGaussianFit)
+                else None,
+                association_diagnostics=AssociationDecisionDiagnostics(
+                    hierarchy_group_id=hierarchy_groups[record.component_id],
+                    compact_model_group_id=compact_groups.get(
+                        record.label_value
+                    ),
+                    extended_group_id=extended_groups.get(record.label_value),
+                    decision="extended-morphology"
+                    if record.label_value in extended_groups
+                    else (
+                        "compact-model"
+                        if record.label_value in compact_groups
+                        else "hierarchy"
+                    ),
+                ),
             )
         )
     by_id = {row.identifier: row for row in sources}
     for membership in association.memberships:
         row = by_id.get(membership.source_id)
-        gaussian = row is not None and (
-            "original-pixel-gaussian-model" in row.quality_flags
-        )
         dispositions.append(
             MeasurementDisposition(
                 object_kind="source",
@@ -1427,15 +1546,14 @@ def _measurement_dispositions(
                 status="unavailable" if row is None else "measured",
                 estimator=None
                 if row is None
-                else (
-                    "original-pixel-gaussian-model"
-                    if gaussian
-                    else "source-owned-signed-aperture"
-                ),
+                else "source-owned-signed-aperture",
                 reason="non-positive-or-unavailable-signed-measurement"
                 if row is None
                 else None,
                 member_component_ids=membership.component_ids,
+                position_diagnostics=source_positions.get(
+                    membership.source_id
+                ),
             )
         )
     return tuple(
@@ -1445,13 +1563,12 @@ def _measurement_dispositions(
     )
 
 
-def _reconstructed_source_rows(  # noqa: PLR0913
+def _reconstructed_source_rows(
     measured_sources: tuple[CatalogueSource, ...],
     components: tuple[CatalogueSource, ...],
     membership_by_label: dict[int, CatalogueSourceMembership],
     association: SourceAssociationResult,
     *,
-    compact_ids: set[str],
     require_signed_aperture: bool,
 ) -> tuple[CatalogueSource, ...]:
     """Choose each source's own estimator, independently of auxiliary rows."""
@@ -1465,10 +1582,9 @@ def _reconstructed_source_rows(  # noqa: PLR0913
     output = []
     for source_label, membership in membership_by_label.items():
         source = measured_by_label.get(source_label)
-        if len(membership.component_ids) == 1 and (
-            membership.component_ids[0] in compact_ids
-        ):
-            source = by_id[membership.component_ids[0]]
+        # Source photometry always belongs to its observable aperture.
+        # A native Gaussian integrates unobserved sky and describes a
+        # different quantity even when its source has only one component.
         if source is None or (
             require_signed_aperture
             and ("exact-owner-positive-residual-flux" in source.quality_flags)
@@ -1596,7 +1712,7 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
         ),
     )
     records = build_detection_component_records(direct, residual, valid)
-    component_sources, compact_labels = _apply_component_measurements(
+    component_sources, _ = _apply_component_measurements(
         component_sources,
         component_measurements,
         header,
@@ -1608,6 +1724,7 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
         valid,
         significant_multiscale_support=significant_multiscale_support,
     )
+    hierarchy = association
     if component_measurements is not None:
         association = constrain_source_memberships(
             association,
@@ -1616,11 +1733,6 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
                 *component_measurements.extended_groups,
             ),
         )
-    compact_ids = {
-        record.component_id
-        for record in records
-        if record.label_value in compact_labels
-    }
     stable_components = _stable_component_catalogue(
         component_sources,
         association,
@@ -1644,6 +1756,7 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
         persistent_support,
         valid,
     )
+    source_positions: dict[int, SourcePositionDiagnostics] = {}
     measured_sources = build_hebog_segment_moment_catalogue(
         image_jy_per_beam,
         background_jy_per_beam,
@@ -1658,13 +1771,15 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
             denoised_position_maximum_peak_to_mean_ratio
         ),
         aperture_tie_policy="canonical-source",
+        # Measurement-only wings extend flux, not source-position support.
+        position_labels=source_labels,
+        position_diagnostics=source_positions,
     )
     output = _reconstructed_source_rows(
         measured_sources,
         stable_components,
         membership_by_label,
         association,
-        compact_ids=compact_ids,
         require_signed_aperture=component_measurements is not None,
     )
     if component_measurements is None and len(output) != len(
@@ -1711,7 +1826,15 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
         if component_measurements is None
         else (
             _measurement_dispositions(
-                association, component_measurements, tuple(output)
+                association,
+                component_measurements,
+                tuple(output),
+                {
+                    membership.source_id: source_positions[label]
+                    for label, membership in membership_by_label.items()
+                    if label in source_positions
+                },
+                hierarchy,
             )
         ),
     )

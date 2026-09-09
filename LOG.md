@@ -18376,3 +18376,77 @@ scientific pass from fixture validation.
   change; production patch coverage is not applicable. New regression tests
   implementing the prospective contracts belong with the approved repairs,
   not as permanently failing tests or campaign-directory-dependent tests.
+
+## 2026-09-09 — Implement approved R6 estimator and source-domain repairs
+
+- The scientific owner requested completion of the recommended repairs.
+  Implemented C1--C3/E1--E3 prospectively, preserving review `939152d8...`,
+  report `4450baea...` and failed terminal `7146f2e8...` byte-for-byte. No
+  closed input was run, rematched or rescored; no finder, evaluator, PyBDSF
+  job, replay, qualification or release was launched. The original candidate
+  and its evidence remain distinct from this changed public composition.
+- TDD witnesses first failed for joint beam/free policy, owned-region GLS,
+  clipped-source Gaussian substitution and missing attribution. Implemented
+  coherent nested joint fits with full cross-component information and the
+  existing BIC rule, separating the likelihood from the adequacy halo. Native
+  components use the already configured component-extension criterion;
+  associated sources now always use observable, signed single-owner apertures.
+  Detection, GLS work limits and five-sigma intrinsic-axis classification
+  remain unchanged. No dependency, environment or lockfile change was needed.
+- Combined independent regression work exposed two additional numerical
+  defects: circular ellipse-angle singularity could reject a correct free
+  Gaussian and bias flux towards a beam model; periodic angle initialization
+  at an optimizer boundary could bias asymmetric arcs. Re-expressing the
+  same Gaussian's information in Cartesian precision preserves identifiable
+  flux/position errors without inventing angle errors. Centring the existing
+  full-turn angle interval on the initializer removes the artificial wall.
+  True singular information and coupled numerical failures remain explicit.
+- Extended reassociation subtracts only independently admitted compact fits;
+  seeded adjacent-scale residual evidence inside the FWHM core can supersede
+  compact protection, but wing/envelope overlap alone cannot. Bounded open-arc
+  proposals require connected beam-scale emission and the existing individual
+  covariant tangential-shape evidence. Closed loops, open/asymmetric arcs,
+  core/halo, independent compact neighbours and polygon/collinear guards
+  pass together. Position uses unexpanded source ownership while signed flux
+  retains measurement wings. Array-free fit, group and dual-position records
+  make remaining tails attributable without adding truth-dependent decisions.
+- Public composition is `phase-5-observable-source-and-joint-estimator-v10`;
+  public diagnostics schema is 7 (catalogue JSON/FITS remain 3/4). Updated
+  the materialization reader, tutorial and schema documentation together.
+  An intermediate full run caught the unchanged reader's schema-6 check;
+  this was corrected before handoff. Early combined regressions also caught
+  compact-neighbour and asymmetric-arc failures, resolved on independent
+  fixtures rather than by relaxing their assertions. Formatting-only lint
+  failures were corrected and rechecked. No red state is committed.
+- Focused validation passes 277 numerical/public/development tests, including
+  all 108 unchanged matrix cells, four open/asymmetric arcs, 192 independent
+  correlated-noise fits across four masked corners and exact public
+  Serial/existing-Dask conformance. Final added boundary/covariance-recovery
+  tests pass with the existing fitting/component suite (127 tests), and four
+  explicit centroid-owner validation tests pass. The noise experiment fixes
+  initialization independently of noise to isolate covariance calibration;
+  it does not claim to reproduce or repair all 800 closed corner outcomes.
+  The signed observable clipped-source fixture retains approximately 48.189
+  Jy as the source measurement rather than substituting the 83.177 Jy native
+  full-Gaussian component integral. Unavailable source measurements remain
+  unavailable independently of valid component measurements.
+- Final `just coverage` passes 3,526 tests (157 deselected, two expected
+  failures) in 312.65 s, with 95.1906% branch-aware project coverage versus
+  the previously recorded 95.1148%. All 184 changed executable package lines
+  and every changed branch are covered; remaining changed-file misses are
+  pre-existing paths. No coverage exclusions, threshold reductions or patch
+  exceptions were added; the remote Codecov patch report is unavailable here.
+  `just check` passes Ruff, Pyright and 3,304 tests; all 27 frozen equivalence
+  tests, strict docs and isolated-wheel smoke pass. Validation uses Python
+  3.14 and the existing environment (`UV_NO_SYNC=1`); no claim is made that
+  3.12/3.13, production-scale memory/runtime or real-data campaigns ran here.
+- Reviewed the full code/tests/docs diff against `CODE_REVIEW.md`: no
+  actionable findings remain. Reused NumPy/SciPy linear algebra and existing
+  fitting/evidence machinery rather than introducing a dependency, scheduler
+  or storage abstraction. Scientific functions remain bounded and inward
+  dependent. Source-domain changes are explicitly pre-1.0 breaking; no
+  compatibility shim or silent historical-evidence transfer is introduced.
+  Final hooks must pass cleanly immediately before each local commit. Next
+  freeze this committed implementation non-executably, then separately review
+  reference reuse and new cumulative admission. R6/Phase 5 stay open; fixture
+  success is not proof that the closed scientific failures have disappeared.

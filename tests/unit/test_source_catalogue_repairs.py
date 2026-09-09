@@ -24,9 +24,88 @@ from hebog.config import SourceFinderConfig
 from hebog.public_science import build_configured_continuum_products
 from hebog.validation import products as product_builder
 from hebog.validation.contracts import PhaseFiveCorrectiveAReview
+from hebog.validation.observable_truth import measure_observable_truth
 from hebog.validation.products import _segment_position
 
 _ROOT = Path(__file__).parents[2]
+
+
+def test_clipped_gaussian_source_keeps_observable_domain() -> None:
+    """A full Gaussian component cannot replace observed source flux."""
+    yy, xx = np.mgrid[:49, :65]
+    signal = 10 * np.exp(-0.5 * (((xx - 0.7) / 6) ** 2 + ((yy - 24) / 4) ** 2))
+    products = _products(signal)
+    truth = measure_observable_truth(
+        signal,
+        signal >= 3,
+        np.ones_like(signal, dtype=bool),
+        beam_major_fwhm_pixels=4,
+        beam_minor_fwhm_pixels=4,
+    )
+    assert len(products.catalogue) == len(products.component_catalogue) == 1
+    source, component = products.catalogue[0], products.component_catalogue[0]
+    assert "original-pixel-gaussian-model" in component.quality_flags
+    assert "original-pixel-gaussian-model" not in source.quality_flags
+    assert source.integrated_flux_jy == pytest.approx(
+        truth.integrated_flux_jy, rel=0.001
+    )
+    assert component.integrated_flux_jy > 1.5 * source.integrated_flux_jy
+    positions = np.asarray(
+        WCS(_header(signal.shape)).celestial.all_world2pix(
+            [
+                (row.right_ascension_degrees, row.declination_degrees)
+                for row in (source, component)
+            ],
+            0,
+        )
+    )
+    assert positions[0, 0] > 3
+    assert positions[1, 0] == pytest.approx(0.7, abs=0.001)
+    assert source.deconvolution_status == "unavailable"
+    assert source.integrated_flux_error_jy is None
+
+
+def test_public_measurements_retain_fit_and_centroid_attribution() -> None:
+    """A saved record must identify estimator support and its alternatives."""
+    yy, xx = np.mgrid[:49, :49]
+    result = _products(10 * np.exp(-((xx - 24) ** 2 + (yy - 24) ** 2) / 8))
+    component = next(
+        row
+        for row in result.measurement_dispositions
+        if row.object_kind == "component"
+    )
+    source = next(
+        row
+        for row in result.measurement_dispositions
+        if row.object_kind == "source"
+    )
+    assert component.fit_diagnostics is not None
+    assert component.fit_diagnostics.retained_pixel_count > 0
+    assert component.fit_covariance_available is not None
+    assert component.association_diagnostics is not None
+    assert component.association_diagnostics.hierarchy_group_id
+    assert component.association_diagnostics.compact_model_group_id
+    assert component.association_diagnostics.extended_group_id is None
+    assert component.association_diagnostics.decision == "compact-model"
+    assert (
+        type(component).model_validate_json(component.model_dump_json())
+        == component
+    )
+    assert source.position_diagnostics is not None
+    assert source.position_diagnostics.signed_original_xy == pytest.approx(
+        (24, 24)
+    )
+    assert source.position_diagnostics.denoised_xy == pytest.approx((24, 24))
+    assert source.position_diagnostics.position_pixel_count > 0
+    assert (
+        source.position_diagnostics.aperture_pixel_count
+        > source.position_diagnostics.position_pixel_count
+    )
+    assert source.position_diagnostics.selection_reason
+    assert (
+        source.position_diagnostics.aperture_signed_flux_jy
+        == pytest.approx(result.catalogue[0].integrated_flux_jy)
+    )
 
 
 def test_terminal_keeps_stage_support_separate_from_published_mask() -> None:
@@ -99,7 +178,6 @@ def test_reconstructed_rows_preserve_ambiguity_and_validate_ids() -> None:
         products.component_catalogue,
         memberships,
         ambiguous,
-        compact_ids=set(),
         require_signed_aperture=True,
     )
     assert "ambiguous-multiscale-parent" in result[0].quality_flags
@@ -109,7 +187,6 @@ def test_reconstructed_rows_preserve_ambiguity_and_validate_ids() -> None:
             products.component_catalogue,
             memberships,
             association,
-            compact_ids=set(),
             require_signed_aperture=True,
         )
 
@@ -259,25 +336,53 @@ def test_connected_independent_gaussians_remain_separate_sources(
         wcs.all_world2pix(
             [
                 (row.right_ascension_degrees, row.declination_degrees)
-                for row in result.catalogue
+                for row in result.component_catalogue
             ],
             0,
         )
     )
-    np.testing.assert_allclose(
-        sorted(positions.tolist()),
-        [(center, 48.0) for center in centers],
-        atol=1e-3,
-        rtol=0.0,
+    # Components retain whole-model parameters; sources now use apertures.
+    # An undefined circular angle must not force a biased beam-sized model.
+    ordered = sorted(
+        zip(positions, result.component_catalogue, strict=True),
+        key=lambda pair: pair[0][0],
     )
+    for (position, row), center in zip(ordered, centers, strict=True):
+        assert row.right_ascension_error_degrees is not None
+        assert row.declination_error_degrees is not None
+        x_error = (
+            row.right_ascension_error_degrees
+            * 3600
+            * np.cos(np.deg2rad(row.declination_degrees))
+        )
+        y_error = row.declination_error_degrees * 3600
+        assert abs(position[0] - center) <= 3 * x_error
+        assert abs(position[1] - 48) <= 3 * y_error
+        np.testing.assert_allclose(position, (center, 48), atol=1e-3)
     beam_area = np.pi * 16.0 / (4.0 * np.log(2.0))
     expected_flux = sorted(
         amplitude * 8 * np.pi / beam_area for amplitude in amplitudes
     )
-    np.testing.assert_allclose(
-        sorted(row.integrated_flux_jy for row in result.catalogue),
+    for row, truth_flux in zip(
+        sorted(
+            result.component_catalogue, key=lambda row: row.integrated_flux_jy
+        ),
         expected_flux,
-        rtol=1e-3,
+        strict=True,
+    ):
+        assert row.integrated_flux_error_jy is not None
+        assert (
+            abs(row.integrated_flux_jy - truth_flux)
+            <= 3 * row.integrated_flux_error_jy
+        )
+        assert row.integrated_flux_jy == pytest.approx(truth_flux, rel=1e-3)
+    # Source apertures divide the observed plane, not the infinite Gaussian
+    # tails. Their sum must recover the same light without double counting.
+    assert sum(
+        row.integrated_flux_jy for row in result.catalogue
+    ) == pytest.approx(
+        float(np.sum(signal)) / beam_area,
+        rel=1e-3,
     )
 
 
@@ -334,11 +439,16 @@ def test_valid_fit_survives_unavailable_aperture_moment_row(
     yy, xx = np.mgrid[:65, :65]
     signal = 10 * np.exp(-((xx - 32) ** 2 / 8 + (yy - 32) ** 2 / 5))
     result = _products(signal)
-    assert len(result.component_catalogue) == len(result.catalogue) == 1
-    assert result.catalogue[0].integrated_flux_jy > 0.0
-    assert all(
-        item.status == "measured" for item in result.measurement_dispositions
-    )
+    assert len(result.component_catalogue) == 1
+    assert result.component_catalogue[0].integrated_flux_jy > 0.0
+    assert not result.catalogue
+    assert {
+        item.object_kind: item.status
+        for item in result.measurement_dispositions
+    } == {
+        "component": "measured",
+        "source": "unavailable",
+    }
 
 
 def test_terminal_gaussians_exclude_unavailable_moments() -> None:
@@ -368,7 +478,9 @@ def test_compact_shape_is_not_a_threshold_truncated_moment(
     result = _products(signal)
 
     assert len(result.catalogue) == len(result.component_catalogue) == 1
-    for row in (*result.catalogue, *result.component_catalogue):
+    assert result.catalogue[0].fitted_shape is None
+    assert result.catalogue[0].integrated_flux_error_jy is None
+    for row in result.component_catalogue:
         assert row.fitted_shape is not None
         np.testing.assert_allclose(
             (
@@ -461,3 +573,99 @@ def test_mixed_core_and_halo_remains_one_extended_source() -> None:
     truth_flux = float(np.sum(core + halo)) / beam_area
     # The pre-existing Continuum aperture retention floor remains binding.
     assert result.catalogue[0].integrated_flux_jy >= 0.9 * truth_flux
+
+
+@pytest.mark.parametrize("opening", (np.pi / 2, np.pi))
+@pytest.mark.parametrize("asymmetric", (False, True))
+def test_open_arc_keeps_its_components_and_single_flux_owner(
+    opening: float, asymmetric: bool
+) -> None:
+    """A hole is not required to associate connected curved emission."""
+    yy, xx = np.mgrid[:97, :97]
+    radius = np.hypot(xx - 48, yy - 48)
+    angle = np.arctan2(yy - 48, xx - 48)
+    envelope = np.clip((np.pi - opening / 2 - np.abs(angle)) / 0.3, 0, 1)
+    signal = 8 * np.exp(-0.5 * ((radius - 18) / 2) ** 2) * envelope
+    signal *= 1 + 0.6 * np.cos(6 * angle)
+    if asymmetric:
+        signal *= 1 + 0.4 * np.sin(angle)
+    products = _products(signal)
+    assert len(products.catalogue) == 1
+    assert len(products.component_catalogue) >= 3
+    assert products.catalogue[0].component_count == len(
+        products.component_catalogue
+    )
+    truth_flux = float(signal.sum()) / (np.pi * 16 / (4 * np.log(2)))
+    assert products.catalogue[0].integrated_flux_jy == pytest.approx(
+        truth_flux, rel=0.05
+    )
+
+
+@pytest.mark.parametrize(
+    "bad",
+    (np.ones((2, 3)), np.full((3, 3), -1), np.ones((3, 3)) * 0.5),
+)
+def test_centroid_owner_domain_rejects_invalid_labels(bad: np.ndarray) -> None:
+    with pytest.raises(ValueError, match="aligned non-negative integers"):
+        product_builder._validated_centroid_labels(
+            bad, np.ones((3, 3), dtype=np.int64)
+        )
+
+
+def test_centroid_owner_domain_rejects_foreign_owner() -> None:
+    with pytest.raises(ValueError, match="subset of aperture ownership"):
+        product_builder._validated_centroid_labels(
+            np.full((3, 3), 2), np.ones((3, 3), dtype=np.int64)
+        )
+
+
+@pytest.mark.parametrize("mask_corner", (False, True))
+@pytest.mark.parametrize("background_offset", (0.0, 0.5))
+def test_centroid_attribution_separates_mask_background_and_aperture(
+    mask_corner: bool,
+    background_offset: float,
+) -> None:
+    """Retain one-factor effects without moving the source into flux wings."""
+    yy, xx = np.mgrid[:9, :11]
+    signal = 2 + 10 * np.exp(-((xx - 7) ** 2 + (yy - 4) ** 2) / 2)
+    background = np.full(signal.shape, background_offset)
+    valid = np.ones(signal.shape, dtype=bool)
+    if mask_corner:
+        valid[3, 6] = False
+    position_labels = np.zeros(signal.shape, dtype=np.int64)
+    position_labels[3:6, 6:9] = 1
+    aperture_labels = position_labels.copy()
+    aperture_labels[4, 1:6] = 1
+    denoised = np.full(signal.shape, 2.0)
+    records = {}
+    rows = product_builder.build_hebog_segment_catalogue(
+        signal,
+        background,
+        valid,
+        aperture_labels,
+        _header(signal.shape),
+        beam_major_fwhm_pixels=4.0,
+        beam_minor_fwhm_pixels=4.0,
+        position_labels=position_labels,
+        position_signal_jy_per_beam=denoised,
+        position_diagnostics=records,
+    )
+    record = records[1]
+    support = (position_labels == 1) & valid
+    residual = signal - background
+    expected = tuple(
+        float(
+            np.sum(grid[support] * residual[support])
+            / np.sum(residual[support])
+        )
+        for grid in (xx, yy)
+    )
+    assert record.signed_original_xy == pytest.approx(expected)
+    assert record.denoised_xy == pytest.approx(
+        (xx[support].mean(), yy[support].mean())
+    )
+    assert record.position_pixel_count == 9 - int(mask_corner)
+    assert record.aperture_pixel_count > record.position_pixel_count
+    assert record.aperture_background_mean == background_offset
+    assert record.aperture_signed_flux_jy == rows[0].integrated_flux_jy
+    assert record.selected_xy == record.denoised_xy
