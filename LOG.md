@@ -18321,3 +18321,58 @@ scientific pass from fixture validation.
   this terminal handoff. Next is a separate prospective root-cause review,
   followed only by reviewed repair identities and appropriate new evidence,
   not an automatic retry, viewed-data rescoring, gate change or release.
+
+## 2026-09-09 — R6 prospective scientific root-cause review complete
+
+- Completed `docs/reference/phase-5-r6-root-cause-review.md` and the
+  non-executable `phase-5-r6-root-cause-pre-review.json`, final formatted
+  SHA-256
+  `939152d80e3444732b1910cf5e911def95b70cb5b316f65e757269d81313a277`.
+  The record binds report SHA-256
+  `4450baea635fe769de97dc6c82ed0d5d7f6dde05c5f4902ef1d114c581462aef`,
+  original candidate `db8936b...` and closed failed terminal `7146f2e8...`.
+  All authorization flags are false. This review does not change the R6
+  scientific verdict or authorize implementation/execution.
+- Read and rechecked all 10,400 sealed finder-record hashes; used only saved
+  matches, residuals, native rows and flags for diagnostic attribution. No
+  closed input was executed, rematched or rescored. Independent analytic
+  witnesses used immutable original R6 checkout `1b1cbae...`, isolated from
+  subsequent notebook repairs. No environment synchronization occurred.
+- Confirmed configured compact model-selection bypass in joint fitting and
+  systematic GLS-fallback flags on all 38,376 matched current compact rows.
+  The large-context/512-pixel admission seam is reproduced independently;
+  its quantitative contribution to the scientific regression is unproven.
+  Localized 800 of 803 lost clear-resolved classifications to the SNR-25
+  corner case reaching the major-axis significance censor. Covariance
+  calibration, not threshold relaxation, is the next independent check.
+- Reproduced observable-source versus native-Gaussian substitution through
+  the full public composition without noise/background error: a clipped
+  Gaussian publishes 83.177664 Jy versus 48.189015 Jy observable truth
+  (+72.6071%), with model centre rather than observable-support centroid.
+  Recorded separate shell/curved fragmentation and the compact-protection
+  path that can prevent reassociation. Remaining aperture-position tails
+  and complete per-split attribution are explicit uncertainties, not claims
+  that all failures are explained or repaired.
+- Updated the campaign overview, navigation and ordered R6-R0--R6-R6 plan
+  actions: scientific review; compact policy/noise/calibration; source-domain
+  consistency; association/position attribution; short joint development
+  gates; only then exact replacement cumulative and fresh evidence. Preserve
+  component/source distinction, all closed records, thresholds, margins,
+  comparators, confidence rules and the sub-12-hour final-campaign constraint.
+- Focused validation passes 141 tests; the immutable analytic witnesses and
+  10,400-file read-only audit exit zero; report binding, non-executable flags
+  and unchanged terminal hash verify. Strict `just docs-build` passes.
+  Explicit hooks for both new artifacts pass after the JSON hook sorted
+  keys; its changes were inspected and the final digest frozen afterwards.
+  The initial sandboxed uv command was blocked by cache permissions and ran
+  no tests; the approved existing-environment invocation passed. Preliminary
+  diagnostic/probe limitations are recorded in the review rather than hidden.
+  `just check` passes Ruff, Pyright and 3,273 tests (375 deselected, two
+  expected failures). No findings remain in the review-documentation diff;
+  the scientific findings above remain open repair work.
+- Reviewed all changes against `CODE_REVIEW.md`: documentation and an inert
+  review record only, no production or evaluator control-flow change. Project
+  coverage and scientific equivalence were not rerun for this documentation
+  change; production patch coverage is not applicable. New regression tests
+  implementing the prospective contracts belong with the approved repairs,
+  not as permanently failing tests or campaign-directory-dependent tests.

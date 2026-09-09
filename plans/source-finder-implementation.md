@@ -570,8 +570,11 @@ exited zero and preserved all 808 reused inputs, but its 1,187 binding
 comparisons contain 885 passes, 288 failures and 14 underpowered results.
 Both PyBDSF references, Aegean and incumbent retention have failures; all five
 binding safety checks pass. R0--R5 fixture completion is not scientific
-qualification. Preserve the terminal and undertake a separate prospective
-root-cause review before any repair candidate, replay or fresh sentinel.
+qualification. The separate
+[root-cause review](../docs/reference/phase-5-r6-root-cause-review.md)
+is complete (2026-09-09); its prospective repairs and calibration gates below
+remain pending. Preserve the terminal before any replacement candidate,
+replay or fresh sentinel.
 Do not retry or rescore this completed scientific failure, transfer the
 historical uncertainty acceptance, or qualify later notebook repairs from it.
 The [dated terminal snapshot](../docs/reference/phase-5-campaign-overview.md#2026-09-09-r6-cumulative-terminal-scientific-failure)
@@ -812,9 +815,10 @@ records the synthetic reproduction and prospective remedy. Before retry:
    underpowered. All five safety checks pass. This is terminal scientific
    evidence, not another process retry. R6 remains incomplete and the fresh
    sentinel is blocked. Hourly monitoring ends with this terminal handoff.
-   Next is a separate prospective root-cause review of compact astrometry,
-   shape/classification and Continuum edge/diffuse measurement and retention
-   failures. Do not change any closed score or gate. The preparation comprised
+   The separate prospective root-cause review of compact astrometry,
+   shape/classification and Continuum measurement/retention is now complete;
+   follow the pending R6 review actions below. Do not change any closed score
+   or gate. The preparation comprised
    two explicit steps (absence/pending statements below describe that time):
    - **Complete — reusable-evidence inventory (2026-09-08):** immutable
      auditor `3fc57fc...` verified all 2,400 capture pairs, 9,600 reference
@@ -964,9 +968,50 @@ All of this is development evidence, not replacement parity or qualification.
   The original repaired candidate `db8936b...` now has a complete but failed
   cumulative terminal (`7146f2e8...`, 2026-09-09), not a paused process.
   Preserve its captures, reused and new records, and all exact identities.
-  Complete a separate prospective root-cause review using the closed evidence
-  and analytic fixtures before proposing further scientific changes. No
-  automatic retry, viewed-data rescoring or fresh sentinel follows this fail.
+  The separate [root-cause review](../docs/reference/phase-5-r6-root-cause-review.md)
+  is complete using hash-verified closed diagnostics and independent analytic
+  fixtures. No automatic retry, viewed-data rescoring or fresh sentinel follows
+  this fail. Complete these review actions in order:
+
+  - [x] **R6-R0 — Localize failures without rescoring.** All 10,400 sealed
+    records were hash-checked. Confirmed compact model-selection bypass,
+    systematic GLS fallback flags and source-domain substitution; localized
+    corner classification censoring and curved/shell fragmentation. Preserve
+    the distinction between confirmed mechanisms and remaining calibration
+    hypotheses. Review artifact is non-executable and grants no authority.
+  - [ ] **R6-R1 — Review the prospective repair contract.** Obtain scientific
+    review of C1--C3/E1--E3, including native Gaussian component versus
+    observable source semantics. Freeze independent positive/negative fixture
+    requirements before implementation; no gate, truth, margin or comparator
+    change is implied by acceptance of this review.
+  - [ ] **R6-R2 — Restore compact estimator conformance.** Test-first joint
+    beam/free policy and bounded correlated-noise likelihood support, distinct
+    from model-adequacy halos. Preserve neighbour treatment and coherent fit
+    parameters/errors. Calibrate corner/edge covariance and deconvolution on
+    independent noisy fixtures; do not lower the five-sigma classification
+    rule. Cover support/context limits and retain small per-fit diagnostics.
+  - [ ] **R6-R3 — Correct source measurement-domain consistency.** Keep native
+    full-model Gaussian quantities as component measurements; ensure published
+    source flux/position follow their declared observable-domain contract,
+    including clipped and invalid-pixel domains. Reproduce E1 at the complete
+    public boundary and test singleton/multi-component consistency, masked
+    neighbours, flux ownership and explicit uncertainty/coverage limitations.
+  - [ ] **R6-R4 — Resolve association and residual-position risks.** Use
+    attribution-first, independent open-arc/incomplete-shell/core-halo fixtures
+    paired with independent compact-neighbour counterexamples. A good Gaussian
+    sum does not alone prove independent sources. Separate support assignment,
+    centroid weighting, mask asymmetry and background effects; retain both
+    position estimates and grouping decisions without tuning viewed cases.
+  - [ ] **R6-R5 — Qualify the combined repair on a short development ladder.**
+    Exercise exact public Serial/existing-Dask composition, every failed
+    geometry and neighbouring compact/extended guards, with independent noise,
+    partition/context/order invariance and bounded cost. Pass focused tests,
+    branch-aware coverage and patch inspection, `just check`, equivalence,
+    docs, package smoke, review and final pre-commit gates before freezing
+    non-executable candidate identities. Fixture success is not campaign parity.
+  - [ ] **R6-R6 — Admit replacement cumulative and then fresh evidence.**
+    Follow the unchanged scientific gates and authority boundaries below.
+
   Review which earlier reference products can be reused byte-for-byte and
   which changed candidate paths require new cumulative measurements. Previous
   passes and the scoped incumbent-uncertainty acceptance do not automatically

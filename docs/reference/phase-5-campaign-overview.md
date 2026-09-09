@@ -2418,6 +2418,36 @@ alone does not prove an implementation-level cause. Any proposed repair and
 new candidate/evaluation identity must be reviewed prospectively; passing
 fixtures or later notebook repairs cannot inherit this candidate's evidence.
 
+## 2026-09-09: R6 prospective root-cause review completed
+
+The [separate scientific review](phase-5-r6-root-cause-review.md) inspected
+all 10,400 sealed finder-record hashes and attributed failures using saved
+native rows, flags and matches. Independent analytic witnesses ran against
+the original immutable R6 code, not later notebook repairs. No closed input
+was rerun, matched again or rescored; terminal `7146f2e8...` remains failed.
+
+Compact review confirmed that joint fitting bypasses the configured
+beam/free selection and found GLS-fallback flags on all 38,376 matched
+current compact rows. Of 803 lost clear-resolved classifications, 800 belong
+to one SNR-25 corner geometry and reach the major-axis significance censor.
+Their covariance/calibration cause is not yet established; changing the
+classification threshold is not an approved remedy.
+
+Continuum review reproduced a source-domain substitution defect without
+noise: a clipped Gaussian's total flux and model centre replace the
+observable source measurement. The full public fixture overstates visible
+flux by 72.6071%. Saved edge Gaussian-substitution rows show median signed
+flux excess 58.6108%, versus -1.1266% for aperture rows. Separately, shell
+and curved-filament splits occur in 701 and 689 of 1,600 cases respectively;
+adequate Gaussian decomposition does not establish independent sources.
+Residual aperture-position tails require further independent attribution.
+
+These diagnostic subdivisions are not new gates or alternative scores.
+The plan now orders prospective compact-policy/noise work, observable-domain
+source measurements, association/position attribution, short joint fixture
+validation and only then new exact cumulative evidence. Review is complete;
+repairs, fresh qualification, Phase 5 closeout and release are not.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:
