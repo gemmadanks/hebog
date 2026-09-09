@@ -647,11 +647,24 @@ authorization boundaries remain in `config/contracts/`.
 
 #### Phase 5 exit gates
 
+**Release correctness is not restricted to Rapthor's immediate needs.**
+Prioritize the products Rapthor consumes, but do not close Phase 5 with a
+confirmed defect in any supported public catalogue, position, flux, ownership
+or processing-status contract. A narrower consumer, a pooled parity result,
+or the historical confidence exception cannot waive a known incorrect output.
+Do not conceal defects by switching to component-only reporting, dropping
+troublesome rows, or describing incorrect measurements as supported limitations.
+Unidentifiable measurements must be explicitly unavailable under a reviewed
+contract; incomplete processing must be visible and cannot qualify as complete
+science. This is not a promise of zero false detections or perfect physical
+association: calibrated low-SNR uncertainty and genuinely ambiguous morphology
+must remain explicit and tested against independent truth.
+
 | Gate | Binding pass condition | Current state |
 | --- | --- | --- |
-| Known scientific risks | Every confirmed adaptive-background, measurement, association, component partition, publication, and evaluator defect is corrected test-first without changing a closed result after it is viewed. | Reopened. Terminal `ca03240d...` fails source-level association, compact flux, reliability, position, and some support comparisons. The 2026-09-07 analytic audit additionally reproduces unstable signed centroids, threshold-dependent shape/deconvolution bias, and shape-unavailable publication failure. Repair tasks R0--R6 below precede qualification; previous component-union tests and fast-lane pass `a274888d...` do not close these risks. |
-| Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes product validity, trigger behaviour, paired retention in every four-seed trigger cell, multi-peak component retention, negative controls, and Serial/existing-Dask invariance. | Required for the replacement. Version-8 terminal `a274888d...` remains a 12/12 geometry and 12/12 Serial/Dask pass with four report-only misses, but its tests did not distinguish independent compact-source membership from component multiplicity or cover the newly reproduced measurement/publication failures. Require the exact public composition and joint compact/extended truth gates in R5. |
-| Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Historical identity and execution-consistency pass for `95cfc76...`, source `8da21e86...`, configuration `2c907949...`, and sealed 2,400-product set `f43cb274...`. This does not establish scientific readiness: the source-aligned sentinel fails and the public projection rejects admitted shape-unavailable owners. The replacement must be frozen and revalidated after R0--R5; no prior public-candidate pass transfers automatically. |
+| Known scientific risks | Every confirmed adaptive-background, measurement, association, component partition, publication, and evaluator defect is corrected test-first without changing a closed result after it is viewed. | Open. The failed sentinel and R6 audit remain binding. The 2026-09-09 v10 notebook witnesses additionally expose suspect cross-island associations, joint-fit acceptance/bound diagnostics, fit-limit omissions and publication inconsistencies; bright-source background suppression needs independent attribution. Complete R6-C0--C7 below before R6-R6 admission. Earlier fixture passes do not close these newly exposed risks. |
+| Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes product validity, trigger behaviour, paired retention in every four-seed trigger cell, multi-peak component retention, negative controls, and Serial/existing-Dask invariance. | Required for the replacement. Version-8 terminal `a274888d...` remains a 12/12 geometry and 12/12 Serial/Dask pass with four report-only misses, but its tests did not distinguish independent compact-source membership from component multiplicity or cover the newly reproduced measurement/publication failures. Require the exact public composition and joint compact/extended truth gates in R5 and R6-C7. |
+| Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Historical identity and execution-consistency pass for `95cfc76...`, source `8da21e86...`, configuration `2c907949...`, and sealed 2,400-product set `f43cb274...`. This does not establish scientific readiness: the source-aligned sentinel fails and the public projection rejects admitted shape-unavailable owners. The replacement must be frozen and revalidated after R0--R5 and R6-C0--C7; no prior public-candidate pass transfers automatically. |
 | Cumulative parity and retention | Across all 800 compact and 1,600 Continuum cases, every binding comparison passes both PyBDSF references, applicable Aegean checks, and hard safety rules. Incumbent comparisons must show no observed movement beyond their practical margin; any unresolved confidence exception must be explicit and human accepted rather than pooled away or relabelled. | Failed for replacement `db8936b...`: R6 terminal `7146f2e8...` has 885 passes, 288 failures and 14 underpowered comparisons. Released/master PyBDSF have 39/37 failures, Aegean 53 and incumbent retention 159; all five safety checks pass. Both readiness flags are false. Historical `8d69ef44...` and its narrowly accepted incumbent-uncertainty exception remain unchanged and do not transfer. A separate prospective scientific review must precede another candidate or run. |
 | Fresh scientific qualification | A small prospective falsification sentinel complements, but does not replace, the powered cumulative evidence. On unopened seed-disjoint data, the exact public candidate must pass every known-risk extended and compact guard cell, hard safety rule, released-PyBDSF practical comparison margin, and Serial/existing-Dask check. Retain earlier reference evidence only where its identity and semantics remain applicable; changed candidate science requires replacement evidence. No pooled result may hide a failed cell, and the sentinel alone is not a powered parity study. | Failed, not awaiting a process retry. Spawn-safe identity `c498a90d...` completed 168 Hebog/168 PyBDSF runs and all 12 Dask comparisons; terminal `ca03240d...` passes 24/42 cells and fails 18/42 with 59 failed cell-endpoints. Both finders were measured against analytic truth. No qualification reuse or rescoring of those seeds is allowed. Complete R0--R5 and the replacement cumulative gate before R6's separately approved fresh sentinel. |
 | Engineering evidence | Bounded execution, retry/order invariance, the 6.0-second 3,000-pixel incremental budget, package installation, schemas, atomic outputs, documentation, and ordinary CI all pass for the exact candidate. | Partly complete; final-candidate recheck remains. |
@@ -1047,17 +1060,151 @@ All of this is development evidence, not replacement parity or qualification.
     check the intended notebook review selection and the actual no-write
     refresh preflight, not only synthetic tests with temporary identities.
     Visual refreshes remain diagnostic; no R6 verdict transfers.
+
+  **New prerequisite: public-catalogue repairs R6-C0--C7 (2026-09-09).**
+  The user's sealed v10 `Repaired estimators` refresh, source `cc1db52e...`,
+  exposes gaps not covered by the completed R6-R5 fixtures. Preserve that
+  completed engineering evidence and non-executable identity; neither is
+  acceptance of the new witnesses. Pause replacement-candidate admission
+  until this sequence passes. This plan update schedules repairs, not a
+  finder run, viewed-data rescore, executable freeze or qualification.
+
+  - [ ] **R6-C0 — Establish the prospective repair and regression contract.**
+    This is the immediate next task. Preserve the sealed refresh and make a
+    compact witness index linking case, source/component IDs, native fit and
+    grouping diagnostics, publication state and coordinate conventions.
+    Distinguish confirmed implementation/contract failures from morphology
+    hypotheses: an associated-source centroid need not coincide with a peak,
+    while the Hydra joint-fit bound diagnostic and HDR work-limit omissions
+    are directly observable. Record expected behaviour before implementation
+    and obtain scientific review of any changed association, estimator,
+    availability or acceptance rule. Construct independent analytic/injected
+    fixtures and counterexamples for C1--C5, not copies or tuned reproductions
+    of the viewed pixels. Each production repair starts with an intended red
+    behavioural test through the affected public path. Retain closed results,
+    existing thresholds, comparator definitions, margins and confidence rules;
+    new defect-specific gates supplement rather than replace them.
+  - [ ] **R6-C1 — Prevent unsupported source associations.** Trace both
+    hierarchy-remainder grouping and extended-morphology merges, including
+    transitive merging and overrides of compact-source protection. Add bounded
+    attribution for each merge's reason, evidence scale, participating groups
+    and protection decision. Require affirmative morphological evidence for
+    cross-island associations; a common reconciliation or fit context alone
+    must not identify one source. Prioritize a conservative compact-source
+    rule for scientific review: independently detected compact neighbours
+    remain separate unless observable evidence supports their association.
+    An absent, failed or deferred compact fit is not affirmative evidence for
+    merging its hierarchy remainder. Extended overrides must identify their
+    supporting evidence and pass compact-neighbour counterexamples. Test
+    source-level false merges and missed independent sources, with false-split
+    guards; preserving the Gaussian count alone does not pass this gate.
+    Vary separation in beam units, SNR, flux ratio and background/context.
+    Test isolated neighbours, unequal pairs, chains, broad-context groups and
+    rejected-link remainders alongside real
+    multi-peak islands, arcs, shells, lobes and core-halo emission. Verify
+    membership as well as centroid and total flux; do not repair a bad group
+    by snapping its centroid onto a peak, forcing every component to be a
+    source, or breaking genuine extended sources into independent detections.
+  - [ ] **R6-C2 — Separate bounded fit work from source association.** The
+    HDR witness contains a 101-component parent whose 606 parameters exceed
+    the 96-parameter joint-fit limit; ordinary supported detections are then
+    deferred together. Define scientifically valid bounded fit groups using
+    actual overlapping measurement/model context, independently of the final
+    associated-source grouping. Preserve neighbour contributions, ownership,
+    joint covariance where applicable, and deterministic reconciliation.
+    Keep parameter, Jacobian and memory limits; simply increasing them or
+    creating one Dask task per component is not a repair. Test both sides of
+    each work limit, many independent sources sharing a context, and truly
+    inseparable large blends. The latter must retain explicit deferred status
+    if no valid bounded solution exists, not disappear into a success count.
+  - [ ] **R6-C3 — Make joint-fit quality and failure handling trustworthy.**
+    Reproduce weak, displaced and boundary-pinned components inside a nominally
+    converged joint fit, with independent noisy compact-neighbour fixtures.
+    Audit residual/noise units, correlated-noise conditioning, Jacobians,
+    initialization, context and identifiability before selecting a remedy.
+    Make bound detection scale-aware and consistent with solver tolerances;
+    the Hydra witness reports relative centroid-bound distance about
+    `6.6e-11` but no bound flag. Numerical convergence alone must not establish
+    a scientifically identifiable measurement. Predeclare and calibrate any
+    additional acceptance or fallback rule on independent truth, retaining
+    joint-model/covariance consistency and explicit unavailable uncertainty.
+    Test low-amplitude degeneracy, bounds, singular/SVD/nonconvergent cases,
+    ordinary successful fits, and legitimate asymmetric/extended emission.
+    Do not invent a residual cutoff or force reference positions from the
+    notebook examples; the precise cause of the distorted fit remains open.
+  - [ ] **R6-C4 — Reconcile public membership, measurements and completeness.**
+    Specify which measured, unpublished, deferred and unavailable components
+    may contribute to each source's position, flux, support and component
+    count, and expose the contributing IDs/statuses consistently. The ordinary
+    SDC1 witness includes an unpublished neighbour in a displaced source
+    centroid; diagnose association separately from publication-domain policy.
+    Preserve legitimate sub-threshold wings and native full-model information;
+    do not equate absence from the display mask with absence of real emission.
+    Test empty/all-unavailable results, mixed member states, shape/uncertainty
+    unavailability and failure round-trips through public API, saved products,
+    catalogue adapters and notebook readers. Reconcile detected, measured,
+    published, rejected and deferred counts with explicit reasons. Never
+    publish known invalid coordinates as ordinary measurements or make lost
+    supported detections improve reliability by silently omitting them.
+  - [ ] **R6-C5 — Attribute and resolve bright-extended support suppression.**
+    The HDR bright body has elevated background/RMS and falls below support
+    thresholds; saved PyBDSF products also show elevated RMS, so the screenshot
+    alone does not prove a background bug. Use known broad emission plus
+    bright cores, independent spatially varying/correlated noise and artefact
+    counterexamples to separate source contamination, valid noise inflation,
+    source protection, scale selection and publication effects. Cover mesh
+    sizes, beam/source-size ratios, faint wings, neighbours and image/tile
+    boundaries. Correct any reproduced estimator/support defect test-first;
+    otherwise document the attribution and calibrated detection limit.
+    Require background/RMS accuracy, extended flux/support recovery and
+    compact completeness/reliability retention together. Do not force zero
+    background, lower thresholds or expand masks to match viewed references.
+  - [ ] **R6-C6 — Make notebook and catalogue diagnostics unambiguous.** Label
+    native product types explicitly: Hebog components versus associated
+    sources, PyBDSF source versus Gaussian catalogues, and Aegean components
+    versus optional island summaries. Identify ellipse-proxy masks as proxies,
+    not native support. Provide member links, quality/failure/deferred state
+    and visible-region versus full-catalogue counts so a centroid between
+    valid members is distinguishable from an unsupported association or fit.
+    Preserve both public source and component products; plotting changes must
+    not move positions, hide failures or substitute for science repairs.
+    Test transforms, overlays and native schema selection on synthetic saved
+    products; reuse sealed products for diagnostic display without rescoring.
+  - [ ] **R6-C7 — Pass the combined no-regression ladder before refreezing.**
+    Run the complete existing 108-case development matrix plus the new trigger
+    and negative-control fixtures, not just the latest failing morphology.
+    Cover compact SNR/flux ranges, blends/multiplicity, arcs/shells/core-halo,
+    bright extended/dynamic-range cases, empty/NaN/negative-background inputs,
+    beams, WCS orientations/frames, units and non-square/edge geometries.
+    Require exact public Serial/existing-Dask conformance, one/many-tile and
+    corner/context/partition/order/retry invariance, and bounded fit cost.
+    Compare each finder independently with analytic/injected truth and compare
+    like semantics; PyBDSF and Aegean are not truth. Check component and source
+    membership, positions, flux/shape/uncertainty, support and missing/duplicate
+    or deferred outcomes per geometry/SNR/trigger cell. Preserve the last
+    reviewed candidate's strengths with paired retention: no pooled gain may
+    hide a regression or a new catalogue omission. Do not enshrine a diagnosed
+    defect as expected output. Pass focused tests, branch and patch coverage,
+    `just check`, frozen equivalence, strict docs, notebook
+    checks, package smoke and `CODE_REVIEW.md` review; run clean final hooks.
+    Refresh public contracts/docs and freeze a new non-executable candidate
+    only after these gates, with the notebook's exact identity-selection and
+    no-write preflight checks. Fixture success is not campaign parity or
+    release approval; a remaining confirmed correctness defect blocks C7.
   - [ ] **R6-R6 — Admit replacement cumulative and then fresh evidence.**
-    Follow the unchanged scientific gates and authority boundaries below.
+    Blocked on R6-C0--C7; do not launch the current v10 candidate on the basis
+    of the earlier fixture pass. Follow the unchanged scientific gates and
+    authority boundaries below for the newly repaired exact candidate.
     The [replacement admission review](../docs/reference/phase-5-r6-replacement-admission-review.md)
-    is complete (2026-09-09); admission itself is not complete:
+    is historical planning evidence for v10 (2026-09-09); revalidate its
+    candidate binding, reusable semantics and resource estimates after C7:
 
     - [x] Review exact reuse: 2,400 incumbent, 4,800 dual-PyBDSF and 800
       Aegean evaluation records remain reusable byte-for-byte. Preserve all
       2,400 inputs, 9,600 reference runs and the failed R6 terminal. The new
       candidate still needs 2,400 Serial captures/evaluations, 12 existing-Dask
       comparisons and new paired statistics; no old verdict transfers.
-    - [ ] **Immediate next task:** test-first reuse-aware orchestration and
+    - [ ] After C7, complete test-first reuse-aware orchestration and
       synthetic end-to-end/reuse/failure checks. The old pair runner executes
       the incumbent and evaluates every finder, so do not launch it unchanged
       or edit its consumed decision. Reuse scientific functions and immutable
@@ -1101,8 +1248,10 @@ remaining Phase 5 gates. The terminal result remains immutable and incomplete; t
 exception permits progression but is not a statistical pass. Complete the
 remaining steps in order. The later failed sentinel now requires R0--R6
 above; the historical progression acceptance does not waive that failure or
-the replacement R6 cumulative failure `7146f2e8...`. The checked first item
-below records historical progression only, not acceptance of `db8936b...`:
+the replacement R6 cumulative failure `7146f2e8...` or the v10 public-catalogue
+witnesses. R6-C0--C7 and new candidate-bound evidence precede closeout. The
+checked first item below records historical progression only, not acceptance
+of `db8936b...` or `cc1db52e...`:
 
 1. [x] **Seal and accept the cumulative evidence for progression.** Verify all
    2,400 current

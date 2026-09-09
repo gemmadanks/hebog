@@ -18582,3 +18582,51 @@ scientific pass from fixture validation.
   no actionable findings; old records, source bytes and dependencies remain
   untouched. Run final clean all-file hooks immediately before the local
   commit; nothing is pushed.
+
+## 2026-09-09 — Gate the next replay on public-catalogue correctness repairs
+
+- Added R6-C0--C7 ahead of replacement replay admission, following the user's
+  request to address the notebook witnesses without sacrificing previously
+  demonstrated science. The completed R6-R5 fixtures and frozen v10 identity
+  remain historical engineering evidence, not acceptance of the newly exposed
+  catalogue issues. The immediate next task is a prospective repair contract
+  with independent red-first fixtures, not reuse-aware execution or a replay.
+- The diagnostic witness is the user's sealed `Repaired estimators` refresh
+  `390efa7-cc1db52e4e30-4f8f357a`, source `cc1db52e...`, configuration
+  `5eca0efc...`. Tasks distinguish hierarchy-remainder and extended-morphology
+  associations, displaced/degenerate joint fits and missed bound flags,
+  work-limit omissions, and inconsistent visible/contributing membership.
+  In particular, the HDR 101-component parent needs 606 parameters, exceeding
+  the 96-parameter fit limit; the Hydra displaced fit has a near-bound
+  diagnostic without a bound flag. These motivate bounded fit-work separation
+  and quality/status tests, not removal of resource limits or an arbitrary
+  fit-rejection cutoff.
+- Following the user's compact-overgrouping concern, made independent compact
+  separation the priority association gate, including failed/deferred-fit
+  hierarchy remainders and extended-group overrides. Prospective review must
+  require positive association evidence and source-level false-merge tests,
+  not just unchanged component counts, while retaining false-split guards for
+  genuinely extended sources. Reference agreement is a useful warning, not
+  physical ground truth or permission to copy its grouping on viewed data.
+- Bright-body background/RMS suppression remains an attribution question:
+  reference RMS is also elevated. Require independent broad-emission/noise
+  controls before changing the estimator. Likewise, a source centroid between
+  lobes or outside displayed support is not inherently incorrect. Preserve
+  genuine extended associations, faint measurement wings and both source and
+  component products while testing unsupported grouping and publication.
+- Require per-cell component/source retention over the full existing
+  development matrix plus new counterexamples, exact public Serial/Dask and
+  partition/retry conformance, bounded cost, explicit deferred/unavailable
+  outcomes, then newly frozen cumulative and fresh evidence. Closed viewed
+  cases remain diagnostic only; no thresholds, results, identities, candidate
+  science or evidence namespaces are changed by this plan update.
+- Clarified the release boundary: Rapthor priorities, aggregate parity and the
+  old scoped confidence acceptance cannot waive a confirmed defect in supported
+  public products. Calibrated uncertainty is distinct from known incorrect
+  measurements or hidden incomplete processing. Broad cleanup remains Phase
+  5.5; Release Please still owns release preparation.
+- Strict documentation build and `git diff --check` pass. Reviewed the complete
+  plan/log diff against `CODE_REVIEW.md`: no actionable findings. No production
+  code or scientific rules changed; coverage, equivalence and campaign runs
+  are not repeated for this documentation-only change. Final all-file hooks
+  must pass without modifications immediately before the local docs commit.
