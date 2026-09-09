@@ -44,6 +44,15 @@ The preflight prints the configuration SHA-256 returned by the exact public
 runner. The refresh never reconstructs that identity from an older contract
 chain, and it creates no staging directory during preflight.
 
+The runner selects the frozen R6 estimator-repair review
+`config/contracts/phase-5-r6-estimator-repair-identity-review.json`
+(v10 composition). `final public-interface identity changed` means the
+selected review does not match the checked-out science or configuration;
+it is not a dependency-sync error. After freezing a new scientific identity,
+update the diagnostic runner's review selection and run this real no-write
+preflight before refreshing. Do not bypass the guard or rewrite an older
+review. Synthetic runner tests alone do not verify the live selection.
+
 Start a refresh with a short label describing the active scientific changes:
 
 ```console

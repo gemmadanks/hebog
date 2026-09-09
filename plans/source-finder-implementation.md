@@ -1041,6 +1041,12 @@ All of this is development evidence, not replacement parity or qualification.
     source `cc1db52e...`, unchanged configuration `5eca0efc...` and public
     composition `256ae828...`. Its committed-history test passes without any
     campaign output directory. Every execution authorization is false.
+    The diagnostic notebook runner now selects this v10 identity explicitly
+    (2026-09-09), correcting its stale v9 review selection without changing
+    package science or historical identities. Future candidate freezes must
+    check the intended notebook review selection and the actual no-write
+    refresh preflight, not only synthetic tests with temporary identities.
+    Visual refreshes remain diagnostic; no R6 verdict transfers.
   - [ ] **R6-R6 — Admit replacement cumulative and then fresh evidence.**
     Follow the unchanged scientific gates and authority boundaries below.
     The [replacement admission review](../docs/reference/phase-5-r6-replacement-admission-review.md)

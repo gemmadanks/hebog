@@ -18542,3 +18542,43 @@ scientific pass from fixture validation.
   run clean final all-file hooks immediately before the local commit.
   R6/Phase 5 remain open; resource admission and an exact executable freeze
   remain outstanding, with no new scientific verdict.
+
+## 2026-09-09 — Bind the notebook refresh to the repaired estimators
+
+- Reproduced the user's `final public-interface identity changed` before
+  changing the runner. Its default still selected the v9 notebook support
+  amendment, while current science matches the frozen v10 R6 estimator repair
+  `f7afe3c1...`: candidate `4d07837...`, source `cc1db52e...`, configuration
+  `5eca0efc...`, composition `256ae828...`. The failure occurred before staging
+  or finder execution; `--no-sync` and notebook input data were not the cause.
+- Updated only the runner's selected review path. No package science,
+  estimator, threshold, configuration, immutable review or historical evidence
+  changed. Added a red-before-fix default-selection regression and checks that
+  source/composition drift still fails closed. These use the real selected
+  review with synthetic scientific identities; existing committed-history
+  verification checks its actual frozen bytes. This keeps normal tests
+  independent of live development changes and private campaign directories.
+- The missing integration check was the actual review selection: synthetic
+  notebook tests supply temporary current identities and could pass while the
+  default remained stale. The workflow now requires the intended selection
+  check and a real no-write preflight after future candidate freezes.
+- All 50 focused notebook, synthetic ICRS/FK5 geometry, fault-injection,
+  public-protocol and historical-identity tests pass. Real `--preflight-only`
+  with the user's existing environment passes and reports 13 planned cases at
+  `390efa7-cc1db52e4e30-4f8f357a`; runner SHA-256 is
+  `4f8f357a706d16481a3774a9925723ab023552f53ee3e0638d65082827425eec`.
+  Confirmed both output and staging paths were absent beforehand. This task
+  started no refresh, finder, reference execution, evaluation or R6 continuation.
+  The user may rerun their unchanged refresh command; visual output remains
+  diagnostic, not candidate qualification or a transferred R6 verdict.
+- `just coverage` passes 3,536 tests (157 deselected, two expected failures)
+  in 324.10 s; branch-aware package coverage is unchanged at 95.1905998087%.
+  There are no changed package lines/branches; the script selection is
+  exercised by the red/green regression and real preflight. `just check`
+  passes Ruff, Pyright and 3,314 tests (379 deselected, two expected failures)
+  in 241.10 s. Strict docs and the final six notebook identity/preflight tests
+  pass. Scientific equivalence and wheel builds were not rerun for this
+  script-binding-only repair. Reviewed the full diff against `CODE_REVIEW.md`:
+  no actionable findings; old records, source bytes and dependencies remain
+  untouched. Run final clean all-file hooks immediately before the local
+  commit; nothing is pushed.

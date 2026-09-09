@@ -5,9 +5,12 @@ from __future__ import annotations
 import json
 import runpy
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
+
+from hebog.validation.external_runners import canonical_sha256
 
 _ROOT = Path(__file__).parents[3]
 _REFRESH = runpy.run_path(
@@ -20,6 +23,68 @@ _PUBLIC_RUNNER = runpy.run_path(
 
 def _write_json(path: Path, value: object) -> None:
     path.write_text(json.dumps(value), encoding="utf-8")
+
+
+def test_default_notebook_runner_selects_the_frozen_estimator_repair() -> None:
+    """The diagnostic entry point must select the intended repair review."""
+    expected = (
+        _ROOT
+        / "config/contracts/phase-5-r6-estimator-repair-identity-review.json"
+    )
+    assert _PUBLIC_RUNNER["_PUBLIC_IDENTITY"] == expected
+
+
+@pytest.mark.parametrize(
+    "mismatch", (None, "source", "composition-name", "composition-sha256")
+)
+def test_selected_review_still_rejects_scientific_identity_drift(
+    mismatch: str | None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Use the real review with synthetic hashes, not live development files.
+
+    Historical bytes are verified separately by the repair identity tests;
+    a real no-write preflight checks live science before a notebook refresh.
+    """
+    review = json.loads(
+        (
+            _ROOT
+            / "config/contracts"
+            / "phase-5-r6-estimator-repair-identity-review.json"
+        ).read_bytes()
+    )
+    guard = _PUBLIC_RUNNER["public_hebog_configuration_sha256"]
+
+    def source_sha256(_root: Path) -> str:
+        if mismatch == "source":
+            return "0" * 64
+        return str(review["algorithm_candidate"]["source_tree_sha256"])
+
+    def composition_sha256() -> str:
+        if mismatch == "composition-sha256":
+            return "0" * 64
+        return str(review["scientific_composition_sha256"])
+
+    monkeypatch.setitem(guard.__globals__, "source_tree_sha256", source_sha256)
+    monkeypatch.setitem(
+        guard.__globals__,
+        "public_api",
+        SimpleNamespace(
+            _COMPOSITION_NAME=(
+                "different-composition"
+                if mismatch == "composition-name"
+                else review["scientific_composition"]
+            ),
+            _scientific_composition_sha256=composition_sha256,
+        ),
+    )
+    if mismatch is None:
+        assert guard() == canonical_sha256(review["configuration"])
+    else:
+        with pytest.raises(
+            ValueError, match="final public-interface identity changed"
+        ):
+            guard()
 
 
 def test_preflight_uses_the_public_runners_exact_configuration(
