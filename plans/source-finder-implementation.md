@@ -564,9 +564,20 @@ is an instruction to rerun or rescore a closed campaign.
 
 ### Phase 5: multiscale and extended emission
 
-**Status: open; source-aligned sentinel `ca03240d...` failed scientifically.
-Prospective source-association, measurement, support, and public-boundary
-repairs must precede another qualification.** The earlier version-8 fast lane
+**Status: open; R6 cumulative terminal `7146f2e8...` failed scientifically
+on 2026-09-09 for candidate `db8936b...`.** The evaluation-only continuation
+exited zero and preserved all 808 reused inputs, but its 1,187 binding
+comparisons contain 885 passes, 288 failures and 14 underpowered results.
+Both PyBDSF references, Aegean and incumbent retention have failures; all five
+binding safety checks pass. R0--R5 fixture completion is not scientific
+qualification. Preserve the terminal and undertake a separate prospective
+root-cause review before any repair candidate, replay or fresh sentinel.
+Do not retry or rescore this completed scientific failure, transfer the
+historical uncertainty acceptance, or qualify later notebook repairs from it.
+The [dated terminal snapshot](../docs/reference/phase-5-campaign-overview.md#2026-09-09-r6-cumulative-terminal-scientific-failure)
+records the exact result. The following chronology remains historical.
+
+The earlier version-8 fast lane
 passed and its cumulative evidence was accepted for progression with one
 explicit incumbent-uncertainty exception. The earlier production audit did
 not establish the source-level scientific correctness now falsified by the
@@ -638,7 +649,7 @@ authorization boundaries remain in `config/contracts/`.
 | Known scientific risks | Every confirmed adaptive-background, measurement, association, component partition, publication, and evaluator defect is corrected test-first without changing a closed result after it is viewed. | Reopened. Terminal `ca03240d...` fails source-level association, compact flux, reliability, position, and some support comparisons. The 2026-09-07 analytic audit additionally reproduces unstable signed centroids, threshold-dependent shape/deconvolution bias, and shape-unavailable publication failure. Repair tasks R0--R6 below precede qualification; previous component-union tests and fast-lane pass `a274888d...` do not close these risks. |
 | Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes product validity, trigger behaviour, paired retention in every four-seed trigger cell, multi-peak component retention, negative controls, and Serial/existing-Dask invariance. | Required for the replacement. Version-8 terminal `a274888d...` remains a 12/12 geometry and 12/12 Serial/Dask pass with four report-only misses, but its tests did not distinguish independent compact-source membership from component multiplicity or cover the newly reproduced measurement/publication failures. Require the exact public composition and joint compact/extended truth gates in R5. |
 | Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Historical identity and execution-consistency pass for `95cfc76...`, source `8da21e86...`, configuration `2c907949...`, and sealed 2,400-product set `f43cb274...`. This does not establish scientific readiness: the source-aligned sentinel fails and the public projection rejects admitted shape-unavailable owners. The replacement must be frozen and revalidated after R0--R5; no prior public-candidate pass transfers automatically. |
-| Cumulative parity and retention | Across all 800 compact and 1,600 Continuum cases, every binding comparison passes both PyBDSF references, applicable Aegean checks, and hard safety rules. Incumbent comparisons must show no observed movement beyond their practical margin; any unresolved confidence exception must be explicit and human accepted rather than pooled away or relabelled. | Accepted with one declared residual-uncertainty exception. Atomic decision `8d69ef44...` has 1,183 passes and zero failures, including every compact, Aegean, dual-PyBDSF, and safety comparison. Four Continuum incumbent position-p95 aliases, representing two patterns, remain underpowered; their point movements (`0.003013` and `0.013073` beam) and the overall upper bound (`0.036636` beam) are inside the `0.05`-beam margin, while pattern upper bounds exceed it by `0.006371` and `0.004222` beam. The 2026-09-06 human decision accepts that narrow uncertainty for Phase 5 progression and skips the multi-hour 4,608-image confirmation. The terminal JSON remains `incomplete`, and no claim of fully powered incumbent non-inferiority is permitted. |
+| Cumulative parity and retention | Across all 800 compact and 1,600 Continuum cases, every binding comparison passes both PyBDSF references, applicable Aegean checks, and hard safety rules. Incumbent comparisons must show no observed movement beyond their practical margin; any unresolved confidence exception must be explicit and human accepted rather than pooled away or relabelled. | Failed for replacement `db8936b...`: R6 terminal `7146f2e8...` has 885 passes, 288 failures and 14 underpowered comparisons. Released/master PyBDSF have 39/37 failures, Aegean 53 and incumbent retention 159; all five safety checks pass. Both readiness flags are false. Historical `8d69ef44...` and its narrowly accepted incumbent-uncertainty exception remain unchanged and do not transfer. A separate prospective scientific review must precede another candidate or run. |
 | Fresh scientific qualification | A small prospective falsification sentinel complements, but does not replace, the powered cumulative evidence. On unopened seed-disjoint data, the exact public candidate must pass every known-risk extended and compact guard cell, hard safety rule, released-PyBDSF practical comparison margin, and Serial/existing-Dask check. Retain earlier reference evidence only where its identity and semantics remain applicable; changed candidate science requires replacement evidence. No pooled result may hide a failed cell, and the sentinel alone is not a powered parity study. | Failed, not awaiting a process retry. Spawn-safe identity `c498a90d...` completed 168 Hebog/168 PyBDSF runs and all 12 Dask comparisons; terminal `ca03240d...` passes 24/42 cells and fails 18/42 with 59 failed cell-endpoints. Both finders were measured against analytic truth. No qualification reuse or rescoring of those seeds is allowed. Complete R0--R5 and the replacement cumulative gate before R6's separately approved fresh sentinel. |
 | Engineering evidence | Bounded execution, retry/order invariance, the 6.0-second 3,000-pixel incremental budget, package installation, schemas, atomic outputs, documentation, and ordinary CI all pass for the exact candidate. | Partly complete; final-candidate recheck remains. |
 | Independent readiness | The rebuilt fail-closed packet receives separate radio-astronomy and engineering acceptance and publishes one terminal readiness record. | Open. |
@@ -791,14 +802,20 @@ records the synthetic reproduction and prospective remedy. Before retry:
    identity `4a36dfa1...` updates its package hash while preserving the exact
    scientific composition and configuration. Its read-only guard passes;
    no R6 result transfers and no notebook refresh was run.
-3. **In progress — evaluation-only continuation (2026-09-08):** the separate
-   exhaustive no-write preflight passed and the exact continuation launched
-   in managed session `70321` under standing R6 repair authority. It repeats
-   admission before evaluating only the 1,592 missing inputs, reuses the 808
-   completed evaluations byte-for-byte and retains their combined seal before
-   late aggregation. Original candidate captures remain isolated from later
-   notebook repairs. Hourly monitoring is active; no scientific verdict is
-   available. The preparation comprised two explicit steps:
+3. **Complete as execution; scientific gate failed (2026-09-09):** session
+   `70321` exited zero and published atomic terminal `7146f2e8...` after
+   evaluating the 1,592 missing inputs. It reused all 808 completed inputs
+   byte-for-byte, with no candidate, incumbent, PyBDSF or Dask reruns, and
+   retained combined evaluation seal `d14205d9...` before aggregation.
+   Original candidate captures remain isolated from later notebook repairs.
+   Both readiness flags are false: 885 comparisons pass, 288 fail and 14 are
+   underpowered. All five safety checks pass. This is terminal scientific
+   evidence, not another process retry. R6 remains incomplete and the fresh
+   sentinel is blocked. Hourly monitoring ends with this terminal handoff.
+   Next is a separate prospective root-cause review of compact astrometry,
+   shape/classification and Continuum edge/diffuse measurement and retention
+   failures. Do not change any closed score or gate. The preparation comprised
+   two explicit steps (absence/pending statements below describe that time):
    - **Complete — reusable-evidence inventory (2026-09-08):** immutable
      auditor `3fc57fc...` verified all 2,400 capture pairs, 9,600 reference
      runs, 12 retained Dask comparisons and 808 completed inputs / 4,032
@@ -944,6 +961,12 @@ All of this is development evidence, not replacement parity or qualification.
   these gates pass. Recheck the affected runtime budget without trading away
   scientific requirements.
 - [ ] **R6 — Re-establish candidate-bound cumulative and fresh evidence.**
+  The original repaired candidate `db8936b...` now has a complete but failed
+  cumulative terminal (`7146f2e8...`, 2026-09-09), not a paused process.
+  Preserve its captures, reused and new records, and all exact identities.
+  Complete a separate prospective root-cause review using the closed evidence
+  and analytic fixtures before proposing further scientific changes. No
+  automatic retry, viewed-data rescoring or fresh sentinel follows this fail.
   Review which earlier reference products can be reused byte-for-byte and
   which changed candidate paths require new cumulative measurements. Previous
   passes and the scoped incumbent-uncertainty acceptance do not automatically
@@ -964,14 +987,16 @@ owns the release.
 
 #### Authoritative Phase 5 closeout checklist
 
-The corrected candidate's cumulative replay is sealed. Its evaluation did not
-pass every incumbent-retention confidence check, but the human scientific
-owner has accepted the narrowly bounded uncertainty and decided that a
-multi-hour independent confirmation is not proportionate before the remaining
-Phase 5 gates. The terminal result remains immutable and incomplete; the
+Historical candidate `95cfc76...` has a sealed cumulative replay. Its
+evaluation did not pass every incumbent-retention confidence check, but the
+human scientific owner accepted the narrowly bounded uncertainty and decided
+that a multi-hour independent confirmation was not proportionate before the
+remaining Phase 5 gates. The terminal result remains immutable and incomplete; the
 exception permits progression but is not a statistical pass. Complete the
 remaining steps in order. The later failed sentinel now requires R0--R6
-above; the historical progression acceptance does not waive that failure:
+above; the historical progression acceptance does not waive that failure or
+the replacement R6 cumulative failure `7146f2e8...`. The checked first item
+below records historical progression only, not acceptance of `db8936b...`:
 
 1. [x] **Seal and accept the cumulative evidence for progression.** Verify all
    2,400 current

@@ -1,13 +1,20 @@
 # R6 native-reference adapter review
 
-Review date: 2026-09-08.
+Review date: 2026-09-08. Terminal follow-up: 2026-09-09.
+
+**Current state:** the separately frozen evaluation-only continuation has
+completed. Its process exited zero, but cumulative terminal `7146f2e8...`
+failed scientifically (885 passing, 288 failing and 14 underpowered binding
+comparisons; all five safety checks pass). See the
+[terminal snapshot](phase-5-campaign-overview.md#2026-09-09-r6-cumulative-terminal-scientific-failure).
+The adapter failure below is historical, not a live retry instruction.
 
 This is a later process review, separate from the
 [original source-finding audit](phase-5-source-catalogue-science-audit.md).
 R6 completed its captures and Dask comparisons but stopped while
 converting a retained PyBDSF catalogue into the validation-only source union.
-No terminal science decision exists, and no metrics were changed or rescored
-for this review.
+At the time of this review no terminal science decision existed, and no
+metrics were changed or rescored for the review.
 
 ## Gaussian identifiers: repaired, not executed
 
@@ -111,10 +118,15 @@ equivalence. No finder, retained-data scoring or R6 retry is part of this
 implementation. This does not assert that downstream campaign evaluation is
 bug-free or that R6 has passed.
 
-Next, freeze a new evaluation-only continuation. The original
+The review's next step was a new evaluation-only continuation. The original
 2,400 paired products and 12 Dask comparisons are preserved, as are all 800
 compact and eight Continuum completed evaluations (4,032 finder records with
 verified checksums and capture/census bindings). No finder reruns are needed
 for this adapter work. Reuse the verified completed records where equivalent,
 evaluate only missing inputs, and keep the original R6 candidate isolated
 from the later notebook-only repairs. Do not tune or rescore closed results.
+That continuation has now reused all 808 completed inputs byte-for-byte and
+evaluated only the 1,592 missing inputs, without finder or Dask reruns. The
+process repair is complete; scientific acceptance is not. Preserve both the
+historical failure and the completed scientific terminal, and obtain a
+separate prospective scientific review before any further repair or run.

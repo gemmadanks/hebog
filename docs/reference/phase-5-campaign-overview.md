@@ -23,6 +23,10 @@ across decisions, or replace a failed result with a later interpretation.
 | Prospective 128-case science smoke | Fail fast on the terminal-cycle eligibility candidate before another complete replay | Fail, full replay blocked | All incumbent-retention checks passed, but eight PyBDSF-parity checks failed. The terminal-cycle repair activated diagnostically without changing catalogue membership; systematic mask-boundary precision is the principal confirmed gap. |
 | Publication-scale-persistence cumulative replay | Test the smoke-passing adjacent-scale publication rule on the complete 800-compact/1,600-Continuum regression population | Legacy fail; prospective decision incomplete | Compact passed. The original wrapper reported 31 absolute failures, 11 underpowered endpoints, and 26 historical status regressions, but the later prospective review found all stored PyBDSF comparisons within margin and no full paired evidence against the selected Hebog incumbent. |
 | Adaptive-background 144-image development lane | Test whether adaptive background/RMS refinement preserves bright extended sources when its strict 75-sigma trigger activates | Fail; qualification blocked | Triggering and Serial/Dask invariance passed, but 9 of 12 geometry groups failed. Shell and mixed compact/extended emission lost support or mask quality relative to the coarse control, with severe mixed-source flux failures. |
+| R6 source-catalogue cumulative terminal (2026-09-09) | Test original repaired candidate `db8936b...` on the complete retained regression population using native source measurements | Scientific fail; process completed | 885 binding comparisons pass, 288 fail and 14 are underpowered. Both PyBDSF references, Aegean and incumbent retention have failures; all five safety checks pass. No fresh sentinel or Phase 5 closure follows. |
+
+The latest result is the [R6 terminal snapshot](#2026-09-09-r6-cumulative-terminal-scientific-failure).
+Earlier results below remain candidate-specific historical evidence.
 
 The apparent contrast between final qualification and later failure is useful,
 not contradictory. The final qualification showed that the frozen candidate
@@ -31,7 +35,7 @@ exposed behaviours absent from that population. Those viewed cases became
 development-regression evidence, and the later cumulative replays test proposed
 corrections against the expanded evidence set.
 
-## Latest snapshot: source-association measurement repair
+## 2026-08-29: source-association measurement repair
 
 **Terminal date:** 2026-08-29
 
@@ -2270,6 +2274,149 @@ launched outside the sandbox in managed session `70321`; it repeats admission
 before dispatch. Hourly monitoring is active. There is no new terminal or
 scientific verdict yet, and no finder or Dask rerun is authorized by this
 continuation.
+
+## 2026-09-09: R6 cumulative terminal — scientific failure
+
+**Evidence role:** completed cumulative regression, not fresh held-out
+qualification. **Question:** do the R0--R5 source-catalogue repairs preserve
+compact and Continuum quality against analytic truth, both PyBDSF references,
+applicable Aegean comparisons and the selected Hebog incumbent?
+
+**Verdict: no.** Managed session `70321` exited **0** and published
+`benchmark-results/phase-5/source-catalogue-repair-cumulative-decision.json`,
+SHA-256
+`7146f2e857c9473117c16d29f5bd8d55a2790c66d1c1643cd79b96aa8cc51d72`.
+The scientific status is `fail`; both `cumulative_science_regression_ready`
+and `all_required_endpoints_pass` are **false**. A successful process and
+passing software tests do not turn these failed scientific gates into parity.
+
+### Population, semantics and provenance
+
+The unchanged regression population comprises 800 compact/blend
+512-by-512 images and 1,600 Continuum 1,024-by-1,024 images. Compact strata
+include SNR 10, 15, 25 and 50, unresolved/marginal/clear-resolved shapes and
+edges; Continuum retains its extended morphology, invalid-pixel, noise,
+image-edge and tile-boundary/corner populations. Each finder is measured independently against analytic/injected
+truth; PyBDSF is not truth. Compact matching and the Continuum source-level
+centroid/overlap rules retain their frozen semantics, denominators and
+thresholds. Native source positions, fluxes and membership are used; absent
+exclusive derived support is represented under the separately approved
+[R6 adapter amendment](phase-5-r6-native-reference-adapter-review.md).
+It does not invent pixels, remove native catalogue rows or alter matching
+thresholds. The 808 previously completed inputs are reused byte-for-byte.
+
+Original scientific candidate `db8936b512370a1491f36845592fe3e8a24107ad`
+has source SHA-256
+`43fb41f20069a31627f0dbec09bdf1484bd2a04d633fe6563b94b09a554dd2cf`
+and configuration SHA-256
+`5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4`.
+The incumbent remains `85d5807...`, captured through immutable producer
+`c1614c2...`; PyBDSF 1.14.1 (`1b6e0a04...`), pinned master
+1.14.2.dev40 (`c70103be...`) and Aegean 2.3.5 (`bb04f50a...`) records are
+retained with their original container/configuration identities, not rerun.
+The original 2,400 capture pairs and 12 saved
+Serial/existing-Dask comparisons remain sealed as `e1bc9a91...` and
+`16de0eeb...`. Continuation implementation `b64228d...`, plan `c99f9f86...`,
+review `6ebd6664...`, one-use decision `3bc1e1e1...` and expected execution
+`1b73bd62...` bind the amended evaluator separately from the scientific
+candidate and later notebook repairs. Python is 3.14.2 with the frozen
+dependency inventory and one numerical thread per worker.
+
+The continuation evaluated **1,592 missing inputs**, reused **808** completed
+inputs and published combined evaluation seal SHA-256
+`d14205d922e3a46b1cd93be3de84d745910b68f89a12f3ed00f5cb5f9d22ae5b`.
+There are **10,400** finder-evaluation records in total. It performed **zero**
+candidate, incumbent, PyBDSF or Dask reruns. The original process-failure
+record, two empty failed directories and all original products are preserved.
+
+The post-terminal read-only audit verified all 2,400 input bundles, 9,600
+retained reference runs, 2,400 native capture pairs, 12 Dask comparisons and
+10,400 evaluation records, including exact reuse and the combined seal.
+It also checked the candidate/incumbent source and configuration, original
+and continuation programs/reviews/decisions, immutable checkouts, approved
+amendment, closed reference/baseline/sentinel and terminal identities. No
+scientific score was recomputed. Its compact result is retained as
+`benchmark-results/phase-5/r6-terminal-provenance-verification.json`, SHA-256
+`5dde3be99d28a80b9bc1e1a23d57d4cac5db34d82e37b801e6c8e0a8030cdedf`.
+
+### Compact science first
+
+Values below are the stored overall endpoint summaries against truth, not
+newly pooled or rescored estimates. Smaller position and axis errors are
+better; higher recall is better. The bound is the frozen one-sided 95% upper
+confidence limit on positive regression, which must be inside its practical
+margin. No other metric can compensate for a failed comparison.
+
+| Compact endpoint | Hebog | Released PyBDSF | Pinned master | Binding interpretation |
+| --- | ---: | ---: | ---: | --- |
+| Median position error (beam FWHM) | 0.025587 | 0.022518 | 0.022505 | Both fail: upper regression bounds 0.003222 / 0.003234 exceed margin 0.002. |
+| Position-error p95 (beam FWHM) | 0.093800 | 0.077526 | 0.077073 | Both fail: upper bounds 0.017136 / 0.017629 exceed margin 0.005. |
+| Fitted-axis-error p95 (fractional error) | 0.214900 | 0.181916 | 0.183842 | Both fail: upper bounds 0.035985 / 0.034131 exceed margin 0.01. |
+| Clear-resolved classification recall | 87.4688% | 99.9844% | 97.4688% | Both fail: recall deficits 12.5156 / 10.0000 percentage points exceed the 1-point margin. |
+
+Resolved deconvolved-shape availability has the same overall values and also
+fails both PyBDSF comparisons. Compact Aegean failures additionally include
+overall catastrophic-outlier fraction, fitted position angle and flux-error
+tails. Incumbent failures span position, fitted shape, classification,
+availability, flux and catastrophic outliers. These are observed failures,
+not merely confidence intervals that need more images.
+
+### Continuum second
+
+Overall Continuum point estimates retain important gains against PyBDSF:
+Hebog completeness is 100%, reliability is 78.4583% versus 56.7025% released
+and 52.6068% master, and mask IoU is 0.832692 versus 0.779223 and 0.772351.
+Those overall comparisons pass. They do not hide failures in specific strata:
+
+| Continuum endpoint / stratum | Hebog | Released PyBDSF | Pinned master | Binding interpretation |
+| --- | ---: | ---: | ---: | --- |
+| Integrated-flux-error p95 / image edge (fractional error) | 0.868129 | 0.343303 | 0.479716 | Both fail: upper regression bounds 0.543745 / 0.408295 exceed margin 0.05. |
+| Integrated-flux-error p95 / diffuse (fractional error) | 0.743839 | 0.325711 | 0.484344 | Both fail: upper bounds 0.440482 / 0.283004 exceed margin 0.05. |
+| Position-error p95 / image edge (beam FWHM) | 1.369583 | 0.724245 | 0.231700 | Both fail: upper bounds 0.693306 / 1.185887 exceed margin 0.05. |
+| Position-error p95 / diffuse (beam FWHM) | 1.120588 | 0.625220 | 0.207053 | Both fail: upper bounds 0.579506 / 0.991771 exceed margin 0.05. |
+
+Each PyBDSF reference has seven failed Continuum comparisons: the four
+patterns above plus position p95 for invalid pixels, mixed compact/extended
+emission and the one-beam scale. These strata can overlap and are not seven
+independent root causes. Incumbent retention also fails overall reliability
+(0.784583 versus 0.852121), flux-error p95 (0.754667 versus 0.269410),
+position-error p95 (2.865073 versus 0.976244 beam), duplicate fraction and
+split fraction (both 0.171250 versus 0.128304). A good mask alone does not
+establish a scientifically accurate source catalogue.
+
+### Complete binding decision and next gate
+
+| Comparator | Compact pass / fail / underpowered | Continuum pass / fail / underpowered | Total |
+| --- | --- | --- | --- |
+| Aegean | 87 / 53 / 3 | Not applicable | 143 |
+| Incumbent Hebog | 119 / 100 / 6 | 79 / 59 / 5 | 368 |
+| Released PyBDSF | 193 / 32 / 0 | 106 / 7 / 0 | 338 |
+| Pinned PyBDSF master | 195 / 30 / 0 | 106 / 7 / 0 | 338 |
+| All binding comparisons | 594 / 215 / 9 | 291 / 73 / 5 | 1,187 |
+
+In total **885 pass, 288 fail and 14 are underpowered**. All five binding
+safety checks pass: finite measurements, product validity, schema/provenance,
+Serial/existing-Dask determinism and write-once publication. Fifteen
+longer-term Continuum position objectives remain report-only; they neither
+cause nor excuse this failure. The historical incumbent-uncertainty
+acceptance is explicitly **not transferred**. Legacy compact subrecord names
+containing `qualification` do not change this terminal's regression role or
+make it fresh held-out evidence.
+
+Evaluation after admission ran from 2026-09-08 20:43:52 UTC to 2026-09-09
+00:34:36 UTC (about **3 h 51 min**). This includes missing-input evaluation
+and aggregation, not finder capture; it is not a Hebog speedup or runtime
+qualification. Scientific eligibility fails before runtime is considered.
+
+**Next:** preserve this terminal without retry, tuning, rescoring or changing
+any margin, threshold, comparator or confidence rule. R6 and Phase 5 remain
+open; do not launch the fresh sentinel, cut over or release. A separate
+prospective root-cause review should distinguish genuine estimator,
+association and edge-support errors from any demonstrable representation
+defect using the frozen records and bounded analytic fixtures. The terminal
+alone does not prove an implementation-level cause. Any proposed repair and
+new candidate/evaluation identity must be reviewed prospectively; passing
+fixtures or later notebook repairs cannot inherit this candidate's evidence.
 
 ## Required format for future snapshots
 

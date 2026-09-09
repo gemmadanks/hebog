@@ -18252,3 +18252,72 @@ scientific pass from fixture validation.
   `19330` remains failed and is not restarted. The original scientific
   terminal is still absent; R6 and Phase 5 remain open pending the binding
   cumulative verdict and any separately admitted prospective sentinel.
+
+## 2026-09-09 — R6 terminal: process completed, scientific gate failed
+
+- Managed session `70321` exited zero and atomically published
+  `benchmark-results/phase-5/source-catalogue-repair-cumulative-decision.json`,
+  SHA-256
+  `7146f2e857c9473117c16d29f5bd8d55a2790c66d1c1643cd79b96aa8cc51d72`.
+  The terminal spans 2026-09-08 20:43:52 to 2026-09-09 00:34:36 UTC after
+  admission (3 h 51 min for missing-input evaluation and aggregation, not
+  finder runtime). This is a **completed scientific failure**, not a process
+  failure or a reason to retry.
+- Original candidate `db8936b...`, source `43fb41f2...`, configuration
+  `5eca0efc...` and authentic incumbent `85d5807...` remain unchanged. The
+  evaluator is independently frozen at `b64228d...`. It evaluated only the
+  1,592 missing inputs, reused all 808 completed inputs byte-for-byte and
+  retained 10,400 complete finder records. Combined evaluation-seal SHA-256 is
+  `d14205d922e3a46b1cd93be3de84d745910b68f89a12f3ed00f5cb5f9d22ae5b`.
+  No candidate, incumbent, PyBDSF or Dask reruns occurred in the continuation.
+- Both readiness flags are false. Of 1,187 binding comparisons, **885 pass,
+  288 fail and 14 are underpowered**. Aegean: 87/53/3; incumbent:
+  198/159/11; released PyBDSF: 299/39/0; pinned master: 301/37/0
+  (pass/fail/underpowered). All five finite-measurement, product,
+  schema/provenance, Serial/Dask and write-once safety checks pass. No old
+  human uncertainty acceptance transfers; report-only objectives remain
+  non-binding. Each finder was assessed independently against analytic truth,
+  never against PyBDSF as truth.
+- Compact failures include astrometry, fitted-axis tails and resolved-source
+  classification/shape availability against both PyBDSF references, with
+  additional Aegean and incumbent regressions. Continuum overall gains
+  against PyBDSF coexist with failing edge/diffuse flux and position tails,
+  plus mixed/invalid-pixel/one-beam position strata and substantial incumbent
+  retention failures. The campaign overview records units, native endpoint
+  values, margins, upper bounds and the complete lane/comparator counts.
+  Aggregate failures identify review priorities, not proven algorithm causes.
+- An exhaustive **post-terminal read-only** audit exited zero at 00:56:33 UTC.
+  It verified all 2,400 input bundles, 9,600 retained references, 2,400 native
+  capture pairs, 12 saved Dask comparisons, all 808 reused and 1,592 new input
+  records, their 10,400 finder records, markers and combined seal. It also
+  checked original/continuation code, source/configuration, reviews/decisions,
+  immutable checkouts, runtime, amendment and closed evidence identities.
+  The original process-failure record and two empty failed directories are
+  preserved. The audit did not invoke launch preflight (which correctly
+  rejects an existing terminal), bypass its guard, run a finder or recompute
+  a scientific score; it used the frozen read-only verification helpers.
+- The printed verification record is retained under ignored evidence as
+  `r6-terminal-provenance-verification.json`, SHA-256
+  `5dde3be99d28a80b9bc1e1a23d57d4cac5db34d82e37b801e6c8e0a8030cdedf`.
+  Its temporary verifier is
+  `/private/tmp/hebog-r6-terminal-review-DDlbMp/verify_terminal.py`, SHA-256
+  `4fd0c9f52957bc78c8d042abbe4254034943d6d37fe18e4f5b4726131c78c2e0`.
+  All generated evidence remains out of Git. The scientific terminal hash
+  remains unchanged; host space was approximately 58 GiB at handoff checks.
+- Validation: 150 focused continuation/inventory/identity/spawn tests pass;
+  `just coverage` passes 3,495 tests (153 deselected, two expected failures)
+  with 95.11% branch-aware coverage; `just check` passes Ruff, Pyright and
+  3,273 tests; `just test-equivalence` passes all 27 frozen comparisons;
+  strict `just docs-build` passes. Focused invocation was corrected first
+  from a mistyped filename and then to `uv run --no-sync python -m pytest`
+  so repository scripts are importable; those initial commands ran no tests.
+  No shared-environment synchronization or production-code change occurred.
+  Production patch coverage is not applicable to this documentation-only
+  change; no remote Codecov patch report is available locally.
+- Reviewed the full documentation change against `CODE_REVIEW.md`; no
+  actionable findings remain. The plan distinguishes historical progression
+  acceptance from this replacement's failed cumulative gate. R6 and Phase 5
+  remain open; the fresh sentinel is blocked. The hourly monitor ends with
+  this terminal handoff. Next is a separate prospective root-cause review,
+  followed only by reviewed repair identities and appropriate new evidence,
+  not an automatic retry, viewed-data rescoring, gate change or release.
