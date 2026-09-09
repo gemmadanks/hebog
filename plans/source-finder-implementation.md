@@ -1020,7 +1020,7 @@ All of this is development evidence, not replacement parity or qualification.
     Array-free attribution now records both estimators, their domains,
     background mean and competing group IDs. This resolves the implementation
     task, not all real-source ambiguity or the closed campaign's position tails.
-  - [ ] **R6-R5 — Qualify the combined repair on a short development ladder.**
+  - [x] **R6-R5 — Qualify the combined repair on a short development ladder.**
     Exercise exact public Serial/existing-Dask composition, every failed
     geometry and neighbouring compact/extended guards, with independent noise,
     partition/context/order invariance and bounded cost. Pass focused tests,
@@ -1034,8 +1034,13 @@ All of this is development evidence, not replacement parity or qualification.
     3,304 tests; 27 frozen equivalence tests, strict docs and wheel smoke pass.
     The implementation report is
     [R6 estimator repairs](../docs/reference/phase-5-r6-estimator-repairs.md).
-    Freeze the exact committed identity after clean final hooks; no execution
-    identity is created by this development gate.
+    Clean final hooks passed before implementation commit `4d07837...`.
+    Non-executable identity
+    `phase-5-r6-estimator-repair-identity-review.json` is frozen at SHA-256
+    `f7afe3c18cf2c1c98397e688b58d62b88052c15d6c0705d1930e24c22e43f78f`,
+    source `cc1db52e...`, unchanged configuration `5eca0efc...` and public
+    composition `256ae828...`. Its committed-history test passes without any
+    campaign output directory. Every execution authorization is false.
   - [ ] **R6-R6 — Admit replacement cumulative and then fresh evidence.**
     Follow the unchanged scientific gates and authority boundaries below.
 

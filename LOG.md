@@ -18450,3 +18450,32 @@ scientific pass from fixture validation.
   freeze this committed implementation non-executably, then separately review
   reference reuse and new cumulative admission. R6/Phase 5 stay open; fixture
   success is not proof that the closed scientific failures have disappeared.
+
+## 2026-09-09 — Freeze the repaired R6 candidate without execution authority
+
+- All final hooks passed cleanly before local implementation commit
+  `4d0783728aaad3db1928972a73a28e71ace0f438`. No files were changed by that
+  hook run. Froze `phase-5-r6-estimator-repair-identity-review.json`, SHA-256
+  `f7afe3c18cf2c1c98397e688b58d62b88052c15d6c0705d1930e24c22e43f78f`,
+  binding source tree
+  `cc1db52e4e3088794b8d5c4f41b9301daedb848bcd5a282a3b6b381b585a7715`,
+  unchanged configuration
+  `5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4`
+  and composition
+  `256ae8281c590e93abf858dfd65b59b49dfc3dda7bf858a22497199b9a690f7e`.
+  The record binds the immutable review/report plus the committed repair
+  report, tutorial and schema documentation. All execution authorities are
+  false, `execution_identity=null` and `finder_execution_started=false`.
+- Reused the existing committed-history verifier: all six identity tests
+  pass independently of campaign directories; the new JSON's explicit hooks
+  pass without changes. The freeze commit adds no scientific/evaluator code;
+  the implementation's full coverage, equivalence and wheel evidence remain
+  applicable. Reviewed the identity, test and plan/log diff against
+  `CODE_REVIEW.md`; no actionable findings. Run final all-file hooks again
+  before the local freeze commit; nothing is pushed.
+- R6-R1--R6-R5 implementation/development gates are complete. R6-R6 is next:
+  review exact reference reuse, new candidate capture/evaluation semantics,
+  fixed population/gates, disk and time budgets before an executable freeze.
+  No new campaign namespace, execution decision or retry was created. The
+  original failed R6 verdict and all historical identities remain unchanged;
+  neither Phase 5 nor scientific parity for this candidate is declared done.
