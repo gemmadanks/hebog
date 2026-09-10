@@ -2,11 +2,21 @@
 
 ## Status — 2026-09-10
 
-**Prepared, not execution-admitted and not started.** The user requested
-preparation while independently refreshing the notebook. Package science,
+**Prepared; launch authorized after notebook completion, but not yet
+execution-admitted or started.** The user initially requested preparation
+while independently refreshing the notebook. Package science,
 the notebook runner, public identity reviews and refresh outputs were not
 changed. No finder, replay, qualification, rescoring or cleanup was started
-by this preparation. No execution decision or monitor was created.
+by that preparation, and it issued no execution decision.
+
+The later 2026-09-10 instruction authorizes hourly monitoring of the active
+refresh, followed by the isolated replay, evaluation and investigation of
+failures, including process/evaluator repairs and retries. Active hourly
+monitor `monitor-notebook-then-v12-replay` waits for the exact refresh's
+successful sealed publication before completing admission and launching.
+The immutable preparation metadata below is not amended into an executable
+record. A fresh exact execution decision is still required under this
+authorization; historical consumed decisions remain unusable.
 
 This supersedes the candidate binding in the
 [v11 preparation](phase-5-v11-replay-preparation.md), not its historical
@@ -101,9 +111,13 @@ change; the candidate's earlier frozen repair evidence remains separate.
    closure, runtime, immutable checkout and fresh write-once paths, then run
    exhaustive no-write launch validation. Do not call the staged runner
    directly or reuse a historical consumed decision.
-4. Resolve exact launch authority separately. The user's instruction remains
-   **prepare, do not start**. No candidate run or scientific success follows
-   from fixture tests or this preparation record.
+4. Record the fresh exact one-use execution decision under the user's later
+   launch authorization, then launch and bind the actual session and hashes
+   into the same hourly monitor. Preserve failed attempts; process/evaluator
+   repairs and retries require tests and newly frozen identities/namespaces.
+   Investigate completed scientific failures without tuning or rescoring.
+   No candidate run or scientific success follows from fixture tests or this
+   preparation record alone. Fresh qualification is not part of this monitor.
 
 Scalability and performance optimization remain later work. Scientific
 thresholds, catalogue semantics and risk geometries must not be reduced to

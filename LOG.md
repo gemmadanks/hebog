@@ -19169,3 +19169,34 @@ scientific pass from fixture validation.
   in 7.33 s. Review against `CODE_REVIEW.md` finds no actionable issue;
   the remaining admission and scientific-evidence limitations are explicit.
   Final all-file hooks precede the separate local documentation commit.
+
+## 2026-09-10 — Schedule notebook completion followed by the v12 replay
+
+- The user replaces the preparation-only hold with authorization to monitor
+  the notebook hourly, then run the isolated replay including evaluation and
+  failure investigation. Process/evaluator fixes and retries are authorized;
+  scientific definitions, thresholds, comparator identities and closed
+  evidence remain unchanged. Fresh qualification and release are not included.
+- Created and verified active hourly thread monitor
+  `monitor-notebook-then-v12-replay`. The current user-owned refresh has uv
+  PID 9734 / Python PID 9735, started at 20:22:51 Europe/London, with 5/13
+  completed cases at the scheduling check. Its staging identifier is
+  `.76e4a31-838e28460525-5f17c3d7.staging`; request SHA-256 is
+  `a8826e31ca999916500543a156ac87c1e6aed2daa8a210a5efc28a17ca3ede92`.
+  The monitor requires successful sealed publication and matching metadata,
+  result hashes and history, not just disappearance of a process. While
+  active, the refresh and its scientific partial products remain untouched.
+- No replay is launched. Representative cost/size checks, final disk/RAM
+  admission, the exact execution owner, committed program closure and
+  exhaustive no-write launch preflight remain open. Observed free disk is
+  about 70 GiB versus a provisional 68 GiB requirement, not final admission.
+  The new owner/identity helper and its tests remain in-progress untracked
+  preparation work; they are not an executable replay decision. Update the
+  same monitor with actual session and exact bindings immediately after
+  launch. Preserve each failed attempt; investigate scientific failures
+  without tuning or rescoring. Report material changes and delete the
+  monitor after terminal investigation and reporting are complete.
+- This scheduling/plan update changes no source or runner bytes. Review
+  against `CODE_REVIEW.md` found no actionable issues. Strict docs and final
+  all-file hooks are required before the local documentation commit;
+  production coverage and scientific equivalence are not rerun for prose.

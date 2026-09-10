@@ -1247,16 +1247,22 @@ All of this is development evidence, not replacement parity or qualification.
     cases using runner `c9b0fec5...`; this checks identity and case metadata,
     not refreshed results or exhaustive replay admission.
   - [ ] **R6-R6 — Admit replacement cumulative and then fresh evidence.**
-    **Next task:** measure controlled cost/space requirements, then rebind
-    the prepared inventory and exact execution freeze to v12. The
-    [v11 preparation and cleanup record](../docs/reference/phase-5-v11-replay-preparation.md)
-    contains the prepared 2,400-task/8,000-reuse inventory and staged runner;
-    the user explicitly requested **no launch**. R6-C0--C7's recorded tests
+    **Next task:** wait for successful publication of the active notebook
+    refresh, then complete controlled cost/space checks and the exact v12
+    execution owner, freeze and exhaustive no-write admission. The user now
+    authorizes the isolated replay, evaluation, investigation of failures,
+    and process/evaluator repairs and retries after the refresh finishes.
+    Hourly monitor `monitor-notebook-then-v12-replay` owns that sequence;
+    notebook process disappearance without a sealed successful result is a
+    blocker, not permission to launch. The
+    [v12 preparation record](../docs/reference/phase-5-v12-replay-preparation.md)
+    binds the 2,400-task/8,000-reuse inventory and staged runner, but remains
+    non-executable. R6-C0--C7's recorded tests
     passed; the added exact-public noiseless failure has a
     [v12 numerical repair](../docs/reference/phase-5-noiseless-filter-repair.md)
-    and now passes normally. The v11 preparation snapshot must be rebound;
-    no verdict or execution authority transfers. No replay has been admitted
-    or started. Do not
+    and now passes normally. The v12 metadata rebind is complete; no historical
+    verdict or consumed execution authority transfers. No replay has been
+    admitted or started. Do not
     launch the older v10 candidate or reuse its consumed decisions. Follow the
     unchanged scientific gates and authority boundaries below.
     The [replacement admission review](../docs/reference/phase-5-r6-replacement-admission-review.md)
@@ -1360,9 +1366,17 @@ All of this is development evidence, not replacement parity or qualification.
       the replay-critical reference and R6 directories.
     - [ ] Freeze the exact reusable inventory, committed program closure,
       runtime and new write-once paths after tests and resource checks; repeat
-      exhaustive no-write validation before resolving exact execution authority.
-    - [ ] Complete replacement cumulative gates, then separately admit fresh
-      seed-disjoint evidence. No execution or monitor starts from this review.
+      exhaustive no-write validation and record the exact one-use decision
+      under the user's 2026-09-10 launch authorization. Keep the notebook and
+      immutable replay candidate isolated; update the hourly monitor with
+      actual session and execution identities immediately after launch.
+    - [ ] Complete and investigate the replacement cumulative terminal.
+      Process/evaluator fixes and retries require tested, newly frozen
+      identities and fresh namespaces while preserving completed evidence.
+      Scientific failure remains terminal: investigate and recommend repairs,
+      without tuning, rescoring or changing the candidate under retry authority.
+      Fresh seed-disjoint evidence remains a separate admission, not part of
+      this notebook-to-replay monitor.
 
   Review which earlier reference products can be reused byte-for-byte and
   which changed candidate paths require new cumulative measurements. Previous
