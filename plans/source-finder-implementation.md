@@ -1247,8 +1247,13 @@ All of this is development evidence, not replacement parity or qualification.
     cases using runner `c9b0fec5...`; this checks identity and case metadata,
     not refreshed results or exhaustive replay admission.
   - [ ] **R6-R6 — Admit replacement cumulative and then fresh evidence.**
-    **Next task:** prepare the reuse-aware runner for the frozen v11 candidate.
-    R6-C0--C7 are complete, but no replay has been admitted or started. Do not
+    **Next task:** resolve the new noiseless-public-background fixture failure,
+    then cost/space admission and the exact execution freeze. The
+    [v11 preparation and cleanup record](../docs/reference/phase-5-v11-replay-preparation.md)
+    contains the prepared 2,400-task/8,000-reuse inventory and staged runner;
+    the user explicitly requested **no launch**. R6-C0--C7's recorded tests
+    passed, but the added exact-public noiseless fixture reopens correctness
+    admission. No replay has been admitted or started. Do not
     launch the older v10 candidate or reuse its consumed decisions. Follow the
     unchanged scientific gates and authority boundaries below.
     The [replacement admission review](../docs/reference/phase-5-r6-replacement-admission-review.md)
@@ -1263,17 +1268,38 @@ All of this is development evidence, not replacement parity or qualification.
       comparisons and new paired statistics; no old verdict transfers.
       The central evaluator and native-reader bytes remain unchanged in v11;
       this is not a substitute for the final transitive/exhaustive audit below.
-    - [ ] After C7, complete test-first reuse-aware orchestration and
+    - [x] After C7, complete test-first reuse-aware orchestration and
       synthetic end-to-end/reuse/failure checks. The old pair runner executes
       the incumbent and evaluates every finder, so do not launch it unchanged
       or edit its consumed decision. Reuse scientific functions and immutable
       comparator records without introducing a second scoring definition.
+      **2026-09-10:** 40 control tests cover every changed tooling line/branch;
+      two noisy synthetic end-to-end tests pass with actual two-worker public
+      capture and Serial/existing-Dask agreement. The historical audit again
+      verified all 2,400 inputs, 9,600 references and 10,400 records, with no
+      rescoring. The 8,000-record index is unchanged; 336 original code/data
+      paths and ten native-reader definitions are unchanged. No executable
+      owner wrapper or one-use execution identity is issued.
+    - [ ] Diagnose and repair the additional noiseless exact-public capture
+      error (`significant scale features require finite positive response`)
+      without changing frozen thresholds or treating the strict xfail as a
+      pass. It occurs in source-protected adaptive background estimation;
+      the reproducer admits huge finite scale SNR on features with zero or
+      negative original-residual maxima. Trace low-noise calibration and
+      positive-support admission; do not tune an arbitrary RMS floor.
+      Preserve the reproducer,
+      validate noisy/zero-noise/empty/invalid and Serial/Dask controls, then
+      refreeze changed science. Do not alter source while the user's notebook
+      refresh is active. This is independent development evidence, not a
+      campaign failure or viewed-data tuning.
     - [ ] Measure an independent representative fixture cost/size ladder, then
       resolve resource admission. Provisional budget is 68 GiB free versus
-      about 53 GiB observed at the latest check (about 15 GiB short);
+      about 49 GiB observed at the latest check (about 19 GiB short);
       tentative total time is 9--14 h,
       not a guarantee or proof of the final campaign's sub-12-hour target.
       Preserve evidence, thresholds, comparators and all risk geometries.
+      The active notebook prevents controlled timing; cleanup is recommended,
+      not performed. Preserve the replay-critical reference and R6 directories.
     - [ ] Freeze the exact reusable inventory, committed program closure,
       runtime and new write-once paths after tests and resource checks; repeat
       exhaustive no-write validation before resolving exact execution authority.

@@ -2521,6 +2521,25 @@ identity for 13 configured cases without refreshing them. About
 9--14-hour estimate must be remeasured for this RMS policy. No replay,
 reference execution, notebook refresh, rescoring or release was started.
 
+## 2026-09-10 — Replacement replay prepared, execution withheld
+
+The [v11 preparation record](phase-5-v11-replay-preparation.md) stages a
+current-only 2,400-input replay with 12 new existing-Dask comparisons and
+8,000 immutable comparator records. It introduces no alternate scoring rules.
+The historical no-write audit again verified all 2,400 inputs, 9,600 reference
+runs, captured pairs and 10,400 completed records; the failed R6 verdict is
+unchanged. Forty new orchestration tests and two noisy synthetic end-to-end
+tests pass. These are development/tooling checks, not new campaign parity.
+
+A new noiseless exact-public fixture fails during source-protected adaptive
+background estimation. The reproducer is retained as a strict xfail, **not a
+passed admission gate**. Correctness repair/refreezing, a controlled cost
+probe, sufficient disk space and the exact execution owner/preflight remain
+required. The user requested no launch; none was started. The notebook
+refresh remains isolated from these tooling/documentation edits. Cleanup
+recommendations preserve its active staging and all replay-critical evidence;
+no evidence or staging directory was removed.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

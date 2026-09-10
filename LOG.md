@@ -18873,3 +18873,79 @@ scientific pass from fixture validation.
   science changed after the validated implementation commit; its coverage,
   integration, equivalence and wheel evidence remain applicable. Final
   all-file hooks and a clean-checkout notebook preflight precede handoff.
+- Freeze/selector hooks passed cleanly; commit `e616770...` is local only.
+  Its clean-checkout preflight passed all 13 cases with unchanged source and
+  runner digests and `dirty_worktree=false`.
+
+## 2026-09-10 — Prepare the v11 replacement replay; launch prohibited
+
+- The user requested replay preparation but explicitly no launch, plus
+  read-only cleanup recommendations. Implement a narrow current-only worker
+  around the unchanged per-finder evaluator and reuse the original aggregate
+  engine. Require exact retained/new record roles, census, capture links,
+  program/runtime bindings, isolated write-once paths and late-failure tests.
+  Do not change package science or any closed evaluator/contract bytes.
+- Repeating the immutable historical terminal verifier authenticates retained
+  evidence only; it starts no finder or evaluator. A notebook refresh is
+  active in the main checkout, so preserve its staging directory and avoid
+  claiming controlled timing from concurrent fixture work. Resource/time
+  admission remains explicit; preparation must not silently waive it.
+- The immutable historical verifier exited zero at 08:31:34 UTC after checking
+  all 2,400 inputs, 9,600 references, 2,400 capture pairs, 12 retained Dask
+  comparisons and 10,400 records. Its program remains
+  `4fd0c9f52957bc78c8d042abbe4254034943d6d37fe18e4f5b4726131c78c2e0`.
+  The old terminal `7146f2e8...` still records 885 passes, 288 failures and
+  14 underpowered comparisons. No finder or evaluator was executed by this
+  audit.
+- The new preparation record is
+  `benchmark-results/phase-5/public-catalogue-v11-replay-preparation.json`,
+  SHA-256 `4c3b8d0ce85b42c39993f9da63528e938ad585164fd4b5c952eda1a04601cbb6`.
+  It binds proposed 2,400 current-only tasks, 12 Dask inputs and the verified
+  8,000-record index `c3fdb6c3...`; all authorization flags are false and
+  `execution_identity=null`. All 336 unchanged original package/validation/
+  dataset paths and ten native reader definitions were checked against
+  `b64228d...`. The 13 changed package paths are the reviewed candidate
+  repairs. No execution namespace was created. This snapshot is deliberately
+  not an admitted executable freeze.
+- TDD first produced the intended missing-behavior failures for current-only
+  selection/recombination (11), durable workers (4), inventory construction
+  (8) and stage preservation (7). The completed 40-test control suite covers
+  every new tooling executable line (143/143) and branch (36/36). Two noisy
+  512-by-512 synthetic smoke tests pass with actual two-worker spawned public
+  captures, current-only analytic-truth evaluation, record recombination and
+  exact public Serial/existing-Dask equality. The one-geometry smoke selects
+  applicable overall endpoints; it does not reduce the frozen campaign's
+  158-specification census or 1,187 binding comparisons.
+- The new exact-public noiseless development fixture uncovered a genuine
+  admission blocker: `significant scale features require finite positive
+  response` during adaptive background source protection. A bounded diagnostic
+  confirms huge finite scale SNR (up to about 1e56) on features whose original
+  residual maximum is zero or negative. Trace low-noise calibration and
+  positive-support admission before a unit-invariant repair; do not tune a
+  floor or change thresholds. Preserve the exact reproducer as a strict xfail
+  that becomes a failing XPASS when repaired. This is explicitly not a passed
+  science gate. Package source and notebook runners remain unchanged while
+  the user's notebook refresh runs.
+- Published the preparation/admission blockers and exact cleanup shortlist in
+  `docs/reference/phase-5-v11-replay-preparation.md`. About 49 GiB is free
+  against the provisional 68 GiB requirement. Candidate old staging/snapshots
+  plus downloaded archives total about 17.5 GiB, less than the 19 GiB
+  shortfall; recommend at least 20 GiB of extra room, preferably 25 GiB.
+  Preserve active staging, latest/repair witnesses, raw FITS,
+  the 97.8 GiB retained-reference bundle and 36.9 GiB R6 capture directory.
+  Historical outputs should be checksum-archived externally, with notebook
+  index consequences explicit. No cleanup was performed.
+- Final Python 3.14.2 validation: `just coverage` passes 3,743 tests with
+  157 deselected and three strict expected failures, including the newly
+  documented blocker. Branch-aware project coverage is 95.25470803414171%,
+  above the prior 95.23777265953123%; the separate new-tooling report remains
+  100% with no uncovered lines or branches. `just check` passes Ruff/Pyright
+  and 3,449 tests (452 deselected, two pre-existing xfails); all 27 frozen
+  equivalence tests and strict docs builds pass. The synthetic capture tests
+  also exercise actual two-worker spawn and existing Dask. Python 3.12/3.13,
+  controlled performance and any campaign execution were not run.
+- Reviewed the complete change against `CODE_REVIEW.md`: no actionable
+  findings in the new preparation tooling. The known background failure,
+  missing execution-owner freeze and resource admission remain explicit
+  blockers, not waived gates. Final all-file hooks precede the local commit;
+  no push is authorized.
