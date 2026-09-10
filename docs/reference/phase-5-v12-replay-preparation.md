@@ -1,6 +1,6 @@
 # Phase 5 v12 replacement replay preparation
 
-## Status — 2026-09-10
+## Status — 2026-09-11
 
 **Prepared; launch authorized after notebook completion, but not yet
 execution-admitted or started.** The user initially requested preparation
@@ -12,8 +12,17 @@ by that preparation, and it issued no execution decision.
 The later 2026-09-10 instruction authorizes hourly monitoring of the active
 refresh, followed by the isolated replay, evaluation and investigation of
 failures, including process/evaluator repairs and retries. Active hourly
-monitor `monitor-notebook-then-v12-replay` waits for the exact refresh's
+monitor `monitor-notebook-then-v12-replay` requires the exact refresh's
 successful sealed publication before completing admission and launching.
+That refresh completed at **22:59:52 UTC on 2026-09-10**. All 13 successful
+result hashes, 104 unique artifact hashes/sizes, 13 input records, exact
+source/configuration/composition/runner bindings and published history verify.
+Terminal `76e4a31-838e28460525-5f17c3d7/campaign.json` under
+`benchmark-results/phase-5/hebog-notebook-refreshes/` has SHA-256
+`905475f76782be1ae9285d27ec8e08fac021e6b15ec8fa28852daf976393b929`.
+The post-refresh check observes **66.747 GiB free**, **1.253 GiB below** the
+provisional 68 GiB requirement. The monitor now waits for disk space; no
+replay or cleanup has started. Diagnostic completion is not a parity result.
 The immutable preparation metadata below is not amended into an executable
 record. A fresh exact execution decision is still required under this
 authorization; historical consumed decisions remain unusable.
@@ -99,14 +108,16 @@ change; the candidate's earlier frozen repair evidence remains separate.
 
 ## Before any launch
 
-1. Finish the notebook refresh, then measure the remaining representative
-   independent cost/size fixtures, including the precision-limited spatial
-   filter. Concurrent notebook timings cannot admit replay runtime.
+1. The notebook completion gate is satisfied. Measure the remaining
+   representative independent cost/size fixtures, including the
+   precision-limited spatial filter. Concurrent notebook timings cannot
+   admit replay runtime.
    The quick probe is not a proven 12-hour bound or a PyBDSF speedup result.
-2. Recheck host/Podman resources and disk. This snapshot observes **69.42 GiB
-   free**, only **1.42 GiB above** the provisional 68 GiB requirement.
-   Notebook growth and the unfinished cost/size ladder prevent treating this
-   small margin as final resource admission. No deletion was performed.
+2. Recheck host/Podman resources and disk. Free space fell from 69.42 GiB
+   during preparation to **66.747 GiB after refresh**, below the provisional
+   **68 GiB** requirement. Additional space is needed; crossing that number
+   alone does not replace the unfinished cost/size ladder or final admission.
+   No deletion was performed.
 3. Complete and test the exact execution owner, freeze its committed program
    closure, runtime, immutable checkout and fresh write-once paths, then run
    exhaustive no-write launch validation. Do not call the staged runner

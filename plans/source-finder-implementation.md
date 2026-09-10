@@ -1247,9 +1247,16 @@ All of this is development evidence, not replacement parity or qualification.
     cases using runner `c9b0fec5...`; this checks identity and case metadata,
     not refreshed results or exhaustive replay admission.
   - [ ] **R6-R6 — Admit replacement cumulative and then fresh evidence.**
-    **Next task:** wait for successful publication of the active notebook
-    refresh, then complete controlled cost/space checks and the exact v12
-    execution owner, freeze and exhaustive no-write admission. The user now
+    **Next task:** resolve disk admission, then complete controlled cost/space
+    checks and the exact v12 execution owner, freeze and exhaustive no-write
+    admission. The notebook refresh completed successfully at 22:59:52 UTC
+    on 2026-09-10: all 13 results and 104 unique artifacts verify, together
+    with input records, identities and published history. Terminal SHA-256
+    is `905475f7...`; this is diagnostic completion, not scientific parity.
+    The post-refresh check observes 66.747 GiB free, below the provisional
+    68 GiB requirement. No replay has started and no cleanup is authorized.
+    The existing hourly monitor waits for space before completing admission.
+    The user now
     authorizes the isolated replay, evaluation, investigation of failures,
     and process/evaluator repairs and retries after the refresh finishes.
     Hourly monitor `monitor-notebook-then-v12-replay` owns that sequence;
@@ -1360,10 +1367,13 @@ All of this is development evidence, not replacement parity or qualification.
       matched repeated benchmarks. Complete dual-PyBDSF performance remains
       Phase 6 work; do not infer that the target is already satisfied.
       Preserve evidence, thresholds, comparators and all risk geometries.
-      A new notebook refresh is active during metadata preparation; defer
-      controlled timing until it finishes, and include the precision-limited
-      spatial-filter path. Cleanup is recommended, not performed. Preserve
-      the replay-critical reference and R6 directories.
+      The notebook refresh has now completed and its published artifacts
+      verify. The 2026-09-11 post-refresh disk check is 66.747 GiB free,
+      1.253 GiB below the provisional requirement. Keep launch held; after
+      space is available, complete the controlled ladder including the
+      precision-limited spatial-filter path and recheck the final budget.
+      Cleanup is recommended, not performed. Preserve the replay-critical
+      reference and R6 directories.
     - [ ] Freeze the exact reusable inventory, committed program closure,
       runtime and new write-once paths after tests and resource checks; repeat
       exhaustive no-write validation and record the exact one-use decision

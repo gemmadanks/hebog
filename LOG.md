@@ -19200,3 +19200,32 @@ scientific pass from fixture validation.
   against `CODE_REVIEW.md` found no actionable issues. Strict docs and final
   all-file hooks are required before the local documentation commit;
   production coverage and scientific equivalence are not rerun for prose.
+
+## 2026-09-11 — Verify notebook completion; hold replay for disk admission
+
+- The hourly monitor observes that the exact user-owned notebook processes
+  have exited and the refresh published successfully at
+  `2026-09-10T22:59:52.631639+00:00`. Published identifier is
+  `76e4a31-838e28460525-5f17c3d7`; terminal SHA-256 is
+  `905475f76782be1ae9285d27ec8e08fac021e6b15ec8fa28852daf976393b929`.
+  The request hash remains `a8826e31...`. Read-only verification passes all
+  13 successful result hashes, 104 unique artifact hashes/sizes, 13 input
+  record hashes, exact source/configuration/v12 composition/runner bindings,
+  the published history entry and `latest` pointer. Staging is absent. No
+  finder, evaluation, scientific rescore or output modification was performed.
+- The resource check observes 71,669,116,928 available bytes, or 66.747 GiB,
+  1.253 GiB below the provisional 68 GiB launch requirement. Both proposed
+  replay namespaces remain absent and no replay process is active. Request
+  additional space without deleting anything or reducing the reserve. The
+  representative cost/size ladder, exact committed execution owner and
+  exhaustive no-write launch admission remain open; notebook success cannot
+  substitute for them or establish repaired-candidate parity.
+- Updated the same active hourly monitor with the verified terminal and
+  disk-wait stage. While space remains insufficient, avoid duplicate alerts
+  and expensive repeated audits. Once available, continue the authorized
+  isolated admission/replay/evaluation workflow with all gates intact. This
+  does not authorize cleanup, fresh qualification or scientific tuning.
+- Documentation-only review against `CODE_REVIEW.md` finds no actionable
+  issue. Strict docs and clean final all-file hooks precede the local commit;
+  source and runner bytes are untouched, so production coverage/equivalence
+  are not rerun for this status update.
