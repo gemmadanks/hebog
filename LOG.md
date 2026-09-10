@@ -19129,3 +19129,43 @@ scientific pass from fixture validation.
   repeated with the exact required environment, without invoking any finder
   or evaluator. The new metadata snapshot will retain its resource and
   execution-owner gates, with all authorizations false.
+- Preparation completed from clean commit
+  `97dc43e969d7ac0a626439c0aeca1d195cc59348`. The write-once ignored record
+  `benchmark-results/phase-5/public-catalogue-v12-replay-preparation.json`
+  has SHA-256
+  `4d70e746cee657061fdb10feff8788bfd367a73832114cb156a55c900a55f149`.
+  It binds candidate `ed5136a...`, source `838e2846...`, configuration
+  `5eca0efc...`, 2,400 current-only tasks, 12 new existing-Dask comparisons
+  and 8,000 immutable comparator records. All authorizations are false;
+  execution identity remains null. The proposed execution checkout and
+  scratch directories were not created. No replay or monitor was started.
+- The corrected read-only historical audit exits zero at 19:44:38 UTC.
+  All 2,400 input bundles, 9,600 references, 4,800 native captures, 12 old
+  Dask comparisons and 10,400 completed evaluation records verify. There are
+  zero new finder executions or evaluations. The closed terminal remains
+  `7146f2e8...`, scientifically failed with 885 pass / 288 fail / 14
+  underpowered comparisons and five passing safety checks. Old verdicts
+  and uncertainty acceptance do not transfer. The retained-record index is
+  unchanged (`c3fdb6c3...`); 335 original code/data paths and all ten native
+  reader definitions remain unchanged against `b64228d...`. The 14 changed
+  package paths are candidate repairs, not reference/evaluator changes.
+- Preserve the verifier output and both scripts under ignored
+  `benchmark-results/phase-5/v12-replay-preparation/`.
+  `post-terminal-verification.json` SHA-256 is
+  `93e22734732ac2ba55c041036824dca64f68ed6c0f798ef4708d94de15c03f5a`;
+  the current package/validation program-set SHA-256 is
+  `964c804b7ee27ad3d7f5b70833a1c450a836774f8764df79095a23fe67518665`.
+- The notebook remains active and its runner/review hashes are unchanged.
+  Observed free space has risen to 69.42 GiB (1.42 GiB over the provisional
+  68 GiB requirement), without agent cleanup. Recheck after notebook growth.
+  The representative cost/size ladder, spatial fallback timing, exact
+  immutable execution owner and exhaustive no-write launch admission remain
+  outstanding. Do not collect controlled timings against the active refresh.
+  Preparation, fixture success and preserved older evidence do not establish
+  repaired-candidate parity, qualification or the eventual 50% speedup.
+- The completed preparation record is rechecked against every current
+  package/validation program hash, the source binding, record counts,
+  disabled authorizations and absent execution namespaces. Strict docs pass
+  in 7.33 s. Review against `CODE_REVIEW.md` finds no actionable issue;
+  the remaining admission and scientific-evidence limitations are explicit.
+  Final all-file hooks precede the separate local documentation commit.

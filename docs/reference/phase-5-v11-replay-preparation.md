@@ -11,6 +11,12 @@ Rebind the repaired candidate, measure its cost/space requirements and repeat
 final no-write admission before any separately authorized launch. No replay
 or cleanup was performed by the repair.
 
+The subsequent [v12 preparation](phase-5-v12-replay-preparation.md) completes
+the metadata rebinding and historical audit while a new notebook refresh
+runs. It remains non-executable; use that page for the current admission
+status and disk observation. The v11 record and observations below are
+historical, not current launch instructions.
+
 ## Status — 2026-09-10
 
 Prepared, **not execution-admitted and not started**. The user explicitly

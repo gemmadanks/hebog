@@ -1320,10 +1320,22 @@ All of this is development evidence, not replacement parity or qualification.
       identity is null. Thirty committed-history, drift/selector and
       synthetic notebook tests pass. The actual no-write notebook preflight
       passes 13 cases; repeat on the final clean commit. No notebook refresh
-      or replay was started, and the v11 preparation still needs rebinding.
+      or replay was started by that repair; v12 preparation follows below.
+    - [x] Rebind the non-executable preparation to the frozen v12 candidate
+      while leaving the user's new notebook refresh untouched.
+      **2026-09-10:** clean preparation commit `97dc43e...`; metadata SHA-256
+      `4d70e746...`, all authorizations false and execution identity null.
+      The exhaustive historical audit passes all 2,400 inputs, 9,600
+      references, 4,800 native captures, 12 old Dask comparisons and 10,400
+      records without execution or rescoring. The 8,000 reusable-record index
+      is unchanged; 335 original code/data paths and ten native-reader
+      definitions are unchanged. No old verdict transfers. The proposed
+      execution/scratch directories remain absent. See the
+      [v12 preparation](../docs/reference/phase-5-v12-replay-preparation.md).
     - [ ] Measure an independent representative fixture cost/size ladder, then
       resolve resource admission. Provisional budget is 68 GiB free versus
-      about 54 GiB observed at the latest check (about 14 GiB short).
+      69.42 GiB observed during v12 preparation (only 1.42 GiB headroom;
+      the earlier quick probe observed about 54 GiB). Recheck after refresh.
       **2026-09-10 quick probe:** seven independent fixtures complete one
       warm-up and five measurements each, with two single-thread-budgeted
       workers on the committed v12 snapshot. Capture medians are 9.60 s for
@@ -1342,10 +1354,10 @@ All of this is development evidence, not replacement parity or qualification.
       matched repeated benchmarks. Complete dual-PyBDSF performance remains
       Phase 6 work; do not infer that the target is already satisfied.
       Preserve evidence, thresholds, comparators and all risk geometries.
-      The notebook refresh has now finished; controlled timing is still due
-      and must include the precision-limited spatial-filter path. Cleanup is
-      recommended, not performed. Preserve the replay-critical reference and
-      R6 directories.
+      A new notebook refresh is active during metadata preparation; defer
+      controlled timing until it finishes, and include the precision-limited
+      spatial-filter path. Cleanup is recommended, not performed. Preserve
+      the replay-critical reference and R6 directories.
     - [ ] Freeze the exact reusable inventory, committed program closure,
       runtime and new write-once paths after tests and resource checks; repeat
       exhaustive no-write validation before resolving exact execution authority.
