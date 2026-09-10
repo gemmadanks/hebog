@@ -55,7 +55,7 @@ A major-axis-only deconvolution stores one positive
 angle. NaN and legacy zero sentinels are not null values. A fitted Gaussian
 always has a fitted shape; a source-level fitted shape may be unavailable.
 
-The current public v11 composition reports the native fitted Gaussian integral
+The current public v12 composition reports the native fitted Gaussian integral
 for components, not for associated-source rows. It does not substitute
 peak brightness for integrated flux because threshold-truncated moments look
 unresolved. Shape, flux and position errors propagate the fitted covariance;

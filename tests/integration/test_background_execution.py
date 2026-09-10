@@ -8,7 +8,12 @@ import numpy as np
 import pytest
 from distributed import Client
 
-from hebog.algorithms.multiscale import BeamShapePixels
+from hebog.algorithms.multiscale import (
+    BeamShapePixels,
+    build_scale_filter_bank,
+    evaluate_scale_filter_bank,
+    prepare_scale_filter_inputs,
+)
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.config import (
     AdaptiveRmsConfig,
@@ -30,6 +35,51 @@ from hebog.stages.background import (
 )
 
 pytestmark = pytest.mark.integration
+
+
+def test_near_noiseless_filter_is_exact_with_existing_dask() -> None:
+    """The precision fallback is deterministic under caller-owned workers."""
+    image = np.zeros((73, 79))
+    image[36, 39] = 1
+    image[33, 36] = np.nan
+    prepared = prepare_scale_filter_inputs(
+        image,
+        np.isfinite(image),
+        np.zeros_like(image),
+        np.full_like(image, 1e-60),
+    )
+    bank = build_scale_filter_bank(
+        BeamShapePixels(5, 3.5, 20),
+        family="beam-aware-matched-filter",
+        scales=((1, 1.0), (2, 2.0)),
+    )
+    evaluate = partial(
+        evaluate_scale_filter_bank,
+        filter_bank=bank,
+        minimum_support_fraction=0.5,
+    )
+    serial = evaluate(prepared)
+    with Client(
+        processes=False,
+        n_workers=2,
+        threads_per_worker=1,
+        dashboard_address=None,
+    ) as client:
+        results = DaskExecutor(client).map_batches(evaluate, (prepared,) * 2)
+    for result in results:
+        for reference, actual in zip(
+            serial.responses, result.responses, strict=True
+        ):
+            np.testing.assert_array_equal(
+                reference.response_jy_per_beam, actual.response_jy_per_beam
+            )
+            np.testing.assert_array_equal(
+                reference.effective_rms_jy_per_beam,
+                actual.effective_rms_jy_per_beam,
+            )
+            np.testing.assert_array_equal(
+                reference.scientifically_valid, actual.scientifically_valid
+            )
 
 
 class _ArrayImageSource:

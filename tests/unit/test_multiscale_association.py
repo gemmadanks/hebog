@@ -12,9 +12,46 @@ import pytest
 from hebog.algorithms.multiscale_association import (
     ScaleDetectionPlane,
     associate_adjacent_scale_detections,
+    build_scale_detection_plane,
     persistent_adjacent_scale_support,
 )
 from hebog.data_models.multiscale import ScaleDetection
+
+
+@pytest.mark.parametrize(
+    ("response_value", "snr_value"),
+    (
+        (0.0, 8.0),
+        (-1.0, 8.0),
+        (np.nan, 8.0),
+        (np.inf, 8.0),
+        (1.0, np.nan),
+        (1.0, np.inf),
+    ),
+)
+def test_significant_features_still_require_finite_positive_response(
+    response_value: float,
+    snr_value: float,
+) -> None:
+    """Fixing FFT leakage must not weaken the scale-feature admission guard."""
+    support = np.zeros((5, 7), dtype=np.bool_)
+    support[2, 3] = True
+    response = np.zeros(support.shape)
+    snr = np.zeros(support.shape)
+    response[2, 3] = response_value
+    snr[2, 3] = snr_value
+    with pytest.raises(
+        ValueError,
+        match="significant scale features require finite positive response",
+    ):
+        build_scale_detection_plane(
+            support,
+            response,
+            snr,
+            np.ones_like(support),
+            scale_order=1,
+            nominal_scale_beam_fwhm=1.0,
+        )
 
 
 def _plane(

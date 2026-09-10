@@ -66,7 +66,7 @@ def test_repaired_science_cannot_inherit_reference_qualification() -> None:
         == "development-unqualified"
     )
     assert public_api._COMPOSITION_NAME == (
-        "phase-5-evidence-bound-public-catalogue-v11"
+        "phase-5-evidence-bound-public-catalogue-v12"
     )
     assert {
         "hebog.algorithms.component_measurement",
@@ -94,7 +94,7 @@ def _provenance() -> PublicSourceFindingProvenance:
         configuration_sha256="2" * 64,
         scientific_profile_sha256="3" * 64,
         scientific_composition_sha256="4" * 64,
-        scientific_composition=("phase-5-evidence-bound-public-catalogue-v11"),
+        scientific_composition=("phase-5-evidence-bound-public-catalogue-v12"),
     )
 
 

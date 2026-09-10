@@ -12,7 +12,7 @@ from typing import Literal, TypeVar, cast
 
 import numpy as np
 import numpy.typing as npt
-from scipy.ndimage import convolve1d, label
+from scipy.ndimage import convolve, convolve1d, label
 from scipy.signal import fftconvolve
 
 from hebog.config import ResidualMultiscaleDetectionConfig
@@ -1085,6 +1085,45 @@ def minimum_residual_island_pixels(
     )
 
 
+def _requires_spatial_convolution(prepared: PreparedScaleInputs) -> bool:
+    """Avoid global FFT roundoff when local noise cannot resolve it.
+
+    RMS is compared with residual precision and squared RMS with variance
+    precision. This selects arithmetic, not a scientific threshold or an RMS
+    floor: spatial convolution evaluates the identical finite-support kernel.
+    Empty/invalid inputs retain the ordinary FFT path.
+    """
+    residual = prepared.residual_jy_per_beam
+    rms = prepared.rms_jy_per_beam
+    minimum_rms = float(
+        np.min(rms, where=prepared.scientifically_valid, initial=np.inf)
+    )
+    maximum_rms = float(np.max(rms, initial=0.0))
+    peak_residual = max(
+        abs(float(np.min(residual, initial=0.0))),
+        abs(float(np.max(residual, initial=0.0))),
+    )
+    epsilon = np.finfo(np.float64).eps
+    return minimum_rms < max(
+        epsilon * peak_residual, sqrt(epsilon) * maximum_rms
+    )
+
+
+def _convolve_scale_plane(
+    values: npt.NDArray[np.float64],
+    kernel: npt.NDArray[np.float64],
+    *,
+    spatial: bool,
+) -> npt.NDArray[np.float64]:
+    """Use compiled local sums only for precision-limited bounded work."""
+    if spatial:
+        return np.asarray(
+            convolve(values, kernel, mode="constant", cval=0.0),
+            dtype=np.float64,
+        )
+    return np.asarray(fftconvolve(values, kernel, mode="same"))
+
+
 def evaluate_scale_filter_bank(
     prepared_inputs: PreparedScaleInputs,
     filter_bank: ScaleFilterBank,
@@ -1101,6 +1140,15 @@ def evaluate_scale_filter_bank(
     usable_rms = prepared_inputs.rms_jy_per_beam
     input_validity = prepared_inputs.scientifically_valid
     valid_float = np.asarray(input_validity, dtype=np.float64)
+    spatial = _requires_spatial_convolution(prepared_inputs)
+    # Preserve ordinary variance arithmetic; rescale only when precision or
+    # the representable range of squared RMS requires it. This is not a floor.
+    maximum_rms = float(np.max(usable_rms, initial=0.0))
+    limits = np.finfo(np.float64)
+    rescale_variance = spatial or (
+        0 < maximum_rms < sqrt(limits.tiny) or maximum_rms > sqrt(limits.max)
+    )
+    rms_scale = maximum_rms if rescale_variance else 1.0
     smoothing_cache: dict[
         float,
         tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]],
@@ -1113,15 +1161,15 @@ def evaluate_scale_filter_bank(
         for _, component in scale_filter.components:
             cached = smoothing_cache.get(component.width_beams)
             if cached is None:
-                numerator = fftconvolve(
+                numerator = _convolve_scale_plane(
                     residual,
                     component.values,
-                    mode="same",
+                    spatial=spatial,
                 )
-                support = fftconvolve(
+                support = _convolve_scale_plane(
                     valid_float,
                     component.values,
-                    mode="same",
+                    spatial=spatial,
                 )
                 smoothed = np.zeros(residual.shape, dtype=np.float64)
                 np.divide(
@@ -1157,10 +1205,10 @@ def evaluate_scale_filter_bank(
             calibrated_response,
             where=scientifically_valid,
         )
-        variance = fftconvolve(
-            np.square(usable_rms) * valid_float,
+        variance = _convolve_scale_plane(
+            np.square(usable_rms / rms_scale) * valid_float,
             np.square(scale_filter.response_kernel),
-            mode="same",
+            spatial=spatial,
         )
         np.maximum(variance, 0.0, out=variance)
         effective_rms = np.full(residual.shape, np.nan, dtype=np.float64)
@@ -1170,7 +1218,7 @@ def evaluate_scale_filter_bank(
         )
         propagated = np.zeros(residual.shape, dtype=np.float64)
         np.divide(
-            np.sqrt(variance) * noise_ratio,
+            np.sqrt(variance) * noise_ratio * rms_scale,
             support_fraction,
             out=propagated,
             where=support_fraction > 0,

@@ -169,18 +169,10 @@ def test_spawned_public_capture_current_only_evaluation_and_reuse(
 
 
 @pytest.mark.integration
-@pytest.mark.xfail(
-    strict=True,
-    raises=ValueError,
-    reason=(
-        "R6-R6 admission blocker: noiseless public background produces "
-        "an invalid significant-scale response"
-    ),
-)
 def test_noiseless_public_capture_has_finite_scale_response(
     tmp_path: Path,
 ) -> None:
-    """Keep the pre-replay failure visible until a reviewed repair."""
+    """A noiseless source must not turn FFT roundoff into scale detections."""
     dataset = build_adaptive_development_manifest().datasets[0]
     recipe = iter_dataset_recipes(dataset)[0]
     signal, _, _ = source_signal_and_truth(recipe)
@@ -214,12 +206,5 @@ def test_noiseless_public_capture_has_finite_scale_response(
             - {"current-hebog"}
         },
     }
-    try:
-        result = execution.capture_replacement(task)
-    except ValueError as error:
-        assert (
-            str(error)
-            == "significant scale features require finite positive response"
-        )
-        raise
+    result = execution.capture_replacement(task)
     assert Path(result["path"]).is_file()

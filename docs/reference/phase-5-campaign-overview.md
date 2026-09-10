@@ -2540,6 +2540,21 @@ refresh remains isolated from these tooling/documentation edits. Cleanup
 recommendations preserve its active staging and all replay-critical evidence;
 no evidence or staging directory was removed.
 
+## 2026-09-10 — Synthetic noiseless admission failure repaired
+
+The [numerical repair](phase-5-noiseless-filter-repair.md) traces the exposed
+background failure to remote FFT roundoff divided by nearly zero local noise.
+It uses the same finite-support filters with spatial arithmetic where FFT
+precision is insufficient, and range-safe variance propagation. The exact
+public reproducer now passes without an xfail. Thresholds, noise-estimator policy,
+positive-response admission and closed evaluator results are unchanged.
+
+Composition v12 supersedes v11 for new work; fixture validation and a separate
+non-executable identity precede notebook selection and replay admission.
+The saved v11 preparation is not current execution authority. The user's
+no-launch instruction remains in force. No campaign was run or rescored,
+and the failed R6 result remains failed.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

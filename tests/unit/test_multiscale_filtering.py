@@ -8,6 +8,7 @@ from typing import cast
 import numpy as np
 import pytest
 
+from hebog.algorithms import multiscale
 from hebog.algorithms.multiscale import (
     BeamShapePixels,
     FilterFamily,
@@ -16,6 +17,7 @@ from hebog.algorithms.multiscale import (
     ScaleFilterResponse,
     build_residual_atrous_plan,
     build_scale_filter_bank,
+    calibrated_scale_snrs,
     evaluate_residual_atrous,
     evaluate_scale_filter_bank,
     prepare_scale_filter_inputs,
@@ -27,6 +29,205 @@ _FAMILIES: tuple[FilterFamily, ...] = (
     "beam-aware-matched-filter",
     "undecimated-wavelet",
 )
+
+
+@pytest.mark.parametrize("family", _FAMILIES)
+@pytest.mark.parametrize("unit_scale", (1e-150, 1.0, 1e150))
+def test_near_noiseless_filter_has_no_remote_fft_detections(
+    family: FilterFamily, unit_scale: float
+) -> None:
+    """A compact kernel cannot create signal outside its exact footprint."""
+    image = np.zeros((73, 79), dtype=np.float64)
+    image[36, 39] = unit_scale
+    bank = build_scale_filter_bank(
+        _beam(), family=family, scales=((1, 1.0), (2, 2.0))
+    )
+    prepared = prepare_scale_filter_inputs(
+        image,
+        np.ones(image.shape, dtype=np.bool_),
+        np.zeros_like(image),
+        np.full_like(image, unit_scale * 1e-60),
+    )
+    result = evaluate_scale_filter_bank(
+        prepared, bank, minimum_support_fraction=0.5
+    )
+    snrs = calibrated_scale_snrs(
+        result.responses, minimum_support_fraction=0.5
+    )
+    for scale, response, snr in zip(
+        bank.filters, result.responses, snrs, strict=True
+    ):
+        yy, xx = np.indices(image.shape)
+        outside = (
+            (np.abs(yy - 36) > scale.halo_pixels)
+            | (np.abs(xx - 39) > scale.halo_pixels)
+        ) & response.scientifically_valid
+        assert np.any(outside)
+        np.testing.assert_array_equal(
+            response.response_jy_per_beam[outside], 0
+        )
+        np.testing.assert_array_equal(snr[outside], 0)
+        assert np.all(response.effective_rms_jy_per_beam[outside] > 0)
+        assert np.isfinite(snr[36, 39]) and snr[36, 39] > 5
+        assert response.response_jy_per_beam[36, 39] / unit_scale == (
+            pytest.approx(
+                scale.response_kernel[scale.halo_pixels, scale.halo_pixels],
+                rel=1e-13,
+            )
+        )
+
+
+def test_high_dynamic_range_rms_does_not_leak_variance_between_regions() -> (
+    None
+):
+    """Positive local variance remains local below global FFT precision."""
+    image = np.zeros((73, 79))
+    rms = np.ones_like(image)
+    rms[:, :40] = 1e-30
+    bank = build_scale_filter_bank(
+        _beam(), family="beam-aware-matched-filter", scales=((1, 1.0),)
+    )
+    result = evaluate_scale_filter_bank(
+        prepare_scale_filter_inputs(
+            image, np.ones(image.shape, dtype=np.bool_), image, rms
+        ),
+        bank,
+        minimum_support_fraction=0.5,
+    )
+    expected = rms[36, 16] * bank.filters[0].independent_noise_gain
+    assert result.responses[0].effective_rms_jy_per_beam[36, 16] == (
+        pytest.approx(expected, rel=1e-13, abs=0)
+    )
+
+
+@pytest.mark.parametrize("unit_scale", (1e-200, 1e200))
+def test_noise_variance_is_invariant_to_extreme_common_unit_scaling(
+    unit_scale: float,
+) -> None:
+    """Finite RMS must not become unavailable just because its square fails."""
+    image = np.zeros((73, 79))
+    image[36, 39] = unit_scale
+    bank = build_scale_filter_bank(
+        _beam(), family="beam-aware-matched-filter", scales=((1, 1.0),)
+    )
+    result = evaluate_scale_filter_bank(
+        prepare_scale_filter_inputs(
+            image,
+            np.ones(image.shape, dtype=np.bool_),
+            np.zeros_like(image),
+            np.full_like(image, unit_scale),
+        ),
+        bank,
+        minimum_support_fraction=0.5,
+    )
+    observed = result.responses[0].effective_rms_jy_per_beam[36, 39]
+    assert observed / unit_scale == pytest.approx(
+        bank.filters[0].independent_noise_gain, rel=1e-13
+    )
+
+
+def test_zero_rms_remains_unavailable_without_an_invented_floor() -> None:
+    """The numerical repair must not fabricate significance for zero noise."""
+    image = np.zeros((73, 79))
+    image[36, 39] = 1
+    bank = build_scale_filter_bank(
+        _beam(), family="beam-aware-matched-filter", scales=((1, 1.0),)
+    )
+    result = evaluate_scale_filter_bank(
+        prepare_scale_filter_inputs(
+            image,
+            np.ones(image.shape, dtype=np.bool_),
+            np.zeros_like(image),
+            np.zeros_like(image),
+        ),
+        bank,
+        minimum_support_fraction=0.5,
+    )
+    assert not result.responses[0].scientifically_valid.any()
+    assert np.isnan(result.responses[0].effective_rms_jy_per_beam).all()
+    assert np.isneginf(
+        calibrated_scale_snrs(result.responses, minimum_support_fraction=0.5)[
+            0
+        ]
+    ).all()
+
+
+@pytest.mark.parametrize("family", _FAMILIES)
+def test_low_noise_halo_and_invalid_pixels_preserve_local_filter_response(
+    family: FilterFamily,
+) -> None:
+    """The local arithmetic preserves masked support and halo/core identity."""
+    background = np.full((91, 97), -2.0)
+    image = background.copy()
+    image[45, 48] += 1
+    image[41:44, 46:49] = np.nan
+    bank = build_scale_filter_bank(
+        _beam(), family=family, scales=((1, 1.0), (2, 2.0))
+    )
+    halo = bank.maximum_halo_pixels
+    bounds = np.s_[30 - halo : 61 + halo, 32 - halo : 65 + halo]
+    results: list[ScaleFilterBankResult] = []
+    for selection in (np.s_[:, :], bounds):
+        values = image[selection]
+        results.append(
+            evaluate_scale_filter_bank(
+                prepare_scale_filter_inputs(
+                    values,
+                    np.isfinite(values),
+                    background[selection],
+                    np.full_like(values, 1e-60),
+                ),
+                bank,
+                minimum_support_fraction=0.5,
+            )
+        )
+    for full, tile in zip(
+        results[0].responses, results[1].responses, strict=True
+    ):
+        np.testing.assert_array_equal(
+            full.response_jy_per_beam[30:61, 32:65],
+            tile.response_jy_per_beam[halo:-halo, halo:-halo],
+        )
+        np.testing.assert_array_equal(
+            full.effective_rms_jy_per_beam[30:61, 32:65],
+            tile.effective_rms_jy_per_beam[halo:-halo, halo:-halo],
+        )
+        assert np.isnan(full.response_jy_per_beam[42, 47])
+        assert not full.scientifically_valid[42, 47]
+        assert full.response_jy_per_beam[45, 48] > 0
+
+
+@pytest.mark.parametrize("scene", ("normal", "empty", "invalid"))
+def test_ordinary_and_unavailable_noise_keep_the_existing_fft_path(
+    monkeypatch: pytest.MonkeyPatch, scene: str
+) -> None:
+    """Precision repair does not route ordinary images to spatial kernels."""
+
+    def unexpected_spatial(*_args: object, **_kwargs: object) -> None:
+        pytest.fail("ordinary input unexpectedly uses spatial convolution")
+
+    monkeypatch.setattr(multiscale, "convolve", unexpected_spatial)
+    image = np.zeros((73, 79))
+    if scene == "normal":
+        image[36, 39] = 1
+    elif scene == "invalid":
+        image[:] = np.nan
+    result = _evaluate(
+        image,
+        family="beam-aware-matched-filter",
+        valid=np.isfinite(image),
+    )
+    for response in result.responses:
+        if scene == "invalid":
+            assert not response.scientifically_valid.any()
+            assert np.isnan(response.response_jy_per_beam).all()
+        elif scene == "empty":
+            np.testing.assert_array_equal(
+                response.response_jy_per_beam[response.scientifically_valid],
+                0,
+            )
+        else:
+            assert response.response_jy_per_beam[36, 39] > 0
 
 
 def _beam() -> BeamShapePixels:

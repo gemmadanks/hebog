@@ -18949,3 +18949,52 @@ scientific pass from fixture validation.
   missing execution-owner freeze and resource admission remain explicit
   blockers, not waived gates. Final all-file hooks precede the local commit;
   no push is authorized.
+
+## 2026-09-10 — Repair the synthetic noiseless scale-filter failure
+
+- The user authorized fixing the exposed replay-preparation bug. Process
+  inspection confirmed the notebook refresh had finished before source edits.
+  No replay, notebook refresh, reference execution, rescoring, qualification,
+  cleanup or release was started. Preserve the v11 preparation and all closed
+  evidence; the numerical repair requires a new candidate binding.
+- TDD reproduced the exact-public failure without its strict xfail (14.69 s).
+  Seven numerical tests then failed on remote response/variance leakage, and
+  two common-unit tests failed on RMS-square underflow/overflow. Direct local
+  sums establish that tiny FFT responses outside local emission, amplified
+  by nearly zero estimated noise, caused the positive-response guard to fail.
+  The guard and scientific thresholds remain unchanged.
+- The same finite-support kernels now use compiled SciPy spatial convolution
+  when local noise/variance is below FFT numerical resolution. Range-safe
+  variance propagation restores original units without an RMS floor. Ordinary
+  FFT arithmetic, invalid/zero-noise dispositions, filter geometry and noise
+  estimator policies are preserved; corrected protection masks may change
+  affected outputs. No new dependency or scheduler is introduced.
+- The exact-public noiseless capture passes normally (112.55 s standalone),
+  alongside 99 adjacent multiscale/association/background tests. The expanded
+  focused public-schema, numerical, halo/invalid-pixel and actual two-worker
+  existing-Dask suite passes 95 tests, with two unrelated pre-existing xfails.
+  All 27 frozen equivalence tests and strict docs pass. These test durations
+  are not controlled campaign runtime evidence; the spatial fallback must be
+  included in the pending cost/size admission probe.
+- Public composition is v12, with the typed provenance literal and current
+  documentation aligned; schema numbers and configuration are unchanged.
+  Full checks first exposed the stale v11 literal and missing test annotation;
+  both are corrected. The interrupted partial coverage run is not evidence;
+  a fresh full run and final review/hooks are in progress before the local
+  science commit and separate non-executable notebook identity freeze.
+- The full portable suite passes 3,760 tests with 157 deselected and two
+  pre-existing xfails (840.56 s); all three synthetic replacement-public
+  captures pass. Its initial 95.2509901% coverage exposed that the repaired
+  xfail had been the only caller of the positive-response rejection branch.
+  Six direct zero/negative/non-finite response or SNR rejection cases now
+  exercise that unchanged guard. The 35-test association supplement passes
+  and brings combined source-stable coverage to 95.25775987543581%, above the
+  prior 95.25470803414171%; no file loses covered lines or branches. All 22
+  changed executable lines and changed branches are covered. No assertion,
+  coverage floor or exclusion was weakened.
+- `just check` passes Ruff/Pyright and 3,464 tests; all 27 frozen equivalence
+  tests pass. Reviewed the complete repair against `CODE_REVIEW.md`: no
+  actionable findings. Remaining limits are unqualified campaign/runtime
+  performance and Python 3.12/3.13 not run locally, not waived science gates.
+  Repeat clean all-file hooks after the final guard tests and documentation,
+  then make the local repair commit and freeze its separate notebook identity.

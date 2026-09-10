@@ -1247,13 +1247,16 @@ All of this is development evidence, not replacement parity or qualification.
     cases using runner `c9b0fec5...`; this checks identity and case metadata,
     not refreshed results or exhaustive replay admission.
   - [ ] **R6-R6 — Admit replacement cumulative and then fresh evidence.**
-    **Next task:** resolve the new noiseless-public-background fixture failure,
-    then cost/space admission and the exact execution freeze. The
+    **Next task:** freeze the validated numerical repair, then
+    cost/space admission and the exact execution freeze. The
     [v11 preparation and cleanup record](../docs/reference/phase-5-v11-replay-preparation.md)
     contains the prepared 2,400-task/8,000-reuse inventory and staged runner;
     the user explicitly requested **no launch**. R6-C0--C7's recorded tests
-    passed, but the added exact-public noiseless fixture reopens correctness
-    admission. No replay has been admitted or started. Do not
+    passed; the added exact-public noiseless failure has a
+    [v12 numerical repair](../docs/reference/phase-5-noiseless-filter-repair.md)
+    and now passes normally. The v11 preparation snapshot must be rebound;
+    no verdict or execution authority transfers. No replay has been admitted
+    or started. Do not
     launch the older v10 candidate or reuse its consumed decisions. Follow the
     unchanged scientific gates and authority boundaries below.
     The [replacement admission review](../docs/reference/phase-5-r6-replacement-admission-review.md)
@@ -1292,14 +1295,34 @@ All of this is development evidence, not replacement parity or qualification.
       refreeze changed science. Do not alter source while the user's notebook
       refresh is active. This is independent development evidence, not a
       campaign failure or viewed-data tuning.
+      **2026-09-10 repair validated; non-executable freeze next:** the
+      notebook refresh has exited. The
+      red exact-public regression is confirmed without its xfail marker.
+      Direct local sums show that remote FFT response leakage, not emission,
+      becomes enormous SNR under near-zero estimated noise. Use the same
+      finite-support kernels with compiled spatial convolution when input
+      noise/variance is below floating-point FFT resolution; rescale the
+      variance calculation when precision or squared-unit range requires it.
+      The exact public reproducer passes normally, as do the focused
+      numerical, invalid-pixel, halo/core and actual Serial/Dask checks.
+      Keep ordinary FFT arithmetic and scientific thresholds unchanged.
+      No arbitrary RMS floor,
+      viewed-data adjustment or replay execution is authorized by this repair.
+      Full portable coverage passes 3,760 tests plus a 35-test direct-guard
+      supplement on unchanged source: 95.2577599% (prior 95.2547080%), with
+      every changed executable line and branch covered. Full checks pass
+      3,464 tests; frozen equivalence passes 27. Final hooks and the v12
+      non-executable identity precede notebook selection and replay admission.
     - [ ] Measure an independent representative fixture cost/size ladder, then
       resolve resource admission. Provisional budget is 68 GiB free versus
       about 49 GiB observed at the latest check (about 19 GiB short);
       tentative total time is 9--14 h,
       not a guarantee or proof of the final campaign's sub-12-hour target.
       Preserve evidence, thresholds, comparators and all risk geometries.
-      The active notebook prevents controlled timing; cleanup is recommended,
-      not performed. Preserve the replay-critical reference and R6 directories.
+      The notebook refresh has now finished; controlled timing is still due
+      and must include the precision-limited spatial-filter path. Cleanup is
+      recommended, not performed. Preserve the replay-critical reference and
+      R6 directories.
     - [ ] Freeze the exact reusable inventory, committed program closure,
       runtime and new write-once paths after tests and resource checks; repeat
       exhaustive no-write validation before resolving exact execution authority.

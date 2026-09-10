@@ -1,5 +1,16 @@
 # Phase 5 v11 replacement replay preparation
 
+## Follow-up — numerical repair supersedes the candidate binding
+
+The user subsequently authorized fixing the exposed noiseless-fixture bug.
+The [v12 numerical repair](phase-5-noiseless-filter-repair.md) makes the exact
+reproducer pass without an xfail. The notebook refresh has finished. The
+record below describes the earlier v11 preparation and observed disk state;
+its metadata snapshot remains unchanged and is not executable authority.
+Rebind the repaired candidate, measure its cost/space requirements and repeat
+final no-write admission before any separately authorized launch. No replay
+or cleanup was performed by the repair.
+
 ## Status — 2026-09-10
 
 Prepared, **not execution-admitted and not started**. The user explicitly
