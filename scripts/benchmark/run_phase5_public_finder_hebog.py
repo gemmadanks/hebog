@@ -47,7 +47,7 @@ _PROTOCOL = runpy.run_path(
 _PUBLIC_IDENTITY = (
     _ROOT
     / "config/contracts"
-    / "phase-5-public-catalogue-correctness-identity-review.json"
+    / "phase-5-noiseless-filter-repair-identity-review.json"
 )
 _PUBLIC_CONFIG = SourceFinderConfig(5.0, 3.0, 7, profile="continuum")
 

@@ -1247,8 +1247,8 @@ All of this is development evidence, not replacement parity or qualification.
     cases using runner `c9b0fec5...`; this checks identity and case metadata,
     not refreshed results or exhaustive replay admission.
   - [ ] **R6-R6 — Admit replacement cumulative and then fresh evidence.**
-    **Next task:** freeze the validated numerical repair, then
-    cost/space admission and the exact execution freeze. The
+    **Next task:** measure controlled cost/space requirements, then rebind
+    the prepared inventory and exact execution freeze to v12. The
     [v11 preparation and cleanup record](../docs/reference/phase-5-v11-replay-preparation.md)
     contains the prepared 2,400-task/8,000-reuse inventory and staged runner;
     the user explicitly requested **no launch**. R6-C0--C7's recorded tests
@@ -1283,7 +1283,7 @@ All of this is development evidence, not replacement parity or qualification.
       rescoring. The 8,000-record index is unchanged; 336 original code/data
       paths and ten native-reader definitions are unchanged. No executable
       owner wrapper or one-use execution identity is issued.
-    - [ ] Diagnose and repair the additional noiseless exact-public capture
+    - [x] Diagnose and repair the additional noiseless exact-public capture
       error (`significant scale features require finite positive response`)
       without changing frozen thresholds or treating the strict xfail as a
       pass. It occurs in source-protected adaptive background estimation;
@@ -1295,7 +1295,7 @@ All of this is development evidence, not replacement parity or qualification.
       refreeze changed science. Do not alter source while the user's notebook
       refresh is active. This is independent development evidence, not a
       campaign failure or viewed-data tuning.
-      **2026-09-10 repair validated; non-executable freeze next:** the
+      **2026-09-10 repair validated and frozen non-executable:** the
       notebook refresh has exited. The
       red exact-public regression is confirmed without its xfail marker.
       Direct local sums show that remote FFT response leakage, not emission,
@@ -1311,8 +1311,16 @@ All of this is development evidence, not replacement parity or qualification.
       Full portable coverage passes 3,760 tests plus a 35-test direct-guard
       supplement on unchanged source: 95.2577599% (prior 95.2547080%), with
       every changed executable line and branch covered. Full checks pass
-      3,464 tests; frozen equivalence passes 27. Final hooks and the v12
-      non-executable identity precede notebook selection and replay admission.
+      3,464 tests; frozen equivalence passes 27. Clean repair hooks pass.
+      Candidate `ed5136af4b0948ff48e7ebb8311ce192f17c76cf`, source
+      `838e2846...`, composition `ba1039f5...` and unchanged configuration
+      `5eca0efc...` are bound by
+      `config/contracts/phase-5-noiseless-filter-repair-identity-review.json`
+      (SHA-256 `2ab9d433...`). All authorizations are false; the execution
+      identity is null. Thirty committed-history, drift/selector and
+      synthetic notebook tests pass. The actual no-write notebook preflight
+      passes 13 cases; repeat on the final clean commit. No notebook refresh
+      or replay was started, and the v11 preparation still needs rebinding.
     - [ ] Measure an independent representative fixture cost/size ladder, then
       resolve resource admission. Provisional budget is 68 GiB free versus
       about 49 GiB observed at the latest check (about 19 GiB short);

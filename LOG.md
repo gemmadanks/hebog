@@ -18998,3 +18998,35 @@ scientific pass from fixture validation.
   performance and Python 3.12/3.13 not run locally, not waived science gates.
   Repeat clean all-file hooks after the final guard tests and documentation,
   then make the local repair commit and freeze its separate notebook identity.
+
+## 2026-09-10 — Freeze v12 after the noiseless numerical repair
+
+- The final clean implementation hooks passed, and local commit
+  `ed5136af4b0948ff48e7ebb8311ce192f17c76cf` contains the repair, tests and
+  documentation. Source SHA-256 is
+  `838e28460525259e7a8879ecf97f352a979754b887a5423ff3a59ecb5b3f7f27`;
+  v12 composition SHA-256 is
+  `ba1039f52d7486a9bd754f0b56802274fdfca7188919d6387aee21fcc8e2379c`.
+  Configuration remains `5eca0efc...` and diagnostics schema remains 8.
+- Freeze `config/contracts/phase-5-noiseless-filter-repair-identity-review.json`
+  has SHA-256
+  `2ab9d43330e7e8af3f7c426aa272180a391f6437a287f91851747106d2db5096`.
+  It binds the committed source and repair/schema/tutorial documents; all
+  authorizations are false and `execution_identity=null`. The v11 review,
+  preparation record and failed R6 terminal are untouched. No verdict or
+  execution authority transfers.
+- The notebook selector regression failed first on the obsolete v11 path.
+  Selecting the new review makes all 30 committed-history, identity-drift,
+  selector and synthetic notebook-runner tests pass (10.60 s). JSON hooks
+  pass without modifying the new review. The actual `--preflight-only`
+  command passes 13 configured cases using runner SHA-256
+  `5f17c3d7c9ffc09e9572101b6bb9a2ed6e6cafa42f652ade9a728b89e482dbeb`.
+  This checks identity and case metadata, not image execution or science;
+  it reports the pending selector/docs edits as a dirty worktree. Repeat
+  after the final local commit.
+- No package science changed after the coverage-validated repair commit.
+  The freeze/selector diff was reviewed against `CODE_REVIEW.md` with no
+  actionable findings. Final all-file hooks precede its local commit; no
+  push, notebook refresh, replay, reference finder, rescore, qualification,
+  cleanup or release is started. R6-R6 resource/cost and exact-execution
+  admission remain outstanding, including the spatial fallback's cost.

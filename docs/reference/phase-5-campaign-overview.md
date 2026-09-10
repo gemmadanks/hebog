@@ -2549,8 +2549,12 @@ precision is insufficient, and range-safe variance propagation. The exact
 public reproducer now passes without an xfail. Thresholds, noise-estimator policy,
 positive-response admission and closed evaluator results are unchanged.
 
-Composition v12 supersedes v11 for new work; fixture validation and a separate
-non-executable identity precede notebook selection and replay admission.
+Composition v12 supersedes v11 for new work. Non-executable review
+`2ab9d433...` binds candidate `ed5136a...`, source `838e2846...` and
+composition `ba1039f5...`, with unchanged configuration `5eca0efc...`.
+Thirty committed-history, selector/drift and synthetic notebook tests pass;
+the actual no-write notebook preflight passes 13 configured cases. The review
+grants no execution authority and no earlier scientific verdict transfers.
 The saved v11 preparation is not current execution authority. The user's
 no-launch instruction remains in force. No campaign was run or rescored,
 and the failed R6 result remains failed.
