@@ -25,11 +25,12 @@ def _write_json(path: Path, value: object) -> None:
     path.write_text(json.dumps(value), encoding="utf-8")
 
 
-def test_default_notebook_runner_selects_the_frozen_estimator_repair() -> None:
+def test_default_notebook_runner_selects_the_frozen_catalogue_repair() -> None:
     """The diagnostic entry point must select the intended repair review."""
     expected = (
         _ROOT
-        / "config/contracts/phase-5-r6-estimator-repair-identity-review.json"
+        / "config/contracts"
+        / "phase-5-public-catalogue-correctness-identity-review.json"
     )
     assert _PUBLIC_RUNNER["_PUBLIC_IDENTITY"] == expected
 
@@ -50,7 +51,7 @@ def test_selected_review_still_rejects_scientific_identity_drift(
         (
             _ROOT
             / "config/contracts"
-            / "phase-5-r6-estimator-repair-identity-review.json"
+            / "phase-5-public-catalogue-correctness-identity-review.json"
         ).read_bytes()
     )
     guard = _PUBLIC_RUNNER["public_hebog_configuration_sha256"]

@@ -662,7 +662,7 @@ must remain explicit and tested against independent truth.
 
 | Gate | Binding pass condition | Current state |
 | --- | --- | --- |
-| Known scientific risks | Every confirmed adaptive-background, measurement, association, component partition, publication, and evaluator defect is corrected test-first without changing a closed result after it is viewed. | Open pending replacement evidence. The failed sentinel and R6 audit remain binding. R6-C1--C6 now pass independent association, numerical, fit-budget, provenance and background/noise fixtures (2026-09-10). Complete C7's candidate freeze and R6-R6 admission below; neither these fixture passes nor earlier campaign results qualify the repaired public composition. |
+| Known scientific risks | Every confirmed adaptive-background, measurement, association, component partition, publication, and evaluator defect is corrected test-first without changing a closed result after it is viewed. | Open pending replacement evidence. The failed sentinel and R6 audit remain binding. R6-C0--C7 are implemented, fixture-validated and frozen non-executable (2026-09-10). Complete R6-R6 admission below; neither these fixture passes nor earlier campaign results qualify the repaired public composition. |
 | Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes product validity, trigger behaviour, paired retention in every four-seed trigger cell, multi-peak component retention, negative controls, and Serial/existing-Dask invariance. | Required for the replacement. Version-8 terminal `a274888d...` remains a 12/12 geometry and 12/12 Serial/Dask pass with four report-only misses, but its tests did not distinguish independent compact-source membership from component multiplicity or cover the newly reproduced measurement/publication failures. Require the exact public composition and joint compact/extended truth gates in R5 and R6-C7. |
 | Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Historical identity and execution-consistency pass for `95cfc76...`, source `8da21e86...`, configuration `2c907949...`, and sealed 2,400-product set `f43cb274...`. This does not establish scientific readiness: the source-aligned sentinel fails and the public projection rejects admitted shape-unavailable owners. The replacement must be frozen and revalidated after R0--R5 and R6-C0--C7; no prior public-candidate pass transfers automatically. |
 | Cumulative parity and retention | Across all 800 compact and 1,600 Continuum cases, every binding comparison passes both PyBDSF references, applicable Aegean checks, and hard safety rules. Incumbent comparisons must show no observed movement beyond their practical margin; any unresolved confidence exception must be explicit and human accepted rather than pooled away or relabelled. | Failed for replacement `db8936b...`: R6 terminal `7146f2e8...` has 885 passes, 288 failures and 14 underpowered comparisons. Released/master PyBDSF have 39/37 failures, Aegean 53 and incumbent retention 159; all five safety checks pass. Both readiness flags are false. Historical `8d69ef44...` and its narrowly accepted incumbent-uncertainty exception remain unchanged and do not transfer. A separate prospective scientific review must precede another candidate or run. |
@@ -1197,7 +1197,8 @@ All of this is development evidence, not replacement parity or qualification.
       Follow-up red-before-fix tests cover positive edge RMS, actual versus
       internal context boundaries, noise-explained bright work anchors and
       isolation of the unchanged compact-only policy. Final coverage and
-      candidate freeze remain C7 work; no replay has started.
+      the non-executable candidate freeze are recorded in C7; no replay has
+      started.
   - [x] **R6-C6 — Make notebook and catalogue diagnostics unambiguous.** Label
     native product types explicitly: Hebog components versus associated
     sources, PyBDSF source versus Gaussian catalogues, and Aegean components
@@ -1209,7 +1210,7 @@ All of this is development evidence, not replacement parity or qualification.
     not move positions, hide failures or substitute for science repairs.
     Test transforms, overlays and native schema selection on synthetic saved
     products; reuse sealed products for diagnostic display without rescoring.
-  - [ ] **R6-C7 — Pass the combined no-regression ladder before refreezing.**
+  - [x] **R6-C7 — Pass the combined no-regression ladder before refreezing.**
     Run the complete existing 108-case development matrix plus the new trigger
     and negative-control fixtures, not just the latest failing morphology.
     Cover compact SNR/flux ranges, blends/multiplicity, arcs/shells/core-halo,
@@ -1234,22 +1235,34 @@ All of this is development evidence, not replacement parity or qualification.
     compact-profile guard pass; stable-source portable coverage passes 3,697
     tests, plus the 49-test final boundary/workflow supplement. Coverage is
     95.2377727% (baseline 95.1905998%); all 221 changed executable lines and
-    changed branches are covered. Frozen equivalence (27), strict docs,
-    Marimo and package smoke pass. Final clean hooks, local commits and the
-    actual selected-identity notebook preflight precede C7 completion.
+    changed branches are covered. Full checks (3,408), frozen equivalence
+    (27), strict docs, Marimo, package smoke and clean implementation hooks
+    pass. Candidate `ee8303519feab359e11f70ee1debfafd00d34177`, source
+    `f708bd54...`, composition v11 `da4018cc...`, diagnostics schema 8 and
+    unchanged configuration `5eca0efc...` are bound by
+    `config/contracts/phase-5-public-catalogue-correctness-identity-review.json`
+    (SHA-256 `dc811fb8...`). The review is non-executable and grants no
+    authorizations. Committed-history/selector/synthetic notebook checks pass
+    29 tests. The actual read-only notebook preflight passes all 13 configured
+    cases using runner `c9b0fec5...`; this checks identity and case metadata,
+    not refreshed results or exhaustive replay admission.
   - [ ] **R6-R6 — Admit replacement cumulative and then fresh evidence.**
-    Blocked on R6-C0--C7; do not launch the current v10 candidate on the basis
-    of the earlier fixture pass. Follow the unchanged scientific gates and
-    authority boundaries below for the newly repaired exact candidate.
+    **Next task:** prepare the reuse-aware runner for the frozen v11 candidate.
+    R6-C0--C7 are complete, but no replay has been admitted or started. Do not
+    launch the older v10 candidate or reuse its consumed decisions. Follow the
+    unchanged scientific gates and authority boundaries below.
     The [replacement admission review](../docs/reference/phase-5-r6-replacement-admission-review.md)
     is historical planning evidence for v10 (2026-09-09); revalidate its
     candidate binding, reusable semantics and resource estimates after C7:
 
-    - [x] Review exact reuse: 2,400 incumbent, 4,800 dual-PyBDSF and 800
-      Aegean evaluation records remain reusable byte-for-byte. Preserve all
+    - [x] Review the prior v10 reuse inventory: 2,400 incumbent, 4,800
+      dual-PyBDSF and 800 Aegean evaluation records remain reusable
+      byte-for-byte. Preserve all
       2,400 inputs, 9,600 reference runs and the failed R6 terminal. The new
       candidate still needs 2,400 Serial captures/evaluations, 12 existing-Dask
       comparisons and new paired statistics; no old verdict transfers.
+      The central evaluator and native-reader bytes remain unchanged in v11;
+      this is not a substitute for the final transitive/exhaustive audit below.
     - [ ] After C7, complete test-first reuse-aware orchestration and
       synthetic end-to-end/reuse/failure checks. The old pair runner executes
       the incumbent and evaluates every finder, so do not launch it unchanged
@@ -1257,7 +1270,8 @@ All of this is development evidence, not replacement parity or qualification.
       comparator records without introducing a second scoring definition.
     - [ ] Measure an independent representative fixture cost/size ladder, then
       resolve resource admission. Provisional budget is 68 GiB free versus
-      about 52 GiB observed at the latest check (about 16 GiB short); tentative total time is 9--14 h,
+      about 53 GiB observed at the latest check (about 15 GiB short);
+      tentative total time is 9--14 h,
       not a guarantee or proof of the final campaign's sub-12-hour target.
       Preserve evidence, thresholds, comparators and all risk geometries.
     - [ ] Freeze the exact reusable inventory, committed program closure,

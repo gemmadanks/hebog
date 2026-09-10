@@ -25,6 +25,7 @@ _ROOT = Path(__file__).parents[3]
         "phase-5-notebook-joint-fit-failure-identity-review.json",
         "phase-5-notebook-support-amendment-identity-review.json",
         "phase-5-r6-estimator-repair-identity-review.json",
+        "phase-5-public-catalogue-correctness-identity-review.json",
     ),
 )
 def test_repair_identity_binds_committed_science_without_outputs(

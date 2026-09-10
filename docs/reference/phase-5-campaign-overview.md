@@ -2510,9 +2510,14 @@ provenance and unavailable/deferred states are explicit in diagnostics schema
 No pooled success overrides a failed geometry or unavailable processing.
 These fixtures do not show that every viewed feature is real or establish
 new catalogue completeness, reliability or PyBDSF parity. The next replay
-still requires the new non-executable candidate freeze, reuse-aware runner
-tests, exact retained-record verification and resource admission. About
-52 GiB is currently free versus the provisional 68 GiB budget; the earlier
+still requires reuse-aware runner tests, exact retained-record verification
+and resource admission. Candidate `ee83035...`, source `f708bd54...` and
+composition `da4018cc...` are now frozen by non-executable review
+`dc811fb8...`; the unchanged configuration is `5eca0efc...`. The review grants
+no execution authority. All 29 committed-history/selector/synthetic notebook
+checks pass, and the actual read-only notebook preflight admits the selected
+identity for 13 configured cases without refreshing them. About
+53 GiB is currently free versus the provisional 68 GiB budget; the earlier
 9--14-hour estimate must be remeasured for this RMS policy. No replay,
 reference execution, notebook refresh, rescoring or release was started.
 

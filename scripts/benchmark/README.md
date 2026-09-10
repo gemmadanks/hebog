@@ -46,10 +46,11 @@ chain, and it creates no staging directory during preflight. Even if that
 refresh already exists, preflight does not republish its history entry,
 change its label or update the `latest` symlink.
 
-The runner selects the frozen R6 estimator-repair review
-`config/contracts/phase-5-r6-estimator-repair-identity-review.json`
-(v10 composition). `final public-interface identity changed` means the
-selected review does not match the checked-out science or configuration;
+The runner selects the frozen public-catalogue correctness review
+`config/contracts/phase-5-public-catalogue-correctness-identity-review.json`
+(v11 composition, diagnostics schema 8). This is an unqualified development
+candidate, not a campaign pass. `final public-interface identity changed`
+means the selected review does not match the checked-out science or configuration;
 it is not a dependency-sync error. After freezing a new scientific identity,
 update the diagnostic runner's review selection and run this real no-write
 preflight before refreshing. Do not bypass the guard or rewrite an older

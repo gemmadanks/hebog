@@ -18831,3 +18831,45 @@ scientific pass from fixture validation.
   expected failures; 265.94 s), including the supplemental boundary/workflow
   tests. Ruff, formatting and Pyright are clean. Source edits have stopped;
   run the final all-file hooks before committing the implementation.
+- Final all-file hooks passed cleanly with source/document edits stopped.
+  Implementation is committed locally as
+  `ee8303519feab359e11f70ee1debfafd00d34177`; nothing was pushed.
+
+## 2026-09-10 — Freeze the catalogue correctness repair without execution
+
+- New non-executable review
+  `config/contracts/phase-5-public-catalogue-correctness-identity-review.json`
+  has SHA-256
+  `dc811fb8b2d1ad51969579de0dcae7956a760a56a527eb6fcda8ea6acc2f4d2a`.
+  It binds candidate `ee8303519feab359e11f70ee1debfafd00d34177`, source
+  `f708bd54b8abc9de07cb5335271aba5528f4627e58a31f81d97a4b9808a48bc4`,
+  composition v11
+  `da4018ccf946f4f492c9d568dc733c9a27fcda8be1063cd91a1cd9cc0833c4e1`,
+  diagnostics schema 8 and unchanged configuration
+  `5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4`.
+  All authorization flags are false; no execution identity is issued. The
+  bound contract/schema/tutorial bytes are verified from the implementation
+  commit, not from a campaign output directory. Historical reviews and the
+  failed R6 terminal remain untouched.
+- The notebook selector regression failed first on the obsolete v10 path,
+  then passed after selecting the new review. All 29 committed-history,
+  selection/drift and synthetic exact-notebook-runner tests pass (10.56 s).
+  The real `--preflight-only` entry point passes 13 configured cases with
+  source `f708bd54...` and runner SHA-256
+  `c9b0fec51bdea504532bab23e26ad8f0877256e536d91f7ffa05e1f0410fac50`.
+  It reports the dirty selector/docs working tree honestly; repeat after the
+  final local commit. This checks identity and case metadata only, not image
+  execution, refreshed visual quality or exhaustive replay admission.
+- R6-C0--C7 are complete as a development repair/freeze milestone. R6-R6 is
+  next: test-first reuse-aware orchestration, independent fixture cost/size
+  measurements and exhaustive v11 admission. The central evaluator programs
+  and ten native-reader definitions remain byte-identical to prior admission;
+  final transitive closure and complete artifact verification remain due.
+  About 53 GiB is free versus the provisional 68 GiB requirement. No evidence
+  was deleted; no reference/finder execution, notebook refresh, replay,
+  rescore, executable decision, monitor, qualification or release was started.
+- Strict docs and focused lint/format checks pass for the freeze/selector
+  handoff. Review against CODE_REVIEW.md finds no actionable issue. No package
+  science changed after the validated implementation commit; its coverage,
+  integration, equivalence and wheel evidence remain applicable. Final
+  all-file hooks and a clean-checkout notebook preflight precede handoff.
