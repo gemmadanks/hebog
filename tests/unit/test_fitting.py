@@ -307,6 +307,140 @@ def test_joint_fit_separates_neighbour_flux_and_keeps_marginal_errors() -> (
         assert "joint-gaussian-fit" in fitted.quality_flags
 
 
+@pytest.mark.parametrize("scale", (1e-9, 1.0, 1e9))
+@pytest.mark.parametrize("correlated", (False, True))
+def test_parameter_covariance_is_invariant_to_parameter_units(
+    scale: float, correlated: bool
+) -> None:
+    """Identifiability cannot depend on using Jy versus another flux unit."""
+    jacobian = np.tile(np.eye(3), (3, 1))
+    jacobian[:, 0] *= scale
+    coordinates = np.column_stack((np.arange(9, dtype=float), np.zeros(9)))
+    geometry = replace(
+        _geometry(),
+        noise_correlation_covariance_pixels_squared=(1.0, 0.0, 1.0)
+        if correlated
+        else None,
+    )
+    expected = fitting_algorithm._parameter_covariance(
+        np.tile(np.eye(3), (3, 1)),
+        coordinates,
+        geometry,
+        correlated_point_estimator=False,
+    )
+    actual = fitting_algorithm._parameter_covariance(
+        jacobian, coordinates, geometry, correlated_point_estimator=False
+    )
+    assert actual is not None
+    assert expected is not None
+    units = np.array((scale, 1.0, 1.0))
+    np.testing.assert_allclose(
+        actual * units[:, None] * units[None, :], expected, rtol=1e-12
+    )
+
+
+@pytest.mark.parametrize("invalid_column", (0.0, float("nan"), float("inf")))
+def test_unavailable_information_cannot_fabricate_a_covariance(
+    invalid_column: float,
+) -> None:
+    """Zero or non-finite information has neither condition nor uncertainty."""
+    jacobian = np.eye(3)
+    jacobian[:, 0] = invalid_column
+    coordinates = np.column_stack((np.arange(3, dtype=float), np.zeros(3)))
+    assert fitting_algorithm._information_condition(jacobian) is None
+    assert (
+        fitting_algorithm._parameter_covariance(
+            jacobian, coordinates, _geometry(), correlated_point_estimator=True
+        )
+        is None
+    )
+
+
+def test_joint_unidentifiable_information_cannot_publish_components(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Well-conditioned marginal blocks do not identify a singular mixture."""
+    compact = _joint_input()
+    geometry = _geometry()
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+
+    def unavailable_covariance(*_args: Any, **_kw: Any) -> None:
+        return None
+
+    monkeypatch.setattr(
+        fitting_algorithm, "_parameter_covariance", unavailable_covariance
+    )
+    fitted = fit_compact_gaussian_mixture(
+        compact, moments, geometry, _fit_config(background_model="fixed-zero")
+    )
+    assert len(fitted) == len(compact.regions)
+    assert all(
+        isinstance(item, FailedCompactGaussianFit)
+        and item.reason == "fit-invalid-result"
+        for item in fitted
+    )
+
+
+def test_joint_condition_cannot_be_replaced_by_marginal_conditions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Identifiable individual blocks can hide a nearly degenerate mixture."""
+    compact = _joint_input()
+    geometry = _geometry()
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+    solver = fitting_algorithm.least_squares
+
+    def ill_conditioned(*args: Any, **kwargs: Any) -> Any:
+        result = solver(*args, **kwargs)
+        jacobian = np.eye(*result.jac.shape)
+        jacobian[:, -1] = jacobian[:, 0] + 1e-5 * jacobian[:, -1]
+        result.jac = jacobian
+        return result
+
+    monkeypatch.setattr(fitting_algorithm, "least_squares", ill_conditioned)
+    fitted = fit_compact_gaussian_mixture(
+        compact, moments, geometry, _fit_config(background_model="fixed-zero")
+    )
+    assert all(isinstance(item, FailedCompactGaussianFit) for item in fitted)
+
+
+@pytest.mark.parametrize("scale", (1e-9, 1.0, 1e9))
+@pytest.mark.parametrize("distance", (5e-11, 1e-5))
+def test_fit_bound_diagnostics_are_parameter_scale_invariant(
+    scale: float, distance: float
+) -> None:
+    """Bound proximity uses dimensionless distance, not Jy or pixel units."""
+    lower = np.array((0.0, 0.0, 0.0, 0.1, 0.1, -np.pi))
+    upper = np.array((10.0, 20.0, 20.0, 10.0, 10.0, np.pi))
+    parameters = np.array((10.0 * distance, 10.0, 10.0, 2.0, 1.5, 0.0))
+    lower[0] *= scale
+    upper[0] *= scale
+    parameters[0] *= scale
+    diagnostics = fitting_algorithm._diagnostics(
+        converged=True,
+        function_evaluations=1,
+        evidence=fitting_algorithm._FitEvidence(
+            parameters=parameters,
+            lower_bounds=lower,
+            upper_bounds=upper,
+            jacobian=np.tile(np.eye(6), (2, 1)),
+            x=np.arange(12, dtype=float),
+            y=np.arange(12, dtype=float),
+            weighted_residual=np.zeros(12),
+            parameter_names=fitting_algorithm._FREE_FIXED_BACKGROUND_PARAMETER_NAMES,
+            model_identity="free-elliptical",
+            full_parameters=np.append(parameters, 0.0),
+            fallback_reason=None,
+            point_estimator="diagonal-weighted",
+            point_estimator_fallback_reason=None,
+        ),
+    )
+    assert ("amplitude" in diagnostics.bound_parameters) == (distance < 1e-10)
+    assert dict(diagnostics.relative_bound_distances)["amplitude"] == (
+        pytest.approx(distance)
+    )
+
+
 @pytest.mark.parametrize("joint", (False, True))
 def test_joint_solver_honours_beam_or_free_policy(joint: bool) -> None:
     """Exact beam sources must not acquire six free shape parameters."""

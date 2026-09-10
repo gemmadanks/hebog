@@ -55,7 +55,7 @@ A major-axis-only deconvolution stores one positive
 angle. NaN and legacy zero sentinels are not null values. A fitted Gaussian
 always has a fitted shape; a source-level fitted shape may be unavailable.
 
-The current public v10 composition reports the native fitted Gaussian integral
+The current public v11 composition reports the native fitted Gaussian integral
 for components, not for associated-source rows. It does not substitute
 peak brightness for integrated flux because threshold-truncated moments look
 unresolved. Shape, flux and position errors propagate the fitted covariance;
@@ -144,7 +144,7 @@ schema version 1 so its diagnostics bytes do not change. When a
 `MaterializedProduct` record is supplied, the reader also requires its declared
 content schema to match the canonical JSON payload.
 
-`PublicSourceFindingDiagnostics` schema version 7 records the public profile,
+`PublicSourceFindingDiagnostics` schema version 8 records the public profile,
 profile limitations, population counts, RMS status, exact provenance, and the
 numbers of connected parents that were deblended or retained through the
 bounded deblend fallback. Its
@@ -174,7 +174,13 @@ recovery uses Cartesian Gaussian precision; an undefined angle does not
 become a reported zero shape error. Association attribution retains original
 hierarchy, compact-model and extended-morphology group IDs with the selected
 decision, using constant-size references per component rather than repeated
-membership lists. Source-position attribution retains both centroid estimates,
+membership lists. An unsupported hierarchy remainder is labelled
+`independent-component`, not an admitted source association. Each source also
+retains `association_evidence`: merge reason, supporting scale IDs, member IDs
+and any compact-protection overrides. These records must refer only to that
+source's members and are stored once per source, not repeated per component
+or pixel. They do not establish astrophysical truth or inherit qualification.
+Source-position attribution retains both centroid estimates,
 the selected weighting rule, unavailable reason, separate position/aperture
 counts, signed weights/flux and estimated background mean. It does not claim
 to know background error or true RMS on an arbitrary observed image.

@@ -1817,9 +1817,9 @@ def constrain_source_memberships(
 ) -> SourceAssociationResult:
     """Apply compact-model or resolved-morphology evidence before publication.
 
-    Unconstrained components retain their hierarchy membership. Constrained
-    labels belong to exactly one scientifically supported group; a shared
-    coarse feature alone cannot re-merge independent compact groups.
+    Unconstrained components remain separate. A hierarchy is a proposal, not
+    positive evidence that a failed or deferred fit belongs to its neighbours.
+    Explicit compact or resolved-morphology groups retain their membership.
     """
     by_label = {
         item.label_value: item.component_id for item in association.components
@@ -1835,9 +1835,9 @@ def constrain_source_memberships(
         by_label[value] for group in measured_groups for value in group
     }
     groups = tuple(
-        frozenset(set(item.component_ids) - constrained)
-        for item in association.memberships
-        if set(item.component_ids) - constrained
+        frozenset((item.component_id,))
+        for item in association.components
+        if item.component_id not in constrained
     ) + tuple(
         frozenset(by_label[value] for value in group)
         for group in measured_groups

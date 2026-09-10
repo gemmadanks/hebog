@@ -662,7 +662,7 @@ must remain explicit and tested against independent truth.
 
 | Gate | Binding pass condition | Current state |
 | --- | --- | --- |
-| Known scientific risks | Every confirmed adaptive-background, measurement, association, component partition, publication, and evaluator defect is corrected test-first without changing a closed result after it is viewed. | Open. The failed sentinel and R6 audit remain binding. The 2026-09-09 v10 notebook witnesses additionally expose suspect cross-island associations, joint-fit acceptance/bound diagnostics, fit-limit omissions and publication inconsistencies; bright-source background suppression needs independent attribution. Complete R6-C0--C7 below before R6-R6 admission. Earlier fixture passes do not close these newly exposed risks. |
+| Known scientific risks | Every confirmed adaptive-background, measurement, association, component partition, publication, and evaluator defect is corrected test-first without changing a closed result after it is viewed. | Open pending replacement evidence. The failed sentinel and R6 audit remain binding. R6-C1--C6 now pass independent association, numerical, fit-budget, provenance and background/noise fixtures (2026-09-10). Complete C7's candidate freeze and R6-R6 admission below; neither these fixture passes nor earlier campaign results qualify the repaired public composition. |
 | Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes product validity, trigger behaviour, paired retention in every four-seed trigger cell, multi-peak component retention, negative controls, and Serial/existing-Dask invariance. | Required for the replacement. Version-8 terminal `a274888d...` remains a 12/12 geometry and 12/12 Serial/Dask pass with four report-only misses, but its tests did not distinguish independent compact-source membership from component multiplicity or cover the newly reproduced measurement/publication failures. Require the exact public composition and joint compact/extended truth gates in R5 and R6-C7. |
 | Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Historical identity and execution-consistency pass for `95cfc76...`, source `8da21e86...`, configuration `2c907949...`, and sealed 2,400-product set `f43cb274...`. This does not establish scientific readiness: the source-aligned sentinel fails and the public projection rejects admitted shape-unavailable owners. The replacement must be frozen and revalidated after R0--R5 and R6-C0--C7; no prior public-candidate pass transfers automatically. |
 | Cumulative parity and retention | Across all 800 compact and 1,600 Continuum cases, every binding comparison passes both PyBDSF references, applicable Aegean checks, and hard safety rules. Incumbent comparisons must show no observed movement beyond their practical margin; any unresolved confidence exception must be explicit and human accepted rather than pooled away or relabelled. | Failed for replacement `db8936b...`: R6 terminal `7146f2e8...` has 885 passes, 288 failures and 14 underpowered comparisons. Released/master PyBDSF have 39/37 failures, Aegean 53 and incumbent retention 159; all five safety checks pass. Both readiness flags are false. Historical `8d69ef44...` and its narrowly accepted incumbent-uncertainty exception remain unchanged and do not transfer. A separate prospective scientific review must precede another candidate or run. |
@@ -1069,8 +1069,11 @@ All of this is development evidence, not replacement parity or qualification.
   until this sequence passes. This plan update schedules repairs, not a
   finder run, viewed-data rescore, executable freeze or qualification.
 
-  - [ ] **R6-C0 — Establish the prospective repair and regression contract.**
-    This is the immediate next task. Preserve the sealed refresh and make a
+  - [x] **R6-C0 — Establish the prospective repair and regression contract.**
+    The [prospective contract](../docs/reference/phase-5-public-catalogue-repair-contract.md)
+    now records native witnesses, independent controls and admission rules.
+    The user approved implementation and separately approved investigation
+    and repair of the small-image RMS policy on 2026-09-09. Preserve the sealed refresh and make a
     compact witness index linking case, source/component IDs, native fit and
     grouping diagnostics, publication state and coordinate conventions.
     Distinguish confirmed implementation/contract failures from morphology
@@ -1084,7 +1087,7 @@ All of this is development evidence, not replacement parity or qualification.
     behavioural test through the affected public path. Retain closed results,
     existing thresholds, comparator definitions, margins and confidence rules;
     new defect-specific gates supplement rather than replace them.
-  - [ ] **R6-C1 — Prevent unsupported source associations.** Trace both
+  - [x] **R6-C1 — Prevent unsupported source associations.** Trace both
     hierarchy-remainder grouping and extended-morphology merges, including
     transitive merging and overrides of compact-source protection. Add bounded
     attribution for each merge's reason, evidence scale, participating groups
@@ -1105,7 +1108,7 @@ All of this is development evidence, not replacement parity or qualification.
     membership as well as centroid and total flux; do not repair a bad group
     by snapping its centroid onto a peak, forcing every component to be a
     source, or breaking genuine extended sources into independent detections.
-  - [ ] **R6-C2 — Separate bounded fit work from source association.** The
+  - [x] **R6-C2 — Separate bounded fit work from source association.** The
     HDR witness contains a 101-component parent whose 606 parameters exceed
     the 96-parameter joint-fit limit; ordinary supported detections are then
     deferred together. Define scientifically valid bounded fit groups using
@@ -1117,7 +1120,7 @@ All of this is development evidence, not replacement parity or qualification.
     each work limit, many independent sources sharing a context, and truly
     inseparable large blends. The latter must retain explicit deferred status
     if no valid bounded solution exists, not disappear into a success count.
-  - [ ] **R6-C3 — Make joint-fit quality and failure handling trustworthy.**
+  - [x] **R6-C3 — Make joint-fit quality and failure handling trustworthy.**
     Reproduce weak, displaced and boundary-pinned components inside a nominally
     converged joint fit, with independent noisy compact-neighbour fixtures.
     Audit residual/noise units, correlated-noise conditioning, Jacobians,
@@ -1132,7 +1135,7 @@ All of this is development evidence, not replacement parity or qualification.
     ordinary successful fits, and legitimate asymmetric/extended emission.
     Do not invent a residual cutoff or force reference positions from the
     notebook examples; the precise cause of the distorted fit remains open.
-  - [ ] **R6-C4 — Reconcile public membership, measurements and completeness.**
+  - [x] **R6-C4 — Reconcile public membership, measurements and completeness.**
     Specify which measured, unpublished, deferred and unavailable components
     may contribute to each source's position, flux, support and component
     count, and expose the contributing IDs/statuses consistently. The ordinary
@@ -1146,7 +1149,7 @@ All of this is development evidence, not replacement parity or qualification.
     published, rejected and deferred counts with explicit reasons. Never
     publish known invalid coordinates as ordinary measurements or make lost
     supported detections improve reliability by silently omitting them.
-  - [ ] **R6-C5 — Attribute and resolve bright-extended support suppression.**
+  - [x] **R6-C5 — Attribute and resolve bright-extended support suppression.**
     The HDR bright body has elevated background/RMS and falls below support
     thresholds; saved PyBDSF products also show elevated RMS, so the screenshot
     alone does not prove a background bug. Use known broad emission plus
@@ -1159,7 +1162,43 @@ All of this is development evidence, not replacement parity or qualification.
     Require background/RMS accuracy, extended flux/support recovery and
     compact completeness/reliability retention together. Do not force zero
     background, lower thresholds or expand masks to match viewed references.
-  - [ ] **R6-C6 — Make notebook and catalogue diagnostics unambiguous.** Label
+    **2026-09-10 fixture gate passed.** Source-protected coarse background
+    and independent protected local RMS pass all 24 retained bright-halo/noise
+    controls and all 108 geometry cells together. The 38 independent noise
+    controls include both sides of the limiting-dimension transition and
+    actual image corners. Rejected mesh-only, bright-only and pilot-only
+    variants remain documented in the contract and LOG.md; none was promoted.
+    This corrects independently reproduced estimator defects, not a claim
+    that every feature in a viewed HDR image is astrophysical or recoverable.
+    - [x] **C5a — Review independent local-noise refinement before repair.**
+      The user authorized this review and test-first repair on 2026-09-10.
+      The development proposal separates source-protected fine-grid RMS from
+      the retained background policy, with globally anchored bounded contexts
+      and global missing-cell reconciliation; see the public-catalogue repair
+      contract. It is fixture-validated, not campaign-qualified.
+      Specify a source-protected noise-resolution policy independent of the
+      75-sigma bright-source trigger. Review background versus RMS ownership,
+      source-mask bias, correlated-noise sampling, unavailable-cell handling,
+      boundary continuity and bounded/tiled execution before implementation.
+      Require renewed scientific-policy review; do not simply publish the
+      unprotected pilot, lower the trigger or select a maximum to pass a cell.
+      Add independent noise-only, smooth-gradient and localized-noise controls
+      at multiple scales alongside compact, broad-halo and no-source guards;
+      keep all 24 halo/noise cases and the full 108-case matrix binding.
+      Implement test-first only after the reviewed policy is authorized, then
+      repeat Serial/existing-Dask, coverage and all C7 gates. No threshold,
+      closed evidence or reference is changed. Do not freeze or run a partial
+      remedy; see LOG.md for the rejected development variants.
+      **2026-09-10 implementation:** bounded, globally anchored protected RMS
+      now has independent fine-grid admission. The combined integration run
+      passes 203 tests: 38 noise, 24 halo, 108 geometry, six background
+      Serial/Dask and 27 public-API cases (including four exact public
+      normal/fault comparisons). All 79 focused RMS/protection tests pass.
+      Follow-up red-before-fix tests cover positive edge RMS, actual versus
+      internal context boundaries, noise-explained bright work anchors and
+      isolation of the unchanged compact-only policy. Final coverage and
+      candidate freeze remain C7 work; no replay has started.
+  - [x] **R6-C6 — Make notebook and catalogue diagnostics unambiguous.** Label
     native product types explicitly: Hebog components versus associated
     sources, PyBDSF source versus Gaussian catalogues, and Aegean components
     versus optional island summaries. Identify ellipse-proxy masks as proxies,
@@ -1191,6 +1230,13 @@ All of this is development evidence, not replacement parity or qualification.
     only after these gates, with the notebook's exact identity-selection and
     no-write preflight checks. Fixture success is not campaign parity or
     release approval; a remaining confirmed correctness defect blocks C7.
+    **2026-09-10 validation:** 203 combined integration cases and the final
+    compact-profile guard pass; stable-source portable coverage passes 3,697
+    tests, plus the 49-test final boundary/workflow supplement. Coverage is
+    95.2377727% (baseline 95.1905998%); all 221 changed executable lines and
+    changed branches are covered. Frozen equivalence (27), strict docs,
+    Marimo and package smoke pass. Final clean hooks, local commits and the
+    actual selected-identity notebook preflight precede C7 completion.
   - [ ] **R6-R6 — Admit replacement cumulative and then fresh evidence.**
     Blocked on R6-C0--C7; do not launch the current v10 candidate on the basis
     of the earlier fixture pass. Follow the unchanged scientific gates and
@@ -1211,7 +1257,7 @@ All of this is development evidence, not replacement parity or qualification.
       comparator records without introducing a second scoring definition.
     - [ ] Measure an independent representative fixture cost/size ladder, then
       resolve resource admission. Provisional budget is 68 GiB free versus
-      59.08 GiB observed (about 9 GiB short); tentative total time is 9--14 h,
+      about 52 GiB observed at the latest check (about 16 GiB short); tentative total time is 9--14 h,
       not a guarantee or proof of the final campaign's sub-12-hour target.
       Preserve evidence, thresholds, comparators and all risk geometries.
     - [ ] Freeze the exact reusable inventory, committed program closure,

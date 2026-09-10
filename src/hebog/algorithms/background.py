@@ -661,8 +661,15 @@ def interpolate_prepared_rms_grid(
     grid: PreparedRmsGrid,
     bounds: ImageBounds,
     valid_pixels: npt.NDArray[np.bool_],
+    *,
+    extrapolate_rms: bool = True,
 ) -> BackgroundRmsTile:
-    """Linearly interpolate cached coarse samples into one bounded tile."""
+    """Interpolate cached samples, optionally extending RMS edge values.
+
+    Fine noise cells have stochastic slopes, not a measured noise gradient
+    beyond their centres. Constant edge extension preserves positive convex
+    weights there; the coarse background may still extrapolate linearly.
+    """
     bounds.require_inside(grid.geometry.image_shape_yx)
     validity = np.asarray(valid_pixels, dtype=np.bool_)
     if validity.shape != bounds.shape_yx:
@@ -702,7 +709,17 @@ def interpolate_prepared_rms_grid(
                 method="linear",
                 bounds_error=False,
                 fill_value=None,  # pyright: ignore[reportArgumentType]
-            )(query_points),
+            )(
+                query_points
+                if extrapolate_rms
+                else np.stack(
+                    (
+                        np.clip(y_coordinates, sample_y[0], sample_y[-1]),
+                        np.clip(x_coordinates, sample_x[0], sample_x[-1]),
+                    ),
+                    axis=-1,
+                )
+            ),
             dtype=np.float64,
         )
         np.maximum(rms, 0.0, out=rms)

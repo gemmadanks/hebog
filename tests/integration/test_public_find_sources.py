@@ -552,6 +552,38 @@ def test_public_find_sources_materializes_the_qualified_continuum_view(
 
 
 @pytest.mark.integration
+def test_continuum_mesh_repair_does_not_change_compact_background_policy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Compact-only processing keeps its separately defined RMS policy."""
+    from hebog.validation.hebog_campaign import (  # noqa: PLC0415
+        phase_five_corrected_candidate_configs,
+    )
+
+    original = phase_five_corrected_candidate_configs()[0].background_rms
+    _write_image(tmp_path / "image.fits", np.zeros((256, 384)))
+    source = FitsImageSource(tmp_path / "image.fits")
+
+    def inspect_stage(*args: Any, **kwargs: Any) -> None:
+        assert args[2].background_rms == original
+        assert kwargs["multiscale_protection"] is None
+        assert not kwargs["protect_coarse_source_support"]
+        assert not kwargs["refine_local_noise"]
+        raise RuntimeError("compact policy inspected")
+
+    monkeypatch.setattr(public_api, "run_detection_stage", inspect_stage)
+    with pytest.raises(RuntimeError, match="compact policy inspected"):
+        public_api._estimate_background_rms(  # pyright: ignore[reportPrivateUsage]
+            source,
+            source.metadata(),
+            _config(profile="compact"),
+            SerialExecutor(),
+            tmp_path / "work",
+            generation_id="compact-policy",
+        )
+
+
+@pytest.mark.integration
 def test_compact_profile_is_explicit_and_retains_component_sources(
     tmp_path: Path,
 ) -> None:
@@ -588,13 +620,16 @@ def test_compact_profile_is_explicit_and_retains_component_sources(
 
 
 @pytest.mark.integration
+@pytest.mark.parametrize("shape", ((32, 48), (256, 384)))
 def test_blank_and_all_nan_inputs_publish_honest_empty_products(
     tmp_path: Path,
+    shape: tuple[int, int],
 ) -> None:
     """Empty science remains successful without inventing sources or RMS."""
     for name, values, expected_rms_status in (
-        ("blank", np.zeros((32, 48)), "unavailable"),
-        ("all-nan", np.full((32, 48), np.nan), "unavailable"),
+        ("blank", np.zeros(shape), "unavailable"),
+        ("all-nan", np.full(shape, np.nan), "unavailable"),
+        ("constant-negative", np.full(shape, -2.0), "unavailable"),
     ):
         image_path = tmp_path / f"{name}.fits"
         _write_image(image_path, values)
@@ -720,10 +755,12 @@ def test_public_preview_rejects_inputs_beyond_qualified_envelope(
 
 @pytest.mark.integration
 @pytest.mark.parametrize("fit_outcome", ("normal", "linear-algebra-failure"))
+@pytest.mark.parametrize("image_kind", ("shell", "coarse-protection"))
 def test_serial_and_existing_dask_publish_identical_scientific_products(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     fit_outcome: str,
+    image_kind: str,
 ) -> None:
     """Caller-owned execution policy cannot alter any scientific bytes."""
     if fit_outcome == "linear-algebra-failure":
@@ -732,14 +769,24 @@ def test_serial_and_existing_dask_publish_identical_scientific_products(
             raise np.linalg.LinAlgError("SVD did not converge for slice = 0.")
 
         monkeypatch.setattr(fitting_algorithm, "least_squares", fail)
-    _write_image(tmp_path / "image.fits", _ring_image())
+    image = _ring_image()
+    if image_kind == "coarse-protection":
+        yy, xx = np.mgrid[:256, :384]
+        radius_squared = (yy - 128) ** 2 + (xx - 192) ** 2
+        image = (
+            -2 + xx / 1024 + np.random.default_rng(620).normal(size=xx.shape)
+        )
+        image += 12 * np.exp(-radius_squared / (2 * 20**2))
+        image += 1000 * np.exp(-radius_squared / (2 * 2**2))
+    _write_image(tmp_path / "image.fits", image)
     serial = hebog.find_sources(
         _request(tmp_path, output_name="serial"),
         _config(),
         SerialExecutor(),
     )
+    monkeypatch.setattr(public_api, "_TILE_SHAPE_YX", (97, 111))
     cluster = LocalCluster(
-        n_workers=1,
+        n_workers=2,
         threads_per_worker=1,
         processes=False,
         dashboard_address="",

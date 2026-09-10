@@ -6,8 +6,10 @@
 from __future__ import annotations
 
 import ast
+import json
 import runpy
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, cast
 
 import numpy as np
@@ -204,3 +206,133 @@ def test_notebook_plot_uses_each_catalogues_declared_frame(frame: str) -> None:
     observed = plotter(wcs, (row,), coordinate_frame=frame)
     np.testing.assert_allclose(observed, ((16.25,), (12.75,)), atol=1e-6)
     assert plotter(wcs, (), coordinate_frame=frame) == ((), ())
+
+
+def _notebook_diagnostics() -> dict[str, Any]:
+    """Load pure display helpers without running a notebook or campaign."""
+    path = (
+        Path(__file__).parents[2]
+        / "notebooks/campaign_source_finder_comparison.py"
+    )
+    cell = next(
+        node
+        for node in ast.walk(ast.parse(path.read_text()))
+        if isinstance(node, ast.FunctionDef)
+        and any(
+            isinstance(child, ast.FunctionDef)
+            and child.name == "format_overlay_summary"
+            for child in node.body
+        )
+    )
+    functions = [
+        node for node in cell.body if isinstance(node, ast.FunctionDef)
+    ]
+    namespace: dict[str, Any] = {"json": json}
+    module = ast.Module(
+        body=[
+            ast.ImportFrom(
+                module="__future__",
+                names=[ast.alias(name="annotations")],
+                level=0,
+            ),
+            *functions,
+        ],
+        type_ignores=[],
+    )
+    exec(
+        compile(ast.fix_missing_locations(module), str(path), "exec"),
+        namespace,
+    )
+    return namespace
+
+
+def test_notebook_summary_distinguishes_native_products_and_proxy_masks() -> (
+    None
+):
+    """Counts of unlike native products must not imply source agreement."""
+    namespace = _notebook_diagnostics()
+    overlays = {
+        finder: SimpleNamespace(
+            finder_id=finder,
+            mode="operational",
+            status="success",
+            wall_seconds=None,
+            source_count=2,
+            component_count=3,
+            label_count=1,
+            notes="",
+        )
+        for finder in ("hebog", "released-pybdsf", "aegean")
+    }
+    summary = namespace["format_overlay_summary"](overlays)
+    assert "native PyBDSF sources" in summary
+    assert "Aegean Gaussian components" in summary
+    assert "ellipse proxy (not native support)" in summary
+    assert "full core" in summary
+
+
+def test_notebook_preserves_failed_unpublished_and_off_view_members() -> None:
+    """Display details retain all original dispositions and member links."""
+    functions = _notebook_diagnostics()
+    rows = (
+        {
+            "identifier": "source",
+            "member_component_ids": ["good", "bad"],
+            "position": {"x": 1000, "y": 2000},
+        },
+        {
+            "identifier": "bad",
+            "measurement_status": "unavailable",
+            "published": False,
+            "reason": "joint-fit-work-limit",
+        },
+    )
+    before = json.dumps(rows, sort_keys=True)
+    result = functions["measurement_detail_rows"](
+        {"hebog/operational": SimpleNamespace(measurement_rows=rows)}
+    )
+    assert len(result) == len(rows)
+    assert json.loads(result[0]["member_component_ids"]) == ["good", "bad"]
+    assert json.loads(result[0]["position"]) == {"x": 1000, "y": 2000}
+    assert result[1]["published"] is False
+    assert result[1]["reason"] == "joint-fit-work-limit"
+    assert json.dumps(rows, sort_keys=True) == before
+
+
+def test_notebook_visible_counts_follow_zoom_without_moving_rows() -> None:
+    """Counts use the displayed region, including inverted axes and NaNs."""
+    functions = _notebook_diagnostics()
+    assert (
+        functions["_visible_count"](
+            (0.0, 1.0, 2.0, 10.0, float("nan")),
+            (0.0, 1.0, 2.0, 10.0, 1.0),
+            (2.0, 0.0),
+            (0.0, 2.0),
+        )
+        == 3
+    )
+    assert functions["_visible_count"]((), (), (0, 2), (0, 2)) == 0
+    titles: list[str] = []
+
+    def set_title(title: str, **_kwargs: object) -> None:
+        titles.append(title)
+
+    axis = SimpleNamespace(
+        get_xlim=lambda: (0, 2),
+        get_ylim=lambda: (0, 2),
+        set_title=set_title,
+    )
+    overlay = SimpleNamespace(
+        finder_id="hebog",
+        mode="operational",
+        source_x=(1, 5),
+        source_y=(1, 5),
+        component_x=(1, 2, 10),
+        component_y=(1, 2, 10),
+        source_count=2,
+        component_count=3,
+        label_count=3,
+    )
+    functions["_update_overlay_title"](axis, overlay)
+    assert "1 visible / 2 full core" in titles[0]
+    assert "2 visible / 3 full core" in titles[0]

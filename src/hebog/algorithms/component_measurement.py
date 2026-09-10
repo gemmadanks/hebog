@@ -14,7 +14,14 @@ from typing import cast
 
 import numpy as np
 from astropy.wcs import WCS
-from scipy.ndimage import binary_fill_holes, find_objects, label
+from scipy.ndimage import (
+    binary_dilation,
+    binary_fill_holes,
+    find_objects,
+    label,
+)
+from scipy.sparse import coo_matrix
+from scipy.sparse.csgraph import connected_components
 
 from hebog.algorithms.astrometry import (
     compact_geometry_from_wcs,
@@ -45,6 +52,7 @@ from hebog.data_models.fitting import (
     ValidCompactGaussianFit,
 )
 from hebog.data_models.images import RestoringBeam
+from hebog.data_models.measurement_diagnostics import AssociationEvidenceKind
 from hebog.data_models.partitioning import ImageBounds
 
 _MINIMUM_LOOP_COMPONENTS = 3
@@ -64,6 +72,16 @@ class _ComponentFitInput:
 
 
 @dataclass(frozen=True, slots=True)
+class ComponentGroupingEvidence:
+    """Worker-local merge evidence, linear in the bounded group population."""
+
+    reason: AssociationEvidenceKind
+    scale_ids: tuple[int, ...]
+    component_labels: frozenset[int]
+    protected_labels: frozenset[int] = frozenset()
+
+
+@dataclass(frozen=True, slots=True)
 class ComponentMeasurements:
     """Fits retain detection labels; compact groups constrain association."""
 
@@ -73,6 +91,7 @@ class ComponentMeasurements:
     measurement_support: np.ndarray | None = None
     extended_groups: tuple[frozenset[int], ...] = ()
     proposed_compact_groups: tuple[frozenset[int], ...] = ()
+    grouping_evidence: tuple[ComponentGroupingEvidence, ...] = ()
 
 
 def _persistent_measurement_support(  # noqa: PLR0913, PLR0917
@@ -385,6 +404,7 @@ def _resolved_emission_loop(  # noqa: PLR0913
     beam_covariance: np.ndarray,
     island_sigma: float,
     minimum_support_fraction: float,
+    evidence: list[ComponentGroupingEvidence] | None = None,
 ) -> tuple[frozenset[int], ...]:
     """Retain a resolved emission loop with measured tangential structure.
 
@@ -402,7 +422,7 @@ def _resolved_emission_loop(  # noqa: PLR0913
         / (4 * np.log(2))
     )
     groups: list[set[int]] = []
-    for snr in snrs:
+    for scale_id, snr in enumerate(snrs, 1):
         support = valid & (snr >= island_sigma)
         filled = np.asarray(binary_fill_holes(support), dtype=np.bool_)
         loops, _ = cast(tuple[np.ndarray, int], label(filled, np.ones((3, 3))))
@@ -434,6 +454,12 @@ def _resolved_emission_loop(  # noqa: PLR0913
             }
             if len(selected) < _MINIMUM_LOOP_COMPONENTS:
                 continue
+            if evidence is not None:
+                evidence.append(
+                    ComponentGroupingEvidence(
+                        "resolved-loop", (scale_id,), frozenset(selected)
+                    )
+                )
             # Scale copies of the same arcs are evidence for one source,
             # not repeated or overlapping membership constraints.
             for previous in groups[:]:
@@ -451,6 +477,8 @@ def _resolved_open_arc_groups(  # noqa: PLR0913, PLR0917
     bounds: ImageBounds,
     beam_covariance: np.ndarray,
     island_sigma: float,
+    *,
+    evidence: list[ComponentGroupingEvidence] | None = None,
 ) -> tuple[frozenset[int], ...]:
     """Test curved resolved shapes on beam-scale connected emission.
 
@@ -514,6 +542,12 @@ def _resolved_open_arc_groups(  # noqa: PLR0913, PLR0917
         )
         if len(selected) >= _MINIMUM_LOOP_COMPONENTS:
             groups.append(selected)
+            if evidence is not None:
+                evidence.append(
+                    ComponentGroupingEvidence(
+                        "resolved-open-arc", (1,), selected
+                    )
+                )
     return tuple(groups)
 
 
@@ -562,6 +596,7 @@ def _cross_parent_loop_groups(  # noqa: PLR0913, PLR0917
     maximum_bounds_pixels: int,
     *,
     measurement_support: np.ndarray,
+    evidence: list[ComponentGroupingEvidence] | None = None,
 ) -> tuple[frozenset[int], ...]:
     """Reconcile resolved loops larger than a wavelet-parent footprint.
 
@@ -628,6 +663,7 @@ def _cross_parent_loop_groups(  # noqa: PLR0913, PLR0917
                 beam_covariance=np.array(((xx, xy), (xy, yy))),
                 island_sigma=island_sigma,
                 minimum_support_fraction=minimum_support_fraction,
+                evidence=evidence,
             )
         )
         groups.extend(
@@ -644,6 +680,7 @@ def _cross_parent_loop_groups(  # noqa: PLR0913, PLR0917
                 bounds,
                 np.array(((xx, xy), (xy, yy))),
                 island_sigma,
+                evidence=evidence,
             )
         )
     return tuple(groups)
@@ -678,6 +715,8 @@ def _extended_residual_groups(  # noqa: PLR0913, PLR0917
     island_sigma: float,
     minimum_pixels: int,
     maximum_bounds_pixels: int,
+    *,
+    evidence: list[ComponentGroupingEvidence] | None = None,
 ) -> tuple[frozenset[int], ...]:
     """Join residual halo fragments, without absorbing proven compact rows.
 
@@ -774,6 +813,25 @@ def _extended_residual_groups(  # noqa: PLR0913, PLR0917
             )
             if len(members) > 1:
                 groups.append(members)
+                if evidence is not None:
+                    scales = set()
+                    for scale_id, (first, second) in enumerate(
+                        pairwise(snrs), 1
+                    ):
+                        if np.any(
+                            (residual_labels == feature)
+                            & (first >= island_sigma)
+                            & (second >= island_sigma)
+                        ):
+                            scales.update((scale_id, scale_id + 1))
+                    evidence.append(
+                        ComponentGroupingEvidence(
+                            "persistent-residual",
+                            tuple(sorted(scales)),
+                            members,
+                            members & protected,
+                        )
+                    )
     return tuple(groups)
 
 
@@ -810,13 +868,54 @@ def _fit_core_in_feature(  # noqa: PLR0913, PLR0917
     return bool(np.any(distance <= 2 * np.log(2)))
 
 
+def _measurement_fit_parents(
+    measurement_labels: np.ndarray, context_margin_pixels: int
+) -> np.ndarray:
+    """Join interacting fit contexts on one caller-bounded image window.
+
+    A wavelet hierarchy is not a computational fit parent. Owners whose
+    existing fit contexts touch need a joint model; distant contexts do not.
+    Disconnected pieces of the same owner remain one fit target. Sparse
+    reconciliation scales with owner/context links, not all owner pairs.
+    """
+    support = measurement_labels > 0
+    contexts = (
+        binary_dilation(
+            support,
+            structure=np.ones((3, 3)),
+            iterations=context_margin_pixels,
+        )
+        if context_margin_pixels
+        else support
+    )
+    context_labels, count = cast(
+        tuple[np.ndarray, int], label(contexts, np.ones((3, 3)))
+    )
+    if count == 0:
+        return np.zeros_like(measurement_labels, dtype=np.int32)
+    links = np.unique(
+        np.column_stack(
+            (measurement_labels[support], context_labels[support])
+        ),
+        axis=0,
+    )
+    same_owner = np.diff(links[:, 0]) == 0
+    first = links[:-1, 1][same_owner] - 1
+    second = links[1:, 1][same_owner] - 1
+    graph = coo_matrix(
+        (np.ones(first.size), (first, second)), shape=(count, count)
+    )
+    _, groups = connected_components(graph, directed=False)
+    lookup = np.concatenate((np.zeros(1, dtype=np.int32), groups + 1))
+    return np.where(support, lookup[context_labels], 0).astype(np.int32)
+
+
 def measure_component_models(  # noqa: PLR0913, PLR0917, PLR0915
     residual: np.ndarray,
     rms: np.ndarray,
     valid: np.ndarray,
     direct_labels: np.ndarray,
     measurement_labels: np.ndarray,
-    parent_labels: np.ndarray,
     wcs: WCS,
     beam: RestoringBeam,
     moment_config: CompactMomentConfig,
@@ -836,11 +935,14 @@ def measure_component_models(  # noqa: PLR0913, PLR0917, PLR0915
     in the fit. Positive exact seed pixels initialize the existing moment
     oracle only. Published ownership is never replaced by these fit masks.
     """
-    parents = parent_labels
+    parents = _measurement_fit_parents(
+        measurement_labels, fit_config.context_margin_pixels
+    )
     objects = find_objects(parents)
     output: list[tuple[int, CompactGaussianFitResult]] = []
     compact_groups: list[frozenset[int]] = []
     extended_groups: list[frozenset[int]] = []
+    evidence: list[ComponentGroupingEvidence] = []
     deferred = 0
     measurement_support = np.zeros(residual.shape, dtype=np.bool_)
     margin = max(
@@ -849,8 +951,7 @@ def measure_component_models(  # noqa: PLR0913, PLR0917, PLR0915
         _adequacy_filter_bank(atrous_plan).maximum_halo_pixels,
     )
     for parent_index, slices in enumerate(objects, start=1):
-        if slices is None:
-            continue
+        assert slices is not None, "fit-context labels must be dense"
         ys, xs = slices
         bounds = ImageBounds(
             max(0, ys.start - margin),
@@ -967,6 +1068,7 @@ def measure_component_models(  # noqa: PLR0913, PLR0917, PLR0915
                 ),
                 island_sigma=island_sigma,
                 minimum_support_fraction=minimum_support_fraction,
+                evidence=evidence,
             )
             if len(groups) > 1
             else ()
@@ -1025,6 +1127,7 @@ def measure_component_models(  # noqa: PLR0913, PLR0917, PLR0915
             minimum_support_fraction,
             maximum_bounds_pixels,
             measurement_support=measurement_support,
+            evidence=evidence,
         )
     )
     extended_groups.extend(
@@ -1042,10 +1145,42 @@ def measure_component_models(  # noqa: PLR0913, PLR0917, PLR0915
             island_sigma,
             minimum_pixels,
             maximum_bounds_pixels,
+            evidence=evidence,
         )
     )
-    reconciled = _merge_overlapping_groups(extended_groups)
+    # Reconcile admitted sources as whole owners. An extended proposal may
+    # include only some Gaussian members of an accepted compact source; it
+    # must not split the other members into a second, overlapping source.
+    # Independent compact owners remain separate unless evidence names them.
+    proposed_extended_labels = {
+        index for group in extended_groups for index in group
+    }
+    reconciled = tuple(
+        group
+        for group in _merge_overlapping_groups(
+            [*extended_groups, *compact_groups]
+        )
+        if group & proposed_extended_labels
+    )
     proposed_compact_groups = tuple(compact_groups)
+    protected_compact_labels = {
+        index for group in proposed_compact_groups for index in group
+    }
+    evidence = [
+        replace(
+            item,
+            protected_labels=(
+                item.protected_labels
+                | (item.component_labels & protected_compact_labels)
+            ),
+        )
+        for item in evidence
+    ]
+    evidence.extend(
+        ComponentGroupingEvidence("directional-fwhm-overlap", (), group)
+        for group in compact_groups
+        if len(group) > 1
+    )
     extended_labels = {index for group in reconciled for index in group}
     compact_groups = [
         group - extended_labels
@@ -1060,4 +1195,14 @@ def measure_component_models(  # noqa: PLR0913, PLR0917, PLR0915
         measurement_support,
         tuple(reconciled),
         proposed_compact_groups,
+        tuple(
+            sorted(
+                set(evidence),
+                key=lambda item: (
+                    item.reason,
+                    item.scale_ids,
+                    tuple(sorted(item.component_labels)),
+                ),
+            )
+        ),
     )

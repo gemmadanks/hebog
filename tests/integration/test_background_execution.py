@@ -18,13 +18,15 @@ from hebog.config import (
     SourceFinderConfig,
 )
 from hebog.data_models import ImageBounds
-from hebog.executors import DaskExecutor, SerialExecutor
+from hebog.executors import DaskExecutor, Executor, SerialExecutor
 from hebog.io.base import ImageWindow
 from hebog.stages.background import (
+    BackgroundRmsGrids,
     MultiscaleSourceProtection,
     estimate_background_rms_grids,
     estimate_background_rms_tile,
     prepare_background_rms_tile_request,
+    refine_background_rms_grids,
 )
 
 pytestmark = pytest.mark.integration
@@ -75,9 +77,15 @@ def _config() -> BackgroundRmsConfig:
     )
 
 
-@pytest.mark.parametrize("multiscale", (False, True))
+@pytest.mark.parametrize(
+    ("multiscale", "local_noise"),
+    ((False, False), (True, False), (True, True)),
+)
+@pytest.mark.parametrize("protect_coarse", (False, True))
 def test_dask_and_serial_background_stages_are_equivalent(
     multiscale: bool,
+    protect_coarse: bool,
+    local_noise: bool,
 ) -> None:
     """Executor choice does not alter grids or owned tile outputs."""
     y, x = np.indices((40, 44), dtype=np.float64)
@@ -96,15 +104,29 @@ def test_dask_and_serial_background_stages_are_equivalent(
         if multiscale
         else None
     )
-    serial_grids = estimate_background_rms_grids(
-        source,
-        image.shape,
-        config,
-        SerialExecutor(),
-        bright_candidate_positions_yx=positions,
-        source_protection_island_threshold_sigma=3.0,
-        multiscale_protection=protection,
-    )
+
+    def grids_for_executor(executor: Executor) -> BackgroundRmsGrids:
+        coarse = estimate_background_rms_grids(
+            source,
+            image.shape,
+            config,
+            executor,
+            bright_candidate_positions_yx=(),
+        )
+        return refine_background_rms_grids(
+            source,
+            coarse,
+            config,
+            executor,
+            bright_candidate_positions_yx=positions,
+            source_protection_island_threshold_sigma=3.0,
+            multiscale_protection=protection,
+            protect_coarse_source_support=protect_coarse,
+            refine_local_noise=local_noise,
+        )
+
+    serial_grids = grids_for_executor(SerialExecutor())
+    assert (serial_grids.coarse_protected_pixel_count > 0) == protect_coarse
 
     with Client(
         processes=False,
@@ -113,14 +135,10 @@ def test_dask_and_serial_background_stages_are_equivalent(
         dashboard_address=None,
     ) as client:
         dask_executor = DaskExecutor(client)
-        dask_grids = estimate_background_rms_grids(
-            source,
-            image.shape,
-            config,
-            dask_executor,
-            bright_candidate_positions_yx=positions,
-            source_protection_island_threshold_sigma=3.0,
-            multiscale_protection=protection,
+        dask_grids = grids_for_executor(dask_executor)
+        assert (
+            dask_grids.coarse_protected_pixel_count
+            == serial_grids.coarse_protected_pixel_count
         )
         manifest = plan_image_partitions(
             image_shape_yx=image.shape,
@@ -160,6 +178,20 @@ def test_dask_and_serial_background_stages_are_equivalent(
     np.testing.assert_array_equal(
         dask_grids.coarse.rms, serial_grids.coarse.rms
     )
+    if local_noise:
+        assert serial_grids.local_noise is not None
+        assert dask_grids.local_noise is not None
+        np.testing.assert_array_equal(
+            serial_grids.local_noise.rms, dask_grids.local_noise.rms
+        )
+        np.testing.assert_array_equal(
+            serial_grids.local_noise.fallback_cells,
+            dask_grids.local_noise.fallback_cells,
+        )
+        assert (
+            serial_grids.local_noise_protected_window_count
+            == dask_grids.local_noise_protected_window_count
+        )
     assert len(dask_grids.adaptive_regions) == 1
     assert len(serial_grids.adaptive_regions) == 1
     np.testing.assert_array_equal(

@@ -42,7 +42,9 @@ uv run python scripts/benchmark/refresh_public_notebook_hebog.py \
 
 The preflight prints the configuration SHA-256 returned by the exact public
 runner. The refresh never reconstructs that identity from an older contract
-chain, and it creates no staging directory during preflight.
+chain, and it creates no staging directory during preflight. Even if that
+refresh already exists, preflight does not republish its history entry,
+change its label or update the `latest` symlink.
 
 The runner selects the frozen R6 estimator-repair review
 `config/contracts/phase-5-r6-estimator-repair-identity-review.json`

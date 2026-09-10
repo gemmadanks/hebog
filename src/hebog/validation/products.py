@@ -53,6 +53,7 @@ from hebog.data_models.fitting import ValidCompactGaussianFit
 from hebog.data_models.images import RestoringBeam
 from hebog.data_models.measurement_diagnostics import (
     AssociationDecisionDiagnostics,
+    AssociationMergeEvidence,
     MeasurementDisposition,
     SourcePositionDiagnostics,
 )
@@ -1531,12 +1532,41 @@ def _measurement_dispositions(
                     else (
                         "compact-model"
                         if record.label_value in compact_groups
-                        else "hierarchy"
+                        else "independent-component"
                     ),
                 ),
             )
         )
     by_id = {row.identifier: row for row in sources}
+    component_ids = {
+        row.label_value: row.component_id for row in association.components
+    }
+    evidence_by_source: dict[str, list[AssociationMergeEvidence]] = {}
+    owner_by_component = {
+        identifier: membership.source_id
+        for membership in association.memberships
+        for identifier in membership.component_ids
+    }
+    for evidence in measurements.grouping_evidence:
+        members = tuple(
+            sorted(component_ids[index] for index in evidence.component_labels)
+        )
+        owners = {owner_by_component[member] for member in members}
+        if len(owners) != 1:
+            raise ValueError("merge evidence disagrees with source membership")
+        evidence_by_source.setdefault(owners.pop(), []).append(
+            AssociationMergeEvidence(
+                reason=evidence.reason,
+                scale_ids=evidence.scale_ids,
+                member_component_ids=members,
+                protected_component_ids=tuple(
+                    sorted(
+                        component_ids[index]
+                        for index in evidence.protected_labels
+                    )
+                ),
+            )
+        )
     for membership in association.memberships:
         row = by_id.get(membership.source_id)
         dispositions.append(
@@ -1553,6 +1583,9 @@ def _measurement_dispositions(
                 member_component_ids=membership.component_ids,
                 position_diagnostics=source_positions.get(
                     membership.source_id
+                ),
+                association_evidence=tuple(
+                    evidence_by_source.get(membership.source_id, ())
                 ),
             )
         )

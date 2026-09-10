@@ -2,11 +2,53 @@
 
 from __future__ import annotations
 
-from typing import Literal, Self
+from typing import Literal, Self, TypeAlias
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from hebog.data_models.fitting import GaussianFitDiagnostics
+
+AssociationEvidenceKind: TypeAlias = Literal[
+    "directional-fwhm-overlap",
+    "resolved-loop",
+    "resolved-open-arc",
+    "persistent-residual",
+]
+_MINIMUM_MERGE_COMPONENTS = 2
+
+
+class AssociationMergeEvidence(BaseModel):
+    """One admitted merge, stored once on its final source, never per pixel."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+
+    reason: AssociationEvidenceKind
+    scale_ids: tuple[int, ...]
+    member_component_ids: tuple[str, ...]
+    protected_component_ids: tuple[str, ...] = ()
+
+    @model_validator(mode="after")
+    def _validate_evidence(self) -> Self:
+        """A merge names participants and any overridden compact protection."""
+        if (
+            len(self.member_component_ids) < _MINIMUM_MERGE_COMPONENTS
+            or any(not item for item in self.member_component_ids)
+            or tuple(sorted(set(self.member_component_ids)))
+            != self.member_component_ids
+            or tuple(sorted(set(self.protected_component_ids)))
+            != self.protected_component_ids
+            or not set(self.protected_component_ids)
+            <= set(self.member_component_ids)
+        ):
+            raise ValueError("association evidence has invalid members")
+        if (
+            tuple(sorted(set(self.scale_ids))) != self.scale_ids
+            or any(index not in (1, 2, 3) for index in self.scale_ids)
+            or bool(self.scale_ids)
+            != (self.reason != "directional-fwhm-overlap")
+        ):
+            raise ValueError("association evidence has invalid scale IDs")
+        return self
 
 
 class SourcePositionDiagnostics(BaseModel):
@@ -36,7 +78,9 @@ class AssociationDecisionDiagnostics(BaseModel):
     hierarchy_group_id: str
     compact_model_group_id: str | None
     extended_group_id: str | None
-    decision: Literal["hierarchy", "compact-model", "extended-morphology"]
+    decision: Literal[
+        "independent-component", "compact-model", "extended-morphology"
+    ]
 
 
 class MeasurementDisposition(BaseModel):
@@ -60,6 +104,7 @@ class MeasurementDisposition(BaseModel):
     fit_covariance_available: bool | None = None
     position_diagnostics: SourcePositionDiagnostics | None = None
     association_diagnostics: AssociationDecisionDiagnostics | None = None
+    association_evidence: tuple[AssociationMergeEvidence, ...] = ()
 
     @model_validator(mode="after")
     def _validate_disposition(self) -> Self:
@@ -83,4 +128,18 @@ class MeasurementDisposition(BaseModel):
             raise ValueError("measurement source members must not be empty")
         if self.object_kind == "component" and self.member_component_ids:
             raise ValueError("measurement component cannot have members")
+        return self
+
+    @model_validator(mode="after")
+    def _validate_source_evidence(self) -> Self:
+        """Source-level provenance cannot refer to a foreign component."""
+        if self.association_evidence and (
+            self.object_kind != "source"
+            or any(
+                not set(item.member_component_ids)
+                <= set(self.member_component_ids)
+                for item in self.association_evidence
+            )
+        ):
+            raise ValueError("association evidence must belong to its source")
         return self

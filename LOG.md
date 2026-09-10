@@ -18630,3 +18630,204 @@ scientific pass from fixture validation.
   code or scientific rules changed; coverage, equivalence and campaign runs
   are not repeated for this documentation-only change. Final all-file hooks
   must pass without modifications immediately before the local docs commit.
+
+### 2026-09-09 — R6-C0--C7 catalogue repairs in progress
+
+- Implemented the prospectively recorded compact-remainder separation,
+  interaction-bounded fit parents, dimensionless bound/contact and joint
+  information/covariance repairs test-first. Unsupported hierarchy members
+  remain independent; established compact and extended owners retain explicit
+  association evidence. The 96-parameter and other fit admission bounds remain
+  unchanged, with genuinely inseparable oversized work explicitly unavailable.
+- Added source-level merge provenance (reason, supporting scales, participants
+  and compact-protection overrides), diagnostics schema 8 and development
+  composition v11. Updated both the record and public materialization reader;
+  the exact public output contract caught the otherwise stale reader version.
+  The notebook now distinguishes native source/component semantics and Aegean
+  ellipse proxies, visible/full-core counts, and full-input saved measurement
+  dispositions including unpublished/off-view members. It does not rescore.
+- Numerical/association focused validation reached 298 passing tests. The
+  independent compact-neighbour ladder covers 18 separation/SNR/flux-ratio
+  combinations. Initial whole-matrix validation passed all 108 analytic,
+  noisy and public-background geometries before the additional C5 changes.
+- The user separately approved changing the small-image RMS policy and then
+  source-protected coarse estimation, and asked to include other pre-replay
+  repairs. The old constant map underestimated an independent true-RMS-4
+  neighbourhood at approximately 1.1; the unchanged 150-pixel mesh estimated
+  approximately 1.81, below the predeclared >2 control. A bounded image-relative
+  mesh passed the original noise controls but failed two expanded broad-halo
+  background guards (0.559/0.561 RMS versus <0.5). Neither intermediate
+  proposal was frozen or admitted.
+- Source-protected coarse samples with bright-only selection passed 16/16
+  halo/noise controls, but the full geometry matrix exposed two ordinary
+  mixed compact/extended flux losses (25.9% and 34.9%, bound 25%). An independent
+  ordinary-source fixture confirmed that coarse protection incorrectly depended
+  on the bright adaptive trigger. Ordinary seeded/persistent source protection
+  fixed those cases and the complete 108-case matrix passed again (192.48 s).
+  This is fixture evidence, not renewed campaign parity.
+- The joint noise controls then rejected ordinary-source protection that
+  mistakes coarse-diluted noise excursions for sources. Using the coarse mesh
+  itself as the source-guard footprint also removed too much noise context.
+  The in-progress bounded correction keeps the existing fine-grid source guard
+  and uses an unmasked fine-resolution RMS pilot to admit coarse source masks;
+  it does not publish that pilot or change the 5/3 thresholds, minimum area,
+  bright adaptive trigger, clipping rules or closed scientific records.
+  The same geometry and noise guards remain binding; do not freeze this
+  working proposal until both pass together.
+- Exact public Serial/two-worker existing-Dask product bytes passed four
+  normal/fault-injected cases with different tile boundaries, including a
+  bounded coarse-protection image (17.83 s, before the latest pilot change).
+  Interim broad coverage runs exposed the stale diagnostics reader and C5
+  regressions; they are not final validation. Final branch/patch coverage,
+  whole-matrix rerun, engineering gates, review and local commits remain due.
+- No notebook refresh, candidate/reference execution, replay, rescoring,
+  qualification or release was started. Historical identities and evidence
+  remain untouched. The notebook runner still selects the old immutable v10
+  identity and must not be used with this unqualified working composition.
+  Next finish C5/C7, then freeze non-executable identities and prepare the
+  reuse-aware replay with exhaustive no-write and resource admission checks;
+  do not launch it as part of this preparation.
+
+### 2026-09-09 — Additional pre-replay audit exposes a local-noise policy gap
+
+- The source-mask pilot variant passes all 108 existing geometry cells plus
+  four exact public Serial/two-worker existing-Dask normal and solver-failure
+  cases (112 tests, 269.07 s). The 16 original bright-halo/noise controls,
+  background unit/Dask checks and two previous geometry regressions pass
+  together (62 tests, 68.19 s). Empty, all-NaN and constant-negative public
+  inputs also pass at both small and intermediate shapes.
+- Added zero/nonfinite information-covariance guards, rejection of foreign
+  source IDs in merge evidence, and positive arc/residual tests proving
+  optional attribution cannot alter measurements or membership. Replaced an
+  obsolete sparse-parent skip with the dense fit-context invariant. These
+  focused tests pass; no source-finding threshold or resource limit changed.
+- The latest completed fast check passes 3,384 tests, Ruff and Pyright;
+  27 frozen equivalence tests, strict docs, Marimo checks and isolated wheel
+  smoke pass. An earlier full coverage run passes 3,626 tests at 95.20%, above
+  the 95.1905998% baseline; final additional-branch coverage is still being
+  collected. These engineering checks do not establish final C7 acceptance.
+- Boundary review found an error in test coverage: height-599/600 fixtures
+  used width 512 and never reached the intended minimum-dimension boundary.
+  Kept those fixtures and added 599x640 and 600x640 controls. The expanded
+  boundary run is 12/16 (58.43 s): four independent-noise cases fail with
+  RMS 1.7231/1.7325 and 1.7101/1.7117 versus injected truth 4 and required >2.
+  Background, halo RMS and source-support guards pass. All 24 old/new cases
+  now remain in the regression ladder; no failing assertion was weakened.
+- Root cause: the 149/150-pixel coarse mesh dilutes an independent localized
+  high-noise patch. Fine refinement is admitted only around >75-sigma bright
+  candidates, with 75-pixel influence; this patch is outside that region.
+  The new unmasked pilot is deliberately restricted to source-mask admission,
+  not publication. Correct source protection therefore cannot alone repair
+  the published noise map. The existing >=600-pixel coarse policy is affected
+  too. Added C5a for a separately reviewed source-protected local-noise policy,
+  with unchanged thresholds, independent controls and no viewed-data tuning.
+- Requested authorization for that additional scientific-policy review before
+  implementation. C5/C7 and the next freeze remain blocked; all repairs remain
+  uncommitted rather than committing a known-failing state. The old v10
+  notebook identity is not a valid identity for this working v11 composition.
+- Resource check separately finds about 55 GiB free versus the provisional
+  68 GiB replay budget. No evidence was deleted, no executable identity was
+  frozen and no notebook refresh, replay or external finder was launched.
+- The coverage process collected before the added limiting-dimension cases
+  completed with 3,633 passed, 157 deselected and two expected failures
+  (424.19 s), giving 95.2233735% branch-aware coverage. Inspection finds
+  152/152 changed executable lines and all changed branches covered; the
+  entire component-measurement module is at 100%. This is coverage of the
+  current implementation, not a pass of the subsequently expanded 24-case
+  scientific gate. CODE_REVIEW.md review retains the local-noise finding;
+  no other actionable issue was found. Latest Ruff/format checks and strict
+  docs build pass. No clean final commit gate is claimed while C5 is red.
+- The complete retained halo/noise ladder confirms the same four failures:
+  20 passed / 4 failed (92.11 s). Both earlier short-width controls and actual
+  minimum-dimension boundary controls are retained. This supersedes the
+  intermediate 12/16 boundary-only run as the current C5 gate result.
+- The hook's quick suite also passes 3,390 tests (408 deselected, two expected
+  failures; 251.89 s). The first hook run reports file modification because
+  this log was updated while it ran, not a test assertion failure. Rerun
+  hooks with edits stopped; a green engineering hook still cannot admit the
+  four failing integration-science cases or authorize a commit/freeze.
+
+## 2026-09-10 — Implement the approved independent local-noise policy
+
+- The user approved the additional C5a scientific-policy review and test-first
+  repair. Recorded the policy before implementation in the public-catalogue
+  repair contract: retain background ownership, estimate source-protected RMS
+  across the existing fine lattice independently of the bright-source trigger,
+  and reconcile raw cells globally before filling missing values. Globally
+  anchored 256-cell protection contexts include explicit source/filter halos
+  and a read-admission limit; neither image-sized masks nor per-window tasks
+  are introduced. Truncated boundary support is conservatively protected.
+- A new independent noise-only test failed first at RMS 1.2237 versus truth 4
+  (required >2). The implementation passes the 20 new noise-only/gradient
+  controls and all 24 retained bright-halo/noise controls. Their warning audit
+  exposed zero fine RMS from boundary extrapolation. Added a strict-positive
+  red test and constant fine-RMS edge extension, preserving background
+  interpolation. The combined rerun is 48 passed (270.22 s), including four
+  exact public Serial/two-worker existing-Dask normal and fault cases.
+- A further synthetic patch reproduced a coarse >75-sigma work anchor that
+  is below the public island threshold under its fine pilot, causing the
+  source-protection exception. Independent pilot source admission now owns
+  that mask instead of forcing the old work anchor to remain a source seed.
+  The work list and all detection thresholds remain unchanged. All 78 focused
+  RMS, availability, bounded-read, context, source-protection and retry tests
+  pass. Corrected two new test setups rather than weakening invariants: use
+  an even checkerboard coarse window for a zero-median noise oracle, and keep
+  synthetic prepared grids immutable like production caches. Constant zero
+  variance remains a defined statistic but is unusable for normalization;
+  wholly masked/invalid noise remains explicitly unavailable.
+- The 108-case matrix and six background Serial/existing-Dask cases passed
+  (114 tests, 333.95 s) before the last pilot edge/anchor corrections. The 36
+  actual-public-background cells are being repeated at the final bytes;
+  analytic and known-noise science is unchanged by those final corrections.
+  Full portable coverage, complete checks, documentation, review and hooks
+  remain due. The previous turn's repeated hooks passed cleanly, but do not
+  transfer to these edits. No new candidate identity, notebook refresh,
+  replay, reference execution or rescoring has occurred.
+- The 36 actual-public-background matrix cells passed again (231.01 s).
+  Additional corner-noise cases then reproduced a separate edge defect:
+  RMS 1.6723 versus truth 4 (required >2). Actual observed image edges were
+  incorrectly treated as truncated internal protection contexts. Restricting
+  conservative boundary protection to internal work boundaries passes all
+  18 added corner cases and 79 focused kernel tests. All original cases remain;
+  the independent noise ladder now contains 38 cases.
+- Final code review also found an unintended compact-only policy change: its
+  mesh inherited the continuum repair without source protection. A new
+  public-boundary test failed on the 64/21 versus retained 150/50 mesh before
+  restricting the repair to continuum. This is scope isolation, not a new
+  compact-only scientific policy. Final gates will include this correction.
+- Interrupted the earlier coverage process after the corner defect was found
+  (1,447 passed, 157 deselected, two expected failures at interruption).
+  That partial coverage is not final evidence. Repeated final coverage and
+  the complete combined integration ladder remain in progress.
+- Final stable-source portable coverage passes 3,697 tests (157 deselected,
+  two expected failures; 729.78 s). The complete combined integration ladder
+  passes 203 tests (705.70 s), including every one of the 108 existing geometry
+  cells, 38 noise controls, 24 halo controls, six background executor cases
+  and 27 public-API cases. The final compact-policy regression and existing
+  compact-profile test pass separately. No old failed guard was removed.
+- Added final malformed blend-request tests for both missing metadata fields.
+  Review also found that notebook `--preflight-only` could republish an existing
+  refresh's history before reaching the read-only branch. A new test reproduced
+  that write path before the one-line guard repair; seven refresh tests pass,
+  preserving saved labels and `latest`. No real history was republished.
+  The 49-test coverage supplement passes (9.92 s); combined branch-aware
+  coverage is 95.23777265953123%, above 95.19059980871704%. All 221 changed
+  executable package lines and changed branches are covered. Reviewed all
+  changed-file misses: remaining misses are unchanged paths, not excluded or
+  weakened new assertions. Codecov's remote patch report is not available.
+- `just check` passes 3,405 tests with Ruff/format/Pyright clean before the
+  three supplemental boundary/workflow cases; it is being repeated for the
+  final tree. Frozen equivalence passes 27 tests; strict docs, Marimo and
+  isolated wheel smoke pass. Full diff review against CODE_REVIEW.md finds no
+  remaining actionable defect after the compact-policy and preflight fixes.
+  Local runtime is Python 3.14 only; no production performance or qualification
+  claim is made. Final all-file hooks must pass without modifications before
+  the implementation commit, then freeze the non-executable identity.
+- About 52 GiB is free versus the provisional 68 GiB replay budget. No data
+  was deleted. The old v10 notebook review must be replaced by a new exact
+  selection after freezing; no refreshed notebook, new candidate/reference
+  run, replay, rescore, executable decision, monitor or release was started.
+- The final `just check` repeat passes 3,408 tests (449 deselected, two
+  expected failures; 265.94 s), including the supplemental boundary/workflow
+  tests. Ruff, formatting and Pyright are clean. Source edits have stopped;
+  run the final all-file hooks before committing the implementation.

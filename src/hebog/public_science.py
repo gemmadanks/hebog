@@ -20,10 +20,6 @@ from hebog.algorithms.multiscale import (
     prepare_scale_filter_inputs,
     reconstruct_denoised_atrous,
 )
-from hebog.algorithms.source_association import (
-    associate_components_by_multiscale_hierarchy,
-    build_detection_component_records,
-)
 from hebog.config import SourceFinderConfig
 from hebog.data_models.images import RestoringBeam
 from hebog.validation.contracts import PhaseFiveCorrectiveAReview
@@ -186,32 +182,12 @@ def build_configured_continuum_products(  # noqa: PLR0913
     _, _, moment_config, fit_config, _ = (
         phase_five_corrected_candidate_configs()
     )
-    association = associate_components_by_multiscale_hierarchy(
-        build_detection_component_records(
-            topology.direct_component_labels, image - background, valid
-        ),
-        topology.direct_component_labels,
-        retained.scale_detection_planes,
-        valid,
-        significant_multiscale_support=retained.significant_multiscale_support,
-    )
-    parent_by_id = {
-        component_id: index
-        for index, membership in enumerate(association.memberships, 1)
-        for component_id in membership.component_ids
-    }
-    parent_lookup = np.zeros(
-        int(topology.measurement_component_labels.max()) + 1, dtype=np.int32
-    )
-    for record in association.components:
-        parent_lookup[record.label_value] = parent_by_id[record.component_id]
     measurements = measure_component_models(
         image - background,
         rms,
         positive_rms,
         topology.direct_component_labels,
         topology.measurement_component_labels,
-        parent_lookup[topology.measurement_component_labels],
         WCS(header, relax=True).celestial,
         RestoringBeam(
             cast(float, header["BMAJ"]),

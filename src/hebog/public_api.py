@@ -12,6 +12,7 @@ import json
 from dataclasses import asdict, dataclass, replace
 from functools import lru_cache
 from importlib.resources import files
+from math import prod
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import monotonic
@@ -28,7 +29,7 @@ from hebog.algorithms.astrometry import (
 )
 from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.algorithms.partitioning import plan_image_partitions
-from hebog.config import SourceFinderConfig
+from hebog.config import BackgroundRmsConfig, SourceFinderConfig
 from hebog.data_models import (
     CatalogueSourceMembership,
     FluxMeasurement,
@@ -69,7 +70,7 @@ _TILE_SHAPE_YX = (128, 128)
 _DETECTION_THRESHOLD_SIGMA = 5.0
 _ISLAND_THRESHOLD_SIGMA = 3.0
 _MINIMUM_ISLAND_PIXELS = 7
-_COMPOSITION_NAME = "phase-5-observable-source-and-joint-estimator-v10"
+_COMPOSITION_NAME = "phase-5-evidence-bound-public-catalogue-v11"
 _PROFILE_RESOURCE = "phase_5_continuum_review.json"
 _FWHM_PER_SIGMA = 2.0 * np.sqrt(2.0 * np.log(2.0))
 _SCIENTIFIC_MODULES = (
@@ -239,6 +240,43 @@ def _beam_shape_pixels(metadata: ImageMetadata) -> BeamShapePixels:
     )
 
 
+def _public_background_config(
+    image_shape_yx: tuple[int, int], config: BackgroundRmsConfig
+) -> BackgroundRmsConfig:
+    """Retain a bounded spatial mesh on intermediate-size public images."""
+    limiting_dimension = min(image_shape_yx)
+    largest_window = max(config.coarse.window_shape_yx)
+    if limiting_dimension < largest_window:
+        return config
+    fraction = min(
+        1.0,
+        config.maximum_spatial_window_fraction
+        * limiting_dimension
+        / largest_window,
+    )
+    if (
+        fraction < 1.0
+        and prod(image_shape_yx) > config.maximum_constant_map_pixels
+    ):
+        raise ValueError(
+            "spatial mesh protection exceeds bounded image admission"
+        )
+    return replace(
+        config,
+        coarse=replace(
+            config.coarse,
+            window_shape_yx=tuple(
+                max(1, int(size * fraction))
+                for size in config.coarse.window_shape_yx
+            ),
+            step_yx=tuple(
+                max(1, int(size * fraction)) for size in config.coarse.step_yx
+            ),
+        ),
+        maximum_spatial_window_fraction=1.0,
+    )
+
+
 def _estimate_background_rms(  # noqa: PLR0913
     source: FitsImageSource,
     metadata: ImageMetadata,
@@ -266,9 +304,18 @@ def _estimate_background_rms(  # noqa: PLR0913
         manifest,
         generation_id=generation_id,
     )
+    candidate_detection = phase_five_corrected_candidate_configs()[0]
     detection_config = replace(
-        phase_five_corrected_candidate_configs()[0],
+        candidate_detection,
         source_finder=config,
+        background_rms=(
+            _public_background_config(
+                metadata.shape_yx,
+                candidate_detection.background_rms,
+            )
+            if config.profile == "continuum"
+            else candidate_detection.background_rms
+        ),
     )
     run_detection_stage(
         source,
@@ -276,6 +323,16 @@ def _estimate_background_rms(  # noqa: PLR0913
         detection_config,
         executor,
         sink,
+        protect_coarse_source_support=(
+            config.profile == "continuum"
+            and detection_config.background_rms.coarse.window_shape_yx
+            != candidate_detection.background_rms.coarse.window_shape_yx
+        ),
+        refine_local_noise=(
+            config.profile == "continuum"
+            and min(metadata.shape_yx)
+            >= max(candidate_detection.background_rms.coarse.window_shape_yx)
+        ),
         multiscale_protection=(
             MultiscaleSourceProtection(
                 _beam_shape_pixels(metadata),

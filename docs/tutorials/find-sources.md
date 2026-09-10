@@ -59,6 +59,15 @@ pixels retain the Phase 5 reference thresholds. The repaired implementation
 reports `configuration_qualification="development-unqualified"`: matching
 historical thresholds does not transfer qualification to changed science.
 
+For spatially admitted continuum images, background and noise have different
+resolution policies. Background retains its coarse/source-protected and
+bright-region estimates; RMS uses the source-protected 35/7 fine grid even
+away from bright sources. Source-overlapping noise windows are excluded,
+missing cells are interpolated globally and fine RMS edge values are extended
+without extrapolating to zero. An absence of clean noise samples remains
+unavailable. This does not lower detection thresholds or imply that noise
+structure below the estimator resolution is measured accurately.
+
 Callers may select other valid thresholds and island-size limits. Hebog uses
 those values throughout background masking, direct and multiscale detection,
 island growth, and final size filtering. Custom runs report
@@ -160,14 +169,27 @@ a catalogue row was published. Component diagnostics retain the fitted model,
 likelihood pixel count, GLS fallback reason, covariance basis and competing
 association group IDs. Source diagnostics retain both signed-original and
 denoised centroids, their selection rule, position/aperture counts and signed
-flux. These are attribution records, not new scientific scores.
+flux. Source `association_evidence` records each admitted multi-component
+merge's reason, scale IDs, component IDs and overridden compact protection.
+An unconfirmed hierarchy remainder is not positive source evidence: its
+components remain independent. Fit batches follow interacting measurement
+contexts, not associated-source membership; an inseparable over-budget fit
+still reports its unavailable disposition. These are attribution records,
+not new scientific scores.
 A failed fit does not discard its detection
 or abort an unrelated valid source. Missing uncertainty remains unavailable,
 not zero. The current catalogue JSON, catalogue FITS and public diagnostics
-schemas are versions 3, 4 and 7 respectively; stale versions fail clearly.
-Composition `phase-5-observable-source-and-joint-estimator-v10` remains
+schemas are versions 3, 4 and 8 respectively; stale versions fail clearly.
+Composition `phase-5-evidence-bound-public-catalogue-v11` remains
 development-unqualified pending new candidate-bound evidence. Historical
 campaign results do not qualify these changed measurements.
+
+The repaired continuum RMS policy passes the joint source-retention and
+spatial-noise fixture gates; it is **not campaign-qualified**. See the
+[repair contract](../reference/phase-5-public-catalogue-repair-contract.md).
+Use only the explicitly selected immutable identity for notebook refreshes;
+an old review does not bind changed scientific code. Replay admission also
+requires its own exact program, reusable-record and resource checks.
 
 For a component-level comparison with a PyBDSF Gaussian catalogue, compare
 `catalogue.gaussian_components`, not `catalogue.sources`. Plotting one marker

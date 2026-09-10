@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from hebog.data_models.measurement_diagnostics import MeasurementDisposition
+from hebog.data_models.measurement_diagnostics import (
+    AssociationMergeEvidence,
+    MeasurementDisposition,
+)
 
 
 def _record() -> dict[str, object]:
@@ -68,3 +71,54 @@ def test_absences_keep_identity_and_reason(status: str) -> None:
     )
     assert record.object_id == "source-one"
     assert record.reason == "singular-covariance"
+
+
+@pytest.mark.parametrize(
+    "replacement",
+    (
+        {"member_component_ids": ("c1",)},
+        {"member_component_ids": ("", "c1")},
+        {"member_component_ids": ("c2", "c1")},
+        {"member_component_ids": ("c1", "c1")},
+        {"protected_component_ids": ("c2", "c1")},
+        {"protected_component_ids": ("c3",)},
+        {"scale_ids": ()},
+        {"scale_ids": (2, 1)},
+        {"scale_ids": (1, 1)},
+        {"scale_ids": (4,)},
+        {"reason": "directional-fwhm-overlap"},
+    ),
+)
+def test_merge_evidence_rejects_invalid_members_or_scales(
+    replacement: dict[str, object],
+) -> None:
+    with pytest.raises(ValueError, match="association evidence"):
+        AssociationMergeEvidence.model_validate(
+            {
+                "reason": "persistent-residual",
+                "member_component_ids": ("c1", "c2"),
+                "protected_component_ids": ("c1",),
+                "scale_ids": (1, 2),
+                **replacement,
+            }
+        )
+
+
+@pytest.mark.parametrize("kind", ("source", "component"))
+def test_merge_evidence_cannot_be_attached_to_a_foreign_owner(
+    kind: str,
+) -> None:
+    evidence = AssociationMergeEvidence(
+        reason="directional-fwhm-overlap",
+        member_component_ids=("c1", "c2"),
+        scale_ids=(),
+    )
+    with pytest.raises(ValueError, match="evidence must belong"):
+        MeasurementDisposition.model_validate(
+            {
+                **_record(),
+                "object_kind": kind,
+                "member_component_ids": ("c3",) if kind == "source" else (),
+                "association_evidence": (evidence,),
+            }
+        )

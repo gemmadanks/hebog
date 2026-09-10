@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
+from dataclasses import replace
 from typing import TypeVar
 
 import numpy as np
@@ -754,6 +755,41 @@ def test_adaptive_refinement_rejects_an_already_refined_cache() -> None:
         )
 
 
+@pytest.mark.parametrize("missing", ("radius", "transition"))
+def test_adaptive_tile_rejects_incomplete_blend_metadata(missing: str) -> None:
+    """A malformed worker request cannot publish an undefined blend."""
+    image = np.tile(np.array([-1.0, 1.0]), 40 * 22).reshape(40, 44)
+    image[20, 22] = 50.0
+    source = _ArrayImageSource(image)
+    config = _config()
+    grids = estimate_background_rms_grids(
+        source,
+        image.shape,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=((20.0, 22.0),),
+        source_protection_island_threshold_sigma=3.0,
+    )
+    partition = plan_image_partitions(
+        image_shape_yx=image.shape,
+        tile_core_shape_yx=image.shape,
+        halo_yx=(0, 0),
+    ).tiles[0]
+    request = prepare_background_rms_tile_request(partition, grids, config)
+    assert request.adaptive_regions
+    request = replace(
+        request,
+        influence_radius_pixels=None
+        if missing == "radius"
+        else request.influence_radius_pixels,
+        transition_width_pixels=None
+        if missing == "transition"
+        else request.transition_width_pixels,
+    )
+    with pytest.raises(ValueError, match="missing blend metadata"):
+        estimate_background_rms_tile(source, request)
+
+
 def test_large_constant_map_fallback_fails_before_unbounded_read() -> None:
     """Automatic constant fallback never gathers an unapproved large plane."""
     image = np.ones((80, 80), dtype=np.float64)
@@ -775,3 +811,156 @@ def test_large_constant_map_fallback_fails_before_unbounded_read() -> None:
         )
 
     assert source.read_bounds == []
+
+
+@pytest.mark.parametrize("missing_threshold", (False, True))
+def test_coarse_protection_rejects_unadmitted_work_before_read(
+    missing_threshold: bool,
+) -> None:
+    """Neither absent science policy nor excess memory admits a full read."""
+    image = np.tile(np.array([-1.0, 1.0]), 80 * 40).reshape(80, 80)
+    image[40, 40] = 100
+    source = _ArrayImageSource(image)
+    config = _source_protection_config()
+    coarse = estimate_background_rms_grids(
+        source,
+        image.shape,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=(),
+    )
+    read_count = len(source.read_bounds)
+    message = (
+        "island threshold" if missing_threshold else "bounded image admission"
+    )
+    with pytest.raises(ValueError, match=message):
+        refine_background_rms_grids(
+            source,
+            coarse,
+            config,
+            SerialExecutor(),
+            bright_candidate_positions_yx=((40, 40),),
+            source_protection_island_threshold_sigma=None
+            if missing_threshold
+            else 3.0,
+            protect_coarse_source_support=True,
+        )
+    assert len(source.read_bounds) == read_count
+
+
+@pytest.mark.parametrize("source_fills_image", (False, True))
+def test_coarse_protection_preserves_retry_and_unavailable_semantics(
+    source_fills_image: bool,
+) -> None:
+    """Source-only cells cannot fabricate RMS; normal noise remains usable."""
+    noise = np.tile(np.array([-1.0, 1.0]), 80 * 40).reshape(80, 80)
+    config = replace(
+        _source_protection_config(), maximum_constant_map_pixels=6400
+    )
+    coarse = estimate_background_rms_grids(
+        _ArrayImageSource(noise),
+        noise.shape,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=(),
+    )
+    image = np.full_like(noise, 100.0) if source_fills_image else noise.copy()
+    image[40, 40] = 100
+    source = _ArrayImageSource(image)
+    results = [
+        refine_background_rms_grids(
+            source,
+            coarse,
+            config,
+            executor,
+            bright_candidate_positions_yx=((40, 40),),
+            source_protection_island_threshold_sigma=3.0,
+            protect_coarse_source_support=True,
+        )
+        for executor in (SerialExecutor(), _RetryExecutor())
+    ]
+    first, second = results
+    assert first.coarse_protected_pixel_count > 0
+    assert (
+        first.coarse_protected_pixel_count
+        == second.coarse_protected_pixel_count
+    )
+    np.testing.assert_array_equal(
+        first.coarse.background, second.coarse.background
+    )
+    np.testing.assert_array_equal(first.coarse.rms, second.coarse.rms)
+    assert first.coarse.scientifically_available is not source_fills_image
+    if source_fills_image:
+        assert first.coarse_protected_pixel_count == image.size
+        assert np.isnan(first.coarse.rms).all()
+        assert first.adaptive_regions == ()
+    else:
+        assert first.adaptive_regions
+        yy, xx = np.mgrid[:80, :80]
+        assert config.adaptive is not None
+        guard = max(config.adaptive.grid.window_shape_yx) // 2
+        source_free = (yy - 40) ** 2 + (xx - 40) ** 2 > guard**2
+        assert first.coarse_protected_pixel_count == np.count_nonzero(
+            ~source_free
+        )
+        geometry = first.coarse.geometry
+        height, width = geometry.effective_window_shape_yx
+        expected = np.array(
+            [
+                [
+                    np.median(
+                        noise[y : y + height, x : x + width][
+                            source_free[y : y + height, x : x + width]
+                        ]
+                    )
+                    for x in geometry.window_starts_x
+                ]
+                for y in geometry.window_starts_y
+            ]
+        )
+        np.testing.assert_array_equal(first.coarse.background, expected)
+        np.testing.assert_allclose(first.coarse.rms, 1, atol=0.02)
+
+
+@pytest.mark.parametrize("has_source", (False, True))
+def test_coarse_protection_does_not_require_a_bright_adaptive_candidate(
+    has_source: bool,
+) -> None:
+    """Protect ordinary emission without inventing support in empty noise."""
+    yy, xx = np.mgrid[:80, :80]
+    noise = np.tile(np.array([-1.0, 1.0]), 80 * 40).reshape(80, 80)
+    image = noise.copy()
+    if has_source:
+        image += 25 * np.exp(-0.5 * ((yy - 40) ** 2 + (xx - 40) ** 2) / 5**2)
+    config = replace(
+        _source_protection_config(), maximum_constant_map_pixels=6400
+    )
+    coarse = estimate_background_rms_grids(
+        _ArrayImageSource(noise),
+        noise.shape,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=(),
+    )
+    result = refine_background_rms_grids(
+        _ArrayImageSource(image),
+        coarse,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=(),
+        source_protection_island_threshold_sigma=3.0,
+        multiscale_protection=MultiscaleSourceProtection(
+            BeamShapePixels(4.0, 3.0, 0.0),
+            SourceFinderConfig(5.0, 3.0, 7),
+            0.5,
+        ),
+        protect_coarse_source_support=True,
+    )
+    assert (result.coarse_protected_pixel_count > 0) is has_source
+    assert result.coarse.scientifically_available
+    assert result.adaptive_regions == ()
+    if not has_source:
+        np.testing.assert_array_equal(
+            result.coarse.background, coarse.coarse.background
+        )
+        np.testing.assert_array_equal(result.coarse.rms, coarse.coarse.rms)

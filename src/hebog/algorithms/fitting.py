@@ -49,6 +49,7 @@ from hebog.data_models.partitioning import ImageBounds
 
 _NOISE_CORRELATION_TRUNCATION_SIGMA = 4.0
 _TRUNCATED_MOMENT_RESIDUAL_TOLERANCE = 1e-6
+_RELATIVE_BOUND_CONTACT_TOLERANCE = 1e-10
 _FREE_PARAMETER_NAMES = (
     "amplitude",
     "centroid-x",
@@ -306,6 +307,16 @@ def _gaussian_parameter_jacobian(
     )
 
 
+def _information_condition(jacobian: np.ndarray) -> float | None:
+    """Condition the complete information matrix in dimensionless units."""
+    norms = np.linalg.norm(jacobian, axis=0)
+    if not np.all(np.isfinite(norms) & (norms > 0.0)):
+        return None
+    normalized = jacobian / norms
+    condition = float(np.linalg.cond(normalized.T @ normalized))
+    return condition if isfinite(condition) else None
+
+
 def _diagnostics(
     *,
     converged: bool,
@@ -330,27 +341,16 @@ def _diagnostics(
         )
         / bound_widths
     )
-    at_bound = np.isclose(
-        parameters,
-        lower_bounds,
-        rtol=0.0,
-        atol=1e-10,
-    ) | np.isclose(
-        parameters,
-        upper_bounds,
-        rtol=0.0,
-        atol=1e-10,
+    # Bound contact must not depend on flux units or a tile's global origin.
+    # Use the same dimensionless distance retained in public diagnostics.
+    at_bound = relative_bound_distances <= _RELATIVE_BOUND_CONTACT_TOLERANCE
+    at_bound |= np.asarray(
+        [
+            name.startswith("forced-centroid-")
+            for name in evidence.parameter_names
+        ]
     )
-    column_norms = np.linalg.norm(jacobian, axis=0)
-    information_condition = (
-        float(
-            np.linalg.cond(
-                (jacobian / column_norms).T @ (jacobian / column_norms)
-            )
-        )
-        if np.all(column_norms > 0)
-        else float("inf")
-    )
+    information_condition = _information_condition(jacobian)
     amplitude, _, _, sigma_first, sigma_second, _, background = (
         evidence.full_parameters
     )
@@ -391,9 +391,7 @@ def _diagnostics(
         minimum_relative_bound_distance=float(
             np.min(relative_bound_distances)
         ),
-        information_condition_number=(
-            information_condition if isfinite(information_condition) else None
-        ),
+        information_condition_number=information_condition,
         visible_model_fraction=float(
             np.clip(sampled_model_sum / total_model_sum, 0.0, 1.0)
         ),
@@ -487,20 +485,25 @@ def _parameter_covariance(
     correlated_point_estimator: bool,
 ) -> npt.NDArray[np.float64] | None:
     """Return bounded-model covariance, or absence for singular information."""
-    information = jacobian.T @ jacobian
+    norms = np.linalg.norm(jacobian, axis=0)
+    if not np.all(np.isfinite(norms) & (norms > 0.0)):
+        return None
+    normalized = jacobian / norms
+    information = normalized.T @ normalized
     if np.linalg.matrix_rank(information) != jacobian.shape[1]:
         return None
     correlation = geometry.noise_correlation_covariance_pixels_squared
-    return np.asarray(
+    scaled_covariance = np.asarray(
         np.linalg.inv(information)
         if correlation is None or correlated_point_estimator
         else _correlated_parameter_covariance(
-            jacobian,
+            normalized,
             coordinates_xy,
             correlation,
         ),
         dtype=np.float64,
     )
+    return scaled_covariance / norms[:, None] / norms[None, :]
 
 
 def _formal_uncertainty(  # noqa: PLR0913
@@ -2124,10 +2127,21 @@ def _recover_joint_shape_information(
         correlated_point_estimator=samples.point_estimator == "correlated-gls",
     )
     if covariance is None:
-        return candidates
+        # Marginal blocks can be full rank while the complete mixture is
+        # singular. Neither ellipse nor Cartesian coordinates identified it.
+        return tuple(
+            replace(
+                candidate,
+                diagnostics=replace(
+                    candidate.diagnostics, information_condition_number=None
+                ),
+            )
+            for candidate in candidates
+        )
+    condition = _information_condition(np.column_stack(weighted))
     output = []
     start = 0
-    for candidate, jacobian in zip(candidates, weighted, strict=True):
+    for candidate in candidates:
         stop = start + candidate.optimizer_parameters.size
         marginal = covariance[start:stop, start:stop]
         if stop - start == len(_FREE_FIXED_BACKGROUND_PARAMETER_NAMES):
@@ -2135,19 +2149,13 @@ def _recover_joint_shape_information(
                 candidate.full_parameters
             )
             marginal = transform @ marginal @ transform.T
-        norms = np.linalg.norm(jacobian, axis=0)
-        condition = float(
-            np.linalg.cond((jacobian / norms).T @ (jacobian / norms))
-        )
         output.append(
             replace(
                 candidate,
                 covariance=marginal,
                 diagnostics=replace(
                     candidate.diagnostics,
-                    information_condition_number=condition
-                    if np.isfinite(condition)
-                    else None,
+                    information_condition_number=condition,
                     covariance_parameterization="cartesian-precision",
                 ),
             )
@@ -2521,8 +2529,15 @@ def _joint_candidates(
         )
         for index in range(len(initial_bounds))
     )
-    return (
-        _recover_joint_shape_information(samples, candidates)
-        if covariance is None
-        else candidates
+    if covariance is None:
+        return _recover_joint_shape_information(samples, candidates)
+    condition = _information_condition(np.asarray(result.jac))
+    return tuple(
+        replace(
+            candidate,
+            diagnostics=replace(
+                candidate.diagnostics, information_condition_number=condition
+            ),
+        )
+        for candidate in candidates
     )

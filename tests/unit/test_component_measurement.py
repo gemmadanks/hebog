@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from typing import Any
 
 import numpy as np
 import pytest
@@ -21,27 +22,34 @@ from hebog.algorithms.multiscale import (
     build_residual_atrous_plan,
 )
 from hebog.config import CompactGaussianFitConfig, CompactMomentConfig
-from hebog.data_models.fitting import ValidCompactGaussianFit
+from hebog.data_models.fitting import (
+    UnavailableCompactGaussianFit,
+    ValidCompactGaussianFit,
+)
 from hebog.data_models.images import RestoringBeam
 from hebog.data_models.partitioning import ImageBounds
 
 
-def _measure(
+def _measure(  # noqa: PLR0913
     *,
-    parent_index: int = 1,
     component_index: int = 1,
     maximum_bounds_pixels: int = 10000,
     center_xy: tuple[float, float] = (16.0, 12.0),
     valid: np.ndarray | None = None,
+    centers: tuple[tuple[float, float], ...] | None = None,
+    shape_yx: tuple[int, int] = (25, 33),
 ):
     """One original-pixel ellipse with independently supplied unit RMS."""
-    yy, xx = np.mgrid[:25, :33]
-    signal = 10 * np.exp(
-        -0.5
-        * (((xx - center_xy[0]) / 2.4) ** 2 + ((yy - center_xy[1]) / 1.6) ** 2)
-    )
-    labels = np.where(signal >= 3, component_index, 0).astype(np.int32)
-    parents = np.where(labels > 0, parent_index, 0).astype(np.int32)
+    yy, xx = np.mgrid[: shape_yx[0], : shape_yx[1]]
+    signal = np.zeros(shape_yx)
+    labels = np.zeros(shape_yx, dtype=np.int32)
+    for index, center in enumerate(centers or (center_xy,), component_index):
+        profile = 10 * np.exp(
+            -0.5
+            * (((xx - center[0]) / 2.4) ** 2 + ((yy - center[1]) / 1.6) ** 2)
+        )
+        signal += profile
+        labels[profile >= 3] = index
     wcs = WCS(naxis=2)
     wcs.wcs.ctype = ["RA---TAN", "DEC--TAN"]
     wcs.wcs.cdelt = [-1 / 3600, 1 / 3600]
@@ -65,7 +73,6 @@ def _measure(
         np.ones(signal.shape, dtype=np.bool_) if valid is None else valid,
         labels,
         labels,
-        parents,
         wcs,
         RestoringBeam(4 / 3600, 3 / 3600, 0.0),
         CompactMomentConfig(3, 1e-12),
@@ -84,7 +91,7 @@ def test_sparse_parent_and_component_labels_preserve_model_measurements() -> (
 ):
     """Task-local integer renumbering cannot change physical measurements."""
     original = _measure()
-    renumbered = _measure(parent_index=11, component_index=19)
+    renumbered = _measure(component_index=19)
     assert (
         original.deferred_parent_count == renumbered.deferred_parent_count == 0
     )
@@ -101,6 +108,93 @@ def test_parent_work_deferral_does_not_allocate_a_fit() -> None:
     result = _measure(maximum_bounds_pixels=1)
     assert result.fits == result.compact_groups == ()
     assert result.deferred_parent_count == 1
+
+
+@pytest.mark.parametrize("margin", (0, 1, 3))
+def test_fit_contexts_preserve_disconnected_owners_and_label_permutations(
+    margin: int,
+) -> None:
+    """Owner links join disjoint footprints without merging distant peers."""
+    labels = np.zeros((17, 47), dtype=np.int32)
+    labels[8, 4] = labels[8, 24] = 7
+    labels[8, 6] = 2
+    labels[8, 42] = 9
+    parents = measurement._measurement_fit_parents(labels, margin)
+    assert parents[8, 4] == parents[8, 24] != parents[8, 42]
+    assert (parents[8, 4] == parents[8, 6]) == (margin > 0)
+    assert np.all(parents[labels == 0] == 0)
+    mapping = np.arange(10, dtype=np.int32)
+    mapping[[2, 7, 9]] = (41, 6, 5)
+    renumbered = measurement._measurement_fit_parents(mapping[labels], margin)
+    np.testing.assert_array_equal(parents, renumbered)
+    np.testing.assert_array_equal(
+        measurement._measurement_fit_parents(np.zeros_like(labels), margin),
+        np.zeros_like(labels),
+    )
+
+
+def test_connected_oversized_fit_remains_explicitly_unavailable() -> None:
+    """Context separation cannot waive the joint-parameter limit of a chain."""
+    result = _measure(
+        centers=tuple((12.0 + 12 * index, 16.0) for index in range(17)),
+        shape_yx=(33, 217),
+        maximum_bounds_pixels=100_000,
+    )
+    assert len(result.fits) == 17
+    assert all(
+        isinstance(fit, UnavailableCompactGaussianFit)
+        and fit.reason == "joint-fit-work-limit"
+        for _, fit in result.fits
+    )
+
+
+def test_distant_compact_sources_do_not_share_a_joint_fit_work_limit() -> None:
+    """A broad hierarchy is not one inseparable 108-parameter fit."""
+    centers = tuple(
+        (16.0 + 32 * x, 16.0 + 32 * y) for y in range(3) for x in range(6)
+    )
+    result = _measure(
+        centers=centers, shape_yx=(97, 193), maximum_bounds_pixels=100_000
+    )
+    assert len(result.fits) == len(centers)
+    assert result.deferred_parent_count == 0
+    for (index, fitted), center in zip(result.fits, centers, strict=True):
+        assert isinstance(fitted, ValidCompactGaussianFit)
+        assert fitted.parameters.centroid_xy == pytest.approx(center, abs=1e-5)
+        assert frozenset((index,)) in result.compact_groups
+
+
+def test_extended_evidence_does_not_split_an_admitted_source_group(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A partial morphology proposal joins whole admitted source owners."""
+
+    def extended_proposal(
+        *_args: object, **kwargs: Any
+    ) -> tuple[frozenset[int], ...]:
+        group = frozenset((2, 3))
+        kwargs["evidence"].append(
+            measurement.ComponentGroupingEvidence("resolved-loop", (1,), group)
+        )
+        return (group,)
+
+    monkeypatch.setattr(
+        measurement, "_cross_parent_loop_groups", extended_proposal
+    )
+    result = _measure(
+        centers=((12.0, 16.0), (15.0, 16.0), (60.0, 16.0), (95.0, 16.0)),
+        shape_yx=(33, 113),
+        maximum_bounds_pixels=100_000,
+    )
+    assert frozenset((1, 2)) in result.proposed_compact_groups
+    assert result.extended_groups == (frozenset((1, 2, 3)),)
+    assert result.compact_groups == (frozenset((4,)),)
+    loop = next(
+        item
+        for item in result.grouping_evidence
+        if item.reason == "resolved-loop"
+    )
+    assert loop.protected_labels == frozenset((2, 3))
 
 
 @pytest.mark.parametrize("center", ((0.7, 1.2), (31.5, 23.3)))
@@ -296,6 +390,40 @@ def test_compact_core_evidence_requires_an_available_local_model() -> None:
     assert measurement._fit_core_in_feature(
         1, ((1, fitted),), labels, 1, arguments[2], labels > 0
     )
+
+
+def test_residual_merge_attribution_does_not_change_membership() -> None:
+    """Optional telemetry leaves a connected broad residual's owners intact."""
+    yy, xx = np.mgrid[:81, :97]
+    signal = 8 * np.exp(-0.5 * (((xx - 48) / 12) ** 2 + ((yy - 40) / 5) ** 2))
+    support = signal >= 3
+    labels = np.where(support, np.where(xx < 48, 1, 2), 0)
+    beam = BeamShapePixels(4.0, 3.0, 0.0)
+    arguments = (
+        signal,
+        np.ones(signal.shape),
+        np.ones(signal.shape, dtype=bool),
+        labels,
+        (),
+        (),
+        support,
+        build_residual_atrous_plan(beam, noise_correlation=beam),
+        0.5,
+        5.0,
+        3.0,
+        7,
+        signal.size,
+    )
+    evidence: list[measurement.ComponentGroupingEvidence] = []
+    baseline = measurement._extended_residual_groups(
+        *arguments, evidence=evidence
+    )
+    assert baseline == (frozenset((1, 2)),)
+    assert len(evidence) == 1
+    assert evidence[0].reason == "persistent-residual"
+    assert evidence[0].component_labels == frozenset((1, 2))
+    assert evidence[0].scale_ids
+    assert measurement._extended_residual_groups(*arguments) == baseline
 
 
 def test_all_invalid_parent_defers_without_fabricating_measurement() -> None:

@@ -539,6 +539,47 @@ def test_all_invalid_grid_produces_explicitly_unavailable_nan_tile() -> None:
     assert np.isnan(tile.rms).all()
 
 
+def test_fine_noise_edge_extension_is_positive_and_tile_invariant() -> None:
+    """A positive noisy grid cannot extrapolate into zero edge noise."""
+    yy, xx = np.mgrid[:40, :48]
+    image = -2 + 0.01 * yy + np.where((xx + yy) % 2, -1.0, 1.0)
+    grid = plan_rms_grid(
+        image_shape_yx=image.shape, window_shape_yx=(12, 12), step_yx=(6, 6)
+    )
+    statistics = _estimate_grid(
+        _ArrayImageSource(image), grid, maximum_batch_cells=8
+    )
+    prepared = prepare_rms_grid_for_interpolation(statistics)
+    values = np.ones(grid.shape_yx)
+    values[0, 0] = 0.1
+    values.setflags(write=False)
+    prepared = replace(prepared, rms=values)
+    bounds = ImageBounds(0, 40, 0, 48)
+    valid = np.ones(image.shape, dtype=np.bool_)
+    coarse_policy = interpolate_prepared_rms_grid(prepared, bounds, valid)
+    actual = interpolate_prepared_rms_grid(
+        prepared, bounds, valid, extrapolate_rms=False
+    )
+    assert coarse_policy.rms[0, 0] == 0
+    assert actual.rms[0, 0] == 0.1
+    assert np.all(actual.rms >= 0.1)
+    np.testing.assert_array_equal(actual.background, coarse_policy.background)
+    for corner in (ImageBounds(0, 13, 0, 19), ImageBounds(23, 40, 29, 48)):
+        subset = subset_prepared_rms_grid(prepared, corner)
+        tile = interpolate_prepared_rms_grid(
+            subset,
+            corner,
+            np.ones(corner.shape_yx, dtype=np.bool_),
+            extrapolate_rms=False,
+        )
+        np.testing.assert_array_equal(
+            tile.rms,
+            actual.rms[
+                corner.y_start : corner.y_stop, corner.x_start : corner.x_stop
+            ],
+        )
+
+
 def test_interpolation_rejects_misaligned_tile_validity() -> None:
     """Tile validity must describe exactly the requested global core."""
     image = np.ones((8, 9), dtype=np.float64)

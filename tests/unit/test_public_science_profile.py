@@ -24,6 +24,39 @@ from hebog.data_models.measurement_diagnostics import MeasurementDisposition
 _ROOT = Path(__file__).parents[2]
 
 
+@pytest.mark.parametrize(
+    ("shape", "window", "step"),
+    [
+        ((149, 512), 150, 50),
+        ((150, 512), 37, 12),
+        ((384, 512), 96, 32),
+        ((512, 384), 96, 32),
+        ((599, 800), 149, 49),
+        ((600, 800), 150, 50),
+        ((1024, 1024), 150, 50),
+    ],
+)
+def test_public_background_mesh_is_bounded_by_image_capacity(
+    shape: tuple[int, int], window: int, step: int
+) -> None:
+    """Only intermediate images need a smaller spatial coarse mesh."""
+    from hebog.validation.hebog_campaign import (  # noqa: PLC0415
+        phase_five_corrected_candidate_configs,
+    )
+
+    original = phase_five_corrected_candidate_configs()[0].background_rms
+    repaired = public_api._public_background_config(shape, original)
+    assert repaired.coarse.window_shape_yx == (window, window)
+    assert repaired.coarse.step_yx == (step, step)
+    assert repaired.adaptive == original.adaptive
+    assert repaired.coarse.statistics == original.coarse.statistics
+    assert (
+        repaired.maximum_constant_map_pixels
+        == original.maximum_constant_map_pixels
+    )
+    assert original.coarse.window_shape_yx == (150, 150)
+
+
 def test_repaired_science_cannot_inherit_reference_qualification() -> None:
     """Matching old thresholds is not qualification of a changed finder."""
     assert (
@@ -33,7 +66,7 @@ def test_repaired_science_cannot_inherit_reference_qualification() -> None:
         == "development-unqualified"
     )
     assert public_api._COMPOSITION_NAME == (
-        "phase-5-observable-source-and-joint-estimator-v10"
+        "phase-5-evidence-bound-public-catalogue-v11"
     )
     assert {
         "hebog.algorithms.component_measurement",
@@ -43,6 +76,17 @@ def test_repaired_science_cannot_inherit_reference_qualification() -> None:
     } <= set(public_api._SCIENTIFIC_MODULES)
 
 
+def test_intermediate_mesh_cannot_bypass_the_bounded_read_admission() -> None:
+    """A skinny, very long image cannot introduce an unbounded mask read."""
+    from hebog.validation.hebog_campaign import (  # noqa: PLC0415
+        phase_five_corrected_candidate_configs,
+    )
+
+    original = phase_five_corrected_candidate_configs()[0].background_rms
+    with pytest.raises(ValueError, match="bounded image admission"):
+        public_api._public_background_config((150, 10_000), original)
+
+
 def _provenance() -> PublicSourceFindingProvenance:
     """Return one exact public provenance fixture."""
     return PublicSourceFindingProvenance(
@@ -50,9 +94,7 @@ def _provenance() -> PublicSourceFindingProvenance:
         configuration_sha256="2" * 64,
         scientific_profile_sha256="3" * 64,
         scientific_composition_sha256="4" * 64,
-        scientific_composition=(
-            "phase-5-observable-source-and-joint-estimator-v10"
-        ),
+        scientific_composition=("phase-5-evidence-bound-public-catalogue-v11"),
     )
 
 
@@ -96,7 +138,7 @@ def test_public_diagnostics_round_trip_exact_provenance() -> None:
         )
         == diagnostics
     )
-    assert diagnostics.schema_version == 7
+    assert diagnostics.schema_version == 8
     assert diagnostics.deblended_parent_count == 1
     assert diagnostics.deferred_deblend_parent_count == 0
 

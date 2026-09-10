@@ -145,3 +145,72 @@ def test_preflight_uses_the_public_runners_exact_configuration(
     preflight = json.loads(capsys.readouterr().out)
     assert preflight["configuration_sha256"] == expected
     assert not (tmp_path / "history").exists()
+
+
+def test_preflight_never_republishes_an_existing_refresh(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: Any
+) -> None:
+    """Read-only admission cannot relabel or repoint a sealed refresh."""
+    run = _REFRESH["run_refresh"]
+    input_path = tmp_path / "input.json"
+    reference_path = tmp_path / "reference.json"
+    _write_json(
+        input_path,
+        {
+            "scientific_claims_authorized": False,
+            "results": [{"case_id": "case"}],
+        },
+    )
+    _write_json(
+        reference_path,
+        {
+            "scientific_claims_authorized": False,
+            "results": [{"status": "success"}, {"status": "success"}],
+        },
+    )
+
+    def forbidden(*_args: Any, **_kwargs: Any) -> None:
+        raise AssertionError("read-only preflight must not publish or execute")
+
+    def public_runner(_root: Path) -> tuple[str, Any]:
+        return "c" * 64, forbidden
+
+    def source_sha256(_root: Path) -> str:
+        return "b" * 64
+
+    def file_sha256(_path: Path) -> str:
+        return "d" * 64
+
+    def git_identity(_root: Path) -> tuple[str, bool]:
+        return "a" * 40, False
+
+    monkeypatch.setitem(run.__globals__, "_load_public_runner", public_runner)
+    monkeypatch.setitem(run.__globals__, "source_tree_sha256", source_sha256)
+    monkeypatch.setitem(run.__globals__, "_sha256", file_sha256)
+    monkeypatch.setitem(run.__globals__, "_git_identity", git_identity)
+    monkeypatch.setitem(run.__globals__, "_publish_history", forbidden)
+    history = tmp_path / "history"
+    output = history / "aaaaaaa-bbbbbbbbbbbb-dddddddd"
+    output.mkdir(parents=True)
+    _write_json(output / "campaign.json", {"sealed": True})
+    _write_json(history / "index.json", {"label": "original"})
+    (history / "latest").symlink_to(output.name)
+    before = {
+        path.relative_to(history): path.read_bytes()
+        for path in history.rglob("*.json")
+    }
+    run(
+        repository_root=tmp_path,
+        input_campaign_path=input_path,
+        reference_campaign_path=reference_path,
+        history_root=history,
+        label="must not replace the original",
+        resume=False,
+        preflight_only=True,
+    )
+    assert json.loads(capsys.readouterr().out)["status"] == "preflight-passed"
+    assert before == {
+        path.relative_to(history): path.read_bytes()
+        for path in history.rglob("*.json")
+    }
+    assert (history / "latest").readlink() == Path(output.name)

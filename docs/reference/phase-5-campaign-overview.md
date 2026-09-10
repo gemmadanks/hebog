@@ -2489,6 +2489,33 @@ Provisional admission needs 68 GiB free versus 59.08 GiB observed; the tentative
 sub-12-hour target. No new run, output namespace, execution decision or monitor
 was created. The existing failed terminal remains unchanged; Phase 5 is open.
 
+## 2026-09-10 public-catalogue repair fixture result
+
+This is **independent development-fixture evidence, not a campaign verdict**.
+The prospective [catalogue repair contract](phase-5-public-catalogue-repair-contract.md)
+addresses unsupported source associations, oversized computational fit groups,
+unit-dependent numerical diagnostics and source-contaminated or spatially
+oversmoothed background/RMS estimates. All viewed notebook and closed R6
+products remain unchanged. Neither PyBDSF nor Aegean is treated as truth.
+
+The combined final integration ladder passes 203 tests: all 108 existing
+geometry cells, 24 bright-halo/noise controls, 38 noise-only/gradient/corner
+controls, six background Serial/existing-Dask cases and 27 public-API cases.
+The final compact-policy isolation regression and existing compact-profile
+test also pass. Compact neighbours remain separate without positive merge
+evidence; genuine extended-source guards remain binding. Source-level merge
+provenance and unavailable/deferred states are explicit in diagnostics schema
+8. Continuum composition v11 remains `development-unqualified`.
+
+No pooled success overrides a failed geometry or unavailable processing.
+These fixtures do not show that every viewed feature is real or establish
+new catalogue completeness, reliability or PyBDSF parity. The next replay
+still requires the new non-executable candidate freeze, reuse-aware runner
+tests, exact retained-record verification and resource admission. About
+52 GiB is currently free versus the provisional 68 GiB budget; the earlier
+9--14-hour estimate must be remeasured for this RMS policy. No replay,
+reference execution, notebook refresh, rescoring or release was started.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

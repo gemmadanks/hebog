@@ -14,9 +14,7 @@ from astropy.io import fits
 
 from hebog import public_science
 from hebog.algorithms.multiscale import BeamShapePixels
-from hebog.algorithms.source_association import reduce_source_associations
 from hebog.config import SourceFinderConfig
-from hebog.data_models.source_association import DetectionComponentRecord
 from hebog.public_science import (
     _aligned_plane,
     _execution_review,
@@ -225,21 +223,6 @@ def test_configured_builder_deblends_components_before_catalogue_measurement(
         public_science,
         "evaluate_publication_scale_persistence_candidate_products",
         return_products,
-    )
-
-    # This seam test supplies topology products, not a multiscale hierarchy.
-    # The complete physical hierarchy is exercised by the analytic tests below.
-    def independent_memberships(
-        records: tuple[DetectionComponentRecord, ...],
-        *_args: object,
-        **_kwargs: object,
-    ):
-        return reduce_source_associations(records, ())
-
-    monkeypatch.setattr(
-        public_science,
-        "associate_components_by_multiscale_hierarchy",
-        independent_memberships,
     )
 
     def capture_catalogues(

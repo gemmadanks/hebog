@@ -10,12 +10,17 @@ from __future__ import annotations
 
 from dataclasses import replace
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
 from astropy.io import fits
 from astropy.wcs import WCS
+from scipy.ndimage import gaussian_filter
 
+from hebog import public_science
+from hebog.algorithms import component_measurement
+from hebog.algorithms.component_measurement import ComponentGroupingEvidence
 from hebog.algorithms.extended_measurement import (
     measure_detected_segment_position,
 )
@@ -106,6 +111,119 @@ def test_public_measurements_retain_fit_and_centroid_attribution() -> None:
         source.position_diagnostics.aperture_signed_flux_jy
         == pytest.approx(result.catalogue[0].integrated_flux_jy)
     )
+
+
+def test_public_extended_source_retains_bounded_merge_evidence() -> None:
+    """Every merged source exposes the evidence and participating members."""
+    yy, xx = np.mgrid[:97, :97]
+    radius = np.hypot(xx - 48, yy - 48)
+    angle = np.arctan2(yy - 48, xx - 48)
+    result = _products(
+        6
+        * (1 + 0.6 * np.cos(6 * angle))
+        * np.exp(-0.5 * ((radius - 18) / 2) ** 2)
+    )
+    sources = [
+        row
+        for row in result.measurement_dispositions
+        if row.object_kind == "source"
+    ]
+    assert len(sources) == 1
+    assert len(sources[0].member_component_ids) > 1
+    assert sources[0].association_evidence
+    for evidence in sources[0].association_evidence:
+        assert evidence.reason
+        assert set(evidence.member_component_ids) <= set(
+            sources[0].member_component_ids
+        )
+        assert set(evidence.protected_component_ids) <= set(
+            evidence.member_component_ids
+        )
+    assert (
+        type(sources[0]).model_validate_json(sources[0].model_dump_json())
+        == sources[0]
+    )
+
+
+def test_public_merge_evidence_cannot_join_foreign_source_owners(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Corrupt grouping attribution fails before publishing a false claim."""
+    original = public_science.measure_component_models
+
+    def invalid_evidence(*args: Any, **kwargs: Any):
+        result = original(*args, **kwargs)
+        assert len(result.fits) == 2
+        return replace(
+            result,
+            grouping_evidence=(
+                ComponentGroupingEvidence(
+                    "directional-fwhm-overlap",
+                    (),
+                    frozenset(index for index, _ in result.fits),
+                ),
+            ),
+        )
+
+    monkeypatch.setattr(
+        public_science, "measure_component_models", invalid_evidence
+    )
+    yy, xx = np.mgrid[:49, :97]
+    signal = 10 * np.exp(-((xx - 16) ** 2 + (yy - 24) ** 2) / 8)
+    signal += 10 * np.exp(-((xx - 80) ** 2 + (yy - 24) ** 2) / 8)
+    with pytest.raises(ValueError, match="merge evidence disagrees"):
+        _products(signal)
+
+
+@pytest.mark.parametrize("peak", (8.0, 20.0, 80.0))
+@pytest.mark.parametrize("separation", (12.0, 20.0, 32.0))
+@pytest.mark.parametrize("ratio", (0.5, 1.0))
+def test_noisy_compact_chain_keeps_independent_source_memberships(
+    peak: float, separation: float, ratio: float
+) -> None:
+    """Coarse context and faint companions do not define one source."""
+    yy, xx = np.mgrid[:81, :145]
+    noise = gaussian_filter(
+        np.random.default_rng(618).normal(size=yy.shape), 1
+    )
+    noise /= noise.std()
+    centers = (
+        (40.0, 40.0),
+        (40 + separation, 40.0),
+        (40 + 2 * separation, 40.0),
+    )
+    signal = noise.copy()
+    for index, (x, y) in enumerate(centers):
+        signal += (
+            peak
+            * (ratio if index == 1 else 1.0)
+            * np.exp(-0.5 * (((xx - x) / 1.7) ** 2 + ((yy - y) / 1.7) ** 2))
+        )
+    products = _products(signal)
+    association = products.source_association
+    assert association is not None
+    owners = {
+        member: source.source_id
+        for source in association.memberships
+        for member in source.component_ids
+    }
+    detected = []
+    for center in centers:
+        # Below-threshold injected companions are not guaranteed detections.
+        if center == centers[1] and peak * ratio < 5:
+            continue
+        component = min(
+            association.components,
+            key=lambda row: np.linalg.norm(
+                np.asarray(row.centroid_yx)[::-1] - center
+            ),
+        )
+        assert (
+            np.linalg.norm(np.asarray(component.centroid_yx)[::-1] - center)
+            < 4
+        )
+        detected.append(owners[component.component_id])
+    assert len(set(detected)) == len(detected)
 
 
 def test_terminal_keeps_stage_support_separate_from_published_mask() -> None:
@@ -598,6 +716,42 @@ def test_open_arc_keeps_its_components_and_single_flux_owner(
     truth_flux = float(signal.sum()) / (np.pi * 16 / (4 * np.log(2)))
     assert products.catalogue[0].integrated_flux_jy == pytest.approx(
         truth_flux, rel=0.05
+    )
+
+
+def test_merge_attribution_does_not_change_measurements(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Collecting optional provenance cannot alter a positive morphology."""
+    yy, xx = np.mgrid[:97, :97]
+    radius = np.hypot(xx - 48, yy - 48)
+    angle = np.arctan2(yy - 48, xx - 48)
+    envelope = np.clip((3 * np.pi / 4 - np.abs(angle)) / 0.3, 0, 1)
+    signal = 8 * np.exp(-0.5 * ((radius - 18) / 2) ** 2) * envelope
+    signal *= 1 + 0.6 * np.cos(6 * angle)
+    evidence_kind = "resolved-open-arc"
+    function = "_resolved_open_arc_groups"
+    baseline = _products(signal)
+    assert any(
+        item.reason == evidence_kind
+        for row in baseline.measurement_dispositions
+        for item in row.association_evidence
+    )
+    original = getattr(component_measurement, function)
+
+    def without_evidence(*args: Any, **kwargs: Any):
+        kwargs["evidence"] = None
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(component_measurement, function, without_evidence)
+    without = _products(signal)
+    assert without.catalogue == baseline.catalogue
+    assert without.component_catalogue == baseline.component_catalogue
+    assert without.source_association == baseline.source_association
+    assert all(
+        item.reason != evidence_kind
+        for row in without.measurement_dispositions
+        for item in row.association_evidence
     )
 
 

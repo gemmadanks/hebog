@@ -152,6 +152,17 @@ def test_compact_constraints_preserve_labels_and_unconstrained_members() -> (
     assert order_one == order_two
 
 
+def test_unconstrained_hierarchy_remainder_does_not_merge_components() -> None:
+    """Missing compact/morphology evidence cannot identify independent rows."""
+    labels = _labels(values=(9, 2, 31))
+    original = _associate(labels, _records(labels))
+    assert len(original.memberships) < len(original.components)
+    result = constrain_source_memberships(original, (frozenset((31,)),))
+    assert {row.component_ids for row in result.memberships} == {
+        (component.component_id,) for component in original.components
+    }
+
+
 @pytest.mark.parametrize(
     "groups",
     (

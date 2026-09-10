@@ -82,6 +82,7 @@ def _():
         label_plane: npt.NDArray[np.int32] | None
         label_count: int
         notes: str
+        measurement_rows: tuple[dict[str, object], ...] = ()
 
     return (
         CampaignCase,
@@ -685,6 +686,7 @@ def _(
                 continue
 
             coordinate_frame = "native"
+            measurement_rows = ()
             if case.kind == "external":
                 result = load_external_run_result(
                     result_path,
@@ -713,6 +715,11 @@ def _(
                     result.get("artifacts", {}),
                 )
                 semantics = result.get("catalogue_semantics", {})
+                dispositions = result.get("measurement_dispositions", ())
+                if isinstance(dispositions, (list, tuple)):
+                    measurement_rows = tuple(
+                        row for row in dispositions if isinstance(row, dict)
+                    )
                 if isinstance(semantics, dict):
                     coordinate_frame = str(
                         semantics.get("coordinate_frame", "native")
@@ -878,6 +885,7 @@ def _(
                 label_plane=label_plane,
                 label_count=label_count,
                 notes="; ".join(notes),
+                measurement_rows=measurement_rows,
             )
 
         return image, image_path, overlays, truth, warnings
@@ -894,12 +902,79 @@ def _(
         }
         return order.get(overlay.finder_id, 99), overlay.mode
 
+    def _catalogue_semantics(finder_id: str) -> tuple[str, str]:
+        if finder_id == "hebog":
+            return "Hebog associated sources", "native publication support"
+        if finder_id == "aegean":
+            return (
+                "Aegean Gaussian components",
+                "ellipse proxy (not native support)",
+            )
+        if finder_id in ("released-pybdsf", "pinned-pybdsf-master"):
+            return "native PyBDSF sources", "native PyBDSF islands"
+        return (
+            "catalogue rows (semantics unavailable)",
+            "support semantics unavailable",
+        )
+
+    def measurement_detail_rows(
+        overlays: dict[str, RunOverlay],
+    ) -> list[dict[str, object]]:
+        """Expose every retained disposition, including unpublished failures."""
+        return [
+            {
+                "run": key,
+                **{
+                    name: json.dumps(value, sort_keys=True)
+                    if isinstance(value, (dict, list, tuple))
+                    else value
+                    for name, value in row.items()
+                },
+            }
+            for key, overlay in sorted(overlays.items())
+            for row in overlay.measurement_rows
+        ]
+
+    def _visible_count(
+        xx: tuple[float, ...],
+        yy: tuple[float, ...],
+        xlim: tuple[float, float],
+        ylim: tuple[float, float],
+    ) -> int:
+        return sum(
+            min(xlim) <= x <= max(xlim) and min(ylim) <= y <= max(ylim)
+            for x, y in zip(xx, yy, strict=True)
+        )
+
+    def _update_overlay_title(axis, overlay: RunOverlay) -> None:
+        source_type, mask_type = _catalogue_semantics(overlay.finder_id)
+        visible = _visible_count(
+            overlay.source_x,
+            overlay.source_y,
+            axis.get_xlim(),
+            axis.get_ylim(),
+        )
+        counts = f"{source_type}: {visible} visible / {overlay.source_count} full core"
+        if overlay.finder_id == "hebog":
+            components = _visible_count(
+                overlay.component_x,
+                overlay.component_y,
+                axis.get_xlim(),
+                axis.get_ylim(),
+            )
+            counts += f"\nGaussian components: {components} visible / {overlay.component_count} full core"
+        axis.set_title(
+            f"{overlay.finder_id} | {overlay.mode}\n{counts}\n"
+            f"{mask_type}: {overlay.label_count} labels, full core",
+            fontsize="small",
+        )
+
     def format_overlay_summary(overlays: dict[str, RunOverlay]) -> str:
         lines = [
-            "| Finder | Mode | Status | Sources/catalogue rows | "
-            "Gaussian components | Support labels | "
+            "| Finder | Mode | Status | Native catalogue type | Rows (full core) | "
+            "Hebog Gaussian components (full core) | Mask type | Labels (full core) | "
             "Recorded wall time (s) | Notes |",
-            "| --- | --- | --- | ---: | ---: | ---: | ---: | --- |",
+            "| --- | --- | --- | --- | ---: | ---: | --- | ---: | ---: | --- |",
         ]
         for overlay in sorted(overlays.values(), key=_finder_order):
             wall = (
@@ -914,11 +989,17 @@ def _(
                         _markdown_cell(overlay.finder_id),
                         _markdown_cell(overlay.mode),
                         _markdown_cell(overlay.status),
+                        _markdown_cell(
+                            _catalogue_semantics(overlay.finder_id)[0]
+                        ),
                         str(overlay.source_count),
                         (
                             str(overlay.component_count)
                             if overlay.finder_id == "hebog"
                             else "n/a"
+                        ),
+                        _markdown_cell(
+                            _catalogue_semantics(overlay.finder_id)[1]
                         ),
                         str(overlay.label_count),
                         wall,
@@ -1092,7 +1173,7 @@ def _(
                     facecolors="none",
                     edgecolors=colour,
                     linewidths=1.2,
-                    label=f"{overlay.finder_id} catalogue",
+                    label=_catalogue_semantics(overlay.finder_id)[0],
                     zorder=6,
                 )
             if overlay.support_mask is not None and np.any(
@@ -1129,16 +1210,18 @@ def _(
                         antialiased=False,
                         zorder=4,
                     )
-            count_summary = (
-                f"{overlay.source_count} associated sources | "
-                f"{overlay.component_count} Gaussian components | "
-                f"{overlay.label_count} support labels"
-                if overlay.finder_id == "hebog"
-                else f"{overlay.source_count} catalogue rows | "
-                f"{overlay.label_count} support labels"
+            _update_overlay_title(axis, overlay)
+            axis.callbacks.connect(
+                "xlim_changed",
+                lambda changed, current=overlay: _update_overlay_title(
+                    changed, current
+                ),
             )
-            axis.set_title(
-                f"{overlay.finder_id} | {overlay.mode}\n{count_summary}"
+            axis.callbacks.connect(
+                "ylim_changed",
+                lambda changed, current=overlay: _update_overlay_title(
+                    changed, current
+                ),
             )
             if overlay.source_x or overlay.component_x:
                 axis.legend(loc="best", fontsize="small")
@@ -1151,6 +1234,7 @@ def _(
 
     return (
         format_overlay_summary,
+        measurement_detail_rows,
         load_campaign_cases,
         load_case_overlays,
         normalise_campaign_path,
@@ -1331,6 +1415,7 @@ def _(
     image,
     image_path,
     include_failed_runs,
+    measurement_detail_rows,
     mo,
     overlays,
     plot_case,
@@ -1382,6 +1467,28 @@ def _(
             interactive_figure,
             mo.md("## Run evidence"),
             mo.md(format_overlay_summary(summary_overlays)),
+            mo.accordion(
+                {
+                    "Native Hebog membership and measurement dispositions (full input domain)": mo.vstack(
+                        [
+                            mo.md(
+                                "These are saved native diagnostics, not newly scored results. "
+                                "Search by source or component ID to follow member links, "
+                                "association evidence, fit flags, and publication/deferred reasons. "
+                                "This table includes all recorded input-domain dispositions, "
+                                "including off-core and unpublished members; its counts need "
+                                "not equal the cropped catalogue or current view. An empty "
+                                "table means these diagnostics were not saved, not that all "
+                                "measurements passed."
+                            ),
+                            mo.ui.table(
+                                measurement_detail_rows(overlays),
+                                selection=None,
+                            ),
+                        ]
+                    )
+                }
+            ),
             mo.md(
                 """
     ### Evidence-table columns

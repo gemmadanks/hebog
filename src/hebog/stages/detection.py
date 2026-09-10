@@ -249,6 +249,8 @@ def run_detection_stage(  # noqa: PLR0913
     sink: ZarrProductSink,
     *,
     multiscale_protection: MultiscaleSourceProtection | None = None,
+    protect_coarse_source_support: bool = False,
+    refine_local_noise: bool = False,
 ) -> DetectionStageResult:
     """Run bounded compact detection and publish one complete generation.
 
@@ -276,6 +278,8 @@ def run_detection_stage(  # noqa: PLR0913
         executor=executor,
         sink=sink,
         multiscale_protection=multiscale_protection,
+        protect_coarse_source_support=protect_coarse_source_support,
+        refine_local_noise=refine_local_noise,
     )
 
 
@@ -288,6 +292,8 @@ def run_detection_from_coarse_grids(  # noqa: PLR0913
     executor: Executor,
     sink: ZarrProductSink,
     multiscale_protection: MultiscaleSourceProtection | None = None,
+    protect_coarse_source_support: bool = False,
+    refine_local_noise: bool = False,
 ) -> DetectionStageResult:
     """Run Phase 3 from one immutable Phase 2 coarse-grid result.
 
@@ -299,7 +305,7 @@ def run_detection_from_coarse_grids(  # noqa: PLR0913
         raise ValueError(
             "detection sink must use the stage partition manifest"
         )
-    if coarse_grids.adaptive_regions:
+    if coarse_grids.adaptive_regions or coarse_grids.local_noise is not None:
         raise ValueError("detection requires a coarse-only background cache")
     if coarse_grids.coarse.geometry.image_shape_yx != manifest.image_shape_yx:
         raise ValueError(
@@ -324,6 +330,8 @@ def run_detection_from_coarse_grids(  # noqa: PLR0913
             else None
         ),
         multiscale_protection=multiscale_protection,
+        protect_coarse_source_support=protect_coarse_source_support,
+        refine_local_noise=refine_local_noise,
     )
     for product_name, dtype in (
         ("background", np.dtype("<f8")),

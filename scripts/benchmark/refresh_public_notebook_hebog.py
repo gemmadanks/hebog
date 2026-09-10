@@ -292,7 +292,7 @@ def run_refresh(  # noqa: C901, PLR0912, PLR0913, PLR0915
         f"{commit[:7]}{' + working tree' if dirty else ''} | "
         f"{source_sha256[:8]} | runner {hebog_runner_sha256[:8]}"
     )
-    if output.is_dir():
+    if output.is_dir() and not preflight_only:
         _publish_history(
             repository_root=repository_root,
             history_root=history_root,
