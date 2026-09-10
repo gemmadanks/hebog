@@ -97,7 +97,7 @@ def run_replacement(
             terminal = {
                 "schema_version": 1,
                 "campaign": (
-                    "phase-5-public-catalogue-v11-replacement-cumulative"
+                    "phase-5-public-catalogue-replacement-cumulative"
                 ),
                 "evidence_role": "regression",
                 "fresh_qualification": False,

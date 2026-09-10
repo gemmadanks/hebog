@@ -1,4 +1,4 @@
-"""Read-only preparation of the v11 candidate and immutable comparator reuse.
+"""Read-only preparation of a candidate and immutable comparator reuse.
 
 This module does not admit execution, create output namespaces or run finders.
 The failed terminal supplies provenance, never a transferable verdict.

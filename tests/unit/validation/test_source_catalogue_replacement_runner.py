@@ -94,6 +94,10 @@ def test_stages_preserve_candidate_and_original_comparators(  # noqa: C901
             assert (scratch / "evaluation-seal.json").exists()
     else:
         terminal = runner.run_replacement(plan, {"fixture": True})
+        assert (terminal["campaign"], terminal["candidate"]) == (
+            "phase-5-public-catalogue-replacement-cumulative",
+            plan["candidate"],
+        )
         assert terminal["result"]["status"] == "fail"
         assert terminal["candidate_serial_executions"] == 1
         assert (

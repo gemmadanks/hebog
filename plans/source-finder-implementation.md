@@ -1323,9 +1323,24 @@ All of this is development evidence, not replacement parity or qualification.
       or replay was started, and the v11 preparation still needs rebinding.
     - [ ] Measure an independent representative fixture cost/size ladder, then
       resolve resource admission. Provisional budget is 68 GiB free versus
-      about 49 GiB observed at the latest check (about 19 GiB short);
-      tentative total time is 9--14 h,
-      not a guarantee or proof of the final campaign's sub-12-hour target.
+      about 54 GiB observed at the latest check (about 14 GiB short).
+      **2026-09-10 quick probe:** seven independent fixtures complete one
+      warm-up and five measurements each, with two single-thread-budgeted
+      workers on the committed v12 snapshot. Capture medians are 9.60 s for
+      a 60-component 512-square field and 26.19 s for a mixed 1024-square
+      field. A size-weighted planning calculation retaining the historical
+      evaluation/statistics/check allowances gives 11.84 h, or 13.22 h with
+      20% capture headroom; neither is a confidence bound or admission.
+      The larger fixture has only two injected components versus the replay's
+      17, and only overall evaluation endpoints were timed. The complete cost
+      ladder and precision-limited fallback remain outstanding. Evidence is
+      recorded in `LOG.md` and the ignored v12 runtime-probe summary.
+      The user clarified that the intended runtime question was the **50%
+      complete Rapthor/PyBDSF reduction**, not replay duration. This Hebog-only
+      probe cannot measure that ratio. Older same-input notebook observations
+      mostly favour PyBDSF, but are not current-candidate, resource/output-
+      matched repeated benchmarks. Complete dual-PyBDSF performance remains
+      Phase 6 work; do not infer that the target is already satisfied.
       Preserve evidence, thresholds, comparators and all risk geometries.
       The notebook refresh has now finished; controlled timing is still due
       and must include the precision-limited spatial-filter path. Cleanup is

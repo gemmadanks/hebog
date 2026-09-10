@@ -19030,3 +19030,102 @@ scientific pass from fixture validation.
   push, notebook refresh, replay, reference finder, rescore, qualification,
   cleanup or release is started. R6-R6 resource/cost and exact-execution
   admission remain outstanding, including the spatial fallback's cost.
+
+## 2026-09-10 — Quick runtime probe and PyBDSF target clarification
+
+- The user requested a quick runtime check, then clarified that the question
+  concerns the 50% reduction versus PyBDSF, not the replay's total duration.
+  No replay, reference finder, notebook refresh, rescoring, optimization or
+  qualification was started. No scientific code, gates or frozen identity
+  changed. The initial Hebog-only probe cannot measure the requested ratio.
+- Seven independent analytic development fixtures ran from an archive of
+  commit `76e4a314ad23f230895f7f773e218d377d723acf`, source `838e2846...`,
+  unchanged configuration `5eca0efc...`. All 1,226 archived tracked files
+  match their committed Git blobs. Seeds are disjoint from the cumulative
+  population. Each fixture has one warm-up and five measured repetitions:
+  42 public captures and current-only synthetic evaluations completed in
+  294.89 s of combined probe execution. Synthetic reference placeholders
+  were never opened and no scientific comparison verdict was produced.
+- The host is an Apple M3 Pro, 12 logical CPUs and 18 GiB RAM, macOS arm64,
+  Python 3.14.2; NumPy 2.4.6, SciPy 1.18.0, Astropy 8.0.1, Numba 0.66.0,
+  Dask 2026.7.1 and Zarr 3.2.1. Two spawned workers use Serial execution and
+  explicit one-thread numerical environment limits. An idle Podman VM and
+  low-CPU personal MkDocs server remained running; no refresh/campaign
+  competed. CPU affinity, native thread-pool census and enforced worker
+  memory limits were unavailable. CPU times and per-worker lifetime RSS
+  high-water marks are retained, not invented per-case/host memory peaks.
+
+| Independent fixture | Capture median | Five-measurement range | Evaluation median |
+| --- | ---: | ---: | ---: |
+| Compact blends, 512 square | 7.27 s | 6.73--7.44 s | 0.07 s |
+| Clipped corners, 512 square | 7.04 s | 6.44--7.21 s | 0.06 s |
+| Shell/corner/varying noise, 512 square | 10.24 s | 9.91--10.36 s | 0.14 s |
+| Broad curved emission, 512 square | 7.26 s | 6.96--7.38 s | 0.14 s |
+| Mixed bright extended, 512 square | 7.13 s | 6.87--7.34 s | 0.14 s |
+| Sixty compact components, 512 square | 9.60 s | 9.40--9.73 s | 0.09 s |
+| Mixed bright extended, 1,024 square | 26.19 s | 25.62--26.45 s | 0.20 s |
+
+- Capture includes public outputs and compressed replay diagnostics, not
+  Rapthor's complete `filter_skymodel`. Continuum evaluation includes 14
+  overall specifications, not all 158 campaign specifications or bootstrap
+  statistics. The 1,024 fixture has two injected components versus 17 in each
+  replay Continuum recipe; asymmetric rounds do not establish saturated
+  two-worker 1,024 throughput. Four-axis fixture headers on two-dimensional
+  arrays emitted Astropy warnings whose cost is included. No controlled
+  noiseless spatial-fallback, larger-tier, Dask timing or paired PyBDSF
+  benchmark was run. Full resource/performance admission remains open.
+- Read-only verification of the latest retained notebook refresh ("Repaired
+  estimators", 2026-09-09, commit `390efa7...` with a dirty worktree, source
+  `cc1db52e...`) checked all 26 Hebog/released-PyBDSF result hashes and all 13
+  equal input hashes. These are single diagnostic observations, not current
+  v12 or matched-resource/output timings. Hebog is slower on 11/13 cases;
+  the median across the 13 single-observation ratios is 8.38, with range
+  0.18--25.83. Examples: sparse SDC1 778.38/92.87 s, ordinary SDC1
+  867.27/348.18 s, Hydra-deep 2,767.02/141.50 s (Hebog/PyBDSF). The small
+  3C295 and M51 inputs instead give 5.69/32.03 s and 11.97/20.04 s. This
+  suggests substantial performance work, not a quantified current slowdown
+  or a qualified speedup. The exact current 50% goal remains unmeasured.
+- For the separate replay-planning question only, weighting the new anchors
+  by 800 compact and 1,600 Continuum inputs gives 6.89 capture hours with two
+  workers. Retaining 1.25 h evaluation, 3.2 h statistics and 0.5 h checks/Dask
+  gives 11.84 h, or 13.22 h with 20% additional capture allowance. These are
+  engineering scenarios, not confidence bounds. About 54 GiB remains free
+  versus the provisional 68 GiB requirement; no cleanup was performed.
+- Raw repetitions, recipe/input bindings, environment, script bytes and all
+  historical timing links are retained under ignored
+  `benchmark-results/phase-5/v12-runtime-probe-20260910/`. `summary.json`
+  SHA-256 is `8ee917a366295cd487dd290d951a5b82b58c7d229f03335b284a8a1982f33f4f`.
+  The reproducible scratch layout is
+  `/private/tmp/hebog-v12-runtime-probe.WYsfaC/`: archived `checkout/`,
+  `probe.py`, `anchors.py` and temporary synthetic products. No frozen
+  benchmark, closed result, or scientific expected product was overwritten.
+- Keep scientific correctness first. A short matched, output-aligned current
+  Hebog/released/master benchmark and profiling belong in the later
+  performance work; this check grants no optimization or launch authority.
+  Documentation-only review against `CODE_REVIEW.md` found no actionable
+  findings; strict docs and clean final hooks are required before committing.
+
+## 2026-09-10 — Prepare v12 replay alongside the notebook refresh
+
+- The user requested replay preparation while refreshing the notebook, not
+  replay execution. The refresh is active. Preserve package science,
+  notebook runners, public identity reviews and all refresh products; only
+  preparation tooling, tests and documentary records change.
+- TDD exposes a stale literal v11 campaign name in the unlaunched replacement
+  runner. The terminal now uses a candidate-neutral campaign name and retains
+  the exact plan's candidate identity. The inventory docstring is likewise
+  candidate-neutral. No scientific function, validation rule, branch,
+  scheduler or launch entry point changed. All 40 fixture-only preparation
+  tests pass with 143/143 executable lines and 36/36 branches covered in the
+  three tooling modules. Full production coverage/equivalence need not be
+  regenerated for this constant/docstring-only change; production bytes are
+  unchanged. `just check` passes Ruff, Pyright and 3,471 tests (453
+  deselected, two expected failures); strict docs build passes in 7.82 s.
+  Final all-file hooks precede the local commit.
+- Rebinding the preparation inventory is separate from execution admission.
+  The original consumed decisions and failed terminal cannot authorize or
+  qualify v12. The first read-only historical-audit attempt rejected missing
+  one-thread environment variables before product verification; it is being
+  repeated with the exact required environment, without invoking any finder
+  or evaluator. The new metadata snapshot will retain its resource and
+  execution-owner gates, with all authorizations false.
