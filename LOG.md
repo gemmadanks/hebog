@@ -19891,3 +19891,24 @@ scientific pass from fixture validation.
   Python 3.12/3.13 and controlled performance are not rerun. Fixture success
   does not qualify v14 scientifically. Run clean all-file hooks immediately
   before the local repair commit; freeze and paired confirmation follow.
+
+### 2026-09-11 — Freeze the v14 Gaussian-validity candidate
+
+- Freeze candidate `cf6d9da942423d1e112f9ba61a989506db531301`, source
+  `f55794e3559825d73c6b99c0f9efc19080d0dd3400e75676dae2c219b96afea6`,
+  composition `498c1b367c3c5f050019d72b5d5cdd0cec81ce4bac05345449354d08b86ef22f`.
+  Configuration remains `5eca0efc...`. The separate non-executable review is
+  `1b9b2f38d6eeb154ab33c1c321521266c7e712eb9e36eeb1ebfe85cbdfd27591`;
+  old identities and closed evidence remain intact.
+- Bind the notebook runner to the new review after an intended red selection
+  test. Forty identity/protocol/refresh tests pass. They also catch an initial
+  metadata serializer changing floating thresholds to integer JSON values;
+  restore their exact `5.0`/`3.0` representation before freezing or executing.
+- Start the authorized result-neutral 24-input confirmation in a Git-blob
+  audited archive of the candidate. Plan SHA-256 is
+  `851a2c8f1debc7dcdfa5b0ff2dfde08dedc2dfc08ccd8d47d5ce73cb55f4e06b`.
+  Its separate preflight verifies 24 inputs, 80 native comparator bundles
+  and 80 reusable records. Two workers run only current Hebog, followed by
+  two existing-Dask comparisons and evaluation. The full replay is not
+  launched. Timings are diagnostic only; repository hooks may run concurrently
+  and no performance claim or revised runtime allowance will use them.

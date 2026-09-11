@@ -30,7 +30,7 @@ def test_default_notebook_runner_selects_the_frozen_catalogue_repair() -> None:
     expected = (
         _ROOT
         / "config/contracts"
-        / "phase-5-zero-noise-adaptive-repair-identity-review.json"
+        / "phase-5-gaussian-validity-repair-identity-review.json"
     )
     assert _PUBLIC_RUNNER["_PUBLIC_IDENTITY"] == expected
 
@@ -51,7 +51,7 @@ def test_selected_review_still_rejects_scientific_identity_drift(
         (
             _ROOT
             / "config/contracts"
-            / "phase-5-zero-noise-adaptive-repair-identity-review.json"
+            / "phase-5-gaussian-validity-repair-identity-review.json"
         ).read_bytes()
     )
     guard = _PUBLIC_RUNNER["public_hebog_configuration_sha256"]
