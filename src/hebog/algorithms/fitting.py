@@ -1674,30 +1674,6 @@ def _discrete_aperture_model_weight(
     )
 
 
-def _free_compatibility_result(
-    context: _FitPublicationContext,
-    candidate: _FitCandidate,
-    position_estimate: GaussianPositionEstimate | None = None,
-) -> CompactGaussianFitResult:
-    """Publish legacy free fitting when explicit beam shape is unavailable."""
-    moment = context.moment
-    if not candidate.success:
-        return FailedCompactGaussianFit(
-            moment=moment,
-            reason="fit-non-convergence",
-            diagnostics=candidate.diagnostics,
-            quality_flags=("fit-non-convergence",),
-        )
-    if not _numerically_valid(candidate, context.config):
-        return FailedCompactGaussianFit(
-            moment=moment,
-            reason="fit-invalid-result",
-            diagnostics=candidate.diagnostics,
-            quality_flags=("fit-invalid-result",),
-        )
-    return _valid_fit_result(context, candidate, position_estimate)
-
-
 def _selected_fit_result(
     context: _FitPublicationContext,
     candidate: _FitCandidate,
@@ -1872,7 +1848,7 @@ def fit_compact_gaussian(
     )
     beam_covariance = geometry.restoring_beam_covariance_pixels_squared
     if config.model_selection == "free-only" or beam_covariance is None:
-        return _free_compatibility_result(
+        return _selected_fit_result(
             publication,
             free,
             position_estimate,

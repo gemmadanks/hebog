@@ -55,7 +55,7 @@ A major-axis-only deconvolution stores one positive
 angle. NaN and legacy zero sentinels are not null values. A fitted Gaussian
 always has a fitted shape; a source-level fitted shape may be unavailable.
 
-The current public v13 composition reports the native fitted Gaussian integral
+The current public v14 composition reports the native fitted Gaussian integral
 for components, not for associated-source rows. It does not substitute
 peak brightness for integrated flux because threshold-truncated moments look
 unresolved. Shape, flux and position errors propagate the fitted covariance;
@@ -64,6 +64,14 @@ measurements use signed, source-owned observable apertures and unavailable
 fitted/deconvolved shapes. Estimator flags distinguish these from other
 governed pipeline measurements; different estimators must not be pooled as
 like-semantics evidence.
+
+Gaussian publication uses the same numerical, physical-bound and information
+conditioning checks for single and joint fits, including free-only fitting
+without a beam model. Unresolved noise covariance uses the explicitly flagged
+diagonal estimator with correlated-error propagation. Both Gaussian axes must
+be positive and obey the configured ratio independent of optimizer ordering.
+Failed Gaussian admission preserves source support and its separate source
+measurements; convergence alone does not establish astrophysical model adequacy.
 
 The version-four internal catalogue FITS encoding contains exactly three
 binary-table extensions: `ISLANDS`, `SOURCES`, and

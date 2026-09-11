@@ -99,9 +99,13 @@ applicable regression gates.
 The established public default remains the single free-elliptical fit used by
 the Phase 4 serial oracle. Phase 4R explicitly opts into the reviewed
 `beam-or-free` policy; model selection therefore cannot silently change an
-existing caller's catalogue. Under that policy, the free candidate must be
-finite, away from every physical parameter bound, and sufficiently well
-conditioned. A five-sigma log-area test selects clear extension directly.
+existing caller's model-selection policy. Every published single or joint
+candidate must be finite, away from physical parameter bounds, and sufficiently
+well conditioned under the existing configured information limit. Free-only
+fitting and absent beam metadata do not bypass those checks. A separately
+recovered centroid cannot make an invalid whole Gaussian publishable; source
+support and independent source photometry remain available instead.
+Under `beam-or-free`, a five-sigma log-area test selects clear extension directly.
 Otherwise the nested candidates use BIC with the number of independent
 samples appropriate to their residual model. A free candidate that pins a
 physical bound or is ill conditioned is rejected; Hebog retries a free shape

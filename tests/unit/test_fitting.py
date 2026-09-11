@@ -1062,8 +1062,10 @@ def test_fit_centroid_cannot_leave_the_sampled_image_footprint() -> None:
 
     result = _fit(compact)
 
-    assert isinstance(result, ValidCompactGaussianFit)
-    assert result.parameters.centroid_xy[1] <= 255.5
+    assert isinstance(result, FailedCompactGaussianFit)
+    assert result.reason == "fit-invalid-result"
+    assert result.diagnostics is not None
+    assert result.moment is not None
     assert result.diagnostics.parameters_at_bound
     assert result.diagnostics.model_identity == "free-elliptical"
     assert "centroid-y" in result.diagnostics.bound_parameters
@@ -1491,6 +1493,45 @@ def test_bound_contact_is_not_published_as_an_ordinary_free_fit() -> None:
     assert "fit-at-bound" not in result.quality_flags
 
 
+@pytest.mark.parametrize("joint", (False, True))
+@pytest.mark.parametrize("center_y", (8.0, 10.0, 15.0))
+@pytest.mark.parametrize("model_selection", ("free-only", "beam-or-free"))
+def test_free_only_does_not_bypass_physical_fit_admission(
+    joint: bool, center_y: float, model_selection: str
+) -> None:
+    """Converged off-image ridges fail the same gate without a beam model."""
+    compact = _gaussian_input(
+        amplitude=100,
+        centroid_xy=(10, center_y),
+        shape_yx=(8, 21),
+        origin_yx=(0, 0),
+        rms_value=1,
+    )
+    geometry = _geometry()
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+    config = _fit_config(
+        background_model="fixed-zero", model_selection=model_selection
+    )
+    result = (
+        fit_compact_gaussian_mixture(compact, moments, geometry, config)[0]
+        if joint
+        else fit_compact_gaussian(
+            compact, compact.regions[0], moments[0], geometry, config
+        )
+    )
+    assert isinstance(result, FailedCompactGaussianFit)
+    assert result.reason == "fit-invalid-result"
+    assert result.moment == moments[0]
+    assert result.diagnostics is not None
+    assert result.diagnostics.converged
+    condition = result.diagnostics.information_condition_number
+    assert condition is not None
+    assert (
+        "centroid-y" in result.diagnostics.bound_parameters
+        or condition > config.maximum_information_condition_number
+    )
+
+
 def test_centroid_retry_survives_edge_bound_contact_in_both_models() -> None:
     """A noisy image edge cannot prevent the existing stable-centroid retry."""
     compact = _gaussian_input(
@@ -1574,10 +1615,12 @@ def test_bounded_context_position_is_separate_from_owned_morphology() -> None:
         ((1.0, 252.0), (244, 0), 0),
     ),
 )
+@pytest.mark.parametrize("model_selection", ("free-only", "beam-or-free"))
 def test_truncated_context_position_refits_centroid_and_covariance(
     centroid_xy: tuple[float, float],
     origin_yx: tuple[int, int],
     edge_column: int,
+    model_selection: str,
 ) -> None:
     """An edge correction publishes covariance from its own likelihood fit."""
     compact = _gaussian_input(
@@ -1594,10 +1637,22 @@ def test_truncated_context_position_refits_centroid_and_covariance(
 
     result = _fit(
         replace(compact, physical_residual=residual),
-        config=_fit_config(position_estimator="bounded-context-free"),
+        config=_fit_config(
+            position_estimator="bounded-context-free",
+            model_selection=model_selection,
+        ),
         geometry=_beam_geometry(),
     )
 
+    if model_selection == "free-only":
+        # A separately recovered position cannot make a bound-pinned whole
+        # Gaussian valid. The beam-selected path below retains its existing
+        # independently fitted truncation covariance.
+        assert isinstance(result, FailedCompactGaussianFit)
+        assert result.reason == "fit-invalid-result"
+        assert result.diagnostics is not None
+        assert result.diagnostics.parameters_at_bound
+        return
     assert isinstance(result, ValidCompactGaussianFit)
     assert result.position_estimate is not None
     assert result.position_estimate.estimator == (
@@ -2233,28 +2288,8 @@ def test_scipy_selection_agrees_with_independent_astropy_model() -> None:
     ) == (pytest.approx(selected.parameters.centroid_xy, abs=1e-6))
 
 
-@pytest.mark.parametrize(
-    ("scene", "joint"),
-    (
-        ("asymmetric", False),
-        ("asymmetric", True),
-        ("masked", False),
-        ("masked", True),
-        ("edge", False),
-        ("edge", True),
-        ("overlap", True),
-    ),
-)
-def test_complete_bright_gaussians_agree_with_independent_model(
-    scene: str, joint: bool
-) -> None:
-    """Compare entire ellipses, not just positions, on independent scenes.
-
-    For the asymmetric source this checks the best Gaussian approximation,
-    not that a Gaussian describes all of its light. An independently
-    parameterized Astropy model fits the same valid original pixels and RMS;
-    it does not use Hebog's fitted parameters as its initializer.
-    """
+def _bright_fit_scene(scene: str) -> tuple[_FitInput, _FitInput, Any]:
+    """Build the independent analytic initialization and observed scene."""
     center = (1.3, 9.7) if scene == "edge" else (10.3, 9.7)
     compact = _gaussian_input(
         amplitude=100.0,
@@ -2277,13 +2312,18 @@ def test_complete_bright_gaussians_agree_with_independent_model(
     observed = compact.physical_residual.copy()
     if scene == "asymmetric":
         observed += 8 * np.exp(-((x - 12) ** 2 / 24 + (y - 11) ** 2 / 10))
+    if scene == "compact-on-diffuse":
+        observed += 5 * np.exp(-((x - 11) ** 2 + (y - 10) ** 2) / 200)
     rms = 1 + 0.02 * x
     # A small bounded, deterministic perturbation exercises a nonzero
     # residual without selecting a favourable random realization.
     observed += 0.05 * rms * (np.sin(2 * x + 0.3 * y) + np.cos(1.3 * y))
     valid = compact.valid_pixels.copy()
-    if scene == "masked":
-        valid[8:11, 11:13] = False
+    if scene in {"masked", "masked-centre"}:
+        if scene == "masked-centre":
+            valid[9:12, 9:12] = False
+        else:
+            valid[8:11, 11:13] = False
         observed[~valid] = np.nan
         labels = np.where(valid, compact.region_labels, 0).astype(np.int32)
         compact = replace(
@@ -2299,6 +2339,43 @@ def test_complete_bright_gaussians_agree_with_independent_model(
     initialization = replace(compact, valid_pixels=valid, rms=rms)
     compact = replace(
         compact, physical_residual=observed, rms=rms, valid_pixels=valid
+    )
+    return compact, initialization, oracle
+
+
+@pytest.mark.parametrize(
+    ("scene", "joint"),
+    (
+        ("asymmetric", False),
+        ("asymmetric", True),
+        ("masked", False),
+        ("masked", True),
+        ("masked-centre", False),
+        ("masked-centre", True),
+        ("compact-on-diffuse", False),
+        ("compact-on-diffuse", True),
+        ("edge", False),
+        ("edge", True),
+        ("overlap", True),
+    ),
+)
+def test_complete_bright_gaussians_agree_with_independent_model(
+    scene: str, joint: bool
+) -> None:
+    """Compare entire ellipses, not just positions, on independent scenes.
+
+    For the asymmetric source this checks the best Gaussian approximation,
+    not that a Gaussian describes all of its light. An independently
+    parameterized Astropy model fits the same valid original pixels and RMS;
+    it does not use Hebog's fitted parameters as its initializer.
+    """
+
+    compact, initialization, oracle = _bright_fit_scene(scene)
+    y, x = np.indices(compact.physical_residual.shape, dtype=float)
+    observed, rms, valid = (
+        compact.physical_residual,
+        compact.rms,
+        compact.valid_pixels,
     )
     geometry = replace(
         _beam_geometry(),

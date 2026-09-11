@@ -2,8 +2,8 @@
 
 ## Status — 2026-09-11
 
-**Diagnosis complete; latest user approval requires the bounded F1
-Gaussian-validity repair before the final campaign. F2 remains deferred.**
+**Diagnosis and bounded F1 repair complete; full F3 validation, replacement
+freeze and admission remain pending. F2 remains deferred.**
 This follow-up finds
 reproducible faint-source fragmentation and, separately, a pathological
 Gaussian fit published in the user's completed notebook. It does not supply
@@ -18,6 +18,25 @@ full replay ran. That diagnosis did not modify production science; the
 subsequently approved initial F1 implementation is described below.
 
 ## Later decision — final campaign, then development closeout
+
+**Launch approval, 2026-09-11:** the user authorizes completing the necessary
+repairs, then the isolated replay and process-bug retries, with disk space
+available. A final independent boundary probe finds that the single-fit
+`free-only`/beam-unavailable branch bypasses the existing identifiability
+gate used by joint and beam-selected fits. Converged clipped-source ridges
+are published despite a physical centroid bound or information condition
+above the unchanged configured maximum. The bounded repair removes
+that legacy bypass and uses the same publication gate for every selected
+model. No new residual threshold or finder-specific flagging cut is adopted.
+Three single-fit actual solves fail before implementation; the corresponding
+joint controls already reject them. All twelve cases pass after also checking
+`beam-or-free` with absent beam metadata. Centre-masked and
+compact-on-diffuse controls increase the independent whole-model matrix from
+seven to eleven cases. All 263 focused fitting/component/source tests pass.
+Preserve support and explicit
+unavailability rather than inventing an off-image Gaussian. The broader
+residual/model-selection problem remains a documented approximation limit,
+not permission to label every converged model physically exact.
 
 **Latest amendment:** after reviewing the code and current evidence, the user
 approved updating the plan and beginning F1 before replay. Reproduce the
@@ -64,18 +83,27 @@ A separate public-composition control exercises an actual rejected ellipse
 and verifies unchanged source flux and measurement support, no Gaussian row,
 and a serializable `fit-invalid-result` disposition.
 
-The remaining F1 question is still explicit: finite convergence and a
+The bounded F1 review closes with consistent selected-model admission and
+the controls above, not a new astrophysical residual rejection rule. Three
+legacy edge expectations now require explicit invalid-fit disposition while
+retaining their detailed bound diagnostics; separate beam-selected edge
+controls retain independently fitted truncation positions and covariance.
+The current composition advances to v14, without inheriting v13 evidence.
+
+The remaining limitation is explicit: finite convergence and a
 resolved covariance do not establish residual model adequacy. Existing
 residual tests govern source grouping, not Gaussian-row publication. Do not
 apply that parent-level grouping test indiscriminately to components: valid
-compact emission can coexist with unmodelled diffuse emission. Before calling
-F1 complete, establish a bounded, independently tested disposition for
-nominally converged but pathological fits, including near-bound solutions
-and compact-on-diffuse negative controls. No screenshot-derived residual
-cutoff, peak substitution, viewed-data refit or new execution is authorized
-by these fixture results. F3 and the replacement freeze remain pending.
+compact emission can coexist with unmodelled diffuse emission. The bounded
+review addresses numerically unresolved, physically bound and axis-invalid
+solutions with independently tested unavailable dispositions. It does not
+prove that every finite, identifiable Gaussian is a faithful physical source.
+No screenshot-derived residual cutoff, peak substitution or viewed-data refit
+is performed. F3 and the replacement freeze remain pending; replay authority
+comes from the user's explicit launch approval, not fixture results.
 
-The next review should assess whether a component's reported amplitude,
+A future broader model-adequacy review should assess whether a component's
+reported amplitude,
 centre and footprint are supported by its local original pixels, rather than
 demanding that every parent residual be Gaussian noise. This is a proposed
 direction, not an adopted cut. PyBDSF documents rejecting Gaussians with

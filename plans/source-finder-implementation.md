@@ -1328,7 +1328,7 @@ All of this is development evidence, not replacement parity or qualification.
       published as measured. Root mechanisms and residual uncertainty are
       recorded without tuning or rescoring. This completes diagnosis, not
       repairs or campaign qualification.
-    - [ ] **F1 — Required before replay: prevent pathological Gaussian publication.**
+    - [x] **F1 — Required before replay: bounded Gaussian-validity repair.**
       Reproduce with
       independent bright/oversampled, modest model-mismatch and mixed-noise
       fixtures before changing numerical conditioning or fit acceptance.
@@ -1351,9 +1351,9 @@ All of this is development evidence, not replacement parity or qualification.
       guard; fallback remains explicit diagonal estimation with correlated
       sandwich errors. Nineteen focused numerical cases and the existing
       fitting controls pass. This fixes a numerical admission gap, not every
-      model-adequacy failure or the viewed witness by assertion. F1 remains
-      open for the broader Gaussian-acceptance review; F3/new identity and
-      replay admission remain open.
+      model-adequacy failure or the viewed witness by assertion. At that
+      intermediate checkpoint F1 remained open; the bounded completion below
+      supersedes that status. F3/new identity and replay admission remain open.
       Initial repair validation passes 3,919 coverage tests, 27 frozen
       equivalence tests, five covariance ensembles and the public Serial/Dask
       supplement. Project branch-aware coverage increases to 95.2840083%;
@@ -1373,13 +1373,23 @@ All of this is development evidence, not replacement parity or qualification.
         comparisons use separately parameterized Astropy fits, not PyBDSF as
         truth or the viewed notebook. A best Gaussian approximation is not
         proof that every residual is scientifically acceptable.
-      - [ ] Complete the bounded selected-model/whole-Gaussian acceptance
+      - [x] Complete the bounded selected-model/whole-Gaussian acceptance
         review with bright asymmetric, overlapping and masked/edge controls.
         Require a faithful complete fit or an explicit unavailable disposition
         with support retained; no peak substitution or screenshot-derived
         residual threshold. This is not a reopening of F2's broader science.
-        **Next:** resolve nominally converged pathological/near-bound fits
-        using independent model-adequacy and compact-on-diffuse controls.
+        **Completed:** remove the single-fit free-only/beam-unavailable
+        identifiability bypass. Twelve actual clipped-source solves now reject
+        physical-bound or ill-conditioned solutions consistently with joint
+        fitting, including beam-selected mode with missing beam metadata;
+        three single-fit cases fail before the repair. Eleven
+        independent whole-model comparisons include central invalid pixels
+        and compact-on-diffuse emission. All 263 focused tests pass. Retain
+        detailed rejected-edge diagnostics and separately selected edge
+        positions/covariance. Current composition is v14; F3 must validate
+        and freeze it before launch. This closes the bounded numerical and
+        existing physical-admission review, not all astrophysical model
+        adequacy. No new amplitude/footprint/residual threshold is adopted.
         The current parent residual test controls grouping, not component
         publication; do not convert it wholesale into a Gaussian rejection
         rule that discards valid compact components on extended emission.
@@ -1409,6 +1419,13 @@ All of this is development evidence, not replacement parity or qualification.
       Keep the existing 2,400 inputs, comparators,
       truth, margins and confidence rules unchanged; preserve v13 and
       its screen rather than modifying or rescoring them.
+      **Current authority:** the user approves completing replay prerequisites,
+      then the run and process-bug retries. Bind v14 separately; a retry needs
+      a fresh immutable identity and namespace and cannot retune science.
+      The latest live disk check is about 67 GiB versus the existing 69.58 GiB
+      minimum; recheck at admission and do not infer capacity from the older
+      cleanup measurements below. More space has been requested; no cleanup
+      or reduction of the reserve is authorized.
 
     Do not launch the known-failing v12 candidate or its old preparation.
     The notebook refresh completed successfully at 22:59:52 UTC

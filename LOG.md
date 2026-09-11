@@ -19836,3 +19836,58 @@ scientific pass from fixture validation.
   hooks pass. Repeat the required all-file hooks after this final evidence
   update and before the Gaussian commit; no push, release or candidate
   execution is included.
+
+### 2026-09-11 — Complete bounded F1 admission before the authorized replay
+
+- The user authorizes the remaining repairs, isolated replay and retries for
+  process bugs. Preserve the population, truth, comparators, thresholds,
+  margins and confidence rules; no notebook refit or closed-result rescoring.
+  F2 remains deferred. A fresh measurement finds about 67 GiB free versus
+  the existing 69.58 GiB replay reserve. Request more space while completing
+  validation; do not delete data or lower that reserve.
+- Independent clipped-source solves expose a final single-fit
+  free-only/beam-unavailable bypass of the existing identifiability gate.
+  Three intended tests fail before implementation; corresponding joint fits
+  already reject the same physical-bound or ill-conditioned solutions.
+  Remove the legacy publication helper and use the existing selected-model
+  gate for every path. No new numerical or scientific threshold is added.
+- Six actual-solve admission tests and eleven independent complete-model
+  comparisons pass, including central invalid pixels and compact-on-diffuse
+  emission. Three old bound-contact expectations become explicit invalid-fit
+  results with all detailed diagnostics retained; additional beam-selected
+  edge controls retain separately fitted truncation positions/covariance.
+  All **263 focused fitting/component/source tests** pass, and **32 public
+  profile/capture tests** include exact Serial/existing-Dask results.
+- Advance the current public composition to v14, retaining its explicitly
+  development-unqualified status. Both provenance tests fail for the intended
+  old-version mismatch before the change. This closes bounded F1 numerical
+  and existing physical admission, not general astrophysical model adequacy
+  or proof that the viewed Hydra witness is repaired. Full F3 validation,
+  candidate freeze, paired confirmation and immutable admission remain.
+- Separate fixture construction from independent whole-model assertions
+  after Ruff reports excessive statements in the expanded test. This is a
+  test-only readability refactor; no assertion, fixture or tolerance changes.
+- Extend admission controls to `beam-or-free` with absent beam metadata:
+  all **12 actual-solve cases** pass, covering both routes into the removed
+  bypass. The full suite began before this six-case supplement, so retain
+  its result separately and append the focused coverage supplement.
+- The standard repository check passes **3,656 quick tests**, Ruff and
+  Pyright. All **27 frozen equivalence tests**, five uncertainty ensembles,
+  and strict documentation builds pass. A separate read-only audit verifies
+  all **9,600 retained native reference bundles and 2,400 input bundles**;
+  cleanup has not removed those replay dependencies. No finder runs in that
+  audit. The new screen's eight selection/summary tests pass after supplying
+  the standalone repository import root; the first invocation fails during
+  import setup, not scientific execution.
+- Full `just coverage` passes **3,959 tests**, with two existing expected
+  failures, in 956.35 s. The final twelve-case supplement passes with coverage
+  appended. Branch-aware project coverage rises to **95.29578990117774%**;
+  fitting coverage rises to **96.23085983510012%**. The changed call and
+  composition records are covered; all remaining 17 fitting line misses and
+  15 branch misses are unchanged guards. No exclusions or weakened assertions
+  are added. Retain the report at
+  `/private/tmp/hebog-f1-selected-admission.SoYm7m/coverage.json`.
+- Review the full repair against `CODE_REVIEW.md`: no actionable finding.
+  Python 3.12/3.13 and controlled performance are not rerun. Fixture success
+  does not qualify v14 scientifically. Run clean all-file hooks immediately
+  before the local repair commit; freeze and paired confirmation follow.
