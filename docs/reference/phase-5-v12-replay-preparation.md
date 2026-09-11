@@ -3,6 +3,9 @@
 ## Status — 2026-09-11
 
 **Historical preparation; launch held pending new v13 execution admission.**
+The [v13 preparation](phase-5-v13-replay-preparation.md) and independent cost
+ladder are now complete. Disk headroom and exact-owner/final preflight gates
+remain open; this historical record is not current launch authority.
 The independent candidate fixture failure is repaired and a separate v13
 candidate is frozen. No replay has started. The user initially
 requested preparation while independently refreshing the notebook. Package science,

@@ -2583,6 +2583,33 @@ The standing replay authorization remains subject to new resource, exact-owner
 and exhaustive no-write admission. No replay was launched; no closed R6
 verdict transfers or was rescored. Phase 5 remains open.
 
+## 2026-09-11 — V13 cost ladder and non-executable preparation complete
+
+The [v13 preparation](phase-5-v13-replay-preparation.md) preserves the full
+2,400-input population, 12 new Dask checks and 8,000 byte-identical comparator
+records. Metadata `a1c60497...` grants no execution authority. No replay has
+started, and no closed scientific result was rescored.
+
+Eight independent development fixtures complete one warm-up plus five measured
+repetitions: 48 captures and 30 full-metadata current-Hebog evaluations,
+including every declared Continuum endpoint specification. The repaired
+zero-noise case completes all captures. The initial cost probe's missing
+truth annotations were a fixture-setup bug, repaired test-first without
+changing the frozen candidate or evaluator. Both attempts remain preserved.
+The completed cost terminal is `f2d4116c...`; summary `bf6bb1be...` records
+timing dispersion, artifact identities and limitations. These are execution
+and cost observations, not new parity evidence.
+
+The unchanged replay has a 17.50–20.02-hour planning estimate, not a deadline
+guarantee. The revised 69.58-GiB host reserve exceeded available space by
+about 9.85 GiB at the cost-summary check. Disk headroom and the tested exact
+execution owner/freeze/no-write preflight remain launch gates. Forty focused
+orchestration tests pass; no reference finder, qualification or release ran.
+The exhaustive historical audit `5b95726b...` verifies all 2,400 inputs,
+9,600 references, 4,800 native captures, 12 old Dask comparisons and 10,400
+records without rerunning an evaluator. The old 885-pass/288-fail/14-underpowered
+verdict is preserved, not transferred to v13.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

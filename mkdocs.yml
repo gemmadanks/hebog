@@ -122,6 +122,7 @@ nav:
       - Phase 5 noiseless scale-filter repair: reference/phase-5-noiseless-filter-repair.md
       - Phase 5 zero-noise adaptive-region repair: reference/phase-5-zero-noise-adaptive-repair.md
       - Phase 5 v12 replay preparation: reference/phase-5-v12-replay-preparation.md
+      - Phase 5 v13 replay preparation: reference/phase-5-v13-replay-preparation.md
       - Phase 5 source-catalogue repair contract: reference/phase-5-source-catalogue-repair-contract.md
       - Phase 5 qualification design pre-review: reference/phase-5-qualification-pre-review.md
       - Phase 5 final-qualification evaluation-repair pre-review: reference/phase-5-final-qualification-repair-pre-review.md

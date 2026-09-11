@@ -1247,8 +1247,12 @@ All of this is development evidence, not replacement parity or qualification.
     cases using runner `c9b0fec5...`; this checks identity and case metadata,
     not refreshed results or exhaustive replay admission.
   - [ ] **R6-R6 — Admit replacement cumulative and then fresh evidence.**
-    **Next task:** complete controlled cost/space and exact execution
+    **Next task:** restore host disk headroom and complete exact execution
     admission for the corrected, fixture-validated and frozen v13 candidate.
+    The independent cost ladder and non-executable v13 preparation are
+    complete (2026-09-11); the measured reserve is now 69.58 GiB, versus
+    59.73 GiB at the cost-summary check. No replay has started. See the
+    [v13 preparation](../docs/reference/phase-5-v13-replay-preparation.md).
     Do not launch the known-failing v12 candidate or its old preparation.
     The notebook refresh completed successfully at 22:59:52 UTC
     on 2026-09-10: all 13 results and 104 unique artifacts verify, together
@@ -1417,12 +1421,38 @@ All of this is development evidence, not replacement parity or qualification.
       directories. The unfinished exact-owner draft and 24 passing prototype
       tests are parked as text in the ignored preparation evidence directory,
       not promoted into executable supported tooling.
+      **2026-09-11 cost ladder complete; resource admission still open:**
+      v13 completes 48 captures and 30 full-metadata current evaluations
+      across eight independent fixtures, one warm-up plus five measurements
+      each. The zero-noise fixture completes every capture. The first v13
+      probe exposed missing fixture truth metadata, repaired test-first with
+      four passing contract tests; candidate and evaluator bytes are unchanged.
+      Full-capture medians are 16.20 s for the 60-component 512-square case
+      and 46.89–49.54 s for the 17-component 1024-square cases. Weighted
+      planning with historical stage allowances gives 17.50–20.02 hours,
+      not a deadline guarantee or PyBDSF speedup. Summary SHA-256 `bf6bb1be...`
+      retains all repetitions and limitations. The revised free-space reserve
+      is 69.58 GiB; about 9.85 GiB was missing at the latest cost-summary
+      snapshot. No cleanup or launch is authorized by this cost record.
+    - [x] Rebind non-executable preparation to v13, preserving the old records
+      and failed verdict. Metadata SHA-256 `a1c60497...` binds 2,400 tasks,
+      the unchanged 8,000-record reuse index, 12 new Dask checks, candidate,
+      runtime and fresh proposed paths. All authorizations are false and
+      execution identity is null. Preparation verifies 335 unchanged original
+      paths and ten unchanged native-reader definitions. The proposed
+      scratch/checkout remain absent. Forty focused orchestration tests pass.
+      The separate historical audit also passes all 2,400 inputs, 9,600
+      references, 4,800 captures, 12 old Dask comparisons and 10,400 records
+      without execution or rescoring (`5b95726b...`). Final new immutable
+      execution admission is still required.
     - [ ] Freeze the exact reusable inventory, committed program closure,
       runtime and new write-once paths after tests and resource checks; repeat
       exhaustive no-write validation and record the exact one-use decision
       under the user's 2026-09-10 launch authorization. Keep the notebook and
       immutable replay candidate isolated; update the hourly monitor with
       actual session and execution identities immediately after launch.
+      The unfinished wrapper must bind and enforce the new preparation's
+      74,710,430,800-byte reserve; do not promote its obsolete 68-GiB constant.
     - [ ] Complete and investigate the replacement cumulative terminal.
       Process/evaluator fixes and retries require tested, newly frozen
       identities and fresh namespaces while preserving completed evidence.

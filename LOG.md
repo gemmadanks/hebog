@@ -19391,3 +19391,96 @@ scientific pass from fixture validation.
   tested exact execution owner, reusable-record/exhaustive no-write admission
   and a fresh one-use decision. The existing hourly continuation retains this
   order and must not launch v12 or an unfrozen candidate.
+
+## 2026-09-11 — Complete the v13 development cost ladder and preparation
+
+- Continue the hourly workflow after the approved repair/freeze. No notebook
+  refresh or replay is active at admission; preserve the completed notebook,
+  all closed R6 results and both historical candidates. No package or
+  committed evaluator code is changed in this step.
+- The first isolated v13 cost probe completes all ten captures, including
+  the repaired zero-noise case, but fails in evaluation setup: generic
+  adaptive fixtures omit required truth strata (`above-compact-deblend-limit`)
+  and density fixtures have no observable truth groups. Preserve terminal
+  SHA-256 `e9b332acff492d4159112a148af222a27b5862fa2d13b69e02231ab88a8b0a65`
+  under `/private/tmp/hebog-v13-runtime-probe.Piw5PP/products/`. OS exit 0
+  does not override its `process-failure` status. This is not a candidate
+  science or campaign verdict; do not change the evaluator to hide the error.
+- Confirm two intended fixture-contract test failures, then preserve complete
+  declared geometry, beam/WCS and truth metadata on five independent-seed
+  development fixtures. Keep density/zero-noise stress fixtures capture-only.
+  All four probe-contract tests pass. The retry uses a fresh exact 1,230-file
+  archive of `9ca9833d20fe616d5b1b92577d926bd0f7b505e6`, with zero byte
+  mismatches and no candidate/evaluator changes, at
+  `/private/tmp/hebog-v13-cost-retry.i3THuY/checkout`. All eight seeds are
+  disjoint from the frozen replay inputs; no reference finder is executed.
+- Managed session 81722 completes normally in 1,219.16 s, publishing atomic
+  terminal SHA-256
+  `f2d4116c241cf1017dbde2652652706cf356a737077f953ddf16f60ab270e666`.
+  Verify all six rounds, 48 capture bindings/artifact hashes, 30 completed
+  current-only evaluations, program/fixture identities and one warm-up plus
+  five measurements per case. The repaired zero-noise case completes all
+  captures. Full-metadata Continuum evaluations cover all 158 specifications.
+  No partial scientific observations were used to alter the probe or gates.
+- Summary `benchmark-results/phase-5/v13-runtime-probe-20260911/summary.json`
+  has SHA-256
+  `bf6bb1be7e4b0f5fc7b9b8441dd041db1c74c88cede62404d186f8a3617fbbd1`.
+  It retains every repetition, wall/CPU time, logical sizes, RSS high-water
+  marks, medians, ranges, median absolute deviations and limitations. Capture
+  medians: 16.20 s for 60 components at 512 square; 46.89–49.54 s for the
+  four 17-component 1024-square cases; 39.50–42.66 s for denser stress; and
+  60.80 s for the zero-noise path. No competing test/audit computation was
+  deliberately run during timing. Desktop background activity is not fully
+  controlled; a separate Podman build/editor existed. These are cost-planning
+  observations, not performance qualification or a 50% Rapthor/PyBDSF claim.
+- Weighting the unchanged 800/1,600 population gives 12.55 capture hours and
+  0.48 current-evaluation hours. Retain conservative historical allowances
+  of 1.25 evaluation, 3.2 statistics and 0.5 checks/Dask hours: 17.50 hours,
+  or 20.02 with 20% capture headroom. Neither is a confidence bound or
+  sub-12-hour guarantee. Do not reduce the population, risk geometries,
+  comparator set or bootstrap rules to improve that estimate.
+- The measured projected capture volume is 31,911,255,200 logical bytes.
+  The prior 1.5-times-capture plus 2/3/20-GiB reserve rule now requires
+  74,710,430,800 bytes (69.58 GiB). Host space fell from about 79.5 GiB at
+  probe setup to 59.73 GiB at summary time, about 9.85 GiB short. The
+  preserved probe outputs are too small to account for that host-wide drop;
+  the Podman VM itself has about 77 GiB free. No cleanup was performed.
+- Freeze a separate non-executable preparation snapshot, SHA-256
+  `a1c60497ac6a93b86e37460d24a9956a9eb743139481b048e22c47ca5ae8765c`,
+  binding candidate `eacfa64...`, review `e93372b5...`, 2,400 current tasks,
+  12 new Dask comparisons and the unchanged 8,000-record reuse index
+  `c3fdb6c3...`. All authorizations are false and execution identity is null.
+  Verify 335 unchanged original paths and ten unchanged native-reader
+  definitions; current package/validation closure is `f6a76a63...`. The new
+  proposed v13 checkout/scratch/output remain absent. Forty focused
+  replacement orchestration tests pass in 17.49 s. The tested exact launch
+  owner, final immutable admission and adequate disk headroom remain open;
+  no old execution authority or scientific verdict transfers.
+- Managed read-only audit session 5609 exits successfully. At 12:34:45 UTC,
+  all 2,400 inputs, 9,600 retained references, 4,800 native captures, 12
+  historical Dask comparisons and 10,400 per-finder records verify. Record
+  `benchmark-results/phase-5/v13-replay-preparation/post-terminal-verification.json`
+  has SHA-256
+  `5b95726b47f81743bae1d5cb36fe4751b3549af9f127d212c60776f61f6c5c6b`.
+  No new finder or evaluator runs. The old terminal remains exactly
+  `7146f2e8...`: 885 passes, 288 failures and 14 underpowered, with five
+  safety checks passing. This historical audit is not final v13 admission.
+  All old partial directories remain preserved.
+- Review the complete documentation/preparation delta against `CODE_REVIEW.md`:
+  no actionable issue in the committed change. Explicitly retain the
+  unfinished wrapper's test/coverage/admission gates and require its obsolete
+  68-GiB constant to be replaced by the newly bound byte reserve. Normal
+  `just check` passes Ruff, Pyright and 3,483 tests, with two existing expected
+  failures, in 438.58 s of pytest time. Strict docs pass in 15.37 s and
+  `git diff --check` passes. Package source remains exactly `d5107cd3...`.
+  Full coverage and equivalence are not rerun for this documentation and
+  ignored preparation-only delta; the prior repair's 95.26468995% coverage
+  and 27 equivalence passes remain separate frozen evidence. Final clean
+  all-file hooks precede the local documentation commit; nothing is pushed.
+- Update the same active hourly continuation, using the documented automation
+  workflow, with completed cost/audit/preparation identities and no active
+  replay session. Do not repeat completed probes simply on each heartbeat.
+  Next complete the exact owner and new immutable preflight while awaiting
+  adequate host headroom. The later host check is about 57.4 GiB free, roughly
+  12.2 GiB below the revised minimum; no deletion or launch was performed.
+  Preserve both failed probes, all closed data and the completed notebook.
