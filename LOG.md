@@ -19541,3 +19541,62 @@ scientific pass from fixture validation.
   final execution freeze/preflight, without repeating the completed repair,
   probe or tooling work. Final clean all-file hooks precede the local commit;
   nothing is pushed.
+
+## 2026-09-11 — V13 paired quick screen (exploratory, not qualification)
+
+- The user authorized the missing quick scientific comparison before the
+  expensive replay. The pinned released-PyBDSF image `43a65138...` is absent;
+  explicitly narrow the proposed independent-seed screen to a result-neutral
+  subset of existing regression inputs with intact reference products.
+  Do not rebuild/substitute a reference, read new held-out qualification,
+  change a closed result or transfer an old verdict. This screen cannot
+  provide fresh-seed confirmation of the notebook hypotheses.
+- Freeze 24 inputs before inspecting new science: eight evenly spaced seed
+  ranks from the compact family and four from each Continuum family. Plan
+  `e31cae61...` binds the audited `4a8ed625...` archive, v13 source
+  `d5107cd3...`, configuration `5eca0efc...`, two workers, 24 current Serial
+  captures/evaluations, two existing-Dask comparisons and 80 reused records.
+  There are zero new incumbent, PyBDSF or Aegean executions. Use existing
+  capture/evaluation/reuse functions; keep the small diagnostic owner and
+  point-summary scripts with ignored evidence, not as a new library API.
+- All stages finish in **295.55 s**, with managed session `40211` exiting
+  zero. Both complete Dask scientific hashes equal Serial. Preflight and
+  postflight verify all selected input/native-reference/reusable-record bytes
+  and the archive. Scratch uses approximately 329 MiB. No partial new science
+  was inspected while active. Terminal SHA-256 is
+  `f9e26dba5fd7b0ddccd56c336b37b3540583ad6cc3c867311de9e3bfc120ba50`.
+- Preserve the point-only analysis policy before opening the completed
+  products. All 1,187 existing comparison identities are represented with
+  unchanged aggregation, direction and practical margins: **1,138 within
+  margin, 49 beyond** (3 released, 4 master, 3 Aegean, 39 incumbent;
+  37 compact and 12 Continuum). None is unavailable. Do not label these
+  powered passes/failures or a probability of campaign success; correlated
+  metric/stratum warnings are not independent defects. No bootstrap intervals
+  or formal qualification are computed by this quick screen.
+- Compact completeness/reliability are 100%; overall compact and Continuum
+  flux errors and Continuum reliability are encouraging against both PyBDSF
+  references. Remaining warnings include low-SNR/marginally resolved
+  compact position tails, incumbent uncertainty/flux/shape retention, master
+  mask precision, extended flux tails and filament positions/splitting.
+  Per-family point warnings (2/71/6/23) remain separate so pooled metrics
+  cannot hide them. Retain one explicitly unavailable component fit and no
+  deferred components in the 16 Continuum captures.
+- Summary SHA-256 is
+  `29dca20fe3157318a063f004278dbb37d1694063778b7cec058ddfcd12b87b9b`.
+  Byte-identical plan/summary/scripts/tests/seals are copied to
+  `benchmark-results/phase-5/v13-paired-quick-screen-20260911/`; native
+  products remain in `/private/tmp/hebog-v13-paired-screen.y13p9f/`.
+  Update the campaign overview, v13 preparation and R6 next task to recommend
+  bounded root-cause review and independent counterexamples before the long
+  replay. No candidate science, frozen rules, full population or disk reserve
+  changes; the full replay remains unlaunched and resource-unadmitted.
+- Eight new diagnostic selector/point-summary tests pass after intended red
+  failures; **47 existing focused retention/evidence tests pass**, with one
+  slow test deselected. An initial invocation accidentally included that slow
+  bootstrap test and was interrupted after 39 passes, then corrected to
+  `-m 'not slow'`; this was not a finder/evaluation retry. Strict documentation
+  builds successfully. No production code or scientific evaluator rule
+  changed, so full coverage/equivalence and alternate-Python runs are not
+  repeated. Review the complete documentation delta against `CODE_REVIEW.md`;
+  no actionable issue remains. Final all-file hooks precede the local commit;
+  no push or release is performed.

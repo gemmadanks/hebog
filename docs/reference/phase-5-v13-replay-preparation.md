@@ -9,6 +9,10 @@ space is below the revised reserve. The exact launch wrapper is implemented
 and fixture-tested; the resource record, immutable execution identity and
 exhaustive no-write admission remain separate launch gates.
 The completed notebook and all historical results remain untouched.
+The separate [24-input quick screen](#paired-quick-screen-2026-09-11)
+has now completed and exposes remaining point-estimate regression risks.
+Review those risks before the expensive replay; fixture passes and disk
+admission alone are not a clean scientific launch recommendation.
 
 The new write-once metadata is
 `benchmark-results/phase-5/public-catalogue-v13-replay-preparation.json`,
@@ -133,6 +137,109 @@ controlled; RSS is a per-worker lifetime high-water mark. No aggregate-stage,
 production-scale, matched PyBDSF or complete Rapthor performance claim follows
 from this development probe. The 50% complete-filter speedup remains
 unmeasured here; optimization and scalability remain later work.
+
+## Paired quick screen — 2026-09-11
+
+The user authorized the missing quick scientific check. This is an
+**exploratory regression screen, not qualification or the full replay**.
+It executes the exact v13 public candidate in an independently audited archive
+of `4a8ed625247ce80529d5bb3a62d9644f27b61df0`, with unchanged source,
+configuration, truth, measurement kernels and practical margins.
+
+The originally proposed independent-seed screen was narrowed transparently
+to a result-neutral subset of existing regression inputs: the pinned released
+PyBDSF image `43a65138...` is no longer installed. Reusing verified native
+reference records avoids rebuilding it or substituting another reference.
+These seeds are previously viewed regression data, **not fresh held-out
+evidence**. No closed candidate result is rescored, and no old verdict
+transfers. The full replay also reuses reference records and does not require
+new external finder executions.
+
+Selection was fixed before inspecting new scientific products: eight seeds
+from the 800-input compact family and four from each of the four 400-input
+Continuum families. Within each dataset, sorted seed ranks are
+`floor(i * (N - 1) / (k - 1))`. All 24 inputs are retained; no score-based
+selection or early scientific-result filtering occurs. The existing families
+cover compact SNR/shape/edge strata and curved filaments, shells, diffuse,
+mixed compact/extended, invalid-pixel, edge and artefact cases. The screen
+does not separately establish correctness of every new notebook hypothesis.
+
+The write-once plan SHA-256 is
+`e31cae6183bed2b295f44489f5c0c327a61192486bf4be072da1d187d745da5d`.
+Preflight and postflight verify the archive, all 24 input bundles, 80 native
+reference bundles and 80 reusable records. Two workers complete 24 current
+Serial captures, 24 current evaluations and two caller-owned existing-Dask
+comparisons. Both Dask scientific hashes equal Serial. There are no process
+failures and no incumbent, PyBDSF or Aegean executions. Capture, Dask and
+evaluation take **295.55 s**; this is not a matched performance measurement.
+Scratch products occupy approximately 329 MiB.
+
+The terminal SHA-256 is
+`f9e26dba5fd7b0ddccd56c336b37b3540583ad6cc3c867311de9e3bfc120ba50`.
+Summary SHA-256 is
+`29dca20fe3157318a063f004278dbb37d1694063778b7cec058ddfcd12b87b9b`.
+Byte-identical summaries, plans, seals and diagnostic scripts are preserved
+under `benchmark-results/phase-5/v13-paired-quick-screen-20260911/`.
+Native products remain in `/private/tmp/hebog-v13-paired-screen.y13p9f/`;
+the ignored summaries bind their exact paths and bytes.
+
+Each finder is measured independently against injected truth. The point-only
+summary uses the campaign's existing aggregation rules, with positive deltas
+meaning Hebog is worse. All 1,187 comparison identities remain represented:
+
+| Comparator | Point estimates within practical margin | Beyond practical margin |
+| --- | ---: | ---: |
+| Released PyBDSF | 335 | 3 |
+| Pinned PyBDSF master | 334 | 4 |
+| Aegean, applicable compact endpoints | 140 | 3 |
+| Incumbent Hebog | 329 | 39 |
+| Total | 1,138 | 49 |
+
+These are correlated endpoint/stratum comparisons, not 49 distinct defects
+or a 95.9% probability of success. No confidence intervals were computed;
+**within-margin point estimates are not powered passes**. There are no
+unavailable paired point estimates. There are 37 compact and 12 Continuum
+point-margin misses.
+
+Compact truth-group completeness and catalogue reliability are both 100%
+for current Hebog on these eight inputs: 432 matched groups and no unmatched
+catalogue entries. Released PyBDSF also matches all 432, with one unmatched
+entry. Current median integrated-flux absolute fractional error is 3.26%,
+versus 11.96% for both PyBDSF references. However, the SNR-10 median position
+error is 0.03384 beam FWHM versus 0.03027, exceeding the 0.002-beam worsening
+margin; SNR-10 and marginally resolved position tails also exceed margins.
+The Aegean risks additionally include the SNR-25 median peak-flux error.
+Incumbent risks concentrate in uncertainty calibration and smaller
+position/peak-flux/shape changes.
+
+Continuum mean per-image completeness is 100% for all four finders. Hebog's
+mean per-image reliability is 89.27%, versus 57.54% released and 53.17%
+master; overall integrated-flux median error is 5.72%, versus 18.17% and
+30.07%. Overall mask precision is 91.17%, versus 96.54% master: the
+5.37-percentage-point worsening exceeds the five-point margin. Mask recall
+and intersection-over-union improve relative to both PyBDSF references, but
+those improvements do not cancel the precision issue. Incumbent comparisons
+identify extended flux tails, filament positions and occasional splitting.
+
+Per-family results are retained separately: families 1/2/3/4 have 2/71/6/23
+within-family point-margin warnings, respectively. These are
+four-seed diagnostics, not additional campaign gates or independent failures.
+Family 2 exposes mixed-source position, artefact splitting and mask precision
+risks against both PyBDSF references; family 3 exposes filament position risk;
+family 4 also exposes mask precision risk. Pooled summaries must not hide
+these warnings. One component is explicitly unavailable with
+`fit-invalid-result`; there are no deferred components in these 16 Continuum
+captures. That omission remains visible, not converted into a valid fit.
+
+**Recommendation:** perform a bounded root-cause review of low-SNR compact
+astrometry/uncertainties and extended mask/flux/position/fragmentation before
+committing the long replay. Use retained diagnostics to localize mechanisms,
+then independent analytic/noisy counterexamples for any proposed repair;
+do not tune these viewed seeds or weaken margins. The screen establishes
+specific remaining risks, not a calibrated chance of campaign success and
+not a formal full-campaign failure. Scientific repairs or a decision to proceed
+with unresolved sampling uncertainty require explicit follow-up. The original
+2,400-input replay, its disk reserve and all qualification gates are unchanged.
 
 ## Exact launch owner
 

@@ -1247,14 +1247,39 @@ All of this is development evidence, not replacement parity or qualification.
     cases using runner `c9b0fec5...`; this checks identity and case metadata,
     not refreshed results or exhaustive replay admission.
   - [ ] **R6-R6 — Admit replacement cumulative and then fresh evidence.**
-    **Next task:** restore host disk headroom and complete exact execution
-    admission for the corrected, fixture-validated and frozen v13 candidate.
+    **Next task:** review the remaining risks exposed by the separate
+    2026-09-11 paired quick screen before recommending the long replay.
+    Restore host disk headroom and complete exact execution admission only
+    after that review identifies any required independent-fixture repairs or
+    an explicit decision to proceed with unresolved sampling uncertainty.
+    The corrected, fixture-validated and frozen candidate remains v13.
     The independent cost ladder and non-executable v13 preparation are
     complete (2026-09-11), as is the fixture-tested exact launch wrapper.
     The measured reserve is now 69.58 GiB, versus 59.73 GiB at the
     cost-summary check. Current resource admission, immutable execution freeze
     and exhaustive preflight remain open. No replay has started. See the
     [v13 preparation](../docs/reference/phase-5-v13-replay-preparation.md).
+
+    - [x] **Run the missing paired quick check.** A result-neutral 24-input
+      regression subset completes 24 exact-public Serial captures/evaluations
+      and two matching existing-Dask comparisons in 295.55 s, reusing 80
+      checksum-bound comparator records. The released container is absent,
+      so this transparently replaces the proposed fresh-seed screen with
+      existing regression inputs; it is not held-out evidence. Summary
+      `29dca20f...` retains all 1,187 paired point comparisons: 1,138 within
+      margin and 49 beyond (3 released, 4 master, 3 Aegean, 39 incumbent).
+      No point estimate is unavailable, but no confidence intervals or
+      campaign pass are claimed. All closed evidence remains unchanged.
+    - [ ] **Review screen risks before long execution.** Localize low-SNR
+      compact position tails and incumbent uncertainty/flux/shape retention;
+      inspect extended mask precision, flux tails and filament/mixed-source
+      position/splitting, including the separate four-seed geometry warnings
+      and the explicitly unavailable fit. Separate sampling variability,
+      estimator trade-offs and confirmed defects. Reproduce proposed defects
+      on independent truth before any repair; do not tune or rescore the
+      screen. Better pooled completeness/reliability cannot waive these
+      checks. See the [quick-screen record](../docs/reference/phase-5-v13-replay-preparation.md#paired-quick-screen-2026-09-11).
+
     Do not launch the known-failing v12 candidate or its old preparation.
     The notebook refresh completed successfully at 22:59:52 UTC
     on 2026-09-10: all 13 results and 104 unique artifacts verify, together

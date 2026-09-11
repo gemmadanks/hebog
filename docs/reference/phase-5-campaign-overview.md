@@ -2628,6 +2628,47 @@ not new parity evidence. Adequate host headroom, the new committed execution
 closure/identity and final exhaustive immutable preflight remain required.
 No replay, reference finder, qualification or release has started.
 
+## 2026-09-11 — V13 paired quick screen exposes remaining risks
+
+The [24-input quick screen](phase-5-v13-replay-preparation.md#paired-quick-screen-2026-09-11)
+asks whether the exact repaired public candidate has obvious remaining
+regression risks before the expensive replay. It is exploratory regression
+evidence on previously used synthetic inputs, not fresh qualification.
+Eight compact/blend inputs and four seeds from each of four Continuum
+families were selected by seed rank, not score. The absent released container
+prompted transparent reuse of 80 checksum-bound reference records; no external
+finder ran and no closed candidate result or verdict was changed.
+
+All 24 Serial captures/evaluations and both Serial/existing-Dask comparisons
+complete in 295.55 s without process failure. Candidate source is
+`d5107cd3...`, configuration `5eca0efc...`, and execution archive `4a8ed625...`.
+Terminal `f9e26dba...` and summary `29dca20f...` are retained in
+`benchmark-results/phase-5/v13-paired-quick-screen-20260911/`.
+
+Each finder is evaluated independently against injected truth using existing
+measurement kernels. With unchanged practical margins, 1,138 of 1,187 paired
+point estimates are within margin and 49 are beyond: 3 released-PyBDSF,
+4 master, 3 Aegean and 39 incumbent; 37 compact and 12 Continuum.
+There are no unavailable point estimates. These are **not powered pass/fail
+counts**: confidence intervals are deliberately not computed, and correlated
+strata do not represent independent defects or a probability of success.
+
+Compact completeness/reliability are 100%; current median integrated-flux
+error is 3.26% versus 11.96% for both PyBDSF references. Nevertheless, low-SNR
+and marginally resolved position errors exceed practical margins. Continuum
+completeness is 100% for every finder, and current reliability and overall
+flux errors improve on both PyBDSF references. However, mask precision is
+91.17% versus 96.54% master, exceeding the five-percentage-point worsening
+margin. Incumbent uncertainty calibration, flux/shape retention and extended
+flux/filament-position/splitting remain concerns. Separate family-level
+warnings are preserved rather than pooled away. One invalid component fit
+remains explicitly unavailable, not an ordinary successful measurement.
+
+**Verdict:** the screen is operationally successful but not scientifically
+clean enough to predict a campaign pass. Recommend bounded root-cause review
+and independent counterexamples before committing the long replay. No
+science, thresholds, margins, full-replay population or release gate changes.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:
