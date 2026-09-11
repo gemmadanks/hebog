@@ -44,10 +44,10 @@ def _():
     import urllib.parse as urllib_parse
     import urllib.request as urllib_request
 
+    import astropy.wcs as astropy_wcs
     import matplotlib.pyplot as plt
     import numpy as np
     from astropy.io import fits
-    from astropy.wcs import WCS
 
     import hebog
     import hebog.executors as hebog_executors
@@ -57,7 +57,7 @@ def _():
     )
 
     return (
-        WCS,
+        astropy_wcs,
         datetime_module,
         fits,
         hashlib,
@@ -135,28 +135,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(
-    WCS,
-    custom_image_path,
-    fits,
-    hashlib,
-    image_selector,
-    load_image,
-    mo,
-    np,
-    pathlib,
-    tempfile,
-    urllib_parse,
-    urllib_request,
-):
-    mo.stop(
-        not load_image.value,
-        mo.md("Select an image and press **Load selected image**."),
-    )
-    _project_root = pathlib.Path(__file__).resolve().parents[1]
-    _cache = pathlib.Path(tempfile.gettempdir()) / "hebog-marimo-images"
-    _cache.mkdir(parents=True, exist_ok=True)
-
+def _(fits, np):
     def _header(_shape, *, _beam_arcsec, _frequency_hz, _sky):
         _value = fits.Header()
         _value["BUNIT"] = "Jy/beam"
@@ -177,7 +156,7 @@ def _(
         _value["CDELT2"] = 1.5 / 3600.0
         return _value
 
-    def _write_commissioning_image(_path):
+    def write_commissioning_image(_path):
         _rng = np.random.default_rng(20260827)
         _shape = (512, 512)
         _y, _x = np.indices(_shape, dtype=np.float64)
@@ -206,7 +185,7 @@ def _(
             ),
         ).writeto(_path, overwrite=True)
 
-    def _write_survey_image(_path):
+    def write_survey_image(_path):
         _rng = np.random.default_rng(20260828)
         _shape = (1024, 1024)
         _y, _x = np.indices(_shape, dtype=np.float64)
@@ -230,11 +209,16 @@ def _(
             ]
         _peak_snrs = np.geomspace(4.0, 80.0, 100)
         _rng.shuffle(_peak_snrs)
+        _compact_source_count = 94
         for _index, ((_x0, _y0), _peak_snr) in enumerate(
             zip(_centres, _peak_snrs, strict=True)
         ):
             _local_rms = _noise_rms * (0.75 + 0.50 * _x0 / (_shape[1] - 1))
-            _scale = _rng.uniform(1.8, 4.0) if _index >= 94 else 1.0
+            _scale = (
+                _rng.uniform(1.8, 4.0)
+                if _index >= _compact_source_count
+                else 1.0
+            )
             _sx = _rng.uniform(1.7, 2.2) * _scale
             _sy = _rng.uniform(1.3, 1.8) * _scale
             _image += float(_peak_snr * _local_rms) * np.exp(
@@ -250,6 +234,34 @@ def _(
                 _sky=(180.0, 45.0),
             ),
         ).writeto(_path, overwrite=True)
+
+    return write_commissioning_image, write_survey_image
+
+
+@app.cell(hide_code=True)
+def _(
+    astropy_wcs,
+    custom_image_path,
+    fits,
+    hashlib,
+    image_selector,
+    load_image,
+    mo,
+    np,
+    pathlib,
+    tempfile,
+    urllib_parse,
+    urllib_request,
+    write_commissioning_image,
+    write_survey_image,
+):
+    mo.stop(
+        not load_image.value,
+        mo.md("Select an image and press **Load selected image**."),
+    )
+    _project_root = pathlib.Path(__file__).resolve().parents[1]
+    _cache = pathlib.Path(tempfile.gettempdir()) / "hebog-marimo-images"
+    _cache.mkdir(parents=True, exist_ok=True)
 
     _download_examples = {
         "lotss-survey-100": (
@@ -267,12 +279,14 @@ def _(
     }
     if image_selector.value == "synthetic":
         selected_input_path = _cache / "synthetic-commissioning-field.fits"
-        _write_commissioning_image(selected_input_path)
+        write_commissioning_image(selected_input_path)
         selected_input_label = "Synthetic commissioning field"
-        selected_input_provenance = "Deterministic notebook image; seed 20260827."
+        selected_input_provenance = (
+            "Deterministic notebook image; seed 20260827."
+        )
     elif image_selector.value == "synthetic-survey":
         selected_input_path = _cache / "synthetic-100-source-survey.fits"
-        _write_survey_image(selected_input_path)
+        write_survey_image(selected_input_path)
         selected_input_label = "Synthetic 100-source survey field"
         selected_input_provenance = (
             "Deterministic image with 100 injected sources; seed 20260828."
@@ -303,7 +317,9 @@ def _(
             "pos=M51 and size=20 arcmin."
         )
     elif image_selector.value == "custom":
-        selected_input_path = pathlib.Path(custom_image_path.value).expanduser()
+        selected_input_path = pathlib.Path(
+            custom_image_path.value
+        ).expanduser()
         mo.stop(
             not custom_image_path.value.strip(),
             mo.callout("Enter a FITS path before loading.", kind="warn"),
@@ -363,9 +379,10 @@ def _(
                 np.asarray(_hdul[0].data, dtype=np.float64)
             )
             selected_input_header = _hdul[0].header.copy()
-        if selected_input_image.ndim != 2:
+        _image_dimensions = 2
+        if selected_input_image.ndim != _image_dimensions:
             raise ValueError("the FITS input does not reduce to one 2D plane")
-        selected_input_wcs = WCS(
+        selected_input_wcs = astropy_wcs.WCS(
             selected_input_header,
             relax=True,
         ).celestial
@@ -483,7 +500,9 @@ def _(mo, pathlib, tempfile):
     )
     run_label = mo.ui.text(value="experiment", label="Run label")
     output_root = mo.ui.text(
-        value=str(pathlib.Path(tempfile.gettempdir()) / "hebog-workbench-output"),
+        value=str(
+            pathlib.Path(tempfile.gettempdir()) / "hebog-workbench-output"
+        ),
         label="Output root",
         full_width=True,
     )
@@ -549,7 +568,9 @@ def _(
 ):
     mo.stop(
         not run_hebog.value,
-        mo.md("Set the parameters, then press **Run Hebog continuum finder**."),
+        mo.md(
+            "Set the parameters, then press **Run Hebog continuum finder**."
+        ),
     )
     mo.stop(
         float(island_threshold.value) >= float(detection_threshold.value),
