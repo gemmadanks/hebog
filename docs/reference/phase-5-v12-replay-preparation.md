@@ -2,8 +2,9 @@
 
 ## Status — 2026-09-11
 
-**Launch held: disk space cleared, but a new independent candidate fixture
-fails before replay admission. No replay has started.** The user initially
+**Historical preparation; launch held pending new v13 execution admission.**
+The independent candidate fixture failure is repaired and a separate v13
+candidate is frozen. No replay has started. The user initially
 requested preparation while independently refreshing the notebook. Package science,
 the notebook runner, public identity reviews and refresh outputs were not
 changed. No finder, replay, qualification, rescoring or cleanup was started
@@ -24,7 +25,7 @@ The first post-refresh check observed **66.747 GiB free**, **1.253 GiB below**
 the provisional 68 GiB requirement. The user's subsequent cleanup raised
 available space to approximately **89.9 GiB**; the disk hold is cleared.
 Admission then exposed the development failure described below. The same
-hourly monitor now holds launch for candidate repair/refreeze, not disk space.
+hourly monitor now holds launch for the new preparation and execution admission.
 No agent cleanup or replay has started. Diagnostic completion is not a parity
 result.
 The immutable preparation metadata below is not amended into an executable
@@ -69,16 +70,17 @@ ignored `benchmark-results/phase-5/v12-replay-preparation/launch-owner-draft/`;
 24 focused prototype tests passed, but its full admission/CLI tests and
 validation are unfinished. It is not executable supported tooling.
 
-**Next:** complete the source-protection repair explicitly approved on
-2026-09-11, preserve
-this exact failing input as development evidence, and test zero/unavailable
-noise, blends, empty/invalid data and ordinary noisy controls. Verify genuine
-source retention, broad-source protection and Serial/existing-Dask invariance;
-do not weaken thresholds, add an arbitrary RMS floor or hide missing sources.
-Only after non-regression gates pass, freeze a new candidate and preparation,
-then resume cost and exact execution admission. Process/evaluator retry
-authority alone does not authorize changing candidate science. The current
-v12 identity and every closed result remain immutable.
+**Repair/freeze complete:** the approved v13 repair passes the exact
+regression, ordinary-noise non-regression and Serial/existing-Dask checks.
+The new non-executable review `e93372b5...` binds candidate `eacfa64...`,
+source `d5107cd3...` and composition `0b6844bf...`; configuration is unchanged.
+No RMS floor, threshold change or weakened anchor guard is introduced.
+Unavailable RMS remains explicit, not a claim of scientific non-detection.
+**Next:** create new preparation for v13 and complete cost, resource and exact
+execution-owner admission, including exhaustive retained-record verification.
+Process/evaluator retry authority alone does not authorize further candidate
+science changes. The historical v12 identity and every closed result remain
+immutable; do not launch this old preparation.
 
 ## Exact preparation
 

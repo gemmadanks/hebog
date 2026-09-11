@@ -19361,3 +19361,33 @@ scientific pass from fixture validation.
   unfrozen working tree. Preserve the completed 13-case notebook and all old
   evidence. Candidate freeze and remaining resource/execution-owner/reusable
   record admission precede any authorized isolated replay.
+
+## 2026-09-11 — Freeze the validated zero-noise adaptive repair
+
+- Repair commit `eacfa6455c750c3bb8c85250669890cc44bc0dac` follows clean
+  all-file hooks. Freeze a separate non-executable review at
+  `config/contracts/phase-5-zero-noise-adaptive-repair-identity-review.json`,
+  SHA-256 `e93372b5d2787739f7fd1b03024c1bbfe3df6d5fde73e9f6eaedd3eca74f8c5b`.
+  It binds source
+  `d5107cd3dca436f802760c96bb3cd8693d7bc000c57283f5cad0b5a05f216b04`,
+  composition v13
+  `0b6844bfd9d17cff7e297fca8cc550e108878180807b8747b3c71065c833f2f8`,
+  unchanged configuration
+  `5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4`,
+  committed repair/schema/tutorial documentation and recorded validation.
+  All authorizations are false; execution identity is null. Neither closed
+  R6 evidence nor historical candidate execution authority transfers.
+- Update only the notebook identity selector, test-first: the expected new
+  selector first fails on the old v12 path, then passes. All **31**
+  committed-history, drift/selector and synthetic notebook checks pass.
+  The public runner SHA-256 is
+  `aa31cd43b59d17fb9ebe8818b5b1c2f345667d69b7c5c2d2c910842cfdacbaa2`.
+  No library algorithm changes after the repair commit; no notebook refresh
+  or campaign execution is part of this freeze.
+- Keep the completed notebook, historical v12 failure/preparation and all
+  closed comparator records unchanged. Host free space is approximately
+  **81.6 GiB** at this check; resource admission must be rechecked before
+  launch. Next complete the independent cost ladder, new v13 preparation,
+  tested exact execution owner, reusable-record/exhaustive no-write admission
+  and a fresh one-use decision. The existing hourly continuation retains this
+  order and must not launch v12 or an unfrozen candidate.

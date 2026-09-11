@@ -2559,6 +2559,30 @@ The saved v11 preparation is not current execution authority. The user's
 no-launch instruction remains in force. No campaign was run or rescored,
 and the failed R6 result remains failed.
 
+## 2026-09-11 — Zero-noise development edge case repaired and frozen
+
+This is **fixture evidence, not a replay or scientific parity verdict**.
+The remaining cost fixture exposed an obsolete bright-region anchor after
+source protection left exactly zero coarse noise. The
+[repair](phase-5-zero-noise-adaptive-repair.md) preserves explicit unavailable
+RMS and skips only unusable protected adaptive work; it does not invent noise,
+weaken the support guard or reinterpret missing measurements as non-detections.
+
+The exact regression passes; noisy catalogue, RMS and mask products match the
+archived v12 control exactly. Caller-owned two-worker Dask matches Serial.
+Validation includes 219 focused tests, 3,778 portable coverage tests plus a
+25-test guard supplement, and 27 equivalence tests. Branch-aware coverage is
+95.26468995%, above the previous freeze. These tests do not replace cumulative
+or held-out scientific qualification.
+
+Non-executable review `e93372b5...` binds v13 candidate `eacfa64...`, source
+`d5107cd3...`, composition `0b6844bf...` and unchanged configuration
+`5eca0efc...`. All 31 history/identity/selector/synthetic notebook checks pass.
+The earlier 13-case notebook refresh remains preserved and was not rerun.
+The standing replay authorization remains subject to new resource, exact-owner
+and exhaustive no-write admission. No replay was launched; no closed R6
+verdict transfers or was rescored. Phase 5 remains open.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

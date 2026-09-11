@@ -1247,18 +1247,19 @@ All of this is development evidence, not replacement parity or qualification.
     cases using runner `c9b0fec5...`; this checks identity and case metadata,
     not refreshed results or exhaustive replay admission.
   - [ ] **R6-R6 — Admit replacement cumulative and then fresh evidence.**
-    **Next task:** freeze the corrected, fixture-validated v13 candidate
-    before resuming controlled cost/space and exact
-    execution admission. Do not launch the known-failing v12 candidate.
+    **Next task:** complete controlled cost/space and exact execution
+    admission for the corrected, fixture-validated and frozen v13 candidate.
+    Do not launch the known-failing v12 candidate or its old preparation.
     The notebook refresh completed successfully at 22:59:52 UTC
     on 2026-09-10: all 13 results and 104 unique artifacts verify, together
     with input records, identities and published history. Terminal SHA-256
     is `905475f7...`; this is diagnostic completion, not scientific parity.
     The initial disk hold (66.747 GiB versus 68 GiB required) is cleared by
-    user cleanup: approximately 89.9 GiB is now free. The remaining independent
+    user cleanup: approximately 89.9 GiB was then free (81.6 GiB at the v13
+    freeze; recheck before launch). The remaining independent
     noiseless cost fixture exposed the now-repaired source-protection defect.
     No replay has started; no agent cleanup is authorized. The same hourly
-    monitor now holds launch pending refreeze and remaining execution admission.
+    monitor now holds launch pending new preparation and execution admission.
     The user now
     authorizes the isolated replay, evaluation, investigation of failures,
     and process/evaluator repairs and retries after the refresh finishes.
@@ -1370,10 +1371,20 @@ All of this is development evidence, not replacement parity or qualification.
       Actual Serial/Dask comparisons and archived-v12 noisy non-regression
       agree exactly. See the
       [repair contract](../docs/reference/phase-5-zero-noise-adaptive-repair.md).
-    - [ ] Freeze the committed v13 source/configuration/composition in a new
+    - [x] Freeze the committed v13 source/configuration/composition in a new
       non-executable candidate review, update the notebook identity selector
       without refreshing results, and preserve all historical identities.
       This freeze is not a replay launch decision or qualification.
+      **2026-09-11:** repair candidate
+      `eacfa6455c750c3bb8c85250669890cc44bc0dac`, source `d5107cd3...`,
+      composition `0b6844bf...` and unchanged configuration `5eca0efc...`
+      are bound by
+      `config/contracts/phase-5-zero-noise-adaptive-repair-identity-review.json`
+      (SHA-256 `e93372b5...`). All authorizations remain false and execution
+      identity null. Thirty-one committed-history, identity-drift/selector
+      and synthetic notebook checks pass. The selector change is test-first;
+      it cannot silently fall back to the old v12 review. No notebook refresh,
+      campaign execution or closed-result rescoring accompanies this freeze.
     - [ ] Measure an independent representative fixture cost/size ladder, then
       resolve resource admission. Provisional budget is 68 GiB free versus
       69.42 GiB observed during v12 preparation (only 1.42 GiB headroom;
