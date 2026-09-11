@@ -23,6 +23,15 @@ context policies remain explicit development ablations. Moment parameters
 initialize both fits, and configuration bounds limit centre movement, axes,
 amplitude, background offset, iterations, and convergence tolerance.
 
+The axis-ratio limit is a physical ellipse limit: both sigma axes must be
+positive, and `max(sigma_first, sigma_second) / min(...)` must not exceed
+`maximum_axis_ratio`. Optimizer axes are interchangeable when the orientation
+turns by 90 degrees; their temporary ordering must not change admission.
+This check applies to single and joint fits before ordered parameters are
+published. An inadmissible fit retains its initializer and explicit failure
+diagnostics, rather than producing a Gaussian row. Independent source support
+and signed-aperture measurements remain available.
+
 When the image declares a correlated-noise covariance, the Phase 4R point
 estimator uses generalized least squares for regions of at most 512 retained
 pixels when the declared correlation matrix is numerically resolved. It

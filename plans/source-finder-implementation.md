@@ -1363,11 +1363,31 @@ All of this is development evidence, not replacement parity or qualification.
       - [x] Reject roundoff-unresolved GLS covariance explicitly; preserve
         good-fit measurements and correlated-error calibration on independent
         fixtures and exact-public Serial/existing-Dask capture.
+      - [x] Make physical ellipse admission independent of optimizer axis
+        order. Test-first single/joint analytic fits expose the same 3:1
+        ellipse escaping a declared 2:1 limit after a rotated initializer.
+        Both axes now require positivity and the ratio uses larger/smaller;
+        no configured limit changes. Twenty numerical cases, seven complete
+        bright/asymmetric/overlapping/masked/edge model comparisons and a
+        public source-support/photometry-retention control pass. The model
+        comparisons use separately parameterized Astropy fits, not PyBDSF as
+        truth or the viewed notebook. A best Gaussian approximation is not
+        proof that every residual is scientifically acceptable.
       - [ ] Complete the bounded selected-model/whole-Gaussian acceptance
         review with bright asymmetric, overlapping and masked/edge controls.
         Require a faithful complete fit or an explicit unavailable disposition
         with support retained; no peak substitution or screenshot-derived
         residual threshold. This is not a reopening of F2's broader science.
+        **Next:** resolve nominally converged pathological/near-bound fits
+        using independent model-adequacy and compact-on-diffuse controls.
+        The current parent residual test controls grouping, not component
+        publication; do not convert it wholesale into a Gaussian rejection
+        rule that discards valid compact components on extended emission.
+        Assess local amplitude/centre/footprint consistency instead, with
+        overlaps, invalid central pixels and real truncation as controls;
+        established finder flagging is guidance, not truth or permission to
+        import its thresholds. Record any proposed new acceptance rule before
+        implementation and validate it independently before promotion.
     - [ ] **F2 — Deferred: repair faint grouping without compact over-merges.**
       Extend
       the existing joint geometry matrix to faint shells/arcs/filaments and

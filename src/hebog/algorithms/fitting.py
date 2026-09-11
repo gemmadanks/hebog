@@ -830,8 +830,11 @@ def _numerically_valid(
     return bool(
         np.all(np.isfinite(candidate.full_parameters))
         and amplitude > 0
+        and sigma_first > 0
         and sigma_second > 0
-        and sigma_first / sigma_second <= config.maximum_axis_ratio
+        # Optimizer axes are interchangeable under a quarter-turn rotation.
+        and max(sigma_first, sigma_second) / min(sigma_first, sigma_second)
+        <= config.maximum_axis_ratio
     )
 
 

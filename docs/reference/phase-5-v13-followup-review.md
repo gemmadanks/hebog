@@ -43,6 +43,51 @@ or proof that the viewed Hydra source is corrected. Broader Gaussian model
 adequacy, candidate freeze and campaign admission remain open. See the
 [numerical policy](compact-fitting.md#numerical-model).
 
+**Whole-ellipse review follow-up:** independent analytic fits expose an
+axis-order admission defect. A true 3:1 ellipse with a declared maximum ratio
+of 2 is rejected from one initializer, but was accepted from a 90-degree
+rotated initializer, in both single and joint fitting. The optimizer simply
+exchanges its two axes. The corrected check requires both axes positive and
+compares the larger with the smaller; it does not change the configured
+limit, optimizer, selection statistic or detection policy. Five intended
+test-first failures cover this bypass and non-positive first-axis values.
+
+Twenty numerical admission cases now pass, along with seven independent
+bright asymmetric, overlapping, masked and edge fits. The latter compare
+centroids, amplitudes, integrated flux and every sampled model pixel against
+separately parameterized Astropy Gaussian fits to the same original valid
+pixels and varying RMS. Initializers come from positive analytic signal;
+the fitted data retain signed perturbations. These are bounded fit controls,
+not full-pipeline or PyBDSF comparisons. The asymmetric case checks agreement
+on a best Gaussian approximation, **not** that all emission is Gaussian.
+A separate public-composition control exercises an actual rejected ellipse
+and verifies unchanged source flux and measurement support, no Gaussian row,
+and a serializable `fit-invalid-result` disposition.
+
+The remaining F1 question is still explicit: finite convergence and a
+resolved covariance do not establish residual model adequacy. Existing
+residual tests govern source grouping, not Gaussian-row publication. Do not
+apply that parent-level grouping test indiscriminately to components: valid
+compact emission can coexist with unmodelled diffuse emission. Before calling
+F1 complete, establish a bounded, independently tested disposition for
+nominally converged but pathological fits, including near-bound solutions
+and compact-on-diffuse negative controls. No screenshot-derived residual
+cutoff, peak substitution, viewed-data refit or new execution is authorized
+by these fixture results. F3 and the replacement freeze remain pending.
+
+The next review should assess whether a component's reported amplitude,
+centre and footprint are supported by its local original pixels, rather than
+demanding that every parent residual be Gaussian noise. This is a proposed
+direction, not an adopted cut. PyBDSF documents rejecting Gaussians with
+implausible amplitudes, sizes or centres outside their island, while Aegean
+documents explicit failed-fit and constrained-shape flags.
+See the [PyBDSF flagging reference](https://pybdsf.readthedocs.io/en/latest/process_image.html#flagging-options)
+and [Aegean catalogue flags](https://aegeantools.readthedocs.io/en/v2.3.4/includes/aegean.html).
+These motivate local physical-consistency checks; neither their outputs nor
+their parameter defaults become Hebog's truth or an automatically approved
+threshold. Include overlapping components, invalid central pixels, real edge
+truncation and compact-on-diffuse emission before adopting any rejection rule.
+
 The user requests one final campaign, but does not want minor scientific
 limitations to delay Phase 5 development closure and runtime/scalability work.
 This supersedes this review's initial recommendation to repair every issue

@@ -25,7 +25,9 @@ from hebog.algorithms.extended_measurement import (
     measure_detected_segment_position,
 )
 from hebog.algorithms.multiscale import BeamShapePixels
-from hebog.config import SourceFinderConfig
+from hebog.config import CompactGaussianFitConfig, SourceFinderConfig
+from hebog.data_models.fitting import CompactGaussianFitResult
+from hebog.data_models.measurement import ValidMomentMeasurement
 from hebog.public_science import build_configured_continuum_products
 from hebog.validation import products as product_builder
 from hebog.validation.contracts import PhaseFiveCorrectiveAReview
@@ -581,6 +583,77 @@ def test_terminal_gaussians_exclude_unavailable_moments() -> None:
     assert all(
         "original-pixel-gaussian-model" in row.quality_flags
         for row in result.component_catalogue
+    )
+
+
+def test_rejected_ellipse_keeps_source_photometry_and_support(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A numerical rejection is not permission to erase a detected source."""
+    yy, xx = np.mgrid[:49, :65]
+    signal = 100 * np.exp(
+        -0.5 * (((xx - 32.3) / 6) ** 2 + ((yy - 24.1) / 2) ** 2)
+    )
+    baseline = _products(signal)
+    assert len(baseline.catalogue) == len(baseline.component_catalogue) == 1
+    original = component_measurement.fit_compact_gaussian_mixture
+
+    def limited_ellipse(
+        compact: Any,
+        moments: Any,
+        geometry: Any,
+        config: CompactGaussianFitConfig,
+    ) -> tuple[CompactGaussianFitResult, ...]:
+        # Exercise the actual fit with a stricter declared test-only ratio.
+        # Rotate the initializer so the optimizer uses the exchanged axes
+        # that formerly escaped the gate. No fabricated failed fit is used.
+        assert all(
+            isinstance(moment, ValidMomentMeasurement) for moment in moments
+        )
+        rotated = tuple(
+            replace(
+                moment,
+                initializer=replace(
+                    moment.initializer,
+                    major_axis_angle_degrees=(
+                        moment.initializer.major_axis_angle_degrees + 90
+                    ),
+                ),
+            )
+            for moment in moments
+        )
+        return original(
+            compact,
+            rotated,
+            geometry,
+            replace(config, model_selection="free-only", maximum_axis_ratio=2),
+        )
+
+    monkeypatch.setattr(
+        component_measurement, "fit_compact_gaussian_mixture", limited_ellipse
+    )
+    rejected = _products(signal)
+    assert len(rejected.catalogue) == 1
+    assert not rejected.component_catalogue
+    assert rejected.catalogue[0].integrated_flux_jy == pytest.approx(
+        baseline.catalogue[0].integrated_flux_jy
+    )
+    np.testing.assert_array_equal(
+        rejected.measurement_component_labels,
+        baseline.measurement_component_labels,
+    )
+    disposition = next(
+        row
+        for row in rejected.measurement_dispositions
+        if row.object_kind == "component"
+    )
+    assert disposition.status == "unavailable"
+    assert disposition.reason == "fit-invalid-result"
+    assert not disposition.catalogue_row_published
+    assert disposition.fit_diagnostics is not None
+    assert (
+        type(disposition).model_validate_json(disposition.model_dump_json())
+        == disposition
     )
 
 

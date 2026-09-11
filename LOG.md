@@ -19772,3 +19772,67 @@ scientific pass from fixture validation.
   tree. This split preserves all assertions rather than revising frozen
   identities or suppressing Gaussian regressions. Restore the shared editable
   environment's main-checkout binding after isolated validation.
+
+### 2026-09-11 — F1 whole-ellipse admission and independent controls
+
+- Continue the approved bounded Gaussian-validity work; do not start replay,
+  notebook refresh, external finders, qualification or viewed-data rescoring.
+  Preserve the user's committed workbench changes in `5115167`.
+- Reproduce an axis-order-dependent acceptance defect before editing the
+  fitter. A 3:1 analytic ellipse with a declared 2:1 maximum is rejected from
+  one moment orientation but accepted after a 90-degree initializer rotation,
+  in both single and joint fitting. Three additional guard cases expose an
+  exchanged-axis excess and zero/negative first-axis acceptance. The five
+  intended red cases fail for the missing physical checks; the other fifteen
+  numerical cases pass. Compare larger/smaller sigma and require both positive,
+  retaining the exact configured limit and existing failure disposition.
+- Add seven complete-model controls: asymmetric, masked and clipped bright
+  Gaussians through both fit paths, plus an overlapping joint pair. Compare
+  amplitude, centroid, total flux and the entire sampled ellipse with
+  separately parameterized Astropy fits on identical valid signed pixels and
+  RMS. These are estimator controls, not evidence that an asymmetric source is
+  exactly Gaussian. Initial fixture corrections remove invalid pixels from
+  ownership and use positive analytic initialization; no production moment
+  policy is relaxed to make the tests pass.
+- Add a public-composition control with a real ratio-rejected fit. Source
+  photometry and measurement support survive, no Gaussian is fabricated and
+  the explicit failure disposition survives serialization. Correct an initial
+  test attribute name to the actual `measurement_component_labels` field.
+  All **261 focused tests pass**, with five slow tests deselected, including
+  exact-public Serial/existing-Dask capture and component/source controls.
+- F1 remains open for independently governed residual/model-adequacy
+  acceptance, especially nominally converged near-bound fits. The existing
+  parent residual test is a grouping gate and cannot simply discard valid
+  compact components on diffuse emission. F2 stays deferred; F3, replacement
+  candidate freeze and exact replay admission remain pending.
+- Repository checks expose four pre-existing issues in the committed
+  workbench notebook (complexity, an uppercase argument and two magic-number
+  comparisons). The user explicitly approves a separate minimal lint-only
+  cleanup. Move synthetic helper definitions into their own inert cell, use
+  the WCS module at the boundary, name the two existing constants and format
+  the notebook. Offline comparisons with `5115167` produce byte-identical
+  commissioning and survey FITS files (SHA-256
+  `057be70cc0a26cb2b7709959539021625eb91e6b358028126b4e2f75bbc1c473`
+  and `ffa40b942fc01452c404998bd860a2a7fc60b264a33324553f96272c3d34cf10`).
+  Strict Marimo checks pass without executing the notebook or any finder.
+  Commit that cleanup separately as `09ea86a`, after a clean all-file
+  pre-commit run, leaving the Gaussian repair for its own local commit.
+- Full `just coverage` passes **3,947 tests**, with two existing expected
+  failures, in 993.01 s. Branch-aware project coverage rises from
+  **95.28400825467709%** to **95.29077438343651%**; fitting coverage is
+  **96.04651162790698%**. The changed return statement is covered; explicit
+  positive, non-positive, non-finite and both axis-order boundary tests cover
+  its short-circuit outcomes, which coverage does not instrument separately.
+  All remaining fitting line/branch misses are unchanged guards; no coverage
+  exclusions are added. Retain the report in
+  `/private/tmp/hebog-f1-axis-validity.yqFira/coverage.json`.
+- All five slow fitting ensembles pass, as do **27 frozen equivalence tests**
+  and the strict docs build. Review the complete bounded repair against
+  `CODE_REVIEW.md`: no actionable finding. Broader model adequacy remains
+  open. Python 3.12/3.13, production performance and scientific campaigns are
+  not rerun; fixture success does not establish new campaign parity.
+- `just check` passes Ruff, Pyright and **3,644 quick tests**, with two
+  existing expected failures, in 255.86 s. Strict docs build and all-file
+  hooks pass. Repeat the required all-file hooks after this final evidence
+  update and before the Gaussian commit; no push, release or candidate
+  execution is included.

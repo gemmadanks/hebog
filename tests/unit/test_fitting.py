@@ -2233,6 +2233,252 @@ def test_scipy_selection_agrees_with_independent_astropy_model() -> None:
     ) == (pytest.approx(selected.parameters.centroid_xy, abs=1e-6))
 
 
+@pytest.mark.parametrize(
+    ("scene", "joint"),
+    (
+        ("asymmetric", False),
+        ("asymmetric", True),
+        ("masked", False),
+        ("masked", True),
+        ("edge", False),
+        ("edge", True),
+        ("overlap", True),
+    ),
+)
+def test_complete_bright_gaussians_agree_with_independent_model(
+    scene: str, joint: bool
+) -> None:
+    """Compare entire ellipses, not just positions, on independent scenes.
+
+    For the asymmetric source this checks the best Gaussian approximation,
+    not that a Gaussian describes all of its light. An independently
+    parameterized Astropy model fits the same valid original pixels and RMS;
+    it does not use Hebog's fitted parameters as its initializer.
+    """
+    center = (1.3, 9.7) if scene == "edge" else (10.3, 9.7)
+    compact = _gaussian_input(
+        amplitude=100.0,
+        centroid_xy=center,
+        sigma_axes=(2.6, 1.8),
+        angle_degrees=31,
+        shape_yx=(21, 21),
+        origin_yx=(0, 0),
+        rms_value=1,
+    )
+    oracle: Any = models.Gaussian2D(100, *center, 2.6, 1.8, np.deg2rad(31))
+    if scene == "overlap":
+        compact = _joint_input()
+        compact = replace(
+            compact, physical_residual=10 * compact.physical_residual
+        )
+        oracle = models.Gaussian2D(100, 12, 12, 2, 1.5, 0)
+        oracle += models.Gaussian2D(70, 19, 12, 2, 1.5, 0)
+    y, x = np.indices(compact.physical_residual.shape, dtype=float)
+    observed = compact.physical_residual.copy()
+    if scene == "asymmetric":
+        observed += 8 * np.exp(-((x - 12) ** 2 / 24 + (y - 11) ** 2 / 10))
+    rms = 1 + 0.02 * x
+    # A small bounded, deterministic perturbation exercises a nonzero
+    # residual without selecting a favourable random realization.
+    observed += 0.05 * rms * (np.sin(2 * x + 0.3 * y) + np.cos(1.3 * y))
+    valid = compact.valid_pixels.copy()
+    if scene == "masked":
+        valid[8:11, 11:13] = False
+        observed[~valid] = np.nan
+        labels = np.where(valid, compact.region_labels, 0).astype(np.int32)
+        compact = replace(
+            compact,
+            region_labels=labels,
+            island=replace(compact.island, pixel_count=int(valid.sum())),
+            regions=(
+                replace(compact.regions[0], pixel_count=int(valid.sum())),
+            ),
+        )
+    # Isolate fit acceptance: initialize from positive analytic signal, as
+    # production does from positive support, while fitting signed pixels.
+    initialization = replace(compact, valid_pixels=valid, rms=rms)
+    compact = replace(
+        compact, physical_residual=observed, rms=rms, valid_pixels=valid
+    )
+    geometry = replace(
+        _beam_geometry(),
+        noise_correlation_covariance_pixels_squared=(4, 0, 4),
+    )
+    moments = measure_compact_moments(
+        initialization, geometry, _moment_config()
+    )[1:]
+    config = _fit_config(
+        background_model="fixed-zero",
+        model_selection="beam-or-free",
+        point_estimator="correlated-gls",
+    )
+    if joint:
+        selected = fit_compact_gaussian_mixture(
+            compact, moments, geometry, config
+        )
+    else:
+        selected = (
+            fit_compact_gaussian(
+                compact, compact.regions[0], moments[0], geometry, config
+            ),
+        )
+    oracle_fit = fitting.TRFLSQFitter()(
+        oracle,
+        x[valid],
+        y[valid],
+        observed[valid],
+        weights=1 / rms[valid],
+        maxiter=300,
+        acc=1e-10,
+    )
+    expected_models = (
+        (oracle_fit[0], oracle_fit[1]) if scene == "overlap" else (oracle_fit,)
+    )
+    model_values = np.zeros_like(x)
+    for actual, expected in zip(selected, expected_models, strict=True):
+        assert isinstance(actual, ValidCompactGaussianFit)
+        assert actual.diagnostics.model_identity == "free-elliptical"
+        assert actual.diagnostics.point_estimator == "diagonal-weighted"
+        assert actual.uncertainty is not None
+        assert "correlated-noise-sandwich-errors" in actual.quality_flags
+        component = actual.gaussian_component_fit
+        parameters = (
+            actual.parameters if component is None else component.parameters
+        )
+        assert parameters.centroid_xy == pytest.approx(
+            (expected.x_mean.value, expected.y_mean.value), abs=1e-5
+        )
+        assert parameters.amplitude_jy_per_beam == pytest.approx(
+            expected.amplitude.value, rel=1e-5
+        )
+        assert parameters.integrated_flux_jy == pytest.approx(
+            expected.amplitude.value
+            * 2
+            * np.pi
+            * expected.x_stddev.value
+            * expected.y_stddev.value
+            / 8,
+            rel=1e-5,
+        )
+        actual_model = models.Gaussian2D(
+            parameters.amplitude_jy_per_beam,
+            *parameters.centroid_xy,
+            parameters.major_sigma_pixels,
+            parameters.minor_sigma_pixels,
+            np.deg2rad(parameters.major_axis_angle_degrees),
+        )
+        # Comparing all sampled model pixels also catches axis/angle mixing
+        # that a centroid or total-flux comparison alone cannot detect.
+        np.testing.assert_allclose(
+            actual_model(x, y), expected(x, y), rtol=1e-4, atol=1e-5
+        )
+        model_values += actual_model(x, y)
+    chi_squared = float(
+        np.sum(((model_values - observed)[valid] / rms[valid]) ** 2)
+    )
+    assert isinstance(selected[0], ValidCompactGaussianFit)
+    assert selected[0].diagnostics.chi_squared == pytest.approx(
+        chi_squared, rel=1e-8
+    )
+
+
+@pytest.mark.parametrize("joint", (False, True))
+@pytest.mark.parametrize("initial_angle_offset", (0.0, 90.0))
+@pytest.mark.parametrize("maximum_axis_ratio", (2.0, 4.0))
+def test_axis_ratio_admission_is_independent_of_optimizer_axis_order(
+    joint: bool,
+    initial_angle_offset: float,
+    maximum_axis_ratio: float,
+) -> None:
+    """A rotated initializer cannot bypass the physical ellipse ratio gate."""
+    compact = _gaussian_input(
+        amplitude=100.0,
+        sigma_axes=(3.0, 1.0),
+        angle_degrees=23.0,
+    )
+    geometry = _geometry()
+    moment = measure_compact_moments(compact, geometry, _moment_config())[1]
+    assert isinstance(moment, ValidMomentMeasurement)
+    moment = replace(
+        moment,
+        initializer=replace(
+            moment.initializer,
+            major_axis_angle_degrees=(
+                moment.initializer.major_axis_angle_degrees
+                + initial_angle_offset
+            ),
+        ),
+    )
+    config = _fit_config(
+        background_model="fixed-zero",
+        maximum_axis_ratio=maximum_axis_ratio,
+    )
+    if joint:
+        result = fit_compact_gaussian_mixture(
+            compact, (moment,), geometry, config
+        )[0]
+    else:
+        result = fit_compact_gaussian(
+            compact, compact.regions[0], moment, geometry, config
+        )
+
+    if maximum_axis_ratio < 3:
+        assert isinstance(result, FailedCompactGaussianFit)
+        assert result.reason == "fit-invalid-result"
+        assert result.moment == moment
+    else:
+        assert isinstance(result, ValidCompactGaussianFit)
+        parameters = result.parameters
+        assert parameters.centroid_xy == pytest.approx((28.3, 17.6))
+        assert parameters.amplitude_jy_per_beam == pytest.approx(100)
+        assert parameters.major_sigma_pixels == pytest.approx(3)
+        assert parameters.minor_sigma_pixels == pytest.approx(1)
+        assert parameters.major_axis_angle_degrees == pytest.approx(23)
+        assert parameters.integrated_flux_jy == pytest.approx(
+            100 * 2 * np.pi * 3 / 8
+        )
+
+
+@pytest.mark.parametrize(
+    ("amplitude", "axes", "expected"),
+    (
+        (1.0, (2.0, 1.0), True),
+        (1.0, (1.0, 2.0), True),
+        (1.0, (2.01, 1.0), False),
+        (1.0, (1.0, 2.01), False),
+        (1.0, (0.0, 1.0), False),
+        (1.0, (-1.0, 1.0), False),
+        (1.0, (1.0, 0.0), False),
+        (1.0, (1.0, -1.0), False),
+        (0.0, (1.0, 1.0), False),
+        (-1.0, (1.0, 1.0), False),
+        (float("nan"), (1.0, 1.0), False),
+        (1.0, (float("inf"), 1.0), False),
+    ),
+)
+def test_numerical_ellipse_validity_boundaries(
+    amplitude: float, axes: tuple[float, float], expected: bool
+) -> None:
+    """Check positivity, finiteness and both sides of the exact ratio gate."""
+    fit = _fit(_gaussian_input())
+    assert isinstance(fit, ValidCompactGaussianFit)
+    parameters = np.asarray((amplitude, 0, 0, *axes, 0, 0), dtype=float)
+    candidate = fitting_algorithm._FitCandidate(
+        success=True,
+        optimizer_parameters=parameters,
+        full_parameters=parameters,
+        jacobian=np.eye(7),
+        covariance=np.eye(7),
+        diagnostics=fit.diagnostics,
+    )
+    assert (
+        fitting_algorithm._numerically_valid(
+            candidate, _fit_config(maximum_axis_ratio=2)
+        )
+        is expected
+    )
+
+
 def test_iteration_limit_returns_typed_failure_with_initializer() -> None:
     """Non-convergence preserves the moment initializer and diagnostics."""
     compact = _gaussian_input()
