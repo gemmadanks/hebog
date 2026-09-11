@@ -2,9 +2,9 @@
 
 ## Status — 2026-09-11
 
-**Prepared; launch authorized after notebook completion, but not yet
-execution-admitted or started.** The user initially requested preparation
-while independently refreshing the notebook. Package science,
+**Launch held: disk space cleared, but a new independent candidate fixture
+fails before replay admission. No replay has started.** The user initially
+requested preparation while independently refreshing the notebook. Package science,
 the notebook runner, public identity reviews and refresh outputs were not
 changed. No finder, replay, qualification, rescoring or cleanup was started
 by that preparation, and it issued no execution decision.
@@ -20,9 +20,13 @@ source/configuration/composition/runner bindings and published history verify.
 Terminal `76e4a31-838e28460525-5f17c3d7/campaign.json` under
 `benchmark-results/phase-5/hebog-notebook-refreshes/` has SHA-256
 `905475f76782be1ae9285d27ec8e08fac021e6b15ec8fa28852daf976393b929`.
-The post-refresh check observes **66.747 GiB free**, **1.253 GiB below** the
-provisional 68 GiB requirement. The monitor now waits for disk space; no
-replay or cleanup has started. Diagnostic completion is not a parity result.
+The first post-refresh check observed **66.747 GiB free**, **1.253 GiB below**
+the provisional 68 GiB requirement. The user's subsequent cleanup raised
+available space to approximately **89.9 GiB**; the disk hold is cleared.
+Admission then exposed the development failure described below. The same
+hourly monitor now holds launch for candidate repair/refreeze, not disk space.
+No agent cleanup or replay has started. Diagnostic completion is not a parity
+result.
 The immutable preparation metadata below is not amended into an executable
 record. A fresh exact execution decision is still required under this
 authorization; historical consumed decisions remain unusable.
@@ -31,6 +35,47 @@ This supersedes the candidate binding in the
 [v11 preparation](phase-5-v11-replay-preparation.md), not its historical
 evidence. The [noiseless-filter repair](phase-5-noiseless-filter-repair.md)
 remains frozen and unqualified.
+
+## New admission failure — 2026-09-11
+
+The remaining independent cost ladder added two 26-component 1024-square
+fields and a zero-noise, two-component 512-square field, with disjoint
+development seeds `2026981101`--`2026981103`. The precision fixture failed
+during its first capture with
+`ValueError: adaptive candidate is absent from source-protection support`.
+A bounded diagnostic reproduction fails identically in the frozen source
+`838e2846...`; neither attempt is a replay or a scientific parity verdict.
+No complete timing ladder or new runtime bound was obtained.
+
+The failing image has 262,144 finite pixels. In contrast, the adaptive
+source-protection window `y=[0,191), x=[0,191)` has **zero scientifically
+valid normalized pixels**; its old candidate anchor `(y=47, x=45)` is invalid
+with normalized value `NaN`. `_connected_source_protection` nevertheless
+requires that anchor to belong to a thresholded connected component and
+raises. This confirms an availability/anchor mismatch on the public capture
+path; the upstream reason for the unavailable normalized window still needs
+to be traced through the background/RMS estimates. Do not infer that a
+particular RMS floor or simply skipping anchors is scientifically correct.
+
+The recipe, FITS input, failed products and diagnostic record remain under
+`/private/tmp/hebog-v12-runtime-probe.WYsfaC/` in
+`admission-cost-products-20260911-b/precision-512/`.
+`failure-diagnosis.json` SHA-256 is
+`3c873ad982026276bb959464d8df888155132868e9294343516ae82d2c25567f`.
+The agent's incomplete launch-owner prototype is preserved as text under
+ignored `benchmark-results/phase-5/v12-replay-preparation/launch-owner-draft/`;
+24 focused prototype tests passed, but its full admission/CLI tests and
+validation are unfinished. It is not executable supported tooling.
+
+**Next:** obtain approval for a test-first source-protection repair, preserve
+this exact failing input as development evidence, and test zero/unavailable
+noise, blends, empty/invalid data and ordinary noisy controls. Verify genuine
+source retention, broad-source protection and Serial/existing-Dask invariance;
+do not weaken thresholds, add an arbitrary RMS floor or hide missing sources.
+Only after non-regression gates pass, freeze a new candidate and preparation,
+then resume cost and exact execution admission. Process/evaluator retry
+authority alone does not authorize changing candidate science. The current
+v12 identity and every closed result remain immutable.
 
 ## Exact preparation
 
@@ -108,16 +153,17 @@ change; the candidate's earlier frozen repair evidence remains separate.
 
 ## Before any launch
 
-1. The notebook completion gate is satisfied. Measure the remaining
+1. Resolve the candidate admission failure above through an approved
+   test-first repair and a new candidate/preparation freeze. The notebook
+   completion gate is satisfied. Then measure the remaining
    representative independent cost/size fixtures, including the
    precision-limited spatial filter. Concurrent notebook timings cannot
    admit replay runtime.
    The quick probe is not a proven 12-hour bound or a PyBDSF speedup result.
-2. Recheck host/Podman resources and disk. Free space fell from 69.42 GiB
-   during preparation to **66.747 GiB after refresh**, below the provisional
-   **68 GiB** requirement. Additional space is needed; crossing that number
-   alone does not replace the unfinished cost/size ladder or final admission.
-   No deletion was performed.
+2. Recheck host/Podman resources and disk. The latest check after user cleanup
+   finds approximately **89.9 GiB**, above the provisional **68 GiB**
+   requirement. Crossing that number alone does not replace the unfinished
+   cost/size ladder or final admission. No agent deletion was performed.
 3. Complete and test the exact execution owner, freeze its committed program
    closure, runtime, immutable checkout and fresh write-once paths, then run
    exhaustive no-write launch validation. Do not call the staged runner

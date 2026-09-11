@@ -19229,3 +19229,70 @@ scientific pass from fixture validation.
   issue. Strict docs and clean final all-file hooks precede the local commit;
   source and runner bytes are untouched, so production coverage/equivalence
   are not rerun for this status update.
+
+## 2026-09-11 — Disk hold cleared; independent admission exposes a new defect
+
+- The user requests replay launch after freeing space. The host check finds
+  94,270,468 KiB available (89.903 GiB), above the provisional 68 GiB reserve.
+  No notebook refresh or replacement replay is active. No agent cleanup is
+  performed. The committed v12 science and all notebook/closed campaign
+  outputs remain unchanged; no exact execution decision or replay is issued.
+- Extend the independent development cost probe with two 26-component
+  1024-square fields and a two-component zero-noise 512-square field, seeds
+  `2026981101`--`2026981103`. Use the archived committed v12 source and two
+  single-numerical-thread workers, retaining the probe's 480-second cap.
+  The first metadata attempt exits before capture because expected noise
+  statistics did not match the newly noiseless recipe. Correct that fixture
+  metadata in a fresh output directory; retain the first attempt unchanged.
+- The corrected attempt (managed session 5914, exit 1) fails during first
+  capture with `adaptive candidate is absent from source-protection support`.
+  The zero-noise case is capture-only; it is not scored against zero-RMS truth.
+  The dense cases use only independent current-finder development endpoints;
+  no retained reference or closed scientific result is rescored. No complete
+  warm-up/measurement ladder or new runtime bound is obtained. Brief tooling
+  tests also overlapped this failed attempt, so it is not controlled timing
+  evidence. Preserve all failed products; do not infer replay success/failure
+  or a PyBDSF speedup from this attempt.
+- A bounded diagnostic reproduction (session 24201, exit 1) observes the
+  same failure without changing numerical calculations. The input is finite
+  at all 262,144 pixels; recipe role is development, with zero injected noise
+  and two components. The protection window `y=[0,191), x=[0,191)` has zero
+  scientifically valid normalized pixels; candidate `(y=47, x=45)` is invalid
+  with normalized `NaN`. The connected-support guard still requires that
+  anchor to belong to thresholded support. This confirms an availability/anchor
+  mismatch; upstream background/RMS availability needs further tracing before
+  choosing a repair. It does not justify skipping anchors or an arbitrary
+  numerical noise floor.
+- Preserve input, metadata and diagnosis under
+  `/private/tmp/hebog-v12-runtime-probe.WYsfaC/` in
+  `admission-cost-products-20260911-b/precision-512/`. SHA-256 identities:
+  dataset `59d2ca365f6a6fc4c3471666ac3d88c84d482389c3143a8235f339cce0726518`,
+  input manifest
+  `398c14641185e57852b124c68d3cf3cee15b53929962816e79599175a34abf24`,
+  FITS `2f492b11d88062c5d34dac8f5321959eff95c04749584c09961c62557cd09591`,
+  diagnostic record
+  `3c873ad982026276bb959464d8df888155132868e9294343516ae82d2c25567f`.
+  Candidate source remains `838e2846...`; the completed notebook stays intact.
+- Exact-owner preparation progressed test-first: 24 focused prototype cases
+  pass after expected missing-function reds for authority, namespace and
+  code/runtime drift checks. Its build-plan/preflight/CLI coverage, lint/type
+  checks and final review remain incomplete. Park only the agent's three
+  untracked drafts as text in ignored
+  `benchmark-results/phase-5/v12-replay-preparation/launch-owner-draft/`, with
+  their test/validation limitations; no tracked code or user work is removed.
+  Do not promote or execute this prototype as an admitted launch owner.
+- Update the same active hourly monitor with the candidate-failure hold,
+  cleared disk state and evidence. It must not launch the known-failing v12
+  identity or repeatedly rerun the failed fixture. Next requires approval
+  for a test-first source-protection repair, zero/unavailable-noise and noisy
+  non-regression controls, actual Serial/existing-Dask validation, and a new
+  candidate/preparation freeze before remaining launch admission. Standing
+  process/evaluator retry authority is not candidate-science change authority.
+  Closed results, population, comparators and scientific gates stay immutable.
+- Review the final documentation diff against `CODE_REVIEW.md`: no actionable
+  documentation issue remains; the confirmed candidate defect is explicitly
+  blocking. Strict docs pass in 7.39 s and `git diff --check` passes. Production
+  source SHA-256 is rechecked unchanged and both proposed replay namespaces
+  remain absent. Full tests/coverage and equivalence are not rerun for this
+  documentation-only commit; the parked prototype is not promoted. Clean
+  final all-file hooks precede the local commit. Nothing is pushed.

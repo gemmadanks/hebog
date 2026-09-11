@@ -1247,15 +1247,19 @@ All of this is development evidence, not replacement parity or qualification.
     cases using runner `c9b0fec5...`; this checks identity and case metadata,
     not refreshed results or exhaustive replay admission.
   - [ ] **R6-R6 — Admit replacement cumulative and then fresh evidence.**
-    **Next task:** resolve disk admission, then complete controlled cost/space
-    checks and the exact v12 execution owner, freeze and exhaustive no-write
-    admission. The notebook refresh completed successfully at 22:59:52 UTC
+    **Next task:** obtain approval for the newly exposed source-protection
+    availability repair, implement it test-first with non-regression gates,
+    and refreeze the candidate before resuming controlled cost/space and exact
+    execution admission. Do not launch the known-failing v12 candidate.
+    The notebook refresh completed successfully at 22:59:52 UTC
     on 2026-09-10: all 13 results and 104 unique artifacts verify, together
     with input records, identities and published history. Terminal SHA-256
     is `905475f7...`; this is diagnostic completion, not scientific parity.
-    The post-refresh check observes 66.747 GiB free, below the provisional
-    68 GiB requirement. No replay has started and no cleanup is authorized.
-    The existing hourly monitor waits for space before completing admission.
+    The initial disk hold (66.747 GiB versus 68 GiB required) is cleared by
+    user cleanup: approximately 89.9 GiB is now free. The remaining independent
+    noiseless cost fixture fails in source protection before replay admission.
+    No replay has started; no agent cleanup is authorized. The same hourly
+    monitor now holds launch pending repair approval, validation and refreeze.
     The user now
     authorizes the isolated replay, evaluation, investigation of failures,
     and process/evaluator repairs and retries after the refresh finishes.
@@ -1267,7 +1271,9 @@ All of this is development evidence, not replacement parity or qualification.
     non-executable. R6-C0--C7's recorded tests
     passed; the added exact-public noiseless failure has a
     [v12 numerical repair](../docs/reference/phase-5-noiseless-filter-repair.md)
-    and now passes normally. The v12 metadata rebind is complete; no historical
+    and now passes normally, but the new two-component zero-noise geometry
+    exposes a separate availability/anchor mismatch. The v12 metadata rebind
+    is complete; no historical
     verdict or consumed execution authority transfers. No replay has been
     admitted or started. Do not
     launch the older v10 candidate or reuse its consumed decisions. Follow the
@@ -1345,6 +1351,21 @@ All of this is development evidence, not replacement parity or qualification.
       definitions are unchanged. No old verdict transfers. The proposed
       execution/scratch directories remain absent. See the
       [v12 preparation](../docs/reference/phase-5-v12-replay-preparation.md).
+    - [ ] Repair the new independent zero-noise admission failure after
+      renewed approval; process/evaluator retry authority does not authorize
+      candidate-science changes. **2026-09-11:** the frozen candidate fails
+      a finite 512-square, two-component development input with
+      `adaptive candidate is absent from source-protection support`.
+      The reproduced protection window has zero valid normalized pixels,
+      but an old candidate anchor is still required to belong to thresholded
+      support. Trace background/RMS availability and anchor provenance first;
+      do not just suppress the error, weaken thresholds or add an arbitrary
+      RMS floor. Add the exact red regression, zero/unavailable-noise and
+      ordinary-noise controls, invalid/empty and blend geometries, broad-source
+      retention, and actual Serial/existing-Dask conformance. Complete focused
+      and full non-regression validation, then freeze a new candidate and
+      preparation. Preserve v12 and all closed results. See the
+      [admission diagnosis](../docs/reference/phase-5-v12-replay-preparation.md#new-admission-failure-2026-09-11).
     - [ ] Measure an independent representative fixture cost/size ladder, then
       resolve resource admission. Provisional budget is 68 GiB free versus
       69.42 GiB observed during v12 preparation (only 1.42 GiB headroom;
@@ -1367,13 +1388,16 @@ All of this is development evidence, not replacement parity or qualification.
       matched repeated benchmarks. Complete dual-PyBDSF performance remains
       Phase 6 work; do not infer that the target is already satisfied.
       Preserve evidence, thresholds, comparators and all risk geometries.
-      The notebook refresh has now completed and its published artifacts
-      verify. The 2026-09-11 post-refresh disk check is 66.747 GiB free,
-      1.253 GiB below the provisional requirement. Keep launch held; after
-      space is available, complete the controlled ladder including the
-      precision-limited spatial-filter path and recheck the final budget.
-      Cleanup is recommended, not performed. Preserve the replay-critical
-      reference and R6 directories.
+      The notebook refresh has completed and its published artifacts verify.
+      User cleanup cleared the disk hold on 2026-09-11 (approximately
+      89.9 GiB free). The denser/precision extension fails during first-round
+      capture on the independent noiseless geometry above; no complete new
+      timing ladder was produced. Resume only after its approved repair and
+      candidate refreeze; retain the precision-limited path in admission.
+      Recheck the final budget. Preserve replay-critical references and R6
+      directories. The unfinished exact-owner draft and 24 passing prototype
+      tests are parked as text in the ignored preparation evidence directory,
+      not promoted into executable supported tooling.
     - [ ] Freeze the exact reusable inventory, committed program closure,
       runtime and new write-once paths after tests and resource checks; repeat
       exhaustive no-write validation and record the exact one-use decision
