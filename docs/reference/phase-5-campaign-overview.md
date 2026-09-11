@@ -2716,6 +2716,61 @@ the remaining repairs deferred. Resource and exact execution admission still
 apply. No full replay, qualification or release has started. No powered
 pass/fail counts or success probability follow from these diagnostics.
 
+## 2026-09-11 — V14 Gaussian-validity confirmation and replay preparation
+
+This is a **small regression screen, not qualification**. Candidate
+`cf6d9da942423d1e112f9ba61a989506db531301` is frozen by identity review
+`1b9b2f38d6eeb154ab33c1c321521266c7e712eb9e36eeb1ebfe85cbdfd27591`.
+The successful terminal is
+`2628bb9d71fc664a131a919469a6d18e3c9885fc0e09a498c568e043db409627`;
+summary SHA-256 is
+`4bd8db54a9e1a92b8921383645a6f443201fcca9d10704bc2f9a4f521112f7b6`.
+The question is whether bounded Gaussian-validity changes introduce a
+sampled regression or break capture, existing-Dask comparison or evaluation.
+
+Use the same result-neutral seed-rank selection as the v13 screen: eight
+compact 512-square inputs and four 1,024-square inputs from each of four
+Continuum families. These are previously used regression geometries, not
+new held-out data. Run 24 current-Hebog captures and evaluations, two
+existing-Dask comparisons and reuse 80 comparator records. No incumbent,
+PyBDSF or Aegean execution occurs. Both Dask comparisons equal Serial exactly.
+The archive is verified against every committed Git blob; source,
+configuration, dependency and execution identities are retained in the plan.
+
+Each finder is evaluated independently against analytic injected truth, then
+compared with like semantics using unchanged endpoint definitions, margins
+and signed worsening directions. The screen does not compute confidence
+intervals, establish power or change the full campaign's gates.
+
+| Lane | Paired endpoint/comparator rows | Point within margin | Point warnings |
+| --- | ---: | ---: | ---: |
+| Compact | 818 | 781 | 37 |
+| Continuum | 369 | 357 | 12 |
+| Total | 1,187 | 1,138 | 49 |
+
+Every paired point row equals the earlier v13 screen. Warnings remain:
+39 versus incumbent Hebog, three versus released PyBDSF, four versus pinned
+PyBDSF master and three versus Aegean. Compact uncertainty/position/flux
+tails, filament grouping and extended-flux tails, and mask precision remain
+risks; they are not waived. This sample finds no new scientific regression
+and no process failure, but it does not prove universal Gaussian adequacy,
+resolve the previously viewed Hydra witness or guarantee campaign success.
+
+The execution takes 273.74 seconds, with repository hooks overlapping part
+of the run; it is not a performance benchmark. Storage confirmation keeps
+the earlier conservative policy and increases the reserve slightly to
+75,180,190,600 bytes (70.02 GiB). Historical runtime allowances of roughly
+17.5 hours, or 20 hours with capture headroom, are retained as planning
+estimates, not new v14 measurements or a twelve-hour guarantee.
+
+Preparation `b2f0b2f6...` binds 2,400 current-only tasks, 12 existing-Dask
+comparisons and 8,000 immutable reusable comparator records. The latest
+host check is about 66.5 GiB free: **the full replay has not started**.
+Next meet the reserve, freeze the separate exact execution identity, verify
+all dependencies in its immutable checkout, then use the user's launch and
+process-bug retry authority. No tuning, closed-result rescoring, cutover or
+release is included.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

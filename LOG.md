@@ -19912,3 +19912,46 @@ scientific pass from fixture validation.
   two existing-Dask comparisons and evaluation. The full replay is not
   launched. Timings are diagnostic only; repository hooks may run concurrently
   and no performance claim or revised runtime allowance will use them.
+
+### 2026-09-11 — Confirm v14 and prepare the current-only replay
+
+- The screen exits successfully: **24 captures, 24 current evaluations,
+  two exact Serial/existing-Dask comparisons**, 80 unchanged comparator
+  records and zero external-finder executions. Terminal SHA-256 is
+  `2628bb9d71fc664a131a919469a6d18e3c9885fc0e09a498c568e043db409627`;
+  its source, configuration, archive and runtime bindings verify.
+- Summary `4bd8db54...` contains 1,187 point rows: **1,138 within margin,
+  49 warnings** (37 compact, 12 Continuum). Read-only comparison with the
+  saved v13 summary finds every paired point row identical. Warnings split
+  39 incumbent / 3 released PyBDSF / 4 master / 3 Aegean. Preserve the
+  compact uncertainty/position/flux-tail, filament grouping/flux-tail and
+  mask-precision risks. No new sampled regression or process failure is
+  exposed; no powered pass, full-fit adequacy or campaign success is inferred.
+- The run takes 273.74 s; repository hooks overlap part of it. Do not use
+  these timings for a speedup or revised runtime budget. Candidate-bound
+  storage report `18521d31...` retains the old reserve or the larger of
+  1.5 times weighted v14 sample maxima plus 25 GiB. Its required space is
+  **75,180,190,600 bytes (70.02 GiB)**. The old 17.5/20-hour allowances remain
+  explicitly historical planning estimates, not measured v14 performance.
+- Preparation SHA-256
+  `b2f0b2f611f83b015a98d98c62c8228096815fd5605e59a9b73d8363e52bc139`
+  verifies 2,400 tasks, 8,000 reusable comparator records, 335 unchanged
+  historical files and unchanged native-reader definitions. Earlier in this
+  turn all 9,600 native reference bundles and 2,400 inputs also verify.
+  Bind this new preparation in the existing admission owner after its
+  intended red identity test. No population, comparator, threshold, margin,
+  confidence rule or evaluation control flow changes.
+- Latest space is about **66.5 GiB**, below the updated reserve. Preserve
+  all evidence and leave the full execution/scratch/output namespaces
+  uncreated. The user already authorizes launch and process-bug retries;
+  outstanding work is resource admission, the separate immutable exact
+  plan/review/one-use decision, exhaustive preflight and launch. No full
+  replay, qualification, cutover or release has started.
+- All **154 focused admission, launch, inventory, execution and runner tests**
+  pass after the binding update. An initial command names a nonexistent unit
+  test path and collects no tests; the corrected commands complete normally.
+  Ruff and strict docs pass. Review the complete metadata/documentation diff
+  against `CODE_REVIEW.md`: no actionable finding. This step changes only
+  the pinned preparation identity, not package behavior or validation rules;
+  the full coverage and Serial/Dask evidence above remain applicable. Run
+  clean all-file hooks before the final local preparation commit; no push.

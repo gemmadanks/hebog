@@ -2,8 +2,9 @@
 
 ## Status — 2026-09-11
 
-**Diagnosis and bounded F1 repair complete; full F3 validation, replacement
-freeze and admission remain pending. F2 remains deferred.**
+**Diagnosis, bounded F1 repair, F3 tests, v14 candidate freeze and paired
+confirmation complete. Resource and exact immutable execution admission
+remain pending. F2 remains deferred.**
 This follow-up finds
 reproducible faint-source fragmentation and, separately, a pathological
 Gaussian fit published in the user's completed notebook. It does not supply
@@ -18,6 +19,12 @@ full replay ran. That diagnosis did not modify production science; the
 subsequently approved initial F1 implementation is described below.
 
 ## Later decision — final campaign, then development closeout
+
+**V14 confirmation:** candidate `cf6d9da` completes the frozen 24-input
+screen and both Serial/existing-Dask comparisons. All 1,187 paired point
+rows equal the earlier v13 screen, including 49 warnings; no powered parity
+claim follows. The 2,400-input replay preparation is bound separately to
+v14. The live disk reserve is not yet met, so no full replay is launched.
 
 **Launch approval, 2026-09-11:** the user authorizes completing the necessary
 repairs, then the isolated replay and process-bug retries, with disk space
@@ -58,8 +65,9 @@ precision was still used as exact GLS. The bounded repair removes silent
 diagonal jitter and checks a LAPACK reciprocal-condition estimate before
 whitening. It retains explicit diagonal estimation and correlated sandwich
 errors on numerical fallback. This is not a new residual acceptance cutoff
-or proof that the viewed Hydra source is corrected. Broader Gaussian model
-adequacy, candidate freeze and campaign admission remain open. See the
+or proof that the viewed Hydra source is corrected. At that checkpoint,
+broader Gaussian model adequacy, candidate freeze and campaign admission
+remained open. See the
 [numerical policy](compact-fitting.md#numerical-model).
 
 **Whole-ellipse review follow-up:** independent analytic fits expose an
@@ -99,8 +107,9 @@ review addresses numerically unresolved, physically bound and axis-invalid
 solutions with independently tested unavailable dispositions. It does not
 prove that every finite, identifiable Gaussian is a faithful physical source.
 No screenshot-derived residual cutoff, peak substitution or viewed-data refit
-is performed. F3 and the replacement freeze remain pending; replay authority
-comes from the user's explicit launch approval, not fixture results.
+is performed. F3 tests, candidate freeze and paired confirmation are now
+complete; resource and exact execution admission remain pending. Replay
+authority comes from the user's explicit launch approval, not fixture results.
 
 A future broader model-adequacy review should assess whether a component's
 reported amplitude,

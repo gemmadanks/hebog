@@ -165,9 +165,9 @@ def prepared(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Any:
     )
 
 
-def test_v13_preparation_binding_is_not_the_old_draft() -> None:
+def test_v14_preparation_binding_is_not_the_old_candidate() -> None:
     assert admission.PREPARATION_SHA256 == (
-        "a1c60497ac6a93b86e37460d24a9956a9eb743139481b048e22c47ca5ae8765c"
+        "b2f0b2f611f83b015a98d98c62c8228096815fd5605e59a9b73d8363e52bc139"
     )
 
 

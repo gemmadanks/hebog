@@ -1419,13 +1419,28 @@ All of this is development evidence, not replacement parity or qualification.
       Keep the existing 2,400 inputs, comparators,
       truth, margins and confidence rules unchanged; preserve v13 and
       its screen rather than modifying or rescoring them.
+      **Completed prerequisites:** candidate `cf6d9da` is frozen by review
+      `1b9b2f38...`, with 3,959 coverage tests, the final twelve-case
+      admission supplement, 27 equivalence tests and exact public Serial/Dask
+      controls passing. The separately frozen 24-input screen completes all
+      captures/evaluations and two exact Dask comparisons. Its 1,187 paired
+      point rows equal v13: 1,138 within margin and the same 49 warnings;
+      this is not powered parity or proof of general model adequacy.
+      Preparation `b2f0b2f6...` binds the unchanged 2,400 tasks and 8,000
+      reusable comparator records to v14. No new external-finder execution.
+      **Remaining launch prerequisite:** meet the live reserve, freeze the
+      exact immutable execution plan/review/one-use decision, repeat the
+      exhaustive no-write preflight, then launch once and bind the hourly
+      monitor to that exact session. Full replay and qualification have not
+      started; do not reuse an old candidate's approval record.
       **Current authority:** the user approves completing replay prerequisites,
       then the run and process-bug retries. Bind v14 separately; a retry needs
       a fresh immutable identity and namespace and cannot retune science.
-      The latest live disk check is about 67 GiB versus the existing 69.58 GiB
-      minimum; recheck at admission and do not infer capacity from the older
-      cleanup measurements below. More space has been requested; no cleanup
-      or reduction of the reserve is authorized.
+      The latest live disk check is about 66.5 GiB. The candidate-bound
+      storage confirmation raises the reserve from 69.58 GiB to **70.02 GiB**
+      (75,180,190,600 bytes); recheck at admission and do not infer capacity
+      from the older cleanup measurements below. More space has been
+      requested; no cleanup or reduction of the reserve is authorized.
 
     Do not launch the known-failing v12 candidate or its old preparation.
     The notebook refresh completed successfully at 22:59:52 UTC
