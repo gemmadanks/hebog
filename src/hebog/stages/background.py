@@ -1058,6 +1058,16 @@ def _refine_bright_regions(  # noqa: PLR0913
         )
         for region in candidate_regions
     )
+    # Source protection can leave a defined zero-variance coarse estimate.
+    # Old bright-region work anchors then have no sigma-domain support. Keep
+    # that noise availability instead of re-estimating unprotected source
+    # emission as noise; admit other independently usable regions unchanged.
+    requests = tuple(
+        request
+        for request in requests
+        if request.coarse.scientifically_available
+        and np.any(np.isfinite(request.coarse.rms) & (request.coarse.rms > 0))
+    )
     estimate_region = partial(
         _estimate_source_protected_adaptive_region,
         source=source,

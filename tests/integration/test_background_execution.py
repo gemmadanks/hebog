@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from functools import partial
 
 import numpy as np
@@ -125,6 +126,72 @@ def _config() -> BackgroundRmsConfig:
         maximum_spatial_window_fraction=0.25,
         maximum_constant_map_pixels=4096,
     )
+
+
+@pytest.mark.parametrize("noisy_neighbour", (False, True))
+@pytest.mark.parametrize("local_noise", (False, True))
+def test_zero_noise_region_admission_matches_existing_dask(
+    noisy_neighbour: bool, local_noise: bool
+) -> None:
+    """Discard obsolete work, not independent noise estimates or regions."""
+    yy, xx = np.mgrid[:128, :128]
+    noise = np.where((yy + xx) % 2, -1.0, 1.0) * ((xx > 64) & noisy_neighbour)
+    config = replace(_config(), maximum_constant_map_pixels=noise.size)
+    coarse = estimate_background_rms_grids(
+        _ArrayImageSource(noise),
+        noise.shape,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=(),
+    )
+    image = noise.copy()
+    image[20, 20] += 100
+    image[100, 100] += 100
+    source = _ArrayImageSource(image)
+    refine = partial(
+        refine_background_rms_grids,
+        source,
+        coarse,
+        config,
+        bright_candidate_positions_yx=((20.0, 20.0), (100.0, 100.0)),
+        source_protection_island_threshold_sigma=3.0,
+        multiscale_protection=MultiscaleSourceProtection(
+            BeamShapePixels(2, 1.5, 20), SourceFinderConfig(5, 3, 7), 0.5
+        ),
+        refine_local_noise=local_noise,
+    )
+    serial = refine(SerialExecutor())
+    with Client(
+        processes=False,
+        n_workers=2,
+        threads_per_worker=1,
+        dashboard_address=None,
+    ) as client:
+        dask = refine(DaskExecutor(client))
+    assert (
+        len(serial.adaptive_regions)
+        == len(dask.adaptive_regions)
+        == (1 if noisy_neighbour else 0)
+    )
+    for actual in (serial, dask):
+        assert actual.coarse is coarse.coarse
+        if noisy_neighbour:
+            assert actual.adaptive_regions[
+                0
+            ].bright_candidate_positions_yx == ((100.0, 100.0),)
+    if local_noise:
+        assert serial.local_noise is not None and dask.local_noise is not None
+        np.testing.assert_array_equal(
+            serial.local_noise.rms, dask.local_noise.rms
+        )
+        np.testing.assert_array_equal(
+            serial.local_noise.fallback_cells, dask.local_noise.fallback_cells
+        )
+    if noisy_neighbour:
+        np.testing.assert_array_equal(
+            serial.adaptive_regions[0].grid.rms,
+            dask.adaptive_regions[0].grid.rms,
+        )
 
 
 @pytest.mark.parametrize(

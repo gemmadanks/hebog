@@ -19296,3 +19296,68 @@ scientific pass from fixture validation.
   remain absent. Full tests/coverage and equivalence are not rerun for this
   documentation-only commit; the parked prototype is not promoted. Clean
   final all-file hooks precede the local commit. Nothing is pushed.
+
+## 2026-09-11 — Repair zero-noise adaptive-region admission test-first
+
+- The user explicitly approves the edge-case repair, non-regression and
+  Serial/Dask checks, and a new candidate freeze before replay launch.
+  Continue only this bounded science repair; closed campaign and notebook
+  outputs, thresholds, populations, comparators and scientific gates remain
+  immutable. No replay or reference finder is started by these tests.
+- Trace the independent seed `2026981103` failure to an entirely zero-valued
+  six-by-six protected coarse background/RMS grid. Removing source samples
+  leaves defined zero variance; it does not make sigma-based normalization
+  available. The earlier bright-region anchor still attempts to seed support
+  in a window with no valid normalized pixels. No RMS floor or relaxed
+  connected-support guard is justified.
+- Confirm test-first reds: the exact finite 512-square public edge blend
+  raises the reported production exception (1 failed in 51.72 s). Three
+  unavailable/zero-noise and mixed-region unit cases fail for the same reason;
+  the positive-noise control passes. Filter protected adaptive requests by
+  their bounded coarse noise availability, preserving zero/unavailable
+  statistics, any independent local-noise grid and usable neighbouring
+  regions. Unprotected compact refinement and all numerical estimators stay
+  unchanged. Public no-positive-RMS output remains explicitly unavailable,
+  not a claim that a noiseless image contains no real sources.
+- Add exact public Serial/caller-owned two-worker Dask comparisons for the
+  noiseless blend and its noisy counterpart. Both fitted Gaussian peaks must
+  lie within 0.5 pixel of injected positions. A separate archived-v12 noisy
+  control confirms one associated source and two Gaussian components before
+  this change; the regression preserves both components and that existing
+  association, rather than asserting a false two-source baseline. Catalogue,
+  mask and RMS results agree exactly between executors. Add bounded mixed
+  zero/positive-noise controls, fine-noise preservation, reordered/retried
+  batches and all-unavailable cases.
+- Independently compare the archived v12 and repaired v13 on the same noisy
+  fixture: the complete catalogue, RMS array and filtering-mask array are
+  exactly equal. Synthetic outputs are retained at
+  `/private/tmp/hebog-v12-noisy-control-aef2vtf9/` and
+  `/private/tmp/hebog-v13-noisy-control-xvgd8uuh/`. This is a bounded
+  non-regression check, not a campaign, qualification or timing claim.
+- Align the public composition and strict provenance literal to v13 after
+  the intended identity test fails red. No schema number, detection threshold
+  or qualification status changes. The expanded focused suite passes
+  **219 tests** in 270.90 s, including actual background Dask and two-worker
+  spawned current-only capture/evaluation/reuse. All **27 frozen equivalence
+  tests** pass; Ruff and Pyright pass. Standard checks pass 3,476 quick tests
+  with two existing expected failures before the six-case guard supplement.
+- Full `just coverage` passes **3,778 tests**, with two existing expected
+  failures, in 997.74 s. Append coverage from all 25 bounded-background
+  unit tests, including six direct strict-anchor rejection cases on unchanged
+  guard code. Combined branch-aware coverage is **95.26468995396696%**,
+  above the prior frozen **95.25775987543581%**. Inspect all changed package
+  files: both changed executable lines are covered and the changed ranges
+  have no missing instrumented branches; unavailable/zero/positive and
+  short-circuit outcomes also have explicit behavioural tests. Remaining
+  misses in those files are pre-existing guards outside this repair, not
+  coverage exclusions or weakened assertions. Python 3.12/3.13, production
+  scale and controlled performance are not run locally.
+- Review the full diff against `CODE_REVIEW.md`: no actionable issue. Strict
+  docs and `git diff --check` pass; final clean all-file hooks precede the
+  repair commit and subsequent independent identity freeze. The non-executable
+  v13 freeze does not admit replay resources or grant scientific qualification.
+- Update the same active hourly monitor using the documented automation
+  workflow: approval is now recorded, but it must not launch v12 or an
+  unfrozen working tree. Preserve the completed 13-case notebook and all old
+  evidence. Candidate freeze and remaining resource/execution-owner/reusable
+  record admission precede any authorized isolated replay.

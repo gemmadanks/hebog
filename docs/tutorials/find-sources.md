@@ -180,7 +180,7 @@ A failed fit does not discard its detection
 or abort an unrelated valid source. Missing uncertainty remains unavailable,
 not zero. The current catalogue JSON, catalogue FITS and public diagnostics
 schemas are versions 3, 4 and 8 respectively; stale versions fail clearly.
-Composition `phase-5-evidence-bound-public-catalogue-v12` remains
+Composition `phase-5-evidence-bound-public-catalogue-v13` remains
 development-unqualified pending new candidate-bound evidence. Historical
 campaign results do not qualify these changed measurements.
 
@@ -188,6 +188,12 @@ The [noiseless-filter repair](../reference/phase-5-noiseless-filter-repair.md)
 uses stable local arithmetic for precision-limited noise without changing
 detection thresholds or inventing an RMS floor. Stale composition identities
 fail explicitly; refreshes must select the newly frozen candidate.
+
+The [zero-noise adaptive repair](../reference/phase-5-zero-noise-adaptive-repair.md)
+keeps source-protected regions with no positive RMS explicitly unavailable
+for sigma-based detection. A noiseless image containing emission can therefore
+return no catalogue rows with an **unavailable RMS**; this is not evidence
+that the image contains no sources. No artificial noise floor is supplied.
 
 The repaired continuum RMS policy passes the joint source-retention and
 spatial-noise fixture gates; it is **not campaign-qualified**. See the

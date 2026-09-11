@@ -53,9 +53,11 @@ valid normalized pixels**; its old candidate anchor `(y=47, x=45)` is invalid
 with normalized value `NaN`. `_connected_source_protection` nevertheless
 requires that anchor to belong to a thresholded connected component and
 raises. This confirms an availability/anchor mismatch on the public capture
-path; the upstream reason for the unavailable normalized window still needs
-to be traced through the background/RMS estimates. Do not infer that a
-particular RMS floor or simply skipping anchors is scientifically correct.
+path. A subsequent approved diagnostic trace confirms that all six-by-six
+protected coarse samples have exactly zero RMS and background: source
+protection leaves a defined zero-variance statistic, not missing image
+data. See the separate [zero-noise adaptive repair](phase-5-zero-noise-adaptive-repair.md).
+This diagnosis does not justify an RMS floor or weakening the anchor guard.
 
 The recipe, FITS input, failed products and diagnostic record remain under
 `/private/tmp/hebog-v12-runtime-probe.WYsfaC/` in
@@ -67,7 +69,8 @@ ignored `benchmark-results/phase-5/v12-replay-preparation/launch-owner-draft/`;
 24 focused prototype tests passed, but its full admission/CLI tests and
 validation are unfinished. It is not executable supported tooling.
 
-**Next:** obtain approval for a test-first source-protection repair, preserve
+**Next:** complete the source-protection repair explicitly approved on
+2026-09-11, preserve
 this exact failing input as development evidence, and test zero/unavailable
 noise, blends, empty/invalid data and ordinary noisy controls. Verify genuine
 source retention, broad-source protection and Serial/existing-Dask invariance;

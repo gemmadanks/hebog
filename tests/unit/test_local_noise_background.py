@@ -345,3 +345,101 @@ def test_coarse_bright_candidate_can_be_noise_under_the_fine_pilot() -> None:
     assert refined.local_noise is not None
     assert refined.local_noise.scientifically_available
     assert np.max(refined.local_noise.rms) > 50
+
+
+@pytest.mark.parametrize("noise", (0.0, np.nan, 1.0))
+def test_bright_refinement_requires_available_positive_noise(
+    noise: float,
+) -> None:
+    """A corrected noiseless grid cannot normalize an old work anchor."""
+    yy, xx = np.mgrid[:80, :96]
+    background_image = np.where((yy + xx) % 2, -noise, noise)
+    config = _config()
+    coarse = estimate_background_rms_grids(
+        _Source(background_image),
+        background_image.shape,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=(),
+    )
+    source = _Source(np.nan_to_num(background_image))
+    source.image[40, 48] += 100
+    refined = refine_background_rms_grids(
+        source,
+        coarse,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=((40.0, 48.0),),
+        source_protection_island_threshold_sigma=3,
+    )
+    assert refined.coarse is coarse.coarse
+    if noise == 1:
+        assert len(refined.adaptive_regions) == 1
+        assert refined.adaptive_regions[0].protected_pixel_count > 0
+        assert source.bounds
+    else:
+        assert not refined.adaptive_regions
+        assert not source.bounds
+
+
+@pytest.mark.parametrize(
+    ("position", "valid_anchor", "message"),
+    (
+        ((99.0, 205.0), True, "outside its protection window"),
+        ((120.0, 205.0), True, "outside its protection window"),
+        ((105.0, 199.0), True, "outside its protection window"),
+        ((105.0, 224.0), True, "outside its protection window"),
+        ((104.0, 204.0), True, "absent from source-protection support"),
+        ((105.0, 205.0), False, "absent from source-protection support"),
+    ),
+)
+def test_usable_protection_still_rejects_malformed_anchors(
+    position: tuple[float, float], valid_anchor: bool, message: str
+) -> None:
+    """Unavailable-work admission must not weaken the strict seed guard."""
+    normalized = np.zeros((20, 24))
+    normalized[5, 5] = 100
+    validity = np.ones(normalized.shape, dtype=np.bool_)
+    validity[5, 5] = valid_anchor
+    with pytest.raises(ValueError, match=message):
+        _connected_source_protection(
+            normalized,
+            validity,
+            ImageBounds(100, 120, 200, 224),
+            (position,),
+            island_threshold_sigma=3,
+        )
+
+
+@pytest.mark.parametrize("retry", (False, True))
+def test_unavailable_bright_region_does_not_discard_a_noisy_neighbour(
+    retry: bool,
+) -> None:
+    """Regional noise admission preserves independent valid refinements."""
+    yy, xx = np.mgrid[:384, :384]
+    noise = np.where((yy + xx) % 2, -1.0, 1.0) * (xx > 192)
+    config = _config()
+    executor = _ReverseRetryExecutor() if retry else SerialExecutor()
+    coarse = estimate_background_rms_grids(
+        _Source(noise),
+        noise.shape,
+        config,
+        executor,
+        bright_candidate_positions_yx=(),
+    )
+    source = _Source(noise.copy())
+    source.image[50, 50] += 100
+    source.image[300, 300] += 100
+    refined = refine_background_rms_grids(
+        source,
+        coarse,
+        config,
+        executor,
+        bright_candidate_positions_yx=((50.0, 50.0), (300.0, 300.0)),
+        source_protection_island_threshold_sigma=3,
+    )
+    assert len(refined.adaptive_regions) == 1
+    assert refined.adaptive_regions[0].bright_candidate_positions_yx == (
+        (300.0, 300.0),
+    )
+    assert refined.adaptive_regions[0].protected_pixel_count > 0

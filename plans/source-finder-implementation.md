@@ -1247,9 +1247,8 @@ All of this is development evidence, not replacement parity or qualification.
     cases using runner `c9b0fec5...`; this checks identity and case metadata,
     not refreshed results or exhaustive replay admission.
   - [ ] **R6-R6 — Admit replacement cumulative and then fresh evidence.**
-    **Next task:** obtain approval for the newly exposed source-protection
-    availability repair, implement it test-first with non-regression gates,
-    and refreeze the candidate before resuming controlled cost/space and exact
+    **Next task:** freeze the corrected, fixture-validated v13 candidate
+    before resuming controlled cost/space and exact
     execution admission. Do not launch the known-failing v12 candidate.
     The notebook refresh completed successfully at 22:59:52 UTC
     on 2026-09-10: all 13 results and 104 unique artifacts verify, together
@@ -1257,9 +1256,9 @@ All of this is development evidence, not replacement parity or qualification.
     is `905475f7...`; this is diagnostic completion, not scientific parity.
     The initial disk hold (66.747 GiB versus 68 GiB required) is cleared by
     user cleanup: approximately 89.9 GiB is now free. The remaining independent
-    noiseless cost fixture fails in source protection before replay admission.
+    noiseless cost fixture exposed the now-repaired source-protection defect.
     No replay has started; no agent cleanup is authorized. The same hourly
-    monitor now holds launch pending repair approval, validation and refreeze.
+    monitor now holds launch pending refreeze and remaining execution admission.
     The user now
     authorizes the isolated replay, evaluation, investigation of failures,
     and process/evaluator repairs and retries after the refresh finishes.
@@ -1351,21 +1350,30 @@ All of this is development evidence, not replacement parity or qualification.
       definitions are unchanged. No old verdict transfers. The proposed
       execution/scratch directories remain absent. See the
       [v12 preparation](../docs/reference/phase-5-v12-replay-preparation.md).
-    - [ ] Repair the new independent zero-noise admission failure after
-      renewed approval; process/evaluator retry authority does not authorize
-      candidate-science changes. **2026-09-11:** the frozen candidate fails
+    - [x] Repair the new independent zero-noise admission failure. The user
+      explicitly approves repair, non-regression and Serial/Dask checks,
+      and a corrected-candidate freeze before launch on **2026-09-11**.
+      Process/evaluator retry authority alone does not authorize further
+      candidate-science changes. The historical v12 candidate fails
       a finite 512-square, two-component development input with
       `adaptive candidate is absent from source-protection support`.
       The reproduced protection window has zero valid normalized pixels,
       but an old candidate anchor is still required to belong to thresholded
-      support. Trace background/RMS availability and anchor provenance first;
-      do not just suppress the error, weaken thresholds or add an arbitrary
-      RMS floor. Add the exact red regression, zero/unavailable-noise and
-      ordinary-noise controls, invalid/empty and blend geometries, broad-source
-      retention, and actual Serial/existing-Dask conformance. Complete focused
-      and full non-regression validation, then freeze a new candidate and
-      preparation. Preserve v12 and all closed results. See the
-      [admission diagnosis](../docs/reference/phase-5-v12-replay-preparation.md#new-admission-failure-2026-09-11).
+      support. The approved trace finds an exactly zero-valued protected
+      coarse grid. V13 admits protected adaptive work only with available
+      positive coarse RMS, preserving zero/unavailable statistics, local-noise
+      estimates and independent noisy neighbours. No guard, threshold or RMS
+      floor is weakened. The exact regression passes after its intended red.
+      Validation passes 219 focused, 3,778 portable and 27 equivalence tests;
+      a 25-test guard supplement brings branch-aware coverage to 95.26468995%,
+      above the prior freeze, with all changed executable lines covered.
+      Actual Serial/Dask comparisons and archived-v12 noisy non-regression
+      agree exactly. See the
+      [repair contract](../docs/reference/phase-5-zero-noise-adaptive-repair.md).
+    - [ ] Freeze the committed v13 source/configuration/composition in a new
+      non-executable candidate review, update the notebook identity selector
+      without refreshing results, and preserve all historical identities.
+      This freeze is not a replay launch decision or qualification.
     - [ ] Measure an independent representative fixture cost/size ladder, then
       resolve resource admission. Provisional budget is 68 GiB free versus
       69.42 GiB observed during v12 preparation (only 1.42 GiB headroom;
