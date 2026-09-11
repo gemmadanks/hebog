@@ -19600,3 +19600,87 @@ scientific pass from fixture validation.
   repeated. Review the complete documentation delta against `CODE_REVIEW.md`;
   no actionable issue remains. Final all-file hooks precede the local commit;
   no push or release is performed.
+
+## 2026-09-11 — Independent quick-screen follow-up and figure-12 diagnosis
+
+- Complete the bounded review requested before the long replay. Preserve the
+  paired screen and all closed decisions: no rescoring, external finder,
+  qualification or full replay is performed. Candidate v13 source
+  `d5107cd3...` and its scientific configuration remain unchanged.
+- The independent compact probe runs 256 fits over 64 new seeds at SNR 10
+  and 25, comparing owned-region and bounded-context likelihoods with exact
+  correlated noise. All fits complete in 2.36 s; context enlargement gives
+  no consistent position/uncertainty improvement and is not promoted. The
+  original compact retention warnings remain unresolved statistical risks.
+- Run 40 independent faint morphology cases with true background/RMS.
+  All complete in 5.94 s. Two noisy shells and one edge-clipped Gaussian
+  each fragment one injected object into two associated sources. The eight
+  noiseless controls and all 16 noisy higher-amplitude cases stay together.
+  Reproduce all three witnesses through the unchanged public FITS path with
+  estimated background/RMS: three Serial and three existing-Dask captures
+  finish in 7.83 s, with identical complete scientific digests for each pair.
+  Any repair must retain compact-pair/chain/companion anti-merge controls.
+- Audit all 68 development seeds against checked-in manifests and copy 134
+  evidence files byte-for-byte to the ignored
+  `benchmark-results/phase-5/v13-followup-20260911/` namespace. Audit SHA-256:
+  `a737add821c6f2ea582122a0047b7ce644ade5541445949e01b697674bcc132d`.
+  Preserve diagnostic harness setup/summary failures separately; these are
+  not candidate process failures or scientific verdicts.
+- Trace the user's Hydra-deep figure 12 read-only to the sealed v12 notebook
+  at `76e4a31...`, source `838e2846...`. The native Gaussian is at
+  (1783.31972, 1256.50002), 11.97 pixels from the owned residual peak, with
+  reduced chi-squared 524,528.40. It is published as measured despite its
+  nearly bound centroid and distorted shape. This is not a plotting offset
+  or an associated-source centroid. The relevant fitter/measurement/WCS
+  files are unchanged in v13. Numerical conditioning is a hypothesis needing
+  an independent witness; the acceptance gap is directly confirmed.
+- Preserve the trace and its programme separately from synthetic evidence in
+  `benchmark-results/phase-5/v13-followup-figure12-20260911/`. Trace SHA-256:
+  `c9b1c2b082b6e73b55c4e93148b56da089d1c0a4d115bda955efdaad69bc0673`.
+  No viewed image is rerun or fitted. The tracer's initial singleton-FITS-axis
+  handling error and corrected programme are both retained.
+- Add the follow-up review and open F1--F3 tasks: test-first Gaussian
+  validity, faint grouping without compact over-merges, then full
+  non-regression/executor validation and a replacement freeze. Initially
+  recommend holding replay for these repairs. The later user decision below
+  supersedes that recommendation, without deleting the findings. No
+  scheduler-record update was verified or performed in this review.
+- Focused regression and actual existing-Dask boundary validation passes
+  **210 tests**, with four slow tests deselected, in 42.84 s. This change is
+  diagnostic/documentation-only: production science and permanent fixture
+  expectations are unchanged. Full coverage, full equivalence and alternate
+  Python versions are not repeated; passing fixtures do not waive the
+  scientific findings or establish campaign success.
+
+### Later user decision — final campaign, then runtime/scalability priority
+
+- The user wants to run the last campaign, then close Phase 5 unless there
+  are serious issues. Defer further scientific improvements behind runtime
+  and scalability. Separate **development closeout** from scientific
+  readiness, parity claims, release and default cutover. Manual inspection is
+  useful diagnostic evidence, not a substitute for truth-based qualification.
+- Record a pre-launch severity policy in the follow-up review. Corrupt or
+  unusable products, silent processing failures, Serial/Dask disagreement and
+  confirmed material Rapthor-critical compact/measurement/RMS/mask failures
+  block development closeout. Other bounded limitations and inconclusive
+  comparisons are documented, not automatically blockers or passes. Triage
+  every failed comparison; uncertain serious impact needs human disposition,
+  not silent dismissal or an automatic new science-repair campaign.
+- The prepared v13 cumulative replay is the final currently planned campaign,
+  not new held-out qualification. Keep its 2,400 inputs, 1,187 comparisons,
+  reference identities, confidence rules and hard safety checks unchanged.
+  Preserve exact terminal statuses independently of the development-closeout
+  decision. F1--F3 remain deferred and incomplete. Known incorrect supported
+  outputs still block scientific readiness/release, and the PyBDSF fallback
+  remains; a phase label cannot waive these requirements.
+- Change Phase 6/7 sequencing to permit profiled runtime, complete-path
+  matched benchmarking and bounded scalability engineering after this
+  closeout, without waiting for broad post-release cleanup or every deferred
+  science improvement. Freeze a known-issues baseline and require no new
+  regressions; keep the 50% released-PyBDSF reduction and pinned-master target.
+  Do not claim those targets are met or start facility-scale work here.
+- Launch remains blocked by resources: `df -k` reports 62,521,292 KiB
+  (59.62 GiB) free against the bound 74,710,430,800-byte (69.58-GiB)
+  minimum, approximately 9.96 GiB short. No deletion, resource waiver,
+  exact execution identity or replay launch occurs. Recheck after cleanup,
+  then complete the existing exhaustive immutable admission before capture.

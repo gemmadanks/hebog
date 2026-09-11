@@ -32,7 +32,9 @@ Hebog median filter_skymodel wall time / PyBDSF master median   < 1.00
 Both comparisons use matched inputs, configuration, outputs, resources, and
 hosts. Their one-sided 95% bootstrap confidence bounds must satisfy the limits.
 Scientific eligibility is decided before runtime; faster execution cannot
-compensate for failed science.
+compensate for failed science in an acceptance decision. Profiling and
+optimization may use an explicitly unqualified, known-issues development
+baseline; its timings do not establish replacement eligibility.
 
 ## 2. Scope and durable boundaries
 
@@ -63,15 +65,18 @@ compensate for failed science.
 
 - Phase 5 owns scheduler-independent multiscale science, extended-island
   completion, cross-scale ownership, bounded tiling semantics, incremental
-  performance, and a terminal scientific-readiness handoff after confirmatory
-  PyBDSF parity and Hebog-quality retention pass. Release Please owns the next
-  standalone Hebog release workflow after Phase 5 closes; Phase 5 does not
+  performance, and the final campaign/severity review. The 2026-09-11 decision
+  separates development closeout with known issues from scientific readiness;
+  the latter still requires its parity, retention and validity gates.
+  Release Please owns release workflow after release eligibility, not merely
+  development closeout. Phase 5 does not
   prepare a version, tag, changelog, or release artifact. Only a narrow
   release-blocking production audit belongs before qualification and closure.
 - Phase 5.5 owns post-release removal or consolidation of superseded campaign
   wrappers, one-use freezers, historical lifecycle tests, and other
   development-only tooling. It does not change `src/hebog/`, scientific
-  products, or closed evidence, and it completes before Phase 6 begins.
+  products, or closed evidence. It is not a prerequisite to the newly
+  prioritized runtime/scalability engineering work.
 - Phase 6 owns the restricted Rapthor profile decision, Rapthor integration,
   complete dual-PyBDSF performance, and the earliest useful Rapthor-integrated
   experimental release once every minimum gate passes.
@@ -462,11 +467,29 @@ closed historical evidence and were not rescored.
 
 ### 6.2 Phase 5 decisions and latest evidence
 
-Phase 5 is open and scientific closeout is blocked. The latest source-aligned
+**Current decision — 2026-09-11:** Phase 5 development remains open for the
+last prepared v13 cumulative campaign and a bounded severity review. Then
+close development unless serious issues are found; defer other scientific
+improvements and prioritize runtime and scalability. Apply the
+[pre-launch severity policy](../docs/reference/phase-5-v13-followup-review.md#later-decision-final-campaign-then-development-closeout).
+Keep every original scientific result/gate unchanged. Development closure
+is not scientific qualification, a PyBDSF-parity claim, release or cutover.
+Known incorrect supported outputs remain release blockers, and the PyBDSF
+fallback remains. This decision supersedes the earlier all-science-first
+phase sequencing, not its immutable evidence or scientific requirements.
+
+**Next task:** restore the measured replay disk reserve, freeze/admit the
+exact unchanged v13 execution, then run and monitor hourly. No F1--F3 repair
+is required before this last campaign. Do not launch a duplicate or silently
+reduce the population/reserve. A subsequent scientific repair or fresh
+qualification requires a separate prospective decision, not an automatic
+loop after every failed comparison.
+
+Scientific readiness is incomplete. The latest source-aligned
 sentinel `ca03240d...` completed normally but failed 18 of 42 cells for
 candidate `95cfc76...`. Earlier development and cumulative passes remain
 scoped historical evidence, not readiness for that candidate or its successor.
-The next work is the prospective repair checklist in Section 7, supported by
+Deferred scientific work is recorded in Section 7, supported by
 the [source-catalogue science audit](../docs/reference/phase-5-source-catalogue-science-audit.md).
 The multiscale implementation, combined products, bounded execution proof,
 public interface, and incremental performance evidence already exist.
@@ -489,7 +512,8 @@ support and expanded measurement support could independently resolve the same
 equidistant recovered pixel to different existing owners. The prospective
 correction keeps the publication footprint unchanged while inheriting the
 authoritative measurement owner and still rejects genuinely unowned support.
-The remaining gates are the
+The remaining scientific-readiness gates (not all prerequisites to the
+development handoff) are the
 prospective fast lane, a fresh cumulative replay/evaluation, seed-disjoint
 held-out qualification, final engineering/public-interface confirmation,
 a narrow production audit, documentation, and packet-bound independent
@@ -645,10 +669,14 @@ Detailed campaign and incident chronology
 belongs in `LOG.md` and the campaign overview; machine identities and
 authorization boundaries remain in `config/contracts/`.
 
-#### Phase 5 exit gates
+#### Scientific-readiness and release gates
+
+These requirements retain their original meaning. Under the 2026-09-11
+decision, they are not all prerequisites to closing the development phase
+after the last campaign and serious-issue review.
 
 **Release correctness is not restricted to Rapthor's immediate needs.**
-Prioritize the products Rapthor consumes, but do not close Phase 5 with a
+Prioritize the products Rapthor consumes, but do not declare readiness with a
 confirmed defect in any supported public catalogue, position, flux, ownership
 or processing-status contract. A narrower consumer, a pooled parity result,
 or the historical confidence exception cannot waive a known incorrect output.
@@ -1246,12 +1274,18 @@ All of this is development evidence, not replacement parity or qualification.
     29 tests. The actual read-only notebook preflight passes all 13 configured
     cases using runner `c9b0fec5...`; this checks identity and case metadata,
     not refreshed results or exhaustive replay admission.
-  - [ ] **R6-R6 — Admit replacement cumulative and then fresh evidence.**
-    **Next task:** review the remaining risks exposed by the separate
-    2026-09-11 paired quick screen before recommending the long replay.
-    Restore host disk headroom and complete exact execution admission only
-    after that review identifies any required independent-fixture repairs or
-    an explicit decision to proceed with unresolved sampling uncertainty.
+  - [ ] **R6-R6 — Final cumulative campaign and development closeout.**
+    **Next task:** admit and run the last prepared v13 cumulative campaign,
+    followed by severity review and development closeout. The completed
+    [2026-09-11 follow-up](../docs/reference/phase-5-v13-followup-review.md)
+    confirms independent faint-source fragmentation and a pathological
+    notebook Gaussian admitted as measured. The user's later instruction
+    defers F1--F3 and supersedes the proposed pre-replay scientific repair
+    hold. These findings remain known issues, not fixed by fixture passes.
+    The hourly continuation may launch only after resource and exhaustive
+    exact execution admission, keeping the notebook isolated. After terminal
+    evaluation, investigate serious issues; do not automatically reopen
+    scientific development for every failed or underpowered comparison.
     The corrected, fixture-validated and frozen candidate remains v13.
     The independent cost ladder and non-executable v13 preparation are
     complete (2026-09-11), as is the fixture-tested exact launch wrapper.
@@ -1270,7 +1304,7 @@ All of this is development evidence, not replacement parity or qualification.
       margin and 49 beyond (3 released, 4 master, 3 Aegean, 39 incumbent).
       No point estimate is unavailable, but no confidence intervals or
       campaign pass are claimed. All closed evidence remains unchanged.
-    - [ ] **Review screen risks before long execution.** Localize low-SNR
+    - [x] **Review screen risks before long execution.** Localize low-SNR
       compact position tails and incumbent uncertainty/flux/shape retention;
       inspect extended mask precision, flux tails and filament/mixed-source
       position/splitting, including the separate four-seed geometry warnings
@@ -1279,6 +1313,45 @@ All of this is development evidence, not replacement parity or qualification.
       on independent truth before any repair; do not tune or rescore the
       screen. Better pooled completeness/reliability cannot waive these
       checks. See the [quick-screen record](../docs/reference/phase-5-v13-replay-preparation.md#paired-quick-screen-2026-09-11).
+      Follow-up completes 256 independent compact fits, 40 faint morphology
+      cases and three exact-public Serial/existing-Dask pairs. All execute;
+      three single-source fragmentations reproduce in both executors.
+      Likelihood-context expansion is not a demonstrated compact remedy.
+      The separate viewed Hydra trace confirms a near-bound Gaussian displaced
+      11.97 pixels from its local peak, with reduced chi-squared 524,528,
+      published as measured. Root mechanisms and residual uncertainty are
+      recorded without tuning or rescoring. This completes diagnosis, not
+      repairs or campaign qualification.
+    - [ ] **F1 — Deferred: prevent pathological Gaussian publication.**
+      Reproduce with
+      independent bright/oversampled, modest model-mismatch and mixed-noise
+      fixtures before changing numerical conditioning or fit acceptance.
+      Retain exact correlated-noise, subpixel, blend, boundary, covariance and
+      unavailable-fit controls. Separate successful optimization from an
+      adequate, stable model. Preserve detection/source support when a fit
+      cannot be represented honestly; do not replace fitted positions with
+      peaks or choose a residual cutoff from the viewed notebook.
+    - [ ] **F2 — Deferred: repair faint grouping without compact over-merges.**
+      Extend
+      the existing joint geometry matrix to faint shells/arcs/filaments and
+      clipped envelopes. Evaluate bounded one-envelope/multiple-object and
+      aggregate morphology evidence with independent compact pair/polygon/
+      chain and compact-on-extended negative controls. Keep immutable
+      component identities, explicit ambiguity and unchanged detection gates;
+      neither blanket merging nor blanket splitting is acceptable.
+    - [ ] **F3 — Deferred: revalidate and freeze future scientific repairs.**
+      Run the
+      complete source/component measurement and non-regression gates,
+      Serial/existing-Dask and partition/order/retry checks, patch/branch
+      coverage, equivalence, docs and clean hooks. Retain compact uncertainty,
+      mask precision and extended-flux risks separately; no pooled gain or
+      favourable seed choice can waive them. Bind new candidate/program
+      identities before any future repaired-candidate paired confirmation,
+      then resource and exhaustive immutable admission. This is not a
+      prerequisite to the authorized final v13 campaign. Its 2,400 inputs,
+      comparators,
+      truth, margins and confidence rules remain unchanged; preserve v13 and
+      its screen rather than modifying or rescoring them.
 
     Do not launch the known-failing v12 candidate or its old preparation.
     The notebook refresh completed successfully at 22:59:52 UTC
@@ -1290,7 +1363,8 @@ All of this is development evidence, not replacement parity or qualification.
     freeze; recheck before launch). The remaining independent
     noiseless cost fixture exposed the now-repaired source-protection defect.
     No replay has started; no agent cleanup is authorized. The same hourly
-    monitor now holds launch pending resource and exact execution admission.
+    monitor must hold launch pending resource and exact execution admission;
+    F1--F3 are deferred by the later 2026-09-11 decision.
     The user now
     authorizes the isolated replay, evaluation, investigation of failures,
     and process/evaluator repairs and retries after the refresh finishes.
@@ -1512,12 +1586,19 @@ All of this is development evidence, not replacement parity or qualification.
   terminal diagnostics and treat scientific failure as terminal. A small
   sentinel remains a falsification check, not a substitute for powered parity.
 
-After R0--R6, resume exact-candidate engineering and independent readiness
-below. Documentation, supported limitations and provenance are Phase 5 work;
-broad historical-tooling cleanup remains Phase 5.5 and Release Please still
-owns the release.
+After the final R6-R6 campaign, preserve the exact verdict and classify every
+failure under the pre-launch severity policy. Close development and hand off
+to runtime/scalability if no serious issue remains; otherwise document the
+bounded blocking issue for human disposition. F1--F3 and fresh qualification
+remain deferred, not completed. Documentation, limitations and provenance
+belong in this handoff. Broad cleanup remains separate; Release Please still
+owns releases, which require their own readiness gates.
 
-#### Authoritative Phase 5 closeout checklist
+#### Retained scientific-readiness checklist
+
+The historical checklist below governs a scientific-readiness declaration,
+not the newly separated development closeout. Its failed/open items remain
+failed/open. The 2026-09-11 development decision above controls current work.
 
 Historical candidate `95cfc76...` has a sealed cumulative replay. Its
 evaluation did not pass every incumbent-retention confidence check, but the
@@ -1890,7 +1971,8 @@ of `db8936b...` or `cc1db52e...`:
    blocked by the failed sentinel and must not publish a readiness record for
    candidate `95cfc76...`.
 
-Phase 5 closes when every remaining exit-gate row and items 2--4 above pass for
+Scientific readiness is established when every remaining gate row and items
+2--4 above pass for
 one exact candidate and the terminal readiness record is published. The
 readiness record must bind and disclose the scoped cumulative-retention
 exception. Release Please then owns the standalone Hebog release; the Phase 5
@@ -1913,9 +1995,9 @@ narrative was removed from this current-work plan.
 Begin only after Phase 5 is terminally closed and Release Please has durably
 recorded the standalone Hebog release. This maintenance phase is deliberately
 outside the scientific release boundary: it reduces repository complexity
-without delaying parity, qualification, readiness, or release. It must finish
-before Phase 6 starts so Rapthor integration builds on one clear maintained
-validation path.
+without delaying parity, qualification, readiness, or release. It no longer
+blocks Phase 6/7 runtime and scalability work under the 2026-09-11 decision;
+retain the current validation paths until cleanup can safely proceed.
 
 - [ ] Inventory Phase 5 validation scripts, freezers, overlays, and
       lifecycle-only tests. Identify the canonical current
@@ -1942,15 +2024,37 @@ validation path.
 
 ### Phase 6: Rapthor integration, minimum performance, and early release
 
-Phase 6 begins only after Phase 5 has established all-check PyBDSF scientific
-parity, recorded no observed incumbent movement beyond a practical margin,
-published its terminal scientific-readiness record with the scoped two-tail
-confidence limitation, and Phase 5.5 has completed the post-release
-historical-tooling cleanup. Its objective is the earliest safe, useful
+Runtime/scalability engineering may begin after the final Phase 5 campaign
+and documented development-closeout decision, even while scientific
+qualification remains incomplete. Do not delay it for F1--F3 or broad
+historical-tooling cleanup. Scientific readiness, the restricted Rapthor
+profile, operational acceptance and performance gates remain required for
+release/default cutover; the work-order change does not waive them.
+Its objective is the earliest safe, useful
 improvement for Rapthor, not the final scientific or computational optimum.
 Do not delay a Rapthor-integrated experimental release for a longer-term
 absolute target or maximum facility scale once all binding science,
 compatibility, operational, and minimum complete-path performance gates pass.
+
+- [ ] Freeze the current candidate as a **known-issues engineering baseline**,
+      preserving its final campaign verdict and deferred defect inventory.
+      Profile complete FITS-to-products and Rapthor filtering paths; do not
+      begin by changing scientific algorithms or weakening thresholds.
+- [ ] Establish matched released/master PyBDSF and Hebog complete-path
+      timing, CPU/RSS/I/O and Dask task/transfer/spill baselines with warm-up
+      plus at least five measured repetitions. Cover affected/adjacent size
+      anchors and crossovers; record unavailable references rather than
+      substituting them or claiming a speedup from old notebook timings.
+- [ ] Prioritize measured I/O, repeated work, fit batching and bounded
+      executor/storage costs. Run scientific non-regression against the
+      frozen baseline for each optimization and preserve Serial/Dask,
+      partition/order/retry invariance. Existing failures must not worsen or
+      disappear through changed semantics; baseline equality is not a new
+      scientific qualification pass.
+- [ ] Bring forward Phase 7 bounded-memory and graph-size engineering and
+      local scaling experiments alongside runtime work. Facility-scale
+      execution still needs an admitted data host/resource envelope; do not
+      infer 100,000-square or hundreds-of-workers support from small tests.
 
 - [ ] Complete the restricted Rapthor profile decision.
       Begin only after the all-check PyBDSF-parity, Hebog-quality-retention,
@@ -1998,11 +2102,13 @@ compatibility, operational, and minimum complete-path performance gates pass.
 
 ### Phase 7: scale-out and continued optimization
 
-Pursue the best practical scientific and computational performance after the
-minimum useful Rapthor release. Every scalability or optimization change must
-keep the frozen all-check PyBDSF-parity, best-Hebog-retention, and Rapthor
-compatibility suites green; throughput, memory, and scale-out gains cannot
-compensate for scientific or workflow regression.
+Bring forward bounded-memory, executor and graph-size engineering under the
+2026-09-11 priority decision; a release is not required to start that work.
+Later facility qualification still requires its controlled resource envelope.
+Every optimization must retain existing passing checks and show no additional
+scientific regression against the known-issues baseline. All parity, retention
+and compatibility gates must pass before readiness/cutover; throughput,
+memory and scale-out gains cannot compensate for scientific regression.
 
 - [ ] Complete a shared serial/local/Dask executor contract for ordering,
       serialization, errors, cancellation, retry, determinism, and resources.

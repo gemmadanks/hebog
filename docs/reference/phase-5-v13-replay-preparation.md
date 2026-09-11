@@ -11,8 +11,14 @@ exhaustive no-write admission remain separate launch gates.
 The completed notebook and all historical results remain untouched.
 The separate [24-input quick screen](#paired-quick-screen-2026-09-11)
 has now completed and exposes remaining point-estimate regression risks.
-Review those risks before the expensive replay; fixture passes and disk
-admission alone are not a clean scientific launch recommendation.
+The [follow-up review](phase-5-v13-followup-review.md) now confirms faint
+source fragmentation and a separate pathological Gaussian in the completed
+v12 notebook, whose fit-acceptance code is unchanged in v13. The user's later
+[development-closeout decision](phase-5-v13-followup-review.md#later-decision-final-campaign-then-development-closeout)
+defers further science repairs and authorizes this final campaign unchanged.
+Complete resource and exact execution admission before launch; do not infer
+scientific readiness from fixture passes. Preserve the terminal verdict and
+separately assess serious issues before closing Phase 5 development.
 
 The new write-once metadata is
 `benchmark-results/phase-5/public-catalogue-v13-replay-preparation.json`,

@@ -11,6 +11,14 @@ across decisions, or replace a failed result with a later interpretation.
 
 ## Progress at a glance
 
+**Current direction — 2026-09-11:** run the prepared v13 cumulative campaign,
+then close Phase 5 development unless the severity review identifies serious
+issues. Other improvements move behind runtime/scalability work. This is not
+a parity assertion, scientific-readiness pass or release approval. See the
+[decision and severity policy](phase-5-v13-followup-review.md#later-decision-final-campaign-then-development-closeout).
+The campaign is not yet launched; resource and exact execution admission
+remain required. Historical verdicts below do not change.
+
 | Evidence stage | Purpose | Outcome | What it established |
 | --- | --- | --- | --- |
 | Final qualification | Test the frozen pre-public candidate on untouched synthetic compact and Continuum populations | Pass | The candidate passed 143 Continuum absolute gates, 226 powered PyBDSF comparisons, and both compact decisions. |
@@ -2668,6 +2676,42 @@ remains explicitly unavailable, not an ordinary successful measurement.
 clean enough to predict a campaign pass. Recommend bounded root-cause review
 and independent counterexamples before committing the long replay. No
 science, thresholds, margins, full-replay population or release gate changes.
+
+## 2026-09-11 — Independent follow-up and notebook fit diagnosis
+
+The [v13 follow-up](phase-5-v13-followup-review.md) completes 256 independent
+compact-estimator fits and 40 faint morphology executions. It also checks
+three reproducible fragmentation witnesses through the public FITS path:
+three Serial and three two-worker existing-Dask captures have identical
+scientific digests. There are zero external finder executions or campaign
+rescoring. Audit `a737add8...` binds all outcomes and independent development
+seeds; it is diagnostic evidence, not qualification.
+
+Larger compact likelihood context gives no consistent uncertainty or position
+improvement, so no such change is promoted. Two faint shell realizations and
+one edge-clipped Gaussian each become two associated sources even with true
+background/RMS; public estimation reproduces them. These identify a gap in
+the prior brighter development matrix, while compact over-merging remains
+a required negative control. The point-screen uncertainty, mask precision
+and remaining flux-tail warnings are not waived or converted to passes.
+
+Separately, the user's Hydra-deep figure 12 is traced read-only to the sealed
+v12 notebook (`905475f7...`, source `838e2846...`). A Gaussian component is
+published at (1783.32, 1256.50), 11.97 pixels from its owned residual peak,
+despite reduced chi-squared 524,528 and a nearly bound centroid. This is the
+saved measurement, not an associated-source centroid or plotting offset.
+The fitting/acceptance code is unchanged in v13; the diagnosed numerical
+conditioning hypothesis still requires an independent witness before repair.
+Trace `c9b1c2b0...` remains separate from synthetic evidence.
+
+All 210 focused regression/execution tests pass, with four slow tests
+deselected. No source-finding science changes in this review. The initial
+recommendation was to repair Gaussian validity and faint topology before
+replay; the user's subsequent decision instead authorizes the final v13
+campaign unchanged, with serious-issue triage for development closeout and
+the remaining repairs deferred. Resource and exact execution admission still
+apply. No full replay, qualification or release has started. No powered
+pass/fail counts or success probability follow from these diagnostics.
 
 ## Required format for future snapshots
 
