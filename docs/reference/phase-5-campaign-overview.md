@@ -2610,6 +2610,24 @@ The exhaustive historical audit `5b95726b...` verifies all 2,400 inputs,
 records without rerunning an evaluator. The old 885-pass/288-fail/14-underpowered
 verdict is preserved, not transferred to v13.
 
+## 2026-09-11 — V13 exact launch owner fixture-validated
+
+The [replacement launcher](phase-5-v13-replay-preparation.md#exact-launch-owner)
+now binds the current preparation, candidate/runtime, sufficient measured
+reserve and one-use authority before capture. It verifies mixed JSON/text
+provenance as bytes, isolates new namespaces and rechecks code, resources and
+controlling identities after the long no-write audit. Missing or changed
+admission fails before finder execution. Process errors are not converted to
+scientific success or automatic retries.
+
+All 114 focused tests pass with 100% line and branch coverage of the two new
+modules. The actual preparation's census and scientific metadata also verify
+read-only. Candidate source remains `d5107cd3...`; the old failed R6 terminal
+and completed notebook are unchanged. This is tooling/development evidence,
+not new parity evidence. Adequate host headroom, the new committed execution
+closure/identity and final exhaustive immutable preflight remain required.
+No replay, reference finder, qualification or release has started.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

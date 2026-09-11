@@ -19484,3 +19484,60 @@ scientific pass from fixture validation.
   adequate host headroom. The later host check is about 57.4 GiB free, roughly
   12.2 GiB below the revised minimum; no deletion or launch was performed.
   Preserve both failed probes, all closed data and the completed notebook.
+
+## 2026-09-11 — Validate the exact v13 replacement launch owner
+
+- Implement the final admission module and CLI using the existing replay,
+  inventory, binding and atomic-namespace primitives plus standard-library
+  checks; no new dependency, storage protocol or scientific algorithm.
+  Preserve the original text-only draft. Candidate `eacfa64...`, source
+  `d5107cd3...`, configuration `5eca0efc...` and composition v13 remain
+  byte-identical; no frozen review or closed result is rewritten.
+- Start with the draft's 24 passing prototype tests. New contract tests fail
+  for missing resource/runtime/census checks and JSON parsing of Markdown
+  provenance (28 intended failures); three further CLI tests expose bound
+  plan/review/decision drift during the long preflight. Repair these before
+  any launch. The new owner binds preparation `a1c60497...`, enforces its
+  measured 74,710,430,800-byte minimum, updates only current-Hebog dependency
+  identity and hashes mixed JSON/text evidence as bytes. It verifies the
+  actual imported package, clean committed code, all five one-thread settings,
+  Python/platform/dependencies, complete population and reusable inventory.
+- Recheck disk, code and unconsumed isolated namespaces after exhaustive
+  reads, then recheck the controlling plan, identity review and one-use
+  decision before capture. Reuse the existing runner's exclusive namespace
+  claim. Invalid admission cannot start a finder; process errors propagate
+  without automatic retries and completed scientific failure remains failure.
+  No candidate science, evaluator rule, population, comparator or gate changes.
+- All **114 focused tests pass in 19.10 s**, with **100% line and branch
+  coverage** of the two new modules: 167 statements and 68 branches, none
+  missed or excluded. Synthetic inputs cover normal, drift, insufficient/late
+  disk, consumed/symlink/overlapping namespace, incomplete inventory and
+  process/scientific-failure paths without campaign-directory dependencies.
+  Explicit Ruff and Pyright checks on all five new Python files pass, as do
+  their pre-staging formatting/hygiene hooks without modifications.
+- Verify the real preparation census and scientific metadata using the new
+  owner without finder/evaluator execution or namespace creation. This bounded
+  check is not the exhaustive preflight for a final immutable execution.
+  Normal `just check` passes Ruff, Pyright and **3,597 tests**, with two
+  existing expected failures, in 257.63 s of pytest time. Frozen equivalence
+  passes all **27 tests** in 37.88 s; strict documentation passes in 6.88 s.
+- Full `just coverage` passes **3,899 portable tests**, with two existing
+  expected failures, in 992.99 s. This includes actual Serial/existing-Dask
+  integration and spawned replacement capture/evaluation/reuse checks.
+  Branch-aware project coverage is **95.26468995396696%**, exactly unchanged
+  from the candidate freeze. All new script lines and branches are separately
+  covered by the focused report; no coverage exclusions or weakened assertions
+  are added. Python 3.12/3.13 and production-scale performance are not rerun.
+- Review the complete owner/test/documentation delta against `CODE_REVIEW.md`:
+  no actionable finding remains. The new execution plan must bind the newly
+  committed wrapper/program closure, not the preparation-time `f6a76a63...`
+  closure. No resource admission, exact plan/review/decision or replay is
+  created by this tooling step. Keep the same hourly monitor; adequate host
+  headroom and exhaustive immutable admission remain launch gates. Preserve
+  the completed notebook, both cost probes and all failed historical evidence.
+- Post-validation host space is **47.59 GiB**, approximately **21.99 GiB**
+  below the bound 69.58-GiB minimum. No cleanup or launch is performed.
+  Keep the existing hourly continuation focused on this resource hold and
+  final execution freeze/preflight, without repeating the completed repair,
+  probe or tooling work. Final clean all-file hooks precede the local commit;
+  nothing is pushed.

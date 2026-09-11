@@ -1250,8 +1250,10 @@ All of this is development evidence, not replacement parity or qualification.
     **Next task:** restore host disk headroom and complete exact execution
     admission for the corrected, fixture-validated and frozen v13 candidate.
     The independent cost ladder and non-executable v13 preparation are
-    complete (2026-09-11); the measured reserve is now 69.58 GiB, versus
-    59.73 GiB at the cost-summary check. No replay has started. See the
+    complete (2026-09-11), as is the fixture-tested exact launch wrapper.
+    The measured reserve is now 69.58 GiB, versus 59.73 GiB at the
+    cost-summary check. Current resource admission, immutable execution freeze
+    and exhaustive preflight remain open. No replay has started. See the
     [v13 preparation](../docs/reference/phase-5-v13-replay-preparation.md).
     Do not launch the known-failing v12 candidate or its old preparation.
     The notebook refresh completed successfully at 22:59:52 UTC
@@ -1263,7 +1265,7 @@ All of this is development evidence, not replacement parity or qualification.
     freeze; recheck before launch). The remaining independent
     noiseless cost fixture exposed the now-repaired source-protection defect.
     No replay has started; no agent cleanup is authorized. The same hourly
-    monitor now holds launch pending new preparation and execution admission.
+    monitor now holds launch pending resource and exact execution admission.
     The user now
     authorizes the isolated replay, evaluation, investigation of failures,
     and process/evaluator repairs and retries after the refresh finishes.
@@ -1418,9 +1420,9 @@ All of this is development evidence, not replacement parity or qualification.
       timing ladder was produced. Resume only after its approved repair and
       candidate refreeze; retain the precision-limited path in admission.
       Recheck the final budget. Preserve replay-critical references and R6
-      directories. The unfinished exact-owner draft and 24 passing prototype
-      tests are parked as text in the ignored preparation evidence directory,
-      not promoted into executable supported tooling.
+      directories. At that stage the unfinished exact-owner draft and 24
+      passing prototype tests were parked as text in the ignored preparation
+      evidence directory; that historical draft remains preserved.
       **2026-09-11 cost ladder complete; resource admission still open:**
       v13 completes 48 captures and 30 full-metadata current evaluations
       across eight independent fixtures, one warm-up plus five measurements
@@ -1445,14 +1447,25 @@ All of this is development evidence, not replacement parity or qualification.
       references, 4,800 captures, 12 old Dask comparisons and 10,400 records
       without execution or rescoring (`5b95726b...`). Final new immutable
       execution admission is still required.
+    - [x] Implement and fixture-test the exact launch owner, without changing
+      candidate science. The wrapper binds the v13 preparation and current
+      dependency inventory, enforces its 74,710,430,800-byte minimum, hashes
+      mixed JSON/text provenance correctly and rechecks controlling identities
+      after the exhaustive audit. All 114 focused tests pass with 100% line
+      and branch coverage of the two new modules. Namespace, disk, code/import,
+      runtime, one-use authority and process/scientific failure checks prevent
+      capture on invalid admission. The real preparation census/scientific
+      metadata verify read-only. This tooling evidence is not a replay verdict
+      or final immutable preflight. Preserve the old draft and closed results.
     - [ ] Freeze the exact reusable inventory, committed program closure,
       runtime and new write-once paths after tests and resource checks; repeat
       exhaustive no-write validation and record the exact one-use decision
       under the user's 2026-09-10 launch authorization. Keep the notebook and
       immutable replay candidate isolated; update the hourly monitor with
       actual session and execution identities immediately after launch.
-      The unfinished wrapper must bind and enforce the new preparation's
-      74,710,430,800-byte reserve; do not promote its obsolete 68-GiB constant.
+      Bind the newly committed wrapper closure, not the older preparation's
+      program closure, and a sufficient current resource record. Do not bypass
+      its exact 74,710,430,800-byte minimum or invoke the staged runner directly.
     - [ ] Complete and investigate the replacement cumulative terminal.
       Process/evaluator fixes and retries require tested, newly frozen
       identities and fresh namespaces while preserving completed evidence.

@@ -5,8 +5,9 @@
 **Prepared, not execution-admitted; no replay has started.** The approved
 [zero-noise adaptive repair](phase-5-zero-noise-adaptive-repair.md) is tested
 and frozen. The independent development cost ladder is complete. Host disk
-space is below the revised reserve, and the exact launch wrapper still needs
-complete tests, review, a committed freeze and exhaustive no-write admission.
+space is below the revised reserve. The exact launch wrapper is implemented
+and fixture-tested; the resource record, immutable execution identity and
+exhaustive no-write admission remain separate launch gates.
 The completed notebook and all historical results remain untouched.
 
 The new write-once metadata is
@@ -44,9 +45,11 @@ Preparation revalidates the 8,000-record index
 `c3fdb6c3ae0e51bbaae1b4f3f46cfe32b5493b2d054ffca080fee26e4db80d25`.
 Against historical continuation `b64228d...`, 335 original package,
 validation-script and dataset paths and ten native-reader definitions are
-unchanged. The 14 changed paths are candidate repairs. The new package and
-validation-script closure has SHA-256
+unchanged. The 14 changed paths are candidate repairs. The preparation-time
+package and validation-script closure has SHA-256
 `f6a76a63be262637e2e8bdb7dfa0426a6d13a73a9ec7d6ef2fb4c50012ae7344`.
+The subsequently implemented launch wrapper requires a new committed program
+closure in the exact execution plan; it does not change the candidate source.
 No old current-candidate measurement, Dask verdict or scientific verdict
 transfers. The failed R6 terminal remains failed.
 
@@ -118,12 +121,11 @@ The proposed scratch
 checkout `/private/tmp/hebog-r6-public-catalogue-v13-replay` remain absent.
 The proposed atomic output is `benchmark-results/phase-5/` followed by
 `public-catalogue-v13-cumulative-decision.json` inside that future checkout.
-Do not call the staged runner directly. Complete the exact-owner tests/review,
-committed program/runtime freeze, exhaustive immutable no-write preflight and
+Do not call the staged runner directly. Complete the committed program/runtime
+execution freeze, exhaustive immutable no-write preflight and
 fresh one-use decision under the standing launch authorization first.
-The preserved v12 wrapper draft's 68-GiB constant is not sufficient: test
-that the exact resource record binds and enforces this preparation's
-74,710,430,800-byte minimum before promoting a new wrapper.
+The preserved v12 wrapper draft's 68-GiB constant is not sufficient. The new
+wrapper and its tests enforce this preparation's 74,710,430,800-byte minimum.
 
 The host is an 18-GiB Apple M3 Pro desktop running Python 3.14.2. Desktop
 background activity, affinity and actual native thread-pool census are not
@@ -131,3 +133,57 @@ controlled; RSS is a per-worker lifetime high-water mark. No aggregate-stage,
 production-scale, matched PyBDSF or complete Rapthor performance claim follows
 from this development probe. The 50% complete-filter speedup remains
 unmeasured here; optimization and scalability remain later work.
+
+## Exact launch owner
+
+`scripts/validation/source_catalogue_replacement_admission.py` derives the
+new plan from the pinned v13 preparation and a separately hashed resource
+record. The latter must have `status=resource-admitted`, the exact
+`preparation`, `candidate`, `cost_probe` and `runtime`, integer
+`required_free_bytes` at least the preparation's minimum, integer
+`observed_free_bytes` at least that reserve, and a byte-bound `evidence` list
+including the completed cost summary. A historical disk observation alone
+cannot pass: available space is checked again before and after the exhaustive
+audit. No resource record has yet admitted the real replay.
+
+The plan retains the full census and binding gates, copies no execution
+authority and replaces only the current candidate's software/configuration
+identity, including its current dependency inventory. Reference identities
+are unchanged. Admission verifies the actual imported package belongs to the
+immutable checkout, clean revision, package/program hashes, Python/platform/
+dependency identity and all five one-thread environment settings. It hashes
+Markdown and Python provenance as bytes, not as JSON. Every input, native
+reference, capture and reusable row is reverified without finder execution.
+
+The CLI is `python -m scripts.validation.run_source_catalogue_replacement_replay`
+from the immutable checkout, with its package import path and reviewed
+thread environment. It requires `--plan`, `--plan-sha256`, `--identity-review`
+and `--identity-review-sha256`. `--preflight-only` performs the no-write audit
+without execution authorization. Actual launch additionally requires
+`--authorization` and `--authorization-sha256`, binding a one-use decision
+to that exact plan and review. It rechecks these documents after the long
+audit, before claiming the new namespace. Missing or changed identities,
+insufficient space, symlink/overlapping paths and consumed outputs fail
+before capture. A process error propagates without an automatic retry;
+a completed scientific failure remains a terminal failure, not success.
+
+The launcher does not itself prepare a resource record, grant authority,
+change the candidate, delete data or choose a smaller population. Complete
+the reviewed program commit, immutable plan/review/decision freeze and real
+exhaustive preflight under adequate resources before using it for the replay.
+
+There are **114 synthetic admission/CLI tests**, with 100% line and branch
+coverage of both new wrapper modules (167 statements and 68 branches).
+Test-first failures exposed obsolete resource admission, mixed JSON/text
+provenance handling, dependency identity and identity drift during preflight.
+Tests cover valid admission, changed/consumed identities, insufficient or
+changed disk space, namespace isolation and both process/scientific failures.
+The real preparation's census and scientific metadata also verify without
+finder or evaluator execution. Neither these checks nor the historical audit
+substitutes for the exhaustive preflight in the final immutable checkout.
+
+The portable suite passes 3,899 tests, including actual Serial/existing-Dask
+integration, with two existing expected failures. Branch-aware project
+coverage remains 95.26468995%; all 27 frozen equivalence tests and normal
+checks pass. The post-validation host snapshot is 47.59 GiB free, about
+21.99 GiB short of the bound minimum. No cleanup or replay was performed.
