@@ -467,10 +467,10 @@ closed historical evidence and were not rescored.
 
 ### 6.2 Phase 5 decisions and latest evidence
 
-**Current decision — 2026-09-11:** Phase 5 development remains open for the
-last prepared v13 cumulative campaign and a bounded severity review. Then
-close development unless serious issues are found; defer other scientific
-improvements and prioritize runtime and scalability. Apply the
+**Current decision — 2026-09-11:** Phase 5 development remains open for one
+bounded Gaussian-validity repair, the final cumulative campaign and a bounded
+severity review. Then close development unless serious issues are found;
+defer other scientific improvements and prioritize runtime and scalability. Apply the
 [pre-launch severity policy](../docs/reference/phase-5-v13-followup-review.md#later-decision-final-campaign-then-development-closeout).
 Keep every original scientific result/gate unchanged. Development closure
 is not scientific qualification, a PyBDSF-parity claim, release or cutover.
@@ -478,10 +478,14 @@ Known incorrect supported outputs remain release blockers, and the PyBDSF
 fallback remains. This decision supersedes the earlier all-science-first
 phase sequencing, not its immutable evidence or scientific requirements.
 
-**Next task:** restore the measured replay disk reserve, freeze/admit the
-exact unchanged v13 execution, then run and monitor hourly. No F1--F3 repair
-is required before this last campaign. Do not launch a duplicate or silently
-reduce the population/reserve. A subsequent scientific repair or fresh
+**Next task (latest user approval):** complete F1 test-first on independent
+bright/oversampled and noise/model-mismatch fixtures, then the relevant F3
+non-regression checks and a corrected-candidate freeze. Hold the unlaunched
+v13 replay: its identity cannot authorize changed scientific code. F2's
+broader association work remains deferred. After a small corrected-candidate
+paired confirmation, restore the measured disk reserve and complete exact
+immutable admission for the final campaign. Do not launch a duplicate or
+silently reduce the population/reserve. A subsequent scientific repair or fresh
 qualification requires a separate prospective decision, not an automatic
 loop after every failed comparison.
 
@@ -1275,18 +1279,20 @@ All of this is development evidence, not replacement parity or qualification.
     cases using runner `c9b0fec5...`; this checks identity and case metadata,
     not refreshed results or exhaustive replay admission.
   - [ ] **R6-R6 — Final cumulative campaign and development closeout.**
-    **Next task:** admit and run the last prepared v13 cumulative campaign,
-    followed by severity review and development closeout. The completed
+    **Next task:** repair Gaussian validity (F1), validate and freeze that
+    bounded change (F3), then admit the final cumulative campaign, followed
+    by severity review and development closeout. The completed
     [2026-09-11 follow-up](../docs/reference/phase-5-v13-followup-review.md)
     confirms independent faint-source fragmentation and a pathological
-    notebook Gaussian admitted as measured. The user's later instruction
-    defers F1--F3 and supersedes the proposed pre-replay scientific repair
-    hold. These findings remain known issues, not fixed by fixture passes.
+    notebook Gaussian admitted as measured. Following the code/evidence
+    review, the user's latest approval restores the F1 pre-replay hold only;
+    F2 remains deferred. These findings remain known issues until repaired
+    and validated, not fixed by unrelated fixture passes.
     The hourly continuation may launch only after resource and exhaustive
     exact execution admission, keeping the notebook isolated. After terminal
     evaluation, investigate serious issues; do not automatically reopen
     scientific development for every failed or underpowered comparison.
-    The corrected, fixture-validated and frozen candidate remains v13.
+    The last frozen candidate is v13; the Gaussian repair needs a new identity.
     The independent cost ladder and non-executable v13 preparation are
     complete (2026-09-11), as is the fixture-tested exact launch wrapper.
     The measured reserve is now 69.58 GiB, versus 59.73 GiB at the
@@ -1322,7 +1328,7 @@ All of this is development evidence, not replacement parity or qualification.
       published as measured. Root mechanisms and residual uncertainty are
       recorded without tuning or rescoring. This completes diagnosis, not
       repairs or campaign qualification.
-    - [ ] **F1 — Deferred: prevent pathological Gaussian publication.**
+    - [ ] **F1 — Required before replay: prevent pathological Gaussian publication.**
       Reproduce with
       independent bright/oversampled, modest model-mismatch and mixed-noise
       fixtures before changing numerical conditioning or fit acceptance.
@@ -1331,6 +1337,37 @@ All of this is development evidence, not replacement parity or qualification.
       adequate, stable model. Preserve detection/source support when a fit
       cannot be represented honestly; do not replace fitted positions with
       peaks or choose a residual cutoff from the viewed notebook.
+      Start with bounded likelihood-conditioning diagnostics and the existing
+      explicit diagonal-estimator/correlated-error fallback. Use a numerical
+      stability criterion, not a cutoff selected to pass the viewed witness.
+      Verify normal fit availability, astrometry, flux, shape and uncertainty;
+      prevent a numerically failed fit from becoming a plausible Gaussian row.
+      Keep source support and non-Gaussian source measurements independently
+      available. Do not rerun the viewed notebook to select a repair.
+      **Started:** independent 21-by-21 fixtures reproduce acceptance of an
+      unresolved GLS covariance both with and without Cholesky failure. The
+      initial repair removes silent diagonal jitter and uses LAPACK's bounded
+      reciprocal-condition estimate with a dimension-scaled float64 roundoff
+      guard; fallback remains explicit diagonal estimation with correlated
+      sandwich errors. Nineteen focused numerical cases and the existing
+      fitting controls pass. This fixes a numerical admission gap, not every
+      model-adequacy failure or the viewed witness by assertion. F1 remains
+      open for the broader Gaussian-acceptance review; F3/new identity and
+      replay admission remain open.
+      Initial repair validation passes 3,919 coverage tests, 27 frozen
+      equivalence tests, five covariance ensembles and the public Serial/Dask
+      supplement. Project branch-aware coverage increases to 95.2840083%;
+      every changed statement/branch is covered. These are non-regression
+      controls, not a declaration of campaign readiness.
+
+      - [x] Reject roundoff-unresolved GLS covariance explicitly; preserve
+        good-fit measurements and correlated-error calibration on independent
+        fixtures and exact-public Serial/existing-Dask capture.
+      - [ ] Complete the bounded selected-model/whole-Gaussian acceptance
+        review with bright asymmetric, overlapping and masked/edge controls.
+        Require a faithful complete fit or an explicit unavailable disposition
+        with support retained; no peak substitution or screenshot-derived
+        residual threshold. This is not a reopening of F2's broader science.
     - [ ] **F2 — Deferred: repair faint grouping without compact over-merges.**
       Extend
       the existing joint geometry matrix to faint shells/arcs/filaments and
@@ -1339,7 +1376,7 @@ All of this is development evidence, not replacement parity or qualification.
       chain and compact-on-extended negative controls. Keep immutable
       component identities, explicit ambiguity and unchanged detection gates;
       neither blanket merging nor blanket splitting is acceptable.
-    - [ ] **F3 — Deferred: revalidate and freeze future scientific repairs.**
+    - [ ] **F3 — Validate and freeze F1; defer broader scientific repairs.**
       Run the
       complete source/component measurement and non-regression gates,
       Serial/existing-Dask and partition/order/retry checks, patch/branch
@@ -1347,10 +1384,10 @@ All of this is development evidence, not replacement parity or qualification.
       mask precision and extended-flux risks separately; no pooled gain or
       favourable seed choice can waive them. Bind new candidate/program
       identities before any future repaired-candidate paired confirmation,
-      then resource and exhaustive immutable admission. This is not a
-      prerequisite to the authorized final v13 campaign. Its 2,400 inputs,
-      comparators,
-      truth, margins and confidence rules remain unchanged; preserve v13 and
+      then resource and exhaustive immutable admission. This is a
+      prerequisite to launching the final campaign with repaired science.
+      Keep the existing 2,400 inputs, comparators,
+      truth, margins and confidence rules unchanged; preserve v13 and
       its screen rather than modifying or rescoring them.
 
     Do not launch the known-failing v12 candidate or its old preparation.
@@ -1363,8 +1400,9 @@ All of this is development evidence, not replacement parity or qualification.
     freeze; recheck before launch). The remaining independent
     noiseless cost fixture exposed the now-repaired source-protection defect.
     No replay has started; no agent cleanup is authorized. The same hourly
-    monitor must hold launch pending resource and exact execution admission;
-    F1--F3 are deferred by the later 2026-09-11 decision.
+    monitor must hold launch pending F1, its F3 validation/replacement freeze,
+    resource and exact execution admission. The latest 2026-09-11 approval
+    requires only this bounded validity repair; F2 remains deferred.
     The user now
     authorizes the isolated replay, evaluation, investigation of failures,
     and process/evaluator repairs and retries after the refresh finishes.
@@ -1589,10 +1627,11 @@ All of this is development evidence, not replacement parity or qualification.
 After the final R6-R6 campaign, preserve the exact verdict and classify every
 failure under the pre-launch severity policy. Close development and hand off
 to runtime/scalability if no serious issue remains; otherwise document the
-bounded blocking issue for human disposition. F1--F3 and fresh qualification
-remain deferred, not completed. Documentation, limitations and provenance
-belong in this handoff. Broad cleanup remains separate; Release Please still
-owns releases, which require their own readiness gates.
+bounded blocking issue for human disposition. F2, broader scientific repairs
+and fresh qualification remain deferred, not completed. F1 and its validation
+are now prerequisites to this final campaign. Documentation, limitations and
+provenance belong in this handoff. Broad cleanup remains separate; Release
+Please still owns releases, which require their own readiness gates.
 
 #### Retained scientific-readiness checklist
 
@@ -2026,7 +2065,7 @@ retain the current validation paths until cleanup can safely proceed.
 
 Runtime/scalability engineering may begin after the final Phase 5 campaign
 and documented development-closeout decision, even while scientific
-qualification remains incomplete. Do not delay it for F1--F3 or broad
+qualification remains incomplete. Do not delay it for deferred F2 work or broad
 historical-tooling cleanup. Scientific readiness, the restricted Rapthor
 profile, operational acceptance and performance gates remain required for
 release/default cutover; the work-order change does not waive them.

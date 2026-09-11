@@ -2,8 +2,8 @@
 
 ## Status — 2026-09-11
 
-**Diagnosis complete; repairs deferred by the user's later decision below.
-Run the final campaign after resource and exact execution admission.**
+**Diagnosis complete; latest user approval requires the bounded F1
+Gaussian-validity repair before the final campaign. F2 remains deferred.**
 This follow-up finds
 reproducible faint-source fragmentation and, separately, a pathological
 Gaussian fit published in the user's completed notebook. It does not supply
@@ -12,11 +12,36 @@ a probability of campaign success or change any scientific gate.
 The [paired screen](phase-5-v13-replay-preparation.md#paired-quick-screen-2026-09-11)
 remains unchanged: 49 point-margin warnings are not 49 powered failures.
 Retained diagnostics were read without changing matches or scores. New
-experiments use independent development seeds, checked against every
+diagnostic experiments use independent development seeds, checked against every
 checked-in dataset manifest. No external finder, held-out qualification or
-full replay ran. No production science was modified.
+full replay ran. That diagnosis did not modify production science; the
+subsequently approved initial F1 implementation is described below.
 
 ## Later decision — final campaign, then development closeout
+
+**Latest amendment:** after reviewing the code and current evidence, the user
+approved updating the plan and beginning F1 before replay. Reproduce the
+numerical failure with independent bright/oversampled and modest noise/model
+mismatch fixtures, retain good-fit and unavailable-fit controls, and preserve
+detection/source support. Validate Serial/existing-Dask and non-regression,
+freeze the corrected candidate, and perform a small paired confirmation
+before exhaustive resource/execution admission. The unlaunched v13 identity
+does not transfer to repaired code. Broader faint association improvements
+remain deferred; the development-closeout severity policy below is unchanged.
+The following paragraphs retain the earlier decision's context; references
+to running unchanged v13 are superseded by this amendment.
+
+**Initial F1 implementation:** independent 21-by-21 single/joint fit fixtures
+exercise well-defined bright subpixel Gaussians with noiseless controls,
+weak unresolved pixel-frequency perturbations and a one-percent asymmetric
+envelope. They confirm that a declared covariance unresolved at float64
+precision was still used as exact GLS. The bounded repair removes silent
+diagonal jitter and checks a LAPACK reciprocal-condition estimate before
+whitening. It retains explicit diagonal estimation and correlated sandwich
+errors on numerical fallback. This is not a new residual acceptance cutoff
+or proof that the viewed Hydra source is corrected. Broader Gaussian model
+adequacy, candidate freeze and campaign admission remain open. See the
+[numerical policy](compact-fitting.md#numerical-model).
 
 The user requests one final campaign, but does not want minor scientific
 limitations to delay Phase 5 development closure and runtime/scalability work.

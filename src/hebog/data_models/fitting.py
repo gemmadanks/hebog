@@ -151,6 +151,8 @@ class GaussianFitDiagnostics:
         Literal[
             "correlation-model-unavailable",
             "correlation-factorization-failed",
+            "correlation-conditioning-failed",
+            "correlation-ill-conditioned",
             "retained-region-exceeds-gls-limit",
         ]
         | None

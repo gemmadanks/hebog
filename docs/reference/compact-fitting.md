@@ -24,13 +24,35 @@ initialize both fits, and configuration bounds limit centre movement, axes,
 amplitude, background offset, iterations, and convergence tolerance.
 
 When the image declares a correlated-noise covariance, the Phase 4R point
-estimator uses exact generalized least squares for regions of at most 512
-retained pixels. It factorizes only that bounded correlation matrix and
-whitens residuals before SciPy sees them. Larger regions, or images without a
-correlation model, take an explicit diagonal-weighted fallback; the reason is
-retained in diagnostics. This cap prevents an accidental quadratic-memory or
+estimator uses generalized least squares for regions of at most 512 retained
+pixels when the declared correlation matrix is numerically resolved. It
+factorizes only that bounded matrix and whitens both residuals and Jacobians
+before SciPy sees them. Larger regions, or images without a correlation
+model, take an explicit diagonal-weighted fallback; the reason is retained
+in diagnostics. This cap prevents an accidental quadratic-memory or
 cubic-work path for a large island. The component still runs inside its coarse
 batch task, so no per-source Dask graph is introduced.
+
+Cholesky success alone is insufficient: oversampled smooth correlations can
+be numerically singular without triggering a factorization exception. Hebog
+uses [LAPACK's condition estimator](https://docs.scipy.org/doc/scipy/reference/generated/scipy.linalg.lapack.dpocon.html)
+on the existing factor, without a second decomposition or a dense inverse.
+An estimated reciprocal 1-norm condition number at or below `n * eps(float64)`
+triggers `correlation-ill-conditioned`. This dimension-scaled roundoff guard
+follows the numerical-resolution scale used by
+[NumPy's rank criterion](https://numpy.org/doc/stable/reference/generated/numpy.linalg.matrix_rank.html);
+it is a condition estimate, not an exact SVD rank test. Failed estimation
+reports `correlation-conditioning-failed`; failed Cholesky reports
+`correlation-factorization-failed`. All three use the existing diagonal point
+estimator with correlated-noise sandwich errors, not independent-pixel errors.
+The previous silent `1e-10` diagonal jitter is removed: no unmeasured white
+noise is introduced merely to make the likelihood invertible.
+
+This check is independent of source brightness and fitted residuals. It does
+not certify that every converged Gaussian is an adequate physical model, nor
+does it change detection thresholds or replace centroids with pixel peaks.
+The same check applies to single and joint component fits. Source support is
+retained independently of Gaussian measurement availability.
 
 The production implementation uses SciPy's bounded trust-region
 `least_squares` solver. An independent Astropy `Gaussian2D`/TRF fit agrees on

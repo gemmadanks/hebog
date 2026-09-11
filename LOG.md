@@ -19684,3 +19684,91 @@ scientific pass from fixture validation.
   minimum, approximately 9.96 GiB short. No deletion, resource waiver,
   exact execution identity or replay launch occurs. Recheck after cleanup,
   then complete the existing exhaustive immutable admission before capture.
+
+### Latest approval — bounded Gaussian validity before final replay
+
+- The user accepts the code/evidence review's recommendation to repair F1
+  before the long campaign. Update the plan and current-status pages: use
+  independent bright/oversampled and noise/model-mismatch fixtures, preserve
+  good-fit availability, source support and native measurement semantics,
+  then require non-regression/Serial-Dask validation and a replacement freeze.
+  Broader faint association work (F2) remains deferred; the development-closeout
+  severity policy and frozen campaign gates do not change.
+- Hold the unlaunched v13 replay. No old execution identity transfers to
+  repaired scientific code, and no notebook rerun, closed-result rescoring,
+  external finder execution or campaign launch is performed by this amendment.
+- Begin F1 with a bounded numerical repair. Independent 21-by-21 subpixel
+  Gaussian fixtures expose both successful Cholesky of a roundoff-unresolved
+  covariance (estimated reciprocal condition about `1.58e-15` versus a
+  dimension-scaled `9.79e-14` resolution bound) and failed Cholesky previously
+  rescued by silent `1e-10` diagonal jitter. Small pixel-frequency
+  perturbations can then produce enormous GLS residual statistics without
+  any diagnostic fallback. These fixtures do not reproduce every aspect of
+  the viewed Hydra displacement; do not infer its correction from them.
+- Confirm intended TDD failures before production edits: 18 new cases fail
+  because unresolved/failed covariance is still admitted as GLS; the one
+  admitted well-conditioned fault-injection control passes. Remove the
+  unmeasured white-noise floor and check the existing factor using SciPy's
+  LAPACK `dpocon`, not another decomposition, dense inverse or dependency.
+  Use `n * eps(float64)` as a numerical resolution guard, independent of
+  observed brightness, residual or fitted parameters. No detection,
+  model-selection, matching or campaign threshold changes.
+- Single and joint fits share the same explicit diagonal-estimator fallback,
+  retaining the existing correlated sandwich covariance and fit diagnostics.
+  All **142 non-slow fitting tests pass**, including 19 new validity/boundary/
+  failure tests. All five covariance ensembles pass, including 48 independent
+  smooth-noise realizations for the new fallback. The latter validates
+  uncertainty against analytic covariance, not a white-noise approximation.
+- Two exact-public synthetic capture comparisons pass in 14.13 s, including
+  the new oversampled bright source: one source and one Gaussian are retained,
+  the numerical fallback is explicit, and the complete scientific digest
+  agrees with caller-owned two-worker Dask. All **27 frozen equivalence tests
+  pass**. Ruff and Pyright pass after correcting annotations for SciPy's
+  dynamically generated LAPACK binding; the production annotation adjustment
+  does not change executable line numbering or scientific behaviour.
+- F1 remains open for broader Gaussian-acceptance/model-adequacy review and
+  F3 for completed non-regression evidence, replacement identity and admission.
+  Do not claim the notebook witness, all mispositioned fits or candidate parity
+  are resolved. The automation view returned only a rendered card; no scheduler
+  update was verified or performed. The authoritative plan explicitly holds
+  replay pending F1/F3, resources and exact immutable admission.
+- Full `just coverage` passes **3,919 tests**, with two existing expected
+  failures, in 1,032.81 s. Branch-aware project coverage is
+  **95.28400825467709%**, above the previous **95.26468995396696%**; all
+  16 changed executable statements and every changed instrumented branch
+  are covered. Inspect remaining fitting misses: they are unchanged guards,
+  not exclusions added by this repair. The diagnostics model is 100% covered.
+  The machine report is retained in
+  `/private/tmp/hebog-f1-handoff.R69N2I/coverage.json`.
+- `just check` passes lint, typing and **3,616 quick tests**; strict docs
+  build passes. The final fitting/capture supplement passes **152 tests**,
+  including explicit public-position and support assertions. Python 3.12/3.13,
+  production-scale performance and fresh/cumulative scientific qualification
+  are not run. Review the complete repair diff against `CODE_REVIEW.md`: no
+  actionable finding in this bounded change; broader model adequacy remains
+  explicitly open rather than being called fixed.
+- Concurrent edits to `notebooks/astronomer_source_finder_workbench.py` appear
+  during validation and currently fail formatting/lint. Leave them untouched
+  and exclude them from this repair. Validate final all-file hooks in a
+  detached checkout of the exact proposed repair tree, using the existing
+  environment, so auto-fixing hooks cannot rewrite the user's notebook.
+  Verify the proposed tree and unchanged parent before the local commit;
+  do not push, release or start replay.
+- The isolated hook run exposes existing test dependencies on ignored
+  historical records, absent from a clean checkout. Provide byte-for-byte
+  validation copies of the adaptive-background terminal (SHA-256
+  `ff415f064f4ea7daa9254338041e52ad15d41b84edf692602092134850218026`);
+  the viewed-recovery power review, Phase 4U qualification decision, Phase 4
+  compact regression decision and public acquisition manifest are also copied
+  with matching SHA-256 checks. Do not regenerate evidence or weaken the
+  historical identity assertions. This is an existing clean-checkout test
+  portability issue, not a new Gaussian science failure.
+- Isolated validation ultimately needs 36 retained summary/lineage records
+  (41,266,237 bytes); every copy matches the original bytes. Two historical
+  prospective-paired identity tests additionally bind the original absolute
+  checkout path. Both pass unchanged in the main checkout in 1.81 s. Deselect
+  only those two from the isolated final hook run, where that absolute path
+  is necessarily different; run all other hooks/tests on the exact repair
+  tree. This split preserves all assertions rather than revising frozen
+  identities or suppressing Gaussian regressions. Restore the shared editable
+  environment's main-checkout binding after isolated validation.

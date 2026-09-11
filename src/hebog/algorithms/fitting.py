@@ -15,6 +15,7 @@ from typing import Literal, TypeAlias, cast
 import numpy as np
 import numpy.typing as npt
 from scipy.linalg import solve_triangular
+from scipy.linalg.lapack import dpocon  # type: ignore[attr-defined]
 from scipy.ndimage import map_coordinates
 from scipy.optimize import OptimizeResult, least_squares
 from scipy.signal import fftconvolve
@@ -100,6 +101,8 @@ _PointEstimatorIdentity: TypeAlias = Literal[
 _PointEstimatorFallback: TypeAlias = Literal[
     "correlation-model-unavailable",
     "correlation-factorization-failed",
+    "correlation-conditioning-failed",
+    "correlation-ill-conditioned",
     "retained-region-exceeds-gls-limit",
 ]
 _ApertureModel: TypeAlias = Literal["restoring-beam", "selected-fit"]
@@ -604,6 +607,32 @@ def _beam_shape(
     )
 
 
+def _resolved_correlation_factor(
+    correlation_matrix: npt.NDArray[np.float64],
+) -> tuple[npt.NDArray[np.float64] | None, _PointEstimatorFallback | None]:
+    """Factor only a correlation matrix resolved above float64 roundoff."""
+    try:
+        factor = np.linalg.cholesky(correlation_matrix)
+    except np.linalg.LinAlgError:
+        return None, "correlation-factorization-failed"
+    # Factorization alone does not establish numerical invertibility. An
+    # oversampled smooth covariance can lose rank at float64 roundoff even
+    # when Cholesky succeeds. Do not add an unmeasured white-noise floor to
+    # make its inverse usable. The dimension-scaled roundoff criterion is
+    # independent of the observed residual, fitted position and brightness.
+    # LAPACK estimates the inverse norm from the existing factor in O(n^2)
+    # work, without a second factorization or a dense inverse.
+    reciprocal_condition, info = dpocon(
+        factor, float(np.linalg.norm(correlation_matrix, 1)), uplo="L"
+    )
+    if info != 0 or not np.isfinite(reciprocal_condition):
+        return None, "correlation-conditioning-failed"
+    tolerance = correlation_matrix.shape[0] * np.finfo(np.float64).eps
+    if reciprocal_condition <= tolerance:
+        return None, "correlation-ill-conditioned"
+    return cast(npt.NDArray[np.float64], factor), None
+
+
 def _point_estimator_transform(
     x: npt.NDArray[np.float64],
     y: npt.NDArray[np.float64],
@@ -655,20 +684,9 @@ def _point_estimator_transform(
         np.exp(-0.5 * exponent),
         dtype=np.float64,
     )
-    try:
-        factor = np.linalg.cholesky(correlation_matrix)
-    except np.linalg.LinAlgError:
-        try:
-            factor = np.linalg.cholesky(
-                correlation_matrix
-                + 1e-10 * np.eye(correlation_matrix.shape[0])
-            )
-        except np.linalg.LinAlgError:
-            return (
-                identity,
-                "diagonal-weighted",
-                "correlation-factorization-failed",
-            )
+    factor, failure = _resolved_correlation_factor(correlation_matrix)
+    if factor is None:
+        return identity, "diagonal-weighted", failure
 
     def whiten(
         residual: npt.NDArray[np.float64],

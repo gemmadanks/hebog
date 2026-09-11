@@ -2,7 +2,8 @@
 
 ## Status — 2026-09-11
 
-**Prepared, not execution-admitted; no replay has started.** The approved
+**Historical preparation, held for the approved F1 Gaussian-validity repair;
+not execution-admitted and no replay has started.** The approved
 [zero-noise adaptive repair](phase-5-zero-noise-adaptive-repair.md) is tested
 and frozen. The independent development cost ladder is complete. Host disk
 space is below the revised reserve. The exact launch wrapper is implemented
@@ -15,8 +16,11 @@ The [follow-up review](phase-5-v13-followup-review.md) now confirms faint
 source fragmentation and a separate pathological Gaussian in the completed
 v12 notebook, whose fit-acceptance code is unchanged in v13. The user's later
 [development-closeout decision](phase-5-v13-followup-review.md#later-decision-final-campaign-then-development-closeout)
-defers further science repairs and authorizes this final campaign unchanged.
-Complete resource and exact execution admission before launch; do not infer
+initially deferred further science repairs. The latest user approval requires
+the bounded Gaussian-validity repair and its non-regression validation before
+the final campaign; broader association improvements remain deferred. Freeze
+a new candidate and replacement preparation, then complete resource and exact
+execution admission before launch; do not infer
 scientific readiness from fixture passes. Preserve the terminal verdict and
 separately assess serious issues before closing Phase 5 development.
 

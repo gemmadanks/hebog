@@ -11,13 +11,16 @@ across decisions, or replace a failed result with a later interpretation.
 
 ## Progress at a glance
 
-**Current direction — 2026-09-11:** run the prepared v13 cumulative campaign,
-then close Phase 5 development unless the severity review identifies serious
+**Current direction — 2026-09-11:** implement and validate the approved bounded
+Gaussian-validity repair, freeze its new identity, then run the final cumulative
+campaign and close Phase 5 development unless the severity review identifies serious
 issues. Other improvements move behind runtime/scalability work. This is not
 a parity assertion, scientific-readiness pass or release approval. See the
 [decision and severity policy](phase-5-v13-followup-review.md#later-decision-final-campaign-then-development-closeout).
-The campaign is not yet launched; resource and exact execution admission
-remain required. Historical verdicts below do not change.
+The campaign is not yet launched; v13 preparation is held and cannot authorize
+the repaired candidate. Non-regression/Serial-Dask validation, a new freeze,
+small paired confirmation, resource and exact execution admission remain
+required. Historical verdicts below do not change.
 
 | Evidence stage | Purpose | Outcome | What it established |
 | --- | --- | --- | --- |

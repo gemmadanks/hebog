@@ -163,24 +163,58 @@ def test_capture_rejects_projection_disagreement_without_erasing_products(
 
 
 @pytest.mark.integration
+@pytest.mark.parametrize("oversampled", (False, True))
 def test_capture_science_identity_is_serial_existing_dask_invariant(
     tmp_path: Path,
+    oversampled: bool,
 ) -> None:
     helpers = runpy.run_path(
         str(Path(__file__).with_name("test_public_notebook_runner.py"))
     )
     image = helpers["_geometry_matrix_image"]()
+    header = helpers["_header"](image.shape)
+    if oversampled:
+        yy, xx = np.indices((49, 57), dtype=float)
+        image = 100 * np.exp(
+            -0.5 * (((xx - 28.3) / 3.3) ** 2 + ((yy - 24.7) / 3.0) ** 2)
+        )
+        image += 0.1 * (np.sin(2 * xx + 0.3 * yy) + np.cos(1.3 * yy))
+        header = helpers["_header"](image.shape)
+        header["BMAJ"] = header["BMIN"] = 7.0 / 3600.0
     path = tmp_path / "input.fits"
-    fits.PrimaryHDU(image, helpers["_header"](image.shape)).writeto(path)
+    fits.PrimaryHDU(image, header).writeto(path)
     config = SourceFinderConfig(5.0, 3.0, 7)
     serial = tmp_path / "serial"
-    capture_current_image(
+    record = capture_current_image(
         path,
         serial,
         input_id="invariance-fixture",
         config=config,
         executor=SerialExecutor(),
     )
+    if oversampled:
+        components = [
+            row
+            for row in record["measurement_dispositions"]
+            if row["object_kind"] == "component"
+        ]
+        assert len(components) == 1
+        assert components[0]["catalogue_row_published"]
+        fit = components[0]["fit_diagnostics"]
+        assert fit["point_estimator"] == "diagonal-weighted"
+        assert fit["point_estimator_fallback_reason"] in {
+            "correlation-factorization-failed",
+            "correlation-ill-conditioned",
+        }
+        assert record["source_count"] == 1
+        assert len(record["components"]) == 1
+        np.testing.assert_allclose(
+            record["components"][0]["centre_xy"], (28.3, 24.7), atol=0.1
+        )
+        publication = load_fits_plane(
+            serial / record["planes"]["publication"]["path"]
+        )
+        assert publication[25, 28] > 0
     expected = retained.capture_science_sha256(serial / "capture.json")
     with (
         LocalCluster(

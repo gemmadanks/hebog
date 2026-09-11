@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import pytest
@@ -27,6 +27,7 @@ from hebog.algorithms.reconciliation import DetectedIsland
 from hebog.config import CompactGaussianFitConfig, CompactMomentConfig
 from hebog.data_models.fitting import (
     AssociationAperturePhotometry,
+    CompactGaussianFitResult,
     FailedCompactGaussianFit,
     GaussianPositionEstimate,
     UnavailableCompactGaussianFit,
@@ -1808,6 +1809,237 @@ def test_correlated_gls_falls_back_before_dense_work_exceeds_bound() -> None:
         "retained-region-exceeds-gls-limit"
     )
     assert "correlated-gls-fallback" in result.quality_flags
+
+
+@pytest.mark.parametrize("joint", (False, True))
+@pytest.mark.parametrize("sigma", (2.0, 4.0))
+@pytest.mark.parametrize("perturbation", ("none", "mixed-noise", "envelope"))
+def test_oversampled_likelihood_uses_explicit_stable_fallback(
+    joint: bool, sigma: float, perturbation: str
+) -> None:
+    """Roundoff-singular noise cannot be silently turned into exact GLS.
+
+    Independent subpixel truth, not a cropped public image: the weak ripple
+    has power absent from the declared smooth covariance; the envelope is
+    a one-percent, slightly asymmetric departure from a single Gaussian.
+    Fix a positive initialization from truth to isolate likelihood stability
+    from noise-dependent moment availability and detection selection.
+    """
+    compact = _gaussian_input(
+        amplitude=100.0,
+        centroid_xy=(10.3, 9.7),
+        sigma_axes=(1.1 * sigma, sigma),
+        shape_yx=(21, 21),
+        origin_yx=(0, 0),
+        rms_value=1.0,
+    )
+    geometry = replace(
+        _geometry(),
+        noise_correlation_covariance_pixels_squared=(sigma**2, 0, sigma**2),
+    )
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+    y, x = np.indices(compact.physical_residual.shape, dtype=float)
+    if perturbation == "mixed-noise":
+        offset = 0.05 * (np.sin(2 * x + 0.3 * y) + np.cos(1.3 * y))
+    elif perturbation == "envelope":
+        offset = np.exp(-((x - 12) ** 2 + (y - 9) ** 2) / 60)
+    else:
+        offset = np.zeros_like(x)
+    observed = replace(
+        compact, physical_residual=compact.physical_residual + offset
+    )
+    config = _fit_config(
+        background_model="fixed-zero", pixel_support="owned-region"
+    )
+
+    def fit(
+        point_estimator: Literal["diagonal-weighted", "correlated-gls"],
+    ) -> CompactGaussianFitResult:
+        selected = replace(config, point_estimator=point_estimator)
+        if joint:
+            return fit_compact_gaussian_mixture(
+                observed, moments, geometry, selected
+            )[0]
+        return fit_compact_gaussian(
+            observed, observed.regions[0], moments[0], geometry, selected
+        )
+
+    expected = fit("diagonal-weighted")
+    actual = fit("correlated-gls")
+
+    assert isinstance(expected, ValidCompactGaussianFit)
+    assert isinstance(actual, ValidCompactGaussianFit)
+    assert actual.diagnostics.point_estimator == "diagonal-weighted"
+    assert actual.diagnostics.point_estimator_fallback_reason in {
+        "correlation-factorization-failed",
+        "correlation-ill-conditioned",
+    }
+    assert "correlated-gls-fallback" in actual.quality_flags
+    assert "correlated-noise-sandwich-errors" in actual.quality_flags
+    assert "correlated-noise-gls-errors" not in actual.quality_flags
+    assert actual.parameters == expected.parameters
+    assert actual.uncertainty == expected.uncertainty
+    assert actual.uncertainty is not None
+    # The source is bright and the added mismatch is at most one RMS. These
+    # are broad fixture sanity bounds, not catalogue acceptance thresholds.
+    np.testing.assert_allclose(
+        actual.parameters.centroid_xy, (10.3, 9.7), atol=0.1
+    )
+    assert actual.parameters.amplitude_jy_per_beam == pytest.approx(
+        100, rel=0.02
+    )
+    assert actual.parameters.major_sigma_pixels == pytest.approx(
+        1.1 * sigma, rel=0.02
+    )
+    assert actual.parameters.minor_sigma_pixels == pytest.approx(
+        sigma, rel=0.02
+    )
+
+
+def test_singular_correlation_is_not_replaced_by_unreviewed_white_noise() -> (
+    None
+):
+    """An unfactorizable declared covariance has an explicit fallback."""
+    transform, estimator, reason = (
+        fitting_algorithm._point_estimator_transform(
+            np.zeros(2),
+            np.zeros(2),
+            replace(
+                _geometry(),
+                noise_correlation_covariance_pixels_squared=(1.0, 0.0, 1.0),
+            ),
+            _fit_config(point_estimator="correlated-gls"),
+        )
+    )
+
+    assert estimator == "diagonal-weighted"
+    assert reason == "correlation-factorization-failed"
+    residual = np.asarray((1.0, -1.0))
+    np.testing.assert_array_equal(transform(residual), residual)
+
+
+@pytest.mark.parametrize(
+    ("reciprocal_factor", "info", "expected_reason"),
+    (
+        (0.0, 0, "correlation-ill-conditioned"),
+        (1.0, 0, "correlation-ill-conditioned"),
+        (2.0, 0, None),
+        (float("nan"), 0, "correlation-conditioning-failed"),
+        (float("inf"), 0, "correlation-conditioning-failed"),
+        (2.0, -1, "correlation-conditioning-failed"),
+    ),
+)
+def test_gls_numerical_resolution_boundary_and_estimation_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    reciprocal_factor: float,
+    info: int,
+    expected_reason: str | None,
+) -> None:
+    """Fail closed at dimension-scaled roundoff, or if estimation fails."""
+    tolerance = 2 * np.finfo(np.float64).eps
+
+    def estimate(
+        _factor: np.ndarray, _norm: float, **_kwargs: object
+    ) -> tuple[float, int]:
+        return reciprocal_factor * tolerance, info
+
+    monkeypatch.setattr(fitting_algorithm, "dpocon", estimate)
+    transform, estimator, reason = (
+        fitting_algorithm._point_estimator_transform(
+            np.asarray((0.0, 1.0)),
+            np.zeros(2),
+            replace(
+                _geometry(),
+                noise_correlation_covariance_pixels_squared=(1.0, 0.0, 1.0),
+            ),
+            _fit_config(point_estimator="correlated-gls"),
+        )
+    )
+    assert reason == expected_reason
+    assert estimator == (
+        "correlated-gls" if reason is None else "diagonal-weighted"
+    )
+    residual = np.eye(2)
+    if reason is not None:
+        np.testing.assert_array_equal(transform(residual), residual)
+    else:
+        correlation = np.asarray(((1.0, np.exp(-0.5)), (np.exp(-0.5), 1.0)))
+        expected = np.linalg.solve(np.linalg.cholesky(correlation), residual)
+        np.testing.assert_allclose(transform(residual), expected)
+
+
+@pytest.mark.slow
+def test_unresolved_gls_fallback_retains_correlated_error_calibration() -> (
+    None
+):
+    """The fallback's covariance describes smooth noise, not white noise.
+
+    This independent ensemble uses the existing 99.9% variance-calibration
+    guard, not a fitted acceptance threshold or qualification population.
+    """
+    compact = _gaussian_input(
+        amplitude=100.0,
+        centroid_xy=(10.3, 9.7),
+        sigma_axes=(3.3, 3.0),
+        shape_yx=(21, 21),
+        origin_yx=(0, 0),
+        rms_value=1.0,
+    )
+    geometry = replace(
+        _geometry(), noise_correlation_covariance_pixels_squared=(4, 0, 4)
+    )
+    yy, xx = np.indices((21, 21))
+    coordinates = np.column_stack((xx.ravel(), yy.ravel()))
+    distances = coordinates[:, None, :] - coordinates[None, :, :]
+    correlation = np.exp(-0.5 * np.sum(distances**2, axis=2) / 4)
+    eigenvalues, eigenvectors = np.linalg.eigh(correlation)
+    tolerance = eigenvalues[-1] * len(eigenvalues) * np.finfo(float).eps
+    assert eigenvalues[0] >= -tolerance
+    # Draw from the analytic PSD covariance; remove only negative roundoff,
+    # never add a white-noise floor to make a Cholesky factor exist.
+    factor = eigenvectors * np.sqrt(np.maximum(eigenvalues, 0))
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+    config = _fit_config(
+        background_model="fixed-zero",
+        pixel_support="owned-region",
+        point_estimator="correlated-gls",
+    )
+    generator = np.random.default_rng(8_491_278)
+    standardized = []
+    for _ in range(48):
+        observed = replace(
+            compact,
+            physical_residual=(
+                compact.physical_residual
+                + (factor @ generator.normal(size=441)).reshape((21, 21))
+            ),
+        )
+        (result,) = fit_compact_gaussian_mixture(
+            observed, moments, geometry, config
+        )
+        assert isinstance(result, ValidCompactGaussianFit)
+        assert result.diagnostics.point_estimator == "diagonal-weighted"
+        assert result.uncertainty is not None
+        errors = result.uncertainty
+        estimated = np.asarray(
+            (
+                *result.parameters.centroid_xy,
+                result.parameters.amplitude_jy_per_beam,
+            )
+        )
+        variance = np.asarray(
+            (
+                errors.centroid_covariance_xx_pixels_squared,
+                errors.centroid_covariance_yy_pixels_squared,
+                errors.amplitude_error_jy_per_beam**2,
+            )
+        )
+        standardized.append(
+            (estimated - (10.3, 9.7, 100.0)) / np.sqrt(variance)
+        )
+    observed_variance = np.var(standardized, axis=0, ddof=1)
+    lower, upper = chi2.ppf((0.0005, 0.9995), df=47) / 47
+    assert np.all((observed_variance >= lower) & (observed_variance <= upper))
 
 
 def test_fit_bilinearly_samples_rms_at_the_fitted_centroid() -> None:
