@@ -59,9 +59,9 @@ scientific contract:
 3. [Domain model](../explanation/domain-model.md) and
    [Rapthor source-finding contract](rapthor-source-finding-contract.md),
    including catalogue, RMS, mask, empty-result, and failure semantics.
-4. [Scientific equivalence gates](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md#31-scientific-gates)
+4. [Scientific equivalence gates](https://github.com/gemmadanks/hebog/blob/0ce253cf26a7954a58dc9a211eb01d8502e69025/plans/source-finder-implementation.md#31-scientific-gates)
    and the associated
-   [dataset matrix](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md#51-dataset-matrix).
+   [dataset matrix](https://github.com/gemmadanks/hebog/blob/0ce253cf26a7954a58dc9a211eb01d8502e69025/plans/source-finder-implementation.md#51-dataset-matrix).
 5. Frozen
    [development](https://github.com/gemmadanks/hebog/blob/main/config/datasets/phase-0-development.json),
    [regression](https://github.com/gemmadanks/hebog/blob/main/config/datasets/phase-0-regression.json),

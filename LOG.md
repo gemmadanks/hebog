@@ -20327,3 +20327,45 @@ scientific pass from fixture validation.
   result. The launch-record commit was interrupted before staging; repeat
   final hooks after this update and preserve the unrelated instruction and
   documentation changes. Do not launch another replay.
+
+### 2026-09-12 — Replace phase-sized delivery with incremental release tasks
+
+- The user requests a concise remaining-work plan, frequent experimental
+  releases and documentation that describes current behaviour. Replace the
+  accumulated phase chronology with explicit M1–M6 merge tasks, E1–E4
+  experimental-release checks and independently deliverable science,
+  performance, executor, storage and Rapthor increments. General scientific
+  qualification and facility scale no longer block a standalone unqualified
+  `0.x` package solely because a large phase is incomplete. Confirmed incorrect
+  supported outputs remain release blockers. Align `AGENTS.md` with this
+  prospective sequencing; leave frozen science/authorization records intact.
+- Review exposes stale current-state summaries, obsolete README claims that
+  custom thresholds are unsupported, and public scaling language that exceeds
+  the actual 1,024-pixel admission limit. Correct README, docs home, API entry,
+  tutorials and the campaign overview; add a canonical current release-status
+  page. Document the existing readiness command's old candidate/profile
+  composition as a remaining prospective scientific-packet task, not the
+  current experimental release mechanism. Release Please remains responsible
+  for versions, changelogs and GitHub releases; no PyPI upload job is present.
+- Remove repeated campaign narratives from current guidance. Exact history
+  remains here and in Git at pre-cleanup commit
+  `0ce253cf26a7954a58dc9a211eb01d8502e69025`; repair historical snapshot links
+  to that immutable revision. Group dated evidence/contract pages separately
+  in navigation. Preserve all frozen records and numeric science/performance
+  targets; move the component budget table to its existing performance
+  reference. No source, evaluator, evidence, campaign process or release
+  artifact is changed, and no new campaign or publishing authority is inferred.
+- Workflow observation: duplicated “latest” sections made current blockers
+  hard to recover and preserved superseded release sequencing. Keep one
+  current plan and replace user-facing status summaries, while appending
+  material evidence here. No new campaign-efficiency measurement is claimed.
+- Validation: strict docs, Ruff, spelling, notebook checks and Pyright pass;
+  the quick suite passes 3,689 tests with two existing expected failures in
+  315.06 seconds. The first all-file hook invocation reports file modification
+  because this task finalized/staged documentation during the run, not because
+  a test failed. Inspect the diff and rerun hooks with files fixed in place
+  before committing. Review against `CODE_REVIEW.md` finds no actionable issue
+  in this documentation-only scope. No new scientific, performance or coverage
+  claim is made. Immediate next delivery work remains the existing v15
+  terminal/severity review; this task neither inspected partial science nor
+  launched or altered its replay.

@@ -1,47 +1,21 @@
 # API
 
-Related project references:
+Use the [standalone finder tutorial](../tutorials/find-sources.md) for the
+public workflow and [current release status](release-status.md) for its
+experimental input envelope and limitations.
+
+Related references:
 
 - [Source-finding domain glossary](domain-glossary.md)
 - [Internal catalogue and result schemas](internal-schemas.md)
 - [Rapthor source-finding contract](rapthor-source-finding-contract.md)
-- [Scientific pre-review findings](scientific-pre-review.md)
-- [Phase 0 starting revisions](starting-revisions.md)
-- [Phase 0 baseline results](phase-0-baseline-results.md)
-- [Validation dataset manifests](dataset-manifests.md)
 - [Scientific comparison reports](scientific-comparison.md)
 - [Evidence documents](evidence-documents.md)
 - [Performance and scalability contracts](performance-scalability-contracts.md)
-- [Phase 0 review record](phase-0-review-record.md)
-- [Phase 1 release readiness](phase-1-release-readiness.md)
-- [Phase 2 release readiness](phase-2-release-readiness.md)
-- [Phase 3 release readiness](phase-3-release-readiness.md)
-- [Phase 3 scientific review record](phase-3-review-record.md)
-- [Phase 4 release readiness](phase-4-release-readiness.md)
-- [Phase 4 scientific review record](phase-4-review-record.md)
-- [Phase 4 paired non-inferiority protocol](phase-4-paired-noninferiority.md)
-- [Phase 4S compact qualification protocol](phase-4s-qualification-protocol.md)
-- [Phase 4T compact confirmation protocol](phase-4t-confirmation-protocol.md)
-- [Phase 4U compact-blend qualification protocol](phase-4u-qualification-protocol.md)
-- [Phase 5 multiscale contract and development review](phase-5-contract.md)
-- [Phase 5 scale-filter selection](phase-5-filter-selection.md)
-- [Phase 5 regression fixtures](phase-5-regression-fixtures.md)
-- [Phase 5 astrometry technical pre-review](phase-5-astrometry-pre-review.md)
-- [Phase 5 public-finder source-association pre-review](phase-5-public-finder-source-association-pre-review.md)
-- [Phase 5 public-finder source-association implementation](phase-5-public-finder-source-association-implementation.md)
-- [Phase 5 source-association replay-composition pre-review](phase-5-public-finder-source-association-replay-composition-pre-review.md)
-- [Phase 5 public-finder source-reconstruction pre-review](phase-5-public-finder-source-reconstruction-pre-review.md)
-- [Phase 5 persistent-support parent correction](phase-5-public-finder-persistent-support-parent-correction.md)
-- [Phase 5 terminal-feature persistence correction](phase-5-public-finder-terminal-feature-persistence-correction.md)
-- [Phase 5 scientific campaign overview](phase-5-campaign-overview.md)
-- [Phase 5 final-qualification evaluation-repair pre-review](phase-5-final-qualification-repair-pre-review.md)
-- [Phase 5 release readiness](phase-5-release-readiness.md)
-- [Compact deblending](compact-deblending.md)
-- [Extended-emission measurement](extended-emission-measurement.md)
-- [Compact moment measurement](compact-measurement.md)
-- [Compact Gaussian fitting](compact-fitting.md)
-- [Compact astrometry and beam deconvolution](compact-astrometry.md)
-- [Compact catalogue and Rapthor FITS view](compact-catalogue.md)
+
+Dated scientific reviews and frozen campaign protocols are grouped separately
+in the documentation navigation. They describe their named candidates and
+must not be read as current API qualification.
 
 ## Top-level package
 

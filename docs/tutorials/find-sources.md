@@ -3,11 +3,10 @@
 This tutorial runs Hebog as a standalone scientific library. It uses no
 Rapthor, Prefect, LSMTool, or private Dask cluster.
 
-The interface is currently a bounded Phase 5 scientific preview. The code is
-implemented, but the current source-catalogue repairs are development science.
-Earlier PyBDSF parity results do not qualify this changed implementation. It
-requires joint development checks, candidate-bound cumulative evidence, fresh
-held-out qualification and independent acceptance.
+The interface is experimental and scientifically unqualified. Earlier PyBDSF
+parity results do not qualify this changed implementation. Experimental
+package releases and scientific qualification have separate checks; see
+[current capability and release status](../reference/release-status.md).
 
 ## Prepare the input
 
@@ -184,23 +183,17 @@ Composition `phase-5-evidence-bound-public-catalogue-v15` remains
 development-unqualified pending new candidate-bound evidence. Historical
 campaign results do not qualify these changed measurements.
 
-The [noiseless-filter repair](../reference/phase-5-noiseless-filter-repair.md)
-uses stable local arithmetic for precision-limited noise without changing
-detection thresholds or inventing an RMS floor. Stale composition identities
-fail explicitly; refreshes must select the newly frozen candidate.
-
-The [zero-noise adaptive repair](../reference/phase-5-zero-noise-adaptive-repair.md)
-keeps source-protected regions with no positive RMS explicitly unavailable
-for sigma-based detection. A noiseless image containing emission can therefore
+Precision-limited noise uses stable local arithmetic without an invented RMS
+floor. Source-protected regions with no positive RMS remain unavailable for
+sigma-based detection. A noiseless image containing emission can therefore
 return no catalogue rows with an **unavailable RMS**; this is not evidence
 that the image contains no sources. No artificial noise floor is supplied.
 
 The repaired continuum RMS policy passes the joint source-retention and
 spatial-noise fixture gates; it is **not campaign-qualified**. See the
 [repair contract](../reference/phase-5-public-catalogue-repair-contract.md).
-Use only the explicitly selected immutable identity for notebook refreshes;
-an old review does not bind changed scientific code. Replay admission also
-requires its own exact program, reusable-record and resource checks.
+Notebook diagnostics identify the selected scientific composition; do not
+interpret products from an older composition as current-candidate evidence.
 
 For a component-level comparison with a PyBDSF Gaussian catalogue, compare
 `catalogue.gaussian_components`, not `catalogue.sources`. Plotting one marker
@@ -252,7 +245,9 @@ byte-identical scientific products.
 
 The 1,024-pixel cap is deliberate: the evaluated terminal composition still
 materializes one complete preview plane after its bounded detection stage.
-Larger out-of-core and distributed images remain Phase 7 work and are rejected
-rather than extrapolated. Rapthor-specific dual-image composition, sky-model
-filtering, compatibility filenames, and the minimum end-to-end runtime gate
-belong to Phase 6.
+Larger public inputs are rejected until bounded terminal measurement and
+publication are implemented and each expanded size tier is validated.
+Rapthor-specific dual-image composition, sky-model filtering, compatibility
+filenames and complete-path runtime qualification are separate planned
+increments. See the
+[remaining tasks](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md).

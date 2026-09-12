@@ -20,7 +20,7 @@ Code tracing and analytic witnesses used its immutable execution checkout
 `/private/tmp/hebog-r6-cumulative-evaluation-1b1cbae`, commit
 `1b1cbae8cf8f05184cb2d095ced87175e2969849`, not later notebook repairs.
 
-The [terminal snapshot](phase-5-campaign-overview.md#2026-09-09-r6-cumulative-terminal-scientific-failure)
+The [terminal snapshot](https://github.com/gemmadanks/hebog/blob/0ce253cf26a7954a58dc9a211eb01d8502e69025/docs/reference/phase-5-campaign-overview.md#2026-09-09-r6-cumulative-terminal-scientific-failure)
 is authoritative: 885 comparisons pass, 288 fail and 14 are underpowered;
 both readiness flags are false. All five safety checks pass. R6 and Phase 5
 remain open. No prior uncertainty acceptance transfers.

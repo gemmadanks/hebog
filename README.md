@@ -6,186 +6,35 @@
 [![codecov](https://codecov.io/gh/gemmadanks/hebog/graph/badge.svg)](https://codecov.io/gh/gemmadanks/hebog)
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](LICENSE)
 
-Hebog is a Dask-aware radio-continuum source finder for SKA Science Data
-Processor pipelines. It is being developed first as a faster, scientifically
-compatible replacement for the PyBDSF work performed by Rapthor's
-`filter_skymodel` step, while keeping the scientific API usable by other data
-pipelines and science workflows.
-
-The implementation is intentionally narrower than PyBDSF. It will reproduce
-the behaviour and materialised products that Rapthor consumes while targeting
-at least a 50% reduction in the median wall time of the complete
-`filter_skymodel` step relative to released PyBDSF, and a lower runtime than a
-pinned performance-improved PyBDSF `master` reference. Scientific
-equivalence—not bitwise equality—is the acceptance criterion.
-
-Those comparisons are minimum release gates, not the optimization target.
-Hebog aims to minimize complete latency and maximize useful throughput at
-every supported image size.
-
-Hebog is designed to scale out of core to 100,000-by-100,000-pixel images.
-Large planes are processed as deterministic haloed tiles with hierarchical
-boundary reconciliation, allowing an existing Dask cluster to distribute work
-across 100 to several hundred nodes without any worker holding a full plane.
-Production nodes are expected to have hundreds of GB of RAM; Hebog will use
-that capacity through resource-aware tile batching and caches while preserving
-bounded tasks and topology-independent results.
-
-See the [source-finder implementation plan](plans/source-finder-implementation.md)
-for the profiling evidence, scientific gates, dataset matrix, staged delivery,
-performance budget, risks, and definition of done.
-See the [execution log](LOG.md) for completed work, validation evidence,
-decisions, and immediate next steps.
+Hebog is an **experimental** Dask-aware radio-continuum source finder for SKA
+Science Data Processor pipelines. It is being developed as a faster,
+scientifically compatible alternative to the PyBDSF work used by Rapthor's
+`filter_skymodel` step, with a scientific API usable independently of Rapthor.
 
 ## Status
 
-Hebog is not rebuilding every PyBDSF feature. It is implementing the narrower
-source-finding path used by Rapthor, while keeping that scientific capability
-usable by other workflows.
+The public finder implements FITS/WCS ingestion, background/RMS estimation,
+compact and multiscale detection, Gaussian-component and associated-source
+measurements, and atomic catalogue, RMS, mask and diagnostic products. Use
+Serial execution or supply an existing Dask client.
 
-The compact single-scale Phase 4 milestone is complete. The independently
-frozen Phase 4U qualification passed, the optimized candidate preserved that
-result in a complete regression replay, and the incremental compact component
-matrix passed its budgets. In practical terms, Hebog can now:
+The current public envelope is **ICRS `Jy/beam` images up to 1,024 pixels on
+either spatial axis**. The current v15 composition is scientifically
+unqualified. Compact uncertainty/measurement and faint extended association,
+mask and flux-tail risks remain under review; earlier candidates' campaign
+passes do not qualify this implementation.
 
-- read and partition radio images without loading a large image onto one
-  machine;
-- estimate the local background and image noise;
-- identify pixels likely to contain astronomical emission;
-- join those pixels into distinct connected "islands";
-- separate nearby compact peaks within an island;
-- calculate deterministic owned-pixel peak, flux, RMS, centroid, and shape
-  moments for compact islands and regions;
-- fit bounded elliptical Gaussian components and transform their positions
-  and shapes into ICRS sky coordinates;
-- deconvolve the restoring beam while keeping fully resolved,
-  major-axis-only, unresolved, and unavailable values explicit, and require
-  five-sigma evidence for noisy extension and each reported intrinsic axis;
-- build bounded, deterministic source/component/island catalogue records and
-  an eight-column FITS view consumed directly by Rapthor diagnostics;
-- run deterministically through either the serial or Dask executor; and
-- publish restartable intermediate products in Zarr.
+Hebog will ship useful, tested experimental `0.x` increments. Confirmed
+incorrect supported outputs remain release blockers. General scientific
+qualification, complete Rapthor integration/performance and facility scaling
+are separate delivery tasks. The current finder is not a production-ready or
+default Rapthor backend.
 
-For the governed three-source compact reference, the same Hebog catalogue
-passes the frozen position, flux, fitted/deconvolved shape, classification,
-association, uncertainty-availability, and outlier gates against both the
-released PyBDSF used by Rapthor and the performance-improved PyBDSF `master`
-reference. The controlled representative Phase 3 detection path has a median
-runtime of approximately 3.2 seconds. The controlled incremental Phase 4
-component matrix also passes: at 3,000 by 3,000 pixels, median compact
-measurement/fitting is 0.178--0.758 seconds and catalogue materialisation is
-0.037--0.041 seconds across successful profiles, inside the separate
-2.0-second allocations.
-
-Earlier Phase 4 campaigns remain useful, immutable failure evidence; they are
-not the current milestone decision. Phase 4R
-repaired the evidence evaluator, introduced data-only beam/free model
-selection, correlated-noise fitting, analytic truncated-edge centroid
-correction, and a no-compensation registry of 35 scientific and robustness
-metrics. The final candidate
-completed all 600 images in its separately reviewed replacement
-qualification; released PyBDSF also completed all 600, while pinned `master`
-retained one invalid negative-flux catalogue failure.
-
-The immutable decision passed 446/450 dual-reference comparisons and 106/107
-absolute gates, but it is still a failure. Hebog's catastrophic-outlier rate
-was worse at SNR 15 against both references, worse for marginally resolved
-sources against released PyBDSF, and its overall released-reference confidence
-bound crossed the practical margin. The SNR-10 declination-uncertainty-bias
-interval also narrowly crossed its absolute upper bound. These results are
-preserved without changing a threshold, metric, source row, or population.
-Phase 4R is therefore complete as a terminal non-passing milestone; its
-performance matrix was not eligible to run, and no Phase 4 release or speed
-claim is made.
-
-Phase 4S has since repaired the future evaluator without changing that result.
-Governed classification strata can no longer be widened by same-named legacy
-validation strata, power can be checked against the actual manifest group
-counts, and joint power is reported separately from marginal endpoint power.
-The review also found that all 18 SNR-15 catastrophic rows came from one
-marginal source family whose weak deconvolved minor axis was being treated as
-a precise ellipse. Hebog now propagates fit-shape covariance, reports only
-scientifically significant intrinsic axes, preserves a major-only `DC_Maj`
-for Rapthor when appropriate, and obtains a truncation retry's centroid and
-covariance from the same likelihood fit. Analytic, integration, serial/Dask,
-dual-reference regression, and full correlated-noise calibration checks pass.
-
-These corrections make the compact scientific API technically stable, but the
-project owner chose to require another qualification before substantive Phase
-5 work. Phase 4S then completed 800/800 images for Hebog and both PyBDSF
-references. Hebog passed all 20 paired non-inferiority endpoints against both
-references, with better reliability, unresolved-group measurements, and
-uncertainty calibration on several outcomes. The overall result still failed
-four absolute gates. Two fixed raw error limits were below the noise floor of
-the mixed-SNR population, and a point-truth projection artefact produced a
-false zero-specificity score even though Hebog called all 6,400 declared point
-cases unresolved. The remaining genuine miss was narrow: the SNR-10
-integrated-flux mean residual was 0.106 sigma, but its upper 95% limit was
-0.154 against a frozen 0.150 limit.
-
-Phase 4S is preserved as failed rather than rescored. Phase 4T then tested the
-corrected semantics on 800 fresh images. Hebog passed all 20 paired endpoints
-against both PyBDSF references, all uncertainty-calibration gates, and 76 of
-77 binding absolute gates in total. It recovered every unresolved blend and its
-95th-percentile blend total-flux error was 20.71%, much better than 60.00% for
-both references, but just above the frozen 20% absolute limit. Phase 4T is
-therefore preserved as a terminal failure rather than rounded, rescored, or
-repeated on unchanged code.
-
-The roughly 10% systematic blend flux under-recovery was traced to a fixed
-restoring-beam aperture clipping blends across the beam's narrow axis. Hebog
-now keeps that lower-variance aperture when it contains at least 90% of the
-fitted source model and otherwise follows the fitted blend shape. A separately
-frozen, unseen 800-image Phase 4U qualification then passed. Hebog completed
-every image, passed all 77 binding absolute gates, and passed all 20 paired
-non-inferiority endpoints against both released PyBDSF and pinned PyBDSF
-`master`. Across 4,800 unresolved blends, its mean signed total-flux error was
-about -2.0%, compared with about -10.9% for both references; its 95th-
-percentile absolute error was 13.9%, inside the unchanged 20% limit and better
-than 20.7% for both references on this population.
-
-Phase 4U and the subsequent controlled component matrix therefore close the
-compact single-scale Phase 4 milestone, and substantive multiscale work may
-begin. This is not yet a production or PyBDSF speedup claim: independent human
-radio-astronomy review, controlled real-residual evidence, complete Rapthor
-end-to-end comparison, and production scalability evidence remain required
-before Hebog replaces PyBDSF by default.
-
-The subsequent Phase 5 recovery comparison also passed its current science
-gate: all 143 Continuum absolute gates and all 226 powered Continuum
-comparisons against released PyBDSF and pinned PyBDSF `master` passed. The
-compact regression passed all 77 binding absolute gates, all 450 PyBDSF
-comparisons, and all 143 applicable Aegean comparisons. This opens the next
-multiscale implementation step; it does not complete Phase 5 or establish a
-runtime claim.
-
-The remaining work includes:
-
-- recovering extended or multiscale emission;
-- integrating the complete path into Rapthor's `filter_skymodel` workflow;
-- proving end-to-end catalogue and filtering equivalence and speed; and
-- qualifying out-of-core execution on production-scale multi-node clusters.
-
-A useful mental model is that the compact foundation is qualified: Hebog can
-locate, outline, fit, and catalogue ordinary compact objects and unresolved
-compact blends, and serialize the catalogue view used by Rapthor's image
-diagnostics. It cannot yet recover the full range of extended or multiscale
-emission, nor run as Rapthor's complete source-finder backend. Multiscale
-completion, workflow integration, performance, and scale qualification remain
-scientifically significant.
-
-Hebog is therefore a functioning compact-source detector, but it is not yet a
-drop-in PyBDSF replacement or production-ready Rapthor backend. Named human
-scientific review approved the compact Phase 3 scope and provisional Phase 4
-measurement contract, followed by the observable-group and noisy-source
-amendments. The post-failure extension/flux addendum was approved on
-2026-08-03. See the
-[Phase 4 scientific review record](docs/reference/phase-4-review-record.md) and
-[Phase 4 release-readiness record](docs/reference/phase-4-release-readiness.md),
-with the terminal passing population in the
-[Phase 4U qualification protocol](docs/reference/phase-4u-qualification-protocol.md),
-for the held-out findings, ordered recovery work, evidence, and remaining
-limitations.
+See [current capability and release status](docs/reference/release-status.md)
+for limitations and evidence, the
+[implementation plan](plans/source-finder-implementation.md) for concrete merge
+and release tasks, and [LOG.md](LOG.md) for execution history. Published
+versions are listed in [GitHub releases](https://github.com/gemmadanks/hebog/releases).
 
 ## Goals
 
@@ -242,11 +91,13 @@ result = find_sources(request, config, SerialExecutor())
 ```
 
 The top-level call atomically publishes a source catalogue, RMS image,
-source-filtering mask, and provenance-rich diagnostics. The bounded Phase 5
-preview accepts ICRS `Jy/beam` images up to 1,024 pixels on either spatial axis
-and currently supports only the exact qualified 5-sigma/3-sigma, seven-pixel
-configuration. The interface still requires fresh held-out qualification and
-independent acceptance before a scientific-preview release.
+source-filtering mask, and diagnostics. The experimental public finder
+accepts ICRS `Jy/beam` images up to 1,024 pixels on either spatial axis.
+The reference 5-sigma/3-sigma, seven-pixel configuration reports
+`development-unqualified`; other valid thresholds and island-size settings
+execute and report `custom-unqualified`. The
+[public tutorial](docs/tutorials/find-sources.md) explains profiles, products,
+unavailable measurements and retries.
 
 Requests and results never contain open FITS handles, scheduler clients, or
 mutable full-image objects. Scientific thresholds are explicit because the
@@ -321,20 +172,17 @@ reviewable, testable, and version controlled. Validate them with
 
 ## Architecture
 
-Scientific kernels operate on NumPy arrays and immutable configuration. An
-executor decides whether coarse batches run serially, in local threads, or on
-Dask workers. Its partition and batching planner selects the lowest-overhead
-valid plan for the admitted resources: small work stays as one Zarr-backed
-tile without Dask, while larger work moves through local batching and
-distributed execution where measurements show a benefit. Zarr is the single
-intermediate image-plane backend; FITS is used at input and final compatibility
-boundaries.
+Scientific kernels operate on NumPy arrays and immutable configuration.
+Serial and existing-client Dask executors run coarse work; Zarr is the sole
+intermediate image-plane backend, with FITS at ingress and final publication.
+Bounded stages use explicit tile cores, halos and global ownership.
 
-Image-sized kernels receive bounded tile cores, stage-specific read-only
-halos, and global coordinates. Boundary summaries and tree reductions
-reconcile statistics, connected labels, sources, and output chunks. A small
-image uses the same semantics as one tile; a large image never becomes one
-scheduler payload.
+The complete public finder still materializes a bounded preview plane and
+rejects inputs above its 1,024-pixel limit. Persistent local threads,
+resource-based batching, fully bounded terminal measurement/publication and
+facility qualification remain in the plan. The target is 100,000-square
+images across 100 to several hundred nodes without a full plane on a worker;
+that scale is not yet established for the public workflow.
 
 ```text
 FITS input
@@ -345,9 +193,9 @@ FITS input
    -> catalogue, mask, and RMS products
 ```
 
-The true-sky and flat-noise analyses are independent operations that join only
-when Rapthor applies the final sky-model filter. Intermediate file products are
-restartable, and scheduler payloads remain small.
+The planned Rapthor integration composes independent true-sky and flat-noise
+analyses before final sky-model filtering. Workflow defaults, filenames and
+retry/fallback behaviour belong at that adapter boundary.
 
 Dependencies point inward from workflow and compatibility adapters to the
 public pipeline and scientific core. Hebog favours Pythonic, typed, cohesive

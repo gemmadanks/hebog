@@ -28,9 +28,10 @@ mask, and diagnostic products. Follow the
 [radio-astronomer source-finding tutorial](find-sources.md) for a complete
 FITS-to-products example and the current scientific-preview limits.
 
-The interface is implemented on the development branch, but the Phase 5
-release candidate still requires fresh held-out qualification and independent
-review. It must not yet be described as a released PyBDSF replacement.
+The development finder is experimental and scientifically unqualified.
+Small tested `0.x` releases can precede general scientific qualification;
+they are not qualified PyBDSF replacements. See
+[current release status](../reference/release-status.md) for the distinction.
 
 Run the redistributable Marimo demonstration to inspect the current compact
 path and a multi-object residual processed by the bounded Phase 5 multiscale
@@ -41,5 +42,5 @@ uv run marimo edit notebooks/source_finder_demo.py
 ```
 
 The [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
-records the remaining held-out qualification, engineering-evidence, and
-independent-review gates. Rapthor integration begins separately in Phase 6.
+lists concrete merge/release checks and separate scientific, performance,
+Rapthor integration and larger-image increments.

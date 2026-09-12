@@ -1,85 +1,51 @@
 # Hebog
 
-Hebog is a Dask-aware radio-continuum source finder for SKA Science Data
-Processor pipelines. It is being developed first as a faster, scientifically
-compatible replacement for the PyBDSF work performed by Rapthor's
-`filter_skymodel` task.
+Hebog is an **experimental** Dask-aware radio-continuum source finder for SKA
+Science Data Processor pipelines. It is being developed as a scientifically
+compatible, faster alternative to the PyBDSF work used by Rapthor's
+`filter_skymodel` step. Its scientific library also works independently of
+Rapthor, Prefect and LSMTool.
 
-Rapthor defines the first qualified feature set, but is not a dependency of
-the scientific core. Hebog's public API, domain records, and executor boundary
-are designed for reuse in other data pipelines and science workflows.
+## Current capability
 
-Its scope is deliberately limited to the behaviour and products Rapthor consumes,
-with a target of reducing the complete filter step's matched median wall time
-by at least 50% relative to released PyBDSF and also outperforming a pinned
-PyBDSF `master` reference.
+The public finder reads one ICRS `Jy/beam` FITS image up to 1,024 pixels on
+either spatial axis and publishes a catalogue, RMS image, source mask and
+diagnostics. It implements background/noise estimation, compact and multiscale
+detection, Gaussian fitting and associated-source measurements. Use Serial
+execution or supply an existing Dask client; Hebog does not create a cluster.
 
-The 50% reduction is a minimum release gate, not an optimization endpoint.
-Hebog treats small, current, large, and extreme images as first-class
-performance regimes on a logarithmic benchmark matrix from 256 to 100,000
-pixels per side.
+The current composition is scientifically unqualified. Compact measurement,
+uncertainty and faint extended-source association/photometry risks remain
+under review. Earlier campaign passes apply only to their exact candidates.
+See [current capability and release status](reference/release-status.md) for
+the supported input envelope, limitations and evidence boundaries.
 
-Scalability is a core requirement. Hebog's target architecture processes
-images up to 100,000 by 100,000 pixels as bounded haloed tiles and distributes
-them across 100 to several hundred nodes on an existing Dask cluster, without
-materialising a complete plane on any worker.
-Production nodes are expected to provide hundreds of GB of RAM, which the
-executor can use for larger bounded batches and caches without changing
-scientific partition ownership.
+- [Find sources in a FITS image](tutorials/find-sources.md)
+- [Install and get started](tutorials/index.md)
+- [Public API](reference/index.md)
+- [Remaining merge and release tasks](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
 
-## Current status
+## Delivery direction
 
-The compact single-scale Phase 4 milestone is complete. FITS/WCS ingestion,
-bounded partitioning, adaptive background and RMS estimation, detection,
-deblending, Gaussian measurement, sky/beam transforms, compact catalogue
-construction, serial/Dask execution, and Zarr products are implemented and
-tested.
+Hebog will ship useful experimental `0.x` increments as their scoped checks
+pass. General scientific qualification, Rapthor integration and larger-image
+support are separate increments; the experimental label never excuses a
+confirmed incorrect supported output.
 
-The fresh 800-image Phase 4U qualification passed all 77 binding absolute
-gates, all 20 paired non-inferiority endpoints against each of released
-PyBDSF and pinned PyBDSF `master`, and all five stronger-Hebog envelopes. A
-complete optimized-candidate replay preserved that result, and the controlled
-incremental compact matrix passed its component budgets. Earlier failed
-campaigns remain immutable historical evidence rather than being rescored.
+For supported Rapthor deployment, the target is at least a 50% reduction in
+matched median complete `filter_skymodel` time relative to released PyBDSF,
+and better performance than pinned PyBDSF `master`. Those confidence-bound
+gates remain unproven for the current complete workflow. Individual-stage
+speed measurements cannot establish them.
 
-Phase 5 is active, not complete. Its untouched final qualification passed all
-143 Continuum absolute gates, all 226 powered Continuum comparisons against
-the two PyBDSF references, and both separately bound compact decisions. The
-1,688-image campaign completed all 8,440 runs without a failure. The first
-public/challenge decision is an immutable failure; its scientific review led
-to a prospectively implemented correction. That correction preserves compact
-science but fails the complete Continuum cumulative replay with 44 failed
-endpoints and 37 like-semantics regressions. The evidence points to catalogue
-fragmentation: completeness and merge gates pass, while reliability, duplicate,
-split, flux-tail, and position-tail gates fail. The source-association repair
-and measurement fallback completed all 2,400 candidate products. The approved
-evaluation-only completion published terminal ledger `6b2aa4de...`: compact
-still passes, but Continuum again has 44 failed endpoints, 10 underpowered
-endpoints, and the same 37 like-semantics regressions. Source-union matching
-changed no endpoint status; component-level fragmentation, flux tails, and
-position tails remain binding failures. Fresh held-out qualification is
-therefore closed. Remaining Phase 5 gates cannot resume until a separately
-reviewed [source-reconstruction correction](reference/phase-5-public-finder-source-reconstruction-pre-review.md)
-passes its fixtures and a separately authorized cumulative regression; they
-include the
-restricted Rapthor workflow profile, the fail-closed
-[readiness record](reference/phase-5-release-readiness.md), and independent
-scientific and engineering acceptance. The stable public pipeline, matched
-complete Rapthor runtime evidence, and production-scale distributed
-qualification are later delivery gates. Hebog is therefore not yet a
-production-ready or default Rapthor backend.
+The scale target is 100,000-by-100,000-pixel images across 100 to several
+hundred nodes with bounded Zarr tiles and hierarchical reconciliation.
+Production nodes are expected to have hundreds of GB of RAM. This is an
+architecture and qualification target, beyond the current public size limit.
+See the [architecture](architecture/index.md) and
+[performance/scale contracts](reference/performance-scalability-contracts.md).
 
-The [Phase 5 scientific campaign overview](reference/phase-5-campaign-overview.md)
-provides a plain-language, append-only summary of what each material campaign
-tested, how Hebog compared with PyBDSF, and what the evidence changed next.
-
-Start with the [quick start](tutorials/index.md), read the
-[architecture](explanation/index.md) and
-[quality attributes](explanation/quality-attributes.md), review the
-[native-code assessment](explanation/native-code-assessment.md), then see the
-[Phase 0 baseline results](reference/phase-0-baseline-results.md), the
-[Phase 4 release-readiness record](reference/phase-4-release-readiness.md), the
-[Phase 4U qualification result](reference/phase-4u-qualification-protocol.md),
-the complete
-[implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
-and [execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md).
+Current science is summarized in the
+[campaign overview](reference/phase-5-campaign-overview.md). Dated evidence
+reviews remain available under Reference; development chronology belongs in
+the [execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md).

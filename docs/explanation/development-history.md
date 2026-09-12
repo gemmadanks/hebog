@@ -79,9 +79,10 @@ incorrect grouping and measurement problems that those synthetic tests had
 not revealed. This prompted repeated corrections and broader regression tests
 to check that improvements did not lose earlier strengths.
 
-Hebog remains experimental. The latest recorded full rerun stopped on an
-implementation error before producing a scientific verdict. Development
-closeout, scientific readiness and release approval are separate decisions.
+Hebog remains experimental. Development closeout, scientific readiness and
+release approval are separate decisions. See
+[current release status](../reference/release-status.md) for current capability
+and evidence; this account describes the development approach.
 Halving Rapthor's complete processing time and scaling across hundreds of
 machines remain goals to demonstrate. Timing studies use repeated matched
 runs across image sizes; faster individual stages alone do not establish

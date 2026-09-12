@@ -1,143 +1,56 @@
-# Phase 5 release readiness
+# Scientific readiness
 
-Phase 5 is not complete merely because one scientific campaign or benchmark
-passes. The readiness boundary requires all machine evidence first and then
-two independent acceptances bound to the exact same review packet. Completing
-Phase 5 still does not authorize Rapthor cutover, a release, tuning, rescoring,
-optimization, or another campaign.
+**Current status: not established for the development finder.** General
+scientific readiness requires exact candidate-bound evidence and independent
+acceptance. It is separate from the smaller
+[experimental package release](release-status.md#release-boundaries) checklist.
+Neither development closeout nor an experimental release changes a scientific
+verdict or authorizes default Rapthor cutover.
 
-The machine contract is
-[`config/contracts/phase-5-readiness.json`](https://github.com/gemmadanks/hebog/blob/main/config/contracts/phase-5-readiness.json).
-It names every required artifact, required terminal field, predeclared file
-identity where one already exists, the exact readiness library and command
-identities, reviewer ownership, review question, and prohibited authorization.
+## Remaining scientific acceptance work
 
-## Two-stage boundary
+1. Verify the current cumulative terminal and resolve or explicitly classify
+   its scientific failures, underpowered comparisons and public-output risks.
+   Classification does not turn a binding non-pass into a pass.
+2. Establish cumulative parity/retention for one exact candidate under its
+   prospective reviewed contract, then fresh held-out/public evidence with
+   populations and power fixed before viewing results. Closed campaigns are
+   immutable and are not reused as confirmation.
+3. Confirm installed public API behaviour, product/schema/provenance validity,
+   Serial/existing-Dask determinism and the applicable engineering evidence.
+4. Prepare a current-candidate scientific-readiness packet and obtain separate
+   radio-astronomy and engineering acceptances bound to that same packet.
+   Every required machine gate must pass; missing, malformed or failing
+   evidence cannot be replaced by reviewer approval.
 
-The readiness command has two explicit operations:
+The [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
+tracks these as separate tasks. The restricted Rapthor profile, consumer
+acceptance and complete `filter_skymodel` performance belong in a later
+integration-readiness packet.
 
-1. `prepare` verifies every present artifact and freezes their SHA-256
-   identities into a review packet. Missing artifacts remain named blockers.
-   A complete packet is only `ready-for-independent-review`; it never marks
-   Phase 5 complete.
-2. `finalize` rebuilds the packet from the live contract and evidence, requires
-   byte equality with the reviewed packet, and accepts exactly one independent
-   radio-astronomy record and one independent engineering record. Both records
-   must bind the packet SHA-256, contain no blocking findings, accept the Phase
-   5 milestone, and keep cutover and release false.
+## Existing command and frozen contract
 
-Present but malformed, failing, moved, or checksum-drifted evidence is an
-error. It is not treated like an absent optional result. Human acceptance
-cannot compensate for a missing machine gate, and one reviewer cannot satisfy
-both roles.
+The existing
+[Phase 5 readiness contract](https://github.com/gemmadanks/hebog/blob/main/config/contracts/phase-5-readiness.json)
+and `scripts/validation/review_phase5_readiness.py` remain frozen tooling for
+an older candidate/evidence composition. That contract also requires the
+restricted Rapthor profile. It does **not** implement the current separation
+of standalone scientific readiness and Rapthor integration, and it cannot
+certify v15 or serve as an experimental package release checklist.
 
-## Required evidence
+A prospective update to the readiness composition is a remaining engineering
+task before scientific promotion. Preserve the old contract and decisions;
+do not change their booleans, bypass missing artifacts or point the old packet
+at a successor candidate to obtain a pass.
 
-The packet requires:
+The maintained acceptance design has two operations: `prepare` verifies
+terminal evidence and binds it in a review packet; `finalize` re-verifies that
+packet and requires one independent acceptance for each reviewer role. Both
+acceptances must bind the identical packet digest with no blocking findings.
+Finalization is a scientific decision and does not itself publish a package
+or change a Rapthor default.
 
-- the public-finder correction cumulative ledger, with the exact correction
-  candidate and configuration, every required endpoint passing, readiness
-  true, and no compact or Continuum like-semantics regression;
-- a fresh held-out qualification decision for that corrected candidate;
-- the restricted-input Rapthor profile decision with complete safety-stratum
-  coverage;
-- the reviewed 3,000-pixel incremental performance budget;
-- the bounded deterministic execution contract;
-- the passing closed final-qualification context;
-- the immutable terminal public-finder failure; and
-- the independent scientific review that diagnosed that failure without
-  tuning or rescoring it.
-
-The terminal SDC1/Hydra failure is deliberately included. The packet cannot
-erase it or relabel it as a pass. The radio-astronomy reviewer must decide
-whether the corrected cumulative and fresh held-out evidence support the
-claimed capability while the viewed public result remains scoped as terminal
-development evidence.
-
-The first corrected cumulative replay now exists and is terminally failing:
-compact passes, but Continuum records 44 failed endpoints, 10 underpowered
-endpoints, and 37 like-semantics regressions. Because failing evidence is not
-equivalent to missing evidence, `prepare` aborts rather than producing a
-reviewable packet. Fresh correction qualification and the Rapthor profile also
-remain absent. The command cannot publish a Phase 5 completion record until a
-separately reviewed candidate passes every gate.
-
-The later source-association measurement-repair replay completed all 2,400
-candidate products, and the separately approved evaluation-only adapter
-published terminal ledger `6b2aa4de...` without another candidate run. Compact
-passes, but Continuum has 44 failures, 10 underpowered endpoints, and the same
-37 like-semantics regressions as the first correction. The source-union view
-changed no endpoint status: reliability is 0.62375, duplicate and split
-fractions are both 0.25295, integrated-flux p95 error is 0.79260, and position
-p95 error is 4.18028 beams. The record is failing evidence, not missing
-evidence. `prepare` must continue to abort, and fresh qualification remains
-closed until a prospectively reviewed candidate passes cumulative regression.
-
-## Prepare the packet
-
-Run this only against terminal, write-once evidence. If evidence is still
-missing, use a disposable or explicitly dated draft path; the command refuses
-to overwrite it later.
-
-```bash
-uv run python scripts/validation/review_phase5_readiness.py prepare \
-  --contract config/contracts/phase-5-readiness.json \
-  --repository-root . \
-  --output benchmark-results/phase-5/phase-5-readiness-review-packet.json
-```
-
-The packet records only required fields and artifact identities. It does not
-copy raw images, catalogues, or detailed result arrays.
-
-## Independent acceptance records
-
-Each reviewer receives the packet, the evidence it binds, and the role-specific
-questions embedded in the contract. An acceptance record has this shape:
-
-```json
-{
-  "acceptance_id": "phase-5-radio-astronomy-acceptance",
-  "blocking_findings": [],
-  "cutover_authorized": false,
-  "phase_five_milestone_accepted": true,
-  "release_authorized": false,
-  "review_packet_sha256": "<exact packet SHA-256>",
-  "reviewed_on": "YYYY-MM-DD",
-  "reviewer": {
-    "name": "<independent reviewer>"
-  },
-  "role": "radio-astronomy",
-  "schema_version": 1,
-  "status": "accepted"
-}
-```
-
-The engineering record uses acceptance ID
-`phase-5-engineering-acceptance` and role `engineering`. A rejection or an
-unresolved blocking finding remains a terminal blocker; it must not be edited
-into an acceptance in place.
-
-The radio-astronomy review covers absolute science, reference comparisons,
-morphology and SNR scope, the public failure disposition, seeded-island
-ownership, shapes, beam deconvolution, unavailable score semantics, and the
-scientific meaning of the Rapthor profile. The engineering review covers
-bounded memory and task ownership, determinism and retry safety, evidence
-identity, the incremental performance budget, workflow integration, and the
-closed later lifecycle gates.
-
-## Finalize Phase 5
-
-After both independent records are complete:
-
-```bash
-uv run python scripts/validation/review_phase5_readiness.py finalize \
-  --review-packet benchmark-results/phase-5/phase-5-readiness-review-packet.json \
-  --radio-astronomy-acceptance benchmark-results/phase-5/phase-5-radio-astronomy-acceptance.json \
-  --engineering-acceptance benchmark-results/phase-5/phase-5-engineering-acceptance.json \
-  --repository-root . \
-  --output benchmark-results/phase-5/phase-5-readiness.json
-```
-
-A successful terminal record sets `phase_five_complete=true` and points to
-Phase 6 distributed execution. Every authorization field remains false.
-Default Rapthor cutover and release remain later governed decisions.
+Historical command examples and campaign-specific records remain accessible
+in [Git history](https://github.com/gemmadanks/hebog/blob/0ce253cf26a7954a58dc9a211eb01d8502e69025/docs/reference/phase-5-release-readiness.md).
+For current evidence, use the [campaign overview](phase-5-campaign-overview.md)
+and [execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md).

@@ -15,9 +15,10 @@ scale out of core to 100,000-by-100,000 images and distribute work across 100
 to several hundred nodes through Rapthor's existing Dask cluster. Production
 nodes are expected to have hundreds of GB of RAM.
 
-The 50% reduction is a minimum release gate, not an optimization stopping
-point. Optimize complete latency and useful throughput across the supported
-size range, including small inputs where setup and scheduler overhead dominate.
+The 50% reduction is a minimum supported Rapthor-deployment gate, not an
+optimization stopping point. Optimize complete latency and useful throughput
+across the supported size range, including small inputs where setup and
+scheduler overhead dominate.
 Maintainability, extensibility, and interoperability are also primary
 architecture qualities. Rapthor is the first production consumer, but the
 scientific library must remain usable from other data pipelines and science
@@ -528,6 +529,15 @@ any supported tier requires an explicitly approved and documented trade-off.
   committed.
 
 ## Changes, releases, and handoff
+
+- Prefer frequent, coherent experimental `0.x` releases over phase-sized
+  batches. Use the current implementation plan's separate merge, experimental
+  package, scientific qualification and Rapthor-deployment checklists.
+  Standalone unqualified development releases need tested public behaviour,
+  explicit limitations and no known incorrect supported outputs; general
+  parity, full Rapthor performance and facility-scale qualification gate their
+  respective later claims. This sequencing never changes frozen science
+  contracts, failed decisions or campaign execution authority.
 
 - During plan execution, create local commits for each coherent, validated,
   reviewable change. Do not combine unrelated milestones or experiments.

@@ -6,7 +6,7 @@ Review date: 2026-09-08. Terminal follow-up: 2026-09-09.
 completed. Its process exited zero, but cumulative terminal `7146f2e8...`
 failed scientifically (885 passing, 288 failing and 14 underpowered binding
 comparisons; all five safety checks pass). See the
-[terminal snapshot](phase-5-campaign-overview.md#2026-09-09-r6-cumulative-terminal-scientific-failure).
+[terminal snapshot](https://github.com/gemmadanks/hebog/blob/0ce253cf26a7954a58dc9a211eb01d8502e69025/docs/reference/phase-5-campaign-overview.md#2026-09-09-r6-cumulative-terminal-scientific-failure).
 The adapter failure below is historical, not a live retry instruction.
 
 This is a later process review, separate from the
