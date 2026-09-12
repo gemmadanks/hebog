@@ -479,15 +479,22 @@ Known incorrect supported outputs remain release blockers, and the PyBDSF
 fallback remains. This decision supersedes the earlier all-science-first
 phase sequencing, not its immutable evidence or scientific requirements.
 
-**Next task (latest user approval):** monitor the isolated two-worker v14
-cumulative replay, then verify and investigate its terminal result.
+**Next task (approval required):** repair the response-domain mismatch in
+shared multiscale source protection, validate it and freeze a new candidate
+before a corrected replay. The isolated v14 replay exits 1 during capture
+at 08:11:50 UTC on 2026-09-12; no scientific terminal exists. The diagnosis
+finds finite positive filtered significance paired with negative unfiltered
+residuals in a scale-response guard. Preserve the guard and correct its input,
+not the scientific thresholds; see F4 below.
 Candidate `cf6d9da...` passes F1/F3 and completes the separate 24-input screen;
 the screen retains the same 49 warnings, not a powered parity verdict.
-The live disk reserve is met, the exact immutable execution is frozen and
-both independent and launch-time exhaustive preflights pass. Managed session
-`81018` is making capture progress, with hourly monitor
-`monitor-current-replay` active. F2's broader
-association work remains deferred. Do not launch a duplicate or silently
+Both independent and launch-time exhaustive preflights pass, but do not
+exercise this numerical edge. Session `81018` has exited; 164 acknowledged
+captures and 169 completed pair manifests are preserved, including five
+completed during shutdown. No Dask comparison or evaluation stage starts.
+Hourly monitor `monitor-current-replay` is paused pending repair approval;
+the existing process-bug retry authority does not change scientific code.
+F2's broader association work remains deferred. Do not silently
 reduce the population/reserve. A subsequent scientific repair or fresh
 qualification requires a separate prospective decision, not an automatic
 loop after every failed comparison. The complete Rapthor-consumer acceptance
@@ -1284,7 +1291,8 @@ All of this is development evidence, not replacement parity or qualification.
     cases using runner `c9b0fec5...`; this checks identity and case metadata,
     not refreshed results or exhaustive replay admission.
   - [ ] **R6-R6 — Final cumulative campaign and development closeout.**
-    **Next task:** monitor the final v14 cumulative campaign, followed by
+    **Next task:** obtain approval for F4's bounded source-protection repair,
+    validate and separately freeze the corrected replay, followed by terminal
     severity review and development closeout. F1 and F3
     are complete; general Gaussian model adequacy remains unqualified.
     The completed
@@ -1306,10 +1314,13 @@ All of this is development evidence, not replacement parity or qualification.
     execution `174579e8...`. No v13 or older execution authorization is reused.
     Exhaustive preflight exits zero (log `48e3afd1...`) with no finder
     execution. The exact replay is launched in session `81018` at approximately
-    07:52 UTC and passes its repeated audit before capture. Both workers are
-    active and 14 captures have completed by 08:00:24 UTC without a process
-    failure. Hourly monitor `monitor-current-replay` is active; there is no
-    terminal scientific verdict. Never launch a duplicate while it runs.
+    07:52 UTC and passes its repeated audit before capture. After healthy
+    startup, it exits 1 at 08:11:50 UTC with a source-protection response-domain
+    exception. Progress acknowledges 164 captures; 169 pair manifests are
+    preserved after shutdown. No Dask comparison or evaluation stage starts,
+    and no atomic scientific terminal exists. The parent and workers are gone;
+    hourly monitor `monitor-current-replay` is paused. The original launch
+    identities remain historical provenance, not a corrected retry identity.
 
     - [x] **Run the missing paired quick check.** A result-neutral 24-input
       regression subset completes 24 exact-public Serial captures/evaluations
@@ -1444,6 +1455,8 @@ All of this is development evidence, not replacement parity or qualification.
       The exhaustive no-write preflight passes and the single authorized
       replay is launched in session `81018`. Healthy initial capture progress
       precedes activation of hourly monitor `monitor-current-replay`.
+      The later capture exception is recorded under F4; it does not invalidate
+      the historical admission checks or establish scientific parity failure.
       Qualification is not included;
       do not reuse an old candidate's approval record.
       **Current authority:** the user approves completing replay prerequisites,
@@ -1454,6 +1467,38 @@ All of this is development evidence, not replacement parity or qualification.
       Recheck immediately before capture and monitor remaining headroom;
       older cleanup measurements below are historical. No cleanup or
       reduction of the reserve is authorized.
+
+    - [ ] **F4 — Approval-gated: align persistent-support response domains.**
+      The v14 capture failure exposes a shared helper that validates
+      unfiltered residual values as though they were the response producing
+      each filtered significance plane. The failing 29-pixel scale-3 feature
+      has finite 3.11–7.21 sigma significance, but all raw residuals are
+      negative. This is an implementation exception, not a scientific verdict.
+      Before implementation, obtain approval for this bounded scientific-code
+      repair; evaluator/process-only retry authority is insufficient.
+
+      - Add a failing synthetic regression with positive filtered response
+        and locally non-positive raw residual. Carry the correctly aligned
+        physical filtered responses through all three callers: background
+        protection, measurement support and residual grouping. Preserve
+        Jy/beam units and the generic finite-positive response guard; do not
+        suppress the exception, clip/absolute-value residuals or substitute
+        dimensionless significance for physical response.
+      - Retain detection/flood thresholds, minimum pixel count, support
+        fraction, adjacent-scale persistence, ownership, truth, comparators,
+        margins and confidence rules. Verify support invariance on previously
+        successful fixtures, including negative depressions, spatial noise,
+        invalid/empty inputs, one versus adjacent scales, compact blends,
+        broad emission, source-owned photometry and residual grouping.
+      - Run focused non-regression, Serial/existing-Dask, coverage, equivalence
+        and repository checks. Validate the failure's mechanism independently;
+        stage-only reproduction is not a candidate pass or a parity result.
+      - Freeze a new candidate/composition and exact execution identity in a
+        fresh namespace before retry. Preserve the failed v14 captures and
+        failure record `24c0720a...`; do not relabel those captures as products
+        of the repaired candidate. Reverify reusable comparator identities
+        and disk admission. Resume monitoring only after authorized healthy
+        startup; do not change the closed scientific results.
 
     **Historical notebook/launch holds (superseded by v14 admission above):**
     do not launch the known-failing v12 candidate or its old preparation.

@@ -20039,3 +20039,79 @@ scientific pass from fixture validation.
   or Python 3.12/3.13 run is needed for this documentation-only launch record;
   the prior candidate validation remains applicable. Run final strict docs
   and all-file hooks before the local Conventional Commit; do not push.
+
+### 2026-09-12 — V14 capture failure and response-domain diagnosis
+
+- Hourly monitoring finds managed session **81018 exited 1**. The preserved
+  failure is recorded at **08:11:49.999546 UTC**, during capture, with
+  `ValueError: significant scale features require finite positive response`.
+  Parent PID 72458 and workers 75374/75375 have exited. No atomic terminal
+  exists; no Dask-comparison or evaluation stage starts. This is an
+  implementation failure, not a scientific verdict or evidence of parity.
+- Progress acknowledges **164 completed captures**. A read-only manifest
+  inventory finds **169 completed `pair.json` files**, including five tasks
+  that finish during pool shutdown, and one started task without a pair:
+  `phase5-external-post-failure-compact-blend-512-seed-2026870165`.
+  Its input record SHA-256 is
+  `a7a8bd05a0adcf39b094ffbb685b60e8abd912aeb2e29061115bbebca1fc8d16`.
+  Counting manifests is not exhaustive artifact verification or permission
+  to reuse them as another candidate's products. All remain preserved under
+  `/private/tmp/hebog-r6-public-catalogue-v14-products-cf6d9da`.
+- Preserve `process-failure.json`, SHA-256
+  `24c0720a36b33fa3953f86c77b3a0f96a5b4f1bc50a85520a636ac49308d5f86`,
+  and the original admission directory's `execution.log`, SHA-256
+  `eb34e32ca4f37dcc524888a1f7bd8f1f850e6da6a7575dfe6699ba7531adfd5b`.
+  Original source/configuration/review/decision identities above remain
+  historical provenance; no new execution identity or output is created.
+  Host headroom at 09:12:23 UTC is about 75.57 GiB; the exception is not a
+  disk-space or worker-startup failure.
+- Trace the unchanged v14 code from public background estimation through
+  source-protected coarse statistics to `persistent_seeded_scale_support`.
+  That helper builds detections using filtered significance but passes the
+  **unfiltered residual** as the scale response. Background protection and
+  both component-measurement callers share the mismatch. The generic builder
+  requires finite positive physical response and correctly rejects a feature
+  whose supplied residual has no positive pixel.
+- Reproduce only the failing **background-source-protection stage**, with
+  imports pinned to the immutable v14 checkout and the bound failed input.
+  An observer calls the original builder unchanged, records the failing
+  predicate values and rethrows. The failing scale-order-3 feature has
+  **29 pixels**, all finite: raw residual range
+  **-0.0006159148225751836 to -0.00007180354339847379 Jy/beam**, filtered
+  significance range **3.1095684254867875 to 7.212941460059057 sigma**.
+  It is neither non-finite FFT leakage nor a non-positive filtered SNR.
+  The mismatch between raw and filtered response domains is the direct
+  cause; do not weaken the generic guard to make this run continue.
+- Retain the stage-only probe in
+  `/private/tmp/hebog-v14-failure-probe.7nUuOt`: `diagnose.py` SHA-256
+  `ea362d128e25bd3e362fe9be67cee7b39e066ff22e49a361e035a71653179506`,
+  `diagnostic.log` SHA-256
+  `b473b6b2eb008ccc07e686c04d66024d8d8ff1d4ed8a1a9eb9dc0da24f4e6843`.
+  Diagnostic session 3344 exits zero after catching the reproduced expected
+  exception. It performs **zero full finder executions and zero evaluations**;
+  temporary background intermediates are context-managed and no catalogue or
+  scientific score is published. Three direct-helper domain probes also
+  raise with raw residual -1/0 and retain nine pixels with raw residual +1
+  at identical adjacent-scale significance. These are mechanism probes, not
+  physical truth validation or evidence that a repair passes.
+- Add approval-gated **F4** to the plan: test first, carry aligned physical
+  filtered responses through all callers, preserve the finite-positive guard
+  and all existing thresholds, ownership and campaign gates. Do not clip
+  raw residuals, substitute dimensionless SNR for flux, suppress the exception
+  or relabel old captures. Require independent negative-depression/noise,
+  compact/extended, invalid-pixel, persistence and measurement controls;
+  non-regression and Serial/existing-Dask checks; then a new candidate freeze,
+  exact retry identity, namespace and resource/reuse admission.
+- **No production code or frozen scientific policy is changed. No retry is
+  launched.** The current process/evaluator-bug authority does not by itself
+  authorize this shared scientific-helper repair. Use the OpenAI Docs skill
+  and native automation control to pause `monitor-current-replay`, confirmed
+  **PAUSED**. Keep exact evidence identifiers in local records. The next step
+  is user approval of F4, not an unchanged retry of the known-failing input.
+- All **35 existing multiscale-association unit tests pass** in 1.01 seconds,
+  including the finite-positive response guard cases. This reveals the test
+  gap: those cases do not exercise the helper's raw/filtered input mismatch.
+  Review the documentation-only diff against `CODE_REVIEW.md`; no actionable
+  finding. No production behavior changes, so no new coverage, equivalence,
+  performance or Serial/Dask result is claimed. Run strict docs and clean
+  all-file hooks before the local status commit; do not push.

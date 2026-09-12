@@ -2820,6 +2820,47 @@ Faint grouping and broader science remain deferred unless serious findings
 require a new decision. Phase 6 owns full Rapthor-consumer acceptance,
 runtime and scalability work; this run cannot authorize cutover or release.
 
+## 2026-09-12 — V14 capture failure: filtered-response domain mismatch
+
+The replay **exits 1 during capture**, at 08:11:50 UTC, with
+`ValueError: significant scale features require finite positive response`.
+This is an implementation failure, **not a scientific verdict**. Managed
+session `81018` and both workers have exited. No atomic decision exists, and
+neither the Dask-comparison stage nor the evaluation stage starts. Progress
+acknowledges 164 completed captures; 169 completed pair manifests are present
+after five additional tasks finish during shutdown. These counts are an
+inventory, not exhaustive validation for reuse under a different candidate.
+
+The incomplete input is compact-blend seed `2026870165`. A background-only
+diagnostic using the unchanged immutable v14 code reproduces the exception:
+a 29-pixel feature at scale order 3 has finite filtered significance of
+3.1096–7.2129 sigma, while every unfiltered residual value in that feature
+is negative. `persistent_seeded_scale_support` pairs filtered significance
+with the unfiltered residual when constructing a scale detection. The generic
+finite-positive scale-response guard rejects that mismatched input correctly.
+This is not the earlier non-finite FFT-leakage defect, nor an evaluator or
+disk-space failure.
+
+The diagnostic only observes and rethrows the original guard; it performs
+zero complete finder runs and zero evaluations, and publishes no catalogue.
+Failure record SHA-256 is
+`24c0720a36b33fa3953f86c77b3a0f96a5b4f1bc50a85520a636ac49308d5f86`;
+diagnostic log SHA-256 is
+`b473b6b2eb008ccc07e686c04d66024d8d8ff1d4ed8a1a9eb9dc0da24f4e6843`.
+Exact retained locations and script identity are in `LOG.md`. The original
+candidate, execution identities and completed artifacts remain untouched.
+
+The recommended bounded repair is to carry the actual per-scale filtered
+responses through background protection, measurement support and residual
+grouping. Keep response units, the generic validation guard, thresholds and
+all campaign gates unchanged. Add independent regression and non-regression
+fixtures, check Serial/existing-Dask agreement and freeze a corrected candidate
+before another exact execution. This shared scientific-code change requires
+approval beyond the current evaluator/process-only retry authority. No repair
+or retry has been made; hourly monitor `monitor-current-replay` is paused.
+Phase 5's final campaign remains incomplete, with no new evidence for or
+against scientific parity.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:
