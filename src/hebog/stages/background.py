@@ -593,7 +593,6 @@ def _estimate_source_protected_region_statistics(
     )
     if multiscale_protection is not None and bank is not None:
         policy = multiscale_protection
-        residual = np.asarray(image_window.values - coarse.background)
         responses = evaluate_scale_filter_bank(
             prepare_scale_filter_inputs(
                 image_window.values,
@@ -609,7 +608,7 @@ def _estimate_source_protected_region_statistics(
                 responses.responses,
                 minimum_support_fraction=policy.minimum_support_fraction,
             ),
-            residual,
+            tuple(item.response_jy_per_beam for item in responses.responses),
             scientifically_valid,
             detection_sigma=policy.source_finder.detection_threshold_sigma,
             island_sigma=policy.source_finder.island_threshold_sigma,

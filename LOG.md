@@ -20115,3 +20115,58 @@ scientific pass from fixture validation.
   finding. No production behavior changes, so no new coverage, equivalence,
   performance or Serial/Dask result is claimed. Run strict docs and clean
   all-file hooks before the local status commit; do not push.
+
+### 2026-09-12 — F4 filtered-response repair and corrected candidate
+
+- The user explicitly approves F4 implementation, non-regression and
+  Serial/Dask checks, a corrected candidate freeze and retry. Change the
+  shared persistence helper to pair each calibrated significance plane with
+  its actual physical filtered response in Jy/beam. Update background
+  protection, measurement support and residual grouping. Reuse existing
+  filter results, with no additional convolution pass. Preserve the generic
+  finite-positive guard, 5/3-sigma thresholds, seven-pixel minimum, validity,
+  adjacent-scale rule, protection margin and original-pixel flux ownership.
+- Test first: six injected measurement-caller cases give **four expected
+  failures and two passes** before implementation. Non-positive raw residual
+  cases fail at the exact original response guard; the positive controls
+  pass. After repair, all pass. Add physical broad-source/negative-hole,
+  spatial-RMS, invalid-pixel and unit-rescaling controls; empty, single-scale,
+  unseeded and tiny-feature gates; strict response pairing and invalid
+  filtered-response rejection. Background protection also checks validity,
+  its unchanged expansion margin, reversed execution and retries.
+- Focused unit/profile validation passes **131 tests** in 10.13 seconds.
+  The new two-worker, caller-owned Dask support check and existing background
+  and public edge/blend integration checks pass. An initial combined run
+  passes 118 tests but exposes an incorrect protection-fixture expectation:
+  it omitted one scientifically invalid pixel. Correct the independently
+  calculated expected mask to honor validity; do not change the production
+  margin or validity policy. Preserve the existing Astropy WCS warnings.
+  The frozen equivalence lane passes **27 tests** in 41.65 seconds.
+- Recheck only background estimation on the bound failed input
+  `phase5-external-post-failure-compact-blend-512-seed-2026870165` with current
+  source hash `db05cba99a80c65b39a5816918d00201d35684eae7cf2e080bec61e9a90def96`.
+  Serial and caller-owned two-worker Dask background/RMS arrays agree
+  exactly; valid-input pixels have finite background and positive finite RMS.
+  The 280 invalid input pixels remain invalid. The initial verification
+  assertion incorrectly included those invalid pixels and is corrected;
+  it did not publish a success record. Final verification record
+  `benchmark-results/phase-5/f4-response-domain-repair/background-verification.json`
+  has SHA-256
+  `4fafb7ec9aefd1724a0a8fe90a2cd204e24dc04b28d403b47b5bf713b75f51e5`.
+  This is **zero full finder executions and zero evaluations**, not rescoring
+  or evidence of scientific parity. Preserve all v14 failed-run artifacts.
+- Use composition **v15**, including the current public provenance literal.
+  An initial coverage invocation catches the still-v14 literal before it is
+  corrected; that aborted invocation is not a passing coverage result.
+  Standard repository checks pass Ruff, Pyright and **3,688 quick tests**
+  (two existing expected failures) in 279.57 seconds; strict docs pass.
+  Full portable coverage passes **3,992 tests**, with two existing expected
+  failures, in 1,002.35 seconds. Branch-aware project coverage is
+  **95.29626746979798%**, above the previous 95.29578990117774%; all changed
+  executable lines and instrumented branches are covered. Inspect remaining
+  misses in all five changed production files: none is introduced by F4.
+  Python 3.14 is exercised; no new Python 3.12/3.13, performance or powered
+  parity result is claimed. Review against `CODE_REVIEW.md`: no actionable
+  findings. Final hook tests pass 3,688 cases, but the hook notices an
+  unrelated concurrent `AGENTS.md` edit and exits nonzero. Preserve and read
+  those instructions; repeat final hooks cleanly before committing.

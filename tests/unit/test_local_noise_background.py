@@ -12,7 +12,12 @@ import numpy as np
 import pytest
 
 from hebog.algorithms.background import PreparedRmsGrid
-from hebog.algorithms.multiscale import BeamShapePixels
+from hebog.algorithms.multiscale import (
+    BeamShapePixels,
+    PreparedScaleInputs,
+    ScaleFilterBankResult,
+    ScaleFilterResponse,
+)
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.config import (
     AdaptiveRmsConfig,
@@ -24,6 +29,7 @@ from hebog.config import (
 from hebog.data_models import ImageBounds
 from hebog.executors import SerialExecutor
 from hebog.io.base import ImageWindow
+from hebog.stages import background as background_stage
 from hebog.stages.background import (
     MultiscaleSourceProtection,
     _connected_source_protection,
@@ -88,6 +94,81 @@ def _policy() -> MultiscaleSourceProtection:
     return MultiscaleSourceProtection(
         BeamShapePixels(2, 2, 0), SourceFinderConfig(5, 3, 7), 0.5
     )
+
+
+def test_coarse_protection_uses_filtered_not_raw_response(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The background caller preserves a supplied filtered feature domain."""
+    yy, xx = np.mgrid[:80, :96]
+    noise = np.where((yy + xx) % 2, -1.0, 1.0)
+    config = _config()
+    coarse = estimate_background_rms_grids(
+        _Source(noise),
+        noise.shape,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=(),
+    )
+    image = noise.copy()
+    image[35:45, 43:53] = -1
+    valid_planes: list[np.ndarray] = []
+
+    def filtered(
+        inputs: PreparedScaleInputs, *_args: object, **_kwargs: object
+    ) -> ScaleFilterBankResult:
+        shape = inputs.residual_jy_per_beam.shape
+        valid_planes.append(inputs.scientifically_valid.copy())
+        response = np.zeros(shape)
+        cy, cx = shape[0] // 2, shape[1] // 2
+        response[cy - 2 : cy + 3, cx - 2 : cx + 3] = 0.012
+        scales = tuple(
+            ScaleFilterResponse(
+                order,
+                float(2 ** (order - 1)),
+                response * order,
+                np.full(shape, 0.002 * order),
+                np.ones(shape),
+                inputs.scientifically_valid,
+            )
+            for order in (1, 2, 3)
+        )
+        return ScaleFilterBankResult(
+            "beam-aware-matched-filter", scales, 0, 0, 0
+        )
+
+    monkeypatch.setattr(
+        background_stage, "evaluate_scale_filter_bank", filtered
+    )
+    results = tuple(
+        refine_background_rms_grids(
+            _Source(image),
+            coarse,
+            config,
+            executor,
+            bright_candidate_positions_yx=(),
+            source_protection_island_threshold_sigma=3,
+            multiscale_protection=_policy(),
+            protect_coarse_source_support=True,
+        )
+        for executor in (SerialExecutor(), _ReverseRetryExecutor())
+    )
+    # Existing protection expands the 5x5 feature by half the 11-pixel
+    # adaptive estimator window; the response repair must keep that guard.
+    valid = valid_planes[0]
+    feature = (np.abs(yy - 40) <= 2) & (np.abs(xx - 48) <= 2) & valid
+    coordinates = np.argwhere(feature)
+    squared_distance = (yy[None] - coordinates[:, 0, None, None]) ** 2 + (
+        xx[None] - coordinates[:, 1, None, None]
+    ) ** 2
+    expected_count = np.count_nonzero(
+        np.any(squared_distance <= 25, axis=0) & valid
+    )
+    for actual_valid in valid_planes:
+        np.testing.assert_array_equal(actual_valid, valid)
+    assert results[0].coarse_protected_pixel_count == expected_count
+    assert results[1].coarse_protected_pixel_count == expected_count
+    np.testing.assert_array_equal(results[0].coarse.rms, results[1].coarse.rms)
 
 
 @pytest.mark.parametrize(

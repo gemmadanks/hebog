@@ -19,6 +19,8 @@ from hebog.algorithms import component_measurement as measurement
 from hebog.algorithms.component_measurement import measure_component_models
 from hebog.algorithms.multiscale import (
     BeamShapePixels,
+    ScaleFilterBankResult,
+    ScaleFilterResponse,
     build_residual_atrous_plan,
 )
 from hebog.config import CompactGaussianFitConfig, CompactMomentConfig
@@ -28,6 +30,73 @@ from hebog.data_models.fitting import (
 )
 from hebog.data_models.images import RestoringBeam
 from hebog.data_models.partitioning import ImageBounds
+
+
+@pytest.mark.parametrize("residual_value", (-1.0, 0.0, 1.0))
+@pytest.mark.parametrize("residual_grouping", (False, True))
+def test_persistent_support_uses_filtered_response_domain(
+    monkeypatch: pytest.MonkeyPatch,
+    residual_value: float,
+    residual_grouping: bool,
+) -> None:
+    """Filtered features need not contain positive unfiltered residuals.
+
+    Inject the bounded filter result to isolate both measurement callers'
+    response/SNR pairing; this is not a physical source-detection fixture.
+    """
+    residual = np.full((13, 15), residual_value)
+    valid = np.ones(residual.shape, dtype=np.bool_)
+    feature = np.zeros_like(residual)
+    feature[4:9, 5:10] = 6.0
+    responses = tuple(
+        ScaleFilterResponse(
+            order,
+            float(2 ** (order - 1)),
+            feature * order,
+            np.full_like(residual, order),
+            np.ones_like(residual),
+            valid,
+        )
+        for order in (1, 2, 3)
+    )
+    bank_result = ScaleFilterBankResult(
+        "beam-aware-matched-filter", responses, 0, 0, 0
+    )
+
+    def filtered(*_args: object, **_kwargs: object) -> ScaleFilterBankResult:
+        return bank_result
+
+    monkeypatch.setattr(measurement, "evaluate_scale_filter_bank", filtered)
+    beam = BeamShapePixels(2.0, 1.5, 20.0)
+    plan = build_residual_atrous_plan(beam, noise_correlation=beam)
+    if residual_grouping:
+        labels = np.zeros(residual.shape, dtype=np.int32)
+        labels[5, 6] = 1
+        labels[7, 8] = 2
+        evidence: list[measurement.ComponentGroupingEvidence] = []
+        actual = measurement._extended_residual_groups(
+            residual,
+            np.ones_like(residual),
+            valid,
+            labels,
+            (),
+            (),
+            feature > 0,
+            plan,
+            0.5,
+            5.0,
+            3.0,
+            7,
+            10000,
+            evidence=evidence,
+        )
+        assert actual == (frozenset((1, 2)),)
+        assert evidence[0].reason == "persistent-residual"
+    else:
+        actual = measurement._persistent_measurement_support(
+            residual, np.ones_like(residual), valid, plan, 0.5, 5.0, 3.0, 7
+        )
+        np.testing.assert_array_equal(actual, feature > 0)
 
 
 def _measure(  # noqa: PLR0913

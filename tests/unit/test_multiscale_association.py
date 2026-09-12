@@ -9,13 +9,139 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 
+from hebog.algorithms.multiscale import (
+    BeamShapePixels,
+    build_scale_filter_bank,
+    calibrated_scale_snrs,
+    evaluate_scale_filter_bank,
+    prepare_scale_filter_inputs,
+)
 from hebog.algorithms.multiscale_association import (
     ScaleDetectionPlane,
     associate_adjacent_scale_detections,
     build_scale_detection_plane,
     persistent_adjacent_scale_support,
+    persistent_seeded_scale_support,
 )
 from hebog.data_models.multiscale import ScaleDetection
+
+
+@pytest.mark.parametrize("factor", (1e-12, 1.0, 1e12))
+@pytest.mark.parametrize("invalid_center", (False, True))
+def test_physical_filtered_support_crosses_a_negative_residual_hole(
+    factor: float,
+    invalid_center: bool,
+) -> None:
+    """Gaussian filtering can be positive over a raw negative depression."""
+    yy, xx = np.mgrid[:65, :73]
+    residual = 15 * np.exp(-((yy - 32) ** 2 + (xx - 36) ** 2) / 128)
+    residual[31:34, 35:38] = -1
+    if invalid_center:
+        residual[32, 36] = np.nan
+    valid = np.isfinite(residual)
+    bank = build_scale_filter_bank(
+        BeamShapePixels(4, 3, 20),
+        family="beam-aware-matched-filter",
+        scales=((1, 1.0), (2, 2.0), (3, 4.0)),
+    )
+    result = evaluate_scale_filter_bank(
+        prepare_scale_filter_inputs(
+            residual * factor,
+            valid,
+            np.zeros_like(residual),
+            factor * (1 + xx / 73),
+        ),
+        bank,
+        minimum_support_fraction=0.5,
+    )
+    snrs = calibrated_scale_snrs(
+        result.responses, minimum_support_fraction=0.5
+    )
+    responses = tuple(item.response_jy_per_beam for item in result.responses)
+    assert all(item[31, 35] > 0 for item in responses)
+    selected = persistent_seeded_scale_support(
+        snrs,
+        responses,
+        valid,
+        detection_sigma=5,
+        island_sigma=3,
+        minimum_pixels=7,
+    )
+    assert selected[31, 35] and not selected[0, 0]
+    assert bool(selected[32, 36]) is not invalid_center
+    assert not selected.flags.writeable
+    # Previously valid raw-response features produce exactly the same mask.
+    planes = tuple(
+        build_scale_detection_plane(
+            valid & (snr >= 3),
+            residual,
+            snr,
+            valid,
+            scale_order=order,
+            nominal_scale_beam_fwhm=2 ** (order - 1),
+        )
+        for order, snr in enumerate(snrs, 1)
+    )
+    np.testing.assert_array_equal(
+        selected, persistent_adjacent_scale_support(planes)
+    )
+
+
+@pytest.mark.parametrize(
+    "case", ("empty", "single", "unseeded", "tiny", "invalid", "adjacent")
+)
+def test_seeded_support_keeps_existing_admission_gates(case: str) -> None:
+    snr = np.zeros((13, 15))
+    snr[4:7, 5:8] = 4 if case == "unseeded" else 6
+    if case == "empty":
+        snr[:] = -np.inf
+    elif case == "tiny":
+        snr[4:7, 6:8] = 0
+    valid = np.full(snr.shape, case != "invalid", dtype=np.bool_)
+    snrs = (snr,) if case == "single" else (snr, snr)
+    # Physical responses have different amplitudes, not invented SNR units.
+    responses = tuple(np.where(np.isfinite(snr), snr, 0) * 0.002 for _ in snrs)
+    actual = persistent_seeded_scale_support(
+        snrs,
+        responses,
+        valid,
+        detection_sigma=5,
+        island_sigma=3,
+        minimum_pixels=7,
+    )
+    np.testing.assert_array_equal(actual, (snr > 0) & (case == "adjacent"))
+
+
+@pytest.mark.parametrize("response_count", (0, 2))
+def test_seeded_support_rejects_unpaired_response_planes(
+    response_count: int,
+) -> None:
+    snr = np.full((3, 3), 6.0)
+    with pytest.raises(ValueError, match="zip"):
+        persistent_seeded_scale_support(
+            (snr,),
+            (snr,) * response_count,
+            np.ones_like(snr, dtype=np.bool_),
+            detection_sigma=5,
+            island_sigma=3,
+            minimum_pixels=7,
+        )
+
+
+@pytest.mark.parametrize("response_value", (0.0, -1.0, np.nan, np.inf))
+def test_seeded_support_does_not_suppress_invalid_filtered_features(
+    response_value: float,
+) -> None:
+    snr = np.full((3, 3), 6.0)
+    with pytest.raises(ValueError, match="finite positive response"):
+        persistent_seeded_scale_support(
+            (snr, snr),
+            (np.full_like(snr, response_value),) * 2,
+            np.ones_like(snr, dtype=np.bool_),
+            detection_sigma=5,
+            island_sigma=3,
+            minimum_pixels=7,
+        )
 
 
 @pytest.mark.parametrize(

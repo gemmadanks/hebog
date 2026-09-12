@@ -1,5 +1,7 @@
 """Dask conformance tests for bounded background/RMS stages."""
 
+# pyright: reportPrivateUsage=false
+
 from __future__ import annotations
 
 from dataclasses import replace
@@ -9,8 +11,12 @@ import numpy as np
 import pytest
 from distributed import Client
 
+from hebog.algorithms.component_measurement import (
+    _persistent_measurement_support,
+)
 from hebog.algorithms.multiscale import (
     BeamShapePixels,
+    build_residual_atrous_plan,
     build_scale_filter_bank,
     evaluate_scale_filter_bank,
     prepare_scale_filter_inputs,
@@ -36,6 +42,41 @@ from hebog.stages.background import (
 )
 
 pytestmark = pytest.mark.integration
+
+
+def test_filtered_response_support_is_serial_dask_retry_invariant() -> None:
+    """A negative central depression does not alter executor semantics."""
+    yy, xx = np.mgrid[:65, :73]
+    image = 15 * np.exp(-((yy - 32) ** 2 + (xx - 36) ** 2) / 128)
+    image[31:34, 35:38] = -1
+    image[32, 36] = np.nan
+    beam = BeamShapePixels(4, 3, 20)
+    evaluate = partial(
+        _persistent_measurement_support,
+        rms=1 + xx / 73,
+        valid=np.isfinite(image),
+        plan=build_residual_atrous_plan(beam, noise_correlation=beam),
+        minimum_support_fraction=0.5,
+        detection_sigma=5,
+        island_sigma=3,
+        minimum_pixels=7,
+    )
+    serial = SerialExecutor().map_batches(evaluate, (image, image * 2))
+    assert serial[0][31, 35] and not serial[0][32, 36]
+    with Client(
+        processes=False,
+        n_workers=2,
+        threads_per_worker=1,
+        dashboard_address=None,
+    ) as client:
+        results = DaskExecutor(client).map_batches(
+            evaluate,
+            (image * 2, image, image),
+        )
+    for reference, actual in zip(
+        (serial[1], serial[0], serial[0]), results, strict=True
+    ):
+        np.testing.assert_array_equal(reference, actual)
 
 
 def test_near_noiseless_filter_is_exact_with_existing_dask() -> None:

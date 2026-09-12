@@ -274,3 +274,29 @@ supports excluding source samples and interpolating estimates into masked
 regions, while distinguishing missing coverage. These support reviewing
 source-protected spatial estimation; they do not prescribe a universally
 valid box size, authorize a new policy or justify copying a reference's code.
+
+## F4: filtered-response domain repair
+
+The 2026-09-12 user approval authorizes this bounded repair, non-regression
+and Serial/existing-Dask validation, a new candidate freeze and isolated retry.
+Composition v15 supplies each seeded persistence feature with the physical
+filtered response that produced its calibrated significance. The unfiltered
+residual may be negative within a positive filtered feature and is not a valid
+substitute for that response. Background protection, measurement support and
+residual grouping use the same corrected helper. Reuse existing filtered
+planes; do not add filtering passes or replace physical flux with significance.
+
+The generic finite-positive response guard, 5/3-sigma seed/flood thresholds,
+minimum seven pixels, valid-support fraction, adjacent-scale persistence and
+background protection margin are unchanged. Original pixels still own
+photometry; residual models only inform grouping. Previously successful
+support decisions must remain invariant. New tests cover both measurement
+callers and background protection, invalid responses, strict scale pairing,
+empty/unseeded/single-scale/tiny features, negative depressions, spatial RMS,
+invalid central pixels, physical unit rescaling and executor/retry order.
+
+V14's failed capture and historical results remain immutable. V15 is a new
+development-unqualified composition, not inherited scientific parity. The
+public provenance schema accepts the current composition only; old diagnostic
+artifacts do not become current products. A separately bound candidate review,
+resource admission and exhaustive immutable preflight must precede the retry.

@@ -479,9 +479,11 @@ Known incorrect supported outputs remain release blockers, and the PyBDSF
 fallback remains. This decision supersedes the earlier all-science-first
 phase sequencing, not its immutable evidence or scientific requirements.
 
-**Next task (approval required):** repair the response-domain mismatch in
-shared multiscale source protection, validate it and freeze a new candidate
-before a corrected replay. The isolated v14 replay exits 1 during capture
+**Next task (2026-09-12 user approval):** complete F4 non-regression and
+Serial/existing-Dask validation, freeze composition v15 and launch a separately
+admitted corrected replay. F4 now pairs each filtered significance plane with
+its actual physical filtered response in all three callers. The isolated v14
+replay exits 1 during capture
 at 08:11:50 UTC on 2026-09-12; no scientific terminal exists. The diagnosis
 finds finite positive filtered significance paired with negative unfiltered
 residuals in a scale-response guard. Preserve the guard and correct its input,
@@ -492,8 +494,9 @@ Both independent and launch-time exhaustive preflights pass, but do not
 exercise this numerical edge. Session `81018` has exited; 164 acknowledged
 captures and 169 completed pair manifests are preserved, including five
 completed during shutdown. No Dask comparison or evaluation stage starts.
-Hourly monitor `monitor-current-replay` is paused pending repair approval;
-the existing process-bug retry authority does not change scientific code.
+Hourly monitor `monitor-current-replay` remains paused until healthy retry
+startup. The user explicitly approves F4 and the corrected retry; subsequent
+process-bug retry authority does not authorize additional scientific tuning.
 F2's broader association work remains deferred. Do not silently
 reduce the population/reserve. A subsequent scientific repair or fresh
 qualification requires a separate prospective decision, not an automatic
@@ -1291,8 +1294,8 @@ All of this is development evidence, not replacement parity or qualification.
     cases using runner `c9b0fec5...`; this checks identity and case metadata,
     not refreshed results or exhaustive replay admission.
   - [ ] **R6-R6 — Final cumulative campaign and development closeout.**
-    **Next task:** obtain approval for F4's bounded source-protection repair,
-    validate and separately freeze the corrected replay, followed by terminal
+    **Next task:** validate the approved F4 source-protection repair and
+    separately freeze the corrected replay, followed by terminal
     severity review and development closeout. F1 and F3
     are complete; general Gaussian model adequacy remains unqualified.
     The completed
@@ -1408,8 +1411,9 @@ All of this is development evidence, not replacement parity or qualification.
         independent whole-model comparisons include central invalid pixels
         and compact-on-diffuse emission. All 263 focused tests pass. Retain
         detailed rejected-edge diagnostics and separately selected edge
-        positions/covariance. Current composition is v14; F3 must validate
-        and freeze it before launch. This closes the bounded numerical and
+        positions/covariance. F3 validates and freezes composition v14;
+        F4 subsequently supersedes that identity. This closes the bounded
+        numerical and
         existing physical-admission review, not all astrophysical model
         adequacy. No new amplitude/footprint/residual threshold is adopted.
         The current parent residual test controls grouping, not component
@@ -1468,14 +1472,20 @@ All of this is development evidence, not replacement parity or qualification.
       older cleanup measurements below are historical. No cleanup or
       reduction of the reserve is authorized.
 
-    - [ ] **F4 — Approval-gated: align persistent-support response domains.**
+    - [ ] **F4 — Approved: align persistent-support response domains.**
       The v14 capture failure exposes a shared helper that validates
       unfiltered residual values as though they were the response producing
       each filtered significance plane. The failing 29-pixel scale-3 feature
       has finite 3.11–7.21 sigma significance, but all raw residuals are
       negative. This is an implementation exception, not a scientific verdict.
-      Before implementation, obtain approval for this bounded scientific-code
-      repair; evaluator/process-only retry authority is insufficient.
+      The user explicitly approves implementation, non-regression and
+      Serial/Dask checks, a corrected candidate freeze and retry on 2026-09-12.
+      This does not authorize further scientific tuning or alter closed gates.
+      Expected change: the failed capture completes with correctly paired
+      physical responses, while previously valid support decisions and
+      Serial/Dask results remain identical. Stop for any unexplained change
+      in those controls or another invalid supported output; do not relax a
+      scientific gate to force the retry through.
 
       - Add a failing synthetic regression with positive filtered response
         and locally non-positive raw residual. Carry the correctly aligned

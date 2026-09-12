@@ -32,7 +32,7 @@ _MINIMUM_PERSISTENT_SCALE_COUNT = 2
 
 def persistent_seeded_scale_support(  # noqa: PLR0913
     scale_snrs: tuple[npt.NDArray[np.float64], ...],
-    residual: npt.NDArray[np.float64],
+    scale_responses: tuple[npt.NDArray[np.float64], ...],
     valid: npt.NDArray[np.bool_],
     *,
     detection_sigma: float,
@@ -41,12 +41,15 @@ def persistent_seeded_scale_support(  # noqa: PLR0913
 ) -> npt.NDArray[np.bool_]:
     """Apply one seeded adjacent-scale rule to non-publication support.
 
-    Callers provide noise-calibrated, beam-aware responses. Source-protected
+    Callers pair each noise-calibrated SNR with the same beam-aware filtered
+    response in Jy/beam, not the unfiltered residual. Source-protected
     statistics and source-owned photometry can reuse this support without
     admitting new catalogue detections or changing a published mask.
     """
     planes: list[ScaleDetectionPlane] = []
-    for order, snr in enumerate(scale_snrs, start=1):
+    for order, (snr, response) in enumerate(
+        zip(scale_snrs, scale_responses, strict=True), start=1
+    ):
         labels, count = cast(
             tuple[npt.NDArray[np.int32], int],
             connected_component_labels(
@@ -61,7 +64,7 @@ def persistent_seeded_scale_support(  # noqa: PLR0913
         planes.append(
             build_scale_detection_plane(
                 accepted[labels],
-                residual,
+                response,
                 snr,
                 valid,
                 scale_order=order,

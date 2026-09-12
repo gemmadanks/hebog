@@ -35,6 +35,7 @@ from hebog.algorithms.measurement import measure_compact_moments
 from hebog.algorithms.multiscale import (
     ResidualAtrousPlan,
     ScaleFilterBank,
+    ScaleFilterResponse,
     build_scale_filter_bank,
     calibrated_scale_snrs,
     evaluate_residual_atrous,
@@ -110,9 +111,14 @@ def _persistent_measurement_support(  # noqa: PLR0913, PLR0917
     detected source may own this support only through connected, persistent
     original-image emission. Fitting residuals never supply positive flux.
     """
+    responses = _matched_responses(
+        residual, rms, valid, plan, minimum_support_fraction
+    )
     return persistent_seeded_scale_support(
-        _matched_snrs(residual, rms, valid, plan, minimum_support_fraction),
-        residual,
+        calibrated_scale_snrs(
+            responses, minimum_support_fraction=minimum_support_fraction
+        ),
+        tuple(item.response_jy_per_beam for item in responses),
         valid,
         detection_sigma=detection_sigma,
         island_sigma=island_sigma,
@@ -312,6 +318,22 @@ def _matched_snrs(
     minimum_support_fraction: float,
 ) -> tuple[np.ndarray, ...]:
     """Use the existing beam-aware filter bank and correlated-noise model."""
+    return calibrated_scale_snrs(
+        _matched_responses(
+            residual, rms, valid, plan, minimum_support_fraction
+        ),
+        minimum_support_fraction=minimum_support_fraction,
+    )
+
+
+def _matched_responses(
+    residual: np.ndarray,
+    rms: np.ndarray,
+    valid: np.ndarray,
+    plan: ResidualAtrousPlan,
+    minimum_support_fraction: float,
+) -> tuple[ScaleFilterResponse, ...]:
+    """Retain physical responses with the noise that calibrates their SNR."""
     prepared = prepare_scale_filter_inputs(
         residual, valid, np.zeros_like(residual), rms
     )
@@ -319,9 +341,7 @@ def _matched_snrs(
     result = evaluate_scale_filter_bank(
         prepared, bank, minimum_support_fraction=minimum_support_fraction
     )
-    return calibrated_scale_snrs(
-        result.responses, minimum_support_fraction=minimum_support_fraction
-    )
+    return result.responses
 
 
 def _adequacy_filter_bank(plan: ResidualAtrousPlan) -> ScaleFilterBank:
@@ -768,16 +788,19 @@ def _extended_residual_groups(  # noqa: PLR0913, PLR0917
             bounds,
         )
         remainder = residual[window] - model
-        snrs = _matched_snrs(
+        responses = _matched_responses(
             remainder,
             rms[window],
             valid[window],
             plan,
             minimum_support_fraction,
         )
+        snrs = calibrated_scale_snrs(
+            responses, minimum_support_fraction=minimum_support_fraction
+        )
         persistent = persistent_seeded_scale_support(
             snrs,
-            remainder,
+            tuple(item.response_jy_per_beam for item in responses),
             valid[window],
             detection_sigma=detection_sigma,
             island_sigma=island_sigma,

@@ -180,7 +180,7 @@ A failed fit does not discard its detection
 or abort an unrelated valid source. Missing uncertainty remains unavailable,
 not zero. The current catalogue JSON, catalogue FITS and public diagnostics
 schemas are versions 3, 4 and 8 respectively; stale versions fail clearly.
-Composition `phase-5-evidence-bound-public-catalogue-v14` remains
+Composition `phase-5-evidence-bound-public-catalogue-v15` remains
 development-unqualified pending new candidate-bound evidence. Historical
 campaign results do not qualify these changed measurements.
 
