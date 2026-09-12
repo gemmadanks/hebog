@@ -47,7 +47,7 @@ _PROTOCOL = runpy.run_path(
 _PUBLIC_IDENTITY = (
     _ROOT
     / "config/contracts"
-    / "phase-5-gaussian-validity-repair-identity-review.json"
+    / "phase-5-filtered-response-domain-repair-identity-review.json"
 )
 _PUBLIC_CONFIG = SourceFinderConfig(5.0, 3.0, 7, profile="continuum")
 

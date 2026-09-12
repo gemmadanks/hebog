@@ -1,0 +1,105 @@
+{
+  "algorithm_candidate": {
+    "configuration_sha256": "5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4",
+    "revision": "73ab5af09fde1ca6b4e6032a870fc6e248ddfdbd",
+    "source_tree_sha256": "db05cba99a80c65b39a5816918d00201d35684eae7cf2e080bec61e9a90def96"
+  },
+  "authorizations": {
+    "candidate_execution": false,
+    "cutover": false,
+    "evaluation": false,
+    "pybdsf_execution": false,
+    "qualification": false,
+    "release": false,
+    "replay": false,
+    "viewed_data_rescoring": false
+  },
+  "closed_r6_evidence": {
+    "candidate_revision": "db8936b512370a1491f36845592fe3e8a24107ad",
+    "evidence_transfers": false,
+    "status": "scientific-failure",
+    "terminal_sha256": "7146f2e857c9473117c16d29f5bd8d55a2790c66d1c1643cd79b96aa8cc51d72"
+  },
+  "configuration": {
+    "detection_threshold_sigma": 5.0,
+    "island_threshold_sigma": 3.0,
+    "maximum_island_pixels": null,
+    "minimum_island_pixels": 7,
+    "profile": "continuum"
+  },
+  "date": "2026-09-12",
+  "execution_identity": null,
+  "finder_execution_started": false,
+  "frozen_documents": {
+    "gaussian_validity_contract": {
+      "path": "docs/reference/compact-fitting.md",
+      "sha256": "4cc07c3a689a0cc2af4ac96eb1bf059a050e07085bbf967a953e8f853e8280f6"
+    },
+    "public_schemas": {
+      "path": "docs/reference/internal-schemas.md",
+      "sha256": "d2997ba6122f9b83a8267c41ddec51e46fe105e3a43cc482d8a9b52c7fa78bdf"
+    },
+    "public_tutorial": {
+      "path": "docs/tutorials/find-sources.md",
+      "sha256": "1d2cb2da8ff780ad1a8c47afce294226c2e7691c2dca5623ce9cb2e47f71d802"
+    },
+    "repair_contract": {
+      "path": "docs/reference/phase-5-public-catalogue-repair-contract.md",
+      "sha256": "46035684a4e07f71da683dc0f39a999431f15198cc533192168caf19ed21e51d"
+    }
+  },
+  "previous_identity_review_sha256": "1b9b2f38d6eeb154ab33c1c321521266c7e712eb9e36eeb1ebfe85cbdfd27591",
+  "previous_process_failure": {
+    "candidate_revision": "cf6d9da942423d1e112f9ba61a989506db531301",
+    "evidence_transfers": false,
+    "failure_sha256": "24c0720a36b33fa3953f86c77b3a0f96a5b4f1bc50a85520a636ac49308d5f86",
+    "scientific_verdict": null
+  },
+  "public_diagnostics_schema_version": 8,
+  "qualification_status": "development-unqualified",
+  "repair_scope": {
+    "added_convolution_passes": 0,
+    "additional_scientific_tuning_authorized": false,
+    "approval": "2026-09-12-user-explicitly-approves-F4-non-regression-Serial-Dask-freeze-and-retry",
+    "callers": [
+      "background-source-protection",
+      "persistent-measurement-support",
+      "extended-residual-grouping"
+    ],
+    "closed_science_rescored": false,
+    "detection_threshold_changed": false,
+    "diagnosis": "filtered-significance-paired-with-unfiltered-residual-in-shared-persistence-helper",
+    "failed_v14_artifacts_preserved": true,
+    "generic_finite_positive_guard_preserved": true,
+    "ownership_and_original_pixel_photometry_changed": false,
+    "response_policy": "each-calibrated-SNR-is-paired-with-its-actual-physical-filtered-response-in-Jy-per-beam",
+    "validation_population": "independent-development-fixtures-frozen-equivalence-and-background-only-failed-input-control"
+  },
+  "schema_version": 1,
+  "scientific_composition": "phase-5-evidence-bound-public-catalogue-v15",
+  "scientific_composition_sha256": "4163caf702ad0f16c1dfa28fe23dc5f19bbb008df97f7742ec733c931a7358e6",
+  "status": "frozen-non-executable",
+  "validation": {
+    "campaign_parity_qualified": false,
+    "changed_package_executable_lines_and_instrumented_branches_covered": true,
+    "code_review": "no-actionable-findings",
+    "docs_build": "passed",
+    "equivalence_tests_passed": 27,
+    "failed_input_background_verification_evaluations": 0,
+    "failed_input_background_verification_full_finder_executions": 0,
+    "failed_input_background_verification_sha256": "4fafb7ec9aefd1724a0a8fe90a2cd204e24dc04b28d403b47b5bf713b75f51e5",
+    "focused_tests_passed": 131,
+    "portable_branch_aware_coverage_percent": 95.29626746979798,
+    "portable_expected_failures": 2,
+    "portable_tests_passed": 3992,
+    "pre_commit": "passed-clean",
+    "prior_portable_branch_aware_coverage_percent": 95.29578990117774,
+    "production_scale_runtime_qualified": false,
+    "python_versions_run": [
+      "3.14"
+    ],
+    "serial_existing_dask_checks": "passed-exact-arrays-and-capture-evaluation-contracts",
+    "standard_check_tests_passed": 3688,
+    "viewed_notebook_rerun": false
+  }
+}

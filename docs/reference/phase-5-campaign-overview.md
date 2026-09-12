@@ -11,16 +11,14 @@ across decisions, or replace a failed result with a later interpretation.
 
 ## Progress at a glance
 
-**Current direction — 2026-09-11:** implement and validate the approved bounded
-Gaussian-validity repair, freeze its new identity, then run the final cumulative
-campaign and close Phase 5 development unless the severity review identifies serious
-issues. Other improvements move behind runtime/scalability work. This is not
-a parity assertion, scientific-readiness pass or release approval. See the
-[decision and severity policy](phase-5-v13-followup-review.md#later-decision-final-campaign-then-development-closeout).
-The campaign is not yet launched; v13 preparation is held and cannot authorize
-the repaired candidate. Non-regression/Serial-Dask validation, a new freeze,
-small paired confirmation, resource and exact execution admission remain
-required. Historical verdicts below do not change.
+For the **current candidate, execution status and authorized next action**,
+see the [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md#62-phase-5-decisions-and-latest-evidence)
+and the latest entry in `LOG.md`. The 2026-09-12 F4 repair supersedes v14's
+process-failed candidate; historical scientific verdicts below do not change.
+Run the final cumulative campaign and apply the
+[agreed severity policy](phase-5-v13-followup-review.md#later-decision-final-campaign-then-development-closeout)
+to development closeout. Development closure is not a scientific-readiness
+pass, a PyBDSF-parity assertion, release or default cutover.
 
 | Evidence stage | Purpose | Outcome | What it established |
 | --- | --- | --- | --- |
@@ -2860,6 +2858,37 @@ approval beyond the current evaluator/process-only retry authority. No repair
 or retry has been made; hourly monitor `monitor-current-replay` is paused.
 Phase 5's final campaign remains incomplete, with no new evidence for or
 against scientific parity.
+
+## 2026-09-12 — F4 repair and v15 pre-launch confirmation
+
+The user subsequently approves F4. The shared support helper now receives
+the physical filtered response that produced each significance plane, in
+all three callers. It retains the validation guard, units, scientific
+thresholds and campaign gates. No convolution pass is added. Candidate v15
+is frozen at `73ab5af...`; exact source, review and configuration bindings
+are recorded in `LOG.md`.
+
+Independent regression fixtures, non-regression and caller-owned Dask
+checks pass. Full portable validation passes 3,992 tests, with branch-aware
+coverage 95.2963%; the 27-test frozen equivalence lane also passes. A separate
+full capture of the exact v14-failing input completes without exception.
+These checks establish the bounded repair, not scientific parity.
+
+The 24-input result-neutral regression screen completes in **286.79 seconds**
+with 24 captures/evaluations and two exactly matching Serial/Dask comparisons,
+reusing 80 comparator records with no external finder execution. All 1,187
+scientific point rows, per-geometry values and per-input diagnostics are
+identical to the earlier screen: 1,138 point estimates lie within margin and
+the same 49 lie beyond it (37 compact, 12 Continuum). The previously reviewed
+warnings remain visible; no confidence intervals or powered pass are claimed.
+The source changes have not introduced a new observed screen regression.
+
+Storage confirmation retains a 70.02-GiB reserve, which is currently met.
+Proceed to exact immutable admission and the authorized isolated two-worker
+cumulative retry, then restore hourly monitoring after healthy startup.
+Preserve all v14 failure artifacts. The current execution state belongs in
+the implementation plan and `LOG.md`; no cumulative v15 verdict exists at
+this preparation snapshot.
 
 ## Required format for future snapshots
 

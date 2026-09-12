@@ -20170,3 +20170,82 @@ scientific pass from fixture validation.
   findings. Final hook tests pass 3,688 cases, but the hook notices an
   unrelated concurrent `AGENTS.md` edit and exits nonzero. Preserve and read
   those instructions; repeat final hooks cleanly before committing.
+
+### 2026-09-12 — V15 freeze and bounded pre-launch confirmation
+
+- Final all-file hooks pass cleanly before local candidate commit
+  `73ab5af09fde1ca6b4e6032a870fc6e248ddfdbd`. Source SHA-256 is
+  `db05cba99a80c65b39a5816918d00201d35684eae7cf2e080bec61e9a90def96`,
+  composition-v15 SHA-256 is
+  `4163caf702ad0f16c1dfa28fe23dc5f19bbb008df97f7742ec733c931a7358e6`,
+  and configuration remains
+  `5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4`.
+  The separate non-executable filtered-response identity review has SHA-256
+  `a27232ff301e8544439f5b22a60afc67983fa99bb39e32542c150de69e01336a`.
+  It grants no execution by itself and transfers no historical verdict.
+- Update the diagnostic notebook selector test first: it fails against the
+  old v14 review. Select the new F4 review and validate **33 identity,
+  notebook-guard and public-runner tests**. A draft JSON serialization had
+  represented frozen `5.0`/`3.0` values as integers; canonical-hash guards
+  reject it before any screen plan or finder is created. Restore the exact
+  unchanged floating-point configuration representation and rerun the checks.
+  The 13-case notebook **no-write preflight passes** with runner SHA-256
+  `bf2db6e334d5654ceef54d62ccf3eb5812351c348594414f4d54451d07eae234`.
+  No notebook refresh is started and no notebook result is claimed.
+- Create a clean detached preparation checkout at
+  `/private/tmp/hebog-f4-preparation-candidate`, plus a Git-blob-verified
+  candidate archive in the new ignored
+  `benchmark-results/phase-5/v15-paired-quick-screen-20260912/checkout`.
+  Leave unrelated instruction, documentation and navigation edits in the
+  main working tree unmodified and uncommitted by this task.
+- Run one separately recorded, complete candidate capture of the exact
+  v14-failing input before the bounded paired screen. It succeeds; there is
+  **one full current-Hebog execution, zero evaluations and zero external
+  executions**. Control terminal SHA-256 is
+  `2fcdbb97e931aff5c41cefec0c960f078cc6d6bfdda943b2c06526f29f73dfa9`,
+  in `v15-paired-quick-screen-20260912/failed-input-control/terminal.json`.
+  Reverify v14's failure record unchanged. This establishes that the original
+  complete capture no longer aborts, not a scientific or parity verdict.
+- Reuse the existing result-neutral 24-input screen, evaluator and point
+  aggregation, not a new campaign framework. Eight selection/summary tests
+  pass. Freeze plan SHA-256
+  `577ebd650b7f2195983fa2b22e93fb43345421fade9575311bc7ef605f03fcc9`:
+  eight compact cases, four from each Continuum family, two workers, two
+  caller-owned Dask comparisons, 80 retained comparator records, no new
+  external execution, 23-GiB headroom and a 30-minute development budget.
+  The no-write preflight verifies all 24 inputs, 80 native references and
+  80 reusable records. This uses previously viewed regression data, not
+  qualification, and makes no matched-performance or powered-parity claim.
+- The bounded screen exits zero in managed session `85187`, completing all
+  24 captures/evaluations and both exact Serial/Dask comparisons in
+  **286.793943 seconds**. Terminal SHA-256 is
+  `75bc05b558d78a2863b8670e4d82f65cfb1639475784938616d60e76f6fb7f47`.
+  Compare all scientific point rows, absolute values, per-geometry results
+  and per-input diagnostics with the v14 screen: **identical**. Retain 1,138
+  within-margin point comparisons and all 49 warnings (37 compact, 12
+  Continuum; 39 incumbent, 3 released PyBDSF, 4 master, 3 Aegean). The prior
+  severity review still applies; no new regression, confidence interval,
+  campaign pass or success probability is inferred.
+- Candidate-bound resource summary SHA-256 is
+  `e948bcd6c8bdc943a54df4c872b2b7b911ae133dad4dc8e8566c4d1ac7e0d48c`.
+  Preserve both earlier storage floors; the weighted sample maximum requires
+  **75,180,192,400 bytes** with reserve, currently available. Historical
+  17.5/20-hour runtime allowances remain estimates, not v15 timing guarantees.
+- Metadata-only preparation binds SHA-256
+  `9bddfbabe37c69363e05afc8d29ccc11dbaed15a156c7406cc0146473b47134b`,
+  preserving 2,400 tasks, 12 Dask selections, 9,600 native references and
+  8,000 reusable comparator records. Verify 334 unchanged original paths
+  and the native-reader definitions; source-only changes match the declared
+  repair set. No execution namespace is created by preparation. The screen
+  summary SHA-256 is
+  `030090e62c269983cd8f61933fceeab90d542c964ecb2def7c728c4f00fe06dc`.
+- Test the v15 preparation binding first: it fails specifically against the
+  old v14 digest, then passes after the constant is updated. Combined launch,
+  admission, inventory, runner, identity and notebook validation passes
+  **187 tests** in 30.99 seconds. Repository checks pass Ruff, Pyright and
+  **3,689 quick tests**, with two existing expected failures, in 286.57
+  seconds; strict docs pass. This freeze changes identity selection only,
+  not scientific code, evaluator control flow or the validation rules covered
+  by the preceding full coverage run. Review the complete owned diff against
+  `CODE_REVIEW.md`: no actionable findings. Run final hooks cleanly before
+  the execution-freeze commit; leave unrelated user edits unstaged.

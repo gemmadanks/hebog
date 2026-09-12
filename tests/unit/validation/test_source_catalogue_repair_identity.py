@@ -29,6 +29,7 @@ _ROOT = Path(__file__).parents[3]
         "phase-5-noiseless-filter-repair-identity-review.json",
         "phase-5-zero-noise-adaptive-repair-identity-review.json",
         "phase-5-gaussian-validity-repair-identity-review.json",
+        "phase-5-filtered-response-domain-repair-identity-review.json",
     ),
 )
 def test_repair_identity_binds_committed_science_without_outputs(

@@ -39,7 +39,7 @@ from hebog.validation.external_runners import (
 )
 
 PREPARATION_SHA256 = (
-    "b2f0b2f611f83b015a98d98c62c8228096815fd5605e59a9b73d8363e52bc139"
+    "9bddfbabe37c69363e05afc8d29ccc11dbaed15a156c7406cc0146473b47134b"
 )
 RETAINED_COUNT = 8000
 THREAD_VARIABLES = (

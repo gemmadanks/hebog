@@ -479,30 +479,27 @@ Known incorrect supported outputs remain release blockers, and the PyBDSF
 fallback remains. This decision supersedes the earlier all-science-first
 phase sequencing, not its immutable evidence or scientific requirements.
 
-**Next task (2026-09-12 user approval):** complete F4 non-regression and
-Serial/existing-Dask validation, freeze composition v15 and launch a separately
-admitted corrected replay. F4 now pairs each filtered significance plane with
-its actual physical filtered response in all three callers. The isolated v14
-replay exits 1 during capture
-at 08:11:50 UTC on 2026-09-12; no scientific terminal exists. The diagnosis
-finds finite positive filtered significance paired with negative unfiltered
-residuals in a scale-response guard. Preserve the guard and correct its input,
-not the scientific thresholds; see F4 below.
-Candidate `cf6d9da...` passes F1/F3 and completes the separate 24-input screen;
-the screen retains the same 49 warnings, not a powered parity verdict.
-Both independent and launch-time exhaustive preflights pass, but do not
-exercise this numerical edge. Session `81018` has exited; 164 acknowledged
-captures and 169 completed pair manifests are preserved, including five
-completed during shutdown. No Dask comparison or evaluation stage starts.
-Hourly monitor `monitor-current-replay` remains paused until healthy retry
-startup. The user explicitly approves F4 and the corrected retry; subsequent
-process-bug retry authority does not authorize additional scientific tuning.
-F2's broader association work remains deferred. Do not silently
-reduce the population/reserve. A subsequent scientific repair or fresh
-qualification requires a separate prospective decision, not an automatic
-loop after every failed comparison. The complete Rapthor-consumer acceptance
-check belongs to Phase 6 integration, not an additional Phase 5 development
-closure prerequisite; release and cutover requirements remain unchanged.
+**Current candidate:** composition v15, `73ab5af...`, with the approved F4
+filtered-response repair and passing non-regression, coverage, equivalence
+and Serial/existing-Dask checks. The
+[frozen review](../config/contracts/phase-5-filtered-response-domain-repair-identity-review.json)
+binds its exact source, configuration and validation; it remains
+development-unqualified. V14 ended in a capture exception, not a scientific
+verdict. Its failed input and completed artifacts are preserved in `LOG.md`.
+
+**Next authorized action:** admit the isolated two-worker v15 replay,
+then resume hourly monitoring after healthy startup. Preserve the full
+population, comparator records, reserve and scientific gates. Stop for an
+unexplained control regression or another invalid supported output. Process
+fix/retry authority does not authorize additional scientific tuning or
+rescoring a completed scientific verdict.
+
+F2's broader association work remains deferred. A further scientific repair
+or fresh qualification requires prospective review. Complete Rapthor-consumer
+acceptance belongs to Phase 6 integration, not an additional Phase 5
+development-closure prerequisite; release and cutover requirements remain
+unchanged. Exact freeze, execution and terminal identities belong in `LOG.md`
+and the bound evidence records, not repeated status summaries.
 
 Scientific readiness is incomplete. The latest source-aligned
 sentinel `ca03240d...` completed normally but failed 18 of 42 cells for
@@ -1294,8 +1291,8 @@ All of this is development evidence, not replacement parity or qualification.
     cases using runner `c9b0fec5...`; this checks identity and case metadata,
     not refreshed results or exhaustive replay admission.
   - [ ] **R6-R6 — Final cumulative campaign and development closeout.**
-    **Next task:** validate the approved F4 source-protection repair and
-    separately freeze the corrected replay, followed by terminal
+    **Next task:** complete v15 admission and launch the approved F4 corrected
+    replay, followed by hourly monitoring, terminal
     severity review and development closeout. F1 and F3
     are complete; general Gaussian model adequacy remains unqualified.
     The completed
@@ -1309,7 +1306,8 @@ All of this is development evidence, not replacement parity or qualification.
     keeping the notebook isolated. After terminal
     evaluation, investigate serious issues; do not automatically reopen
     scientific development for every failed or underpowered comparison.
-    The frozen v14 candidate is `cf6d9da...`; preparation `b2f0b2f6...`
+    **Historical v14 attempt (superseded by F4):** candidate `cf6d9da...`
+    and preparation `b2f0b2f6...`
     preserves all 2,400 tasks and 8,000 reusable comparator records. Resource
     admission on 2026-09-12 records 76.69 GiB free against 70.02 GiB required.
     The detached execution checkout is `d5fe741...`; its plan `f28b19c2...`,
@@ -1509,6 +1507,14 @@ All of this is development evidence, not replacement parity or qualification.
         of the repaired candidate. Reverify reusable comparator identities
         and disk admission. Resume monitoring only after authorized healthy
         startup; do not change the closed scientific results.
+
+      Implementation and non-regression are complete. The full failed-input
+      capture now succeeds. V15's 24-input screen finishes in 4.8 minutes;
+      both Serial/Dask pairs match and all scientific point results and
+      per-input diagnostics equal the earlier screen. The same 49 warning
+      comparisons remain, without a powered verdict or new regression.
+      Candidate-bound storage confirmation retains the conservative reserve.
+      Exact admission and isolated launch remain the final F4 actions.
 
     **Historical notebook/launch holds (superseded by v14 admission above):**
     do not launch the known-failing v12 candidate or its old preparation.
