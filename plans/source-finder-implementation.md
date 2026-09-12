@@ -487,8 +487,12 @@ binds its exact source, configuration and validation; it remains
 development-unqualified. V14 ended in a capture exception, not a scientific
 verdict. Its failed input and completed artifacts are preserved in `LOG.md`.
 
-**Next authorized action:** admit the isolated two-worker v15 replay,
-then resume hourly monitoring after healthy startup. Preserve the full
+**Current execution:** the isolated two-worker v15 replay is running after
+both exhaustive preflights pass; capture startup is healthy and hourly
+monitoring is active. Exact provenance and progress are in `LOG.md`.
+
+**Next authorized action:** monitor this run, verify its atomic terminal,
+investigate failures and apply the agreed severity review. Preserve the full
 population, comparator records, reserve and scientific gates. Stop for an
 unexplained control regression or another invalid supported output. Process
 fix/retry authority does not authorize additional scientific tuning or
@@ -1291,8 +1295,8 @@ All of this is development evidence, not replacement parity or qualification.
     cases using runner `c9b0fec5...`; this checks identity and case metadata,
     not refreshed results or exhaustive replay admission.
   - [ ] **R6-R6 — Final cumulative campaign and development closeout.**
-    **Next task:** complete v15 admission and launch the approved F4 corrected
-    replay, followed by hourly monitoring, terminal
+    **Next task:** monitor the already-running v15 corrected replay, then
+    complete terminal provenance verification,
     severity review and development closeout. F1 and F3
     are complete; general Gaussian model adequacy remains unqualified.
     The completed
@@ -1470,7 +1474,7 @@ All of this is development evidence, not replacement parity or qualification.
       older cleanup measurements below are historical. No cleanup or
       reduction of the reserve is authorized.
 
-    - [ ] **F4 — Approved: align persistent-support response domains.**
+    - [x] **F4 — Align persistent-support response domains and retry.**
       The v14 capture failure exposes a shared helper that validates
       unfiltered residual values as though they were the response producing
       each filtered significance plane. The failing 29-pixel scale-3 feature
@@ -1514,7 +1518,10 @@ All of this is development evidence, not replacement parity or qualification.
       per-input diagnostics equal the earlier screen. The same 49 warning
       comparisons remain, without a powered verdict or new regression.
       Candidate-bound storage confirmation retains the conservative reserve.
-      Exact admission and isolated launch remain the final F4 actions.
+      Both exhaustive admission checks pass, and the isolated two-worker
+      retry starts healthy capture. Hourly monitoring is active. This closes
+      the bounded F4 repair/freeze/retry task, not the cumulative campaign,
+      scientific readiness or Phase 5 development.
 
     **Historical notebook/launch holds (superseded by v14 admission above):**
     do not launch the known-failing v12 candidate or its old preparation.

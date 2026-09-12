@@ -20249,3 +20249,81 @@ scientific pass from fixture validation.
   by the preceding full coverage run. Review the complete owned diff against
   `CODE_REVIEW.md`: no actionable findings. Run final hooks cleanly before
   the execution-freeze commit; leave unrelated user edits unstaged.
+
+### 2026-09-12 — F4/v15 isolated cumulative retry admission
+
+- All-file hooks pass without changing files before local freeze commit
+  `dcd0cc06513af3afcc34206693e02284c3d3ace3`. Create the clean detached
+  execution checkout `/private/tmp/hebog-r6-public-catalogue-v15-replay`
+  at that commit. It imports only its own source; the candidate remains
+  `73ab5af09fde1ca6b4e6032a870fc6e248ddfdbd`, source
+  `db05cba99a80c65b39a5816918d00201d35684eae7cf2e080bec61e9a90def96`,
+  configuration
+  `5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4`
+  and composition-v15
+  `4163caf702ad0f16c1dfa28fe23dc5f19bbb008df97f7742ec733c931a7358e6`.
+- The new metadata-only freeze lives under
+  `benchmark-results/phase-5/v15-replay-admission-20260912/`. Its plan
+  `plan.json` SHA-256 is
+  `c003e278de7c07fabae8e8609c2ee18153c2b918882d1a0a43f4fc10381df930`;
+  exact `identity-review.json` SHA-256 is
+  `1b4e2aa8f0a9154510ae3a23a25a95aace150d62fb19968ba821df66eb6f3a28`;
+  one-use `execution-decision.json` SHA-256 is
+  `f817f5b5bb5699567c7a1a569a57f40303fc1a85730ba019f0ae79e8239fbde4`.
+  Expected execution SHA-256 is
+  `a7d2b9b798ea18eab2de52d8deece91884b3aed03edc5f982771377b34996356`.
+  Resource admission records 79,212,474,368 free bytes against
+  75,180,192,400 required bytes. Freeze performs no finder or evaluation.
+- Scope remains exactly two workers, 2,400 current-Hebog Serial executions,
+  12 caller-owned existing-Dask comparisons, 8,000 reused comparator records
+  and one atomic terminal. No incumbent, PyBDSF or Aegean is executed. Keep
+  all 1,187 comparisons, five safety checks, 50,000 bootstrap resamples and
+  seed 20260810 unchanged. The scratch namespace is
+  `/private/tmp/hebog-r6-public-catalogue-v15-products-73ab5af`; the terminal
+  will be `benchmark-results/phase-5/public-catalogue-v15-cumulative-decision.json`
+  inside the immutable execution checkout. No old launch authority or v14
+  candidate capture is reused. Independent exhaustive no-write preflight
+  exits zero in session `42064`, verifying all 9,600 native references,
+  2,400 inputs and capture pairs, and 8,000 reusable records with
+  `finder_execution_started=false`. Log SHA-256 is
+  `1275ae68b87728c2b521ef7ee6a5ff40678b76099930ab86c710d4846c15485e`.
+- Launch the single authorized retry outside the sandbox at approximately
+  **10:48 UTC**, in managed session **46612**. The command repeats the
+  exhaustive no-write audit before claiming the scratch namespace and
+  starting capture. Never start a duplicate while this command is active.
+  Hourly monitoring remains paused until healthy capture startup is verified.
+- The launch-time audit also passes the entire unchanged census. By
+  **10:57:15 UTC**, capture has completed **12/2,400** inputs. Verified parent
+  PID `57740` and both active capture workers `60367`/`60368`; there is no
+  process-failure record and no atomic terminal. The immutable checkout is
+  still clean. Restored the existing hourly `monitor-current-replay`
+  automation to **ACTIVE** after this healthy startup; do not create a
+  second monitor. It stays quiet for unchanged/non-actionable state.
+- Monitor only managed session `46612`, its process health, scratch
+  `progress.log` completion count, host disk headroom and atomic/failure
+  existence while active. Do not inspect partial science. Preserve any
+  write-once failure; standing retries cover diagnosed process/evaluator
+  repairs in new exact identities, not additional scientific tuning.
+  After exit, verify candidate/source/configuration, plan/review/decision,
+  programs/runtime/checkout, all 2,400 captures and current evaluations,
+  12 Dask comparisons, 8,000 retained records and terminal provenance.
+  Interpret each finder independently against analytic truth, then compare
+  like semantics, compact first and Continuum second. Preserve every failed
+  or underpowered gate and investigate seriousness under the approved
+  development-closeout policy. A scientific failure is terminal evidence,
+  not a process retry. Release, cutover and new qualification remain outside
+  this authority. Delete the monitor after terminal handling is complete.
+- F4 repair, non-regression, freeze and retry are complete; the cumulative
+  campaign and Phase 5 closure are not. Review of the launch-only document
+  changes against `CODE_REVIEW.md` finds no actionable issues; strict docs
+  pass. Final all-file hooks remain required before the local launch-record
+  commit. No source or evaluator is
+  changed after the frozen candidate checks, and no partial scientific result
+  or success probability is claimed.
+- On continuation at **12:16:18 UTC**, progress acknowledges **909/2,400
+  captures**. The same parent and both workers remain active, with no
+  process-failure record or atomic terminal; the host has approximately
+  **67.98 GiB free**. This is operational progress only, not a scientific
+  result. The launch-record commit was interrupted before staging; repeat
+  final hooks after this update and preserve the unrelated instruction and
+  documentation changes. Do not launch another replay.

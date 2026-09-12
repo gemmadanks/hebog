@@ -2890,6 +2890,28 @@ Preserve all v14 failure artifacts. The current execution state belongs in
 the implementation plan and `LOG.md`; no cumulative v15 verdict exists at
 this preparation snapshot.
 
+## 2026-09-12 — V15 corrected cumulative retry started
+
+The isolated two-worker retry passes independent and launch-time exhaustive
+audits of all 2,400 inputs and capture pairs, 9,600 native reference runs
+and 8,000 reusable comparator records. It starts capture successfully;
+**12/2,400 captures** are complete by 10:57:15 UTC, with both workers active
+and no process failure. Hourly monitoring is restored after this healthy
+startup. No cumulative scientific terminal exists at this snapshot.
+
+The candidate, one-use decision, execution checkout and managed-session
+identities are in `LOG.md`. The full approved scope remains 2,400 current
+Serial runs, 12 existing-Dask comparisons and one terminal evaluation, with
+no new incumbent or external finder execution. The notebook and previous
+failed-run artifacts remain isolated. The historical 17.5/20-hour allowances
+are estimates, not a completion guarantee or performance qualification.
+
+On completion, verify provenance, interpret compact science then Continuum,
+investigate failures and apply the agreed severity policy. Preserve failed
+and underpowered gates; do not tune or retry a completed scientific verdict.
+F4's repair and retry task is complete; the final campaign and development
+closeout remain pending its terminal review.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:
