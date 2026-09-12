@@ -467,10 +467,11 @@ closed historical evidence and were not rescored.
 
 ### 6.2 Phase 5 decisions and latest evidence
 
-**Current decision — 2026-09-11:** Phase 5 development remains open for one
-bounded Gaussian-validity repair, the final cumulative campaign and a bounded
-severity review. Then close development unless serious issues are found;
-defer other scientific improvements and prioritize runtime and scalability. Apply the
+**Current decision — 2026-09-12:** The bounded Gaussian-validity repair and
+its validation are complete. Phase 5 development remains open for the final
+cumulative campaign and a bounded severity review. Then close development
+unless serious issues are found; defer other scientific improvements and
+prioritize runtime and scalability. Apply the
 [pre-launch severity policy](../docs/reference/phase-5-v13-followup-review.md#later-decision-final-campaign-then-development-closeout).
 Keep every original scientific result/gate unchanged. Development closure
 is not scientific qualification, a PyBDSF-parity claim, release or cutover.
@@ -478,16 +479,20 @@ Known incorrect supported outputs remain release blockers, and the PyBDSF
 fallback remains. This decision supersedes the earlier all-science-first
 phase sequencing, not its immutable evidence or scientific requirements.
 
-**Next task (latest user approval):** complete F1 test-first on independent
-bright/oversampled and noise/model-mismatch fixtures, then the relevant F3
-non-regression checks and a corrected-candidate freeze. Hold the unlaunched
-v13 replay: its identity cannot authorize changed scientific code. F2's
-broader association work remains deferred. After a small corrected-candidate
-paired confirmation, restore the measured disk reserve and complete exact
-immutable admission for the final campaign. Do not launch a duplicate or
-silently reduce the population/reserve. A subsequent scientific repair or fresh
+**Next task (latest user approval):** monitor the isolated two-worker v14
+cumulative replay, then verify and investigate its terminal result.
+Candidate `cf6d9da...` passes F1/F3 and completes the separate 24-input screen;
+the screen retains the same 49 warnings, not a powered parity verdict.
+The live disk reserve is met, the exact immutable execution is frozen and
+both independent and launch-time exhaustive preflights pass. Managed session
+`81018` is making capture progress, with hourly monitor
+`monitor-current-replay` active. F2's broader
+association work remains deferred. Do not launch a duplicate or silently
+reduce the population/reserve. A subsequent scientific repair or fresh
 qualification requires a separate prospective decision, not an automatic
-loop after every failed comparison.
+loop after every failed comparison. The complete Rapthor-consumer acceptance
+check belongs to Phase 6 integration, not an additional Phase 5 development
+closure prerequisite; release and cutover requirements remain unchanged.
 
 Scientific readiness is incomplete. The latest source-aligned
 sentinel `ca03240d...` completed normally but failed 18 of 42 cells for
@@ -1279,26 +1284,32 @@ All of this is development evidence, not replacement parity or qualification.
     cases using runner `c9b0fec5...`; this checks identity and case metadata,
     not refreshed results or exhaustive replay admission.
   - [ ] **R6-R6 — Final cumulative campaign and development closeout.**
-    **Next task:** repair Gaussian validity (F1), validate and freeze that
-    bounded change (F3), then admit the final cumulative campaign, followed
-    by severity review and development closeout. The completed
+    **Next task:** monitor the final v14 cumulative campaign, followed by
+    severity review and development closeout. F1 and F3
+    are complete; general Gaussian model adequacy remains unqualified.
+    The completed
     [2026-09-11 follow-up](../docs/reference/phase-5-v13-followup-review.md)
     confirms independent faint-source fragmentation and a pathological
     notebook Gaussian admitted as measured. Following the code/evidence
-    review, the user's latest approval restores the F1 pre-replay hold only;
-    F2 remains deferred. These findings remain known issues until repaired
-    and validated, not fixed by unrelated fixture passes.
-    The hourly continuation may launch only after resource and exhaustive
-    exact execution admission, keeping the notebook isolated. After terminal
+    review, the user approved the bounded F1 repair; F2 remains deferred.
+    The independently repaired numerical and admission defects do not prove
+    that every viewed notebook witness is fixed.
+    The replay runs after resource and exhaustive exact execution admission,
+    keeping the notebook isolated. After terminal
     evaluation, investigate serious issues; do not automatically reopen
     scientific development for every failed or underpowered comparison.
-    The last frozen candidate is v13; the Gaussian repair needs a new identity.
-    The independent cost ladder and non-executable v13 preparation are
-    complete (2026-09-11), as is the fixture-tested exact launch wrapper.
-    The measured reserve is now 69.58 GiB, versus 59.73 GiB at the
-    cost-summary check. Current resource admission, immutable execution freeze
-    and exhaustive preflight remain open. No replay has started. See the
-    [v13 preparation](../docs/reference/phase-5-v13-replay-preparation.md).
+    The frozen v14 candidate is `cf6d9da...`; preparation `b2f0b2f6...`
+    preserves all 2,400 tasks and 8,000 reusable comparator records. Resource
+    admission on 2026-09-12 records 76.69 GiB free against 70.02 GiB required.
+    The detached execution checkout is `d5fe741...`; its plan `f28b19c2...`,
+    review `857175ca...` and one-use decision `4e3feb6c...` bind expected
+    execution `174579e8...`. No v13 or older execution authorization is reused.
+    Exhaustive preflight exits zero (log `48e3afd1...`) with no finder
+    execution. The exact replay is launched in session `81018` at approximately
+    07:52 UTC and passes its repeated audit before capture. Both workers are
+    active and 14 captures have completed by 08:00:24 UTC without a process
+    failure. Hourly monitor `monitor-current-replay` is active; there is no
+    terminal scientific verdict. Never launch a duplicate while it runs.
 
     - [x] **Run the missing paired quick check.** A result-neutral 24-input
       regression subset completes 24 exact-public Serial captures/evaluations
@@ -1406,7 +1417,7 @@ All of this is development evidence, not replacement parity or qualification.
       chain and compact-on-extended negative controls. Keep immutable
       component identities, explicit ambiguity and unchanged detection gates;
       neither blanket merging nor blanket splitting is acceptable.
-    - [ ] **F3 — Validate and freeze F1; defer broader scientific repairs.**
+    - [x] **F3 — Validate and freeze F1; defer broader scientific repairs.**
       Run the
       complete source/component measurement and non-regression gates,
       Serial/existing-Dask and partition/order/retry checks, patch/branch
@@ -1428,21 +1439,24 @@ All of this is development evidence, not replacement parity or qualification.
       this is not powered parity or proof of general model adequacy.
       Preparation `b2f0b2f6...` binds the unchanged 2,400 tasks and 8,000
       reusable comparator records to v14. No new external-finder execution.
-      **Remaining launch prerequisite:** meet the live reserve, freeze the
-      exact immutable execution plan/review/one-use decision, repeat the
-      exhaustive no-write preflight, then launch once and bind the hourly
-      monitor to that exact session. Full replay and qualification have not
-      started; do not reuse an old candidate's approval record.
+      **Launch admission — 2026-09-12:** the live reserve is met and a separate
+      exact immutable execution plan/review/one-use decision is frozen.
+      The exhaustive no-write preflight passes and the single authorized
+      replay is launched in session `81018`. Healthy initial capture progress
+      precedes activation of hourly monitor `monitor-current-replay`.
+      Qualification is not included;
+      do not reuse an old candidate's approval record.
       **Current authority:** the user approves completing replay prerequisites,
       then the run and process-bug retries. Bind v14 separately; a retry needs
       a fresh immutable identity and namespace and cannot retune science.
-      The latest live disk check is about 66.5 GiB. The candidate-bound
-      storage confirmation raises the reserve from 69.58 GiB to **70.02 GiB**
-      (75,180,190,600 bytes); recheck at admission and do not infer capacity
-      from the older cleanup measurements below. More space has been
-      requested; no cleanup or reduction of the reserve is authorized.
+      Resource admission records 82,344,136,704 free bytes against the
+      candidate-bound reserve of **70.02 GiB** (75,180,190,600 bytes).
+      Recheck immediately before capture and monitor remaining headroom;
+      older cleanup measurements below are historical. No cleanup or
+      reduction of the reserve is authorized.
 
-    Do not launch the known-failing v12 candidate or its old preparation.
+    **Historical notebook/launch holds (superseded by v14 admission above):**
+    do not launch the known-failing v12 candidate or its old preparation.
     The notebook refresh completed successfully at 22:59:52 UTC
     on 2026-09-10: all 13 results and 104 unique artifacts verify, together
     with input records, identities and published history. Terminal SHA-256
@@ -1451,10 +1465,10 @@ All of this is development evidence, not replacement parity or qualification.
     user cleanup: approximately 89.9 GiB was then free (81.6 GiB at the v13
     freeze; recheck before launch). The remaining independent
     noiseless cost fixture exposed the now-repaired source-protection defect.
-    No replay has started; no agent cleanup is authorized. The same hourly
-    monitor must hold launch pending F1, its F3 validation/replacement freeze,
-    resource and exact execution admission. The latest 2026-09-11 approval
-    requires only this bounded validity repair; F2 remains deferred.
+    No replay had started at that hold; no agent cleanup was authorized.
+    The hourly monitor held launch pending F1, its F3 replacement freeze,
+    resource and exact execution admission. The 2026-09-11 approval required
+    only this bounded validity repair; F2 remains deferred.
     The user now
     authorizes the isolated replay, evaluation, investigation of failures,
     and process/evaluator repairs and retries after the refresh finishes.
@@ -1470,7 +1484,7 @@ All of this is development evidence, not replacement parity or qualification.
     exposes a separate availability/anchor mismatch. The v12 metadata rebind
     is complete; no historical
     verdict or consumed execution authority transfers. No replay has been
-    admitted or started. Do not
+    admitted or started at that historical hold. Do not
     launch the older v10 candidate or reuse its consumed decisions. Follow the
     unchanged scientific gates and authority boundaries below.
     The [replacement admission review](../docs/reference/phase-5-r6-replacement-admission-review.md)

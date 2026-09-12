@@ -2771,6 +2771,55 @@ all dependencies in its immutable checkout, then use the user's launch and
 process-bug retry authority. No tuning, closed-result rescoring, cutover or
 release is included.
 
+## 2026-09-12 — V14 final cumulative replay admitted and launched
+
+This is an **in-progress regression campaign, not a scientific verdict or
+fresh qualification**. The user authorizes the final isolated two-worker
+replay, evaluation and process-bug retries, with hourly monitoring after
+healthy startup. Candidate `cf6d9da942423d1e112f9ba61a989506db531301`, source
+`f55794e3559825d73c6b99c0f9efc19080d0dd3400e75676dae2c219b96afea6` and
+configuration `5eca0efc...` are unchanged from the v14 confirmation above.
+The question is how this corrected candidate compares with the retained
+incumbent, released/master PyBDSF and Aegean evidence under the original
+endpoint definitions, not whether visual similarity proves parity.
+
+The population remains 800 compact 512-square inputs and 1,600 Continuum
+1,024-square inputs across four families. Run **2,400 current-Hebog Serial
+captures/evaluations and 12 existing-Dask comparisons**, reusing **8,000
+immutable comparator records**. No new incumbent, PyBDSF or Aegean execution
+is included. Each finder is scored independently against analytic injected
+truth before like-semantics comparison; PyBDSF is not ground truth. Keep all
+1,187 comparison definitions, five safety checks, margins and confidence
+rules unchanged. No partial scientific scores are inspected during execution.
+
+The detached checkout is `/private/tmp/hebog-r6-public-catalogue-v14-replay`
+at `d5fe74157c304bc6717677e3b23fd7b918265e38`. Plan `f28b19c2...`, review
+`857175ca...` and one-use decision `4e3feb6c...` bind expected execution
+`174579e8e258348792d85fedcf0ae824aeba64b04bf93caf379f2479c396c21d`.
+Full hashes and reproducible admission artifacts are recorded in `LOG.md`.
+Live admission records 76.69 GiB free against the unchanged 70.02 GiB reserve.
+The independent exhaustive preflight exits zero after verifying all 9,600
+native reference runs, 2,400 inputs, 2,400 capture pairs and 8,000 reusable
+records, with no finder execution; log SHA-256 is `48e3afd1...`.
+
+The single authorized command starts at approximately **07:52 UTC** in
+managed session **81018**, passes the repeated exhaustive preflight and
+starts both capture workers. By **08:00:24 UTC**, **14/2,400 captures** have
+completed with no process failure. Hourly monitor `monitor-current-replay`
+is active after this healthy startup. The terminal will be
+`benchmark-results/phase-5/public-catalogue-v14-cumulative-decision.json`
+inside that immutable checkout; no terminal exists yet. The historical
+17.5/20-hour allowances are planning estimates,
+not a controlled v14 performance measurement or completion guarantee.
+
+After the terminal, verify complete provenance and interpret compact results
+first, then Continuum. Preserve every pass, failure and underpowered result.
+Apply the already-agreed serious-issue policy to development closure; a
+completed scientific failure is not a process bug to tune away or retry.
+Faint grouping and broader science remain deferred unless serious findings
+require a new decision. Phase 6 owns full Rapthor-consumer acceptance,
+runtime and scalability work; this run cannot authorize cutover or release.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

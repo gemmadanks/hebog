@@ -19955,3 +19955,87 @@ scientific pass from fixture validation.
   the pinned preparation identity, not package behavior or validation rules;
   the full coverage and Serial/Dask evidence above remain applicable. Run
   clean all-file hooks before the final local preparation commit; no push.
+
+### 2026-09-12 — Admit the isolated v14 final cumulative replay
+
+- The user authorizes launch and hourly monitoring after healthy startup.
+  Process-bug repair/retry authority remains separate from scientific tuning:
+  preserve truth, population, comparators, thresholds, margins and confidence
+  rules. Apply the pre-launch severity policy after the terminal result;
+  Phase 6 owns the complete Rapthor-consumer acceptance check, runtime and
+  scalability. Development closure does not grant qualification or release.
+- Resource admission records **82,344,136,704 free bytes (76.69 GiB)** against
+  **75,180,190,600 bytes (70.02 GiB)** required. Do not lower the reserve or
+  delete evidence. Retain the prior 17.5/20-hour planning allowances, not a
+  newly measured v14 runtime or a twelve-hour guarantee.
+- Create detached checkout
+  `/private/tmp/hebog-r6-public-catalogue-v14-replay` at execution commit
+  `d5fe74157c304bc6717677e3b23fd7b918265e38`. Candidate remains
+  `cf6d9da942423d1e112f9ba61a989506db531301`, source
+  `f55794e3559825d73c6b99c0f9efc19080d0dd3400e75676dae2c219b96afea6`,
+  configuration
+  `5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4`.
+  Imports resolve to the immutable checkout, not the notebook's mutable
+  checkout. Python 3.14.2 and dependency inventory
+  `10788ccd1804f6280454cc5c2386a1551eef084c2b40908f513e365c266f43b6`
+  are bound; all five numerical thread limits are one. Do not synchronize
+  or update the shared installed environment during execution.
+- Freeze separate ignored admission artifacts under
+  `benchmark-results/phase-5/v14-replay-admission-20260912/`, using the
+  existing preparation/admission owners without changing production code:
+  resource record `9c7d20b52bdda78289d36e93789c1f702e47f855a97aafb9a616bc4d5c2745bf`,
+  plan `f28b19c26b2b3108f6fb55aee38825b0b4b18322e94576a6e17638f87e6cbe06`,
+  non-executable review
+  `857175ca733468089faa91ba47cc57abf108932ff4922db19c69738ed8f81e9b`,
+  and one-use execution decision
+  `4e3feb6c2e307f5fae997cff9c906f2495f19f9a160532fe1c1d076834abb75d`.
+  Expected execution is
+  `174579e8e258348792d85fedcf0ae824aeba64b04bf93caf379f2479c396c21d`.
+  The derivation script is retained as `freeze.py`, SHA-256
+  `91971bdd674785a91dd0ba67894059f4635b11db8b0fff21383fe0f8e8fe2d1f`;
+  it generates metadata only and starts no finder or evaluation.
+- The scope is exactly **2,400 current-Hebog Serial captures/evaluations,
+  12 existing-Dask comparisons, 8,000 immutable comparator records reused,
+  two workers and one atomic terminal**. There are no new incumbent,
+  PyBDSF or Aegean runs. Scratch is
+  `/private/tmp/hebog-r6-public-catalogue-v14-products-cf6d9da`; the terminal
+  will be `benchmark-results/phase-5/public-catalogue-v14-cumulative-decision.json`
+  inside the immutable checkout. Both are absent at admission.
+- Exhaustive no-write preflight in managed session **21131** exits **0**:
+  all 9,600 native references, 2,400 input bundles, 2,400 capture pairs and
+  8,000 reusable records verify, with `finder_execution_started=false`.
+  Its retained `preflight.log` SHA-256 is
+  `48e3afd1e5c07dc3b5197dfa74cbd1f51c30f0f7cab62b0a61110d736235df74`.
+  Recheck the clean immutable checkout, unused scratch/output and live
+  reserve; no notebook refresh or duplicate replay is active.
+- Launch the exact authorized command outside the sandbox at approximately
+  **07:52 UTC**, managed session **81018**, Python PID **72458**. Use the
+  immutable module runner with explicit `PYTHONPATH`, frozen plan/review/
+  decision hashes and numerical thread limits. Retain stdout/stderr as
+  `execution.log` in the admission directory. The runner passes its repeated
+  exhaustive preflight before claiming scratch. Both spawned workers,
+  **75374/75375**, are active; **14/2,400 captures** have completed by
+  **08:00:24 UTC**, advancing from four at the preceding observation. No
+  process failure or atomic terminal exists. Inspect counts/process health
+  only, not partial scientific results; startup success is not campaign parity.
+- The obsolete `monitor-notebook-then-v12-replay` no longer exists. Create
+  **`monitor-current-replay`**, confirmed **ACTIVE** with hourly recurrence
+  only after healthy capture progress. The app rejects a proposed prompt
+  containing detailed internal identifiers; a minimal task-scoped prompt is
+  accepted, keeping exact identities in these local records. Follow official
+  OpenAI documentation for the thread-attached monitor rather than creating
+  a standalone job. Report material stage changes, problems and completion;
+  never launch a duplicate or retry a completed scientific failure. Keep the
+  computer awake and the app running for the local execution and monitoring.
+- All **154 focused admission, CLI, inventory, execution and runner tests**
+  pass in 22.34 seconds. The strict docs build passes. Initial sandboxed
+  repository/docs commands cannot access the existing uv cache; rerun with
+  approved cache access and `UV_NO_SYNC=1`, without changing dependencies.
+  Ruff, Pyright and **3,663 quick tests** pass (two existing expected failures)
+  in 289.41 seconds. This turn changes documentation and ignored execution
+  metadata only; no new production behavior or scientific policy is added.
+- Review the complete admission/documentation change against `CODE_REVIEW.md`:
+  no actionable finding. No full coverage, new equivalence, controlled timing
+  or Python 3.12/3.13 run is needed for this documentation-only launch record;
+  the prior candidate validation remains applicable. Run final strict docs
+  and all-file hooks before the local Conventional Commit; do not push.
