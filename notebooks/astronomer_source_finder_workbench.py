@@ -1,4 +1,4 @@
-# ruff: noqa: E501, PLR0915
+# ruff: noqa: E501
 
 import marimo
 
@@ -26,9 +26,11 @@ def _(mo):
     multiscale processing, and source association happen inside Hebog. The
     notebook does not coordinate internal algorithms or stages.
 
-    The M51 option uses the checksum-bound FITS input from the LoTSS comparison
-    campaign. This avoids the one-pixel registration difference produced by
-    requesting a separate cutout using explicitly written coordinates.
+    Public LoTSS inputs are cached under `benchmark-results/notebook-data`.
+    Run `uv run python scripts/benchmark/download_notebook_data.py` from the
+    repository root to fetch all three small fields before opening the app,
+    or download a selected field on demand. These are exploratory inputs;
+    individual notebook runs do not need a frozen campaign identity.
     """)
     return
 
@@ -40,7 +42,6 @@ def _():
     import json
     import pathlib
     import re
-    import tempfile
     import urllib.parse as urllib_parse
     import urllib.request as urllib_request
 
@@ -70,7 +71,6 @@ def _():
         read_catalogue_fits_product,
         read_diagnostics_product,
         re,
-        tempfile,
         urllib_parse,
         urllib_request,
     )
@@ -104,9 +104,7 @@ def _(mo):
             "LoTSS DR2: 3C 295 bright-source field (12 arcmin)": (
                 "lotss-3c295"
             ),
-            "LoTSS DR2: canonical M51 campaign field (20 arcmin)": (
-                "lotss-m51-canonical"
-            ),
+            "LoTSS DR2: M51 extended-source field (20 arcmin)": ("lotss-m51"),
             "My FITS image": "custom",
         },
         value="Synthetic commissioning field (offline)",
@@ -124,9 +122,9 @@ def _(mo):
             mo.hstack([image_selector, load_image], widths=[3, 1]),
             custom_image_path,
             mo.callout(
-                "The representative and 3C 295 examples are downloaded on "
-                "demand. M51 is read from the campaign's frozen canonical "
-                "input so its pixels match the comparison notebook.",
+                "LoTSS fields use the downloaded notebook-data cache, or "
+                "download on demand when absent. Choose My FITS image to "
+                "use another image, including a saved campaign input.",
                 kind="info",
             ),
         ]
@@ -249,7 +247,6 @@ def _(
     mo,
     np,
     pathlib,
-    tempfile,
     urllib_parse,
     urllib_request,
     write_commissioning_image,
@@ -260,7 +257,7 @@ def _(
         mo.md("Select an image and press **Load selected image**."),
     )
     _project_root = pathlib.Path(__file__).resolve().parents[1]
-    _cache = pathlib.Path(tempfile.gettempdir()) / "hebog-marimo-images"
+    _cache = _project_root / "benchmark-results" / "notebook-data"
     _cache.mkdir(parents=True, exist_ok=True)
 
     _download_examples = {
@@ -269,6 +266,12 @@ def _(
             "12:00:00 +45:00:00",
             22,
             "lotss-dr2-survey-field-22arcmin.fits",
+        ),
+        "lotss-m51": (
+            "LoTSS DR2 M51 extended-source field",
+            "M51",
+            20,
+            "lotss-dr2-m51-20arcmin.fits",
         ),
         "lotss-3c295": (
             "LoTSS DR2 3C 295 field",
@@ -290,31 +293,6 @@ def _(
         selected_input_label = "Synthetic 100-source survey field"
         selected_input_provenance = (
             "Deterministic image with 100 injected sources; seed 20260828."
-        )
-    elif image_selector.value == "lotss-m51-canonical":
-        selected_input_path = (
-            _project_root
-            / "benchmark-results"
-            / "phase-5"
-            / "lotss-public-comparison"
-            / "input-campaign"
-            / "inputs"
-            / "lotss-dr2-m51-20arcmin"
-            / "input.fits"
-        )
-        mo.stop(
-            not selected_input_path.is_file(),
-            mo.callout(
-                "The canonical M51 campaign input is missing at "
-                f"{selected_input_path}. Populate the LoTSS comparison "
-                "campaign or choose a custom image.",
-                kind="danger",
-            ),
-        )
-        selected_input_label = "LoTSS DR2 canonical M51 campaign field"
-        selected_input_provenance = (
-            "Checksum-bound Phase 5 LoTSS campaign input requested with "
-            "pos=M51 and size=20 arcmin."
         )
     elif image_selector.value == "custom":
         selected_input_path = pathlib.Path(
@@ -361,18 +339,6 @@ def _(
     selected_input_sha256 = hashlib.sha256(
         selected_input_path.read_bytes()
     ).hexdigest()
-    if image_selector.value == "lotss-m51-canonical":
-        _expected_sha256 = (
-            "9c392ec1e16193457a6d5b3f95e42849ee84e97698593c8917c8d8ba5f4a20f9"
-        )
-        mo.stop(
-            selected_input_sha256 != _expected_sha256,
-            mo.callout(
-                "The M51 file is not the canonical campaign input. "
-                f"Expected {_expected_sha256}; observed {selected_input_sha256}.",
-                kind="danger",
-            ),
-        )
     try:
         with fits.open(selected_input_path, memmap=False) as _hdul:
             selected_input_image = np.squeeze(
@@ -476,7 +442,7 @@ def _(mo):
 
 
 @app.cell
-def _(mo, pathlib, tempfile):
+def _(mo, pathlib):
     detection_threshold = mo.ui.slider(
         start=3.5,
         stop=10.0,
@@ -501,7 +467,9 @@ def _(mo, pathlib, tempfile):
     run_label = mo.ui.text(value="experiment", label="Run label")
     output_root = mo.ui.text(
         value=str(
-            pathlib.Path(tempfile.gettempdir()) / "hebog-workbench-output"
+            pathlib.Path(__file__).resolve().parents[1]
+            / "benchmark-results"
+            / "notebook-runs"
         ),
         label="Output root",
         full_width=True,
@@ -868,8 +836,6 @@ def _(mo, source_catalogue):
 def _(
     json,
     mo,
-    pathlib,
-    selected_input_label,
     source_finder_config,
     source_finder_diagnostics,
     source_finder_result,
@@ -886,42 +852,9 @@ def _(
     _current_composition = (
         source_finder_diagnostics.provenance.scientific_composition_sha256
     )
-    _campaign_comparison = mo.md("")
-    if selected_input_label == "LoTSS DR2 canonical M51 campaign field":
-        _campaign_result_path = (
-            pathlib.Path(__file__).resolve().parents[1]
-            / "benchmark-results"
-            / "phase-5"
-            / "hebog-notebook-refreshes"
-            / "latest"
-            / "results"
-            / "lotss-dr2-m51-20arcmin"
-            / "hebog"
-            / "operational"
-            / "result.json"
-        )
-        if _campaign_result_path.is_file():
-            _campaign_record = json.loads(
-                _campaign_result_path.read_text(encoding="utf-8")
-            )
-            _campaign_composition = _campaign_record.get(
-                "scientific_composition_sha256"
-            )
-            _matches = _campaign_composition == _current_composition
-            _campaign_comparison = mo.callout(
-                mo.md(
-                    "This run uses the same canonical M51 input. Its "
-                    f"scientific composition {'matches' if _matches else 'differs from'} "
-                    "the frozen comparison run.  \n"
-                    f"Current: {_current_composition}  \n"
-                    f"Frozen: {_campaign_composition}"
-                ),
-                kind="success" if _matches else "warn",
-            )
     mo.vstack(
         [
-            mo.md("## Reproducibility and interpretation"),
-            _campaign_comparison,
+            mo.md("## Run details and interpretation"),
             mo.accordion(
                 {
                     "Show caller-owned configuration": mo.md(
@@ -962,11 +895,11 @@ def _(mo):
     detection threshold fixed. Watch for neighbours or artifacts becoming
     connected.
 
-    **M51 still differs from the campaign comparison:** inspect the scientific
-    composition hashes above. The input and mask semantics now match, but a
-    frozen campaign generated by older Hebog code will still differ from a
-    live run. Refresh the comparison campaign before treating that difference
-    as nondeterminism.
+    **Comparing M51 with the comparison notebook:** the downloaded cutout can
+    differ from the campaign's prepared input, and settings or Hebog code may
+    also differ. Use the saved campaign inputs when investigating a difference;
+    ordinary workbench experiments do not need to reproduce campaign results.
+    See the notebook guide for the comparison refresh commands.
 
     **Commissioning use:** cross-match bright isolated sources against a
     trusted catalogue. Inspect astrometric offsets, measured/reference flux

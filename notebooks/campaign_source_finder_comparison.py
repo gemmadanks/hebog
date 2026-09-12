@@ -1271,6 +1271,17 @@ def _(Path, mo):
             master, and Aegean against injected truth. Public campaigns expose
             the Hebog result over the governed public image; their reference
             catalogue comparisons remain in the compiled campaign evidence.
+
+            This notebook reads saved products; opening it does not run any
+            finder. For setup, data downloads and refresh/resume instructions,
+            see `docs/how-to/notebooks.md`. With the saved input and reference
+            campaigns available, run these commands from the repository root,
+            then reload this notebook:
+
+            ```console
+            uv run python scripts/benchmark/refresh_public_notebook_hebog.py --preflight-only
+            uv run python scripts/benchmark/refresh_public_notebook_hebog.py --label "Current notebook comparison"
+            ```
             """),
             campaign_root,
             include_failed_runs,

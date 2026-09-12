@@ -134,6 +134,9 @@ jobs:
       - name: Validate Marimo notebooks
         run: uv run marimo check --strict notebooks/*.py
 
+      - name: Execute offline notebook demonstrations
+        run: uv run python scripts/check_notebooks.py
+
   docs:
     name: Build docs (mkdocs)
     needs: [pre-commit, test]

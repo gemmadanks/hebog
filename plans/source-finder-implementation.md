@@ -104,6 +104,12 @@ M1–M3 are specific to the accumulated finder candidate. Future small changes
 use only the applicable checks and evidence; do not rerun this entire campaign
 for every documentation edit or release.
 
+Notebook usability is maintained through the
+[notebook guide](../docs/how-to/notebooks.md), public-input downloader and CI
+execution smoke. Individual exploratory runs do not require reproducibility
+locks. Saved comparison refreshes retain their existing evidence-integrity
+checks and require separately retained reference products.
+
 ## Before the next experimental package release
 
 Target the first useful bounded standalone finder release after the merge

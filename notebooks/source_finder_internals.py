@@ -16,8 +16,8 @@ def _(mo):
     mo.md(r"""
     # Hebog source-finder internals and tiling demonstration
 
-    This notebook runs the qualified compact-source path from **Phase 4** and
-    the bounded multiscale stage from **Phase 5** on small, deterministic
+    This developer notebook demonstrates compact-source algorithms and the
+    bounded multiscale stage on small, deterministic
     synthetic radio images. The compact path estimates
     background and RMS noise, detects connected source islands, reconciles an
     island that crosses tile boundaries, deblends compact peaks, calculates

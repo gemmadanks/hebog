@@ -349,15 +349,6 @@ efficiency; do not retain only the best topology.
 
 ## Work with notebooks
 
-Marimo provides reviewable, Python-based demonstrations. Edit the source-finder
-notebook with:
-
-```console
-uv run marimo edit notebooks/source_finder_demo.py
-```
-
-Validate all notebooks without starting the interactive editor:
-
-```console
-just marimo-check
-```
+See [Use the notebooks and refresh comparisons](notebooks.md) for the notebook
+index, input downloads, output locations, comparison refreshes and execution
+checks. Start with `uv run marimo edit notebooks/source_finder_demo.py`.

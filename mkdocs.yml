@@ -64,6 +64,7 @@ nav:
   - Development:
       - Development history: explanation/development-history.md
       - Workflows: how-to/index.md
+      - Notebooks and comparison refreshes: how-to/notebooks.md
   - Reference:
       - Current capability and releases: reference/release-status.md
       - Current scientific campaign: reference/phase-5-campaign-overview.md

@@ -28,63 +28,26 @@ candidate-specific optimization, and qualification closed.
 
 ## Refresh public comparison notebook results
 
-`refresh_public_notebook_hebog.py` reruns the standard public Hebog runner over
-the frozen SDC1, Hydra, and LoTSS notebook inputs. It reuses the sealed PyBDSF
-and Aegean products, so it does not modify or rerun either reference finder.
-Run it from the repository root.
-
-Inspect the proposed identity and case count without starting a campaign:
+The [notebook guide](../../docs/how-to/notebooks.md) is the current source for
+input downloads, saved campaign restoration, refresh/resume commands and
+troubleshooting. Run from the repository root:
 
 ```console
-uv run python scripts/benchmark/refresh_public_notebook_hebog.py \
-  --preflight-only
+uv run python scripts/benchmark/download_notebook_data.py --list
+uv run python scripts/benchmark/refresh_public_notebook_hebog.py --preflight-only
+uv run python scripts/benchmark/refresh_public_notebook_hebog.py --label "Current notebook comparison"
 ```
 
-The preflight prints the configuration SHA-256 returned by the exact public
-runner. The refresh never reconstructs that identity from an older contract
-chain, and it creates no staging directory during preflight. Even if that
-refresh already exists, preflight does not republish its history entry,
-change its label or update the `latest` symlink.
+The downloader fetches raw public inputs; the refresh additionally needs the
+saved input and reference campaign trees. Those generated PyBDSF/Aegean
+products have no published bundle URL and are not reconstructed by downloading
+survey images. Restore them from the existing data host or backup first.
 
-The runner selects the frozen public-catalogue correctness review
-`config/contracts/phase-5-public-catalogue-correctness-identity-review.json`
-(v11 composition, diagnostics schema 8). This is an unqualified development
-candidate, not a campaign pass. `final public-interface identity changed`
-means the selected review does not match the checked-out science or configuration;
-it is not a dependency-sync error. After freezing a new scientific identity,
-update the diagnostic runner's review selection and run this real no-write
-preflight before refreshing. Do not bypass the guard or rewrite an older
-review. Synthetic runner tests alone do not verify the live selection.
-
-Start a refresh with a short label describing the active scientific changes:
-
-```console
-uv run python scripts/benchmark/refresh_public_notebook_hebog.py \
-  --label "Refined source boundaries with separated mask and measurement ownership"
-```
-
-An interrupted refresh can resume only with the same source, configuration,
-runner, inputs, and references:
-
-```console
-uv run python scripts/benchmark/refresh_public_notebook_hebog.py \
-  --resume \
-  --label "Refined source boundaries with separated mask and measurement ownership"
-```
-
-Each successful scientific identity receives an immutable directory under
-`benchmark-results/phase-5/hebog-notebook-refreshes/`. The identity binds the
-Git commit, complete Hebog source-tree checksum, governed configuration, and
-`run_phase5_public_finder_hebog.py` checksum. A dirty worktree is permitted but
-recorded. Repeating an unchanged identity reuses its existing entry rather
-than duplicating evidence. Source or runner changes during execution fail
-before publication, and partial work remains in identity-specific staging for
-`--resume`.
-
-Completion updates the generated `index.json` registry and the `latest`
-symlink without replacing earlier campaigns. Restart or reload
-`notebooks/campaign_source_finder_comparison.py`, then select the new label and
-dataset under **Hebog implementation history**.
+The runner currently selects
+`config/contracts/phase-5-filtered-response-domain-repair-identity-review.json`
+(v15 composition, diagnostics schema 8). The refresh retains candidate and
+saved-reference integrity checks and does not rerun either external finder.
+Ordinary workbench experiments do not need frozen individual run identities.
 
 The notebook's **Diagnose one support component** section ranks another
 finder's labelled components by Hebog fragmentation and comparison-only pixel
@@ -133,12 +96,6 @@ Changing a header's frame label without transforming coordinates is not a
 supported workaround. The public `hebog.find_sources()` preview's ICRS-only
 admission rule is unchanged; this diagnostic boundary does not extend its
 qualification scope.
-
-The FK5 repair is a different source identity from the R6 candidate frozen
-at `db8936b...`. R6 can continue in its immutable checkout, but its result
-does not automatically qualify the repaired notebook producer. Existing
-refresh staging from a different source identity cannot be resumed as the
-repaired implementation, and frozen reviews must not be edited in place.
 
 Numerical decomposition failure during a joint Gaussian fit does not abort
 the whole diagnostic image. All components in that coupled fit are retained

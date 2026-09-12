@@ -151,24 +151,23 @@ environments.
 
 ## Interactive demonstrations
 
-[Marimo](https://marimo.io/) is available in the development dependency group.
-Run or edit the compact source-finding and moment demonstration with:
+Start with the complete public source-finder example:
 
 ```shell
 uv run marimo edit notebooks/source_finder_demo.py
 ```
 
-The notebook generates a deterministic radio image, visualizes the estimated
-background and RMS, displays the accepted source mask and connected islands,
-shows compact deblending summaries, and verifies that one-tile and four-tile
-execution produce identical results. It also displays Phase 4 moment, fitted,
-sky-coordinate, deconvolution, quality-flag, internal catalogue, and Rapthor
-FITS results while identifying the multiscale, qualification, and workflow
-integration work that remains.
+It generates a small synthetic shell, calls `hebog.find_sources`, and reads
+and displays the published catalogue, RMS, mask and diagnostics. The
+astronomer's workbench adds image and threshold controls; the internals
+notebook demonstrates algorithms and tiling; the comparison notebook displays
+saved campaign results.
 
-Marimo notebooks are normal Python modules, so demonstrations remain
-reviewable, testable, and version controlled. Validate them with
-`just marimo-check`.
+See [Use the notebooks](docs/how-to/notebooks.md) for all four notebooks,
+public-data downloads, saved comparison prerequisites and refresh commands.
+Use `just marimo-check` for structure checks and `just notebook-smoke` to
+execute the two offline examples. Neither enforces identical experiment
+results across notebook runs.
 
 ## Architecture
 

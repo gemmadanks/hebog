@@ -20369,3 +20369,37 @@ scientific pass from fixture validation.
   claim is made. Immediate next delivery work remains the existing v15
   terminal/severity review; this task neither inspected partial science nor
   launched or altered its replay.
+
+### 2026-09-12 — Make notebook setup and comparison refreshes usable
+
+- Add a notebook guide covering all four apps, dependencies, input acquisition,
+  output locations, saved comparison prerequisites, refresh/resume commands
+  and troubleshooting. Replace stale demo and workbench descriptions, and put
+  the refresh commands in the comparison notebook itself. Individual notebook
+  runs have no new reproducibility lock or equality gate, as requested.
+- Add `scripts/benchmark/download_notebook_data.py`: the default downloads are
+  three small LoTSS fields; larger SDC1/Hydra images and supporting artifacts
+  require explicit selection. Reuse the existing public artifact URL inventory
+  and Python's streaming HTTP/file utilities instead of introducing another
+  dependency or invoking historical acquisition authority. Basic transfer/FITS
+  checks precede atomic publication; failed replacements preserve old files.
+  The workbench uses the persistent notebook-data cache, including downloaded
+  M51, and persists products under ignored notebook-runs storage.
+- Raw public data cannot replace saved native finder products. The guide makes
+  the current absence of a published complete comparison bundle explicit and
+  documents restoration of the existing artifact tree. Keep existing comparison
+  identity/resume checks unchanged. The live no-write refresh preflight passes
+  for 13 inputs and the current v15 runner; no comparison campaign is launched.
+- Add `just notebook-smoke` and a CI step that execute the two offline demos
+  through Marimo with bounded timeouts. Both exports pass. Inspect the live
+  workbench's synthetic public-finder results and rendered plots; its four
+  published products validate. Live 3C 295 and M51 downloads pass; M51 loads as
+  800 by 800 pixels from the new cache without the old campaign-file guard.
+- Test-first validation: six initial downloader cases fail on the missing
+  implementation before implementation; the expanded 11-case suite passes.
+  Focused script coverage is 98%, with only the CLI entry guard/main call
+  outside in-process unit coverage; live CLI downloads and listing exercise
+  that path. Strict docs and Marimo checks pass. Review the complete change
+  against `CODE_REVIEW.md`; no actionable issue remains. Final repository
+  checks and all-file hooks are required before committing. No scientific
+  library, frozen evidence, release artifact or external result is changed.
