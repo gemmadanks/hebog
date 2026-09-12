@@ -34,14 +34,25 @@ troubleshooting. Run from the repository root:
 
 ```console
 uv run python scripts/benchmark/download_notebook_data.py --list
+uv run python scripts/benchmark/prepare_notebook_comparison.py --build-images --dry-run
+uv run python scripts/benchmark/prepare_notebook_comparison.py --build-images
 uv run python scripts/benchmark/refresh_public_notebook_hebog.py --preflight-only
 uv run python scripts/benchmark/refresh_public_notebook_hebog.py --label "Current notebook comparison"
 ```
 
-The downloader fetches raw public inputs; the refresh additionally needs the
-saved input and reference campaign trees. Those generated PyBDSF/Aegean
-products have no published bundle URL and are not reconstructed by downloading
-survey images. Restore them from the existing data host or backup first.
+`prepare_notebook_comparison.py` creates the same 13-case Hydra/LoTSS/SDC1
+comparison as the notebook
+using PyBDSF 1.14.1 and AegeanTools 2.3.5. It can build local images from the
+existing recipes, or use supplied local image tags; the guide describes the
+disk/resource requirements. `--dry-run` performs no builds, container runs,
+downloads or output writes. Its outputs work with the notebook and with the
+separate Hebog refresh's input/reference/history options. Completed reference
+results can be reused with `--resume` without requiring old campaign hashes.
+
+The no-option Hebog refresh commands above select the existing 13-case
+SDC1/Hydra/LoTSS comparison. That historical bundle still requires restoration
+from the data host or backup if missing. For a fresh setup, use the explicit
+paths in the guide; each comparison should have its own Hebog history root.
 
 The runner currently selects
 `config/contracts/phase-5-filtered-response-domain-repair-identity-review.json`

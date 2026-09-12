@@ -20403,3 +20403,50 @@ scientific pass from fixture validation.
   against `CODE_REVIEW.md`; no actionable issue remains. Final repository
   checks and all-file hooks are required before committing. No scientific
   library, frozen evidence, release artifact or external result is changed.
+
+### 2026-09-12 — Prepare fresh notebook reference comparisons
+
+- Add a user-run setup for the existing 13 Hydra, LoTSS and SKA SDC1 cases
+  that downloads six source images and runs
+  released PyBDSF 1.14.1 and AegeanTools 2.3.5 serially in local Podman images.
+  Reuse the existing downloader, native adapters, operational settings and
+  container recipes; optional image builds verify published package hashes.
+  Preserve the eight SDC1 cutouts and their 75-pixel halos, both Hydra depths
+  and the wide/3C 295/M51 LoTSS fields. No dependency, scientific algorithm,
+  frozen campaign or replay is changed.
+- Publish notebook-compatible reference products and separate input records
+  for the existing Hebog refresh command. Reuse the shared input cache, verify
+  completed products on resume, and preserve existing outputs. Record actual
+  image and dependency identities without imposing historical campaign runtime
+  hashes on a fresh exploratory comparison. Individual notebook runs have no
+  new reproducibility requirement. The dry run performs no writes or network
+  or container operations.
+- Update the guide and comparison viewer for references before Hebog runs,
+  explicit separate Hebog refresh paths, and history belonging to the selected
+  comparison. Remove stale descriptions of public comparisons as Hebog-only.
+  Recommend ProFound as an optional next continuum comparator; a SoFiA 2D
+  experiment remains separate from its primary spectral-line cube use case.
+- Test-first checks fail on missing setup behaviour, image-build support and
+  comparison-local history before implementation. The focused suite
+  exercises synthetic FITS/native-product normalization through the
+  actual notebook readers and Hebog input resolver. That integration exposes
+  and fixes missing full-image bounds before handoff. After the user clarifies
+  the dataset scope, add a failing 13-case default test and halo/core tests,
+  then retain the original SDC1/Hydra/LoTSS selection. All 47 focused tests pass,
+  including six-download reuse across the 13 cases. Setup coverage is 100%;
+  worker coverage is 98%, with only the direct entry-point call outside the
+  in-process tests. Its CLI help also passes. No coverage exclusions are added.
+- Visually inspect the live comparison notebook using tiny synthetic products:
+  both reference rows and plots render before Hebog has run, and absent Hebog
+  history is an ordinary empty state. Strict docs and Marimo checks pass;
+  the initial `just check` passes 3,738 tests with two expected failures. An
+  early coverage run collects tests before a provenance-field rename, causing
+  stale-test failures; rerunning the affected tests passes and combined project
+  coverage is 95.31%. Freeze final files before subsequent checks. Review against
+  `CODE_REVIEW.md` finds no actionable issue. Final project coverage and
+  all-file hooks are required before committing.
+- Per user instruction, download no science data or packages, build no images,
+  and run no external finders. Network/container operations are mocked in tests;
+  only dry-run/help and synthetic notebook execution run locally. A live
+  container build and reference smoke remains unverified until disk/resources
+  are available. The existing replay is neither inspected nor altered.

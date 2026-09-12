@@ -110,6 +110,15 @@ execution smoke. Individual exploratory runs do not require reproducibility
 locks. Saved comparison refreshes retain their existing evidence-integrity
 checks and require separately retained reference products.
 
+The fresh notebook setup preserves all 13 Hydra, LoTSS and SKA SDC1 cases
+from the existing comparison and produces
+PyBDSF/Aegean reference products using existing adapters and container recipes;
+Hebog refresh remains separate. Its dry run is read-only. This increment is
+validated with synthetic inputs and mocked network/container execution because
+the user reserves disk space for the existing replay. A live build/reference
+smoke remains unverified. ProFound or a dedicated SoFiA experiment is optional
+follow-up work, not a merge or release gate; see the notebook guide.
+
 ## Before the next experimental package release
 
 Target the first useful bounded standalone finder release after the merge

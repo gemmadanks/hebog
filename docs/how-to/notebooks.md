@@ -56,7 +56,8 @@ uv run python scripts/benchmark/download_notebook_data.py --dataset sdc1-image
 ```
 
 The optional SDC1 image alone is approximately 4 GiB, and the Hydra archive
-approximately 9.3 GiB. They are never downloaded by default. The script also
+approximately 9.3 GiB. The raw-data downloader does not fetch those by default.
+The comparison setup below does fetch the SDC1 image. The downloader also
 lists the public beam, truth and submission files from the existing SDC1/Hydra
 artifact inventory. Source URLs and historical sizes are reused from that
 inventory; this downloader does not execute its old scientific authorization.
@@ -78,7 +79,116 @@ campaign uses selected cutouts; LoTSS campaign images also have their own
 normalization and metadata. Fresh downloads must not be substituted for those
 files merely because the sky field looks the same.
 
-## Prepare the comparison viewer
+## Create a fresh PyBDSF/Aegean comparison
+
+Use `prepare_notebook_comparison.py` to download the Hydra, LoTSS and SKA
+SDC1 images and run both reference finders on the same 13 cases as the
+existing comparison. It creates its own input and reference records;
+no saved historical campaign is required. Hebog runs in a separate step.
+
+Install Podman first. On macOS/Windows its Linux VM must already be running;
+the script does not start, resize or restart a VM. Check the planned inputs
+without downloading anything, building images or running containers:
+
+```console
+uv run python scripts/benchmark/prepare_notebook_comparison.py --build-images --dry-run
+```
+
+When disk space and compute resources are available, build the local reference
+images and prepare the comparison:
+
+```console
+uv run python scripts/benchmark/prepare_notebook_comparison.py --build-images
+```
+
+The build downloads published PyBDSF 1.14.1 and AegeanTools 2.3.5 packages,
+checks their hashes, and reuses the checked-in reference Containerfiles and
+requirements. Only the released PyBDSF target is built; no historical master
+wheel is needed. Container layers and build caches can require several GB in
+addition to input images and native finder products. These are exploratory
+runtimes: actual image IDs, dependencies and scientific options are recorded,
+without requiring a historical campaign environment hash. The optional build
+step requires network access. Finder execution disables container networking
+and image pulling.
+
+If the default images are already built, omit `--build-images`. To use other
+local images containing those releases and their runtime dependencies:
+
+```console
+uv run python scripts/benchmark/prepare_notebook_comparison.py --pybdsf-image LOCAL_PYBDSF_IMAGE --aegean-image LOCAL_AEGEAN_IMAGE
+```
+
+The default selection preserves the previous comparison:
+
+- **SKA SDC1:** eight 2,048-pixel cutouts from the Band 2 1,000-hour image,
+  using the existing sparse, ordinary, crowded, resolved, close-pair,
+  high-dynamic-range, low-apparent-SNR and primary-beam-boundary selections;
+- **Hydra:** the published deep and shallow EMU pilot images;
+- **LoTSS:** the 90-arcminute wide field, 3C 295 and M51.
+
+The SDC1 cutouts retain their 75-pixel halos and core-only comparison products.
+LoTSS inputs use the existing celestial-WCS and frequency normalization. The
+script reads only the existing selection/settings, without launching a frozen
+campaign. This creates fresh diagnostic results rather than reproducing the
+old evidence hashes. It downloads six distinct images, including the roughly
+4 GiB SDC1 image, and reuses that image for all eight cutouts. The Hydra archive,
+SDC1 submissions, truth catalogue and primary-beam map are unnecessary for
+these saved-product overlays and are not downloaded.
+
+Runs are serial, with two cores per finder by default. Use repeated `--dataset`
+options with case IDs listed by `--help` or `--dry-run` to select a subset;
+for example, `--dataset hydra-deep --dataset lotss-dr2-m51-20arcmin`.
+Use `--ncores` to set the CPU budget and `--output` to choose a new directory
+inside the checkout. Raw downloads reuse the cache under
+`benchmark-results/notebook-data/`; prepared cutouts remain with the comparison.
+
+The default output is `benchmark-results/notebook-comparison/`:
+
+- `input-campaign/` contains the input records, SDC1 cutouts and normalized
+  LoTSS images needed by Hebog refresh; Hydra images use the shared cache;
+- `reference-campaign/` contains both finders' native catalogues, masks or
+  support proxies, normalized comparison catalogues, and notebook metadata;
+- `request.json` records this setup's selected fields, runtimes and programs.
+
+Open the comparison notebook and set **Campaign root** to
+`benchmark-results/notebook-comparison/reference-campaign`. It is ready to
+inspect both references before running Hebog. The PyBDSF operational settings
+use 5-sigma detection and 3-sigma island thresholds with wavelets; Aegean uses
+5-sigma seeds and 4-sigma flooding. These are the existing reference options,
+not a threshold-matched completeness experiment. Aegean support is an explicit
+proxy derived from its components, not a native detection mask.
+
+To continue an interrupted setup, repeat the same options with `--resume` and
+omit `--build-images`. Completed results are verified and reused; downloads
+and unfinished finder work restart as needed. A failed setup does not publish
+a completed reference campaign. Use a new output directory when changing
+inputs, program versions or container identities. Existing results are never
+overwritten, and no existing replay or campaign is resumed by this script.
+If an image build failed before `request.json` was created, repeat the build
+command without `--resume`.
+
+### Add or refresh Hebog separately
+
+For the fresh comparison, run:
+
+```console
+uv run python scripts/benchmark/refresh_public_notebook_hebog.py \
+  --input-campaign benchmark-results/notebook-comparison/input-campaign/campaign.json \
+  --reference-campaign benchmark-results/notebook-comparison/reference-campaign/campaign.json \
+  --history-root benchmark-results/notebook-comparison/hebog-refreshes \
+  --label "Current Hebog"
+```
+
+Add `--preflight-only` to check the selected Hebog candidate first. Repeat this
+command after changing Hebog; add `--resume` only for an unchanged interrupted
+refresh. It reuses the reference products and never runs PyBDSF or Aegean.
+Set **Campaign root** to
+`benchmark-results/notebook-comparison/hebog-refreshes/latest` to inspect all
+three finders and the local Hebog history. Use a separate history directory
+for each input/reference set so previously completed runs cannot be confused.
+The existing Hebog candidate checks described below still apply.
+
+## Open an existing saved comparison
 
 The default **Campaign root** is
 `benchmark-results/phase-5/hebog-notebook-refreshes/latest`. You may instead
@@ -111,14 +221,12 @@ repository-relative paths together, not just `campaign.json` or the `latest`
 symlink. Use the input/reference options below if restoring a different
 supported campaign layout.
 
-The downloader provides public raw data only. It does not download generated
-Hebog/PyBDSF/Aegean results or rebuild the saved campaign. Rebuilding missing
-reference results is a separate container-backed operation with its own
-runtime and resource requirements; the historical one-look acquisition,
-selection and campaign commands are not a clean-checkout bootstrap recipe.
-The workbench can still be used immediately without those artifacts.
+To create a fresh comparison instead of restoring this historical bundle,
+use the setup workflow above. It generates new reference products from public
+images. The historical one-look acquisition, selection and campaign commands
+are not needed for that workflow; they retain their original evidence scope.
 
-## Refresh Hebog results in the comparison notebook
+## Refresh the existing SDC1/Hydra/LoTSS comparison
 
 First check the selected scientific implementation and available input records
 without running a finder:
@@ -163,14 +271,17 @@ uv run python scripts/benchmark/refresh_public_notebook_hebog.py --input-campaig
 ```
 
 Repeat with the same paths and `--label` instead of `--preflight-only` to run.
-Enter that completed run directory in **Campaign root**; the notebook's
-history selector still reads the default history index.
+Enter that completed run directory in **Campaign root**. The history selector
+reads its parent `index.json`; when viewing a reference campaign directly it
+looks for a sibling `hebog-refreshes/` directory.
 
 ## Common problems
 
 | Symptom | Action |
 | --- | --- |
-| No `campaign.json`, no cases, or missing FITS/native product | Restore the complete saved artifact tree or select another valid campaign root. Downloading raw survey images alone cannot fix missing comparison records. |
+| No `campaign.json`, no cases, or missing FITS/native product | Complete the new setup or restore the complete saved artifact tree, then select its campaign root. Raw downloads alone do not contain comparison records. |
+| Local image not found or wrong finder version | Use `--build-images` for a new setup, or supply compatible existing image tags. A build is never started implicitly. |
+| Setup output already exists | Use `--resume` with unchanged options or choose a new `--output`. Omit `--build-images` when resuming. |
 | `final public-interface identity changed` | The diagnostic runner's selected review does not match the science checkout. Current selection is the F4 filtered-response review, composition v15. A new scientific implementation needs its corresponding review and runner selection before this saved-comparison path can refresh. This is not a dependency-sync error; use the ordinary workbench for unrestricted exploration. |
 | Existing staging directory | Resume an unchanged interrupted refresh with `--resume`; preserve older staging when its scientific identity differs. |
 | LoTSS service unavailable or incomplete download | Retry the downloader. Use `--overwrite` to replace a bad cached file, or select an offline synthetic field. |
@@ -204,3 +315,19 @@ uv run python scripts/check_notebooks.py --output-directory benchmark-results/no
 
 For an individual notebook, Marimo also supports `export html`. A workbench
 export with unpressed run buttons does not exercise an image analysis.
+
+## Adding other source finders
+
+Keep PyBDSF and Aegean as the initial comparison. SoFiA 2 primarily targets
+3D spectral-line data cubes, especially H I surveys. A dedicated 2D experiment
+could be useful, but should specify spatial smoothing, noise handling and
+source measurement semantics rather than assume its cube workflow is a
+like-for-like continuum comparison ([SoFiA 2 paper](https://arxiv.org/abs/2106.15789)).
+
+For a next continuum comparison, consider ProFound first. Its segmentation
+approach has been studied on compact and extended radio-continuum emission,
+including flux recovery for complex sources
+([radio ProFound study](https://arxiv.org/abs/1902.01440)). This is a recommendation
+for a separate increment, not a new dependency or qualification requirement.
+Each added finder needs native product interpretation, versioned settings,
+empty/failure handling and a bounded diagnostic comparison before inclusion.

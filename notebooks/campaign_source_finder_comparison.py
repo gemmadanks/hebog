@@ -146,6 +146,13 @@ def _(
     def normalise_campaign_path(raw: str) -> Path:
         return Path(raw).expanduser().resolve()
 
+    def notebook_history_root(campaign: Path) -> Path:
+        """Find history beside this comparison or around a selected refresh."""
+        parent = campaign.resolve().parent
+        if (parent / "index.json").is_file():
+            return parent
+        return parent / "hebog-refreshes"
+
     def _resolve_relative_path(root: Path, raw: object, *, role: str) -> Path:
         relative = Path(str(raw))
         if relative.is_absolute():
@@ -1238,6 +1245,7 @@ def _(
         load_campaign_cases,
         load_case_overlays,
         normalise_campaign_path,
+        notebook_history_root,
         plot_case,
     )
 
@@ -1268,15 +1276,18 @@ def _(Path, mo):
 
             Inspect one sealed validation campaign case at a time. External
             synthetic campaigns compare Hebog, released PyBDSF, pinned PyBDSF
-            master, and Aegean against injected truth. Public campaigns expose
-            the Hebog result over the governed public image; their reference
-            catalogue comparisons remain in the compiled campaign evidence.
+            master, and Aegean against injected truth. Public comparisons show
+            the available reference and Hebog products over the same image.
+            Observational images do not provide injected ground truth.
 
             This notebook reads saved products; opening it does not run any
             finder. For setup, data downloads and refresh/resume instructions,
-            see `docs/how-to/notebooks.md`. With the saved input and reference
-            campaigns available, run these commands from the repository root,
-            then reload this notebook:
+            see `docs/how-to/notebooks.md`. A fresh comparison can be prepared
+            with `scripts/benchmark/prepare_notebook_comparison.py`; it runs
+            PyBDSF and Aegean separately from Hebog. The guide gives the refresh
+            paths for a fresh setup. For the existing 13-case SDC1/Hydra/LoTSS
+            comparison, run these commands from the repository root, then
+            reload this notebook:
 
             ```console
             uv run python scripts/benchmark/refresh_public_notebook_hebog.py --preflight-only
@@ -1733,14 +1744,8 @@ def _(
 
 
 @app.cell(hide_code=True)
-def _(Path, cases, json, mo, repository_root):
-    _history_index_path = (
-        repository_root
-        / "benchmark-results"
-        / "phase-5"
-        / "hebog-notebook-refreshes"
-        / "index.json"
-    )
+def _(Path, cases, json, mo, notebook_history_root, root):
+    _history_index_path = notebook_history_root(root) / "index.json"
     history_records: tuple[dict[str, object], ...] = ()
     _history_error = None
     try:
@@ -1753,6 +1758,8 @@ def _(Path, cases, json, mo, repository_root):
         history_records = tuple(
             _item for _item in _raw_history if isinstance(_item, dict)
         )
+    except FileNotFoundError:
+        pass
     except (OSError, TypeError, ValueError) as _history_load_error:
         _history_error = str(_history_load_error)
 
@@ -1793,17 +1800,21 @@ def _(Path, cases, json, mo, repository_root):
         label=f"Dataset | {len(_history_dataset_options)} available",
         full_width=True,
     )
-    _history_status = (
-        mo.callout(
+    if _history_error is not None:
+        _history_status = mo.callout(
             f"Hebog history could not be loaded: {_history_error}",
             kind="warn",
         )
-        if _history_error is not None
-        else mo.md(
+    elif history_records:
+        _history_status = mo.md(
             "Choose a dataset and the registered Hebog runs to compare. "
             "Runs that do not contain the selected dataset are skipped."
         )
-    )
+    else:
+        _history_status = mo.md(
+            "No Hebog refreshes are saved for this comparison yet. "
+            "Run the separate Hebog refresh command in the notebook guide."
+        )
     mo.vstack(
         [
             mo.md("## Hebog implementation history"),
@@ -2031,18 +2042,14 @@ def _(mo):
 
     Synthetic campaigns also provide a truth-layer selector. It can show every
     injected source or only one governed source subset, such as blended,
-    extended, or image-edge sources. The default registered refresh has no
-    injected truth. It overlays the latest source-identified Hebog run on the
-    sealed released PyBDSF and Aegean reference results, without a selectable
-    truth layer. The implementation-history section compares registered Hebog
-    runs visually; it does not turn public observations into ground truth.
+    extended, or image-edge sources. A reference comparison can be inspected
+    before a separate Hebog refresh adds its products. The implementation
+    history compares saved Hebog runs for the selected comparison. Public
+    observations have no selectable injected-truth layer.
 
     These images are qualitative diagnostics. They complement, but do not
     replace, the campaign's governed completeness, reliability, astrometry,
-    photometry, shape, association, and non-inferiority evidence. Public finder
-    campaigns contain Hebog products only, so public reference comparisons must
-    be presented from the separately compiled evidence rather than inferred
-    from source counts in this notebook.
+    photometry, shape, association, and non-inferiority evidence.
     """).callout(kind="info")
     return
 
