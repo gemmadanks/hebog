@@ -1,5 +1,8 @@
 # Development workflows
 
+For a short introduction to the project's algorithms, decisions and testing
+process, read [how Hebog has been developed](../explanation/development-history.md).
+
 ## Choose the appropriate test lane
 
 ```console

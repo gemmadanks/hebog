@@ -61,7 +61,9 @@ nav:
   - Home: index.md
   - Quick start: tutorials/index.md
   - Find sources: tutorials/find-sources.md
-  - Development: how-to/index.md
+  - Development:
+      - Development history: explanation/development-history.md
+      - Workflows: how-to/index.md
   - Reference:
       - API: reference/index.md
       - Domain glossary: reference/domain-glossary.md

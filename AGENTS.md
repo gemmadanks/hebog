@@ -72,9 +72,14 @@ Never hard-code those paths in package code or normal tests.
   The policy does not weaken the required PyBDSF/Rapthor compatibility target,
   scientific reproducibility, or support for the current platform matrix.
 - Use the lightest planning level in `PLAN.md`; keep the source-finder plan
-  current for project milestones and scientific or performance decisions.
+  concise and forward-looking. Its current-state summary identifies the
+  candidate, strongest applicable evidence, known blockers, authorized next
+  action, and deferred work. Keep chronology and exact evidence identities in
+  the log and existing evidence records, linked rather than repeated.
 - Append material completed work and validation evidence to `LOG.md`; do not
-  duplicate routine commits or user-visible release notes there.
+  duplicate routine commits or user-visible release notes there. When status
+  changes, update existing status summaries or replace them with a link to
+  the plan; do not leave contradictory "current" positions in project records.
 - Use one writing agent by default. Delegate only independent, bounded work.
 - Review meaningful changes against `CODE_REVIEW.md` before handoff.
 - Run `just pre-commit` after all final edits and immediately before every
@@ -83,6 +88,37 @@ Never hard-code those paths in package code or normal tests.
   anything; never commit the hook's known-failing state.
 - Record architecturally significant decisions with an ADR based on
   `docs/architecture/adr/template.md`.
+
+## Collaboration and repair decisions
+
+- The agent owns routine completeness checks, integration checks, and clear
+  recommendations. Do not depend on the user discovering missing checks,
+  requesting a cheap diagnostic, or reconstructing status across conversations.
+  Reserve human attention for scientific interpretation, priorities, and
+  trade-offs that require human judgment.
+- Before a scientific or campaign repair, write a short decision statement in
+  the existing task or plan: observed problem, proposed cause, independent
+  test, expected measurable change, and stopping condition. Distinguish a
+  correctness defect, agreed-gate failure, operational failure, and optional
+  improvement; an aggregate failed endpoint alone does not establish a cause.
+- After two repairs aimed at the same mechanism produce no material change
+  against the stated expectation, review the diagnosis and recommend a bounded
+  next step before another full replay. This is a reassessment trigger, not
+  permission to abandon required work, change gates, or retry closed evidence.
+- Follow the approved scope and severity policy. Keep development closure,
+  scientific qualification, release, and default cutover distinct. Record
+  optional improvements as deferred work rather than automatically expanding
+  the current milestone. Known incorrect supported outputs remain release
+  blockers; a phase label or accepted development limitation cannot waive them.
+- Carry existing authorization forward within its scope. Complete authorized
+  preparation and present a concrete recommendation before requesting a new
+  scientific or resource decision. Explain the exact boundary requiring that
+  decision; do not add approval steps for routine reversible work.
+- At milestone reviews, use the existing log to assess time to actionable
+  diagnosis, avoidable campaign interruptions, repairs without useful change,
+  and user effort needed to recover status or scope. Use these observations to
+  improve the workflow, not commit counts, test totals, or documentation volume
+  as productivity targets. Do not introduce a separate tracking framework.
 
 ## Source-finder constraints
 
@@ -240,6 +276,28 @@ scientific review before promotion. Every algorithm milestone needs tests for:
 Compare Dask results against the serial reference before comparing either with
 PyBDSF. Report low-SNR threshold crossings as completeness and reliability
 changes rather than hiding them as unmatched rows.
+
+Before a long scientific campaign or replacement replay, run a bounded
+development screen through the existing runner and evaluator, with an explicit
+time and resource budget. Reuse verified screen evidence when its scientific
+and execution identities remain applicable; rerun affected checks when they
+change. Select cases before inspecting their results: ordinary controls,
+independent examples of known failure mechanisms, valid empty results, and
+relevant numerical and invalid-pixel boundaries. Exercise the public finder,
+capture, native product reading, evaluation, and final aggregation, including
+Serial/existing-Dask agreement. Provenance-only preflight does not replace
+this execution check.
+
+For a scientific candidate, include paired comparisons with the required
+references and incumbent where applicable; verified immutable comparator
+products may be reused under the existing protocol. Inspect meaningful
+scientific deltas and representative notebook plots as diagnostics. Keep the
+screen separate from held-out qualification, record its limits, and resolve or
+explicitly defer warnings under the agreed severity policy before launch.
+A small clean screen cannot establish powered parity or a numerical probability
+of campaign success.
+These checks do not alter frozen populations, gates, evidence, or execution
+authority, and must not create a second campaign framework.
 
 ## Performance validation
 
@@ -410,6 +468,10 @@ any supported tier requires an explicitly approved and documented trade-off.
   add a Gherkin framework unless domain experts will review or author feature
   files.
 - Test observable behaviour, error messages, and public-boundary validation.
+- Exercise a small complete user workflow early in each relevant milestone
+  and repair cycle, through the supported public API and emitted products.
+  Stage-level tests must be complemented by checks of their composition;
+  include a regression at the boundary where a defect escaped earlier tests.
 - Add a regression test before fixing incorrect behaviour when practical.
 - Run `just coverage` after changing production code, validation rules, or
   control flow. Inspect line and branch misses in every changed production
@@ -456,6 +518,11 @@ any supported tier requires an explicitly approved and documented trade-off.
 - Keep API paths aligned with importable modules under `src/hebog/`.
 - Keep interactive examples exclusively as Marimo Python files under
   `notebooks/`.
+- Keep astronomer workflows short and based on the public API. Do not make
+  notebooks assemble internal scientific stages to compensate for a missing
+  public boundary. Use a runnable example to expose integration gaps early;
+  inspect rendered outputs when changing plots or notebook behaviour, alongside
+  automated checks. Visual inspection is diagnostic, not qualification.
 - Validate Marimo notebooks with `just marimo-check` after changing them.
 - `site/`, `dist/`, and `build/` are generated artifacts and must not be
   committed.
@@ -492,6 +559,11 @@ any supported tier requires an explicitly approved and documented trade-off.
 - Mark user-visible pre-`1.0` breaking changes clearly in their Conventional
   Commit and current documentation, but do not preserve the replaced Hebog
   behaviour or write migration support by default.
+- Lead handoffs with the observable outcome, what the checks establish, the
+  remaining uncertainty, and the next authorized action or required decision.
+  State the candidate and evidence scope when interpreting scientific results.
+  Test counts, coverage, successful execution, and historical stage passes do
+  not establish current public-profile parity or release readiness.
 
 Before handing off a meaningful change:
 
