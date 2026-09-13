@@ -10,13 +10,13 @@ identities, execution history and completed validation belong in
 
 | Item | Current position |
 | --- | --- |
-| Candidate | Public composition v15, science commit `73ab5af...`; [frozen F4 review](../config/contracts/phase-5-filtered-response-domain-repair-identity-review.json). Development-unqualified. |
+| Candidate | Public composition v16 fallback repair under validation; latest completed campaign is v15 at `73ab5af...` ([F4 review](../config/contracts/phase-5-filtered-response-domain-repair-identity-review.json)). Development-unqualified. |
 | Implemented | FITS/WCS ingress, background/RMS, compact and multiscale detection, source/component measurement, catalogue/mask/RMS/diagnostics publication, Serial and caller-owned Dask execution, Zarr intermediates. |
 | Public envelope | ICRS `Jy/beam` FITS, at most 1,024 pixels on either spatial axis. `continuum` is the default; explicit `compact` is extended-emission-incomplete. Custom thresholds execute but remain unqualified. |
 | Strongest applicable checks | F4 focused regressions, 27 frozen equivalence tests, exact Serial/Dask checks and 95.2963% portable branch-aware coverage pass. The 24-input public screen completed; its 49 point-estimate warnings remain. This is development evidence, not powered parity. |
 | Campaign | Verified v15 terminal: scientific **fail**, 1,115 pass / 32 fail / 40 underpowered comparisons. All five safety checks pass; 2,400 captures/evaluations, 12 exact Dask agreements and 8,000 retained records verified. No definite binding external-reference failure, but parity and incumbent retention are not established. |
-| Blockers | Two confirmed high-SNR corner-source Gaussian fallback errors; unresolved historical position witness; human severity disposition and final merge/release validation. Scientific qualification, Rapthor integration and complete-path performance remain unproven. |
-| Next authorized action | Present the completed terminal/severity inventory and narrow Gaussian-admission repair recommendation below. Further scientific repair needs review; no automatic retry, rescoring or release. |
+| Blockers | Validate/freeze the Gaussian fallback repair; independently repair confirmed corner-background errors; resolve historical position witness; human severity disposition and final merge/release validation. Scientific qualification, Rapthor integration and complete-path performance remain unproven. |
+| Next authorized action | Implement the approved narrow Gaussian-fallback admission repair and independently diagnose corner-source misses, with focused scientific and Serial/Dask checks. No automatic replay, closed-data rescoring or release. |
 | Deferred | Broader faint-source association repair (F2), optional scientific improvement, full qualification and facility-scale work. Reopen a deferred issue if triage establishes a serious correctness impact. |
 
 The [campaign overview](../docs/reference/phase-5-campaign-overview.md)
@@ -84,7 +84,7 @@ remain human decisions.
       only evidence whose identities remain applicable. No full replay follows
       automatically; after two ineffective repairs reassess the diagnosis.
       Mark this task not needed if M2 finds no serious defects.
-      **Proposed next repair, not yet approved:** an invalid free Gaussian can
+      **Approved 13 September:** an invalid free Gaussian can
       fall back to a numerically valid but scientifically inadequate unresolved
       beam model. Independently test point versus resolved edge/corner sources,
       require correct or explicitly unavailable Gaussian outputs, preserve
@@ -94,6 +94,40 @@ remain human decisions.
       earlier position witness. Stop at a bounded repaired-candidate handoff;
       another full replay is not automatic. Details and stopping conditions
       are in the campaign overview's correctness inventory.
+
+      **Repair decision:** optimizer convergence/conditioning does not prove
+      that an unresolved fallback describes the observed emission. Reuse the
+      existing original-pixel, multiscale residual-adequacy rule and nearest
+      parent attribution before admitting a beam fallback from an invalid
+      free fit, over its actual likelihood support; do not introduce a
+      chi-squared cutoff from closed witnesses.
+      Independent analytic point/resolved, interior/edge/corner and invalid-
+      pixel controls must show that inadequate fallback Gaussians become
+      explicitly unavailable while valid fits, detected support and independent
+      source photometry remain intact. Keep retained neighbours' parameters
+      and covariance from the same joint solution, not interchangeable refits.
+      The initial whole-parent rejection failed the open-arc controls: two bad
+      fallbacks must not erase three valid resolved neighbours or demand that
+      a component explain emission outside its fit domain. Admission is thus
+      attributed per component on the unchanged joint model. Stop and reassess
+      if those controls fail; do not spend another campaign on an unverified
+      hypothesis.
+
+      **Separate corner-background follow-up:** saved planes show substantial
+      over/under-subtraction, including complete loss of direct support in four
+      high-SNR cases. A six-pixel final mesh spacing amplifies small background
+      sample errors by extrapolation at the corner. Independently isolate
+      coarse/adaptive interpolation and protection; require constant and real
+      gradient backgrounds, both noise signs, sources, invalid pixels and
+      partition invariance. Preserve real gradients when selecting a stable
+      boundary policy. The Gaussian guard does not close this release blocker.
+
+      **Evidence priority:** assess each finder against analytic/injected
+      truth, then compare like semantics with released and pinned-master
+      PyBDSF for the functionality Rapthor needs. Previous Hebog is a
+      non-regression diagnostic, not the scientific target. This prioritization
+      does not erase the v15 incumbent failures, relax frozen comparisons or
+      permit known incorrect supported outputs to ship.
 - [ ] **M4 — Review the actual merge diff.** Compare the branch to main using
       `CODE_REVIEW.md`; preserve unrelated changes, check public/schema breaks,
       dependencies, packaging and provenance. Keep production changes with

@@ -9,7 +9,10 @@ for merge, experimental release and later qualification tasks.
 
 ## Current candidate and evidence
 
-Composition **v15**, science commit `73ab5af...`, includes the Gaussian-validity
+Composition **v16** adds the approved fallback-admission repair described
+below and is undergoing development validation. Its checks do not qualify it
+or transfer the v15 campaign result. The latest completed campaign is for
+**v15**, science commit `73ab5af...`, which includes the Gaussian-validity
 repair and the approved F4 filtered-response correction. The
 [frozen identity review](https://github.com/gemmadanks/hebog/blob/main/config/contracts/phase-5-filtered-response-domain-repair-identity-review.json)
 binds its source, configuration and validation. It remains
@@ -127,17 +130,43 @@ blocker**, with a narrow test-first repair recommended before development
 closeout or an experimental release, rather than a reason to retune the whole
 finder or repeat the campaign.
 
-Proposed bounded repair decision: distinguish a genuinely unresolved source
-from a rejected resolved/truncated fit using independently specified analytic
-controls. Cover interior/edge/corner, noise, invalid pixels and resolved versus
-point-source models through public publication and Serial/existing-Dask
-execution. Require valid point fits to remain accepted, and demonstrably
-inadequate fallbacks to be explicitly unavailable or correctly measured; do not
-fabricate reliable Gaussian flux/errors from numerical convergence. Review any
-new scientific admission rule before promotion. Stop when independent controls
-and affected non-regression checks pass; do not tune a cutoff on these closed
-seeds, rescore them, or launch another full replay automatically. Trace the ten
-missing corner rows separately before claiming that this repair fixes them.
+The human approved a bounded repair on 13 September, prioritizing truth-based
+PyBDSF parity/improvement over optimizing against previous Hebog. V16 reuses
+the existing direct/multiscale residual-adequacy rule for beam fallbacks from
+invalid free fits, on the declared likelihood support and with per-component
+attribution. Failed admission reports `fit-model-inadequate`; source support
+and independent aperture photometry remain intact. Other components retain
+the same joint parameters/covariance, not separately refitted substitutes.
+Independent point/resolved, interior/edge/corner and invalid-pixel controls
+reproduce the defect and preserve valid point models. Open-arc controls exposed
+overly broad whole-parent rejection during development: retain the three valid
+resolved components while explicitly omitting two inadequate beam fallbacks.
+Their independent shape evidence still supports the source's arc association.
+No chi-squared cutoff was selected from closed seeds. Final validation and
+candidate freeze belong in the log; this is not a new parity verdict.
+
+Read-only inspection of the saved input/background/support planes narrows the
+corner-miss diagnosis. At the local source peak, **all ten missing SNR-50
+cases have positive estimated backgrounds between 0.00466 and 0.01769 Jy/beam**,
+versus the injected mean of approximately −0.000230 Jy/beam. Four retain no
+direct-detection pixels in the inspected corner at all. The bad-fit seed
+2026870777 instead has background −0.01355 Jy/beam there; 2026870667 is close
+to the true mean. Background corruption and fallback admission are thus
+distinct issues; repairing Gaussian admission cannot restore lost detections.
+
+The boundary interpolator supplies a concrete instability hypothesis: on a
+512-square image the protected coarse mesh has 128-pixel windows and a
+42-pixel step, but its final two centres are only **six pixels apart**.
+Bilinear extrapolation from them to the image corner amplifies an independent
+`0.0001` Jy/beam last-cell perturbation to `0.01341736` Jy/beam. This bounded
+analytic conditioning check neither reruns the finder nor scores campaign
+data. A source-protection or adaptive-stage contribution is not excluded by
+the saved final planes. Next, independently isolate coarse/adaptive boundary
+effects with constant and genuine-gradient backgrounds, both noise signs,
+corner sources, invalid pixels and Serial/Dask partition controls. Select a
+stable boundary policy without sacrificing true gradients; do not clamp or
+tune on the viewed seeds. The observed background error remains a release
+blocker until that cause and correction are verified.
 
 The earlier public Hydra figure-12 displacement belongs to v12, not v15.
 F1/F4 fixtures do not prove its exact resolution. Retain it as an unresolved
@@ -152,9 +181,10 @@ morphology and inconclusive comparisons can be deferred only with their
 impact explained. Uncertain serious impact requires bounded triage and human
 disposition. A confirmed incorrect supported output remains a release blocker.
 
-Terminal handling is complete; scientific repair approval and final M2
-disposition remain human decisions. The recommendation is to address the narrow
-Gaussian fallback defect, then prioritize complete-path profiling and bounded
+Terminal handling is complete; the narrow repair is approved, while final M2
+disposition remains a human decision. Complete Gaussian admission and the
+separate confirmed background-error investigation before correctness clearance,
+then prioritize complete-path profiling and bounded
 scalability, with explicitly reviewed uncertainty/faint-morphology limitations.
 There is no recommendation for another long campaign now. Scientific readiness
 still needs candidate-bound parity/retention, fresh evidence and independent

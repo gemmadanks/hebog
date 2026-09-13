@@ -20557,3 +20557,65 @@ scientific pass from fixture validation.
   campaign evidence, the immutable checkout and all original failures remain
   intact. A future scientific repair or execution needs its own reviewed scope,
   not an hourly monitor retrying this closed result.
+
+### 2026-09-13 — Gaussian fallback admission and corner-background diagnosis
+
+- Continue the approved bounded M3 repair. The user prioritizes scientific
+  parity/improvement with released and pinned-master PyBDSF for Rapthor, not
+  optimization against previous Hebog. Each finder is still judged against
+  analytic/injected truth; previous-Hebog comparisons remain recorded. No
+  frozen gate, terminal, matching rule or execution authorization changes.
+- Confirm three red analytic regressions before implementation: a resolved
+  source at the interior, edge and corner receives a real beam fallback after
+  rejection of its free ellipse and incorrectly retains a Gaussian row. The
+  independent test limits the allowed free axis ratio, not the observed pixels
+  or closed campaign thresholds. Reuse existing direct/multiscale residual
+  adequacy for invalid-free-fit beam fallbacks. Report `fit-model-inadequate`
+  instead of a misleading unresolved Gaussian; preserve attempted diagnostics,
+  detected ownership and independent signed source photometry.
+- An initial whole-parent/read-halo rejection failed the open-arc controls:
+  two inadequate fallbacks must not erase three valid resolved peers. Apply
+  adequacy on the actual likelihood pixels with existing nearest-component
+  attribution to the unchanged joint model. Retained peers keep that solution's
+  exact parameters/covariance, without refitting or splicing. Missing shape
+  evidence cannot veto independent arc evidence from three valid peers. This
+  fixture failure was addressed before any campaign, not by changing gates.
+- The resolved-source regressions now pass with unchanged source flux/support.
+  Twenty-four point-source controls cover four invalid-free-fit reasons,
+  interior/edge/corner and an invalid peak pixel: adequate beam models retain
+  analytic flux and position. Two likelihood-domain controls distinguish owned
+  pixels from bounded context. New public Serial/existing-Dask controls for
+  an ellipse and protected coarse-background field produce identical catalogue,
+  mask, RMS and diagnostic hashes while retaining explicitly unavailable fits.
+- The first full coverage run exposed five notebook integration assertions
+  that assumed every retained source had a Gaussian, or that all unavailable
+  fits shared the injected solver failure. The real runner correctly retained
+  four sources and one Gaussian in its mixed-geometry fixture. Replace those
+  count assumptions with exact member/disposition accounting and both explicit
+  failure reasons; preserve the valid-Gaussian, product-alignment, coordinate-
+  frame and numerical-failure assertions. All 15 exact notebook-runner tests
+  then pass. No plotting code or viewed notebook results were changed.
+- Read only saved v15 input/background/support planes for the ten missing
+  SNR-50 corner sources. In seed suffix order 0049, 0064, 0197, 0391, 0400,
+  0566, 0615, 0645, 0712 and 0794, local peak background values are approximately
+  0.012442, 0.011384, 0.005147, 0.015484, 0.007800, 0.009867, 0.004664,
+  0.017694, 0.010855 and 0.013550 Jy/beam, against injected mean −0.000230.
+  The corner window is `y >= 480, x >= 490`; 0049, 0391, 0566 and 0712 have
+  no direct-support pixels there. The two bad-fit witnesses differ: 0667 has
+  background approximately −0.000149, whereas 0777 has −0.013549 Jy/beam.
+  Thus background corruption is a separate confirmed problem, not something
+  the Gaussian guard can clear. Records remain under the preserved v15 pair
+  namespace documented above; none was refitted, rematched or rescored.
+- Independently inspect the existing 512-square coarse grid: 128-pixel windows
+  and step 42 end with centres 441.5 and 447.5. Unbounded bilinear extrapolation
+  to (511, 511) amplifies a sole `0.0001` Jy/beam final-cell perturbation to
+  `0.0134173611` Jy/beam (134.17 times). This is an analytic conditioning
+  witness, not a source-finder run. Saved final planes do not isolate whether
+  coarse, adaptive or source-protection estimates initiate the error. Record
+  a separate constant/true-gradient, both-noise-sign, edge/corner/invalid-pixel
+  and partition-invariance investigation before selecting a stable boundary
+  policy. Do not tune that policy on these viewed seeds.
+- Composition v16 identifies the bounded admission change; it is development-
+  unqualified. The background defect and historical position witness remain
+  open release blockers. Stop at validated non-executable freeze; no replay,
+  external finder run, qualification, release or push is performed.

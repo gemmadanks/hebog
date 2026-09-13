@@ -20,6 +20,7 @@ from scipy.ndimage import gaussian_filter
 
 from hebog import public_science
 from hebog.algorithms import component_measurement
+from hebog.algorithms import fitting as gaussian_fitting
 from hebog.algorithms.component_measurement import ComponentGroupingEvidence
 from hebog.algorithms.extended_measurement import (
     measure_detected_segment_position,
@@ -657,6 +658,122 @@ def test_rejected_ellipse_keeps_source_photometry_and_support(
     )
 
 
+@pytest.mark.parametrize("center_xy", ((32.3, 24.1), (0.7, 24.1), (0.7, 0.9)))
+def test_inadequate_beam_fallback_keeps_source_not_gaussian(
+    monkeypatch: pytest.MonkeyPatch,
+    center_xy: tuple[float, float],
+) -> None:
+    """A failed resolved ellipse is not evidence for an unresolved source.
+
+    Limit the test-only axis ratio to exercise a real rejected free fit and
+    real beam fallback on independent analytic pixels, not campaign seeds.
+    """
+    yy, xx = np.mgrid[:49, :65]
+    signal = 100 * np.exp(
+        -0.5
+        * (((xx - center_xy[0]) / 6) ** 2 + ((yy - center_xy[1]) / 2) ** 2)
+    )
+    baseline = _products(signal)
+    original = component_measurement.fit_compact_gaussian_mixture
+
+    def limited_ellipse(
+        compact: Any,
+        moments: Any,
+        geometry: Any,
+        config: CompactGaussianFitConfig,
+    ) -> tuple[CompactGaussianFitResult, ...]:
+        return original(
+            compact,
+            moments,
+            geometry,
+            replace(
+                config, model_selection="beam-or-free", maximum_axis_ratio=2
+            ),
+        )
+
+    monkeypatch.setattr(
+        component_measurement, "fit_compact_gaussian_mixture", limited_ellipse
+    )
+    rejected = _products(signal)
+    disposition = next(
+        row
+        for row in rejected.measurement_dispositions
+        if row.object_kind == "component"
+    )
+    assert disposition.fit_diagnostics is not None
+    assert disposition.fit_diagnostics.model_identity == "beam-constrained"
+    assert (
+        disposition.fit_diagnostics.fallback_reason
+        == "free-model-invalid-result"
+    )
+    assert not rejected.component_catalogue
+    assert disposition.status == "unavailable"
+    assert disposition.reason == "fit-model-inadequate"
+    assert not disposition.catalogue_row_published
+    assert len(rejected.catalogue) == len(baseline.catalogue) == 1
+    assert rejected.catalogue[0].integrated_flux_jy == pytest.approx(
+        baseline.catalogue[0].integrated_flux_jy
+    )
+    np.testing.assert_array_equal(
+        rejected.measurement_component_labels,
+        baseline.measurement_component_labels,
+    )
+    assert (
+        type(disposition).model_validate_json(disposition.model_dump_json())
+        == disposition
+    )
+
+
+@pytest.mark.parametrize(
+    "fallback_reason",
+    (
+        "free-model-bound-contact",
+        "free-model-ill-conditioned",
+        "free-model-non-convergence",
+        "free-model-invalid-result",
+    ),
+)
+@pytest.mark.parametrize("center_xy", ((32.3, 24.1), (0.7, 24.1), (0.7, 0.9)))
+@pytest.mark.parametrize("invalid_pixel", (False, True))
+def test_valid_point_fallback_survives_free_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    fallback_reason: str,
+    center_xy: tuple[float, float],
+    invalid_pixel: bool,
+) -> None:
+    """Numerical free-model failure cannot forbid an adequate point model."""
+    yy, xx = np.mgrid[:49, :65]
+    signal = 50 * np.exp(
+        -4
+        * np.log(2)
+        * ((xx - center_xy[0]) ** 2 + (yy - center_xy[1]) ** 2)
+        / 16
+    )
+    if invalid_pixel:
+        signal[round(center_xy[1]), round(center_xy[0])] = np.nan
+
+    def failed_free(*_args: Any, **_kwargs: Any) -> str:
+        return fallback_reason
+
+    monkeypatch.setattr(gaussian_fitting, "_free_fallback_reason", failed_free)
+    result = _products(signal)
+    assert len(result.component_catalogue) == len(result.catalogue) == 1
+    component = result.component_catalogue[0]
+    assert component.integrated_flux_jy == pytest.approx(50, rel=0.001)
+    pixel = WCS(_header(signal.shape)).celestial.all_world2pix(
+        [[component.right_ascension_degrees, component.declination_degrees]], 0
+    )[0]
+    np.testing.assert_allclose(pixel, center_xy, atol=0.001)
+    disposition = next(
+        row
+        for row in result.measurement_dispositions
+        if row.object_kind == "component"
+    )
+    assert disposition.status == "measured"
+    assert disposition.fit_diagnostics is not None
+    assert disposition.fit_diagnostics.fallback_reason == fallback_reason
+
+
 @pytest.mark.parametrize("peak", (6.0, 10.0, 100.0))
 def test_compact_shape_is_not_a_threshold_truncated_moment(
     peak: float,
@@ -783,9 +900,16 @@ def test_open_arc_keeps_its_components_and_single_flux_owner(
     products = _products(signal)
     assert len(products.catalogue) == 1
     assert len(products.component_catalogue) >= 3
+    unavailable = [
+        row
+        for row in products.measurement_dispositions
+        if row.object_kind == "component" and row.status == "unavailable"
+    ]
+    assert all(row.reason == "fit-model-inadequate" for row in unavailable)
+    assert all(not row.catalogue_row_published for row in unavailable)
     assert products.catalogue[0].component_count == len(
         products.component_catalogue
-    )
+    ) + len(unavailable)
     truth_flux = float(signal.sum()) / (np.pi * 16 / (4 * np.log(2)))
     assert products.catalogue[0].integrated_flux_jy == pytest.approx(
         truth_flux, rel=0.05

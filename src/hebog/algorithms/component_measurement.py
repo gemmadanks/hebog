@@ -50,6 +50,7 @@ from hebog.algorithms.reconciliation import DetectedIsland
 from hebog.config import CompactGaussianFitConfig, CompactMomentConfig
 from hebog.data_models.fitting import (
     CompactGaussianFitResult,
+    FailedCompactGaussianFit,
     ValidCompactGaussianFit,
 )
 from hebog.data_models.images import RestoringBeam
@@ -249,6 +250,79 @@ def _owned_residual_feature(
         if attribution[slices].ravel()[position]:
             return True
     return False
+
+
+def _invalid_free_fallback(fit: ValidCompactGaussianFit) -> bool:
+    """An invalid ellipse is not evidence that its owner is unresolved."""
+    return (
+        fit.diagnostics.model_identity == "beam-constrained"
+        and fit.diagnostics.fallback_reason
+        in {
+            "free-model-bound-contact",
+            "free-model-ill-conditioned",
+            "free-model-non-convergence",
+            "free-model-invalid-result",
+        }
+    )
+
+
+def _admit_fallbacks(  # noqa: PLR0913, PLR0917
+    fits: tuple[tuple[int, ValidCompactGaussianFit], ...],
+    compact: _ComponentFitInput,
+    fit_config: CompactGaussianFitConfig,
+    plan: ResidualAtrousPlan,
+    minimum_support_fraction: float,
+    detection_sigma: float,
+    island_sigma: float,
+    minimum_pixels: int,
+) -> tuple[tuple[int, CompactGaussianFitResult], ...]:
+    """Reject inadequate beam fallbacks on their actual likelihood support.
+
+    A component need not explain extended emission outside its fitting
+    domain. Neighbours retain the original joint parameters/covariance;
+    neither refit them independently nor splice in a competing solution.
+    """
+    if not any(_invalid_free_fallback(fit) for _, fit in fits):
+        return fits
+    model, _ = _model_and_groups(fits, compact.array_bounds)
+    valid = compact.valid_pixels
+    if fit_config.pixel_support == "owned-region":
+        valid = valid & (compact.region_labels > 0)
+    nearest = expand_source_measurement_labels(
+        compact.region_labels,
+        compact.valid_pixels,
+        radius_pixels=ceil(float(np.hypot(*model.shape))),
+    )
+    output: list[tuple[int, CompactGaussianFitResult]] = []
+    for index, fit in fits:
+        if _invalid_free_fallback(fit) and _unmodelled_detection(
+            compact.physical_residual - model,
+            compact.rms,
+            valid,
+            detection_sigma,
+            island_sigma,
+            minimum_pixels,
+            plan,
+            minimum_support_fraction,
+            nearest == index,
+        ):
+            output.append(
+                (
+                    index,
+                    FailedCompactGaussianFit(
+                        moment=fit.moment,
+                        reason="fit-model-inadequate",
+                        diagnostics=fit.diagnostics,
+                        quality_flags=(
+                            "fit-model-inadequate",
+                            "joint-gaussian-fit",
+                        ),
+                    ),
+                )
+            )
+        else:
+            output.append((index, fit))
+    return tuple(output)
 
 
 def _unmodelled_detection(  # noqa: PLR0913, PLR0917
@@ -646,10 +720,10 @@ def _cross_parent_loop_groups(  # noqa: PLR0913, PLR0917
             )
             if index > 0
         )
-        if (
-            len(indexes) < _MINIMUM_LOOP_COMPONENTS
-            or not indexes <= by_label.keys()
-        ):
+        # An unavailable component supplies no shape evidence, but cannot
+        # veto independent tangential evidence from three measured peers.
+        indexes &= by_label.keys()
+        if len(indexes) < _MINIMUM_LOOP_COMPONENTS:
             continue
         bounds = ImageBounds(
             max(0, ys.start - margin),
@@ -1049,7 +1123,6 @@ def measure_component_models(  # noqa: PLR0913, PLR0917, PLR0915
             ),
         )
         labelled = tuple(zip(indexes, fitted, strict=True))
-        output.extend(labelled)
         # Measurement-only persistent emission belongs to admitted owners
         # independently of whether a compact Gaussian describes them. A
         # bounded or unavailable fit must not truncate extended photometry.
@@ -1069,10 +1142,26 @@ def measure_component_models(  # noqa: PLR0913, PLR0917, PLR0915
             if isinstance(fit, ValidCompactGaussianFit)
             and "fit-at-bound" not in fit.quality_flags
         )
+        admitted = _admit_fallbacks(
+            complete,
+            compact,
+            fit_config,
+            atrous_plan,
+            minimum_support_fraction,
+            detection_sigma,
+            island_sigma,
+            minimum_pixels,
+        )
+        by_index = dict(admitted)
+        output.extend(
+            (index, by_index.get(index, fit)) for index, fit in labelled
+        )
         expected_indexes = set(
             np.unique(measurement_labels[window][parent_support])
         ) - {0}
-        if len(complete) != len(expected_indexes):
+        if len(complete) != len(expected_indexes) or any(
+            isinstance(fit, FailedCompactGaussianFit) for _, fit in admitted
+        ):
             continue
         model, groups = _model_and_groups(complete, bounds)
         covariance = geometry.restoring_beam_covariance_pixels_squared

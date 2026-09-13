@@ -161,8 +161,33 @@ def test_exact_notebook_runner_completes_geometry_matrix(
     assert np.any(publication > 0)
     assert not np.any((publication > 0) & (measurement <= 0))
     assert terminal["source_count"] >= 1
-    assert terminal["component_count"] >= terminal["source_count"]
+    assert terminal["component_count"] >= 1
     assert terminal["measurement_dispositions"]
+    components = {
+        row["object_id"]: row
+        for row in terminal["measurement_dispositions"]
+        if row["object_kind"] == "component"
+    }
+    sources = [
+        row
+        for row in terminal["measurement_dispositions"]
+        if row["object_kind"] == "source"
+    ]
+    assert {
+        member for row in sources for member in row["member_component_ids"]
+    } == components.keys()
+    missing = [
+        row for row in components.values() if row["status"] == "unavailable"
+    ]
+    assert missing
+    assert all(row["reason"] == "fit-model-inadequate" for row in missing)
+    assert all(not row["catalogue_row_published"] for row in missing)
+    assert all(row["estimator"] is None for row in missing)
+    assert all(row["fit_diagnostics"] is not None for row in missing)
+    assert (
+        sum(row["catalogue_row_published"] for row in components.values())
+        == terminal["component_count"]
+    )
     assert (
         sum(
             row["catalogue_row_published"]
@@ -360,9 +385,11 @@ def test_notebook_retains_numerical_fit_failures_without_aborting_image(
     ]
     missing = [row for row in components if row["status"] == "unavailable"]
     assert missing
-    assert all(
-        row["reason"] == "fit-linear-algebra-failure" for row in missing
-    )
+    expected_reasons = {"fit-linear-algebra-failure"}
+    if failure_mode == "first":
+        # The other real solves still exercise scientific fallback admission.
+        expected_reasons.add("fit-model-inadequate")
+    assert {row["reason"] for row in missing} == expected_reasons
     assert all(not row["catalogue_row_published"] for row in missing)
     assert all(row["estimator"] is None for row in missing)
     published = [row for row in components if row["catalogue_row_published"]]

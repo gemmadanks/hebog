@@ -25,6 +25,7 @@ from hebog.algorithms.multiscale import (
 )
 from hebog.config import CompactGaussianFitConfig, CompactMomentConfig
 from hebog.data_models.fitting import (
+    FailedCompactGaussianFit,
     UnavailableCompactGaussianFit,
     ValidCompactGaussianFit,
 )
@@ -170,6 +171,59 @@ def test_sparse_parent_and_component_labels_preserve_model_measurements() -> (
     assert isinstance(first, ValidCompactGaussianFit)
     assert isinstance(second, ValidCompactGaussianFit)
     assert first.parameters == second.parameters
+
+
+@pytest.mark.parametrize("pixel_support", ("owned-region", "bounded-context"))
+def test_fallback_adequacy_uses_the_declared_likelihood_domain(
+    monkeypatch: pytest.MonkeyPatch, pixel_support: str
+) -> None:
+    """Outside-domain emission cannot reject a Gaussian component.
+
+    Tag the fitted record as a fallback to isolate admission, then place
+    residual emission outside its owned pixels but inside the read halo.
+    Public tests separately exercise actual beam model selection.
+    """
+    captured: list[Any] = []
+    original = measurement.fit_compact_gaussian_mixture
+
+    def capture(compact: Any, *args: Any, **kwargs: Any):
+        captured.append((compact, args[-1]))
+        return original(compact, *args, **kwargs)
+
+    monkeypatch.setattr(measurement, "fit_compact_gaussian_mixture", capture)
+    result = _measure()
+    fit = result.fits[0][1]
+    assert isinstance(fit, ValidCompactGaussianFit)
+    compact, config = captured[0]
+    residual = compact.physical_residual.copy()
+    residual[2:7, 2:7] += 50
+    assert not np.any(compact.region_labels[2:7, 2:7])
+    compact = replace(compact, physical_residual=residual)
+    fit = replace(
+        fit,
+        diagnostics=replace(
+            fit.diagnostics,
+            model_identity="beam-constrained",
+            fallback_reason="free-model-ill-conditioned",
+        ),
+    )
+    beam = BeamShapePixels(4, 3, 0)
+    config = replace(config, pixel_support=pixel_support)
+    actual = measurement._admit_fallbacks(
+        ((1, fit),),
+        compact,
+        config,
+        build_residual_atrous_plan(beam, noise_correlation=beam),
+        0.5,
+        5.0,
+        3.0,
+        7,
+    )[0][1]
+    if pixel_support == "owned-region":
+        assert actual is fit
+    else:
+        assert isinstance(actual, FailedCompactGaussianFit)
+        assert actual.reason == "fit-model-inadequate"
 
 
 def test_parent_work_deferral_does_not_allocate_a_fit() -> None:

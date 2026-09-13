@@ -754,8 +754,17 @@ def test_public_preview_rejects_inputs_beyond_qualified_envelope(
 
 
 @pytest.mark.integration
-@pytest.mark.parametrize("fit_outcome", ("normal", "linear-algebra-failure"))
-@pytest.mark.parametrize("image_kind", ("shell", "coarse-protection"))
+@pytest.mark.parametrize(
+    ("image_kind", "fit_outcome"),
+    (
+        ("shell", "normal"),
+        ("shell", "linear-algebra-failure"),
+        ("ellipse", "inadequate-fallback"),
+        ("coarse-protection", "normal"),
+        ("coarse-protection", "linear-algebra-failure"),
+        ("coarse-protection", "inadequate-fallback"),
+    ),
+)
 def test_serial_and_existing_dask_publish_identical_scientific_products(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -769,7 +778,21 @@ def test_serial_and_existing_dask_publish_identical_scientific_products(
             raise np.linalg.LinAlgError("SVD did not converge for slice = 0.")
 
         monkeypatch.setattr(fitting_algorithm, "least_squares", fail)
+    elif fit_outcome == "inadequate-fallback":
+
+        def invalid_free(*_args: object, **_kwargs: object) -> str:
+            return "free-model-invalid-result"
+
+        monkeypatch.setattr(
+            fitting_algorithm, "_free_fallback_reason", invalid_free
+        )
     image = _ring_image()
+    if image_kind == "ellipse":
+        yy, xx = np.mgrid[:49, :65]
+        image = 100 * np.exp(
+            -0.5 * (((xx - 32.3) / 6) ** 2 + ((yy - 24.1) / 2) ** 2)
+        )
+        image += np.random.default_rng(2409).normal(0, 0.3, image.shape)
     if image_kind == "coarse-protection":
         yy, xx = np.mgrid[:256, :384]
         radius_squared = (yy - 128) ** 2 + (xx - 192) ** 2
@@ -809,14 +832,19 @@ def test_serial_and_existing_dask_publish_identical_scientific_products(
         dask.mask.content_sha256,
         dask.diagnostics.content_sha256,
     )
-    if fit_outcome == "linear-algebra-failure":
+    if fit_outcome != "normal":
+        expected_reason = (
+            "fit-linear-algebra-failure"
+            if fit_outcome == "linear-algebra-failure"
+            else "fit-model-inadequate"
+        )
         diagnostic = read_diagnostics_product(serial.diagnostics_path)
         assert isinstance(diagnostic, PublicSourceFindingDiagnostics)
         assert any(
-            row.reason == "fit-linear-algebra-failure"
-            and not row.catalogue_row_published
+            row.reason == expected_reason and not row.catalogue_row_published
             for row in diagnostic.measurement_dispositions
         )
+        assert serial.source_count > 0
 
 
 @pytest.mark.integration

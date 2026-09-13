@@ -105,6 +105,22 @@ well conditioned under the existing configured information limit. Free-only
 fitting and absent beam metadata do not bypass those checks. A separately
 recovered centroid cannot make an invalid whole Gaussian publishable; source
 support and independent source photometry remain available instead.
+
+The current public composition additionally checks beam fallbacks selected
+because the free ellipse failed numerical, bound or identifiability admission.
+It applies the existing direct/multiscale residual-adequacy rule to the joint
+model on its declared likelihood pixels, attributing features to the nearest
+component. Coherent unexplained emission belonging to such a fallback makes
+that Gaussian `fit-model-inadequate`, not an ordinary unresolved measurement.
+Its attempted-model diagnostics, detected identity, support and independent
+source aperture remain available. Valid neighbours keep their parameters and
+covariance from the same joint solution; no alternative fits are spliced in.
+Unavailable peers supply no shape evidence but do not veto independent
+resolved-arc evidence from at least three valid neighbours. This is a bounded
+fallback correctness guard, not a general certification of every Gaussian or
+a new chi-squared cutoff. Independent analytic controls, not closed campaign
+seeds, govern it.
+
 Under `beam-or-free`, a five-sigma log-area test selects clear extension directly.
 Otherwise the nested candidates use BIC with the number of independent
 samples appropriate to their residual model. A free candidate that pins a

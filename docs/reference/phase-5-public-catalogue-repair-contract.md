@@ -300,3 +300,30 @@ development-unqualified composition, not inherited scientific parity. The
 public provenance schema accepts the current composition only; old diagnostic
 artifacts do not become current products. A separately bound candidate review,
 resource admission and exhaustive immutable preflight must precede the retry.
+
+## M3: inadequate Gaussian fallback admission
+
+The 2026-09-13 approval authorizes a narrow correctness repair, independent
+scientific/Serial–Dask checks and a non-executable candidate freeze, not a
+further campaign. Composition v16 applies the existing direct/multiscale
+residual-adequacy test to beam fallbacks from invalid free fits. Insignificant
+extension alone is not an invalid fit. Use the actual likelihood domain and
+attribute residual features to their nearest component; a fitted component
+need not explain every extended feature in its read halo.
+
+Reject an inadequate fallback as `fit-model-inadequate`, retaining attempted
+fit diagnostics, detection ownership and independent source photometry.
+Retained neighbours keep the same jointly estimated parameters/covariance;
+do not replace them with independent fits or mix alternative models. Missing
+shape evidence from rejected components does not veto independent resolved
+arc evidence from at least three valid components. Tests must account for
+both measured and explicitly unavailable members, not erase source members
+to make Gaussian counts agree.
+
+No detection threshold, noise model, matching rule, comparator, uncertainty
+gate or closed decision changes. Judge each finder against analytic truth,
+then prioritize like-semantics parity/improvement with both PyBDSF references
+for Rapthor's needs; prior-Hebog results remain a recorded guardrail rather
+than the optimization target. Frozen equivalence and synthetic checks alone
+cannot establish powered parity. Corner-background errors require a separate
+independent diagnosis and correction before release correctness clearance.

@@ -205,6 +205,7 @@ class FailedCompactGaussianFit:
     reason: Literal[
         "fit-non-convergence",
         "fit-invalid-result",
+        "fit-model-inadequate",
         "fit-linear-algebra-failure",
     ]
     diagnostics: GaussianFitDiagnostics | None

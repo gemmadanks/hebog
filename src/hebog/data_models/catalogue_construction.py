@@ -17,6 +17,7 @@ from hebog.data_models.source_finding import SourceScaleProvenance
 _OmissionReason = Literal[
     "fit-non-convergence",
     "fit-invalid-result",
+    "fit-model-inadequate",
     "fit-linear-algebra-failure",
     "non-finite-owned-pixels",
     "non-positive-measurement",

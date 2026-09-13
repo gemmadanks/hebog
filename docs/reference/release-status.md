@@ -40,7 +40,8 @@ as if they were Gaussian-component measurements.
 
 ## Evidence and unresolved limitations
 
-The current science candidate is composition v15 (`73ab5af...`). Focused
+The development composition is v16, with a narrow Gaussian-fallback repair
+under validation. The latest completed campaign is v15 (`73ab5af...`). Focused
 repair tests, frozen small equivalence checks, portable coverage and exact
 Serial/existing-Dask checks pass. The bounded public screen completed but
 retains 49 point-estimate warnings, including compact uncertainty/measurement
@@ -60,8 +61,12 @@ Terminal review confirms two high-SNR corner-source cases where an invalid
 free fit falls back to a beam-shaped model and publishes badly biased Gaussian
 fluxes as measured. This is a release correctness blocker, not an experimental
 limitation waived by passing aggregate metrics. A narrow independently tested
-fallback-admission repair is recommended. The earlier notebook position
-witness also needs resolution confirmation; statistical uncertainty and
+fallback-admission repair is implemented in v16 using independent controls;
+it is not a general parity or release clearance. Inspection also confirms
+large corner-background errors in the saved missing-source cases, with
+ill-conditioned mesh-boundary extrapolation a concrete cause hypothesis.
+This separate background problem remains a correctness blocker. The earlier
+notebook position witness also needs resolution confirmation; statistical uncertainty and
 ambiguous faint morphology need explicit reviewed limitations. No further
 scientific run or release is authorized by documenting this result.
 

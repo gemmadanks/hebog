@@ -55,7 +55,7 @@ A major-axis-only deconvolution stores one positive
 angle. NaN and legacy zero sentinels are not null values. A fitted Gaussian
 always has a fitted shape; a source-level fitted shape may be unavailable.
 
-The current public v14 composition reports the native fitted Gaussian integral
+The current public composition reports the native fitted Gaussian integral
 for components, not for associated-source rows. It does not substitute
 peak brightness for integrated flux because threshold-truncated moments look
 unresolved. Shape, flux and position errors propagate the fitted covariance;
@@ -72,6 +72,13 @@ diagonal estimator with correlated-error propagation. Both Gaussian axes must
 be positive and obey the configured ratio independent of optimizer ordering.
 Failed Gaussian admission preserves source support and its separate source
 measurements; convergence alone does not establish astrophysical model adequacy.
+Public fallback admission can report `fit-model-inadequate`: a beam fallback
+from an invalid free ellipse leaves coherent residuals on its fitted support.
+The component disposition is unavailable and its Gaussian row is absent;
+the detected component identity and independent associated-source measurement
+are retained. Consequently a source's detected member count need not equal
+its number of published Gaussian rows. The existing schema's explicit
+unavailable reason carries this distinction; no zero-valued fit is fabricated.
 
 The version-four internal catalogue FITS encoding contains exactly three
 binary-table extensions: `ISLANDS`, `SOURCES`, and
