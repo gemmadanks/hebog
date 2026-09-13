@@ -12,11 +12,11 @@ identities, execution history and completed validation belong in
 | --- | --- |
 | Candidate | Public composition v17 at `e39f6c9...`: Gaussian-fallback admission plus stable background/coarse-RMS boundary extrapolation, with a [non-executable freeze](../config/contracts/phase-5-background-boundary-repair-identity-review.json). Development-unqualified; latest completed campaign remains v15. |
 | Implemented | FITS/WCS ingress, background/RMS, compact and multiscale detection, source/component measurement, catalogue/mask/RMS/diagnostics publication, Serial and caller-owned Dask execution, Zarr intermediates. |
-| Public envelope | ICRS `Jy/beam` FITS, at most 1,024 pixels on either spatial axis. `continuum` is the default; explicit `compact` is extended-emission-incomplete. Custom thresholds execute but remain unqualified. |
+| Public envelope | ICRS `Jy/beam` FITS, at most 1,024 pixels on either spatial axis. `continuum` is the default; explicit `compact` is extended-emission-incomplete. Custom thresholds remain unqualified; M4 identifies an unintended failure at island thresholds of at least 75 sigma. |
 | Strongest applicable checks | V17 independent boundary/fallback controls, exact public Serial/Dask, notebook execution and five installed-wheel workflows pass, alongside 27 frozen equivalence tests. Exact final coverage/check results are in `LOG.md`. No v17 campaign or powered parity verdict. |
 | Campaign | Verified v15 terminal: scientific **fail**, 1,115 pass / 32 fail / 40 underpowered comparisons. All five safety checks pass; 2,400 captures/evaluations, 12 exact Dask agreements and 8,000 retained records verified. No definite binding external-reference failure, but parity and incumbent retention are not established. |
-| Blockers | Bounded correctness repairs, local release preparation and human acceptance of the documented residual science limitations are complete. Accumulated-branch merge review and full platform CI remain. Scientific qualification, Rapthor acceptance and complete-path performance remain unproven. |
-| Next authorized action | Review the accumulated branch and resolve CI failures before merge. Then complete a separate bounded cleanup PR and refresh the comparison notebook from the cleaned, committed candidate before the human-controlled release workflow. No automatic replay, closed-data rescoring, publishing or parity claim. |
+| Blockers | Merge review confirms a custom-threshold public-API crash; repair and regression checks are needed before merge/release. Earlier bounded science repairs and human acceptance of documented residual limitations remain recorded, but E1 is reopened for this new defect. Accumulated-branch review and full platform CI remain; scientific qualification, Rapthor acceptance and complete-path performance remain unproven. |
+| Next authorized action | Complete the merge review and present the bounded custom-threshold repair recommendation below; the current review request does not implement it. Resolve that defect and CI failures before merge. Then complete a separate bounded cleanup PR and fresh comparison-notebook inspection before the human-controlled release workflow. No automatic replay, closed-data rescoring, publishing or parity claim. |
 | Deferred | The human accepted uncertainty-calibration, measurement-tail and faint-association limitations for the v17 experimental standalone release on 13 September. Broader F2 repair, optional improvement, full qualification and facility-scale work remain later tasks. Reopen a deferred issue if it becomes a confirmed incorrect supported output or serious correctness impact. |
 
 The [campaign overview](../docs/reference/phase-5-campaign-overview.md)
@@ -175,13 +175,32 @@ remain human decisions.
       their tests/docs. Exclude generated evidence and private data. Prefer
       reviewable PRs for independent work; do not split a coherent contract
       change merely to reduce diff size.
-      **Local review:** complete current repair/test/documentation diff reviewed
-      against `CODE_REVIEW.md`, with no actionable finding. Public publication,
-      package boundaries, dependency/CI configuration and development-path
-      isolation inspected. The accumulated branch is much larger than this
-      slice (1,031 files before this repair); do not describe the scoped review
-      as independent line-by-line review of that whole merge. Human merge
-      review remains open.
+      **Local review:** the earlier repair/test/documentation slice had no
+      actionable finding. The expanded review at `87b2edc` covers public
+      ingress/publication, background refinement, fitting and component/source
+      ownership, schema/materialization changes, notebook setup tooling,
+      package boundaries and CI. It confirms one **P2 custom-threshold crash**
+      below. The accumulated branch has 1,035 changed files; this is not an
+      independent line-by-line review of all historical campaign tooling and
+      frozen records. Human whole-diff review remains open; the user will also
+      obtain Copilot review when opening the PR.
+
+      **Recommended correctness repair, not implemented by this review:**
+      valid caller thresholds replace the public detection config, but its
+      private adaptive bright-work trigger remains 75 sigma. Refinement
+      rejects an island threshold at or above that trigger. Independent public
+      noise-only reproductions and exact inputs are in `LOG.md`; this is an
+      operational public-contract defect, not a failed parity endpoint.
+      Reconcile private candidate discovery and protection with accepted caller
+      thresholds; removing only the guard is insufficient. Preserve caller
+      thresholds and the standard 5/3 profile. Add failing tests around the
+      75-sigma boundary and 150-pixel background-policy transition, with empty
+      and bright-source controls and exact public Serial/existing-Dask
+      agreement. Expect valid custom requests to complete without changing
+      standard-profile products. Stop after bounded repair, coverage and
+      non-regression checks and any required new candidate record. No full
+      replay is needed to diagnose this defect, and no closed result or frozen
+      identity is to be rewritten.
 - [ ] **M5 — Validate the exact merge candidate.** Run applicable focused
       tests and `just check`, `just coverage`, `just test-equivalence`,
       `just test-acceptance`, `just marimo-check`, `just docs-build` and
@@ -255,18 +274,21 @@ checklist, rather than waiting for Rapthor integration or 100,000-square data.
       installed-wheel, documentation and platform checks. If package or runner
       identity changes, prepare a new candidate record without modifying old
       freezes or transferring qualification automatically.
-- [x] **E1 — Close the bounded release correctness inventory.** Confirm from M2/M3 that
+- [ ] **E1 — Close the bounded release correctness inventory.** Confirm from M2/M3 that
       no known incorrect supported catalogue, position, flux, ownership or
       processing-status output remains. Check Gaussian-validity and
       filtered-response repairs against their independent witnesses. Faint
       association, uncertainty and tail warnings may remain only with a
       reviewed explanation of their statistical/ambiguous nature and current
       limitations; calling a confirmed defect “experimental” is insufficient.
-      **Closed for the reviewed v17 standalone scope on 13 September:** the
+      **Earlier v17 disposition on 13 September:** the
       identified correctness mechanisms are repaired and the human accepts the
       stated residual limitations. Reopen for newly confirmed incorrect
       supported outputs; do not transfer this disposition automatically to
-      changed science or a broader deployment claim.
+      changed science or a broader deployment claim. **Reopened by M4:** the
+      independently reproduced custom-threshold crash must be repaired and
+      checked before final release clearance; the earlier accepted statistical
+      limitations and historical science evidence are unchanged.
 - [x] **E2 — Confirm the local installed user workflow.** From the release wheel,
       run the documented `find_sources` example and read its four products.
       Cover valid empty/all-NaN inputs, corrupt/unsupported input, custom

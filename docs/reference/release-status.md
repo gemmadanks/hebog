@@ -28,7 +28,7 @@ supply an existing Dask client through `DaskExecutor`.
 | Images | ICRS celestial WCS, `Jy/beam`, valid beam/frequency metadata, two spatial axes with optional singleton leading axes. |
 | Size | At most 1,024 pixels along either spatial axis through the public finder. Its terminal composition still materializes a bounded preview plane; larger public inputs are rejected. |
 | Profiles | Default `continuum`; explicit `compact` reports `extended-emission-incomplete`. Neither current profile is scientifically qualified. |
-| Thresholds | The 5/3-sigma, seven-pixel reference configuration reports `development-unqualified`. Other valid caller settings execute and report `custom-unqualified`. |
+| Thresholds | The 5/3-sigma, seven-pixel reference configuration reports `development-unqualified`; custom settings report `custom-unqualified`. Merge review found an unintended crash for valid custom island thresholds at or above 75 sigma when adaptive background refinement runs; repair is pending. |
 | Invalid/empty measurements | Invalid pixels are excluded. Unavailable noise, fits or uncertainties remain explicit; a noiseless emission image with unavailable RMS is not evidence of an empty sky. |
 | Products | Source, Gaussian-component and island populations are distinct. Catalogue JSON/FITS and diagnostics schemas are versions 3/4/8; stale schemas fail clearly. |
 | Workflow | One scientific image per request. Full Rapthor true-sky/flat-noise filtering integration, operational qualification and complete-path speed evidence remain work to do. |
@@ -84,11 +84,20 @@ seven expected-failure scaffolds, not passing deployment acceptance tests.
 No further scientific run, publication or default cutover follows from this
 handoff. Known correctness defects cannot be waived by an experimental label.
 
+**Merge-review finding, 13 September:** a supported custom-threshold request
+can fail against the private 75-sigma background-refinement trigger. A synthetic
+256-square noise image accepts detection/island thresholds of 100/74 but raises
+at 100/75 or 100/80; the same 100/80 configuration succeeds at 81 square.
+This reopens correctness clearance until the public configuration and private
+refinement policy agree and boundary regressions pass. It is separate from
+the standard 5/3 configuration and does not revise any historical science
+verdict. The repair recommendation is recorded under M4 in the plan.
+
 ## Release boundaries
 
 | Delivery | Required before claiming it |
 | --- | --- |
-| Merge a small change | Coherent scope, review, applicable tests, current docs and CI. The accumulated finder branch has completed its bounded campaign/severity disposition; whole-branch review and platform CI remain. |
+| Merge a small change | Coherent scope, review, applicable tests, current docs and CI. The accumulated finder branch still needs the custom-threshold correctness repair, whole-branch review and platform CI; its earlier campaign/severity disposition is preserved. |
 | Experimental standalone `0.x` | Reviewed correctness inventory, tested installed public workflow, passing package/platform checks, explicit limitations and unqualified status. General parity, full Rapthor performance and facility scaling can follow in separate increments. |
 | Scientifically qualified finder | Exact candidate-bound cumulative parity/retention, fresh held-out/public evidence and independent scientific/engineering acceptance. Frozen endpoints, margins and failed decisions remain unchanged. |
 | Supported Rapthor deployment | Qualified science, profile/filter agreement, fallback, retry/resume, memory and matched complete `filter_skymodel` performance: at least 50% lower median than released PyBDSF and faster than pinned master, with the required confidence bounds. |

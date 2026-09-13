@@ -20878,3 +20878,49 @@ scientific pass from fixture validation.
   supported-platform run remains required. Source science and its evidence
   identities are unchanged; no cleanup deletion, tag, notebook refresh,
   campaign, push or release is performed in this planning/review increment.
+
+### 2026-09-13 — Expanded merge review: custom-threshold API defect
+
+- Review `feat-phase-5` at `87b2edc` against local `main`, following
+  `CODE_REVIEW.md`. Extend the earlier public ingress/astrometry/Zarr/CI review
+  through background refinement, Gaussian mixture/fallback admission,
+  component topology/association, source publication, schema/materialization
+  changes and notebook setup/reference tooling. No second confirmed defect
+  is found in these paths. This is a scoped review of a 1,035-file merge,
+  not independent line-by-line clearance of all historical campaign tooling
+  or frozen records. The user's planned PR/Copilot review and platform CI
+  remain complementary outstanding checks.
+- Confirm **P2: accepted custom thresholds can crash the public finder**.
+  `_estimate_background_rms` replaces the public finder config but retains
+  the private 75-sigma adaptive candidate trigger. Refinement rejects a
+  public island threshold at or above that trigger. Reproduce without
+  mocks or campaign inputs through `hebog.find_sources`/`SerialExecutor`:
+  `default_rng(130913).normal(0, 1, (size, size))`, the public integration
+  fixture's ICRS `Jy/beam` header (four-arcsecond circular beam, one-arcsecond
+  pixels, 150 MHz), seven-pixel minimum and detection threshold 100 sigma.
+  At 81 square, island threshold 80 returns zero sources successfully. At
+  256 square, 74 succeeds with zero sources, while both 75 and 80 raise
+  `ValueError: adaptive refinement requires a finite positive public island
+  threshold below its candidate threshold for source protection`.
+- Record a bounded repair recommendation under M4 and reopen E1, keeping
+  public release status consistent. Reconcile private candidate discovery
+  and protection with valid caller thresholds, rather than merely dropping
+  the safety check; preserve the standard 5/3 configuration and all frozen
+  evidence. Empty/bright controls around both threshold and image-size
+  boundaries need test-first public Serial/existing-Dask validation. No
+  production fix is implemented by this review request; the finding is not
+  a scientific parity failure or evidence of a standard-profile regression.
+- Focused fast validation passes **178 tests**, eight deselected, in
+  **104.38 seconds**, covering public Serial/Dask, background execution,
+  materialization, component measurements, catalogue construction and
+  small frozen equivalence cases. The first test command accidentally also
+  selected slow/historical qualification tests; stop it with **164 passed**
+  and an interrupted exit, then rerun with explicit lane exclusions. Do not
+  use that interrupted run as qualification evidence or change any closed
+  score. Future review commands must retain the `justfile` lane exclusions.
+- Only plan, release-status and log documentation changes. Existing v17
+  production coverage remains applicable; there are no new package branches
+  or coverage exclusions. Review these edits against `CODE_REVIEW.md` and
+  require strict docs plus clean all-file `just pre-commit` before the local
+  documentation commit. No campaign runner, reference-finder execution,
+  retained-evidence mutation, push, merge, tag, notebook refresh or release.
