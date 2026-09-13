@@ -245,8 +245,8 @@ for the v17 experimental standalone release. The bounded release disposition is:
 
 M2 severity acceptance and the earlier bounded E1 correctness inventory apply
 to that reviewed v17 standalone scope. The subsequent custom-threshold crash
-was reproduced independently and repaired in v18; its final validation/freeze
-and current release gates are tracked in the implementation plan. Standard
+was reproduced independently, repaired and frozen in v18; its validation and
+remaining release gates are tracked in the implementation plan. Standard
 5/3 science and the earlier statistical risk disposition are unchanged; custom
 thresholds remain unqualified. This is not an assertion that every
 production use is safe, permission to ship a known incorrect supported output,

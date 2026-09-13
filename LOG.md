@@ -21022,3 +21022,32 @@ scientific pass from fixture validation.
   commit. Freeze a separate non-executable candidate and update the notebook
   guard only after that commit. No replay, full comparison-notebook refresh,
   scientific tuning, push, merge, tag, cutover or release is performed.
+
+### 2026-09-13 — Freeze the custom-threshold repair
+
+- Commit the validated v18 implementation as
+  `ae96ee60edf79e7e680ad937b8e62b04f11edaa4` after clean all-file hooks.
+  Freeze `phase-5-custom-threshold-repair-identity-review.json`, SHA-256
+  `8c0ea1ada53b49fe87be12d33fe7dbc7d9cd014d2a01c8e0dc03b6161060873b`.
+  It binds source tree
+  `a71310e367fb46359ada2361e67e21bf83b9e1128fa29d8b78a555745c8ebf75`,
+  composition `aa3374440c659d18f3799adf42fe5807cb81b2aa4b5f85ed366d6fed8da76948`
+  and unchanged standard configuration
+  `5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4`.
+  All execution/release authorizations remain false; v15 failed science and
+  the earlier immutable records are preserved.
+- Point the current diagnostic notebook runner to this freeze without
+  weakening its guard. The real read-only configuration guard succeeds;
+  **36 historical-identity, refresh and public-runner tests** pass in
+  **11.48 seconds**, including all existing identity-drift rejection cases.
+  Reconcile current plan/release summaries and close only the bounded E1
+  correctness repair. Whole-branch/Copilot review, supported-platform CI,
+  separate cleanup, final notebook inspection and release remain outstanding.
+- The final quick lane in a separate full-history checkout without campaign
+  outputs passes **3,787 tests**, 561 deselected and two existing xfails, in
+  **319.50 seconds**. This includes the new freeze and the formerly failing
+  historical-review tests. Retain its log with the synthetic repair evidence.
+  Review the complete freeze/pointer/documentation diff against
+  `CODE_REVIEW.md`; no actionable finding. Require clean all-file hooks
+  immediately before the local freeze commit. Package source is unchanged
+  from the validated implementation; this grants no new execution authority.

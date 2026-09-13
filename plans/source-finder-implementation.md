@@ -10,13 +10,13 @@ identities, execution history and completed validation belong in
 
 | Item | Current position |
 | --- | --- |
-| Candidate | Public composition v18 repairs the custom-threshold/background interaction on top of v17's Gaussian/background repairs. Bounded validation passes; exact commit/freeze is next. The [v17 freeze](../config/contracts/phase-5-background-boundary-repair-identity-review.json) is preserved. Development-unqualified; latest completed campaign remains v15. |
+| Candidate | Public composition v18 at `ae96ee6...` repairs the custom-threshold/background interaction on top of v17's Gaussian/background repairs. Its [non-executable freeze](../config/contracts/phase-5-custom-threshold-repair-identity-review.json) binds exact committed source and unchanged standard configuration; earlier freezes remain intact. Development-unqualified; latest completed campaign remains v15. |
 | Implemented | FITS/WCS ingress, background/RMS, compact and multiscale detection, source/component measurement, catalogue/mask/RMS/diagnostics publication, Serial and caller-owned Dask execution, Zarr intermediates. |
 | Public envelope | ICRS `Jy/beam` FITS, at most 1,024 pixels on either spatial axis. `continuum` is the default; explicit `compact` is extended-emission-incomplete. Custom thresholds remain unqualified; their private refinement-trigger interaction is repaired in v18. |
 | Strongest applicable checks | V18 threshold-boundary controls, 12 new exact Serial/Dask comparisons, six unchanged standard-profile controls, five installed-wheel workflows and 27 frozen equivalence tests pass. Portable coverage passes 4,127 tests at 95.3201%; exact results are in `LOG.md`. No v17/v18 campaign or powered parity verdict. |
 | Campaign | Verified v15 terminal: scientific **fail**, 1,115 pass / 32 fail / 40 underpowered comparisons. All five safety checks pass; 2,400 captures/evaluations, 12 exact Dask agreements and 8,000 retained records verified. No definite binding external-reference failure, but parity and incumbent retention are not established. |
-| Blockers | The custom-threshold defect is repaired and checked; finish its exact freeze before handoff. Accumulated-branch review, platform CI, separate cleanup and fresh notebook inspection remain before release. Earlier human acceptance of unchanged residual limitations is preserved; scientific qualification, Rapthor acceptance and complete-path performance remain unproven. |
-| Next authorized action | Complete the authorized test-first custom-threshold repair below and freeze its exact composition, preserving the standard profile. Resolve supported-platform CI before merge. Then complete a separate bounded cleanup PR and fresh comparison-notebook inspection before the human-controlled release workflow. No automatic replay, closed-data rescoring, publishing or parity claim. |
+| Blockers | The custom-threshold defect is repaired, checked and frozen. Accumulated-branch review, platform CI, separate cleanup and fresh notebook inspection remain before release. Earlier human acceptance of unchanged residual limitations is preserved; scientific qualification, Rapthor acceptance and complete-path performance remain unproven. |
+| Next authorized action | Complete the merge handoff, human whole-branch/Copilot review and supported-platform CI. Then complete a separate bounded cleanup PR and fresh comparison-notebook inspection before the human-controlled release workflow. No automatic replay, closed-data rescoring, publishing or parity claim. |
 | Deferred | The human accepted uncertainty-calibration, measurement-tail and faint-association limitations for the v17 experimental standalone release on 13 September. Broader F2 repair, optional improvement, full qualification and facility-scale work remain later tasks. Reopen a deferred issue if it becomes a confirmed incorrect supported output or serious correctness impact. |
 
 The [campaign overview](../docs/reference/phase-5-campaign-overview.md)
@@ -207,8 +207,9 @@ remain human decisions.
       pass afterward. Six standard-profile controls retain identical science;
       12 new Serial/existing-Dask comparisons agree byte-for-byte. Coverage,
       frozen equivalence, installed-wheel and normal checks pass; details are
-      in `LOG.md`. Finish the non-executable v18 freeze before handoff. This
-      closes the identified defect, not the outstanding whole-branch review.
+      in `LOG.md`. The non-executable v18 freeze and live notebook guard pass
+      exact-source validation. This closes the identified defect, not the
+      outstanding whole-branch review.
 - [ ] **M5 — Validate the exact merge candidate.** Run applicable focused
       tests and `just check`, `just coverage`, `just test-equivalence`,
       `just test-acceptance`, `just marimo-check`, `just docs-build` and
@@ -250,10 +251,11 @@ remain human decisions.
       M1–M5. Give the human the exact revision, checks, unresolved risks and
       recommended merge scope. The human reviews, pushes and merges; a merge
       is not a scientific-readiness assertion or default-backend change.
-      **Local handoff prepared:** v17 science is `e39f6c9...`; the separate
+      **Local handoff prepared:** v18 science is `ae96ee6...`; the separate
       freeze binds its exact source and unchanged configuration. The live
-      notebook guard and 35 historical-identity/refresh/notebook tests pass.
-      M2 human disposition is now accepted. Final merge clearance waits for
+      notebook guard and 36 historical-identity/refresh/notebook tests pass.
+      M2 human disposition of the unchanged residual limitations is accepted.
+      Final merge clearance waits for
       M4 whole-branch review and M5 platform CI, not another automatic campaign.
 
 M1–M3 are specific to the accumulated finder candidate. Future small changes
@@ -296,7 +298,7 @@ checklist, rather than waiting for Rapthor integration or 100,000-square data.
       installed-wheel, documentation and platform checks. If package or runner
       identity changes, prepare a new candidate record without modifying old
       freezes or transferring qualification automatically.
-- [ ] **E1 — Close the bounded release correctness inventory.** Confirm from M2/M3 that
+- [x] **E1 — Close the bounded release correctness inventory.** Confirm from M2/M3 that
       no known incorrect supported catalogue, position, flux, ownership or
       processing-status output remains. Check Gaussian-validity and
       filtered-response repairs against their independent witnesses. Faint
@@ -309,8 +311,10 @@ checklist, rather than waiting for Rapthor integration or 100,000-square data.
       supported outputs; do not transfer this disposition automatically to
       changed science or a broader deployment claim. **Reopened by M4:** the
       independently reproduced custom-threshold crash is repaired and checked
-      in v18. Its exact freeze remains before handoff; the earlier accepted
-      statistical limitations and historical science evidence are unchanged.
+      in v18, with its exact non-executable freeze and notebook guard verified.
+      The earlier accepted statistical limitations and historical science
+      evidence are unchanged. This bounded closure does not clear M4/M5,
+      qualification, cleanup, final notebook inspection or release.
 - [x] **E2 — Confirm the local installed user workflow.** From the release wheel,
       run the documented `find_sources` example and read its four products.
       Cover valid empty/all-NaN inputs, corrupt/unsupported input, custom

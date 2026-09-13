@@ -86,13 +86,15 @@ No further scientific run, publication or default cutover follows from this
 handoff. Known correctness defects cannot be waived by an experimental label.
 
 **Merge-review repair, 13 September:** a supported custom-threshold request
-could fail against the private 75-sigma background-refinement trigger. A synthetic
-256-square noise image accepts detection/island thresholds of 100/74 but raises
-at 100/75 or 100/80; the same 100/80 configuration succeeds at 81 square.
+could fail against the private 75-sigma background-refinement trigger. On v17,
+a synthetic 256-square noise image accepted detection/island thresholds of
+100/74 but raised at 100/75 or 100/80; 100/80 succeeded at 81 square.
 V18 reconciles that trigger with the caller's valid detection/island ordering,
 including small bright-source inputs and the 150-pixel mesh transition.
-The implementation and its regression checks are recorded under M4 in the
-plan; exact candidate freezing and validation must finish before clearance.
+The implementation (`ae96ee6...`) and its regression checks are recorded under
+M4 in the plan; the new non-executable identity and live notebook guard are
+verified. This closes that defect, not whole-branch or supported-platform CI
+clearance.
 Standard 5/3 science is unchanged, while provenance identifies the new
 composition. No historical science verdict is revised.
 
@@ -100,7 +102,7 @@ composition. No historical science verdict is revised.
 
 | Delivery | Required before claiming it |
 | --- | --- |
-| Merge a small change | Coherent scope, review, applicable tests, current docs and CI. Complete the custom-threshold repair's validation/freeze, whole-branch review and platform CI; the earlier campaign/severity disposition is preserved. |
+| Merge a small change | Coherent scope, review, applicable tests, current docs and CI. The custom-threshold repair is validated and frozen; whole-branch review and platform CI remain. The earlier campaign/severity disposition is preserved. |
 | Experimental standalone `0.x` | Reviewed correctness inventory, tested installed public workflow, passing package/platform checks, explicit limitations and unqualified status. General parity, full Rapthor performance and facility scaling can follow in separate increments. |
 | Scientifically qualified finder | Exact candidate-bound cumulative parity/retention, fresh held-out/public evidence and independent scientific/engineering acceptance. Frozen endpoints, margins and failed decisions remain unchanged. |
 | Supported Rapthor deployment | Qualified science, profile/filter agreement, fallback, retry/resume, memory and matched complete `filter_skymodel` performance: at least 50% lower median than released PyBDSF and faster than pinned master, with the required confidence bounds. |
