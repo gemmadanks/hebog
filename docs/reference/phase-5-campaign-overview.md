@@ -9,10 +9,11 @@ for merge, experimental release and later qualification tasks.
 
 ## Current candidate and evidence
 
-Composition **v16** adds the approved fallback-admission repair described
-below and is undergoing development validation. Its checks do not qualify it
-or transfer the v15 campaign result. The latest completed campaign is for
-**v15**, science commit `73ab5af...`, which includes the Gaussian-validity
+Composition **v16** at `a716eb3...` adds the approved fallback-admission repair
+described below and has passed independent development validation. Its
+[non-executable freeze](https://github.com/gemmadanks/hebog/blob/main/config/contracts/phase-5-gaussian-fallback-admission-identity-review.json)
+does not qualify it or transfer the v15 campaign result. The latest completed
+campaign is for **v15**, science commit `73ab5af...`, which includes the Gaussian-validity
 repair and the approved F4 filtered-response correction. The
 [frozen identity review](https://github.com/gemmadanks/hebog/blob/main/config/contracts/phase-5-filtered-response-domain-repair-identity-review.json)
 binds its source, configuration and validation. It remains
@@ -142,8 +143,13 @@ reproduce the defect and preserve valid point models. Open-arc controls exposed
 overly broad whole-parent rejection during development: retain the three valid
 resolved components while explicitly omitting two inadequate beam fallbacks.
 Their independent shape evidence still supports the source's arc association.
-No chi-squared cutoff was selected from closed seeds. Final validation and
-candidate freeze belong in the log; this is not a new parity verdict.
+No chi-squared cutoff was selected from closed seeds. All 4,082 portable tests,
+27 frozen equivalence checks and exact public Serial/Dask checks pass;
+branch-aware coverage is 95.3141%, with every changed executable line and
+instrumented branch covered. The exact notebook/identity tests also pass.
+Candidate identities and full validation belong in the log; this is not a new
+parity verdict. New Gaussian omissions require paired-screen review before
+any further campaign.
 
 Read-only inspection of the saved input/background/support planes narrows the
 corner-miss diagnosis. At the local source peak, **all ten missing SNR-50

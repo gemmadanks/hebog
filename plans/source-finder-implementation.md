@@ -10,18 +10,18 @@ identities, execution history and completed validation belong in
 
 | Item | Current position |
 | --- | --- |
-| Candidate | Public composition v16 fallback repair under validation; latest completed campaign is v15 at `73ab5af...` ([F4 review](../config/contracts/phase-5-filtered-response-domain-repair-identity-review.json)). Development-unqualified. |
+| Candidate | Public composition v16 at `a716eb3...`, frozen [non-executable fallback-admission review](../config/contracts/phase-5-gaussian-fallback-admission-identity-review.json). Development-unqualified; latest completed campaign remains v15. |
 | Implemented | FITS/WCS ingress, background/RMS, compact and multiscale detection, source/component measurement, catalogue/mask/RMS/diagnostics publication, Serial and caller-owned Dask execution, Zarr intermediates. |
 | Public envelope | ICRS `Jy/beam` FITS, at most 1,024 pixels on either spatial axis. `continuum` is the default; explicit `compact` is extended-emission-incomplete. Custom thresholds execute but remain unqualified. |
-| Strongest applicable checks | F4 focused regressions, 27 frozen equivalence tests, exact Serial/Dask checks and 95.2963% portable branch-aware coverage pass. The 24-input public screen completed; its 49 point-estimate warnings remain. This is development evidence, not powered parity. |
+| Strongest applicable checks | V16 analytic fallback controls, exact public Serial/Dask and notebook workflows, 27 frozen equivalence tests and 95.3141% portable branch-aware coverage pass. No v16 campaign or powered parity verdict; earlier screen/campaign warnings remain historical evidence, not a new pass. |
 | Campaign | Verified v15 terminal: scientific **fail**, 1,115 pass / 32 fail / 40 underpowered comparisons. All five safety checks pass; 2,400 captures/evaluations, 12 exact Dask agreements and 8,000 retained records verified. No definite binding external-reference failure, but parity and incumbent retention are not established. |
-| Blockers | Validate/freeze the Gaussian fallback repair; independently repair confirmed corner-background errors; resolve historical position witness; human severity disposition and final merge/release validation. Scientific qualification, Rapthor integration and complete-path performance remain unproven. |
-| Next authorized action | Implement the approved narrow Gaussian-fallback admission repair and independently diagnose corner-source misses, with focused scientific and Serial/Dask checks. No automatic replay, closed-data rescoring or release. |
+| Blockers | Independently repair confirmed corner-background errors; resolve historical position witness; human severity disposition and final merge/release validation. Scientific qualification, Rapthor integration and complete-path performance remain unproven. |
+| Next authorized action | Complete independent corner-background diagnosis and propose a bounded correction; keep its scientific-policy review separate from the completed Gaussian guard. No automatic replay, closed-data rescoring or release. |
 | Deferred | Broader faint-source association repair (F2), optional scientific improvement, full qualification and facility-scale work. Reopen a deferred issue if triage establishes a serious correctness impact. |
 
 The [campaign overview](../docs/reference/phase-5-campaign-overview.md)
 explains the current evidence and risks. Earlier compact or continuum passes
-qualify their exact candidates only; they do not qualify v15.
+qualify their exact candidates only; they do not qualify v16.
 
 ## Delivery policy: merge and release small increments
 
@@ -112,6 +112,15 @@ remain human decisions.
       attributed per component on the unchanged joint model. Stop and reassess
       if those controls fail; do not spend another campaign on an unverified
       hypothesis.
+
+      **Completed Gaussian slice:** v16 is independently tested and frozen
+      non-executable at `a716eb3...`; valid point models and independent source
+      photometry remain, inadequate fallback Gaussians are explicitly absent.
+      Exact public Serial/Dask and notebook workflows pass. Test counts and
+      identities are in `LOG.md`; M3 remains open for the separate background
+      defect and unresolved position witness. Before any future campaign,
+      review the omission/completeness effects in the existing bounded paired
+      screen; fixture success is not parity or a guarantee of campaign success.
 
       **Separate corner-background follow-up:** saved planes show substantial
       over/under-subtraction, including complete loss of direct support in four

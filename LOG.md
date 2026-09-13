@@ -20619,3 +20619,33 @@ scientific pass from fixture validation.
   unqualified. The background defect and historical position witness remain
   open release blockers. Stop at validated non-executable freeze; no replay,
   external finder run, qualification, release or push is performed.
+- Final validation: `just coverage` passes **4,082 tests**, with 158 deselected
+  and two existing expected failures, at **95.31408479275137%** branch-aware
+  coverage (985.22 seconds). All 23 changed executable lines and their
+  instrumented branches are covered; changed-file residual misses are old
+  lines/branches, with no new exclusion. CI Codecov patch/platform reports are
+  not available locally. Warnings are from existing four-axis/two-axis FITS
+  fixtures, noiseless sigma-clipping/optimizer boundaries and FITS comments;
+  the corresponding boundary/output tests pass. No warnings are suppressed.
+  `just check` passes Ruff/Pyright/format and **3,776 tests**, two expected
+  failures (268.43 seconds); all **27 frozen equivalence tests** pass. Strict
+  docs and clean all-file hooks pass. Review against `CODE_REVIEW.md` finds no
+  actionable defect in this bounded repair; it does not clear the independent
+  background issue or establish general scientific/runtime qualification.
+- Commit the science as **`a716eb3e427f948a0b741c500965408375341013`**, source
+  SHA-256 `bdc8ca7afbe9e3f558e74785d689adca046bf9229cb771b6fd8069e0feaebd5e`,
+  unchanged configuration
+  `5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4`,
+  v16 composition
+  `106cd4189b3b9a5a590475b43ec9190698249360fd3ccb79d17bd717233cb464`.
+  Separately freeze
+  `config/contracts/phase-5-gaussian-fallback-admission-identity-review.json`
+  (SHA-256 `c469a8c9c91d8cb699715edca74006350cb4f879116873eb5dbb01b37259f566`)
+  with all execution authorizations false and no inherited campaign pass.
+  Preserve the v15 review and terminal unchanged. Update only the current
+  notebook identity selection: its test fails against the prior selection,
+  then **34 identity/refresh/notebook tests pass**, including immutable Git
+  archive verification. The live no-write configuration guard accepts this
+  exact candidate; no notebook refresh is launched. Final freeze hooks remain
+  the local commit gate. Next work is independent corner-background diagnosis
+  and a prospective correction, not an automatic full replay.

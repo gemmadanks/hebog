@@ -40,13 +40,14 @@ as if they were Gaussian-component measurements.
 
 ## Evidence and unresolved limitations
 
-The development composition is v16, with a narrow Gaussian-fallback repair
-under validation. The latest completed campaign is v15 (`73ab5af...`). Focused
-repair tests, frozen small equivalence checks, portable coverage and exact
-Serial/existing-Dask checks pass. The bounded public screen completed but
-retains 49 point-estimate warnings, including compact uncertainty/measurement
+The development composition is v16 (`a716eb3...`), with a narrow
+Gaussian-fallback repair independently tested and frozen non-executable. The
+latest completed campaign is v15 (`73ab5af...`). Focused repair tests, frozen
+small equivalence checks, portable coverage and exact Serial/existing-Dask
+checks pass. The earlier bounded public screen completed but retains 49
+point-estimate warnings, including compact uncertainty/measurement
 and faint extended association, mask and flux-tail risks. It does not provide
-powered parity evidence.
+powered parity evidence and has not been repeated for v16.
 
 The verified v15 cumulative terminal is a **scientific fail**: 1,115 binding
 comparisons pass, 32 fail against the earlier Hebog incumbent and 40 are
@@ -66,9 +67,9 @@ it is not a general parity or release clearance. Inspection also confirms
 large corner-background errors in the saved missing-source cases, with
 ill-conditioned mesh-boundary extrapolation a concrete cause hypothesis.
 This separate background problem remains a correctness blocker. The earlier
-notebook position witness also needs resolution confirmation; statistical uncertainty and
-ambiguous faint morphology need explicit reviewed limitations. No further
-scientific run or release is authorized by documenting this result.
+notebook position witness also needs resolution confirmation; statistical
+uncertainty and ambiguous faint morphology need explicit reviewed limitations.
+No further scientific run or release is authorized by documenting this result.
 
 ## Release boundaries
 
