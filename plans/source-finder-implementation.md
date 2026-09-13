@@ -10,12 +10,12 @@ identities, execution history and completed validation belong in
 
 | Item | Current position |
 | --- | --- |
-| Candidate | Public composition v18 at `ae96ee6...` repairs the custom-threshold/background interaction on top of v17's Gaussian/background repairs. Its [non-executable freeze](../config/contracts/phase-5-custom-threshold-repair-identity-review.json) binds exact committed source and unchanged standard configuration; earlier freezes remain intact. Development-unqualified; latest completed campaign remains v15. |
+| Candidate | Public composition v18 includes the custom-threshold/background repair on top of v17's Gaussian/background repairs. Package snapshot `fd318b8...` adds publication safety without changing that science. Its [non-executable freeze](../config/contracts/phase-5-product-publication-repair-identity-review.json) binds exact committed source and unchanged standard configuration; earlier freezes remain intact. Development-unqualified; latest completed campaign remains v15. |
 | Implemented | FITS/WCS ingress, background/RMS, compact and multiscale detection, source/component measurement, catalogue/mask/RMS/diagnostics publication, Serial and caller-owned Dask execution, Zarr intermediates. |
 | Public envelope | ICRS `Jy/beam` FITS, at most 1,024 pixels on either spatial axis. `continuum` is the default; explicit `compact` is extended-emission-incomplete. Custom thresholds remain unqualified; their private refinement-trigger interaction is repaired in v18. |
-| Strongest applicable checks | V18 threshold-boundary controls, 12 new exact Serial/Dask comparisons, six unchanged standard-profile controls, five installed-wheel workflows and 27 frozen equivalence tests pass. Portable coverage passes 4,127 tests at 95.3201%; exact results are in `LOG.md`. No v17/v18 campaign or powered parity verdict. |
+| Strongest applicable checks | V18 threshold-boundary controls, 12 exact Serial/Dask comparisons, six unchanged standard-profile controls, five installed-wheel workflows and 27 frozen equivalence tests pass. Publication repair coverage passes 4,161 tests at 95.3277%; Linux/Python 3.14.7 passes 3,787 quick and 83 publication tests. Exact scope/results are in `LOG.md`. No v17/v18 campaign or powered parity verdict. |
 | Campaign | Verified v15 terminal: scientific **fail**, 1,115 pass / 32 fail / 40 underpowered comparisons. All five safety checks pass; 2,400 captures/evaluations, 12 exact Dask agreements and 8,000 retained records verified. No definite binding external-reference failure, but parity and incumbent retention are not established. |
-| Blockers | The custom-threshold defect is repaired, checked and frozen. Accumulated-branch review, platform CI, separate cleanup and fresh notebook inspection remain before release. Earlier human acceptance of unchanged residual limitations is preserved; scientific qualification, Rapthor acceptance and complete-path performance remain unproven. |
+| Blockers | The custom-threshold and PR 49 publication defects are repaired, checked and frozen; reported historical-fixture CI failures are repaired locally and on Linux. Accumulated-branch review, full platform CI, separate cleanup and fresh notebook inspection remain before release. Earlier human acceptance of unchanged residual limitations is preserved; scientific qualification, Rapthor acceptance and complete-path performance remain unproven. |
 | Next authorized action | Complete the merge handoff, human whole-branch/Copilot review and supported-platform CI. Then complete a separate bounded cleanup PR and fresh comparison-notebook inspection before the human-controlled release workflow. No automatic replay, closed-data rescoring, publishing or parity claim. |
 | Deferred | The human accepted uncertainty-calibration, measurement-tail and faint-association limitations for the v17 experimental standalone release on 13 September. Broader F2 repair, optional improvement, full qualification and facility-scale work remain later tasks. Reopen a deferred issue if it becomes a confirmed incorrect supported output or serious correctness impact. |
 
@@ -232,9 +232,11 @@ remain human decisions.
       The historical test explicitly fixtures its pinned installed runtime
       while proving the real drift guard still rejects mismatches; it is not
       evidence that today's CI host can execute the historical campaign.
-      Validation and full-platform limits are recorded in `LOG.md`. Freeze the
-      changed package snapshot without changing the v18 scientific composition
-      or granting execution authority before the notebook handoff.
+      Validation and full-platform limits are recorded in `LOG.md`. The
+      changed package snapshot is frozen without changing the v18 scientific
+      composition or granting execution authority; the real notebook identity
+      guard passes. All-file hooks and local Linux checks do not replace the
+      complete supported-platform CI matrix after the human's push.
 - [ ] **M5 — Validate the exact merge candidate.** Run applicable focused
       tests and `just check`, `just coverage`, `just test-equivalence`,
       `just test-acceptance`, `just marimo-check`, `just docs-build` and

@@ -21142,3 +21142,36 @@ scientific pass from fixture validation.
   cross-platform roundoff mechanism at three fixture boundaries, not three
   scientific changes. Require another clean all-file hook run after this final
   test edit, and confirm the repaired Linux suite before committing.
+
+### 2026-09-13 — Verify PR 49 repairs and refresh the notebook binding
+
+- The final isolated Linux/arm64 **Python 3.14.7** run passes the complete
+  quick suite: **3,787 tests**, 594 deselected and two existing xfails, in
+  **209.99 seconds**. Its final **83 publication integration tests** pass in
+  **4.56 seconds**. This uses the frozen dependency lock and a disposable
+  full-history clone; the host checkout is read-only to the container. The
+  final replication-fixture coverage append passes **five tests** in **6.06
+  seconds** without changing the project or changed-file coverage totals.
+- All-file `just pre-commit` passes clean after all final edits, including
+  formatting, lint, JSON, typing, Marimo, strict docs, quick tests and lock
+  checks. No hook modifies files. Commit the bounded repair locally as
+  `fd318b8982879abe56dd6085ab8e5eb16431808b`. No campaign or viewed-data
+  execution, notebook refresh, push, merge, tag or release is run.
+- Freeze `phase-5-product-publication-repair-identity-review.json`, SHA-256
+  `ad3f5b291ab1144e5dcf4dae6b3ec2959e3e759f4b59d83bd4411a67fc2037af`,
+  against the committed source tree
+  `b51b7a8a994f74f9d9236073375b587f373860e331b8c111bd2250dd9cca3387`.
+  Scientific composition v18 remains
+  `aa3374440c659d18f3799adf42fe5807cb81b2aa4b5f85ed366d6fed8da76948`
+  and standard configuration remains
+  `5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4`.
+  Prior freezes and the failed v15 terminal remain immutable; all execution
+  and release authorizations in this new record are false.
+- Point only the current diagnostic notebook runner to the new package
+  snapshot. **45 identity, refresh and public-runner tests** pass in **13.22
+  seconds**; the real read-only configuration guard succeeds, and existing
+  drift-rejection tests remain intact. Review this separate metadata/pointer
+  diff against `CODE_REVIEW.md` and require another clean all-file hook run
+  immediately before its local commit. Supported-platform CI still needs the
+  human's push, and no full-branch merge or scientific-parity clearance is
+  inferred from these bounded fixes.

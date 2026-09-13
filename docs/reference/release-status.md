@@ -50,6 +50,13 @@ point-estimate warnings, including compact uncertainty/measurement
 and faint extended association, mask and flux-tail risks. It does not provide
 powered parity evidence and has not been repeated for v17 or v18.
 
+The current package snapshot also repairs destination aliases and failure
+rollback in the lower-level combined-product writer, without changing v18
+science. Its publication guarantees and filesystem requirements are explicit
+in [the product schema reference](internal-schemas.md). Historical CI fixtures
+now distinguish reproducible records from eligibility to execute a frozen
+campaign on a different installed runtime; campaign admission remains exact.
+
 The verified v15 cumulative terminal is a **scientific fail**: 1,115 binding
 comparisons pass, 32 fail against the earlier Hebog incumbent and 40 are
 underpowered. No binding comparison against either PyBDSF reference or Aegean
