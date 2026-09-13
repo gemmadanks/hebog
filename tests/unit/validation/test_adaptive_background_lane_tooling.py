@@ -13,6 +13,7 @@ import runpy
 import subprocess
 import sys
 from collections.abc import Callable
+from copy import deepcopy
 from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
@@ -67,11 +68,119 @@ def _skip_upstream_identities(_repository_root: Path) -> None:
     """Isolate downstream historical-runner checks after supersession."""
 
 
+def _assert_regenerated_manifest_matches_snapshot(
+    generated: dict[str, Any], snapshot: dict[str, Any]
+) -> None:
+    """Allow only four-ULP roundoff in flux-weighted truth positions.
+
+    NumPy's dot reduction can differ across BLAS/platform implementations.
+    Recipes, hashes, seeds, fluxes, identifiers and all other fields stay
+    exact. This test-only comparison never alters execution/evaluation input;
+    historical file bytes are checked separately against Git.
+    """
+    comparable = deepcopy(generated)
+    for actual, expected in zip(
+        comparable["datasets"], snapshot["datasets"], strict=True
+    ):
+        for field in ("association_truth_groups", "multiscale_truth_groups"):
+            for actual_group, expected_group in zip(
+                actual[field], expected[field], strict=True
+            ):
+                np.testing.assert_array_max_ulp(
+                    actual_group["reference_position_xy"],
+                    expected_group["reference_position_xy"],
+                    maxulp=4,
+                )
+                actual_group["reference_position_xy"] = expected_group[
+                    "reference_position_xy"
+                ]
+        assert actual == expected, expected["identifier"]
+    assert comparable == snapshot
+
+
+def _comparison_snapshot() -> dict[str, Any]:
+    """Keep comparison fault injection small and independent of generation."""
+    group = {
+        "identifier": "truth-source",
+        "reference_position_xy": [181.0, 173.0],
+        "reference_integrated_brightness_jy_pixels_per_beam": 3.5,
+    }
+    return {
+        "manifest_id": "snapshot",
+        "datasets": [
+            {
+                "identifier": "source",
+                "recipe": {"seed": 123, "peak_flux_jy_per_beam": 0.5},
+                "recipe_sha256": "a" * 64,
+                "association_truth_groups": [deepcopy(group)],
+                "multiscale_truth_groups": [deepcopy(group)],
+            }
+        ],
+    }
+
+
+@pytest.mark.parametrize("steps", (0, 1, 4))
+def test_manifest_comparison_accepts_only_bounded_coordinate_roundoff(
+    steps: int,
+) -> None:
+    """Small dot-product roundoff is not a rewritten historical manifest."""
+    snapshot = _comparison_snapshot()
+    generated = deepcopy(snapshot)
+    for field in ("association_truth_groups", "multiscale_truth_groups"):
+        position = generated["datasets"][0][field][0]["reference_position_xy"]
+        for _ in range(steps):
+            position[0] = float(np.nextafter(position[0], np.inf))
+            position[1] = float(np.nextafter(position[1], -np.inf))
+    original_generated = deepcopy(generated)
+
+    _assert_regenerated_manifest_matches_snapshot(generated, snapshot)
+
+    assert generated == original_generated
+    assert snapshot == _comparison_snapshot()
+
+
+@pytest.mark.parametrize(
+    "defect", ("position", "flux", "recipe", "seed", "hash", "id", "count")
+)
+def test_manifest_comparison_rejects_changes_beyond_coordinate_roundoff(
+    defect: str,
+) -> None:
+    """The portable check still rejects real science and identity changes."""
+    snapshot = _comparison_snapshot()
+    generated = deepcopy(snapshot)
+    dataset = generated["datasets"][0]
+    if defect == "position":
+        position = dataset["association_truth_groups"][0][
+            "reference_position_xy"
+        ]
+        for _ in range(5):
+            position[0] = float(np.nextafter(position[0], np.inf))
+    elif defect == "flux":
+        group = dataset["multiscale_truth_groups"][0]
+        field = "reference_integrated_brightness_jy_pixels_per_beam"
+        group[field] = float(np.nextafter(group[field], np.inf))
+    elif defect == "recipe":
+        dataset["recipe"]["peak_flux_jy_per_beam"] = float(
+            np.nextafter(0.5, np.inf)
+        )
+    elif defect == "seed":
+        dataset["recipe"]["seed"] += 1
+    elif defect == "hash":
+        dataset["recipe_sha256"] = "b" * 64
+    elif defect == "id":
+        dataset["identifier"] = "another-source"
+    else:
+        generated["datasets"].append(deepcopy(dataset))
+
+    with pytest.raises((AssertionError, ValueError)):
+        _assert_regenerated_manifest_matches_snapshot(generated, snapshot)
+
+
 def test_frozen_manifest_and_reviews_retain_the_historical_snapshot() -> None:
     """Superseding source changes cannot rewrite completed lane evidence."""
     manifest = build_adaptive_development_manifest()
-    assert json.loads(_MANIFEST.read_text()) == manifest.model_dump(
-        mode="json"
+    _assert_regenerated_manifest_matches_snapshot(
+        manifest.model_dump(mode="json"), json.loads(_MANIFEST.read_bytes())
     )
     for path in (_MANIFEST, _IMPLEMENTATION, _IDENTITY):
         historical = _historical_bytes(str(path.relative_to(_ROOT)))

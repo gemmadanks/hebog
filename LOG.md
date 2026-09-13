@@ -20810,3 +20810,43 @@ scientific pass from fixture validation.
   actionable reporting issue. Strict docs and clean all-file pre-commit hooks
   are the local commit gates; existing science/coverage evidence remains
   applicable. No campaign, push, publication, tag or cutover is performed.
+
+### 2026-09-13 — Linux CI historical-manifest portability repair
+
+- Review the failed pre-commit job
+  [103745427744](https://github.com/gemmadanks/hebog/actions/runs/34765428571/job/103745427744)
+  at `3806794599fab693168ceaef730401492c8a1522`. The provided traceback fails
+  in `test_frozen_manifest_and_reviews_retain_the_historical_snapshot`, not
+  a finder execution. The original assertion passes on local macOS.
+- Decision: distinguish exact historical evidence identity from numerical
+  regeneration of analytic derived coordinates. Reproduce the comparison in
+  an existing disposable Linux/amd64 container with the repository read-only,
+  two CPUs, 2 GB memory and matching NumPy 2.4.6, SciPy 1.18.0 and Pydantic
+  2.13.4. Linux Python 3.12.3 produces **32 differing float fields**, all
+  flux-weighted reference coordinates, each **one ULP** apart (maximum
+  **5.684341886080802e-14 pixels**). Every other field, including recipes,
+  hashes, seeds and integrated brightness, is exactly equal. This supports
+  platform-dependent dot-reduction roundoff, not a changed population or
+  scientific failure; it is not a reproduction of the entire CI environment.
+- Repair only the test comparison: retain exact Git-byte assertions for the
+  manifest and frozen reviews, permit at most four ULPs in the two derived
+  truth-position fields, and require every other field to match exactly.
+  Do not modify the generator, runtime admission, campaign thresholds,
+  frozen inputs, recipes or reviews. Fault-injection tests accept zero/one/four
+  coordinate ULPs without mutating either input, reject five ULPs, and reject
+  changes to flux, recipe, seed, hash, identity and population count. The
+  comparison reports a dataset identity instead of diffing the entire matrix.
+- Focused validation: **32 tooling tests pass** locally; the failed snapshot
+  test and ten new comparison controls pass on Linux (**11 passed**, 21
+  deselected). Public API/Serial-existing-Dask and historical-checkout tests
+  also pass (**53 tests**). Ruff lint/format checks pass. The Linux checks run
+  only synthetic manifest/test logic; no finder or campaign is started, no
+  host dependency or retained evidence is changed, and disposable containers
+  are removed after exit. Existing v17 production coverage remains applicable;
+  this test-only change introduces no package branches or coverage exclusions.
+- Review the repair against `CODE_REVIEW.md`: the four-ULP allowance is
+  confined to a test-only derived-coordinate comparison, not file identity,
+  execution authority or scientific scoring. Strict documentation and clean
+  all-file hooks remain the local commit gates. GitHub's full supported-platform
+  matrix is still required after the human pushes; local success does not
+  turn the reported remote failure green. No push, tag, release or replay.
