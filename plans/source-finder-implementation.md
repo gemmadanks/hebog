@@ -1,6 +1,6 @@
 # Hebog implementation plan
 
-Authoritative remaining-work plan. Updated **12 September 2026**.
+Authoritative remaining-work plan. Updated **13 September 2026**.
 Current user-facing capability and release policy are in
 [release status](../docs/reference/release-status.md); exact campaign
 identities, execution history and completed validation belong in
@@ -14,9 +14,9 @@ identities, execution history and completed validation belong in
 | Implemented | FITS/WCS ingress, background/RMS, compact and multiscale detection, source/component measurement, catalogue/mask/RMS/diagnostics publication, Serial and caller-owned Dask execution, Zarr intermediates. |
 | Public envelope | ICRS `Jy/beam` FITS, at most 1,024 pixels on either spatial axis. `continuum` is the default; explicit `compact` is extended-emission-incomplete. Custom thresholds execute but remain unqualified. |
 | Strongest applicable checks | F4 focused regressions, 27 frozen equivalence tests, exact Serial/Dask checks and 95.2963% portable branch-aware coverage pass. The 24-input public screen completed; its 49 point-estimate warnings remain. This is development evidence, not powered parity. |
-| Campaign | The latest recorded snapshot in `LOG.md` has the isolated two-worker v15 cumulative retry running. No v15 terminal verdict is recorded. Progress counts belong in the log/monitor, not this plan. |
-| Blockers | Terminal severity review; disposition of any confirmed incorrect supported outputs; final merge/release validation. Scientific qualification, Rapthor integration and complete-path performance remain unproven. |
-| Next authorized action | Finish monitoring and verify the existing terminal, then review all failed/underpowered endpoints under the agreed severity policy. No duplicate launch, partial-science inspection or rescoring. |
+| Campaign | Verified v15 terminal: scientific **fail**, 1,115 pass / 32 fail / 40 underpowered comparisons. All five safety checks pass; 2,400 captures/evaluations, 12 exact Dask agreements and 8,000 retained records verified. No definite binding external-reference failure, but parity and incumbent retention are not established. |
+| Blockers | Two confirmed high-SNR corner-source Gaussian fallback errors; unresolved historical position witness; human severity disposition and final merge/release validation. Scientific qualification, Rapthor integration and complete-path performance remain unproven. |
+| Next authorized action | Present the completed terminal/severity inventory and narrow Gaussian-admission repair recommendation below. Further scientific repair needs review; no automatic retry, rescoring or release. |
 | Deferred | Broader faint-source association repair (F2), optional scientific improvement, full qualification and facility-scale work. Reopen a deferred issue if triage establishes a serious correctness impact. |
 
 The [campaign overview](../docs/reference/phase-5-campaign-overview.md)
@@ -58,12 +58,11 @@ Each task has an observable completion condition. Agent-owned preparation
 continues within existing authority; scientific disposition and final merge
 remain human decisions.
 
-- [ ] **M1 — Finish and verify the existing v15 campaign.** Verify its atomic
-      terminal against the exact admitted candidate, programs, configuration,
-      all 2,400 captures/evaluations, 12 caller-owned Dask comparisons and
-      8,000 reused comparator records. Preserve any process failure and the
-      original failed v14 artifacts. Record the result in `LOG.md` and replace
-      the current summary. Retire the existing monitor after terminal handling.
+- [x] **M1 — Finish and verify the existing v15 campaign.** Normal process exit,
+      failed scientific terminal, full provenance/census and exact Dask
+      agreement verified. Preserve the terminal byte-for-byte and the original
+      failed v14 artifacts. Current summaries and `LOG.md` record the result;
+      the completed-run monitor is retired.
 - [ ] **M2 — Make the bounded severity decision.** Review compact science then
       Continuum, including every failed/underpowered endpoint and known public
       witnesses. Use the existing
@@ -72,6 +71,11 @@ remain human decisions.
       release disposition and next task. Close development if no serious issue
       remains; uncertain serious impact needs bounded triage and human
       disposition, not automatic deferral or another full campaign.
+      **Review prepared:** the campaign overview accounts for all 72
+      non-passing comparisons. Statistical/tail limitations are proposed for
+      reviewed deferral, not marked passing. Two published high-SNR fallback
+      errors are serious correctness blockers; final human disposition remains
+      pending.
 - [ ] **M3 — Fix any serious defects found by M2 in separate commits.** For each
       repair, state the cause hypothesis, independent test, expected change
       and stopping condition before implementation. Add a failing regression,
@@ -80,6 +84,16 @@ remain human decisions.
       only evidence whose identities remain applicable. No full replay follows
       automatically; after two ineffective repairs reassess the diagnosis.
       Mark this task not needed if M2 finds no serious defects.
+      **Proposed next repair, not yet approved:** an invalid free Gaussian can
+      fall back to a numerically valid but scientifically inadequate unresolved
+      beam model. Independently test point versus resolved edge/corner sources,
+      require correct or explicitly unavailable Gaussian outputs, preserve
+      valid point fits and run public Serial/Dask non-regression. Review any
+      new admission rule before promotion; never choose it from closed seeds.
+      Diagnose the ten missing high-SNR corner rows separately and retain the
+      earlier position witness. Stop at a bounded repaired-candidate handoff;
+      another full replay is not automatic. Details and stopping conditions
+      are in the campaign overview's correctness inventory.
 - [ ] **M4 — Review the actual merge diff.** Compare the branch to main using
       `CODE_REVIEW.md`; preserve unrelated changes, check public/schema breaks,
       dependencies, packaging and provenance. Keep production changes with

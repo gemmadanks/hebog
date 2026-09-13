@@ -47,15 +47,23 @@ retains 49 point-estimate warnings, including compact uncertainty/measurement
 and faint extended association, mask and flux-tail risks. It does not provide
 powered parity evidence.
 
-The latest recorded cumulative-run status is summarized in the
-[campaign overview](phase-5-campaign-overview.md); exact operational progress
-and terminal decisions belong in the
+The verified v15 cumulative terminal is a **scientific fail**: 1,115 binding
+comparisons pass, 32 fail against the earlier Hebog incumbent and 40 are
+underpowered. No binding comparison against either PyBDSF reference or Aegean
+has a definite failure, but that does not establish general parity. All five
+operational/product safety checks and 12 exact Serial/Dask comparisons pass.
+The [campaign overview](phase-5-campaign-overview.md) contains the complete
+non-passing endpoint and correctness inventory; exact evidence belongs in the
 [execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md).
 No earlier candidate's scientific pass transfers automatically to this one.
-Remaining confirmed public-output defects, if found at terminal review, must
-be corrected before release. Statistical uncertainty or ambiguous faint
-morphology needs an explicit reviewed limitation; neither is silently marked
-as passing.
+Terminal review confirms two high-SNR corner-source cases where an invalid
+free fit falls back to a beam-shaped model and publishes badly biased Gaussian
+fluxes as measured. This is a release correctness blocker, not an experimental
+limitation waived by passing aggregate metrics. A narrow independently tested
+fallback-admission repair is recommended. The earlier notebook position
+witness also needs resolution confirmation; statistical uncertainty and
+ambiguous faint morphology need explicit reviewed limitations. No further
+scientific run or release is authorized by documenting this result.
 
 ## Release boundaries
 

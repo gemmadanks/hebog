@@ -20450,3 +20450,110 @@ scientific pass from fixture validation.
   only dry-run/help and synthetic notebook execution run locally. A live
   container build and reference smoke remains unverified until disk/resources
   are available. The existing replay is neither inspected nor altered.
+
+### 2026-09-13 — Verify and review the terminal v15 cumulative retry
+
+- Managed session **46612** exited **0**, atomically publishing **scientific
+  `fail`** at **2026-09-12 20:54:21 UTC**. Capture began at 10:56:22 UTC,
+  finished at 17:25:37, Dask at 17:28:29 and evaluations at 17:45:23;
+  aggregation ran from 17:46:28 to the terminal. Capture through terminal took
+  about 9 hours 58 minutes, or about 10 hours 6 minutes including launch and
+  repeated preflight. This is campaign elapsed time, not a matched PyBDSF
+  performance benchmark. No process-failure record exists; scientific failure
+  is terminal evidence, not permission for a process retry.
+- Preserve the exact atomic file from
+  `/private/tmp/hebog-r6-public-catalogue-v15-replay/benchmark-results/phase-5/public-catalogue-v15-cumulative-decision.json`
+  in the main ignored `benchmark-results/phase-5/` namespace without overwrite.
+  Both copies have SHA-256
+  `ad0ed920ca57cf17a64a0cbf5cbd8169f8d2dcab42025de1008093fa74385d8f`.
+  The immutable execution checkout remains clean at
+  `dcd0cc06513af3afcc34206693e02284c3d3ace3`; candidate
+  `73ab5af09fde1ca6b4e6032a870fc6e248ddfdbd`, source
+  `db05cba99a80c65b39a5816918d00201d35684eae7cf2e080bec61e9a90def96`
+  and configuration
+  `5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4`
+  match the exact admission recorded on 12 September. Do not reuse that
+  consumed execution authority.
+- Exhaustive read-only terminal verification passes: 2,400 inputs and current
+  captures/evaluations (800 compact, 1,600 Continuum), all 9,600 retained native
+  reference runs, all 8,000 reused comparator records, program/runtime/review/
+  authorization identities, all three seals, record/artifact hashes and
+  independently recomputed equality of 12 saved Serial/Dask scientific digests.
+  The verifier uses existing verification/record-combination functions, not
+  finder execution, matching, scientific evaluation or bootstrap rescoring.
+  Retain `benchmark-results/phase-5/v15-terminal-review-20260912/verify_terminal.py`
+  (SHA-256 `a47ae710c1b49c2604f2dcb87f6eef3cb29d429eeab6b27fc887e30a77a82331`)
+  and `verification.json`
+  (`d16e964c409442dfc68c4a957a47cd7762cad1a9da9b54ad3aa5b4c9f2d84a6f`).
+  Verification completed at 21:27:31 UTC on 12 September; its normal exit and
+  the completed validation sessions were recovered on 13 September.
+- The unchanged terminal has **1,115 pass / 32 fail / 40 underpowered** binding
+  comparisons; `all_required_endpoints_pass` and
+  `cumulative_science_regression_ready` are both false. All five safety checks
+  pass. Released PyBDSF is 327/0/11, pinned master 330/0/8, Aegean 139/0/4 and
+  the single earlier Hebog incumbent 319/32/17. Compact is 762/24/32 and
+  Continuum 353/8/8. Compare each finder independently against injected truth;
+  do not treat PyBDSF as truth or raw pre-applicability diagnostic decisions
+  as additional binding failures. Report-only planning/absolute objectives do
+  not replace the binding result. No qualification, release or cutover follows.
+- Replace the current overview with the complete grouped inventory of all 72
+  non-passing comparisons: 23 uncertainty-calibration and one unresolved-axis
+  compact failure; four source-centroid and four extended-flux-tail failures,
+  all versus the incumbent. Preserve the 40 inconclusive comparisons and their
+  fixed margins/confidence rule. Favorable PyBDSF position/flux comparisons do
+  not establish general parity or compensate for failed retention. Statistical
+  uncertainty and difficult faint morphology require human disposition, not
+  error inflation, threshold changes or another automatic campaign.
+- Read only the 800 completed compact records: 38,344 matched and 56 unmatched
+  truth rows. Misses comprise 40 SNR-10, six SNR-15 and ten SNR-50 rows. All ten
+  high-SNR misses are the same clearly resolved corner source `source-00048`
+  under different noise realizations. Two of the 18 gated catastrophic
+  matched outliers also involve this SNR-50 source: seeds **2026870667** and
+  **2026870777**. Their already-frozen integrated-flux errors are **−82.42%**
+  and **−56.70%**; peak errors are **−1.97%** and **+141.47%**. Position errors
+  are 0.0506 and 0.1882 beam, not the source of their catastrophic flags.
+  The complete candidate records are under
+  `/private/tmp/hebog-r6-public-catalogue-v15-products-73ab5af/pairs/phase5-external-post-failure-compact-blend-512-seed-<seed>/evaluation/current-hebog.json`;
+  their hashes respectively are
+  `a23dde9474a1fb54a45c439beec7a7ab41d0ed3eadbd3d58339fb9a1ae010cf8`
+  and `12ead081990407c8038390254c2fc38415cc208a2ae2be209a7ce7da06d0ef47`.
+- The corresponding native `current/capture.json` files have hashes
+  `cf2df823693a0fc432d4180ec4e0d5420c2edc3968af967e78acef80a2b90fb2`
+  and `3d830b39d247e733421b27b26522f03e8aa7406d49a7921062e92314c6f90146`.
+  Both publish measured Gaussian rows with covariance and unresolved status.
+  The free fits were rejected for ill-conditioning/bound contact; the selected
+  beam models have reduced chi-squared 356.02/145.74, condition numbers
+  1.93/1.87 and no active bounds. Code inspection of free/beam selection and
+  publication explains why numerical validity admits these inadequate models.
+  It does not yet establish the initiating optimizer failure or the cause of
+  all ten missing detections. No closed data were refitted or rematched.
+- **Severity recommendation:** this known biased Gaussian-output mechanism is
+  serious and blocks correctness clearance despite passing aggregate safety
+  and outlier gates. Propose an independently specified, test-first fallback
+  adequacy repair through public publication and Serial/Dask controls, with
+  valid point-source retention and explicit unavailable outputs where needed.
+  New scientific admission policy needs human review; no cutoff is selected
+  from these seeds and no code/scoring change is made here. Trace the missing
+  corner cases separately. Keep the earlier v12 Hydra displacement witness
+  unresolved rather than claiming F1/F4 fixtures reproduce or clear it on v15.
+  M1 terminal verification is complete; M2 human disposition and M3 proposed
+  repair remain open. Broader F2 and performance/scalability priorities are
+  unchanged. No full replay is recommended automatically.
+- Validation completed before documentation handoff: 162 focused admission,
+  runner, execution, campaign-evidence, retained-measurement and continuation
+  tests pass (543.78 seconds). `just coverage` passes **4,051 tests**, with 158
+  deselected and two existing expected failures, at **95.31%** branch-aware
+  coverage (913.37 seconds). No production code, assertion, coverage exclusion,
+  scientific gate or frozen evidence is changed. `just check` passes Ruff,
+  Pyright and 3,747 quick tests with two existing expected failures (311.99
+  seconds); `just test-equivalence` passes all 27 frozen tests (52.61 seconds).
+  Strict docs builds and `git diff --check` pass. Review the full documentation
+  diff against `CODE_REVIEW.md`: no actionable reporting defect remains;
+  the scientific correctness finding above is explicitly open, not hidden by
+  the passing test suite. Full merge/platform/release validation is not claimed.
+  Clean all-file hooks are the final local-commit gate.
+- Delete only the completed hourly automation `monitor-current-replay` through
+  the app after terminal verification/review. The deletion is confirmed;
+  campaign evidence, the immutable checkout and all original failures remain
+  intact. A future scientific repair or execution needs its own reviewed scope,
+  not an hourly monitor retrying this closed result.

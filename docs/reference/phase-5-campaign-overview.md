@@ -1,7 +1,7 @@
 # Current scientific campaign overview
 
 This page summarizes the current finder candidate and unresolved scientific
-work, as recorded on **12 September 2026**. Phase 5 remains part of immutable
+work, as recorded on **13 September 2026**. Phase 5 remains part of immutable
 campaign names; it no longer defines the size of a release. See
 [release status](release-status.md) for current public capabilities and the
 [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
@@ -21,31 +21,128 @@ binds its source, configuration and validation. It remains
 | Portable suite and frozen equivalence checks | 3,992 portable tests, 95.2963% branch-aware coverage and 27 frozen equivalence tests pass for the repair. | Does not replace candidate-bound held-out qualification or the full platform matrix. |
 | Exact previously failing input | One complete public capture succeeds after F4. | No scientific evaluation or parity verdict from that control. |
 | Result-neutral 24-input public screen | Captures, native product reading, evaluation and aggregation complete; two Serial/Dask scientific digests agree exactly. | All 1,187 point rows are unchanged: 1,138 within margin, 49 beyond. No powered confidence-bound pass is claimed. |
-| V15 cumulative replay | The latest recorded operational snapshot has the isolated two-worker run active; no terminal verdict is recorded. | Partial progress is not scientific evidence. Do not inspect partial science or launch a duplicate. |
+| V15 cumulative replay | Completed normally on 12 September: **scientific fail**, with 1,115 passing, 32 failed and 40 underpowered binding comparisons. All five safety checks pass. | Neither cumulative readiness nor all-required-endpoints pass. This is regression evidence, not fresh qualification. |
 
-The running replay's admitted scope is 2,400 current-Hebog Serial captures,
-12 existing-Dask comparisons, 8,000 reused comparator records and one atomic
-terminal evaluation, with no new incumbent or external finder execution.
-The exact admission, identities, runtime location and progress are maintained
-in [LOG.md](https://github.com/gemmadanks/hebog/blob/main/LOG.md) and the existing
-monitor. This documentation refresh does not independently establish live
-process health.
+Terminal verification accounts for all 2,400 current-Hebog Serial captures and
+evaluations, 12 exact existing-Dask agreements and 8,000 reused comparator
+records. It checks all 9,600 underlying retained native reference runs,
+candidate/configuration/program identities, immutable checkout, seals and
+process provenance. No new incumbent or external finder ran. The atomic
+terminal is preserved byte-for-byte in the main ignored evidence namespace;
+exact paths, checksums and validation are in
+[LOG.md](https://github.com/gemmadanks/hebog/blob/main/LOG.md).
 
-## What still needs a decision
+## Comparison with the references
 
-The screen retains **37 compact and 12 Continuum point-estimate warnings**.
-Compact measurement/uncertainty, faint extended fragmentation and mask/flux
-tails remain scientific risks. The independent
-[follow-up review](phase-5-v13-followup-review.md) explains the mechanisms and
-negative controls; its earlier candidate-specific observations are not new
-v15 results. Broader faint-association work (F2) remains deferred pending
-terminal severity review.
+Each finder is evaluated independently against analytic injected truth before
+comparing like semantics. PyBDSF is not truth. These are the terminal's binding
+comparison arrays, not raw diagnostic decisions before semantic applicability:
 
-Gaussian-validity and filtered-response repairs are implemented and tested.
-Their fixture passes do not establish that every catalogue measurement or
-association is scientifically correct. Review the complete terminal against
-truth, compact first and Continuum second, and account for every failed or
-underpowered comparison and any known public witness.
+| Comparator | Pass | Fail | Underpowered |
+| --- | ---: | ---: | ---: |
+| Released PyBDSF | 327 | 0 | 11 |
+| Pinned PyBDSF master | 330 | 0 | 8 |
+| Aegean, applicable compact endpoints | 139 | 0 | 4 |
+| Earlier Hebog incumbent | 319 | 32 | 17 |
+
+**Compact first:** all binding position, peak-flux and integrated-flux
+comparisons against both PyBDSF references pass. Overall completeness is
+99.8704% versus released PyBDSF's 99.9954%; reliability is 99.7549% versus
+99.8682%. Median position error is 0.02077 beam versus 0.02252; p95 integrated
+flux fractional error is 0.1752 versus 0.3450. These favorable point estimates
+are not a new prospectively tested superiority claim. Uncertainty calibration
+and unresolved-axis retention regress against the earlier Hebog incumbent.
+
+**Continuum second:** all 113 released-PyBDSF comparisons pass. Against master,
+112 pass and overall mask precision is underpowered. Overall completeness is
+1.0 and reliability 0.9294, versus released PyBDSF's 0.9994 and 0.5670.
+Integrated-flux p95 fractional error is 0.3074 versus released PyBDSF's 0.8518,
+but the incumbent is better at 0.2694. Some extended flux tails and signed
+source-centroid offsets regress against that incumbent. Those centroid
+endpoints describe irregular source segments, not Gaussian peak positions.
+
+There is **no definite failed binding external-reference comparison**, but
+underpowered comparisons prevent general parity; incumbent failures prevent
+quality-retention readiness. Finite/product-validity checks do not prove that
+a numerically accepted model is a scientifically adequate description.
+
+## Complete non-passing endpoint inventory
+
+The following groups account for all **32 failures and 40 underpowered
+comparisons**. Counts are comparisons, not independent defects; related
+availability endpoints share missing-source witnesses. Exact endpoint IDs,
+native values, frozen margins and confidence limits remain in the terminal.
+
+| Issue and affected strata | Fail | Underpowered | Interpretation and next disposition |
+| --- | ---: | ---: | --- |
+| Compact uncertainty: bias (edge, overall, unresolved, SNR 10/15/25/50); dispersion and one-sigma coverage (edge, overall, all three shape classes, SNR 10/15/50) | 23 | 4 | Failures are incumbent retention. Underpowered rows are released-PyBDSF dispersion at edge/clearly resolved and incumbent bias at clearly/marginally resolved. These values are calibration distances, not raw coverage fractions. Statistical release limitation needs human review; do not inflate errors to pass. |
+| Compact p95 fitted axis, unresolved | 1 | 0 | Incumbent retention: 0.0760 versus 0.0605, exceeding the 0.01 regression margin. Review classification/model selection with the validity issue below; not evidence for changing the margin. |
+| Compact SNR-10 completeness, association identity/pair recall, fitted-shape availability; applicable deconvolution/uncertainty availability and point specificity | 0 | 25 | Four comparisons with Aegean and seven with each other comparator. Completeness is 99.5833%; the regression upper bound versus released PyBDSF is 0.5104 percentage points against a 0.5-point margin. Inconclusive, not a pass or a measured 0.51-point loss. |
+| Compact edge resolved-classification recall and deconvolved-shape availability | 0 | 2 | Released-PyBDSF comparisons; review edge model admission with the stored high-SNR cases below. |
+| Compact edge p95 integrated flux | 0 | 1 | Incumbent retention: 0.1940 versus 0.1780; upper regression bound 0.0211 exceeds margin 0.02. Retain as an inconclusive tail warning. |
+| Continuum absolute mean x offset: shell, above compact-deblend limit, tile corner, tile boundary | 4 | 0 | Incumbent retention. The first three overlapping strata have 0.1075 versus 0.0238 beam; tile boundary 0.0595 versus 0.0090. Source-centroid/association limitation, not a global WCS shift. |
+| Continuum integrated-flux p95: image edge, curved filament, filament, scale 2 beams | 4 | 7 | Incumbent retention. Errors are 0.1676–0.2686 versus 0.1098–0.1925. Underpowered strata: invalid pixels, diffuse, mixed, overall, scales 1/4 beams and varying noise. Broader faint-association F2 remains a proposed deferral, not a repaired or passing endpoint. |
+| Continuum mask precision, overall | 0 | 1 | Versus master: 0.9105 versus 0.9597; regression upper bound 0.05053 against margin 0.05. Inconclusive mask/contamination limitation. |
+
+The earlier screen's 49 point warnings are superseded for current inference
+by this complete terminal, not erased. The
+[follow-up review](phase-5-v13-followup-review.md) retains independent mechanism
+tests, including negative controls: a larger fitting window did not reliably
+repair uncertainty coverage, and faint fragmentation was not explained solely
+by background/RMS error. These do not establish one cause for all current
+failures. Planning deviations and longer-term absolute objectives remain
+report-only under the unchanged contract.
+
+## Correctness inventory and recommended next action
+
+Read-only inspection of all 800 saved compact evaluations finds 38,344 matched
+and 56 unmatched truth rows. Forty unmatched rows are SNR 10, six SNR 15 and
+ten SNR 50. All ten SNR-50 misses involve the same clearly resolved edge/corner
+source (`source-00048`) across different noise realizations; do not describe
+them as ordinary interior-source losses or harmless without diagnosis.
+
+There are also two **published SNR-50 model failures** at that same corner:
+
+| Seed | Native fallback | Integrated-flux error | Peak-flux error | Reduced chi-squared |
+| --- | --- | ---: | ---: | ---: |
+| 2026870667 | Free model ill-conditioned → beam-constrained | −82.42% | −1.97% | 356.02 |
+| 2026870777 | Free model at a bound → beam-constrained | −56.70% | +141.47% | 145.74 |
+
+Both have `status=measured`, a published Gaussian row, available position/flux
+covariance and `deconvolution_status=unresolved`, despite clearly resolved
+analytic truth. The native records and already-frozen matches establish these
+errors; no finder was rerun and no match or gate was recomputed. The existing
+catastrophic-outlier endpoint still passes overall (18/38,344), which cannot
+waive a confirmed incorrect supported output.
+
+Code inspection identifies a credible admission gap: rejection of an invalid
+free Gaussian in `fitting._select_joint_candidates` can select a beam-shaped
+alternative; `fitting._selected_fit_result` checks
+convergence, numerical validity and identifiability, but these do not establish
+model adequacy. The two alternatives are well-conditioned and away from their
+own bounds. A condition-number-only repair would therefore miss them. This
+explains their acceptance, not yet the initiating free-fit failure or all ten
+missing detections. Treat this as a **serious Gaussian-output correctness
+blocker**, with a narrow test-first repair recommended before development
+closeout or an experimental release, rather than a reason to retune the whole
+finder or repeat the campaign.
+
+Proposed bounded repair decision: distinguish a genuinely unresolved source
+from a rejected resolved/truncated fit using independently specified analytic
+controls. Cover interior/edge/corner, noise, invalid pixels and resolved versus
+point-source models through public publication and Serial/existing-Dask
+execution. Require valid point fits to remain accepted, and demonstrably
+inadequate fallbacks to be explicitly unavailable or correctly measured; do not
+fabricate reliable Gaussian flux/errors from numerical convergence. Review any
+new scientific admission rule before promotion. Stop when independent controls
+and affected non-regression checks pass; do not tune a cutoff on these closed
+seeds, rescore them, or launch another full replay automatically. Trace the ten
+missing corner rows separately before claiming that this repair fixes them.
+
+The earlier public Hydra figure-12 displacement belongs to v12, not v15.
+F1/F4 fixtures do not prove its exact resolution. Retain it as an unresolved
+historical witness requiring current supported-envelope/independent-mechanism
+confirmation; do not claim a new v15 reproduction from that screenshot.
 
 The agreed
 [severity policy](phase-5-v13-followup-review.md#later-decision-final-campaign-then-development-closeout)
@@ -55,11 +152,14 @@ morphology and inconclusive comparisons can be deferred only with their
 impact explained. Uncertain serious impact requires bounded triage and human
 disposition. A confirmed incorrect supported output remains a release blocker.
 
-After terminal verification and severity review, close development if no
-serious issue remains and prioritize complete-path profiling and bounded
-scalability work. Scientific readiness still needs candidate-bound
-parity/retention, fresh evidence and independent acceptance. The new
-experimental-release sequence does not change those scientific verdicts.
+Terminal handling is complete; scientific repair approval and final M2
+disposition remain human decisions. The recommendation is to address the narrow
+Gaussian fallback defect, then prioritize complete-path profiling and bounded
+scalability, with explicitly reviewed uncertainty/faint-morphology limitations.
+There is no recommendation for another long campaign now. Scientific readiness
+still needs candidate-bound parity/retention, fresh evidence and independent
+acceptance; neither operational success nor favorable PyBDSF results qualifies
+this candidate or authorizes release.
 
 ## Where the historical evidence lives
 
