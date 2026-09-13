@@ -227,19 +227,25 @@ disposition. A confirmed incorrect supported output remains a release blocker.
 
 Terminal handling and the bounded Gaussian/background correctness repairs are
 complete; the historical displacement witness is resolved at the fitting
-boundary. The proposed release disposition is:
+boundary. On **13 September 2026**, the human accepted the documented
+uncertainty-calibration, measurement-tail and faint-association limitations
+for the v17 experimental standalone release. The bounded release disposition is:
 
-| Item | Proposed disposition | Required follow-up |
+| Item | Disposition | Required follow-up |
 | --- | --- | --- |
 | Inadequate beam fallback after invalid free fit | Repaired; omit unsupported Gaussian measurements explicitly, retain independent source products. | Review omission/completeness effects in a paired development screen before any new scientific campaign. |
 | Corner background amplification | Repaired by independent coarse/fine conditioning regressions and exact public execution controls. | Keep noisy/gradient/corner controls in non-regression; do not claim the closed misses have been rescored or recovered. |
 | Historical displaced Gaussian | Specific saved-pixel fitting witness resolved; not a whole-image qualification. | Retain diagonal-weighting provenance and independent position controls. |
-| Uncertainty calibration, unresolved-axis and extended centroid/flux tails, faint association, inconclusive completeness/mask comparisons | Documented statistical/ambiguous limitations, proposed for deferral from the standalone experimental release. | Human scientific acceptance of this scope; no general parity, precision-uncertainty or Rapthor-deployment claim. Reopen if a confirmed incorrect supported output is identified. |
+| Uncertainty calibration, unresolved-axis and extended centroid/flux tails, faint association | Human-accepted documented limitations for the v17 standalone experimental release. | Retain later repair/qualification tasks; no general parity, precision-uncertainty or Rapthor-deployment claim. Reopen if a confirmed incorrect supported output is identified. |
+| Inconclusive completeness/mask comparisons | Remain inconclusive and prevent a general parity claim; the standalone release does not make that claim. | Resolve through candidate-bound qualification before promoting scientific readiness; no margin or confidence-rule change. |
 
-Final M2 severity acceptance remains a human decision. Local tests and scoped
-repair review support this proposal, not an assertion that every production
-use is safe. After acceptance and merge/platform checks, prioritize complete-
-path profiling and bounded scalability with these limitations visible.
+M2 severity acceptance and the bounded E1 correctness inventory are complete
+for this reviewed standalone scope. This is not an assertion that every
+production use is safe, permission to ship a known incorrect supported output,
+or blanket acceptance of future scientific changes. After merge/platform
+checks, prioritize complete-path profiling and bounded scalability with these
+limitations visible. The immutable v17 freeze retains its original bytes;
+this later risk acceptance does not grant it execution or release authority.
 There is no recommendation for another long campaign now. Scientific readiness
 still needs candidate-bound parity/retention, fresh evidence and independent
 acceptance; neither operational success nor favorable PyBDSF results qualifies

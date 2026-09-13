@@ -20784,3 +20784,29 @@ scientific pass from fixture validation.
   complete-path profiling/scalability next, not another automatic long campaign.
   Final clean hooks remain the freeze-commit gate; no push, release PR, tag,
   registry upload or default cutover is performed.
+
+### 2026-09-13 — Human acceptance of standalone experimental-release limits
+
+- The user answers **“Yes”** to the explicit question accepting deferral of
+  the documented uncertainty-calibration, measurement-tail and faint-
+  association limitations for the experimental standalone release. Record
+  this for v17 science **`e39f6c91d2344b07bd88ee22e4793545df177323`** and its
+  existing bounded public envelope; it is not production Rapthor acceptance
+  or a general PyBDSF parity/speed claim.
+- Mark M2 and the bounded E1 correctness inventory complete following the
+  independently validated repairs. Preserve all failed/inconclusive campaign
+  comparisons, thresholds and confidence rules. Newly confirmed incorrect
+  supported outputs still block release, and this acceptance does not transfer
+  automatically to changed science or expanded deployment. Keep uncertainty,
+  tail and faint-association follow-ups visible rather than marking them fixed.
+- Update current plan, release status and campaign disposition consistently.
+  Leave the v17 non-executable identity review byte-for-byte unchanged at
+  SHA-256 `96af557c1f8508b4835e36d6a6309593e4c2b9f3eb493c521c51152e67e673a2`;
+  its earlier pending-risk statement remains a historical freeze snapshot,
+  not a reason to rewrite execution authority. Whole-branch merge review,
+  supported-platform CI and the human Release Please workflow remain required.
+- Documentation-only disposition: no production code, validation rule or
+  scientific evidence changes. Review against `CODE_REVIEW.md` finds no
+  actionable reporting issue. Strict docs and clean all-file pre-commit hooks
+  are the local commit gates; existing science/coverage evidence remains
+  applicable. No campaign, push, publication, tag or cutover is performed.

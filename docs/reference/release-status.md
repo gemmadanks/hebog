@@ -74,9 +74,12 @@ Local public Serial/existing-Dask, frozen equivalence, notebook execution and
 installed-wheel workflows pass. The wheel smoke reads and validates all four
 products for blank, all-NaN, continuum, compact and custom-threshold controls.
 This is a prepared **experimental standalone release candidate**, not final
-release clearance: human scientific acceptance of the documented statistical
-and faint-morphology limitations, accumulated-branch merge review and the full
-platform CI matrix remain required. The Rapthor acceptance lane still contains
+release clearance. On **13 September 2026**, the human accepted deferring the
+documented uncertainty-calibration, measurement-tail and faint-association
+limitations for v17 within the standalone input envelope above. This closes
+the bounded scientific risk-disposition gate, not the failed or inconclusive
+campaign comparisons. Accumulated-branch merge review and the full platform
+CI matrix remain required. The Rapthor acceptance lane still contains
 seven expected-failure scaffolds, not passing deployment acceptance tests.
 No further scientific run, publication or default cutover follows from this
 handoff. Known correctness defects cannot be waived by an experimental label.
@@ -85,7 +88,7 @@ handoff. Known correctness defects cannot be waived by an experimental label.
 
 | Delivery | Required before claiming it |
 | --- | --- |
-| Merge a small change | Coherent scope, review, applicable tests, current docs and CI. The accumulated finder branch also needs its pending campaign/severity review. |
+| Merge a small change | Coherent scope, review, applicable tests, current docs and CI. The accumulated finder branch has completed its bounded campaign/severity disposition; whole-branch review and platform CI remain. |
 | Experimental standalone `0.x` | Reviewed correctness inventory, tested installed public workflow, passing package/platform checks, explicit limitations and unqualified status. General parity, full Rapthor performance and facility scaling can follow in separate increments. |
 | Scientifically qualified finder | Exact candidate-bound cumulative parity/retention, fresh held-out/public evidence and independent scientific/engineering acceptance. Frozen endpoints, margins and failed decisions remain unchanged. |
 | Supported Rapthor deployment | Qualified science, profile/filter agreement, fallback, retry/resume, memory and matched complete `filter_skymodel` performance: at least 50% lower median than released PyBDSF and faster than pinned master, with the required confidence bounds. |

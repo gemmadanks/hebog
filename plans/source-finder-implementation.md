@@ -15,9 +15,9 @@ identities, execution history and completed validation belong in
 | Public envelope | ICRS `Jy/beam` FITS, at most 1,024 pixels on either spatial axis. `continuum` is the default; explicit `compact` is extended-emission-incomplete. Custom thresholds execute but remain unqualified. |
 | Strongest applicable checks | V17 independent boundary/fallback controls, exact public Serial/Dask, notebook execution and five installed-wheel workflows pass, alongside 27 frozen equivalence tests. Exact final coverage/check results are in `LOG.md`. No v17 campaign or powered parity verdict. |
 | Campaign | Verified v15 terminal: scientific **fail**, 1,115 pass / 32 fail / 40 underpowered comparisons. All five safety checks pass; 2,400 captures/evaluations, 12 exact Dask agreements and 8,000 retained records verified. No definite binding external-reference failure, but parity and incumbent retention are not established. |
-| Blockers | Bounded correctness repairs and local release preparation are complete; human severity acceptance, accumulated-branch merge review and full platform CI remain. Scientific qualification, Rapthor acceptance and complete-path performance remain unproven. |
-| Next authorized action | Hand off the exact non-executable candidate and release checklist for human scientific/merge review, then the existing CI/Release Please workflow. No automatic replay, closed-data rescoring, publishing or parity claim. |
-| Deferred | Broader faint-source association repair (F2), optional scientific improvement, full qualification and facility-scale work. Reopen a deferred issue if triage establishes a serious correctness impact. |
+| Blockers | Bounded correctness repairs, local release preparation and human acceptance of the documented residual science limitations are complete. Accumulated-branch merge review and full platform CI remain. Scientific qualification, Rapthor acceptance and complete-path performance remain unproven. |
+| Next authorized action | Complete the accumulated-branch merge review and platform checks, then use the human-controlled CI/Release Please workflow. No automatic replay, closed-data rescoring, publishing or parity claim. |
+| Deferred | The human accepted uncertainty-calibration, measurement-tail and faint-association limitations for the v17 experimental standalone release on 13 September. Broader F2 repair, optional improvement, full qualification and facility-scale work remain later tasks. Reopen a deferred issue if it becomes a confirmed incorrect supported output or serious correctness impact. |
 
 The [campaign overview](../docs/reference/phase-5-campaign-overview.md)
 explains the current evidence and risks. Earlier compact or continuum passes
@@ -63,7 +63,7 @@ remain human decisions.
       agreement verified. Preserve the terminal byte-for-byte and the original
       failed v14 artifacts. Current summaries and `LOG.md` record the result;
       the completed-run monitor is retired.
-- [ ] **M2 — Make the bounded severity decision.** Review compact science then
+- [x] **M2 — Make the bounded severity decision.** Review compact science then
       Continuum, including every failed/underpowered endpoint and known public
       witnesses. Use the existing
       [severity policy](../docs/reference/phase-5-v13-followup-review.md#later-decision-final-campaign-then-development-closeout).
@@ -71,12 +71,15 @@ remain human decisions.
       release disposition and next task. Close development if no serious issue
       remains; uncertain serious impact needs bounded triage and human
       disposition, not automatic deferral or another full campaign.
-      **Review prepared:** the campaign overview accounts for all 72
-      non-passing comparisons. Statistical/tail limitations are proposed for
-      reviewed deferral, not marked passing. The identified fallback/background
+      **Accepted 13 September:** the campaign overview accounts for all 72
+      non-passing comparisons. The human accepted deferral of the documented
+      uncertainty-calibration, measurement-tail and faint-association
+      limitations for the v17 experimental standalone release, not as passing
+      scientific endpoints. The identified fallback/background
       defects are repaired and the specific position witness resolved at the
-      fitting boundary. The overview's disposition table is ready for final
-      human acceptance; it does not authorize qualification or cutover.
+      fitting boundary. This closes the bounded severity decision only:
+      known correctness defects remain blockers and the acceptance does not
+      authorize qualification, publishing or cutover.
 - [x] **M3 — Fix the serious defects identified by the bounded M2 review.** For each
       repair, state the cause hypothesis, independent test, expected change
       and stopping condition before implementation. Add a failing regression,
@@ -200,8 +203,8 @@ remain human decisions.
       **Local handoff prepared:** v17 science is `e39f6c9...`; the separate
       freeze binds its exact source and unchanged configuration. The live
       notebook guard and 35 historical-identity/refresh/notebook tests pass.
-      Final merge clearance waits for M2 human disposition, M4 whole-branch
-      review and M5 platform CI, not another automatic campaign.
+      M2 human disposition is now accepted. Final merge clearance waits for
+      M4 whole-branch review and M5 platform CI, not another automatic campaign.
 
 M1–M3 are specific to the accumulated finder candidate. Future small changes
 use only the applicable checks and evidence; do not rerun this entire campaign
@@ -227,13 +230,18 @@ follow-up work, not a merge or release gate; see the notebook guide.
 Target the first useful bounded standalone finder release after the merge
 checklist, rather than waiting for Rapthor integration or 100,000-square data.
 
-- [ ] **E1 — Close the release correctness inventory.** Confirm from M2/M3 that
+- [x] **E1 — Close the bounded release correctness inventory.** Confirm from M2/M3 that
       no known incorrect supported catalogue, position, flux, ownership or
       processing-status output remains. Check Gaussian-validity and
       filtered-response repairs against their independent witnesses. Faint
       association, uncertainty and tail warnings may remain only with a
       reviewed explanation of their statistical/ambiguous nature and current
       limitations; calling a confirmed defect “experimental” is insufficient.
+      **Closed for the reviewed v17 standalone scope on 13 September:** the
+      identified correctness mechanisms are repaired and the human accepts the
+      stated residual limitations. Reopen for newly confirmed incorrect
+      supported outputs; do not transfer this disposition automatically to
+      changed science or a broader deployment claim.
 - [x] **E2 — Confirm the local installed user workflow.** From the release wheel,
       run the documented `find_sources` example and read its four products.
       Cover valid empty/all-NaN inputs, corrupt/unsupported input, custom
