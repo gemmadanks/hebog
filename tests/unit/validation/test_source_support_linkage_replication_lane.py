@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, cast
 
 import pytest
+from manifest_comparison import assert_regenerated_manifest_matches_snapshot
 
 from hebog.validation.adaptive_background_lane import (
     build_adaptive_replication_manifest,
@@ -65,7 +66,7 @@ def _historical_bytes(relative_path: str) -> bytes:
 
 
 def test_manifest_is_the_exact_seed_disjoint_replication() -> None:
-    """Checked-in inputs match the pure fresh-population builder."""
+    """Seeds/bytes stay exact; regenerated centroids allow bounded roundoff."""
     actual = _object(_MANIFEST)
     expected = build_adaptive_replication_manifest().model_dump(mode="json")
     seeds = tuple(
@@ -74,7 +75,7 @@ def test_manifest_is_the_exact_seed_disjoint_replication() -> None:
         for recipe in iter_dataset_recipes(dataset)
     )
 
-    assert actual == expected
+    assert_regenerated_manifest_matches_snapshot(expected, actual)
     assert len(seeds) == 144
     assert seeds == tuple(range(2026952001, 2026952145))
     assert file_sha256(_MANIFEST) == (

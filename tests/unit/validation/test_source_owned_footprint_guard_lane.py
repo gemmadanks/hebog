@@ -18,6 +18,7 @@ from typing import Any
 import numpy as np
 import pytest
 from astropy.wcs import WCS
+from manifest_comparison import assert_regenerated_manifest_matches_snapshot
 
 from hebog.validation import adaptive_background_lane
 from hebog.validation.adaptive_background_lane import source_signal_and_truth
@@ -74,16 +75,19 @@ def _source(
 
 
 def _science_inputs() -> tuple[Any, Any, np.ndarray, np.ndarray]:
-    """Return one exact lane task and its analytic truth products."""
+    """Return a regenerated analytic task, not historical run admission."""
     runner = runpy.run_path(str(_RUNNER))
-    task = runner["_parent_tasks"](
-        runner["DatasetManifest"].model_validate_json(
+    manifest = adaptive_background_lane.build_adaptive_development_manifest()
+    assert_regenerated_manifest_matches_snapshot(
+        manifest.model_dump(mode="json"),
+        json.loads(
             (
                 _ROOT / "config/contracts/"
                 "phase-5-adaptive-background-development-manifest.json"
             ).read_bytes()
-        )
-    )[0]
+        ),
+    )
+    task = runner["_parent_tasks"](manifest)[0]
     _, truth, true_rms = source_signal_and_truth(task.recipe)
     return runner, task, truth, true_rms
 

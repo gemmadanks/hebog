@@ -21051,3 +21051,94 @@ scientific pass from fixture validation.
   `CODE_REVIEW.md`; no actionable finding. Require clean all-file hooks
   immediately before the local freeze commit. Package source is unchanged
   from the validated implementation; this grants no new execution authority.
+
+### 2026-09-13 — PR 49 publication safety and historical CI portability
+
+- Confirm both Copilot findings in the lower-level combined-product boundary:
+  lexical paths admit aliases and sequential final writers can strand a
+  partial set. The public `find_sources` directory transaction is separate
+  and already stages its outputs. Record the bounded repair decision in M4;
+  source finding, thresholds, schemas and closed campaign evidence do not
+  change.
+- Add independent small-catalogue regressions before the production repair:
+  **24 failures / one pass** reproduce aliases and partial publication in
+  **9.73 seconds**. Resolve destinations, reject existing hard-link aliases
+  and protect reused RMS through all four output roles. Stage and validate
+  every product/result before publication, then use standard-library
+  no-overwrite hard links with `ExitStack` rollback. Reuse byte-identical
+  files; never replace conflicting existing bytes. Track device/inode identity
+  so rollback cannot remove an independently replaced file.
+- A further cleanup-failure regression initially fails for the intended
+  reason: final outputs survive a staging-cleanup exception. Extend rollback
+  across staging cleanup. The complete focused materialization suite now
+  passes **83 tests** in **13.63 seconds**, including every writer, late
+  validation/conflict/publication failure, caught interruption, existing-file
+  preservation and successful retry. The changed production module has
+  **100% line and branch coverage** (100 statements, 26 branches). Staging
+  keeps row-block streaming bounded and each file on its destination
+  filesystem. Document hard-link support, successful-return completion and
+  the absence of cross-file crash atomicity; an abrupt host/process failure
+  still needs workflow recovery.
+- Reproduce the pasted historical-fast-lane failure inside read-only
+  Linux/amd64: child stderr reveals `ValueError: combined runtime changed`.
+  The frozen review pins Python **3.14.2** and its installed inventory; CI's
+  **3.14.7** cannot truthfully satisfy that historical execution identity.
+  The unit test now explicitly fixtures installed historical metadata,
+  verifies historical runtime/source files, and proves that the real guard
+  rejects each changed installed-identity field. Preserve exact record bytes,
+  all production admission checks and no-write/no-finder assertions. Surface
+  child stderr on any future failure.
+- Reuse the existing test-only four-ULP comparator for regenerated truth
+  centroids before supplying the frozen in-memory manifest. All other fields
+  remain exact and the existing mutation/fault controls are retained. Neither
+  the immutable manifest nor scientific inputs/scores are rewritten. The
+  historical freezer test checks exact reproduced bytes using explicit
+  historical metadata, not eligibility of the CI machine to execute a lane.
+- The historical/roundoff tests pass **37 tests** on macOS. Combined focused
+  tests pass **119 tests** on Linux/amd64 Python 3.12.3 before the last cleanup
+  regression. `just check` passes formatting, lint, typing and **3,787 quick
+  tests**, 594 deselected and two existing xfails, in **255.73 seconds**.
+  Strict docs build passes. Full coverage and the Linux/Python 3.14.7 portable
+  lane are running; their terminal results are recorded below before handoff.
+  The initial minimal Python container lacked Git, so its history test stopped
+  before reaching this repair; rerun with Git rather than skipping the check.
+  Logs and targeted coverage are in `/private/tmp/hebog-pr49-review-RLHZUS/`.
+- The complete Linux quick lane reaches **3,653 passing tests** before exposing
+  another portable-fixture defect in `test_source_owned_footprint_guard_lane`:
+  an exact historical task-admission check rejects regenerated centroid
+  roundoff before the source-linkage assertions run. Use a regenerated
+  analytic task for those summary tests, first comparing its complete manifest
+  to the historical snapshot with the same bounded test-only comparator.
+  Do not change the task runner or any summary assertion. All **20 focused
+  tests** pass on macOS in **4.18 seconds**; repeat the Linux lane. Its
+  disposable full-history clone is writable for pytest's repository-local
+  temporary fixtures, while the host repository remains read-only to it.
+- The next Linux run exposes the same exact-centroid assumption in the
+  measurement/topology pickle test after **3,685 passes**. Apply the same
+  regenerated-task fixture repair, retaining exact payload round-trip
+  assertions; **17 tests** pass locally in **7.49 seconds**. Inspect all other
+  calls to these historical task builders: the remaining direct unit callers
+  already use regenerated manifests, and the isolated preflight has the
+  explicit historical fixture described above. Run the final Linux suite
+  without fail-fast to collect any further failures in one pass.
+- `just coverage` passes **4,161 tests**, 220 deselected and two existing
+  xfails, in **1,064.34 seconds**. Append focused coverage for the final two
+  test-only fixture corrections; production code did not change during this
+  run. Review the complete bounded diff against `CODE_REVIEW.md`: no actionable
+  finding in this repair. Remaining limits are the full supported-platform
+  CI matrix and unavailable local Codecov patch report, not a parity claim.
+- The final **37 fixture tests** pass with appended coverage in **10.47
+  seconds**. Branch-aware project coverage is **95.32766990291262%**, up from
+  **95.32009724473258%**. The entire changed production file remains at **100%
+  line/branch coverage**, with no missed lines, partial branches or exclusions.
+  Require clean all-file `just pre-commit` and the Linux terminal before the
+  local repair commit. Re-freeze only the exact package snapshot afterward:
+  scientific composition v18 and the standard configuration are unchanged.
+- The non-fail-fast Linux run completes all quick tests with **3,786 passes
+  and one failure**, isolating the last exact-centroid assumption in the
+  replication-manifest test. Reuse the same comparator there while preserving
+  its exact 144-seed census and manifest SHA assertion. The preceding topology
+  serialization repair and all other quick tests pass. This is one shared
+  cross-platform roundoff mechanism at three fixture boundaries, not three
+  scientific changes. Require another clean all-file hook run after this final
+  test edit, and confirm the repaired Linux suite before committing.

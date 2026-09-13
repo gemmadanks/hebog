@@ -21,10 +21,13 @@ from typing import Any
 import numpy as np
 import pytest
 from astropy.io import fits
+from manifest_comparison import assert_regenerated_manifest_matches_snapshot
 
 from hebog import public_science
-from hebog.validation.adaptive_background_lane import AdaptiveScienceSummary
-from hebog.validation.datasets import DatasetManifest
+from hebog.validation.adaptive_background_lane import (
+    AdaptiveScienceSummary,
+    build_adaptive_development_manifest,
+)
 
 _ROOT = Path(__file__).parents[3]
 _REPAIR_FREEZER = (
@@ -360,7 +363,10 @@ def test_serial_wrapper_writes_only_array_free_attribution(
 def test_process_pool_payload_is_pickle_safe_and_exact() -> None:
     """Parent run-path task classes never cross the process boundary."""
     runner = runpy.run_path(str(_RUNNER))
-    manifest = DatasetManifest.model_validate_json(_MANIFEST.read_bytes())
+    manifest = build_adaptive_development_manifest()
+    assert_regenerated_manifest_matches_snapshot(
+        manifest.model_dump(mode="json"), json.loads(_MANIFEST.read_bytes())
+    )
     task = runner["_parent_tasks"](manifest)[0]
 
     payload = runner["_serial_task_payload"](task)

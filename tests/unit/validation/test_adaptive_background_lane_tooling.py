@@ -22,6 +22,9 @@ from typing import Any, cast
 import numpy as np
 import pytest
 from astropy.io import fits
+from manifest_comparison import (
+    assert_regenerated_manifest_matches_snapshot as assert_manifest_matches,
+)
 
 from hebog.validation.adaptive_background_lane import (
     build_adaptive_development_manifest,
@@ -68,36 +71,6 @@ def _skip_upstream_identities(_repository_root: Path) -> None:
     """Isolate downstream historical-runner checks after supersession."""
 
 
-def _assert_regenerated_manifest_matches_snapshot(
-    generated: dict[str, Any], snapshot: dict[str, Any]
-) -> None:
-    """Allow only four-ULP roundoff in flux-weighted truth positions.
-
-    NumPy's dot reduction can differ across BLAS/platform implementations.
-    Recipes, hashes, seeds, fluxes, identifiers and all other fields stay
-    exact. This test-only comparison never alters execution/evaluation input;
-    historical file bytes are checked separately against Git.
-    """
-    comparable = deepcopy(generated)
-    for actual, expected in zip(
-        comparable["datasets"], snapshot["datasets"], strict=True
-    ):
-        for field in ("association_truth_groups", "multiscale_truth_groups"):
-            for actual_group, expected_group in zip(
-                actual[field], expected[field], strict=True
-            ):
-                np.testing.assert_array_max_ulp(
-                    actual_group["reference_position_xy"],
-                    expected_group["reference_position_xy"],
-                    maxulp=4,
-                )
-                actual_group["reference_position_xy"] = expected_group[
-                    "reference_position_xy"
-                ]
-        assert actual == expected, expected["identifier"]
-    assert comparable == snapshot
-
-
 def _comparison_snapshot() -> dict[str, Any]:
     """Keep comparison fault injection small and independent of generation."""
     group = {
@@ -133,7 +106,7 @@ def test_manifest_comparison_accepts_only_bounded_coordinate_roundoff(
             position[1] = float(np.nextafter(position[1], -np.inf))
     original_generated = deepcopy(generated)
 
-    _assert_regenerated_manifest_matches_snapshot(generated, snapshot)
+    assert_manifest_matches(generated, snapshot)
 
     assert generated == original_generated
     assert snapshot == _comparison_snapshot()
@@ -173,13 +146,13 @@ def test_manifest_comparison_rejects_changes_beyond_coordinate_roundoff(
         generated["datasets"].append(deepcopy(dataset))
 
     with pytest.raises((AssertionError, ValueError)):
-        _assert_regenerated_manifest_matches_snapshot(generated, snapshot)
+        assert_manifest_matches(generated, snapshot)
 
 
 def test_frozen_manifest_and_reviews_retain_the_historical_snapshot() -> None:
     """Superseding source changes cannot rewrite completed lane evidence."""
     manifest = build_adaptive_development_manifest()
-    _assert_regenerated_manifest_matches_snapshot(
+    assert_manifest_matches(
         manifest.model_dump(mode="json"), json.loads(_MANIFEST.read_bytes())
     )
     for path in (_MANIFEST, _IMPLEMENTATION, _IDENTITY):

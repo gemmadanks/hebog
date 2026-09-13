@@ -252,7 +252,25 @@ bytes returns the existing product record; a retry that would replace
 different bytes fails with `MaterializedProductConflictError`. Publication
 does not weaken the separate deployment-store concurrency qualification gate.
 
-`materialize_combined_products` composes the existing atomic writers. It
+`materialize_combined_products` stages and validates all four new products,
+including the result record, before publishing any of them. Destinations are
+resolved before checking distinctness; existing hard-link aliases and aliases
+of the reused RMS plane are rejected too. Each staged file is on the same
+filesystem as its destination. Publication uses no-overwrite hard links and
+requires filesystem hard-link support. Identical existing products are reused;
+conflicting bytes fail. A caught writer, validation, publication or staging-
+cleanup failure rolls back only files created by that call, preserving existing
+files and the reused RMS. Rollback attempts all registered removals; filesystem
+errors preventing cleanup are propagated rather than hidden.
+
+Because callers may select separate directories/filesystems, this helper does
+not promise crash-atomic or simultaneous cross-file visibility. Consumers must
+wait for its successful return; an abrupt process or host failure still needs
+workflow-level recovery. Empty newly created parent directories may remain
+after a failed call. This differs from `find_sources`, which publishes a single
+new output directory with one atomic rename.
+
+The combined helper
 reuses the exact Phase 2 RMS `MaterializedProduct`; writes the internal
 catalogue and Rapthor compatibility view from the same combined catalogue;
 and writes the source-filtering mask as a bounded row-block union of compact

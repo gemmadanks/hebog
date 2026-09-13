@@ -8,9 +8,11 @@
 from __future__ import annotations
 
 import hashlib
+import importlib
 import json
 from dataclasses import replace
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import numpy as np
 import pytest
@@ -56,6 +58,7 @@ from hebog.io import (
     write_mask_fits_product,
     write_rms_fits_product,
 )
+from hebog.io.combined import MaterializedCombinedProducts
 
 pytestmark = pytest.mark.integration
 
@@ -1189,6 +1192,281 @@ def test_combined_materialization_rejects_inconsistent_product_evidence(
             run_id="run-001",
             wall_seconds=0.0,
         )
+
+
+def _combined_paths(root: Path) -> CombinedProductPaths:
+    """Use separate directories to exercise the general output contract."""
+    return CombinedProductPaths(
+        catalogue=root / "catalogue" / "catalogue.fits",
+        mask=root / "mask" / "mask.fits",
+        diagnostics=root / "diagnostics" / "diagnostics.json",
+        rapthor_catalogue=root / "rapthor" / "rapthor.fits",
+    )
+
+
+def _combined_destinations(paths: CombinedProductPaths) -> tuple[Path, ...]:
+    """List caller-owned destinations, excluding the reused RMS."""
+    return (
+        paths.catalogue,
+        paths.mask,
+        paths.diagnostics,
+        paths.rapthor_catalogue,
+    )
+
+
+def _write_combined_fixture(
+    root: Path,
+    paths: CombinedProductPaths,
+    *,
+    wall_seconds: float = 0.0,
+) -> MaterializedCombinedProducts:
+    """Run the real writers on a tiny independent compact catalogue."""
+    metadata = _metadata()
+    rms = write_rms_fits_product(
+        root / "rms.fits",
+        metadata,
+        (np.full(metadata.shape_yx, 0.001, dtype=np.float32),),
+        dtype=np.dtype("float32"),
+        scientific_status="valid",
+    )
+    return materialize_combined_products(
+        _completed_combined(_catalogue(position_epoch="J2000")),
+        metadata=metadata,
+        rms_product=rms,
+        compact_mask_row_blocks=(np.zeros(metadata.shape_yx, dtype=np.bool_),),
+        extended_mask_row_blocks=None,
+        paths=paths,
+        run_id="run-001",
+        wall_seconds=wall_seconds,
+    )
+
+
+@pytest.mark.parametrize("alias_kind", ("dotdot", "symlink"))
+def test_combined_paths_reject_filesystem_aliases(
+    tmp_path: Path, alias_kind: str
+) -> None:
+    """Different path spellings must not admit duplicate destinations."""
+    directory = tmp_path / "out"
+    directory.mkdir()
+    if alias_kind == "symlink":
+        alias = tmp_path / "alias"
+        alias.symlink_to(directory, target_is_directory=True)
+    else:
+        alias = directory / ".." / "out"
+    paths = _combined_paths(tmp_path)
+    with pytest.raises(ValueError, match="distinct"):
+        replace(
+            paths,
+            catalogue=directory / "product.fits",
+            mask=alias / "product.fits",
+        )
+
+
+def test_combined_paths_reject_existing_hardlink_aliases(
+    tmp_path: Path,
+) -> None:
+    """Existing hard links are distinct spellings of the same file too."""
+    original = tmp_path / "existing.fits"
+    original.write_bytes(b"caller-owned")
+    alias = tmp_path / "alias.fits"
+    alias.hardlink_to(original)
+    with pytest.raises(ValueError, match="distinct"):
+        replace(_combined_paths(tmp_path), catalogue=original, mask=alias)
+    assert original.read_bytes() == b"caller-owned"
+
+
+@pytest.mark.parametrize(
+    "field", ("catalogue", "mask", "diagnostics", "rapthor_catalogue")
+)
+@pytest.mark.parametrize("alias_kind", ("dotdot", "symlink", "hardlink"))
+def test_combined_paths_cannot_alias_reused_rms(
+    tmp_path: Path, field: str, alias_kind: str
+) -> None:
+    """Protect the existing RMS through every output field and alias form."""
+    paths = _combined_paths(tmp_path)
+    _write_combined_fixture(tmp_path, paths)
+    rms = tmp_path / "rms.fits"
+    before = rms.read_bytes()
+    if alias_kind == "dotdot":
+        alias = tmp_path / "catalogue" / ".." / "rms.fits"
+    else:
+        alias = tmp_path / "rms-alias.fits"
+        if alias_kind == "symlink":
+            alias.symlink_to(rms)
+        else:
+            alias.hardlink_to(rms)
+    with pytest.raises(ProductMaterializationError, match="RMS plane"):
+        _write_combined_fixture(tmp_path, replace(paths, **{field: alias}))
+    assert rms.read_bytes() == before
+
+
+@pytest.mark.parametrize(
+    "module_name,writer_name",
+    (
+        ("hebog.io.combined", "write_catalogue_fits_product"),
+        ("hebog.io.combined", "write_mask_fits_product"),
+        ("hebog.io.combined", "write_diagnostics_product"),
+        ("hebog.adapters.rapthor_catalogue", "write_rapthor_catalogue_fits"),
+    ),
+)
+@pytest.mark.parametrize("after_write", (False, True))
+def test_combined_writer_failure_publishes_nothing_and_can_retry(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    module_name: str,
+    writer_name: str,
+    after_write: bool,
+) -> None:
+    """Each writer can fail without exposing any partial final product set."""
+    paths = _combined_paths(tmp_path)
+    module = importlib.import_module(module_name)
+    original = getattr(module, writer_name)
+
+    def fail(*args: object, **kwargs: object) -> None:
+        if after_write:
+            original(*args, **kwargs)
+        raise OSError("injected writer failure")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(module, writer_name, fail)
+        with pytest.raises(OSError, match="injected writer failure"):
+            _write_combined_fixture(tmp_path, paths)
+    assert all(not path.exists() for path in _combined_destinations(paths))
+    assert list(tmp_path.rglob("*.tmp")) == []
+    assert list(tmp_path.rglob(".hebog-combined-*")) == []
+    rms_bytes = (tmp_path / "rms.fits").read_bytes()
+    first = _write_combined_fixture(tmp_path, paths)
+    assert _write_combined_fixture(tmp_path, paths) == first
+    assert first.result.catalogue.path == paths.catalogue
+    assert first.rapthor_catalogue.path == paths.rapthor_catalogue
+    assert (tmp_path / "rms.fits").read_bytes() == rms_bytes
+
+
+def test_combined_result_validation_publishes_nothing(tmp_path: Path) -> None:
+    """Even result-record validation must precede final publication."""
+    paths = _combined_paths(tmp_path)
+    with pytest.raises(ValueError, match="wall_seconds"):
+        _write_combined_fixture(tmp_path, paths, wall_seconds=-1.0)
+    assert all(not path.exists() for path in _combined_destinations(paths))
+    _write_combined_fixture(tmp_path, paths)
+
+
+@pytest.mark.parametrize("same_size", (False, True))
+def test_combined_conflict_keeps_existing_bytes_and_no_new_outputs(
+    tmp_path: Path,
+    same_size: bool,
+) -> None:
+    """A late conflicting destination cannot strand earlier new products."""
+    paths = _combined_paths(tmp_path)
+    paths.rapthor_catalogue.parent.mkdir()
+    expected = write_rapthor_catalogue_fits(
+        tmp_path / "expected.fits", _catalogue(position_epoch="J2000")
+    )
+    previous = (
+        b"x" * expected.byte_count if same_size else b"previous caller product"
+    )
+    paths.rapthor_catalogue.write_bytes(previous)
+    with pytest.raises(MaterializedProductConflictError):
+        _write_combined_fixture(tmp_path, paths)
+    assert paths.rapthor_catalogue.read_bytes() == previous
+    assert all(
+        not path.exists() for path in _combined_destinations(paths)[:-1]
+    )
+
+
+def test_combined_publication_failure_preserves_reused_products(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Rollback preserves existing files and removes only this call's files."""
+    paths = _combined_paths(tmp_path)
+    first = _write_combined_fixture(tmp_path, paths)
+    for path in _combined_destinations(paths)[1:]:
+        path.unlink()
+    catalogue_bytes = paths.catalogue.read_bytes()
+    rms_bytes = first.result.rms.path.read_bytes()
+    original = Path.hardlink_to
+
+    def fail(self: Path, target: Path) -> None:
+        if self == paths.rapthor_catalogue:
+            raise OSError("injected publication failure")
+        original(self, target)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "hardlink_to", fail)
+        with pytest.raises(OSError, match="injected publication failure"):
+            _write_combined_fixture(tmp_path, paths)
+    assert paths.catalogue.read_bytes() == catalogue_bytes
+    assert first.result.rms.path.read_bytes() == rms_bytes
+    assert all(not path.exists() for path in _combined_destinations(paths)[1:])
+    assert _write_combined_fixture(tmp_path, paths) == first
+
+
+@pytest.mark.parametrize("failure_index", range(4))
+def test_combined_publication_interruption_removes_new_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure_index: int
+) -> None:
+    """A caught interruption at any publication step leaves no partial set."""
+    paths = _combined_paths(tmp_path)
+    destinations = _combined_destinations(paths)
+    original = Path.hardlink_to
+
+    def interrupt(self: Path, target: Path) -> None:
+        if self == destinations[failure_index]:
+            raise KeyboardInterrupt("injected interruption")
+        original(self, target)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "hardlink_to", interrupt)
+        with pytest.raises(KeyboardInterrupt, match="injected interruption"):
+            _write_combined_fixture(tmp_path, paths)
+    assert all(not path.exists() for path in destinations)
+    assert list(tmp_path.rglob(".hebog-combined-*")) == []
+    _write_combined_fixture(tmp_path, paths)
+
+
+def test_combined_rollback_does_not_delete_a_replaced_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A removed or independently replaced inode is not owned by rollback."""
+    paths = _combined_paths(tmp_path)
+    original = Path.hardlink_to
+
+    def replace_then_fail(self: Path, target: Path) -> None:
+        if self == paths.rapthor_catalogue:
+            paths.catalogue.unlink()
+            paths.mask.unlink()
+            paths.mask.write_bytes(b"independent replacement")
+            raise OSError("injected replacement")
+        original(self, target)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "hardlink_to", replace_then_fail)
+        with pytest.raises(OSError, match="injected replacement"):
+            _write_combined_fixture(tmp_path, paths)
+    assert paths.mask.read_bytes() == b"independent replacement"
+    assert not paths.catalogue.exists()
+    assert not paths.diagnostics.exists()
+    assert not paths.rapthor_catalogue.exists()
+    assert list(tmp_path.rglob(".hebog-combined-*")) == []
+
+
+def test_combined_staging_cleanup_failure_rolls_back_publication(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A staging cleanup error must not leave new final files after failure."""
+    paths = _combined_paths(tmp_path)
+    original = TemporaryDirectory.cleanup
+
+    def cleanup_then_fail(self: TemporaryDirectory[str]) -> None:
+        original(self)
+        raise OSError("injected staging cleanup failure")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(TemporaryDirectory, "cleanup", cleanup_then_fail)
+        with pytest.raises(OSError, match="injected staging cleanup failure"):
+            _write_combined_fixture(tmp_path, paths)
+    assert all(not path.exists() for path in _combined_destinations(paths))
+    _write_combined_fixture(tmp_path, paths)
 
 
 def test_diagnostics_reader_rejects_corrupt_or_unsupported_json(

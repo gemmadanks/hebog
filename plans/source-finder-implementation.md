@@ -210,6 +210,31 @@ remain human decisions.
       in `LOG.md`. The non-executable v18 freeze and live notebook guard pass
       exact-source validation. This closes the identified defect, not the
       outstanding whole-branch review.
+
+      **PR 49 output-publication repair decision:** lexical destination checks
+      admit aliases, and the lower-level combined-product writer can leave a
+      partial set after a late failure. Resolve destinations and protect the
+      reused RMS, stage and validate every new product before publication,
+      and roll back only files created by this call on a caught failure.
+      Preserve existing bytes and bounded mask streaming. Arbitrary destination
+      directories prevent one atomic directory rename; do not promise
+      cross-file crash atomicity. Test lexical/symlink aliases, each writer,
+      late validation/publication failures, existing-file preservation and
+      successful retries. Stop after bounded I/O validation and merge review;
+      no science, thresholds or campaign records change.
+      Separately diagnose the newly reported historical-fast-lane CI subprocess
+      failure with stderr visible and a read-only Linux reproduction; preserve
+      frozen bytes and exact campaign admission, fixing portable test scope
+      rather than weakening historical execution checks.
+      **Implemented:** all four destinations and reused RMS are protected from
+      aliases. Staged validation, no-overwrite publication and inode-aware
+      rollback pass writer, conflict, interruption, cleanup and retry controls.
+      The historical test explicitly fixtures its pinned installed runtime
+      while proving the real drift guard still rejects mismatches; it is not
+      evidence that today's CI host can execute the historical campaign.
+      Validation and full-platform limits are recorded in `LOG.md`. Freeze the
+      changed package snapshot without changing the v18 scientific composition
+      or granting execution authority before the notebook handoff.
 - [ ] **M5 — Validate the exact merge candidate.** Run applicable focused
       tests and `just check`, `just coverage`, `just test-equivalence`,
       `just test-acceptance`, `just marimo-check`, `just docs-build` and
