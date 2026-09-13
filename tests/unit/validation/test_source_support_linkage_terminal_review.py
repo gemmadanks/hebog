@@ -29,6 +29,8 @@ def _review() -> dict[str, Any]:
     return cast(dict[str, Any], value)
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_review_binds_the_terminal_failure_without_authority() -> None:
     """The viewed result remains failed and cannot authorize a rescore."""
     review = _review()

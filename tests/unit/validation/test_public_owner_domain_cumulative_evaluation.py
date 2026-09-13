@@ -176,7 +176,9 @@ def test_completion_retargets_only_current_products_and_output() -> None:
     """The completion reuses references without candidate execution."""
     module = _completion()
     verified = module.expected_verified_products()
-    smoke = module.expected_bounded_smoke()
+    # Composition uses the reviewed smoke summary, not its local terminal.
+    identity = json.loads(_IDENTITY.read_text(encoding="utf-8"))
+    smoke = identity["bounded_terminal_smoke"]
     expected_execution = module._expected_execution(verified, smoke)
     command = module._evaluator_command(_arguments(module, module._OUTPUT))
 
@@ -295,6 +297,8 @@ def test_product_verifier_rejects_changed_output_path(
     assert calls == []
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_bounded_smoke_reaches_all_terminal_seams(tmp_path: Path) -> None:
     """A short smoke covers decision, tail, and write-once publication."""
     module = _completion()
@@ -346,6 +350,8 @@ def test_freezer_records_are_non_executable_then_one_use() -> None:
     } == {False}
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_freezer_writes_once(tmp_path: Path) -> None:
     """Current fixture identities are recorded without changing closed ones."""
     freezer = runpy.run_path(str(_FREEZER))
@@ -397,6 +403,8 @@ def test_frozen_fixture_bindings_match_historical_revision() -> None:
         assert hashlib.sha256(contents).hexdigest() == binding["sha256"]
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_freezer_direct_cli_resolves_repository_modules(
     tmp_path: Path,
 ) -> None:

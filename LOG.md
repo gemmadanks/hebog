@@ -20924,3 +20924,46 @@ scientific pass from fixture validation.
   require strict docs plus clean all-file `just pre-commit` before the local
   documentation commit. No campaign runner, reference-finder execution,
   retained-evidence mutation, push, merge, tag, notebook refresh or release.
+
+### 2026-09-13 — CI campaign-evidence isolation
+
+- The reported adaptive-background review failure is another test portability
+  defect: CI correctly has no ignored campaign terminal. Reproduce the entire
+  quick lane at `5f5cacc` in a separate full-history checkout without
+  `benchmark-results/`. It reports 76 failures, 3,743 passes and two existing
+  xfails. Of these, 74 require retained evidence; two instead recompute a
+  historical invocation using the current checkout path.
+- Keep the adaptive and compact-sentinel review's exact recorded paths,
+  checksums, candidate identities and causal summaries in portable tests.
+  Retain their original byte-level terminal verification in an explicit
+  data-dependent integration test. Both hash checks pass against local
+  retained evidence; a missing or changed file still fails when requested.
+- Mark 60 genuinely retained-evidence checks with `integration` and
+  `requires_data`, without deleting their assertions or adding conditional
+  skips. Replace accidental campaign fixtures in seven collision tests, the
+  seal verifier, selector drift and power-prerequisite failure tests with
+  independent synthetic records. Preserve serialization/composition checks
+  against recorded identities without opening terminal products. Verify
+  historical invocation strings using POSIX provenance paths, not the current
+  checkout or Windows path separators. No runtime guard is changed.
+- Add portable tests for real write-once publication and direct CLI loading
+  from a foreign cwd without `PYTHONPATH`, independently of historical record
+  construction. The output-free quick lane passes **3,759 tests**, 530
+  deselected, two existing xfails, in **298.46 seconds**. The four new freezer
+  checks pass separately; the final affected-file clean-checkout run passes
+  **80 tests**, 13 deselected, in **15.89 seconds**. The initial focused repair
+  set passes 91 tests. Historical campaign calculations are not rerun.
+- Review the complete test/documentation diff against `CODE_REVIEW.md`.
+  Production sources, gates, frozen records and scientific identities are
+  unchanged. The first coverage attempt cannot bind local Dask sockets inside
+  the sandbox; interrupt it and rerun the unchanged normal coverage recipe
+  with local socket permissions. `just coverage` passes **4,069 tests**, 220
+  deselected and two existing xfails, in **1,065.24 seconds**. Branch-aware
+  coverage is **95.31930701428523%**, exactly the previous baseline; no package
+  coverage is lost by separating evidence-dependent checks. `just check`
+  passes Ruff formatting/lint, Pyright and **3,763 quick tests** in 278.90
+  seconds. Strict documentation builds pass. Append focused coverage for the
+  final selector/freezer fixtures and require clean all-file `just pre-commit`
+  immediately before the separate local CI repair commit.
+  Remote supported-platform CI still requires the human's push; this repair
+  does not clear M4, E1 or the separate custom-threshold defect.

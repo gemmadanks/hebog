@@ -9,8 +9,6 @@ from typing import Any, cast
 
 import pytest
 
-from hebog.validation.external_runners import file_sha256
-
 _ROOT = Path(__file__).parents[3]
 _PROGRAM = (
     _ROOT
@@ -55,7 +53,9 @@ def test_review_binds_terminal_result_and_frozen_candidate() -> None:
     context = review["binding_context"]
     terminal = context["terminal_decision"]
 
-    assert file_sha256(_ROOT / terminal["path"]) == terminal["sha256"]
+    assert terminal["path"] == (
+        "benchmark-results/phase-5/adaptive-background-development-decision.json"
+    )
     assert terminal["sha256"] == (
         "ff415f064f4ea7daa9254338041e52ad15d41b84edf692602092134850218026"
     )

@@ -50,6 +50,8 @@ _POPULATION = (
 )
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_materializer_selection_matches_public_frozen_selector() -> None:
     """The historical-safe selector retains the same exact population."""
     script = runpy.run_path(str(_SCRIPT))

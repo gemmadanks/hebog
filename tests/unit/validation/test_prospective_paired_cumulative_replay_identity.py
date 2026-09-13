@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import runpy
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, cast
 
 from hebog.validation.external_runners import canonical_sha256, file_sha256
@@ -69,8 +69,22 @@ def test_identity_review_matches_the_complete_no_write_invocation() -> None:
     """The future authorization can name only the preflighted command."""
     review = _review()
     wrapper = runpy.run_path(str(_WRAPPER))
+    arguments = _arguments(wrapper)
+    # This is a historical string in the signed invocation, not a local path
+    # to open. Relocating the checkout must not change the recorded command.
+    arguments.current_root = PurePosixPath("/Users/gemma.danks/Projects/hebog")
+    for name in (
+        "incumbent_root",
+        "reference_reconstruction",
+        "current_scratch",
+        "incumbent_scratch",
+        "output",
+    ):
+        setattr(
+            arguments, name, PurePosixPath(getattr(arguments, name).as_posix())
+        )
     expected = canonical_sha256(
-        wrapper["_expected_execution_fields"](_arguments(wrapper))
+        wrapper["_expected_execution_fields"](arguments)
     )
 
     assert review["expected_execution_sha256"] == expected

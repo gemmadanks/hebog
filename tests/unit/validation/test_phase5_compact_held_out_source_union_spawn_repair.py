@@ -69,6 +69,8 @@ def test_runner_installs_an_importable_pair_worker() -> None:
     assert parent._pair_worker is original
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_spawn_repair_freeze_binds_failure_and_preserves_science() -> None:
     """The replacement changes process dispatch, not science or gates."""
     freezer: dict[str, Any] = runpy.run_path(str(_FREEZER))
@@ -90,9 +92,20 @@ def test_spawn_repair_freeze_binds_failure_and_preserves_science() -> None:
     }
 
 
-def test_spawn_repair_freezer_refuses_any_collision(tmp_path: Path) -> None:
+def test_spawn_repair_freezer_refuses_any_collision(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """The replacement record set remains write-once."""
     freezer: dict[str, Any] = runpy.run_path(str(_FREEZER))
+
+    def build_fixture_records(_root: Path) -> tuple[dict[str, str], ...]:
+        return ({"fixture": "implementation"}, {"fixture": "identity"})
+
+    monkeypatch.setitem(
+        freezer["freeze_records"].__globals__,
+        "build_records",
+        build_fixture_records,
+    )
     identity = tmp_path / freezer["_IDENTITY"]
     identity.parent.mkdir(parents=True)
     identity.write_text("existing\n", encoding="utf-8")

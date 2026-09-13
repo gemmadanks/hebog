@@ -7,6 +7,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 _ROOT = Path(__file__).parents[3]
 _REVIEW = (
     _ROOT
@@ -67,6 +69,8 @@ def test_review_is_non_executable() -> None:
     )
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_review_binds_exact_terminal_and_prior_ledgers() -> None:
     """The diagnosis remains inseparable from both terminal comparisons."""
     context = _load()["binding_context"]

@@ -8,6 +8,8 @@ import subprocess
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
+
 from hebog.validation.external_runners import file_sha256
 
 _ROOT = Path(__file__).parents[3]
@@ -61,6 +63,8 @@ def test_replacement_review_is_exact_and_non_executable() -> None:
     )
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_replacement_review_binds_live_programs_and_evidence() -> None:
     """Every unchanged program is live and changed artifacts remain in Git."""
     review = _load()

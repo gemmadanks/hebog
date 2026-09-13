@@ -31,6 +31,8 @@ def test_historical_acquisition_rejects_canonicalized_decision() -> None:
         )
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_public_acquisition_has_exact_canonical_artifacts() -> None:
     """The canonical decision retains all seven acquired requests."""
     acquisition = runpy.run_path(

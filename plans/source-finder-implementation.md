@@ -223,6 +223,20 @@ remain human decisions.
       truth coordinates allow up to four ULPs. See `LOG.md` for the diagnosis
       and checks. Push and rerun platform CI before clearing M5; no remote
       success is inferred from local validation.
+      **Additional CI portability repair:** a full quick run in an output-free
+      checkout reproduced 76 failures: 74 retained-evidence dependencies and
+      two historical-invocation checks coupled to the current checkout path.
+      Separate portable tracked-review contracts from explicit `requires_data`
+      artifact checks, retain all historical assertions, and use synthetic
+      records for ordinary error/publication tests. Verify historical command
+      strings independently of the host path syntax. The repaired clean quick
+      lane passes 3,759 tests; four new portable freezer/CLI checks and an
+      80-test final affected-file run also pass without campaign outputs.
+      Local `just check` passes 3,763 quick tests, lint, formatting and typing;
+      full coverage passes 4,069 tests with unchanged 95.3193% branch-aware
+      coverage. Exact results and final hook validation are in `LOG.md`.
+      No frozen artifact, production source or gate is changed, and no evidence
+      is downloaded or regenerated. Supported-platform CI remains outstanding.
 - [ ] **M6 — Complete the merge handoff.** Update this plan's current state,
       user-facing release status, API/tutorial limitations and `LOG.md` from
       M1–M5. Give the human the exact revision, checks, unresolved risks and

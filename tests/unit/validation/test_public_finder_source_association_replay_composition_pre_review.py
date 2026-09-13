@@ -8,6 +8,8 @@ import subprocess
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
+
 from hebog.validation.external_runners import (
     canonical_sha256,
     file_sha256,
@@ -72,6 +74,8 @@ def test_replay_composition_pre_review_is_non_executable() -> None:
     )
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_replay_composition_binds_exact_candidate_and_inputs() -> None:
     """The prospective seam uses the live candidate and immutable evidence."""
     review = _load()
@@ -107,6 +111,8 @@ def test_replay_composition_binds_exact_candidate_and_inputs() -> None:
         assert file_sha256(_ROOT / identity["path"]) == identity["sha256"]
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_replay_composition_changes_only_candidate_binding_seams() -> None:
     """Population, evidence, scoring, and runtime dependencies stay frozen."""
     review = _load()

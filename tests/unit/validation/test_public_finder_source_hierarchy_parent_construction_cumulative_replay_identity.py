@@ -10,6 +10,8 @@ from argparse import Namespace
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
+
 from hebog.validation.campaign_runtime import canonical_sha256
 from hebog.validation.external_runners import file_sha256
 
@@ -236,6 +238,8 @@ def test_repair_review_binds_exact_wrapper_only_restart() -> None:
     )
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_review_binds_reconstruction_and_closed_baseline() -> None:
     """The retained reference terminal and closed ledger remain exact."""
     review = _load()

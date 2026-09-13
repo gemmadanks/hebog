@@ -315,6 +315,8 @@ def test_sdc1_position_angle_conversion_is_axial(
     assert sdc1_position_angle_degrees(sdc1_angle) == hebog_angle
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_protocol_is_exact_and_non_executable() -> None:
     """The implemented protocol binds inputs but does not authorize a run."""
     helpers = runpy.run_path(str(_PROTOCOL_SCRIPT))
@@ -327,6 +329,8 @@ def test_protocol_is_exact_and_non_executable() -> None:
     assert "execution_authorized" not in protocol
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_exact_identity_review_authorizes_only_the_public_one_look() -> None:
     """Named approval opens the one-look but no later lifecycle action."""
     helpers = runpy.run_path(str(_PROTOCOL_SCRIPT))

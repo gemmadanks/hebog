@@ -172,6 +172,8 @@ def test_zero_count_repair_temporarily_replaces_both_seams() -> None:
     assert parent._pair_worker is original_pair
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_zero_count_repair_binds_all_preserved_failures() -> None:
     """The final retry cannot detach from any failed attempt."""
     program: dict[str, Any] = runpy.run_path(str(_RUNNER))
@@ -179,6 +181,8 @@ def test_zero_count_repair_binds_all_preserved_failures() -> None:
     program["_require_failed_lineage"]()
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_zero_count_identity_preserves_science_and_population() -> None:
     """Only the evaluator adapter and write-once paths may change."""
     freezer: dict[str, Any] = runpy.run_path(str(_FREEZER))
@@ -202,9 +206,20 @@ def test_zero_count_identity_preserves_science_and_population() -> None:
     }
 
 
-def test_zero_count_freezer_refuses_existing_target(tmp_path: Path) -> None:
+def test_zero_count_freezer_refuses_existing_target(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """A prior replacement identity cannot be overwritten."""
     freezer: dict[str, Any] = runpy.run_path(str(_FREEZER))
+
+    def build_fixture_records(_root: Path) -> tuple[dict[str, str], ...]:
+        return ({"fixture": "implementation"}, {"fixture": "identity"})
+
+    monkeypatch.setitem(
+        freezer["freeze_records"].__globals__,
+        "build_records",
+        build_fixture_records,
+    )
     identity = tmp_path / freezer["_IDENTITY"]
     identity.parent.mkdir(parents=True)
     identity.write_text("existing\n", encoding="utf-8")

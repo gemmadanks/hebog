@@ -150,6 +150,8 @@ def test_wrapper_binds_the_reconstructed_reference_terminal() -> None:
     )
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_reference_repair_review_freezes_no_execution_authority() -> None:
     """Verified identities remain inert until one exact named approval."""
     wrapper = runpy.run_path(str(_WRAPPER))

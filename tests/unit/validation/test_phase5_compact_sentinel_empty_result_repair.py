@@ -244,6 +244,8 @@ def test_empty_repair_temporarily_replaces_both_execution_seams() -> None:
     assert parent._pair_worker is original_pair
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_empty_repair_binds_preserved_second_failure() -> None:
     """The next retry cannot detach from either failed attempt."""
     program: dict[str, Any] = runpy.run_path(str(_RUNNER))
@@ -251,6 +253,8 @@ def test_empty_repair_binds_preserved_second_failure() -> None:
     program["_require_failed_lineage"]()
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_empty_repair_identity_preserves_science_and_population() -> None:
     """The replacement identity changes only evaluator and run ownership."""
     freezer: dict[str, Any] = runpy.run_path(str(_FREEZER))
@@ -273,9 +277,20 @@ def test_empty_repair_identity_preserves_science_and_population() -> None:
     }
 
 
-def test_empty_repair_freezer_refuses_existing_target(tmp_path: Path) -> None:
+def test_empty_repair_freezer_refuses_existing_target(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """A prior replacement identity cannot be overwritten."""
     freezer: dict[str, Any] = runpy.run_path(str(_FREEZER))
+
+    def build_fixture_records(_root: Path) -> tuple[dict[str, str], ...]:
+        return ({"fixture": "implementation"}, {"fixture": "identity"})
+
+    monkeypatch.setitem(
+        freezer["freeze_records"].__globals__,
+        "build_records",
+        build_fixture_records,
+    )
     identity = tmp_path / freezer["_IDENTITY"]
     identity.parent.mkdir(parents=True)
     identity.write_text("existing\n", encoding="utf-8")

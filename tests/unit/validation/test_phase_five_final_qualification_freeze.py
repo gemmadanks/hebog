@@ -38,6 +38,8 @@ def _seeds(document: dict[str, object]) -> set[int]:
     }
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_final_qualification_freezer_builds_only_approved_continuum() -> None:
     """The approved design has four fresh qualification geometries."""
     namespace = runpy.run_path(str(_SCRIPT))
@@ -105,6 +107,8 @@ def test_final_qualification_freezer_builds_only_approved_continuum() -> None:
     assert freeze["finder_output_generated"] is False
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_final_qualification_freezer_matches_frozen_identities() -> None:
     """The generated manifest and immutable freeze cannot drift."""
     namespace = runpy.run_path(str(_SCRIPT))
@@ -156,6 +160,8 @@ def test_final_qualification_freezer_matches_frozen_identities() -> None:
     )
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_final_qualification_freezer_fails_closed_on_evidence_drift(
     tmp_path: Path,
 ) -> None:

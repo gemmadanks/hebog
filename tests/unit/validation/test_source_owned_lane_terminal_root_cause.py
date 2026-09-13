@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
+
 from hebog.validation.external_runners import file_sha256
 
 _ROOT = Path(__file__).parents[3]
@@ -21,6 +23,8 @@ def _review() -> dict[str, Any]:
     return cast(dict[str, Any], value)
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_review_binds_the_failed_terminal_lane() -> None:
     """The diagnosis cannot drift away from its immutable failed evidence."""
     review = _review()

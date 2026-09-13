@@ -21,6 +21,8 @@ def _script() -> dict[str, Any]:
     return runpy.run_path(str(_SCRIPT))
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_public_schema_inspection_requires_exact_acquisition() -> None:
     """Schema inspection is downstream of the terminal checksum record."""
     acquisition = _script()["load_acquisition_record"](
@@ -35,6 +37,8 @@ def test_public_schema_inspection_requires_exact_acquisition() -> None:
     assert acquisition["finder_execution_authorized"] is False
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_public_schema_inspection_binds_serialization_amendment() -> None:
     """Canonical JSON bytes retain the sealed acquisition semantics."""
     namespace = _script()

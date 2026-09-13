@@ -9,6 +9,8 @@ import runpy
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from hebog.validation.external_runners import canonical_sha256, file_sha256
 
 _ROOT = Path(__file__).parents[3]
@@ -91,6 +93,8 @@ def test_review_and_decision_bind_exact_execution() -> None:
     }
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_sealed_smoke_opens_only_the_larger_replay() -> None:
     """Zero confirmed failures, not post-result tuning, opens replay."""
     wrapper = _load()
@@ -248,7 +252,7 @@ def test_serializer_records_exact_provenance_and_current_diagnostics() -> None:
         "scratch_is_current": 1,
     }
     provenance = document["publication_scale_persistence_provenance"]
-    assert provenance["candidate_smoke_sha256"] == file_sha256(_SMOKE)
+    assert provenance["candidate_smoke_sha256"] == wrapper["_SMOKE_SHA256"]
     assert provenance["identity_review_sha256"] == file_sha256(_REVIEW)
     assert provenance["execution_decision_sha256"] == file_sha256(_DECISION)
 

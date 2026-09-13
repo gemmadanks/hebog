@@ -55,6 +55,8 @@ def test_review_is_non_executable() -> None:
     )
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_review_binds_every_governed_input_by_hash() -> None:
     """The diagnosis must remain inseparable from its exact evidence."""
     context = _load_json(_REVIEW)["binding_context"]
@@ -117,6 +119,8 @@ def test_prospective_contract_reclassifies_numeric_targets_only() -> None:
     }
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_all_stored_pybdsf_comparisons_fit_prospective_margins() -> None:
     """Reproduce the non-inferiority audit from stored analysis evidence."""
     review = _load_json(_REVIEW)
@@ -157,6 +161,8 @@ def test_all_stored_pybdsf_comparisons_fit_prospective_margins() -> None:
         }
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_legacy_absolute_failures_suppress_retained_comparisons() -> None:
     """The terminal schema exposes the exact evaluator dispatch defect."""
     review = _load_json(_REVIEW)
@@ -191,6 +197,8 @@ def test_legacy_absolute_failures_suppress_retained_comparisons() -> None:
     )
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_incumbent_point_audit_does_not_substitute_for_pairing() -> None:
     """Point estimates bound risk but cannot prove paired retention."""
     review = _load_json(_REVIEW)
@@ -238,6 +246,8 @@ def test_incumbent_point_audit_does_not_substitute_for_pairing() -> None:
     )
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_failure_partition_reconciles_overlapping_truth_strata() -> None:
     """One shell cohort must not be counted as several causal cohorts."""
     review = _load_json(_REVIEW)
@@ -318,6 +328,8 @@ def test_failure_partition_reconciles_overlapping_truth_strata() -> None:
     ] == (1437 - 676)
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_review_records_material_gains_and_bounded_movements() -> None:
     """The review must not hide improvement behind the legacy fail label."""
     review = _load_json(_REVIEW)
@@ -347,6 +359,8 @@ def test_review_records_material_gains_and_bounded_movements() -> None:
     )
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_terminal_diagnostics_exclude_late_persistence_as_dominant_cause() -> (
     None
 ):

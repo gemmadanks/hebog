@@ -10,7 +10,7 @@ import argparse
 import json
 import runpy
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from types import SimpleNamespace
 from typing import Any, cast
 
@@ -69,6 +69,8 @@ def _arguments(wrapper: dict[str, Any]) -> argparse.Namespace:
     )
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_complete_evaluator_emits_every_frozen_decision_section() -> None:
     """All 1,187 co-primary comparisons remain visible and binding."""
     evaluator = runpy.run_path(str(_EVALUATOR))
@@ -201,8 +203,21 @@ def test_wrapper_accepts_only_the_exact_execution_decision(
     """The user's decision binds the exact preflighted execution."""
     wrapper = runpy.run_path(str(_WRAPPER))
     authority = wrapper["_require_execution_authority"]
+    arguments = _arguments(wrapper)
+    # Historical command provenance only; no access to this host path.
+    arguments.current_root = PurePosixPath("/Users/gemma.danks/Projects/hebog")
+    for name in (
+        "incumbent_root",
+        "reference_reconstruction",
+        "current_scratch",
+        "incumbent_scratch",
+        "output",
+    ):
+        setattr(
+            arguments, name, PurePosixPath(getattr(arguments, name).as_posix())
+        )
 
-    authority(_arguments(wrapper))
+    authority(arguments)
 
     decision = json.loads(
         wrapper["_EXECUTION_DECISION"].read_text(encoding="utf-8")
@@ -215,7 +230,7 @@ def test_wrapper_accepts_only_the_exact_execution_decision(
     )
 
     with pytest.raises(ValueError, match="replay is not authorized"):
-        authority(_arguments(wrapper))
+        authority(arguments)
 
 
 def test_future_commands_keep_current_incumbent_and_evaluation_separate() -> (

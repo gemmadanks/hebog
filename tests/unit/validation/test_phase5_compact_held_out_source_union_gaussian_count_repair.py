@@ -123,6 +123,8 @@ def test_runner_selects_only_the_gaussian_count_child(tmp_path: Path) -> None:
     assert not any("column_case_repair.py" in item for item in command)
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_repair_freeze_binds_second_failure_and_preserves_science() -> None:
     """The replacement identity changes schema provenance only."""
     freezer: dict[str, Any] = runpy.run_path(str(_FREEZER))
@@ -144,9 +146,20 @@ def test_repair_freeze_binds_second_failure_and_preserves_science() -> None:
     }
 
 
-def test_repair_freezer_refuses_any_collision(tmp_path: Path) -> None:
+def test_repair_freezer_refuses_any_collision(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """The second replacement records are write-once as a set."""
     freezer: dict[str, Any] = runpy.run_path(str(_FREEZER))
+
+    def build_fixture_records(_root: Path) -> tuple[dict[str, str], ...]:
+        return ({"fixture": "implementation"}, {"fixture": "identity"})
+
+    monkeypatch.setitem(
+        freezer["freeze_records"].__globals__,
+        "build_records",
+        build_fixture_records,
+    )
     identity = tmp_path / freezer["_IDENTITY"]
     identity.parent.mkdir(parents=True)
     identity.write_text("existing\n", encoding="utf-8")

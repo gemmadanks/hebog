@@ -10,6 +10,8 @@ from argparse import Namespace
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
+
 from hebog.validation.external_runners import file_sha256
 
 _ROOT = Path(__file__).parents[3]
@@ -71,6 +73,8 @@ def _committed_file_sha256(revision: str, path: str) -> str:
     return hashlib.sha256(value).hexdigest()
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_review_freezes_exact_implementation_and_prospective_execution() -> (
     None
 ):

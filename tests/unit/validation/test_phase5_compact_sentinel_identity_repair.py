@@ -227,6 +227,8 @@ def test_repaired_runner_temporarily_replaces_both_execution_seams() -> None:
     assert parent._pair_worker is original_pair
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_repaired_runner_binds_the_failed_attempt() -> None:
     """The retry cannot detach from the preserved terminal failure."""
     program: dict[str, Any] = runpy.run_path(str(_RUNNER))
@@ -234,6 +236,8 @@ def test_repaired_runner_binds_the_failed_attempt() -> None:
     program["_require_failed_lineage"]()
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_repair_identity_preserves_science_and_changes_only_run_paths() -> (
     None
 ):
@@ -263,9 +267,20 @@ def test_repair_identity_preserves_science_and_changes_only_run_paths() -> (
         assert len(binding["sha256"]) == 64
 
 
-def test_repair_freezer_refuses_any_existing_target(tmp_path: Path) -> None:
+def test_repair_freezer_refuses_any_existing_target(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """No partial identity set may overwrite a prior repair review."""
     freezer: dict[str, Any] = runpy.run_path(str(_FREEZER))
+
+    def build_fixture_records(_root: Path) -> tuple[dict[str, str], ...]:
+        return ({"fixture": "implementation"}, {"fixture": "identity"})
+
+    monkeypatch.setitem(
+        freezer["freeze_records"].__globals__,
+        "build_records",
+        build_fixture_records,
+    )
     identity = tmp_path / freezer["_IDENTITY"]
     identity.parent.mkdir(parents=True)
     identity.write_text("existing\n", encoding="utf-8")

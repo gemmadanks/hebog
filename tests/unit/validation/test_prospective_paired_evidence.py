@@ -676,6 +676,8 @@ def test_truth_linked_summary_rejects_unverifiable_inputs(
         build(**arguments)
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_tail_sentinels_are_result_neutral_and_reproducible() -> None:
     """Sentinel membership depends only on frozen input and truth identity."""
     select = _program()["select_result_neutral_tail_sentinels"]
@@ -713,6 +715,8 @@ def test_tail_sentinels_are_result_neutral_and_reproducible() -> None:
     )
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_frozen_tail_sentinels_reproduce_without_results() -> None:
     """The compact freeze binds the complete deterministic membership."""
     select = _program()["select_result_neutral_tail_sentinels"]
@@ -744,6 +748,8 @@ def test_frozen_tail_sentinels_reproduce_without_results() -> None:
         assert frozen[key] == reproduced[key]
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_aligned_power_audit_covers_every_frozen_comparison() -> None:
     """Legacy smoke status cannot replace its zero-failure prerequisites."""
     build = _program()["build_aligned_prospective_power_audit"]
@@ -783,8 +789,11 @@ def test_aligned_power_audit_covers_every_frozen_comparison() -> None:
 def test_aligned_power_audit_rejects_confirmed_smoke_failure() -> None:
     """The adapter cannot bypass a genuine failed prerequisite."""
     build = _program()["build_aligned_prospective_power_audit"]
-    smoke = json.loads(_SMOKE.read_text(encoding="utf-8"))
-    smoke["terminal_failure_count"] = 1
+    smoke = {
+        "promotion_evidence": False,
+        "compact_product_identity_equal": True,
+        "terminal_failure_count": 1,
+    }
 
     with pytest.raises(ValueError, match="prerequisites"):
         build(

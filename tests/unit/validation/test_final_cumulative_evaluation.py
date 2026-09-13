@@ -92,6 +92,8 @@ def test_final_evaluator_exposes_raw_parent_product_verifier_seams() -> None:
     )
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_bounded_smoke_reaches_decision_summary_and_atomic_tail(
     tmp_path: Path,
 ) -> None:
@@ -114,11 +116,37 @@ def test_bounded_smoke_reaches_decision_summary_and_atomic_tail(
 
 
 def test_product_verifier_binds_seal_and_delegates_complete_rehash(
+    tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The exact seal is required before inherited product verification."""
     module = _completion()
     arguments = _arguments(module, module._OUTPUT)
+    arguments.repository_root = tmp_path
+    seal = {
+        "status": "complete",
+        "candidate_execution_count": module._EXPECTED_INPUT_COUNT,
+        "candidate_revision": module._CURRENT_REVISION,
+        "candidate_source_tree_sha256": module._CURRENT_SOURCE_TREE_SHA256,
+        "candidate_configuration_sha256": module._CURRENT_CONFIGURATION_SHA256,
+        "candidate_product_set_sha256": module._CURRENT_PRODUCT_SET_SHA256,
+        "identity_review_sha256": module._CURRENT_REPLAY_IDENTITY_SHA256,
+        "execution_decision_sha256": module._CURRENT_REPLAY_DECISION_SHA256,
+        "pybdsf_execution_count": 0,
+        "reference_run_count": module._EXPECTED_REFERENCE_RUN_COUNT,
+    }
+    canonical = canonical_sha256(seal)
+    seal["record_canonical_sha256"] = canonical
+    seal_path = tmp_path / arguments.product_seal
+    seal_path.parent.mkdir(parents=True)
+    seal_path.write_text(json.dumps(seal), encoding="utf-8")
+    monkeypatch.setattr(module, "_ROOT", tmp_path)
+    monkeypatch.setattr(
+        module, "_CURRENT_PRODUCT_SEAL_SHA256", file_sha256(seal_path)
+    )
+    monkeypatch.setattr(
+        module, "_CURRENT_PRODUCT_SEAL_CANONICAL_SHA256", canonical
+    )
     calls: list[argparse.Namespace] = []
 
     def verify_products(value: argparse.Namespace) -> dict[str, object]:
@@ -131,9 +159,7 @@ def test_product_verifier_binds_seal_and_delegates_complete_rehash(
     verified = module.verify_products(arguments)
 
     assert calls == [arguments]
-    assert verified["candidate_product_seal_sha256"] == file_sha256(
-        arguments.product_seal
-    )
+    assert verified["candidate_product_seal_sha256"] == file_sha256(seal_path)
     assert verified["current_product_set_sha256"] == (
         module._CURRENT_PRODUCT_SET_SHA256
     )
@@ -168,6 +194,8 @@ def test_freezer_records_are_exact_non_executable_then_one_use() -> None:
     } == {False}
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_freezer_writes_once(tmp_path: Path) -> None:
     """Frozen evaluation records cannot be overwritten."""
     freezer = runpy.run_path(str(_FREEZER))

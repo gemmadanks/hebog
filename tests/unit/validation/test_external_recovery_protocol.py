@@ -48,6 +48,8 @@ def _seeds(document: dict[str, object]) -> set[int]:
     }
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_recovery_freezer_builds_approved_fresh_population() -> None:
     """The named freeze creates only the powered seed-disjoint design."""
     namespace = _script(
@@ -706,6 +708,8 @@ def test_recovery_evaluation_amendment_requires_exact_authorization(
         )
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_recovery_evaluation_amendment_review_is_pending_and_exact() -> None:
     """The correction binds evidence but cannot authorize itself."""
     review = json.loads(
@@ -774,6 +778,8 @@ def test_recovery_evaluation_amendment_review_is_pending_and_exact() -> None:
     assert evidence["decision_state"] == "absent"
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_recovery_evaluation_amendment_has_exact_named_authorization() -> None:
     """The approved amendment permits only the existing analysis evaluation."""
     amendment = _script(

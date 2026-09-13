@@ -8,6 +8,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from hebog.validation.external_runners import file_sha256
 
 _ROOT = Path(__file__).parents[3]
@@ -39,6 +41,8 @@ def _load(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_missing_reference_evidence_fails_without_science_or_output() -> None:
     """Approved cleanup must be represented as a non-scientific stop."""
     failure = _load(_FAILURE)
@@ -74,6 +78,8 @@ def test_missing_reference_evidence_fails_without_science_or_output() -> None:
     assert replay["prospective_scratch_absent"] is True
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_pre_review_binds_historical_producer_and_no_action() -> None:
     """The recovery proposal is exact but grants no execution authority."""
     review = _load(_PRE_REVIEW)
@@ -112,6 +118,8 @@ def test_pre_review_binds_historical_producer_and_no_action() -> None:
     assert historical["reference_run_count"] == 9600
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_reconstruction_used_the_new_write_once_namespace() -> None:
     """The completed recovery did not overwrite the historical seal."""
     review = _load(_PRE_REVIEW)
@@ -160,6 +168,8 @@ def test_named_approval_authorizes_only_one_reference_reconstruction() -> None:
     }
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_named_approval_binds_historical_program_population_and_runtimes() -> (
     None
 ):
@@ -208,6 +218,8 @@ def test_named_approval_binds_historical_program_population_and_runtimes() -> (
         assert approved[finder_id]["digest"] == runtime["digest"]
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_completed_reconstruction_is_terminal_and_write_once() -> None:
     """The consumed approval has one sealed output and no staging state."""
     execution = _load(_DECISION)["prospective_execution"]
@@ -217,6 +229,8 @@ def test_completed_reconstruction_is_terminal_and_write_once() -> None:
     assert not (_ROOT / execution["staging_path"]).exists()
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_completion_review_binds_the_verified_terminal() -> None:
     """The replay consumer can bind only the completely verified recovery."""
     review = _load(_COMPLETION_REVIEW)

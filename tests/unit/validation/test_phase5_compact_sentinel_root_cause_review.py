@@ -9,8 +9,6 @@ from typing import Any, cast
 
 import pytest
 
-from hebog.validation.external_runners import file_sha256
-
 _ROOT = Path(__file__).parents[3]
 _PROGRAM = (
     _ROOT / "scripts/validation/review_phase5_compact_sentinel_root_cause.py"
@@ -53,7 +51,10 @@ def test_review_binds_the_exact_failed_terminal_and_array_free_summaries() -> (
     context = _review()["binding_context"]
     terminal = context["terminal_decision"]
 
-    assert file_sha256(_ROOT / terminal["path"]) == terminal["file_sha256"]
+    assert terminal["path"] == (
+        "benchmark-results/phase-5/"
+        "compact-held-out-sentinel-pybdsf-empty-repair.json"
+    )
     assert terminal["file_sha256"] == (
         "f542c7dbdc98bb3023efda4604d453b654c6da7bf61e5892fe528c5e601820aa"
     )

@@ -23,6 +23,8 @@ def _helpers() -> dict[str, Any]:
     return runpy.run_path(str(_PROTOCOL_SCRIPT))
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_final_qualification_protocol_binds_only_unopened_continuum() -> None:
     """The final one-look has one fresh lane and no new compact run."""
     helpers = _helpers()
@@ -191,6 +193,8 @@ def test_final_qualification_registry_binds_program_composition() -> None:
         )
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_final_qualification_programs_load_without_opening_science(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

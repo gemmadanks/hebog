@@ -23,7 +23,7 @@ from hebog.data_models.source_association import (
 )
 from hebog.validation import parent_construction_association_evaluation
 from hebog.validation.comparison import CatalogueSource
-from hebog.validation.external_runners import file_sha256
+from hebog.validation.external_runners import canonical_sha256, file_sha256
 from hebog.validation.prospective_science_contract import (
     ProspectiveEndpoint,
     ProspectiveEndpointCounts,
@@ -167,6 +167,8 @@ def _endpoint(reference_id: str, upper: float) -> SimpleNamespace:
     )
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_frozen_smoke_selection_is_reproducible_and_balanced() -> None:
     """The result-neutral rule resolves the exact same 128 inputs."""
     selected = select_prospective_smoke_inputs(
@@ -266,26 +268,63 @@ def test_smoke_selector_rejects_malformed_population(
 
 def test_smoke_selector_rejects_request_or_count_drift(tmp_path: Path) -> None:
     """Source bytes, sample sizes, and selected identities remain frozen."""
-    population = json.loads(_POPULATION.read_text(encoding="utf-8"))
+    request = tmp_path / "request.json"
+    request.write_text(
+        json.dumps(
+            {
+                "inputs": [
+                    {
+                        "lane": "compact-blend",
+                        "dataset_identifier": "synthetic-compact",
+                        "input_id": "synthetic-compact-1",
+                    },
+                    {
+                        "lane": "continuum",
+                        "dataset_identifier": "synthetic-continuum",
+                        "input_id": "synthetic-continuum-1",
+                    },
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    baseline = {
+        "source_request": {"sha256": file_sha256(request)},
+        "selection": {
+            "compact_count": 1,
+            "continuum_count_per_dataset": 1,
+            "selected_input_count": 2,
+            "selected_input_set_canonical_sha256": canonical_sha256(
+                ("synthetic-compact-1", "synthetic-continuum-1")
+            ),
+        },
+    }
+    valid = tmp_path / "valid-population.json"
+    valid.write_text(json.dumps(baseline), encoding="utf-8")
+    assert select_prospective_smoke_inputs(request, valid) == (
+        "synthetic-compact-1",
+        "synthetic-continuum-1",
+    )
+    population = json.loads(valid.read_text(encoding="utf-8"))
     population["source_request"]["sha256"] = "changed"
     changed_source = tmp_path / "changed-source.json"
     changed_source.write_text(json.dumps(population), encoding="utf-8")
     with pytest.raises(ValueError, match="source request changed"):
-        select_prospective_smoke_inputs(_REQUEST, changed_source)
+        select_prospective_smoke_inputs(request, changed_source)
 
-    population = json.loads(_POPULATION.read_text(encoding="utf-8"))
+    population = json.loads(valid.read_text(encoding="utf-8"))
     population["selection"]["compact_count"] = 0
     changed_count = tmp_path / "changed-count.json"
     changed_count.write_text(json.dumps(population), encoding="utf-8")
     with pytest.raises(ValueError, match="selection count is invalid"):
-        select_prospective_smoke_inputs(_REQUEST, changed_count)
+        select_prospective_smoke_inputs(request, changed_count)
 
-    population["selection"]["compact_count"] = 64
-    population["selection"]["selected_input_count"] = 127
+    population["selection"]["compact_count"] = 1
+    population["selection"]["selected_input_count"] = 3
     changed_set = tmp_path / "changed-set.json"
     changed_set.write_text(json.dumps(population), encoding="utf-8")
     with pytest.raises(ValueError, match="selected input set changed"):
-        select_prospective_smoke_inputs(_REQUEST, changed_set)
+        select_prospective_smoke_inputs(request, changed_set)
 
 
 @pytest.mark.parametrize(

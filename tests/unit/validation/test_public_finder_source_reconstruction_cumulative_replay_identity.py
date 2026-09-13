@@ -10,6 +10,8 @@ from argparse import Namespace
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
+
 from hebog.validation.external_runners import file_sha256
 
 _ROOT = Path(__file__).parents[3]
@@ -188,6 +190,8 @@ def test_named_approval_opens_only_the_exact_frozen_replay() -> None:
     }
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_review_binds_reconstruction_and_closed_baseline() -> None:
     """The retained references and closed ledger remain exact inputs."""
     review = _load()

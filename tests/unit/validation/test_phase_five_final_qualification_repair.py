@@ -373,6 +373,8 @@ def test_repair_evaluator_delegates_unchanged_scoring(
     assert observed == [(analysis, contract, registry)]
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_repair_identity_review_is_non_executable_and_exact() -> None:
     """The exact identity review remains non-executable by itself."""
     path = (

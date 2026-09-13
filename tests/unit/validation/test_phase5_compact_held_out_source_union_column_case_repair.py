@@ -121,6 +121,8 @@ def test_runner_selects_only_the_column_case_child(tmp_path: Path) -> None:
     assert parent not in command
 
 
+@pytest.mark.integration
+@pytest.mark.requires_data
 def test_repair_freeze_binds_failure_without_authorizing_execution() -> None:
     """The replacement identity preserves the terminal and frozen science."""
     freezer: dict[str, Any] = runpy.run_path(str(_FREEZER))
@@ -144,9 +146,20 @@ def test_repair_freeze_binds_failure_without_authorizing_execution() -> None:
     }
 
 
-def test_repair_freezer_refuses_any_collision(tmp_path: Path) -> None:
+def test_repair_freezer_refuses_any_collision(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """The replacement records are write-once as a set."""
     freezer: dict[str, Any] = runpy.run_path(str(_FREEZER))
+
+    def build_fixture_records(_root: Path) -> tuple[dict[str, str], ...]:
+        return ({"fixture": "implementation"}, {"fixture": "identity"})
+
+    monkeypatch.setitem(
+        freezer["freeze_records"].__globals__,
+        "build_records",
+        build_fixture_records,
+    )
     identity = tmp_path / freezer["_IDENTITY"]
     identity.parent.mkdir(parents=True)
     identity.write_text("existing\n", encoding="utf-8")
