@@ -8,6 +8,8 @@ import hashlib
 import importlib
 import json
 import subprocess
+import sys
+from dataclasses import replace
 from importlib.resources import files
 from pathlib import Path
 
@@ -45,7 +47,9 @@ def test_public_background_mesh_is_bounded_by_image_capacity(
     )
 
     original = phase_five_corrected_candidate_configs()[0].background_rms
-    repaired = public_api._public_background_config(shape, original)
+    repaired = public_api._public_background_config(
+        shape, original, source_finder=SourceFinderConfig(5.0, 3.0, 7)
+    )
     assert repaired.coarse.window_shape_yx == (window, window)
     assert repaired.coarse.step_yx == (step, step)
     assert repaired.adaptive == original.adaptive
@@ -66,7 +70,7 @@ def test_repaired_science_cannot_inherit_reference_qualification() -> None:
         == "development-unqualified"
     )
     assert public_api._COMPOSITION_NAME == (
-        "phase-5-evidence-bound-public-catalogue-v17"
+        "phase-5-evidence-bound-public-catalogue-v18"
     )
     assert {
         "hebog.algorithms.component_measurement",
@@ -84,7 +88,73 @@ def test_intermediate_mesh_cannot_bypass_the_bounded_read_admission() -> None:
 
     original = phase_five_corrected_candidate_configs()[0].background_rms
     with pytest.raises(ValueError, match="bounded image admission"):
-        public_api._public_background_config((150, 10_000), original)
+        public_api._public_background_config(
+            (150, 10_000),
+            original,
+            source_finder=SourceFinderConfig(5.0, 3.0, 7),
+        )
+
+
+@pytest.mark.parametrize("shape", ((149, 512), (150, 512), (1024, 1024)))
+@pytest.mark.parametrize(
+    ("detection", "island", "expected_trigger"),
+    (
+        (5.0, 3.0, 75.0),
+        (100.0, 3.0, 75.0),
+        (100.0, 74.0, 75.0),
+        (100.0, 75.0, 100.0),
+        (100.0, 80.0, 100.0),
+        (75.00000000000001, 75.0, 75.00000000000001),
+        (sys.float_info.max, sys.float_info.max / 2, sys.float_info.max),
+    ),
+)
+def test_private_background_trigger_respects_custom_island_threshold(
+    shape: tuple[int, int],
+    detection: float,
+    island: float,
+    expected_trigger: float,
+) -> None:
+    """Refinement seeds must belong to support grown at caller thresholds."""
+    from hebog.validation.hebog_campaign import (  # noqa: PLC0415
+        phase_five_corrected_candidate_configs,
+    )
+
+    original = phase_five_corrected_candidate_configs()[0].background_rms
+    caller = SourceFinderConfig(detection, island, 7)
+    repaired = public_api._public_background_config(
+        shape, original, source_finder=caller
+    )
+
+    assert original.adaptive is not None
+    assert repaired.adaptive is not None
+    assert repaired.adaptive.candidate_threshold_sigma == expected_trigger
+    assert repaired.adaptive.candidate_threshold_sigma > island
+    assert (
+        replace(repaired.adaptive, candidate_threshold_sigma=75.0)
+        == original.adaptive
+    )
+    assert original.adaptive.candidate_threshold_sigma == 75.0
+    assert caller == SourceFinderConfig(detection, island, 7)
+
+
+@pytest.mark.parametrize("shape", ((149, 512), (150, 512)))
+def test_custom_threshold_does_not_enable_disabled_adaptive_background(
+    shape: tuple[int, int],
+) -> None:
+    """Threshold reconciliation cannot invent an absent refinement policy."""
+    from hebog.validation.hebog_campaign import (  # noqa: PLC0415
+        phase_five_corrected_candidate_configs,
+    )
+
+    original = replace(
+        phase_five_corrected_candidate_configs()[0].background_rms,
+        adaptive=None,
+    )
+    repaired = public_api._public_background_config(
+        shape, original, source_finder=SourceFinderConfig(100.0, 80.0, 7)
+    )
+    assert repaired.adaptive is None
+    assert original.adaptive is None
 
 
 def _provenance() -> PublicSourceFindingProvenance:
@@ -94,7 +164,7 @@ def _provenance() -> PublicSourceFindingProvenance:
         configuration_sha256="2" * 64,
         scientific_profile_sha256="3" * 64,
         scientific_composition_sha256="4" * 64,
-        scientific_composition=("phase-5-evidence-bound-public-catalogue-v17"),
+        scientific_composition=("phase-5-evidence-bound-public-catalogue-v18"),
     )
 
 

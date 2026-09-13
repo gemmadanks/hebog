@@ -10,13 +10,13 @@ identities, execution history and completed validation belong in
 
 | Item | Current position |
 | --- | --- |
-| Candidate | Public composition v17 at `e39f6c9...`: Gaussian-fallback admission plus stable background/coarse-RMS boundary extrapolation, with a [non-executable freeze](../config/contracts/phase-5-background-boundary-repair-identity-review.json). Development-unqualified; latest completed campaign remains v15. |
+| Candidate | Public composition v18 repairs the custom-threshold/background interaction on top of v17's Gaussian/background repairs. Bounded validation passes; exact commit/freeze is next. The [v17 freeze](../config/contracts/phase-5-background-boundary-repair-identity-review.json) is preserved. Development-unqualified; latest completed campaign remains v15. |
 | Implemented | FITS/WCS ingress, background/RMS, compact and multiscale detection, source/component measurement, catalogue/mask/RMS/diagnostics publication, Serial and caller-owned Dask execution, Zarr intermediates. |
-| Public envelope | ICRS `Jy/beam` FITS, at most 1,024 pixels on either spatial axis. `continuum` is the default; explicit `compact` is extended-emission-incomplete. Custom thresholds remain unqualified; M4 identifies an unintended failure at island thresholds of at least 75 sigma. |
-| Strongest applicable checks | V17 independent boundary/fallback controls, exact public Serial/Dask, notebook execution and five installed-wheel workflows pass, alongside 27 frozen equivalence tests. Exact final coverage/check results are in `LOG.md`. No v17 campaign or powered parity verdict. |
+| Public envelope | ICRS `Jy/beam` FITS, at most 1,024 pixels on either spatial axis. `continuum` is the default; explicit `compact` is extended-emission-incomplete. Custom thresholds remain unqualified; their private refinement-trigger interaction is repaired in v18. |
+| Strongest applicable checks | V18 threshold-boundary controls, 12 new exact Serial/Dask comparisons, six unchanged standard-profile controls, five installed-wheel workflows and 27 frozen equivalence tests pass. Portable coverage passes 4,127 tests at 95.3201%; exact results are in `LOG.md`. No v17/v18 campaign or powered parity verdict. |
 | Campaign | Verified v15 terminal: scientific **fail**, 1,115 pass / 32 fail / 40 underpowered comparisons. All five safety checks pass; 2,400 captures/evaluations, 12 exact Dask agreements and 8,000 retained records verified. No definite binding external-reference failure, but parity and incumbent retention are not established. |
-| Blockers | Merge review confirms a custom-threshold public-API crash; repair and regression checks are needed before merge/release. Earlier bounded science repairs and human acceptance of documented residual limitations remain recorded, but E1 is reopened for this new defect. Accumulated-branch review and full platform CI remain; scientific qualification, Rapthor acceptance and complete-path performance remain unproven. |
-| Next authorized action | Complete the merge review and present the bounded custom-threshold repair recommendation below; the current review request does not implement it. Resolve that defect and CI failures before merge. Then complete a separate bounded cleanup PR and fresh comparison-notebook inspection before the human-controlled release workflow. No automatic replay, closed-data rescoring, publishing or parity claim. |
+| Blockers | The custom-threshold defect is repaired and checked; finish its exact freeze before handoff. Accumulated-branch review, platform CI, separate cleanup and fresh notebook inspection remain before release. Earlier human acceptance of unchanged residual limitations is preserved; scientific qualification, Rapthor acceptance and complete-path performance remain unproven. |
+| Next authorized action | Complete the authorized test-first custom-threshold repair below and freeze its exact composition, preserving the standard profile. Resolve supported-platform CI before merge. Then complete a separate bounded cleanup PR and fresh comparison-notebook inspection before the human-controlled release workflow. No automatic replay, closed-data rescoring, publishing or parity claim. |
 | Deferred | The human accepted uncertainty-calibration, measurement-tail and faint-association limitations for the v17 experimental standalone release on 13 September. Broader F2 repair, optional improvement, full qualification and facility-scale work remain later tasks. Reopen a deferred issue if it becomes a confirmed incorrect supported output or serious correctness impact. |
 
 The [campaign overview](../docs/reference/phase-5-campaign-overview.md)
@@ -185,14 +185,16 @@ remain human decisions.
       frozen records. Human whole-diff review remains open; the user will also
       obtain Copilot review when opening the PR.
 
-      **Recommended correctness repair, not implemented by this review:**
+      **Authorized bounded correctness repair, implemented and validated:**
       valid caller thresholds replace the public detection config, but its
       private adaptive bright-work trigger remains 75 sigma. Refinement
       rejects an island threshold at or above that trigger. Independent public
       noise-only reproductions and exact inputs are in `LOG.md`; this is an
       operational public-contract defect, not a failed parity endpoint.
-      Reconcile private candidate discovery and protection with accepted caller
-      thresholds; removing only the guard is insufficient. Preserve caller
+      When the private trigger is not above the caller's island threshold,
+      use the caller's already-valid detection threshold for private candidate
+      discovery and protection; removing only the guard is insufficient.
+      Otherwise retain the private trigger unchanged. Preserve caller
       thresholds and the standard 5/3 profile. Add failing tests around the
       75-sigma boundary and 150-pixel background-policy transition, with empty
       and bright-source controls and exact public Serial/existing-Dask
@@ -201,6 +203,12 @@ remain human decisions.
       non-regression checks and any required new candidate record. No full
       replay is needed to diagnose this defect, and no closed result or frozen
       identity is to be rewritten.
+      The new public regressions fail at the intended guard before repair and
+      pass afterward. Six standard-profile controls retain identical science;
+      12 new Serial/existing-Dask comparisons agree byte-for-byte. Coverage,
+      frozen equivalence, installed-wheel and normal checks pass; details are
+      in `LOG.md`. Finish the non-executable v18 freeze before handoff. This
+      closes the identified defect, not the outstanding whole-branch review.
 - [ ] **M5 — Validate the exact merge candidate.** Run applicable focused
       tests and `just check`, `just coverage`, `just test-equivalence`,
       `just test-acceptance`, `just marimo-check`, `just docs-build` and
@@ -300,9 +308,9 @@ checklist, rather than waiting for Rapthor integration or 100,000-square data.
       stated residual limitations. Reopen for newly confirmed incorrect
       supported outputs; do not transfer this disposition automatically to
       changed science or a broader deployment claim. **Reopened by M4:** the
-      independently reproduced custom-threshold crash must be repaired and
-      checked before final release clearance; the earlier accepted statistical
-      limitations and historical science evidence are unchanged.
+      independently reproduced custom-threshold crash is repaired and checked
+      in v18. Its exact freeze remains before handoff; the earlier accepted
+      statistical limitations and historical science evidence are unchanged.
 - [x] **E2 — Confirm the local installed user workflow.** From the release wheel,
       run the documented `find_sources` example and read its four products.
       Cover valid empty/all-NaN inputs, corrupt/unsupported input, custom

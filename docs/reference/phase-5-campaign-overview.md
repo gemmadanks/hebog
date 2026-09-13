@@ -9,9 +9,13 @@ for merge, experimental release and later qualification tasks.
 
 ## Current candidate and evidence
 
-Composition **v17** adds stable background/coarse-RMS boundary extrapolation
-to the v16 Gaussian-fallback admission repair. Independent numerical,
-public Serial/existing-Dask and installed-wheel checks pass. The release
+Composition **v18** adds a bounded custom-threshold interaction repair to v17's
+stable background/coarse-RMS boundary extrapolation and v16's Gaussian-fallback
+admission repair. Private continuum refinement seeds now respect a caller's
+island threshold without altering public detection/growth thresholds. Six
+standard 5/3-profile controls retain identical scientific products; custom
+empty/bright boundary controls and 12 Serial/existing-Dask comparisons pass.
+Independent numerical and installed-wheel checks also pass. The release
 handoff and non-executable candidate identities are recorded in `LOG.md`;
 they do not qualify the candidate or transfer the v15 campaign result. The latest completed
 campaign is for **v15**, science commit `73ab5af...`, which includes the Gaussian-validity
@@ -239,8 +243,12 @@ for the v17 experimental standalone release. The bounded release disposition is:
 | Uncertainty calibration, unresolved-axis and extended centroid/flux tails, faint association | Human-accepted documented limitations for the v17 standalone experimental release. | Retain later repair/qualification tasks; no general parity, precision-uncertainty or Rapthor-deployment claim. Reopen if a confirmed incorrect supported output is identified. |
 | Inconclusive completeness/mask comparisons | Remain inconclusive and prevent a general parity claim; the standalone release does not make that claim. | Resolve through candidate-bound qualification before promoting scientific readiness; no margin or confidence-rule change. |
 
-M2 severity acceptance and the bounded E1 correctness inventory are complete
-for this reviewed standalone scope. This is not an assertion that every
+M2 severity acceptance and the earlier bounded E1 correctness inventory apply
+to that reviewed v17 standalone scope. The subsequent custom-threshold crash
+was reproduced independently and repaired in v18; its final validation/freeze
+and current release gates are tracked in the implementation plan. Standard
+5/3 science and the earlier statistical risk disposition are unchanged; custom
+thresholds remain unqualified. This is not an assertion that every
 production use is safe, permission to ship a known incorrect supported output,
 or blanket acceptance of future scientific changes. After merge/platform
 checks, prioritize complete-path profiling and bounded scalability with these

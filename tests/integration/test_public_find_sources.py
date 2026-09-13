@@ -552,8 +552,15 @@ def test_public_find_sources_materializes_the_qualified_continuum_view(
 
 
 @pytest.mark.integration
+@pytest.mark.parametrize(
+    "config",
+    (
+        SourceFinderConfig(5.0, 3.0, 7, profile="compact"),
+        SourceFinderConfig(100.0, 80.0, 7, profile="compact"),
+    ),
+)
 def test_continuum_mesh_repair_does_not_change_compact_background_policy(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, config: SourceFinderConfig
 ) -> None:
     """Compact-only processing keeps its separately defined RMS policy."""
     from hebog.validation.hebog_campaign import (  # noqa: PLC0415
@@ -576,7 +583,7 @@ def test_continuum_mesh_repair_does_not_change_compact_background_policy(
         public_api._estimate_background_rms(  # pyright: ignore[reportPrivateUsage]
             source,
             source.metadata(),
-            _config(profile="compact"),
+            config,
             SerialExecutor(),
             tmp_path / "work",
             generation_id="compact-policy",
@@ -697,6 +704,94 @@ def test_custom_thresholds_change_science_and_are_marked_unqualified(
     assert (
         qualified_diagnostics.provenance.configuration_sha256
         != custom_diagnostics.provenance.configuration_sha256
+    )
+
+
+def _high_threshold_image(
+    shape: tuple[int, int], *, include_source: bool
+) -> np.ndarray:
+    """Return analytic noise-only or bright-source refinement controls."""
+    image = np.random.default_rng(130913).normal(0, 1, shape)
+    if include_source:
+        yy, xx = np.indices(shape)
+        image += 600 * np.exp(
+            -((xx - shape[1] / 2) ** 2 + (yy - shape[0] / 2) ** 2) / 8
+        )
+    return image
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("size", (149, 150, 256))
+@pytest.mark.parametrize("island_sigma", (74.0, 75.0, 80.0))
+@pytest.mark.parametrize("include_source", (False, True))
+def test_custom_thresholds_cross_private_refinement_and_mesh_boundaries(
+    tmp_path: Path, size: int, island_sigma: float, include_source: bool
+) -> None:
+    """Valid public thresholds complete on both sides of private boundaries."""
+    _write_image(
+        tmp_path / "image.fits",
+        _high_threshold_image((size, size), include_source=include_source),
+    )
+    result = hebog.find_sources(
+        _request(tmp_path),
+        SourceFinderConfig(100.0, island_sigma, 7),
+        SerialExecutor(),
+    )
+    assert result.source_count == int(include_source)
+    assert result.gaussian_component_count == int(include_source)
+    catalogue = read_catalogue_fits_product(result.catalogue)
+    assert len(catalogue.sources) == int(include_source)
+    assert len(catalogue.gaussian_components) == int(include_source)
+    diagnostics = read_diagnostics_product(result.diagnostics)
+    assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
+    assert diagnostics.configuration_qualification == "custom-unqualified"
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("shape", ((149, 181), (150, 181), (256, 301)))
+@pytest.mark.parametrize("island_sigma", (75.0, 80.0))
+@pytest.mark.parametrize("include_source", (False, True))
+def test_custom_threshold_products_agree_in_serial_and_tiled_existing_dask(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    shape: tuple[int, int],
+    island_sigma: float,
+    include_source: bool,
+) -> None:
+    """Private threshold reconciliation cannot depend on executor or tiles."""
+    _write_image(
+        tmp_path / "image.fits",
+        _high_threshold_image(shape, include_source=include_source),
+    )
+    config = SourceFinderConfig(100.0, island_sigma, 7)
+    serial = hebog.find_sources(
+        _request(tmp_path, output_name="serial"), config, SerialExecutor()
+    )
+    monkeypatch.setattr(public_api, "_TILE_SHAPE_YX", (97, 111))
+    cluster = LocalCluster(
+        n_workers=2,
+        threads_per_worker=1,
+        processes=False,
+        dashboard_address="",
+    )
+    with cluster, Client(cluster) as client:
+        dask = hebog.find_sources(
+            _request(tmp_path, output_name="dask"),
+            config,
+            DaskExecutor(client),
+        )
+    assert serial.source_count == int(include_source)
+    assert serial.gaussian_component_count == int(include_source)
+    assert (
+        serial.catalogue.content_sha256,
+        serial.rms.content_sha256,
+        serial.mask.content_sha256,
+        serial.diagnostics.content_sha256,
+    ) == (
+        dask.catalogue.content_sha256,
+        dask.rms.content_sha256,
+        dask.mask.content_sha256,
+        dask.diagnostics.content_sha256,
     )
 
 

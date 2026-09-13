@@ -20967,3 +20967,58 @@ scientific pass from fixture validation.
   immediately before the separate local CI repair commit.
   Remote supported-platform CI still requires the human's push; this repair
   does not clear M4, E1 or the separate custom-threshold defect.
+
+### 2026-09-13 — Public custom-threshold refinement repair
+
+- Complete the separately authorized M4 correctness repair after the portable
+  CI test repair (`349e9d0`); its final all-file hooks passed without changes.
+  This is an accepted-input composition defect, not a parity failure or a
+  reason to change detection gates. The earlier plan decision defines the
+  hypothesis, independent boundary tests and bounded stopping condition.
+- Before editing production code, add public tests using seed 130913 Gaussian
+  noise and an optional analytic 600-Jy/beam, two-pixel-sigma Gaussian. Test
+  149-, 150- and 256-square images at detection threshold 100 sigma and island
+  thresholds 74, 75 and 80 sigma. Reproduce **10 failures / eight passes** in
+  **11.00 seconds** at the intended private refinement guard, not an import or
+  fixture failure. The sub-150 bright-source failures confirm this is not
+  limited to the unconditional larger-image refinement path.
+- Reconcile the continuum background config before its small-image early
+  return: only when the adaptive trigger is not above the caller's island
+  threshold, replace it with the caller's already-valid detection threshold.
+  Candidate discovery and source protection share that config. Preserve the
+  guard, caller thresholds, existing meshes/statistics and compact-profile
+  policy. Standard 5/3 requests retain the original 75-sigma private trigger.
+  Record composition **v18**; older freezes and science decisions stay intact.
+- Focused validation passes **63 tests**, 43 deselected, in **49.68 seconds**.
+  Tests include threshold equality, adjacent floats, the largest finite float,
+  absent adaptive policy, immutable inputs, empty/bright public results and
+  **12 exact Serial/existing-Dask comparisons** on rectangular 149-, 150- and
+  256-row inputs with 97-by-111 tiled execution. All four product hashes agree.
+  The frozen equivalence lane passes **27 tests** in **44.42 seconds**; it does
+  not execute PyBDSF or establish fresh campaign parity.
+- Independently compare the unchanged standard 5/3 profile before and after
+  repair on six empty/bright fixtures at the same three sizes. Catalogue,
+  RMS and mask bytes match exactly, as do diagnostics after removing only the
+  deliberately changed composition name and composition SHA. Both summaries
+  hash to `9b3dbcac9f78d707290d0db20712179e9b359e9a564597baf54f80b51d4a2eb0`.
+  Preserve the reproducer, summaries and test logs under ignored
+  `benchmark-results/phase-5/custom-threshold-repair-20260913/`. These are
+  synthetic development checks, not closed-data rescoring or qualification.
+- `just coverage` passes **4,127 tests**, 220 deselected and two existing
+  xfails, in **1,091.50 seconds**. Branch-aware coverage increases from
+  **95.31930701428523%** to **95.32009724473258%**. All changed executable
+  lines and both new instrumented branch outcomes are covered. Inspect all
+  misses in both changed package files: `public_api.py` retains five unrelated
+  missed statements/branches (96.8051% combined); `source_finding.py` retains
+  two unrelated misses (98.8201%). No exclusions or deliberate patch gaps are
+  added. Codecov patch results require a later human push.
+- `just check` passes **3,786 quick tests**, 561 deselected and two existing
+  xfails, in **265.98 seconds**, plus formatting, lint and typing. Strict docs,
+  Marimo checks, both offline synthetic notebook exports and all five isolated
+  installed-wheel workflows pass. The acceptance lane retains seven expected
+  failure scaffolds, not passing Rapthor deployment scenarios.
+- Review the complete bounded change against `CODE_REVIEW.md`: no actionable
+  finding. Require clean all-file hooks immediately before the implementation
+  commit. Freeze a separate non-executable candidate and update the notebook
+  guard only after that commit. No replay, full comparison-notebook refresh,
+  scientific tuning, push, merge, tag, cutover or release is performed.

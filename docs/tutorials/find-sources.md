@@ -77,7 +77,12 @@ estimate, not an independently measured spatial gradient.
 
 Callers may select other valid thresholds and island-size limits. Hebog uses
 those values throughout background masking, direct and multiscale detection,
-island growth, and final size filtering. Custom runs report
+island growth, and final size filtering. The continuum background stage retains
+its private 75-sigma bright-candidate trigger when that exceeds the caller's
+island threshold. Otherwise it uses the caller's detection threshold, which is
+validated to exceed the island threshold, so refinement seeds lie within their
+protected support. This does not alter the caller's detection/growth thresholds
+or the standard 5/3-sigma profile. Custom runs report
 `configuration_qualification="custom-unqualified"` so they cannot be confused
 with the reference evidence:
 

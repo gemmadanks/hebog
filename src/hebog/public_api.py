@@ -70,7 +70,7 @@ _TILE_SHAPE_YX = (128, 128)
 _DETECTION_THRESHOLD_SIGMA = 5.0
 _ISLAND_THRESHOLD_SIGMA = 3.0
 _MINIMUM_ISLAND_PIXELS = 7
-_COMPOSITION_NAME = "phase-5-evidence-bound-public-catalogue-v17"
+_COMPOSITION_NAME = "phase-5-evidence-bound-public-catalogue-v18"
 _PROFILE_RESOURCE = "phase_5_continuum_review.json"
 _FWHM_PER_SIGMA = 2.0 * np.sqrt(2.0 * np.log(2.0))
 _SCIENTIFIC_MODULES = (
@@ -241,9 +241,26 @@ def _beam_shape_pixels(metadata: ImageMetadata) -> BeamShapePixels:
 
 
 def _public_background_config(
-    image_shape_yx: tuple[int, int], config: BackgroundRmsConfig
+    image_shape_yx: tuple[int, int],
+    config: BackgroundRmsConfig,
+    *,
+    source_finder: SourceFinderConfig,
 ) -> BackgroundRmsConfig:
-    """Retain a bounded spatial mesh on intermediate-size public images."""
+    """Reconcile refinement seeds and spatial meshes with public inputs."""
+    adaptive = config.adaptive
+    if adaptive is not None and (
+        source_finder.island_threshold_sigma
+        >= adaptive.candidate_threshold_sigma
+    ):
+        # Protected seeds must exceed the public support-growth threshold.
+        # The validated caller detection threshold already has that ordering.
+        config = replace(
+            config,
+            adaptive=replace(
+                adaptive,
+                candidate_threshold_sigma=source_finder.detection_threshold_sigma,
+            ),
+        )
     limiting_dimension = min(image_shape_yx)
     largest_window = max(config.coarse.window_shape_yx)
     if limiting_dimension < largest_window:
@@ -312,6 +329,7 @@ def _estimate_background_rms(  # noqa: PLR0913
             _public_background_config(
                 metadata.shape_yx,
                 candidate_detection.background_rms,
+                source_finder=config,
             )
             if config.profile == "continuum"
             else candidate_detection.background_rms
