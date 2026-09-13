@@ -20850,3 +20850,31 @@ scientific pass from fixture validation.
   all-file hooks remain the local commit gates. GitHub's full supported-platform
   matrix is still required after the human pushes; local success does not
   turn the reported remote failure green. No push, tag, release or replay.
+
+### 2026-09-13 — Pre-release cleanup sequence and merge-review progress
+
+- Add the requested separate, bounded cleanup PR and subsequent committed-
+  candidate notebook refresh to the release checklist. Cleanup must establish
+  that removed paths have no live API, runner, notebook, CI, regression or
+  evidence-verification consumers; Git history retains code, not ignored
+  scientific products. An optional archive tag remains human-controlled.
+  Significant refactoring or science changes are outside that cleanup scope.
+- Sequence the existing comparison refresh after cleanup and candidate
+  freezing, reusing retained references and preserving earlier refreshes.
+  Inspect the emitted products with the user before release. Visual review is
+  diagnostic, not powered parity; reopen release correctness clearance if a
+  confirmed incorrect supported output appears.
+- The accumulated branch is large: 1,035 changed files relative to local
+  `main`. Review so far covers public ingress/analysis/output paths and
+  relevant surrounding tests, the astrometry and Zarr changes, package
+  metadata, and CI/hook boundaries. No additional actionable defect was
+  confirmed in that slice. This is **not** a complete accumulated-branch
+  review: M4 remains open, including the remaining scientific stages,
+  campaign tooling and whole-diff review. In particular, the public science
+  module still consumes validation modules, so historical-looking filenames
+  cannot be treated as dead code without tracing their consumers.
+- The separate CI portability repair passed all-file hooks, including the
+  quick suite, typing, strict documentation and notebook checks. The remote
+  supported-platform run remains required. Source science and its evidence
+  identities are unchanged; no cleanup deletion, tag, notebook refresh,
+  campaign, push or release is performed in this planning/review increment.

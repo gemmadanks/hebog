@@ -16,7 +16,7 @@ identities, execution history and completed validation belong in
 | Strongest applicable checks | V17 independent boundary/fallback controls, exact public Serial/Dask, notebook execution and five installed-wheel workflows pass, alongside 27 frozen equivalence tests. Exact final coverage/check results are in `LOG.md`. No v17 campaign or powered parity verdict. |
 | Campaign | Verified v15 terminal: scientific **fail**, 1,115 pass / 32 fail / 40 underpowered comparisons. All five safety checks pass; 2,400 captures/evaluations, 12 exact Dask agreements and 8,000 retained records verified. No definite binding external-reference failure, but parity and incumbent retention are not established. |
 | Blockers | Bounded correctness repairs, local release preparation and human acceptance of the documented residual science limitations are complete. Accumulated-branch merge review and full platform CI remain. Scientific qualification, Rapthor acceptance and complete-path performance remain unproven. |
-| Next authorized action | Complete the accumulated-branch merge review and platform checks, then use the human-controlled CI/Release Please workflow. No automatic replay, closed-data rescoring, publishing or parity claim. |
+| Next authorized action | Review the accumulated branch and resolve CI failures before merge. Then complete a separate bounded cleanup PR and refresh the comparison notebook from the cleaned, committed candidate before the human-controlled release workflow. No automatic replay, closed-data rescoring, publishing or parity claim. |
 | Deferred | The human accepted uncertainty-calibration, measurement-tail and faint-association limitations for the v17 experimental standalone release on 13 September. Broader F2 repair, optional improvement, full qualification and facility-scale work remain later tasks. Reopen a deferred issue if it becomes a confirmed incorrect supported output or serious correctness impact. |
 
 The [campaign overview](../docs/reference/phase-5-campaign-overview.md)
@@ -195,6 +195,15 @@ remain human decisions.
       scaffolds, not passing deployment scenarios. Local macOS/Python 3.14
       cannot clear the full CI matrix; no push or CI-triggering release action
       is performed by this task.
+      **13 September CI repair:** the pre-commit job in
+      [run 34765428571](https://github.com/gemmadanks/hebog/actions/runs/34765428571)
+      failed on `3806794`; local passing hooks do not override that result.
+      The test-only portability repair in `bc0df4c` passes a read-only Linux
+      reproduction, independent roundoff/identity controls and local all-file
+      hooks. It preserves exact historical bytes and recipes; only regenerated
+      truth coordinates allow up to four ULPs. See `LOG.md` for the diagnosis
+      and checks. Push and rerun platform CI before clearing M5; no remote
+      success is inferred from local validation.
 - [ ] **M6 — Complete the merge handoff.** Update this plan's current state,
       user-facing release status, API/tutorial limitations and `LOG.md` from
       M1–M5. Give the human the exact revision, checks, unresolved risks and
@@ -230,6 +239,22 @@ follow-up work, not a merge or release gate; see the notebook guide.
 Target the first useful bounded standalone finder release after the merge
 checklist, rather than waiting for Rapthor integration or 100,000-square data.
 
+- [ ] **E0 — Review a separate bounded cleanup PR before release.** Inventory
+      candidate dead code and superseded scripts against imports, dynamic
+      entry points, notebooks, CI, behavioural tests and retained-evidence
+      verification. Delete only demonstrably unused paths; low coverage or
+      a historical filename is not sufficient. Keep scientific regressions,
+      frozen contracts/decisions and current evidence-verification workflows.
+      Record removed paths, replacements and the last containing Git revision;
+      Git history supplies recovery without keeping duplicate archived code
+      in the live tree. An optional annotated non-release archive tag is a
+      human-controlled convenience, not a backup of ignored benchmark data.
+      Preserve those products separately. Keep scientific changes, substantial
+      refactoring and performance work outside this cleanup PR. Validate with
+      applicable coverage, public workflows, Serial/Dask, equivalence,
+      installed-wheel, documentation and platform checks. If package or runner
+      identity changes, prepare a new candidate record without modifying old
+      freezes or transferring qualification automatically.
 - [x] **E1 — Close the bounded release correctness inventory.** Confirm from M2/M3 that
       no known incorrect supported catalogue, position, flux, ownership or
       processing-status output remains. Check Gaussian-validity and
@@ -255,6 +280,18 @@ checklist, rather than waiting for Rapthor integration or 100,000-square data.
       exact-candidate public tests cover unsupported/corrupt inputs,
       unavailable outputs, publication failure/retry and caller-owned Dask.
       Final release-tag installation and the platform matrix remain E4/M5.
+- [ ] **E2a — Refresh and inspect the cleaned release candidate.** After E0,
+      commit the candidate, run the existing notebook refresh preflight, then
+      refresh the 13 saved public inputs while reusing the retained 26
+      PyBDSF/Aegean products. Keep code and runner identity unchanged throughout
+      execution; preserve earlier refreshes and verify the completed seal.
+      Inspect Gaussian/source positions, unavailable measurements, empty and
+      difficult extended regions with the user. Reopen E1 for a newly confirmed
+      incorrect supported output; apply the agreed severity policy to existing
+      statistical limitations. This is a diagnostic user workflow, not a new
+      campaign, rescoring of closed decisions or proof of parity. Larger saved
+      notebook images do not expand the public 1,024-pixel release envelope.
+      A subsequent science change invalidates the affected inspection.
 - [ ] **E3 — Review the release description and generated PR.** State
       “experimental, scientifically unqualified”, the tested input/resource
       envelope, known limitations and all public/schema breaking changes.
@@ -287,7 +324,6 @@ claim and still need their existing scientific/resource decisions.
 | Next | Complete the shared Serial/local/Dask executor contract and add persistent local threads. | Ordering, serialization, errors, cancellation, retry and resource budgets pass the same contract suite; no nested pools/clusters. Existing Dask execution is extended, not reimplemented as a second abstraction. |
 | Next | Remove the public terminal's complete-plane requirement. | Catalogue/measurement and publication operate through bounded Zarr windows/shards and hierarchical summaries; small analytic edge/corner and partition tests agree exactly. Qualify one larger size tier at a time before raising admission limits. |
 | Next | Qualify a deployment Zarr store and restart/recovery path. | Atomicity, concurrent owned-chunk writes, codec/chunk geometry, missing chunks, cold/warm throughput and injected failures pass within an admitted memory budget. Publish the tested store envelope. |
-| After first release | Remove a bounded set of superseded development wrappers/freezers. | No current runner, notebook, behavioural regression or evidence reproduction depends on them; record removed paths, immutable Git revision/hashes and replacements in the log. Preserve frozen contracts/decisions and scientific regressions. Production repairs are separate tasks. |
 | When scientifically prioritized | Resolve one remaining association, uncertainty, RMS/mask or flux-tail mechanism. | Prospective independent controls distinguish the cause; focused public-workflow and paired non-regression checks pass. Preserve source/component distinctions and explicit unavailable outputs. Broader F2 work is deferred unless seriousness changes. |
 | Before claiming general scientific readiness | Complete candidate-bound cumulative parity/retention and fresh held-out/public-survey evidence. | Every binding endpoint passes under the reviewed contract; any new population/power design and execution are approved prospectively. Closed failed campaigns are never reused as confirmation. |
 | Before claiming general scientific readiness | Replace the stale readiness composition prospectively and obtain independent acceptance. | A new current-candidate packet binds cumulative/fresh evidence, public API, execution/performance checks and separate radio-astronomy/engineering acceptances. Keep the restricted Rapthor profile in its own integration packet; preserve the old frozen record. |
