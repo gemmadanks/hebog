@@ -10,7 +10,7 @@ identities, execution history and completed validation belong in
 
 | Item | Current position |
 | --- | --- |
-| Candidate | Public composition v17: Gaussian-fallback admission plus stable background/coarse-RMS boundary extrapolation. Non-executable release-clearance freeze recorded in `LOG.md`; development-unqualified. Latest completed campaign remains v15. |
+| Candidate | Public composition v17 at `e39f6c9...`: Gaussian-fallback admission plus stable background/coarse-RMS boundary extrapolation, with a [non-executable freeze](../config/contracts/phase-5-background-boundary-repair-identity-review.json). Development-unqualified; latest completed campaign remains v15. |
 | Implemented | FITS/WCS ingress, background/RMS, compact and multiscale detection, source/component measurement, catalogue/mask/RMS/diagnostics publication, Serial and caller-owned Dask execution, Zarr intermediates. |
 | Public envelope | ICRS `Jy/beam` FITS, at most 1,024 pixels on either spatial axis. `continuum` is the default; explicit `compact` is extended-emission-incomplete. Custom thresholds execute but remain unqualified. |
 | Strongest applicable checks | V17 independent boundary/fallback controls, exact public Serial/Dask, notebook execution and five installed-wheel workflows pass, alongside 27 frozen equivalence tests. Exact final coverage/check results are in `LOG.md`. No v17 campaign or powered parity verdict. |
@@ -197,6 +197,11 @@ remain human decisions.
       M1–M5. Give the human the exact revision, checks, unresolved risks and
       recommended merge scope. The human reviews, pushes and merges; a merge
       is not a scientific-readiness assertion or default-backend change.
+      **Local handoff prepared:** v17 science is `e39f6c9...`; the separate
+      freeze binds its exact source and unchanged configuration. The live
+      notebook guard and 35 historical-identity/refresh/notebook tests pass.
+      Final merge clearance waits for M2 human disposition, M4 whole-branch
+      review and M5 platform CI, not another automatic campaign.
 
 M1–M3 are specific to the accumulated finder candidate. Future small changes
 use only the applicable checks and evidence; do not rerun this entire campaign

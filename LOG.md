@@ -20753,3 +20753,34 @@ scientific pass from fixture validation.
   PR/tag workflow remain human-controlled. No new long campaign is recommended
   automatically. Final strict docs and clean all-file hooks precede the local
   science commit; a separate non-executable v17 freeze follows.
+- Commit the bounded science/clearance work as
+  **`e39f6c91d2344b07bd88ee22e4793545df177323`**, source SHA-256
+  `ace1cdce3d2da709bf74d8cfbba5b1099bce0e61f797e3c4a977f04e8a9aa1d5`,
+  v17 composition
+  `d01185ee13f49cda297d68f946b1ec2b19ba697ed816929892e267620efa7fb4`
+  and unchanged configuration
+  `5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4`.
+  Strict docs and full hooks pass clean before committing. The first hook
+  attempt's tests passed, but staging new files during its clean-diff check
+  invalidated the hook run; rerun with an unchanged index passes. No source
+  correction or assertion weakening was needed. Do not change the index or
+  files while future hooks run.
+- Freeze the separate
+  `config/contracts/phase-5-background-boundary-repair-identity-review.json`,
+  SHA-256 `96af557c1f8508b4835e36d6a6309593e4c2b9f3eb493c521c51152e67e673a2`.
+  It binds the scientific commit, independent checks, saved diagnostic limits
+  and release inventory, with every execution/release authorization false.
+  Verify the v16 review and v15 terminal still have their original hashes.
+  The notebook-selection regression fails against the old review, then all
+  **35 historical-identity/refresh/exact notebook-runner tests pass** after
+  updating the pointer, including the immutable Git archive. The live no-write
+  guard accepts the current code/configuration; no notebook refresh is started.
+- The prepared recommendation is a bounded **experimental standalone** release
+  after human acceptance of the documented statistical/faint-morphology risks,
+  whole-branch merge review and green supported-platform CI. No known defect
+  remains open in the repaired mechanisms; this is not a claim of exhaustive
+  correctness, general PyBDSF parity, qualified uncertainties or supported
+  Rapthor deployment. Retain the failed/inconclusive evidence and pursue
+  complete-path profiling/scalability next, not another automatic long campaign.
+  Final clean hooks remain the freeze-commit gate; no push, release PR, tag,
+  registry upload or default cutover is performed.
