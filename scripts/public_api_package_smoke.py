@@ -14,6 +14,7 @@ from astropy.io import fits
 
 import hebog
 from hebog.executors import SerialExecutor
+from hebog.io import read_catalogue_fits_product, read_diagnostics_product
 
 _PROFILE_SHA256 = (
     "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b"
@@ -52,33 +53,76 @@ def main() -> None:
 
     with tempfile.TemporaryDirectory(prefix="hebog-public-api-") as temporary:
         root = Path(temporary)
-        input_path = root / "image.fits"
-        output_path = root / "products"
-        fits.PrimaryHDU(
-            np.zeros((16, 16), dtype=np.float64),
-            _header(),
-        ).writeto(input_path)
-        result = hebog.find_sources(
-            hebog.SourceFinderRequest(
-                image_path=input_path,
-                output_directory=output_path,
-                run_id="installed-wheel-smoke",
+        y, x = np.indices((49, 65))
+        noise = np.random.default_rng(613).normal(size=x.shape)
+        source = 40 * np.exp(-0.5 * ((x - 37.2) ** 2 + (y - 22.8) ** 2) / 3)
+        for name, image, config in (
+            ("blank", np.zeros((16, 16)), hebog.SourceFinderConfig(5, 3, 7)),
+            (
+                "all-nan",
+                np.full((16, 16), np.nan),
+                hebog.SourceFinderConfig(5, 3, 7),
             ),
-            hebog.SourceFinderConfig(5.0, 3.0, 7),
-            SerialExecutor(),
-        )
-        products = (
-            result.catalogue,
-            result.rms,
-            result.mask,
-            result.diagnostics,
-        )
-        if not all(product.path.is_file() for product in products):
-            raise RuntimeError("installed public API did not publish products")
-        if (result.source_count, result.island_count) != (0, 0):
-            raise RuntimeError(
-                "blank installed-wheel smoke image is not empty"
+            (
+                "continuum",
+                source + noise - 2,
+                hebog.SourceFinderConfig(5, 3, 7),
+            ),
+            (
+                "compact",
+                source + noise - 2,
+                hebog.SourceFinderConfig(5, 3, 7, profile="compact"),
+            ),
+            ("custom", source + noise - 2, hebog.SourceFinderConfig(6, 4, 7)),
+        ):
+            input_path = root / f"{name}.fits"
+            fits.PrimaryHDU(image, _header()).writeto(input_path)
+            result = hebog.find_sources(
+                hebog.SourceFinderRequest(input_path, root / name, name),
+                config,
+                SerialExecutor(),
             )
+            _check_products(
+                result, image.shape, empty=name in {"blank", "all-nan"}
+            )
+            print(f"Installed public workflow: {name} passed")
+
+
+def _check_products(
+    result: hebog.SourceFinderResult,
+    shape: tuple[int, ...],
+    *,
+    empty: bool,
+) -> None:
+    """Read all four installed products and verify their bound identities."""
+    for product in (
+        result.catalogue,
+        result.rms,
+        result.mask,
+        result.diagnostics,
+    ):
+        if (
+            hashlib.sha256(product.path.read_bytes()).hexdigest()
+            != product.content_sha256
+        ):
+            raise RuntimeError("installed product identity does not match")
+    catalogue = read_catalogue_fits_product(result.catalogue)
+    diagnostics = read_diagnostics_product(result.diagnostics)
+    if (
+        len(catalogue.sources) != result.source_count
+        or diagnostics.run_id != result.run_id
+    ):
+        raise RuntimeError("installed product run identity does not match")
+    for path in (result.rms_path, result.mask_path):
+        if np.asarray(fits.getdata(path)).shape != shape:
+            raise RuntimeError("installed image product has the wrong shape")
+    if empty:
+        if result.source_count != 0 or catalogue.gaussian_components:
+            raise RuntimeError("empty installed-wheel control has sources")
+        if result.rms.scientific_status != "unavailable":
+            raise RuntimeError("empty installed-wheel control invents noise")
+    elif result.source_count != 1 or len(catalogue.gaussian_components) != 1:
+        raise RuntimeError("installed-wheel control lost its isolated source")
 
 
 if __name__ == "__main__":

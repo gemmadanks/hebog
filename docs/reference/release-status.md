@@ -40,14 +40,14 @@ as if they were Gaussian-component measurements.
 
 ## Evidence and unresolved limitations
 
-The development composition is v16 (`a716eb3...`), with a narrow
-Gaussian-fallback repair independently tested and frozen non-executable. The
+The development composition is v17, with narrow Gaussian-fallback admission
+and background-boundary repairs independently tested. The
 latest completed campaign is v15 (`73ab5af...`). Focused repair tests, frozen
 small equivalence checks, portable coverage and exact Serial/existing-Dask
 checks pass. The earlier bounded public screen completed but retains 49
 point-estimate warnings, including compact uncertainty/measurement
 and faint extended association, mask and flux-tail risks. It does not provide
-powered parity evidence and has not been repeated for v16.
+powered parity evidence and has not been repeated for v17.
 
 The verified v15 cumulative terminal is a **scientific fail**: 1,115 binding
 comparisons pass, 32 fail against the earlier Hebog incumbent and 40 are
@@ -58,18 +58,28 @@ The [campaign overview](phase-5-campaign-overview.md) contains the complete
 non-passing endpoint and correctness inventory; exact evidence belongs in the
 [execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md).
 No earlier candidate's scientific pass transfers automatically to this one.
-Terminal review confirms two high-SNR corner-source cases where an invalid
+Terminal review confirmed two high-SNR corner-source cases where an invalid
 free fit falls back to a beam-shaped model and publishes badly biased Gaussian
-fluxes as measured. This is a release correctness blocker, not an experimental
-limitation waived by passing aggregate metrics. A narrow independently tested
-fallback-admission repair is implemented in v16 using independent controls;
-it is not a general parity or release clearance. Inspection also confirms
-large corner-background errors in the saved missing-source cases, with
-ill-conditioned mesh-boundary extrapolation a concrete cause hypothesis.
-This separate background problem remains a correctness blocker. The earlier
-notebook position witness also needs resolution confirmation; statistical
-uncertainty and ambiguous faint morphology need explicit reviewed limitations.
-No further scientific run or release is authorized by documenting this result.
+fluxes as measured. V16 repairs that admission defect: inadequate Gaussian
+models are explicitly unavailable while independent source products remain.
+V17 repairs excessive background/coarse-RMS edge extrapolation without changing
+detection thresholds or flattening genuine affine gradients. Saved-plane
+inspection identifies the nearly coincident fine-grid centres as the cause of
+the large corner-background excursions; independent tests reproduce and fix
+the conditioning defect. A bounded unchanged-pixel diagnostic also resolves
+the historical displaced-Gaussian witness at the fitting boundary. Neither
+closed campaign scores nor full notebook images were rerun for these claims.
+
+Local public Serial/existing-Dask, frozen equivalence, notebook execution and
+installed-wheel workflows pass. The wheel smoke reads and validates all four
+products for blank, all-NaN, continuum, compact and custom-threshold controls.
+This is a prepared **experimental standalone release candidate**, not final
+release clearance: human scientific acceptance of the documented statistical
+and faint-morphology limitations, accumulated-branch merge review and the full
+platform CI matrix remain required. The Rapthor acceptance lane still contains
+seven expected-failure scaffolds, not passing deployment acceptance tests.
+No further scientific run, publication or default cutover follows from this
+handoff. Known correctness defects cannot be waived by an experimental label.
 
 ## Release boundaries
 

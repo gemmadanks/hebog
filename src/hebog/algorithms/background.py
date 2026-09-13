@@ -560,6 +560,7 @@ def _interpolation_axis_slice(
     *,
     output_start: int,
     output_stop: int,
+    image_length: int,
 ) -> slice:
     """Select only samples bracketing one half-open output interval."""
     sample_coordinates = np.asarray(coordinates, dtype=np.float64)
@@ -590,6 +591,13 @@ def _interpolation_axis_slice(
             ),
         )
         last = first + _MINIMUM_LINEAR_SAMPLES
+    lower_anchor, upper_anchor = _boundary_slope_anchors(
+        sample_coordinates, image_length
+    )
+    if output_start < sample_coordinates[0]:
+        last = max(last, lower_anchor + 1)
+    if output_stop - 1 > sample_coordinates[-1]:
+        first = min(first, upper_anchor)
     return slice(first, last)
 
 
@@ -603,11 +611,13 @@ def subset_rms_grid_geometry(
         grid.sample_coordinates_y,
         output_start=bounds.y_start,
         output_stop=bounds.y_stop,
+        image_length=grid.image_shape_yx[0],
     )
     x_selection = _interpolation_axis_slice(
         grid.sample_coordinates_x,
         output_start=bounds.x_start,
         output_stop=bounds.x_stop,
+        image_length=grid.image_shape_yx[1],
     )
     return RmsGridGeometry(
         image_shape_yx=grid.image_shape_yx,
@@ -631,11 +641,13 @@ def subset_prepared_rms_grid(
         grid.geometry.sample_coordinates_y,
         output_start=bounds.y_start,
         output_stop=bounds.y_stop,
+        image_length=grid.geometry.image_shape_yx[0],
     )
     x_selection = _interpolation_axis_slice(
         grid.geometry.sample_coordinates_x,
         output_start=bounds.x_start,
         output_stop=bounds.x_stop,
+        image_length=grid.geometry.image_shape_yx[1],
     )
     geometry = subset_rms_grid_geometry(grid.geometry, bounds)
     selection = (y_selection, x_selection)
@@ -657,6 +669,70 @@ def subset_prepared_rms_grid(
     )
 
 
+def _boundary_slope_anchors(
+    coordinates: npt.NDArray[np.float64], image_length: int
+) -> tuple[int, int]:
+    """Span at least the edge extrapolation distance where samples permit.
+
+    Adjacent final windows can be almost coincident. A secant spanning the
+    distance to the physical edge bounds its endpoint weight by two, without
+    flattening an affine background. A short grid uses its full available
+    span; a singleton is handled by constant extension before interpolation.
+    """
+    lower = min(
+        int(
+            cast(
+                int,
+                np.searchsorted(coordinates, 2 * coordinates[0], side="left"),
+            )
+        ),
+        len(coordinates) - 1,
+    )
+    upper = max(
+        int(
+            cast(
+                int,
+                np.searchsorted(
+                    coordinates,
+                    2 * coordinates[-1] - (image_length - 1),
+                    side="right",
+                ),
+            )
+        )
+        - 1,
+        0,
+    )
+    return lower, upper
+
+
+def _extend_grid_axis(
+    coordinates: npt.NDArray[np.float64],
+    values: npt.NDArray[np.float64],
+    *,
+    axis: int,
+    image_length: int,
+) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+    """Add physical-edge samples using stable, affine-preserving secants."""
+    lower, upper = _boundary_slope_anchors(coordinates, image_length)
+    locations = [coordinates]
+    samples = [values]
+    for endpoint, anchor, location in (
+        (0, lower, 0.0),
+        (-1, upper, float(image_length - 1)),
+    ):
+        if coordinates[0] <= location <= coordinates[-1]:
+            continue
+        edge = np.take(values, [endpoint], axis=axis)
+        slope = (edge - np.take(values, [anchor], axis=axis)) / (
+            coordinates[endpoint] - coordinates[anchor]
+        )
+        extended = edge + (location - coordinates[endpoint]) * slope
+        insert_at = 0 if endpoint == 0 else len(locations)
+        locations.insert(insert_at, np.array([location]))
+        samples.insert(insert_at, extended)
+    return np.concatenate(locations), np.concatenate(samples, axis=axis)
+
+
 def interpolate_prepared_rms_grid(
     grid: PreparedRmsGrid,
     bounds: ImageBounds,
@@ -668,7 +744,8 @@ def interpolate_prepared_rms_grid(
 
     Fine noise cells have stochastic slopes, not a measured noise gradient
     beyond their centres. Constant edge extension preserves positive convex
-    weights there; the coarse background may still extrapolate linearly.
+    weights there. Background edge slopes span the extrapolation distance,
+    not a possibly tiny gap between the final two window centres.
     """
     bounds.require_inside(grid.geometry.image_shape_yx)
     validity = np.asarray(valid_pixels, dtype=np.bool_)
@@ -684,6 +761,18 @@ def interpolate_prepared_rms_grid(
             coarse_background,
             coarse_rms,
         ) = _expand_singleton_grid_axes(grid)
+        extended_y, coarse_statistics = _extend_grid_axis(
+            sample_y,
+            np.stack((coarse_background, coarse_rms), axis=-1),
+            axis=0,
+            image_length=grid.geometry.image_shape_yx[0],
+        )
+        extended_x, coarse_statistics = _extend_grid_axis(
+            sample_x,
+            coarse_statistics,
+            axis=1,
+            image_length=grid.geometry.image_shape_yx[1],
+        )
         output_y = np.arange(bounds.y_start, bounds.y_stop, dtype=np.float64)
         output_x = np.arange(bounds.x_start, bounds.x_stop, dtype=np.float64)
         y_coordinates, x_coordinates = np.meshgrid(
@@ -694,8 +783,8 @@ def interpolate_prepared_rms_grid(
         query_points = np.stack((y_coordinates, x_coordinates), axis=-1)
         background = np.asarray(
             RegularGridInterpolator(
-                (sample_y, sample_x),
-                coarse_background,
+                (extended_y, extended_x),
+                coarse_statistics[..., 0],
                 method="linear",
                 bounds_error=False,
                 fill_value=None,  # pyright: ignore[reportArgumentType]
@@ -704,8 +793,10 @@ def interpolate_prepared_rms_grid(
         )
         rms = np.asarray(
             RegularGridInterpolator(
-                (sample_y, sample_x),
-                coarse_rms,
+                (extended_y, extended_x)
+                if extrapolate_rms
+                else (sample_y, sample_x),
+                coarse_statistics[..., 1] if extrapolate_rms else coarse_rms,
                 method="linear",
                 bounds_error=False,
                 fill_value=None,  # pyright: ignore[reportArgumentType]

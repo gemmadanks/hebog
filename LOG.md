@@ -20649,3 +20649,107 @@ scientific pass from fixture validation.
   exact candidate; no notebook refresh is launched. Final freeze hooks remain
   the local commit gate. Next work is independent corner-background diagnosis
   and a prospective correction, not an automatic full replay.
+
+### 2026-09-13 — Bounded release-clearance repairs and local validation
+
+- Continue the user's release-clearance request without launching a campaign,
+  changing closed science, publishing or pushing. Record the boundary repair
+  decision in the plan before implementation. The independent synthetic-grid
+  regression first fails because a small last-cell error is amplified at the
+  physical edge, not because of a fixture/import problem. Retain existing
+  windows, statistics, source protection and in-grid bilinear interpolation;
+  use endpoint secants spanning the extrapolation distance where possible.
+  Reuse NumPy/SciPy on bounded coarse summaries, including the required anchors
+  in tile subsets. Apply the stable extension to background and extrapolated
+  coarse RMS; fine-RMS constant-edge policy and detection thresholds remain
+  unchanged. Short grids use their full span and singleton axes stay constant.
+- The new coarse/fine, both-sign/four-corner tests bound an independent endpoint
+  error's gain by four at a corner while preserving real affine backgrounds.
+  Exact full/subset tests cover invalid pixels and one-pixel edge cores;
+  short/singleton tests avoid invented gradients. All 22 new unit controls pass.
+  Four independent noisy non-square scenes retain all clipped corner peaks,
+  estimate background within one injected RMS and agree exactly through the
+  public Serial/caller-owned Dask path. The combined background/noiseless/
+  broad-emission integration lane passes 42 tests. An in-memory old-interpolator
+  ablation also passes those four unperturbed scenes: these are public retention
+  controls, not a reproduction of the closed ten-source miss.
+- Refine the cause using read-only saved-plane analysis of the twelve v15
+  missing/bad-fit witnesses. The initial coarse-grid hypothesis alone does not
+  explain the complete saved block. The final fine mesh centres are **493 and
+  494**; extrapolation from their four saved values reproduces the background
+  at (510, 510) in every witness to within **6.94e-18 Jy/beam**, and the final
+  17-by-17 block is bilinear to **2.61e-17**. This identifies excessive fine-grid
+  edge gain as the cause of the saved excursions. The independently selected
+  secant instead uses centres 472 and 494; a read-only counterfactual from the
+  saved samples gives −0.000344 to −0.000034 Jy/beam, within one injected RMS
+  of the mean. This is not new background estimation, recovered-source counts,
+  matching or a repaired campaign verdict. The declared policy was not chosen
+  from those seed outcomes. Source-protected samples still have statistical
+  uncertainty; their errors are no longer multiplied by the near-duplicate
+  centre spacing.
+- Retain these diagnostics under the ignored
+  `benchmark-results/phase-5/release-clearance-20260913/` namespace:
+  `saved-background-conditioning.json` SHA-256
+  `7bbf1669159851b654541db2031ca30e0493ded3dc9314b5547949caa24d25f0`
+  and `saved-fine-boundary-conditioning.json` SHA-256
+  `a0d29fbf29f126b06d5ab78f35f180f75fcaea928527bd0c6183edec3581866a`.
+  Their scripts verify saved input identities and do not overwrite the v15
+  captures, evaluations or terminal.
+- Under this release-clearance request, perform one bounded diagnostic refit
+  of the historical v12 figure-12 witness's **446 unchanged owned pixels**,
+  with verified saved background/RMS/labels. This is additional viewed-pixel
+  diagnosis, distinct from the previous read-only trace, not a campaign rerun
+  or tuning exercise. The current fitter reports diagonal weighting with
+  `correlation-factorization-failed`, selects a benign beam constraint after
+  an insignificant free extension, and centres the Gaussian at
+  **(1780.2151702215072, 1268.1400838446757)**: **0.256752 pixels** from the
+  saved peak versus **11.96955** previously. Reduced chi-squared is **2.21188**
+  versus **524528.4**. The independent oversampled/asymmetric/invalid-pixel
+  tests cover this fallback. Close this particular fitting-boundary witness,
+  not every position issue or the whole 3,600-square FK5 notebook image outside
+  the standalone public envelope. No detector, matcher or evaluator ran on
+  these viewed pixels. `position-diagnostic.json` SHA-256 is
+  `e0a018b089357ef8ef1b6b1645cecb630fcb860709edf1fbbfa00bb0682021c4`;
+  its historical trace SHA-256 is
+  `c9b1c2b082b6e73b55c4e93148b56da089d1c0a4d115bda955efdaad69bc0673`.
+- Strengthen the existing installed-wheel smoke from blank-file existence to
+  five actual public workflows: blank, all-NaN, continuum, compact and custom
+  thresholds. Read and verify all four products, their hashes, run identity,
+  image shapes and expected source/Gaussian availability. Nine deterministic
+  checker fault-injection tests pass. The isolated built wheel imports and
+  completes all five workflows. Existing public contract/integration tests
+  cover corrupt/unsupported inputs, unavailable measurements, publication
+  failure/retry and caller-owned Dask. No runtime dependency, version,
+  lockfile, schema or resource-envelope change is introduced.
+- `just coverage` passes **4,109 tests**, 158 deselected and two existing
+  expected failures, in **1,048.65 seconds**, at **95.31930701428523%**
+  branch-aware coverage (previous **95.31408479275137%**). All **26 changed
+  executable package lines** and changed instrumented branches are covered.
+  Background's remaining misses at 252/261/287/413/431/841 and public/domain
+  record misses are unchanged pre-existing error paths; no new exclusion or
+  coverage exception. Coverage ran before the nine checker tests were added;
+  those pass separately and in the final quick lane. Local Codecov patch and
+  other-platform reports are unavailable. Existing warnings are 4-axis WCS
+  fixtures on 2-D arrays, noiseless sigma-clipping/optimizer numerical probes
+  and long FITS comments; their explicit validity tests pass and no warning
+  was suppressed.
+- Final code checks pass Ruff, formatting, Pyright and **3,808 quick tests**,
+  468 deselected and two expected failures (254.61 seconds). All **27 frozen
+  equivalence tests**, strict Marimo checks, both offline notebook execution
+  smokes and installed-wheel checks pass. The acceptance lane contains **seven
+  expected-failure Rapthor scaffolds**; it provides no passing deployment
+  acceptance evidence. Do not describe local macOS/Python **3.14.2** as the
+  required Linux/macOS/Windows × Python 3.12/3.13/3.14 CI matrix.
+- Review the complete current repair/tests/docs diff against `CODE_REVIEW.md`,
+  and inspect public publication, package/import boundaries, CI/dependencies
+  and absence of hard-coded development paths in package code. No actionable
+  defect remains in this repair slice. The accumulated merge diff has 1,031
+  files before this repair; this scoped review is not independent line-by-line
+  clearance of that entire history. Human merge review remains explicit.
+  Update the plan, release-status page and campaign disposition table: bounded
+  fallback/background repairs and the specific position diagnosis are complete;
+  statistical calibration/tail/faint-association limitations are proposed for
+  human acceptance, not marked passing. Full platform CI and the Release Please
+  PR/tag workflow remain human-controlled. No new long campaign is recommended
+  automatically. Final strict docs and clean all-file hooks precede the local
+  science commit; a separate non-executable v17 freeze follows.

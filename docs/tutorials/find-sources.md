@@ -67,6 +67,14 @@ without extrapolating to zero. An absence of clean noise samples remains
 unavailable. This does not lower detection thresholds or imply that noise
 structure below the estimator resolution is measured accurately.
 
+At physical image edges, background and coarse-RMS slopes use mesh samples
+separated by at least the distance being extrapolated (or the full available
+span on a short grid). This avoids amplifying small errors between nearly
+coincident final windows. It preserves genuine affine backgrounds instead of
+flattening them at the edge; interior interpolation and the constant extension
+of fine RMS values are unchanged. A singleton grid still supplies a constant
+estimate, not an independently measured spatial gradient.
+
 Callers may select other valid thresholds and island-size limits. Hebog uses
 those values throughout background masking, direct and multiscale detection,
 island growth, and final size filtering. Custom runs report

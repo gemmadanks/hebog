@@ -10,18 +10,18 @@ identities, execution history and completed validation belong in
 
 | Item | Current position |
 | --- | --- |
-| Candidate | Public composition v16 at `a716eb3...`, frozen [non-executable fallback-admission review](../config/contracts/phase-5-gaussian-fallback-admission-identity-review.json). Development-unqualified; latest completed campaign remains v15. |
+| Candidate | Public composition v17: Gaussian-fallback admission plus stable background/coarse-RMS boundary extrapolation. Non-executable release-clearance freeze recorded in `LOG.md`; development-unqualified. Latest completed campaign remains v15. |
 | Implemented | FITS/WCS ingress, background/RMS, compact and multiscale detection, source/component measurement, catalogue/mask/RMS/diagnostics publication, Serial and caller-owned Dask execution, Zarr intermediates. |
 | Public envelope | ICRS `Jy/beam` FITS, at most 1,024 pixels on either spatial axis. `continuum` is the default; explicit `compact` is extended-emission-incomplete. Custom thresholds execute but remain unqualified. |
-| Strongest applicable checks | V16 analytic fallback controls, exact public Serial/Dask and notebook workflows, 27 frozen equivalence tests and 95.3141% portable branch-aware coverage pass. No v16 campaign or powered parity verdict; earlier screen/campaign warnings remain historical evidence, not a new pass. |
+| Strongest applicable checks | V17 independent boundary/fallback controls, exact public Serial/Dask, notebook execution and five installed-wheel workflows pass, alongside 27 frozen equivalence tests. Exact final coverage/check results are in `LOG.md`. No v17 campaign or powered parity verdict. |
 | Campaign | Verified v15 terminal: scientific **fail**, 1,115 pass / 32 fail / 40 underpowered comparisons. All five safety checks pass; 2,400 captures/evaluations, 12 exact Dask agreements and 8,000 retained records verified. No definite binding external-reference failure, but parity and incumbent retention are not established. |
-| Blockers | Independently repair confirmed corner-background errors; resolve historical position witness; human severity disposition and final merge/release validation. Scientific qualification, Rapthor integration and complete-path performance remain unproven. |
-| Next authorized action | Complete independent corner-background diagnosis and propose a bounded correction; keep its scientific-policy review separate from the completed Gaussian guard. No automatic replay, closed-data rescoring or release. |
+| Blockers | Bounded correctness repairs and local release preparation are complete; human severity acceptance, accumulated-branch merge review and full platform CI remain. Scientific qualification, Rapthor acceptance and complete-path performance remain unproven. |
+| Next authorized action | Hand off the exact non-executable candidate and release checklist for human scientific/merge review, then the existing CI/Release Please workflow. No automatic replay, closed-data rescoring, publishing or parity claim. |
 | Deferred | Broader faint-source association repair (F2), optional scientific improvement, full qualification and facility-scale work. Reopen a deferred issue if triage establishes a serious correctness impact. |
 
 The [campaign overview](../docs/reference/phase-5-campaign-overview.md)
 explains the current evidence and risks. Earlier compact or continuum passes
-qualify their exact candidates only; they do not qualify v16.
+qualify their exact candidates only; they do not qualify v17.
 
 ## Delivery policy: merge and release small increments
 
@@ -73,10 +73,11 @@ remain human decisions.
       disposition, not automatic deferral or another full campaign.
       **Review prepared:** the campaign overview accounts for all 72
       non-passing comparisons. Statistical/tail limitations are proposed for
-      reviewed deferral, not marked passing. Two published high-SNR fallback
-      errors are serious correctness blockers; final human disposition remains
-      pending.
-- [ ] **M3 — Fix any serious defects found by M2 in separate commits.** For each
+      reviewed deferral, not marked passing. The identified fallback/background
+      defects are repaired and the specific position witness resolved at the
+      fitting boundary. The overview's disposition table is ready for final
+      human acceptance; it does not authorize qualification or cutover.
+- [x] **M3 — Fix the serious defects identified by the bounded M2 review.** For each
       repair, state the cause hypothesis, independent test, expected change
       and stopping condition before implementation. Add a failing regression,
       preserve thresholds/semantics, run affected scientific and Serial/Dask
@@ -117,12 +118,11 @@ remain human decisions.
       non-executable at `a716eb3...`; valid point models and independent source
       photometry remain, inadequate fallback Gaussians are explicitly absent.
       Exact public Serial/Dask and notebook workflows pass. Test counts and
-      identities are in `LOG.md`; M3 remains open for the separate background
-      defect and unresolved position witness. Before any future campaign,
+      identities are in `LOG.md`. Before any future campaign,
       review the omission/completeness effects in the existing bounded paired
       screen; fixture success is not parity or a guarantee of campaign success.
 
-      **Separate corner-background follow-up:** saved planes show substantial
+      **Separate corner-background diagnosis:** saved planes show substantial
       over/under-subtraction, including complete loss of direct support in four
       high-SNR cases. A six-pixel final mesh spacing amplifies small background
       sample errors by extrapolation at the corner. Independently isolate
@@ -130,6 +130,35 @@ remain human decisions.
       gradient backgrounds, both noise signs, sources, invalid pixels and
       partition invariance. Preserve real gradients when selecting a stable
       boundary policy. The Gaussian guard does not close this release blocker.
+
+      **Release-clearance repair decision (13 September):** isolate the
+      interpolation defect using synthetic coarse samples before involving
+      source protection. Keep the existing mesh, statistics and in-grid
+      bilinear interpolation. Extend background and extrapolated coarse RMS
+      at physical image edges
+      using a secant spanning at least the extrapolation distance (or the
+      whole available axis if shorter), rather than a nearly duplicate pair
+      of edge windows. Reuse NumPy/SciPy; no new interpolator dependency or
+      threshold. Expect bounded amplification of independent last-cell errors
+      while preserving affine backgrounds exactly on adequately sampled grids.
+      Test both signs, coarse/fine meshes, non-square and singleton axes,
+      invalid pixels, bounded subsets, actual noisy corner sources and
+      Serial/existing-Dask equivalence. Stop and reassess if the public
+      background/source controls or existing broad-emission controls regress.
+      This is a numerical correctness repair, not evidence of campaign parity.
+
+      **Completed boundary/position slice:** v17 passes both-sign/four-corner
+      coarse/fine conditioning tests, real-gradient and bounded-subset
+      invariance, short/singleton axes, and four noisy corner scenes with
+      exact public Serial/existing-Dask results. Read-only saved-plane analysis
+      subsequently isolates the actual twelve excursions to the fine mesh's
+      final one-pixel centre spacing; the six-pixel coarse example was a
+      related instability, not the exact initiating stage. The specific
+      historical displaced Gaussian is now 0.257 rather than 11.970 pixels
+      from the peak in one unchanged-pixel diagnostic refit; no detection,
+      matching or closed score was repeated. Scope and evidence limits are
+      explicit in the campaign overview. No known defect in these bounded
+      mechanisms remains open; this is not general scientific qualification.
 
       **Evidence priority:** assess each finder against analytic/injected
       truth, then compare like semantics with released and pinned-master
@@ -143,6 +172,13 @@ remain human decisions.
       their tests/docs. Exclude generated evidence and private data. Prefer
       reviewable PRs for independent work; do not split a coherent contract
       change merely to reduce diff size.
+      **Local review:** complete current repair/test/documentation diff reviewed
+      against `CODE_REVIEW.md`, with no actionable finding. Public publication,
+      package boundaries, dependency/CI configuration and development-path
+      isolation inspected. The accumulated branch is much larger than this
+      slice (1,031 files before this repair); do not describe the scoped review
+      as independent line-by-line review of that whole merge. Human merge
+      review remains open.
 - [ ] **M5 — Validate the exact merge candidate.** Run applicable focused
       tests and `just check`, `just coverage`, `just test-equivalence`,
       `just test-acceptance`, `just marimo-check`, `just docs-build` and
@@ -151,6 +187,11 @@ remain human decisions.
       Require CI's Linux/macOS/Windows × Python 3.12/3.13/3.14 matrix, rather
       than treating local Python 3.14 evidence as the whole platform result.
       Run clean `just pre-commit` immediately before each local commit.
+      **Local portion complete:** exact results and patch coverage are in
+      `LOG.md`. The acceptance lane has seven expected-failure Rapthor
+      scaffolds, not passing deployment scenarios. Local macOS/Python 3.14
+      cannot clear the full CI matrix; no push or CI-triggering release action
+      is performed by this task.
 - [ ] **M6 — Complete the merge handoff.** Update this plan's current state,
       user-facing release status, API/tutorial limitations and `LOG.md` from
       M1–M5. Give the human the exact revision, checks, unresolved risks and
@@ -188,13 +229,19 @@ checklist, rather than waiting for Rapthor integration or 100,000-square data.
       association, uncertainty and tail warnings may remain only with a
       reviewed explanation of their statistical/ambiguous nature and current
       limitations; calling a confirmed defect “experimental” is insufficient.
-- [ ] **E2 — Confirm the installed user workflow.** From the release wheel,
+- [x] **E2 — Confirm the local installed user workflow.** From the release wheel,
       run the documented `find_sources` example and read its four products.
       Cover valid empty/all-NaN inputs, corrupt/unsupported input, custom
       thresholds, compact/continuum selection, unavailable measurements,
       failed publication/retry and caller-owned Dask agreement. Reuse exact
       candidate-bound tests where applicable. Keep the 1,024-pixel guard until
       the larger-image work below qualifies an expanded envelope.
+      The isolated wheel now exercises blank/all-NaN, continuum, compact and
+      custom-threshold inputs and reads/checks all four products, including
+      hashes, run identity, shapes and source/Gaussian availability. Existing
+      exact-candidate public tests cover unsupported/corrupt inputs,
+      unavailable outputs, publication failure/retry and caller-owned Dask.
+      Final release-tag installation and the platform matrix remain E4/M5.
 - [ ] **E3 — Review the release description and generated PR.** State
       “experimental, scientifically unqualified”, the tested input/resource
       envelope, known limitations and all public/schema breaking changes.

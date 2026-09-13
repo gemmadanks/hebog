@@ -9,10 +9,11 @@ for merge, experimental release and later qualification tasks.
 
 ## Current candidate and evidence
 
-Composition **v16** at `a716eb3...` adds the approved fallback-admission repair
-described below and has passed independent development validation. Its
-[non-executable freeze](https://github.com/gemmadanks/hebog/blob/main/config/contracts/phase-5-gaussian-fallback-admission-identity-review.json)
-does not qualify it or transfer the v15 campaign result. The latest completed
+Composition **v17** adds stable background/coarse-RMS boundary extrapolation
+to the v16 Gaussian-fallback admission repair. Independent numerical,
+public Serial/existing-Dask and installed-wheel checks pass. The release
+handoff and non-executable candidate identities are recorded in `LOG.md`;
+they do not qualify the candidate or transfer the v15 campaign result. The latest completed
 campaign is for **v15**, science commit `73ab5af...`, which includes the Gaussian-validity
 repair and the approved F4 filtered-response correction. The
 [frozen identity review](https://github.com/gemmadanks/hebog/blob/main/config/contracts/phase-5-filtered-response-domain-repair-identity-review.json)
@@ -22,7 +23,7 @@ binds its source, configuration and validation. It remains
 | Evidence | What it establishes | Limit |
 | --- | --- | --- |
 | Focused F4 fixtures and Serial/existing-Dask checks | Each significance plane is paired with its physical filtered response; finite-positive validation, thresholds and original-pixel measurement ownership are retained. | Mechanism and execution correctness, not population parity. |
-| Portable suite and frozen equivalence checks | 3,992 portable tests, 95.2963% branch-aware coverage and 27 frozen equivalence tests pass for the repair. | Does not replace candidate-bound held-out qualification or the full platform matrix. |
+| V15 portable suite and frozen equivalence checks | 3,992 portable tests, 95.2963% branch-aware coverage and 27 frozen equivalence tests pass for that repair. | Does not replace candidate-bound held-out qualification or the full platform matrix. |
 | Exact previously failing input | One complete public capture succeeds after F4. | No scientific evaluation or parity verdict from that control. |
 | Result-neutral 24-input public screen | Captures, native product reading, evaluation and aggregation complete; two Serial/Dask scientific digests agree exactly. | All 1,187 point rows are unchanged: 1,138 within margin, 49 beyond. No powered confidence-bound pass is claimed. |
 | V15 cumulative replay | Completed normally on 12 September: **scientific fail**, with 1,115 passing, 32 failed and 40 underpowered binding comparisons. All five safety checks pass. | Neither cumulative readiness nor all-required-endpoints pass. This is regression evidence, not fresh qualification. |
@@ -160,24 +161,61 @@ direct-detection pixels in the inspected corner at all. The bad-fit seed
 to the true mean. Background corruption and fallback admission are thus
 distinct issues; repairing Gaussian admission cannot restore lost detections.
 
-The boundary interpolator supplies a concrete instability hypothesis: on a
+The boundary interpolator supplied a concrete instability hypothesis: on a
 512-square image the protected coarse mesh has 128-pixel windows and a
 42-pixel step, but its final two centres are only **six pixels apart**.
 Bilinear extrapolation from them to the image corner amplifies an independent
 `0.0001` Jy/beam last-cell perturbation to `0.01341736` Jy/beam. This bounded
 analytic conditioning check neither reruns the finder nor scores campaign
-data. A source-protection or adaptive-stage contribution is not excluded by
-the saved final planes. Next, independently isolate coarse/adaptive boundary
-effects with constant and genuine-gradient backgrounds, both noise signs,
-corner sources, invalid pixels and Serial/Dask partition controls. Select a
-stable boundary policy without sacrificing true gradients; do not clamp or
-tune on the viewed seeds. The observed background error remains a release
-blocker until that cause and correction are verified.
+data. Subsequent read-only inspection isolates the actual saved excursions
+more precisely: the **fine 35/7 mesh ends at centres 493 and 494**, only one
+pixel apart. Extrapolating the four saved values at those centres reproduces
+the corrupt background at `(510, 510)` in all twelve missing/bad-fit witnesses
+to within `7e-18` Jy/beam. The final 17-by-17 block is bilinear to `3e-17`.
+Thus excessive fine-grid boundary gain explains these saved excursions;
+the coarse-grid instability was a related independent conditioning witness,
+not proof that the coarse stage produced these particular values.
+
+On 13 September, the release-clearance task independently reproduces this
+numerical defect using coarse and fine synthetic grids, both perturbation
+signs and all four corners. The v17 correction retains the existing windows
+and interior interpolation, but computes edge secants over at least the
+extrapolation distance. Endpoint-error gain is then at most two per axis
+where that span is available; real affine backgrounds remain exact. Short
+grids use their full span, singleton grids constant extension. Bounded subsets
+carry the required anchors and agree exactly, including invalid pixels.
+The same stable extension applies to extrapolated coarse RMS; the existing
+fine-noise constant-edge policy is unchanged.
+
+Four independent noisy, clipped-source scenes pass through the public finder
+and caller-owned Dask with exact maps/masks/catalogues. All corner peaks retain
+support, estimated background is within one noise RMS, and broad-source/noise
+controls pass. An old-interpolator ablation also passes those four unperturbed
+scenes: they are retention controls, **not** a reproduction of the closed
+ten-source miss. The conditioned-grid failure is the independent numerical
+reproduction. No recovered-source count or repaired campaign verdict is
+claimed for closed data. As a diagnostic only, applying the independently
+specified secant to saved fine-grid samples uses centres 472 and 494 instead
+of 493 and 494. Its predicted peak backgrounds range from −0.000344 to
+−0.000034 Jy/beam, within one injected RMS of the mean. This is a read-only
+conditioning calculation, not new background estimation or a recovery verdict.
+The numerical amplification defect is repaired; ordinary statistical error
+in source-protected samples is not claimed eliminated. Full validation and
+exact identities belong in `LOG.md`.
 
 The earlier public Hydra figure-12 displacement belongs to v12, not v15.
-F1/F4 fixtures do not prove its exact resolution. Retain it as an unresolved
-historical witness requiring current supported-envelope/independent-mechanism
-confirmation; do not claim a new v15 reproduction from that screenshot.
+Under the release-clearance request, a single bounded diagnostic refit uses
+its verified saved 446 pixels, background, RMS and ownership unchanged. The
+current fitter explicitly selects diagonal weighting because correlation
+factorization fails. Its Gaussian centre is `(1780.21517, 1268.14008)`, **0.257
+pixels** from the saved peak instead of 11.970; reduced chi-squared is 2.212
+instead of 524,528.4. Independent oversampled/asymmetric/invalid-pixel fitting
+controls already test that fallback mechanism. This closes the specific
+displaced-Gaussian witness at the fitting boundary, not the entire 3,600-square
+FK5 notebook input (outside the standalone public envelope), every position
+failure, or scientific qualification. No detection, matcher, evaluator,
+parameter tuning or rewrite of historical products was performed. The exact
+diagnostic is retained in the ignored release-clearance evidence namespace.
 
 The agreed
 [severity policy](phase-5-v13-followup-review.md#later-decision-final-campaign-then-development-closeout)
@@ -187,11 +225,21 @@ morphology and inconclusive comparisons can be deferred only with their
 impact explained. Uncertain serious impact requires bounded triage and human
 disposition. A confirmed incorrect supported output remains a release blocker.
 
-Terminal handling is complete; the narrow repair is approved, while final M2
-disposition remains a human decision. Complete Gaussian admission and the
-separate confirmed background-error investigation before correctness clearance,
-then prioritize complete-path profiling and bounded
-scalability, with explicitly reviewed uncertainty/faint-morphology limitations.
+Terminal handling and the bounded Gaussian/background correctness repairs are
+complete; the historical displacement witness is resolved at the fitting
+boundary. The proposed release disposition is:
+
+| Item | Proposed disposition | Required follow-up |
+| --- | --- | --- |
+| Inadequate beam fallback after invalid free fit | Repaired; omit unsupported Gaussian measurements explicitly, retain independent source products. | Review omission/completeness effects in a paired development screen before any new scientific campaign. |
+| Corner background amplification | Repaired by independent coarse/fine conditioning regressions and exact public execution controls. | Keep noisy/gradient/corner controls in non-regression; do not claim the closed misses have been rescored or recovered. |
+| Historical displaced Gaussian | Specific saved-pixel fitting witness resolved; not a whole-image qualification. | Retain diagonal-weighting provenance and independent position controls. |
+| Uncertainty calibration, unresolved-axis and extended centroid/flux tails, faint association, inconclusive completeness/mask comparisons | Documented statistical/ambiguous limitations, proposed for deferral from the standalone experimental release. | Human scientific acceptance of this scope; no general parity, precision-uncertainty or Rapthor-deployment claim. Reopen if a confirmed incorrect supported output is identified. |
+
+Final M2 severity acceptance remains a human decision. Local tests and scoped
+repair review support this proposal, not an assertion that every production
+use is safe. After acceptance and merge/platform checks, prioritize complete-
+path profiling and bounded scalability with these limitations visible.
 There is no recommendation for another long campaign now. Scientific readiness
 still needs candidate-bound parity/retention, fresh evidence and independent
 acceptance; neither operational success nor favorable PyBDSF results qualifies
