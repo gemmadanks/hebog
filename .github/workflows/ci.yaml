@@ -101,9 +101,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          # Historical identity tests must see the original review commits.
-          fetch-depth: 0
 
       - name: Install uv and set python version
         uses: astral-sh/setup-uv@v7
@@ -128,9 +125,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          # Historical identity tests must see the original review commits.
-          fetch-depth: 0
 
       - name: Install uv and set python version
         uses: astral-sh/setup-uv@v7

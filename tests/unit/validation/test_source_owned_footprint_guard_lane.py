@@ -8,7 +8,6 @@
 
 from __future__ import annotations
 
-import argparse
 import json
 import runpy
 from pathlib import Path
@@ -28,19 +27,6 @@ _ROOT = Path(__file__).parents[3]
 _RUNNER = (
     _ROOT
     / "scripts/validation/run_phase5_source_owned_measurement_topology.py"
-)
-_FREEZER = (
-    _ROOT / "scripts/validation/"
-    "freeze_phase5_source_owned_measurement_topology_footprint_guard.py"
-)
-_SUCCESSOR_FREEZER = (
-    _ROOT / "scripts/validation/"
-    "freeze_phase5_source_owned_measurement_topology_source_support_"
-    "linkage.py"
-)
-_PROCESS_REPAIR_FREEZER = (
-    _ROOT / "scripts/validation/"
-    "freeze_phase5_source_owned_source_support_linkage_process_repair.py"
 )
 _ROOT_CAUSE_REVIEW = (
     _ROOT / "config/contracts/"
@@ -522,119 +508,3 @@ def test_attribution_retains_candidate_and_control_linkage_scalars(
     assert record["candidate_unmatched_integrated_flux_jy"] == 0.2
     assert record["coarse_unmatched_source_count"] == 0
     assert all(not isinstance(value, np.ndarray) for value in record.values())
-
-
-def test_successor_runner_uses_the_prospective_risk_evaluator() -> None:
-    """Aspirational floors cannot block a comparator-safe development lane."""
-    runner = runpy.run_path(str(_RUNNER))
-
-    assert runner["_lane_evaluate"].__name__ == (
-        "evaluate_phase_five_adaptive_risk"
-    )
-
-
-def test_freezer_builds_coherent_separate_identity_and_authority() -> None:
-    """The scientific identity stays non-executable despite user authority."""
-    freezer = runpy.run_path(str(_FREEZER))
-    programs, fixtures, expected = freezer["_runner_records"](_ROOT)
-    public = freezer["build_public_identity"](_ROOT)
-    implementation = freezer["build_implementation"](
-        _ROOT, public, programs, fixtures
-    )
-    identity = freezer["build_identity"](
-        _ROOT, public, implementation, expected
-    )
-    decision = freezer["build_execution_decision"](_ROOT, identity, expected)
-
-    assert identity["status"] == "frozen-non-executable"
-    assert set(identity["authorization"].values()) == {False}
-    assert (
-        identity["expected_execution_sha256"]
-        == decision["expected_execution_sha256"]
-    )
-    assert decision["identity_review_sha256"] == freezer["_document_sha256"](
-        identity
-    )
-    assert (
-        decision["authorization"]
-        == runpy.run_path(str(_RUNNER))["_EXPECTED_EXECUTION_AUTHORIZATION"]
-    )
-
-
-def test_historical_freezer_rejects_changed_scientific_source_tree(
-    tmp_path: Path,
-) -> None:
-    """The consumed footprint lane cannot be rebound after this repair."""
-    freezer = runpy.run_path(str(_FREEZER))
-    arguments = argparse.Namespace(
-        repository_root=_ROOT,
-        output_root=tmp_path,
-    )
-
-    with pytest.raises(
-        ValueError,
-        match="footprint-guard scientific source tree changed",
-    ):
-        freezer["freeze_records"](arguments)
-    assert not tuple(tmp_path.rglob("*.json"))
-
-
-def test_successor_freezer_separates_identity_from_one_use_authority() -> None:
-    """The repaired evaluator remains non-executable without its decision."""
-    freezer = runpy.run_path(str(_SUCCESSOR_FREEZER))
-    programs, fixtures, expected = freezer["_runner_records"](_ROOT)
-    public = freezer["build_public_identity"](_ROOT)
-    implementation = freezer["build_implementation"](
-        _ROOT, public, programs, fixtures
-    )
-    identity = freezer["build_identity"](
-        _ROOT, public, implementation, expected
-    )
-    decision = freezer["build_execution_decision"](_ROOT, identity, expected)
-
-    assert public["source_support_linkage_repair"] == {
-        "linkage": "exact-source-owned-support-intersects-analytic-truth",
-        "root_cause_review": {
-            "path": str(freezer["_ROOT_REVIEW"]),
-            "sha256": freezer["_ROOT_REVIEW_SHA256"],
-        },
-        "source_finding_science_changed": False,
-        "unmatched_reliability_retained": True,
-    }
-    assert identity["status"] == "frozen-non-executable"
-    assert set(identity["authorization"].values()) == {False}
-    assert identity["predecessor_identity"]["sha256"] == (
-        "d74d0fba79c689f6d3b1e857fd900c14d8c4138a22cbf31fe9ac29e9594486b8"
-    )
-    assert decision["identity_review_sha256"] == freezer["_document_sha256"](
-        identity
-    )
-    assert set(decision["authorization"].values()) == {False, True}
-    assert decision["output"] == expected["output"]
-
-
-def test_consumed_process_repair_freezer_rejects_new_validation_tree() -> None:
-    """The terminal process-repair identity cannot be rebound prospectively."""
-    freezer = runpy.run_path(str(_PROCESS_REPAIR_FREEZER))
-
-    with pytest.raises(
-        ValueError,
-        match="source-linkage process repair changed candidate science",
-    ):
-        freezer["build_identity"](_ROOT)
-
-
-def test_successor_freezer_writes_complete_set_once(tmp_path: Path) -> None:
-    """The consumed predecessor freezer cannot write a replacement set."""
-    freezer = runpy.run_path(str(_SUCCESSOR_FREEZER))
-    arguments = argparse.Namespace(
-        repository_root=_ROOT,
-        output_root=tmp_path,
-    )
-
-    with pytest.raises(
-        ValueError,
-        match="source-support-linkage scientific source tree changed",
-    ):
-        freezer["freeze_records"](arguments)
-    assert not tuple(tmp_path.rglob("*.json"))

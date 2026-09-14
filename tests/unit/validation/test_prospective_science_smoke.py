@@ -5,10 +5,8 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import runpy
-import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -608,68 +606,6 @@ def test_mask_separated_compiler_rejects_current_schema_without_plane() -> (
 
     with pytest.raises(ValueError, match="exactly one measurement label"):
         compiler(None, None, run)
-
-
-def test_measurement_label_persistence_binds_exact_replacement_smoke() -> None:
-    """The replacement smoke cannot drift from its reviewed candidate."""
-    decision = json.loads(
-        _MEASUREMENT_PERSISTENCE_DECISION.read_text(encoding="utf-8")
-    )
-
-    assert decision["candidate"] == {
-        "configuration_sha256": (
-            "24663a15309a0b1236ddccfc1491145229a9441c3510c351f8e20cd7c29a7a06"
-        ),
-        "revision": "a9df2c827dfa85992d8ee7732c7f9cf327019053",
-        "source_tree_sha256": (
-            "89eb014c1072db95cc905eac66afb63bab75e8083b224eb6c691923c7ce84add"
-        ),
-    }
-    assert (
-        file_sha256(_ROOT / decision["pre_review"]["path"])
-        == (decision["pre_review"]["sha256"])
-    )
-    repair_review = json.loads(
-        _MIXED_SCHEMA_REPAIR_PRE_REVIEW.read_text(encoding="utf-8")
-    )
-
-    def historical_bytes(relative_path: str) -> bytes:
-        return subprocess.run(
-            (
-                "git",
-                "show",
-                f"{decision['candidate']['revision']}:{relative_path}",
-            ),
-            cwd=_ROOT,
-            check=True,
-            capture_output=True,
-        ).stdout
-
-    for program in decision["implementation"]:
-        if program["path"].endswith(
-            "evaluate_phase5_prospective_science_smoke.py"
-        ):
-            assert (
-                program["sha256"]
-                == repair_review["binding_failure"]["failed_evaluator_sha256"]
-            )
-        else:
-            assert (
-                hashlib.sha256(historical_bytes(program["path"])).hexdigest()
-                == program["sha256"]
-            )
-    full_replay_key = (
-        "full_cumulative_replay_authorized_only_after_replacement_smoke_passes"
-    )
-    assert decision["authorization"] == {
-        "fresh_qualification_authorized": False,
-        full_replay_key: True,
-        "release_authorized": False,
-        "replacement_smoke_materialization_authorized": True,
-        "replacement_smoke_evaluation_authorized": True,
-        "rescoring_closed_evidence_authorized": False,
-        "threshold_or_margin_tuning_authorized": False,
-    }
 
 
 def test_measurement_label_evaluation_binds_both_sealed_product_sets() -> None:

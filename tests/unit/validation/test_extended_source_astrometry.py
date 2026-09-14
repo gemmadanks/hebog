@@ -1,4 +1,4 @@
-"""Tests for the Phase 5 detected-segment position follow-up."""
+"""Scientific regressions for extended-source position measurements."""
 
 from __future__ import annotations
 

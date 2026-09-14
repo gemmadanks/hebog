@@ -1,5 +1,5 @@
 # pyright: reportPrivateUsage=false
-"""Candidate-neutral tests for the frozen Phase 5 Step 2B review."""
+"""Scientific regressions for multiscale filtering and source detection."""
 
 from __future__ import annotations
 
@@ -64,7 +64,7 @@ def _response(values: np.ndarray) -> ScaleFilterResponse:
     )
 
 
-def test_analytic_matrix_covers_frozen_dimensions() -> None:
+def test_multiscale_filter_matrix_covers_scales_geometries_and_snr() -> None:
     """Cases cover every predeclared scale, geometry, and SNR level."""
     review = load_phase_five_filter_review(_CONTRACT)
     cases = build_analytic_review_cases(

@@ -1,12 +1,9 @@
-"""Fail-closed contracts for the compact Phase 5 held-out sentinel."""
+"""Behavioral contracts for the compact held-out sentinel tooling."""
 
 from __future__ import annotations
 
-import json
 import runpy
-import sys
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
@@ -16,28 +13,14 @@ from hebog.validation.datasets import (
     DatasetRole,
     iter_dataset_recipes,
 )
-from hebog.validation.external_runners import file_sha256
 
 _ROOT = Path(__file__).parents[3]
 _POPULATION = _ROOT / "scripts/validation/phase5_compact_held_out_sentinel.py"
-_RUNNER = _ROOT / "scripts/benchmark/run_phase5_compact_held_out_sentinel.py"
 _COMPILER = (
     _ROOT / "scripts/validation/compile_phase5_compact_held_out_sentinel.py"
 )
 _EVALUATOR = (
     _ROOT / "scripts/validation/evaluate_phase5_compact_held_out_sentinel.py"
-)
-_FREEZER = (
-    _ROOT / "scripts/validation/freeze_phase5_compact_held_out_sentinel.py"
-)
-_MANIFEST = _ROOT / "config/datasets/phase-5-compact-held-out-sentinel.json"
-_IMPLEMENTATION = (
-    _ROOT / "config/contracts/"
-    "phase-5-compact-held-out-sentinel-implementation-decision.json"
-)
-_IDENTITY = (
-    _ROOT / "config/contracts/"
-    "phase-5-compact-held-out-sentinel-identity-review.json"
 )
 
 
@@ -167,7 +150,7 @@ def _paired_cell(cell_id: str) -> list[dict[str, object]]:
 
 
 def _equal_dask_rows() -> tuple[dict[str, bool], ...]:
-    """Return the exact structured equality evidence expected by the runner."""
+    """Return the structured equality evidence expected by the runner."""
     return tuple({"equal": True} for _index in range(12))
 
 
@@ -259,140 +242,3 @@ def test_compiler_requires_every_exact_pair_and_no_extra_summary() -> None:
             [*summaries, _summary(cell_id="extra", seed=9, finder_id="x")],
             expected_pairs=expected,
         )
-
-
-def test_runner_verify_only_is_no_write_and_execution_needs_new_authority(
-    tmp_path: Path,
-    frozen_campaign_root: Path,
-    frozen_public_configuration: str,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Implementation approval cannot be mistaken for execution approval."""
-    runner = _program(_RUNNER)
-    monkeypatch.setitem(
-        runner["verify_no_write"].__globals__,
-        "public_hebog_configuration_sha256",
-        lambda: frozen_public_configuration,
-    )
-    scratch = tmp_path / "scratch"
-    output = tmp_path / "decision.json"
-
-    verified = runner["verify_no_write"](
-        repository_root=frozen_campaign_root,
-        manifest_path=frozen_campaign_root / _MANIFEST.relative_to(_ROOT),
-        identity_path=frozen_campaign_root / _IDENTITY.relative_to(_ROOT),
-        scratch=scratch,
-        output=output,
-        minimum_free_disk_gib=0,
-    )
-    assert verified["status"] == "pass"
-    assert verified["finder_execution_started"] is False
-    assert not scratch.exists()
-    assert not output.exists()
-
-    arguments = SimpleNamespace(
-        execution_decision=None,
-        identity_review=_IDENTITY,
-        manifest=_MANIFEST,
-        output=output,
-        repository_root=_ROOT,
-        scratch=scratch,
-        workers=2,
-    )
-    with pytest.raises(PermissionError, match="exact execution decision"):
-        runner["verify_execution_authority"](arguments)
-
-
-@pytest.mark.posix_frozen_record
-def test_separate_exact_decision_can_open_only_the_frozen_shape(
-    tmp_path: Path,
-) -> None:
-    """The future approval schema admits only the reviewed execution shape."""
-    runner = _program(_RUNNER)
-    identity = json.loads(_IDENTITY.read_text(encoding="utf-8"))
-    decision = tmp_path / "decision.json"
-    decision.write_text(
-        json.dumps(
-            {
-                "authorization": runner["_AUTHORIZATION"],
-                "expected_execution_sha256": identity[
-                    "expected_execution_sha256"
-                ],
-                "identity_review": {
-                    "path": _IDENTITY.relative_to(_ROOT).as_posix(),
-                    "sha256": file_sha256(_IDENTITY),
-                },
-                "one_use": True,
-                "status": "authorized-for-one-compact-held-out-sentinel",
-            }
-        ),
-        encoding="utf-8",
-    )
-    arguments = SimpleNamespace(
-        dask_scheduler_address="tcp://caller-owned:8786",
-        execution_decision=decision,
-        identity_review=_IDENTITY,
-        manifest=_MANIFEST,
-        output=(
-            _ROOT / "benchmark-results/phase-5/compact-held-out-sentinel.json"
-        ),
-        repository_root=_ROOT,
-        scratch=Path("/private/tmp/hebog-phase5-compact-held-out-sentinel"),
-        workers=2,
-    )
-
-    assert runner["verify_execution_authority"](arguments)["status"] == (
-        "frozen-non-executable"
-    )
-    arguments.workers = 3
-    with pytest.raises(PermissionError, match="exact execution decision"):
-        runner["verify_execution_authority"](arguments)
-
-
-def test_frozen_identity_binds_complete_program_and_stays_non_executable(
-    frozen_campaign_root: Path,
-) -> None:
-    """Every future execution seam is immutable before approval."""
-    identity = json.loads(_IDENTITY.read_text(encoding="utf-8"))
-    implementation = json.loads(_IMPLEMENTATION.read_text(encoding="utf-8"))
-
-    assert identity["status"] == "frozen-non-executable"
-    assert implementation["status"] == (
-        "implemented-and-validated-non-executable"
-    )
-    assert set(identity["authorization"].values()) == {False}
-    assert identity["population"]["image_count"] == 168
-    assert identity["execution_contract"]["total_finder_executions"] == 348
-    for binding in identity["program_bindings"].values():
-        assert (
-            file_sha256(frozen_campaign_root / binding["path"])
-            == binding["sha256"]
-        )
-
-
-def test_freezer_collision_writes_nothing_else(
-    tmp_path: Path, monkeypatch: Any
-) -> None:
-    """The four-file identity set is atomic with respect to stale targets."""
-    freezer = _program(_FREEZER)
-    existing = tmp_path / _IDENTITY.relative_to(_ROOT)
-    existing.parent.mkdir(parents=True)
-    existing.write_text("existing\n", encoding="utf-8")
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        [
-            str(_FREEZER),
-            "--repository-root",
-            str(_ROOT),
-            "--output-root",
-            str(tmp_path),
-        ],
-    )
-
-    with pytest.raises(FileExistsError, match="refusing to overwrite"):
-        freezer["main"]()
-
-    assert existing.read_text(encoding="utf-8") == "existing\n"
-    assert not (tmp_path / _MANIFEST.relative_to(_ROOT)).exists()
-    assert not (tmp_path / _IMPLEMENTATION.relative_to(_ROOT)).exists()

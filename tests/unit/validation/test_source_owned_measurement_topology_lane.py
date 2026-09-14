@@ -1,4 +1,4 @@
-"""Contracts for the combined adaptive measurement/topology lane."""
+"""Behavioral contracts for the source-owned measurement/topology runner."""
 
 # pyright: reportPrivateUsage=false
 # pyright: reportMissingTypeStubs=false
@@ -8,12 +8,9 @@
 
 from __future__ import annotations
 
-import argparse
-import hashlib
 import json
 import pickle
 import runpy
-import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -30,110 +27,14 @@ from hebog.validation.adaptive_background_lane import (
 )
 
 _ROOT = Path(__file__).parents[3]
-_REPAIR_FREEZER = (
-    _ROOT / "scripts/validation/"
-    "freeze_phase5_source_owned_measurement_topology_analysis_config_repair.py"
-)
 _RUNNER = (
-    _ROOT / "scripts/validation/"
-    "run_phase5_source_owned_measurement_topology.py"
-)
-_PREFIX = "phase-5-source-owned-measurement-topology"
-_IMPLEMENTATION = (
-    _ROOT / f"config/contracts/{_PREFIX}-implementation-decision.json"
-)
-_PUBLIC_IDENTITY = (
-    _ROOT / f"config/contracts/{_PREFIX}-public-interface-identity-review.json"
-)
-_PREDECESSOR_IDENTITY = (
-    _ROOT / f"config/contracts/{_PREFIX}-process-repair-identity-review.json"
-)
-_IDENTITY = (
     _ROOT
-    / f"config/contracts/{_PREFIX}-analysis-config-repair-identity-review.json"
-)
-_FAILED_DECISION = (
-    _ROOT
-    / f"config/contracts/{_PREFIX}-process-repair-execution-decision.json"
+    / "scripts/validation/run_phase5_source_owned_measurement_topology.py"
 )
 _MANIFEST = (
     _ROOT
     / "config/contracts/phase-5-adaptive-background-development-manifest.json"
 )
-_FREEZE_REVISION = "6d465fd6c251b292320f9f4fb99843dd639c85ff"
-
-
-def _sha256(path: Path) -> str:
-    """Hash one exact file."""
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _historical_bytes(relative_path: str) -> bytes:
-    """Read one immutable file from the successful lane revision."""
-    return subprocess.run(
-        ("git", "show", f"{_FREEZE_REVISION}:{relative_path}"),
-        cwd=_ROOT,
-        check=True,
-        capture_output=True,
-    ).stdout
-
-
-def test_repair_identity_is_reproducible_and_non_executable() -> None:
-    """Historical identities stay exact and the repair grants no authority."""
-    expected_historical_sha256 = {
-        _PUBLIC_IDENTITY: (
-            "ca1abba66a6368fe37fb8e43b93b81999ced462f3e01d16be9011cc629913490"
-        ),
-        _IMPLEMENTATION: (
-            "fc4728c852da061920c9e8cb68facb18990256e18949fad4a1a0873b20b06731"
-        ),
-        _PREDECESSOR_IDENTITY: (
-            "40a9f99f817fbc39ef38ddc9f3bfc6c748040957c7ccf3b1d783ada6ab2691d2"
-        ),
-        _FAILED_DECISION: (
-            "8678b5399a138a321f42223b384ca994a7716bb6996861b542f4abebde1286d2"
-        ),
-    }
-    assert {
-        path: _sha256(path) for path in expected_historical_sha256
-    } == expected_historical_sha256
-
-    assert _historical_bytes(_IDENTITY.relative_to(_ROOT).as_posix()) == (
-        _IDENTITY.read_bytes()
-    )
-    identity = json.loads(_IDENTITY.read_text())
-    assert identity["status"] == "frozen-non-executable"
-    assert set(identity["authorization"].values()) == {False}
-    assert identity["candidate"]["revision"] == (
-        "c28343fb85ae9bd0d1d927701564f93fbe51b659"
-    )
-    for binding in identity["program_bindings"].values():
-        assert (
-            hashlib.sha256(_historical_bytes(binding["path"])).hexdigest()
-            == binding["sha256"]
-        )
-
-
-def test_superseded_no_write_verification_creates_no_namespace(
-    tmp_path: Path,
-) -> None:
-    """The completed lane cannot run against a changed scientific tree."""
-    runner = runpy.run_path(str(_RUNNER))
-    scratch = tmp_path / "scratch"
-    output = tmp_path / "decision.json"
-
-    with pytest.raises(ValueError, match="candidate changed"):
-        runner["verify_no_write"](
-            repository_root=_ROOT,
-            manifest_path=_MANIFEST,
-            identity_path=_IDENTITY,
-            scratch=scratch,
-            output=output,
-            enforce_execution_paths=False,
-        )
-
-    assert not scratch.exists()
-    assert not output.exists()
 
 
 def test_source_stage_attribution_is_array_free_and_exact() -> None:
@@ -227,66 +128,6 @@ def test_capture_uses_expanded_source_measurement_support(
     assert np.array_equal(captured["measurement_support"], expanded > 0)
 
 
-def test_coarse_control_forwards_the_frozen_public_config(
-    monkeypatch: Any,
-) -> None:
-    """The internal coarse control follows the current analysis signature."""
-    runner = runpy.run_path(str(_RUNNER))
-    globals_ = runner["_captured_science"].__wrapped__.__globals__
-    expected_config = globals_["_parent_public_config"]()
-    observed: dict[str, object] = {}
-
-    def analyse(*_args: object, config: object, **_kwargs: object) -> object:
-        observed["config"] = config
-        return SimpleNamespace(terminal=None)
-
-    monkeypatch.setattr(globals_["public_api"], "_analyse_image", analyse)
-
-    with runner["_captured_science"]():
-        globals_["public_api"]._analyse_image(
-            SimpleNamespace(run_id="coarse-fixture-input")
-        )
-
-    assert observed["config"] == expected_config
-
-
-def test_capture_rejects_an_unconfigured_non_coarse_call() -> None:
-    """The compatibility adapter cannot mask another missing config bug."""
-    runner = runpy.run_path(str(_RUNNER))
-    globals_ = runner["_captured_science"].__wrapped__.__globals__
-
-    with (
-        runner["_captured_science"](),
-        pytest.raises(ValueError, match="outside legacy coarse control"),
-    ):
-        globals_["public_api"]._analyse_image(
-            SimpleNamespace(run_id="candidate-fixture-input")
-        )
-
-
-def test_capture_preserves_an_explicit_candidate_config(
-    monkeypatch: Any,
-) -> None:
-    """The compatibility adapter cannot replace a configured candidate call."""
-    runner = runpy.run_path(str(_RUNNER))
-    globals_ = runner["_captured_science"].__wrapped__.__globals__
-    supplied_config = object()
-    observed: dict[str, object] = {}
-
-    def analyse(*_args: object, config: object, **_kwargs: object) -> object:
-        observed["config"] = config
-        return SimpleNamespace(terminal=None)
-
-    monkeypatch.setattr(globals_["public_api"], "_analyse_image", analyse)
-    with runner["_captured_science"]():
-        globals_["public_api"]._analyse_image(
-            object(),
-            config=supplied_config,
-        )
-
-    assert observed["config"] is supplied_config
-
-
 def test_serial_wrapper_writes_only_array_free_attribution(
     tmp_path: Path,
     monkeypatch: Any,
@@ -342,11 +183,7 @@ def test_serial_wrapper_writes_only_array_free_attribution(
         return None, truth, None
 
     monkeypatch.setitem(globals_, "_parent_run_serial_task", parent)
-    monkeypatch.setitem(
-        globals_,
-        "source_signal_and_truth",
-        synthetic_truth,
-    )
+    monkeypatch.setitem(globals_, "source_signal_and_truth", synthetic_truth)
 
     result = runner["_run_serial_task"](task, tmp_path)
     sidecar = json.loads(
@@ -378,10 +215,7 @@ def test_process_pool_payload_is_pickle_safe_and_exact() -> None:
     assert rebuilt.dataset == task.dataset
     assert rebuilt.recipe == task.recipe
     assert (
-        runner["_verify_process_payload"](
-            payload,
-            spawn_process=False,
-        )
+        runner["_verify_process_payload"](payload, spawn_process=False)
         == "pickle-pass"
     )
     assert "<run_path>" not in repr(restored)
@@ -404,9 +238,10 @@ def test_process_pool_payload_fails_closed_when_malformed() -> None:
         )
 
 
-def test_no_write_fixture_seams_reject_created_source_identity() -> None:
-    """The exact preflight exercises the fail-closed ownership boundary."""
+def test_source_attribution_rejects_created_source_identity() -> None:
+    """The ownership boundary fails closed when expansion creates a source."""
     runner = runpy.run_path(str(_RUNNER))
+
     with pytest.raises(ValueError, match="created a source identity"):
         runner["_source_stage_attribution"](
             source_seed_labels=np.asarray([[1, 0]], dtype=np.int32),
@@ -494,79 +329,3 @@ def test_source_fields_retain_persistent_support_count() -> None:
         "persistent_support_pixel_count": 17,
         "source_measurement_pixel_count": 19,
     }
-
-
-def test_no_write_rejects_source_tree_drift(monkeypatch: Any) -> None:
-    """The frozen lane rejects any post-freeze production source change."""
-    runner = runpy.run_path(str(_RUNNER))
-    globals_ = runner["_verify_frozen_identity"].__globals__
-    identity = json.loads(_IDENTITY.read_text())
-    identity["candidate"] = {
-        "configuration_sha256": runner["_CANDIDATE_CONFIGURATION_SHA256"],
-        "entrypoint": "hebog.find_sources",
-        "revision": runner["_CANDIDATE_REVISION"],
-        "source_tree_sha256": runner["_CANDIDATE_SOURCE_TREE_SHA256"],
-    }
-    identity["predecessor_identity"] = {
-        "path": runner["_PREDECESSOR_IDENTITY"].as_posix(),
-        "sha256": runner["_PREDECESSOR_IDENTITY_SHA256"],
-    }
-    identity["source_support_linkage_repair"] = {
-        "root_cause_review": {
-            "path": runner["_ROOT_REVIEW"].as_posix(),
-            "sha256": runner["_ROOT_REVIEW_SHA256"],
-        }
-    }
-    identity["process_repair"] = {
-        "review": {
-            "path": runner["_PROCESS_REPAIR_REVIEW"].as_posix(),
-            "sha256": runner["_PROCESS_REPAIR_REVIEW_SHA256"],
-        }
-    }
-
-    def drifted_source_tree(_root: Path) -> str:
-        return "0" * 64
-
-    monkeypatch.setitem(globals_, "source_tree_sha256", drifted_source_tree)
-
-    with pytest.raises(ValueError, match="source tree changed"):
-        runner["_verify_frozen_identity"](_ROOT, _MANIFEST, identity)
-
-
-def test_execution_requires_a_separate_exact_decision() -> None:
-    """The frozen combined identity cannot start the lane."""
-    runner = runpy.run_path(str(_RUNNER))
-    arguments = argparse.Namespace(
-        execution_decision=None,
-        identity_review=_IDENTITY,
-        manifest=_MANIFEST,
-        output=(
-            _ROOT / "benchmark-results/phase-5/"
-            "source-owned-measurement-topology-development-decision.json"
-        ),
-        repository_root=_ROOT,
-        scratch=Path(
-            "/private/tmp/"
-            "hebog-phase5-source-owned-measurement-topology-"
-            "analysis-config-repair-c28343f"
-        ),
-        workers=2,
-    )
-
-    with pytest.raises(PermissionError, match="exact execution decision"):
-        runner["_verify_execution_authority"](arguments)
-
-
-def test_identity_collision_is_atomic(tmp_path: Path) -> None:
-    """A stale repair-identity destination remains untouched."""
-    freezer = runpy.run_path(str(_REPAIR_FREEZER))
-    existing = tmp_path / _IDENTITY.relative_to(_ROOT)
-    existing.parent.mkdir(parents=True)
-    existing.write_text("existing\n", encoding="utf-8")
-
-    with pytest.raises(FileExistsError):
-        freezer["freeze_identity"](
-            argparse.Namespace(output_root=tmp_path, repository_root=_ROOT)
-        )
-
-    assert existing.read_text() == "existing\n"

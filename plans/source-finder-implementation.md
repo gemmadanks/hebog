@@ -10,13 +10,13 @@ identities, execution history and completed validation belong in
 
 | Item | Current position |
 | --- | --- |
-| Candidate | Public composition v19 at `ee29fb5...` adds corrected-coarse-cache anchor revalidation to v18's custom-threshold and publication repairs. The [new notebook freeze](../config/contracts/phase-5-coarse-anchor-repair-identity-review.json) is non-executable; earlier freezes remain intact. Development-unqualified; latest completed campaign remains v15. |
+| Candidate | Public composition v19 is merged on `main` in `4babf0b`. It remains development-unqualified; the latest completed campaign is the closed v15 scientific failure. |
 | Implemented | FITS/WCS ingress, background/RMS, compact and multiscale detection, source/component measurement, catalogue/mask/RMS/diagnostics publication, Serial and caller-owned Dask execution, Zarr intermediates. |
 | Public envelope | ICRS `Jy/beam` FITS, at most 1,024 pixels on either spatial axis. `continuum` is the default; explicit `compact` is extended-emission-incomplete. Custom thresholds remain unqualified; their private refinement-trigger interaction is repaired in v18. |
-| Strongest applicable checks | V19 stale-anchor controls and exact Serial/Dask checks pass; six standard public workflows retain v18 science bytes. Five installed-wheel workflows and 27 frozen equivalence tests pass. Portable coverage passes 4,182 tests plus 34 final focused checks at 95.3372%, with all changed package lines/branches covered. Linux/amd64 Python 3.14.0 passes 263 affected tests. A later Windows rerun exposed 43 test-only POSIX-path assumptions; all are covered by portable assertion repairs or Linux-retained sealed-record checks, with local focused validation passing. CI now keeps the 1,741-test runtime suite on every supported Python version and operating system without a redundant Cartesian product, and the 2,447 retained-validation tests on all supported Python versions under Linux; collection proves the partitions retain the prior 4,188 tests. Two-worker local trials pass both partitions. Exact scope/results are in `LOG.md`. No v17/v18/v19 campaign or powered parity verdict. |
+| Strongest applicable checks | The merged v19 public workflows, installed wheel, exact Serial/Dask comparisons and 27 frozen equivalence tests passed their merge checks. Exact pre-cleanup scope and results remain in Git history at `4babf0b`. No v17/v18/v19 campaign or powered parity verdict. |
 | Campaign | Verified v15 terminal: scientific **fail**, 1,115 pass / 32 fail / 40 underpowered comparisons. All five safety checks pass; 2,400 captures/evaluations, 12 exact Dask agreements and 8,000 retained records verified. No definite binding external-reference failure, but parity and incumbent retention are not established. |
-| Blockers | The LoTSS notebook crash and reported Linux/Windows CI failures are repaired locally. The Windows test repair preserves exact POSIX-bound historical checks on Linux while keeping portable behavior in the complete matrix. Accumulated-branch review, a fresh hosted platform rerun, separate cleanup and fresh notebook inspection remain before release. Earlier human acceptance of unchanged residual limitations is preserved; scientific qualification, Rapthor acceptance and complete-path performance remain unproven. |
-| Next authorized action | Hand off the notebook/CI repairs and exact non-executable freeze for human push and supported-platform CI, then complete whole-branch/Copilot review. The notebook can be refreshed against the new binding. Separate bounded cleanup and fresh comparison-notebook inspection still precede the human-controlled release workflow. No automatic replay, closed-data rescoring, publishing or parity claim. |
+| Blockers | Historical campaign tooling, evidence records, tests and documentation remain coupled to the installed public science and impose substantial maintenance and CI cost. Scientific qualification, Rapthor acceptance and complete-path performance remain unproven. |
+| Next authorized action | Prepare a fully green v0.7.0 release candidate before scaling: retain and clarify science regressions and comparison/notebook workflows, remove squash-fragile archive checks, and detach installed science from closed campaign modules where required. Use the existing human-controlled Release Please/PyPI workflow; no automatic replay, closed-data rescoring or parity claim. |
 | Deferred | The human accepted uncertainty-calibration, measurement-tail and faint-association limitations for the v17 experimental standalone release on 13 September. Broader F2 repair, optional improvement, full qualification and facility-scale work remain later tasks. Reopen a deferred issue if it becomes a confirmed incorrect supported output or serious correctness impact. |
 
 The [campaign overview](../docs/reference/phase-5-campaign-overview.md)
@@ -356,22 +356,103 @@ follow-up work, not a merge or release gate; see the notebook guide.
 Target the first useful bounded standalone finder release after the merge
 checklist, rather than waiting for Rapthor integration or 100,000-square data.
 
-- [ ] **E0 — Review a separate bounded cleanup PR before release.** Inventory
+**14 September sequencing decision:** prepare and publish v0.7.0 before
+starting scaling work. Full supported-platform CI, the wheel smoke test,
+documentation, notebook smoke and applicable equivalence checks must pass
+first. Complete the cleanup as a short series of independently green PRs; do
+not combine the squash-history CI repair, runtime extraction and bulk archive
+deletion in one review. Preserve every notebook together with its scripts and
+tests, as well as the explicitly retained science and comparison workflows.
+
+- [ ] **E0 — Remove closed campaign machinery before release.** Inventory
       candidate dead code and superseded scripts against imports, dynamic
       entry points, notebooks, CI, behavioural tests and retained-evidence
-      verification. Delete only demonstrably unused paths; low coverage or
-      a historical filename is not sufficient. Keep scientific regressions,
-      frozen contracts/decisions and current evidence-verification workflows.
-      Record removed paths, replacements and the last containing Git revision;
-      Git history supplies recovery without keeping duplicate archived code
-      in the live tree. An optional annotated non-release archive tag is a
-      human-controlled convenience, not a backup of ignored benchmark data.
-      Preserve those products separately. Keep scientific changes, substantial
-      refactoring and performance work outside this cleanup PR. Validate with
-      applicable coverage, public workflows, Serial/Dask, equivalence,
-      installed-wheel, documentation and platform checks. If package or runner
-      identity changes, prepare a new candidate record without modifying old
-      freezes or transferring qualification automatically.
+      verification. The merged tree contains 43 Phase 5 reference pages, 205
+      Phase 5 validation/benchmark scripts, 396 Phase 5 contracts and dataset
+      manifests, and 2,447 retained-validation test cases. The public runtime
+      also reaches 17 `hebog.validation` modules, so deletion must follow a
+      phase-neutral runtime extraction.
+
+      **Cleanup decision (14 September):** Phase 5 development is closed. Keep
+      its scientific conclusions, accepted limitations and last containing Git
+      revision, but do not keep executable campaign reconstruction machinery,
+      frozen identity records, or their tests in the live tree solely as an
+      archive. Git history at `4babf0b` is the source archive; separately
+      retained ignored benchmark products remain external. Preserve current
+      behavioural, scientific-regression, Serial/Dask, equivalence, package and
+      notebook checks. Retain a phase-neutral, supported script workflow that
+      can rerun the comparison source finders (currently PyBDSF and Aegean)
+      from local inputs, and retain the separate Hebog refresh path used to
+      rebuild the source-comparison notebook. Keep their downloader, product
+      readers and focused dry-run/mocked-execution tests as needed; remove only
+      closed-campaign orchestration and identity binding around them.
+      Retain every regression test that checks scientific behaviour or a
+      scientific repair, regardless of historical or Phase 5 naming. Such a
+      test may be relocated or made phase-neutral, but its scientific witness
+      and assertion must not be discarded as campaign evidence. Apply the same
+      rule to portable runner contracts that protect process payloads, bounded
+      schemas, executor equality, evaluator/compiler decisions, and no-write
+      identity preflights needed by later validation or scaling work.
+
+      The observed problem is historical infrastructure dominating CI and
+      documentation while the installed finder imports campaign modules. The
+      proposed cause is an evidence-retention policy that bound source paths
+      and campaign programs indefinitely. Independently verify the extraction
+      with unchanged science products across empty, compact, extended, edge,
+      invalid-pixel and custom-threshold public workflows plus exact
+      Serial/Dask agreement. Expect production imports of `hebog.validation`
+      and the dedicated retained-validation CI partition to reach zero, with a
+      material reduction in live files and tests. Stop and reassess if any
+      public science bytes change, a current notebook/reference workflow loses
+      its supported replacement, or the scientific status becomes less clear.
+      A provenance/composition identity change is expected and must not inherit
+      qualification from a deleted freeze.
+
+      **Efficient PR sequence (14 September):**
+
+      1. **CI/history repair — current branch.** Remove only tests that
+         reconstruct closed commits, campaign authority or frozen identities.
+         Keep scientific assertions and runtime/next-phase infrastructure.
+         Remove the shared historical-Git fixture once its last consumer is
+         gone. Done when the exact retained-validation command passes from a
+         clean clone that cannot see dangling pre-squash objects, followed by
+         `just pre-commit` and hosted Python 3.12–3.14 CI. Do not mix
+         `src/`, script or configuration pruning into this PR.
+      2. **Phase-neutral runtime extraction.** Move the current finder
+         composition and science records reached by `public_api.py` and
+         `public_science.py` out of `hebog.validation`, without altering any
+         algorithm, threshold, dtype, schema or output. Establish byte-for-byte
+         public-product and exact Serial/Dask characterization before moving
+         code; run focused science suites, `just coverage`, package smoke and
+         the full normal handoff checks. Keep the historical modules until the
+         replacement imports pass so a review has a clear before/after oracle.
+      3. **Bulk historical-surface deletion.** Starting from the extracted
+         runtime, delete unreachable Phase 5 campaign orchestration from
+         `src/hebog/validation`, `scripts/validation` and
+         `scripts/benchmark`, along with its archive-only tests, JSON records
+         and historical documentation. Generate the deletion set from a
+         checked reachability inventory, then inspect dynamic `runpy`, CLI,
+         CI, MkDocs and test references before applying it. Preserve all four
+         notebooks, `scripts/check_notebooks.py`, their tests, the fresh
+         PyBDSF/Aegean comparison setup, the separate Hebog notebook refresh,
+         current scientific/equivalence infrastructure and the Phase 5
+         performance/scalability tools needed next. Done when no retained file
+         references a deleted path and all notebook, documentation,
+         equivalence, package and CI lanes pass from a clean clone.
+      4. **v0.7.0 release readiness.** On a final small branch, review the
+         aggregate diff against `CODE_REVIEW.md`, confirm the wheel contains no
+         obsolete campaign modules or JSON, refresh user-facing file/path
+         documentation, and run `just ci` plus the supported hosted matrix.
+         Release Please remains responsible for the version, changelog, tag
+         and PyPI publication; scaling starts only after that human-controlled
+         release succeeds.
+
+      Merge each PR before branching the next one. This keeps the high-risk
+      no-science-change extraction reviewable, makes the later deletion mostly
+      mechanical, and lets CI identify the exact layer responsible for any
+      failure. If PR 2 changes public science bytes or exact Serial/Dask
+      results, stop there rather than allowing PR 3 to hide the regression in
+      a large deletion diff.
 - [x] **E1 — Close the bounded release correctness inventory.** Confirm from M2/M3 that
       no known incorrect supported catalogue, position, flux, ownership or
       processing-status output remains. Check Gaussian-validity and
