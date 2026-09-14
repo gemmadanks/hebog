@@ -1,7 +1,7 @@
 [project]
 name = "hebog"
 version = "0.6.0"
-description = "Dask-aware radio-continuum source finding for SKA SDP pipelines"
+description = "Experimental radio-continuum source finding with serial and Dask execution"
 authors = [
     {name = "Gemma Danks", email = "gemma.danks@skao.int"},
 ]
@@ -17,6 +17,13 @@ dependencies = [
     "scipy>=1.12,<2",
     "zarr>=3.2,<3.3",
 ]
+
+[project.urls]
+Homepage = "https://gemmadanks.github.io/hebog/"
+Documentation = "https://gemmadanks.github.io/hebog/"
+Repository = "https://github.com/gemmadanks/hebog"
+Issues = "https://github.com/gemmadanks/hebog/issues"
+Changelog = "https://github.com/gemmadanks/hebog/releases"
 
 [project.scripts]
 hebog = "hebog.cli:main"

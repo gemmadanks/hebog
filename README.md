@@ -6,12 +6,19 @@
 [![codecov](https://codecov.io/gh/gemmadanks/hebog/graph/badge.svg)](https://codecov.io/gh/gemmadanks/hebog)
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](LICENSE)
 
-Hebog is an **experimental** Dask-aware radio-continuum source finder for SKA
-Science Data Processor pipelines. It is being developed as a faster,
-scientifically compatible alternative to the PyBDSF work used by Rapthor's
-`filter_skymodel` step, with a scientific API usable independently of Rapthor.
+Hebog is an **experimental** radio-continuum source finder with serial and
+Dask execution for scientific workflows and data pipelines. Its first
+integration target is Rapthor's `filter_skymodel` step, where it is being
+developed as a faster, scientifically compatible alternative to PyBDSF. The
+scientific API is usable independently of Rapthor.
 
 ## Status
+
+Hebog is under active development. APIs, configuration, and output formats may
+change frequently, with no backward-compatibility guarantee between `0.x`
+releases and no guaranteed deprecation period. Breaking changes are documented
+in release notes and the current documentation. Pin an exact version for
+reproducible workflows and review the release notes before upgrading.
 
 The public finder implements FITS/WCS ingestion, background/RMS estimation,
 compact and multiscale detection, Gaussian-component and associated-source
@@ -112,11 +119,6 @@ graph and resource budget.
 
 Python 3.12 through 3.14 is supported. Python 3.11 users must remain on Hebog
 0.2.x or upgrade Python before adopting a current release.
-
-Hebog is still pre-production and does not guarantee backward compatibility
-between `0.x` releases. Development prioritizes the cleanest current API,
-schema, and storage design over compatibility shims or deprecation periods.
-Breaking changes remain explicit in documentation and release notes.
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/), clone the
 repository, and install all dependency groups:
