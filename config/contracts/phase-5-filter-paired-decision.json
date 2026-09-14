@@ -1,0 +1,45 @@
+{
+  "candidates": [
+    {
+      "bounded_cost": [
+        9,
+        7,
+        34
+      ],
+      "failed_absolute_endpoint_count": 169,
+      "failed_paired_endpoint_count": 88,
+      "family": "beam-aware-matched-filter",
+      "noninferior_to_other": false,
+      "passes_absolute": false
+    },
+    {
+      "bounded_cost": [
+        11,
+        9,
+        49
+      ],
+      "failed_absolute_endpoint_count": 203,
+      "failed_paired_endpoint_count": 269,
+      "family": "undecimated-wavelet",
+      "noninferior_to_other": false,
+      "passes_absolute": false
+    }
+  ],
+  "decision": "select-neither",
+  "decision_id": "phase-5-filter-paired-decision",
+  "evidence_configuration_sha256": "2701feb4a909cf4dce0725e05f2ed828b1d581eccd540b93d7e6c6893ca4f208",
+  "evidence_sha256": "e7f6805cb42bb0f41c844adf152d7e53ead1837def3fbb6b0fae48482031b5c0",
+  "evidence_source_tree_sha256": "bfb9bc08e3f294b86b7a3f3ba29458b1ce502d0a35cf57494d85fc7e5149611b",
+  "independent_human_scientific_review": "still-required",
+  "named_review": "codex-step-2b-governed-evidence-review",
+  "next_action": "freeze-corrective-development-design-before-re-evaluation",
+  "optimization_authorized": false,
+  "prior_selection_contract_sha256": "38c2340c1e49a30178dd866bcb587f8f0bcd9cfc00e76bb496e6e93da5ed4e46",
+  "protocol_sha256": "749d2393c485239bea6a897beaeb4a97b0b8ab7d8aff851646e43e857b4c993d",
+  "qualification_opened": false,
+  "review_scope": "technical-and-governed-development-regression-evidence",
+  "schema_version": 1,
+  "selected_family": null,
+  "status": "reviewed-inconclusive",
+  "step_three_authorized": false
+}

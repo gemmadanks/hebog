@@ -1,0 +1,27 @@
+{
+  "decision_id": "phase-5-public-finder-implementation-decision",
+  "identity_freeze_authorized": true,
+  "implementation_authorized": true,
+  "named_review": {
+    "approval": "I approve the Phase 5 public finder execution pre-review SHA-256 476265e1b4e4ef1356f62a1b31ce4eb4ba3db995c84feddd8134da94bdb5ce4a and its recommendations. This authorizes implementation and validation of the public protocol, Hebog runner, compiler, and evaluator, followed by freezing exact non-executable identities against selected population 0a7c2b18... and the qualified Hebog runtime. It does not authorize finder execution, compilation or evaluation of public results, optimization, tuning, rescoring, cutover, or release.",
+    "approved_on": "2026-08-26",
+    "reviewer": "Gemma Danks"
+  },
+  "pre_review": {
+    "path": "config/contracts/phase-5-public-finder-execution-pre-review.json",
+    "sha256": "476265e1b4e4ef1356f62a1b31ce4eb4ba3db995c84feddd8134da94bdb5ce4a"
+  },
+  "prohibited_authorizations": {
+    "campaign_execution_authorized": false,
+    "compilation_authorized": false,
+    "cutover_authorized": false,
+    "evaluation_authorized": false,
+    "finder_execution_authorized": false,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false
+  },
+  "schema_version": 1,
+  "status": "reviewed-before-public-finder-implementation"
+}

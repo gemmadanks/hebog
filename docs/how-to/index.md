@@ -1,5 +1,8 @@
 # Development workflows
 
+For a short introduction to the project's algorithms, decisions and testing
+process, read [how Hebog has been developed](../explanation/development-history.md).
+
 ## Choose the appropriate test lane
 
 ```console
@@ -14,6 +17,37 @@ just test-scalability
 ```
 
 Unit tests must be deterministic and require no scheduler or downloaded data.
+Keep portable review-contract checks separate from checks of retained campaign
+artifacts. The latter use `integration` and `requires_data`, including historical
+checks colocated with protocol unit tests, and are excluded from routine CI.
+They still fail if explicitly requested evidence is missing or has changed;
+never substitute a conditional skip or regenerate frozen evidence in a test.
+For example, on an evidence host, the read-only terminal hash checks are:
+
+```bash
+uv run pytest -q tests/integration/test_retained_review_evidence.py
+```
+
+Select other evidence-dependent checks explicitly under their campaign's
+authority; do not enable every controlled test lane just to validate a checkout.
+Use synthetic temporary records for ordinary checksum, malformed-input,
+serialization and write-once tests. A pass with local `benchmark-results/`
+present does not establish CI portability: also run the quick lane from a clean
+checkout without those ignored products.
+
+Keep inexpensive protocol and write-once safety tests in portable CI while
+their builders or readers remain maintained. Completing a campaign does not
+remove the need to detect changed seeds, references, gates or authorization.
+Compare recomputed floating-point planning results with an explicit round-off
+tolerance; frozen artifact bytes and their recorded hashes still require exact
+equality. Retire obsolete campaign builders and their implementation-specific
+tests together after checking remaining consumers, preserving evidence and the
+identity checks needed by supported readers.
+Exact reconstruction tests for sealed records that bind POSIX path spelling
+use the `posix_frozen_record` marker. They remain active in Linux CI and are
+skipped on Windows; portable readers, validation rules and write-once behavior
+continue to run across the complete supported platform matrix.
+
 Contract tests hold strict-xfail executable specifications until their planned
 implementation turns them green; an unexpected pass fails CI until the test is
 reviewed and converted to a normal assertion. Integration tests cover Dask,
@@ -346,15 +380,6 @@ efficiency; do not retain only the best topology.
 
 ## Work with notebooks
 
-Marimo provides reviewable, Python-based demonstrations. Edit the source-finder
-notebook with:
-
-```console
-uv run marimo edit notebooks/source_finder_demo.py
-```
-
-Validate all notebooks without starting the interactive editor:
-
-```console
-just marimo-check
-```
+See [Use the notebooks and refresh comparisons](notebooks.md) for the notebook
+index, input downloads, output locations, comparison refreshes and execution
+checks. Start with `uv run marimo edit notebooks/source_finder_demo.py`.

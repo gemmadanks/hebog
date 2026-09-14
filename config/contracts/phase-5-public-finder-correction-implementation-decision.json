@@ -1,0 +1,41 @@
+{
+  "approved_on": "2026-08-26",
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "candidate_implementation_authorized": true,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fixture_only_validation_authorized": true,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "sdc1_adapter_implementation_authorized": true,
+    "sealed_decision_rescoring_authorized": false,
+    "shape_implementation_authorized": true,
+    "threshold_tuning_authorized": false
+  },
+  "decision_id": "phase-5-public-finder-correction-implementation-decision",
+  "exact_approval": "I approve the Phase 5 public-finder correction pre-review SHA-256 3e02aff3c29128d65b0af5c0d9d99720fd03a9fe70730e632815ae4694747bfd and its recommendations. This authorizes implementation and fixture-only validation of seeded-island ownership, public moment-equivalent shape records, and the non-executable SDC1 source-finding adapter. It does not authorize cumulative replay, execution on viewed public data, a new campaign, fresh qualification, threshold or photometric tuning, rescoring, cutover, or release.",
+  "implementation_scope": [
+    "seeded-island ownership preserving every accepted direct seed identity",
+    "public moment-equivalent observed and beam-deconvolved shape records",
+    "non-executable SDC1 source-finding adapter",
+    "fixture-only analytic, property, serial, Dask, and serialization validation"
+  ],
+  "pre_review": {
+    "path": "config/contracts/phase-5-public-finder-correction-pre-review.json",
+    "sha256": "3e02aff3c29128d65b0af5c0d9d99720fd03a9fe70730e632815ae4694747bfd"
+  },
+  "prohibited_actions": [
+    "cumulative replay",
+    "execution on viewed SDC1 or Hydra data",
+    "new campaign or request",
+    "fresh qualification",
+    "threshold, background, RMS, minimum-area, aperture, or photometric tuning",
+    "rescoring sealed evidence",
+    "cutover",
+    "release"
+  ],
+  "status": "authorized-for-implementation-and-fixture-only-validation"
+}

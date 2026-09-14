@@ -1,0 +1,339 @@
+{
+  "allowed_after_separate_approval": [
+    "test-first-source-protected-adaptive-background-repair",
+    "fixture-only-background-rms-and-support-validation",
+    "diagnostic-only-coarse-gap-reproductions",
+    "bounded-pre-publication-attribution-telemetry",
+    "serial-and-existing-dask-invariance-validation",
+    "non-executable-replacement-identity-freeze-only-after-all-fixture-gates-pass"
+  ],
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "development_lane_execution_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "source_finding_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "binding_context": {
+    "candidate": {
+      "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+      "revision": "937737d811dd229d71dbcfdbda6cb5829de6faca",
+      "source_tree_sha256": "9f8e4a67f0c74ac86bff4f398811a7d64620fb70512b118c0ad3bb1eb58644c8"
+    },
+    "preserved_observations": {
+      "array_free_observation_count": 144,
+      "canonical_file_set_sha256": "b55f7385e17c9f78205aa48d9a8b5fefdde2c50602db5c10d6da5c9424fcdf17",
+      "preserved_product_set_sha256": "c9212f3a696b052cb1b6b91b420d9236e15df541d0b48cebd97a179c1691f24e",
+      "scratch": "/private/tmp/hebog-phase5-adaptive-background-development-937737d"
+    },
+    "terminal_decision": {
+      "canonical_sha256": "4f6e37241ee58420c30f8416c784e6c57efbd6e55eae32c1e878757116d865ab",
+      "path": "benchmark-results/phase-5/adaptive-background-development-decision.json",
+      "sha256": "ff415f064f4ea7daa9254338041e52ad15d41b84edf692602092134850218026"
+    },
+    "upstream": {
+      "approved_development_review": {
+        "path": "config/contracts/phase-5-adaptive-background-development-pre-review.json",
+        "sha256": "6287ad3ef734c91142637142f04abebfb7226253e9e49060af686fe07292eed4"
+      },
+      "completion_execution_decision": {
+        "path": "config/contracts/phase-5-adaptive-background-development-completion-execution-decision.json",
+        "sha256": "0d5c071b0e4f035824461d6c2d2ad35fb02a8c4d8885025269775f6d8fe8f475"
+      },
+      "completion_identity_review": {
+        "path": "config/contracts/phase-5-adaptive-background-development-completion-identity-review.json",
+        "sha256": "d2a664f578915fadab94ea3d8d8f2b92e2fd488aca3b293a68a5e9d99d433089"
+      },
+      "completion_repair_review": {
+        "path": "config/contracts/phase-5-adaptive-background-development-completion-repair-pre-review.json",
+        "sha256": "d61b9643427a01094a7f8377e98930f2e8a102060e49b34e9cf4edf12238577f"
+      },
+      "original_execution_decision": {
+        "path": "config/contracts/phase-5-adaptive-background-development-execution-decision.json",
+        "sha256": "fc804d7d90d5a546425cebd9935d8c16f1877701fd8efd82992d1dbe4c4a4d25"
+      },
+      "original_identity_review": {
+        "path": "config/contracts/phase-5-adaptive-background-development-identity-review.json",
+        "sha256": "f9ccef67d942494c6ba1358f15ea09f02343a4f3dd930b2167f68ba5427cd5ba"
+      },
+      "population_manifest": {
+        "path": "config/contracts/phase-5-adaptive-background-development-manifest.json",
+        "sha256": "77203f85930a99ffbb5490f93db7073cab434b42c8350d6da864625efd09946b"
+      },
+      "public_candidate_identity": {
+        "path": "config/contracts/phase-5-public-interface-identity-review.json",
+        "sha256": "a521c656683cdae8b8d2250a3d29dee716c4ff774a25e23556301b21e5d898f8"
+      }
+    }
+  },
+  "causal_findings": {
+    "adaptive_background_self_contamination": {
+      "classification": "confirmed-primary-paired-regression-cause",
+      "code_path": [
+        "discover_adaptive_candidates retains only strict candidate peaks and discards source-island support",
+        "refine_background_rms_grids estimates 35-by-35 fine windows from the original image and validity alone",
+        "estimate_rms_window_statistics sigma-clips those source-contaminated samples as one distribution",
+        "blend_adaptive_background_rms gives the fine estimates unit weight near each candidate"
+      ],
+      "evidence": "All 54 inactive images are exact candidate/control matches; all 90 active images differ and all 90 have larger median in-support background error. The error increase tracks support loss at r=0.874107 and flux-error increase at r=0.957040. Damage is severe for source-filled shell and mixed windows but absent outside the practical margins for curved filaments."
+    },
+    "integrated_flux_loss": {
+      "classification": "confirmed-direct-and-support-mediated-effect-with-independent-coarse-arm-gap",
+      "direct_path": "source photometry sums image-minus-estimated-background over the source aperture, so a positive adaptive background bias directly removes source flux",
+      "evidence_limit": "The array-free observations cannot apportion each loss between direct background subtraction, changed support, and changed source membership.",
+      "independent_gap": "Two mixed compact/extended coarse geometries already fail flux floors, including the 12-beam, 75%-halo case; a red fixture must test the fixed 1.5-beam aperture against source-union scale before any measurement change."
+    },
+    "publication_specific_effect": {
+      "classification": "unresolved-observability-gap-not-demonstrated-primary-cause",
+      "description": "Both arms use identical persistence and public projection code, but retained summaries expose only the final public mask. They do not retain pre-publication support recall, so publication-specific amplification cannot be measured retrospectively."
+    },
+    "split_fraction": {
+      "classification": "independent-pre-existing-topology-gap",
+      "evidence": "Among 90 active pairs, adaptive refinement introduced zero new split outcomes, left 30 split outcomes unchanged, and removed three. Every terminal split-floor failure is therefore present in the one-factor control rather than caused by adaptive background refinement."
+    },
+    "support_loss": {
+      "classification": "confirmed-downstream-effect-not-independent-root-cause",
+      "description": "The biased background and RMS enter normalized direct detection and residual multiscale support before any measurement or publication step. Both paired arms use the same downstream algorithms; 87 of 90 active images lose support while the inactive outputs are exact.",
+      "independent_gap": "Two mixed coarse geometries also miss mask or support floors, so the background defect is not the sole absolute support limitation."
+    },
+    "trigger_or_executor_defect": {
+      "classification": "excluded-as-primary-cause",
+      "evidence": "All 48 below-trigger inputs remain inactive, all 48 above-trigger inputs activate on truth, the boundary frequency is retained without reinterpretation, all products validate, and all 12 Serial/existing-Dask comparisons are identical."
+    }
+  },
+  "change_control": {
+    "forbidden_same_change": [
+      "adaptive-trigger-threshold-change",
+      "detection-or-island-threshold-change",
+      "truth-aware-or-reference-finder-masking",
+      "background-window-or-blend-radius-tuning",
+      "measurement-aperture-change-without-red-fixture-and-renewed-review",
+      "source-association-change-without-red-fixture-and-renewed-review",
+      "publication-rule-change-without-pre-publication-attribution",
+      "gate-margin-or-truth-definition-change",
+      "retrospective-rescoring-of-the-terminal-lane",
+      "runtime-optimization"
+    ],
+    "historical_terminal_failure_immutable": true,
+    "no_lane_execution_before_fixture_closure": true,
+    "no_threshold_or_margin_change": true
+  },
+  "coarse_control_absolute_failures": {
+    "active_split_transitions": {
+      "coarse_false_adaptive_false": 57,
+      "coarse_false_adaptive_true": 0,
+      "coarse_true_adaptive_false": 3,
+      "coarse_true_adaptive_true": 30
+    },
+    "failing_geometries": [
+      {
+        "failures": [
+          "split-fraction-floor"
+        ],
+        "geometry_id": "curved_filament--beam-a--varying--scale-12--interior"
+      },
+      {
+        "failures": [
+          "integrated-flux-median-floor",
+          "integrated-flux-p95-floor",
+          "mask-iou-cell-median-floor",
+          "mask-iou-image-floor"
+        ],
+        "geometry_id": "mixed_compact_extended--beam-a--flat--scale-12--interior"
+      },
+      {
+        "failures": [
+          "split-fraction-floor"
+        ],
+        "geometry_id": "mixed_compact_extended--beam-a--varying--scale-4--tile-corner"
+      },
+      {
+        "failures": [
+          "integrated-flux-median-floor",
+          "integrated-flux-p95-floor",
+          "mask-iou-cell-median-floor",
+          "mask-iou-image-floor",
+          "split-fraction-floor",
+          "support-recall-cell-median-floor",
+          "support-recall-image-floor"
+        ],
+        "geometry_id": "mixed_compact_extended--beam-b--varying--scale-8--interior"
+      },
+      {
+        "failures": [
+          "split-fraction-floor"
+        ],
+        "geometry_id": "shell--beam-a--varying--scale-8--tile-corner"
+      },
+      {
+        "failures": [
+          "split-fraction-floor"
+        ],
+        "geometry_id": "shell--beam-b--varying--scale-12--interior"
+      }
+    ],
+    "failing_geometry_count": 6,
+    "implication": "restoring coarse-only behaviour cannot pass the frozen lane"
+  },
+  "paired_evidence": {
+    "active_exact_candidate_control_matches": 0,
+    "active_input_count": 90,
+    "active_signature": {
+      "adverse_image_counts": {
+        "background_error": 90,
+        "flux_error": 72,
+        "mask_iou": 63,
+        "rms_error": 88,
+        "support_recall": 87
+      },
+      "background_error_increase_median_rms": 0.33353,
+      "background_error_increase_rms": {
+        "maximum": 2.776832,
+        "median": 0.33353,
+        "minimum": 0.031942,
+        "p95": 2.304571
+      },
+      "background_error_vs_flux_error_correlation": 0.95704,
+      "background_error_vs_support_loss_correlation": 0.874107,
+      "flux_error_increase": {
+        "maximum": 0.631044,
+        "median": 0.017399,
+        "minimum": -0.034827,
+        "p95": 0.516685
+      },
+      "mask_iou_loss": {
+        "maximum": 0.593438,
+        "median": 0.051583,
+        "minimum": -0.339542,
+        "p95": 0.496261
+      },
+      "outside_paired_margin_by_morphology": {
+        "curved_filament": {
+          "active_images": 32,
+          "flux": 0,
+          "mask_iou": 0,
+          "support_recall": 0
+        },
+        "mixed_compact_extended": {
+          "active_images": 26,
+          "flux": 25,
+          "mask_iou": 20,
+          "support_recall": 26
+        },
+        "shell": {
+          "active_images": 32,
+          "flux": 0,
+          "mask_iou": 26,
+          "support_recall": 29
+        }
+      },
+      "rms_error_increase_fraction": {
+        "maximum": 1.954098,
+        "median": 0.299342,
+        "minimum": -0.031648,
+        "p95": 1.587293
+      },
+      "rms_error_vs_support_loss_correlation": 0.752698,
+      "support_recall_loss": {
+        "maximum": 0.75443,
+        "median": 0.086153,
+        "minimum": -0.004292,
+        "p95": 0.652656
+      }
+    },
+    "inactive_exact_candidate_control_matches": 54,
+    "inactive_input_count": 54,
+    "input_count": 144,
+    "trigger_counts": {
+      "above": {
+        "active": 48,
+        "images": 48
+      },
+      "below": {
+        "active": 0,
+        "images": 48
+      },
+      "boundary": {
+        "active": 42,
+        "images": 48
+      }
+    }
+  },
+  "recommended_correction": {
+    "fine_grid_policy": "estimate only windows disjoint from protected support; mark intersecting windows unavailable and fill them only through the existing deterministic bounded interpolation fallback",
+    "new_numeric_science_thresholds": false,
+    "primary_scope": "source-protected-adaptive-background-and-rms-estimation",
+    "source_protection": {
+      "execution": "retain or materialize protection as bounded tile products; never send an image-sized mask through a scheduler task",
+      "seed": "coarse-normalized pixels above the existing 75-sigma adaptive candidate threshold",
+      "support": "the connected coarse-normalized island at the existing public island threshold containing each adaptive seed"
+    },
+    "truth_or_reference_finder_inputs": false,
+    "unchanged_science": [
+      "75-sigma adaptive trigger",
+      "public detection and island thresholds",
+      "35-by-35 fine-grid geometry and seven-pixel step",
+      "75-pixel influence and 20-pixel transition widths",
+      "support, measurement, association, and publication algorithms",
+      "all frozen lane floors, margins, truth, and trigger rules"
+    ]
+  },
+  "required_next_decision": "named-approval-of-this-exact-review-for-test-first-fixture-only-scientific-correction",
+  "required_sequence": [
+    "obtain-named-approval-of-this-exact-root-cause-review",
+    "add-red-source-contamination-and-local-noise-discrimination-fixtures",
+    "implement-bounded-source-protected-adaptive-window-eligibility",
+    "add-pre-publication-support-attribution-and-rejection-telemetry",
+    "add-red-mixed-halo-aperture-and-source-topology-fixtures",
+    "obtain-renewed-review-before-any-independent-measurement-association-or-publication-change",
+    "validate-all-original-background-and-affected-regression-fixtures",
+    "validate-serial-existing-dask-tile-order-and-retry-invariance",
+    "freeze-exact-non-executable-replacement-candidate-and-lane-identities",
+    "obtain-separate-exact-approval-before-any-development-lane-execution",
+    "open-held-out-qualification-only-after-the-replacement-lane-passes"
+  ],
+  "review_id": "phase-5-adaptive-background-root-cause-pre-review",
+  "reviewed_on": "2026-09-04",
+  "schema_version": 1,
+  "status": "ready-for-named-adaptive-background-correction-review",
+  "terminal_failure_summary": {
+    "executor_invariance_passed": true,
+    "failed_geometry_count": 9,
+    "failure_reason_counts": {
+      "integrated-flux-median-floor": 3,
+      "integrated-flux-p95-floor": 2,
+      "integrated-flux-paired-margin": 4,
+      "mask-iou-cell-median-floor": 3,
+      "mask-iou-image-floor": 4,
+      "mask-iou-paired-margin": 7,
+      "split-fraction-floor": 5,
+      "support-recall-cell-median-floor": 7,
+      "support-recall-image-floor": 3,
+      "support-recall-paired-margin": 8
+    },
+    "geometry_count": 12,
+    "status": "fail",
+    "trigger_seam_passed": true
+  },
+  "test_first_matrix": [
+    "source-protected-background-shell",
+    "source-protected-background-mixed-core-halo",
+    "local-noise-patch-remains-adaptive",
+    "below-trigger-bitwise-inert",
+    "overlapping-and-disjoint-bright-candidate-protection",
+    "insufficient-source-free-window-fallback",
+    "flat-and-varying-background-and-rms",
+    "edge-corner-and-invalid-pixel-protection",
+    "mixed-halo-measurement-aperture",
+    "shell-and-filament-source-association",
+    "pre-publication-versus-publication-support-attribution",
+    "serial-existing-dask-tile-order-and-retry-invariance"
+  ]
+}

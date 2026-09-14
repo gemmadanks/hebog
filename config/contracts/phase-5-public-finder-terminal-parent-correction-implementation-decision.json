@@ -1,0 +1,32 @@
+{
+  "approved_on": "2026-08-30",
+  "authorization": {
+    "candidate_identity_freeze_authorized": true,
+    "cumulative_replay_authorized": false,
+    "fixture_validation_authorized": true,
+    "replay_identity_freeze_authorized": true,
+    "terminal_parent_correction_implementation_authorized": true
+  },
+  "decision_id": "phase-5-public-finder-terminal-parent-correction-implementation-decision",
+  "exact_approval": "Please continue the work required to pass the scientific evaluation (including the cumulative replay and any fixes for any process-related errors that occur during the replay or its evaluation). I approve the next replay and any further replays that are required if errors or failures require re-runs.",
+  "implementation_commit": "729366019371b89900d95b9d53143f5c02662639",
+  "implementation_scope": [
+    "connected significant support corroborates hierarchy evidence but cannot independently create source membership",
+    "a terminal cycle parent requires at least three features and exact preceding-scale persistence of every constituent",
+    "source-association provenance is retained with every future Continuum candidate shard",
+    "the sidecar-aware evaluator is installed before any future compilation",
+    "exact candidate and replay identity freezing after complete no-write verification"
+  ],
+  "prohibited_actions": [
+    "partial scientific inspection or tuning",
+    "retrospective rescoring of closed evidence",
+    "viewed SDC1 or Hydra execution",
+    "cutover",
+    "release"
+  ],
+  "review": {
+    "path": "docs/reference/phase-5-public-finder-persistent-support-parent-correction.md",
+    "sha256": "fe528316afbdde27fbdf481aeac57dfc8b6146b2addf56e7880e1447717531c0"
+  },
+  "status": "authorized-for-terminal-parent-correction-composition"
+}

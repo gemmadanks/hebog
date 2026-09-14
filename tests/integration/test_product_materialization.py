@@ -8,15 +8,20 @@
 from __future__ import annotations
 
 import hashlib
+import importlib
 import json
+from dataclasses import replace
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import numpy as np
 import pytest
 from astropy.io import fits
 
+from hebog.adapters.rapthor_catalogue import write_rapthor_catalogue_fits
 from hebog.data_models import (
     CelestialWcs,
+    ContinuumSourceFindingDiagnostics,
     FluxMeasurement,
     GaussianComponent,
     GaussianShape,
@@ -29,13 +34,23 @@ from hebog.data_models import (
     SourceCandidate,
     SourceCatalogue,
     SourceFindingDiagnostics,
+    SourceScaleProvenance,
     SpectralModel,
 )
+from hebog.data_models.catalogue_construction import CompletedCombinedCatalogue
+from hebog.data_models.multiscale import (
+    CombinedCatalogueState,
+    CombinedIslandDisposition,
+    CompletedCombinedCatalogueState,
+)
 from hebog.io import (
+    CombinedProductPaths,
     FitsProductImageSource,
     InvalidMaterializedProductError,
     MaterializedProductConflictError,
+    ProductMaterializationError,
     UnsupportedMaterializedProductError,
+    materialize_combined_products,
     read_catalogue_fits_product,
     read_diagnostics_product,
     write_catalogue_fits_product,
@@ -43,6 +58,7 @@ from hebog.io import (
     write_mask_fits_product,
     write_rms_fits_product,
 )
+from hebog.io.combined import MaterializedCombinedProducts
 
 pytestmark = pytest.mark.integration
 
@@ -123,7 +139,11 @@ def _spectrum() -> SpectralModel:
     )
 
 
-def _catalogue(*, catalogue_id: str = "catalogue-run-001") -> SourceCatalogue:
+def _catalogue(
+    *,
+    catalogue_id: str = "catalogue-run-001",
+    position_epoch: str = "J2000.0",
+) -> SourceCatalogue:
     """Return a complete internal catalogue with nullable fields."""
     island = Island(
         island_id="island-00001",
@@ -158,7 +178,7 @@ def _catalogue(*, catalogue_id: str = "catalogue-run-001") -> SourceCatalogue:
     return SourceCatalogue.create(
         catalogue_id=catalogue_id,
         coordinate_frame="icrs",
-        position_epoch="J2000.0",
+        position_epoch=position_epoch,
         reference_frequency_hz=150_000_000.0,
         islands=(island,),
         sources=(source,),
@@ -174,6 +194,73 @@ def _diagnostics(*, source_count: int = 1) -> SourceFindingDiagnostics:
         gaussian_component_count=1 if source_count else 0,
         island_count=1 if source_count else 0,
         rms_scientific_status="valid",
+    )
+
+
+def _continuum_diagnostics() -> ContinuumSourceFindingDiagnostics:
+    """Return one provenance-rich combined continuum summary."""
+    return ContinuumSourceFindingDiagnostics(
+        run_id="run-001",
+        source_count=2,
+        gaussian_component_count=1,
+        island_count=1,
+        extended_source_count=1,
+        terminal_disposition_count=1,
+        rms_scientific_status="valid",
+        source_provenance=(
+            SourceScaleProvenance(
+                source_id="source-extended",
+                island_id="island-combined",
+                association_id="scale-association-extended",
+                scale_detection_ids=("scale-detection-extended",),
+                selected_scale_detection_id="scale-detection-extended",
+                contributing_scale_orders=(2,),
+                relationship="contains-compact-support",
+                support_pixel_count=20,
+                visible_model_fraction=0.95,
+            ),
+        ),
+    )
+
+
+def _completed_combined(
+    catalogue: SourceCatalogue,
+    *,
+    provenance: tuple[SourceScaleProvenance, ...] = (),
+) -> CompletedCombinedCatalogue:
+    """Return compact-only or accepted-continuum completion evidence."""
+    island = catalogue.islands[0]
+    compact_only = not provenance
+    association_ids = () if compact_only else (provenance[0].association_id,)
+    state = CompletedCombinedCatalogueState(
+        state=CombinedCatalogueState(
+            catalogue_id=catalogue.catalogue_id,
+            accepted_island_ids=(island.island_id,),
+            deferred_island_ids=(),
+            dispositions=(
+                CombinedIslandDisposition(
+                    island_id=island.island_id,
+                    status=(
+                        "retained-compact"
+                        if compact_only
+                        else "accepted-multiscale"
+                    ),
+                    source_ids=(catalogue.sources[0].source_id,),
+                    association_ids=association_ids,
+                    reason=None,
+                ),
+            ),
+            omissions=(),
+        ),
+        shard_count=1,
+        reduction_depth=0,
+        maximum_shard_record_count=1,
+    )
+    return CompletedCombinedCatalogue(
+        catalogue=catalogue,
+        terminal_state=state,
+        source_provenance=provenance,
+        compact_only_preserved=compact_only,
     )
 
 
@@ -201,7 +288,7 @@ def test_catalogue_fits_round_trip_preserves_internal_schema(
 
     assert product.product_role == "source-catalogue"
     assert product.media_type == "application/fits"
-    assert product.content_schema_version == 3
+    assert product.content_schema_version == 4
     assert product.scientific_status == "valid"
     assert product.byte_count == path.stat().st_size
     assert (
@@ -353,7 +440,7 @@ def test_catalogue_reader_rejects_unknown_schema_and_structure(
     path = tmp_path / "catalogue.fits"
     write_catalogue_fits_product(path, _catalogue())
     with fits.open(path, mode="update", checksum=False) as hdus:
-        hdus[0].header["HBGSCHE"] = 4
+        hdus[0].header["HBGSCHE"] = 999
 
     with pytest.raises(UnsupportedMaterializedProductError, match="schema"):
         read_catalogue_fits_product(path)
@@ -837,6 +924,551 @@ def test_diagnostics_round_trip_is_canonical_versioned_json(
     assert write_diagnostics_product(path, diagnostics) == product
 
 
+def test_continuum_diagnostics_round_trip_preserves_scale_provenance(
+    tmp_path: Path,
+) -> None:
+    """Version two records retain auditable scale/support provenance."""
+    path = tmp_path / "continuum-diagnostics.json"
+    diagnostics = _continuum_diagnostics()
+
+    product = write_diagnostics_product(path, diagnostics)
+
+    assert product.content_schema_version == 2
+    assert path.read_bytes() == diagnostics.canonical_json_bytes()
+    assert read_diagnostics_product(path) == diagnostics
+    assert read_diagnostics_product(product) == diagnostics
+
+
+def test_diagnostics_record_schema_must_match_payload(tmp_path: Path) -> None:
+    """Restart records cannot misdescribe otherwise valid diagnostic bytes."""
+    product = write_diagnostics_product(
+        tmp_path / "diagnostics.json",
+        _diagnostics(),
+    )
+    mislabeled = product.model_copy(update={"content_schema_version": 2})
+
+    with pytest.raises(
+        InvalidMaterializedProductError, match="product record"
+    ):
+        read_diagnostics_product(mislabeled)
+
+
+def test_compact_combined_materialization_preserves_existing_products(
+    tmp_path: Path,
+) -> None:
+    """A compact-only finalization reproduces all Phase 4 product bytes."""
+    catalogue = _catalogue(position_epoch="J2000")
+    combined = _completed_combined(catalogue)
+    metadata = _metadata()
+    mask = np.asarray(
+        [
+            [False, True, False, False],
+            [False, True, True, False],
+            [False, False, False, False],
+        ],
+        dtype=np.bool_,
+    )
+    rms = write_rms_fits_product(
+        tmp_path / "rms.fits",
+        metadata,
+        (np.full(metadata.shape_yx, 0.001, dtype=np.float32),),
+        dtype=np.dtype("float32"),
+        scientific_status="valid",
+    )
+    expected_catalogue = write_catalogue_fits_product(
+        tmp_path / "expected-catalogue.fits",
+        catalogue,
+    )
+    expected_mask = write_mask_fits_product(
+        tmp_path / "expected-mask.fits",
+        metadata,
+        (mask,),
+    )
+    expected_diagnostics = write_diagnostics_product(
+        tmp_path / "expected-diagnostics.json",
+        _diagnostics(),
+    )
+    expected_rapthor = write_rapthor_catalogue_fits(
+        tmp_path / "expected-rapthor.fits",
+        catalogue,
+    )
+
+    materialized = materialize_combined_products(
+        combined,
+        metadata=metadata,
+        rms_product=rms,
+        compact_mask_row_blocks=(mask,),
+        extended_mask_row_blocks=None,
+        paths=CombinedProductPaths(
+            catalogue=tmp_path / "combined-catalogue.fits",
+            mask=tmp_path / "combined-mask.fits",
+            diagnostics=tmp_path / "combined-diagnostics.json",
+            rapthor_catalogue=tmp_path / "combined-rapthor.fits",
+        ),
+        run_id="run-001",
+        wall_seconds=1.25,
+    )
+
+    assert materialized.result.rms is rms
+    assert (
+        materialized.result.catalogue.path.read_bytes()
+        == expected_catalogue.path.read_bytes()
+    )
+    assert (
+        materialized.result.mask.path.read_bytes()
+        == expected_mask.path.read_bytes()
+    )
+    assert (
+        materialized.result.diagnostics.path.read_bytes()
+        == expected_diagnostics.path.read_bytes()
+    )
+    assert (
+        materialized.rapthor_catalogue.path.read_bytes()
+        == expected_rapthor.path.read_bytes()
+    )
+
+
+def test_continuum_materialization_unions_masks_and_reuses_rms(
+    tmp_path: Path,
+) -> None:
+    """Accepted extended support augments products without rewriting RMS."""
+    catalogue = _catalogue(position_epoch="J2000")
+    provenance = (
+        _continuum_diagnostics()
+        .source_provenance[0]
+        .model_copy(
+            update={
+                "source_id": catalogue.sources[0].source_id,
+                "island_id": catalogue.islands[0].island_id,
+            }
+        ),
+    )
+    combined = _completed_combined(catalogue, provenance=provenance)
+    metadata = _metadata()
+    rms = write_rms_fits_product(
+        tmp_path / "rms.fits",
+        metadata,
+        (np.full(metadata.shape_yx, 0.001, dtype=np.float32),),
+        dtype=np.dtype("float32"),
+        scientific_status="valid",
+    )
+    compact_mask = np.zeros(metadata.shape_yx, dtype=np.bool_)
+    compact_mask[0, 0] = True
+    extended_mask = np.zeros(metadata.shape_yx, dtype=np.bool_)
+    extended_mask[2, 3] = True
+
+    materialized = materialize_combined_products(
+        combined,
+        metadata=metadata,
+        rms_product=rms,
+        compact_mask_row_blocks=(compact_mask,),
+        extended_mask_row_blocks=(extended_mask,),
+        paths=CombinedProductPaths(
+            catalogue=tmp_path / "catalogue.fits",
+            mask=tmp_path / "mask.fits",
+            diagnostics=tmp_path / "diagnostics.json",
+            rapthor_catalogue=tmp_path / "rapthor.fits",
+        ),
+        run_id="run-001",
+        wall_seconds=1.25,
+    )
+
+    assert materialized.result.rms is rms
+    assert materialized.result.diagnostics.content_schema_version == 2
+    np.testing.assert_array_equal(
+        FitsProductImageSource(materialized.result.mask)
+        .read_window(ImageBounds(0, 3, 0, 4))
+        .values,
+        np.logical_or(compact_mask, extended_mask),
+    )
+
+
+def test_combined_materialization_rejects_inconsistent_product_evidence(
+    tmp_path: Path,
+) -> None:
+    """Metadata, paths, provenance, and mask roles fail before publication."""
+    catalogue = _catalogue(position_epoch="J2000")
+    compact = _completed_combined(catalogue)
+    metadata = _metadata()
+    rms = write_rms_fits_product(
+        tmp_path / "rms.fits",
+        metadata,
+        (np.full(metadata.shape_yx, 0.001, dtype=np.float32),),
+        dtype=np.dtype("float32"),
+        scientific_status="valid",
+    )
+    paths = CombinedProductPaths(
+        catalogue=tmp_path / "catalogue.fits",
+        mask=tmp_path / "mask.fits",
+        diagnostics=tmp_path / "diagnostics.json",
+        rapthor_catalogue=tmp_path / "rapthor.fits",
+    )
+    compact_mask = (np.zeros(metadata.shape_yx, dtype=np.bool_),)
+
+    with pytest.raises(ValueError, match="distinct"):
+        CombinedProductPaths(
+            catalogue=paths.catalogue,
+            mask=paths.catalogue,
+            diagnostics=paths.diagnostics,
+            rapthor_catalogue=paths.rapthor_catalogue,
+        )
+    with pytest.raises(ProductMaterializationError, match="metadata"):
+        materialize_combined_products(
+            compact,
+            metadata=replace(metadata, unit="Jy/pixel"),
+            rms_product=rms,
+            compact_mask_row_blocks=compact_mask,
+            extended_mask_row_blocks=None,
+            paths=paths,
+            run_id="run-001",
+            wall_seconds=0.0,
+        )
+    with pytest.raises(ProductMaterializationError, match="RMS plane"):
+        materialize_combined_products(
+            compact,
+            metadata=metadata,
+            rms_product=rms,
+            compact_mask_row_blocks=compact_mask,
+            extended_mask_row_blocks=None,
+            paths=replace(paths, catalogue=rms.path),
+            run_id="run-001",
+            wall_seconds=0.0,
+        )
+    with pytest.raises(ProductMaterializationError, match="extended mask"):
+        materialize_combined_products(
+            compact,
+            metadata=metadata,
+            rms_product=rms,
+            compact_mask_row_blocks=compact_mask,
+            extended_mask_row_blocks=(
+                np.zeros(metadata.shape_yx, dtype=np.bool_),
+            ),
+            paths=paths,
+            run_id="run-001",
+            wall_seconds=0.0,
+        )
+    provenance = (
+        _continuum_diagnostics()
+        .source_provenance[0]
+        .model_copy(
+            update={
+                "source_id": catalogue.sources[0].source_id,
+                "island_id": catalogue.islands[0].island_id,
+            }
+        ),
+    )
+    with pytest.raises(ProductMaterializationError, match="provenance"):
+        materialize_combined_products(
+            replace(compact, source_provenance=provenance),
+            metadata=metadata,
+            rms_product=rms,
+            compact_mask_row_blocks=compact_mask,
+            extended_mask_row_blocks=None,
+            paths=paths,
+            run_id="run-001",
+            wall_seconds=0.0,
+        )
+    valid_continuum = _completed_combined(catalogue, provenance=provenance)
+    continuum = replace(valid_continuum, source_provenance=())
+    with pytest.raises(ProductMaterializationError, match="provenance"):
+        materialize_combined_products(
+            continuum,
+            metadata=metadata,
+            rms_product=rms,
+            compact_mask_row_blocks=compact_mask,
+            extended_mask_row_blocks=None,
+            paths=paths,
+            run_id="run-001",
+            wall_seconds=0.0,
+        )
+    with pytest.raises(ProductMaterializationError, match="support masks"):
+        materialize_combined_products(
+            valid_continuum,
+            metadata=metadata,
+            rms_product=rms,
+            compact_mask_row_blocks=compact_mask,
+            extended_mask_row_blocks=None,
+            paths=paths,
+            run_id="run-001",
+            wall_seconds=0.0,
+        )
+
+
+def _combined_paths(root: Path) -> CombinedProductPaths:
+    """Use separate directories to exercise the general output contract."""
+    return CombinedProductPaths(
+        catalogue=root / "catalogue" / "catalogue.fits",
+        mask=root / "mask" / "mask.fits",
+        diagnostics=root / "diagnostics" / "diagnostics.json",
+        rapthor_catalogue=root / "rapthor" / "rapthor.fits",
+    )
+
+
+def _combined_destinations(paths: CombinedProductPaths) -> tuple[Path, ...]:
+    """List caller-owned destinations, excluding the reused RMS."""
+    return (
+        paths.catalogue,
+        paths.mask,
+        paths.diagnostics,
+        paths.rapthor_catalogue,
+    )
+
+
+def _write_combined_fixture(
+    root: Path,
+    paths: CombinedProductPaths,
+    *,
+    wall_seconds: float = 0.0,
+) -> MaterializedCombinedProducts:
+    """Run the real writers on a tiny independent compact catalogue."""
+    metadata = _metadata()
+    rms = write_rms_fits_product(
+        root / "rms.fits",
+        metadata,
+        (np.full(metadata.shape_yx, 0.001, dtype=np.float32),),
+        dtype=np.dtype("float32"),
+        scientific_status="valid",
+    )
+    return materialize_combined_products(
+        _completed_combined(_catalogue(position_epoch="J2000")),
+        metadata=metadata,
+        rms_product=rms,
+        compact_mask_row_blocks=(np.zeros(metadata.shape_yx, dtype=np.bool_),),
+        extended_mask_row_blocks=None,
+        paths=paths,
+        run_id="run-001",
+        wall_seconds=wall_seconds,
+    )
+
+
+@pytest.mark.parametrize("alias_kind", ("dotdot", "symlink"))
+def test_combined_paths_reject_filesystem_aliases(
+    tmp_path: Path, alias_kind: str
+) -> None:
+    """Different path spellings must not admit duplicate destinations."""
+    directory = tmp_path / "out"
+    directory.mkdir()
+    if alias_kind == "symlink":
+        alias = tmp_path / "alias"
+        alias.symlink_to(directory, target_is_directory=True)
+    else:
+        alias = directory / ".." / "out"
+    paths = _combined_paths(tmp_path)
+    with pytest.raises(ValueError, match="distinct"):
+        replace(
+            paths,
+            catalogue=directory / "product.fits",
+            mask=alias / "product.fits",
+        )
+
+
+def test_combined_paths_reject_existing_hardlink_aliases(
+    tmp_path: Path,
+) -> None:
+    """Existing hard links are distinct spellings of the same file too."""
+    original = tmp_path / "existing.fits"
+    original.write_bytes(b"caller-owned")
+    alias = tmp_path / "alias.fits"
+    alias.hardlink_to(original)
+    with pytest.raises(ValueError, match="distinct"):
+        replace(_combined_paths(tmp_path), catalogue=original, mask=alias)
+    assert original.read_bytes() == b"caller-owned"
+
+
+@pytest.mark.parametrize(
+    "field", ("catalogue", "mask", "diagnostics", "rapthor_catalogue")
+)
+@pytest.mark.parametrize("alias_kind", ("dotdot", "symlink", "hardlink"))
+def test_combined_paths_cannot_alias_reused_rms(
+    tmp_path: Path, field: str, alias_kind: str
+) -> None:
+    """Protect the existing RMS through every output field and alias form."""
+    paths = _combined_paths(tmp_path)
+    _write_combined_fixture(tmp_path, paths)
+    rms = tmp_path / "rms.fits"
+    before = rms.read_bytes()
+    if alias_kind == "dotdot":
+        alias = tmp_path / "catalogue" / ".." / "rms.fits"
+    else:
+        alias = tmp_path / "rms-alias.fits"
+        if alias_kind == "symlink":
+            alias.symlink_to(rms)
+        else:
+            alias.hardlink_to(rms)
+    with pytest.raises(ProductMaterializationError, match="RMS plane"):
+        _write_combined_fixture(tmp_path, replace(paths, **{field: alias}))
+    assert rms.read_bytes() == before
+
+
+@pytest.mark.parametrize(
+    "module_name,writer_name",
+    (
+        ("hebog.io.combined", "write_catalogue_fits_product"),
+        ("hebog.io.combined", "write_mask_fits_product"),
+        ("hebog.io.combined", "write_diagnostics_product"),
+        ("hebog.adapters.rapthor_catalogue", "write_rapthor_catalogue_fits"),
+    ),
+)
+@pytest.mark.parametrize("after_write", (False, True))
+def test_combined_writer_failure_publishes_nothing_and_can_retry(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    module_name: str,
+    writer_name: str,
+    after_write: bool,
+) -> None:
+    """Each writer can fail without exposing any partial final product set."""
+    paths = _combined_paths(tmp_path)
+    module = importlib.import_module(module_name)
+    original = getattr(module, writer_name)
+
+    def fail(*args: object, **kwargs: object) -> None:
+        if after_write:
+            original(*args, **kwargs)
+        raise OSError("injected writer failure")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(module, writer_name, fail)
+        with pytest.raises(OSError, match="injected writer failure"):
+            _write_combined_fixture(tmp_path, paths)
+    assert all(not path.exists() for path in _combined_destinations(paths))
+    assert list(tmp_path.rglob("*.tmp")) == []
+    assert list(tmp_path.rglob(".hebog-combined-*")) == []
+    rms_bytes = (tmp_path / "rms.fits").read_bytes()
+    first = _write_combined_fixture(tmp_path, paths)
+    assert _write_combined_fixture(tmp_path, paths) == first
+    assert first.result.catalogue.path == paths.catalogue
+    assert first.rapthor_catalogue.path == paths.rapthor_catalogue
+    assert (tmp_path / "rms.fits").read_bytes() == rms_bytes
+
+
+def test_combined_result_validation_publishes_nothing(tmp_path: Path) -> None:
+    """Even result-record validation must precede final publication."""
+    paths = _combined_paths(tmp_path)
+    with pytest.raises(ValueError, match="wall_seconds"):
+        _write_combined_fixture(tmp_path, paths, wall_seconds=-1.0)
+    assert all(not path.exists() for path in _combined_destinations(paths))
+    _write_combined_fixture(tmp_path, paths)
+
+
+@pytest.mark.parametrize("same_size", (False, True))
+def test_combined_conflict_keeps_existing_bytes_and_no_new_outputs(
+    tmp_path: Path,
+    same_size: bool,
+) -> None:
+    """A late conflicting destination cannot strand earlier new products."""
+    paths = _combined_paths(tmp_path)
+    paths.rapthor_catalogue.parent.mkdir()
+    expected = write_rapthor_catalogue_fits(
+        tmp_path / "expected.fits", _catalogue(position_epoch="J2000")
+    )
+    previous = (
+        b"x" * expected.byte_count if same_size else b"previous caller product"
+    )
+    paths.rapthor_catalogue.write_bytes(previous)
+    with pytest.raises(MaterializedProductConflictError):
+        _write_combined_fixture(tmp_path, paths)
+    assert paths.rapthor_catalogue.read_bytes() == previous
+    assert all(
+        not path.exists() for path in _combined_destinations(paths)[:-1]
+    )
+
+
+def test_combined_publication_failure_preserves_reused_products(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Rollback preserves existing files and removes only this call's files."""
+    paths = _combined_paths(tmp_path)
+    first = _write_combined_fixture(tmp_path, paths)
+    for path in _combined_destinations(paths)[1:]:
+        path.unlink()
+    catalogue_bytes = paths.catalogue.read_bytes()
+    rms_bytes = first.result.rms.path.read_bytes()
+    original = Path.hardlink_to
+
+    def fail(self: Path, target: Path) -> None:
+        if self == paths.rapthor_catalogue:
+            raise OSError("injected publication failure")
+        original(self, target)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "hardlink_to", fail)
+        with pytest.raises(OSError, match="injected publication failure"):
+            _write_combined_fixture(tmp_path, paths)
+    assert paths.catalogue.read_bytes() == catalogue_bytes
+    assert first.result.rms.path.read_bytes() == rms_bytes
+    assert all(not path.exists() for path in _combined_destinations(paths)[1:])
+    assert _write_combined_fixture(tmp_path, paths) == first
+
+
+@pytest.mark.parametrize("failure_index", range(4))
+def test_combined_publication_interruption_removes_new_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure_index: int
+) -> None:
+    """A caught interruption at any publication step leaves no partial set."""
+    paths = _combined_paths(tmp_path)
+    destinations = _combined_destinations(paths)
+    original = Path.hardlink_to
+
+    def interrupt(self: Path, target: Path) -> None:
+        if self == destinations[failure_index]:
+            raise KeyboardInterrupt("injected interruption")
+        original(self, target)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "hardlink_to", interrupt)
+        with pytest.raises(KeyboardInterrupt, match="injected interruption"):
+            _write_combined_fixture(tmp_path, paths)
+    assert all(not path.exists() for path in destinations)
+    assert list(tmp_path.rglob(".hebog-combined-*")) == []
+    _write_combined_fixture(tmp_path, paths)
+
+
+def test_combined_rollback_does_not_delete_a_replaced_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A removed or independently replaced inode is not owned by rollback."""
+    paths = _combined_paths(tmp_path)
+    original = Path.hardlink_to
+
+    def replace_then_fail(self: Path, target: Path) -> None:
+        if self == paths.rapthor_catalogue:
+            paths.catalogue.unlink()
+            paths.mask.unlink()
+            paths.mask.write_bytes(b"independent replacement")
+            raise OSError("injected replacement")
+        original(self, target)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "hardlink_to", replace_then_fail)
+        with pytest.raises(OSError, match="injected replacement"):
+            _write_combined_fixture(tmp_path, paths)
+    assert paths.mask.read_bytes() == b"independent replacement"
+    assert not paths.catalogue.exists()
+    assert not paths.diagnostics.exists()
+    assert not paths.rapthor_catalogue.exists()
+    assert list(tmp_path.rglob(".hebog-combined-*")) == []
+
+
+def test_combined_staging_cleanup_failure_rolls_back_publication(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A staging cleanup error must not leave new final files after failure."""
+    paths = _combined_paths(tmp_path)
+    original = TemporaryDirectory.cleanup
+
+    def cleanup_then_fail(self: TemporaryDirectory[str]) -> None:
+        original(self)
+        raise OSError("injected staging cleanup failure")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(TemporaryDirectory, "cleanup", cleanup_then_fail)
+        with pytest.raises(OSError, match="injected staging cleanup failure"):
+            _write_combined_fixture(tmp_path, paths)
+    assert all(not path.exists() for path in _combined_destinations(paths))
+    _write_combined_fixture(tmp_path, paths)
+
+
 def test_diagnostics_reader_rejects_corrupt_or_unsupported_json(
     tmp_path: Path,
 ) -> None:
@@ -857,11 +1489,18 @@ def test_diagnostics_reader_rejects_corrupt_or_unsupported_json(
     with pytest.raises(InvalidMaterializedProductError, match="canonical"):
         read_diagnostics_product(path)
 
+    path.write_text(
+        json.dumps(_continuum_diagnostics().model_dump(mode="json"), indent=2),
+        encoding="utf-8",
+    )
+    with pytest.raises(InvalidMaterializedProductError, match="canonical"):
+        read_diagnostics_product(path)
+
     with pytest.raises(InvalidMaterializedProductError, match="diagnostics"):
         read_diagnostics_product(tmp_path / "missing.json")
 
     document = _diagnostics().model_dump(mode="json")
-    document["schema_version"] = 2
+    document["schema_version"] = 999
     path.write_text(json.dumps(document), encoding="utf-8")
     with pytest.raises(UnsupportedMaterializedProductError, match="schema"):
         read_diagnostics_product(path)

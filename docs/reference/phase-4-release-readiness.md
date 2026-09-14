@@ -375,8 +375,10 @@ families fail together. A follow-on evaluator must preserve missing sources
 in completeness and availability denominators while calculating each other
 endpoint independently; the historical decision remains unchanged.
 
-The authoritative plan now defines a separate
-[Phase 4R compact-measurement recovery milestone](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md#phase-4r-compact-measurement-scientific-recovery).
+The durable
+[execution history](https://github.com/gemmadanks/hebog/blob/main/LOG.md)
+records the separately governed Phase 4R compact-measurement recovery
+milestone.
 It requires TDD on analytic and independently seeded development/regression
 data, a direction-aware registry covering gated and report-only metrics, a
 nested beam-constrained/free fit selected by data-only identifiability and

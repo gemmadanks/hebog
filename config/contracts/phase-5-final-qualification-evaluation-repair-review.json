@@ -1,0 +1,132 @@
+{
+  "authorization": {
+    "campaign_reexecution_authorized": false,
+    "compilation_authorized": false,
+    "cutover_authorized": false,
+    "evaluation_authorized": false,
+    "execution_authorized": false,
+    "named_review": null,
+    "next_decision_path": "config/contracts/phase-5-final-qualification-evaluation-repair-decision.json",
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false
+  },
+  "campaign": {
+    "image_count": 1688,
+    "path": "benchmark-results/phase-5/final-qualification-comparison/campaign.json",
+    "request_sha256": "eebb6d793b0ee4532db2393bf06468df53dbc9521092cc8fb6e2340be7194726",
+    "run_count": 8440,
+    "sha256": "4badb8e1bb8b141c654ede168d6e75e93514dee1ae41e4ccad710fefde3f3e08"
+  },
+  "frozen_composition": {
+    "candidate": {
+      "configuration_sha256": "0e5dde51dfd2df84cdf71c3da34449b96c6999f517d781e1aaaec48ebb485a94",
+      "revision": "90626641c8705ba9d55fdea02a705983528b8aa0",
+      "source_tree_sha256": "e4307246efa7db3ec941b3906f8ce443404b8b84cdc78aa89881e738850cdf8a"
+    },
+    "identity_artifacts": [
+      {
+        "path": "config/contracts/phase-5-final-qualification-comparison.json",
+        "sha256": "f850ec57dad81066f28f1d4bb2e2f0420979ac1dd6f679b1e9e718c800e9ac79"
+      },
+      {
+        "path": "config/contracts/phase-5-final-qualification-population.json",
+        "sha256": "4a52f55114962d24d6371b166d393c3421a74156fa1c48305931fb39a631e5ac"
+      },
+      {
+        "path": "config/contracts/phase-5-final-qualification-endpoint-registry.json",
+        "sha256": "c34b51a9485898f2d91df48739c5ba4399469870ea8e3d988704c3d897d57f58"
+      },
+      {
+        "path": "config/contracts/phase-5-final-qualification-evaluation.json",
+        "sha256": "4b05d7920d6b42c65c912b56765f5f396d9ec7d710a0e56e6829f66109fd751d"
+      },
+      {
+        "path": "config/contracts/phase-5-final-qualification-execution-decision.json",
+        "sha256": "0c0989222c41ede47e7861833d9d6074b2aed5bdf9850aaea1e1c8898d7f1ee3"
+      },
+      {
+        "path": "config/contracts/phase-5-final-qualification-identity-review.json",
+        "sha256": "42ad623779c381ae69532af1cdc3e9063f7229154f28209e2c1da36199280197"
+      },
+      {
+        "path": "scripts/validation/compile_phase5_final_qualification_campaign.py",
+        "sha256": "c2b7f3ac3b072ba1c250cd27c917495cab3ba517cfb86a9102d06c763b66b165"
+      },
+      {
+        "path": "scripts/validation/evaluate_phase5_final_qualification_decision.py",
+        "sha256": "558e29574287aef6bee348fb37c329b7dab2f115ff42c481d3a1019d3f713560"
+      }
+    ]
+  },
+  "implementation": {
+    "commit": "b6ce3cdd49d3e51f2d1437cea3d4d4a4d79d056c",
+    "implementation_decision": {
+      "path": "config/contracts/phase-5-final-qualification-evaluation-repair-implementation-decision.json",
+      "sha256": "bec708fee36850c55ff28080815200e0307775c4f1a46060c728c2ab1c3ed5a1"
+    },
+    "pre_review": {
+      "path": "config/contracts/phase-5-final-qualification-evaluation-repair-pre-review.json",
+      "sha256": "8cff6163c4f0ebc3325b0c9c801e099e198ae8bb43b070618e2e0a914e546917"
+    },
+    "repair_compiler": {
+      "path": "scripts/validation/compile_phase5_final_qualification_repair.py",
+      "sha256": "42ac2a96f20a305e17340afd8735e780d6fc4d293f15ea3db37e2948a98d0848"
+    },
+    "repair_evaluator": {
+      "path": "scripts/validation/evaluate_phase5_final_qualification_repair.py",
+      "sha256": "f4396a8ad366789134aca45b7f15151339d5bb3a3f4baac34bb37b9d30d71386"
+    },
+    "tree": "fa7e1a07897acea92689f1eeab3b052ac3ca0147"
+  },
+  "outputs": {
+    "analysis_path": "benchmark-results/phase-5/final-qualification-analysis.json",
+    "analysis_state": "absent",
+    "decision_path": "benchmark-results/phase-5/final-qualification-decision.json",
+    "decision_state": "absent"
+  },
+  "population": {
+    "binding_run_count": 5064,
+    "continuum_image_count": 1688,
+    "image_count": 1688,
+    "terminal_run_count": 8440
+  },
+  "review_id": "phase-5-final-qualification-evaluation-repair-review",
+  "reviewed_on": "2026-08-26",
+  "runtime_images": [
+    {
+      "dependency_inventory_sha256": "d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2",
+      "digest": "sha256:132f1c3da7f353edc642e9bc2e6108aff8a1dbf6f9a5556f50144db864114363",
+      "finder_id": "hebog",
+      "image_id": "e7f1ce9e9b26f6e29a14e75833bcec52e56b95ce58102f2905c3623f9902632c"
+    },
+    {
+      "dependency_inventory_sha256": "8211043e9fca55d706d1e890e2bf0b630e228a854db0949258c498506975669f",
+      "digest": "sha256:5310afe78c8fc09ed99ddee1c6978e5e32181b69f1d22432a02ef6e3a6761198",
+      "finder_id": "released-pybdsf",
+      "image_id": "43a6513865a597285dc1bf473e27fc69fdd86fb143c35a24144eb6c1152bb36e"
+    },
+    {
+      "dependency_inventory_sha256": "83574dd4c15d79f3cf2ac52fb8aa7b5bd2ff323c93343b2f1337eec938e8bf99",
+      "digest": "sha256:0e6d932416479bb7d7763fe2e025ea9fbbd0d0548a6f156b2cdd881766690c75",
+      "finder_id": "pinned-pybdsf-master",
+      "image_id": "0360fbbfe42fe13aea1559f5603e4fcf4c51c84f7ad5fd201ba8fd76a88df087"
+    },
+    {
+      "dependency_inventory_sha256": "346c1f32b0d78ce1d22f6d6ff20787a102d8491c14432865465596c9f41ba909",
+      "digest": "sha256:dcac8e646ff5ea6d11d314c5c7a51fb0c3ca710165934ad2ddf0ac3f999131b0",
+      "finder_id": "aegean",
+      "image_id": "9e79e24b2460596a57a8ebba5c3987fa636886631579ef333ad46b801b3a86b8"
+    }
+  ],
+  "schema_version": 1,
+  "scientific_scope": {
+    "campaign_changed": false,
+    "candidate_or_runtime_changed": false,
+    "endpoints_or_gates_changed": false,
+    "population_or_power_changed": false,
+    "scientific_products_inspected": false
+  },
+  "status": "ready-for-named-final-qualification-evaluation-repair-approval"
+}

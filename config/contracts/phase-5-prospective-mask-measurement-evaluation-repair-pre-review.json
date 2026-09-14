@@ -1,0 +1,47 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "evaluation_only_repair_authorized": true,
+    "fresh_qualification_authorized": false,
+    "full_cumulative_replay_authorized_only_after_replacement_smoke_passes": true,
+    "release_authorized": false,
+    "rescoring_closed_evidence_authorized": false,
+    "reuse_exact_sealed_products_authorized": true,
+    "threshold_or_margin_tuning_authorized": false
+  },
+  "binding_evidence": {
+    "candidate_configuration_sha256": "24663a15309a0b1236ddccfc1491145229a9441c3510c351f8e20cd7c29a7a06",
+    "candidate_product_set_canonical_sha256": "02a17815187fcce129fdb931f977bf14815e6d614d8e9bcfde5ed50808ac4f5c",
+    "candidate_revision": "b8d57a6fa9d710b210ef047403f8fc873a334fef",
+    "candidate_source_tree_sha256": "53ef45860749f40dfa3ac2629609512d624fc556c2c0fa665aa134cf62f8b320",
+    "failed_evaluator_sha256": "18231d537f65f10cb91766b9b6c7c9d133c6e1c00eab590118e4a5949de88822",
+    "incumbent_product_set_canonical_sha256": "1c76f7392156edb57195580ee5ff930dd66594d854cc43421c5dffbad006ec27",
+    "incumbent_revision": "85d580713664b962ae256a98b065849cf8eb9283",
+    "selected_input_count": 128
+  },
+  "decision_id": "phase-5-prospective-mask-measurement-evaluation-repair-pre-review",
+  "exact_user_authority": "Please complete all tasks required for running the next cumulative replay. Review the code and tests, close any gaps and fix bugs or make improvements as needed then run the replay and evaluate the results.",
+  "failure": {
+    "atomic_output_published": false,
+    "candidate_products_changed": false,
+    "error": "ValueError: associated source membership cannot be verified",
+    "location": "hebog.validation.parent_construction_association_evaluation._recorded_support_labels",
+    "stage": "current-smoke-compilation-after-complete-product-verification"
+  },
+  "root_cause": {
+    "historical_assumption": "The association measurement labels and native published labels were one identical plane, so every claimed measurement label had to be present in the published mask.",
+    "new_contract": "The reviewed candidate deliberately preserves a stable measurement-label partition while publishing a separately refined mask. A verified measurement component can therefore contribute no published-mask pixel without disappearing from the catalogue.",
+    "why_science_is_unchanged": "The exact catalogue, association sidecar, label plane, detection mask, source tree, configuration, selected population, comparators, thresholds, margins, and gates are unchanged. Only evaluation dispatch is repaired."
+  },
+  "scientific_safety_requirements": [
+    "independently verify all component and associated-source identities",
+    "require exact one-to-one catalogue membership coverage",
+    "reject duplicate component-label ownership",
+    "reject every positive published-mask label not claimed by the verified measurement partition",
+    "allow a verified measurement component to have zero pixels in the separately refined published mask",
+    "restore the frozen historical evaluation seam after current and incumbent compilation, including exceptional exits",
+    "publish only to the still-absent write-once smoke output"
+  ],
+  "schema_version": 1,
+  "status": "reviewed-before-evaluation-repair"
+}

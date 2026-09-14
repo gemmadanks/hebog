@@ -1,0 +1,30 @@
+{
+  "authorization_boundary": {
+    "campaign_reexecution_authorized": false,
+    "compilation_authorized": false,
+    "cutover_authorized": false,
+    "evaluation_authorized": false,
+    "implementation_authorized": true,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false
+  },
+  "campaign": {
+    "path": "benchmark-results/phase-5/final-qualification-comparison/campaign.json",
+    "request_sha256": "eebb6d793b0ee4532db2393bf06468df53dbc9521092cc8fb6e2340be7194726",
+    "sha256": "4badb8e1bb8b141c654ede168d6e75e93514dee1ae41e4ccad710fefde3f3e08"
+  },
+  "decision_id": "phase-5-final-qualification-evaluation-repair-implementation-decision",
+  "named_review": {
+    "approval": "I approve the Phase 5 final-qualification evaluation-repair pre-review SHA-256 8cff6163c4f0ebc3325b0c9c801e099e198ae8bb43b070618e2e0a914e546917 and its recommendations. This authorizes implementation and validation of the evaluation-only repair and freezing of exact repair identities against existing campaign 4badb8e1bb8b141c654ede168d6e75e93514dee1ae41e4ccad710fefde3f3e08. It does not authorize compilation, evaluation, campaign reexecution, optimization, tuning, rescoring, cutover, or release.",
+    "reviewed_on": "2026-08-26",
+    "reviewer": "Gemma Danks"
+  },
+  "pre_review": {
+    "path": "config/contracts/phase-5-final-qualification-evaluation-repair-pre-review.json",
+    "sha256": "8cff6163c4f0ebc3325b0c9c801e099e198ae8bb43b070618e2e0a914e546917"
+  },
+  "schema_version": 1,
+  "status": "reviewed-before-evaluation-repair-implementation"
+}

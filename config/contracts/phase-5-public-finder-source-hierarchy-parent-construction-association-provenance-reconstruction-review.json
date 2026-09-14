@@ -1,0 +1,73 @@
+{
+  "authorization": {
+    "another_campaign_authorized": false,
+    "candidate_execution_authorized": false,
+    "compilation_authorized": false,
+    "cutover_authorized": false,
+    "evaluation_authorized": false,
+    "fresh_qualification_authorized": false,
+    "provenance_reconstruction_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false,
+    "viewed_public_execution_authorized": false
+  },
+  "candidate": {
+    "configuration_sha256": "88634678d7b24c9d9d47a5ba714c66fcc627c8a201b9639b133e326cd1c72484",
+    "preserved_product_count": 2400,
+    "preserved_product_set_sha256": "b81cb3d47d7db5ac45c66893445bd5d25711af88372566bbe979a6bce9a0fc87",
+    "revision": "5f2b09880dc10feb6ffaec50ffcf3c807a093416",
+    "source_tree_sha256": "a7ef1887bcaeb15abf48722d45de33f81d8be65d58fde19861bf0ece90b4dba8"
+  },
+  "exact_invocation": {
+    "closed_component_baseline_ledger": "benchmark-results/phase-5/cumulative-regression-ledger-recovery.json",
+    "failed_ledger": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-hierarchy-parent-construction.json",
+    "preserved_scratch": "/private/tmp/hebog-phase5-public-finder-source-hierarchy-parent-construction-5f2b098",
+    "reference_reconstruction": "benchmark-results/phase-5/viewed-reference-reconstruction-public-finder-correction",
+    "staging": "benchmark-results/phase-5/.parent-construction-association-provenance-reconstruction.staging",
+    "terminal": "benchmark-results/phase-5/parent-construction-association-provenance-reconstruction",
+    "workers": 2
+  },
+  "execution_boundary": {
+    "continuum_association_compositions": 1600,
+    "maximum_executions": 1,
+    "minimum_host_headroom_bytes": 21474836480,
+    "regenerated_candidate_products_retained": false,
+    "regenerated_product_verification": "exact-sha256-against-every-preserved-catalogue-label-and-mask",
+    "retained_output": "source-association-json-sidecars-and-provenance-records-only"
+  },
+  "immutable_implementation": {
+    "commit": "8a3314dba38e9e4960a43272db4e0e53cca9ffbc",
+    "evaluation_overlay_sha256": "74d16cc49f65bf5a353acc67a830dd2d175b8be2635062cca64581cfaa966962",
+    "failure_sha256": "1a391c240a957f4a41684ce2d6c19cef9d6a210239592aef460e00e8e476355a",
+    "frozen_parent_wrapper_sha256": "053fc6479d75a9f11e97cc2ec6f7de41610c5c03083bd81ce01ca47ef104c8d7",
+    "frozen_recovery_compiler_sha256": "ab690dda67126e8cc1eeec57f426c73ee5244ba33922d1af6f4e8d5a5c07e0f6",
+    "frozen_source_association_evaluator_sha256": "b46167deff074d48540a88949ef6fcf86b474aa6a1c7806b357e919cc497eb49",
+    "implementation_decision_sha256": "d15f87e47b33326c529b89ed7cad09530fbfafe5ed64d239cd0e13062bd0ceec",
+    "pre_review_sha256": "bfc1e594bd59b55a1fca18ac19e5d903685fe006943652fbe3e438630e12c6af",
+    "reconstruction_program_sha256": "e8dd80cbc8d84fcaa8d3fb2703466c701dd5ad5dfc01ef64eaa43426b43c5f24",
+    "tree": "13b89e0a938921e93fe225bf0ebe9ddab4939964"
+  },
+  "reference_evidence": {
+    "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+    "reconstructed_reference_terminal_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+    "verified_reference_run_count": 9600
+  },
+  "required_next_decision": "named-one-reconstruction-approval-bound-to-this-review-sha256-and-the-exact-verified-composition",
+  "review_id": "phase-5-public-finder-source-hierarchy-parent-construction-association-provenance-reconstruction-review",
+  "reviewed_on": "2026-08-30",
+  "schema_version": 1,
+  "status": "ready-for-named-association-provenance-reconstruction-approval",
+  "verification": {
+    "candidate_runs_executed": 0,
+    "compilation_started": false,
+    "evaluation_started": false,
+    "failed_ledger_absent": true,
+    "host_headroom_gibibytes_at_review": 59,
+    "no_write_preflight": "pass",
+    "reconstruction_started": false,
+    "staging_absent": true,
+    "terminal_absent": true,
+    "verified_input_count": 2400
+  }
+}

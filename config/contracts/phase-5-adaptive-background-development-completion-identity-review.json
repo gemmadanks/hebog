@@ -1,0 +1,77 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "coarse_control_execution_authorized": false,
+    "cutover_authorized": false,
+    "development_lane_completion_authorized": false,
+    "existing_dask_comparison_execution_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "replay_authorized": false,
+    "rescoring_authorized": false,
+    "source_finding_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "candidate": {
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "entrypoint": "hebog.find_sources",
+    "revision": "937737d811dd229d71dbcfdbda6cb5829de6faca",
+    "source_tree_sha256": "9f8e4a67f0c74ac86bff4f398811a7d64620fb70512b118c0ad3bb1eb58644c8"
+  },
+  "decision_id": "phase-5-adaptive-background-development-completion-identity-review",
+  "expected_completion": {
+    "candidate_execution_count": 0,
+    "coarse_control_execution_count": 0,
+    "existing_dask_comparison_execution_count": 12,
+    "input_count": 144,
+    "output": "benchmark-results/phase-5/adaptive-background-development-decision.json",
+    "scratch": "/private/tmp/hebog-phase5-adaptive-background-development-937737d",
+    "workers": 2
+  },
+  "expected_execution_sha256": "030973d22542a751a0cb598ebbdb699f2a75515e6e548b12a5ef74e0ceae8dfe",
+  "original_lane": {
+    "execution_decision_sha256": "fc804d7d90d5a546425cebd9935d8c16f1877701fd8efd82992d1dbe4c4a4d25",
+    "identity_review_sha256": "f9ccef67d942494c6ba1358f15ea09f02343a4f3dd930b2167f68ba5427cd5ba",
+    "manifest_sha256": "77203f85930a99ffbb5490f93db7073cab434b42c8350d6da864625efd09946b",
+    "repair_pre_review_sha256": "d61b9643427a01094a7f8377e98930f2e8a102060e49b34e9cf4edf12238577f"
+  },
+  "preserved_results": {
+    "artifact_count": 8496,
+    "input_count": 144,
+    "product_set_sha256": "c9212f3a696b052cb1b6b91b420d9236e15df541d0b48cebd97a179c1691f24e",
+    "progress_line_count": 0,
+    "scratch": "/private/tmp/hebog-phase5-adaptive-background-development-937737d"
+  },
+  "program_bindings": {
+    "completion": {
+      "path": "scripts/validation/complete_phase5_adaptive_background_development.py",
+      "sha256": "8f7c96198307a543f98906942483441888f5d276f4d7581239943ce8e3697d75"
+    },
+    "parent_runner": {
+      "path": "scripts/validation/run_phase5_adaptive_background_development.py",
+      "sha256": "d7b4b728622b6455ff8aafe523a52c9efb6a58a3f97a3157cc6fc2ed49423df6"
+    }
+  },
+  "runtime": {
+    "installed": {
+      "dependency_inventory_sha256": "10788ccd1804f6280454cc5c2386a1551eef084c2b40908f513e365c266f43b6",
+      "python_implementation": "CPython",
+      "python_version": "3.14.2"
+    },
+    "source_files": {
+      "python_version": {
+        "path": ".python-version",
+        "sha256": "a876e0b10411037a012498b9fe18d9bc1df32ed8b722a13564dc944ddcfd9135"
+      },
+      "uv_lock": {
+        "path": "uv.lock",
+        "sha256": "c81a9831ec545b2d7797e1c0951ad46e0e23337b97866ced0ae27e290dfd71ff"
+      }
+    }
+  },
+  "schema_version": 1,
+  "status": "frozen-non-executable"
+}

@@ -1,0 +1,52 @@
+{
+  "approved_reconstruction": {
+    "decision": {
+      "path": "config/contracts/phase-5-public-finder-correction-reference-reconstruction-decision.json",
+      "sha256": "cc22c7736fab3a3e6c1e84e3e3426e952df40651706e0b69d1dd2da8bfc5b660"
+    },
+    "maximum_executions": 1
+  },
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "reference_reconstruction_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false
+  },
+  "historical_producer": {
+    "commit": "a000db45102f218d0394dda32048714e74620491",
+    "decision_sha256": "b35f4a811827df8960c22484193e9198d547bbb0e588e5b215d1f8d9ed66865f",
+    "program_sha256": "81faad486ddb306e175a7ddd8c1c281a2e498cd30bb60f3e43c7b6e791cd0126",
+    "source_tree_sha256": "b4176ce387fa1569cc86ca300bfa7de6462758a1068de46cd4a16616a6ec3adc",
+    "tree": "fd4bec6a91419931189055112dce58f781773c5f"
+  },
+  "replay_state": {
+    "cumulative_replay_authorized": false,
+    "output_path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-correction.json",
+    "scratch_path": "/private/tmp/hebog-phase5-public-finder-correction-reference-repair-b1d59e5"
+  },
+  "review_id": "phase-5-public-finder-correction-reference-reconstruction-review",
+  "schema_version": 1,
+  "status": "verified-reference-reconstruction-terminal",
+  "terminal": {
+    "completed_at": "2026-08-27T10:35:36.357981+00:00",
+    "input_bundle_set_sha256": "8a09a5665db456d73dd903cc467a769445fa092d0bc74dc93804d1b8306dd33b",
+    "path": "benchmark-results/phase-5/viewed-reference-reconstruction-public-finder-correction",
+    "recovery_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+    "reference_result_set_sha256": "d6d88605a9ca326b14a1f78267c69c57571a8dcca7b0717e37a3b24964a7864c",
+    "request_sha256": "1e5adfc2f2cca98e622b4605be9dc2a2707dfb7a4e5c1ab55999b0a2b14dc63d"
+  },
+  "verification": {
+    "candidate_runs_executed": 0,
+    "runtime_identities_exact": true,
+    "runtime_image_count": 4,
+    "terminal_identity_exact": true,
+    "verified_input_count": 2400,
+    "verified_reference_run_count": 9600
+  }
+}

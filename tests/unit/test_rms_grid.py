@@ -255,6 +255,84 @@ def test_estimates_an_affine_background_from_vectorised_window_blocks() -> (
         statistics.background[0, 0] = 0.0
 
 
+def test_protected_pixels_reject_whole_intersecting_windows() -> None:
+    """Source support never contributes partially to a fine-grid statistic."""
+    image = np.tile(np.array([-1.0, 1.0]), 50).reshape(10, 10)
+    grid = plan_rms_grid(
+        image_shape_yx=image.shape,
+        window_shape_yx=(4, 4),
+        step_yx=(3, 3),
+    )
+    batch = plan_rms_window_batches(grid, maximum_cells=16)[0]
+    protected = np.zeros(batch.read_bounds.shape_yx, dtype=np.bool_)
+    protected[3, 3] = True
+
+    result = estimate_rms_grid_batch(
+        image,
+        np.ones(image.shape, dtype=np.bool_),
+        grid,
+        batch,
+        _statistics_config(),
+        protected_pixels=protected,
+    )
+    assembled = assemble_rms_grid_statistics(grid, (result,))
+
+    expected = np.array(
+        [[False, False, True], [False, False, True], [True, True, True]]
+    )
+    np.testing.assert_array_equal(assembled.available, expected)
+    assert assembled.protected_window_count == 4
+    assert np.isnan(assembled.background[~expected]).all()
+    assert np.all(assembled.retained_sample_count[~expected] == 0)
+
+
+def test_protected_window_shape_must_match_the_bounded_batch() -> None:
+    """A misaligned protection product fails before statistics are used."""
+    image = np.ones((6, 6), dtype=np.float64)
+    grid = plan_rms_grid(
+        image_shape_yx=image.shape,
+        window_shape_yx=(4, 4),
+        step_yx=(2, 2),
+    )
+    batch = plan_rms_window_batches(grid, maximum_cells=4)[0]
+
+    with pytest.raises(ValueError, match="protected pixels"):
+        estimate_rms_grid_batch(
+            image,
+            np.ones(image.shape, dtype=np.bool_),
+            grid,
+            batch,
+            _statistics_config(),
+            protected_pixels=np.zeros((5, 6), dtype=np.bool_),
+        )
+
+
+def test_fully_protected_fine_grid_falls_back_to_coarse_science() -> None:
+    """No source-free fine cell can invent an adaptive estimate."""
+    image = np.tile(np.array([-1.0, 1.0]), 18).reshape(6, 6)
+    grid = plan_rms_grid(
+        image_shape_yx=image.shape,
+        window_shape_yx=(4, 4),
+        step_yx=(2, 2),
+    )
+    batch = plan_rms_window_batches(grid, maximum_cells=4)[0]
+    result = estimate_rms_grid_batch(
+        image,
+        np.ones(image.shape, dtype=np.bool_),
+        grid,
+        batch,
+        _statistics_config(),
+        protected_pixels=np.ones(image.shape, dtype=np.bool_),
+    )
+    statistics = assemble_rms_grid_statistics(grid, (result,))
+    prepared = prepare_rms_grid_for_interpolation(statistics)
+
+    assert statistics.protected_window_count == grid.cell_count
+    assert not np.any(statistics.available)
+    assert not prepared.scientifically_available
+    assert prepared.fallback_cell_count == 0
+
+
 def test_assembly_is_independent_of_batch_completion_order() -> None:
     """Canonical cell indices, not executor order, determine the grid."""
     image = np.arange(18 * 20, dtype=np.float64).reshape(18, 20)
@@ -459,6 +537,47 @@ def test_all_invalid_grid_produces_explicitly_unavailable_nan_tile() -> None:
     assert not tile.scientifically_available
     assert np.isnan(tile.background).all()
     assert np.isnan(tile.rms).all()
+
+
+def test_fine_noise_edge_extension_is_positive_and_tile_invariant() -> None:
+    """A positive noisy grid cannot extrapolate into zero edge noise."""
+    yy, xx = np.mgrid[:40, :48]
+    image = -2 + 0.01 * yy + np.where((xx + yy) % 2, -1.0, 1.0)
+    grid = plan_rms_grid(
+        image_shape_yx=image.shape, window_shape_yx=(12, 12), step_yx=(6, 6)
+    )
+    statistics = _estimate_grid(
+        _ArrayImageSource(image), grid, maximum_batch_cells=8
+    )
+    prepared = prepare_rms_grid_for_interpolation(statistics)
+    values = np.ones(grid.shape_yx)
+    values[0, 0] = 0.1
+    values.setflags(write=False)
+    prepared = replace(prepared, rms=values)
+    bounds = ImageBounds(0, 40, 0, 48)
+    valid = np.ones(image.shape, dtype=np.bool_)
+    coarse_policy = interpolate_prepared_rms_grid(prepared, bounds, valid)
+    actual = interpolate_prepared_rms_grid(
+        prepared, bounds, valid, extrapolate_rms=False
+    )
+    assert coarse_policy.rms[0, 0] == 0
+    assert actual.rms[0, 0] == 0.1
+    assert np.all(actual.rms >= 0.1)
+    np.testing.assert_array_equal(actual.background, coarse_policy.background)
+    for corner in (ImageBounds(0, 13, 0, 19), ImageBounds(23, 40, 29, 48)):
+        subset = subset_prepared_rms_grid(prepared, corner)
+        tile = interpolate_prepared_rms_grid(
+            subset,
+            corner,
+            np.ones(corner.shape_yx, dtype=np.bool_),
+            extrapolate_rms=False,
+        )
+        np.testing.assert_array_equal(
+            tile.rms,
+            actual.rms[
+                corner.y_start : corner.y_stop, corner.x_start : corner.x_stop
+            ],
+        )
 
 
 def test_interpolation_rejects_misaligned_tile_validity() -> None:

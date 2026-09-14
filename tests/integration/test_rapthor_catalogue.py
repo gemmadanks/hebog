@@ -21,6 +21,10 @@ from hebog.adapters.rapthor_catalogue import (
     read_rapthor_catalogue_fits,
     write_rapthor_catalogue_fits,
 )
+from hebog.algorithms.compact_preservation import (
+    preserve_unassociated_compact_catalogue,
+)
+from hebog.data_models.catalogue_construction import CompletedCompactCatalogue
 from hebog.data_models.catalogues import (
     FluxMeasurement,
     GaussianShape,
@@ -30,6 +34,7 @@ from hebog.data_models.catalogues import (
     SourceCatalogue,
     SpectralModel,
 )
+from hebog.data_models.multiscale import CrossScaleAssociation
 from hebog.io.materialization import MaterializedProductConflictError
 
 pytestmark = pytest.mark.integration
@@ -260,6 +265,46 @@ def test_rapthor_view_is_restart_deterministic_and_conflict_safe(
     changed = _catalogue().model_copy(update={"catalogue_id": "changed"})
     with pytest.raises(MaterializedProductConflictError, match="different"):
         write_rapthor_catalogue_fits(path, changed)
+
+
+def test_extended_only_evidence_preserves_exact_rapthor_catalogue_bytes(
+    tmp_path: Path,
+) -> None:
+    """The no-op Phase 5 seam retains the Phase 4 compatibility product."""
+    compact = CompletedCompactCatalogue(
+        catalogue=_catalogue(),
+        shard_count=2,
+        reduction_depth=1,
+        maximum_shard_record_count=1,
+    )
+    association = CrossScaleAssociation(
+        association_id="scale-association-0001",
+        scale_detection_ids=("scale-detection-0001",),
+        compact_source_ids=(),
+        selected_scale_detection_id="scale-detection-0001",
+        contributing_scale_orders=(1, 2),
+        relationship="extended-only",
+    )
+    before = write_rapthor_catalogue_fits(
+        tmp_path / "compact-before.fits",
+        compact.catalogue,
+    )
+
+    preserved = preserve_unassociated_compact_catalogue(
+        compact,
+        associations=(association,),
+    )
+    after = write_rapthor_catalogue_fits(
+        tmp_path / "compact-after.fits",
+        preserved.catalogue,
+    )
+
+    assert preserved is compact
+    assert before.byte_count == after.byte_count
+    assert before.content_sha256 == after.content_sha256
+    assert (tmp_path / "compact-before.fits").read_bytes() == (
+        tmp_path / "compact-after.fits"
+    ).read_bytes()
 
 
 def test_reader_rejects_noncanonical_schema(tmp_path: Path) -> None:

@@ -34,6 +34,7 @@ class GaussianFitUncertainty:
     centroid_covariance_xy_pixels_squared: float
     centroid_covariance_yy_pixels_squared: float
     integrated_flux_error_jy: float
+    integrated_flux_bias_correction_sigma: float = 0.0
     amplitude_integrated_flux_covariance_jy_squared_per_beam: float | None = (
         None
     )
@@ -127,6 +128,9 @@ class GaussianFitDiagnostics:
     relative_bound_distances: tuple[tuple[str, float], ...] = ()
     minimum_relative_bound_distance: float | None = None
     information_condition_number: float | None = None
+    covariance_parameterization: Literal[
+        "optimizer", "cartesian-precision"
+    ] = "optimizer"
     visible_model_fraction: float | None = None
     retained_pixel_count: int = 0
     retained_bounds_yx: tuple[int, int, int, int] | None = None
@@ -147,6 +151,8 @@ class GaussianFitDiagnostics:
         Literal[
             "correlation-model-unavailable",
             "correlation-factorization-failed",
+            "correlation-conditioning-failed",
+            "correlation-ill-conditioned",
             "retained-region-exceeds-gls-limit",
         ]
         | None
@@ -163,6 +169,16 @@ class GaussianFitDiagnostics:
 
 
 @dataclass(frozen=True, slots=True)
+class GaussianComponentFit:
+    """Independent free ellipse retained for component-catalogue semantics."""
+
+    parameters: FittedGaussianPixelParameters
+    uncertainty: GaussianFitUncertainty | None
+    diagnostics: GaussianFitDiagnostics
+    quality_flags: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class ValidCompactGaussianFit:
     """A converged fit retaining its independent moment oracle."""
 
@@ -173,16 +189,26 @@ class ValidCompactGaussianFit:
     quality_flags: tuple[str, ...]
     position_estimate: GaussianPositionEstimate | None = None
     association_aperture: AssociationAperturePhotometry | None = None
+    gaussian_component_fit: GaussianComponentFit | None = None
     status: Literal["valid"] = "valid"
 
 
 @dataclass(frozen=True, slots=True)
 class FailedCompactGaussianFit:
-    """An attempted fit that did not yield acceptable parameters."""
+    """An attempted fit that did not yield acceptable parameters.
+
+    Diagnostics are absent when numerical decomposition prevented a complete
+    validated report; unknown work counts or residuals are not fabricated.
+    """
 
     moment: ValidMomentMeasurement
-    reason: Literal["fit-non-convergence", "fit-invalid-result"]
-    diagnostics: GaussianFitDiagnostics
+    reason: Literal[
+        "fit-non-convergence",
+        "fit-invalid-result",
+        "fit-model-inadequate",
+        "fit-linear-algebra-failure",
+    ]
+    diagnostics: GaussianFitDiagnostics | None
     quality_flags: tuple[str, ...]
     status: Literal["failed"] = "failed"
 
@@ -197,6 +223,8 @@ class UnavailableCompactGaussianFit:
         "non-positive-measurement",
         "singular-covariance",
         "underdetermined-region",
+        "joint-fit-work-limit",
+        "joint-peer-unavailable",
     ]
     quality_flags: tuple[str, ...]
     status: Literal["unavailable"] = "unavailable"

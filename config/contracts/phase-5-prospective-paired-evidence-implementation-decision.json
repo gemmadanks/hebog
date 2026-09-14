@@ -1,0 +1,28 @@
+{
+  "approved_review_path": "config/contracts/phase-5-publication-scale-persistence-root-cause-pre-review.json",
+  "approved_review_sha256": "77bd4b82cc7526b5e6f1b276ea16c887428c92f1c18126071405de69a07dce82",
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "implementation_authorized": true,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "scientific_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "decision_id": "phase-5-prospective-paired-evidence-implementation-decision",
+  "implemented_scope": [
+    "prospective-cumulative-evaluator-alignment",
+    "array-free-truth-linked-diagnostic-retention",
+    "result-neutral-tail-sentinel-freeze",
+    "paired-current-terminal-parent-evidence-design",
+    "non-executable-replay-identity-freeze"
+  ],
+  "recorded_on": "2026-09-02",
+  "schema_version": 1,
+  "status": "authorized-for-evaluation-only-implementation"
+}

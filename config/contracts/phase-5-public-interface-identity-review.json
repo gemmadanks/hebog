@@ -1,0 +1,84 @@
+{
+  "algorithm_candidate": {
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "revision": "937737d811dd229d71dbcfdbda6cb5829de6faca",
+    "source_tree_sha256": "9f8e4a67f0c74ac86bff4f398811a7d64620fb70512b118c0ad3bb1eb58644c8"
+  },
+  "authorizations": {
+    "cutover": false,
+    "fresh_qualification": false,
+    "release": false,
+    "replay": false,
+    "rescoring": false,
+    "tuning": false,
+    "viewed_data_execution": false
+  },
+  "interface_file_sha256": {
+    "src/hebog/__init__.py": "2b12e6fa36c173ee0e05a27eabcdc056ca357d8a3f99baacaa75d036b78d64b4",
+    "src/hebog/config.py": "f1fa1e2f7165ed7e5d04ee491b02feb758ab3d16dad9b2ff7679445019d9ac47",
+    "src/hebog/data_models/source_finding.py": "4bf99b9997021f68b6f7855489f09efecc8984081c855e19f12dce20a56d0eb1",
+    "src/hebog/io/materialization.py": "dcafd457c659ec0cea0b10177ba6ac52dd439e24bb275ffddb67af3986344b1e",
+    "src/hebog/pipeline.py": "de31ace1214b61e8088d2c6f08e907212c55c81b3e62fa292bd70a3d7916b6e3",
+    "src/hebog/public_api.py": "fef3491f1e0497e72e3d977b2a4cc0761a5f3e7fcd3d3da034b14bb4695873a5",
+    "src/hebog/resources/phase_5_continuum_review.json": "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b"
+  },
+  "paired_regression_evidence": {
+    "all_aegean_comparisons_pass": true,
+    "all_dual_pybdsf_comparisons_pass": true,
+    "failed_incumbent_retention_comparisons": 0,
+    "file_sha256": "5bced80488199696382233d8b0d513a83922d35cdee605c8e638798ef8f6faf4",
+    "status": "incomplete-underpowered-retention",
+    "underpowered_incumbent_retention_comparisons": 4
+  },
+  "public_configuration": {
+    "continuum_is_default": true,
+    "detection_threshold_sigma": 5.0,
+    "island_threshold_sigma": 3.0,
+    "maximum_island_pixels": null,
+    "minimum_island_pixels": 7,
+    "profiles": [
+      "compact",
+      "continuum"
+    ]
+  },
+  "review_id": "phase-5-public-interface-identity-review",
+  "schema_version": 1,
+  "scientific_composition": "phase-5-publication-scale-persistence-v1",
+  "scientific_composition_sha256": "e03a0d3b8e7d19c50a09d2e6aed7a3182e6a9f97646a96c8dba1310c957cbd59",
+  "scientific_module_sha256": {
+    "hebog.algorithms.astrometry": "520359f2701515d40fafdd5b96e0117f871b9b19cf7cf13682466617caa876fd",
+    "hebog.algorithms.background": "8c79c3e73af65bb54e286ea2e4e6e111db2d5fa505edac6105922cf1fb2385fe",
+    "hebog.algorithms.detection": "a0e783ae912083ef799bf24214a6fd1d9f189c58bc682ec8d9a748fb16eee77a",
+    "hebog.algorithms.extended_measurement": "c8cddfad678a575f96e7f7554854988d4d9fd3a839a4f6cd846242afc13692d8",
+    "hebog.algorithms.labelling": "955b96f41185be15a73f445fb39d261ae5fe459aa3b583a16720fbaeaa111086",
+    "hebog.algorithms.measurement": "912a69d7e7bfb3580fb6004348791e15b6a7fd73f88015099d32a5124058e791",
+    "hebog.algorithms.multiscale": "391fad18f4af8da4cac763001c5db1688327c63ae700e9aa7e6ebcbc629cad5e",
+    "hebog.algorithms.multiscale_association": "56eebff04dba0f3020eeaad862ea534c64251ecac2bd067e631a52350a9ee53b",
+    "hebog.algorithms.reconciliation": "9f6438d692621edca51e34541212940401f1e12a78d3422e32bf4450f0e22715",
+    "hebog.algorithms.source_association": "a1bfe2896aacabe43d1ed553342766b645be9ef8063110fa16fe00342afec924",
+    "hebog.public_api": "fef3491f1e0497e72e3d977b2a4cc0761a5f3e7fcd3d3da034b14bb4695873a5",
+    "hebog.stages.background": "290d47383df6a84f2b3355bbdc70078abb9353120d120316e2943492f798667c",
+    "hebog.stages.detection": "9eacd0edc75a19a85d263a1a51d0260a7b0e0342210357e52dfa9bf2a792b4e7",
+    "hebog.validation.hebog_campaign": "db2cd1792682efef597b1ef7799c8ba885a99b42d7ab05df8c5280703a6c2c32",
+    "hebog.validation.mask_origin_sibling_pair": "70908f9ed7b69069cb3696280c304d76c9206b7c3322bf66456aab4c1eb20b0d",
+    "hebog.validation.phase_five_filter_review": "06cd8a0dfb39a23840f336023d49ab382468c5089993553c380babe89b301dcf",
+    "hebog.validation.post_campaign_science": "fcd98bc401d1f563249503fc9d672568400896c3ce3f1f43f8ec503ab17c33fd",
+    "hebog.validation.post_correction_recovery": "9343e0696426a0e8aff6022fdf88c6b6118147d362f15ed00f39374abafd71e6",
+    "hebog.validation.products": "a03e33e88a8dee32df337e498970a865107de44546de3ea93402f35395d993e7",
+    "hebog.validation.public_finder_correction": "9b469e9323e3051300dab55d59153c7c258535980bc5c87be35869c36edd2127",
+    "hebog.validation.publication_scale_persistence": "d93be8a1736fb8e2817a56fcb09270b77fe1ddaf76778c03fcc5e5c9e676e990",
+    "hebog.validation.publication_snr_repair": "fa57585713e231cda11847b868a0090abed9b3bafadc4ca8fc1d56c6d37599d5"
+  },
+  "status": "frozen-non-executable",
+  "supported_envelope": {
+    "coordinate_frame": "icrs",
+    "input_unit": "Jy/beam",
+    "maximum_dimension_pixels": 1024,
+    "output_products": [
+      "source-catalogue",
+      "rms",
+      "source-filtering-mask",
+      "diagnostics"
+    ]
+  }
+}

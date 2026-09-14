@@ -1,0 +1,35 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "evaluation_authorized": false,
+    "process_composition_repair_authorized": true,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "scientific_change_authorized": false
+  },
+  "decision_id": "phase-5-final-cumulative-current-replay-single-scan-execution-review",
+  "diagnosis": {
+    "candidate_execution_started": false,
+    "governed_output_existed": false,
+    "governed_scratch_existed": false,
+    "observed_risk": "the authorized runner verified and discarded its task plan before launching the legacy materializer CLI, which rebuilt the same plan and repeated complete reference verification",
+    "scientific_effect": "none"
+  },
+  "repair": {
+    "change": "carry the single completely verified 2400-task plan directly into the proven two-worker materialization loop",
+    "immutability": "the separate immutable-checkout preflight and the execution each verify retained evidence once; neither invocation repeats verification internally",
+    "required_validation": [
+      "bounded call-count regression proving one plan feeds materialization",
+      "focused process and product-seal tests",
+      "complete repository validation",
+      "one exact immutable-checkout complete no-write preflight"
+    ],
+    "science_and_execution_identity": "unchanged"
+  },
+  "superseded_unexecuted_records": {
+    "execution_decision_sha256": "83fda979241bb20ff082db6268f16d9f2eb7b6d0f5c191667b7686a450bf3034",
+    "identity_review_sha256": "55a3d13602256337a5457773cc74345faac61307f45459b7894c9d0bc9593017",
+    "implementation_decision_sha256": "a2fcdebc34638bbe8a436bb7881103d2564d0970963a965b04d81cd40846168b"
+  },
+  "status": "approved-process-only-single-scan-execution-repair"
+}

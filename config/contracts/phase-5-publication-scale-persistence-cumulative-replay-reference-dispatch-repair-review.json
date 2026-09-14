@@ -1,0 +1,37 @@
+{
+  "decision_id": "phase-5-publication-scale-persistence-cumulative-replay-reference-dispatch-repair-review",
+  "exact_user_authority": "Please complete all tasks required for running the next cumulative replay. Review the code and tests, close any gaps and fix bugs or make improvements as needed then run the replay and evaluate the results.",
+  "expected_execution": {
+    "candidate_configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "candidate_revision": "937737d811dd229d71dbcfdbda6cb5829de6faca",
+    "candidate_smoke_sha256": "9316882c606f66bcbf8937c4fc3f5aea331bb9ab9e8689953026016566bd9855",
+    "candidate_source_tree_sha256": "9f8e4a67f0c74ac86bff4f398811a7d64620fb70512b118c0ad3bb1eb58644c8",
+    "closed_baseline_path": "benchmark-results/phase-5/cumulative-regression-ledger-recovery.json",
+    "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+    "materializer_sha256": "40486cfbbe029b53aaeba74b4640b5851dd6bd15d2739d4d76f2ba5af406f7b1",
+    "original_execution_decision_sha256": "65e9654902503c1bbbc67336853c85a1cea3800d3240f4e409cc900c0e9639d2",
+    "output_path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-publication-scale-persistence.json",
+    "reference_reconstruction_path": "benchmark-results/phase-5/viewed-reference-reconstruction-public-finder-correction",
+    "reference_reconstruction_producer_source_tree_sha256": "b4176ce387fa1569cc86ca300bfa7de6462758a1068de46cd4a16616a6ec3adc",
+    "reference_reconstruction_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+    "scratch_path": "/private/tmp/hebog-phase5-public-finder-publication-scale-persistence-937737d",
+    "smoke_evaluator_sha256": "f17aea97cbaf83c87a7e776e3eff9dd9d9eb78fda3fab10097af98c9a96af68d",
+    "workers": 2,
+    "wrapper_sha256": "a0fe32d360ce04bfcfed6cde0e7f19b509648637e2f57c6ea1c11a651b653cc1"
+  },
+  "expected_execution_sha256": "5db66df96b3b96cb7c1210ebd5a889536b246dc756b12f823a85925204845ba6",
+  "failed_execution": {
+    "candidate_products_created": 0,
+    "original_execution_decision_sha256": "65e9654902503c1bbbc67336853c85a1cea3800d3240f4e409cc900c0e9639d2",
+    "output_created": false,
+    "scratch_byte_count": 0
+  },
+  "repair": {
+    "cause": "the full frozen command reloaded the retained-reference verifier through raw runpy after preflight, so both historical producer-source checks observed the new candidate source tree",
+    "scope": "replace only that runpy seam and expose the retained producer source identity only inside the two reconstruction checks",
+    "science_identity_changed": false,
+    "test_requirement": "exercise both the helper decision loader and reconstruction request source checks before retry"
+  },
+  "schema_version": 1,
+  "status": "reviewed-reference-dispatch-process-repair"
+}

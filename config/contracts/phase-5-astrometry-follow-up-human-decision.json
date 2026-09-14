@@ -1,0 +1,29 @@
+{
+  "approved_findings": [
+    "compact-and-irregular-position-semantics-remain-distinct",
+    "irregular-axis-0p10-and-radial-p95-0p50-gates",
+    "narrow-shell-margin-accepted-for-confirmation",
+    "position-uncertainty-remains-unavailable",
+    "one-look-confirmation-without-tuning"
+  ],
+  "candidate": "original-pixel-detected-segment-centroid",
+  "closed_confirmation_policy": "one-look-no-tuning-rescoring-or-reconfirmation",
+  "confirmation_execution_authorized": true,
+  "confirmation_manifest_sha256": "0e0c360a95044e155b489670d50de6c0ef41ccb3b314354a56388e208d2b87c7",
+  "decision": "approve-one-look-confirmation",
+  "decision_id": "phase-5-astrometry-follow-up-human-decision",
+  "development_decision_sha256": "cd6d54cf1c22daf3d68423bc931b58bb81ec192d30ec9c1472bdabcd22969c72",
+  "development_evidence_sha256": "c0a51dff38f0f7b925e5fbfaf98fabbab737ce20b22f09452826fb16ea426e23",
+  "independent_human_scientific_review_complete": true,
+  "next_action": "run-sealed-confirmation-once-and-review-before-external-comparison",
+  "optimization_authorized": false,
+  "protocol_sha256": "0fec937aeb90dec119993529af04fb5a431aeb070ab483d713abf8c91972037f",
+  "qualification_opened": false,
+  "review_source": "interactive-project-owner-approval",
+  "reviewed_on": "2026-08-09",
+  "reviewer": "Gemma Danks",
+  "schema_version": 1,
+  "status": "approved-confirmation-only",
+  "step_three_authorized": false,
+  "step_two_c_p_execution_authorized": false
+}

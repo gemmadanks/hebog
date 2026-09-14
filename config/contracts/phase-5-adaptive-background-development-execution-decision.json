@@ -1,0 +1,32 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": true,
+    "coarse_control_execution_authorized": true,
+    "cutover_authorized": false,
+    "development_lane_execution_authorized": true,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "replay_authorized": false,
+    "rescoring_authorized": false,
+    "source_finding_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "authorization_record": {
+    "approved_on": "2026-09-04",
+    "statement": "I approve exactly one two-worker Phase 5 adaptive-background development lane bound to identity review SHA-256 f9ccef67d942494c6ba1358f15ea09f02343a4f3dd930b2167f68ba5427cd5ba and expected execution SHA-256 b8d9e6d4d451032c06fd53942d6bf815aa3dff354879d55c7723269578822f2a. This authorizes 144 candidate executions, 144 coarse-control executions, 12 existing-Dask comparisons, and one atomic terminal decision. It does not authorize source-finding changes, PyBDSF or viewed-data execution, replay, qualification, tuning, rescoring, optimization, cutover, or release."
+  },
+  "decision_id": "phase-5-adaptive-background-development-execution-decision",
+  "expected_execution_sha256": "b8d9e6d4d451032c06fd53942d6bf815aa3dff354879d55c7723269578822f2a",
+  "identity_review": {
+    "path": "config/contracts/phase-5-adaptive-background-development-identity-review.json",
+    "sha256": "f9ccef67d942494c6ba1358f15ea09f02343a4f3dd930b2167f68ba5427cd5ba"
+  },
+  "identity_review_sha256": "f9ccef67d942494c6ba1358f15ea09f02343a4f3dd930b2167f68ba5427cd5ba",
+  "output": "benchmark-results/phase-5/adaptive-background-development-decision.json",
+  "schema_version": 1,
+  "status": "authorized-for-one-development-lane",
+  "workers": 2
+}

@@ -79,6 +79,7 @@ class CelestialCompactGaussianFit:
     pixel_fit: ValidCompactGaussianFit
     position: SkyPosition
     flux: FluxMeasurement
+    fitted_flux: FluxMeasurement
     fitted_shape: GaussianShape
     deconvolution_status: Literal[
         "resolved",

@@ -87,6 +87,7 @@ def _configuration() -> DetectionStageConfig:
             detection_threshold_sigma=5.0,
             island_threshold_sigma=3.0,
             minimum_island_pixels=6,
+            profile="compact",
         ),
     )
 
@@ -205,6 +206,10 @@ def test_compact_mask_and_objects_meet_both_reference_gates(
     assert len(compact_candidate.result.islands) == 3
     assert compact_candidate.result.adaptive_candidate_positions_yx == (
         (128.0, 128.0),
+    )
+    assert (
+        compact_candidate.result.background_rms_grids.adaptive_protected_pixel_count
+        == 0
     )
 
 

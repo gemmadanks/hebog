@@ -35,5 +35,61 @@ manifest and must not be opened before that freeze is complete.
 `datasets/phase-4-final-qualification.json` is that frozen, ungenerated,
 600-image one-look population. Its complete dataset-record digest, not only
 its recipe digest, is the identity carried into each campaign shard.
+
+The Phase 5 multiscale and scientific-gate contracts freeze the Rapthor-used
+three-scale meaning, failure and association semantics, absolute truth gates,
+paired PyBDSF non-inferiority margins, and one-look statistical design before
+filter selection. Phase 5 dataset schema version 3 adds analytic morphology
+groups and scale-, edge-, tile-, invalid-pixel-, and artefact-aware strata.
+The original 400-image qualification manifest remains frozen and unopened,
+but the independent power audit superseded it. Named scientific approval on
+2026-08-25 froze `datasets/phase-5-final-qualification-continuum.json`: 1,688
+fresh qualification images balanced over four geometries. Its population
+contract binds the closed compact evidence and keeps execution and
+qualification opening false. The final comparison protocol, pending execution
+decision, endpoint registry, compiler, evaluator, runners, and four exact
+runtime images are frozen by
+`contracts/phase-5-final-qualification-identity-review.json` (SHA-256
+`42ad6237...`). The matrix has 1,688 inputs, 8,440 total runs, and 5,064
+binding candidate/operational runs. Aegean is retained as the exact compact
+reference identity but has no fresh Continuum leg.
+
+The public-comparison contracts keep acquisition separate from science.
+`phase-5-public-comparison-scientific-decision.json` authorizes only the seven
+SDC1/Hydra downloads. `phase-5-public-comparison-schema-review.json` binds the
+verified source checksums, observed headers and catalogue schemas, and the
+proposed truth-only SDC1 tile formulas. It remains pending named scientific
+review and authorizes neither cut-out selection nor finder execution.
+`phase-5-public-comparison-decision-serialization-amendment.json` preserves
+the acquisition decision's historically approved byte hash while binding its
+formatter-canonical bytes and unchanged semantic requests; it grants no new
+scientific authority.
+
+`datasets/phase-5-external-successor-continuum.json` and
+`datasets/phase-5-external-successor-compact-blend.json` are the write-once
+Step 2C-PF regression populations. Their 1,400 seeds are disjoint from every
+checked-in historical manifest. The accompanying
+`contracts/phase-5-external-successor-population.json` records the recomputed
+prospective power, exact manifests, candidate source, corrected runners,
+mask-only compiler kernel, and intended runtime inventories. It is not an
+execution authorization: the candidate image, composed compiler/evaluator,
+and named one-look review remain separate gates.
+
+`contracts/phase-5-filter-selection.json` records the provisional
+development-only Step 2 decision to use the float64 beam-aware matched-filter
+bank, including its
+normalization, four-sigma support, halo formula, correlated-noise model,
+bounded structural costs, and typed evidence identity. Analytic edge evidence
+amended the minimum valid support from 0.8 to 0.5 before qualification was
+opened. A paired Step 2B scientific comparison must amend or confirm this
+record before Step 3; the undecimated-wavelet candidate remains active
+development evidence until then.
+
+`contracts/phase-5-filter-paired-review.json` freezes the Step 2B candidates,
+development and regression manifest identities, analytic and generated case
+matrix, binding metrics, absolute and paired margins, confidence procedure,
+and fail-closed decision order before new paired results are inspected.
+Qualification and Step 3 remain closed in this protocol.
+
 These files are gates, not measured evidence; raw measurements use the evidence
 schemas and stay under the ignored `benchmark-results/` directory.

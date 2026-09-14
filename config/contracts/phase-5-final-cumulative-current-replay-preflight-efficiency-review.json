@@ -1,0 +1,35 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "evaluation_authorized": false,
+    "preflight_efficiency_repair_authorized": true,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "scientific_change_authorized": false
+  },
+  "decision_id": "phase-5-final-cumulative-current-replay-preflight-efficiency-review",
+  "diagnosis": {
+    "candidate_execution_started": false,
+    "duplicate_operation": "the successor runner explicitly repeated the complete retained-reference verification already performed while constructing its 2400 candidate tasks",
+    "governed_output_existed": false,
+    "governed_scratch_existed": false,
+    "observed_effect": "the read-only focused test remained healthy for ten minutes while hashing the same approximately 125 GiB retained evidence twice",
+    "scientific_effect": "none"
+  },
+  "repair": {
+    "change": "remove only the second retained-reference scan and report the frozen expected count after the first complete verifier succeeds",
+    "execution_identity": "unchanged",
+    "required_validation": [
+      "fast bounded unit coverage for identity, authority, and process seams",
+      "one exact immutable-checkout complete no-write preflight",
+      "absence of governed scratch and atomic output before execution"
+    ],
+    "science_identity": "unchanged"
+  },
+  "superseded_unexecuted_records": {
+    "execution_decision_sha256": "3eee3b49165dc0df6c1aa81af80a03a34e05775a0178479ec789efe259881db3",
+    "identity_review_sha256": "4402239b2c2adc302c2c1a31fa4489eb7c2aca6cc072724e7630376a796285b0",
+    "implementation_decision_sha256": "feeabeb51c17708cad0518b8ec65abf0ae1ce8d7b14b1bc499d880907cc2f836"
+  },
+  "status": "approved-process-only-preflight-efficiency-repair"
+}

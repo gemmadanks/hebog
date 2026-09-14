@@ -1,0 +1,104 @@
+{
+  "bounded_terminal_smoke": {
+    "all_required_endpoints_pass": true,
+    "comparison_status_counts": {
+      "pass": 1187
+    },
+    "cumulative_science_regression_ready": true,
+    "record_canonical_sha256": "55a3ab0cd2da8a69a7448648ac4da8b9933bcab97ba89b2d789b23f4494a8b63",
+    "section_counts": {
+      "aegean_parity": 143,
+      "binding_safety": 5,
+      "incumbent_retention": 368,
+      "longer_term_absolute_objectives": 15,
+      "pybdsf_parity": 676
+    },
+    "status": "pass",
+    "terminal_publication_status": "pass"
+  },
+  "candidate": {
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "product_seal_sha256": "194022abbfc2633a2e9e323463eeee235ebc521e43d229dd3884a826e0e7a29b",
+    "product_set_sha256": "f43cb2741e3d66a51bd71baccc6f090199af02eb0784d08cb4295613f17758ed",
+    "revision": "95cfc76ded56556dc3ad6894410962d34f0d5604",
+    "source_tree_sha256": "8da21e86afc5035da0704724a9d29104ea8b0e4d55fa4a98f0c5f3efca9a75a5"
+  },
+  "execution_scope": {
+    "candidate_executions": 0,
+    "incumbent_executions": 0,
+    "pybdsf_executions": 0,
+    "retained_reference_runs": 9600,
+    "write_once_output": "benchmark-results/phase-5/public-owner-domain-cumulative-decision.json"
+  },
+  "fixture_bindings": {
+    "base_final_evaluation": {
+      "path": "tests/unit/validation/test_final_cumulative_evaluation.py",
+      "sha256": "860c4c18376dd80e2637da0f32c4db0b2f69f5c0f686f8b7ec9e4d8a677f4717"
+    },
+    "paired_evaluator": {
+      "path": "tests/unit/validation/test_prospective_paired_cumulative_replay.py",
+      "sha256": "3bb211cb40c9374617b78aceb3288e7b33b31a6dc13936efde4ad453153e4b06"
+    },
+    "public_owner_domain_evaluation": {
+      "path": "tests/unit/validation/test_public_owner_domain_cumulative_evaluation.py",
+      "sha256": "929944d6f5fa1f6d8c38c3d61d292d01f2a242f61b36aa01d6a37ca955554210"
+    },
+    "topology_tail": {
+      "path": "tests/unit/validation/test_prospective_paired_tail_diagnostic_repair.py",
+      "sha256": "0f5aeeab35ed95226f3fe628b166f6966e83494ca2bd0fa3a15f06c167284548"
+    }
+  },
+  "implementation_id": "phase-5-public-owner-domain-cumulative-evaluation-implementation-decision",
+  "incumbent": {
+    "configuration_sha256": "88ac8bea8e865c765d5f346235642f88b298140955af67ada99b9f9bf6187523",
+    "product_set_sha256": "8dbc9dff20c861b1f93f11781d079226a7ef68475838909496086229ddc9fe5d",
+    "revision": "85d580713664b962ae256a98b065849cf8eb9283",
+    "source_tree_sha256": "a082cbe4b3416f787b455bb5a06be1eb66cb33ec807c74fa48056dfe8c630696"
+  },
+  "pre_review": {
+    "path": "config/contracts/phase-5-final-cumulative-current-replay-pre-review.json",
+    "sha256": "57365335a4b7b119bb4dec8f0ea857481bf2d8d80f1162e60f555a258276b815"
+  },
+  "program_bindings": {
+    "base_completion": {
+      "path": "scripts/validation/complete_phase5_final_cumulative_evaluation.py",
+      "sha256": "1fcbc321258414bb6eb27a07ce2f36cacf7c6d9f4e61da1e2fb5525deacace6c"
+    },
+    "base_evaluator": {
+      "path": "scripts/validation/evaluate_phase5_final_cumulative_current.py",
+      "sha256": "399171f1397b2c7dc84b20042d24018a01131106be65822a04aed067aa2b77f4"
+    },
+    "completion": {
+      "path": "scripts/validation/complete_phase5_public_owner_domain_cumulative_evaluation.py",
+      "sha256": "76a2adb4600fce2d6e43e6d2a191e99f7e0928c216fdf36f04b882d68b779597"
+    },
+    "evaluator": {
+      "path": "scripts/validation/evaluate_phase5_public_owner_domain_cumulative.py",
+      "sha256": "84f1dfcf879fbb930e4586a2720fb01d4ec4f91247bbe358c6b01ec44ac488b1"
+    },
+    "freezer": {
+      "path": "scripts/validation/freeze_phase5_public_owner_domain_cumulative_evaluation.py",
+      "sha256": "a5c77408345c659da2769b453c4b67673527fbca95d7814c20f2a89eba53739d"
+    }
+  },
+  "replay": {
+    "execution_decision": {
+      "path": "config/contracts/phase-5-public-owner-domain-cumulative-replay-execution-decision.json",
+      "sha256": "5662241eab2112f230009743145c2b8c6bfc5136852814d73baed5b00d26de1f"
+    },
+    "identity_review": {
+      "path": "config/contracts/phase-5-public-owner-domain-cumulative-replay-identity-review.json",
+      "sha256": "0a464a387d5e742d213eb9045743e1356f5c9510b2409cdd10e6c0efc24534a0"
+    }
+  },
+  "science_policy": {
+    "absolute_objectives": "reported-non-binding",
+    "aegean_parity_required": true,
+    "binding_safety_required": true,
+    "dual_pybdsf_parity_required": true,
+    "incumbent_retention_required": true,
+    "like_semantics_regression_allowed": false,
+    "post_result_tuning_or_rescoring_allowed": false
+  },
+  "status": "implemented-and-bounded-smoke-passed-non-executable"
+}

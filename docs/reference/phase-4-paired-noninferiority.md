@@ -1,9 +1,9 @@
 # Phase 4 paired non-inferiority protocol
 
-**Status:** reviewed on 2026-08-03 and amended after named review on 2026-08-04
-by Gemma Danks, Data Processing Software Engineer. The final unseen population
-is frozen and remains ungenerated and unopened until every execution identity
-is recorded.
+**Status:** reviewed on 2026-08-03, amended after named review on 2026-08-04,
+then opened exactly once. The terminal Phase 4R campaign did not pass and
+remains immutable. The later Phase 4U candidate is a separately governed
+passing qualification; it does not rescore this protocol's result.
 
 **Phase 4S erratum:** this is a historical Phase 4/4R protocol and must not be
 used to freeze another qualification. The replacement population had 13
@@ -320,8 +320,6 @@ by preserving dependence within each image.
 
 Gemma Danks, Data Processing Software Engineer, approved the following on
 2026-08-03 before any final population was generated or inspected:
-Gemma Danks, Data Processing Software Engineer, approved the following on
-2026-08-03 before any final population was generated or inspected:
 
 - every proposed margin is scientifically negligible for Rapthor and broader
   radio-continuum catalogues;
@@ -329,16 +327,11 @@ Gemma Danks, Data Processing Software Engineer, approved the following on
   assumptions are verified;
 - the extra no-worse point-estimate condition is removed; signed point
   estimates remain mandatory report fields;
-- the extra no-worse point-estimate condition is removed; signed point
-  estimates remain mandatory report fields;
 - the five-sigma high-confidence extension decision is scientifically
   proportionate given the wide independent point/clear margin and the cost of
   assigning a false physical size; and
 - the co-primary and report-only endpoint split protects all material Hebog
   strengths without turning exploratory metrics into hidden gates.
-
-The full named decision and supporting evidence are recorded in the
-[Phase 4 scientific review record](phase-4-review-record.md).
 
 The full named decision and supporting evidence are recorded in the
 [Phase 4 scientific review record](phase-4-review-record.md).

@@ -1,0 +1,38 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "evaluation_retry_authorized_for_exact_sealed_products": true,
+    "fresh_qualification_authorized": false,
+    "full_cumulative_replay_authorized_only_after_smoke_passes": true,
+    "release_authorized": false,
+    "rescoring_closed_evidence_authorized": false,
+    "threshold_or_margin_tuning_authorized": false
+  },
+  "binding_failure": {
+    "atomic_output_published": false,
+    "candidate_product_set_canonical_sha256": "2b32ad121677aa2d0a57db806697a0b2f572a019a424f32fb8cb08667aedb705",
+    "error": "ValueError: candidate run must contain exactly one measurement label plane",
+    "evaluation_decision_sha256": "68c41ffa5ecffb1587e369573eb10593401ff2c1c7b744c0d466c7790e3625bf",
+    "failed_evaluator_sha256": "2ce358549a944a1a292a7b515081655f143b1eb735bee84a968e05fff77bf534",
+    "incumbent_product_set_canonical_sha256": "1c76f7392156edb57195580ee5ff930dd66594d854cc43421c5dffbad006ec27",
+    "stage": "paired-incumbent-continuum-compilation"
+  },
+  "decision_id": "phase-5-prospective-measurement-label-mixed-schema-evaluation-repair-pre-review",
+  "exact_user_authority": "Please complete all tasks required for running the next cumulative replay. Review the code and tests, close any gaps and fix bugs or make improvements as needed then run the replay and evaluate the results.",
+  "required_implementation": [
+    "bind the measurement-label compiler decorator to the exact repaired current configuration",
+    "require exactly one measurement-label artifact for every successful current Hebog run",
+    "delegate historical incumbent Hebog products through their unchanged sidecar-aware compiler because their schema predates measurement-label persistence",
+    "retain the publication-label plane for mask and native-component metrics in both schemas",
+    "restore every temporary source-union synthesis seam after success or failure",
+    "reuse both exact sealed 128-product sets without candidate execution",
+    "retry only the still-absent write-once smoke output"
+  ],
+  "root_cause": {
+    "dispatch_error": "The evaluator decorated every successful Hebog run in the paired current/incumbent campaign. The historical incumbent schema correctly has no measurement-label artifact, so the current-only decoder failed closed on the incumbent before atomic publication.",
+    "scientific_boundary": "The current configuration must consume exact persisted measurement support. The historical incumbent must retain its original sidecar-aware source-union semantics; synthesizing or requiring a new artifact for closed historical products would change or invalidate the comparator.",
+    "unchanged_evidence": "Candidate products, incumbent products, source trees, configurations, selected population, comparators, thresholds, margins, and gates remain byte-identical."
+  },
+  "schema_version": 1,
+  "status": "reviewed-before-mixed-schema-evaluation-dispatch-repair"
+}

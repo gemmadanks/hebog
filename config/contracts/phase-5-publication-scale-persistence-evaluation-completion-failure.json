@@ -1,0 +1,14 @@
+{
+  "atomic_output_published": false,
+  "candidate_execution_completed": true,
+  "candidate_product_count": 2400,
+  "candidate_product_set_canonical_sha256": "77a71b5fd537e30efd67a6a225c9d0b52d9bc9d56417437b10bd659539a013b1",
+  "candidate_science_changed": false,
+  "error": "ValueError: associated source membership cannot be verified",
+  "failed_wrapper_sha256": "a0fe32d360ce04bfcfed6cde0e7f19b509648637e2f57c6ea1c11a651b653cc1",
+  "failure_location": "hebog.validation.parent_construction_association_evaluation._recorded_support_labels",
+  "failure_stage": "continuum compilation after all candidate products completed",
+  "root_cause": "The cumulative wrapper reused the historical evaluator that requires every association measurement label to remain present in the separately refined publication mask. The prospective smoke used the reviewed mask/measurement-separation overlay, but the full replay composition omitted that evaluation-only overlay.",
+  "schema_version": 1,
+  "status": "failed-after-complete-candidate-products-before-atomic-ledger"
+}

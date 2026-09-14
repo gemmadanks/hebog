@@ -1,0 +1,44 @@
+{
+  "amended_rule": "A valid native catalogue source need not own any exclusive derived pixels. Retain its native source and component records and use support_label=null when no pixels are won.",
+  "approval": "Scientific owner approved the proposed explicit unavailable-support adapter contract and corresponding tests in this task.",
+  "authorizations": {
+    "adapter_implementation": true,
+    "cutover": false,
+    "evaluation_retry": false,
+    "finder_execution": false,
+    "fixture_validation": true,
+    "qualification": false,
+    "release": false,
+    "viewed_data_rescoring": false
+  },
+  "date": "2026-09-08",
+  "diagnostic_schema_version": 2,
+  "execution_identity": null,
+  "finder_execution_started": false,
+  "parent_review": {
+    "path": "config/contracts/phase-5-compact-held-out-sentinel-source-union-adapter-pre-review.json",
+    "sha256": "02b46ecaeb3d8bfee5f2b3d0ee37b44b5f9add2122707d2677c0a77e784c4d5c"
+  },
+  "preserved_adapter": {
+    "path": "scripts/validation/compact_sentinel_source_unions.py",
+    "sha256": "53401339ee1a2b15d56e2b9f603ef79b5582ee4dc934a72636f0349e99fc91a1"
+  },
+  "preserved_compiler": {
+    "path": "src/hebog/validation/external_successor_compiler.py",
+    "sha256": "8e38de3b4347faee9636b89d03f8cdcdd77e39fd1e087d2b44454e5fd7063c55"
+  },
+  "preserved_rules": [
+    "Every modelled native island pixel retains exactly its original model-dominance winner and stable native-key tie break.",
+    "Native source positions, fluxes, source/component membership and all catalogue denominators remain unchanged.",
+    "Fitless native islands remain published without invented catalogue rows.",
+    "Positive support labels assert actual pixels; missing asserted labels and corrupt native membership still fail closed.",
+    "Unavailable support supplies no overlap evidence. The existing centre-in-one-beam-dilation matching clause is unchanged.",
+    "Unmatched native rows remain in reliability and catalogue counts. Topology summaries describe only actual support and explicitly disclose unavailable source support.",
+    "Truth, populations, thresholds, margins, confidence rules, comparator identities and gates are unchanged. PyBDSF is never treated as truth."
+  ],
+  "schema_version": 1,
+  "scope": "R6 retained-source projection and validation compiler schema; not finder science",
+  "source_measurement_summary_schema_version": 5,
+  "source_union_derivation": "pybdsf-source-model-dominance-v2-explicit-unavailable-topology",
+  "status": "approved-fixture-only-amendment"
+}

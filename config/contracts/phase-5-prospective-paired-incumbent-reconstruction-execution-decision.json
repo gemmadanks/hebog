@@ -1,0 +1,32 @@
+{
+  "decision_id": "phase-5-prospective-paired-incumbent-reconstruction-execution-decision",
+  "evaluation_authorized": true,
+  "exact_user_authority": "Please complete all tasks required for repairing and running the evaluation.",
+  "expected_execution_sha256": "96077d8955497fc1f8531b4a001a3b4686eb8797753ef8d88408913497df8961",
+  "identity_review": {
+    "path": "config/contracts/phase-5-prospective-paired-incumbent-reconstruction-identity-review.json",
+    "sha256": "ed96831164cd4fa54feb344cea6740814ea8063b7876378a05f9e889efb247b6"
+  },
+  "incumbent_reconstruction_authorized": true,
+  "prohibited_authorizations": {
+    "current_candidate_execution_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "scientific_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "schema_version": 1,
+  "scope": {
+    "candidate_product_count": 2400,
+    "current_candidate_execution_authorized": false,
+    "output": "benchmark-results/phase-5/prospective-paired-incumbent-reconstruction.json",
+    "reuse_current_product_set_sha256": "6bcb2959c56173d1a930eb14b3a794727649defc1b52dc1d9d70cd041d401014",
+    "scratch": "/private/tmp/hebog-phase5-prospective-paired-incumbent-authentic-85d5807",
+    "workers": 2
+  },
+  "status": "authorized-for-one-exact-incumbent-reconstruction"
+}

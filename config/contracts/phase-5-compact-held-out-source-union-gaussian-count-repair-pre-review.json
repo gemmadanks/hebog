@@ -1,0 +1,38 @@
+{
+  "authorization": {
+    "current_hebog_science_change": false,
+    "evaluator_or_gate_change": false,
+    "pybdsf_configuration_change": false,
+    "retry_authorized": true,
+    "tuning_or_rescoring": false
+  },
+  "authorization_record": {
+    "immediate_statement": "I approve, please complete the next task.",
+    "standing_retry_statement": "Please repair the evaluator and make any other fixes required to complete the run. I approve of all re-tries."
+  },
+  "diagnosis": {
+    "failed_assumption": "The first repair assumed PyBDSF persisted its internal Source.ngaus value as srl column N_gaus.",
+    "failure": "The column-case retry found that the native released-PyBDSF srl FITS table contains neither N_Gaus nor N_gaus and failed before accepting any pair summary.",
+    "pinned_runtime_inspection": "PyBDSF 1.14.1 Source declares internal colname N_gaus, but output.make_output_columns omits ngaus from the srl export list; the exact gaul table retains Isl_id and Source_id for every accepted Gaussian.",
+    "root_cause": "The validation adapter required an internal PyBDSF field that is not exported in the native srl catalogue."
+  },
+  "failed_attempt": {
+    "execution_commit": "48f1ee4c0e7d3e4449a8b9ddf59021716b200963",
+    "terminal_output": {
+      "path": "benchmark-results/phase-5/compact-held-out-source-union-sentinel-column-case-repair.json",
+      "sha256": "9d96a9ed36f580fe307e9992ca6f093f5fc0fe88bfbdc4361cf282bbe23e3bb5"
+    }
+  },
+  "pre_review_id": "phase-5-compact-held-out-source-union-gaussian-count-repair-pre-review",
+  "repair": {
+    "candidate_science_changed": false,
+    "comparator_configuration_changed": false,
+    "evaluator_or_gate_changed": false,
+    "new_write_once_namespace": true,
+    "source_count_provenance": "derived-from-exact-gaul-membership",
+    "source_table_count_column": null,
+    "test_first": true
+  },
+  "schema_version": 1,
+  "status": "reviewed-process-only-repair"
+}

@@ -1,0 +1,63 @@
+{
+  "algorithm_candidate": {
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "revision": "3ed6086eb7907b8137d2df3ea2d4ed55a2f49ce0",
+    "source_tree_sha256": "c1fb96c4cfce21d91c1f3c7afa1b0e48dffaaab7218cd13e4a30e20f164ea0f0"
+  },
+  "authorizations": {
+    "candidate_execution": false,
+    "cumulative_replay": false,
+    "cutover": false,
+    "fresh_qualification": false,
+    "pybdsf_execution": false,
+    "release": false,
+    "rescoring": false,
+    "tuning": false,
+    "viewed_data_execution": false
+  },
+  "component_topology_correction": {
+    "admitted_no_eligible_peak_policy": "retain-one-component",
+    "compact_phase_three_no_marker_contract_changed": false,
+    "deblending_seed_gate": "strictly-greater-than-minimum-peak-signal-to-noise",
+    "diagnostic_disposition": "not-deblended-and-not-deferred",
+    "direct_support_policy": "exact-parent-support-preserved",
+    "measurement_support_policy": "exact-parent-support-preserved",
+    "scientific_rationale": "an-admitted-parent-without-an-eligible-marker-cannot-support-an-evidence-based-split"
+  },
+  "interface_file_sha256": {
+    "src/hebog/algorithms/component_topology.py": "7443f054bbb0172732cd5eb26cc858933ea68ea2f97797d94a5286be5404b307",
+    "src/hebog/algorithms/deblending.py": "18df86f53d77942b19afe70cc8fc5899177b5c71ea666375ea21648cb116852d",
+    "src/hebog/data_models/source_finding.py": "b5f7306e210aa429e17962b78133a4177b380a40d758181b1106df5b2dec67ca",
+    "src/hebog/io/materialization.py": "8ba61ac22600c72c05fefb1f8b8345387edba6029dc11c1b53b56c259b408e36",
+    "src/hebog/public_api.py": "e337979e71e1fbc697397e813f479b439d3bf20521418773676bfc94d26868b3",
+    "src/hebog/public_science.py": "42ab6f8d4512914c882d9a69f0bcbbe7b093c4720fd52686142306935fafc128",
+    "src/hebog/resources/phase_5_continuum_review.json": "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b",
+    "src/hebog/validation/public_finder_correction.py": "102d414db69322cc0255f6e904e5730e2252946c58057679b09622fd34035bcd"
+  },
+  "predecessor_identity": {
+    "path": "config/contracts/phase-5-public-multi-peak-component-topology-identity-review.json",
+    "sha256": "897845b9d05cd66e83b66579ffc2f13d96c117a20792a5c0b12ebe2f5699f20c"
+  },
+  "public_configuration": {
+    "detection_threshold_sigma": 5.0,
+    "island_threshold_sigma": 3.0,
+    "maximum_island_pixels": null,
+    "minimum_island_pixels": 7,
+    "profile": "continuum"
+  },
+  "review_id": "phase-5-public-unseeded-parent-retention-identity-review",
+  "schema_version": 1,
+  "scientific_composition": "phase-5-configurable-deblended-component-and-source-topology-v6",
+  "scientific_composition_sha256": "d160acd4df8ef32d863a3a3fb4a46fbe28e6803878e5ca006d99bcf89d613ff3",
+  "status": "frozen-non-executable",
+  "validation_evidence": {
+    "component_topology_branch_coverage_percent": 100.0,
+    "equivalence_tests_passed": 27,
+    "full_coverage_tests_passed": 2808,
+    "parent_seed_boundary_cases_passed": 2,
+    "project_branch_coverage_percent": 94.83,
+    "public_existing_dask_integration_tests_passed": 15,
+    "public_focused_unit_tests_passed": 38,
+    "support_preservation": "pass"
+  }
+}

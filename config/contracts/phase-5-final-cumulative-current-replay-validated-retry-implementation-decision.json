@@ -1,0 +1,58 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "evaluation_authorized": false,
+    "implementation_authorized": true,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false
+  },
+  "candidate": {
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "revision": "0b9e13299f3fbbd42af0dea4f70155a802a8441d",
+    "source_tree_sha256": "11307db0059739d473288dd2ed647970cce43b69e874632e1d1f14ee0ed032df"
+  },
+  "decision_id": "phase-5-final-cumulative-current-replay-validated-retry-implementation-decision",
+  "implemented_contracts": [
+    "preserve the exact current-only scientific execution shape",
+    "perform the complete retained-reference verification once",
+    "exercise bounded and real spawned-process import seams",
+    "write no product until the exact immutable preflight passes",
+    "rehash all 2400 products before one atomic product-set seal"
+  ],
+  "pre_review": {
+    "path": "config/contracts/phase-5-final-cumulative-current-replay-pre-review.json",
+    "sha256": "57365335a4b7b119bb4dec8f0ea857481bf2d8d80f1162e60f555a258276b815"
+  },
+  "process_review": {
+    "path": "config/contracts/phase-5-final-cumulative-current-replay-preflight-efficiency-review.json",
+    "sha256": "e102f5d4bb667e5f5c88f2c5782e98c9fc06bed98790f1f2d54cf3c3cdab7219"
+  },
+  "program_bindings": {
+    "base_runner": {
+      "path": "scripts/validation/run_phase5_final_cumulative_current_replay.py",
+      "sha256": "d73cb780623906adddf9248cd9a9c531e0955e40881e8595b54c7e9cc63ea7f6"
+    },
+    "freezer": {
+      "path": "scripts/validation/freeze_phase5_final_cumulative_current_replay_validated_retry.py",
+      "sha256": "8c4174f0aeefd0730adb474d980924973e0a0d0d7972a44ebb53c11a6b4616f3"
+    },
+    "materializer": {
+      "path": "scripts/validation/materialize_phase5_prospective_paired_products.py",
+      "sha256": "d5c0d16bd4f379ec4a0767ccd57d24ce089e844761372a5d3b3f4fa939be65b2"
+    },
+    "runner": {
+      "path": "scripts/validation/run_phase5_final_cumulative_current_replay_validated_retry.py",
+      "sha256": "665dd3e0f5006faa9c777182c693fc46319e3f8aeb111e5ada62b0edeaf393ff"
+    },
+    "smoke_evaluator": {
+      "path": "scripts/validation/evaluate_phase5_prospective_science_smoke.py",
+      "sha256": "9cb15439afdaaba4702d0dfd077c45a75b56f40a9193d36d2cad3596c31449d0"
+    },
+    "topology_evaluator": {
+      "path": "scripts/validation/evaluate_phase5_prospective_paired_cumulative_topology_repair.py",
+      "sha256": "39a568bada625b751931aff649e4e815c5ed70f68809d902a52ce93cfeaec62a"
+    }
+  },
+  "status": "implemented-and-preflightable-non-executable",
+  "superseded_identity_review_sha256": "4402239b2c2adc302c2c1a31fa4489eb7c2aca6cc072724e7630376a796285b0"
+}

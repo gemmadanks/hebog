@@ -1,0 +1,61 @@
+{
+  "authorizations": {
+    "candidate_execution": false,
+    "cutover": false,
+    "implementation": false,
+    "pybdsf_execution": false,
+    "qualification": false,
+    "release": false,
+    "replay": false,
+    "tuning": false,
+    "viewed_data_rescoring": false
+  },
+  "candidate": {
+    "configuration_sha256": "5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4",
+    "immutable_execution_commit": "1b1cbae8cf8f05184cb2d095ced87175e2969849",
+    "revision": "db8936b512370a1491f36845592fe3e8a24107ad",
+    "source_tree_sha256": "43fb41f20069a31627f0dbec09bdf1484bd2a04d633fe6563b94b09a554dd2cf"
+  },
+  "date": "2026-09-09",
+  "evidence": {
+    "analytic_probe_output_sha256": "b74a6a0a4c1dd747f873018e883910a07e8788f003e9758ff0cabe5106b991a3",
+    "analytic_probe_sha256": "23b783b895ab2c18aa9a9656085dcf4b6bc36e534ced0959f6a40d414ee8924d",
+    "clear_resolved_rows": 6400,
+    "clear_resolved_rows_not_fully_resolved": 803,
+    "closed_terminal_sha256": "7146f2e857c9473117c16d29f5bd8d55a2790c66d1c1643cd79b96aa8cc51d72",
+    "combined_evaluation_seal_sha256": "d14205d922e3a46b1cd93be3de84d745910b68f89a12f3ed00f5cb5f9d22ae5b",
+    "continuum_inputs": 1600,
+    "curved_filament_split_count": 689,
+    "matched_current_compact_rows_with_gls_fallback": 38376,
+    "read_only_record_audit_sha256": "4b6aebdbaf46ca1f5bac7446f655e7cf176e2b7ee3034c76b7f2513c1f4f8fb4",
+    "record_counts_sha256": "c89bb1f8428c2b43f59cef76f294c771b6d7d5cb54bbc002b872e1059cfbd1ca",
+    "shell_split_count": 701,
+    "snr_25_corner_rows_not_fully_resolved": 800,
+    "terminal_verification_sha256": "5dde3be99d28a80b9bc1e1a23d57d4cac5db34d82e37b801e6c8e0a8030cdedf",
+    "verified_finder_records": 10400
+  },
+  "execution_identity": null,
+  "findings": [
+    "C1: joint-fit model-selection bypass confirmed",
+    "C2: systematic GLS fallback confirmed; quantitative causal contribution unestablished",
+    "C3: corner classification censoring localized; covariance calibration requires independent evidence",
+    "E1: native-model versus observable-source domain mismatch reproduced end-to-end",
+    "E2: fragmentation observed and restrictive grouping path confirmed; complete per-split attribution unavailable",
+    "E3: remaining mixed-source aperture-position tails require independent attribution"
+  ],
+  "preserve": [
+    "failed R6 terminal and every closed record",
+    "independent analytic truth, not PyBDSF as truth",
+    "binding thresholds, practical margins, confidence rules and comparators",
+    "original candidate isolation from later notebook repairs",
+    "explicit unavailable measurements and uncertainty",
+    "candidate-bound development, cumulative and fresh-evidence order"
+  ],
+  "report": {
+    "path": "docs/reference/phase-5-r6-root-cause-review.md",
+    "sha256": "4450baea635fe769de97dc6c82ed0d5d7f6dde05c5f4902ef1d114c581462aef"
+  },
+  "required_next_step": "Scientific-owner review of the prospective recommendations and source/component contract before test-first implementation and independent fixture validation.",
+  "schema_version": 1,
+  "status": "prospective-root-cause-review-complete-non-executable"
+}

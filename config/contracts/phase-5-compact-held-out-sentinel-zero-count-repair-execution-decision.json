@@ -1,0 +1,23 @@
+{
+  "authorization": {
+    "another_replay": false,
+    "current_hebog_execution": true,
+    "cutover": false,
+    "existing_dask_comparison": true,
+    "held_out_execution": true,
+    "optimization": false,
+    "release": false,
+    "released_pybdsf_execution": true,
+    "rescoring": false,
+    "tuning": false,
+    "viewed_data_execution": false
+  },
+  "expected_execution_sha256": "7c40f8b1e3272652557781995a3163909b8b9f8c7d350f12ee503af1c372f862",
+  "identity_review": {
+    "path": "config/contracts/phase-5-compact-held-out-sentinel-zero-count-repair-review.json",
+    "sha256": "ad9e2b1c99cffed9f83ac8c567502b418146f6556118d06245eab22a584b068b"
+  },
+  "one_use": true,
+  "status": "authorized-for-one-compact-held-out-sentinel",
+  "user_authority": "Please repair the evaluator and make any other fixes required to complete the run. I approve of all re-tries."
+}

@@ -1,0 +1,1081 @@
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUnknownArgumentType=false
+# pyright: reportUnknownMemberType=false
+# pyright: reportUnknownVariableType=false
+"""Installed-library contract for the public FITS-to-products facade."""
+
+from __future__ import annotations
+
+from collections.abc import Callable, Iterable
+from dataclasses import replace
+from pathlib import Path
+from typing import Any, TypeVar
+
+import numpy as np
+import pytest
+from astropy.io import fits
+from distributed import Client, LocalCluster
+
+import hebog
+from hebog import SourceFinderConfig, SourceFinderRequest, public_api
+from hebog.algorithms import fitting as fitting_algorithm
+from hebog.data_models import PublicSourceFindingDiagnostics
+from hebog.executors import DaskExecutor, SerialExecutor
+from hebog.io import (
+    FitsImageSource,
+    read_catalogue_fits_product,
+    read_diagnostics_product,
+)
+from hebog.pipeline import (
+    InvalidSourceFinderInputError,
+    SourceFinderImageTooLargeError,
+    SourceFinderOutputExistsError,
+    UnsupportedSourceFinderConfigurationError,
+)
+from hebog.stages import detection as detection_stage
+from hebog.stages.background import BackgroundRmsGrids
+from hebog.validation.public_measurement_projection import (
+    project_public_measurements,
+)
+
+Input = TypeVar("Input")
+Output = TypeVar("Output")
+
+
+@pytest.mark.integration
+def test_public_workflow_retires_stale_coarse_anchors(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A corrected pilot must reach readable products, not only refinement."""
+    # Public coarse protection activates at 150 pixels on the shorter axis.
+    yy, xx = np.mgrid[:160, :192]
+    image = np.random.default_rng(130913).normal(0, 1, yy.shape)
+    image += 100 * np.exp(-((xx - 64) ** 2 + (yy - 40) ** 2) / 8)
+    image[32, 24] = 2.0
+    path = tmp_path / "image.fits"
+    _write_image(path, image)
+    original = detection_stage.estimate_background_rms_grids
+
+    def underestimated_pilot(*args: Any, **kwargs: Any) -> BackgroundRmsGrids:
+        grids = original(*args, **kwargs)
+        return replace(
+            grids,
+            coarse=replace(
+                grids.coarse,
+                background=np.zeros_like(grids.coarse.background),
+                rms=np.full_like(grids.coarse.rms, 0.01),
+            ),
+        )
+
+    monkeypatch.setattr(
+        detection_stage, "estimate_background_rms_grids", underestimated_pilot
+    )
+
+    # Supply the bounded work packet at the escaped composition seam. The
+    # intentionally biased cache is not a new image-wide detection policy.
+    def initial_work_packet(
+        *_args: Any,
+        **_kwargs: Any,
+    ) -> tuple[tuple[float, float], ...]:
+        return ((32.0, 24.0), (40.0, 64.0))
+
+    monkeypatch.setattr(
+        detection_stage,
+        "discover_adaptive_candidates",
+        initial_work_packet,
+    )
+    result = hebog.find_sources(
+        SourceFinderRequest(path, tmp_path / "products", "stale-pilot"),
+        SourceFinderConfig(5, 3, 7),
+        SerialExecutor(),
+    )
+    catalogue = read_catalogue_fits_product(result.catalogue)
+    diagnostics = read_diagnostics_product(result.diagnostics)
+    mask = np.asarray(fits.getdata(result.mask_path), dtype=np.bool_)
+    assert result.source_count == len(catalogue.sources) == 1
+    assert diagnostics.rms_scientific_status == "valid"
+    assert mask[40, 64] and not mask[32, 24]
+    rms = np.asarray(fits.getdata(result.rms.path), dtype=np.float64)
+    assert np.all(np.isfinite(rms))
+
+
+class _RecordingExecutor:
+    """Ordered executor double proving the public facade uses its caller."""
+
+    def __init__(self) -> None:
+        self.batch_counts: list[int] = []
+
+    def map_batches(
+        self,
+        function: Callable[[Input], Output],
+        batches: Iterable[Input],
+    ) -> list[Output]:
+        """Execute in order while retaining each submitted batch count."""
+        items = tuple(batches)
+        self.batch_counts.append(len(items))
+        return [function(item) for item in items]
+
+
+def _header(shape_yx: tuple[int, int]) -> fits.Header:
+    """Return one valid ICRS radio-continuum FITS header."""
+    height, width = shape_yx
+    header = fits.Header()
+    header["BUNIT"] = "Jy/beam"
+    header["BMAJ"] = 4.0 / 3600.0
+    header["BMIN"] = 4.0 / 3600.0
+    header["BPA"] = 0.0
+    header["RADESYS"] = "ICRS"
+    header["CTYPE1"] = "RA---TAN"
+    header["CTYPE2"] = "DEC--TAN"
+    header["CRPIX1"] = width / 2 + 1
+    header["CRPIX2"] = height / 2 + 1
+    header["CRVAL1"] = 180.0
+    header["CRVAL2"] = -30.0
+    header["CDELT1"] = -1.0 / 3600.0
+    header["CDELT2"] = 1.0 / 3600.0
+    header["CUNIT1"] = "deg"
+    header["CUNIT2"] = "deg"
+    header["RESTFRQ"] = 150_000_000.0
+    return header
+
+
+def _ring_image() -> np.ndarray:
+    """Return a small four-lobe shell exercising source association."""
+    y_pixels, x_pixels = np.mgrid[:81, :81]
+    x_offset = x_pixels - 40.0
+    y_offset = y_pixels - 40.0
+    radius = np.hypot(x_offset, y_offset)
+    angle = np.arctan2(y_offset, x_offset)
+    image = np.exp(-((radius - 10.0) ** 2) / 2.0)
+    image *= 1.0 + 8.0 * np.clip(np.cos(4.0 * angle), 0.0, None)
+    image += np.random.default_rng(42).normal(0.0, 0.5, image.shape)
+    return np.asarray(image, dtype=np.float64)
+
+
+def _write_image(path: Path, values: np.ndarray) -> None:
+    """Write one two-dimensional supported public input."""
+    fits.PrimaryHDU(data=values, header=_header(values.shape)).writeto(path)
+
+
+def _config(*, profile: str = "continuum") -> SourceFinderConfig:
+    """Return the frozen Phase 5 public scientific configuration."""
+    return SourceFinderConfig(
+        detection_threshold_sigma=5.0,
+        island_threshold_sigma=3.0,
+        minimum_island_pixels=7,
+        profile=profile,  # type: ignore[arg-type]
+    )
+
+
+def _request(
+    tmp_path: Path,
+    *,
+    output_name: str = "products",
+    run_id: str = "public-contract",
+) -> SourceFinderRequest:
+    """Return one request for the shared input fixture."""
+    return SourceFinderRequest(
+        image_path=tmp_path / "image.fits",
+        output_directory=tmp_path / output_name,
+        run_id=run_id,
+    )
+
+
+@pytest.mark.integration
+def test_measurement_owner_without_published_support_has_no_public_row(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Publication pruning must not create dangling island references."""
+    yy, xx = np.mgrid[:65, :97]
+    signal = 10 * np.exp(-((xx - 25) ** 2 + (yy - 32) ** 2) / 8)
+    signal += 10 * np.exp(-((xx - 70) ** 2 + (yy - 32) ** 2) / 8)
+    _write_image(tmp_path / "image.fits", signal)
+    original = public_api._analyse_image  # pyright: ignore[reportPrivateUsage]
+    retained = []
+
+    def analysis(*args: Any, **kwargs: Any):
+        result = original(*args, **kwargs)
+        assert result.terminal is not None
+        terminal = result.terminal
+        mask = terminal.detection.retained_mask.copy()
+        mask[:, :48] = False
+        detection = replace(
+            terminal.detection,
+            retained_mask=mask,
+            component_labels=np.where(
+                mask, terminal.detection.component_labels, 0
+            ),
+        )
+        updated = replace(
+            result, terminal=replace(terminal, detection=detection)
+        )
+        retained.append(updated.terminal)
+        return updated
+
+    def background(*_args: object, **_kwargs: object):
+        return np.zeros_like(signal), np.ones_like(signal)
+
+    monkeypatch.setattr(public_api, "_estimate_background_rms", background)
+    monkeypatch.setattr(public_api, "_analyse_image", analysis)
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+    diagnostics = read_diagnostics_product(result.diagnostics)
+    assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
+    assert result.source_count == result.gaussian_component_count == 1
+    assert result.island_count == 1
+    sources = [
+        row
+        for row in diagnostics.measurement_dispositions
+        if row.object_kind == "source"
+    ]
+    assert len(sources) == 2
+    assert sum(row.catalogue_row_published for row in sources) == 1
+    assert all(row.status == "measured" for row in sources)
+    mask = np.asarray(fits.getdata(result.mask_path), dtype=np.bool_)
+    projection = project_public_measurements(
+        retained[0],
+        read_catalogue_fits_product(result.catalogue),
+        mask,
+        _header(signal.shape),
+    )
+    assert len(projection.sources) == 1
+    assert len(projection.measured_sources) == 2
+    assert not np.any(projection.source_union_labels[:, :48])
+    assert (
+        sum(row.catalogue_row_published for row in projection.dispositions)
+        == 2
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("owner_pixels", (1, 7))
+def test_public_degenerate_owner_does_not_abort_a_healthy_neighbour(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    owner_pixels: int,
+) -> None:
+    """An admitted thin owner is retained without inventing a Gaussian."""
+    yy, xx = np.mgrid[:65, :97]
+    signal = 10 * np.exp(-((xx - 70) ** 2 + (yy - 32) ** 2) / 8)
+    signal[32, 12 : 12 + owner_pixels] = 10.0
+    _write_image(tmp_path / "image.fits", signal)
+
+    def analytic_background(*_args: object, **_kwargs: object):
+        return np.zeros_like(signal), np.ones_like(signal)
+
+    original_catalogue = public_api._public_catalogue  # pyright: ignore[reportPrivateUsage]
+    projections = []
+
+    def projected_catalogue(
+        products: Any, metadata: Any, *, run_id: str, profile: str
+    ):
+        catalogue, mask = original_catalogue(
+            products, metadata, run_id=run_id, profile=profile
+        )
+        projections.append(
+            project_public_measurements(
+                products.terminal, catalogue, mask, _header(signal.shape)
+            )
+        )
+        return catalogue, mask
+
+    monkeypatch.setattr(public_api, "_public_catalogue", projected_catalogue)
+
+    monkeypatch.setattr(
+        public_api, "_estimate_background_rms", analytic_background
+    )
+    result = hebog.find_sources(
+        _request(tmp_path),
+        SourceFinderConfig(5.0, 3.0, owner_pixels),
+        SerialExecutor(),
+    )
+    catalogue = read_catalogue_fits_product(result.catalogue)
+    diagnostics = read_diagnostics_product(result.diagnostics)
+    assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
+    assert len(catalogue.sources) == 2
+    assert len(catalogue.gaussian_components) == 1
+    unavailable = [
+        entry
+        for entry in diagnostics.measurement_dispositions
+        if entry.object_kind == "component" and entry.status == "unavailable"
+    ]
+    assert len(unavailable) == 1
+    assert unavailable[0].reason in {
+        "underdetermined-region",
+        "singular-covariance",
+    }
+    mask = np.asarray(fits.getdata(result.mask_path), dtype=np.bool_)
+    assert mask[32, 12 : 12 + owner_pixels].all()
+    projection = projections[0]
+    assert len(projection.sources) == 2
+    assert len(projection.components) == 1
+    assert len(projection.measured_sources) == 2
+    assert len(projection.measured_components) == 1
+    assert {row.identifier for row in projection.sources} == {
+        row.source_id for row in catalogue.sources
+    }
+    assert np.array_equal(projection.publication_mask, mask)
+    assert np.array_equal(projection.source_union_labels > 0, mask)
+    assert (
+        sum(row.catalogue_row_published for row in projection.dispositions)
+        == 3
+    )
+    assert not projection.source_union_labels.flags.writeable
+
+
+@pytest.mark.integration
+def test_pruned_component_of_a_published_source_keeps_its_disposition(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An extended source can remain published after one owner is pruned."""
+    yy, xx = np.mgrid[:97, :97]
+    radius = np.hypot(xx - 48, yy - 48)
+    angle = np.arctan2(yy - 48, xx - 48)
+    signal = (
+        6
+        * (1 + 0.6 * np.cos(6 * angle))
+        * np.exp(-0.5 * ((radius - 18) / 2) ** 2)
+    )
+    _write_image(tmp_path / "image.fits", signal)
+    original = public_api._analyse_image  # pyright: ignore[reportPrivateUsage]
+
+    def background(*_args: object, **_kwargs: object):
+        return np.zeros_like(signal), np.ones_like(signal)
+
+    def prune_one_component(*args: Any, **kwargs: Any):
+        products = original(*args, **kwargs)
+        terminal = products.terminal
+        assert terminal is not None
+        assert len(terminal.catalogue) == 1
+        assert len(terminal.component_catalogue) == 6
+        labels = terminal.measurement_component_labels
+        removed = terminal.source_association.components[0].label_value
+        mask = terminal.detection.retained_mask & (labels != removed)
+        return replace(
+            products,
+            terminal=replace(
+                terminal,
+                detection=replace(
+                    terminal.detection,
+                    retained_mask=mask,
+                    component_labels=np.where(
+                        mask, terminal.detection.component_labels, 0
+                    ),
+                ),
+            ),
+        )
+
+    monkeypatch.setattr(public_api, "_estimate_background_rms", background)
+    monkeypatch.setattr(public_api, "_analyse_image", prune_one_component)
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+    assert result.source_count == 1
+    assert result.gaussian_component_count == 5
+    diagnostics = read_diagnostics_product(result.diagnostics)
+    assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
+    components = tuple(
+        row
+        for row in diagnostics.measurement_dispositions
+        if row.object_kind == "component"
+    )
+    assert len(components) == 6
+    assert all(row.status == "measured" for row in components)
+    assert sum(row.catalogue_row_published for row in components) == 5
+
+
+@pytest.mark.integration
+def test_two_sources_share_one_actual_detection_island(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Island counts describe connectivity, not the number of source rows."""
+    yy, xx = np.mgrid[:65, :65]
+    signal = sum(
+        peak * np.exp(-((xx - cx) ** 2 + (yy - 32) ** 2) / 8)
+        for peak, cx in ((10, 28), (9.5, 35))
+    )
+    _write_image(tmp_path / "image.fits", np.asarray(signal))
+
+    def analytic_background(*_args: object, **_kwargs: object):
+        return np.zeros_like(signal), np.ones_like(signal)
+
+    monkeypatch.setattr(
+        public_api, "_estimate_background_rms", analytic_background
+    )
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+    catalogue = read_catalogue_fits_product(result.catalogue)
+    assert result.source_count == result.gaussian_component_count == 2
+    assert result.island_count == 1
+    assert {source.island_id for source in catalogue.sources} == {
+        catalogue.islands[0].island_id
+    }
+    assert catalogue.islands[0].pixel_count == np.count_nonzero(
+        np.asarray(fits.getdata(result.mask_path), dtype=np.bool_)
+    )
+
+
+@pytest.mark.integration
+def test_current_projection_rejects_inconsistent_public_evidence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Malformed ownership, rows or dispositions cannot become parity input."""
+    yy, xx = np.mgrid[:65, :97]
+    signal = 10 * np.exp(-((xx - 48) ** 2 + (yy - 32) ** 2) / 8)
+    path = tmp_path / "image.fits"
+    _write_image(path, signal)
+
+    def analytic_background(*_args: object, **_kwargs: object):
+        return np.zeros_like(signal), np.ones_like(signal)
+
+    monkeypatch.setattr(
+        public_api,
+        "_estimate_background_rms",
+        analytic_background,
+    )
+    source = FitsImageSource(path)
+    metadata = source.metadata()
+    header = _header(signal.shape)
+    products = public_api._analyse_image(  # pyright: ignore[reportPrivateUsage]
+        _request(tmp_path),
+        source,
+        metadata,
+        SerialExecutor(),
+        tmp_path / "scratch",
+        config=_config(),
+        header=header,
+    )
+    terminal = products.terminal
+    assert terminal is not None
+    catalogue, mask = public_api._public_catalogue(  # pyright: ignore[reportPrivateUsage]
+        products, metadata, run_id="fixture", profile="continuum"
+    )
+    assert len(catalogue.sources) == 1
+    for invalid_mask in (mask.astype(np.int32), mask[np.newaxis]):
+        with pytest.raises(ValueError, match="Boolean"):
+            project_public_measurements(
+                terminal, catalogue, invalid_mask, header
+            )
+    for invalid_mask in (mask[:-1], ~mask, np.zeros_like(mask)):
+        with pytest.raises(ValueError, match="ownership or publication"):
+            project_public_measurements(
+                terminal, catalogue, invalid_mask, header
+            )
+    for broken, message in (
+        (
+            replace(
+                terminal,
+                measurement_component_labels=-terminal.measurement_component_labels,
+            ),
+            "ownership",
+        ),
+        (replace(terminal, measurement_dispositions=()), "dispositions"),
+        (replace(terminal, catalogue=()), "exact measurements"),
+        (replace(terminal, component_catalogue=()), "exact measurements"),
+        (
+            replace(
+                terminal,
+                catalogue=(
+                    replace(
+                        terminal.catalogue[0],
+                        right_ascension_degrees=0.0,
+                        declination_degrees=30.0,
+                    ),
+                ),
+            ),
+            "position must be finite",
+        ),
+    ):
+        with pytest.raises(ValueError, match=message):
+            project_public_measurements(broken, catalogue, mask, header)
+    changed = catalogue.model_copy(
+        update={
+            "sources": (
+                catalogue.sources[0].model_copy(
+                    update={"source_id": "wrong-source"}
+                ),
+            )
+        }
+    )
+    with pytest.raises(ValueError, match="memberships"):
+        project_public_measurements(terminal, changed, mask, header)
+    # A retained measurement alone cannot stand in for published support.
+    pruned = replace(
+        terminal,
+        detection=replace(
+            terminal.detection,
+            retained_mask=np.zeros_like(mask),
+            component_labels=np.zeros_like(
+                terminal.detection.component_labels
+            ),
+        ),
+    )
+    with pytest.raises(ValueError, match="no published support"):
+        project_public_measurements(
+            pruned, catalogue, np.zeros_like(mask), header
+        )
+    with pytest.raises(ValueError, match="absent terminal"):
+        project_public_measurements(None, catalogue, mask, header)
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("negative_context", (-0.05, -1.0))
+def test_signed_aperture_failure_never_becomes_positive_only_flux(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    negative_context: float,
+) -> None:
+    """The public result keeps detection but does not invent positive flux."""
+    yy, xx = np.mgrid[:65, :97]
+    signal = 10 * np.exp(-((xx - 70) ** 2 + (yy - 32) ** 2) / 8)
+    signal[20:45, 2:30] = negative_context
+    signal[32, 12:19] = 10.0
+    _write_image(tmp_path / "image.fits", signal)
+
+    def analytic_background(*_args: object, **_kwargs: object):
+        return np.zeros_like(signal), np.ones_like(signal)
+
+    monkeypatch.setattr(
+        public_api, "_estimate_background_rms", analytic_background
+    )
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+    catalogue = read_catalogue_fits_product(result.catalogue)
+    diagnostics = read_diagnostics_product(result.diagnostics)
+    assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
+    missing = [
+        entry
+        for entry in diagnostics.measurement_dispositions
+        if entry.object_kind == "source" and entry.status == "unavailable"
+    ]
+    assert len(missing) == (1 if negative_context == -1 else 0)
+    assert len(catalogue.sources) == (1 if negative_context == -1 else 2)
+    assert result.island_count == 2
+    assert np.asarray(fits.getdata(result.mask_path), dtype=bool)[
+        32, 12:19
+    ].all()
+    assert not any(
+        "exact-owner-positive-residual-flux" in row.quality_flags
+        for row in catalogue.sources
+    )
+
+
+@pytest.mark.integration
+def test_public_find_sources_materializes_the_qualified_continuum_view(
+    tmp_path: Path,
+) -> None:
+    """The top-level call publishes a complete source-level product set."""
+    _write_image(tmp_path / "image.fits", _ring_image())
+    executor = _RecordingExecutor()
+
+    result = hebog.find_sources(_request(tmp_path), _config(), executor)
+
+    assert executor.batch_counts
+    assert result.run_id == "public-contract"
+    assert result.source_count == 1
+    assert result.gaussian_component_count == 4
+    assert result.island_count == 4
+    assert result.wall_seconds >= 0.0
+    assert result.catalogue_path == tmp_path / "products/catalogue.fits"
+    assert result.rms_path == tmp_path / "products/rms.fits"
+    assert result.mask_path == tmp_path / "products/source-mask.fits"
+    assert result.diagnostics_path == tmp_path / "products/diagnostics.json"
+    assert all(
+        product.path.is_file()
+        for product in (
+            result.catalogue,
+            result.rms,
+            result.mask,
+            result.diagnostics,
+        )
+    )
+    catalogue = read_catalogue_fits_product(result.catalogue)
+    diagnostics = read_diagnostics_product(result.diagnostics)
+    assert len(catalogue.sources) == 1
+    assert len(catalogue.sources[0].additional_island_ids) == 3
+    assert len(catalogue.gaussian_components) == 4
+    assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
+    assert diagnostics.source_count == 1
+    assert diagnostics.deblended_parent_count == 0
+    assert diagnostics.deferred_deblend_parent_count == 0
+    assert diagnostics.profile == "continuum"
+    assert diagnostics.configuration_qualification == "development-unqualified"
+    assert diagnostics.provenance.input_sha256
+    assert diagnostics.provenance.scientific_composition_sha256
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    "config",
+    (
+        SourceFinderConfig(5.0, 3.0, 7, profile="compact"),
+        SourceFinderConfig(100.0, 80.0, 7, profile="compact"),
+    ),
+)
+def test_continuum_mesh_repair_does_not_change_compact_background_policy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, config: SourceFinderConfig
+) -> None:
+    """Compact-only processing keeps its separately defined RMS policy."""
+    from hebog.validation.hebog_campaign import (  # noqa: PLC0415
+        phase_five_corrected_candidate_configs,
+    )
+
+    original = phase_five_corrected_candidate_configs()[0].background_rms
+    _write_image(tmp_path / "image.fits", np.zeros((256, 384)))
+    source = FitsImageSource(tmp_path / "image.fits")
+
+    def inspect_stage(*args: Any, **kwargs: Any) -> None:
+        assert args[2].background_rms == original
+        assert kwargs["multiscale_protection"] is None
+        assert not kwargs["protect_coarse_source_support"]
+        assert not kwargs["refine_local_noise"]
+        raise RuntimeError("compact policy inspected")
+
+    monkeypatch.setattr(public_api, "run_detection_stage", inspect_stage)
+    with pytest.raises(RuntimeError, match="compact policy inspected"):
+        public_api._estimate_background_rms(  # pyright: ignore[reportPrivateUsage]
+            source,
+            source.metadata(),
+            config,
+            SerialExecutor(),
+            tmp_path / "work",
+            generation_id="compact-policy",
+        )
+
+
+@pytest.mark.integration
+def test_compact_profile_is_explicit_and_retains_component_sources(
+    tmp_path: Path,
+) -> None:
+    """Compact mode reports components without claiming extended support."""
+    _write_image(tmp_path / "image.fits", _ring_image())
+
+    result = hebog.find_sources(
+        _request(tmp_path, output_name="compact"),
+        _config(profile="compact"),
+        _RecordingExecutor(),
+    )
+
+    assert result.source_count == 4
+    assert result.gaussian_component_count == 4
+    assert result.island_count == 4
+    diagnostics = read_diagnostics_product(result.diagnostics)
+    assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
+    assert diagnostics.profile == "compact"
+    assert diagnostics.profile_limitations == ("extended-emission-incomplete",)
+    catalogue = read_catalogue_fits_product(result.catalogue)
+    published_sources = tuple(
+        entry
+        for entry in diagnostics.measurement_dispositions
+        if entry.object_kind == "source" and entry.catalogue_row_published
+    )
+    assert {entry.object_id for entry in published_sources} == {
+        row.source_id for row in catalogue.sources
+    }
+    assert len(published_sources) == 4
+    assert all(
+        entry.member_component_ids == (entry.object_id,)
+        for entry in published_sources
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("shape", ((32, 48), (256, 384)))
+def test_blank_and_all_nan_inputs_publish_honest_empty_products(
+    tmp_path: Path,
+    shape: tuple[int, int],
+) -> None:
+    """Empty science remains successful without inventing sources or RMS."""
+    for name, values, expected_rms_status in (
+        ("blank", np.zeros(shape), "unavailable"),
+        ("all-nan", np.full(shape, np.nan), "unavailable"),
+        ("constant-negative", np.full(shape, -2.0), "unavailable"),
+    ):
+        image_path = tmp_path / f"{name}.fits"
+        _write_image(image_path, values)
+        request = SourceFinderRequest(
+            image_path=image_path,
+            output_directory=tmp_path / name,
+            run_id=name,
+        )
+
+        result = hebog.find_sources(request, _config(), _RecordingExecutor())
+
+        assert result.source_count == 0
+        assert result.gaussian_component_count == 0
+        assert result.island_count == 0
+        assert result.rms.scientific_status == expected_rms_status
+
+
+@pytest.mark.integration
+def test_publication_fails_closed_for_existing_output(
+    tmp_path: Path,
+) -> None:
+    """The facade rejects ambiguous output ownership without overwriting."""
+    _write_image(tmp_path / "image.fits", _ring_image())
+    output = tmp_path / "products"
+    output.mkdir()
+    sentinel = output / "owned.txt"
+    sentinel.write_text("preserve", encoding="utf-8")
+
+    with pytest.raises(SourceFinderOutputExistsError, match="already exists"):
+        hebog.find_sources(_request(tmp_path), _config(), _RecordingExecutor())
+    assert sentinel.read_text(encoding="utf-8") == "preserve"
+
+
+@pytest.mark.integration
+def test_custom_thresholds_change_science_and_are_marked_unqualified(
+    tmp_path: Path,
+) -> None:
+    """Caller thresholds execute while qualification remains explicit."""
+    _write_image(tmp_path / "image.fits", _ring_image())
+
+    qualified = hebog.find_sources(
+        _request(tmp_path, output_name="qualified"),
+        _config(),
+        _RecordingExecutor(),
+    )
+    custom = hebog.find_sources(
+        _request(tmp_path, output_name="custom"),
+        SourceFinderConfig(50.0, 25.0, 7),
+        _RecordingExecutor(),
+    )
+
+    assert qualified.source_count == 1
+    assert custom.source_count == 0
+    qualified_diagnostics = read_diagnostics_product(qualified.diagnostics)
+    custom_diagnostics = read_diagnostics_product(custom.diagnostics)
+    assert isinstance(qualified_diagnostics, PublicSourceFindingDiagnostics)
+    assert isinstance(custom_diagnostics, PublicSourceFindingDiagnostics)
+    assert (
+        qualified_diagnostics.configuration_qualification
+        == "development-unqualified"
+    )
+    assert (
+        custom_diagnostics.configuration_qualification == "custom-unqualified"
+    )
+    assert (
+        qualified_diagnostics.provenance.configuration_sha256
+        != custom_diagnostics.provenance.configuration_sha256
+    )
+
+
+def _high_threshold_image(
+    shape: tuple[int, int], *, include_source: bool
+) -> np.ndarray:
+    """Return analytic noise-only or bright-source refinement controls."""
+    image = np.random.default_rng(130913).normal(0, 1, shape)
+    if include_source:
+        yy, xx = np.indices(shape)
+        image += 600 * np.exp(
+            -((xx - shape[1] / 2) ** 2 + (yy - shape[0] / 2) ** 2) / 8
+        )
+    return image
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("size", (149, 150, 256))
+@pytest.mark.parametrize("island_sigma", (74.0, 75.0, 80.0))
+@pytest.mark.parametrize("include_source", (False, True))
+def test_custom_thresholds_cross_private_refinement_and_mesh_boundaries(
+    tmp_path: Path, size: int, island_sigma: float, include_source: bool
+) -> None:
+    """Valid public thresholds complete on both sides of private boundaries."""
+    _write_image(
+        tmp_path / "image.fits",
+        _high_threshold_image((size, size), include_source=include_source),
+    )
+    result = hebog.find_sources(
+        _request(tmp_path),
+        SourceFinderConfig(100.0, island_sigma, 7),
+        SerialExecutor(),
+    )
+    assert result.source_count == int(include_source)
+    assert result.gaussian_component_count == int(include_source)
+    catalogue = read_catalogue_fits_product(result.catalogue)
+    assert len(catalogue.sources) == int(include_source)
+    assert len(catalogue.gaussian_components) == int(include_source)
+    diagnostics = read_diagnostics_product(result.diagnostics)
+    assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
+    assert diagnostics.configuration_qualification == "custom-unqualified"
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("shape", ((149, 181), (150, 181), (256, 301)))
+@pytest.mark.parametrize("island_sigma", (75.0, 80.0))
+@pytest.mark.parametrize("include_source", (False, True))
+def test_custom_threshold_products_agree_in_serial_and_tiled_existing_dask(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    shape: tuple[int, int],
+    island_sigma: float,
+    include_source: bool,
+) -> None:
+    """Private threshold reconciliation cannot depend on executor or tiles."""
+    _write_image(
+        tmp_path / "image.fits",
+        _high_threshold_image(shape, include_source=include_source),
+    )
+    config = SourceFinderConfig(100.0, island_sigma, 7)
+    serial = hebog.find_sources(
+        _request(tmp_path, output_name="serial"), config, SerialExecutor()
+    )
+    monkeypatch.setattr(public_api, "_TILE_SHAPE_YX", (97, 111))
+    cluster = LocalCluster(
+        n_workers=2,
+        threads_per_worker=1,
+        processes=False,
+        dashboard_address="",
+    )
+    with cluster, Client(cluster) as client:
+        dask = hebog.find_sources(
+            _request(tmp_path, output_name="dask"),
+            config,
+            DaskExecutor(client),
+        )
+    assert serial.source_count == int(include_source)
+    assert serial.gaussian_component_count == int(include_source)
+    assert (
+        serial.catalogue.content_sha256,
+        serial.rms.content_sha256,
+        serial.mask.content_sha256,
+        serial.diagnostics.content_sha256,
+    ) == (
+        dask.catalogue.content_sha256,
+        dask.rms.content_sha256,
+        dask.mask.content_sha256,
+        dask.diagnostics.content_sha256,
+    )
+
+
+@pytest.mark.integration
+def test_custom_island_size_limits_are_operational(tmp_path: Path) -> None:
+    """Caller pixel limits filter terminal components and remain explicit."""
+    _write_image(tmp_path / "image.fits", _ring_image())
+
+    result = hebog.find_sources(
+        _request(tmp_path, output_name="size-limited"),
+        SourceFinderConfig(
+            5.0,
+            3.0,
+            1,
+            maximum_island_pixels=1,
+        ),
+        _RecordingExecutor(),
+    )
+
+    assert result.source_count == 0
+    diagnostics = read_diagnostics_product(result.diagnostics)
+    assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
+    assert diagnostics.configuration_qualification == "custom-unqualified"
+
+
+@pytest.mark.integration
+def test_unsupported_public_unit_fails_before_publication(
+    tmp_path: Path,
+) -> None:
+    """A readable but unevaluated physical unit is a configuration error."""
+    header = _header((8, 8))
+    header["BUNIT"] = "Jy"
+    fits.PrimaryHDU(np.zeros((8, 8)), header).writeto(tmp_path / "image.fits")
+
+    with pytest.raises(
+        UnsupportedSourceFinderConfigurationError,
+        match="BUNIT=Jy/beam",
+    ):
+        hebog.find_sources(_request(tmp_path), _config(), _RecordingExecutor())
+
+    assert not (tmp_path / "products").exists()
+
+
+@pytest.mark.integration
+def test_public_preview_rejects_inputs_beyond_qualified_envelope(
+    tmp_path: Path,
+) -> None:
+    """Phase 5 never extrapolates its in-memory science past 1024 square."""
+    _write_image(tmp_path / "image.fits", np.zeros((2, 1025)))
+
+    with pytest.raises(SourceFinderImageTooLargeError, match="1024"):
+        hebog.find_sources(_request(tmp_path), _config(), _RecordingExecutor())
+
+    assert not (tmp_path / "products").exists()
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("image_kind", "fit_outcome"),
+    (
+        ("shell", "normal"),
+        ("shell", "linear-algebra-failure"),
+        ("ellipse", "inadequate-fallback"),
+        ("coarse-protection", "normal"),
+        ("coarse-protection", "linear-algebra-failure"),
+        ("coarse-protection", "inadequate-fallback"),
+    ),
+)
+def test_serial_and_existing_dask_publish_identical_scientific_products(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    fit_outcome: str,
+    image_kind: str,
+) -> None:
+    """Caller-owned execution policy cannot alter any scientific bytes."""
+    if fit_outcome == "linear-algebra-failure":
+
+        def fail(*_args: object, **_kwargs: object) -> None:
+            raise np.linalg.LinAlgError("SVD did not converge for slice = 0.")
+
+        monkeypatch.setattr(fitting_algorithm, "least_squares", fail)
+    elif fit_outcome == "inadequate-fallback":
+
+        def invalid_free(*_args: object, **_kwargs: object) -> str:
+            return "free-model-invalid-result"
+
+        monkeypatch.setattr(
+            fitting_algorithm, "_free_fallback_reason", invalid_free
+        )
+    image = _ring_image()
+    if image_kind == "ellipse":
+        yy, xx = np.mgrid[:49, :65]
+        image = 100 * np.exp(
+            -0.5 * (((xx - 32.3) / 6) ** 2 + ((yy - 24.1) / 2) ** 2)
+        )
+        image += np.random.default_rng(2409).normal(0, 0.3, image.shape)
+    if image_kind == "coarse-protection":
+        yy, xx = np.mgrid[:256, :384]
+        radius_squared = (yy - 128) ** 2 + (xx - 192) ** 2
+        image = (
+            -2 + xx / 1024 + np.random.default_rng(620).normal(size=xx.shape)
+        )
+        image += 12 * np.exp(-radius_squared / (2 * 20**2))
+        image += 1000 * np.exp(-radius_squared / (2 * 2**2))
+    _write_image(tmp_path / "image.fits", image)
+    serial = hebog.find_sources(
+        _request(tmp_path, output_name="serial"),
+        _config(),
+        SerialExecutor(),
+    )
+    monkeypatch.setattr(public_api, "_TILE_SHAPE_YX", (97, 111))
+    cluster = LocalCluster(
+        n_workers=2,
+        threads_per_worker=1,
+        processes=False,
+        dashboard_address="",
+    )
+    with cluster, Client(cluster) as client:
+        dask = hebog.find_sources(
+            _request(tmp_path, output_name="dask"),
+            _config(),
+            DaskExecutor(client),
+        )
+
+    assert (
+        serial.catalogue.content_sha256,
+        serial.rms.content_sha256,
+        serial.mask.content_sha256,
+        serial.diagnostics.content_sha256,
+    ) == (
+        dask.catalogue.content_sha256,
+        dask.rms.content_sha256,
+        dask.mask.content_sha256,
+        dask.diagnostics.content_sha256,
+    )
+    if fit_outcome != "normal":
+        expected_reason = (
+            "fit-linear-algebra-failure"
+            if fit_outcome == "linear-algebra-failure"
+            else "fit-model-inadequate"
+        )
+        diagnostic = read_diagnostics_product(serial.diagnostics_path)
+        assert isinstance(diagnostic, PublicSourceFindingDiagnostics)
+        assert any(
+            row.reason == expected_reason and not row.catalogue_row_published
+            for row in diagnostic.measurement_dispositions
+        )
+        assert serial.source_count > 0
+
+
+@pytest.mark.integration
+def test_non_square_partial_invalid_edge_case_completes(
+    tmp_path: Path,
+) -> None:
+    """Edge emission and invalid pixels preserve a complete product bundle."""
+    y_pixels, x_pixels = np.mgrid[:48, :80]
+    image = np.random.default_rng(19).normal(0.0, 0.2, (48, 80))
+    image += 3.0 * np.exp(
+        -0.5 * (((x_pixels - 2.0) / 2.0) ** 2 + ((y_pixels - 3.0) / 2.0) ** 2)
+    )
+    image[30:34, 50:56] = np.nan
+    _write_image(tmp_path / "image.fits", image)
+
+    result = hebog.find_sources(
+        _request(tmp_path),
+        _config(),
+        _RecordingExecutor(),
+    )
+
+    assert result.mask_path.is_file()
+    assert result.rms_path.is_file()
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("defect", ["unit", "beam", "wcs", "corrupt"])
+def test_invalid_public_inputs_fail_before_publication(
+    tmp_path: Path,
+    defect: str,
+) -> None:
+    """Malformed or unsupported FITS inputs never leave successful output."""
+    image_path = tmp_path / "image.fits"
+    if defect == "corrupt":
+        image_path.write_bytes(b"not a FITS file")
+    else:
+        header = _header((8, 8))
+        if defect == "unit":
+            del header["BUNIT"]
+        elif defect == "beam":
+            del header["BMAJ"]
+        else:
+            del header["CTYPE1"]
+            del header["CTYPE2"]
+        fits.PrimaryHDU(np.zeros((8, 8)), header).writeto(image_path)
+
+    with pytest.raises(InvalidSourceFinderInputError, match="invalid FITS"):
+        hebog.find_sources(_request(tmp_path), _config(), _RecordingExecutor())
+
+    assert not (tmp_path / "products").exists()
+
+
+@pytest.mark.integration
+def test_interrupted_publication_can_retry_without_partial_products(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A failed unpublished write is cleaned and the same request can retry."""
+    _write_image(tmp_path / "image.fits", _ring_image())
+    original = public_api.write_mask_fits_product
+    call_count = 0
+
+    def fail_once(*args: object, **kwargs: object) -> object:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            raise OSError("injected mask write failure")
+        return original(*args, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(public_api, "write_mask_fits_product", fail_once)
+    request = _request(tmp_path)
+    with pytest.raises(OSError, match="injected"):
+        hebog.find_sources(request, _config(), _RecordingExecutor())
+    assert not request.output_directory.exists()
+
+    result = hebog.find_sources(request, _config(), _RecordingExecutor())
+
+    assert result.catalogue_path.is_file()
+    assert request.output_directory.is_dir()

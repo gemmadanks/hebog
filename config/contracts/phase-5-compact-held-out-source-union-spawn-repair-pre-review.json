@@ -1,0 +1,37 @@
+{
+  "authorization": {
+    "current_hebog_science_change": false,
+    "evaluator_or_gate_change": false,
+    "pybdsf_configuration_change": false,
+    "retry_authorized": true,
+    "tuning_or_rescoring": false
+  },
+  "authorization_record": {
+    "immediate_statement": "Please monitor hourly and if there are any bugs remaining please fix them and retry.",
+    "standing_retry_statement": "Please repair the evaluator and make any other fixes required to complete the run. I approve of all re-tries."
+  },
+  "diagnosis": {
+    "failed_assumption": "The Gaussian-count repair installed its child selector by mutating a module global in the parent process.",
+    "failure": "Spawned pair workers imported the previous column-case worker afresh and selected the previous PyBDSF child, so no pair summary was accepted.",
+    "root_cause": "ProcessPoolExecutor spawn serialization preserved the previous worker's importable function identity but did not inherit the parent-only nested comparator-selector monkeypatch."
+  },
+  "failed_attempt": {
+    "execution_commit": "332d1100a0d5fca05834daa8d044aeb5bc583854",
+    "terminal_output": {
+      "path": "benchmark-results/phase-5/compact-held-out-source-union-sentinel-gaussian-count-repair.json",
+      "sha256": "a6a119feba1047cf197286c51daaf731b4b88520f58402cb383c9b8a5ad8c0ea"
+    }
+  },
+  "pre_review_id": "phase-5-compact-held-out-source-union-spawn-repair-pre-review",
+  "repair": {
+    "candidate_science_changed": false,
+    "comparator_configuration_changed": false,
+    "evaluator_or_gate_changed": false,
+    "new_write_once_namespace": true,
+    "process_dispatch": "explicit-importable-pair-worker",
+    "source_count_provenance": "derived-from-exact-gaul-membership",
+    "test_first": true
+  },
+  "schema_version": 1,
+  "status": "reviewed-process-only-repair"
+}

@@ -23,14 +23,45 @@ context policies remain explicit development ablations. Moment parameters
 initialize both fits, and configuration bounds limit centre movement, axes,
 amplitude, background offset, iterations, and convergence tolerance.
 
+The axis-ratio limit is a physical ellipse limit: both sigma axes must be
+positive, and `max(sigma_first, sigma_second) / min(...)` must not exceed
+`maximum_axis_ratio`. Optimizer axes are interchangeable when the orientation
+turns by 90 degrees; their temporary ordering must not change admission.
+This check applies to single and joint fits before ordered parameters are
+published. An inadmissible fit retains its initializer and explicit failure
+diagnostics, rather than producing a Gaussian row. Independent source support
+and signed-aperture measurements remain available.
+
 When the image declares a correlated-noise covariance, the Phase 4R point
-estimator uses exact generalized least squares for regions of at most 512
-retained pixels. It factorizes only that bounded correlation matrix and
-whitens residuals before SciPy sees them. Larger regions, or images without a
-correlation model, take an explicit diagonal-weighted fallback; the reason is
-retained in diagnostics. This cap prevents an accidental quadratic-memory or
+estimator uses generalized least squares for regions of at most 512 retained
+pixels when the declared correlation matrix is numerically resolved. It
+factorizes only that bounded matrix and whitens both residuals and Jacobians
+before SciPy sees them. Larger regions, or images without a correlation
+model, take an explicit diagonal-weighted fallback; the reason is retained
+in diagnostics. This cap prevents an accidental quadratic-memory or
 cubic-work path for a large island. The component still runs inside its coarse
 batch task, so no per-source Dask graph is introduced.
+
+Cholesky success alone is insufficient: oversampled smooth correlations can
+be numerically singular without triggering a factorization exception. Hebog
+uses [LAPACK's condition estimator](https://docs.scipy.org/doc/scipy/reference/generated/scipy.linalg.lapack.dpocon.html)
+on the existing factor, without a second decomposition or a dense inverse.
+An estimated reciprocal 1-norm condition number at or below `n * eps(float64)`
+triggers `correlation-ill-conditioned`. This dimension-scaled roundoff guard
+follows the numerical-resolution scale used by
+[NumPy's rank criterion](https://numpy.org/doc/stable/reference/generated/numpy.linalg.matrix_rank.html);
+it is a condition estimate, not an exact SVD rank test. Failed estimation
+reports `correlation-conditioning-failed`; failed Cholesky reports
+`correlation-factorization-failed`. All three use the existing diagonal point
+estimator with correlated-noise sandwich errors, not independent-pixel errors.
+The previous silent `1e-10` diagonal jitter is removed: no unmeasured white
+noise is introduced merely to make the likelihood invertible.
+
+This check is independent of source brightness and fitted residuals. It does
+not certify that every converged Gaussian is an adequate physical model, nor
+does it change detection thresholds or replace centroids with pixel peaks.
+The same check applies to single and joint component fits. Source support is
+retained independently of Gaussian measurement availability.
 
 The production implementation uses SciPy's bounded trust-region
 `least_squares` solver. An independent Astropy `Gaussian2D`/TRF fit agrees on
@@ -68,9 +99,29 @@ applicable regression gates.
 The established public default remains the single free-elliptical fit used by
 the Phase 4 serial oracle. Phase 4R explicitly opts into the reviewed
 `beam-or-free` policy; model selection therefore cannot silently change an
-existing caller's catalogue. Under that policy, the free candidate must be
-finite, away from every physical parameter bound, and sufficiently well
-conditioned. A five-sigma log-area test selects clear extension directly.
+existing caller's model-selection policy. Every published single or joint
+candidate must be finite, away from physical parameter bounds, and sufficiently
+well conditioned under the existing configured information limit. Free-only
+fitting and absent beam metadata do not bypass those checks. A separately
+recovered centroid cannot make an invalid whole Gaussian publishable; source
+support and independent source photometry remain available instead.
+
+The current public composition additionally checks beam fallbacks selected
+because the free ellipse failed numerical, bound or identifiability admission.
+It applies the existing direct/multiscale residual-adequacy rule to the joint
+model on its declared likelihood pixels, attributing features to the nearest
+component. Coherent unexplained emission belonging to such a fallback makes
+that Gaussian `fit-model-inadequate`, not an ordinary unresolved measurement.
+Its attempted-model diagnostics, detected identity, support and independent
+source aperture remain available. Valid neighbours keep their parameters and
+covariance from the same joint solution; no alternative fits are spliced in.
+Unavailable peers supply no shape evidence but do not veto independent
+resolved-arc evidence from at least three valid neighbours. This is a bounded
+fallback correctness guard, not a general certification of every Gaussian or
+a new chi-squared cutoff. Independent analytic controls, not closed campaign
+seeds, govern it.
+
+Under `beam-or-free`, a five-sigma log-area test selects clear extension directly.
 Otherwise the nested candidates use BIC with the number of independent
 samples appropriate to their residual model. A free candidate that pins a
 physical bound or is ill conditioned is rejected; Hebog retries a free shape
@@ -78,6 +129,19 @@ at the independently measured intensity-weighted moment centroid and finally
 uses the beam model or reports failure. The selected and rejected model
 identities, exact bound parameters, bound distances, condition number, visible
 footprint, retained geometry, and fallback reason remain auditable.
+Gaussian-component publication applies a second, explicit whole-model test.
+The source keeps the conservative five-sigma selection needed by Rapthor. A
+free component rejected at that boundary is nevertheless published when its
+log-area extension exceeds 1.5 standard errors; otherwise the complete
+restoring-beam ellipse is published. Axes, angle, centroid, and fitted total
+always come from the same selected fit. This avoids both the variance of a
+free angle for beam-like objects and the scientifically incoherent alternative
+of mixing free axes with a beam angle. PyBDSF and Aegean likewise represent a
+Gaussian component as one fitted ellipse; Hebog's explicit low-information
+beam fallback is recorded in diagnostics rather than disguised as a free fit.
+The 1.5-sigma component boundary was selected prospectively on the fixed
+viewed development slice and must pass the complete cumulative regression
+ledger before a fresh campaign can be frozen.
 
 The association aperture is an explicit configurable radius, currently three
 Gaussian sigmas. Hebog uses the lower-variance restoring-beam ellipse when it
@@ -117,12 +181,43 @@ fitted peak and peak error. The raw fitted total remains available to governed
 unresolved-association diagnostics before that individual-row
 canonicalization.
 
+The source and Gaussian-component flux records are deliberately distinct.
+An unresolved source retains the Rapthor-facing peak-as-total convention,
+while its Gaussian component retains the infinite-plane fitted total for
+like-product component comparisons and downstream fit diagnostics. A finite
+moment measurement whose nonlinear fit is unavailable remains a source with
+an explicit `moment-measurement` and `fitted-shape-unavailable` disposition;
+it does not create a Gaussian component. If the fitted centroid lacks local
+RMS interpolation support, the fit records the already measured finite
+owned-region RMS and `local-rms-region-mean-fallback` instead of publishing a
+NaN or failing the complete catalogue.
+
 Invalid moments and regions with fewer than seven owned pixels return a typed
 unavailable fit. Exhausted iterations and scientifically invalid fitted
 parameters return a typed failed fit that retains the moment initializer and
 diagnostics. Unknown values are never encoded as zero. A normal catalogue may
 only be built when every admitted compact region has a valid fit and there are
 no Phase 5 deferrals.
+
+## Integrated-flux uncertainty calibration
+
+The correlated-GLS covariance remains the formal one-sigma uncertainty. The
+Phase 5 external component profile additionally applies a 0.075-sigma
+downward correction to the fitted Gaussian total before celestial catalogue
+publication. It leaves the fitted amplitude, axes, angle, centroid, formal
+error, and covariance unchanged and adds the
+`fitted-integrated-flux-bias-corrected` quality flag. The correction is
+explicit in the campaign configuration; the pipeline-neutral default is zero.
+
+This follows the standard practice of reporting calibrated Gaussian-fit
+uncertainties while keeping the correction distinguishable from the formal
+covariance. PyBDSF documents Gaussian parameter errors based on Condon (1997),
+including the lower-variance fixed-shape case. Hebog does not claim that its
+GLS covariance is the same implementation. Its small point correction was
+selected on seed-disjoint injected truth after a global error multiplier was
+rejected for causing over-coverage. See
+[Condon (1997)](https://adsabs.harvard.edu/pdf/1997PASP..109..166C) and the
+[PyBDSF processing reference](https://pybdsf.readthedocs.io/en/latest/process_image.html).
 
 The Phase 4 configuration aligns the detection and deblending minima with
 this seven-pixel fit requirement. If a prominent watershed peak initially

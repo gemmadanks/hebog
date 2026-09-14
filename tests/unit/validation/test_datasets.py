@@ -32,6 +32,131 @@ MANIFEST_PATH = _DATASET_DIRECTORY / "phase-0-development.json"
 _PHASE_FOUR_POWERED_SAMPLE_COUNT = 1_600
 
 
+def _phase_five_qualification_payload() -> dict[str, Any]:
+    """Return a fresh mutable copy of the frozen Phase 5 manifest."""
+    manifest = load_dataset_manifest(
+        _DATASET_DIRECTORY / "phase-5-qualification.json"
+    )
+    return manifest.model_dump(mode="json")
+
+
+def _remove_one_group_from_every_multiscale_stratum(
+    payload: dict[str, Any],
+) -> None:
+    """Leave one truth group without any governed stratum."""
+    dataset = payload["datasets"][0]
+    target = dataset["multiscale_truth_groups"][0]["identifier"]
+    retained_strata: list[dict[str, Any]] = []
+    for stratum in dataset["multiscale_group_strata"]:
+        stratum["group_identifiers"] = [
+            identifier
+            for identifier in stratum["group_identifiers"]
+            if identifier != target
+        ]
+        if stratum["group_identifiers"]:
+            retained_strata.append(stratum)
+    dataset["multiscale_group_strata"] = retained_strata
+
+
+def _clear_multiscale_truth(payload: dict[str, Any]) -> None:
+    """Create a schema-three dataset without multiscale truth."""
+    dataset = payload["datasets"][0]
+    dataset["multiscale_truth_groups"] = []
+    dataset["multiscale_group_strata"] = []
+
+
+_INVALID_MULTISCALE_MANIFEST_MUTATIONS: tuple[
+    tuple[Callable[[dict[str, Any]], None], str], ...
+] = (
+    (
+        lambda payload: payload["datasets"][0]["multiscale_truth_groups"][
+            0
+        ].update(source_indices=[1, 0]),
+        "unique and sorted",
+    ),
+    (
+        lambda payload: payload["datasets"][0]["multiscale_truth_groups"][
+            0
+        ].update(source_indices=[-1]),
+        "non-negative",
+    ),
+    (
+        lambda payload: payload["datasets"][0]["multiscale_truth_groups"][
+            0
+        ].update(reference_position_xy=[float("inf"), 1.0]),
+        "position must be finite",
+    ),
+    (
+        lambda payload: payload["datasets"][0]["multiscale_truth_groups"][
+            0
+        ].update(minor_extent_beams=100.0),
+        "minor extent",
+    ),
+    (
+        lambda payload: payload["datasets"][0]["multiscale_truth_groups"][
+            0
+        ].update(governed_scale_orders=[2, 1]),
+        "scale orders",
+    ),
+    (
+        lambda payload: payload["datasets"][0]["multiscale_truth_groups"][
+            0
+        ].update(catalogue_role="astronomical-source"),
+        "catalogue role",
+    ),
+    (
+        lambda payload: payload["datasets"][0]["multiscale_truth_groups"][
+            0
+        ].update(crosses_tile_corner=True),
+        "must also cross a tile boundary",
+    ),
+    (
+        lambda payload: payload["datasets"][0]["multiscale_group_strata"][
+            0
+        ].update(group_identifiers=["shell-0001", "diffuse-0001"]),
+        "unique and sorted",
+    ),
+    (
+        lambda payload: payload["datasets"][0]["multiscale_truth_groups"][
+            1
+        ].update(
+            identifier=payload["datasets"][0]["multiscale_truth_groups"][0][
+                "identifier"
+            ]
+        ),
+        "truth identifiers must be unique",
+    ),
+    (
+        lambda payload: payload["datasets"][0][
+            "multiscale_truth_groups"
+        ].pop(),
+        "partition recipe sources",
+    ),
+    (
+        lambda payload: payload["datasets"][0]["multiscale_group_strata"][
+            1
+        ].update(
+            identifier=payload["datasets"][0]["multiscale_group_strata"][0][
+                "identifier"
+            ]
+        ),
+        "stratum identifiers must be unique",
+    ),
+    (
+        lambda payload: payload["datasets"][0]["multiscale_group_strata"][
+            0
+        ].update(group_identifiers=["unknown-group"]),
+        "identify governed truth",
+    ),
+    (_remove_one_group_from_every_multiscale_stratum, "requires a stratum"),
+    (
+        lambda payload: payload.update(schema_version=2),
+        "require manifest schema 3",
+    ),
+    (_clear_multiscale_truth, "schema 3 requires multiscale truth"),
+)
+
+
 def _recipe(
     *,
     seed: int = 42,
@@ -287,6 +412,366 @@ def test_phase_four_adds_immutable_role_specific_supplements() -> None:
         for dataset in manifest.datasets
     }
     assert earlier_identifiers.isdisjoint(phase_four_identifiers)
+
+
+def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
+    None
+):
+    """Freeze multiscale roles, morphology, scales, and one-look data."""
+    manifests = {
+        path.stem: load_dataset_manifest(path)
+        for path in sorted(_DATASET_DIRECTORY.glob("phase-5-*.json"))
+    }
+
+    assert set(manifests) == {
+        "phase-5-astrometry-confirmation",
+        "phase-5-astrometry-development",
+        "phase-5-astrometry-follow-up-confirmation",
+        "phase-5-astrometry-follow-up-development",
+        "phase-5-corrective-a-confirmation",
+        "phase-5-compact-held-out-sentinel",
+        "phase-5-development",
+        "phase-5-external-confirmation-compact-blend",
+        "phase-5-external-confirmation-continuum",
+        "phase-5-external-compact-blend",
+        "phase-5-external-continuum",
+        "phase-5-final-qualification-continuum",
+        "phase-5-external-post-failure-compact-blend",
+        "phase-5-external-post-failure-continuum",
+        "phase-5-external-post-correction-compact-blend",
+        "phase-5-external-post-correction-continuum",
+        "phase-5-external-recovery-compact-blend",
+        "phase-5-external-recovery-continuum",
+        "phase-5-external-successor-compact-blend",
+        "phase-5-external-successor-continuum",
+        "phase-5-qualification",
+        "phase-5-regression",
+    }
+    expected_roles = {
+        "phase-5-astrometry-confirmation": DatasetRole.REGRESSION,
+        "phase-5-astrometry-development": DatasetRole.DEVELOPMENT,
+        "phase-5-astrometry-follow-up-confirmation": DatasetRole.REGRESSION,
+        "phase-5-astrometry-follow-up-development": DatasetRole.DEVELOPMENT,
+        "phase-5-corrective-a-confirmation": DatasetRole.REGRESSION,
+        "phase-5-compact-held-out-sentinel": DatasetRole.QUALIFICATION,
+        "phase-5-development": DatasetRole.DEVELOPMENT,
+        "phase-5-external-confirmation-compact-blend": DatasetRole.REGRESSION,
+        "phase-5-external-confirmation-continuum": DatasetRole.REGRESSION,
+        "phase-5-external-compact-blend": DatasetRole.REGRESSION,
+        "phase-5-external-continuum": DatasetRole.REGRESSION,
+        "phase-5-final-qualification-continuum": DatasetRole.QUALIFICATION,
+        "phase-5-external-post-failure-compact-blend": DatasetRole.REGRESSION,
+        "phase-5-external-post-failure-continuum": DatasetRole.REGRESSION,
+        "phase-5-external-post-correction-compact-blend": (
+            DatasetRole.REGRESSION
+        ),
+        "phase-5-external-post-correction-continuum": DatasetRole.REGRESSION,
+        "phase-5-external-recovery-compact-blend": DatasetRole.REGRESSION,
+        "phase-5-external-recovery-continuum": DatasetRole.REGRESSION,
+        "phase-5-external-successor-compact-blend": DatasetRole.REGRESSION,
+        "phase-5-external-successor-continuum": DatasetRole.REGRESSION,
+        "phase-5-regression": DatasetRole.REGRESSION,
+        "phase-5-qualification": DatasetRole.QUALIFICATION,
+    }
+    all_morphologies: set[str] = set()
+    all_identifiers: list[str] = []
+    all_seeds: set[int] = set()
+    for manifest_id, manifest in manifests.items():
+        expected_schema = (
+            2
+            if manifest_id
+            in {
+                "phase-5-external-compact-blend",
+                "phase-5-external-confirmation-compact-blend",
+                "phase-5-external-post-failure-compact-blend",
+                "phase-5-external-post-correction-compact-blend",
+                "phase-5-external-recovery-compact-blend",
+                "phase-5-external-successor-compact-blend",
+            }
+            else 3
+        )
+        assert manifest.schema_version == expected_schema
+        assert {dataset.role for dataset in manifest.datasets} == {
+            expected_roles[manifest_id]
+        }
+        for dataset in manifest.datasets:
+            if expected_schema == 3:
+                assert dataset.multiscale_truth_groups
+                assert dataset.multiscale_group_strata
+            else:
+                assert dataset.association_truth_groups
+                assert dataset.association_group_strata
+            all_identifiers.append(dataset.identifier)
+            all_morphologies.update(
+                group.morphology for group in dataset.multiscale_truth_groups
+            )
+            recipe_seeds = {
+                recipe.seed for recipe in iter_dataset_recipes(dataset)
+            }
+            assert all_seeds.isdisjoint(recipe_seeds)
+            all_seeds.update(recipe_seeds)
+
+    assert len(set(all_identifiers)) == len(all_identifiers)
+    assert all_morphologies == {
+        "artifact",
+        "curved-filament",
+        "diffuse",
+        "filament",
+        "mixed-compact-extended",
+        "shell",
+    }
+    confirmation_dataset = manifests[
+        "phase-5-corrective-a-confirmation"
+    ].datasets[0]
+    assert len(iter_dataset_recipes(confirmation_dataset)) == 100
+    assert "before estimator selection" in confirmation_dataset.provenance
+    expected_recipe_counts = {
+        "phase-5-astrometry-development": 40,
+        "phase-5-astrometry-confirmation": 400,
+        "phase-5-astrometry-follow-up-development": 80,
+        "phase-5-astrometry-follow-up-confirmation": 400,
+        "phase-5-external-continuum": 600,
+        "phase-5-external-compact-blend": 800,
+        "phase-5-external-successor-continuum": 600,
+        "phase-5-external-successor-compact-blend": 800,
+        "phase-5-external-confirmation-continuum": 600,
+        "phase-5-external-confirmation-compact-blend": 800,
+        "phase-5-external-post-failure-continuum": 1600,
+        "phase-5-external-post-failure-compact-blend": 800,
+        "phase-5-external-post-correction-continuum": 1688,
+        "phase-5-external-post-correction-compact-blend": 800,
+        "phase-5-external-recovery-continuum": 1688,
+        "phase-5-external-recovery-compact-blend": 800,
+        "phase-5-final-qualification-continuum": 1688,
+        "phase-5-compact-held-out-sentinel": 168,
+    }
+    assert {
+        manifest_id: sum(
+            len(iter_dataset_recipes(dataset))
+            for dataset in manifests[manifest_id].datasets
+        )
+        for manifest_id in expected_recipe_counts
+    } == expected_recipe_counts
+    assert all(
+        "before successor estimator" in dataset.provenance
+        for manifest_id in (
+            "phase-5-astrometry-development",
+            "phase-5-astrometry-confirmation",
+        )
+        for dataset in manifests[manifest_id].datasets
+    )
+    assert all(
+        "before segment-estimator" in dataset.provenance
+        for manifest_id in (
+            "phase-5-astrometry-follow-up-development",
+            "phase-5-astrometry-follow-up-confirmation",
+        )
+        for dataset in manifests[manifest_id].datasets
+    )
+    qualification = manifests["phase-5-qualification"].datasets
+    assert len(qualification) == 1
+    qualification_dataset = qualification[0]
+    assert len(iter_dataset_recipes(qualification_dataset)) == 400
+    assert "untouched" in qualification_dataset.provenance.lower()
+    assert qualification_dataset.recipe.noise_correlation is not None
+    assert qualification_dataset.recipe.invalid_rectangles
+    assert qualification_dataset.recipe.noise_rms_fractional_gradient_xy != (
+        0.0,
+        0.0,
+    )
+    scale_orders = {
+        group.governed_scale_orders
+        for group in qualification_dataset.multiscale_truth_groups
+    }
+    assert scale_orders >= {(1,), (2,), (3,)}
+    assert any(
+        group.crosses_tile_boundary
+        for group in qualification_dataset.multiscale_truth_groups
+    )
+    assert any(
+        group.touches_image_edge
+        for group in qualification_dataset.multiscale_truth_groups
+    )
+    assert any(
+        group.crosses_tile_corner
+        and group.compact_deblend_disposition == "deferred-extended"
+        for group in qualification_dataset.multiscale_truth_groups
+    )
+    final_qualification = manifests[
+        "phase-5-final-qualification-continuum"
+    ].datasets
+    assert len(final_qualification) == 4
+    assert {
+        len(iter_dataset_recipes(dataset)) for dataset in final_qualification
+    } == {422}
+    assert all(
+        "named scientific approval" in dataset.provenance.lower()
+        for dataset in final_qualification
+    )
+    assert {
+        manifest_id: tuple(
+            campaign_dataset_identity(dataset).content_sha256
+            for dataset in manifest.datasets
+        )
+        for manifest_id, manifest in manifests.items()
+    } == {
+        "phase-5-astrometry-confirmation": (
+            "a2ed7c2d469c2c3ab78e394b7ddcb8a89c4354daf2750bcd1c631f662db7263d",
+            "b4acdf2dd8dd891913ad339e4eb8a28c9d17cdf915cb64ad5c50ec16315e22be",
+            "4a123be9ea8a45ff5103a2ab70b81fdf0cfbc90c291769fc2a9e2505aea6b7e4",
+            "3d1f6b5e382a7b4b0d2d7dfd8b6c80b16bdc71afedf96c176ba65f80b13e83cf",
+        ),
+        "phase-5-astrometry-development": (
+            "f2985a2255dba56f02f3adbb3493751278e846cd9a7175ed0a82ca3c2a2cd6a9",
+            "6cb7506329a8cf6481e370fa151a6306b84980dc69275b6e16bad876b3c09f4c",
+            "0a145ccf8fcd48137a688b776a75930c7b25d3101dc41d70b7a66d2bbc2430fd",
+            "543b2d5127fea62b0f80863c7fc8369abc2837a32f3d09c1cb02924c8c75857f",
+        ),
+        "phase-5-astrometry-follow-up-confirmation": (
+            "f75c63af9240523bb91e32e08f81149c6fd229a49f04085c41be6919b2987d48",
+            "7710e24c14c0f9b99f94fed86608ed913473219faec46dd933eefd09b38ff864",
+            "f540cbd1072291017555ecb1e6bcd5cf5edaba58955a1758235e7242503cd600",
+            "6c199f0e13bd95862ea5caa9af8cf08e665147a3efade408141ea3d6d90a97a3",
+        ),
+        "phase-5-astrometry-follow-up-development": (
+            "2d7ac8dd5bbb653e34b88c9be17010a504be67d97c1ba55a240bc464be6f674e",
+            "b3ce7b44803b25ae505d405cd0f9171caca9cf51c28224db698238c25b501d21",
+            "6162245b3c215329e428c326be212b117f572a6e6efe339e6cdb9e5a1f220a9d",
+            "2b0c8016ba881cc2dbf0f4192c5322da5aebd3603e792104bfef57fd73908523",
+        ),
+        "phase-5-corrective-a-confirmation": (
+            "12fc92e16a5f2ea2b57b63d565430f7b1f484ee3591070345987c92cf8de979a",
+        ),
+        "phase-5-compact-held-out-sentinel": (
+            "59ec6edc00dbc0a7bb7804d9ec423c6e802d3986d217694df926f45f1e6b6210",
+            "a7f47de6b2a7430af997a0ee0a6fdc6e12e0b7357c8def0e1b8216282cf053e1",
+            "97383044ea064b61fcaf53e2bbeb85cae35766bc0f0188be1e373449370376ad",
+            "fd7b1781a7b7534c7ebe803fe8e70ff54052b09a6b9dc5d64975efa83046e246",
+            "b16e939dd836e637435fdbbea9be8d76f864b466b95c0063baac7d0be8cd8daf",
+            "c5e8913a54dd6abf981a238517ccf7e8d62972f1cd30d2f0bcb40d5dbda9fef5",
+            "a879605d776b7248fedc36cb86de4cf1d6317e60dafd7f7dbf00ef7ba711b94e",
+            "26092b65df65c08b39933044fb3d7abad418c2108089ff73bfa92fba0eb2a2be",
+            "342641c36c1a927db3c902715db9a90819986ecf5710e749ff2bcc0af82ecf1d",
+            "28dd65d182770145fd0c854bb50937e30d8b317f197089eb4344f08d3cfaec59",
+            "0f5ee12e24491af6f974d57c3052e1738ed6096cbe4fcf1e8d04a0b5f91acdca",
+            "b1b5fb80060dca6ce4d2c8689ea86034b60a93efce7ab6deaa377e7f9e1435fc",
+            "ce88141f183c6e0fe99913fc95edcbe2543d2c3eeb4825acc1d7b86c38f1885f",
+            "fe521cbfd796de75be50494f02937111dddf2e0e492dbd08366fbba9444c8b1f",
+            "da44cc217f0ebe3cb801551062ddc4b690163066192d5800a03f4954b1f48588",
+            "56ff137d6e87ed80135734dea5ce2418983ebccb3210393572e3c178616fb704",
+            "6f280c1cca9e8edb6165961f03d4b1ba974f05a2496e4436d030f694ae2e52ff",
+            "cff25023c2f25ef2edd8148a497ba77afae18a2e68ddb65668207a79fa717521",
+            "016c76a224d303663697bfe10636a2588a8693251202d64e6f5ad6e0ad0ec06c",
+            "52a79ed9f8d36ecbe7119aa56e5d32d85c1e1ac7f9bed02a54c9dbe98dc33aa7",
+            "f28ba869964b248768e70e979bd531cd6b8d14a191dd18f6ed6b8f98066faede",
+            "30d1bd64251e180b7777f3c3d8f6bf0b5a1dcd8e067bc3c7ad7947617c833655",
+            "39e92dbeee90697fccf5029df7f8b94c9022af8005d747fdc0476d907021d288",
+            "a5daa292a3ae10e39ba86354aab834da1adba548f1731269d4d32fccabda60bd",
+            "6cbc1f8513f7d50ab5d543c2cbebe9ae840a6a0d24d91e4136a1fc6c1981c10a",
+            "04eb492982afbf2f464a7811712a088e209c4938d09e839f490ae31922c6d7ab",
+            "f578a36d7d7e3a8504e6e70563f06294118fa1ab74abbd4873751de381fad72c",
+            "557ee50f1c27fef5bb2fc4e7386d1b4633643e9927034e54b260248a7eb6560d",
+            "329ef7f7c858fe9f1c7ce35a92ee97f4c9574ebff18379321f21c7a4d0d4c526",
+            "d93becd8e1a96f5a137c2dcc09c551c3556dc8d8c1176b1c303cb528f6c8a2f0",
+            "3b31a47ae5faceb2d46490aa6c7845f60e0829c3af3cc75fd223344e2c7d5d79",
+            "1f4297d525d1a7b0ecff17816ce4c69decbc3ba0724379c623afebf54e36fba7",
+            "91d047cb8b158516cb5b38d3835c135102c263d6498ccb0c78d12f16b624e3c5",
+            "09cf8faf1fe6cdae96271a283630ce60e7fe582795fe7dbe748ec719e14e17e2",
+            "28aadea55ff6dd215374ed63d536b64e10bf567eaa90a3fcf0c5e9bd9298468c",
+            "1601ebf197548677be740dbd3ede06b4f3f7c3c4460b064831a2307d5012dc3c",
+            "079092a442b15b86ac6adce1823d305fab2154c45e0e517b36cde7779215ccaa",
+            "609ff2e41b447d1124ceeff328ad86921a63f2254afb3730db7adf8adcadc652",
+            "f0d114654baec7c689f85992f5efc1e476e79a92e276de907bf8ee5bbdd8e55b",
+            "e756784225d7a7736ac1050f952a9e974afb2f6783dd94ff11520dc5acb43ca7",
+            "7651a054c82d1411954bff832aa7b2f7d9533ae603528b1647fbbdd4a047cef7",
+            "c19e21d102f08668e673c93817c2692223b4958ef873eb002c802171ec2b63d8",
+        ),
+        "phase-5-development": (
+            "319b43f99e0ff5d771f1f79721eb228b82f5e478d921f9dad6f0a2f1caf8d13d",
+        ),
+        "phase-5-external-confirmation-compact-blend": (
+            "207a4b89618abc9dc9a7a077156207bf996bf395b1cdf0df256678b42ede8d5d",
+        ),
+        "phase-5-external-confirmation-continuum": (
+            "f357da2de33939519c7db8d3619330388b18c797213ff5b9f6ae46f796c1dc53",
+            "7289d452d6defc63fd3b2c2cd5e92e7db4d6748b7e767a0ff324632096727b69",
+            "9cae51b4d386cac39342e2e278b350bd001870f96738604f739d7f4e22fd7974",
+            "9e840422cb986716c0f82410be7b0c8bb99523f51bd3ef17c9d6a5ab85b6ae02",
+        ),
+        "phase-5-external-compact-blend": (
+            "41183ce796824b56cdf79d965bc655840c1b006934262f269c0ace4eede7a610",
+        ),
+        "phase-5-external-continuum": (
+            "38ca0562132fc061bbd08c12a7aa7ae1411f25ebb9efdde068bceac3a2d7d9f8",
+            "0638cc7a27e6e00d978c6234f538494d745399e82de41486bea8612aef8670f1",
+            "684d6dc90793f034f9ac5a2743303d0645486fd00f85e2b69e865f6b65e01d7e",
+            "75dfa8b8c8c537c294900be5a55174b343e731500902332c0abcb6da34c65ca5",
+        ),
+        "phase-5-final-qualification-continuum": (
+            "ca15445d04a7290022aa3a58808f886cdcbea557792f5a035383735fba0d0e33",
+            "bb71359495c28e6e62ded91e6734b61051bb4ff87e3eab4c7da0e2c3de15d5e3",
+            "ae28addc1f4021b0d3e06b98a0b77a9de0bab9398d161d514777803a1c491db3",
+            "055d20485bab1b2d626f7f75395776e7583ce9b4867db7cf262d61bbd069a453",
+        ),
+        "phase-5-external-post-failure-compact-blend": (
+            "fb709fafa2f5a49b4f813802f363b73c755d84b630e3e1277edda0c7edec33bd",
+        ),
+        "phase-5-external-post-failure-continuum": (
+            "2d8e12b31d0358cb149adfff4f5d7c4bf99adc3930571a74884c7ce07964a68c",
+            "4377ed5b065c040c98c0fde632a1247d8feb43a46e902219d7d628fd573bc001",
+            "1e2189b24e8a3fd09b7ff7cb6d445da0f25ef658333308ef24df6d84830fd422",
+            "5c2604a24c2eb003dbdb20c184325f36f1a0da667406a439a59d1fa3559d0cf4",
+        ),
+        "phase-5-external-post-correction-compact-blend": (
+            "c1a151ca3ec21fd43c74607b0b928f7e86b59add83a03dd5b57daaa66e527c56",
+        ),
+        "phase-5-external-post-correction-continuum": (
+            "589a530ae61378b3c0c7f73f22ba70fd77905dc08f136e639346bfc67d6afd0c",
+            "ffa7301398aa93fd7658a618f1767c64def33dce88f5f3af75145f9d65e47809",
+            "af652ed1364c37670fc9de6c32ff35007832ab2509b6d1c30c41b150ca92fc55",
+            "b2de71628220c817aceb6a28705d29e9ae737b30d4c7998a3b4674655e82c393",
+        ),
+        "phase-5-external-recovery-compact-blend": (
+            "6b574ff757e8f85736b5513f38d8d68b5189b112757c93f26c1de8fc77b85ab6",
+        ),
+        "phase-5-external-recovery-continuum": (
+            "d9956c8c74aa18825ba5ead78839453e317e2c0627c845aca6346dc0af407a71",
+            "39554fac34b1a07c29026dece2e3f56a5368c1e8ec48350fbfa2c2aad1f67415",
+            "1fd42a71ade6964742c56f68cba88f34d026d0d5b384b4f885fa5a3f717ce40a",
+            "f7926ddd5d5054f88a0ff06761c1ee496de7ae1158b1123ea6cd049cec3c1f19",
+        ),
+        "phase-5-external-successor-compact-blend": (
+            "ef4a73f33a7997eec3c5f14cc4f1effa3156ffabccfaec9b472a9279f153c779",
+        ),
+        "phase-5-external-successor-continuum": (
+            "098af6cec85eecc4b69db64d277925148311678acf3d94c726da45367b7bb5b7",
+            "9fa97adc12640d4422f5f9bc5049b060b4a7927c92992c6649b196943b12e1e7",
+            "24596d46796954b6ff1a61be26d4ed9bebb17ffe58322e33d699b540d952e1d7",
+            "7601ec3640a354985f17cbb0596363bb0a7f6e95556bf1cad01c2e3cd1f03891",
+        ),
+        "phase-5-qualification": (
+            "b93b0b180341bdeeb4a4ee18398e5203ef83437375b731c8e4bbc550017216a1",
+        ),
+        "phase-5-regression": (
+            "70a7288ccd6230695f906e40d51a3509497ac4f88ba4e94e1174a29ef4017ec5",
+        ),
+    }
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    _INVALID_MULTISCALE_MANIFEST_MUTATIONS,
+)
+def test_phase_five_manifest_rejects_incomplete_multiscale_truth(
+    mutation: Callable[[dict[str, Any]], None],
+    message: str,
+) -> None:
+    """Morphology truth and its strata remain complete and canonical."""
+    payload = _phase_five_qualification_payload()
+    mutation(payload)
+
+    with pytest.raises(ValidationError, match=message):
+        DatasetManifest.model_validate(payload)
 
 
 def test_phase_four_paired_regression_is_independent_and_representative() -> (

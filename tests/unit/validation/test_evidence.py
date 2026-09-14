@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any, Literal
 
 import numpy as np
 import pytest
@@ -30,6 +31,27 @@ from hebog.validation.evidence import (
     ExecutorKind,
     Measurement,
     NormalizedResidualDiagnostic,
+    PhaseFiveAstrometryCandidateEvidence,
+    PhaseFiveAstrometryCoverageEvidence,
+    PhaseFiveAstrometryDevelopmentEvidence,
+    PhaseFiveAstrometryDiagnostic,
+    PhaseFiveAstrometryEndpointEvidence,
+    PhaseFiveAstrometryEstimatorDiagnostic,
+    PhaseFiveAstrometryFollowUpConfirmationEvidence,
+    PhaseFiveAstrometryFollowUpDevelopmentEvidence,
+    PhaseFiveAstrometryFollowUpDiagnosticEvidence,
+    PhaseFiveAstrometryFollowUpEndpointEvidence,
+    PhaseFiveCorrectiveAReviewEvidence,
+    PhaseFiveCorrectiveReviewEvidence,
+    PhaseFiveCorrectiveRReviewEvidence,
+    PhaseFiveFilterCandidateEvidence,
+    PhaseFiveFilterFamily,
+    PhaseFiveFilterReviewCandidateConclusion,
+    PhaseFiveFilterReviewEndpointEvidence,
+    PhaseFiveFilterReviewEvidence,
+    PhaseFiveFilterReviewPairedEndpointEvidence,
+    PhaseFiveFilterSelectionEvidence,
+    PhaseFiveMeasurementDispositionDiagnostic,
     ResourceAllocation,
     RuntimeMetrics,
     ScalabilityMetrics,
@@ -152,6 +174,839 @@ def test_evidence_round_trips_through_canonical_json(tmp_path: Path) -> None:
     assert loaded == evidence
     assert path.read_bytes() == first_bytes
     assert first_bytes.endswith(b"\n")
+
+
+def _phase_five_filter_candidate(
+    family: Literal[
+        "beam-aware-matched-filter",
+        "undecimated-wavelet",
+    ],
+    *,
+    scientifically_adequate: bool = True,
+) -> PhaseFiveFilterCandidateEvidence:
+    """Return one complete five-repetition filter-selection observation."""
+    return PhaseFiveFilterCandidateEvidence(
+        family=family,
+        measured_wall_seconds=(1.0, 1.1, 0.9, 1.05, 0.95),
+        median_wall_seconds=1.0,
+        maximum_workspace_bytes=1024,
+        convolution_count_per_image=9,
+        temporary_plane_count=7,
+        maximum_halo_pixels=34,
+        maximum_unit_flux_response_fractional_error=0.01,
+        maximum_masked_response_fractional_error=0.08,
+        maximum_edge_response_fractional_error=0.07,
+        maximum_absolute_background_response_jy_per_beam=0.0,
+        finite_truth_group_response_fraction=1.0,
+        minimum_correlated_noise_gain=1.1,
+        maximum_correlated_noise_gain=2.0,
+        scientifically_adequate=scientifically_adequate,
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        (
+            "measured_wall_seconds",
+            (1.0, 1.1, 0.0, 1.05, 0.95),
+            "finite and positive",
+        ),
+        ("median_wall_seconds", 1.1, "must match measurements"),
+        ("minimum_correlated_noise_gain", 3.0, "must be ordered"),
+    ],
+)
+def test_phase_five_filter_candidate_rejects_invalid_summaries(
+    field: str,
+    value: object,
+    message: str,
+) -> None:
+    """Candidate summaries remain derivable from valid observations."""
+    candidate = _phase_five_filter_candidate("beam-aware-matched-filter")
+    payload = candidate.model_dump(mode="python")
+    payload[field] = value
+
+    with pytest.raises(ValidationError, match=message):
+        PhaseFiveFilterCandidateEvidence.model_validate(payload)
+
+
+def _phase_five_selection_payload(
+    candidates: tuple[PhaseFiveFilterCandidateEvidence, ...],
+) -> dict[str, object]:
+    """Return one complete selection evidence payload."""
+    return {
+        "schema_version": 1,
+        "evidence_type": "phase-five-filter-selection",
+        "run_id": "phase-five-filter-selection-development",
+        "captured_at": datetime(2026, 8, 6, 9, 0, tzinfo=UTC),
+        "status": EvidenceStatus.REVIEWED,
+        "dataset": _dataset(),
+        "configuration_sha256": SHA256,
+        "subject": _software("hebog", commit="e" * 40),
+        "environment_sha256": "2" * 64,
+        "candidates": candidates,
+        "selected_family": "beam-aware-matched-filter",
+        "decision_rule": (
+            "all-analytic-gates-then-lowest-maintained-bounded-cost"
+        ),
+        "qualification_opened": False,
+    }
+
+
+def test_phase_five_filter_selection_round_trips_and_requires_evidence(
+    tmp_path: Path,
+) -> None:
+    """The development-only representation decision is machine-readable."""
+    evidence = PhaseFiveFilterSelectionEvidence(
+        schema_version=1,
+        evidence_type="phase-five-filter-selection",
+        run_id="phase-five-filter-selection-development",
+        captured_at=datetime(2026, 8, 6, 9, 0, tzinfo=UTC),
+        status=EvidenceStatus.REVIEWED,
+        dataset=_dataset().model_copy(
+            update={"identifier": "phase5-development-multiscale-1024"}
+        ),
+        configuration_sha256=SHA256,
+        subject=_software("hebog", commit="e" * 40),
+        environment_sha256="2" * 64,
+        candidates=(
+            _phase_five_filter_candidate("beam-aware-matched-filter"),
+            _phase_five_filter_candidate("undecimated-wavelet"),
+        ),
+        selected_family="beam-aware-matched-filter",
+        decision_rule=(
+            "all-analytic-gates-then-lowest-maintained-bounded-cost"
+        ),
+        qualification_opened=False,
+    )
+    path = tmp_path / "phase-five-filter-selection.json"
+
+    write_evidence(path, evidence)
+
+    assert load_evidence(path) == evidence
+
+
+def test_phase_five_filter_selection_rejects_inadequate_selected_family() -> (
+    None
+):
+    """Measured speed cannot select a scientifically inadequate filter."""
+    candidates = (
+        _phase_five_filter_candidate(
+            "beam-aware-matched-filter",
+            scientifically_adequate=False,
+        ),
+        _phase_five_filter_candidate("undecimated-wavelet"),
+    )
+    payload = _phase_five_selection_payload(candidates)
+
+    with pytest.raises(ValidationError, match="scientifically adequate"):
+        PhaseFiveFilterSelectionEvidence.model_validate(payload)
+
+
+def test_phase_five_filter_selection_requires_canonical_candidates() -> None:
+    """Evidence always compares both candidates in the governed order."""
+    candidates = (
+        _phase_five_filter_candidate("undecimated-wavelet"),
+        _phase_five_filter_candidate("beam-aware-matched-filter"),
+    )
+
+    with pytest.raises(ValidationError, match="complete and canonical"):
+        PhaseFiveFilterSelectionEvidence.model_validate(
+            _phase_five_selection_payload(candidates)
+        )
+
+
+def _phase_five_review_endpoint(
+    family: Literal[
+        "beam-aware-matched-filter",
+        "undecimated-wavelet",
+    ],
+    *,
+    passed: bool,
+) -> PhaseFiveFilterReviewEndpointEvidence:
+    """Return one binding absolute endpoint from the paired review."""
+    return PhaseFiveFilterReviewEndpointEvidence(
+        metric="response-fractional-error",
+        population="analytic",
+        stratum="overall",
+        statistic="median",
+        family=family,
+        sample_count=84,
+        estimate=0.08,
+        absolute_limit=0.05,
+        absolute_direction="maximum",
+        passed=passed,
+    )
+
+
+def _phase_five_paired_endpoint(
+    family: Literal[
+        "beam-aware-matched-filter",
+        "undecimated-wavelet",
+    ],
+) -> PhaseFiveFilterReviewPairedEndpointEvidence:
+    """Return one exact non-inferiority endpoint from the paired review."""
+    reference = (
+        "undecimated-wavelet"
+        if family == "beam-aware-matched-filter"
+        else "beam-aware-matched-filter"
+    )
+    return PhaseFiveFilterReviewPairedEndpointEvidence(
+        metric="response-fractional-error",
+        population="analytic",
+        stratum="overall",
+        statistic="median",
+        family=family,
+        reference_family=reference,
+        sample_count=84,
+        estimate_difference=0.01,
+        upper_confidence_limit=0.01,
+        margin=0.02,
+        passed=True,
+    )
+
+
+def _phase_five_review_evidence() -> PhaseFiveFilterReviewEvidence:
+    """Return a valid fail-closed Step 2B review decision."""
+    matched = "beam-aware-matched-filter"
+    wavelet = "undecimated-wavelet"
+    return PhaseFiveFilterReviewEvidence(
+        schema_version=1,
+        evidence_type="phase-five-filter-paired-review",
+        run_id="phase-five-filter-paired-review-regression",
+        captured_at=datetime(2026, 8, 6, 12, 0, tzinfo=UTC),
+        status=EvidenceStatus.REVIEWED,
+        dataset=_dataset().model_copy(
+            update={
+                "identifier": "phase5-regression-multiscale-1024",
+                "role": DatasetRole.REGRESSION,
+            }
+        ),
+        configuration_sha256=SHA256,
+        subject=_software("hebog", commit="e" * 40),
+        environment_sha256="2" * 64,
+        protocol_sha256="3" * 64,
+        development_manifest_sha256="4" * 64,
+        regression_manifest_sha256="5" * 64,
+        analytic_case_count=84,
+        development_image_count=10,
+        regression_image_count=100,
+        bootstrap_resamples=10_000,
+        bootstrap_seed=20260806,
+        endpoints=(
+            _phase_five_review_endpoint(matched, passed=False),
+            _phase_five_review_endpoint(wavelet, passed=False),
+        ),
+        paired_endpoints=(
+            _phase_five_paired_endpoint(matched),
+            _phase_five_paired_endpoint(wavelet),
+        ),
+        candidates=(
+            PhaseFiveFilterReviewCandidateConclusion(
+                family=matched,
+                passes_absolute=False,
+                noninferior_to_other=True,
+                bounded_cost=(9, 7, 34),
+                failed_absolute_endpoint_count=1,
+                failed_paired_endpoint_count=0,
+            ),
+            PhaseFiveFilterReviewCandidateConclusion(
+                family=wavelet,
+                passes_absolute=False,
+                noninferior_to_other=True,
+                bounded_cost=(11, 9, 49),
+                failed_absolute_endpoint_count=1,
+                failed_paired_endpoint_count=0,
+            ),
+        ),
+        decision="select-neither",
+        selected_family=None,
+        step_three_authorized=False,
+        qualification_opened=False,
+    )
+
+
+def test_phase_five_filter_review_round_trips_select_neither(
+    tmp_path: Path,
+) -> None:
+    """A completed inconclusive review is typed and keeps Step 3 blocked."""
+    evidence = _phase_five_review_evidence()
+    path = tmp_path / "phase-five-filter-paired-review.json"
+
+    write_evidence(path, evidence)
+
+    assert load_evidence(path) == evidence
+
+
+def test_phase_five_filter_review_cannot_authorize_without_selection() -> None:
+    """Fail-closed evidence cannot authorize Step 3 after selecting neither."""
+    payload = _phase_five_review_evidence().model_dump(mode="python")
+    payload["step_three_authorized"] = True
+
+    with pytest.raises(ValidationError, match="authorization requires"):
+        PhaseFiveFilterReviewEvidence.model_validate(payload)
+
+
+def test_phase_five_filter_review_derives_candidate_failures() -> None:
+    """Candidate conclusions must agree with their recorded endpoints."""
+    payload = _phase_five_review_evidence().model_dump(mode="python")
+    payload["candidates"][0]["passes_absolute"] = True
+
+    with pytest.raises(ValidationError, match="candidate conclusion"):
+        PhaseFiveFilterReviewEvidence.model_validate(payload)
+
+
+def test_phase_five_corrective_review_requires_corrective_gate_passage() -> (
+    None
+):
+    """A comparator result cannot authorize the residual continuum path."""
+    matched_endpoint = _phase_five_review_endpoint(
+        "beam-aware-matched-filter", passed=False
+    )
+    corrective_endpoint = PhaseFiveFilterReviewEndpointEvidence(
+        metric="response-fractional-error",
+        population="analytic",
+        stratum="overall",
+        statistic="median",
+        family="residual-b3-atrous",
+        sample_count=84,
+        estimate=0.08,
+        absolute_limit=0.05,
+        absolute_direction="maximum",
+        passed=False,
+    )
+    candidate_pairs: tuple[
+        tuple[PhaseFiveFilterFamily, PhaseFiveFilterFamily], ...
+    ] = (
+        ("beam-aware-matched-filter", "residual-b3-atrous"),
+        ("residual-b3-atrous", "beam-aware-matched-filter"),
+    )
+    paired = (
+        PhaseFiveFilterReviewPairedEndpointEvidence(
+            metric="response-fractional-error",
+            population="analytic",
+            stratum="overall",
+            statistic="median",
+            family=family,
+            reference_family=reference,
+            sample_count=84,
+            estimate_difference=0.01,
+            upper_confidence_limit=0.01,
+            margin=0.02,
+            passed=True,
+        )
+        for family, reference in candidate_pairs
+    )
+    evidence = PhaseFiveCorrectiveReviewEvidence(
+        schema_version=1,
+        evidence_type="phase-five-corrective-review",
+        run_id="phase-five-corrective-review-regression",
+        captured_at=datetime(2026, 8, 8, 12, 0, tzinfo=UTC),
+        status=EvidenceStatus.REVIEWED,
+        dataset=_dataset().model_copy(update={"role": DatasetRole.REGRESSION}),
+        configuration_sha256=SHA256,
+        subject=_software("hebog", commit="e" * 40),
+        environment_sha256="2" * 64,
+        protocol_sha256="3" * 64,
+        prior_decision_sha256="4" * 64,
+        development_manifest_sha256="5" * 64,
+        regression_manifest_sha256="6" * 64,
+        analytic_case_count=84,
+        development_image_count=10,
+        regression_image_count=100,
+        bootstrap_resamples=10_000,
+        bootstrap_seed=20260806,
+        endpoints=(matched_endpoint, corrective_endpoint),
+        paired_endpoints=tuple(paired),
+        candidates=(
+            PhaseFiveFilterReviewCandidateConclusion(
+                family="beam-aware-matched-filter",
+                passes_absolute=False,
+                noninferior_to_other=True,
+                bounded_cost=(9, 7, 34),
+                failed_absolute_endpoint_count=1,
+                failed_paired_endpoint_count=0,
+            ),
+            PhaseFiveFilterReviewCandidateConclusion(
+                family="residual-b3-atrous",
+                passes_absolute=False,
+                noninferior_to_other=True,
+                bounded_cost=(12, 7, 14),
+                failed_absolute_endpoint_count=1,
+                failed_paired_endpoint_count=0,
+            ),
+        ),
+        decision="reject-corrective",
+        selected_family=None,
+        step_three_authorized=False,
+        qualification_opened=False,
+    )
+    corrective_r_payload = evidence.model_dump(mode="python")
+    corrective_r_payload["evidence_type"] = "phase-five-corrective-r-review"
+    corrective_r_payload["run_id"] = (
+        "phase-five-corrective-r-review-regression"
+    )
+    corrective_r_payload["astrometry_diagnostics"] = (
+        PhaseFiveAstrometryDiagnostic(
+            family="residual-b3-atrous",
+            stratum="overall",
+            sample_count=100,
+            mean_offset_xy_beams=(0.03, 0.04),
+            bias_beams=0.05,
+            centred_percentile_95_beams=0.2,
+            radial_percentile_95_beams=0.21,
+        ),
+    )
+    corrective_r_payload["measurement_dispositions"] = (
+        PhaseFiveMeasurementDispositionDiagnostic(
+            family="residual-b3-atrous",
+            disposition="measured",
+            count=500,
+        ),
+    )
+    corrective_r = PhaseFiveCorrectiveRReviewEvidence.model_validate(
+        corrective_r_payload
+    )
+    assert corrective_r.evidence_type == "phase-five-corrective-r-review"
+
+    corrective_a_payload = corrective_r.model_dump(mode="python")
+    corrective_a_payload["evidence_type"] = "phase-five-corrective-a-review"
+    corrective_a_payload["run_id"] = (
+        "phase-five-corrective-a-review-confirmation"
+    )
+    corrective_a_payload["astrometry_estimator_diagnostics"] = (
+        PhaseFiveAstrometryEstimatorDiagnostic(
+            family="residual-b3-atrous",
+            stratum="overall",
+            sample_count=600,
+            available_count=600,
+            model_assisted_count=590,
+            fallback_count=10,
+            median_uncertainty_beams=0.08,
+            percentile_95_uncertainty_beams=0.14,
+            percentile_95_error_to_uncertainty_ratio=1.9,
+        ),
+    )
+    corrective_a = PhaseFiveCorrectiveAReviewEvidence.model_validate(
+        corrective_a_payload
+    )
+    assert corrective_a.evidence_type == "phase-five-corrective-a-review"
+
+    unavailable_payload = corrective_a.model_dump(mode="python")
+    unavailable_payload["astrometry_estimator_diagnostics"][0][
+        "available_count"
+    ] = 601
+    with pytest.raises(ValidationError, match="cannot exceed sample count"):
+        PhaseFiveCorrectiveAReviewEvidence.model_validate(unavailable_payload)
+
+    count_payload = corrective_a.model_dump(mode="python")
+    count_payload["astrometry_estimator_diagnostics"][0]["fallback_count"] = 9
+    with pytest.raises(ValidationError, match="must equal available count"):
+        PhaseFiveCorrectiveAReviewEvidence.model_validate(count_payload)
+
+    payload = evidence.model_dump(mode="python")
+    payload["step_three_authorized"] = True
+
+    with pytest.raises(ValidationError, match="passing corrective"):
+        PhaseFiveCorrectiveReviewEvidence.model_validate(payload)
+
+
+def test_phase_five_astrometry_evidence_is_fail_closed(tmp_path: Path) -> None:
+    """Endpoint or coverage failures cannot authorize confirmation."""
+    candidates = tuple(
+        PhaseFiveAstrometryCandidateEvidence(
+            candidate=candidate,
+            covariance_scale=2.0,
+            overall_percentile_95_beams=0.3,
+            unavailable_fraction=0.0,
+            model_unavailable_fraction=0.0,
+            model_inadequate_fraction=0.0,
+            failed_endpoint_count=1,
+            failed_coverage_count=1,
+            endpoints_pass=False,
+            coverage_pass=False,
+            model_admission_pass=True,
+            eligible=False,
+        )
+        for candidate in (
+            "direct-observable-pixel-centroid",
+            "covariance-gated-model-assisted-centroid",
+        )
+    )
+    evidence = PhaseFiveAstrometryDevelopmentEvidence(
+        schema_version=1,
+        evidence_type="phase-five-astrometry-development",
+        run_id="phase-five-astrometry-development-selection",
+        captured_at=datetime(2026, 8, 9, 12, 0, tzinfo=UTC),
+        status=EvidenceStatus.REVIEWED,
+        dataset=_dataset(),
+        configuration_sha256=SHA256,
+        subject=_software("hebog", commit="e" * 40),
+        environment_sha256="2" * 64,
+        protocol_sha256="3" * 64,
+        base_protocol_sha256="4" * 64,
+        development_manifest_sha256="5" * 64,
+        image_count=40,
+        group_count=240,
+        bootstrap_resamples=10_000,
+        bootstrap_seed=20260809,
+        endpoints=tuple(
+            PhaseFiveAstrometryEndpointEvidence(
+                candidate=candidate.candidate,
+                stratum="overall",
+                statistic="percentile-95",
+                image_count=40,
+                group_count=240,
+                estimate_beams=0.3,
+                upper_confidence_bound_beams=0.35,
+                absolute_limit_beams=0.25,
+                passed=False,
+            )
+            for candidate in candidates
+        ),
+        coverage=tuple(
+            PhaseFiveAstrometryCoverageEvidence(
+                candidate=candidate.candidate,
+                stratum="overall",
+                sample_count=240,
+                covariance_positive_definite_fraction=1.0,
+                level=0.68,
+                empirical_coverage=0.5,
+                maximum_absolute_error=0.1,
+                passed=False,
+            )
+            for candidate in candidates
+        ),
+        candidates=candidates,
+        decision="reject-astrometry-candidates",
+        selected_candidate=None,
+        confirmation_execution_authorized=False,
+        step_two_c_p_execution_authorized=False,
+        step_three_authorized=False,
+        optimization_authorized=False,
+        qualification_opened=False,
+    )
+    path = tmp_path / "astrometry.json"
+    write_evidence(path, evidence)
+
+    assert load_evidence(path) == evidence
+
+    payload = evidence.model_dump(mode="python")
+    payload["confirmation_execution_authorized"] = True
+    with pytest.raises(ValidationError, match="selection is inconsistent"):
+        PhaseFiveAstrometryDevelopmentEvidence.model_validate(payload)
+
+    endpoint_payload = evidence.endpoints[0].model_dump(mode="python")
+    endpoint_payload["passed"] = True
+    with pytest.raises(ValidationError, match="endpoint decision"):
+        PhaseFiveAstrometryEndpointEvidence.model_validate(endpoint_payload)
+
+    coverage_payload = evidence.coverage[0].model_dump(mode="python")
+    coverage_payload["level"] = 0.5
+    with pytest.raises(ValidationError, match="level must be"):
+        PhaseFiveAstrometryCoverageEvidence.model_validate(coverage_payload)
+
+    candidate_payload = evidence.candidates[0].model_dump(mode="python")
+    candidate_payload["eligible"] = True
+    with pytest.raises(ValidationError, match="eligibility is inconsistent"):
+        PhaseFiveAstrometryCandidateEvidence.model_validate(candidate_payload)
+
+    inconsistent = evidence.model_dump(mode="python")
+    inconsistent["candidates"][0]["failed_endpoint_count"] = 2
+    with pytest.raises(ValidationError, match="disagrees with endpoints"):
+        PhaseFiveAstrometryDevelopmentEvidence.model_validate(inconsistent)
+
+    inconsistent = evidence.model_dump(mode="python")
+    inconsistent["candidates"][0]["overall_percentile_95_beams"] = 0.31
+    with pytest.raises(ValidationError, match="tail disagrees"):
+        PhaseFiveAstrometryDevelopmentEvidence.model_validate(inconsistent)
+
+
+def test_phase_five_astrometry_evidence_recomputes_positive_selection() -> (
+    None
+):
+    """Eligible evidence applies the simple-candidate preference exactly."""
+    candidates = (
+        "direct-observable-pixel-centroid",
+        "covariance-gated-model-assisted-centroid",
+    )
+    tails = dict(zip(candidates, (0.2, 0.19), strict=True))
+    payload: dict[str, Any] = {
+        "schema_version": 1,
+        "evidence_type": "phase-five-astrometry-development",
+        "run_id": "phase-five-astrometry-development-selection",
+        "captured_at": datetime(2026, 8, 9, 12, 0, tzinfo=UTC),
+        "status": EvidenceStatus.REVIEWED,
+        "dataset": _dataset(),
+        "configuration_sha256": SHA256,
+        "subject": _software("hebog", commit="e" * 40),
+        "environment_sha256": "2" * 64,
+        "protocol_sha256": "3" * 64,
+        "base_protocol_sha256": "4" * 64,
+        "development_manifest_sha256": "5" * 64,
+        "image_count": 40,
+        "group_count": 240,
+        "bootstrap_resamples": 10_000,
+        "bootstrap_seed": 20260809,
+        "endpoints": [
+            {
+                "candidate": candidate,
+                "stratum": "overall",
+                "statistic": "percentile-95",
+                "image_count": 40,
+                "group_count": 240,
+                "estimate_beams": tails[candidate],
+                "upper_confidence_bound_beams": tails[candidate] + 0.01,
+                "absolute_limit_beams": 0.25,
+                "passed": True,
+            }
+            for candidate in candidates
+        ],
+        "coverage": [
+            {
+                "candidate": candidate,
+                "stratum": "overall",
+                "sample_count": 240,
+                "covariance_positive_definite_fraction": 1.0,
+                "level": 0.68,
+                "empirical_coverage": 0.68,
+                "maximum_absolute_error": 0.1,
+                "passed": True,
+            }
+            for candidate in candidates
+        ],
+        "candidates": [
+            {
+                "candidate": candidate,
+                "covariance_scale": 1.0,
+                "overall_percentile_95_beams": tails[candidate],
+                "unavailable_fraction": 0.0,
+                "model_unavailable_fraction": 0.0,
+                "model_inadequate_fraction": 0.0,
+                "failed_endpoint_count": 0,
+                "failed_coverage_count": 0,
+                "endpoints_pass": True,
+                "coverage_pass": True,
+                "model_admission_pass": True,
+                "eligible": True,
+            }
+            for candidate in candidates
+        ],
+        "decision": "select-direct",
+        "selected_candidate": "direct-observable-pixel-centroid",
+        "confirmation_execution_authorized": True,
+        "step_two_c_p_execution_authorized": False,
+        "step_three_authorized": False,
+        "optimization_authorized": False,
+        "qualification_opened": False,
+    }
+
+    direct = PhaseFiveAstrometryDevelopmentEvidence.model_validate(payload)
+    assert direct.decision == "select-direct"
+
+    payload["endpoints"][1]["estimate_beams"] = 0.17
+    payload["endpoints"][1]["upper_confidence_bound_beams"] = 0.18
+    payload["candidates"][1]["overall_percentile_95_beams"] = 0.17
+    payload["decision"] = "select-model"
+    payload["selected_candidate"] = "covariance-gated-model-assisted-centroid"
+    model = PhaseFiveAstrometryDevelopmentEvidence.model_validate(payload)
+    assert model.decision == "select-model"
+
+
+def test_phase_five_astrometry_follow_up_evidence_awaits_human_review(
+    tmp_path: Path,
+) -> None:
+    """Passing development remains exploratory and cannot open confirmation."""
+    endpoint_specs: tuple[
+        tuple[
+            Literal[
+                "availability",
+                "absolute-mean-offset-x",
+                "absolute-mean-offset-y",
+                "radial-percentile-95",
+            ],
+            float,
+            float,
+            float,
+            Literal["at-least", "at-most"],
+        ],
+        ...,
+    ] = (
+        ("availability", 1.0, 1.0, 1.0, "at-least"),
+        ("absolute-mean-offset-x", 0.01, 0.03, 0.1, "at-most"),
+        ("absolute-mean-offset-y", 0.02, 0.04, 0.1, "at-most"),
+        ("radial-percentile-95", 0.25, 0.35, 0.5, "at-most"),
+    )
+    endpoints = tuple(
+        PhaseFiveAstrometryFollowUpEndpointEvidence(
+            candidate="original-pixel-detected-segment-centroid",
+            stratum="overall",
+            metric=metric,
+            image_count=80,
+            group_count=480,
+            estimate=estimate,
+            confidence_bound=confidence_bound,
+            limit=limit,
+            required_relation=relation,
+            passed=True,
+        )
+        for metric, estimate, confidence_bound, limit, relation in (
+            endpoint_specs
+        )
+    )
+    evidence = PhaseFiveAstrometryFollowUpDevelopmentEvidence(
+        schema_version=1,
+        evidence_type="phase-five-astrometry-follow-up-development",
+        run_id="phase-five-astrometry-follow-up-development",
+        captured_at=datetime(2026, 8, 9, 14, 0, tzinfo=UTC),
+        status=EvidenceStatus.EXPLORATORY,
+        dataset=_dataset(),
+        configuration_sha256=SHA256,
+        subject=_software("hebog", commit="e" * 40),
+        environment_sha256="2" * 64,
+        protocol_sha256="3" * 64,
+        base_protocol_sha256="4" * 64,
+        development_manifest_sha256="5" * 64,
+        image_count=80,
+        group_count=480,
+        bootstrap_resamples=10_000,
+        bootstrap_seed=20260809,
+        candidate="original-pixel-detected-segment-centroid",
+        endpoints=endpoints,
+        diagnostics=(
+            PhaseFiveAstrometryFollowUpDiagnosticEvidence(
+                stratum="overall",
+                available_group_count=480,
+                radial_median_beams=0.1,
+                former_target_percentile_95_beams=0.3,
+            ),
+        ),
+        failed_endpoint_count=0,
+        eligible_for_human_review=True,
+        decision="eligible-awaiting-human-review",
+        independent_human_review_complete=False,
+        confirmation_execution_authorized=False,
+        step_two_c_p_execution_authorized=False,
+        step_three_authorized=False,
+        optimization_authorized=False,
+        qualification_opened=False,
+    )
+    path = tmp_path / "follow-up.json"
+    write_evidence(path, evidence)
+
+    assert load_evidence(path) == evidence
+    payload = evidence.model_dump(mode="python")
+    payload["confirmation_execution_authorized"] = True
+    with pytest.raises(ValidationError, match="confirmation remains sealed"):
+        PhaseFiveAstrometryFollowUpDevelopmentEvidence.model_validate(payload)
+
+    endpoint_payload = endpoints[1].model_dump(mode="python")
+    endpoint_payload["passed"] = False
+    with pytest.raises(ValidationError, match="endpoint decision"):
+        PhaseFiveAstrometryFollowUpEndpointEvidence.model_validate(
+            endpoint_payload
+        )
+
+
+def test_phase_five_follow_up_confirmation_evidence_awaits_review() -> None:
+    """One-look confirmation stays raw and cannot open external comparison."""
+    specifications: tuple[
+        tuple[
+            Literal[
+                "availability",
+                "absolute-mean-offset-x",
+                "absolute-mean-offset-y",
+                "radial-percentile-95",
+            ],
+            float,
+            float,
+            float,
+            Literal["at-least", "at-most"],
+        ],
+        ...,
+    ] = (
+        ("availability", 1.0, 1.0, 1.0, "at-least"),
+        ("absolute-mean-offset-x", 0.01, 0.02, 0.1, "at-most"),
+        ("absolute-mean-offset-y", 0.01, 0.02, 0.1, "at-most"),
+        ("radial-percentile-95", 0.25, 0.3, 0.5, "at-most"),
+    )
+    endpoints = tuple(
+        PhaseFiveAstrometryFollowUpEndpointEvidence(
+            candidate="original-pixel-detected-segment-centroid",
+            stratum="overall",
+            metric=metric,
+            image_count=400,
+            group_count=2_400,
+            estimate=estimate,
+            confidence_bound=bound,
+            limit=limit,
+            required_relation=relation,
+            passed=True,
+        )
+        for metric, estimate, bound, limit, relation in specifications
+    )
+    dataset = _dataset().model_copy(update={"role": DatasetRole.REGRESSION})
+    evidence = PhaseFiveAstrometryFollowUpConfirmationEvidence(
+        schema_version=1,
+        evidence_type="phase-five-astrometry-follow-up-confirmation",
+        run_id="phase-five-astrometry-follow-up-confirmation",
+        captured_at=datetime(2026, 8, 9, 16, 0, tzinfo=UTC),
+        status=EvidenceStatus.EXPLORATORY,
+        dataset=dataset,
+        configuration_sha256=SHA256,
+        subject=_software("hebog", commit="e" * 40),
+        environment_sha256="2" * 64,
+        protocol_sha256="3" * 64,
+        base_protocol_sha256="4" * 64,
+        human_decision_sha256="5" * 64,
+        development_decision_sha256="6" * 64,
+        development_evidence_sha256="7" * 64,
+        confirmation_manifest_sha256="8" * 64,
+        image_count=400,
+        group_count=2_400,
+        bootstrap_resamples=10_000,
+        bootstrap_seed=20260809,
+        candidate="original-pixel-detected-segment-centroid",
+        endpoints=endpoints,
+        diagnostics=(
+            PhaseFiveAstrometryFollowUpDiagnosticEvidence(
+                stratum="overall",
+                available_group_count=2_400,
+                radial_median_beams=0.1,
+                former_target_percentile_95_beams=0.3,
+            ),
+        ),
+        failed_endpoint_count=0,
+        confirmation_result="pass-awaiting-reviewed-decision",
+        independent_human_scientific_review_complete=True,
+        confirmation_one_look_complete=True,
+        development_tuning_after_confirmation=False,
+        step_two_c_p_execution_authorized=False,
+        step_three_authorized=False,
+        optimization_authorized=False,
+        qualification_opened=False,
+    )
+
+    assert evidence.confirmation_result == ("pass-awaiting-reviewed-decision")
+    payload = evidence.model_dump(mode="python")
+    payload["confirmation_result"] = "reject-confirmation"
+    with pytest.raises(ValidationError, match="disagrees with endpoints"):
+        PhaseFiveAstrometryFollowUpConfirmationEvidence.model_validate(payload)
+
+    payload = evidence.model_dump(mode="python")
+    payload["status"] = EvidenceStatus.REVIEWED
+    with pytest.raises(ValidationError, match="awaits technical review"):
+        PhaseFiveAstrometryFollowUpConfirmationEvidence.model_validate(payload)
+
+    payload = evidence.model_dump(mode="python")
+    payload["dataset"]["role"] = DatasetRole.DEVELOPMENT
+    with pytest.raises(ValidationError, match="requires regression data"):
+        PhaseFiveAstrometryFollowUpConfirmationEvidence.model_validate(payload)
+
+    payload = evidence.model_dump(mode="python")
+    payload["endpoints"] = payload["endpoints"][:-1]
+    with pytest.raises(ValidationError, match="every overall metric"):
+        PhaseFiveAstrometryFollowUpConfirmationEvidence.model_validate(payload)
 
 
 def test_software_identity_can_record_an_uncommitted_source_tree() -> None:

@@ -1,0 +1,74 @@
+{
+  "authorization": {
+    "current_candidate_execution_authorized": false,
+    "cutover_authorized": false,
+    "evaluation_authorized": false,
+    "fresh_qualification_authorized": false,
+    "incumbent_reconstruction_authorized": false,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "scientific_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "candidate": {
+    "configuration_sha256": "88ac8bea8e865c765d5f346235642f88b298140955af67ada99b9f9bf6187523",
+    "revision": "85d580713664b962ae256a98b065849cf8eb9283",
+    "source_tree_sha256": "a082cbe4b3416f787b455bb5a06be1eb66cb33ec807c74fa48056dfe8c630696"
+  },
+  "decision_id": "phase-5-prospective-paired-incumbent-reconstruction-identity-review",
+  "expected_execution_sha256": "96077d8955497fc1f8531b4a001a3b4686eb8797753ef8d88408913497df8961",
+  "failed_incumbent_products": {
+    "disposition": "preserved-non-evaluable-process-failure-evidence",
+    "product_set_sha256": "b373cafe20285326b7a2f51b990670981edaf8dc06db16e11e8989ae86680528"
+  },
+  "implementation": {
+    "commit": "705b48ae0370d56fde3689f7e649477314597da9",
+    "decision_path": "config/contracts/phase-5-prospective-paired-incumbent-provenance-repair-implementation-decision.json",
+    "decision_sha256": "97391a8d5d92765a05f616b10f13f4b40ff3bb21b8d7e63ffca34cc775b6d617",
+    "pre_review_path": "config/contracts/phase-5-prospective-paired-incumbent-provenance-repair-pre-review.json",
+    "pre_review_sha256": "5fbafa4e3d4f215d6668a7f3ac2fda27e7da52d4341ead266b9c2f72342a5bb5",
+    "program_path": "scripts/validation/reconstruct_phase5_prospective_paired_incumbent.py",
+    "program_sha256": "79d59cb8d54867f797bb9fa473e8767bfa46d9ff99cb42a4d3bb38eb9d8efebc"
+  },
+  "invocation": {
+    "closed_baseline": "benchmark-results/phase-5/cumulative-regression-ledger-recovery.json",
+    "historical_root": "/private/tmp/hebog-phase5-terminal-parent-replay-c1614c2",
+    "output": "benchmark-results/phase-5/prospective-paired-incumbent-reconstruction.json",
+    "population": "config/contracts/phase-5-prospective-paired-population.json",
+    "reference_reconstruction": "benchmark-results/phase-5/viewed-reference-reconstruction-public-finder-correction",
+    "scratch": "/private/tmp/hebog-phase5-prospective-paired-incumbent-authentic-85d5807",
+    "source_request": "benchmark-results/phase-5/external-post-failure-comparison/campaign-request.json",
+    "workers": 2
+  },
+  "no_write_verification": {
+    "candidate_execution_started": false,
+    "input_count": 2400,
+    "output_absent": true,
+    "reference_run_count": 9600,
+    "scratch_absent": true,
+    "status": "pass"
+  },
+  "preserved_current_products": {
+    "candidate_execution_authorized": false,
+    "product_count": 2400,
+    "product_set_sha256": "6bcb2959c56173d1a930eb14b3a794727649defc1b52dc1d9d70cd041d401014"
+  },
+  "producer": {
+    "historical_execution_checkout": "/private/tmp/hebog-phase5-terminal-parent-replay-c1614c2",
+    "historical_execution_revision": "c1614c2e1b7f8a47877c20a97bb732541ae039d2",
+    "historical_program_sha256": "1e9483fc033f6e78987b90aafb8a67302071a53e622376d368d229c2cbcee3c0",
+    "historical_wrapper_sha256": "2c40315ffe821008b249a57b5e8c012b0f6526ae8aacab5a9bbdb35bdeac2f21",
+    "module_origin_required": true,
+    "persisted_support_partition_required": true
+  },
+  "reference": {
+    "population_sha256": "0bd3e6a6e505f8fb307a108d90e932f6b3f16ae5fc6c654ab4c82de14f483687",
+    "reference_reconstruction_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+    "reference_run_count": 9600,
+    "source_request_sha256": "7ba9be1b20ff0448e51729337acf2a7028cc0ec578c5e25106b9b34b07506df4"
+  },
+  "schema_version": 1,
+  "status": "ready-for-authorized-provenance-only-reconstruction"
+}

@@ -31,15 +31,27 @@ from hebog.data_models.catalogues import (
 )
 from hebog.data_models.images import ImageMetadata
 from hebog.data_models.source_finding import (
+    ContinuumSourceFindingDiagnostics,
+    DiagnosticsProduct,
     MaterializedProduct,
     ProductRole,
+    PublicSourceFindingDiagnostics,
     SourceFindingDiagnostics,
 )
 from hebog.io.base import ImageBounds, ImageWindow
 from hebog.io.fits import FitsImageSource, InvalidFitsImageError
 
 _CONTENT_SCHEMA_VERSION = 1
-_CATALOGUE_SCHEMA_VERSION = 3
+_CATALOGUE_SCHEMA_VERSION = 4
+_CONTINUUM_DIAGNOSTICS_SCHEMA_VERSION = 2
+_PUBLIC_DIAGNOSTICS_SCHEMA_VERSION = 8
+_DIAGNOSTICS_SCHEMA_VERSIONS = frozenset(
+    {
+        _CONTENT_SCHEMA_VERSION,
+        _CONTINUUM_DIAGNOSTICS_SCHEMA_VERSION,
+        _PUBLIC_DIAGNOSTICS_SCHEMA_VERSION,
+    }
+)
 _IMAGE_DIMENSIONS = 2
 _IMAGE_ROLES = {"rms": "RMS", "source-filtering-mask": "MASK"}
 _IMAGE_MEDIA_TYPE = "image/fits"
@@ -57,6 +69,7 @@ _ISLAND_COLUMNS = (
 )
 _MEASURED_COLUMNS = (
     "ISLAND_ID",
+    "ADDITIONAL_ISLAND_IDS",
     "RIGHT_ASCENSION",
     "RIGHT_ASCENSION_ERROR",
     "DECLINATION",
@@ -95,6 +108,7 @@ _COMPONENT_COLUMNS = (
 )
 _CATALOGUE_COLUMN_UNITS: dict[str, str | None] = {
     "ISLAND_ID": None,
+    "ADDITIONAL_ISLAND_IDS": None,
     "SOURCE_ID": None,
     "GAUSSIAN_COMPONENT_ID": None,
     "PIXEL_COUNT": None,
@@ -161,6 +175,7 @@ def _product_record(
     role: ProductRole,
     media_type: Literal["application/fits", "image/fits", "application/json"],
     scientific_status: Literal["valid", "unavailable"],
+    content_schema_version: int | None = None,
 ) -> MaterializedProduct:
     """Describe one validated, closed product file."""
     byte_count, content_sha256 = _content_identity(path)
@@ -172,9 +187,13 @@ def _product_record(
         content_sha256=content_sha256,
         scientific_status=scientific_status,
         content_schema_version=(
-            _CATALOGUE_SCHEMA_VERSION
-            if role == "source-catalogue"
-            else _CONTENT_SCHEMA_VERSION
+            content_schema_version
+            if content_schema_version is not None
+            else (
+                _CATALOGUE_SCHEMA_VERSION
+                if role == "source-catalogue"
+                else _CONTENT_SCHEMA_VERSION
+            )
         ),
     )
 
@@ -193,12 +212,18 @@ def _resolve_product_path(
             f"expected {expected_role} product role, got "
             f"{product.product_role}"
         )
-    expected_schema_version = (
-        _CATALOGUE_SCHEMA_VERSION
-        if expected_role == "source-catalogue"
-        else _CONTENT_SCHEMA_VERSION
+    expected_schema_versions = (
+        _DIAGNOSTICS_SCHEMA_VERSIONS
+        if expected_role == "diagnostics"
+        else frozenset(
+            {
+                _CATALOGUE_SCHEMA_VERSION
+                if expected_role == "source-catalogue"
+                else _CONTENT_SCHEMA_VERSION
+            }
+        )
     )
-    if product.content_schema_version != expected_schema_version:
+    if product.content_schema_version not in expected_schema_versions:
         raise UnsupportedMaterializedProductError(
             f"unsupported materialized product schema: "
             f"{product.content_schema_version}"
@@ -231,6 +256,7 @@ def _materialize(  # noqa: PLR0913
     role: ProductRole,
     media_type: Literal["application/fits", "image/fits", "application/json"],
     scientific_status: Literal["valid", "unavailable"],
+    content_schema_version: int | None = None,
 ) -> MaterializedProduct:
     """Validate a same-directory temporary file before publishing it."""
     path = Path(path)
@@ -244,6 +270,7 @@ def _materialize(  # noqa: PLR0913
             role=role,
             media_type=media_type,
             scientific_status=scientific_status,
+            content_schema_version=content_schema_version,
         )
         if path.exists():
             current = _product_record(
@@ -251,6 +278,7 @@ def _materialize(  # noqa: PLR0913
                 role=role,
                 media_type=media_type,
                 scientific_status=scientific_status,
+                content_schema_version=content_schema_version,
             )
             if (
                 current.byte_count == candidate.byte_count
@@ -266,6 +294,7 @@ def _materialize(  # noqa: PLR0913
             role=role,
             media_type=media_type,
             scientific_status=scientific_status,
+            content_schema_version=content_schema_version,
         )
     finally:
         temporary.unlink(missing_ok=True)
@@ -383,6 +412,10 @@ def _measured_columns(
     deconvolved = [value.deconvolved_shape for value in values]
     columns = [
         _string_column("ISLAND_ID", [value.island_id for value in values]),
+        _string_column(
+            "ADDITIONAL_ISLAND_IDS",
+            [",".join(value.additional_island_ids) for value in values],
+        ),
         _float_column(
             "RIGHT_ASCENSION",
             [value.right_ascension_degrees for value in positions],
@@ -614,6 +647,9 @@ def _measured_fields(row: Any) -> dict[str, Any]:
     )
     return {
         "island_id": _text(row["ISLAND_ID"]),
+        "additional_island_ids": tuple(
+            filter(None, _text(row["ADDITIONAL_ISLAND_IDS"]).split(","))
+        ),
         "position": SkyPosition(
             right_ascension_degrees=float(row["RIGHT_ASCENSION"]),
             right_ascension_error_degrees=_optional_float(
@@ -652,11 +688,11 @@ def _measured_fields(row: Any) -> dict[str, Any]:
 
 
 def _require_catalogue_structure(hdus: fits.HDUList) -> None:
-    """Require exact version-two HDUs and column names."""
+    """Require the exact current HDUs, columns, units and vector types."""
     expected_hdus = ("PRIMARY", "ISLANDS", "SOURCES", "GAUSSIAN_COMPONENTS")
     if tuple(hdu.name for hdu in hdus) != expected_hdus:
         raise InvalidMaterializedProductError(
-            "catalogue FITS structure does not match schema version 3"
+            "catalogue FITS structure does not match schema version 4"
         )
     expected_columns = (
         _ISLAND_COLUMNS,
@@ -1155,8 +1191,13 @@ class FitsProductImageSource:
 
 def read_diagnostics_product(
     product_or_path: MaterializedProduct | Path,
-) -> SourceFindingDiagnostics:
+) -> DiagnosticsProduct:
     """Read and strictly validate canonical diagnostics JSON."""
+    recorded_schema_version = (
+        product_or_path.content_schema_version
+        if isinstance(product_or_path, MaterializedProduct)
+        else None
+    )
     path = _resolve_product_path(
         product_or_path,
         expected_role="diagnostics",
@@ -1167,12 +1208,25 @@ def read_diagnostics_product(
         if not isinstance(raw_document, dict):
             raise ValueError("diagnostics root must be an object")
         schema_version = raw_document.get("schema_version")
-        if schema_version != _CONTENT_SCHEMA_VERSION:
-            raise UnsupportedMaterializedProductError(
-                f"unsupported diagnostics content schema: {schema_version}"
+        if (
+            recorded_schema_version is not None
+            and schema_version != recorded_schema_version
+        ):
+            raise InvalidMaterializedProductError(
+                "diagnostics content schema differs from product record"
             )
-        return SourceFindingDiagnostics.from_json_bytes(payload)
+        if schema_version == _CONTENT_SCHEMA_VERSION:
+            return SourceFindingDiagnostics.from_json_bytes(payload)
+        if schema_version == _CONTINUUM_DIAGNOSTICS_SCHEMA_VERSION:
+            return ContinuumSourceFindingDiagnostics.from_json_bytes(payload)
+        if schema_version == _PUBLIC_DIAGNOSTICS_SCHEMA_VERSION:
+            return PublicSourceFindingDiagnostics.from_json_bytes(payload)
+        raise UnsupportedMaterializedProductError(
+            f"unsupported diagnostics content schema: {schema_version}"
+        )
     except UnsupportedMaterializedProductError:
+        raise
+    except InvalidMaterializedProductError:
         raise
     except (
         OSError,
@@ -1188,7 +1242,7 @@ def read_diagnostics_product(
 
 def write_diagnostics_product(
     path: Path,
-    diagnostics: SourceFindingDiagnostics,
+    diagnostics: DiagnosticsProduct,
 ) -> MaterializedProduct:
     """Write one canonical, idempotent diagnostics JSON product."""
 
@@ -1202,4 +1256,5 @@ def write_diagnostics_product(
         role="diagnostics",
         media_type=_DIAGNOSTICS_MEDIA_TYPE,
         scientific_status="valid",
+        content_schema_version=diagnostics.schema_version,
     )

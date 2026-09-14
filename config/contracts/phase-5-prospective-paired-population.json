@@ -1,0 +1,20 @@
+{
+  "candidate_results_inspected": false,
+  "evidence_role": "binding-prospective-paired-cumulative-evidence",
+  "population_id": "phase-5-prospective-current-terminal-parent-paired-population",
+  "promotion_evidence": true,
+  "schema_version": 1,
+  "selection": {
+    "compact_count": 800,
+    "continuum_count_per_dataset": 400,
+    "continuum_dataset_count": 4,
+    "ordering": "sha256-input-id-then-input-id",
+    "selected_input_count": 2400,
+    "selected_input_set_canonical_sha256": "3493258fd2c08cc5212a39fadd056ffdc3a28cbeafe8aac92ac9942bc2105719"
+  },
+  "source_request": {
+    "path": "benchmark-results/phase-5/external-post-failure-comparison/campaign-request.json",
+    "sha256": "7ba9be1b20ff0448e51729337acf2a7028cc0ec578c5e25106b9b34b07506df4"
+  },
+  "status": "frozen-before-paired-replay-results"
+}

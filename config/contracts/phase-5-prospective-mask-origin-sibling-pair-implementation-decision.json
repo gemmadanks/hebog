@@ -1,0 +1,57 @@
+{
+  "authorization": {
+    "fresh_qualification_authorized": false,
+    "full_cumulative_replay_and_evaluation_authorized_only_after_zero_failure_smoke": true,
+    "process_bug_retries_authorized_without_scientific_identity_change": true,
+    "release_authorized": false,
+    "replacement_smoke_authorized": true,
+    "rescoring_closed_evidence_authorized": false,
+    "threshold_or_margin_tuning_authorized": false
+  },
+  "decision_id": "phase-5-prospective-mask-origin-sibling-pair-implementation-decision",
+  "exact_user_authority": "Please complete all tasks required for running the next cumulative replay. Review the code and tests, close any gaps and fix bugs or make improvements as needed then run the replay and evaluate the results.",
+  "fixed_scientific_policy": {
+    "catalogue_measurement_or_photometry_change": false,
+    "detection_or_island_threshold_change": false,
+    "publication_mask_origin_policy": "immutable-direct-owner-publication-origin-v1",
+    "sibling_pair_policy": "adjacent-scale-mutually-unique-envelope-pair-with-connected-support-v1"
+  },
+  "implementation": [
+    {
+      "path": "src/hebog/algorithms/source_association.py",
+      "sha256": "9270bd7044386f933d9c8cc35100cca104cb2ad6af355291627e4b39d4eb4c12"
+    },
+    {
+      "path": "src/hebog/validation/publication_snr_repair.py",
+      "sha256": "fa57585713e231cda11847b868a0090abed9b3bafadc4ca8fc1d56c6d37599d5"
+    },
+    {
+      "path": "src/hebog/validation/mask_origin_sibling_pair.py",
+      "sha256": "70908f9ed7b69069cb3696280c304d76c9206b7c3322bf66456aab4c1eb20b0d"
+    },
+    {
+      "path": "scripts/validation/materialize_phase5_prospective_mask_origin_sibling_pair_products.py",
+      "sha256": "72f54aa3ad93c06879869b95d45d04037cf683a82bf5c14b1fd803250b684f45"
+    },
+    {
+      "path": "scripts/validation/evaluate_phase5_prospective_mask_origin_sibling_pair_smoke.py",
+      "sha256": "506e521f57917abd37697640881de70e53cd97442f265df47e7dff52c6b22409"
+    }
+  ],
+  "pre_review": {
+    "path": "config/contracts/phase-5-prospective-mask-origin-sibling-pair-pre-review.json",
+    "sha256": "67df15510237a543610fce885d9a53ac1a2cea2192520085858fe6e1990741e1"
+  },
+  "required_pre_execution_gates": [
+    "direct labels are the only publication refinement origin",
+    "measurement ownership and source catalogue products remain unchanged",
+    "sibling pairs require repeated mutually unique envelope geometry and one connected significant-support component",
+    "one-scale proximity disconnected support chains crossings crowded overlap and whole-group conflicts fail closed",
+    "Serial and existing-Dask invariance pass",
+    "compact products remain byte-identical to the incumbent",
+    "complete no-write verification passes for the exact 128-case current and incumbent smoke inputs",
+    "replacement smoke publishes zero confirmed failures before full replay"
+  ],
+  "schema_version": 1,
+  "status": "authorized-for-replacement-smoke-before-results"
+}

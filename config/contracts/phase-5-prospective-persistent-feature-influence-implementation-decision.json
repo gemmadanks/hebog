@@ -1,0 +1,66 @@
+{
+  "authorization": {
+    "fixture_first_implementation_and_replacement_smoke_authorized": true,
+    "full_cumulative_replay_and_evaluation_authorized_only_after_zero_failure_smoke": true,
+    "process_bug_retries_authorized_without_scientific_identity_change": true,
+    "release_authorized": false,
+    "rescoring_closed_evidence_authorized": false,
+    "threshold_or_margin_tuning_authorized": false
+  },
+  "decision_id": "phase-5-prospective-persistent-feature-influence-implementation-decision",
+  "exact_user_authority": "Please complete all tasks required for running the next cumulative replay. Review the code and tests, close any gaps and fix bugs or make improvements as needed then run the replay and evaluate the results.",
+  "fixed_predecessor_identity": {
+    "activation_repair_implementation_decision_sha256": "0c7d88714d44dcbbb1ea826a75471b5f28b93fda08c8d6f0f23a7b6902320a0d",
+    "activation_repair_pre_review_sha256": "39b5a36accb16a1167633f8fa5e775c68385daa1abf7ce2c11dedc1cbf930503",
+    "failed_candidate_product_set_canonical_sha256": "021d24ee6a75af6e96f703c4425d54ffc9268902e5ee20301eac75fa6c82ebff",
+    "failed_candidate_revision": "52d4fed7e13aa4a79379c99155ce5f35bb60521c",
+    "terminal_smoke_sha256": "778e43a96f0fad15c7ae28a562bcd18ca4b6e000df672221657e0803148addfc"
+  },
+  "fixed_scientific_policy": {
+    "catalogue_measurement_or_photometry_change": false,
+    "detection_or_island_threshold_change": false,
+    "persistent_feature_influence_policy": "mutually-unique-persistent-feature-symmetric-b3-influence-pair-v1",
+    "publication_mask_origin_policy": "immutable-direct-owner-publication-origin-v1",
+    "threshold_margin_comparator_or_gate_change": false
+  },
+  "implementation": [
+    {
+      "path": "src/hebog/algorithms/source_association.py",
+      "sha256": "a1bfe2896aacabe43d1ed553342766b645be9ef8063110fa16fe00342afec924"
+    },
+    {
+      "path": "src/hebog/data_models/source_association.py",
+      "sha256": "10671b0f59b05d14eaec278212fe35d1f19ab67afb493cb1041d42ea870ff981"
+    },
+    {
+      "path": "scripts/validation/materialize_phase5_prospective_mask_origin_sibling_pair_activation_repair_products.py",
+      "sha256": "ae57d1c74204f9df724ee3976ed564e449e6f2dca5cc65ce6581412e53604290"
+    },
+    {
+      "path": "scripts/validation/evaluate_phase5_prospective_mask_origin_sibling_pair_activation_repair_smoke.py",
+      "sha256": "43f346f65023267a7d0c62541f6d1aa553d9cb3569bf57718749c9bd4be87f2f"
+    },
+    {
+      "path": "scripts/validation/materialize_phase5_prospective_persistent_feature_influence_products.py",
+      "sha256": "f0c3792ba101ca638d33ee5be11f2f81c82c3b41098836711be927216719af98"
+    },
+    {
+      "path": "scripts/validation/evaluate_phase5_prospective_persistent_feature_influence_smoke.py",
+      "sha256": "80be157940febdc22dffac40ca563832b7e10d244de08bf6e7f2af4d11556b6c"
+    }
+  ],
+  "pre_review": {
+    "path": "config/contracts/phase-5-prospective-persistent-feature-influence-pre-review.json",
+    "sha256": "a22f813c16a3644939bf849cfb5a9e47827007953b6b7cc28434b35e39fa366d"
+  },
+  "required_pre_execution_gates": [
+    "interior clipped-edge one-scale resolved-owner invalid-gap crowded-chain and whole-group-conflict fixtures pass",
+    "Serial and existing-Dask label task-order and retry invariance pass",
+    "actual final writer resolves the reviewed direct-owner mask builder",
+    "both complete no-write preflights pass for all 128 selected inputs",
+    "one fresh current product set seals before one fresh atomic smoke",
+    "full replay remains blocked unless confirmed smoke failures are zero"
+  ],
+  "schema_version": 1,
+  "status": "authorized-for-replacement-smoke-before-results"
+}

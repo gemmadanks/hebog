@@ -1,0 +1,78 @@
+{
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "reference_reconstruction_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false
+  },
+  "decision_id": "phase-5-public-finder-correction-reference-reconstruction-pre-review",
+  "excluded_actions": [
+    "candidate finder execution",
+    "viewed SDC1 or Hydra execution",
+    "cumulative replay",
+    "public campaign execution",
+    "fresh qualification",
+    "threshold or photometric tuning",
+    "rescoring",
+    "cutover",
+    "release"
+  ],
+  "historical_reconstruction": {
+    "candidate_runs": 0,
+    "execution_checkout_revision": "a000db45102f218d0394dda32048714e74620491",
+    "execution_checkout_tree": "fd4bec6a91419931189055112dce58f781773c5f",
+    "input_count": 2400,
+    "producer_source_tree_sha256": "b4176ce387fa1569cc86ca300bfa7de6462758a1068de46cd4a16616a6ec3adc",
+    "program": {
+      "path": "scripts/validation/reconstruct_phase5_viewed_references.py",
+      "sha256": "81faad486ddb306e175a7ddd8c1c281a2e498cd30bb60f3e43c7b6e791cd0126"
+    },
+    "reference_run_count": 9600,
+    "retained_execution_decision": {
+      "path": "config/contracts/phase-5-viewed-recovery-execution-decision.json",
+      "sha256": "b35f4a811827df8960c22484193e9198d547bbb0e588e5b215d1f8d9ed66865f"
+    },
+    "retained_request": {
+      "path": "benchmark-results/phase-5/viewed-reference-reconstruction/recovery-request.json",
+      "sha256": "1e5adfc2f2cca98e622b4605be9dc2a2707dfb7a4e5c1ab55999b0a2b14dc63d"
+    },
+    "retained_terminal": {
+      "path": "benchmark-results/phase-5/viewed-reference-reconstruction/recovery.json",
+      "sha256": "69c66e0b87c08a7b6b99e6d252c3a798d9133622b7903e8d746dd9c0f0f4f42d"
+    }
+  },
+  "preconditions": {
+    "complete_no_write_runtime_and_identity_preflight_required": true,
+    "exact_four_runtime_images_required": true,
+    "minimum_host_available_gib": 120,
+    "new_write_once_output_required": true,
+    "old_retained_terminal_must_not_be_modified": true,
+    "reconstruction_program_must_run_from_historical_checkout": true
+  },
+  "prospective_reconstruction": {
+    "output_path": "benchmark-results/phase-5/viewed-reference-reconstruction-public-finder-correction",
+    "purpose": "restore per-image input and reference evidence required by the correction cumulative replay",
+    "staging_path": "benchmark-results/phase-5/.viewed-reference-reconstruction-public-finder-correction.b35f4a811827.staging",
+    "write_once": true
+  },
+  "recommendations": [
+    "Obtain a separate named approval before executing any reconstruction.",
+    "Run the checksum-bound historical reconstruction program from commit a000db45102f218d0394dda32048714e74620491 with its exact four retained runtime identities.",
+    "Materialize all 2,400 inputs and execute only the 9,600 PyBDSF/Aegean reference runs; execute no Hebog candidate run.",
+    "Seal into the new write-once output and preserve the existing small terminal, request, open-state, and progress records unchanged.",
+    "Verify every artifact and compare the reconstructed scientific product identities with the retained closed cumulative evidence before changing the correction replay wrapper.",
+    "After a successful seal, implement and freeze a separate consumer-only binding to the new terminal identity, repeat complete no-write verification, and obtain a new one-replay approval."
+  ],
+  "review_basis": {
+    "path": "config/contracts/phase-5-public-finder-correction-reference-evidence-availability-failure.json",
+    "sha256": "2ae63e0a216fb2d342fd8dd2396274dc383d0eddbdfdc436a80e73fa8273eb22"
+  },
+  "schema_version": 1,
+  "status": "pre-reviewed-awaiting-reference-reconstruction-approval"
+}

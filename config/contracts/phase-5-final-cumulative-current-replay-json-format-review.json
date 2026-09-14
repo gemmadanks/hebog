@@ -1,0 +1,49 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "evaluation_authorized": false,
+    "json_format_rebinding_authorized": true,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "scientific_change_authorized": false
+  },
+  "canonical_review_paths": {
+    "preflight_efficiency": "config/contracts/phase-5-final-cumulative-current-replay-preflight-efficiency-review-canonical.json",
+    "single_scan_execution": "config/contracts/phase-5-final-cumulative-current-replay-single-scan-execution-review-canonical.json",
+    "type_clean": "config/contracts/phase-5-final-cumulative-current-replay-type-clean-review-canonical.json"
+  },
+  "canonical_review_sha256": {
+    "preflight_efficiency": "f67d74c05af40ff509562583bc7dca51fbb2d7dbc29bff581a03f20f4cf2ab39",
+    "single_scan_execution": "8d4848d265aaf07bb858856d05c984dc8a33b128b0f6d3e67d73f9b322c5dffa",
+    "type_clean": "853fe3982fc6e098ab2a3b1e986a9853b0ebac57cbcee6a7f174033d119c62b1"
+  },
+  "decision_id": "phase-5-final-cumulative-current-replay-json-format-review",
+  "diagnosis": {
+    "candidate_execution_started": false,
+    "governed_output_existed": false,
+    "governed_scratch_existed": false,
+    "hook_effect": "the repository JSON hook moved each status key into canonical lexical order",
+    "semantic_or_scientific_effect": "none"
+  },
+  "original_review_sha256": {
+    "preflight_efficiency": "e102f5d4bb667e5f5c88f2c5782e98c9fc06bed98790f1f2d54cf3c3cdab7219",
+    "single_scan_execution": "bbee4bf5808829cbf70a706bd934af6b2a325fdd95858615bdb76f39c07f53a4",
+    "type_clean": "93c4e5a8b4c0be625923c714cf7ca74166e062cb97af7c2ba1294f53c1b19d9f"
+  },
+  "repair": {
+    "change": "bind the canonical hook-formatted review bytes before freezing the final identity",
+    "required_validation": [
+      "deterministic freezer reproduction",
+      "complete repository validation",
+      "pre-commit pass without file changes",
+      "one exact immutable-checkout complete no-write preflight"
+    ],
+    "science_and_execution_identity": "unchanged"
+  },
+  "status": "approved-provenance-only-json-format-rebinding",
+  "superseded_unexecuted_records": {
+    "execution_decision_sha256": "2169705a53b9a09f47ab1b27cbb39ed68d6dfca1cd93658904880b2232c93f6b",
+    "identity_review_sha256": "bf40267cceb90baecdd5fa3e480c2068a7d533c24b56f55107e465f0e67216d0",
+    "implementation_decision_sha256": "ccb51515595671b9b1b3d5f876e928cd5921d12b422ce4ec6916cf48fffafa9b"
+  }
+}

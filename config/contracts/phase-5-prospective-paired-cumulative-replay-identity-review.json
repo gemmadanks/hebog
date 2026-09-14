@@ -1,0 +1,125 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "evaluation_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "scientific_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "candidates": {
+    "current": {
+      "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+      "revision": "937737d811dd229d71dbcfdbda6cb5829de6faca",
+      "source_tree_sha256": "9f8e4a67f0c74ac86bff4f398811a7d64620fb70512b118c0ad3bb1eb58644c8"
+    },
+    "selected_incumbent": {
+      "configuration_sha256": "88ac8bea8e865c765d5f346235642f88b298140955af67ada99b9f9bf6187523",
+      "revision": "85d580713664b962ae256a98b065849cf8eb9283",
+      "source_tree_sha256": "a082cbe4b3416f787b455bb5a06be1eb66cb33ec807c74fa48056dfe8c630696"
+    }
+  },
+  "design": {
+    "comparison_count": 1187,
+    "decision_contract": {
+      "path": "config/contracts/phase-5-prospective-science-decision-contract.json",
+      "sha256": "f70f321397618b9f63d3dd03d650a5bbc73f8aad5e5fa91f15a198a99bdb38f9"
+    },
+    "endpoint_registry": {
+      "path": "config/contracts/phase-5-prospective-science-endpoint-registry.json",
+      "sha256": "095354bce2f34ae257574f9168770a194f1f5b00024db0ec5bcafdafba006a7e"
+    },
+    "population": {
+      "continuum_input_count": 1600,
+      "input_count_per_candidate": 2400,
+      "path": "config/contracts/phase-5-prospective-paired-population.json",
+      "sha256": "0bd3e6a6e505f8fb307a108d90e932f6b3f16ae5fc6c654ab4c82de14f483687"
+    },
+    "power_audit": {
+      "familywise_power_lower_bound": 0.9097837426720311,
+      "path": "config/contracts/phase-5-prospective-paired-power-audit.json",
+      "sha256": "31ba482447e0716b241cbad8c1e7c8f8db7bd6901aaf4253415b223b4a5857c4"
+    },
+    "tail_sentinels": {
+      "membership_count": 160,
+      "path": "config/contracts/phase-5-prospective-paired-tail-sentinels.json",
+      "sha256": "21dad432f1c3e809f76e6e5395e0c6c62a0151fe83d130551f2c2d887d9490ce",
+      "unique_input_count": 155
+    }
+  },
+  "evidence": {
+    "closed_baseline_canonical_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+    "reference_reconstruction": {
+      "path": "benchmark-results/phase-5/viewed-reference-reconstruction-public-finder-correction/recovery.json",
+      "reference_run_count": 9600,
+      "sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2"
+    },
+    "source_request": {
+      "path": "benchmark-results/phase-5/external-post-failure-comparison/campaign-request.json",
+      "sha256": "7ba9be1b20ff0448e51729337acf2a7028cc0ec578c5e25106b9b34b07506df4"
+    }
+  },
+  "expected_execution_sha256": "cef4e7642665b957c8b8a0194359ffa486591b1075dad982b8de70e8e6155424",
+  "implementation": {
+    "approved_pre_review": {
+      "path": "config/contracts/phase-5-publication-scale-persistence-root-cause-pre-review.json",
+      "sha256": "77bd4b82cc7526b5e6f1b276ea16c887428c92f1c18126071405de69a07dce82"
+    },
+    "implementation_commit": "0a9922c735830a007eefe2b0434e564eadfd3fe7",
+    "implementation_decision": {
+      "path": "config/contracts/phase-5-prospective-paired-evidence-implementation-decision.json",
+      "sha256": "a587377504da3322c5df92804c0ef11b94c259eb5a3c9e9dc3a193836abf2448"
+    },
+    "programs": [
+      {
+        "path": "scripts/validation/materialize_phase5_prospective_paired_products.py",
+        "sha256": "d5c0d16bd4f379ec4a0767ccd57d24ce089e844761372a5d3b3f4fa939be65b2"
+      },
+      {
+        "path": "scripts/validation/prepare_phase5_prospective_paired_evidence.py",
+        "sha256": "54f1416d544c7cc4dd84591dcf22e2ced21c24722286cea55e6b1e1d3c72ba77"
+      },
+      {
+        "path": "scripts/validation/evaluate_phase5_prospective_paired_cumulative.py",
+        "sha256": "44d7d6475832becfdf02d475a4654de05284fd2320080a8a28734e39d9aeee51"
+      },
+      {
+        "path": "scripts/validation/review_phase5_prospective_paired_cumulative_replay.py",
+        "sha256": "a31b8c22e35173eebc8f4ab75744cc7d0617a8c6137eef09b3efbd23c615b80a"
+      }
+    ]
+  },
+  "no_write_verification": {
+    "candidate_execution_started": false,
+    "comparison_count": 1187,
+    "current_task_count": 2400,
+    "incumbent_task_count": 2400,
+    "input_count": 2400,
+    "output_absent": true,
+    "reference_run_count": 9600,
+    "scratch_absent": true,
+    "sentinel_membership_count": 160,
+    "sentinel_unique_input_count": 155,
+    "status": "pass"
+  },
+  "output": {
+    "path": "benchmark-results/phase-5/prospective-paired-cumulative-decision.json",
+    "write_once": true
+  },
+  "preparation_commit": "0a9922c735830a007eefe2b0434e564eadfd3fe7",
+  "required_next_decision": "obtain-explicit-user-approval-for-one-exact-prospective-paired-cumulative-replay-bound-to-this-review-and-expected-execution",
+  "review_id": "phase-5-prospective-paired-cumulative-replay-identity-review",
+  "reviewed_on": "2026-09-02",
+  "schema_version": 1,
+  "scratch": {
+    "current": "/private/tmp/hebog-phase5-prospective-paired-current-937737d",
+    "incumbent": "/private/tmp/hebog-phase5-prospective-paired-incumbent-85d5807"
+  },
+  "status": "ready-for-named-one-replay-approval",
+  "workers": 2
+}

@@ -1,53 +1,35 @@
 # Hebog
 
-Hebog is a Dask-aware radio-continuum source finder for SKA Science Data
-Processor pipelines. It is being developed first as a faster, scientifically
-compatible replacement for the PyBDSF work performed by Rapthor's
-`filter_skymodel` task.
+Hebog is an **experimental** Dask-aware radio-continuum source finder for SKA
+Science Data Processor pipelines. It is being developed as a scientifically
+compatible, faster alternative to the PyBDSF work used by Rapthor's
+`filter_skymodel` step. Its scientific library also works independently of
+Rapthor, Prefect and LSMTool.
 
-Rapthor defines the first qualified feature set, but is not a dependency of
-the scientific core. Hebog's public API, domain records, and executor boundary
-are designed for reuse in other data pipelines and science workflows.
+## What Hebog does
 
-Its scope is deliberately limited to the behaviour and products Rapthor consumes,
-with a target of reducing the complete filter step's matched median wall time
-by at least 50% relative to released PyBDSF and also outperforming a pinned
-PyBDSF `master` reference.
+The public finder reads one ICRS `Jy/beam` FITS image up to 1,024 pixels on
+either spatial axis and publishes a catalogue, RMS image, source mask and
+diagnostics. It implements background/noise estimation, compact and multiscale
+detection, Gaussian fitting and associated-source measurements. Use Serial
+execution or supply an existing Dask client; Hebog does not create a cluster.
 
-The 50% reduction is a minimum release gate, not an optimization endpoint.
-Hebog treats small, current, large, and extreme images as first-class
-performance regimes on a logarithmic benchmark matrix from 256 to 100,000
-pixels per side.
+Hebog is experimental and scientifically unqualified. Treat its outputs as
+measurements to evaluate, not as established astrophysical truth or automatic
+evidence that a survey configuration is suitable. See
+[current capability and release status](reference/release-status.md) for the
+supported input envelope and known limitations.
 
-Scalability is a core requirement. Hebog's target architecture processes
-images up to 100,000 by 100,000 pixels as bounded haloed tiles and distributes
-them across 100 to several hundred nodes on an existing Dask cluster, without
-materialising a complete plane on any worker.
-Production nodes are expected to provide hundreds of GB of RAM, which the
-executor can use for larger bounded batches and caches without changing
-scientific partition ownership.
+- [Find sources in a FITS image](tutorials/find-sources.md)
+- [See how the finder makes each decision](explanation/how-hebog-works.md)
+- [Interpret every public output field](reference/public-products.md)
+- [Install and get started](tutorials/index.md)
+- [Public API](reference/index.md)
 
-## Current status
+## Where it fits
 
-The technical implementation is complete through the experimental compact
-catalogue path: FITS/WCS ingestion, bounded partitioning, adaptive background
-and RMS estimation, detection, deblending, Gaussian measurement, sky/beam
-transforms, catalogue construction, serial/Dask execution, and Zarr products
-are implemented and tested.
-
-Compact scientific qualification has not passed. The terminal Phase 4R
-replacement campaign completed 600/600 Hebog images and passed 446/450
-dual-reference comparisons plus 106/107 absolute gates, but failed
-catastrophic-outlier comparisons and one SNR-10 declination-uncertainty-bias
-gate. The result is preserved without post-inspection tuning. The Phase 4
-performance matrix was therefore not eligible to run, and Hebog is not yet a
-qualified Rapthor replacement. Multiscale and extended-emission work remains
-Phase 5 scope.
-
-Start with the [quick start](tutorials/index.md), read the
-[architecture](explanation/index.md) and
-[quality attributes](explanation/quality-attributes.md), review the
-[native-code assessment](explanation/native-code-assessment.md), then see the
-[Phase 0 baseline results](reference/phase-0-baseline-results.md), the complete
-[implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
-and [execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md).
+The scientific library is independent of Rapthor, Prefect, and LSMTool. A
+pipeline supplies a serial executor or an existing Dask client and receives
+small records pointing to closed files. Hebog does not create a cluster,
+filter a sky model, or place scheduler objects in public results. See the
+[architecture](architecture/index.md) for execution and ownership boundaries.

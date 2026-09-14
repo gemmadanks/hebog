@@ -1,0 +1,832 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "coarse_control_execution_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "replay_authorized": false,
+    "rescoring_authorized": false,
+    "source_finding_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "candidate_binding": {
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "revision": "937737d811dd229d71dbcfdbda6cb5829de6faca",
+    "scientific_composition": "phase-5-publication-scale-persistence-v1",
+    "scientific_composition_sha256": "e03a0d3b8e7d19c50a09d2e6aed7a3182e6a9f97646a96c8dba1310c957cbd59",
+    "source_tree_sha256": "9f8e4a67f0c74ac86bff4f398811a7d64620fb70512b118c0ad3bb1eb58644c8"
+  },
+  "comparators": {
+    "candidate_path": "exact frozen continuum candidate through hebog.find_sources",
+    "coarse_control_path": "same inputs and exact candidate science with only adaptive background/RMS refinement disabled; diagnostic, never a replacement candidate",
+    "pybdsf_execution_required": false,
+    "rationale": "analytic truth and a paired one-factor counterfactual answer the local self-absorption question; final qualification retains both PyBDSF comparators"
+  },
+  "decision_policy": {
+    "aggregation": "evaluate every trigger-independent geometry separately; never pool a passing morphology over a failing one",
+    "hard_truth_safety_floors": {
+      "completeness_minimum": 1.0,
+      "integrated_flux_absolute_fractional_error_median_maximum": 0.1,
+      "integrated_flux_absolute_fractional_error_p95_maximum": 0.25,
+      "mask_iou_cell_median_minimum": 0.75,
+      "mask_iou_image_minimum": 0.6,
+      "split_fraction_maximum": 0.25,
+      "support_recall_cell_median_minimum": 0.9,
+      "support_recall_image_minimum": 0.75
+    },
+    "paired_adaptive_vs_coarse_margins": {
+      "completeness": 0.02,
+      "integrated_flux_absolute_fractional_error": 0.05,
+      "mask_iou": 0.05,
+      "split_fraction": 0.02,
+      "support_recall": 0.05
+    },
+    "pass_claim": "development-risk-closed-not-qualification-or-release-readiness",
+    "required_result": "all product-validity, trigger-seam, hard-floor, paired-margin, and executor-invariance checks pass",
+    "root_cause_sentinels": {
+      "background_error": "median and p95 absolute estimated-minus-true background inside truth support, in local true-RMS units",
+      "rms_error": "median and p95 estimated-minus-true RMS inside truth support, divided by local true RMS",
+      "role": "binding diagnosis retention; values cannot waive a hard truth floor or paired margin"
+    },
+    "trade_off_rule": {
+      "hard_floor_waiver_allowed": false,
+      "paired_movement": "movement inside every predeclared practical margin is acceptable; movement outside any margin fails even if a different metric improves",
+      "post_result_rule_change_allowed": false
+    },
+    "trigger_seam": {
+      "above": "all 90-sigma realizations must activate at least one adaptive region intersecting the truth group",
+      "below": "all 60-sigma realizations must remain below the strict 75-sigma adaptive candidate threshold",
+      "boundary": "75-sigma activation frequency is retained as non-binding threshold-stability evidence",
+      "retained_measurement": "maximum pre-adaptive coarse-normalized residual and exact adaptive candidate positions for every image"
+    }
+  },
+  "evidence_bindings": {
+    "closed_paired_decision_sha256": "5bced80488199696382233d8b0d513a83922d35cdee605c8e638798ef8f6faf4",
+    "design_module": {
+      "path": "src/hebog/validation/adaptive_background_development.py",
+      "sha256": "c95477bc719e697425fd7b8c4a8fe71fd6d3bb2d279457153a7d988a12863e10"
+    },
+    "existing_continuum_manifest": {
+      "path": "config/datasets/phase-5-external-post-failure-continuum.json",
+      "sha256": "4ce811e8aebc26b858473eb4473abba1b3bb5a916acb2ee6b645441723322e77"
+    },
+    "final_retention_pre_review": {
+      "path": "config/contracts/phase-5-final-retention-confirmation-pre-review.json",
+      "sha256": "913276423c5a93572ac48f18ab00ad9e13d18c21007a973284acbf7d3cbc3c21"
+    },
+    "prospective_endpoint_registry": {
+      "path": "config/contracts/phase-5-prospective-science-endpoint-registry.json",
+      "sha256": "095354bce2f34ae257574f9168770a194f1f5b00024db0ec5bcafdafba006a7e"
+    },
+    "public_interface_review": {
+      "path": "config/contracts/phase-5-public-interface-identity-review.json",
+      "sha256": "a521c656683cdae8b8d2250a3d29dee716c4ff774a25e23556301b21e5d898f8"
+    },
+    "review_program": {
+      "path": "scripts/validation/review_phase5_adaptive_background_development.py",
+      "sha256": "7d33669faf6be4bae2da818582cad711fe140c2b93357526ee58977ebb1d0ebb"
+    }
+  },
+  "implementation_requirements": [
+    "freeze the exact generator, manifest, compiler, evaluator, public facade, internal coarse-control adapter, and runtime identities",
+    "calibrate noiseless composite templates to the nominal trigger targets before adding noise and retain the realized pre-adaptive trigger measurement",
+    "prove all 144 seeds remain disjoint immediately before freezing the population",
+    "exercise candidate publication through hebog.find_sources and keep the coarse-only control outside public product claims",
+    "retain array-free per-image truth, trigger, background, RMS, support, catalogue, flux, and provenance summaries",
+    "prove Serial versus caller-owned existing-Dask equivalence on one above-trigger realization from every geometry",
+    "run a complete no-write preflight before requesting one-use development-lane execution approval",
+    "publish one atomic terminal development decision without overwriting or adaptive reruns"
+  ],
+  "known_coverage_gap": {
+    "adaptive_trigger_sigma": 75.0,
+    "audit_basis": "analytic input component peaks divided by each recipe's nominal noise RMS; no finder output was opened or rescored",
+    "brightest_component_sigma_range": [
+      22.62,
+      29.120000000000005
+    ],
+    "dataset_audit": [
+      {
+        "brightest_component_sigma": 27.040000000000003,
+        "dataset_identifier": "phase5-external-post-failure-continuum-1-1024",
+        "shell_component_sigma_maximum": 9.318400000000002,
+        "shell_component_sigma_minimum": 7.3216
+      },
+      {
+        "brightest_component_sigma": 22.62,
+        "dataset_identifier": "phase5-external-post-failure-continuum-2-1024",
+        "shell_component_sigma_maximum": 7.795200000000001,
+        "shell_component_sigma_minimum": 6.1248
+      },
+      {
+        "brightest_component_sigma": 29.120000000000005,
+        "dataset_identifier": "phase5-external-post-failure-continuum-3-1024",
+        "shell_component_sigma_maximum": 10.035200000000001,
+        "shell_component_sigma_minimum": 7.8848
+      },
+      {
+        "brightest_component_sigma": 24.180000000000003,
+        "dataset_identifier": "phase5-external-post-failure-continuum-4-1024",
+        "shell_component_sigma_maximum": 8.3328,
+        "shell_component_sigma_minimum": 6.547200000000001
+      }
+    ],
+    "existing_population_crosses_trigger": false,
+    "shell_component_sigma_range": [
+      6.1248,
+      10.035200000000001
+    ]
+  },
+  "population": {
+    "candidate_executions": 144,
+    "coarse_control_executions": 144,
+    "existing_dask_invariance_reexecutions": 12,
+    "full_replay_candidate_work_fraction": 0.125,
+    "geometry_cell_count": 12,
+    "geometry_specification": {
+      "beams": {
+        "beam-a": {
+          "major_fwhm_pixels": 5.4,
+          "minor_fwhm_pixels": 3.6,
+          "position_angle_degrees": 31.0
+        },
+        "beam-b": {
+          "major_fwhm_pixels": 6.3,
+          "minor_fwhm_pixels": 4.0,
+          "position_angle_degrees": 68.0
+        }
+      },
+      "generator": "hebog.synthetic.gaussian-noise-v3",
+      "morphologies": {
+        "curved-filament": "seven equal beam-convolved Gaussian knots on a 120-degree arc, with adjacent centres no farther than 1.25 major beams",
+        "mixed-compact-extended": "one restoring-beam core plus one co-centred elliptical halo; the halo contains 75% of integrated truth brightness",
+        "shell": "eight equal beam-convolved Gaussian knots uniformly spaced on a ring whose diameter is the declared major extent"
+      },
+      "noise": {
+        "correlation_fwhm": "equal-to-restoring-beam",
+        "flat": [
+          0.0,
+          0.0
+        ],
+        "nominal_rms_jy_per_beam": 0.0002,
+        "varying": [
+          0.4,
+          -0.2
+        ]
+      },
+      "placements_xy": {
+        "interior": [
+          181.0,
+          173.0
+        ],
+        "tile-corner": [
+          256.0,
+          256.0
+        ]
+      },
+      "source_content": "one isolated governed truth group per image",
+      "truth_support": "finite pixels where the noiseless summed source contribution is at least three times the analytic local true RMS",
+      "wcs": {
+        "frame": "icrs",
+        "pixel_scale_degrees_xy": [
+          -0.0004,
+          0.0004
+        ],
+        "rotation_degrees_counterclockwise": 23.0
+      }
+    },
+    "image_count": 144,
+    "image_shape_yx": [
+      512,
+      512
+    ],
+    "independent_unit": "noise-seed-image",
+    "matrix": [
+      {
+        "beam_id": "beam-a",
+        "cell_id": "shell--beam-a--flat--scale-4--interior--below",
+        "extent_major_beams": 4.0,
+        "morphology": "shell",
+        "noise_gradient_id": "flat",
+        "noise_seeds": [
+          2026950001,
+          2026950002,
+          2026950003,
+          2026950004
+        ],
+        "placement_id": "interior",
+        "target_nominal_peak_sigma": 60.0,
+        "trigger_cohort": "below"
+      },
+      {
+        "beam_id": "beam-a",
+        "cell_id": "shell--beam-a--flat--scale-4--interior--boundary",
+        "extent_major_beams": 4.0,
+        "morphology": "shell",
+        "noise_gradient_id": "flat",
+        "noise_seeds": [
+          2026950005,
+          2026950006,
+          2026950007,
+          2026950008
+        ],
+        "placement_id": "interior",
+        "target_nominal_peak_sigma": 75.0,
+        "trigger_cohort": "boundary"
+      },
+      {
+        "beam_id": "beam-a",
+        "cell_id": "shell--beam-a--flat--scale-4--interior--above",
+        "extent_major_beams": 4.0,
+        "morphology": "shell",
+        "noise_gradient_id": "flat",
+        "noise_seeds": [
+          2026950009,
+          2026950010,
+          2026950011,
+          2026950012
+        ],
+        "placement_id": "interior",
+        "target_nominal_peak_sigma": 90.0,
+        "trigger_cohort": "above"
+      },
+      {
+        "beam_id": "beam-a",
+        "cell_id": "shell--beam-a--varying--scale-8--tile-corner--below",
+        "extent_major_beams": 8.0,
+        "morphology": "shell",
+        "noise_gradient_id": "varying",
+        "noise_seeds": [
+          2026950013,
+          2026950014,
+          2026950015,
+          2026950016
+        ],
+        "placement_id": "tile-corner",
+        "target_nominal_peak_sigma": 60.0,
+        "trigger_cohort": "below"
+      },
+      {
+        "beam_id": "beam-a",
+        "cell_id": "shell--beam-a--varying--scale-8--tile-corner--boundary",
+        "extent_major_beams": 8.0,
+        "morphology": "shell",
+        "noise_gradient_id": "varying",
+        "noise_seeds": [
+          2026950017,
+          2026950018,
+          2026950019,
+          2026950020
+        ],
+        "placement_id": "tile-corner",
+        "target_nominal_peak_sigma": 75.0,
+        "trigger_cohort": "boundary"
+      },
+      {
+        "beam_id": "beam-a",
+        "cell_id": "shell--beam-a--varying--scale-8--tile-corner--above",
+        "extent_major_beams": 8.0,
+        "morphology": "shell",
+        "noise_gradient_id": "varying",
+        "noise_seeds": [
+          2026950021,
+          2026950022,
+          2026950023,
+          2026950024
+        ],
+        "placement_id": "tile-corner",
+        "target_nominal_peak_sigma": 90.0,
+        "trigger_cohort": "above"
+      },
+      {
+        "beam_id": "beam-b",
+        "cell_id": "shell--beam-b--flat--scale-8--tile-corner--below",
+        "extent_major_beams": 8.0,
+        "morphology": "shell",
+        "noise_gradient_id": "flat",
+        "noise_seeds": [
+          2026950025,
+          2026950026,
+          2026950027,
+          2026950028
+        ],
+        "placement_id": "tile-corner",
+        "target_nominal_peak_sigma": 60.0,
+        "trigger_cohort": "below"
+      },
+      {
+        "beam_id": "beam-b",
+        "cell_id": "shell--beam-b--flat--scale-8--tile-corner--boundary",
+        "extent_major_beams": 8.0,
+        "morphology": "shell",
+        "noise_gradient_id": "flat",
+        "noise_seeds": [
+          2026950029,
+          2026950030,
+          2026950031,
+          2026950032
+        ],
+        "placement_id": "tile-corner",
+        "target_nominal_peak_sigma": 75.0,
+        "trigger_cohort": "boundary"
+      },
+      {
+        "beam_id": "beam-b",
+        "cell_id": "shell--beam-b--flat--scale-8--tile-corner--above",
+        "extent_major_beams": 8.0,
+        "morphology": "shell",
+        "noise_gradient_id": "flat",
+        "noise_seeds": [
+          2026950033,
+          2026950034,
+          2026950035,
+          2026950036
+        ],
+        "placement_id": "tile-corner",
+        "target_nominal_peak_sigma": 90.0,
+        "trigger_cohort": "above"
+      },
+      {
+        "beam_id": "beam-b",
+        "cell_id": "shell--beam-b--varying--scale-12--interior--below",
+        "extent_major_beams": 12.0,
+        "morphology": "shell",
+        "noise_gradient_id": "varying",
+        "noise_seeds": [
+          2026950037,
+          2026950038,
+          2026950039,
+          2026950040
+        ],
+        "placement_id": "interior",
+        "target_nominal_peak_sigma": 60.0,
+        "trigger_cohort": "below"
+      },
+      {
+        "beam_id": "beam-b",
+        "cell_id": "shell--beam-b--varying--scale-12--interior--boundary",
+        "extent_major_beams": 12.0,
+        "morphology": "shell",
+        "noise_gradient_id": "varying",
+        "noise_seeds": [
+          2026950041,
+          2026950042,
+          2026950043,
+          2026950044
+        ],
+        "placement_id": "interior",
+        "target_nominal_peak_sigma": 75.0,
+        "trigger_cohort": "boundary"
+      },
+      {
+        "beam_id": "beam-b",
+        "cell_id": "shell--beam-b--varying--scale-12--interior--above",
+        "extent_major_beams": 12.0,
+        "morphology": "shell",
+        "noise_gradient_id": "varying",
+        "noise_seeds": [
+          2026950045,
+          2026950046,
+          2026950047,
+          2026950048
+        ],
+        "placement_id": "interior",
+        "target_nominal_peak_sigma": 90.0,
+        "trigger_cohort": "above"
+      },
+      {
+        "beam_id": "beam-a",
+        "cell_id": "curved_filament--beam-a--flat--scale-8--tile-corner--below",
+        "extent_major_beams": 8.0,
+        "morphology": "curved-filament",
+        "noise_gradient_id": "flat",
+        "noise_seeds": [
+          2026950049,
+          2026950050,
+          2026950051,
+          2026950052
+        ],
+        "placement_id": "tile-corner",
+        "target_nominal_peak_sigma": 60.0,
+        "trigger_cohort": "below"
+      },
+      {
+        "beam_id": "beam-a",
+        "cell_id": "curved_filament--beam-a--flat--scale-8--tile-corner--boundary",
+        "extent_major_beams": 8.0,
+        "morphology": "curved-filament",
+        "noise_gradient_id": "flat",
+        "noise_seeds": [
+          2026950053,
+          2026950054,
+          2026950055,
+          2026950056
+        ],
+        "placement_id": "tile-corner",
+        "target_nominal_peak_sigma": 75.0,
+        "trigger_cohort": "boundary"
+      },
+      {
+        "beam_id": "beam-a",
+        "cell_id": "curved_filament--beam-a--flat--scale-8--tile-corner--above",
+        "extent_major_beams": 8.0,
+        "morphology": "curved-filament",
+        "noise_gradient_id": "flat",
+        "noise_seeds": [
+          2026950057,
+          2026950058,
+          2026950059,
+          2026950060
+        ],
+        "placement_id": "tile-corner",
+        "target_nominal_peak_sigma": 90.0,
+        "trigger_cohort": "above"
+      },
+      {
+        "beam_id": "beam-a",
+        "cell_id": "curved_filament--beam-a--varying--scale-12--interior--below",
+        "extent_major_beams": 12.0,
+        "morphology": "curved-filament",
+        "noise_gradient_id": "varying",
+        "noise_seeds": [
+          2026950061,
+          2026950062,
+          2026950063,
+          2026950064
+        ],
+        "placement_id": "interior",
+        "target_nominal_peak_sigma": 60.0,
+        "trigger_cohort": "below"
+      },
+      {
+        "beam_id": "beam-a",
+        "cell_id": "curved_filament--beam-a--varying--scale-12--interior--boundary",
+        "extent_major_beams": 12.0,
+        "morphology": "curved-filament",
+        "noise_gradient_id": "varying",
+        "noise_seeds": [
+          2026950065,
+          2026950066,
+          2026950067,
+          2026950068
+        ],
+        "placement_id": "interior",
+        "target_nominal_peak_sigma": 75.0,
+        "trigger_cohort": "boundary"
+      },
+      {
+        "beam_id": "beam-a",
+        "cell_id": "curved_filament--beam-a--varying--scale-12--interior--above",
+        "extent_major_beams": 12.0,
+        "morphology": "curved-filament",
+        "noise_gradient_id": "varying",
+        "noise_seeds": [
+          2026950069,
+          2026950070,
+          2026950071,
+          2026950072
+        ],
+        "placement_id": "interior",
+        "target_nominal_peak_sigma": 90.0,
+        "trigger_cohort": "above"
+      },
+      {
+        "beam_id": "beam-b",
+        "cell_id": "curved_filament--beam-b--flat--scale-12--interior--below",
+        "extent_major_beams": 12.0,
+        "morphology": "curved-filament",
+        "noise_gradient_id": "flat",
+        "noise_seeds": [
+          2026950073,
+          2026950074,
+          2026950075,
+          2026950076
+        ],
+        "placement_id": "interior",
+        "target_nominal_peak_sigma": 60.0,
+        "trigger_cohort": "below"
+      },
+      {
+        "beam_id": "beam-b",
+        "cell_id": "curved_filament--beam-b--flat--scale-12--interior--boundary",
+        "extent_major_beams": 12.0,
+        "morphology": "curved-filament",
+        "noise_gradient_id": "flat",
+        "noise_seeds": [
+          2026950077,
+          2026950078,
+          2026950079,
+          2026950080
+        ],
+        "placement_id": "interior",
+        "target_nominal_peak_sigma": 75.0,
+        "trigger_cohort": "boundary"
+      },
+      {
+        "beam_id": "beam-b",
+        "cell_id": "curved_filament--beam-b--flat--scale-12--interior--above",
+        "extent_major_beams": 12.0,
+        "morphology": "curved-filament",
+        "noise_gradient_id": "flat",
+        "noise_seeds": [
+          2026950081,
+          2026950082,
+          2026950083,
+          2026950084
+        ],
+        "placement_id": "interior",
+        "target_nominal_peak_sigma": 90.0,
+        "trigger_cohort": "above"
+      },
+      {
+        "beam_id": "beam-b",
+        "cell_id": "curved_filament--beam-b--varying--scale-4--tile-corner--below",
+        "extent_major_beams": 4.0,
+        "morphology": "curved-filament",
+        "noise_gradient_id": "varying",
+        "noise_seeds": [
+          2026950085,
+          2026950086,
+          2026950087,
+          2026950088
+        ],
+        "placement_id": "tile-corner",
+        "target_nominal_peak_sigma": 60.0,
+        "trigger_cohort": "below"
+      },
+      {
+        "beam_id": "beam-b",
+        "cell_id": "curved_filament--beam-b--varying--scale-4--tile-corner--boundary",
+        "extent_major_beams": 4.0,
+        "morphology": "curved-filament",
+        "noise_gradient_id": "varying",
+        "noise_seeds": [
+          2026950089,
+          2026950090,
+          2026950091,
+          2026950092
+        ],
+        "placement_id": "tile-corner",
+        "target_nominal_peak_sigma": 75.0,
+        "trigger_cohort": "boundary"
+      },
+      {
+        "beam_id": "beam-b",
+        "cell_id": "curved_filament--beam-b--varying--scale-4--tile-corner--above",
+        "extent_major_beams": 4.0,
+        "morphology": "curved-filament",
+        "noise_gradient_id": "varying",
+        "noise_seeds": [
+          2026950093,
+          2026950094,
+          2026950095,
+          2026950096
+        ],
+        "placement_id": "tile-corner",
+        "target_nominal_peak_sigma": 90.0,
+        "trigger_cohort": "above"
+      },
+      {
+        "beam_id": "beam-a",
+        "cell_id": "mixed_compact_extended--beam-a--flat--scale-12--interior--below",
+        "extent_major_beams": 12.0,
+        "morphology": "mixed-compact-extended",
+        "noise_gradient_id": "flat",
+        "noise_seeds": [
+          2026950097,
+          2026950098,
+          2026950099,
+          2026950100
+        ],
+        "placement_id": "interior",
+        "target_nominal_peak_sigma": 60.0,
+        "trigger_cohort": "below"
+      },
+      {
+        "beam_id": "beam-a",
+        "cell_id": "mixed_compact_extended--beam-a--flat--scale-12--interior--boundary",
+        "extent_major_beams": 12.0,
+        "morphology": "mixed-compact-extended",
+        "noise_gradient_id": "flat",
+        "noise_seeds": [
+          2026950101,
+          2026950102,
+          2026950103,
+          2026950104
+        ],
+        "placement_id": "interior",
+        "target_nominal_peak_sigma": 75.0,
+        "trigger_cohort": "boundary"
+      },
+      {
+        "beam_id": "beam-a",
+        "cell_id": "mixed_compact_extended--beam-a--flat--scale-12--interior--above",
+        "extent_major_beams": 12.0,
+        "morphology": "mixed-compact-extended",
+        "noise_gradient_id": "flat",
+        "noise_seeds": [
+          2026950105,
+          2026950106,
+          2026950107,
+          2026950108
+        ],
+        "placement_id": "interior",
+        "target_nominal_peak_sigma": 90.0,
+        "trigger_cohort": "above"
+      },
+      {
+        "beam_id": "beam-a",
+        "cell_id": "mixed_compact_extended--beam-a--varying--scale-4--tile-corner--below",
+        "extent_major_beams": 4.0,
+        "morphology": "mixed-compact-extended",
+        "noise_gradient_id": "varying",
+        "noise_seeds": [
+          2026950109,
+          2026950110,
+          2026950111,
+          2026950112
+        ],
+        "placement_id": "tile-corner",
+        "target_nominal_peak_sigma": 60.0,
+        "trigger_cohort": "below"
+      },
+      {
+        "beam_id": "beam-a",
+        "cell_id": "mixed_compact_extended--beam-a--varying--scale-4--tile-corner--boundary",
+        "extent_major_beams": 4.0,
+        "morphology": "mixed-compact-extended",
+        "noise_gradient_id": "varying",
+        "noise_seeds": [
+          2026950113,
+          2026950114,
+          2026950115,
+          2026950116
+        ],
+        "placement_id": "tile-corner",
+        "target_nominal_peak_sigma": 75.0,
+        "trigger_cohort": "boundary"
+      },
+      {
+        "beam_id": "beam-a",
+        "cell_id": "mixed_compact_extended--beam-a--varying--scale-4--tile-corner--above",
+        "extent_major_beams": 4.0,
+        "morphology": "mixed-compact-extended",
+        "noise_gradient_id": "varying",
+        "noise_seeds": [
+          2026950117,
+          2026950118,
+          2026950119,
+          2026950120
+        ],
+        "placement_id": "tile-corner",
+        "target_nominal_peak_sigma": 90.0,
+        "trigger_cohort": "above"
+      },
+      {
+        "beam_id": "beam-b",
+        "cell_id": "mixed_compact_extended--beam-b--flat--scale-4--tile-corner--below",
+        "extent_major_beams": 4.0,
+        "morphology": "mixed-compact-extended",
+        "noise_gradient_id": "flat",
+        "noise_seeds": [
+          2026950121,
+          2026950122,
+          2026950123,
+          2026950124
+        ],
+        "placement_id": "tile-corner",
+        "target_nominal_peak_sigma": 60.0,
+        "trigger_cohort": "below"
+      },
+      {
+        "beam_id": "beam-b",
+        "cell_id": "mixed_compact_extended--beam-b--flat--scale-4--tile-corner--boundary",
+        "extent_major_beams": 4.0,
+        "morphology": "mixed-compact-extended",
+        "noise_gradient_id": "flat",
+        "noise_seeds": [
+          2026950125,
+          2026950126,
+          2026950127,
+          2026950128
+        ],
+        "placement_id": "tile-corner",
+        "target_nominal_peak_sigma": 75.0,
+        "trigger_cohort": "boundary"
+      },
+      {
+        "beam_id": "beam-b",
+        "cell_id": "mixed_compact_extended--beam-b--flat--scale-4--tile-corner--above",
+        "extent_major_beams": 4.0,
+        "morphology": "mixed-compact-extended",
+        "noise_gradient_id": "flat",
+        "noise_seeds": [
+          2026950129,
+          2026950130,
+          2026950131,
+          2026950132
+        ],
+        "placement_id": "tile-corner",
+        "target_nominal_peak_sigma": 90.0,
+        "trigger_cohort": "above"
+      },
+      {
+        "beam_id": "beam-b",
+        "cell_id": "mixed_compact_extended--beam-b--varying--scale-8--interior--below",
+        "extent_major_beams": 8.0,
+        "morphology": "mixed-compact-extended",
+        "noise_gradient_id": "varying",
+        "noise_seeds": [
+          2026950133,
+          2026950134,
+          2026950135,
+          2026950136
+        ],
+        "placement_id": "interior",
+        "target_nominal_peak_sigma": 60.0,
+        "trigger_cohort": "below"
+      },
+      {
+        "beam_id": "beam-b",
+        "cell_id": "mixed_compact_extended--beam-b--varying--scale-8--interior--boundary",
+        "extent_major_beams": 8.0,
+        "morphology": "mixed-compact-extended",
+        "noise_gradient_id": "varying",
+        "noise_seeds": [
+          2026950137,
+          2026950138,
+          2026950139,
+          2026950140
+        ],
+        "placement_id": "interior",
+        "target_nominal_peak_sigma": 75.0,
+        "trigger_cohort": "boundary"
+      },
+      {
+        "beam_id": "beam-b",
+        "cell_id": "mixed_compact_extended--beam-b--varying--scale-8--interior--above",
+        "extent_major_beams": 8.0,
+        "morphology": "mixed-compact-extended",
+        "noise_gradient_id": "varying",
+        "noise_seeds": [
+          2026950141,
+          2026950142,
+          2026950143,
+          2026950144
+        ],
+        "placement_id": "interior",
+        "target_nominal_peak_sigma": 90.0,
+        "trigger_cohort": "above"
+      }
+    ],
+    "matrix_cell_count": 36,
+    "noise_realizations_per_cell": 4,
+    "role": "development",
+    "seed_audit": {
+      "historical_manifest_count": 46,
+      "historical_registry_canonical_sha256": "47aca0c78cd75b2e336148baa89a2354a72900c19ea84b3145788c1de519c160",
+      "historical_seed_count": 20917,
+      "prospective_seed_count": 144,
+      "seed_disjoint": true
+    },
+    "total_finder_executions": 300,
+    "trigger_cohorts": [
+      {
+        "cohort": "below",
+        "scientific_role": "negative activation control",
+        "target_nominal_peak_sigma": 60.0
+      },
+      {
+        "cohort": "boundary",
+        "scientific_role": "non-binding trigger stability",
+        "target_nominal_peak_sigma": 75.0
+      },
+      {
+        "cohort": "above",
+        "scientific_role": "binding self-absorption challenge",
+        "target_nominal_peak_sigma": 90.0
+      }
+    ]
+  },
+  "qualification_boundary": {
+    "development_images_may_enter_qualification": false,
+    "on_development_failure": "document the terminal failure, obtain scientific approval for a test-first prospective correction, rerun affected small regression evidence, and freeze a replacement candidate",
+    "on_development_pass": "keep source science unchanged and add a seed-disjoint analogue to the unopened final qualification design",
+    "qualification_opened": false,
+    "qualification_or_parity_claim_from_this_lane": false
+  },
+  "rejected_alternatives": [
+    "opening the 4,608-image held-out qualification population to discover this known development risk",
+    "using the viewed Hydra image as truth or tuning adaptive thresholds from it",
+    "disabling adaptive refinement as the production fix without prospective truth evidence",
+    "running another complete 2,400-image cumulative replay before the small lane passes",
+    "weakening existing PyBDSF, incumbent-retention, absolute safety, confidence, or trade-off rules"
+  ],
+  "review_id": "phase-5-adaptive-background-development-pre-review",
+  "schema_version": 1,
+  "scientific_question": "Does the exact adaptive background/RMS refinement preserve bright extended truth support and photometry when the strict 75-sigma trigger activates, across the smallest morphology, scale, beam, noise-gradient, and placement design that exposes self-absorption?",
+  "status": "awaiting-human-scientific-review"
+}

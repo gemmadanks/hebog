@@ -1,0 +1,875 @@
+{
+  "datasets": [
+    {
+      "association_group_strata": [],
+      "association_truth_groups": [],
+      "beam": {
+        "major_fwhm_pixels": 6,
+        "minor_fwhm_pixels": 4,
+        "position_angle_degrees": 54
+      },
+      "classification_strata": [],
+      "expected_statistics": {
+        "background_jy_per_beam": -0.00030000000000000003,
+        "finite_fraction": 0.9998092651367188,
+        "noise_rms_jy_per_beam": 0.0002
+      },
+      "identifier": "phase5-qualification-multiscale-1024",
+      "multiscale_group_strata": [
+        {
+          "group_identifiers": [
+            "extended-shell-0001"
+          ],
+          "identifier": "above-compact-deblend-limit"
+        },
+        {
+          "group_identifiers": [
+            "extended-edge-0001"
+          ],
+          "identifier": "image-edge"
+        },
+        {
+          "group_identifiers": [
+            "extended-mixed-0001"
+          ],
+          "identifier": "invalid-pixels"
+        },
+        {
+          "group_identifiers": [
+            "artifact-bright-sidelobes-0001"
+          ],
+          "identifier": "morphology-artifact"
+        },
+        {
+          "group_identifiers": [
+            "extended-curved-filament-0001"
+          ],
+          "identifier": "morphology-curved-filament"
+        },
+        {
+          "group_identifiers": [
+            "extended-diffuse-0001",
+            "extended-edge-0001"
+          ],
+          "identifier": "morphology-diffuse"
+        },
+        {
+          "group_identifiers": [
+            "extended-filament-0001"
+          ],
+          "identifier": "morphology-filament"
+        },
+        {
+          "group_identifiers": [
+            "extended-mixed-0001"
+          ],
+          "identifier": "morphology-mixed-compact-extended"
+        },
+        {
+          "group_identifiers": [
+            "extended-shell-0001"
+          ],
+          "identifier": "morphology-shell"
+        },
+        {
+          "group_identifiers": [
+            "artifact-bright-sidelobes-0001",
+            "extended-mixed-0001"
+          ],
+          "identifier": "scale-1-beam"
+        },
+        {
+          "group_identifiers": [
+            "extended-curved-filament-0001",
+            "extended-filament-0001",
+            "extended-mixed-0001"
+          ],
+          "identifier": "scale-2-beam"
+        },
+        {
+          "group_identifiers": [
+            "extended-curved-filament-0001",
+            "extended-diffuse-0001",
+            "extended-edge-0001",
+            "extended-mixed-0001",
+            "extended-shell-0001"
+          ],
+          "identifier": "scale-4-beam"
+        },
+        {
+          "group_identifiers": [
+            "extended-filament-0001",
+            "extended-shell-0001"
+          ],
+          "identifier": "tile-boundary"
+        },
+        {
+          "group_identifiers": [
+            "extended-shell-0001"
+          ],
+          "identifier": "tile-corner"
+        },
+        {
+          "group_identifiers": [
+            "extended-curved-filament-0001",
+            "extended-diffuse-0001",
+            "extended-edge-0001",
+            "extended-filament-0001",
+            "extended-mixed-0001",
+            "extended-shell-0001"
+          ],
+          "identifier": "varying-noise"
+        }
+      ],
+      "multiscale_truth_groups": [
+        {
+          "catalogue_role": "artifact",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            1
+          ],
+          "identifier": "artifact-bright-sidelobes-0001",
+          "major_extent_beams": 7,
+          "minor_extent_beams": 2,
+          "morphology": "artifact",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.20357520395261858,
+          "reference_position_xy": [
+            363.99999999999994,
+            800
+          ],
+          "source_indices": [
+            13,
+            14,
+            15
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            2,
+            3
+          ],
+          "identifier": "extended-curved-filament-0001",
+          "major_extent_beams": 7,
+          "minor_extent_beams": 2,
+          "morphology": "curved-filament",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.3996105855366217,
+          "reference_position_xy": [
+            225.99999999999997,
+            497.13207547169804
+          ],
+          "source_indices": [
+            4,
+            5,
+            6
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            3
+          ],
+          "identifier": "extended-diffuse-0001",
+          "major_extent_beams": 6,
+          "minor_extent_beams": 4,
+          "morphology": "diffuse",
+          "reference_integrated_brightness_jy_pixels_per_beam": 1.8095573684677209,
+          "reference_position_xy": [
+            164,
+            150
+          ],
+          "source_indices": [
+            0
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            3
+          ],
+          "identifier": "extended-edge-0001",
+          "major_extent_beams": 5,
+          "minor_extent_beams": 2,
+          "morphology": "diffuse",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.7539822368615503,
+          "reference_position_xy": [
+            2,
+            636
+          ],
+          "source_indices": [
+            16
+          ],
+          "touches_image_edge": true
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": true,
+          "governed_scale_orders": [
+            2
+          ],
+          "identifier": "extended-filament-0001",
+          "major_extent_beams": 10,
+          "minor_extent_beams": 1.5,
+          "morphology": "filament",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.562973403523291,
+          "reference_position_xy": [
+            512,
+            274
+          ],
+          "source_indices": [
+            1,
+            2,
+            3
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            1,
+            2,
+            3
+          ],
+          "identifier": "extended-mixed-0001",
+          "major_extent_beams": 5,
+          "minor_extent_beams": 3,
+          "morphology": "mixed-compact-extended",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.8482300164692442,
+          "reference_position_xy": [
+            766,
+            280
+          ],
+          "source_indices": [
+            11,
+            12
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "compact_deblend_disposition": "deferred-extended",
+          "crosses_tile_boundary": true,
+          "crosses_tile_corner": true,
+          "governed_scale_orders": [
+            3
+          ],
+          "identifier": "extended-shell-0001",
+          "major_extent_beams": 9,
+          "minor_extent_beams": 9,
+          "morphology": "shell",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.6031857894892403,
+          "reference_position_xy": [
+            520,
+            534
+          ],
+          "source_indices": [
+            7,
+            8,
+            9,
+            10
+          ],
+          "touches_image_edge": false
+        }
+      ],
+      "noise_realization_seeds": [
+        2026720002,
+        2026720003,
+        2026720004,
+        2026720005,
+        2026720006,
+        2026720007,
+        2026720008,
+        2026720009,
+        2026720010,
+        2026720011,
+        2026720012,
+        2026720013,
+        2026720014,
+        2026720015,
+        2026720016,
+        2026720017,
+        2026720018,
+        2026720019,
+        2026720020,
+        2026720021,
+        2026720022,
+        2026720023,
+        2026720024,
+        2026720025,
+        2026720026,
+        2026720027,
+        2026720028,
+        2026720029,
+        2026720030,
+        2026720031,
+        2026720032,
+        2026720033,
+        2026720034,
+        2026720035,
+        2026720036,
+        2026720037,
+        2026720038,
+        2026720039,
+        2026720040,
+        2026720041,
+        2026720042,
+        2026720043,
+        2026720044,
+        2026720045,
+        2026720046,
+        2026720047,
+        2026720048,
+        2026720049,
+        2026720050,
+        2026720051,
+        2026720052,
+        2026720053,
+        2026720054,
+        2026720055,
+        2026720056,
+        2026720057,
+        2026720058,
+        2026720059,
+        2026720060,
+        2026720061,
+        2026720062,
+        2026720063,
+        2026720064,
+        2026720065,
+        2026720066,
+        2026720067,
+        2026720068,
+        2026720069,
+        2026720070,
+        2026720071,
+        2026720072,
+        2026720073,
+        2026720074,
+        2026720075,
+        2026720076,
+        2026720077,
+        2026720078,
+        2026720079,
+        2026720080,
+        2026720081,
+        2026720082,
+        2026720083,
+        2026720084,
+        2026720085,
+        2026720086,
+        2026720087,
+        2026720088,
+        2026720089,
+        2026720090,
+        2026720091,
+        2026720092,
+        2026720093,
+        2026720094,
+        2026720095,
+        2026720096,
+        2026720097,
+        2026720098,
+        2026720099,
+        2026720100,
+        2026720101,
+        2026720102,
+        2026720103,
+        2026720104,
+        2026720105,
+        2026720106,
+        2026720107,
+        2026720108,
+        2026720109,
+        2026720110,
+        2026720111,
+        2026720112,
+        2026720113,
+        2026720114,
+        2026720115,
+        2026720116,
+        2026720117,
+        2026720118,
+        2026720119,
+        2026720120,
+        2026720121,
+        2026720122,
+        2026720123,
+        2026720124,
+        2026720125,
+        2026720126,
+        2026720127,
+        2026720128,
+        2026720129,
+        2026720130,
+        2026720131,
+        2026720132,
+        2026720133,
+        2026720134,
+        2026720135,
+        2026720136,
+        2026720137,
+        2026720138,
+        2026720139,
+        2026720140,
+        2026720141,
+        2026720142,
+        2026720143,
+        2026720144,
+        2026720145,
+        2026720146,
+        2026720147,
+        2026720148,
+        2026720149,
+        2026720150,
+        2026720151,
+        2026720152,
+        2026720153,
+        2026720154,
+        2026720155,
+        2026720156,
+        2026720157,
+        2026720158,
+        2026720159,
+        2026720160,
+        2026720161,
+        2026720162,
+        2026720163,
+        2026720164,
+        2026720165,
+        2026720166,
+        2026720167,
+        2026720168,
+        2026720169,
+        2026720170,
+        2026720171,
+        2026720172,
+        2026720173,
+        2026720174,
+        2026720175,
+        2026720176,
+        2026720177,
+        2026720178,
+        2026720179,
+        2026720180,
+        2026720181,
+        2026720182,
+        2026720183,
+        2026720184,
+        2026720185,
+        2026720186,
+        2026720187,
+        2026720188,
+        2026720189,
+        2026720190,
+        2026720191,
+        2026720192,
+        2026720193,
+        2026720194,
+        2026720195,
+        2026720196,
+        2026720197,
+        2026720198,
+        2026720199,
+        2026720200,
+        2026720201,
+        2026720202,
+        2026720203,
+        2026720204,
+        2026720205,
+        2026720206,
+        2026720207,
+        2026720208,
+        2026720209,
+        2026720210,
+        2026720211,
+        2026720212,
+        2026720213,
+        2026720214,
+        2026720215,
+        2026720216,
+        2026720217,
+        2026720218,
+        2026720219,
+        2026720220,
+        2026720221,
+        2026720222,
+        2026720223,
+        2026720224,
+        2026720225,
+        2026720226,
+        2026720227,
+        2026720228,
+        2026720229,
+        2026720230,
+        2026720231,
+        2026720232,
+        2026720233,
+        2026720234,
+        2026720235,
+        2026720236,
+        2026720237,
+        2026720238,
+        2026720239,
+        2026720240,
+        2026720241,
+        2026720242,
+        2026720243,
+        2026720244,
+        2026720245,
+        2026720246,
+        2026720247,
+        2026720248,
+        2026720249,
+        2026720250,
+        2026720251,
+        2026720252,
+        2026720253,
+        2026720254,
+        2026720255,
+        2026720256,
+        2026720257,
+        2026720258,
+        2026720259,
+        2026720260,
+        2026720261,
+        2026720262,
+        2026720263,
+        2026720264,
+        2026720265,
+        2026720266,
+        2026720267,
+        2026720268,
+        2026720269,
+        2026720270,
+        2026720271,
+        2026720272,
+        2026720273,
+        2026720274,
+        2026720275,
+        2026720276,
+        2026720277,
+        2026720278,
+        2026720279,
+        2026720280,
+        2026720281,
+        2026720282,
+        2026720283,
+        2026720284,
+        2026720285,
+        2026720286,
+        2026720287,
+        2026720288,
+        2026720289,
+        2026720290,
+        2026720291,
+        2026720292,
+        2026720293,
+        2026720294,
+        2026720295,
+        2026720296,
+        2026720297,
+        2026720298,
+        2026720299,
+        2026720300,
+        2026720301,
+        2026720302,
+        2026720303,
+        2026720304,
+        2026720305,
+        2026720306,
+        2026720307,
+        2026720308,
+        2026720309,
+        2026720310,
+        2026720311,
+        2026720312,
+        2026720313,
+        2026720314,
+        2026720315,
+        2026720316,
+        2026720317,
+        2026720318,
+        2026720319,
+        2026720320,
+        2026720321,
+        2026720322,
+        2026720323,
+        2026720324,
+        2026720325,
+        2026720326,
+        2026720327,
+        2026720328,
+        2026720329,
+        2026720330,
+        2026720331,
+        2026720332,
+        2026720333,
+        2026720334,
+        2026720335,
+        2026720336,
+        2026720337,
+        2026720338,
+        2026720339,
+        2026720340,
+        2026720341,
+        2026720342,
+        2026720343,
+        2026720344,
+        2026720345,
+        2026720346,
+        2026720347,
+        2026720348,
+        2026720349,
+        2026720350,
+        2026720351,
+        2026720352,
+        2026720353,
+        2026720354,
+        2026720355,
+        2026720356,
+        2026720357,
+        2026720358,
+        2026720359,
+        2026720360,
+        2026720361,
+        2026720362,
+        2026720363,
+        2026720364,
+        2026720365,
+        2026720366,
+        2026720367,
+        2026720368,
+        2026720369,
+        2026720370,
+        2026720371,
+        2026720372,
+        2026720373,
+        2026720374,
+        2026720375,
+        2026720376,
+        2026720377,
+        2026720378,
+        2026720379,
+        2026720380,
+        2026720381,
+        2026720382,
+        2026720383,
+        2026720384,
+        2026720385,
+        2026720386,
+        2026720387,
+        2026720388,
+        2026720389,
+        2026720390,
+        2026720391,
+        2026720392,
+        2026720393,
+        2026720394,
+        2026720395,
+        2026720396,
+        2026720397,
+        2026720398,
+        2026720399,
+        2026720400
+      ],
+      "provenance": "Untouched Phase 5 qualification population frozen before algorithm selection, tuning, or result generation; one-look use only.",
+      "purpose": "Untouched one-look Phase 5 qualification truth spanning every governed morphology, scale, edge, mask, artifact, varying-noise, and tile-boundary stratum.",
+      "recipe": {
+        "background": -0.00030000000000000003,
+        "generator": "hebog.synthetic.gaussian-noise",
+        "generator_version": 3,
+        "invalid_rectangles": [
+          {
+            "x_start": 776,
+            "x_stop": 786,
+            "y_start": 270,
+            "y_stop": 290
+          }
+        ],
+        "noise_correlation": {
+          "major_fwhm_pixels": 6,
+          "minor_fwhm_pixels": 4,
+          "position_angle_degrees": 54,
+          "truncation_sigma": 4
+        },
+        "noise_rms": 0.0002,
+        "noise_rms_fractional_gradient_xy": [
+          0.4,
+          -0.2
+        ],
+        "seed": 2026720001,
+        "shape_yx": [
+          1024,
+          1024
+        ],
+        "sources": [
+          {
+            "major_sigma_pixels": 12,
+            "minor_sigma_pixels": 8,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 30,
+            "x_pixel": 164,
+            "y_pixel": 150
+          },
+          {
+            "major_sigma_pixels": 8,
+            "minor_sigma_pixels": 2,
+            "peak_flux_jy_per_beam": 0.0018,
+            "rotation_degrees_counterclockwise_from_x": 0,
+            "x_pixel": 500,
+            "y_pixel": 274
+          },
+          {
+            "major_sigma_pixels": 8,
+            "minor_sigma_pixels": 2,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 0,
+            "x_pixel": 512,
+            "y_pixel": 274
+          },
+          {
+            "major_sigma_pixels": 8,
+            "minor_sigma_pixels": 2,
+            "peak_flux_jy_per_beam": 0.0018,
+            "rotation_degrees_counterclockwise_from_x": 0,
+            "x_pixel": 524,
+            "y_pixel": 274
+          },
+          {
+            "major_sigma_pixels": 6,
+            "minor_sigma_pixels": 2,
+            "peak_flux_jy_per_beam": 0.0017,
+            "rotation_degrees_counterclockwise_from_x": 135,
+            "x_pixel": 214,
+            "y_pixel": 500
+          },
+          {
+            "major_sigma_pixels": 6,
+            "minor_sigma_pixels": 2,
+            "peak_flux_jy_per_beam": 0.0019,
+            "rotation_degrees_counterclockwise_from_x": 0,
+            "x_pixel": 226,
+            "y_pixel": 492
+          },
+          {
+            "major_sigma_pixels": 6,
+            "minor_sigma_pixels": 2,
+            "peak_flux_jy_per_beam": 0.0017,
+            "rotation_degrees_counterclockwise_from_x": 45,
+            "x_pixel": 238,
+            "y_pixel": 500
+          },
+          {
+            "major_sigma_pixels": 5,
+            "minor_sigma_pixels": 3,
+            "peak_flux_jy_per_beam": 0.0016,
+            "rotation_degrees_counterclockwise_from_x": 0,
+            "x_pixel": 500,
+            "y_pixel": 534
+          },
+          {
+            "major_sigma_pixels": 5,
+            "minor_sigma_pixels": 3,
+            "peak_flux_jy_per_beam": 0.0016,
+            "rotation_degrees_counterclockwise_from_x": 45,
+            "x_pixel": 520,
+            "y_pixel": 514
+          },
+          {
+            "major_sigma_pixels": 5,
+            "minor_sigma_pixels": 3,
+            "peak_flux_jy_per_beam": 0.0016,
+            "rotation_degrees_counterclockwise_from_x": 90,
+            "x_pixel": 540,
+            "y_pixel": 534
+          },
+          {
+            "major_sigma_pixels": 5,
+            "minor_sigma_pixels": 3,
+            "peak_flux_jy_per_beam": 0.0016,
+            "rotation_degrees_counterclockwise_from_x": 135,
+            "x_pixel": 520,
+            "y_pixel": 554
+          },
+          {
+            "major_sigma_pixels": 10,
+            "minor_sigma_pixels": 6,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 30,
+            "x_pixel": 766,
+            "y_pixel": 280
+          },
+          {
+            "major_sigma_pixels": 2,
+            "minor_sigma_pixels": 1.5,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 30,
+            "x_pixel": 766,
+            "y_pixel": 280
+          },
+          {
+            "major_sigma_pixels": 3,
+            "minor_sigma_pixels": 1.5,
+            "peak_flux_jy_per_beam": 0.004,
+            "rotation_degrees_counterclockwise_from_x": 0,
+            "x_pixel": 364,
+            "y_pixel": 800
+          },
+          {
+            "major_sigma_pixels": 5,
+            "minor_sigma_pixels": 1.2,
+            "peak_flux_jy_per_beam": 0.0012,
+            "rotation_degrees_counterclockwise_from_x": 0,
+            "x_pixel": 379,
+            "y_pixel": 800
+          },
+          {
+            "major_sigma_pixels": 5,
+            "minor_sigma_pixels": 1.2,
+            "peak_flux_jy_per_beam": 0.0012,
+            "rotation_degrees_counterclockwise_from_x": 0,
+            "x_pixel": 349,
+            "y_pixel": 800
+          },
+          {
+            "major_sigma_pixels": 10,
+            "minor_sigma_pixels": 4,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 80,
+            "x_pixel": 2,
+            "y_pixel": 636
+          }
+        ]
+      },
+      "recipe_sha256": "abb063cb8c68d40abc2d2c5dcebf7bd338f0c4ce76f6e564827a66cb41aa3a67",
+      "redistribution": "generated-locally",
+      "role": "qualification",
+      "validation_strata": [],
+      "wcs": {
+        "frame": "icrs",
+        "pixel_scale_degrees_xy": [
+          -0.00025,
+          0.0003
+        ],
+        "reference_pixel_xy": [
+          511.5,
+          511.5
+        ],
+        "reference_sky_degrees": [
+          182,
+          -28
+        ],
+        "rotation_degrees_counterclockwise": 37
+      }
+    }
+  ],
+  "manifest_id": "phase-5-qualification",
+  "schema_version": 3
+}

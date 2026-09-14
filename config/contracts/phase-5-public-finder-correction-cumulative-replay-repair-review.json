@@ -1,0 +1,150 @@
+{
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false
+  },
+  "candidate": {
+    "commit": "b1d59e5aaf778a5fed4ea662afeba2ee100424ff",
+    "configuration_sha256": "65c8876dcdb484bd5a82b3520e065ea6bf33cf24cfdd33b592c6c859231c62f0",
+    "correction_contract": {
+      "path": "config/contracts/phase-5-public-finder-correction.json",
+      "sha256": "f0ddd4d5cb8c3c5542d1de761f6fde0644ec7cf051d5fb1dc7482ed3b96ff524"
+    },
+    "source_tree_sha256": "2de6564e78f1a3664dd3fb18f696c747bfc3350fdd894164c4fafb07528d1ba9"
+  },
+  "closed_boundary": {
+    "baseline": {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-recovery.json",
+      "sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9"
+    },
+    "compact_image_count": 800,
+    "continuum_image_count": 1600,
+    "required_result": "cumulative_science_regression_ready=true-with-no-like-semantics-regression"
+  },
+  "dependency_runtime": {
+    "compatibility_container": {
+      "correction_baked_into_container": false,
+      "dependency_inventory_sha256": "d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2",
+      "digest": "sha256:1a83f64948460a46dd6f6c5e9434d155fd9b2ae45f97db849d5288f350dca8d1",
+      "image_id": "e519dc15b846dec7ac00a6cada7684d0c0b2615490dd6688ac4c6cdf5f3021ca",
+      "role": "inherited-compatibility-dependency-reference"
+    },
+    "source_overlay": {
+      "commit": "b1d59e5aaf778a5fed4ea662afeba2ee100424ff",
+      "role": "exact-candidate-source-overlay",
+      "source_tree_sha256": "2de6564e78f1a3664dd3fb18f696c747bfc3350fdd894164c4fafb07528d1ba9"
+    },
+    "uv_lock": {
+      "path": "uv.lock",
+      "sha256": "c81a9831ec545b2d7797e1c0951ad46e0e23337b97866ced0ae27e290dfd71ff"
+    }
+  },
+  "implementation": {
+    "commit": "1a6cecb836e5bcadd1aff9d701dfcc301c42df8d",
+    "decision": {
+      "path": "config/contracts/phase-5-public-finder-correction-cumulative-replay-repair-implementation-decision.json",
+      "sha256": "83d14670abac952ce0d0e873cc8c3bdd37b971dddcbfc285c07594184863c75e"
+    },
+    "pre_review": {
+      "path": "config/contracts/phase-5-public-finder-correction-cumulative-replay-repair-pre-review.json",
+      "sha256": "e198df128900bf991c979764fc67dbda8a9b0a682be30f92bf70703122c1f162"
+    },
+    "tree": "efdc910d5c715bdefa9dbd9eab522c5860839e72",
+    "wrapper": {
+      "path": "scripts/validation/review_phase5_public_finder_correction_cumulative_regressions.py",
+      "sha256": "b4d02784fd4e1a8ca8bff5bcc03f0e82676e55f66c9e6c5b8168fd11876e3753"
+    },
+    "wrapper_tests": {
+      "path": "tests/unit/validation/test_public_finder_correction_cumulative_replay_wrapper.py",
+      "sha256": "4c55414ed19fc2cf6a5c4a5085cd147ab6dbb363568ea43d83d3f2a17e65b5d3"
+    }
+  },
+  "population": {
+    "original_request": {
+      "path": "benchmark-results/phase-5/external-post-failure-comparison/campaign-request.json",
+      "sha256": "7ba9be1b20ff0448e51729337acf2a7028cc0ec578c5e25106b9b34b07506df4"
+    },
+    "reference_reconstruction": {
+      "path": "benchmark-results/phase-5/viewed-reference-reconstruction",
+      "recovery_sha256": "69c66e0b87c08a7b6b99e6d252c3a798d9133622b7903e8d746dd9c0f0f4f42d"
+    },
+    "role": "viewed-development-regression",
+    "viewed_public_products_opened_during_freeze": false
+  },
+  "programs_and_contracts": {
+    "base_review": {
+      "path": "config/contracts/phase-5-corrective-a-review.json",
+      "sha256": "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b"
+    },
+    "compiler": {
+      "path": "scripts/validation/compile_phase5_external_post_failure_campaign.py",
+      "sha256": "e442f6586993d95a942a80af4e45fbf5b50448b434d5c0a244d78fb333b679b8"
+    },
+    "endpoint_registry": {
+      "path": "config/contracts/phase-5-external-post-failure-endpoint-registry.json",
+      "sha256": "2d7a646b6206bd127b1e470b16d1fe35ebc3f238835eafdc6c77d8a82b79ef1c"
+    },
+    "evaluation_contract": {
+      "path": "config/contracts/phase-5-external-post-failure-evaluation.json",
+      "sha256": "45901f8ca4526fdc1007d26d891e409306565e749bad2b959181a9929ff73016"
+    },
+    "evaluator": {
+      "path": "scripts/validation/evaluate_phase5_external_post_failure_decision.py",
+      "sha256": "7612746bda483c82d0e7e72a7f49bb8283f8ae6c03d26bd18508184dbda7169a"
+    },
+    "frozen_historical_replay": {
+      "path": "scripts/validation/review_phase5_cumulative_regressions.py",
+      "sha256": "5d41d31ee79cd0d6d203cd774267fd504d06fe7662768486f99c31a7902b8a3f"
+    },
+    "reference_verifier": {
+      "path": "scripts/validation/reconstruct_phase5_viewed_references.py",
+      "sha256": "81faad486ddb306e175a7ddd8c1c281a2e498cd30bb60f3e43c7b6e791cd0126"
+    }
+  },
+  "prospective_execution": {
+    "execution_decision": {
+      "path": "config/contracts/phase-5-public-finder-correction-cumulative-replay-execution-decision.json",
+      "state_at_review": "absent"
+    },
+    "output": {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-correction.json",
+      "state_at_review": "absent"
+    },
+    "reference_reconstruction_path": "benchmark-results/phase-5/viewed-reference-reconstruction",
+    "scratch": {
+      "path": "/private/tmp/hebog-phase5-public-finder-correction-b1d59e5",
+      "state_at_review": "absent"
+    },
+    "workers": 2
+  },
+  "rejected_composition": {
+    "decision": {
+      "path": "config/contracts/phase-5-public-finder-correction-cumulative-replay-decision.json",
+      "sha256": "bf955638a1dfbd2c69a585801a7cc52c87ec0453d1395850cc2198d00d278845"
+    },
+    "identity_review": {
+      "path": "config/contracts/phase-5-public-finder-correction-identity-review.json",
+      "sha256": "e2121fb82fb27a9f73153a2be2c6afbb8113e7bc1a7460500f369c6c490a503b"
+    },
+    "transferable_to_repair": false
+  },
+  "required_next_decision": "separate-named-approval-bound-to-this-review-for-one-complete-cumulative-replay-only",
+  "review_id": "phase-5-public-finder-correction-cumulative-replay-repair-review",
+  "reviewed_on": "2026-08-26",
+  "schema_version": 1,
+  "status": "ready-for-named-public-finder-correction-cumulative-replay-approval",
+  "viewed_public_boundary": {
+    "corrected_analysis_state": "absent",
+    "corrected_campaign_state": "absent",
+    "corrected_decision_state": "absent",
+    "execution_authorized": false,
+    "selected_population_sha256": "0a7c2b18d96ee47277072528949c5a64239f0c3053d5e7b33c03b36c194b7824"
+  }
+}

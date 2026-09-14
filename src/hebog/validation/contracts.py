@@ -7,7 +7,9 @@ execution plan or import a scheduler, read science data, or run benchmarks.
 from __future__ import annotations
 
 from enum import Enum
+from math import isfinite
 from pathlib import Path
+from statistics import NormalDist
 from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -19,6 +21,53 @@ _MAXIMUM_MATRIX_SIZE = 100_000
 _DASK_MEMORY_THRESHOLD_COUNT = 4
 _PHASE_FOUR_ANALYTIC_FAILURE_CASE_COUNT = 6
 _PAIRED_CONFIDENCE_LEVEL = 0.95
+_PHASE_FIVE_SELECTED_MINIMUM_SUPPORT = 0.5
+_PHASE_FIVE_SELECTED_TRUNCATION_SIGMA = 4.0
+_PHASE_FIVE_SELECTED_CONVOLUTION_COUNT = 9
+_PHASE_FIVE_SELECTED_TEMPORARY_PLANES = 7
+_PHASE_FIVE_REVIEW_DETECTION_SIGMA = 5.0
+_PHASE_FIVE_REVIEW_ISLAND_SIGMA = 3.0
+_PHASE_FIVE_CORRECTIVE_MAXIMUM_HALO = 14
+_PHASE_FIVE_EXTENDED_MAXIMUM_AXIS_BIAS_BEAMS = 0.1
+_PHASE_FIVE_EXTENDED_MAXIMUM_RADIAL_P95_BEAMS = 0.5
+_POWER_RECOMPUTATION_TOLERANCE = 1e-12
+_PHASE_FIVE_REQUIRED_STRATA = {
+    "above-compact-deblend-limit",
+    "image-edge",
+    "invalid-pixels",
+    "morphology-artifact",
+    "morphology-curved-filament",
+    "morphology-diffuse",
+    "morphology-filament",
+    "morphology-mixed-compact-extended",
+    "morphology-shell",
+    "scale-1-beam",
+    "scale-2-beam",
+    "scale-4-beam",
+    "tile-boundary",
+    "tile-corner",
+    "varying-noise",
+}
+_PHASE_FIVE_RAPTHOR_SAFETY_STRATA = {
+    "apparent-sky",
+    "bright-component",
+    "crowded",
+    "edge",
+    "extended-associated",
+    "masked-or-invalid-neighbour",
+    "sparse",
+    "true-sky",
+}
+_PHASE_FIVE_RAPTHOR_MINIMUM_AGREEMENT = 0.995
+_PHASE_FIVE_RAPTHOR_THRESHOLD_PIXEL_SIGMA = 5.0
+_PHASE_FIVE_RAPTHOR_THRESHOLD_ISLAND_SIGMA = 3.0
+_PHASE_FIVE_RAPTHOR_ADAPTIVE_THRESHOLD = 75.0
+_PHASE_FIVE_RAPTHOR_EVIDENCE_LANES = (
+    "compact",
+    "continuum",
+    "released-pybdsf-used-by-rapthor",
+    "pinned-pybdsf-master",
+)
 
 
 class _ContractModel(BaseModel):
@@ -658,6 +707,2968 @@ class PhaseFourScientificGates(_ContractModel):
     catastrophic_outlier: PhaseFourOutlierDefinition
 
 
+class PhaseFiveScaleDefinition(_ContractModel):
+    """Frozen scale sequence and beam-normalized reporting convention."""
+
+    reference: Literal["restoring-beam-major-fwhm"]
+    configured_orders: tuple[int, ...] = Field(min_length=1)
+    nominal_fwhm_multipliers: tuple[float, ...] = Field(min_length=1)
+    maximum_fwhm_multiplier: float = Field(gt=0)
+
+    @model_validator(mode="after")
+    def validate_sequence(self) -> Self:
+        """Require the governed three-level dyadic compatibility sequence."""
+        if self.configured_orders != (1, 2, 3):
+            raise ValueError("Phase 5 scale orders must be 1, 2, and 3")
+        if self.nominal_fwhm_multipliers != (1.0, 2.0, 4.0):
+            raise ValueError(
+                "Phase 5 nominal scales must be 1, 2, and 4 beams"
+            )
+        if self.maximum_fwhm_multiplier != self.nominal_fwhm_multipliers[-1]:
+            raise ValueError("maximum Phase 5 scale must equal the last scale")
+        return self
+
+
+class PhaseFiveFilteringContract(_ContractModel):
+    """Algorithm-selection boundary and shared-product requirements."""
+
+    family_selection: Literal["phase-5-step-2-evidence"]
+    candidates: tuple[
+        Literal["undecimated-wavelet", "beam-aware-matched-filter"], ...
+    ]
+    response_normalization: Literal[
+        "unit-integrated-flux-response-in-jy-per-beam"
+    ]
+    background_rms_reuse: Literal["phase-2-products-no-recursive-estimation"]
+    compact_residual_policy: Literal[
+        "shared-input-no-complete-compact-pipeline-rerun"
+    ]
+
+    @model_validator(mode="after")
+    def validate_candidates(self) -> Self:
+        """Keep the evidence comparison complete and free of duplicates."""
+        if self.candidates != (
+            "beam-aware-matched-filter",
+            "undecimated-wavelet",
+        ):
+            raise ValueError("Phase 5 filter candidates must be canonical")
+        return self
+
+
+class PhaseFiveValidityContract(_ContractModel):
+    """Masked-support and image-edge semantics for every scale."""
+
+    valid_pixels: Literal["finite-input-background-rms-and-positive-rms"]
+    minimum_support_fraction: float = Field(gt=0, le=1)
+    masked_support: Literal["renormalize-over-valid-support"]
+    image_edge: Literal["renormalize-and-record-visible-support-fraction"]
+    insufficient_support: Literal["typed-unavailable-scale-detection"]
+
+
+class PhaseFiveAssociationContract(_ContractModel):
+    """Cross-scale identity and compact-association meanings."""
+
+    identity: Literal["sha256-of-canonical-scale-detection-identities"]
+    cross_scale_edge: Literal[
+        "adjacent-configured-scales-with-exact-valid-support-overlap"
+    ]
+    same_scale_merge: Literal["only-through-adjacent-scale-connected-path"]
+    representative_order: Literal[
+        "descending-snr-response-support-then-ascending-scale-pixel-id"
+    ]
+    relationships: tuple[
+        Literal[
+            "extended-only",
+            "contains-compact-support",
+            "overlaps-compact-support",
+        ],
+        ...,
+    ]
+    compact_context: Literal["shared-island-separate-source-many-to-many"]
+    compact_context_edge: Literal[
+        "reference-inside-or-exact-overlap-or-half-beam-adjacency"
+    ]
+    pixel_ownership: Literal[
+        "compact-first-then-nearest-exact-extended-support"
+    ]
+    duplicate_policy: Literal[
+        "one-extended-source-per-association-retain-all-scale-provenance"
+    ]
+    compact_policy: Literal["preserve-every-accepted-phase-4-compact-object"]
+    compact_echo: Literal[
+        "suppress-without-independent-one-beam-positive-finite-residual"
+    ]
+    ambiguous_policy: Literal["typed-omission-and-publication-ineligible"]
+    tile_policy: Literal["global-identity-independent-of-local-labels"]
+    policy_review: Literal[
+        "phase-5-association-pre-review-approved-2026-08-24"
+    ]
+
+    @model_validator(mode="after")
+    def validate_relationships(self) -> Self:
+        """Require the approved spatial vocabulary in canonical order."""
+        if self.relationships != (
+            "extended-only",
+            "contains-compact-support",
+            "overlaps-compact-support",
+        ):
+            raise ValueError(
+                "Phase 5 relationship vocabulary must be canonical"
+            )
+        return self
+
+
+class PhaseFiveFailureContract(_ContractModel):
+    """Fail-closed semantics for incomplete extended work."""
+
+    unsupported_scale: Literal["configuration-rejected-before-execution"]
+    unavailable_measurement: Literal["typed-omission-with-reason"]
+    ambiguous_association: Literal["typed-omission-with-reason"]
+    deferred_island: Literal["must-reach-terminal-disposition"]
+    incomplete_catalogue: Literal["publication-forbidden"]
+    unknown_value: Literal["null-never-zero-or-nan-sentinel"]
+
+
+class PhaseFiveCombinedCatalogueContract(_ContractModel):
+    """Composition rules for compact and multiscale catalogue records."""
+
+    catalogue_schema: Literal[
+        "source-catalogue-version-3-with-continuum-diagnostics-version-2"
+    ]
+    compact_only: Literal["byte-identical-when-no-multiscale-evidence"]
+    island_identity: Literal[
+        "compact-only-exact-otherwise-sha256-of-compact-islands-and-"
+        "associations"
+    ]
+    source_identity: Literal[
+        "one-extended-source-sha256-of-association-independent-of-context"
+    ]
+    component_identity: Literal[
+        "preserve-compact-gaussians-and-create-no-extended-gaussian"
+    ]
+    disposition_requirement: Literal[
+        "every-accepted-or-deferred-island-has-one-terminal-disposition"
+    ]
+    reduction: Literal["bounded-canonical-shards-and-pairwise-tree"]
+    extended_measurement: Literal[
+        "original-pixel-peak-centroid-flux-and-segment-moment-extent"
+    ]
+    extent_compatibility: Literal[
+        "major-segment-moment-extent-in-dc-maj-with-zero-extended-gaussians"
+    ]
+    mask: Literal["blockwise-compact-or-accepted-extended-support"]
+    rms: Literal["reuse-exact-phase-2-materialized-product"]
+    provenance: Literal[
+        "diagnostics-version-2-per-extended-source-scale-and-support"
+    ]
+    scheduler_state: Literal["forbidden"]
+
+
+class PhaseFiveBoundedResourceEvidence(_ContractModel):
+    """Exact structural evidence for the reviewed 256-core profile."""
+
+    profile: Literal["five-pixel-major-beam-256-square-core"]
+    tile_core_shape_yx: tuple[int, int]
+    widest_read_shape_yx: tuple[int, int]
+    widest_read_pixel_count: int = Field(ge=1)
+    filter_core_retained_array_bytes: int = Field(ge=1)
+    detection_core_retained_array_bytes: int = Field(ge=1)
+    maximum_matched_filter_workspace_bytes: int = Field(ge=1)
+    maximum_atrous_workspace_bytes: int = Field(ge=1)
+    maximum_filter_evaluation_bytes: int = Field(ge=1)
+    topology_summaries_per_tile: int = Field(ge=1)
+    scale_summaries_per_tile: int = Field(ge=1)
+    boundary_summary_array_bytes_per_tile: int = Field(ge=1)
+    published_product_shards_per_tile: int = Field(ge=1)
+    graph_task_formula: Literal[
+        "two-times-ceiling-partitions-over-maximum-tiles-per-batch"
+    ]
+    maximum_graph_width_formula: Literal[
+        "ceiling-partitions-over-maximum-tiles-per-batch"
+    ]
+    payload_scope: Literal[
+        "exact-ndarray-payload-and-conservative-kernel-workspace"
+    ]
+
+    @model_validator(mode="after")
+    def validate_reviewed_profile(self) -> Self:
+        """Keep the implemented and reviewed resource profile exact."""
+        expected = {
+            "tile_core_shape_yx": (256, 256),
+            "widest_read_shape_yx": (324, 324),
+            "widest_read_pixel_count": 104_976,
+            "filter_core_retained_array_bytes": 12_058_624,
+            "detection_core_retained_array_bytes": 3_604_480,
+            "maximum_matched_filter_workspace_bytes": 16_057_904,
+            "maximum_atrous_workspace_bytes": 18_484_096,
+            "maximum_filter_evaluation_bytes": 26_298_000,
+            "topology_summaries_per_tile": 2,
+            "scale_summaries_per_tile": 3,
+            "boundary_summary_array_bytes_per_tile": 20_480,
+            "published_product_shards_per_tile": 8,
+        }
+        if any(
+            getattr(self, name) != value for name, value in expected.items()
+        ):
+            raise ValueError(
+                "Phase 5 bounded resource evidence must match the reviewed "
+                "256-core profile"
+            )
+        return self
+
+
+class PhaseFiveBoundedExecutionContract(_ContractModel):
+    """Reviewed stage halos and pre-allocation admission semantics."""
+
+    core_policy: Literal[
+        "shared-nonoverlapping-core-with-stage-specific-read-halos"
+    ]
+    matched_filter_halo: Literal[
+        "actual-four-sigma-kernel-radius-at-one-two-four-beams"
+    ]
+    residual_atrous_halo: Literal[
+        "cumulative-b3-halos-two-six-fourteen-pixels"
+    ]
+    segment_association_halo: Literal[
+        "ceil-three-beam-major-residual-reconstruction-dilation"
+    ]
+    segment_refinement_halo: Literal[
+        "max-one-pixel-opening-and-ceil-half-beam-major"
+    ]
+    compact_context_halo: Literal["ceil-half-beam-major"]
+    extended_measurement_halo: Literal["ceil-one-point-five-beam-major"]
+    zero_image_halo_stages: tuple[
+        Literal[
+            "segment-labelling",
+            "cross-scale-association",
+            "combined-reconciliation",
+            "product-materialization",
+        ],
+        ...,
+    ]
+    geometry_admission: Literal["every-halo-strictly-below-quarter-core"]
+    task_admission: Literal[
+        "worst-interior-read-within-global-and-stage-pixel-caps"
+    ]
+    byte_evidence: Literal[
+        "exact-retained-payload-and-conservative-filter-peak-reviewed"
+    ]
+    resource_evidence: PhaseFiveBoundedResourceEvidence
+    tile_result_ownership: Literal[
+        "owned-immutable-core-arrays-without-halo-read-retention"
+    ]
+    equality_oracle: Literal[
+        "one-tile-and-reviewed-many-tile-multiscale-science-equality"
+    ]
+    equality_matrix: tuple[
+        Literal[
+            "image-edges",
+            "tile-edges-and-corners",
+            "rectangular-cores",
+            "invalid-regions",
+            "four-beam-scale",
+            "origin-zero",
+            "shifted-origin",
+        ],
+        ...,
+    ]
+    complete_plane_assembly: Literal[
+        "small-deterministic-test-oracle-only-never-production"
+    ]
+    response_persistence: Literal[
+        "recompute-after-compact-topology-no-image-sized-response-bank"
+    ]
+    scheduler_results: Literal[
+        "compact-boundary-summaries-chunk-identities-and-scalars-only"
+    ]
+    batch_policy: Literal[
+        "executor-granularity-only-with-unchanged-pixel-ownership"
+    ]
+    retry_policy: Literal["idempotent-checksummed-owned-core-writes"]
+    executor_invariance_matrix: tuple[
+        Literal[
+            "partition",
+            "batch",
+            "worker-count",
+            "completion-order",
+            "retry",
+            "serial-and-existing-dask",
+        ],
+        ...,
+    ]
+    product_identity_policy: Literal[
+        "exact-within-partition-and-stable-global-topology-across-partitions"
+    ]
+
+    @model_validator(mode="after")
+    def validate_zero_halo_stages(self) -> Self:
+        """Keep record-only and reconciled zero-read stages canonical."""
+        if self.zero_image_halo_stages != (
+            "segment-labelling",
+            "cross-scale-association",
+            "combined-reconciliation",
+            "product-materialization",
+        ):
+            raise ValueError(
+                "Phase 5 zero-image-halo stages must be canonical"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_equality_matrix(self) -> Self:
+        """Keep every reviewed one-tile/many-tile case explicit."""
+        if self.equality_matrix != (
+            "image-edges",
+            "tile-edges-and-corners",
+            "rectangular-cores",
+            "invalid-regions",
+            "four-beam-scale",
+            "origin-zero",
+            "shifted-origin",
+        ):
+            raise ValueError("Phase 5 tile equality matrix must be canonical")
+        return self
+
+    @model_validator(mode="after")
+    def validate_executor_invariance_matrix(self) -> Self:
+        """Keep every reviewed scheduling dimension explicit."""
+        if self.executor_invariance_matrix != (
+            "partition",
+            "batch",
+            "worker-count",
+            "completion-order",
+            "retry",
+            "serial-and-existing-dask",
+        ):
+            raise ValueError(
+                "Phase 5 executor invariance matrix must be canonical"
+            )
+        return self
+
+
+class PhaseFiveMultiscaleContract(_ContractModel):
+    """Versioned Phase 5 scale, ownership, and failure semantics."""
+
+    schema_version: Literal[8]
+    contract_id: Literal["phase-5-multiscale"]
+    status: Literal["reviewed-development"]
+    scope: Literal["mfs-stokes-i-rapthor-three-scale-profile"]
+    scales: PhaseFiveScaleDefinition
+    filtering: PhaseFiveFilteringContract
+    validity: PhaseFiveValidityContract
+    association: PhaseFiveAssociationContract
+    failures: PhaseFiveFailureContract
+    combined_catalogue: PhaseFiveCombinedCatalogueContract
+    bounded_execution: PhaseFiveBoundedExecutionContract
+    detection_threshold: Literal[
+        "source-finder-detection-threshold-on-scale-normalized-response"
+    ]
+    island_threshold: Literal[
+        "source-finder-island-threshold-on-scale-normalized-response"
+    ]
+    qualification_policy: Literal["freeze-before-result-inspection"]
+    development_review: Literal["ai-scientific-review-recorded"]
+    independent_human_review: Literal["required-before-cutover"]
+    scientific_basis: tuple[str, ...] = Field(min_length=4)
+
+    @model_validator(mode="after")
+    def validate_basis(self) -> Self:
+        """Keep literature provenance unique and externally resolvable."""
+        if len(set(self.scientific_basis)) != len(self.scientific_basis):
+            raise ValueError("Phase 5 scientific basis links must be unique")
+        if any(
+            not link.startswith("https://") for link in self.scientific_basis
+        ):
+            raise ValueError("Phase 5 scientific basis links must use HTTPS")
+        return self
+
+
+class PhaseFiveLaneGate(_ContractModel):
+    """Absolute generated-truth requirements for one Phase 5 lane."""
+
+    minimum_completeness: float = Field(ge=0, le=1)
+    minimum_reliability: float = Field(ge=0, le=1)
+    maximum_median_integrated_flux_fractional_error: float = Field(ge=0)
+    maximum_percentile_95_integrated_flux_fractional_error: float = Field(ge=0)
+    maximum_median_position_beams: float = Field(ge=0)
+    maximum_percentile_95_position_beams: float = Field(ge=0)
+    maximum_duplicate_fraction: float = Field(ge=0, le=1)
+    minimum_mask_precision: float = Field(ge=0, le=1)
+    minimum_mask_recall: float = Field(ge=0, le=1)
+    minimum_mask_intersection_over_union: float = Field(ge=0, le=1)
+    maximum_split_fraction: float = Field(ge=0, le=1)
+    maximum_merge_fraction: float = Field(ge=0, le=1)
+    minimum_rapthor_decision_agreement: float = Field(ge=0, le=1)
+
+    @model_validator(mode="after")
+    def validate_tails(self) -> Self:
+        """Require tail ceilings to contain their median ceilings."""
+        if (
+            self.maximum_percentile_95_integrated_flux_fractional_error
+            < self.maximum_median_integrated_flux_fractional_error
+            or self.maximum_percentile_95_position_beams
+            < self.maximum_median_position_beams
+        ):
+            raise ValueError(
+                "extended-error tail cannot be tighter than median"
+            )
+        return self
+
+
+class PhaseFivePairedMargins(_ContractModel):
+    """One-sided practical non-inferiority margins against each reference."""
+
+    maximum_completeness_loss: float = Field(gt=0, lt=1)
+    maximum_reliability_loss: float = Field(gt=0, lt=1)
+    maximum_integrated_flux_error_increase: float = Field(gt=0)
+    maximum_position_error_increase_beams: float = Field(gt=0)
+    maximum_duplicate_fraction_increase: float = Field(gt=0, lt=1)
+    maximum_mask_intersection_over_union_loss: float = Field(gt=0, lt=1)
+    maximum_split_fraction_increase: float = Field(gt=0, lt=1)
+    maximum_merge_fraction_increase: float = Field(gt=0, lt=1)
+    maximum_rapthor_decision_disagreement_increase: float = Field(gt=0, lt=1)
+
+
+class PhaseFiveQualificationDesign(_ContractModel):
+    """Frozen one-look population and statistical-design requirements."""
+
+    independent_unit: Literal["noise-seed-image"]
+    minimum_noise_realizations: int = Field(ge=200)
+    minimum_joint_power: float = Field(ge=0.8, lt=1)
+    opening_rule: Literal["one-look-terminal-decision"]
+    resampling: Literal["whole-image-fixed-seed-bootstrap"]
+    bootstrap_resamples: int = Field(ge=10_000)
+    bootstrap_seed: int = Field(ge=0)
+    failure_policy: Literal["retain-denominator-and-fail-closed"]
+
+
+class PhaseFiveComparisonContract(_ContractModel):
+    """Dual-reference direction and conjunctive decision rule."""
+
+    references: tuple[Literal["released-pybdsf", "pinned-pybdsf-master"], ...]
+    rule: Literal["every-absolute-and-paired-gate-passes-no-compensation"]
+    paired_interval: Literal["one-sided-95-percent-upper-regression-limit"]
+    truth_oracle: Literal["analytic-and-injected-truth"]
+
+    @model_validator(mode="after")
+    def validate_references(self) -> Self:
+        """Require both exact references in canonical order."""
+        if self.references != (
+            "released-pybdsf",
+            "pinned-pybdsf-master",
+        ):
+            raise ValueError("Phase 5 requires both PyBDSF references")
+        return self
+
+
+class PhaseFiveScientificGates(_ContractModel):
+    """Reviewed scale-stratified Phase 5 absolute and paired gates."""
+
+    schema_version: Literal[1]
+    contract_id: Literal["phase-5-scientific-gates"]
+    status: Literal["reviewed-development"]
+    confidence_level: float = Field(gt=0, lt=1)
+    threshold_crossings: Literal["report-only-curves"]
+    governed_strata: tuple[str, ...] = Field(min_length=1)
+    generated_regression: PhaseFiveLaneGate
+    heldout_qualification: PhaseFiveLaneGate
+    paired_margins: PhaseFivePairedMargins
+    qualification: PhaseFiveQualificationDesign
+    comparison: PhaseFiveComparisonContract
+
+    @model_validator(mode="after")
+    def validate_governance(self) -> Self:
+        """Protect confidence level and the complete governed population."""
+        if self.confidence_level != _PAIRED_CONFIDENCE_LEVEL:
+            raise ValueError("Phase 5 confidence level must remain 0.95")
+        if self.governed_strata != tuple(sorted(_PHASE_FIVE_REQUIRED_STRATA)):
+            raise ValueError(
+                "Phase 5 governed strata must be complete and canonical"
+            )
+        return self
+
+
+class PhaseFiveRapthorSoftware(_ContractModel):
+    """Exact workflow software used by the profile comparison."""
+
+    rapthor_commit: str = Field(pattern=r"^[0-9a-f]{40}$")
+    lsmtool_commit: str = Field(pattern=r"^[0-9a-f]{40}$")
+    lsmtool_source_finding_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    starting_revisions_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class PhaseFiveRapthorRealInputs(_ContractModel):
+    """Checksums for the restricted representative Rapthor dataset."""
+
+    dataset_id: Literal["rapthor-representative-3000"]
+    role: Literal["regression"]
+    inventory_path: Literal[
+        "config/baselines/phase-0-representative-dataset.json"
+    ]
+    inventory_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    flat_noise_image_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    true_sky_image_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    true_skymodel_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    apparent_skymodel_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    vertices_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    beam_measurement_set_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    availability: Literal["controlled-runner-required"]
+
+
+class PhaseFiveRapthorPybdsfConfiguration(_ContractModel):
+    """Exact science configuration shared by both PyBDSF references."""
+
+    source_finder: Literal["bdsf"]
+    threshold_pixel_sigma: float = Field(gt=0)
+    threshold_island_sigma: float = Field(gt=0)
+    threshold_type: Literal["hard"]
+    mean_map: Literal["zero"]
+    rms_map: Literal[True]
+    adaptive_rms_box: Literal[True]
+    adaptive_threshold: float = Field(gt=0)
+    rms_box: tuple[Literal[150], Literal[50]]
+    rms_box_bright: tuple[Literal[35], Literal[7]]
+    atrous_do: Literal[True]
+    atrous_jmax: Literal[3]
+    filter_by_mask: Literal[True]
+    ncores: Literal[15]
+
+    @model_validator(mode="after")
+    def validate_configuration(self) -> Self:
+        """Keep the traced Rapthor science thresholds exact."""
+        if (
+            self.threshold_pixel_sigma
+            != _PHASE_FIVE_RAPTHOR_THRESHOLD_PIXEL_SIGMA
+            or self.threshold_island_sigma
+            != _PHASE_FIVE_RAPTHOR_THRESHOLD_ISLAND_SIGMA
+            or self.adaptive_threshold
+            != _PHASE_FIVE_RAPTHOR_ADAPTIVE_THRESHOLD
+        ):
+            raise ValueError("Rapthor PyBDSF thresholds must remain exact")
+        return self
+
+
+class PhaseFiveRapthorPybdsfReference(_ContractModel):
+    """One exact current-behaviour comparison implementation."""
+
+    identifier: Literal[
+        "released-pybdsf-used-by-rapthor",
+        "pinned-pybdsf-master",
+    ]
+    version: str = Field(min_length=1)
+    commit: str = Field(pattern=r"^[0-9a-f]{40}$")
+    configuration: PhaseFiveRapthorPybdsfConfiguration
+
+
+class PhaseFiveRapthorProfileDecisionContract(_ContractModel):
+    """Fail-closed component-membership profile selection rule."""
+
+    component_identity: Literal[
+        "input-scope-plus-name-before-filtering-and-grouping"
+    ]
+    filtering_operation: Literal[
+        "exact-lsmtool-sector-clip-mask-select-group-and-name-transfer"
+    ]
+    required_safety_strata: tuple[str, ...] = Field(min_length=1)
+    minimum_agreement: float = Field(ge=0, le=1)
+    empty_stratum_policy: Literal["incomplete-default-continuum"]
+    selection_rule: Literal[
+        "compact-only-if-overall-and-every-safety-stratum-pass"
+    ]
+    reference_rule: Literal[
+        "report-both-pybdsf-references-without-cross-reference-compensation"
+    ]
+
+    @model_validator(mode="after")
+    def validate_decision(self) -> Self:
+        """Keep the reviewed threshold and safety coverage exact."""
+        if self.minimum_agreement != _PHASE_FIVE_RAPTHOR_MINIMUM_AGREEMENT:
+            raise ValueError("Rapthor profile agreement must remain 0.995")
+        if self.required_safety_strata != tuple(
+            sorted(_PHASE_FIVE_RAPTHOR_SAFETY_STRATA)
+        ):
+            raise ValueError("Rapthor profile safety strata must be canonical")
+        return self
+
+
+class PhaseFiveRapthorProfileContract(_ContractModel):
+    """Frozen pre-results protocol for choosing a Rapthor science profile."""
+
+    schema_version: Literal[1]
+    contract_id: Literal["phase-5-rapthor-profile"]
+    status: Literal["frozen-pre-results"]
+    profiles: tuple[Literal["compact", "continuum"], ...]
+    software: PhaseFiveRapthorSoftware
+    real_inputs: PhaseFiveRapthorRealInputs
+    references: tuple[PhaseFiveRapthorPybdsfReference, ...]
+    decision: PhaseFiveRapthorProfileDecisionContract
+    qualification_opened: Literal[False]
+    cutover_authorized: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_composition(self) -> Self:
+        """Require both profiles and both exact reference configurations."""
+        if self.profiles != ("compact", "continuum"):
+            raise ValueError("Rapthor profiles must be compact then continuum")
+        if tuple(item.identifier for item in self.references) != (
+            "released-pybdsf-used-by-rapthor",
+            "pinned-pybdsf-master",
+        ):
+            raise ValueError("Rapthor profile requires both PyBDSF references")
+        return self
+
+
+class PhaseFiveRapthorPopulationComponent(_ContractModel):
+    """One pre-results sky-model component and its safety strata."""
+
+    identifier: str = Field(min_length=1)
+    strata: tuple[str, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_strata(self) -> Self:
+        """Require canonical non-empty strata."""
+        if (
+            any(not item for item in self.strata)
+            or tuple(sorted(set(self.strata))) != self.strata
+        ):
+            raise ValueError("component strata must be canonical")
+        return self
+
+
+class PhaseFiveRapthorComponentPopulation(_ContractModel):
+    """Exact pre-results component population frozen on the runner."""
+
+    schema_version: Literal[1]
+    population_id: Literal["phase-5-rapthor-profile-components"]
+    status: Literal["frozen-pre-results"]
+    contract_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    dataset_id: Literal["rapthor-representative-3000"]
+    software: PhaseFiveRapthorSoftware
+    verified_real_inputs: PhaseFiveRapthorRealInputs
+    components: tuple[PhaseFiveRapthorPopulationComponent, ...] = Field(
+        min_length=1
+    )
+
+    @model_validator(mode="after")
+    def validate_components(self) -> Self:
+        """Keep component identities unique and canonical before results."""
+        identifiers = tuple(item.identifier for item in self.components)
+        if tuple(sorted(set(identifiers))) != identifiers:
+            raise ValueError("component identities must be canonical")
+        return self
+
+
+class PhaseFiveRapthorMembershipComponent(_ContractModel):
+    """One post-filter binary decision for a frozen component."""
+
+    identifier: str = Field(min_length=1)
+    retained: bool
+
+
+class PhaseFiveRapthorMembershipLane(_ContractModel):
+    """One exact Hebog profile or PyBDSF reference decision lane."""
+
+    identifier: Literal[
+        "compact",
+        "continuum",
+        "released-pybdsf-used-by-rapthor",
+        "pinned-pybdsf-master",
+    ]
+    components: tuple[PhaseFiveRapthorMembershipComponent, ...] = Field(
+        min_length=1
+    )
+
+    @model_validator(mode="after")
+    def validate_components(self) -> Self:
+        """Require every lane to publish one canonical binary population."""
+        identifiers = tuple(item.identifier for item in self.components)
+        if tuple(sorted(set(identifiers))) != identifiers:
+            raise ValueError("membership identifiers must be canonical")
+        return self
+
+
+class PhaseFiveRapthorMembershipEvidence(_ContractModel):
+    """Sealed four-lane output of the exact pinned LSMTool operation."""
+
+    schema_version: Literal[1]
+    evidence_id: Literal["phase-5-rapthor-profile-membership"]
+    status: Literal["sealed"]
+    contract_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    population_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    dataset_id: Literal["rapthor-representative-3000"]
+    software: PhaseFiveRapthorSoftware
+    verified_real_inputs: PhaseFiveRapthorRealInputs
+    filtering_operation: Literal[
+        "exact-lsmtool-sector-clip-mask-select-group-and-name-transfer"
+    ]
+    lanes: tuple[PhaseFiveRapthorMembershipLane, ...]
+
+    @model_validator(mode="after")
+    def validate_lanes(self) -> Self:
+        """Require all exact lanes over one unchanged component population."""
+        if tuple(item.identifier for item in self.lanes) != (
+            _PHASE_FIVE_RAPTHOR_EVIDENCE_LANES
+        ):
+            raise ValueError(
+                "membership evidence requires four canonical lanes"
+            )
+        populations = {
+            tuple(component.identifier for component in lane.components)
+            for lane in self.lanes
+        }
+        if len(populations) != 1:
+            raise ValueError("membership component population differs by lane")
+        return self
+
+
+class PhaseFivePublicArtifact(_ContractModel):
+    """One authoritative public input or published comparison product."""
+
+    identifier: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    filename: str = Field(min_length=1)
+    source_url: str = Field(pattern=r"^https://")
+    role: Literal[
+        "image",
+        "primary-beam",
+        "truth-catalogue",
+        "shallow-image",
+        "published-comparison-archive",
+    ]
+    checksum_policy: Literal["sha256-before-selection-or-execution"]
+
+
+class PhaseFivePublicDataset(_ContractModel):
+    """One scoped public comparison lane and its scientific role."""
+
+    dataset_id: Literal[
+        "ska-sdc1-mid-band2-1000h",
+        "askap-emu-pilot-hydra-2x2",
+    ]
+    telescope_family: Literal["simulated-ska-mid", "askap"]
+    evidence_role: Literal["truth-bearing-challenge", "real-survey-diagnostic"]
+    redistribution_policy: Literal[
+        "public-research-use-with-skao-acknowledgement",
+        "public-cirada-cadc-publication-artifacts",
+    ]
+    truth_policy: Literal[
+        "official-revealed-truth", "no-astronomical-ground-truth"
+    ]
+    selection_policy: Literal[
+        "eight-truth-selected-nonoverlapping-2048-square-cutouts",
+        "complete-published-deep-and-shallow-two-degree-field",
+    ]
+    artifacts: tuple[PhaseFivePublicArtifact, ...] = Field(min_length=1)
+    comparators: tuple[str, ...]
+    binding_metrics: tuple[str, ...]
+    diagnostic_metrics: tuple[str, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_canonical_collections(self) -> Self:
+        """Require stable, duplicate-free artifact and metric populations."""
+        for label, values in (
+            (
+                "artifact identifiers",
+                tuple(item.identifier for item in self.artifacts),
+            ),
+            ("comparators", self.comparators),
+            ("binding metrics", self.binding_metrics),
+            ("diagnostic metrics", self.diagnostic_metrics),
+        ):
+            if tuple(sorted(set(values))) != values:
+                raise ValueError(f"public dataset {label} must be canonical")
+        return self
+
+
+class PhaseFivePublicDecisionPolicy(_ContractModel):
+    """Non-compensating interpretation of public comparison evidence."""
+
+    absolute_truth_rule: Literal[
+        "apply-frozen-phase-five-gates-only-where-sdc1-semantics-match"
+    ]
+    real_survey_rule: Literal[
+        "report-deep-shallow-stability-and-each-finder-separately"
+    ]
+    official_score_rule: Literal[
+        "report-only-because-hebog-does-not-classify-source-populations"
+    ]
+    finder_vote_as_truth: Literal[False]
+    cross_finder_compensation: Literal[False]
+    cross_lane_compensation: Literal[False]
+    missing_artifact_policy: Literal["fail-before-execution"]
+    review_rule: Literal[
+        "independent-radio-astronomy-review-required-before-readiness"
+    ]
+
+
+class PhaseFivePublicComparisonContract(_ContractModel):
+    """Pre-acquisition protocol for public multi-telescope evidence."""
+
+    schema_version: Literal[1]
+    contract_id: Literal["phase-5-public-comparison"]
+    status: Literal["proposed-before-human-review-and-acquisition"]
+    datasets: tuple[PhaseFivePublicDataset, ...]
+    cutout_freeze_rule: Literal[
+        "freeze-source-sha256-pixel-bounds-wcs-beam-and-truth-membership-before-hebog"
+    ]
+    result_rule: Literal[
+        "publish-stratified-machine-readable-results-and-unmatched-audit"
+    ]
+    decision: PhaseFivePublicDecisionPolicy
+    human_scientific_review_complete: Literal[False]
+    artifact_checksums_frozen: Literal[False]
+    execution_authorized: Literal[False]
+    qualification_opened: Literal[False]
+    cutover_authorized: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_datasets(self) -> Self:
+        """Freeze two complementary lanes and their exact evidence roles."""
+        observed = tuple(
+            (
+                dataset.dataset_id,
+                dataset.telescope_family,
+                dataset.evidence_role,
+                dataset.truth_policy,
+                tuple(item.identifier for item in dataset.artifacts),
+                dataset.comparators,
+            )
+            for dataset in self.datasets
+        )
+        expected = (
+            (
+                "ska-sdc1-mid-band2-1000h",
+                "simulated-ska-mid",
+                "truth-bearing-challenge",
+                "official-revealed-truth",
+                (
+                    "image",
+                    "official-submissions",
+                    "primary-beam",
+                    "truth-catalogue",
+                ),
+                ("official-sdc1-submissions",),
+            ),
+            (
+                "askap-emu-pilot-hydra-2x2",
+                "askap",
+                "real-survey-diagnostic",
+                "no-astronomical-ground-truth",
+                ("deep-image", "hydra-archive", "shallow-image"),
+                ("aegean", "caesar", "profound", "pybdsf", "selavy"),
+            ),
+        )
+        if observed != expected:
+            raise ValueError(
+                "public comparison requires canonical public datasets"
+            )
+        if self.datasets[0].binding_metrics != (
+            "astrometry",
+            "catalogue-completeness",
+            "catalogue-reliability",
+            "duplicate-fraction",
+            "integrated-flux-error",
+            "major-minor-axis-error",
+            "merge-fraction",
+        ):
+            raise ValueError("SDC1 binding metrics must remain canonical")
+        if self.datasets[1].binding_metrics:
+            raise ValueError(
+                "real-survey finder comparisons cannot be binding"
+            )
+        return self
+
+
+class PhaseFiveFilterSelection(_ContractModel):
+    """Reviewed development decision for the Phase 5 filter representation."""
+
+    schema_version: Literal[1]
+    decision_id: Literal["phase-5-filter-selection"]
+    status: Literal["reviewed-development"]
+    selected_family: Literal["beam-aware-matched-filter"]
+    rejected_family: Literal["undecimated-wavelet"]
+    selection_rule: Literal[
+        "all-analytic-gates-then-lowest-maintained-bounded-cost"
+    ]
+    response_normalization: Literal[
+        "unit-integrated-flux-response-in-jy-per-beam"
+    ]
+    minimum_support_fraction: float = Field(gt=0, le=1)
+    support_amendment: Literal[
+        "phase-5-step-2-edge-evidence-lowered-0.8-to-0.5"
+    ]
+    truncation_sigma: float = Field(ge=3, le=8)
+    maximum_relative_kernel_tail: float = Field(gt=0, lt=1)
+    halo_formula: Literal[
+        "ceil-truncation-sigma-times-scale-times-beam-major-sigma-pixels"
+    ]
+    development_halo_pixels: tuple[int, int, int]
+    dtype: Literal["float64"]
+    convolution_backend: Literal["scipy-signal-fftconvolve"]
+    convolution_reuse: Literal[
+        "shared-prepared-inputs-no-persisted-response-planes"
+    ]
+    correlated_noise_model: Literal["restoring-beam-gaussian-covariance"]
+    local_noise_propagation: Literal[
+        "kernel-squared-rms-scaled-by-correlated-to-independent-gain"
+    ]
+    convolution_count_per_image: int = Field(ge=1)
+    temporary_plane_count: int = Field(ge=1)
+    measured_development_images: int = Field(ge=1)
+    measured_repetitions: int = Field(ge=5)
+    evidence_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    lower_precision_authorized: Literal[False]
+    native_code_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_selected_design(self) -> Self:
+        """Protect the exact reviewed float64 matched-filter implementation."""
+        if (
+            self.minimum_support_fraction
+            != _PHASE_FIVE_SELECTED_MINIMUM_SUPPORT
+        ):
+            raise ValueError("selected minimum support fraction must be 0.5")
+        if self.truncation_sigma != _PHASE_FIVE_SELECTED_TRUNCATION_SIGMA:
+            raise ValueError("selected truncation must remain four sigma")
+        if self.development_halo_pixels != (9, 17, 34):
+            raise ValueError(
+                "development halos must match the selected scales"
+            )
+        if (
+            self.convolution_count_per_image
+            != _PHASE_FIVE_SELECTED_CONVOLUTION_COUNT
+        ):
+            raise ValueError("selected filter bank requires nine convolutions")
+        if self.temporary_plane_count != _PHASE_FIVE_SELECTED_TEMPORARY_PLANES:
+            raise ValueError("selected filter bank requires seven temporaries")
+        return self
+
+
+class PhaseFiveFilterReviewDataset(_ContractModel):
+    """One frozen non-qualification population in the paired review."""
+
+    role: Literal["development", "regression"]
+    manifest: str
+    manifest_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    image_count: int = Field(ge=1)
+
+
+class PhaseFiveFilterReviewMatrix(_ContractModel):
+    """Candidate-neutral cases evaluated before the final filter choice."""
+
+    scale_orders: tuple[int, ...]
+    support_fraction_bounds: tuple[float, float]
+    mask_geometries: tuple[str, ...] = Field(min_length=6)
+    morphologies: tuple[str, ...] = Field(min_length=6)
+    snr_levels: tuple[float, ...] = Field(min_length=4)
+    noise_models: tuple[str, ...] = Field(min_length=2)
+    detection_sigma: float = Field(gt=0)
+    island_sigma: float = Field(gt=0)
+
+    @model_validator(mode="after")
+    def validate_matrix(self) -> Self:
+        """Keep scales, support, SNR, and thresholds predeclared."""
+        if self.scale_orders != (1, 2, 3):
+            raise ValueError("filter-review scales must be 1, 2, and 3")
+        if self.support_fraction_bounds != (0.5, 1.0):
+            raise ValueError("filter-review support fraction must span 0.5--1")
+        if self.snr_levels != (5.0, 8.0, 15.0, 30.0):
+            raise ValueError("filter-review SNR levels must remain canonical")
+        if (
+            self.detection_sigma != _PHASE_FIVE_REVIEW_DETECTION_SIGMA
+            or self.island_sigma != _PHASE_FIVE_REVIEW_ISLAND_SIGMA
+        ):
+            raise ValueError("filter-review thresholds must remain 5/3 sigma")
+        if tuple(sorted(set(self.mask_geometries))) != self.mask_geometries:
+            raise ValueError("filter-review mask geometries must be canonical")
+        if tuple(sorted(set(self.morphologies))) != self.morphologies:
+            raise ValueError("filter-review morphologies must be canonical")
+        if tuple(sorted(set(self.noise_models))) != self.noise_models:
+            raise ValueError("filter-review noise models must be canonical")
+        return self
+
+
+class PhaseFiveFilterReviewAbsoluteGates(_ContractModel):
+    """Absolute truth requirements shared by both filter candidates."""
+
+    maximum_median_response_fractional_error: float = Field(ge=0)
+    maximum_percentile_95_response_fractional_error: float = Field(ge=0)
+    maximum_median_integrated_flux_fractional_error: float = Field(ge=0)
+    maximum_percentile_95_integrated_flux_fractional_error: float = Field(ge=0)
+    maximum_noise_std_fractional_error: float = Field(ge=0)
+    minimum_support_availability: float = Field(ge=0, le=1)
+    minimum_completeness: float = Field(ge=0, le=1)
+    minimum_reliability: float = Field(ge=0, le=1)
+    maximum_percentile_95_position_beams: float = Field(ge=0)
+    minimum_mask_intersection_over_union: float = Field(ge=0, le=1)
+    maximum_fragmentation_fraction: float = Field(ge=0, le=1)
+
+    @model_validator(mode="after")
+    def validate_tails(self) -> Self:
+        """Tail ceilings contain their corresponding median ceilings."""
+        if (
+            self.maximum_percentile_95_response_fractional_error
+            < self.maximum_median_response_fractional_error
+            or self.maximum_percentile_95_integrated_flux_fractional_error
+            < self.maximum_median_integrated_flux_fractional_error
+        ):
+            raise ValueError(
+                "filter-review tail cannot be tighter than median"
+            )
+        return self
+
+
+class PhaseFiveFilterReviewPairedMargins(_ContractModel):
+    """Practical one-sided candidate-to-candidate non-inferiority margins."""
+
+    maximum_median_response_error_increase: float = Field(gt=0)
+    maximum_percentile_95_response_error_increase: float = Field(gt=0)
+    maximum_median_integrated_flux_error_increase: float = Field(gt=0)
+    maximum_calibrated_snr_fractional_loss: float = Field(gt=0, lt=1)
+    maximum_noise_std_error_increase: float = Field(gt=0)
+    maximum_completeness_loss: float = Field(gt=0, lt=1)
+    maximum_reliability_loss: float = Field(gt=0, lt=1)
+    maximum_position_error_increase_beams: float = Field(gt=0)
+    maximum_mask_intersection_over_union_loss: float = Field(gt=0, lt=1)
+    maximum_fragmentation_fraction_increase: float = Field(gt=0, lt=1)
+
+
+class PhaseFiveFilterReviewStatistics(_ContractModel):
+    """Frozen exact and image-resampled comparison procedures."""
+
+    confidence_level: float = Field(gt=0, lt=1)
+    analytic_cases: Literal["exact-no-resampling"]
+    generated_cases: Literal["whole-image-fixed-seed-bootstrap"]
+    bootstrap_resamples: int = Field(ge=10_000)
+    bootstrap_seed: int = Field(ge=0)
+    interval: Literal["one-sided-upper-95-percent"]
+    minimum_regression_images: int = Field(ge=100)
+
+
+class PhaseFiveFilterReviewDecisionPolicy(_ContractModel):
+    """Fail-closed ordering of science, cost, and optimization."""
+
+    absolute_rule: Literal["every-gate-every-applicable-stratum"]
+    paired_rule: Literal["non-inferior-to-other-candidate-no-compensation"]
+    scientific_advantage: Literal["select-regardless-of-current-cost"]
+    scientific_tie: Literal["lowest-bounded-structural-cost"]
+    inconclusive: Literal["select-neither"]
+    optimization: Literal["after-selection-only"]
+
+
+class PhaseFiveFilterReview(_ContractModel):
+    """Frozen Step 2B paired scientific representation review."""
+
+    schema_version: Literal[1]
+    contract_id: Literal["phase-5-filter-paired-review"]
+    status: Literal["frozen-before-paired-results"]
+    candidates: tuple[
+        Literal["beam-aware-matched-filter", "undecimated-wavelet"], ...
+    ]
+    dataset_manifests: tuple[PhaseFiveFilterReviewDataset, ...]
+    matrix: PhaseFiveFilterReviewMatrix
+    binding_metrics: tuple[str, ...] = Field(min_length=10)
+    diagnostic_metrics: tuple[str, ...] = Field(min_length=2)
+    absolute_gates: PhaseFiveFilterReviewAbsoluteGates
+    paired_margins: PhaseFiveFilterReviewPairedMargins
+    statistical_design: PhaseFiveFilterReviewStatistics
+    decision_policy: PhaseFiveFilterReviewDecisionPolicy
+    step_three_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_review(self) -> Self:
+        """Protect candidates, populations, and complete metric governance."""
+        if self.candidates != (
+            "beam-aware-matched-filter",
+            "undecimated-wavelet",
+        ):
+            raise ValueError("filter-review candidates must be canonical")
+        if tuple(item.role for item in self.dataset_manifests) != (
+            "development",
+            "regression",
+        ):
+            raise ValueError(
+                "filter review requires development and regression manifests"
+            )
+        expected_metrics = {
+            "calibrated-response-snr",
+            "completeness",
+            "fragmentation-fraction",
+            "integrated-flux-fractional-error",
+            "mask-intersection-over-union",
+            "noise-standard-deviation-error",
+            "position-error-beams",
+            "reliability",
+            "response-fractional-error",
+            "support-availability",
+        }
+        if set(self.binding_metrics) != expected_metrics or len(
+            self.binding_metrics
+        ) != len(expected_metrics):
+            raise ValueError("filter-review binding metrics must be complete")
+        if tuple(sorted(set(self.binding_metrics))) != self.binding_metrics:
+            raise ValueError("filter-review binding metrics must be canonical")
+        if (
+            tuple(sorted(set(self.diagnostic_metrics)))
+            != self.diagnostic_metrics
+        ):
+            raise ValueError(
+                "filter-review diagnostic metrics must be canonical"
+            )
+        if (
+            self.statistical_design.confidence_level
+            != _PAIRED_CONFIDENCE_LEVEL
+        ):
+            raise ValueError("filter-review confidence level must remain 0.95")
+        return self
+
+
+class PhaseFiveCorrectiveResponseEndpoint(_ContractModel):
+    """Candidate-neutral Step 2C response meaning at final output."""
+
+    signal: Literal["final-reconstructed-signal"]
+    truth: Literal["observable-valid-domain-truth"]
+    statistic: Literal["integrated-original-pixel-signal"]
+    truncation: Literal["reported-not-imputed"]
+
+
+class PhaseFiveCorrectiveMeasurement(_ContractModel):
+    """Frozen separation of detection, segmentation, and measurement."""
+
+    mask: Literal["original-residual-seed-and-grow"]
+    photometry: Literal["original-residual-pixels"]
+    astrometry: Literal["original-residual-pixels"]
+    wavelet_coefficients: Literal["detection-and-association-provenance-only"]
+
+
+class PhaseFiveCorrectiveDesign(_ContractModel):
+    """Scientifically familiar residual-wavelet corrective design."""
+
+    compact_treatment: Literal["exclude-or-subtract-accepted-compact-emission"]
+    wavelet: Literal["normalized-b3-spline-atrous"]
+    noise: Literal["per-scale-correlated-local-rms"]
+    support: Literal["per-scale-normalized-valid-support"]
+    reconstruction: Literal["significant-adjacent-scale-support"]
+    matched_filter_role: Literal[
+        "known-template-seed-aid-and-governed-comparator"
+    ]
+
+
+class PhaseFiveCorrectiveBoundedImplementation(_ContractModel):
+    """Frozen serial cost and storage boundaries for the corrective screen."""
+
+    kernel: Literal["separable-sparse-b3-spline"]
+    scale_dilations_pixels: tuple[int, ...]
+    maximum_halo_pixels: int
+    shared_adjacent_smoothings: Literal[True]
+    durable_response_bank: Literal[False]
+    dtype: Literal["float64"]
+    optimization: Literal["profile-after-scientific-selection"]
+
+    @model_validator(mode="after")
+    def validate_bounds(self) -> Self:
+        """Protect the reviewed three-scale finite-halo construction."""
+        if self.scale_dilations_pixels != (1, 2, 4):
+            raise ValueError("corrective B3 dilations must be 1, 2, and 4")
+        if self.maximum_halo_pixels != _PHASE_FIVE_CORRECTIVE_MAXIMUM_HALO:
+            raise ValueError("corrective cumulative halo must be 14 pixels")
+        return self
+
+
+class PhaseFiveCorrectiveReview(_ContractModel):
+    """Frozen Step 2C corrective continuum re-evaluation contract."""
+
+    schema_version: Literal[1]
+    contract_id: Literal["phase-5-corrective-review"]
+    status: Literal["frozen-before-corrective-results"]
+    prior_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidates: tuple[
+        Literal["beam-aware-matched-filter", "residual-b3-atrous"], ...
+    ]
+    dataset_manifests: tuple[PhaseFiveFilterReviewDataset, ...]
+    matrix: PhaseFiveFilterReviewMatrix
+    binding_metrics: tuple[str, ...] = Field(min_length=10)
+    diagnostic_metrics: tuple[str, ...] = Field(min_length=2)
+    absolute_gates: PhaseFiveFilterReviewAbsoluteGates
+    paired_margins: PhaseFiveFilterReviewPairedMargins
+    statistical_design: PhaseFiveFilterReviewStatistics
+    decision_policy: PhaseFiveFilterReviewDecisionPolicy
+    response_endpoint: PhaseFiveCorrectiveResponseEndpoint
+    final_measurement: PhaseFiveCorrectiveMeasurement
+    corrective_design: PhaseFiveCorrectiveDesign
+    bounded_implementation: PhaseFiveCorrectiveBoundedImplementation
+    step_three_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_corrective_review(self) -> Self:
+        """Freeze the prior populations, metrics, gates, and paired margins."""
+        if self.candidates != (
+            "beam-aware-matched-filter",
+            "residual-b3-atrous",
+        ):
+            raise ValueError("corrective-review candidates must be canonical")
+        expected_datasets = (
+            (
+                "development",
+                "config/datasets/phase-5-development.json",
+                "b3c9594efa0c39ce30f3b287988f3fca90f69c5ccb8507adc463b37fed0b8350",
+                10,
+            ),
+            (
+                "regression",
+                "config/datasets/phase-5-regression.json",
+                "7188b1c65b7d193e27f5bca3cf5b427874f97cea87fb206000a591460f95b85e",
+                100,
+            ),
+        )
+        observed_datasets = tuple(
+            (item.role, item.manifest, item.manifest_sha256, item.image_count)
+            for item in self.dataset_manifests
+        )
+        if observed_datasets != expected_datasets:
+            raise ValueError(
+                "corrective review requires unchanged Step 2B populations"
+            )
+        expected_metrics = {
+            "calibrated-response-snr",
+            "completeness",
+            "fragmentation-fraction",
+            "integrated-flux-fractional-error",
+            "mask-intersection-over-union",
+            "noise-standard-deviation-error",
+            "position-error-beams",
+            "reliability",
+            "response-fractional-error",
+            "support-availability",
+        }
+        if (
+            set(self.binding_metrics) != expected_metrics
+            or tuple(sorted(expected_metrics)) != self.binding_metrics
+        ):
+            raise ValueError("corrective-review metrics must remain canonical")
+        expected_gates = {
+            "maximum_median_response_fractional_error": 0.05,
+            "maximum_percentile_95_response_fractional_error": 0.1,
+            "maximum_median_integrated_flux_fractional_error": 0.1,
+            "maximum_percentile_95_integrated_flux_fractional_error": 0.25,
+            "maximum_noise_std_fractional_error": 0.15,
+            "minimum_support_availability": 0.95,
+            "minimum_completeness": 0.9,
+            "minimum_reliability": 0.95,
+            "maximum_percentile_95_position_beams": 0.25,
+            "minimum_mask_intersection_over_union": 0.8,
+            "maximum_fragmentation_fraction": 0.1,
+        }
+        expected_margins = {
+            "maximum_median_response_error_increase": 0.02,
+            "maximum_percentile_95_response_error_increase": 0.05,
+            "maximum_median_integrated_flux_error_increase": 0.05,
+            "maximum_calibrated_snr_fractional_loss": 0.1,
+            "maximum_noise_std_error_increase": 0.05,
+            "maximum_completeness_loss": 0.02,
+            "maximum_reliability_loss": 0.02,
+            "maximum_position_error_increase_beams": 0.05,
+            "maximum_mask_intersection_over_union_loss": 0.05,
+            "maximum_fragmentation_fraction_increase": 0.02,
+        }
+        if self.absolute_gates.model_dump() != expected_gates or (
+            self.paired_margins.model_dump() != expected_margins
+        ):
+            raise ValueError(
+                "corrective review requires unchanged Step 2B gates"
+            )
+        if (
+            self.statistical_design.confidence_level
+            != _PAIRED_CONFIDENCE_LEVEL
+        ):
+            raise ValueError("corrective-review confidence must remain 0.95")
+        return self
+
+
+class PhaseFiveCorrectiveRCorrections(_ContractModel):
+    """Frozen Step 2C-R corrections to final-output semantics."""
+
+    astrometry: Literal[
+        "one-rms-excess-central-eighty-percent-original-pixel-estimator"
+    ]
+    astrometry_topology: Literal[
+        "equal-centre-of-three-or-more-ten-percent-components"
+    ]
+    truncation_astrometry: Literal[
+        "robust-except-noiseless-or-below-eight-sigma-observable-moment"
+    ]
+    association: Literal["three-beam-adjacent-scale-support-linkage"]
+    artifact_disposition: Literal["known-artifact-control-not-photometric"]
+    false_positive_control: Literal[
+        "one-correlated-beam-or-direct-five-sigma-seed"
+    ]
+    astrometry_dilation_pixels: int
+    association_distance_beams: float
+    component_flux_fraction: float
+    minimum_island_area_beams: float
+    minimum_direct_seed_sigma: float
+
+    @model_validator(mode="after")
+    def validate_corrections(self) -> Self:
+        """Keep all development-selected correction constants exact."""
+        expected = (2, 3.0, 0.1, 1.0, 5.0)
+        observed = (
+            self.astrometry_dilation_pixels,
+            self.association_distance_beams,
+            self.component_flux_fraction,
+            self.minimum_island_area_beams,
+            self.minimum_direct_seed_sigma,
+        )
+        if observed != expected:
+            raise ValueError("corrective-R constants must remain frozen")
+        return self
+
+
+class PhaseFiveCorrectiveRReview(_ContractModel):
+    """Frozen Step 2C-R final-output correction review contract."""
+
+    schema_version: Literal[1]
+    contract_id: Literal["phase-5-corrective-r-review"]
+    status: Literal["frozen-before-corrective-r-results"]
+    prior_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidates: tuple[
+        Literal["beam-aware-matched-filter", "residual-b3-atrous"], ...
+    ]
+    dataset_manifests: tuple[PhaseFiveFilterReviewDataset, ...]
+    matrix: PhaseFiveFilterReviewMatrix
+    binding_metrics: tuple[str, ...] = Field(min_length=10)
+    diagnostic_metrics: tuple[str, ...] = Field(min_length=2)
+    absolute_gates: PhaseFiveFilterReviewAbsoluteGates
+    paired_margins: PhaseFiveFilterReviewPairedMargins
+    statistical_design: PhaseFiveFilterReviewStatistics
+    decision_policy: PhaseFiveFilterReviewDecisionPolicy
+    response_endpoint: PhaseFiveCorrectiveResponseEndpoint
+    final_measurement: PhaseFiveCorrectiveMeasurement
+    corrective_design: PhaseFiveCorrectiveDesign
+    bounded_implementation: PhaseFiveCorrectiveBoundedImplementation
+    precheck_amendment: Literal[
+        "retain-direct-five-sigma-islands-after-area-floor-failed-analytic"
+    ]
+    supersedes_failed_protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    corrections: PhaseFiveCorrectiveRCorrections
+    step_three_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_inherited_review(self) -> Self:
+        """Reuse every unchanged Step 2C population, metric, and gate check."""
+        payload = self.model_dump(
+            exclude={
+                "precheck_amendment",
+                "supersedes_failed_protocol_sha256",
+                "corrections",
+            }
+        )
+        payload["contract_id"] = "phase-5-corrective-review"
+        payload["status"] = "frozen-before-corrective-results"
+        PhaseFiveCorrectiveReview.model_validate(payload)
+        return self
+
+
+class PhaseFiveCorrectiveAEstimator(_ContractModel):
+    """Frozen Step 2C-A model-assisted original-pixel estimator."""
+
+    family: Literal[
+        "local-rms-weighted-multigaussian-observable-centroid-shrinkage"
+    ]
+    pixel_domain: Literal["original-residual-pixels"]
+    target: Literal["observable-valid-domain-flux-centroid"]
+    peak_selection: Literal["beam-separated-original-pixel-local-maxima"]
+    loss: Literal["soft-l1-local-rms-standardized"]
+    fallback: Literal["step-2c-r-robust-observable-moment"]
+    uncertainty: Literal["correlated-noise-moment-propagation"]
+    peak_seed_sigma: float
+    peak_separation_beams: float
+    maximum_components: int
+    fit_margin_beams: float
+    component_centre_bound_beams: float
+    minimum_sigma_minor_fwhm_divisor: float
+    maximum_sigma_major_beams: float
+    maximum_iterations: int
+    model_weight: float
+    maximum_normalized_cost: float
+    maximum_model_moment_disagreement_beams: float
+
+    @model_validator(mode="after")
+    def validate_estimator(self) -> Self:
+        """Keep every development-selected estimator constant exact."""
+        expected = (6.0, 2.0, 6, 3.0, 1.0, 2.355, 3.0, 300, 0.5, 2.0, 1.0)
+        observed = (
+            self.peak_seed_sigma,
+            self.peak_separation_beams,
+            self.maximum_components,
+            self.fit_margin_beams,
+            self.component_centre_bound_beams,
+            self.minimum_sigma_minor_fwhm_divisor,
+            self.maximum_sigma_major_beams,
+            self.maximum_iterations,
+            self.model_weight,
+            self.maximum_normalized_cost,
+            self.maximum_model_moment_disagreement_beams,
+        )
+        if observed != expected:
+            raise ValueError(
+                "corrective-A estimator constants must remain frozen"
+            )
+        return self
+
+
+class PhaseFiveCorrectiveAReview(_ContractModel):
+    """Frozen independent Step 2C-A astrometry confirmation contract."""
+
+    schema_version: Literal[1]
+    contract_id: Literal["phase-5-corrective-a-review"]
+    status: Literal["frozen-before-corrective-a-results"]
+    prior_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidates: tuple[
+        Literal["beam-aware-matched-filter", "residual-b3-atrous"], ...
+    ]
+    dataset_manifests: tuple[PhaseFiveFilterReviewDataset, ...]
+    matrix: PhaseFiveFilterReviewMatrix
+    binding_metrics: tuple[str, ...] = Field(min_length=10)
+    diagnostic_metrics: tuple[str, ...] = Field(min_length=2)
+    absolute_gates: PhaseFiveFilterReviewAbsoluteGates
+    paired_margins: PhaseFiveFilterReviewPairedMargins
+    statistical_design: PhaseFiveFilterReviewStatistics
+    decision_policy: PhaseFiveFilterReviewDecisionPolicy
+    response_endpoint: PhaseFiveCorrectiveResponseEndpoint
+    final_measurement: PhaseFiveCorrectiveMeasurement
+    corrective_design: PhaseFiveCorrectiveDesign
+    bounded_implementation: PhaseFiveCorrectiveBoundedImplementation
+    precheck_amendment: Literal[
+        "retain-direct-five-sigma-islands-after-area-floor-failed-analytic"
+    ]
+    supersedes_failed_protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    corrections: PhaseFiveCorrectiveRCorrections
+    supersedes_protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    astrometry_estimator: PhaseFiveCorrectiveAEstimator
+    confirmation_reuse: Literal["one-look-no-tuning-or-rescoring"]
+    step_three_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_inherited_review(self) -> Self:
+        """Preserve Step 2C-R semantics while replacing only astrometry."""
+        observed_datasets = tuple(
+            (item.role, item.manifest, item.manifest_sha256, item.image_count)
+            for item in self.dataset_manifests
+        )
+        expected_datasets = (
+            (
+                "development",
+                "config/datasets/phase-5-development.json",
+                "b3c9594efa0c39ce30f3b287988f3fca90f69c5ccb8507adc463b37fed0b8350",
+                10,
+            ),
+            (
+                "regression",
+                "config/datasets/phase-5-corrective-a-confirmation.json",
+                "7576f8e6e373b12a42c9820ee381750c32208444682bde4a52a1311cccfc6011",
+                100,
+            ),
+        )
+        if observed_datasets != expected_datasets:
+            raise ValueError("corrective-A datasets must remain frozen")
+        payload = self.model_dump(
+            exclude={
+                "astrometry_estimator",
+                "confirmation_reuse",
+                "supersedes_protocol_sha256",
+            }
+        )
+        payload["contract_id"] = "phase-5-corrective-r-review"
+        payload["status"] = "frozen-before-corrective-r-results"
+        payload["prior_decision_sha256"] = (
+            "7d50397bc679b06dd856e9484675e4981eee55448c87acc96ff9d249e41d4684"
+        )
+        payload["dataset_manifests"] = (
+            self.dataset_manifests[0].model_dump(mode="json"),
+            {
+                "role": "regression",
+                "manifest": "config/datasets/phase-5-regression.json",
+                "manifest_sha256": (
+                    "7188b1c65b7d193e27f5bca3cf5b427874f97cea87fb206000a591460f95b85e"
+                ),
+                "image_count": 100,
+            },
+        )
+        PhaseFiveCorrectiveRReview.model_validate(payload)
+        return self
+
+
+class PhaseFiveCorrectiveCandidateDecision(_ContractModel):
+    """Conjunctive Step 2C outcome for one governed representation."""
+
+    family: Literal["beam-aware-matched-filter", "residual-b3-atrous"]
+    passes_absolute: Literal[False]
+    noninferior_to_other: Literal[False]
+    failed_absolute_endpoint_count: int = Field(ge=1)
+    failed_paired_endpoint_count: int = Field(ge=1)
+    bounded_cost: tuple[int, int, int]
+
+    @model_validator(mode="after")
+    def validate_cost(self) -> Self:
+        """Require complete positive structural-cost diagnostics."""
+        if any(value <= 0 for value in self.bounded_cost):
+            raise ValueError("corrective-decision costs must be positive")
+        return self
+
+
+class PhaseFiveCorrectiveDecision(_ContractModel):
+    """Reviewed fail-closed decision produced by the Step 2C review."""
+
+    schema_version: Literal[1]
+    decision_id: Literal["phase-5-corrective-decision"]
+    status: Literal["reviewed-rejected"]
+    protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_source_tree_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_configuration_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    prior_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidates: tuple[PhaseFiveCorrectiveCandidateDecision, ...]
+    decision: Literal["reject-corrective"]
+    selected_family: None
+    corrective_failure_domains: tuple[
+        Literal[
+            "artifact-flux",
+            "astrometry",
+            "fragmentation",
+            "reliability",
+        ],
+        ...,
+    ]
+    named_review: Literal["codex-step-2c-governed-evidence-review"]
+    review_scope: Literal[
+        "technical-and-governed-development-regression-evidence"
+    ]
+    independent_human_scientific_review: Literal["still-required"]
+    next_action: Literal[
+        "redesign-measurement-association-and-false-positive-control"
+    ]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_rejected_decision(self) -> Self:
+        """Require both failed candidates and preserve all closed gates."""
+        if tuple(item.family for item in self.candidates) != (
+            "beam-aware-matched-filter",
+            "residual-b3-atrous",
+        ):
+            raise ValueError(
+                "corrective decision requires canonical candidates"
+            )
+        if self.corrective_failure_domains != (
+            "artifact-flux",
+            "astrometry",
+            "fragmentation",
+            "reliability",
+        ):
+            raise ValueError(
+                "corrective failure domains must remain complete and canonical"
+            )
+        return self
+
+
+class PhaseFiveCorrectiveRCandidateDecision(_ContractModel):
+    """Conjunctive Step 2C-R result for one governed representation."""
+
+    family: Literal["beam-aware-matched-filter", "residual-b3-atrous"]
+    passes_absolute: bool
+    noninferior_to_other: bool
+    failed_absolute_endpoint_count: int = Field(ge=0)
+    failed_paired_endpoint_count: int = Field(ge=0)
+    bounded_cost: tuple[int, int, int]
+
+    @model_validator(mode="after")
+    def validate_cost(self) -> Self:
+        """Require complete positive structural-cost diagnostics."""
+        if any(value <= 0 for value in self.bounded_cost):
+            raise ValueError("corrective-R decision costs must be positive")
+        return self
+
+
+class PhaseFiveCorrectiveRDecision(_ContractModel):
+    """Reviewed fail-closed decision produced by the Step 2C-R review."""
+
+    schema_version: Literal[1]
+    decision_id: Literal["phase-5-corrective-r-decision"]
+    status: Literal["reviewed-rejected"]
+    protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_source_tree_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_configuration_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    prior_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidates: tuple[PhaseFiveCorrectiveRCandidateDecision, ...]
+    decision: Literal["reject-corrective-r"]
+    selected_family: None
+    corrective_failure_domains: tuple[Literal["astrometry-variance"], ...]
+    named_review: Literal["codex-step-2c-r-governed-evidence-review"]
+    review_scope: Literal[
+        "technical-and-governed-development-regression-evidence"
+    ]
+    independent_human_scientific_review: Literal["still-required"]
+    next_action: Literal["freeze-independent-astrometry-estimator-review"]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_rejected_decision(self) -> Self:
+        """Bind the reviewed failure counts and sole residual domain."""
+        expected = (
+            ("beam-aware-matched-filter", False, False, 18, 9),
+            ("residual-b3-atrous", False, True, 9, 0),
+        )
+        observed = tuple(
+            (
+                item.family,
+                item.passes_absolute,
+                item.noninferior_to_other,
+                item.failed_absolute_endpoint_count,
+                item.failed_paired_endpoint_count,
+            )
+            for item in self.candidates
+        )
+        if observed != expected:
+            raise ValueError("corrective-R decision counts must remain exact")
+        if self.corrective_failure_domains != ("astrometry-variance",):
+            raise ValueError("corrective-R failure domain must remain exact")
+        return self
+
+
+class PhaseFiveCorrectiveACandidateDecision(_ContractModel):
+    """Conjunctive Step 2C-A result for one governed representation."""
+
+    family: Literal["beam-aware-matched-filter", "residual-b3-atrous"]
+    passes_absolute: bool
+    noninferior_to_other: bool
+    failed_absolute_endpoint_count: int = Field(ge=0)
+    failed_paired_endpoint_count: int = Field(ge=0)
+    bounded_cost: tuple[int, int, int]
+
+    @model_validator(mode="after")
+    def validate_cost(self) -> Self:
+        """Require complete positive structural-cost diagnostics."""
+        if any(value <= 0 for value in self.bounded_cost):
+            raise ValueError("corrective-A decision costs must be positive")
+        return self
+
+
+class PhaseFiveCorrectiveADecision(_ContractModel):
+    """Reviewed fail-closed decision from the one-look Step 2C-A review."""
+
+    schema_version: Literal[1]
+    decision_id: Literal["phase-5-corrective-a-decision"]
+    status: Literal["reviewed-rejected"]
+    protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_source_tree_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_configuration_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    prior_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    confirmation_manifest_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidates: tuple[PhaseFiveCorrectiveACandidateDecision, ...]
+    decision: Literal["reject-corrective-a"]
+    selected_family: None
+    corrective_failure_domains: tuple[
+        Literal[
+            "astrometry-curved-filament-variance",
+            "astrometry-uncertainty-undercoverage",
+        ],
+        ...,
+    ]
+    named_review: Literal["codex-step-2c-a-one-look-governed-evidence-review"]
+    review_scope: Literal[
+        "technical-and-governed-independent-confirmation-evidence"
+    ]
+    independent_human_scientific_review: Literal[
+        "required-before-any-further-astrometry-revision"
+    ]
+    next_action: Literal[
+        "human-scientific-review-of-astrometry-endpoint-and-estimator"
+    ]
+    confirmation_reuse: Literal["closed-after-one-look"]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_rejected_decision(self) -> Self:
+        """Bind the one-look counts and residual scientific concerns."""
+        expected = (
+            ("beam-aware-matched-filter", False, False, 14, 9),
+            ("residual-b3-atrous", False, True, 5, 0),
+        )
+        observed = tuple(
+            (
+                item.family,
+                item.passes_absolute,
+                item.noninferior_to_other,
+                item.failed_absolute_endpoint_count,
+                item.failed_paired_endpoint_count,
+            )
+            for item in self.candidates
+        )
+        if observed != expected:
+            raise ValueError("corrective-A decision counts must remain exact")
+        expected_domains = (
+            "astrometry-curved-filament-variance",
+            "astrometry-uncertainty-undercoverage",
+        )
+        if self.corrective_failure_domains != expected_domains:
+            raise ValueError("corrective-A failure domains must remain exact")
+        return self
+
+
+class PhaseFiveAstrometryHumanDecision(_ContractModel):
+    """Human approval of the prospective Step 2C-H astrometry revision."""
+
+    schema_version: Literal[1]
+    decision_id: Literal["phase-5-astrometry-human-decision"]
+    status: Literal["approved-prospective-revision"]
+    prior_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    pre_review_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    reviewer: Literal["Gemma Danks"]
+    review_source: Literal["interactive-project-owner-approval"]
+    reviewed_on: Literal["2026-08-09"]
+    decision: Literal["approve-recommendations-for-prospective-implementation"]
+    approved_recommendations: tuple[
+        Literal[
+            "direct-group-median-and-p95-with-image-cluster-resampling",
+            "observable-domain-flux-centroid-with-explicit-external-mappings",
+            "direct-pixel-baseline-with-evidence-gated-model-assistance",
+            "two-dimensional-correlated-noise-position-covariance",
+            "morphology-stratified-coverage-validation",
+            "fresh-development-and-confirmation-populations",
+        ],
+        ...,
+    ]
+    closed_confirmation_policy: Literal[
+        "no-tuning-rescoring-or-reconfirmation"
+    ]
+    successor_protocol_freeze_authorized: Literal[True]
+    development_execution_authorized: Literal[True]
+    confirmation_execution_authorized: Literal[False]
+    next_action: Literal[
+        "freeze-successor-astrometry-development-and-confirmation-protocol"
+    ]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_approval_scope(self) -> Self:
+        """Require the complete approved recommendations in review order."""
+        expected = (
+            "direct-group-median-and-p95-with-image-cluster-resampling",
+            "observable-domain-flux-centroid-with-explicit-external-mappings",
+            "direct-pixel-baseline-with-evidence-gated-model-assistance",
+            "two-dimensional-correlated-noise-position-covariance",
+            "morphology-stratified-coverage-validation",
+            "fresh-development-and-confirmation-populations",
+        )
+        if self.approved_recommendations != expected:
+            raise ValueError(
+                "approved astrometry recommendations must remain complete "
+                "and ordered"
+            )
+        return self
+
+
+class PhaseFiveAstrometryEndpointProtocol(_ContractModel):
+    """Approved catalogue-level position estimand and resampling rule."""
+
+    target: Literal["observable-valid-domain-flux-centroid"]
+    observation_unit: Literal["eligible-astronomical-truth-group"]
+    independent_unit: Literal["noise-seed-image"]
+    statistics: tuple[Literal["median", "percentile-95"], ...]
+    resampling: Literal["whole-image-cluster-bootstrap-retain-all-groups"]
+    bootstrap_resamples: int
+    bootstrap_seed: int
+    confidence_level: float
+    absolute_gate_rule: Literal[
+        "point-estimate-with-one-sided-confidence-bound-reported"
+    ]
+    maximum_median_position_beams: float
+    maximum_percentile_95_position_beams: float
+    per_image_risk_metric: Literal["separate-report-only-maximum"]
+
+    @model_validator(mode="after")
+    def validate_endpoint(self) -> Self:
+        """Keep the approved direct catalogue estimand exact."""
+        observed = (
+            self.statistics,
+            self.bootstrap_resamples,
+            self.bootstrap_seed,
+            self.confidence_level,
+            self.maximum_median_position_beams,
+            self.maximum_percentile_95_position_beams,
+        )
+        expected = (
+            ("median", "percentile-95"),
+            10_000,
+            20260809,
+            0.95,
+            0.1,
+            0.25,
+        )
+        if observed != expected:
+            raise ValueError(
+                "astrometry endpoint constants must remain frozen"
+            )
+        return self
+
+
+class PhaseFiveAstrometryUncertaintyProtocol(_ContractModel):
+    """Two-dimensional correlated-noise uncertainty and coverage design."""
+
+    covariance_shape: Literal["two-by-two"]
+    covariance_coordinates: tuple[Literal["pixel", "sky"], ...]
+    pixel_covariance_method: Literal[
+        "delta-method-full-gaussian-beam-correlation"
+    ]
+    sky_transform: Literal["local-wcs-jacobian"]
+    nonlinear_calibration: Literal["repeated-correlated-noise-injections"]
+    calibration_statistic: Literal["mahalanobis-chi-square-two"]
+    coverage_levels: tuple[float, ...]
+    maximum_absolute_coverage_error: tuple[float, ...]
+    require_positive_definite_fraction: float
+    coverage_strata: tuple[
+        Literal[
+            "morphology",
+            "signal-to-noise",
+            "scale",
+            "image-edge",
+            "invalid-pixels",
+            "truncation",
+            "estimator-disposition",
+        ],
+        ...,
+    ]
+
+    @model_validator(mode="after")
+    def validate_uncertainty(self) -> Self:
+        """Require calibrated two-dimensional uncertainty without gaps."""
+        if self.covariance_coordinates != ("pixel", "sky"):
+            raise ValueError("astrometry covariance coordinates must be exact")
+        if self.coverage_levels != (0.68, 0.95):
+            raise ValueError("astrometry coverage levels must remain frozen")
+        if self.maximum_absolute_coverage_error != (0.1, 0.05):
+            raise ValueError(
+                "astrometry coverage tolerances must remain frozen"
+            )
+        if self.require_positive_definite_fraction != 1.0:
+            raise ValueError("every astrometry covariance must be positive")
+        expected_strata = (
+            "morphology",
+            "signal-to-noise",
+            "scale",
+            "image-edge",
+            "invalid-pixels",
+            "truncation",
+            "estimator-disposition",
+        )
+        if self.coverage_strata != expected_strata:
+            raise ValueError("astrometry coverage strata must remain complete")
+        return self
+
+
+class PhaseFiveAstrometrySelectionProtocol(_ContractModel):
+    """Development-only choice and model-admission policy."""
+
+    selection_population: Literal["fresh-development-only"]
+    absolute_and_coverage_rule: Literal[
+        "every-endpoint-and-stratum-passes-no-compensation"
+    ]
+    preference: Literal["prefer-direct-unless-model-materially-improves-tail"]
+    minimum_model_p95_improvement_beams: float
+    maximum_model_unavailable_fraction: float
+    maximum_model_inadequate_fraction: float
+    confirmation_policy: Literal[
+        "freeze-selected-estimator-before-one-look-confirmation"
+    ]
+
+    @model_validator(mode="after")
+    def validate_selection(self) -> Self:
+        """Protect the simple-baseline preference and model safeguards."""
+        observed = (
+            self.minimum_model_p95_improvement_beams,
+            self.maximum_model_unavailable_fraction,
+            self.maximum_model_inadequate_fraction,
+        )
+        if observed != (0.02, 0.01, 0.05):
+            raise ValueError(
+                "astrometry selection constants must remain frozen"
+            )
+        return self
+
+
+class PhaseFiveAstrometryRevisionReview(_ContractModel):
+    """Frozen successor astrometry development and confirmation design."""
+
+    schema_version: Literal[1]
+    contract_id: Literal["phase-5-astrometry-revision-review"]
+    status: Literal["frozen-before-astrometry-development-results"]
+    human_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    closed_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    closed_confirmation_policy: Literal[
+        "no-tuning-rescoring-or-reconfirmation"
+    ]
+    dataset_manifests: tuple[PhaseFiveFilterReviewDataset, ...]
+    estimator_candidates: tuple[
+        Literal[
+            "direct-observable-pixel-centroid",
+            "covariance-gated-model-assisted-centroid",
+        ],
+        ...,
+    ]
+    endpoint: PhaseFiveAstrometryEndpointProtocol
+    uncertainty: PhaseFiveAstrometryUncertaintyProtocol
+    selection: PhaseFiveAstrometrySelectionProtocol
+    external_position_mappings: tuple[
+        Literal[
+            "pybdsf-source-moment-centroid-where-semantically-aligned",
+            "aegean-component-centre-compact-gaussian-scope-only",
+            "no-aegean-irregular-island-position-binding",
+        ],
+        ...,
+    ]
+    development_execution_authorized: Literal[True]
+    confirmation_execution_authorized: Literal[False]
+    step_two_c_p_execution_authorized: Literal[False]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_review(self) -> Self:
+        """Bind fresh populations, candidates, and external semantics."""
+        expected_datasets = (
+            (
+                "development",
+                "config/datasets/phase-5-astrometry-development.json",
+                40,
+            ),
+            (
+                "regression",
+                "config/datasets/phase-5-astrometry-confirmation.json",
+                400,
+            ),
+        )
+        observed_datasets = tuple(
+            (item.role, item.manifest, item.image_count)
+            for item in self.dataset_manifests
+        )
+        if observed_datasets != expected_datasets:
+            raise ValueError("astrometry revision datasets must remain frozen")
+        if self.estimator_candidates != (
+            "direct-observable-pixel-centroid",
+            "covariance-gated-model-assisted-centroid",
+        ):
+            raise ValueError(
+                "astrometry estimator candidates must remain exact"
+            )
+        expected_mappings = (
+            "pybdsf-source-moment-centroid-where-semantically-aligned",
+            "aegean-component-centre-compact-gaussian-scope-only",
+            "no-aegean-irregular-island-position-binding",
+        )
+        if self.external_position_mappings != expected_mappings:
+            raise ValueError("external astrometry mappings must remain exact")
+        return self
+
+
+class PhaseFiveAstrometrySelectionCandidate(_ContractModel):
+    """One development-only successor estimator conclusion."""
+
+    candidate: Literal[
+        "direct-observable-pixel-centroid",
+        "covariance-gated-model-assisted-centroid",
+    ]
+    covariance_scale: float = Field(gt=0, allow_inf_nan=False)
+    overall_percentile_95_beams: float = Field(ge=0, allow_inf_nan=False)
+    unavailable_fraction: float = Field(ge=0, le=1, allow_inf_nan=False)
+    model_unavailable_fraction: float = Field(
+        ge=0,
+        le=1,
+        allow_inf_nan=False,
+    )
+    model_inadequate_fraction: float = Field(
+        ge=0,
+        le=1,
+        allow_inf_nan=False,
+    )
+    failed_endpoint_count: int = Field(ge=1)
+    failed_coverage_count: int = Field(ge=1)
+    endpoints_pass: Literal[False]
+    coverage_pass: Literal[False]
+    model_admission_pass: bool
+    eligible: Literal[False]
+
+
+class PhaseFiveAstrometrySelectionDecision(_ContractModel):
+    """Reviewed fail-closed result of successor astrometry development."""
+
+    schema_version: Literal[1]
+    decision_id: Literal["phase-5-astrometry-selection-decision"]
+    status: Literal["reviewed-rejected"]
+    protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    development_manifest_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_configuration_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_source_tree_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidates: tuple[PhaseFiveAstrometrySelectionCandidate, ...]
+    decision: Literal["reject-astrometry-candidates"]
+    selected_candidate: None
+    confirmation_execution_authorized: Literal[False]
+    step_two_c_p_execution_authorized: Literal[False]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+    next_action: Literal[
+        "human-scientific-review-before-another-estimator-revision"
+    ]
+
+    @model_validator(mode="after")
+    def validate_rejection(self) -> Self:
+        """Require both canonical estimators to fail without compensation."""
+        if tuple(item.candidate for item in self.candidates) != (
+            "direct-observable-pixel-centroid",
+            "covariance-gated-model-assisted-centroid",
+        ):
+            raise ValueError(
+                "astrometry selection candidates must remain exact"
+            )
+        return self
+
+
+class PhaseFiveCompactPositionProtocol(_ContractModel):
+    """Unchanged compact/component astrometry retained by Step 2C-HR."""
+
+    position: Literal["fitted-gaussian-component-centre"]
+    maximum_median_position_beams: float
+    maximum_percentile_95_position_beams: float
+
+    @model_validator(mode="after")
+    def validate_compact_position(self) -> Self:
+        """Prevent an extended-position revision weakening Phase 4."""
+        if (
+            self.maximum_median_position_beams,
+            self.maximum_percentile_95_position_beams,
+        ) != (0.1, 0.25):
+            raise ValueError("compact position constants must remain frozen")
+        return self
+
+
+class PhaseFiveExtendedPositionProtocol(_ContractModel):
+    """Explicit location products for one irregular extended source."""
+
+    position: Literal["detected-segment-flux-centroid"]
+    truth_target: Literal["noiseless-three-sigma-truth-segment-centroid"]
+    peak_position: Literal["brightest-original-pixel"]
+    host_position_claim: Literal[False]
+    former_full_observable_target: Literal["diagnostic-only"]
+
+
+class PhaseFiveSegmentEstimatorProtocol(_ContractModel):
+    """Transparent original-pixel segment centroid implementation."""
+
+    candidate: Literal["original-pixel-detected-segment-centroid"]
+    detection_provenance: Literal["residual-b3-atrous"]
+    measurement_pixels: Literal["original-background-subtracted"]
+    support: Literal["accepted-b3-associated-original-pixel-segment"]
+    weighting: Literal["signed-flux"]
+    centroid_support_dilation_pixels: int
+    peak_tie_breaking: Literal["row-major-first"]
+    position_uncertainty: Literal[
+        "unavailable-until-support-selection-calibrated"
+    ]
+
+    @model_validator(mode="after")
+    def validate_estimator(self) -> Self:
+        """Keep measurement and catalogue support identical."""
+        if self.centroid_support_dilation_pixels != 0:
+            raise ValueError("segment estimator constants must remain frozen")
+        return self
+
+
+class PhaseFiveExtendedPositionEndpointProtocol(_ContractModel):
+    """Bias and repeatability gates for irregular segment locations."""
+
+    observation_unit: Literal["eligible-astronomical-truth-group"]
+    independent_unit: Literal["noise-seed-image"]
+    resampling: Literal["whole-image-cluster-bootstrap-retain-all-groups"]
+    bootstrap_resamples: int
+    bootstrap_seed: int
+    confidence_level: float
+    availability_fraction: float
+    maximum_absolute_axis_bias_beams: float
+    maximum_radial_percentile_95_beams: float
+    binding_rule: Literal[
+        "one-sided-confidence-bound-passes-every-governed-stratum"
+    ]
+    radial_median: Literal["report-only"]
+
+    @model_validator(mode="after")
+    def validate_endpoint(self) -> Self:
+        """Keep the resolution-based irregular-position gate fixed."""
+        observed = (
+            self.bootstrap_resamples,
+            self.bootstrap_seed,
+            self.confidence_level,
+            self.availability_fraction,
+            self.maximum_absolute_axis_bias_beams,
+            self.maximum_radial_percentile_95_beams,
+        )
+        expected = (10_000, 20260809, 0.95, 1.0, 0.1, 0.5)
+        if observed != expected:
+            raise ValueError("extended endpoint constants must remain frozen")
+        return self
+
+
+class PhaseFiveAstrometryFollowUpReview(_ContractModel):
+    """Frozen Step 2C-HR compact/extended position split."""
+
+    schema_version: Literal[1]
+    contract_id: Literal["phase-5-astrometry-follow-up-review"]
+    status: Literal["frozen-before-follow-up-development-results"]
+    prior_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    technical_review_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    base_detection_protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    technical_review_author: Literal["Codex AI technical review"]
+    independent_human_review_complete: Literal[False]
+    closed_population_policy: Literal[
+        "no-tuning-rescoring-confirmation-or-selection"
+    ]
+    dataset_manifests: tuple[PhaseFiveFilterReviewDataset, ...]
+    compact_position: PhaseFiveCompactPositionProtocol
+    extended_position: PhaseFiveExtendedPositionProtocol
+    estimator: PhaseFiveSegmentEstimatorProtocol
+    endpoint: PhaseFiveExtendedPositionEndpointProtocol
+    governed_strata: tuple[str, ...]
+    external_position_mappings: tuple[
+        Literal[
+            "pybdsf-source-moment-where-grouping-and-model-semantics-align",
+            "aegean-component-centre-compact-gaussian-scope-only",
+            "selavy-island-centroid-semantic-precedent",
+            "profound-segment-centroid-semantic-precedent",
+        ],
+        ...,
+    ]
+    development_execution_authorized: Literal[True]
+    confirmation_execution_authorized: Literal[False]
+    step_two_c_p_execution_authorized: Literal[False]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_review(self) -> Self:
+        """Bind new populations, all strata, and product mappings."""
+        expected_datasets = (
+            (
+                "development",
+                "config/datasets/phase-5-astrometry-follow-up-development.json",
+                80,
+            ),
+            (
+                "regression",
+                "config/datasets/phase-5-astrometry-follow-up-confirmation.json",
+                400,
+            ),
+        )
+        observed_datasets = tuple(
+            (item.role, item.manifest, item.image_count)
+            for item in self.dataset_manifests
+        )
+        if observed_datasets != expected_datasets:
+            raise ValueError("follow-up datasets must remain frozen")
+        if self.governed_strata != tuple(sorted(_PHASE_FIVE_REQUIRED_STRATA)):
+            raise ValueError("follow-up governed strata must remain complete")
+        expected_mappings = (
+            "pybdsf-source-moment-where-grouping-and-model-semantics-align",
+            "aegean-component-centre-compact-gaussian-scope-only",
+            "selavy-island-centroid-semantic-precedent",
+            "profound-segment-centroid-semantic-precedent",
+        )
+        if self.external_position_mappings != expected_mappings:
+            raise ValueError("follow-up external mappings must remain exact")
+        return self
+
+
+class PhaseFiveAstrometryFollowUpDevelopmentDecision(_ContractModel):
+    """Technical review of fresh irregular-position development evidence."""
+
+    schema_version: Literal[1]
+    decision_id: Literal["phase-5-astrometry-follow-up-development-decision"]
+    status: Literal[
+        "technical-review-complete-awaiting-human-scientific-review"
+    ]
+    protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    base_protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    development_manifest_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_configuration_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_source_tree_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidate: Literal["original-pixel-detected-segment-centroid"]
+    image_count: Literal[80]
+    group_count: Literal[480]
+    endpoint_count: Literal[60]
+    failed_endpoint_count: Literal[0]
+    overall_availability_fraction: float
+    overall_axis_bias_upper_bounds_beams: tuple[float, float]
+    overall_radial_p95_beams: float
+    overall_radial_p95_upper_bound_beams: float
+    overall_radial_median_beams: float
+    former_target_radial_p95_beams: float
+    limiting_radial_strata: tuple[str, ...]
+    limiting_radial_p95_upper_bound_beams: float
+    decision: Literal["retain-candidate-for-human-review"]
+    selected_candidate: Literal["original-pixel-detected-segment-centroid"]
+    named_review: Literal["codex-step-2c-hr-development-evidence-review"]
+    review_scope: Literal["technical-and-governed-fresh-development-evidence"]
+    independent_human_scientific_review: Literal["still-required"]
+    confirmation_execution_authorized: Literal[False]
+    step_two_c_p_execution_authorized: Literal[False]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+    next_action: Literal["named-human-scientific-review-before-confirmation"]
+
+    @model_validator(mode="after")
+    def validate_technical_decision(self) -> Self:
+        """Require passing results while retaining every downstream gate."""
+        metrics = (
+            self.overall_availability_fraction,
+            *self.overall_axis_bias_upper_bounds_beams,
+            self.overall_radial_p95_beams,
+            self.overall_radial_p95_upper_bound_beams,
+            self.overall_radial_median_beams,
+            self.former_target_radial_p95_beams,
+            self.limiting_radial_p95_upper_bound_beams,
+        )
+        if not all(isfinite(item) and item >= 0 for item in metrics):
+            raise ValueError(
+                "development metrics must be finite and non-negative"
+            )
+        if (
+            self.overall_availability_fraction != 1.0
+            or max(self.overall_axis_bias_upper_bounds_beams)
+            > _PHASE_FIVE_EXTENDED_MAXIMUM_AXIS_BIAS_BEAMS
+            or self.overall_radial_p95_upper_bound_beams
+            > _PHASE_FIVE_EXTENDED_MAXIMUM_RADIAL_P95_BEAMS
+            or self.limiting_radial_p95_upper_bound_beams
+            > _PHASE_FIVE_EXTENDED_MAXIMUM_RADIAL_P95_BEAMS
+        ):
+            raise ValueError("development gates must all pass")
+        if (
+            self.overall_radial_median_beams > self.overall_radial_p95_beams
+            or self.overall_radial_p95_beams
+            > self.overall_radial_p95_upper_bound_beams
+        ):
+            raise ValueError("radial development summaries must be ordered")
+        expected_limiting = (
+            "above-compact-deblend-limit",
+            "morphology-shell",
+            "tile-corner",
+        )
+        if self.limiting_radial_strata != expected_limiting:
+            raise ValueError("limiting radial strata must remain exact")
+        return self
+
+
+class PhaseFiveAstrometryFollowUpHumanDecision(_ContractModel):
+    """Named scientific approval of one-look segment-position confirmation."""
+
+    schema_version: Literal[1]
+    decision_id: Literal["phase-5-astrometry-follow-up-human-decision"]
+    status: Literal["approved-confirmation-only"]
+    protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    development_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    development_evidence_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    confirmation_manifest_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    reviewer: Literal["Gemma Danks"]
+    review_source: Literal["interactive-project-owner-approval"]
+    reviewed_on: Literal["2026-08-09"]
+    decision: Literal["approve-one-look-confirmation"]
+    candidate: Literal["original-pixel-detected-segment-centroid"]
+    approved_findings: tuple[str, ...]
+    closed_confirmation_policy: Literal[
+        "one-look-no-tuning-rescoring-or-reconfirmation"
+    ]
+    independent_human_scientific_review_complete: Literal[True]
+    confirmation_execution_authorized: Literal[True]
+    step_two_c_p_execution_authorized: Literal[False]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+    next_action: Literal[
+        "run-sealed-confirmation-once-and-review-before-external-comparison"
+    ]
+
+    @model_validator(mode="after")
+    def validate_approval_scope(self) -> Self:
+        """Require every reviewed safeguard and no downstream authority."""
+        expected = (
+            "compact-and-irregular-position-semantics-remain-distinct",
+            "irregular-axis-0p10-and-radial-p95-0p50-gates",
+            "narrow-shell-margin-accepted-for-confirmation",
+            "position-uncertainty-remains-unavailable",
+            "one-look-confirmation-without-tuning",
+        )
+        if self.approved_findings != expected:
+            raise ValueError(
+                "approved findings must remain complete and exact"
+            )
+        return self
+
+
+class PhaseFiveAstrometryFollowUpConfirmationDecision(_ContractModel):
+    """Reviewed one-look decision for the segment-position confirmation."""
+
+    schema_version: Literal[1]
+    decision_id: Literal["phase-5-astrometry-follow-up-confirmation-decision"]
+    status: Literal["reviewed-passed"]
+    protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    human_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    confirmation_manifest_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_configuration_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_source_tree_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidate: Literal["original-pixel-detected-segment-centroid"]
+    image_count: Literal[400]
+    group_count: Literal[2400]
+    endpoint_count: Literal[60]
+    failed_endpoint_count: Literal[0]
+    overall_availability_fraction: float
+    overall_axis_bias_upper_bounds_beams: tuple[float, float]
+    overall_radial_p95_beams: float
+    overall_radial_p95_upper_bound_beams: float
+    overall_radial_median_beams: float
+    former_target_radial_p95_beams: float
+    limiting_radial_strata: tuple[str, ...]
+    limiting_radial_p95_upper_bound_beams: float
+    confirmation_result: Literal["pass-awaiting-reviewed-decision"]
+    decision: Literal["confirm-candidate-for-external-comparison"]
+    selected_candidate: Literal["original-pixel-detected-segment-centroid"]
+    named_review: Literal["codex-step-2c-hr-confirmation-evidence-review"]
+    review_scope: Literal["technical-and-governed-one-look-confirmation"]
+    independent_human_scientific_review: Literal[
+        "completed-before-confirmation"
+    ]
+    confirmation_reuse: Literal["closed-after-one-look"]
+    step_two_c_p_protocol_freeze_authorized: Literal[True]
+    step_two_c_p_execution_authorized: Literal[False]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+    next_action: Literal[
+        "freeze-external-comparison-protocol-before-generating-output"
+    ]
+
+    @model_validator(mode="after")
+    def validate_confirmation_decision(self) -> Self:
+        """Require every frozen confirmation gate and keep execution closed."""
+        metrics = (
+            self.overall_availability_fraction,
+            *self.overall_axis_bias_upper_bounds_beams,
+            self.overall_radial_p95_beams,
+            self.overall_radial_p95_upper_bound_beams,
+            self.overall_radial_median_beams,
+            self.former_target_radial_p95_beams,
+            self.limiting_radial_p95_upper_bound_beams,
+        )
+        if not all(isfinite(item) and item >= 0 for item in metrics):
+            raise ValueError(
+                "confirmation metrics must be finite and non-negative"
+            )
+        if (
+            self.overall_availability_fraction != 1.0
+            or max(self.overall_axis_bias_upper_bounds_beams)
+            > _PHASE_FIVE_EXTENDED_MAXIMUM_AXIS_BIAS_BEAMS
+            or self.overall_radial_p95_upper_bound_beams
+            > _PHASE_FIVE_EXTENDED_MAXIMUM_RADIAL_P95_BEAMS
+            or self.limiting_radial_p95_upper_bound_beams
+            > _PHASE_FIVE_EXTENDED_MAXIMUM_RADIAL_P95_BEAMS
+        ):
+            raise ValueError("confirmation gates must all pass")
+        if (
+            self.overall_radial_median_beams > self.overall_radial_p95_beams
+            or self.overall_radial_p95_beams
+            > self.overall_radial_p95_upper_bound_beams
+        ):
+            raise ValueError("radial confirmation summaries must be ordered")
+        expected_limiting = (
+            "above-compact-deblend-limit",
+            "morphology-shell",
+            "tile-corner",
+        )
+        if self.limiting_radial_strata != expected_limiting:
+            raise ValueError("limiting radial strata must remain exact")
+        return self
+
+
+class PhaseFiveExternalReference(_ContractModel):
+    """One immutable Step 2C-P source-finder runtime."""
+
+    finder_id: Literal[
+        "released-pybdsf",
+        "pinned-pybdsf-master",
+        "aegean",
+    ]
+    version: str = Field(min_length=1)
+    source_revision: str = Field(pattern=r"^[0-9a-f]{40}$")
+    artifact_type: Literal["pypi-sdist", "local-wheel", "pypi-wheel"]
+    artifact_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    container_image_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    dependency_inventory_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    comparison_scope: Literal[
+        "binding-full-continuum",
+        "binding-compact-blended-and-gaussian-like-catalogue",
+    ]
+
+
+class PhaseFiveExternalPopulation(_ContractModel):
+    """One fresh seed-disjoint external-comparison population."""
+
+    lane: Literal["continuum", "compact-blend"]
+    manifest: str = Field(pattern=r"^config/datasets/[a-z0-9-]+\.json$")
+    manifest_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    role: Literal["regression"]
+    image_count: Literal[600, 800]
+    independent_unit: Literal["noise-seed-image"]
+    geometry_policy: Literal[
+        "reviewed-generator-geometries-new-noise-images-no-prior-results"
+    ]
+
+
+class PhaseFiveExternalMatcher(_ContractModel):
+    """Finder-neutral truth association and like-product mapping."""
+
+    truth_authority: Literal["analytic-and-injected-truth-first"]
+    coordinate_system: Literal["zero-based-fits-pixel-centre-x-y"]
+    compact_edge: Literal["centre-distance-at-most-half-restoring-beam-fwhm"]
+    extended_edge: Literal[
+        "minimum-support-overlap-at-least-0.1-or-centre-in-one-beam-dilation"
+    ]
+    primary_assignment: Literal[
+        "maximum-cardinality-maximum-overlap-minimum-distance-stable-id"
+    ]
+    topology_rule: Literal[
+        "retain-all-eligible-edges-after-primary-assignment"
+    ]
+    no_cross_finder_matching: Literal[True]
+    hebog_compact_position: Literal["fitted-gaussian-component-centre"]
+    hebog_extended_position: Literal["detected-segment-flux-centroid"]
+    pybdsf_compact_position: Literal["gaussian-component-centre"]
+    pybdsf_extended_position: Literal[
+        "source-moment-only-when-grouping-and-model-semantics-align"
+    ]
+    aegean_position: Literal[
+        "component-centre-compact-gaussian-and-mixed-scope-only"
+    ]
+    hebog_support: Literal["reconciled-detected-segment"]
+    pybdsf_support: Literal["island-mask"]
+    aegean_support: Literal["three-sigma-fitted-ellipse-union-proxy"]
+    aegean_mask_metrics: Literal["unavailable-not-failure"]
+
+
+class PhaseFiveExternalPybdsfConfiguration(_ContractModel):
+    """Exact Rapthor-profile PyBDSF settings for both references."""
+
+    threshold_pixel_sigma: float = Field(ge=5.0, le=5.0, allow_inf_nan=False)
+    threshold_island_sigma: float = Field(ge=3.0, le=3.0, allow_inf_nan=False)
+    threshold_type: Literal["hard"]
+    mean_map: Literal["zero"]
+    rms_map: Literal[True]
+    rms_box: tuple[Literal[150], Literal[50]]
+    adaptive_rms_box: Literal[True]
+    rms_box_bright: tuple[Literal[35], Literal[7]]
+    adaptive_threshold: float = Field(ge=75.0, le=75.0, allow_inf_nan=False)
+    atrous_do: Literal[True]
+    atrous_bdsm_do: Literal[True]
+    atrous_jmax: Literal[3]
+    atrous_lpf: Literal["b3"]
+    atrous_sum: Literal[True]
+    atrous_orig_isl: Literal[False]
+    primary_background: Literal["finder-operational"]
+    controlled_background_diagnostic: Literal[
+        "same-frozen-mean-and-rms-via-rmsmean-map-filename"
+    ]
+
+
+class PhaseFiveExternalAegeanConfiguration(_ContractModel):
+    """Exact blind Aegean primary and threshold-matched diagnostic."""
+
+    mode: Literal["blind-source-finding"]
+    primary_seedclip_sigma: float = Field(
+        ge=5.0,
+        le=5.0,
+        allow_inf_nan=False,
+    )
+    primary_floodclip_sigma: float = Field(
+        ge=4.0,
+        le=4.0,
+        allow_inf_nan=False,
+    )
+    threshold_matched_seedclip_sigma: float = Field(
+        ge=5.0,
+        le=5.0,
+        allow_inf_nan=False,
+    )
+    threshold_matched_floodclip_sigma: float = Field(
+        ge=3.0,
+        le=3.0,
+        allow_inf_nan=False,
+    )
+    covariance: Literal["enabled"]
+    island_catalogue: Literal[True]
+    cores: Literal[1]
+    primary_background: Literal["finder-operational-internal-estimation"]
+    controlled_background_diagnostic: Literal["same-frozen-background-and-rms"]
+
+
+class PhaseFiveExternalPowerAssumption(_ContractModel):
+    """Planning variance bound for one continuum endpoint family."""
+
+    metric_family: Literal[
+        "completeness",
+        "reliability",
+        "integrated-flux-median",
+        "integrated-flux-p95",
+        "position-median",
+        "position-p95",
+        "duplicate-fraction",
+        "mask-precision",
+        "mask-recall",
+        "mask-iou",
+        "split-fraction",
+        "merge-fraction",
+    ]
+    practical_regression_margin: float = Field(gt=0, allow_inf_nan=False)
+    planning_expected_regression: float = Field(allow_inf_nan=False)
+    planning_paired_standard_deviation: float = Field(
+        gt=0,
+        allow_inf_nan=False,
+    )
+    comparison_count: int = Field(ge=1)
+
+    @model_validator(mode="after")
+    def validate_alternative(self) -> Self:
+        """Keep the planning alternative inside its practical margin."""
+        if self.planning_expected_regression >= (
+            self.practical_regression_margin
+        ):
+            raise ValueError("planning regression must be below margin")
+        return self
+
+
+class PhaseFiveExternalPowerAudit(_ContractModel):
+    """Prospective joint-power audit across continuum and compact lanes."""
+
+    method: Literal[
+        "cluster-normal-planning-plus-conservative-union-lower-bound"
+    ]
+    confidence_level: float = Field(ge=0.95, le=0.95, allow_inf_nan=False)
+    minimum_joint_power: float = Field(ge=0.9, le=0.9, allow_inf_nan=False)
+    continuum_realization_count: Literal[600]
+    continuum_assumptions: tuple[PhaseFiveExternalPowerAssumption, ...] = (
+        Field(min_length=12, max_length=12)
+    )
+    continuum_familywise_power_lower_bound: float = Field(
+        ge=0,
+        le=1,
+        allow_inf_nan=False,
+    )
+    compact_reviewed_contract_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    compact_realization_count: Literal[800]
+    compact_single_reference_familywise_power_lower_bound: float = Field(
+        ge=0,
+        le=1,
+        allow_inf_nan=False,
+    )
+    compact_reference_count: Literal[3]
+    compact_familywise_power_lower_bound: float = Field(
+        ge=0,
+        le=1,
+        allow_inf_nan=False,
+    )
+    combined_familywise_power_lower_bound: float = Field(
+        ge=0,
+        le=1,
+        allow_inf_nan=False,
+    )
+    assumption_failure: Literal[
+        "observed-variance-above-bound-makes-comparison-underpowered"
+    ]
+
+    @model_validator(mode="after")
+    def validate_power(self) -> Self:
+        """Recompute every conservative lower bound from frozen inputs."""
+        expected_order = (
+            "completeness",
+            "reliability",
+            "integrated-flux-median",
+            "integrated-flux-p95",
+            "position-median",
+            "position-p95",
+            "duplicate-fraction",
+            "mask-precision",
+            "mask-recall",
+            "mask-iou",
+            "split-fraction",
+            "merge-fraction",
+        )
+        if (
+            tuple(item.metric_family for item in self.continuum_assumptions)
+            != expected_order
+        ):
+            raise ValueError("continuum power assumptions must be canonical")
+        critical = NormalDist().inv_cdf(self.confidence_level)
+        total_failure = 0.0
+        for item in self.continuum_assumptions:
+            standard_error = item.planning_paired_standard_deviation / (
+                self.continuum_realization_count**0.5
+            )
+            threshold = (
+                item.practical_regression_margin - critical * standard_error
+            )
+            power = NormalDist().cdf(
+                (threshold - item.planning_expected_regression)
+                / standard_error
+            )
+            total_failure += item.comparison_count * (1.0 - power)
+        continuum = max(0.0, 1.0 - total_failure)
+        compact = max(
+            0.0,
+            1.0
+            - self.compact_reference_count
+            * (
+                1.0
+                - self.compact_single_reference_familywise_power_lower_bound
+            ),
+        )
+        combined = max(0.0, 1.0 - (1.0 - continuum) - (1.0 - compact))
+        declared = (
+            self.continuum_familywise_power_lower_bound,
+            self.compact_familywise_power_lower_bound,
+            self.combined_familywise_power_lower_bound,
+        )
+        calculated = (continuum, compact, combined)
+        if any(
+            abs(left - right) > _POWER_RECOMPUTATION_TOLERANCE
+            for left, right in zip(declared, calculated, strict=True)
+        ):
+            raise ValueError("declared external-comparison power is stale")
+        if combined < self.minimum_joint_power:
+            raise ValueError("external-comparison power is below target")
+        return self
+
+
+class PhaseFiveExternalComparisonProtocol(_ContractModel):
+    """Frozen pre-results Step 2C-P external source-finder protocol."""
+
+    schema_version: Literal[1]
+    contract_id: Literal["phase-5-external-comparison"]
+    status: Literal["frozen-before-external-output"]
+    confirmation_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    phase_five_scientific_gates_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    phase_four_scientific_gates_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    phase_four_metric_registry_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidate: Literal["residual-b3-original-pixel-measurement"]
+    candidate_position: Literal["confirmed-detected-segment-centroid"]
+    references: tuple[PhaseFiveExternalReference, ...] = Field(
+        min_length=3,
+        max_length=3,
+    )
+    populations: tuple[PhaseFiveExternalPopulation, ...] = Field(
+        min_length=2,
+        max_length=2,
+    )
+    pybdsf_configuration: PhaseFiveExternalPybdsfConfiguration
+    aegean_configuration: PhaseFiveExternalAegeanConfiguration
+    matcher: PhaseFiveExternalMatcher
+    continuum_binding_metrics: tuple[str, ...] = Field(min_length=10)
+    compact_binding_registry: Literal["phase-4r-metric-registry"]
+    aegean_binding_scope: Literal[
+        "compact-blended-gaussian-like-and-mixed-catalogue-products"
+    ]
+    aegean_diagnostic_scope: Literal[
+        "diffuse-filament-shell-mask-and-multiscale-provenance"
+    ]
+    resampling: Literal[
+        "paired-whole-image-fixed-seed-bca-one-sided-95-percent"
+    ]
+    bootstrap_resamples: Literal[50000]
+    bootstrap_seed: Literal[20260810]
+    decision_rule: Literal[
+        "absolute-first-every-applicable-noninferiority-gate-no-compensation"
+    ]
+    incomplete_reference_policy: Literal[
+        "comparison-unavailable-and-step-two-c-p-fails-closed"
+    ]
+    failure_denominator: Literal["retain-every-image"]
+    one_look_rule: Literal[
+        "one-terminal-look-no-tuning-rescoring-or-adaptive-sample-size"
+    ]
+    power_audit: PhaseFiveExternalPowerAudit
+    public_cutout: Literal[
+        "deferred-to-step-6-no-redistributable-checksum-bound-input-on-host"
+    ]
+    scientific_outcomes_before_runtime: Literal[True]
+    execution_authorized: Literal[False]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+    next_action: Literal[
+        "implement-and-hash-runners-and-matcher-before-execution-review"
+    ]
+
+    @model_validator(mode="after")
+    def validate_external_protocol(self) -> Self:
+        """Require canonical references, populations, and metric families."""
+        if tuple(item.finder_id for item in self.references) != (
+            "released-pybdsf",
+            "pinned-pybdsf-master",
+            "aegean",
+        ):
+            raise ValueError("external reference order must remain canonical")
+        reference_identities = tuple(
+            (
+                item.finder_id,
+                item.version,
+                item.source_revision,
+                item.artifact_type,
+                item.artifact_sha256,
+                item.container_image_digest,
+                item.dependency_inventory_sha256,
+                item.comparison_scope,
+            )
+            for item in self.references
+        )
+        expected_reference_identities = (
+            (
+                "released-pybdsf",
+                "1.14.1",
+                "1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc",
+                "pypi-sdist",
+                "8d5113fecca19bb9f02a1a3e17aeb8f2d22c712cac9504e44271c4071f5434d2",
+                "sha256:72454074489d5ed0d0ed08781ec11411a3e25ccf75e3378a924152176fa15b37",
+                "8211043e9fca55d706d1e890e2bf0b630e228a854db0949258c498506975669f",
+                "binding-full-continuum",
+            ),
+            (
+                "pinned-pybdsf-master",
+                "1.14.2.dev40+gc70103be3",
+                "c70103be3ae9ae9908286f144e6ce956acc0ce5c",
+                "local-wheel",
+                "2f1fdfbecd39de93bad53e2a85258959e5114e1f049787ac15c763e8fc8f4d8d",
+                "sha256:192964b32d50a6e960cf3710013ffa92d782ecf43a4d6def4309a7cb10911e73",
+                "83574dd4c15d79f3cf2ac52fb8aa7b5bd2ff323c93343b2f1337eec938e8bf99",
+                "binding-full-continuum",
+            ),
+            (
+                "aegean",
+                "2.3.5",
+                "bb04f50a3ec117d180a79260c6a5c844f1d8dbbc",
+                "pypi-wheel",
+                "dda95cb525e229b60bc357d3e5fc454cac20f364ee8aa10b730c2f7223da428d",
+                "sha256:b496d2907c13d083e7c87eda61a6a40057f92b5cb6e605330bcb1b6db27158b8",
+                "346c1f32b0d78ce1d22f6d6ff20787a102d8491c14432865465596c9f41ba909",
+                "binding-compact-blended-and-gaussian-like-catalogue",
+            ),
+        )
+        if reference_identities != expected_reference_identities:
+            raise ValueError("external reference identities must remain exact")
+        if tuple(item.lane for item in self.populations) != (
+            "continuum",
+            "compact-blend",
+        ):
+            raise ValueError("external population order must remain canonical")
+        population_identities = tuple(
+            (item.lane, item.manifest, item.image_count)
+            for item in self.populations
+        )
+        if population_identities != (
+            (
+                "continuum",
+                "config/datasets/phase-5-external-continuum.json",
+                600,
+            ),
+            (
+                "compact-blend",
+                "config/datasets/phase-5-external-compact-blend.json",
+                800,
+            ),
+        ):
+            raise ValueError(
+                "external population identities must remain exact"
+            )
+        expected_metrics = (
+            "completeness",
+            "reliability",
+            "integrated-flux-median",
+            "integrated-flux-p95",
+            "position-median",
+            "position-p95",
+            "duplicate-fraction",
+            "mask-precision",
+            "mask-recall",
+            "mask-iou",
+            "split-fraction",
+            "merge-fraction",
+        )
+        if self.continuum_binding_metrics != expected_metrics:
+            raise ValueError("continuum metrics must remain canonical")
+        return self
+
+
+class PhaseFiveExternalRunnerArtifact(_ContractModel):
+    """One isolated runner bound by a reviewed execution decision."""
+
+    relative_path: Literal[
+        "scripts/benchmark/run_phase5_external_hebog.py",
+        "scripts/benchmark/run_phase5_external_pybdsf.py",
+        "scripts/benchmark/run_phase5_external_aegean.py",
+    ]
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class PhaseFiveExternalExecutionDecision(_ContractModel):
+    """Named one-look authorization bound to committed runner code."""
+
+    schema_version: Literal[1]
+    decision_id: Literal["phase-5-external-execution-decision"]
+    status: Literal[
+        "awaiting-reconstructed-runtime-approval",
+        "reviewed-before-external-output",
+    ]
+    protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidate_review_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    implementation_commit: str = Field(pattern=r"^[0-9a-f]{40}$")
+    source_tree_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    hebog_container_image_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    hebog_dependency_inventory_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    pybdsf_ncores: int = Field(ge=1)
+    runners: tuple[
+        PhaseFiveExternalRunnerArtifact,
+        PhaseFiveExternalRunnerArtifact,
+        PhaseFiveExternalRunnerArtifact,
+    ]
+    named_review: str = Field(min_length=1)
+    decision: Literal[
+        "await-renewed-runtime-approval",
+        "authorize-one-terminal-external-comparison",
+    ]
+    execution_authorized: bool
+    one_look_opened: Literal[False]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+    next_action: Literal[
+        "execute-complete-frozen-comparison-once-without-opening-partial-results",
+        "obtain-renewed-runtime-approval-before-campaign-preflight",
+    ]
+
+    @model_validator(mode="after")
+    def validate_state_and_runner_order(self) -> Self:
+        """Keep authorization state and entry points canonical."""
+        pending = self.status == "awaiting-reconstructed-runtime-approval"
+        expected_state = (
+            (
+                "await-renewed-runtime-approval",
+                False,
+                "obtain-renewed-runtime-approval-before-campaign-preflight",
+            )
+            if pending
+            else (
+                "authorize-one-terminal-external-comparison",
+                True,
+                "execute-complete-frozen-comparison-once-without-opening-"
+                "partial-results",
+            )
+        )
+        observed_state = (
+            self.decision,
+            self.execution_authorized,
+            self.next_action,
+        )
+        if observed_state != expected_state:
+            raise ValueError(
+                "external execution authorization state is invalid"
+            )
+        if tuple(item.relative_path for item in self.runners) != (
+            "scripts/benchmark/run_phase5_external_hebog.py",
+            "scripts/benchmark/run_phase5_external_pybdsf.py",
+            "scripts/benchmark/run_phase5_external_aegean.py",
+        ):
+            raise ValueError("external runner order must remain canonical")
+        return self
+
+
+class PhaseFiveFilterPairedCandidateDecision(_ContractModel):
+    """Conjunctive Step 2B outcome for one existing representation."""
+
+    family: Literal["beam-aware-matched-filter", "undecimated-wavelet"]
+    passes_absolute: Literal[False]
+    noninferior_to_other: Literal[False]
+    failed_absolute_endpoint_count: int = Field(ge=1)
+    failed_paired_endpoint_count: int = Field(ge=1)
+    bounded_cost: tuple[int, int, int]
+
+    @model_validator(mode="after")
+    def validate_cost(self) -> Self:
+        """Require a complete positive structural-cost diagnostic."""
+        if any(value <= 0 for value in self.bounded_cost):
+            raise ValueError("paired-decision bounded costs must be positive")
+        return self
+
+
+class PhaseFiveFilterPairedDecision(_ContractModel):
+    """Reviewed fail-closed decision produced by the frozen Step 2B review."""
+
+    schema_version: Literal[1]
+    decision_id: Literal["phase-5-filter-paired-decision"]
+    status: Literal["reviewed-inconclusive"]
+    protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_source_tree_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_configuration_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    prior_selection_contract_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidates: tuple[PhaseFiveFilterPairedCandidateDecision, ...]
+    decision: Literal["select-neither"]
+    selected_family: None
+    named_review: Literal["codex-step-2b-governed-evidence-review"]
+    review_scope: Literal[
+        "technical-and-governed-development-regression-evidence"
+    ]
+    independent_human_scientific_review: Literal["still-required"]
+    next_action: Literal[
+        "freeze-corrective-development-design-before-re-evaluation"
+    ]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_inconclusive_decision(self) -> Self:
+        """Require both canonical failed candidates and no authorization."""
+        if tuple(item.family for item in self.candidates) != (
+            "beam-aware-matched-filter",
+            "undecimated-wavelet",
+        ):
+            raise ValueError("paired-decision candidates must be canonical")
+        return self
+
+
 class PairedResamplingProtocol(_ContractModel):
     """Predeclared interval construction for same-image comparisons."""
 
@@ -1096,5 +4107,201 @@ def load_paired_noninferiority_contract(
 def load_phase_four_metric_registry(path: Path) -> PhaseFourMetricRegistry:
     """Load the Phase 4R direction-aware no-compensation metric registry."""
     return PhaseFourMetricRegistry.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_multiscale_contract(
+    path: Path,
+) -> PhaseFiveMultiscaleContract:
+    """Load frozen Phase 5 scale, ownership, and failure meanings."""
+    return PhaseFiveMultiscaleContract.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_scientific_gates(
+    path: Path,
+) -> PhaseFiveScientificGates:
+    """Load reviewed Phase 5 absolute and paired scientific gates."""
+    return PhaseFiveScientificGates.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_rapthor_profile(
+    path: Path,
+) -> PhaseFiveRapthorProfileContract:
+    """Load the frozen Phase 5 Rapthor profile-selection protocol."""
+    return PhaseFiveRapthorProfileContract.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_public_comparison(
+    path: Path,
+) -> PhaseFivePublicComparisonContract:
+    """Load the proposed Phase 5 public multi-telescope protocol."""
+    return PhaseFivePublicComparisonContract.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_filter_selection(
+    path: Path,
+) -> PhaseFiveFilterSelection:
+    """Load the reviewed Phase 5 filter-family decision."""
+    return PhaseFiveFilterSelection.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_filter_review(path: Path) -> PhaseFiveFilterReview:
+    """Load the frozen Step 2B paired representation-review contract."""
+    return PhaseFiveFilterReview.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_filter_paired_decision(
+    path: Path,
+) -> PhaseFiveFilterPairedDecision:
+    """Load the reviewed fail-closed Step 2B representation decision."""
+    return PhaseFiveFilterPairedDecision.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_corrective_review(
+    path: Path,
+) -> PhaseFiveCorrectiveReview:
+    """Load the frozen Step 2C corrective continuum-review contract."""
+    return PhaseFiveCorrectiveReview.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_corrective_r_review(
+    path: Path,
+) -> PhaseFiveCorrectiveRReview:
+    """Load the frozen Step 2C-R final-output correction contract."""
+    return PhaseFiveCorrectiveRReview.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_corrective_a_review(
+    path: Path,
+) -> PhaseFiveCorrectiveAReview:
+    """Load the frozen independent Step 2C-A astrometry review."""
+    return PhaseFiveCorrectiveAReview.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_corrective_decision(
+    path: Path,
+) -> PhaseFiveCorrectiveDecision:
+    """Load the reviewed fail-closed Step 2C corrective decision."""
+    return PhaseFiveCorrectiveDecision.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_corrective_r_decision(
+    path: Path,
+) -> PhaseFiveCorrectiveRDecision:
+    """Load the reviewed fail-closed Step 2C-R decision."""
+    return PhaseFiveCorrectiveRDecision.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_corrective_a_decision(
+    path: Path,
+) -> PhaseFiveCorrectiveADecision:
+    """Load the reviewed fail-closed one-look Step 2C-A decision."""
+    return PhaseFiveCorrectiveADecision.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_astrometry_human_decision(
+    path: Path,
+) -> PhaseFiveAstrometryHumanDecision:
+    """Load the approved prospective Step 2C-H astrometry decision."""
+    return PhaseFiveAstrometryHumanDecision.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_astrometry_revision_review(
+    path: Path,
+) -> PhaseFiveAstrometryRevisionReview:
+    """Load the frozen successor Step 2C-H astrometry review."""
+    return PhaseFiveAstrometryRevisionReview.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_astrometry_selection_decision(
+    path: Path,
+) -> PhaseFiveAstrometrySelectionDecision:
+    """Load the reviewed successor astrometry development decision."""
+    return PhaseFiveAstrometrySelectionDecision.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_astrometry_follow_up_review(
+    path: Path,
+) -> PhaseFiveAstrometryFollowUpReview:
+    """Load the frozen Step 2C-HR position-semantics review."""
+    return PhaseFiveAstrometryFollowUpReview.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_astrometry_follow_up_development_decision(
+    path: Path,
+) -> PhaseFiveAstrometryFollowUpDevelopmentDecision:
+    """Load the technical review of fresh segment-position development."""
+    return PhaseFiveAstrometryFollowUpDevelopmentDecision.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_astrometry_follow_up_human_decision(
+    path: Path,
+) -> PhaseFiveAstrometryFollowUpHumanDecision:
+    """Load the named confirmation-only Step 2C-HR approval."""
+    return PhaseFiveAstrometryFollowUpHumanDecision.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_follow_up_confirmation_decision(
+    path: Path,
+) -> PhaseFiveAstrometryFollowUpConfirmationDecision:
+    """Load the reviewed Step 2C-HR one-look confirmation decision."""
+    return PhaseFiveAstrometryFollowUpConfirmationDecision.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_external_comparison_protocol(
+    path: Path,
+) -> PhaseFiveExternalComparisonProtocol:
+    """Load the frozen Step 2C-P external source-finder protocol."""
+    return PhaseFiveExternalComparisonProtocol.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_external_execution_decision(
+    path: Path,
+) -> PhaseFiveExternalExecutionDecision:
+    """Load the reviewed one-look Step 2C-P execution authorization."""
+    return PhaseFiveExternalExecutionDecision.model_validate_json(
         path.read_text(encoding="utf-8")
     )

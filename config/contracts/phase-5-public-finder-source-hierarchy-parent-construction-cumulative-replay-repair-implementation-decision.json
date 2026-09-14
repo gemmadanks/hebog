@@ -1,0 +1,27 @@
+{
+  "approval": {
+    "approved_on": "2026-08-29",
+    "exact_user_instruction": "Please fix the error and restart the run.",
+    "reviewer": "Gemma Danks"
+  },
+  "authorization": {
+    "candidate_or_science_change_authorized": false,
+    "cumulative_replay_repair_implementation_authorized": true,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "replacement_identity_freeze_authorized": true,
+    "rescoring_authorized": false,
+    "threshold_or_photometric_tuning_authorized": false,
+    "viewed_sdc1_hydra_execution_authorized": false
+  },
+  "decision_id": "phase-5-public-finder-source-hierarchy-parent-construction-cumulative-replay-repair-implementation-decision",
+  "failure_path": "config/contracts/phase-5-public-finder-source-hierarchy-parent-construction-cumulative-replay-execution-failure.json",
+  "pre_review": {
+    "path": "config/contracts/phase-5-public-finder-source-hierarchy-parent-construction-cumulative-replay-repair-pre-review.json",
+    "sha256": "e492110f55005d833a833d474745ac2a957aa456541bedf9dfbc0cd52b4a00f9"
+  },
+  "schema_version": 1,
+  "status": "authorized-for-wrapper-only-repair-and-replacement-identity-freeze"
+}

@@ -1,0 +1,33 @@
+{
+  "candidate_configuration_sha256": "88634678d7b24c9d9d47a5ba714c66fcc627c8a201b9639b133e326cd1c72484",
+  "candidate_execution": {
+    "compact_product_count": 800,
+    "continuum_product_count": 1600,
+    "progress_line_count": 2400,
+    "status": "complete",
+    "total_product_count": 2400
+  },
+  "candidate_revision": "5f2b09880dc10feb6ffaec50ffcf3c807a093416",
+  "candidate_source_tree_sha256": "a7ef1887bcaeb15abf48722d45de33f81d8be65d58fde19861bf0ece90b4dba8",
+  "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+  "decision_id": "phase-5-public-finder-source-hierarchy-parent-construction-evaluation-provenance-failure",
+  "failed_on": "2026-08-30",
+  "failure": {
+    "exception": "ValueError: associated source membership cannot be verified",
+    "failed_operation": "compile the first associated Hebog Continuum catalogue into exact source-support unions",
+    "immediate_cause": "the evaluator reconstructed component identities from the first pixel of the recovered measurement-owner label plane, while the catalogue source digest was constructed from canonical pixels in the smaller direct-seed label plane",
+    "missing_evidence": "the cumulative candidate writer discarded PublicFinderCorrectionContinuumProducts.source_association and retained only the source catalogue, recovered label plane, and mask for each Continuum shard",
+    "root_cause": "the evaluation design assumed immutable direct component identities could be inverted from a measurement product whose ownership deliberately grows beyond direct support; that assumption became false when direct-seed and recovered-owner semantics were separated",
+    "scientific_effect": "no cumulative ledger or scientific gate result was published; all candidate and reference products remain immutable and unscored",
+    "test_gap": "fixtures covered label-value permutation but not recovered ownership whose lexicographically first pixel differs from the direct component canonical pixel, and the replay writer contract did not require association provenance for associated catalogues"
+  },
+  "output_path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-hierarchy-parent-construction.json",
+  "output_published": false,
+  "reconstructed_reference_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+  "repair_execution_decision_sha256": "0349fdc26bbc0a12f37270c3580258f303b834fa91ad77a276272d0dc9d4d952",
+  "repair_identity_review_sha256": "89327ae5d129148ec03d222bca1e44fb141ebbe2a8d7fe2522defb53a1aac5da",
+  "schema_version": 1,
+  "scratch_path": "/private/tmp/hebog-phase5-public-finder-source-hierarchy-parent-construction-5f2b098",
+  "session": 36274,
+  "status": "failed-after-complete-candidate-products-before-atomic-ledger"
+}

@@ -1,0 +1,66 @@
+{
+  "algorithm_candidate": {
+    "configuration_sha256": "5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4",
+    "revision": "1d65277b5a0c930813590802bc0fc8bab040835c",
+    "source_tree_sha256": "c2398c10709ab62527b5e26faa0581aaae3783acdd6a6507c49af700bc68279e"
+  },
+  "authorizations": {
+    "candidate_execution": false,
+    "cutover": false,
+    "pybdsf_execution": false,
+    "qualification": false,
+    "release": false,
+    "replay": false,
+    "viewed_data_rescoring": false
+  },
+  "configuration": {
+    "detection_threshold_sigma": 5.0,
+    "island_threshold_sigma": 3.0,
+    "maximum_island_pixels": null,
+    "minimum_island_pixels": 7,
+    "profile": "continuum"
+  },
+  "date": "2026-09-08",
+  "execution_identity": null,
+  "finder_execution_started": false,
+  "frozen_documents": {
+    "notebook_workflow": {
+      "path": "scripts/benchmark/README.md",
+      "sha256": "5b8258480e513ad9d88bc28e096b63cec7999b1ce73cf259259fd5d379f14def"
+    }
+  },
+  "parent_identity": {
+    "path": "config/contracts/phase-5-notebook-fk5-wcs-repair-identity-review.json",
+    "sha256": "8b0d54ed291512ceff56928e625fc44c1bdc0e938f6d4429ddadf9e6f4187ff0"
+  },
+  "qualification_status": "development-unqualified",
+  "repair_scope": {
+    "failure_reason": "fit-linear-algebra-failure",
+    "fit_diagnostics_when_unavailable": null,
+    "joint_failure_disposition": "all-coupled-components-unavailable",
+    "numerical_retry_performed": false,
+    "optimizer_and_bounds_changed": false,
+    "r6_evidence_transfers": false,
+    "real_fit_numerical_cause_confirmed": false,
+    "validation_population": "synthetic-fixtures-only",
+    "warning_scope": "once-per-affected-diagnostic-image"
+  },
+  "schema_version": 1,
+  "scientific_composition": "phase-5-native-component-and-source-measurements-v9",
+  "scientific_composition_sha256": "004961f61a84f58e9d3405ad27a3604b9415154d25b5396e60a9af445eab0aff",
+  "status": "frozen-non-executable",
+  "validation": {
+    "changed_executable_lines_covered": 12,
+    "changed_executable_lines_total": 12,
+    "changed_package_branches_all_covered": true,
+    "changed_runner_branches_all_covered": true,
+    "changed_runner_executable_lines_covered": 7,
+    "changed_runner_executable_lines_total": 7,
+    "coverage_tests_passed": 3301,
+    "equivalence_tests_passed": 27,
+    "focused_tests_passed": 168,
+    "full_check_tests_passed": 3081,
+    "portable_branch_aware_coverage_percent": 95.10405181918412,
+    "pre_commit": "passed-clean"
+  }
+}

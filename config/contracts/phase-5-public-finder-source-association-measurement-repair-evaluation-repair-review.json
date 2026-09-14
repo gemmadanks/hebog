@@ -1,0 +1,76 @@
+{
+  "candidate_execution_authorized": false,
+  "compilation_resume_authorized": false,
+  "evaluation_authorized": false,
+  "implementation": {
+    "commit": "ea3279d6cea50af26d5e5c25aa7904a238718456",
+    "completion_program": {
+      "path": "scripts/validation/complete_phase5_public_finder_source_association_measurement_repair_evaluation.py",
+      "sha256": "105d7e30efc90adafc5f99056642a582119a947009dafc65d45a4720ad968d00"
+    },
+    "evaluation_repair_adapter": {
+      "path": "src/hebog/validation/source_association_evaluation_repair.py",
+      "sha256": "daa8234dcb2af1b234428756e8ae39d0659b4bd58f1095a1bab659227a146948"
+    },
+    "failure": {
+      "path": "config/contracts/phase-5-public-finder-source-association-measurement-repair-cumulative-replay-execution-failure.json",
+      "sha256": "8a0a9bad2ce6be7fecd23906bf95326cdb9ce334be910f298b30258d94902679"
+    },
+    "historical_source_association_program": {
+      "path": "src/hebog/algorithms/source_association.py",
+      "sha256": "73082209b81e78d1bbb8b0885019e56038e2f4e46e106f93a9cd7244bcd15080"
+    },
+    "historical_successor_compiler": {
+      "path": "src/hebog/validation/external_successor_compiler.py",
+      "sha256": "8e38de3b4347faee9636b89d03f8cdcdd77e39fd1e087d2b44454e5fd7063c55"
+    },
+    "historical_support_matcher": {
+      "path": "src/hebog/validation/external_comparison.py",
+      "sha256": "75ea063cb68e807207ddcfd691d05eeb644cd76a624fdb66f34449f6b7638feb"
+    },
+    "pre_review": {
+      "path": "config/contracts/phase-5-public-finder-source-association-measurement-repair-evaluation-repair-pre-review.json",
+      "sha256": "0a62a9b27c2e5ec81068c8d602fd28254ca61449bc789f5f2c908aa55f9609ff"
+    },
+    "tree": "5be72ba49b9dfd9db48dfade3bc758b8517853c2"
+  },
+  "prohibited_authorizations": {
+    "campaign_execution_authorized": false,
+    "candidate_execution_authorized": false,
+    "cumulative_replay_rerun_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false,
+    "viewed_sdc1_hydra_execution_authorized": false
+  },
+  "required_next_decision": "separate-named-approval-bound-to-this-review-for-one-existing-product-compilation-and-evaluation-only",
+  "review_id": "phase-5-public-finder-source-association-measurement-repair-evaluation-repair-review",
+  "schema_version": 1,
+  "status": "reviewed-before-measurement-repair-evaluation-completion",
+  "verified_composition": {
+    "candidate_configuration_sha256": "78dbb230cbb726cbbe02b74f2e7fe96bc42801e2102bf15f0580c0643befe946",
+    "candidate_execution_started": false,
+    "candidate_product_count": 2400,
+    "candidate_product_set_sha256": "dbc317fa98638d96ebecac26d98014a953defc96ed48a741f42f48954daa48ab",
+    "candidate_revision": "6184a32648eee637f0aca03ab2ec0249bd0510f0",
+    "candidate_source_tree_sha256": "517d56e19a5d58eb386d96bdb181d36afb574ad018222f870cc8434c398044ff",
+    "compilation_started": false,
+    "completion_program_sha256": "105d7e30efc90adafc5f99056642a582119a947009dafc65d45a4720ad968d00",
+    "consumed_wrapper_sha256": "79e8252cd06cca4959b794af231b6078c80a34f996ff5184ed7c8f4994029084",
+    "evaluation_repair_adapter_sha256": "daa8234dcb2af1b234428756e8ae39d0659b4bd58f1095a1bab659227a146948",
+    "evaluation_started": false,
+    "failed_execution_decision_sha256": "5ddc524a4014cadcf4f7df9745dedc963589b6ea7462c686a6b0adcb412a323b",
+    "failure_sha256": "8a0a9bad2ce6be7fecd23906bf95326cdb9ce334be910f298b30258d94902679",
+    "historical_successor_compiler_sha256": "8e38de3b4347faee9636b89d03f8cdcdd77e39fd1e087d2b44454e5fd7063c55",
+    "historical_support_matcher_sha256": "75ea063cb68e807207ddcfd691d05eeb644cd76a624fdb66f34449f6b7638feb",
+    "output_absent": true,
+    "pre_review_sha256": "0a62a9b27c2e5ec81068c8d602fd28254ca61449bc789f5f2c908aa55f9609ff",
+    "reference_reconstruction_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+    "reference_run_count": 9600,
+    "source_association_program_sha256": "73082209b81e78d1bbb8b0885019e56038e2f4e46e106f93a9cd7244bcd15080",
+    "status": "pass"
+  }
+}

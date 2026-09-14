@@ -1,0 +1,32 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": true,
+    "coarse_control_execution_authorized": true,
+    "cutover_authorized": false,
+    "development_lane_execution_authorized": true,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "replay_authorized": false,
+    "rescoring_authorized": false,
+    "source_finding_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "authorization_record": {
+    "approved_on": "2026-09-04",
+    "statement": "I approve running the development lane."
+  },
+  "decision_id": "phase-5-source-owned-measurement-topology-execution-decision",
+  "expected_execution_sha256": "b7d12adb067156dc2727525bb6dcb3a1c331019eff83c6bd724c4b79c85ef80b",
+  "identity_review": {
+    "path": "config/contracts/phase-5-source-owned-measurement-topology-identity-review.json",
+    "sha256": "4c611f1b61113584512f45650ef41e468237c59413b7464a7070cd7bce0e4944"
+  },
+  "identity_review_sha256": "4c611f1b61113584512f45650ef41e468237c59413b7464a7070cd7bce0e4944",
+  "output": "benchmark-results/phase-5/source-owned-measurement-topology-development-decision.json",
+  "schema_version": 1,
+  "status": "authorized-for-one-development-lane",
+  "workers": 2
+}

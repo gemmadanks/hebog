@@ -1,0 +1,84 @@
+{
+  "comparison": {
+    "paired_interval": "one-sided-95-percent-upper-regression-limit",
+    "references": [
+      "released-pybdsf",
+      "pinned-pybdsf-master"
+    ],
+    "rule": "every-absolute-and-paired-gate-passes-no-compensation",
+    "truth_oracle": "analytic-and-injected-truth"
+  },
+  "confidence_level": 0.95,
+  "contract_id": "phase-5-scientific-gates",
+  "generated_regression": {
+    "maximum_duplicate_fraction": 0.02,
+    "maximum_median_integrated_flux_fractional_error": 0.1,
+    "maximum_median_position_beams": 0.1,
+    "maximum_merge_fraction": 0.1,
+    "maximum_percentile_95_integrated_flux_fractional_error": 0.25,
+    "maximum_percentile_95_position_beams": 0.25,
+    "maximum_split_fraction": 0.1,
+    "minimum_completeness": 0.9,
+    "minimum_mask_intersection_over_union": 0.8,
+    "minimum_mask_precision": 0.85,
+    "minimum_mask_recall": 0.9,
+    "minimum_rapthor_decision_agreement": 0.995,
+    "minimum_reliability": 0.95
+  },
+  "governed_strata": [
+    "above-compact-deblend-limit",
+    "image-edge",
+    "invalid-pixels",
+    "morphology-artifact",
+    "morphology-curved-filament",
+    "morphology-diffuse",
+    "morphology-filament",
+    "morphology-mixed-compact-extended",
+    "morphology-shell",
+    "scale-1-beam",
+    "scale-2-beam",
+    "scale-4-beam",
+    "tile-boundary",
+    "tile-corner",
+    "varying-noise"
+  ],
+  "heldout_qualification": {
+    "maximum_duplicate_fraction": 0.02,
+    "maximum_median_integrated_flux_fractional_error": 0.1,
+    "maximum_median_position_beams": 0.1,
+    "maximum_merge_fraction": 0.1,
+    "maximum_percentile_95_integrated_flux_fractional_error": 0.25,
+    "maximum_percentile_95_position_beams": 0.25,
+    "maximum_split_fraction": 0.1,
+    "minimum_completeness": 0.9,
+    "minimum_mask_intersection_over_union": 0.8,
+    "minimum_mask_precision": 0.85,
+    "minimum_mask_recall": 0.9,
+    "minimum_rapthor_decision_agreement": 0.995,
+    "minimum_reliability": 0.95
+  },
+  "paired_margins": {
+    "maximum_completeness_loss": 0.02,
+    "maximum_duplicate_fraction_increase": 0.01,
+    "maximum_integrated_flux_error_increase": 0.05,
+    "maximum_mask_intersection_over_union_loss": 0.05,
+    "maximum_merge_fraction_increase": 0.02,
+    "maximum_position_error_increase_beams": 0.05,
+    "maximum_rapthor_decision_disagreement_increase": 0.005,
+    "maximum_reliability_loss": 0.02,
+    "maximum_split_fraction_increase": 0.02
+  },
+  "qualification": {
+    "bootstrap_resamples": 10000,
+    "bootstrap_seed": 20260805,
+    "failure_policy": "retain-denominator-and-fail-closed",
+    "independent_unit": "noise-seed-image",
+    "minimum_joint_power": 0.9,
+    "minimum_noise_realizations": 400,
+    "opening_rule": "one-look-terminal-decision",
+    "resampling": "whole-image-fixed-seed-bootstrap"
+  },
+  "schema_version": 1,
+  "status": "reviewed-development",
+  "threshold_crossings": "report-only-curves"
+}

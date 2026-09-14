@@ -6,15 +6,15 @@ immutable Pydantic records, reject unknown fields and unsupported versions,
 and serialize to canonical JSON for restart metadata and cross-process
 exchange.
 
-These Phase 1 schemas are versioned but remain provisional until the Phase 0
-human scientific sign-off is recorded. That review approves the meaning and
-fitness of the schema; automated round-trip and compatibility tests remain the
-evidence for individual outputs. A later semantic change requires a new schema
-version and updated current documentation; it must not silently reinterpret
-persisted data. Before `1.0`, stale development products may be rejected and
-recreated rather than supported through legacy readers or migration code.
+The Phase 0 named scientific sign-off approved the schema meanings on
+2026-08-02. Automated round-trip and compatibility tests remain the evidence
+for individual outputs. The schemas are still pre-`1.0`: a later semantic
+change requires a new schema version and updated current documentation, and
+must not silently reinterpret persisted data. Stale development products may
+be rejected and recreated rather than supported through legacy readers or
+migration code.
 
-## Source catalogue schema version 2
+## Source catalogue schema version 3
 
 `SourceCatalogue` represents one MFS catalogue. Catalogue metadata explicitly
 records:
@@ -26,8 +26,10 @@ records:
   Gaussian components.
 
 The three identities are deliberately distinct. A `SourceCandidate` belongs
-to one `Island`; a `GaussianComponent` belongs to one source and the same
-island. The catalogue validates those references, rejects duplicate IDs, and
+to a primary `Island` and zero or more `additional_island_ids`; a
+`GaussianComponent` belongs to one source and a subset of that source's
+islands. All island references are distinct and canonical. The catalogue
+validates those references, rejects duplicate IDs, and
 requires canonical ID order so worker completion order cannot change the
 persisted bytes. An island may have no accepted source when measurement or
 fitting fails, and a source may have no fitted Gaussian when a non-Gaussian
@@ -53,13 +55,32 @@ A major-axis-only deconvolution stores one positive
 angle. NaN and legacy zero sentinels are not null values. A fitted Gaussian
 always has a fitted shape; a source-level fitted shape may be unavailable.
 
-For a compact Gaussian, the fitted pixel record retains the free-model
-infinite-plane integral. The celestial component/source record reports peak as
-integrated flux when extension is not significant, and the free-model integral
-only when extension passes the configured uncertainty test. This is a current
-catalogue semantic, not a change to the meaning of the retained fit parameter.
+The current public composition reports the native fitted Gaussian integral
+for components, not for associated-source rows. It does not substitute
+peak brightness for integrated flux because threshold-truncated moments look
+unresolved. Shape, flux and position errors propagate the fitted covariance;
+missing or singular errors remain unavailable. All associated-source
+measurements use signed, source-owned observable apertures and unavailable
+fitted/deconvolved shapes. Estimator flags distinguish these from other
+governed pipeline measurements; different estimators must not be pooled as
+like-semantics evidence.
 
-The version-three internal catalogue FITS encoding contains exactly three
+Gaussian publication uses the same numerical, physical-bound and information
+conditioning checks for single and joint fits, including free-only fitting
+without a beam model. Unresolved noise covariance uses the explicitly flagged
+diagonal estimator with correlated-error propagation. Both Gaussian axes must
+be positive and obey the configured ratio independent of optimizer ordering.
+Failed Gaussian admission preserves source support and its separate source
+measurements; convergence alone does not establish astrophysical model adequacy.
+Public fallback admission can report `fit-model-inadequate`: a beam fallback
+from an invalid free ellipse leaves coherent residuals on its fitted support.
+The component disposition is unavailable and its Gaussian row is absent;
+the detected component identity and independent associated-source measurement
+are retained. Consequently a source's detected member count need not equal
+its number of published Gaussian rows. The existing schema's explicit
+unavailable reason carries this distinction; no zero-valued fit is fabricated.
+
+The version-four internal catalogue FITS encoding contains exactly three
 binary-table extensions: `ISLANDS`, `SOURCES`, and
 `GAUSSIAN_COMPONENTS`. Column names are Hebog domain names with explicit FITS
 units, not PyBDSF compatibility names. At this serialization boundary only,
@@ -128,6 +149,77 @@ and island counts, plus the RMS scientific status. Its population constraints
 match `SourceFinderResult`, and readers reject noncanonical JSON, unknown
 versions, and extra fields.
 
+`ContinuumSourceFindingDiagnostics` schema version 2 retains the same
+population and RMS fields and adds terminal-disposition counts plus one
+canonical `SourceScaleProvenance` record per extended source. Each provenance
+record binds the source and combined island to its association, contributing
+detections and scales, selected detection, spatial relationship, accepted
+support count, and visible-model fraction. Compact-only materialization keeps
+schema version 1 so its diagnostics bytes do not change. When a
+`MaterializedProduct` record is supplied, the reader also requires its declared
+content schema to match the canonical JSON payload.
+
+`PublicSourceFindingDiagnostics` schema version 8 records the public profile,
+profile limitations, population counts, RMS status, exact provenance, and the
+numbers of connected parents that were deblended or retained through the
+bounded deblend fallback. Its
+`configuration_qualification` is `development-unqualified` for the repaired
+5-sigma/3-sigma, seven-pixel configuration without a maximum island cut; all
+other valid caller configurations are `custom-unqualified`. The configuration
+SHA-256 still binds every threshold, island-size limit, and profile choice.
+This label separates execution from scientific qualification: custom settings
+are supported computations but do not inherit the reference evidence. The
+changed default science does not inherit historical qualification either.
+
+Its canonical `measurement_dispositions` records each detected component and
+associated source exactly once. A source's member IDs partition the component
+population. Status is `measured`, `unavailable` or `deferred`, with exactly the
+appropriate estimator or failure reason. `catalogue_row_published` separates
+measurement availability from public row admission; its per-kind counts must
+match the catalogue counts. No Gaussian row is invented for a degenerate
+owner. Catalogue FITS `ADDITIONAL_ISLAND_IDS` preserves the multi-island links.
+An island's signed flux statistic can be non-positive without being a valid
+positive source measurement. These schema changes reject stale products
+without a legacy reader.
+
+The optional array-free fit attribution retains the exact optimizer model,
+retained sample count, noise-estimator/fallback reason, bound and conditioning
+evidence, covariance availability and parameterization. Circular-coordinate
+recovery uses Cartesian Gaussian precision; an undefined angle does not
+become a reported zero shape error. Association attribution retains original
+hierarchy, compact-model and extended-morphology group IDs with the selected
+decision, using constant-size references per component rather than repeated
+membership lists. An unsupported hierarchy remainder is labelled
+`independent-component`, not an admitted source association. Each source also
+retains `association_evidence`: merge reason, supporting scale IDs, member IDs
+and any compact-protection overrides. These records must refer only to that
+source's members and are stored once per source, not repeated per component
+or pixel. They do not establish astrophysical truth or inherit qualification.
+Source-position attribution retains both centroid estimates,
+the selected weighting rule, unavailable reason, separate position/aperture
+counts, signed weights/flux and estimated background mean. It does not claim
+to know background error or true RMS on an arbitrary observed image.
+
+A joint Gaussian linear-algebra exception is retained as
+`fit-linear-algebra-failure` for every component in that coupled fit. These
+components have no published Gaussian row. The internal failed-fit record
+has no optimizer diagnostics when a complete validated report is unavailable;
+counts, parameters and uncertainties are not fabricated. Independent parents
+continue, and an independently valid signed-aperture source remains subject
+to its existing admission rules. Successful product publication does not
+imply that all measurements or scientific gates passed.
+
+The prospective source-measurement evidence summary is schema version 4.
+It binds source-level catalogue metrics and published source-union topology
+separately from binary published-mask metrics. Gaussian-component diagnostics
+are non-binding; unavailable Gaussian fits do not invalidate an otherwise
+valid signed-aperture source. Array-free records retain all measurement
+dispositions, including unpublished rows, truth-match edges, signed residuals,
+and support-stage counts. A write-once diagnostic packet publishes the full
+record and Dask-comparison census before its checksum-verified manifest and
+the final decision. Scratch cleanup requires the actual retained records,
+not only their digests; a failed scientific decision is retained unchanged.
+
 Version 2 replaces the earlier path-only `SourceFinderResult` constructor.
 The `catalogue_path`, `rms_path`, `mask_path`, and `diagnostics_path`
 properties remain available to workflow consumers, but producers must create
@@ -159,6 +251,32 @@ publishing it under the requested name. A sequential retry with identical
 bytes returns the existing product record; a retry that would replace
 different bytes fails with `MaterializedProductConflictError`. Publication
 does not weaken the separate deployment-store concurrency qualification gate.
+
+`materialize_combined_products` stages and validates all four new products,
+including the result record, before publishing any of them. Destinations are
+resolved before checking distinctness; existing hard-link aliases and aliases
+of the reused RMS plane are rejected too. Each staged file is on the same
+filesystem as its destination. Publication uses no-overwrite hard links and
+requires filesystem hard-link support. Identical existing products are reused;
+conflicting bytes fail. A caught writer, validation, publication or staging-
+cleanup failure rolls back only files created by that call, preserving existing
+files and the reused RMS. Rollback attempts all registered removals; filesystem
+errors preventing cleanup are propagated rather than hidden.
+
+Because callers may select separate directories/filesystems, this helper does
+not promise crash-atomic or simultaneous cross-file visibility. Consumers must
+wait for its successful return; an abrupt process or host failure still needs
+workflow-level recovery. Empty newly created parent directories may remain
+after a failed call. This differs from `find_sources`, which publishes a single
+new output directory with one atomic rename.
+
+The combined helper
+reuses the exact Phase 2 RMS `MaterializedProduct`; writes the internal
+catalogue and Rapthor compatibility view from the same combined catalogue;
+and writes the source-filtering mask as a bounded row-block union of compact
+and accepted extended support. Compact-only composition rejects an extended
+mask or provenance and reproduces the existing catalogue, mask, diagnostics,
+and Rapthor bytes.
 
 ## Phase 3 intermediate generation
 
@@ -232,11 +350,109 @@ not clipped by the restoring beam's narrow axis. `GaussianComponent.flux`
 continues to describe the selected Gaussian model, and materialized Rapthor
 catalogue columns retain their reviewed peak/integrated component semantics.
 
+## Phase 5 multiscale records
+
+Phase 5 adds scheduler-safe scale, association, identity, completion, and
+provenance records without adding image planes to public state.
+`ScaleDetection` describes one finite,
+beam-normalized response and retains its global bounds, valid-support
+fraction, normalized peak response, significance, and contributing scale. A
+`CrossScaleAssociation` canonically joins scale detections and, when present,
+any number of spatially related compact sources. It records the selected
+detection explicitly rather than letting task or scale iteration order choose
+a catalogue representation. `CompactSourceSupport` binds one immutable Phase
+4 source and parent island identity to exact bounded support metadata and an
+image-plane reference position. `CompactExtendedContextEdge` retains the
+per-source containment or overlap relation when one extended association has
+several different compact relationships.
+
+`CombinedIslandIdentity` is the array-free connected-component result. A
+compact-only component keeps its original Phase 4 island ID; a mixed or
+extended component uses a namespaced SHA-256 identity over canonical compact
+island and extended-association membership. It also retains the exact compact
+source and Gaussian-component IDs. `ExtendedSourceIdentity` assigns one
+stable source ID to each association independently of its island context.
+Its Gaussian-component list is constrained to be empty: irregular segment
+photometry is not represented as an unperformed Gaussian fit.
+
+`ExtendedEmissionMeasurement` schema version 3 stores a detected-segment flux
+centroid, brightest original-pixel coordinate, and corresponding peak
+brightness as distinct fields. It
+explicitly records that neither is a host position. Its position covariance is
+unavailable until nonlinear segment-selection uncertainty has a validated
+per-source approximation; flux-uncertainty availability remains independent.
+It also stores association-level flux and beam-normalized extent.
+`CrossScaleAssociation` and `CombinedCatalogueState` are schema version 2;
+`ExtendedEmissionMeasurement` is schema version 3; the remaining Phase 5
+records are schema version 1.
+`MultiscaleOmission` is a typed fail-closed explanation for unavailable scale
+support, measurement, or association. `CombinedIslandDisposition` gives every
+accepted or deferred island exactly one terminal state. Finally,
+`CombinedCatalogueState` joins the canonical identifiers and makes
+publication eligibility false whenever an omission or incomplete disposition
+remains.
+
+`CombinedCatalogueState` carries the disjoint canonical sets of accepted and
+deferred island IDs, so absence of a disposition is observable rather than
+indistinguishable from completeness. `CombinedCatalogueShard` is one bounded
+coarse-task result. Shards reduce in canonical fan-in-two levels to
+`CombinedCatalogueReduction`, which records depth and maximum input-shard
+size. `CompletedCombinedCatalogueState` can contain only a publication-
+eligible state and retains that reduction evidence. The completion boundary
+also applies an explicit positive cap to all final in-memory state records.
+
+All records are strict, immutable, and scheduler safe. They contain only
+small scalar values and canonical identifiers: worker-local arrays, open
+files, WCS objects, executor clients, and task state remain outside the
+schema. These records freeze meanings for development. Combined identity,
+catalogue-row construction, and atomic publication are implemented.
+
+`reduce_combined_catalogue_shards` sorts only scientifically equivalent
+records; duplicate accepted ownership, accepted/deferred overlap, duplicate
+terminal evidence, or an unknown disposition fails validation rather than
+being resolved by order. `complete_combined_catalogue_state` accepts an empty
+scientific image but rejects any missing terminal disposition, omission,
+failed disposition, or state-record-cap overflow before product publication.
+
+`associate_compact_source_context` consumes aligned bounded scale and compact
+label planes, validates complete one-owner association provenance, and emits
+only annotated associations plus canonical context edges. Reference positions
+are mapped to the nearest integer pixel centre; adjacency uses the reviewed
+ceiling of half the restoring-beam major FWHM. The dilation is graph context,
+not measurement support. Distinct compact sources and distinct extended
+associations therefore remain distinct even in a many-to-many component.
+
+`preserve_unassociated_compact_catalogue` remains the explicit pre-association
+no-op seam. It
+returns the same `CompletedCompactCatalogue` only for `extended-only`
+associations with no compact identities. Compact-touching and ambiguous
+relationships raise a typed Step 4 decision error, so pre-association evidence
+cannot silently reconstruct or mutate Phase 4 catalogue records.
+
+`derive_combined_identities` validates complete agreement between association
+summaries and per-edge context evidence before deriving any hash. It groups
+Phase 4 islands and extended associations by graph connectivity, not by input,
+tile, task, or completion order. Duplicate identities, unknown relationships,
+missing edges, and contradictory aggregate relationships fail closed.
+
+`construct_combined_catalogue` validates exact agreement among the completed
+terminal state, combined identities, associations, measurements, and Phase 4
+catalogue before constructing any row. Compact-only composition returns the
+same `SourceCatalogue` object. Mixed composition remaps retained compact rows
+to their combined islands, adds one irregular source per association, and
+creates no extended Gaussian. Combined-island photometry sums disjoint owned
+compact and extended fluxes and support counts.
+
 ## Compatibility
 
 The internal catalogue does not define PyBDSF column names such as
 `Source_id`, `Isl_Total_flux`, or `DC_Maj`. The Rapthor catalogue adapter maps
 the internal records to the eight directly consumed compatibility fields.
+For irregular extended rows, `DC_Maj` carries the beam-scaled segment-moment
+major extent and the internal row carries `major-axis-only` and
+`segment-moment-extent` quality flags. This is a compatibility characteristic
+extent, not a Gaussian deconvolution claim; fitted and deconvolved ellipse
+fields remain null and no Gaussian-component row is fabricated.
 Astropy remains at the FITS I/O boundary; the schema models do not contain
 Astropy tables, open HDUs, NumPy image planes, or scheduler objects.
 

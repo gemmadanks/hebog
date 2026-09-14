@@ -1,0 +1,135 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "cumulative_replay_authorized": false,
+    "evaluation_authorized": false,
+    "fresh_qualification_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "scientific_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "candidate": {
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "revision": "95cfc76ded56556dc3ad6894410962d34f0d5604",
+    "source_tree_sha256": "8da21e86afc5035da0704724a9d29104ea8b0e4d55fa4a98f0c5f3efca9a75a5"
+  },
+  "expected_execution": {
+    "candidate_executions": 2400,
+    "candidate_revision": "95cfc76ded56556dc3ad6894410962d34f0d5604",
+    "candidate_source_tree_sha256": "8da21e86afc5035da0704724a9d29104ea8b0e4d55fa4a98f0c5f3efca9a75a5",
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "execution_root": "/private/tmp/hebog-phase5-public-owner-domain-cumulative-replay",
+    "output": "benchmark-results/phase-5/public-owner-domain-cumulative-product-set.json",
+    "pybdsf_executions": 0,
+    "reference_run_count": 9600,
+    "scratch": "/private/tmp/hebog-phase5-public-owner-domain-cumulative-95cfc76",
+    "workers": 2
+  },
+  "expected_execution_sha256": "1d372d6409976e9cd71bcabca74d6788cd91e2b9d51e40b81f6b23f725d4baba",
+  "fast_terminal": {
+    "path": "benchmark-results/phase-5/public-owner-domain-fast-lane-decision.json",
+    "sha256": "a274888dab12bd5a1623310b35ba3f9a90ff14f9fd5249d118cd2a1c8b778348",
+    "status": "pass"
+  },
+  "fixture_bindings": {
+    "current_replay": {
+      "path": "tests/unit/validation/test_final_cumulative_current_replay_validated_retry.py",
+      "sha256": "5e0f73c254c39fe472f9fcfc0a56cf7638af696131537ba96c85e8ff27a4613b"
+    },
+    "paired_materializer": {
+      "path": "tests/unit/validation/test_prospective_paired_cumulative_replay.py",
+      "sha256": "3bb211cb40c9374617b78aceb3288e7b33b31a6dc13936efde4ad453153e4b06"
+    },
+    "public_fast_lane": {
+      "path": "tests/unit/validation/test_public_owner_domain_fast_lane.py",
+      "sha256": "c29753ddb8110f58fe11b08498943b373921d8adb3cd725499637df74a68e316"
+    },
+    "public_owner_domain_replay": {
+      "path": "tests/unit/validation/test_public_owner_domain_cumulative_replay.py",
+      "sha256": "bbf0bab1bc37595a7dae55ba15817c8c4d96f3e460da4ba3ba6a636411aa8936"
+    },
+    "topology_completion": {
+      "path": "tests/unit/validation/test_prospective_paired_topology_repair_completion.py",
+      "sha256": "8037ef22ccd093cddab3ddb0c139ff907c41ce56408ffdb83a453dc9ac23a128"
+    }
+  },
+  "identity_review_id": "phase-5-public-owner-domain-cumulative-replay-identity-review",
+  "implementation": {
+    "path": "config/contracts/phase-5-public-owner-domain-cumulative-replay-implementation-decision.json",
+    "sha256": "cbb3212cc851bb6ff80ed1b656eb8c681c12fd64be010b613a13850c5173b1a1"
+  },
+  "json_format_review": {
+    "path": "config/contracts/phase-5-final-cumulative-current-replay-json-format-review.json",
+    "sha256": "ab96bacf3625aa5942a51080affeb7ea3d31687aaaff5a4dbcf74e2fe20decc6"
+  },
+  "process_review": {
+    "path": "config/contracts/phase-5-final-cumulative-current-replay-preflight-efficiency-review-canonical.json",
+    "sha256": "f67d74c05af40ff509562583bc7dca51fbb2d7dbc29bff581a03f20f4cf2ab39"
+  },
+  "program_bindings": {
+    "base_runner": {
+      "path": "scripts/validation/run_phase5_final_cumulative_current_replay.py",
+      "sha256": "d73cb780623906adddf9248cd9a9c531e0955e40881e8595b54c7e9cc63ea7f6"
+    },
+    "freezer": {
+      "path": "scripts/validation/freeze_phase5_public_owner_domain_cumulative_replay.py",
+      "sha256": "f54246a6f26fc8e20cbffb35071d9a031a4f8cd987e3b81db0664b89f66e7b76"
+    },
+    "materializer": {
+      "path": "scripts/validation/materialize_phase5_prospective_paired_products.py",
+      "sha256": "d5c0d16bd4f379ec4a0767ccd57d24ce089e844761372a5d3b3f4fa939be65b2"
+    },
+    "predecessor_runner": {
+      "path": "scripts/validation/run_phase5_final_cumulative_current_replay_validated_retry.py",
+      "sha256": "34d30a8e845f3b9a47675bcd3968af0a99269c323948a3bdd7b84d624624cf5a"
+    },
+    "runner": {
+      "path": "scripts/validation/run_phase5_public_owner_domain_cumulative_replay.py",
+      "sha256": "939fa6ffcd3ac19a25b7137ad36582258cfcc4358a437e18b6ca461ebd90f3e7"
+    },
+    "smoke_evaluator": {
+      "path": "scripts/validation/evaluate_phase5_prospective_science_smoke.py",
+      "sha256": "9cb15439afdaaba4702d0dfd077c45a75b56f40a9193d36d2cad3596c31449d0"
+    },
+    "topology_evaluator": {
+      "path": "scripts/validation/evaluate_phase5_prospective_paired_cumulative_topology_repair.py",
+      "sha256": "39a568bada625b751931aff649e4e815c5ed70f68809d902a52ce93cfeaec62a"
+    }
+  },
+  "required_next_decision": "consume only the separately frozen one-use version-8 candidate-stage decision",
+  "retained_evidence": {
+    "closed_baseline": {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-recovery.json",
+      "sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9"
+    },
+    "incumbent_reconstruction": {
+      "path": "benchmark-results/phase-5/prospective-paired-incumbent-reconstruction.json",
+      "sha256": "b302967f26ac5947e3c942598a428527cce1d4fa3373ed6eaeb6d204eb8dc040"
+    },
+    "population": {
+      "path": "config/contracts/phase-5-prospective-paired-population.json",
+      "sha256": "0bd3e6a6e505f8fb307a108d90e932f6b3f16ae5fc6c654ab4c82de14f483687"
+    },
+    "reference_reconstruction": {
+      "path": "benchmark-results/phase-5/viewed-reference-reconstruction-public-finder-correction/recovery.json",
+      "sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2"
+    },
+    "source_request": {
+      "path": "benchmark-results/phase-5/external-post-failure-comparison/campaign-request.json",
+      "sha256": "7ba9be1b20ff0448e51729337acf2a7028cc0ec578c5e25106b9b34b07506df4"
+    }
+  },
+  "schema_version": 1,
+  "single_scan_review": {
+    "path": "config/contracts/phase-5-final-cumulative-current-replay-single-scan-execution-review-canonical.json",
+    "sha256": "8d4848d265aaf07bb858856d05c984dc8a33b128b0f6d3e67d73f9b322c5dffa"
+  },
+  "status": "frozen-non-executable",
+  "type_clean_review": {
+    "path": "config/contracts/phase-5-final-cumulative-current-replay-type-clean-review-canonical.json",
+    "sha256": "853fe3982fc6e098ab2a3b1e986a9853b0ebac57cbcee6a7f174033d119c62b1"
+  }
+}

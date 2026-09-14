@@ -1,0 +1,95 @@
+{
+  "candidate": {
+    "configuration_sha256": "0e5dde51dfd2df84cdf71c3da34449b96c6999f517d781e1aaaec48ebb485a94",
+    "revision": "90626641c8705ba9d55fdea02a705983528b8aa0",
+    "source_tree_sha256": "e4307246efa7db3ec941b3906f8ce443404b8b84cdc78aa89881e738850cdf8a"
+  },
+  "compact_evidence": {
+    "fresh_compact_lane_required": false,
+    "policy": "bind-closed-evidence-without-pooling-or-rescoring",
+    "records": [
+      {
+        "dataset_identifier": "phase4u-blend-qualification-512",
+        "passed": true,
+        "path": "benchmark-results/phase-4u/qualification-decision.json",
+        "sha256": "309ab639cafc5c8aafb75bc85e9b8d531def3e7c51ea424561bb399dc53795f0"
+      },
+      {
+        "dataset_identifier": "phase4u-blend-qualification-512",
+        "passed": true,
+        "path": "benchmark-results/phase-5/phase-4-compact-regression-58074cc-decision.json",
+        "sha256": "43381c51a583e8993bd47ea2c8d557c4315c78200d574a237e51958a1ce100a0"
+      }
+    ]
+  },
+  "contract_id": "phase-5-final-qualification-population",
+  "cutover_authorized": false,
+  "design_evidence": {
+    "audit_path": "benchmark-results/phase-5/qualification-design-audit.json",
+    "audit_sha256": "9b0fcb89a3ea4a10b791bca3589df8641b672d474e18d4abe0eb59d70292b2dc",
+    "power_review_path": "benchmark-results/phase-5/viewed-recovery-power-review.json",
+    "power_review_sha256": "bbfab3a0781c8a12083190d8c591152d5c461a45824bab6cba39e770915af9fc"
+  },
+  "execution_authorized": false,
+  "finder_output_generated": false,
+  "generator": {
+    "relative_path": "scripts/validation/freeze_phase5_final_qualification_population.py",
+    "sha256": "347d5210682bab80f78e46c23bc44ba2871af46c8a529c3d062550e438213975"
+  },
+  "next_action": "implement-and-freeze-final-runner-compiler-evaluator-and-runtime-identities-before-no-write-preflight",
+  "old_qualification_manifest_preserved_unopened": true,
+  "population": {
+    "geometry_count": 4,
+    "image_count": 1688,
+    "independent_unit": "noise-seed-image",
+    "manifest": "config/datasets/phase-5-final-qualification-continuum.json",
+    "manifest_sha256": "7c67127e828a92bc100299cf9ffecd13851e485c4be9e95866e2d0827ebb80df",
+    "population_audit": {
+      "geometry_counts": [
+        422,
+        422,
+        422,
+        422
+      ],
+      "historical_manifest_count": 45,
+      "historical_registry_sha256": "89da8a501bf61929780d5fed71de4afc022f11e02638d91b8f83c737b6070350",
+      "historical_seed_count": 19229,
+      "new_seed_count": 1688,
+      "seed_disjoint": true
+    },
+    "realizations_per_geometry": 422,
+    "role": "qualification"
+  },
+  "power_audit": {
+    "combined_familywise_power_lower_bound": 0.9050838380514572,
+    "continuum_realizations_per_geometry": 422,
+    "geometry_count": 4,
+    "minimum_continuum_realization_count": 1532,
+    "minimum_joint_power": 0.9,
+    "paired_comparison_count": 226,
+    "selected_continuum_realization_count": 1688
+  },
+  "qualification_opened": false,
+  "schema_version": 1,
+  "scientific_approval": {
+    "approved_on": "2026-08-25",
+    "reviewer": "Gemma Danks",
+    "scope": "final-qualification-population-freeze-with-closed-compact-evidence-only-no-execution"
+  },
+  "scientific_contracts": [
+    {
+      "relative_path": "config/contracts/phase-5-corrective-a-review.json",
+      "sha256": "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b"
+    },
+    {
+      "relative_path": "config/contracts/phase-5-multiscale.json",
+      "sha256": "7e79935d4870223d9448efb8c98407de63ecb148d98a4b8f5ef5c684cf55c5fe"
+    },
+    {
+      "relative_path": "config/contracts/phase-5-scientific-gates.json",
+      "sha256": "cbf467f517af40be798eb4cfbf68315b7b5a11f96688af51973730f7b9cef70b"
+    }
+  ],
+  "scientific_products_opened": false,
+  "status": "scientifically-approved-and-frozen-before-output"
+}

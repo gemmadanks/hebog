@@ -1,0 +1,61 @@
+{
+  "auditor_checkout": "/private/tmp/hebog-r6-continuation-inventory",
+  "auditor_program_sha256": {
+    "scripts/validation/audit_source_catalogue_continuation.py": "83ed44cbb8fa864d2dcd2dac64dc2c0365140d838dcd7b4f316c7d9783a43352",
+    "scripts/validation/source_catalogue_continuation_inventory.py": "8d4c46bb909dd2ab6577aaaf4fe63f9db09c3f9f0a96691b93e1a2f2c4cf8823"
+  },
+  "authorizations": {
+    "candidate_execution": false,
+    "cutover": false,
+    "evaluation_retry": false,
+    "incumbent_execution": false,
+    "optimization": false,
+    "pybdsf_execution": false,
+    "qualification": false,
+    "release": false,
+    "viewed_data_rescoring": false
+  },
+  "date": "2026-09-08",
+  "execution_identity": null,
+  "finder_execution_started": false,
+  "implementation_revision": "3fc57fcf99b3aa02601d0198e74b40620cdaf0c0",
+  "inventory": {
+    "path": "benchmark-results/phase-5/r6-evaluation-continuation-inventory.json",
+    "sha256": "e0d1571d092b47c6e34bec5c3cd23a11d6cb0acc14124befd057fc0d9dfa59a5"
+  },
+  "next_action": "Bind this inventory into a separate evaluation-only continuation; test missing-input dispatch and combined-seal/late-failure retention; freeze its immutable execution identity and exact decision under standing R6 authority; repeat exhaustive launch admission. This inventory alone is not execution authority or a launch preflight.",
+  "original_candidate": {
+    "configuration_sha256": "5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4",
+    "revision": "db8936b512370a1491f36845592fe3e8a24107ad",
+    "source_tree_sha256": "43fb41f20069a31627f0dbec09bdf1484bd2a04d633fe6563b94b09a554dd2cf"
+  },
+  "repair_identity_review_sha256": "259cf6a4822f4313cde21ceebb5721caad8a1934994a272125442ea393432665",
+  "retained_evidence": {
+    "capture_pair_count": 2400,
+    "capture_seal_sha256": "e1bc9a915d213bc07dd87934bbc46dc09c2460897c28446b3ea39f0fee5a719a",
+    "complete_finder_record_count": 4032,
+    "complete_input_count": 808,
+    "complete_marker_set_sha256": "f976ea9713e312fed688594bcd90c72bb0eedd7b84e62c057a120f6ab884a8be",
+    "dask_comparison_count": 12,
+    "dask_comparisons_sha256": "16de0eeb6449626df2b31a1e4451f6fffe31dab20fafb456156b1ffb7ec7479f",
+    "partial_directory_count": 2,
+    "partial_file_count": 0,
+    "pending_input_count": 1592,
+    "reference_run_count": 9600
+  },
+  "schema_version": 1,
+  "scientific_verdict": null,
+  "status": "frozen-non-executable",
+  "validation": {
+    "all_retained_artifacts_hashed": true,
+    "auditor_checkout_clean": true,
+    "completed_records_rewritten": false,
+    "existing_dask_science_hashes_recomputed": true,
+    "late_statistical_rules_changed": false,
+    "new_evaluations": 0,
+    "new_finder_executions": 0,
+    "original_terminal_absent": true,
+    "partial_directories_preserved": true,
+    "truth_scores_recomputed": false
+  }
+}

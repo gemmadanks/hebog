@@ -1,0 +1,51 @@
+{
+  "candidates": [
+    {
+      "bounded_cost": [
+        9,
+        7,
+        38
+      ],
+      "failed_absolute_endpoint_count": 28,
+      "failed_paired_endpoint_count": 21,
+      "family": "beam-aware-matched-filter",
+      "noninferior_to_other": false,
+      "passes_absolute": false
+    },
+    {
+      "bounded_cost": [
+        21,
+        7,
+        38
+      ],
+      "failed_absolute_endpoint_count": 23,
+      "failed_paired_endpoint_count": 8,
+      "family": "residual-b3-atrous",
+      "noninferior_to_other": false,
+      "passes_absolute": false
+    }
+  ],
+  "corrective_failure_domains": [
+    "artifact-flux",
+    "astrometry",
+    "fragmentation",
+    "reliability"
+  ],
+  "decision": "reject-corrective",
+  "decision_id": "phase-5-corrective-decision",
+  "evidence_configuration_sha256": "767ee311f391f79bb9d3d06de7a5eac9b030e8d45328f0c66a3642f9a2af70fc",
+  "evidence_sha256": "5d21e1815fe16bdfce7f349238bec819b485cf50eef2cc552c925939fed0dc7e",
+  "evidence_source_tree_sha256": "707b7519f16cc28f49a63129eaa253c92b09ca48a8a10f44a4acb6a383267615",
+  "independent_human_scientific_review": "still-required",
+  "named_review": "codex-step-2c-governed-evidence-review",
+  "next_action": "redesign-measurement-association-and-false-positive-control",
+  "optimization_authorized": false,
+  "prior_decision_sha256": "d2b3f5f4fc51b32b93bd29f0e08047e8bd60c60b64f5f046e2031bc0eb1c3594",
+  "protocol_sha256": "28a1edf8a472f4eb0431f4c566cd47b3131d365cefd03f0cd97c857bab2ffe3e",
+  "qualification_opened": false,
+  "review_scope": "technical-and-governed-development-regression-evidence",
+  "schema_version": 1,
+  "selected_family": null,
+  "status": "reviewed-rejected",
+  "step_three_authorized": false
+}

@@ -1,0 +1,2721 @@
+{
+  "acquisition": {
+    "artifact_count": 7,
+    "implementation_sha256": "dc467167e322cc71abd74af3a975aafd52dd9c2a6c012e314b378f2ae200a29d",
+    "path": "benchmark-results/phase-5/public-comparison-acquisition/acquisition.json",
+    "sha256": "a74e60de95debcc53bdf43d4f6046a6f74befe8a85e849a5b0105f2ecb0bd0ce",
+    "total_bytes": 15053995875
+  },
+  "artifact_checksums_frozen": true,
+  "artifacts": [
+    {
+      "byte_size": 51845760,
+      "dataset_id": "askap-emu-pilot-hydra-2x2",
+      "filename": "emu_pilot_sample_2x2deg.fits",
+      "identifier": "deep-image",
+      "sha256": "03c649bb93c9c55c80bf0c40306947e691ba064f5491ee3c41c06eaa0b7431ce"
+    },
+    {
+      "byte_size": 9978742534,
+      "dataset_id": "askap-emu-pilot-hydra-2x2",
+      "filename": "emu_pilot_sample_2x2deg.hydra.tar.gz",
+      "identifier": "hydra-archive",
+      "sha256": "89fa5120f09ea2c2a25fe39371ebdbdad7c3a0434e7937f84b6e41a76dbf4d3c"
+    },
+    {
+      "byte_size": 103685760,
+      "dataset_id": "askap-emu-pilot-hydra-2x2",
+      "filename": "emu_pilot_sample_2x2deg.shallow.fits",
+      "identifier": "shallow-image",
+      "sha256": "3df6d718f2b79c8eb0668402e919ef3eb8bab435266ec89727e4f64c657e4a34"
+    },
+    {
+      "byte_size": 4294981440,
+      "dataset_id": "ska-sdc1-mid-band2-1000h",
+      "filename": "SKAMid_B2_1000h_v3.fits",
+      "identifier": "image",
+      "sha256": "51593b6c4da779efdd08d97eae44649cd1c226b1f07010b93bc0636ae194dc10"
+    },
+    {
+      "byte_size": 395816771,
+      "dataset_id": "ska-sdc1-mid-band2-1000h",
+      "filename": "SDC1_submissions.tgz",
+      "identifier": "official-submissions",
+      "sha256": "b2fdf80220e2905e15e5f760a67ee7a5d7d42371f6368c1a25a25673e146fd57"
+    },
+    {
+      "byte_size": 279360,
+      "dataset_id": "ska-sdc1-mid-band2-1000h",
+      "filename": "PrimaryBeam_B2.fits",
+      "identifier": "primary-beam",
+      "sha256": "2f066a7808c062510a8892169e11693cc40648b80d71f314e1c237c7953bc5a3"
+    },
+    {
+      "byte_size": 228644250,
+      "dataset_id": "ska-sdc1-mid-band2-1000h",
+      "filename": "True_1400_v2.txt",
+      "identifier": "truth-catalogue",
+      "sha256": "46eb8b39d127817fabda8dc602d9af0efb5c83ee035f0fde5f0d9cf2b507c5cf"
+    }
+  ],
+  "cutout_selection_authorized": false,
+  "cutover_authorized": false,
+  "decision_serialization_amendment": {
+    "canonical_decision_sha256": "d5762063e438bf30bf15206e86e4602fdf52ba4b12ba9b88af6a8be853431138",
+    "historical_approved_decision_sha256": "7bfd3866240d4300bf53758ef5b8cc1342620fa63447862feb2e112a109f2b45",
+    "path": "config/contracts/phase-5-public-comparison-decision-serialization-amendment.json",
+    "semantic_json_object_changed": false,
+    "sha256": "243d1680f451d1facd22e4594ef9061d40d197fdf71579c54e83a3113284a4b4"
+  },
+  "finder_execution_authorized": false,
+  "hydra": {
+    "archive": {
+      "aggregate_catalogues": [
+        {
+          "byte_size": 8847360,
+          "member": "emu_pilot_sample_2x2deg.hydra_dir/emu_pilot_sample_2x2deg.hydra.cluster_catalogue.fits"
+        },
+        {
+          "byte_size": 8640,
+          "member": "emu_pilot_sample_2x2deg.hydra_dir/statistics/emu_pilot_sample_2x2deg.hydra.global_metrics.fits"
+        },
+        {
+          "byte_size": 2064960,
+          "member": "emu_pilot_sample_2x2deg.hydra_dir/emu_pilot_sample_2x2deg.hydra.clump_catalogue.fits"
+        }
+      ],
+      "archive_member_count": 120869,
+      "catalogue_values_inspected": false,
+      "finder_catalogue_count": 10,
+      "finder_catalogues": [
+        {
+          "byte_size": 1471680,
+          "member": "emu_pilot_sample_2x2deg.hydra_dir/catalogues/deep/emu_pilot_sample_2x2deg.hydra.aegean.deep.fits",
+          "table": {
+            "columns": [
+              {
+                "format": "K",
+                "name": "id",
+                "unit": null
+              },
+              {
+                "format": "J",
+                "name": "island_id",
+                "unit": null
+              },
+              {
+                "format": "J",
+                "name": "source_id",
+                "unit": null
+              },
+              {
+                "format": "E",
+                "name": "background_flux",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "E",
+                "name": "rms_local",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "11A",
+                "name": "ra_hms",
+                "unit": "HMS"
+              },
+              {
+                "format": "12A",
+                "name": "dec_dms",
+                "unit": "DMS"
+              },
+              {
+                "format": "E",
+                "name": "ra",
+                "unit": "deg"
+              },
+              {
+                "format": "E",
+                "name": "ra_err",
+                "unit": "deg"
+              },
+              {
+                "format": "E",
+                "name": "dec",
+                "unit": "deg"
+              },
+              {
+                "format": "E",
+                "name": "dec_err",
+                "unit": "deg"
+              },
+              {
+                "format": "E",
+                "name": "flux_peak",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "E",
+                "name": "flux_peak_err",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "E",
+                "name": "flux_total",
+                "unit": "Jy"
+              },
+              {
+                "format": "E",
+                "name": "flux_total_err",
+                "unit": "Jy"
+              },
+              {
+                "format": "E",
+                "name": "semimajor",
+                "unit": "arcsec"
+              },
+              {
+                "format": "E",
+                "name": "semimajor_err",
+                "unit": "arcsec"
+              },
+              {
+                "format": "E",
+                "name": "semiminor",
+                "unit": "arcsec"
+              },
+              {
+                "format": "E",
+                "name": "semiminor_err",
+                "unit": "arcsec"
+              },
+              {
+                "format": "E",
+                "name": "pa",
+                "unit": "deg"
+              },
+              {
+                "format": "E",
+                "name": "pa_err",
+                "unit": "deg"
+              },
+              {
+                "format": "J",
+                "name": "flags",
+                "unit": null
+              },
+              {
+                "format": "E",
+                "name": "residual_mean",
+                "unit": null
+              },
+              {
+                "format": "E",
+                "name": "residual_std",
+                "unit": null
+              },
+              {
+                "format": "36A",
+                "name": "uuid",
+                "unit": null
+              },
+              {
+                "format": "E",
+                "name": "psf_a",
+                "unit": "arcsec"
+              },
+              {
+                "format": "E",
+                "name": "psf_b",
+                "unit": "arcsec"
+              },
+              {
+                "format": "E",
+                "name": "psf_pa",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "rms_noise_bane",
+                "unit": "mJy"
+              }
+            ],
+            "extension": "",
+            "row_count": 8538
+          }
+        },
+        {
+          "byte_size": 169920,
+          "member": "emu_pilot_sample_2x2deg.hydra_dir/catalogues/shallow/emu_pilot_sample_2x2deg.hydra.aegean.shallow.fits",
+          "table": {
+            "columns": [
+              {
+                "format": "K",
+                "name": "id",
+                "unit": null
+              },
+              {
+                "format": "J",
+                "name": "island_id",
+                "unit": null
+              },
+              {
+                "format": "J",
+                "name": "source_id",
+                "unit": null
+              },
+              {
+                "format": "E",
+                "name": "background_flux",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "E",
+                "name": "rms_local",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "11A",
+                "name": "ra_hms",
+                "unit": "HMS"
+              },
+              {
+                "format": "12A",
+                "name": "dec_dms",
+                "unit": "DMS"
+              },
+              {
+                "format": "E",
+                "name": "ra",
+                "unit": "deg"
+              },
+              {
+                "format": "E",
+                "name": "ra_err",
+                "unit": "deg"
+              },
+              {
+                "format": "E",
+                "name": "dec",
+                "unit": "deg"
+              },
+              {
+                "format": "E",
+                "name": "dec_err",
+                "unit": "deg"
+              },
+              {
+                "format": "E",
+                "name": "flux_peak",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "E",
+                "name": "flux_peak_err",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "E",
+                "name": "flux_total",
+                "unit": "Jy"
+              },
+              {
+                "format": "E",
+                "name": "flux_total_err",
+                "unit": "Jy"
+              },
+              {
+                "format": "E",
+                "name": "semimajor",
+                "unit": "arcsec"
+              },
+              {
+                "format": "E",
+                "name": "semimajor_err",
+                "unit": "arcsec"
+              },
+              {
+                "format": "E",
+                "name": "semiminor",
+                "unit": "arcsec"
+              },
+              {
+                "format": "E",
+                "name": "semiminor_err",
+                "unit": "arcsec"
+              },
+              {
+                "format": "E",
+                "name": "pa",
+                "unit": "deg"
+              },
+              {
+                "format": "E",
+                "name": "pa_err",
+                "unit": "deg"
+              },
+              {
+                "format": "J",
+                "name": "flags",
+                "unit": null
+              },
+              {
+                "format": "E",
+                "name": "residual_mean",
+                "unit": null
+              },
+              {
+                "format": "E",
+                "name": "residual_std",
+                "unit": null
+              },
+              {
+                "format": "36A",
+                "name": "uuid",
+                "unit": null
+              },
+              {
+                "format": "E",
+                "name": "psf_a",
+                "unit": "arcsec"
+              },
+              {
+                "format": "E",
+                "name": "psf_b",
+                "unit": "arcsec"
+              },
+              {
+                "format": "E",
+                "name": "psf_pa",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "rms_noise_bane",
+                "unit": "mJy"
+              }
+            ],
+            "extension": "",
+            "row_count": 926
+          }
+        },
+        {
+          "byte_size": 3277440,
+          "member": "emu_pilot_sample_2x2deg.hydra_dir/catalogues/deep/emu_pilot_sample_2x2deg.hydra.caesar.deep.fits",
+          "table": {
+            "columns": [
+              {
+                "format": "K",
+                "name": "id",
+                "unit": null
+              },
+              {
+                "format": "11A",
+                "name": "name",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "npix",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "component_id",
+                "unit": null
+              },
+              {
+                "format": "21A",
+                "name": "iau_name",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "x",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "y",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "x_err",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "y_err",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "ra",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "dec",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "ra_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "dec_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "nu",
+                "unit": "GHz"
+              },
+              {
+                "format": "D",
+                "name": "flux_peak",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "D",
+                "name": "flux_peak_err",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "D",
+                "name": "flux_total",
+                "unit": "Jy"
+              },
+              {
+                "format": "D",
+                "name": "flux_total_err",
+                "unit": "Jy"
+              },
+              {
+                "format": "D",
+                "name": "flux_island",
+                "unit": "Jy"
+              },
+              {
+                "format": "D",
+                "name": "flux_island_err",
+                "unit": "Jy"
+              },
+              {
+                "format": "D",
+                "name": "beam_area",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "bmaj",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "bmin",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "pa",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "bmaj_err",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "bmin_err",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "pa_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "bmaj_wcs",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "bmin_wcs",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "pa_wcs",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "bmaj_wcs_err",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "bmin_wcs_err",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "pa_wcs_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "bmaj_beam",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "bmin_beam",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "pa_beam",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "bmaj_deconv_wcs",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "bmin_deconv_wcs",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "pa_deconv_wcs",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "fit_beam_ellipse_eccentricity_ratio",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "fit_beam_ellipse_area_ratio",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "fit_beam_ellipse_rotation_angle",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "bkg_sum",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "D",
+                "name": "rms_sum",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "D",
+                "name": "chi2",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "ndf",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "fit_quality",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "fit_component_flag",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "fit_component_type",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "rms_noise_bane",
+                "unit": "mJy"
+              }
+            ],
+            "extension": "",
+            "row_count": 7838
+          }
+        },
+        {
+          "byte_size": 383040,
+          "member": "emu_pilot_sample_2x2deg.hydra_dir/catalogues/shallow/emu_pilot_sample_2x2deg.hydra.caesar.shallow.fits",
+          "table": {
+            "columns": [
+              {
+                "format": "K",
+                "name": "id",
+                "unit": null
+              },
+              {
+                "format": "10A",
+                "name": "name",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "npix",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "component_id",
+                "unit": null
+              },
+              {
+                "format": "21A",
+                "name": "iau_name",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "x",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "y",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "x_err",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "y_err",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "ra",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "dec",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "ra_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "dec_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "nu",
+                "unit": "GHz"
+              },
+              {
+                "format": "D",
+                "name": "flux_peak",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "D",
+                "name": "flux_peak_err",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "D",
+                "name": "flux_total",
+                "unit": "Jy"
+              },
+              {
+                "format": "D",
+                "name": "flux_total_err",
+                "unit": "Jy"
+              },
+              {
+                "format": "D",
+                "name": "flux_island",
+                "unit": "Jy"
+              },
+              {
+                "format": "D",
+                "name": "flux_island_err",
+                "unit": "Jy"
+              },
+              {
+                "format": "D",
+                "name": "beam_area",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "bmaj",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "bmin",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "pa",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "bmaj_err",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "bmin_err",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "pa_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "bmaj_wcs",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "bmin_wcs",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "pa_wcs",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "bmaj_wcs_err",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "bmin_wcs_err",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "pa_wcs_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "bmaj_beam",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "bmin_beam",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "pa_beam",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "bmaj_deconv_wcs",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "bmin_deconv_wcs",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "pa_deconv_wcs",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "fit_beam_ellipse_eccentricity_ratio",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "fit_beam_ellipse_area_ratio",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "fit_beam_ellipse_rotation_angle",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "bkg_sum",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "D",
+                "name": "rms_sum",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "D",
+                "name": "chi2",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "ndf",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "fit_quality",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "fit_component_flag",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "fit_component_type",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "rms_noise_bane",
+                "unit": "mJy"
+              }
+            ],
+            "extension": "",
+            "row_count": 885
+          }
+        },
+        {
+          "byte_size": 5160960,
+          "member": "emu_pilot_sample_2x2deg.hydra_dir/catalogues/deep/emu_pilot_sample_2x2deg.hydra.profound.deep.fits",
+          "table": {
+            "columns": [
+              {
+                "format": "K",
+                "name": "id",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "component_id",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "unique_id",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "ra_centre",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "dec_centre",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "ra_max",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "dec_max",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "x_centre",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "y_centre",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "x_rms",
+                "unit": "pix"
+              },
+              {
+                "format": "D",
+                "name": "y_rms",
+                "unit": "pix"
+              },
+              {
+                "format": "D",
+                "name": "xy_cov",
+                "unit": "pix"
+              },
+              {
+                "format": "D",
+                "name": "xy_cor",
+                "unit": "pix"
+              },
+              {
+                "format": "D",
+                "name": "semimajor",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "semiminor",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "pa",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "minor_to_major_axis_ratio",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "x_max",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "y_max",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "centre_to_max_offset",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "flux_total",
+                "unit": "Jy"
+              },
+              {
+                "format": "D",
+                "name": "flux_total_err",
+                "unit": "Jy"
+              },
+              {
+                "format": "D",
+                "name": "magnitude",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "magnitude_err",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "max_flux_fraction",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "asymmetry",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "flux_reflect",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "magnitude_reflect",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "n50",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "n90",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "n100",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "r50",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "r90",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "r100",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "sb_n50",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "sb_n90",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "sb_n100",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "concentration",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "detection_significance",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "false_positive_limit",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "flux_err_sky",
+                "unit": "Jy"
+              },
+              {
+                "format": "D",
+                "name": "flux_err_sky_rms",
+                "unit": "Jy"
+              },
+              {
+                "format": "K",
+                "name": "flux_err_shot",
+                "unit": "Jy"
+              },
+              {
+                "format": "K",
+                "name": "flux_err_cor",
+                "unit": "Jy"
+              },
+              {
+                "format": "K",
+                "name": "cor_seg",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "sky_mean",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "sky_sum",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "sky_rms_mean",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "nedge",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "nsky",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "nobject",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "nborder",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "nmask",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "edge_frac",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "edge_excess",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "flag_border",
+                "unit": null
+              }
+            ],
+            "extension": "",
+            "row_count": 11484
+          }
+        },
+        {
+          "byte_size": 365760,
+          "member": "emu_pilot_sample_2x2deg.hydra_dir/catalogues/shallow/emu_pilot_sample_2x2deg.hydra.profound.shallow.fits",
+          "table": {
+            "columns": [
+              {
+                "format": "K",
+                "name": "id",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "component_id",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "unique_id",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "ra_centre",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "dec_centre",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "ra_max",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "dec_max",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "x_centre",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "y_centre",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "x_rms",
+                "unit": "pix"
+              },
+              {
+                "format": "D",
+                "name": "y_rms",
+                "unit": "pix"
+              },
+              {
+                "format": "D",
+                "name": "xy_cov",
+                "unit": "pix"
+              },
+              {
+                "format": "D",
+                "name": "xy_cor",
+                "unit": "pix"
+              },
+              {
+                "format": "D",
+                "name": "semimajor",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "semiminor",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "pa",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "minor_to_major_axis_ratio",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "x_max",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "y_max",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "centre_to_max_offset",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "flux_total",
+                "unit": "Jy"
+              },
+              {
+                "format": "D",
+                "name": "flux_total_err",
+                "unit": "Jy"
+              },
+              {
+                "format": "D",
+                "name": "magnitude",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "magnitude_err",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "max_flux_fraction",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "asymmetry",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "flux_reflect",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "magnitude_reflect",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "n50",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "n90",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "n100",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "r50",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "r90",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "r100",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "sb_n50",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "sb_n90",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "sb_n100",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "concentration",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "detection_significance",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "false_positive_limit",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "flux_err_sky",
+                "unit": "Jy"
+              },
+              {
+                "format": "D",
+                "name": "flux_err_sky_rms",
+                "unit": "Jy"
+              },
+              {
+                "format": "K",
+                "name": "flux_err_shot",
+                "unit": "Jy"
+              },
+              {
+                "format": "K",
+                "name": "flux_err_cor",
+                "unit": "Jy"
+              },
+              {
+                "format": "K",
+                "name": "cor_seg",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "sky_mean",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "sky_sum",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "sky_rms_mean",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "nedge",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "nsky",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "nobject",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "nborder",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "nmask",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "edge_frac",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "edge_excess",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "flag_border",
+                "unit": null
+              }
+            ],
+            "extension": "",
+            "row_count": 778
+          }
+        },
+        {
+          "byte_size": 3015360,
+          "member": "emu_pilot_sample_2x2deg.hydra_dir/catalogues/deep/emu_pilot_sample_2x2deg.hydra.pybdsf.deep.fits",
+          "table": {
+            "columns": [
+              {
+                "format": "K",
+                "name": "id",
+                "unit": null
+              },
+              {
+                "format": "J",
+                "name": "source_id",
+                "unit": null
+              },
+              {
+                "format": "J",
+                "name": "island_id",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "ra",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "ra_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "dec",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "dec_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "flux_total",
+                "unit": "Jy"
+              },
+              {
+                "format": "D",
+                "name": "flux_total_err",
+                "unit": "Jy"
+              },
+              {
+                "format": "D",
+                "name": "flux_peak",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "D",
+                "name": "flux_peak_err",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "D",
+                "name": "ra_max",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "ra_max_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "dec_max",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "dec_max_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "major",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "major_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "minor",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "minor_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "pa",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "pa_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "major_image_plane",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "major_image_plane_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "minor_image_plane",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "minor_image_plane_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "pa_image_plane",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "pa_image_plane_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "major_deconvolved",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "major_deconvolved_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "minor_deconvolved",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "minor_deconvolved_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "pa_deconvolved",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "pa_deconvolved_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "major_image_plane_deconvolved",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "major_image_plane_deconvolved_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "minor_image_plane_deconvolved",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "minor_image_plane_deconvolved_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "pa_image_plane_deconvolved",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "pa_image_plane_deconvolved_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "flux_total_island",
+                "unit": "Jy"
+              },
+              {
+                "format": "D",
+                "name": "flux_total_island_err",
+                "unit": "Jy"
+              },
+              {
+                "format": "D",
+                "name": "rms_island",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "D",
+                "name": "mean_island",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "D",
+                "name": "rms_island_residual",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "D",
+                "name": "mean_island_residual",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "1A",
+                "name": "s_code",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "rms_noise_bane",
+                "unit": "mJy"
+              }
+            ],
+            "extension": "",
+            "row_count": 8292
+          }
+        },
+        {
+          "byte_size": 308160,
+          "member": "emu_pilot_sample_2x2deg.hydra_dir/catalogues/shallow/emu_pilot_sample_2x2deg.hydra.pybdsf.shallow.fits",
+          "table": {
+            "columns": [
+              {
+                "format": "K",
+                "name": "id",
+                "unit": null
+              },
+              {
+                "format": "J",
+                "name": "source_id",
+                "unit": null
+              },
+              {
+                "format": "J",
+                "name": "island_id",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "ra",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "ra_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "dec",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "dec_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "flux_total",
+                "unit": "Jy"
+              },
+              {
+                "format": "D",
+                "name": "flux_total_err",
+                "unit": "Jy"
+              },
+              {
+                "format": "D",
+                "name": "flux_peak",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "D",
+                "name": "flux_peak_err",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "D",
+                "name": "ra_max",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "ra_max_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "dec_max",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "dec_max_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "major",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "major_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "minor",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "minor_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "pa",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "pa_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "major_image_plane",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "major_image_plane_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "minor_image_plane",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "minor_image_plane_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "pa_image_plane",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "pa_image_plane_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "major_deconvolved",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "major_deconvolved_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "minor_deconvolved",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "minor_deconvolved_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "pa_deconvolved",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "pa_deconvolved_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "major_image_plane_deconvolved",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "major_image_plane_deconvolved_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "minor_image_plane_deconvolved",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "minor_image_plane_deconvolved_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "pa_image_plane_deconvolved",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "pa_image_plane_deconvolved_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "flux_total_island",
+                "unit": "Jy"
+              },
+              {
+                "format": "D",
+                "name": "flux_total_island_err",
+                "unit": "Jy"
+              },
+              {
+                "format": "D",
+                "name": "rms_island",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "D",
+                "name": "mean_island",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "D",
+                "name": "rms_island_residual",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "D",
+                "name": "mean_island_residual",
+                "unit": "beam-1 Jy"
+              },
+              {
+                "format": "1A",
+                "name": "s_code",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "rms_noise_bane",
+                "unit": "mJy"
+              }
+            ],
+            "extension": "",
+            "row_count": 794
+          }
+        },
+        {
+          "byte_size": 2010240,
+          "member": "emu_pilot_sample_2x2deg.hydra_dir/catalogues/deep/emu_pilot_sample_2x2deg.hydra.selavy.deep.fits",
+          "table": {
+            "columns": [
+              {
+                "format": "K",
+                "name": "id",
+                "unit": null
+              },
+              {
+                "format": "11A",
+                "name": "island_id",
+                "unit": null
+              },
+              {
+                "format": "15A",
+                "name": "component_id",
+                "unit": null
+              },
+              {
+                "format": "14A",
+                "name": "component_name",
+                "unit": null
+              },
+              {
+                "format": "10A",
+                "name": "ra_hms",
+                "unit": "HMS"
+              },
+              {
+                "format": "9A",
+                "name": "dec_dms",
+                "unit": "DMS"
+              },
+              {
+                "format": "D",
+                "name": "ra",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "dec",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "ra_err",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "dec_err",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "frequency",
+                "unit": "MHz"
+              },
+              {
+                "format": "D",
+                "name": "flux_peak",
+                "unit": "beam-1 mJy"
+              },
+              {
+                "format": "D",
+                "name": "flux_peak_err",
+                "unit": "beam-1 mJy"
+              },
+              {
+                "format": "D",
+                "name": "flux_total",
+                "unit": "mJy"
+              },
+              {
+                "format": "D",
+                "name": "flux_total_err",
+                "unit": "mJy"
+              },
+              {
+                "format": "D",
+                "name": "major",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "minor",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "pa",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "major_err",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "minor_err",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "pa_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "major_deconvolved",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "minor_deconvolved",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "pa_deconvolved",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "major_deconvolved_err",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "minor_deconvolved_err",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "pa_deconvolved_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "chi_squared_fit",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "rms_fit_gauss",
+                "unit": "beam-1 mJy"
+              },
+              {
+                "format": "D",
+                "name": "spectral_index",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "spectral_curvature",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "spectral_index_err",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "spectral_curvature_err",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "rms_image",
+                "unit": "beam-1 mJy"
+              },
+              {
+                "format": "K",
+                "name": "has_siblings",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "fit_is_estimate",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "spectral_index_from_taylor_term",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "flag_c4",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "comment",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "rms_noise_bane",
+                "unit": "mJy"
+              }
+            ],
+            "extension": "",
+            "row_count": 5880
+          }
+        },
+        {
+          "byte_size": 282240,
+          "member": "emu_pilot_sample_2x2deg.hydra_dir/catalogues/shallow/emu_pilot_sample_2x2deg.hydra.selavy.shallow.fits",
+          "table": {
+            "columns": [
+              {
+                "format": "K",
+                "name": "id",
+                "unit": null
+              },
+              {
+                "format": "10A",
+                "name": "island_id",
+                "unit": null
+              },
+              {
+                "format": "14A",
+                "name": "component_id",
+                "unit": null
+              },
+              {
+                "format": "14A",
+                "name": "component_name",
+                "unit": null
+              },
+              {
+                "format": "10A",
+                "name": "ra_hms",
+                "unit": "HMS"
+              },
+              {
+                "format": "9A",
+                "name": "dec_dms",
+                "unit": "DMS"
+              },
+              {
+                "format": "D",
+                "name": "ra",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "dec",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "ra_err",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "dec_err",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "frequency",
+                "unit": "MHz"
+              },
+              {
+                "format": "D",
+                "name": "flux_peak",
+                "unit": "beam-1 mJy"
+              },
+              {
+                "format": "D",
+                "name": "flux_peak_err",
+                "unit": "beam-1 mJy"
+              },
+              {
+                "format": "D",
+                "name": "flux_total",
+                "unit": "mJy"
+              },
+              {
+                "format": "D",
+                "name": "flux_total_err",
+                "unit": "mJy"
+              },
+              {
+                "format": "D",
+                "name": "major",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "minor",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "pa",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "major_err",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "minor_err",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "pa_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "major_deconvolved",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "minor_deconvolved",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "pa_deconvolved",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "major_deconvolved_err",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "minor_deconvolved_err",
+                "unit": "arcsec"
+              },
+              {
+                "format": "D",
+                "name": "pa_deconvolved_err",
+                "unit": "deg"
+              },
+              {
+                "format": "D",
+                "name": "chi_squared_fit",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "rms_fit_gauss",
+                "unit": "beam-1 mJy"
+              },
+              {
+                "format": "D",
+                "name": "spectral_index",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "spectral_curvature",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "spectral_index_err",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "spectral_curvature_err",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "rms_image",
+                "unit": "beam-1 mJy"
+              },
+              {
+                "format": "K",
+                "name": "has_siblings",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "fit_is_estimate",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "spectral_index_from_taylor_term",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "flag_c4",
+                "unit": null
+              },
+              {
+                "format": "K",
+                "name": "comment",
+                "unit": null
+              },
+              {
+                "format": "D",
+                "name": "rms_noise_bane",
+                "unit": "mJy"
+              }
+            ],
+            "extension": "",
+            "row_count": 789
+          }
+        }
+      ],
+      "finders": [
+        "aegean",
+        "caesar",
+        "profound",
+        "pybdsf",
+        "selavy"
+      ],
+      "residual_pixel_values_inspected": false
+    },
+    "deep_image": {
+      "beam_degrees": {
+        "major": 0.005000000000759,
+        "minor": 0.005000000000692,
+        "position_angle": 0.0
+      },
+      "bitpix": -32,
+      "bunit": "Jy/beam",
+      "pixel_values_inspected": false,
+      "shape": [
+        1,
+        1,
+        3600,
+        3600
+      ],
+      "wcs": {
+        "cdelt1": -0.0005555555555556,
+        "cdelt2": 0.0005555555555556,
+        "crpix1": 6586.0,
+        "crpix2": -1436.0,
+        "crval1": 314.8772791667,
+        "crval2": -57.59108888889,
+        "ctype1": "RA---SIN",
+        "ctype2": "DEC--SIN",
+        "cunit1": "deg",
+        "cunit2": "deg"
+      }
+    },
+    "shallow_image": {
+      "beam_degrees": {
+        "major": 0.005000000000759,
+        "minor": 0.005000000000692,
+        "position_angle": 0.0
+      },
+      "bitpix": -64,
+      "bunit": "Jy/beam",
+      "pixel_values_inspected": false,
+      "shape": [
+        1,
+        1,
+        3600,
+        3600
+      ],
+      "wcs": {
+        "cdelt1": -0.0005555555555556,
+        "cdelt2": 0.0005555555555556,
+        "crpix1": 6586.0,
+        "crpix2": -1436.0,
+        "crval1": 314.8772791667,
+        "crval2": -57.59108888889,
+        "ctype1": "RA---SIN",
+        "ctype2": "DEC--SIN",
+        "cunit1": "deg",
+        "cunit2": "deg"
+      }
+    },
+    "truth_role": "real-survey-diagnostic-with-no-astronomical-truth"
+  },
+  "inspector": {
+    "path": "scripts/validation/inspect_phase5_public_schemas.py",
+    "sha256": "074e4df9c55557cd96605f5ca4f91d9d533776756785e1531375957a739ca814"
+  },
+  "next_action": "obtain-named-review-of-exact-schema-adapters-and-selection-formulas-before-generating-any-cutout-or-finder-output",
+  "pre_terminal_observation": {
+    "catalogue_distributions_inspected": false,
+    "consequence": "record the deviation transparently; keep cutout selection and all finder execution closed pending named review",
+    "finder_products_inspected": false,
+    "image_pixel_arrays_inspected": false,
+    "observation": "while the final Hydra archive was still downloading, FITS headers and the first five SDC1 truth rows of already complete exact-sized files were inspected before the aggregate acquisition record sealed",
+    "selection_formula_informed_by_observed_values": false,
+    "status": "procedural-deviation-recorded"
+  },
+  "proposed_sdc1_selection": {
+    "admission": "arithmetic mean of finite resampled primary-beam values is at least 0.5; any non-finite or out-of-domain sample rejects tile",
+    "apparent_flux": "truth integrated flux in Jy multiplied by bilinearly interpolated primary-beam response at the truth centroid",
+    "apparent_peak_snr": "apparent integrated flux times 0.6*0.6 divided by sqrt(converted_b_maj**2+0.6**2)*sqrt(converted_b_min**2+0.6**2), then divided by 73e-9 Jy/beam",
+    "candidate_grid": "nonoverlapping half-open tiles aligned at x,y multiples of 2048 over the complete 32768-square image",
+    "candidate_output_used": false,
+    "noise_reference": "Bonaldi et al. 2021 MNRAS 500 3821 Table 1, 1400-MHz 1000-hour 73-nJy/beam nominal thermal noise",
+    "primary_beam_resampling": "bilinear interpolation of PrimaryBeam_B2.fits at every SDC1 image-pixel centre through the two recorded celestial WCSs",
+    "ranking": [
+      "sparse: source_count ascending",
+      "ordinary: abs(source_count - median admitted source_count) ascending",
+      "crowded: source_count descending",
+      "resolved: resolved_fraction descending",
+      "close-pair: closest_pair_beams ascending",
+      "high-dynamic-range: dynamic_range descending",
+      "low-apparent-SNR: low_snr_fraction descending",
+      "primary-beam-boundary: mean_primary_beam ascending"
+    ],
+    "size_conversion_to_gaussian_fwhm": {
+      "size=1-largest-angular-size": "multiply b_maj,b_min by 2.355/5",
+      "size=2-gaussian-fwhm": "identity",
+      "size=3-exponential-scale": "multiply b_maj,b_min by sqrt(2)"
+    },
+    "status": "pending-named-scientific-review",
+    "strata": [
+      "sparse",
+      "ordinary",
+      "crowded",
+      "resolved",
+      "close-pair",
+      "high-dynamic-range",
+      "low-apparent-SNR",
+      "primary-beam-boundary"
+    ],
+    "tie_break": "increasing global tile-core (y_start,x_start); select in stratum order and take the first not already selected",
+    "tile_attributes": {
+      "closest_pair_beams": "minimum truth-centroid great-circle separation divided by 0.6 arcsec; infinity for fewer than two sources",
+      "dynamic_range": "maximum apparent integrated flux divided by median positive apparent integrated flux; 0 when there is no positive apparent flux",
+      "low_snr_fraction": "fraction with apparent peak SNR in the closed interval [5,8]; 0 for an empty tile",
+      "mean_primary_beam": "the admission mean",
+      "resolved_fraction": "fraction with converted Gaussian major FWHM greater than the recorded 0.6-arcsec synthesized beam; 0 for an empty tile",
+      "source_count": "number of truth centroids in tile"
+    },
+    "tile_shape_yx": [
+      2048,
+      2048
+    ],
+    "truth_membership": "official ra_cent,dec_cent transformed with the image WCS lies inside the tile half-open pixel bounds"
+  },
+  "qualification_opened": false,
+  "review_id": "phase-5-public-comparison-schema-review",
+  "schema_version": 1,
+  "scientific_review_complete": false,
+  "sdc1": {
+    "image": {
+      "beam_degrees": {
+        "major": 0.000166666679434,
+        "minor": 0.000166666679434,
+        "position_angle": null
+      },
+      "bitpix": -32,
+      "bunit": "JY/BEAM",
+      "pixel_values_inspected": false,
+      "shape": [
+        1,
+        1,
+        32768,
+        32768
+      ],
+      "wcs": {
+        "cdelt1": -6.71387e-05,
+        "cdelt2": 6.71387e-05,
+        "crpix1": 16384.0,
+        "crpix2": 16384.0,
+        "crval1": 0.0,
+        "crval2": -30.0,
+        "ctype1": "RA---SIN",
+        "ctype2": "DEC--SIN",
+        "cunit1": null,
+        "cunit2": null
+      }
+    },
+    "official_scoring_reference": {
+      "catalogue_definition_sha256": "feefc3b716779edf4aac4aa643d5aeda5237393793ff9b81856dc1abee750c9b",
+      "commit": "d54a968293363ad130586c8a88161dc5c89506ee",
+      "official_score_role": "report-only",
+      "preparation_sha256": "ec3646dd0cacdfa31fed8f043eabca4e2926bb1a3b5e5d43fb11a8ef203f3621",
+      "repository": "https://gitlab.com/ska-telescope/sdc/ska-sdc",
+      "size_constants_sha256": "0ceed55c5e796153216616c73ef6feb3b56651cac818bdd3727438cd91347b13"
+    },
+    "primary_beam": {
+      "beam_degrees": {
+        "major": null,
+        "minor": null,
+        "position_angle": null
+      },
+      "bitpix": -32,
+      "bunit": null,
+      "pixel_values_inspected": false,
+      "shape": [
+        1,
+        1,
+        257,
+        257
+      ],
+      "wcs": {
+        "cdelt1": -0.0323491971131,
+        "cdelt2": 0.0323491971131,
+        "crpix1": 129.0,
+        "crpix2": 129.0,
+        "crval1": 0.0,
+        "crval2": -30.0000013981,
+        "ctype1": "RA---SIN",
+        "ctype2": "DEC--SIN",
+        "cunit1": null,
+        "cunit2": null
+      }
+    },
+    "submitted_catalogues": {
+      "archive_member_count": 42,
+      "catalogue_values_inspected": false,
+      "target_submission_count": 9,
+      "target_submissions": [
+        {
+          "byte_size": 26169645,
+          "column_count": 12,
+          "delimiter": "whitespace",
+          "first_numeric_row_index": 1,
+          "header_row_count": 1,
+          "member": "SDC1_submissions/ARCIt-CACAO_1400MHz_1000h_v2020.txt"
+        },
+        {
+          "byte_size": 25232575,
+          "column_count": 12,
+          "delimiter": "whitespace",
+          "first_numeric_row_index": 1,
+          "header_row_count": 1,
+          "member": "SDC1_submissions/EngageSKA_1400MHz_1000h_v2.txt"
+        },
+        {
+          "byte_size": 9534113,
+          "column_count": 12,
+          "delimiter": "whitespace",
+          "first_numeric_row_index": 1,
+          "header_row_count": 1,
+          "member": "SDC1_submissions/hs_1400MHz_1000h_v5.txt"
+        },
+        {
+          "byte_size": 7517055,
+          "column_count": 12,
+          "delimiter": "whitespace",
+          "first_numeric_row_index": 1,
+          "header_row_count": 1,
+          "member": "SDC1_submissions/ICRAR_1400MHz_1000h_v16.txt"
+        },
+        {
+          "byte_size": 37329493,
+          "column_count": 12,
+          "delimiter": "whitespace",
+          "first_numeric_row_index": 1,
+          "header_row_count": 1,
+          "member": "SDC1_submissions/IPM_1400MHz_1000h_v1.txt"
+        },
+        {
+          "byte_size": 352585065,
+          "column_count": 12,
+          "delimiter": "whitespace",
+          "first_numeric_row_index": 1,
+          "header_row_count": 1,
+          "member": "SDC1_submissions/IPM2_1400MHz_1000h_v5.txt"
+        },
+        {
+          "byte_size": 65759611,
+          "column_count": 12,
+          "delimiter": "whitespace",
+          "first_numeric_row_index": 13,
+          "header_row_count": 13,
+          "member": "SDC1_submissions/JLRAT_1400MHz_1000h_v5.txt"
+        },
+        {
+          "byte_size": 4227,
+          "column_count": 12,
+          "delimiter": "whitespace",
+          "first_numeric_row_index": 1,
+          "header_row_count": 1,
+          "member": "SDC1_submissions/RADGK_1400MHz_1000h_v3.txt"
+        },
+        {
+          "byte_size": 17931057,
+          "column_count": 12,
+          "delimiter": "whitespace",
+          "first_numeric_row_index": 1,
+          "header_row_count": 1,
+          "member": "SDC1_submissions/Shanghai_1400MHz_1000h_v5.txt"
+        }
+      ]
+    },
+    "truth_catalogue": {
+      "column_count": 12,
+      "columns": [
+        "id",
+        "ra_core",
+        "dec_core",
+        "ra_cent",
+        "dec_cent",
+        "flux",
+        "core_frac",
+        "b_maj",
+        "b_min",
+        "pa",
+        "size",
+        "class"
+      ],
+      "delimiter": "whitespace",
+      "first_numeric_row_index": 0,
+      "header_row_count": 0,
+      "units": {
+        "b_maj,b_min": "arcsecond in size convention named by size",
+        "class": "integer source-population label interpreted only by the official SDC1 response/scoring definition; report-only for Hebog",
+        "core_frac": "dimensionless",
+        "flux": "Jy intrinsic integrated flux density",
+        "pa": "degree clockwise from due west",
+        "ra_core,dec_core,ra_cent,dec_cent": "degree",
+        "size": "1=largest-angular-size,2=Gaussian-FWHM,3=exponential-scale"
+      }
+    }
+  },
+  "status": "pending-named-scientific-review-before-selection"
+}

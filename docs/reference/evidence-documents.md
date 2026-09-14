@@ -60,6 +60,106 @@ document embeds the complete reports for those products. Released PyBDSF and
 pinned PyBDSF `master` therefore produce separate documents even when they use
 the same dataset and candidate output.
 
+## Phase 5 filter-review evidence
+
+A `phase-five-filter-paired-review` document binds the pre-results protocol,
+development and regression manifest checksums, source tree, dependency
+inventory, and environment. It records every analytic, development, and
+regression endpoint by candidate, statistic, and applicable stratum, plus both
+directions of each exact or whole-image bootstrapped paired comparison.
+Candidate conclusions are derived from their recorded failures; a document
+cannot authorize Step 3 unless one candidate passes every absolute and paired
+endpoint. The reviewed Step 2B evidence selected neither candidate, so its
+separate committed decision contract keeps optimization, qualification, and
+Step 3 closed.
+
+## Phase 5 astrometry-development evidence
+
+A `phase-five-astrometry-development` document binds the successor protocol,
+base corrective protocol, fresh development manifest, source tree, dependency
+inventory, and environment. It records direct group-level median and p95
+position endpoints with whole-image cluster-bootstrap bounds; 68% and 95%
+Mahalanobis coverage by morphology, SNR, scale, edge, invalid-pixel,
+truncation, and estimator disposition; model availability and adequacy; and a
+conjunctive candidate decision. The schema recomputes the frozen preference
+for the direct estimator unless an eligible model improves overall p95 by at
+least 0.02 beam. A rejected development result cannot authorize confirmation,
+Step 2C-P, Step 3, optimization, or qualification.
+
+A later `phase-five-astrometry-follow-up-development` document binds the
+Step 2C-HR compact/extended position split, the exact corrective-A residual-B3
+detection protocol, and a new 80-image development manifest. It records exact
+availability plus whole-image-cluster upper confidence bounds for signed-axis
+bias and radial p95 repeatability in every applicable astronomical stratum.
+Median radial error and error against the former threshold-independent target
+remain diagnostic. Even a completely passing document remains `exploratory`,
+marks only `eligible-awaiting-human-review`, and cannot authorize the sealed
+confirmation or any downstream Phase 5 step.
+
+The checked-in
+`phase-5-astrometry-follow-up-development-decision.json` binds the ignored
+development evidence by checksum and records its compact technical review.
+The decision can retain a completely passing candidate only for named human
+scientific review. Its schema keeps confirmation, Step 2C-P, Step 3,
+optimization, and qualification false, so a development pass cannot be
+mistaken for production selection.
+
+The separate `phase-5-astrometry-follow-up-human-decision.json` records the
+named project-owner review. It may authorize exactly one sealed confirmation
+without changing the candidate, target, population, bootstrap, or gates. It
+does not authorize Step 2C-P or any later phase.
+
+A `phase-five-astrometry-follow-up-confirmation` document is the raw result of
+that authorized one-look execution. It binds the human and development
+decisions, development evidence, frozen protocols, confirmation manifest,
+runner, source tree, dependencies, and environment. Its status remains
+`exploratory` and every downstream gate remains false until a separate
+technical decision reviews all confirmation endpoints.
+
+The checked-in
+`phase-5-astrometry-follow-up-confirmation-decision.json` binds the raw
+evidence checksum and reviewed metrics. A passing decision may authorize only
+the freeze of a fresh Step 2C-P protocol; external-finder execution remains
+false until that prospective protocol is complete and validated.
+
+The checked-in `phase-5-external-comparison.json` is that prospective
+pre-results protocol. It binds two fresh seed-disjoint manifests, exact
+PyBDSF release/master and Aegean runtimes, finder configurations, like-product
+mappings, truth-first matcher rules, metric scopes, margins, resampling,
+power, and the one-look failure policy. It keeps execution false until the
+three runners and matcher are implemented, tested, and hash-bound by a
+separate review.
+
+The checked-in
+`config/contracts/phase-5-external-execution-decision.json` is the only record
+that can open those runners. It binds the frozen protocol, residual-B3
+candidate review, committed implementation revision, complete production-
+source-tree digest, and the three isolated entry-point digests. It also
+freezes the Hebog container and dependency inventory and the PyBDSF core
+count; reference container and dependency identities remain fixed by the
+prospective protocol. The decision is valid only before the one-look
+population opens and keeps Step 3, optimization, and qualification false. An
+`awaiting-reconstructed-runtime-approval` record is deliberately not an
+authorization: runners and the campaign launcher reject it before opening an
+input or staging directory. Only the named reviewed state may proceed.
+The active record reached that reviewed state on 2026-08-11 after Gemma Danks
+approved the exact reconstructed identities, four PyBDSF cores, the scoped
+512-pixel diagnostic limitation, and one sealed terminal execution.
+Each raw one-realization `result.json` then binds that decision and the common
+`input.json`, preserves a finder failure rather than dropping the image, and
+lists every output artifact by relative path, byte count, and SHA-256.
+
+The complete-population launcher adds three campaign-level records outside the
+public scientific-evidence schema. `campaign-request.json` freezes the launcher
+checksum, all four inspected immutable image identities, every realization,
+and every applicable finder/mode leg before execution. The private
+`campaign-open-state.json` records the exact request hash and UTC opening time.
+Only after all 7,000 results verify does `campaign.json` seal the ordered raw
+result-manifest checksums, terminal success/failure counts, and unchanged
+closed downstream gates. These records are canonical JSON and raw campaign
+provenance; they do not themselves evaluate non-inferiority or authorize Step
+3.
+
 ## Paired scientific-campaign evidence
 
 A scientific-campaign document compares Hebog and every reference on the same

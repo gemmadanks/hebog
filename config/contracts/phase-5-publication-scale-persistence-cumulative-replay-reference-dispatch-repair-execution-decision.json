@@ -1,0 +1,23 @@
+{
+  "cumulative_replay_authorized": true,
+  "decision_id": "phase-5-publication-scale-persistence-cumulative-replay-reference-dispatch-repair-execution-decision",
+  "exact_user_authority": "Please complete all tasks required for running the next cumulative replay. Review the code and tests, close any gaps and fix bugs or make improvements as needed then run the replay and evaluate the results.",
+  "execution_authorized": true,
+  "expected_execution_sha256": "5db66df96b3b96cb7c1210ebd5a889536b246dc756b12f823a85925204845ba6",
+  "identity_review": {
+    "path": "config/contracts/phase-5-publication-scale-persistence-cumulative-replay-reference-dispatch-repair-review.json",
+    "sha256": "7a4ab3873cb58ed50976fe0adb96833b5e8c17fc1b0416d1941eef988dbbd3ef"
+  },
+  "original_execution_decision_sha256": "65e9654902503c1bbbc67336853c85a1cea3800d3240f4e409cc900c0e9639d2",
+  "prohibited_authorizations": {
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "threshold_or_photometric_tuning_authorized": false,
+    "viewed_sdc1_hydra_execution_authorized": false
+  },
+  "schema_version": 1,
+  "status": "authorized-for-one-publication-scale-persistence-cumulative-replay"
+}

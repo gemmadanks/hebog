@@ -1,0 +1,45 @@
+{
+  "authorization_source": {
+    "approved_on": "2026-08-29",
+    "exact_user_instruction": "Please fix the error and restart the run.",
+    "reviewer": "Gemma Danks"
+  },
+  "decision_id": "phase-5-public-finder-source-hierarchy-parent-construction-cumulative-replay-repair-pre-review",
+  "failure": {
+    "path": "config/contracts/phase-5-public-finder-source-hierarchy-parent-construction-cumulative-replay-execution-failure.json",
+    "sha256": "9ddf370eb4a224aed071104ab91c7a5ad5ca8fdd28370875be3eaf6dd4f2b672"
+  },
+  "failure_accounting": {
+    "candidate_execution": "never started",
+    "coverage_gap": "the authorized delegation path and real predecessor depth were not exercised before execution",
+    "immediate_cause": "the wrapper looked for _load_current_wrapper on the measurement-repair overlay",
+    "operational_precursor": "the first process also failed before science because ignored retained evidence was not visible inside the immutable checkout",
+    "root_cause": "the parent wrapper added one predecessor overlay without increasing composition traversal depth",
+    "scientific_effect": "none; no scratch, candidate product, partial science, or ledger exists",
+    "write_once_effect": "the original scratch and terminal output namespaces remain absent and reusable for the unchanged scientific replay"
+  },
+  "implementation_boundary": {
+    "allowed": [
+      "add a regression test that executes authorized delegation through the exact three-wrapper chain",
+      "resolve source reconstruction, measurement repair, and source association explicitly in one shared helper",
+      "reuse that helper in the parent process and every spawned candidate worker",
+      "make complete no-write verification resolve and validate the executable composition and static seams",
+      "retain the exact candidate, source tree, configuration, references, gates, output, scratch, and two-worker population",
+      "freeze replacement wrapper-only identities",
+      "restart the same absent-namespace 800-compact/1,600-Continuum replay once"
+    ],
+    "forbidden": [
+      "candidate, configuration, population, reference, baseline, gate, threshold, or photometric changes",
+      "viewed SDC1 or Hydra execution",
+      "another campaign or output namespace",
+      "fresh qualification",
+      "optimization or tuning",
+      "rescoring",
+      "cutover",
+      "release"
+    ]
+  },
+  "recommendation": "implement the minimal shared traversal repair test-first, extend no-write verification to execute the composition seam, freeze replacement wrapper and checkout identities, and consume the user's explicit fix-and-restart instruction for one unchanged scientific replay",
+  "schema_version": 1,
+  "status": "wrapper-repair-and-single-restart-authorized-by-explicit-user-instruction"
+}

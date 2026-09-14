@@ -1,0 +1,84 @@
+{
+  "accepted_on": "2026-09-06",
+  "claims": {
+    "cumulative_aegean_parity": true,
+    "cumulative_dual_pybdsf_parity": true,
+    "fully_powered_incumbent_retention": false,
+    "material_incumbent_regression_observed": false,
+    "phase_5_scientific_readiness": false
+  },
+  "decision_id": "phase-5-cumulative-retention-risk-acceptance",
+  "execution_authorizations": {
+    "candidate_execution": false,
+    "cutover": false,
+    "held_out_execution": false,
+    "incumbent_execution": false,
+    "pybdsf_execution": false,
+    "release": false,
+    "rescoring": false,
+    "tuning": false,
+    "viewed_data_execution": false
+  },
+  "human_decision": {
+    "accepted_scope": "Permit the bounded production audit and compact held-out sentinel design while preserving the exact incomplete cumulative result.",
+    "basis": "The additional incumbent-only confirmation is not quick and adds limited release-decision value after complete dual-PyBDSF/Aegean parity, zero failures, 364 of 368 incumbent passes, an overall passing position-p95 bound, and both unresolved point movements inside the practical margin.",
+    "decision_sequence": [
+      "Only do this final check if it is quick. Otherwise I think the main result that hebog and pybdsf are equivalent is sufficient.",
+      "Sounds good. Please continue."
+    ],
+    "scientific_owner": "Gemma Danks"
+  },
+  "progression_permissions": {
+    "compact_held_out_design": true,
+    "production_candidate_audit": true
+  },
+  "residual_uncertainty": {
+    "distinct_evidence_pattern_count": 2,
+    "patterns": [
+      {
+        "aliases": [
+          "continuum--position-p95--above-compact-deblend-limit",
+          "continuum--position-p95--morphology-shell",
+          "continuum--position-p95--tile-corner"
+        ],
+        "positive_regression_beams": 0.0030125418643507373,
+        "practical_regression_margin_beams": 0.05,
+        "upper_confidence_limit_beams": 0.056370502185389526
+      },
+      {
+        "aliases": [
+          "continuum--position-p95--scale-4-beam"
+        ],
+        "positive_regression_beams": 0.013072691526728741,
+        "practical_regression_margin_beams": 0.05,
+        "upper_confidence_limit_beams": 0.05422157673950845
+      }
+    ],
+    "required_disclosure": "The two pattern-level incumbent position-p95 confidence bounds remain unresolved; the acceptance is not a statistical pass and must not be relabelled as one."
+  },
+  "schema_version": 1,
+  "skipped_confirmation": {
+    "image_count": 4608,
+    "pre_review_path": "config/contracts/phase-5-final-retention-confirmation-pre-review.json",
+    "pre_review_sha256": "913276423c5a93572ac48f18ab00ad9e13d18c21007a973284acbf7d3cbc3c21",
+    "reason": "The powered incumbent-only confirmation would require several additional hours and is disproportionate to its narrow residual question before the fresh sentinel and public-contract gates."
+  },
+  "status": "accepted-for-phase-5-progression-with-disclosure",
+  "terminal_evidence": {
+    "all_required_endpoints_pass": false,
+    "candidate_configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "candidate_product_set_sha256": "f43cb2741e3d66a51bd71baccc6f090199af02eb0784d08cb4295613f17758ed",
+    "candidate_revision": "95cfc76ded56556dc3ad6894410962d34f0d5604",
+    "candidate_source_tree_sha256": "8da21e86afc5035da0704724a9d29104ea8b0e4d55fa4a98f0c5f3efca9a75a5",
+    "comparison_status_counts": {
+      "fail": 0,
+      "pass": 1183,
+      "underpowered": 4
+    },
+    "cumulative_science_regression_ready": false,
+    "file_path": "benchmark-results/phase-5/public-owner-domain-cumulative-decision.json",
+    "file_sha256": "fe4afbe912d5acfe3086141fa6840effbbbe92d7a40343fda7791880b808a0ed",
+    "record_canonical_sha256": "8d69ef44bfd4d134c31bb9f00f4c6771237f2d71e9dbbe6dd941e277514b088e",
+    "status": "incomplete"
+  }
+}

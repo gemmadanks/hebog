@@ -1,0 +1,30 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "coarse_control_execution_authorized": false,
+    "cutover_authorized": false,
+    "development_lane_completion_authorized": true,
+    "existing_dask_comparison_execution_authorized": true,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "replay_authorized": false,
+    "rescoring_authorized": false,
+    "source_finding_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "authorization_record": {
+    "approved_on": "2026-09-04",
+    "statement": "I approve the Phase 5 adaptive-background evaluation-only completion and repair pre-review SHA-256 d61b9643427a01094a7f8377e98930f2e8a102060e49b34e9cf4edf12238577f, bound to completion identity review SHA-256 d2a664f578915fadab94ea3d8d8f2b92e2fd488aca3b293a68a5e9d99d433089, expected execution SHA-256 030973d22542a751a0cb598ebbdb699f2a75515e6e548b12a5ef74e0ceae8dfe, preserved product-set SHA-256 c9212f3a696b052cb1b6b91b420d9236e15df541d0b48cebd97a179c1691f24e, and completion program SHA-256 8f7c96198307a543f98906942483441888f5d276f4d7581239943ce8e3697d75. This authorizes zero candidate or coarse-control reruns, exactly 12 two-worker existing-Dask comparisons, and one atomic terminal decision. It authorizes no source-finding changes, PyBDSF or viewed-data execution, replay, qualification, tuning, rescoring, optimization, cutover, or release."
+  },
+  "completion_program_sha256": "8f7c96198307a543f98906942483441888f5d276f4d7581239943ce8e3697d75",
+  "decision_id": "phase-5-adaptive-background-development-completion-execution-decision",
+  "expected_execution_sha256": "030973d22542a751a0cb598ebbdb699f2a75515e6e548b12a5ef74e0ceae8dfe",
+  "identity_review_sha256": "d2a664f578915fadab94ea3d8d8f2b92e2fd488aca3b293a68a5e9d99d433089",
+  "preserved_product_set_sha256": "c9212f3a696b052cb1b6b91b420d9236e15df541d0b48cebd97a179c1691f24e",
+  "repair_pre_review_sha256": "d61b9643427a01094a7f8377e98930f2e8a102060e49b34e9cf4edf12238577f",
+  "schema_version": 1,
+  "status": "authorized-for-one-development-lane-completion"
+}

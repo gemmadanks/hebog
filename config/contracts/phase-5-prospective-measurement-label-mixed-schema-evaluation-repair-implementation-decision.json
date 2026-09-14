@@ -1,0 +1,57 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "evaluation_retry_authorized_for_exact_sealed_products": true,
+    "fresh_qualification_authorized": false,
+    "full_cumulative_replay_authorized_only_after_smoke_passes": true,
+    "release_authorized": false,
+    "rescoring_closed_evidence_authorized": false,
+    "threshold_or_margin_tuning_authorized": false
+  },
+  "candidate": {
+    "configuration_sha256": "24663a15309a0b1236ddccfc1491145229a9441c3510c351f8e20cd7c29a7a06",
+    "product_set_canonical_sha256": "2b32ad121677aa2d0a57db806697a0b2f572a019a424f32fb8cb08667aedb705",
+    "revision": "a9df2c827dfa85992d8ee7732c7f9cf327019053",
+    "source_tree_sha256": "89eb014c1072db95cc905eac66afb63bab75e8083b224eb6c691923c7ce84add"
+  },
+  "decision_id": "phase-5-prospective-measurement-label-mixed-schema-evaluation-repair-implementation-decision",
+  "evaluator": {
+    "implementation_revision": "b0de879d7c825e22487bd6134bbcf95988711de7",
+    "path": "scripts/validation/evaluate_phase5_prospective_science_smoke.py",
+    "sha256": "9cb15439afdaaba4702d0dfd077c45a75b56f40a9193d36d2cad3596c31449d0"
+  },
+  "exact_user_authority": "Please complete all tasks required for running the next cumulative replay. Review the code and tests, close any gaps and fix bugs or make improvements as needed then run the replay and evaluate the results.",
+  "incumbent": {
+    "configuration_sha256": "88ac8bea8e865c765d5f346235642f88b298140955af67ada99b9f9bf6187523",
+    "product_set_canonical_sha256": "1c76f7392156edb57195580ee5ff930dd66594d854cc43421c5dffbad006ec27",
+    "revision": "85d580713664b962ae256a98b065849cf8eb9283",
+    "source_tree_sha256": "a082cbe4b3416f787b455bb5a06be1eb66cb33ec807c74fa48056dfe8c630696"
+  },
+  "output": {
+    "must_be_absent_before_evaluation": true,
+    "path": "benchmark-results/phase-5/prospective-science-smoke-mask-measurement-separation.json"
+  },
+  "pre_review": {
+    "path": "config/contracts/phase-5-prospective-measurement-label-mixed-schema-evaluation-repair-pre-review.json",
+    "sha256": "d20b7d894a240b9c4c6c021e2efa7f794367d9752bcf6b67fe3fe0701ae93f1e"
+  },
+  "prior_evaluation_decision": {
+    "path": "config/contracts/phase-5-prospective-measurement-label-persistence-evaluation-decision.json",
+    "sha256": "68c41ffa5ecffb1587e369573eb10593401ff2c1c7b744c0d466c7790e3625bf"
+  },
+  "repair_boundary": {
+    "current_configuration_requires_measurement_labels": true,
+    "historical_incumbent_schema_unchanged": true,
+    "scientific_products_changed": false,
+    "temporary_source_union_seam_restored_on_exit": true
+  },
+  "required_pre_execution_gates": [
+    "current, historical, and missing-current-artifact dispatch tests pass",
+    "both exact sealed product sets reverify without candidate execution",
+    "candidate and incumbent scientific identities match this decision",
+    "repaired evaluator and pre-review identities match this decision",
+    "the write-once output remains absent"
+  ],
+  "schema_version": 1,
+  "status": "authorized-for-exact-mixed-schema-smoke-evaluation-retry"
+}

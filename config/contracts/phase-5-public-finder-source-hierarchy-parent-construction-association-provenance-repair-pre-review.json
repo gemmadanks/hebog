@@ -1,0 +1,44 @@
+{
+  "authorization_source": {
+    "exact_user_instruction": "Please fix the issue.",
+    "received_on": "2026-08-30",
+    "reviewer": "Gemma Danks"
+  },
+  "decision_id": "phase-5-public-finder-source-hierarchy-parent-construction-association-provenance-repair-pre-review",
+  "failure": {
+    "path": "config/contracts/phase-5-public-finder-source-hierarchy-parent-construction-evaluation-provenance-failure.json",
+    "sha256": "1a391c240a957f4a41684ce2d6c19cef9d6a210239592aef460e00e8e476355a"
+  },
+  "failure_accounting": {
+    "candidate_execution": "all 2,400 candidate shards completed and remain immutable",
+    "compiler_failure": "the first associated Continuum row could not bind its digest to recovered owner labels",
+    "confirmed_root_cause": "direct component identities and recovered measurement ownership are intentionally distinct, but the evaluator inferred the former from the latter",
+    "evidence_loss": "all 1,600 Continuum complete markers omit source-association-json even though the in-memory candidate produced that exact record",
+    "scientific_effect": "none published; the atomic ledger is absent",
+    "write_once_effect": "the failed scratch must not be modified and the absent ledger must not be populated from unverifiable membership inference"
+  },
+  "implementation_boundary": {
+    "allowed": [
+      "add a run-aware compiler seam that leaves every historical finder path unchanged",
+      "deserialize and independently verify direct component and source membership digests from an explicit source-association record",
+      "map persisted association label values to recovered owner supports and require an exact disjoint partition",
+      "add regression fixtures where recovered ownership precedes the direct canonical pixel",
+      "implement a sidecar-only provenance reconstruction that reruns only the frozen 1,600 Continuum association composition",
+      "require regenerated catalogue, recovered labels, and mask to match every preserved product exactly before publishing any association sidecar",
+      "freeze exact non-executable reconstruction and evaluation-completion identities"
+    ],
+    "forbidden": [
+      "modifying or overwriting any of the 2,400 preserved candidate shards",
+      "inferring cryptographic membership from recovered owner coordinates",
+      "compact candidate execution",
+      "changing candidate algorithms, configuration, thresholds, photometry, population, references, baseline, endpoints, gates, or output identity",
+      "compilation, evaluation, or source-association reconstruction before an exact execution decision",
+      "viewed SDC1 or Hydra execution",
+      "another campaign or fresh qualification",
+      "optimization, tuning, rescoring, cutover, or release"
+    ]
+  },
+  "recommendation": "fix the evaluator and writer contracts test-first, preserve the completed shards, reconstruct only the omitted association sidecars under a new write-once namespace while byte-verifying the existing Continuum products, then require a separately frozen evaluation-only completion against those sidecars",
+  "schema_version": 1,
+  "status": "implementation-authorized-by-explicit-user-fix-request"
+}

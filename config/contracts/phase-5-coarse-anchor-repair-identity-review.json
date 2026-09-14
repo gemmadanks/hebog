@@ -1,0 +1,114 @@
+{
+  "algorithm_candidate": {
+    "configuration_sha256": "5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4",
+    "revision": "ee29fb5878842d61f361dbf86ee82847779d6694",
+    "source_tree_sha256": "ce58104bc3a458961e9e63cc1ccf636e8c8e388b68a6c24ba03bfe9c0e8b7e5b"
+  },
+  "authorizations": {
+    "candidate_execution": false,
+    "cutover": false,
+    "evaluation": false,
+    "pybdsf_execution": false,
+    "qualification": false,
+    "release": false,
+    "replay": false,
+    "viewed_data_rescoring": false
+  },
+  "closed_v15_evidence": {
+    "candidate_revision": "73ab5af09fde1ca6b4e6032a870fc6e248ddfdbd",
+    "evidence_transfers": false,
+    "status": "scientific-failure",
+    "terminal_sha256": "ad0ed920ca57cf17a64a0cbf5cbd8169f8d2dcab42025de1008093fa74385d8f"
+  },
+  "configuration": {
+    "detection_threshold_sigma": 5.0,
+    "island_threshold_sigma": 3.0,
+    "maximum_island_pixels": null,
+    "minimum_island_pixels": 7,
+    "profile": "continuum"
+  },
+  "date": "2026-09-14",
+  "execution_identity": null,
+  "finder_execution_started": false,
+  "frozen_documents": {
+    "correctness_inventory": {
+      "path": "docs/reference/phase-5-campaign-overview.md",
+      "sha256": "005dce448fb7ce68a9a9389f219ddfe254d5622e7199401aa46ece8b97b64a86"
+    },
+    "gaussian_validity_contract": {
+      "path": "docs/reference/compact-fitting.md",
+      "sha256": "41351794171d9e944836291e1c3a6d5bd9b3e300459b8016590226a73b123e16"
+    },
+    "public_schemas": {
+      "path": "docs/reference/internal-schemas.md",
+      "sha256": "e6c8bd5cbe6cd751e5eb8de31550f7bff41544eda67495bd2ae98a1ef7a08a7c"
+    },
+    "public_tutorial": {
+      "path": "docs/tutorials/find-sources.md",
+      "sha256": "28a6002ae0b1c378548b568850ed00e0d250a850a5da008a32d83924acbafddc"
+    },
+    "release_status": {
+      "path": "docs/reference/release-status.md",
+      "sha256": "26de1130f06aac5d05a2debf0cf525227585cae6c29f3cc553700a060474474c"
+    }
+  },
+  "previous_identity_review_sha256": "ad3f5b291ab1144e5dcf4dae6b3ec2959e3e759f4b59d83bd4411a67fc2037af",
+  "public_diagnostics_schema_version": 8,
+  "qualification_status": "development-unqualified",
+  "repair_scope": {
+    "approval": "2026-09-14-notebook-crash-and-Linux-Windows-CI-repairs",
+    "closed_science_rescored": false,
+    "corrections": [
+      "revalidate-sparse-refinement-anchors-only-after-coarse-source-protection",
+      "retain-valid-anchors-and-independent-local-noise-with-unchanged-thresholds",
+      "close-diagnostic-temporary-files-before-publication-and-cleanup",
+      "POSIX-repository-paths-for-Git-objects-and-evidence-bindings",
+      "replay-one-thread-numerical-budget-before-spawned-test-imports",
+      "bounded-derived-roundoff-in-regenerated-test-manifests-with-exact-recipe-digests"
+    ],
+    "historical_admission_changed": false,
+    "output_schema_versions_changed": false,
+    "provenance_composition_literal_changed": true,
+    "remaining_clearance": [
+      "accumulated-branch-merge-review",
+      "full-supported-platform-CI",
+      "separate-bounded-cleanup-PR",
+      "fresh-comparison-notebook-inspection",
+      "human-release-workflow"
+    ],
+    "scientific_algorithms_changed": true,
+    "scientific_composition_changed": true,
+    "thresholds_changed": false,
+    "validation_population": "independent-stale-anchor-and-public-workflow-controls-existing-portable-tests-and-frozen-equivalence"
+  },
+  "schema_version": 1,
+  "scientific_composition": "phase-5-evidence-bound-public-catalogue-v19",
+  "scientific_composition_sha256": "c825c100b7402776277a9d252b1d6050fb55320ba2f505c44d19579075db64ab",
+  "status": "frozen-non-executable",
+  "validation": {
+    "campaign_parity_qualified": false,
+    "changed_package_line_and_branch_coverage_percent": 100,
+    "code_review": "no-actionable-findings-in-bounded-repair-not-full-merge-diff-clearance",
+    "codecov_patch_report": "not-available-in-local-validation",
+    "diagnostic_retention_line_and_branch_coverage_percent": 100,
+    "docs_build": "passed-strict",
+    "final_focused_coverage_append_tests_passed": 34,
+    "frozen_equivalence_tests_passed": 27,
+    "full_platform_ci": "pending-human-push-native-Windows-not-run-locally",
+    "installed_wheel_public_workflows_passed": 5,
+    "linux_amd64_python_3_14_0_affected_tests_passed": 263,
+    "linux_check_limit": "before-final-test-only-write-flush-and-public-workflow-additions",
+    "marimo_check": "passed-strict",
+    "ordinary_public_controls_byte_identical_to_v18": 6,
+    "portable_branch_aware_coverage_percent": 95.33724142577994,
+    "portable_expected_failures": 2,
+    "portable_tests_passed": 4182,
+    "pre_commit": "passed-clean",
+    "prior_reported_portable_coverage_percent": 95.32766990291262,
+    "production_scale_runtime_qualified": false,
+    "serial_existing_dask_stale_anchor_controls_passed": 2,
+    "standard_check_tests_passed_before_final_test_only_additions": 3806,
+    "viewed_LoTSS_background_only_diagnostic": "completed-without-catalogue-or-rescoring",
+    "viewed_full_notebook_rerun": false
+  }
+}

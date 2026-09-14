@@ -1,0 +1,38 @@
+{
+  "authorization": {
+    "current_hebog_science_change": false,
+    "evaluator_or_gate_change": false,
+    "pybdsf_configuration_change": false,
+    "retry_authorized": true,
+    "tuning_or_rescoring": false
+  },
+  "authorization_record": {
+    "immediate_statement": "I approve, please complete the next task.",
+    "standing_retry_statement": "Please repair the evaluator and make any other fixes required to complete the run. I approve of all re-tries."
+  },
+  "diagnosis": {
+    "approved_contract": "The approved source-union adapter review specifies the native srl source-count column as N_gaus.",
+    "failure": "The first source-union sentinel child required N_Gaus and failed before accepting any pair summary.",
+    "pinned_runtime_inspection": "PyBDSF 1.14.1 gaul2srl.py declares colname='N_gaus'.",
+    "root_cause": "Case-sensitive implementation typo at the isolated comparator catalogue boundary."
+  },
+  "failed_attempt": {
+    "execution_commit": "9419881a3e7dad89a2e69d799e75231eed8a7924",
+    "terminal_output": {
+      "path": "benchmark-results/phase-5/compact-held-out-source-union-sentinel.json",
+      "sha256": "331e36a5afee90e799a281186000ae1c760f46388fd2662514eba379503a4b9f"
+    }
+  },
+  "pre_review_id": "phase-5-compact-held-out-source-union-column-case-repair-pre-review",
+  "repair": {
+    "accepted_source_count_column": "N_gaus",
+    "candidate_science_changed": false,
+    "comparator_configuration_changed": false,
+    "evaluator_or_gate_changed": false,
+    "isolated_child_overlay": true,
+    "new_write_once_namespace": true,
+    "test_first": true
+  },
+  "schema_version": 1,
+  "status": "reviewed-process-only-repair"
+}

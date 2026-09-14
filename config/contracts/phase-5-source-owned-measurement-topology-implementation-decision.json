@@ -1,0 +1,124 @@
+{
+  "current_authorization": {
+    "candidate_execution_authorized": false,
+    "coarse_control_execution_authorized": false,
+    "cutover_authorized": false,
+    "development_lane_execution_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "replay_authorized": false,
+    "rescoring_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "decision_id": "phase-5-source-owned-measurement-topology-implementation-decision",
+  "exact_user_authority": "I approve of review `026e490f`. Please proceed with test-first implementation.",
+  "fixture_bindings": {
+    "adaptive_attribution": {
+      "path": "tests/unit/validation/test_adaptive_background_correction.py",
+      "sha256": "241501976260d9988a0fd33abadcd8e202a7c92eba14a9d1ab3fad64a15a5a65"
+    },
+    "combined_lane": {
+      "path": "tests/unit/validation/test_source_owned_measurement_topology_lane.py",
+      "sha256": "5c481b02b4ae19c89575fbc3b5ffae5d64db3977cab36c395deb808ac0c49f60"
+    },
+    "executor_invariance": {
+      "path": "tests/integration/test_public_finder_correction_execution.py",
+      "sha256": "d3238341d514b61c25e1106e41fc5b881a9ba26ec7ad028e7713367ca17661a2"
+    },
+    "measurement": {
+      "path": "tests/unit/test_extended_measurement.py",
+      "sha256": "87e1e8833b7cd9eb93ebd29aaa7d3e020b766244e4a25fd4ad4508e602a6abda"
+    },
+    "public_composition": {
+      "path": "tests/unit/validation/test_public_finder_correction.py",
+      "sha256": "1a8d8f70e1c4a9b14225109763efbd4c8049794f39c33183b3c97ce85ba67b36"
+    },
+    "source_measurement": {
+      "path": "tests/unit/validation/test_reconstructed_source_measurement.py",
+      "sha256": "0908f969dde8164eb1e729a836aca50a72850a620430cea3d442eb6f4073a5d7"
+    },
+    "topology": {
+      "path": "tests/unit/test_source_reconstruction.py",
+      "sha256": "e23751befd6fe22ecd23231c102ef8d7ad5fadb9bb8f4cc06bc3578ddb23edf3"
+    }
+  },
+  "fixture_evidence": {
+    "affected_mechanism_and_executor_tests_passed": 133,
+    "compact_dual_pybdsf_equivalence_tests_passed": 27,
+    "project_branch_coverage_percent": 94.79,
+    "project_coverage_tests_passed": 2701,
+    "project_coverage_xfailed": 2
+  },
+  "implemented_contracts": [
+    "source apertures retain the existing 1.5-beam guard while their seed includes exclusively owned adjacent-scale persistent support",
+    "competing support is owned once by nearest immutable member support with canonical source identity resolving exact ties",
+    "one genuinely missing directly owned terminal child may not veto an exclusive connected whole-source cycle",
+    "detached, invalid, ambiguous, multiply owned, partial-group, branched, competing, and single-scale evidence fails closed",
+    "bounded array-free attribution separates source ownership, measurement, publication, and hierarchy outcomes",
+    "Serial, existing-Dask, label, order, and retry invariance pass",
+    "the combined replacement lane remains non-executable"
+  ],
+  "program_bindings": {
+    "attribution": {
+      "path": "src/hebog/validation/adaptive_background_diagnostics.py",
+      "sha256": "139a99ce3cd1b9c468a266320e9b6081eea716dcaf26d4b2a8ec47f0dce181d1"
+    },
+    "background_algorithm": {
+      "path": "src/hebog/algorithms/background.py",
+      "sha256": "59f405ae0d00848b61f85d23dac93dee7b65d1443763b664ad8efbc0aa34cdd3"
+    },
+    "background_stage": {
+      "path": "src/hebog/stages/background.py",
+      "sha256": "81f9414abc5b09f419f12d7695cd205f58bc6d25acb9e3b16d99ade35cc8cfed"
+    },
+    "detection_stage": {
+      "path": "src/hebog/stages/detection.py",
+      "sha256": "3088160f9df4b3f508de09c56b89b15671ca4fab5949c8a1df5479b08005dd67"
+    },
+    "freezer": {
+      "path": "scripts/validation/freeze_phase5_source_owned_measurement_topology.py",
+      "sha256": "c4e9752c7c5a9014d626fd19207e254e41324d98b94081802078a029c5fccfa6"
+    },
+    "lane_evaluator": {
+      "path": "src/hebog/validation/adaptive_background_lane.py",
+      "sha256": "3f32dcb6a82598619a59d5d7b496e346dda54f8169569e32b56cd5c5b7773e67"
+    },
+    "measurement_algorithm": {
+      "path": "src/hebog/algorithms/extended_measurement.py",
+      "sha256": "f6f12a91931bc5f213ef757c50032407ef87da53ca53383f11c7dc22227d74ed"
+    },
+    "measurement_composition": {
+      "path": "src/hebog/validation/products.py",
+      "sha256": "c5f64f35a6d7a72a3256d075e20b621081938ea7fa97525e1b887a74d4374fe7"
+    },
+    "parent_runner": {
+      "path": "scripts/validation/run_phase5_adaptive_background_development.py",
+      "sha256": "d7b4b728622b6455ff8aafe523a52c9efb6a58a3f97a3157cc6fc2ed49423df6"
+    },
+    "runner": {
+      "path": "scripts/validation/run_phase5_source_owned_measurement_topology.py",
+      "sha256": "1fbf1206aa08e13c19f8601a6f688d434c039975912abc75fa261eba3b9dd28a"
+    },
+    "source_association": {
+      "path": "src/hebog/algorithms/source_association.py",
+      "sha256": "7544237bffe866d547965f01d0a7cc2c5a852335d29b03d6284ce35e165349d6"
+    },
+    "source_association_model": {
+      "path": "src/hebog/data_models/source_association.py",
+      "sha256": "05045968e83c7df83452f58038ca6ba702123c0f613f5a862e8d678b168f52e2"
+    }
+  },
+  "public_identity": {
+    "path": "config/contracts/phase-5-source-owned-measurement-topology-public-interface-identity-review.json",
+    "sha256": "ca1abba66a6368fe37fb8e43b93b81999ced462f3e01d16be9011cc629913490"
+  },
+  "root_cause_review": {
+    "path": "config/contracts/phase-5-coarse-measurement-and-topology-pre-review.json",
+    "sha256": "026e490f1c97b32e0b4940a1af9985b32c33f0debd9b1ffb11f0ac4b826e2d15"
+  },
+  "schema_version": 1,
+  "status": "implemented-and-fixture-validated-non-executable"
+}

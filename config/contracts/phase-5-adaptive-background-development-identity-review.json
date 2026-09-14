@@ -1,0 +1,101 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "coarse_control_execution_authorized": false,
+    "cutover_authorized": false,
+    "development_lane_execution_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "replay_authorized": false,
+    "rescoring_authorized": false,
+    "source_finding_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "candidate": {
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "entrypoint": "hebog.find_sources",
+    "revision": "937737d811dd229d71dbcfdbda6cb5829de6faca",
+    "source_tree_sha256": "9f8e4a67f0c74ac86bff4f398811a7d64620fb70512b118c0ad3bb1eb58644c8"
+  },
+  "execution_contract": {
+    "atomic_output": "benchmark-results/phase-5/adaptive-background-development-decision.json",
+    "candidate_executions": 144,
+    "coarse_control_executions": 144,
+    "existing_dask_executions": 12,
+    "existing_dask_policy": "caller-owned scheduler address; runner creates no cluster",
+    "output_policy": "one atomic write; never overwrite or adaptive-rerun",
+    "required_workers": 2,
+    "scratch": "/private/tmp/hebog-phase5-adaptive-background-development-937737d",
+    "total_finder_executions": 300
+  },
+  "expected_execution": {
+    "candidate_executions": 144,
+    "coarse_control_executions": 144,
+    "existing_dask_executions": 12,
+    "existing_dask_scheduler": "caller-owned-runtime-address",
+    "identity_review": "config/contracts/phase-5-adaptive-background-development-identity-review.json",
+    "manifest": "config/contracts/phase-5-adaptive-background-development-manifest.json",
+    "output": "benchmark-results/phase-5/adaptive-background-development-decision.json",
+    "scratch": "/private/tmp/hebog-phase5-adaptive-background-development-937737d",
+    "workers": 2
+  },
+  "expected_execution_sha256": "b8d9e6d4d451032c06fd53942d6bf815aa3dff354879d55c7723269578822f2a",
+  "identity_review_id": "phase-5-adaptive-background-development-identity-review",
+  "implementation_decision": {
+    "path": "config/contracts/phase-5-adaptive-background-development-implementation-decision.json",
+    "sha256": "5116168841e11b10b4fab1068710f345a04439f84251ccbe39187e6958b225ca"
+  },
+  "population": {
+    "geometry_count": 12,
+    "input_count": 144,
+    "manifest_path": "config/contracts/phase-5-adaptive-background-development-manifest.json",
+    "manifest_sha256": "77203f85930a99ffbb5490f93db7073cab434b42c8350d6da864625efd09946b",
+    "matrix_cell_count": 36,
+    "total_finder_executions": 300
+  },
+  "program_bindings": {
+    "approved_design": {
+      "path": "src/hebog/validation/adaptive_background_development.py",
+      "sha256": "c95477bc719e697425fd7b8c4a8fe71fd6d3bb2d279457153a7d988a12863e10"
+    },
+    "evaluator_and_population": {
+      "path": "src/hebog/validation/adaptive_background_lane.py",
+      "sha256": "3f32dcb6a82598619a59d5d7b496e346dda54f8169569e32b56cd5c5b7773e67"
+    },
+    "freezer": {
+      "path": "scripts/validation/freeze_phase5_adaptive_background_development.py",
+      "sha256": "fc15702b48eaa2db0fea4355e2eebaea6306bb404edf12fc0918407c6ea29c07"
+    },
+    "runner": {
+      "path": "scripts/validation/run_phase5_adaptive_background_development.py",
+      "sha256": "d7b4b728622b6455ff8aafe523a52c9efb6a58a3f97a3157cc6fc2ed49423df6"
+    }
+  },
+  "required_next_decision": "obtain separate exact one-use approval bound to this identity review and expected execution",
+  "review_binding": {
+    "path": "config/contracts/phase-5-adaptive-background-development-pre-review.json",
+    "sha256": "6287ad3ef734c91142637142f04abebfb7226253e9e49060af686fe07292eed4"
+  },
+  "runtime": {
+    "installed": {
+      "dependency_inventory_sha256": "10788ccd1804f6280454cc5c2386a1551eef084c2b40908f513e365c266f43b6",
+      "python_implementation": "CPython",
+      "python_version": "3.14.2"
+    },
+    "source_files": {
+      "python_version": {
+        "path": ".python-version",
+        "sha256": "a876e0b10411037a012498b9fe18d9bc1df32ed8b722a13564dc944ddcfd9135"
+      },
+      "uv_lock": {
+        "path": "uv.lock",
+        "sha256": "c81a9831ec545b2d7797e1c0951ad46e0e23337b97866ced0ae27e290dfd71ff"
+      }
+    }
+  },
+  "schema_version": 1,
+  "status": "frozen-non-executable"
+}

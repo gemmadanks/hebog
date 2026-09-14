@@ -14,6 +14,15 @@ reconciled parent island. Source and component IDs derive from the global
 region ID, and all output is sorted by those IDs rather than executor
 completion order.
 
+Source and component models may deliberately differ. The source retains the
+reviewed five-sigma beam-or-free selection and Rapthor flux semantics. A
+Gaussian component uses the complete free ellipse only when the same log-area
+evidence exceeds its explicit 1.5-sigma component boundary; otherwise it uses
+the complete beam-constrained ellipse. The component retains the fitted total
+of whichever whole model it publishes for like-product PyBDSF/Aegean
+comparison. It never combines axes from one fit with position angle from
+another.
+
 The worker stage emits one `CompactCatalogueShard` per existing coarse batch;
 it does not create one scheduler task per fit or source. Shards combine through
 deterministic pairwise levels, so fan-in is two and reported reduction depth is
@@ -26,6 +35,30 @@ A normal completed catalogue fails closed if any admitted fit is unavailable,
 any compact result was omitted, or any Phase 5 multiscale island was deferred.
 An explicitly incomplete stage result retains those reasons for inspection but
 cannot masquerade as a successful `find_sources` result.
+
+## Phase 5 preservation boundary
+
+Phase 5 pre-association work does not rebuild a completed Phase 4 compact
+catalogue. `preserve_unassociated_compact_catalogue` accepts only
+`extended-only` scale associations that contain no compact source identity and
+returns the exact same `CompletedCompactCatalogue` object. Consequently its
+islands, sources, Gaussian components, identities, values, canonical JSON,
+and reduction evidence cannot be reordered or recomputed.
+
+Any `contains-compact-support` or `overlaps-compact-support` relationship
+raises
+`CompactAssociationDecisionRequiredError`. Such evidence must pass through the
+governed Step 4 ownership and association rules before it can affect a
+combined catalogue. The same no-op catalogue produces byte-identical Rapthor
+FITS output. Phase 2 RMS and the Phase 4 accepted mask remain immutable
+read-only inputs to the bounded multiscale stages rather than products this
+boundary can replace.
+
+The subsequent combined-identity stage still preserves every compact source
+and Gaussian-component ID. A compact-only graph component also keeps its exact
+Phase 4 island ID. Spatial context may place compact and extended sources in a
+new combined island, but it never relabels the compact objects or fabricates a
+Gaussian component for an irregular extended source.
 
 ## Rapthor compatibility FITS
 

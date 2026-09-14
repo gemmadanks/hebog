@@ -1,0 +1,49 @@
+{
+  "amendment": {
+    "commit": "147e193522a6d15d3e7cb06b34515b5563c92701",
+    "evaluator_path": "scripts/validation/evaluate_phase5_external_recovery_amendment.py",
+    "evaluator_sha256": "406c36a0e1db33e4ef6eac22bc07e7cd1088c0d05e6f208abe57ad43419f84c0",
+    "operation": "preserve-recovery-seam-provenance-and-present-analysis-recorded-base-accelerator-only-at-inherited-evaluator-boundary",
+    "tree": "b98f9d977842ed53deeabc4d653b17cc76fd633a"
+  },
+  "authorization": {
+    "execution_authorized": false,
+    "named_review": null,
+    "requested_by": "Gemma Danks",
+    "requested_on": "2026-08-24",
+    "scope": "evaluate-existing-analysis-once-no-campaign-or-analysis-rerun"
+  },
+  "failure": {
+    "decision_output_written": false,
+    "failed_evaluator_path": "scripts/validation/evaluate_phase5_external_recovery_decision.py",
+    "reason": "recovery-seam-identity-passed-to-inherited-base-accelerator-check",
+    "science_scoring_started": false
+  },
+  "frozen_composition": {
+    "analysis_compiler_accelerator_sha256": "bb3c5c2fc278ad52a528e7eb1a630792e772004ce5435068b6678759a7be2d0b",
+    "evaluation_contract_path": "config/contracts/phase-5-external-recovery-evaluation.json",
+    "evaluation_contract_sha256": "9ef1a4f63282347fe53d29680030a5add6c0ec5a0dd840d217805dbfa7eb7c2a",
+    "frozen_evaluator_path": "scripts/validation/evaluate_phase5_external_recovery_decision.py",
+    "frozen_evaluator_sha256": "fc17d820931989e78049a3615220553d130fb02920ad7708d74ca8b0dd451bce",
+    "recovery_compiler_seam_path": "src/hebog/validation/external_recovery_compiler.py",
+    "recovery_compiler_seam_sha256": "ab690dda67126e8cc1eeec57f426c73ee5244ba33922d1af6f4e8d5a5c07e0f6"
+  },
+  "preserved_evidence": {
+    "analysis_path": "benchmark-results/phase-5/external-recovery-analysis.json",
+    "analysis_sha256": "198fe6ff63ade465872976e6897bf69e7e70f415fd04889937367410c5e3d53a",
+    "campaign_path": "benchmark-results/phase-5/external-recovery-comparison/campaign.json",
+    "campaign_sha256": "4d881a412980e5dfa58d57e18c1e1ca706606724fa745605df554d9302627c83",
+    "decision_path": "benchmark-results/phase-5/external-recovery-decision.json",
+    "decision_state": "absent"
+  },
+  "review_id": "phase-5-external-recovery-evaluation-amendment-review",
+  "schema_version": 1,
+  "scientific_scope": {
+    "analysis_changed": false,
+    "campaign_changed": false,
+    "endpoints_or_gates_changed": false,
+    "population_changed": false,
+    "runtime_results_changed": false
+  },
+  "status": "ready-for-named-recovery-evaluation-amendment-approval"
+}

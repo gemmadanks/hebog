@@ -1,0 +1,49 @@
+{
+  "authorization": {
+    "activation_repair_and_replacement_smoke_authorized": true,
+    "full_cumulative_replay_and_evaluation_authorized_only_after_zero_failure_smoke": true,
+    "process_bug_retries_authorized_without_scientific_identity_change": true,
+    "release_authorized": false,
+    "rescoring_closed_evidence_authorized": false,
+    "threshold_or_margin_tuning_authorized": false
+  },
+  "decision_id": "phase-5-prospective-mask-origin-sibling-pair-activation-repair-implementation-decision",
+  "exact_user_authority": "Please complete all tasks required for running the next cumulative replay. Review the code and tests, close any gaps and fix bugs or make improvements as needed then run the replay and evaluate the results.",
+  "fixed_scientific_identity": {
+    "mask_origin_sibling_pair_implementation_decision_sha256": "b66f489f18a4fe5fb2f1782407162e17bff2524f4b4eb2e80fb733872162144d",
+    "mask_origin_sibling_pair_pre_review_sha256": "67df15510237a543610fce885d9a53ac1a2cea2192520085858fe6e1990741e1",
+    "publication_mask_origin_policy": "immutable-direct-owner-publication-origin-v1",
+    "sibling_pair_policy": "adjacent-scale-mutually-unique-envelope-pair-with-connected-support-v1"
+  },
+  "implementation": [
+    {
+      "path": "scripts/validation/materialize_phase5_prospective_mask_origin_sibling_pair_products.py",
+      "sha256": "72f54aa3ad93c06879869b95d45d04037cf683a82bf5c14b1fd803250b684f45"
+    },
+    {
+      "path": "scripts/validation/evaluate_phase5_prospective_mask_origin_sibling_pair_smoke.py",
+      "sha256": "506e521f57917abd37697640881de70e53cd97442f265df47e7dff52c6b22409"
+    },
+    {
+      "path": "scripts/validation/materialize_phase5_prospective_mask_origin_sibling_pair_activation_repair_products.py",
+      "sha256": "ae57d1c74204f9df724ee3976ed564e449e6f2dca5cc65ce6581412e53604290"
+    },
+    {
+      "path": "scripts/validation/evaluate_phase5_prospective_mask_origin_sibling_pair_activation_repair_smoke.py",
+      "sha256": "43f346f65023267a7d0c62541f6d1aa553d9cb3569bf57718749c9bd4be87f2f"
+    }
+  ],
+  "pre_review": {
+    "path": "config/contracts/phase-5-prospective-mask-origin-sibling-pair-activation-repair-pre-review.json",
+    "sha256": "39b5a36accb16a1167633f8fa5e775c68385daa1abf7ce2c11dedc1cbf930503"
+  },
+  "required_pre_execution_gates": [
+    "actual final writer resolves the reviewed mask-origin builder",
+    "historical governed bytes remain exact",
+    "both complete no-write preflights pass for all 128 selected inputs",
+    "one fresh current product set seals before one fresh atomic smoke",
+    "full replay remains blocked unless the smoke has zero confirmed failures"
+  ],
+  "schema_version": 1,
+  "status": "authorized-for-activation-repair-smoke-before-results"
+}

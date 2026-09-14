@@ -12,11 +12,13 @@ clear evidence-backed ecosystem or team advantage.
 
 ## Why native code is premature
 
-Hebog has not implemented its scientific kernels, so it does not yet have a
-Hebog profile demonstrating that Python execution is the limiting factor. The
-current evidence identifies PyBDSF background/RMS and multiscale work as
-expensive, but it does not show that an equivalent Hebog implementation using
-NumPy, SciPy, and Numba would remain slow.
+Hebog has implemented and qualified its compact Phase 4 scientific kernels.
+Their controlled incremental matrix passes the existing measurement, fitting,
+and catalogue budgets using Python with vectorized NumPy and SciPy. Early
+Phase 5 evidence likewise has not identified a self-contained Python kernel
+that meets the native-code decision gate. Complete Rapthor and production-
+scale profiles remain outstanding, so there is still no evidence that a
+project-owned native extension would improve the limiting end-to-end path.
 
 NumPy and SciPy already wrap compiled numerical implementations. SciPy
 explicitly describes itself as using optimized Fortran, C, and C++ code, while

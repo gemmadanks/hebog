@@ -1,0 +1,63 @@
+{
+  "algorithm_candidate": {
+    "configuration_sha256": "5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4",
+    "revision": "b6ad935c75475fbe9bddeee60eb7f733d9c7887f",
+    "source_tree_sha256": "bb061e9cc5f5f6604ad6bc23a9534b849f1f9c24ca069b1b8ee377a3bb4bc43c"
+  },
+  "authorizations": {
+    "candidate_execution": false,
+    "cutover": false,
+    "pybdsf_execution": false,
+    "qualification": false,
+    "release": false,
+    "replay": false,
+    "viewed_data_rescoring": false
+  },
+  "configuration": {
+    "detection_threshold_sigma": 5.0,
+    "island_threshold_sigma": 3.0,
+    "maximum_island_pixels": null,
+    "minimum_island_pixels": 7,
+    "profile": "continuum"
+  },
+  "date": "2026-09-08",
+  "execution_identity": null,
+  "finder_execution_started": false,
+  "frozen_documents": {
+    "notebook_workflow": {
+      "path": "scripts/benchmark/README.md",
+      "sha256": "07ea8a76c32c91d1bc570835d9e0b24bc07849860bf92217e2ac922d9af00a94"
+    }
+  },
+  "parent_identity": {
+    "path": "config/contracts/phase-5-source-catalogue-repair-identity-review.json",
+    "sha256": "ee8e4c903f0ba705385e8a9c9821e1d60b481ec9fb33d8ae265a36a418b7386f"
+  },
+  "qualification_status": "development-unqualified",
+  "repair_scope": {
+    "catalogue_coordinate_frame": "icrs",
+    "diagnostic_input_frames": [
+      "icrs",
+      "fk5"
+    ],
+    "native_fits_headers_preserved": true,
+    "public_preview_admission": "icrs-only-unchanged",
+    "r6_evidence_transfers": false,
+    "validation_population": "synthetic-fixtures-only"
+  },
+  "schema_version": 1,
+  "scientific_composition": "phase-5-native-component-and-source-measurements-v9",
+  "scientific_composition_sha256": "5e50aefce840934351eb87abd4452c4faf81da752e93d9395ce62bc237a9be10",
+  "status": "frozen-non-executable",
+  "validation": {
+    "changed_executable_lines_covered": 27,
+    "changed_executable_lines_total": 27,
+    "changed_package_branches_all_covered": true,
+    "coverage_tests_passed": 3289,
+    "equivalence_tests_passed": 27,
+    "focused_tests_passed": 110,
+    "full_check_tests_passed": 3074,
+    "portable_branch_aware_coverage_percent": 95.08219319709136,
+    "pre_commit": "passed-clean"
+  }
+}

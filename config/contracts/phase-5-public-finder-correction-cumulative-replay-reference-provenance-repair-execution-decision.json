@@ -1,0 +1,53 @@
+{
+  "approval": {
+    "approved_on": "2026-08-27",
+    "exact_approval": "I approve the Phase 5 public-finder correction cumulative replay bound to replacement identity review SHA-256 c5924600fa5961f195cacd7a71562dc2727a3ea4c9ff8bedf5b39598b7f245eb, candidate b1d59e5aaf778a5fed4ea662afeba2ee100424ff, correction configuration 65c8876dcdb484bd5a82b3520e065ea6bf33cf24cfdd33b592c6c859231c62f0, wrapper SHA-256 04a3a54335c93b6abfa71c71ba2e4771ae48dfc38bc3587a673fa2683fa780ac, reconstructed reference terminal SHA-256 48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2, and closed baseline a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9. This authorizes exactly one complete two-worker 800-compact/1,600-Continuum cumulative replay and its atomic ledger. It does not authorize viewed SDC1/Hydra execution, another campaign, fresh qualification, tuning, rescoring, cutover, or release.",
+    "reviewer": "Gemma Danks"
+  },
+  "base_review_sha256": "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b",
+  "candidate_configuration_sha256": "65c8876dcdb484bd5a82b3520e065ea6bf33cf24cfdd33b592c6c859231c62f0",
+  "candidate_revision": "b1d59e5aaf778a5fed4ea662afeba2ee100424ff",
+  "candidate_source_tree_sha256": "2de6564e78f1a3664dd3fb18f696c747bfc3350fdd894164c4fafb07528d1ba9",
+  "closed_baseline_path": "benchmark-results/phase-5/cumulative-regression-ledger-recovery.json",
+  "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+  "compatibility_container_digest": "sha256:1a83f64948460a46dd6f6c5e9434d155fd9b2ae45f97db849d5288f350dca8d1",
+  "compatibility_dependency_inventory_sha256": "d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2",
+  "compiler_sha256": "e442f6586993d95a942a80af4e45fbf5b50448b434d5c0a244d78fb333b679b8",
+  "correction_contract_sha256": "f0ddd4d5cb8c3c5542d1de761f6fde0644ec7cf051d5fb1dc7482ed3b96ff524",
+  "cumulative_replay_authorized": true,
+  "decision_id": "phase-5-public-finder-correction-cumulative-replay-reference-provenance-repair-execution-decision",
+  "dependency_lock_sha256": "c81a9831ec545b2d7797e1c0951ad46e0e23337b97866ced0ae27e290dfd71ff",
+  "endpoint_registry_sha256": "2d7a646b6206bd127b1e470b16d1fe35ebc3f238835eafdc6c77d8a82b79ef1c",
+  "evaluation_contract_sha256": "45901f8ca4526fdc1007d26d891e409306565e749bad2b959181a9929ff73016",
+  "evaluator_sha256": "7612746bda483c82d0e7e72a7f49bb8283f8ae6c03d26bd18508184dbda7169a",
+  "execution_authorized": true,
+  "historical_replay_sha256": "5d41d31ee79cd0d6d203cd774267fd504d06fe7662768486f99c31a7902b8a3f",
+  "implementation_decision_sha256": "83d14670abac952ce0d0e873cc8c3bdd37b971dddcbfc285c07594184863c75e",
+  "output_path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-correction.json",
+  "prohibited_authorizations": {
+    "campaign_execution_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false
+  },
+  "reference_reconstruction_path": "benchmark-results/phase-5/viewed-reference-reconstruction-public-finder-correction",
+  "reference_reconstruction_producer_source_tree_sha256": "b4176ce387fa1569cc86ca300bfa7de6462758a1068de46cd4a16616a6ec3adc",
+  "reference_reconstruction_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+  "reference_repair_identity_review": {
+    "path": "config/contracts/phase-5-public-finder-correction-cumulative-replay-reference-provenance-repair-review.json",
+    "sha256": "c5924600fa5961f195cacd7a71562dc2727a3ea4c9ff8bedf5b39598b7f245eb"
+  },
+  "reference_repair_implementation_decision_sha256": "76477b31d8fb1392be45c97d60fa30f5e2e29c36dd2c8e88966f3eb311a6f352",
+  "reference_repair_pre_review_sha256": "d169ab9a8f040a78ac5995de6ae488444b42270895e103c7ce9dd67671ece02d",
+  "reference_verifier_sha256": "81faad486ddb306e175a7ddd8c1c281a2e498cd30bb60f3e43c7b6e791cd0126",
+  "schema_version": 1,
+  "scratch_path": "/private/tmp/hebog-phase5-public-finder-correction-reference-repair-b1d59e5",
+  "status": "reviewed-before-public-finder-correction-cumulative-replay",
+  "viewed_request_sha256": "7ba9be1b20ff0448e51729337acf2a7028cc0ec578c5e25106b9b34b07506df4",
+  "workers": 2,
+  "wrapper_sha256": "04a3a54335c93b6abfa71c71ba2e4771ae48dfc38bc3587a673fa2683fa780ac"
+}

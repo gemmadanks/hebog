@@ -1,0 +1,46 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "evaluation_only_completion_authorized": true,
+    "fresh_qualification_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "binding_evidence": {
+    "candidate_configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "candidate_product_count": 2400,
+    "candidate_product_set_canonical_sha256": "77a71b5fd537e30efd67a6a225c9d0b52d9bc9d56417437b10bd659539a013b1",
+    "candidate_revision": "937737d811dd229d71dbcfdbda6cb5829de6faca",
+    "candidate_source_tree_sha256": "9f8e4a67f0c74ac86bff4f398811a7d64620fb70512b118c0ad3bb1eb58644c8",
+    "failed_wrapper_sha256": "a0fe32d360ce04bfcfed6cde0e7f19b509648637e2f57c6ea1c11a651b653cc1",
+    "reference_run_count": 9600,
+    "selected_input_count": 2400
+  },
+  "decision_id": "phase-5-publication-scale-persistence-evaluation-completion-pre-review",
+  "exact_user_authority": "Please complete all tasks required for running the next cumulative replay. Review the code and tests, close any gaps and fix bugs or make improvements as needed then run the replay and evaluate the results.",
+  "failure": {
+    "atomic_output_published": false,
+    "candidate_products_complete": true,
+    "error": "ValueError: associated source membership cannot be verified",
+    "location": "hebog.validation.parent_construction_association_evaluation._recorded_support_labels",
+    "stage": "continuum compilation"
+  },
+  "repair": {
+    "candidate_execution_forbidden": true,
+    "preserve_exact_candidate_products": true,
+    "reuse_reviewed_smoke_evaluation_overlay": true,
+    "scope": "evaluation dispatch only"
+  },
+  "scientific_safety_requirements": [
+    "hash every declared artifact in all 2400 completed candidate shards",
+    "require the exact candidate revision, source tree, configuration, reconstructed reference, and closed baseline",
+    "use stable measurement labels for catalogue-source support while keeping the refined publication labels for mask metrics",
+    "require every positive publication label to be owned by the verified association measurement partition",
+    "forbid candidate execution and publish only the still-absent atomic ledger",
+    "preserve every frozen endpoint, threshold, comparator, confidence rule, and trade-off margin"
+  ],
+  "schema_version": 1,
+  "status": "reviewed-evaluation-dispatch-repair"
+}

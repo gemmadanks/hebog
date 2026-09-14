@@ -1,0 +1,31 @@
+{
+  "decision_id": "phase-5-prospective-paired-evaluation-completion-execution-decision",
+  "evaluation_authorized": true,
+  "exact_user_authority": "Please complete all tasks required for repairing and running the evaluation.",
+  "expected_execution_sha256": "96bdbc519cac1ff32cc3736efdca75eea5c7789047672b23915b099ff040c24f",
+  "identity_review": {
+    "path": "config/contracts/phase-5-prospective-paired-evaluation-completion-identity-review.json",
+    "sha256": "75d460489a296bb87540954d37639080243a1c807e7532cb27626f3e105221ad"
+  },
+  "prohibited_authorizations": {
+    "candidate_execution_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "scientific_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "schema_version": 1,
+  "scope": {
+    "current_product_set_sha256": "6bcb2959c56173d1a930eb14b3a794727649defc1b52dc1d9d70cd041d401014",
+    "incumbent_evaluator_product_set_sha256": "8dbc9dff20c861b1f93f11781d079226a7ef68475838909496086229ddc9fe5d",
+    "incumbent_reconstruction_product_set_sha256": "ea12ce032d06c37cfeb70dcfd16d288bd68bc1ef19c010b8491b9ff66ae406e8",
+    "input_count_per_candidate": 2400,
+    "output": "benchmark-results/phase-5/prospective-paired-cumulative-decision.json",
+    "reference_run_count": 9600
+  },
+  "status": "authorized-for-one-exact-evaluation-only-completion"
+}

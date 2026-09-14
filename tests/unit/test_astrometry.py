@@ -12,10 +12,13 @@ import numpy as np
 import pytest
 from astropy.wcs import WCS
 
+from hebog.algorithms import astrometry
 from hebog.algorithms.astrometry import (
     compact_geometry_at_pixel,
     deconvolve_gaussian_shapes,
     local_tangent_plane_transform,
+    local_tangent_plane_transform_from_wcs,
+    moment_equivalent_gaussian_shape,
     transform_compact_gaussian_fit,
 )
 from hebog.data_models.astrometry import CelestialCompactGaussianFit
@@ -208,6 +211,57 @@ def test_local_jacobian_handles_signed_unequal_rotated_wcs_and_ra_wrap() -> (
     assert np.linalg.det(covariance) > 0
 
 
+def test_moment_shape_uses_explicit_local_wcs_covariance() -> None:
+    """A non-square local Jacobian maps pixel moments into sky axes."""
+    transform = local_tangent_plane_transform(_metadata(), (50.0, 40.0))
+
+    shape = moment_equivalent_gaussian_shape(
+        np.diag((9.0, 4.0)),
+        transform,
+    )
+
+    assert shape.major_fwhm_degrees == pytest.approx(
+        3.0 * _FWHM_PER_SIGMA * 0.001
+    )
+    assert shape.minor_fwhm_degrees == pytest.approx(
+        2.0 * _FWHM_PER_SIGMA * 0.001
+    )
+
+
+def test_moment_shape_preserves_a_circular_covariance() -> None:
+    """An isotropic moment remains circular under a square local WCS."""
+    transform = local_tangent_plane_transform(_metadata(), (50.0, 40.0))
+
+    shape = moment_equivalent_gaussian_shape(np.eye(2) * 4.0, transform)
+
+    assert shape.major_fwhm_degrees == pytest.approx(
+        2.0 * _FWHM_PER_SIGMA * 0.001
+    )
+    assert shape.minor_fwhm_degrees == pytest.approx(shape.major_fwhm_degrees)
+
+
+@pytest.mark.parametrize(
+    "covariance",
+    (
+        np.ones(3),
+        np.asarray(((1.0, np.nan), (np.nan, 1.0))),
+        np.asarray(((1.0, 0.5), (0.0, 1.0))),
+        np.asarray(((1.0, 0.0), (0.0, 0.0))),
+    ),
+)
+def test_moment_shape_rejects_ambiguous_covariance(
+    covariance: np.ndarray,
+) -> None:
+    """Malformed or singular moments never become catalogue ellipses."""
+    transform = local_tangent_plane_transform(_metadata(), (50.0, 40.0))
+
+    with pytest.raises(ValueError, match="moment covariance"):
+        moment_equivalent_gaussian_shape(covariance, transform)
+
+    with pytest.raises(ValueError, match="celestial WCS"):
+        local_tangent_plane_transform_from_wcs(WCS(), (0.0, 0.0))
+
+
 def test_transform_uses_xy_centers_east_of_north_and_local_flux_area() -> None:
     """A fitted pixel ellipse becomes canonical ICRS shape and photometry."""
     uncertainty = GaussianFitUncertainty(
@@ -251,6 +305,63 @@ def test_transform_uses_xy_centers_east_of_north_and_local_flux_area() -> None:
     assert result.flux.local_rms_jy_per_beam == 0.0015
     assert result.fitted_shape.major_fwhm_error_degrees is None
     assert "shape-uncertainty-unavailable" in result.quality_flags
+
+
+def test_transform_applies_integrated_flux_bias_correction() -> None:
+    """A recorded calibration shifts total flux without changing its error."""
+    uncertainty = GaussianFitUncertainty(
+        amplitude_error_jy_per_beam=0.0005,
+        centroid_covariance_xx_pixels_squared=0.04,
+        centroid_covariance_xy_pixels_squared=0.0,
+        centroid_covariance_yy_pixels_squared=0.09,
+        integrated_flux_error_jy=0.001,
+        integrated_flux_bias_correction_sigma=0.075,
+    )
+    uncorrected = transform_compact_gaussian_fit(
+        _fit(
+            uncertainty=replace(
+                uncertainty,
+                integrated_flux_bias_correction_sigma=0.0,
+            )
+        ),
+        _metadata(),
+    )
+
+    corrected = transform_compact_gaussian_fit(
+        _fit(uncertainty=uncertainty),
+        _metadata(),
+    )
+    uncorrected_error = uncorrected.fitted_flux.integrated_flux_error_jy
+    assert uncorrected_error is not None
+
+    assert corrected.fitted_flux.integrated_flux_error_jy == pytest.approx(
+        uncorrected_error
+    )
+    assert corrected.fitted_flux.integrated_flux_jy == pytest.approx(
+        uncorrected.fitted_flux.integrated_flux_jy - 0.075 * uncorrected_error
+    )
+    assert corrected.fitted_flux.peak_flux_jy_per_beam == (
+        uncorrected.fitted_flux.peak_flux_jy_per_beam
+    )
+    assert "fitted-integrated-flux-bias-corrected" in (corrected.quality_flags)
+
+
+def test_transform_rejects_non_positive_bias_corrected_flux() -> None:
+    """A malformed external fit cannot publish a non-positive total."""
+    uncertainty = GaussianFitUncertainty(
+        amplitude_error_jy_per_beam=0.0005,
+        centroid_covariance_xx_pixels_squared=0.04,
+        centroid_covariance_xy_pixels_squared=0.0,
+        centroid_covariance_yy_pixels_squared=0.09,
+        integrated_flux_error_jy=0.1,
+        integrated_flux_bias_correction_sigma=0.49,
+    )
+
+    with pytest.raises(ValueError, match="non-positive flux"):
+        transform_compact_gaussian_fit(
+            _fit(uncertainty=uncertainty),
+            _metadata(),
+        )
 
 
 def test_covariance_beam_deconvolution_matches_aligned_analytic_truth() -> (
@@ -405,6 +516,82 @@ def test_missing_formal_covariance_produces_null_errors_and_flag() -> None:
     assert "position-flux-uncertainty-unavailable" in result.quality_flags
 
 
+@pytest.mark.parametrize("angle", (0.0, 89.99999, 179.99999))
+def test_fitted_shape_errors_follow_native_covariance_across_pa_wrap(
+    angle: float,
+) -> None:
+    """Position-angle wrapping must not amplify a local covariance."""
+    uncertainty = GaussianFitUncertainty(
+        amplitude_error_jy_per_beam=0.00005,
+        centroid_covariance_xx_pixels_squared=0.04,
+        centroid_covariance_xy_pixels_squared=0.0,
+        centroid_covariance_yy_pixels_squared=0.04,
+        integrated_flux_error_jy=0.0001,
+        shape_parameter_covariance=(0.05**2, 0.0, 0.0, 0.03**2, 0.0, 0.01**2),
+    )
+    result = transform_compact_gaussian_fit(
+        _fit(angle_degrees=angle, uncertainty=uncertainty),
+        _metadata(),
+    )
+    assert result.fitted_shape.major_fwhm_error_degrees == pytest.approx(
+        _FWHM_PER_SIGMA * 0.001 * 0.05,
+        rel=1e-4,
+    )
+    assert result.fitted_shape.minor_fwhm_error_degrees == pytest.approx(
+        _FWHM_PER_SIGMA * 0.001 * 0.03,
+        rel=1e-4,
+    )
+    assert result.fitted_shape.position_angle_error_degrees == pytest.approx(
+        np.rad2deg(0.01),
+        rel=1e-4,
+    )
+
+
+@pytest.mark.parametrize(
+    "case", ("circular", "invalid-covariance", "large-error")
+)
+def test_native_shape_error_boundary_remains_explicit(case: str) -> None:
+    """Unidentified angles and invalid propagated variances are unavailable."""
+    covariance = (0.0025, 0.0, 0.0, 0.0009, 0.0, 0.0001)
+    if case == "invalid-covariance":
+        covariance = (-1.0, 0.0, 0.0, -1.0, 0.0, -1.0)
+    elif case == "large-error":
+        covariance = (0.0025, 0.0, 0.0, 1e10, 0.0, 0.0001)
+    uncertainty = GaussianFitUncertainty(
+        amplitude_error_jy_per_beam=0.001,
+        centroid_covariance_xx_pixels_squared=0.04,
+        centroid_covariance_xy_pixels_squared=0.0,
+        centroid_covariance_yy_pixels_squared=0.04,
+        integrated_flux_error_jy=0.001,
+        shape_parameter_covariance=covariance,
+    )
+    fitted = _fit(
+        major_sigma_pixels=2.2,
+        minor_sigma_pixels=2.2 if case == "circular" else 1.4,
+        uncertainty=uncertainty,
+    )
+    shape = GaussianShape(
+        major_fwhm_degrees=2.2 * _FWHM_PER_SIGMA * 0.001,
+        minor_fwhm_degrees=fitted.parameters.minor_sigma_pixels
+        * _FWHM_PER_SIGMA
+        * 0.001,
+        position_angle_degrees=90.0,
+        major_fwhm_error_degrees=None,
+        minor_fwhm_error_degrees=None,
+        position_angle_error_degrees=None,
+    )
+    projected = astrometry._fitted_shape_with_errors(  # pyright: ignore[reportPrivateUsage]
+        shape, fitted, np.eye(2) * 0.001
+    )
+    if case in {"circular", "invalid-covariance"}:
+        assert projected == shape
+    else:
+        assert projected.major_fwhm_error_degrees is not None
+        assert projected.minor_fwhm_error_degrees is not None
+        assert np.isfinite(projected.major_fwhm_error_degrees)
+        assert np.isfinite(projected.minor_fwhm_error_degrees)
+
+
 def test_extension_requires_two_sigma_flux_ratio_significance() -> None:
     """Noisy positive deconvolution is not evidence of physical extension."""
     uncertain = GaussianFitUncertainty(
@@ -429,6 +616,12 @@ def test_extension_requires_two_sigma_flux_ratio_significance() -> None:
     )
     assert result.flux.integrated_flux_error_jy == (
         result.flux.peak_flux_error_jy_per_beam
+    )
+    assert result.fitted_flux.integrated_flux_jy > (
+        result.fitted_flux.peak_flux_jy_per_beam
+    )
+    assert result.fitted_flux.integrated_flux_error_jy != (
+        result.fitted_flux.peak_flux_error_jy_per_beam
     )
 
 
@@ -504,6 +697,9 @@ def test_geometrically_unresolved_fit_remains_unresolved() -> None:
     assert result.quality_flags.count("unresolved") == 1
     assert "extension-not-significant" not in result.quality_flags
     assert result.flux.integrated_flux_jy == result.flux.peak_flux_jy_per_beam
+    assert result.fitted_flux.integrated_flux_jy != (
+        result.fitted_flux.peak_flux_jy_per_beam
+    )
 
 
 def test_significant_extension_retains_fitted_total_flux_and_shape() -> None:

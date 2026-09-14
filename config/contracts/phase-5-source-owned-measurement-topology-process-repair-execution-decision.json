@@ -1,0 +1,49 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": true,
+    "coarse_control_execution_authorized": true,
+    "cutover_authorized": false,
+    "development_lane_execution_authorized": true,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "replay_authorized": false,
+    "rescoring_authorized": false,
+    "source_finding_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "authorization_record": {
+    "approved_on": "2026-09-04",
+    "statement": "I approve running the repaired development lane, the planned replay and final campaign required to verify and demonstrate scientific quality and pybdsf parity to close phase 5 as well as any bug fixes that are needed for this. Monitor long-running tasks hourly but prefer faster iterations where possible for catching and fixing bugs before starting longer replays and campaigns."
+  },
+  "candidate": {
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "revision": "c28343fb85ae9bd0d1d927701564f93fbe51b659",
+    "source_tree_sha256": "8235e9bcca0e184d1a1597a3dce1f91e9389795370b61f68734b3ee5002b220f"
+  },
+  "decision_id": "phase-5-source-owned-measurement-topology-process-repair-execution-decision",
+  "downstream_authority": {
+    "sequence": [
+      "cumulative replay",
+      "fresh held-out qualification"
+    ],
+    "status": "approved-in-principle-pending-passing-lane-and-frozen-exact-identities"
+  },
+  "expected_execution_sha256": "8914fafda14f356bc84d93be9b502eca0d5e8b703cdb651caf1f5f46d5b77512",
+  "identity_review": {
+    "path": "config/contracts/phase-5-source-owned-measurement-topology-process-repair-identity-review.json",
+    "sha256": "40a9f99f817fbc39ef38ddc9f3bfc6c748040957c7ccf3b1d783ada6ab2691d2"
+  },
+  "identity_review_sha256": "40a9f99f817fbc39ef38ddc9f3bfc6c748040957c7ccf3b1d783ada6ab2691d2",
+  "output": "benchmark-results/phase-5/source-owned-measurement-topology-development-decision.json",
+  "process_repair_review": {
+    "path": "config/contracts/phase-5-source-owned-measurement-topology-process-repair-pre-review.json",
+    "sha256": "c35c6eecb32141e88d1cec8fa501bfeddc5b7d2b8a680b99188957e454e886a4"
+  },
+  "schema_version": 1,
+  "status": "authorized-for-one-development-lane",
+  "workers": 2,
+  "wrapper_sha256": "4858f17382a8eef7b1d431dd3740af17bcc1c69886fdb1cb24d75d50d6d63fcc"
+}

@@ -1,0 +1,51 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "evaluation_once_authorized": true,
+    "fresh_qualification_authorized": false,
+    "full_cumulative_replay_authorized_only_after_smoke_passes": true,
+    "release_authorized": false,
+    "rescoring_closed_evidence_authorized": false,
+    "threshold_or_margin_tuning_authorized": false
+  },
+  "candidate": {
+    "configuration_sha256": "24663a15309a0b1236ddccfc1491145229a9441c3510c351f8e20cd7c29a7a06",
+    "product_set_canonical_sha256": "2b32ad121677aa2d0a57db806697a0b2f572a019a424f32fb8cb08667aedb705",
+    "revision": "a9df2c827dfa85992d8ee7732c7f9cf327019053",
+    "source_tree_sha256": "89eb014c1072db95cc905eac66afb63bab75e8083b224eb6c691923c7ce84add"
+  },
+  "decision_id": "phase-5-prospective-measurement-label-persistence-evaluation-decision",
+  "evaluator": {
+    "path": "scripts/validation/evaluate_phase5_prospective_science_smoke.py",
+    "sha256": "2ce358549a944a1a292a7b515081655f143b1eb735bee84a968e05fff77bf534"
+  },
+  "exact_user_authority": "Please complete all tasks required for running the next cumulative replay. Review the code and tests, close any gaps and fix bugs or make improvements as needed then run the replay and evaluate the results.",
+  "implementation_decision": {
+    "path": "config/contracts/phase-5-prospective-measurement-label-persistence-implementation-decision.json",
+    "sha256": "8772b1f7e72d4d4143ab1e18b2dc2da7e581391b98ad29731ca1a71a305ea55e"
+  },
+  "incumbent": {
+    "configuration_sha256": "88ac8bea8e865c765d5f346235642f88b298140955af67ada99b9f9bf6187523",
+    "product_set_canonical_sha256": "1c76f7392156edb57195580ee5ff930dd66594d854cc43421c5dffbad006ec27",
+    "revision": "85d580713664b962ae256a98b065849cf8eb9283",
+    "source_tree_sha256": "a082cbe4b3416f787b455bb5a06be1eb66cb33ec807c74fa48056dfe8c630696"
+  },
+  "output": {
+    "must_be_absent_before_evaluation": true,
+    "path": "benchmark-results/phase-5/prospective-science-smoke-mask-measurement-separation.json"
+  },
+  "population": {
+    "path": "config/contracts/phase-5-prospective-science-smoke-population.json",
+    "selected_input_count": 128,
+    "sha256": "b52ddb52c258c9379d6d3e25a7faae209a6a2ea2f1d8bcd19ff119f475ffaa5d"
+  },
+  "required_pre_execution_gates": [
+    "candidate and incumbent product sets reverify against every complete marker and artifact checksum",
+    "candidate revision, source tree, configuration, implementation decision, and evaluator match this decision",
+    "the exact incumbent set is reused without candidate execution",
+    "the write-once output remains absent",
+    "evaluation publishes atomically only after complete compilation"
+  ],
+  "schema_version": 1,
+  "status": "authorized-for-one-exact-smoke-evaluation"
+}

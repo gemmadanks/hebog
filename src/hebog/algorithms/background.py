@@ -89,6 +89,7 @@ class RmsGridBatchStatistics:
 
     batch: RmsWindowBatch
     statistics: RmsWindowStatistics
+    protected_window_count: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -101,6 +102,7 @@ class RmsGridStatistics:
     available: npt.NDArray[np.bool_]
     valid_sample_count: npt.NDArray[np.int64]
     retained_sample_count: npt.NDArray[np.int64]
+    protected_window_count: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -259,14 +261,22 @@ def _require_canonical_batch(
         raise ValueError("RMS window batch has non-canonical read bounds")
 
 
-def estimate_rms_grid_batch(
+def estimate_rms_grid_batch(  # noqa: PLR0913
     values: npt.NDArray[np.floating[Any]],
     valid_pixels: npt.NDArray[np.bool_],
     grid: RmsGridGeometry,
     batch: RmsWindowBatch,
     config: RmsWindowStatisticsConfig,
+    *,
+    protected_pixels: npt.NDArray[np.bool_] | None = None,
 ) -> RmsGridBatchStatistics:
-    """Estimate a rectangular window block without loops over grid cells."""
+    """Estimate a rectangular window block without loops over grid cells.
+
+    A fine-grid window that intersects ``protected_pixels`` is deliberately
+    unavailable as a whole. This prevents connected bright-source support
+    from contributing to either the background or RMS statistic while
+    retaining the established deterministic interpolation fallback.
+    """
     _require_canonical_batch(grid, batch)
     bounded_values = np.asarray(values)
     bounded_validity = np.asarray(valid_pixels, dtype=np.bool_)
@@ -277,6 +287,13 @@ def estimate_rms_grid_batch(
         raise ValueError(
             "RMS batch values and validity must match read bounds"
         )
+    bounded_protection: npt.NDArray[np.bool_] | None = None
+    if protected_pixels is not None:
+        bounded_protection = np.asarray(protected_pixels, dtype=np.bool_)
+        if bounded_protection.shape != batch.read_bounds.shape_yx:
+            raise ValueError(
+                "protected pixels must match RMS batch read bounds"
+            )
 
     window_shape = grid.effective_window_shape_yx
     value_views = np.lib.stride_tricks.sliding_window_view(
@@ -322,7 +339,60 @@ def estimate_rms_grid_batch(
         all_validity,
         config,
     )
-    return RmsGridBatchStatistics(batch=batch, statistics=statistics)
+    protected_window_count = 0
+    if bounded_protection is not None:
+        protection_views = np.lib.stride_tricks.sliding_window_view(
+            bounded_protection,
+            window_shape,
+        )
+        selected_protection = protection_views[
+            y_offsets[:, np.newaxis],
+            x_offsets[np.newaxis, :],
+        ]
+        protected_windows = np.any(
+            np.reshape(
+                selected_protection,
+                (batch.cell_count, *window_shape),
+            ),
+            axis=_STATISTIC_AXES,
+        )
+        protected_window_count = int(np.count_nonzero(protected_windows))
+        if protected_window_count:
+            background = np.array(statistics.background, copy=True)
+            rms = np.array(statistics.rms, copy=True)
+            available = np.array(statistics.available, copy=True)
+            retained_sample_count = np.array(
+                statistics.retained_sample_count,
+                copy=True,
+            )
+            background[protected_windows] = np.nan
+            rms[protected_windows] = np.nan
+            available[protected_windows] = False
+            retained_sample_count[protected_windows] = 0
+            statistics = RmsWindowStatistics(
+                background=cast(
+                    npt.NDArray[np.float64],
+                    _read_only(background),
+                ),
+                rms=cast(
+                    npt.NDArray[np.float64],
+                    _read_only(rms),
+                ),
+                available=cast(
+                    npt.NDArray[np.bool_],
+                    _read_only(available),
+                ),
+                valid_sample_count=statistics.valid_sample_count,
+                retained_sample_count=cast(
+                    npt.NDArray[np.int64],
+                    _read_only(retained_sample_count),
+                ),
+            )
+    return RmsGridBatchStatistics(
+        batch=batch,
+        statistics=statistics,
+        protected_window_count=protected_window_count,
+    )
 
 
 def assemble_rms_grid_statistics(
@@ -337,6 +407,7 @@ def assemble_rms_grid_statistics(
     valid_sample_count = np.zeros(shape, dtype=np.int64)
     retained_sample_count = np.zeros(shape, dtype=np.int64)
     visits = np.zeros(shape, dtype=np.uint8)
+    protected_window_count = 0
     for result in batch_results:
         if not isinstance(result, RmsGridBatchStatistics):
             raise ValueError("coarse-grid results contain an invalid batch")
@@ -374,6 +445,7 @@ def assemble_rms_grid_statistics(
             result.statistics.retained_sample_count.reshape(batch.shape_yx)
         )
         visits[selection] += 1
+        protected_window_count += result.protected_window_count
     if np.any(visits == 0):
         raise ValueError("missing coarse-grid cells prevent interpolation")
     return RmsGridStatistics(
@@ -392,6 +464,7 @@ def assemble_rms_grid_statistics(
             npt.NDArray[np.int64],
             _read_only(retained_sample_count),
         ),
+        protected_window_count=protected_window_count,
     )
 
 
@@ -487,6 +560,7 @@ def _interpolation_axis_slice(
     *,
     output_start: int,
     output_stop: int,
+    image_length: int,
 ) -> slice:
     """Select only samples bracketing one half-open output interval."""
     sample_coordinates = np.asarray(coordinates, dtype=np.float64)
@@ -517,6 +591,13 @@ def _interpolation_axis_slice(
             ),
         )
         last = first + _MINIMUM_LINEAR_SAMPLES
+    lower_anchor, upper_anchor = _boundary_slope_anchors(
+        sample_coordinates, image_length
+    )
+    if output_start < sample_coordinates[0]:
+        last = max(last, lower_anchor + 1)
+    if output_stop - 1 > sample_coordinates[-1]:
+        first = min(first, upper_anchor)
     return slice(first, last)
 
 
@@ -530,11 +611,13 @@ def subset_rms_grid_geometry(
         grid.sample_coordinates_y,
         output_start=bounds.y_start,
         output_stop=bounds.y_stop,
+        image_length=grid.image_shape_yx[0],
     )
     x_selection = _interpolation_axis_slice(
         grid.sample_coordinates_x,
         output_start=bounds.x_start,
         output_stop=bounds.x_stop,
+        image_length=grid.image_shape_yx[1],
     )
     return RmsGridGeometry(
         image_shape_yx=grid.image_shape_yx,
@@ -558,11 +641,13 @@ def subset_prepared_rms_grid(
         grid.geometry.sample_coordinates_y,
         output_start=bounds.y_start,
         output_stop=bounds.y_stop,
+        image_length=grid.geometry.image_shape_yx[0],
     )
     x_selection = _interpolation_axis_slice(
         grid.geometry.sample_coordinates_x,
         output_start=bounds.x_start,
         output_stop=bounds.x_stop,
+        image_length=grid.geometry.image_shape_yx[1],
     )
     geometry = subset_rms_grid_geometry(grid.geometry, bounds)
     selection = (y_selection, x_selection)
@@ -584,12 +669,84 @@ def subset_prepared_rms_grid(
     )
 
 
+def _boundary_slope_anchors(
+    coordinates: npt.NDArray[np.float64], image_length: int
+) -> tuple[int, int]:
+    """Span at least the edge extrapolation distance where samples permit.
+
+    Adjacent final windows can be almost coincident. A secant spanning the
+    distance to the physical edge bounds its endpoint weight by two, without
+    flattening an affine background. A short grid uses its full available
+    span; a singleton is handled by constant extension before interpolation.
+    """
+    lower = min(
+        int(
+            cast(
+                int,
+                np.searchsorted(coordinates, 2 * coordinates[0], side="left"),
+            )
+        ),
+        len(coordinates) - 1,
+    )
+    upper = max(
+        int(
+            cast(
+                int,
+                np.searchsorted(
+                    coordinates,
+                    2 * coordinates[-1] - (image_length - 1),
+                    side="right",
+                ),
+            )
+        )
+        - 1,
+        0,
+    )
+    return lower, upper
+
+
+def _extend_grid_axis(
+    coordinates: npt.NDArray[np.float64],
+    values: npt.NDArray[np.float64],
+    *,
+    axis: int,
+    image_length: int,
+) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+    """Add physical-edge samples using stable, affine-preserving secants."""
+    lower, upper = _boundary_slope_anchors(coordinates, image_length)
+    locations = [coordinates]
+    samples = [values]
+    for endpoint, anchor, location in (
+        (0, lower, 0.0),
+        (-1, upper, float(image_length - 1)),
+    ):
+        if coordinates[0] <= location <= coordinates[-1]:
+            continue
+        edge = np.take(values, [endpoint], axis=axis)
+        slope = (edge - np.take(values, [anchor], axis=axis)) / (
+            coordinates[endpoint] - coordinates[anchor]
+        )
+        extended = edge + (location - coordinates[endpoint]) * slope
+        insert_at = 0 if endpoint == 0 else len(locations)
+        locations.insert(insert_at, np.array([location]))
+        samples.insert(insert_at, extended)
+    return np.concatenate(locations), np.concatenate(samples, axis=axis)
+
+
 def interpolate_prepared_rms_grid(
     grid: PreparedRmsGrid,
     bounds: ImageBounds,
     valid_pixels: npt.NDArray[np.bool_],
+    *,
+    extrapolate_rms: bool = True,
 ) -> BackgroundRmsTile:
-    """Linearly interpolate cached coarse samples into one bounded tile."""
+    """Interpolate cached samples, optionally extending RMS edge values.
+
+    Fine noise cells have stochastic slopes, not a measured noise gradient
+    beyond their centres. Constant edge extension preserves positive convex
+    weights there. Background edge slopes span the extrapolation distance,
+    not a possibly tiny gap between the final two window centres.
+    """
     bounds.require_inside(grid.geometry.image_shape_yx)
     validity = np.asarray(valid_pixels, dtype=np.bool_)
     if validity.shape != bounds.shape_yx:
@@ -604,6 +761,18 @@ def interpolate_prepared_rms_grid(
             coarse_background,
             coarse_rms,
         ) = _expand_singleton_grid_axes(grid)
+        extended_y, coarse_statistics = _extend_grid_axis(
+            sample_y,
+            np.stack((coarse_background, coarse_rms), axis=-1),
+            axis=0,
+            image_length=grid.geometry.image_shape_yx[0],
+        )
+        extended_x, coarse_statistics = _extend_grid_axis(
+            sample_x,
+            coarse_statistics,
+            axis=1,
+            image_length=grid.geometry.image_shape_yx[1],
+        )
         output_y = np.arange(bounds.y_start, bounds.y_stop, dtype=np.float64)
         output_x = np.arange(bounds.x_start, bounds.x_stop, dtype=np.float64)
         y_coordinates, x_coordinates = np.meshgrid(
@@ -614,8 +783,8 @@ def interpolate_prepared_rms_grid(
         query_points = np.stack((y_coordinates, x_coordinates), axis=-1)
         background = np.asarray(
             RegularGridInterpolator(
-                (sample_y, sample_x),
-                coarse_background,
+                (extended_y, extended_x),
+                coarse_statistics[..., 0],
                 method="linear",
                 bounds_error=False,
                 fill_value=None,  # pyright: ignore[reportArgumentType]
@@ -624,12 +793,24 @@ def interpolate_prepared_rms_grid(
         )
         rms = np.asarray(
             RegularGridInterpolator(
-                (sample_y, sample_x),
-                coarse_rms,
+                (extended_y, extended_x)
+                if extrapolate_rms
+                else (sample_y, sample_x),
+                coarse_statistics[..., 1] if extrapolate_rms else coarse_rms,
                 method="linear",
                 bounds_error=False,
                 fill_value=None,  # pyright: ignore[reportArgumentType]
-            )(query_points),
+            )(
+                query_points
+                if extrapolate_rms
+                else np.stack(
+                    (
+                        np.clip(y_coordinates, sample_y[0], sample_y[-1]),
+                        np.clip(x_coordinates, sample_x[0], sample_x[-1]),
+                    ),
+                    axis=-1,
+                )
+            ),
             dtype=np.float64,
         )
         np.maximum(rms, 0.0, out=rms)

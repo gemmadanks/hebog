@@ -1,0 +1,83 @@
+{
+  "amendment_id": "phase-5-external-recovery-existing-campaign-source-path",
+  "authorization": {
+    "execution_authorized": false,
+    "named_review": null,
+    "requested_by": "Gemma Danks",
+    "requested_on": "2026-08-23",
+    "scope": "resume-and-evaluate-existing-campaign-only-no-second-campaign",
+    "user_directive": "I do not want to execute another campaign. Please fix the python path issue and evaluate the one that has already run."
+  },
+  "correction": {
+    "delegate_commit": "c88e7c25a95a665773d1ec0f46a1842cbd3b3356",
+    "delegate_path": "scripts/benchmark/run_phase5_external_recovery_podman.py",
+    "delegate_sha256": "36a420a1849f36257c33ab28203ee7cc7b8bfa7fd7354605bf3bad828b1cf4e5",
+    "delegate_tree": "87e4347eebde5fe614082f295260b2af8a926e80",
+    "exact_environment": "PYTHONPATH=/repository/src",
+    "exact_image_id": "e519dc15b846dec7ac00a6cada7684d0c0b2615490dd6688ac4c6cdf5f3021ca",
+    "exact_runner": "/repository/scripts/benchmark/run_phase5_external_recovery_hebog.py",
+    "operation": "insert-two-podman-run-arguments-before-exact-image",
+    "pass_through": "all-nonmatching-podman-arguments-byte-for-byte",
+    "source_exposure": "approved-read-only-immutable-repository-src"
+  },
+  "existing_campaign": {
+    "completed_hebog_result_count": 0,
+    "completed_result_count": 1,
+    "execution_decision_sha256": "7a44ba52eb3e5daac1c40a234e80f422608e81d379587e06239c591c265f7e50",
+    "input_count": 2488,
+    "open_state_sha256": "f322a07ca3c33697e9d72990ad45f0a53d74c7648975e6fdb34a44b6be09eb99",
+    "public_terminal_manifest": "absent",
+    "request_sha256": "4c53dc39a7f02673a7c316cb814d8947f161eb417f192b077c1aa8b241093230",
+    "run_count": 12440,
+    "staging_directory": "benchmark-results/phase-5/.external-recovery-comparison.phase5-external-7a44ba52eb3e.staging",
+    "terminal_directory": "benchmark-results/phase-5/external-recovery-comparison"
+  },
+  "failure": {
+    "candidate_execution_started": false,
+    "infrastructure_log": "infrastructure-logs/phase5-external-recovery-continuum-1-1024-seed-2026920001-hebog-candidate-attempt-001.json",
+    "infrastructure_log_sha256": "91e3db306b11f8364dd08dbc19e77cb54bed6cad1cf2149ca3a01f6f3bb81543",
+    "reason": "approved-source-module-not-visible-to-frozen-image-python",
+    "run_id": "phase5-external-recovery-continuum-1-1024-seed-2026920001-hebog-candidate",
+    "scientific_products_inspected": false
+  },
+  "frozen_science": {
+    "candidate_revision": "c184acf7f55f936442285835b4601a6ac193fe2a",
+    "candidate_source_tree_sha256": "b4176ce387fa1569cc86ca300bfa7de6462758a1068de46cd4a16616a6ec3adc",
+    "configuration_sha256": "0e5dde51dfd2df84cdf71c3da34449b96c6999f517d781e1aaaec48ebb485a94",
+    "inputs_changed": false,
+    "population_changed": false,
+    "runtime_images_changed": false,
+    "science_or_gates_changed": false
+  },
+  "resource_review": {
+    "adjusted_minimum_remaining_host_gib": 82,
+    "complete_input_apparent_gib": 44,
+    "observed_remaining_host_gib": 104,
+    "original_preflight_minimum_host_gib": 126,
+    "storage_ready": true
+  },
+  "runtime_images": [
+    {
+      "digest": "sha256:dcac8e646ff5ea6d11d314c5c7a51fb0c3ca710165934ad2ddf0ac3f999131b0",
+      "finder_id": "aegean",
+      "image_id": "9e79e24b2460596a57a8ebba5c3987fa636886631579ef333ad46b801b3a86b8"
+    },
+    {
+      "digest": "sha256:1a83f64948460a46dd6f6c5e9434d155fd9b2ae45f97db849d5288f350dca8d1",
+      "finder_id": "hebog",
+      "image_id": "e519dc15b846dec7ac00a6cada7684d0c0b2615490dd6688ac4c6cdf5f3021ca"
+    },
+    {
+      "digest": "sha256:0e6d932416479bb7d7763fe2e025ea9fbbd0d0548a6f156b2cdd881766690c75",
+      "finder_id": "pinned-pybdsf-master",
+      "image_id": "0360fbbfe42fe13aea1559f5603e4fcf4c51c84f7ad5fd201ba8fd76a88df087"
+    },
+    {
+      "digest": "sha256:5310afe78c8fc09ed99ddee1c6978e5e32181b69f1d22432a02ef6e3a6761198",
+      "finder_id": "released-pybdsf",
+      "image_id": "43a6513865a597285dc1bf473e27fc69fdd86fb143c35a24144eb6c1152bb36e"
+    }
+  ],
+  "schema_version": 1,
+  "status": "ready-for-named-existing-campaign-resume-approval"
+}

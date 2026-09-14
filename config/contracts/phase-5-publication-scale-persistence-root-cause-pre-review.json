@@ -1,0 +1,238 @@
+{
+  "allowed_after_separate_approval": [
+    "test-first-prospective-cumulative-decision-adapter",
+    "fixture-and-complete-no-write-evaluation-validation",
+    "paired-current-and-terminal-parent-evidence-design",
+    "array-free-truth-linked-diagnostic-retention",
+    "result-neutral-tail-sentinel-freeze",
+    "non-executable-paired-replay-identity-freeze"
+  ],
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "candidate_implementation_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "evaluation_repair_implementation_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "scientific_correction_implementation_authorized": false,
+    "threshold_or_photometric_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "binding_context": {
+    "closed_historical_baseline": {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-recovery.json",
+      "sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9"
+    },
+    "current_candidate": {
+      "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+      "product_set_sha256": "77a71b5fd537e30efd67a6a225c9d0b52d9bc9d56417437b10bd659539a013b1",
+      "revision": "937737d811dd229d71dbcfdbda6cb5829de6faca",
+      "source_tree_sha256": "9f8e4a67f0c74ac86bff4f398811a7d64620fb70512b118c0ad3bb1eb58644c8"
+    },
+    "current_terminal_ledger": {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-publication-scale-persistence.json",
+      "sha256": "a9c6ed280308f863b149ad4d8dd7db59b8581cfa51cd585c004d4b69844881c8"
+    },
+    "full_continuum_population": {
+      "path": "config/datasets/phase-5-external-post-failure-continuum.json",
+      "sha256": "4ce811e8aebc26b858473eb4473abba1b3bb5a916acb2ee6b645441723322e77"
+    },
+    "prospective_decision_contract": {
+      "path": "config/contracts/phase-5-prospective-science-decision-contract.json",
+      "sha256": "f70f321397618b9f63d3dd03d650a5bbc73f8aad5e5fa91f15a198a99bdb38f9"
+    },
+    "prospective_endpoint_registry": {
+      "path": "config/contracts/phase-5-prospective-science-endpoint-registry.json",
+      "sha256": "095354bce2f34ae257574f9168770a194f1f5b00024db0ec5bcafdafba006a7e"
+    },
+    "prospective_smoke": {
+      "path": "benchmark-results/phase-5/prospective-science-smoke-publication-scale-persistence.json",
+      "sha256": "9316882c606f66bcbf8937c4fc3f5aea331bb9ab9e8689953026016566bd9855"
+    },
+    "selected_terminal_parent_incumbent": {
+      "candidate_revision": "85d580713664b962ae256a98b065849cf8eb9283",
+      "configuration_sha256": "88ac8bea8e865c765d5f346235642f88b298140955af67ada99b9f9bf6187523",
+      "ledger_path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-terminal-parent-correction.json",
+      "ledger_sha256": "e2ee663f4eade383518eabbafda5cd33bfe9808b4a9b37492a77337738b611db",
+      "source_tree_sha256": "a082cbe4b3416f787b455bb5a06be1eb66cb33ec807c74fa48056dfe8c630696"
+    }
+  },
+  "causal_findings": {
+    "absolute_objective_misses": {
+      "classification": "real-longer-term-quality-gaps-not-prospective-compatibility-failures",
+      "description": "The shell-dominated duplicate, split, flux-tail, and position-tail values are genuine measurements and remain important improvement objectives. The prospective endpoint registry classifies their numeric absolute targets as report-only rather than compatibility blockers once PyBDSF parity, incumbent retention, and binding safety pass."
+    },
+    "aggregate_stratum_aliasing": {
+      "classification": "confirmed-population-structure",
+      "description": "Above-compact-deblend-limit, morphology-shell, and tile-corner are three views of the same shell truth group. Tile-boundary contains shell plus filament, scale-4 contains shell plus four other astronomical groups, scale-1 contains artifact plus mixed emission, and varying-noise contains all six astronomical groups. Identical failures across those names are not independent causes."
+    },
+    "decision_contract_dispatch": {
+      "classification": "confirmed-primary-evaluation-defect",
+      "description": "The cumulative wrapper published the historical absolute-gate endpoint status and historical closed-baseline status transitions instead of one decision under the frozen prospective endpoint registry and selected-incumbent contract.",
+      "effects": [
+        "thirty-one absolute-objective failures were counted as binding failures even though every prospective endpoint marks numeric absolute targets report-only",
+        "eleven endpoints were marked underpowered solely because observed variance exceeded a planning value even though all twenty-two underlying PyBDSF upper confidence limits were within the frozen margins",
+        "twenty-six reported regressions were transitions against closed historical baseline a45303df rather than paired retention decisions against selected incumbent 85d5807",
+        "the terminal endpoint records omitted PyBDSF comparisons whenever an absolute gate failed even though the underlying analysis retained those comparisons"
+      ]
+    },
+    "displaced_child_persistence": {
+      "classification": "excluded-as-dominant-current-cause",
+      "evidence": "Only four of 1,821 terminal-cycle candidates were rejected and the displaced-child mechanism recorded zero candidates and zero acceptances, whereas 553 shell truth groups remained split."
+    },
+    "generic_boundary_or_noise_failure": {
+      "classification": "excluded-as-primary-cause",
+      "evidence": "Every tile-boundary duplicate is accounted for by the shell subset, and every varying-noise duplicate is accounted for by shell plus five sparse non-shell cases. No independent boundary-wide or noise-wide excess remains after truth-group attribution."
+    },
+    "independent_source_measurement_defect": {
+      "classification": "unresolved-not-demonstrated",
+      "description": "The shell topology cohort can mechanically create whole-source flux and centroid tails when separately published lobes are compared with one shell truth source. Aggregate co-movement cannot prove that every flux or position tail row is one of those split rows. Full per-realization candidate products were removed after terminal compilation, so an independent measurement defect cannot be confirmed or excluded retrospectively."
+    },
+    "publication_mask_persistence": {
+      "classification": "excluded-as-catalogue-topology-cause-and-confirmed-mask-improvement",
+      "description": "Publication persistence changes only the published detection labels and mask. Catalogue association and source measurement continue to use the stable measurement and direct-component labels. Relative to the selected incumbent, mask precision improved by 0.03432 and mask IoU by 0.01371 while mask recall moved by -0.01849, inside its 0.05 practical margin."
+    },
+    "shell_association_coverage": {
+      "classification": "high-confidence-dominant-absolute-tail-cause-not-realization-level-proven",
+      "description": "The remaining topology tail is under-association of the shell truth group before or during catalogue-source construction. Completeness is 1.0, merge fraction is 0, and shell duplicate and split fractions are identical, which is consistent with detected shell lobes remaining separate rather than missed or overmerged.",
+      "scope": "This explains a longer-term objective gap, not a demonstrated regression against the selected incumbent: the shell duplicate and split rate is unchanged from incumbent 85d5807."
+    },
+    "smoke_interpretation": {
+      "classification": "non-promotional-lane-worked-as-designed-but-could-not-close-retention",
+      "description": "Each selected Continuum image already contains every governed morphology, so the smoke did not omit shell morphology. It recorded zero confirmed comparison failures but 35 underpowered decisions over only 64 Continuum realizations. It was correctly non-promotional and could not supply full paired incumbent confidence evidence or enforce report-only absolute objectives."
+    }
+  },
+  "change_control": {
+    "forbidden_same_change": [
+      "detection-threshold-changes",
+      "publication-threshold-or-scale-rule-changes",
+      "background-or-rms-estimator-changes",
+      "source-association-or-parent-construction-changes",
+      "flux-or-position-measurement-changes",
+      "practical-margin-or-confidence-rule-changes",
+      "retrospective-mutation-of-terminal-ledgers",
+      "runtime-optimization"
+    ],
+    "historical_terminal_status_immutable": true,
+    "no_scientific_change_before_paired_attribution": true,
+    "numeric_absolute_targets_remain_visible": true,
+    "prospective_contract_must_not_rescore_closed_evidence": true
+  },
+  "failure_partition": {
+    "current_duplicate_and_split_truth_groups": {
+      "artifact": 118,
+      "diffuse": 3,
+      "mixed_compact_extended": 2,
+      "shell": 553,
+      "total": 676
+    },
+    "denominators": {
+      "artifact_truth_groups": 1600,
+      "overall_truth_groups": 11200,
+      "scale_1_truth_groups": 3200,
+      "scale_4_truth_groups": 8000,
+      "shell_truth_groups": 1600,
+      "tile_boundary_truth_groups": 3200,
+      "varying_noise_truth_groups": 9600
+    },
+    "selected_incumbent_comparison": {
+      "artifact_groups_improved": 720,
+      "current_total": 676,
+      "incumbent_total": 1437,
+      "non_artifact_groups_improved": 41,
+      "shell_groups_changed": 0,
+      "total_groups_improved": 761
+    },
+    "stratum_reconciliation": {
+      "scale_1_total": 120,
+      "scale_4_total": 558,
+      "tile_boundary_total": 553,
+      "varying_noise_total": 558
+    }
+  },
+  "prospective_contract_audit": {
+    "binding_safety_status": "no-failure-recorded-by-terminal-ledger",
+    "compact_status": {
+      "aegean_comparisons_passed": 143,
+      "dual_pybdsf_comparisons_passed": 450,
+      "historical_like_semantics_regressions": 0,
+      "status": "pass-in-terminal-ledger"
+    },
+    "current_candidate_vs_selected_incumbent_point_estimates": {
+      "binding_continuum_endpoints_compared": 143,
+      "material_regressions_beyond_frozen_margin": 0,
+      "nominally_worse": 32,
+      "paired_confidence_status": "unavailable-full-population-incumbent-products-not-retained",
+      "selected_material_improvements": {
+        "artifact_duplicate_and_split_fraction": -0.45,
+        "mask_iou": 0.0137053021594713,
+        "mask_precision": 0.03432435357439856,
+        "overall_duplicate_and_split_fraction": -0.06794642857142853,
+        "reliability": 0.051006847319347126
+      },
+      "selected_nominal_worsenings_within_margin": {
+        "mask_recall": -0.018490634921556337,
+        "overall_position_p95_beam": 0.008566946709509415,
+        "scale_4_position_p95_beam": 0.013072691526728741
+      }
+    },
+    "historical_terminal_decision": {
+      "absolute_failure_count": 31,
+      "historical_like_semantics_regression_count": 26,
+      "status": "immutable-fail-under-original-wrapper-policy",
+      "underpowered_count": 11
+    },
+    "numeric_absolute_policy": "report-as-longer-term-objectives",
+    "prospective_global_status": "incomplete-not-pass-and-not-demonstrated-scientific-fail",
+    "pybdsf_parity_from_stored_analysis": {
+      "pinned_pybdsf_master": {
+        "applicable_comparisons": 113,
+        "observed_upper_limits_within_frozen_margin": 113
+      },
+      "released_pybdsf": {
+        "applicable_comparisons": 113,
+        "observed_upper_limits_within_frozen_margin": 113
+      }
+    },
+    "reason_global_status_is_incomplete": "The selected incumbent has no retained full-population realization products, so the required paired observed-data confidence decisions cannot be computed. Point estimates cannot replace that evidence."
+  },
+  "recommended_next_correction": {
+    "diagnostic_retention": [
+      "retain one hash-bound array-free per-realization endpoint summary for candidate and every comparator",
+      "retain truth-group-linked duplicate split flux and position outcomes so topology and measurement tails can be joined rather than inferred from aggregate strata",
+      "retain candidate-formation attachment convergence terminal-rejection and source-membership reason counts by truth group",
+      "verify compact summaries and association diagnostics before deleting large transient products"
+    ],
+    "evaluation_alignment": [
+      "implement one prospective cumulative decision adapter that consumes the frozen endpoint registry and decision contract directly",
+      "publish separate PyBDSF-parity incumbent-retention binding-safety and absolute-objective sections",
+      "decide non-inferiority from observed paired realization confidence limits while reporting planning-variance deviations separately",
+      "never suppress comparator evidence because a report-only absolute objective is missed",
+      "bind incumbent retention only to candidate 85d5807 and never to the older closed-baseline status-transition list"
+    ],
+    "science_decision": "Do not change source-finding science yet. First obtain paired current-versus-terminal-parent evidence under the corrected prospective evaluator. If it confirms no material incumbent regression and both PyBDSF gates and safety invariants pass, the shell cohort remains a transparent longer-term improvement objective rather than a Phase 5 blocker.",
+    "tail_sentinels": [
+      "freeze result-neutral shell artifact scale-4 corner and varying-noise realization sentinels from historical input identities before viewing another candidate",
+      "require the sentinels to retain incumbent quality and expose mechanism diagnostics but do not treat them as confirmatory promotion evidence",
+      "keep the full population as the intersection-union decision lane and size paired incumbent evidence prospectively"
+    ]
+  },
+  "required_next_decision": "named-approval-of-this-exact-review-for-evaluation-only-prospective-alignment-and-paired-evidence-preparation",
+  "required_sequence": [
+    "obtain-named-approval-of-this-exact-review",
+    "add-red-evaluator-contract-and-missing-comparator-fixtures",
+    "implement-separate-prospective-decision-sections-without-changing-historical-evidence",
+    "add-array-free-truth-linked-diagnostic-retention-and-fail-closed-verification",
+    "freeze-result-neutral-tail-sentinels-and-complete-no-write-tests",
+    "design-and-power-one-exact-paired-current-versus-terminal-parent-population",
+    "freeze-exact-non-executable-paired-replay-identities",
+    "obtain-separate-exact-approval-before-any-execution"
+  ],
+  "review_id": "phase-5-publication-scale-persistence-root-cause-pre-review",
+  "reviewed_on": "2026-09-02",
+  "schema_version": 1,
+  "status": "ready-for-named-prospective-evaluation-alignment-review"
+}

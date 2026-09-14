@@ -1,0 +1,36 @@
+{
+  "authority_source": {
+    "pre_review": {
+      "evaluation_authorized_after_product_seal": true,
+      "path": "config/contracts/phase-5-final-cumulative-current-replay-pre-review.json",
+      "sha256": "57365335a4b7b119bb4dec8f0ea857481bf2d8d80f1162e60f555a258276b815"
+    },
+    "user_instruction": "2026-09-05 continue with the evaluation after the atomic product seal"
+  },
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "cutover_authorized": false,
+    "evaluation_authorized": true,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "scientific_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "decision_id": "phase-5-final-cumulative-evaluation-execution-decision",
+  "expected_execution_sha256": "d8587b3e6c64829cf2974197b5e7d65c4de64c97b9b26f2cee8a2e00e6fd8efa",
+  "identity_review": {
+    "path": "config/contracts/phase-5-final-cumulative-evaluation-identity-review.json",
+    "sha256": "225faf335063e580b4eb7272a1c0f4791911588464b64d78f4f7d72451f0ed96"
+  },
+  "identity_review_sha256": "225faf335063e580b4eb7272a1c0f4791911588464b64d78f4f7d72451f0ed96",
+  "result_policy": {
+    "scientific_failure_is_terminal": true,
+    "threshold_or_margin_change_after_results": false,
+    "write_once": true
+  },
+  "status": "authorized-for-one-final-cumulative-evaluation"
+}

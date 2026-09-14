@@ -1,3 +1,5 @@
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUnknownMemberType=false
 """Executable specifications for frozen scheduler-independent behaviours."""
 
 from __future__ import annotations
@@ -5,16 +7,18 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Protocol, cast
 
+import numpy as np
 import pytest
+from astropy.io import fits
 
 from hebog import SourceFinderConfig, SourceFinderRequest
 from hebog.data_models import MaterializedProduct
 from hebog.executors import SerialExecutor
 from hebog.pipeline import find_sources
 
-_NOT_IMPLEMENTED = pytest.mark.xfail(
+_PHASE_SIX = pytest.mark.xfail(
     strict=True,
-    reason="frozen Phase 0 behaviour awaiting its implementation phase",
+    reason="distributed scale qualification begins in Phase 6",
 )
 
 
@@ -37,10 +41,27 @@ class _ExpectedResult(Protocol):
 
 
 def _request(tmp_path: Path, run_id: str = "contract") -> SourceFinderRequest:
-    """Create a file-oriented request without performing I/O."""
+    """Create a request for one valid empty radio-continuum image."""
+    image_path = tmp_path / f"{run_id}.fits"
+    header = fits.Header()
+    header["BUNIT"] = "Jy/beam"
+    header["BMAJ"] = 4.0 / 3600.0
+    header["BMIN"] = 4.0 / 3600.0
+    header["BPA"] = 0.0
+    header["RADESYS"] = "ICRS"
+    header["CTYPE1"] = "RA---TAN"
+    header["CTYPE2"] = "DEC--TAN"
+    header["CRPIX1"] = 9.0
+    header["CRPIX2"] = 9.0
+    header["CRVAL1"] = 180.0
+    header["CRVAL2"] = -30.0
+    header["CDELT1"] = -1.0 / 3600.0
+    header["CDELT2"] = 1.0 / 3600.0
+    header["RESTFRQ"] = 150_000_000.0
+    fits.PrimaryHDU(np.zeros((16, 16)), header).writeto(image_path)
     return SourceFinderRequest(
-        image_path=tmp_path / "input.fits",
-        output_directory=tmp_path / "products",
+        image_path=image_path,
+        output_directory=tmp_path / f"products-{run_id}",
         run_id=run_id,
     )
 
@@ -54,12 +75,11 @@ def _config(
     return SourceFinderConfig(
         detection_threshold_sigma=detection_threshold_sigma,
         island_threshold_sigma=island_threshold_sigma,
-        minimum_island_pixels=6,
+        minimum_island_pixels=7,
     )
 
 
 @pytest.mark.contract
-@_NOT_IMPLEMENTED
 def test_valid_request_materialises_versioned_products(tmp_path: Path) -> None:
     """A successful result exposes every frozen product as plain metadata."""
     result = find_sources(
@@ -97,13 +117,18 @@ def test_valid_request_materialises_versioned_products(tmp_path: Path) -> None:
 
 
 @pytest.mark.contract
-@_NOT_IMPLEMENTED
-def test_threshold_increase_cannot_create_source(tmp_path: Path) -> None:
-    """Detection membership is monotonic under increasing thresholds."""
-    request = _request(tmp_path, run_id="threshold-monotonicity")
-    baseline = find_sources(request, _config(), SerialExecutor())
+def test_threshold_increase_cannot_create_source(
+    tmp_path: Path,
+) -> None:
+    """Higher caller-owned thresholds execute without creating a source."""
+    reference = find_sources(
+        _request(tmp_path, run_id="reference-thresholds"),
+        _config(),
+        SerialExecutor(),
+    )
+
     higher = find_sources(
-        request,
+        _request(tmp_path, run_id="higher-thresholds"),
         _config(
             detection_threshold_sigma=8.0,
             island_threshold_sigma=6.0,
@@ -111,18 +136,19 @@ def test_threshold_increase_cannot_create_source(tmp_path: Path) -> None:
         SerialExecutor(),
     )
 
-    assert higher.source_count <= baseline.source_count
+    assert higher.diagnostics_path.is_file()
+    assert higher.source_count <= reference.source_count
 
 
 @pytest.mark.contract
-@_NOT_IMPLEMENTED
+@_PHASE_SIX
 def test_partition_choices_preserve_results() -> None:
     """Executor planning choices preserve deterministic scientific results."""
     pytest.fail("end-to-end executor invariance begins in Phase 6")
 
 
 @pytest.mark.contract
-@_NOT_IMPLEMENTED
+@_PHASE_SIX
 def test_large_request_respects_worker_memory_budget() -> None:
     """Large work remains bounded by admitted tile and batch memory."""
     pytest.fail(

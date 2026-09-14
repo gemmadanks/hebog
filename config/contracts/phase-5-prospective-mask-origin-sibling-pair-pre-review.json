@@ -1,0 +1,69 @@
+{
+  "authorization": {
+    "fixture_and_executor_validation_authorized": true,
+    "fresh_qualification_authorized": false,
+    "full_cumulative_replay_and_evaluation_authorized_only_after_zero_failure_smoke": true,
+    "process_bug_retries_authorized_without_scientific_identity_change": true,
+    "release_authorized": false,
+    "replacement_smoke_authorized": true,
+    "rescoring_closed_evidence_authorized": false,
+    "scientific_replay_reruns_after_completed_failure_authorized": false,
+    "threshold_or_margin_tuning_authorized": false
+  },
+  "binding_evidence": {
+    "candidate_configuration_sha256": "57841bc3bf99ae1fcde2373244dd1eed678717291666806c80fe7b6a87ca92d6",
+    "candidate_revision": "16aef3429111152f1299eedea2ab72c99292bddb",
+    "candidate_source_tree_sha256": "3fc5d4c72e54df25809b91b93315d4ced3b4263283e3e551c000a3a4a1371b6a",
+    "prospective_smoke_path": "benchmark-results/phase-5/prospective-science-smoke-publication-snr-repair.json",
+    "prospective_smoke_sha256": "a8bee362728df293a30d171bed5afb4e412ecae9cbf9af06fbbce5afec083249"
+  },
+  "causal_findings": {
+    "confirmed_failures": {
+      "duplicate_fraction": 4,
+      "mask_precision": 1,
+      "split_fraction": 2,
+      "total": 7
+    },
+    "mask_origin": {
+      "cause": "Publication refinement now uses direct original-pixel S/N but starts from the expanded measurement-owner labels. Dense opened measurement-only support bypasses the recovered-support S/N floor because dense core retention intentionally has no second significance test.",
+      "evidence": "Pinned-master mask precision misses its 0.05 non-inferiority margin by 0.0023079. Candidate precision is worse on 62 of 64 Continuum smoke images. The measurement plane is intentionally broader than immutable direct ownership, so it is the wrong origin domain for publication cleanup.",
+      "required_repair": "Start refinement from immutable direct-component labels. Admit multiscale-only pixels only through the unchanged significant-support and original-pixel island-S/N recovery rule. Keep measurement labels and all catalogue construction unchanged."
+    },
+    "rejected_repairs": [
+      "changing detection or island thresholds",
+      "changing non-inferiority margins or endpoint selection",
+      "filtering catalogue rows from viewed truth",
+      "merging pairs from distance or connected support alone",
+      "global connectivity restoration removal",
+      "changing measurement ownership or photometry"
+    ],
+    "source_topology": {
+      "cause": "The remaining edge, artifact, scale-one, and diffuse failures contain persistent two-component sibling detections which cannot satisfy the existing three-member cycle parent rule.",
+      "evidence": "The edge duplicate is confined to seed 2026860341 and diffuse splits to seeds 2026860341, 2026862118, and 2026862301. Representative attribution shows distinct persistent singleton lineages and no admissible conservative pair edge. Several artifact pairs share retained support, while proximity-only and one-scale alternatives are not scientifically sufficient.",
+      "required_repair": "Admit the same two-component group only when its two B3 feature envelopes overlap mutually uniquely at two adjacent retained scales, both direct components occupy one connected significant-support component, and the group reconciles whole current singleton memberships."
+    }
+  },
+  "decision_id": "phase-5-prospective-mask-origin-sibling-pair-pre-review",
+  "exact_user_authority": "Please complete all tasks required for running the next cumulative replay. Review the code and tests, close any gaps and fix bugs or make improvements as needed then run the replay and evaluate the results.",
+  "fixed_scientific_boundary": {
+    "catalogue_and_measurement_policy": "unchanged deterministic measurement-owner plane and source measurement",
+    "detection_threshold": "review.matrix.detection_sigma",
+    "island_threshold": "review.matrix.island_sigma",
+    "new_thresholds_or_margins": false,
+    "publication_mask_origin_policy": "immutable-direct-owner-publication-origin-v1",
+    "sibling_pair_policy": "adjacent-scale-mutually-unique-envelope-pair-with-connected-support-v1"
+  },
+  "required_validation": [
+    "red dense measurement-only fixture cannot bypass direct original-pixel island S/N",
+    "measurement ownership and source catalogue products remain unchanged",
+    "persistent mutually unique sibling pair plus one connected significant-support component constructs one parent",
+    "one-scale proximity disconnected support chain crossing crowded overlap partial-group conflict and missing persistence remain separate",
+    "input order retry Serial and existing-Dask results are invariant",
+    "compact products remain byte-identical to the incumbent",
+    "complete current and incumbent no-write preflight passes for all 128 smoke inputs",
+    "replacement smoke has zero confirmed failure before any cumulative replay",
+    "complete cumulative replay and evaluation run only after that zero-failure smoke"
+  ],
+  "schema_version": 1,
+  "status": "reviewed-before-mask-origin-and-sibling-pair-results"
+}

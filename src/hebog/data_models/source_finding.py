@@ -11,7 +11,10 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
+from hebog.data_models.measurement_diagnostics import MeasurementDisposition
+
 _SHA256 = re.compile(r"[0-9a-f]{64}")
+_DOMAIN_IDENTIFIER = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*")
 _PRODUCT_MEDIA_TYPES = {
     "source-catalogue": "application/fits",
     "rms": "image/fits",
@@ -92,6 +95,274 @@ class SourceFindingDiagnostics(BaseModel):
                 "source-finding diagnostics JSON must be canonical"
             )
         return diagnostics
+
+
+class SourceScaleProvenance(BaseModel):
+    """Auditable scale and support provenance for one extended source."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+
+    source_id: str
+    island_id: str
+    association_id: str
+    scale_detection_ids: tuple[str, ...]
+    selected_scale_detection_id: str
+    contributing_scale_orders: tuple[int, ...]
+    relationship: Literal[
+        "extended-only",
+        "contains-compact-support",
+        "overlaps-compact-support",
+    ]
+    support_pixel_count: int
+    visible_model_fraction: float
+    schema_version: Literal[1] = 1
+
+    @model_validator(mode="after")
+    def _validate_provenance(self) -> Self:
+        """Require canonical identities and complete selected provenance."""
+        identifiers = (
+            (self.source_id, "source"),
+            (self.island_id, "island"),
+            (self.association_id, "association"),
+        )
+        for identifier, field_name in identifiers:
+            if _DOMAIN_IDENTIFIER.fullmatch(identifier) is None:
+                raise ValueError(
+                    f"{field_name} ID must be a domain identifier"
+                )
+        if self.scale_detection_ids != tuple(
+            sorted(set(self.scale_detection_ids))
+        ) or any(
+            _DOMAIN_IDENTIFIER.fullmatch(identifier) is None
+            for identifier in self.scale_detection_ids
+        ):
+            raise ValueError(
+                "scale detection IDs must be canonical domain identifiers"
+            )
+        if self.selected_scale_detection_id not in self.scale_detection_ids:
+            raise ValueError(
+                "selected scale detection must belong to the provenance"
+            )
+        if (
+            not self.contributing_scale_orders
+            or self.contributing_scale_orders
+            != tuple(sorted(set(self.contributing_scale_orders)))
+            or any(order < 1 for order in self.contributing_scale_orders)
+        ):
+            raise ValueError(
+                "contributing scale orders must be positive and canonical"
+            )
+        if self.support_pixel_count < 1:
+            raise ValueError("provenance support pixel count must be positive")
+        if not isfinite(self.visible_model_fraction) or not (
+            0 < self.visible_model_fraction <= 1
+        ):
+            raise ValueError(
+                "visible model fraction must be finite and in (0, 1]"
+            )
+        return self
+
+
+class ContinuumSourceFindingDiagnostics(BaseModel):
+    """Version-two diagnostics with per-extended-source provenance."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+
+    run_id: str
+    source_count: int
+    gaussian_component_count: int
+    island_count: int
+    extended_source_count: int
+    terminal_disposition_count: int
+    rms_scientific_status: Literal["valid", "unavailable"]
+    source_provenance: tuple[SourceScaleProvenance, ...]
+    schema_version: Literal[2] = 2
+
+    @model_validator(mode="after")
+    def _validate_diagnostics(self) -> Self:
+        """Require canonical provenance and consistent populations."""
+        if not self.run_id:
+            raise ValueError("diagnostics run ID must not be empty")
+        _require_population_counts(
+            source_count=self.source_count,
+            gaussian_component_count=self.gaussian_component_count,
+            island_count=self.island_count,
+        )
+        if not 0 <= self.extended_source_count <= self.source_count:
+            raise ValueError(
+                "extended source count must fit the source population"
+            )
+        if len(self.source_provenance) != self.extended_source_count:
+            raise ValueError(
+                "extended source count must match source provenance"
+            )
+        source_ids = tuple(item.source_id for item in self.source_provenance)
+        association_ids = tuple(
+            item.association_id for item in self.source_provenance
+        )
+        if source_ids != tuple(sorted(set(source_ids))):
+            raise ValueError("source provenance must use canonical source IDs")
+        if len(set(association_ids)) != len(association_ids):
+            raise ValueError("source provenance associations must be unique")
+        if self.terminal_disposition_count < self.island_count:
+            raise ValueError(
+                "terminal dispositions cannot be fewer than output islands"
+            )
+        return self
+
+    def canonical_json_bytes(self) -> bytes:
+        """Return deterministic UTF-8 JSON with one final newline."""
+        document = json.dumps(
+            self.model_dump(mode="json"),
+            allow_nan=False,
+            ensure_ascii=True,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+        return f"{document}\n".encode()
+
+    @classmethod
+    def from_json_bytes(cls, payload: bytes) -> Self:
+        """Validate one canonical serialized continuum diagnostic."""
+        diagnostics = cls.model_validate_json(payload)
+        if diagnostics.canonical_json_bytes() != payload:
+            raise ValueError(
+                "continuum source-finding diagnostics JSON must be canonical"
+            )
+        return diagnostics
+
+
+class PublicSourceFindingProvenance(BaseModel):
+    """Exact input, configuration, and scientific-composition identity."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+
+    input_sha256: str
+    configuration_sha256: str
+    scientific_profile_sha256: str
+    scientific_composition_sha256: str
+    scientific_composition: Literal[
+        "phase-5-evidence-bound-public-catalogue-v19"
+    ]
+    schema_version: Literal[1] = 1
+
+    @model_validator(mode="after")
+    def _validate_provenance(self) -> Self:
+        """Require every bound identity to be exact lowercase SHA-256."""
+        identities = (
+            self.input_sha256,
+            self.configuration_sha256,
+            self.scientific_profile_sha256,
+            self.scientific_composition_sha256,
+        )
+        if any(_SHA256.fullmatch(identity) is None for identity in identities):
+            raise ValueError("public provenance identities must be SHA-256")
+        return self
+
+
+class PublicSourceFindingDiagnostics(BaseModel):
+    """Public-run diagnostics retain explicit measurement dispositions."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+
+    run_id: str
+    profile: Literal["continuum", "compact"]
+    profile_limitations: tuple[Literal["extended-emission-incomplete"], ...]
+    configuration_qualification: Literal[
+        "development-unqualified", "custom-unqualified"
+    ]
+    source_count: int
+    gaussian_component_count: int
+    island_count: int
+    deblended_parent_count: int = 0
+    deferred_deblend_parent_count: int = 0
+    measurement_dispositions: tuple[MeasurementDisposition, ...] = ()
+    rms_scientific_status: Literal["valid", "unavailable"]
+    provenance: PublicSourceFindingProvenance
+    schema_version: Literal[8] = 8
+
+    @model_validator(mode="after")
+    def _validate_diagnostics(self) -> Self:
+        """Require consistent populations and honest profile limitations."""
+        if not self.run_id:
+            raise ValueError("diagnostics run ID must not be empty")
+        _require_population_counts(
+            source_count=self.source_count,
+            gaussian_component_count=self.gaussian_component_count,
+            island_count=self.island_count,
+        )
+        if (
+            self.deblended_parent_count < 0
+            or self.deferred_deblend_parent_count < 0
+        ):
+            raise ValueError("deblend disposition counts cannot be negative")
+        expected_limitations = (
+            ("extended-emission-incomplete",)
+            if self.profile == "compact"
+            else ()
+        )
+        if self.profile_limitations != expected_limitations:
+            raise ValueError(
+                "public diagnostics limitations must match the profile"
+            )
+        entries = self.measurement_dispositions
+        identities = tuple(
+            (item.object_kind, item.object_id) for item in entries
+        )
+        components = {
+            item.object_id
+            for item in entries
+            if item.object_kind == "component"
+        }
+        sources = tuple(
+            item for item in entries if item.object_kind == "source"
+        )
+        members = tuple(
+            member for item in sources for member in item.member_component_ids
+        )
+        if (
+            identities != tuple(sorted(set(identities)))
+            or len(members) != len(set(members))
+            or set(members) != components
+            or sum(item.catalogue_row_published for item in sources)
+            != self.source_count
+            or sum(
+                item.catalogue_row_published
+                for item in entries
+                if item.object_kind == "component"
+            )
+            != self.gaussian_component_count
+        ):
+            raise ValueError("public measurement census is inconsistent")
+        return self
+
+    def canonical_json_bytes(self) -> bytes:
+        """Return deterministic UTF-8 JSON with one final newline."""
+        document = json.dumps(
+            self.model_dump(mode="json"),
+            allow_nan=False,
+            ensure_ascii=True,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+        return f"{document}\n".encode()
+
+    @classmethod
+    def from_json_bytes(cls, payload: bytes) -> Self:
+        """Validate one canonical serialized public diagnostic."""
+        diagnostics = cls.model_validate_json(payload)
+        if diagnostics.canonical_json_bytes() != payload:
+            raise ValueError(
+                "public source-finding diagnostics JSON must be canonical"
+            )
+        return diagnostics
+
+
+DiagnosticsProduct = (
+    SourceFindingDiagnostics
+    | ContinuumSourceFindingDiagnostics
+    | PublicSourceFindingDiagnostics
+)
 
 
 @dataclass(frozen=True, slots=True)

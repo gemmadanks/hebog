@@ -10,6 +10,7 @@ from typing import Literal
 _MINIMUM_RMS_SAMPLES = 2
 _MINIMUM_SHAPE_PIXELS = 3
 _MINIMUM_GAUSSIAN_FIT_PIXELS = 7
+_MAXIMUM_INTEGRATED_FLUX_BIAS_CORRECTION_SIGMA = 0.5
 
 
 @dataclass(frozen=True, slots=True)
@@ -158,18 +159,26 @@ class SourceFinderConfig:
     Island-size cuts are likewise explicit pixel counts; a compatibility
     adapter may derive them from reviewed beam metadata before constructing
     this scheduler-independent configuration.
-    Workflow-specific background, RMS, multiscale, and filtering choices
-    belong to compatibility configuration at the adapter boundary until their
-    scientific contracts are implemented.
+    Workflow-specific background, RMS, and filtering choices belong to
+    compatibility configuration at the adapter boundary. The residual
+    multiscale segmentation policy has its own explicit configuration because
+    its area and support rules use beam rather than pixel units.
+    ``continuum`` is the general source-association profile; ``compact`` is an
+    explicit component-level profile that is incomplete for extended emission.
     """
 
     detection_threshold_sigma: float
     island_threshold_sigma: float
     minimum_island_pixels: int
     maximum_island_pixels: int | None = None
+    profile: Literal["continuum", "compact"] = "continuum"
 
     def __post_init__(self) -> None:
         """Validate finite, positive, ordered sigma thresholds."""
+        if self.profile not in {"continuum", "compact"}:
+            raise ValueError(
+                "source-finder profile must be 'continuum' or 'compact'"
+            )
         if not isfinite(self.detection_threshold_sigma):
             raise ValueError("detection_threshold_sigma must be finite")
         if self.detection_threshold_sigma <= 0:
@@ -201,6 +210,71 @@ class SourceFinderConfig:
                 "maximum_island_pixels must be an integer no smaller than "
                 "minimum_island_pixels"
             )
+
+
+@dataclass(frozen=True, slots=True)
+class ResidualMultiscaleDetectionConfig:
+    """Promoted residual-B3 segmentation thresholds and topology rules."""
+
+    detection_threshold_sigma: float
+    island_threshold_sigma: float
+    minimum_scale_support_fraction: float
+    minimum_island_area_beams: float
+    connectivity: Literal["eight-neighbour"] = "eight-neighbour"
+    persistence: Literal["adjacent-scales"] = "adjacent-scales"
+    seed_growth: Literal["original-residual"] = "original-residual"
+    subarea_island_policy: Literal["retain-direct-detection-seed"] = (
+        "retain-direct-detection-seed"
+    )
+    edge_support: Literal["normalized-minimum-fraction"] = (
+        "normalized-minimum-fraction"
+    )
+    invalid_pixels: Literal["excluded"] = "excluded"
+
+    def __post_init__(self) -> None:
+        """Reject thresholds or topology outside the promoted policy."""
+        if (
+            not isfinite(self.detection_threshold_sigma)
+            or self.detection_threshold_sigma <= 0
+            or not isfinite(self.island_threshold_sigma)
+            or self.island_threshold_sigma <= 0
+            or self.island_threshold_sigma >= self.detection_threshold_sigma
+        ):
+            raise ValueError(
+                "multiscale thresholds must be finite, positive, and ordered"
+            )
+        if (
+            not isfinite(self.minimum_scale_support_fraction)
+            or not 0 < self.minimum_scale_support_fraction <= 1
+        ):
+            raise ValueError(
+                "minimum scale support fraction must be finite and in (0, 1]"
+            )
+        if (
+            not isfinite(self.minimum_island_area_beams)
+            or self.minimum_island_area_beams <= 0
+        ):
+            raise ValueError(
+                "minimum island area must be finite and positive in beams"
+            )
+        if self.connectivity != "eight-neighbour":
+            raise ValueError("multiscale connectivity must be eight-neighbour")
+        if self.persistence != "adjacent-scales":
+            raise ValueError("multiscale persistence must use adjacent-scales")
+        if self.seed_growth != "original-residual":
+            raise ValueError(
+                "multiscale seed growth must use original residual"
+            )
+        if self.subarea_island_policy != "retain-direct-detection-seed":
+            raise ValueError(
+                "subarea islands require a direct detection-threshold seed"
+            )
+        if self.edge_support != "normalized-minimum-fraction":
+            raise ValueError(
+                "edge support must use normalized minimum support"
+            )
+        if self.invalid_pixels != "excluded":
+            raise ValueError("invalid pixels must be excluded")
 
 
 @dataclass(frozen=True, slots=True)
@@ -277,6 +351,70 @@ class CompactDeblendConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class DeferredIslandCompletionConfig:
+    """Hard bound for one compact-deferred membership tile."""
+
+    maximum_tile_pixels: int
+
+    def __post_init__(self) -> None:
+        """Require an explicit positive per-task pixel admission limit."""
+        if (
+            isinstance(self.maximum_tile_pixels, bool)
+            or not isinstance(self.maximum_tile_pixels, Integral)
+            or self.maximum_tile_pixels < 1
+        ):
+            raise ValueError("maximum_tile_pixels must be a positive integer")
+
+
+@dataclass(frozen=True, slots=True)
+class ExtendedEmissionMeasurementConfig:
+    """Governed original-pixel aperture and bounded-work policy."""
+
+    aperture_radius_beams: float
+    maximum_task_pixels: int
+    minimum_shape_pixels: int
+    covariance_relative_tolerance: float
+    denoised_position_maximum_peak_to_mean_ratio: float
+
+    def __post_init__(self) -> None:
+        """Require the reviewed aperture and explicit numerical limits."""
+        if (
+            not isfinite(self.aperture_radius_beams)
+            or self.aperture_radius_beams <= 0
+        ):
+            raise ValueError(
+                "aperture_radius_beams must be finite and positive"
+            )
+        if (
+            isinstance(self.maximum_task_pixels, bool)
+            or not isinstance(self.maximum_task_pixels, Integral)
+            or self.maximum_task_pixels < 1
+        ):
+            raise ValueError("maximum_task_pixels must be a positive integer")
+        if (
+            isinstance(self.minimum_shape_pixels, bool)
+            or not isinstance(self.minimum_shape_pixels, Integral)
+            or self.minimum_shape_pixels < _MINIMUM_SHAPE_PIXELS
+        ):
+            raise ValueError("minimum_shape_pixels must be an integer >= 3")
+        if (
+            not isfinite(self.covariance_relative_tolerance)
+            or not 0 < self.covariance_relative_tolerance < 1
+        ):
+            raise ValueError(
+                "covariance_relative_tolerance must be finite and in (0, 1)"
+            )
+        if (
+            not isfinite(self.denoised_position_maximum_peak_to_mean_ratio)
+            or self.denoised_position_maximum_peak_to_mean_ratio <= 1
+        ):
+            raise ValueError(
+                "denoised_position_maximum_peak_to_mean_ratio must be finite "
+                "and greater than 1"
+            )
+
+
+@dataclass(frozen=True, slots=True)
 class CompactMomentConfig:
     """Numerical availability policy for compact moment ellipses."""
 
@@ -315,6 +453,8 @@ class CompactGaussianFitConfig:
     maximum_background_offset_sigma: float = 3.0
     context_margin_pixels: int = 8
     extension_significance_sigma: float = 5.0
+    component_extension_significance_sigma: float = 5.0
+    integrated_flux_bias_correction_sigma: float = 0.0
     maximum_information_condition_number: float = 1e8
     background_model: Literal["fitted-offset", "fixed-zero"] = "fitted-offset"
     pixel_support: Literal["bounded-context", "owned-region"] = (
@@ -425,6 +565,17 @@ class CompactGaussianFitConfig:
             raise ValueError(
                 "extension_significance_sigma must be finite and positive"
             )
+        self._validate_component_selection_policy()
+        if (
+            not isfinite(self.integrated_flux_bias_correction_sigma)
+            or not 0.0
+            <= self.integrated_flux_bias_correction_sigma
+            < _MAXIMUM_INTEGRATED_FLUX_BIAS_CORRECTION_SIGMA
+        ):
+            raise ValueError(
+                "integrated_flux_bias_correction_sigma must be finite and "
+                "in [0, 0.5)"
+            )
         if (
             not isfinite(self.maximum_information_condition_number)
             or self.maximum_information_condition_number <= 1
@@ -432,6 +583,25 @@ class CompactGaussianFitConfig:
             raise ValueError(
                 "maximum_information_condition_number must be finite and "
                 "greater than one"
+            )
+
+    def _validate_component_selection_policy(self) -> None:
+        """Keep component evidence no stricter than source evidence."""
+        if (
+            not isfinite(self.component_extension_significance_sigma)
+            or self.component_extension_significance_sigma <= 0
+        ):
+            raise ValueError(
+                "component_extension_significance_sigma must be finite and "
+                "positive"
+            )
+        if (
+            self.component_extension_significance_sigma
+            > self.extension_significance_sigma
+        ):
+            raise ValueError(
+                "component_extension_significance_sigma cannot exceed "
+                "extension_significance_sigma"
             )
 
     def _validate_association_aperture_policy(self) -> None:

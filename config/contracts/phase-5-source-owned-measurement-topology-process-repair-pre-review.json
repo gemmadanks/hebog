@@ -1,0 +1,55 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "coarse_control_execution_authorized": false,
+    "cutover_authorized": false,
+    "development_lane_execution_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "replay_authorized": false,
+    "rescoring_authorized": false,
+    "source_finding_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "failed_execution": {
+    "candidate_execution_count": 0,
+    "coarse_control_execution_count": 0,
+    "execution_commit": "fd04cefece32b885d2a155743d29c3cf642d965c",
+    "execution_decision_sha256": "c169bb85ba39d8fa0092e4315738514e0e47d05920b39dde49f8c857006f412d",
+    "identity_review_sha256": "4c611f1b61113584512f45650ef41e468237c59413b7464a7070cd7bce0e4944",
+    "namespace_file_set_sha256": "08acc8726c191bc8ddb7deae139735282d6146c524625680a1fdbf7f3c739f0d",
+    "output_published": false,
+    "progress_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "progress_record_count": 0,
+    "scratch": "/private/tmp/hebog-phase5-source-owned-measurement-topology-c28343f"
+  },
+  "finding": {
+    "classification": "pre-candidate-process-serialization-defect",
+    "exception": "_pickle.PicklingError",
+    "message": "Can't pickle <class '<run_path>._DevelopmentTask'>: No module named '<run_path>'",
+    "root_cause": "The combined wrapper loaded the parent runner with runpy.run_path and submitted the parent's private _DevelopmentTask instance directly to ProcessPoolExecutor. That record therefore carried the synthetic module name <run_path>, which a spawned worker cannot import while unpickling the submitted call.",
+    "scientific_impact": "none: task serialization failed before input materialization, candidate execution, coarse-control execution, Dask comparison, aggregation, or atomic publication"
+  },
+  "recommended_repair": {
+    "candidate_identity_unchanged": true,
+    "execution_boundary": "convert each parent task to a built-in mapping of JSON-compatible cell, dataset, recipe, and input identity before submission; reconstruct the validated records inside the worker before calling the unchanged serial task path",
+    "new_output_namespace": false,
+    "new_scratch_namespace_required": true,
+    "required_tests": [
+      "the submitted payload contains no run-path-only class and survives a pickle round trip",
+      "the reconstructed cell, dataset, recipe, and input identity equal the parent task exactly",
+      "malformed payloads fail closed before science execution",
+      "the complete no-write preflight binds the repaired wrapper, tests, candidate, population, runtime, paths, and absent output"
+    ],
+    "scientific_configuration_unchanged": true,
+    "scientific_source_tree_unchanged": true
+  },
+  "required_next_decision": "after test-first repair and a complete no-write preflight, freeze a new non-executable process-repair identity and obtain a new exact one-use execution approval before any retry",
+  "review_id": "phase-5-source-owned-measurement-topology-process-repair-pre-review",
+  "reviewed_on": "2026-09-04",
+  "schema_version": 1,
+  "status": "ready-for-process-only-repair-review"
+}

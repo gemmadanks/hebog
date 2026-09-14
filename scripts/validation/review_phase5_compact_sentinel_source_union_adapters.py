@@ -1,0 +1,372 @@
+#!/usr/bin/env python3
+"""Build the non-executable finder source-union adapter review."""
+
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+from hebog.validation.external_runners import canonical_sha256, file_sha256
+
+_ROOT = Path(__file__).parents[2]
+_OUTPUT = _ROOT / (
+    "config/contracts/"
+    "phase-5-compact-held-out-sentinel-source-union-adapter-pre-review.json"
+)
+_REPOSITORY_FILES = {
+    "approved_root_cause_review": (
+        "config/contracts/"
+        "phase-5-compact-held-out-sentinel-root-cause-pre-review.json",
+        "f94d0455be9bbb4472b7ee6e6b0cd24fbf4ecc8be1d3e8a293d4467dbc02cad3",
+    ),
+    "aligned_evidence_contract": (
+        "scripts/validation/compact_sentinel_alignment.py",
+        "69c9cf11976274fbeb191312b1e05cb03673671404e8ec7a75364cc493c864bd",
+    ),
+    "aligned_gate_evaluator": (
+        "scripts/validation/"
+        "evaluate_phase5_compact_held_out_sentinel_aligned.py",
+        "f8ebc0e60958edac80e38dc774b003b49ba694773bbe14b69cec2cd785896703",
+    ),
+    "frozen_parent_gate_evaluator": (
+        "scripts/validation/evaluate_phase5_compact_held_out_sentinel.py",
+        "6f2a05fbc1fbe66781f72554b53b94e83d6754b0809043c214d36493f8e83bfd",
+    ),
+    "historical_sentinel_runner": (
+        "scripts/benchmark/run_phase5_compact_held_out_sentinel.py",
+        "a29823c1341bd44ab2fcaaa6990dc19e25b47f669c6dddecf78d9e1af956d3b2",
+    ),
+    "historical_pybdsf_child": (
+        "scripts/benchmark/run_phase5_compact_held_out_pybdsf.py",
+        "a2280496bd92634928ce8740b6cc7c4fa8a842c204f5bc0b6b4c45df4a23fc82",
+    ),
+    "general_pybdsf_runner": (
+        "scripts/benchmark/run_phase5_external_pybdsf.py",
+        "84a567d06ba4c52bf538c6680fd9259354ef8ea8ad9accf39ad00a8f76fd86f3",
+    ),
+    "catalogue_loaders": (
+        "src/hebog/validation/products.py",
+        "c5f64f35a6d7a72a3256d075e20b621081938ea7fa97525e1b887a74d4374fe7",
+    ),
+    "hebog_public_projection": (
+        "src/hebog/public_api.py",
+        "86f8b6c284cb74471ccc7c2167c4b5800f870ea9cbc2e5c1b7ba9dfc1b10f7d2",
+    ),
+    "hebog_source_association_schema": (
+        "src/hebog/data_models/source_association.py",
+        "05045968e83c7df83452f58038ca6ba702123c0f613f5a862e8d678b168f52e2",
+    ),
+    "successor_metric_compiler": (
+        "src/hebog/validation/external_successor_compiler.py",
+        "8e38de3b4347faee9636b89d03f8cdcdd77e39fd1e087d2b44454e5fd7063c55",
+    ),
+}
+
+
+def _repository_bindings() -> dict[str, dict[str, str]]:
+    """Verify and describe every reviewed repository input."""
+    output: dict[str, dict[str, str]] = {}
+    for name, (relative, expected) in _REPOSITORY_FILES.items():
+        path = _ROOT / relative
+        if file_sha256(path) != expected:
+            raise ValueError(f"source-union adapter {name} identity changed")
+        output[name] = {"path": relative, "sha256": expected}
+    return output
+
+
+def build_review() -> dict[str, object]:
+    """Return the finite prospective adapter design and its boundaries."""
+    return {
+        "adapter_designs": {
+            "current_hebog": {
+                "classification": "direct-lossless-projection",
+                "component_measurements": "terminal.component_catalogue",
+                "coverage": "every positive owner pixel exactly once",
+                "identifier": (
+                    "retain each canonical association source_id and "
+                    "component_id"
+                ),
+                "membership": (
+                    "terminal.source_association.memberships joined through "
+                    "terminal.source_association.components.label_value"
+                ),
+                "owner_plane": "terminal.measurement_component_labels",
+                "source_measurements": "terminal.catalogue",
+                "validation": [
+                    "source rows equal association membership identities",
+                    "component rows equal association component identities",
+                    "memberships partition every component exactly once",
+                    "component label values equal every positive owner label",
+                    "canonical source unions cover every positive owner pixel",
+                ],
+            },
+            "released_pybdsf": {
+                "classification": (
+                    "prospective-explicit-source-model-dominance-partition"
+                ),
+                "component_measurements": (
+                    "native gaul catalogue rows retained diagnostic-only"
+                ),
+                "identifier": (
+                    "canonical pybdsf-island-{Isl_id}-source-{Source_id}; "
+                    "never Source_id without Isl_id"
+                ),
+                "membership": (
+                    "join accepted gaul rows to the exact srl row by "
+                    "(Isl_id, Source_id) and verify N_gaus"
+                ),
+                "multi_source_island_partition": (
+                    "within the native island, assign each pixel to the "
+                    "canonical source whose summed accepted-Gaussian model "
+                    "is largest"
+                ),
+                "native_export_available": False,
+                "one_source_island_partition": (
+                    "assign the complete native island to its sole source"
+                ),
+                "production_boundary": (
+                    "derive and publish the transient source-owner plane "
+                    "inside the pinned, network-disabled PyBDSF child after "
+                    "process_image completes"
+                ),
+                "scientific_label": (
+                    "pybdsf-source-model-dominance-v1-derived-topology"
+                ),
+                "source_measurements": (
+                    "native srl catalogue Total_flux and RA/DEC, one row per "
+                    "canonical (Isl_id, Source_id)"
+                ),
+                "tie_break": (
+                    "lexicographically first canonical (Isl_id, Source_id)"
+                ),
+                "validation": [
+                    "srl rows and accepted gaul groups are a one-to-one "
+                    "identity set",
+                    "srl N_gaus equals each accepted gaul group size",
+                    "each modelled island is partitioned completely and "
+                    "without overlap",
+                    "each real source owns at least one pixel",
+                    "no source owner pixel lies outside its native island",
+                    "the derived plane and source catalogue are write-once "
+                    "hash-bound artifacts",
+                ],
+            },
+        },
+        "alignment_contract_amendment": {
+            "binary_mask_rule": (
+                "published_support_mask remains exactly "
+                "native_owner_label_plane > 0"
+            ),
+            "finder_rules": {
+                "current-hebog": (
+                    "source-union positive support equals native positive "
+                    "support"
+                ),
+                "released-pybdsf": (
+                    "source-union positive support equals all and only "
+                    "modelled native islands; whole fitless islands remain "
+                    "unowned"
+                ),
+            },
+            "required": True,
+            "retained_additions": [
+                "source-union derivation name",
+                "modelled native-support count and membership digest",
+                "unowned fitless-support count, pixel count, and membership "
+                "digest",
+            ],
+            "reason": (
+                "The aligned fixture contract currently requires every native "
+                "support pixel to have a catalogue-source owner. Released "
+                "PyBDSF may retain an island after all fits are rejected, so "
+                "that equality would either reject a valid product or "
+                "invent a source."
+            ),
+        },
+        "authorization": {
+            "adapter_implementation": False,
+            "candidate_execution": False,
+            "cutover": False,
+            "held_out_execution": False,
+            "identity_freeze": False,
+            "optimization": False,
+            "pybdsf_execution": False,
+            "qualification": False,
+            "release": False,
+            "replay": False,
+            "rescoring": False,
+            "source_finding_change": False,
+            "tuning": False,
+            "viewed_data_execution": False,
+        },
+        "binding_context": {
+            "candidate": {
+                "configuration_sha256": (
+                    "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d"
+                ),
+                "revision": "95cfc76ded56556dc3ad6894410962d34f0d5604",
+                "source_tree_sha256": (
+                    "8da21e86afc5035da0704724a9d29104ea8b0e4d55fa4a98f0c5f3efca9a75a5"
+                ),
+            },
+            "released_pybdsf": {
+                "container_digest": (
+                    "sha256:5310afe78c8fc09ed99ddee1c6978e5e32181b69f1d22432a02ef6e3a6761198"
+                ),
+                "dependency_inventory_sha256": (
+                    "8211043e9fca55d706d1e890e2bf0b630e228a854db0949258c498506975669f"
+                ),
+                "release_commit": "1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc",
+                "version": "1.14.1",
+            },
+            "repository_commit": "9afd2f1c295d5cd3325b7e00596a6e91c013c020",
+            "repository_files": _repository_bindings(),
+            "review_method": (
+                "read-only schema and control-flow inspection; no campaign "
+                "or viewed summary was read and neither finder was executed"
+            ),
+            "upstream_release_source_inspection": {
+                "export_image_observation": (
+                    "v1.14.1 exposes island_mask but no source-owner image"
+                ),
+                "gaul2srl_module_sha256": (
+                    "01e20973e74cf7d8ef3506f237fb2f09cee4471262e103159abf56484c831cb1"
+                ),
+                "interface_module_sha256": (
+                    "8466ac7aceeeb26733feb920324805ea1e0d946e4f078e0eb80f5f128a74b07d"
+                ),
+                "source_group_observation": (
+                    "v1.14.1 groups accepted Gaussians into source objects "
+                    "and uses summed Gaussian models for source measurement "
+                    "masks"
+                ),
+            },
+        },
+        "fitless_native_support": {
+            "binary_mask_binding": "all positive native support",
+            "forbidden": [
+                "drop fitless pixels from binary-mask metrics",
+                "fabricate a catalogue source for a fitless island",
+                "partially leave a modelled island unowned",
+            ],
+            "source_union_binding": "only support owned by a real source row",
+            "unowned_support": (
+                "whole native islands with no accepted source row, retained "
+                "with count, pixel count, and membership digest"
+            ),
+        },
+        "governance": {
+            "ground_truth": (
+                "Both finders remain independently compared with the same "
+                "analytic injected truth; PyBDSF is never treated as truth."
+            ),
+            "historical_evidence": (
+                "The viewed 168-image failure and its summaries remain "
+                "immutable and are not inputs to this prospective review."
+            ),
+            "scope": (
+                "The adapters are validation-only projections of already "
+                "computed finder products. They cannot change detection, "
+                "deblending, association, measurement, thresholds, or gates."
+            ),
+        },
+        "rejected_alternatives": [
+            "aggregate-gaussian-centres-instead-of-using-srl-source-centres",
+            "drop-fitless-native-islands",
+            "duplicate-a-whole-island-for-every-pybdsf-source",
+            "fabricate-dummy-sources-for-fitless-native-islands",
+            "nearest-gaussian-or-source-centroid-partition",
+            "treat-one-pybdsf-island-as-one-source",
+            "treat-pybdsf-as-ground-truth",
+        ],
+        "required_next_decision": (
+            "named-approval-of-this-exact-review-for-test-first-fixture-only-"
+            "finder-source-union-adapters"
+        ),
+        "required_sequence": [
+            "preserve-the-viewed-terminal-and-approved-root-cause-review-unchanged",
+            "add-red-fixtures-for-fitless-support-and-both-finder-adapters",
+            "amend-the-aligned-contract-for-whole-fitless-native-islands-only",
+            "implement-the-direct-hebog-source-union-adapter",
+            "implement-the-named-pybdsf-source-model-dominance-diagnostic",
+            "retain-srl-gaul-island-and-derived-owner-artifact-identities",
+            "validate-source-component-mask-and-unowned-support-semantics",
+            "validate-serial-existing-dask-order-and-worker-invariance",
+            "freeze-new-seed-disjoint-sentinel-identities-only-after-all-fixtures-pass",
+            "obtain-separate-exact-one-use-approval-before-executing-either-finder",
+            "keep-phase-5-open-until-the-new-like-semantics-sentinel-passes",
+        ],
+        "review_id": (
+            "phase-5-compact-held-out-sentinel-source-union-adapter-pre-review"
+        ),
+        "reviewed_on": "2026-09-07",
+        "schema_version": 1,
+        "status": (
+            "ready-for-named-fixture-only-source-union-adapter-implementation-"
+            "review"
+        ),
+        "test_first_matrix": [
+            "hebog-one-source-multiple-component-owners",
+            "hebog-two-sources-and-complete-component-partition",
+            "hebog-source-catalogue-membership-mismatch-fails-closed",
+            "hebog-component-owner-label-mismatch-fails-closed",
+            "pybdsf-one-island-one-source-owns-whole-island",
+            "pybdsf-one-island-multiple-sources-model-dominance-partition",
+            "pybdsf-multiple-gaussians-one-source-uses-srl-observables",
+            "pybdsf-two-islands-reused-local-shapes-use-composite-identities",
+            "pybdsf-model-dominance-exact-tie-is-canonical",
+            "pybdsf-fitless-island-remains-mask-only",
+            "pybdsf-modelled-plus-fitless-islands-retain-both-domains",
+            "pybdsf-source-with-zero-owned-pixels-fails-closed",
+            "pybdsf-missing-or-duplicate-srl-gaul-membership-fails-closed",
+            "pybdsf-partially-unowned-modelled-island-fails-closed",
+            "source-union-relabel-order-and-worker-invariance",
+            "binary-mask-invariance-to-source-union-partition",
+            "array-free-owned-and-unowned-membership-digests",
+            "valid-zero-source-zero-support",
+            "valid-zero-source-positive-fitless-pybdsf-support",
+        ],
+    }
+
+
+def write_review(path: Path, review: dict[str, object]) -> None:
+    """Write one canonical prospective review without overwriting it."""
+    if path.exists():
+        raise FileExistsError(f"refusing to overwrite review: {path}")
+    document = json.dumps(
+        review,
+        allow_nan=False,
+        indent=2,
+        sort_keys=True,
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(document + "\n", encoding="utf-8")
+
+
+def _parse_arguments() -> argparse.Namespace:
+    """Parse the bounded prospective-review command line."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output", type=Path, default=_OUTPUT)
+    parser.add_argument("--verify-only", action="store_true")
+    return parser.parse_args()
+
+
+def main() -> None:
+    """Build, verify, or write the exact non-executable review."""
+    arguments = _parse_arguments()
+    review = build_review()
+    if arguments.verify_only:
+        existing: object = json.loads(
+            arguments.output.read_text(encoding="utf-8")
+        )
+        if existing != review:
+            raise ValueError("checked-in source-union adapter review changed")
+        print(canonical_sha256(review))
+        return
+    write_review(arguments.output, review)
+    print(canonical_sha256(review))
+
+
+if __name__ == "__main__":
+    main()

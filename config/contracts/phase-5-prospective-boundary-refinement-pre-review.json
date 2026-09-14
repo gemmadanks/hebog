@@ -1,0 +1,51 @@
+{
+  "authorization": {
+    "boundary_refinement_implementation_authorized": true,
+    "fixture_and_executor_validation_authorized": true,
+    "fresh_qualification_authorized": false,
+    "full_cumulative_replay_authorized_only_after_all_prerequisites_pass": true,
+    "release_authorized": false,
+    "repeat_diagnostic_smoke_authorized": true,
+    "rescoring_closed_evidence_authorized": false,
+    "threshold_or_margin_tuning_authorized": false
+  },
+  "binding_evidence": {
+    "candidate_configuration_sha256": "4002b08d88d5e619901a79bf968cedb6f24a4b35425995212b872705aec1542f",
+    "candidate_revision": "edcb46aa48247d1616818159aa5150181c2495bd",
+    "candidate_source_tree_sha256": "6cadd78065cba51e0ce5a3c1b1c2b902d8ed61133c28b1d85cb9673225fc4ce3",
+    "incumbent_revision": "85d580713664b962ae256a98b065849cf8eb9283",
+    "prospective_smoke_path": "benchmark-results/phase-5/prospective-science-smoke.json",
+    "prospective_smoke_sha256": "e3ac8e62b0d136078b2a4a15e7841b12f62c4381db7bb581d03a9468448b248c"
+  },
+  "causal_findings": {
+    "confirmed_incumbent_retention": "All 369 smoke comparisons to the whole incumbent pass and all five failed endpoint families have zero current-versus-incumbent difference.",
+    "confirmed_mask_boundary_gap": "Overall mask precision is lower than both PyBDSF references in all 64 Continuum realizations while mask recall and intersection over union are materially better. The candidate keeps sparse low-SNR support outside dense or high-confidence segment cores.",
+    "confirmed_sparse_topology_outliers": "The remaining duplicate and split failures are concentrated in one image-edge realization, three diffuse split realizations, and morphology-artifact or one-beam binary outliers rather than a population-wide topology collapse.",
+    "confirmed_terminal_cycle_non_effect": "The repaired eligibility census activated on 26 unseeded persistent candidates, but every source membership is identical to the incumbent. The incumbent already accepted the same 75 terminal parents, so terminal-cycle eligibility cannot repair the observed PyBDSF-parity gaps."
+  },
+  "decision_id": "phase-5-prospective-boundary-refinement-pre-review",
+  "exact_user_authority": "Please complete all tasks required for running the next cumulative replay. Review the code and tests, close any gaps and fix bugs or make improvements as needed then run the replay and evaluate the results.",
+  "fixed_scientific_boundary": {
+    "constants": {
+      "boundary_minimum_snr": 6.0,
+      "core_minimum_neighbors": 5,
+      "opening_width_pixels": 3,
+      "recovery_radius_beams": 0.5
+    },
+    "description": "Apply the already-reviewed dense-core, high-SNR-boundary, and nearby significant multiscale-support refinement after deterministic seeded ownership. Fix only the empty-opening short circuit so a real high-SNR thin detection is retained. Do not alter detection, island, support, ownership, association, measurement, decision, margin, or population thresholds.",
+    "existing_implementation": "hebog.algorithms.extended_measurement.refine_multiscale_segment_labels",
+    "policy": "seeded-owner-dense-core-high-snr-nearby-significant-boundary-refinement-v1"
+  },
+  "required_validation": [
+    "red fixture proving an opened-away high-SNR thin detection survives",
+    "fixture proving sparse low-SNR outskirts are removed while dense and nearby significant support remains",
+    "direct seed identities and deterministic seeded ownership remain stable",
+    "source hierarchy and catalogue measurement use the same refined labels",
+    "Serial and existing-Dask label order task order and retry invariance",
+    "compact products remain byte-identical to the incumbent",
+    "repeat the same frozen 128-case smoke into a new write-once namespace",
+    "stop before the full replay unless every PyBDSF and incumbent comparison passes or is diagnostic-underpowered without a confirmed failure"
+  ],
+  "schema_version": 1,
+  "status": "reviewed-before-replacement-results"
+}

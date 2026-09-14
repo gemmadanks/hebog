@@ -1,0 +1,48 @@
+{
+  "candidates": [
+    {
+      "candidate": "direct-observable-pixel-centroid",
+      "covariance_scale": 2.572118946319615,
+      "coverage_pass": false,
+      "eligible": false,
+      "endpoints_pass": false,
+      "failed_coverage_count": 17,
+      "failed_endpoint_count": 17,
+      "model_admission_pass": true,
+      "model_inadequate_fraction": 0.0,
+      "model_unavailable_fraction": 0.0,
+      "overall_percentile_95_beams": 0.27297390636408536,
+      "unavailable_fraction": 0.0
+    },
+    {
+      "candidate": "covariance-gated-model-assisted-centroid",
+      "covariance_scale": 1.1618128124255334,
+      "coverage_pass": false,
+      "eligible": false,
+      "endpoints_pass": false,
+      "failed_coverage_count": 11,
+      "failed_endpoint_count": 15,
+      "model_admission_pass": true,
+      "model_inadequate_fraction": 0.04583333333333333,
+      "model_unavailable_fraction": 0.0,
+      "overall_percentile_95_beams": 0.3068395891068204,
+      "unavailable_fraction": 0.0
+    }
+  ],
+  "confirmation_execution_authorized": false,
+  "decision": "reject-astrometry-candidates",
+  "decision_id": "phase-5-astrometry-selection-decision",
+  "development_manifest_sha256": "5e9da7471f9ca33053421bf3fed6e9583e4ac0e9c3a0b230cd15f48b35159636",
+  "evidence_configuration_sha256": "7757b8d105be096cd6ed19644de86809a5bd6d32871eba9d78d4ffdf2ef6afa4",
+  "evidence_sha256": "919e19345028c16496f4b18199266d82d4e7b604ce865743b20d38c7ebd5c1d8",
+  "evidence_source_tree_sha256": "fc2cdaf8dc4a8addf091fca420eef1cc1bb8892ab330dc16bc6c591bf319c064",
+  "next_action": "human-scientific-review-before-another-estimator-revision",
+  "optimization_authorized": false,
+  "protocol_sha256": "de7265384d8c591e776bbd21bd5488e68144ee8d3dd670277f496dea46a5d917",
+  "qualification_opened": false,
+  "schema_version": 1,
+  "selected_candidate": null,
+  "status": "reviewed-rejected",
+  "step_three_authorized": false,
+  "step_two_c_p_execution_authorized": false
+}

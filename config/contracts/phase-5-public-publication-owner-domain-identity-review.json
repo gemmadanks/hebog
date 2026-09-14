@@ -1,0 +1,65 @@
+{
+  "algorithm_candidate": {
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "revision": "95cfc76ded56556dc3ad6894410962d34f0d5604",
+    "source_tree_sha256": "8da21e86afc5035da0704724a9d29104ea8b0e4d55fa4a98f0c5f3efca9a75a5"
+  },
+  "authorizations": {
+    "candidate_execution": false,
+    "cumulative_replay": false,
+    "cutover": false,
+    "fresh_qualification": false,
+    "pybdsf_execution": false,
+    "release": false,
+    "rescoring": false,
+    "tuning": false,
+    "viewed_data_execution": false
+  },
+  "interface_file_sha256": {
+    "src/hebog/algorithms/component_topology.py": "7443f054bbb0172732cd5eb26cc858933ea68ea2f97797d94a5286be5404b307",
+    "src/hebog/algorithms/deblending.py": "18df86f53d77942b19afe70cc8fc5899177b5c71ea666375ea21648cb116852d",
+    "src/hebog/data_models/source_finding.py": "f550fca3c0dbbf3719ae8a12deefdfbb5b6f46d78a7f3db148c5fc606772d58d",
+    "src/hebog/io/materialization.py": "8ba61ac22600c72c05fefb1f8b8345387edba6029dc11c1b53b56c259b408e36",
+    "src/hebog/public_api.py": "86f8b6c284cb74471ccc7c2167c4b5800f870ea9cbc2e5c1b7ba9dfc1b10f7d2",
+    "src/hebog/public_science.py": "42ab6f8d4512914c882d9a69f0bcbbe7b093c4720fd52686142306935fafc128",
+    "src/hebog/resources/phase_5_continuum_review.json": "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b",
+    "src/hebog/validation/mask_origin_sibling_pair.py": "95010469b8c5358ce8ac1194ca85c9d47d754b2bed6b0c6a0a00634d36deb740",
+    "src/hebog/validation/public_finder_correction.py": "102d414db69322cc0255f6e904e5730e2252946c58057679b09622fd34035bcd"
+  },
+  "predecessor_identity": {
+    "path": "config/contracts/phase-5-public-publication-owner-alignment-identity-review.json",
+    "sha256": "89527070b483fa3d1145b1018f92cdf85460de15f79aed69d4d4c30aff31820d"
+  },
+  "public_configuration": {
+    "detection_threshold_sigma": 5.0,
+    "island_threshold_sigma": 3.0,
+    "maximum_island_pixels": null,
+    "minimum_island_pixels": 7,
+    "profile": "continuum"
+  },
+  "publication_owner_domain_correction": {
+    "direct_owner_policy": "exact-subset-of-authoritative-measurement-ownership",
+    "direct_support_changed": false,
+    "disconnected_recovered_support_policy": "exclude-without-inventing-measurement-ownership",
+    "observed_failure": "direct-derived publication support must have measurement ownership",
+    "publication_support_changed": true,
+    "scientific_rationale": "a nearby multiscale pixel not connected to a direct seed has no scientifically established measurement owner and therefore cannot be published",
+    "thresholds_changed": false
+  },
+  "review_id": "phase-5-public-publication-owner-domain-identity-review",
+  "schema_version": 1,
+  "scientific_composition": "phase-5-configurable-deblended-component-and-source-topology-v8",
+  "scientific_composition_sha256": "8abdeb44a3838c8e1e56d7827a27da1a4f833a18f83756ab12a03a1b7a7e2398",
+  "status": "frozen-non-executable",
+  "validation_evidence": {
+    "branch_coverage_tests_passed": 2817,
+    "boundary_and_thin_geometry_cases_passed": 4,
+    "direct_owner_failure_cases_passed": 1,
+    "disconnected_recovery_cases_passed": 1,
+    "exact_synthetic_notebook_runner_tests_passed": 1,
+    "focused_public_composition_tests_passed": 73,
+    "project_branch_coverage_percent": 94.83,
+    "quick_tests_passed": 2635,
+    "support_thresholds_changed": false
+  }
+}

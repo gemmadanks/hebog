@@ -18,7 +18,9 @@ from distributed import Client
 from hebog.algorithms.deblending import (
     CompactDeblendResult,
     CompactIslandPixels,
+    DeferredDeblendIsland,
     deblend_compact_island,
+    extract_deferred_island_shard_membership,
 )
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.config import (
@@ -28,13 +30,19 @@ from hebog.config import (
     CompactDeblendConfig,
     CompactGaussianFitConfig,
     CompactMomentConfig,
+    DeferredIslandCompletionConfig,
+    ExtendedEmissionMeasurementConfig,
     RmsGridConfig,
     RmsWindowStatisticsConfig,
     SourceFinderConfig,
 )
 from hebog.data_models import ImageBounds, PartitionManifest
 from hebog.data_models.images import CelestialWcs, ImageMetadata, RestoringBeam
-from hebog.data_models.measurement import CompactMeasurementGeometry
+from hebog.data_models.measurement import (
+    CompactMeasurementGeometry,
+    ExtendedMeasurementGeometry,
+    MeasuredExtendedEmission,
+)
 from hebog.executors import DaskExecutor, SerialExecutor
 from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
@@ -43,6 +51,7 @@ from hebog.stages.deblending import (
     WorkerLocalRegionBatch,
     run_compact_deblend_stage,
     run_compact_region_stage,
+    run_deferred_island_completion_stage,
 )
 from hebog.stages.detection import (
     DetectionStageConfig,
@@ -51,7 +60,10 @@ from hebog.stages.detection import (
     run_detection_stage,
 )
 from hebog.stages.fitting import run_compact_gaussian_fit_stage
-from hebog.stages.measurement import run_compact_moment_stage
+from hebog.stages.measurement import (
+    run_compact_moment_stage,
+    run_extended_emission_measurement_stage,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -125,6 +137,19 @@ class _ReadOneImageSource:
     def read_window(self, bounds: ImageBounds) -> ImageWindow:
         """Return one bounded image window."""
         return self._delegate.read_window(bounds)
+
+
+class _InvalidSingleImageSource(_ArrayImageSource):
+    """Inject a deterministic shape error at the single-window boundary."""
+
+    def read_window(self, bounds: ImageBounds) -> ImageWindow:
+        """Return a core whose physical arrays no longer match its bounds."""
+        window = super().read_window(bounds)
+        return replace(
+            window,
+            values=window.values[:-1],
+            valid_pixels=window.valid_pixels[:-1],
+        )
 
 
 class _InvalidBatchImageSource(_ArrayImageSource):
@@ -245,6 +270,28 @@ def _measurement_geometry() -> CompactMeasurementGeometry:
     return CompactMeasurementGeometry(
         pixel_solid_angle_steradians=1.0,
         restoring_beam_solid_angle_steradians=4.0,
+    )
+
+
+def _extended_geometry() -> ExtendedMeasurementGeometry:
+    """Use a deterministic sampled beam and pixel-to-beam conversion."""
+    return ExtendedMeasurementGeometry(
+        pixel_solid_angle_steradians=1.0,
+        restoring_beam_solid_angle_steradians=4.0,
+        restoring_beam_major_fwhm_pixels=2.0,
+        restoring_beam_minor_fwhm_pixels=1.5,
+        restoring_beam_position_angle_degrees=0.0,
+    )
+
+
+def _extended_config() -> ExtendedEmissionMeasurementConfig:
+    """Return the reviewed 1.5-beam aperture and bounded task policy."""
+    return ExtendedEmissionMeasurementConfig(
+        aperture_radius_beams=1.5,
+        maximum_task_pixels=256,
+        minimum_shape_pixels=3,
+        covariance_relative_tolerance=1e-12,
+        denoised_position_maximum_peak_to_mean_ratio=3.0,
     )
 
 
@@ -402,6 +449,15 @@ def test_one_and_many_tile_detection_publish_identical_topology(
     assert many_result.adaptive_candidate_positions_yx == ((12.0, 14.0),)
     assert many_result.adaptive_candidate_positions_yx == (
         one_result.adaptive_candidate_positions_yx
+    )
+    assert many_result.background_rms_grids.adaptive_protected_pixel_count > 0
+    assert (
+        many_result.background_rms_grids.adaptive_protected_pixel_count
+        == one_result.background_rms_grids.adaptive_protected_pixel_count
+    )
+    assert (
+        many_result.background_rms_grids.adaptive_protected_window_count
+        == one_result.background_rms_grids.adaptive_protected_window_count
     )
     assert many_result.islands == one_result.islands
     np.testing.assert_array_equal(
@@ -579,6 +635,414 @@ def test_region_stage_preserves_deferrals_without_reading_pixels(
     assert result.maximum_processor_array_bytes == 0
 
 
+def test_deferred_islands_complete_through_bounded_partitioned_membership(
+    tmp_path: Path,
+) -> None:
+    """Every compact deferral receives exact bounded support for Phase 5."""
+    detection_manifest = plan_image_partitions(
+        image_shape_yx=_image().shape,
+        tile_core_shape_yx=(12, 14),
+        halo_yx=(0, 0),
+    )
+    detection, sink = _run(
+        tmp_path / "deferred-completion.zarr",
+        detection_manifest,
+        SerialExecutor(),
+    )
+    compact = run_compact_region_stage(
+        _ArrayImageSource(_image()),
+        detection,
+        replace(_deblend_config(), maximum_compact_island_pixels=1),
+        processor=_measure_exact_memberships,
+        executor=SerialExecutor(),
+        sink=sink,
+    )
+    completion_manifest = plan_image_partitions(
+        image_shape_yx=_image().shape,
+        tile_core_shape_yx=(6, 7),
+        halo_yx=(0, 0),
+        partition_origin_yx=(3, 2),
+    )
+    config = DeferredIslandCompletionConfig(maximum_tile_pixels=42)
+
+    completed = run_deferred_island_completion_stage(
+        detection,
+        compact.deferred_islands,
+        completion_manifest,
+        config=config,
+        executor=SerialExecutor(),
+        sink=sink,
+    )
+    retried = run_deferred_island_completion_stage(
+        detection,
+        compact.deferred_islands,
+        completion_manifest,
+        config=config,
+        executor=SerialExecutor(),
+        sink=sink,
+    )
+
+    assert retried == completed
+    assert tuple(item.island for item in completed.islands) == (
+        detection.islands
+    )
+    assert completed.planned_tile_count == len(completion_manifest.tiles)
+    assert completed.maximum_task_pixels <= config.maximum_tile_pixels
+    assert completed.reconciliation_round_count > 0
+    reconstructed = np.zeros(_image().shape, dtype=np.bool_)
+    for item in completed.islands:
+        for shard in item.shards:
+            membership = extract_deferred_island_shard_membership(
+                shard,
+                sink.read_completed_window(
+                    "source-filtering-mask",
+                    shard.partition.core_bounds,
+                ),
+            )
+            bounds = shard.partition.core_bounds
+            reconstructed[
+                bounds.y_start : bounds.y_stop,
+                bounds.x_start : bounds.x_stop,
+            ] |= membership
+    np.testing.assert_array_equal(
+        reconstructed,
+        _read_plane(sink, detection, "source-filtering-mask"),
+    )
+
+    no_work = run_deferred_island_completion_stage(
+        detection,
+        (),
+        completion_manifest,
+        config=DeferredIslandCompletionConfig(maximum_tile_pixels=1),
+        executor=SerialExecutor(),
+        sink=sink,
+    )
+    assert no_work.planned_tile_count == 0
+    assert no_work.islands == ()
+    with pytest.raises(ValueError, match="tile exceeds"):
+        run_deferred_island_completion_stage(
+            detection,
+            compact.deferred_islands,
+            completion_manifest,
+            config=DeferredIslandCompletionConfig(maximum_tile_pixels=41),
+            executor=SerialExecutor(),
+            sink=sink,
+        )
+    wrong_shape = plan_image_partitions(
+        image_shape_yx=(12, 14),
+        tile_core_shape_yx=(6, 7),
+        halo_yx=(0, 0),
+    )
+    with pytest.raises(ValueError, match="match the detection image"):
+        run_deferred_island_completion_stage(
+            detection,
+            compact.deferred_islands,
+            wrong_shape,
+            config=config,
+            executor=SerialExecutor(),
+            sink=sink,
+        )
+    halo_manifest = plan_image_partitions(
+        image_shape_yx=_image().shape,
+        tile_core_shape_yx=(6, 7),
+        halo_yx=(1, 1),
+    )
+    with pytest.raises(ValueError, match="zero halo"):
+        run_deferred_island_completion_stage(
+            detection,
+            compact.deferred_islands,
+            halo_manifest,
+            config=config,
+            executor=SerialExecutor(),
+            sink=sink,
+        )
+
+
+def test_deferred_extended_measurement_is_bounded_and_partition_invariant(
+    tmp_path: Path,
+) -> None:
+    """Original-pixel extended products do not depend on completion cores."""
+    detection_manifest = plan_image_partitions(
+        image_shape_yx=_image().shape,
+        tile_core_shape_yx=(12, 14),
+        halo_yx=(0, 0),
+    )
+    detection, sink = _run(
+        tmp_path / "extended-measurement.zarr",
+        detection_manifest,
+        SerialExecutor(),
+    )
+    compact = run_compact_region_stage(
+        _ArrayImageSource(_image()),
+        detection,
+        replace(_deblend_config(), maximum_compact_island_pixels=1),
+        processor=_measure_exact_memberships,
+        executor=SerialExecutor(),
+        sink=sink,
+    )
+    first_manifest = plan_image_partitions(
+        image_shape_yx=_image().shape,
+        tile_core_shape_yx=(6, 7),
+        halo_yx=(0, 0),
+        partition_origin_yx=(3, 2),
+    )
+    second_manifest = plan_image_partitions(
+        image_shape_yx=_image().shape,
+        tile_core_shape_yx=(8, 9),
+        halo_yx=(0, 0),
+        partition_origin_yx=(2, 4),
+    )
+    first_completed = run_deferred_island_completion_stage(
+        detection,
+        compact.deferred_islands,
+        first_manifest,
+        config=DeferredIslandCompletionConfig(maximum_tile_pixels=42),
+        executor=SerialExecutor(),
+        sink=sink,
+    )
+    second_completed = run_deferred_island_completion_stage(
+        detection,
+        compact.deferred_islands,
+        second_manifest,
+        config=DeferredIslandCompletionConfig(maximum_tile_pixels=72),
+        executor=SerialExecutor(),
+        sink=sink,
+    )
+    source = _ArrayImageSource(_image())
+    compact_generation = detection.generation
+    compact_mask = _read_plane(sink, detection, "source-filtering-mask")
+
+    first = run_extended_emission_measurement_stage(
+        source,
+        detection,
+        first_completed.islands,
+        first_manifest,
+        config=_extended_config(),
+        geometry=_extended_geometry(),
+        executor=SerialExecutor(),
+        sink=sink,
+    )
+    retried = run_extended_emission_measurement_stage(
+        source,
+        detection,
+        first_completed.islands,
+        first_manifest,
+        config=_extended_config(),
+        geometry=_extended_geometry(),
+        executor=SerialExecutor(),
+        sink=sink,
+    )
+    second = run_extended_emission_measurement_stage(
+        source,
+        detection,
+        second_completed.islands,
+        second_manifest,
+        config=_extended_config(),
+        geometry=_extended_geometry(),
+        executor=SerialExecutor(),
+        sink=sink,
+    )
+
+    assert retried == first
+    assert detection.generation == compact_generation
+    np.testing.assert_array_equal(
+        _read_plane(sink, detection, "source-filtering-mask"),
+        compact_mask,
+    )
+    assert first.planned_tile_count <= len(first_manifest.tiles)
+    assert first.planned_tile_count > 0
+    assert first.maximum_task_pixels <= _extended_config().maximum_task_pixels
+    assert first.maximum_request_shards > 0
+    assert first.flux_uncertainty_available_count == len(first.measurements)
+    assert all(
+        isinstance(item, MeasuredExtendedEmission)
+        for item in first.measurements
+    )
+    assert tuple(
+        item.target.object_id for item in first.measurements
+    ) == tuple(island.island.island_id for island in first_completed.islands)
+    for first_item, second_item in zip(
+        first.measurements,
+        second.measurements,
+        strict=True,
+    ):
+        assert isinstance(first_item, MeasuredExtendedEmission)
+        assert isinstance(second_item, MeasuredExtendedEmission)
+        assert second_item.target == first_item.target
+        assert second_item.centroid_xy == pytest.approx(first_item.centroid_xy)
+        assert second_item.peak_position_xy == first_item.peak_position_xy
+        assert second_item.photometry.integrated_flux_jy == pytest.approx(
+            first_item.photometry.integrated_flux_jy
+        )
+        assert (
+            second_item.photometry.integrated_flux_error_jy
+            == pytest.approx(first_item.photometry.integrated_flux_error_jy)
+        )
+        assert second_item.photometry.mean_background_jy_per_beam == (
+            pytest.approx(first_item.photometry.mean_background_jy_per_beam)
+        )
+        assert second_item.truncation == first_item.truncation
+        assert second_item.shape_status == first_item.shape_status
+
+    no_work = run_extended_emission_measurement_stage(
+        source,
+        detection,
+        (),
+        first_manifest,
+        config=replace(_extended_config(), maximum_task_pixels=1),
+        geometry=_extended_geometry(),
+        executor=SerialExecutor(),
+        sink=sink,
+    )
+    assert no_work.measurements == ()
+    assert no_work.planned_tile_count == 0
+    with pytest.raises(ValueError, match="task exceeds"):
+        run_extended_emission_measurement_stage(
+            source,
+            detection,
+            first_completed.islands,
+            first_manifest,
+            config=replace(_extended_config(), maximum_task_pixels=100),
+            geometry=_extended_geometry(),
+            executor=SerialExecutor(),
+            sink=sink,
+        )
+    barrier_result = run_extended_emission_measurement_stage(
+        source,
+        detection,
+        first_completed.islands[:1],
+        first_manifest,
+        config=_extended_config(),
+        geometry=_extended_geometry(),
+        executor=SerialExecutor(),
+        sink=sink,
+    )
+    assert len(barrier_result.measurements) == 1
+    barrier_measurement = barrier_result.measurements[0]
+    full_measurement = first.measurements[0]
+    assert isinstance(barrier_measurement, MeasuredExtendedEmission)
+    assert isinstance(full_measurement, MeasuredExtendedEmission)
+    assert barrier_measurement.photometry == full_measurement.photometry
+
+
+def test_extended_measurement_stage_rejects_mismatched_work_ownership(
+    tmp_path: Path,
+) -> None:
+    """Manifest, shard, and source identity errors fail before publication."""
+    detection_manifest = plan_image_partitions(
+        image_shape_yx=_image().shape,
+        tile_core_shape_yx=(12, 14),
+        halo_yx=(0, 0),
+    )
+    detection, sink = _run(
+        tmp_path / "invalid-extended-measurement.zarr",
+        detection_manifest,
+        SerialExecutor(),
+    )
+    compact = run_compact_region_stage(
+        _ArrayImageSource(_image()),
+        detection,
+        replace(_deblend_config(), maximum_compact_island_pixels=1),
+        processor=_measure_exact_memberships,
+        executor=SerialExecutor(),
+        sink=sink,
+    )
+    manifest = plan_image_partitions(
+        image_shape_yx=_image().shape,
+        tile_core_shape_yx=(6, 7),
+        halo_yx=(0, 0),
+    )
+    completed = run_deferred_island_completion_stage(
+        detection,
+        compact.deferred_islands,
+        manifest,
+        config=DeferredIslandCompletionConfig(maximum_tile_pixels=42),
+        executor=SerialExecutor(),
+        sink=sink,
+    )
+    source = _ArrayImageSource(_image())
+
+    wrong_shape = plan_image_partitions(
+        image_shape_yx=(12, 14),
+        tile_core_shape_yx=(6, 7),
+        halo_yx=(0, 0),
+    )
+    with pytest.raises(ValueError, match="match the detection image"):
+        run_extended_emission_measurement_stage(
+            source,
+            detection,
+            completed.islands,
+            wrong_shape,
+            config=_extended_config(),
+            geometry=_extended_geometry(),
+            executor=SerialExecutor(),
+            sink=sink,
+        )
+    halo_manifest = plan_image_partitions(
+        image_shape_yx=_image().shape,
+        tile_core_shape_yx=(6, 7),
+        halo_yx=(1, 1),
+    )
+    with pytest.raises(ValueError, match="zero halo"):
+        run_extended_emission_measurement_stage(
+            source,
+            detection,
+            completed.islands,
+            halo_manifest,
+            config=_extended_config(),
+            geometry=_extended_geometry(),
+            executor=SerialExecutor(),
+            sink=sink,
+        )
+    assert len(completed.islands) > 1
+    with pytest.raises(ValueError, match="islands must be canonical"):
+        run_extended_emission_measurement_stage(
+            source,
+            detection,
+            tuple(reversed(completed.islands)),
+            manifest,
+            config=_extended_config(),
+            geometry=_extended_geometry(),
+            executor=SerialExecutor(),
+            sink=sink,
+        )
+
+    last_island = completed.islands[-1]
+    last_shard = last_island.shards[-1]
+    foreign_partition = replace(
+        last_shard.partition,
+        tile_y_index=999,
+        tile_x_index=999,
+    )
+    foreign_shard = replace(last_shard, partition=foreign_partition)
+    foreign_island = replace(
+        last_island,
+        shards=(*last_island.shards[:-1], foreign_shard),
+    )
+    with pytest.raises(ValueError, match="outside its manifest"):
+        run_extended_emission_measurement_stage(
+            source,
+            detection,
+            (*completed.islands[:-1], foreign_island),
+            manifest,
+            config=_extended_config(),
+            geometry=_extended_geometry(),
+            executor=SerialExecutor(),
+            sink=sink,
+        )
+    with pytest.raises(ValueError, match="misaligned core"):
+        run_extended_emission_measurement_stage(
+            _InvalidSingleImageSource(_image()),
+            detection,
+            completed.islands,
+            manifest,
+            config=_extended_config(),
+            geometry=_extended_geometry(),
+            executor=SerialExecutor(),
+            sink=sink,
+        )
+
+
 @pytest.mark.parametrize(
     ("failure", "message"),
     [
@@ -623,7 +1087,7 @@ def test_compact_deblend_stage_rejects_a_different_generation(
         tile_core_shape_yx=(12, 14),
         halo_yx=(0, 0),
     )
-    detection, _ = _run(
+    detection, source_sink = _run(
         tmp_path / "source-generation.zarr",
         manifest,
         SerialExecutor(),
@@ -648,6 +1112,49 @@ def test_compact_deblend_stage_rejects_a_different_generation(
             detection,
             _deblend_config(),
             processor=_measure_exact_memberships,
+            executor=SerialExecutor(),
+            sink=different_sink,
+        )
+    completion_manifest = plan_image_partitions(
+        image_shape_yx=_image().shape,
+        tile_core_shape_yx=(6, 7),
+        halo_yx=(0, 0),
+    )
+    with pytest.raises(ValueError, match="does not match"):
+        run_deferred_island_completion_stage(
+            detection,
+            (
+                DeferredDeblendIsland(
+                    detection.islands[0],
+                    "island-pixel-limit",
+                ),
+            ),
+            completion_manifest,
+            config=DeferredIslandCompletionConfig(maximum_tile_pixels=42),
+            executor=SerialExecutor(),
+            sink=different_sink,
+        )
+    completed = run_deferred_island_completion_stage(
+        detection,
+        (
+            DeferredDeblendIsland(
+                detection.islands[0],
+                "island-pixel-limit",
+            ),
+        ),
+        completion_manifest,
+        config=DeferredIslandCompletionConfig(maximum_tile_pixels=42),
+        executor=SerialExecutor(),
+        sink=source_sink,
+    )
+    with pytest.raises(ValueError, match="does not match"):
+        run_extended_emission_measurement_stage(
+            _ArrayImageSource(_image()),
+            detection,
+            completed.islands,
+            completion_manifest,
+            config=_extended_config(),
+            geometry=_extended_geometry(),
             executor=SerialExecutor(),
             sink=different_sink,
         )
@@ -790,6 +1297,45 @@ def test_dask_and_serial_detection_products_are_identical(
             executor=DaskExecutor(client),
             sink=dask_sink,
         )
+        deferred_config = replace(
+            _deblend_config(),
+            maximum_compact_island_pixels=1,
+        )
+        dask_deferred = run_compact_region_stage(
+            _ArrayImageSource(_image()),
+            dask,
+            deferred_config,
+            processor=_measure_exact_memberships,
+            executor=DaskExecutor(client),
+            sink=dask_sink,
+        )
+        completion_manifest = plan_image_partitions(
+            image_shape_yx=_image().shape,
+            tile_core_shape_yx=(6, 7),
+            halo_yx=(0, 0),
+            partition_origin_yx=(3, 2),
+        )
+        completion_config = DeferredIslandCompletionConfig(
+            maximum_tile_pixels=42
+        )
+        dask_completed = run_deferred_island_completion_stage(
+            dask,
+            dask_deferred.deferred_islands,
+            completion_manifest,
+            config=completion_config,
+            executor=DaskExecutor(client),
+            sink=dask_sink,
+        )
+        dask_extended = run_extended_emission_measurement_stage(
+            _ArrayImageSource(_image()),
+            dask,
+            dask_completed.islands,
+            completion_manifest,
+            config=_extended_config(),
+            geometry=_extended_geometry(),
+            executor=DaskExecutor(client),
+            sink=dask_sink,
+        )
         dask_moments = run_compact_moment_stage(
             _ArrayImageSource(_image()),
             dask,
@@ -827,6 +1373,14 @@ def test_dask_and_serial_detection_products_are_identical(
         dask.adaptive_candidate_positions_yx
         == serial.adaptive_candidate_positions_yx
     )
+    assert (
+        dask.background_rms_grids.adaptive_protected_pixel_count
+        == serial.background_rms_grids.adaptive_protected_pixel_count
+    )
+    assert (
+        dask.background_rms_grids.adaptive_protected_window_count
+        == serial.background_rms_grids.adaptive_protected_window_count
+    )
     for product_name in dask.generation.product_names:
         np.testing.assert_array_equal(
             _read_plane(dask_sink, dask, product_name),
@@ -849,6 +1403,34 @@ def test_dask_and_serial_detection_products_are_identical(
         sink=serial_sink,
     )
     assert dask_regions == serial_regions
+    serial_deferred = run_compact_region_stage(
+        _ArrayImageSource(_image()),
+        serial,
+        deferred_config,
+        processor=_measure_exact_memberships,
+        executor=SerialExecutor(),
+        sink=serial_sink,
+    )
+    serial_completed = run_deferred_island_completion_stage(
+        serial,
+        serial_deferred.deferred_islands,
+        completion_manifest,
+        config=completion_config,
+        executor=SerialExecutor(),
+        sink=serial_sink,
+    )
+    assert dask_completed == serial_completed
+    serial_extended = run_extended_emission_measurement_stage(
+        _ArrayImageSource(_image()),
+        serial,
+        serial_completed.islands,
+        completion_manifest,
+        config=_extended_config(),
+        geometry=_extended_geometry(),
+        executor=SerialExecutor(),
+        sink=serial_sink,
+    )
+    assert dask_extended == serial_extended
     serial_moments = run_compact_moment_stage(
         _ArrayImageSource(_image()),
         serial,

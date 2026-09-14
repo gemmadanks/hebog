@@ -1,0 +1,48 @@
+{
+  "authorization": {
+    "candidate_science_change_authorized": false,
+    "current_candidate_execution_authorized": false,
+    "cutover_authorized": false,
+    "evaluation_only_completion_authorized": true,
+    "fresh_qualification_authorized": false,
+    "incumbent_reconstruction_authorized": true,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "decision_id": "phase-5-prospective-paired-incumbent-provenance-repair-pre-review",
+  "exact_user_authority": "Please complete all tasks required for repairing and running the evaluation.",
+  "failed_execution": {
+    "atomic_output_published": false,
+    "current_product_count": 2400,
+    "current_product_set_sha256": "6bcb2959c56173d1a930eb14b3a794727649defc1b52dc1d9d70cd041d401014",
+    "error": "ValueError: associated source supports must be present and disjoint",
+    "failed_incumbent_product_count": 2400,
+    "failed_incumbent_product_set_sha256": "b373cafe20285326b7a2f51b990670981edaf8dc06db16e11e8989ae86680528",
+    "failed_stage": "paired-incumbent-continuum-compilation",
+    "original_execution_commit": "9fa879f924b34e9ba7150494700dde00f664a7a7"
+  },
+  "required_repair": [
+    "add a fail-closed check that the imported Hebog source module belongs to the requested candidate checkout",
+    "reconstruct the selected incumbent once in a new namespace with PYTHONPATH bound to immutable execution checkout c1614c2",
+    "require the reconstructed products to bind candidate 85d5807, source tree a082cbe4, configuration 88ac8bea, and the exact historical producer module",
+    "require every historical incumbent association membership to partition its persisted label plane exactly",
+    "reuse and reverify the exact completed current product set without current candidate execution",
+    "compile and evaluate only the two verified product sets into the still-absent write-once paired decision",
+    "preserve every endpoint, comparator, threshold, confidence rule, practical margin, reference run, and closed baseline"
+  ],
+  "root_cause": {
+    "confirmed_product_effect": {
+      "fully_absent_associated_sources": 174,
+      "partially_absent_associated_sources": 52,
+      "unexpected_positive_publication_labels": 0
+    },
+    "description": "The paired materializer verified the incumbent checkout and stamped its historical source-tree identity, but spawned workers imported hebog from the current editable environment. The historical terminal-parent wrapper therefore called the newer source-reconstruction implementation, which measures and associates on a stable measurement plane while persisting a refined publication plane. The historical product schema has no separate measurement-label artifact, so the resulting mixed-lineage shards cannot support exact source-union evaluation.",
+    "evaluation_guard": "The evaluator correctly failed closed. Relaxing disjoint/present support validation would invent source support and is forbidden.",
+    "scientific_boundary": "The selected incumbent must be regenerated with its exact historical source implementation. Current products and all decision policy remain unchanged."
+  },
+  "schema_version": 1,
+  "status": "reviewed-before-incumbent-producer-provenance-repair"
+}

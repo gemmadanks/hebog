@@ -1,0 +1,128 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "cutover_authorized": false,
+    "evaluation_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "scientific_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "bounded_terminal_smoke": {
+    "all_required_endpoints_pass": true,
+    "comparison_status_counts": {
+      "pass": 1187
+    },
+    "cumulative_science_regression_ready": true,
+    "record_canonical_sha256": "55a3ab0cd2da8a69a7448648ac4da8b9933bcab97ba89b2d789b23f4494a8b63",
+    "section_counts": {
+      "aegean_parity": 143,
+      "binding_safety": 5,
+      "incumbent_retention": 368,
+      "longer_term_absolute_objectives": 15,
+      "pybdsf_parity": 676
+    },
+    "status": "pass",
+    "terminal_publication_status": "pass"
+  },
+  "expected_execution": {
+    "bounded_smoke_canonical_sha256": "55a3ab0cd2da8a69a7448648ac4da8b9933bcab97ba89b2d789b23f4494a8b63",
+    "candidate_executions": 0,
+    "completion_program_sha256": "1fcbc321258414bb6eb27a07ce2f36cacf7c6d9f4e61da1e2fb5525deacace6c",
+    "current_scratch": "/private/tmp/hebog-phase5-final-cumulative-current-0b9e132",
+    "evaluation_program_sha256": "61d847c63e590b18c932f645bf646821df79da524127d67ab12799fc3c9d3e0d",
+    "incumbent_scratch": "/private/tmp/hebog-phase5-prospective-paired-incumbent-authentic-85d5807",
+    "output": "benchmark-results/phase-5/final-cumulative-current-decision.json",
+    "pybdsf_executions": 0,
+    "reference_executions": 0,
+    "verified_products": {
+      "candidate_execution_started": false,
+      "candidate_product_seal_record_canonical_sha256": "98d00be4b8b098e248392c92f69e2ca48fec1dafac0e2d2bdbbd90b47d71b00c",
+      "candidate_product_seal_sha256": "2ece0d4632a4a353db8df70274679ce4d0ca6e3501d7799aaf6afac99813a194",
+      "current_configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+      "current_product_set_sha256": "195a5a36be790ba3c9a2e5753eddb38c04c19c545a9875ba2c8acf9b7fce9ea1",
+      "current_revision": "0b9e13299f3fbbd42af0dea4f70155a802a8441d",
+      "current_source_tree_sha256": "11307db0059739d473288dd2ed647970cce43b69e874632e1d1f14ee0ed032df",
+      "evaluator_sha256": "61d847c63e590b18c932f645bf646821df79da524127d67ab12799fc3c9d3e0d",
+      "incumbent_configuration_sha256": "88ac8bea8e865c765d5f346235642f88b298140955af67ada99b9f9bf6187523",
+      "incumbent_product_set_sha256": "8dbc9dff20c861b1f93f11781d079226a7ef68475838909496086229ddc9fe5d",
+      "incumbent_reconstruction_product_set_sha256": "ea12ce032d06c37cfeb70dcfd16d288bd68bc1ef19c010b8491b9ff66ae406e8",
+      "incumbent_revision": "85d580713664b962ae256a98b065849cf8eb9283",
+      "incumbent_source_tree_sha256": "a082cbe4b3416f787b455bb5a06be1eb66cb33ec807c74fa48056dfe8c630696",
+      "input_count_per_candidate": 2400,
+      "parent_completion_sha256": "76ecc0ee13e2fa05d3da07cb3be77a808e306771c6ca445357eafef97edb0391",
+      "parent_evaluator_sha256": "39a568bada625b751931aff649e4e815c5ed70f68809d902a52ce93cfeaec62a",
+      "reconstruction_record_sha256": "b302967f26ac5947e3c942598a428527cce1d4fa3373ed6eaeb6d204eb8dc040",
+      "reference_run_count": 9600,
+      "status": "pass"
+    }
+  },
+  "expected_execution_sha256": "d8587b3e6c64829cf2974197b5e7d65c4de64c97b9b26f2cee8a2e00e6fd8efa",
+  "fixture_bindings": {
+    "final_evaluation": {
+      "path": "tests/unit/validation/test_final_cumulative_evaluation.py",
+      "sha256": "f04a98b2be7414cb41a348a667ff64d9cd37a3bbd02fa6edbe4ea94f646fd63f"
+    },
+    "paired_evaluator": {
+      "path": "tests/unit/validation/test_prospective_paired_cumulative_replay.py",
+      "sha256": "3bb211cb40c9374617b78aceb3288e7b33b31a6dc13936efde4ad453153e4b06"
+    },
+    "topology_tail": {
+      "path": "tests/unit/validation/test_prospective_paired_tail_diagnostic_repair.py",
+      "sha256": "0f5aeeab35ed95226f3fe628b166f6966e83494ca2bd0fa3a15f06c167284548"
+    }
+  },
+  "identity_review_id": "phase-5-final-cumulative-evaluation-identity-review",
+  "implementation": {
+    "path": "config/contracts/phase-5-final-cumulative-evaluation-implementation-decision.json",
+    "sha256": "191f425482d6cb640f2fc96e3745b538d1c90519547e2a8636e3ed47318ba98f"
+  },
+  "program_bindings": {
+    "completion": {
+      "path": "scripts/validation/complete_phase5_final_cumulative_evaluation.py",
+      "sha256": "1fcbc321258414bb6eb27a07ce2f36cacf7c6d9f4e61da1e2fb5525deacace6c"
+    },
+    "evaluator": {
+      "path": "scripts/validation/evaluate_phase5_final_cumulative_current.py",
+      "sha256": "61d847c63e590b18c932f645bf646821df79da524127d67ab12799fc3c9d3e0d"
+    },
+    "freezer": {
+      "path": "scripts/validation/freeze_phase5_final_cumulative_evaluation.py",
+      "sha256": "0e21b4da0317f3abbdc933b82b5d8e8fb4325fd807b4846b76c2baa4b1a41203"
+    },
+    "parent_completion": {
+      "path": "scripts/validation/complete_phase5_prospective_paired_evaluation.py",
+      "sha256": "76ecc0ee13e2fa05d3da07cb3be77a808e306771c6ca445357eafef97edb0391"
+    },
+    "parent_evaluator": {
+      "path": "scripts/validation/evaluate_phase5_prospective_paired_cumulative_topology_repair.py",
+      "sha256": "39a568bada625b751931aff649e4e815c5ed70f68809d902a52ce93cfeaec62a"
+    }
+  },
+  "status": "frozen-non-executable",
+  "verified_products": {
+    "candidate_execution_started": false,
+    "candidate_product_seal_record_canonical_sha256": "98d00be4b8b098e248392c92f69e2ca48fec1dafac0e2d2bdbbd90b47d71b00c",
+    "candidate_product_seal_sha256": "2ece0d4632a4a353db8df70274679ce4d0ca6e3501d7799aaf6afac99813a194",
+    "current_configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "current_product_set_sha256": "195a5a36be790ba3c9a2e5753eddb38c04c19c545a9875ba2c8acf9b7fce9ea1",
+    "current_revision": "0b9e13299f3fbbd42af0dea4f70155a802a8441d",
+    "current_source_tree_sha256": "11307db0059739d473288dd2ed647970cce43b69e874632e1d1f14ee0ed032df",
+    "evaluator_sha256": "61d847c63e590b18c932f645bf646821df79da524127d67ab12799fc3c9d3e0d",
+    "incumbent_configuration_sha256": "88ac8bea8e865c765d5f346235642f88b298140955af67ada99b9f9bf6187523",
+    "incumbent_product_set_sha256": "8dbc9dff20c861b1f93f11781d079226a7ef68475838909496086229ddc9fe5d",
+    "incumbent_reconstruction_product_set_sha256": "ea12ce032d06c37cfeb70dcfd16d288bd68bc1ef19c010b8491b9ff66ae406e8",
+    "incumbent_revision": "85d580713664b962ae256a98b065849cf8eb9283",
+    "incumbent_source_tree_sha256": "a082cbe4b3416f787b455bb5a06be1eb66cb33ec807c74fa48056dfe8c630696",
+    "input_count_per_candidate": 2400,
+    "parent_completion_sha256": "76ecc0ee13e2fa05d3da07cb3be77a808e306771c6ca445357eafef97edb0391",
+    "parent_evaluator_sha256": "39a568bada625b751931aff649e4e815c5ed70f68809d902a52ce93cfeaec62a",
+    "reconstruction_record_sha256": "b302967f26ac5947e3c942598a428527cce1d4fa3373ed6eaeb6d204eb8dc040",
+    "reference_run_count": 9600,
+    "status": "pass"
+  }
+}

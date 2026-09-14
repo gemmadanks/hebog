@@ -1,0 +1,95 @@
+{
+  "audit_id": "phase-5-production-candidate-audit",
+  "audited_on": "2026-09-06",
+  "candidate": {
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "revision": "95cfc76ded56556dc3ad6894410962d34f0d5604",
+    "source_tree_sha256": "8da21e86afc5035da0704724a9d29104ea8b0e4d55fa4a98f0c5f3efca9a75a5"
+  },
+  "decision": {
+    "candidate_identity_unchanged": true,
+    "held_out_design_may_proceed": true,
+    "release_blocking_finding_count": 0,
+    "source_change_required": false
+  },
+  "deferred_non_blocking_findings": [
+    {
+      "finding_id": "curated-scientific-composition-digest",
+      "impact": "Per-result diagnostics bind a reviewed curated module set rather than reconstructing the complete transitive import graph.",
+      "mitigation": "The cumulative and future qualification evidence separately bind the complete src/hebog Python source-tree SHA-256 and the exact public-interface identity.",
+      "required_follow_up": "Harden the installed-product composition manifest after the standalone release without changing or overstating Phase 5 evidence."
+    },
+    {
+      "finding_id": "production-science-validation-namespace",
+      "impact": "Some qualified public science is still imported from hebog.validation modules, which obscures the durable production boundary but does not change execution semantics.",
+      "mitigation": "Dependency direction remains inward, imports are inert, the exact composition is bound, and focused public, scientific, and executor tests pass.",
+      "required_follow_up": "Move stable production composition out of the validation namespace only in separately reviewed structural work with affected scientific gates repeated."
+    }
+  ],
+  "evidence_bindings": {
+    "cumulative_candidate_seal": {
+      "path": "benchmark-results/phase-5/public-owner-domain-cumulative-product-set.json",
+      "product_set_sha256": "f43cb2741e3d66a51bd71baccc6f090199af02eb0784d08cb4295613f17758ed",
+      "sha256": "194022abbfc2633a2e9e323463eeee235ebc521e43d229dd3884a826e0e7a29b"
+    },
+    "public_identity_review": {
+      "path": "config/contracts/phase-5-public-publication-owner-domain-identity-review.json",
+      "sha256": "2920873aa430086d8b12a2092ac7f70bb59dc756c3a70b03db7e7f0708fb0611"
+    }
+  },
+  "execution_authorizations": {
+    "candidate_execution": false,
+    "cutover": false,
+    "held_out_execution": false,
+    "pybdsf_execution": false,
+    "release": false,
+    "rescoring": false,
+    "tuning": false,
+    "viewed_data_execution": false
+  },
+  "public_contract": {
+    "atomic_write_once_bundle": true,
+    "caller_owned_executor": true,
+    "concrete_scheduler_eager_imported": false,
+    "installed_top_level_entry_point": "hebog.find_sources",
+    "public_exports": [
+      "InvalidSourceFinderInputError",
+      "SourceFinderConfig",
+      "SourceFinderError",
+      "SourceFinderImageTooLargeError",
+      "SourceFinderOutputExistsError",
+      "SourceFinderRequest",
+      "SourceFinderResult",
+      "UnsupportedSourceFinderConfigurationError",
+      "__version__",
+      "find_sources"
+    ],
+    "reference_envelope": {
+      "celestial_frame": "icrs",
+      "maximum_dimension_pixels": 1024,
+      "unit": "Jy/beam"
+    }
+  },
+  "release_blocking_findings": [],
+  "review_scope": [
+    "reachable correctness and error paths in hebog.find_sources",
+    "public records, exports, materialization, and write-once publication",
+    "reference-profile science composition and candidate identity",
+    "Serial and caller-owned existing-Dask equivalence",
+    "invalid, empty, all-NaN, non-square, edge, compact, blended, multi-peak, extended, and interrupted-publication cases"
+  ],
+  "schema_version": 1,
+  "source_file_sha256": {
+    "src/hebog/__init__.py": "2b12e6fa36c173ee0e05a27eabcdc056ca357d8a3f99baacaa75d036b78d64b4",
+    "src/hebog/pipeline.py": "e3b767a68f1171df486a1b3b929fe383091ac63165ce2c7d97d60bad3d391ae6",
+    "src/hebog/public_api.py": "86f8b6c284cb74471ccc7c2167c4b5800f870ea9cbc2e5c1b7ba9dfc1b10f7d2",
+    "src/hebog/public_science.py": "42ab6f8d4512914c882d9a69f0bcbbe7b093c4720fd52686142306935fafc128"
+  },
+  "status": "pass-no-release-blocking-defects",
+  "validation_evidence": {
+    "focused_public_and_science_tests_passed": 141,
+    "focused_public_path_branch_coverage_percent": 98,
+    "pyright_errors": 0,
+    "ruff_errors": 0
+  }
+}

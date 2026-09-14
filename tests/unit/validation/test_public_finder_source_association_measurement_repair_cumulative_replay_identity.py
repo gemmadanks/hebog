@@ -1,0 +1,186 @@
+"""Contracts for the frozen measurement-repair replay identity review."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import runpy
+import subprocess
+from argparse import Namespace
+from pathlib import Path
+from typing import Any, cast
+
+import pytest
+
+from hebog.validation.external_runners import file_sha256
+
+_ROOT = Path(__file__).parents[3]
+_REVIEW = (
+    _ROOT / "config/contracts/phase-5-public-finder-source-association-"
+    "measurement-repair-cumulative-replay-review.json"
+)
+_WRAPPER = (
+    _ROOT / "scripts/validation/"
+    "review_phase5_public_finder_source_association_measurement_repair_"
+    "cumulative_regressions.py"
+)
+_EXECUTION_DECISION = (
+    _ROOT / "config/contracts/phase-5-public-finder-source-association-"
+    "measurement-repair-cumulative-replay-execution-decision.json"
+)
+_IMPLEMENTATION_REVISION = "9cc00fb339b12fb00695b0799f828a5afba8ee16"
+
+
+def _load() -> dict[str, Any]:
+    """Load the replacement non-executable identity review."""
+    value = json.loads(_REVIEW.read_text(encoding="utf-8"))
+    assert isinstance(value, dict)
+    return cast(dict[str, Any], value)
+
+
+def _approved_arguments() -> Namespace:
+    """Return the exact prospective no-write and replay invocation."""
+    return Namespace(
+        campaign=None,
+        reference_reconstruction=Path(
+            "benchmark-results/phase-5/"
+            "viewed-reference-reconstruction-public-finder-correction"
+        ),
+        output=Path(
+            "benchmark-results/phase-5/cumulative-regression-ledger-"
+            "public-finder-source-association-measurement-repair.json"
+        ),
+        scratch=Path(
+            "/private/tmp/hebog-phase5-public-finder-source-association-"
+            "measurement-repair-6184a32"
+        ),
+        workers=2,
+        closed_component_baseline_ledger=Path(
+            "benchmark-results/phase-5/"
+            "cumulative-regression-ledger-recovery.json"
+        ),
+    )
+
+
+def _committed_file_sha256(revision: str, path: str) -> str:
+    """Hash one exact committed file."""
+    value = subprocess.run(
+        ("git", "show", f"{revision}:{path}"),
+        cwd=_ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
+    return hashlib.sha256(value).hexdigest()
+
+
+@pytest.mark.integration
+@pytest.mark.requires_data
+def test_review_freezes_exact_implementation_and_prospective_execution() -> (
+    None
+):
+    """The review binds the clean implementation and every replay field."""
+    review = _load()
+    implementation = cast(dict[str, Any], review["implementation"])
+    wrapper = runpy.run_path(str(_WRAPPER))
+
+    assert implementation["commit"] == _IMPLEMENTATION_REVISION
+    tree = subprocess.check_output(
+        ("git", "rev-parse", f"{implementation['commit']}^{{tree}}"),
+        cwd=_ROOT,
+        text=True,
+    ).strip()
+    assert tree == implementation["tree"]
+    assert implementation["wrapper"] == {
+        "path": _WRAPPER.relative_to(_ROOT).as_posix(),
+        "sha256": _committed_file_sha256(
+            _IMPLEMENTATION_REVISION,
+            _WRAPPER.relative_to(_ROOT).as_posix(),
+        ),
+    }
+    for name in (
+        "implementation_decision",
+        "pre_review",
+        "readiness_contract",
+    ):
+        record = cast(dict[str, str], implementation[name])
+        assert (
+            _committed_file_sha256(
+                _IMPLEMENTATION_REVISION,
+                record["path"],
+            )
+            == record["sha256"]
+        )
+    assert review["prospective_execution"] == wrapper[
+        "_expected_execution_fields"
+    ](_approved_arguments())
+
+    reconstruction = cast(dict[str, Any], review["reconstruction"])
+    completion = cast(dict[str, str], reconstruction["completion_review"])
+    assert file_sha256(_ROOT / completion["path"]) == completion["sha256"]
+    assert (
+        file_sha256(_ROOT / reconstruction["path"] / "recovery.json")
+        == reconstruction["recovery_sha256"]
+    )
+
+
+def test_review_records_complete_no_write_result() -> None:
+    """The full retained reference population passed without replay."""
+    verification = cast(dict[str, Any], _load()["no_write_verification"])
+
+    assert verification == {
+        "candidate_configuration_sha256": (
+            "78dbb230cbb726cbbe02b74f2e7fe96bc42801e2102bf15f0580c0643befe946"
+        ),
+        "candidate_revision": "6184a32648eee637f0aca03ab2ec0249bd0510f0",
+        "candidate_source_tree_sha256": (
+            "517d56e19a5d58eb386d96bdb181d36afb574ad018222f870cc8434c398044ff"
+        ),
+        "consumed_wrapper_sha256": (
+            "bfc1d6d0d255b9fd7e7b43f910e9c2665d9083de572bce7b64afee66c473f357"
+        ),
+        "cumulative_replay_started": False,
+        "execution_checkout_revision": (
+            "9cc00fb339b12fb00695b0799f828a5afba8ee16"
+        ),
+        "measurement_repair_sha256": (
+            "a3c53daac3dbae03bd6b3f62488cd46de541d79d9c6c903d34ce7951334d690b"
+        ),
+        "output_absent": True,
+        "readiness_contract_sha256": (
+            "cef14d0130b264ddfc5e4277455820cae5436aa578b0ddb798a103ce9421321f"
+        ),
+        "reference_reconstruction_sha256": (
+            "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2"
+        ),
+        "scratch_absent": True,
+        "status": "pass",
+        "verified_input_count": 2400,
+        "verified_reference_run_count": 9600,
+    }
+
+
+@pytest.mark.posix_frozen_record
+def test_review_remains_non_executable_and_named_approval_is_exact() -> None:
+    """The review stays closed while its exact decision opens one replay."""
+    review = _load()
+    authorization = cast(dict[str, bool], review["authorization"])
+
+    assert authorization
+    assert not any(authorization.values())
+    assert review["required_next_decision"] == (
+        "separate-named-approval-bound-to-this-review-for-one-complete-"
+        "cumulative-replay-only"
+    )
+
+    wrapper = runpy.run_path(str(_WRAPPER))
+    decision = json.loads(_EXECUTION_DECISION.read_text(encoding="utf-8"))
+    wrapper["_validate_execution_decision"](decision, _approved_arguments())
+    assert decision["measurement_repair_replay_identity_review"] == {
+        "path": _REVIEW.relative_to(_ROOT).as_posix(),
+        "sha256": file_sha256(_REVIEW),
+    }
+    assert decision["execution_authorized"] is True
+    assert decision["cumulative_replay_authorized"] is True
+    assert decision["prohibited_authorizations"] == dict.fromkeys(
+        wrapper["_PROHIBITED_AUTHORIZATIONS"], False
+    )

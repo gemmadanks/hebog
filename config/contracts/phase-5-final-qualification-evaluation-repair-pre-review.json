@@ -1,0 +1,105 @@
+{
+  "authorization_boundary": {
+    "campaign_reexecution_authorized": false,
+    "compilation_authorized": false,
+    "evaluation_authorized": false,
+    "implementation_authorized": false,
+    "named_review": null,
+    "optimization_authorized": false,
+    "requested_scope": "implement-evaluation-only-repair-and-freeze-exact-identities-no-science-access",
+    "rescoring_authorized": false,
+    "tuning_authorized": false
+  },
+  "evidence": {
+    "campaign": {
+      "image_count": 1688,
+      "path": "benchmark-results/phase-5/final-qualification-comparison/campaign.json",
+      "request_sha256": "eebb6d793b0ee4532db2393bf06468df53dbc9521092cc8fb6e2340be7194726",
+      "run_count": 8440,
+      "sha256": "4badb8e1bb8b141c654ede168d6e75e93514dee1ae41e4ccad710fefde3f3e08",
+      "status": "terminal-raw-results-sealed"
+    },
+    "outputs": {
+      "analysis_path": "benchmark-results/phase-5/final-qualification-analysis.json",
+      "analysis_state": "absent",
+      "decision_path": "benchmark-results/phase-5/final-qualification-decision.json",
+      "decision_state": "absent"
+    }
+  },
+  "failure": {
+    "exception": "ValueError: recovery decision fields changed",
+    "failed_compiler": {
+      "path": "scripts/validation/compile_phase5_final_qualification_campaign.py",
+      "sha256": "c2b7f3ac3b072ba1c250cd27c917495cab3ba517cfb86a9102d06c763b66b165"
+    },
+    "failure_stage": "terminal-request-identity-validation-before-input-result-science",
+    "root_cause": "final helpers were assigned to inherited _HELPERS but overwritten from stale recovery _COMPAT_HELPERS before the post-failure JSON adapter loaded the final execution decision",
+    "scientific_products_read": false,
+    "write_once_output_created": false
+  },
+  "frozen_composition": {
+    "candidate": {
+      "configuration_sha256": "0e5dde51dfd2df84cdf71c3da34449b96c6999f517d781e1aaaec48ebb485a94",
+      "revision": "90626641c8705ba9d55fdea02a705983528b8aa0",
+      "source_tree_sha256": "e4307246efa7db3ec941b3906f8ce443404b8b84cdc78aa89881e738850cdf8a"
+    },
+    "endpoint_registry": {
+      "path": "config/contracts/phase-5-final-qualification-endpoint-registry.json",
+      "sha256": "c34b51a9485898f2d91df48739c5ba4399469870ea8e3d988704c3d897d57f58"
+    },
+    "evaluation_contract": {
+      "path": "config/contracts/phase-5-final-qualification-evaluation.json",
+      "sha256": "4b05d7920d6b42c65c912b56765f5f396d9ec7d710a0e56e6829f66109fd751d"
+    },
+    "evaluator": {
+      "path": "scripts/validation/evaluate_phase5_final_qualification_decision.py",
+      "sha256": "558e29574287aef6bee348fb37c329b7dab2f115ff42c481d3a1019d3f713560"
+    },
+    "execution_decision": {
+      "path": "config/contracts/phase-5-final-qualification-execution-decision.json",
+      "sha256": "0c0989222c41ede47e7861833d9d6074b2aed5bdf9850aaea1e1c8898d7f1ee3"
+    },
+    "identity_review": {
+      "path": "config/contracts/phase-5-final-qualification-identity-review.json",
+      "sha256": "42ad623779c381ae69532af1cdc3e9063f7229154f28209e2c1da36199280197"
+    }
+  },
+  "recommendation": {
+    "approach": "add-evaluation-only-repair-compiler-and-evaluator-around-frozen-composition",
+    "do_not_modify": [
+      "sealed campaign or request",
+      "frozen compiler, evaluator, protocol, registry, or execution decision",
+      "candidate products, population, runtimes, endpoints, gates, or power",
+      "analysis or decision output paths before exact execution approval"
+    ],
+    "prospective_paths": {
+      "authorization": "config/contracts/phase-5-final-qualification-evaluation-repair-decision.json",
+      "compiler": "scripts/validation/compile_phase5_final_qualification_repair.py",
+      "evaluator": "scripts/validation/evaluate_phase5_final_qualification_repair.py",
+      "identity_review": "config/contracts/phase-5-final-qualification-evaluation-repair-review.json"
+    },
+    "required_provenance": [
+      "sealed campaign and request SHA-256",
+      "original failed compiler and frozen evaluator SHA-256",
+      "repair compiler and evaluator commit, tree, path, and SHA-256",
+      "analysis and decision output absence before named execution approval"
+    ],
+    "required_regressions": [
+      "actual inherited JSON seam selects the final decision loader",
+      "final protocol, registry, and approved decision load through the repaired seam",
+      "request models retain Literal[1688] images and Literal[8440] runs",
+      "recovery-shaped or changed decisions fail closed",
+      "repair programs refuse absent authorization, changed evidence, existing outputs, campaign rerun, tuning, rescoring, and science or gate changes"
+    ]
+  },
+  "review_id": "phase-5-final-qualification-evaluation-repair-pre-review",
+  "schema_version": 1,
+  "scientific_scope": {
+    "campaign_changed": false,
+    "candidate_or_runtime_changed": false,
+    "endpoints_or_gates_changed": false,
+    "population_or_power_changed": false,
+    "scientific_products_inspected": false
+  },
+  "status": "ready-for-named-repair-implementation-review"
+}

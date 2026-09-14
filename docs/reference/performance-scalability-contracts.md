@@ -44,6 +44,28 @@ framework costs; scientific stage time is budgeted separately. Controlled
 measurements replace exploratory observations without silently relaxing the
 budgets.
 
+## Representative component budgets
+
+These retained 3,000-square allocations guide profiling. They are not a
+measured current-candidate runtime or a substitute for matched complete
+`filter_skymodel` evidence.
+
+| Component | Budget |
+| --- | ---: |
+| FITS input, validation, beam, WCS | 1.5 s |
+| True-sky background and RMS | 4.0 s |
+| Detection, deblending, durable image products | 3.5 s |
+| Compact measurement and fitting | 2.0 s |
+| Multiscale processing and merge | 6.0 s |
+| Catalogue and filter outputs | 2.0 s |
+| Flat-noise branch, when admitted concurrently | 4.0 s |
+| Dask scheduling/transfer on critical path | 2.0 s |
+
+The planned true-sky critical path is approximately 19 seconds, with flat-noise
+work hidden only when the resource envelope admits concurrency. Experimental
+standalone releases use the separate [release checklist](release-status.md);
+these complete-workflow budgets and confidence gates remain deployment goals.
+
 ## Extreme-image resource envelope
 
 The 100,000-square case has two logical intensity inputs and three required

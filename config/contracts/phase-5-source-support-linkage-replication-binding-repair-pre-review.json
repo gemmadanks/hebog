@@ -1,0 +1,58 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "coarse_control_execution_authorized": false,
+    "cutover_authorized": false,
+    "development_lane_execution_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "replay_authorized": false,
+    "rescoring_authorized": false,
+    "source_finding_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "failure": {
+    "candidate_execution_count": 0,
+    "coarse_control_execution_count": 0,
+    "failed_stage": "identity-bound-no-write-preflight",
+    "intended_output_exists": false,
+    "scratch_exists": false,
+    "terminal_exception": "ValueError: combined process-repair binding changed"
+  },
+  "failed_execution_decision": {
+    "path": "config/contracts/phase-5-source-support-linkage-replication-process-repair-execution-decision.json",
+    "sha256": "c01b21be9925215bf2422605aa79dffcbd4fb487a3b414acb2ece9714bdfb246"
+  },
+  "failed_identity_review": {
+    "path": "config/contracts/phase-5-source-support-linkage-replication-process-repair-identity-review.json",
+    "sha256": "64988d8dd60b53816e48f9ce33662ec9e0d4dced6860b6534f6ebe07eca871be"
+  },
+  "failed_wrapper": {
+    "path": "scripts/validation/run_phase5_source_support_linkage_replication.py",
+    "sha256": "a0c0be18c6cd0ec751e9baa290c8288fb1c8e12dc783fe052767cd834cc19612"
+  },
+  "findings": {
+    "cause": "The overlay retargeted the candidate, manifest, program, fixture, and execution globals but omitted the process-repair review path and digest. The base verifier therefore compared the new identity against its historical process-review constants and failed closed.",
+    "classification": "process-only-provenance-retargeting-defect",
+    "why_no_science_was_observed": "The identity check failed before the spawned-process seam, scratch creation, or candidate execution.",
+    "why_source_finding_science_is_unchanged": "The repair adds the two missing governance globals only. Algorithms, configuration, population, seeds, metrics, margins, and comparator gates remain unchanged."
+  },
+  "repair": {
+    "contract": "Retarget the process-repair review path and digest in the same atomic overlay update as every other frozen identity constant.",
+    "required_validation": [
+      "in-memory retargeting assertion",
+      "real spawned-process no-write preflight",
+      "complete 144-candidate/144-control/12-Dask no-write verification",
+      "fresh non-executable binding-repair identity and one-use decision",
+      "immutable-checkout repetition before execution"
+    ],
+    "scientific_identity_change": false
+  },
+  "review_id": "phase-5-source-support-linkage-replication-binding-repair-pre-review",
+  "reviewed_on": "2026-09-05",
+  "schema_version": 1,
+  "status": "process-root-cause-complete-ready-for-binding-repair"
+}

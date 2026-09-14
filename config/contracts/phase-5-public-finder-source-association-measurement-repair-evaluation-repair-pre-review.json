@@ -1,0 +1,56 @@
+{
+  "approved_implementation": {
+    "approach": "leave every closed producer, matcher, and compiler byte-identical; verify digest-bound component membership against the exact native label plane; layer a bounded synthetic union-label view for source matching while retaining native topology; and reuse only identity-verified complete candidate shards",
+    "association_evaluation_adapter": "src/hebog/validation/source_association_evaluation_repair.py",
+    "closed_identity_producer": "src/hebog/algorithms/source_association.py",
+    "closed_successor_compiler": "src/hebog/validation/external_successor_compiler.py",
+    "closed_support_matcher": "src/hebog/validation/external_comparison.py",
+    "prospective_completion_wrapper": "scripts/validation/complete_phase5_public_finder_source_association_measurement_repair_evaluation.py",
+    "prospective_identity_review": "config/contracts/phase-5-public-finder-source-association-measurement-repair-evaluation-repair-review.json"
+  },
+  "authorization_boundary": {
+    "candidate_execution_authorized": false,
+    "compilation_authorized": false,
+    "cumulative_replay_rerun_authorized": false,
+    "cutover_authorized": false,
+    "evaluation_authorized": false,
+    "existing_scratch_no_write_verification_authorized": true,
+    "fixture_validation_authorized": true,
+    "fresh_qualification_authorized": false,
+    "identity_freeze_authorized": true,
+    "implementation_authorized": true,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false,
+    "viewed_sdc1_hydra_execution_authorized": false
+  },
+  "bound_failure": {
+    "atomic_ledger_state": "absent",
+    "candidate_product_count": 2400,
+    "path": "config/contracts/phase-5-public-finder-source-association-measurement-repair-cumulative-replay-execution-failure.json"
+  },
+  "required_regressions": [
+    "single-segment Hebog and both PyBDSF translations remain unchanged",
+    "one associated source spanning multiple labels uses the complete support union",
+    "multiple associated sources recover one exact disjoint component partition independent of local label values and catalogue order",
+    "malformed, mixed, absent, duplicate, incomplete, ambiguous, or unverifiable membership fails closed",
+    "native component topology remains separate from binding source photometry",
+    "completion verification admits exactly 2,400 identity-verified existing products and cannot submit candidate work",
+    "existing output, changed scratch, changed failure evidence, changed closed program, changed repair adapter, or absent exact approval fails closed"
+  ],
+  "review_id": "phase-5-public-finder-source-association-measurement-repair-evaluation-repair-pre-review",
+  "schema_version": 1,
+  "scientific_scope": {
+    "candidate_configuration_sha256": "78dbb230cbb726cbbe02b74f2e7fe96bc42801e2102bf15f0580c0643befe946",
+    "candidate_products_changed": false,
+    "candidate_revision": "6184a32648eee637f0aca03ab2ec0249bd0510f0",
+    "candidate_source_tree_sha256": "517d56e19a5d58eb386d96bdb181d36afb574ad018222f870cc8434c398044ff",
+    "closed_baseline_changed": false,
+    "compiler_adapter_changed": true,
+    "endpoint_or_gate_changed": false,
+    "population_or_power_changed": false,
+    "reference_evidence_changed": false
+  },
+  "status": "implementation-authorized-by-explicit-user-fix-request"
+}

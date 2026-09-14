@@ -1,0 +1,87 @@
+{
+  "algorithm_candidate": {
+    "configuration_sha256": "5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4",
+    "revision": "ed5136af4b0948ff48e7ebb8311ce192f17c76cf",
+    "source_tree_sha256": "838e28460525259e7a8879ecf97f352a979754b887a5423ff3a59ecb5b3f7f27"
+  },
+  "authorizations": {
+    "candidate_execution": false,
+    "cutover": false,
+    "evaluation": false,
+    "pybdsf_execution": false,
+    "qualification": false,
+    "release": false,
+    "replay": false,
+    "viewed_data_rescoring": false
+  },
+  "closed_r6_evidence": {
+    "candidate_revision": "db8936b512370a1491f36845592fe3e8a24107ad",
+    "evidence_transfers": false,
+    "status": "scientific-failure",
+    "terminal_sha256": "7146f2e857c9473117c16d29f5bd8d55a2790c66d1c1643cd79b96aa8cc51d72"
+  },
+  "configuration": {
+    "detection_threshold_sigma": 5.0,
+    "island_threshold_sigma": 3.0,
+    "maximum_island_pixels": null,
+    "minimum_island_pixels": 7,
+    "profile": "continuum"
+  },
+  "date": "2026-09-10",
+  "execution_identity": null,
+  "finder_execution_started": false,
+  "frozen_documents": {
+    "public_schemas": {
+      "path": "docs/reference/internal-schemas.md",
+      "sha256": "041684e3e2d7710bd9ea2cab9ea5c41242ca1116d0a43513c31eed705db3b3a5"
+    },
+    "public_tutorial": {
+      "path": "docs/tutorials/find-sources.md",
+      "sha256": "07066ba5d62d9cba2439c707e663308c7e59ea40ac17cb63a7230f19aa41b2c5"
+    },
+    "repair_contract": {
+      "path": "docs/reference/phase-5-noiseless-filter-repair.md",
+      "sha256": "e64a1e7644af64074fe548d8fb1f09ab687be6e101c1f6f9d1daeb0b1b55f5c2"
+    }
+  },
+  "previous_identity_review_sha256": "dc811fb8b2d1ad51969579de0dcae7956a760a56a527eb6fcda8ea6acc2f4d2a",
+  "public_diagnostics_schema_version": 8,
+  "qualification_status": "development-unqualified",
+  "repair_scope": {
+    "closed_science_rescored": false,
+    "detection_threshold_changed": false,
+    "diagnosis": "remote-fft-roundoff-at-near-zero-local-noise",
+    "noise_estimator_policy_changed": false,
+    "numerical_policy": "same-kernel-spatial-fallback-and-range-safe-variance",
+    "rms_floor_added": false,
+    "validation_population": "independent-development-fixtures-only"
+  },
+  "schema_version": 1,
+  "scientific_composition": "phase-5-evidence-bound-public-catalogue-v12",
+  "scientific_composition_sha256": "ba1039f52d7486a9bd754f0b56802274fdfca7188919d6387aee21fcc8e2379c",
+  "status": "frozen-non-executable",
+  "validation": {
+    "changed_executable_lines_covered": 22,
+    "changed_executable_lines_total": 22,
+    "changed_package_branches_all_covered": true,
+    "code_review": "no-actionable-findings",
+    "coverage_expected_failures": 2,
+    "coverage_tests_passed": 3760,
+    "docs_build": "passed",
+    "equivalence_tests_passed": 27,
+    "existing_dask_precision_fallback": "exact-with-serial",
+    "focused_public_schema_numerics_dask_tests_passed": 95,
+    "full_check_before_guard_supplement_tests_passed": 3464,
+    "guard_rejection_cases_passed": 6,
+    "guard_supplement_tests_passed": 35,
+    "marimo_check": "passed",
+    "noiseless_public_capture": "passed-without-xfail",
+    "portable_branch_aware_coverage_percent": 95.25775987543581,
+    "pre_commit": "passed-clean",
+    "prior_portable_branch_aware_coverage_percent": 95.25470803414171,
+    "production_scale_runtime_qualified": false,
+    "python_versions_run": [
+      "3.14"
+    ]
+  }
+}

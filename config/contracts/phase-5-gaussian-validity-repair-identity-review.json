@@ -1,0 +1,92 @@
+{
+  "algorithm_candidate": {
+    "configuration_sha256": "5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4",
+    "revision": "cf6d9da942423d1e112f9ba61a989506db531301",
+    "source_tree_sha256": "f55794e3559825d73c6b99c0f9efc19080d0dd3400e75676dae2c219b96afea6"
+  },
+  "authorizations": {
+    "candidate_execution": false,
+    "cutover": false,
+    "evaluation": false,
+    "pybdsf_execution": false,
+    "qualification": false,
+    "release": false,
+    "replay": false,
+    "viewed_data_rescoring": false
+  },
+  "closed_r6_evidence": {
+    "candidate_revision": "db8936b512370a1491f36845592fe3e8a24107ad",
+    "evidence_transfers": false,
+    "status": "scientific-failure",
+    "terminal_sha256": "7146f2e857c9473117c16d29f5bd8d55a2790c66d1c1643cd79b96aa8cc51d72"
+  },
+  "configuration": {
+    "detection_threshold_sigma": 5.0,
+    "island_threshold_sigma": 3.0,
+    "maximum_island_pixels": null,
+    "minimum_island_pixels": 7,
+    "profile": "continuum"
+  },
+  "date": "2026-09-11",
+  "execution_identity": null,
+  "finder_execution_started": false,
+  "frozen_documents": {
+    "public_schemas": {
+      "path": "docs/reference/internal-schemas.md",
+      "sha256": "d2997ba6122f9b83a8267c41ddec51e46fe105e3a43cc482d8a9b52c7fa78bdf"
+    },
+    "public_tutorial": {
+      "path": "docs/tutorials/find-sources.md",
+      "sha256": "4edebe61fbd356df8fc42103ec3fc95f94a07300d8457841358ec7242d7e859f"
+    },
+    "repair_contract": {
+      "path": "docs/reference/compact-fitting.md",
+      "sha256": "4cc07c3a689a0cc2af4ac96eb1bf059a050e07085bbf967a953e8f853e8280f6"
+    }
+  },
+  "previous_identity_review_sha256": "e93372b5d2787739f7fd1b03024c1bbfe3df6d5fde73e9f6eaedd3eca74f8c5b",
+  "public_diagnostics_schema_version": 8,
+  "qualification_status": "development-unqualified",
+  "repair_scope": {
+    "admission_policy": "common-existing-numerical-physical-bound-and-information-conditioning-gates",
+    "approval": "2026-09-11-user-authorized-necessary-repairs-then-replay-and-process-bug-retries",
+    "astrophysical_model_adequacy_qualified": false,
+    "closed_science_rescored": false,
+    "covariance_policy": "reject-numerically-unresolved-correlated-likelihood-use-explicit-diagonal-estimator-and-correlated-sandwich-errors",
+    "detection_threshold_changed": false,
+    "diagnosis": "unresolved-noise-covariance-axis-order-and-free-only-identifiability-bypass",
+    "faint_association_repair_deferred": true,
+    "physical_fit_thresholds_changed": false,
+    "source_support_and_independent_photometry_retained": true,
+    "validation_population": "independent-development-fixtures-and-frozen-equivalence-controls"
+  },
+  "schema_version": 1,
+  "scientific_composition": "phase-5-evidence-bound-public-catalogue-v14",
+  "scientific_composition_sha256": "498c1b367c3c5f050019d72b5d5cdd0cec81ce4bac05345449354d08b86ef22f",
+  "status": "frozen-non-executable",
+  "validation": {
+    "actual_clipped_source_admission_cases_passed": 12,
+    "campaign_parity_qualified": false,
+    "changed_package_executable_lines_and_instrumented_branches_covered": true,
+    "code_review": "no-actionable-findings",
+    "coverage_expected_failures": 2,
+    "coverage_tests_passed": 3959,
+    "docs_build": "passed",
+    "equivalence_tests_passed": 27,
+    "final_missing_beam_coverage_supplement_tests_passed": 12,
+    "fitting_branch_aware_coverage_percent": 96.23085983510012,
+    "focused_tests_passed": 263,
+    "independent_whole_model_controls_passed": 11,
+    "portable_branch_aware_coverage_percent": 95.29578990117774,
+    "pre_commit": "passed-clean",
+    "prior_portable_branch_aware_coverage_percent": 95.29077438343651,
+    "production_scale_runtime_qualified": false,
+    "public_profile_and_serial_existing_dask_tests_passed": 32,
+    "python_versions_run": [
+      "3.14"
+    ],
+    "standard_check_before_final_supplement_tests_passed": 3656,
+    "uncertainty_ensembles_passed": 5,
+    "viewed_notebook_rerun": false
+  }
+}

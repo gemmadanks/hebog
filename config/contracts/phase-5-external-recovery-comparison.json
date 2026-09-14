@@ -1,0 +1,29 @@
+{
+  "base_protocol_path": "config/contracts/phase-5-external-post-correction-comparison.json",
+  "base_protocol_sha256": "5737aef15b8f1d49d6ee4d58f12646190b837ed1f17ed2210dfe616f3f196c49",
+  "candidate_configuration_sha256": "0e5dde51dfd2df84cdf71c3da34449b96c6999f517d781e1aaaec48ebb485a94",
+  "closed_campaign_reuse_authorized": false,
+  "contract_id": "phase-5-external-recovery-comparison",
+  "execution_authorized": false,
+  "optimization_authorized": false,
+  "population_contract_path": "config/contracts/phase-5-external-recovery-population.json",
+  "population_contract_sha256": "c2a4ac5b9763f2451fd07a18440b76ff3d5705dd2e56dd4273475efbe0423220",
+  "populations": [
+    {
+      "image_count": 1688,
+      "lane": "continuum",
+      "manifest": "config/datasets/phase-5-external-recovery-continuum.json",
+      "manifest_sha256": "d10f43874d5f2cf045a87b5f13e5cff8a29e74bc989dbfd113748a61403441b1"
+    },
+    {
+      "image_count": 800,
+      "lane": "compact-blend",
+      "manifest": "config/datasets/phase-5-external-recovery-compact-blend.json",
+      "manifest_sha256": "57b09825d62bb7a8732dbb25bed4d45f623f191a1b969fd48fed121090f4c85a"
+    }
+  ],
+  "qualification_opened": false,
+  "schema_version": 1,
+  "status": "frozen-before-external-output",
+  "step_three_authorized": false
+}

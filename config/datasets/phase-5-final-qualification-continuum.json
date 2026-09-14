@@ -1,0 +1,3570 @@
+{
+  "datasets": [
+    {
+      "association_group_strata": [],
+      "association_truth_groups": [],
+      "beam": {
+        "major_fwhm_pixels": 5.4,
+        "minor_fwhm_pixels": 3.6,
+        "position_angle_degrees": 31.0
+      },
+      "classification_strata": [],
+      "expected_statistics": {
+        "background_jy_per_beam": -0.0002,
+        "finite_fraction": 0.9998092651367188,
+        "noise_rms_jy_per_beam": 0.0002
+      },
+      "identifier": "phase5-final-qualification-continuum-1-1024",
+      "multiscale_group_strata": [
+        {
+          "group_identifiers": [
+            "extended-shell-0001"
+          ],
+          "identifier": "above-compact-deblend-limit"
+        },
+        {
+          "group_identifiers": [
+            "extended-edge-0001"
+          ],
+          "identifier": "image-edge"
+        },
+        {
+          "group_identifiers": [
+            "extended-mixed-0001"
+          ],
+          "identifier": "invalid-pixels"
+        },
+        {
+          "group_identifiers": [
+            "artifact-bright-sidelobes-0001"
+          ],
+          "identifier": "morphology-artifact"
+        },
+        {
+          "group_identifiers": [
+            "extended-curved-filament-0001"
+          ],
+          "identifier": "morphology-curved-filament"
+        },
+        {
+          "group_identifiers": [
+            "extended-diffuse-0001",
+            "extended-edge-0001"
+          ],
+          "identifier": "morphology-diffuse"
+        },
+        {
+          "group_identifiers": [
+            "extended-filament-0001"
+          ],
+          "identifier": "morphology-filament"
+        },
+        {
+          "group_identifiers": [
+            "extended-mixed-0001"
+          ],
+          "identifier": "morphology-mixed-compact-extended"
+        },
+        {
+          "group_identifiers": [
+            "extended-shell-0001"
+          ],
+          "identifier": "morphology-shell"
+        },
+        {
+          "group_identifiers": [
+            "artifact-bright-sidelobes-0001",
+            "extended-mixed-0001"
+          ],
+          "identifier": "scale-1-beam"
+        },
+        {
+          "group_identifiers": [
+            "extended-curved-filament-0001",
+            "extended-filament-0001",
+            "extended-mixed-0001"
+          ],
+          "identifier": "scale-2-beam"
+        },
+        {
+          "group_identifiers": [
+            "extended-curved-filament-0001",
+            "extended-diffuse-0001",
+            "extended-edge-0001",
+            "extended-mixed-0001",
+            "extended-shell-0001"
+          ],
+          "identifier": "scale-4-beam"
+        },
+        {
+          "group_identifiers": [
+            "extended-filament-0001",
+            "extended-shell-0001"
+          ],
+          "identifier": "tile-boundary"
+        },
+        {
+          "group_identifiers": [
+            "extended-shell-0001"
+          ],
+          "identifier": "tile-corner"
+        },
+        {
+          "group_identifiers": [
+            "extended-curved-filament-0001",
+            "extended-diffuse-0001",
+            "extended-edge-0001",
+            "extended-filament-0001",
+            "extended-mixed-0001",
+            "extended-shell-0001"
+          ],
+          "identifier": "varying-noise"
+        }
+      ],
+      "multiscale_truth_groups": [
+        {
+          "catalogue_role": "artifact",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            1
+          ],
+          "identifier": "artifact-bright-sidelobes-0001",
+          "major_extent_beams": 7.3500000000000005,
+          "minor_extent_beams": 2.1,
+          "morphology": "artifact",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.2353547641204709,
+          "reference_position_xy": [
+            369.5924617681302,
+            830.8012303232306
+          ],
+          "source_indices": [
+            0,
+            1,
+            2
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            2,
+            3
+          ],
+          "identifier": "extended-curved-filament-0001",
+          "major_extent_beams": 7.3500000000000005,
+          "minor_extent_beams": 2.1,
+          "morphology": "curved-filament",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.4564134588647852,
+          "reference_position_xy": [
+            231.98646771556815,
+            528.3814860251337
+          ],
+          "source_indices": [
+            3,
+            4,
+            5
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            3
+          ],
+          "identifier": "extended-diffuse-0001",
+          "major_extent_beams": 6.300000000000001,
+          "minor_extent_beams": 4.2,
+          "morphology": "diffuse",
+          "reference_integrated_brightness_jy_pixels_per_beam": 1.893497595648012,
+          "reference_position_xy": [
+            170.0,
+            181.0
+          ],
+          "source_indices": [
+            6
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            3
+          ],
+          "identifier": "extended-edge-0001",
+          "major_extent_beams": 5.25,
+          "minor_extent_beams": 2.1,
+          "morphology": "diffuse",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.7889573315200049,
+          "reference_position_xy": [
+            1.2,
+            731.0
+          ],
+          "source_indices": [
+            7
+          ],
+          "touches_image_edge": true
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": true,
+          "governed_scale_orders": [
+            2
+          ],
+          "identifier": "extended-filament-0001",
+          "major_extent_beams": 10.5,
+          "minor_extent_beams": 1.5750000000000002,
+          "morphology": "filament",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.6431007972206181,
+          "reference_position_xy": [
+            512.0875067381054,
+            274.7926798878931
+          ],
+          "source_indices": [
+            8,
+            9,
+            10
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            1,
+            2,
+            3
+          ],
+          "identifier": "extended-mixed-0001",
+          "major_extent_beams": 5.25,
+          "minor_extent_beams": 3.1500000000000004,
+          "morphology": "mixed-compact-extended",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.9013444157821139,
+          "reference_position_xy": [
+            776.8753117206982,
+            280.12468827930167
+          ],
+          "source_indices": [
+            11,
+            12
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "compact_deblend_disposition": "deferred-extended",
+          "crosses_tile_boundary": true,
+          "crosses_tile_corner": true,
+          "governed_scale_orders": [
+            3
+          ],
+          "identifier": "extended-shell-0001",
+          "major_extent_beams": 9.450000000000001,
+          "minor_extent_beams": 9.450000000000001,
+          "morphology": "shell",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.7130528238414422,
+          "reference_position_xy": [
+            522.558693512733,
+            520.8293803460062
+          ],
+          "source_indices": [
+            13,
+            14,
+            15,
+            16
+          ],
+          "touches_image_edge": false
+        }
+      ],
+      "noise_realization_seeds": [
+        2026940002,
+        2026940003,
+        2026940004,
+        2026940005,
+        2026940006,
+        2026940007,
+        2026940008,
+        2026940009,
+        2026940010,
+        2026940011,
+        2026940012,
+        2026940013,
+        2026940014,
+        2026940015,
+        2026940016,
+        2026940017,
+        2026940018,
+        2026940019,
+        2026940020,
+        2026940021,
+        2026940022,
+        2026940023,
+        2026940024,
+        2026940025,
+        2026940026,
+        2026940027,
+        2026940028,
+        2026940029,
+        2026940030,
+        2026940031,
+        2026940032,
+        2026940033,
+        2026940034,
+        2026940035,
+        2026940036,
+        2026940037,
+        2026940038,
+        2026940039,
+        2026940040,
+        2026940041,
+        2026940042,
+        2026940043,
+        2026940044,
+        2026940045,
+        2026940046,
+        2026940047,
+        2026940048,
+        2026940049,
+        2026940050,
+        2026940051,
+        2026940052,
+        2026940053,
+        2026940054,
+        2026940055,
+        2026940056,
+        2026940057,
+        2026940058,
+        2026940059,
+        2026940060,
+        2026940061,
+        2026940062,
+        2026940063,
+        2026940064,
+        2026940065,
+        2026940066,
+        2026940067,
+        2026940068,
+        2026940069,
+        2026940070,
+        2026940071,
+        2026940072,
+        2026940073,
+        2026940074,
+        2026940075,
+        2026940076,
+        2026940077,
+        2026940078,
+        2026940079,
+        2026940080,
+        2026940081,
+        2026940082,
+        2026940083,
+        2026940084,
+        2026940085,
+        2026940086,
+        2026940087,
+        2026940088,
+        2026940089,
+        2026940090,
+        2026940091,
+        2026940092,
+        2026940093,
+        2026940094,
+        2026940095,
+        2026940096,
+        2026940097,
+        2026940098,
+        2026940099,
+        2026940100,
+        2026940101,
+        2026940102,
+        2026940103,
+        2026940104,
+        2026940105,
+        2026940106,
+        2026940107,
+        2026940108,
+        2026940109,
+        2026940110,
+        2026940111,
+        2026940112,
+        2026940113,
+        2026940114,
+        2026940115,
+        2026940116,
+        2026940117,
+        2026940118,
+        2026940119,
+        2026940120,
+        2026940121,
+        2026940122,
+        2026940123,
+        2026940124,
+        2026940125,
+        2026940126,
+        2026940127,
+        2026940128,
+        2026940129,
+        2026940130,
+        2026940131,
+        2026940132,
+        2026940133,
+        2026940134,
+        2026940135,
+        2026940136,
+        2026940137,
+        2026940138,
+        2026940139,
+        2026940140,
+        2026940141,
+        2026940142,
+        2026940143,
+        2026940144,
+        2026940145,
+        2026940146,
+        2026940147,
+        2026940148,
+        2026940149,
+        2026940150,
+        2026940151,
+        2026940152,
+        2026940153,
+        2026940154,
+        2026940155,
+        2026940156,
+        2026940157,
+        2026940158,
+        2026940159,
+        2026940160,
+        2026940161,
+        2026940162,
+        2026940163,
+        2026940164,
+        2026940165,
+        2026940166,
+        2026940167,
+        2026940168,
+        2026940169,
+        2026940170,
+        2026940171,
+        2026940172,
+        2026940173,
+        2026940174,
+        2026940175,
+        2026940176,
+        2026940177,
+        2026940178,
+        2026940179,
+        2026940180,
+        2026940181,
+        2026940182,
+        2026940183,
+        2026940184,
+        2026940185,
+        2026940186,
+        2026940187,
+        2026940188,
+        2026940189,
+        2026940190,
+        2026940191,
+        2026940192,
+        2026940193,
+        2026940194,
+        2026940195,
+        2026940196,
+        2026940197,
+        2026940198,
+        2026940199,
+        2026940200,
+        2026940201,
+        2026940202,
+        2026940203,
+        2026940204,
+        2026940205,
+        2026940206,
+        2026940207,
+        2026940208,
+        2026940209,
+        2026940210,
+        2026940211,
+        2026940212,
+        2026940213,
+        2026940214,
+        2026940215,
+        2026940216,
+        2026940217,
+        2026940218,
+        2026940219,
+        2026940220,
+        2026940221,
+        2026940222,
+        2026940223,
+        2026940224,
+        2026940225,
+        2026940226,
+        2026940227,
+        2026940228,
+        2026940229,
+        2026940230,
+        2026940231,
+        2026940232,
+        2026940233,
+        2026940234,
+        2026940235,
+        2026940236,
+        2026940237,
+        2026940238,
+        2026940239,
+        2026940240,
+        2026940241,
+        2026940242,
+        2026940243,
+        2026940244,
+        2026940245,
+        2026940246,
+        2026940247,
+        2026940248,
+        2026940249,
+        2026940250,
+        2026940251,
+        2026940252,
+        2026940253,
+        2026940254,
+        2026940255,
+        2026940256,
+        2026940257,
+        2026940258,
+        2026940259,
+        2026940260,
+        2026940261,
+        2026940262,
+        2026940263,
+        2026940264,
+        2026940265,
+        2026940266,
+        2026940267,
+        2026940268,
+        2026940269,
+        2026940270,
+        2026940271,
+        2026940272,
+        2026940273,
+        2026940274,
+        2026940275,
+        2026940276,
+        2026940277,
+        2026940278,
+        2026940279,
+        2026940280,
+        2026940281,
+        2026940282,
+        2026940283,
+        2026940284,
+        2026940285,
+        2026940286,
+        2026940287,
+        2026940288,
+        2026940289,
+        2026940290,
+        2026940291,
+        2026940292,
+        2026940293,
+        2026940294,
+        2026940295,
+        2026940296,
+        2026940297,
+        2026940298,
+        2026940299,
+        2026940300,
+        2026940301,
+        2026940302,
+        2026940303,
+        2026940304,
+        2026940305,
+        2026940306,
+        2026940307,
+        2026940308,
+        2026940309,
+        2026940310,
+        2026940311,
+        2026940312,
+        2026940313,
+        2026940314,
+        2026940315,
+        2026940316,
+        2026940317,
+        2026940318,
+        2026940319,
+        2026940320,
+        2026940321,
+        2026940322,
+        2026940323,
+        2026940324,
+        2026940325,
+        2026940326,
+        2026940327,
+        2026940328,
+        2026940329,
+        2026940330,
+        2026940331,
+        2026940332,
+        2026940333,
+        2026940334,
+        2026940335,
+        2026940336,
+        2026940337,
+        2026940338,
+        2026940339,
+        2026940340,
+        2026940341,
+        2026940342,
+        2026940343,
+        2026940344,
+        2026940345,
+        2026940346,
+        2026940347,
+        2026940348,
+        2026940349,
+        2026940350,
+        2026940351,
+        2026940352,
+        2026940353,
+        2026940354,
+        2026940355,
+        2026940356,
+        2026940357,
+        2026940358,
+        2026940359,
+        2026940360,
+        2026940361,
+        2026940362,
+        2026940363,
+        2026940364,
+        2026940365,
+        2026940366,
+        2026940367,
+        2026940368,
+        2026940369,
+        2026940370,
+        2026940371,
+        2026940372,
+        2026940373,
+        2026940374,
+        2026940375,
+        2026940376,
+        2026940377,
+        2026940378,
+        2026940379,
+        2026940380,
+        2026940381,
+        2026940382,
+        2026940383,
+        2026940384,
+        2026940385,
+        2026940386,
+        2026940387,
+        2026940388,
+        2026940389,
+        2026940390,
+        2026940391,
+        2026940392,
+        2026940393,
+        2026940394,
+        2026940395,
+        2026940396,
+        2026940397,
+        2026940398,
+        2026940399,
+        2026940400,
+        2026940401,
+        2026940402,
+        2026940403,
+        2026940404,
+        2026940405,
+        2026940406,
+        2026940407,
+        2026940408,
+        2026940409,
+        2026940410,
+        2026940411,
+        2026940412,
+        2026940413,
+        2026940414,
+        2026940415,
+        2026940416,
+        2026940417,
+        2026940418,
+        2026940419,
+        2026940420,
+        2026940421,
+        2026940422
+      ],
+      "provenance": "Named scientific approval on 2026-08-25 froze a fresh, seed-disjoint, four-geometry Continuum qualification. Only the reviewed truth and geometry template is reused; no image, finder output, score, or viewed seed is reused.",
+      "purpose": "Fresh final Phase 5 Continuum qualification geometry 1 of four.",
+      "recipe": {
+        "background": -0.0002,
+        "generator": "hebog.synthetic.gaussian-noise",
+        "generator_version": 3,
+        "invalid_rectangles": [
+          {
+            "x_start": 783,
+            "x_stop": 793,
+            "y_start": 270,
+            "y_stop": 290
+          }
+        ],
+        "noise_correlation": {
+          "major_fwhm_pixels": 5.4,
+          "minor_fwhm_pixels": 3.6,
+          "position_angle_degrees": 31.0,
+          "truncation_sigma": 4.0
+        },
+        "noise_rms": 0.0002,
+        "noise_rms_fractional_gradient_xy": [
+          0.4,
+          -0.2
+        ],
+        "seed": 2026940001,
+        "shape_yx": [
+          1024,
+          1024
+        ],
+        "sources": [
+          {
+            "major_sigma_pixels": 3.07125,
+            "minor_sigma_pixels": 1.535625,
+            "peak_flux_jy_per_beam": 0.004492800000000001,
+            "rotation_degrees_counterclockwise_from_x": 26.0,
+            "x_pixel": 370.0,
+            "y_pixel": 831.0
+          },
+          {
+            "major_sigma_pixels": 5.25,
+            "minor_sigma_pixels": 1.26,
+            "peak_flux_jy_per_beam": 0.00114816,
+            "rotation_degrees_counterclockwise_from_x": 26.0,
+            "x_pixel": 384.15600622921187,
+            "y_pixel": 837.9043455619279
+          },
+          {
+            "major_sigma_pixels": 5.38125,
+            "minor_sigma_pixels": 1.2914999999999999,
+            "peak_flux_jy_per_beam": 0.001248,
+            "rotation_degrees_counterclockwise_from_x": 26.0,
+            "x_pixel": 355.84399377078813,
+            "y_pixel": 824.095654438072
+          },
+          {
+            "major_sigma_pixels": 6.1425,
+            "minor_sigma_pixels": 2.0475,
+            "peak_flux_jy_per_beam": 0.00190944,
+            "rotation_degrees_counterclockwise_from_x": 161.0,
+            "x_pixel": 219.35511888403542,
+            "y_pixel": 525.3151561879924
+          },
+          {
+            "major_sigma_pixels": 6.300000000000001,
+            "minor_sigma_pixels": 2.1,
+            "peak_flux_jy_per_beam": 0.00181792,
+            "rotation_degrees_counterclockwise_from_x": 26.0,
+            "x_pixel": 234.36224150043319,
+            "y_pixel": 523.2887626486219
+          },
+          {
+            "major_sigma_pixels": 6.4575,
+            "minor_sigma_pixels": 2.1525,
+            "peak_flux_jy_per_beam": 0.001768,
+            "rotation_degrees_counterclockwise_from_x": 71.0,
+            "x_pixel": 242.00472885077443,
+            "y_pixel": 536.3621090870772
+          },
+          {
+            "major_sigma_pixels": 12.285,
+            "minor_sigma_pixels": 8.19,
+            "peak_flux_jy_per_beam": 0.0029952000000000004,
+            "rotation_degrees_counterclockwise_from_x": 51.0,
+            "x_pixel": 170.0,
+            "y_pixel": 181.0
+          },
+          {
+            "major_sigma_pixels": 10.237499999999999,
+            "minor_sigma_pixels": 4.095,
+            "peak_flux_jy_per_beam": 0.0029952000000000004,
+            "rotation_degrees_counterclockwise_from_x": 106.0,
+            "x_pixel": 1.2,
+            "y_pixel": 731.0
+          },
+          {
+            "major_sigma_pixels": 8.19,
+            "minor_sigma_pixels": 2.0475,
+            "peak_flux_jy_per_beam": 0.00202176,
+            "rotation_degrees_counterclockwise_from_x": 26.0,
+            "x_pixel": 500.6751950166305,
+            "y_pixel": 269.2265235504576
+          },
+          {
+            "major_sigma_pixels": 8.4,
+            "minor_sigma_pixels": 2.1,
+            "peak_flux_jy_per_beam": 0.0019136000000000003,
+            "rotation_degrees_counterclockwise_from_x": 26.0,
+            "x_pixel": 512.0,
+            "y_pixel": 274.75
+          },
+          {
+            "major_sigma_pixels": 8.61,
+            "minor_sigma_pixels": 2.1525,
+            "peak_flux_jy_per_beam": 0.001872,
+            "rotation_degrees_counterclockwise_from_x": 26.0,
+            "x_pixel": 523.3248049833695,
+            "y_pixel": 280.2734764495424
+          },
+          {
+            "major_sigma_pixels": 10.237499999999999,
+            "minor_sigma_pixels": 6.1425,
+            "peak_flux_jy_per_beam": 0.0019968,
+            "rotation_degrees_counterclockwise_from_x": 56.0,
+            "x_pixel": 776.9999999999999,
+            "y_pixel": 279.99999999999994
+          },
+          {
+            "major_sigma_pixels": 2.1,
+            "minor_sigma_pixels": 1.5750000000000002,
+            "peak_flux_jy_per_beam": 0.0054080000000000005,
+            "rotation_degrees_counterclockwise_from_x": 56.0,
+            "x_pixel": 775.9999999999999,
+            "y_pixel": 280.99999999999994
+          },
+          {
+            "major_sigma_pixels": 5.1187499999999995,
+            "minor_sigma_pixels": 3.07125,
+            "peak_flux_jy_per_beam": 0.00146432,
+            "rotation_degrees_counterclockwise_from_x": 26.0,
+            "x_pixel": 503.1253250277175,
+            "y_pixel": 509.7942059174294
+          },
+          {
+            "major_sigma_pixels": 5.25,
+            "minor_sigma_pixels": 3.1500000000000004,
+            "peak_flux_jy_per_beam": 0.00159744,
+            "rotation_degrees_counterclockwise_from_x": 71.0,
+            "x_pixel": 531.2057940825706,
+            "y_pixel": 500.1253250277175
+          },
+          {
+            "major_sigma_pixels": 5.38125,
+            "minor_sigma_pixels": 3.22875,
+            "peak_flux_jy_per_beam": 0.0017305600000000001,
+            "rotation_degrees_counterclockwise_from_x": 116.0,
+            "x_pixel": 540.8746749722825,
+            "y_pixel": 528.2057940825706
+          },
+          {
+            "major_sigma_pixels": 5.5125,
+            "minor_sigma_pixels": 3.3075,
+            "peak_flux_jy_per_beam": 0.0018636800000000004,
+            "rotation_degrees_counterclockwise_from_x": 161.0,
+            "x_pixel": 512.7942059174294,
+            "y_pixel": 537.8746749722825
+          }
+        ]
+      },
+      "recipe_sha256": "031897b4275fc1adeb659863fd0c5fdea16538270205f6a9e02708a6914b6722",
+      "redistribution": "generated-locally",
+      "role": "qualification",
+      "validation_strata": [],
+      "wcs": {
+        "frame": "icrs",
+        "pixel_scale_degrees_xy": [
+          -0.00025,
+          0.0003
+        ],
+        "reference_pixel_xy": [
+          511.5,
+          511.5
+        ],
+        "reference_sky_degrees": [
+          181.0,
+          -29.0
+        ],
+        "rotation_degrees_counterclockwise": 12.4
+      }
+    },
+    {
+      "association_group_strata": [],
+      "association_truth_groups": [],
+      "beam": {
+        "major_fwhm_pixels": 6.3,
+        "minor_fwhm_pixels": 4.0,
+        "position_angle_degrees": 68.0
+      },
+      "classification_strata": [],
+      "expected_statistics": {
+        "background_jy_per_beam": -0.0002,
+        "finite_fraction": 0.9998092651367188,
+        "noise_rms_jy_per_beam": 0.0002
+      },
+      "identifier": "phase5-final-qualification-continuum-2-1024",
+      "multiscale_group_strata": [
+        {
+          "group_identifiers": [
+            "extended-shell-0001"
+          ],
+          "identifier": "above-compact-deblend-limit"
+        },
+        {
+          "group_identifiers": [
+            "extended-edge-0001"
+          ],
+          "identifier": "image-edge"
+        },
+        {
+          "group_identifiers": [
+            "extended-mixed-0001"
+          ],
+          "identifier": "invalid-pixels"
+        },
+        {
+          "group_identifiers": [
+            "artifact-bright-sidelobes-0001"
+          ],
+          "identifier": "morphology-artifact"
+        },
+        {
+          "group_identifiers": [
+            "extended-curved-filament-0001"
+          ],
+          "identifier": "morphology-curved-filament"
+        },
+        {
+          "group_identifiers": [
+            "extended-diffuse-0001",
+            "extended-edge-0001"
+          ],
+          "identifier": "morphology-diffuse"
+        },
+        {
+          "group_identifiers": [
+            "extended-filament-0001"
+          ],
+          "identifier": "morphology-filament"
+        },
+        {
+          "group_identifiers": [
+            "extended-mixed-0001"
+          ],
+          "identifier": "morphology-mixed-compact-extended"
+        },
+        {
+          "group_identifiers": [
+            "extended-shell-0001"
+          ],
+          "identifier": "morphology-shell"
+        },
+        {
+          "group_identifiers": [
+            "artifact-bright-sidelobes-0001",
+            "extended-mixed-0001"
+          ],
+          "identifier": "scale-1-beam"
+        },
+        {
+          "group_identifiers": [
+            "extended-curved-filament-0001",
+            "extended-filament-0001",
+            "extended-mixed-0001"
+          ],
+          "identifier": "scale-2-beam"
+        },
+        {
+          "group_identifiers": [
+            "extended-curved-filament-0001",
+            "extended-diffuse-0001",
+            "extended-edge-0001",
+            "extended-mixed-0001",
+            "extended-shell-0001"
+          ],
+          "identifier": "scale-4-beam"
+        },
+        {
+          "group_identifiers": [
+            "extended-filament-0001",
+            "extended-shell-0001"
+          ],
+          "identifier": "tile-boundary"
+        },
+        {
+          "group_identifiers": [
+            "extended-shell-0001"
+          ],
+          "identifier": "tile-corner"
+        },
+        {
+          "group_identifiers": [
+            "extended-curved-filament-0001",
+            "extended-diffuse-0001",
+            "extended-edge-0001",
+            "extended-filament-0001",
+            "extended-mixed-0001",
+            "extended-shell-0001"
+          ],
+          "identifier": "varying-noise"
+        }
+      ],
+      "multiscale_truth_groups": [
+        {
+          "catalogue_role": "artifact",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            1
+          ],
+          "identifier": "artifact-bright-sidelobes-0001",
+          "major_extent_beams": 6.44,
+          "minor_extent_beams": 1.84,
+          "morphology": "artifact",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.14734578348332925,
+          "reference_position_xy": [
+            339.22270462582196,
+            765.7249826908252
+          ],
+          "source_indices": [
+            0,
+            1,
+            2
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            2,
+            3
+          ],
+          "identifier": "extended-curved-filament-0001",
+          "major_extent_beams": 6.44,
+          "minor_extent_beams": 1.84,
+          "morphology": "curved-filament",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.2948845018828067,
+          "reference_position_xy": [
+            200.87611661507404,
+            462.95923294978286
+          ],
+          "source_indices": [
+            3,
+            4,
+            5
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            3
+          ],
+          "identifier": "extended-diffuse-0001",
+          "major_extent_beams": 5.5200000000000005,
+          "minor_extent_beams": 3.68,
+          "morphology": "diffuse",
+          "reference_integrated_brightness_jy_pixels_per_beam": 1.2160396280412828,
+          "reference_position_xy": [
+            139.0,
+            116.00000000000001
+          ],
+          "source_indices": [
+            6
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            3
+          ],
+          "identifier": "extended-edge-0001",
+          "major_extent_beams": 4.6000000000000005,
+          "minor_extent_beams": 1.84,
+          "morphology": "diffuse",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.5066831783505347,
+          "reference_position_xy": [
+            2.2,
+            653.0
+          ],
+          "source_indices": [
+            7
+          ],
+          "touches_image_edge": true
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": true,
+          "governed_scale_orders": [
+            2
+          ],
+          "identifier": "extended-filament-0001",
+          "major_extent_beams": 9.200000000000001,
+          "minor_extent_beams": 1.3800000000000001,
+          "morphology": "filament",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.41536694373551264,
+          "reference_position_xy": [
+            512.0355497783328,
+            258.4560996798213
+          ],
+          "source_indices": [
+            8,
+            9,
+            10
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            1,
+            2,
+            3
+          ],
+          "identifier": "extended-mixed-0001",
+          "major_extent_beams": 4.6000000000000005,
+          "minor_extent_beams": 2.7600000000000002,
+          "morphology": "mixed-compact-extended",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.5788602692836593,
+          "reference_position_xy": [
+            779.1870324189524,
+            282.8753117206983
+          ],
+          "source_indices": [
+            11,
+            12
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "compact_deblend_disposition": "deferred-extended",
+          "crosses_tile_boundary": true,
+          "crosses_tile_corner": true,
+          "governed_scale_orders": [
+            3
+          ],
+          "identifier": "extended-shell-0001",
+          "major_extent_beams": 8.280000000000001,
+          "minor_extent_beams": 8.280000000000001,
+          "morphology": "shell",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.4543381311722655,
+          "reference_position_xy": [
+            515.6033106949425,
+            524.0496871954124
+          ],
+          "source_indices": [
+            13,
+            14,
+            15,
+            16
+          ],
+          "touches_image_edge": false
+        }
+      ],
+      "noise_realization_seeds": [
+        2026941002,
+        2026941003,
+        2026941004,
+        2026941005,
+        2026941006,
+        2026941007,
+        2026941008,
+        2026941009,
+        2026941010,
+        2026941011,
+        2026941012,
+        2026941013,
+        2026941014,
+        2026941015,
+        2026941016,
+        2026941017,
+        2026941018,
+        2026941019,
+        2026941020,
+        2026941021,
+        2026941022,
+        2026941023,
+        2026941024,
+        2026941025,
+        2026941026,
+        2026941027,
+        2026941028,
+        2026941029,
+        2026941030,
+        2026941031,
+        2026941032,
+        2026941033,
+        2026941034,
+        2026941035,
+        2026941036,
+        2026941037,
+        2026941038,
+        2026941039,
+        2026941040,
+        2026941041,
+        2026941042,
+        2026941043,
+        2026941044,
+        2026941045,
+        2026941046,
+        2026941047,
+        2026941048,
+        2026941049,
+        2026941050,
+        2026941051,
+        2026941052,
+        2026941053,
+        2026941054,
+        2026941055,
+        2026941056,
+        2026941057,
+        2026941058,
+        2026941059,
+        2026941060,
+        2026941061,
+        2026941062,
+        2026941063,
+        2026941064,
+        2026941065,
+        2026941066,
+        2026941067,
+        2026941068,
+        2026941069,
+        2026941070,
+        2026941071,
+        2026941072,
+        2026941073,
+        2026941074,
+        2026941075,
+        2026941076,
+        2026941077,
+        2026941078,
+        2026941079,
+        2026941080,
+        2026941081,
+        2026941082,
+        2026941083,
+        2026941084,
+        2026941085,
+        2026941086,
+        2026941087,
+        2026941088,
+        2026941089,
+        2026941090,
+        2026941091,
+        2026941092,
+        2026941093,
+        2026941094,
+        2026941095,
+        2026941096,
+        2026941097,
+        2026941098,
+        2026941099,
+        2026941100,
+        2026941101,
+        2026941102,
+        2026941103,
+        2026941104,
+        2026941105,
+        2026941106,
+        2026941107,
+        2026941108,
+        2026941109,
+        2026941110,
+        2026941111,
+        2026941112,
+        2026941113,
+        2026941114,
+        2026941115,
+        2026941116,
+        2026941117,
+        2026941118,
+        2026941119,
+        2026941120,
+        2026941121,
+        2026941122,
+        2026941123,
+        2026941124,
+        2026941125,
+        2026941126,
+        2026941127,
+        2026941128,
+        2026941129,
+        2026941130,
+        2026941131,
+        2026941132,
+        2026941133,
+        2026941134,
+        2026941135,
+        2026941136,
+        2026941137,
+        2026941138,
+        2026941139,
+        2026941140,
+        2026941141,
+        2026941142,
+        2026941143,
+        2026941144,
+        2026941145,
+        2026941146,
+        2026941147,
+        2026941148,
+        2026941149,
+        2026941150,
+        2026941151,
+        2026941152,
+        2026941153,
+        2026941154,
+        2026941155,
+        2026941156,
+        2026941157,
+        2026941158,
+        2026941159,
+        2026941160,
+        2026941161,
+        2026941162,
+        2026941163,
+        2026941164,
+        2026941165,
+        2026941166,
+        2026941167,
+        2026941168,
+        2026941169,
+        2026941170,
+        2026941171,
+        2026941172,
+        2026941173,
+        2026941174,
+        2026941175,
+        2026941176,
+        2026941177,
+        2026941178,
+        2026941179,
+        2026941180,
+        2026941181,
+        2026941182,
+        2026941183,
+        2026941184,
+        2026941185,
+        2026941186,
+        2026941187,
+        2026941188,
+        2026941189,
+        2026941190,
+        2026941191,
+        2026941192,
+        2026941193,
+        2026941194,
+        2026941195,
+        2026941196,
+        2026941197,
+        2026941198,
+        2026941199,
+        2026941200,
+        2026941201,
+        2026941202,
+        2026941203,
+        2026941204,
+        2026941205,
+        2026941206,
+        2026941207,
+        2026941208,
+        2026941209,
+        2026941210,
+        2026941211,
+        2026941212,
+        2026941213,
+        2026941214,
+        2026941215,
+        2026941216,
+        2026941217,
+        2026941218,
+        2026941219,
+        2026941220,
+        2026941221,
+        2026941222,
+        2026941223,
+        2026941224,
+        2026941225,
+        2026941226,
+        2026941227,
+        2026941228,
+        2026941229,
+        2026941230,
+        2026941231,
+        2026941232,
+        2026941233,
+        2026941234,
+        2026941235,
+        2026941236,
+        2026941237,
+        2026941238,
+        2026941239,
+        2026941240,
+        2026941241,
+        2026941242,
+        2026941243,
+        2026941244,
+        2026941245,
+        2026941246,
+        2026941247,
+        2026941248,
+        2026941249,
+        2026941250,
+        2026941251,
+        2026941252,
+        2026941253,
+        2026941254,
+        2026941255,
+        2026941256,
+        2026941257,
+        2026941258,
+        2026941259,
+        2026941260,
+        2026941261,
+        2026941262,
+        2026941263,
+        2026941264,
+        2026941265,
+        2026941266,
+        2026941267,
+        2026941268,
+        2026941269,
+        2026941270,
+        2026941271,
+        2026941272,
+        2026941273,
+        2026941274,
+        2026941275,
+        2026941276,
+        2026941277,
+        2026941278,
+        2026941279,
+        2026941280,
+        2026941281,
+        2026941282,
+        2026941283,
+        2026941284,
+        2026941285,
+        2026941286,
+        2026941287,
+        2026941288,
+        2026941289,
+        2026941290,
+        2026941291,
+        2026941292,
+        2026941293,
+        2026941294,
+        2026941295,
+        2026941296,
+        2026941297,
+        2026941298,
+        2026941299,
+        2026941300,
+        2026941301,
+        2026941302,
+        2026941303,
+        2026941304,
+        2026941305,
+        2026941306,
+        2026941307,
+        2026941308,
+        2026941309,
+        2026941310,
+        2026941311,
+        2026941312,
+        2026941313,
+        2026941314,
+        2026941315,
+        2026941316,
+        2026941317,
+        2026941318,
+        2026941319,
+        2026941320,
+        2026941321,
+        2026941322,
+        2026941323,
+        2026941324,
+        2026941325,
+        2026941326,
+        2026941327,
+        2026941328,
+        2026941329,
+        2026941330,
+        2026941331,
+        2026941332,
+        2026941333,
+        2026941334,
+        2026941335,
+        2026941336,
+        2026941337,
+        2026941338,
+        2026941339,
+        2026941340,
+        2026941341,
+        2026941342,
+        2026941343,
+        2026941344,
+        2026941345,
+        2026941346,
+        2026941347,
+        2026941348,
+        2026941349,
+        2026941350,
+        2026941351,
+        2026941352,
+        2026941353,
+        2026941354,
+        2026941355,
+        2026941356,
+        2026941357,
+        2026941358,
+        2026941359,
+        2026941360,
+        2026941361,
+        2026941362,
+        2026941363,
+        2026941364,
+        2026941365,
+        2026941366,
+        2026941367,
+        2026941368,
+        2026941369,
+        2026941370,
+        2026941371,
+        2026941372,
+        2026941373,
+        2026941374,
+        2026941375,
+        2026941376,
+        2026941377,
+        2026941378,
+        2026941379,
+        2026941380,
+        2026941381,
+        2026941382,
+        2026941383,
+        2026941384,
+        2026941385,
+        2026941386,
+        2026941387,
+        2026941388,
+        2026941389,
+        2026941390,
+        2026941391,
+        2026941392,
+        2026941393,
+        2026941394,
+        2026941395,
+        2026941396,
+        2026941397,
+        2026941398,
+        2026941399,
+        2026941400,
+        2026941401,
+        2026941402,
+        2026941403,
+        2026941404,
+        2026941405,
+        2026941406,
+        2026941407,
+        2026941408,
+        2026941409,
+        2026941410,
+        2026941411,
+        2026941412,
+        2026941413,
+        2026941414,
+        2026941415,
+        2026941416,
+        2026941417,
+        2026941418,
+        2026941419,
+        2026941420,
+        2026941421,
+        2026941422
+      ],
+      "provenance": "Named scientific approval on 2026-08-25 froze a fresh, seed-disjoint, four-geometry Continuum qualification. Only the reviewed truth and geometry template is reused; no image, finder output, score, or viewed seed is reused.",
+      "purpose": "Fresh final Phase 5 Continuum qualification geometry 2 of four.",
+      "recipe": {
+        "background": -0.0002,
+        "generator": "hebog.synthetic.gaussian-noise",
+        "generator_version": 3,
+        "invalid_rectangles": [
+          {
+            "x_start": 783,
+            "x_stop": 793,
+            "y_start": 270,
+            "y_stop": 290
+          }
+        ],
+        "noise_correlation": {
+          "major_fwhm_pixels": 6.3,
+          "minor_fwhm_pixels": 4.0,
+          "position_angle_degrees": 68.0,
+          "truncation_sigma": 4.0
+        },
+        "noise_rms": 0.0002,
+        "noise_rms_fractional_gradient_xy": [
+          0.4,
+          -0.2
+        ],
+        "seed": 2026941001,
+        "shape_yx": [
+          1024,
+          1024
+        ],
+        "sources": [
+          {
+            "major_sigma_pixels": 2.691,
+            "minor_sigma_pixels": 1.3455,
+            "peak_flux_jy_per_beam": 0.00348,
+            "rotation_degrees_counterclockwise_from_x": 129.0,
+            "x_pixel": 339.0,
+            "y_pixel": 766.0
+          },
+          {
+            "major_sigma_pixels": 4.6000000000000005,
+            "minor_sigma_pixels": 1.104,
+            "peak_flux_jy_per_beam": 0.0011275200000000001,
+            "rotation_degrees_counterclockwise_from_x": 129.0,
+            "x_pixel": 347.6846213964878,
+            "y_pixel": 755.2753857318938
+          },
+          {
+            "major_sigma_pixels": 4.715,
+            "minor_sigma_pixels": 1.1316,
+            "peak_flux_jy_per_beam": 0.0009604800000000001,
+            "rotation_degrees_counterclockwise_from_x": 129.0,
+            "x_pixel": 330.3153786035123,
+            "y_pixel": 776.7246142681063
+          },
+          {
+            "major_sigma_pixels": 5.382,
+            "minor_sigma_pixels": 1.794,
+            "peak_flux_jy_per_beam": 0.0014789999999999998,
+            "rotation_degrees_counterclockwise_from_x": 84.0,
+            "x_pixel": 196.10279517054838,
+            "y_pixel": 473.3722228009832
+          },
+          {
+            "major_sigma_pixels": 5.5200000000000005,
+            "minor_sigma_pixels": 1.84,
+            "peak_flux_jy_per_beam": 0.00178524,
+            "rotation_degrees_counterclockwise_from_x": 129.0,
+            "x_pixel": 197.33069801141528,
+            "y_pixel": 460.16073330837145
+          },
+          {
+            "major_sigma_pixels": 5.6579999999999995,
+            "minor_sigma_pixels": 1.886,
+            "peak_flux_jy_per_beam": 0.00136068,
+            "rotation_degrees_counterclockwise_from_x": 174.0,
+            "x_pixel": 209.9981894049288,
+            "y_pixel": 456.2128399720133
+          },
+          {
+            "major_sigma_pixels": 10.764,
+            "minor_sigma_pixels": 7.176,
+            "peak_flux_jy_per_beam": 0.0025055999999999998,
+            "rotation_degrees_counterclockwise_from_x": 154.0,
+            "x_pixel": 139.0,
+            "y_pixel": 116.0
+          },
+          {
+            "major_sigma_pixels": 8.97,
+            "minor_sigma_pixels": 3.588,
+            "peak_flux_jy_per_beam": 0.0025055999999999998,
+            "rotation_degrees_counterclockwise_from_x": 29.0,
+            "x_pixel": 2.2,
+            "y_pixel": 653.0
+          },
+          {
+            "major_sigma_pixels": 7.176,
+            "minor_sigma_pixels": 1.794,
+            "peak_flux_jy_per_beam": 0.001566,
+            "rotation_degrees_counterclockwise_from_x": 129.0,
+            "x_pixel": 505.0523028828098,
+            "y_pixel": 267.07969141448496
+          },
+          {
+            "major_sigma_pixels": 7.36,
+            "minor_sigma_pixels": 1.84,
+            "peak_flux_jy_per_beam": 0.0018792000000000001,
+            "rotation_degrees_counterclockwise_from_x": 129.0,
+            "x_pixel": 512.0,
+            "y_pixel": 258.5
+          },
+          {
+            "major_sigma_pixels": 7.544,
+            "minor_sigma_pixels": 1.886,
+            "peak_flux_jy_per_beam": 0.00144072,
+            "rotation_degrees_counterclockwise_from_x": 129.0,
+            "x_pixel": 518.9476971171902,
+            "y_pixel": 249.92030858551504
+          },
+          {
+            "major_sigma_pixels": 8.97,
+            "minor_sigma_pixels": 5.382,
+            "peak_flux_jy_per_beam": 0.0016704,
+            "rotation_degrees_counterclockwise_from_x": 159.0,
+            "x_pixel": 778.9999999999999,
+            "y_pixel": 283.00000000000006
+          },
+          {
+            "major_sigma_pixels": 1.84,
+            "minor_sigma_pixels": 1.3800000000000001,
+            "peak_flux_jy_per_beam": 0.004524,
+            "rotation_degrees_counterclockwise_from_x": 159.0,
+            "x_pixel": 780.4999999999999,
+            "y_pixel": 282.00000000000006
+          },
+          {
+            "major_sigma_pixels": 4.485,
+            "minor_sigma_pixels": 2.691,
+            "peak_flux_jy_per_beam": 0.00144768,
+            "rotation_degrees_counterclockwise_from_x": 129.0,
+            "x_pixel": 504.420504804683,
+            "y_pixel": 538.2994856908083
+          },
+          {
+            "major_sigma_pixels": 4.6000000000000005,
+            "minor_sigma_pixels": 2.7600000000000002,
+            "peak_flux_jy_per_beam": 0.0015590400000000003,
+            "rotation_degrees_counterclockwise_from_x": 174.0,
+            "x_pixel": 501.70051430919176,
+            "y_pixel": 512.420504804683
+          },
+          {
+            "major_sigma_pixels": 4.715,
+            "minor_sigma_pixels": 2.8289999999999997,
+            "peak_flux_jy_per_beam": 0.00122496,
+            "rotation_degrees_counterclockwise_from_x": 39.0,
+            "x_pixel": 527.579495195317,
+            "y_pixel": 509.70051430919176
+          },
+          {
+            "major_sigma_pixels": 4.83,
+            "minor_sigma_pixels": 2.898,
+            "peak_flux_jy_per_beam": 0.00133632,
+            "rotation_degrees_counterclockwise_from_x": 84.0,
+            "x_pixel": 530.2994856908083,
+            "y_pixel": 535.579495195317
+          }
+        ]
+      },
+      "recipe_sha256": "5cc01f6553e01709fed1d63ea8c0c6aa8065dcd9c86b3583f62d01ceab42b413",
+      "redistribution": "generated-locally",
+      "role": "qualification",
+      "validation_strata": [],
+      "wcs": {
+        "frame": "icrs",
+        "pixel_scale_degrees_xy": [
+          -0.00025,
+          0.0003
+        ],
+        "reference_pixel_xy": [
+          511.5,
+          511.5
+        ],
+        "reference_sky_degrees": [
+          181.0,
+          -29.0
+        ],
+        "rotation_degrees_counterclockwise": 27.2
+      }
+    },
+    {
+      "association_group_strata": [],
+      "association_truth_groups": [],
+      "beam": {
+        "major_fwhm_pixels": 4.9,
+        "minor_fwhm_pixels": 3.2,
+        "position_angle_degrees": -41.0
+      },
+      "classification_strata": [],
+      "expected_statistics": {
+        "background_jy_per_beam": -0.0002,
+        "finite_fraction": 0.9998092651367188,
+        "noise_rms_jy_per_beam": 0.0002
+      },
+      "identifier": "phase5-final-qualification-continuum-3-1024",
+      "multiscale_group_strata": [
+        {
+          "group_identifiers": [
+            "extended-shell-0001"
+          ],
+          "identifier": "above-compact-deblend-limit"
+        },
+        {
+          "group_identifiers": [
+            "extended-edge-0001"
+          ],
+          "identifier": "image-edge"
+        },
+        {
+          "group_identifiers": [
+            "extended-mixed-0001"
+          ],
+          "identifier": "invalid-pixels"
+        },
+        {
+          "group_identifiers": [
+            "artifact-bright-sidelobes-0001"
+          ],
+          "identifier": "morphology-artifact"
+        },
+        {
+          "group_identifiers": [
+            "extended-curved-filament-0001"
+          ],
+          "identifier": "morphology-curved-filament"
+        },
+        {
+          "group_identifiers": [
+            "extended-diffuse-0001",
+            "extended-edge-0001"
+          ],
+          "identifier": "morphology-diffuse"
+        },
+        {
+          "group_identifiers": [
+            "extended-filament-0001"
+          ],
+          "identifier": "morphology-filament"
+        },
+        {
+          "group_identifiers": [
+            "extended-mixed-0001"
+          ],
+          "identifier": "morphology-mixed-compact-extended"
+        },
+        {
+          "group_identifiers": [
+            "extended-shell-0001"
+          ],
+          "identifier": "morphology-shell"
+        },
+        {
+          "group_identifiers": [
+            "artifact-bright-sidelobes-0001",
+            "extended-mixed-0001"
+          ],
+          "identifier": "scale-1-beam"
+        },
+        {
+          "group_identifiers": [
+            "extended-curved-filament-0001",
+            "extended-filament-0001",
+            "extended-mixed-0001"
+          ],
+          "identifier": "scale-2-beam"
+        },
+        {
+          "group_identifiers": [
+            "extended-curved-filament-0001",
+            "extended-diffuse-0001",
+            "extended-edge-0001",
+            "extended-mixed-0001",
+            "extended-shell-0001"
+          ],
+          "identifier": "scale-4-beam"
+        },
+        {
+          "group_identifiers": [
+            "extended-filament-0001",
+            "extended-shell-0001"
+          ],
+          "identifier": "tile-boundary"
+        },
+        {
+          "group_identifiers": [
+            "extended-shell-0001"
+          ],
+          "identifier": "tile-corner"
+        },
+        {
+          "group_identifiers": [
+            "extended-curved-filament-0001",
+            "extended-diffuse-0001",
+            "extended-edge-0001",
+            "extended-filament-0001",
+            "extended-mixed-0001",
+            "extended-shell-0001"
+          ],
+          "identifier": "varying-noise"
+        }
+      ],
+      "multiscale_truth_groups": [
+        {
+          "catalogue_role": "artifact",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            1
+          ],
+          "identifier": "artifact-bright-sidelobes-0001",
+          "major_extent_beams": 7.9799999999999995,
+          "minor_extent_beams": 2.28,
+          "morphology": "artifact",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.2845349789316475,
+          "reference_position_xy": [
+            384.85309871444025,
+            784.4876943349199
+          ],
+          "source_indices": [
+            0,
+            1,
+            2
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            2,
+            3
+          ],
+          "identifier": "extended-curved-filament-0001",
+          "major_extent_beams": 7.9799999999999995,
+          "minor_extent_beams": 2.28,
+          "morphology": "curved-filament",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.5833797434038233,
+          "reference_position_xy": [
+            247.30435708980576,
+            483.2285831082903
+          ],
+          "source_indices": [
+            3,
+            4,
+            5
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            3
+          ],
+          "identifier": "extended-diffuse-0001",
+          "major_extent_beams": 6.84,
+          "minor_extent_beams": 4.56,
+          "morphology": "diffuse",
+          "reference_integrated_brightness_jy_pixels_per_beam": 2.4037015631786627,
+          "reference_position_xy": [
+            185.0,
+            135.0
+          ],
+          "source_indices": [
+            6
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            3
+          ],
+          "identifier": "extended-edge-0001",
+          "major_extent_beams": 5.699999999999999,
+          "minor_extent_beams": 2.28,
+          "morphology": "diffuse",
+          "reference_integrated_brightness_jy_pixels_per_beam": 1.0015423179911096,
+          "reference_position_xy": [
+            0.6,
+            687.0
+          ],
+          "source_indices": [
+            7
+          ],
+          "touches_image_edge": true
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": true,
+          "governed_scale_orders": [
+            2
+          ],
+          "identifier": "extended-filament-0001",
+          "major_extent_beams": 11.399999999999999,
+          "minor_extent_beams": 1.71,
+          "morphology": "filament",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.8218734254284119,
+          "reference_position_xy": [
+            512.3143110634151,
+            264.346132942413
+          ],
+          "source_indices": [
+            8,
+            9,
+            10
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            1,
+            2,
+            3
+          ],
+          "identifier": "extended-mixed-0001",
+          "major_extent_beams": 5.699999999999999,
+          "minor_extent_beams": 3.42,
+          "morphology": "mixed-compact-extended",
+          "reference_integrated_brightness_jy_pixels_per_beam": 1.144212163858789,
+          "reference_position_xy": [
+            773.8129675810475,
+            277.18703241895247
+          ],
+          "source_indices": [
+            11,
+            12
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "compact_deblend_disposition": "deferred-extended",
+          "crosses_tile_boundary": true,
+          "crosses_tile_corner": true,
+          "governed_scale_orders": [
+            3
+          ],
+          "identifier": "extended-shell-0001",
+          "major_extent_beams": 10.26,
+          "minor_extent_beams": 10.26,
+          "morphology": "shell",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.9051852990127844,
+          "reference_position_xy": [
+            522.9298596244918,
+            517.7797946794738
+          ],
+          "source_indices": [
+            13,
+            14,
+            15,
+            16
+          ],
+          "touches_image_edge": false
+        }
+      ],
+      "noise_realization_seeds": [
+        2026942002,
+        2026942003,
+        2026942004,
+        2026942005,
+        2026942006,
+        2026942007,
+        2026942008,
+        2026942009,
+        2026942010,
+        2026942011,
+        2026942012,
+        2026942013,
+        2026942014,
+        2026942015,
+        2026942016,
+        2026942017,
+        2026942018,
+        2026942019,
+        2026942020,
+        2026942021,
+        2026942022,
+        2026942023,
+        2026942024,
+        2026942025,
+        2026942026,
+        2026942027,
+        2026942028,
+        2026942029,
+        2026942030,
+        2026942031,
+        2026942032,
+        2026942033,
+        2026942034,
+        2026942035,
+        2026942036,
+        2026942037,
+        2026942038,
+        2026942039,
+        2026942040,
+        2026942041,
+        2026942042,
+        2026942043,
+        2026942044,
+        2026942045,
+        2026942046,
+        2026942047,
+        2026942048,
+        2026942049,
+        2026942050,
+        2026942051,
+        2026942052,
+        2026942053,
+        2026942054,
+        2026942055,
+        2026942056,
+        2026942057,
+        2026942058,
+        2026942059,
+        2026942060,
+        2026942061,
+        2026942062,
+        2026942063,
+        2026942064,
+        2026942065,
+        2026942066,
+        2026942067,
+        2026942068,
+        2026942069,
+        2026942070,
+        2026942071,
+        2026942072,
+        2026942073,
+        2026942074,
+        2026942075,
+        2026942076,
+        2026942077,
+        2026942078,
+        2026942079,
+        2026942080,
+        2026942081,
+        2026942082,
+        2026942083,
+        2026942084,
+        2026942085,
+        2026942086,
+        2026942087,
+        2026942088,
+        2026942089,
+        2026942090,
+        2026942091,
+        2026942092,
+        2026942093,
+        2026942094,
+        2026942095,
+        2026942096,
+        2026942097,
+        2026942098,
+        2026942099,
+        2026942100,
+        2026942101,
+        2026942102,
+        2026942103,
+        2026942104,
+        2026942105,
+        2026942106,
+        2026942107,
+        2026942108,
+        2026942109,
+        2026942110,
+        2026942111,
+        2026942112,
+        2026942113,
+        2026942114,
+        2026942115,
+        2026942116,
+        2026942117,
+        2026942118,
+        2026942119,
+        2026942120,
+        2026942121,
+        2026942122,
+        2026942123,
+        2026942124,
+        2026942125,
+        2026942126,
+        2026942127,
+        2026942128,
+        2026942129,
+        2026942130,
+        2026942131,
+        2026942132,
+        2026942133,
+        2026942134,
+        2026942135,
+        2026942136,
+        2026942137,
+        2026942138,
+        2026942139,
+        2026942140,
+        2026942141,
+        2026942142,
+        2026942143,
+        2026942144,
+        2026942145,
+        2026942146,
+        2026942147,
+        2026942148,
+        2026942149,
+        2026942150,
+        2026942151,
+        2026942152,
+        2026942153,
+        2026942154,
+        2026942155,
+        2026942156,
+        2026942157,
+        2026942158,
+        2026942159,
+        2026942160,
+        2026942161,
+        2026942162,
+        2026942163,
+        2026942164,
+        2026942165,
+        2026942166,
+        2026942167,
+        2026942168,
+        2026942169,
+        2026942170,
+        2026942171,
+        2026942172,
+        2026942173,
+        2026942174,
+        2026942175,
+        2026942176,
+        2026942177,
+        2026942178,
+        2026942179,
+        2026942180,
+        2026942181,
+        2026942182,
+        2026942183,
+        2026942184,
+        2026942185,
+        2026942186,
+        2026942187,
+        2026942188,
+        2026942189,
+        2026942190,
+        2026942191,
+        2026942192,
+        2026942193,
+        2026942194,
+        2026942195,
+        2026942196,
+        2026942197,
+        2026942198,
+        2026942199,
+        2026942200,
+        2026942201,
+        2026942202,
+        2026942203,
+        2026942204,
+        2026942205,
+        2026942206,
+        2026942207,
+        2026942208,
+        2026942209,
+        2026942210,
+        2026942211,
+        2026942212,
+        2026942213,
+        2026942214,
+        2026942215,
+        2026942216,
+        2026942217,
+        2026942218,
+        2026942219,
+        2026942220,
+        2026942221,
+        2026942222,
+        2026942223,
+        2026942224,
+        2026942225,
+        2026942226,
+        2026942227,
+        2026942228,
+        2026942229,
+        2026942230,
+        2026942231,
+        2026942232,
+        2026942233,
+        2026942234,
+        2026942235,
+        2026942236,
+        2026942237,
+        2026942238,
+        2026942239,
+        2026942240,
+        2026942241,
+        2026942242,
+        2026942243,
+        2026942244,
+        2026942245,
+        2026942246,
+        2026942247,
+        2026942248,
+        2026942249,
+        2026942250,
+        2026942251,
+        2026942252,
+        2026942253,
+        2026942254,
+        2026942255,
+        2026942256,
+        2026942257,
+        2026942258,
+        2026942259,
+        2026942260,
+        2026942261,
+        2026942262,
+        2026942263,
+        2026942264,
+        2026942265,
+        2026942266,
+        2026942267,
+        2026942268,
+        2026942269,
+        2026942270,
+        2026942271,
+        2026942272,
+        2026942273,
+        2026942274,
+        2026942275,
+        2026942276,
+        2026942277,
+        2026942278,
+        2026942279,
+        2026942280,
+        2026942281,
+        2026942282,
+        2026942283,
+        2026942284,
+        2026942285,
+        2026942286,
+        2026942287,
+        2026942288,
+        2026942289,
+        2026942290,
+        2026942291,
+        2026942292,
+        2026942293,
+        2026942294,
+        2026942295,
+        2026942296,
+        2026942297,
+        2026942298,
+        2026942299,
+        2026942300,
+        2026942301,
+        2026942302,
+        2026942303,
+        2026942304,
+        2026942305,
+        2026942306,
+        2026942307,
+        2026942308,
+        2026942309,
+        2026942310,
+        2026942311,
+        2026942312,
+        2026942313,
+        2026942314,
+        2026942315,
+        2026942316,
+        2026942317,
+        2026942318,
+        2026942319,
+        2026942320,
+        2026942321,
+        2026942322,
+        2026942323,
+        2026942324,
+        2026942325,
+        2026942326,
+        2026942327,
+        2026942328,
+        2026942329,
+        2026942330,
+        2026942331,
+        2026942332,
+        2026942333,
+        2026942334,
+        2026942335,
+        2026942336,
+        2026942337,
+        2026942338,
+        2026942339,
+        2026942340,
+        2026942341,
+        2026942342,
+        2026942343,
+        2026942344,
+        2026942345,
+        2026942346,
+        2026942347,
+        2026942348,
+        2026942349,
+        2026942350,
+        2026942351,
+        2026942352,
+        2026942353,
+        2026942354,
+        2026942355,
+        2026942356,
+        2026942357,
+        2026942358,
+        2026942359,
+        2026942360,
+        2026942361,
+        2026942362,
+        2026942363,
+        2026942364,
+        2026942365,
+        2026942366,
+        2026942367,
+        2026942368,
+        2026942369,
+        2026942370,
+        2026942371,
+        2026942372,
+        2026942373,
+        2026942374,
+        2026942375,
+        2026942376,
+        2026942377,
+        2026942378,
+        2026942379,
+        2026942380,
+        2026942381,
+        2026942382,
+        2026942383,
+        2026942384,
+        2026942385,
+        2026942386,
+        2026942387,
+        2026942388,
+        2026942389,
+        2026942390,
+        2026942391,
+        2026942392,
+        2026942393,
+        2026942394,
+        2026942395,
+        2026942396,
+        2026942397,
+        2026942398,
+        2026942399,
+        2026942400,
+        2026942401,
+        2026942402,
+        2026942403,
+        2026942404,
+        2026942405,
+        2026942406,
+        2026942407,
+        2026942408,
+        2026942409,
+        2026942410,
+        2026942411,
+        2026942412,
+        2026942413,
+        2026942414,
+        2026942415,
+        2026942416,
+        2026942417,
+        2026942418,
+        2026942419,
+        2026942420,
+        2026942421,
+        2026942422
+      ],
+      "provenance": "Named scientific approval on 2026-08-25 froze a fresh, seed-disjoint, four-geometry Continuum qualification. Only the reviewed truth and geometry template is reused; no image, finder output, score, or viewed seed is reused.",
+      "purpose": "Fresh final Phase 5 Continuum qualification geometry 3 of four.",
+      "recipe": {
+        "background": -0.0002,
+        "generator": "hebog.synthetic.gaussian-noise",
+        "generator_version": 3,
+        "invalid_rectangles": [
+          {
+            "x_start": 783,
+            "x_stop": 793,
+            "y_start": 270,
+            "y_stop": 290
+          }
+        ],
+        "noise_correlation": {
+          "major_fwhm_pixels": 4.9,
+          "minor_fwhm_pixels": 3.2,
+          "position_angle_degrees": -41.0,
+          "truncation_sigma": 4.0
+        },
+        "noise_rms": 0.0002,
+        "noise_rms_fractional_gradient_xy": [
+          0.4,
+          -0.2
+        ],
+        "seed": 2026942001,
+        "shape_yx": [
+          1024,
+          1024
+        ],
+        "sources": [
+          {
+            "major_sigma_pixels": 3.3345,
+            "minor_sigma_pixels": 1.66725,
+            "peak_flux_jy_per_beam": 0.0041216000000000004,
+            "rotation_degrees_counterclockwise_from_x": 74.0,
+            "x_pixel": 385.00000000000006,
+            "y_pixel": 784.9999999999999
+          },
+          {
+            "major_sigma_pixels": 5.699999999999999,
+            "minor_sigma_pixels": 1.3679999999999999,
+            "peak_flux_jy_per_beam": 0.001344,
+            "rotation_degrees_counterclockwise_from_x": 74.0,
+            "x_pixel": 389.7133987844707,
+            "y_pixel": 801.4375750005452
+          },
+          {
+            "major_sigma_pixels": 5.842499999999999,
+            "minor_sigma_pixels": 1.4022,
+            "peak_flux_jy_per_beam": 0.00145152,
+            "rotation_degrees_counterclockwise_from_x": 74.0,
+            "x_pixel": 380.28660121552934,
+            "y_pixel": 768.5624249994547
+          },
+          {
+            "major_sigma_pixels": 6.669,
+            "minor_sigma_pixels": 2.223,
+            "peak_flux_jy_per_beam": 0.0017516800000000003,
+            "rotation_degrees_counterclockwise_from_x": 29.0,
+            "x_pixel": 240.086499337099,
+            "y_pixel": 469.88319360363863
+          },
+          {
+            "major_sigma_pixels": 6.84,
+            "minor_sigma_pixels": 2.28,
+            "peak_flux_jy_per_beam": 0.002128,
+            "rotation_degrees_counterclockwise_from_x": 74.0,
+            "x_pixel": 252.623925031633,
+            "y_pixel": 480.5194409190238
+          },
+          {
+            "major_sigma_pixels": 7.010999999999999,
+            "minor_sigma_pixels": 2.3369999999999997,
+            "peak_flux_jy_per_beam": 0.0020563200000000004,
+            "rotation_degrees_counterclockwise_from_x": 119.0,
+            "x_pixel": 247.6279373922521,
+            "y_pixel": 496.18331360451106
+          },
+          {
+            "major_sigma_pixels": 13.338,
+            "minor_sigma_pixels": 8.892,
+            "peak_flux_jy_per_beam": 0.0032256000000000003,
+            "rotation_degrees_counterclockwise_from_x": 99.0,
+            "x_pixel": 185.0,
+            "y_pixel": 135.0
+          },
+          {
+            "major_sigma_pixels": 11.114999999999998,
+            "minor_sigma_pixels": 4.446,
+            "peak_flux_jy_per_beam": 0.0032256000000000003,
+            "rotation_degrees_counterclockwise_from_x": 154.0,
+            "x_pixel": 0.6,
+            "y_pixel": 687.0
+          },
+          {
+            "major_sigma_pixels": 8.892,
+            "minor_sigma_pixels": 2.223,
+            "peak_flux_jy_per_beam": 0.00185472,
+            "rotation_degrees_counterclockwise_from_x": 74.0,
+            "x_pixel": 508.22928097242345,
+            "y_pixel": 250.0999399995638
+          },
+          {
+            "major_sigma_pixels": 9.12,
+            "minor_sigma_pixels": 2.28,
+            "peak_flux_jy_per_beam": 0.0022400000000000002,
+            "rotation_degrees_counterclockwise_from_x": 74.0,
+            "x_pixel": 512.0,
+            "y_pixel": 263.25
+          },
+          {
+            "major_sigma_pixels": 9.347999999999999,
+            "minor_sigma_pixels": 2.3369999999999997,
+            "peak_flux_jy_per_beam": 0.00217728,
+            "rotation_degrees_counterclockwise_from_x": 74.0,
+            "x_pixel": 515.7707190275765,
+            "y_pixel": 276.4000600004362
+          },
+          {
+            "major_sigma_pixels": 11.114999999999998,
+            "minor_sigma_pixels": 6.669,
+            "peak_flux_jy_per_beam": 0.0021504000000000002,
+            "rotation_degrees_counterclockwise_from_x": 104.0,
+            "x_pixel": 774.0,
+            "y_pixel": 276.9999999999999
+          },
+          {
+            "major_sigma_pixels": 2.28,
+            "minor_sigma_pixels": 1.71,
+            "peak_flux_jy_per_beam": 0.005824000000000001,
+            "rotation_degrees_counterclockwise_from_x": 104.0,
+            "x_pixel": 772.5,
+            "y_pixel": 278.4999999999999
+          },
+          {
+            "major_sigma_pixels": 5.557499999999999,
+            "minor_sigma_pixels": 3.3345,
+            "peak_flux_jy_per_beam": 0.00157696,
+            "rotation_degrees_counterclockwise_from_x": 74.0,
+            "x_pixel": 517.7154682873725,
+            "y_pixel": 494.0832333326063
+          },
+          {
+            "major_sigma_pixels": 5.699999999999999,
+            "minor_sigma_pixels": 3.42,
+            "peak_flux_jy_per_beam": 0.0017203200000000002,
+            "rotation_degrees_counterclockwise_from_x": 119.0,
+            "x_pixel": 545.9167666673936,
+            "y_pixel": 509.7154682873724
+          },
+          {
+            "major_sigma_pixels": 5.842499999999999,
+            "minor_sigma_pixels": 3.5054999999999996,
+            "peak_flux_jy_per_beam": 0.0018636800000000002,
+            "rotation_degrees_counterclockwise_from_x": 164.0,
+            "x_pixel": 530.2845317126275,
+            "y_pixel": 537.9167666673936
+          },
+          {
+            "major_sigma_pixels": 5.984999999999999,
+            "minor_sigma_pixels": 3.5909999999999993,
+            "peak_flux_jy_per_beam": 0.0020070400000000003,
+            "rotation_degrees_counterclockwise_from_x": 29.0,
+            "x_pixel": 502.0832333326063,
+            "y_pixel": 522.2845317126275
+          }
+        ]
+      },
+      "recipe_sha256": "beacbf33fde7c216043ae98dfcfd7f11796d26ef416d8722a364b7a4923dacaa",
+      "redistribution": "generated-locally",
+      "role": "qualification",
+      "validation_strata": [],
+      "wcs": {
+        "frame": "icrs",
+        "pixel_scale_degrees_xy": [
+          -0.00025,
+          0.0003
+        ],
+        "reference_pixel_xy": [
+          511.5,
+          511.5
+        ],
+        "reference_sky_degrees": [
+          181.0,
+          -29.0
+        ],
+        "rotation_degrees_counterclockwise": -16.4
+      }
+    },
+    {
+      "association_group_strata": [],
+      "association_truth_groups": [],
+      "beam": {
+        "major_fwhm_pixels": 5.7,
+        "minor_fwhm_pixels": 3.7,
+        "position_angle_degrees": 106.0
+      },
+      "classification_strata": [],
+      "expected_statistics": {
+        "background_jy_per_beam": -0.0002,
+        "finite_fraction": 0.9998092651367188,
+        "noise_rms_jy_per_beam": 0.0002
+      },
+      "identifier": "phase5-final-qualification-continuum-4-1024",
+      "multiscale_group_strata": [
+        {
+          "group_identifiers": [
+            "extended-shell-0001"
+          ],
+          "identifier": "above-compact-deblend-limit"
+        },
+        {
+          "group_identifiers": [
+            "extended-edge-0001"
+          ],
+          "identifier": "image-edge"
+        },
+        {
+          "group_identifiers": [
+            "extended-mixed-0001"
+          ],
+          "identifier": "invalid-pixels"
+        },
+        {
+          "group_identifiers": [
+            "artifact-bright-sidelobes-0001"
+          ],
+          "identifier": "morphology-artifact"
+        },
+        {
+          "group_identifiers": [
+            "extended-curved-filament-0001"
+          ],
+          "identifier": "morphology-curved-filament"
+        },
+        {
+          "group_identifiers": [
+            "extended-diffuse-0001",
+            "extended-edge-0001"
+          ],
+          "identifier": "morphology-diffuse"
+        },
+        {
+          "group_identifiers": [
+            "extended-filament-0001"
+          ],
+          "identifier": "morphology-filament"
+        },
+        {
+          "group_identifiers": [
+            "extended-mixed-0001"
+          ],
+          "identifier": "morphology-mixed-compact-extended"
+        },
+        {
+          "group_identifiers": [
+            "extended-shell-0001"
+          ],
+          "identifier": "morphology-shell"
+        },
+        {
+          "group_identifiers": [
+            "artifact-bright-sidelobes-0001",
+            "extended-mixed-0001"
+          ],
+          "identifier": "scale-1-beam"
+        },
+        {
+          "group_identifiers": [
+            "extended-curved-filament-0001",
+            "extended-filament-0001",
+            "extended-mixed-0001"
+          ],
+          "identifier": "scale-2-beam"
+        },
+        {
+          "group_identifiers": [
+            "extended-curved-filament-0001",
+            "extended-diffuse-0001",
+            "extended-edge-0001",
+            "extended-mixed-0001",
+            "extended-shell-0001"
+          ],
+          "identifier": "scale-4-beam"
+        },
+        {
+          "group_identifiers": [
+            "extended-filament-0001",
+            "extended-shell-0001"
+          ],
+          "identifier": "tile-boundary"
+        },
+        {
+          "group_identifiers": [
+            "extended-shell-0001"
+          ],
+          "identifier": "tile-corner"
+        },
+        {
+          "group_identifiers": [
+            "extended-curved-filament-0001",
+            "extended-diffuse-0001",
+            "extended-edge-0001",
+            "extended-filament-0001",
+            "extended-mixed-0001",
+            "extended-shell-0001"
+          ],
+          "identifier": "varying-noise"
+        }
+      ],
+      "multiscale_truth_groups": [
+        {
+          "catalogue_role": "artifact",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            1
+          ],
+          "identifier": "artifact-bright-sidelobes-0001",
+          "major_extent_beams": 5.88,
+          "minor_extent_beams": 1.68,
+          "morphology": "artifact",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.13469534192740798,
+          "reference_position_xy": [
+            322.2282811022207,
+            811.7180963159772
+          ],
+          "source_indices": [
+            0,
+            1,
+            2
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            2,
+            3
+          ],
+          "identifier": "extended-curved-filament-0001",
+          "major_extent_beams": 5.88,
+          "minor_extent_beams": 1.68,
+          "morphology": "curved-filament",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.26120893338107704,
+          "reference_position_xy": [
+            183.80802073963315,
+            509.0766429758433
+          ],
+          "source_indices": [
+            3,
+            4,
+            5
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            3
+          ],
+          "identifier": "extended-diffuse-0001",
+          "major_extent_beams": 5.04,
+          "minor_extent_beams": 3.36,
+          "morphology": "diffuse",
+          "reference_integrated_brightness_jy_pixels_per_beam": 1.0836632393554773,
+          "reference_position_xy": [
+            122.0,
+            162.0
+          ],
+          "source_indices": [
+            6
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            3
+          ],
+          "identifier": "extended-edge-0001",
+          "major_extent_beams": 4.2,
+          "minor_extent_beams": 1.68,
+          "morphology": "diffuse",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.4515263497314489,
+          "reference_position_xy": [
+            2.8,
+            614.0
+          ],
+          "source_indices": [
+            7
+          ],
+          "touches_image_edge": true
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": true,
+          "governed_scale_orders": [
+            2
+          ],
+          "identifier": "extended-filament-0001",
+          "major_extent_beams": 8.4,
+          "minor_extent_beams": 1.26,
+          "morphology": "filament",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.3680515331785691,
+          "reference_position_xy": [
+            511.95098340949573,
+            270.0605304482368
+          ],
+          "source_indices": [
+            8,
+            9,
+            10
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            1,
+            2,
+            3
+          ],
+          "identifier": "extended-mixed-0001",
+          "major_extent_beams": 4.2,
+          "minor_extent_beams": 2.52,
+          "morphology": "mixed-compact-extended",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.5158463425706867,
+          "reference_position_xy": [
+            781.2493765586036,
+            280.8129675810473
+          ],
+          "source_indices": [
+            11,
+            12
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "compact_deblend_disposition": "deferred-extended",
+          "crosses_tile_boundary": true,
+          "crosses_tile_corner": true,
+          "governed_scale_orders": [
+            3
+          ],
+          "identifier": "extended-shell-0001",
+          "major_extent_beams": 7.56,
+          "minor_extent_beams": 7.56,
+          "morphology": "shell",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.4048795118477311,
+          "reference_position_xy": [
+            518.3621945828787,
+            521.9546334302756
+          ],
+          "source_indices": [
+            13,
+            14,
+            15,
+            16
+          ],
+          "touches_image_edge": false
+        }
+      ],
+      "noise_realization_seeds": [
+        2026943002,
+        2026943003,
+        2026943004,
+        2026943005,
+        2026943006,
+        2026943007,
+        2026943008,
+        2026943009,
+        2026943010,
+        2026943011,
+        2026943012,
+        2026943013,
+        2026943014,
+        2026943015,
+        2026943016,
+        2026943017,
+        2026943018,
+        2026943019,
+        2026943020,
+        2026943021,
+        2026943022,
+        2026943023,
+        2026943024,
+        2026943025,
+        2026943026,
+        2026943027,
+        2026943028,
+        2026943029,
+        2026943030,
+        2026943031,
+        2026943032,
+        2026943033,
+        2026943034,
+        2026943035,
+        2026943036,
+        2026943037,
+        2026943038,
+        2026943039,
+        2026943040,
+        2026943041,
+        2026943042,
+        2026943043,
+        2026943044,
+        2026943045,
+        2026943046,
+        2026943047,
+        2026943048,
+        2026943049,
+        2026943050,
+        2026943051,
+        2026943052,
+        2026943053,
+        2026943054,
+        2026943055,
+        2026943056,
+        2026943057,
+        2026943058,
+        2026943059,
+        2026943060,
+        2026943061,
+        2026943062,
+        2026943063,
+        2026943064,
+        2026943065,
+        2026943066,
+        2026943067,
+        2026943068,
+        2026943069,
+        2026943070,
+        2026943071,
+        2026943072,
+        2026943073,
+        2026943074,
+        2026943075,
+        2026943076,
+        2026943077,
+        2026943078,
+        2026943079,
+        2026943080,
+        2026943081,
+        2026943082,
+        2026943083,
+        2026943084,
+        2026943085,
+        2026943086,
+        2026943087,
+        2026943088,
+        2026943089,
+        2026943090,
+        2026943091,
+        2026943092,
+        2026943093,
+        2026943094,
+        2026943095,
+        2026943096,
+        2026943097,
+        2026943098,
+        2026943099,
+        2026943100,
+        2026943101,
+        2026943102,
+        2026943103,
+        2026943104,
+        2026943105,
+        2026943106,
+        2026943107,
+        2026943108,
+        2026943109,
+        2026943110,
+        2026943111,
+        2026943112,
+        2026943113,
+        2026943114,
+        2026943115,
+        2026943116,
+        2026943117,
+        2026943118,
+        2026943119,
+        2026943120,
+        2026943121,
+        2026943122,
+        2026943123,
+        2026943124,
+        2026943125,
+        2026943126,
+        2026943127,
+        2026943128,
+        2026943129,
+        2026943130,
+        2026943131,
+        2026943132,
+        2026943133,
+        2026943134,
+        2026943135,
+        2026943136,
+        2026943137,
+        2026943138,
+        2026943139,
+        2026943140,
+        2026943141,
+        2026943142,
+        2026943143,
+        2026943144,
+        2026943145,
+        2026943146,
+        2026943147,
+        2026943148,
+        2026943149,
+        2026943150,
+        2026943151,
+        2026943152,
+        2026943153,
+        2026943154,
+        2026943155,
+        2026943156,
+        2026943157,
+        2026943158,
+        2026943159,
+        2026943160,
+        2026943161,
+        2026943162,
+        2026943163,
+        2026943164,
+        2026943165,
+        2026943166,
+        2026943167,
+        2026943168,
+        2026943169,
+        2026943170,
+        2026943171,
+        2026943172,
+        2026943173,
+        2026943174,
+        2026943175,
+        2026943176,
+        2026943177,
+        2026943178,
+        2026943179,
+        2026943180,
+        2026943181,
+        2026943182,
+        2026943183,
+        2026943184,
+        2026943185,
+        2026943186,
+        2026943187,
+        2026943188,
+        2026943189,
+        2026943190,
+        2026943191,
+        2026943192,
+        2026943193,
+        2026943194,
+        2026943195,
+        2026943196,
+        2026943197,
+        2026943198,
+        2026943199,
+        2026943200,
+        2026943201,
+        2026943202,
+        2026943203,
+        2026943204,
+        2026943205,
+        2026943206,
+        2026943207,
+        2026943208,
+        2026943209,
+        2026943210,
+        2026943211,
+        2026943212,
+        2026943213,
+        2026943214,
+        2026943215,
+        2026943216,
+        2026943217,
+        2026943218,
+        2026943219,
+        2026943220,
+        2026943221,
+        2026943222,
+        2026943223,
+        2026943224,
+        2026943225,
+        2026943226,
+        2026943227,
+        2026943228,
+        2026943229,
+        2026943230,
+        2026943231,
+        2026943232,
+        2026943233,
+        2026943234,
+        2026943235,
+        2026943236,
+        2026943237,
+        2026943238,
+        2026943239,
+        2026943240,
+        2026943241,
+        2026943242,
+        2026943243,
+        2026943244,
+        2026943245,
+        2026943246,
+        2026943247,
+        2026943248,
+        2026943249,
+        2026943250,
+        2026943251,
+        2026943252,
+        2026943253,
+        2026943254,
+        2026943255,
+        2026943256,
+        2026943257,
+        2026943258,
+        2026943259,
+        2026943260,
+        2026943261,
+        2026943262,
+        2026943263,
+        2026943264,
+        2026943265,
+        2026943266,
+        2026943267,
+        2026943268,
+        2026943269,
+        2026943270,
+        2026943271,
+        2026943272,
+        2026943273,
+        2026943274,
+        2026943275,
+        2026943276,
+        2026943277,
+        2026943278,
+        2026943279,
+        2026943280,
+        2026943281,
+        2026943282,
+        2026943283,
+        2026943284,
+        2026943285,
+        2026943286,
+        2026943287,
+        2026943288,
+        2026943289,
+        2026943290,
+        2026943291,
+        2026943292,
+        2026943293,
+        2026943294,
+        2026943295,
+        2026943296,
+        2026943297,
+        2026943298,
+        2026943299,
+        2026943300,
+        2026943301,
+        2026943302,
+        2026943303,
+        2026943304,
+        2026943305,
+        2026943306,
+        2026943307,
+        2026943308,
+        2026943309,
+        2026943310,
+        2026943311,
+        2026943312,
+        2026943313,
+        2026943314,
+        2026943315,
+        2026943316,
+        2026943317,
+        2026943318,
+        2026943319,
+        2026943320,
+        2026943321,
+        2026943322,
+        2026943323,
+        2026943324,
+        2026943325,
+        2026943326,
+        2026943327,
+        2026943328,
+        2026943329,
+        2026943330,
+        2026943331,
+        2026943332,
+        2026943333,
+        2026943334,
+        2026943335,
+        2026943336,
+        2026943337,
+        2026943338,
+        2026943339,
+        2026943340,
+        2026943341,
+        2026943342,
+        2026943343,
+        2026943344,
+        2026943345,
+        2026943346,
+        2026943347,
+        2026943348,
+        2026943349,
+        2026943350,
+        2026943351,
+        2026943352,
+        2026943353,
+        2026943354,
+        2026943355,
+        2026943356,
+        2026943357,
+        2026943358,
+        2026943359,
+        2026943360,
+        2026943361,
+        2026943362,
+        2026943363,
+        2026943364,
+        2026943365,
+        2026943366,
+        2026943367,
+        2026943368,
+        2026943369,
+        2026943370,
+        2026943371,
+        2026943372,
+        2026943373,
+        2026943374,
+        2026943375,
+        2026943376,
+        2026943377,
+        2026943378,
+        2026943379,
+        2026943380,
+        2026943381,
+        2026943382,
+        2026943383,
+        2026943384,
+        2026943385,
+        2026943386,
+        2026943387,
+        2026943388,
+        2026943389,
+        2026943390,
+        2026943391,
+        2026943392,
+        2026943393,
+        2026943394,
+        2026943395,
+        2026943396,
+        2026943397,
+        2026943398,
+        2026943399,
+        2026943400,
+        2026943401,
+        2026943402,
+        2026943403,
+        2026943404,
+        2026943405,
+        2026943406,
+        2026943407,
+        2026943408,
+        2026943409,
+        2026943410,
+        2026943411,
+        2026943412,
+        2026943413,
+        2026943414,
+        2026943415,
+        2026943416,
+        2026943417,
+        2026943418,
+        2026943419,
+        2026943420,
+        2026943421,
+        2026943422
+      ],
+      "provenance": "Named scientific approval on 2026-08-25 froze a fresh, seed-disjoint, four-geometry Continuum qualification. Only the reviewed truth and geometry template is reused; no image, finder output, score, or viewed seed is reused.",
+      "purpose": "Fresh final Phase 5 Continuum qualification geometry 4 of four.",
+      "recipe": {
+        "background": -0.0002,
+        "generator": "hebog.synthetic.gaussian-noise",
+        "generator_version": 3,
+        "invalid_rectangles": [
+          {
+            "x_start": 783,
+            "x_stop": 793,
+            "y_start": 270,
+            "y_stop": 290
+          }
+        ],
+        "noise_correlation": {
+          "major_fwhm_pixels": 5.7,
+          "minor_fwhm_pixels": 3.7,
+          "position_angle_degrees": 106.0,
+          "truncation_sigma": 4.0
+        },
+        "noise_rms": 0.0002,
+        "noise_rms_fractional_gradient_xy": [
+          0.4,
+          -0.2
+        ],
+        "seed": 2026943001,
+        "shape_yx": [
+          1024,
+          1024
+        ],
+        "sources": [
+          {
+            "major_sigma_pixels": 2.457,
+            "minor_sigma_pixels": 1.2285,
+            "peak_flux_jy_per_beam": 0.0040176000000000005,
+            "rotation_degrees_counterclockwise_from_x": 129.0,
+            "x_pixel": 322.0000000000001,
+            "y_pixel": 812.0
+          },
+          {
+            "major_sigma_pixels": 4.2,
+            "minor_sigma_pixels": 1.008,
+            "peak_flux_jy_per_beam": 0.00102672,
+            "rotation_degrees_counterclockwise_from_x": 129.0,
+            "x_pixel": 314.07056307277213,
+            "y_pixel": 821.7920391143577
+          },
+          {
+            "major_sigma_pixels": 4.305,
+            "minor_sigma_pixels": 1.0332,
+            "peak_flux_jy_per_beam": 0.001116,
+            "rotation_degrees_counterclockwise_from_x": 129.0,
+            "x_pixel": 329.92943692722804,
+            "y_pixel": 802.2079608856421
+          },
+          {
+            "major_sigma_pixels": 4.914,
+            "minor_sigma_pixels": 1.638,
+            "peak_flux_jy_per_beam": 0.0017074800000000002,
+            "rotation_degrees_counterclockwise_from_x": 84.0,
+            "x_pixel": 188.47136093123842,
+            "y_pixel": 499.78237573626376
+          },
+          {
+            "major_sigma_pixels": 5.04,
+            "minor_sigma_pixels": 1.68,
+            "peak_flux_jy_per_beam": 0.0016256400000000002,
+            "rotation_degrees_counterclockwise_from_x": 129.0,
+            "x_pixel": 187.3502322504469,
+            "y_pixel": 511.84504005560495
+          },
+          {
+            "major_sigma_pixels": 5.1659999999999995,
+            "minor_sigma_pixels": 1.7219999999999998,
+            "peak_flux_jy_per_beam": 0.001581,
+            "rotation_degrees_counterclockwise_from_x": 174.0,
+            "x_pixel": 175.78426184767372,
+            "y_pixel": 515.4496383192363
+          },
+          {
+            "major_sigma_pixels": 9.828,
+            "minor_sigma_pixels": 6.552,
+            "peak_flux_jy_per_beam": 0.0026784,
+            "rotation_degrees_counterclockwise_from_x": 154.0,
+            "x_pixel": 122.0,
+            "y_pixel": 162.0
+          },
+          {
+            "major_sigma_pixels": 8.19,
+            "minor_sigma_pixels": 3.276,
+            "peak_flux_jy_per_beam": 0.0026784,
+            "rotation_degrees_counterclockwise_from_x": 29.0,
+            "x_pixel": 2.8,
+            "y_pixel": 614.0
+          },
+          {
+            "major_sigma_pixels": 6.552,
+            "minor_sigma_pixels": 1.638,
+            "peak_flux_jy_per_beam": 0.0018079200000000002,
+            "rotation_degrees_counterclockwise_from_x": 129.0,
+            "x_pixel": 518.3435495417824,
+            "y_pixel": 262.16636870851374
+          },
+          {
+            "major_sigma_pixels": 6.72,
+            "minor_sigma_pixels": 1.68,
+            "peak_flux_jy_per_beam": 0.0017112000000000002,
+            "rotation_degrees_counterclockwise_from_x": 129.0,
+            "x_pixel": 512.0,
+            "y_pixel": 270.0
+          },
+          {
+            "major_sigma_pixels": 6.887999999999999,
+            "minor_sigma_pixels": 1.7219999999999998,
+            "peak_flux_jy_per_beam": 0.0016740000000000001,
+            "rotation_degrees_counterclockwise_from_x": 129.0,
+            "x_pixel": 505.65645045821765,
+            "y_pixel": 277.83363129148626
+          },
+          {
+            "major_sigma_pixels": 8.19,
+            "minor_sigma_pixels": 4.914,
+            "peak_flux_jy_per_beam": 0.0017856,
+            "rotation_degrees_counterclockwise_from_x": 159.0,
+            "x_pixel": 781.0000000000001,
+            "y_pixel": 280.99999999999994
+          },
+          {
+            "major_sigma_pixels": 1.68,
+            "minor_sigma_pixels": 1.26,
+            "peak_flux_jy_per_beam": 0.004836000000000001,
+            "rotation_degrees_counterclockwise_from_x": 159.0,
+            "x_pixel": 783.0000000000001,
+            "y_pixel": 279.49999999999994
+          },
+          {
+            "major_sigma_pixels": 4.095,
+            "minor_sigma_pixels": 2.457,
+            "peak_flux_jy_per_beam": 0.0015475200000000001,
+            "rotation_degrees_counterclockwise_from_x": 129.0,
+            "x_pixel": 528.5725825696372,
+            "y_pixel": 508.9439478475229
+          },
+          {
+            "major_sigma_pixels": 4.2,
+            "minor_sigma_pixels": 2.52,
+            "peak_flux_jy_per_beam": 0.0016665600000000003,
+            "rotation_degrees_counterclockwise_from_x": 174.0,
+            "x_pixel": 531.0560521524772,
+            "y_pixel": 532.5725825696372
+          },
+          {
+            "major_sigma_pixels": 4.305,
+            "minor_sigma_pixels": 2.5829999999999997,
+            "peak_flux_jy_per_beam": 0.0013094400000000003,
+            "rotation_degrees_counterclockwise_from_x": 39.0,
+            "x_pixel": 507.4274174303627,
+            "y_pixel": 535.0560521524772
+          },
+          {
+            "major_sigma_pixels": 4.41,
+            "minor_sigma_pixels": 2.646,
+            "peak_flux_jy_per_beam": 0.0014284800000000002,
+            "rotation_degrees_counterclockwise_from_x": 84.0,
+            "x_pixel": 504.9439478475229,
+            "y_pixel": 511.4274174303627
+          }
+        ]
+      },
+      "recipe_sha256": "1c23c9def9173da97fbfdda1e547154374025f885d3e6c3f84ae95f36a835f21",
+      "redistribution": "generated-locally",
+      "role": "qualification",
+      "validation_strata": [],
+      "wcs": {
+        "frame": "icrs",
+        "pixel_scale_degrees_xy": [
+          -0.00025,
+          0.0003
+        ],
+        "reference_pixel_xy": [
+          511.5,
+          511.5
+        ],
+        "reference_sky_degrees": [
+          181.0,
+          -29.0
+        ],
+        "rotation_degrees_counterclockwise": 42.4
+      }
+    }
+  ],
+  "manifest_id": "phase-5-final-qualification-continuum",
+  "schema_version": 3
+}

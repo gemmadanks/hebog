@@ -93,6 +93,10 @@ check: format-check lint type-check test
 marimo-check:
     uv run marimo check --strict notebooks/*.py
 
+# Execute offline notebook workflows without requiring identical outputs
+notebook-smoke:
+    uv run python scripts/check_notebooks.py
+
 # Run the portable unit and integration suite with coverage
 coverage:
     uv run pytest -m "not slow and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data" --cov --cov-report=term-missing
@@ -129,4 +133,4 @@ package-smoke-test:
     uv run --no-sync python scripts/package_smoke_test.py
 
 # Run the comprehensive local equivalent of pull-request CI
-ci: pre-commit coverage test-equivalence test-acceptance marimo-check docs-build package-smoke-test
+ci: pre-commit coverage test-equivalence test-acceptance marimo-check notebook-smoke docs-build package-smoke-test

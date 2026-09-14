@@ -1,0 +1,182 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "coarse_control_execution_authorized": false,
+    "cutover_authorized": false,
+    "development_lane_execution_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "replay_authorized": false,
+    "rescoring_authorized": false,
+    "source_finding_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "candidate": {
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "entrypoint": "hebog.find_sources",
+    "revision": "2e25cdf8bb0fbd739bba330ff20d9f798f95bf44",
+    "source_tree_sha256": "3da083b0a720fe0104fa51e135f224a2456b49bd49d85cd6a449fccb93805e8a"
+  },
+  "execution_contract": {
+    "atomic_output": "benchmark-results/phase-5/source-owned-measurement-topology-source-support-linkage-development-decision.json",
+    "attribution": "array-free-non-binding-per-input-record-v3",
+    "candidate_executions": 144,
+    "coarse_control_executions": 144,
+    "existing_dask_executions": 12,
+    "existing_dask_policy": "caller-owned scheduler address; runner creates no cluster",
+    "output_policy": "one atomic write; never overwrite or rerun",
+    "required_workers": 2,
+    "scratch": "/private/tmp/hebog-phase5-source-owned-measurement-topology-source-support-linkage-2e25cdf",
+    "total_finder_executions": 300
+  },
+  "expected_execution": {
+    "candidate_executions": 144,
+    "coarse_control_executions": 144,
+    "existing_dask_executions": 12,
+    "existing_dask_scheduler": "caller-owned-runtime-address",
+    "identity_review": "config/contracts/phase-5-source-owned-measurement-topology-source-support-linkage-identity-review.json",
+    "manifest": "config/contracts/phase-5-adaptive-background-development-manifest.json",
+    "output": "benchmark-results/phase-5/source-owned-measurement-topology-source-support-linkage-development-decision.json",
+    "scratch": "/private/tmp/hebog-phase5-source-owned-measurement-topology-source-support-linkage-2e25cdf",
+    "workers": 2
+  },
+  "expected_execution_sha256": "40a07169a030065e467ba282fdca8c1ba5514b95bfc562e11c227354b22f21ac",
+  "fixture_bindings": {
+    "adaptive_attribution": {
+      "path": "tests/unit/validation/test_adaptive_background_correction.py",
+      "sha256": "241501976260d9988a0fd33abadcd8e202a7c92eba14a9d1ab3fad64a15a5a65"
+    },
+    "combined_lane": {
+      "path": "tests/unit/validation/test_source_owned_measurement_topology_lane.py",
+      "sha256": "2497177d104a816b1d37d2b34dc8b3a198b93a7ceb54809e7b586f3e567b48f4"
+    },
+    "executor_invariance": {
+      "path": "tests/integration/test_public_finder_correction_execution.py",
+      "sha256": "d3238341d514b61c25e1106e41fc5b881a9ba26ec7ad028e7713367ca17661a2"
+    },
+    "footprint_guard_lane": {
+      "path": "tests/unit/validation/test_source_owned_footprint_guard_lane.py",
+      "sha256": "85cda2e88f1e47d94b685cfc20ab7e905c5a24ac0dd2c7c7f5c72aa0051b00f1"
+    },
+    "measurement": {
+      "path": "tests/unit/test_extended_measurement.py",
+      "sha256": "87e1e8833b7cd9eb93ebd29aaa7d3e020b766244e4a25fd4ad4508e602a6abda"
+    },
+    "public_composition": {
+      "path": "tests/unit/validation/test_public_finder_correction.py",
+      "sha256": "1a8d8f70e1c4a9b14225109763efbd4c8049794f39c33183b3c97ce85ba67b36"
+    },
+    "source_measurement": {
+      "path": "tests/unit/validation/test_reconstructed_source_measurement.py",
+      "sha256": "0908f969dde8164eb1e729a836aca50a72850a620430cea3d442eb6f4073a5d7"
+    },
+    "topology": {
+      "path": "tests/unit/test_source_reconstruction.py",
+      "sha256": "e23751befd6fe22ecd23231c102ef8d7ad5fadb9bb8f4cc06bc3578ddb23edf3"
+    }
+  },
+  "identity_review_id": "phase-5-source-owned-measurement-topology-source-support-linkage-identity-review",
+  "implementation_decision": {
+    "path": "config/contracts/phase-5-source-owned-measurement-topology-source-support-linkage-implementation-decision.json",
+    "sha256": "10a43ed230ab98142e8603a936c5155362538e6117702a12f905ab9c90dc4d0b"
+  },
+  "population": {
+    "geometry_count": 12,
+    "input_count": 144,
+    "manifest_path": "config/contracts/phase-5-adaptive-background-development-manifest.json",
+    "manifest_sha256": "77203f85930a99ffbb5490f93db7073cab434b42c8350d6da864625efd09946b",
+    "matrix_cell_count": 36,
+    "total_finder_executions": 300
+  },
+  "predecessor_identity": {
+    "path": "config/contracts/phase-5-source-owned-measurement-topology-footprint-guard-identity-review.json",
+    "sha256": "d74d0fba79c689f6d3b1e857fd900c14d8c4138a22cbf31fe9ac29e9594486b8"
+  },
+  "program_bindings": {
+    "attribution": {
+      "path": "src/hebog/validation/adaptive_background_diagnostics.py",
+      "sha256": "139a99ce3cd1b9c468a266320e9b6081eea716dcaf26d4b2a8ec47f0dce181d1"
+    },
+    "background_algorithm": {
+      "path": "src/hebog/algorithms/background.py",
+      "sha256": "59f405ae0d00848b61f85d23dac93dee7b65d1443763b664ad8efbc0aa34cdd3"
+    },
+    "background_stage": {
+      "path": "src/hebog/stages/background.py",
+      "sha256": "e595b2884017d623e5abbcd36408fde630d5c44eb33a4f73dede97c0b9a185e3"
+    },
+    "detection_stage": {
+      "path": "src/hebog/stages/detection.py",
+      "sha256": "3088160f9df4b3f508de09c56b89b15671ca4fab5949c8a1df5479b08005dd67"
+    },
+    "freezer": {
+      "path": "scripts/validation/freeze_phase5_source_owned_measurement_topology_source_support_linkage.py",
+      "sha256": "945e39ab51c394d53bfb3db9a508bb1fe60dd8016be1a920ba50aaae9a78de2c"
+    },
+    "lane_evaluator": {
+      "path": "src/hebog/validation/adaptive_background_lane.py",
+      "sha256": "01117b4af4c33f0b062653902e641b75b667c1c1a4215ac6b2fd495ca527863d"
+    },
+    "measurement_algorithm": {
+      "path": "src/hebog/algorithms/extended_measurement.py",
+      "sha256": "f6f12a91931bc5f213ef757c50032407ef87da53ca53383f11c7dc22227d74ed"
+    },
+    "measurement_composition": {
+      "path": "src/hebog/validation/products.py",
+      "sha256": "c5f64f35a6d7a72a3256d075e20b621081938ea7fa97525e1b887a74d4374fe7"
+    },
+    "parent_runner": {
+      "path": "scripts/validation/run_phase5_adaptive_background_development.py",
+      "sha256": "d7b4b728622b6455ff8aafe523a52c9efb6a58a3f97a3157cc6fc2ed49423df6"
+    },
+    "runner": {
+      "path": "scripts/validation/run_phase5_source_owned_measurement_topology.py",
+      "sha256": "d5dd8e22eff56e0e4079b0bc54d779c8d101587b510dfec84bd9f2fd497cf021"
+    },
+    "source_association": {
+      "path": "src/hebog/algorithms/source_association.py",
+      "sha256": "7544237bffe866d547965f01d0a7cc2c5a852335d29b03d6284ce35e165349d6"
+    },
+    "source_association_model": {
+      "path": "src/hebog/data_models/source_association.py",
+      "sha256": "05045968e83c7df83452f58038ca6ba702123c0f613f5a862e8d678b168f52e2"
+    }
+  },
+  "public_identity": {
+    "path": "config/contracts/phase-5-source-owned-measurement-topology-source-support-linkage-public-interface-identity-review.json",
+    "sha256": "48a57449ebd80abaeec1af5db4ba8ac07d73be60262fa53f56053b4f7ca806ea"
+  },
+  "required_next_decision": "consume only the separately verified one-use execution decision",
+  "root_cause_review": {
+    "path": "config/contracts/phase-5-source-owned-footprint-guard-lane-root-cause-review.json",
+    "sha256": "07a73bfd07f483624ec017b739ec6d0222a57a18a9f4b729640e626da0c648bf"
+  },
+  "runtime": {
+    "installed": {
+      "dependency_inventory_sha256": "10788ccd1804f6280454cc5c2386a1551eef084c2b40908f513e365c266f43b6",
+      "python_implementation": "CPython",
+      "python_version": "3.14.2"
+    },
+    "source_files": {
+      "python_version": {
+        "path": ".python-version",
+        "sha256": "a876e0b10411037a012498b9fe18d9bc1df32ed8b722a13564dc944ddcfd9135"
+      },
+      "uv_lock": {
+        "path": "uv.lock",
+        "sha256": "c81a9831ec545b2d7797e1c0951ad46e0e23337b97866ced0ae27e290dfd71ff"
+      }
+    }
+  },
+  "schema_version": 1,
+  "source_support_linkage_repair": {
+    "root_cause_review": {
+      "path": "config/contracts/phase-5-source-owned-footprint-guard-lane-root-cause-review.json",
+      "sha256": "07a73bfd07f483624ec017b739ec6d0222a57a18a9f4b729640e626da0c648bf"
+    }
+  },
+  "status": "frozen-non-executable"
+}

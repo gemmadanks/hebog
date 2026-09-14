@@ -1,0 +1,29 @@
+{
+  "base_protocol_path": "config/contracts/phase-5-external-post-failure-comparison.json",
+  "base_protocol_sha256": "a616da88f497a4c003a289ad3a6f667c24873eafc62a9711ae182d5f259ffdf5",
+  "candidate_configuration_sha256": "0e5dde51dfd2df84cdf71c3da34449b96c6999f517d781e1aaaec48ebb485a94",
+  "closed_campaign_reuse_authorized": false,
+  "contract_id": "phase-5-external-post-correction-comparison",
+  "execution_authorized": false,
+  "optimization_authorized": false,
+  "population_contract_path": "config/contracts/phase-5-external-post-correction-population.json",
+  "population_contract_sha256": "f1fec27a1469073cc59ffcc65bce02954ed4f0825f2381aeb0387bdf0b9a803a",
+  "populations": [
+    {
+      "image_count": 1688,
+      "lane": "continuum",
+      "manifest": "config/datasets/phase-5-external-post-correction-continuum.json",
+      "manifest_sha256": "3bf2af93f71939c80035c8db7760e5435a8e40764e3af24c94bb009713ea7913"
+    },
+    {
+      "image_count": 800,
+      "lane": "compact-blend",
+      "manifest": "config/datasets/phase-5-external-post-correction-compact-blend.json",
+      "manifest_sha256": "9ae3642fdbaa1bf7e867ef5faa1ae29274a4ece74b7cf95d6610e0b86c74cafc"
+    }
+  ],
+  "qualification_opened": false,
+  "schema_version": 1,
+  "status": "frozen-before-external-output",
+  "step_three_authorized": false
+}

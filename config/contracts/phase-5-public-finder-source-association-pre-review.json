@@ -1,0 +1,240 @@
+{
+  "allowed_after_separate_approval": [
+    "test-first-pure-source-association-records-and-graph",
+    "fixture-only-component-and-source-catalogue-construction",
+    "serial-and-existing-dask-invariance-validation",
+    "non-executable-candidate-identity-freeze"
+  ],
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "candidate_implementation_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "source_association_implementation_authorized": false,
+    "threshold_or_photometric_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "binding_context": {
+    "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+    "correction_contract": {
+      "path": "config/contracts/phase-5-public-finder-correction.json",
+      "sha256": "f0ddd4d5cb8c3c5542d1de761f6fde0644ec7cf051d5fb1dc7482ed3b96ff524"
+    },
+    "public_failure_scientific_review": {
+      "path": "config/contracts/phase-5-public-finder-scientific-review.json",
+      "sha256": "320f57f556f2b1e9ed7ecd8b7f7bd48558dad25e7bf80d9d6a5ad4e0a50a08f6"
+    },
+    "readiness_contract": {
+      "path": "config/contracts/phase-5-readiness.json",
+      "sha256": "bb0719fb17b36c2506073958b3012c237f029a6e54091057151f2c248fdb7540"
+    },
+    "reconstructed_reference_terminal_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+    "review_base_commit": "34caa67779705a9bc7499cd683024d1aa766a081"
+  },
+  "catalogue_semantics": {
+    "astrophysical_object": {
+      "description": "one physical object whose association may require morphology, host, spectral, or multi-wavelength context",
+      "may_be_inferred": false,
+      "scope": "out-of-scope-contextual-classification"
+    },
+    "binding_output": "catalogue-source-records",
+    "catalogue_source": {
+      "description": "one image-domain emission source characterized from one or more associated detection components",
+      "membership": "one-or-more-detection-components-partitioned-exactly-once"
+    },
+    "detection_component": {
+      "description": "one accepted original-residual connected seed and its exclusively assigned multiscale support",
+      "pixel_ownership": "immutable-exact-seeded-owner-support"
+    },
+    "retained_diagnostic_output": "detection-component-records"
+  },
+  "change_control": {
+    "allowed_only_after_named_approval": [
+      "add immutable component and source membership records",
+      "construct a bounded image-domain association graph from candidate evidence only",
+      "publish source rows while retaining component rows as diagnostics",
+      "aggregate already measured component quantities without changing component ownership or calibration"
+    ],
+    "forbidden_same_change": [
+      "background or RMS changes",
+      "detection or island threshold changes",
+      "minimum island area changes",
+      "multiscale recovery radius changes",
+      "component measurement aperture changes",
+      "component integrated-flux calibration changes",
+      "astrometry estimator changes",
+      "shape estimator changes",
+      "truth-aware or reference-finder association",
+      "physical radio-object association",
+      "runtime optimization",
+      "gate or margin changes"
+    ],
+    "historical_evidence_immutable": true,
+    "terminal_failure_immutable": true
+  },
+  "diagnosis": {
+    "cause": "catalogue-source-identity-is-currently-equal-to-direct-connected-component-identity",
+    "excluded_primary_causes": [
+      "detection sensitivity because all sixteen completeness endpoints pass",
+      "overmerge because all sixteen merge-fraction endpoints pass",
+      "power because forty-four absolute endpoints fail and thirty-seven like-semantics regressions are observed"
+    ],
+    "mechanism": "multi-component extended truth is emitted as several catalogue rows with divided flux and displaced component centroids",
+    "science_interpreted_before_power": true
+  },
+  "implementation_seams": [
+    {
+      "path": "src/hebog/algorithms/extended_measurement.py",
+      "role": "preserve exact seeded pixel ownership and expose bounded component summaries",
+      "sha256": "45fff45bb37ccd218f69075d800abefd28e6c76ea3517bc181c0a5d8c492435d"
+    },
+    {
+      "path": "src/hebog/validation/post_campaign_science.py",
+      "role": "retain the candidate detection composition and add prospective source-association evidence without tuning it",
+      "sha256": "5f29daba95eff470f35096a455659bb1653eebe843e79238d81a3b295a5558d4"
+    },
+    {
+      "path": "src/hebog/validation/products.py",
+      "role": "build explicit component and source records with conservative aggregation",
+      "sha256": "efa3aa9303d7b1d340505940925eb163abfeb192b6b15c8cb021565dac0d39dd"
+    },
+    {
+      "path": "src/hebog/validation/public_finder_correction.py",
+      "role": "compose fixture-only source rows while retaining component diagnostics",
+      "sha256": "5b82a328fcc35179875276d28a8158aa7106de41819de540dd13784268fac48e"
+    }
+  ],
+  "literature": [
+    {
+      "identifier": "hancock-et-al-2012",
+      "role": "distinguish islands, image-domain sources, component characterization, and out-of-scope physical-object association",
+      "url": "https://doi.org/10.1111/j.1365-2966.2012.20768.x"
+    },
+    {
+      "identifier": "pybdsf-grouping-documentation",
+      "role": "document intensity-continuity and directional-FWHM grouping of components into sources",
+      "url": "https://pybdsf.readthedocs.io/en/latest/process_image.html#grouping-of-gaussians-into-sources"
+    }
+  ],
+  "prospective_design": {
+    "association_graph": {
+      "ambiguous_edge_policy": "leave-components-separate",
+      "edge_order": "descending-saddle-margin-then-ascending-normalized-separation-then-canonical-component-identities",
+      "edge_requirements": [
+        "same-undilated-parent-support",
+        "valid-pixel-connecting-segment-never-below-existing-three-sigma-island-threshold",
+        "centroid-separation-no-greater-than-half-the-sum-of-directional-component-fwhm",
+        "both-component-shapes-available"
+      ],
+      "forbidden_evidence": [
+        "truth-identities",
+        "reference-finder-products",
+        "viewed-public-outcomes",
+        "morphological-dilation",
+        "distance-only-edges"
+      ],
+      "grouping": "deterministic-complete-link-agglomeration-no-transitive-only-merge",
+      "nodes": "canonical-detection-component-identities",
+      "parent_support": "eight-connected-direct-owner-plus-undilated-significant-b3-support"
+    },
+    "component_ownership_invariant": "bitwise-identical",
+    "source_identity": {
+      "component_integer_labels_are_identity": false,
+      "identifier": "canonical-hash-of-sorted-stable-component-identities",
+      "membership_order": "canonical-component-identity",
+      "partition_invariant": true
+    },
+    "source_record_aggregation": {
+      "centroid": "integrated-flux-weighted-local-tangent-plane-component-centroid",
+      "integrated_flux": "sum-existing-exclusive-component-integrated-flux",
+      "measurement_pixels_reassigned": false,
+      "peak_flux": "maximum-component-peak-flux",
+      "photometric_calibration_changed": false,
+      "shape": "moment-equivalent-shape-on-union-of-exact-component-owner-support",
+      "uncertainty": "unavailable-until-component-covariance-and-correlation-are-reviewed"
+    }
+  },
+  "required_next_decision": "named-approval-of-this-exact-pre-review-for-fixture-only-implementation",
+  "required_sequence": [
+    "obtain named scientific and engineering approval of this exact pre-review",
+    "implement the failing analytic and invariant fixtures before production behavior",
+    "implement the smallest pure association and source-record composition that passes the fixtures",
+    "run focused unit integration serial Dask coverage type and documentation validation",
+    "review fixture outcomes without opening terminal replay or viewed public products",
+    "freeze-exact-non-executable-candidate-and-cumulative-replay-identities",
+    "obtain-separate-named-approval-before-one-complete-cumulative-replay"
+  ],
+  "review_id": "phase-5-public-finder-source-association-pre-review",
+  "reviewed_on": "2026-08-27",
+  "schema_version": 1,
+  "scientific_gates": {
+    "component_partition": "every-component-appears-in-exactly-one-source",
+    "component_pixel_ownership": "bitwise-identical-before-and-after-association",
+    "cumulative_replay": "separate-exact-approval-and-all-absolute-and-like-semantics-gates",
+    "false_association": "zero-on-analytic-negative-controls",
+    "fixture_rule": "every-case-must-pass-no-compensation",
+    "flux_conservation": "summed-source-flux-equals-summed-component-flux",
+    "physical_association_claims": "zero",
+    "source_identity_invariance": "label-task-worker-tile-partition-order-and-retry-independent"
+  },
+  "status": "ready-for-named-source-association-implementation-review",
+  "terminal_failure": {
+    "candidate": {
+      "configuration_sha256": "65c8876dcdb484bd5a82b3520e065ea6bf33cf24cfdd33b592c6c859231c62f0",
+      "revision": "b1d59e5aaf778a5fed4ea662afeba2ee100424ff",
+      "source_tree_sha256": "2de6564e78f1a3664dd3fb18f696c747bfc3350fdd894164c4fafb07528d1ba9"
+    },
+    "compact": {
+      "like_semantics_regression_count": 0,
+      "status": "pass"
+    },
+    "continuum": {
+      "failed_endpoint_count": 44,
+      "like_semantics_regression_count": 37,
+      "passed_endpoint_count": 89,
+      "status": "fail",
+      "underpowered_endpoint_count": 10
+    },
+    "ledger": {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-correction.json",
+      "sha256": "1ac6deb24e4bfc1928318c95437d45acac6ac1f94621b53d45175e0f41bd9797"
+    },
+    "power_interpretation": "underpowered-endpoints-cannot-compensate-for-absolute-failures-or-regressions"
+  },
+  "test_first_matrix": {
+    "analytic": [
+      "single-compact-component",
+      "split-broad-gaussian-with-continuous-b3-support",
+      "two-compact-sources-with-low-saddle",
+      "high-dynamic-range-neighbours",
+      "three-component-transitive-bridge-chain",
+      "disconnected-double-lobe-physical-object",
+      "shell-and-filament-components",
+      "masked-gap-and-invalid-pixel-barrier"
+    ],
+    "forbidden_inputs": [
+      "terminal-replay-products",
+      "viewed-sdc1-products",
+      "viewed-hydra-products",
+      "pybdsf-or-aegean-catalogues"
+    ],
+    "invariance": [
+      "component-label-permutation",
+      "tile-shape-and-partition-origin",
+      "worker-count-task-order-and-retry",
+      "one-tile-versus-many-tile"
+    ],
+    "property": [
+      "association-never-creates-deletes-or-relabels-components",
+      "source-membership-is-an-exact-partition",
+      "unsupported-or-invalid-pixels-cannot-create-an-edge",
+      "no-transitive-only-chain-can-create-a-group",
+      "source-flux-is-the-exact-sum-of-member-component-fluxes"
+    ]
+  }
+}

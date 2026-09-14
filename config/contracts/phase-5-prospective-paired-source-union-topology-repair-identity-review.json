@@ -1,0 +1,68 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "cutover_authorized": false,
+    "evaluation_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "scientific_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "decision_id": "phase-5-prospective-paired-source-union-topology-repair-identity-review",
+  "expected_execution_sha256": "ad407f73d732cd8bf9de40f3ac882e9f39a70b318fecb31e9b91f04d4ca8438c",
+  "implementation_revision": "9f6cb5569930b5ec33c3a5afad1633c68da3ddde",
+  "review": {
+    "candidate_execution_possible": false,
+    "historical_preparer_preserved": true,
+    "invalid_sidecar_fallback_possible": false,
+    "result_neutral_tail_only": true,
+    "sealed_products_reusable": true,
+    "strict_partition_guard_preserved": true,
+    "verdict": "ready for a separately authorized exact evaluation-only completion"
+  },
+  "schema_version": 1,
+  "status": "ready-for-exact-paired-topology-repair-evaluation",
+  "tail_verification": {
+    "array_planes_retained": false,
+    "finder_counts": {
+      "current-hebog": 155,
+      "incumbent-hebog": 155,
+      "pinned-pybdsf-master": 155,
+      "released-pybdsf": 155
+    },
+    "promotion_effect": "none-diagnostic-only",
+    "status": "pass",
+    "summaries_sha256": "a9d504507a9593b7e3da0378dfc5c366a5e0b833dceb7882833f23915b049bdf",
+    "summary_count": 620,
+    "unique_input_count": 155
+  },
+  "verified_products": {
+    "candidate_execution_started": false,
+    "current_configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "current_product_set_sha256": "6bcb2959c56173d1a930eb14b3a794727649defc1b52dc1d9d70cd041d401014",
+    "current_revision": "937737d811dd229d71dbcfdbda6cb5829de6faca",
+    "current_source_tree_sha256": "9f8e4a67f0c74ac86bff4f398811a7d64620fb70512b118c0ad3bb1eb58644c8",
+    "evaluator_sha256": "39a568bada625b751931aff649e4e815c5ed70f68809d902a52ce93cfeaec62a",
+    "incumbent_configuration_sha256": "88ac8bea8e865c765d5f346235642f88b298140955af67ada99b9f9bf6187523",
+    "incumbent_product_set_sha256": "8dbc9dff20c861b1f93f11781d079226a7ef68475838909496086229ddc9fe5d",
+    "incumbent_reconstruction_product_set_sha256": "ea12ce032d06c37cfeb70dcfd16d288bd68bc1ef19c010b8491b9ff66ae406e8",
+    "incumbent_revision": "85d580713664b962ae256a98b065849cf8eb9283",
+    "incumbent_source_tree_sha256": "a082cbe4b3416f787b455bb5a06be1eb66cb33ec807c74fa48056dfe8c630696",
+    "input_count_per_candidate": 2400,
+    "parent_completion_sha256": "76ecc0ee13e2fa05d3da07cb3be77a808e306771c6ca445357eafef97edb0391",
+    "parent_evaluator_sha256": "44d7d6475832becfdf02d475a4654de05284fd2320080a8a28734e39d9aeee51",
+    "reconstruction_record_sha256": "b302967f26ac5947e3c942598a428527cce1d4fa3373ed6eaeb6d204eb8dc040",
+    "reference_run_count": 9600,
+    "repair_pre_review_sha256": "e1130b9b6b8825ab22e8f74f71f9429f98fdbf803312d45a54d0ec36647fb932",
+    "source_union_preparer_sha256": "b4c8f8eafb3c961f7696cd49c90e72aa52a81df13eb58980522b562212f0ce79",
+    "source_union_tail_sha256": "18c8d43b32e28b22e64b9a9baa69e35ab32dd9582735da30a6791578eea27237",
+    "status": "pass",
+    "tail_repair_sha256": "54e592071cbab516ddccfa0edc28c4fe2b7e5cfcdfe9de997307e1231cc70703",
+    "topology_parent_completion_sha256": "4c90af3b355347df1cf2b3045e246a87c3e7e8f5e4f6354e3d38390ebd345cb4",
+    "topology_parent_evaluator_sha256": "1974101dd6d4c577ec402191093f3af65f4a67ef7adb6dfb2f2a85e13e2fa8a0",
+    "topology_repair_pre_review_sha256": "51f74baaf6ff5bdc8619cd9e3782586f596d39a210b76138d01e14fd23e4b99c"
+  }
+}

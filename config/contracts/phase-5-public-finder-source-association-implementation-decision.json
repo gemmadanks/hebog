@@ -1,0 +1,43 @@
+{
+  "approved_on": "2026-08-27",
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "candidate_identity_freeze_authorized": true,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fixture_only_validation_authorized": true,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "source_association_implementation_authorized": true,
+    "threshold_or_photometric_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "decision_id": "phase-5-public-finder-source-association-implementation-decision",
+  "exact_approval": "I approve the Phase 5 public-finder source-association pre-review SHA-256 9af42348896e0449e007fe2318648f66122313d600137f8f5ec525ebaec1cc3c and its recommendations. This authorizes test-first implementation and fixture-only validation of the pure source-association records, conservative association graph, catalogue-source composition, and serial/existing-Dask invariance, followed by freezing non-executable corrected candidate identities. It does not authorize cumulative replay, viewed SDC1/Hydra execution, another campaign, fresh qualification, tuning, rescoring, cutover, or release.",
+  "implementation_scope": [
+    "immutable stable detection-component records",
+    "undilated existing-threshold directional-FWHM complete-link association graph",
+    "binding catalogue-source rows with retained component diagnostics",
+    "analytic negative-control property serial and existing-Dask fixture validation",
+    "non-executable corrected candidate identity freeze"
+  ],
+  "pre_review": {
+    "path": "config/contracts/phase-5-public-finder-source-association-pre-review.json",
+    "sha256": "9af42348896e0449e007fe2318648f66122313d600137f8f5ec525ebaec1cc3c"
+  },
+  "prohibited_actions": [
+    "cumulative replay",
+    "execution on viewed SDC1 or Hydra data",
+    "new campaign or request",
+    "fresh qualification",
+    "threshold background RMS minimum-area support-recovery aperture astrometry shape or photometric tuning",
+    "rescoring sealed evidence",
+    "optimization",
+    "cutover",
+    "release"
+  ],
+  "status": "authorized-for-source-association-implementation-and-fixture-only-validation"
+}

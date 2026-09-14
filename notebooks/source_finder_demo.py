@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.15"
+__generated_with = "0.23.16"
 app = marimo.App(width="full")
 
 
@@ -14,20 +14,18 @@ def _():
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # Hebog compact source-finding demonstration
+    # Hebog public source-finder demonstration
 
-    This notebook runs the experimental compact-source path implemented through
-    **Phase 4** on a small, deterministic synthetic radio image. It estimates
-    background and RMS noise, detects connected source islands, reconciles an
-    island that crosses tile boundaries, deblends compact peaks, calculates
-    exact-label moments, fits Gaussian components, transforms them to sky
-    coordinates, deconvolves the beam, and builds a Rapthor-compatible
-    catalogue.
+    This notebook runs Hebog through its supported, scheduler-independent
+    public interface. It writes a deterministic synthetic radio-continuum
+    image to FITS, creates `SourceFinderRequest` and `SourceFinderConfig`
+    records, and executes the complete source finder with
+    `hebog.find_sources()`.
 
-    The example uses Hebog's window-readable synthetic source and serial
-    executor so it is quick and completely redistributable. Production inputs
-    use the same stage boundaries with FITS and can supply an existing Dask
-    executor.
+    The result is one atomic product bundle containing a source catalogue, a
+    local-RMS image, a source mask, and provenance-rich diagnostics. The
+    notebook reads those published products rather than composing Hebog's
+    internal scientific stages itself.
     """)
     return
 
@@ -38,187 +36,152 @@ def _():
     import tempfile
 
     import astropy.wcs as astropy_wcs
-    import matplotlib.patches as mpl_patches
     import matplotlib.pyplot as plt
     import numpy as np
-    from scipy import ndimage
+    from astropy.io import fits
 
-    import hebog.adapters.rapthor_catalogue as rapthor_catalogue_adapter
-    import hebog.algorithms.astrometry as astrometry_algorithms
-    import hebog.algorithms.catalogue as catalogue_algorithms
-    import hebog.algorithms.partitioning as partitioning_algorithms
-    import hebog.config as hebog_config
-    import hebog.data_models as hebog_models
-    import hebog.data_models.measurement as measurement_models
+    import hebog
     import hebog.executors as hebog_executors
-    import hebog.io as hebog_io
-    import hebog.stages.catalogue as catalogue_stage
-    import hebog.stages.deblending as deblending_stage
-    import hebog.stages.detection as detection_stage
-    import hebog.stages.measurement as measurement_stage
-    import hebog.validation.datasets as validation_datasets
+    from hebog.io import (
+        read_catalogue_fits_product,
+        read_diagnostics_product,
+    )
 
     return (
-        astrometry_algorithms,
         astropy_wcs,
-        catalogue_algorithms,
-        catalogue_stage,
-        deblending_stage,
-        detection_stage,
-        hebog_config,
+        fits,
+        hebog,
         hebog_executors,
-        hebog_io,
-        hebog_models,
-        measurement_models,
-        measurement_stage,
-        mpl_patches,
-        ndimage,
         np,
-        partitioning_algorithms,
         pathlib,
         plt,
-        rapthor_catalogue_adapter,
+        read_catalogue_fits_product,
+        read_diagnostics_product,
         tempfile,
-        validation_datasets,
     )
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## 1. A governed synthetic radio image
+    ## 1. Prepare a supported FITS image
 
-    The checked-in development recipe contains Gaussian noise, a negative
-    background, threshold-crossing sources, blends, and an image-edge source.
-    This visual variant keeps five high-confidence interior sources and
-    replaces the close pair with two equal compact sources fifteen pixels apart
-    across a four-tile corner. That keeps every admitted region eligible for a
-    complete catalogue while making reconciliation and deblending easy to see;
-    no governed regression or qualification recipe is changed. Noise is
-    generated from global pixel coordinates, so reading the image in different
-    windows always produces exactly the same pixels.
+    The scene is a noisy four-lobe shell. Each lobe is compact enough to
+    produce a Gaussian component, while the continuum profile can associate
+    the connected emission into one astronomical source.
+
+    A public input carries the physical metadata needed to interpret its
+    pixels: `Jy/beam` units, an ICRS celestial WCS, a restoring beam, and a
+    reference frequency. The temporary workspace keeps this demonstration
+    self-contained and gives each notebook session a fresh output directory.
     """)
     return
 
 
 @app.cell
-def _(
-    hebog_io,
-    hebog_models,
-    np,
-    pathlib,
-    validation_datasets,
-):
-    project_root = pathlib.Path(__file__).resolve().parents[1]
-    development_manifest = validation_datasets.load_dataset_manifest(
-        project_root / "config/datasets/phase-3-development.json"
+def _(astropy_wcs, fits, np, pathlib, tempfile):
+    demonstration_workspace = tempfile.TemporaryDirectory(
+        prefix="hebog-public-demo-"
     )
-    demonstration_dataset = development_manifest.datasets[0]
-    _demonstration_sources = list(demonstration_dataset.recipe.sources)
-    _pair_update = {
-        "y_pixel": 96.0,
-        "peak_flux_jy_per_beam": 0.005,
-        "major_sigma_pixels": 2.5,
-        "minor_sigma_pixels": 1.7,
-        "rotation_degrees_counterclockwise_from_x": 0.0,
-    }
-    _demonstration_sources[4] = _demonstration_sources[4].model_copy(
-        update={**_pair_update, "x_pixel": 88.5}
+    demonstration_directory = pathlib.Path(demonstration_workspace.name)
+    input_path = demonstration_directory / "continuum-image.fits"
+    output_directory = demonstration_directory / "hebog-products"
+
+    image_shape_yx = (81, 81)
+    y_pixels, x_pixels = np.mgrid[: image_shape_yx[0], : image_shape_yx[1]]
+    x_offset = x_pixels - 40.0
+    y_offset = y_pixels - 40.0
+    radius = np.hypot(x_offset, y_offset)
+    angle = np.arctan2(y_offset, x_offset)
+
+    shell = np.exp(-((radius - 10.0) ** 2) / 2.0)
+    shell *= 1.0 + 8.0 * np.clip(np.cos(4.0 * angle), 0.0, None)
+    random_noise = np.random.default_rng(42).normal(
+        0.0,
+        0.5,
+        image_shape_yx,
     )
-    _demonstration_sources[5] = _demonstration_sources[5].model_copy(
-        update={**_pair_update, "x_pixel": 103.5}
-    )
-    _demonstration_sources = [
-        source.model_copy(
-            update={
-                "peak_flux_jy_per_beam": max(
-                    source.peak_flux_jy_per_beam,
-                    0.002,
-                )
-            }
-        )
-        for source in _demonstration_sources[2:7]
-    ]
-    demonstration_recipe = demonstration_dataset.recipe.model_copy(
-        update={"sources": tuple(_demonstration_sources)}
-    )
-    input_image = validation_datasets.generate_synthetic_image(
-        demonstration_recipe
+    input_image = np.asarray(
+        0.001 * (shell + random_noise),
+        dtype=np.float64,
     )
 
-    class SyntheticWindowSource:
-        """Read deterministic bounded windows from one synthetic recipe."""
+    input_header = fits.Header()
+    input_header["BUNIT"] = "Jy/beam"
+    input_header["BMAJ"] = 4.0 / 3600.0
+    input_header["BMIN"] = 4.0 / 3600.0
+    input_header["BPA"] = 0.0
+    input_header["RADESYS"] = "ICRS"
+    input_header["CTYPE1"] = "RA---TAN"
+    input_header["CTYPE2"] = "DEC--TAN"
+    input_header["CRPIX1"] = image_shape_yx[1] / 2 + 1
+    input_header["CRPIX2"] = image_shape_yx[0] / 2 + 1
+    input_header["CRVAL1"] = 180.0
+    input_header["CRVAL2"] = -30.0
+    input_header["CDELT1"] = -1.0 / 3600.0
+    input_header["CDELT2"] = 1.0 / 3600.0
+    input_header["CUNIT1"] = "deg"
+    input_header["CUNIT2"] = "deg"
+    input_header["RESTFRQ"] = 150_000_000.0
 
-        def __init__(self, recipe):
-            self._recipe = recipe
-
-        def read_window(self, bounds):
-            values = validation_datasets.generate_synthetic_window(
-                self._recipe,
-                y_start=bounds.y_start,
-                y_stop=bounds.y_stop,
-                x_start=bounds.x_start,
-                x_stop=bounds.x_stop,
-            )
-            return hebog_io.ImageWindow(
-                bounds=bounds,
-                values=values,
-                valid_pixels=np.isfinite(values),
-            )
-
-        def read_windows(self, bounds_collection):
-            return tuple(
-                self.read_window(bounds) for bounds in bounds_collection
-            )
-
-    image_source = SyntheticWindowSource(demonstration_recipe)
-    full_image_bounds = hebog_models.ImageBounds(
-        0,
-        demonstration_recipe.shape_yx[0],
-        0,
-        demonstration_recipe.shape_yx[1],
+    fits.PrimaryHDU(data=input_image, header=input_header).writeto(input_path)
+    input_wcs = astropy_wcs.WCS(input_header).celestial
+    truth_lobes_xy = (
+        (30.0, 40.0),
+        (40.0, 30.0),
+        (40.0, 50.0),
+        (50.0, 40.0),
     )
-    return (
-        demonstration_dataset,
-        demonstration_recipe,
-        full_image_bounds,
-        image_source,
-        input_image,
-    )
+    return input_image, input_path, input_wcs, output_directory, truth_lobes_xy
 
 
 @app.cell
-def _(demonstration_dataset, demonstration_recipe, input_image, mo, np, plt):
+def _(input_image, mo, np, plt, truth_lobes_xy):
     _minimum, _maximum = np.percentile(input_image, (1.0, 99.8))
-    _figure, _axis = plt.subplots(figsize=(7.0, 5.5))
-    _image_artist = _axis.imshow(
-        input_image,
+    _input_figure, _input_axis = plt.subplots(figsize=(7.0, 5.5))
+    _input_artist = _input_axis.imshow(
+        1_000.0 * input_image,
         origin="lower",
         cmap="gray",
-        vmin=_minimum,
-        vmax=_maximum,
+        vmin=1_000.0 * _minimum,
+        vmax=1_000.0 * _maximum,
     )
-    _axis.set(
-        title=f"Synthetic input: {demonstration_dataset.identifier}",
+    for _x_pixel, _y_pixel in truth_lobes_xy:
+        _input_axis.plot(
+            _x_pixel,
+            _y_pixel,
+            marker="+",
+            color="tab:cyan",
+            markersize=9,
+            markeredgewidth=1.5,
+        )
+    _input_axis.set(
+        title="Deterministic four-lobe continuum scene",
         xlabel="x pixel",
         ylabel="y pixel",
     )
-    _figure.colorbar(
-        _image_artist,
-        ax=_axis,
-        label="Brightness (Jy/beam)",
+    _input_figure.colorbar(
+        _input_artist,
+        ax=_input_axis,
+        label="Brightness (mJy/beam)",
         shrink=0.82,
     )
-    _figure.tight_layout()
+    _input_figure.tight_layout()
+
     mo.vstack(
         [
             mo.md(
                 f"**Shape:** `{input_image.shape[0]} x "
-                f"{input_image.shape[1]}` pixels · "
-                f"**Known analytic sources:** "
-                f"`{len(demonstration_recipe.sources)}`"
+                f"{input_image.shape[1]}` pixels  "
+                "**Noise RMS:** `0.5 mJy/beam`  "
+                "**Restoring beam:** `4 x 4 arcsec`"
             ),
-            _figure,
+            _input_figure,
+            mo.md(
+                "Cyan markers show the analytic lobe centres. They are "
+                "context for the visualization only and are not supplied "
+                "to the source finder."
+            ),
         ]
     )
     return
@@ -227,738 +190,343 @@ def _(demonstration_dataset, demonstration_recipe, input_image, mo, np, plt):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## 2. Run the bounded Phase 3 stages
+    ## 2. Call the public interface
 
-    The scientific thresholds are explicit: an island includes pixels at or
-    above 3 sigma and must contain a seed strictly above 5 sigma. The
-    six-pixel minimum suppresses isolated noise pixels. A high-significance
-    scan at 50 sigma requests a finer local RMS grid near a bright source. For
-    this visual example, compact peaks at least one pixel apart remain
-    separate when the weaker peak is at least 0.5 sigma above their saddle.
-
-    We execute the same image twice:
-
-    1. as one 192 x 192 tile; and
-    2. as four 96 x 96 tiles, placing the close central blend at a four-tile
-       corner.
+    These are the complete caller-owned inputs. The configuration selects the
+    Phase 5 reference continuum profile with its explicit 5-sigma detection
+    threshold, 3-sigma island threshold, and seven-pixel minimum island size.
+    Other valid values also execute and are marked `custom-unqualified` in the
+    diagnostics. The serial executor is the deterministic reference
+    implementation; a workflow that already owns a Dask client can pass
+    `DaskExecutor(client)` at the same boundary.
     """)
     return
 
 
 @app.cell
 def _(
-    astrometry_algorithms,
-    astropy_wcs,
-    demonstration_dataset,
-    detection_stage,
-    hebog_config,
-    hebog_models,
-    np,
-):
-    rms_statistics = hebog_config.RmsWindowStatisticsConfig(
-        clipping_sigma=3.0,
-        maximum_iterations=10,
-        minimum_samples=6,
-    )
-    detection_configuration = detection_stage.DetectionStageConfig(
-        background_rms=hebog_config.BackgroundRmsConfig(
-            coarse=hebog_config.RmsGridConfig(
-                window_shape_yx=(150, 150),
-                step_yx=(50, 50),
-                statistics=rms_statistics,
-                maximum_batch_cells=32,
-            ),
-            adaptive=hebog_config.AdaptiveRmsConfig(
-                grid=hebog_config.RmsGridConfig(
-                    window_shape_yx=(35, 35),
-                    step_yx=(7, 7),
-                    statistics=rms_statistics,
-                    maximum_batch_cells=32,
-                ),
-                candidate_threshold_sigma=50.0,
-                influence_radius_pixels=75.0,
-                transition_width_pixels=20.0,
-            ),
-            maximum_spatial_window_fraction=0.25,
-            maximum_constant_map_pixels=2048 * 2048,
-        ),
-        source_finder=hebog_config.SourceFinderConfig(
-            detection_threshold_sigma=5.0,
-            island_threshold_sigma=3.0,
-            minimum_island_pixels=7,
-        ),
-    )
-    deblend_configuration = hebog_config.CompactDeblendConfig(
-        minimum_peak_signal_to_noise=5.0,
-        minimum_peak_separation_pixels=1,
-        minimum_saddle_depth_sigma=0.5,
-        minimum_region_pixels=7,
-        maximum_compact_island_pixels=250_000,
-        maximum_compact_bounds_pixels=1_000_000,
-        target_batch_pixels=250_000,
-        maximum_batch_pixels=4_000_000,
-    )
-    moment_configuration = hebog_config.CompactMomentConfig(
-        minimum_shape_pixels=3,
-        covariance_relative_tolerance=1e-12,
-    )
-    fit_configuration = hebog_config.CompactGaussianFitConfig(
-        minimum_fit_pixels=7,
-        maximum_function_evaluations=300,
-        minimum_sigma_pixels=0.2,
-        maximum_sigma_pixels=30.0,
-        maximum_amplitude_factor=5.0,
-        center_margin_pixels=1.0,
-        convergence_tolerance=1e-8,
-        maximum_axis_ratio=30.0,
-    )
-    catalogue_configuration = hebog_config.CompactCatalogueConfig(
-        maximum_catalogue_records=10_000,
-        deconvolution_relative_tolerance=1e-10,
-        extension_significance_sigma=5.0,
-    )
-    _pixel_scales_degrees = demonstration_dataset.wcs.pixel_scale_degrees_xy
-    _reference_x, _reference_y = demonstration_dataset.wcs.reference_pixel_xy
-    _sky_ra, _sky_dec = demonstration_dataset.wcs.reference_sky_degrees
-    _rotation = np.deg2rad(
-        demonstration_dataset.wcs.rotation_degrees_counterclockwise
-    )
-    _celestial_wcs = astropy_wcs.WCS(naxis=2)
-    _celestial_wcs.wcs.ctype = ["RA---SIN", "DEC--SIN"]
-    _celestial_wcs.wcs.cunit = ["deg", "deg"]
-    _celestial_wcs.wcs.crpix = [_reference_x + 1.0, _reference_y + 1.0]
-    _celestial_wcs.wcs.crval = [_sky_ra, _sky_dec]
-    _celestial_wcs.wcs.cd = [
-        [
-            _pixel_scales_degrees[0] * np.cos(_rotation),
-            -_pixel_scales_degrees[1] * np.sin(_rotation),
-        ],
-        [
-            _pixel_scales_degrees[0] * np.sin(_rotation),
-            _pixel_scales_degrees[1] * np.cos(_rotation),
-        ],
-    ]
-    _beam = demonstration_dataset.beam
-    image_metadata = hebog_models.ImageMetadata(
-        shape_yx=demonstration_dataset.recipe.shape_yx,
-        unit="Jy/beam",
-        beam=hebog_models.RestoringBeam(
-            major_fwhm_degrees=(
-                _beam.major_fwhm_pixels * abs(_pixel_scales_degrees[0])
-            ),
-            minor_fwhm_degrees=(
-                _beam.minor_fwhm_pixels * abs(_pixel_scales_degrees[1])
-            ),
-            position_angle_degrees=_beam.position_angle_degrees,
-        ),
-        celestial_wcs=hebog_models.CelestialWcs(
-            fits_header=_celestial_wcs.to_header().tostring(
-                sep="\n",
-                endcard=False,
-                padding=False,
-            ),
-            coordinate_frame="icrs",
-        ),
-        reference_frequency_hz=150_000_000.0,
-    )
-    measurement_geometry = astrometry_algorithms.compact_geometry_at_pixel(
-        image_metadata,
-        (
-            demonstration_dataset.recipe.shape_yx[1] / 2.0,
-            demonstration_dataset.recipe.shape_yx[0] / 2.0,
-        ),
-    )
-    return (
-        catalogue_configuration,
-        deblend_configuration,
-        detection_configuration,
-        fit_configuration,
-        image_metadata,
-        measurement_geometry,
-        moment_configuration,
-    )
-
-
-@app.cell
-def _(
-    catalogue_algorithms,
-    catalogue_configuration,
-    catalogue_stage,
-    deblend_configuration,
-    deblending_stage,
-    demonstration_recipe,
-    detection_configuration,
-    detection_stage,
+    fits,
+    hebog,
     hebog_executors,
-    hebog_io,
-    image_source,
-    fit_configuration,
-    image_metadata,
-    measurement_geometry,
-    measurement_stage,
-    moment_configuration,
-    partitioning_algorithms,
-    pathlib,
-    tempfile,
+    input_path,
+    np,
+    output_directory,
+    read_catalogue_fits_product,
+    read_diagnostics_product,
 ):
-    demonstration_workspace = tempfile.TemporaryDirectory(
-        prefix="hebog-marimo-"
+    source_finder_request = hebog.SourceFinderRequest(
+        image_path=input_path,
+        output_directory=output_directory,
+        run_id="public-source-finder-demo",
+    )
+    source_finder_config = hebog.SourceFinderConfig(
+        detection_threshold_sigma=4.0,
+        island_threshold_sigma=3.0,
+        minimum_island_pixels=7,
+        profile="continuum",
     )
 
-    def execute_detection(tile_shape_yx, run_name):
-        manifest = partitioning_algorithms.plan_image_partitions(
-            image_shape_yx=demonstration_recipe.shape_yx,
-            tile_core_shape_yx=tile_shape_yx,
-            halo_yx=(0, 0),
-        )
-        sink = hebog_io.ZarrProductSink(
-            pathlib.Path(demonstration_workspace.name) / f"{run_name}.zarr",
-            manifest,
-            generation_id=f"marimo-{run_name}",
-        )
-        executor = hebog_executors.SerialExecutor()
-        detection = detection_stage.run_detection_stage(
-            image_source,
-            manifest,
-            detection_configuration,
-            executor,
-            sink,
-        )
-        deblending = deblending_stage.run_compact_deblend_stage(
-            image_source,
-            detection,
-            deblend_configuration,
-            executor,
-            sink,
-        )
-        moments = measurement_stage.run_compact_moment_stage(
-            image_source,
-            detection,
-            deblend_configuration,
-            moment_configuration,
-            measurement_geometry,
-            executor=executor,
-            sink=sink,
-        )
-        catalogue_shards = catalogue_stage.run_compact_catalogue_stage(
-            image_source,
-            detection,
-            deblend_config=deblend_configuration,
-            moment_config=moment_configuration,
-            fit_config=fit_configuration,
-            catalogue_config=catalogue_configuration,
-            geometry=measurement_geometry,
-            metadata=image_metadata,
-            executor=executor,
-            sink=sink,
-        )
-        completed_catalogue = catalogue_algorithms.complete_compact_catalogue(
-            catalogue_id="marimo-compact-demo",
-            metadata=image_metadata,
-            shards=catalogue_shards.records,
-            deferred_island_ids=tuple(
-                item.island.island_id
-                for item in catalogue_shards.deferred_islands
-            ),
-            config=catalogue_configuration,
-        )
-        return (
-            detection,
-            deblending,
-            moments,
-            catalogue_shards,
-            completed_catalogue,
-            sink,
-        )
-
-    (
-        one_tile_detection,
-        one_tile_deblending,
-        one_tile_moments,
-        one_tile_catalogue_shards,
-        one_tile_catalogue,
-        one_tile_sink,
-    ) = execute_detection(
-        demonstration_recipe.shape_yx,
-        "one-tile",
+    source_finder_result = hebog.find_sources(
+        source_finder_request,
+        source_finder_config,
+        hebog_executors.SerialExecutor(),
     )
-    (
-        tiled_detection,
-        tiled_deblending,
-        tiled_moments,
-        tiled_catalogue_shards,
-        tiled_catalogue,
-        tiled_sink,
-    ) = execute_detection(
-        (96, 96),
-        "four-tiles",
+
+    source_catalogue = read_catalogue_fits_product(
+        source_finder_result.catalogue
+    )
+    source_finder_diagnostics = read_diagnostics_product(
+        source_finder_result.diagnostics
+    )
+    rms_image = np.asarray(
+        fits.getdata(source_finder_result.rms_path),
+        dtype=np.float64,
+    )
+    source_mask = np.asarray(
+        fits.getdata(source_finder_result.mask_path),
+        dtype=np.bool_,
     )
     return (
-        demonstration_workspace,
-        one_tile_deblending,
-        one_tile_detection,
-        one_tile_moments,
-        one_tile_catalogue,
-        one_tile_catalogue_shards,
-        one_tile_sink,
-        tiled_deblending,
-        tiled_detection,
-        tiled_moments,
-        tiled_catalogue,
-        tiled_catalogue_shards,
-        tiled_sink,
+        rms_image,
+        source_catalogue,
+        source_finder_diagnostics,
+        source_finder_result,
+        source_mask,
     )
 
 
 @app.cell
-def _(
-    full_image_bounds,
-    one_tile_sink,
-    tiled_sink,
-):
-    background_plane = tiled_sink.read_completed_window(
-        "background",
-        full_image_bounds,
-    )
-    rms_plane = tiled_sink.read_completed_window("rms", full_image_bounds)
-    source_filtering_mask = tiled_sink.read_completed_window(
-        "source-filtering-mask",
-        full_image_bounds,
-    )
-    one_tile_background = one_tile_sink.read_completed_window(
-        "background",
-        full_image_bounds,
-    )
-    one_tile_rms = one_tile_sink.read_completed_window(
-        "rms",
-        full_image_bounds,
-    )
-    one_tile_mask = one_tile_sink.read_completed_window(
-        "source-filtering-mask",
-        full_image_bounds,
-    )
-    return (
-        background_plane,
-        one_tile_background,
-        one_tile_mask,
-        one_tile_rms,
-        rms_plane,
-        source_filtering_mask,
-    )
-
-
-@app.cell(hide_code=True)
-def _(
-    background_plane,
-    input_image,
-    mo,
-    np,
-    plt,
-    rms_plane,
-    source_filtering_mask,
-):
-    _figure, _axes = plt.subplots(
-        1, 4, figsize=(16.0, 4.0), constrained_layout=True
-    )
-    _minimum, _maximum = np.percentile(input_image, (1.0, 99.8))
-    _panels = (
-        (input_image, "Input", "gray", _minimum, _maximum),
-        (background_plane, "Estimated background", "coolwarm", None, None),
-        (rms_plane, "Estimated RMS", "viridis", None, None),
-        (source_filtering_mask, "Accepted source mask", "gray_r", 0, 1),
-    )
-    for _axis, (_values, _title, _cmap, _vmin, _vmax) in zip(
-        _axes,
-        _panels,
-        strict=True,
-    ):
-        _artist = _axis.imshow(
-            _values,
-            origin="lower",
-            cmap=_cmap,
-            vmin=_vmin,
-            vmax=_vmax,
-        )
-        _axis.set(title=_title, xlabel="x pixel")
-        _figure.colorbar(_artist, ax=_axis, shrink=0.72)
-    _axes[0].set_ylabel("y pixel")
-    mo.vstack(
-        [
-            mo.md("## 3. Background, noise, and accepted emission"),
-            _figure,
-        ]
-    )
-    return
-
-
-@app.cell
-def _(ndimage, np, source_filtering_mask, tiled_deblending):
-    island_label_plane, visual_island_count = ndimage.label(
-        source_filtering_mask,
-        structure=np.ones((3, 3), dtype=np.bool_),
-    )
-    region_rows = tuple(
-        {
-            "island": summary.island_id,
-            "status": summary.status,
-            "region": region.region_id,
-            "pixels": region.pixel_count,
-            "peak S/N": round(region.peak_signal_to_noise, 2),
-            "peak (y, x)": str(region.peak_position_yx),
-        }
-        for summary in tiled_deblending.islands
-        for region in summary.regions
-    )
-    return island_label_plane, region_rows, visual_island_count
-
-
-@app.cell(hide_code=True)
-def _(
-    input_image,
-    island_label_plane,
-    mpl_patches,
-    mo,
-    np,
-    plt,
-    region_rows,
-    tiled_deblending,
-    tiled_detection,
-    visual_island_count,
-):
-    _figure, (_label_axis, _region_axis) = plt.subplots(
-        1,
-        2,
-        figsize=(12.0, 5.5),
-        constrained_layout=True,
-    )
-    _label_axis.imshow(island_label_plane, origin="lower", cmap="tab20")
-    _label_axis.set(
-        title="Eight-connected detected islands",
-        xlabel="x pixel",
-        ylabel="y pixel",
-    )
-    _minimum, _maximum = np.percentile(input_image, (1.0, 99.8))
-    _region_axis.imshow(
-        input_image,
-        origin="lower",
-        cmap="gray",
-        vmin=_minimum,
-        vmax=_maximum,
-    )
-    _colours = plt.colormaps["tab10"]
-    for _region_index, _row in enumerate(region_rows):
-        _summary = next(
-            item
-            for item in tiled_deblending.islands
-            if item.island_id == _row["island"]
-        )
-        _region = next(
-            item
-            for item in _summary.regions
-            if item.region_id == _row["region"]
-        )
-        _bounds = _region.bounds
-        _colour = _colours(_region_index % 10)
-        _region_axis.add_patch(
-            mpl_patches.Rectangle(
-                (_bounds.x_start, _bounds.y_start),
-                _bounds.x_stop - _bounds.x_start,
-                _bounds.y_stop - _bounds.y_start,
-                fill=False,
-                edgecolor=_colour,
-                linewidth=1.8,
-            )
-        )
-        _region_axis.plot(
-            _region.peak_position_yx[1],
-            _region.peak_position_yx[0],
-            marker="+",
-            color=_colour,
-            markersize=8,
-        )
-    _region_axis.set(
-        title="Compact deblended region bounds and peaks",
-        xlabel="x pixel",
-        ylabel="y pixel",
-    )
+def _(mo, source_finder_diagnostics, source_finder_result):
     _statistics = mo.hstack(
         [
             mo.stat(
-                label="Detected islands",
-                value=str(len(tiled_detection.islands)),
+                label="Astronomical sources",
+                value=str(source_finder_result.source_count),
             ),
             mo.stat(
-                label="Visual label count",
-                value=str(visual_island_count),
+                label="Gaussian components",
+                value=str(source_finder_result.gaussian_component_count),
             ),
-            mo.stat(label="Deblended regions", value=str(len(region_rows))),
             mo.stat(
-                label="Deferred islands",
-                value=str(len(tiled_deblending.deferred_islands)),
+                label="Detection islands",
+                value=str(source_finder_result.island_count),
+            ),
+            mo.stat(
+                label="Wall time",
+                value=f"{source_finder_result.wall_seconds:.3f} s",
             ),
         ],
         widths="equal",
     )
-    mo.vstack(
-        [
-            mo.md("## 4. Connected islands and compact deblending"),
-            _statistics,
-            _figure,
-        ]
+
+    _products = (
+        source_finder_result.catalogue,
+        source_finder_result.rms,
+        source_finder_result.mask,
+        source_finder_result.diagnostics,
     )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo, region_rows):
-    _header = "| Island | Result | Region | Pixels | Peak S/N | Peak (y, x) |"
-    _separator = "| --- | --- | --- | ---: | ---: | --- |"
-    _rows = "\n".join(
-        "| {island} | {status} | {region} | {pixels} | {peak S/N:.2f} | "
-        "{peak (y, x)} |".format(**row)
-        for row in region_rows
+    _product_rows = "\n".join(
+        f"| `{_product.product_role}` | `{_product.path.name}` | "
+        f"{_product.byte_count:,} | `{_product.content_sha256[:12]}...` | "
+        f"{_product.scientific_status} |"
+        for _product in _products
     )
-    mo.md(f"""
-    ### Compact deblending summaries
-
-    The executor returns these bounded summaries—not per-pixel label arrays—to
-    keep scheduler payloads small. The rectangles in the plot are read and
-    planning bounds, not membership masks: rectangles may overlap or contain
-    pixels assigned to another watershed region. Phase 4 measurement uses the
-    worker-local region processor, which sees the exact labels before reducing
-    them to compact records.
-
-    {_header}
-    {_separator}
-    {_rows}
-    """)
-    return
-
-
-@app.cell(hide_code=True)
-def _(measurement_models, mo, tiled_moments):
-    _region_measurements = tuple(
-        record
-        for record in tiled_moments.records
-        if record.target.object_kind == "deblended-region"
+    _product_table = mo.md(
+        "| Product role | File | Bytes | SHA-256 prefix | Status |\n"
+        "| --- | --- | ---: | --- | --- |\n"
+        f"{_product_rows}"
     )
-    _header = (
-        "| Region | Moment shape | Peak (mJy/beam) | "
-        "Owned-pixel flux (mJy) | Centroid (x, y) |"
+    _profile_note = mo.md(
+        f"**Profile:** `{source_finder_diagnostics.profile}`  "
+        "**Configuration:** "
+        f"`{source_finder_diagnostics.configuration_qualification}`  "
+        f"**Result schema:** `{source_finder_result.schema_version}`  "
+        "**Diagnostic schema:** "
+        f"`{source_finder_diagnostics.schema_version}`"
     )
-
-    def _row(record):
-        if isinstance(record, measurement_models.UnavailableMomentMeasurement):
-            _status = f"unavailable: {record.reason}"
-            return f"| {record.target.object_id} | {_status} | — | — | — |"
-        _photometry = record.photometry
-        if isinstance(record, measurement_models.ValidMomentMeasurement):
-            _shape = (
-                f"{record.initializer.major_sigma_pixels:.2f} x "
-                f"{record.initializer.minor_sigma_pixels:.2f} px at "
-                f"{record.initializer.major_axis_angle_degrees:.1f}°"
-            )
-            _centroid = (
-                f"({record.initializer.centroid_xy[0]:.2f}, "
-                f"{record.initializer.centroid_xy[1]:.2f})"
-            )
-        else:
-            _shape = f"unavailable: {record.reason}"
-            _centroid = "—"
-        return (
-            f"| {record.target.object_id} | {_shape} | "
-            f"{1e3 * _photometry.peak_brightness_jy_per_beam:.3f} | "
-            f"{1e3 * _photometry.owned_pixel_integrated_flux_jy:.3f} | "
-            f"{_centroid} |"
-        )
-
-    _rows = "\n".join(_row(record) for record in _region_measurements)
-    mo.md(f"""
-    ## 5. Exact-label moment measurements
-
-    {_header}
-    | --- | --- | ---: | ---: | --- |
-    {_rows}
-
-    These are deterministic measurements of only the pixels assigned to each
-    watershed region. The shape is a brightness-weighted pixel-space moment
-    initializer, not a fitted or beam-deconvolved source size. Owned-pixel flux
-    is likewise distinct from the infinite-area flux of a fitted Gaussian.
-    """)
-    return
-
-
-@app.cell
-def _(
-    demonstration_workspace,
-    pathlib,
-    rapthor_catalogue_adapter,
-    tiled_catalogue,
-):
-    rapthor_catalogue_path = (
-        pathlib.Path(demonstration_workspace.name) / "source_catalog.fits"
-    )
-    rapthor_catalogue_product = (
-        rapthor_catalogue_adapter.write_rapthor_catalogue_fits(
-            rapthor_catalogue_path,
-            tiled_catalogue.catalogue,
-        )
-    )
-    rapthor_catalogue_table = (
-        rapthor_catalogue_adapter.read_rapthor_catalogue_fits(
-            rapthor_catalogue_path
-        )
-    )
-    return rapthor_catalogue_product, rapthor_catalogue_table
-
-
-@app.cell(hide_code=True)
-def _(mo, rapthor_catalogue_product, rapthor_catalogue_table, tiled_catalogue):
-    _sources = tiled_catalogue.catalogue.sources
-
-    def _deconvolved(source):
-        if source.deconvolved_shape is None:
-            return "unresolved"
-        return f"{3600 * source.deconvolved_shape.major_fwhm_degrees:.2f}"
-
-    _rows = "\n".join(
-        (
-            f"| {source.source_id} | "
-            f"{source.position.right_ascension_degrees:.5f} | "
-            f"{source.position.declination_degrees:.5f} | "
-            f"{1e3 * source.flux.peak_flux_jy_per_beam:.3f} | "
-            f"{1e3 * source.flux.integrated_flux_jy:.3f} | "
-            f"{3600 * source.fitted_shape.major_fwhm_degrees:.2f} | "
-            f"{_deconvolved(source)} | "
-            f"{', '.join(source.quality_flags)} |"
-        )
-        for source in _sources
-    )
-    _columns = ", ".join(rapthor_catalogue_table.colnames)
-    _catalogue_header = (
-        "| Source | RA (deg) | Dec (deg) | Peak (mJy/beam) | "
-        "Total (mJy) | Fitted major (arcsec) | "
-        "Deconvolved major (arcsec) | Quality flags |"
-    )
-    _catalogue_separator = (
-        "| --- | ---: | ---: | ---: | ---: | ---: | --- | --- |"
-    )
-    mo.md(f"""
-    ## 6. Fitted sky catalogue and Rapthor view
-
-    {_catalogue_header}
-    {_catalogue_separator}
-    {_rows}
-
-    The fitted pixel ellipses have been transformed through the local WCS and
-    deconvolved from the restoring beam. An unresolved result has no internal
-    physical size; the compatibility writer alone translates it to
-    `DC_Maj = 0`.
-
-    The deterministic FITS product contains **{len(rapthor_catalogue_table)}
-    rows**, **{rapthor_catalogue_product.byte_count} bytes**, and exactly the
-    columns Rapthor reads directly: `{_columns}`.
-    """)
-    return
-
-
-@app.cell
-def _(
-    np,
-    one_tile_background,
-    one_tile_catalogue,
-    one_tile_catalogue_shards,
-    one_tile_deblending,
-    one_tile_detection,
-    one_tile_mask,
-    one_tile_moments,
-    one_tile_rms,
-    source_filtering_mask,
-    tiled_deblending,
-    tiled_detection,
-    tiled_catalogue,
-    tiled_catalogue_shards,
-    tiled_moments,
-    background_plane,
-    rms_plane,
-):
-    partition_checks = {
-        "Background is identical": np.array_equal(
-            one_tile_background,
-            background_plane,
-        ),
-        "RMS is identical": np.array_equal(one_tile_rms, rms_plane),
-        "Source mask is identical": np.array_equal(
-            one_tile_mask,
-            source_filtering_mask,
-        ),
-        "Island summaries are identical": (
-            one_tile_detection.islands == tiled_detection.islands
-        ),
-        "Deblended summaries are identical": (
-            one_tile_deblending == tiled_deblending
-        ),
-        "Moment records are identical": one_tile_moments == tiled_moments,
-        "Catalogue shards are identical": (
-            one_tile_catalogue_shards == tiled_catalogue_shards
-        ),
-        "Completed catalogues are identical": (
-            one_tile_catalogue == tiled_catalogue
-        ),
-    }
-    return (partition_checks,)
-
-
-@app.cell(hide_code=True)
-def _(mo, partition_checks, tiled_detection):
-    _rows = "\n".join(
-        f"| {name} | {'✅' if passed else '❌'} |"
-        for name, passed in partition_checks.items()
-    )
-    _candidate_positions = (
-        ", ".join(
-            str(item)
-            for item in tiled_detection.adaptive_candidate_positions_yx
-        )
-        or "none"
-    )
-    mo.md(f"""
-    ## 7. Partition invariance
-
-    | Check | Result |
-    | --- | --- |
-    {_rows}
-
-    The four-tile run used a deterministic hierarchical boundary reduction.
-    Its automatically discovered adaptive-RMS candidate positions were:
-    `{_candidate_positions}`.
-
-    This small serial comparison exercises the same scheduler-independent
-    contract used by the Dask executor; the integration suite separately
-    verifies serial/Dask equality, retries, and task-order invariance.
-    """)
+    mo.vstack([_statistics, _profile_note, _product_table])
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## What this does—and does not—demonstrate
+    ## 3. Inspect the published scientific products
 
-    Hebog can currently locate compact emission, reconcile it across tiles,
-    split admitted compact islands into deterministic regions, calculate
-    exact-label moments, fit Gaussian components, transform and deconvolve
-    their sky shapes, build the internal compact catalogue, and materialize the
-    eight-column FITS view used by Rapthor diagnostics. It also persists
-    restartable background, RMS, and source-mask products.
+    `SourceFinderResult` carries closed product identities and paths. The
+    catalogue and diagnostics are read with Hebog's validating readers. The
+    image panels below use the published RMS and source-mask FITS products;
+    no private stage result is retained or inspected.
+    """)
+    return
 
-    Formal position and flux errors are not yet calibrated for correlated
-    synthesized-beam noise. Sub-beam blends need a reviewed association/model
-    amendment, and extended or multiscale recovery, per-channel catalogue
-    fields, the final `filter_skymodel` decision, controlled performance, and
-    production-scale qualification remain later work. Hebog is not yet a
-    drop-in PyBDSF replacement or a production-ready Rapthor backend.
-    """).callout(kind="warn")
+
+@app.cell
+def _(
+    input_image,
+    input_wcs,
+    mo,
+    np,
+    plt,
+    rms_image,
+    source_catalogue,
+    source_mask,
+):
+    _source_world = np.asarray(
+        [
+            (
+                _source.position.right_ascension_degrees,
+                _source.position.declination_degrees,
+            )
+            for _source in source_catalogue.sources
+        ],
+        dtype=np.float64,
+    )
+    _component_world = np.asarray(
+        [
+            (
+                _component.position.right_ascension_degrees,
+                _component.position.declination_degrees,
+            )
+            for _component in source_catalogue.gaussian_components
+        ],
+        dtype=np.float64,
+    )
+    _source_pixels = (
+        input_wcs.all_world2pix(_source_world, 0)
+        if _source_world.size
+        else np.empty((0, 2), dtype=np.float64)
+    )
+    _component_pixels = (
+        input_wcs.all_world2pix(_component_world, 0)
+        if _component_world.size
+        else np.empty((0, 2), dtype=np.float64)
+    )
+
+    _minimum, _maximum = np.percentile(input_image, (1.0, 99.8))
+    _product_figure, _product_axes = plt.subplots(
+        2,
+        2,
+        figsize=(11.5, 9.0),
+        constrained_layout=True,
+    )
+    _input_artist = _product_axes[0, 0].imshow(
+        1_000.0 * input_image,
+        origin="lower",
+        cmap="gray",
+        vmin=1_000.0 * _minimum,
+        vmax=1_000.0 * _maximum,
+    )
+    if np.any(source_mask):
+        _product_axes[0, 0].contour(
+            source_mask,
+            levels=[0.5],
+            colors="tab:orange",
+            linewidths=1.1,
+        )
+    _product_axes[0, 0].set_title("Input with published mask boundary")
+    _product_figure.colorbar(
+        _input_artist,
+        ax=_product_axes[0, 0],
+        label="mJy/beam",
+        shrink=0.8,
+    )
+
+    _rms_artist = _product_axes[0, 1].imshow(
+        1_000.0 * rms_image,
+        origin="lower",
+        cmap="cividis",
+    )
+    _product_axes[0, 1].set_title("Published local RMS")
+    _product_figure.colorbar(
+        _rms_artist,
+        ax=_product_axes[0, 1],
+        label="mJy/beam",
+        shrink=0.8,
+    )
+
+    _mask_artist = _product_axes[1, 0].imshow(
+        source_mask,
+        origin="lower",
+        cmap="binary",
+        vmin=0,
+        vmax=1,
+    )
+    _product_axes[1, 0].set_title("Published source-support mask")
+    _product_figure.colorbar(
+        _mask_artist,
+        ax=_product_axes[1, 0],
+        ticks=[0, 1],
+        shrink=0.8,
+    )
+
+    _product_axes[1, 1].imshow(
+        1_000.0 * input_image,
+        origin="lower",
+        cmap="gray",
+        vmin=1_000.0 * _minimum,
+        vmax=1_000.0 * _maximum,
+    )
+    if _component_pixels.size:
+        _product_axes[1, 1].scatter(
+            _component_pixels[:, 0],
+            _component_pixels[:, 1],
+            s=70,
+            facecolors="none",
+            edgecolors="tab:cyan",
+            linewidths=1.4,
+            label="Gaussian component",
+        )
+    if _source_pixels.size:
+        _product_axes[1, 1].scatter(
+            _source_pixels[:, 0],
+            _source_pixels[:, 1],
+            s=130,
+            marker="*",
+            color="tab:orange",
+            edgecolors="black",
+            linewidths=0.5,
+            label="Associated source",
+        )
+    _product_axes[1, 1].set_title("Validated catalogue positions")
+    if _source_pixels.size or _component_pixels.size:
+        _product_axes[1, 1].legend(loc="upper right")
+
+    for _axis in _product_axes.flat:
+        _axis.set(xlabel="x pixel", ylabel="y pixel")
+
+    mo.vstack([_product_figure])
+    return
+
+
+@app.cell
+def _(mo, source_catalogue):
+    _component_counts = {
+        _source.source_id: sum(
+            _component.source_id == _source.source_id
+            for _component in source_catalogue.gaussian_components
+        )
+        for _source in source_catalogue.sources
+    }
+    _source_rows = "\n".join(
+        f"| `{_source.source_id}` | `{_source.island_id}` | "
+        f"{_component_counts[_source.source_id]} | "
+        f"{_source.position.right_ascension_degrees:.6f} | "
+        f"{_source.position.declination_degrees:.6f} | "
+        f"{1_000.0 * _source.flux.integrated_flux_jy:.3f} |"
+        for _source in source_catalogue.sources
+    )
+    if not _source_rows:
+        _source_rows = "| _No accepted sources_ | - | - | - | - | - |"
+
+    _component_rows = "\n".join(
+        f"| `{_component.gaussian_component_id}` | "
+        f"`{_component.source_id}` | `{_component.island_id}` | "
+        f"{1_000.0 * _component.flux.peak_flux_jy_per_beam:.3f} | "
+        f"{3_600.0 * _component.fitted_shape.major_fwhm_degrees:.3f} | "
+        f"{3_600.0 * _component.fitted_shape.minor_fwhm_degrees:.3f} |"
+        for _component in source_catalogue.gaussian_components
+    )
+    if not _component_rows:
+        _component_rows = "| _No fitted components_ | - | - | - | - | - |"
+
+    _source_table = mo.md(
+        "### Astronomical sources\n\n"
+        "| Source | Island | Components | RA (deg) | Dec (deg) | "
+        "Integrated flux (mJy) |\n"
+        "| --- | --- | ---: | ---: | ---: | ---: |\n"
+        f"{_source_rows}"
+    )
+    _component_table = mo.md(
+        "### Gaussian components\n\n"
+        "| Component | Source | Island | Peak (mJy/beam) | "
+        "Major FWHM (arcsec) | Minor FWHM (arcsec) |\n"
+        "| --- | --- | --- | ---: | ---: | ---: |\n"
+        f"{_component_rows}"
+    )
+    mo.vstack([_source_table, _component_table])
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## What this demonstrates
+
+    The notebook crosses the same public boundary available to external
+    Python callers: FITS input and small serializable records in, then a
+    versioned `SourceFinderResult` with four materialized products out. The
+    continuum profile performs compact measurement and extended-emission
+    association behind that boundary, so the four fitted lobes can belong to
+    one source without notebook code coordinating those stages.
+
+    The current scientific preview accepts images no larger than 1,024 pixels
+    on either spatial axis. The values shown above identify the evaluated
+    Phase 5 reference; callers can choose other valid thresholds without
+    inheriting that evidence. Output directories are caller-owned and must not
+    already exist. Hebog publishes a complete bundle atomically and will not
+    overwrite an earlier result.
+    """).callout(kind="info")
     return
 
 

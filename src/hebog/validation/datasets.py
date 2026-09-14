@@ -35,6 +35,7 @@ _MINIMUM_DECLINATION_DEGREES = -90.0
 _MAXIMUM_DECLINATION_DEGREES = 90.0
 _DEFAULT_MAXIMUM_IN_MEMORY_PIXELS = 4096 * 4096
 _MINIMUM_UNRESOLVED_GROUP_SOURCES = 2
+_MULTISCALE_MANIFEST_SCHEMA_VERSION = 3
 
 
 class DatasetRole(str, Enum):
@@ -352,6 +353,100 @@ class AssociationGroupValidationStratum(_ManifestModel):
         return self
 
 
+class MultiscaleTruthGroup(_ManifestModel):
+    """One governed extended object built from analytic Gaussian emitters."""
+
+    identifier: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    source_indices: tuple[int, ...] = Field(min_length=1)
+    morphology: Literal[
+        "artifact",
+        "curved-filament",
+        "diffuse",
+        "filament",
+        "mixed-compact-extended",
+        "shell",
+    ]
+    catalogue_role: Literal["astronomical-source", "artifact"]
+    reference_position_xy: tuple[float, float]
+    reference_integrated_brightness_jy_pixels_per_beam: float = Field(
+        gt=0,
+        allow_inf_nan=False,
+    )
+    major_extent_beams: float = Field(gt=0, allow_inf_nan=False)
+    minor_extent_beams: float = Field(gt=0, allow_inf_nan=False)
+    governed_scale_orders: tuple[int, ...] = Field(min_length=1)
+    crosses_tile_boundary: bool
+    crosses_tile_corner: bool = Field(
+        default=False,
+        exclude_if=lambda value: not value,
+    )
+    compact_deblend_disposition: Literal[
+        "compact-eligible",
+        "deferred-extended",
+    ] = Field(
+        default="compact-eligible",
+        exclude_if=lambda value: value == "compact-eligible",
+    )
+    touches_image_edge: bool
+
+    @model_validator(mode="after")
+    def validate_group(self) -> Self:
+        """Require canonical membership, scale order, and truth role."""
+        if tuple(sorted(set(self.source_indices))) != self.source_indices:
+            raise ValueError(
+                "multiscale truth source indices must be unique and sorted"
+            )
+        if any(index < 0 for index in self.source_indices):
+            raise ValueError(
+                "multiscale truth source indices must be non-negative"
+            )
+        if not all(np.isfinite(value) for value in self.reference_position_xy):
+            raise ValueError(
+                "multiscale truth reference position must be finite"
+            )
+        if self.minor_extent_beams > self.major_extent_beams:
+            raise ValueError("multiscale minor extent cannot exceed major")
+        if self.governed_scale_orders != tuple(
+            sorted(set(self.governed_scale_orders))
+        ) or any(
+            order not in {1, 2, 3} for order in self.governed_scale_orders
+        ):
+            raise ValueError("multiscale truth scale orders must be canonical")
+        expected_role = (
+            "artifact"
+            if self.morphology == "artifact"
+            else "astronomical-source"
+        )
+        if self.catalogue_role != expected_role:
+            raise ValueError(
+                "multiscale morphology and catalogue role must agree"
+            )
+        if self.crosses_tile_corner and not self.crosses_tile_boundary:
+            raise ValueError(
+                "tile-corner truth must also cross a tile boundary"
+            )
+        return self
+
+
+class MultiscaleGroupValidationStratum(_ManifestModel):
+    """One named subset of governed multiscale truth objects."""
+
+    identifier: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    group_identifiers: tuple[str, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_group_identifiers(self) -> Self:
+        """Require canonical unique multiscale truth identities."""
+        if self.group_identifiers != tuple(
+            sorted(set(self.group_identifiers))
+        ):
+            raise ValueError(
+                "multiscale stratum group identifiers must be unique and "
+                "sorted"
+            )
+        return self
+
+
 class DatasetRecord(_ManifestModel):
     """One governed validation dataset and its generation provenance."""
 
@@ -372,6 +467,16 @@ class DatasetRecord(_ManifestModel):
     association_group_strata: tuple[
         AssociationGroupValidationStratum, ...
     ] = ()
+    multiscale_truth_groups: tuple[MultiscaleTruthGroup, ...] = Field(
+        default=(),
+        exclude_if=lambda value: not value,
+    )
+    multiscale_group_strata: tuple[MultiscaleGroupValidationStratum, ...] = (
+        Field(
+            default=(),
+            exclude_if=lambda value: not value,
+        )
+    )
 
     @model_validator(mode="after")
     def validate_recipe_checksum(self) -> Self:
@@ -401,6 +506,7 @@ class DatasetRecord(_ManifestModel):
             raise ValueError("noise realization seeds must fit uint64")
         self._validate_source_strata()
         self._validate_association_truth()
+        self._validate_multiscale_truth()
         if (
             self.expected_statistics.background_jy_per_beam
             != self.recipe.background
@@ -522,9 +628,72 @@ class DatasetRecord(_ManifestModel):
         group: AssociationTruthGroup,
     ) -> None:
         """Require stored group position and brightness to match emitters."""
-        sources = tuple(
-            self.recipe.sources[index] for index in group.source_indices
+        self._validate_group_quantities(
+            source_indices=group.source_indices,
+            reference_position_xy=group.reference_position_xy,
+            reference_integrated_brightness=(
+                group.reference_integrated_brightness_jy_pixels_per_beam
+            ),
+            group_kind="truth-group",
         )
+
+    def _validate_multiscale_truth(self) -> None:
+        """Bind morphology and scale strata to complete analytic truth."""
+        if not self.multiscale_truth_groups:
+            if self.multiscale_group_strata:
+                raise ValueError(
+                    "multiscale strata require multiscale truth groups"
+                )
+            return
+        identifiers = tuple(
+            group.identifier for group in self.multiscale_truth_groups
+        )
+        if len(set(identifiers)) != len(identifiers):
+            raise ValueError("multiscale truth identifiers must be unique")
+        memberships = tuple(
+            source_index
+            for group in self.multiscale_truth_groups
+            for source_index in group.source_indices
+        )
+        if sorted(memberships) != list(range(len(self.recipe.sources))):
+            raise ValueError(
+                "multiscale truth groups must partition recipe sources"
+            )
+        for group in self.multiscale_truth_groups:
+            self._validate_group_quantities(
+                source_indices=group.source_indices,
+                reference_position_xy=group.reference_position_xy,
+                reference_integrated_brightness=(
+                    group.reference_integrated_brightness_jy_pixels_per_beam
+                ),
+                group_kind="multiscale truth-group",
+            )
+        stratum_identifiers = tuple(
+            stratum.identifier for stratum in self.multiscale_group_strata
+        )
+        if len(set(stratum_identifiers)) != len(stratum_identifiers):
+            raise ValueError("multiscale stratum identifiers must be unique")
+        known_identifiers = set(identifiers)
+        referenced_identifiers = {
+            identifier
+            for stratum in self.multiscale_group_strata
+            for identifier in stratum.group_identifiers
+        }
+        if not referenced_identifiers <= known_identifiers:
+            raise ValueError("multiscale stratum must identify governed truth")
+        if referenced_identifiers != known_identifiers:
+            raise ValueError("every multiscale truth group requires a stratum")
+
+    def _validate_group_quantities(
+        self,
+        *,
+        source_indices: tuple[int, ...],
+        reference_position_xy: tuple[float, float],
+        reference_integrated_brightness: float,
+        group_kind: str,
+    ) -> None:
+        """Match stored position and brightness to analytic emitters."""
+        sources = tuple(self.recipe.sources[index] for index in source_indices)
         brightnesses = np.asarray(
             [
                 source.peak_flux_jy_per_beam
@@ -554,30 +723,30 @@ class DatasetRecord(_ManifestModel):
             ),
         )
         if not np.allclose(
-            group.reference_position_xy,
+            reference_position_xy,
             reference_position,
             rtol=1e-12,
             atol=1e-12,
         ):
             raise ValueError(
-                "truth-group reference position does not match source truth"
+                f"{group_kind} reference position does not match source truth"
             )
         if not np.isclose(
-            group.reference_integrated_brightness_jy_pixels_per_beam,
+            reference_integrated_brightness,
             total,
             rtol=1e-12,
             atol=0.0,
         ):
             raise ValueError(
-                "truth-group reference integrated brightness does not match "
-                "source truth"
+                f"{group_kind} reference integrated brightness does not "
+                "match source truth"
             )
 
 
 class DatasetManifest(_ManifestModel):
     """Versioned collection of uniquely identified validation datasets."""
 
-    schema_version: Literal[1, 2]
+    schema_version: Literal[1, 2, 3]
     manifest_id: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
     datasets: tuple[DatasetRecord, ...]
 
@@ -592,6 +761,18 @@ class DatasetManifest(_ManifestModel):
         ):
             raise ValueError(
                 "association truth groups require manifest schema 2"
+            )
+        if self.schema_version < _MULTISCALE_MANIFEST_SCHEMA_VERSION and any(
+            dataset.multiscale_truth_groups for dataset in self.datasets
+        ):
+            raise ValueError(
+                "multiscale truth groups require manifest schema 3"
+            )
+        if self.schema_version == _MULTISCALE_MANIFEST_SCHEMA_VERSION and any(
+            not dataset.multiscale_truth_groups for dataset in self.datasets
+        ):
+            raise ValueError(
+                "manifest schema 3 requires multiscale truth groups"
             )
         return self
 

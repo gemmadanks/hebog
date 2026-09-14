@@ -1,0 +1,100 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "evaluation_authorized": false,
+    "implementation_authorized": true,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false
+  },
+  "candidate": {
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "revision": "95cfc76ded56556dc3ad6894410962d34f0d5604",
+    "source_tree_sha256": "8da21e86afc5035da0704724a9d29104ea8b0e4d55fa4a98f0c5f3efca9a75a5"
+  },
+  "decision_id": "phase-5-public-owner-domain-cumulative-replay-implementation-decision",
+  "fast_terminal": {
+    "path": "benchmark-results/phase-5/public-owner-domain-fast-lane-decision.json",
+    "sha256": "a274888dab12bd5a1623310b35ba3f9a90ff14f9fd5249d118cd2a1c8b778348",
+    "status": "pass"
+  },
+  "implemented_contracts": [
+    "reuse the proven one-scan 2400-product candidate runner",
+    "bind the exact version-8 public source identity",
+    "reuse all 9600 retained PyBDSF reference runs without execution",
+    "reuse the authentic incumbent and closed baseline identities",
+    "verify every task and retained input before creating scratch",
+    "rehash every product before one atomic write-once seal"
+  ],
+  "process_reviews": {
+    "json_format_review": {
+      "path": "config/contracts/phase-5-final-cumulative-current-replay-json-format-review.json",
+      "sha256": "ab96bacf3625aa5942a51080affeb7ea3d31687aaaff5a4dbcf74e2fe20decc6"
+    },
+    "process_review": {
+      "path": "config/contracts/phase-5-final-cumulative-current-replay-preflight-efficiency-review-canonical.json",
+      "sha256": "f67d74c05af40ff509562583bc7dca51fbb2d7dbc29bff581a03f20f4cf2ab39"
+    },
+    "single_scan_review": {
+      "path": "config/contracts/phase-5-final-cumulative-current-replay-single-scan-execution-review-canonical.json",
+      "sha256": "8d4848d265aaf07bb858856d05c984dc8a33b128b0f6d3e67d73f9b322c5dffa"
+    },
+    "type_clean_review": {
+      "path": "config/contracts/phase-5-final-cumulative-current-replay-type-clean-review-canonical.json",
+      "sha256": "853fe3982fc6e098ab2a3b1e986a9853b0ebac57cbcee6a7f174033d119c62b1"
+    }
+  },
+  "program_bindings": {
+    "base_runner": {
+      "path": "scripts/validation/run_phase5_final_cumulative_current_replay.py",
+      "sha256": "d73cb780623906adddf9248cd9a9c531e0955e40881e8595b54c7e9cc63ea7f6"
+    },
+    "freezer": {
+      "path": "scripts/validation/freeze_phase5_public_owner_domain_cumulative_replay.py",
+      "sha256": "f54246a6f26fc8e20cbffb35071d9a031a4f8cd987e3b81db0664b89f66e7b76"
+    },
+    "materializer": {
+      "path": "scripts/validation/materialize_phase5_prospective_paired_products.py",
+      "sha256": "d5c0d16bd4f379ec4a0767ccd57d24ce089e844761372a5d3b3f4fa939be65b2"
+    },
+    "predecessor_runner": {
+      "path": "scripts/validation/run_phase5_final_cumulative_current_replay_validated_retry.py",
+      "sha256": "34d30a8e845f3b9a47675bcd3968af0a99269c323948a3bdd7b84d624624cf5a"
+    },
+    "runner": {
+      "path": "scripts/validation/run_phase5_public_owner_domain_cumulative_replay.py",
+      "sha256": "939fa6ffcd3ac19a25b7137ad36582258cfcc4358a437e18b6ca461ebd90f3e7"
+    },
+    "smoke_evaluator": {
+      "path": "scripts/validation/evaluate_phase5_prospective_science_smoke.py",
+      "sha256": "9cb15439afdaaba4702d0dfd077c45a75b56f40a9193d36d2cad3596c31449d0"
+    },
+    "topology_evaluator": {
+      "path": "scripts/validation/evaluate_phase5_prospective_paired_cumulative_topology_repair.py",
+      "sha256": "39a568bada625b751931aff649e4e815c5ed70f68809d902a52ce93cfeaec62a"
+    }
+  },
+  "retained_evidence": {
+    "closed_baseline": {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-recovery.json",
+      "sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9"
+    },
+    "incumbent_reconstruction": {
+      "path": "benchmark-results/phase-5/prospective-paired-incumbent-reconstruction.json",
+      "sha256": "b302967f26ac5947e3c942598a428527cce1d4fa3373ed6eaeb6d204eb8dc040"
+    },
+    "population": {
+      "path": "config/contracts/phase-5-prospective-paired-population.json",
+      "sha256": "0bd3e6a6e505f8fb307a108d90e932f6b3f16ae5fc6c654ab4c82de14f483687"
+    },
+    "reference_reconstruction": {
+      "path": "benchmark-results/phase-5/viewed-reference-reconstruction-public-finder-correction/recovery.json",
+      "sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2"
+    },
+    "source_request": {
+      "path": "benchmark-results/phase-5/external-post-failure-comparison/campaign-request.json",
+      "sha256": "7ba9be1b20ff0448e51729337acf2a7028cc0ec578c5e25106b9b34b07506df4"
+    }
+  },
+  "schema_version": 1,
+  "status": "implemented-and-preflightable-non-executable"
+}

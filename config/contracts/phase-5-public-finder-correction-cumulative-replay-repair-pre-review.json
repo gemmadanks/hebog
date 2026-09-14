@@ -1,0 +1,103 @@
+{
+  "approved_but_rejected_execution": {
+    "decision": {
+      "path": "config/contracts/phase-5-public-finder-correction-cumulative-replay-decision.json",
+      "sha256": "bf955638a1dfbd2c69a585801a7cc52c87ec0453d1395850cc2198d00d278845"
+    },
+    "identity_review": {
+      "path": "config/contracts/phase-5-public-finder-correction-identity-review.json",
+      "sha256": "e2121fb82fb27a9f73153a2be2c6afbb8113e7bc1a7460500f369c6c490a503b"
+    },
+    "output": {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-correction.json",
+      "state": "absent"
+    },
+    "program": {
+      "path": "scripts/validation/review_phase5_cumulative_regressions.py",
+      "sha256": "5d41d31ee79cd0d6d203cd774267fd504d06fe7662768486f99c31a7902b8a3f"
+    }
+  },
+  "authorization_boundary": {
+    "campaign_execution_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "implementation_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false
+  },
+  "candidate": {
+    "base_configuration_sha256": "0e5dde51dfd2df84cdf71c3da34449b96c6999f517d781e1aaaec48ebb485a94",
+    "commit": "b1d59e5aaf778a5fed4ea662afeba2ee100424ff",
+    "correction_configuration_sha256": "65c8876dcdb484bd5a82b3520e065ea6bf33cf24cfdd33b592c6c859231c62f0",
+    "correction_contract_sha256": "f0ddd4d5cb8c3c5542d1de761f6fde0644ec7cf051d5fb1dc7482ed3b96ff524",
+    "source_tree_sha256": "2de6564e78f1a3664dd3fb18f696c747bfc3350fdd894164c4fafb07528d1ba9"
+  },
+  "closed_boundary": {
+    "baseline": {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-recovery.json",
+      "sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9"
+    },
+    "compact_image_count": 800,
+    "continuum_image_count": 1600,
+    "required_result": "cumulative_science_regression_ready=true-with-no-like-semantics-regression",
+    "viewed_public_products_opened": false
+  },
+  "failure": {
+    "approved_candidate_revision": "b1d59e5aaf778a5fed4ea662afeba2ee100424ff",
+    "approved_correction_configuration_sha256": "65c8876dcdb484bd5a82b3520e065ea6bf33cf24cfdd33b592c6c859231c62f0",
+    "failed_stage": "no-write-candidate-composition-validation",
+    "frozen_candidate_revision": "c184acf7f55f936442285835b4601a6ac193fe2a",
+    "frozen_configuration_builder": "post_correction_candidate_configuration",
+    "frozen_continuum_builder": "build_post_correction_continuum_products",
+    "identity_review_configuration_sha256": "0e5dde51dfd2df84cdf71c3da34449b96c6999f517d781e1aaaec48ebb485a94",
+    "root_cause": "the correction identity review bound the unchanged historical replay program and base configuration without exercising the program's hardcoded candidate composition",
+    "scientific_products_opened": false,
+    "write_once_output_created": false
+  },
+  "recommendation": {
+    "approach": "add-one-minimal-correction-replay-wrapper-around-the-frozen-historical-replay",
+    "do_not_modify": [
+      "frozen historical replay program",
+      "closed cumulative baseline or historical products",
+      "compact candidate composition",
+      "background, RMS, thresholds, minimum area, aperture, flux, position, endpoint, or gate policy",
+      "viewed SDC1 or Hydra products",
+      "output path before replacement execution approval"
+    ],
+    "prospective_paths": {
+      "identity_review": "config/contracts/phase-5-public-finder-correction-cumulative-replay-repair-review.json",
+      "implementation_decision": "config/contracts/phase-5-public-finder-correction-cumulative-replay-repair-decision.json",
+      "wrapper": "scripts/validation/review_phase5_public_finder_correction_cumulative_regressions.py"
+    },
+    "required_composition": [
+      "delegate unchanged campaign verification, reference reconstruction, compact generation, compilation, evaluation, regression comparison, and atomic ledger publication to the frozen historical replay",
+      "replace only the candidate revision with b1d59e5aaf778a5fed4ea662afeba2ee100424ff",
+      "compute configuration 65c8876dcdb484bd5a82b3520e065ea6bf33cf24cfdd33b592c6c859231c62f0 through public_finder_correction_candidate_configuration",
+      "write Continuum products only through build_public_finder_correction_continuum_products",
+      "bind the exact source overlay and inherited dependency runtime separately without claiming that the correction is baked into the historical container image",
+      "refuse any revision, source tree, configuration, correction contract, baseline, population, program, output, or authorization drift before scientific input access"
+    ],
+    "required_regressions": [
+      "the real wrapper composition selects the approved revision, correction configuration, and correction Continuum builder",
+      "the compact builder and every compiler, evaluator, endpoint, and gate remain the frozen historical objects",
+      "a no-write preflight rejects the historical c184 revision, base-only configuration, old Continuum builder, changed source tree, changed baseline, or existing output",
+      "runtime provenance distinguishes the exact b1d59e5 source overlay from the inherited dependency container",
+      "fixture execution proves the wrapper writes correction-shaped products while preserving write-once and no-viewed-public-data boundaries"
+    ]
+  },
+  "review_id": "phase-5-public-finder-correction-cumulative-replay-repair-pre-review",
+  "schema_version": 1,
+  "scientific_scope": {
+    "candidate_science_changed": false,
+    "compact_composition_changed": false,
+    "endpoints_or_gates_changed": false,
+    "population_changed": false,
+    "public_development_products_opened": false,
+    "threshold_or_photometry_changed": false
+  },
+  "status": "ready-for-named-replay-repair-implementation-review"
+}

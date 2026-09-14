@@ -1,0 +1,78 @@
+{
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "threshold_or_photometric_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "candidate": {
+    "configuration_sha256": "88634678d7b24c9d9d47a5ba714c66fcc627c8a201b9639b133e326cd1c72484",
+    "revision": "5f2b09880dc10feb6ffaec50ffcf3c807a093416",
+    "source_tree_sha256": "a7ef1887bcaeb15abf48722d45de33f81d8be65d58fde19861bf0ece90b4dba8"
+  },
+  "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+  "decision_id": "phase-5-public-finder-source-hierarchy-parent-construction-cumulative-replay-repair-review",
+  "expected_execution_sha256": "7a9c19d324b61606b9d5148f37212fdb4f7c050f985becd7def6447dc69a8333",
+  "failure": {
+    "path": "config/contracts/phase-5-public-finder-source-hierarchy-parent-construction-cumulative-replay-execution-failure.json",
+    "sha256": "9ddf370eb4a224aed071104ab91c7a5ad5ca8fdd28370875be3eaf6dd4f2b672"
+  },
+  "implementation": {
+    "boundary_commit": "9d15fd0a0d8b8203dcda650e529ebea9c98ffdea",
+    "boundary_tree": "db23b9b619175517d0fcffdd2c723214b96bb6d6",
+    "repair_commit": "d264bd632fadfaf42f60ac30e6971a150223ad74",
+    "repair_implementation_decision": {
+      "path": "config/contracts/phase-5-public-finder-source-hierarchy-parent-construction-cumulative-replay-repair-implementation-decision.json",
+      "sha256": "8df4301b2ef687905f91a8103cb9ce9cac7327a581f46d4f60d06760989da5d4"
+    },
+    "repair_pre_review": {
+      "path": "config/contracts/phase-5-public-finder-source-hierarchy-parent-construction-cumulative-replay-repair-pre-review.json",
+      "sha256": "e492110f55005d833a833d474745ac2a957aa456541bedf9dfbc0cd52b4a00f9"
+    },
+    "wrapper": {
+      "path": "scripts/validation/review_phase5_public_finder_source_hierarchy_parent_construction_cumulative_regressions.py",
+      "sha256": "053fc6479d75a9f11e97cc2ec6f7de41610c5c03083bd81ce01ca47ef104c8d7"
+    }
+  },
+  "no_write_verification": {
+    "candidate_configuration_sha256": "88634678d7b24c9d9d47a5ba714c66fcc627c8a201b9639b133e326cd1c72484",
+    "candidate_revision": "5f2b09880dc10feb6ffaec50ffcf3c807a093416",
+    "candidate_source_tree_sha256": "a7ef1887bcaeb15abf48722d45de33f81d8be65d58fde19861bf0ece90b4dba8",
+    "consumed_wrapper_sha256": "3ff495e373c366be37532cccb4a600fab8423137caad45e246dde55698d67413",
+    "cumulative_replay_started": false,
+    "execution_checkout_revision": "9d15fd0a0d8b8203dcda650e529ebea9c98ffdea",
+    "execution_delegation_verified": true,
+    "output_absent": true,
+    "readiness_sha256": "318d6d6c612b7c043963de2b70556031d47c3b04b15de8ce8daca7bd23fcd386",
+    "reference_reconstruction_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+    "scratch_absent": true,
+    "status": "pass",
+    "verified_input_count": 2400,
+    "verified_reference_run_count": 9600
+  },
+  "original_authorization": {
+    "execution_decision_sha256": "78c274ccf8c14fc0dd4deff1a2e791eb64ad154100af8db8ef0f72795ff40d9f",
+    "identity_review_sha256": "e615da0027a1cbb8bd0ab60f2b32cd09f37ccd49cf6a3e420a1ca9e8427a837e"
+  },
+  "output_path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-hierarchy-parent-construction.json",
+  "reference_reconstruction_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+  "required_next_decision": "consume-explicit-fix-and-restart-instruction-for-one-unchanged-replay",
+  "schema_version": 1,
+  "scientific_boundary": {
+    "candidate_change": false,
+    "configuration_change": false,
+    "gate_or_threshold_change": false,
+    "population_change": false,
+    "reference_or_baseline_change": false,
+    "wrapper_only_repair": true
+  },
+  "scratch_path": "/private/tmp/hebog-phase5-public-finder-source-hierarchy-parent-construction-5f2b098",
+  "status": "reviewed-before-wrapper-repaired-replay-restart",
+  "workers": 2
+}

@@ -1,0 +1,124 @@
+{
+  "current_authorization": {
+    "candidate_execution_authorized": false,
+    "coarse_control_execution_authorized": false,
+    "cutover_authorized": false,
+    "development_lane_execution_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "replay_authorized": false,
+    "rescoring_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "decision_id": "phase-5-source-owned-measurement-topology-footprint-guard-implementation-decision",
+  "exact_user_authority": "I approve running the repaired development lane, the planned replay and final campaign required to verify and demonstrate scientific quality and pybdsf parity to close phase 5 as well as any bug fixes that are needed for this. Monitor long-running tasks hourly but prefer faster iterations where possible for catching and fixing bugs before starting longer replays and campaigns.",
+  "fixture_bindings": {
+    "adaptive_attribution": {
+      "path": "tests/unit/validation/test_adaptive_background_correction.py",
+      "sha256": "241501976260d9988a0fd33abadcd8e202a7c92eba14a9d1ab3fad64a15a5a65"
+    },
+    "combined_lane": {
+      "path": "tests/unit/validation/test_source_owned_measurement_topology_lane.py",
+      "sha256": "3faec8e243b93f4a92b2b613c07440f8dc3e469b515b8c26d51be59b2ba51f76"
+    },
+    "executor_invariance": {
+      "path": "tests/integration/test_public_finder_correction_execution.py",
+      "sha256": "d3238341d514b61c25e1106e41fc5b881a9ba26ec7ad028e7713367ca17661a2"
+    },
+    "footprint_guard_lane": {
+      "path": "tests/unit/validation/test_source_owned_footprint_guard_lane.py",
+      "sha256": "355d6c4df09e0e10b49f3bf55e7da08f06d7df70a8280ab3377e4ffde2725b73"
+    },
+    "measurement": {
+      "path": "tests/unit/test_extended_measurement.py",
+      "sha256": "87e1e8833b7cd9eb93ebd29aaa7d3e020b766244e4a25fd4ad4508e602a6abda"
+    },
+    "public_composition": {
+      "path": "tests/unit/validation/test_public_finder_correction.py",
+      "sha256": "1a8d8f70e1c4a9b14225109763efbd4c8049794f39c33183b3c97ce85ba67b36"
+    },
+    "source_measurement": {
+      "path": "tests/unit/validation/test_reconstructed_source_measurement.py",
+      "sha256": "0908f969dde8164eb1e729a836aca50a72850a620430cea3d442eb6f4073a5d7"
+    },
+    "topology": {
+      "path": "tests/unit/test_source_reconstruction.py",
+      "sha256": "e23751befd6fe22ecd23231c102ef8d7ad5fadb9bb8f4cc06bc3578ddb23edf3"
+    }
+  },
+  "fixture_evidence": {
+    "combined_successor_tests_passed": 21,
+    "process_errors": 0,
+    "test_first_regression_confirmed": true
+  },
+  "implemented_contracts": [
+    "adaptive background and RMS source protection expands by the maximum estimator half-window",
+    "analytic recovery and split diagnostics use only catalogue rows associated with the injected truth footprint",
+    "remote catalogue rows remain explicit array-free reliability evidence and are not hidden by source association",
+    "the fast lane binds product validity, trigger activation, paired practical margins, and Serial/existing-Dask identity",
+    "dual-PyBDSF parity and incumbent retention remain mandatory in cumulative replay and held-out qualification"
+  ],
+  "program_bindings": {
+    "attribution": {
+      "path": "src/hebog/validation/adaptive_background_diagnostics.py",
+      "sha256": "139a99ce3cd1b9c468a266320e9b6081eea716dcaf26d4b2a8ec47f0dce181d1"
+    },
+    "background_algorithm": {
+      "path": "src/hebog/algorithms/background.py",
+      "sha256": "59f405ae0d00848b61f85d23dac93dee7b65d1443763b664ad8efbc0aa34cdd3"
+    },
+    "background_stage": {
+      "path": "src/hebog/stages/background.py",
+      "sha256": "e595b2884017d623e5abbcd36408fde630d5c44eb33a4f73dede97c0b9a185e3"
+    },
+    "detection_stage": {
+      "path": "src/hebog/stages/detection.py",
+      "sha256": "3088160f9df4b3f508de09c56b89b15671ca4fab5949c8a1df5479b08005dd67"
+    },
+    "freezer": {
+      "path": "scripts/validation/freeze_phase5_source_owned_measurement_topology_footprint_guard.py",
+      "sha256": "0b63cd96b8cc0c89ed5fd4ca77b30495dffdef19acd4cbc0ce5f89f238bc8258"
+    },
+    "lane_evaluator": {
+      "path": "src/hebog/validation/adaptive_background_lane.py",
+      "sha256": "973a118659a0009da10ec6b539de9969218a7695d4b8199c3327b391fc68587a"
+    },
+    "measurement_algorithm": {
+      "path": "src/hebog/algorithms/extended_measurement.py",
+      "sha256": "f6f12a91931bc5f213ef757c50032407ef87da53ca53383f11c7dc22227d74ed"
+    },
+    "measurement_composition": {
+      "path": "src/hebog/validation/products.py",
+      "sha256": "c5f64f35a6d7a72a3256d075e20b621081938ea7fa97525e1b887a74d4374fe7"
+    },
+    "parent_runner": {
+      "path": "scripts/validation/run_phase5_adaptive_background_development.py",
+      "sha256": "d7b4b728622b6455ff8aafe523a52c9efb6a58a3f97a3157cc6fc2ed49423df6"
+    },
+    "runner": {
+      "path": "scripts/validation/run_phase5_source_owned_measurement_topology.py",
+      "sha256": "5138fda039db882613bb74402df069e2285cd5288388ec5e35cf40f1dce8fa24"
+    },
+    "source_association": {
+      "path": "src/hebog/algorithms/source_association.py",
+      "sha256": "7544237bffe866d547965f01d0a7cc2c5a852335d29b03d6284ce35e165349d6"
+    },
+    "source_association_model": {
+      "path": "src/hebog/data_models/source_association.py",
+      "sha256": "05045968e83c7df83452f58038ca6ba702123c0f613f5a862e8d678b168f52e2"
+    }
+  },
+  "public_identity": {
+    "path": "config/contracts/phase-5-source-owned-measurement-topology-footprint-guard-public-interface-identity-review.json",
+    "sha256": "73157afa614b99fb6507f80df3ebc146f5585542160fcbc300910550464b659e"
+  },
+  "root_cause_review": {
+    "path": "config/contracts/phase-5-source-owned-lane-terminal-root-cause-review.json",
+    "sha256": "2c9495f310b3ab21cb5a49adb2fa2a04e93e71e09046bfc2362ca73dd35a33fa"
+  },
+  "schema_version": 1,
+  "status": "implemented-and-fixture-validated-non-executable"
+}

@@ -1,0 +1,57 @@
+{
+  "authorizations": {
+    "candidate_execution": false,
+    "cutover": false,
+    "evaluation_retry": false,
+    "incumbent_execution": false,
+    "pybdsf_execution": false,
+    "qualification": false,
+    "release": false,
+    "viewed_data_rescoring": false
+  },
+  "date": "2026-09-08",
+  "execution_identity": null,
+  "expected_retained_evidence": {
+    "capture_seal_sha256": "e1bc9a915d213bc07dd87934bbc46dc09c2460897c28446b3ea39f0fee5a719a",
+    "complete_finder_record_count": 4032,
+    "complete_input_count": 808,
+    "complete_marker_set_sha256": "f976ea9713e312fed688594bcd90c72bb0eedd7b84e62c057a120f6ab884a8be",
+    "dask_comparisons_sha256": "16de0eeb6449626df2b31a1e4451f6fffe31dab20fafb456156b1ffb7ec7479f"
+  },
+  "finder_execution_started": false,
+  "implementation_file_sha256": {
+    "config/contracts/phase-5-r6-unavailable-source-support-amendment.json": "94200d4584702d30d42cc4f550b0c40b9e09f0c791391ebe272f8d605f20156b",
+    "docs/reference/phase-5-r6-native-reference-adapter-review.md": "c91558c3d1dd6eb18a1f713f121ac8470d9ed794550467f23a4c934b44917a11",
+    "scripts/validation/compact_sentinel_source_unions.py": "53401339ee1a2b15d56e2b9f603ef79b5582ee4dc934a72636f0349e99fc91a1",
+    "scripts/validation/source_catalogue_campaign_worker.py": "ee5fab307b3ad8e2772bb3c9ffa0da9aa34b129827154060167d37666f70e2f3",
+    "scripts/validation/source_catalogue_retained_measurements.py": "270cce2303a2f282de6f47df87047a829968301eb7d45e7b5ba3749ff4787ade",
+    "scripts/validation/source_catalogue_source_unions.py": "81a62493b5797ee067b8b8ad30a238b5bc482533062458e6f25a484b115f1058",
+    "src/hebog/validation/external_comparison.py": "75ea063cb68e807207ddcfd691d05eeb644cd76a624fdb66f34449f6b7638feb",
+    "src/hebog/validation/external_successor_compiler.py": "8e38de3b4347faee9636b89d03f8cdcdd77e39fd1e087d2b44454e5fd7063c55",
+    "src/hebog/validation/source_catalogue_diagnostics.py": "6f3f9c3d37c8e7476131b67be1f140046b33230f848388415cce8fbc278e622c",
+    "src/hebog/validation/source_catalogue_measurements.py": "b9135e0aead72f538866743aa95e9c53f5c99b61c55cba5cbee0d84607552934",
+    "src/hebog/validation/source_measurement_evidence.py": "945f14a6b3d7c4fe747a793d2cba454d98ceff1f2459baeacc806faf8708ca61"
+  },
+  "implementation_revision": "f9f62c249657d66ddaf640b42778739e5c2aa956",
+  "next_action": "Freeze and exhaustively verify a separate evaluation-only continuation and reusable records. This implementation identity is not execution authority.",
+  "retained_candidate": {
+    "configuration_sha256": "5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4",
+    "revision": "db8936b512370a1491f36845592fe3e8a24107ad",
+    "source_tree_sha256": "43fb41f20069a31627f0dbec09bdf1484bd2a04d633fe6563b94b09a554dd2cf"
+  },
+  "schema_version": 1,
+  "status": "frozen-non-executable",
+  "validation": {
+    "arithmetic_layout_regression": "passed-fixture-only",
+    "changed_branches_all_covered": true,
+    "changed_executable_lines_covered": 98,
+    "changed_executable_lines_total": 98,
+    "coverage_tests_passed": 3345,
+    "equivalence_tests_passed": 27,
+    "focused_coverage_tests_passed": 65,
+    "focused_tests_passed": 65,
+    "full_check_tests_passed": 3124,
+    "portable_branch_aware_coverage_percent": 95.11482398239824,
+    "pre_commit": "passed-clean"
+  }
+}

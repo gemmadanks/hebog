@@ -1,0 +1,22 @@
+{
+  "decision_id": "phase-5-prospective-paired-tail-diagnostic-repair-execution",
+  "evaluation_authorized": true,
+  "expected_execution_sha256": "17f41e8ad0b48df3adc5b6248dd585f68036c6c7d8e72e4386724e78ce73e954",
+  "identity_review": {
+    "path": "config/contracts/phase-5-prospective-paired-tail-diagnostic-repair-identity-review.json",
+    "sha256": "5572148d6604f52988fe256beb0ec1e2046c305f2e0d3a2d50c0ee862f2f9585"
+  },
+  "prohibited_authorizations": {
+    "candidate_execution_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "scientific_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "schema_version": 1,
+  "status": "authorized-for-one-exact-paired-tail-repair-evaluation"
+}

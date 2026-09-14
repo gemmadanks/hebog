@@ -1,0 +1,43 @@
+{
+  "authorization": {
+    "exact_approval": "I approve exactly one two-worker Phase 5 parent-construction association-provenance reconstruction bound to review SHA-256 `691eaf8f35f5ff1688c52af6d448e3ba4df704529f6f50072fa6924903a59be4`, candidate product-set SHA-256 `b81cb3d47d7db5ac45c66893445bd5d25711af88372566bbe979a6bce9a0fc87`, and reconstruction program SHA-256 `e8dd80cbc8d84fcaa8d3fb2703466c701dd5ad5dfc01ef64eaa43426b43c5f24`. This authorizes reconstruction of exactly 1,600 Continuum association sidecars with exact preserved-product verification. It does not authorize candidate execution, compilation, evaluation, another campaign, tuning, rescoring, cutover, or release.",
+    "received_on": "2026-08-30",
+    "reviewer": "Gemma Danks"
+  },
+  "decision_id": "phase-5-public-finder-source-hierarchy-parent-construction-association-provenance-reconstruction-execution-decision",
+  "failure_sha256": "1a391c240a957f4a41684ce2d6c19cef9d6a210239592aef460e00e8e476355a",
+  "implementation_commit": "8a3314dba38e9e4960a43272db4e0e53cca9ffbc",
+  "implementation_decision_sha256": "d15f87e47b33326c529b89ed7cad09530fbfafe5ed64d239cd0e13062bd0ceec",
+  "pre_review_sha256": "bfc1e594bd59b55a1fca18ac19e5d903685fe006943652fbe3e438630e12c6af",
+  "prohibited_authorizations": {
+    "another_campaign_authorized": false,
+    "candidate_execution_authorized": false,
+    "compilation_authorized": false,
+    "cutover_authorized": false,
+    "evaluation_authorized": false,
+    "fresh_qualification_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false,
+    "viewed_public_execution_authorized": false
+  },
+  "reconstruction_authorized": true,
+  "reconstruction_program_sha256": "e8dd80cbc8d84fcaa8d3fb2703466c701dd5ad5dfc01ef64eaa43426b43c5f24",
+  "reconstruction_review_sha256": "691eaf8f35f5ff1688c52af6d448e3ba4df704529f6f50072fa6924903a59be4",
+  "schema_version": 1,
+  "status": "reviewed-before-association-provenance-reconstruction",
+  "verified_composition": {
+    "candidate_configuration_sha256": "88634678d7b24c9d9d47a5ba714c66fcc627c8a201b9639b133e326cd1c72484",
+    "candidate_product_set_sha256": "b81cb3d47d7db5ac45c66893445bd5d25711af88372566bbe979a6bce9a0fc87",
+    "candidate_revision": "5f2b09880dc10feb6ffaec50ffcf3c807a093416",
+    "candidate_source_tree_sha256": "a7ef1887bcaeb15abf48722d45de33f81d8be65d58fde19861bf0ece90b4dba8",
+    "continuum_input_count": 1600,
+    "failed_ledger_absent": true,
+    "minimum_host_headroom_bytes": 21474836480,
+    "output_absent": true,
+    "preserved_product_count": 2400,
+    "reconstruction_started": false,
+    "reference_reconstruction_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+    "status": "pass"
+  }
+}

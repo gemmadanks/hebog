@@ -1,0 +1,88 @@
+{
+  "candidate": {
+    "configuration_sha256": "0e5dde51dfd2df84cdf71c3da34449b96c6999f517d781e1aaaec48ebb485a94",
+    "final_qualification_decision": {
+      "path": "benchmark-results/phase-5/final-qualification-decision.json",
+      "sha256": "d4db4d7f240faf4c7d841b4586208a33fd81d13228a1215cebb75ddd11e63416"
+    },
+    "revision": "90626641c8705ba9d55fdea02a705983528b8aa0",
+    "source_tree_sha256": "e4307246efa7db3ec941b3906f8ce443404b8b84cdc78aa89881e738850cdf8a"
+  },
+  "compilation_authorized": false,
+  "evaluation_authorized": false,
+  "execution_authorized": false,
+  "implementation_commit": "3d234c5d414a002824db513a37b3fe8322aedaf2",
+  "outputs": {
+    "analysis": "benchmark-results/phase-5/public-finder-analysis.json",
+    "campaign": "benchmark-results/phase-5/public-finder-comparison",
+    "decision": "benchmark-results/phase-5/public-finder-decision.json"
+  },
+  "outputs_absent_at_review": true,
+  "population": {
+    "case_count": 10,
+    "hydra_image_count": 2,
+    "registry": {
+      "path": "config/contracts/phase-5-public-comparison-selected-population.json",
+      "sha256": "df3a9088e68d4f2ba9ac1332a82ad8645f194466d3da5ae724c76494f630f1f4"
+    },
+    "sdc1_tile_count": 8,
+    "selected": {
+      "path": "benchmark-results/phase-5/public-comparison-selection/population.json",
+      "sha256": "0a7c2b18d96ee47277072528949c5a64239f0c3053d5e7b33c03b36c194b7824"
+    }
+  },
+  "programs": [
+    {
+      "path": "scripts/validation/phase5_public_finder_protocol.py",
+      "sha256": "a602bf780c0448dd4bb32e3004462044d130de1920be2c8aa25b3192642591d6"
+    },
+    {
+      "path": "scripts/benchmark/run_phase5_public_finder_campaign.py",
+      "sha256": "0209ee55a8e1ab6891321e94641df0685c147b5e99a17f76a6a60db43ef21fc3"
+    },
+    {
+      "path": "scripts/benchmark/run_phase5_public_finder_hebog.py",
+      "sha256": "42fb312a41d9aff8d4cba0c3f77121940f3c359015125a74d82c99ca86d9f2d4"
+    },
+    {
+      "path": "scripts/validation/compile_phase5_public_finder_campaign.py",
+      "sha256": "dff7c9ddc8e3266c428fab160ff93ed34db97f02b0174cdd4af97e220fa33342"
+    },
+    {
+      "path": "scripts/validation/evaluate_phase5_public_finder_decision.py",
+      "sha256": "259a2b2d7318baa33cd7b0f7ff1ff52434020d735cf52e0f8f1e2450b6134c79"
+    }
+  ],
+  "prohibited_authorizations": {
+    "cutover_authorized": false,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false
+  },
+  "protocol": {
+    "path": "config/contracts/phase-5-public-finder-protocol.json",
+    "sha256": "f29100bea8396df945672f97e6eeb63f7ec6a4acef3cd8e8eef4a9058788e6df"
+  },
+  "required_next_decision": "separate-named-one-look-approval-bound-to-this-review-and-the-exact-qualified-runtime",
+  "review_id": "phase-5-public-finder-identity-review",
+  "reviewed_on": "2026-08-26",
+  "runtime": {
+    "dependency_inventory_sha256": "d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2",
+    "digest": "sha256:132f1c3da7f353edc642e9bc2e6108aff8a1dbf6f9a5556f50144db864114363",
+    "finder_id": "hebog",
+    "image_id": "e7f1ce9e9b26f6e29a14e75833bcec52e56b95ce58102f2905c3623f9902632c"
+  },
+  "schema_version": 1,
+  "source_evidence": {
+    "acquisition": {
+      "path": "benchmark-results/phase-5/public-comparison-acquisition/acquisition.json",
+      "sha256": "a74e60de95debcc53bdf43d4f6046a6f74befe8a85e849a5b0105f2ecb0bd0ce"
+    },
+    "schema_review": {
+      "path": "config/contracts/phase-5-public-comparison-schema-review.json",
+      "sha256": "409318f58cafe259b4347953051ef8dddcf2308f041e8145e4199f7ad281eed8"
+    }
+  },
+  "status": "ready-for-named-one-look-execution-review"
+}

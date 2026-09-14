@@ -1,0 +1,30 @@
+{
+  "authorization": {
+    "another_replay": false,
+    "current_hebog_execution": true,
+    "cutover": false,
+    "existing_dask_comparison": true,
+    "held_out_execution": true,
+    "optimization": false,
+    "release": false,
+    "released_pybdsf_execution": true,
+    "rescoring": false,
+    "tuning": false,
+    "viewed_data_execution": false
+  },
+  "authorization_record": {
+    "approved_on": "2026-09-06",
+    "statement": "I approve exactly one two-worker Phase 5 compact held-out sentinel bound to identity review SHA-256 `d879c65e70dd0d280d237f4d28212ceccee45069aed967ad5c038fc7155f4cb2` and expected execution SHA-256 `df6b831b4eda14a9740aa09f6a8d0ebf152edd9778e98f13ff0cf660fac897ee`, comprising 168 current-Hebog Serial executions, 168 released-PyBDSF executions, 12 existing-Dask comparisons, and one atomic terminal decision."
+  },
+  "decision_id": "phase-5-compact-held-out-sentinel-execution-decision",
+  "expected_execution_sha256": "df6b831b4eda14a9740aa09f6a8d0ebf152edd9778e98f13ff0cf660fac897ee",
+  "identity_review": {
+    "path": "config/contracts/phase-5-compact-held-out-sentinel-identity-review.json",
+    "sha256": "d879c65e70dd0d280d237f4d28212ceccee45069aed967ad5c038fc7155f4cb2"
+  },
+  "one_use": true,
+  "output": "benchmark-results/phase-5/compact-held-out-sentinel.json",
+  "schema_version": 1,
+  "status": "authorized-for-one-compact-held-out-sentinel",
+  "workers": 2
+}

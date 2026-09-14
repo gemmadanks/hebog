@@ -11,14 +11,20 @@ from hebog.data_models.catalogues import (
     SourceCandidate,
     SourceCatalogue,
 )
+from hebog.data_models.multiscale import CompletedCombinedCatalogueState
+from hebog.data_models.source_finding import SourceScaleProvenance
 
 _OmissionReason = Literal[
     "fit-non-convergence",
     "fit-invalid-result",
+    "fit-model-inadequate",
+    "fit-linear-algebra-failure",
     "non-finite-owned-pixels",
     "non-positive-measurement",
     "singular-covariance",
     "underdetermined-region",
+    "joint-fit-work-limit",
+    "joint-peer-unavailable",
 ]
 
 
@@ -67,4 +73,19 @@ class CompletedCompactCatalogue:
     @property
     def source_count(self) -> int:
         """Return the completed source population."""
+        return len(self.catalogue.sources)
+
+
+@dataclass(frozen=True, slots=True)
+class CompletedCombinedCatalogue:
+    """Complete combined catalogue, terminal state, and scale provenance."""
+
+    catalogue: SourceCatalogue
+    terminal_state: CompletedCombinedCatalogueState
+    source_provenance: tuple[SourceScaleProvenance, ...]
+    compact_only_preserved: bool
+
+    @property
+    def source_count(self) -> int:
+        """Return the completed compact-plus-extended source population."""
         return len(self.catalogue.sources)

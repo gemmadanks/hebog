@@ -1,0 +1,88 @@
+{
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "threshold_or_photometric_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "candidate": {
+    "configuration_sha256": "2d6ab6bbdd06f109f9703fb0b49f489933ddc00b391f681253693b38d0f4b1de",
+    "revision": "3d080f78da09ada6753a4e5df898e1d5daa59597",
+    "source_tree_sha256": "a25d22d80f4e639e4543ee058acade6feda15105f6325dc909e69fcfb8f03924"
+  },
+  "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+  "decision_id": "phase-5-public-finder-terminal-feature-persistence-cumulative-replay-review",
+  "expected_execution_sha256": "75534703dc685c7860fbd24d70ac0c481059f0bb01e0b5fec208b1c9269bb80f",
+  "implementation": {
+    "candidate_boundary_commit": "3d080f78da09ada6753a4e5df898e1d5daa59597",
+    "candidate_program": {
+      "path": "src/hebog/validation/public_finder_correction.py",
+      "sha256": "c0cb13b9de789f53a9ecadf50803ab60266cd142cae394a26860714d92a4945d"
+    },
+    "composition_commit": "7a5cd54b403c13eaa70bb57d3d1684966122e928",
+    "consumed_wrapper": {
+      "path": "scripts/validation/review_phase5_public_finder_terminal_parent_correction_cumulative_regressions.py",
+      "sha256": "2c40315ffe821008b249a57b5e8c012b0f6526ae8aacab5a9bbdb35bdeac2f21"
+    },
+    "evaluator": {
+      "path": "src/hebog/validation/terminal_feature_persistence_evaluation.py",
+      "sha256": "1cb62c0028288bd3149b325eb4c56c25f4535dcd5e5b38ac509e232ea8c21b02"
+    },
+    "implementation_decision": {
+      "path": "config/contracts/phase-5-public-finder-terminal-feature-persistence-implementation-decision.json",
+      "sha256": "5ad7d29980420ba0b5bb65739344f77de504ac8b43c122111d605563f70d48dc"
+    },
+    "pre_review": {
+      "path": "config/contracts/phase-5-public-finder-terminal-feature-persistence-pre-review.json",
+      "sha256": "e416f7d81ac8345f2ac0ac982980e9e37299886309af2468380a7a463beafc38"
+    },
+    "readiness": {
+      "path": "config/contracts/phase-5-terminal-feature-persistence-readiness.json",
+      "sha256": "da135898ed3cbada89ca32c4d2f5c1cd8f11f82a896f7d2197da6e444b3208fd"
+    },
+    "wrapper": {
+      "path": "scripts/validation/review_phase5_public_finder_terminal_feature_persistence_cumulative_regressions.py",
+      "sha256": "0c66f221aa01e962368de3b0cd39a23d443c3f7d0e5a413c59aa4f21bada2ecd"
+    }
+  },
+  "no_write_verification": {
+    "candidate_configuration_sha256": "2d6ab6bbdd06f109f9703fb0b49f489933ddc00b391f681253693b38d0f4b1de",
+    "candidate_revision": "3d080f78da09ada6753a4e5df898e1d5daa59597",
+    "candidate_source_tree_sha256": "a25d22d80f4e639e4543ee058acade6feda15105f6325dc909e69fcfb8f03924",
+    "consumed_wrapper_sha256": "2c40315ffe821008b249a57b5e8c012b0f6526ae8aacab5a9bbdb35bdeac2f21",
+    "cumulative_replay_started": false,
+    "execution_checkout_revision": "7a5cd54b403c13eaa70bb57d3d1684966122e928",
+    "output_absent": true,
+    "readiness_sha256": "da135898ed3cbada89ca32c4d2f5c1cd8f11f82a896f7d2197da6e444b3208fd",
+    "reference_reconstruction_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+    "scratch_absent": true,
+    "status": "pass",
+    "terminal_persistence_census_aggregation_verified": true,
+    "terminal_persistence_evaluator_installation_verified": true,
+    "terminal_persistence_sidecar_validation_verified": true,
+    "verified_input_count": 2400,
+    "verified_reference_run_count": 9600
+  },
+  "output_path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-terminal-feature-persistence.json",
+  "reference_reconstruction_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+  "required_next_decision": "obtain-explicit-user-approval-for-one-exact-terminal-feature-persistence-cumulative-replay",
+  "schema_version": 1,
+  "scientific_boundary": {
+    "candidate_change": true,
+    "configuration_change": true,
+    "gate_or_threshold_change": false,
+    "population_change": false,
+    "reference_or_baseline_change": false,
+    "terminal_feature_persistence_correction": true,
+    "terminal_rejection_telemetry_change": true
+  },
+  "scratch_path": "/private/tmp/hebog-phase5-public-finder-terminal-feature-persistence-3d080f7",
+  "status": "reviewed-before-terminal-feature-persistence-cumulative-replay",
+  "workers": 2
+}

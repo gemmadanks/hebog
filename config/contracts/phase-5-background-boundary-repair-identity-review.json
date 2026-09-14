@@ -1,0 +1,125 @@
+{
+  "algorithm_candidate": {
+    "configuration_sha256": "5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4",
+    "revision": "e39f6c91d2344b07bd88ee22e4793545df177323",
+    "source_tree_sha256": "ace1cdce3d2da709bf74d8cfbba5b1099bce0e61f797e3c4a977f04e8a9aa1d5"
+  },
+  "authorizations": {
+    "candidate_execution": false,
+    "cutover": false,
+    "evaluation": false,
+    "pybdsf_execution": false,
+    "qualification": false,
+    "release": false,
+    "replay": false,
+    "viewed_data_rescoring": false
+  },
+  "closed_v15_evidence": {
+    "candidate_revision": "73ab5af09fde1ca6b4e6032a870fc6e248ddfdbd",
+    "evidence_transfers": false,
+    "status": "scientific-failure",
+    "terminal_sha256": "ad0ed920ca57cf17a64a0cbf5cbd8169f8d2dcab42025de1008093fa74385d8f"
+  },
+  "configuration": {
+    "detection_threshold_sigma": 5.0,
+    "island_threshold_sigma": 3.0,
+    "maximum_island_pixels": null,
+    "minimum_island_pixels": 7,
+    "profile": "continuum"
+  },
+  "date": "2026-09-13",
+  "execution_identity": null,
+  "finder_execution_started": false,
+  "frozen_documents": {
+    "correctness_inventory": {
+      "path": "docs/reference/phase-5-campaign-overview.md",
+      "sha256": "f24ef13a68e2092b2556d12e711e807e487314501fd1f8b15b382e8b77c40cd4"
+    },
+    "gaussian_validity_contract": {
+      "path": "docs/reference/compact-fitting.md",
+      "sha256": "41351794171d9e944836291e1c3a6d5bd9b3e300459b8016590226a73b123e16"
+    },
+    "public_schemas": {
+      "path": "docs/reference/internal-schemas.md",
+      "sha256": "a2147035a06beceac15e9627296d61953b007e1f542de7d79a58dfffe212743e"
+    },
+    "public_tutorial": {
+      "path": "docs/tutorials/find-sources.md",
+      "sha256": "208da48b7930d06c909b033581f151b1edc7f29eb45fa578739de4eff8ecd5ab"
+    },
+    "release_status": {
+      "path": "docs/reference/release-status.md",
+      "sha256": "080f57bccb6f9bcdcc9024c12a9adc8ae9940cc815f8af65151fb07fbdf1d4ef"
+    }
+  },
+  "previous_identity_review_sha256": "c469a8c9c91d8cb699715edca74006350cb4f879116873eb5dbb01b37259f566",
+  "public_diagnostics_schema_version": 8,
+  "qualification_status": "development-unqualified",
+  "repair_scope": {
+    "approval": "2026-09-13-complete-release-clearance-work",
+    "boundary_rule": "affine-preserving-edge-secants-span-extrapolation-distance-where-available-otherwise-full-available-span-singletons-constant",
+    "closed_science_rescored": false,
+    "detection_threshold_changed": false,
+    "diagnosis": "near-coincident-final-window-centres-amplify-background-and-coarse-RMS-endpoint-errors",
+    "fine_rms_constant_extension_preserved": true,
+    "grid_windows_and_statistics_changed": false,
+    "remaining_clearance": [
+      "human-scientific-severity-acceptance-of-documented-statistical-and-faint-morphology-limitations",
+      "accumulated-branch-merge-review",
+      "full-supported-platform-CI",
+      "human-Release-Please-PR-and-tag-workflow"
+    ],
+    "saved_diagnostics": {
+      "closed_source_recovery_claimed": false,
+      "fine_boundary_sha256": "a0d29fbf29f126b06d5ab78f35f180f75fcaea928527bd0c6183edec3581866a",
+      "namespace": "benchmark-results/phase-5/release-clearance-20260913",
+      "position_diagnostic_sha256": "e0a018b089357ef8ef1b6b1645cecb630fcb860709edf1fbbfa00bb0682021c4",
+      "position_scope": "one-bounded-unchanged-pixel-diagnostic-refit-no-detection-matching-or-evaluation"
+    },
+    "source_protection_changed": false,
+    "validation_population": "independent-analytic-development-fixtures-and-existing-frozen-equivalence"
+  },
+  "schema_version": 1,
+  "scientific_composition": "phase-5-evidence-bound-public-catalogue-v17",
+  "scientific_composition_sha256": "d01185ee13f49cda297d68f946b1ec2b19ba697ed816929892e267620efa7fb4",
+  "status": "frozen-non-executable",
+  "validation": {
+    "campaign_parity_qualified": false,
+    "changed_package_executable_lines_and_instrumented_branches_covered": true,
+    "changed_package_executable_lines_covered": 26,
+    "code_review": "no-actionable-findings-in-bounded-repair-not-full-merge-diff-clearance",
+    "codecov_patch_report": "not-available-in-local-validation",
+    "docs_build": "passed-strict",
+    "equivalence_tests_passed": 27,
+    "focused_background_integration_tests_passed": 42,
+    "full_platform_ci": "pending",
+    "independent_boundary_unit_cases": 22,
+    "installed_product_checker_tests_passed": 9,
+    "installed_wheel_workflows": [
+      "blank",
+      "all-nan",
+      "continuum",
+      "compact",
+      "custom-thresholds"
+    ],
+    "marimo_check": "passed-strict",
+    "new_public_serial_existing_dask_cases": 4,
+    "offline_notebook_smoke": "passed-two-notebooks",
+    "platforms_run": [
+      "macOS"
+    ],
+    "portable_branch_aware_coverage_percent": 95.31930701428523,
+    "portable_expected_failures": 2,
+    "portable_tests_passed": 4109,
+    "pre_commit": "passed-clean",
+    "prior_reported_portable_coverage_percent": 95.31408479275137,
+    "production_scale_runtime_qualified": false,
+    "python_versions_run": [
+      "3.14.2"
+    ],
+    "rapthor_acceptance": "seven-expected-failure-scaffolds-no-passing-deployment-acceptance",
+    "serial_existing_dask_checks": "passed-exact-background-RMS-mask-catalogue",
+    "standard_check_tests_passed": 3808,
+    "viewed_full_notebook_rerun": false
+  }
+}

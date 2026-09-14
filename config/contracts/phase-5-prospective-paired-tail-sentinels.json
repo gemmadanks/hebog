@@ -1,0 +1,27 @@
+{
+  "candidate_results_inspected": false,
+  "count_per_dataset_and_sentinel": 8,
+  "evidence_role": "result-neutral-development-diagnostic",
+  "full_continuum_population": {
+    "path": "config/datasets/phase-5-external-post-failure-continuum.json",
+    "sha256": "4ce811e8aebc26b858473eb4473abba1b3bb5a916acb2ee6b645441723322e77"
+  },
+  "membership_count": 160,
+  "membership_sha256": "730a3045ee577bf647126404db14ff3b0501626f09bb908c1f271379f1a1102f",
+  "record_id": "phase-5-prospective-paired-tail-sentinels",
+  "schema_version": 1,
+  "selection_method": "sha256-sentinel-id-colon-input-id-then-input-id",
+  "sentinel_ids": [
+    "morphology-artifact",
+    "morphology-shell",
+    "scale-4-beam",
+    "tile-corner",
+    "varying-noise"
+  ],
+  "source_request": {
+    "path": "benchmark-results/phase-5/external-post-failure-comparison/campaign-request.json",
+    "sha256": "7ba9be1b20ff0448e51729337acf2a7028cc0ec578c5e25106b9b34b07506df4"
+  },
+  "status": "frozen-before-paired-replay-results",
+  "unique_input_count": 155
+}

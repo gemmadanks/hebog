@@ -7,12 +7,15 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from math import cos, isfinite, log, pi, sqrt
 
 import numpy as np
 import numpy.typing as npt
+from astropy import units as u
 from astropy.io import fits
 from astropy.wcs import WCS
+from astropy.wcs.utils import wcs_to_celestial_frame
 
 from hebog.algorithms.measurement import (
     fitted_gaussian_integrated_flux_jy,
@@ -55,12 +58,23 @@ def local_tangent_plane_transform(
     """Return the ICRS center and local east/north pixel Jacobian."""
     if metadata.celestial_wcs.coordinate_frame.lower() != "icrs":
         raise ValueError("compact astrometry requires an ICRS celestial WCS")
-    x, y = position_xy
     wcs = (
         celestial_wcs
         if celestial_wcs is not None
         else celestial_wcs_from_metadata(metadata)
     )
+    return local_tangent_plane_transform_from_wcs(wcs, position_xy)
+
+
+def local_tangent_plane_transform_from_wcs(
+    celestial_wcs: WCS,
+    position_xy: tuple[float, float],
+) -> LocalTangentPlaneTransform:
+    """Return the ICRS tangent transform from an explicit celestial WCS."""
+    if not celestial_wcs.has_celestial:
+        raise ValueError("astrometry requires a celestial WCS")
+    x, y = position_xy
+    wcs = celestial_wcs.celestial
     center = wcs.pixel_to_world(x, y).icrs
     step = _FINITE_DIFFERENCE_STEP_PIXELS
     columns: list[tuple[float, float]] = []
@@ -90,6 +104,46 @@ def local_tangent_plane_transform(
     )
 
 
+def moment_equivalent_gaussian_shape(
+    covariance_pixels_squared: npt.ArrayLike,
+    transform: LocalTangentPlaneTransform,
+) -> GaussianShape:
+    """Transform one positive pixel moment covariance into a sky ellipse."""
+    covariance = np.asarray(covariance_pixels_squared, dtype=np.float64)
+    if covariance.shape != (_SHAPE_AXIS_PARAMETER_COUNT,) * 2 or not np.all(
+        np.isfinite(covariance)
+    ):
+        raise ValueError("moment covariance must be one finite 2-by-2 matrix")
+    if not np.allclose(covariance, covariance.T, rtol=0.0, atol=1e-14):
+        raise ValueError("moment covariance must be symmetric")
+    eigenvalues = np.linalg.eigvalsh(covariance)
+    if float(np.min(eigenvalues)) <= 0.0:
+        raise ValueError("moment covariance must be positive definite")
+    jacobian = np.asarray(
+        transform.jacobian_degrees_per_pixel,
+        dtype=np.float64,
+    )
+    sky_covariance = jacobian @ covariance @ jacobian.T
+    sky_eigenvalues = np.linalg.eigvalsh(sky_covariance)
+    if (
+        not np.all(np.isfinite(sky_covariance))
+        or float(np.min(sky_eigenvalues)) <= 0.0
+    ):
+        raise ValueError("transformed moment covariance must be positive")
+    shape = _shape_from_sky_covariance(sky_covariance)
+    position_angle = shape.position_angle_degrees
+    if np.isclose(position_angle, 180.0, rtol=0.0, atol=1e-6):
+        position_angle = 0.0
+    return GaussianShape(
+        major_fwhm_degrees=shape.major_fwhm_degrees,
+        minor_fwhm_degrees=shape.minor_fwhm_degrees,
+        position_angle_degrees=position_angle,
+        major_fwhm_error_degrees=None,
+        minor_fwhm_error_degrees=None,
+        position_angle_error_degrees=None,
+    )
+
+
 def compact_geometry_at_pixel(
     metadata: ImageMetadata,
     position_xy: tuple[float, float],
@@ -107,19 +161,27 @@ def compact_geometry_at_pixel(
             celestial_wcs=celestial_wcs,
         )
     )
+    return compact_geometry_from_transform(metadata.beam, local_transform)
+
+
+def compact_geometry_from_transform(
+    beam: RestoringBeam,
+    transform: LocalTangentPlaneTransform,
+) -> CompactMeasurementGeometry:
+    """Derive local measurement geometry without unrelated spectral data."""
     jacobian = np.asarray(
-        local_transform.jacobian_degrees_per_pixel,
+        transform.jacobian_degrees_per_pixel,
         dtype=np.float64,
     )
     pixel_area_square_degrees = abs(float(np.linalg.det(jacobian)))
     pixel_solid_angle = pixel_area_square_degrees * (pi / 180.0) ** 2
     beam_solid_angle = gaussian_beam_solid_angle_steradians(
-        major_fwhm_degrees=metadata.beam.major_fwhm_degrees,
-        minor_fwhm_degrees=metadata.beam.minor_fwhm_degrees,
+        major_fwhm_degrees=beam.major_fwhm_degrees,
+        minor_fwhm_degrees=beam.minor_fwhm_degrees,
     )
     inverse_jacobian = np.linalg.inv(jacobian)
     pixel_noise_covariance = (
-        inverse_jacobian @ _sky_covariance(metadata.beam) @ inverse_jacobian.T
+        inverse_jacobian @ _sky_covariance(beam) @ inverse_jacobian.T
     )
     covariance_values = (
         float(pixel_noise_covariance[0, 0]),
@@ -131,6 +193,49 @@ def compact_geometry_at_pixel(
         restoring_beam_solid_angle_steradians=beam_solid_angle,
         restoring_beam_covariance_pixels_squared=covariance_values,
         noise_correlation_covariance_pixels_squared=covariance_values,
+    )
+
+
+def restoring_beam_in_icrs(
+    beam: RestoringBeam,
+    celestial_wcs: WCS,
+    position_xy: tuple[float, float],
+) -> RestoringBeam:
+    """Rotate a native equatorial FITS beam PA into local ICRS axes.
+
+    FK5 equinox precession rotates local north along with the coordinates.
+    Transform a one-arcsecond directional offset using Astropy, preserving
+    the angular beam axes. ICRS returns the original beam without arithmetic.
+    This boundary supports ICRS/FK5, not frames with non-rotational geometry.
+    """
+    if not celestial_wcs.has_celestial:
+        raise ValueError("beam geometry requires a celestial WCS")
+    frame = wcs_to_celestial_frame(celestial_wcs)
+    if frame.name == "icrs":
+        return beam
+    if frame.name != "fk5":
+        raise ValueError("beam geometry requires an ICRS or FK5 celestial WCS")
+    center = celestial_wcs.celestial.pixel_to_world(*position_xy)
+    direction = center.directional_offset_by(
+        beam.position_angle_degrees * u.deg, 1.0 * u.arcsec
+    )
+    return replace(
+        beam,
+        position_angle_degrees=float(
+            center.icrs.position_angle(direction.icrs).deg % 180.0
+        ),
+    )
+
+
+def compact_geometry_from_wcs(
+    beam: RestoringBeam,
+    celestial_wcs: WCS,
+    position_xy: tuple[float, float],
+) -> CompactMeasurementGeometry:
+    """Transform native beam and pixels into the same ICRS tangent basis."""
+    return compact_geometry_from_transform(
+        restoring_beam_in_icrs(beam, celestial_wcs, position_xy),
+        local_tangent_plane_transform_from_wcs(celestial_wcs, position_xy),
     )
 
 
@@ -353,6 +458,84 @@ def _intrinsic_eigenvalues(
     return np.asarray(np.linalg.eigvalsh(intrinsic), dtype=np.float64)
 
 
+def _fitted_shape_with_errors(
+    shape: GaussianShape,
+    fit: ValidCompactGaussianFit,
+    jacobian: npt.NDArray[np.float64],
+) -> GaussianShape:
+    """Propagate the native marginal shape covariance through the WCS.
+
+    The three-parameter numerical derivative follows the existing intrinsic
+    axis uncertainty calculation. PA differences are taken modulo 180
+    degrees. A circular ellipse has no identifiable PA or ordered-axis
+    derivative, so its shape uncertainties remain explicitly unavailable.
+    """
+    uncertainty = fit.uncertainty
+    if uncertainty is None or uncertainty.shape_parameter_covariance is None:
+        return shape
+    if np.isclose(
+        shape.major_fwhm_degrees, shape.minor_fwhm_degrees, rtol=1e-12, atol=0
+    ):
+        return shape
+    covariance = _shape_parameter_covariance(
+        uncertainty.shape_parameter_covariance
+    )
+    parameters = np.array(
+        (
+            fit.parameters.major_sigma_pixels,
+            fit.parameters.minor_sigma_pixels,
+            np.deg2rad(fit.parameters.major_axis_angle_degrees),
+        )
+    )
+
+    def projected(values: np.ndarray) -> np.ndarray:
+        ellipse = _shape_from_sky_covariance(
+            jacobian
+            @ _pixel_covariance(
+                float(values[0]),
+                float(values[1]),
+                float(np.rad2deg(values[2])),
+            )
+            @ jacobian.T
+        )
+        return np.array(
+            (
+                ellipse.major_fwhm_degrees,
+                ellipse.minor_fwhm_degrees,
+                ellipse.position_angle_degrees,
+            )
+        )
+
+    gradient = np.empty((3, 3))
+    for index in range(3):
+        step = max(
+            abs(parameters[index]) * 1e-6,
+            np.sqrt(max(0.0, covariance[index, index])) * 1e-4,
+            1e-8,
+        )
+        lower, upper = parameters.copy(), parameters.copy()
+        lower[index] -= step
+        upper[index] += step
+        denominator = 2 * step
+        if index < _SHAPE_AXIS_PARAMETER_COUNT and lower[index] <= 0:
+            lower[index] = parameters[index]
+            denominator = step
+        difference = projected(upper) - projected(lower)
+        difference[2] = (difference[2] + 90) % 180 - 90
+        gradient[:, index] = difference / denominator
+    variances = np.einsum("ij,jk,ik->i", gradient, covariance, gradient)
+    if not np.all(np.isfinite(variances)) or np.any(variances < 0):
+        return shape
+    errors = np.sqrt(variances)
+    return shape.model_copy(
+        update={
+            "major_fwhm_error_degrees": float(errors[0]),
+            "minor_fwhm_error_degrees": float(errors[1]),
+            "position_angle_error_degrees": float(errors[2]),
+        }
+    )
+
+
 def _axis_significance_classification(  # noqa: PLR0913
     deconvolution: GaussianDeconvolution,
     fit: ValidCompactGaussianFit,
@@ -460,6 +643,34 @@ def transform_compact_gaussian_fit(  # noqa: PLR0913
     """Transform a valid pixel fit into reviewed ICRS catalogue quantities."""
     if metadata.unit != "Jy/beam":
         raise ValueError("compact measurement requires image unit Jy/beam")
+    position_xy = (
+        fit.position_estimate.centroid_xy
+        if fit.position_estimate is not None
+        else fit.parameters.centroid_xy
+    )
+    transform = local_tangent_plane_transform(
+        metadata, position_xy, celestial_wcs=celestial_wcs
+    )
+    return transform_compact_fit_at_tangent(
+        fit,
+        metadata.beam,
+        transform,
+        deconvolution_relative_tolerance=deconvolution_relative_tolerance,
+        extension_significance_sigma=extension_significance_sigma,
+        deconvolution_axis_significance_sigma=deconvolution_axis_significance_sigma,
+    )
+
+
+def transform_compact_fit_at_tangent(  # noqa: PLR0913
+    fit: ValidCompactGaussianFit,
+    beam: RestoringBeam,
+    transform: LocalTangentPlaneTransform,
+    *,
+    deconvolution_relative_tolerance: float = 1e-10,
+    extension_significance_sigma: float = 5.0,
+    deconvolution_axis_significance_sigma: float = 5.0,
+) -> CelestialCompactGaussianFit:
+    """Project a Jy/beam fit using an explicit local celestial transform."""
     if (
         not isfinite(extension_significance_sigma)
         or extension_significance_sigma <= 0
@@ -475,16 +686,6 @@ def transform_compact_gaussian_fit(  # noqa: PLR0913
             "deconvolution_axis_significance_sigma must be finite and positive"
         )
     parameters = fit.parameters
-    position_xy = (
-        fit.position_estimate.centroid_xy
-        if fit.position_estimate is not None
-        else parameters.centroid_xy
-    )
-    transform = local_tangent_plane_transform(
-        metadata,
-        position_xy,
-        celestial_wcs=celestial_wcs,
-    )
     jacobian = np.asarray(transform.jacobian_degrees_per_pixel)
     fitted_covariance = (
         jacobian
@@ -495,17 +696,15 @@ def transform_compact_gaussian_fit(  # noqa: PLR0913
         )
         @ jacobian.T
     )
-    fitted_shape = _shape_from_sky_covariance(fitted_covariance)
+    fitted_shape = _fitted_shape_with_errors(
+        _shape_from_sky_covariance(fitted_covariance), fit, jacobian
+    )
     geometric_deconvolution = deconvolve_gaussian_shapes(
         fitted_shape,
-        metadata.beam,
+        beam,
         relative_tolerance=deconvolution_relative_tolerance,
     )
-    geometry = compact_geometry_at_pixel(
-        metadata,
-        position_xy,
-        transform=transform,
-    )
+    geometry = compact_geometry_from_transform(beam, transform)
     uncertainty = fit.uncertainty
     integrated_flux = fitted_gaussian_integrated_flux_jy(
         amplitude_jy_per_beam=parameters.amplitude_jy_per_beam,
@@ -520,6 +719,15 @@ def transform_compact_gaussian_fit(  # noqa: PLR0913
         if uncertainty is not None
         else None
     )
+    if uncertainty is not None and integrated_flux_error is not None:
+        integrated_flux -= (
+            uncertainty.integrated_flux_bias_correction_sigma
+            * integrated_flux_error
+        )
+        if integrated_flux <= 0.0:
+            raise ValueError(
+                "integrated-flux bias correction produced non-positive flux"
+            )
     deconvolution = _extension_classification(
         geometric_deconvolution,
         fit,
@@ -531,40 +739,46 @@ def transform_compact_gaussian_fit(  # noqa: PLR0913
         deconvolution,
         fit,
         jacobian,
-        metadata.beam,
+        beam,
         significance_sigma=deconvolution_axis_significance_sigma,
         relative_tolerance=deconvolution_relative_tolerance,
     )
-    if deconvolution.status == "unresolved":
-        reported_integrated_flux = parameters.amplitude_jy_per_beam
-        reported_integrated_flux_error = (
-            uncertainty.amplitude_error_jy_per_beam
-            if uncertainty is not None
-            else None
-        )
-    else:
-        reported_integrated_flux = integrated_flux
-        reported_integrated_flux_error = integrated_flux_error
-    flux = FluxMeasurement(
+    fitted_flux = FluxMeasurement(
         peak_flux_jy_per_beam=parameters.amplitude_jy_per_beam,
         peak_flux_error_jy_per_beam=(
             uncertainty.amplitude_error_jy_per_beam
             if uncertainty is not None
             else None
         ),
-        integrated_flux_jy=reported_integrated_flux,
-        integrated_flux_error_jy=reported_integrated_flux_error,
+        integrated_flux_jy=integrated_flux,
+        integrated_flux_error_jy=integrated_flux_error,
         local_rms_jy_per_beam=parameters.local_rms_jy_per_beam,
     )
+    if deconvolution.status == "unresolved":
+        flux = FluxMeasurement(
+            peak_flux_jy_per_beam=fitted_flux.peak_flux_jy_per_beam,
+            peak_flux_error_jy_per_beam=(
+                fitted_flux.peak_flux_error_jy_per_beam
+            ),
+            integrated_flux_jy=fitted_flux.peak_flux_jy_per_beam,
+            integrated_flux_error_jy=(fitted_flux.peak_flux_error_jy_per_beam),
+            local_rms_jy_per_beam=fitted_flux.local_rms_jy_per_beam,
+        )
+    else:
+        flux = fitted_flux
     flags = set(fit.quality_flags)
-    flags.add("shape-uncertainty-unavailable")
+    if fitted_shape.major_fwhm_error_degrees is None:
+        flags.add("shape-uncertainty-unavailable")
     flags.update(deconvolution.quality_flags)
     if uncertainty is None:
         flags.add("position-flux-uncertainty-unavailable")
+    elif uncertainty.integrated_flux_bias_correction_sigma > 0.0:
+        flags.add("fitted-integrated-flux-bias-corrected")
     return CelestialCompactGaussianFit(
         pixel_fit=fit,
         position=_position_with_errors(transform, fit),
         flux=flux,
+        fitted_flux=fitted_flux,
         fitted_shape=fitted_shape,
         deconvolution_status=deconvolution.status,
         deconvolved_shape=deconvolution.shape,

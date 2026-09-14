@@ -1,0 +1,71 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "coarse_control_execution_authorized": false,
+    "cutover_authorized": false,
+    "development_lane_execution_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "replay_authorized": false,
+    "rescoring_authorized": false,
+    "source_finding_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "decision_id": "phase-5-adaptive-background-development-implementation-decision",
+  "exact_user_authority": "I approve the Phase 5 adaptive-background development pre-review SHA-256 6287ad3ef734c91142637142f04abebfb7226253e9e49060af686fe07292eed4 and its recommendations. This authorizes test-first implementation, fixture and complete no-write validation, and freezing non-executable development-lane identities. It does not authorize executing the lane, changing source-finding science, PyBDSF or viewed-data execution, qualification, tuning, rescoring, cutover, or release.",
+  "implementation": {
+    "approved_design": {
+      "path": "src/hebog/validation/adaptive_background_development.py",
+      "sha256": "c95477bc719e697425fd7b8c4a8fe71fd6d3bb2d279457153a7d988a12863e10"
+    },
+    "evaluator_and_population": {
+      "path": "src/hebog/validation/adaptive_background_lane.py",
+      "sha256": "3f32dcb6a82598619a59d5d7b496e346dda54f8169569e32b56cd5c5b7773e67"
+    },
+    "freezer": {
+      "path": "scripts/validation/freeze_phase5_adaptive_background_development.py",
+      "sha256": "fc15702b48eaa2db0fea4355e2eebaea6306bb404edf12fc0918407c6ea29c07"
+    },
+    "runner": {
+      "path": "scripts/validation/run_phase5_adaptive_background_development.py",
+      "sha256": "d7b4b728622b6455ff8aafe523a52c9efb6a58a3f97a3157cc6fc2ed49423df6"
+    }
+  },
+  "implemented_contracts": [
+    "36 exact matrix cells expand to 144 seed-disjoint 512-pixel inputs",
+    "noiseless composite templates are calibrated before adding noise",
+    "candidate execution enters through hebog.find_sources",
+    "coarse control disables only adaptive background/RMS refinement",
+    "array-free truth, trigger, background, RMS, mask, flux, and topology summaries are retained",
+    "12 above-trigger inputs compare Serial with caller-owned existing-Dask execution",
+    "hard truth floors and per-image paired practical margins fail closed",
+    "verify-only validates all 300 planned executions without creating scratch or output",
+    "the terminal decision is atomic and write-once"
+  ],
+  "pre_review": {
+    "path": "config/contracts/phase-5-adaptive-background-development-pre-review.json",
+    "sha256": "6287ad3ef734c91142637142f04abebfb7226253e9e49060af686fe07292eed4"
+  },
+  "runtime": {
+    "installed": {
+      "dependency_inventory_sha256": "10788ccd1804f6280454cc5c2386a1551eef084c2b40908f513e365c266f43b6",
+      "python_implementation": "CPython",
+      "python_version": "3.14.2"
+    },
+    "source_files": {
+      "python_version": {
+        "path": ".python-version",
+        "sha256": "a876e0b10411037a012498b9fe18d9bc1df32ed8b722a13564dc944ddcfd9135"
+      },
+      "uv_lock": {
+        "path": "uv.lock",
+        "sha256": "c81a9831ec545b2d7797e1c0951ad46e0e23337b97866ced0ae27e290dfd71ff"
+      }
+    }
+  },
+  "schema_version": 1,
+  "status": "implemented-and-validated-non-executable"
+}
