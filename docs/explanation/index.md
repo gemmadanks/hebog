@@ -1,7 +1,10 @@
 # Architecture
 
-The [domain model](domain-model.md) maps Hebog's system boundary, processing
-flow, product ownership, and shared language. The
+Start with [How Hebog finds sources](how-hebog-works.md) for the scientific
+decision flow from FITS input to catalogue, RMS, mask, and diagnostics. The
+[public-products reference](../reference/public-products.md) explains how to
+interpret and integrate every output. The [domain model](domain-model.md) maps
+Hebog's system boundary, product ownership, and shared language. The
 [Rapthor source-finding contract](../reference/rapthor-source-finding-contract.md)
 records the current compatibility evidence behind this target architecture.
 

@@ -3,9 +3,8 @@
 This tutorial runs Hebog as a standalone scientific library. It uses no
 Rapthor, Prefect, LSMTool, or private Dask cluster.
 
-The interface is experimental and scientifically unqualified. Earlier PyBDSF
-parity results do not qualify this changed implementation. Experimental
-package releases and scientific qualification have separate checks; see
+The interface is experimental and scientifically unqualified. A successful
+run does not by itself qualify Hebog for a survey; see
 [current capability and release status](../reference/release-status.md).
 
 ## Prepare the input
@@ -23,7 +22,7 @@ before its final two spatial axes. The image must have:
 NaN pixels are allowed and are excluded from the analysis. Missing or invalid
 physical metadata fails clearly before any output bundle is published.
 
-## Run the development continuum profile
+## Run the continuum profile
 
 The output directory must not already exist. Hebog treats it as one atomic,
 caller-owned product bundle.
@@ -53,10 +52,10 @@ print(f"wall time: {result.wall_seconds:.3f} s")
 print(result.catalogue_path)
 ```
 
-`continuum` is the default profile. The values 5 sigma, 3 sigma, and seven
-pixels retain the Phase 5 reference thresholds. The repaired implementation
-reports `configuration_qualification="development-unqualified"`: matching
-historical thresholds does not transfer qualification to changed science.
+`continuum` is the default profile. The example uses a 5-sigma detection
+threshold, a 3-sigma island-growth threshold, and a seven-pixel minimum.
+Diagnostics report `configuration_qualification="development-unqualified"`:
+the configuration is supported for evaluation but is not survey-qualified.
 
 For spatially admitted continuum images, background and noise have different
 resolution policies. Background retains its coarse/source-protected and
@@ -106,15 +105,20 @@ custom_result = hebog.find_sources(
 
 ## Interpret the products
 
+For the full field-by-field contract, units, null handling, diagnostic census,
+and evaluation checklist, see
+[Public source-finder outputs](../reference/public-products.md). The summary
+below introduces the distinctions needed for this example.
+
 The returned `SourceFinderResult` contains closed paths, byte counts, SHA-256
 identities, scientific status, and schema versions for four files:
 
 | Product | Meaning |
 | --- | --- |
 | `catalogue.fits` | Source-level catalogue plus its Gaussian components and parent islands. |
-| `rms.fits` | Candidate-owned local RMS estimate in `Jy/beam`; an empty image may report this as scientifically unavailable. |
+| `rms.fits` | Hebog's local RMS estimate in `Jy/beam`; an empty image may report this as scientifically unavailable. |
 | `source-mask.fits` | Binary source-support mask aligned with the input image. |
-| `diagnostics.json` | Counts, configuration qualification, profile limitations, input/configuration identities, and the exact scientific-composition identity. |
+| `diagnostics.json` | Counts, configuration qualification, profile limitations, input/configuration identities, and the exact implementation identity. |
 
 Read validated products through Hebog rather than assuming FITS extension or
 column details:
@@ -142,14 +146,15 @@ for component in catalogue.gaussian_components:
     )
 
 print(diagnostics.provenance.input_sha256)
-print(diagnostics.provenance.scientific_composition_sha256)
 print(diagnostics.configuration_qualification)
 print(diagnostics.deblended_parent_count)
 print(diagnostics.deferred_deblend_parent_count)
 ```
 
 Those provenance identities make it possible to establish which input,
-configuration, reviewed profile, and implementation produced the result.
+configuration, science profile, and implementation produced the result. Treat
+the implementation label as opaque; compare its SHA-256 when exact identity
+matters.
 The three catalogue populations have deliberately different meanings:
 
 - a support island is one connected detected footprint in the mask;
@@ -192,21 +197,15 @@ A failed fit does not discard its detection
 or abort an unrelated valid source. Missing uncertainty remains unavailable,
 not zero. The current catalogue JSON, catalogue FITS and public diagnostics
 schemas are versions 3, 4 and 8 respectively; stale versions fail clearly.
-Composition `phase-5-evidence-bound-public-catalogue-v15` remains
-development-unqualified pending new candidate-bound evidence. Historical
-campaign results do not qualify these changed measurements.
-
 Precision-limited noise uses stable local arithmetic without an invented RMS
 floor. Source-protected regions with no positive RMS remain unavailable for
 sigma-based detection. A noiseless image containing emission can therefore
 return no catalogue rows with an **unavailable RMS**; this is not evidence
 that the image contains no sources. No artificial noise floor is supplied.
 
-The repaired continuum RMS policy passes the joint source-retention and
-spatial-noise fixture gates; it is **not campaign-qualified**. See the
-[repair contract](../reference/phase-5-public-catalogue-repair-contract.md).
-Notebook diagnostics identify the selected scientific composition; do not
-interpret products from an older composition as current-candidate evidence.
+The continuum RMS policy is covered by source-retention and spatial-noise
+tests, but it is **not survey-qualified**. Use the diagnostic provenance and
+an exact package version when comparing or repeating runs.
 
 For a component-level comparison with a PyBDSF Gaussian catalogue, compare
 `catalogue.gaussian_components`, not `catalogue.sources`. Plotting one marker
@@ -256,11 +255,8 @@ byte-identical scientific products.
 
 ## Current limits
 
-The 1,024-pixel cap is deliberate: the evaluated terminal composition still
-materializes one complete preview plane after its bounded detection stage.
-Larger public inputs are rejected until bounded terminal measurement and
-publication are implemented and each expanded size tier is validated.
-Rapthor-specific dual-image composition, sky-model filtering, compatibility
-filenames and complete-path runtime qualification are separate planned
-increments. See the
-[remaining tasks](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md).
+The 1,024-pixel cap is deliberate: measurement currently materializes one
+complete image plane after tiled detection. `hebog.find_sources()` does not
+perform primary-beam branch composition, filter a sky model, or emit
+Rapthor/LSMTool compatibility products; an integrating pipeline must own those
+steps.

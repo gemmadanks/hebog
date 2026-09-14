@@ -71,6 +71,7 @@ nav:
       - Current scientific campaign: reference/phase-5-campaign-overview.md
       - Scientific readiness: reference/phase-5-release-readiness.md
       - API: reference/index.md
+      - Public source-finder outputs: reference/public-products.md
       - Domain glossary: reference/domain-glossary.md
       - Internal catalogue and result schemas: reference/internal-schemas.md
       - Rapthor source-finding contract: reference/rapthor-source-finding-contract.md
@@ -142,6 +143,7 @@ nav:
           - Phase 5 final-qualification evaluation-repair pre-review: reference/phase-5-final-qualification-repair-pre-review.md
   - Explanation:
       - Architecture: explanation/index.md
+      - How Hebog finds sources: explanation/how-hebog-works.md
       - Domain model: explanation/domain-model.md
       - Quality attributes: explanation/quality-attributes.md
       - Native-code assessment: explanation/native-code-assessment.md

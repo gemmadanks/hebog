@@ -21392,3 +21392,24 @@ scientific pass from fixture validation.
   seconds. Review against `CODE_REVIEW.md` finds no production, scientific,
   frozen-evidence or coverage-policy change; the remaining risk is confirmation
   by the native hosted Windows matrix.
+
+
+## 2026-09-14 — Document the public source-finding workflow and outputs
+
+- Trace the public finder from request admission through background/RMS
+  estimation, direct and multiscale detection, boundary refinement,
+  deblending, component fitting, source association/measurement and atomic
+  four-product publication. Add one end-to-end decision flow and a
+  user-focused explanation that distinguishes islands, sources and Gaussian
+  components, including the continuum and compact profile branches.
+- Add a complete public-product reference for `SourceFinderResult`, catalogue
+  HDUs and columns, units and nulls, profile-specific measurement semantics,
+  RMS and mask pixels/headers, diagnostic dispositions and provenance,
+  validated readers, and separate astronomer/developer evaluation checklists.
+  Link both pages from the README, documentation home, tutorial and navigation.
+- Remove implementation-version language from the user path. Describe the
+  implementation label as opaque provenance and explain current behaviour and
+  limits directly, without requiring knowledge of development phases or the
+  future plan. No scientific code, configuration, schema or evidence changes.
+  The strict MkDocs build passes and includes the Mermaid flowchart and both
+  new navigation entries.
