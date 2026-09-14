@@ -21429,3 +21429,42 @@ scientific pass from fixture validation.
   Keep the existing release-boundaries anchor for maintainer and scientific-
   readiness links. No code, schema, scientific configuration or evidence
   changes.
+
+
+## 2026-09-14 — Shorten the hosted CI critical path
+
+- Diagnose the reported one-hour-plus hosted workflow from its dependency
+  graph and the retained Windows failure log. The Windows portable-test step
+  alone ran 4,188 selected tests in 2,256.58 seconds. Collection shows that
+  2,445 cases are Phase 5 validation and retained-evidence checks, while 1,743
+  are the runtime, contract and integration partition. The pre-commit job also
+  repeated the quick tests, type check, docs build and notebook validation,
+  and every later job waited for it; docs and packaging then waited for the
+  complete nine-job matrix.
+- Keep every test while replacing the nine-way Cartesian runtime matrix with
+  five jobs: Python 3.12, 3.13 and 3.14 on Linux, plus Python 3.14 on macOS and
+  Windows. Every supported interpreter and operating system remains exercised.
+  Move the complete-history guard beside the retained-validation tests, and
+  run that 2,445-test partition on Linux for all three supported Python
+  versions. This preserves the cross-version checks that found the earlier
+  Python 3.12/3.13 differences without spending Windows and macOS runner time
+  on POSIX-bound historical evidence.
+- Start the independent static, runtime, retained-validation, scientific,
+  notebook and docs jobs together. Keep `Package smoke test` behind all five
+  runtime-axis checks because branch protection uses that check as the release
+  gate. Limit the pre-commit job to its ordinary static hooks plus Pyright
+  because dedicated jobs cover its former pre-push work. Add the bounded
+  pytest-xdist 3.x development dependency and use two work-stealing workers; a
+  fixed count avoids multiplying the Dask integration tests by an unknown
+  hosted CPU count. Local parallel trials pass all 2,445 retained-validation
+  tests in 133.68 seconds and all 1,743 runtime cases in 451.44 seconds. The
+  dependency is test-only and adds no package, worker-image or serialization
+  requirement to Hebog users.
+- Run the complete 4,188-test selection once on Linux/Python 3.14 with coverage
+  so pytest-cov still enforces the project floor before one report is uploaded
+  to Codecov. The two non-coverage collection checks partition those same
+  4,188 cases exactly. On local macOS/Python 3.14, the exact two-worker
+  coverage command passes 4,186 tests with two expected xfails in 584.34
+  seconds and retains 95.34% branch coverage. The workflow passes the
+  configured YAML hook and actionlint v1.7.12. Hosted pass status and measured
+  elapsed-time improvement remain to be confirmed after human push.
