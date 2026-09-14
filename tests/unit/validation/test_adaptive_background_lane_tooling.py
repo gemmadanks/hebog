@@ -6,11 +6,9 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import runpy
-import subprocess
 import sys
 from collections.abc import Callable
 from copy import deepcopy
@@ -59,17 +57,6 @@ _IDENTITY = (
     _ROOT / "config/contracts/"
     "phase-5-adaptive-background-development-identity-review.json"
 )
-_FREEZE_REVISION = "0a4a9ab279d654bbc8104025dcc757f39640ee83"
-
-
-def _historical_bytes(relative_path: str) -> bytes:
-    """Read one immutable file from the original lane freeze revision."""
-    return subprocess.run(
-        ("git", "show", f"{_FREEZE_REVISION}:{relative_path}"),
-        cwd=_ROOT,
-        check=True,
-        capture_output=True,
-    ).stdout
 
 
 def _skip_upstream_identities(_repository_root: Path) -> None:
@@ -239,34 +226,6 @@ def test_recomputing_recipe_digest_cannot_hide_scientific_changes(
     )
     with pytest.raises(AssertionError):
         assert_manifest_matches(generated, snapshot)
-
-
-def test_frozen_manifest_and_reviews_retain_the_historical_snapshot() -> None:
-    """Superseding source changes cannot rewrite completed lane evidence."""
-    manifest = build_adaptive_development_manifest()
-    assert_manifest_matches(
-        manifest.model_dump(mode="json"), json.loads(_MANIFEST.read_bytes())
-    )
-    for path in (_MANIFEST, _IMPLEMENTATION, _IDENTITY):
-        historical = _historical_bytes(path.relative_to(_ROOT).as_posix())
-        assert historical == path.read_bytes()
-
-
-def test_frozen_identity_is_non_executable_and_binds_historical_programs() -> (
-    None
-):
-    """Implementation completion remains bound to its original programs."""
-    identity = json.loads(_IDENTITY.read_text())
-
-    assert identity["status"] == "frozen-non-executable"
-    assert set(identity["authorization"].values()) == {False}
-    assert identity["population"]["input_count"] == 144
-    assert identity["population"]["total_finder_executions"] == 300
-    for binding in identity["program_bindings"].values():
-        assert (
-            hashlib.sha256(_historical_bytes(binding["path"])).hexdigest()
-            == binding["sha256"]
-        )
 
 
 def test_freezer_collision_leaves_the_other_destinations_absent(

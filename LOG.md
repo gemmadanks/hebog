@@ -21488,6 +21488,41 @@ scientific pass from fixture validation.
   production code and the CI workflow remain unchanged.
 
 
+## 2026-09-14 — Split the Phase 5 cleanup before v0.7.0
+
+- The first cleanup CI run failed 21 tests and raised 10 fixture errors on
+  Linux/Python 3.13 because `git show`, `git ls-tree` and `git archive` could
+  not resolve pre-squash feature-branch commits. The same lane passed locally
+  only because this checkout retained dangling objects, so future validation
+  must include a clean-clone run rather than relying on the local object store.
+- Clarify the retained surface: keep tests that assert scientific behaviour or
+  infrastructure needed by the runtime, scaling work, source-finder comparison
+  or notebooks. Closed campaign authority, replay, identity and historical
+  source-byte assertions are archive-only and may be removed. Apply the same
+  boundary to historical JSON, scripts and `hebog.validation` modules.
+- Preserve all four notebooks, their tests and support scripts. In particular,
+  retain the fresh PyBDSF/Aegean comparison setup and the independently
+  refreshable Hebog notebook results; neither workflow may depend on old
+  campaign reconstruction after cleanup.
+- Use four independently green steps: finish the test-only clean-checkout CI
+  repair on the current branch; extract installed runtime science from
+  `hebog.validation` with unchanged public products and exact Serial/Dask
+  results; mechanically delete the now-unreachable campaign scripts, modules,
+  JSON and documentation from a checked reachability inventory; then perform
+  a small v0.7.0 release-readiness review and full CI run. Merge before
+  branching each next step so failures remain attributable and the large
+  deletion does not conceal a science change.
+- Complete the local CI/history repair without changing production source,
+  scripts, configuration, notebooks or scientific assertions. Remove the
+  remaining archive-only Git reconstruction tests and their session fixture,
+  and return the retained-validation and coverage jobs to ordinary shallow
+  checkouts. The exact retained-validation selection passes 2,204 tests with
+  four FITS-card warnings in 118.80 seconds locally. It also passes the same
+  2,204 tests in 139.99 seconds from a `--no-local --single-branch` clone where
+  the previously required `ab7cb09...` commit is demonstrably absent. Hosted
+  Python 3.12–3.14 status remains for the human-pushed PR.
+
+
 ## 2026-09-14 — Authorize closed Phase 5 campaign cleanup
 
 - The accumulated finder changes merged to `main` as `4babf0b`; the cleanup

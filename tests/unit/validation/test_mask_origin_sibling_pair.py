@@ -3,10 +3,8 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import runpy
-import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
@@ -71,17 +69,6 @@ _ACTIVATION_DECISION = (
 )
 
 
-def _committed_file_sha256(revision: str, path: str) -> str:
-    """Hash one historical file without consulting mutable working bytes."""
-    content = subprocess.run(
-        ("git", "show", f"{revision}:{path}"),
-        cwd=_ROOT,
-        check=True,
-        capture_output=True,
-    ).stdout
-    return hashlib.sha256(content).hexdigest()
-
-
 def test_configuration_binds_both_policies_and_exact_reviews(
     tmp_path: Path,
 ) -> None:
@@ -123,33 +110,6 @@ def test_configuration_rejects_malformed_base(tmp_path: Path) -> None:
             tmp_path / "review.json",
             tmp_path / "decision.json",
         )
-
-
-def test_governed_records_bind_exact_implementation() -> None:
-    """The closed decision remains exact after prospective source changes."""
-    review = json.loads(_PRE_REVIEW.read_text(encoding="utf-8"))
-    decision = json.loads(_DECISION.read_text(encoding="utf-8"))
-    activation_review = json.loads(
-        _ACTIVATION_PRE_REVIEW.read_text(encoding="utf-8")
-    )
-    revision = activation_review["binding_evidence"]["candidate_revision"]
-
-    assert review["binding_evidence"]["prospective_smoke_sha256"] == (
-        "a8bee362728df293a30d171bed5afb4e412ecae9cbf9af06fbbce5afec083249"
-    )
-    assert decision["pre_review"] == {
-        "path": _PRE_REVIEW.relative_to(_ROOT).as_posix(),
-        "sha256": file_sha256(_PRE_REVIEW),
-    }
-    for identity in decision["implementation"]:
-        assert (
-            _committed_file_sha256(revision, identity["path"])
-            == identity["sha256"]
-        )
-    assert (
-        decision["authorization"]["threshold_or_margin_tuning_authorized"]
-        is False
-    )
 
 
 def test_activation_repair_records_bind_terminal_failure_and_programs() -> (

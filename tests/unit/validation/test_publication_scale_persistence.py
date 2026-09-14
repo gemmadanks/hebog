@@ -3,10 +3,8 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import runpy
-import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
@@ -47,18 +45,6 @@ _EVALUATOR = (
     _ROOT / "scripts/validation/"
     "evaluate_phase5_prospective_publication_scale_persistence_smoke.py"
 )
-_DECISION_REVISION = "937737d811dd229d71dbcfdbda6cb5829de6faca"
-
-
-def _historical_sha256(relative_path: str) -> str:
-    """Hash one program at the revision that froze this decision."""
-    contents = subprocess.run(
-        ("git", "show", f"{_DECISION_REVISION}:{relative_path}"),
-        cwd=_ROOT,
-        check=True,
-        capture_output=True,
-    ).stdout
-    return hashlib.sha256(contents).hexdigest()
 
 
 def _scale_plane(
@@ -343,15 +329,3 @@ def test_evaluator_dispatches_only_the_replacement_materializer() -> None:
 
     assert base["_MATERIALIZER"] == expected
     assert base["main"].__globals__["_MATERIALIZER"] == expected
-
-
-def test_implementation_decision_binds_exact_review_and_programs() -> None:
-    """Every prospective byte is frozen before scientific execution."""
-    decision = json.loads(_DECISION.read_text(encoding="utf-8"))
-
-    assert decision["pre_review"] == {
-        "path": _PRE_REVIEW.relative_to(_ROOT).as_posix(),
-        "sha256": file_sha256(_PRE_REVIEW),
-    }
-    for identity in decision["implementation"]:
-        assert _historical_sha256(identity["path"]) == identity["sha256"]

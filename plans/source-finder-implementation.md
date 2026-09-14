@@ -359,9 +359,10 @@ checklist, rather than waiting for Rapthor integration or 100,000-square data.
 **14 September sequencing decision:** prepare and publish v0.7.0 before
 starting scaling work. Full supported-platform CI, the wheel smoke test,
 documentation, notebook smoke and applicable equivalence checks must pass
-first. Limit pre-release cleanup to package/runtime boundaries, failing CI and
-the explicitly retained science/comparison/notebook workflows; a complete
-purge of inert historical records is not on the release critical path.
+first. Complete the cleanup as a short series of independently green PRs; do
+not combine the squash-history CI repair, runtime extraction and bulk archive
+deletion in one review. Preserve every notebook together with its scripts and
+tests, as well as the explicitly retained science and comparison workflows.
 
 - [ ] **E0 — Remove closed campaign machinery before release.** Inventory
       candidate dead code and superseded scripts against imports, dynamic
@@ -403,6 +404,52 @@ purge of inert historical records is not on the release critical path.
       its supported replacement, or the scientific status becomes less clear.
       A provenance/composition identity change is expected and must not inherit
       qualification from a deleted freeze.
+
+      **Efficient PR sequence (14 September):**
+
+      1. **CI/history repair — current branch.** Remove only tests that
+         reconstruct closed commits, campaign authority or frozen identities.
+         Keep scientific assertions and runtime/next-phase infrastructure.
+         Remove the shared historical-Git fixture once its last consumer is
+         gone. Done when the exact retained-validation command passes from a
+         clean clone that cannot see dangling pre-squash objects, followed by
+         `just pre-commit` and hosted Python 3.12–3.14 CI. Do not mix
+         `src/`, script or configuration pruning into this PR.
+      2. **Phase-neutral runtime extraction.** Move the current finder
+         composition and science records reached by `public_api.py` and
+         `public_science.py` out of `hebog.validation`, without altering any
+         algorithm, threshold, dtype, schema or output. Establish byte-for-byte
+         public-product and exact Serial/Dask characterization before moving
+         code; run focused science suites, `just coverage`, package smoke and
+         the full normal handoff checks. Keep the historical modules until the
+         replacement imports pass so a review has a clear before/after oracle.
+      3. **Bulk historical-surface deletion.** Starting from the extracted
+         runtime, delete unreachable Phase 5 campaign orchestration from
+         `src/hebog/validation`, `scripts/validation` and
+         `scripts/benchmark`, along with its archive-only tests, JSON records
+         and historical documentation. Generate the deletion set from a
+         checked reachability inventory, then inspect dynamic `runpy`, CLI,
+         CI, MkDocs and test references before applying it. Preserve all four
+         notebooks, `scripts/check_notebooks.py`, their tests, the fresh
+         PyBDSF/Aegean comparison setup, the separate Hebog notebook refresh,
+         current scientific/equivalence infrastructure and the Phase 5
+         performance/scalability tools needed next. Done when no retained file
+         references a deleted path and all notebook, documentation,
+         equivalence, package and CI lanes pass from a clean clone.
+      4. **v0.7.0 release readiness.** On a final small branch, review the
+         aggregate diff against `CODE_REVIEW.md`, confirm the wheel contains no
+         obsolete campaign modules or JSON, refresh user-facing file/path
+         documentation, and run `just ci` plus the supported hosted matrix.
+         Release Please remains responsible for the version, changelog, tag
+         and PyPI publication; scaling starts only after that human-controlled
+         release succeeds.
+
+      Merge each PR before branching the next one. This keeps the high-risk
+      no-science-change extraction reviewable, makes the later deletion mostly
+      mechanical, and lets CI identify the exact layer responsible for any
+      failure. If PR 2 changes public science bytes or exact Serial/Dask
+      results, stop there rather than allowing PR 3 to hide the regression in
+      a large deletion diff.
 - [x] **E1 — Close the bounded release correctness inventory.** Confirm from M2/M3 that
       no known incorrect supported catalogue, position, flux, ownership or
       processing-status output remains. Check Gaussian-validity and

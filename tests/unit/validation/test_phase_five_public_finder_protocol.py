@@ -11,7 +11,6 @@ from typing import Any, cast
 import numpy as np
 import pytest
 
-from hebog.validation.external_runners import file_sha256, source_tree_sha256
 from hebog.validation.public_comparison import (
     PublicCatalogueComponent,
     associate_public_catalogues,
@@ -44,10 +43,6 @@ _CAMPAIGN_SCRIPT = (
     _ROOT / "scripts/benchmark/run_phase5_public_finder_campaign.py"
 )
 _RUNNER_SCRIPT = _ROOT / "scripts/benchmark/run_phase5_public_finder_hebog.py"
-_PUBLIC_IDENTITY = (
-    _ROOT / "config/contracts/phase-5-public-publication-owner-domain-"
-    "identity-review.json"
-)
 _COMPILER_SCRIPT = (
     _ROOT / "scripts/validation/compile_phase5_public_finder_campaign.py"
 )
@@ -550,52 +545,6 @@ def test_hebog_runner_publishes_only_a_complete_bundle(
     assert result == {"status": "success"}
     assert (output / "result.json").is_file()
     assert tuple(tmp_path.glob(".case.*")) == ()
-
-
-def test_hebog_notebook_runner_uses_exact_public_composition(
-    frozen_public_configuration: str,
-) -> None:
-    """Notebook evidence must execute the same terminal public composition."""
-    runner = runpy.run_path(str(_RUNNER_SCRIPT))
-
-    assert frozen_public_configuration == (
-        "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d"
-    )
-    assert runner["public_api"]._analyse_image.__module__ == "hebog.public_api"
-    assert runner["_PUBLIC_CONFIG"].profile == "continuum"
-
-
-def test_notebook_identity_binds_the_committed_public_source(
-    frozen_campaign_root: Path,
-) -> None:
-    """A refresh cannot silently mix new source with old provenance."""
-    identity = json.loads(_PUBLIC_IDENTITY.read_text(encoding="utf-8"))
-
-    assert file_sha256(_PUBLIC_IDENTITY) == (
-        "2920873aa430086d8b12a2092ac7f70bb59dc756c3a70b03db7e7f0708fb0611"
-    )
-    assert identity["status"] == "frozen-non-executable"
-    assert set(identity["authorizations"].values()) == {False}
-    assert identity["algorithm_candidate"] == {
-        "configuration_sha256": (
-            "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d"
-        ),
-        "revision": "95cfc76ded56556dc3ad6894410962d34f0d5604",
-        "source_tree_sha256": (
-            "8da21e86afc5035da0704724a9d29104ea8b0e4d55fa4a98f0c5f3efca9a75a5"
-        ),
-    }
-    assert (
-        source_tree_sha256(frozen_campaign_root)
-        == identity["algorithm_candidate"]["source_tree_sha256"]
-    )
-    for relative_path, expected_sha256 in identity[
-        "interface_file_sha256"
-    ].items():
-        assert (
-            file_sha256(frozen_campaign_root / relative_path)
-            == expected_sha256
-        )
 
 
 def test_hebog_runner_declares_component_comparison_semantics() -> None:

@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import runpy
-import subprocess
 from pathlib import Path
 from typing import Any, cast
 
@@ -29,18 +27,6 @@ def _review() -> dict[str, Any]:
     return cast(dict[str, Any], value)
 
 
-def _reviewed_sha256(relative_path: str) -> str:
-    """Hash one dependency at the exact commit inspected by the review."""
-    revision = cast(str, _review()["binding_context"]["repository_commit"])
-    contents = subprocess.run(
-        ("git", "show", f"{revision}:{relative_path}"),
-        cwd=_ROOT,
-        check=True,
-        capture_output=True,
-    ).stdout
-    return hashlib.sha256(contents).hexdigest()
-
-
 def test_review_is_non_executable_and_requires_exact_approval() -> None:
     """A design review cannot authorize implementation or execution."""
     review = _review()
@@ -58,27 +44,6 @@ def test_review_is_non_executable_and_requires_exact_approval() -> None:
         "named-approval-of-this-exact-review-for-test-first-fixture-only-"
         "finder-source-union-adapters"
     )
-
-
-def test_review_binds_approved_alignment_and_current_product_schemas() -> None:
-    """Recommendations bind exact historical product contracts."""
-    bindings = _review()["binding_context"]["repository_files"]
-
-    for binding in bindings.values():
-        assert _reviewed_sha256(binding["path"]) == binding["sha256"]
-    assert bindings["approved_root_cause_review"]["sha256"] == (
-        "f94d0455be9bbb4472b7ee6e6b0cd24fbf4ecc8be1d3e8a293d4467dbc02cad3"
-    )
-    assert _review()["binding_context"]["released_pybdsf"] == {
-        "container_digest": (
-            "sha256:5310afe78c8fc09ed99ddee1c6978e5e32181b69f1d22432a02ef6e3a6761198"
-        ),
-        "dependency_inventory_sha256": (
-            "8211043e9fca55d706d1e890e2bf0b630e228a854db0949258c498506975669f"
-        ),
-        "release_commit": "1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc",
-        "version": "1.14.1",
-    }
 
 
 def test_hebog_adapter_uses_exact_association_membership() -> None:

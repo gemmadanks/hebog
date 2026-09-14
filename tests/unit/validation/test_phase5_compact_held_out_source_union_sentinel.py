@@ -6,20 +6,15 @@
 
 from __future__ import annotations
 
-import json
 import runpy
-import sys
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any
 
 import numpy as np
-import pytest
 from astropy.io import fits
 from astropy.wcs import WCS
 
 from hebog.validation.datasets import DatasetRole, iter_dataset_recipes
-from hebog.validation.external_runners import file_sha256
 
 _ROOT = Path(__file__).parents[3]
 _POPULATION = _ROOT / (
@@ -27,24 +22,6 @@ _POPULATION = _ROOT / (
 )
 _CHILD = _ROOT / (
     "scripts/benchmark/run_phase5_compact_held_out_source_union_pybdsf.py"
-)
-_RUNNER = _ROOT / (
-    "scripts/benchmark/run_phase5_compact_held_out_source_union_sentinel.py"
-)
-_FREEZER = _ROOT / (
-    "scripts/validation/freeze_phase5_compact_held_out_source_union_sentinel.py"
-)
-_MANIFEST = _ROOT / (
-    "config/contracts/"
-    "phase-5-compact-held-out-source-union-sentinel-manifest.json"
-)
-_IMPLEMENTATION = _ROOT / (
-    "config/contracts/"
-    "phase-5-compact-held-out-source-union-sentinel-implementation-decision.json"
-)
-_IDENTITY = _ROOT / (
-    "config/contracts/"
-    "phase-5-compact-held-out-source-union-sentinel-identity-review.json"
 )
 
 
@@ -171,103 +148,3 @@ def test_pybdsf_child_accepts_schema_free_empty_catalogues() -> None:
         projection.source_union_label_plane,
         np.zeros((1, 3), dtype=np.int32),
     )
-
-
-def test_runner_preflight_is_no_write_and_needs_new_authority(
-    tmp_path: Path,
-    frozen_campaign_root: Path,
-    frozen_public_configuration: str,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """A frozen identity cannot execute either finder by itself."""
-    runner = _program(_RUNNER)
-    monkeypatch.setitem(
-        runner["verify_no_write"].__globals__,
-        "public_hebog_configuration_sha256",
-        lambda: frozen_public_configuration,
-    )
-    scratch = tmp_path / "scratch"
-    output = tmp_path / "terminal.json"
-
-    verified = runner["verify_no_write"](
-        repository_root=frozen_campaign_root,
-        manifest_path=frozen_campaign_root / _MANIFEST.relative_to(_ROOT),
-        identity_path=frozen_campaign_root / _IDENTITY.relative_to(_ROOT),
-        scratch=scratch,
-        output=output,
-        minimum_free_disk_gib=0,
-    )
-    assert verified["status"] == "pass"
-    assert verified["finder_execution_started"] is False
-    assert not scratch.exists()
-    assert not output.exists()
-
-    with pytest.raises(PermissionError, match="exact execution decision"):
-        runner["verify_execution_authority"](
-            SimpleNamespace(
-                execution_decision=None,
-                identity_review=_IDENTITY,
-                manifest=_MANIFEST,
-                output=output,
-                repository_root=_ROOT,
-                scratch=scratch,
-                workers=2,
-            )
-        )
-
-
-def test_identity_binds_aligned_program_and_remains_non_executable(
-    frozen_campaign_root: Path,
-) -> None:
-    """Every alignment and adapter seam is immutable before approval."""
-    identity = json.loads(_IDENTITY.read_text(encoding="utf-8"))
-    implementation = json.loads(_IMPLEMENTATION.read_text(encoding="utf-8"))
-
-    assert identity["status"] == "frozen-non-executable"
-    assert implementation["status"] == (
-        "implemented-and-validated-non-executable"
-    )
-    assert set(identity["authorization"].values()) == {False}
-    assert identity["population"]["image_count"] == 168
-    assert identity["execution_contract"]["total_finder_executions"] == 348
-    assert identity["evidence_schema_version"] == 3
-    assert {
-        "aligned_evaluator",
-        "alignment",
-        "source_union_adapters",
-        "source_union_pybdsf_child",
-        "source_union_runner",
-    }.issubset(identity["program_bindings"])
-    for binding in identity["program_bindings"].values():
-        assert (
-            file_sha256(frozen_campaign_root / binding["path"])
-            == binding["sha256"]
-        )
-
-
-def test_freezer_collision_writes_nothing_else(
-    tmp_path: Path, monkeypatch: Any
-) -> None:
-    """The successor identity set refuses every overwrite."""
-    freezer = _program(_FREEZER)
-    existing = tmp_path / _IDENTITY.relative_to(_ROOT)
-    existing.parent.mkdir(parents=True)
-    existing.write_text("existing\n", encoding="utf-8")
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        [
-            str(_FREEZER),
-            "--repository-root",
-            str(_ROOT),
-            "--output-root",
-            str(tmp_path),
-        ],
-    )
-
-    with pytest.raises(FileExistsError, match="refusing to overwrite"):
-        freezer["main"]()
-
-    assert existing.read_text(encoding="utf-8") == "existing\n"
-    assert not (tmp_path / _MANIFEST.relative_to(_ROOT)).exists()
-    assert not (tmp_path / _IMPLEMENTATION.relative_to(_ROOT)).exists()

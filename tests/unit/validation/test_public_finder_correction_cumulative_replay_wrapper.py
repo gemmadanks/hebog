@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import runpy
-import subprocess
 import sys
 from argparse import Namespace
 from pathlib import Path
@@ -148,46 +146,6 @@ def test_wrapper_binds_the_reconstructed_reference_terminal() -> None:
     assert wrapper["_REFERENCE_RECONSTRUCTION_SHA256"] == (
         "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2"
     )
-
-
-@pytest.mark.integration
-@pytest.mark.requires_data
-def test_reference_repair_review_freezes_no_execution_authority() -> None:
-    """Verified identities remain inert until one exact named approval."""
-    wrapper = runpy.run_path(str(_WRAPPER))
-    review = json.loads(_REFERENCE_REPAIR_REVIEW.read_text(encoding="utf-8"))
-
-    assert review["status"] == (
-        "ready-for-named-public-finder-correction-cumulative-replay-approval"
-    )
-    assert set(review["authorization"].values()) == {False}
-    assert review["prospective_execution"] == wrapper[
-        "_expected_execution_fields"
-    ](_frozen_replay_arguments())
-    implementation = review["implementation"]
-    wrapper_record = implementation["wrapper"]
-    content = subprocess.check_output(
-        (
-            "git",
-            "show",
-            f"{implementation['commit']}:{wrapper_record['path']}",
-        ),
-        cwd=_ROOT,
-    )
-    assert hashlib.sha256(content).hexdigest() == wrapper_record["sha256"]
-    reconstruction = review["reconstruction"]
-    completion = reconstruction["completion_review"]
-    assert file_sha256(_ROOT / completion["path"]) == completion["sha256"]
-    assert (
-        file_sha256(_ROOT / reconstruction["path"] / "recovery.json")
-        == reconstruction["recovery_sha256"]
-    )
-    verification = review["no_write_verification"]
-    assert verification["status"] == "pass"
-    assert verification["verified_input_count"] == 2400
-    assert verification["verified_reference_run_count"] == 9600
-    assert verification["output_absent"] is True
-    assert verification["scratch_absent"] is True
 
 
 @pytest.mark.posix_frozen_record
