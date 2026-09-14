@@ -21486,3 +21486,85 @@ scientific pass from fixture validation.
   retained-validation tests, still exactly 4,188 total, and finds both moved
   identities only in the full-history partition. Assertions, reviewed bytes,
   production code and the CI workflow remain unchanged.
+
+
+## 2026-09-14 — Authorize closed Phase 5 campaign cleanup
+
+- The accumulated finder changes merged to `main` as `4babf0b`; the cleanup
+  branch starts from that exact revision with a clean working tree.
+- Inventory the live historical surface: 43 Phase 5 reference pages, 143
+  validation scripts, 62 benchmark scripts, 374 contracts, 22 dataset
+  manifests and 2,447 retained-validation test cases. The installed public
+  finder reaches 17 modules under `hebog.validation`, preventing safe direct
+  deletion.
+- Close the live-tree retention requirement for Phase 5. Preserve the failed
+  v15 verdict, accepted experimental-release limitations, unqualified current
+  status and recovery revision, but use Git history rather than executable
+  campaign programs, immutable identity records and reconstruction tests as
+  the archive. Ignored campaign products remain an external-storage concern.
+- Begin with a phase-neutral extraction of runtime science, verified against
+  unchanged public products and exact Serial/Dask results. Then remove closed
+  campaign code, records and documentation, retaining only current behavioural
+  regressions and demonstrably reusable validation infrastructure. Stop on a
+  science-byte change, loss of a current supported workflow or ambiguity in
+  the published scientific status.
+- Remove the first 28 history-reconstruction test modules and the coverage
+  job's full-history checkout. These tests executed `git log` or `git show` to
+  bind closed campaign source and fixtures rather than exercising supported
+  behaviour. The initial all-file hook passed formatting, lint, JSON, spelling,
+  Marimo, Pyright and docs, then reached 3,097 passing quick tests before the
+  unchanged historical fixture lookup failed after the squash merge. Do not
+  rewrite that closed identity; commit `4babf0b` retains the complete files.
+- Make the reusable comparison workflow an explicit cleanup invariant at the
+  user's request. Keep a script capable of rerunning the comparison source
+  finders and keep the separate option to refresh Hebog products for the source
+  comparison notebook. Consolidation and phase-neutral naming are allowed only
+  after the downloader, reference runners, product readers and notebook refresh
+  are covered by focused dry-run or mocked-execution checks; closed campaign
+  reconstruction is not part of either retained workflow.
+- Clarify the test-retention boundary at the user's request: every regression
+  that checks scientific behaviour or an implemented science repair remains,
+  even when its filename or fixture originated in Phase 5. Restore the staged
+  bulk deletion of 155 validation modules and the shared historical fixtures;
+  also restore the original retained-validation CI partition and marker while
+  the narrower audit proceeds. The interrupted coverage run had reached 339
+  passes and exposed one integration test's dependency on a restored helper;
+  it is not completion evidence. Future removal is limited to tests shown by
+  inspection to assert provenance, Git reconstruction, orchestration or frozen
+  identity without a scientific-result assertion.
+- Start the retention-first rename with three self-contained scientific test
+  modules: source-position estimators and uncertainty, extended-source
+  astrometry, and multiscale filtering/detection now have behaviour-oriented
+  filenames and module descriptions instead of Phase 5 review labels. Their
+  focused suite passes all 30 tests. No assertions, fixtures, thresholds or
+  production science change in this rename.
+- The mandatory full hook passes every static/documentation/notebook check and
+  3,097 quick tests before the squash-fragile historical Git lookup fails in
+  `test_public_owner_domain_cumulative_evaluation.py`. Remove only that one
+  archive assertion: it reconstructs the commit that introduced an identity
+  record and hashes historical test-file bytes, without executing or comparing
+  a scientific result. Keep the module's bounded science smoke and all current
+  completion, verifier and write-once tests.
+- The next full-hook attempt passes 3,108 quick tests before failing in the
+  two-test `test_public_science_profile_history.py` module. Both tests call
+  `git show` to reconstruct superseded source trees and compare immutable
+  composition hashes; neither runs the current public finder nor asserts a
+  science result. Remove that archive-only module rather than rewriting its
+  frozen records after the squash merge.
+- Set the revised delivery order: complete a fully green v0.7.0 release
+  candidate and publish it through the existing human-controlled workflow
+  before scaling work begins. Refactoring is therefore release-bounded: make
+  installed runtime/CI clean, retain every science regression and both current
+  comparison workflows, and defer any exhaustive purge of inert historical
+  records that cannot affect the package or release checks.
+- Remove a further 14 archive-only modules after function-level inspection.
+  Thirteen are explicitly cumulative-replay, candidate, continuation or repair
+  identity suites; the four-test R6 replacement-admission review checks only
+  closed reuse authority, historical program hashes and the old campaign
+  resource budget. None calls the current finder or asserts catalogue,
+  detection, fitting, astrometry, photometry, background, mask or executor
+  science. No other test or script imports these test modules by filename.
+- Validation collection remains healthy at 2,436 tests. The focused selection
+  covering every remaining test named for historical, frozen or identity
+  behavior passes 280 tests with 2,156 deselected, confirming no additional
+  immediate squash-history failure before the next complete gate.

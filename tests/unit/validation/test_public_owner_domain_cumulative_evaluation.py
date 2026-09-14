@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import importlib
 import json
 import runpy
@@ -374,33 +373,6 @@ def test_freezer_writes_once(tmp_path: Path) -> None:
     assert decision["identity_review_sha256"] == canonical_sha256(identity)
     with pytest.raises(FileExistsError, match="refusing to overwrite"):
         freezer["freeze_records"](arguments)
-
-
-def test_frozen_fixture_bindings_match_historical_revision() -> None:
-    """Closed review hashes bind original tests, not later test repairs."""
-    review = json.loads(_IDENTITY.read_text(encoding="utf-8"))
-    revision = subprocess.run(
-        (
-            "git",
-            "log",
-            "--diff-filter=A",
-            "--format=%H",
-            "--",
-            _IDENTITY.relative_to(_ROOT).as_posix(),
-        ),
-        cwd=_ROOT,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.splitlines()[0]
-    for binding in review["fixture_bindings"].values():
-        contents = subprocess.run(
-            ("git", "show", f"{revision}:{binding['path']}"),
-            cwd=_ROOT,
-            check=True,
-            capture_output=True,
-        ).stdout
-        assert hashlib.sha256(contents).hexdigest() == binding["sha256"]
 
 
 @pytest.mark.integration

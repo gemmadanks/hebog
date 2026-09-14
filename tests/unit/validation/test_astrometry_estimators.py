@@ -1,4 +1,4 @@
-"""Tests for the prospective Phase 5 astrometry revision."""
+"""Scientific regressions for source-position estimators and uncertainty."""
 
 from __future__ import annotations
 
