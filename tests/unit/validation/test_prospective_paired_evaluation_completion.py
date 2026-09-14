@@ -321,6 +321,7 @@ def test_completion_rejects_unrelated_implementation_revision(
         require_ancestor("a" * 40, "b" * 40)
 
 
+@pytest.mark.posix_frozen_record
 def test_completion_identity_and_decision_bind_exact_verified_products() -> (
     None
 ):

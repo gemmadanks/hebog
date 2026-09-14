@@ -12,6 +12,8 @@ import runpy
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from hebog.validation.external_runners import canonical_sha256, file_sha256
 
 _ROOT = Path(__file__).parents[3]
@@ -137,6 +139,7 @@ def test_execution_identity_includes_real_tail_and_consumed_failure() -> None:
     assert fields["source_request_sha256"] == program["_SOURCE_REQUEST_SHA256"]
 
 
+@pytest.mark.posix_frozen_record
 def test_identity_review_matches_exact_non_executable_completion() -> None:
     """The frozen review binds all proofs and grants no execution authority."""
     program = _program()

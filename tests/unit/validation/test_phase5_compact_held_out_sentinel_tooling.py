@@ -303,6 +303,7 @@ def test_runner_verify_only_is_no_write_and_execution_needs_new_authority(
         runner["verify_execution_authority"](arguments)
 
 
+@pytest.mark.posix_frozen_record
 def test_separate_exact_decision_can_open_only_the_frozen_shape(
     tmp_path: Path,
 ) -> None:

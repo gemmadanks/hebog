@@ -294,6 +294,7 @@ def test_wrapper_refuses_missing_execution_decision_before_loading(
     assert called is False
 
 
+@pytest.mark.posix_frozen_record
 def test_implementation_decision_is_exact_and_non_executable(
     tmp_path: Path,
 ) -> None:
@@ -459,6 +460,7 @@ def test_checkout_and_file_identity_guards(
         )
 
 
+@pytest.mark.posix_frozen_record
 def test_no_write_verification_orders_identity_before_reference(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

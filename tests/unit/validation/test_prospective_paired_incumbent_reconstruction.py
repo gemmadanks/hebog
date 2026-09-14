@@ -180,6 +180,7 @@ def test_implementation_decision_binds_provenance_only_repair() -> None:
     )
 
 
+@pytest.mark.posix_frozen_record
 def test_reconstruction_identity_review_binds_the_verified_invocation() -> (
     None
 ):

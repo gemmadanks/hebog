@@ -78,6 +78,7 @@ def _committed_file_sha256(revision: str, path: str) -> str:
     return hashlib.sha256(value).hexdigest()
 
 
+@pytest.mark.posix_frozen_record
 def test_review_freezes_exact_non_executable_composition() -> None:
     """The review binds every implementation and replay identity."""
     review = _load()
@@ -151,6 +152,7 @@ def test_review_records_complete_no_write_result() -> None:
     }
 
 
+@pytest.mark.posix_frozen_record
 def test_named_approval_opens_only_the_exact_frozen_replay() -> None:
     """The new decision binds the review without opening later actions."""
     review = _load()

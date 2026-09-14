@@ -10,6 +10,8 @@ from argparse import Namespace
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
+
 from hebog.validation.campaign_runtime import canonical_sha256
 from hebog.validation.external_runners import file_sha256
 
@@ -122,6 +124,7 @@ def test_review_records_complete_no_write_result() -> None:
         assert verification[field] is True
 
 
+@pytest.mark.posix_frozen_record
 def test_review_binds_future_canonical_execution_identity() -> None:
     """A later decision must name every exact frozen execution field."""
     wrapper = runpy.run_path(str(_WRAPPER))
@@ -138,6 +141,7 @@ def test_review_binds_future_canonical_execution_identity() -> None:
     }
 
 
+@pytest.mark.posix_frozen_record
 def test_review_stays_non_executable_while_exact_decision_opens_replay() -> (
     None
 ):

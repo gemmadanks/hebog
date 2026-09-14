@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, cast
 from unittest.mock import Mock, patch
 
+import pytest
 from manifest_comparison import assert_regenerated_manifest_matches_snapshot
 
 from hebog.validation.external_runners import (
@@ -274,6 +275,7 @@ def _run_historical_probe(
     return checked
 
 
+@pytest.mark.posix_frozen_record
 def test_complete_no_write_preflight_uses_an_isolated_namespace(
     tmp_path: Path,
     frozen_campaign_root: Path,
@@ -304,6 +306,7 @@ def test_complete_no_write_preflight_uses_an_isolated_namespace(
     assert not output.exists()
 
 
+@pytest.mark.posix_frozen_record
 def test_freezer_reproduces_all_frozen_records(
     tmp_path: Path,
     frozen_campaign_root: Path,

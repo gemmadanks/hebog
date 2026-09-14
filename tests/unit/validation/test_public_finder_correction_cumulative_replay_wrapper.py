@@ -190,6 +190,7 @@ def test_reference_repair_review_freezes_no_execution_authority() -> None:
     assert verification["scratch_absent"] is True
 
 
+@pytest.mark.posix_frozen_record
 def test_named_replay_approval_binds_the_reconstructed_references() -> None:
     """The one replay authority must match every frozen execution field."""
     wrapper = runpy.run_path(str(_WRAPPER))
@@ -210,6 +211,7 @@ def test_named_replay_approval_binds_the_reconstructed_references() -> None:
     assert set(decision["prohibited_authorizations"].values()) == {False}
 
 
+@pytest.mark.posix_frozen_record
 def test_reference_repair_decision_matches_the_no_write_scope(
     tmp_path: Path,
 ) -> None:

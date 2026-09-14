@@ -164,6 +164,7 @@ def test_completed_replay_namespace_fails_closed_before_reverification(
         )
 
 
+@pytest.mark.posix_frozen_record
 def test_identity_and_decision_preserve_science_and_one_use_scope() -> None:
     """The successor changes only preflight work, not the replay science."""
     runner = _runner()
@@ -243,6 +244,7 @@ def test_authorized_run_carries_one_verified_plan_into_materialization(
     assert published[0]["candidate_product_set_sha256"] == "sealed-products"
 
 
+@pytest.mark.posix_frozen_record
 def test_consumed_freezer_preserves_identity_and_refuses_collision(
     tmp_path: Path,
 ) -> None:

@@ -159,6 +159,7 @@ def test_review_records_complete_no_write_result() -> None:
     }
 
 
+@pytest.mark.posix_frozen_record
 def test_review_remains_non_executable_and_named_approval_is_exact() -> None:
     """The review stays closed while its exact decision opens one replay."""
     review = _load()

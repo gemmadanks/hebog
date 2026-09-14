@@ -115,6 +115,7 @@ def test_frozen_successor_identities_are_reproducible_and_non_executable() -> (
     )
 
 
+@pytest.mark.posix_frozen_record
 def test_complete_no_write_verification_creates_no_namespace(
     tmp_path: Path,
 ) -> None:

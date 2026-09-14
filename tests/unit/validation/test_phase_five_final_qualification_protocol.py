@@ -146,7 +146,7 @@ def test_final_qualification_verifier_accepts_exact_named_transition(
     }
 
     def frozen_sha256(path: Path) -> str:
-        return hashes[str(path.relative_to(tmp_path))]
+        return hashes[path.relative_to(tmp_path).as_posix()]
 
     loader = helpers["load_final_qualification_execution_decision"]
     monkeypatch.setitem(loader.__globals__, "file_sha256", frozen_sha256)

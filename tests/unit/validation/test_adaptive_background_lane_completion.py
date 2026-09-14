@@ -151,7 +151,12 @@ def test_completion_fixture_verifies_all_preserved_observations(
     scratch.mkdir()
     (scratch / "progress.log").write_bytes(b"")
     summary = _summary()
-    required_files = completion["_REQUIRED_TASK_FILES"]
+    required_files = {
+        str(Path(relative)) for relative in completion["_REQUIRED_TASK_FILES"]
+    }
+    completion["_product_inventory"].__globals__["_REQUIRED_TASK_FILES"] = (
+        required_files
+    )
     for task in tasks:
         directory = scratch / task.input_id
         for relative in required_files:
@@ -197,6 +202,7 @@ def test_completion_fixture_verifies_all_preserved_observations(
         completion["_validate_observation"](changed, tasks[0])
 
 
+@pytest.mark.posix_frozen_record
 def test_completion_identity_is_non_executable_and_exact() -> None:
     """The repair can be reviewed without inheriting consumed authority."""
     completion = runpy.run_path(str(_COMPLETION))

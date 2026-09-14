@@ -356,7 +356,9 @@ def test_program_closure_hashes_nested_sources_and_rejects_symlinks(
     source.parent.mkdir(parents=True)
     source.write_text("# fixture\n")
     assert admission.program_hashes(tmp_path) == {
-        "scripts/validation/nested/tool.py": identity.binding(source)["sha256"]
+        str(Path("scripts/validation/nested/tool.py")): identity.binding(
+            source
+        )["sha256"]
     }
     source.with_name("alias.py").symlink_to(source)
     with pytest.raises(ValueError, match="regular file"):

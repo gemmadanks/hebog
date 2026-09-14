@@ -290,9 +290,8 @@ def test_existing_product_verifier_hashes_complete_shards(
             }
         ],
     }
-    (directory / "complete.json").write_text(
-        json.dumps(marker, allow_nan=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
+    (directory / "complete.json").write_bytes(
+        wrapper["_canonical_json_bytes"](marker)
     )
     (scratch / "progress.log").write_text(
         "completed=1/1 input=input-one\n",

@@ -10,6 +10,8 @@ from argparse import Namespace
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
+
 from hebog.validation.campaign_runtime import canonical_sha256
 from hebog.validation.external_runners import file_sha256
 
@@ -131,6 +133,7 @@ def test_review_is_non_executable() -> None:
     )
 
 
+@pytest.mark.posix_frozen_record
 def test_exact_decision_opens_only_the_frozen_replay() -> None:
     """The user's authority is bound to one canonical execution identity."""
     wrapper = runpy.run_path(str(_WRAPPER))
@@ -178,6 +181,6 @@ def test_review_and_decision_bind_retained_evidence_and_namespaces() -> None:
         assert document["closed_baseline_sha256"] == (
             "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9"
         )
-        assert document["output_path"] == str(arguments.output)
-        assert document["scratch_path"] == str(arguments.scratch)
+        assert document["output_path"] == arguments.output.as_posix()
+        assert document["scratch_path"] == arguments.scratch.as_posix()
         assert document["workers"] == 2

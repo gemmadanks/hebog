@@ -250,7 +250,7 @@ def test_prepare_rejects_changed_contract_boundaries(
     ("mutation", "message"),
     [
         ({"evidence_id": ""}, "identifier is invalid"),
-        ({"path": "/tmp/outside.json"}, "repository-relative"),
+        ({"path": str(Path.cwd().anchor)}, "repository-relative"),
         ({"review_owner": "operations"}, "owner differs"),
         ({"required_fields": {}}, "fields must be an object"),
         ({"sha256": "not-a-sha"}, "SHA-256 is invalid"),

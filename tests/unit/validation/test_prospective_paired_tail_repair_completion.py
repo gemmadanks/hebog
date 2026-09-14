@@ -12,6 +12,8 @@ import runpy
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from hebog.validation.external_runners import canonical_sha256, file_sha256
 
 _ROOT = Path(__file__).parents[3]
@@ -154,6 +156,7 @@ def test_execution_digest_binds_consumed_lineage_and_scientific_inputs() -> (
     assert "identity_review_sha256" not in fields
 
 
+@pytest.mark.posix_frozen_record
 def test_identity_review_is_exact_and_non_executable() -> None:
     """The review is inert while its separate decision grants one run."""
     program = _program()

@@ -369,6 +369,7 @@ def test_public_science_capture_is_bounded_and_restores_hooks(
     assert public_api._analyse_image is analysis
 
 
+@pytest.mark.posix_frozen_record
 def test_superseded_verify_only_fails_closed_without_creating_outputs(
     tmp_path: Path, monkeypatch: Any
 ) -> None:
@@ -482,6 +483,7 @@ def test_runner_refuses_widened_future_authorization(tmp_path: Path) -> None:
         runner["_verify_execution_authority"](arguments)
 
 
+@pytest.mark.posix_frozen_record
 def test_runner_accepts_only_the_exact_future_lane_authorization(
     tmp_path: Path,
 ) -> None:
@@ -512,6 +514,7 @@ def test_runner_accepts_only_the_exact_future_lane_authorization(
     assert runner["_verify_execution_authority"](arguments) == decision
 
 
+@pytest.mark.posix_frozen_record
 def test_runner_rejects_an_identity_with_changed_program_binding(
     tmp_path: Path,
     monkeypatch: Any,

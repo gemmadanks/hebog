@@ -237,7 +237,9 @@ def test_shared_compiler_replaces_its_bounded_cache_for_the_next_image(
                 input_path.parent / f"{role}.fits"
             )
         ),
-        "load_fits_plane": lambda path: prepared.append(str(path)) or plane,
+        "load_fits_plane": lambda path: (
+            prepared.append(path.as_posix()) or plane
+        ),
         "_truth_objects": lambda *_args: (("truth",), plane.astype(np.int64)),
         "_catalogue_and_labels": lambda _run: ((), plane.astype(np.int64)),
         "_candidate_objects": lambda *_args, **_kwargs: (),

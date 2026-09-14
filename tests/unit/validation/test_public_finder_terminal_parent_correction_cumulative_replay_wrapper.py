@@ -93,7 +93,7 @@ def test_readiness_names_only_terminal_parent_candidate_evidence() -> None:
     cumulative = evidence[
         "public-finder-terminal-parent-correction-cumulative-regression"
     ]
-    assert cumulative["path"] == str(_approved_arguments().output)
+    assert cumulative["path"] == _approved_arguments().output.as_posix()
     required = cumulative["required_fields"]
     assert required["candidate_revision"] == _REVISION
     assert required["candidate_source_tree_sha256"] == _SOURCE_TREE

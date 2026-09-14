@@ -204,6 +204,7 @@ def test_identity_and_decision_authorize_only_one_current_replay() -> None:
     }
 
 
+@pytest.mark.posix_frozen_record
 def test_superseded_freezer_records_remain_write_once(
     tmp_path: Path,
 ) -> None:

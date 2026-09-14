@@ -60,17 +60,25 @@ def test_runner_targets_fresh_version_eight_namespace() -> None:
         "candidate_revision": _CANDIDATE["revision"],
         "candidate_source_tree_sha256": _CANDIDATE["source_tree_sha256"],
         "configuration_sha256": _CANDIDATE["configuration_sha256"],
-        "execution_root": (
-            "/private/tmp/hebog-phase5-public-owner-domain-cumulative-replay"
+        "execution_root": str(
+            Path(
+                "/private/tmp/"
+                "hebog-phase5-public-owner-domain-cumulative-replay"
+            )
         ),
-        "output": (
-            "benchmark-results/phase-5/"
-            "public-owner-domain-cumulative-product-set.json"
+        "output": str(
+            Path(
+                "benchmark-results/phase-5/"
+                "public-owner-domain-cumulative-product-set.json"
+            )
         ),
         "pybdsf_executions": 0,
         "reference_run_count": 9600,
-        "scratch": (
-            "/private/tmp/hebog-phase5-public-owner-domain-cumulative-95cfc76"
+        "scratch": str(
+            Path(
+                "/private/tmp/"
+                "hebog-phase5-public-owner-domain-cumulative-95cfc76"
+            )
         ),
         "workers": 2,
     }
@@ -217,6 +225,7 @@ def test_bounded_plan_covers_all_products_without_writes(
     assert not output.exists()
 
 
+@pytest.mark.posix_frozen_record
 def test_closed_record_builders_reproduce_without_campaign_data(
     tmp_path: Path,
     frozen_campaign_root: Path,

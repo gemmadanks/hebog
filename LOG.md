@@ -21363,3 +21363,32 @@ scientific pass from fixture validation.
   dependencies, build command and smoke checker are unchanged. Final all-file
   hooks cover formatting, lint, typing, docs and the quick tests. Live upload
   remains untested and the account-setup instructions remain the same.
+
+
+## 2026-09-14 — Repair Windows validation tests
+
+- The supported Windows Python 3.12 run reports 43 failures while the same
+  revision passes Ubuntu. Every failure is test-only: frozen builders and
+  execution identities serialize logical paths with POSIX separators, while
+  Windows `Path.__str__` produces backslashes; a few temporary JSON fixtures
+  also acquire Windows newline translation. These differences change
+  canonical hashes or make guards fail before the condition under test.
+- Preserve the sealed builders and frozen bytes because their program hashes
+  are reviewed evidence. Mark the 30 exact reconstruction checks whose records
+  explicitly bind POSIX path spelling as `posix_frozen_record`; keep them in
+  Linux CI and skip only those cases on Windows. Continue running portable
+  readers, validation, path confinement and write-once behavior on every
+  supported platform.
+- Make the other 13 cases platform-neutral: compare logical paths explicitly,
+  use POSIX keys when matching frozen relative-path maps, write canonical JSON
+  as bytes where newline identity is under test, and construct an absolute
+  release-readiness mutation from the active platform root. The 13 cases plus
+  four parameter variants pass locally. All 30 marked reconstruction checks
+  continue to pass on POSIX, and an isolated hook probe selects a marked item
+  only when the platform is Windows. A hosted Windows 3.12/3.13/3.14 rerun is
+  still required after human push.
+- `just check` passes formatting, Ruff, Pyright and **3,809 quick tests**, with
+  597 deselected tests, two existing xfails and four warnings in 296.76
+  seconds. Review against `CODE_REVIEW.md` finds no production, scientific,
+  frozen-evidence or coverage-policy change; the remaining risk is confirmation
+  by the native hosted Windows matrix.

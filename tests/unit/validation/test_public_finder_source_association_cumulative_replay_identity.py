@@ -9,6 +9,8 @@ from argparse import Namespace
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
+
 from hebog.validation.external_runners import file_sha256
 
 _ROOT = Path(__file__).parents[3]
@@ -59,6 +61,7 @@ def _approved_arguments() -> Namespace:
     )
 
 
+@pytest.mark.posix_frozen_record
 def test_review_freezes_exact_implementation_and_prospective_execution() -> (
     None
 ):
@@ -126,6 +129,7 @@ def test_review_remains_non_executable_and_requires_named_approval() -> None:
     )
 
 
+@pytest.mark.posix_frozen_record
 def test_execution_decision_binds_exact_review_and_replay_boundary() -> None:
     """The named approval opens one exact replay and nothing later."""
     wrapper = runpy.run_path(str(_WRAPPER))

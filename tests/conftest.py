@@ -12,6 +12,21 @@ from pathlib import Path
 import pytest
 
 
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """Skip POSIX-bound sealed-record reconstruction on Windows only."""
+    if os.name != "nt":
+        return
+    marker = pytest.mark.skip(
+        reason=(
+            "sealed historical record binds POSIX path spelling; "
+            "the exact reconstruction remains covered by Linux CI"
+        )
+    )
+    for item in items:
+        if item.get_closest_marker("posix_frozen_record") is not None:
+            item.add_marker(marker)
+
+
 @pytest.fixture(scope="session")
 def frozen_campaign_root(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """Verify closed reviews against their pre-repair files, without data.

@@ -68,6 +68,7 @@ def _load() -> dict[str, Any]:
     return runpy.run_path(str(_WRAPPER))
 
 
+@pytest.mark.posix_frozen_record
 def test_review_and_decision_bind_exact_execution() -> None:
     """User authority cannot drift to another candidate or namespace."""
     wrapper = _load()

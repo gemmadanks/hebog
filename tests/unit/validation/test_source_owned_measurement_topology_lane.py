@@ -508,18 +508,18 @@ def test_no_write_rejects_source_tree_drift(monkeypatch: Any) -> None:
         "source_tree_sha256": runner["_CANDIDATE_SOURCE_TREE_SHA256"],
     }
     identity["predecessor_identity"] = {
-        "path": str(runner["_PREDECESSOR_IDENTITY"]),
+        "path": runner["_PREDECESSOR_IDENTITY"].as_posix(),
         "sha256": runner["_PREDECESSOR_IDENTITY_SHA256"],
     }
     identity["source_support_linkage_repair"] = {
         "root_cause_review": {
-            "path": str(runner["_ROOT_REVIEW"]),
+            "path": runner["_ROOT_REVIEW"].as_posix(),
             "sha256": runner["_ROOT_REVIEW_SHA256"],
         }
     }
     identity["process_repair"] = {
         "review": {
-            "path": str(runner["_PROCESS_REPAIR_REVIEW"]),
+            "path": runner["_PROCESS_REPAIR_REVIEW"].as_posix(),
             "sha256": runner["_PROCESS_REPAIR_REVIEW_SHA256"],
         }
     }

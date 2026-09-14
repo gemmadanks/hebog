@@ -279,7 +279,7 @@ def test_recovery_verifier_accepts_exact_named_authorization(
     }
 
     def frozen_sha256(path: Path) -> str:
-        return expected_hashes[str(path.relative_to(tmp_path))]
+        return expected_hashes[path.relative_to(tmp_path).as_posix()]
 
     loader = helpers["load_recovery_execution_decision"]
     monkeypatch.setitem(loader.__globals__, "file_sha256", frozen_sha256)
@@ -335,7 +335,7 @@ def test_recovery_review_preserves_pre_authorization_identity(
     }
 
     def frozen_sha256(path: Path) -> str:
-        relative = str(path.relative_to(tmp_path))
+        relative = path.relative_to(tmp_path).as_posix()
         assert relative not in authorization_dependent
         return frozen[relative]
 

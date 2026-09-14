@@ -399,10 +399,7 @@ def test_terminal_manifest_is_idempotent_after_rename_interruption(
 
     document = json.loads(result_path.read_text(encoding="utf-8"))
     document["request_sha256"] = "2" * 64
-    result_path.write_text(
-        json.dumps(document, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    result_path.write_bytes(namespace["_canonical_json_bytes"](document))
     with pytest.raises(ValueError, match="differs on resume"):
         seal(campaign_request, state, summaries, result_path)
 

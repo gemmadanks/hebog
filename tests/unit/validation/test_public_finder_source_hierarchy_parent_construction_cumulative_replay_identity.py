@@ -174,6 +174,7 @@ def test_named_approval_opens_only_the_exact_frozen_replay() -> None:
     assert review["authorization"]["cumulative_replay_authorized"] is False
 
 
+@pytest.mark.posix_frozen_record
 def test_repair_review_binds_exact_wrapper_only_restart() -> None:
     """The explicit repair instruction opens only the corrected replay."""
     wrapper = runpy.run_path(str(_WRAPPER))
