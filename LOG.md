@@ -21260,3 +21260,25 @@ scientific pass from fixture validation.
   accumulated whole-branch review remain separate checks. Require clean
   all-file hooks immediately before the local repair commit and again before
   the separate immutable notebook-binding commit.
+- The first clean all-file hook run passes without modifying files. Commit
+  the repair locally as `ee29fb5878842d61f361dbf86ee82847779d6694` and freeze
+  `phase-5-coarse-anchor-repair-identity-review.json`, SHA-256
+  `8f565c7b96365fe6326d37817feed111501c0948c1b6456b9f82c0dcd2cbd015`.
+  Its source tree is
+  `ce58104bc3a458961e9e63cc1ccf636e8c8e388b68a6c24ba03bfe9c0e8b7e5b`,
+  composition v19 is
+  `c825c100b7402776277a9d252b1d6050fb55320ba2f505c44d19579075db64ab`,
+  and standard configuration remains
+  `5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4`.
+  All new-record authorizations are false; previous freezes and closed v15
+  scientific failure remain intact.
+- Update only the current notebook runner pointer and its selection fixtures.
+  Binding tests catch draft integer-versus-float serialization and stale
+  selection fixtures before finalization; preserve the exact canonical
+  configuration and correct those draft records. The final **61 identity,
+  refresh, public-runner and protocol tests pass** in **19.54 seconds**,
+  including exact historical source/document verification and drift rejection.
+  The real no-write configuration guard succeeds. Review this metadata diff
+  and require clean hooks before its separate local commit. Full Windows CI
+  still requires human push; no replay, full notebook refresh, merge or release
+  is run by this repair task.

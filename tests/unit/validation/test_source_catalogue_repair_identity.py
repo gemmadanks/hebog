@@ -34,6 +34,7 @@ _ROOT = Path(__file__).parents[3]
         "phase-5-background-boundary-repair-identity-review.json",
         "phase-5-custom-threshold-repair-identity-review.json",
         "phase-5-product-publication-repair-identity-review.json",
+        "phase-5-coarse-anchor-repair-identity-review.json",
     ),
 )
 def test_repair_identity_binds_committed_science_without_outputs(
