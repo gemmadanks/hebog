@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any
 
@@ -12,12 +12,26 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 from astropy.io import fits
+from astropy.wcs import WCS
 
-from hebog.algorithms.multiscale import BeamShapePixels
+from hebog.algorithms.component_measurement import (
+    ComponentMeasurements,
+    measure_component_models,
+)
+from hebog.algorithms.multiscale import (
+    BeamShapePixels,
+    build_residual_atrous_plan,
+)
+from hebog.algorithms.multiscale_association import (
+    persistent_adjacent_scale_support,
+)
 from hebog.config import SourceFinderConfig
+from hebog.data_models.fitting import ValidCompactGaussianFit
+from hebog.data_models.images import RestoringBeam
 from hebog.science.catalogues import (
     build_hebog_reconstructed_source_catalogues as build_runtime_catalogues,
 )
+from hebog.science.configuration import source_finder_configs
 from hebog.science.continuum import (
     CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS,
     evaluate_continuum_candidate_products,
@@ -161,6 +175,41 @@ def _assert_candidate_products_equal(campaign: Any, runtime: Any) -> None:
         )
 
 
+def _component_measurements(
+    residual: npt.NDArray[np.float64],
+    rms: npt.NDArray[np.float64],
+    valid: npt.NDArray[np.bool_],
+    candidate_products: Any,
+    config: SourceFinderConfig,
+) -> ComponentMeasurements:
+    """Run the installed component measurement boundary once."""
+    _, deblend_config, moment_config, fit_config, _ = source_finder_configs()
+    return measure_component_models(
+        residual,
+        rms,
+        valid & np.isfinite(rms) & (rms > 0.0),
+        candidate_products.direct_component_labels,
+        candidate_products.measurement_component_labels,
+        WCS(_header(), relax=True).celestial,
+        RestoringBeam(
+            _BEAM.major_fwhm_pixels / 3600.0,
+            _BEAM.minor_fwhm_pixels / 3600.0,
+            _BEAM.position_angle_degrees,
+        ),
+        moment_config,
+        replace(fit_config, integrated_flux_bias_correction_sigma=0.0),
+        detection_sigma=config.detection_threshold_sigma,
+        island_sigma=config.island_threshold_sigma,
+        minimum_pixels=config.minimum_island_pixels,
+        maximum_bounds_pixels=deblend_config.maximum_compact_bounds_pixels,
+        atrous_plan=build_residual_atrous_plan(
+            _BEAM,
+            noise_correlation=_BEAM,
+        ),
+        minimum_support_fraction=0.5,
+    )
+
+
 @pytest.mark.parametrize(
     "case_name",
     (
@@ -184,6 +233,7 @@ def test_runtime_science_matches_campaign_oracle_exactly(
     ).read_bytes()
     campaign_review = PhaseFiveCorrectiveAReview.model_validate_json(payload)
     runtime_review = load_continuum_science_profile(payload)
+    config = SourceFinderConfig(5.0, 3.0, 7)
     if case_name == "custom-threshold":
         config = SourceFinderConfig(8.0, 6.0, 7)
         campaign_review = campaign_review.model_copy(
@@ -219,6 +269,24 @@ def test_runtime_science_matches_campaign_oracle_exactly(
         background,
         valid,
     )
+    measurements = _component_measurements(
+        image - background,
+        rms,
+        valid,
+        campaign,
+        config,
+    )
+    assert measurements.measurement_support is not None
+    assert measurements.fits
+    assert all(
+        isinstance(fitted, ValidCompactGaussianFit)
+        for _, fitted in measurements.fits
+    )
+    assert measurements.compact_groups
+    raw_persistent_support = persistent_adjacent_scale_support(
+        campaign.scale_detection_planes
+    )
+    assert np.any(measurements.measurement_support & ~raw_persistent_support)
     campaign_catalogues = build_campaign_catalogues(
         *common_args,
         campaign.measurement_component_labels,
@@ -232,6 +300,7 @@ def test_runtime_science_matches_campaign_oracle_exactly(
             CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS
         ),
         position_signal_jy_per_beam=campaign.position_signal_jy_per_beam,
+        component_measurements=measurements,
     )
     runtime_catalogues = build_runtime_catalogues(
         *common_args,
@@ -246,6 +315,7 @@ def test_runtime_science_matches_campaign_oracle_exactly(
             CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS
         ),
         position_signal_jy_per_beam=runtime.position_signal_jy_per_beam,
+        component_measurements=measurements,
     )
     campaign_components = [
         asdict(row) for row in campaign_catalogues.component_catalogue
@@ -256,8 +326,28 @@ def test_runtime_science_matches_campaign_oracle_exactly(
     assert [asdict(row) for row in campaign_catalogues.source_catalogue] == [
         asdict(row) for row in runtime_catalogues.source_catalogue
     ]
+    assert campaign_catalogues.component_catalogue
+    assert all(
+        "original-pixel-gaussian-model" in row.quality_flags
+        for row in campaign_catalogues.component_catalogue
+    )
     assert campaign_catalogues.association == runtime_catalogues.association
+    assert campaign_catalogues.measurement_dispositions
     assert (
         campaign_catalogues.measurement_dispositions
         == runtime_catalogues.measurement_dispositions
+    )
+    assert len(campaign_catalogues.support_stages) == len(
+        runtime_catalogues.support_stages
+    )
+    for campaign_stage, runtime_stage in zip(
+        campaign_catalogues.support_stages,
+        runtime_catalogues.support_stages,
+        strict=True,
+    ):
+        assert campaign_stage[0] == runtime_stage[0]
+        np.testing.assert_array_equal(campaign_stage[1], runtime_stage[1])
+    np.testing.assert_array_equal(
+        dict(campaign_catalogues.support_stages)["persistent"],
+        raw_persistent_support | measurements.measurement_support,
     )

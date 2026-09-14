@@ -21650,3 +21650,12 @@ scientific pass from fixture validation.
   handoff check passes Ruff and Pyright with 3,609 unit tests passing, 584
   deselected and two expected xfails. The final all-file pre-commit hook passes
   every static, documentation, notebook, quick-test and lockfile check.
+- Follow-up review identifies a valid gap in the extraction characterization:
+  its catalogue comparison omitted the non-optional component measurements
+  used by the installed public path. Run the production measurement algorithm
+  once and pass the same populated result to both catalogue builders. All six
+  cases now exercise valid fitted-component substitution, constrained compact
+  membership, measurement support beyond the original persistent support and
+  non-empty measurement dispositions; catalogue rows, associations, support
+  stages and dispositions agree exactly. The strengthened differential suite
+  passes six tests, and its combined catalogue-regression run passes 91.
