@@ -21603,3 +21603,13 @@ scientific pass from fixture validation.
   covering every remaining test named for historical, frozen or identity
   behavior passes 280 tests with 2,156 deselected, confirming no additional
   immediate squash-history failure before the next complete gate.
+- Review of the subsequent module-level deletion found that three mixed-purpose
+  suites also contained portable live-infrastructure contracts. Restore 29
+  cases for source-owned attribution and measurement sidecars, process payload
+  serialization and rejection, executor-digest sensitivity, compact-sentinel
+  population/evaluator/compiler behavior, and source-catalogue replay identity
+  and no-write preflight checks. Keep their historical Git-object, frozen
+  authority, and freezer-identity assertions deleted. The restored focused
+  suite passes all 29 cases without resolving a pre-squash commit. The normal
+  handoff check passes 3,595 quick tests with 584 deselected, two expected
+  failures and four warnings; the all-file pre-commit hook also passes.

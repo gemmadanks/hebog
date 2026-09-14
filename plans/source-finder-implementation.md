@@ -389,7 +389,10 @@ tests, as well as the explicitly retained science and comparison workflows.
       Retain every regression test that checks scientific behaviour or a
       scientific repair, regardless of historical or Phase 5 naming. Such a
       test may be relocated or made phase-neutral, but its scientific witness
-      and assertion must not be discarded as campaign evidence.
+      and assertion must not be discarded as campaign evidence. Apply the same
+      rule to portable runner contracts that protect process payloads, bounded
+      schemas, executor equality, evaluator/compiler decisions, and no-write
+      identity preflights needed by later validation or scaling work.
 
       The observed problem is historical infrastructure dominating CI and
       documentation while the installed finder imports campaign modules. The
