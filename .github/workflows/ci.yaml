@@ -3,12 +3,6 @@ name: CI
 on:
   push:
   pull_request:
-  workflow_call:
-    inputs:
-      revision:
-        description: Exact released commit to validate before publishing
-        required: true
-        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref_name }}
@@ -32,7 +26,6 @@ jobs:
         uses: actions/checkout@v7
         with:
           # The pytest hook verifies frozen files against their Git history.
-          ref: ${{ inputs.revision || github.sha }}
           fetch-depth: 0
 
       - name: Set up Python
@@ -73,7 +66,6 @@ jobs:
         uses: actions/checkout@v7
         with:
           # Historical identity tests must see the original review commits.
-          ref: ${{ inputs.revision || github.sha }}
           fetch-depth: 0
 
       - name: Install uv and set python version
@@ -102,8 +94,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.revision || github.sha }}
 
       - name: Set up Python
         uses: actions/setup-python@v7
@@ -131,8 +121,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.revision || github.sha }}
 
       - name: Set up Python
         uses: actions/setup-python@v7
@@ -161,8 +149,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.revision || github.sha }}
 
       - name: Set up Python
         uses: actions/setup-python@v7
@@ -194,8 +180,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.revision || github.sha }}
 
       - name: Set up Python
         uses: actions/setup-python@v7

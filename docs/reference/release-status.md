@@ -124,9 +124,10 @@ composition. No historical science verdict is revised.
 
 Release Please manages version changes, changelogs, tags and GitHub releases.
 The maintainer reviews and merges its generated release PR after the intended
-release scope passes its checks. The release workflow validates the released
-commit through CI, tests its built wheel and uploads its distributions to PyPI
-using [Trusted Publishing](../how-to/publish-releases.md) once the GitHub
+release scope passes its required PR checks, including the installed-package
+smoke test. The release workflow builds distributions from the tagged commit
+and uploads them to PyPI using
+[Trusted Publishing](../how-to/publish-releases.md) once the GitHub
 environment and PyPI publisher are configured. An experimental release does
 not authorize another scientific campaign, reinterpret closed evidence or
 change a workflow default.

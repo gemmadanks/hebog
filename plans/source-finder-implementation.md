@@ -403,9 +403,10 @@ checklist, rather than waiting for Rapthor integration or 100,000-square data.
 - [ ] **E4 — Release through the existing workflow.** After main and the
       release PR checks pass, the human reviews and merges the Release Please
       PR and verifies its tag/release plus the PyPI upload. The separately
-      scoped upload automation reuses CI for the released commit and tests the
-      built wheel before publishing. Configure the GitHub environment and PyPI
-      Trusted Publisher using the
+      scoped upload automation relies on the required release PR checks,
+      including the installed-package smoke test, then builds the tagged commit
+      and publishes with the PyPA action. Configure the GitHub environment and
+      PyPI Trusted Publisher using the
       [publishing guide](../docs/how-to/publish-releases.md) before the next
       release; local workflow preparation does not establish release readiness.
       Update current release status without copying campaign history

@@ -23,7 +23,6 @@ jobs:
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       sha: ${{ steps.release.outputs.sha }}
-      version: ${{ steps.release.outputs.version }}
     steps:
       - name: Run release-please
         id: release
@@ -34,22 +33,10 @@ jobs:
           manifest-file: .release-please-manifest.json
           target-branch: main
 
-  validate-release:
+  build-release:
     needs: release-please
     if: needs.release-please.outputs.release_created == 'true'
-    uses: ./.github/workflows/ci.yaml
-    with:
-      revision: ${{ needs.release-please.outputs.sha }}
-
-  build-release:
-    needs: [release-please, validate-release]
     runs-on: ubuntu-latest
-    env:
-      RELEASE_VERSION: ${{ needs.release-please.outputs.version }}
-      OMP_NUM_THREADS: "1"
-      OPENBLAS_NUM_THREADS: "1"
-      MKL_NUM_THREADS: "1"
-      NUMBA_NUM_THREADS: "1"
     steps:
       - name: Check out the released commit
         uses: actions/checkout@v7
@@ -70,15 +57,7 @@ jobs:
       - name: Build wheel and source distribution
         run: uv build --no-sources
 
-      - name: Check the installed release and public workflow
-        run: |
-          uv venv "$RUNNER_TEMP/release-venv" --python "$(command -v python)"
-          uv pip install --python "$RUNNER_TEMP/release-venv/bin/python" dist/*.whl
-          "$RUNNER_TEMP/release-venv/bin/python" -I -c \
-            'import os; from importlib.metadata import version; actual = version("hebog"); expected = os.environ["RELEASE_VERSION"]; assert actual == expected, (actual, expected)'
-          "$RUNNER_TEMP/release-venv/bin/python" -I scripts/public_api_package_smoke.py
-
-      - name: Retain the tested distributions
+      - name: Retain the distributions
         uses: actions/upload-artifact@v7
         with:
           name: pypi-distributions
@@ -94,7 +73,7 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - name: Download the tested distributions
+      - name: Download the distributions
         uses: actions/download-artifact@v7
         with:
           name: pypi-distributions

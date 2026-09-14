@@ -42,23 +42,30 @@ limitations before merging the Release Please PR. Keep experimental releases
 explicitly scientifically unqualified. Upload automation does not establish
 scientific parity or satisfy the later deployment gates.
 
+Use the existing required PR checks as the release validation gate. `main`
+requires up-to-date checks, including **Package smoke test**, which depends on
+the full portable test matrix and exercises the installed public API. Do not
+bypass those checks for release PRs. The publishing workflow relies on this
+branch policy; it does not rerun CI or smoke-test its separately built files.
+
+Release Please uses `GITHUB_TOKEN`, so its automatic PR updates do not start
+CI. If required checks are missing, close and reopen the release PR as a
+maintainer to trigger the existing `pull_request` workflow before merging.
+See [Release Please's event behavior](https://github.com/googleapis/release-please-action#other-actions-on-release-please-prs).
+
 After the release PR is merged:
 
 1. Release Please creates the tag and GitHub release.
-2. The existing CI workflow runs against that exact release commit, including
-   the supported OS/Python matrix and package checks. A failed check blocks the
-   upload; the GitHub release may already exist.
-3. A separate build job checks out the same commit, runs `uv build --no-sources`,
-   installs the resulting wheel in a clean environment, verifies its version
-   against Release Please and runs the installed public API smoke workflow.
-4. The tested wheel and source distribution are retained as the
-   `pypi-distributions` Actions artifact. A separate `pypi` job downloads that
-   artifact and uploads it with the PyPA publishing action, including metadata
-   checks and the action's default attestations.
+2. A build job checks out the exact released commit, runs
+   `uv build --no-sources` and retains the wheel and source distribution as the
+   `pypi-distributions` Actions artifact.
+3. A separate `pypi` job downloads that artifact and uploads it with the PyPA
+   publishing action, including metadata checks and the action's default
+   attestations. Build or upload failures leave the GitHub release in place.
 
 Publishing stays in the Release Please workflow because releases created with
 `GITHUB_TOKEN` do not trigger a separate release-event workflow. Ordinary pushes
-that only update the release PR skip validation, building and publishing in this
+that only update the release PR skip building and publishing in this
 workflow; normal CI still runs. New pushes do not cancel an active release run.
 
 Check the **publish-pypi** job and the
@@ -68,7 +75,7 @@ commits on minor bumps while the version is below `1.0.0`.
 
 ## Recover an interrupted release
 
-For CI, build or Trusted Publisher configuration failures, fix the cause and
+For build or Trusted Publisher configuration failures, fix the cause and
 choose **Re-run failed jobs** on the original release workflow run. This keeps
 the successful Release Please job's release identity. Re-running every job or
 pushing another commit may find no newly created release and skip publication.

@@ -21338,3 +21338,28 @@ scientific pass from fixture validation.
   tests that duplicate YAML configuration. Production Python and scientific
   configuration are unchanged; a live GitHub/PyPI OIDC exchange and the full
   hosted platform matrix remain to be verified after account setup and push.
+
+
+## 2026-09-14 — Simplify PyPI publishing
+
+- Follow the requested simplification after inspecting the active `main`
+  rules through GitHub's branch-rules API. Ruleset `19144395` requires
+  up-to-date PR checks, including `Package smoke test`; that CI job depends on
+  the complete portable OS/Python matrix and runs the installed public API
+  smoke checker. Use those existing required checks as the release gate.
+- Reduce publishing to Release Please, a uv build of the released commit and
+  the official PyPA upload action. Remove the second CI invocation, the
+  reusable-CI input plumbing and the duplicate inline wheel smoke/version
+  checks. Keep separate build/upload permissions, retained distributions,
+  Trusted Publishing and protection against cancelling an active upload.
+  The uploaded files are built separately from the CI smoke-tested wheel;
+  required release PR checks must not be bypassed. Scientific release gates
+  remain applicable.
+- Update the publishing guide, current release status and E4 to state this
+  dependency explicitly, including how to trigger missing release PR checks
+  when Release Please uses `GITHUB_TOKEN`. Both workflows pass actionlint;
+  the normal CI definition exactly matches its pre-publishing form. Reuse
+  the previous build/package-smoke evidence from `0c8410d`: package source,
+  dependencies, build command and smoke checker are unchanged. Final all-file
+  hooks cover formatting, lint, typing, docs and the quick tests. Live upload
+  remains untested and the account-setup instructions remain the same.
