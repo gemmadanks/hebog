@@ -21613,3 +21613,40 @@ scientific pass from fixture validation.
   suite passes all 29 cases without resolving a pre-squash commit. The normal
   handoff check passes 3,595 quick tests with 584 deselected, two expected
   failures and four warnings; the all-file pre-commit hook also passes.
+
+
+## 2026-09-14 — Detach installed science from campaign validation
+
+- Move the exact installed composition into phase-neutral `hebog.science`
+  modules for runtime configuration, the minimal science-profile projection,
+  continuum detection/publication support, catalogue construction and internal
+  catalogue records. `public_api.py` and `public_science.py` no longer import
+  or dynamically load `hebog.validation`; static and fresh-process architecture
+  tests enforce that boundary. Historical modules remain in this PR as the
+  before/after oracle for the next mechanical deletion.
+- Preserve the reviewed configuration exactly: the extracted configuration
+  tuple compares equal field-for-field with the historical candidate. Share
+  canonical catalogue source/ellipse records with the retained comparison
+  implementation rather than keeping duplicate runtime and validation types.
+  No algorithm, threshold, dtype, schema or supported output meaning changes.
+  The scientific-composition digest necessarily changes and inherits no
+  historical qualification.
+- Add a bounded differential regression selected before inspection: empty,
+  compact, extended, edge, invalid-pixel and custom-threshold cases compare old
+  and new detection, ownership, position, support and scale planes exactly,
+  then compare associations and every source/component catalogue field. All six
+  pass. The retained 85-test source-catalogue repair suite now exercises the
+  installed runtime modules directly and passes without assertion changes.
+- The focused public matrix passes 149 tests with two expected xfails, including
+  exact Serial/caller-owned-Dask workflows; all 27 frozen PyBDSF equivalence
+  tests pass. The complete branch-aware coverage lane passes 3,986 tests with
+  207 deselected, two expected xfails and 95.06% project coverage. The extracted
+  science modules are 89%--100% covered. An initial coverage run exposed 74
+  calls that still passed the historical Pydantic review into the new dataclass
+  boundary; retargeting that existing science suite to the installed profile
+  resolved the test-interface issue without changing science.
+- The isolated wheel smoke test builds, installs and exercises blank, all-NaN,
+  continuum, compact and custom-threshold workflows successfully. The normal
+  handoff check passes Ruff and Pyright with 3,609 unit tests passing, 584
+  deselected and two expected xfails. The final all-file pre-commit hook passes
+  every static, documentation, notebook, quick-test and lockfile check.

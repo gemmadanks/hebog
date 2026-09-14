@@ -623,11 +623,11 @@ def test_continuum_mesh_repair_does_not_change_compact_background_policy(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, config: SourceFinderConfig
 ) -> None:
     """Compact-only processing keeps its separately defined RMS policy."""
-    from hebog.validation.hebog_campaign import (  # noqa: PLC0415
-        phase_five_corrected_candidate_configs,
+    from hebog.science.configuration import (  # noqa: PLC0415
+        source_finder_configs,
     )
 
-    original = phase_five_corrected_candidate_configs()[0].background_rms
+    original = source_finder_configs()[0].background_rms
     _write_image(tmp_path / "image.fits", np.zeros((256, 384)))
     source = FitsImageSource(tmp_path / "image.fits")
 

@@ -13,10 +13,10 @@ identities, execution history and completed validation belong in
 | Candidate | Public composition v19 is merged on `main` in `4babf0b`. It remains development-unqualified; the latest completed campaign is the closed v15 scientific failure. |
 | Implemented | FITS/WCS ingress, background/RMS, compact and multiscale detection, source/component measurement, catalogue/mask/RMS/diagnostics publication, Serial and caller-owned Dask execution, Zarr intermediates. |
 | Public envelope | ICRS `Jy/beam` FITS, at most 1,024 pixels on either spatial axis. `continuum` is the default; explicit `compact` is extended-emission-incomplete. Custom thresholds remain unqualified; their private refinement-trigger interaction is repaired in v18. |
-| Strongest applicable checks | The merged v19 public workflows, installed wheel, exact Serial/Dask comparisons and 27 frozen equivalence tests passed their merge checks. Exact pre-cleanup scope and results remain in Git history at `4babf0b`. No v17/v18/v19 campaign or powered parity verdict. |
+| Strongest applicable checks | The runtime-extraction branch passes exact old/new characterization across empty, compact, extended, edge, invalid-pixel and custom-threshold inputs; 149 public/Serial/Dask checks; all 27 frozen equivalence tests; and 3,986 branch-aware coverage tests with two expected xfails and 95.06% coverage. Exact pre-cleanup scope and results remain in Git history at `4babf0b`. No v17/v18/v19 campaign or powered parity verdict. |
 | Campaign | Verified v15 terminal: scientific **fail**, 1,115 pass / 32 fail / 40 underpowered comparisons. All five safety checks pass; 2,400 captures/evaluations, 12 exact Dask agreements and 8,000 retained records verified. No definite binding external-reference failure, but parity and incumbent retention are not established. |
-| Blockers | Historical campaign tooling, evidence records, tests and documentation remain coupled to the installed public science and impose substantial maintenance and CI cost. Scientific qualification, Rapthor acceptance and complete-path performance remain unproven. |
-| Next authorized action | Prepare a fully green v0.7.0 release candidate before scaling: retain and clarify science regressions and comparison/notebook workflows, remove squash-fragile archive checks, and detach installed science from closed campaign modules where required. Use the existing human-controlled Release Please/PyPI workflow; no automatic replay, closed-data rescoring or parity claim. |
+| Blockers | Historical campaign tooling, evidence records, tests and documentation remain in the live tree and impose substantial maintenance and CI cost, although the runtime-extraction branch removes the installed finder's dependency on them. Scientific qualification, Rapthor acceptance and complete-path performance remain unproven. |
+| Next authorized action | Merge the independently green runtime extraction, then mechanically delete unreachable historical surface while preserving science regressions, comparison/notebook workflows and scaling infrastructure. Finish a fully green v0.7.0 release candidate before scaling. Use the existing human-controlled Release Please/PyPI workflow; no automatic replay, closed-data rescoring or parity claim. |
 | Deferred | The human accepted uncertainty-calibration, measurement-tail and faint-association limitations for the v17 experimental standalone release on 13 September. Broader F2 repair, optional improvement, full qualification and facility-scale work remain later tasks. Reopen a deferred issue if it becomes a confirmed incorrect supported output or serious correctness impact. |
 
 The [campaign overview](../docs/reference/phase-5-campaign-overview.md)
@@ -410,7 +410,7 @@ tests, as well as the explicitly retained science and comparison workflows.
 
       **Efficient PR sequence (14 September):**
 
-      1. **CI/history repair — current branch.** Remove only tests that
+      1. **CI/history repair — completed and merged.** Remove only tests that
          reconstruct closed commits, campaign authority or frozen identities.
          Keep scientific assertions and runtime/next-phase infrastructure.
          Remove the shared historical-Git fixture once its last consumer is
@@ -418,7 +418,7 @@ tests, as well as the explicitly retained science and comparison workflows.
          clean clone that cannot see dangling pre-squash objects, followed by
          `just pre-commit` and hosted Python 3.12–3.14 CI. Do not mix
          `src/`, script or configuration pruning into this PR.
-      2. **Phase-neutral runtime extraction.** Move the current finder
+      2. **Phase-neutral runtime extraction — current PR complete.** Move the current finder
          composition and science records reached by `public_api.py` and
          `public_science.py` out of `hebog.validation`, without altering any
          algorithm, threshold, dtype, schema or output. Establish byte-for-byte
@@ -426,6 +426,16 @@ tests, as well as the explicitly retained science and comparison workflows.
          code; run focused science suites, `just coverage`, package smoke and
          the full normal handoff checks. Keep the historical modules until the
          replacement imports pass so a review has a clear before/after oracle.
+         The installed path now uses cohesive `hebog.science` configuration,
+         profile, continuum, catalogue and record modules; static and fresh-
+         process architecture gates reject any `hebog.validation` dependency.
+         Six selected old/new cases agree exactly across all candidate planes,
+         hierarchy inputs, associations and catalogue fields. The retained
+         85-case catalogue-repair suite now targets the runtime modules, and
+         exact Serial/Dask, equivalence and branch-aware coverage lanes pass.
+         No algorithm, threshold, dtype, schema or public science result
+         changed. The scientific-composition digest changes by design and
+         remains development-unqualified.
       3. **Bulk historical-surface deletion.** Starting from the extracted
          runtime, delete unreachable Phase 5 campaign orchestration from
          `src/hebog/validation`, `scripts/validation` and

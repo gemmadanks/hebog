@@ -22,22 +22,21 @@ from hebog.algorithms.multiscale import (
 )
 from hebog.config import SourceFinderConfig
 from hebog.data_models.images import RestoringBeam
-from hebog.validation.contracts import PhaseFiveCorrectiveAReview
-from hebog.validation.hebog_campaign import (
-    phase_five_corrected_candidate_configs,
-)
-from hebog.validation.post_campaign_science import (
-    CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS,
-    PostCampaignCandidateProducts,
-)
-from hebog.validation.products import (
+from hebog.science.catalogues import (
     build_hebog_reconstructed_source_catalogues,
 )
-from hebog.validation.public_finder_correction import (
-    PublicFinderCorrectionContinuumProducts,
+from hebog.science.configuration import source_finder_configs
+from hebog.science.continuum import (
+    CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS,
+    evaluate_continuum_candidate_products,
 )
-from hebog.validation.publication_scale_persistence import (
-    evaluate_publication_scale_persistence_candidate_products,
+from hebog.science.models import (
+    ContinuumCandidateProducts,
+    ContinuumProducts,
+)
+from hebog.science.profile import (
+    ContinuumScienceProfile,
+    configured_science_profile,
 )
 
 _IMAGE_DIMENSIONS = 2
@@ -65,23 +64,17 @@ def _aligned_plane(
 
 
 def _execution_review(
-    review: PhaseFiveCorrectiveAReview,
+    review: ContinuumScienceProfile,
     config: SourceFinderConfig,
-) -> PhaseFiveCorrectiveAReview:
+) -> ContinuumScienceProfile:
     """Apply caller thresholds without changing frozen review evidence."""
-    matrix = review.matrix.model_copy(
-        update={
-            "detection_sigma": config.detection_threshold_sigma,
-            "island_sigma": config.island_threshold_sigma,
-        }
-    )
-    return review.model_copy(update={"matrix": matrix})
+    return configured_science_profile(review, config)
 
 
 def _retain_configured_islands(
-    products: PostCampaignCandidateProducts,
+    products: ContinuumCandidateProducts,
     config: SourceFinderConfig,
-) -> PostCampaignCandidateProducts | None:
+) -> ContinuumCandidateProducts | None:
     """Apply caller pixel-count limits to terminal direct-island identity."""
     direct = np.asarray(products.direct_component_labels, dtype=np.int32)
     component_sizes = np.bincount(direct.ravel())
@@ -131,9 +124,9 @@ def build_configured_continuum_products(  # noqa: PLR0913
     header: fits.Header,
     *,
     beam: BeamShapePixels,
-    review: PhaseFiveCorrectiveAReview,
+    review: ContinuumScienceProfile,
     config: SourceFinderConfig,
-) -> PublicFinderCorrectionContinuumProducts | None:
+) -> ContinuumProducts | None:
     """Build terminal products using caller thresholds and island limits."""
     image = _aligned_plane(image_jy_per_beam, name="image")
     background = _aligned_plane(
@@ -147,7 +140,7 @@ def build_configured_continuum_products(  # noqa: PLR0913
         raise ValueError(
             "public source-finder mean/RMS validity differs from image"
         )
-    products = evaluate_publication_scale_persistence_candidate_products(
+    products = evaluate_continuum_candidate_products(
         image,
         valid,
         background,
@@ -167,7 +160,7 @@ def build_configured_continuum_products(  # noqa: PLR0913
         where=positive_rms,
     )
     deblend_config = replace(
-        phase_five_corrected_candidate_configs()[1],
+        source_finder_configs()[1],
         minimum_peak_signal_to_noise=float(
             np.nextafter(config.detection_threshold_sigma, -np.inf)
         ),
@@ -179,9 +172,7 @@ def build_configured_continuum_products(  # noqa: PLR0913
         valid,
         deblend_config,
     )
-    _, _, moment_config, fit_config, _ = (
-        phase_five_corrected_candidate_configs()
-    )
+    _, _, moment_config, fit_config, _ = source_finder_configs()
     measurements = measure_component_models(
         image - background,
         rms,
@@ -248,7 +239,7 @@ def build_configured_continuum_products(  # noqa: PLR0913
     )
     for _, mask in support_stages:
         mask.setflags(write=False)
-    return PublicFinderCorrectionContinuumProducts(
+    return ContinuumProducts(
         detection=retained.detection,
         measurement_component_labels=(topology.measurement_component_labels),
         catalogue=catalogues.source_catalogue,
