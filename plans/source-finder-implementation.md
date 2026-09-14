@@ -13,7 +13,7 @@ identities, execution history and completed validation belong in
 | Candidate | Public composition v19 at `ee29fb5...` adds corrected-coarse-cache anchor revalidation to v18's custom-threshold and publication repairs. The [new notebook freeze](../config/contracts/phase-5-coarse-anchor-repair-identity-review.json) is non-executable; earlier freezes remain intact. Development-unqualified; latest completed campaign remains v15. |
 | Implemented | FITS/WCS ingress, background/RMS, compact and multiscale detection, source/component measurement, catalogue/mask/RMS/diagnostics publication, Serial and caller-owned Dask execution, Zarr intermediates. |
 | Public envelope | ICRS `Jy/beam` FITS, at most 1,024 pixels on either spatial axis. `continuum` is the default; explicit `compact` is extended-emission-incomplete. Custom thresholds remain unqualified; their private refinement-trigger interaction is repaired in v18. |
-| Strongest applicable checks | V19 stale-anchor controls and exact Serial/Dask checks pass; six standard public workflows retain v18 science bytes. Five installed-wheel workflows and 27 frozen equivalence tests pass. Portable coverage passes 4,182 tests plus 34 final focused checks at 95.3372%, with all changed package lines/branches covered. Linux/amd64 Python 3.14.0 passes 263 affected tests. A later Windows rerun exposed 43 test-only POSIX-path assumptions; all are covered by portable assertion repairs or Linux-retained sealed-record checks, with local focused validation passing. CI now keeps the 1,743-test runtime suite on every supported Python version and operating system without a redundant Cartesian product, and the 2,445 retained-validation tests on all supported Python versions under Linux; collection proves the partitions retain the prior 4,188 tests. Two-worker local trials pass both partitions. Exact scope/results are in `LOG.md`. No v17/v18/v19 campaign or powered parity verdict. |
+| Strongest applicable checks | V19 stale-anchor controls and exact Serial/Dask checks pass; six standard public workflows retain v18 science bytes. Five installed-wheel workflows and 27 frozen equivalence tests pass. Portable coverage passes 4,182 tests plus 34 final focused checks at 95.3372%, with all changed package lines/branches covered. Linux/amd64 Python 3.14.0 passes 263 affected tests. A later Windows rerun exposed 43 test-only POSIX-path assumptions; all are covered by portable assertion repairs or Linux-retained sealed-record checks, with local focused validation passing. CI now keeps the 1,741-test runtime suite on every supported Python version and operating system without a redundant Cartesian product, and the 2,447 retained-validation tests on all supported Python versions under Linux; collection proves the partitions retain the prior 4,188 tests. Two-worker local trials pass both partitions. Exact scope/results are in `LOG.md`. No v17/v18/v19 campaign or powered parity verdict. |
 | Campaign | Verified v15 terminal: scientific **fail**, 1,115 pass / 32 fail / 40 underpowered comparisons. All five safety checks pass; 2,400 captures/evaluations, 12 exact Dask agreements and 8,000 retained records verified. No definite binding external-reference failure, but parity and incumbent retention are not established. |
 | Blockers | The LoTSS notebook crash and reported Linux/Windows CI failures are repaired locally. The Windows test repair preserves exact POSIX-bound historical checks on Linux while keeping portable behavior in the complete matrix. Accumulated-branch review, a fresh hosted platform rerun, separate cleanup and fresh notebook inspection remain before release. Earlier human acceptance of unchanged residual limitations is preserved; scientific qualification, Rapthor acceptance and complete-path performance remain unproven. |
 | Next authorized action | Hand off the notebook/CI repairs and exact non-executable freeze for human push and supported-platform CI, then complete whole-branch/Copilot review. The notebook can be refreshed against the new binding. Separate bounded cleanup and fresh comparison-notebook inspection still precede the human-controlled release workflow. No automatic replay, closed-data rescoring, publishing or parity claim. |
@@ -305,7 +305,7 @@ remain human decisions.
       **CI duration repair:** stop repeating 2,445 historical validation and
       retained-evidence tests on every operating system. Run them on Linux
       across Python 3.12/3.13/3.14, where the POSIX-bound historical identities
-      are valid. Run 1,743 portable runtime, contract and integration tests on
+      are valid. Run 1,741 portable runtime, contract and integration tests on
       Linux for every Python version and on macOS/Windows for Python 3.14, so
       every supported axis remains exercised in five jobs rather than nine.
       Use two pytest-xdist workers after both partitions pass local parallel
@@ -315,6 +315,11 @@ remain human decisions.
       branch-protected package smoke check behind all five runtime-axis checks
       so the release gate remains intact. Hosted duration and complete pass
       status remain outstanding until the human pushes the workflow.
+      A first hosted run exposed two more historical Git-identity checks in the
+      portable directory: shallow checkouts could not reconstruct their bound
+      commits, while the full-history Python 3.14 job passed. Move those exact
+      checks into retained validation, producing 1,741/2,447 partitions with
+      the same 4,188 total cases; no assertion or evidence identity changes.
 - [ ] **M6 — Complete the merge handoff.** Update this plan's current state,
       user-facing release status, API/tutorial limitations and `LOG.md` from
       M1–M5. Give the human the exact revision, checks, unresolved risks and

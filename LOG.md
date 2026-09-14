@@ -21468,3 +21468,21 @@ scientific pass from fixture validation.
   seconds and retains 95.34% branch coverage. The workflow passes the
   configured YAML hook and actionlint v1.7.12. Hosted pass status and measured
   elapsed-time improvement remain to be confirmed after human push.
+
+
+## 2026-09-14 — Repair shallow portable CI history checks
+
+- The first reduced-matrix run passes Ubuntu/Python 3.14 but fails the other
+  four portable jobs on the same two tests in
+  `tests/unit/test_public_science_profile.py`. Both tests reconstruct immutable
+  reviews with `git log` and `git show`; the coverage job has full Git history,
+  while the portable jobs intentionally use shallow checkouts. The failure is
+  test partitioning, not Python, operating-system, xdist or scientific behavior.
+- Move only the two historical identity checks into
+  `tests/unit/validation/test_public_science_profile_history.py`, beside every
+  other unit test that invokes historical Git objects. Keep all 43 public
+  profile behavior tests in the portable file. Under two xdist workers, the
+  affected files pass 45 tests. Collection selects 1,741 portable and 2,447
+  retained-validation tests, still exactly 4,188 total, and finds both moved
+  identities only in the full-history partition. Assertions, reviewed bytes,
+  production code and the CI workflow remain unchanged.
