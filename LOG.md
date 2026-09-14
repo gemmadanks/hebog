@@ -21413,3 +21413,19 @@ scientific pass from fixture validation.
   future plan. No scientific code, configuration, schema or evidence changes.
   The strict MkDocs build passes and includes the Mermaid flowchart and both
   new navigation entries.
+
+
+## 2026-09-14 — Rewrite current release status for users
+
+- Replace the development chronology, campaign results, repair identifiers and
+  scientific-composition versions in the current release-status page with a
+  self-contained description of supported inputs, output behaviour, scientific
+  limitations, integration boundaries, compatibility expectations and the
+  meaning of an experimental release.
+- Retain the material limitations in user language: the bounded public image
+  size, unqualified continuum and compact profiles, uncertainty and faint
+  extended-emission risks, explicit unavailable measurements, incomplete
+  Rapthor integration and absence of an established complete-path speed claim.
+  Keep the existing release-boundaries anchor for maintainer and scientific-
+  readiness links. No code, schema, scientific configuration or evidence
+  changes.

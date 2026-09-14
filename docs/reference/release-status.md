@@ -1,133 +1,139 @@
 # Current capability and release status
 
-Hebog is **experimental**. The current development finder is scientifically
-unqualified and is not a production-ready or default Rapthor backend.
-Experimental `0.x` releases deliver tested, useful increments; they do not
-assert general PyBDSF equivalence or a complete-workflow speedup. Public APIs
-and schemas may change between these releases, with breaking changes recorded
-in current documentation and release notes.
+Hebog is an **experimental** radio-continuum source finder. It can run a
+complete standalone analysis for the supported inputs below, but it is not yet
+scientifically qualified for general survey use and is not a production or
+default Rapthor backend.
 
-This page describes the development branch, not a claim that its latest
-candidate is already released. See the
-[GitHub releases](https://github.com/gemmadanks/hebog/releases) for published
-versions and the
-[implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
-for the concrete merge/release checklist.
+The source checkout may contain changes that have not been released. Use
+[GitHub releases](https://github.com/gemmadanks/hebog/releases) to identify
+published versions, and pin an exact `0.x` version when results need to be
+repeatable.
 
-## What the public finder does today
+## What works today
 
-`hebog.find_sources(request, config, executor)` reads one FITS image and
-atomically publishes a catalogue, RMS image, source-support mask and diagnostic
-record. Background/noise estimation, compact and multiscale detection,
-Gaussian components, associated sources and explicit unavailable measurement
-statuses are implemented. Run it with the deterministic `SerialExecutor` or
-supply an existing Dask client through `DaskExecutor`.
+`hebog.find_sources(request, config, executor)` analyses one FITS image and
+publishes four files as a single output bundle:
 
-| Boundary | Current behaviour |
+- a catalogue containing islands, sources, and fitted Gaussian components;
+- a local RMS image;
+- an image-aligned source-support mask; and
+- diagnostics describing provenance, measurement availability, fitting, and
+  source-association decisions.
+
+The finder implements background and noise estimation, direct and multiscale
+detection, bounded deblending, Gaussian fitting, source association, source
+photometry, and atomic product publication. Start with
+[Find sources](../tutorials/find-sources.md), then use
+[How Hebog finds sources](../explanation/how-hebog-works.md) and the
+[public-output reference](public-products.md) when evaluating results.
+
+| Boundary | Supported behaviour |
 | --- | --- |
-| Images | ICRS celestial WCS, `Jy/beam`, valid beam/frequency metadata, two spatial axes with optional singleton leading axes. |
-| Size | At most 1,024 pixels along either spatial axis through the public finder. Its terminal composition still materializes a bounded preview plane; larger public inputs are rejected. |
-| Profiles | Default `continuum`; explicit `compact` reports `extended-emission-incomplete`. Neither current profile is scientifically qualified. |
-| Thresholds | The 5/3-sigma, seven-pixel reference configuration reports `development-unqualified`; custom settings report `custom-unqualified`. Continuum refinement uses the caller's detection threshold when its private 75-sigma trigger would conflict with the caller's island threshold. Caller thresholds and the standard 5/3 policy are unchanged. |
-| Invalid/empty measurements | Invalid pixels are excluded. Unavailable noise, fits or uncertainties remain explicit; a noiseless emission image with unavailable RMS is not evidence of an empty sky. |
-| Products | Source, Gaussian-component and island populations are distinct. Catalogue JSON/FITS and diagnostics schemas are versions 3/4/8; stale schemas fail clearly. |
-| Workflow | One scientific image per request. Full Rapthor true-sky/flat-noise filtering integration, operational qualification and complete-path speed evidence remain work to do. |
-| Scale | Bounded stages and Dask foundations exist. The complete public finder has not established 100,000-square or hundreds-of-node support. |
+| Input | One two-dimensional FITS image, or singleton leading axes followed by two spatial axes. |
+| Physical metadata | ICRS celestial WCS, `BUNIT=Jy/beam`, finite positive restoring-beam axes, and a positive reference frequency. |
+| Image size | No more than 1,024 pixels along either spatial axis. Larger inputs fail before analysis. |
+| Invalid pixels | NaN pixels are allowed and excluded from estimation, detection, and measurement. |
+| Profiles | `continuum` is the default. `compact` deliberately omits extended-source association and reports `extended-emission-incomplete`. |
+| Thresholds | Positive detection and island thresholds supplied by the caller, with the island threshold lower than the detection threshold; explicit minimum and optional maximum island sizes. |
+| Execution | Deterministic `SerialExecutor`, or `DaskExecutor` with a Dask client owned by the caller. Hebog does not create or close a cluster. |
+| Publication | A new caller-owned directory containing `catalogue.fits`, `rms.fits`, `source-mask.fits`, and `diagnostics.json`. Existing directories are never overwritten. |
 
-Start with [Find sources](../tutorials/find-sources.md). Do not infer public
-large-image support from internal-stage tests or use associated-source rows
-as if they were Gaussian-component measurements.
+Background/RMS estimation uses bounded tiles. Later measurement stages operate
+on the complete admitted image, which is why the public size limit applies.
+Serial and existing-Dask execution are required to produce the same scientific
+products.
 
-## Evidence and unresolved limitations
+## Scientific status
 
-The development composition is v19. It retains v18's custom-threshold repair
-and revalidates bright refinement anchors after source-protected coarse
-background/RMS re-estimation. An anchor that no longer meets the unchanged
-island threshold is retired as refinement work, preventing a notebook crash;
-remaining anchors and the independent local-noise estimate are retained. The
-latest completed campaign is v15 (`73ab5af...`). Focused repair tests, frozen
-small equivalence checks, portable coverage and exact Serial/existing-Dask
-checks pass. The earlier bounded public screen completed but retains 49
-point-estimate warnings, including compact uncertainty/measurement
-and faint extended association, mask and flux-tail risks. It does not provide
-powered parity evidence and has not been repeated for v17, v18 or v19.
+The public finder is suitable for demonstrations, integration work, algorithm
+inspection, and bounded scientific evaluation. It is not yet suitable for an
+unqualified statement that Hebog is interchangeable with PyBDSF or ready for a
+particular survey.
 
-The current package snapshot also repairs destination aliases and failure
-rollback in the lower-level combined-product writer. Its publication
-guarantees and filesystem requirements are explicit
-in [the product schema reference](internal-schemas.md). Historical CI fixtures
-now distinguish reproducible records from eligibility to execute a frozen
-campaign on a different installed runtime; campaign admission remains exact.
-Portable CI uses the replay's one-thread numerical budget. Regenerated
-calibration amplitudes and derived truth allow only four-ULP roundoff in
-test comparisons, with exact recipe self-checks; frozen manifests are never
-rewritten. Diagnostic publication closes temporary files before linking or
-removing them, including on Windows.
+Diagnostics label the example 5-sigma detection, 3-sigma island, seven-pixel
+configuration as `development-unqualified`. Other valid settings are labelled
+`custom-unqualified`. These labels describe validation status, not whether the
+software completed successfully.
 
-The verified v15 cumulative terminal is a **scientific fail**: 1,115 binding
-comparisons pass, 32 fail against the earlier Hebog incumbent and 40 are
-underpowered. No binding comparison against either PyBDSF reference or Aegean
-has a definite failure, but that does not establish general parity. All five
-operational/product safety checks and 12 exact Serial/Dask comparisons pass.
-The [campaign overview](phase-5-campaign-overview.md) contains the complete
-non-passing endpoint and correctness inventory; exact evidence belongs in the
-[execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md).
-No earlier candidate's scientific pass transfers automatically to this one.
-Terminal review confirmed two high-SNR corner-source cases where an invalid
-free fit falls back to a beam-shaped model and publishes badly biased Gaussian
-fluxes as measured. V16 repairs that admission defect: inadequate Gaussian
-models are explicitly unavailable while independent source products remain.
-V17 repairs excessive background/coarse-RMS edge extrapolation without changing
-detection thresholds or flattening genuine affine gradients. Saved-plane
-inspection identifies the nearly coincident fine-grid centres as the cause of
-the large corner-background excursions; independent tests reproduce and fix
-the conditioning defect. A bounded unchanged-pixel diagnostic also resolves
-the historical displaced-Gaussian witness at the fitting boundary. Neither
-closed campaign scores nor full notebook images were rerun for these claims.
+Current limitations that matter when interpreting results are:
 
-Local public Serial/existing-Dask, frozen equivalence, notebook execution and
-installed-wheel workflows pass. The wheel smoke reads and validates all four
-products for blank, all-NaN, continuum, compact and custom-threshold controls.
-This is a prepared **experimental standalone release candidate**, not final
-release clearance. On **13 September 2026**, the human accepted deferring the
-documented uncertainty-calibration, measurement-tail and faint-association
-limitations for v17 within the standalone input envelope above. This closes
-the bounded scientific risk-disposition gate, not the failed or inconclusive
-campaign comparisons. Accumulated-branch merge review and the full platform
-CI matrix remain required. The Rapthor acceptance lane still contains
-seven expected-failure scaffolds, not passing deployment acceptance tests.
-No further scientific run, publication or default cutover follows from this
-handoff. Known correctness defects cannot be waived by an experimental label.
+- uncertainty calibration is not yet established across the full supported
+  morphology and signal-to-noise range;
+- faint extended emission can remain sensitive to association, mask-boundary,
+  and aperture-flux decisions;
+- a failed or scientifically inadmissible Gaussian fit can leave a valid
+  detection or source without a Gaussian-component row;
+- an image with no usable positive RMS estimate returns an all-NaN RMS product,
+  an empty catalogue, and a zero mask; this is not evidence that the sky
+  contains no emission;
+- the `compact` profile must not be presented as a general continuum-source
+  catalogue; and
+- completeness, reliability, astrometry, photometry, deblending, and extended
+  emission performance must be evaluated on data representative of the
+  intended use.
 
-**Merge-review repair, 13 September:** a supported custom-threshold request
-could fail against the private 75-sigma background-refinement trigger. On v17,
-a synthetic 256-square noise image accepted detection/island thresholds of
-100/74 but raised at 100/75 or 100/80; 100/80 succeeded at 81 square.
-V18 reconciles that trigger with the caller's valid detection/island ordering,
-including small bright-source inputs and the 150-pixel mesh transition.
-The implementation (`ae96ee6...`) and its regression checks are recorded under
-M4 in the plan; the new non-executable identity and live notebook guard are
-verified. This closes that defect, not whole-branch or supported-platform CI
-clearance.
-Standard 5/3 science is unchanged, while provenance identifies the new
-composition. No historical science verdict is revised.
+Use `diagnostics.json` with the catalogue. It records every established source
+and component identity, including unavailable and deferred measurements, so a
+missing catalogue row is not mistaken for a non-detection.
+
+## Integration status
+
+The standalone scientific API is implemented and tested as an independent
+library boundary. Requests and results contain paths and small serializable
+records, never open FITS handles, full mutable images, or scheduler clients.
+Public exception types distinguish invalid input, unsupported physical
+metadata, oversized images, and existing output destinations.
+
+The public call analyses one scientific image. It does **not**:
+
+- combine primary-beam-corrected and flat-noise image branches;
+- filter or group an existing sky model;
+- emit Rapthor/LSMTool compatibility filenames or tables;
+- manage retries, workflow scheduling, or cluster resources for a parent
+  pipeline; or
+- provide a production-qualified complete `filter_skymodel` replacement.
+
+An integrating pipeline must own those workflow-specific responsibilities.
+Hebog's Rapthor adapter and complete-path performance have not yet met the
+requirements for supported deployment or default cutover.
+
+## Output and API compatibility
+
+The current public result contains versioned, validated catalogue, image, and
+diagnostic products. Readers reject unsupported schemas and verify a supplied
+product record's role, byte count, and SHA-256 before parsing it.
+
+Hebog does not promise backward compatibility between experimental `0.x`
+releases. A release may change a public API, output schema, or scientific
+meaning directly. Integrators should:
+
+1. pin an exact Hebog version;
+2. persist the complete `SourceFinderResult`, not only file paths;
+3. use Hebog readers where possible;
+4. preserve unknown quality flags;
+5. check product scientific status explicitly; and
+6. review current documentation and release notes before upgrading.
+
+Schema numbers are documented in the
+[public-output reference](public-products.md). They are compatibility checks
+for software, not scientific maturity levels that users need to interpret.
 
 ## Release boundaries
 
-| Delivery | Required before claiming it |
-| --- | --- |
-| Merge a small change | Coherent scope, review, applicable tests, current docs and CI. The custom-threshold repair is validated and frozen; whole-branch review and platform CI remain. The earlier campaign/severity disposition is preserved. |
-| Experimental standalone `0.x` | Reviewed correctness inventory, tested installed public workflow, passing package/platform checks, explicit limitations and unqualified status. General parity, full Rapthor performance and facility scaling can follow in separate increments. |
-| Scientifically qualified finder | Exact candidate-bound cumulative parity/retention, fresh held-out/public evidence and independent scientific/engineering acceptance. Frozen endpoints, margins and failed decisions remain unchanged. |
-| Supported Rapthor deployment | Qualified science, profile/filter agreement, fallback, retry/resume, memory and matched complete `filter_skymodel` performance: at least 50% lower median than released PyBDSF and faster than pinned master, with the required confidence bounds. |
-| Default cutover / `1.0` | Complete acceptance and facility-scale matrix, operational soak, production review and current supported-platform/documentation evidence. |
+An experimental release has a tested public workflow, installable package,
+current documentation, and explicit known limitations. It does **not** imply:
 
-Release Please manages version changes, changelogs, tags and GitHub releases.
-The maintainer reviews and merges its generated release PR after the intended
-release scope passes its required PR checks, including the installed-package
-smoke test. The release workflow builds distributions from the tagged commit
+- general scientific equivalence with another source finder;
+- qualification for an observing programme or survey;
+- support for inputs outside the table above;
+- production Rapthor integration;
+- a demonstrated end-to-end speed advantage; or
+- long-term compatibility with a later `0.x` release.
+
+Release Please prepares version changes, release notes, tags, and GitHub
+releases. The publishing workflow builds distributions from the tagged commit
 and uploads them to PyPI using
-[Trusted Publishing](../how-to/publish-releases.md) once the GitHub
-environment and PyPI publisher are configured. An experimental release does
-not authorize another scientific campaign, reinterpret closed evidence or
-change a workflow default.
+[Trusted Publishing](../how-to/publish-releases.md). Maintainers should release
+only after the intended change has passed its required pull-request checks and
+the limitations on this page remain accurate.
