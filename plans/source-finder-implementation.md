@@ -402,10 +402,13 @@ checklist, rather than waiting for Rapthor integration or 100,000-square data.
       packet to manufacture an experimental-release pass.
 - [ ] **E4 — Release through the existing workflow.** After main and the
       release PR checks pass, the human reviews and merges the Release Please
-      PR and verifies its tag/release plus a clean install of that tag. The
-      checked-in workflow manages GitHub releases; it does not define a PyPI
-      upload job. Add registry publishing only as a separately scoped task if
-      required. Update current release status without copying campaign history
+      PR and verifies its tag/release plus the PyPI upload. The separately
+      scoped upload automation reuses CI for the released commit and tests the
+      built wheel before publishing. Configure the GitHub environment and PyPI
+      Trusted Publisher using the
+      [publishing guide](../docs/how-to/publish-releases.md) before the next
+      release; local workflow preparation does not establish release readiness.
+      Update current release status without copying campaign history
       into the release notes.
 
 No version number is preassigned here. A later fix, measured optimization or

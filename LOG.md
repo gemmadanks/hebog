@@ -21312,3 +21312,29 @@ scientific pass from fixture validation.
   Review against `CODE_REVIEW.md` finds no actionable issue. No production
   logic, coverage policy, frozen bytes or CI test selection changes; hosted
   Ubuntu 3.12/3.13 reruns remain necessary after human push.
+
+
+## 2026-09-14 — Prepare automated PyPI uploads
+
+- Implement the requested publishing setup in the existing Release Please
+  workflow. Reuse the existing CI workflow for the released commit, then build
+  its distributions with uv, check the installed wheel version and exercise
+  the public API before retaining the upload artifact. Restrict OIDC permission
+  to a separate PyPA publishing job in the `pypi` environment; later pushes
+  cannot cancel an active release run. Reuse standard GitHub artifact actions
+  and PyPI Trusted Publishing rather than adding a custom uploader or stored
+  registry credentials.
+- Add the account-setup and recovery guide, and update E4 and current release
+  status to describe the new automation. The maintainer must configure the
+  GitHub environment and PyPI publisher and push the local change before use.
+  Scientific release gates remain applicable; this setup does not publish a
+  version or establish scientific qualification.
+- Validate both changed workflows with official actionlint v1.7.12. Execute
+  the new build and installed-workflow commands locally: all five public
+  scenarios pass and a mismatched release version is rejected. The existing
+  package smoke recipe also passes, both wheel and source distribution pass
+  `twine check --strict`, and strict documentation builds successfully.
+  Validation uses the existing public-workflow checker rather than adding
+  tests that duplicate YAML configuration. Production Python and scientific
+  configuration are unchanged; a live GitHub/PyPI OIDC exchange and the full
+  hosted platform matrix remain to be verified after account setup and push.
