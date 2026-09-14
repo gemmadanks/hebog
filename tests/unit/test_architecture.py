@@ -304,6 +304,42 @@ def test_public_core_does_not_import_outer_implementations(
     assert violations == []
 
 
+def test_public_science_does_not_depend_on_campaign_validation() -> None:
+    """Installed source finding must not import closed campaign machinery."""
+    paths = [
+        PACKAGE_ROOT / "public_api.py",
+        PACKAGE_ROOT / "public_science.py",
+    ]
+    science_root = PACKAGE_ROOT / "science"
+    if science_root.is_dir():
+        paths.extend(sorted(science_root.rglob("*.py")))
+    violations = [
+        f"{path.relative_to(PACKAGE_ROOT)}: {module}"
+        for path in paths
+        for module in sorted(_imported_modules(path))
+        if _matches_prefix(module, "hebog.validation")
+    ]
+
+    assert violations == []
+
+
+def test_public_science_import_does_not_load_campaign_validation() -> None:
+    """Runtime science imports no closed campaign package transitively."""
+    program = (
+        "import sys; import hebog.public_science; "
+        "raise SystemExit(any(name == 'hebog.validation' or "
+        "name.startswith('hebog.validation.') for name in sys.modules))"
+    )
+    completed = subprocess.run(
+        [sys.executable, "-c", program],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+
+
 def test_import_scope_analyzer_rejects_io_and_orchestration() -> None:
     """The architecture gate recognizes aliased eager boundary calls."""
     source = """

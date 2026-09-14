@@ -13,15 +13,12 @@ from astropy.wcs import WCS
 
 from hebog.data_models.catalogues import SourceCatalogue
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
-from hebog.validation.comparison import CatalogueSource
-from hebog.validation.external_successor_compiler import (
-    ContinuumCatalogueObject,
-)
-from hebog.validation.products import (
+from hebog.science.catalogues import (
     _source_label_plane,  # pyright: ignore[reportPrivateUsage]
 )
-from hebog.validation.public_finder_correction import (
-    PublicFinderCorrectionContinuumProducts,
+from hebog.science.models import CatalogueSource, ContinuumProducts
+from hebog.validation.external_successor_compiler import (
+    ContinuumCatalogueObject,
 )
 
 _IMAGE_DIMENSIONS = 2
@@ -79,7 +76,7 @@ class PublicMeasurementProjection:
 
 
 def project_public_measurements(
-    terminal: PublicFinderCorrectionContinuumProducts | None,
+    terminal: ContinuumProducts | None,
     catalogue: SourceCatalogue,
     publication_mask: np.ndarray,
     header: fits.Header,

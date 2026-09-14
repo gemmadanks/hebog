@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -21,10 +22,13 @@ from hebog.public_science import (
     _retain_configured_islands,
     build_configured_continuum_products,
 )
-from hebog.validation.contracts import PhaseFiveCorrectiveAReview
-from hebog.validation.phase_five_filter_review import ThresholdFilterResult
-from hebog.validation.post_campaign_science import (
-    PostCampaignCandidateProducts,
+from hebog.science.models import (
+    ContinuumCandidateProducts,
+    ThresholdFilterResult,
+)
+from hebog.science.profile import (
+    ContinuumScienceProfile,
+    load_continuum_science_profile,
 )
 
 _ROOT = Path(__file__).parents[2]
@@ -68,14 +72,14 @@ def _products(
     direct_labels: np.ndarray,
     *,
     measurement_labels: np.ndarray | None = None,
-) -> PostCampaignCandidateProducts:
+) -> ContinuumCandidateProducts:
     """Build minimal terminal products around exact label planes."""
     direct = np.asarray(direct_labels, dtype=np.int32)
     measurement = np.asarray(
         direct if measurement_labels is None else measurement_labels,
         dtype=np.int32,
     )
-    return PostCampaignCandidateProducts(
+    return ContinuumCandidateProducts(
         detection=ThresholdFilterResult(
             combined_snr=np.ones(direct.shape, dtype=np.float64),
             retained_mask=np.asarray(measurement > 0, dtype=np.bool_),
@@ -93,13 +97,18 @@ def _products(
     )
 
 
-def test_execution_review_changes_only_runtime_thresholds() -> None:
-    """Caller sigma values do not mutate the frozen review record."""
-    review = PhaseFiveCorrectiveAReview.model_validate_json(
+def _review() -> ContinuumScienceProfile:
+    """Load the installed phase-neutral science profile fixture."""
+    return load_continuum_science_profile(
         (
             _ROOT / "src/hebog/resources/phase_5_continuum_review.json"
         ).read_bytes()
     )
+
+
+def test_execution_review_changes_only_runtime_thresholds() -> None:
+    """Caller sigma values do not mutate the frozen review record."""
+    review = _review()
 
     execution = _execution_review(review, _config())
 
@@ -112,6 +121,67 @@ def test_execution_review_changes_only_runtime_thresholds() -> None:
         execution.matrix.island_sigma,
     ) == (8.0, 6.0)
     assert execution.corrections is review.corrections
+
+
+@pytest.mark.parametrize(
+    ("matrix", "corrections", "message"),
+    (
+        (None, {}, "matrix must be an object"),
+        ({}, None, "corrections must be an object"),
+        (
+            {
+                "scale_orders": [1, 2, 4],
+                "support_fraction_bounds": [0.5, 1.0],
+                "detection_sigma": 5.0,
+                "island_sigma": 3.0,
+            },
+            {"minimum_island_area_beams": 1.0},
+            "scales must be 1, 2, and 3",
+        ),
+        (
+            {
+                "scale_orders": [1, 2, 3],
+                "support_fraction_bounds": [0.25, 1.0],
+                "detection_sigma": 5.0,
+                "island_sigma": 3.0,
+            },
+            {"minimum_island_area_beams": 1.0},
+            "support fraction must span 0.5--1",
+        ),
+        (
+            {
+                "scale_orders": [1, 2, 3],
+                "support_fraction_bounds": [0.5, 1.0],
+                "detection_sigma": 3.0,
+                "island_sigma": 3.0,
+            },
+            {"minimum_island_area_beams": 1.0},
+            "thresholds must be positive and ordered",
+        ),
+        (
+            {
+                "scale_orders": [1, 2, 3],
+                "support_fraction_bounds": [0.5, 1.0],
+                "detection_sigma": 5.0,
+                "island_sigma": 3.0,
+            },
+            {"minimum_island_area_beams": 0.0},
+            "minimum island area must be positive",
+        ),
+    ),
+)
+def test_science_profile_rejects_malformed_runtime_fields(
+    matrix: object,
+    corrections: object,
+    message: str,
+) -> None:
+    """Runtime loading fails clearly when a required science field drifts."""
+    payload = json.dumps(
+        {"matrix": matrix, "corrections": corrections}
+    ).encode()
+
+    with pytest.raises(ValueError, match=message):
+        load_continuum_science_profile(payload)
 
 
 def test_island_limits_filter_every_terminal_identity_plane() -> None:
@@ -180,11 +250,7 @@ def test_aligned_plane_rejects_invalid_public_science_inputs(
 
 def test_configured_builder_rejects_inconsistent_finite_support() -> None:
     """Finite image pixels require finite background and RMS values."""
-    review = PhaseFiveCorrectiveAReview.model_validate_json(
-        (
-            _ROOT / "src/hebog/resources/phase_5_continuum_review.json"
-        ).read_bytes()
-    )
+    review = _review()
     image = np.ones((2, 2), dtype=np.float64)
     background = np.zeros((2, 2), dtype=np.float64)
     background[0, 0] = np.nan
@@ -216,12 +282,12 @@ def test_configured_builder_deblends_components_before_catalogue_measurement(
     def return_products(
         *_args: object,
         **_kwargs: object,
-    ) -> PostCampaignCandidateProducts:
+    ) -> ContinuumCandidateProducts:
         return products
 
     monkeypatch.setattr(
         public_science,
-        "evaluate_publication_scale_persistence_candidate_products",
+        "evaluate_continuum_candidate_products",
         return_products,
     )
 
@@ -250,11 +316,7 @@ def test_configured_builder_deblends_components_before_catalogue_measurement(
         "build_hebog_reconstructed_source_catalogues",
         capture_catalogues,
     )
-    review = PhaseFiveCorrectiveAReview.model_validate_json(
-        (
-            _ROOT / "src/hebog/resources/phase_5_continuum_review.json"
-        ).read_bytes()
-    )
+    review = _review()
 
     result = build_configured_continuum_products(
         normalized,
@@ -282,11 +344,7 @@ def test_configured_builder_publishes_independent_connected_sources() -> None:
     normalized = 10.0 * np.exp(
         -((yy - 32) ** 2 + (xx - 29) ** 2) / 8.0
     ) + 9.5 * np.exp(-((yy - 32) ** 2 + (xx - 36) ** 2) / 8.0)
-    review = PhaseFiveCorrectiveAReview.model_validate_json(
-        (
-            _ROOT / "src/hebog/resources/phase_5_continuum_review.json"
-        ).read_bytes()
-    )
+    review = _review()
 
     result = build_configured_continuum_products(
         normalized,
@@ -319,11 +377,7 @@ def test_configured_builder_retains_three_components_in_one_parent() -> None:
         normalized += amplitude * np.exp(
             -((yy - 32) ** 2 + (xx - x_center) ** 2) / 8.0
         )
-    review = PhaseFiveCorrectiveAReview.model_validate_json(
-        (
-            _ROOT / "src/hebog/resources/phase_5_continuum_review.json"
-        ).read_bytes()
-    )
+    review = _review()
 
     result = build_configured_continuum_products(
         normalized,

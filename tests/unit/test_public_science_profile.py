@@ -19,6 +19,7 @@ from hebog.data_models import (
     PublicSourceFindingProvenance,
 )
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
+from hebog.science.configuration import source_finder_configs
 
 _ROOT = Path(__file__).parents[2]
 
@@ -39,11 +40,7 @@ def test_public_background_mesh_is_bounded_by_image_capacity(
     shape: tuple[int, int], window: int, step: int
 ) -> None:
     """Only intermediate images need a smaller spatial coarse mesh."""
-    from hebog.validation.hebog_campaign import (  # noqa: PLC0415
-        phase_five_corrected_candidate_configs,
-    )
-
-    original = phase_five_corrected_candidate_configs()[0].background_rms
+    original = source_finder_configs()[0].background_rms
     repaired = public_api._public_background_config(
         shape, original, source_finder=SourceFinderConfig(5.0, 3.0, 7)
     )
@@ -79,11 +76,7 @@ def test_repaired_science_cannot_inherit_reference_qualification() -> None:
 
 def test_intermediate_mesh_cannot_bypass_the_bounded_read_admission() -> None:
     """A skinny, very long image cannot introduce an unbounded mask read."""
-    from hebog.validation.hebog_campaign import (  # noqa: PLC0415
-        phase_five_corrected_candidate_configs,
-    )
-
-    original = phase_five_corrected_candidate_configs()[0].background_rms
+    original = source_finder_configs()[0].background_rms
     with pytest.raises(ValueError, match="bounded image admission"):
         public_api._public_background_config(
             (150, 10_000),
@@ -112,11 +105,7 @@ def test_private_background_trigger_respects_custom_island_threshold(
     expected_trigger: float,
 ) -> None:
     """Refinement seeds must belong to support grown at caller thresholds."""
-    from hebog.validation.hebog_campaign import (  # noqa: PLC0415
-        phase_five_corrected_candidate_configs,
-    )
-
-    original = phase_five_corrected_candidate_configs()[0].background_rms
+    original = source_finder_configs()[0].background_rms
     caller = SourceFinderConfig(detection, island, 7)
     repaired = public_api._public_background_config(
         shape, original, source_finder=caller
@@ -139,12 +128,8 @@ def test_custom_threshold_does_not_enable_disabled_adaptive_background(
     shape: tuple[int, int],
 ) -> None:
     """Threshold reconciliation cannot invent an absent refinement policy."""
-    from hebog.validation.hebog_campaign import (  # noqa: PLC0415
-        phase_five_corrected_candidate_configs,
-    )
-
     original = replace(
-        phase_five_corrected_candidate_configs()[0].background_rms,
+        source_finder_configs()[0].background_rms,
         adaptive=None,
     )
     repaired = public_api._public_background_config(

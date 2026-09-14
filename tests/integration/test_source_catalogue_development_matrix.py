@@ -21,11 +21,11 @@ from hebog.data_models.source_finding import SourceFinderRequest
 from hebog.executors.serial import SerialExecutor
 from hebog.io.fits import FitsImageSource
 from hebog.public_science import build_configured_continuum_products
+from hebog.science.profile import load_continuum_science_profile
 from hebog.validation.adaptive_background_lane import (
     build_adaptive_development_manifest,
     source_signal_and_truth,
 )
-from hebog.validation.contracts import PhaseFiveCorrectiveAReview
 from hebog.validation.datasets import (
     DatasetManifest,
     generate_synthetic_image,
@@ -87,7 +87,7 @@ def test_joint_geometry_with_controlled_or_public_background(
     image = generate_synthetic_image(recipe) if with_noise else signal
     background = np.full_like(signal, recipe.background if with_noise else 0.0)
     header = synthetic_fits_header(dataset)
-    review = PhaseFiveCorrectiveAReview.model_validate_json(
+    review = load_continuum_science_profile(
         (
             Path(__file__).parents[2]
             / "src/hebog/resources/phase_5_continuum_review.json"

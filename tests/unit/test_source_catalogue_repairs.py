@@ -30,10 +30,11 @@ from hebog.config import CompactGaussianFitConfig, SourceFinderConfig
 from hebog.data_models.fitting import CompactGaussianFitResult
 from hebog.data_models.measurement import ValidMomentMeasurement
 from hebog.public_science import build_configured_continuum_products
-from hebog.validation import products as product_builder
-from hebog.validation.contracts import PhaseFiveCorrectiveAReview
+from hebog.science import catalogues as product_builder
+from hebog.science.catalogues import _segment_position
+from hebog.science.models import ContinuumProducts
+from hebog.science.profile import load_continuum_science_profile
 from hebog.validation.observable_truth import measure_observable_truth
-from hebog.validation.products import _segment_position
 
 _ROOT = Path(__file__).parents[2]
 
@@ -362,9 +363,9 @@ def _header(shape: tuple[int, int]) -> fits.Header:
     )
 
 
-def _products(signal: np.ndarray):
+def _products(signal: np.ndarray) -> ContinuumProducts:
     """Exercise the complete configured composition with analytic noise."""
-    review = PhaseFiveCorrectiveAReview.model_validate_json(
+    review = load_continuum_science_profile(
         (
             _ROOT / "src/hebog/resources/phase_5_continuum_review.json"
         ).read_bytes()
@@ -388,7 +389,7 @@ def test_missing_optional_beam_angle_uses_zero_position_angle() -> None:
     signal = 10 * np.exp(-((xx - 20) ** 2 + (yy - 16) ** 2) / 8)
     header = _header(signal.shape)
     del header["BPA"]
-    review = PhaseFiveCorrectiveAReview.model_validate_json(
+    review = load_continuum_science_profile(
         (
             _ROOT / "src/hebog/resources/phase_5_continuum_review.json"
         ).read_bytes()

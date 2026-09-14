@@ -94,17 +94,13 @@ _SCIENTIFIC_MODULES = (
     "hebog.data_models.source_finding",
     "hebog.public_api",
     "hebog.public_science",
+    "hebog.science.catalogues",
+    "hebog.science.configuration",
+    "hebog.science.continuum",
+    "hebog.science.models",
+    "hebog.science.profile",
     "hebog.stages.background",
     "hebog.stages.detection",
-    "hebog.validation.hebog_campaign",
-    "hebog.validation.mask_origin_sibling_pair",
-    "hebog.validation.phase_five_filter_review",
-    "hebog.validation.post_campaign_science",
-    "hebog.validation.post_correction_recovery",
-    "hebog.validation.products",
-    "hebog.validation.public_finder_correction",
-    "hebog.validation.publication_scale_persistence",
-    "hebog.validation.publication_snr_repair",
 )
 
 
@@ -304,11 +300,11 @@ def _estimate_background_rms(  # noqa: PLR0913
     generation_id: str,
 ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     """Run the exact candidate-owned bounded background/RMS stage."""
+    from hebog.science.configuration import (  # noqa: PLC0415
+        source_finder_configs,
+    )
     from hebog.stages.background import (  # noqa: PLC0415
         MultiscaleSourceProtection,
-    )
-    from hebog.validation.hebog_campaign import (  # noqa: PLC0415
-        phase_five_corrected_candidate_configs,
     )
 
     manifest = plan_image_partitions(
@@ -321,7 +317,7 @@ def _estimate_background_rms(  # noqa: PLR0913
         manifest,
         generation_id=generation_id,
     )
-    candidate_detection = phase_five_corrected_candidate_configs()[0]
+    candidate_detection = source_finder_configs()[0]
     detection_config = replace(
         candidate_detection,
         source_finder=config,
@@ -392,8 +388,8 @@ def _analyse_image(  # noqa: PLR0913
     from hebog.public_science import (  # noqa: PLC0415
         build_configured_continuum_products,
     )
-    from hebog.validation.contracts import (  # noqa: PLC0415
-        PhaseFiveCorrectiveAReview,
+    from hebog.science.profile import (  # noqa: PLC0415
+        load_continuum_science_profile,
     )
 
     bounds = _full_bounds(metadata)
@@ -416,7 +412,7 @@ def _analyse_image(  # noqa: PLR0913
             rms=np.full(metadata.shape_yx, np.nan, dtype=np.float64),
             terminal=None,
         )
-    review = PhaseFiveCorrectiveAReview.model_validate_json(_profile_bytes())
+    review = load_continuum_science_profile(_profile_bytes())
     terminal = build_configured_continuum_products(
         image,
         background,
