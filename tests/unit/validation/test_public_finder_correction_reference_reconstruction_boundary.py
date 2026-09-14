@@ -89,7 +89,7 @@ def test_pre_review_binds_historical_producer_and_no_action() -> None:
     )
     assert set(review["authorization"].values()) == {False}
     assert review["review_basis"] == {
-        "path": str(_FAILURE.relative_to(_ROOT)),
+        "path": _FAILURE.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_FAILURE),
     }
     historical = review["historical_reconstruction"]
@@ -144,7 +144,7 @@ def test_named_approval_authorizes_only_one_reference_reconstruction() -> None:
         "approved-before-reference-reconstruction-preflight"
     )
     assert decision["pre_review"] == {
-        "path": str(_PRE_REVIEW.relative_to(_ROOT)),
+        "path": _PRE_REVIEW.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_PRE_REVIEW),
     }
     authorization = decision["authorization"]
@@ -239,7 +239,7 @@ def test_completion_review_binds_the_verified_terminal() -> None:
     assert set(review["authorization"].values()) == {False}
     assert review["approved_reconstruction"] == {
         "decision": {
-            "path": str(_DECISION.relative_to(_ROOT)),
+            "path": _DECISION.relative_to(_ROOT).as_posix(),
             "sha256": file_sha256(_DECISION),
         },
         "maximum_executions": 1,
@@ -266,7 +266,7 @@ def test_preflight_stops_before_execution_when_storage_is_insufficient() -> (
 
     assert preflight["status"] == "blocked-insufficient-host-storage"
     assert preflight["authorization_decision"] == {
-        "path": str(_DECISION.relative_to(_ROOT)),
+        "path": _DECISION.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_DECISION),
     }
     assert preflight["preflight_checks"] == {

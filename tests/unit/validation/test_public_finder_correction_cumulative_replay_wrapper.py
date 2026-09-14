@@ -127,7 +127,7 @@ def test_named_reference_repair_approval_authorizes_no_replay() -> None:
     )
 
     assert decision["pre_review"] == {
-        "path": str(_REFERENCE_REPAIR_PRE_REVIEW.relative_to(_ROOT)),
+        "path": _REFERENCE_REPAIR_PRE_REVIEW.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_REFERENCE_REPAIR_PRE_REVIEW),
     }
     authorization = decision["authorization"]
@@ -202,7 +202,7 @@ def test_named_replay_approval_binds_the_reconstructed_references() -> None:
         _frozen_replay_arguments(),
     )
     assert decision["reference_repair_identity_review"] == {
-        "path": str(_REFERENCE_REPAIR_REVIEW.relative_to(_ROOT)),
+        "path": _REFERENCE_REPAIR_REVIEW.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_REFERENCE_REPAIR_REVIEW),
     }
     assert decision["execution_authorized"] is True

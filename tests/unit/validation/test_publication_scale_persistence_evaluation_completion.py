@@ -217,7 +217,7 @@ def test_review_and_decision_bind_exact_completion() -> None:
         file_sha256(_PROGRAM)
     )
     assert decision["identity_review"] == {
-        "path": str(_REVIEW.relative_to(_ROOT)),
+        "path": _REVIEW.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_REVIEW),
     }
     assert decision["evaluation_only_completion_authorized"] is True

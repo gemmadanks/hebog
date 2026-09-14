@@ -32,12 +32,72 @@ from hebog.pipeline import (
     SourceFinderOutputExistsError,
     UnsupportedSourceFinderConfigurationError,
 )
+from hebog.stages import detection as detection_stage
+from hebog.stages.background import BackgroundRmsGrids
 from hebog.validation.public_measurement_projection import (
     project_public_measurements,
 )
 
 Input = TypeVar("Input")
 Output = TypeVar("Output")
+
+
+@pytest.mark.integration
+def test_public_workflow_retires_stale_coarse_anchors(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A corrected pilot must reach readable products, not only refinement."""
+    # Public coarse protection activates at 150 pixels on the shorter axis.
+    yy, xx = np.mgrid[:160, :192]
+    image = np.random.default_rng(130913).normal(0, 1, yy.shape)
+    image += 100 * np.exp(-((xx - 64) ** 2 + (yy - 40) ** 2) / 8)
+    image[32, 24] = 2.0
+    path = tmp_path / "image.fits"
+    _write_image(path, image)
+    original = detection_stage.estimate_background_rms_grids
+
+    def underestimated_pilot(*args: Any, **kwargs: Any) -> BackgroundRmsGrids:
+        grids = original(*args, **kwargs)
+        return replace(
+            grids,
+            coarse=replace(
+                grids.coarse,
+                background=np.zeros_like(grids.coarse.background),
+                rms=np.full_like(grids.coarse.rms, 0.01),
+            ),
+        )
+
+    monkeypatch.setattr(
+        detection_stage, "estimate_background_rms_grids", underestimated_pilot
+    )
+
+    # Supply the bounded work packet at the escaped composition seam. The
+    # intentionally biased cache is not a new image-wide detection policy.
+    def initial_work_packet(
+        *_args: Any,
+        **_kwargs: Any,
+    ) -> tuple[tuple[float, float], ...]:
+        return ((32.0, 24.0), (40.0, 64.0))
+
+    monkeypatch.setattr(
+        detection_stage,
+        "discover_adaptive_candidates",
+        initial_work_packet,
+    )
+    result = hebog.find_sources(
+        SourceFinderRequest(path, tmp_path / "products", "stale-pilot"),
+        SourceFinderConfig(5, 3, 7),
+        SerialExecutor(),
+    )
+    catalogue = read_catalogue_fits_product(result.catalogue)
+    diagnostics = read_diagnostics_product(result.diagnostics)
+    mask = np.asarray(fits.getdata(result.mask_path), dtype=np.bool_)
+    assert result.source_count == len(catalogue.sources) == 1
+    assert diagnostics.rms_scientific_status == "valid"
+    assert mask[40, 64] and not mask[32, 24]
+    rms = np.asarray(fits.getdata(result.rms.path), dtype=np.float64)
+    assert np.all(np.isfinite(rms))
 
 
 class _RecordingExecutor:

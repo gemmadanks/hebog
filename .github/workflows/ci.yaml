@@ -11,6 +11,11 @@ concurrency:
 env:
   # Set uv version
   UV_VERSION: "0.9.4"
+  # Match the controlled replay budget before NumPy/BLAS or workers import.
+  OMP_NUM_THREADS: "1"
+  OPENBLAS_NUM_THREADS: "1"
+  MKL_NUM_THREADS: "1"
+  NUMBA_NUM_THREADS: "1"
 
 jobs:
   pre-commit:

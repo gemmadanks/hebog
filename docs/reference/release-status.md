@@ -40,22 +40,29 @@ as if they were Gaussian-component measurements.
 
 ## Evidence and unresolved limitations
 
-The development composition is v18, adding a bounded custom-threshold
-interaction repair to the tested Gaussian-fallback admission and
-background-boundary repairs. The
+The development composition is v19. It retains v18's custom-threshold repair
+and revalidates bright refinement anchors after source-protected coarse
+background/RMS re-estimation. An anchor that no longer meets the unchanged
+island threshold is retired as refinement work, preventing a notebook crash;
+remaining anchors and the independent local-noise estimate are retained. The
 latest completed campaign is v15 (`73ab5af...`). Focused repair tests, frozen
 small equivalence checks, portable coverage and exact Serial/existing-Dask
 checks pass. The earlier bounded public screen completed but retains 49
 point-estimate warnings, including compact uncertainty/measurement
 and faint extended association, mask and flux-tail risks. It does not provide
-powered parity evidence and has not been repeated for v17 or v18.
+powered parity evidence and has not been repeated for v17, v18 or v19.
 
 The current package snapshot also repairs destination aliases and failure
-rollback in the lower-level combined-product writer, without changing v18
-science. Its publication guarantees and filesystem requirements are explicit
+rollback in the lower-level combined-product writer. Its publication
+guarantees and filesystem requirements are explicit
 in [the product schema reference](internal-schemas.md). Historical CI fixtures
 now distinguish reproducible records from eligibility to execute a frozen
 campaign on a different installed runtime; campaign admission remains exact.
+Portable CI uses the replay's one-thread numerical budget. Regenerated
+calibration amplitudes and derived truth allow only four-ULP roundoff in
+test comparisons, with exact recipe self-checks; frozen manifests are never
+rewritten. Diagnostic publication closes temporary files before linking or
+removing them, including on Windows.
 
 The verified v15 cumulative terminal is a **scientific fail**: 1,115 binding
 comparisons pass, 32 fail against the earlier Hebog incumbent and 40 are

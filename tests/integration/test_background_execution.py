@@ -169,6 +169,87 @@ def _config() -> BackgroundRmsConfig:
     )
 
 
+@pytest.mark.parametrize("keep_source", (False, True))
+def test_corrected_coarse_anchor_retention_is_exact_with_existing_dask(
+    keep_source: bool,
+) -> None:
+    """Corrected work ownership agrees before comparing scientific products."""
+    yy, xx = np.mgrid[:80, :96]
+    image = np.where((yy + xx) % 2, -1.0, 1.0)
+    image[32, 24] = 2.0
+    image[40, 64] = 100.0 if keep_source else 2.0
+    source = _ArrayImageSource(image)
+    config = replace(
+        _config(),
+        coarse=_grid(32, 10),
+        adaptive=AdaptiveRmsConfig(_grid(11, 3), 75.0, 30.0, 10.0),
+        maximum_spatial_window_fraction=1,
+        maximum_constant_map_pixels=image.size,
+    )
+    coarse = estimate_background_rms_grids(
+        source,
+        image.shape,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=(),
+    )
+    coarse = replace(
+        coarse,
+        coarse=replace(
+            coarse.coarse,
+            background=np.zeros_like(coarse.coarse.background),
+            rms=np.full_like(coarse.coarse.rms, 0.01),
+        ),
+    )
+    refine = partial(
+        refine_background_rms_grids,
+        source,
+        coarse,
+        config,
+        bright_candidate_positions_yx=((32.0, 24.0), (40.0, 64.0)),
+        source_protection_island_threshold_sigma=3.0,
+        multiscale_protection=MultiscaleSourceProtection(
+            BeamShapePixels(2, 2, 0), SourceFinderConfig(5, 3, 7), 0.5
+        ),
+        protect_coarse_source_support=True,
+        refine_local_noise=True,
+    )
+    serial = refine(SerialExecutor())
+    with Client(
+        processes=False,
+        n_workers=2,
+        threads_per_worker=1,
+        dashboard_address=None,
+    ) as client:
+        dask = refine(DaskExecutor(client))
+    assert (
+        len(serial.adaptive_regions)
+        == len(dask.adaptive_regions)
+        == int(keep_source)
+    )
+    assert serial.local_noise is not None and dask.local_noise is not None
+    for expected, actual in (
+        (serial.coarse, dask.coarse),
+        (serial.local_noise, dask.local_noise),
+        *zip(
+            (region.grid for region in serial.adaptive_regions),
+            (region.grid for region in dask.adaptive_regions),
+            strict=True,
+        ),
+    ):
+        np.testing.assert_array_equal(expected.background, actual.background)
+        np.testing.assert_array_equal(expected.rms, actual.rms)
+        np.testing.assert_array_equal(
+            expected.fallback_cells, actual.fallback_cells
+        )
+    if keep_source:
+        assert (
+            serial.adaptive_regions[0].bright_candidate_positions_yx
+            == (dask.adaptive_regions[0].bright_candidate_positions_yx)
+            == ((40.0, 64.0),)
+        )
+
+
 @pytest.mark.parametrize("noisy_neighbour", (False, True))
 @pytest.mark.parametrize("local_noise", (False, True))
 def test_zero_noise_region_admission_matches_existing_dask(

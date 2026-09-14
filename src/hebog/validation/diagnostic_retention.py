@@ -62,17 +62,20 @@ def _atomic_json(path: Path, record: dict[str, Any]) -> None:
         + "\n"
     ).encode()
     path.parent.mkdir(parents=True, exist_ok=True)
-    with NamedTemporaryFile(
+    # The context below is inside cleanup's try, so write failures also close.
+    handle = NamedTemporaryFile(  # noqa: SIM115
         dir=path.parent, prefix=".diagnostic-", delete=False
-    ) as handle:
-        temporary = Path(handle.name)
-        try:
+    )
+    temporary = Path(handle.name)
+    try:
+        with handle:
             handle.write(payload)
             handle.flush()
             os.fsync(handle.fileno())
-            os.link(temporary, path)
-        finally:
-            temporary.unlink()
+        # Close before publication and unlink: Windows locks open files.
+        os.link(temporary, path)
+    finally:
+        temporary.unlink()
 
 
 def _require_census(

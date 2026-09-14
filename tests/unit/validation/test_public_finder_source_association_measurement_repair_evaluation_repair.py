@@ -326,7 +326,7 @@ def test_execution_decision_authorizes_only_existing_product_completion() -> (
 
     assert decision["status"] == review["status"]
     assert decision["identity_review"] == {
-        "path": str(_REVIEW.relative_to(_ROOT)),
+        "path": _REVIEW.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_REVIEW),
     }
     verified = review["verified_composition"]

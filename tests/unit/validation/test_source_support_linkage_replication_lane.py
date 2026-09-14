@@ -6,7 +6,7 @@ import hashlib
 import json
 import runpy
 import subprocess
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any, cast
 
 import pytest
@@ -123,7 +123,7 @@ def test_identity_is_non_executable_and_preserves_candidate_science() -> None:
         "execution_started": False,
         "reason": "bound freezer required lint-only formatting",
     }
-    assert _historical_bytes(str(_IDENTITY.relative_to(_ROOT))) == (
+    assert _historical_bytes(_IDENTITY.relative_to(_ROOT).as_posix()) == (
         _IDENTITY.read_bytes()
     )
     for binding_group in ("program_bindings", "fixture_bindings"):
@@ -156,11 +156,28 @@ def test_one_use_decision_binds_only_the_fast_replication() -> None:
     )
 
 
+@pytest.mark.parametrize("windows_paths", (False, True))
 def test_completed_lane_fails_closed_without_touching_a_new_namespace(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    windows_paths: bool,
 ) -> None:
     """The executed lane cannot be rebound to the evolving test tree."""
     runner = runpy.run_path(str(_RUNNER))
+    if windows_paths:
+        verifier = runner["verify_no_write"].__globals__[
+            "_verify_frozen_identity"
+        ]
+        for name in (
+            "_PREDECESSOR_IDENTITY",
+            "_ROOT_REVIEW",
+            "_PROCESS_REPAIR_REVIEW",
+        ):
+            monkeypatch.setitem(
+                verifier.__globals__,
+                name,
+                PureWindowsPath(verifier.__globals__[name].as_posix()),
+            )
     scratch = tmp_path / "scratch"
     output = tmp_path / "decision.json"
 
@@ -182,6 +199,6 @@ def test_completed_lane_fails_closed_without_touching_a_new_namespace(
 def test_frozen_records_match_the_successful_execution_revision() -> None:
     """The terminal lane records remain exact historical evidence."""
     for path in (_IMPLEMENTATION, _IDENTITY, _DECISION):
-        assert _historical_bytes(str(path.relative_to(_ROOT))) == (
+        assert _historical_bytes(path.relative_to(_ROOT).as_posix()) == (
             path.read_bytes()
         )

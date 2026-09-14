@@ -104,7 +104,7 @@ def test_identity_binds_fast_pass_and_retained_references() -> None:
     assert set(identity["authorization"].values()) == {False}
     assert identity["candidate"] == _CANDIDATE
     assert identity["fast_terminal"] == {
-        "path": str(_FAST_TERMINAL.relative_to(_ROOT)),
+        "path": _FAST_TERMINAL.relative_to(_ROOT).as_posix(),
         "sha256": (
             "a274888dab12bd5a1623310b35ba3f9a90ff14f9fd5249d118cd2a1c8b778348"
         ),

@@ -1,6 +1,6 @@
 # Hebog implementation plan
 
-Authoritative remaining-work plan. Updated **13 September 2026**.
+Authoritative remaining-work plan. Updated **14 September 2026**.
 Current user-facing capability and release policy are in
 [release status](../docs/reference/release-status.md); exact campaign
 identities, execution history and completed validation belong in
@@ -10,13 +10,13 @@ identities, execution history and completed validation belong in
 
 | Item | Current position |
 | --- | --- |
-| Candidate | Public composition v18 includes the custom-threshold/background repair on top of v17's Gaussian/background repairs. Package snapshot `fd318b8...` adds publication safety without changing that science. Its [non-executable freeze](../config/contracts/phase-5-product-publication-repair-identity-review.json) binds exact committed source and unchanged standard configuration; earlier freezes remain intact. Development-unqualified; latest completed campaign remains v15. |
+| Candidate | Public composition v19 adds corrected-coarse-cache anchor revalidation to v18's custom-threshold and publication repairs. Validation and a new non-executable notebook freeze are in progress; the previous [v18 freeze](../config/contracts/phase-5-product-publication-repair-identity-review.json) remains intact. Development-unqualified; latest completed campaign remains v15. |
 | Implemented | FITS/WCS ingress, background/RMS, compact and multiscale detection, source/component measurement, catalogue/mask/RMS/diagnostics publication, Serial and caller-owned Dask execution, Zarr intermediates. |
 | Public envelope | ICRS `Jy/beam` FITS, at most 1,024 pixels on either spatial axis. `continuum` is the default; explicit `compact` is extended-emission-incomplete. Custom thresholds remain unqualified; their private refinement-trigger interaction is repaired in v18. |
-| Strongest applicable checks | V18 threshold-boundary controls, 12 exact Serial/Dask comparisons, six unchanged standard-profile controls, five installed-wheel workflows and 27 frozen equivalence tests pass. Publication repair coverage passes 4,161 tests at 95.3277%; Linux/Python 3.14.7 passes 3,787 quick and 83 publication tests. Exact scope/results are in `LOG.md`. No v17/v18 campaign or powered parity verdict. |
+| Strongest applicable checks | V19 stale-anchor controls and exact Serial/Dask checks pass; six standard public workflows retain v18 science bytes. Five installed-wheel workflows and 27 frozen equivalence tests pass. Portable coverage passes 4,182 tests plus 34 final focused checks at 95.3372%, with all changed package lines/branches covered. Linux/amd64 Python 3.14.0 passes 263 affected tests. Exact scope/results are in `LOG.md`. No v17/v18/v19 campaign or powered parity verdict. |
 | Campaign | Verified v15 terminal: scientific **fail**, 1,115 pass / 32 fail / 40 underpowered comparisons. All five safety checks pass; 2,400 captures/evaluations, 12 exact Dask agreements and 8,000 retained records verified. No definite binding external-reference failure, but parity and incumbent retention are not established. |
-| Blockers | The custom-threshold and PR 49 publication defects are repaired, checked and frozen; reported historical-fixture CI failures are repaired locally and on Linux. Accumulated-branch review, full platform CI, separate cleanup and fresh notebook inspection remain before release. Earlier human acceptance of unchanged residual limitations is preserved; scientific qualification, Rapthor acceptance and complete-path performance remain unproven. |
-| Next authorized action | Complete the merge handoff, human whole-branch/Copilot review and supported-platform CI. Then complete a separate bounded cleanup PR and fresh comparison-notebook inspection before the human-controlled release workflow. No automatic replay, closed-data rescoring, publishing or parity claim. |
+| Blockers | The LoTSS notebook crash and additional Linux/Windows CI failures are repaired, with full portable coverage and isolated Linux checks passing. Finish clean hooks and a new notebook freeze. Accumulated-branch review, full platform CI (including native Windows), separate cleanup and fresh notebook inspection remain before release. Earlier human acceptance of unchanged residual limitations is preserved; scientific qualification, Rapthor acceptance and complete-path performance remain unproven. |
+| Next authorized action | Finish the notebook/CI repair validation and exact non-executable freeze, then complete the merge handoff, human whole-branch/Copilot review and supported-platform CI. Separate bounded cleanup and fresh comparison-notebook inspection still precede the human-controlled release workflow. No automatic replay, closed-data rescoring, publishing or parity claim. |
 | Deferred | The human accepted uncertainty-calibration, measurement-tail and faint-association limitations for the v17 experimental standalone release on 13 September. Broader F2 repair, optional improvement, full qualification and facility-scale work remain later tasks. Reopen a deferred issue if it becomes a confirmed incorrect supported output or serious correctness impact. |
 
 The [campaign overview](../docs/reference/phase-5-campaign-overview.md)
@@ -53,6 +53,32 @@ by this planning task. Release Please owns versioning, changelogs and tags;
 all task commits stay local for human review and push.
 
 ## Before merging the accumulated finder work to main
+
+**14 September repair decision (authorized):** source-protected coarse
+background/RMS can invalidate previously discovered bright work anchors. The
+480-by-480 LoTSS notebook input exposes an anchor falling from 278 sigma to
+2.44 sigma while refinement still requires 3-sigma support. Revalidate those
+anchors only after the coarse cache changes, using bounded reads and the
+unchanged support threshold; keep strict guards for unchanged-cache callers.
+Independent synthetic controls must retire obsolete anchors, retain genuine
+neighbours, handle empty/invalid/noiseless support and agree under Serial,
+existing Dask and retry/reordering. Stop if ordinary or extended controls
+regress. This is a correctness repair, not threshold tuning or a new campaign.
+
+The separate CI repairs must reproduce the replay's one-thread kernel budget
+in its spawned integration test and distinguish immutable historical records
+from regenerated analytic floating-point values. Diagnose non-centroid
+manifest differences before broadening comparisons; retain exact identities,
+explicit mutation tests and frozen execution admission. A one-ULP Gaussian
+kernel perturbation independently reproduces non-centroid differences in
+calibrated amplitude, integrated truth and the derived recipe digest. Compare
+only those derived floating-point values and centroids within four ULPs;
+validate each recipe digest exactly and keep seeds, geometry and noise exact.
+Windows Git lookups and evidence bindings must use POSIX repository paths;
+diagnostic publication must close temporary files before linking or unlinking,
+including failed writes and destination collisions. Finish bounded Linux
+checks, repository validation and a new non-executable notebook binding; do
+not rewrite campaign evidence or launch a replay.
 
 Each task has an observable completion condition. Agent-owned preparation
 continues within existing authority; scientific disposition and final merge

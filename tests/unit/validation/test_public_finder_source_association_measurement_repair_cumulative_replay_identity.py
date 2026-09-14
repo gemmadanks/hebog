@@ -91,10 +91,10 @@ def test_review_freezes_exact_implementation_and_prospective_execution() -> (
     ).strip()
     assert tree == implementation["tree"]
     assert implementation["wrapper"] == {
-        "path": str(_WRAPPER.relative_to(_ROOT)),
+        "path": _WRAPPER.relative_to(_ROOT).as_posix(),
         "sha256": _committed_file_sha256(
             _IMPLEMENTATION_REVISION,
-            str(_WRAPPER.relative_to(_ROOT)),
+            _WRAPPER.relative_to(_ROOT).as_posix(),
         ),
     }
     for name in (
@@ -175,7 +175,7 @@ def test_review_remains_non_executable_and_named_approval_is_exact() -> None:
     decision = json.loads(_EXECUTION_DECISION.read_text(encoding="utf-8"))
     wrapper["_validate_execution_decision"](decision, _approved_arguments())
     assert decision["measurement_repair_replay_identity_review"] == {
-        "path": str(_REVIEW.relative_to(_ROOT)),
+        "path": _REVIEW.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_REVIEW),
     }
     assert decision["execution_authorized"] is True

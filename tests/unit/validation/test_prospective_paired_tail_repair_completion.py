@@ -188,7 +188,7 @@ def test_identity_review_is_exact_and_non_executable() -> None:
     assert decision["evaluation_authorized"] is True
     assert decision["expected_execution_sha256"] == expected
     assert decision["identity_review"] == {
-        "path": str(_IDENTITY_REVIEW.relative_to(_ROOT)),
+        "path": _IDENTITY_REVIEW.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_IDENTITY_REVIEW),
     }
     assert decision["prohibited_authorizations"] == dict.fromkeys(

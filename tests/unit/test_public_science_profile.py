@@ -70,7 +70,7 @@ def test_repaired_science_cannot_inherit_reference_qualification() -> None:
         == "development-unqualified"
     )
     assert public_api._COMPOSITION_NAME == (
-        "phase-5-evidence-bound-public-catalogue-v18"
+        "phase-5-evidence-bound-public-catalogue-v19"
     )
     assert {
         "hebog.algorithms.component_measurement",
@@ -164,7 +164,7 @@ def _provenance() -> PublicSourceFindingProvenance:
         configuration_sha256="2" * 64,
         scientific_profile_sha256="3" * 64,
         scientific_composition_sha256="4" * 64,
-        scientific_composition=("phase-5-evidence-bound-public-catalogue-v18"),
+        scientific_composition=("phase-5-evidence-bound-public-catalogue-v19"),
     )
 
 
@@ -391,7 +391,7 @@ def test_public_interface_identity_binds_its_historical_file_set() -> None:
     for module_name, expected in review["scientific_module_sha256"].items():
         module = importlib.import_module(module_name)
         module_path = Path(module.__file__ or "").relative_to(_ROOT)
-        contents = historical_bytes(str(module_path))
+        contents = historical_bytes(module_path.as_posix())
         assert hashlib.sha256(contents).hexdigest() == expected
         composition.update(module_name.encode())
         composition.update(b"\0")
@@ -443,7 +443,7 @@ def test_source_protected_public_identity_binds_historical_science() -> None:
     for module_name, expected in review["scientific_module_sha256"].items():
         module = importlib.import_module(module_name)
         module_path = Path(module.__file__ or "").relative_to(_ROOT)
-        module_contents = historical_bytes(str(module_path))
+        module_contents = historical_bytes(module_path.as_posix())
         assert hashlib.sha256(module_contents).hexdigest() == expected
         composition.update(module_name.encode())
         composition.update(b"\0")

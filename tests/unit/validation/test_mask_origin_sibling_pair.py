@@ -138,7 +138,7 @@ def test_governed_records_bind_exact_implementation() -> None:
         "a8bee362728df293a30d171bed5afb4e412ecae9cbf9af06fbbce5afec083249"
     )
     assert decision["pre_review"] == {
-        "path": str(_PRE_REVIEW.relative_to(_ROOT)),
+        "path": _PRE_REVIEW.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_PRE_REVIEW),
     }
     for identity in decision["implementation"]:
@@ -163,7 +163,7 @@ def test_activation_repair_records_bind_terminal_failure_and_programs() -> (
         "778e43a96f0fad15c7ae28a562bcd18ca4b6e000df672221657e0803148addfc"
     )
     assert decision["pre_review"] == {
-        "path": str(_ACTIVATION_PRE_REVIEW.relative_to(_ROOT)),
+        "path": _ACTIVATION_PRE_REVIEW.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_ACTIVATION_PRE_REVIEW),
     }
     for identity in decision["implementation"]:

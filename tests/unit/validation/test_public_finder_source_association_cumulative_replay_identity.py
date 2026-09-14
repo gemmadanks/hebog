@@ -77,7 +77,7 @@ def test_review_freezes_exact_implementation_and_prospective_execution() -> (
     ).strip()
     assert tree == implementation["tree"]
     assert implementation["wrapper"] == {
-        "path": str(_WRAPPER.relative_to(_ROOT)),
+        "path": _WRAPPER.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_WRAPPER),
     }
     assert review["prospective_execution"] == wrapper[
@@ -134,7 +134,7 @@ def test_execution_decision_binds_exact_review_and_replay_boundary() -> None:
 
     wrapper["_validate_execution_decision"](decision, arguments)
     assert decision["source_association_replay_identity_review"] == {
-        "path": str(_REVIEW.relative_to(_ROOT)),
+        "path": _REVIEW.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_REVIEW),
     }
     assert decision["execution_authorized"] is True

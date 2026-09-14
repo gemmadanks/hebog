@@ -359,7 +359,7 @@ def test_completion_identity_and_decision_bind_exact_verified_products() -> (
     assert decision["evaluation_authorized"] is True
     assert decision["expected_execution_sha256"] == expected
     assert decision["identity_review"] == {
-        "path": str(_IDENTITY_REVIEW.relative_to(_ROOT)),
+        "path": _IDENTITY_REVIEW.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_IDENTITY_REVIEW),
     }
     assert decision["prohibited_authorizations"] == dict.fromkeys(

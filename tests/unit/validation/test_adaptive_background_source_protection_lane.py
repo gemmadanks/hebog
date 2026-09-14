@@ -109,7 +109,7 @@ def test_frozen_successor_identities_are_reproducible_and_non_executable() -> (
     assert (
         _historical_bytes(
             _FREEZE_REVISION,
-            str(_IDENTITY.relative_to(_ROOT)),
+            _IDENTITY.relative_to(_ROOT).as_posix(),
         )
         == _IDENTITY.read_bytes()
     )

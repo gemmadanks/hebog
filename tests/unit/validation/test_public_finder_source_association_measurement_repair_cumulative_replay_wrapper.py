@@ -110,7 +110,7 @@ def test_approval_opens_implementation_and_identity_freeze_only() -> None:
     decision = json.loads(_IMPLEMENTATION_DECISION.read_text(encoding="utf-8"))
 
     assert decision["pre_review"] == {
-        "path": str(_PRE_REVIEW.relative_to(_ROOT)),
+        "path": _PRE_REVIEW.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_PRE_REVIEW),
     }
     authorization = decision["authorization"]
@@ -132,7 +132,7 @@ def test_readiness_is_prospectively_bound_to_the_repaired_candidate() -> None:
     """The final candidate and future paths are fixed before results open."""
     readiness = _committed_json(
         _IMPLEMENTATION_REVISION,
-        str(_READINESS.relative_to(_ROOT)),
+        _READINESS.relative_to(_ROOT).as_posix(),
     )
     evidence = {
         item["evidence_id"]: item for item in readiness["required_evidence"]

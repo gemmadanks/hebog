@@ -127,7 +127,7 @@ def test_named_approval_is_bound_to_the_consumed_failed_composition() -> None:
     failure = json.loads(_EXECUTION_FAILURE.read_text(encoding="utf-8"))
 
     assert decision["repair_identity_review"] == {
-        "path": str(_REVIEW.relative_to(_ROOT)),
+        "path": _REVIEW.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_REVIEW),
     }
     assert decision["execution_authorized"] is True

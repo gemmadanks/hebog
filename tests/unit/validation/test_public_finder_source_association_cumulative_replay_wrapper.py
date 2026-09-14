@@ -98,7 +98,7 @@ def test_named_approval_authorizes_implementation_but_no_replay() -> None:
     decision = json.loads(_IMPLEMENTATION_DECISION.read_text(encoding="utf-8"))
 
     assert decision["pre_review"] == {
-        "path": str(_PRE_REVIEW.relative_to(_ROOT)),
+        "path": _PRE_REVIEW.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_PRE_REVIEW),
     }
     authorization = decision["authorization"]

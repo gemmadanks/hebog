@@ -926,7 +926,7 @@ def _verify_source_support_linkage_identity(
         label="combined predecessor identity",
     )
     if (
-        predecessor.get("path") != str(_PREDECESSOR_IDENTITY)
+        predecessor.get("path") != _PREDECESSOR_IDENTITY.as_posix()
         or predecessor.get("sha256") != _PREDECESSOR_IDENTITY_SHA256
         or file_sha256(repository_root / _PREDECESSOR_IDENTITY)
         != _PREDECESSOR_IDENTITY_SHA256
@@ -938,7 +938,7 @@ def _verify_source_support_linkage_identity(
         label="combined source support linkage repair",
     )
     if correction.get("root_cause_review") != {
-        "path": str(_ROOT_REVIEW),
+        "path": _ROOT_REVIEW.as_posix(),
         "sha256": _ROOT_REVIEW_SHA256,
     }:
         raise ValueError("combined source-support review binding changed")
@@ -964,7 +964,7 @@ def _verify_frozen_identity(
         label="combined process repair",
     )
     if process_repair.get("review") != {
-        "path": str(_PROCESS_REPAIR_REVIEW),
+        "path": _PROCESS_REPAIR_REVIEW.as_posix(),
         "sha256": _PROCESS_REPAIR_REVIEW_SHA256,
     }:
         raise ValueError("combined process-repair binding changed")

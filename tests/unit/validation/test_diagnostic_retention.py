@@ -1,13 +1,16 @@
 """The final decision must not outlive its only detailed evidence."""
 
+# pyright: reportPrivateUsage=false
+
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
+from hebog.validation import diagnostic_retention
 from hebog.validation.diagnostic_retention import (
     publish_diagnostic_packet,
     publish_retained_terminal,
@@ -15,6 +18,70 @@ from hebog.validation.diagnostic_retention import (
     verify_diagnostic_packet,
 )
 from hebog.validation.external_runners import canonical_sha256, file_sha256
+
+
+@pytest.mark.parametrize(
+    "failure", (None, "write", "flush", "fsync", "link", "existing")
+)
+def test_atomic_diagnostic_closes_file_before_publication_and_cleanup(  # noqa: C901
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: str | None
+) -> None:
+    """Windows must be able to unlink the temporary on every exit path."""
+    handles: list[Any] = []
+    create = diagnostic_retention.NamedTemporaryFile
+    link = diagnostic_retention.os.link
+    unlink = Path.unlink
+
+    def failed_write(_payload: bytes) -> int:
+        raise OSError("injected write failure")
+
+    def failed_flush() -> None:
+        raise OSError("injected flush failure")
+
+    def tracked_file(**kwargs: Any) -> Any:
+        handle = cast(Any, create(**kwargs))
+        handles.append(handle)
+        if failure == "write":
+            monkeypatch.setattr(handle, "write", failed_write)
+        elif failure == "flush":
+            monkeypatch.setattr(handle, "flush", failed_flush)
+        return handle
+
+    def closed_link(source: Path, destination: Path) -> None:
+        assert handles[-1].closed, "publication still holds the file open"
+        if failure == "link":
+            raise OSError("injected link failure")
+        link(source, destination)
+
+    def closed_unlink(path: Path, missing_ok: bool = False) -> None:
+        assert handles[-1].closed, "cleanup still holds the file open"
+        unlink(path, missing_ok=missing_ok)
+
+    def failed_fsync(_descriptor: int) -> None:
+        raise OSError("injected fsync failure")
+
+    monkeypatch.setattr(
+        diagnostic_retention, "NamedTemporaryFile", tracked_file
+    )
+    monkeypatch.setattr(diagnostic_retention.os, "link", closed_link)
+    monkeypatch.setattr(Path, "unlink", closed_unlink)
+    if failure == "fsync":
+        monkeypatch.setattr(diagnostic_retention.os, "fsync", failed_fsync)
+    path = tmp_path / "record.json"
+    if failure == "existing":
+        path.write_bytes(b"preserve existing evidence")
+    if failure is None:
+        diagnostic_retention._atomic_json(path, {"value": 1})
+        assert path.read_bytes() == b'{"value":1}\n'
+    else:
+        with pytest.raises(OSError):
+            diagnostic_retention._atomic_json(path, {"value": 1})
+        if failure == "existing":
+            assert path.read_bytes() == b"preserve existing evidence"
+        else:
+            assert not path.exists()
+    assert handles and all(handle.closed for handle in handles)
+    assert not tuple(tmp_path.glob(".diagnostic-*"))
 
 
 def _record(finder: str = "current-hebog") -> dict[str, Any]:

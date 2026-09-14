@@ -80,7 +80,7 @@ def test_review_and_decision_bind_exact_execution() -> None:
     assert review["expected_execution_sha256"] == expected_sha256
     assert decision["expected_execution_sha256"] == expected_sha256
     assert decision["identity_review"] == {
-        "path": str(_REVIEW.relative_to(_ROOT)),
+        "path": _REVIEW.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_REVIEW),
     }
     assert decision["execution_authorized"] is True

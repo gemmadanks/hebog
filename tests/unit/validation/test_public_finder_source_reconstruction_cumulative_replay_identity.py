@@ -176,7 +176,7 @@ def test_named_approval_opens_only_the_exact_frozen_replay() -> None:
     for field, expected in expected_fields.items():
         assert decision[field] == expected
     assert decision["source_reconstruction_replay_identity_review"] == {
-        "path": str(_REVIEW.relative_to(_ROOT)),
+        "path": _REVIEW.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_REVIEW),
     }
     assert decision["prohibited_authorizations"] == dict.fromkeys(
@@ -185,7 +185,7 @@ def test_named_approval_opens_only_the_exact_frozen_replay() -> None:
     )
     assert decision["existing_product_evaluation_resume_authorized"] is True
     assert decision["evaluation_repair_review"] == {
-        "path": str(_EVALUATION_REPAIR_REVIEW.relative_to(_ROOT)),
+        "path": _EVALUATION_REPAIR_REVIEW.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_EVALUATION_REPAIR_REVIEW),
     }
 

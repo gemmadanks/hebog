@@ -882,6 +882,41 @@ def _require_bounded_coarse_protection(
         )
 
 
+def _supported_candidate_positions(
+    request: tuple[_CandidateRegion, PreparedRmsGrid],
+    *,
+    source: _WindowReadable,
+    island_threshold_sigma: float,
+) -> tuple[tuple[float, float], ...]:
+    """Revalidate sparse work anchors against a changed coarse estimate."""
+    region, coarse = request
+    window = source.read_window(region.bounds)
+    if window.bounds != region.bounds:
+        raise ValueError("image source returned different candidate bounds")
+    if (
+        window.values.shape != region.bounds.shape_yx
+        or window.valid_pixels.shape != region.bounds.shape_yx
+    ):
+        raise ValueError("image source returned a misaligned candidate window")
+    fields = interpolate_prepared_rms_grid(
+        coarse, region.bounds, window.valid_pixels
+    )
+    normalized, valid = normalize_residual(
+        window.values, window.valid_pixels, fields.background, fields.rms
+    )
+    return tuple(
+        (y, x)
+        for y, x in region.positions_yx
+        if valid[
+            round(y) - region.bounds.y_start, round(x) - region.bounds.x_start
+        ]
+        and normalized[
+            round(y) - region.bounds.y_start, round(x) - region.bounds.x_start
+        ]
+        >= island_threshold_sigma
+    )
+
+
 def refine_background_rms_grids(  # noqa: PLR0913
     source: _WindowReadable,
     coarse_grids: BackgroundRmsGrids,
@@ -985,6 +1020,34 @@ def refine_background_rms_grids(  # noqa: PLR0913
         )
         if not coarse_grids.coarse.scientifically_available:
             return coarse_grids
+        # Initial bright work anchors are not immutable source seeds. The
+        # protected coarse estimate can explain one as noise; retire only
+        # anchors without support in that new estimate. Unchanged-cache
+        # callers still reach the strict source-protection consistency guard.
+        retain = partial(
+            _supported_candidate_positions,
+            source=source,
+            island_threshold_sigma=source_protection_island_threshold_sigma,
+        )
+        retained = executor.map_batches(
+            retain,
+            tuple(
+                (
+                    region,
+                    subset_prepared_rms_grid(
+                        coarse_grids.coarse, region.bounds
+                    ),
+                )
+                for region in candidate_regions
+            ),
+        )
+        candidate_regions = _merge_candidate_regions(
+            tuple(
+                position for positions in retained for position in positions
+            ),
+            image_shape_yx=image_shape_yx,
+            margin_pixels=adaptive_margin,
+        )
     if refine_local_noise:
         assert detection_rms is not None and multiscale_protection is not None
         statistics = _estimate_local_noise_grid(

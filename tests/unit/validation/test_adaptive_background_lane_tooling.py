@@ -26,12 +26,17 @@ from manifest_comparison import (
     assert_regenerated_manifest_matches_snapshot as assert_manifest_matches,
 )
 
+from hebog.validation import adaptive_background_lane as lane
 from hebog.validation.adaptive_background_lane import (
     build_adaptive_development_manifest,
     build_adaptive_runtime_identity,
     source_signal_and_truth,
 )
-from hebog.validation.datasets import recipe_sha256
+from hebog.validation.datasets import (
+    SyntheticRecipe,
+    SyntheticSource,
+    recipe_sha256,
+)
 from hebog.validation.external_runners import file_sha256
 
 _ROOT = Path(__file__).parents[3]
@@ -78,13 +83,30 @@ def _comparison_snapshot() -> dict[str, Any]:
         "reference_position_xy": [181.0, 173.0],
         "reference_integrated_brightness_jy_pixels_per_beam": 3.5,
     }
+    recipe = SyntheticRecipe(
+        generator="hebog.synthetic.gaussian-noise",
+        generator_version=1,
+        seed=123,
+        shape_yx=(512, 512),
+        background=0,
+        noise_rms=0.001,
+        sources=(
+            SyntheticSource(
+                x_pixel=181,
+                y_pixel=173,
+                peak_flux_jy_per_beam=0.5,
+                major_sigma_pixels=2,
+                minor_sigma_pixels=1,
+            ),
+        ),
+    )
     return {
         "manifest_id": "snapshot",
         "datasets": [
             {
                 "identifier": "source",
-                "recipe": {"seed": 123, "peak_flux_jy_per_beam": 0.5},
-                "recipe_sha256": "a" * 64,
+                "recipe": recipe.model_dump(mode="json"),
+                "recipe_sha256": recipe_sha256(recipe),
                 "association_truth_groups": [deepcopy(group)],
                 "multiscale_truth_groups": [deepcopy(group)],
             }
@@ -93,17 +115,29 @@ def _comparison_snapshot() -> dict[str, Any]:
 
 
 @pytest.mark.parametrize("steps", (0, 1, 4))
-def test_manifest_comparison_accepts_only_bounded_coordinate_roundoff(
+def test_manifest_comparison_accepts_only_bounded_derived_roundoff(
     steps: int,
 ) -> None:
     """Small dot-product roundoff is not a rewritten historical manifest."""
     snapshot = _comparison_snapshot()
     generated = deepcopy(snapshot)
     for field in ("association_truth_groups", "multiscale_truth_groups"):
-        position = generated["datasets"][0][field][0]["reference_position_xy"]
+        group = generated["datasets"][0][field][0]
+        position = group["reference_position_xy"]
         for _ in range(steps):
             position[0] = float(np.nextafter(position[0], np.inf))
             position[1] = float(np.nextafter(position[1], -np.inf))
+            flux = "reference_integrated_brightness_jy_pixels_per_beam"
+            group[flux] = float(np.nextafter(group[flux], np.inf))
+    dataset = generated["datasets"][0]
+    source = dataset["recipe"]["sources"][0]
+    for _ in range(steps):
+        source["peak_flux_jy_per_beam"] = float(
+            np.nextafter(source["peak_flux_jy_per_beam"], np.inf)
+        )
+    dataset["recipe_sha256"] = recipe_sha256(
+        SyntheticRecipe.model_validate(dataset["recipe"])
+    )
     original_generated = deepcopy(generated)
 
     assert_manifest_matches(generated, snapshot)
@@ -112,10 +146,36 @@ def test_manifest_comparison_accepts_only_bounded_coordinate_roundoff(
     assert snapshot == _comparison_snapshot()
 
 
+def test_kernel_roundoff_also_changes_calibration_flux_and_recipe_digest(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """One ULP in a libm Gaussian peak propagates beyond truth centroids."""
+    cell = lane.build_adaptive_development_matrix()[0]
+    original = lane._signal_from_sources
+    expected = lane._dataset(cell).model_dump(mode="json")
+
+    def rounded_signal(sources: Any) -> np.ndarray:
+        return np.nextafter(original(sources), np.inf)
+
+    monkeypatch.setattr(lane, "_signal_from_sources", rounded_signal)
+    actual = lane._dataset(cell).model_dump(mode="json")
+    assert actual["recipe_sha256"] != expected["recipe_sha256"]
+    assert_manifest_matches({"datasets": [actual]}, {"datasets": [expected]})
+
+
 @pytest.mark.parametrize(
-    "defect", ("position", "flux", "recipe", "seed", "hash", "id", "count")
+    "defect",
+    (
+        "position",
+        "flux",
+        "recipe",
+        "seed",
+        "hash",
+        "id",
+        "count",
+    ),
 )
-def test_manifest_comparison_rejects_changes_beyond_coordinate_roundoff(
+def test_manifest_comparison_rejects_changes_beyond_derived_roundoff(
     defect: str,
 ) -> None:
     """The portable check still rejects real science and identity changes."""
@@ -131,9 +191,10 @@ def test_manifest_comparison_rejects_changes_beyond_coordinate_roundoff(
     elif defect == "flux":
         group = dataset["multiscale_truth_groups"][0]
         field = "reference_integrated_brightness_jy_pixels_per_beam"
-        group[field] = float(np.nextafter(group[field], np.inf))
+        for _ in range(5):
+            group[field] = float(np.nextafter(group[field], np.inf))
     elif defect == "recipe":
-        dataset["recipe"]["peak_flux_jy_per_beam"] = float(
+        dataset["recipe"]["sources"][0]["peak_flux_jy_per_beam"] = float(
             np.nextafter(0.5, np.inf)
         )
     elif defect == "seed":
@@ -149,6 +210,37 @@ def test_manifest_comparison_rejects_changes_beyond_coordinate_roundoff(
         assert_manifest_matches(generated, snapshot)
 
 
+@pytest.mark.parametrize("defect", ("amplitude", "noise", "seed", "geometry"))
+def test_recomputing_recipe_digest_cannot_hide_scientific_changes(
+    defect: str,
+) -> None:
+    """A self-consistent checksum is necessary but never sufficient."""
+    snapshot = _comparison_snapshot()
+    generated = deepcopy(snapshot)
+    dataset = generated["datasets"][0]
+    target = (
+        dataset["recipe"]["sources"][0]
+        if defect in {"amplitude", "geometry"}
+        else dataset["recipe"]
+    )
+    field = {
+        "amplitude": "peak_flux_jy_per_beam",
+        "noise": "noise_rms",
+        "seed": "seed",
+        "geometry": "x_pixel",
+    }[defect]
+    if defect == "seed":
+        target[field] += 1
+    else:
+        for _ in range(5 if defect == "amplitude" else 1):
+            target[field] = float(np.nextafter(target[field], np.inf))
+    dataset["recipe_sha256"] = recipe_sha256(
+        SyntheticRecipe.model_validate(dataset["recipe"])
+    )
+    with pytest.raises(AssertionError):
+        assert_manifest_matches(generated, snapshot)
+
+
 def test_frozen_manifest_and_reviews_retain_the_historical_snapshot() -> None:
     """Superseding source changes cannot rewrite completed lane evidence."""
     manifest = build_adaptive_development_manifest()
@@ -156,7 +248,7 @@ def test_frozen_manifest_and_reviews_retain_the_historical_snapshot() -> None:
         manifest.model_dump(mode="json"), json.loads(_MANIFEST.read_bytes())
     )
     for path in (_MANIFEST, _IMPLEMENTATION, _IDENTITY):
-        historical = _historical_bytes(str(path.relative_to(_ROOT)))
+        historical = _historical_bytes(path.relative_to(_ROOT).as_posix())
         assert historical == path.read_bytes()
 
 

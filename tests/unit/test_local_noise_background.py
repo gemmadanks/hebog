@@ -428,6 +428,112 @@ def test_coarse_bright_candidate_can_be_noise_under_the_fine_pilot() -> None:
     assert np.max(refined.local_noise.rms) > 50
 
 
+@pytest.mark.parametrize("keep_source", (False, True))
+@pytest.mark.parametrize("retry", (False, True))
+def test_corrected_coarse_cache_retires_obsolete_bright_anchors(
+    keep_source: bool, retry: bool
+) -> None:
+    """A former bright fluctuation need not seed corrected source support."""
+    yy, xx = np.mgrid[:80, :96]
+    image = np.where((yy + xx) % 2, -1.0, 1.0)
+    image[32, 24] = 2.0
+    image[40, 64] = 100.0 if keep_source else 2.0
+    source = _Source(image)
+    config = _config()
+    executor = _ReverseRetryExecutor() if retry else SerialExecutor()
+    coarse = estimate_background_rms_grids(
+        source, image.shape, config, executor, bright_candidate_positions_yx=()
+    )
+    # A supplied first-pass cache underestimates the local noise. Both work
+    # anchors really exceed 75 sigma there; source-protected re-estimation
+    # from the same image restores the unit-noise background.
+    coarse = replace(
+        coarse,
+        coarse=replace(
+            coarse.coarse,
+            background=np.zeros_like(coarse.coarse.background),
+            rms=np.full_like(coarse.coarse.rms, 0.01),
+        ),
+    )
+    positions = ((32.0, 24.0), (40.0, 64.0))
+    assert all(image[int(y), int(x)] / 0.01 > 75 for y, x in positions)
+
+    refined = refine_background_rms_grids(
+        source,
+        coarse,
+        config,
+        executor,
+        bright_candidate_positions_yx=positions,
+        source_protection_island_threshold_sigma=3,
+        multiscale_protection=_policy(),
+        protect_coarse_source_support=True,
+        refine_local_noise=True,
+    )
+
+    retained = tuple(
+        position
+        for region in refined.adaptive_regions
+        for position in region.bright_candidate_positions_yx
+    )
+    assert retained == (((40.0, 64.0),) if keep_source else ())
+    assert refined.local_noise is not None
+    assert refined.local_noise.scientifically_available
+    np.testing.assert_allclose(refined.coarse.rms, 1.0, atol=0.02)
+    assert np.all(coarse.coarse.rms == 0.01)
+
+
+@pytest.mark.parametrize("defect", (None, "bounds", "values", "validity"))
+def test_revalidated_anchor_uses_bounded_valid_support(
+    defect: str | None,
+) -> None:
+    """Keep equality at the threshold, but not noise or invalid pixels."""
+    yy, xx = np.mgrid[:80, :96]
+    image = np.where((yy + xx) % 2, -1.0, 1.0)
+    coarse = estimate_background_rms_grids(
+        _Source(image),
+        image.shape,
+        _config(),
+        SerialExecutor(),
+        bright_candidate_positions_yx=(),
+    ).coarse
+    coarse = replace(
+        coarse,
+        background=np.zeros_like(coarse.background),
+        rms=np.ones_like(coarse.rms),
+    )
+    image[32, 24:28] = (3.0, np.nextafter(3.0, 0.0), np.nan, 4.0)
+    bounds = ImageBounds(30, 35, 20, 30)
+    positions = tuple((32.0, float(x)) for x in range(24, 28))
+
+    class Source(_Source):
+        def read_window(self, bounds: ImageBounds) -> ImageWindow:
+            window = super().read_window(bounds)
+            if defect == "bounds":
+                return replace(window, bounds=ImageBounds(0, 5, 0, 10))
+            if defect == "values":
+                return replace(window, values=window.values[:-1])
+            if defect == "validity":
+                return replace(window, valid_pixels=window.valid_pixels[:-1])
+            return window
+
+    source = Source(image)
+    request = (background_stage._CandidateRegion(bounds, positions), coarse)
+    if defect is None:
+        assert background_stage._supported_candidate_positions(
+            request,
+            source=source,
+            island_threshold_sigma=3.0,
+        ) == ((32.0, 24.0), (32.0, 27.0))
+    else:
+        with pytest.raises(ValueError, match=r"candidate (bounds|window)"):
+            background_stage._supported_candidate_positions(
+                request,
+                source=source,
+                island_threshold_sigma=3.0,
+            )
+    assert source.bounds == [bounds]
+
+
 @pytest.mark.parametrize("noise", (0.0, np.nan, 1.0))
 def test_bright_refinement_requires_available_positive_noise(
     noise: float,

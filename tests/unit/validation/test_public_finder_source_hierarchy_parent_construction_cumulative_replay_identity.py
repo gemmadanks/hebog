@@ -162,7 +162,7 @@ def test_named_approval_opens_only_the_exact_frozen_replay() -> None:
     ).items():
         assert decision[field] == expected
     assert decision["parent_construction_replay_identity_review"] == {
-        "path": str(_REVIEW.relative_to(_ROOT)),
+        "path": _REVIEW.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_REVIEW),
     }
     assert decision["prohibited_authorizations"] == dict.fromkeys(
@@ -226,11 +226,11 @@ def test_repair_review_binds_exact_wrapper_only_restart() -> None:
     assert decision["cumulative_replay_authorized"] is True
     assert decision["expected_execution_sha256"] == expected_sha256
     assert decision["parent_construction_replay_repair_review"] == {
-        "path": str(_REPAIR_REVIEW.relative_to(_ROOT)),
+        "path": _REPAIR_REVIEW.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_REPAIR_REVIEW),
     }
     assert decision["original_execution_decision"] == {
-        "path": str(_ORIGINAL_EXECUTION_DECISION.relative_to(_ROOT)),
+        "path": _ORIGINAL_EXECUTION_DECISION.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_ORIGINAL_EXECUTION_DECISION),
     }
     assert decision["prohibited_authorizations"] == dict.fromkeys(

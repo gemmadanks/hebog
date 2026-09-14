@@ -9,7 +9,9 @@ from __future__ import annotations
 import importlib
 import io
 import json
+import os
 import runpy
+import subprocess
 import sys
 from dataclasses import asdict
 from pathlib import Path
@@ -242,6 +244,35 @@ def test_capture_science_identity_is_serial_existing_dask_invariant(
 @pytest.mark.parametrize("mismatch", (False, True))
 def test_two_spawned_captures_and_existing_dask_reach_the_seal(
     tmp_path: Path,
+    mismatch: bool,
+) -> None:
+    """Use the replay's numerical budget before any BLAS runtime imports."""
+    environment = dict(os.environ)
+    for variable in (
+        "OMP_NUM_THREADS",
+        "OPENBLAS_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "NUMBA_NUM_THREADS",
+    ):
+        environment[variable] = "1"
+    result = subprocess.run(
+        (
+            sys.executable,
+            str(Path(__file__).resolve()),
+            str(tmp_path),
+            str(int(mismatch)),
+        ),
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=180,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def _check_spawned_captures(
+    tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     mismatch: bool,
 ) -> None:
@@ -312,6 +343,12 @@ def test_two_spawned_captures_and_existing_dask_reach_the_seal(
     monkeypatch.setattr(runner, "capture_science_sha256", science_hash)
     results = runner.compare_existing_dask(plan, pairs, progress)
     assert len(results) == 2
+    # The injected failure must not conceal an unrelated numerical drift.
+    for task in tasks:
+        identifier = str(task["input_id"])
+        assert original(
+            tmp_path / "dask" / identifier / "capture.json"
+        ) == original(Path(captures[identifier]["path"]))
     assert all(row["pass"] is not mismatch for row in results)
     assert (
         json.loads((tmp_path / "dask-comparisons.json").read_bytes())[
@@ -319,3 +356,10 @@ def test_two_spawned_captures_and_existing_dask_reach_the_seal(
         ]
         == results
     )
+
+
+if __name__ == "__main__":
+    with pytest.MonkeyPatch.context() as patch:
+        _check_spawned_captures(
+            Path(sys.argv[1]), patch, bool(int(sys.argv[2]))
+        )

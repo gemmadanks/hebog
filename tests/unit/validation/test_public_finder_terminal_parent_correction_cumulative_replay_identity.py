@@ -145,7 +145,7 @@ def test_exact_decision_opens_only_the_frozen_replay() -> None:
     assert decision["execution_authorized"] is True
     assert decision["cumulative_replay_authorized"] is True
     assert decision["identity_review"] == {
-        "path": str(_REVIEW.relative_to(_ROOT)),
+        "path": _REVIEW.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_REVIEW),
     }
     assert decision["prohibited_authorizations"] == dict.fromkeys(

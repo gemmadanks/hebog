@@ -92,7 +92,7 @@ def test_identity_is_non_executable_and_binds_current_repairs() -> None:
     assert set(identity["authorization"].values()) == {False}
     assert identity["candidate"] == _CANDIDATE
     assert identity["public_identity"] == {
-        "path": str(_PUBLIC_IDENTITY.relative_to(_ROOT)),
+        "path": _PUBLIC_IDENTITY.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_PUBLIC_IDENTITY),
     }
     assert identity["predecessor_fast_lane"]["terminal_sha256"] == (

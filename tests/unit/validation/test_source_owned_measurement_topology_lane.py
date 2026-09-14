@@ -98,7 +98,7 @@ def test_repair_identity_is_reproducible_and_non_executable() -> None:
         path: _sha256(path) for path in expected_historical_sha256
     } == expected_historical_sha256
 
-    assert _historical_bytes(str(_IDENTITY.relative_to(_ROOT))) == (
+    assert _historical_bytes(_IDENTITY.relative_to(_ROOT).as_posix()) == (
         _IDENTITY.read_bytes()
     )
     identity = json.loads(_IDENTITY.read_text())

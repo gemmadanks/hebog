@@ -168,7 +168,7 @@ def test_pre_review_prospectively_rebinds_readiness() -> None:
     readiness = cast(dict[str, Any], review["readiness_repair"])
     current = _committed_json(
         _IMPLEMENTATION_REVISION,
-        str(_READINESS.relative_to(_ROOT)),
+        _READINESS.relative_to(_ROOT).as_posix(),
     )
     implementation = _load(_IMPLEMENTATION_DECISION)
     current_requirement = cast(dict[str, Any], current["required_evidence"][0])
@@ -182,7 +182,7 @@ def test_pre_review_prospectively_rebinds_readiness() -> None:
         hashlib.sha256(
             _committed_bytes(
                 _IMPLEMENTATION_REVISION,
-                str(_READINESS.relative_to(_ROOT)),
+                _READINESS.relative_to(_ROOT).as_posix(),
             )
         ).hexdigest()
         != readiness["current_contract"]["sha256"]

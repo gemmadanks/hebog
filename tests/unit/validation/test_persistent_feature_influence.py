@@ -111,7 +111,7 @@ def test_implementation_decision_binds_exact_reviewed_programs() -> None:
     decision = json.loads(_DECISION.read_text(encoding="utf-8"))
 
     assert decision["pre_review"] == {
-        "path": str(_PRE_REVIEW.relative_to(_ROOT)),
+        "path": _PRE_REVIEW.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_PRE_REVIEW),
     }
     assert decision["fixed_predecessor_identity"] == {

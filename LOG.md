@@ -21175,3 +21175,88 @@ scientific pass from fixture validation.
   immediately before its local commit. Supported-platform CI still needs the
   human's push, and no full-branch merge or scientific-parity clearance is
   inferred from these bounded fixes.
+
+### 2026-09-14 — Repair stale refinement anchors and portable CI
+
+- The LoTSS 480-by-480 notebook input exposes stale *work* anchors after
+  source-protected coarse background/RMS recalculation. At `(y=244,x=8)`,
+  the same pixel falls from 278.4 sigma to 2.44 sigma; the old adaptive
+  request still required 3-sigma connected support. Input SHA-256 is
+  `e87f8911541a6fc45563b0ce7d518001342adb97f0632ae2c5020d1797290e91`.
+  Record the repair decision in the plan before implementation. Four
+  independent unit-noise controls fail at the exact reported guard first.
+  Revalidate only after the coarse cache changes, using bounded reads and
+  the unchanged threshold; retain surviving anchors, local-noise estimates
+  and strict unchanged-cache guards. The background-only LoTSS diagnostic
+  now completes, without catalogue rescoring or campaign execution.
+- The two-thread-budget contexts in the Linux integration test were not
+  equivalent: the test bypassed the replay CLI's required one-thread BLAS
+  environment. Linux/amd64 Python 3.14.0 captures differed by approximately
+  `3.6e-9` pixel and `1.8e-8` Jy in one fitted component, while masks,
+  background/RMS, associations and source unions were exact. Starting all
+  processes with the replay's four one-thread environment settings restores
+  exact hashes. Isolate that test before NumPy imports, preserve injected
+  mismatch detection, and apply the same numerical budget in CI.
+- The centroid-only regenerated-manifest comparator missed propagation into
+  calibrated amplitudes, integrated truth and recipe digests. A separate
+  one-ULP Gaussian-kernel perturbation reproduces this class of non-centroid
+  failure. Keep the four-ULP bound for explicitly derived values only;
+  validate each recipe against its own exact digest and keep prescribed
+  geometry, noise, seeds and metadata exact. Tests reject inconsistent hashes,
+  five-ULP changes, and self-consistent but changed science recipes. This
+  test-only comparison neither rewrites manifests nor relaxes frozen
+  campaign admission. The exact original non-centroid CI field was not
+  printed in the supplied log; new failures report affected fields.
+- Windows exposes two additional portability defects. Repository-relative
+  Git object names and JSON bindings require POSIX separators, not native
+  `str(Path)` formatting; the emulated Windows predecessor check initially
+  reproduces the wrong guard and passes after correction. Diagnostic JSON
+  cleanup unlinked a still-open temporary file. Four fault-injection cases
+  reproduce that defect before repair; close the handle before linking or
+  deleting on success, fsync failure, link failure and destination collision.
+  Write-once/no-overwrite semantics and historical bytes remain intact.
+- Focused checks pass: 78 diagnostic/continuation tests, 83 originally
+  affected lane tests, 16 targeted anchor/control/executor cases and two
+  isolated spawned-capture tests. The final Linux/amd64 Python 3.14.0 clone
+  passes all **263 selected unit and integration tests** in **87.00 seconds**;
+  the host checkout is read-only to the container and no PyBDSF run occurs.
+  An earlier intermediate snapshot omitted the matching v19 provenance
+  literal and failed nine integration cases; correct the declaration and
+  restart validation against the complete source tree. All **27 frozen
+  equivalence tests** pass. Full portable coverage, final checks and a new
+  non-executable notebook binding follow; Windows execution remains CI-only.
+- Composition v19 distinguishes this background repair from v18; standard
+  configuration, detection thresholds and closed v15 failure remain
+  unchanged. Do not transfer earlier parity claims, release, run a replay or
+  launch the full notebook automatically. Re-freeze after the validated
+  production commit so the notebook's exact source guard remains useful.
+- Six standard-profile public workflows (149, 150 and 256 pixels, each with
+  noise-only and bright-source controls) have byte-identical catalogue,
+  mask, RMS and diagnostic science between v18 and v19 after removing only
+  the declared composition name/hash. The public stale-anchor regression
+  reaches independently readable products, retaining the genuine source and
+  excluding the retired raw-support anchor. It explicitly uses 160-by-192
+  pixels to activate coarse protection; the first draft was below the
+  150-pixel activation boundary and did not exercise the intended repair.
+  Add write/flush failures to the Windows temporary-file controls and require
+  unfaulted capture hashes to remain exact even in the injected-mismatch test.
+  `just check` passes **3,806 quick tests**, 596 deselected and two existing
+  xfails, with clean format, lint and typing at that checkpoint. Final
+  test-only additions are checked again before commit.
+- Final `just coverage` passes **4,182 tests**, 220 deselected and two existing
+  xfails in **1,135.03 seconds**. The final public-workflow and diagnostic
+  write/flush controls, together with both spawned-capture cases, pass a
+  **34-test coverage append** in **43.32 seconds**. Branch-aware project
+  coverage is **95.33724142577994%**, above the prior 95.32766990291262%.
+  Inspect every changed package file: all changed executable lines and branch
+  exits are covered; remaining misses are outside this repair. The diagnostic
+  retention module has 100% line/branch coverage. A hosted Codecov patch
+  report is not available locally.
+- Review the complete bounded diff against `CODE_REVIEW.md`: no actionable
+  findings remain. Independent failure/boundary tests cover the repaired
+  production paths; historical manifests and admission semantics remain
+  intact. Static typing is clean, the isolated wheel and five installed public
+  workflows pass, and strict docs build passes. Native Windows CI and the
+  accumulated whole-branch review remain separate checks. Require clean
+  all-file hooks immediately before the local repair commit and again before
+  the separate immutable notebook-binding commit.

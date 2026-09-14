@@ -161,7 +161,7 @@ def test_review_stays_non_executable_while_exact_decision_opens_replay() -> (
     assert decision["evaluation_authorized"] is True
     assert decision["process_bug_retries_authorized"] is True
     assert decision["identity_review"] == {
-        "path": str(_REVIEW.relative_to(_ROOT)),
+        "path": _REVIEW.relative_to(_ROOT).as_posix(),
         "sha256": file_sha256(_REVIEW),
     }
     assert decision["prohibited_authorizations"] == dict.fromkeys(
