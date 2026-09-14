@@ -35,6 +35,15 @@ serialization and write-once tests. A pass with local `benchmark-results/`
 present does not establish CI portability: also run the quick lane from a clean
 checkout without those ignored products.
 
+Keep inexpensive protocol and write-once safety tests in portable CI while
+their builders or readers remain maintained. Completing a campaign does not
+remove the need to detect changed seeds, references, gates or authorization.
+Compare recomputed floating-point planning results with an explicit round-off
+tolerance; frozen artifact bytes and their recorded hashes still require exact
+equality. Retire obsolete campaign builders and their implementation-specific
+tests together after checking remaining consumers, preserving evidence and the
+identity checks needed by supported readers.
+
 Contract tests hold strict-xfail executable specifications until their planned
 implementation turns them green; an unexpected pass fails CI until the test is
 reviewed and converted to a normal assertion. Integration tests cover Dask,

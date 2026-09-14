@@ -1315,11 +1315,25 @@ def test_phase5_external_freezer_binds_fresh_powered_populations() -> None:
             root / "config/datasets/phase-5-external-compact-blend.json"
         ).read_text(encoding="utf-8")
     )
-    assert protocol_document == json.loads(
+    frozen_protocol = json.loads(
         (root / "config/contracts/phase-5-external-comparison.json").read_text(
             encoding="utf-8"
         )
     )
+    # NormalDist CDF round-off varies across Python/libm implementations;
+    # the weighted union bound amplifies it to about 8e-15 on Ubuntu.
+    # Tolerate only recomputed power, keeping all design inputs, gates,
+    # identities and authorization flags exact. Never rewrite frozen bytes.
+    for field in (
+        "continuum_familywise_power_lower_bound",
+        "compact_single_reference_familywise_power_lower_bound",
+        "compact_familywise_power_lower_bound",
+        "combined_familywise_power_lower_bound",
+    ):
+        frozen_protocol["power_audit"][field] = pytest.approx(
+            frozen_protocol["power_audit"][field], rel=0.0, abs=1e-12
+        )
+    assert protocol_document == frozen_protocol
 
 
 def test_phase5_external_freezer_refuses_existing_output(

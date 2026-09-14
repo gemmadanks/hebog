@@ -21282,3 +21282,33 @@ scientific pass from fixture validation.
   and require clean hooks before its separate local commit. Full Windows CI
   still requires human push; no replay, full notebook refresh, merge or release
   is run by this repair task.
+
+### 14 September 2026 — portable historical power comparison
+
+- CI repair decision: Ubuntu Python 3.12/3.13 each fail only the original
+  external-protocol builder equality test. The reported continuum and combined
+  power differences are about `8e-15`. Suspected cause is standard-library
+  normal-CDF round-off, amplified by weighted union bounds, rather than changed
+  populations or science. Reproduce the calculation independently on Linux;
+  compare only the four derived power bounds at `1e-12` absolute tolerance
+  with zero relative tolerance, retaining exact comparison of every other
+  field and the existing `>= 0.9` gate. Stop if any non-derived field differs
+  or the power discrepancy exceeds that bound. Frozen records and calculations
+  remain unchanged; this is a test-portability repair, not a campaign repair.
+- Retain this inexpensive test while its builder and downstream protocol
+  readers remain present. Evidence-host checks already use `requires_data`
+  and stay outside routine CI. Historical builder retirement belongs with
+  the planned cleanup after consumer inspection; document this distinction in
+  the existing development workflow guide.
+- Independently extract and execute the unchanged continuum-power function in
+  the cached Ubuntu Linux/amd64 Python 3.12.3 image with read-only inputs and
+  networking disabled. Exact equality fails with `0.9983920333491842` versus
+  frozen `0.9983920333491765`, a `7.771561172376096e-15` difference matching
+  CI. Installed Python 3.13 uses `erf` for `NormalDist.cdf`; 3.14 uses `erfc`.
+- The baseline-script and protocol-contract files pass **156 tests** on each
+  local Python 3.12.12 and 3.14.2 environment. Ten targeted assertion probes
+  accept `8e-15` drift in each derived bound, reject `1e-10` in each, and reject
+  both `8e-15` drift in the minimum-power gate and a changed realization count.
+  Review against `CODE_REVIEW.md` finds no actionable issue. No production
+  logic, coverage policy, frozen bytes or CI test selection changes; hosted
+  Ubuntu 3.12/3.13 reruns remain necessary after human push.
