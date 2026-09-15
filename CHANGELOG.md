@@ -2,6 +2,51 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.0](https://github.com/gemmadanks/hebog/compare/v0.6.0...v0.7.0) (2026-09-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* expose the public continuum source finder
+* add configurable continuum source finding and validation ([#49](https://github.com/gemmadanks/hebog/issues/49))
+
+### 🚀 Features
+
+* add configurable continuum source finding and validation ([#49](https://github.com/gemmadanks/hebog/issues/49)) ([4babf0b](https://github.com/gemmadanks/hebog/commit/4babf0baaf5609e72764183e543df84ec6be09e0))
+* add multi-scale detection, persistent source association, and source-owned measurements ([4babf0b](https://github.com/gemmadanks/hebog/commit/4babf0baaf5609e72764183e543df84ec6be09e0))
+* expose the public continuum source finder ([4babf0b](https://github.com/gemmadanks/hebog/commit/4babf0baaf5609e72764183e543df84ec6be09e0))
+* publish versioned catalogue, RMS, mask, and diagnostics products ([4babf0b](https://github.com/gemmadanks/hebog/commit/4babf0baaf5609e72764183e543df84ec6be09e0))
+
+
+### 🐛 Bug Fixes
+
+* correct background refinement, Gaussian validation, and catalogue measurement semantics ([4babf0b](https://github.com/gemmadanks/hebog/commit/4babf0baaf5609e72764183e543df84ec6be09e0))
+
+
+### ⚡ Performance
+
+* bound execution resources and accelerate product publication ([4babf0b](https://github.com/gemmadanks/hebog/commit/4babf0baaf5609e72764183e543df84ec6be09e0))
+
+
+### 🧹 Refactoring
+
+* detach source finding from campaign validation ([#52](https://github.com/gemmadanks/hebog/issues/52)) ([9537b11](https://github.com/gemmadanks/hebog/commit/9537b112948d543bca836f9f34882b7b53c1b057))
+
+
+### 📚 Documentation
+
+* document the public API, outputs, limitations, notebooks, and experimental release status ([4babf0b](https://github.com/gemmadanks/hebog/commit/4babf0baaf5609e72764183e543df84ec6be09e0))
+
+
+### 🧩 CI
+
+* streamline supported-platform testing and automate trusted PyPI publishing ([4babf0b](https://github.com/gemmadanks/hebog/commit/4babf0baaf5609e72764183e543df84ec6be09e0))
+
+
+### 🧪 Tests
+
+* add frozen scientific comparisons, qualification gates, and portable regression coverage ([4babf0b](https://github.com/gemmadanks/hebog/commit/4babf0baaf5609e72764183e543df84ec6be09e0))
+
 ## [0.6.0](https://github.com/gemmadanks/hebog/compare/v0.5.0...v0.6.0) (2026-08-05)
 
 
