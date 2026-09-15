@@ -12,7 +12,6 @@ requires-python = ">=3.12"
 dependencies = [
     "astropy>=8.0.1,<9",
     "dask[array,distributed]>=2026.7.1,<2027",
-    "numba>=0.61,<1",
     "numpy>=1.26,<3",
     "pydantic>=2.10,<3",
     "scipy>=1.12,<2",
@@ -121,3 +120,6 @@ build-backend = "uv_build"
 [tool.uv.build-backend]
 module-name = "hebog"
 module-root = "src"
+# Campaign and comparison tooling runs from a source checkout with the
+# development dependencies; it is not part of the installed source finder.
+wheel-exclude = ["hebog/validation"]

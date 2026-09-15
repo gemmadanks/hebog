@@ -2,7 +2,9 @@
 
 Hebog identifies validation data through strict, versioned JSON manifests.
 Phase 0 freezes separate development, regression, and qualification manifests
-under `config/datasets/`. A manifest can be loaded without resolving,
+under `config/datasets/`. `hebog.validation` is repository tooling and is not
+installed from the Hebog wheel; use it from a source checkout after
+`uv sync --all-groups`. A manifest can be loaded without resolving,
 downloading, or generating any image:
 
 ```python
