@@ -8,8 +8,7 @@
 
 Hebog is an **experimental** source finder for radio-continuum images. It
 reads a FITS image and publishes a source catalogue, a noise (RMS) image, a
-source mask and diagnostics. It runs in a single process or on a Dask cluster
-that you already manage.
+source mask and diagnostics. It runs in a single process or on a Dask cluster.
 
 ```mermaid
 flowchart TD
@@ -21,10 +20,9 @@ flowchart TD
     D --> G["Diagnostics"]
 ```
 
-Hebog aims to be a faster, more scalable alternative to
-[PyBDSF](https://github.com/lofar-astron/PyBDSF), starting with the
-[Rapthor](https://github.com/darafferty/rapthor) LOFAR calibration pipeline.
-It can also be used on its own from Python.
+Hebog aims to be a fast, scalable source finder that is easily integrated into 
+next generation radio astronomy data processing pipelines such as
+[Rapthor](https://github.com/darafferty/rapthor). It can also be used on its own from Python.
 
 ## Status
 
@@ -32,9 +30,11 @@ It can also be used on its own from Python.
   formats. Pin an exact version and read the
   [release notes](https://github.com/gemmadanks/hebog/releases) before
   upgrading.
-- **Not yet scientifically qualified.** Hebog is compared against PyBDSF and
-  Aegean on simulated images with known sources, but these checks are
-  development evidence rather than qualification for survey use. See
+- **Not yet scientifically qualified.** Hebog is compared against
+  [PyBDSF](https://github.com/lofar-astron/PyBDSF) and
+  [Aegean](https://github.com/PaulHancock/Aegean) on simulated images with
+  known sources, but these checks are development evidence rather than qualification
+  for survey use. See
   [scientific status](https://gemmadanks.github.io/hebog/reference/release-status/#scientific-status).
 - **Supported inputs:** one FITS image in `Jy/beam` with ICRS or FK5 J2000 sky
   coordinates and at most 1,024 pixels on each side.
