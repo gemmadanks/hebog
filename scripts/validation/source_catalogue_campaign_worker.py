@@ -19,7 +19,7 @@ from hebog import public_api
 from hebog.config import SourceFinderConfig
 from hebog.data_models.source_finding import SourceFinderRequest
 from hebog.executors import Executor
-from hebog.validation.diagnostic_retention import _atomic_json
+from hebog.validation.diagnostic_retention import write_json_once
 from hebog.validation.external_runners import canonical_sha256, file_sha256
 from hebog.validation.external_successor_compiler import (
     _mask_metrics,
@@ -178,7 +178,7 @@ def capture_current_image(
     }
     record = json.loads(json.dumps(record, allow_nan=False))
     record["record_sha256"] = canonical_sha256(record)
-    _atomic_json(output / "capture.json", record)
+    write_json_once(output / "capture.json", record)
     return record
 
 

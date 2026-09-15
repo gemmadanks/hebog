@@ -57,59 +57,42 @@ def fake_native(
 ) -> list[dict[str, Any]]:
     """Replace only external finder computation; retain native readers."""
     calls: list[dict[str, Any]] = []
-    original_helpers = worker["_helpers"]
 
-    def helpers(name: str) -> dict[str, Any]:
-        runner = original_helpers(name)
-        if name == "run_phase5_external_pybdsf.py":
+    def pybdsf(_module: Any, image: Path, config: Any, stage: Path) -> Any:
+        assert image.is_file()
+        calls.append(config)
+        sources = stage / "sources.fits"
+        Table(names=("Source_id",), dtype=(int,)).write(sources)
+        labels = stage / "labels.fits"
+        fits.PrimaryHDU(np.zeros((9, 11), dtype=np.int32)).writeto(labels)
+        mask = stage / "mask.fits"
+        mask.write_bytes(labels.read_bytes())
+        return {
+            "source-catalogue-fits": sources,
+            "gaussian-catalogue-fits": sources,
+            "island-labels-fits": labels,
+            "island-mask-fits": mask,
+        }
 
-            def pybdsf(
-                _module: Any, adapter: Any, config: Any, stage: Path
-            ) -> Any:
-                assert adapter.artifact_path("image").is_file()
-                calls.append(config)
-                sources = stage / "sources.fits"
-                Table(names=("Source_id",), dtype=(int,)).write(sources)
-                labels = stage / "labels.fits"
-                fits.PrimaryHDU(np.zeros((9, 11), dtype=np.int32)).writeto(
-                    labels
-                )
-                mask = stage / "mask.fits"
-                mask.write_bytes(labels.read_bytes())
-                return {
-                    "source-catalogue-fits": sources,
-                    "gaussian-catalogue-fits": sources,
-                    "island-labels-fits": labels,
-                    "island-mask-fits": mask,
-                }
+    def aegean(image: Path, config: Any, stage: Path) -> Any:
+        assert image.is_file()
+        calls.append(config)
+        component, island = stage / "comp.fits", stage / "isle.fits"
+        worker["write_empty_aegean_catalogues"](component, island)
+        labels = stage / "labels.fits"
+        fits.PrimaryHDU(np.zeros((9, 11), dtype=np.int32)).writeto(labels)
+        exclusions = stage / "exclusions.json"
+        exclusions.write_text("{}")
+        return {
+            "component-catalogue-fits": component,
+            "island-catalogue-fits": island,
+            "support-proxy-labels-fits": labels,
+            "catalogue-exclusions-json": exclusions,
+        }
 
-            runner["_run_pybdsf"] = pybdsf
-        if name == "run_phase5_external_aegean.py":
-
-            def aegean(adapter: Any, config: Any, stage: Path) -> Any:
-                assert adapter.artifact_path("image").is_file()
-                calls.append(config)
-                component, island = stage / "comp.fits", stage / "isle.fits"
-                runner["_write_empty_catalogues"](component, island)
-                labels = stage / "labels.fits"
-                fits.PrimaryHDU(np.zeros((9, 11), dtype=np.int32)).writeto(
-                    labels
-                )
-                exclusions = stage / "exclusions.json"
-                exclusions.write_text("{}")
-                return {
-                    "component-catalogue-fits": component,
-                    "island-catalogue-fits": island,
-                    "support-proxy-labels-fits": labels,
-                    "catalogue-exclusions-json": exclusions,
-                }
-
-            runner["_run_aegean"] = aegean
-        return runner
-
-    monkeypatch.setitem(
-        worker["run_reference"].__globals__, "_helpers", helpers
-    )
+    namespace = worker["run_reference"].__globals__
+    monkeypatch.setitem(namespace, "run_pybdsf", pybdsf)
+    monkeypatch.setitem(namespace, "run_aegean", aegean)
 
     def identity(finder: str) -> dict[str, str]:
         return {"runtime_name": finder, "runtime_version": "test"}
@@ -171,10 +154,9 @@ def test_empty_native_outputs_are_published_and_readable(
     else:
         assert config["cores"] == 2
         assert (config["seedclip"], config["floodclip"]) == (5.0, 4.0)
-    public = worker["_helpers"]("run_phase5_public_reference_finder.py")
     for artifact in result["artifacts"].values():
         assert (
-            public["_sha256"](destination / artifact["path"])
+            worker["_sha256"](destination / artifact["path"])
             == artifact["sha256"]
         )
     with pytest.raises(FileExistsError):
@@ -224,20 +206,11 @@ def test_failure_restores_environment_and_does_not_publish(
     image_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    original = worker["_helpers"]
-
-    def helpers(name: str) -> dict[str, Any]:
-        runner = original(name)
-        if name == "run_phase5_external_aegean.py":
-
-            def fail(*_args: Any) -> None:
-                raise RuntimeError("external failure")
-
-            runner["_run_aegean"] = fail
-        return runner
+    def fail(*_args: Any) -> None:
+        raise RuntimeError("external failure")
 
     monkeypatch.setitem(
-        worker["run_reference"].__globals__, "_helpers", helpers
+        worker["run_reference"].__globals__, "run_aegean", fail
     )
     before = os.environ["PATH"]
     with pytest.raises(RuntimeError, match="external failure"):
@@ -373,7 +346,7 @@ def test_prepared_outputs_load_in_notebook_and_hebog_input_resolver(
     (history / "index.json").write_text("{}")
     assert namespace["notebook_history_root"](history / "run") == history
     resolver = runpy.run_path(
-        str(_SCRIPT.with_name("run_phase5_current_public_hebog_campaign.py"))
+        str(_SCRIPT.with_name("refresh_public_notebook_hebog.py"))
     )
     path, core, record = resolver["_resolve_input"](
         tmp_path, root / "input-campaign", "lotss-dr2-3c295-12arcmin"

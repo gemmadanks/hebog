@@ -58,9 +58,9 @@ uv run python scripts/benchmark/download_notebook_data.py --dataset sdc1-image
 The optional SDC1 image alone is approximately 4 GiB, and the Hydra archive
 approximately 9.3 GiB. The raw-data downloader does not fetch those by default.
 The comparison setup below does fetch the SDC1 image. The downloader also
-lists the public beam, truth and submission files from the existing SDC1/Hydra
-artifact inventory. Source URLs and historical sizes are reused from that
-inventory; this downloader does not execute its old scientific authorization.
+lists the public beam, truth and submission files for SDC1 and the Hydra
+archive. Source URLs and advisory sizes come from
+`config/comparisons/notebook-comparison.json`.
 
 Downloads stream to disk. Existing non-empty files are reused, with basic
 FITS checks for image files. `--overwrite` fetches a fresh copy and replaces
@@ -102,12 +102,13 @@ uv run python scripts/benchmark/prepare_notebook_comparison.py --build-images
 ```
 
 The build downloads published PyBDSF 1.14.1 and AegeanTools 2.3.5 packages,
-checks their hashes, and reuses the checked-in reference Containerfiles and
-requirements. Only the released PyBDSF target is built; no historical master
-wheel is needed. Container layers and build caches can require several GB in
-addition to input images and native finder products. These are exploratory
-runtimes: actual image IDs, dependencies and scientific options are recorded,
-without requiring a historical campaign environment hash. The optional build
+checks their hashes, and uses the checked-in Containerfiles and requirements
+in `scripts/benchmark/containers/reference-finders/`. Only the released PyBDSF
+target is built; no PyBDSF `master` wheel is needed. Container layers and build
+caches can require several GB in addition to input images and native finder
+products. These are exploratory runtimes: actual image IDs, dependencies and
+scientific options are recorded, without requiring a historical campaign
+environment hash. The optional build
 step requires network access. Finder execution disables container networking
 and image pulling.
 
@@ -126,12 +127,13 @@ The default selection preserves the previous comparison:
 - **Hydra:** the published deep and shallow EMU pilot images;
 - **LoTSS:** the 90-arcminute wide field, 3C 295 and M51.
 
-The SDC1 cutouts retain their 75-pixel halos and core-only comparison products.
-LoTSS inputs use the existing celestial-WCS and frequency normalization. The
-script reads only the existing selection/settings, without launching a frozen
-campaign. This creates fresh diagnostic results rather than reproducing the
-old evidence hashes. It downloads six distinct images, including the roughly
-4 GiB SDC1 image, and reuses that image for all eight cutouts. The Hydra archive,
+The cases, download URLs and reference-finder options are checked in at
+`config/comparisons/notebook-comparison.json`. The SDC1 cutouts retain their
+75-pixel halos and core-only comparison products. LoTSS inputs use the
+celestial-WCS and frequency normalization of the earlier comparison. This
+creates fresh diagnostic results rather than reproducing old evidence hashes.
+It downloads six distinct images, including the roughly 4 GiB SDC1 image, and
+reuses that image for all eight cutouts. The Hydra archive,
 SDC1 submissions, truth catalogue and primary-beam map are unnecessary for
 these saved-product overlays and are not downloaded.
 
@@ -179,14 +181,14 @@ uv run python scripts/benchmark/refresh_public_notebook_hebog.py \
   --label "Current Hebog"
 ```
 
-Add `--preflight-only` to check the selected Hebog candidate first. Repeat this
+Add `--preflight-only` to check the checkout and records first. Repeat this
 command after changing Hebog; add `--resume` only for an unchanged interrupted
 refresh. It reuses the reference products and never runs PyBDSF or Aegean.
 Set **Campaign root** to
 `benchmark-results/notebook-comparison/hebog-refreshes/latest` to inspect all
 three finders and the local Hebog history. Use a separate history directory
 for each input/reference set so previously completed runs cannot be confused.
-The existing Hebog candidate checks described below still apply.
+The input and history checks described below still apply.
 
 ## Open an existing saved comparison
 
@@ -223,12 +225,12 @@ supported campaign layout.
 
 To create a fresh comparison instead of restoring this historical bundle,
 use the setup workflow above. It generates new reference products from public
-images. The historical one-look acquisition, selection and campaign commands
-are not needed for that workflow; they retain their original evidence scope.
+images. The closed Phase 5 acquisition, selection and campaign commands are
+not needed for that workflow and have been removed from the live tree.
 
 ## Refresh the existing SDC1/Hydra/LoTSS comparison
 
-First check the selected scientific implementation and available input records
+First check the checkout identity and available input and reference records
 without running a finder:
 
 ```console
@@ -282,14 +284,14 @@ looks for a sibling `hebog-refreshes/` directory.
 | No `campaign.json`, no cases, or missing FITS/native product | Complete the new setup or restore the complete saved artifact tree, then select its campaign root. Raw downloads alone do not contain comparison records. |
 | Local image not found or wrong finder version | Use `--build-images` for a new setup, or supply compatible existing image tags. A build is never started implicitly. |
 | Setup output already exists | Use `--resume` with unchanged options or choose a new `--output`. Omit `--build-images` when resuming. |
-| `final public-interface identity changed` | The diagnostic runner's selected review does not match the science checkout. Current selection is the F4 filtered-response review, composition v15. A new scientific implementation needs its corresponding review and runner selection before this saved-comparison path can refresh. This is not a dependency-sync error; use the ordinary workbench for unrestricted exploration. |
 | Existing staging directory | Resume an unchanged interrupted refresh with `--resume`; preserve older staging when its scientific identity differs. |
 | LoTSS service unavailable or incomplete download | Retry the downloader. Use `--overwrite` to replace a bad cached file, or select an offline synthetic field. |
 | Image exceeds 1,024 pixels in the workbench | Choose a smaller cutout. Larger campaign diagnostics do not imply public finder support for the same size. |
 
-The refresh's preflight checks its current candidate and input records; it is
-not a scientific qualification or a guarantee that every numerical fit will
-succeed. Saved comparisons distinguish sources from Gaussian components and
+The refresh's preflight records the checkout, source-tree, runner and
+configuration identities and checks the input and reference records; it is not
+a scientific qualification or a guarantee that every numerical fit will
+succeed. Each Hebog result also records its scientific-composition digest. Saved comparisons distinguish sources from Gaussian components and
 retain explicit unavailable measurements. Finder agreement is diagnostic,
 not ground truth, and these runs make no qualified performance claim.
 

@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-import json
-import runpy
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
@@ -25,25 +23,6 @@ from hebog.validation.publication_scale_persistence import (
     build_publication_scale_persistence_continuum_products,
     evaluate_publication_scale_persistence_candidate_products,
     public_finder_publication_scale_persistence_configuration,
-)
-
-_ROOT = Path(__file__).parents[3]
-_PRE_REVIEW = (
-    _ROOT / "config/contracts/"
-    "phase-5-prospective-publication-scale-persistence-pre-review.json"
-)
-_DECISION = (
-    _ROOT / "config/contracts/"
-    "phase-5-prospective-publication-scale-persistence-implementation-"
-    "decision.json"
-)
-_MATERIALIZER = (
-    _ROOT / "scripts/validation/"
-    "materialize_phase5_prospective_publication_scale_persistence_products.py"
-)
-_EVALUATOR = (
-    _ROOT / "scripts/validation/"
-    "evaluate_phase5_prospective_publication_scale_persistence_smoke.py"
 )
 
 
@@ -95,31 +74,16 @@ def _candidate() -> PostCampaignCandidateProducts:
     )
 
 
-def test_pre_review_explains_failure_and_fixed_tradeoff_rule() -> None:
-    """The correction is bound to the exact failure without gate tuning."""
-    review = json.loads(_PRE_REVIEW.read_text(encoding="utf-8"))
-
-    assert review["binding_evidence"]["terminal_smoke_sha256"] == (
-        "3280088263f12ae6e63b1f81cc77c71d0b0e2f86539be7ea8459823b61886993"
-    )
-    assert review["causal_review"]["observed_failure"]["endpoint_id"] == (
-        "continuum--mask-precision--overall"
-    )
-    assert review["candidate_rule"]["policy_id"] == (
-        "adjacent-scale-persistent-publication-with-owner-bridges-v1"
-    )
-    assert review["governed_tradeoff_rule"]["prohibitions"].startswith(
-        "No threshold"
-    )
-    assert not review["authorization"]["threshold_or_margin_tuning_authorized"]
-
-
-def test_configuration_binds_policy_and_exact_reviews() -> None:
+def test_configuration_binds_policy_and_exact_reviews(tmp_path: Path) -> None:
     """The configuration cannot omit its predecessor or governed records."""
+    pre_review = tmp_path / "pre-review.json"
+    decision = tmp_path / "decision.json"
+    pre_review.write_text("pre-review\n", encoding="utf-8")
+    decision.write_text("decision\n", encoding="utf-8")
     repaired = public_finder_publication_scale_persistence_configuration(
         {"compact": {"mode": "fixed"}, "continuum": {"mode": "fixed"}},
-        _PRE_REVIEW,
-        _DECISION,
+        pre_review,
+        decision,
     )
 
     assert repaired["compact"] == {"mode": "fixed"}
@@ -128,13 +92,16 @@ def test_configuration_binds_policy_and_exact_reviews() -> None:
         "adjacent-scale-persistent-publication-with-owner-bridges-v1"
     )
     assert continuum["publication_scale_persistence_pre_review_sha256"] == (
-        file_sha256(_PRE_REVIEW)
+        file_sha256(pre_review)
     )
+    assert continuum[
+        "publication_scale_persistence_implementation_decision_sha256"
+    ] == file_sha256(decision)
     with pytest.raises(TypeError, match="must contain dictionaries"):
         public_finder_publication_scale_persistence_configuration(
             {"compact": {}, "continuum": "invalid"},
-            _PRE_REVIEW,
-            _DECISION,
+            pre_review,
+            decision,
         )
 
 
@@ -294,38 +261,3 @@ def test_evaluator_and_builder_reject_malformed_planes(
             beam=BeamShapePixels(4.0, 3.0, 0.0),
             review=cast(Any, SimpleNamespace()),
         )
-
-
-def test_materializer_activates_the_actual_final_writer() -> None:
-    """Every runpy layer resolves the new builder at product publication."""
-    wrapper = runpy.run_path(str(_MATERIALIZER))
-    frozen = wrapper["_current_composition"](
-        _ROOT,
-        revision="candidate-revision",
-        configuration="candidate-configuration",
-    )
-
-    writer = frozen["_write_continuum_products"]
-    separated_writer = writer.__globals__[  # pyright: ignore[reportFunctionMemberAccess]
-        "_write_mask_separated_continuum_products"
-    ]
-    assert (
-        separated_writer.__globals__[  # pyright: ignore[reportFunctionMemberAccess]
-            "build_public_finder_source_reconstruction_continuum_products"
-        ]
-        is build_publication_scale_persistence_continuum_products
-    )
-
-
-def test_evaluator_dispatches_only_the_replacement_materializer() -> None:
-    """The write-once evaluator cannot select a predecessor producer."""
-    evaluator = runpy.run_path(str(_EVALUATOR))
-    base = evaluator["_base"](_ROOT)
-    expected = (
-        "scripts/validation/"
-        "materialize_phase5_prospective_publication_scale_persistence_"
-        "products.py"
-    )
-
-    assert base["_MATERIALIZER"] == expected
-    assert base["main"].__globals__["_MATERIALIZER"] == expected

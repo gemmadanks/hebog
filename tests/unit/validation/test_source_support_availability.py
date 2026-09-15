@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 from dataclasses import replace
-from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -222,35 +219,3 @@ def test_amended_compiler_keeps_plane_and_truth_validation(
         batch = replace(batch, source_union_labels=-batch.source_union_labels)
     with pytest.raises(ValueError):
         _metrics(batch)
-
-
-def test_approved_amendment_preserves_historical_contract_and_program() -> (
-    None
-):
-    root = Path(__file__).parents[3]
-    amendment = json.loads(
-        (
-            root
-            / "config/contracts"
-            / "phase-5-r6-unavailable-source-support-amendment.json"
-        ).read_bytes()
-    )
-    assert amendment["status"] == "approved-fixture-only-amendment"
-    assert amendment["execution_identity"] is None
-    assert amendment["finder_execution_started"] is False
-    assert amendment["authorizations"] == {
-        "fixture_validation": True,
-        "adapter_implementation": True,
-        "finder_execution": False,
-        "evaluation_retry": False,
-        "viewed_data_rescoring": False,
-        "qualification": False,
-        "cutover": False,
-        "release": False,
-    }
-    for name in ("parent_review", "preserved_adapter", "preserved_compiler"):
-        binding = amendment[name]
-        assert (
-            hashlib.sha256((root / binding["path"]).read_bytes()).hexdigest()
-            == binding["sha256"]
-        )

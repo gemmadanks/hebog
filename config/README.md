@@ -44,36 +44,19 @@ groups and scale-, edge-, tile-, invalid-pixel-, and artefact-aware strata.
 The original 400-image qualification manifest remains frozen and unopened,
 but the independent power audit superseded it. Named scientific approval on
 2026-08-25 froze `datasets/phase-5-final-qualification-continuum.json`: 1,688
-fresh qualification images balanced over four geometries. Its population
-contract binds the closed compact evidence and keeps execution and
-qualification opening false. The final comparison protocol, pending execution
-decision, endpoint registry, compiler, evaluator, runners, and four exact
-runtime images are frozen by
-`contracts/phase-5-final-qualification-identity-review.json` (SHA-256
-`42ad6237...`). The matrix has 1,688 inputs, 8,440 total runs, and 5,064
-binding candidate/operational runs. Aegean is retained as the exact compact
-reference identity but has no fresh Continuum leg.
+fresh qualification images balanced over four geometries.
 
-The public-comparison contracts keep acquisition separate from science.
-`phase-5-public-comparison-scientific-decision.json` authorizes only the seven
-SDC1/Hydra downloads. `phase-5-public-comparison-schema-review.json` binds the
-verified source checksums, observed headers and catalogue schemas, and the
-proposed truth-only SDC1 tile formulas. It remains pending named scientific
-review and authorizes neither cut-out selection nor finder execution.
-`phase-5-public-comparison-decision-serialization-amendment.json` preserves
-the acquisition decision's historically approved byte hash while binding its
-formatter-canonical bytes and unchanged semantic requests; it grants no new
-scientific authority.
+Phase 5 development is closed. Its dataset manifests remain so that new
+populations can be checked for seed disjointness, but the campaign-specific
+protocols, execution decisions, identity reviews, endpoint registries and
+population contracts were removed from `contracts/` with the campaign tooling.
+They remain in [Git history at `4babf0b`](https://github.com/gemmadanks/hebog/tree/4babf0baaf5609e72764183e543df84ec6be09e0). The contracts kept here are
+those still read by maintained code, tests or benchmarks.
 
-`datasets/phase-5-external-successor-continuum.json` and
-`datasets/phase-5-external-successor-compact-blend.json` are the write-once
-Step 2C-PF regression populations. Their 1,400 seeds are disjoint from every
-checked-in historical manifest. The accompanying
-`contracts/phase-5-external-successor-population.json` records the recomputed
-prospective power, exact manifests, candidate source, corrected runners,
-mask-only compiler kernel, and intended runtime inventories. It is not an
-execution authorization: the candidate image, composed compiler/evaluator,
-and named one-look review remain separate gates.
+`comparisons/notebook-comparison.json` lists the public SDC1, Hydra and LoTSS
+cases, download sources and PyBDSF/Aegean options used by the source-finder
+comparison notebook scripts. It is diagnostic configuration and carries no
+qualification authority.
 
 `contracts/phase-5-filter-selection.json` records the provisional
 development-only Step 2 decision to use the float64 beam-aware matched-filter

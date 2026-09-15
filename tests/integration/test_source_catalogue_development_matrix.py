@@ -208,17 +208,6 @@ def test_joint_geometry_with_controlled_or_public_background(
     )
     if not with_noise:
         assert all(row["met"] for row in objectives.values()), objectives
-    else:
-        # The current prospective policy reports these absolute mask targets;
-        # it binds paired parity/retention, not the earlier adaptive-lane
-        # hard floors. Keep misses visible. This fixture alone cannot qualify
-        # a candidate or substitute for the required paired comparison.
-        policy = json.loads(
-            (
-                Path(__file__).parents[2]
-                / "config/contracts/phase-5-compact-held-out-source-union-"
-                "sentinel-implementation-decision.json"
-            ).read_text()
-        )["scientific_policy"]
-        assert policy["absolute_objectives"] == "report-only"
-        assert policy["cell_level_released_pybdsf_parity_required"]
+    # Noisy cells report these absolute mask targets without hard floors;
+    # paired parity and retention remain separate comparisons. This fixture
+    # alone cannot qualify a candidate.

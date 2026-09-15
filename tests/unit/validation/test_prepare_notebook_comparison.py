@@ -588,3 +588,55 @@ def test_all_thirteen_cases_share_six_downloads_and_preserve_sdc1_cores(
     before = list(calls)
     run(**arguments, resume=True)
     assert calls == before
+
+
+def _lotss_header(**frequency: float) -> fits.Header:
+    """Return one LoTSS-like cutout header with optional frequency keys."""
+    header = fits.Header(
+        {
+            "CTYPE1": "RA---TAN",
+            "CTYPE2": "DEC--TAN",
+            "CRPIX1": 3.0,
+            "CRPIX2": 3.0,
+            "CRVAL1": 202.47,
+            "CRVAL2": 47.19,
+            "CDELT1": -0.0004,
+            "CDELT2": 0.0004,
+            "BMAJ": 0.0017,
+            "BMIN": 0.0017,
+            "BPA": 90.0,
+            "BUNIT": "JY/BEAM",
+        }
+    )
+    header.update(frequency)
+    return header
+
+
+@pytest.mark.parametrize(
+    ("frequency", "expected_hz"),
+    (
+        ({}, 144_000_000.0),
+        ({"RESTFRQ": 143_650_000.0}, 143_650_000.0),
+        ({"RESTFREQ": 150_000_000.0}, 150_000_000.0),
+        ({"RESTFRQ": 0.0}, 144_000_000.0),
+    ),
+    ids=("missing", "wcs-spelling", "pybdsf-spelling", "invalid"),
+)
+def test_lotss_normalisation_writes_both_frequency_spellings(
+    tmp_path: Path,
+    setup: dict[str, Any],
+    frequency: dict[str, float],
+    expected_hz: float,
+) -> None:
+    """Released PyBDSF reads RESTFREQ even when a cutout has only RESTFRQ."""
+    download = tmp_path / "download.fits"
+    destination = tmp_path / "input.fits"
+    pixels = np.arange(25, dtype=float).reshape(5, 5)
+    fits.PrimaryHDU(pixels, _lotss_header(**frequency)).writeto(download)
+
+    setup["_normalise_lotss_image"](download, destination)
+
+    header = cast(fits.Header, fits.getheader(destination))
+    assert header["RESTFRQ"] == expected_hz
+    assert header["RESTFREQ"] == expected_hz
+    np.testing.assert_array_equal(cast(Any, fits.getdata(destination)), pixels)

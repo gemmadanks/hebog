@@ -88,10 +88,6 @@ line-length = 79
 src = ["src", "tests"]
 extend-exclude = ["benchmark-results"]
 
-[tool.ruff.format]
-# Preserve the checksum-bound compiler that produced sealed evidence.
-exclude = ["scripts/validation/compile_phase5_external_confirmation_campaign.py"]
-
 [tool.ruff.lint]
 select = [
     "ARG",
@@ -114,12 +110,8 @@ known-first-party = ["hebog"]
 
 [tool.ruff.lint.per-file-ignores]
 "notebooks/**" = ["PLC0415", "PLR0913", "PLR0917", "PLR1711"]
-# The accelerator must match the checksum-bound terminal callback signature.
-"src/hebog/validation/external_campaign_compilation.py" = ["PLR0917"]
 # The recovery compiler must match the checksum-bound terminal callback.
 "src/hebog/validation/external_recovery_compiler.py" = ["PLR0917"]
-# This terminal evidence compiler is checksum-bound to the sealed campaign.
-"scripts/validation/compile_phase5_external_campaign.py" = ["PLR0917"]
 "tests/**" = ["PLR2004"]
 
 [build-system]

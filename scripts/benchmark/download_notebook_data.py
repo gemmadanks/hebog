@@ -15,8 +15,11 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Any
 
 _ROOT = Path(__file__).resolve().parents[2]
+COMPARISON_CONFIGURATION = Path("config/comparisons/notebook-comparison.json")
+_LOTSS_CUTOUT_ENDPOINT = "https://lofar-surveys.org/dr2-cutout.fits"
 _FITS_BLOCK_BYTES = 2880
 _WORKBENCH_IMAGES = ("lotss-survey", "lotss-3c295", "lotss-m51")
 
@@ -31,66 +34,35 @@ class NotebookDownload:
     size: str
 
 
-def available_downloads(repository_root: Path) -> tuple[NotebookDownload, ...]:
-    """Reuse the recorded public artifact URLs, without campaign authority."""
-    lotss = tuple(
-        NotebookDownload(
-            name=name,
-            filename=filename,
-            url="https://lofar-surveys.org/dr2-cutout.fits?"
-            + urllib.parse.urlencode({"pos": position, "size": size}),
+def _download(item: dict[str, Any]) -> NotebookDownload:
+    """Translate one configured LoTSS cutout or fixed public artifact."""
+    cutout = item.get("lotss_cutout")
+    if cutout is not None:
+        query = urllib.parse.urlencode(
+            {"pos": cutout["position"], "size": cutout["size_arcminutes"]}
+        )
+        return NotebookDownload(
+            name=item["name"],
+            filename=item["filename"],
+            url=f"{_LOTSS_CUTOUT_ENDPOINT}?{query}",
             size="cutout service determines size",
         )
-        for name, filename, position, size in (
-            (
-                "lotss-survey",
-                "lotss-dr2-survey-field-22arcmin.fits",
-                "12:00:00 +45:00:00",
-                22,
-            ),
-            (
-                "lotss-3c295",
-                "lotss-dr2-3c295-12arcmin.fits",
-                "3C 295",
-                12,
-            ),
-            (
-                "lotss-m51",
-                "lotss-dr2-m51-20arcmin.fits",
-                "M51",
-                20,
-            ),
-            (
-                "lotss-wide",
-                "lotss-dr2-wide-ra13-90arcmin.fits",
-                "13:00:00 +47:00:00",
-                90,
-            ),
+    return NotebookDownload(
+        name=item["name"],
+        filename=item["filename"],
+        url=item["url"],
+        size=f"about {item['expected_bytes'] / 1024**3:.3f} GiB",
+    )
+
+
+def available_downloads(repository_root: Path) -> tuple[NotebookDownload, ...]:
+    """Return the configured public inputs in their listed order."""
+    configuration = json.loads(
+        (repository_root / COMPARISON_CONFIGURATION).read_text(
+            encoding="utf-8"
         )
     )
-    decision = json.loads(
-        (
-            repository_root
-            / "config"
-            / "contracts"
-            / "phase-5-public-comparison-scientific-decision.json"
-        ).read_text(encoding="utf-8")
-    )
-    public = tuple(
-        NotebookDownload(
-            name=(
-                "hydra-"
-                if item["dataset_id"].startswith("askap-")
-                else "sdc1-"
-            )
-            + item["identifier"].removeprefix("hydra-"),
-            filename=item["filename"],
-            url=item["source_url"],
-            size=f"about {item['expected_bytes'] / 1024**3:.3f} GiB",
-        )
-        for item in decision["artifact_requests"]
-    )
-    return lotss + public
+    return tuple(_download(item) for item in configuration["downloads"])
 
 
 def _check_download(path: Path, *, fits_image: bool) -> None:

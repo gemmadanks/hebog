@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Refresh all public notebook Hebog results from the current source tree.
+"""Refresh all notebook comparison Hebog results from the current checkout.
 
-Each distinct Git revision and source-tree hash receives an immutable campaign
-directory. Sealed PyBDSF and Aegean products are reused as references, while
-only Hebog is rerun over the frozen SDC1, Hydra, and LoTSS inputs. A mutable
-registry and ``latest`` symlink provide convenient notebook discovery without
-overwriting scientific products.
+Each distinct Git revision, source-tree hash and runner receives an immutable
+refresh directory. Saved PyBDSF and Aegean products are reused as references,
+while only Hebog is rerun over the prepared SDC1, Hydra, and LoTSS inputs. A
+mutable registry and ``latest`` symlink provide convenient notebook discovery
+without overwriting scientific products.
 """
 
 from __future__ import annotations
@@ -22,6 +22,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
+from hebog.data_models import ImageBounds
 from hebog.validation.external_runners import source_tree_sha256
 
 _ROOT = Path(__file__).parents[2]
@@ -34,10 +35,7 @@ _REFERENCE_CAMPAIGN = Path(
     "reference-campaign/campaign.json"
 )
 _HISTORY_ROOT = Path("benchmark-results/phase-5/hebog-notebook-refreshes")
-_HEBOG_RUNNER = Path("scripts/benchmark/run_phase5_public_finder_hebog.py")
-_INPUT_HELPERS = Path(
-    "scripts/benchmark/run_phase5_current_public_hebog_campaign.py"
-)
+_HEBOG_RUNNER = Path("scripts/benchmark/run_notebook_hebog.py")
 _RUNNER_PATH = Path("scripts/benchmark/refresh_public_notebook_hebog.py")
 _BOOTSTRAP_CAMPAIGNS = (
     (
@@ -50,6 +48,7 @@ _BOOTSTRAP_CAMPAIGNS = (
     ),
 )
 _SAFE_IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+_CORE_BOUNDS_LENGTH = 4
 
 
 def _parse_args() -> argparse.Namespace:
@@ -148,18 +147,52 @@ def _append_progress(path: Path, message: str) -> None:
         os.fsync(handle.fileno())
 
 
-def _load_public_runner(
+def _load_hebog_runner(
     repository_root: Path,
 ) -> tuple[str, Callable[..., dict[str, object]]]:
-    """Load the exact runner and return its authoritative configuration."""
+    """Load the checkout's runner and return its configuration digest."""
     runner = runpy.run_path(str(repository_root / _HEBOG_RUNNER))
     configuration_sha256 = cast(
-        Callable[[], str], runner["public_hebog_configuration_sha256"]
+        Callable[[], str], runner["hebog_configuration_sha256"]
     )()
-    run_public_hebog = cast(
-        Callable[..., dict[str, object]], runner["run_public_hebog"]
+    run_notebook_hebog = cast(
+        Callable[..., dict[str, object]], runner["run_notebook_hebog"]
     )
-    return configuration_sha256, run_public_hebog
+    return configuration_sha256, run_notebook_hebog
+
+
+def _resolve_input(
+    repository_root: Path,
+    input_campaign: Path,
+    case_id: str,
+) -> tuple[Path, ImageBounds | None, dict[str, Any]]:
+    """Return one checksum-verified input image and optional output core."""
+    record = _read_json(input_campaign / "inputs" / case_id / "input.json")
+    if record.get("case_id") != case_id:
+        raise ValueError(f"input case identity changed: {case_id}")
+    relative = Path(str(record.get("input_path", "")))
+    if relative.is_absolute() or ".." in relative.parts:
+        raise ValueError(f"unsafe input path for {case_id}")
+    location = record.get("input_location")
+    if location == "repository":
+        input_path = repository_root / relative
+    elif location == "staging":
+        input_path = input_campaign / relative
+    else:
+        raise ValueError(f"unsupported input location for {case_id}")
+    if not input_path.is_file():
+        raise FileNotFoundError(f"missing input for {case_id}: {input_path}")
+    if _sha256(input_path) != record.get("input_sha256"):
+        raise ValueError(f"input checksum changed for {case_id}")
+    raw_core = record.get("local_core_yx_half_open")
+    if raw_core is None:
+        core = None
+    elif isinstance(raw_core, list) and len(raw_core) == _CORE_BOUNDS_LENGTH:
+        y_start, y_stop, x_start, x_stop = (int(value) for value in raw_core)
+        core = ImageBounds(y_start, y_stop, x_start, x_stop)
+    else:
+        raise ValueError(f"invalid core bounds for {case_id}")
+    return input_path, core, record
 
 
 def _campaign_record(
@@ -278,7 +311,7 @@ def run_refresh(  # noqa: C901, PLR0912, PLR0913, PLR0915
             "reference campaign does not contain two successful runs per case"
         )
 
-    configuration_sha256, run_public_hebog = _load_public_runner(
+    configuration_sha256, run_notebook_hebog = _load_hebog_runner(
         repository_root
     )
     source_sha256 = source_tree_sha256(repository_root)
@@ -357,11 +390,6 @@ def run_refresh(  # noqa: C901, PLR0912, PLR0913, PLR0915
     }
     _write_once(staging / "request.json", request)
 
-    input_helpers = runpy.run_path(str(repository_root / _INPUT_HELPERS))
-    resolve_input = cast(
-        Callable[..., tuple[Path, object, dict[str, Any]]],
-        input_helpers["_resolve_input"],
-    )
     input_root = input_campaign_path.parent
     terminal_results: list[dict[str, object]] = []
     progress_path = staging / "progress.log"
@@ -384,16 +412,15 @@ def run_refresh(  # noqa: C901, PLR0912, PLR0913, PLR0915
                     f"resume found failed Hebog result: {case_id}"
                 )
         else:
-            input_path, core, _ = resolve_input(
+            input_path, core, _ = _resolve_input(
                 repository_root, input_root, case_id
             )
             print(f"running current Hebog: {case_id}", flush=True)
-            result = run_public_hebog(
+            result = run_notebook_hebog(
                 input_path=input_path,
                 output=result_directory,
                 case_id=case_id,
                 core=core,
-                configuration_sha256=configuration_sha256,
             )
             _append_progress(progress_path, f"completed {case_id}")
         terminal_results.append(
@@ -410,7 +437,7 @@ def run_refresh(  # noqa: C901, PLR0912, PLR0913, PLR0915
         raise RuntimeError("Hebog source tree changed during notebook refresh")
     if _sha256(repository_root / _HEBOG_RUNNER) != hebog_runner_sha256:
         raise RuntimeError(
-            "Hebog public runner changed during notebook refresh"
+            "Hebog notebook runner changed during notebook refresh"
         )
     terminal = {
         **request,

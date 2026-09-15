@@ -21659,3 +21659,105 @@ scientific pass from fixture validation.
   non-empty measurement dispositions; catalogue rows, associations, support
   stages and dispositions agree exactly. The strengthened differential suite
   passes six tests, and its combined catalogue-regression run passes 91.
+
+
+## 2026-09-15 — Remove closed Phase 5 campaign surface (PR 3)
+
+- Complete the bulk historical-surface deletion started in the unstaged
+  working tree. Remove 13 `hebog.validation` modules, 170 of 179
+  `scripts/validation` files, 57 of 91 `scripts/benchmark` files, 350 of 384
+  contract records, 41 Phase 5 reference pages and a net 102 test files. The
+  deleted material remains at `4babf0b`; retained pages link there. Keep all
+  dataset manifests, because historical seeds still guard new populations
+  against reuse.
+- Deletion was driven by a checked inventory of Python imports, dotted
+  `scripts.*` imports, `runpy` paths, AST-joined string literals, JSON record
+  closure, CI, MkDocs and notebook references, followed by the portable suite.
+  The static scan initially missed two dotted imports and two implicitly
+  concatenated contract names; the suite caught both and the files were
+  restored or their tests made self-contained. The only remaining mentions of
+  deleted paths are deliberate `4babf0b` history links or past-tense records.
+- Retain science regressions. Removed tests exercised deleted runners,
+  deleted compilers used as oracles, frozen-record contents, or evaluator
+  summaries of closed lanes. The 25-case terminal-cycle mechanism lane,
+  matcher, observable-truth, support, repair and Serial/Dask capture tests
+  remain. Remove `hebog.validation` code left unreachable by the deletions,
+  including the Phase 4 decision/recovery evidence schemas (`load_evidence` no
+  longer accepts those historical documents) and the campaign execution
+  authorization layer in `external_runners`. Replace the validation copy of
+  the reconstructed-catalogue builder, byte-identical except two docstrings,
+  with imports from `hebog.science.catalogues`.
+- Make the source-finder comparison notebook workflow independent of closed
+  campaign authority. `config/comparisons/notebook-comparison.json` now holds
+  the 13 cases, downloads and PyBDSF/Aegean options.
+  `run_notebook_reference.py` contains the native PyBDSF/Aegean adapters and
+  core normalisation; `prepare_notebook_comparison.py` contains the SDC1 halo
+  cutout and LoTSS normalisation; `run_notebook_hebog.py` replaces the
+  identity-bound public Hebog runner; and the container recipes move to
+  `scripts/benchmark/containers/reference-finders/`. Before this change the
+  Hebog refresh preflight failed on `HEAD` with `final public-interface
+  identity changed`, because it required a frozen source-tree hash; it now
+  records source, runner, configuration and scientific-composition identity.
+- Old/new oracles are exact: download inventory, case selection (plus an
+  explicit normalisation field), PyBDSF options and identity, Aegean command
+  and identity, PyBDSF label transform, SDC1 cutout bytes and cores, LoTSS
+  header and data, and normalised product hashes all match. On an analytic
+  image with and without a core, every Hebog product file is byte-identical;
+  `result.json` differs only in `result_id`, elapsed time and the
+  configuration digest field.
+- A real one-case setup (`lotss-dr2-m51-20arcmin`) built both images from the
+  moved recipes. Released PyBDSF 1.14.1 initially failed with `No frequency
+  information found in image header`: today's LoTSS cutout carries only
+  `RESTFRQ` (143.65 MHz), and the unchanged normaliser added the released
+  PyBDSF `RESTFREQ` spelling only when both keywords were absent. This latent
+  defect predates the extraction. A regression test failed first, then the
+  normaliser was changed to write both spellings from the first finite
+  positive header, spectral or 144 MHz frequency; the synthetic oracle bytes
+  are unchanged. The rerun completed PyBDSF 1.14.1 and AegeanTools 2.3.5 in
+  their containers. The Hebog refresh then sealed one case in 49 s, and the
+  notebook loader read all three successful finder overlays with no warnings.
+  The saved 13-case refresh preflight also passes. SDC1 and Hydra downloads
+  were not repeated; their cutout and case paths are covered by the oracle
+  and unit tests.
+- A `HEAD` worktree coverage baseline measured 95.189% over 3,986 portable
+  tests. After removing unreachable code and the duplicate builder, and adding
+  focused tests for two branches whose only tests were deleted, the same lane
+  passes 2,665 tests with two expected xfails at 95.996% project coverage. A
+  third focused test for the source-union fail-closed branches was added
+  after that measurement. Remaining per-file percentage decreases in `products`,
+  `source_association_evaluation_repair` and `terminal_cycle_fail_fast` come
+  from smaller denominators, not new missed lines.
+- The retained-validation CI partition remains. Its tests have not run on
+  macOS or Windows hosted runners, and at least one uses symlinks, so folding
+  it into the portable matrix is left to the release-readiness branch after a
+  hosted run. No scientific algorithm, threshold, dtype, schema or public
+  product changed.
+
+## 2026-09-15 — Condense the implementation plan
+
+- Rewrite `plans/source-finder-implementation.md` as a forward-looking plan:
+  current state, delivery policy, collaboration rules, the v0.7.0 release
+  checklist (R1–R5), later increments and retained scientific, performance and
+  architecture gates. Remove the completed PR #49 merge checklist (M1–M6),
+  closed E0–E2 task narratives and repair histories; their decisions and
+  evidence remain in this log and Git history.
+- Sequencing change: add a reusable synthetic comparison campaign before
+  scaling work, rebuilt from Git history without the removed authorization
+  layer, so later scalability changes can be compared against a scientific
+  reference for the current candidate. Its population, decision rules,
+  references and compute budget are decided in that PR.
+
+## 2026-09-15 — Clarify task ownership and speed up hook iterations
+
+- Record the user's ownership decision in `AGENTS.md` and the plan. Agents
+  implement, validate, update records and commit locally. Humans push, merge
+  pull requests, run and inspect notebook comparison refreshes, make scientific
+  dispositions and configure release infrastructure. Release Please updates
+  versions and the changelog and creates tags and releases. Plan tasks R1–R5
+  now name their owners.
+- `just pre-commit` now depends on `just pre-commit-fast`, which applies the
+  lint, formatting and hygiene hooks with Pyright, MkDocs, Marimo and pytest
+  skipped, then requires those hooks to pass before the slow hooks run once.
+  A trailing-whitespace trial is fixed and settled in about 10 s without
+  running the slow hooks. Remove `.pre-commit-config.yaml` excludes for files
+  deleted by the Phase 5 cleanup; the frozen PyBDSF diagnostics excludes stay.

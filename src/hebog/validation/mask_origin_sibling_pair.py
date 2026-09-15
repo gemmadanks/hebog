@@ -16,14 +16,14 @@ from hebog.algorithms.extended_measurement import (
     refine_multiscale_segment_labels,
 )
 from hebog.algorithms.multiscale import BeamShapePixels
+from hebog.science.catalogues import (
+    build_hebog_reconstructed_source_catalogues,
+)
 from hebog.validation.contracts import PhaseFiveCorrectiveAReview
 from hebog.validation.external_runners import file_sha256
 from hebog.validation.post_campaign_science import (
     CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS,
     PostCampaignCandidateProducts,
-)
-from hebog.validation.products import (
-    build_hebog_reconstructed_source_catalogues,
 )
 from hebog.validation.public_finder_correction import (
     PublicFinderCorrectionContinuumProducts,

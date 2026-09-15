@@ -17,19 +17,14 @@ just test-scalability
 ```
 
 Unit tests must be deterministic and require no scheduler or downloaded data.
-Keep portable review-contract checks separate from checks of retained campaign
-artifacts. The latter use `integration` and `requires_data`, including historical
-checks colocated with protocol unit tests, and are excluded from routine CI.
-They still fail if explicitly requested evidence is missing or has changed;
-never substitute a conditional skip or regenerate frozen evidence in a test.
-For example, on an evidence host, the read-only terminal hash checks are:
+Tests that need ignored local products use `integration` and `requires_data`
+and are excluded from routine CI. They still fail if explicitly requested data
+is missing or has changed; never substitute a conditional skip or regenerate
+frozen expected products in a test. Closed Phase 5 campaign archive checks were
+removed with that campaign tooling and remain in Git history.
 
-```bash
-uv run pytest -q tests/integration/test_retained_review_evidence.py
-```
-
-Select other evidence-dependent checks explicitly under their campaign's
-authority; do not enable every controlled test lane just to validate a checkout.
+Select data-dependent checks explicitly on a host that holds the data; do not
+enable every controlled test lane just to validate a checkout.
 Use synthetic temporary records for ordinary checksum, malformed-input,
 serialization and write-once tests. A pass with local `benchmark-results/`
 present does not establish CI portability: also run the quick lane from a clean

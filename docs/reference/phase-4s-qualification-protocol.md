@@ -52,14 +52,11 @@ The canonical identities at freeze time are:
 - comparison-protocol SHA-256:
   `8db043b70dc295d2a36214fe3ffc5822f86ee89794ed36bb31f11b22b3040a96`.
 
-The exact population can be reproduced without generating an image:
-
-```console
-uv run python scripts/validation/freeze_phase4s_qualification.py \
-  --output /new/path/phase-4s-qualification.json
-```
-
-Both freeze scripts and all campaign/evaluator outputs refuse overwrite.
+The freeze command, `scripts/validation/freeze_phase4s_qualification.py`,
+reproduced the exact population without generating an image. It was removed
+with the closed campaign tooling and remains in
+[Git history at `4babf0b`](https://github.com/gemmadanks/hebog/tree/4babf0baaf5609e72764183e543df84ec6be09e0); the frozen manifest itself is retained. Both
+freeze scripts and all campaign/evaluator outputs refused overwrite.
 
 ## One-look result
 

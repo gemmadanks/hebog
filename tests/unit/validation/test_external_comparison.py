@@ -1,209 +1,28 @@
-"""Tests for the frozen finder-neutral external-comparison boundary."""
+"""Tests for external-comparison matching and saved finder results."""
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Literal
 
 import numpy as np
 import pytest
 
-from hebog.validation.contracts import (
-    PhaseFiveExternalExecutionDecision,
-    load_phase_five_external_comparison_protocol,
-    load_phase_five_external_execution_decision,
-)
 from hebog.validation.external_comparison import (
     AssociationObject,
     match_truth_to_finder,
 )
 from hebog.validation.external_runners import (
-    AuthorizedExternalRun,
+    ExternalRunArtifact,
+    ExternalRunFailure,
+    ExternalRunResult,
     ExternalRuntimeIdentity,
-    authorize_external_run,
-    execute_external_run,
     file_sha256,
     load_external_run_result,
-    source_tree_sha256,
-)
-from hebog.validation.materialization import (
-    ExternalInputArtifact,
-    ExternalInputBundle,
-    materialize_external_realization,
 )
 
-_ROOT = Path(__file__).parents[3]
-_PROTOCOL = _ROOT / "config/contracts/phase-5-external-comparison.json"
-_EXECUTION_DECISION = (
-    _ROOT / "config/contracts/phase-5-external-execution-decision.json"
-)
-_BASE_REVIEW = _ROOT / "config/contracts/phase-5-corrective-a-review.json"
-_COMPACT_MANIFEST = (
-    _ROOT / "config/datasets/phase-5-external-compact-blend.json"
-)
-_COMPACT_DATASET = "phase5-external-compact-blend-512"
-_COMPACT_SEED = 2026790002
 _SHA256 = "0" * 64
 _CONTAINER_DIGEST = f"sha256:{_SHA256}"
-
-
-def test_external_protocol_binds_reconstructed_reference_runtimes() -> None:
-    """The frozen finder versions use only the reviewed replacement images."""
-    protocol = load_phase_five_external_comparison_protocol(_PROTOCOL)
-
-    assert tuple(
-        (
-            reference.finder_id,
-            reference.container_image_digest,
-            reference.dependency_inventory_sha256,
-        )
-        for reference in protocol.references
-    ) == (
-        (
-            "released-pybdsf",
-            "sha256:72454074489d5ed0d0ed08781ec11411a3e25ccf75e3378a924152176fa15b37",
-            "8211043e9fca55d706d1e890e2bf0b630e228a854db0949258c498506975669f",
-        ),
-        (
-            "pinned-pybdsf-master",
-            "sha256:192964b32d50a6e960cf3710013ffa92d782ecf43a4d6def4309a7cb10911e73",
-            "83574dd4c15d79f3cf2ac52fb8aa7b5bd2ff323c93343b2f1337eec938e8bf99",
-        ),
-        (
-            "aegean",
-            "sha256:b496d2907c13d083e7c87eda61a6a40057f92b5cb6e605330bcb1b6db27158b8",
-            "346c1f32b0d78ce1d22f6d6ff20787a102d8491c14432865465596c9f41ba909",
-        ),
-    )
-
-
-def test_external_execution_decision_preserves_closed_approval() -> None:
-    """Post-decision fixes cannot silently rebind the closed authorization."""
-    decision = load_phase_five_external_execution_decision(_EXECUTION_DECISION)
-
-    assert decision.protocol_sha256 == file_sha256(_PROTOCOL)
-    assert decision.candidate_review_sha256 == file_sha256(_BASE_REVIEW)
-    assert decision.implementation_commit == (
-        "303a49de3ea37af795d34e361f522a419d5c0bc2"
-    )
-    assert decision.source_tree_sha256 == (
-        "2f80c8779d3d8fe91fc599aa98edd95491d13922667cbab3af9d178caecc225b"
-    )
-    assert decision.source_tree_sha256 != source_tree_sha256(_ROOT)
-    assert decision.hebog_container_image_digest == (
-        "sha256:728bbd7ab59d0fbb9537d36fac34652e640300091024498cbebdaeb452da55a6"
-    )
-    assert decision.hebog_dependency_inventory_sha256 == (
-        "d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2"
-    )
-    assert decision.pybdsf_ncores == 4
-    assert decision.named_review == (
-        "Gemma Danks, 2026-08-11, renewed reconstructed-runtime approval"
-    )
-    assert decision.execution_authorized is True
-    assert decision.status == "reviewed-before-external-output"
-    assert decision.decision == "authorize-one-terminal-external-comparison"
-    runners = {
-        artifact.relative_path: artifact.sha256
-        for artifact in decision.runners
-    }
-    assert runners == {
-        "scripts/benchmark/run_phase5_external_hebog.py": (
-            "ea912a43a8523d01af29350e5b9f9523c6175de48f9c4e31e45853c04657592b"
-        ),
-        "scripts/benchmark/run_phase5_external_pybdsf.py": (
-            "9e9de39eed5838df0571391d53c60814ed495a23f976e008bb070640004898fd"
-        ),
-        "scripts/benchmark/run_phase5_external_aegean.py": (
-            "016d6a852b0564c7a8f56068a97e9a8be3320ef91b3097099f1f9405f8320ae9"
-        ),
-    }
-    assert runners["scripts/benchmark/run_phase5_external_pybdsf.py"] != (
-        file_sha256(_ROOT / "scripts/benchmark/run_phase5_external_pybdsf.py")
-    )
-
-
-def test_pending_runtime_review_cannot_authorize_an_external_run(
-    tmp_path: Path,
-) -> None:
-    """Technical preparation cannot substitute for named authorization."""
-    input_path = materialize_external_realization(
-        _PROTOCOL,
-        _COMPACT_MANIFEST,
-        _COMPACT_DATASET,
-        _COMPACT_SEED,
-        tmp_path / "input",
-    )
-    runner_paths = (
-        "scripts/benchmark/run_phase5_external_hebog.py",
-        "scripts/benchmark/run_phase5_external_pybdsf.py",
-        "scripts/benchmark/run_phase5_external_aegean.py",
-    )
-    decision = PhaseFiveExternalExecutionDecision.model_validate(
-        {
-            "schema_version": 1,
-            "decision_id": "phase-5-external-execution-decision",
-            "status": "awaiting-reconstructed-runtime-approval",
-            "protocol_sha256": file_sha256(_PROTOCOL),
-            "candidate_review_sha256": file_sha256(_BASE_REVIEW),
-            "implementation_commit": "0" * 40,
-            "source_tree_sha256": source_tree_sha256(_ROOT),
-            "hebog_container_image_digest": _CONTAINER_DIGEST,
-            "hebog_dependency_inventory_sha256": _SHA256,
-            "pybdsf_ncores": 4,
-            "runners": [
-                {
-                    "relative_path": relative_path,
-                    "sha256": file_sha256(_ROOT / relative_path),
-                }
-                for relative_path in runner_paths
-            ],
-            "named_review": "technical pre-review only",
-            "decision": "await-renewed-runtime-approval",
-            "execution_authorized": False,
-            "one_look_opened": False,
-            "step_three_authorized": False,
-            "optimization_authorized": False,
-            "qualification_opened": False,
-            "next_action": (
-                "obtain-renewed-runtime-approval-before-campaign-preflight"
-            ),
-        }
-    )
-    decision_path = tmp_path / "pending-decision.json"
-    decision_path.write_text(decision.model_dump_json(), encoding="utf-8")
-
-    with pytest.raises(ValueError, match="execution is not authorized"):
-        authorize_external_run(
-            protocol_path=_PROTOCOL,
-            execution_decision_path=decision_path,
-            input_bundle_path=input_path,
-            runner_path=_ROOT / runner_paths[0],
-            finder_id="hebog",
-        )
-
-
-@pytest.mark.parametrize(
-    "updates",
-    (
-        {"execution_authorized": False},
-        {
-            "status": "awaiting-reconstructed-runtime-approval",
-            "decision": "await-renewed-runtime-approval",
-            "execution_authorized": False,
-        },
-    ),
-)
-def test_external_decision_rejects_mixed_authorization_state(
-    updates: dict[str, object],
-) -> None:
-    """No partial field edit can change the authorization state."""
-    document = json.loads(_EXECUTION_DECISION.read_text(encoding="utf-8"))
-    document.update(updates)
-
-    with pytest.raises(ValueError, match="authorization state is invalid"):
-        PhaseFiveExternalExecutionDecision.model_validate(document)
 
 
 def _runtime(name: str, version: str) -> ExternalRuntimeIdentity:
@@ -400,234 +219,97 @@ def test_matcher_rejects_missing_or_malformed_extended_support() -> None:
         )
 
 
-def _authorized_run(tmp_path: Path) -> AuthorizedExternalRun:
-    """Build a concise already-authorized boundary for output tests."""
-    decision = PhaseFiveExternalExecutionDecision.model_validate(
-        {
-            "schema_version": 1,
-            "decision_id": "phase-5-external-execution-decision",
-            "status": "reviewed-before-external-output",
-            "protocol_sha256": _SHA256,
-            "candidate_review_sha256": _SHA256,
-            "implementation_commit": "0" * 40,
-            "source_tree_sha256": _SHA256,
-            "hebog_container_image_digest": _CONTAINER_DIGEST,
-            "hebog_dependency_inventory_sha256": _SHA256,
-            "pybdsf_ncores": 1,
-            "runners": [
-                {
-                    "relative_path": (
-                        "scripts/benchmark/run_phase5_external_hebog.py"
-                    ),
-                    "sha256": _SHA256,
-                },
-                {
-                    "relative_path": (
-                        "scripts/benchmark/run_phase5_external_pybdsf.py"
-                    ),
-                    "sha256": _SHA256,
-                },
-                {
-                    "relative_path": (
-                        "scripts/benchmark/run_phase5_external_aegean.py"
-                    ),
-                    "sha256": _SHA256,
-                },
-            ],
-            "named_review": "unit-test-review",
-            "decision": "authorize-one-terminal-external-comparison",
-            "execution_authorized": True,
-            "one_look_opened": False,
-            "step_three_authorized": False,
-            "optimization_authorized": False,
-            "qualification_opened": False,
-            "next_action": (
-                "execute-complete-frozen-comparison-once-without-opening-"
-                "partial-results"
-            ),
-        }
-    )
-    bundle = ExternalInputBundle(
+def _result(
+    *,
+    status: Literal["success", "failure"],
+    artifacts: tuple[ExternalRunArtifact, ...] = (),
+    failure: ExternalRunFailure | None = None,
+) -> ExternalRunResult:
+    """Build one saved synthetic-campaign finder result."""
+    return ExternalRunResult(
         schema_version=1,
         protocol_sha256=_SHA256,
-        manifest_sha256=_SHA256,
+        execution_decision_sha256=_SHA256,
+        input_bundle_sha256=_SHA256,
         dataset_identifier="external-unit-test",
         seed=7,
-        recipe_sha256=_SHA256,
-        dtype="float64",
-        shape_yx=(8, 8),
+        finder_id="aegean",
+        mode="operational",
+        runtime=_runtime("aegeantools", "2.3.5"),
+        configuration_sha256=_SHA256,
+        status=status,
+        wall_seconds=1.0,
+        artifacts=artifacts,
+        failure=failure,
+    )
+
+
+def test_saved_external_run_verifies_artifact_bytes(tmp_path: Path) -> None:
+    """A saved successful run is readable only while its products match."""
+    product = tmp_path / "artifacts/product.txt"
+    product.parent.mkdir()
+    product.write_text("finder output\n", encoding="utf-8")
+    result = _result(
+        status="success",
         artifacts=(
-            ExternalInputArtifact(
-                role="image",
-                relative_path="image.fits",
-                byte_count=1,
-                sha256=_SHA256,
-            ),
-            ExternalInputArtifact(
-                role="mean",
-                relative_path="mean.fits",
-                byte_count=1,
-                sha256=_SHA256,
-            ),
-            ExternalInputArtifact(
-                role="rms",
-                relative_path="rms.fits",
-                byte_count=1,
-                sha256=_SHA256,
+            ExternalRunArtifact(
+                role="native-product",
+                relative_path="artifacts/product.txt",
+                byte_count=product.stat().st_size,
+                sha256=file_sha256(product),
             ),
         ),
     )
-    return AuthorizedExternalRun(
-        protocol=load_phase_five_external_comparison_protocol(_PROTOCOL),
-        decision=decision,
-        input_bundle=bundle,
-        protocol_path=_PROTOCOL,
-        decision_path=tmp_path / "decision.json",
-        input_bundle_path=tmp_path / "input.json",
-        protocol_sha256=_SHA256,
-        decision_sha256=_SHA256,
-        input_bundle_sha256=_SHA256,
-    )
+    path = tmp_path / "result.json"
+    path.write_bytes(result.canonical_json_bytes())
 
+    assert load_external_run_result(path, verify_artifacts=True) == result
 
-def test_external_run_manifest_retains_success_and_verifies_artifacts(
-    tmp_path: Path,
-) -> None:
-    """A successful isolated leg publishes only checksum-bound artifacts."""
-    authorized = _authorized_run(tmp_path)
-
-    def operation(staging: Path) -> dict[str, Path]:
-        product = staging / "product.txt"
-        product.write_text("finder output\n", encoding="utf-8")
-        return {"native-product": product}
-
-    path = execute_external_run(
-        authorized,
-        finder_id="hebog",
-        mode="candidate",
-        runtime=_runtime("hebog", "0.1.0"),
-        configuration={"threshold": 5.0},
-        output_directory=tmp_path / "result",
-        operation=operation,
-        failure_stage="unit-test-finder",
-    )
-    result = load_external_run_result(path, verify_artifacts=True)
-
-    assert result.status == "success"
-    assert result.failure is None
-    assert result.artifacts[0].role == "native-product"
-    product_path = path.parent / result.artifacts[0].relative_path
-    product_path.write_text("changed\n", encoding="utf-8")
+    product.write_text("changed output\n", encoding="utf-8")
+    assert load_external_run_result(path, verify_artifacts=False) == result
     with pytest.raises(ValueError, match=r"byte count|checksum"):
         load_external_run_result(path, verify_artifacts=True)
 
 
-def test_external_run_retains_failure_and_refuses_overwrite(
+def test_saved_external_run_retains_failure_and_requires_canonical_json(
     tmp_path: Path,
 ) -> None:
-    """A finder exception remains in the denominator and cannot be replaced."""
-    authorized = _authorized_run(tmp_path)
-
-    def operation(_staging: Path) -> dict[str, Path]:
-        raise RuntimeError("expected finder failure")
-
-    output = tmp_path / "failed"
-    path = execute_external_run(
-        authorized,
-        finder_id="aegean",
-        mode="operational",
-        runtime=_runtime("aegeantools", "2.3.5"),
-        configuration={"seedclip": 5.0},
-        output_directory=output,
-        operation=operation,
-        failure_stage="aegean-source-finding",
+    """Failures stay explicit, and reformatted records are rejected."""
+    result = _result(
+        status="failure",
+        failure=ExternalRunFailure(
+            stage="aegean-source-finding",
+            exception_type="RuntimeError",
+            message="expected finder failure",
+            traceback="Traceback: expected finder failure",
+        ),
     )
-    result = load_external_run_result(path, verify_artifacts=True)
+    path = tmp_path / "result.json"
+    path.write_bytes(result.canonical_json_bytes())
 
-    assert result.status == "failure"
-    assert result.artifacts == ()
-    assert result.failure is not None
-    assert result.failure.message == "expected finder failure"
-    with pytest.raises(FileExistsError, match="refusing to overwrite"):
-        execute_external_run(
-            authorized,
-            finder_id="aegean",
-            mode="operational",
-            runtime=_runtime("aegeantools", "2.3.5"),
-            configuration={},
-            output_directory=output,
-            operation=operation,
-            failure_stage="aegean-source-finding",
-        )
+    loaded = load_external_run_result(path)
+    assert loaded.artifacts == ()
+    assert loaded.failure is not None
+    assert loaded.failure.message == "expected finder failure"
+
+    path.write_text(result.model_dump_json(), encoding="utf-8")
+    with pytest.raises(ValueError, match="not canonical JSON"):
+        load_external_run_result(path)
 
 
-def test_external_authorization_binds_protocol_input_tree_and_runner(
-    tmp_path: Path,
+@pytest.mark.parametrize(
+    ("status", "artifacts", "failure", "message"),
+    (
+        ("success", (), None, "requires artifacts"),
+        ("failure", (), None, "requires failure details"),
+    ),
+)
+def test_saved_external_run_rejects_ambiguous_outcomes(
+    status: Literal["success", "failure"],
+    artifacts: tuple[ExternalRunArtifact, ...],
+    failure: ExternalRunFailure | None,
+    message: str,
 ) -> None:
-    """No input opens until every reviewed implementation byte matches."""
-    input_path = materialize_external_realization(
-        _PROTOCOL,
-        _COMPACT_MANIFEST,
-        _COMPACT_DATASET,
-        _COMPACT_SEED,
-        tmp_path / "input",
-    )
-    runner_paths = (
-        "scripts/benchmark/run_phase5_external_hebog.py",
-        "scripts/benchmark/run_phase5_external_pybdsf.py",
-        "scripts/benchmark/run_phase5_external_aegean.py",
-    )
-    decision = PhaseFiveExternalExecutionDecision.model_validate(
-        {
-            "schema_version": 1,
-            "decision_id": "phase-5-external-execution-decision",
-            "status": "reviewed-before-external-output",
-            "protocol_sha256": file_sha256(_PROTOCOL),
-            "candidate_review_sha256": file_sha256(_BASE_REVIEW),
-            "implementation_commit": "0" * 40,
-            "source_tree_sha256": source_tree_sha256(_ROOT),
-            "hebog_container_image_digest": _CONTAINER_DIGEST,
-            "hebog_dependency_inventory_sha256": _SHA256,
-            "pybdsf_ncores": 1,
-            "runners": [
-                {
-                    "relative_path": relative_path,
-                    "sha256": file_sha256(_ROOT / relative_path),
-                }
-                for relative_path in runner_paths
-            ],
-            "named_review": "unit-test-review",
-            "decision": "authorize-one-terminal-external-comparison",
-            "execution_authorized": True,
-            "one_look_opened": False,
-            "step_three_authorized": False,
-            "optimization_authorized": False,
-            "qualification_opened": False,
-            "next_action": (
-                "execute-complete-frozen-comparison-once-without-opening-"
-                "partial-results"
-            ),
-        }
-    )
-    decision_path = tmp_path / "decision.json"
-    decision_path.write_text(decision.model_dump_json(), encoding="utf-8")
-    hebog_runner = _ROOT / runner_paths[0]
-
-    authorized = authorize_external_run(
-        protocol_path=_PROTOCOL,
-        execution_decision_path=decision_path,
-        input_bundle_path=input_path,
-        runner_path=hebog_runner,
-        finder_id="hebog",
-    )
-
-    assert authorized.input_bundle.seed == _COMPACT_SEED
-    assert authorized.artifact_path("image").name == "image.fits"
-    with pytest.raises(ValueError, match="unexpected external runner"):
-        authorize_external_run(
-            protocol_path=_PROTOCOL,
-            execution_decision_path=decision_path,
-            input_bundle_path=input_path,
-            runner_path=_ROOT / runner_paths[2],
-            finder_id="hebog",
-        )
+    """A result cannot claim success without products or hide a failure."""
+    with pytest.raises(ValueError, match=message):
+        _result(status=status, artifacts=artifacts, failure=failure)

@@ -33,7 +33,7 @@ from scripts.validation.source_catalogue_source_unions import (
 
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
 from hebog.validation.comparison import CatalogueSource
-from hebog.validation.diagnostic_retention import _verify_record_digest
+from hebog.validation.diagnostic_retention import verify_record_digest
 from hebog.validation.external_runners import canonical_sha256, file_sha256
 from hebog.validation.external_successor_compiler import (
     ContinuumCatalogueObject,
@@ -93,7 +93,7 @@ def read_current_capture(
 ) -> tuple[dict[str, Any], FinderMeasurementView]:
     """Verify a durable public capture before reconstructing its projection."""
     record: dict[str, Any] = json.loads(path.read_bytes())
-    _verify_record_digest(record)
+    verify_record_digest(record)
     root = path.parent
     planes = {
         name: load_fits_plane(checked_artifact(root, binding))

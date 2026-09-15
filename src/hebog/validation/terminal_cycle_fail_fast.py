@@ -2,40 +2,27 @@
 # pyright: reportUnknownArgumentType=false
 # pyright: reportUnknownMemberType=false
 # pyright: reportUnknownVariableType=false
-"""Non-promotional fail-fast evidence for terminal-cycle corrections.
+"""Analytic mechanism checks for terminal-cycle source-association corrections.
 
-This module is deliberately independent of the viewed-development replay.  It
-validates a small, frozen analytic mechanism population and publishes one
-strict contract record only after the production producer/compiler/evaluator
-composition has been exercised by the caller.
+The frozen case manifest defines a small population of positive activations
+and controls. Each case is evaluated through the production association
+kernel; the lane passes only when every activation and control behaves as
+declared. It is regression evidence, not promotion evidence.
 """
 
 from __future__ import annotations
 
 import json
-import os
-import re
-from collections.abc import Mapping, Sequence
-from dataclasses import asdict, dataclass
+from collections.abc import Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
-from uuid import uuid4
-
-import numpy as np
 
 from hebog.data_models.source_association import SourceAssociationResult
-from hebog.validation.terminal_cycle_eligibility_evaluation import (
-    aggregate_terminal_cycle_eligibility,
-    source_association_from_json,
-)
 
 _MINIMUM_CASE_COUNT = 20
 _MAXIMUM_CASE_COUNT = 40
 _LANE_ID = "phase-5-terminal-cycle-mechanism-activation"
-_SHA256 = re.compile(r"^[0-9a-f]{64}$")
-_REQUIRED_ENDPOINTS = frozenset(
-    {"completeness-overall", "mask-precision-overall"}
-)
 _REQUIRED_FAMILIES = frozenset(
     {
         "persistent-unseeded-geometry",
@@ -237,125 +224,3 @@ def evaluate_terminal_cycle_mechanism_lane(
         "all_controls_pass": True,
         "promotion_evidence": False,
     }
-
-
-def build_terminal_cycle_fail_fast_record(  # noqa: PLR0913
-    *,
-    mechanism: Mapping[str, object],
-    association_paths: Sequence[Path],
-    compact_sha256_before: str,
-    compact_sha256_after: str,
-    compiled_endpoint_values: Mapping[str, Sequence[float]],
-    provenance: Mapping[str, str],
-) -> dict[str, object]:
-    """Build one strict end-to-end record after concrete composition use."""
-    if mechanism != {
-        "schema_version": 1,
-        "lane_id": _LANE_ID,
-        "case_count": 25,
-        "family_count": len(_REQUIRED_FAMILIES),
-        "positive_activation_count": mechanism.get(
-            "positive_activation_count"
-        ),
-        "pre_guard_rejection_count": mechanism.get(
-            "pre_guard_rejection_count"
-        ),
-        "all_controls_pass": True,
-        "promotion_evidence": False,
-    }:
-        raise ValueError("terminal-cycle mechanism lane has not passed")
-    if (
-        type(mechanism["positive_activation_count"]) is not int
-        or mechanism["positive_activation_count"] < 1
-        or type(mechanism["pre_guard_rejection_count"]) is not int
-        or mechanism["pre_guard_rejection_count"] < 1
-    ):
-        raise ValueError("terminal-cycle mechanism lane has not passed")
-    if (
-        compact_sha256_before != compact_sha256_after
-        or _SHA256.fullmatch(compact_sha256_before) is None
-    ):
-        raise ValueError("terminal-cycle compact output changed")
-    if frozenset(compiled_endpoint_values) != _REQUIRED_ENDPOINTS:
-        raise ValueError("terminal-cycle compiler endpoints differ")
-    if any(
-        not values or not all(np.isfinite(value) for value in values)
-        for values in compiled_endpoint_values.values()
-    ):
-        raise ValueError("terminal-cycle endpoint evidence is incomplete")
-    required_provenance = {
-        "producer_sha256",
-        "writer_sha256",
-        "compiler_sha256",
-        "evaluator_sha256",
-    }
-    if set(provenance) != required_provenance or any(
-        _SHA256.fullmatch(value) is None for value in provenance.values()
-    ):
-        raise ValueError("terminal-cycle fail-fast provenance is incomplete")
-    if not association_paths:
-        raise ValueError("terminal-cycle association evidence is empty")
-    aggregate = aggregate_terminal_cycle_eligibility(
-        association_paths,
-        expected_image_count=len(association_paths),
-    )
-    return {
-        "schema_version": 1,
-        "record_id": "phase-5-terminal-cycle-fail-fast",
-        "status": "pass",
-        "evidence_role": "analytic-non-promotional",
-        "promotion_evidence": False,
-        "compact_byte_invariant": True,
-        "exact_production_composition_exercised": True,
-        "mechanism": dict(mechanism),
-        "eligibility_aggregate": aggregate,
-        "compiled_endpoint_values": {
-            key: list(values)
-            for key, values in sorted(compiled_endpoint_values.items())
-        },
-        "provenance": dict(sorted(provenance.items())),
-    }
-
-
-def write_terminal_cycle_association(
-    path: Path, association: SourceAssociationResult
-) -> None:
-    """Serialize one exact eligibility sidecar without permitting overwrite."""
-    document = asdict(association)
-    payload = (
-        json.dumps(document, allow_nan=False, indent=2, sort_keys=True) + "\n"
-    ).encode()
-    source_association_from_json(json.loads(payload))
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("xb") as stream:
-        stream.write(payload)
-
-
-def publish_terminal_cycle_fail_fast_record(
-    path: Path, record: Mapping[str, object]
-) -> None:
-    """Atomically publish one canonical record without permitting overwrite."""
-    if (
-        record.get("record_id") != "phase-5-terminal-cycle-fail-fast"
-        or record.get("status") != "pass"
-        or record.get("promotion_evidence") is not False
-    ):
-        raise ValueError("terminal-cycle fail-fast record is not publishable")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f".{path.name}.{uuid4().hex}.tmp")
-    payload = (
-        json.dumps(record, allow_nan=False, indent=2, sort_keys=True) + "\n"
-    ).encode()
-    try:
-        descriptor = os.open(
-            temporary,
-            os.O_CREAT | os.O_EXCL | os.O_WRONLY,
-            0o600,
-        )
-        with os.fdopen(descriptor, "wb") as stream:
-            stream.write(payload)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.link(temporary, path)
-    finally:
-        temporary.unlink(missing_ok=True)
