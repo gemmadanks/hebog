@@ -16,7 +16,7 @@ from hebog.pipeline import (
 try:
     __version__ = version("hebog")
 except PackageNotFoundError:
-    __version__ = "0+unknown"
+    __version__ = "0.6.0"
 
 __all__ = [
     "InvalidSourceFinderInputError",

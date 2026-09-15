@@ -21789,8 +21789,9 @@ scientific pass from fixture validation.
   Dask workers require shared absolute paths; publication checks output
   existence only before analysis, so a directory created concurrently is
   replaced if empty or produces a raw `OSError` if not. P3: oversized inputs
-  are hashed before the size check, `numba` is an unused runtime dependency,
-  and the `__version__` fallback is not bumped by Release Please. The first
+  are hashed before the size check and `numba` is an unused runtime
+  dependency. A reported stale `__version__` fallback was a false positive;
+  Release Please updates it. The first
   two P2 items and two documentation errors (`BPA` is required; the Rapthor
   adapter does not compose branches) were documented or corrected first; the
   next entry records the code fixes the user then requested for every finding.
@@ -21823,8 +21824,9 @@ scientific pass from fixture validation.
 - Packaging: the unused `numba` runtime dependency (and `llvmlite`) is
   removed; wheels exclude `hebog.validation`, whose Matplotlib import could not
   load from a wheel. The package smoke test fails if the licence is missing or
-  validation tooling ships. `__version__` without package metadata is
-  `0+unknown` rather than a stale release number.
+  validation tooling ships. A fallback `__version__` change was reverted:
+  Release Please's Python strategy already bumps that literal in
+  `src/hebog/__init__.py` at each release, as the v0.6.0 release commit shows.
 - Public boundary: relative request paths are made absolute before executor
   tasks are built; oversized inputs are rejected before the input digest;
   publication rechecks the destination after analysis and renames without
@@ -21857,3 +21859,17 @@ scientific pass from fixture validation.
   without another coverage run. Equivalence (27), acceptance (7 expected
   xfails), Marimo check, notebook smoke, strict docs build and package smoke
   test (licence present, `hebog.validation` absent) pass.
+
+## 2026-09-15 — Check the PyPI release workflow
+
+- The build and publish jobs in `release-please.yaml` were added in #49 and
+  have not run yet. Every pinned action ref resolves; release-please-action v5
+  still sets the root `release_created` and `sha` outputs the jobs read. The
+  `hebog` PyPI project does not exist yet, so the documented pending Trusted
+  Publisher can create it.
+- Reproducing the build job at `4df6d4e` (uv 0.9.4,
+  `uv build --no-sources`, Python 3.14, uv_build fetched from PyPI) produces a
+  wheel and sdist that pass `twine check --strict`, carry
+  `License-Expression` and `License-File`, omit `numba`, and exclude
+  `hebog.validation` from the wheel. The generated `dist/.gitignore` is a
+  hidden file that `upload-artifact` excludes by default.
