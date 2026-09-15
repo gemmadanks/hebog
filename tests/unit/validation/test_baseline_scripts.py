@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import runpy
-import sys
 from collections.abc import Callable
 from pathlib import Path
 from types import SimpleNamespace
@@ -19,17 +17,10 @@ from hebog.executors import SerialExecutor
 from hebog.io.base import ImageWindow
 from hebog.stages.background import estimate_background_rms_grids
 from hebog.validation.comparison import CatalogueOutlierThresholds
-from hebog.validation.contracts import (
-    load_phase_five_external_comparison_protocol,
-)
 from hebog.validation.datasets import (
-    DatasetManifest,
-    DatasetRole,
     iter_dataset_recipes,
     load_dataset_manifest,
 )
-from hebog.validation.phase_five_filter_review import ThresholdFilterResult
-from hebog.validation.phase_four_analysis import ratio_values, truth_sets
 from hebog.validation.products import load_aegean_catalogue
 
 
@@ -37,452 +28,6 @@ def _script(name: str) -> dict[str, Any]:
     """Load one script without invoking its command-line entry point."""
     root = Path(__file__).parents[3]
     return runpy.run_path(str(root / "scripts" / "benchmark" / name))
-
-
-def _validation_script(name: str) -> dict[str, Any]:
-    """Load one validation script without invoking its CLI."""
-    root = Path(__file__).parents[3]
-    return runpy.run_path(str(root / "scripts" / "validation" / name))
-
-
-def _named_fits_path(role: str) -> Path:
-    """Return one concise role-named path for runner configuration tests."""
-    return Path(f"{role}.fits")
-
-
-def test_paired_audit_uses_an_aggregate_reliability_ratio() -> None:
-    """Whole-image resampling recomputes the canonical ratio of sums."""
-    counts = {
-        "catalogue-reliability": np.asarray(((33.0, 34.0), (33.0, 35.0)))
-    }
-
-    result = ratio_values(counts, np.asarray(((0, 1),), dtype=np.int64))
-
-    assert result["catalogue-reliability"][0] == pytest.approx(66.0 / 69.0)
-
-
-def test_paired_audit_truth_populations_remain_disjoint() -> None:
-    """Point, clear, and blend endpoints use predeclared truth sets."""
-    root = Path(__file__).parents[3]
-    dataset = load_dataset_manifest(
-        root / "config/datasets/phase-4-paired-regression.json"
-    ).datasets[0]
-
-    all_groups, individual, point, clear, blend = truth_sets(dataset)
-
-    assert len(all_groups) == 33
-    assert len(individual) == 32
-    assert len(point) == 8
-    assert len(clear) == 1
-    assert len(blend) == 1
-    assert point.isdisjoint(clear | blend)
-
-
-def test_final_evaluator_refuses_to_overwrite_a_decision(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """The one-look entry point cannot replace an existing result."""
-    output = tmp_path / "decision.json"
-    output.write_text("already evaluated\n", encoding="utf-8")
-    namespace = _validation_script("evaluate_phase4_qualification.py")
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        [
-            "evaluate_phase4_qualification.py",
-            "--campaign",
-            "campaign.json",
-            "--manifest",
-            "manifest.json",
-            "--dataset-id",
-            "final",
-            "--scientific-contract",
-            "measurement.json",
-            "--scientific-gates",
-            "gates.json",
-            "--comparison-protocol",
-            "protocol.json",
-            "--output",
-            str(output),
-        ],
-    )
-
-    with pytest.raises(FileExistsError, match="refusing to overwrite"):
-        namespace["main"]()
-
-
-def test_phase_five_follow_up_confirmation_refuses_overwrite(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """The one-look confirmation runner cannot replace existing evidence."""
-    output = tmp_path / "confirmation.json"
-    output.write_text("already executed\n", encoding="utf-8")
-    namespace = _script("confirm_phase5_astrometry_follow_up.py")
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        [
-            "confirm_phase5_astrometry_follow_up.py",
-            "--output",
-            str(output),
-        ],
-    )
-
-    with pytest.raises(FileExistsError, match="refusing to overwrite"):
-        namespace["main"]()
-
-
-def test_phase4r_qualification_freeze_changes_every_field_family(
-    tmp_path: Path,
-) -> None:
-    """The one-look population is more than a new contiguous seed range."""
-    root = Path(__file__).parents[3]
-    template_path = root / "config/datasets/phase-4r-regression-2.json"
-    template = load_dataset_manifest(template_path).datasets[0]
-    namespace = _validation_script("freeze_phase4r_iteration.py")
-    arguments = SimpleNamespace(
-        template=template_path,
-        output=tmp_path / "qualification.json",
-        identifier="phase4r-qualification-256",
-        role="qualification",
-        first_seed=2026170001,
-        realizations=600,
-        provenance="Frozen after named review and before one-look execution.",
-        reflect_x=True,
-        reference_sky_degrees=(318.2, -58.4),
-        pixel_scale_degrees_xy=(-0.00025, 0.00026),
-        wcs_rotation_degrees=44.0,
-        background=-0.00011,
-    )
-
-    document = namespace["_derived_document"](arguments)
-    manifest = DatasetManifest.model_validate(document)
-    frozen = manifest.datasets[0]
-    recipes = iter_dataset_recipes(frozen)
-
-    assert manifest.manifest_id == "phase-4r-qualification"
-    assert frozen.role is DatasetRole.QUALIFICATION
-    assert len(recipes) == 600
-    assert frozen.recipe.sources[0].x_pixel == pytest.approx(
-        frozen.recipe.shape_yx[1] - 1 - template.recipe.sources[0].x_pixel
-    )
-    assert frozen.recipe.sources[
-        0
-    ].rotation_degrees_counterclockwise_from_x == (
-        pytest.approx(
-            (
-                180.0
-                - template.recipe.sources[
-                    0
-                ].rotation_degrees_counterclockwise_from_x
-            )
-            % 180.0
-        )
-    )
-    assert frozen.beam.position_angle_degrees == pytest.approx(57.0)
-    assert frozen.recipe.noise_correlation is not None
-    assert frozen.recipe.noise_correlation.position_angle_degrees == (
-        pytest.approx(57.0)
-    )
-    assert frozen.recipe.noise_rms_fractional_gradient_xy == pytest.approx(
-        (0.1, 0.14)
-    )
-    assert frozen.recipe.invalid_rectangles[0].x_start == 103
-    assert frozen.recipe.invalid_rectangles[0].x_stop == 111
-    assert frozen.wcs.reference_sky_degrees == pytest.approx((318.2, -58.4))
-    assert frozen.wcs.pixel_scale_degrees_xy == pytest.approx(
-        (-0.00025, 0.00026)
-    )
-    assert frozen.wcs.rotation_degrees_counterclockwise == pytest.approx(44.0)
-    assert frozen.recipe.background == pytest.approx(-0.00011)
-    assert frozen.expected_statistics.background_jy_per_beam == pytest.approx(
-        -0.00011
-    )
-
-
-def test_phase4r_replacement_freeze_reflects_vertical_field(
-    tmp_path: Path,
-) -> None:
-    """The approved replacement changes vertical geometry and identity."""
-    root = Path(__file__).parents[3]
-    template_path = root / "config/datasets/phase-4r-qualification.json"
-    template = load_dataset_manifest(template_path).datasets[0]
-    namespace = _validation_script("freeze_phase4r_iteration.py")
-    arguments = SimpleNamespace(
-        template=template_path,
-        output=tmp_path / "qualification-replacement.json",
-        manifest_id="phase-4r-qualification-replacement",
-        identifier="phase4r-qualification-replacement-256",
-        role="qualification",
-        first_seed=2026200001,
-        realizations=600,
-        provenance=(
-            "Frozen after replacement review and before one-look execution."
-        ),
-        reflect_x=False,
-        reflect_y=True,
-        reference_sky_degrees=(126.5, -30.8),
-        pixel_scale_degrees_xy=(-0.00029, 0.00022),
-        wcs_rotation_degrees=71.0,
-        background=-0.00019,
-    )
-
-    document = namespace["_derived_document"](arguments)
-    manifest = DatasetManifest.model_validate(document)
-    frozen = manifest.datasets[0]
-    height = frozen.recipe.shape_yx[0]
-
-    assert manifest.manifest_id == "phase-4r-qualification-replacement"
-    assert frozen.recipe.sources[0].x_pixel == pytest.approx(
-        template.recipe.sources[0].x_pixel
-    )
-    assert frozen.recipe.sources[0].y_pixel == pytest.approx(
-        height - 1 - template.recipe.sources[0].y_pixel
-    )
-    assert frozen.recipe.sources[
-        0
-    ].rotation_degrees_counterclockwise_from_x == pytest.approx(
-        (
-            180.0
-            - template.recipe.sources[
-                0
-            ].rotation_degrees_counterclockwise_from_x
-        )
-        % 180.0
-    )
-    assert frozen.beam.position_angle_degrees == pytest.approx(123.0)
-    assert frozen.recipe.noise_correlation is not None
-    assert frozen.recipe.noise_correlation.position_angle_degrees == (
-        pytest.approx(123.0)
-    )
-    assert frozen.recipe.noise_rms_fractional_gradient_xy == pytest.approx(
-        (0.1, -0.14)
-    )
-    assert frozen.recipe.invalid_rectangles[0].y_start == 148
-    assert frozen.recipe.invalid_rectangles[0].y_stop == 156
-    assert frozen.association_truth_groups[0].reference_position_xy[1] == (
-        pytest.approx(
-            height
-            - 1
-            - template.association_truth_groups[0].reference_position_xy[1]
-        )
-    )
-
-
-def test_phase4s_freezer_builds_the_reviewed_population() -> None:
-    """The exact unseen truth can be reproduced without opening its noise."""
-    namespace = _validation_script("freeze_phase4s_qualification.py")
-
-    manifest = DatasetManifest.model_validate(namespace["_document"]())
-    dataset = manifest.datasets[0]
-    truth_sets_by_name = {
-        stratum.identifier: stratum.source_indices
-        for stratum in dataset.classification_strata
-    }
-
-    assert manifest.manifest_id == "phase-4s-qualification"
-    assert len(iter_dataset_recipes(dataset)) == 800
-    assert len(truth_sets_by_name["shape-unresolved"]) == 8
-    assert len(truth_sets_by_name["shape-marginal-resolved"]) == 16
-    assert len(truth_sets_by_name["shape-clear-resolved"]) == 8
-    assert (
-        len(
-            {
-                (
-                    source.major_sigma_pixels,
-                    source.minor_sigma_pixels,
-                    source.rotation_degrees_counterclockwise_from_x,
-                )
-                for source in dataset.recipe.sources
-            }
-        )
-        >= 25
-    )
-
-
-def test_phase4s_protocol_freezer_binds_population_counts() -> None:
-    """The reviewed endpoint set is derived with explicit manifest units."""
-    root = Path(__file__).parents[3]
-    namespace = _validation_script("freeze_phase4s_protocol.py")
-
-    document = namespace["_document"](
-        root / "config/contracts/phase-4-paired-noninferiority.json"
-    )
-
-    assert document["contract_id"] == "phase-4s-paired-noninferiority"
-    assert document["realization_count"] == 800
-    assert document["minimum_familywise_interval_exclusion_power"] == 0.9
-    populations = {
-        endpoint["endpoint_id"]: (
-            endpoint["population_unit"],
-            endpoint["observations_per_realization"],
-        )
-        for endpoint in document["binary_endpoints"]
-    }
-    assert populations["compact-completeness"] == (
-        "association-truth-groups",
-        33,
-    )
-    assert populations["point-source-specificity"] == ("point-sources", 8)
-
-
-def test_phase4t_freezer_builds_the_reviewed_confirmation() -> None:
-    """The fresh confirmation has eight point sources in every SNR tier."""
-    namespace = _validation_script("freeze_phase4t_qualification.py")
-
-    manifest = DatasetManifest.model_validate(namespace["_document"]())
-    dataset = manifest.datasets[0]
-    classes = {
-        stratum.identifier: set(stratum.source_indices)
-        for stratum in dataset.classification_strata
-    }
-    validation = {
-        stratum.identifier: set(stratum.source_indices)
-        for stratum in dataset.validation_strata
-    }
-
-    assert manifest.manifest_id == "phase-4t-qualification"
-    assert len(iter_dataset_recipes(dataset)) == 800
-    assert len(dataset.recipe.sources) == 50
-    assert len(dataset.association_truth_groups) == 49
-    assert len(classes["shape-unresolved"]) == 32
-    assert len(classes["shape-marginal-resolved"]) == 8
-    assert len(classes["shape-clear-resolved"]) == 8
-    assert all(
-        len(classes["shape-unresolved"] & validation[f"snr-{snr}"]) == 8
-        for snr in (10, 15, 25, 50)
-    )
-
-
-def test_phase4t_protocol_freezer_binds_absolute_power_population() -> None:
-    """The follow-up protocol retains the viewed effect and frozen margin."""
-    root = Path(__file__).parents[3]
-    namespace = _validation_script("freeze_phase4t_protocol.py")
-
-    document = namespace["_document"](
-        root / "config/contracts/phase-4s-paired-noninferiority.json"
-    )
-
-    assert document["contract_id"] == "phase-4t-paired-noninferiority"
-    checks = document["absolute_mean_power_checks"]
-    assert len(checks) == 1
-    assert checks[0]["observations_per_realization"] == 8
-    assert checks[0]["anticipated_mean_normalized_residual"] == 0.1062
-    populations = {
-        endpoint["endpoint_id"]: endpoint["observations_per_realization"]
-        for endpoint in document["binary_endpoints"]
-    }
-    assert populations["compact-completeness"] == 49
-    assert populations["point-source-specificity"] == 32
-
-
-def test_phase4u_freezer_builds_varied_unseen_blends() -> None:
-    """The remediation qualification crosses frozen blend geometries."""
-    root = Path(__file__).parents[3]
-    namespace = _validation_script("freeze_phase4u_qualification.py")
-
-    manifest = DatasetManifest.model_validate(
-        namespace["_document"](
-            root / "config/datasets/phase-4t-qualification.json"
-        )
-    )
-    dataset = manifest.datasets[0]
-    blends = tuple(
-        group
-        for group in dataset.association_truth_groups
-        if group.resolution_class == "unresolved-blend"
-    )
-
-    assert manifest.manifest_id == "phase-4u-qualification"
-    assert len(iter_dataset_recipes(dataset)) == 800
-    assert len(dataset.recipe.sources) == 60
-    assert len(dataset.association_truth_groups) == 54
-    assert len(blends) == 6
-    separations_beams: list[float] = []
-    flux_ratios: list[float] = []
-    beam_angle = np.deg2rad(dataset.beam.position_angle_degrees)
-    beam_major = np.asarray([np.cos(beam_angle), np.sin(beam_angle)])
-    beam_minor = np.asarray([-np.sin(beam_angle), np.cos(beam_angle)])
-    for group in blends:
-        first, second = (
-            dataset.recipe.sources[index] for index in group.source_indices
-        )
-        difference = np.asarray(
-            [
-                second.x_pixel - first.x_pixel,
-                second.y_pixel - first.y_pixel,
-            ]
-        )
-        separations_beams.append(
-            float(
-                np.hypot(
-                    np.dot(difference, beam_major)
-                    / dataset.beam.major_fwhm_pixels,
-                    np.dot(difference, beam_minor)
-                    / dataset.beam.minor_fwhm_pixels,
-                )
-            )
-        )
-        flux_ratios.append(
-            min(
-                first.peak_flux_jy_per_beam,
-                second.peak_flux_jy_per_beam,
-            )
-            / max(
-                first.peak_flux_jy_per_beam,
-                second.peak_flux_jy_per_beam,
-            )
-        )
-    assert sorted(separations_beams) == pytest.approx(
-        [0.45, 0.45, 0.65, 0.65, 0.8, 0.8]
-    )
-    assert sorted(flux_ratios) == pytest.approx([0.5, 0.5, 0.5, 1.0, 1.0, 1.0])
-    assert manifest.model_dump(mode="json") == json.loads(
-        (root / "config/datasets/phase-4u-qualification.json").read_text(
-            encoding="utf-8"
-        )
-    )
-
-
-def test_phase4u_protocol_freezer_binds_blend_population() -> None:
-    """The final compact protocol preserves gates and counts all blends."""
-    root = Path(__file__).parents[3]
-    namespace = _validation_script("freeze_phase4u_protocol.py")
-
-    document = namespace["_document"](
-        root / "config/contracts/phase-4t-paired-noninferiority.json"
-    )
-
-    assert document["contract_id"] == "phase-4u-paired-noninferiority"
-    populations = {
-        endpoint["endpoint_id"]: endpoint["observations_per_realization"]
-        for endpoint in document["binary_endpoints"]
-    }
-    assert populations["compact-completeness"] == 54
-    assert populations["unresolved-group-completeness"] == 6
-    unresolved = next(
-        endpoint
-        for endpoint in document["binary_endpoints"]
-        if endpoint["endpoint_id"] == "unresolved-group-completeness"
-    )
-    assert unresolved["planning_intracluster_correlation"] == 0.02
-    assert all(
-        endpoint["planning_intracluster_correlation"] == 0.02
-        for endpoint in document["binary_endpoints"]
-    )
-    assert (
-        document["absolute_mean_power_checks"][0][
-            "observations_per_realization"
-        ]
-        == 8
-    )
-    assert document == json.loads(
-        (
-            root / "config/contracts/phase-4u-paired-noninferiority.json"
-        ).read_text(encoding="utf-8")
-    )
 
 
 def test_reference_configuration_requires_explicit_ordered_thresholds() -> (
@@ -1058,426 +603,11 @@ def test_phase4_benchmark_reports_incremental_stage_boundaries() -> None:
     )
 
 
-def test_phase5_corrective_a_freezer_builds_disjoint_confirmation() -> None:
-    """The astrometry confirmation is frozen outside all prior seed ranges."""
-    root = Path(__file__).parents[3]
-    namespace = _validation_script("freeze_phase5_corrective_a.py")
-
-    manifest = DatasetManifest.model_validate(
-        namespace["_document"](
-            root / "config/datasets/phase-5-regression.json"
-        )
-    )
-    dataset = manifest.datasets[0]
-    recipes = iter_dataset_recipes(dataset)
-
-    assert manifest.manifest_id == "phase-5-corrective-a-confirmation"
-    assert dataset.identifier == "phase5-corrective-a-confirmation-1024"
-    assert dataset.role is DatasetRole.REGRESSION
-    assert len(recipes) == 100
-    assert recipes[0].seed == 2026730001
-    assert recipes[-1].seed == 2026730100
-    assert len(dataset.multiscale_truth_groups) == 7
-    assert "before estimator selection" in dataset.provenance
-
-
-def test_phase5_corrective_a_protocol_freezer_binds_frozen_inputs() -> None:
-    """The one-look review binds its prior decision and confirmation bytes."""
-    root = Path(__file__).parents[3]
-    namespace = _validation_script("freeze_phase5_corrective_a_protocol.py")
-
-    document = namespace["_document"](
-        root / "config/contracts/phase-5-corrective-r-review.json",
-        root / "config/contracts/phase-5-corrective-r-decision.json",
-        root / "config/datasets/phase-5-corrective-a-confirmation.json",
-    )
-
-    assert document["contract_id"] == "phase-5-corrective-a-review"
-    assert document["confirmation_reuse"] == "one-look-no-tuning-or-rescoring"
-    assert document["dataset_manifests"][1]["manifest"] == (
-        "config/datasets/phase-5-corrective-a-confirmation.json"
-    )
-    assert document["astrometry_estimator"]["model_weight"] == 0.5
-    assert document["step_three_authorized"] is False
-    assert document["qualification_opened"] is False
-
-
-def test_phase5_astrometry_revision_freezer_builds_disjoint_populations() -> (
-    None
-):
-    """The approved revision varies morphology before estimator results."""
-    root = Path(__file__).parents[3]
-    namespace = _validation_script("freeze_phase5_astrometry_revision.py")
-
-    development_document, confirmation_document, protocol_document = namespace[
-        "_documents"
-    ](
-        root / "config/datasets/phase-5-regression.json",
-        root / "config/contracts/phase-5-astrometry-human-decision.json",
-        root / "config/contracts/phase-5-corrective-a-decision.json",
-    )
-    development = DatasetManifest.model_validate(development_document)
-    confirmation = DatasetManifest.model_validate(confirmation_document)
-
-    assert development.manifest_id == "phase-5-astrometry-development"
-    assert confirmation.manifest_id == "phase-5-astrometry-confirmation"
-    assert len(development.datasets) == 4
-    assert len(confirmation.datasets) == 4
-    assert (
-        sum(
-            len(iter_dataset_recipes(dataset))
-            for dataset in development.datasets
-        )
-        == 40
-    )
-    assert (
-        sum(
-            len(iter_dataset_recipes(dataset))
-            for dataset in confirmation.datasets
-        )
-        == 400
-    )
-    development_seeds = {
-        recipe.seed
-        for dataset in development.datasets
-        for recipe in iter_dataset_recipes(dataset)
-    }
-    confirmation_seeds = {
-        recipe.seed
-        for dataset in confirmation.datasets
-        for recipe in iter_dataset_recipes(dataset)
-    }
-    assert development_seeds.isdisjoint(confirmation_seeds)
-    assert min(development_seeds) == 2026740001
-    assert max(confirmation_seeds) == 2026753100
-    development_counts = tuple(
-        len(
-            next(
-                group
-                for group in dataset.multiscale_truth_groups
-                if group.morphology == "curved-filament"
-            ).source_indices
-        )
-        for dataset in development.datasets
-    )
-    confirmation_counts = tuple(
-        len(
-            next(
-                group
-                for group in dataset.multiscale_truth_groups
-                if group.morphology == "curved-filament"
-            ).source_indices
-        )
-        for dataset in confirmation.datasets
-    )
-    assert development_counts == (3, 4, 5, 6)
-    assert confirmation_counts == (4, 5, 6, 7)
-    assert protocol_document["confirmation_execution_authorized"] is False
-    assert protocol_document["qualification_opened"] is False
-
-
-def test_phase5_astrometry_follow_up_freezer_varies_every_morphology() -> None:
-    """The renewed study cannot reuse fixed non-curve source geometries."""
-    root = Path(__file__).parents[3]
-    namespace = _validation_script("freeze_phase5_astrometry_follow_up.py")
-
-    development_document, confirmation_document, protocol_document = namespace[
-        "_documents"
-    ](
-        root / "config/datasets/phase-5-regression.json",
-        root / "config/contracts/phase-5-astrometry-selection-decision.json",
-        root / "docs/reference/phase-5-astrometry-follow-up-review.md",
-        root / "config/contracts/phase-5-corrective-a-review.json",
-    )
-    development = DatasetManifest.model_validate(development_document)
-    confirmation = DatasetManifest.model_validate(confirmation_document)
-
-    assert development.manifest_id == (
-        "phase-5-astrometry-follow-up-development"
-    )
-    assert confirmation.manifest_id == (
-        "phase-5-astrometry-follow-up-confirmation"
-    )
-    assert (
-        sum(
-            len(iter_dataset_recipes(dataset))
-            for dataset in development.datasets
-        )
-        == 80
-    )
-    assert (
-        sum(
-            len(iter_dataset_recipes(dataset))
-            for dataset in confirmation.datasets
-        )
-        == 400
-    )
-    development_seeds = {
-        recipe.seed
-        for dataset in development.datasets
-        for recipe in iter_dataset_recipes(dataset)
-    }
-    confirmation_seeds = {
-        recipe.seed
-        for dataset in confirmation.datasets
-        for recipe in iter_dataset_recipes(dataset)
-    }
-    assert development_seeds.isdisjoint(confirmation_seeds)
-    assert min(development_seeds) == 2026760001
-    assert max(confirmation_seeds) == 2026773100
-
-    template = load_dataset_manifest(
-        root / "config/datasets/phase-5-regression.json"
-    ).datasets[0]
-    template_sources = tuple(
-        source.model_dump(mode="json") for source in template.recipe.sources
-    )
-    assert all(
-        tuple(
-            source.model_dump(mode="json") for source in dataset.recipe.sources
-        )
-        != template_sources
-        for dataset in (*development.datasets, *confirmation.datasets)
-    )
-    assert protocol_document["estimator"]["candidate"] == (
-        "original-pixel-detected-segment-centroid"
-    )
-    assert protocol_document["confirmation_execution_authorized"] is False
-
-
-def test_phase5_external_freezer_binds_fresh_powered_populations() -> None:
-    """Step 2C-P freezes all finders before any comparison output."""
-    root = Path(__file__).parents[3]
-    namespace = _validation_script("freeze_phase5_external_comparison.py")
-
-    continuum_document, compact_document, protocol_document = namespace[
-        "_documents"
-    ](
-        continuum_template_path=(
-            root / "config/datasets/"
-            "phase-5-astrometry-follow-up-confirmation.json"
-        ),
-        compact_template_path=(
-            root / "config/datasets/phase-4u-qualification.json"
-        ),
-        dataset_directory=root / "config/datasets",
-        confirmation_decision_path=(
-            root / "config/contracts/"
-            "phase-5-astrometry-follow-up-confirmation-decision.json"
-        ),
-        phase_five_gates_path=(
-            root / "config/contracts/phase-5-scientific-gates.json"
-        ),
-        phase_four_gates_path=(
-            root / "config/contracts/phase-4-scientific-gates.json"
-        ),
-        phase_four_registry_path=(
-            root / "config/contracts/phase-4r-metric-registry.json"
-        ),
-        compact_power_contract_path=(
-            root / "config/contracts/phase-4u-paired-noninferiority.json"
-        ),
-    )
-    continuum = DatasetManifest.model_validate(continuum_document)
-    compact = DatasetManifest.model_validate(compact_document)
-
-    continuum_seeds = {
-        recipe.seed
-        for dataset in continuum.datasets
-        for recipe in iter_dataset_recipes(dataset)
-    }
-    compact_seeds = {
-        recipe.seed
-        for dataset in compact.datasets
-        for recipe in iter_dataset_recipes(dataset)
-    }
-    assert len(continuum_seeds) == 600
-    assert len(compact_seeds) == 800
-    assert continuum_seeds.isdisjoint(compact_seeds)
-    assert min(continuum_seeds) == 2026780001
-    assert max(compact_seeds) == 2026790800
-    assert protocol_document["references"][2]["version"] == "2.3.5"
-    assert protocol_document["pybdsf_configuration"]["atrous_jmax"] == 3
-    assert (
-        protocol_document["power_audit"][
-            "combined_familywise_power_lower_bound"
-        ]
-        >= 0.9
-    )
-    assert protocol_document["execution_authorized"] is False
-    assert continuum_document == json.loads(
-        (root / "config/datasets/phase-5-external-continuum.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    assert compact_document == json.loads(
-        (
-            root / "config/datasets/phase-5-external-compact-blend.json"
-        ).read_text(encoding="utf-8")
-    )
-    frozen_protocol = json.loads(
-        (root / "config/contracts/phase-5-external-comparison.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    # NormalDist CDF round-off varies across Python/libm implementations;
-    # the weighted union bound amplifies it to about 8e-15 on Ubuntu.
-    # Tolerate only recomputed power, keeping all design inputs, gates,
-    # identities and authorization flags exact. Never rewrite frozen bytes.
-    for field in (
-        "continuum_familywise_power_lower_bound",
-        "compact_single_reference_familywise_power_lower_bound",
-        "compact_familywise_power_lower_bound",
-        "combined_familywise_power_lower_bound",
-    ):
-        frozen_protocol["power_audit"][field] = pytest.approx(
-            frozen_protocol["power_audit"][field], rel=0.0, abs=1e-12
-        )
-    assert protocol_document == frozen_protocol
-
-
-def test_phase5_external_freezer_refuses_existing_output(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """A frozen external protocol cannot be replaced or partially opened."""
-    root = Path(__file__).parents[3]
-    output = tmp_path / "continuum.json"
-    output.write_text("already frozen\n", encoding="utf-8")
-    namespace = _validation_script("freeze_phase5_external_comparison.py")
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        [
-            "freeze_phase5_external_comparison.py",
-            "--continuum-template",
-            str(
-                root / "config/datasets/"
-                "phase-5-astrometry-follow-up-confirmation.json"
-            ),
-            "--compact-template",
-            str(root / "config/datasets/phase-4u-qualification.json"),
-            "--continuum-output",
-            str(output),
-            "--compact-output",
-            str(tmp_path / "compact.json"),
-            "--protocol-output",
-            str(tmp_path / "protocol.json"),
-        ],
-    )
-
-    with pytest.raises(FileExistsError, match="refusing to overwrite"):
-        namespace["main"]()
-
-
-def test_closed_successor_freezer_rejects_the_corrected_source_tree() -> None:
-    """The historical one-look freezer cannot bind corrected implementation."""
-    root = Path(__file__).parents[3]
-    namespace = _validation_script(
-        "freeze_phase5_external_successor_population.py"
-    )
-
-    with pytest.raises(ValueError, match="candidate source tree changed"):
-        namespace["_documents"](
-            continuum_template_path=(
-                root / "config/datasets/phase-5-external-continuum.json"
-            ),
-            compact_template_path=(
-                root / "config/datasets/phase-5-external-compact-blend.json"
-            ),
-            dataset_directory=root / "config/datasets",
-            prior_protocol_path=(
-                root / "config/contracts/phase-5-external-comparison.json"
-            ),
-            repository_root=root,
-        )
-
-
-def test_phase5_external_successor_freezer_refuses_overwrite(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """The prospective successor population cannot be replaced in place."""
-    root = Path(__file__).parents[3]
-    output = tmp_path / "continuum.json"
-    output.write_text("already frozen\n", encoding="utf-8")
-    namespace = _validation_script(
-        "freeze_phase5_external_successor_population.py"
-    )
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        [
-            "freeze_phase5_external_successor_population.py",
-            "--continuum-template",
-            str(root / "config/datasets/phase-5-external-continuum.json"),
-            "--compact-template",
-            str(root / "config/datasets/phase-5-external-compact-blend.json"),
-            "--continuum-output",
-            str(output),
-            "--compact-output",
-            str(tmp_path / "compact.json"),
-            "--freeze-output",
-            str(tmp_path / "freeze.json"),
-        ],
-    )
-
-    with pytest.raises(FileExistsError, match="refusing to overwrite"):
-        namespace["main"]()
-
-
-def test_phase5_external_successor_freezer_rejects_seed_reuse() -> None:
-    """A closed-campaign seed cannot enter either successor lane."""
-    root = Path(__file__).parents[3]
-    namespace = _validation_script(
-        "freeze_phase5_external_successor_population.py"
-    )
-    reused = load_dataset_manifest(
-        root / "config/datasets/phase-5-external-continuum.json"
-    )
-    successor = load_dataset_manifest(
-        root / "config/datasets/phase-5-external-successor-compact-blend.json"
-    )
-
-    with pytest.raises(ValueError, match="globally disjoint"):
-        namespace["_population_audit"](
-            dataset_directory=root / "config/datasets",
-            new_manifests=(reused, successor),
-        )
-
-
-def test_phase5_external_successor_freezer_rejects_source_drift() -> None:
-    """Population evidence cannot bind an unreviewed candidate source tree."""
-    root = Path(__file__).parents[3]
-    namespace = _validation_script(
-        "freeze_phase5_external_successor_population.py"
-    )
-    namespace["_source_binding"].__globals__[
-        "_CANDIDATE_SOURCE_TREE_SHA256"
-    ] = "0" * 64
-
-    with pytest.raises(ValueError, match="candidate source tree changed"):
-        namespace["_source_binding"](root)
-
-
-def test_phase5_external_pybdsf_runner_maps_every_atrous_option() -> None:
+def test_notebook_pybdsf_reference_maps_every_atrous_option() -> None:
     """The reference cannot inherit changing PyBDSF wavelet defaults."""
-    root = Path(__file__).parents[3]
-    protocol = load_phase_five_external_comparison_protocol(
-        root / "config/contracts/phase-5-external-comparison.json"
-    )
-    namespace = _script("run_phase5_external_pybdsf.py")
-    authorized = SimpleNamespace(
-        input_bundle=SimpleNamespace(shape_yx=(1024, 1024)),
-        artifact_path=_named_fits_path,
-    )
+    namespace = _script("run_notebook_reference.py")
 
-    configuration = namespace["_configuration"](
-        protocol,
-        authorized,
-        mode="operational",
-        ncores=3,
-    )
+    configuration = namespace["pybdsf_configuration"](3)
 
     assert configuration["thresh_pix"] == 5.0
     assert configuration["thresh_isl"] == 3.0
@@ -1487,95 +617,23 @@ def test_phase5_external_pybdsf_runner_maps_every_atrous_option() -> None:
     assert configuration["atrous_lpf"] == "b3"
     assert configuration["atrous_sum"] is True
     assert configuration["atrous_orig_isl"] is False
+    assert configuration["rms_box"] == (150, 50)
+    assert configuration["rms_box_bright"] == (35, 7)
     assert configuration["ncores"] == 3
     assert "rmsmean_map_filename" not in configuration
+    with pytest.raises(ValueError, match="ncores must be positive"):
+        namespace["pybdsf_configuration"](0)
 
 
-def test_phase5_external_pybdsf_controlled_maps_fail_if_ignored() -> None:
-    """A PyBDSF diagnostic is never controlled when maps are ignored."""
-    root = Path(__file__).parents[3]
-    protocol = load_phase_five_external_comparison_protocol(
-        root / "config/contracts/phase-5-external-comparison.json"
-    )
-    namespace = _script("run_phase5_external_pybdsf.py")
-    compact = SimpleNamespace(
-        input_bundle=SimpleNamespace(shape_yx=(512, 512)),
-        artifact_path=_named_fits_path,
-    )
-
-    with pytest.raises(ValueError, match="controlled diagnostic unavailable"):
-        namespace["_configuration"](
-            protocol,
-            compact,
-            mode="controlled-background",
-            ncores=1,
-        )
-
-
-def test_phase5_external_pybdsf_controlled_maps_are_input_relative() -> None:
-    """PyBDSF must not prepend the image directory to absolute map paths."""
-    root = Path(__file__).parents[3]
-    protocol = load_phase_five_external_comparison_protocol(
-        root / "config/contracts/phase-5-external-comparison.json"
-    )
-    namespace = _script("run_phase5_external_pybdsf.py")
-
-    def artifact_path(role: str) -> Path:
-        return Path("/sealed/input") / f"{role}.fits"
-
-    authorized = SimpleNamespace(
-        input_bundle=SimpleNamespace(shape_yx=(1024, 1024)),
-        artifact_path=artifact_path,
-    )
-
-    configuration = namespace["_configuration"](
-        protocol,
-        authorized,
-        mode="controlled-background",
-        ncores=1,
-    )
-
-    assert configuration["rmsmean_map_filename"] == (
-        "mean.fits",
-        "rms.fits",
-    )
-
-
-def test_pybdsf_controlled_maps_must_share_input_directory() -> None:
-    """Relative map names are valid only beside PyBDSF's input image."""
-    root = Path(__file__).parents[3]
-    protocol = load_phase_five_external_comparison_protocol(
-        root / "config/contracts/phase-5-external-comparison.json"
-    )
-    namespace = _script("run_phase5_external_pybdsf.py")
-    paths = {
-        "image": Path("/sealed/input/image.fits"),
-        "mean": Path("/sealed/maps/mean.fits"),
-        "rms": Path("/sealed/maps/rms.fits"),
-    }
-    authorized = SimpleNamespace(
-        input_bundle=SimpleNamespace(shape_yx=(1024, 1024)),
-        artifact_path=paths.__getitem__,
-    )
-
-    with pytest.raises(ValueError, match="share the image directory"):
-        namespace["_configuration"](
-            protocol,
-            authorized,
-            mode="controlled-background",
-            ncores=1,
-        )
-
-
-def test_phase5_external_pybdsf_labels_follow_exported_fits_axes() -> None:
+def test_notebook_pybdsf_labels_follow_exported_fits_axes() -> None:
     """Internal PyBDSF x/y ranks must match its transposed FITS mask."""
-    namespace = _script("run_phase5_external_pybdsf.py")
+    namespace = _script("run_notebook_reference.py")
     internal_rank = np.asarray(
         ((-1, 0, 0), (1, 1, -1)),
         dtype=np.int32,
     )
 
-    labels = namespace["_pybdsf_label_plane"](internal_rank)
+    labels = namespace["pybdsf_label_plane"](internal_rank)
 
     np.testing.assert_array_equal(
         labels,
@@ -1591,19 +649,20 @@ def test_phase5_external_pybdsf_labels_follow_exported_fits_axes() -> None:
         np.asarray(((-2, 0),), dtype=np.int32),
     ),
 )
-def test_phase5_external_pybdsf_rejects_invalid_internal_ranks(
+def test_notebook_pybdsf_rejects_invalid_internal_ranks(
     rank: np.ndarray,
 ) -> None:
     """Rank conversion cannot coerce malformed PyBDSF state."""
-    namespace = _script("run_phase5_external_pybdsf.py")
+    namespace = _script("run_notebook_reference.py")
 
     with pytest.raises(ValueError, match="PyBDSF pyrank"):
-        namespace["_pybdsf_label_plane"](rank)
+        namespace["pybdsf_label_plane"](rank)
 
 
-def test_phase5_external_pybdsf_allows_fitless_native_islands() -> None:
+def test_notebook_pybdsf_allows_fitless_native_islands() -> None:
     """A detected island without a fitted catalogue source stays mask-only."""
-    namespace = _script("run_phase5_external_pybdsf.py")
+    namespace = _script("run_notebook_reference.py")
+    validate = namespace["validate_pybdsf_island_identities"]
     labels = np.asarray(((1, 0), (2, 3)), dtype=np.int32)
     sources = (
         SimpleNamespace(island_identifier="0"),
@@ -1611,221 +670,61 @@ def test_phase5_external_pybdsf_allows_fitless_native_islands() -> None:
     )
     gaussians = (SimpleNamespace(island_identifier="2"),)
 
-    namespace["_validate_pybdsf_island_identities"](
-        sources,
-        gaussians,
-        labels,
-    )
+    validate(sources, gaussians, labels)
 
     with pytest.raises(ValueError, match="catalogue and island labels"):
-        namespace["_validate_pybdsf_island_identities"](
+        validate(
             (*sources, SimpleNamespace(island_identifier="4")),
             gaussians,
             labels,
         )
 
     with pytest.raises(ValueError, match="Gaussian and source catalogues"):
-        namespace["_validate_pybdsf_island_identities"](
+        validate(
             sources,
             (*gaussians, SimpleNamespace(island_identifier="1")),
             labels,
         )
 
     with pytest.raises(ValueError, match="missing an island identity"):
-        namespace["_validate_pybdsf_island_identities"](
+        validate(
             (*sources, SimpleNamespace(island_identifier=None)),
             gaussians,
             labels,
         )
 
 
-@pytest.mark.parametrize(
-    ("lane", "expected"),
-    (("continuum", "segment"), ("compact-blend", "compact")),
-)
-def test_phase5_hebog_runner_separates_scientific_product_lanes(
-    lane: str,
-    expected: str,
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-) -> None:
-    """A compact failure cannot suppress an independent continuum product."""
-    namespace = _script("run_phase5_external_hebog.py")
-    run_hebog = namespace["_run_hebog"]
-    calls: list[str] = []
-
-    def finder_lane(_authorized: object) -> str:
-        return lane
-
-    def product(name: str) -> Callable[..., dict[str, Path]]:
-        def run(*_args: object, **_kwargs: object) -> dict[str, Path]:
-            calls.append(name)
-            return {f"{name}-product": tmp_path / name}
-
-        return run
-
-    monkeypatch.setitem(
-        run_hebog.__globals__,
-        "_finder_lane",
-        finder_lane,
+def test_notebook_aegean_reference_freezes_cli(tmp_path: Path) -> None:
+    """Aegean uses explicit blind-finding clips and internal background."""
+    namespace = _script("run_notebook_reference.py")
+    configuration = namespace["aegean_configuration"](
+        table_path=tmp_path / "catalogue.fits", ncores=2
     )
-    monkeypatch.setitem(
-        run_hebog.__globals__,
-        "_run_continuum_products",
-        product("segment"),
-    )
-    monkeypatch.setitem(
-        run_hebog.__globals__,
-        "_run_compact_products",
-        product("compact"),
-    )
-
-    actual = run_hebog(
-        SimpleNamespace(),
-        SimpleNamespace(),
-        Path("review.json"),
-        tmp_path,
-    )
-
-    assert calls == [expected]
-    assert set(actual) == {f"{expected}-product"}
-
-
-def test_post_failure_hebog_runner_cleans_segment_products() -> None:
-    """The prospective wrapper changes mask support without relabelling."""
-    namespace = _script("run_phase5_post_failure_hebog.py")
-    labels = np.zeros((9, 9), dtype=np.int32)
-    labels[2:7, 2:7] = 4
-    labels[4, 7] = 4
-    detection = ThresholdFilterResult(
-        combined_snr=np.zeros(labels.shape, dtype=np.float64),
-        retained_mask=labels > 0,
-        component_labels=labels,
-        component_count=1,
-    )
-
-    cleaned = namespace["_cleaned_detection"](lambda: detection)
-
-    assert cleaned.component_count == 1
-    assert cleaned.component_labels[4, 7] == 0
-    assert np.all(cleaned.component_labels[2:7, 2:7] == 4)
-    np.testing.assert_array_equal(
-        cleaned.retained_mask,
-        cleaned.component_labels > 0,
-    )
-
-
-def test_phase5_external_aegean_runner_freezes_cli(tmp_path: Path) -> None:
-    """Aegean changes only declared maps and the diagnostic flood clip."""
-    root = Path(__file__).parents[3]
-    protocol = load_phase_five_external_comparison_protocol(
-        root / "config/contracts/phase-5-external-comparison.json"
-    )
-    namespace = _script("run_phase5_external_aegean.py")
-    authorized = SimpleNamespace(
-        artifact_path=_named_fits_path,
-    )
-    primary = namespace["_configuration"](
-        protocol,
-        authorized,
-        mode="operational",
-        table_path=Path("catalogue.fits"),
-    )
-    controlled = namespace["_configuration"](
-        protocol,
-        authorized,
-        mode="controlled-background",
-        table_path=Path("catalogue.fits"),
-    )
-    primary_command = namespace["_command"](
-        primary,
-        image_path=Path("image.fits"),
-    )
-    controlled_command = namespace["_command"](
-        controlled,
+    command = namespace["aegean_command"](
+        configuration,
         image_path=Path("image.fits"),
     )
 
-    assert primary["seedclip"] == 5.0
-    assert primary["floodclip"] == 4.0
-    assert controlled["seedclip"] == 5.0
-    assert controlled["floodclip"] == 3.0
-    assert "--nocov" not in primary_command
-    assert "--noise" not in primary_command
-    assert "--background" not in primary_command
-    assert "--noise" in controlled_command
-    assert "--background" in controlled_command
-    assert primary_command[-1] == controlled_command[-1] == "image.fits"
+    assert configuration["seedclip"] == 5.0
+    assert configuration["floodclip"] == 4.0
+    assert command == (
+        "aegean",
+        "--find",
+        "--cores",
+        "2",
+        "--seedclip",
+        "5.0",
+        "--floodclip",
+        "4.0",
+        "--island",
+        "--table",
+        str(tmp_path / "catalogue.fits"),
+        "image.fits",
+    )
+    assert namespace["configuration_identity"]("aegean", configuration)[
+        "table"
+    ] == ("catalogue.fits")
     component_path = tmp_path / "empty_comp.fits"
     island_path = tmp_path / "empty_isle.fits"
-    namespace["_write_empty_catalogues"](component_path, island_path)
+    namespace["write_empty_aegean_catalogues"](component_path, island_path)
     assert load_aegean_catalogue(component_path, island_path) == ()
-
-
-@pytest.mark.parametrize(
-    "script_name,extra_arguments",
-    (
-        (
-            "run_phase5_external_hebog.py",
-            (
-                "--base-review",
-                "review.json",
-                "--manifest",
-                "manifest.json",
-                "--container-image-digest",
-                f"sha256:{'0' * 64}",
-            ),
-        ),
-        (
-            "run_phase5_external_pybdsf.py",
-            (
-                "--finder-id",
-                "released-pybdsf",
-                "--mode",
-                "operational",
-                "--ncores",
-                "1",
-                "--container-image-digest",
-                f"sha256:{'0' * 64}",
-            ),
-        ),
-        (
-            "run_phase5_external_aegean.py",
-            (
-                "--mode",
-                "operational",
-                "--container-image-digest",
-                f"sha256:{'0' * 64}",
-            ),
-        ),
-    ),
-)
-def test_phase5_external_runners_refuse_existing_output(
-    script_name: str,
-    extra_arguments: tuple[str, ...],
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """No isolated finder leg can replace an opened realization."""
-    output = tmp_path / "result"
-    output.mkdir()
-    namespace = _script(script_name)
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        [
-            script_name,
-            "--protocol",
-            "protocol.json",
-            "--execution-decision",
-            "decision.json",
-            "--input",
-            "input.json",
-            *extra_arguments,
-            "--output",
-            str(output),
-        ],
-    )
-
-    with pytest.raises(FileExistsError, match="refusing to overwrite"):
-        namespace["main"]()

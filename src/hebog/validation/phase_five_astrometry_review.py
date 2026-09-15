@@ -24,7 +24,6 @@ from hebog.validation.contracts import (
     PhaseFiveCorrectiveAReview,
 )
 from hebog.validation.datasets import (
-    DatasetManifest,
     DatasetRecord,
     WcsMetadata,
     generate_synthetic_image,
@@ -700,23 +699,6 @@ def evaluate_astrometry_revision_image(
             )
         )
     return tuple(observations)
-
-
-def evaluate_astrometry_revision_population(
-    manifest: DatasetManifest,
-    base_review: PhaseFiveCorrectiveAReview,
-) -> tuple[AstrometryGroupObservation, ...]:
-    """Evaluate both estimators over a fresh governed population."""
-    return tuple(
-        observation
-        for dataset in manifest.datasets
-        for recipe_index in range(len(iter_dataset_recipes(dataset)))
-        for observation in evaluate_astrometry_revision_image(
-            dataset,
-            recipe_index=recipe_index,
-            base_review=base_review,
-        )
-    )
 
 
 def _endpoint_strata(

@@ -1,7 +1,7 @@
 # pyright: reportMissingTypeStubs=false
 # pyright: reportUnknownMemberType=false
 # pyright: reportPrivateUsage=false
-"""Synthetic end-to-end smoke for the exact public notebook runner."""
+"""Synthetic end-to-end smoke for the notebook comparison Hebog runner."""
 
 from __future__ import annotations
 
@@ -21,44 +21,12 @@ from astropy.wcs import WCS
 
 from hebog import public_api
 from hebog.algorithms import fitting as fitting_algorithm
-from hebog.validation.external_runners import (
-    canonical_sha256,
-    source_tree_sha256,
-)
+from hebog.validation.external_runners import canonical_sha256
 
 _ROOT = Path(__file__).parents[2]
 _RUNNER = runpy.run_path(
-    str(_ROOT / "scripts/benchmark/run_phase5_public_finder_hebog.py")
+    str(_ROOT / "scripts/benchmark/run_notebook_hebog.py")
 )
-
-
-@pytest.fixture
-def current_fixture_identity(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> str:
-    """Bind the real current science for synthetic tests, not a campaign."""
-    configuration = canonical_sha256(asdict(_RUNNER["_PUBLIC_CONFIG"]))
-    review = {
-        "status": "frozen-non-executable",
-        "algorithm_candidate": {
-            "revision": "a" * 40,
-            "configuration_sha256": configuration,
-            "source_tree_sha256": source_tree_sha256(_ROOT),
-        },
-        "scientific_composition": public_api._COMPOSITION_NAME,
-        "scientific_composition_sha256": (
-            public_api._scientific_composition_sha256()
-        ),
-    }
-    path = tmp_path / "fixture-identity.json"
-    path.write_text(json.dumps(review), encoding="utf-8")
-    monkeypatch.setitem(
-        _RUNNER["run_public_hebog"].__globals__,
-        "_PUBLIC_IDENTITY",
-        path,
-    )
-    return configuration
 
 
 def _header(shape_yx: tuple[int, int]) -> fits.Header:
@@ -119,7 +87,6 @@ def _geometry_matrix_image() -> np.ndarray[Any, np.dtype[np.float64]]:
 @pytest.mark.parametrize("frame", ("icrs", "fk5", "implicit-fk5"))
 def test_exact_notebook_runner_completes_geometry_matrix(
     tmp_path: Path,
-    current_fixture_identity: str,
     frame: str,
 ) -> None:
     """The exact notebook path publishes aligned products for edge cases."""
@@ -140,12 +107,11 @@ def test_exact_notebook_runner_completes_geometry_matrix(
 
     result = cast(
         dict[str, object],
-        _RUNNER["run_public_hebog"](
+        _RUNNER["run_notebook_hebog"](
             input_path=input_path,
             output=output,
             case_id="synthetic-geometry-matrix",
             core=None,
-            configuration_sha256=current_fixture_identity,
         ),
     )
 
@@ -196,6 +162,12 @@ def test_exact_notebook_runner_completes_geometry_matrix(
         == terminal["source_count"] + terminal["component_count"]
     )
     assert terminal["scientific_composition"] == public_api._COMPOSITION_NAME
+    assert terminal["scientific_composition_sha256"] == (
+        public_api._scientific_composition_sha256()
+    )
+    assert terminal["configuration_sha256"] == canonical_sha256(
+        asdict(_RUNNER["_CONFIG"])
+    )
     assert terminal["catalogue_semantics"]["coordinate_frame"] == "icrs"
     assert fits.getheader(output / "segment_mask.fits").get(
         "RADESYS"
@@ -206,18 +178,16 @@ def test_exact_notebook_runner_completes_geometry_matrix(
 @pytest.mark.parametrize("value", (0.0, np.nan))
 def test_exact_notebook_runner_publishes_empty_and_all_nan(
     tmp_path: Path,
-    current_fixture_identity: str,
     value: float,
 ) -> None:
     """A valid source-free image is not a failed batch."""
     path = tmp_path / "input.fits"
     fits.PrimaryHDU(np.full((32, 48), value), _header((32, 48))).writeto(path)
-    result = _RUNNER["run_public_hebog"](
+    result = _RUNNER["run_notebook_hebog"](
         input_path=path,
         output=tmp_path / "result",
         case_id="empty",
         core=None,
-        configuration_sha256=current_fixture_identity,
     )
     assert result["source_count"] == result["component_count"] == 0
     assert result["measurement_dispositions"] == []
@@ -232,7 +202,6 @@ def test_exact_notebook_runner_publishes_empty_and_all_nan(
 @pytest.mark.parametrize("frame", ("icrs", "fk5"))
 def test_notebook_native_measurements_preserve_rotated_unequal_pixel_geometry(
     tmp_path: Path,
-    current_fixture_identity: str,
     monkeypatch: pytest.MonkeyPatch,
     rotation: float,
     frame: str,
@@ -284,12 +253,11 @@ def test_notebook_native_measurements_preserve_rotated_unequal_pixel_geometry(
     )
     path = tmp_path / "rotated.fits"
     fits.PrimaryHDU(image, header).writeto(path)
-    result = _RUNNER["run_public_hebog"](
+    result = _RUNNER["run_notebook_hebog"](
         input_path=path,
         output=tmp_path / "result",
         case_id="rotated",
         core=None,
-        configuration_sha256=current_fixture_identity,
     )
     assert result["source_count"] == result["component_count"] == 1
     component = result["all_measured_component_records"][0]
@@ -338,7 +306,6 @@ def test_notebook_native_measurements_preserve_rotated_unequal_pixel_geometry(
 @pytest.mark.parametrize("failure_mode", ("first", "all"))
 def test_notebook_retains_numerical_fit_failures_without_aborting_image(
     tmp_path: Path,
-    current_fixture_identity: str,
     monkeypatch: pytest.MonkeyPatch,
     frame: str,
     failure_mode: str,
@@ -368,12 +335,11 @@ def test_notebook_retains_numerical_fit_failures_without_aborting_image(
     with pytest.warns(
         RuntimeWarning, match="Gaussian components unavailable"
     ) as notices:
-        _RUNNER["run_public_hebog"](
+        _RUNNER["run_notebook_hebog"](
             input_path=input_path,
             output=output,
             case_id="synthetic-numerical-failure",
             core=None,
-            configuration_sha256=current_fixture_identity,
         )
     assert len(notices) == 1
     terminal = json.loads((output / "result.json").read_text())

@@ -23,6 +23,7 @@ from hebog.data_models.source_association import (
     SourceAssociationResult,
     SourceHierarchyDiagnostics,
 )
+from hebog.validation import source_association_evaluation_repair as repair
 from hebog.validation.comparison import CatalogueSource
 from hebog.validation.external_successor_compiler import (
     ContinuumCatalogueObject,
@@ -471,3 +472,34 @@ def test_repair_identifier_validation_is_fail_closed() -> None:
         detection_component_identifier((-1, 0))
     with pytest.raises(ValueError, match="component IDs must be canonical"):
         associated_source_identifier(("component-b", "component-a"))
+
+
+@pytest.mark.parametrize(
+    ("supports", "message"),
+    (
+        (((1,), (1, 2)), "present and disjoint"),
+        (((3,), (2,)), "present and disjoint"),
+        (((1,),), "partition native supports"),
+    ),
+    ids=("overlapping", "missing", "unassigned-native-support"),
+)
+def test_synthetic_source_labels_fail_closed_on_invalid_unions(
+    supports: tuple[tuple[int, ...], ...],
+    message: str,
+) -> None:
+    """Source unions must cover each native support exactly once."""
+    native = np.array(((1, 1, 0), (0, 2, 2)), dtype=np.int64)
+    catalogue = tuple(
+        AssociatedContinuumCatalogueObject(
+            identifier=f"source-{index}",
+            support_labels=labels,
+            centre_xy=(0.5, 0.5),
+            integrated_flux_jy=1.0,
+        )
+        for index, labels in enumerate(supports, start=1)
+    )
+
+    with pytest.raises(ValueError, match=message):
+        repair._synthetic_source_labels(  # pyright: ignore[reportPrivateUsage]
+            catalogue, native
+        )

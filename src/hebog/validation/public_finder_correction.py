@@ -23,6 +23,9 @@ from hebog.data_models.catalogues import (
 )
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
 from hebog.data_models.source_association import SourceAssociationResult
+from hebog.science.catalogues import (
+    build_hebog_reconstructed_source_catalogues,
+)
 from hebog.validation.comparison import CatalogueEllipse, CatalogueSource
 from hebog.validation.contracts import PhaseFiveCorrectiveAReview
 from hebog.validation.external_runners import file_sha256
@@ -36,7 +39,6 @@ from hebog.validation.post_correction_recovery import (
 )
 from hebog.validation.products import (
     build_hebog_associated_moment_catalogues,
-    build_hebog_reconstructed_source_catalogues,
 )
 
 _ARCSECONDS_PER_DEGREE = 3600.0

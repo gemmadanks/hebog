@@ -130,9 +130,13 @@ power, and the one-look failure policy. It keeps execution false until the
 three runners and matcher are implemented, tested, and hash-bound by a
 separate review.
 
-The checked-in
-`config/contracts/phase-5-external-execution-decision.json` is the only record
-that can open those runners. It binds the frozen protocol, residual-B3
+The Phase 5
+`config/contracts/phase-5-external-execution-decision.json` was the only record
+that could open those runners. It and the authorization-bound runners were
+removed with the closed campaign tooling and remain in
+[Git history at `4babf0b`](https://github.com/gemmadanks/hebog/tree/4babf0baaf5609e72764183e543df84ec6be09e0); the notebook comparison now reruns reference
+finders without that authority. The description below records its historical
+meaning. It binds the frozen protocol, residual-B3
 candidate review, committed implementation revision, complete production-
 source-tree digest, and the three isolated entry-point digests. It also
 freezes the Hebog container and dependency inventory and the PyBDSF core
@@ -207,10 +211,10 @@ so per-source and campaign-level statistics cannot silently diverge.
 
 ## Phase 4 one-look decision evidence
 
-The final evaluator consumes a compiled campaign, the exact frozen dataset,
-the ordered scientific-contract set, the scientific gates, and the reviewed
-paired protocol. It verifies every checksum and seed before scoring anything.
-It then emits one strict `phase-4-qualification-decision` document containing:
+The closed Phase 4 evaluator consumed a compiled campaign, the exact frozen
+dataset, the ordered scientific-contract set, the scientific gates and the
+reviewed paired protocol, and verified every checksum and seed before scoring.
+It emitted one strict `phase-4-qualification-decision` document containing:
 
 - every signed Hebog-versus-released-PyBDSF endpoint estimate and one-sided
   95% SciPy BCa upper limit;
@@ -222,33 +226,20 @@ It then emits one strict `phase-4-qualification-decision` document containing:
 - every failed seed under its reviewed `qualification-fails` or
   `record-and-continue` policy.
 
-Individual-source 95th-percentile tails retain their contractually declared
-`report-only` role; unresolved-group tails remain gates. An otherwise
-undefined BCa result uses `[point, point]` only when its complete finite
-bootstrap distribution is exactly equal to the finite observed point estimate.
-A missing required field or every other non-finite result is recorded as
-`indeterminate` and fails closed. The signed endpoint estimate remains visible
-but is not itself a gate.
+Individual-source 95th-percentile tails retained their contractually declared
+`report-only` role; unresolved-group tails remained gates. An otherwise
+undefined BCa result used `[point, point]` only when its complete finite
+bootstrap distribution exactly equalled the finite observed point estimate.
+A missing required field or any other non-finite result was recorded as
+`indeterminate` and failed closed.
 
-Run the evaluator only after all isolated final shards have been compiled:
-
-```console
-python scripts/validation/evaluate_phase4_qualification.py \
-  --campaign benchmark-results/<campaign>-compiled.json \
-  --manifest config/datasets/phase-4-final-qualification.json \
-  --dataset-id phase4-final-paired-qualification-512 \
-  --scientific-contract config/contracts/phase-4-measurement.json \
-  --scientific-contract config/contracts/phase-4-scientific-gates.json \
-  --scientific-gates config/contracts/phase-4-scientific-gates.json \
-  --comparison-protocol \
-    config/contracts/phase-4-paired-noninferiority.json \
-  --output benchmark-results/<campaign>-decision.json
-```
-
-The command refuses to replace an existing output. Its `exploratory` evidence
-status means the machine decision still requires the normal human evidence
-review before it is promoted as a release conclusion; it does not permit a
-second look or a replacement population.
+The evaluator, `scripts/validation/evaluate_phase4_qualification.py`, the
+`phase-4-qualification-decision` and `phase-4r-decision` evidence schemas and
+their writers were removed with the closed campaign tooling and remain in
+[Git history at `4babf0b`](https://github.com/gemmadanks/hebog/tree/4babf0baaf5609e72764183e543df84ec6be09e0). `load_evidence` no longer accepts those two
+historical decision documents; read them from that revision. Their
+`exploratory` status meant each machine decision still required human evidence
+review, and never permitted a second look or a replacement population.
 
 ## Writing and loading evidence
 

@@ -23,7 +23,6 @@ from hebog.validation.contracts import (
     PhaseFiveCorrectiveAReview,
 )
 from hebog.validation.datasets import (
-    DatasetManifest,
     DatasetRecord,
     generate_synthetic_image,
     iter_dataset_recipes,
@@ -287,23 +286,6 @@ def evaluate_astrometry_follow_up_image(
             )
         )
     return tuple(observations)
-
-
-def evaluate_astrometry_follow_up_population(
-    manifest: DatasetManifest,
-    base_review: PhaseFiveCorrectiveAReview,
-) -> tuple[ExtendedPositionObservation, ...]:
-    """Evaluate the frozen candidate over the complete fresh population."""
-    return tuple(
-        observation
-        for dataset in manifest.datasets
-        for recipe_index in range(len(iter_dataset_recipes(dataset)))
-        for observation in evaluate_astrometry_follow_up_image(
-            dataset,
-            recipe_index=recipe_index,
-            base_review=base_review,
-        )
-    )
 
 
 def _endpoint_strata(

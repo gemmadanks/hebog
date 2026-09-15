@@ -14,8 +14,8 @@ from astropy.wcs import WCS  # pyright: ignore[reportMissingTypeStubs]
 
 from hebog.algorithms.multiscale_association import ScaleDetectionPlane
 from hebog.data_models.multiscale import ScaleDetection
-from hebog.validation import products as product_builder
-from hebog.validation.products import (
+from hebog.science import catalogues as product_builder
+from hebog.science.catalogues import (
     build_hebog_reconstructed_source_catalogues,
     build_hebog_segment_catalogue,
 )

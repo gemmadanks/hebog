@@ -23,12 +23,9 @@ from hebog.data_models.source_association import (
 )
 from hebog.validation.terminal_cycle_fail_fast import (
     TerminalCycleCase,
-    build_terminal_cycle_fail_fast_record,
     evaluate_terminal_cycle_mechanism_lane,
     load_terminal_cycle_case_manifest,
     observe_terminal_cycle_case,
-    publish_terminal_cycle_fail_fast_record,
-    write_terminal_cycle_association,
 )
 
 _ROOT = Path(__file__).parents[3]
@@ -346,83 +343,3 @@ def test_mechanism_lane_rejects_missing_or_changed_observation() -> None:
     )
     with pytest.raises(ValueError, match="expectation failed"):
         evaluate_terminal_cycle_mechanism_lane(manifest, changed)
-
-
-def test_record_builder_and_writers_fail_closed(tmp_path: Path) -> None:
-    """Incomplete e2e evidence and overwrite attempts cannot publish."""
-    manifest = load_terminal_cycle_case_manifest(_MANIFEST)
-    association = _run(manifest.cases[0])
-    sidecar = tmp_path / "association.json"
-    write_terminal_cycle_association(sidecar, association)
-    with pytest.raises(FileExistsError):
-        write_terminal_cycle_association(sidecar, association)
-
-    mechanism: dict[str, object] = {
-        "schema_version": 1,
-        "lane_id": "phase-5-terminal-cycle-mechanism-activation",
-        "case_count": 25,
-        "family_count": 8,
-        "positive_activation_count": 4,
-        "pre_guard_rejection_count": 4,
-        "all_controls_pass": True,
-        "promotion_evidence": False,
-    }
-    provenance = {
-        "producer_sha256": "a" * 64,
-        "writer_sha256": "b" * 64,
-        "compiler_sha256": "c" * 64,
-        "evaluator_sha256": "d" * 64,
-    }
-    with pytest.raises(ValueError, match="mechanism lane"):
-        build_terminal_cycle_fail_fast_record(
-            mechanism={**mechanism, "positive_activation_count": 0},
-            association_paths=(sidecar,),
-            compact_sha256_before="a" * 64,
-            compact_sha256_after="a" * 64,
-            compiled_endpoint_values={"endpoint": (1.0,)},
-            provenance=provenance,
-        )
-    with pytest.raises(ValueError, match="compact output changed"):
-        build_terminal_cycle_fail_fast_record(
-            mechanism=mechanism,
-            association_paths=(sidecar,),
-            compact_sha256_before="a" * 64,
-            compact_sha256_after="b" * 64,
-            compiled_endpoint_values={"endpoint": (1.0,)},
-            provenance=provenance,
-        )
-    with pytest.raises(ValueError, match="endpoints differ"):
-        build_terminal_cycle_fail_fast_record(
-            mechanism=mechanism,
-            association_paths=(sidecar,),
-            compact_sha256_before="a" * 64,
-            compact_sha256_after="a" * 64,
-            compiled_endpoint_values={},
-            provenance=provenance,
-        )
-    endpoints = {
-        "completeness-overall": (1.0,),
-        "mask-precision-overall": (1.0,),
-    }
-    with pytest.raises(ValueError, match="provenance is incomplete"):
-        build_terminal_cycle_fail_fast_record(
-            mechanism=mechanism,
-            association_paths=(sidecar,),
-            compact_sha256_before="a" * 64,
-            compact_sha256_after="a" * 64,
-            compiled_endpoint_values=endpoints,
-            provenance={**provenance, "writer_sha256": "not-a-digest"},
-        )
-    with pytest.raises(ValueError, match="association evidence is empty"):
-        build_terminal_cycle_fail_fast_record(
-            mechanism=mechanism,
-            association_paths=(),
-            compact_sha256_before="a" * 64,
-            compact_sha256_after="a" * 64,
-            compiled_endpoint_values=endpoints,
-            provenance=provenance,
-        )
-    output = tmp_path / "not-publishable.json"
-    with pytest.raises(ValueError, match="not publishable"):
-        publish_terminal_cycle_fail_fast_record(output, {"status": "fail"})
-    assert not output.exists()

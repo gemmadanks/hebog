@@ -20,7 +20,7 @@ handoff and non-executable candidate identities are recorded in `LOG.md`;
 they do not qualify the candidate or transfer the v15 campaign result. The latest completed
 campaign is for **v15**, science commit `73ab5af...`, which includes the Gaussian-validity
 repair and the approved F4 filtered-response correction. The
-[frozen identity review](https://github.com/gemmadanks/hebog/blob/main/config/contracts/phase-5-filtered-response-domain-repair-identity-review.json)
+[frozen identity review](https://github.com/gemmadanks/hebog/blob/4babf0baaf5609e72764183e543df84ec6be09e0/config/contracts/phase-5-filtered-response-domain-repair-identity-review.json)
 binds its source, configuration and validation. It remains
 `development-unqualified`.
 
@@ -95,7 +95,7 @@ native values, frozen margins and confidence limits remain in the terminal.
 
 The earlier screen's 49 point warnings are superseded for current inference
 by this complete terminal, not erased. The
-[follow-up review](phase-5-v13-followup-review.md) retains independent mechanism
+[follow-up review](https://github.com/gemmadanks/hebog/blob/4babf0baaf5609e72764183e543df84ec6be09e0/docs/reference/phase-5-v13-followup-review.md) retains independent mechanism
 tests, including negative controls: a larger fitting window did not reliably
 repair uncertainty coverage, and faint fragmentation was not explained solely
 by background/RMS error. These do not establish one cause for all current
@@ -222,7 +222,7 @@ parameter tuning or rewrite of historical products was performed. The exact
 diagnostic is retained in the ignored release-clearance evidence namespace.
 
 The agreed
-[severity policy](phase-5-v13-followup-review.md#later-decision-final-campaign-then-development-closeout)
+[severity policy](https://github.com/gemmadanks/hebog/blob/4babf0baaf5609e72764183e543df84ec6be09e0/docs/reference/phase-5-v13-followup-review.md#later-decision-final-campaign-then-development-closeout)
 blocks development closeout for serious operational/public-contract defects
 or material loss of ordinary Rapthor-critical behaviour. Difficult faint
 morphology and inconclusive comparisons can be deferred only with their
@@ -267,10 +267,13 @@ V14's terminal is a capture exception, not a scientific verdict. Failed or
 underpowered decisions are never rescored, erased or transferred to a repaired
 candidate; an old uncertainty exception is not inherited by v15.
 
-Use the [execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md),
-[immutable contracts](https://github.com/gemmadanks/hebog/tree/main/config/contracts)
-and dated evidence reviews for exact decisions and reproduction identities.
-The former chronological overview is available in
+Use the [execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md)
+for exact decisions and evidence identities. Phase 5 development is closed:
+its frozen contracts, dated evidence reviews and campaign reconstruction tools
+were removed from the live tree after the 14 September cleanup decision and
+remain in [Git history at `4babf0b`](https://github.com/gemmadanks/hebog/tree/4babf0baaf5609e72764183e543df84ec6be09e0). Only the conclusions and accepted
+limitations above remain current. The former chronological overview is
+available in
 [Git history](https://github.com/gemmadanks/hebog/blob/0ce253cf26a7954a58dc9a211eb01d8502e69025/docs/reference/phase-5-campaign-overview.md).
 Update this page by replacing current conclusions; append material history to
 the log rather than adding competing “latest” sections here.

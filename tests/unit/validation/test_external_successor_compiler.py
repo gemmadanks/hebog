@@ -3,9 +3,6 @@
 
 from __future__ import annotations
 
-import runpy
-from pathlib import Path
-
 import numpy as np
 import pytest
 from astropy.io import fits
@@ -26,11 +23,6 @@ from hebog.validation.post_failure_truth import (
     ObservableTruthPlanes,
     ObservableTruthSpecification,
     compile_observable_truth,
-)
-
-_ROOT = Path(__file__).parents[3]
-_TERMINAL_COMPILER = (
-    _ROOT / "scripts/validation/compile_phase5_external_campaign.py"
 )
 
 
@@ -692,106 +684,3 @@ def test_measurement_rejects_incomplete_or_misaligned_inputs() -> None:
             candidate_label_plane=labels,
             beam_fwhm_pixels=2.0,
         )
-
-
-def test_catalogued_supports_preserve_terminal_metric_values() -> None:
-    """The successor changes no metric when every label has a row."""
-    truth_labels = np.zeros((6, 8), dtype=np.int32)
-    truth_labels[1:3, 1:3] = 1
-    truth_labels[3:5, 5:7] = 2
-    candidate_labels = truth_labels.copy()
-    truth = (
-        _truth("truth-1", 1, (1.5, 1.5), 2.0),
-        _truth("truth-2", 2, (5.5, 3.5), 3.0),
-    )
-    catalogue = (
-        _candidate("source-1", 1, (1.5, 1.5), 2.2),
-        _candidate("source-2", 2, (5.5, 3.5), 2.7),
-    )
-    actual = measure_continuum_image(
-        truth,
-        catalogue,
-        truth_label_plane=truth_labels,
-        candidate_label_plane=candidate_labels,
-        beam_fwhm_pixels=2.0,
-    )
-    terminal = runpy.run_path(str(_TERMINAL_COMPILER))
-    terminal_truth_type = terminal["ContinuumTruthObject"]
-    terminal_candidate_type = terminal["ContinuumCandidateObject"]
-    expected = terminal["measure_continuum_image"](
-        tuple(
-            terminal_truth_type(
-                identifier=item.identifier,
-                support_label=item.support_label,
-                centre_xy=item.centre_xy,
-                integrated_flux_jy=item.integrated_flux_jy,
-                catalogue_role=item.catalogue_role,
-                strata=item.strata,
-            )
-            for item in truth
-        ),
-        tuple(
-            terminal_candidate_type(
-                identifier=item.identifier,
-                support_label=item.support_label,
-                centre_xy=item.centre_xy,
-                integrated_flux_jy=item.integrated_flux_jy,
-            )
-            for item in catalogue
-        ),
-        truth_label_plane=truth_labels,
-        candidate_label_plane=candidate_labels,
-        beam_fwhm_pixels=2.0,
-    )
-
-    assert actual == expected
-
-
-def test_catalogued_support_centres_preserve_terminal_topology() -> None:
-    """Native label completion cannot move existing support descriptors."""
-    truth_labels = np.zeros((12, 12), dtype=np.int32)
-    truth_labels[1:3, 1:3] = 1
-    candidate_labels = np.zeros_like(truth_labels)
-    candidate_labels[8:10, 7:9] = 1
-    candidate_labels[8:10, 9:11] = 2
-    truth = (_truth("truth-1", 1, (1.5, 1.5), 2.0),)
-    catalogue = (
-        _candidate("source-1", 1, (1.5, 1.5), 1.0),
-        _candidate("source-2", 2, (1.8, 1.5), 1.0),
-    )
-
-    actual = measure_continuum_image(
-        truth,
-        catalogue,
-        truth_label_plane=truth_labels,
-        candidate_label_plane=candidate_labels,
-        beam_fwhm_pixels=2.0,
-    )
-    terminal = runpy.run_path(str(_TERMINAL_COMPILER))
-    expected = terminal["measure_continuum_image"](
-        (
-            terminal["ContinuumTruthObject"](
-                identifier="truth-1",
-                support_label=1,
-                centre_xy=(1.5, 1.5),
-                integrated_flux_jy=2.0,
-                catalogue_role="astronomical-source",
-                strata=("morphology-diffuse",),
-            ),
-        ),
-        tuple(
-            terminal["ContinuumCandidateObject"](
-                identifier=item.identifier,
-                support_label=item.support_label,
-                centre_xy=item.centre_xy,
-                integrated_flux_jy=item.integrated_flux_jy,
-            )
-            for item in catalogue
-        ),
-        truth_label_plane=truth_labels,
-        candidate_label_plane=candidate_labels,
-        beam_fwhm_pixels=2.0,
-    )
-
-    assert actual == expected
-    assert actual["split-fraction"]["overall"] == 1.0

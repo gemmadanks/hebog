@@ -22,14 +22,12 @@ from hebog import public_api
 from hebog.algorithms import astrometry
 from hebog.data_models import ImageBounds
 from hebog.data_models.images import CelestialWcs, ImageMetadata, RestoringBeam
-from hebog.validation import products, public_measurement_projection
+from hebog.science import catalogues
+from hebog.validation import public_measurement_projection
 from hebog.validation.comparison import CatalogueSource
 
 _RUNNER = runpy.run_path(
-    str(
-        Path(__file__).parents[2]
-        / "scripts/benchmark/run_phase5_public_finder_hebog.py"
-    )
+    str(Path(__file__).parents[2] / "scripts/benchmark/run_notebook_hebog.py")
 )
 
 
@@ -94,7 +92,7 @@ def test_source_aperture_positions_are_icrs(frame: str) -> None:
     header = _header(frame)
     image = np.zeros((25, 33))
     image[11:14, 15:18] = 5
-    rows = products.build_hebog_segment_catalogue(
+    rows = catalogues.build_hebog_segment_catalogue(
         image,
         np.zeros_like(image),
         np.ones_like(image, dtype=bool),

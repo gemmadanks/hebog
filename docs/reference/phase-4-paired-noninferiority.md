@@ -123,12 +123,9 @@ probability that every co-primary endpoint passes. Phase 4S derives counts from
 a supplied frozen manifest and reports a dependence-robust union-bound lower
 bound for the joint decision.
 
-Run the executable calculation with:
-
-```console
-uv run python scripts/validation/calculate_phase4_paired_power.py \
-  config/contracts/phase-4-paired-noninferiority.json
-```
+The executable calculation,
+`scripts/validation/calculate_phase4_paired_power.py`, was removed with the
+closed campaign tooling and remains in [Git history at `4babf0b`](https://github.com/gemmadanks/hebog/tree/4babf0baaf5609e72764183e543df84ec6be09e0).
 
 The 90% target applies to exclusion of the non-inferiority margin. The power
 calculation also reports point-direction probabilities so the rejected stricter

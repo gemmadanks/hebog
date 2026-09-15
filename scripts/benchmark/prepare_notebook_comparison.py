@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUnknownArgumentType=false
+# pyright: reportUnknownMemberType=false
 """Prepare Hydra, LoTSS and SDC1 notebook inputs and reference results.
 
-Requires local Podman images. --dry-run performs no downloads, container
-operations or writes. Run Hebog separately with the existing refresh script.
+Cases, downloads and reference-finder options come from
+``config/comparisons/notebook-comparison.json``. Requires local Podman images.
+--dry-run performs no downloads, container operations or writes. Run Hebog
+separately with ``refresh_public_notebook_hebog.py``.
 """
 
 from __future__ import annotations
@@ -17,80 +22,212 @@ import subprocess
 import urllib.request
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any
+from typing import Any, cast
+
+import numpy as np
+from astropy.io import fits
+from astropy.wcs import WCS
 
 from hebog.validation.external_runners import source_tree_sha256
 
 _ROOT = Path(__file__).resolve().parents[2]
-_PUBLIC_PROTOCOL = "config/contracts/phase-5-public-finder-protocol.json"
+_CONFIGURATION = "config/comparisons/notebook-comparison.json"
 _FINDERS = ("released-pybdsf", "aegean")
 _WORKER = "scripts/benchmark/run_notebook_reference.py"
+_CONTAINER_RECIPES = "scripts/benchmark/containers/reference-finders"
+_PROGRAMS = (
+    "prepare_notebook_comparison.py",
+    "run_notebook_reference.py",
+    "download_notebook_data.py",
+)
+_IMAGE_DIMENSIONS = 2
+_DEFAULT_REFERENCE_FREQUENCY_HZ = 144_000_000.0
+_LOTSS_PRESERVED_HEADER_KEYS = (
+    "BUNIT",
+    "BMAJ",
+    "BMIN",
+    "BPA",
+    "RESTFRQ",
+    "RESTFREQ",
+    "TELESCOP",
+    "INSTRUME",
+    "ORIGIN",
+    "OBJECT",
+    "DATE-OBS",
+)
 
 
 def _comparison_cases() -> dict[str, dict[str, Any]]:
-    """Reuse the existing 13-case selection, without campaign authority."""
-    protocol = json.loads((_ROOT / _PUBLIC_PROTOCOL).read_text())
+    """Return the configured cases in SDC1, then whole-image order."""
+    configuration = json.loads((_ROOT / _CONFIGURATION).read_text())
+    sdc1 = configuration["sdc1"]
     cases = {
         f"sdc1-{item['stratum']}-{item['tile_id']}": {
-            "download": "sdc1-image",
+            "download": sdc1["download"],
             "bounds_xy": item["bounds_xy_half_open"],
-            "halo_pixels": protocol["sdc1"]["halo_pixels_yx"][0],
+            "halo_pixels": sdc1["halo_pixels"],
         }
-        for item in protocol["sdc1"]["strata"]
+        for item in sdc1["tiles"]
     }
     cases.update(
         {
-            item["case_id"]: {"download": "hydra-" + item["source_identifier"]}
-            for item in protocol["hydra"]["cases"]
-        }
-    )
-    cases.update(
-        {
-            "lotss-dr2-wide-ra13-90arcmin": {"download": "lotss-wide"},
-            "lotss-dr2-3c295-12arcmin": {"download": "lotss-3c295"},
-            "lotss-dr2-m51-20arcmin": {"download": "lotss-m51"},
+            item["case_id"]: {
+                "download": item["download"],
+                "normalisation": item["normalisation"],
+            }
+            for item in configuration["whole_image_cases"]
         }
     )
     return cases
 
 
+def _sdc1_cutout_header(
+    header: fits.Header,
+    *,
+    x_start: int,
+    y_start: int,
+) -> fits.Header:
+    """Translate a full-image WCS to one bounded halo cutout."""
+    shifted = header.copy()
+    shifted["CRPIX1"] = float(cast(Any, shifted["CRPIX1"])) - x_start
+    shifted["CRPIX2"] = float(cast(Any, shifted["CRPIX2"])) - y_start
+    if shifted.get("BPA") is None:
+        shifted["BPA"] = 0.0
+    if shifted.get("RESTFRQ", shifted.get("RESTFREQ")) is None:
+        shifted["RESTFRQ"] = 1.4e9
+    return shifted
+
+
+def _write_sdc1_cutout(
+    *,
+    source: Path,
+    destination: Path,
+    bounds_xy: list[int],
+    halo_pixels: int,
+) -> list[int]:
+    """Write one haloed SDC1 cutout and return its local output core.
+
+    ``bounds_xy`` is ``[x_start, x_stop, y_start, y_stop]`` in full-image
+    pixels; the returned core is ``[y_start, y_stop, x_start, x_stop]``
+    within the written cutout. The halo is clipped at image edges.
+    """
+    x_start, x_stop, y_start, y_stop = bounds_xy
+    with fits.open(source, mode="readonly", memmap=True) as hdus:
+        primary = cast(Any, hdus[0])
+        height, width = primary.shape[-2:]
+        read_x_start = max(0, x_start - halo_pixels)
+        read_x_stop = min(width, x_stop + halo_pixels)
+        read_y_start = max(0, y_start - halo_pixels)
+        read_y_stop = min(height, y_stop + halo_pixels)
+        values = np.asarray(
+            primary.section[
+                0,
+                0,
+                read_y_start:read_y_stop,
+                read_x_start:read_x_stop,
+            ],
+            dtype=np.float64,
+        )
+        header = _sdc1_cutout_header(
+            primary.header,
+            x_start=read_x_start,
+            y_start=read_y_start,
+        )
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    fits.PrimaryHDU(
+        data=values[np.newaxis, np.newaxis, :, :],
+        header=header,
+    ).writeto(destination)
+    return [
+        y_start - read_y_start,
+        y_stop - read_y_start,
+        x_start - read_x_start,
+        x_stop - read_x_start,
+    ]
+
+
+def _reference_frequency_hz(
+    header: fits.Header, source_header: fits.Header
+) -> float:
+    """Return the first finite positive LoTSS reference frequency in Hz."""
+    candidates: list[object] = [header.get("RESTFRQ"), header.get("RESTFREQ")]
+    spectral_wcs = WCS(source_header, relax=True).spectral
+    if spectral_wcs.pixel_n_dim == 1:
+        candidates.append(spectral_wcs.wcs.crval[0])
+    for candidate in candidates:
+        try:
+            frequency_hz = float(cast(Any, candidate))
+        except (TypeError, ValueError):
+            continue
+        if np.isfinite(frequency_hz) and frequency_hz > 0.0:
+            return frequency_hz
+    return _DEFAULT_REFERENCE_FREQUENCY_HZ
+
+
+def _normalise_lotss_image(download: Path, destination: Path) -> None:
+    """Write a canonical two-dimensional LoTSS plane with celestial WCS.
+
+    Released PyBDSF reads ``RESTFREQ`` while the cutout service may supply
+    only the WCS ``RESTFRQ`` spelling, so both are written. A finite positive
+    header frequency is kept; otherwise the spectral axis value is used when
+    present, then the LoTSS 144 MHz centre frequency.
+    """
+    with fits.open(download, memmap=False) as hdul:
+        source_header = hdul[0].header.copy()
+        plane = np.squeeze(np.asarray(hdul[0].data))
+    if plane.ndim != _IMAGE_DIMENSIONS or not np.issubdtype(
+        plane.dtype, np.number
+    ):
+        raise ValueError(
+            f"LoTSS cutout is not one numeric image plane: {plane.shape}"
+        )
+    if not np.any(np.isfinite(plane)):
+        raise ValueError("LoTSS cutout contains no finite pixels")
+    header = WCS(source_header, relax=True).celestial.to_header(relax=True)
+    for key in _LOTSS_PRESERVED_HEADER_KEYS:
+        if key in source_header:
+            header[key] = source_header[key]
+    frequency_hz = _reference_frequency_hz(header, source_header)
+    for key, comment in (
+        ("RESTFRQ", "Reference frequency [Hz]"),
+        ("RESTFREQ", "Reference frequency [Hz]; released PyBDSF spelling"),
+    ):
+        if header.get(key) != frequency_hz:
+            header[key] = (frequency_hz, comment)
+    header["HISTORY"] = "Canonical 2D plane frozen by Hebog LoTSS campaign"
+    fits.PrimaryHDU(data=plane, header=header).writeto(
+        destination,
+        checksum=True,
+        output_verify="fix",
+    )
+
+
 def _materialize_input(
     source: Path, destination: Path, case: dict[str, Any]
 ) -> list[int] | None:
-    """Reuse the previous SDC1 halo extraction and LoTSS normalization."""
+    """Write one SDC1 halo cutout or normalized LoTSS plane atomically."""
     destination.parent.mkdir(parents=True, exist_ok=True)
     with TemporaryDirectory(prefix=".input-", dir=destination.parent) as raw:
         temporary = Path(raw) / "input.fits"
-        if case["download"] == "sdc1-image":
-            helper = runpy.run_path(
-                str(
-                    _ROOT
-                    / "scripts/benchmark/run_phase5_public_finder_campaign.py"
-                )
-            )
-            core = helper["_materialize_sdc1_input"](
+        if "bounds_xy" in case:
+            core = _write_sdc1_cutout(
                 source=source,
                 destination=temporary,
                 bounds_xy=case["bounds_xy"],
                 halo_pixels=case["halo_pixels"],
             )
-        else:
-            helper = runpy.run_path(
-                str(
-                    _ROOT
-                    / "scripts/benchmark"
-                    / "run_lotss_public_comparison_campaign.py"
-                )
-            )
-            helper["_normalise_fits"](source, temporary)
+        elif case.get("normalisation") == "lotss-celestial-plane":
+            _normalise_lotss_image(source, temporary)
             core = None
+        else:
+            raise ValueError(f"unsupported input normalisation: {case}")
         temporary.replace(destination)
     return core
 
 
 def _build_images(engine: str, images: dict[str, str]) -> None:
-    """Rebuild local notebook images using the existing reference recipes."""
-    recipes = _ROOT / "scripts/benchmark/containers/phase5"
+    """Build local notebook reference images from the checked-in recipes."""
+    recipes = _ROOT / _CONTAINER_RECIPES
     packages = (
         ("bdsf", "1.14.1", "bdsf-1.14.1.tar.gz"),
         ("AegeanTools", "2.3.5", "aegeantools-2.3.5-py3-none-any.whl"),
@@ -168,22 +305,9 @@ def _download(url: str, destination: Path) -> None:
 
 def _program_identity() -> str:
     """Bind current adapters/settings for a safe interrupted-run resume."""
-    names = (
-        "prepare_notebook_comparison.py",
-        "run_notebook_reference.py",
-        "download_notebook_data.py",
-        "run_phase5_public_reference_finder.py",
-        "run_phase5_external_pybdsf.py",
-        "run_phase5_external_aegean.py",
-        "run_phase5_public_finder_campaign.py",
-        "run_lotss_public_comparison_campaign.py",
-    )
-    hashes = [_sha256(Path(__file__).with_name(name)) for name in names]
+    hashes = [_sha256(Path(__file__).with_name(name)) for name in _PROGRAMS]
     hashes.append(source_tree_sha256(_ROOT))
-    hashes.append(_sha256(_ROOT / _PUBLIC_PROTOCOL))
-    hashes.append(
-        _sha256(_ROOT / "config/contracts/phase-5-external-comparison.json")
-    )
+    hashes.append(_sha256(_ROOT / _CONFIGURATION))
     return hashlib.sha256("".join(hashes).encode()).hexdigest()
 
 
@@ -349,7 +473,7 @@ def _prepare_input(  # noqa: PLR0913
             raise ValueError("resume input or source changed")
     else:
         image, core = source, None
-        if not case["download"].startswith("hydra-"):
+        if case.get("normalisation") != "none":
             image = record_path.parent / "input.fits"
             core = _materialize_input(source, image, case)
         record = {

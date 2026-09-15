@@ -7,12 +7,10 @@
 from __future__ import annotations
 
 import json
-import runpy
-from copy import deepcopy
 from dataclasses import asdict
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any
 
 import numpy as np
 import pytest
@@ -27,7 +25,6 @@ from hebog.validation.comparison import CatalogueSource
 from hebog.validation.external_recovery_compiler import (
     RecoveryContinuumImageCompiler,
 )
-from hebog.validation.external_runners import file_sha256
 from hebog.validation.parent_construction_association_evaluation import (
     ParentConstructionContinuumImageCompiler,
     install_parent_construction_association_evaluation,
@@ -37,132 +34,6 @@ from hebog.validation.source_association_evaluation_repair import (
     associated_source_identifier,
     detection_component_identifier,
 )
-
-_ROOT = Path(__file__).parents[3]
-_FAILURE = (
-    _ROOT / "config/contracts/phase-5-public-finder-source-hierarchy-parent-"
-    "construction-evaluation-provenance-failure.json"
-)
-_PRE_REVIEW = (
-    _ROOT / "config/contracts/phase-5-public-finder-source-hierarchy-parent-"
-    "construction-association-provenance-repair-pre-review.json"
-)
-_IMPLEMENTATION_DECISION = (
-    _ROOT / "config/contracts/phase-5-public-finder-source-hierarchy-parent-"
-    "construction-association-provenance-repair-implementation-decision.json"
-)
-_PROGRAM = (
-    _ROOT / "scripts/validation/reconstruct_phase5_parent_construction_"
-    "associations.py"
-)
-_OVERLAY = (
-    _ROOT
-    / "src/hebog/validation/parent_construction_association_evaluation.py"
-)
-_FROZEN_COMPILER = _ROOT / "src/hebog/validation/external_recovery_compiler.py"
-_FROZEN_ASSOCIATION_EVALUATOR = (
-    _ROOT / "src/hebog/validation/source_association_evaluation_repair.py"
-)
-
-
-def test_failure_separates_complete_products_from_absent_science() -> None:
-    """A compiler defect cannot be presented as a scientific gate result."""
-    failure = json.loads(_FAILURE.read_text(encoding="utf-8"))
-
-    assert failure["status"] == (
-        "failed-after-complete-candidate-products-before-atomic-ledger"
-    )
-    assert failure["candidate_execution"] == {
-        "compact_product_count": 800,
-        "continuum_product_count": 1600,
-        "progress_line_count": 2400,
-        "status": "complete",
-        "total_product_count": 2400,
-    }
-    assert failure["output_published"] is False
-    assert "source_association" in failure["failure"]["missing_evidence"]
-
-
-def test_pre_review_requires_sidecar_truth_and_preserves_products() -> None:
-    """The repair rejects coordinate inference and candidate mutation."""
-    review = json.loads(_PRE_REVIEW.read_text(encoding="utf-8"))
-    boundary = review["implementation_boundary"]
-
-    assert review["status"] == (
-        "implementation-authorized-by-explicit-user-fix-request"
-    )
-    assert any(
-        "run-aware compiler seam" in action for action in boundary["allowed"]
-    )
-    assert any(
-        "reruns only the frozen 1,600 Continuum" in action
-        for action in boundary["allowed"]
-    )
-    assert any(
-        "overwriting any of the 2,400" in action
-        for action in boundary["forbidden"]
-    )
-    assert any(
-        "inferring cryptographic membership" in action
-        for action in boundary["forbidden"]
-    )
-    assert any(
-        "before an exact execution decision" in action
-        for action in boundary["forbidden"]
-    )
-
-
-def test_implementation_keeps_frozen_programs_byte_identical() -> None:
-    """The sidecar repair has its own identity and no historical drift."""
-    decision = json.loads(_IMPLEMENTATION_DECISION.read_text(encoding="utf-8"))
-    implementation = decision["implementation"]
-
-    assert implementation["evaluation_overlay_sha256"] == file_sha256(_OVERLAY)
-    assert implementation["reconstruction_program_sha256"] == file_sha256(
-        _PROGRAM
-    )
-    assert implementation["frozen_recovery_compiler_sha256"] == (
-        file_sha256(_FROZEN_COMPILER)
-    )
-    assert implementation[
-        "frozen_source_association_evaluator_sha256"
-    ] == file_sha256(_FROZEN_ASSOCIATION_EVALUATOR)
-    assert decision["authorization"][
-        "provenance_reconstruction_authorized"
-    ] is (False)
-
-
-def test_reconstruction_authorization_rejects_broader_authority(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """One future sidecar decision cannot silently authorize science."""
-    module = runpy.run_path(str(_PROGRAM))
-    authorize = module["_authorize_reconstruction"]
-    globals_ = authorize.__globals__
-    composition = {"status": "pass"}
-    decision = {
-        "failure_sha256": file_sha256(_FAILURE),
-        "implementation_decision_sha256": file_sha256(
-            _IMPLEMENTATION_DECISION
-        ),
-        "pre_review_sha256": file_sha256(_PRE_REVIEW),
-        "prohibited_authorizations": deepcopy(
-            globals_["_PROHIBITED_AUTHORIZATIONS"]
-        ),
-        "reconstruction_authorized": True,
-        "reconstruction_program_sha256": file_sha256(_PROGRAM),
-        "status": "reviewed-before-association-provenance-reconstruction",
-        "verified_composition": composition,
-    }
-    monkeypatch.setitem(
-        globals_, "_json_object", lambda *_args, **_kwargs: decision
-    )
-
-    assert authorize(composition) is decision
-    prohibited = cast(dict[str, bool], decision["prohibited_authorizations"])
-    prohibited["release_authorized"] = True
-    with pytest.raises(ValueError, match="authority changed"):
-        authorize(composition)
 
 
 def _header() -> fits.Header:
@@ -366,104 +237,3 @@ def test_overlay_installer_replaces_only_the_compiler_object() -> None:
         install_parent_construction_association_evaluation(
             {}, association_path=lambda _run: Path("association.json")
         )
-
-
-def test_sidecar_reconstruction_preserves_existing_science(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Only the omitted association survives exact product comparison."""
-    module = runpy.run_path(str(_PROGRAM))
-    reconstruct = module["_reconstruct_one"]
-    globals_ = reconstruct.__globals__
-    preserved = tmp_path / "preserved"
-    preserved.mkdir()
-    artifact_names = {
-        "segment-catalogue-json": "catalogue.json",
-        "segment-labels-fits": "labels.fits",
-        "segment-mask-fits": "mask.fits",
-    }
-    for role, name in artifact_names.items():
-        (preserved / name).write_bytes(role.encode())
-    artifacts = [
-        {
-            "role": role,
-            "relative_path": name,
-            "byte_count": (preserved / name).stat().st_size,
-            "sha256": file_sha256(preserved / name),
-        }
-        for role, name in artifact_names.items()
-    ]
-    (preserved / "complete.json").write_text(
-        json.dumps({"artifacts": artifacts}), encoding="utf-8"
-    )
-    association = SourceAssociationResult(
-        components=(), edges=(), memberships=()
-    )
-
-    def builder(*_args: object, **_kwargs: object) -> SimpleNamespace:
-        return SimpleNamespace(source_association=association)
-
-    def writer(
-        _dataset: object,
-        *,
-        output: Path,
-        **_kwargs: object,
-    ) -> dict[str, Path]:
-        writer.__globals__["build_post_correction_continuum_products"]()
-        output_paths: dict[str, Path] = {}
-        for role, name in artifact_names.items():
-            path = output / name
-            path.write_bytes(role.encode())
-            output_paths[role] = path
-        return output_paths
-
-    writer.__globals__["build_post_correction_continuum_products"] = builder
-    frozen: dict[str, Any] = {"_write_continuum_products": writer}
-    monkeypatch.setitem(
-        globals_,
-        "_load_parent_wrapper",
-        lambda: {
-            "_load_source_association_composition": lambda: ({}, {}, frozen),
-            "_install_parent_construction_static_seams": (
-                lambda _frozen: None
-            ),
-        },
-    )
-    monkeypatch.setitem(
-        globals_,
-        "DatasetRecord",
-        SimpleNamespace(model_validate=lambda _value: SimpleNamespace()),
-    )
-    monkeypatch.setitem(
-        globals_, "load_comparison_catalogue", lambda _path: ()
-    )
-    monkeypatch.setitem(globals_, "load_fits_plane", lambda _path: [])
-
-    def verify_association(*_args: object, **_kwargs: object) -> tuple[()]:
-        return ()
-
-    monkeypatch.setitem(
-        globals_,
-        "continuum_catalogue_objects_from_association",
-        verify_association,
-    )
-    monkeypatch.setattr(
-        "astropy.io.fits.getheader", lambda _path: SimpleNamespace()
-    )
-    destination = tmp_path / "sidecars" / "input-1"
-    task = {
-        "association_directory": str(destination),
-        "dataset": {},
-        "image_path": "image.fits",
-        "input_id": "input-1",
-        "mean_path": "mean.fits",
-        "output_directory": str(preserved),
-        "rms_path": "rms.fits",
-    }
-
-    assert reconstruct(task) == "input-1"
-    assert {item.name for item in destination.iterdir()} == {
-        "complete.json",
-        "source_association.json",
-    }

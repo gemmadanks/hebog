@@ -874,25 +874,6 @@ def evaluate_generated_image(
     )
 
 
-def evaluate_generated_population(
-    dataset: DatasetRecord,
-    review: PhaseFiveFilterReview,
-) -> tuple[GeneratedImageObservation, ...]:
-    """Evaluate both candidates over one frozen population without retuning."""
-    truth_groups = _build_generated_truth(dataset, review)
-    return tuple(
-        _evaluate_generated_with_truth(
-            dataset,
-            recipe,
-            family=family,
-            review=review,
-            truth_groups=truth_groups,
-        )
-        for recipe in iter_dataset_recipes(dataset)
-        for family in review.candidates
-    )
-
-
 def _maximum_response_snr(
     shape: tuple[int, int],
     responses: tuple[ScaleFilterResponse, ...],
@@ -1121,37 +1102,6 @@ def _corrective_results(
         review,
     )
     return matched, atrous, thresholded
-
-
-def evaluate_external_candidate_detection(  # noqa: PLR0913
-    image_jy_per_beam: npt.ArrayLike,
-    valid_pixels: npt.ArrayLike,
-    background_jy_per_beam: npt.ArrayLike,
-    rms_jy_per_beam: npt.ArrayLike,
-    *,
-    beam: BeamShapePixels,
-    review: PhaseFiveCorrectiveAReview,
-) -> ThresholdFilterResult:
-    """Return the frozen residual-B3 candidate's blind detection product.
-
-    This validation-only boundary exposes the exact candidate selected for
-    external comparison. It does not open the blocked production Step 3 API.
-    """
-    prepared = prepare_scale_filter_inputs(
-        image_jy_per_beam,
-        valid_pixels,
-        background_jy_per_beam,
-        rms_jy_per_beam,
-    )
-    _, atrous, thresholded = _corrective_results(
-        prepared,
-        beam,
-        review,
-        family="residual-b3-atrous",
-    )
-    if atrous is None:
-        raise RuntimeError("external candidate requires residual B3 evidence")
-    return thresholded
 
 
 def _observable_signal_measurement(
@@ -2261,23 +2211,4 @@ def evaluate_corrective_generated_image(
         family=family,
         review=review,
         truth_groups=truth_groups,
-    )
-
-
-def evaluate_corrective_generated_population(
-    dataset: DatasetRecord,
-    review: _CorrectiveReviewContract,
-) -> tuple[GeneratedImageObservation, ...]:
-    """Evaluate both Step 2C candidates over one frozen population."""
-    truth_groups = _build_generated_truth(dataset, review)
-    return tuple(
-        _evaluate_corrective_generated_with_truth(
-            dataset,
-            recipe,
-            family=family,
-            review=review,
-            truth_groups=truth_groups,
-        )
-        for recipe in iter_dataset_recipes(dataset)
-        for family in review.candidates
     )

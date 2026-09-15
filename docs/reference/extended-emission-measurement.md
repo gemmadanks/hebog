@@ -80,6 +80,6 @@ This milestone establishes measurement semantics and its bounded execution.
 Step 4 now reconciles adjacent-scale exact supports, records many-to-many
 compact spatial context, derives stable combined identities, and publishes
 the combined products. The Phase 5
-[bounded-execution halo review](phase-5-bounded-execution.md) derives the
+[bounded-execution halo review](https://github.com/gemmadanks/hebog/blob/4babf0baaf5609e72764183e543df84ec6be09e0/docs/reference/phase-5-bounded-execution.md) derives the
 measurement halo through the same helper used here; tile/executor invariance
 and byte-level execution evidence remain open Step 5 work.

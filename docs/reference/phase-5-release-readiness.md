@@ -28,20 +28,20 @@ tracks these as separate tasks. The restricted Rapthor profile, consumer
 acceptance and complete `filter_skymodel` performance belong in a later
 integration-readiness packet.
 
-## Existing command and frozen contract
+## Historical readiness tooling
 
-The existing
-[Phase 5 readiness contract](https://github.com/gemmadanks/hebog/blob/main/config/contracts/phase-5-readiness.json)
-and `scripts/validation/review_phase5_readiness.py` remain frozen tooling for
-an older candidate/evidence composition. That contract also requires the
-restricted Rapthor profile. It does **not** implement the current separation
-of standalone scientific readiness and Rapthor integration, and it cannot
-certify v15 or serve as an experimental package release checklist.
+The Phase 5
+[readiness contract](https://github.com/gemmadanks/hebog/blob/4babf0baaf5609e72764183e543df84ec6be09e0/config/contracts/phase-5-readiness.json)
+and its `scripts/validation/review_phase5_readiness.py` review command were
+built for an older candidate/evidence composition and also required the
+restricted Rapthor profile. They did not implement the current separation of
+standalone scientific readiness and Rapthor integration and could not certify
+v15. Both were removed from the live tree with the other closed campaign
+tooling and remain in Git history at `4babf0b`.
 
-A prospective update to the readiness composition is a remaining engineering
-task before scientific promotion. Preserve the old contract and decisions;
-do not change their booleans, bypass missing artifacts or point the old packet
-at a successor candidate to obtain a pass.
+A prospective readiness composition is a remaining engineering task before
+scientific promotion. It must be designed for its own candidate; do not revive
+the old packet or point it at a successor candidate to obtain a pass.
 
 The maintained acceptance design has two operations: `prepare` verifies
 terminal evidence and binds it in a review packet; `finalize` re-verifies that

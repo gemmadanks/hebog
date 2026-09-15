@@ -76,9 +76,12 @@ Dependencies point inward:
 ## Repository notes
 
 - `scripts/benchmark/` and `scripts/validation/` are thin runners over
-  `hebog.validation`. Several validation compilers are **checksum-bound to
-  sealed evidence** and are excluded from formatting or given lint exceptions
-  in `pyproject.toml`. Do not reformat or refactor them.
+  `hebog.validation`. The comparison notebook's reproducible workflow is
+  `download_notebook_data.py`, `prepare_notebook_comparison.py` (PyBDSF and
+  Aegean in Podman via `run_notebook_reference.py`) and
+  `refresh_public_notebook_hebog.py` (Hebog via `run_notebook_hebog.py`),
+  configured by `config/comparisons/notebook-comparison.json`. Closed Phase 5
+  campaign tooling was removed; it remains in Git history at `4babf0b`.
 - `LOG.md` is more than 1 MB. Read or search slices of it (for example, grep
   it, or read the end with an offset). Do not read the whole file.
 - `config/` holds the checked-in dataset, baseline, contract, and benchmark

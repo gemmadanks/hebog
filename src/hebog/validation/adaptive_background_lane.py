@@ -7,8 +7,6 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from functools import lru_cache
 from math import cos, isfinite, pi, sin, sqrt
-from pathlib import Path
-from platform import python_implementation, python_version
 from typing import Literal, Self, cast
 
 import numpy as np
@@ -20,7 +18,6 @@ from hebog.validation.adaptive_background_development import (
     build_adaptive_development_matrix,
     build_adaptive_replication_matrix,
 )
-from hebog.validation.campaign_runtime import dependency_inventory_sha256
 from hebog.validation.datasets import (
     AssociationGroupValidationStratum,
     AssociationTruthGroup,
@@ -40,7 +37,6 @@ from hebog.validation.datasets import (
     generate_synthetic_window,
     recipe_sha256,
 )
-from hebog.validation.external_runners import file_sha256
 
 _FWHM_PER_SIGMA = 2.0 * sqrt(2.0 * np.log(2.0))
 _IMAGE_DIMENSIONS = 2
@@ -207,35 +203,6 @@ def truth_linked_source_support_topology(
         if index not in linked_set
     )
     return TruthLinkedSourceTopology(linked, unmatched)
-
-
-def installed_adaptive_runtime_identity() -> dict[str, str]:
-    """Return the exact interpreter and installed-distribution identity."""
-    return {
-        "dependency_inventory_sha256": dependency_inventory_sha256(),
-        "python_implementation": python_implementation(),
-        "python_version": python_version(),
-    }
-
-
-def build_adaptive_runtime_identity(
-    repository_root: Path,
-) -> dict[str, object]:
-    """Bind the installed runtime and the two environment source files."""
-    runtime_files = {
-        "python_version": Path(".python-version"),
-        "uv_lock": Path("uv.lock"),
-    }
-    return {
-        "installed": installed_adaptive_runtime_identity(),
-        "source_files": {
-            name: {
-                "path": str(path),
-                "sha256": file_sha256(repository_root / path),
-            }
-            for name, path in sorted(runtime_files.items())
-        },
-    }
 
 
 class _LaneModel(BaseModel):

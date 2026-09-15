@@ -11,6 +11,7 @@ import numpy.typing as npt
 from astropy.io import fits
 
 from hebog.algorithms.multiscale import BeamShapePixels
+from hebog.science.catalogues import build_hebog_segment_catalogue
 from hebog.validation.comparison import CatalogueSource
 from hebog.validation.contracts import PhaseFiveCorrectiveAReview
 from hebog.validation.external_runners import canonical_sha256, file_sha256
@@ -22,7 +23,6 @@ from hebog.validation.post_campaign_science import (
     CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS,
     evaluate_post_campaign_candidate_products,
 )
-from hebog.validation.products import build_hebog_segment_catalogue
 
 _POSITION_POLICY = (
     "direct-plus-residual-b3-at-or-below-peak-to-mean-3-otherwise-original"

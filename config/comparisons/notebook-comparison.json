@@ -1,0 +1,228 @@
+{
+  "description": "Diagnostic SDC1, Hydra and LoTSS cases and reference-finder settings for the campaign comparison notebook. These are exploratory comparisons, not qualification evidence.",
+  "downloads": [
+    {
+      "filename": "lotss-dr2-survey-field-22arcmin.fits",
+      "lotss_cutout": {
+        "position": "12:00:00 +45:00:00",
+        "size_arcminutes": 22
+      },
+      "name": "lotss-survey"
+    },
+    {
+      "filename": "lotss-dr2-3c295-12arcmin.fits",
+      "lotss_cutout": {
+        "position": "3C 295",
+        "size_arcminutes": 12
+      },
+      "name": "lotss-3c295"
+    },
+    {
+      "filename": "lotss-dr2-m51-20arcmin.fits",
+      "lotss_cutout": {
+        "position": "M51",
+        "size_arcminutes": 20
+      },
+      "name": "lotss-m51"
+    },
+    {
+      "filename": "lotss-dr2-wide-ra13-90arcmin.fits",
+      "lotss_cutout": {
+        "position": "13:00:00 +47:00:00",
+        "size_arcminutes": 90
+      },
+      "name": "lotss-wide"
+    },
+    {
+      "expected_bytes": 51845760,
+      "filename": "emu_pilot_sample_2x2deg.fits",
+      "name": "hydra-deep-image",
+      "url": "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/files/vault/cirada/continuum/mboyce/hydra_paper/emu_2x2/emu_pilot_sample_2x2deg.fits"
+    },
+    {
+      "expected_bytes": 9978742534,
+      "filename": "emu_pilot_sample_2x2deg.hydra.tar.gz",
+      "name": "hydra-archive",
+      "url": "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/files/vault/cirada/continuum/mboyce/hydra_paper/emu_2x2/emu_pilot_sample_2x2deg.hydra.tar.gz"
+    },
+    {
+      "expected_bytes": 103685760,
+      "filename": "emu_pilot_sample_2x2deg.shallow.fits",
+      "name": "hydra-shallow-image",
+      "url": "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/files/vault/cirada/continuum/mboyce/hydra_paper/emu_2x2/emu_pilot_sample_2x2deg.shallow.fits"
+    },
+    {
+      "expected_bytes": 4294981440,
+      "filename": "SKAMid_B2_1000h_v3.fits",
+      "name": "sdc1-image",
+      "url": "https://owncloud.ia2.inaf.it/index.php/s/GsxoTyv1zrdRTu4/download"
+    },
+    {
+      "expected_bytes": 395816771,
+      "filename": "SDC1_submissions.tgz",
+      "name": "sdc1-official-submissions",
+      "url": "https://owncloud.ia2.inaf.it/index.php/s/xdeXBymC32og1ol/download"
+    },
+    {
+      "expected_bytes": 279360,
+      "filename": "PrimaryBeam_B2.fits",
+      "name": "sdc1-primary-beam",
+      "url": "https://owncloud.ia2.inaf.it/index.php/s/tVGse9GaLBQmntc/download"
+    },
+    {
+      "expected_bytes": 228644250,
+      "filename": "True_1400_v2.txt",
+      "name": "sdc1-truth-catalogue",
+      "url": "https://owncloud.ia2.inaf.it/index.php/s/J2WFVTsFevJBHKj/download"
+    }
+  ],
+  "reference_finders": {
+    "aegean": {
+      "floodclip_sigma": 4.0,
+      "package": "AegeanTools",
+      "seedclip_sigma": 5.0,
+      "version": "2.3.5"
+    },
+    "released-pybdsf": {
+      "package": "bdsf",
+      "process_image_options": {
+        "adaptive_rms_box": true,
+        "adaptive_thresh": 75.0,
+        "atrous_bdsm_do": true,
+        "atrous_do": true,
+        "atrous_jmax": 3,
+        "atrous_lpf": "b3",
+        "atrous_orig_isl": false,
+        "atrous_sum": true,
+        "mean_map": "zero",
+        "rms_box": [
+          150,
+          50
+        ],
+        "rms_box_bright": [
+          35,
+          7
+        ],
+        "rms_map": true,
+        "thresh": "hard",
+        "thresh_isl": 3.0,
+        "thresh_pix": 5.0
+      },
+      "version": "1.14.1"
+    }
+  },
+  "schema_version": 1,
+  "sdc1": {
+    "download": "sdc1-image",
+    "halo_pixels": 75,
+    "tiles": [
+      {
+        "bounds_xy_half_open": [
+          20480,
+          22528,
+          12288,
+          14336
+        ],
+        "stratum": "sparse",
+        "tile_id": "y06-x10"
+      },
+      {
+        "bounds_xy_half_open": [
+          18432,
+          20480,
+          12288,
+          14336
+        ],
+        "stratum": "ordinary",
+        "tile_id": "y06-x09"
+      },
+      {
+        "bounds_xy_half_open": [
+          16384,
+          18432,
+          16384,
+          18432
+        ],
+        "stratum": "crowded",
+        "tile_id": "y08-x08"
+      },
+      {
+        "bounds_xy_half_open": [
+          12288,
+          14336,
+          10240,
+          12288
+        ],
+        "stratum": "resolved",
+        "tile_id": "y05-x06"
+      },
+      {
+        "bounds_xy_half_open": [
+          14336,
+          16384,
+          10240,
+          12288
+        ],
+        "stratum": "close-pair",
+        "tile_id": "y05-x07"
+      },
+      {
+        "bounds_xy_half_open": [
+          16384,
+          18432,
+          14336,
+          16384
+        ],
+        "stratum": "high-dynamic-range",
+        "tile_id": "y07-x08"
+      },
+      {
+        "bounds_xy_half_open": [
+          16384,
+          18432,
+          18432,
+          20480
+        ],
+        "stratum": "low-apparent-SNR",
+        "tile_id": "y09-x08"
+      },
+      {
+        "bounds_xy_half_open": [
+          10240,
+          12288,
+          18432,
+          20480
+        ],
+        "stratum": "primary-beam-boundary",
+        "tile_id": "y09-x05"
+      }
+    ]
+  },
+  "whole_image_cases": [
+    {
+      "case_id": "hydra-deep",
+      "download": "hydra-deep-image",
+      "normalisation": "none"
+    },
+    {
+      "case_id": "hydra-shallow",
+      "download": "hydra-shallow-image",
+      "normalisation": "none"
+    },
+    {
+      "case_id": "lotss-dr2-wide-ra13-90arcmin",
+      "download": "lotss-wide",
+      "normalisation": "lotss-celestial-plane"
+    },
+    {
+      "case_id": "lotss-dr2-3c295-12arcmin",
+      "download": "lotss-3c295",
+      "normalisation": "lotss-celestial-plane"
+    },
+    {
+      "case_id": "lotss-dr2-m51-20arcmin",
+      "download": "lotss-m51",
+      "normalisation": "lotss-celestial-plane"
+    }
+  ]
+}

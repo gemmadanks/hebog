@@ -4,9 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-import runpy
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 from pydantic import ValidationError
@@ -415,64 +413,4 @@ def test_membership_evidence_reports_references_without_rescue() -> None:
             lanes[:-1],
             required_strata=("crowded", "sparse"),
             minimum_agreement=0.995,
-        )
-
-
-def test_profile_evaluator_binds_contract_and_refuses_overwrite(
-    tmp_path: Path,
-) -> None:
-    """The terminal compiler is write-once and rejects contract drift."""
-    namespace = runpy.run_path(
-        str(
-            _ROOT
-            / "scripts"
-            / "validation"
-            / "evaluate_phase5_rapthor_profile.py"
-        )
-    )
-    population_path = tmp_path / "population.json"
-    population_path.write_text(
-        json.dumps(_population_payload(), indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
-    evidence_path = tmp_path / "membership.json"
-    evidence_path.write_text(
-        json.dumps(
-            _evidence_payload(
-                population_sha256=hashlib.sha256(
-                    population_path.read_bytes()
-                ).hexdigest()
-            )
-        ),
-        encoding="utf-8",
-    )
-    output = tmp_path / "decision.json"
-    arguments = SimpleNamespace(
-        contract=_CONTRACT,
-        population=population_path,
-        evidence=evidence_path,
-        output=output,
-    )
-
-    namespace["evaluate"](arguments)
-    result = json.loads(output.read_text(encoding="utf-8"))
-    assert result["selected_profile"] == "compact"
-    assert result["complete"] is True
-    assert len(result["reference_comparisons"]) == 4
-
-    with pytest.raises(FileExistsError, match="refusing to overwrite"):
-        namespace["evaluate"](arguments)
-
-    changed = _evidence_payload()
-    changed["contract_sha256"] = "0" * 64
-    changed_path = tmp_path / "changed.json"
-    changed_path.write_text(json.dumps(changed), encoding="utf-8")
-    with pytest.raises(ValueError, match="contract SHA-256"):
-        namespace["evaluate"](
-            SimpleNamespace(
-                contract=_CONTRACT,
-                population=population_path,
-                evidence=changed_path,
-                output=tmp_path / "changed-decision.json",
-            )
         )

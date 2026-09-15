@@ -1,6 +1,6 @@
 # Hebog implementation plan
 
-Authoritative remaining-work plan. Updated **14 September 2026**.
+Authoritative remaining-work plan. Updated **15 September 2026**.
 Current user-facing capability and release policy are in
 [release status](../docs/reference/release-status.md); exact campaign
 identities, execution history and completed validation belong in
@@ -13,10 +13,10 @@ identities, execution history and completed validation belong in
 | Candidate | Public composition v19 is merged on `main` in `4babf0b`. It remains development-unqualified; the latest completed campaign is the closed v15 scientific failure. |
 | Implemented | FITS/WCS ingress, background/RMS, compact and multiscale detection, source/component measurement, catalogue/mask/RMS/diagnostics publication, Serial and caller-owned Dask execution, Zarr intermediates. |
 | Public envelope | ICRS `Jy/beam` FITS, at most 1,024 pixels on either spatial axis. `continuum` is the default; explicit `compact` is extended-emission-incomplete. Custom thresholds remain unqualified; their private refinement-trigger interaction is repaired in v18. |
-| Strongest applicable checks | The runtime-extraction branch passes exact old/new characterization across empty, compact, extended, edge, invalid-pixel and custom-threshold inputs; 149 public/Serial/Dask checks; all 27 frozen equivalence tests; and 3,986 branch-aware coverage tests with two expected xfails and 95.06% coverage. Exact pre-cleanup scope and results remain in Git history at `4babf0b`. No v17/v18/v19 campaign or powered parity verdict. |
+| Strongest applicable checks | The runtime extraction (merged) passed exact old/new characterization across empty, compact, extended, edge, invalid-pixel and custom-threshold inputs. The PR 3 deletion branch passes 2,665 portable tests at 95.996% branch-aware coverage (measured `HEAD` baseline 95.189%), all 27 frozen equivalence tests, notebook, docs and wheel smoke checks, exact old/new comparison-workflow oracles and a real one-case PyBDSF/Aegean/Hebog notebook setup. Exact pre-cleanup scope remains in Git history at `4babf0b`. No v17/v18/v19 campaign or powered parity verdict. |
 | Campaign | Verified v15 terminal: scientific **fail**, 1,115 pass / 32 fail / 40 underpowered comparisons. All five safety checks pass; 2,400 captures/evaluations, 12 exact Dask agreements and 8,000 retained records verified. No definite binding external-reference failure, but parity and incumbent retention are not established. |
-| Blockers | Historical campaign tooling, evidence records, tests and documentation remain in the live tree and impose substantial maintenance and CI cost, although the runtime-extraction branch removes the installed finder's dependency on them. Scientific qualification, Rapthor acceptance and complete-path performance remain unproven. |
-| Next authorized action | Merge the independently green runtime extraction, then mechanically delete unreachable historical surface while preserving science regressions, comparison/notebook workflows and scaling infrastructure. Finish a fully green v0.7.0 release candidate before scaling. Use the existing human-controlled Release Please/PyPI workflow; no automatic replay, closed-data rescoring or parity claim. |
+| Blockers | The bulk-deletion branch removes closed Phase 5 campaign tooling, records, archive-only tests and reference pages, and makes the notebook comparison workflow campaign-independent; it awaits review and hosted CI. The retained-validation CI partition still exists because its tests have not run on macOS/Windows. Scientific qualification, Rapthor acceptance and complete-path performance remain unproven. |
+| Next authorized action | Review and merge the bulk historical-surface deletion (PR 3), then prepare the v0.7.0 release-readiness branch (PR 4), including the hosted-matrix decision on folding the retained-validation partition into portable CI. Finish a fully green v0.7.0 release candidate before scaling. Use the existing human-controlled Release Please/PyPI workflow; no automatic replay, closed-data rescoring or parity claim. |
 | Deferred | The human accepted uncertainty-calibration, measurement-tail and faint-association limitations for the v17 experimental standalone release on 13 September. Broader F2 repair, optional improvement, full qualification and facility-scale work remain later tasks. Reopen a deferred issue if it becomes a confirmed incorrect supported output or serious correctness impact. |
 
 The [campaign overview](../docs/reference/phase-5-campaign-overview.md)
@@ -129,7 +129,7 @@ remain human decisions.
 - [x] **M2 — Make the bounded severity decision.** Review compact science then
       Continuum, including every failed/underpowered endpoint and known public
       witnesses. Use the existing
-      [severity policy](../docs/reference/phase-5-v13-followup-review.md#later-decision-final-campaign-then-development-closeout).
+      [severity policy](https://github.com/gemmadanks/hebog/blob/4babf0baaf5609e72764183e543df84ec6be09e0/docs/reference/phase-5-v13-followup-review.md#later-decision-final-campaign-then-development-closeout).
       List each remaining issue, evidence, severity, effect on public outputs,
       release disposition and next task. Close development if no serious issue
       remains; uncertain serious impact needs bounded triage and human
@@ -473,7 +473,8 @@ tests, as well as the explicitly retained science and comparison workflows.
          No algorithm, threshold, dtype, schema or public science result
          changed. The scientific-composition digest changes by design and
          remains development-unqualified.
-      3. **Bulk historical-surface deletion.** Starting from the extracted
+      3. **Bulk historical-surface deletion — current branch complete.**
+         Starting from the extracted
          runtime, delete unreachable Phase 5 campaign orchestration from
          `src/hebog/validation`, `scripts/validation` and
          `scripts/benchmark`, along with its archive-only tests, JSON records
@@ -486,6 +487,20 @@ tests, as well as the explicitly retained science and comparison workflows.
          performance/scalability tools needed next. Done when no retained file
          references a deleted path and all notebook, documentation,
          equivalence, package and CI lanes pass from a clean clone.
+         The branch removes 13 validation modules, 170 of 179
+         `scripts/validation` files, 57 of 91 `scripts/benchmark` files, 350
+         of 384 contract records, 41 reference pages and a net 102 test files, plus
+         validation code left unreachable by those deletions and a duplicate
+         catalogue builder; retained records link to `4babf0b`. The
+         notebook comparison now reads
+         `config/comparisons/notebook-comparison.json` and runs PyBDSF/Aegean
+         and Hebog without campaign authority; old/new oracles show identical
+         inputs, finder options and products. A real one-case setup built
+         both images, ran both references and a Hebog refresh, and loaded in
+         the notebook. It exposed and fixed a LoTSS `RESTFREQ` normalisation
+         defect. Dataset manifests stay for seed-disjointness checks. Hosted
+         CI, the clean-clone check and folding the retained-validation
+         partition into the portable matrix remain for review/PR 4.
       4. **v0.7.0 release readiness.** On a final small branch, review the
          aggregate diff against `CODE_REVIEW.md`, confirm the wheel contains no
          obsolete campaign modules or JSON, refresh user-facing file/path
@@ -594,9 +609,10 @@ reference; pinned PyBDSF `master` is independently binding. Aegean is binding
 for applicable compact/Gaussian populations. No finder is scientific truth.
 
 - Use the exact candidate's reviewed endpoint registry, decision contract and
-  activation/amendment records in `config/contracts/`. The
-  [prospective registry](../config/contracts/phase-5-prospective-science-endpoint-registry.json)
-  defines 383 endpoints and 1,187 co-primary comparisons. Do not confuse the
+  activation/amendment records. The closed Phase 5
+  [prospective registry](https://github.com/gemmadanks/hebog/blob/4babf0baaf5609e72764183e543df84ec6be09e0/config/contracts/phase-5-prospective-science-endpoint-registry.json)
+  defined 383 endpoints and 1,187 co-primary comparisons; a new campaign
+  needs its own prospectively reviewed registry. Do not confuse the
   original inactive freeze with later separately authorized executions.
 - Require every applicable relative PyBDSF, Aegean and single-incumbent Hebog
   comparison. Choose a whole incumbent before viewing results; do not combine

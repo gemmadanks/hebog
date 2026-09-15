@@ -5,16 +5,12 @@
 
 from __future__ import annotations
 
-import json
 import math
-import runpy
 from dataclasses import replace
-from pathlib import Path
 from typing import Any, cast
 
 import numpy as np
 import pytest
-from astropy.wcs import WCS
 
 from hebog.validation.public_comparison import (
     HydraDepth,
@@ -27,24 +23,6 @@ from hebog.validation.public_comparison import (
     gaussian_fwhm_arcsec,
     select_public_tiles,
 )
-
-_ROOT = Path(__file__).parents[3]
-_SELECTOR = _ROOT / "scripts/validation/select_phase5_public_population.py"
-_VERIFIER = _ROOT / "scripts/validation/verify_phase5_public_population.py"
-_REGISTRY = (
-    _ROOT
-    / "config/contracts/phase-5-public-comparison-selected-population.json"
-)
-
-
-def _selector() -> dict[str, Any]:
-    """Load the selection command without creating public products."""
-    return runpy.run_path(str(_SELECTOR))
-
-
-def _verifier() -> dict[str, Any]:
-    """Load the terminal verifier without opening public products."""
-    return runpy.run_path(str(_VERIFIER))
 
 
 def test_sdc1_size_codes_and_apparent_peak_snr_are_exact() -> None:
@@ -452,176 +430,3 @@ def test_public_tile_and_hydra_failure_boundaries_are_explicit() -> None:
             depth=cast(HydraDepth, "medium"),
             columns=columns,
         )
-
-
-def test_public_selector_binds_approval_and_keeps_finders_closed() -> None:
-    """The named selection approval cannot be broadened to finder execution."""
-    decision = _selector()["load_selection_authorization"](_ROOT)
-
-    assert decision["schema_review_sha256"].startswith("409318f5")
-    assert decision["adapter_implementation_authorized"] is True
-    assert decision["cutout_selection_authorized"] is True
-    assert decision["finder_execution_authorized"] is False
-    assert decision["qualification_opened"] is False
-
-
-def test_public_selector_resamples_pixels_and_serializes_infinity() -> None:
-    """Beam admission uses bilinear pixel values and strict JSON semantics."""
-    namespace = _selector()
-    wcs = WCS(naxis=2)
-    wcs.wcs.crpix = [1.0, 1.0]
-    wcs.wcs.cdelt = np.array([-0.01, 0.01])
-    wcs.wcs.crval = [0.0, -30.0]
-    wcs.wcs.ctype = ["RA---SIN", "DEC--SIN"]
-    beam = np.arange(16, dtype=np.float64).reshape(4, 4)
-
-    mean, valid = namespace["_resample_primary_beam"](
-        x_start=1,
-        y_start=1,
-        side=2,
-        context=namespace["_BeamContext"](
-            image_wcs=wcs,
-            primary_beam=beam,
-            primary_beam_wcs=wcs,
-        ),
-    )
-
-    assert valid is True
-    assert mean == pytest.approx(7.5)
-    empty = _tile(
-        "empty",
-        0,
-        count=0,
-        resolved=0.0,
-        pair=float("inf"),
-        dynamic=0.0,
-        low_snr=0.0,
-        primary_beam=0.5,
-    )
-    assert (
-        namespace["_tile_attribute_record"](empty)["closest_pair_beams"]
-        == "infinity"
-    )
-
-
-def test_public_selector_handles_only_the_known_unplaceable_truth_row(
-    tmp_path: Path,
-) -> None:
-    """The one official NaN centroid is excluded by half-open membership."""
-    namespace = _selector()
-    truth_path = tmp_path / "truth.txt"
-    truth = np.ones((2, 12), dtype=np.float64)
-    truth[:, 0] = [1, 32_397_377]
-    truth[:, 10] = 2
-    truth[1, 3:5] = np.nan
-    np.savetxt(truth_path, truth)
-
-    loaded = namespace["_load_truth"](truth_path)
-
-    assert loaded.shape == (2, 12)
-    truth[1, 0] = 99
-    np.savetxt(truth_path, truth)
-    with pytest.raises(ValueError, match="centroid population changed"):
-        namespace["_load_truth"](truth_path)
-
-
-def test_public_population_semantics_remain_closed_after_selection() -> None:
-    """A selected population cannot silently authorize finder or release."""
-    strata = [
-        "sparse",
-        "ordinary",
-        "crowded",
-        "resolved",
-        "close-pair",
-        "high-dynamic-range",
-        "low-apparent-SNR",
-        "primary-beam-boundary",
-    ]
-    document = {
-        "schema_version": 1,
-        "population_id": "phase-5-public-comparison-selected-population",
-        "status": "sealed-before-finder-execution",
-        "selection_authorization": {
-            "sha256": (
-                "d60fb6454ffc93c240d06e2e40888e1a4d378bc242057276f63a6d82238f565b"
-            )
-        },
-        "schema_review": {
-            "sha256": (
-                "409318f58cafe259b4347953051ef8dddcf2308f041e8145e4199f7ad281eed8"
-            )
-        },
-        "acquisition": {
-            "sha256": (
-                "a74e60de95debcc53bdf43d4f6046a6f74befe8a85e849a5b0105f2ecb0bd0ce"
-            )
-        },
-        "implementation": {
-            "selector_sha256": (
-                "0ddbc6566bb9b61dcf135857311068f8d5162eb6d04ff1d8481588c1cd980233"
-            ),
-            "adapter_sha256": (
-                "3a3aa7c3118ebb7189e9bbc0363ee3eb04b4baf5f3c0fc08b95fc63a9369beac"
-            ),
-        },
-        "sdc1": {
-            "candidate_tile_count": 256,
-            "admitted_tile_count": 32,
-            "excluded_nonfinite_centroid_truth_ids": [32_397_377],
-            "candidate_output_used": False,
-            "selected_tiles": [
-                {"stratum": stratum, "tile": {"tile_id": f"tile-{index}"}}
-                for index, stratum in enumerate(strata)
-            ],
-        },
-        "hydra": {
-            "complete_images_no_crop": True,
-            "published_catalogue_products_opened": False,
-        },
-        "finder_execution_authorized": False,
-        "finder_outputs_created": False,
-        "qualification_opened": False,
-        "cutover_authorized": False,
-        "release_authorized": False,
-    }
-    validate = _verifier()["validate_population_document"]
-
-    validate(document)
-    document["finder_execution_authorized"] = True
-    with pytest.raises(ValueError, match="semantics are invalid"):
-        validate(document)
-
-
-def test_checked_public_population_registry_binds_terminal_evidence() -> None:
-    """The durable registry retains exact selected identities and closures."""
-    registry = json.loads(_REGISTRY.read_text(encoding="utf-8"))
-
-    assert registry["population"] == {
-        "admitted_tile_count": 32,
-        "candidate_tile_count": 256,
-        "excluded_nonfinite_centroid_truth_ids": [32_397_377],
-        "path": (
-            "benchmark-results/phase-5/public-comparison-selection/"
-            "population.json"
-        ),
-        "selected_tile_count": 8,
-        "sha256": (
-            "0a7c2b18d96ee47277072528949c5a64239f0c3053d5e7b33c03b36c194b7824"
-        ),
-    }
-    assert [item["stratum"] for item in registry["selected_tiles"]] == [
-        "sparse",
-        "ordinary",
-        "crowded",
-        "resolved",
-        "close-pair",
-        "high-dynamic-range",
-        "low-apparent-SNR",
-        "primary-beam-boundary",
-    ]
-    assert len({item["tile_id"] for item in registry["selected_tiles"]}) == 8
-    assert registry["finder_execution_authorized"] is False
-    assert registry["finder_outputs_created"] is False
-    assert registry["qualification_opened"] is False
-    assert registry["cutover_authorized"] is False
-    assert registry["release_authorized"] is False
