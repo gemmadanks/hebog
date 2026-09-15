@@ -3,7 +3,7 @@
 This tutorial runs Hebog as a standalone scientific library. It uses no
 Rapthor, Prefect, LSMTool, or private Dask cluster.
 
-The interface is experimental and scientifically unqualified. A successful
+The interface is experimental and not yet scientifically qualified. A successful
 run does not by itself qualify Hebog for a survey; see
 [current capability and release status](../reference/release-status.md).
 
@@ -13,7 +13,7 @@ Use one two-dimensional FITS image, or a FITS image with only singleton axes
 before its final two spatial axes. The image must have:
 
 - pixel values in `Jy/beam`;
-- an ICRS celestial WCS (`RADESYS = 'ICRS'`);
+- an ICRS or FK5 J2000 celestial WCS;
 - finite positive `BMAJ` and `BMIN` restoring-beam axes and a `BPA` position angle;
 - a positive reference frequency in `RESTFRQ`, `RESTFREQ`, or a frequency WCS
   axis; and
@@ -22,12 +22,11 @@ before its final two spatial axes. The image must have:
 NaN pixels are allowed and are excluded from the analysis. Missing or invalid
 physical metadata fails clearly before any output bundle is published.
 
-A header with `EQUINOX = 2000` but no `RADESYS` keyword, as written by some
-imagers including WSClean, declares an FK5 frame under the FITS WCS standard.
-Hebog currently rejects it with
-`hebog.UnsupportedSourceFinderConfigurationError`. Add `RADESYS = 'ICRS'` only
-if treating those coordinates as ICRS is acceptable for your science; FK5
-J2000 and ICRS differ by tens of milliarcseconds.
+A header with `EQUINOX = 2000` but no `RADESYS` keyword, as written by
+WSClean, declares FK5 J2000 under the FITS WCS standard. Hebog accepts it and
+converts every catalogue position and beam angle to ICRS; the two frames
+differ by tens of milliarcseconds. Other frames and equinoxes raise
+`hebog.UnsupportedSourceFinderConfigurationError`.
 
 ## Run the continuum profile
 

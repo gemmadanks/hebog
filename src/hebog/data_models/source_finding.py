@@ -242,7 +242,7 @@ class PublicSourceFindingProvenance(BaseModel):
     scientific_profile_sha256: str
     scientific_composition_sha256: str
     scientific_composition: Literal[
-        "phase-5-evidence-bound-public-catalogue-v19"
+        "phase-5-evidence-bound-public-catalogue-v20"
     ]
     schema_version: Literal[1] = 1
 

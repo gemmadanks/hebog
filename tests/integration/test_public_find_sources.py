@@ -13,6 +13,8 @@ from typing import Any, TypeVar
 
 import numpy as np
 import pytest
+from astropy import units
+from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from distributed import Client, LocalCluster
 
@@ -1079,3 +1081,286 @@ def test_interrupted_publication_can_retry_without_partial_products(
 
     assert result.catalogue_path.is_file()
     assert request.output_directory.is_dir()
+
+
+def _catalogue_positions(result: hebog.SourceFinderResult) -> np.ndarray:
+    """Return published source positions in canonical row order."""
+    catalogue = read_catalogue_fits_product(result.catalogue)
+    return np.asarray(
+        [
+            (
+                source.position.right_ascension_degrees,
+                source.position.declination_degrees,
+            )
+            for source in catalogue.sources
+        ],
+        dtype=np.float64,
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("declared", ("radesys-fk5", "implicit-equinox"))
+def test_fk5_j2000_input_publishes_the_same_icrs_sky(
+    tmp_path: Path,
+    declared: str,
+) -> None:
+    """FK5 J2000 pixels are converted, not relabelled, into ICRS positions.
+
+    Given one image whose FK5 J2000 reference point is the same sky direction
+    as an ICRS reference image, the frame-tie rotation over the image is
+    micro-arcseconds, so both runs publish the same ICRS sky. The FK5 and ICRS
+    reference coordinates themselves differ by tens of milliarcseconds.
+    """
+    image = _ring_image()
+    _write_image(tmp_path / "image.fits", image)
+    reference = SkyCoord(180.0 * units.deg, -30.0 * units.deg, frame="icrs")
+    fk5: Any = reference.transform_to("fk5")
+    header = _header(image.shape)
+    header["CRVAL1"] = fk5.ra.deg
+    header["CRVAL2"] = fk5.dec.deg
+    del header["RADESYS"]
+    header["EQUINOX"] = 2000.0
+    if declared == "radesys-fk5":
+        header["RADESYS"] = "FK5"
+    fits.PrimaryHDU(data=image, header=header).writeto(tmp_path / "fk5.fits")
+    frame_tie: Any = reference.separation(
+        SkyCoord(fk5.ra, fk5.dec, frame="icrs")
+    )
+    frame_tie_arcsec = float(frame_tie.to_value(units.arcsec))
+
+    icrs_result = hebog.find_sources(
+        _request(tmp_path, output_name="icrs"), _config(), SerialExecutor()
+    )
+    fk5_result = hebog.find_sources(
+        SourceFinderRequest(
+            image_path=tmp_path / "fk5.fits",
+            output_directory=tmp_path / "fk5",
+            run_id="public-contract",
+        ),
+        _config(),
+        SerialExecutor(),
+    )
+
+    assert frame_tie_arcsec > 0.01
+    icrs_positions = _catalogue_positions(icrs_result)
+    fk5_positions = _catalogue_positions(fk5_result)
+    assert icrs_positions.shape == fk5_positions.shape == (1, 2)
+    separation_arcsec = np.asarray(
+        SkyCoord(*icrs_positions.T, unit="deg", frame="icrs")
+        .separation(SkyCoord(*fk5_positions.T, unit="deg", frame="icrs"))
+        .to_value(units.arcsec),
+        dtype=np.float64,
+    )
+    assert np.all(separation_arcsec < 1e-4)
+    icrs_catalogue = read_catalogue_fits_product(icrs_result.catalogue)
+    fk5_catalogue = read_catalogue_fits_product(fk5_result.catalogue)
+    assert fk5_catalogue.coordinate_frame == "icrs"
+    assert [
+        source.flux.integrated_flux_jy for source in fk5_catalogue.sources
+    ] == pytest.approx(
+        [source.flux.integrated_flux_jy for source in icrs_catalogue.sources],
+        rel=1e-9,
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("radesys", "equinox"),
+    (("FK5", 1950.0), ("FK4", 1950.0), ("GALACTIC", None)),
+)
+def test_other_celestial_frames_fail_before_publication(
+    tmp_path: Path,
+    radesys: str,
+    equinox: float | None,
+) -> None:
+    """Only ICRS and FK5 J2000 are inside the public input envelope."""
+    header = _header((8, 8))
+    if radesys == "GALACTIC":
+        del header["RADESYS"]
+        header["CTYPE1"] = "GLON-TAN"
+        header["CTYPE2"] = "GLAT-TAN"
+    else:
+        header["RADESYS"] = radesys
+        header["EQUINOX"] = equinox
+    fits.PrimaryHDU(np.zeros((8, 8)), header).writeto(tmp_path / "image.fits")
+
+    with pytest.raises(
+        UnsupportedSourceFinderConfigurationError,
+        match="ICRS or FK5 J2000",
+    ):
+        hebog.find_sources(_request(tmp_path), _config(), _RecordingExecutor())
+
+    assert not (tmp_path / "products").exists()
+
+
+@pytest.mark.integration
+def test_relative_request_paths_are_bound_before_execution(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Workers never resolve request paths against their own directory."""
+    _write_image(tmp_path / "image.fits", _ring_image())
+    sources: list[Path] = []
+    original = public_api.FitsImageSource
+
+    def recording_source(path: Path) -> FitsImageSource:
+        sources.append(path)
+        return original(path)
+
+    monkeypatch.setattr(public_api, "FitsImageSource", recording_source)
+    monkeypatch.chdir(tmp_path)
+
+    result = hebog.find_sources(
+        SourceFinderRequest(
+            image_path=Path("image.fits"),
+            output_directory=Path("products"),
+            run_id="relative",
+        ),
+        _config(),
+        _RecordingExecutor(),
+    )
+
+    assert sources == [tmp_path / "image.fits"]
+    assert result.catalogue_path == tmp_path / "products/catalogue.fits"
+    assert result.catalogue_path.is_file()
+
+
+@pytest.mark.integration
+def test_oversized_input_is_rejected_before_it_is_hashed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An inadmissible image costs a header read, not a full-file digest."""
+    _write_image(tmp_path / "image.fits", np.zeros((2, 1025)))
+
+    def forbidden_hash(_path: Path) -> str:
+        pytest.fail("oversized input was hashed")
+
+    monkeypatch.setattr(public_api, "_file_sha256", forbidden_hash)
+
+    with pytest.raises(SourceFinderImageTooLargeError, match="1024"):
+        hebog.find_sources(_request(tmp_path), _config(), _RecordingExecutor())
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("occupant", ("empty", "populated", "file"))
+def test_output_created_during_analysis_is_never_replaced(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    occupant: str,
+) -> None:
+    """A destination claimed by another writer mid-run is left untouched."""
+    _write_image(tmp_path / "image.fits", _ring_image())
+    request = _request(tmp_path)
+    original = public_api._materialize_bundle  # pyright: ignore[reportPrivateUsage]
+
+    def claim_output(*args: Any, **kwargs: Any) -> Any:
+        output = request.output_directory
+        if occupant == "file":
+            output.write_text("preserve", encoding="utf-8")
+        else:
+            output.mkdir()
+            if occupant == "populated":
+                (output / "owned.txt").write_text("preserve", encoding="utf-8")
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(public_api, "_materialize_bundle", claim_output)
+
+    with pytest.raises(SourceFinderOutputExistsError, match="already exists"):
+        hebog.find_sources(request, _config(), _RecordingExecutor())
+
+    output = request.output_directory
+    if occupant == "file":
+        assert output.read_text(encoding="utf-8") == "preserve"
+    else:
+        expected = ["owned.txt"] if occupant == "populated" else []
+        assert sorted(path.name for path in output.iterdir()) == expected
+    assert sorted(path.name for path in tmp_path.iterdir()) == [
+        "image.fits",
+        "products",
+    ]
+
+
+@pytest.mark.integration
+def test_whole_pixel_beam_is_invariant_to_sub_milliarcsecond_reference_shift(
+    tmp_path: Path,
+) -> None:
+    """Finite-difference round-off cannot move beam-scaled pixel extents.
+
+    Given a four-pixel circular beam, a 0.7 mas reference-coordinate shift
+    changes the WCS Jacobian only at round-off level. Aperture radii and
+    kernel halos derived with ``ceil`` must not flip, so the published
+    measurements are unchanged.
+    """
+    image = _ring_image()
+    fluxes: list[list[float]] = []
+    for index, reference_ra in enumerate((180.0, 180.0 + 2e-7)):
+        header = _header(image.shape)
+        header["CRVAL1"] = reference_ra
+        path = tmp_path / f"image-{index}.fits"
+        fits.PrimaryHDU(data=image, header=header).writeto(path)
+        beam = public_api._beam_shape_pixels(  # pyright: ignore[reportPrivateUsage]
+            FitsImageSource(path).metadata()
+        )
+        assert (beam.major_fwhm_pixels, beam.minor_fwhm_pixels) == (4.0, 4.0)
+        assert beam.position_angle_degrees == 0.0
+        result = hebog.find_sources(
+            SourceFinderRequest(
+                image_path=path,
+                output_directory=tmp_path / f"products-{index}",
+                run_id="reference-shift",
+            ),
+            _config(),
+            SerialExecutor(),
+        )
+        catalogue = read_catalogue_fits_product(result.catalogue)
+        fluxes.append(
+            [source.flux.integrated_flux_jy for source in catalogue.sources]
+        )
+
+    assert fluxes[0] == pytest.approx(fluxes[1], rel=1e-9)
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("claimed", (True, False))
+def test_publication_rename_failure_is_classified_by_destination(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    claimed: bool,
+) -> None:
+    """A rename race is an existing output; other rename errors propagate."""
+    unpublished = tmp_path / "bundle"
+    unpublished.mkdir()
+    output = tmp_path / "products"
+
+    def failing_rename(_source: Path, _target: Path) -> Path:
+        if claimed:
+            output.mkdir()
+        raise OSError("injected rename failure")
+
+    monkeypatch.setattr(Path, "rename", failing_rename)
+    expected = SourceFinderOutputExistsError if claimed else OSError
+    with pytest.raises(expected) as error:
+        public_api._publish_bundle(unpublished, output)  # pyright: ignore[reportPrivateUsage]
+
+    assert unpublished.is_dir()
+    assert isinstance(error.value, SourceFinderOutputExistsError) is claimed
+
+
+@pytest.mark.integration
+def test_unreadable_input_digest_is_an_invalid_input(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A read failure after header validation keeps the public error type."""
+    _write_image(tmp_path / "image.fits", np.zeros((8, 8)))
+
+    def unreadable(_path: Path) -> str:
+        raise OSError("injected read failure")
+
+    monkeypatch.setattr(public_api, "_file_sha256", unreadable)
+
+    with pytest.raises(InvalidSourceFinderInputError, match="invalid FITS"):
+        hebog.find_sources(_request(tmp_path), _config(), _RecordingExecutor())
+
+    assert not (tmp_path / "products").exists()
