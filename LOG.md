@@ -21732,3 +21732,17 @@ scientific pass from fixture validation.
   it into the portable matrix is left to the release-readiness branch after a
   hosted run. No scientific algorithm, threshold, dtype, schema or public
   product changed.
+
+## 2026-09-15 — Condense the implementation plan
+
+- Rewrite `plans/source-finder-implementation.md` as a forward-looking plan:
+  current state, delivery policy, collaboration rules, the v0.7.0 release
+  checklist (R1–R5), later increments and retained scientific, performance and
+  architecture gates. Remove the completed PR #49 merge checklist (M1–M6),
+  closed E0–E2 task narratives and repair histories; their decisions and
+  evidence remain in this log and Git history.
+- Sequencing change: add a reusable synthetic comparison campaign before
+  scaling work, rebuilt from Git history without the removed authorization
+  layer, so later scalability changes can be compared against a scientific
+  reference for the current candidate. Its population, decision rules,
+  references and compute budget are decided in that PR.

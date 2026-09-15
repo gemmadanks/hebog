@@ -61,6 +61,13 @@ Never hard-code those paths in package code or normal tests.
   benchmark baseline, scientific threshold, gate, architecture decision, or
   risk changes, and record significant architecture or scientific decisions
   there before spreading them through the implementation.
+- The plan holds only current state, remaining tasks, and the rules and gates
+  that govern future work. Keep historical information in `LOG.md`: execution
+  narratives, repair diagnoses, test counts, commit and evidence identities,
+  and dated decision records. When a task completes, record its outcome in
+  `LOG.md` and remove the task from the plan rather than marking it done and
+  annotating it. Restate a past decision in the plan only as the current
+  rule or constraint it imposes. Never grow a task with progress notes.
 - Append to `LOG.md` only material plan execution, scientific and performance
   evidence, gate outcomes, deviations, cross-commit decisions, and next steps.
   Link exact evidence identities rather than repeating them. Use Git history
