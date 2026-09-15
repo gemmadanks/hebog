@@ -6,6 +6,7 @@ authors = [
     {name = "Gemma Danks", email = "gemma.danks@skao.int"},
 ]
 license = "BSD-3-Clause"
+license-files = ["LICENSE"]
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -71,7 +72,6 @@ markers = [
     "contract: scheduler-independent public behaviour and product contracts",
     "equivalence: scientific comparisons with PyBDSF reference products",
     "integration: Dask, FITS, and Rapthor integration tests",
-    "posix_frozen_record: exact reconstruction of a sealed record whose reviewed paths use POSIX spelling",
     "qualification: held-out scientific validation for milestone and release gates",
     "requires_data: tests requiring external or non-redistributable datasets",
     "scalability: controlled large-image and multi-node scaling tests",

@@ -21761,3 +21761,47 @@ scientific pass from fixture validation.
   A trailing-whitespace trial is fixed and settled in about 10 s without
   running the slow hooks. Remove `.pre-commit-config.yaml` excludes for files
   deleted by the Phase 5 cleanup; the frozen PyBDSF diagnostics excludes stay.
+
+## 2026-09-15 — Prepare the v0.7.0 release-readiness branch
+
+- PR #54 merged as `0a552ca`; R1 is complete and removed from the plan.
+  Branch `chore-prepare-release-0-7-0` carries R2.
+- CI partition decision: fold `tests/unit/validation` into the portable
+  matrix and remove the Linux-only `retained-validation` job. After the
+  cleanup the directory holds 929 quick tests that pass locally in 70 s. The
+  symlink use that motivated the partition is already exercised on Windows by
+  `tests/integration/test_product_materialization.py`. The hosted macOS and
+  Windows run of this branch is the confirming evidence; restore the
+  partition with a stated reason only for a platform-specific failure. The
+  unused `posix_frozen_record` marker and its Windows skip hook are removed.
+- Wheel audit: the built wheel's `hebog/` files equal the tracked
+  `src/hebog` files, so no removed campaign module or record ships. The wheel
+  lacked the BSD licence text; `license-files = ["LICENSE"]` now adds
+  `dist-info/licenses/LICENSE` and `License-File` metadata. The installed
+  `hebog.validation.support_plotting` imports Matplotlib, which is only a
+  development dependency; release status now describes `hebog.validation` as
+  development tooling. Excluding it from distributions is a separate decision.
+- Aggregate `v0.6.0..HEAD` review against `CODE_REVIEW.md` found no P0 or P1
+  defect. Import inertness, inward dependencies (one lazy `io/combined.py`
+  import of `hebog.adapters.rapthor_catalogue` excepted), CLI, examples and
+  small edge inputs pass. P2 findings: FITS headers with `EQUINOX` but no
+  `RADESYS` (WSClean) are FK5 under the WCS standard and rejected as non-ICRS;
+  Dask workers require shared absolute paths; publication checks output
+  existence only before analysis, so a directory created concurrently is
+  replaced if empty or produces a raw `OSError` if not. P3: oversized inputs
+  are hashed before the size check, `numba` is an unused runtime dependency,
+  and the `__version__` fallback is not bumped by Release Please. The first
+  two P2 items and two documentation errors (`BPA` is required; the Rapthor
+  adapter does not compose branches) are documented or corrected here; the
+  code changes await a human decision on whether they precede v0.7.0.
+- Release-notes gap: v0.6.0 `find_sources` raised `NotImplementedError`, so
+  v0.7.0 is the first functional release. Breaking changes include the
+  `profile` configuration field, catalogue JSON schema 3 and FITS schema 4,
+  diagnostics schema 8 with a union reader, and removal of
+  `hebog.validation.phase_four_analysis`, `phase_four_decision` and
+  `phase_four_recovery`. The last removal came through hidden `chore` commits
+  and needs an explicit note in R4.
+- README links are absolute so the PyPI long description renders; README,
+  quick start and release status state the unqualified scientific status,
+  the latest failed campaign result, accepted limitations and PyPI
+  installation.

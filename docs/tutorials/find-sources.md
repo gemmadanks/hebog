@@ -13,14 +13,21 @@ Use one two-dimensional FITS image, or a FITS image with only singleton axes
 before its final two spatial axes. The image must have:
 
 - pixel values in `Jy/beam`;
-- an ICRS celestial WCS;
-- finite positive `BMAJ` and `BMIN` restoring-beam axes (`BPA` defaults to zero);
+- an ICRS celestial WCS (`RADESYS = 'ICRS'`);
+- finite positive `BMAJ` and `BMIN` restoring-beam axes and a `BPA` position angle;
 - a positive reference frequency in `RESTFRQ`, `RESTFREQ`, or a frequency WCS
   axis; and
 - no more than 1,024 pixels along either spatial axis.
 
 NaN pixels are allowed and are excluded from the analysis. Missing or invalid
 physical metadata fails clearly before any output bundle is published.
+
+A header with `EQUINOX = 2000` but no `RADESYS` keyword, as written by some
+imagers including WSClean, declares an FK5 frame under the FITS WCS standard.
+Hebog currently rejects it with
+`hebog.UnsupportedSourceFinderConfigurationError`. Add `RADESYS = 'ICRS'` only
+if treating those coordinates as ICRS is acceptable for your science; FK5
+J2000 and ICRS differ by tens of milliarcseconds.
 
 ## Run the continuum profile
 
@@ -250,7 +257,9 @@ types, so workflow code does not need to parse error strings.
 
 Callers that already own a Dask client may pass `DaskExecutor(client)` instead
 of `SerialExecutor()`. Hebog never creates a cluster or inspects ambient
-scheduler state. Serial and existing-Dask execution are required to publish
+scheduler state. Workers open the input image and write intermediate planes
+beside the output directory, so on a multi-node cluster use absolute paths on
+storage that every worker can read and write. Serial and existing-Dask execution are required to publish
 byte-identical scientific products.
 
 ## Current limits

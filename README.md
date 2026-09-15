@@ -1,10 +1,10 @@
 # Hebog
 
-[![CI](https://github.com/gemmadanks/hebog/actions/workflows/ci.yaml/badge.svg?branch=main)](.github/workflows/ci.yaml)
-[![release-please](https://github.com/gemmadanks/hebog/actions/workflows/release-please.yaml/badge.svg)](release-please-config.json)
+[![CI](https://github.com/gemmadanks/hebog/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/gemmadanks/hebog/actions/workflows/ci.yaml)
+[![release-please](https://github.com/gemmadanks/hebog/actions/workflows/release-please.yaml/badge.svg)](https://github.com/gemmadanks/hebog/actions/workflows/release-please.yaml)
 [![Docs](https://github.com/gemmadanks/hebog/actions/workflows/docs-pages.yaml/badge.svg)](https://gemmadanks.github.io/hebog/)
 [![codecov](https://codecov.io/gh/gemmadanks/hebog/graph/badge.svg)](https://codecov.io/gh/gemmadanks/hebog)
-[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://github.com/gemmadanks/hebog/blob/main/LICENSE)
 
 Hebog is an **experimental** radio-continuum source finder with serial and
 Dask execution for scientific workflows and data pipelines.
@@ -23,8 +23,8 @@ Hebog turns a radio image into measured sources and supporting image products,
 using serial execution or an existing Dask cluster.
 
 For a stakeholder-friendly walkthrough, see
-[how Hebog makes each source-finding decision](docs/explanation/how-hebog-works.md).
-The [public output reference](docs/reference/public-products.md) defines every
+[how Hebog makes each source-finding decision](https://gemmadanks.github.io/hebog/explanation/how-hebog-works/).
+The [public output reference](https://gemmadanks.github.io/hebog/reference/public-products/) defines every
 catalogue population, measurement, unit, null, diagnostic, and integration
 contract.
 
@@ -41,8 +41,29 @@ compact and multiscale detection, Gaussian-component and associated-source
 measurements, and atomic catalogue, RMS, mask and diagnostic products. Use
 Serial execution or supply an existing Dask client.
 
+Hebog is **scientifically unqualified**. Its most recent completed synthetic
+comparison campaign did not pass every scientific endpoint, and later changes
+have focused regression evidence only. Known limitations include uncertainty
+calibration, extended-source centroid and flux tails, and faint-source
+association. Public inputs are limited to ICRS `Jy/beam` FITS images of at most
+1,024 pixels on either spatial axis, and the Rapthor integration and
+end-to-end speed targets are not yet established. See
+[current capability and release status](https://gemmadanks.github.io/hebog/reference/release-status/)
+before interpreting results.
+
 Hebog is released in tested experimental `0.x` increments. Published
 versions are listed in [GitHub releases](https://github.com/gemmadanks/hebog/releases).
+
+## Installation
+
+Install a published release from PyPI into a Python 3.12–3.14 environment:
+
+```shell
+pip install hebog
+```
+
+or add it to a uv project with `uv add hebog`. Record the exact installed
+version with your results; outputs may change between `0.x` releases.
 
 ## Goal
 
@@ -85,17 +106,18 @@ The top-level call outputs a source catalogue, RMS image,
 source-filtering mask, and diagnostics. It
 accepts ICRS `Jy/beam` images up to 1,024 pixels on either spatial axis.
 The
-[public tutorial](docs/tutorials/find-sources.md) explains profiles, products,
+[public tutorial](https://gemmadanks.github.io/hebog/tutorials/find-sources/) explains profiles, products,
 unavailable measurements and retries.
 
 Requests and results never contain open FITS handles, scheduler clients, or
 mutable full-image objects. Scientific thresholds are explicit because the
 widely used 5-sigma/3-sigma profile is not a universal default. One public
 request analyses one image and returns one catalogue, RMS image, mask, and
-diagnostics record. The `hebog.adapters.rapthor` boundary composes the
-primary-beam-corrected and flat-noise branches and owns Rapthor-specific sky
-models, filenames, and compatibility options. Rapthor owns the top-level Dask
-graph and resource budget.
+diagnostics record. The `hebog.adapters.rapthor` module defines the
+serializable records for a future Rapthor integration; composing the
+primary-beam-corrected and flat-noise branches and filtering sky models are
+not implemented yet. Rapthor owns the top-level Dask graph and resource
+budget.
 
 ## Development setup
 
@@ -144,9 +166,9 @@ It generates a small synthetic shell, calls `hebog.find_sources`, and reads
 and displays the published catalogue, RMS, mask and diagnostics. The
 astronomer's workbench adds image and threshold controls; the internals
 notebook demonstrates algorithms and tiling; the comparison notebook displays
-saved campaign results.
+saved PyBDSF, Aegean and Hebog products.
 
-See [Use the notebooks](docs/how-to/notebooks.md) for all four notebooks,
+See [Use the notebooks](https://gemmadanks.github.io/hebog/how-to/notebooks/) for all four notebooks,
 public-data downloads, saved comparison prerequisites and refresh commands.
 Use `just marimo-check` for structure checks and `just notebook-smoke` to
 execute the two offline examples. Neither enforces identical experiment
@@ -170,10 +192,10 @@ Dependencies point inward from workflow and compatibility adapters to the
 public pipeline and scientific core. Hebog favours Pythonic, typed, cohesive
 code and narrow demonstrated extension seams over framework-specific coupling
 or a speculative plugin system. See the
-[quality attributes and coding principles](docs/explanation/quality-attributes.md).
+[quality attributes and coding principles](https://gemmadanks.github.io/hebog/explanation/quality-attributes/).
 
 Hebog does not currently need a project-owned C++ or Rust extension. The
-[native-code assessment](docs/explanation/native-code-assessment.md) keeps
+[native-code assessment](https://gemmadanks.github.io/hebog/explanation/native-code-assessment/) keeps
 NumPy/SciPy and profiled Numba as the first choices, with quantitative gates
 for reconsidering Rust or C++ after end-to-end profiling.
 
@@ -183,7 +205,9 @@ for reconsidering Rust or C++ after end-to-end profiling.
   and I/O boundaries.
 - `tests/`: unit, integration, scientific-equivalence, acceptance,
   qualification, and benchmark suites.
-- `scripts/benchmark/`: reproducible PyBDSF, Hebog, and Rapthor benchmarks.
+- `scripts/benchmark/`: reproducible benchmarks and the notebook comparison
+  workflow.
+- `scripts/validation/`: dataset, reference-product and catalogue tooling.
 - `config/`: checked-in algorithm, equivalence, and benchmark configurations.
 - `notebooks/`: reproducible interactive demonstrations.
 - `docs/`: user, reference, explanation, and architecture documentation.
@@ -195,7 +219,7 @@ for reconsidering Rust or C++ after end-to-end profiling.
 ## Contributing
 
 Use [Conventional Commits](https://www.conventionalcommits.org/) and follow
-[AGENTS.md](AGENTS.md). A scientific or performance change must include the
+[AGENTS.md](https://github.com/gemmadanks/hebog/blob/main/AGENTS.md). A scientific or performance change must include the
 relevant equivalence evidence; isolated kernel timings are not sufficient for
 an end-to-end speedup claim. Code must pass the configured Ruff, Pyright,
 coverage, and test gates. Significant architectural decisions belong in an ADR
@@ -203,5 +227,5 @@ under `docs/architecture/adr/`.
 
 ## Citation and license
 
-If Hebog contributes to research, cite it using [CITATION.cff](CITATION.cff).
-Hebog is distributed under the [BSD 3-Clause License](LICENSE).
+If Hebog contributes to research, cite it using [CITATION.cff](https://github.com/gemmadanks/hebog/blob/main/CITATION.cff).
+Hebog is distributed under the [BSD 3-Clause License](https://github.com/gemmadanks/hebog/blob/main/LICENSE).

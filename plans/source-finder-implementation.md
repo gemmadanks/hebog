@@ -11,13 +11,13 @@ Closed Phase 5 contracts, reviews and campaign tooling are in Git history at
 
 | Item | Current position |
 | --- | --- |
-| Candidate | Public composition v19 on `main`, with its runtime extracted into `hebog.science` (#52). Development-unqualified. |
+| Candidate | Public composition v19 on `main`, with its runtime extracted into `hebog.science`. Development-unqualified. |
 | Implemented | FITS/WCS ingress, background/RMS, compact and multiscale detection, source/component measurement, catalogue/mask/RMS/diagnostics publication, Serial and caller-owned Dask execution, Zarr intermediates. |
 | Public envelope | ICRS `Jy/beam` FITS, at most 1,024 pixels on either spatial axis. `continuum` is the default; explicit `compact` is extended-emission-incomplete. Custom thresholds are unqualified. |
 | Strongest evidence | The latest completed campaign (v15) is a scientific **fail**: 1,115 pass, 32 fail and 40 underpowered comparisons, with no definite binding external-reference failure. The later v16–v18 repairs and v19 have focused regression, Serial/Dask, equivalence and installed-wheel evidence only. The [campaign overview](../docs/reference/phase-5-campaign-overview.md) holds the conclusions and non-passing inventory. |
 | Accepted limitations | On 13 September the human accepted uncertainty calibration, measurement tails and faint association as documented limitations of an experimental standalone release. They are not passing endpoints. |
-| Blockers | v0.7.0 needs the PR 3 cleanup merged, hosted CI across the supported matrix and the release checklist below. General scientific readiness, Rapthor acceptance and complete-path performance remain unproven. |
-| Next action | Human: push, review and merge PR 3 (`chore-cleanup-phase-5-closed-campaigns`). Agent: then prepare the v0.7.0 release-readiness branch. |
+| Blockers | v0.7.0 needs the release-readiness branch merged with hosted CI across the supported matrix, then the checklist below. General scientific readiness, Rapthor acceptance and complete-path performance remain unproven. |
+| Next action | Human: push `chore-prepare-release-0-7-0`, review and merge it after hosted CI passes (R2). |
 | Deferred | Broader F2 association repair, further scientific improvement, general qualification, Rapthor integration and facility-scale work. Reopen a deferred issue if it becomes a confirmed incorrect supported output. |
 
 ## Delivery policy
@@ -94,27 +94,14 @@ Publish v0.7.0 before starting scaling work. No version is otherwise
 preassigned; a later fix, measured optimization or API improvement can repeat
 R3–R5 for its own `0.x` release.
 
-- [ ] **R1 — Merge the closed-campaign cleanup (PR 3).** *Human: push, review
-      and merge; agent: address review findings.* The branch removes
-      closed Phase 5 tooling, records, archive-only tests and reference pages,
-      makes the notebook comparison workflow campaign-independent, and passes
-      the local handoff checks recorded in `LOG.md`. Done when human review is
-      complete and hosted CI passes. Stop if public science bytes or
-      Serial/Dask results change, or a retained notebook workflow loses its
-      replacement.
-- [ ] **R2 — Prepare release readiness on a final small branch.** *Agent
-      prepares and validates locally; human pushes, reviews CI and merges.*
-      - Review the aggregate diff since v0.6.0 against `CODE_REVIEW.md`,
-        including the public and `hebog.validation` breaking changes.
-      - Confirm the wheel contains no removed campaign modules or records.
-      - Decide the retained-validation CI partition. Fold
-        `tests/unit/validation` into the portable matrix after it passes on
-        hosted macOS and Windows runners, or keep the partition with a stated
-        reason.
-      - Refresh user-facing paths and limitations in the README, docs home,
-        release status and tutorial.
-      - Run `just ci` locally and the hosted matrix: Linux on Python
-        3.12–3.14, plus macOS and Windows on Python 3.14.
+- [ ] **R2 — Merge the release-readiness branch.** *Human pushes
+      `chore-prepare-release-0-7-0`, reviews and merges; agent addresses
+      findings and CI failures.* The branch runs `tests/unit/validation` in
+      the portable matrix, includes the licence in distributions and refreshes
+      user-facing status, installation and limitations. Done when hosted CI
+      passes on Linux Python 3.12–3.14 and macOS and Windows Python 3.14. If
+      the validation tests fail only for a platform reason, the agent fixes
+      the test or restores the Linux-only partition with a stated reason.
 - [ ] **R3 — Refresh and inspect the notebook comparison.** *Human runs and
       inspects; agent investigates any reported issue.* On the merged release
       candidate, run the Hebog refresh preflight, then refresh the 13 saved
@@ -127,7 +114,10 @@ R3–R5 for its own `0.x` release.
 - [ ] **R4 — Review the Release Please PR.** *Release Please generates the
       version, changelog and citation changes; human reviews; agent checks on
       request.* Confirm the generated notes reflect the Conventional Commits,
-      including every breaking change. Release status and user documentation,
+      including every breaking change. PR #54 is a hidden `chore` that removed
+      `hebog.validation.phase_four_*` modules; before this review, add a
+      `BEGIN_COMMIT_OVERRIDE` block with a breaking-change note to its PR
+      body so Release Please includes it. Release status and user documentation,
       updated in R2, must state "experimental, scientifically unqualified",
       the tested input and resource envelope and known limitations.
 - [ ] **R5 — Release through the existing workflow.** *Human configures the
