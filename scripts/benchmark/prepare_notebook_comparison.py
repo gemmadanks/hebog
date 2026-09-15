@@ -190,7 +190,7 @@ def _normalise_lotss_image(download: Path, destination: Path) -> None:
     frequency_hz = _reference_frequency_hz(header, source_header)
     for key, comment in (
         ("RESTFRQ", "Reference frequency [Hz]"),
-        ("RESTFREQ", "Reference frequency [Hz]; released PyBDSF spelling"),
+        ("RESTFREQ", "Reference frequency [Hz] for PyBDSF"),
     ):
         if header.get(key) != frequency_hz:
             header[key] = (frequency_hz, comment)

@@ -329,7 +329,7 @@ explain the rationale.
   `tests/benchmark/`.
 - Markers are strict and declared in `pyproject.toml`: `contract`,
   `integration`, `equivalence`, `acceptance`, `qualification`, `benchmark`,
-  `scalability`, `slow`, `requires_data`, and `posix_frozen_record`.
+  `scalability`, `slow`, and `requires_data`.
 - Unit tests must not require a running scheduler, download data, or depend on
   execution order.
 - Use TDD for public contracts, pure scientific kernels, schemas, matching,

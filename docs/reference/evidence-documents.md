@@ -3,6 +3,8 @@
 Benchmark and scientific-validation outputs use the strict versioned models
 in `hebog.validation.evidence`. These documents preserve measurements and
 provenance without implying that an exploratory run has passed a release gate.
+`hebog.validation` is repository tooling and is not installed from the Hebog
+wheel; use it from a source checkout after `uv sync --all-groups`.
 
 Every document contains:
 

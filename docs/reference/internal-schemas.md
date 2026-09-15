@@ -252,7 +252,8 @@ bytes returns the existing product record; a retry that would replace
 different bytes fails with `MaterializedProductConflictError`. Publication
 does not weaken the separate deployment-store concurrency qualification gate.
 
-`materialize_combined_products` stages and validates all four new products,
+`hebog.adapters.rapthor_products.materialize_combined_products` stages and
+validates all four new products,
 including the result record, before publishing any of them. Destinations are
 resolved before checking distinctness; existing hard-link aliases and aliases
 of the reused RMS plane are rejected too. Each staged file is on the same

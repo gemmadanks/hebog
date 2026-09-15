@@ -1,4 +1,4 @@
-"""Failure-safe materialization of final compact-plus-extended products."""
+"""Failure-safe final products with the Rapthor catalogue view."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from typing import Any, cast
 import numpy as np
 import numpy.typing as npt
 
+from hebog.adapters.rapthor_catalogue import write_rapthor_catalogue_fits
 from hebog.algorithms.combined_products import (
     build_combined_diagnostics,
     combine_source_filtering_mask_blocks,
@@ -194,10 +195,6 @@ def materialize_combined_products(  # noqa: PLR0913
     not crash-atomic or simultaneously visible across all destinations; a
     successful return is the completion boundary. RMS is only read and reused.
     """
-    from hebog.adapters.rapthor_catalogue import (  # noqa: PLC0415
-        write_rapthor_catalogue_fits,
-    )
-
     rms_source = FitsProductImageSource(rms_product)
     if not _metadata_matches(metadata, rms_source.metadata()):
         raise ProductMaterializationError(

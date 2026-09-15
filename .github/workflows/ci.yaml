@@ -15,7 +15,6 @@ env:
   OMP_NUM_THREADS: "1"
   OPENBLAS_NUM_THREADS: "1"
   MKL_NUM_THREADS: "1"
-  NUMBA_NUM_THREADS: "1"
 
 jobs:
   pre-commit:
@@ -86,35 +85,6 @@ jobs:
       - name: Run portable tests
         run: >-
           uv run pytest
-          -n 2 --dist worksteal
-          -m "not slow and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data"
-          --ignore=tests/unit/validation
-
-  retained-validation:
-    name: Retained validation tests / py${{ matrix.python }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        # The coverage job supplies the Python 3.14 retained-validation run.
-        python: ["3.12", "3.13"]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Install uv and set python version
-        uses: astral-sh/setup-uv@v7
-        with:
-          version: ${{ env.UV_VERSION }}
-          python-version: ${{ matrix.python }}
-          enable-cache: true
-
-      - name: Install dependencies
-        run: uv sync --all-groups
-
-      - name: Run retained validation tests
-        run: >-
-          uv run pytest -q tests/unit/validation
           -n 2 --dist worksteal
           -m "not slow and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data"
 

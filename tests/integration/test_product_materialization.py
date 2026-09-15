@@ -19,6 +19,11 @@ import pytest
 from astropy.io import fits
 
 from hebog.adapters.rapthor_catalogue import write_rapthor_catalogue_fits
+from hebog.adapters.rapthor_products import (
+    CombinedProductPaths,
+    MaterializedCombinedProducts,
+    materialize_combined_products,
+)
 from hebog.data_models import (
     CelestialWcs,
     ContinuumSourceFindingDiagnostics,
@@ -44,13 +49,11 @@ from hebog.data_models.multiscale import (
     CompletedCombinedCatalogueState,
 )
 from hebog.io import (
-    CombinedProductPaths,
     FitsProductImageSource,
     InvalidMaterializedProductError,
     MaterializedProductConflictError,
     ProductMaterializationError,
     UnsupportedMaterializedProductError,
-    materialize_combined_products,
     read_catalogue_fits_product,
     read_diagnostics_product,
     write_catalogue_fits_product,
@@ -58,7 +61,6 @@ from hebog.io import (
     write_mask_fits_product,
     write_rms_fits_product,
 )
-from hebog.io.combined import MaterializedCombinedProducts
 
 pytestmark = pytest.mark.integration
 
@@ -1303,10 +1305,10 @@ def test_combined_paths_cannot_alias_reused_rms(
 @pytest.mark.parametrize(
     "module_name,writer_name",
     (
-        ("hebog.io.combined", "write_catalogue_fits_product"),
-        ("hebog.io.combined", "write_mask_fits_product"),
-        ("hebog.io.combined", "write_diagnostics_product"),
-        ("hebog.adapters.rapthor_catalogue", "write_rapthor_catalogue_fits"),
+        ("hebog.adapters.rapthor_products", "write_catalogue_fits_product"),
+        ("hebog.adapters.rapthor_products", "write_mask_fits_product"),
+        ("hebog.adapters.rapthor_products", "write_diagnostics_product"),
+        ("hebog.adapters.rapthor_products", "write_rapthor_catalogue_fits"),
     ),
 )
 @pytest.mark.parametrize("after_write", (False, True))

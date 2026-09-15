@@ -17,10 +17,14 @@ import os
 import re
 import runpy
 import subprocess
+import warnings
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
+
+from astropy.io.fits.verify import VerifyWarning
+from astropy.wcs import FITSFixedWarning
 
 from hebog.data_models import ImageBounds
 from hebog.validation.external_runners import source_tree_sha256
@@ -475,9 +479,31 @@ def run_refresh(  # noqa: C901, PLR0912, PLR0913, PLR0915
     )
 
 
+def _ignore_frozen_input_header_warnings() -> None:
+    """Silence two benign warnings repeated for every SDC1 cutout read.
+
+    The frozen SDC1 cutouts inherit ``BLANK`` on floating-point data, which
+    FITS ignores because NaN marks invalid pixels, and ``DATE-OBS`` without
+    ``MJD-OBS``, which does not affect the celestial pixel mapping. Rewriting
+    the inputs would change their checksums and invalidate the saved PyBDSF
+    and Aegean references.
+    """
+    warnings.filterwarnings(
+        "ignore",
+        message="Invalid 'BLANK' keyword in header",
+        category=VerifyWarning,
+    )
+    warnings.filterwarnings(
+        "ignore",
+        message="'datfix' made the change 'Set MJD-OBS to",
+        category=FITSFixedWarning,
+    )
+
+
 def main() -> None:
     """Run the public notebook refresh from command-line arguments."""
     arguments = _parse_args()
+    _ignore_frozen_input_header_warnings()
     repository_root = cast(Path, arguments.repository_root).resolve()
     run_refresh(
         repository_root=repository_root,

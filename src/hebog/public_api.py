@@ -21,6 +21,7 @@ from typing import Any, Literal, cast
 import numpy as np
 import numpy.typing as npt
 from astropy.io import fits
+from astropy.wcs.utils import wcs_to_celestial_frame
 from scipy.ndimage import find_objects, label
 
 from hebog.algorithms.astrometry import (
@@ -70,9 +71,13 @@ _TILE_SHAPE_YX = (128, 128)
 _DETECTION_THRESHOLD_SIGMA = 5.0
 _ISLAND_THRESHOLD_SIGMA = 3.0
 _MINIMUM_ISLAND_PIXELS = 7
-_COMPOSITION_NAME = "phase-5-evidence-bound-public-catalogue-v19"
+_COMPOSITION_NAME = "phase-5-evidence-bound-public-catalogue-v20"
 _PROFILE_RESOURCE = "phase_5_continuum_review.json"
 _FWHM_PER_SIGMA = 2.0 * np.sqrt(2.0 * np.log(2.0))
+# Finite-difference WCS Jacobians carry ~1e-8 pixel round-off. Quantising the
+# derived beam axes to 1e-6 pixel keeps whole-pixel beams exact, so ``ceil``
+# aperture radii and kernel halos cannot flip with a sub-mas WCS change.
+_BEAM_AXIS_DECIMALS = 6
 _SCIENTIFIC_MODULES = (
     "hebog.algorithms.astrometry",
     "hebog.algorithms.background",
@@ -114,6 +119,34 @@ class _ScientificProducts:
     terminal: Any | None
 
 
+def _require_unclaimed_output(output: Path) -> None:
+    """Reject any existing destination, including a dangling symlink."""
+    if output.exists() or output.is_symlink():
+        raise SourceFinderOutputExistsError(
+            f"source-finder output already exists: {output}"
+        )
+
+
+def _publish_bundle(unpublished: Path, output: Path) -> None:
+    """Rename the staged bundle into place without replacing a destination.
+
+    The destination is checked again after analysis because another writer may
+    claim it while this call runs. POSIX ``rename`` would otherwise silently
+    replace an empty directory. A claim in the remaining interval between the
+    check and the rename is reported as an existing output when the rename
+    fails; callers must still give concurrent analyses distinct destinations.
+    """
+    _require_unclaimed_output(output)
+    try:
+        unpublished.rename(output)
+    except OSError as error:
+        if output.exists() or output.is_symlink():
+            raise SourceFinderOutputExistsError(
+                f"source-finder output already exists: {output}"
+            ) from error
+        raise
+
+
 def _file_sha256(path: Path) -> str:
     """Return one streaming lowercase SHA-256 identity."""
     digest = hashlib.sha256()
@@ -149,25 +182,44 @@ def _configuration_qualification(
     return "development-unqualified"
 
 
+def _supported_celestial_frame(metadata: ImageMetadata) -> bool:
+    """Accept ICRS, or FK5 J2000 whose positions are transformed to ICRS.
+
+    FK5 J2000 is the frame the FITS WCS standard assigns to ``EQUINOX = 2000``
+    without ``RADESYS``, as written by common radio imagers. Every published
+    sky position and beam angle is transformed through Astropy's frame tie.
+    """
+    frame_name = metadata.celestial_wcs.coordinate_frame
+    if frame_name == "icrs":
+        return True
+    if frame_name != "fk5":
+        return False
+    frame = cast(
+        Any, wcs_to_celestial_frame(celestial_wcs_from_metadata(metadata))
+    )
+    return bool(np.isclose(frame.equinox.jyear, 2000.0, rtol=0.0, atol=1e-9))
+
+
 def _qualified_metadata(metadata: ImageMetadata) -> None:
     """Require the evaluated physical frame, unit, and bounded size."""
     if metadata.unit != "Jy/beam":
         raise UnsupportedSourceFinderConfigurationError(
-            "the Phase 5 public preview requires BUNIT=Jy/beam"
+            "the public source finder requires BUNIT=Jy/beam"
         )
-    if metadata.celestial_wcs.coordinate_frame != "icrs":
+    if not _supported_celestial_frame(metadata):
         raise UnsupportedSourceFinderConfigurationError(
-            "the Phase 5 public preview requires an ICRS celestial WCS"
+            "the public source finder requires an ICRS or FK5 J2000 "
+            "celestial WCS"
         )
     if max(metadata.shape_yx) > _MAXIMUM_PREVIEW_DIMENSION:
         raise SourceFinderImageTooLargeError(
-            "the Phase 5 public preview supports at most 1024 pixels per "
+            "the public source finder supports at most 1024 pixels per "
             "image dimension"
         )
 
 
 def _full_bounds(metadata: ImageMetadata) -> ImageBounds:
-    """Return the complete bounded Phase 5 preview plane."""
+    """Return the complete bounded image plane."""
     return ImageBounds(0, metadata.shape_yx[0], 0, metadata.shape_yx[1])
 
 
@@ -214,24 +266,23 @@ def _beam_shape_pixels(metadata: ImageMetadata) -> BeamShapePixels:
     major_index = int(np.argmax(eigenvalues))
     minor_index = 1 - major_index
     major_vector = eigenvectors[:, major_index]
-    if np.isclose(
-        eigenvalues[major_index],
-        eigenvalues[minor_index],
-        rtol=1e-12,
-        atol=0.0,
-    ):
+    major_fwhm_pixels = round(
+        float(np.sqrt(eigenvalues[major_index]) * _FWHM_PER_SIGMA),
+        _BEAM_AXIS_DECIMALS,
+    )
+    minor_fwhm_pixels = round(
+        float(np.sqrt(eigenvalues[minor_index]) * _FWHM_PER_SIGMA),
+        _BEAM_AXIS_DECIMALS,
+    )
+    if major_fwhm_pixels == minor_fwhm_pixels:
         angle = 0.0
     else:
         angle = float(
             np.rad2deg(np.arctan2(major_vector[1], major_vector[0])) % 180.0
         )
     return BeamShapePixels(
-        major_fwhm_pixels=float(
-            np.sqrt(eigenvalues[major_index]) * _FWHM_PER_SIGMA
-        ),
-        minor_fwhm_pixels=float(
-            np.sqrt(eigenvalues[minor_index]) * _FWHM_PER_SIGMA
-        ),
+        major_fwhm_pixels=major_fwhm_pixels,
+        minor_fwhm_pixels=minor_fwhm_pixels,
         position_angle_degrees=angle,
     )
 
@@ -882,28 +933,33 @@ def find_sources(
 ) -> SourceFinderResult:
     """Analyse one supported FITS image and atomically publish its products.
 
-    The Phase 5 scientific preview supports ICRS ``Jy/beam`` images no larger
-    than 1024 pixels on either axis. Caller thresholds are executed exactly;
+    The public finder supports ICRS or FK5 J2000 ``Jy/beam`` images no larger
+    than 1024 pixels on either axis; catalogue positions are ICRS. Relative
+    request paths are bound to the caller's working directory before any
+    executor task is built. Caller thresholds are executed exactly;
     diagnostics distinguish the unqualified development candidate from custom
     unqualified science. ``compact`` intentionally omits extended-emission
     association.
     """
-    output = Path(request.output_directory)
-    if output.exists():
-        raise SourceFinderOutputExistsError(
-            f"source-finder output already exists: {output}"
-        )
-    image_path = Path(request.image_path)
+    output = Path(request.output_directory).absolute()
+    _require_unclaimed_output(output)
+    image_path = Path(request.image_path).absolute()
+    request = replace(request, image_path=image_path, output_directory=output)
     try:
         source = FitsImageSource(image_path)
         metadata = source.metadata()
         header = cast(fits.Header, fits.getheader(image_path))
-        input_sha256 = _file_sha256(image_path)
     except (OSError, ValueError) as error:
         raise InvalidSourceFinderInputError(
             f"invalid FITS source-finder input: {image_path}"
         ) from error
     _qualified_metadata(metadata)
+    try:
+        input_sha256 = _file_sha256(image_path)
+    except OSError as error:
+        raise InvalidSourceFinderInputError(
+            f"invalid FITS source-finder input: {image_path}"
+        ) from error
     output.parent.mkdir(parents=True, exist_ok=True)
     started = monotonic()
     with TemporaryDirectory(
@@ -931,5 +987,5 @@ def find_sources(
             input_sha256=input_sha256,
             wall_seconds=monotonic() - started,
         )
-        unpublished.replace(output)
+        _publish_bundle(unpublished, output)
     return result.model_copy(update={"wall_seconds": monotonic() - started})
