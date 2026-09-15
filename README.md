@@ -20,7 +20,7 @@ flowchart TD
     D --> G["Diagnostics"]
 ```
 
-Hebog aims to be a fast, scalable source finder that is easily integrated into 
+Hebog aims to be a fast, scalable source finder that is easily integrated into
 next generation radio astronomy data processing pipelines such as
 [Rapthor](https://github.com/darafferty/rapthor). It can also be used on its own from Python.
 
