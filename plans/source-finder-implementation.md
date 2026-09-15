@@ -52,6 +52,43 @@ closed decisions or campaign execution authority. No release is being executed
 by this planning task. Release Please owns versioning, changelogs and tags;
 all task commits stay local for human review and push.
 
+## Collaboration and repair decisions
+
+These rules govern agent work on this plan and are referenced from
+[`AGENTS.md`](../AGENTS.md).
+
+- The agent owns routine completeness checks, integration checks and clear
+  recommendations. Do not depend on the user discovering missing checks,
+  requesting a cheap diagnostic or reconstructing status across
+  conversations. Reserve human attention for scientific interpretation,
+  priorities and trade-offs that require human judgment.
+- Before a scientific or campaign repair, write a short decision statement in
+  the existing task or plan: observed problem, proposed cause, independent
+  test, expected measurable change and stopping condition. Distinguish a
+  correctness defect, agreed-gate failure, operational failure and optional
+  improvement; an aggregate failed endpoint alone does not establish a cause.
+- After two repairs aimed at the same mechanism produce no material change
+  against the stated expectation, review the diagnosis and recommend a
+  bounded next step before another full replay. This is a reassessment
+  trigger, not permission to abandon required work, change gates or retry
+  closed evidence.
+- Follow the approved scope and severity policy. Keep development closure,
+  scientific qualification, release and default cutover distinct, as in the
+  delivery policy above. Record optional improvements as deferred work rather
+  than automatically expanding the current milestone. Known incorrect
+  supported outputs remain release blockers; a phase label or accepted
+  development limitation cannot waive them.
+- Carry existing authorization forward within its scope. Complete authorized
+  preparation and present a concrete recommendation before requesting a new
+  scientific or resource decision. Explain the exact boundary requiring that
+  decision; do not add approval steps for routine reversible work.
+- At milestone reviews, use the existing log to assess time to actionable
+  diagnosis, avoidable campaign interruptions, repairs without useful change
+  and user effort needed to recover status or scope. Use these observations
+  to improve the workflow, not commit counts, test totals or documentation
+  volume as productivity targets. Do not introduce a separate tracking
+  framework.
+
 ## Before merging the accumulated finder work to main
 
 **14 September repair decision (authorized):** source-protected coarse
@@ -580,11 +617,26 @@ for applicable compact/Gaussian populations. No finder is scientific truth.
 - Compare like source/component/support semantics; use original pixels for
   flux and photometry, valid pixels for mask precision/recall/IoU, and report
   splits, merges, duplicates and low-SNR completeness/reliability separately.
-- Run an explicitly budgeted public finder/capture/read/evaluate/aggregate
-  development screen before any long replacement campaign. Include ordinary,
-  empty, failure-mechanism and numerical/invalid-pixel controls plus existing
-  Dask agreement. Reuse verified applicable evidence. A small clean screen is
-  neither powered parity nor a probability of campaign success.
+- Before a long scientific campaign or replacement replay, run a development
+  screen through the existing runner and evaluator with an explicit time and
+  resource budget. Select cases before inspecting their results: ordinary
+  controls, independent examples of known failure mechanisms, valid empty
+  results, and relevant numerical and invalid-pixel boundaries. Exercise the
+  public finder, capture, native product reading, evaluation and final
+  aggregation, including Serial/existing-Dask agreement; provenance-only
+  preflight does not replace this execution check. Reuse verified screen
+  evidence while its scientific and execution identities remain applicable,
+  and rerun affected checks when they change.
+- For a scientific candidate, the screen includes paired comparisons with the
+  required references and incumbent where applicable; verified immutable
+  comparator products may be reused under the existing protocol. Inspect
+  meaningful scientific deltas and representative notebook plots as
+  diagnostics. Keep the screen separate from held-out qualification, record
+  its limits, and resolve or explicitly defer warnings under the agreed
+  severity policy before launch. A small clean screen is neither powered
+  parity nor a probability of campaign success. Screens do not alter frozen
+  populations, gates, evidence or execution authority, and must not create a
+  second campaign framework.
 
 The dataset matrix retains compact SNR 3–100, blends, diffuse Gaussians,
 filaments/shells, mixed emission, different beams/WCS/pixel scales/units,
