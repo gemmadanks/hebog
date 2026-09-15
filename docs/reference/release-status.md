@@ -31,7 +31,7 @@ photometry, and atomic product publication. Start with
 | Boundary | Supported behaviour |
 | --- | --- |
 | Input | One two-dimensional FITS image, or singleton leading axes followed by two spatial axes. |
-| Physical metadata | ICRS celestial WCS, `BUNIT=Jy/beam`, finite positive restoring-beam axes with a position angle, and a positive reference frequency. Headers with `EQUINOX` but no `RADESYS`, as written by some imagers including WSClean, declare FK5 and are rejected. |
+| Physical metadata | ICRS or FK5 J2000 celestial WCS, `BUNIT=Jy/beam`, finite positive restoring-beam axes with a position angle, and a positive reference frequency. FK5 J2000 includes headers with `EQUINOX = 2000` and no `RADESYS`, as written by WSClean; catalogue positions are always converted to ICRS. Other frames and equinoxes are rejected. |
 | Image size | No more than 1,024 pixels along either spatial axis. Larger inputs fail before analysis. |
 | Invalid pixels | NaN pixels are allowed and excluded from estimation, detection, and measurement. |
 | Profiles | `continuum` is the default. `compact` deliberately omits extended-source association and reports `extended-emission-incomplete`. |
@@ -51,16 +51,16 @@ inspection, and bounded scientific evaluation. It is not yet suitable for an
 unqualified statement that Hebog is interchangeable with PyBDSF or ready for a
 particular survey.
 
-The most recent completed synthetic comparison campaign is a scientific
-**fail**: 1,115 comparisons passed, 32 failed and 40 were underpowered. There
-was no definite failure against an external reference finder, but the
-underpowered comparisons prevent a parity claim and the failures prevent a
-quality-retention claim against an earlier Hebog candidate.
-Later repairs, including the released composition, have focused regression,
+In the most recent synthetic comparison campaign, no comparison against
+released PyBDSF, PyBDSF `master` or Aegean failed; 19 of the 676 PyBDSF
+comparisons were statistically inconclusive. The campaign was recorded as a
+fail only because 32 comparisons regressed slightly against an earlier Hebog
+version, mainly in uncertainty calibration and some centroid and flux tails.
+Later changes, including the current composition, have focused regression,
 Serial/Dask, equivalence and installed-wheel evidence only. The
-[Phase 5 campaign overview](phase-5-campaign-overview.md) records the
-conclusions and every non-passing endpoint. No release claims general parity
-with PyBDSF.
+[Phase 5 campaign overview](phase-5-campaign-overview.md) records every
+non-passing comparison. This is development evidence: Hebog is not yet
+scientifically qualified, and no release claims general parity with PyBDSF.
 
 Diagnostics label the example 5-sigma detection, 3-sigma island, seven-pixel
 configuration as `development-unqualified`. Other valid settings are labelled
@@ -128,10 +128,9 @@ meaning directly. Integrators should:
 5. check product scientific status explicitly; and
 6. review current documentation and release notes before upgrading.
 
-The installed `hebog.validation` package is development tooling for the
-repository's comparison scripts and tests, not part of the source-finding API.
-Some of its modules need the repository's development dependencies, for
-example Matplotlib for support plots.
+The `hebog.validation` package is development tooling for the repository's
+comparison scripts and tests. It is not part of the source-finding API and is
+not installed from a wheel; use a source checkout with `uv sync --all-groups`.
 
 Schema numbers are documented in the
 [public-output reference](public-products.md). They are compatibility checks

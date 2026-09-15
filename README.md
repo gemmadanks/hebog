@@ -41,11 +41,13 @@ compact and multiscale detection, Gaussian-component and associated-source
 measurements, and atomic catalogue, RMS, mask and diagnostic products. Use
 Serial execution or supply an existing Dask client.
 
-Hebog is **scientifically unqualified**. Its most recent completed synthetic
-comparison campaign did not pass every scientific endpoint, and later changes
-have focused regression evidence only. Known limitations include uncertainty
-calibration, extended-source centroid and flux tails, and faint-source
-association. Public inputs are limited to ICRS `Jy/beam` FITS images of at most
+Hebog is **not yet scientifically qualified**. In its most recent synthetic
+comparison campaign, no comparison against released PyBDSF, PyBDSF `master` or
+Aegean failed; a minority were statistically inconclusive. The campaign was
+recorded as a fail only because some measurements regressed slightly against
+an earlier Hebog version, mainly uncertainty calibration and some centroid and
+flux tails. That is development evidence, not qualification for survey use.
+Public inputs are limited to ICRS or FK5 J2000 `Jy/beam` FITS images of at most
 1,024 pixels on either spatial axis, and the Rapthor integration and
 end-to-end speed targets are not yet established. See
 [current capability and release status](https://gemmadanks.github.io/hebog/reference/release-status/)
@@ -104,7 +106,7 @@ result = find_sources(request, config, SerialExecutor())
 
 The top-level call outputs a source catalogue, RMS image,
 source-filtering mask, and diagnostics. It
-accepts ICRS `Jy/beam` images up to 1,024 pixels on either spatial axis.
+accepts ICRS or FK5 J2000 `Jy/beam` images up to 1,024 pixels on either spatial axis.
 The
 [public tutorial](https://gemmadanks.github.io/hebog/tutorials/find-sources/) explains profiles, products,
 unavailable measurements and retries.

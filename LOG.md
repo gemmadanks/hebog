@@ -21792,8 +21792,8 @@ scientific pass from fixture validation.
   are hashed before the size check, `numba` is an unused runtime dependency,
   and the `__version__` fallback is not bumped by Release Please. The first
   two P2 items and two documentation errors (`BPA` is required; the Rapthor
-  adapter does not compose branches) are documented or corrected here; the
-  code changes await a human decision on whether they precede v0.7.0.
+  adapter does not compose branches) were documented or corrected first; the
+  next entry records the code fixes the user then requested for every finding.
 - Release-notes gap: v0.6.0 `find_sources` raised `NotImplementedError`, so
   v0.7.0 is the first functional release. Breaking changes include the
   `profile` configuration field, catalogue JSON schema 3 and FITS schema 4,
@@ -21805,3 +21805,55 @@ scientific pass from fixture validation.
   quick start and release status state the unqualified scientific status,
   the latest failed campaign result, accepted limitations and PyPI
   installation.
+
+## 2026-09-15 — Resolve every release-review finding before v0.7.0
+
+- The user asked for all review findings to be fixed so later work starts
+  clean, chose to convert FK5 J2000 input to ICRS, and stated the campaign
+  framing for user documentation: its fail status comes only from regressions
+  against the earlier Hebog incumbent, with no failure against PyBDSF.
+  Documentation now says no comparison against released PyBDSF, PyBDSF
+  `master` or Aegean failed (19 of 676 PyBDSF comparisons were underpowered)
+  and that Hebog is not yet scientifically qualified.
+- Dependency direction: `materialize_combined_products` and its records moved
+  from `hebog.io.combined` to `hebog.adapters.rapthor_products`; nothing in
+  production called it, so public products are unaffected. An architecture
+  rule now fails if `hebog.io` imports adapters, executors, validation or
+  schedulers.
+- Packaging: the unused `numba` runtime dependency (and `llvmlite`) is
+  removed; wheels exclude `hebog.validation`, whose Matplotlib import could not
+  load from a wheel. The package smoke test fails if the licence is missing or
+  validation tooling ships. `__version__` without package metadata is
+  `0+unknown` rather than a stale release number.
+- Public boundary: relative request paths are made absolute before executor
+  tasks are built; oversized inputs are rejected before the input digest;
+  publication rechecks the destination after analysis and renames without
+  replacement, so a directory or file created during a run raises
+  `SourceFinderOutputExistsError` and is preserved. User-facing messages no
+  longer name Phase 5.
+- FK5 J2000 decision statement. Observed: WSClean headers (`EQUINOX = 2000`,
+  no `RADESYS`) are FK5 under the WCS standard and were rejected. Cause: the
+  public gate and one compact astrometry gate required ICRS, although every
+  catalogue position and beam angle is already derived through Astropy's ICRS
+  transform. Test: an FK5 J2000 image whose reference point is the same sky
+  direction as an ICRS image. Expectation: positions agree to <0.1 mas while
+  the raw frame tie is tens of mas. Result: agreement below 1e-4 arcsec for
+  explicit and implicit FK5. Other FK5 equinoxes, FK4 and Galactic frames stay
+  rejected.
+- Beam round-off repair, found while testing FK5. Observed: with an ICRS
+  circular four-pixel beam, a 0.7 mas `CRVAL1` shift changed integrated flux
+  by 0.57%. Diagnosis: position angle has no effect with exact axes, but a
+  +2e-7 pixel major axis flips `ceil(radius_beams * major_fwhm_pixels)`; the
+  finite-difference WCS Jacobian leaves ~1e-8 pixel noise on whole-pixel
+  beams. Repair: quantise the derived pixel beam axes to 1e-6 pixel in
+  `public_api._beam_shape_pixels`, the single source of every beam-scaled
+  extent. Expectation and result: the shifted and unshifted images publish
+  identical measurements, and the axes are exactly 4.0 pixels with a
+  canonical zero angle. The composition identity is now v20.
+- Validation: `just coverage` passes 2,681 tests with two expected xfails at
+  96.00% project coverage, 0.01 points below the release-readiness branch;
+  two further focused tests then covered the new publication-race and
+  digest-failure branches. The user explicitly accepted the 0.01-point drop
+  without another coverage run. Equivalence (27), acceptance (7 expected
+  xfails), Marimo check, notebook smoke, strict docs build and package smoke
+  test (licence present, `hebog.validation` absent) pass.

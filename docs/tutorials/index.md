@@ -1,8 +1,8 @@
 # Quick start
 
-Hebog is experimental and scientifically unqualified. Tested `0.x` releases
-can precede general scientific qualification; they are not qualified PyBDSF
-replacements. Read [current release status](../reference/release-status.md)
+Hebog is experimental and not yet scientifically qualified. Tested `0.x`
+releases can precede general scientific qualification; they are not qualified
+PyBDSF replacements. Read [current release status](../reference/release-status.md)
 for the supported inputs and known limitations.
 
 ## Install a release

@@ -11,10 +11,10 @@ Closed Phase 5 contracts, reviews and campaign tooling are in Git history at
 
 | Item | Current position |
 | --- | --- |
-| Candidate | Public composition v19 on `main`, with its runtime extracted into `hebog.science`. Development-unqualified. |
+| Candidate | Public composition v20: v19 science plus FK5 J2000 input conversion to ICRS and round-off-stable pixel beam geometry. Development-unqualified. |
 | Implemented | FITS/WCS ingress, background/RMS, compact and multiscale detection, source/component measurement, catalogue/mask/RMS/diagnostics publication, Serial and caller-owned Dask execution, Zarr intermediates. |
-| Public envelope | ICRS `Jy/beam` FITS, at most 1,024 pixels on either spatial axis. `continuum` is the default; explicit `compact` is extended-emission-incomplete. Custom thresholds are unqualified. |
-| Strongest evidence | The latest completed campaign (v15) is a scientific **fail**: 1,115 pass, 32 fail and 40 underpowered comparisons, with no definite binding external-reference failure. The later v16–v18 repairs and v19 have focused regression, Serial/Dask, equivalence and installed-wheel evidence only. The [campaign overview](../docs/reference/phase-5-campaign-overview.md) holds the conclusions and non-passing inventory. |
+| Public envelope | ICRS or FK5 J2000 `Jy/beam` FITS, at most 1,024 pixels on either spatial axis. `continuum` is the default; explicit `compact` is extended-emission-incomplete. Custom thresholds are unqualified. |
+| Strongest evidence | The latest completed campaign (v15) is recorded as a scientific **fail** only because 32 comparisons regressed against the earlier Hebog incumbent; no comparison against released PyBDSF, PyBDSF `master` or Aegean failed, and 40 comparisons were underpowered. Later compositions (v16–v20) have focused regression, Serial/Dask, equivalence and installed-wheel evidence only. The [campaign overview](../docs/reference/phase-5-campaign-overview.md) holds the non-passing inventory. |
 | Accepted limitations | On 13 September the human accepted uncertainty calibration, measurement tails and faint association as documented limitations of an experimental standalone release. They are not passing endpoints. |
 | Blockers | v0.7.0 needs the release-readiness branch merged with hosted CI across the supported matrix, then the checklist below. General scientific readiness, Rapthor acceptance and complete-path performance remain unproven. |
 | Next action | Human: push `chore-prepare-release-0-7-0`, review and merge it after hosted CI passes (R2). |
@@ -96,9 +96,12 @@ R3–R5 for its own `0.x` release.
 
 - [ ] **R2 — Merge the release-readiness branch.** *Human pushes
       `chore-prepare-release-0-7-0`, reviews and merges; agent addresses
-      findings and CI failures.* The branch runs `tests/unit/validation` in
-      the portable matrix, includes the licence in distributions and refreshes
-      user-facing status, installation and limitations. Done when hosted CI
+      findings and CI failures.* The branch resolves the release review: it
+      runs `tests/unit/validation` in the portable matrix, ships the licence
+      and excludes `hebog.validation` from wheels, removes the unused Numba
+      dependency and the `io`-to-adapter import, accepts FK5 J2000 input,
+      stabilises beam-scaled pixel extents, hardens public paths and
+      publication, and refreshes user documentation. Done when hosted CI
       passes on Linux Python 3.12–3.14 and macOS and Windows Python 3.14. If
       the validation tests fail only for a platform reason, the agent fixes
       the test or restores the Linux-only partition with a stated reason.
