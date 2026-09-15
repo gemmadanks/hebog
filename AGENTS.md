@@ -110,7 +110,8 @@ just test-benchmark     # controlled performance runs
 just test-scalability   # controlled 100-to-200-plus-node scale runs
 just coverage           # portable suite with branch coverage
 just check              # format-check, lint, type-check, unit tests
-just pre-commit         # all hooks, including JSON formatting
+just pre-commit-fast    # lint, formatting and hygiene hooks, with fixes
+just pre-commit         # fast hooks first, then type, docs, notebook and tests
 just docs-build         # strict MkDocs build
 just marimo-check       # validate Marimo notebooks
 just notebook-smoke     # execute the offline notebooks
@@ -412,9 +413,16 @@ explain the rationale.
 
 - Prefer frequent, coherent experimental `0.x` releases, following the plan's
   delivery policy and its separate merge, package, scientific-qualification,
-  and Rapthor-deployment checklists. Release Please manages versions and
-  release notes; do not edit release-managed files unless the task is about a
-  release.
+  and Rapthor-deployment checklists.
+- Ownership is fixed. Agents investigate, implement, validate, update
+  documentation, `LOG.md` and the plan, create local commits, and prepare
+  review material and recommendations. Humans push, open and merge pull
+  requests, run and manually inspect notebook comparison refreshes, make
+  scientific dispositions and priority decisions, and configure release
+  infrastructure. Release Please updates versions, the changelog and release
+  notes and creates tags and GitHub releases; neither agents nor humans edit
+  release-managed files by hand unless the task is about the release tooling.
+  Mark each plan task with its owner.
 - Create a local commit for each coherent, validated, reviewable change, with
   its implementation, tests, and documentation together. Do not combine
   unrelated milestones or experiments. Never push commits or tags.
@@ -446,6 +454,8 @@ Before handing off a meaningful change:
 7. Run `just check`, plus `just package-smoke-test` for packaging changes.
 8. Review the final diff against `CODE_REVIEW.md`.
 9. Run `just pre-commit` after all final edits and immediately before staging.
+   It applies the fast lint and formatting fixers until they pass before running
+   the slow hooks; while iterating, run `just pre-commit-fast` alone.
    Inspect hook-applied changes, including JSON formatting, rerun validation
    they invalidate, and rerun `just pre-commit` until it passes without
    modifying anything. Never commit a known-failing hook state.

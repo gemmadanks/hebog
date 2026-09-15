@@ -17,7 +17,7 @@ Closed Phase 5 contracts, reviews and campaign tooling are in Git history at
 | Strongest evidence | The latest completed campaign (v15) is a scientific **fail**: 1,115 pass, 32 fail and 40 underpowered comparisons, with no definite binding external-reference failure. The later v16–v18 repairs and v19 have focused regression, Serial/Dask, equivalence and installed-wheel evidence only. The [campaign overview](../docs/reference/phase-5-campaign-overview.md) holds the conclusions and non-passing inventory. |
 | Accepted limitations | On 13 September the human accepted uncertainty calibration, measurement tails and faint association as documented limitations of an experimental standalone release. They are not passing endpoints. |
 | Blockers | v0.7.0 needs the PR 3 cleanup merged, hosted CI across the supported matrix and the release checklist below. General scientific readiness, Rapthor acceptance and complete-path performance remain unproven. |
-| Next action | Review and merge PR 3 (`chore-cleanup-phase-5-closed-campaigns`), then prepare the v0.7.0 release-readiness branch. |
+| Next action | Human: push, review and merge PR 3 (`chore-cleanup-phase-5-closed-campaigns`). Agent: then prepare the v0.7.0 release-readiness branch. |
 | Deferred | Broader F2 association repair, further scientific improvement, general qualification, Rapthor integration and facility-scale work. Reopen a deferred issue if it becomes a confirmed incorrect supported output. |
 
 ## Delivery policy
@@ -41,8 +41,15 @@ batches. Phase numbers survive only as historical identifiers.
   behaviour, complete-path performance and operational acceptance, with the
   feature-flagged PyBDSF fallback retained until the acceptance matrix passes.
 
-Release Please owns versions, changelogs and tags. Task commits stay local for
-human review and push.
+Ownership follows [`AGENTS.md`](../AGENTS.md#changes-releases-and-handoff):
+
+- **Agent:** investigates, implements, validates, updates documentation,
+  `LOG.md` and this plan, creates local commits and prepares review material.
+- **Human:** pushes, opens and merges pull requests, runs and inspects notebook
+  comparison refreshes, makes scientific dispositions and priorities, and
+  configures release infrastructure.
+- **Release Please:** updates versions, the changelog and release notes, and
+  creates tags and GitHub releases. Nobody edits those files by hand.
 
 ## Collaboration and repair decisions
 
@@ -87,14 +94,16 @@ Publish v0.7.0 before starting scaling work. No version is otherwise
 preassigned; a later fix, measured optimization or API improvement can repeat
 R3–R5 for its own `0.x` release.
 
-- [ ] **R1 — Merge the closed-campaign cleanup (PR 3).** The branch removes
+- [ ] **R1 — Merge the closed-campaign cleanup (PR 3).** *Human: push, review
+      and merge; agent: address review findings.* The branch removes
       closed Phase 5 tooling, records, archive-only tests and reference pages,
       makes the notebook comparison workflow campaign-independent, and passes
       the local handoff checks recorded in `LOG.md`. Done when human review is
       complete and hosted CI passes. Stop if public science bytes or
       Serial/Dask results change, or a retained notebook workflow loses its
       replacement.
-- [ ] **R2 — Prepare release readiness on a final small branch.**
+- [ ] **R2 — Prepare release readiness on a final small branch.** *Agent
+      prepares and validates locally; human pushes, reviews CI and merges.*
       - Review the aggregate diff since v0.6.0 against `CODE_REVIEW.md`,
         including the public and `hebog.validation` breaking changes.
       - Confirm the wheel contains no removed campaign modules or records.
@@ -106,35 +115,39 @@ R3–R5 for its own `0.x` release.
         release status and tutorial.
       - Run `just ci` locally and the hosted matrix: Linux on Python
         3.12–3.14, plus macOS and Windows on Python 3.14.
-- [ ] **R3 — Refresh and inspect the notebook comparison.** On the release
+- [ ] **R3 — Refresh and inspect the notebook comparison.** *Human runs and
+      inspects; agent investigates any reported issue.* On the merged release
       candidate, run the Hebog refresh preflight, then refresh the 13 saved
       SDC1/Hydra/LoTSS inputs while reusing the saved PyBDSF/Aegean products.
       Inspect positions, unavailable measurements, empty and difficult
-      extended regions with the user. A newly confirmed incorrect supported
-      output blocks the release; existing statistical limitations follow the
-      severity policy. This is a diagnostic workflow, not a campaign or parity
+      extended regions. A newly confirmed incorrect supported output blocks
+      the release; existing statistical limitations follow the severity
+      policy. This is a diagnostic workflow, not a campaign or parity
       evidence, and larger notebook images do not expand the public envelope.
-- [ ] **R4 — Review the release PR.** State "experimental, scientifically
-      unqualified", the tested input and resource envelope, known limitations
-      and every breaking change. Verify the Release Please version, changelog,
-      citation and lockfile changes rather than preparing them by hand.
-- [ ] **R5 — Release through the existing workflow.** Configure the GitHub
-      environment and PyPI Trusted Publisher using the
-      [publishing guide](../docs/how-to/publish-releases.md). After main and
-      the release PR checks pass, the human merges the Release Please PR and
-      verifies the tag, the GitHub release and the PyPI upload. Update release
-      status without copying campaign history into release notes.
+- [ ] **R4 — Review the Release Please PR.** *Release Please generates the
+      version, changelog and citation changes; human reviews; agent checks on
+      request.* Confirm the generated notes reflect the Conventional Commits,
+      including every breaking change. Release status and user documentation,
+      updated in R2, must state "experimental, scientifically unqualified",
+      the tested input and resource envelope and known limitations.
+- [ ] **R5 — Release through the existing workflow.** *Human configures the
+      GitHub environment and PyPI Trusted Publisher using the
+      [publishing guide](../docs/how-to/publish-releases.md) and merges the
+      Release Please PR after its checks pass; Release Please creates the tag
+      and GitHub release, and the upload workflow publishes to PyPI.* The
+      human verifies the tag, release and PyPI package.
 
 ## After v0.7.0
 
 Take one row as a bounded work item and split it further when a measured
 result reveals independent changes. Each item can merge and release with its
-own checks. Qualification and deployment rows authorize only their stated
-claim and still need their own scientific and resource decisions.
+own checks. Unless a row says otherwise, the agent implements and validates
+locally and the human merges. Qualification and deployment rows authorize only
+their stated claim and still need human scientific and resource decisions.
 
 | When | Task | Done when |
 | --- | --- | --- |
-| Before scaling work | Add a reusable synthetic comparison campaign. Rebuild the population generator, driver, truth evaluation and paired statistics from Git history without the removed authorization layer. | One checked-in campaign configuration generates a fresh seed-disjoint continuum and compact-blend population, runs Hebog, released PyBDSF and Aegean (optionally pinned PyBDSF `master`), evaluates each finder against injected truth, writes resumable results the comparison notebook reads, and reports paired comparisons. Decide population size and power, pass/fail versus report-only rules, references and compute budget in the PR. Run it on the current candidate to give scaling work a scientific reference. |
+| Before scaling work | Add a reusable synthetic comparison campaign. Rebuild the population generator, driver, truth evaluation and paired statistics from Git history without the removed authorization layer. | One checked-in campaign configuration generates a fresh seed-disjoint continuum and compact-blend population, runs Hebog, released PyBDSF and Aegean (optionally pinned PyBDSF `master`), evaluates each finder against injected truth, writes resumable results the comparison notebook reads, and reports paired comparisons. Decide population size and power, pass/fail versus report-only rules, references and compute budget in the PR; the human approves that design and budget and inspects the results. Run it on the current candidate to give scaling work a scientific reference. |
 | Next | Freeze a known-issues runtime baseline and profile complete FITS-to-products execution. | Inputs, candidate, resources and every warm-up and measured run are recorded; CPU, RSS, I/O and task costs identify the first material bottleneck. No speedup or qualification claim from this baseline alone. |
 | Next | Remove one measured I/O, copy, materialization or fit-batching bottleneck. | Paired before/after evidence covers affected and adjacent anchors and crossovers; scientific non-regression and Serial/Dask invariance pass. Ship each useful optimization independently. |
 | Next | Complete the shared Serial/local/Dask executor contract and add persistent local threads. | Ordering, serialization, errors, cancellation, retry and resource budgets pass the same contract suite; no nested pools or clusters. Existing Dask execution is extended, not reimplemented. |

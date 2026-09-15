@@ -116,8 +116,16 @@ pre-commit-install:
     && uv run pre-commit install -t pre-push \
     && uv run pre-commit install --hook-type commit-msg
 
-# Run all pre-commit hooks
-pre-commit:
+# Hooks too slow to repeat while formatters are still changing files
+slow_hooks := "marimo-check,pyright,mkdocs-build,pytest"
+
+# Apply lint, formatting and hygiene fixes, then require those hooks to pass
+pre-commit-fast:
+    SKIP={{slow_hooks}} uv run pre-commit run --all-files --hook-stage push \
+    || SKIP={{slow_hooks}} uv run pre-commit run --all-files --hook-stage push
+
+# Run all pre-commit hooks once the fast hooks leave files unchanged
+pre-commit: pre-commit-fast
     uv run pre-commit run --all-files --hook-stage push
 
 # Clean generated artifacts

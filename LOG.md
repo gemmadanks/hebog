@@ -21746,3 +21746,18 @@ scientific pass from fixture validation.
   layer, so later scalability changes can be compared against a scientific
   reference for the current candidate. Its population, decision rules,
   references and compute budget are decided in that PR.
+
+## 2026-09-15 — Clarify task ownership and speed up hook iterations
+
+- Record the user's ownership decision in `AGENTS.md` and the plan. Agents
+  implement, validate, update records and commit locally. Humans push, merge
+  pull requests, run and inspect notebook comparison refreshes, make scientific
+  dispositions and configure release infrastructure. Release Please updates
+  versions and the changelog and creates tags and releases. Plan tasks R1–R5
+  now name their owners.
+- `just pre-commit` now depends on `just pre-commit-fast`, which applies the
+  lint, formatting and hygiene hooks with Pyright, MkDocs, Marimo and pytest
+  skipped, then requires those hooks to pass before the slow hooks run once.
+  A trailing-whitespace trial is fixed and settled in about 10 s without
+  running the slow hooks. Remove `.pre-commit-config.yaml` excludes for files
+  deleted by the Phase 5 cleanup; the frozen PyBDSF diagnostics excludes stay.
