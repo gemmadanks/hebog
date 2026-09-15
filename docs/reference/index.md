@@ -165,6 +165,10 @@ must not be read as current API qualification.
     options:
       show_symbol_type_toc: true
 
+::: hebog.adapters.rapthor_products
+    options:
+      show_symbol_type_toc: true
+
 ## Validation contracts
 
 ::: hebog.validation.contracts
