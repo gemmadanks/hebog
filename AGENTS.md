@@ -82,6 +82,10 @@ Never hard-code those paths in package code or normal tests.
   for routine implementation detail and release notes for user-visible
   changes. When status changes, update or replace existing status summaries;
   do not leave contradictory "current" positions in project records.
+- Favour fast iterations and frequent small releases. Development, checks and
+  routine benchmarks run on the maintainer's local machine within the plan's
+  iteration budgets. Reserve long campaigns and cluster benchmarks for the
+  qualification steps the plan names, and never let them block development.
 - Use one writing agent by default. Delegate only independent, bounded work.
 - Record architecturally significant decisions with an ADR based on
   `docs/architecture/adr/template.md`.

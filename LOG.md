@@ -22057,3 +22057,46 @@ scientific pass from fixture validation.
   - A reference-image table is added.
   - No code, gate values or closed results changed; the contract JSON is
     amended only through the new M5 row.
+
+## 2026-09-16 — Plan for local development, fast iterations and checked headers
+
+- The user set three constraints.
+  - Most development runs on the maintainer's machine: Apple M3 Pro, 12
+    logical CPUs, 18 GiB RAM, 460 GiB disk with 32 GiB free on 16 September.
+  - A larger cluster can run a final benchmark, but it must not block
+    development.
+  - Long campaigns and benchmarks give way to fast iterations and frequent
+    releases.
+  `AGENTS.md` now states the fast-iteration and local-development principle.
+- With the user's approval, the headers of six public images were read with
+  HTTP range requests (the first 57,600 bytes of each). They were checked
+  against v0.7.0 metadata validation using 8×8 stand-in FITS files with the
+  same headers. No image data was kept.
+  - LOFAR-HD ELAIS-N1 `full_mosaic_03`/`06`/`12`: 90,000², 45,000² and
+    22,500²; 2-D `float32`; `JY/BEAM`; SIN; `BMAJ`/`BMIN`/`BPA` present; no
+    `RADESYS`, `EQUINOX` or frequency keyword. **Rejected:** no reference
+    frequency.
+  - HD 0.3″ `facet_0` (WSClean): 30,240 × 18,490, FK5 J2000. **Accepted.**
+  - LoTSS-DR3 `healpix_mosaics/1312/mosaic.fits` (ddf-pipeline): 15,402²,
+    ICRS, `RESTFRQ`, beam present. **Accepted.**
+  - SDC1 `SKAMid_B2_1000h_v3.fits` (Miriad): 32,768², 4-D, `EPOCH = 2000`,
+    `BMAJ`/`BMIN` without `BPA`. **Rejected:** incomplete restoring beam.
+- Plan changes.
+  - Iteration budgets on the development machine: about 15 minutes for a
+    change check and about 1 hour for a release check. The only long runs
+    are one overnight powered study and one cluster benchmark, both for
+    1.0.0 and neither blocking `0.x` work. Reference-finder outputs and
+    timings are computed once and cached.
+  - M1 becomes explicit request metadata (so these headers are usable), a
+    quick science check, a quick benchmark and a profile. It replaces the
+    hours-long non-regression campaign.
+  - M2 raises the envelope locally up to 45,000², which also demonstrates
+    out-of-core operation on 18 GiB.
+  - M4 benchmarks locally in one Linux container.
+  - M5 prepares scale beyond one machine without the cluster: planner bounds
+    for 10 and 200 nodes, local store and recovery, a contract amendment and
+    a packaged cluster benchmark with a local dry run.
+  - M6 runs the cluster benchmark once; a failure becomes a normal repair
+    row.
+  - New decision D5 (iteration budgets). D2 is partly decided, with a
+    disk-space choice outstanding: 60 GB free is needed for the 45,000² tier.

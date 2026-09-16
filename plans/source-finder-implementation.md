@@ -17,8 +17,8 @@ Closed Phase 5 contracts, reviews and campaign tooling are in Git history at
 | Scalability | Public envelope ≤1,024 pixels per side. Only background/RMS and first-pass detection run per tile through the executor, on hard-coded 128-pixel cores (the scalability contract's candidates are 2,048–8,192); the public science in `public_science.py` holds several full `float64` planes in one process. Tiled multiscale, deblending, measurement, fitting and compact catalogue stages exist in `stages/` but only tests use them; continuum candidate products, extended association, the à trous position filter and the continuum catalogue have no tiled form. Two background sub-steps are capped at 10⁶ pixels. The executor offers only `map_batches` with a driver-side gather. |
 | Performance | No matched benchmark exists. The most recent diagnostic single runs (10 September, M3 Pro) were slower than released PyBDSF on 11 of 13 real images, median ratio 8.4× (SDC1 2,198² tile 778 s vs 93 s; Hydra 3,600² 2,767 s vs 142 s). Per-pixel cost on these real images is far above the 26 s synthetic 1,024² probe; whether size, source density or both drive it is unprofiled. The gate is ≤0.50× released and <1.00× `master`. No complete-path profile exists. |
 | Science | The v15 campaign failed only through 32 regressions against the earlier Hebog incumbent; no comparison against released PyBDSF, PyBDSF `master` or Aegean failed, and 40 were underpowered. All campaign images were ≤1,024 pixels. v16–v20 have focused regression, Serial/Dask, equivalence and installed-wheel evidence only. Uncertainty calibration, measurement tails and faint association were accepted on 13 September as limitations of an experimental standalone release, not as passes. |
-| 1.0.0 blockers | Every milestone below. The largest risks are the performance gap, tile-native continuum association, a 10-node test ceiling, and SKA-Low coverage with no large public SKA-Low images. |
-| Next action | Human: decide D1, D2 and D4. Agent: M1 (benchmark harness and complete-path profile), which needs no new decision to start on the development host. |
+| 1.0.0 blockers | Every milestone below. The largest risks are the performance gap, tile-native continuum association, the memory and disk of the local development machine, and SKA-Low coverage without large public SKA-Low images. |
+| Next action | Human: decide D1, D2, D4 and D5. Agent: start M1 with explicit metadata for headers that omit it, then the quick science check and quick benchmark. None of these needs a new decision. |
 | Deferred | Optional comparison finders such as ProFound or 2D SoFiA (see the [notebook guide](../docs/how-to/notebooks.md)), general science improvements outside Rapthor-consumed outputs, and native code without a passing profile gate. Reopen a deferred issue if it becomes a confirmed incorrect supported output. |
 
 ## Definition of 1.0.0
@@ -44,17 +44,19 @@ reviewed evidence for that exact candidate:
   PyBDSF `master` and Aegean. The evidence includes full images, not only
   cut-outs, from LOFAR, SKA-Mid (SDC1 simulations and MeerKAT) and SKA-Low
   (MWA precursor data and simulations until SKA-Low data are public).
-- **Performance.** Matched complete `filter_skymodel` medians meet both
-  runtime gates across the frozen deployment envelope, without a memory or
-  Hebog-curve regression, on the whole size and workload matrix.
-- **Scalability.** The 90,000-square LOFAR-HD ELAIS-N1 mosaic and a
-  generated 100,000-square truth image complete within the runtime,
-  task-count, scheduler-overhead, memory and spill gates on 1, 2, 5 and 10
-  nodes. Results do not change with worker count, tile geometry, completion
-  order or retry. Operation on 100 to several hundred nodes remains the
-  architecture target. For 1.0.0 it is supported by scheduler and graph tests
-  with at least 200 worker processes and a measured scaling model, and
-  release notes state that it is not demonstrated.
+- **Performance.** On the development machine, matched complete
+  `filter_skymodel` medians meet both runtime gates across the deployment
+  envelope without a memory or Hebog-curve regression. The final cluster
+  benchmark confirms them on the cluster's hardware.
+- **Scalability.** On the development machine (18 GiB RAM), the 45,000²
+  LOFAR-HD mosaic completes with peak memory bounded by tile size, although
+  one `float64` copy of the image alone would not fit in memory. Results do
+  not change with worker count, tile geometry, completion order or retry. A
+  final cluster benchmark, run once for 1.0.0, processes the 90,000² mosaic
+  and a generated 100,000² truth image on 1, 2, 5 and 10 nodes within the
+  amended runtime, task-count, scheduler-overhead, memory and spill gates.
+  Planner tests bound graph size and reduction depth for 100 to 200+ nodes.
+  Release notes say that scale is designed for but not demonstrated.
 - **Release.** Published on PyPI with portability, security, licensing,
   current documentation and independent radio-astronomy and engineering
   acceptance.
@@ -67,14 +69,35 @@ operational soak of the 1.0.0 backend; the PyBDSF fallback remains until then.
 | ID | Decision | Recommendation | Needed by |
 | --- | --- | --- | --- |
 | D1 | Scope of 1.0.0. | Accept the definition above. It keeps 1.0.0 a demonstrable Hebog claim and leaves default cutover to Rapthor operations. The alternative, tying 1.0.0 to cutover, makes the version depend on another project's release schedule. | Before M2 design |
-| D2 | Test compute and data. | Scale testing is bounded by the human's cluster of up to 10 nodes and by public data; the [reference images](#reference-images) table lists the candidates. (a) One node, or another dedicated Linux host, runs reviewed benchmarks with fixed cores and no other workload; the laptop stays a profiling host. Record node cores, RAM and shared storage, and re-derive the contract's 512 GiB node profile from them. (b) Real scale anchors: the LOFAR-HD ELAIS-N1 mosaic at 22,500², 45,000² and 90,000² (the largest public radio image found) and SDC1 at 32,768². (c) Add generated-truth images at 100,000² and an OSKAR-simulated SKA-Low image, because no public image reaches 100,000² and no large SKA-Low image is public. (d) Claims above 10 nodes become design targets (see the 1.0.0 definition). (e) Agent access to the restricted Rapthor 3,000² image, or the public LoTSS-Deep DR2 ELAIS-N1 apparent/true-sky pair as a substitute. | (a) M1 end; (b)–(e) M5 start |
+| D2 | Development compute and data. | **Partly decided 16 September.** Development, checks and benchmarks run on the maintainer's machine (Apple M3 Pro, 12 logical CPUs, 18 GiB RAM). A cluster of up to 10 nodes runs one final 1.0.0 benchmark and never blocks development. Still to decide: (a) free about 60 GB of disk for the local 45,000² tier (32 GiB is free now; estimate: 8.1 GB input, up to 16 GB of RMS and mask output, up to about 24 GB of uncompressed Zarr intermediates), or attach an external SSD of at least 250 GB so 90,000² and 100,000² can also run locally; (b) add a generated 100,000² truth image and an OSKAR-simulated SKA-Low image alongside the public images in the [reference images](#reference-images) table; (c) give the agent access to the restricted Rapthor 3,000² image, or use the public LoTSS-Deep DR2 ELAIS-N1 apparent/true-sky pair instead. Record the cluster hardware when the final benchmark is scheduled. | (a) M2 tier above 22,500²; (b), (c) M3 start |
 | D3 | Rapthor integration target. | **Decided 16 September.** When M3 starts, pin the latest commits of Rapthor's Prefect branch and of LSMTool's default branch, replacing the Phase 0 trace (`b1a6467`). Both projects change frequently, so pins move forward deliberately at the checkpoints listed under Risks. If Rapthor declares a different LSMTool revision, record both and test the latest LSMTool. | M3 start |
-| D4 | Which accepted limitations block 1.0.0. | Block on those that change Rapthor-consumed fields: `E_RA`/`E_DEC` uncertainty calibration (Rapthor excludes sources at ≥2 arcsec), `Total_flux`/`Isl_Total_flux` tails, and faint association where it changes island grouping and therefore patches. Keep the rest documented. Approve a lean reusable non-regression campaign now (M1) and defer powered qualification to the frozen 1.0.0 candidate (M6). | M1 campaign design |
+| D4 | Which accepted limitations block 1.0.0. | Block on those that change Rapthor-consumed fields: `E_RA`/`E_DEC` uncertainty calibration (Rapthor excludes sources at ≥2 arcsec), `Total_flux`/`Isl_Total_flux` tails, and faint association where it changes island grouping and therefore patches. Keep the rest documented. Routine checks follow the iteration budgets; powered qualification runs once, on the frozen 1.0.0 candidate (M6). | M1 quick science check design |
+| D5 | Iteration budgets. | Accept the budgets under [Delivery policy](#delivery-policy): a change check of about 15 minutes, a release check of about 1 hour, and one overnight qualification run plus the cluster benchmark for 1.0.0. They replace long campaigns as the normal feedback loop. | M1 start |
 
 ## Delivery policy
 
 Ship frequent, useful experimental `0.x` increments rather than phase-sized
-batches. Phase numbers survive only as historical identifiers.
+batches: normally one release for each merged roadmap row that changes
+behaviour. Phase numbers survive only as historical identifiers.
+
+Development runs on the maintainer's machine and favours fast iterations over
+long campaigns and benchmarks. Every check has a budget on that machine:
+
+- **Change check (about 15 minutes):** relevant tests, the quick science check
+  and, for performance-relevant changes, the quick benchmark. Runs for every
+  change that can affect science or runtime.
+- **Release check (about 1 hour):** the change check, the largest admitted
+  size tier, Serial/Dask agreement and the installed wheel. Runs before each
+  `0.x` release.
+- **1.0.0 qualification (once):** one powered science study sized to finish
+  overnight on the development machine, and one benchmark on the cluster.
+  Neither blocks `0.x` development or releases.
+
+A check that outgrows its budget is sampled, split or moved to a less frequent
+level; its budget is not silently extended. PyBDSF and Aegean outputs and
+timings are computed once for each input, reference revision and host, cached
+outside Git with checksums, and reused. A defect that escapes the quick checks
+adds its case to the fixed case set.
 
 - **Merge:** a coherent reviewed change with passing applicable tests and
   accurate documentation. Tooling and documentation changes need not wait for
@@ -142,43 +165,47 @@ These rules govern agent work on this plan and are referenced from
 ## Roadmap to 1.0.0
 
 Work proceeds in milestones ordered by dependency. Each row is a bounded work
-item that merges, and usually releases as a `0.x` increment, with its own
-checks; split a row when a measured result reveals independent changes.
-Unless a row says otherwise, the agent implements and validates locally and
-the human merges. Qualification, scale and deployment rows authorize only
-their stated claim and still need the named human decisions.
+item that merges, and normally releases as a `0.x` increment, within the
+iteration budgets; split a row when a measured result reveals independent
+changes. Unless a row says otherwise, the agent implements and validates on
+the development machine and the human merges. Qualification, scale and
+deployment rows authorize only their stated claim and still need the named
+human decisions.
 
 Two rules govern the sequence:
 
 - **Measure before changing.** Nothing is optimized or re-architected without
-  a profile, and no science-touching change merges without the non-regression
-  campaign from M1.
+  a profile, and no science-touching change merges without the quick science
+  check from M1.
 - **Optimize the code that survives.** M2 replaces the whole-array public
   science with the tiled composition. Before M2 lands, fix only bottlenecks in
   kernels the tiled path will keep (fitting, measurement, filters, labelling),
   not whole-array orchestration it will delete.
 
-### M1 — Measure the gap
+### M1 — Fast feedback and the performance gap
 
 | Owner | Task | Done when |
 | --- | --- | --- |
-| Agent | Build a reusable complete-path benchmark lane. Replace the skipped `tests/benchmark` scaffolds and the phase-numbered runners with one checked-in configuration and runner. | One command times Hebog, released PyBDSF 1.14.1 and pinned `master` in matched containers on the same inputs and writes `hebog.validation.evidence` records with a warm-up and five repetitions. Inputs cover synthetic 256, 512 and 1,024 anchors in sparse, normal and dense-extended workloads, SDC1 tiles, Hydra and, after D2(c), the Rapthor-representative 3,000² image. Inputs above the public limit run through a documented diagnostic entry point that never changes the public envelope. A small portable smoke case runs in CI. |
-| Agent | Freeze the v20 known-issues baseline and profile complete FITS-to-products execution. | Every warm-up and measured run is recorded. CPU, RSS, I/O and per-stage profiles on at least one dense real image and the 1,024 anchor rank the bottlenecks and separate size effects from source-density effects. Reviewed status waits for the D2(a) host; laptop results stay diagnostic. |
-| Agent, human approves design | Add a reusable synthetic non-regression campaign. Rebuild the population generator, driver, truth evaluation and paired statistics from Git history without the removed authorization layer. | One configuration generates a fresh seed-disjoint continuum and compact-blend population, runs Hebog, released PyBDSF and Aegean, evaluates against injected truth, resumes after interruption, checks disk and memory before launch, and reports paired comparisons the notebook reads. Size it to run in hours on the benchmark host. Endpoints are the Rapthor-consumed fields plus the retained validity checks (D4). Run it on v20 as the reference for M2–M5. |
+| Agent | Accept explicit metadata that a header omits. | Checked on 16 September: the LOFAR-HD mosaics have no reference frequency and SDC1 has no `BPA`, so v0.7.0 rejects both; the LoTSS-DR3 mosaic and the WSClean HD facet pass. A request can supply a reference frequency and restoring-beam axes and angle that are used only where the header lacks them; a value that conflicts with the header is an error, and supplied values are recorded in diagnostics. Tests use synthetic headers that mirror these cases. Release as its own `0.x`. |
+| Agent, human approves case set | Build the quick science check. Rebuild only the generator and truth evaluation needed from Git history. | One command runs a fixed case set in about 10 minutes: analytic edge, corner and partition cases; generated-truth images from 256 to 1,024 pixels covering compact, blended, extended, empty and invalid data; SDC1 cut-outs with truth; and LoTSS-DR3 cut-outs with the published PyBDSF catalogue and RMS and mask maps. It reports the Rapthor-consumed fields and validity checks (D4) against truth, cached reference outputs and the previous release. It is a regression detector, not powered parity. |
+| Agent | Build the quick benchmark. Replace the skipped `tests/benchmark` scaffolds and the phase-numbered runners. | One command runs in about 10 minutes: Hebog on a 1,024² generated image and two or three real cut-outs up to about 3,600², with a warm-up and five repetitions, written as `hebog.validation.evidence` records. It compares against the previous release and cached released-PyBDSF and `master` timings measured once in the same Linux container. Inputs above the public limit use a documented diagnostic entry point that leaves the public envelope unchanged. A smoke case runs in CI. |
+| Agent | Profile complete FITS-to-products execution on v0.7.0. | CPU, RSS, I/O and per-stage profiles on a dense real cut-out and the 1,024² image rank the bottlenecks and separate the effect of image size from source density. The quick-check and quick-benchmark outputs for v0.7.0 are the known-issues baseline. |
 
 ### M2 — One tile-native science path
 
 This is the architectural core of 1.0.0 and the prerequisite for every size
-tier above 1,024.
+tier above 1,024. Its local size ladder doubles as the out-of-core
+demonstration: from 22,500² upward, image-sized state cannot fit in the
+development machine's memory.
 
 | Owner | Task | Done when |
 | --- | --- | --- |
 | Agent, human reviews ADR | Design the tile-native continuum composition. | An ADR (or ADR-005 amendment) defines, for every public stage, the halo, ownership rule, boundary summary and hierarchical merge, including extended association and sources larger than one halo, the à trous position filter and the continuum catalogue. It states how a small image stays one tile with no added overhead and records the `float64`/`float32` decision path. A decision statement precedes each science-affecting choice. |
-| Agent | Converge `public_science.py` onto `stages/` so one composition serves every size. | The public path runs the tiled stages; one-tile and many-tile runs on analytic edge, corner and partition-origin cases agree exactly; the non-regression campaign and Serial/Dask invariance pass; the whole-array path is deleted. |
-| Agent | Remove whole-plane state from the driver and background. | The 10⁶-pixel coarse-protection and local-noise caps are tile-bounded; RMS and mask products stream from Zarr row blocks; the catalogue is a partitioned reduction; input hashing is chunked; merges of boundary states run on workers. Tile cores are configurable within the contract's 2,048–8,192 range, and admission rejects a plan above eight live `float32` plane-equivalents or 75% of a worker limit before submission. Peak worker RSS scales with tile size, not image size. |
+| Agent | Converge `public_science.py` onto `stages/` so one composition serves every size. | The public path runs the tiled stages; one-tile and many-tile runs on analytic edge, corner and partition-origin cases agree exactly; the quick science check and Serial/Dask invariance pass; the whole-array path is deleted. |
+| Agent | Remove whole-plane state from the driver and background. | The 10⁶-pixel coarse-protection and local-noise caps are tile-bounded; RMS and mask products stream from Zarr row blocks; the catalogue is a partitioned reduction; input hashing is chunked; merges of boundary states run on workers. Tile cores are configurable within the contract's 2,048–8,192 range, and admission rejects a plan above the admitted memory before submission. Peak RSS scales with tile size, not image size. |
 | Agent | Complete the executor contract. | Bounded submission and gathering, ordering, serialization, errors, cancellation, retry and resource annotations pass one suite for Serial, persistent local threads and caller-owned Dask. No nested pools or clusters. |
-| Agent | Remove profiled bottlenecks in the tiled kernels. | Each change has paired before/after evidence on affected and adjacent anchors and passes the non-regression campaign. |
-| Agent, human approves each raise | Raise the public envelope one tier at a time: 3,000, then 10,000. | Each tier passes exact tiled-invariance tests, the non-regression campaign, complete-path benchmarks on both sides of any crossover and a memory bound, before the limit and release status change. |
+| Agent | Remove profiled bottlenecks in the tiled kernels. | Each change has quick-benchmark before/after evidence on affected and adjacent anchors and passes the quick science check. |
+| Agent, human approves each raise | Raise the public envelope one tier at a time on the development machine: 3,000, 10,000, then the real ladder of LoTSS-DR3 (15,402²), LOFAR-HD 22,500², SDC1 32,768² and LOFAR-HD 45,000². | Each tier passes exact tiled-invariance tests, the quick science check, a quick benchmark on both sides of any crossover and a measured peak-RSS bound within the release-check budget, before the limit and release status change. Each raise is a release. Science on the large images uses SDC1 truth, the LoTSS-DR3 PyBDSF catalogue and maps, and per-facet HD PyBDSF catalogues, as in ADR-005. |
 | Human | Switch uploads from TestPyPI to PyPI once the envelope covers Rapthor sector images. | The Trusted Publisher, `pypi` environment, publishing job, installation instructions and release status change together, as in the [publishing guide](../docs/how-to/publish-releases.md). |
 
 ### M3 — Telescope coverage and Rapthor functionality
@@ -188,38 +215,40 @@ may run alongside M2.
 
 | Owner | Task | Done when |
 | --- | --- | --- |
-| Agent | Define the input header contract for LOFAR, SKA-Low and SKA-Mid products and generic FITS images. | Fixture headers cover WSClean (4-D, `EQUINOX` without `RADESYS`), ddf-pipeline and DDFacet mosaics (no `BUNIT`, one copied beam), OSKAR (three axes, no beam, `CROTA`), SKA SDP data models (Stokes before frequency, no `BUNIT`), Obit multi-plane cubes, Galactic frames and ZEA projections. Each is accepted or rejected with a specific error. Metadata a header omits can be supplied explicitly in the request and is recorded in diagnostics. Headers of the real reference images are checked before their large downloads. |
+| Agent | Define the input header contract for LOFAR, SKA-Low and SKA-Mid products and generic FITS images. | Fixture headers cover WSClean (4-D, `EQUINOX` without `RADESYS`), ddf-pipeline and DDFacet mosaics (no `BUNIT`, one copied beam), OSKAR (three axes, no beam, `CROTA`), SKA SDP data models (Stokes before frequency, no `BUNIT`), Obit multi-plane cubes, Galactic frames and ZEA projections. Each is accepted or rejected with a specific error. Builds on the M1 explicit-metadata request. Headers of further reference images (MIGHTEE, GLEAM-X and others) are checked before their downloads. |
 | Agent, human dispositions | Decide how to handle a point-spread function that varies across the field. | LOFAR facets and MWA mosaics (which ship PSF maps) have a PSF that the header beam cannot describe. Measure the effect on fluxes and sizes with injected truth, then either accept a PSF map input or document the limitation with its measured effect. |
 | Agent | Pin the latest Rapthor Prefect-branch and LSMTool commits (D3), refresh the Rapthor contract and audit the profile. | `docs/reference/rapthor-source-finding-contract.md` traces the pinned Rapthor and LSMTool revisions. Each PyBDSF behaviour LSMTool uses (zero mean map, adaptive RMS boxes 150/50 and 35/7 at threshold 75, hard 4/5 thresholds, three wavelet scales, island-stop flat-noise pass, `srl` catalogue, island mask, both RMS maps, source count and the blanked-image path) is mapped to an existing Hebog behaviour or a listed gap. |
 | Agent | Implement the Rapthor profile and the flat-noise RMS branch. | Profile outputs are tested on analytic and generated truth; the flat-noise branch shares products and reads rather than running a second full analysis. |
 | Agent | Implement the Rapthor adapter and exercise LSMTool on Hebog products. | Pinned LSMTool clips, groups and transfers names on Hebog catalogue, mask and RMS products for true-sky and apparent-sky inputs; the seven acceptance scenarios become passing tests (empty and invalid input, retry reuse, worker loss, fallback and dual run). The adapter imports no Rapthor, Prefect or LSMTool in library code. |
 | Agent prepares, human pushes | Add Rapthor backend selection, fallback and dual-run reporting in Rapthor. | A Rapthor patch against the current pin selects the backend by flag, respects the caller's resource budget, and reports dual-run differences. |
-| Agent, human dispositions | Measure Rapthor-profile agreement. | Retained/rejected agreement against both PyBDSF references on true/apparent, bright, extended, edge, masked, sparse and crowded populations. Choose `compact` only with ≥99.5% overall agreement and every safety stratum passing; otherwise `continuum`. |
+| Agent, human dispositions | Measure Rapthor-profile agreement within the release-check budget, using cached reference outputs. | Retained/rejected agreement against both PyBDSF references on true/apparent, bright, extended, edge, masked, sparse and crowded populations. Choose `compact` only with ≥99.5% overall agreement and every safety stratum passing; otherwise `continuum`. |
 
 ### M4 — Deployment performance gate
 
 | Owner | Task | Done when |
 | --- | --- | --- |
-| Human freezes, agent proposes | Freeze the initial deployment envelope. | Sizes, workloads and resources match Rapthor's production sectors on the D2(a) host. |
-| Agent | Run matched complete `filter_skymodel` benchmarks and optimize until both runtime gates pass. | Both ratios and their upper one-sided 95% bounds pass on every envelope cell; memory and Hebog-curve non-regression pass; the non-regression campaign passes. Native code enters only through the native-code gates and an accepted ADR. |
+| Human freezes, agent proposes | Freeze the initial deployment envelope. | Sizes and workloads match Rapthor's production sectors and fit the development machine. |
+| Agent | Run matched complete `filter_skymodel` benchmarks and optimize until both runtime gates pass. | Hebog and both PyBDSF references run in the same Linux container on the development machine, with cached reference timings. Both ratios and their upper one-sided 95% bounds pass on every envelope cell; memory and Hebog-curve non-regression and the quick science check pass. Native code enters only through the native-code gates and an accepted ADR. |
 
-### M5 — Scale on the test cluster
+### M5 — Prepare scale beyond one machine
+
+All rows run on the development machine; none needs the cluster.
 
 | Owner | Task | Done when |
 | --- | --- | --- |
-| Agent proposes, human approves | Amend the scalability contract to the demonstrable topology. | `config/benchmarks/phase-0-scalability.json`, the performance and scalability contracts page and the `test-scalability` recipe describe 1, 2, 5 and 10 nodes of the recorded hardware and the image ladder below. The 50, 100 and 200-node gates are kept as design targets, not deleted. |
-| Agent, human approves store | Qualify a Zarr store and restart/recovery path on the cluster's shared storage. | Atomicity, concurrent owned-chunk writes, codec and chunk geometry, missing chunks, cold/warm throughput and injected failures pass within an admitted memory budget. |
-| Agent, human approves each raise | Raise the envelope through the real and generated ladder. | The ladder is LoTSS-DR3 mosaics (about 17,700²), SDC1 (32,768²), the ELAIS-N1 HD mosaic (22,500², 45,000², 90,000²), a generated SKA-Low image and generated 100,000² truth. Both sides of new crossovers are measured. Science on large images uses SDC1 truth, the LoTSS-DR3 PyBDSF catalogues and RMS/mask maps, the per-facet HD PyBDSF catalogues, generated truth and global invariants, as in ADR-005. |
-| Human provides nodes, agent runs | Run the controlled node ladder. | Strong scaling on the 90,000² mosaic and generated 100,000² truth at 1, 2, 5 and 10 nodes; weak scaling from 22,500² on 1 node to 45,000² on 4 nodes, and size scaling across the same-field 22,500², 45,000² and 90,000² mosaics at 10 nodes. Results are invariant, and the amended runtime, task-count, scheduler-overhead, memory, spill and efficiency gates pass. |
-| Agent | Bound behaviour beyond 10 nodes. | On the 10 nodes, runs with at least 200 worker processes measure scheduler load, graph size, reduction depth and driver memory. A scaling model fitted to the 1–10-node results predicts 50–200-node efficiency, with its uncertainty stated in release notes. |
+| Agent | Bound the graph for 100,000² at 10 and at 200 nodes without running the science. | Planner tests show at most 50,000 tasks, bounded reduction depth, bounded driver memory and a valid memory admission for both topologies. |
+| Agent | Qualify the Zarr store and restart/recovery path locally. | Atomicity, owned-chunk writes from concurrent local workers, codec and chunk geometry, missing chunks and injected failures pass within an admitted memory budget. Shared-storage throughput is left to the cluster benchmark. |
+| Agent proposes, human approves | Amend the scalability contract. | `config/benchmarks/phase-0-scalability.json`, the performance and scalability contracts page and the `test-scalability` recipe describe the development-machine tier and the final 1, 2, 5 and 10-node benchmark. The 50, 100 and 200-node gates are kept as design targets, not deleted. |
+| Agent | Package the cluster benchmark. | One command and a short guide run the 90,000² mosaic and generated 100,000² truth at 1, 2, 5 and 10 nodes, and record evidence, the hardware and a scaling-model fit. A dry run with a local Dask cluster at small sizes passes, so the cluster session measures rather than debugs. |
 
 ### M6 — Qualification and 1.0.0
 
 | Owner | Task | Done when |
 | --- | --- | --- |
 | Human | Freeze the 1.0.0 candidate. | Science, profile and envelope are fixed; later changes restart only the affected qualification rows. |
-| Agent designs, human approves | Run candidate-bound parity/retention with fresh held-out and public-survey data. | Every binding endpoint passes under a prospectively reviewed contract, population and power design, including the D4 limitations and the LOFAR, SKA-Mid and SKA-Low families in the 1.0.0 definition. Closed failed campaigns are never reused as confirmation. |
-| Human runs in Rapthor, agent supports | Operational soak behind the Rapthor flag. | Dual runs on production data show no unexplained difference, retry and restart work, and the fallback is exercised. |
+| Agent designs, human approves | Run one powered parity/retention study with fresh held-out and public-survey data, sized to finish overnight on the development machine. | Every binding endpoint passes under a prospectively reviewed contract, population and power design, including the D4 limitations and the LOFAR, SKA-Mid and SKA-Low families in the 1.0.0 definition. Closed failed campaigns are never reused as confirmation. |
+| Human runs, agent analyses | Run the cluster benchmark. | Strong scaling at 1, 2, 5 and 10 nodes and size scaling across the 22,500², 45,000² and 90,000² mosaics meet the amended gates, with invariant results and the M4 runtime gates confirmed on cluster hardware. A failure becomes a normal `0.x` repair row. |
+| Human runs in Rapthor, agent supports | Operational trial behind the Rapthor flag. | Dual runs on production data show no unexplained difference, retry and restart work, and the fallback is exercised. |
 | Agent assembles, independent reviewers accept | Readiness packet and acceptance. | The packet binds science, Rapthor profile, performance, scale, portability, security, licensing, packaging and current documentation, with separate radio-astronomy and engineering acceptance. |
 | Human | Release 1.0.0. | Release Please produces 1.0.0 (for example through a `Release-As: 1.0.0` commit footer) and the package publishes to PyPI. |
 
@@ -229,11 +258,13 @@ may run alongside M2.
 | --- | --- | --- |
 | The 8–20× gap on real images does not close with NumPy/SciPy and Numba. | M4 fails. | Profile first; attack algorithmic cost before constant factors; use the native-code gates only for a profiled kernel. Report the gap honestly at each milestone. |
 | Extended association cannot be made exactly tile-invariant. | M2 stalls or changes science. | Design ownership and boundary summaries before code; test analytic shells and filaments crossing corners early; escalate a scientific trade-off to the human rather than weakening invariance silently. |
-| Scheduler, reduction or storage bottlenecks appear only above 10 nodes. | A later deployment at 100+ nodes fails or scales poorly. | Tests with 200+ worker processes, task-count and reduction-depth bounds, a scaling model, and an explicit "not demonstrated" statement in release notes. |
-| Large public images have minimal or non-standard headers; the HD mosaic is published "for browsing only". | Anchors cannot run unmodified, or their science comparison is weak. | Check headers before downloading; supply missing metadata explicitly; use per-facet HD images and catalogues for science; keep the generated 100,000² image as the fallback scale anchor. |
+| Scheduler, reduction or storage bottlenecks appear only above 10 nodes. | A later deployment at 100+ nodes fails or scales poorly. | Planner bounds for 200 nodes, a scaling model fitted to the cluster benchmark, and an explicit "not demonstrated" statement in release notes. |
+| Large public images have minimal or non-standard headers; the HD mosaic is published "for browsing only". | Anchors cannot run unmodified, or their science comparison is weak. | Headers checked 16 September; explicit metadata in M1; per-facet HD images and catalogues for science; the generated 100,000² image as the fallback scale anchor. |
 | No large public SKA-Low image exists. | SKA-Low scale and science rely on simulations and MWA precursor data. | OSKAR simulation with generated truth, GLEAM-X DR1 with its PSF maps and Aegean catalogues, and SKA-Low science-verification data once released (expected from 2027). |
 | Rapthor and LSMTool change frequently. | Adapter, contract and benchmark churn, or a backend that only works on a stale revision. | Pin the latest commits when M3 starts (D3). Move both pins forward deliberately, not continuously: before the Rapthor patch, before the M4 benchmarks and at the M6 freeze. At each move, rerun the contract audit, the acceptance scenarios and the Rapthor-profile agreement check, and record the revisions in `LOG.md`. |
-| Scientific campaigns absorb the schedule again. | Performance and scale slip. | One reusable campaign command, preflight resource checks, endpoints limited to Rapthor-consumed fields for non-regression, powered qualification once at M6. |
+| Short checks miss a rare regression. | A defect reaches a `0.x` release. | Releases stay experimental; each escaped defect adds a fixed case; the powered M6 study is the backstop. |
+| The development machine's 18 GiB RAM and free disk limit local tiers. | Tiers above 22,500² stall, or runs spill to disk and slow iteration. | Tile-bounded memory from M2 onward; disk decision D2(a); 90,000² and 100,000² only on the cluster unless an external SSD is attached. |
+| Scientific campaigns absorb the schedule again. | Performance and scale slip. | Iteration budgets, cached references, endpoints limited to Rapthor-consumed fields and one overnight powered study at M6. |
 
 ## Scientific gates
 
@@ -316,6 +347,8 @@ standalone release.
   anchors (with the real images below alongside the nearest anchor), sparse, normal and dense-extended workloads, and both sides of
   every measured crossover. Gate early deployment on its frozen envelope;
   1.0 qualification needs the whole matrix.
+- Compute reference-finder timings once per input, revision and host and
+  reuse them; rerun them only when one of those changes.
 - Match inputs and checksums, revisions and dependencies, output mode, host,
   affinity, CPU and native threads, workers, memory, storage and cache policy.
   Use a warm-up plus at least five measured repetitions, retain every value,
@@ -338,16 +371,18 @@ standalone release.
 
 ### Reference images
 
-Public candidates found on 16 September 2026. Dimensions marked "inferred"
-come from file sizes or catalogue metadata; check each header before a large
-download. No image data or dataset belongs in Git.
+Public candidates found on 16 September 2026. Headers of the LOFAR-HD
+mosaics and facet 0, LoTSS-DR3 mosaic 1312 and SDC1 B2 1,000 h were read
+that day with range requests; dimensions marked "inferred" come from file
+sizes or catalogue metadata. Check other headers before a large download. No
+image data or dataset belongs in Git.
 
 | Family | Image | Size | Use | Reference |
 | --- | --- | --- | --- | --- |
-| LOFAR | LOFAR-HD ELAIS-N1 mosaic, 0.4/0.2/0.1″ pixels | 22,500², 45,000², 90,000² (32.4 GB) | Largest real scale anchor; same-field size ladder | Per-facet PyBDSF catalogues |
-| LOFAR | LoTSS-DR3 HEALPix mosaics (1,571) | 14,390–17,752² | Science and throughput | PyBDSF catalogue plus per-mosaic RMS, residual and mask maps |
+| LOFAR | LOFAR-HD ELAIS-N1 mosaic, 0.4/0.2/0.1″ pixels | 22,500², 45,000², 90,000² (2.0, 8.1, 32.4 GB); 2-D `float32`, `JY/BEAM`, SIN, beam present, no frame or reference-frequency keywords | Largest real scale anchor; same-field size ladder | Per-facet PyBDSF catalogues; facets are WSClean FK5 J2000 images |
+| LOFAR | LoTSS-DR3 HEALPix mosaics (1,571) | 14,390–17,752² (1312: 15,402², ICRS, `RESTFRQ`, beam present) | Science and throughput | PyBDSF catalogue plus per-mosaic RMS, residual and mask maps |
 | LOFAR | LoTSS-Deep DR2 ELAIS-N1 apparent and true-sky pair | about 14,000² (inferred) | Closest public match to Rapthor's two inputs | PyBDSF catalogue and maps |
-| SKA-Mid | SDC1 B1/B2/B5, 8/100/1,000 h | 32,768² (4.3 GB each) | Scale with truth | Full truth catalogues |
+| SKA-Mid | SDC1 B1/B2/B5, 8/100/1,000 h | 32,768² (4.3 GB each); 4-D, `JY/BEAM`, `EPOCH = 2000`, `BMAJ`/`BMIN` but no `BPA` | Scale with truth | Full truth catalogues |
 | SKA-Mid | MeerKAT MIGHTEE DR1 XMM-LSS; SMGPS tiles (Galactic, multi-plane) | about 20,900² (inferred); 7,500² | Real precursor science; header variety | PyBDSF; Aegean |
 | SKA-Low | MWA GLEAM-X DR1 mosaics | not checked (2.8 GB) | Precursor science with a PSF that varies across the field | Aegean catalogues and PSF maps |
 | SKA-Low | OSKAR simulation (generated) | up to 100,000² | Scale and truth, pending public SKA-Low data | Generated truth |
