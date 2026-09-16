@@ -150,7 +150,10 @@ current documentation, and explicit known limitations. It does **not** imply:
 
 Release Please prepares version changes, release notes, tags, and GitHub
 releases. The publishing workflow builds distributions from the tagged commit
-and uploads them to PyPI using
-[Trusted Publishing](../how-to/publish-releases.md). Maintainers should release
+and uploads them to TestPyPI using
+[Trusted Publishing](../how-to/publish-releases.md), which exercises the
+release path without presenting Hebog as ready for general installation.
+Uploads move to PyPI once the supported input envelope is useful beyond
+cut-outs; until then a tagged GitHub release is the installable artifact. Maintainers should release
 only after the intended change has passed its required pull-request checks and
 the limitations on this page remain accurate.

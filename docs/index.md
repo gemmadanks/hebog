@@ -1,7 +1,7 @@
 # Hebog
 
-Hebog is an **experimental** Dask-aware radio-continuum source finder for SKA
-Science Data Processor pipelines. It is being developed as a scientifically
+Hebog is an **experimental** Dask-aware source finder for large
+radio-continuum survey images. It is being developed as a scientifically
 compatible, faster alternative to the PyBDSF work used by Rapthor's
 `filter_skymodel` step. Its scientific library also works independently of
 Rapthor, Prefect and LSMTool.

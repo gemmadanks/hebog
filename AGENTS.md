@@ -4,11 +4,11 @@ This file applies to the entire repository.
 
 ## Repository overview
 
-Hebog is a Dask-aware radio-continuum source finder for SKA Science Data
-Processor pipelines. Its first production consumer is Rapthor's
-`filter_skymodel` step. It is intentionally narrower than PyBDSF: reproduce
-the behaviour and products Rapthor uses, demonstrate scientific equivalence,
-and meet the performance gate below. The architecture must scale out of core
+Hebog is a Dask-aware source finder for large radio-continuum survey images.
+Its intended first consumer is Rapthor's `filter_skymodel` step; no Rapthor
+integration is implemented yet. It is intentionally narrower than PyBDSF:
+reproduce the behaviour and products Rapthor uses, demonstrate scientific
+equivalence, and meet the performance gate below. The architecture must scale out of core
 to 100,000-by-100,000 images across 100 to several hundred nodes through
 Rapthor's existing Dask cluster; production nodes have hundreds of GB of RAM.
 Maintainability, extensibility, and interoperability are primary architecture

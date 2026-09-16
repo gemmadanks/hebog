@@ -13,7 +13,7 @@ operate on bounded NumPy tiles with explicit halos and immutable metadata; an
 executor decides whether coarse batches run serially, in local threads, or on
 Dask workers. A small image is one tile.
 
-Rapthor is the first production consumer, not a scientific-core dependency.
+Rapthor is the intended first consumer, not a scientific-core dependency.
 Other pipelines and science workflows use the same public pipeline and domain
 records with their own orchestration and compatibility adapters. Dependencies
 point inward so algorithms never import Rapthor, Prefect, LSMTool, or a
