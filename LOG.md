@@ -22136,3 +22136,34 @@ scientific pass from fixture validation.
 - `config/benchmarks/phase-0-performance.json` and its schema still hold the
   former two limits. The M1 quick-benchmark row amends them in the same
   change as the benchmark lane, and the contracts page says so.
+
+## 2026-09-16 — Close the 1.0.0 planning decisions
+
+- The user answered the open planning decisions.
+  - **D1:** 1.0.0 is the demonstrated goal (telescopes, functionality,
+    science, performance, scalability), with Hebog as a supported
+    feature-flagged Rapthor backend. Default cutover is a later Rapthor
+    decision.
+  - **D2(a):** the user will free disk to about 60 GB. The local ladder stops
+    at 45,000²; 90,000² runs only in the final cluster benchmark.
+  - **D2(b):** "For now we can use the LOFAR data only, which should be
+    sufficient for testing scalability." No generated 100,000² image and no
+    OSKAR SKA-Low simulation are built.
+    - The scale ladder is LoTSS-DR3 15,402² and LOFAR-HD 22,500², 45,000²
+      (local) and 90,000² (cluster).
+    - SDC1 leaves the scale ladder but stays for SKA-Mid science cut-outs.
+    - SKA-Low coverage relies on MWA GLEAM-X until SKA-Low data are public.
+    - 100,000² images and 100 to 200+ nodes are covered by planner tests
+      only and stated as not demonstrated.
+  - **D2(c):** the public LoTSS-Deep DR2 ELAIS-N1 apparent/true-sky pair is
+    the representative Rapthor two-branch input.
+  - **D4:** only limitations that change Rapthor-consumed fields block
+    1.0.0: `E_RA`/`E_DEC` uncertainty calibration, `Total_flux` and
+    `Isl_Total_flux` tails, and faint association that changes island
+    grouping.
+  - **D5:** the budgets are about 15 minutes for a change check, about
+    1 hour for a release check, and for 1.0.0 only one overnight study plus
+    the cluster benchmark.
+- The plan's decision table becomes a short list of current scope and
+  resource rules. D3 (latest Rapthor Prefect branch and LSMTool commits) is
+  restated there.
