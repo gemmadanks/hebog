@@ -24,7 +24,7 @@ class UnsupportedSourceFinderConfigurationError(SourceFinderError):
 
 
 class SourceFinderImageTooLargeError(SourceFinderError):
-    """An input exceeds the bounded Phase 5 scientific-preview envelope."""
+    """An input exceeds the public finder's bounded image-size envelope."""
 
 
 def find_sources(

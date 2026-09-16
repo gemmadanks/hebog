@@ -25,6 +25,17 @@ OUTER_DEPENDENCIES = (
 CORE_LAYER_RULES = {
     "algorithms": OUTER_DEPENDENCIES,
     "data_models": OUTER_DEPENDENCIES,
+    # Storage boundaries serve adapters and executors, never the reverse.
+    "io": (
+        "dask",
+        "distributed",
+        "hebog.adapters",
+        "hebog.executors",
+        "hebog.validation",
+        "lsmtool",
+        "prefect",
+        "rapthor",
+    ),
 }
 
 PUBLIC_CORE_MODULE_RULES = {

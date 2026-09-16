@@ -629,6 +629,7 @@ def _fitted_component_row(
     index: int,
     fitted: ValidCompactGaussianFit,
     header: fits.Header,
+    wcs: WCS,
 ) -> CatalogueSource:
     """Publish native model measurements, not threshold-truncated moments."""
     beam = RestoringBeam(
@@ -636,7 +637,6 @@ def _fitted_component_row(
         cast(float, header["BMIN"]),
         cast(float, header.get("BPA", 0.0)),
     )
-    wcs = WCS(header, relax=True).celestial
     position = fitted.parameters.centroid_xy
     tangent = local_tangent_plane_transform_from_wcs(wcs, position)
     beam = restoring_beam_in_icrs(beam, wcs, position)
@@ -671,8 +671,12 @@ def _apply_component_measurements(
     """Substitute original-pixel fits and identify compact model groups."""
     if measurements is None:
         return sources, set()
+    # Parse the header once: each WCS parse repeats Astropy header fixes.
+    wcs = WCS(header, relax=True).celestial
     replacements = {
-        f"hebog-segment-{index}": _fitted_component_row(index, fitted, header)
+        f"hebog-segment-{index}": _fitted_component_row(
+            index, fitted, header, wcs
+        )
         for index, fitted in measurements.fits
         if isinstance(fitted, ValidCompactGaussianFit)
     }

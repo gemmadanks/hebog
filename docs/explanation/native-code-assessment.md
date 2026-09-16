@@ -4,6 +4,8 @@
 Implement the deterministic algorithm in clear Python using vectorized NumPy
 and SciPy, then use Numba for measured custom loops that those libraries do not
 express efficiently. Reassess native code only from end-to-end profiles.
+Hebog does not currently depend on Numba; add it as a runtime dependency
+together with the first profiled kernel that needs it.
 
 This is a deferral with explicit decision gates, not a ban. If a native
 extension becomes justified, prefer Rust for a new self-contained kernel and

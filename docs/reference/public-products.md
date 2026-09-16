@@ -108,7 +108,7 @@ is publishable.
 | --- | --- | --- |
 | `ISLAND_ID` | — | Primary connected mask island. |
 | `ADDITIONAL_ISLAND_IDS` | — | Comma-separated canonical additional island IDs; blank means none. |
-| `RIGHT_ASCENSION`, `DECLINATION` | deg | ICRS position. RA is in `[0, 360)` and declination in `[-90, 90]`. |
+| `RIGHT_ASCENSION`, `DECLINATION` | deg | ICRS position, converted from FK5 J2000 when the input uses that frame. RA is in `[0, 360)` and declination in `[-90, 90]`. |
 | `RIGHT_ASCENSION_ERROR`, `DECLINATION_ERROR` | deg | Optional one-sigma uncertainties; FITS NaN means unavailable. |
 | `PEAK_FLUX` | Jy/beam | Peak brightness for the row's estimator. |
 | `PEAK_FLUX_ERROR` | Jy/beam | Optional one-sigma uncertainty. |
@@ -364,9 +364,9 @@ exceptions let a pipeline handle failures without parsing message text:
 
 | Exception | Meaning |
 | --- | --- |
-| `SourceFinderOutputExistsError` | The caller-owned output directory already exists; Hebog will not overwrite it. |
+| `SourceFinderOutputExistsError` | The caller-owned output path already exists; Hebog will not overwrite it. Publication claims the destination atomically, so a path another writer creates while the analysis runs is reported here rather than replaced. Products then appear in one rename; treat a successful return, not the directory's existence, as the completion boundary. |
 | `InvalidSourceFinderInputError` | The FITS file cannot be read as a supported image. |
-| `UnsupportedSourceFinderConfigurationError` | The image's physical unit or celestial frame is outside the public contract. |
+| `UnsupportedSourceFinderConfigurationError` | The image's physical unit or celestial frame (other than ICRS or FK5 J2000) is outside the public contract. |
 | `SourceFinderImageTooLargeError` | A spatial dimension exceeds 1,024 pixels. |
 | `SourceFinderError` | Base class for other failures at the public boundary. |
 

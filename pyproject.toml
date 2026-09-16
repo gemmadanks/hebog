@@ -6,12 +6,12 @@ authors = [
     {name = "Gemma Danks", email = "gemma.danks@skao.int"},
 ]
 license = "BSD-3-Clause"
+license-files = ["LICENSE"]
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "astropy>=8.0.1,<9",
     "dask[array,distributed]>=2026.7.1,<2027",
-    "numba>=0.61,<1",
     "numpy>=1.26,<3",
     "pydantic>=2.10,<3",
     "scipy>=1.12,<2",
@@ -71,7 +71,6 @@ markers = [
     "contract: scheduler-independent public behaviour and product contracts",
     "equivalence: scientific comparisons with PyBDSF reference products",
     "integration: Dask, FITS, and Rapthor integration tests",
-    "posix_frozen_record: exact reconstruction of a sealed record whose reviewed paths use POSIX spelling",
     "qualification: held-out scientific validation for milestone and release gates",
     "requires_data: tests requiring external or non-redistributable datasets",
     "scalability: controlled large-image and multi-node scaling tests",
@@ -121,3 +120,6 @@ build-backend = "uv_build"
 [tool.uv.build-backend]
 module-name = "hebog"
 module-root = "src"
+# Campaign and comparison tooling runs from a source checkout with the
+# development dependencies; it is not part of the installed source finder.
+wheel-exclude = ["hebog/validation"]

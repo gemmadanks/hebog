@@ -55,9 +55,15 @@ def local_tangent_plane_transform(
     *,
     celestial_wcs: WCS | None = None,
 ) -> LocalTangentPlaneTransform:
-    """Return the ICRS center and local east/north pixel Jacobian."""
-    if metadata.celestial_wcs.coordinate_frame.lower() != "icrs":
-        raise ValueError("compact astrometry requires an ICRS celestial WCS")
+    """Return the ICRS center and local east/north pixel Jacobian.
+
+    ICRS and FK5 inputs are both transformed to ICRS through Astropy's frame
+    tie, matching :func:`restoring_beam_in_icrs`.
+    """
+    if metadata.celestial_wcs.coordinate_frame.lower() not in {"icrs", "fk5"}:
+        raise ValueError(
+            "compact astrometry requires an ICRS or FK5 celestial WCS"
+        )
     wcs = (
         celestial_wcs
         if celestial_wcs is not None

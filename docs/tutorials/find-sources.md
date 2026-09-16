@@ -3,7 +3,7 @@
 This tutorial runs Hebog as a standalone scientific library. It uses no
 Rapthor, Prefect, LSMTool, or private Dask cluster.
 
-The interface is experimental and scientifically unqualified. A successful
+The interface is experimental and not yet scientifically qualified. A successful
 run does not by itself qualify Hebog for a survey; see
 [current capability and release status](../reference/release-status.md).
 
@@ -13,8 +13,8 @@ Use one two-dimensional FITS image, or a FITS image with only singleton axes
 before its final two spatial axes. The image must have:
 
 - pixel values in `Jy/beam`;
-- an ICRS celestial WCS;
-- finite positive `BMAJ` and `BMIN` restoring-beam axes (`BPA` defaults to zero);
+- an ICRS or FK5 J2000 celestial WCS;
+- finite positive `BMAJ` and `BMIN` restoring-beam axes and a `BPA` position angle;
 - a positive reference frequency in `RESTFRQ`, `RESTFREQ`, or a frequency WCS
   axis; and
 - no more than 1,024 pixels along either spatial axis.
@@ -22,10 +22,19 @@ before its final two spatial axes. The image must have:
 NaN pixels are allowed and are excluded from the analysis. Missing or invalid
 physical metadata fails clearly before any output bundle is published.
 
+A header with `EQUINOX = 2000` but no `RADESYS` keyword, as written by
+WSClean, declares FK5 J2000 under the FITS WCS standard. Hebog accepts it and
+converts every catalogue position and beam angle to ICRS; the two frames
+differ by tens of milliarcseconds. Other frames and equinoxes raise
+`hebog.UnsupportedSourceFinderConfigurationError`.
+
 ## Run the continuum profile
 
-The output directory must not already exist. Hebog treats it as one atomic,
-caller-owned product bundle.
+The output directory must not already exist. Hebog treats it as one
+caller-owned product bundle: it claims the path and then moves the complete
+bundle into place with a single rename, so no partially written bundle is
+ever visible. A successful return, not the existence of the directory, means
+the products are ready.
 
 ```python
 from pathlib import Path
@@ -250,7 +259,9 @@ types, so workflow code does not need to parse error strings.
 
 Callers that already own a Dask client may pass `DaskExecutor(client)` instead
 of `SerialExecutor()`. Hebog never creates a cluster or inspects ambient
-scheduler state. Serial and existing-Dask execution are required to publish
+scheduler state. Workers open the input image and write intermediate planes
+beside the output directory, so on a multi-node cluster use absolute paths on
+storage that every worker can read and write. Serial and existing-Dask execution are required to publish
 byte-identical scientific products.
 
 ## Current limits

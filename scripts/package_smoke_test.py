@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import tomllib
+import zipfile
 from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -40,6 +41,19 @@ def package_module_name() -> str:
     return module_name
 
 
+def check_wheel_contents(wheel: Path, module_name: str) -> None:
+    """Require the licence and exclude repository-only validation tooling."""
+    with zipfile.ZipFile(wheel) as archive:
+        names = archive.namelist()
+    if not any(name.endswith(".dist-info/licenses/LICENSE") for name in names):
+        msg = f"wheel does not contain the licence file: {wheel}"
+        raise RuntimeError(msg)
+    excluded = f"{module_name}/validation/"
+    if any(name.startswith(excluded) for name in names):
+        msg = f"wheel contains repository-only tooling {excluded}: {wheel}"
+        raise RuntimeError(msg)
+
+
 def main() -> None:
     """Build, install, and verify the wheel's top-level import."""
     module_name = package_module_name()
@@ -58,6 +72,7 @@ def main() -> None:
                 f"found {len(wheels)}"
             )
             raise RuntimeError(msg)
+        check_wheel_contents(wheels[0], module_name)
 
         run(
             [

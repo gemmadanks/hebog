@@ -50,7 +50,7 @@ The public entry point is `hebog.find_sources(request, config, executor)`.
   (background, detection, deblending, fitting, measurement, multiscale,
   catalogue). They handle tiling, cores and halos, and batching through an
   `Executor`.
-- `algorithms/` contains pure NumPy/SciPy/Numba kernels. They take arrays and
+- `algorithms/` contains pure NumPy/SciPy kernels. They take arrays and
   immutable config and return arrays or records. They must not know about
   schedulers, I/O, or adapters.
 - `executors/` defines the `Executor` protocol (`base.py`), the
@@ -61,13 +61,13 @@ The public entry point is `hebog.find_sources(request, config, executor)`.
 - `io/` holds the image-source protocol (`base.py`), bounded FITS input, the
   Zarr v3 intermediate plane store, and restartable FITS/JSON product
   materialisation.
-- `adapters/` is the Rapthor compatibility boundary: serializable records and
-  a PyBDSF-style catalogue view. It must not import Rapthor, Prefect, or
-  LSMTool.
+- `adapters/` is the Rapthor compatibility boundary: serializable records, a
+  PyBDSF-style catalogue view and combined product publication with that
+  view. It must not import Rapthor, Prefect, or LSMTool.
 - `validation/` provides campaign, evidence, comparison, and dataset tooling
   for `scripts/` and tests. No production module outside `validation/` imports
-  it. Keep it that way, so the source finder stays independent of campaign
-  validation.
+  it, and wheels exclude it. Keep it that way, so the source finder stays
+  independent of campaign validation.
 
 Dependencies point inward:
 `adapters → pipeline/public_api → science → stages → algorithms`, with

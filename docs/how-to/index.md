@@ -38,10 +38,6 @@ tolerance; frozen artifact bytes and their recorded hashes still require exact
 equality. Retire obsolete campaign builders and their implementation-specific
 tests together after checking remaining consumers, preserving evidence and the
 identity checks needed by supported readers.
-Exact reconstruction tests for sealed records that bind POSIX path spelling
-use the `posix_frozen_record` marker. They remain active in Linux CI and are
-skipped on Windows; portable readers, validation rules and write-once behavior
-continue to run across the complete supported platform matrix.
 
 Contract tests hold strict-xfail executable specifications until their planned
 implementation turns them green; an unexpected pass fails CI until the test is

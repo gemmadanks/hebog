@@ -143,7 +143,7 @@ diagnostics where an identity was established.
 
 The public finder accepts one two-dimensional image, or a FITS image with only
 singleton axes before its final two spatial axes. It currently requires
-`BUNIT=Jy/beam`, an ICRS celestial WCS, a finite positive restoring beam, a
+`BUNIT=Jy/beam`, an ICRS or FK5 J2000 celestial WCS, a finite positive restoring beam, a
 positive reference frequency, and no more than 1,024 pixels along either
 spatial axis. NaN pixels are allowed and excluded. The 1,024-pixel limit is a
 current public-preview limit, not Hebog's target architecture.

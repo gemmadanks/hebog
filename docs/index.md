@@ -8,13 +8,13 @@ Rapthor, Prefect and LSMTool.
 
 ## What Hebog does
 
-The public finder reads one ICRS `Jy/beam` FITS image up to 1,024 pixels on
+The public finder reads one ICRS or FK5 J2000 `Jy/beam` FITS image up to 1,024 pixels on
 either spatial axis and publishes a catalogue, RMS image, source mask and
 diagnostics. It implements background/noise estimation, compact and multiscale
 detection, Gaussian fitting and associated-source measurements. Use Serial
 execution or supply an existing Dask client; Hebog does not create a cluster.
 
-Hebog is experimental and scientifically unqualified. Treat its outputs as
+Hebog is experimental and not yet scientifically qualified. Treat its outputs as
 measurements to evaluate, not as established astrophysical truth or automatic
 evidence that a survey configuration is suitable. See
 [current capability and release status](reference/release-status.md) for the

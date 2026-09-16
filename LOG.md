@@ -21761,3 +21761,161 @@ scientific pass from fixture validation.
   A trailing-whitespace trial is fixed and settled in about 10 s without
   running the slow hooks. Remove `.pre-commit-config.yaml` excludes for files
   deleted by the Phase 5 cleanup; the frozen PyBDSF diagnostics excludes stay.
+
+## 2026-09-15 — Prepare the v0.7.0 release-readiness branch
+
+- PR #54 merged as `0a552ca`; R1 is complete and removed from the plan.
+  Branch `chore-prepare-release-0-7-0` carries R2.
+- CI partition decision: fold `tests/unit/validation` into the portable
+  matrix and remove the Linux-only `retained-validation` job. After the
+  cleanup the directory holds 929 quick tests that pass locally in 70 s. The
+  symlink use that motivated the partition is already exercised on Windows by
+  `tests/integration/test_product_materialization.py`. The hosted macOS and
+  Windows run of this branch is the confirming evidence; restore the
+  partition with a stated reason only for a platform-specific failure. The
+  unused `posix_frozen_record` marker and its Windows skip hook are removed.
+- Wheel audit: the built wheel's `hebog/` files equal the tracked
+  `src/hebog` files, so no removed campaign module or record ships. The wheel
+  lacked the BSD licence text; `license-files = ["LICENSE"]` now adds
+  `dist-info/licenses/LICENSE` and `License-File` metadata. The installed
+  `hebog.validation.support_plotting` imports Matplotlib, which is only a
+  development dependency; release status now describes `hebog.validation` as
+  development tooling. Excluding it from distributions is a separate decision.
+- Aggregate `v0.6.0..HEAD` review against `CODE_REVIEW.md` found no P0 or P1
+  defect. Import inertness, inward dependencies (one lazy `io/combined.py`
+  import of `hebog.adapters.rapthor_catalogue` excepted), CLI, examples and
+  small edge inputs pass. P2 findings: FITS headers with `EQUINOX` but no
+  `RADESYS` (WSClean) are FK5 under the WCS standard and rejected as non-ICRS;
+  Dask workers require shared absolute paths; publication checks output
+  existence only before analysis, so a directory created concurrently is
+  replaced if empty or produces a raw `OSError` if not. P3: oversized inputs
+  are hashed before the size check and `numba` is an unused runtime
+  dependency. A reported stale `__version__` fallback was a false positive;
+  Release Please updates it. The first
+  two P2 items and two documentation errors (`BPA` is required; the Rapthor
+  adapter does not compose branches) were documented or corrected first; the
+  next entry records the code fixes the user then requested for every finding.
+- Release-notes gap: v0.6.0 `find_sources` raised `NotImplementedError`, so
+  v0.7.0 is the first functional release. Breaking changes include the
+  `profile` configuration field, catalogue JSON schema 3 and FITS schema 4,
+  diagnostics schema 8 with a union reader, and removal of
+  `hebog.validation.phase_four_analysis`, `phase_four_decision` and
+  `phase_four_recovery`. The last removal came through hidden `chore` commits
+  and needs an explicit note in R4.
+- README links are absolute so the PyPI long description renders; README,
+  quick start and release status state the unqualified scientific status,
+  the latest failed campaign result, accepted limitations and PyPI
+  installation.
+
+## 2026-09-15 — Resolve every release-review finding before v0.7.0
+
+- The user asked for all review findings to be fixed so later work starts
+  clean, chose to convert FK5 J2000 input to ICRS, and stated the campaign
+  framing for user documentation: its fail status comes only from regressions
+  against the earlier Hebog incumbent, with no failure against PyBDSF.
+  Documentation now says no comparison against released PyBDSF, PyBDSF
+  `master` or Aegean failed (19 of 676 PyBDSF comparisons were underpowered)
+  and that Hebog is not yet scientifically qualified.
+- Dependency direction: `materialize_combined_products` and its records moved
+  from `hebog.io.combined` to `hebog.adapters.rapthor_products`; nothing in
+  production called it, so public products are unaffected. An architecture
+  rule now fails if `hebog.io` imports adapters, executors, validation or
+  schedulers.
+- Packaging: the unused `numba` runtime dependency (and `llvmlite`) is
+  removed; wheels exclude `hebog.validation`, whose Matplotlib import could not
+  load from a wheel. The package smoke test fails if the licence is missing or
+  validation tooling ships. A fallback `__version__` change was reverted:
+  Release Please's Python strategy already bumps that literal in
+  `src/hebog/__init__.py` at each release, as the v0.6.0 release commit shows.
+- Public boundary: relative request paths are made absolute before executor
+  tasks are built; oversized inputs are rejected before the input digest;
+  publication rechecks the destination after analysis and renames without
+  replacement, so a directory or file created during a run raises
+  `SourceFinderOutputExistsError` and is preserved. User-facing messages no
+  longer name Phase 5.
+- FK5 J2000 decision statement. Observed: WSClean headers (`EQUINOX = 2000`,
+  no `RADESYS`) are FK5 under the WCS standard and were rejected. Cause: the
+  public gate and one compact astrometry gate required ICRS, although every
+  catalogue position and beam angle is already derived through Astropy's ICRS
+  transform. Test: an FK5 J2000 image whose reference point is the same sky
+  direction as an ICRS image. Expectation: positions agree to <0.1 mas while
+  the raw frame tie is tens of mas. Result: agreement below 1e-4 arcsec for
+  explicit and implicit FK5. Other FK5 equinoxes, FK4 and Galactic frames stay
+  rejected.
+- Beam round-off repair, found while testing FK5. Observed: with an ICRS
+  circular four-pixel beam, a 0.7 mas `CRVAL1` shift changed integrated flux
+  by 0.57%. Diagnosis: position angle has no effect with exact axes, but a
+  +2e-7 pixel major axis flips `ceil(radius_beams * major_fwhm_pixels)`; the
+  finite-difference WCS Jacobian leaves ~1e-8 pixel noise on whole-pixel
+  beams. Repair: quantise the derived pixel beam axes to 1e-6 pixel in
+  `public_api._beam_shape_pixels`, the single source of every beam-scaled
+  extent. Expectation and result: the shifted and unshifted images publish
+  identical measurements, and the axes are exactly 4.0 pixels with a
+  canonical zero angle. The composition identity is now v20.
+- Validation: `just coverage` passes 2,681 tests with two expected xfails at
+  96.00% project coverage, 0.01 points below the release-readiness branch;
+  two further focused tests then covered the new publication-race and
+  digest-failure branches. The user explicitly accepted the 0.01-point drop
+  without another coverage run. Equivalence (27), acceptance (7 expected
+  xfails), Marimo check, notebook smoke, strict docs build and package smoke
+  test (licence present, `hebog.validation` absent) pass.
+
+## 2026-09-15 — Check the PyPI release workflow
+
+- The build and publish jobs in `release-please.yaml` were added in #49 and
+  have not run yet. Every pinned action ref resolves; release-please-action v5
+  still sets the root `release_created` and `sha` outputs the jobs read. The
+  `hebog` PyPI project does not exist yet, so the documented pending Trusted
+  Publisher can create it.
+- Reproducing the build job at `4df6d4e` (uv 0.9.4,
+  `uv build --no-sources`, Python 3.14, uv_build fetched from PyPI) produces a
+  wheel and sdist that pass `twine check --strict`, carry
+  `License-Expression` and `License-File`, omit `numba`, and exclude
+  `hebog.validation` from the wheel. The generated `dist/.gitignore` is a
+  hidden file that `upload-artifact` excludes by default.
+
+## 2026-09-16 — Publish products with an atomic destination claim
+
+- External review of the release PR rejected the earlier check-then-rename
+  publication: POSIX `rename` replaces an existing empty directory, so a
+  destination claimed between the check and the rename could still be lost.
+  The finding is valid; the previous commit only narrowed the interval.
+- `hebog.io.filesystem.rename_without_replacement` claims the destination and
+  publishes in one operation. The first implementation called
+  `renameat2`/`renamex_np` through `ctypes`; the user asked whether a simpler
+  mechanism exists, and one does. `mkdir` is an atomic exclusive claim on
+  every supported platform, and a POSIX rename onto the empty directory this
+  call just created can only replace its own claim, so no other writer can
+  take the path in between. Windows `rename` refuses an existing destination
+  by itself. A failed rename removes the claim, so a retry is not blocked.
+  The primitive is now 12 statements of standard library with no platform
+  fallback or errno translation, and `FileExistsError` becomes
+  `SourceFinderOutputExistsError` at the public boundary.
+- Tests cover an unclaimed destination; empty, populated, file and dangling
+  symlink destinations; claim removal after a failed publication; and a
+  record that a plain `os.rename` would replace an empty destination, which
+  is the behaviour this boundary exists to prevent. `mkdir` was verified to
+  refuse a directory, a file, a dangling symlink and a symlink to a
+  directory.
+
+## 2026-09-16 — Bound the publication visibility promise
+
+- A follow-up review asked that the destination become visible only when the
+  complete bundle is available. The `mkdir` claim makes the path exist, empty,
+  for the two system calls before the rename, so the observation is correct;
+  the consequence is bounded to that window and no partial bundle is ever
+  visible.
+- Every mechanism that closes the window costs more than it buys. A sibling
+  lock directory goes stale after a crash and then blocks all later
+  publications. `fcntl.flock` releases on process death but is unreliable on
+  network file systems, where it would silently degrade to the unsafe
+  check-then-rename. The `ctypes` no-replace rename closes it absolutely at
+  about a hundred statements of platform-specific code, which the user
+  rejected. Destroying a caller's directory is the serious failure and
+  `mkdir` prevents it unconditionally, so the mechanism stands.
+- The promise is corrected instead: the primitive, `_publish_bundle`, the
+  tutorial, the public-products reference and the internal-schemas
+  comparison now state that the path is claimed, that products appear in one
+  rename, and that a successful return rather than the directory's existence
+  is the completion boundary. Revisit only if a consumer is shown to watch
+  the output path rather than the returned result.

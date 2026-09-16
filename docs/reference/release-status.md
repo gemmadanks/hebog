@@ -31,12 +31,12 @@ photometry, and atomic product publication. Start with
 | Boundary | Supported behaviour |
 | --- | --- |
 | Input | One two-dimensional FITS image, or singleton leading axes followed by two spatial axes. |
-| Physical metadata | ICRS celestial WCS, `BUNIT=Jy/beam`, finite positive restoring-beam axes, and a positive reference frequency. |
+| Physical metadata | ICRS or FK5 J2000 celestial WCS, `BUNIT=Jy/beam`, finite positive restoring-beam axes with a position angle, and a positive reference frequency. FK5 J2000 includes headers with `EQUINOX = 2000` and no `RADESYS`, as written by WSClean; catalogue positions are always converted to ICRS. Other frames and equinoxes are rejected. |
 | Image size | No more than 1,024 pixels along either spatial axis. Larger inputs fail before analysis. |
 | Invalid pixels | NaN pixels are allowed and excluded from estimation, detection, and measurement. |
 | Profiles | `continuum` is the default. `compact` deliberately omits extended-source association and reports `extended-emission-incomplete`. |
 | Thresholds | Positive detection and island thresholds supplied by the caller, with the island threshold lower than the detection threshold; explicit minimum and optional maximum island sizes. |
-| Execution | Deterministic `SerialExecutor`, or `DaskExecutor` with a Dask client owned by the caller. Hebog does not create or close a cluster. |
+| Execution | Deterministic `SerialExecutor`, or `DaskExecutor` with a Dask client owned by the caller. Hebog does not create or close a cluster. Dask workers need the input image and the output directory's parent on shared storage. |
 | Publication | A new caller-owned directory containing `catalogue.fits`, `rms.fits`, `source-mask.fits`, and `diagnostics.json`. Existing directories are never overwritten. |
 
 Background/RMS estimation uses bounded tiles. Later measurement stages operate
@@ -51,6 +51,17 @@ inspection, and bounded scientific evaluation. It is not yet suitable for an
 unqualified statement that Hebog is interchangeable with PyBDSF or ready for a
 particular survey.
 
+In the most recent synthetic comparison campaign, no comparison against
+released PyBDSF, PyBDSF `master` or Aegean failed; 19 of the 676 PyBDSF
+comparisons were statistically inconclusive. The campaign was recorded as a
+fail only because 32 comparisons regressed slightly against an earlier Hebog
+version, mainly in uncertainty calibration and some centroid and flux tails.
+Later changes, including the current composition, have focused regression,
+Serial/Dask, equivalence and installed-wheel evidence only. The
+[Phase 5 campaign overview](phase-5-campaign-overview.md) records every
+non-passing comparison. This is development evidence: Hebog is not yet
+scientifically qualified, and no release claims general parity with PyBDSF.
+
 Diagnostics label the example 5-sigma detection, 3-sigma island, seven-pixel
 configuration as `development-unqualified`. Other valid settings are labelled
 `custom-unqualified`. These labels describe validation status, not whether the
@@ -60,6 +71,8 @@ Current limitations that matter when interpreting results are:
 
 - uncertainty calibration is not yet established across the full supported
   morphology and signal-to-noise range;
+- extended-source flux-error tails, signed extended-source centroid offsets
+  and unresolved-axis retention are worse than for an earlier Hebog candidate;
 - faint extended emission can remain sensitive to association, mask-boundary,
   and aperture-flux decisions;
 - a failed or scientifically inadmissible Gaussian fit can leave a valid
@@ -114,6 +127,10 @@ meaning directly. Integrators should:
 4. preserve unknown quality flags;
 5. check product scientific status explicitly; and
 6. review current documentation and release notes before upgrading.
+
+The `hebog.validation` package is development tooling for the repository's
+comparison scripts and tests. It is not part of the source-finding API and is
+not installed from a wheel; use a source checkout with `uv sync --all-groups`.
 
 Schema numbers are documented in the
 [public-output reference](public-products.md). They are compatibility checks

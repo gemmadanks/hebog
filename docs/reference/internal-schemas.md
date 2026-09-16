@@ -252,7 +252,8 @@ bytes returns the existing product record; a retry that would replace
 different bytes fails with `MaterializedProductConflictError`. Publication
 does not weaken the separate deployment-store concurrency qualification gate.
 
-`materialize_combined_products` stages and validates all four new products,
+`hebog.adapters.rapthor_products.materialize_combined_products` stages and
+validates all four new products,
 including the result record, before publishing any of them. Destinations are
 resolved before checking distinctness; existing hard-link aliases and aliases
 of the reused RMS plane are rejected too. Each staged file is on the same
@@ -267,8 +268,9 @@ Because callers may select separate directories/filesystems, this helper does
 not promise crash-atomic or simultaneous cross-file visibility. Consumers must
 wait for its successful return; an abrupt process or host failure still needs
 workflow-level recovery. Empty newly created parent directories may remain
-after a failed call. This differs from `find_sources`, which publishes a single
-new output directory with one atomic rename.
+after a failed call. This differs from `find_sources`, which claims
+one new output directory and moves the complete bundle into it with a single
+rename.
 
 The combined helper
 reuses the exact Phase 2 RMS `MaterializedProduct`; writes the internal
