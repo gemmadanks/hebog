@@ -84,13 +84,18 @@ Check the **publish-testpypi** job and the
 publication. The repository's existing `bump-minor-pre-major` setting keeps
 breaking-change commits on minor bumps while the version is below `1.0.0`.
 
-To install a TestPyPI upload for a packaging check, take dependencies from
-PyPI, which TestPyPI does not mirror:
+To install a TestPyPI upload for a packaging check, fetch the artifact from
+TestPyPI alone, then install that file so its dependencies resolve from PyPI,
+which TestPyPI does not mirror:
 
 ```console
-pip install --index-url https://test.pypi.org/simple/ \
-    --extra-index-url https://pypi.org/simple/ hebog
+pip download --index-url https://test.pypi.org/simple/ --no-deps hebog==0.7.0
+pip install ./hebog-0.7.0-py3-none-any.whl
 ```
+
+Do not combine the two indexes with `--extra-index-url`. Pip then considers
+candidates for `hebog` from both and may prefer a same-named project on PyPI,
+which the pending publisher does not reserve.
 
 ## Recover an interrupted release
 
