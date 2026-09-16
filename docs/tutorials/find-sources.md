@@ -215,7 +215,7 @@ not a claimed fitted Gaussian or an unresolved source.
 source, including unavailable or bounded-work-deferred measurements. Each
 entry gives its estimator or failure reason, source membership and whether
 a catalogue row was published. Component diagnostics retain the fitted model,
-likelihood pixel count, GLS fallback reason, covariance basis and competing
+likelihood pixel count, point-estimator fallback reason, covariance basis and competing
 association group IDs. Source diagnostics retain both signed-original and
 denoised centroids, their selection rule, position/aperture counts and signed
 flux. Source `association_evidence` records each admitted multi-component

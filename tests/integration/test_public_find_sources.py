@@ -16,6 +16,7 @@ import pytest
 from astropy import units
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
+from astropy.wcs import WCS
 from distributed import Client, LocalCluster
 
 import hebog
@@ -1096,6 +1097,66 @@ def _catalogue_positions(result: hebog.SourceFinderResult) -> np.ndarray:
         ],
         dtype=np.float64,
     )
+
+
+@pytest.mark.integration
+def test_isolated_sources_on_uncorrelated_noise_publish_their_components(
+    tmp_path: Path,
+) -> None:
+    """Given beam-shaped sources at SNR 20 to 100 on pixel-independent noise,
+    when Hebog measures them,
+    then each source publishes one Gaussian component at the right position
+    and peak, as pinned PyBDSF master does for the same image.
+
+    A point estimator that assumes beam-correlated noise amplifies
+    pixel-independent noise and published no component for most of these
+    sources, or a grossly wrong one.
+    """
+    beam_sigma_pixels = 4.0 / (2.0 * np.sqrt(2.0 * np.log(2.0)))
+    noise = 1e-3
+    sources_xy = (
+        (40.0, 40.0, 20.0),
+        (120.0, 48.0, 50.0),
+        (80.0, 120.0, 100.0),
+    )
+    yy, xx = np.mgrid[:160, :160]
+    image = np.random.default_rng(20260916).normal(0.0, noise, yy.shape)
+    for x, y, snr in sources_xy:
+        image += (
+            snr
+            * noise
+            * np.exp(
+                -((xx - x) ** 2 + (yy - y) ** 2) / (2 * beam_sigma_pixels**2)
+            )
+        )
+    path = tmp_path / "image.fits"
+    _write_image(path, image)
+    header = _header(image.shape)
+    celestial = WCS(header).celestial
+
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+
+    components = read_catalogue_fits_product(
+        result.catalogue
+    ).gaussian_components
+    assert len(components) == len(sources_xy)
+    published = sorted(
+        (
+            *celestial.world_to_pixel_values(
+                row.position.right_ascension_degrees,
+                row.position.declination_degrees,
+            ),
+            row.flux.peak_flux_jy_per_beam,
+        )
+        for row in components
+    )
+    for (x, y, peak), (true_x, true_y, snr) in zip(
+        published, sorted(sources_xy), strict=True
+    ):
+        assert np.hypot(x - true_x, y - true_y) < 0.25 * 4.0
+        assert peak == pytest.approx(snr * noise, rel=0.15)
 
 
 @pytest.mark.integration

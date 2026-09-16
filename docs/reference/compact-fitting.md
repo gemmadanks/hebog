@@ -32,8 +32,17 @@ published. An inadmissible fit retains its initializer and explicit failure
 diagnostics, rather than producing a Gaussian row. Independent source support
 and signed-aperture measurements remain available.
 
-When the image declares a correlated-noise covariance, the Phase 4R point
-estimator uses generalized least squares for regions of at most 512 retained
+The public continuum profile fits with the diagonal-weighted point estimator:
+each pixel residual is weighted by its local RMS, and uncertainties use the
+correlated-noise sandwich covariance described below. Generalized least
+squares (GLS) whitened residuals with the restoring-beam correlation. On images
+whose noise is not beam-correlated, that amplified pixel-to-pixel noise and
+lost most components that pinned PyBDSF `master` measured, so the profile no
+longer uses it. The quick science check tracks this with its white-noise case.
+
+GLS remains available as an explicit configuration. When the image declares
+a correlated-noise covariance, the GLS point estimator uses generalized least
+squares for regions of at most 512 retained
 pixels when the declared correlation matrix is numerically resolved. It
 factorizes only that bounded matrix and whitens both residuals and Jacobians
 before SciPy sees them. Larger regions, or images without a correlation
@@ -201,7 +210,16 @@ no Phase 5 deferrals.
 
 ## Integrated-flux uncertainty calibration
 
-The correlated-GLS covariance remains the formal one-sigma uncertainty. The
+The correlated-noise sandwich covariance of the diagonal-weighted fit is the
+formal one-sigma uncertainty. On seed-disjoint isolated sources with
+beam-correlated noise, its pulls against injected truth have a standard
+deviation of about one for position, peak flux and fitted axes (0.72 to 1.10).
+The former GLS covariance was overconfident there, with pull standard
+deviations up to 2. On pixel-independent noise the uncertainties are
+conservative (pull standard deviation 0.25 to 0.55), because they assume
+beam-correlated noise, as Condon-style errors do. Two biases remain under
+both estimators: the integrated flux of beam-sized sources (median pull
+about +0.4) and their fitted major axis (about +1.5). The
 Phase 5 external component profile additionally applies a 0.075-sigma
 downward correction to the fitted Gaussian total before celestial catalogue
 publication. It leaves the fitted amplitude, axes, angle, centroid, formal
@@ -213,7 +231,7 @@ This follows the standard practice of reporting calibrated Gaussian-fit
 uncertainties while keeping the correction distinguishable from the formal
 covariance. PyBDSF documents Gaussian parameter errors based on Condon (1997),
 including the lower-variance fixed-shape case. Hebog does not claim that its
-GLS covariance is the same implementation. Its small point correction was
+covariance is the same implementation. Its small point correction was
 selected on seed-disjoint injected truth after a global error multiplier was
 rejected for causing over-coverage. See
 [Condon (1997)](https://adsabs.harvard.edu/pdf/1997PASP..109..166C) and the

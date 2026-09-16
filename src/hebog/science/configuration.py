@@ -66,7 +66,10 @@ def source_finder_configs() -> tuple[
                 30.0,
                 background_model="fixed-zero",
                 pixel_support="owned-region",
-                point_estimator="correlated-gls",
+                # Beam-correlated GLS weighting amplifies pixel-independent
+                # noise and lost most components on such images; diagonal
+                # weighting is robust to either noise model.
+                point_estimator="diagonal-weighted",
                 model_selection="beam-or-free",
                 position_estimator="bounded-context-free",
             ),

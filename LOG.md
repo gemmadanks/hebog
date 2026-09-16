@@ -22273,3 +22273,115 @@ scientific pass from fixture validation.
   `gausfit.fit_island` on the crowded SDC1 cut-out. That case therefore has
   no reference metrics. Hebog took 123 s on it, the slowest case: a profiling
   input for the next M1 task.
+
+## 2026-09-16 — Uncorrelated-noise component defect confirmed against PyBDSF
+
+- The user asked how PyBDSF handled the white-noise images, and decided that
+  a case Hebog fails but PyBDSF passes must be fixed.
+- Comparison against injected truth on the same inputs, using cached
+  pinned-PyBDSF-`master` references from the first quick-check runs:
+
+  | Case | White-noise Hebog SNR ≥ 10 recovery | White-noise PyBDSF Gaussians |
+  | --- | --- | --- |
+  | SNR ladder | 0.00 | 1.00 |
+  | Close blends | 0.00 | 1.00 |
+  | Negative background | 0.00 | 1.00 |
+  | Dense field | 0.28 | 1.00 |
+  | Filament and ring | 0.69 | 1.00 |
+  | Edges and corners | 0.71 | 1.00 |
+  | Varying noise | 0.33 | 1.00 |
+  | Invalid pixels | 0.67 | 1.00 |
+
+  - Extended Gaussians: both 1.00.
+  - With beam-correlated noise, both finders reach SNR ≥ 10 recovery of 1.00
+    in every case except Hebog's close-blend and filament sources, and Hebog
+    components have equal or lower flux error.
+  - Diagnostic script:
+    `scratchpad/pybdsf_vs_hebog_truth.py`, not committed.
+- A second observation needs follow-up; it is not yet a finding. On
+  correlated noise, Hebog *source* integrated fluxes (Rapthor's `Total_flux`)
+  have larger errors against per-component truth than PyBDSF source-list
+  fluxes: SNR ladder p50 16% vs 3%; edges p50 26% vs 3%. The Hebog
+  component fluxes are accurate (p50 1%). This matches the accepted
+  measurement-tail limitation, which D4 makes blocking for 1.0.0. Blends and
+  filaments also associate into fewer sources than PyBDSF lists, so
+  source-level truth matching needs care before any conclusion.
+- The plan task now records the decision, and the next agent action is the
+  diagnosis.
+
+## 2026-09-16 — Fit Gaussian components with diagonal weighting
+
+- **Diagnosis.** The component point estimator (`correlated-gls`) whitened
+  residuals with the restoring-beam noise correlation, which amplifies
+  pixel-independent noise. Changing only
+  `CompactGaussianFitConfig.point_estimator` to `diagonal-weighted` raised
+  white-noise SNR ≥ 10 component recovery to 1.00 in all nine cases, matching
+  pinned PyBDSF `master`. Examples: close blends 0/6 → 6/6, dense field 0.28
+  → 1.00, negative background 0/2 → 2/2. On correlated noise, recovery was
+  unchanged and flux errors grew slightly, but stayed at or below PyBDSF: p95
+  integrated-flux error 0.21 → 0.29 on the dense field (PyBDSF 0.30),
+  0.10 → 0.17 on varying noise (PyBDSF 0.25).
+- **Decision.** The user chose diagonal weighting for every fit, over a
+  data-driven noise-correlation estimate or a GLS misspecification fallback.
+  The GLS estimator stays available as explicit configuration and in the
+  fitting unit tests. The scientific composition becomes v21.
+- **Test first.** A new public-API test, with three beam-shaped sources at
+  SNR 20, 50 and 100 on white noise, failed before the change (2 of 3
+  components) and passes after it. Three integration tests had pinned the
+  defect's own behaviour; they now assert the corrected behaviour:
+  - components rejected as `fit-model-inadequate` on the white-noise
+    geometry matrix;
+  - those rejections alongside an injected solver failure;
+  - a GLS ill-conditioning fallback reason on an oversampled beam.
+- **Quick science check.** Run `diagonal-weighted-fits` against
+  `v0.7.0-plus-supplied-metadata`: all 16 cases succeed in 325 s. The
+  expected trade-offs are flagged beyond tolerance: flux precision on the
+  correlated SNR ladder, varying noise and dense field; more conservative RA
+  coverage on the SNR ladder and dense field; and the white-noise ladder's
+  p95 flux error, now that its SNR-5 source is matched (PyBDSF 0.97). The
+  four real-image cases are unchanged within tolerance. This run is the new
+  baseline.
+- **Follow-up.** The 0.075-sigma integrated-flux correction and the
+  uncertainty scaling were chosen under GLS and must be re-derived. A plan
+  row records this, because `E_RA`, `E_DEC` and `Total_flux` calibration
+  block 1.0.0.
+
+## 2026-09-16 — Component uncertainty calibration under diagonal weighting
+
+- **Why.** Diagonal weighting broke two asymmetric open-arc association unit
+  tests, which the full coverage suite caught. The user chose to re-calibrate
+  uncertainties before merging.
+- **Experiment.** `scripts/validation/measure_component_uncertainty_calibration.py`
+  used 10 seed-disjoint 1,024² images (seeds 2026091700–09), with 64
+  isolated sources each at SNR 10, 20 and 50, beam-sized or 1.5× the beam.
+  Five images had white noise and five beam-correlated noise, and each image
+  was fitted with GLS and with diagonal weighting. Results are under
+  `benchmark-results/uncertainty-calibration/{gls-1,diagonal-1}`. Values are
+  pull standard deviation / fraction of pulls within ±1σ:
+
+  | Parameter | Correlated, GLS | Correlated, diagonal |
+  | --- | --- | --- |
+  | RA | 0.87 / 0.78 | 0.72 / 0.83 |
+  | Dec | 1.59 / 0.55 | 0.97 / 0.69 |
+  | Peak flux | 1.58 / 0.53 | 1.06 / 0.64 |
+  | Integrated flux | 1.41 / 0.53 | 1.10 / 0.60 |
+  | Major axis | 1.24 / 0.53 | 1.08 / 0.53 |
+  | Minor axis | 1.96 / 0.52 | 1.06 / 0.63 |
+
+  - White noise: GLS recovered 27% of components, with pulls in the
+    hundreds. Diagonal weighting recovered 100%, with pull standard
+    deviations of 0.25–0.55 (conservative).
+  - Biases present under both estimators: integrated-flux median pull
+    +0.25 (GLS) and +0.43 (diagonal), and beam-sized major-axis median
+    pull +1.4 to +1.9.
+- **Arc margin.** GLS shape errors were overconfident, and the old tests
+  passed only because of that. With calibrated errors, one component in each
+  asymmetric arc has 2.5–3σ tangential evidence, below the 3σ association
+  rule.
+- **Decision.** The user chose to keep the 3σ rule. The asymmetric open-arc
+  tests now expect three sources whose summed flux matches truth within 5%,
+  which passes. Symmetric arcs and every other association test are
+  unchanged.
+- **Follow-up.** A plan task now covers the integrated-flux and major-axis
+  bias of beam-sized components. The compact-fitting reference records the
+  calibration evidence.

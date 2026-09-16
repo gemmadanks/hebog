@@ -303,7 +303,8 @@ detected", "detected but not measurable", "measurement deferred", and
 `fit_diagnostics` records convergence, function evaluations, chi-squared and
 degrees of freedom, bound contact, selected/rejected model identities,
 condition number, covariance parameterization, visible-model fraction,
-retained bounds/pixel count, and any GLS or model fallback reason. These fields
+retained bounds/pixel count, the point estimator, and any estimator or model
+fallback reason. These fields
 describe estimator behaviour; they are not independent source-quality scores.
 
 `position_diagnostics` records signed-original, denoised, and selected pixel
