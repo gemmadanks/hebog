@@ -2,6 +2,57 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.0](https://github.com/gemmadanks/hebog/compare/v0.6.0...v0.7.0) (2026-09-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* expose the public continuum source finder
+* add configurable continuum source finding and validation ([#49](https://github.com/gemmadanks/hebog/issues/49))
+
+### 🚀 Features
+
+* accept FK5 J2000 images and harden the public finder boundary ([e4459b1](https://github.com/gemmadanks/hebog/commit/e4459b111452582315919de44ced34de8044307f))
+* add configurable continuum source finding and validation ([#49](https://github.com/gemmadanks/hebog/issues/49)) ([4babf0b](https://github.com/gemmadanks/hebog/commit/4babf0baaf5609e72764183e543df84ec6be09e0))
+* add multi-scale detection, persistent source association, and source-owned measurements ([4babf0b](https://github.com/gemmadanks/hebog/commit/4babf0baaf5609e72764183e543df84ec6be09e0))
+* expose the public continuum source finder ([4babf0b](https://github.com/gemmadanks/hebog/commit/4babf0baaf5609e72764183e543df84ec6be09e0))
+* publish versioned catalogue, RMS, mask, and diagnostics products ([4babf0b](https://github.com/gemmadanks/hebog/commit/4babf0baaf5609e72764183e543df84ec6be09e0))
+
+
+### 🐛 Bug Fixes
+
+* bind relative request paths before Dask execution ([e4459b1](https://github.com/gemmadanks/hebog/commit/e4459b111452582315919de44ced34de8044307f))
+* correct background refinement, Gaussian validation, and catalogue measurement semantics ([4babf0b](https://github.com/gemmadanks/hebog/commit/4babf0baaf5609e72764183e543df84ec6be09e0))
+* stop repeated FITS header warnings in notebook refreshes ([e4459b1](https://github.com/gemmadanks/hebog/commit/e4459b111452582315919de44ced34de8044307f))
+
+
+### ⚡ Performance
+
+* bound execution resources and accelerate product publication ([4babf0b](https://github.com/gemmadanks/hebog/commit/4babf0baaf5609e72764183e543df84ec6be09e0))
+
+
+### 🧹 Refactoring
+
+* detach source finding from campaign validation ([#52](https://github.com/gemmadanks/hebog/issues/52)) ([9537b11](https://github.com/gemmadanks/hebog/commit/9537b112948d543bca836f9f34882b7b53c1b057))
+* move combined Rapthor product publication into adapters ([e4459b1](https://github.com/gemmadanks/hebog/commit/e4459b111452582315919de44ced34de8044307f))
+
+
+### 📚 Documentation
+
+* document the public API, outputs, limitations, notebooks, and experimental release status ([4babf0b](https://github.com/gemmadanks/hebog/commit/4babf0baaf5609e72764183e543df84ec6be09e0))
+* update README ([e4459b1](https://github.com/gemmadanks/hebog/commit/e4459b111452582315919de44ced34de8044307f))
+
+
+### 🧩 CI
+
+* publish releases to TestPyPI instead of PyPI ([#56](https://github.com/gemmadanks/hebog/issues/56)) ([0208686](https://github.com/gemmadanks/hebog/commit/0208686c8ee0e749ff0079266341fab01d928371))
+* streamline supported-platform testing and automate trusted PyPI publishing ([4babf0b](https://github.com/gemmadanks/hebog/commit/4babf0baaf5609e72764183e543df84ec6be09e0))
+
+
+### 🧪 Tests
+
+* add frozen scientific comparisons, qualification gates, and portable regression coverage ([4babf0b](https://github.com/gemmadanks/hebog/commit/4babf0baaf5609e72764183e543df84ec6be09e0))
+
 ## [0.6.0](https://github.com/gemmadanks/hebog/compare/v0.5.0...v0.6.0) (2026-08-05)
 
 
