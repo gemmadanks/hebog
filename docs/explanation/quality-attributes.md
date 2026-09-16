@@ -5,8 +5,8 @@ to understand, change, test, and embed. Maintainability, extensibility,
 interoperability, and testability are architectural requirements, not later
 cleanup tasks.
 
-Rapthor is the first production consumer and defines the initial qualified
-feature set. It does not own Hebog's scientific architecture. Other data
+Rapthor is the intended first consumer and defines the initial qualified
+feature set. No Rapthor integration is implemented yet. It does not own Hebog's scientific architecture. Other data
 pipelines and science workflows should be able to call the public API with
 their own inputs, executor, orchestration, and product adapter.
 

@@ -21943,3 +21943,18 @@ scientific pass from fixture validation.
   the quick start and the release status changed together. The workflow
   parses, the strict docs build passes and no user-facing page still tells a
   reader to install Hebog from PyPI.
+
+## 2026-09-16 — Remove overstated positioning claims
+
+- Three pages called Rapthor "the first production consumer", which asserts a
+  deployment relationship that does not exist; no Rapthor integration is
+  implemented. They now say "intended first consumer" and state that. ADR 003
+  keeps its original wording as an accepted record.
+- The documentation home described Hebog as a source finder "for SKA Science
+  Data Processor pipelines". With the maintainer address in package metadata,
+  a reader could take a published package for an institutional deliverable.
+  The user chose neutral positioning: describe the target images and Rapthor
+  without naming an owning organisation, and make no affiliation claim or
+  disclaimer either way. Remaining SKA references are dataset names and links
+  to published data-model documentation, which are citations rather than
+  claims.
