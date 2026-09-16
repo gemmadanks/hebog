@@ -19,7 +19,7 @@ Closed Phase 5 contracts, reviews and campaign tooling are in Git history at
 | Science | The v15 campaign failed only through 32 regressions against the earlier Hebog incumbent; no comparison against released PyBDSF, PyBDSF `master` or Aegean failed, and 40 were underpowered. All campaign images were ≤1,024 pixels. v16–v20 have focused regression, Serial/Dask, equivalence and installed-wheel evidence only. Uncertainty calibration, measurement tails and faint association were accepted on 13 September as limitations of an experimental standalone release, not as passes. |
 | 1.0.0 blockers | Every milestone below. The largest risks are the performance gap, tile-native continuum association, the memory and disk of the local development machine, and SKA-Low coverage without large public SKA-Low images. |
 | Next action | Human: decide D1, D2, D4 and D5. Agent: start M1 with explicit metadata for headers that omit it, then the quick science check and quick benchmark. None of these needs a new decision. |
-| Deferred | Optional comparison finders such as ProFound or 2D SoFiA (see the [notebook guide](../docs/how-to/notebooks.md)), general science improvements outside Rapthor-consumed outputs, and native code without a passing profile gate. Reopen a deferred issue if it becomes a confirmed incorrect supported output. |
+| Deferred | Aegean comparisons (paused while development focuses on PyBDSF; reconsidered at M6), optional comparison finders such as ProFound or 2D SoFiA (see the [notebook guide](../docs/how-to/notebooks.md)), general science improvements outside Rapthor-consumed outputs, and native code without a passing profile gate. Reopen a deferred issue if it becomes a confirmed incorrect supported output. |
 
 ## Definition of 1.0.0
 
@@ -41,7 +41,7 @@ reviewed evidence for that exact candidate:
 - **Science.** The Rapthor profile reaches ≥99.5% retained/rejected component
   agreement with every safety stratum passing, and the frozen candidate passes
   prospective, powered, held-out parity/retention against released PyBDSF,
-  PyBDSF `master` and Aegean. The evidence includes full images, not only
+  and PyBDSF `master`. The evidence includes full images, not only
   cut-outs, from LOFAR, SKA-Mid (SDC1 simulations and MeerKAT) and SKA-Low
   (MWA precursor data and simulations until SKA-Low data are public).
 - **Performance.** On the development machine, matched complete
@@ -94,7 +94,7 @@ long campaigns and benchmarks. Every check has a budget on that machine:
   Neither blocks `0.x` development or releases.
 
 A check that outgrows its budget is sampled, split or moved to a less frequent
-level; its budget is not silently extended. PyBDSF and Aegean outputs and
+level; its budget is not silently extended. PyBDSF outputs and
 timings are computed once for each input, reference revision and host, cached
 outside Git with checksums, and reused. A defect that escapes the quick checks
 adds its case to the fixed case set.
@@ -260,7 +260,7 @@ All rows run on the development machine; none needs the cluster.
 | Extended association cannot be made exactly tile-invariant. | M2 stalls or changes science. | Design ownership and boundary summaries before code; test analytic shells and filaments crossing corners early; escalate a scientific trade-off to the human rather than weakening invariance silently. |
 | Scheduler, reduction or storage bottlenecks appear only above 10 nodes. | A later deployment at 100+ nodes fails or scales poorly. | Planner bounds for 200 nodes, a scaling model fitted to the cluster benchmark, and an explicit "not demonstrated" statement in release notes. |
 | Large public images have minimal or non-standard headers; the HD mosaic is published "for browsing only". | Anchors cannot run unmodified, or their science comparison is weak. | Headers checked 16 September; explicit metadata in M1; per-facet HD images and catalogues for science; the generated 100,000² image as the fallback scale anchor. |
-| No large public SKA-Low image exists. | SKA-Low scale and science rely on simulations and MWA precursor data. | OSKAR simulation with generated truth, GLEAM-X DR1 with its PSF maps and Aegean catalogues, and SKA-Low science-verification data once released (expected from 2027). |
+| No large public SKA-Low image exists. | SKA-Low scale and science rely on simulations and MWA precursor data. | OSKAR simulation with generated truth, GLEAM-X DR1 with its PSF maps (its Aegean catalogue is diagnostic only), and SKA-Low science-verification data once released (expected from 2027). |
 | Rapthor and LSMTool change frequently. | Adapter, contract and benchmark churn, or a backend that only works on a stale revision. | Pin the latest commits when M3 starts (D3). Move both pins forward deliberately, not continuously: before the Rapthor patch, before the M4 benchmarks and at the M6 freeze. At each move, rerun the contract audit, the acceptance scenarios and the Rapthor-profile agreement check, and record the revisions in `LOG.md`. |
 | Short checks miss a rare regression. | A defect reaches a `0.x` release. | Releases stay experimental; each escaped defect adds a fixed case; the powered M6 study is the backstop. |
 | The development machine's 18 GiB RAM and free disk limit local tiers. | Tiers above 22,500² stall, or runs spill to disk and slow iteration. | Tile-bounded memory from M2 onward; disk decision D2(a); 90,000² and 100,000² only on the cluster unless an external SSD is attached. |
@@ -270,13 +270,15 @@ All rows run on the development machine; none needs the cluster.
 
 Analytic or injected truth is primary. Released PyBDSF is the Rapthor
 compatibility reference; pinned PyBDSF `master` is independently binding.
-Aegean is binding for applicable compact and Gaussian populations. No finder is
+Aegean comparisons are paused: they are neither binding nor run routinely
+while development focuses on PyBDSF, the finder Rapthor uses, and the M6
+qualification design decides whether to reinstate them. No finder is
 scientific truth.
 
 - Each campaign uses its own prospectively reviewed endpoint registry and
   decision contract. Choose a whole incumbent before viewing results; never
   combine historical best values into a synthetic comparator.
-- Require every applicable relative PyBDSF, Aegean and incumbent Hebog
+- Require every applicable relative PyBDSF and incumbent Hebog
   comparison, with fixed practical margins and the conjunctive one-sided
   confidence rule. Inconclusive binding evidence is not parity. An old
   candidate's uncertainty exception does not transfer to a replacement.
@@ -383,8 +385,8 @@ image data or dataset belongs in Git.
 | LOFAR | LoTSS-DR3 HEALPix mosaics (1,571) | 14,390–17,752² (1312: 15,402², ICRS, `RESTFRQ`, beam present) | Science and throughput | PyBDSF catalogue plus per-mosaic RMS, residual and mask maps |
 | LOFAR | LoTSS-Deep DR2 ELAIS-N1 apparent and true-sky pair | about 14,000² (inferred) | Closest public match to Rapthor's two inputs | PyBDSF catalogue and maps |
 | SKA-Mid | SDC1 B1/B2/B5, 8/100/1,000 h | 32,768² (4.3 GB each); 4-D, `JY/BEAM`, `EPOCH = 2000`, `BMAJ`/`BMIN` but no `BPA` | Scale with truth | Full truth catalogues |
-| SKA-Mid | MeerKAT MIGHTEE DR1 XMM-LSS; SMGPS tiles (Galactic, multi-plane) | about 20,900² (inferred); 7,500² | Real precursor science; header variety | PyBDSF; Aegean |
-| SKA-Low | MWA GLEAM-X DR1 mosaics | not checked (2.8 GB) | Precursor science with a PSF that varies across the field | Aegean catalogues and PSF maps |
+| SKA-Mid | MeerKAT MIGHTEE DR1 XMM-LSS; SMGPS tiles (Galactic, multi-plane) | about 20,900² (inferred); 7,500² | Real precursor science; header variety | PyBDSF (MIGHTEE); Aegean (SMGPS, diagnostic only) |
+| SKA-Low | MWA GLEAM-X DR1 mosaics | not checked (2.8 GB) | Precursor science with a PSF that varies across the field | PSF maps; Aegean catalogue (diagnostic only) |
 | SKA-Low | OSKAR simulation (generated) | up to 100,000² | Scale and truth, pending public SKA-Low data | Generated truth |
 | Other | ASKAP EMU-PS1 (CASDA login) | 44,911 × 33,569 | Optional non-SKA-family image | Selavy catalogue |
 

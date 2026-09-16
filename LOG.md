@@ -22100,3 +22100,15 @@ scientific pass from fixture validation.
     row.
   - New decision D5 (iteration budgets). D2 is partly decided, with a
     disk-space choice outstanding: 60 GB free is needed for the 45,000² tier.
+
+## 2026-09-16 — Pause Aegean comparisons
+
+- The user dropped the Aegean comparison for the next phase of development,
+  to focus on PyBDSF because Rapthor uses it. In the plan, Aegean is no
+  longer binding or part of routine checks. The quick checks and the 1.0.0
+  science definition compare only against truth, released PyBDSF and PyBDSF
+  `master`. The published Aegean catalogues for SMGPS and GLEAM-X are kept
+  as diagnostics only, and the M6 qualification design decides whether to
+  reinstate Aegean.
+- Nothing else changed. The notebook comparison tooling still runs Aegean;
+  closed campaign results that include Aegean are unchanged.
