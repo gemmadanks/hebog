@@ -9,13 +9,18 @@ from __future__ import annotations
 
 import io
 from pathlib import Path
-from typing import BinaryIO
+from typing import Any, BinaryIO
 
 import numpy as np
 import pytest
 from astropy.io import fits
 
-from hebog.validation.remote_cutouts import fetch_remote_cutout
+from hebog.validation import remote_cutouts
+from hebog.validation.remote_cutouts import (
+    fetch_remote_cutout,
+    open_http_range,
+    require_requested_range,
+)
 
 
 def _fits_bytes(values: np.ndarray) -> bytes:
@@ -170,3 +175,72 @@ def test_rejects_a_resource_without_a_fits_header(tmp_path: Path) -> None:
             size=1,
             open_range=server,
         )
+
+
+@pytest.mark.parametrize(
+    "content_range",
+    [
+        None,
+        "bytes 0-99/1000",
+        "bytes 10-98/1000",
+        "bytes */1000",
+        "rows 10-99",
+    ],
+)
+def test_partial_responses_must_cover_exactly_the_requested_bytes(
+    content_range: str | None,
+) -> None:
+    """A 206 for other bytes would decode as valid-looking wrong rows."""
+    with pytest.raises(OSError, match="byte range"):
+        require_requested_range(content_range, 10, 99, "u")
+
+
+def test_partial_response_for_the_requested_bytes_is_accepted() -> None:
+    """The total size may be known or unknown."""
+    require_requested_range("bytes 10-99/1000", 10, 99, "u")
+    require_requested_range("bytes 10-99/*", 10, 99, "u")
+
+
+class _Response(io.BytesIO):
+    """Minimal HTTP response carrying a status and headers."""
+
+    def __init__(self, status: int, content_range: str | None) -> None:
+        super().__init__(b"payload")
+        self.status = status
+        self.headers = (
+            {} if content_range is None else {"Content-Range": content_range}
+        )
+
+
+@pytest.mark.parametrize(
+    ("status", "content_range", "accepted"),
+    [
+        (206, "bytes 10-99/1000", True),
+        (206, "bytes 0-89/1000", False),
+        (200, None, False),
+    ],
+)
+def test_http_opener_checks_status_and_returned_range(
+    monkeypatch: pytest.MonkeyPatch,
+    status: int,
+    content_range: str | None,
+    accepted: bool,
+) -> None:
+    """Only a partial response for exactly the requested bytes is read."""
+    response = _Response(status, content_range)
+    requests: list[str] = []
+
+    def urlopen(request: Any, timeout: float) -> _Response:
+        del timeout
+        requests.append(request.get_header("Range"))
+        return response
+
+    monkeypatch.setattr(remote_cutouts.urllib.request, "urlopen", urlopen)
+
+    if accepted:
+        assert open_http_range("https://example.invalid/a", 10, 99) is response
+    else:
+        with pytest.raises(OSError, match="range"):
+            open_http_range("https://example.invalid/a", 10, 99)
+        assert response.closed
+    assert requests == ["bytes=10-99"]

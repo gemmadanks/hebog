@@ -48,6 +48,7 @@ from hebog.validation.quick_check import (
     map_metrics,
     prepare_case,
     public_catalogue_sources,
+    reference_cache_directory,
     reference_metrics,
     truth_metrics,
     write_report,
@@ -57,6 +58,7 @@ _ROOT = Path(__file__).resolve().parents[2]
 _DEFAULT_CONFIGURATION = _ROOT / "config/checks/quick-science-check.json"
 _DEFAULT_OUTPUT = _ROOT / "benchmark-results/quick-check"
 _PREPARE = _ROOT / "scripts/benchmark/prepare_notebook_comparison.py"
+_NOTEBOOK_CONFIGURATION = _ROOT / "config/comparisons/notebook-comparison.json"
 _SUMMARY_METRICS = (
     "truth.completeness",
     "truth.reliability",
@@ -89,7 +91,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--skip-references",
         action="store_true",
-        help="use cached reference results only",
+        help="use cached reference results only; the image is still inspected",
     )
     parser.add_argument("--engine", default="podman")
     return parser.parse_args()
@@ -124,27 +126,46 @@ def _image_identity(engine: str, image: str) -> str:
     return result.stdout.strip()
 
 
-def _reference_result(
+def _reference_identity(
+    configuration: QuickCheckConfiguration, engine: str
+) -> dict[str, object]:
+    """Describe everything that can change a reference result or timing."""
+    reference = configuration.reference
+    settings = json.loads(_NOTEBOOK_CONFIGURATION.read_text(encoding="utf-8"))
+    return {
+        "container_image_id": _image_identity(
+            engine, reference.container_image
+        ),
+        "finder_settings": settings["reference_finders"][reference.finder_id],
+        "ncores": reference.ncores,
+    }
+
+
+def _reference_result(  # noqa: PLR0913
     prepared: PreparedCase,
     *,
     configuration: QuickCheckConfiguration,
+    identity: dict[str, object],
     output_root: Path,
     engine: str,
     run_missing: bool,
 ) -> tuple[Path, dict[str, Any]] | None:
     """Return a cached reference result, running the container if needed.
 
-    A reference failure, such as PyBDSF refusing an all-blank image, is
-    cached next to the result directory so later runs do not repeat it; the
-    case is then reported without reference metrics.
+    The cache directory is keyed by the reference identity, so a new image,
+    finder setting or core count runs the reference again. A reference
+    failure, such as PyBDSF refusing an all-blank image, is cached for the
+    same identity so later runs do not repeat it; the case is then reported
+    without reference metrics.
     """
     reference = configuration.reference
-    output = (
-        output_root
-        / "references"
-        / prepared.case_id
-        / file_sha256(prepared.reference_input_path)[:16]
-        / reference.finder_id
+    reference_input_sha256 = file_sha256(prepared.reference_input_path)
+    output = reference_cache_directory(
+        output_root / "references",
+        case_id=prepared.case_id,
+        reference_input_sha256=reference_input_sha256,
+        finder_id=reference.finder_id,
+        identity=identity,
     )
     failure = output.with_name(f"{output.name}.failed.json")
     if failure.exists():
@@ -166,11 +187,13 @@ def _reference_result(
                 ncores=reference.ncores,
             )
         except subprocess.CalledProcessError as error:
+            failure.parent.mkdir(parents=True, exist_ok=True)
             failure.write_text(
                 json.dumps(
                     {
                         "case_id": prepared.case_id,
                         "finder_id": reference.finder_id,
+                        "identity": identity,
                         "exit_status": error.returncode,
                         "note": "reference run failed; see the console log",
                     },
@@ -185,8 +208,16 @@ def _reference_result(
     result = cast(
         dict[str, Any], json.loads((output / "result.json").read_text())
     )
-    if result.get("status") != "success":
-        raise ValueError(f"reference run did not succeed: {output}")
+    expected = {
+        "status": "success",
+        "case_id": prepared.case_id,
+        "finder_id": reference.finder_id,
+        "input_sha256": reference_input_sha256,
+    }
+    if any(result.get(key) != value for key, value in expected.items()):
+        raise ValueError(
+            f"cached reference does not match its inputs: {output}"
+        )
     return output, result
 
 
@@ -343,6 +374,7 @@ def main() -> int:
     unknown = selected - {case.case_id for case in configuration.cases}
     if unknown:
         raise SystemExit(f"unknown case IDs: {sorted(unknown)}")
+    identity = _reference_identity(configuration, args.engine)
     records: list[dict[str, Any]] = []
     for case in configuration.cases:
         if selected and case.case_id not in selected:
@@ -357,6 +389,7 @@ def main() -> int:
         reference = _reference_result(
             prepared,
             configuration=configuration,
+            identity=identity,
             output_root=output_root,
             engine=args.engine,
             run_missing=not args.skip_references,
@@ -375,7 +408,7 @@ def main() -> int:
         records.append(record)
     hebog_seconds = sum(record["elapsed_seconds"] for record in records)
     report: dict[str, Any] = {
-        "schema_version": 1,
+        "schema_version": 2,
         "check_id": configuration.check_id,
         "label": label,
         "created_at": datetime.now(UTC).isoformat(),
@@ -387,13 +420,7 @@ def main() -> int:
             args.configuration.read_bytes()
         ).hexdigest(),
         "reference_finder_id": configuration.reference.finder_id,
-        "reference_container_image_id": (
-            None
-            if args.skip_references
-            else _image_identity(
-                args.engine, configuration.reference.container_image
-            )
-        ),
+        "reference_identity": identity,
         "change_budget_seconds": configuration.change_budget_seconds,
         "hebog_elapsed_seconds": hebog_seconds,
         "within_budget": hebog_seconds <= configuration.change_budget_seconds,

@@ -32,8 +32,25 @@ RangeOpener = Callable[[str, int, int], BinaryIO]
 """Open bytes ``first`` to ``last`` inclusive of a resource as a stream."""
 
 
+def require_requested_range(
+    content_range: str | None, first: int, last: int, url: str
+) -> None:
+    """Refuse a partial response that does not hold exactly these bytes.
+
+    RFC 9110 reports the returned interval as ``bytes first-last/length``,
+    where the length may be ``*``. Any other interval would decode as
+    plausible but wrong FITS rows.
+    """
+    expected = f"bytes {first}-{last}/"
+    if content_range is None or not content_range.startswith(expected):
+        raise OSError(
+            f"server returned byte range {content_range!r} instead of "
+            f"{first}-{last} for {url}"
+        )
+
+
 def open_http_range(url: str, first: int, last: int) -> BinaryIO:
-    """Open one inclusive HTTP byte range, refusing a full-body response."""
+    """Open one inclusive HTTP byte range, refusing any other response."""
     request = urllib.request.Request(
         url,
         headers={
@@ -45,6 +62,13 @@ def open_http_range(url: str, first: int, last: int) -> BinaryIO:
     if response.status != 206:  # noqa: PLR2004 - HTTP Partial Content
         response.close()
         raise OSError(f"server ignored the byte range for {url}")
+    try:
+        require_requested_range(
+            response.headers.get("Content-Range"), first, last, url
+        )
+    except OSError:
+        response.close()
+        raise
     return cast(BinaryIO, response)
 
 

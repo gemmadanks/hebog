@@ -76,16 +76,21 @@ For each case the check reports the fields Rapthor consumes:
 It prints a summary and writes `report.json` under
 `benchmark-results/quick-check/runs/<label>/`.
 
-With `--baseline`, it exits non-zero on these regressions beyond the
-configured tolerances:
+With `--baseline`, it exits non-zero when any of the following is true:
 
-- a failed or missing case;
-- a metric that can no longer be measured; or
-- a metric that moves in the worse direction.
+- a case failed or is missing;
+- a case is not in the baseline, so it was not compared;
+- a metric can no longer be measured; or
+- a metric moved in the worse direction beyond the configured tolerance.
 
 PyBDSF runs once per input in the local
 `localhost/hebog-pybdsf-master:c70103be3-reconstructed` Podman image, and its
-results are cached under `benchmark-results/quick-check/references`.
+results are cached under `benchmark-results/quick-check/references`. The cache
+is keyed by the input and by the reference identity: the image's immutable ID,
+the finder settings in `config/comparisons/notebook-comparison.json`, and the
+core count. Changing any of these reruns the reference, and a cached failure
+applies only to the identity that failed. Remote cut-outs are accepted only
+when the server returns exactly the requested bytes.
 Generated inputs are materialised on first use. The SDC1 cut-outs are cut
 from a local copy of `SKAMid_B2_1000h_v3.fits`. Missing real cut-outs are
 fetched with HTTP range requests only when `--allow-download` is given. Use

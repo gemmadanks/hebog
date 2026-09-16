@@ -36,6 +36,7 @@ from hebog.validation.quick_check import (
     map_metrics,
     prepare_case,
     public_catalogue_sources,
+    reference_cache_directory,
     truth_metrics,
     write_report,
 )
@@ -428,3 +429,53 @@ def test_public_catalogue_projects_sources_and_components() -> None:
     assert source.declination_error_degrees is None
     assert component.integrated_flux_jy == 0.012
     assert component.fitted_shape is None
+
+
+def test_cases_without_a_baseline_are_reported() -> None:
+    """A new or renamed case cannot pass silently for lack of a baseline."""
+    current = {
+        "cases": [
+            {"case_id": "case", "status": "success", "metrics": {}},
+            {"case_id": "new-case", "status": "success", "metrics": {}},
+        ]
+    }
+
+    findings = compare_reports(current, _report({}), _TOLERANCES)
+
+    assert [(item.case_id, item.reason) for item in findings] == [
+        ("new-case", "not in baseline")
+    ]
+
+
+def test_reference_cache_depends_on_the_reference_identity(
+    tmp_path: Path,
+) -> None:
+    """A new image, finder option or core count never reuses a result."""
+    identity: dict[str, object] = {
+        "container_image_id": "sha256:" + "a" * 64,
+        "finder_settings": {"thresh_pix": 5.0},
+        "ncores": 4,
+    }
+
+    def directory(**changes: object) -> Path:
+        return reference_cache_directory(
+            tmp_path,
+            case_id="case",
+            reference_input_sha256="b" * 64,
+            finder_id="pinned-pybdsf-master",
+            identity={**identity, **changes},
+        )
+
+    assert directory() == directory()
+    assert directory().parent == tmp_path / "case" / ("b" * 16)
+    assert (
+        len(
+            {
+                directory(),
+                directory(container_image_id="sha256:" + "c" * 64),
+                directory(finder_settings={"thresh_pix": 4.0}),
+                directory(ncores=2),
+            }
+        )
+        == 4
+    )

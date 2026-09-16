@@ -599,9 +599,21 @@ def compare_reports(
     baseline: Mapping[str, Any],
     tolerances: RegressionTolerances,
 ) -> tuple[RegressionFinding, ...]:
-    """Return regressions of a report against a baseline report."""
+    """Return regressions of a report against a baseline report.
+
+    A current case absent from the baseline is also a finding: it has not
+    been compared, so the run cannot claim that it did not regress.
+    """
     findings: list[RegressionFinding] = []
     current_cases = {case["case_id"]: case for case in current["cases"]}
+    baseline_ids = {case["case_id"] for case in baseline["cases"]}
+    findings.extend(
+        RegressionFinding(
+            case_id, "status", None, case["status"], "not in baseline"
+        )
+        for case_id, case in current_cases.items()
+        if case_id not in baseline_ids
+    )
     for baseline_case in baseline["cases"]:
         case_id = baseline_case["case_id"]
         case = current_cases.get(case_id)
@@ -648,6 +660,32 @@ def compare_reports(
                     )
                 )
     return tuple(findings)
+
+
+def reference_cache_directory(
+    references_root: Path,
+    *,
+    case_id: str,
+    reference_input_sha256: str,
+    finder_id: str,
+    identity: Mapping[str, object],
+) -> Path:
+    """Return the cache directory for one reference run.
+
+    ``identity`` holds everything that can change the reference result or
+    its timing: the immutable container image ID, the finder settings and the
+    core count. Changing any of them selects a new directory, so neither a
+    cached result nor a cached failure is reused across references.
+    """
+    digest = hashlib.sha256(
+        json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    return (
+        references_root
+        / case_id
+        / reference_input_sha256[:16]
+        / f"{finder_id}-{digest[:16]}"
+    )
 
 
 def write_report(path: Path, report: Mapping[str, Any]) -> None:
