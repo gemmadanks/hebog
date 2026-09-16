@@ -15,7 +15,7 @@ Closed Phase 5 contracts, reviews and campaign tooling are in Git history at
 | Candidate | Public composition v20. Development-unqualified. |
 | Functionality | Standalone FITS-to-products finder: background/RMS, compact and multiscale detection, deblending, fitting, source association, catalogue/mask/RMS/diagnostics, Serial and caller-owned Dask execution. No Rapthor backend: `hebog.adapters` holds records and the 8-column catalogue codec only, and the seven acceptance scenarios are strict-xfail placeholders. No flat-noise branch or LSMTool filtering has run on Hebog products. |
 | Scalability | Public envelope ≤1,024 pixels per side. Only background/RMS and first-pass detection run per tile through the executor, on hard-coded 128-pixel cores (the scalability contract's candidates are 2,048–8,192); the public science in `public_science.py` holds several full `float64` planes in one process. Tiled multiscale, deblending, measurement, fitting and compact catalogue stages exist in `stages/` but only tests use them; continuum candidate products, extended association, the à trous position filter and the continuum catalogue have no tiled form. Two background sub-steps are capped at 10⁶ pixels. The executor offers only `map_batches` with a driver-side gather. |
-| Performance | No matched benchmark exists. The most recent diagnostic single runs (10 September, M3 Pro) were slower than released PyBDSF on 11 of 13 real images, median ratio 8.4× (SDC1 2,198² tile 778 s vs 93 s; Hydra 3,600² 2,767 s vs 142 s). Per-pixel cost on these real images is far above the 26 s synthetic 1,024² probe; whether size, source density or both drive it is unprofiled. The gate is ≤0.50× released and <1.00× `master`. No complete-path profile exists. |
+| Performance | No matched benchmark exists. The most recent diagnostic single runs (10 September, M3 Pro) were slower than released PyBDSF on 11 of 13 real images, median ratio 8.4× (SDC1 2,198² tile 778 s vs 93 s; Hydra 3,600² 2,767 s vs 142 s). Per-pixel cost on these real images is far above the 26 s synthetic 1,024² probe; whether size, source density or both drive it is unprofiled. The gate is ≤0.50× pinned PyBDSF `master` (`c70103b`). No complete-path profile exists. |
 | Science | The v15 campaign failed only through 32 regressions against the earlier Hebog incumbent; no comparison against released PyBDSF, PyBDSF `master` or Aegean failed, and 40 were underpowered. All campaign images were ≤1,024 pixels. v16–v20 have focused regression, Serial/Dask, equivalence and installed-wheel evidence only. Uncertainty calibration, measurement tails and faint association were accepted on 13 September as limitations of an experimental standalone release, not as passes. |
 | 1.0.0 blockers | Every milestone below. The largest risks are the performance gap, tile-native continuum association, the memory and disk of the local development machine, and SKA-Low coverage without large public SKA-Low images. |
 | Next action | Human: decide D1, D2, D4 and D5. Agent: start M1 with explicit metadata for headers that omit it, then the quick science check and quick benchmark. None of these needs a new decision. |
@@ -40,12 +40,13 @@ reviewed evidence for that exact candidate:
   without Rapthor, Prefect, LSMTool or Dask.
 - **Science.** The Rapthor profile reaches ≥99.5% retained/rejected component
   agreement with every safety stratum passing, and the frozen candidate passes
-  prospective, powered, held-out parity/retention against released PyBDSF,
-  and PyBDSF `master`. The evidence includes full images, not only
+  prospective, powered, held-out parity/retention against pinned PyBDSF
+  `master` (`c70103b`), and a single check against released PyBDSF 1.14.1
+  confirms Rapthor-profile agreement for users of the release. The evidence includes full images, not only
   cut-outs, from LOFAR, SKA-Mid (SDC1 simulations and MeerKAT) and SKA-Low
   (MWA precursor data and simulations until SKA-Low data are public).
 - **Performance.** On the development machine, matched complete
-  `filter_skymodel` medians meet both runtime gates across the deployment
+  `filter_skymodel` medians meet the runtime gate across the deployment
   envelope without a memory or Hebog-curve regression. The final cluster
   benchmark confirms them on the cluster's hardware.
 - **Scalability.** On the development machine (18 GiB RAM), the 45,000²
@@ -188,7 +189,7 @@ Two rules govern the sequence:
 | --- | --- | --- |
 | Agent | Accept explicit metadata that a header omits. | Checked on 16 September: the LOFAR-HD mosaics have no reference frequency and SDC1 has no `BPA`, so v0.7.0 rejects both; the LoTSS-DR3 mosaic and the WSClean HD facet pass. A request can supply a reference frequency and restoring-beam axes and angle that are used only where the header lacks them; a value that conflicts with the header is an error, and supplied values are recorded in diagnostics. Tests use synthetic headers that mirror these cases. Release as its own `0.x`. |
 | Agent, human approves case set | Build the quick science check. Rebuild only the generator and truth evaluation needed from Git history. | One command runs a fixed case set in about 10 minutes: analytic edge, corner and partition cases; generated-truth images from 256 to 1,024 pixels covering compact, blended, extended, empty and invalid data; SDC1 cut-outs with truth; and LoTSS-DR3 cut-outs with the published PyBDSF catalogue and RMS and mask maps. It reports the Rapthor-consumed fields and validity checks (D4) against truth, cached reference outputs and the previous release. It is a regression detector, not powered parity. |
-| Agent | Build the quick benchmark. Replace the skipped `tests/benchmark` scaffolds and the phase-numbered runners. | One command runs in about 10 minutes: Hebog on a 1,024² generated image and two or three real cut-outs up to about 3,600², with a warm-up and five repetitions, written as `hebog.validation.evidence` records. It compares against the previous release and cached released-PyBDSF and `master` timings measured once in the same Linux container. Inputs above the public limit use a documented diagnostic entry point that leaves the public envelope unchanged. A smoke case runs in CI. |
+| Agent | Build the quick benchmark. Replace the skipped `tests/benchmark` scaffolds and the phase-numbered runners. | One command runs in about 10 minutes: Hebog on a 1,024² generated image and two or three real cut-outs up to about 3,600², with a warm-up and five repetitions, written as `hebog.validation.evidence` records. It compares against the previous release and cached pinned-`master` timings measured once in the same Linux container. The machine-readable performance contract (`phase-0-performance.json`, its schema and the contracts page) is amended to the single `master` gate in the same change. Inputs above the public limit use a documented diagnostic entry point that leaves the public envelope unchanged. A smoke case runs in CI. |
 | Agent | Profile complete FITS-to-products execution on v0.7.0. | CPU, RSS, I/O and per-stage profiles on a dense real cut-out and the 1,024² image rank the bottlenecks and separate the effect of image size from source density. The quick-check and quick-benchmark outputs for v0.7.0 are the known-issues baseline. |
 
 ### M2 — One tile-native science path
@@ -221,14 +222,14 @@ may run alongside M2.
 | Agent | Implement the Rapthor profile and the flat-noise RMS branch. | Profile outputs are tested on analytic and generated truth; the flat-noise branch shares products and reads rather than running a second full analysis. |
 | Agent | Implement the Rapthor adapter and exercise LSMTool on Hebog products. | Pinned LSMTool clips, groups and transfers names on Hebog catalogue, mask and RMS products for true-sky and apparent-sky inputs; the seven acceptance scenarios become passing tests (empty and invalid input, retry reuse, worker loss, fallback and dual run). The adapter imports no Rapthor, Prefect or LSMTool in library code. |
 | Agent prepares, human pushes | Add Rapthor backend selection, fallback and dual-run reporting in Rapthor. | A Rapthor patch against the current pin selects the backend by flag, respects the caller's resource budget, and reports dual-run differences. |
-| Agent, human dispositions | Measure Rapthor-profile agreement within the release-check budget, using cached reference outputs. | Retained/rejected agreement against both PyBDSF references on true/apparent, bright, extended, edge, masked, sparse and crowded populations. Choose `compact` only with ≥99.5% overall agreement and every safety stratum passing; otherwise `continuum`. |
+| Agent, human dispositions | Measure Rapthor-profile agreement within the release-check budget, using cached reference outputs. | Retained/rejected agreement against pinned `master` on true/apparent, bright, extended, edge, masked, sparse and crowded populations. Choose `compact` only with ≥99.5% overall agreement and every safety stratum passing; otherwise `continuum`. |
 
 ### M4 — Deployment performance gate
 
 | Owner | Task | Done when |
 | --- | --- | --- |
 | Human freezes, agent proposes | Freeze the initial deployment envelope. | Sizes and workloads match Rapthor's production sectors and fit the development machine. |
-| Agent | Run matched complete `filter_skymodel` benchmarks and optimize until both runtime gates pass. | Hebog and both PyBDSF references run in the same Linux container on the development machine, with cached reference timings. Both ratios and their upper one-sided 95% bounds pass on every envelope cell; memory and Hebog-curve non-regression and the quick science check pass. Native code enters only through the native-code gates and an accepted ADR. |
+| Agent | Run matched complete `filter_skymodel` benchmarks and optimize until the runtime gate passes. | Hebog and pinned `master` run in the same Linux container on the development machine, with cached reference timings. The ratio and its upper one-sided 95% bound pass on every envelope cell; memory and Hebog-curve non-regression and the quick science check pass. Native code enters only through the native-code gates and an accepted ADR. |
 
 ### M5 — Prepare scale beyond one machine
 
@@ -248,6 +249,7 @@ All rows run on the development machine; none needs the cluster.
 | Human | Freeze the 1.0.0 candidate. | Science, profile and envelope are fixed; later changes restart only the affected qualification rows. |
 | Agent designs, human approves | Run one powered parity/retention study with fresh held-out and public-survey data, sized to finish overnight on the development machine. | Every binding endpoint passes under a prospectively reviewed contract, population and power design, including the D4 limitations and the LOFAR, SKA-Mid and SKA-Low families in the 1.0.0 definition. Closed failed campaigns are never reused as confirmation. |
 | Human runs, agent analyses | Run the cluster benchmark. | Strong scaling at 1, 2, 5 and 10 nodes and size scaling across the 22,500², 45,000² and 90,000² mosaics meet the amended gates, with invariant results and the M4 runtime gates confirmed on cluster hardware. A failure becomes a normal `0.x` repair row. |
+| Agent | Check released PyBDSF 1.14.1 once. | One matched run against 1.14.1, cached for reuse, confirms Hebog ≤0.50× release on the deployment envelope and Rapthor-profile agreement against the release. A failure is reported with its cause before the 1.0.0 decision. |
 | Human runs in Rapthor, agent supports | Operational trial behind the Rapthor flag. | Dual runs on production data show no unexplained difference, retry and restart work, and the fallback is exercised. |
 | Agent assembles, independent reviewers accept | Readiness packet and acceptance. | The packet binds science, Rapthor profile, performance, scale, portability, security, licensing, packaging and current documentation, with separate radio-astronomy and engineering acceptance. |
 | Human | Release 1.0.0. | Release Please produces 1.0.0 (for example through a `Release-As: 1.0.0` commit footer) and the package publishes to PyPI. |
@@ -268,8 +270,12 @@ All rows run on the development machine; none needs the cluster.
 
 ## Scientific gates
 
-Analytic or injected truth is primary. Released PyBDSF is the Rapthor
-compatibility reference; pinned PyBDSF `master` is independently binding.
+Analytic or injected truth is primary. Pinned PyBDSF `master` at `c70103b`
+(`v1.14.1-40`, the Phase 5 reference) is the binding finder reference.
+Released 1.14.1, which Rapthor installs today, is checked once at M6. The two
+diverge scientifically (14 versus 12 sources on the representative 3,000²
+image), so neither is truth. Later upstream `master` commits are adopted only
+by a deliberate plan decision, which invalidates cached reference outputs.
 Aegean comparisons are paused: they are neither binding nor run routinely
 while development focuses on PyBDSF, the finder Rapthor uses, and the M6
 qualification design decides whether to reinstate them. No finder is
@@ -337,17 +343,21 @@ For supported Rapthor deployment, matched complete-step median ratios and
 their upper one-sided 95% bootstrap confidence bounds must satisfy:
 
 ```text
-Hebog / released PyBDSF <= 0.50
-Hebog / pinned PyBDSF master < 1.00
+Hebog / pinned PyBDSF master (c70103b) <= 0.50
 ```
+
+Pinned `master` was faster than released 1.14.1 in every matched Phase 0 run
+(3.0% at 256², 6.8% at 3,000²), so on those anchors this gate is at least as
+strict as the former ≤0.50× release gate. M6 confirms the release ratio once.
 
 Scientific eligibility precedes performance acceptance. These are minimum
 deployment gates, not a reason to stop optimizing or to hold an experimental
 standalone release.
 
 - Maintain 256, 512, 1,024, 3,000, 8,000, 10,000, 30,000 and 100,000-square
-  anchors (with the real images below alongside the nearest anchor), sparse, normal and dense-extended workloads, and both sides of
-  every measured crossover. Gate early deployment on its frozen envelope;
+  anchors (with the real images below alongside the nearest anchor), sparse,
+  normal and dense-extended workloads, and both sides of every measured
+  crossover. Gate early deployment on its frozen envelope;
   1.0 qualification needs the whole matrix.
 - Compute reference-finder timings once per input, revision and host and
   reuse them; rerun them only when one of those changes.

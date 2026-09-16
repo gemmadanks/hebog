@@ -22112,3 +22112,27 @@ scientific pass from fixture validation.
   reinstate Aegean.
 - Nothing else changed. The notebook comparison tooling still runs Aegean;
   closed campaign results that include Aegean are unchanged.
+
+## 2026-09-16 — Make pinned PyBDSF master the performance and science reference
+
+- The user chose to focus on the PyBDSF `master` used in Phase 5, believing
+  it outperforms the latest release.
+  - That revision is `c70103be3ae9ae9908286f144e6ce956acc0ce5c`
+    (`v1.14.1-40`), the same as Phase 0.
+  - PyPI's latest PyBDSF release is still 1.14.1 (12 June 2026). Upstream
+    `master` has moved past `c70103b`.
+  - Runtime supports the belief: in the Phase 0 matched runs, `master` was
+    3.0% faster at 256² and 6.8% faster at 3,000², with equal RSS.
+  - Science does not yet show either is better: on the representative image,
+    `master` found 14 sources and the release 12, recorded as a divergence.
+- The user chose, from three options, a single gate of Hebog ≤0.50× pinned
+  `master` plus one check against release 1.14.1 at M6.
+  - This replaces ≤0.50× release plus <1.00× `master` in `AGENTS.md`, the
+    plan and the contracts page.
+  - On the measured anchors it is at least as strict as the former release
+    gate.
+  - Development checks, Rapthor-profile agreement and powered qualification
+    use `master`. Later upstream commits are adopted only by plan decision.
+- `config/benchmarks/phase-0-performance.json` and its schema still hold the
+  former two limits. The M1 quick-benchmark row amends them in the same
+  change as the benchmark lane, and the contracts page says so.
