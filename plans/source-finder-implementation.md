@@ -16,8 +16,8 @@ Closed Phase 5 contracts, reviews and campaign tooling are in Git history at
 | Public envelope | ICRS or FK5 J2000 `Jy/beam` FITS, at most 1,024 pixels on either spatial axis. `continuum` is the default; explicit `compact` is extended-emission-incomplete. Custom thresholds are unqualified. |
 | Strongest evidence | The latest completed campaign (v15) is recorded as a scientific **fail** only because 32 comparisons regressed against the earlier Hebog incumbent; no comparison against released PyBDSF, PyBDSF `master` or Aegean failed, and 40 comparisons were underpowered. Later compositions (v16–v20) have focused regression, Serial/Dask, equivalence and installed-wheel evidence only. The [campaign overview](../docs/reference/phase-5-campaign-overview.md) holds the non-passing inventory. |
 | Accepted limitations | On 13 September the human accepted uncertainty calibration, measurement tails and faint association as documented limitations of an experimental standalone release. They are not passing endpoints. |
-| Blockers | v0.7.0 needs the release-readiness branch merged with hosted CI across the supported matrix, then the checklist below. General scientific readiness, Rapthor acceptance and complete-path performance remain unproven. |
-| Next action | Human: push `chore-prepare-release-0-7-0`, review and merge it after hosted CI passes (R2). |
+| Blockers | v0.7.0 needs the checklist below. General scientific readiness, Rapthor acceptance and complete-path performance remain unproven. |
+| Next action | Human: review and merge the Release Please PR (R4), then release to TestPyPI (R5). |
 | Deferred | Broader F2 association repair, further scientific improvement, general qualification, Rapthor integration and facility-scale work. Reopen a deferred issue if it becomes a confirmed incorrect supported output. |
 
 ## Delivery policy
@@ -94,41 +94,22 @@ Publish v0.7.0 before starting scaling work. No version is otherwise
 preassigned; a later fix, measured optimization or API improvement can repeat
 R3–R5 for its own `0.x` release.
 
-- [ ] **R2 — Merge the release-readiness branch.** *Human pushes
-      `chore-prepare-release-0-7-0`, reviews and merges; agent addresses
-      findings and CI failures.* The branch resolves the release review: it
-      runs `tests/unit/validation` in the portable matrix, ships the licence
-      and excludes `hebog.validation` from wheels, removes the unused Numba
-      dependency and the `io`-to-adapter import, accepts FK5 J2000 input,
-      stabilises beam-scaled pixel extents, hardens public paths and
-      publication, and refreshes user documentation. Done when hosted CI
-      passes on Linux Python 3.12–3.14 and macOS and Windows Python 3.14. If
-      the validation tests fail only for a platform reason, the agent fixes
-      the test or restores the Linux-only partition with a stated reason.
-- [ ] **R3 — Refresh and inspect the notebook comparison.** *Human runs and
-      inspects; agent investigates any reported issue.* On the merged release
-      candidate, run the Hebog refresh preflight, then refresh the 13 saved
-      SDC1/Hydra/LoTSS inputs while reusing the saved PyBDSF/Aegean products.
-      Inspect positions, unavailable measurements, empty and difficult
-      extended regions. A newly confirmed incorrect supported output blocks
-      the release; existing statistical limitations follow the severity
-      policy. This is a diagnostic workflow, not a campaign or parity
-      evidence, and larger notebook images do not expand the public envelope.
 - [ ] **R4 — Review the Release Please PR.** *Release Please generates the
       version, changelog and citation changes; human reviews; agent checks on
       request.* Confirm the generated notes reflect the Conventional Commits,
       including every breaking change. PR #54 is a hidden `chore` that removed
       `hebog.validation.phase_four_*` modules; before this review, add a
       `BEGIN_COMMIT_OVERRIDE` block with a breaking-change note to its PR
-      body so Release Please includes it. Release status and user documentation,
-      updated in R2, must state "experimental, scientifically unqualified",
-      the tested input and resource envelope and known limitations.
+      body so Release Please includes it. Release status and user
+      documentation must state "experimental, scientifically unqualified", the
+      tested input and resource envelope and known limitations.
 - [ ] **R5 — Release through the existing workflow.** *Human configures the
-      GitHub environment and PyPI Trusted Publisher using the
+      GitHub `testpypi` environment and TestPyPI Trusted Publisher using the
       [publishing guide](../docs/how-to/publish-releases.md) and merges the
       Release Please PR after its checks pass; Release Please creates the tag
-      and GitHub release, and the upload workflow publishes to PyPI.* The
-      human verifies the tag, release and PyPI package.
+      and GitHub release, and the upload workflow publishes to TestPyPI.* The
+      human verifies the tag, release and TestPyPI upload. The installable
+      artifact for users is the tagged GitHub release.
 
 ## After v0.7.0
 
@@ -140,6 +121,7 @@ their stated claim and still need human scientific and resource decisions.
 
 | When | Task | Done when |
 | --- | --- | --- |
+| When the public envelope is useful beyond cut-outs | Publish releases to PyPI instead of TestPyPI. | The Trusted Publisher, `pypi` environment, publishing job, installation instructions and release status change together, as described in the [publishing guide](../docs/how-to/publish-releases.md). Releases stay experimental and scientifically unqualified until their own gates pass. |
 | Before scaling work | Add a reusable synthetic comparison campaign. Rebuild the population generator, driver, truth evaluation and paired statistics from Git history without the removed authorization layer. | One checked-in campaign configuration generates a fresh seed-disjoint continuum and compact-blend population, runs Hebog, released PyBDSF and Aegean (optionally pinned PyBDSF `master`), evaluates each finder against injected truth, writes resumable results the comparison notebook reads, and reports paired comparisons. Decide population size and power, pass/fail versus report-only rules, references and compute budget in the PR; the human approves that design and budget and inspects the results. Run it on the current candidate to give scaling work a scientific reference. |
 | Next | Freeze a known-issues runtime baseline and profile complete FITS-to-products execution. | Inputs, candidate, resources and every warm-up and measured run are recorded; CPU, RSS, I/O and task costs identify the first material bottleneck. No speedup or qualification claim from this baseline alone. |
 | Next | Remove one measured I/O, copy, materialization or fit-batching bottleneck. | Paired before/after evidence covers affected and adjacent anchors and crossovers; scientific non-regression and Serial/Dask invariance pass. Ship each useful optimization independently. |

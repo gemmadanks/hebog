@@ -7,12 +7,17 @@ for the supported inputs and known limitations.
 
 ## Install a release
 
-Install a published release from PyPI into a Python 3.12–3.14 environment:
+Hebog is not on PyPI yet. Install a tagged release from GitHub into a Python
+3.12–3.14 environment, replacing the tag with the
+[release](https://github.com/gemmadanks/hebog/releases) you want:
 
 ```console
-pip install hebog
+pip install git+https://github.com/gemmadanks/hebog@v0.7.0
 hebog --version
 ```
+
+Releases are also uploaded to TestPyPI to exercise the publishing workflow.
+Use that index only to check packaging, never for scientific work.
 
 Then follow the [source-finding tutorial](find-sources.md) for a complete
 FITS-to-products example with `hebog.find_sources()`, which publishes a

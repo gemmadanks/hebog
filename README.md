@@ -44,11 +44,19 @@ lists the full input requirements and known limitations.
 
 ## Installation
 
-Hebog supports Python 3.12 to 3.14:
+Hebog is not on PyPI yet: its public input envelope is still too small to be
+generally useful. Install a tagged release from GitHub into a Python 3.12 to
+3.14 environment, replacing the tag with the
+[release](https://github.com/gemmadanks/hebog/releases) you want:
 
 ```shell
-pip install hebog
+pip install git+https://github.com/gemmadanks/hebog@v0.7.0
 ```
+
+Releases are also uploaded to
+[TestPyPI](https://test.pypi.org/project/hebog/) to exercise the publishing
+workflow. That index is for testing only; install from it just to check
+packaging, never for scientific work.
 
 ## Example
 

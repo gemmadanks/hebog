@@ -64,12 +64,14 @@ jobs:
           path: dist/
           if-no-files-found: error
 
-  publish-pypi:
+  publish-testpypi:
     needs: build-release
     runs-on: ubuntu-latest
+    # Releases go to TestPyPI while the public input envelope is too small to
+    # be useful. Switch this job to PyPI when that changes.
     environment:
-      name: pypi
-      url: https://pypi.org/project/hebog/
+      name: testpypi
+      url: https://test.pypi.org/project/hebog/
     permissions:
       id-token: write
     steps:
@@ -79,7 +81,8 @@ jobs:
           name: pypi-distributions
           path: dist/
 
-      - name: Publish to PyPI
+      - name: Publish to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
+          repository-url: https://test.pypi.org/legacy/
           print-hash: true

@@ -21919,3 +21919,27 @@ scientific pass from fixture validation.
   rename, and that a successful return rather than the directory's existence
   is the completion boundary. Revisit only if a consumer is shown to watch
   the output path rather than the returned result.
+
+## 2026-09-16 — Release readiness complete; uploads go to TestPyPI
+
+- R2 and R3 are complete. The user pushed and merged the release-readiness
+  branch as `e4459b1` (#55) with hosted CI passing on Linux, macOS and
+  Windows, the first hosted run of `tests/unit/validation` on macOS and
+  Windows and of the release packaging. The notebook comparison was refreshed
+  and inspected on the candidate with nothing reported, so no newly confirmed
+  incorrect supported output blocks the release. The Release Please PR bumps
+  the manifest, `pyproject.toml`, `CITATION.cff`, `uv.lock` and the
+  `__version__` fallback to 0.7.0; the user accepted its generated notes.
+- Release destination decision. The publishing workflow now uploads to
+  TestPyPI. A PyPI listing invites installation, and the public envelope of
+  1,024 pixels per side cannot process the images the intended users have, so
+  a first public release would mostly produce size errors and an unqualified
+  scientific impression. TestPyPI exercises the identical Trusted Publishing
+  path, and the tagged GitHub release remains the installable artifact.
+  Moving to PyPI is a plan row for when the envelope is useful beyond
+  cut-outs; the guide records the exact switch. Version numbers are never
+  reusable on either index, so 0.7.0 is spent on TestPyPI.
+- The job, its environment (`testpypi`), the publishing guide, the README,
+  the quick start and the release status changed together. The workflow
+  parses, the strict docs build passes and no user-facing page still tells a
+  reader to install Hebog from PyPI.
