@@ -17,6 +17,12 @@ def rename_without_replacement(source: Path, destination: Path) -> None:
     directory. Windows ``rename`` refuses an existing destination by itself
     and needs no claim. A failed rename removes the claim again.
 
+    The claim makes the destination path exist, empty, for the two system
+    calls between claiming and renaming, so an observer watching the path can
+    briefly see an empty directory. The contents then appear in one rename:
+    no partially written bundle is ever visible. Callers treat a successful
+    return, not the existence of the path, as the completion boundary.
+
     Args:
         source: Existing staged directory to publish.
         destination: Path that must not already exist.

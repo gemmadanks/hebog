@@ -21897,3 +21897,25 @@ scientific pass from fixture validation.
   is the behaviour this boundary exists to prevent. `mkdir` was verified to
   refuse a directory, a file, a dangling symlink and a symlink to a
   directory.
+
+## 2026-09-16 — Bound the publication visibility promise
+
+- A follow-up review asked that the destination become visible only when the
+  complete bundle is available. The `mkdir` claim makes the path exist, empty,
+  for the two system calls before the rename, so the observation is correct;
+  the consequence is bounded to that window and no partial bundle is ever
+  visible.
+- Every mechanism that closes the window costs more than it buys. A sibling
+  lock directory goes stale after a crash and then blocks all later
+  publications. `fcntl.flock` releases on process death but is unreliable on
+  network file systems, where it would silently degrade to the unsafe
+  check-then-rename. The `ctypes` no-replace rename closes it absolutely at
+  about a hundred statements of platform-specific code, which the user
+  rejected. Destroying a caller's directory is the serious failure and
+  `mkdir` prevents it unconditionally, so the mechanism stands.
+- The promise is corrected instead: the primitive, `_publish_bundle`, the
+  tutorial, the public-products reference and the internal-schemas
+  comparison now state that the path is claimed, that products appear in one
+  rename, and that a successful return rather than the directory's existence
+  is the completion boundary. Revisit only if a consumer is shown to watch
+  the output path rather than the returned result.

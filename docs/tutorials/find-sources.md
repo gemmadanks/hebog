@@ -30,8 +30,11 @@ differ by tens of milliarcseconds. Other frames and equinoxes raise
 
 ## Run the continuum profile
 
-The output directory must not already exist. Hebog treats it as one atomic,
-caller-owned product bundle.
+The output directory must not already exist. Hebog treats it as one
+caller-owned product bundle: it claims the path and then moves the complete
+bundle into place with a single rename, so no partially written bundle is
+ever visible. A successful return, not the existence of the directory, means
+the products are ready.
 
 ```python
 from pathlib import Path

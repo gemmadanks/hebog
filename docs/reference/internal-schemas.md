@@ -268,8 +268,9 @@ Because callers may select separate directories/filesystems, this helper does
 not promise crash-atomic or simultaneous cross-file visibility. Consumers must
 wait for its successful return; an abrupt process or host failure still needs
 workflow-level recovery. Empty newly created parent directories may remain
-after a failed call. This differs from `find_sources`, which publishes a single
-new output directory with one atomic rename.
+after a failed call. This differs from `find_sources`, which claims
+one new output directory and moves the complete bundle into it with a single
+rename.
 
 The combined helper
 reuses the exact Phase 2 RMS `MaterializedProduct`; writes the internal

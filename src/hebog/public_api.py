@@ -129,10 +129,13 @@ def _require_unclaimed_output(output: Path) -> None:
 
 
 def _publish_bundle(unpublished: Path, output: Path) -> None:
-    """Claim the destination and publish the staged bundle in one operation.
+    """Claim the destination and publish the staged bundle into it.
 
     Another writer may claim the destination while the analysis runs, so the
-    publication itself, not an earlier check, decides ownership.
+    publication itself, not an earlier check, decides ownership. Products
+    appear in one rename; see
+    :func:`hebog.io.filesystem.rename_without_replacement` for the moment the
+    claimed path becomes visible.
     """
     try:
         rename_without_replacement(unpublished, output)
