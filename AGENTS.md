@@ -5,7 +5,8 @@ This file applies to the entire repository.
 ## Repository overview
 
 Hebog is a Dask-aware source finder for large radio-continuum survey images.
-Its intended first consumer is Rapthor's `filter_skymodel` step; no Rapthor
+It should work on images from any radio telescope, with LOFAR, SKA-Low and
+SKA-Mid as the priority instruments. Its intended first consumer is Rapthor's `filter_skymodel` step; no Rapthor
 integration is implemented yet. It is intentionally narrower than PyBDSF:
 reproduce the behaviour and products Rapthor uses, demonstrate scientific
 equivalence, and meet the performance gate below. The architecture must scale out of core

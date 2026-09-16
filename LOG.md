@@ -22015,3 +22015,45 @@ scientific pass from fixture validation.
     moves to M2, once the envelope covers Rapthor sector images.
 - This is a plan-only change. No code, gates, thresholds or closed results
   changed.
+
+## 2026-09-16 — Adjust the 1.0.0 plan for test resources and telescopes
+
+- The user set three constraints on the 1.0.0 plan.
+  - Scalability testing is limited to up to 10 nodes and to the largest
+    publicly available images.
+  - D3 is decided: when Rapthor integration starts, pin the latest commits of
+    Rapthor's Prefect branch and of LSMTool, because both change frequently.
+  - Hebog should work on images from any telescope, with LOFAR, SKA-Low and
+    SKA-Mid as priorities. `AGENTS.md` now states this goal.
+- Public-data survey (web and archive metadata only; no image data
+  downloaded, and no released header read).
+  - The largest real public radio image found is the LOFAR-HD ELAIS-N1
+    mosaic: 90,000² at 0.1″ (32,400,002,880 bytes, consistent with a 2-D
+    `float32` plane), with 45,000² and 22,500² versions. It is a direct
+    download, published "for browsing only", and its PyBDSF catalogues are
+    per facet.
+  - SDC1 provides nine 32,768² SKA-Mid simulations with truth catalogues
+    (Zenodo 4328029, CC BY 4.0).
+  - LoTSS-DR3 provides 1,571 mosaics of 14,390–17,752² with a PyBDSF
+    catalogue and per-mosaic RMS, residual and mask maps.
+  - No large SKA-Low or SKA-Mid commissioning image is public. MWA GLEAM-X
+    DR1, with PSF maps and Aegean catalogues, is the best real SKA-Low
+    precursor. SKA SDC3a is an EoR cube and unsuitable.
+  - Unverified: BUNIT, beam and frame keywords in the released headers; the
+    Lockman HD, MIGHTEE, LoTSS-Deep DR2 and GLEAM-X dimensions; and the HD and
+    LoTSS-DR2 licences.
+- Plan changes.
+  - Scalability in the 1.0.0 definition means 1, 2, 5 and 10 nodes on the
+    90,000² mosaic and generated 100,000² truth. The 100-to-several-hundred-
+    node architecture target is supported by tests with 200+ worker processes
+    and a scaling model, and is declared "not demonstrated".
+  - M5 adds amending the frozen-provisional scalability contract; the 50,
+    100 and 200-node gates are kept as design targets.
+  - M3 gains an input header contract covering WSClean, ddf-pipeline and
+    DDFacet, OSKAR, SKA SDP data models, Obit cubes, Galactic frames and ZEA,
+    plus a decision on PSFs that vary across the field.
+  - Qualification requires full images from LOFAR, SKA-Mid and SKA-Low
+    (precursor or simulated SKA-Low data until SKA-Low data are public).
+  - A reference-image table is added.
+  - No code, gate values or closed results changed; the contract JSON is
+    amended only through the new M5 row.
