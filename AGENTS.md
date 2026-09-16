@@ -41,6 +41,13 @@ Never hard-code those paths in package code or normal tests.
   revert changes you did not make.
 - Follow the existing structure and naming conventions instead of introducing
   a second tool or parallel configuration.
+- Prefer the simplest solution that meets the requirement and reads clearly.
+  Before a low-level, platform-specific or clever mechanism (`ctypes`, raw
+  syscalls, metaprogramming, a bespoke protocol), check whether a standard
+  library or existing dependency primitive already gives the guarantee. Use
+  the complex mechanism only when the simple one demonstrably cannot, and
+  record why. Replace a working implementation when a materially simpler
+  equivalent exists.
 - Add or update tests when behaviour changes. Update user-facing documentation
   when public APIs, setup steps, output schemas, or workflows change.
 - Hebog is pre-production and provides no backward-compatibility guarantee
