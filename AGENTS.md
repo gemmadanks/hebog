@@ -236,16 +236,17 @@ heavyweight production tools to the core runtime solely for tests.
 ## Performance validation
 
 - The primary gate is the matched median wall time of Rapthor's complete
-  `filter_skymodel` step: at least 50% faster than the released PyBDSF used by
-  Rapthor and faster than the pinned PyBDSF `master` reference, under the
-  plan's confidence rule. This is a minimum deployment gate, not an
+  `filter_skymodel` step: at least 50% faster than the pinned PyBDSF `master`
+  reference, under the plan's confidence rule. That reference was faster than
+  the released PyBDSF Rapthor installs, and the plan confirms the release
+  ratio once before 1.0.0. This is a minimum deployment gate, not an
   optimization stopping point; optimize complete latency and throughput across
   the supported size range, including small inputs dominated by setup and
   scheduler overhead.
 - Isolated kernel timing never establishes a speedup. End-to-end runs include
   FITS I/O, catalogue generation, Dask overhead, and Rapthor filtering.
-  Benchmark exact released and `master` PyBDSF revisions in isolated, matched
-  environments; never substitute one for the other.
+  Benchmark the exact pinned PyBDSF revision in an isolated, matched
+  environment; never substitute another revision or a release for it.
 - Optimize only from profiles or scale evidence. Isolate unavoidable low-level
   complexity behind a clear typed function, retain a readable serial oracle,
   and document why the complexity is necessary. An optimization is acceptable
