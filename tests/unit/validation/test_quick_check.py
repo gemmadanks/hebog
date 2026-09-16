@@ -37,6 +37,7 @@ from hebog.validation.quick_check import (
     prepare_case,
     public_catalogue_sources,
     reference_cache_directory,
+    reference_code_sha256,
     truth_metrics,
     write_report,
 )
@@ -479,3 +480,30 @@ def test_reference_cache_depends_on_the_reference_identity(
         )
         == 4
     )
+
+
+def test_reference_code_identity_covers_the_worker_import_closure(
+    tmp_path: Path,
+) -> None:
+    """Editing any repository module the worker imports changes the key."""
+    package = tmp_path / "src" / "demo"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text("")
+    (package / "helper.py").write_text("VALUE = 1\n")
+    (package / "unused.py").write_text("VALUE = 1\n")
+    worker = tmp_path / "worker.py"
+    worker.write_text("import demo.helper\n")
+
+    def digest() -> str:
+        return reference_code_sha256(
+            worker, repository_root=tmp_path, source_root=tmp_path / "src"
+        )
+
+    first = digest()
+    (package / "unused.py").write_text("VALUE = 2\n")
+    assert digest() == first
+    (package / "helper.py").write_text("VALUE = 2\n")
+    changed_helper = digest()
+    assert changed_helper != first
+    worker.write_text("import demo.helper  # edited\n")
+    assert digest() != changed_helper

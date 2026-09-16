@@ -87,8 +87,10 @@ PyBDSF runs once per input in the local
 `localhost/hebog-pybdsf-master:c70103be3-reconstructed` Podman image, and its
 results are cached under `benchmark-results/quick-check/references`. The cache
 is keyed by the input and by the reference identity: the image's immutable ID,
-the finder settings in `config/comparisons/notebook-comparison.json`, and the
-core count. Changing any of these reruns the reference, and a cached failure
+the finder settings in `config/comparisons/notebook-comparison.json`, the core
+count, the container command, and the reference worker with every repository
+module it imports. A change to that code, such as catalogue normalisation or
+the fitting modules it reaches, reruns the references once. Changing any of these reruns the reference, and a cached failure
 applies only to the identity that failed. Remote cut-outs are accepted only
 when the server returns exactly the requested bytes.
 Generated inputs are materialised on first use. The SDC1 cut-outs are cut

@@ -17,6 +17,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import subprocess
+import sys
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -673,9 +676,11 @@ def reference_cache_directory(
     """Return the cache directory for one reference run.
 
     ``identity`` holds everything that can change the reference result or
-    its timing: the immutable container image ID, the finder settings and the
-    core count. Changing any of them selects a new directory, so neither a
-    cached result nor a cached failure is reused across references.
+    its timing: the immutable container image ID, the finder settings, the
+    core count and the reference code identity from
+    :func:`reference_code_sha256`. Changing any of them selects a new
+    directory, so neither a cached result nor a cached failure is reused
+    across references.
     """
     digest = hashlib.sha256(
         json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
@@ -686,6 +691,54 @@ def reference_cache_directory(
         / reference_input_sha256[:16]
         / f"{finder_id}-{digest[:16]}"
     )
+
+
+_IMPORT_CLOSURE = """
+import runpy, sys
+runpy.run_path(sys.argv[1], run_name="quick_check_code_identity")
+for module in list(sys.modules.values()):
+    path = getattr(module, "__file__", None)
+    if path:
+        print(path)
+"""
+
+
+def reference_code_sha256(
+    worker: Path,
+    *,
+    repository_root: Path,
+    source_root: Path,
+) -> str:
+    """Hash a reference worker and every repository module it imports.
+
+    The reference container runs the worker from the mounted checkout, so a
+    change to the worker or to any repository module in its import closure
+    can change the reference products. The closure is found by importing the
+    worker, without running its entry point, in a fresh interpreter that
+    uses ``source_root`` as its import path. Modules outside
+    ``repository_root``, such as the standard library, are not hashed.
+    """
+    environment = dict(os.environ, PYTHONPATH=str(source_root))
+    listing = subprocess.run(
+        [sys.executable, "-c", _IMPORT_CLOSURE, str(worker)],
+        check=True,
+        capture_output=True,
+        text=True,
+        env=environment,
+    ).stdout.splitlines()
+    root = repository_root.resolve()
+    files = {worker.resolve()} | {
+        Path(line).resolve()
+        for line in listing
+        if Path(line).resolve().is_relative_to(root)
+    }
+    digest = hashlib.sha256()
+    for path in sorted(files):
+        digest.update(str(path.relative_to(root)).encode())
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
 
 
 def write_report(path: Path, report: Mapping[str, Any]) -> None:

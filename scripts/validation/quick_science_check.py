@@ -49,6 +49,7 @@ from hebog.validation.quick_check import (
     prepare_case,
     public_catalogue_sources,
     reference_cache_directory,
+    reference_code_sha256,
     reference_metrics,
     truth_metrics,
     write_report,
@@ -59,6 +60,7 @@ _DEFAULT_CONFIGURATION = _ROOT / "config/checks/quick-science-check.json"
 _DEFAULT_OUTPUT = _ROOT / "benchmark-results/quick-check"
 _PREPARE = _ROOT / "scripts/benchmark/prepare_notebook_comparison.py"
 _NOTEBOOK_CONFIGURATION = _ROOT / "config/comparisons/notebook-comparison.json"
+_WORKER = _ROOT / "scripts/benchmark/run_notebook_reference.py"
 _SUMMARY_METRICS = (
     "truth.completeness",
     "truth.reliability",
@@ -129,7 +131,12 @@ def _image_identity(engine: str, image: str) -> str:
 def _reference_identity(
     configuration: QuickCheckConfiguration, engine: str
 ) -> dict[str, object]:
-    """Describe everything that can change a reference result or timing."""
+    """Describe everything that can change a reference result or timing.
+
+    The container runs the worker and its ``hebog`` imports from this
+    checkout, and the host builds its command line, so both are part of the
+    identity alongside the image, finder settings and core count.
+    """
     reference = configuration.reference
     settings = json.loads(_NOTEBOOK_CONFIGURATION.read_text(encoding="utf-8"))
     return {
@@ -138,6 +145,10 @@ def _reference_identity(
         ),
         "finder_settings": settings["reference_finders"][reference.finder_id],
         "ncores": reference.ncores,
+        "reference_code_sha256": reference_code_sha256(
+            _WORKER, repository_root=_ROOT, source_root=_ROOT / "src"
+        ),
+        "container_command_sha256": file_sha256(_PREPARE),
     }
 
 
