@@ -21880,16 +21880,20 @@ scientific pass from fixture validation.
   publication: POSIX `rename` replaces an existing empty directory, so a
   destination claimed between the check and the rename could still be lost.
   The finding is valid; the previous commit only narrowed the interval.
-- `hebog.io.filesystem.rename_without_replacement` now claims the destination
-  and publishes in one operation, through `renameat2(RENAME_NOREPLACE)` on
-  Linux and `renamex_np(RENAME_EXCL)` on macOS, resolved lazily so imports
-  stay inert. Windows `rename` already refuses an existing destination. Where
-  the operation is missing or a file system rejects it (`ENOSYS`, `ENOTSUP`,
-  `EOPNOTSUPP`, `EINVAL`), a checked rename remains, with its residual race
-  documented at the boundary. `EEXIST` and `ENOTEMPTY` become
-  `SourceFinderOutputExistsError`; every other error propagates unchanged.
-- Tests cover an unclaimed destination, empty, populated, file and dangling
-  symlink destinations, a missing source, the unsupported-operation fallback
-  and an unrelated `EACCES`. One test records that a plain `os.rename` would
-  replace an empty destination, which is the behaviour this boundary exists
-  to prevent.
+- `hebog.io.filesystem.rename_without_replacement` claims the destination and
+  publishes in one operation. The first implementation called
+  `renameat2`/`renamex_np` through `ctypes`; the user asked whether a simpler
+  mechanism exists, and one does. `mkdir` is an atomic exclusive claim on
+  every supported platform, and a POSIX rename onto the empty directory this
+  call just created can only replace its own claim, so no other writer can
+  take the path in between. Windows `rename` refuses an existing destination
+  by itself. A failed rename removes the claim, so a retry is not blocked.
+  The primitive is now 12 statements of standard library with no platform
+  fallback or errno translation, and `FileExistsError` becomes
+  `SourceFinderOutputExistsError` at the public boundary.
+- Tests cover an unclaimed destination; empty, populated, file and dangling
+  symlink destinations; claim removal after a failed publication; and a
+  record that a plain `os.rename` would replace an empty destination, which
+  is the behaviour this boundary exists to prevent. `mkdir` was verified to
+  refuse a directory, a file, a dangling symlink and a symlink to a
+  directory.

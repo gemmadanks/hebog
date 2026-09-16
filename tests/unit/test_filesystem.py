@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import ctypes
-import errno
 import os
 from pathlib import Path
 
@@ -66,57 +64,16 @@ def test_rename_never_replaces_an_existing_destination(
         assert sorted(path.name for path in destination.iterdir()) == expected
 
 
-def test_rename_reports_a_missing_source(tmp_path: Path) -> None:
-    """A missing staged bundle keeps its own filesystem error."""
-    with pytest.raises(FileNotFoundError):
-        rename_without_replacement(tmp_path / "absent", tmp_path / "products")
-
-
-@pytest.mark.parametrize("code", (errno.ENOSYS, errno.ENOTSUP, errno.EINVAL))
-def test_rename_falls_back_when_the_platform_lacks_the_operation(
+def test_rename_removes_its_claim_when_publication_fails(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    code: int,
 ) -> None:
-    """Without an atomic operation the destination is still not replaced."""
-
-    def unsupported(_source: bytes, _destination: bytes) -> int:
-        ctypes.set_errno(code)
-        return -1
-
-    monkeypatch.setattr(
-        "hebog.io.filesystem._no_replace_renamer",
-        lambda: unsupported,
-    )
-    staged = _staged(tmp_path)
+    """A failed publication leaves no empty directory behind to block retry."""
     destination = tmp_path / "products"
-    destination.mkdir()
 
-    with pytest.raises(FileExistsError):
-        rename_without_replacement(staged, destination)
+    with pytest.raises(FileNotFoundError):
+        rename_without_replacement(tmp_path / "absent", destination)
 
-    destination.rmdir()
-    rename_without_replacement(staged, destination)
-
-    assert (destination / "catalogue.fits").is_file()
-
-
-def test_rename_propagates_an_unrelated_filesystem_error(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """A real failure is never mistaken for an unsupported operation."""
-
-    def denied(_source: bytes, _destination: bytes) -> int:
-        ctypes.set_errno(errno.EACCES)
-        return -1
-
-    monkeypatch.setattr(
-        "hebog.io.filesystem._no_replace_renamer", lambda: denied
-    )
-
-    with pytest.raises(PermissionError):
-        rename_without_replacement(_staged(tmp_path), tmp_path / "products")
+    assert not destination.exists()
 
 
 @pytest.mark.skipif(
