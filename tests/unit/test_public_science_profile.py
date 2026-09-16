@@ -190,7 +190,7 @@ def test_public_diagnostics_round_trip_exact_provenance() -> None:
         )
         == diagnostics
     )
-    assert diagnostics.schema_version == 8
+    assert diagnostics.schema_version == 9
     assert diagnostics.deblended_parent_count == 1
     assert diagnostics.deferred_deblend_parent_count == 0
 

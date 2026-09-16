@@ -33,6 +33,52 @@ class RestoringBeam:
 
 
 @dataclass(frozen=True, slots=True)
+class SuppliedImageMetadata:
+    """Physical metadata a caller supplies for keywords a FITS header omits.
+
+    Each value fills only a missing header keyword: frequency in Hz for
+    ``RESTFRQ`` or a frequency axis, and restoring-beam full widths and
+    position angle in degrees for ``BMAJ``, ``BMIN`` and ``BPA``. Supplying a
+    value the header already provides is an input error, so supplied metadata
+    never overrides an image's own description.
+
+    >>> SuppliedImageMetadata(reference_frequency_hz=144e6)
+    SuppliedImageMetadata(reference_frequency_hz=144000000.0, \
+beam_major_fwhm_degrees=None, beam_minor_fwhm_degrees=None, \
+beam_position_angle_degrees=None)
+    """
+
+    reference_frequency_hz: float | None = None
+    beam_major_fwhm_degrees: float | None = None
+    beam_minor_fwhm_degrees: float | None = None
+    beam_position_angle_degrees: float | None = None
+
+    def __post_init__(self) -> None:
+        """Require at least one finite value with the header's own limits."""
+        frequency = self.reference_frequency_hz
+        axes = (self.beam_major_fwhm_degrees, self.beam_minor_fwhm_degrees)
+        angle = self.beam_position_angle_degrees
+        if frequency is None and angle is None and axes == (None, None):
+            raise ValueError("supply at least one image metadata value")
+        if frequency is not None and not (
+            isfinite(frequency) and frequency > 0
+        ):
+            raise ValueError(
+                "supplied reference frequency must be finite and positive"
+            )
+        if any(
+            axis is not None and not (isfinite(axis) and axis > 0)
+            for axis in axes
+        ):
+            raise ValueError("supplied beam axes must be finite and positive")
+        if angle is not None and not isfinite(angle):
+            raise ValueError("supplied beam position angle must be finite")
+        major, minor = axes
+        if major is not None and minor is not None and minor > major:
+            raise ValueError("supplied beam minor axis cannot exceed major")
+
+
+@dataclass(frozen=True, slots=True)
 class CelestialWcs:
     """Canonical FITS celestial-WCS cards and their coordinate-frame name."""
 

@@ -12,7 +12,12 @@ from hebog.data_models.catalogues import (
     SpectralModel,
 )
 from hebog.data_models.generations import ProductGenerationManifest
-from hebog.data_models.images import CelestialWcs, ImageMetadata, RestoringBeam
+from hebog.data_models.images import (
+    CelestialWcs,
+    ImageMetadata,
+    RestoringBeam,
+    SuppliedImageMetadata,
+)
 from hebog.data_models.multiscale import (
     CombinedCatalogueReduction,
     CombinedCatalogueShard,
@@ -93,5 +98,6 @@ __all__ = [
     "SourceFindingDiagnostics",
     "SourceScaleProvenance",
     "SpectralModel",
+    "SuppliedImageMetadata",
     "TilePartition",
 ]

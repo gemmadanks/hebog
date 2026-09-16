@@ -216,6 +216,28 @@ def _qualified_metadata(metadata: ImageMetadata) -> None:
         )
 
 
+def _header_with_metadata(
+    header: fits.Header,
+    metadata: ImageMetadata,
+) -> fits.Header:
+    """Fill beam keywords the header omits from validated image metadata.
+
+    The scientific composition reads the beam from the header. Metadata
+    validation has already refused any supplied value that duplicates a
+    header keyword, so existing header values are never changed.
+    """
+    completed = header.copy()
+    beam = metadata.beam
+    for keyword, value in (
+        ("BMAJ", beam.major_fwhm_degrees),
+        ("BMIN", beam.minor_fwhm_degrees),
+        ("BPA", beam.position_angle_degrees),
+    ):
+        if keyword not in completed:
+            completed[keyword] = value
+    return completed
+
+
 def _full_bounds(metadata: ImageMetadata) -> ImageBounds:
     """Return the complete bounded image plane."""
     return ImageBounds(0, metadata.shape_yx[0], 0, metadata.shape_yx[1])
@@ -904,6 +926,7 @@ def _materialize_bundle(  # noqa: PLR0913
             ).hexdigest(),
             scientific_composition_sha256=(_scientific_composition_sha256()),
             scientific_composition=_COMPOSITION_NAME,
+            supplied_image_metadata=request.supplied_metadata,
         ),
     )
     diagnostics_product = write_diagnostics_product(
@@ -944,9 +967,11 @@ def find_sources(
     image_path = Path(request.image_path).absolute()
     request = replace(request, image_path=image_path, output_directory=output)
     try:
-        source = FitsImageSource(image_path)
+        source = FitsImageSource(image_path, request.supplied_metadata)
         metadata = source.metadata()
-        header = cast(fits.Header, fits.getheader(image_path))
+        header = _header_with_metadata(
+            cast(fits.Header, fits.getheader(image_path)), metadata
+        )
     except (OSError, ValueError) as error:
         raise InvalidSourceFinderInputError(
             f"invalid FITS source-finder input: {image_path}"

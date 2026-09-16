@@ -21,6 +21,7 @@ from hebog.data_models.images import (
     CelestialWcs,
     ImageMetadata,
     RestoringBeam,
+    SuppliedImageMetadata,
 )
 from hebog.io.base import ImageBounds, ImageWindow
 
@@ -53,9 +54,33 @@ def _canonical_image_unit(unit_value: str, path: Path) -> str:
     return canonical
 
 
-def _restoring_beam(header: Any, path: Path) -> RestoringBeam:
-    """Read the standard restoring-beam keywords in FITS degree units."""
-    raw_values = tuple(header.get(name) for name in ("BMAJ", "BMIN", "BPA"))
+def _restoring_beam(
+    header: Any,
+    path: Path,
+    supplied: SuppliedImageMetadata | None,
+) -> RestoringBeam:
+    """Read restoring-beam keywords in degrees, filling only missing ones."""
+    supplied_values = (
+        (None, None, None)
+        if supplied is None
+        else (
+            supplied.beam_major_fwhm_degrees,
+            supplied.beam_minor_fwhm_degrees,
+            supplied.beam_position_angle_degrees,
+        )
+    )
+    raw_values: list[Any] = []
+    for keyword, supplied_value in zip(
+        ("BMAJ", "BMIN", "BPA"), supplied_values, strict=True
+    ):
+        header_value = header.get(keyword)
+        if header_value is not None and supplied_value is not None:
+            raise InvalidFitsImageError(
+                f"supplied {keyword} duplicates the FITS header value: {path}"
+            )
+        raw_values.append(
+            header_value if header_value is not None else supplied_value
+        )
     if any(value is None for value in raw_values):
         raise InvalidFitsImageError(
             f"FITS image requires BMAJ, BMIN, and BPA restoring beam: {path}"
@@ -118,7 +143,7 @@ def _header_reference_frequency_hz(
     return _positive_frequency_hz(raw_frequency, path)
 
 
-def _wcs_reference_frequency_hz(image_wcs: WCS, path: Path) -> float:
+def _wcs_reference_frequency_hz(image_wcs: WCS, path: Path) -> float | None:
     """Read reference frequency from the first explicit WCS frequency axis."""
     for axis_index, physical_type in enumerate(
         image_wcs.world_axis_physical_types
@@ -129,12 +154,40 @@ def _wcs_reference_frequency_hz(image_wcs: WCS, path: Path) -> float:
                 float(image_wcs.wcs.crval[axis_index]) * units.Unit(axis_unit)
             ).to_value(units.Hz)
             return _positive_frequency_hz(raw_frequency, path)
-    raise InvalidFitsImageError(
-        f"FITS image requires a reference frequency: {path}"
+    return None
+
+
+def _reference_frequency_hz(
+    header_frequency_hz: float | None,
+    supplied: SuppliedImageMetadata | None,
+    path: Path,
+) -> float:
+    """Use the header frequency, or a supplied one when the header has none."""
+    supplied_frequency_hz = (
+        None if supplied is None else supplied.reference_frequency_hz
     )
+    if header_frequency_hz is not None and supplied_frequency_hz is not None:
+        raise InvalidFitsImageError(
+            "supplied reference frequency duplicates the FITS header value: "
+            f"{path}"
+        )
+    frequency_hz = (
+        header_frequency_hz
+        if header_frequency_hz is not None
+        else supplied_frequency_hz
+    )
+    if frequency_hz is None:
+        raise InvalidFitsImageError(
+            f"FITS image requires a reference frequency: {path}"
+        )
+    return frequency_hz
 
 
-def _metadata(primary_hdu: Any, path: Path) -> ImageMetadata:
+def _metadata(
+    primary_hdu: Any,
+    path: Path,
+    supplied: SuppliedImageMetadata | None = None,
+) -> ImageMetadata:
     """Validate one primary image HDU without loading its pixel plane."""
     raw_shape = primary_hdu.shape
     if not raw_shape:
@@ -162,21 +215,21 @@ def _metadata(primary_hdu: Any, path: Path) -> ImageMetadata:
             f"FITS image requires a non-empty BUNIT: {path}"
         )
     unit = _canonical_image_unit(unit_value, path)
-    reference_frequency_hz = _header_reference_frequency_hz(
+    header_frequency_hz = _header_reference_frequency_hz(
         primary_hdu.header,
         path,
     )
-    beam = _restoring_beam(primary_hdu.header, path)
+    beam = _restoring_beam(primary_hdu.header, path, supplied)
     image_wcs, celestial_wcs = _celestial_wcs(primary_hdu.header, path)
+    if header_frequency_hz is None:
+        header_frequency_hz = _wcs_reference_frequency_hz(image_wcs, path)
     return ImageMetadata(
         shape_yx=shape_yx,
         unit=unit,
         beam=beam,
         celestial_wcs=celestial_wcs,
-        reference_frequency_hz=(
-            reference_frequency_hz
-            if reference_frequency_hz is not None
-            else _wcs_reference_frequency_hz(image_wcs, path)
+        reference_frequency_hz=_reference_frequency_hz(
+            header_frequency_hz, supplied, path
         ),
     )
 
@@ -197,16 +250,25 @@ def _open_primary(path: Path) -> Generator[Any, None, None]:
 
 
 class FitsImageSource:
-    """Read validated logical image planes through bounded FITS sections."""
+    """Read validated logical image planes through bounded FITS sections.
 
-    def __init__(self, path: Path) -> None:
-        """Retain only the path; opening and pixel access remain explicit."""
+    Optional supplied metadata fills keywords the header omits. It is part of
+    the source, so every executor task that re-reads the header sees it.
+    """
+
+    def __init__(
+        self,
+        path: Path,
+        supplied_metadata: SuppliedImageMetadata | None = None,
+    ) -> None:
+        """Retain the path and supplied metadata; open files only on use."""
         self._path = path
+        self._supplied_metadata = supplied_metadata
 
     def metadata(self) -> ImageMetadata:
         """Return shape and unit without materialising the image plane."""
         with _open_primary(self._path) as primary_hdu:
-            return _metadata(primary_hdu, self._path)
+            return _metadata(primary_hdu, self._path, self._supplied_metadata)
 
     def read_window(self, bounds: ImageBounds) -> ImageWindow:
         """Read one half-open global window into owned read-only arrays."""
@@ -222,7 +284,9 @@ class FitsImageSource:
             return ()
         windows: list[ImageWindow] = []
         with _open_primary(self._path) as primary_hdu:
-            metadata = _metadata(primary_hdu, self._path)
+            metadata = _metadata(
+                primary_hdu, self._path, self._supplied_metadata
+            )
             leading_indices = (0,) * (len(primary_hdu.shape) - 2)
             for bounds in requested_bounds:
                 bounds.require_inside(metadata.shape_yx)

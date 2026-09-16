@@ -894,3 +894,45 @@ def test_image_metadata_rejects_incomplete_physical_values(
     """Versioned metadata never guesses missing scientific semantics."""
     with pytest.raises(ValueError, match=message):
         replace(_image_metadata(), **changes)
+
+
+@pytest.mark.parametrize(
+    ("values", "message"),
+    [
+        ({}, "at least one"),
+        ({"reference_frequency_hz": 0.0}, "reference frequency"),
+        ({"reference_frequency_hz": float("nan")}, "reference frequency"),
+        ({"beam_major_fwhm_degrees": -1.0}, "beam axes"),
+        ({"beam_minor_fwhm_degrees": float("inf")}, "beam axes"),
+        ({"beam_position_angle_degrees": float("nan")}, "position angle"),
+        (
+            {"beam_major_fwhm_degrees": 0.01, "beam_minor_fwhm_degrees": 0.02},
+            "minor axis",
+        ),
+    ],
+)
+def test_supplied_image_metadata_rejects_unusable_values(
+    values: dict[str, float],
+    message: str,
+) -> None:
+    """Caller-supplied physical metadata meets the header's own rules."""
+    with pytest.raises(ValueError, match=message):
+        domain_models.SuppliedImageMetadata(**values)
+
+
+def test_source_finder_request_carries_supplied_metadata() -> None:
+    """The request stays small and pickles with its supplied metadata."""
+    supplied = domain_models.SuppliedImageMetadata(
+        reference_frequency_hz=144_000_000.0
+    )
+    request = SourceFinderRequest(
+        Path("image.fits"), Path("products"), "run", supplied_metadata=supplied
+    )
+
+    assert pickle.loads(pickle.dumps(request)).supplied_metadata == supplied
+    assert (
+        SourceFinderRequest(
+            Path("image.fits"), Path("products"), "run"
+        ).supplied_metadata
+        is None
+    )

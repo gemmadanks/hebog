@@ -6,12 +6,14 @@
 
 from __future__ import annotations
 
+import pickle
 from pathlib import Path
 
 import numpy as np
 import pytest
 from astropy.io import fits
 
+from hebog.data_models import SuppliedImageMetadata
 from hebog.io import (
     FitsImageSource,
     ImageBounds,
@@ -371,3 +373,134 @@ def test_rejects_missing_or_invalid_reference_frequency(
 
     with pytest.raises(InvalidFitsImageError, match="reference frequency"):
         FitsImageSource(path).metadata()
+
+
+@pytest.mark.integration
+def test_supplied_reference_frequency_fills_a_header_without_one(
+    tmp_path: Path,
+) -> None:
+    """LOFAR-HD mosaics carry a beam but no frequency keyword or axis."""
+    path = tmp_path / "no-frequency.fits"
+    _write_image(
+        path,
+        np.zeros((2, 2), dtype=np.float32),
+        reference_frequency_hz=None,
+    )
+
+    metadata = FitsImageSource(
+        path, SuppliedImageMetadata(reference_frequency_hz=144_000_000.0)
+    ).metadata()
+
+    assert metadata.reference_frequency_hz == 144_000_000.0
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("removed", "supplied"),
+    [
+        (("BPA",), SuppliedImageMetadata(beam_position_angle_degrees=0.0)),
+        (
+            ("BMAJ", "BMIN", "BPA"),
+            SuppliedImageMetadata(
+                beam_major_fwhm_degrees=0.01,
+                beam_minor_fwhm_degrees=0.008,
+                beam_position_angle_degrees=0.0,
+            ),
+        ),
+    ],
+)
+def test_supplied_beam_values_fill_only_missing_keywords(
+    tmp_path: Path,
+    removed: tuple[str, ...],
+    supplied: SuppliedImageMetadata,
+) -> None:
+    """SDC1 images give BMAJ and BMIN but omit BPA."""
+    path = tmp_path / "partial-beam.fits"
+    _write_image(path, np.zeros((2, 2), dtype=np.float32))
+    with fits.open(path, mode="update") as hdus:
+        for keyword in removed:
+            del hdus[0].header[keyword]
+
+    beam = FitsImageSource(path, supplied).metadata().beam
+
+    assert beam.major_fwhm_degrees == 0.01
+    assert beam.minor_fwhm_degrees == 0.008
+    assert beam.position_angle_degrees == 0.0
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("data", "reference_frequency_hz", "supplied", "message"),
+    [
+        (
+            np.zeros((2, 2), dtype=np.float32),
+            150_000_000.0,
+            SuppliedImageMetadata(reference_frequency_hz=150_000_000.0),
+            "reference frequency",
+        ),
+        (
+            np.zeros((1, 1, 2, 2), dtype=np.float32),
+            None,
+            SuppliedImageMetadata(reference_frequency_hz=150_000_000.0),
+            "reference frequency",
+        ),
+        (
+            np.zeros((2, 2), dtype=np.float32),
+            150_000_000.0,
+            SuppliedImageMetadata(beam_position_angle_degrees=20.0),
+            "BPA",
+        ),
+    ],
+)
+def test_supplying_a_value_the_header_provides_is_rejected(
+    tmp_path: Path,
+    data: np.ndarray,
+    reference_frequency_hz: float | None,
+    supplied: SuppliedImageMetadata,
+    message: str,
+) -> None:
+    """Supplied metadata never silently overrides the image's own header."""
+    path = tmp_path / "complete-header.fits"
+    _write_image(path, data, reference_frequency_hz=reference_frequency_hz)
+
+    with pytest.raises(InvalidFitsImageError, match=message):
+        FitsImageSource(path, supplied).metadata()
+
+
+@pytest.mark.integration
+def test_beam_keywords_still_missing_after_supply_are_rejected(
+    tmp_path: Path,
+) -> None:
+    """Supplying one beam value does not excuse another missing value."""
+    path = tmp_path / "no-beam.fits"
+    _write_image(path, np.zeros((2, 2), dtype=np.float32))
+    with fits.open(path, mode="update") as hdus:
+        del hdus[0].header["BMIN"]
+        del hdus[0].header["BPA"]
+
+    with pytest.raises(InvalidFitsImageError, match="restoring beam"):
+        FitsImageSource(
+            path, SuppliedImageMetadata(beam_position_angle_degrees=0.0)
+        ).metadata()
+
+
+@pytest.mark.integration
+def test_supplied_metadata_travels_with_a_serialized_source(
+    tmp_path: Path,
+) -> None:
+    """Executor workers re-read metadata, so they need the supplied values."""
+    path = tmp_path / "worker.fits"
+    _write_image(
+        path,
+        np.arange(4, dtype=np.float32).reshape(2, 2),
+        reference_frequency_hz=None,
+    )
+    source = FitsImageSource(
+        path, SuppliedImageMetadata(reference_frequency_hz=144_000_000.0)
+    )
+
+    restored = pickle.loads(pickle.dumps(source))
+    window = restored.read_window(ImageBounds(0, 2, 0, 2))
+
+    assert restored.metadata().reference_frequency_hz == 144_000_000.0
+    np.testing.assert_array_equal(window.values, [[0, 1], [2, 3]])

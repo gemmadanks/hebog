@@ -31,7 +31,7 @@ photometry, and atomic product publication. Start with
 | Boundary | Supported behaviour |
 | --- | --- |
 | Input | One two-dimensional FITS image, or singleton leading axes followed by two spatial axes. |
-| Physical metadata | ICRS or FK5 J2000 celestial WCS, `BUNIT=Jy/beam`, finite positive restoring-beam axes with a position angle, and a positive reference frequency. FK5 J2000 includes headers with `EQUINOX = 2000` and no `RADESYS`, as written by WSClean; catalogue positions are always converted to ICRS. Other frames and equinoxes are rejected. |
+| Physical metadata | ICRS or FK5 J2000 celestial WCS, `BUNIT=Jy/beam`, finite positive restoring-beam axes with a position angle, and a positive reference frequency. FK5 J2000 includes headers with `EQUINOX = 2000` and no `RADESYS`, as written by WSClean; catalogue positions are always converted to ICRS. Other frames and equinoxes are rejected. A request can supply a reference frequency or beam value that the header omits, but not one it already provides. |
 | Image size | No more than 1,024 pixels along either spatial axis. Larger inputs fail before analysis. |
 | Invalid pixels | NaN pixels are allowed and excluded from estimation, detection, and measurement. |
 | Profiles | `continuum` is the default. `compact` deliberately omits extended-source association and reports `extended-emission-incomplete`. |

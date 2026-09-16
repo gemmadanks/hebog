@@ -3,7 +3,11 @@
 from importlib.metadata import PackageNotFoundError, version
 
 from hebog.config import SourceFinderConfig
-from hebog.data_models import SourceFinderRequest, SourceFinderResult
+from hebog.data_models import (
+    SourceFinderRequest,
+    SourceFinderResult,
+    SuppliedImageMetadata,
+)
 from hebog.pipeline import (
     InvalidSourceFinderInputError,
     SourceFinderError,
@@ -26,6 +30,7 @@ __all__ = [
     "SourceFinderOutputExistsError",
     "SourceFinderRequest",
     "SourceFinderResult",
+    "SuppliedImageMetadata",
     "UnsupportedSourceFinderConfigurationError",
     "__version__",
     "find_sources",

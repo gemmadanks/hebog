@@ -1164,6 +1164,62 @@ def test_fk5_j2000_input_publishes_the_same_icrs_sky(
 
 
 @pytest.mark.integration
+def test_supplied_metadata_publishes_the_same_science_as_a_complete_header(
+    tmp_path: Path,
+) -> None:
+    """Given an image whose header omits frequency and beam angle,
+    when the caller supplies the header's missing values,
+    then Hebog publishes the same catalogue as for the complete header and
+    records the supplied values in diagnostics.
+    """
+    image = _ring_image()
+    _write_image(tmp_path / "image.fits", image)
+    header = _header(image.shape)
+    del header["RESTFRQ"]
+    del header["BPA"]
+    fits.PrimaryHDU(data=image, header=header).writeto(
+        tmp_path / "sparse.fits"
+    )
+    supplied = hebog.SuppliedImageMetadata(
+        reference_frequency_hz=150_000_000.0,
+        beam_position_angle_degrees=0.0,
+    )
+    sparse_request = SourceFinderRequest(
+        tmp_path / "sparse.fits",
+        tmp_path / "sparse",
+        "public-contract",
+        supplied_metadata=supplied,
+    )
+
+    with pytest.raises(InvalidSourceFinderInputError, match="invalid FITS"):
+        hebog.find_sources(
+            replace(sparse_request, supplied_metadata=None),
+            _config(),
+            SerialExecutor(),
+        )
+    complete = hebog.find_sources(
+        _request(tmp_path, output_name="complete"), _config(), SerialExecutor()
+    )
+    sparse = hebog.find_sources(sparse_request, _config(), SerialExecutor())
+
+    complete_catalogue = read_catalogue_fits_product(complete.catalogue)
+    sparse_catalogue = read_catalogue_fits_product(sparse.catalogue)
+    assert sparse_catalogue.sources == complete_catalogue.sources
+    assert (
+        sparse_catalogue.gaussian_components
+        == complete_catalogue.gaussian_components
+    )
+    assert sparse_catalogue.reference_frequency_hz == 150_000_000.0
+    sparse_diagnostics = read_diagnostics_product(sparse.diagnostics)
+    complete_diagnostics = read_diagnostics_product(complete.diagnostics)
+    assert isinstance(sparse_diagnostics, PublicSourceFindingDiagnostics)
+    assert isinstance(complete_diagnostics, PublicSourceFindingDiagnostics)
+    assert sparse_diagnostics.provenance.supplied_image_metadata == supplied
+    assert complete_diagnostics.provenance.supplied_image_metadata is None
+    assert fits.getheader(sparse.rms_path)["BPA"] == 0.0
+
+
+@pytest.mark.integration
 @pytest.mark.parametrize(
     ("radesys", "equinox"),
     (("FK5", 1950.0), ("FK4", 1950.0), ("GALACTIC", None)),
@@ -1203,9 +1259,12 @@ def test_relative_request_paths_are_bound_before_execution(
     sources: list[Path] = []
     original = public_api.FitsImageSource
 
-    def recording_source(path: Path) -> FitsImageSource:
+    def recording_source(
+        path: Path,
+        supplied_metadata: hebog.SuppliedImageMetadata | None = None,
+    ) -> FitsImageSource:
         sources.append(path)
-        return original(path)
+        return original(path, supplied_metadata)
 
     monkeypatch.setattr(public_api, "FitsImageSource", recording_source)
     monkeypatch.chdir(tmp_path)

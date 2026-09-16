@@ -22167,3 +22167,34 @@ scientific pass from fixture validation.
 - The plan's decision table becomes a short list of current scope and
   resource rules. D3 (latest Rapthor Prefect branch and LSMTool commits) is
   restated there.
+
+## 2026-09-16 — M1: supply image metadata that a header omits
+
+- Observed: v0.7.0 rejects two public reference image families because of a
+  single missing keyword. The LOFAR-HD ELAIS-N1 mosaics have no reference
+  frequency, and SDC1 has no `BPA` (header checks earlier today).
+- Change: `SourceFinderRequest.supplied_metadata` accepts a
+  `hebog.SuppliedImageMetadata` with `reference_frequency_hz` and the three
+  restoring-beam values.
+  - A value fills a keyword only when the header lacks it. A reference
+    frequency counts as present when the header has `RESTFRQ`, `RESTFREQ` or a
+    frequency axis.
+  - Supplying a value the header already provides is an input error. This
+    replaces the plan's "conflicting value" wording: it needs no float
+    tolerance and never overrides an image.
+  - The values travel inside `FitsImageSource`, so executor tasks that re-read
+    the header apply them.
+  - The public facade fills the missing beam keywords into the header copy
+    that the scientific composition reads, and never changes existing
+    keywords. No scientific module changed.
+- Schemas: diagnostics schema 8 → 9 and the nested provenance record 1 → 2,
+  which adds `supplied_image_metadata`. The composition name stays v20. Its
+  SHA-256 changes because `public_api` and `data_models.source_finding` are
+  identity-bound modules; the science itself is unchanged.
+- Evidence: an image with `RESTFRQ` and `BPA` removed and both values supplied
+  publishes identical sources and Gaussian components to the complete-header
+  image, carries the supplied frequency and beam into the catalogue and RMS
+  headers, and records the values in diagnostics. Without supplied values it
+  still fails before publication. Reader tests cover each fill,
+  duplicate-keyword rejection (`RESTFRQ`, frequency axis, `BPA`), beam values
+  still missing after a partial supply, and pickled-source round trips.
