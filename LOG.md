@@ -22198,3 +22198,78 @@ scientific pass from fixture validation.
   still fails before publication. Reader tests cover each fill,
   duplicate-keyword rejection (`RESTFRQ`, frequency axis, `BPA`), beam values
   still missing after a partial supply, and pickled-source round trips.
+
+## 2026-09-16 — M1: quick science check
+
+- **What was built.** `just quick-science-check` runs 16 fixed cases in about
+  six minutes of Hebog time on the development machine (M3 Pro, 18 GiB). The
+  cases are in `config/checks/quick-science-check.json`:
+  - 12 generated development-role images from
+    `config/datasets/quick-science-check.json` (seeds 2026091601–12, built by
+    `scripts/validation/build_quick_check_datasets.py`);
+  - two SDC1 B2 1,000 h cut-outs, (x, y) = (20992, 12800) and
+    (16896, 16896), 1,024² each, cut from the local copy with the same
+    byte-range code as a Zenodo fetch;
+  - two 1,024² LoTSS-DR3 mosaic 1312 cut-outs (sparse at (9749, 9749),
+    dense at (7701, 6677)) with the published PyBDSF RMS and mask maps.
+
+  It reports the fields Rapthor consumes:
+  - against injected truth;
+  - against pinned PyBDSF `master` `c70103b`, run once per input in
+    `localhost/hebog-pybdsf-master:c70103be3-reconstructed` and cached;
+  - against the published maps.
+
+  `--baseline` flags failed or missing cases and worse-direction changes
+  beyond the configured tolerances. It is a regression detector, not powered
+  parity.
+- **Downloads (approved).**
+  - The LoTSS-DR3 windows were streamed with HTTP range requests: about
+    380 MB transferred, 25 MB kept, since lofar-surveys.org refuses
+    multi-part ranges.
+  - One 1.4 MB TAP query of `lotss_dr3.main_sources` chose the windows. Its
+    source counts per 1,024² window ranged from 72 to 131.
+- **Supporting changes.**
+  - The notebook reference worker gains the `pinned-pybdsf-master` finder
+    and exports PyBDSF's RMS map.
+  - The PyBDSF catalogue readers accept the column-less table PyBDSF writes
+    for an image without sources.
+  - PyBDSF reads frequency only from a spectral axis, `RESTFREQ` or `FREQ`.
+    So the reference input copies Hebog's resolved frequency and beam when
+    the header lacks them, as for LoTSS-DR3 `RESTFRQ` and SDC1 `BPA`.
+  - A reference failure is cached and reported instead of stopping the
+    check.
+- **Baseline.** Run `v0.7.0-plus-supplied-metadata` (composition SHA-256
+  prefix `75cac27a73e4bd9e`, reference image `0360fbbfe42f`):
+  - 350 s Hebog time, 572 s including new reference runs.
+  - All 16 cases succeed.
+  - Correlated-noise generated cases: truth completeness 0.80–1.00 and
+    SNR ≥ 10 completeness 1.00.
+  - LoTSS-DR3 against published maps: mask IoU 0.79 and 0.71; median RMS
+    difference 7.5% and 6.6%.
+  - Re-running three cases against this baseline found no regressions.
+- **Finding 1: component fits on uncorrelated noise.**
+  - The first case set used pixel-independent noise, and the white-noise SNR
+    ladder recovered only 2 of 6 components.
+  - At SNR 100 it published a component 70 pixels wide (beam 5 pixels),
+    5.5 pixels off, with 2.4× the peak; the fit's reduced χ² was 533,756.
+  - The header beam is correct (BMAJ 5 px along x, `BPA = 90`). Rewriting
+    `BPA` to 0 or 45 left reduced χ² at 54–364,284, so it is not an
+    orientation error.
+  - The same five recipes with beam-correlated noise gave:
+
+    | Recipe | Components recovered | p95 integrated-flux error |
+    | --- | --- | --- |
+    | SNR ladder | 2/6 → 5/6 | 4.5% → 1.2% |
+    | Close blends | 0/6 → 6/6 | – |
+    | Negative background | 0/2 → 2/2 | – |
+    | Dense field | 30/60 → 57/60 | 94% → 21% |
+    | Filament and ring | 11/16 → 16/16 | 17.5× → 11% |
+
+  - The same behaviour reproduces on v0.7.0 (`main`).
+  - The generated cases now use beam-correlated noise, as in restored radio
+    images. One white-noise case is kept to track the finding. The plan
+    records a decision statement; the human decides severity.
+- **Finding 2: PyBDSF crash.** Pinned PyBDSF `master` raised `IndexError` in
+  `gausfit.fit_island` on the crowded SDC1 cut-out. That case therefore has
+  no reference metrics. Hebog took 123 s on it, the slowest case: a profiling
+  input for the next M1 task.

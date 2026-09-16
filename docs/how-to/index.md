@@ -48,6 +48,52 @@ tests describe Rapthor-facing behaviour. Qualification, benchmark, and
 scalability tests require controlled resources or approved data and are never
 implied by the quick suite.
 
+## Run the quick science check
+
+Run the quick science check for every change that can affect scientific
+output. It takes about ten minutes on the development machine once its
+references are cached:
+
+```console
+just quick-science-check --baseline benchmark-results/quick-check/runs/<earlier-run>/report.json
+```
+
+The cases are in `config/checks/quick-science-check.json`:
+
+- twelve generated images with injected truth, described in
+  `config/datasets/quick-science-check.json` and rebuilt by
+  `scripts/validation/build_quick_check_datasets.py`;
+- two SKA Data Challenge 1 cut-outs; and
+- two LoTSS-DR3 cut-outs with their published PyBDSF RMS and mask maps.
+
+For each case the check reports the fields Rapthor consumes:
+
+- completeness, reliability, position and flux errors, and position
+  uncertainty coverage against truth;
+- the same measures against pinned PyBDSF `master`; and
+- RMS and mask agreement with PyBDSF and with the published maps.
+
+It prints a summary and writes `report.json` under
+`benchmark-results/quick-check/runs/<label>/`.
+
+With `--baseline`, it exits non-zero on these regressions beyond the
+configured tolerances:
+
+- a failed or missing case;
+- a metric that can no longer be measured; or
+- a metric that moves in the worse direction.
+
+PyBDSF runs once per input in the local
+`localhost/hebog-pybdsf-master:c70103be3-reconstructed` Podman image, and its
+results are cached under `benchmark-results/quick-check/references`.
+Generated inputs are materialised on first use. The SDC1 cut-outs are cut
+from a local copy of `SKAMid_B2_1000h_v3.fits`. Missing real cut-outs are
+fetched with HTTP range requests only when `--allow-download` is given. Use
+`--cases` to run a subset while iterating.
+
+This is a regression detector, not powered scientific parity. Each case is
+one realization and no confidence interval is claimed.
+
 ## Develop test-first
 
 For a public behaviour or scientific kernel:
@@ -339,9 +385,10 @@ domain experts will actively review or write feature files.
 Benchmark runs must record the dataset identifier and checksum, Hebog,
 Rapthor, released PyBDSF, and PyBDSF `master` revisions, dependency versions,
 configuration, worker topology, CPU allocation, wall and CPU time, peak
-resident memory, and Dask task/transfer/spill metrics. Run the exact PyBDSF
-references in separate matched environments and report both comparisons; do
-not substitute `master` for Rapthor's released runtime.
+resident memory, and Dask task/transfer/spill metrics. The deployment gate
+uses pinned PyBDSF `master` (`c70103b`) in a matched environment. Released
+PyBDSF 1.14.1 is compared once before 1.0.0, as the plan describes; never
+substitute a different revision for either.
 
 Use one warm-up and at least five measured repetitions. Store generated
 results under the ignored `benchmark-results/` directory and commit only small
@@ -357,17 +404,17 @@ Use the complete frozen ladder in the
 plus cases immediately below and above each observed executor, storage,
 partition, or batching crossover. Include
 empty or sparse, normal, and dense or extended workloads. Compare every size
-with the previous reviewed Hebog baseline and, wherever both references can
-run, with released PyBDSF and pinned PyBDSF `master`; never report only the
-most favourable size or execution mode.
+with the previous reviewed Hebog baseline and with pinned PyBDSF `master`;
+never report only the most favourable size or execution mode.
 
 For a scalability run, additionally record the logical image and plane sizes,
 tile cores and stage-specific halos, partition count, storage layout, worker
 nodes and processes, node/worker RAM, admitted memory and reserved headroom,
 scheduler load, worker occupancy, boundary-summary and transfer volumes,
 spill, storage throughput, retries, and stragglers. Report
-the full 1/10/50/100/200-plus-node matrix, including strong- and weak-scaling
-efficiency; do not retain only the best topology.
+every measured node count (1, 2, 5 and 10 in the final cluster benchmark),
+including strong- and weak-scaling efficiency; do not retain only the best
+topology.
 
 ## Work with notebooks
 

@@ -42,7 +42,8 @@ from hebog.validation.products import (
 
 _ROOT = Path(__file__).resolve().parents[2]
 _CONFIGURATION = _ROOT / "config/comparisons/notebook-comparison.json"
-_FINDER_IDS = ("released-pybdsf", "aegean")
+_FINDER_IDS = ("released-pybdsf", "pinned-pybdsf-master", "aegean")
+_PYBDSF_FINDERS = frozenset({"released-pybdsf", "pinned-pybdsf-master"})
 _IMAGE_DIMENSIONS = 2
 _AEGEAN_WRAPPER = """#!/usr/bin/env python3
 import numpy as np
@@ -54,7 +55,7 @@ from AegeanTools.CLI.aegean import main
 raise SystemExit(main())
 """
 
-FinderId = Literal["released-pybdsf", "aegean"]
+FinderId = Literal["released-pybdsf", "pinned-pybdsf-master", "aegean"]
 CoreBounds = tuple[int, int, int, int]
 
 
@@ -89,13 +90,14 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def pybdsf_configuration(ncores: int) -> dict[str, object]:
+def pybdsf_configuration(
+    ncores: int,
+    finder: str = "released-pybdsf",
+) -> dict[str, object]:
     """Return PyBDSF ``process_image`` options for one operational run."""
     if ncores < 1:
         raise ValueError("PyBDSF ncores must be positive")
-    options = dict(
-        reference_settings()["released-pybdsf"]["process_image_options"]
-    )
+    options = dict(reference_settings()[finder]["process_image_options"])
     for name in ("rms_box", "rms_box_bright"):
         options[name] = tuple(options[name])
     return dict(sorted({**options, "ncores": ncores, "quiet": True}.items()))
@@ -194,10 +196,11 @@ def run_pybdsf(
     configuration: dict[str, object],
     staging: Path,
 ) -> dict[str, Path]:
-    """Run PyBDSF and retain native catalogue, mask, and island labels."""
+    """Run PyBDSF and retain native catalogues, RMS, mask and labels."""
     catalogue_path = staging / "source_catalog.fits"
     gaussian_path = staging / "gaussian_catalog.fits"
     mask_path = staging / "island_mask.fits"
+    rms_path = staging / "rms_map.fits"
     label_path = staging / "island_labels.fits"
     processed = bdsf_module.process_image(str(image_path), **configuration)
     for path, catalogue_type in (
@@ -217,6 +220,12 @@ def run_pybdsf(
         img_type="island_mask",
     ):
         raise RuntimeError("PyBDSF did not export its island mask")
+    if not processed.export_image(
+        outfile=str(rms_path),
+        clobber=True,
+        img_type="rms",
+    ):
+        raise RuntimeError("PyBDSF did not export its RMS map")
     input_header = cast(fits.Header, fits.getheader(image_path))
     labels = pybdsf_label_plane(processed.pyrank)
     fits.PrimaryHDU(
@@ -233,6 +242,7 @@ def run_pybdsf(
         "gaussian-catalogue-fits": gaussian_path,
         "island-labels-fits": label_path,
         "island-mask-fits": mask_path,
+        "rms-map-fits": rms_path,
         "source-catalogue-fits": catalogue_path,
     }
 
@@ -447,11 +457,12 @@ def normalise_products(
 ) -> dict[str, Path]:
     """Publish core-comparable products while retaining native outputs."""
     output = dict(artifacts)
-    if finder == "released-pybdsf":
+    if finder in _PYBDSF_FINDERS:
         sources = load_pybdsf_catalogue(artifacts["source-catalogue-fits"])
         plane_roles: tuple[str, ...] = (
             "island-labels-fits",
             "island-mask-fits",
+            "rms-map-fits",
         )
     else:
         sources = load_aegean_catalogue(
@@ -504,8 +515,8 @@ def _execute(
     shape = np.asarray(fits.getdata(image)).squeeze().shape
     if len(shape) != _IMAGE_DIMENSIONS:
         raise ValueError("notebook input must contain one 2D image plane")
-    if finder == "released-pybdsf":
-        configuration = pybdsf_configuration(ncores)
+    if finder in _PYBDSF_FINDERS:
+        configuration = pybdsf_configuration(ncores, finder)
         artifacts = run_pybdsf(
             importlib.import_module("bdsf"),
             image,

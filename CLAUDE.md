@@ -75,6 +75,8 @@ Dependencies point inward:
 
 ## Repository notes
 
+- `just quick-science-check` (`scripts/validation/quick_science_check.py`)
+  is the everyday scientific regression check; see `docs/how-to/index.md`.
 - `scripts/benchmark/` and `scripts/validation/` are thin runners over
   `hebog.validation`. The comparison notebook's reproducible workflow is
   `download_notebook_data.py`, `prepare_notebook_comparison.py` (PyBDSF and

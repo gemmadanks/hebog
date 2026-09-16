@@ -36,6 +36,26 @@ _CATALOGUE = (
 )
 
 
+@pytest.mark.parametrize("columns", [(), ("Source_id",)])
+def test_pybdsf_readers_accept_catalogues_without_sources(
+    tmp_path: Path,
+    columns: tuple[str, ...],
+) -> None:
+    """PyBDSF writes a column-less table when an image has no sources."""
+    path = tmp_path / "empty.fits"
+    fits.HDUList(
+        [
+            fits.PrimaryHDU(),
+            fits.BinTableHDU.from_columns(
+                [fits.Column(name=name, format="K") for name in columns]
+            ),
+        ]
+    ).writeto(path)
+
+    assert load_pybdsf_catalogue(path) == ()
+    assert load_pybdsf_gaussian_catalogue(path) == ()
+
+
 def test_pybdsf_reader_treats_nonpositive_errors_as_unavailable(
     tmp_path: Path,
 ) -> None:

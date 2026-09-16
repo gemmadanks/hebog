@@ -83,6 +83,34 @@
       "seedclip_sigma": 5.0,
       "version": "2.3.5"
     },
+    "pinned-pybdsf-master": {
+      "package": "bdsf",
+      "process_image_options": {
+        "adaptive_rms_box": true,
+        "adaptive_thresh": 75.0,
+        "atrous_bdsm_do": true,
+        "atrous_do": true,
+        "atrous_jmax": 3,
+        "atrous_lpf": "b3",
+        "atrous_orig_isl": false,
+        "atrous_sum": true,
+        "mean_map": "zero",
+        "rms_box": [
+          150,
+          50
+        ],
+        "rms_box_bright": [
+          35,
+          7
+        ],
+        "rms_map": true,
+        "thresh": "hard",
+        "thresh_isl": 3.0,
+        "thresh_pix": 5.0
+      },
+      "source_revision": "c70103be3ae9ae9908286f144e6ce956acc0ce5c",
+      "version": "1.14.2.dev40+gc70103be3"
+    },
     "released-pybdsf": {
       "package": "bdsf",
       "process_image_options": {
