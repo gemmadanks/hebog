@@ -16,6 +16,7 @@ import pytest
 from astropy import units
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
+from astropy.wcs import WCS
 from distributed import Client, LocalCluster
 
 import hebog
@@ -1099,6 +1100,66 @@ def _catalogue_positions(result: hebog.SourceFinderResult) -> np.ndarray:
 
 
 @pytest.mark.integration
+def test_isolated_sources_on_uncorrelated_noise_publish_their_components(
+    tmp_path: Path,
+) -> None:
+    """Given beam-shaped sources at SNR 20 to 100 on pixel-independent noise,
+    when Hebog measures them,
+    then each source publishes one Gaussian component at the right position
+    and peak, as pinned PyBDSF master does for the same image.
+
+    A point estimator that assumes beam-correlated noise amplifies
+    pixel-independent noise and published no component for most of these
+    sources, or a grossly wrong one.
+    """
+    beam_sigma_pixels = 4.0 / (2.0 * np.sqrt(2.0 * np.log(2.0)))
+    noise = 1e-3
+    sources_xy = (
+        (40.0, 40.0, 20.0),
+        (120.0, 48.0, 50.0),
+        (80.0, 120.0, 100.0),
+    )
+    yy, xx = np.mgrid[:160, :160]
+    image = np.random.default_rng(20260916).normal(0.0, noise, yy.shape)
+    for x, y, snr in sources_xy:
+        image += (
+            snr
+            * noise
+            * np.exp(
+                -((xx - x) ** 2 + (yy - y) ** 2) / (2 * beam_sigma_pixels**2)
+            )
+        )
+    path = tmp_path / "image.fits"
+    _write_image(path, image)
+    header = _header(image.shape)
+    celestial = WCS(header).celestial
+
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+
+    components = read_catalogue_fits_product(
+        result.catalogue
+    ).gaussian_components
+    assert len(components) == len(sources_xy)
+    published = sorted(
+        (
+            *celestial.world_to_pixel_values(
+                row.position.right_ascension_degrees,
+                row.position.declination_degrees,
+            ),
+            row.flux.peak_flux_jy_per_beam,
+        )
+        for row in components
+    )
+    for (x, y, peak), (true_x, true_y, snr) in zip(
+        published, sorted(sources_xy), strict=True
+    ):
+        assert np.hypot(x - true_x, y - true_y) < 0.25 * 4.0
+        assert peak == pytest.approx(snr * noise, rel=0.15)
+
+
+@pytest.mark.integration
 @pytest.mark.parametrize("declared", ("radesys-fk5", "implicit-equinox"))
 def test_fk5_j2000_input_publishes_the_same_icrs_sky(
     tmp_path: Path,
@@ -1164,6 +1225,70 @@ def test_fk5_j2000_input_publishes_the_same_icrs_sky(
 
 
 @pytest.mark.integration
+@pytest.mark.parametrize("missing_card", ("absent", "undefined"))
+def test_supplied_metadata_publishes_the_same_science_as_a_complete_header(
+    tmp_path: Path,
+    missing_card: str,
+) -> None:
+    """Given an image whose header omits frequency and beam angle,
+    when the caller supplies the header's missing values,
+    then Hebog publishes the same catalogue as for the complete header and
+    records the supplied values in diagnostics.
+
+    A keyword present with an undefined value is missing, just as an absent
+    keyword is.
+    """
+    image = _ring_image()
+    _write_image(tmp_path / "image.fits", image)
+    header = _header(image.shape)
+    del header["RESTFRQ"]
+    if missing_card == "absent":
+        del header["BPA"]
+    else:
+        header["BPA"] = None
+    fits.PrimaryHDU(data=image, header=header).writeto(
+        tmp_path / "sparse.fits"
+    )
+    supplied = hebog.SuppliedImageMetadata(
+        reference_frequency_hz=150_000_000.0,
+        beam_position_angle_degrees=0.0,
+    )
+    sparse_request = SourceFinderRequest(
+        tmp_path / "sparse.fits",
+        tmp_path / "sparse",
+        "public-contract",
+        supplied_metadata=supplied,
+    )
+
+    with pytest.raises(InvalidSourceFinderInputError, match="invalid FITS"):
+        hebog.find_sources(
+            replace(sparse_request, supplied_metadata=None),
+            _config(),
+            SerialExecutor(),
+        )
+    complete = hebog.find_sources(
+        _request(tmp_path, output_name="complete"), _config(), SerialExecutor()
+    )
+    sparse = hebog.find_sources(sparse_request, _config(), SerialExecutor())
+
+    complete_catalogue = read_catalogue_fits_product(complete.catalogue)
+    sparse_catalogue = read_catalogue_fits_product(sparse.catalogue)
+    assert sparse_catalogue.sources == complete_catalogue.sources
+    assert (
+        sparse_catalogue.gaussian_components
+        == complete_catalogue.gaussian_components
+    )
+    assert sparse_catalogue.reference_frequency_hz == 150_000_000.0
+    sparse_diagnostics = read_diagnostics_product(sparse.diagnostics)
+    complete_diagnostics = read_diagnostics_product(complete.diagnostics)
+    assert isinstance(sparse_diagnostics, PublicSourceFindingDiagnostics)
+    assert isinstance(complete_diagnostics, PublicSourceFindingDiagnostics)
+    assert sparse_diagnostics.provenance.supplied_image_metadata == supplied
+    assert complete_diagnostics.provenance.supplied_image_metadata is None
+    assert fits.getheader(sparse.rms_path)["BPA"] == 0.0
+
+
+@pytest.mark.integration
 @pytest.mark.parametrize(
     ("radesys", "equinox"),
     (("FK5", 1950.0), ("FK4", 1950.0), ("GALACTIC", None)),
@@ -1203,9 +1328,12 @@ def test_relative_request_paths_are_bound_before_execution(
     sources: list[Path] = []
     original = public_api.FitsImageSource
 
-    def recording_source(path: Path) -> FitsImageSource:
+    def recording_source(
+        path: Path,
+        supplied_metadata: hebog.SuppliedImageMetadata | None = None,
+    ) -> FitsImageSource:
         sources.append(path)
-        return original(path)
+        return original(path, supplied_metadata)
 
     monkeypatch.setattr(public_api, "FitsImageSource", recording_source)
     monkeypatch.chdir(tmp_path)

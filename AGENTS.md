@@ -5,7 +5,8 @@ This file applies to the entire repository.
 ## Repository overview
 
 Hebog is a Dask-aware source finder for large radio-continuum survey images.
-Its intended first consumer is Rapthor's `filter_skymodel` step; no Rapthor
+It should work on images from any radio telescope, with LOFAR, SKA-Low and
+SKA-Mid as the priority instruments. Its intended first consumer is Rapthor's `filter_skymodel` step; no Rapthor
 integration is implemented yet. It is intentionally narrower than PyBDSF:
 reproduce the behaviour and products Rapthor uses, demonstrate scientific
 equivalence, and meet the performance gate below. The architecture must scale out of core
@@ -81,6 +82,10 @@ Never hard-code those paths in package code or normal tests.
   for routine implementation detail and release notes for user-visible
   changes. When status changes, update or replace existing status summaries;
   do not leave contradictory "current" positions in project records.
+- Favour fast iterations and frequent small releases. Development, checks and
+  routine benchmarks run on the maintainer's local machine within the plan's
+  iteration budgets. Reserve long campaigns and cluster benchmarks for the
+  qualification steps the plan names, and never let them block development.
 - Use one writing agent by default. Delegate only independent, bounded work.
 - Record architecturally significant decisions with an ADR based on
   `docs/architecture/adr/template.md`.
@@ -231,16 +236,17 @@ heavyweight production tools to the core runtime solely for tests.
 ## Performance validation
 
 - The primary gate is the matched median wall time of Rapthor's complete
-  `filter_skymodel` step: at least 50% faster than the released PyBDSF used by
-  Rapthor and faster than the pinned PyBDSF `master` reference, under the
-  plan's confidence rule. This is a minimum deployment gate, not an
+  `filter_skymodel` step: at least 50% faster than the pinned PyBDSF `master`
+  reference, under the plan's confidence rule. That reference was faster than
+  the released PyBDSF Rapthor installs, and the plan confirms the release
+  ratio once before 1.0.0. This is a minimum deployment gate, not an
   optimization stopping point; optimize complete latency and throughput across
   the supported size range, including small inputs dominated by setup and
   scheduler overhead.
 - Isolated kernel timing never establishes a speedup. End-to-end runs include
   FITS I/O, catalogue generation, Dask overhead, and Rapthor filtering.
-  Benchmark exact released and `master` PyBDSF revisions in isolated, matched
-  environments; never substitute one for the other.
+  Benchmark the exact pinned PyBDSF revision in an isolated, matched
+  environment; never substitute another revision or a release for it.
 - Optimize only from profiles or scale evidence. Isolate unavoidable low-level
   complexity behind a clear typed function, retain a readable serial oracle,
   and document why the complexity is necessary. An optimization is acceptable

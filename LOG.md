@@ -21958,3 +21958,430 @@ scientific pass from fixture validation.
   disclaimer either way. Remaining SKA references are dataset names and links
   to published data-model documentation, which are citations rather than
   claims.
+
+## 2026-09-16 — v0.7.0 released; plan re-baselined toward 1.0.0
+
+- R4 and R5 are complete. Tag `v0.7.0` exists, the changelog is dated
+  16 September, and TestPyPI lists `hebog-0.7.0-py3-none-any.whl` and
+  `hebog-0.7.0.tar.gz`, uploaded at 10:18 UTC. The v0.7.0 checklist is removed
+  from the plan.
+- The user asked for the plan to lead to a 1.0.0 release demonstrated to meet
+  the scalability, functionality and performance goal. Read-only surveys of
+  the code, the log and the adjacent Rapthor checkout found the following
+  gaps.
+  - Scalability: the public science in `public_science.py` holds several full
+    `float64` planes in one process. Only background/RMS and first-pass
+    detection run through the executor, on 128-pixel cores. The tiled
+    multiscale, deblending, measurement, fitting and compact catalogue
+    stages are used only by tests. Continuum candidate products, extended
+    association, the à trous position filter and the continuum catalogue
+    have no tiled form. Background coarse protection and local noise are
+    capped at 10⁶ pixels. The `phase-0-scalability.json` targets (2,048–8,192
+    cores, eight `float32` plane-equivalents, 75% worker peak, 50,000 tasks)
+    are not wired to any code.
+  - Performance: no matched Hebog/PyBDSF benchmark exists. The 10 September
+    diagnostic single runs (entry above) remain the most recent real-image
+    ratios: median 8.4× slower than released PyBDSF. The `tests/benchmark`
+    lanes are skipped scaffolds, and no complete-path profile exists.
+  - Functionality: `hebog.adapters` holds records and the 8-column catalogue
+    codec only. The seven acceptance scenarios are strict-xfail placeholders.
+    There is no flat-noise branch, and LSMTool filtering has never run on
+    Hebog products. The contract traces Rapthor `b1a6467`. The local Rapthor
+    checkout is on the Prefect-migration branch at `86203b7`, and its LSMTool
+    pin `3b27105` is absent from the local LSMTool checkout.
+- Milestone review, as required by the collaboration rules.
+  - Between 10 and 15 September, candidates advanced from v11 to v20 through
+    repeated freeze–admit–replay cycles.
+  - Avoidable interruptions included a disk-admission hold about 10 GiB
+    short (11 September), the v14 capture failure (12 September), and seven
+    CI repairs for historical evidence identity or portability (7, 13 and
+    14 September).
+  - Per-step authorization records multiplied under `config/contracts/`.
+  - The plan responds with:
+    - one resumable campaign command with preflight resource checks;
+    - non-regression endpoints limited to Rapthor-consumed fields and
+      validity checks;
+    - powered qualification run once, on the frozen 1.0.0 candidate.
+- Plan changes:
+  - A proposed 1.0.0 definition covers functionality, science, performance,
+    scalability and release. Rapthor default cutover is separated as a later
+    Rapthor decision.
+  - Four human decisions (D1–D4) are added.
+  - Six dependency-ordered milestones replace the flat post-release table:
+    M1 measure, M2 one tile-native science path, M3 Rapthor functionality,
+    M4 deployment performance gate, M5 facility scale, M6 qualification and
+    1.0.0.
+  - Existing rows are retained within those milestones. The PyPI switch
+    moves to M2, once the envelope covers Rapthor sector images.
+- This is a plan-only change. No code, gates, thresholds or closed results
+  changed.
+
+## 2026-09-16 — Adjust the 1.0.0 plan for test resources and telescopes
+
+- The user set three constraints on the 1.0.0 plan.
+  - Scalability testing is limited to up to 10 nodes and to the largest
+    publicly available images.
+  - D3 is decided: when Rapthor integration starts, pin the latest commits of
+    Rapthor's Prefect branch and of LSMTool, because both change frequently.
+  - Hebog should work on images from any telescope, with LOFAR, SKA-Low and
+    SKA-Mid as priorities. `AGENTS.md` now states this goal.
+- Public-data survey (web and archive metadata only; no image data
+  downloaded, and no released header read).
+  - The largest real public radio image found is the LOFAR-HD ELAIS-N1
+    mosaic: 90,000² at 0.1″ (32,400,002,880 bytes, consistent with a 2-D
+    `float32` plane), with 45,000² and 22,500² versions. It is a direct
+    download, published "for browsing only", and its PyBDSF catalogues are
+    per facet.
+  - SDC1 provides nine 32,768² SKA-Mid simulations with truth catalogues
+    (Zenodo 4328029, CC BY 4.0).
+  - LoTSS-DR3 provides 1,571 mosaics of 14,390–17,752² with a PyBDSF
+    catalogue and per-mosaic RMS, residual and mask maps.
+  - No large SKA-Low or SKA-Mid commissioning image is public. MWA GLEAM-X
+    DR1, with PSF maps and Aegean catalogues, is the best real SKA-Low
+    precursor. SKA SDC3a is an EoR cube and unsuitable.
+  - Unverified: BUNIT, beam and frame keywords in the released headers; the
+    Lockman HD, MIGHTEE, LoTSS-Deep DR2 and GLEAM-X dimensions; and the HD and
+    LoTSS-DR2 licences.
+- Plan changes.
+  - Scalability in the 1.0.0 definition means 1, 2, 5 and 10 nodes on the
+    90,000² mosaic and generated 100,000² truth. The 100-to-several-hundred-
+    node architecture target is supported by tests with 200+ worker processes
+    and a scaling model, and is declared "not demonstrated".
+  - M5 adds amending the frozen-provisional scalability contract; the 50,
+    100 and 200-node gates are kept as design targets.
+  - M3 gains an input header contract covering WSClean, ddf-pipeline and
+    DDFacet, OSKAR, SKA SDP data models, Obit cubes, Galactic frames and ZEA,
+    plus a decision on PSFs that vary across the field.
+  - Qualification requires full images from LOFAR, SKA-Mid and SKA-Low
+    (precursor or simulated SKA-Low data until SKA-Low data are public).
+  - A reference-image table is added.
+  - No code, gate values or closed results changed; the contract JSON is
+    amended only through the new M5 row.
+
+## 2026-09-16 — Plan for local development, fast iterations and checked headers
+
+- The user set three constraints.
+  - Most development runs on the maintainer's machine: Apple M3 Pro, 12
+    logical CPUs, 18 GiB RAM, 460 GiB disk with 32 GiB free on 16 September.
+  - A larger cluster can run a final benchmark, but it must not block
+    development.
+  - Long campaigns and benchmarks give way to fast iterations and frequent
+    releases.
+  `AGENTS.md` now states the fast-iteration and local-development principle.
+- With the user's approval, the headers of six public images were read with
+  HTTP range requests (the first 57,600 bytes of each). They were checked
+  against v0.7.0 metadata validation using 8×8 stand-in FITS files with the
+  same headers. No image data was kept.
+  - LOFAR-HD ELAIS-N1 `full_mosaic_03`/`06`/`12`: 90,000², 45,000² and
+    22,500²; 2-D `float32`; `JY/BEAM`; SIN; `BMAJ`/`BMIN`/`BPA` present; no
+    `RADESYS`, `EQUINOX` or frequency keyword. **Rejected:** no reference
+    frequency.
+  - HD 0.3″ `facet_0` (WSClean): 30,240 × 18,490, FK5 J2000. **Accepted.**
+  - LoTSS-DR3 `healpix_mosaics/1312/mosaic.fits` (ddf-pipeline): 15,402²,
+    ICRS, `RESTFRQ`, beam present. **Accepted.**
+  - SDC1 `SKAMid_B2_1000h_v3.fits` (Miriad): 32,768², 4-D, `EPOCH = 2000`,
+    `BMAJ`/`BMIN` without `BPA`. **Rejected:** incomplete restoring beam.
+- Plan changes.
+  - Iteration budgets on the development machine: about 15 minutes for a
+    change check and about 1 hour for a release check. The only long runs
+    are one overnight powered study and one cluster benchmark, both for
+    1.0.0 and neither blocking `0.x` work. Reference-finder outputs and
+    timings are computed once and cached.
+  - M1 becomes explicit request metadata (so these headers are usable), a
+    quick science check, a quick benchmark and a profile. It replaces the
+    hours-long non-regression campaign.
+  - M2 raises the envelope locally up to 45,000², which also demonstrates
+    out-of-core operation on 18 GiB.
+  - M4 benchmarks locally in one Linux container.
+  - M5 prepares scale beyond one machine without the cluster: planner bounds
+    for 10 and 200 nodes, local store and recovery, a contract amendment and
+    a packaged cluster benchmark with a local dry run.
+  - M6 runs the cluster benchmark once; a failure becomes a normal repair
+    row.
+  - New decision D5 (iteration budgets). D2 is partly decided, with a
+    disk-space choice outstanding: 60 GB free is needed for the 45,000² tier.
+
+## 2026-09-16 — Pause Aegean comparisons
+
+- The user dropped the Aegean comparison for the next phase of development,
+  to focus on PyBDSF because Rapthor uses it. In the plan, Aegean is no
+  longer binding or part of routine checks. The quick checks and the 1.0.0
+  science definition compare only against truth, released PyBDSF and PyBDSF
+  `master`. The published Aegean catalogues for SMGPS and GLEAM-X are kept
+  as diagnostics only, and the M6 qualification design decides whether to
+  reinstate Aegean.
+- Nothing else changed. The notebook comparison tooling still runs Aegean;
+  closed campaign results that include Aegean are unchanged.
+
+## 2026-09-16 — Make pinned PyBDSF master the performance and science reference
+
+- The user chose to focus on the PyBDSF `master` used in Phase 5, believing
+  it outperforms the latest release.
+  - That revision is `c70103be3ae9ae9908286f144e6ce956acc0ce5c`
+    (`v1.14.1-40`), the same as Phase 0.
+  - PyPI's latest PyBDSF release is still 1.14.1 (12 June 2026). Upstream
+    `master` has moved past `c70103b`.
+  - Runtime supports the belief: in the Phase 0 matched runs, `master` was
+    3.0% faster at 256² and 6.8% faster at 3,000², with equal RSS.
+  - Science does not yet show either is better: on the representative image,
+    `master` found 14 sources and the release 12, recorded as a divergence.
+- The user chose, from three options, a single gate of Hebog ≤0.50× pinned
+  `master` plus one check against release 1.14.1 at M6.
+  - This replaces ≤0.50× release plus <1.00× `master` in `AGENTS.md`, the
+    plan and the contracts page.
+  - On the measured anchors it is at least as strict as the former release
+    gate.
+  - Development checks, Rapthor-profile agreement and powered qualification
+    use `master`. Later upstream commits are adopted only by plan decision.
+- `config/benchmarks/phase-0-performance.json` and its schema still hold the
+  former two limits. The M1 quick-benchmark row amends them in the same
+  change as the benchmark lane, and the contracts page says so.
+
+## 2026-09-16 — Close the 1.0.0 planning decisions
+
+- The user answered the open planning decisions.
+  - **D1:** 1.0.0 is the demonstrated goal (telescopes, functionality,
+    science, performance, scalability), with Hebog as a supported
+    feature-flagged Rapthor backend. Default cutover is a later Rapthor
+    decision.
+  - **D2(a):** the user will free disk to about 60 GB. The local ladder stops
+    at 45,000²; 90,000² runs only in the final cluster benchmark.
+  - **D2(b):** "For now we can use the LOFAR data only, which should be
+    sufficient for testing scalability." No generated 100,000² image and no
+    OSKAR SKA-Low simulation are built.
+    - The scale ladder is LoTSS-DR3 15,402² and LOFAR-HD 22,500², 45,000²
+      (local) and 90,000² (cluster).
+    - SDC1 leaves the scale ladder but stays for SKA-Mid science cut-outs.
+    - SKA-Low coverage relies on MWA GLEAM-X until SKA-Low data are public.
+    - 100,000² images and 100 to 200+ nodes are covered by planner tests
+      only and stated as not demonstrated.
+  - **D2(c):** the public LoTSS-Deep DR2 ELAIS-N1 apparent/true-sky pair is
+    the representative Rapthor two-branch input.
+  - **D4:** only limitations that change Rapthor-consumed fields block
+    1.0.0: `E_RA`/`E_DEC` uncertainty calibration, `Total_flux` and
+    `Isl_Total_flux` tails, and faint association that changes island
+    grouping.
+  - **D5:** the budgets are about 15 minutes for a change check, about
+    1 hour for a release check, and for 1.0.0 only one overnight study plus
+    the cluster benchmark.
+- The plan's decision table becomes a short list of current scope and
+  resource rules. D3 (latest Rapthor Prefect branch and LSMTool commits) is
+  restated there.
+
+## 2026-09-16 — M1: supply image metadata that a header omits
+
+- Observed: v0.7.0 rejects two public reference image families because of a
+  single missing keyword. The LOFAR-HD ELAIS-N1 mosaics have no reference
+  frequency, and SDC1 has no `BPA` (header checks earlier today).
+- Change: `SourceFinderRequest.supplied_metadata` accepts a
+  `hebog.SuppliedImageMetadata` with `reference_frequency_hz` and the three
+  restoring-beam values.
+  - A value fills a keyword only when the header lacks it. A reference
+    frequency counts as present when the header has `RESTFRQ`, `RESTFREQ` or a
+    frequency axis.
+  - Supplying a value the header already provides is an input error. This
+    replaces the plan's "conflicting value" wording: it needs no float
+    tolerance and never overrides an image.
+  - The values travel inside `FitsImageSource`, so executor tasks that re-read
+    the header apply them.
+  - The public facade fills the missing beam keywords into the header copy
+    that the scientific composition reads, and never changes existing
+    keywords. No scientific module changed.
+- Schemas: diagnostics schema 8 → 9 and the nested provenance record 1 → 2,
+  which adds `supplied_image_metadata`. The composition name stays v20. Its
+  SHA-256 changes because `public_api` and `data_models.source_finding` are
+  identity-bound modules; the science itself is unchanged.
+- Evidence: an image with `RESTFRQ` and `BPA` removed and both values supplied
+  publishes identical sources and Gaussian components to the complete-header
+  image, carries the supplied frequency and beam into the catalogue and RMS
+  headers, and records the values in diagnostics. Without supplied values it
+  still fails before publication. Reader tests cover each fill,
+  duplicate-keyword rejection (`RESTFRQ`, frequency axis, `BPA`), beam values
+  still missing after a partial supply, and pickled-source round trips.
+
+## 2026-09-16 — M1: quick science check
+
+- **What was built.** `just quick-science-check` runs 16 fixed cases in about
+  six minutes of Hebog time on the development machine (M3 Pro, 18 GiB). The
+  cases are in `config/checks/quick-science-check.json`:
+  - 12 generated development-role images from
+    `config/datasets/quick-science-check.json` (seeds 2026091601–12, built by
+    `scripts/validation/build_quick_check_datasets.py`);
+  - two SDC1 B2 1,000 h cut-outs, (x, y) = (20992, 12800) and
+    (16896, 16896), 1,024² each, cut from the local copy with the same
+    byte-range code as a Zenodo fetch;
+  - two 1,024² LoTSS-DR3 mosaic 1312 cut-outs (sparse at (9749, 9749),
+    dense at (7701, 6677)) with the published PyBDSF RMS and mask maps.
+
+  It reports the fields Rapthor consumes:
+  - against injected truth;
+  - against pinned PyBDSF `master` `c70103b`, run once per input in
+    `localhost/hebog-pybdsf-master:c70103be3-reconstructed` and cached;
+  - against the published maps.
+
+  `--baseline` flags failed or missing cases and worse-direction changes
+  beyond the configured tolerances. It is a regression detector, not powered
+  parity.
+- **Downloads (approved).**
+  - The LoTSS-DR3 windows were streamed with HTTP range requests: about
+    380 MB transferred, 25 MB kept, since lofar-surveys.org refuses
+    multi-part ranges.
+  - One 1.4 MB TAP query of `lotss_dr3.main_sources` chose the windows. Its
+    source counts per 1,024² window ranged from 72 to 131.
+- **Supporting changes.**
+  - The notebook reference worker gains the `pinned-pybdsf-master` finder
+    and exports PyBDSF's RMS map.
+  - The PyBDSF catalogue readers accept the column-less table PyBDSF writes
+    for an image without sources.
+  - PyBDSF reads frequency only from a spectral axis, `RESTFREQ` or `FREQ`.
+    So the reference input copies Hebog's resolved frequency and beam when
+    the header lacks them, as for LoTSS-DR3 `RESTFRQ` and SDC1 `BPA`.
+  - A reference failure is cached and reported instead of stopping the
+    check.
+- **Baseline.** Run `v0.7.0-plus-supplied-metadata` (composition SHA-256
+  prefix `75cac27a73e4bd9e`, reference image `0360fbbfe42f`):
+  - 350 s Hebog time, 572 s including new reference runs.
+  - All 16 cases succeed.
+  - Correlated-noise generated cases: truth completeness 0.80–1.00 and
+    SNR ≥ 10 completeness 1.00.
+  - LoTSS-DR3 against published maps: mask IoU 0.79 and 0.71; median RMS
+    difference 7.5% and 6.6%.
+  - Re-running three cases against this baseline found no regressions.
+- **Finding 1: component fits on uncorrelated noise.**
+  - The first case set used pixel-independent noise, and the white-noise SNR
+    ladder recovered only 2 of 6 components.
+  - At SNR 100 it published a component 70 pixels wide (beam 5 pixels),
+    5.5 pixels off, with 2.4× the peak; the fit's reduced χ² was 533,756.
+  - The header beam is correct (BMAJ 5 px along x, `BPA = 90`). Rewriting
+    `BPA` to 0 or 45 left reduced χ² at 54–364,284, so it is not an
+    orientation error.
+  - The same five recipes with beam-correlated noise gave:
+
+    | Recipe | Components recovered | p95 integrated-flux error |
+    | --- | --- | --- |
+    | SNR ladder | 2/6 → 5/6 | 4.5% → 1.2% |
+    | Close blends | 0/6 → 6/6 | – |
+    | Negative background | 0/2 → 2/2 | – |
+    | Dense field | 30/60 → 57/60 | 94% → 21% |
+    | Filament and ring | 11/16 → 16/16 | 17.5× → 11% |
+
+  - The same behaviour reproduces on v0.7.0 (`main`).
+  - The generated cases now use beam-correlated noise, as in restored radio
+    images. One white-noise case is kept to track the finding. The plan
+    records a decision statement; the human decides severity.
+- **Finding 2: PyBDSF crash.** Pinned PyBDSF `master` raised `IndexError` in
+  `gausfit.fit_island` on the crowded SDC1 cut-out. That case therefore has
+  no reference metrics. Hebog took 123 s on it, the slowest case: a profiling
+  input for the next M1 task.
+
+## 2026-09-16 — Uncorrelated-noise component defect confirmed against PyBDSF
+
+- The user asked how PyBDSF handled the white-noise images, and decided that
+  a case Hebog fails but PyBDSF passes must be fixed.
+- Comparison against injected truth on the same inputs, using cached
+  pinned-PyBDSF-`master` references from the first quick-check runs:
+
+  | Case | White-noise Hebog SNR ≥ 10 recovery | White-noise PyBDSF Gaussians |
+  | --- | --- | --- |
+  | SNR ladder | 0.00 | 1.00 |
+  | Close blends | 0.00 | 1.00 |
+  | Negative background | 0.00 | 1.00 |
+  | Dense field | 0.28 | 1.00 |
+  | Filament and ring | 0.69 | 1.00 |
+  | Edges and corners | 0.71 | 1.00 |
+  | Varying noise | 0.33 | 1.00 |
+  | Invalid pixels | 0.67 | 1.00 |
+
+  - Extended Gaussians: both 1.00.
+  - With beam-correlated noise, both finders reach SNR ≥ 10 recovery of 1.00
+    in every case except Hebog's close-blend and filament sources, and Hebog
+    components have equal or lower flux error.
+  - Diagnostic script:
+    `scratchpad/pybdsf_vs_hebog_truth.py`, not committed.
+- A second observation needs follow-up; it is not yet a finding. On
+  correlated noise, Hebog *source* integrated fluxes (Rapthor's `Total_flux`)
+  have larger errors against per-component truth than PyBDSF source-list
+  fluxes: SNR ladder p50 16% vs 3%; edges p50 26% vs 3%. The Hebog
+  component fluxes are accurate (p50 1%). This matches the accepted
+  measurement-tail limitation, which D4 makes blocking for 1.0.0. Blends and
+  filaments also associate into fewer sources than PyBDSF lists, so
+  source-level truth matching needs care before any conclusion.
+- The plan task now records the decision, and the next agent action is the
+  diagnosis.
+
+## 2026-09-16 — Fit Gaussian components with diagonal weighting
+
+- **Diagnosis.** The component point estimator (`correlated-gls`) whitened
+  residuals with the restoring-beam noise correlation, which amplifies
+  pixel-independent noise. Changing only
+  `CompactGaussianFitConfig.point_estimator` to `diagonal-weighted` raised
+  white-noise SNR ≥ 10 component recovery to 1.00 in all nine cases, matching
+  pinned PyBDSF `master`. Examples: close blends 0/6 → 6/6, dense field 0.28
+  → 1.00, negative background 0/2 → 2/2. On correlated noise, recovery was
+  unchanged and flux errors grew slightly, but stayed at or below PyBDSF: p95
+  integrated-flux error 0.21 → 0.29 on the dense field (PyBDSF 0.30),
+  0.10 → 0.17 on varying noise (PyBDSF 0.25).
+- **Decision.** The user chose diagonal weighting for every fit, over a
+  data-driven noise-correlation estimate or a GLS misspecification fallback.
+  The GLS estimator stays available as explicit configuration and in the
+  fitting unit tests. The scientific composition becomes v21.
+- **Test first.** A new public-API test, with three beam-shaped sources at
+  SNR 20, 50 and 100 on white noise, failed before the change (2 of 3
+  components) and passes after it. Three integration tests had pinned the
+  defect's own behaviour; they now assert the corrected behaviour:
+  - components rejected as `fit-model-inadequate` on the white-noise
+    geometry matrix;
+  - those rejections alongside an injected solver failure;
+  - a GLS ill-conditioning fallback reason on an oversampled beam.
+- **Quick science check.** Run `diagonal-weighted-fits` against
+  `v0.7.0-plus-supplied-metadata`: all 16 cases succeed in 325 s. The
+  expected trade-offs are flagged beyond tolerance: flux precision on the
+  correlated SNR ladder, varying noise and dense field; more conservative RA
+  coverage on the SNR ladder and dense field; and the white-noise ladder's
+  p95 flux error, now that its SNR-5 source is matched (PyBDSF 0.97). The
+  four real-image cases are unchanged within tolerance. This run is the new
+  baseline.
+- **Follow-up.** The 0.075-sigma integrated-flux correction and the
+  uncertainty scaling were chosen under GLS and must be re-derived. A plan
+  row records this, because `E_RA`, `E_DEC` and `Total_flux` calibration
+  block 1.0.0.
+
+## 2026-09-16 — Component uncertainty calibration under diagonal weighting
+
+- **Why.** Diagonal weighting broke two asymmetric open-arc association unit
+  tests, which the full coverage suite caught. The user chose to re-calibrate
+  uncertainties before merging.
+- **Experiment.** `scripts/validation/measure_component_uncertainty_calibration.py`
+  used 10 seed-disjoint 1,024² images (seeds 2026091700–09), with 64
+  isolated sources each at SNR 10, 20 and 50, beam-sized or 1.5× the beam.
+  Five images had white noise and five beam-correlated noise, and each image
+  was fitted with GLS and with diagonal weighting. Results are under
+  `benchmark-results/uncertainty-calibration/{gls-1,diagonal-1}`. Values are
+  pull standard deviation / fraction of pulls within ±1σ:
+
+  | Parameter | Correlated, GLS | Correlated, diagonal |
+  | --- | --- | --- |
+  | RA | 0.87 / 0.78 | 0.72 / 0.83 |
+  | Dec | 1.59 / 0.55 | 0.97 / 0.69 |
+  | Peak flux | 1.58 / 0.53 | 1.06 / 0.64 |
+  | Integrated flux | 1.41 / 0.53 | 1.10 / 0.60 |
+  | Major axis | 1.24 / 0.53 | 1.08 / 0.53 |
+  | Minor axis | 1.96 / 0.52 | 1.06 / 0.63 |
+
+  - White noise: GLS recovered 27% of components, with pulls in the
+    hundreds. Diagonal weighting recovered 100%, with pull standard
+    deviations of 0.25–0.55 (conservative).
+  - Biases present under both estimators: integrated-flux median pull
+    +0.25 (GLS) and +0.43 (diagonal), and beam-sized major-axis median
+    pull +1.4 to +1.9.
+- **Arc margin.** GLS shape errors were overconfident, and the old tests
+  passed only because of that. With calibrated errors, one component in each
+  asymmetric arc has 2.5–3σ tangential evidence, below the 3σ association
+  rule.
+- **Decision.** The user chose to keep the 3σ rule. The asymmetric open-arc
+  tests now expect three sources whose summed flux matches truth within 5%,
+  which passes. Symmetric arcs and every other association test are
+  unchanged.
+- **Follow-up.** A plan task now covers the integrated-flux and major-axis
+  bias of beam-sized components. The compact-fitting reference records the
+  calibration evidence.

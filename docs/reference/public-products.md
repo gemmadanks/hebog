@@ -16,7 +16,7 @@ the selected thresholds or algorithms are qualified for a survey.
 | `catalogue.fits` | `source-catalogue`, FITS schema 4 | What islands, associated sources, and admitted Gaussian components were measured? |
 | `rms.fits` | `rms`, FITS image schema 1 | What local RMS did thresholding and reported local-noise fields use? |
 | `source-mask.fits` | `source-filtering-mask`, FITS image schema 1 | Which input-aligned pixels belong to retained published detections? |
-| `diagnostics.json` | `diagnostics`, JSON schema 8 | What was omitted, deferred, selected, or unavailable, and exactly which science produced the bundle? |
+| `diagnostics.json` | `diagnostics`, JSON schema 9 | What was omitted, deferred, selected, or unavailable, and exactly which science produced the bundle? |
 
 Use all four together. In particular, `catalogue.fits` contains only published
 measurements, while `diagnostics.json` is the census of measured and
@@ -243,7 +243,7 @@ mean every low-surface-brightness pixel near a source is included.
 ## Diagnostics JSON
 
 `diagnostics.json` is canonical UTF-8 JSON with sorted keys and one final
-newline. Schema 8 rejects unknown fields and contains:
+newline. Schema 9 rejects unknown fields and contains:
 
 | Field | Meaning |
 | --- | --- |
@@ -256,8 +256,8 @@ newline. Schema 8 rejects unknown fields and contains:
 | `deferred_deblend_parent_count` | Parents preserved because they exceeded the bounded deblend envelope. |
 | `measurement_dispositions` | Complete structured census described below. |
 | `rms_scientific_status` | `valid` or `unavailable`, matching the RMS product. |
-| `provenance` | Exact input, configuration, science-profile, and implementation identities. |
-| `schema_version` | `8`. |
+| `provenance` | Exact input, configuration, science-profile, and implementation identities, and any caller-supplied image metadata. |
+| `schema_version` | `9`. |
 
 ### Provenance
 
@@ -268,7 +268,8 @@ newline. Schema 8 rejects unknown fields and contains:
 | `scientific_profile_sha256` | Exact installed science-configuration resource. |
 | `scientific_composition` | Opaque implementation label. Preserve it for provenance; users do not need to interpret it. |
 | `scientific_composition_sha256` | Exact identity of the implementation modules used for the run. |
-| `schema_version` | `1` for the nested provenance record. |
+| `supplied_image_metadata` | `null`, or the `SuppliedImageMetadata` values the request supplied for keywords the input header omits: `reference_frequency_hz`, `beam_major_fwhm_degrees`, `beam_minor_fwhm_degrees` and `beam_position_angle_degrees`, each `null` when not supplied. The input SHA-256 alone does not identify a run that used supplied metadata. |
+| `schema_version` | `2` for the nested provenance record. |
 
 Two runs should be treated as the same scientific computation only after the
 relevant identities, software/environment context, and product bytes have been
@@ -302,7 +303,8 @@ detected", "detected but not measurable", "measurement deferred", and
 `fit_diagnostics` records convergence, function evaluations, chi-squared and
 degrees of freedom, bound contact, selected/rejected model identities,
 condition number, covariance parameterization, visible-model fraction,
-retained bounds/pixel count, and any GLS or model fallback reason. These fields
+retained bounds/pixel count, the point estimator, and any estimator or model
+fallback reason. These fields
 describe estimator behaviour; they are not independent source-quality scores.
 
 `position_diagnostics` records signed-original, denoised, and selected pixel

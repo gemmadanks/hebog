@@ -22,6 +22,29 @@ before its final two spatial axes. The image must have:
 NaN pixels are allowed and are excluded from the analysis. Missing or invalid
 physical metadata fails clearly before any output bundle is published.
 
+Some published images omit a keyword Hebog needs. The LOFAR-HD mosaics, for
+example, carry a beam but no reference frequency, and the SKA Data Challenge 1
+images give `BMAJ` and `BMIN` but no `BPA`. Supply only the missing values in
+the request:
+
+```python
+request = hebog.SourceFinderRequest(
+    image_path=Path("continuum-image.fits"),
+    output_directory=Path("hebog-products"),
+    run_id="observation-001",
+    supplied_metadata=hebog.SuppliedImageMetadata(
+        reference_frequency_hz=144e6,
+    ),
+)
+```
+
+`SuppliedImageMetadata` accepts `reference_frequency_hz` and the beam values
+`beam_major_fwhm_degrees`, `beam_minor_fwhm_degrees` and
+`beam_position_angle_degrees`. A supplied value fills a missing keyword only.
+Supplying a value the header already provides is an input error, so Hebog
+never overrides an image's own description. `diagnostics.json` records the
+supplied values with the run's provenance.
+
 A header with `EQUINOX = 2000` but no `RADESYS` keyword, as written by
 WSClean, declares FK5 J2000 under the FITS WCS standard. Hebog accepts it and
 converts every catalogue position and beam angle to ICRS; the two frames
@@ -192,7 +215,7 @@ not a claimed fitted Gaussian or an unresolved source.
 source, including unavailable or bounded-work-deferred measurements. Each
 entry gives its estimator or failure reason, source membership and whether
 a catalogue row was published. Component diagnostics retain the fitted model,
-likelihood pixel count, GLS fallback reason, covariance basis and competing
+likelihood pixel count, point-estimator fallback reason, covariance basis and competing
 association group IDs. Source diagnostics retain both signed-original and
 denoised centroids, their selection rule, position/aperture counts and signed
 flux. Source `association_evidence` records each admitted multi-component

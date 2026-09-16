@@ -64,7 +64,7 @@ def test_repaired_science_cannot_inherit_reference_qualification() -> None:
         == "development-unqualified"
     )
     assert public_api._COMPOSITION_NAME == (
-        "phase-5-evidence-bound-public-catalogue-v20"
+        "phase-5-evidence-bound-public-catalogue-v21"
     )
     assert {
         "hebog.algorithms.component_measurement",
@@ -146,7 +146,7 @@ def _provenance() -> PublicSourceFindingProvenance:
         configuration_sha256="2" * 64,
         scientific_profile_sha256="3" * 64,
         scientific_composition_sha256="4" * 64,
-        scientific_composition=("phase-5-evidence-bound-public-catalogue-v20"),
+        scientific_composition=("phase-5-evidence-bound-public-catalogue-v21"),
     )
 
 
@@ -190,7 +190,7 @@ def test_public_diagnostics_round_trip_exact_provenance() -> None:
         )
         == diagnostics
     )
-    assert diagnostics.schema_version == 8
+    assert diagnostics.schema_version == 9
     assert diagnostics.deblended_parent_count == 1
     assert diagnostics.deferred_deblend_parent_count == 0
 

@@ -74,6 +74,10 @@ test-qualification:
 test-acceptance:
     uv run pytest -q -m "acceptance and not qualification and not scalability and not slow and not requires_data" tests/
 
+# Run the fixed-case scientific regression check (local data and Podman)
+quick-science-check *args:
+    uv run python scripts/validation/quick_science_check.py {{args}}
+
 # Run explicitly requested performance tests
 test-benchmark:
     uv run pytest -q -m "benchmark and not scalability" tests/

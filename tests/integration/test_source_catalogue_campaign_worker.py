@@ -200,10 +200,7 @@ def test_capture_science_identity_is_serial_existing_dask_invariant(
         assert components[0]["catalogue_row_published"]
         fit = components[0]["fit_diagnostics"]
         assert fit["point_estimator"] == "diagonal-weighted"
-        assert fit["point_estimator_fallback_reason"] in {
-            "correlation-factorization-failed",
-            "correlation-ill-conditioned",
-        }
+        assert fit["point_estimator_fallback_reason"] is None
         assert record["source_count"] == 1
         assert len(record["components"]) == 1
         np.testing.assert_allclose(

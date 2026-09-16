@@ -11,6 +11,7 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
+from hebog.data_models.images import SuppliedImageMetadata
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
 
 _SHA256 = re.compile(r"[0-9a-f]{64}")
@@ -242,9 +243,10 @@ class PublicSourceFindingProvenance(BaseModel):
     scientific_profile_sha256: str
     scientific_composition_sha256: str
     scientific_composition: Literal[
-        "phase-5-evidence-bound-public-catalogue-v20"
+        "phase-5-evidence-bound-public-catalogue-v21"
     ]
-    schema_version: Literal[1] = 1
+    supplied_image_metadata: SuppliedImageMetadata | None = None
+    schema_version: Literal[2] = 2
 
     @model_validator(mode="after")
     def _validate_provenance(self) -> Self:
@@ -279,7 +281,7 @@ class PublicSourceFindingDiagnostics(BaseModel):
     measurement_dispositions: tuple[MeasurementDisposition, ...] = ()
     rms_scientific_status: Literal["valid", "unavailable"]
     provenance: PublicSourceFindingProvenance
-    schema_version: Literal[8] = 8
+    schema_version: Literal[9] = 9
 
     @model_validator(mode="after")
     def _validate_diagnostics(self) -> Self:
@@ -373,6 +375,7 @@ class SourceFinderRequest:
     output_directory: Path
     run_id: str
     schema_version: Literal[1] = 1
+    supplied_metadata: SuppliedImageMetadata | None = None
 
     def __post_init__(self) -> None:
         """Reject unsupported schema versions and empty run identifiers."""

@@ -67,11 +67,14 @@ def fake_native(
         fits.PrimaryHDU(np.zeros((9, 11), dtype=np.int32)).writeto(labels)
         mask = stage / "mask.fits"
         mask.write_bytes(labels.read_bytes())
+        rms = stage / "rms.fits"
+        fits.PrimaryHDU(np.ones((9, 11), dtype=np.float32)).writeto(rms)
         return {
             "source-catalogue-fits": sources,
             "gaussian-catalogue-fits": sources,
             "island-labels-fits": labels,
             "island-mask-fits": mask,
+            "rms-map-fits": rms,
         }
 
     def aegean(image: Path, config: Any, stage: Path) -> Any:
@@ -441,7 +444,9 @@ def test_worker_cli_passes_typed_paths_and_resource_options(
     }
 
 
-@pytest.mark.parametrize("finder", ["released-pybdsf", "aegean"])
+@pytest.mark.parametrize(
+    "finder", ["released-pybdsf", "pinned-pybdsf-master", "aegean"]
+)
 def test_reference_preserves_sdc1_core(
     tmp_path: Path,
     worker: dict[str, Any],
@@ -463,10 +468,13 @@ def test_reference_preserves_sdc1_core(
     result = json.loads((output / "result.json").read_text())
     assert result["core_bounds_yx_half_open"] == [2, 7, 3, 9]
     role = (
-        "island-labels-fits"
-        if finder == "released-pybdsf"
-        else "support-proxy-labels-fits"
+        "support-proxy-labels-fits"
+        if finder == "aegean"
+        else "island-labels-fits"
     )
+    if finder != "aegean":
+        rms_path = output / result["artifacts"]["rms-map-fits"]["path"]
+        assert cast(Any, fits.getdata(rms_path)).squeeze().shape == (5, 6)
     assert cast(
         Any, fits.getdata(output / result["artifacts"][role]["path"])
     ).squeeze().shape == (

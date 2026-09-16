@@ -246,8 +246,14 @@ def product_set_by_reference(
 
 
 def load_pybdsf_catalogue(path: Path) -> tuple[CatalogueSource, ...]:
-    """Read governed PyBDSF source, shape, association, and error fields."""
-    table = cast(npt.NDArray[np.void], fits.getdata(path, ext=1))
+    """Read governed PyBDSF source, shape, association, and error fields.
+
+    PyBDSF writes a table without columns when it finds no sources; that is a
+    valid empty catalogue.
+    """
+    table = cast(npt.NDArray[np.void] | None, fits.getdata(path, ext=1))
+    if table is None or len(table) == 0:
+        return ()
 
     def optional_positive(row: np.void, name: str) -> float | None:
         """Translate PyBDSF zero and NaN error sentinels to unavailable."""
@@ -323,8 +329,14 @@ def load_pybdsf_catalogue(path: Path) -> tuple[CatalogueSource, ...]:
 def load_pybdsf_gaussian_catalogue(
     path: Path,
 ) -> tuple[CatalogueSource, ...]:
-    """Read PyBDSF Gaussian components for compact-source comparisons."""
-    table = cast(npt.NDArray[np.void], fits.getdata(path, ext=1))
+    """Read PyBDSF Gaussian components for compact-source comparisons.
+
+    A table without rows, as PyBDSF writes when it finds no sources, is a
+    valid empty catalogue.
+    """
+    table = cast(npt.NDArray[np.void] | None, fits.getdata(path, ext=1))
+    if table is None or len(table) == 0:
+        return ()
     required = {
         "Gaus_id",
         "Isl_id",

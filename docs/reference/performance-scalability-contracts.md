@@ -33,9 +33,12 @@ Every affected tier compares a candidate Hebog run with the previous reviewed
 Hebog baseline. One warm-up and at least five measured repetitions are
 required. A change is a regression when the lower 95% bootstrap confidence
 bound for the new/previous median ratio exceeds 1.05 without an approved
-trade-off. Where both PyBDSF references run, the corresponding upper bounds
-must be at most 0.50 for release 1.14.1 and strictly below 1.00 for pinned
-`master`.
+trade-off. The deployment gate is an upper bound of at most 0.50 against
+pinned PyBDSF `master` (`c70103b`), with one confirmation against release
+1.14.1 before 1.0.0. The machine-readable file still records the former
+release (0.50) and `master` (1.00) limits until the benchmark lane amends it,
+as scheduled in the
+[implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md).
 
 The warm one-tile framework budgets are 250 ms for configuration, 500 ms for
 FITS I/O, 10 ms for partition planning, 5 ms for serial dispatch, 50 ms for

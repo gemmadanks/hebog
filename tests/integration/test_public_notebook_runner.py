@@ -142,14 +142,13 @@ def test_exact_notebook_runner_completes_geometry_matrix(
     assert {
         member for row in sources for member in row["member_component_ids"]
     } == components.keys()
-    missing = [
-        row for row in components.values() if row["status"] == "unavailable"
-    ]
-    assert missing
-    assert all(row["reason"] == "fit-model-inadequate" for row in missing)
-    assert all(not row["catalogue_row_published"] for row in missing)
-    assert all(row["estimator"] is None for row in missing)
-    assert all(row["fit_diagnostics"] is not None for row in missing)
+    # Every component in this pixel-independent-noise matrix is measurable;
+    # a beam-correlated point estimator once rejected most of them.
+    assert all(row["status"] == "measured" for row in components.values())
+    assert all(
+        row["fit_diagnostics"]["point_estimator"] == "diagonal-weighted"
+        for row in components.values()
+    )
     assert (
         sum(row["catalogue_row_published"] for row in components.values())
         == terminal["component_count"]
@@ -351,11 +350,7 @@ def test_notebook_retains_numerical_fit_failures_without_aborting_image(
     ]
     missing = [row for row in components if row["status"] == "unavailable"]
     assert missing
-    expected_reasons = {"fit-linear-algebra-failure"}
-    if failure_mode == "first":
-        # The other real solves still exercise scientific fallback admission.
-        expected_reasons.add("fit-model-inadequate")
-    assert {row["reason"] for row in missing} == expected_reasons
+    assert {row["reason"] for row in missing} == {"fit-linear-algebra-failure"}
     assert all(not row["catalogue_row_published"] for row in missing)
     assert all(row["estimator"] is None for row in missing)
     published = [row for row in components if row["catalogue_row_published"]]

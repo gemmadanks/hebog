@@ -1,0 +1,192 @@
+{
+  "cases": [
+    {
+      "case_id": "compact-snr-ladder",
+      "dataset_id": "quick-compact-snr-ladder",
+      "kind": "generated"
+    },
+    {
+      "case_id": "close-blends",
+      "dataset_id": "quick-close-blends",
+      "kind": "generated"
+    },
+    {
+      "case_id": "extended-gaussians",
+      "dataset_id": "quick-extended-gaussians",
+      "kind": "generated"
+    },
+    {
+      "case_id": "filament-and-ring",
+      "dataset_id": "quick-filament-and-ring",
+      "kind": "generated"
+    },
+    {
+      "case_id": "edges-and-corners",
+      "dataset_id": "quick-edges-and-corners",
+      "kind": "generated"
+    },
+    {
+      "case_id": "negative-background",
+      "dataset_id": "quick-negative-background",
+      "kind": "generated"
+    },
+    {
+      "case_id": "invalid-pixels",
+      "dataset_id": "quick-invalid-pixels",
+      "kind": "generated"
+    },
+    {
+      "case_id": "varying-noise",
+      "dataset_id": "quick-varying-noise",
+      "kind": "generated"
+    },
+    {
+      "case_id": "white-noise-snr-ladder",
+      "dataset_id": "quick-white-noise-snr-ladder",
+      "kind": "generated"
+    },
+    {
+      "case_id": "dense-field",
+      "dataset_id": "quick-dense-field",
+      "kind": "generated"
+    },
+    {
+      "case_id": "empty-noise",
+      "dataset_id": "quick-empty-noise",
+      "kind": "generated"
+    },
+    {
+      "case_id": "all-invalid",
+      "dataset_id": "quick-all-invalid",
+      "kind": "generated"
+    },
+    {
+      "case_id": "sdc1-b2-1000h-sparse",
+      "image": "benchmark-results/quick-check/cutouts/sdc1-b2-1000h-sparse/image.fits",
+      "kind": "image",
+      "remote_source": {
+        "url": "https://zenodo.org/api/records/4328029/files/SKAMid_B2_1000h_v3.fits/content",
+        "window": {
+          "size": 1024,
+          "x_start": 20992,
+          "y_start": 12800
+        }
+      },
+      "supplied_metadata": {
+        "beam_position_angle_degrees": 0.0
+      }
+    },
+    {
+      "case_id": "sdc1-b2-1000h-crowded",
+      "image": "benchmark-results/quick-check/cutouts/sdc1-b2-1000h-crowded/image.fits",
+      "kind": "image",
+      "remote_source": {
+        "url": "https://zenodo.org/api/records/4328029/files/SKAMid_B2_1000h_v3.fits/content",
+        "window": {
+          "size": 1024,
+          "x_start": 16896,
+          "y_start": 16896
+        }
+      },
+      "supplied_metadata": {
+        "beam_position_angle_degrees": 0.0
+      }
+    },
+    {
+      "case_id": "lotss-dr3-1312-sparse",
+      "image": "benchmark-results/quick-check/cutouts/lotss-dr3-1312-sparse/image.fits",
+      "kind": "image",
+      "published_maps": {
+        "mask": {
+          "path": "benchmark-results/quick-check/cutouts/lotss-dr3-1312-sparse/mask.fits",
+          "source": {
+            "url": "https://lofar-surveys.org/public/DR3/healpix_mosaics/1312/mosaic--final.mask.fits",
+            "window": {
+              "size": 1024,
+              "x_start": 9749,
+              "y_start": 9749
+            }
+          }
+        },
+        "rms": {
+          "path": "benchmark-results/quick-check/cutouts/lotss-dr3-1312-sparse/rms.fits",
+          "source": {
+            "url": "https://lofar-surveys.org/public/DR3/healpix_mosaics/1312/mosaic--final.rms.fits",
+            "window": {
+              "size": 1024,
+              "x_start": 9749,
+              "y_start": 9749
+            }
+          }
+        }
+      },
+      "remote_source": {
+        "url": "https://lofar-surveys.org/public/DR3/healpix_mosaics/1312/mosaic.fits",
+        "window": {
+          "size": 1024,
+          "x_start": 9749,
+          "y_start": 9749
+        }
+      }
+    },
+    {
+      "case_id": "lotss-dr3-1312-dense",
+      "image": "benchmark-results/quick-check/cutouts/lotss-dr3-1312-dense/image.fits",
+      "kind": "image",
+      "published_maps": {
+        "mask": {
+          "path": "benchmark-results/quick-check/cutouts/lotss-dr3-1312-dense/mask.fits",
+          "source": {
+            "url": "https://lofar-surveys.org/public/DR3/healpix_mosaics/1312/mosaic--final.mask.fits",
+            "window": {
+              "size": 1024,
+              "x_start": 7701,
+              "y_start": 6677
+            }
+          }
+        },
+        "rms": {
+          "path": "benchmark-results/quick-check/cutouts/lotss-dr3-1312-dense/rms.fits",
+          "source": {
+            "url": "https://lofar-surveys.org/public/DR3/healpix_mosaics/1312/mosaic--final.rms.fits",
+            "window": {
+              "size": 1024,
+              "x_start": 7701,
+              "y_start": 6677
+            }
+          }
+        }
+      },
+      "remote_source": {
+        "url": "https://lofar-surveys.org/public/DR3/healpix_mosaics/1312/mosaic.fits",
+        "window": {
+          "size": 1024,
+          "x_start": 7701,
+          "y_start": 6677
+        }
+      }
+    }
+  ],
+  "change_budget_seconds": 600.0,
+  "check_id": "quick-science-check",
+  "dataset_manifest": "config/datasets/quick-science-check.json",
+  "hebog": {
+    "detection_threshold_sigma": 5.0,
+    "island_threshold_sigma": 3.0,
+    "minimum_island_pixels": 7,
+    "profile": "continuum"
+  },
+  "maximum_separation_beams": 1.0,
+  "reference": {
+    "container_image": "localhost/hebog-pybdsf-master:c70103be3-reconstructed",
+    "finder_id": "pinned-pybdsf-master",
+    "ncores": 4
+  },
+  "schema_version": 1,
+  "tolerances": {
+    "coverage_error_increase": 0.05,
+    "fraction_drop": 0.02,
+    "fractional_error_increase": 0.02,
+    "separation_increase_beams": 0.05
+  }
+}
