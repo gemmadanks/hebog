@@ -21958,3 +21958,60 @@ scientific pass from fixture validation.
   disclaimer either way. Remaining SKA references are dataset names and links
   to published data-model documentation, which are citations rather than
   claims.
+
+## 2026-09-16 — v0.7.0 released; plan re-baselined toward 1.0.0
+
+- R4 and R5 are complete. Tag `v0.7.0` exists, the changelog is dated
+  16 September, and TestPyPI lists `hebog-0.7.0-py3-none-any.whl` and
+  `hebog-0.7.0.tar.gz`, uploaded at 10:18 UTC. The v0.7.0 checklist is removed
+  from the plan.
+- The user asked for the plan to lead to a 1.0.0 release demonstrated to meet
+  the scalability, functionality and performance goal. Read-only surveys of
+  the code, the log and the adjacent Rapthor checkout found the following
+  gaps.
+  - Scalability: the public science in `public_science.py` holds several full
+    `float64` planes in one process. Only background/RMS and first-pass
+    detection run through the executor, on 128-pixel cores. The tiled
+    multiscale, deblending, measurement, fitting and compact catalogue
+    stages are used only by tests. Continuum candidate products, extended
+    association, the à trous position filter and the continuum catalogue
+    have no tiled form. Background coarse protection and local noise are
+    capped at 10⁶ pixels. The `phase-0-scalability.json` targets (2,048–8,192
+    cores, eight `float32` plane-equivalents, 75% worker peak, 50,000 tasks)
+    are not wired to any code.
+  - Performance: no matched Hebog/PyBDSF benchmark exists. The 10 September
+    diagnostic single runs (entry above) remain the most recent real-image
+    ratios: median 8.4× slower than released PyBDSF. The `tests/benchmark`
+    lanes are skipped scaffolds, and no complete-path profile exists.
+  - Functionality: `hebog.adapters` holds records and the 8-column catalogue
+    codec only. The seven acceptance scenarios are strict-xfail placeholders.
+    There is no flat-noise branch, and LSMTool filtering has never run on
+    Hebog products. The contract traces Rapthor `b1a6467`. The local Rapthor
+    checkout is on the Prefect-migration branch at `86203b7`, and its LSMTool
+    pin `3b27105` is absent from the local LSMTool checkout.
+- Milestone review, as required by the collaboration rules.
+  - Between 10 and 15 September, candidates advanced from v11 to v20 through
+    repeated freeze–admit–replay cycles.
+  - Avoidable interruptions included a disk-admission hold about 10 GiB
+    short (11 September), the v14 capture failure (12 September), and seven
+    CI repairs for historical evidence identity or portability (7, 13 and
+    14 September).
+  - Per-step authorization records multiplied under `config/contracts/`.
+  - The plan responds with:
+    - one resumable campaign command with preflight resource checks;
+    - non-regression endpoints limited to Rapthor-consumed fields and
+      validity checks;
+    - powered qualification run once, on the frozen 1.0.0 candidate.
+- Plan changes:
+  - A proposed 1.0.0 definition covers functionality, science, performance,
+    scalability and release. Rapthor default cutover is separated as a later
+    Rapthor decision.
+  - Four human decisions (D1–D4) are added.
+  - Six dependency-ordered milestones replace the flat post-release table:
+    M1 measure, M2 one tile-native science path, M3 Rapthor functionality,
+    M4 deployment performance gate, M5 facility scale, M6 qualification and
+    1.0.0.
+  - Existing rows are retained within those milestones. The PyPI switch
+    moves to M2, once the envelope covers Rapthor sector images.
+- This is a plan-only change. No code, gates, thresholds or closed results
+  changed.

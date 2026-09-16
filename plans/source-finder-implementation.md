@@ -1,6 +1,6 @@
 # Hebog implementation plan
 
-Authoritative remaining-work plan. Updated **15 September 2026**.
+Authoritative remaining-work plan. Updated **16 September 2026**.
 Current user-facing capability is in
 [release status](../docs/reference/release-status.md); execution history,
 evidence identities and completed decisions are in [`LOG.md`](../LOG.md).
@@ -11,14 +11,55 @@ Closed Phase 5 contracts, reviews and campaign tooling are in Git history at
 
 | Item | Current position |
 | --- | --- |
-| Candidate | Public composition v20: v19 science plus FK5 J2000 input conversion to ICRS and round-off-stable pixel beam geometry. Development-unqualified. |
-| Implemented | FITS/WCS ingress, background/RMS, compact and multiscale detection, source/component measurement, catalogue/mask/RMS/diagnostics publication, Serial and caller-owned Dask execution, Zarr intermediates. |
-| Public envelope | ICRS or FK5 J2000 `Jy/beam` FITS, at most 1,024 pixels on either spatial axis. `continuum` is the default; explicit `compact` is extended-emission-incomplete. Custom thresholds are unqualified. |
-| Strongest evidence | The latest completed campaign (v15) is recorded as a scientific **fail** only because 32 comparisons regressed against the earlier Hebog incumbent; no comparison against released PyBDSF, PyBDSF `master` or Aegean failed, and 40 comparisons were underpowered. Later compositions (v16–v20) have focused regression, Serial/Dask, equivalence and installed-wheel evidence only. The [campaign overview](../docs/reference/phase-5-campaign-overview.md) holds the non-passing inventory. |
-| Accepted limitations | On 13 September the human accepted uncertainty calibration, measurement tails and faint association as documented limitations of an experimental standalone release. They are not passing endpoints. |
-| Blockers | v0.7.0 needs the checklist below. General scientific readiness, Rapthor acceptance and complete-path performance remain unproven. |
-| Next action | Human: review and merge the Release Please PR (R4), then release to TestPyPI (R5). |
-| Deferred | Broader F2 association repair, further scientific improvement, general qualification, Rapthor integration and facility-scale work. Reopen a deferred issue if it becomes a confirmed incorrect supported output. |
+| Release | v0.7.0, tagged and uploaded to TestPyPI on 16 September 2026. Experimental and scientifically unqualified. |
+| Candidate | Public composition v20. Development-unqualified. |
+| Functionality | Standalone FITS-to-products finder: background/RMS, compact and multiscale detection, deblending, fitting, source association, catalogue/mask/RMS/diagnostics, Serial and caller-owned Dask execution. No Rapthor backend: `hebog.adapters` holds records and the 8-column catalogue codec only, and the seven acceptance scenarios are strict-xfail placeholders. No flat-noise branch or LSMTool filtering has run on Hebog products. |
+| Scalability | Public envelope ≤1,024 pixels per side. Only background/RMS and first-pass detection run per tile through the executor, on hard-coded 128-pixel cores (the scalability contract's candidates are 2,048–8,192); the public science in `public_science.py` holds several full `float64` planes in one process. Tiled multiscale, deblending, measurement, fitting and compact catalogue stages exist in `stages/` but only tests use them; continuum candidate products, extended association, the à trous position filter and the continuum catalogue have no tiled form. Two background sub-steps are capped at 10⁶ pixels. The executor offers only `map_batches` with a driver-side gather. |
+| Performance | No matched benchmark exists. The most recent diagnostic single runs (10 September, M3 Pro) were slower than released PyBDSF on 11 of 13 real images, median ratio 8.4× (SDC1 2,198² tile 778 s vs 93 s; Hydra 3,600² 2,767 s vs 142 s). Per-pixel cost on these real images is far above the 26 s synthetic 1,024² probe; whether size, source density or both drive it is unprofiled. The gate is ≤0.50× released and <1.00× `master`. No complete-path profile exists. |
+| Science | The v15 campaign failed only through 32 regressions against the earlier Hebog incumbent; no comparison against released PyBDSF, PyBDSF `master` or Aegean failed, and 40 were underpowered. All campaign images were ≤1,024 pixels. v16–v20 have focused regression, Serial/Dask, equivalence and installed-wheel evidence only. Uncertainty calibration, measurement tails and faint association were accepted on 13 September as limitations of an experimental standalone release, not as passes. |
+| 1.0.0 blockers | Every milestone below. The largest risks are the performance gap, tile-native continuum association and access to facility-scale compute. |
+| Next action | Human: decide D1–D4. Agent: M1 (benchmark harness and complete-path profile), which needs no new decision to start on the development host. |
+| Deferred | Optional comparison finders such as ProFound or 2D SoFiA (see the [notebook guide](../docs/how-to/notebooks.md)), general science improvements outside Rapthor-consumed outputs, and native code without a passing profile gate. Reopen a deferred issue if it becomes a confirmed incorrect supported output. |
+
+## Definition of 1.0.0
+
+*Proposed; the human confirms or changes it through D1.* Version 1.0.0 is the
+first release demonstrated to meet the project goal, with every claim bound to
+reviewed evidence for that exact candidate:
+
+- **Functionality.** Hebog is a supported, feature-flagged backend for
+  Rapthor's `filter_skymodel` at a pinned Rapthor and LSMTool revision:
+  true-sky and flat-noise branches, the Rapthor profile, native catalogue,
+  mask, RMS and source-count products, empty and blanked-image paths, retry
+  and restart, and PyBDSF fallback. The standalone public API remains usable
+  without Rapthor, Prefect, LSMTool or Dask.
+- **Science.** The Rapthor profile reaches ≥99.5% retained/rejected component
+  agreement with every safety stratum passing, and the frozen candidate passes
+  prospective, powered, held-out parity/retention against released PyBDSF,
+  PyBDSF `master` and Aegean, including public data from at least two
+  telescope families.
+- **Performance.** Matched complete `filter_skymodel` medians meet both
+  runtime gates across the frozen deployment envelope, without a memory or
+  Hebog-curve regression, on the whole size and workload matrix.
+- **Scalability.** A 100,000-square image completes within the contract's
+  runtime, task-count, scheduler-overhead, memory and spill gates at 1, 10, 50,
+  100 and at least 200 nodes, with results invariant to worker count, tile
+  geometry, completion order and retry.
+- **Release.** Published on PyPI with portability, security, licensing,
+  current documentation and independent radio-astronomy and engineering
+  acceptance.
+
+Rapthor's default cutover is a separate Rapthor decision taken after an
+operational soak of the 1.0.0 backend; the PyBDSF fallback remains until then.
+
+## Decisions needed
+
+| ID | Decision | Recommendation | Needed by |
+| --- | --- | --- | --- |
+| D1 | Scope of 1.0.0. | Accept the definition above. It keeps 1.0.0 a demonstrable Hebog claim and leaves default cutover to Rapthor operations. The alternative, tying 1.0.0 to cutover, makes the version depend on another project's release schedule. | Before M2 design |
+| D2 | Compute and data. | (a) One dedicated Linux benchmark host with fixed cores, affinity and no other workload for reviewed evidence; the laptop stays a profiling host. (b) A facility allocation reaching at least 200 nodes with shared storage, requested now because it gates M5. (c) Agent access to the restricted Rapthor-representative 3,000² image or an approved public substitute. | (a) M1 end, (b) M5 start, (c) M3 start |
+| D3 | Rapthor integration target. | Pin the Rapthor revision that will carry the backend, not the Phase 0 trace (`b1a6467`). The local checkout is the Prefect-migration branch (`86203b7`), and its LSMTool pin (`3b27105`) is absent from the local LSMTool checkout. Choose the branch expected to be Rapthor's mainline when M3 lands. | M3 start |
+| D4 | Which accepted limitations block 1.0.0. | Block on those that change Rapthor-consumed fields: `E_RA`/`E_DEC` uncertainty calibration (Rapthor excludes sources at ≥2 arcsec), `Total_flux`/`Isl_Total_flux` tails, and faint association where it changes island grouping and therefore patches. Keep the rest documented. Approve a lean reusable non-regression campaign now (M1) and defer powered qualification to the frozen 1.0.0 candidate (M6). | M1 campaign design |
 
 ## Delivery policy
 
@@ -88,58 +129,94 @@ These rules govern agent work on this plan and are referenced from
   volume as productivity targets. Do not introduce a separate tracking
   framework.
 
-## v0.7.0 experimental release
+## Roadmap to 1.0.0
 
-Publish v0.7.0 before starting scaling work. No version is otherwise
-preassigned; a later fix, measured optimization or API improvement can repeat
-R3–R5 for its own `0.x` release.
+Work proceeds in milestones ordered by dependency. Each row is a bounded work
+item that merges, and usually releases as a `0.x` increment, with its own
+checks; split a row when a measured result reveals independent changes.
+Unless a row says otherwise, the agent implements and validates locally and
+the human merges. Qualification, facility and deployment rows authorize only
+their stated claim and still need the named human decisions.
 
-- [ ] **R4 — Review the Release Please PR.** *Release Please generates the
-      version, changelog and citation changes; human reviews; agent checks on
-      request.* Confirm the generated notes reflect the Conventional Commits,
-      including every breaking change. PR #54 is a hidden `chore` that removed
-      `hebog.validation.phase_four_*` modules; before this review, add a
-      `BEGIN_COMMIT_OVERRIDE` block with a breaking-change note to its PR
-      body so Release Please includes it. Release status and user
-      documentation must state "experimental, scientifically unqualified", the
-      tested input and resource envelope and known limitations.
-- [ ] **R5 — Release through the existing workflow.** *Human configures the
-      GitHub `testpypi` environment and TestPyPI Trusted Publisher using the
-      [publishing guide](../docs/how-to/publish-releases.md) and merges the
-      Release Please PR after its checks pass; Release Please creates the tag
-      and GitHub release, and the upload workflow publishes to TestPyPI.* The
-      human verifies the tag, release and TestPyPI upload. The installable
-      artifact for users is the tagged GitHub release.
+Two rules govern the sequence:
 
-## After v0.7.0
+- **Measure before changing.** Nothing is optimized or re-architected without
+  a profile, and no science-touching change merges without the non-regression
+  campaign from M1.
+- **Optimize the code that survives.** M2 replaces the whole-array public
+  science with the tiled composition. Before M2 lands, fix only bottlenecks in
+  kernels the tiled path will keep (fitting, measurement, filters, labelling),
+  not whole-array orchestration it will delete.
 
-Take one row as a bounded work item and split it further when a measured
-result reveals independent changes. Each item can merge and release with its
-own checks. Unless a row says otherwise, the agent implements and validates
-locally and the human merges. Qualification and deployment rows authorize only
-their stated claim and still need human scientific and resource decisions.
+### M1 — Measure the gap
 
-| When | Task | Done when |
+| Owner | Task | Done when |
 | --- | --- | --- |
-| When the public envelope is useful beyond cut-outs | Publish releases to PyPI instead of TestPyPI. | The Trusted Publisher, `pypi` environment, publishing job, installation instructions and release status change together, as described in the [publishing guide](../docs/how-to/publish-releases.md). Releases stay experimental and scientifically unqualified until their own gates pass. |
-| Before scaling work | Add a reusable synthetic comparison campaign. Rebuild the population generator, driver, truth evaluation and paired statistics from Git history without the removed authorization layer. | One checked-in campaign configuration generates a fresh seed-disjoint continuum and compact-blend population, runs Hebog, released PyBDSF and Aegean (optionally pinned PyBDSF `master`), evaluates each finder against injected truth, writes resumable results the comparison notebook reads, and reports paired comparisons. Decide population size and power, pass/fail versus report-only rules, references and compute budget in the PR; the human approves that design and budget and inspects the results. Run it on the current candidate to give scaling work a scientific reference. |
-| Next | Freeze a known-issues runtime baseline and profile complete FITS-to-products execution. | Inputs, candidate, resources and every warm-up and measured run are recorded; CPU, RSS, I/O and task costs identify the first material bottleneck. No speedup or qualification claim from this baseline alone. |
-| Next | Remove one measured I/O, copy, materialization or fit-batching bottleneck. | Paired before/after evidence covers affected and adjacent anchors and crossovers; scientific non-regression and Serial/Dask invariance pass. Ship each useful optimization independently. |
-| Next | Complete the shared Serial/local/Dask executor contract and add persistent local threads. | Ordering, serialization, errors, cancellation, retry and resource budgets pass the same contract suite; no nested pools or clusters. Existing Dask execution is extended, not reimplemented. |
-| Next | Remove the public terminal's complete-plane requirement. | Catalogue, measurement and publication operate through bounded Zarr windows or shards and hierarchical summaries; small analytic edge, corner and partition tests agree exactly. Qualify one larger size tier at a time before raising admission limits. |
-| Next | Qualify a deployment Zarr store and restart/recovery path. | Atomicity, concurrent owned-chunk writes, codec and chunk geometry, missing chunks, cold/warm throughput and injected failures pass within an admitted memory budget. Publish the tested store envelope. |
-| When scientifically prioritized | Resolve one remaining association, uncertainty, RMS/mask or flux-tail mechanism. | Prospective independent controls distinguish the cause; focused public-workflow and paired non-regression checks pass. Preserve source/component distinctions and explicit unavailable outputs. |
-| Before claiming general scientific readiness | Complete candidate-bound parity/retention and fresh held-out and public-survey evidence. | Every binding endpoint passes under a prospectively reviewed contract, population and power design. Closed failed campaigns are never reused as confirmation. |
-| Before claiming general scientific readiness | Design a current readiness packet and obtain independent acceptance. | The packet binds cumulative and fresh evidence, public API, execution and performance checks, with separate radio-astronomy and engineering acceptances. The restricted Rapthor profile stays in its own integration packet. |
-| After general parity/retention | Audit the pinned Rapthor/LSMTool consumer and freeze its workflow profile. | Native catalogue, mask and RMS fields and filtering semantics are exercised on true/apparent, bright, extended, edge, masked, sparse and crowded populations against both PyBDSF references. Choose compact only with ≥99.5% overall agreement and every safety stratum passing; otherwise continuum. |
-| Integration increment | Add Rapthor backend selection, restartable true-sky/flat-noise/filter tasks and dual-run reporting. | Acceptance scenarios cover empty and corrupt input, restart, retry, backend selection and PyBDSF fallback. Concurrent branches respect the caller's resource budget. |
-| Before supported Rapthor deployment | Run matched complete `filter_skymodel` benchmarks and operational acceptance. | Both runtime gates below pass across the frozen initial envelope; science, profile, retry/resume and memory gates pass. Retain fallback outside the admitted envelope. |
-| Before each scale claim | Qualify the next size or topology and extend complete-path benchmarks. | Add 30,000 then 100,000-square anchors, both sides of new crossovers, deployment storage and recovery. Prove invariance at 1, 10, 50, 100 and at least 200 workers. Small-machine evidence does not establish facility support. |
-| Before default cutover / 1.0 | Complete operational soak and production review. | The full scientific, compatibility and performance matrix, 100,000-square facility gates, portability, security, licensing, packaging, current docs and independent acceptance pass. Native code, if added, also needs its wheel, safety and fallback matrix. |
+| Agent | Build a reusable complete-path benchmark lane. Replace the skipped `tests/benchmark` scaffolds and the phase-numbered runners with one checked-in configuration and runner. | One command times Hebog, released PyBDSF 1.14.1 and pinned `master` in matched containers on the same inputs and writes `hebog.validation.evidence` records with a warm-up and five repetitions. Inputs cover synthetic 256, 512 and 1,024 anchors in sparse, normal and dense-extended workloads, SDC1 tiles, Hydra and, after D2(c), the Rapthor-representative 3,000² image. Inputs above the public limit run through a documented diagnostic entry point that never changes the public envelope. A small portable smoke case runs in CI. |
+| Agent | Freeze the v20 known-issues baseline and profile complete FITS-to-products execution. | Every warm-up and measured run is recorded. CPU, RSS, I/O and per-stage profiles on at least one dense real image and the 1,024 anchor rank the bottlenecks and separate size effects from source-density effects. Reviewed status waits for the D2(a) host; laptop results stay diagnostic. |
+| Agent, human approves design | Add a reusable synthetic non-regression campaign. Rebuild the population generator, driver, truth evaluation and paired statistics from Git history without the removed authorization layer. | One configuration generates a fresh seed-disjoint continuum and compact-blend population, runs Hebog, released PyBDSF and Aegean, evaluates against injected truth, resumes after interruption, checks disk and memory before launch, and reports paired comparisons the notebook reads. Size it to run in hours on the benchmark host. Endpoints are the Rapthor-consumed fields plus the retained validity checks (D4). Run it on v20 as the reference for M2–M5. |
 
-Optional comparison finders, such as ProFound or a dedicated 2D SoFiA
-experiment, are follow-up work; see the
-[notebook guide](../docs/how-to/notebooks.md).
+### M2 — One tile-native science path
+
+This is the architectural core of 1.0.0 and the prerequisite for every size
+tier above 1,024.
+
+| Owner | Task | Done when |
+| --- | --- | --- |
+| Agent, human reviews ADR | Design the tile-native continuum composition. | An ADR (or ADR-005 amendment) defines, for every public stage, the halo, ownership rule, boundary summary and hierarchical merge, including extended association and sources larger than one halo, the à trous position filter and the continuum catalogue. It states how a small image stays one tile with no added overhead and records the `float64`/`float32` decision path. A decision statement precedes each science-affecting choice. |
+| Agent | Converge `public_science.py` onto `stages/` so one composition serves every size. | The public path runs the tiled stages; one-tile and many-tile runs on analytic edge, corner and partition-origin cases agree exactly; the non-regression campaign and Serial/Dask invariance pass; the whole-array path is deleted. |
+| Agent | Remove whole-plane state from the driver and background. | The 10⁶-pixel coarse-protection and local-noise caps are tile-bounded; RMS and mask products stream from Zarr row blocks; the catalogue is a partitioned reduction; input hashing is chunked; merges of boundary states run on workers. Tile cores are configurable within the contract's 2,048–8,192 range, and admission rejects a plan above eight live `float32` plane-equivalents or 75% of a worker limit before submission. Peak worker RSS scales with tile size, not image size. |
+| Agent | Complete the executor contract. | Bounded submission and gathering, ordering, serialization, errors, cancellation, retry and resource annotations pass one suite for Serial, persistent local threads and caller-owned Dask. No nested pools or clusters. |
+| Agent | Remove profiled bottlenecks in the tiled kernels. | Each change has paired before/after evidence on affected and adjacent anchors and passes the non-regression campaign. |
+| Agent, human approves each raise | Raise the public envelope one tier at a time: 3,000, then 10,000. | Each tier passes exact tiled-invariance tests, the non-regression campaign, complete-path benchmarks on both sides of any crossover and a memory bound, before the limit and release status change. |
+| Human | Switch uploads from TestPyPI to PyPI once the envelope covers Rapthor sector images. | The Trusted Publisher, `pypi` environment, publishing job, installation instructions and release status change together, as in the [publishing guide](../docs/how-to/publish-releases.md). |
+
+### M3 — Rapthor functionality
+
+The profile audit is read-only and may run alongside M2.
+
+| Owner | Task | Done when |
+| --- | --- | --- |
+| Agent | Refresh the Rapthor contract at the D3 revision and audit the profile. | `docs/reference/rapthor-source-finding-contract.md` traces the pinned Rapthor and LSMTool revisions. Each PyBDSF behaviour LSMTool uses (zero mean map, adaptive RMS boxes 150/50 and 35/7 at threshold 75, hard 4/5 thresholds, three wavelet scales, island-stop flat-noise pass, `srl` catalogue, island mask, both RMS maps, source count and the blanked-image path) is mapped to an existing Hebog behaviour or a listed gap. |
+| Agent | Implement the Rapthor profile and the flat-noise RMS branch. | Profile outputs are tested on analytic and generated truth; the flat-noise branch shares products and reads rather than running a second full analysis. |
+| Agent | Implement the Rapthor adapter and exercise LSMTool on Hebog products. | Pinned LSMTool clips, groups and transfers names on Hebog catalogue, mask and RMS products for true-sky and apparent-sky inputs; the seven acceptance scenarios become passing tests (empty and invalid input, retry reuse, worker loss, fallback and dual run). The adapter imports no Rapthor, Prefect or LSMTool in library code. |
+| Agent prepares, human pushes | Add Rapthor backend selection, fallback and dual-run reporting in Rapthor. | A Rapthor patch at the D3 revision selects the backend by flag, respects the caller's resource budget, and reports dual-run differences. |
+| Agent, human dispositions | Measure Rapthor-profile agreement. | Retained/rejected agreement against both PyBDSF references on true/apparent, bright, extended, edge, masked, sparse and crowded populations. Choose `compact` only with ≥99.5% overall agreement and every safety stratum passing; otherwise `continuum`. |
+
+### M4 — Deployment performance gate
+
+| Owner | Task | Done when |
+| --- | --- | --- |
+| Human freezes, agent proposes | Freeze the initial deployment envelope. | Sizes, workloads and resources match Rapthor's production sectors on the D2(a) host. |
+| Agent | Run matched complete `filter_skymodel` benchmarks and optimize until both runtime gates pass. | Both ratios and their upper one-sided 95% bounds pass on every envelope cell; memory and Hebog-curve non-regression pass; the non-regression campaign passes. Native code enters only through the native-code gates and an accepted ADR. |
+
+### M5 — Facility scale
+
+| Owner | Task | Done when |
+| --- | --- | --- |
+| Agent, human approves store | Qualify a deployment Zarr store and restart/recovery path on the facility's shared storage. | Atomicity, concurrent owned-chunk writes, codec and chunk geometry, missing chunks, cold/warm throughput and injected failures pass within an admitted memory budget. |
+| Agent | Extend benchmarks to 30,000 and then 100,000 anchors with generated truth. | Both sides of new crossovers are measured; science on the large images uses generated truth, global invariants and reference-sized cut-outs, as in ADR-005. |
+| Human allocates, agent runs | Run the controlled node ladder. | Results are invariant at 1, 10, 50, 100 and at least 200 nodes, and the scalability contract's runtime, task-count, scheduler-overhead, memory, spill and efficiency gates pass. Small-machine evidence does not substitute. |
+
+### M6 — Qualification and 1.0.0
+
+| Owner | Task | Done when |
+| --- | --- | --- |
+| Human | Freeze the 1.0.0 candidate. | Science, profile and envelope are fixed; later changes restart only the affected qualification rows. |
+| Agent designs, human approves | Run candidate-bound parity/retention with fresh held-out and public-survey data. | Every binding endpoint passes under a prospectively reviewed contract, population and power design, including the D4 limitations and at least two telescope families. Closed failed campaigns are never reused as confirmation. |
+| Human runs in Rapthor, agent supports | Operational soak behind the Rapthor flag. | Dual runs on production data show no unexplained difference, retry and restart work, and the fallback is exercised. |
+| Agent assembles, independent reviewers accept | Readiness packet and acceptance. | The packet binds science, Rapthor profile, performance, scale, portability, security, licensing, packaging and current documentation, with separate radio-astronomy and engineering acceptance. |
+| Human | Release 1.0.0. | Release Please produces 1.0.0 (for example through a `Release-As: 1.0.0` commit footer) and the package publishes to PyPI. |
+
+### Risks
+
+| Risk | Impact | Mitigation |
+| --- | --- | --- |
+| The 8–20× gap on real images does not close with NumPy/SciPy and Numba. | M4 fails. | Profile first; attack algorithmic cost before constant factors; use the native-code gates only for a profiled kernel. Report the gap honestly at each milestone. |
+| Extended association cannot be made exactly tile-invariant. | M2 stalls or changes science. | Design ownership and boundary summaries before code; test analytic shells and filaments crossing corners early; escalate a scientific trade-off to the human rather than weakening invariance silently. |
+| No facility allocation. | Scalability cannot be demonstrated; 1.0.0 cannot be claimed under D1. | Request compute now (D2(b)); keep M5 tooling runnable on a small cluster so the allocation is spent on measurement, not debugging. |
+| Rapthor or LSMTool revisions move during M3. | Adapter and contract churn. | Pin through D3; refresh the contract only at a deliberate revision change. |
+| Scientific campaigns absorb the schedule again. | Performance and scale slip. | One reusable campaign command, preflight resource checks, endpoints limited to Rapthor-consumed fields for non-regression, powered qualification once at M6. |
 
 ## Scientific gates
 
@@ -245,7 +322,8 @@ standalone release.
 
 Keep the scientific library pipeline-neutral, with inert imports, small typed
 requests and results, and no implicit clients, clusters or pools. Maintain
-Serial as the oracle, Zarr as the sole intermediate plane backend,
+one tile-native science composition for every image size, Serial as the
+oracle, Zarr as the sole intermediate plane backend,
 stage-specific halos, global ownership and hierarchical reductions. Never
 raise the public size limit by sending a complete large plane to one worker.
 Preserve dtype unless scientific evidence supports a change. Prefer
