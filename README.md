@@ -7,18 +7,16 @@
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://github.com/gemmadanks/hebog/blob/main/LICENSE)
 
 Hebog is an **experimental** source finder for radio-continuum images. It
-reads a FITS image and publishes a source catalogue, a noise (RMS) image, a
-source mask and diagnostics. It runs in a single process or on a Dask cluster.
+runs in a single process or on a Dask cluster. For each FITS image it:
 
-```mermaid
-flowchart TD
-    A["Radio image · FITS"] --> B["Estimate background and noise"]
-    B --> C["Detect compact and extended emission"]
-    C --> D["Separate, fit and measure sources"]
-    D --> E["Source catalogue"]
-    D --> F["RMS image and source mask"]
-    D --> G["Diagnostics"]
-```
+1. estimates the background and noise;
+2. detects compact and extended emission;
+3. separates, fits and measures sources; and
+4. publishes a source catalogue, a noise (RMS) image, a source mask and
+   diagnostics.
+
+[How Hebog finds sources](https://gemmadanks.github.io/hebog/explanation/how-hebog-works/)
+explains each step with diagrams.
 
 Hebog aims to be a fast, scalable source finder that is easily integrated into
 next generation radio astronomy data processing pipelines such as
