@@ -364,7 +364,7 @@ exceptions let a pipeline handle failures without parsing message text:
 
 | Exception | Meaning |
 | --- | --- |
-| `SourceFinderOutputExistsError` | The caller-owned output path already exists, including when another writer creates it while the analysis runs; Hebog will not overwrite it. |
+| `SourceFinderOutputExistsError` | The caller-owned output path already exists; Hebog will not overwrite it. Publication claims the destination atomically, so a path another writer creates while the analysis runs is reported here rather than replaced. |
 | `InvalidSourceFinderInputError` | The FITS file cannot be read as a supported image. |
 | `UnsupportedSourceFinderConfigurationError` | The image's physical unit or celestial frame (other than ICRS or FK5 J2000) is outside the public contract. |
 | `SourceFinderImageTooLargeError` | A spatial dimension exceeds 1,024 pixels. |

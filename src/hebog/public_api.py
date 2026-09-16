@@ -51,6 +51,7 @@ from hebog.data_models.images import ImageMetadata
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
 from hebog.executors import Executor
 from hebog.io import FitsImageSource, ZarrProductSink
+from hebog.io.filesystem import rename_without_replacement
 from hebog.io.materialization import (
     write_catalogue_fits_product,
     write_diagnostics_product,
@@ -128,23 +129,17 @@ def _require_unclaimed_output(output: Path) -> None:
 
 
 def _publish_bundle(unpublished: Path, output: Path) -> None:
-    """Rename the staged bundle into place without replacing a destination.
+    """Claim the destination and publish the staged bundle in one operation.
 
-    The destination is checked again after analysis because another writer may
-    claim it while this call runs. POSIX ``rename`` would otherwise silently
-    replace an empty directory. A claim in the remaining interval between the
-    check and the rename is reported as an existing output when the rename
-    fails; callers must still give concurrent analyses distinct destinations.
+    Another writer may claim the destination while the analysis runs, so the
+    publication itself, not an earlier check, decides ownership.
     """
-    _require_unclaimed_output(output)
     try:
-        unpublished.rename(output)
-    except OSError as error:
-        if output.exists() or output.is_symlink():
-            raise SourceFinderOutputExistsError(
-                f"source-finder output already exists: {output}"
-            ) from error
-        raise
+        rename_without_replacement(unpublished, output)
+    except FileExistsError as error:
+        raise SourceFinderOutputExistsError(
+            f"source-finder output already exists: {output}"
+        ) from error
 
 
 def _file_sha256(path: Path) -> str:

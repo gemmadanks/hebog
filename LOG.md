@@ -21873,3 +21873,23 @@ scientific pass from fixture validation.
   `License-Expression` and `License-File`, omit `numba`, and exclude
   `hebog.validation` from the wheel. The generated `dist/.gitignore` is a
   hidden file that `upload-artifact` excludes by default.
+
+## 2026-09-16 — Publish products with an atomic destination claim
+
+- External review of the release PR rejected the earlier check-then-rename
+  publication: POSIX `rename` replaces an existing empty directory, so a
+  destination claimed between the check and the rename could still be lost.
+  The finding is valid; the previous commit only narrowed the interval.
+- `hebog.io.filesystem.rename_without_replacement` now claims the destination
+  and publishes in one operation, through `renameat2(RENAME_NOREPLACE)` on
+  Linux and `renamex_np(RENAME_EXCL)` on macOS, resolved lazily so imports
+  stay inert. Windows `rename` already refuses an existing destination. Where
+  the operation is missing or a file system rejects it (`ENOSYS`, `ENOTSUP`,
+  `EOPNOTSUPP`, `EINVAL`), a checked rename remains, with its residual race
+  documented at the boundary. `EEXIST` and `ENOTEMPTY` become
+  `SourceFinderOutputExistsError`; every other error propagates unchanged.
+- Tests cover an unclaimed destination, empty, populated, file and dangling
+  symlink destinations, a missing source, the unsupported-operation fallback
+  and an unrelated `EACCES`. One test records that a plain `os.rename` would
+  replace an empty destination, which is the behaviour this boundary exists
+  to prevent.

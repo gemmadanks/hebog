@@ -1323,22 +1323,27 @@ def test_whole_pixel_beam_is_invariant_to_sub_milliarcsecond_reference_shift(
 
 @pytest.mark.integration
 @pytest.mark.parametrize("claimed", (True, False))
-def test_publication_rename_failure_is_classified_by_destination(
+def test_publication_failure_is_classified_by_destination(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     claimed: bool,
 ) -> None:
-    """A rename race is an existing output; other rename errors propagate."""
+    """A claimed destination is an existing output; other errors propagate."""
     unpublished = tmp_path / "bundle"
     unpublished.mkdir()
     output = tmp_path / "products"
+    failure = (
+        FileExistsError("injected claim")
+        if claimed
+        else OSError("injected rename failure")
+    )
 
-    def failing_rename(_source: Path, _target: Path) -> Path:
-        if claimed:
-            output.mkdir()
-        raise OSError("injected rename failure")
+    def failing_rename(_source: Path, _target: Path) -> None:
+        raise failure
 
-    monkeypatch.setattr(Path, "rename", failing_rename)
+    monkeypatch.setattr(
+        public_api, "rename_without_replacement", failing_rename
+    )
     expected = SourceFinderOutputExistsError if claimed else OSError
     with pytest.raises(expected) as error:
         public_api._publish_bundle(unpublished, output)  # pyright: ignore[reportPrivateUsage]
