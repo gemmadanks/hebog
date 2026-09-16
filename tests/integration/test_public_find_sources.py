@@ -1225,19 +1225,27 @@ def test_fk5_j2000_input_publishes_the_same_icrs_sky(
 
 
 @pytest.mark.integration
+@pytest.mark.parametrize("missing_card", ("absent", "undefined"))
 def test_supplied_metadata_publishes_the_same_science_as_a_complete_header(
     tmp_path: Path,
+    missing_card: str,
 ) -> None:
     """Given an image whose header omits frequency and beam angle,
     when the caller supplies the header's missing values,
     then Hebog publishes the same catalogue as for the complete header and
     records the supplied values in diagnostics.
+
+    A keyword present with an undefined value is missing, just as an absent
+    keyword is.
     """
     image = _ring_image()
     _write_image(tmp_path / "image.fits", image)
     header = _header(image.shape)
     del header["RESTFRQ"]
-    del header["BPA"]
+    if missing_card == "absent":
+        del header["BPA"]
+    else:
+        header["BPA"] = None
     fits.PrimaryHDU(data=image, header=header).writeto(
         tmp_path / "sparse.fits"
     )

@@ -374,8 +374,8 @@ class SourceFinderRequest:
     image_path: Path
     output_directory: Path
     run_id: str
-    supplied_metadata: SuppliedImageMetadata | None = None
     schema_version: Literal[1] = 1
+    supplied_metadata: SuppliedImageMetadata | None = None
 
     def __post_init__(self) -> None:
         """Reject unsupported schema versions and empty run identifiers."""

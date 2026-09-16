@@ -222,9 +222,10 @@ def _header_with_metadata(
 ) -> fits.Header:
     """Fill beam keywords the header omits from validated image metadata.
 
-    The scientific composition reads the beam from the header. Metadata
-    validation has already refused any supplied value that duplicates a
-    header keyword, so existing header values are never changed.
+    The scientific composition reads the beam from the header. A keyword with
+    an undefined value is missing, as in metadata validation, which has
+    already refused any supplied value that duplicates a defined keyword, so
+    defined header values are never changed.
     """
     completed = header.copy()
     beam = metadata.beam
@@ -233,7 +234,7 @@ def _header_with_metadata(
         ("BMIN", beam.minor_fwhm_degrees),
         ("BPA", beam.position_angle_degrees),
     ):
-        if keyword not in completed:
+        if completed.get(keyword) is None:
             completed[keyword] = value
     return completed
 

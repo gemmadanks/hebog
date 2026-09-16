@@ -936,3 +936,13 @@ def test_source_finder_request_carries_supplied_metadata() -> None:
         ).supplied_metadata
         is None
     )
+
+
+def test_source_finder_request_keeps_its_positional_schema_version() -> None:
+    """Adding supplied metadata does not reinterpret positional arguments."""
+    request = SourceFinderRequest(
+        Path("image.fits"), Path("products"), "run", 1
+    )
+
+    assert request.schema_version == 1
+    assert request.supplied_metadata is None
