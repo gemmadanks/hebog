@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.0](https://github.com/gemmadanks/hebog/compare/v0.7.0...v0.8.0) (2026-09-16)
+
+
+### 🚀 Features
+
+* explicit image metadata ([#59](https://github.com/gemmadanks/hebog/issues/59)) ([25377d1](https://github.com/gemmadanks/hebog/commit/25377d1bd1013ca25516f7d2fd1b618b92683e9b))
+
+
+### 🐛 Bug Fixes
+
+* fit Gaussian components with diagonal weighting ([25377d1](https://github.com/gemmadanks/hebog/commit/25377d1bd1013ca25516f7d2fd1b618b92683e9b))
+
+
+### 📚 Documentation
+
+* re-baseline the plan toward a demonstrated 1.0.0 ([25377d1](https://github.com/gemmadanks/hebog/commit/25377d1bd1013ca25516f7d2fd1b618b92683e9b))
+* replace the README diagram with a list that renders on PyPI ([#57](https://github.com/gemmadanks/hebog/issues/57)) ([405f26b](https://github.com/gemmadanks/hebog/commit/405f26b4f35f2aec6c32c78f8f6e950e99494005))
+
+
+### 🧪 Tests
+
+* add a quick fixed-case science regression check ([25377d1](https://github.com/gemmadanks/hebog/commit/25377d1bd1013ca25516f7d2fd1b618b92683e9b))
+
 ## [0.7.0](https://github.com/gemmadanks/hebog/compare/v0.6.0...v0.7.0) (2026-09-16)
 
 
