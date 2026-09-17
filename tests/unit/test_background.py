@@ -219,3 +219,28 @@ def test_rejects_empty_batches_or_windows(shape: tuple[int, int, int]) -> None:
             np.empty(shape, dtype=np.bool_),
             _config(),
         )
+
+
+def test_a_fully_invalid_window_is_unavailable_and_silent(
+    recwarn: pytest.WarningsRecorder,
+) -> None:
+    """Blanked regions are ordinary input, not something to warn about.
+
+    Window statistics run once per grid cell over a whole image, so a
+    warning per blanked cell would bury real ones.
+    """
+    windows = np.zeros((2, 4, 4), dtype=np.float64)
+    windows[0] = np.nan
+    valid = np.ones(windows.shape, dtype=np.bool_)
+
+    statistics = estimate_rms_window_statistics(
+        windows, valid, _config(minimum_samples=4)
+    )
+
+    assert not bool(statistics.available[0])
+    assert bool(statistics.available[1])
+    assert np.isnan(statistics.background[0])
+    assert np.isnan(statistics.rms[0])
+    assert int(statistics.valid_sample_count[0]) == 0
+    assert int(statistics.retained_sample_count[0]) == 0
+    assert [warning.category.__name__ for warning in recwarn] == []

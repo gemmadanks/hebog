@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 from math import isqrt
 from numbers import Integral
@@ -13,6 +14,7 @@ from typing import Any, cast
 import numpy as np
 import numpy.typing as npt
 from astropy.stats import sigma_clip
+from astropy.utils.exceptions import AstropyUserWarning
 from scipy.interpolate import RegularGridInterpolator
 from scipy.ndimage import distance_transform_edt
 
@@ -925,37 +927,40 @@ def estimate_rms_window_statistics(
         effective_validity,
         axis=_STATISTIC_AXES,
     ).astype(np.int64, copy=False)
-    masked_values = np.ma.array(
-        values,
-        mask=~effective_validity,
-        copy=True,
-    )
-    clipped = cast(
-        np.ma.MaskedArray[Any, Any],
-        sigma_clip(
-            masked_values,
-            sigma=config.clipping_sigma,
-            maxiters=config.maximum_iterations,
-            cenfunc="median",
-            stdfunc="std",
-            axis=_STATISTIC_AXES,
-            masked=True,
-            copy=True,
-        ),
-    )
+    # Excluded samples are carried as NaN rather than a masked array: the
+    # statistics are the same, and both the clipping and the reductions
+    # below are about twice as fast without the mask bookkeeping.
+    retained = np.where(effective_validity, values, np.nan)
+    with warnings.catch_warnings():
+        # Invalid pixels are ordinary input here, and a window with no
+        # retained sample is reported through ``available``.
+        warnings.simplefilter("ignore", AstropyUserWarning)
+        retained = cast(
+            npt.NDArray[np.float64],
+            sigma_clip(
+                retained,
+                sigma=config.clipping_sigma,
+                maxiters=config.maximum_iterations,
+                cenfunc="median",
+                stdfunc="std",
+                axis=_STATISTIC_AXES,
+                masked=False,
+                copy=False,
+            ),
+        )
     retained_sample_count = np.count_nonzero(
-        ~np.ma.getmaskarray(clipped),
+        np.isfinite(retained),
         axis=_STATISTIC_AXES,
     ).astype(np.int64, copy=False)
     available = retained_sample_count >= config.minimum_samples
-    background = np.asarray(
-        np.ma.median(clipped, axis=_STATISTIC_AXES).filled(np.nan),
-        dtype=np.float64,
-    )
-    rms = np.asarray(
-        np.ma.std(clipped, axis=_STATISTIC_AXES).filled(np.nan),
-        dtype=np.float64,
-    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        background = np.asarray(
+            np.nanmedian(retained, axis=_STATISTIC_AXES), dtype=np.float64
+        )
+        rms = np.asarray(
+            np.nanstd(retained, axis=_STATISTIC_AXES), dtype=np.float64
+        )
     background[~available] = np.nan
     rms[~available] = np.nan
 
