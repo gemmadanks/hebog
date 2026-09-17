@@ -22725,3 +22725,77 @@ scientific pass from fixture validation.
   three parts. Function-level rankings stay those of
   `m1-profile-20260917`, whose `cProfile` statistics see every call
   regardless of which binding made it.
+
+## 2026-09-17 — M1: bounded per-component scans
+
+- **Problem.** The profile's interaction term was work repeated per
+  component over the whole image, which grows with the square of image size
+  at a fixed source density: 59% of a dense 2,048² run and 47% of SDC1
+  2,048².
+- **Change.** `hebog.algorithms.label_groups` groups every labelled pixel
+  once, in row-major order within each label, and gives each label its
+  window. Seven kernels now work inside a label's own support or window
+  instead of scanning the plane for each label:
+  - `build_scale_detection_plane` and `_label_bounds`
+    (`multiscale_association`);
+  - `measure_detected_segment_position`, through a new `SegmentWindow`, and
+    its callers in `science.catalogues`, which take one window per segment
+    from a single `find_objects` pass;
+  - `_segment_pixel_moment_covariance` and `_moment_shape_fields`;
+  - `build_detection_component_records` and `_positive_moment_geometry`
+    (`source_association`);
+  - `_preserve_refined_segment_connectivity` (`extended_measurement`);
+  - `public_api._support_statistics`, now `_support_local_rms`, which
+    returns the one value its callers read.
+- **Two contracts changed deliberately.**
+  - `_positive_moment_geometry` carried the tile origin into pixel
+    coordinates before weighting them, so a component's geometry no longer
+    depends on the window it was measured in. With a tile origin of (0, 0),
+    which the public path uses, 0 of 300 random components changed; with
+    origins up to 40,000, 168 of 200 changed, by at most 2.2e-11 pixels.
+  - `_label_bounds` raises for a label without pixels instead of returning
+    inverted bounds. Every caller already required labels to cover each
+    record exactly once.
+- **Defect caught in review of my own first attempt.** Owner connectivity
+  first used the original support's window alone, but refinement propagates
+  labels into recovered multiscale emission, so an owner can reach pixels
+  outside that window and a split would go unnoticed. The window is now the
+  union of original and refined support, with a regression test that fails
+  against the first attempt.
+- **Profile `m1-profile-3-bounded-scans`** against `m1-profile-2-20260917`,
+  same machine, one repetition, no `cProfile`:
+
+  | Term | Before | After | Ratio |
+  | --- | --- | --- | --- |
+  | Fixed | 1.35 s | 0.52 s | 0.39 |
+  | Per megapixel | 18.59 s | 19.55 s | 1.05 |
+  | Per component | 48.5 ms | 42.3 ms | 0.87 |
+  | Per megapixel-component | 47.4 ms | 1.6 ms | 0.034 |
+
+  The interaction term is 3.4% of its previous value, against the plan's
+  10% threshold. Complete runs: SDC1 crowded 2,048² 956 s → 279 s (3.4×),
+  generated dense 2,048² 322 s → 131 s (2.5×), SDC1 crowded 1,024² 119 s →
+  64 s (1.9×), LoTSS 1,024² about 1.25×. Noise-only cases are unchanged
+  within run-to-run noise, as expected: with no components there is no
+  per-component work to bound. The per-megapixel term rose 5%, which one
+  repetition cannot separate from noise; the next background work will
+  revisit it.
+- **Quick science check `bounded-scans`** against `diagonal-weighted-fits`:
+  all 16 cases succeed, no regressions in any reported field. Hebog time
+  fell from 325 s to 229 s.
+- **Quick benchmark** against v0.9.0, five measured repetitions after a
+  warm-up:
+
+  | Case | Hebog s | v0.9.0 s | Ratio [bounds] | `master` s | Ratio |
+  | --- | --- | --- | --- | --- | --- |
+  | dense field | 24.2 | 28.5 | 0.85 [0.79, 0.89] pass | 3.8 | 6.39 |
+  | LoTSS sparse | 28.1 | 31.8 | 0.88 [0.85, 0.90] pass | 5.8 | 4.85 |
+  | LoTSS dense | 28.4 | 35.2 | 0.81 [0.79, 0.82] pass | 5.9 | 4.78 |
+  | SDC1 crowded 1,024² | 61.9 | 114.4 | 0.54 [0.54, 0.56] pass | – | – |
+
+  Pinned `master` again failed on the crowded SDC1 cut-out with the
+  `gausfit.fit_island` error recorded on 16 September, so that case has no
+  reference ratio. The `master` ratios on the other cases improve from
+  6.2–9.1× to 4.8–6.4×.
+- **Validation:** 1,820 unit, 380 integration and 27 equivalence tests,
+  Pyright and Ruff.
