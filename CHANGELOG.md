@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.0](https://github.com/gemmadanks/hebog/compare/v0.8.0...v0.9.0) (2026-09-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove closed phase-campaign tooling
+* remove the remaining campaign validation modules
+* replace phase names with descriptive stage names
+
+### 🚀 Features
+
+* add quick benchmark ([#60](https://github.com/gemmadanks/hebog/issues/60)) ([e33f326](https://github.com/gemmadanks/hebog/commit/e33f326b8e10a8f27262d93c1151615cdc71c90f))
+
+
+### 🧹 Refactoring
+
+* remove closed phase-campaign tooling ([e33f326](https://github.com/gemmadanks/hebog/commit/e33f326b8e10a8f27262d93c1151615cdc71c90f))
+* remove the remaining campaign validation modules ([e33f326](https://github.com/gemmadanks/hebog/commit/e33f326b8e10a8f27262d93c1151615cdc71c90f))
+* replace phase names with descriptive stage names ([e33f326](https://github.com/gemmadanks/hebog/commit/e33f326b8e10a8f27262d93c1151615cdc71c90f))
+
 ## [0.8.0](https://github.com/gemmadanks/hebog/compare/v0.7.0...v0.8.0) (2026-09-16)
 
 
