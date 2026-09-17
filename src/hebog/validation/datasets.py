@@ -20,9 +20,6 @@ import numpy.typing as npt
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from scipy.ndimage import correlate
 
-GENERATOR_NAME = "hebog.synthetic.gaussian-noise"
-GENERATOR_VERSION = 3
-
 _CORRELATED_NOISE_GENERATOR_VERSION = 3
 
 _UINT64_LIMIT = 2**64 - 1

@@ -62,186 +62,23 @@ document embeds the complete reports for those products. Released PyBDSF and
 pinned PyBDSF `master` therefore produce separate documents even when they use
 the same dataset and candidate output.
 
-## Phase 5 filter-review evidence
+## Source-pair diagnostics
 
-A `phase-five-filter-paired-review` document binds the pre-results protocol,
-development and regression manifest checksums, source tree, dependency
-inventory, and environment. It records every analytic, development, and
-regression endpoint by candidate, statistic, and applicable stratum, plus both
-directions of each exact or whole-image bootstrapped paired comparison.
-Candidate conclusions are derived from their recorded failures; a document
-cannot authorize Step 3 unless one candidate passes every absolute and paired
-endpoint. The reviewed Step 2B evidence selected neither candidate, so its
-separate committed decision contract keeps optimization, qualification, and
-Step 3 closed.
+Use `hebog.validation.diagnostics.source_pair_diagnostics` to derive one
+deterministic row for every matched source, unmatched truth source and
+unmatched candidate from an independent catalogue comparison report. Rows
+include truth strata, flux and position differences, catastrophic flags and
+normalized residuals. The function shares the normalized-residual calculation
+used by the aggregate uncertainty report, so per-source and aggregate
+statistics cannot silently diverge.
 
-## Phase 5 astrometry-development evidence
+## Closed campaign evidence
 
-A `phase-five-astrometry-development` document binds the successor protocol,
-base corrective protocol, fresh development manifest, source tree, dependency
-inventory, and environment. It records direct group-level median and p95
-position endpoints with whole-image cluster-bootstrap bounds; 68% and 95%
-Mahalanobis coverage by morphology, SNR, scale, edge, invalid-pixel,
-truncation, and estimator disposition; model availability and adequacy; and a
-conjunctive candidate decision. The schema recomputes the frozen preference
-for the direct estimator unless an eligible model improves overall p95 by at
-least 0.02 beam. A rejected development result cannot authorize confirmation,
-Step 2C-P, Step 3, optimization, or qualification.
-
-A later `phase-five-astrometry-follow-up-development` document binds the
-Step 2C-HR compact/extended position split, the exact corrective-A residual-B3
-detection protocol, and a new 80-image development manifest. It records exact
-availability plus whole-image-cluster upper confidence bounds for signed-axis
-bias and radial p95 repeatability in every applicable astronomical stratum.
-Median radial error and error against the former threshold-independent target
-remain diagnostic. Even a completely passing document remains `exploratory`,
-marks only `eligible-awaiting-human-review`, and cannot authorize the sealed
-confirmation or any downstream Phase 5 step.
-
-The checked-in
-`phase-5-astrometry-follow-up-development-decision.json` binds the ignored
-development evidence by checksum and records its compact technical review.
-The decision can retain a completely passing candidate only for named human
-scientific review. Its schema keeps confirmation, Step 2C-P, Step 3,
-optimization, and qualification false, so a development pass cannot be
-mistaken for production selection.
-
-The separate `phase-5-astrometry-follow-up-human-decision.json` records the
-named project-owner review. It may authorize exactly one sealed confirmation
-without changing the candidate, target, population, bootstrap, or gates. It
-does not authorize Step 2C-P or any later phase.
-
-A `phase-five-astrometry-follow-up-confirmation` document is the raw result of
-that authorized one-look execution. It binds the human and development
-decisions, development evidence, frozen protocols, confirmation manifest,
-runner, source tree, dependencies, and environment. Its status remains
-`exploratory` and every downstream gate remains false until a separate
-technical decision reviews all confirmation endpoints.
-
-The checked-in
-`phase-5-astrometry-follow-up-confirmation-decision.json` binds the raw
-evidence checksum and reviewed metrics. A passing decision may authorize only
-the freeze of a fresh Step 2C-P protocol; external-finder execution remains
-false until that prospective protocol is complete and validated.
-
-The checked-in `phase-5-external-comparison.json` is that prospective
-pre-results protocol. It binds two fresh seed-disjoint manifests, exact
-PyBDSF release/master and Aegean runtimes, finder configurations, like-product
-mappings, truth-first matcher rules, metric scopes, margins, resampling,
-power, and the one-look failure policy. It keeps execution false until the
-three runners and matcher are implemented, tested, and hash-bound by a
-separate review.
-
-The Phase 5
-`config/contracts/phase-5-external-execution-decision.json` was the only record
-that could open those runners. It and the authorization-bound runners were
-removed with the closed campaign tooling and remain in
-[Git history at `4babf0b`](https://github.com/gemmadanks/hebog/tree/4babf0baaf5609e72764183e543df84ec6be09e0); the notebook comparison now reruns reference
-finders without that authority. The description below records its historical
-meaning. It binds the frozen protocol, residual-B3
-candidate review, committed implementation revision, complete production-
-source-tree digest, and the three isolated entry-point digests. It also
-freezes the Hebog container and dependency inventory and the PyBDSF core
-count; reference container and dependency identities remain fixed by the
-prospective protocol. The decision is valid only before the one-look
-population opens and keeps Step 3, optimization, and qualification false. An
-`awaiting-reconstructed-runtime-approval` record is deliberately not an
-authorization: runners and the campaign launcher reject it before opening an
-input or staging directory. Only the named reviewed state may proceed.
-The active record reached that reviewed state on 2026-08-11 after Gemma Danks
-approved the exact reconstructed identities, four PyBDSF cores, the scoped
-512-pixel diagnostic limitation, and one sealed terminal execution.
-Each raw one-realization `result.json` then binds that decision and the common
-`input.json`, preserves a finder failure rather than dropping the image, and
-lists every output artifact by relative path, byte count, and SHA-256.
-
-The complete-population launcher adds three campaign-level records outside the
-public scientific-evidence schema. `campaign-request.json` freezes the launcher
-checksum, all four inspected immutable image identities, every realization,
-and every applicable finder/mode leg before execution. The private
-`campaign-open-state.json` records the exact request hash and UTC opening time.
-Only after all 7,000 results verify does `campaign.json` seal the ordered raw
-result-manifest checksums, terminal success/failure counts, and unchanged
-closed downstream gates. These records are canonical JSON and raw campaign
-provenance; they do not themselves evaluate non-inferiority or authorize Step
-3.
-
-## Paired scientific-campaign evidence
-
-A scientific-campaign document compares Hebog and every reference on the same
-image realization. It declares one candidate first, names every implementation
-independently of its package name, and requires one outcome from every
-implementation for every seed. A reference failure is retained as a structured
-failure rather than dropping the seed or publishing a partial result.
-
-Successful outcomes retain one deterministic row for every matched source,
-unmatched truth source, and unmatched candidate. Rows include truth strata,
-classification and quality information, flux and position differences,
-fitted and deconvolved position-angle differences where reference truth is
-eligible, independent catastrophic flags, the governed catastrophic decision,
-and all available normalized residuals. Successful implementations must
-expose the same truth identifiers. This makes paired non-inferiority analysis
-auditable and prevents aggregate pass/fail counts from hiding which sources
-changed.
-
-Association rows separately preserve every observable truth group, including
-unresolved blends, with its match decision, group strata, separation, and
-integrated-flux difference. Group metrics use the raw fitted total; individual
-unresolved catalogue rows use Rapthor's documented peak-as-total compatibility
-view. This distinction keeps unresolved-group gates scientifically unchanged.
-
-Each isolated environment first writes a
-`CampaignImplementationEvidence` shard. A shard binds the complete dataset
-record and seed population, shared scientific contracts, paired-comparison
-protocol, exact software and execution configuration, elapsed diagnostic time,
-and every result or failure. The campaign compiler requires identical shard
-provenance and seeds and refuses to infer a missing result.
-The directions, practical margins, clustered interval method, failure policy,
-and stopping rule come from the separately reviewed
-[Phase 4 paired non-inferiority protocol](phase-4-paired-noninferiority.md),
-never from an inspected campaign result.
-The maintained Hebog runner exercises the complete bounded serial compact path
-and converts its pipeline-neutral catalogue directly to comparison rows. The
-two PyBDSF environments use the matching reference runner. This keeps candidate
-and reference execution isolated while sharing provenance hashing, failure
-capture, truth diagnostics, and compilation rules.
-
-Use `hebog.validation.diagnostics.source_pair_diagnostics` to derive these
-rows from the independent catalogue comparison report. It deliberately shares
-the normalized-residual calculation used by the aggregate uncertainty report,
-so per-source and campaign-level statistics cannot silently diverge.
-
-## Phase 4 one-look decision evidence
-
-The closed Phase 4 evaluator consumed a compiled campaign, the exact frozen
-dataset, the ordered scientific-contract set, the scientific gates and the
-reviewed paired protocol, and verified every checksum and seed before scoring.
-It emitted one strict `phase-4-qualification-decision` document containing:
-
-- every signed Hebog-versus-released-PyBDSF endpoint estimate and one-sided
-  95% SciPy BCa upper limit;
-- a report-only secondary comparison with pinned PyBDSF `master` wherever that
-  implementation completed;
-- every absolute held-out catalogue, shape, association, unresolved-group,
-  catastrophic, and entire-interval uncertainty result;
-- the named conjunctions protecting Hebog's stronger scientific results; and
-- every failed seed under its reviewed `qualification-fails` or
-  `record-and-continue` policy.
-
-Individual-source 95th-percentile tails retained their contractually declared
-`report-only` role; unresolved-group tails remained gates. An otherwise
-undefined BCa result used `[point, point]` only when its complete finite
-bootstrap distribution exactly equalled the finite observed point estimate.
-A missing required field or any other non-finite result was recorded as
-`indeterminate` and failed closed.
-
-The evaluator, `scripts/validation/evaluate_phase4_qualification.py`, the
-`phase-4-qualification-decision` and `phase-4r-decision` evidence schemas and
-their writers were removed with the closed campaign tooling and remain in
-[Git history at `4babf0b`](https://github.com/gemmadanks/hebog/tree/4babf0baaf5609e72764183e543df84ec6be09e0). `load_evidence` no longer accepts those two
-historical decision documents; read them from that revision. Their
-`exploratory` status meant each machine decision still required human evidence
-review, and never permitted a second look or a replacement population.
+The Phase 4 paired-campaign, Phase 4 one-look decision, Phase 5 filter-review,
+corrective-review and astrometry evidence schemas were removed with the closed
+campaign tooling. `load_evidence` accepts only benchmark and
+scientific-comparison documents. Read the historical schemas and their
+documentation at [`v0.7.0`](https://github.com/gemmadanks/hebog/blob/v0.7.0/docs/reference/evidence-documents.md).
 
 ## Writing and loading evidence
 

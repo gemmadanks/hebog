@@ -12,17 +12,13 @@ importing or mutating that closed program.
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Sequence
 from dataclasses import dataclass
 from math import hypot, isfinite
 from typing import Literal
 
 import numpy as np
 import numpy.typing as npt
-from astropy.io import fits
-from astropy.wcs import WCS
 
-from hebog.validation.comparison import CatalogueSource
 from hebog.validation.external_comparison import (
     AssociationObject,
     EligibleAssociation,
@@ -31,14 +27,6 @@ from hebog.validation.external_comparison import (
 
 _IMAGE_DIMENSIONS = 2
 MetricValue = float | tuple[float, ...]
-ContinuumFinderId = Literal[
-    "hebog",
-    "released-pybdsf",
-    "pinned-pybdsf-master",
-]
-_CONTINUUM_FINDER_IDS = frozenset(
-    {"hebog", "released-pybdsf", "pinned-pybdsf-master"}
-)
 _METRIC_FAMILIES = (
     "completeness",
     "reliability",
@@ -225,70 +213,6 @@ def _topology_support_objects(
                 identifier=support.identifier,
                 support_label=support.support_label,
                 centre_xy=centre_xy,
-            )
-        )
-    return tuple(output)
-
-
-def _catalogue_support_label(
-    source: CatalogueSource,
-    finder_id: ContinuumFinderId,
-) -> int:
-    """Map a measurable row to its exact native positive support label."""
-    identifier = source.island_identifier
-    if identifier is None:
-        raise ValueError("continuum catalogue row lacks an island identity")
-    if finder_id == "hebog":
-        prefix = "hebog-segment-"
-        if not identifier.startswith(prefix):
-            raise ValueError("Hebog segment island identity is malformed")
-        suffix = identifier[len(prefix) :]
-        if not suffix.isdecimal():
-            raise ValueError("Hebog segment island identity is malformed")
-        return int(suffix)
-    try:
-        island_identifier = int(identifier)
-    except ValueError:
-        raise ValueError("PyBDSF island identity is malformed") from None
-    if str(island_identifier) != identifier or island_identifier < 0:
-        raise ValueError("PyBDSF island identity is malformed")
-    return island_identifier + 1
-
-
-def continuum_catalogue_objects(
-    catalogue: Sequence[CatalogueSource],
-    label_plane: npt.ArrayLike,
-    *,
-    finder_id: ContinuumFinderId,
-    header: fits.Header,
-) -> tuple[ContinuumCatalogueObject, ...]:
-    """Translate measurable rows while permitting native fitless supports."""
-    if finder_id not in _CONTINUUM_FINDER_IDS:
-        raise ValueError("continuum finder identity is unsupported")
-    native_labels = {
-        item.support_label for item in native_support_objects(label_plane)
-    }
-    celestial = WCS(header, relax=True).celestial
-    output: list[ContinuumCatalogueObject] = []
-    for source in catalogue:
-        label = _catalogue_support_label(source, finder_id)
-        if label not in native_labels:
-            raise ValueError("continuum catalogue support label is absent")
-        centre = celestial.all_world2pix(
-            [[source.right_ascension_degrees, source.declination_degrees]],
-            0,
-        )[0]
-        integrated_flux = (
-            source.association_integrated_flux_jy
-            if source.association_integrated_flux_jy is not None
-            else source.integrated_flux_jy
-        )
-        output.append(
-            ContinuumCatalogueObject(
-                identifier=source.identifier,
-                support_label=label,
-                centre_xy=(float(centre[0]), float(centre[1])),
-                integrated_flux_jy=integrated_flux,
             )
         )
     return tuple(output)

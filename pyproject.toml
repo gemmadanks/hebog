@@ -109,8 +109,6 @@ known-first-party = ["hebog"]
 
 [tool.ruff.lint.per-file-ignores]
 "notebooks/**" = ["PLC0415", "PLR0913", "PLR0917", "PLR1711"]
-# The recovery compiler must match the checksum-bound terminal callback.
-"src/hebog/validation/external_recovery_compiler.py" = ["PLR0917"]
 "tests/**" = ["PLR2004"]
 
 [build-system]

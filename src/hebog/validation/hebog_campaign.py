@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from dataclasses import replace
 from pathlib import Path
-from typing import TypeAlias
 
 import numpy as np
 
@@ -38,10 +35,6 @@ from hebog.validation.datasets import (
 )
 from hebog.validation.materialization import synthetic_image_metadata
 
-RecipeProcessor: TypeAlias = Callable[
-    [SyntheticRecipe, DatasetRecord, Path],
-    tuple[CatalogueSource, ...],
-]
 _IMAGE_DIMENSIONS = 2
 
 
@@ -158,173 +151,6 @@ def phase_four_candidate_configs() -> tuple[
         ),
         CompactCatalogueConfig(10_000, 1e-10, 5.0),
     )
-
-
-def phase_five_corrected_candidate_configs() -> tuple[
-    DetectionStageConfig,
-    CompactDeblendConfig,
-    CompactMomentConfig,
-    CompactGaussianFitConfig,
-    CompactCatalogueConfig,
-]:
-    """Return the prospective post-campaign compact correction."""
-    detection, deblend, moment, fit, catalogue = phase_four_candidate_configs()
-    return (
-        detection,
-        deblend,
-        moment,
-        replace(
-            fit,
-            model_selection="beam-or-free",
-            position_estimator="selected-model",
-            component_extension_significance_sigma=1.5,
-            integrated_flux_bias_correction_sigma=0.075,
-            association_aperture_radius_sigma=1.5,
-        ),
-        catalogue,
-    )
-
-
-def _campaign_configuration(
-    configs: tuple[
-        DetectionStageConfig,
-        CompactDeblendConfig,
-        CompactMomentConfig,
-        CompactGaussianFitConfig,
-        CompactCatalogueConfig,
-    ],
-) -> dict[str, object]:
-    """Serialize one complete candidate policy for evidence identity."""
-    detection, deblend, moment, fit, catalogue = configs
-    coarse = detection.background_rms.coarse
-    adaptive = detection.background_rms.adaptive
-    assert adaptive is not None
-    statistics = coarse.statistics
-    configuration: dict[str, object] = {
-        "adaptive_rms": {
-            "candidate_threshold_sigma": adaptive.candidate_threshold_sigma,
-            "influence_radius_pixels": adaptive.influence_radius_pixels,
-            "step_yx": list(adaptive.grid.step_yx),
-            "transition_width_pixels": adaptive.transition_width_pixels,
-            "window_shape_yx": list(adaptive.grid.window_shape_yx),
-        },
-        "catalogue": {
-            "deconvolution_axis_significance_sigma": (
-                catalogue.deconvolution_axis_significance_sigma
-            ),
-            "deconvolution_relative_tolerance": (
-                catalogue.deconvolution_relative_tolerance
-            ),
-            "extension_significance_sigma": (
-                catalogue.extension_significance_sigma
-            ),
-            "maximum_catalogue_records": catalogue.maximum_catalogue_records,
-        },
-        "coarse_rms": {
-            "maximum_batch_cells": coarse.maximum_batch_cells,
-            "step_yx": list(coarse.step_yx),
-            "window_shape_yx": list(coarse.window_shape_yx),
-        },
-        "deblending": {
-            "maximum_batch_pixels": deblend.maximum_batch_pixels,
-            "maximum_compact_bounds_pixels": (
-                deblend.maximum_compact_bounds_pixels
-            ),
-            "maximum_compact_island_pixels": (
-                deblend.maximum_compact_island_pixels
-            ),
-            "minimum_peak_separation_pixels": (
-                deblend.minimum_peak_separation_pixels
-            ),
-            "minimum_peak_signal_to_noise": (
-                deblend.minimum_peak_signal_to_noise
-            ),
-            "minimum_region_pixels": deblend.minimum_region_pixels,
-            "minimum_saddle_depth_sigma": deblend.minimum_saddle_depth_sigma,
-            "target_batch_pixels": deblend.target_batch_pixels,
-        },
-        "executor": "serial",
-        "fitting": {
-            "association_aperture_minimum_fixed_beam_model_fraction": (
-                fit.association_aperture_minimum_fixed_beam_model_fraction
-            ),
-            "association_aperture_radius_sigma": (
-                fit.association_aperture_radius_sigma
-            ),
-            "background_model": fit.background_model,
-            "center_margin_pixels": fit.center_margin_pixels,
-            "context_margin_pixels": fit.context_margin_pixels,
-            "convergence_tolerance": fit.convergence_tolerance,
-            "maximum_amplitude_factor": fit.maximum_amplitude_factor,
-            "maximum_axis_ratio": fit.maximum_axis_ratio,
-            "maximum_background_offset_sigma": (
-                fit.maximum_background_offset_sigma
-            ),
-            "maximum_function_evaluations": fit.maximum_function_evaluations,
-            "maximum_information_condition_number": (
-                fit.maximum_information_condition_number
-            ),
-            "maximum_sigma_pixels": fit.maximum_sigma_pixels,
-            "minimum_fit_pixels": fit.minimum_fit_pixels,
-            "minimum_sigma_pixels": fit.minimum_sigma_pixels,
-            "extension_significance_sigma": (fit.extension_significance_sigma),
-            "maximum_gls_pixels": fit.maximum_gls_pixels,
-            "model_selection": fit.model_selection,
-            "pixel_support": fit.pixel_support,
-            "point_estimator": fit.point_estimator,
-            "position_estimator": fit.position_estimator,
-        },
-        "image_dtype": "float64",
-        "moment": {
-            "covariance_relative_tolerance": (
-                moment.covariance_relative_tolerance
-            ),
-            "minimum_shape_pixels": moment.minimum_shape_pixels,
-        },
-        "rms_statistics": {
-            "clipping_sigma": statistics.clipping_sigma,
-            "maximum_iterations": statistics.maximum_iterations,
-            "minimum_samples": statistics.minimum_samples,
-        },
-        "source_finder": {
-            "detection_threshold_sigma": (
-                detection.source_finder.detection_threshold_sigma
-            ),
-            "island_threshold_sigma": (
-                detection.source_finder.island_threshold_sigma
-            ),
-            "minimum_island_pixels": (
-                detection.source_finder.minimum_island_pixels
-            ),
-        },
-        "tile_core_shape_yx": [128, 128],
-    }
-    if (
-        fit.component_extension_significance_sigma
-        != fit.extension_significance_sigma
-    ):
-        fitting = configuration["fitting"]
-        assert isinstance(fitting, dict)
-        fitting["component_extension_significance_sigma"] = (
-            fit.component_extension_significance_sigma
-        )
-    if fit.integrated_flux_bias_correction_sigma != 0.0:
-        fitting = configuration["fitting"]
-        assert isinstance(fitting, dict)
-        fitting["integrated_flux_bias_correction_sigma"] = (
-            fit.integrated_flux_bias_correction_sigma
-        )
-    return configuration
-
-
-def hebog_campaign_configuration() -> dict[str, object]:
-    """Return the exact historical Phase 4 candidate policy."""
-    return _campaign_configuration(phase_four_candidate_configs())
-
-
-def corrected_hebog_campaign_configuration() -> dict[str, object]:
-    """Return the prospective post-campaign candidate policy."""
-    return _campaign_configuration(phase_five_corrected_candidate_configs())
 
 
 def _shape(shape: GaussianShape | None) -> CatalogueEllipse | None:
@@ -486,24 +312,4 @@ def process_hebog_recipe(
         shape_yx=recipe.shape_yx,
         generation_id=f"{dataset.identifier}-{recipe.seed}",
         configs=phase_four_candidate_configs(),
-    )
-
-
-def process_hebog_image(
-    image: np.ndarray,
-    dataset: DatasetRecord,
-    directory: Path,
-    *,
-    generation_id: str,
-) -> tuple[CatalogueSource, ...]:
-    """Run the compact branch on the exact shared external FITS plane."""
-    if tuple(image.shape) != dataset.recipe.shape_yx:
-        raise ValueError("external Hebog image shape differs from dataset")
-    return _process_hebog_source(
-        _ArrayImageSource(image),
-        dataset,
-        directory,
-        shape_yx=dataset.recipe.shape_yx,
-        generation_id=generation_id,
-        configs=phase_five_corrected_candidate_configs(),
     )

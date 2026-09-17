@@ -18,9 +18,7 @@ from hebog.validation.datasets import load_dataset_manifest
 from hebog.validation.materialization import (
     ExternalInputArtifact,
     ExternalInputBundle,
-    load_external_input_bundle,
     materialize_dataset,
-    materialize_external_realization,
     synthetic_fits_header,
     synthetic_image_metadata,
 )
@@ -32,14 +30,6 @@ _PHASE_FOUR_MANIFEST = (
     _ROOT / "config" / "datasets" / "phase-4-development.json"
 )
 _ROTATED_DATASET_ID = "phase4-noiseless-shape-development-256"
-_EXTERNAL_PROTOCOL = (
-    _ROOT / "config/contracts/phase-5-external-comparison.json"
-)
-_EXTERNAL_MANIFEST = (
-    _ROOT / "config/datasets/phase-5-external-compact-blend.json"
-)
-_EXTERNAL_DATASET_ID = "phase5-external-compact-blend-512"
-_EXTERNAL_SEED = 2026790002
 _EXPECTED_SHA256 = (
     "80e7d55f5ff22a46be2d977babe0d05f7899972f13b9518a606959eeab502ffc"
 )
@@ -190,102 +180,6 @@ def test_materialization_preserves_an_existing_file(tmp_path: Path) -> None:
         materialize_dataset(_MANIFEST, _DATASET_ID, output)
 
     assert output.read_bytes() == b"keep me"
-
-
-def test_external_realization_materializes_one_shared_float64_bundle(
-    tmp_path: Path,
-) -> None:
-    """Every finder receives byte-identical image, mean, and RMS products."""
-    first_path = materialize_external_realization(
-        _EXTERNAL_PROTOCOL,
-        _EXTERNAL_MANIFEST,
-        _EXTERNAL_DATASET_ID,
-        _EXTERNAL_SEED,
-        tmp_path / "first",
-    )
-    second_path = materialize_external_realization(
-        _EXTERNAL_PROTOCOL,
-        _EXTERNAL_MANIFEST,
-        _EXTERNAL_DATASET_ID,
-        _EXTERNAL_SEED,
-        tmp_path / "second",
-    )
-    first = load_external_input_bundle(first_path, verify_artifacts=True)
-    second = load_external_input_bundle(second_path, verify_artifacts=True)
-
-    assert first == second
-    assert first.seed == _EXTERNAL_SEED
-    assert first.dtype == "float64"
-    assert first.shape_yx == (512, 512)
-    assert first.protocol_sha256 == (
-        "7c981658195f70cbe710b608746a9568bf57efbabb00ada54f5d3dffdbc89f6d"
-    )
-    assert {artifact.role for artifact in first.artifacts} == {
-        "image",
-        "mean",
-        "rms",
-    }
-    assert tuple(item.sha256 for item in first.artifacts) == tuple(
-        item.sha256 for item in second.artifacts
-    )
-
-    image = np.asarray(
-        cast(np.ndarray, fits.getdata(first_path.parent / "image.fits"))
-    ).squeeze()
-    mean = np.asarray(
-        cast(np.ndarray, fits.getdata(first_path.parent / "mean.fits"))
-    ).squeeze()
-    rms = np.asarray(
-        cast(np.ndarray, fits.getdata(first_path.parent / "rms.fits"))
-    ).squeeze()
-    header = cast(
-        fits.Header, fits.getheader(first_path.parent / "image.fits")
-    )
-    assert image.dtype == np.dtype(">f8")
-    assert mean.dtype == np.dtype(">f8")
-    assert rms.dtype == np.dtype(">f8")
-    assert header["HEBOGSED"] == _EXTERNAL_SEED
-    assert header["HEBOGBAS"] != header["HEBOGRCP"]
-    assert np.all(np.isfinite(mean) == np.isfinite(image))
-    assert np.all(np.isfinite(rms) == np.isfinite(image))
-
-
-def test_external_materializer_rejects_seed_and_output_drift(
-    tmp_path: Path,
-) -> None:
-    """Only declared seeds may be written and frozen bundles are immutable."""
-    output = tmp_path / "bundle"
-    with pytest.raises(ValueError, match="not declared"):
-        materialize_external_realization(
-            _EXTERNAL_PROTOCOL,
-            _EXTERNAL_MANIFEST,
-            _EXTERNAL_DATASET_ID,
-            1,
-            output,
-        )
-
-    materialize_external_realization(
-        _EXTERNAL_PROTOCOL,
-        _EXTERNAL_MANIFEST,
-        _EXTERNAL_DATASET_ID,
-        _EXTERNAL_SEED,
-        output,
-    )
-    with pytest.raises(FileExistsError, match="refusing to overwrite"):
-        materialize_external_realization(
-            _EXTERNAL_PROTOCOL,
-            _EXTERNAL_MANIFEST,
-            _EXTERNAL_DATASET_ID,
-            _EXTERNAL_SEED,
-            output,
-        )
-
-    with (output / "image.fits").open("ab") as handle:
-        handle.write(b"changed")
-    with pytest.raises(ValueError, match="byte count changed"):
-        load_external_input_bundle(
-            output / "input.json", verify_artifacts=True
-        )
 
 
 def test_external_input_models_reject_escaping_paths_and_bad_shape() -> None:

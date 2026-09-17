@@ -5,24 +5,16 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from astropy.io import fits
 
-from hebog.validation.comparison import CatalogueSource
 from hebog.validation.external_successor_compiler import (
     ContinuumCatalogueObject,
     ContinuumTruthObject,
-    continuum_catalogue_objects,
     measure_continuum_image,
     native_support_objects,
 )
 from hebog.validation.observable_truth import (
     measure_observable_truth,
     observable_truth_integrated_flux_jy,
-)
-from hebog.validation.post_failure_truth import (
-    ObservableTruthPlanes,
-    ObservableTruthSpecification,
-    compile_observable_truth,
 )
 
 
@@ -53,31 +45,6 @@ def _candidate(
         support_label=label,
         centre_xy=centre_xy,
         integrated_flux_jy=flux,
-    )
-
-
-def _header() -> fits.Header:
-    header = fits.Header()
-    header["CTYPE1"] = "RA---SIN"
-    header["CTYPE2"] = "DEC--SIN"
-    header["CRPIX1"] = 1.0
-    header["CRPIX2"] = 1.0
-    header["CRVAL1"] = 10.0
-    header["CRVAL2"] = -30.0
-    header["CDELT1"] = -1.0 / 3600.0
-    header["CDELT2"] = 1.0 / 3600.0
-    return header
-
-
-def _source(identifier: str, island_identifier: str) -> CatalogueSource:
-    return CatalogueSource(
-        identifier=identifier,
-        right_ascension_degrees=10.0,
-        declination_degrees=-30.0,
-        peak_flux_jy_per_beam=1.0,
-        integrated_flux_jy=2.0,
-        association_integrated_flux_jy=3.0,
-        island_identifier=island_identifier,
     )
 
 
@@ -234,143 +201,6 @@ def test_observable_truth_rejects_invalid_signal_and_support_flux() -> None:
         )
 
 
-def test_truth_compilation_publishes_observable_support_metadata() -> None:
-    """The prospective compiler labels and records the exact truth domain."""
-    specifications = (
-        ObservableTruthSpecification(
-            identifier="edge-source",
-            catalogue_role="astronomical-source",
-            strata=("edge", "overall"),
-        ),
-        ObservableTruthSpecification(
-            identifier="artifact",
-            catalogue_role="artifact",
-            strata=("overall",),
-        ),
-    )
-    planes = {
-        "edge-source": ObservableTruthPlanes(
-            signal_jy_per_beam=np.asarray(
-                ((1.0, 2.0, 0.0), (3.0, 4.0, 0.0)),
-                dtype=np.float64,
-            ),
-            declared_support=np.asarray(
-                ((True, True, False), (True, True, False)),
-                dtype=np.bool_,
-            ),
-        ),
-        "artifact": ObservableTruthPlanes(
-            signal_jy_per_beam=np.asarray(
-                ((0.0, 0.0, 5.0), (0.0, 0.0, 6.0)),
-                dtype=np.float64,
-            ),
-            declared_support=np.asarray(
-                ((False, False, True), (False, False, True)),
-                dtype=np.bool_,
-            ),
-        ),
-    }
-    valid = np.asarray(
-        ((False, True, True), (False, True, True)),
-        dtype=np.bool_,
-    )
-
-    compilation = compile_observable_truth(
-        specifications,
-        planes,
-        valid,
-        beam_major_fwhm_pixels=2.0,
-        beam_minor_fwhm_pixels=1.0,
-    )
-
-    assert tuple(item.identifier for item in compilation.objects) == (
-        "edge-source",
-        "artifact",
-    )
-    assert compilation.objects[0].centre_xy == pytest.approx((1.0, 2.0 / 3.0))
-    assert compilation.objects[1].centre_xy == pytest.approx((2.0, 6.0 / 11.0))
-    assert compilation.label_plane.tolist() == [[0, 1, 2], [0, 1, 2]]
-    assert compilation.label_plane.flags.writeable is False
-    assert compilation.supports[0].declared_pixel_count == 4
-    assert compilation.supports[0].observable_pixel_count == 2
-    assert compilation.supports[0].observable_fraction == pytest.approx(0.5)
-
-
-def test_truth_compilation_rejects_mismatched_and_overlapping_groups() -> None:
-    """Truth compilation rejects missing identity or double ownership."""
-    specification = ObservableTruthSpecification(
-        identifier="source",
-        catalogue_role="astronomical-source",
-        strata=("overall",),
-    )
-    truth_planes = ObservableTruthPlanes(
-        signal_jy_per_beam=np.ones((2, 2), dtype=np.float64),
-        declared_support=np.ones((2, 2), dtype=np.bool_),
-    )
-    valid = np.ones((2, 2), dtype=np.bool_)
-
-    with pytest.raises(ValueError, match="differ"):
-        compile_observable_truth(
-            (specification,),
-            {"other": truth_planes},
-            valid,
-            beam_major_fwhm_pixels=2.0,
-            beam_minor_fwhm_pixels=1.0,
-        )
-    with pytest.raises(ValueError, match="overlap"):
-        compile_observable_truth(
-            (
-                specification,
-                ObservableTruthSpecification(
-                    identifier="source-2",
-                    catalogue_role="astronomical-source",
-                    strata=("overall",),
-                ),
-            ),
-            {"source": truth_planes, "source-2": truth_planes},
-            valid,
-            beam_major_fwhm_pixels=2.0,
-            beam_minor_fwhm_pixels=1.0,
-        )
-
-
-def test_truth_compilation_rejects_invalid_population_boundaries() -> None:
-    """Truth population identity and valid-domain type fail closed."""
-    specification = ObservableTruthSpecification(
-        identifier="source",
-        catalogue_role="astronomical-source",
-        strata=("overall",),
-    )
-    truth_planes = ObservableTruthPlanes(
-        signal_jy_per_beam=np.ones((2, 2), dtype=np.float64),
-        declared_support=np.ones((2, 2), dtype=np.bool_),
-    )
-    with pytest.raises(ValueError, match="must not be empty"):
-        compile_observable_truth(
-            (),
-            {},
-            np.ones((2, 2), dtype=np.bool_),
-            beam_major_fwhm_pixels=2.0,
-            beam_minor_fwhm_pixels=1.0,
-        )
-    with pytest.raises(ValueError, match="identifiers must be unique"):
-        compile_observable_truth(
-            (specification, specification),
-            {"source": truth_planes},
-            np.ones((2, 2), dtype=np.bool_),
-            beam_major_fwhm_pixels=2.0,
-            beam_minor_fwhm_pixels=1.0,
-        )
-    with pytest.raises(ValueError, match="valid pixels"):
-        compile_observable_truth(
-            (specification,),
-            {"source": truth_planes},
-            np.ones((2, 2), dtype=np.int32),
-            beam_major_fwhm_pixels=2.0,
-            beam_minor_fwhm_pixels=1.0,
-        )
-
-
 def test_native_support_objects_include_fitless_labels() -> None:
     """Every positive native label receives one topology-only object."""
     labels = np.asarray(
@@ -391,103 +221,6 @@ def test_native_support_objects_include_fitless_labels() -> None:
     assert tuple(item.support_label for item in supports) == (4, 9)
     assert supports[0].centre_xy == pytest.approx((1.5, 0.5))
     assert supports[1].centre_xy == pytest.approx((3.5, 1.5))
-
-
-@pytest.mark.parametrize(
-    ("finder_id", "island_identifier", "expected_label"),
-    (
-        ("hebog", "hebog-segment-4", 4),
-        ("released-pybdsf", "3", 4),
-        ("pinned-pybdsf-master", "3", 4),
-    ),
-)
-def test_catalogue_translation_allows_mask_only_native_labels(
-    finder_id: str,
-    island_identifier: str,
-    expected_label: int,
-) -> None:
-    """Measurable rows may be a strict subset of positive native labels."""
-    labels = np.asarray(((4, 4, 9), (4, 4, 9)), dtype=np.int32)
-
-    candidates = continuum_catalogue_objects(
-        (_source("source-1", island_identifier),),
-        labels,
-        finder_id=finder_id,  # type: ignore[arg-type]
-        header=_header(),
-    )
-
-    assert len(candidates) == 1
-    assert candidates[0].support_label == expected_label
-    assert candidates[0].centre_xy == pytest.approx((0.0, 0.0))
-    assert candidates[0].integrated_flux_jy == 3.0
-
-
-def test_catalogue_translation_rejects_absent_and_malformed_labels() -> None:
-    """Subset semantics cannot conceal broken catalogue identities."""
-    labels = np.asarray(((1, 1), (0, 0)), dtype=np.int32)
-
-    with pytest.raises(ValueError, match="support label is absent"):
-        continuum_catalogue_objects(
-            (_source("source-1", "3"),),
-            labels,
-            finder_id="released-pybdsf",
-            header=_header(),
-        )
-    with pytest.raises(
-        ValueError,
-        match="PyBDSF island identity is malformed",
-    ):
-        continuum_catalogue_objects(
-            (_source("source-1", "3.0"),),
-            labels,
-            finder_id="released-pybdsf",
-            header=_header(),
-        )
-    with pytest.raises(ValueError, match="Hebog segment island identity"):
-        continuum_catalogue_objects(
-            (_source("source-1", "segment-1"),),
-            labels,
-            finder_id="hebog",
-            header=_header(),
-        )
-    with pytest.raises(ValueError, match="Hebog segment island identity"):
-        continuum_catalogue_objects(
-            (_source("source-1", "hebog-segment-x"),),
-            labels,
-            finder_id="hebog",
-            header=_header(),
-        )
-    with pytest.raises(
-        ValueError, match="PyBDSF island identity is malformed"
-    ):
-        continuum_catalogue_objects(
-            (_source("source-1", "-1"),),
-            labels,
-            finder_id="released-pybdsf",
-            header=_header(),
-        )
-    with pytest.raises(ValueError, match="lacks an island identity"):
-        continuum_catalogue_objects(
-            (
-                CatalogueSource(
-                    identifier="source-1",
-                    right_ascension_degrees=10.0,
-                    declination_degrees=-30.0,
-                    peak_flux_jy_per_beam=1.0,
-                    integrated_flux_jy=2.0,
-                ),
-            ),
-            labels,
-            finder_id="released-pybdsf",
-            header=_header(),
-        )
-    with pytest.raises(ValueError, match="finder identity is unsupported"):
-        continuum_catalogue_objects(
-            (_source("source-1", "0"),),
-            labels,
-            finder_id="aegean",  # type: ignore[arg-type]
-            header=_header(),
-        )
 
 
 @pytest.mark.parametrize(

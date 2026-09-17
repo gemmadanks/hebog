@@ -25,7 +25,6 @@ from hebog.validation.datasets import (
     iter_dataset_recipes,
     load_dataset_manifest,
 )
-from hebog.validation.hebog_campaign import process_hebog_image
 
 _ROOT = Path(__file__).parents[3]
 
@@ -237,76 +236,3 @@ def test_external_array_source_returns_owned_bounded_windows() -> None:
 
     assert second.values[0, 0] == image[1, 2]
     assert not second.valid_pixels[1, 1]
-
-
-def test_external_compact_configuration_uses_low_variance_hybrid_fit() -> None:
-    """Unresolved shapes and association flux avoid needless free variance."""
-    fit = hebog_campaign.phase_five_corrected_candidate_configs()[3]
-
-    assert fit.position_estimator == "selected-model"
-    assert fit.model_selection == "beam-or-free"
-    assert fit.component_extension_significance_sigma == pytest.approx(1.5)
-    assert fit.integrated_flux_bias_correction_sigma == pytest.approx(0.075)
-    assert fit.association_aperture_radius_sigma == pytest.approx(1.5)
-    assert hebog_campaign.phase_four_candidate_configs()[
-        3
-    ].position_estimator == ("bounded-context-free")
-    assert hebog_campaign.phase_four_candidate_configs()[
-        3
-    ].model_selection == ("beam-or-free")
-
-
-def test_external_compact_entry_validates_shape_before_processing(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """The compact branch uses the shared plane only at its frozen shape."""
-    dataset = load_dataset_manifest(
-        _ROOT / "config/datasets/phase-5-external-compact-blend.json"
-    ).datasets[0]
-    with pytest.raises(ValueError, match="shape differs"):
-        process_hebog_image(
-            np.zeros((2, 2), dtype=np.float64),
-            dataset,
-            tmp_path,
-            generation_id="bad-shape",
-        )
-
-    observed: dict[str, object] = {}
-
-    def fake_process(  # noqa: PLR0913
-        source: object,
-        selected_dataset: object,
-        directory: Path,
-        *,
-        shape_yx: tuple[int, int],
-        generation_id: str,
-        configs: object,
-    ) -> tuple[CatalogueSource, ...]:
-        observed.update(
-            source=source,
-            dataset=selected_dataset,
-            directory=directory,
-            shape_yx=shape_yx,
-            generation_id=generation_id,
-            configs=configs,
-        )
-        return ()
-
-    monkeypatch.setattr(hebog_campaign, "_process_hebog_source", fake_process)
-    image = np.zeros(dataset.recipe.shape_yx, dtype=np.float64)
-
-    assert (
-        process_hebog_image(
-            image,
-            dataset,
-            tmp_path,
-            generation_id="external-unit-test",
-        )
-        == ()
-    )
-    assert observed["shape_yx"] == dataset.recipe.shape_yx
-    assert observed["generation_id"] == "external-unit-test"
-    assert observed["configs"] == (
-        hebog_campaign.phase_five_corrected_candidate_configs()
-    )

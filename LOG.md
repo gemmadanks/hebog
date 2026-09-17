@@ -22436,3 +22436,47 @@ scientific pass from fixture validation.
   process against 5.2 s in-process.
 - **Next.** Profile complete execution (M1), starting from these default-tier
   results and a first large-tier run.
+
+## 2026-09-17 — Remove closed campaign tooling
+
+- **Decision.** The user asked for the code of earlier campaigns to be
+  removed, so the codebase keeps only what maintained workflows use. A
+  read-only dependency map sorted the code into two tiers:
+  - **Tier 1:** nothing maintained reaches it.
+  - **Tier 2:** campaign modules that production tests still use to generate
+    or score their data.
+- **The user chose:**
+  - to remove Tier 1 now;
+  - to keep the closed Phase 4/5 dataset manifests for seed-disjointness
+    checks;
+  - to delete the dated Phase 0–4 review, readiness and protocol pages,
+    linking to `v0.7.0` for history.
+- **Removed:**
+  - 24 `hebog.validation` modules: the Phase 5 filter, corrective, astrometry,
+    external-comparison, terminal-cycle, publication and source-union
+    evaluators, plus `noninferiority` and `rapthor_profile`;
+  - the Phase 4 paired campaign runners and compiler, and the Phase 5
+    source-union scripts;
+  - 29 test files and the tests of removed code in 11 mixed test files;
+  - 29 closed contract JSON files;
+  - 11 docs pages.
+- **Trimmed:**
+  - `contracts.py`: 4,062 → 718 lines;
+  - `evidence.py`: 1,980 → 816 lines. `load_evidence` now accepts only
+    benchmark and scientific-comparison documents;
+  - `campaign_runtime`, `campaigns`, `materialization`, `products`,
+    `hebog_campaign`, `external_successor_compiler`,
+    `source_catalogue_measurements` and the adaptive-background modules.
+- **Kept:**
+  - Phase 0 baseline and overhead tooling;
+  - the Phase 3/4 gates and measurement contracts used by equivalence tests;
+  - `phase-5-corrective-a-review.json`, which the installed science profile
+    must match;
+  - production modules with phase names.
+- **Follow-up (Tier 2, not done):** about 3,000 lines of campaign modules
+  (`hebog_campaign`, `diagnostics`, `adaptive_background_lane` and
+  `_development`, `source_catalogue_diagnostics` and `_measurements`,
+  `external_comparison`, `observable_truth`). Four production tests still use
+  them: the two Phase 4 equivalence tests, `test_noiseless_edge_background`
+  and `test_source_catalogue_development_matrix`, plus
+  `test_source_catalogue_repairs`. Removing them needs those tests rewritten.

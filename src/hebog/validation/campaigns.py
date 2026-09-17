@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
-from datetime import datetime
 from typing import Literal
 
 import numpy as np
@@ -31,16 +30,12 @@ from hebog.validation.datasets import (
 from hebog.validation.diagnostics import source_pair_diagnostics
 from hebog.validation.evidence import (
     AssociationPairDiagnostic,
-    CampaignImplementationEvidence,
     CampaignRealizationDiagnostic,
-    EvidenceStatus,
-    ScientificCampaignEvidence,
     SourcePairDiagnostic,
 )
 from hebog.validation.materialization import synthetic_image_metadata
 
 _FWHM_PER_SIGMA = 2.0 * np.sqrt(2.0 * np.log(2.0))
-_MINIMUM_CAMPAIGN_IMPLEMENTATIONS = 2
 
 
 @dataclass(frozen=True, slots=True)
@@ -471,59 +466,4 @@ def diagnose_phase_four_realization(  # noqa: PLR0913
         candidate_count=len(raw_candidate),
         association_pairs=association_rows,
         source_pairs=source_rows,
-    )
-
-
-def compile_scientific_campaign(
-    *,
-    run_id: str,
-    shards: Sequence[CampaignImplementationEvidence],
-    captured_at: datetime | None = None,
-) -> ScientificCampaignEvidence:
-    """Merge isolated candidate and reference shards into paired evidence."""
-    if len(shards) < _MINIMUM_CAMPAIGN_IMPLEMENTATIONS:
-        raise ValueError("campaign compilation requires at least two shards")
-    first = shards[0]
-    if first.implementation.role != "candidate":
-        raise ValueError("candidate implementation shard must be first")
-    for shard in shards[1:]:
-        if (
-            shard.dataset != first.dataset
-            or shard.configuration_sha256 != first.configuration_sha256
-            or shard.comparison_protocol_sha256
-            != first.comparison_protocol_sha256
-        ):
-            raise ValueError("campaign shard provenance differs")
-        if tuple(item.seed for item in shard.realizations) != tuple(
-            item.seed for item in first.realizations
-        ):
-            raise ValueError("campaign shard seeds differ")
-    status = (
-        EvidenceStatus.REVIEWED
-        if all(shard.status is EvidenceStatus.REVIEWED for shard in shards)
-        else EvidenceStatus.EXPLORATORY
-    )
-    realization_by_implementation = {
-        shard.implementation.identifier: {
-            realization.seed: realization for realization in shard.realizations
-        }
-        for shard in shards
-    }
-    implementations = tuple(shard.implementation for shard in shards)
-    realizations = tuple(
-        realization_by_implementation[implementation.identifier][seed]
-        for seed in (item.seed for item in first.realizations)
-        for implementation in implementations
-    )
-    return ScientificCampaignEvidence(
-        schema_version=1,
-        evidence_type="scientific-campaign",
-        run_id=run_id,
-        captured_at=captured_at or max(shard.captured_at for shard in shards),
-        status=status,
-        dataset=first.dataset,
-        configuration_sha256=first.configuration_sha256,
-        comparison_protocol_sha256=first.comparison_protocol_sha256,
-        implementations=implementations,
-        realizations=realizations,
     )
