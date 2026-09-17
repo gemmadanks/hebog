@@ -22799,3 +22799,136 @@ scientific pass from fixture validation.
   6.2–9.1× to 4.8–6.4×.
 - **Validation:** 1,820 unit, 380 integration and 27 equivalence tests,
   Pyright and Ruff.
+
+## 2026-09-17 — M1: bounded reads, cheaper background and coordinates
+
+- **Reading an image once per source.** A bounded window read reopened the
+  FITS file, reparsed its header and rebuilt both WCS objects every time:
+  10.52 ms for a 128² window, of which 0.74 ms was the pixel read. A source
+  now validates its file once and keeps it open, per thread, and neither
+  cache is serialized, so no open file crosses a task and metadata cannot
+  go stale in transit. The same read takes 0.65 ms, 16× faster, against the
+  plan's fourfold target. At 1,024² the FITS reads in one complete run fall
+  from about 5.0 s to 0.7 s.
+- **Background window statistics.** Excluded samples are carried as NaN
+  instead of in a masked array, and reduced with `nanmedian`/`nanstd`. On
+  400 batched 50² windows the two agree bitwise, including retained-sample
+  counts, and the new form is 1.9× faster. Background refinement falls from
+  8.2 s to 6.7 s on a noise-only 1,024² image.
+- **Tangent-plane coordinates.** The local transform converted a centre and
+  its four finite-difference neighbours one at a time, which was 20 s of
+  astropy attribute lookups on the crowded SDC1 cut-out. Converting the
+  five together takes 1.23 ms per source instead of 4.41 ms. Array and
+  scalar conversions differ inside astropy by at most 2.5e-11 degrees
+  (0.09 mas) over 50 FK5 positions, against a 2 arcsec Rapthor tolerance.
+- **Profile `m1-profile-6-complete`** against `m1-profile-2-20260917`, the
+  M1 starting point:
+
+  | Term | M1 start | Now | Ratio |
+  | --- | --- | --- | --- |
+  | Per megapixel | 18.59 s | 11.56 s | 0.62 |
+  | Per component | 48.5 ms | 25.1 ms | 0.52 |
+  | Per megapixel-component | 47.4 ms | 4.3 ms | 0.09 |
+
+  Complete runs, M1 start → now: SDC1 crowded 2,048² 956 → 174 s (5.5×),
+  generated dense 2,048² 322 → 93 s (3.5×), SDC1 crowded 1,024² 119 → 38 s
+  (3.2×), generated dense 1,024² 45 → 21 s (2.1×), LoTSS 1,024² 31–35 →
+  20–21 s (1.6×), noise-only 2,048² 80 → 51 s (1.6×). Peak RSS is
+  unchanged, as expected: nothing here changed what is held in memory.
+- **What now dominates.** Per-pixel background and RMS estimation: 41.6 s
+  of the 51.3 s noise-only 2,048² run, and 12.5 s of the 37.6 s SDC1
+  1,024² run. Continuum science is 20.5 s of that SDC1 run, and module
+  imports are a flat 2.5–3.7 s.
+- **Quick science check `m1-performance`** against `bounded-scans`: all 16
+  cases succeed with every reported metric unchanged, and no regressions.
+  Hebog time fell from 229 s to 136 s, and from 325 s at the start of M1.
+
+## 2026-09-17 — M1: the beam-sized axis bias is a selection effect
+
+- **Decision statement.** Observed problem: the plan records integrated-flux
+  median pulls of about +0.4 and major-axis median pulls of about +1.5 for
+  beam-sized components, and asks for a fix "at its source". Proposed cause
+  before measuring: a biased size estimator. Independent test: measure the
+  fractional size excess against injected truth for every matched
+  component, not the pull over the subset that reports a shape error.
+  Expected measurable change: if the estimator is biased, the excess is
+  positive for all beam-sized components. Stopping condition: the excess is
+  consistent with zero for the population.
+- **Measurement** (`m1-bias-diagnosis`, three realizations per noise class,
+  96 beam-sized and 96 resolved correlated-noise components, diagonal
+  weighting):
+
+  | Stratum | n | With shape error | Median size excess |
+  | --- | --- | --- | --- |
+  | beam-sized, SNR 10 | 33 | 6 | −0.00% |
+  | beam-sized, SNR 20 | 33 | 6 | −0.00% |
+  | beam-sized, SNR 50 | 30 | 2 | −0.00% |
+  | 1.5× beam, SNR 10 | 33 | 33 | +11.9% |
+  | 1.5× beam, SNR 20 | 33 | 33 | +1.8% |
+  | 1.5× beam, SNR 50 | 30 | 30 | −0.01% |
+
+- **Finding: the beam-sized bias is a selection effect, not an estimator
+  bias.** Of 96 beam-sized components, 82 publish the restoring beam
+  exactly, with no shape uncertainty, and 14 publish a fitted shape with
+  one. The pull is only defined for the second group, and that group is
+  selected by having fluctuated large enough to carry a fitted shape: its
+  median excess is +12.0%, while the group that is excluded has an excess
+  of exactly 0.00%. Over the whole population the size excess is zero.
+  Every beam-sized component in both groups is classified `unresolved`.
+  No estimator change can move a statistic that conditions on the outcome
+  it measures.
+- **Finding: a real low-SNR size bias exists for resolved components.** At
+  1.5× the beam the median size excess is +11.9% at SNR 10, +1.8% at SNR 20
+  and −0.01% at SNR 50, and the integrated-flux pull follows it (+1.07,
+  +0.36, +0.12). This is the expected noise bias of fitted second moments
+  at low signal-to-noise, it decays with SNR as such a bias should, and it
+  is the effect the plan's `Total_flux` concern should be aimed at.
+- **Recommendation, for human disposition.** The row's endpoint, "median
+  pulls within ±0.2 in every stratum", cannot be met as written, because
+  the beam-sized strata condition on selection. Three options:
+  1. redefine the endpoint over all matched components, using the published
+     value whether or not a shape uncertainty accompanies it;
+  2. publish a shape uncertainty for every accepted component, which makes
+     the endpoint unconditional and is a change to Rapthor-consumed output;
+  3. accept the beam-sized behaviour as correct, and aim the row at the
+     measured low-SNR bias of resolved components alone.
+  No code changed: the plan requires a decision statement and a reviewed
+  cause before a scientific repair, and the measured cause is not the one
+  the row assumes.
+
+## 2026-09-17 — M1 performance closure: benchmark and cost structure
+
+- **Quick benchmark** on `13d04f9`, five measured repetitions after a
+  warm-up, against v0.9.0 and pinned PyBDSF `master` in its four-core
+  container:
+
+  | Case | Hebog wall s | Hebog CPU s | v0.9.0 s | Ratio [bounds] | `master` wall s | `master` CPU s |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | dense field | 17.9 | 14.7 | 28.5 | 0.63 [0.60, 0.64] pass | 3.8 | 5.5 |
+  | LoTSS sparse | 19.5 | 16.3 | 31.8 | 0.61 [0.60, 0.63] pass | 5.8 | 10.2 |
+  | LoTSS dense | 21.0 | 17.6 | 35.2 | 0.60 [0.59, 0.60] pass | 5.9 | 11.6 |
+  | SDC1 crowded 1,024² | 37.8 | 34.3 | 114.4 | 0.33 [0.33, 0.33] pass | – | – |
+
+  Hebog now uses 1.5–2.7× the CPU seconds of pinned `master`, from 2.7–4.9×
+  before M1. `master` uses 5.5–11.6 CPU s for 3.8–5.9 s of wall time, so its
+  own parallel efficiency is about 1.4–2.0 of its four cores. Hebog is
+  single-threaded here, so its wall time is its CPU time. `master` again
+  failed on the crowded SDC1 cut-out.
+- **Where the remaining time goes.** Self time under `cProfile`, which
+  inflates Python and leaves compiled work unchanged:
+
+  | Bucket | Noise-only 2,048² | SDC1 crowded 1,024² |
+  | --- | --- | --- |
+  | Compiled NumPy/SciPy | 42% | 30% |
+  | astropy Python | 17% | 33% |
+  | NumPy/SciPy Python | 22% | 16% |
+  | Hebog Python | 16% | 19% |
+
+  The largest single entries are the à trous FFTs (7.9 s compiled on the
+  noise-only 2,048² run), astropy's sigma clipping (3.3 s), astropy's FITS
+  section reader (4.4 s across 479,104 calls), Zarr chunk writes (2.1 s of
+  opens and 2.1 s of atomic renames) and, on crowded images, astropy sky
+  coordinate attribute chains and `_nearest_canonical_seed_ranks` (2.4 s).
+  Hebog's own Python is 16–19% and is orchestration and validation, not
+  numerical loops: no hand-written per-pixel loop remains for a compiled
+  language to replace.
