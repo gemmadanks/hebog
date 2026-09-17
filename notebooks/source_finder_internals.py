@@ -23,9 +23,9 @@ def _(mo):
     island that crosses tile boundaries, deblends compact peaks, calculates
     exact-label moments, fits Gaussian components, transforms them to sky
     coordinates, deconvolves the beam, and builds a Rapthor-compatible
-    catalogue. A separate residual scene shows how the Phase 5 matched-filter
-    seed aid and residual B3 à trous representation handle direct, diffuse,
-    edge, invalid-clipped, and tile-crossing emission.
+    catalogue. A separate residual scene shows how the multiscale
+    matched-filter seed aid and residual B3 à trous representation handle
+    direct, diffuse, edge, invalid-clipped, and tile-crossing emission.
 
     The example uses Hebog's window-readable synthetic source and serial
     executor so it is quick and completely redistributable. Production inputs
@@ -68,7 +68,7 @@ def _():
     import hebog.stages.measurement as measurement_stage
     import hebog.stages.multiscale as multiscale_stage
     import hebog.validation.datasets as validation_datasets
-    from hebog.algorithms import phase_five_execution
+    from hebog.algorithms import multiscale_tiles
 
     return (
         astrometry_algorithms,
@@ -86,11 +86,11 @@ def _():
         mpl_patches,
         multiscale_algorithms,
         multiscale_stage,
+        multiscale_tiles,
         ndimage,
         np,
         partitioning_algorithms,
         pathlib,
-        phase_five_execution,
         plt,
         rapthor_catalogue_adapter,
         tempfile,
@@ -1153,13 +1153,13 @@ def _(mo):
     mo.md(r"""
     ## 8. Recover an extended residual across scales
 
-    Phase 5 first removes or excludes accepted compact emission. This example
-    therefore starts from a compact-clean residual containing four deliberately
-    different sources. Two original-pixel peaks are below 5 sigma and require
-    multiscale seed evidence; one is a compact direct seed; and one is clipped
-    by invalid pixels. One diffuse source lies on a four-tile corner and
-    another reaches the image edge, exercising reconciliation and normalized
-    support.
+    The multiscale pass first removes or excludes accepted compact emission.
+    This example therefore starts from a compact-clean residual containing four
+    deliberately different sources. Two original-pixel peaks are below 5 sigma
+    and require multiscale seed evidence; one is a compact direct seed; and one
+    is clipped by invalid pixels. One diffuse source lies on a four-tile corner
+    and another reaches the image edge, exercising reconciliation and
+    normalized support.
 
     Hebog uses two deliberately separate multiscale roles:
 
@@ -1169,7 +1169,7 @@ def _(mo):
 
     Seeds above 5 sigma grow through eight-connected original residual pixels
     at or above 3 sigma. A retained scale response also needs at least 50%
-    valid filter support. The example runs the production bounded Phase 5
+    valid filter support. The example runs the production bounded multiscale
     stage, including two-pass topology reconciliation and persisted Zarr
     products, rather than plotting only an isolated in-memory kernel.
     """)
@@ -1185,10 +1185,10 @@ def _(
     hebog_models,
     multiscale_algorithms,
     multiscale_stage,
+    multiscale_tiles,
     np,
     partitioning_algorithms,
     pathlib,
-    phase_five_execution,
 ):
     multiscale_shape_yx = (192, 192)
     _y_grid, _x_grid = np.indices(multiscale_shape_yx, dtype=np.float64)
@@ -1350,9 +1350,7 @@ def _(
         chunks=_background_chunks,
     )
 
-    _filter_halo = phase_five_execution.scale_filter_halo_pixels(
-        multiscale_beam
-    )
+    _filter_halo = multiscale_tiles.scale_filter_halo_pixels(multiscale_beam)
     _multiscale_manifest = partitioning_algorithms.plan_image_partitions(
         image_shape_yx=multiscale_shape_yx,
         tile_core_shape_yx=(96, 96),
@@ -1363,11 +1361,11 @@ def _(
         _multiscale_manifest,
         generation_id="marimo-multiscale-stage",
     )
-    multiscale_stage_result = multiscale_stage.run_phase_five_multiscale_stage(
+    multiscale_stage_result = multiscale_stage.run_multiscale_stage(
         _ArrayWindowSource(multiscale_image, multiscale_valid),
         _background_sink,
         _multiscale_manifest,
-        config=multiscale_stage.PhaseFiveMultiscaleStageConfig(
+        config=multiscale_stage.MultiscaleStageConfig(
             multiscale_beam,
             detection=hebog_config.ResidualMultiscaleDetectionConfig(
                 detection_threshold_sigma=5.0,
@@ -1698,7 +1696,7 @@ def _(mo):
     fitting, WCS/beam transforms, catalogue construction, deterministic FITS,
     and one-tile/four-tile equality.
 
-    The residual scene executes the latest bounded Phase 5 multiscale stage on
+    The residual scene executes the latest bounded multiscale stage on
     four tiles. It demonstrates spatial background/RMS preparation,
     beam-aware matched-filter seed evidence, the residual B3 representation,
     normalized edge and invalid-pixel support, stable topology reconciliation,

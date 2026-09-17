@@ -73,7 +73,7 @@ _DETECTION_THRESHOLD_SIGMA = 5.0
 _ISLAND_THRESHOLD_SIGMA = 3.0
 _MINIMUM_ISLAND_PIXELS = 7
 _COMPOSITION_NAME = "phase-5-evidence-bound-public-catalogue-v21"
-_PROFILE_RESOURCE = "phase_5_continuum_review.json"
+_PROFILE_RESOURCE = "reviewed_continuum_profile.json"
 _FWHM_PER_SIGMA = 2.0 * np.sqrt(2.0 * np.log(2.0))
 # Finite-difference WCS Jacobians carry ~1e-8 pixel round-off. Quantising the
 # derived beam axes to 1e-6 pixel keeps whole-pixel beams exact, so ``ceil``

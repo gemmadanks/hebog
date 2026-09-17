@@ -5,8 +5,8 @@ the documented experimental scope on 2026-08-02.
 
 This glossary establishes Hebog's domain language and maps the current
 Rapthor/PyBDSF/LSMTool vocabulary onto it. The
-[Phase 3 scientific review](phase-3-review-record.md) and
-[Phase 4 scientific review](phase-4-review-record.md) approved these
+[Phase 3 scientific review](https://github.com/gemmadanks/hebog/blob/v0.7.0/docs/reference/phase-3-review-record.md) and
+[Phase 4 scientific review](https://github.com/gemmadanks/hebog/blob/v0.7.0/docs/reference/phase-4-review-record.md) approved these
 definitions and naming conventions for the current experimental scope.
 
 ## Images and noise

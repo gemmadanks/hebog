@@ -48,6 +48,13 @@ from hebog.validation.remote_cutouts import fetch_remote_cutout
 MetricValues = dict[str, float | None]
 """Flat metric name to value; ``None`` means not measurable for the case."""
 
+REFERENCE_WORKER = Path("scripts/benchmark/run_notebook_reference.py")
+"""Container worker for one reference finder run, relative to the checkout."""
+REFERENCE_CONTAINER_COMMAND = Path(
+    "scripts/benchmark/prepare_notebook_comparison.py"
+)
+"""Host script that builds the reference container command line."""
+_NOTEBOOK_CONFIGURATION = Path("config/comparisons/notebook-comparison.json")
 _IDEAL_ONE_SIGMA_COVERAGE = 0.6827
 _SNR_BRIGHT = 10.0
 
@@ -288,24 +295,27 @@ def _reference_input(
 def prepare_case(
     case: GeneratedCase | ImageCase,
     *,
-    configuration: QuickCheckConfiguration,
+    dataset_manifest: Path,
     repository_root: Path,
     inputs_root: Path,
     allow_download: bool = False,
 ) -> PreparedCase:
-    """Materialise, crop or fetch one case input, reusing cached files."""
+    """Materialise, crop or fetch one case input, reusing cached files.
+
+    Generated cases name a dataset in ``dataset_manifest``; image paths are
+    relative to ``repository_root``.
+    """
     case_root = inputs_root / case.case_id
     if isinstance(case, GeneratedCase):
-        manifest_path = repository_root / configuration.dataset_manifest
         dataset = next(
             item
-            for item in load_dataset_manifest(manifest_path).datasets
+            for item in load_dataset_manifest(dataset_manifest).datasets
             if item.identifier == case.dataset_id
         )
         input_path = case_root / f"{dataset.recipe_sha256[:16]}.fits"
         if not input_path.exists():
             input_path.parent.mkdir(parents=True, exist_ok=True)
-            materialize_dataset(manifest_path, case.dataset_id, input_path)
+            materialize_dataset(dataset_manifest, case.dataset_id, input_path)
         return PreparedCase(
             case_id=case.case_id,
             input_path=input_path,
@@ -739,6 +749,47 @@ def reference_code_sha256(
         digest.update(path.read_bytes())
         digest.update(b"\0")
     return digest.hexdigest()
+
+
+def container_image_identity(engine: str, image: str) -> str:
+    """Return the immutable local ID of one container image."""
+    result = subprocess.run(
+        [engine, "image", "inspect", "--format", "{{.Id}}", image],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout.strip()
+
+
+def reference_identity(
+    reference: ReferenceSettings, *, engine: str, repository_root: Path
+) -> dict[str, object]:
+    """Describe everything that can change a reference result or timing.
+
+    The container runs the notebook reference worker and its ``hebog``
+    imports from the checkout, and the host builds its command line, so both
+    are part of the identity alongside the image, finder settings and core
+    count.
+    """
+    settings = json.loads(
+        (repository_root / _NOTEBOOK_CONFIGURATION).read_text(encoding="utf-8")
+    )
+    return {
+        "container_image_id": container_image_identity(
+            engine, reference.container_image
+        ),
+        "finder_settings": settings["reference_finders"][reference.finder_id],
+        "ncores": reference.ncores,
+        "reference_code_sha256": reference_code_sha256(
+            repository_root / REFERENCE_WORKER,
+            repository_root=repository_root,
+            source_root=repository_root / "src",
+        ),
+        "container_command_sha256": file_sha256(
+            repository_root / REFERENCE_CONTAINER_COMMAND
+        ),
+    }
 
 
 def write_report(path: Path, report: Mapping[str, Any]) -> None:

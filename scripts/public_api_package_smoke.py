@@ -45,7 +45,7 @@ def main() -> None:
     """Verify the wheel contains and can execute its frozen public profile."""
     profile = (
         files("hebog.resources")
-        .joinpath("phase_5_continuum_review.json")
+        .joinpath("reviewed_continuum_profile.json")
         .read_bytes()
     )
     if hashlib.sha256(profile).hexdigest() != _PROFILE_SHA256:

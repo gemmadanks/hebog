@@ -21,11 +21,10 @@ as a separate `ScientificComparisonEvidence` document. Candidate/reference
 revision identities, dataset and configuration checksums, match gates, and all
 catalogue/RMS/mask reports belong in the same validated record.
 
-For repeated synthetic campaigns, persist a `ScientificCampaignEvidence`
-document after running Hebog and both PyBDSF references on the same seeds. Use
-`source_pair_diagnostics` to retain matched and unmatched source decisions,
-truth strata, catastrophic flags, and normalized residuals. Record a failed
-implementation outcome explicitly; never omit its seed from a paired analysis.
+For repeated synthetic comparisons, use `source_pair_diagnostics` to retain
+matched and unmatched source decisions, truth strata, catastrophic flags, and
+normalized residuals. Record a failed implementation outcome explicitly; never
+omit its seed from a paired analysis.
 
 Reference products are immutable test inputs. A separate documented generation
 command must record dataset checksums, PyBDSF and dependency revisions, and the

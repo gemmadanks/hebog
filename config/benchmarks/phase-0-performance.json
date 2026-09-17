@@ -17,7 +17,6 @@
       "upper_size_pixels": 30000
     }
   ],
-  "master_pybdsf_exclusive_ratio_limit": 1.0,
   "matrix_id": "phase-0-performance",
   "one_tile_overhead_budget": {
     "configuration_seconds": 0.25,
@@ -35,8 +34,13 @@
     "schema_version": 1,
     "warmup_repetitions": 1
   },
-  "released_pybdsf_maximum_ratio": 0.5,
-  "schema_version": 1,
+  "pybdsf_master": {
+    "bound": "upper-one-sided",
+    "commit_sha": "c70103be3ae9ae9908286f144e6ce956acc0ce5c",
+    "confidence_level": 0.95,
+    "maximum_ratio": 0.5
+  },
+  "schema_version": 2,
   "sizes_pixels": [
     256,
     512,

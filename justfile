@@ -78,6 +78,10 @@ test-acceptance:
 quick-science-check *args:
     uv run python scripts/validation/quick_science_check.py {{args}}
 
+# Run the quick end-to-end benchmark (tiers: smoke, default, large)
+quick-benchmark *args:
+    uv run python scripts/benchmark/quick_benchmark.py {{args}}
+
 # Run explicitly requested performance tests
 test-benchmark:
     uv run pytest -q -m "benchmark and not scalability" tests/

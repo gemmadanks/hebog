@@ -2,7 +2,7 @@
 
 **Status:** first-pass technical/scientific review completed 2026-07-31; its
 recommended amendments were approved in the named
-[Phase 3 scientific review](phase-3-review-record.md) on 2026-08-02.
+[Phase 3 scientific review](https://github.com/gemmadanks/hebog/blob/v0.7.0/docs/reference/phase-3-review-record.md) on 2026-08-02.
 
 This review compares Hebog's provisional language and gates with official
 source-finder and observatory documentation, published comparison studies, and

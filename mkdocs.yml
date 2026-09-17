@@ -68,8 +68,8 @@ nav:
       - Notebooks and comparison refreshes: how-to/notebooks.md
   - Reference:
       - Current capability and releases: reference/release-status.md
-      - Current scientific campaign: reference/phase-5-campaign-overview.md
-      - Scientific readiness: reference/phase-5-release-readiness.md
+      - Current scientific campaign: reference/scientific-campaign-overview.md
+      - Scientific readiness: reference/scientific-readiness.md
       - API: reference/index.md
       - Public source-finder outputs: reference/public-products.md
       - Domain glossary: reference/domain-glossary.md
@@ -89,17 +89,6 @@ nav:
           - Scientific pre-review findings: reference/scientific-pre-review.md
           - Phase 0 starting revisions: reference/starting-revisions.md
           - Phase 0 baseline results: reference/phase-0-baseline-results.md
-          - Phase 0 review record: reference/phase-0-review-record.md
-          - Phase 1 release readiness: reference/phase-1-release-readiness.md
-          - Phase 2 release readiness: reference/phase-2-release-readiness.md
-          - Phase 3 release readiness: reference/phase-3-release-readiness.md
-          - Phase 3 scientific review record: reference/phase-3-review-record.md
-          - Phase 4 scientific review record: reference/phase-4-review-record.md
-          - Phase 4 paired non-inferiority: reference/phase-4-paired-noninferiority.md
-          - Phase 4S compact qualification: reference/phase-4s-qualification-protocol.md
-          - Phase 4T compact confirmation: reference/phase-4t-confirmation-protocol.md
-          - Phase 4U compact-blend qualification: reference/phase-4u-qualification-protocol.md
-          - Phase 4 release readiness: reference/phase-4-release-readiness.md
   - Explanation:
       - Architecture: explanation/index.md
       - How Hebog finds sources: explanation/how-hebog-works.md

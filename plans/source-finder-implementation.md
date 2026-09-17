@@ -15,10 +15,10 @@ Closed Phase 5 contracts, reviews and campaign tooling are in Git history at
 | Candidate | Public composition v20. Development-unqualified. |
 | Functionality | Standalone FITS-to-products finder: background/RMS, compact and multiscale detection, deblending, fitting, source association, catalogue/mask/RMS/diagnostics, Serial and caller-owned Dask execution. No Rapthor backend: `hebog.adapters` holds records and the 8-column catalogue codec only, and the seven acceptance scenarios are strict-xfail placeholders. No flat-noise branch or LSMTool filtering has run on Hebog products. |
 | Scalability | Public envelope ≤1,024 pixels per side. Only background/RMS and first-pass detection run per tile through the executor, on hard-coded 128-pixel cores (the scalability contract's candidates are 2,048–8,192); the public science in `public_science.py` holds several full `float64` planes in one process. Tiled multiscale, deblending, measurement, fitting and compact catalogue stages exist in `stages/` but only tests use them; continuum candidate products, extended association, the à trous position filter and the continuum catalogue have no tiled form. Two background sub-steps are capped at 10⁶ pixels. The executor offers only `map_batches` with a driver-side gather. |
-| Performance | No matched benchmark exists. The most recent diagnostic single runs (10 September, M3 Pro) were slower than released PyBDSF on 11 of 13 real images, median ratio 8.4× (SDC1 2,198² tile 778 s vs 93 s; Hydra 3,600² 2,767 s vs 142 s). Per-pixel cost on these real images is far above the 26 s synthetic 1,024² probe; whether size, source density or both drive it is unprofiled. The gate is ≤0.50× pinned PyBDSF `master` (`c70103b`). No complete-path profile exists. |
+| Performance | No matched benchmark exists. The quick benchmark's default tier (17 September, M3 Pro) puts one-thread Hebog at 6.2–9.1× the median wall time of four-core pinned `master` on 1,024² inputs (2.7–4.9× the CPU time), with about 3 s per run in start-up and imports; current Hebog is within 2% of v0.7.0. Earlier diagnostic single runs (10 September, M3 Pro) were slower than released PyBDSF on 11 of 13 real images, median ratio 8.4× (SDC1 2,198² tile 778 s vs 93 s; Hydra 3,600² 2,767 s vs 142 s). Per-pixel cost on these real images is far above the 26 s synthetic 1,024² probe; whether size, source density or both drive it is unprofiled. The gate is ≤0.50× pinned PyBDSF `master` (`c70103b`). No complete-path profile exists. |
 | Science | The v15 campaign failed only through 32 regressions against the earlier Hebog incumbent; no comparison against released PyBDSF, PyBDSF `master` or Aegean failed, and 40 were underpowered. All campaign images were ≤1,024 pixels. v16–v20 have focused regression, Serial/Dask, equivalence and installed-wheel evidence only. Uncertainty calibration, measurement tails and faint association were accepted on 13 September as limitations of an experimental standalone release, not as passes. |
 | 1.0.0 blockers | Every milestone below. The largest risks are the performance gap, tile-native continuum association, the memory and disk of the local development machine, and SKA-Low coverage without public SKA-Low images. |
-| Next action | Agent: quick benchmark and profile (M1). The component-bias row follows once performance work has a baseline. Human: free disk to about 60 GB before the envelope passes 22,500². |
+| Next action | Agent: profile complete execution (M1), starting from the quick benchmark's default and large tiers. The component-bias row follows once performance work has a baseline. Human: free disk to about 60 GB before the envelope passes 22,500². |
 | Deferred | Aegean comparisons (paused while development focuses on PyBDSF; reconsidered at M6), optional comparison finders such as ProFound or 2D SoFiA (see the [notebook guide](../docs/how-to/notebooks.md)), general science improvements outside Rapthor-consumed outputs, and native code without a passing profile gate. Reopen a deferred issue if it becomes a confirmed incorrect supported output. |
 
 ## Definition of 1.0.0
@@ -113,11 +113,14 @@ Development runs on the maintainer's machine and favours fast iterations over
 long campaigns and benchmarks. Every check has a budget on that machine:
 
 - **Change check (about 15 minutes):** relevant tests, the quick science check
-  and, for performance-relevant changes, the quick benchmark. Runs for every
-  change that can affect science or runtime.
+  and, for performance-relevant changes, the quick benchmark's default tier.
+  Runs for every change that can affect science or runtime.
 - **Release check (about 1 hour):** the change check, the largest admitted
   size tier, Serial/Dask agreement and the installed wheel. Runs before each
-  `0.x` release.
+  `0.x` release. The quick benchmark's large tier (up to 3,600²) belongs here,
+  but at current speed it takes hours. Until it fits, it runs for profiling
+  and before a release that claims a runtime change, and it is never waited
+  on for other releases.
 - **1.0.0 qualification (once):** one powered science study sized to finish
   overnight on the development machine, and one benchmark on the cluster.
   Neither blocks `0.x` development or releases.
@@ -216,7 +219,6 @@ Two rules govern the sequence:
 | Owner | Task | Done when |
 | --- | --- | --- |
 | Agent | Remove the integrated-flux and major-axis bias of beam-sized components. | On seed-disjoint isolated sources, diagonal-weighted fits have calibrated position, peak-flux and axis uncertainties on beam-correlated noise, but beam-sized components carry integrated-flux median pulls of about +0.4 and major-axis median pulls of about +1.5. Both biases were also present under GLS, and the 0.075-sigma correction does not remove them. The fix removes the axis bias at its source and re-derives or deletes the flux correction. `scripts/validation/measure_component_uncertainty_calibration.py` then shows median pulls within ±0.2 in every stratum, with no loss of coverage. `Total_flux` blocks 1.0.0. |
-| Agent | Build the quick benchmark. Replace the skipped `tests/benchmark` scaffolds and the phase-numbered runners. | One command runs in about 10 minutes: Hebog on a 1,024² generated image and two or three real cut-outs up to about 3,600², with a warm-up and five repetitions, written as `hebog.validation.evidence` records. It compares against the previous release and cached pinned-`master` timings measured once in the same Linux container. The machine-readable performance contract (`phase-0-performance.json`, its schema and the contracts page) is amended to the single `master` gate in the same change. Inputs above the public limit use a documented diagnostic entry point that leaves the public envelope unchanged. A smoke case runs in CI. |
 | Agent | Profile complete FITS-to-products execution on v0.7.0. | CPU, RSS, I/O and per-stage profiles on a dense real cut-out and the 1,024² image rank the bottlenecks and separate the effect of image size from source density. The quick-check and quick-benchmark outputs for v0.7.0 are the known-issues baseline. |
 
 ### M2 — One tile-native science path
@@ -404,9 +406,8 @@ standalone release.
   the margin is inconclusive. A >10% peak worker or aggregate memory
   regression against either PyBDSF reference needs an approved throughput
   trade-off.
-- Component budgets, including the four-core 6-second multiscale budget at
-  3,000 pixels, remain diagnostic; complete filtering decides deployment.
-  Exact budgets are in the
+- Component budgets remain diagnostic; complete filtering decides
+  deployment. Exact budgets are in the
   [performance and scalability contracts](../docs/reference/performance-scalability-contracts.md).
 
 ### Reference images

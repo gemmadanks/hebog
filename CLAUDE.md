@@ -82,8 +82,9 @@ Dependencies point inward:
   `download_notebook_data.py`, `prepare_notebook_comparison.py` (PyBDSF and
   Aegean in Podman via `run_notebook_reference.py`) and
   `refresh_public_notebook_hebog.py` (Hebog via `run_notebook_hebog.py`),
-  configured by `config/comparisons/notebook-comparison.json`. Closed Phase 5
-  campaign tooling was removed; it remains in Git history at `4babf0b`.
+  configured by `config/comparisons/notebook-comparison.json`. The quick
+  benchmark is `quick_benchmark.py`. Closed Phase 1–5 campaign and stage
+  benchmark tooling was removed; it remains in Git history at `v0.7.0`.
 - `LOG.md` is more than 1 MB. Read or search slices of it (for example, grep
   it, or read the end with an offset). Do not read the whole file.
 - `config/` holds the checked-in dataset, baseline, contract, and benchmark

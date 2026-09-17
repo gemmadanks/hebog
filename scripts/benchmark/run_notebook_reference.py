@@ -19,6 +19,7 @@ import importlib.metadata
 import json
 import os
 import subprocess
+import sys
 import time
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -78,6 +79,46 @@ def runtime_identity(finder: str) -> dict[str, str]:
         "runtime_name": package,
         "runtime_version": version,
         "dependency_inventory_sha256": dependency_inventory_sha256(),
+    }
+
+
+def _resource_usage() -> dict[str, float] | None:
+    """Return CPU time and peak memory of this process and its children.
+
+    Linux reports ``ru_maxrss`` in KiB. The peak is that of the largest
+    process, not a sum over PyBDSF's worker processes. Platforms without the
+    ``resource`` module, such as Windows, return ``None``.
+    """
+    if sys.platform == "win32":
+        return None
+    resource = importlib.import_module("resource")
+    own = resource.getrusage(resource.RUSAGE_SELF)
+    children = resource.getrusage(resource.RUSAGE_CHILDREN)
+    scale = 1 if sys.platform == "darwin" else 1024
+    return {
+        "cpu_seconds": own.ru_utime
+        + own.ru_stime
+        + children.ru_utime
+        + children.ru_stime,
+        "peak_rss_bytes": max(own.ru_maxrss, children.ru_maxrss) * scale,
+    }
+
+
+def _usage_between(
+    before: dict[str, float] | None,
+    after: dict[str, float] | None,
+    wall_seconds: float,
+) -> dict[str, float] | None:
+    """Return wall and CPU time spent between two usage samples.
+
+    The peak memory is the peak reached by the later sample.
+    """
+    if before is None or after is None:
+        return None
+    return {
+        "cpu_seconds": after["cpu_seconds"] - before["cpu_seconds"],
+        "peak_rss_bytes": after["peak_rss_bytes"],
+        "wall_seconds": wall_seconds,
     }
 
 
@@ -547,6 +588,8 @@ def run_reference(  # noqa: PLR0913
     core: CoreBounds | None = None,
 ) -> None:
     """Publish native products and a notebook-compatible result atomically."""
+    process_started = time.perf_counter()
+    process_usage = _resource_usage()
     if ncores < 1:
         raise ValueError("ncores must be positive")
     if output.exists():
@@ -567,6 +610,7 @@ def run_reference(  # noqa: PLR0913
     ) as raw:
         staging = Path(raw)
         started = time.perf_counter()
+        finder_usage = _resource_usage()
         artifacts, configuration = _execute(
             finder=finder,
             image=image,
@@ -574,6 +618,7 @@ def run_reference(  # noqa: PLR0913
             ncores=ncores,
         )
         elapsed = time.perf_counter() - started
+        finder_usage = _usage_between(finder_usage, _resource_usage(), elapsed)
         products = normalise_products(
             finder,
             artifacts,
@@ -583,6 +628,14 @@ def run_reference(  # noqa: PLR0913
         )
         if _sha256(image) != input_sha256:
             raise ValueError("input image changed during reference run")
+        # Everything before writing the result: validation, the finder and
+        # product normalisation. Interpreter start-up and imports are not
+        # included.
+        process_usage = _usage_between(
+            process_usage,
+            _resource_usage(),
+            time.perf_counter() - process_started,
+        )
         result = {
             "schema_version": 1,
             "result_id": f"notebook-{case_id}-{finder}",
@@ -598,6 +651,8 @@ def run_reference(  # noqa: PLR0913
             if core is not None
             else [0, height, 0, width],
             "elapsed_seconds": elapsed,
+            "finder_usage": finder_usage,
+            "process_usage": process_usage,
             "artifacts": _artifact_manifest(products, staging=staging),
             "scientific_claims_authorized": False,
             "runtime_notes": (

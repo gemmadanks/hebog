@@ -22385,3 +22385,183 @@ scientific pass from fixture validation.
 - **Follow-up.** A plan task now covers the integrated-flux and major-axis
   bias of beam-sized components. The compact-fitting reference records the
   calibration evidence.
+
+## 2026-09-17 — Quick benchmark
+
+- **Outcome.** `just quick-benchmark` times complete FITS-to-products runs:
+  one warm-up and five measured repetitions per case, each in a fresh
+  single-thread process, written as exploratory `BenchmarkEvidence`. It
+  compares each case with the previous release, installed from its tag with
+  locked dependencies, and with pinned PyBDSF `master` in its container. Both
+  baselines are cached per input and machine.
+  Configuration: `config/benchmarks/quick-benchmark.json`.
+- **Tiers.** The user chose two tiers over one tier of up to 3,600² or fewer
+  repetitions for large inputs:
+  - `default`: the generated 1,024² dense field and sparse and dense 1,024²
+    LoTSS-DR3 cut-outs;
+  - `large`: adds SDC1 crowded at 1,024² and 2,048² and LoTSS-DR3 dense at
+    3,600²; it takes hours at current speed;
+  - `smoke`: one 512² case, run in CI.
+- **Contract.** `phase-0-performance.json` is now schema 2, with a single
+  `pybdsf_master` gate: upper one-sided 95% bound ≤0.50 against `c70103b`.
+  The released-PyBDSF and exclusive `master` limits were removed.
+- **Removed.** The Phase 1–5 stage and matrix benchmark runners, their input
+  generators and `phase-4-performance.json`/`phase-5-performance.json`, which
+  timed stages of the whole-array path. They are in Git history at `v0.7.0`.
+  The Phase 0 overhead and PyBDSF baseline runners remain.
+- **Default tier, `third-default-20260917`** (Hebog `f8c90cd` plus this
+  change; v0.7.0 measured in the same session; `master` cached from the same
+  day):
+
+  | Case | Hebog s | v0.7.0 s | Ratio [bounds] | `master` s | Ratio [bounds] | CPU s Hebog / `master` |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | dense field | 30.3 | 29.8 | 1.02 [0.97, 1.08] inconclusive | 3.3 | 9.10 [7.84, 10.21] | 24.4 / 5.0 |
+  | LoTSS sparse | 33.2 | 32.9 | 1.01 [1.00, 1.03] pass | 5.3 | 6.22 [5.81, 6.44] | 27.1 / 9.8 |
+  | LoTSS dense | 37.7 | 38.2 | 0.99 [0.94, 1.00] pass | 6.1 | 6.18 [5.86, 6.61] | 31.5 / 11.8 |
+
+  Hebog time was 606 s against the 600 s budget. The `master` ratio is
+  diagnostic: Hebog runs natively on one thread and PyBDSF runs in a
+  four-core Linux container.
+- **Drift.** In `second-default-20260917`, dense field was flagged as a
+  regression (1.13 [1.06, 1.13]) against a v0.7.0 baseline cached earlier in
+  the day, although finder CPU time was lower (21.2 s vs 21.9 s). The extra
+  time was off-CPU: start-up 3.5 s vs 1.4 s. Products were written under the
+  Spotlight-indexed `benchmark-results/`. Products now go to the system
+  temporary directory, and the cache was remeasured. The same v0.7.0 case then
+  measured 29.8 s instead of 25.8 s. `--refresh-previous-release` confirms a
+  flagged regression in one session.
+- **Profile hints for M1.** Start-up and imports take about 3 s of every
+  process; importing `hebog.public_api` alone takes 3.4 s, including
+  `scipy.signal` and `scipy.ndimage`. A 512² smoke case takes 8.5 s per
+  process against 5.2 s in-process.
+- **Next.** Profile complete execution (M1), starting from these default-tier
+  results and a first large-tier run.
+
+## 2026-09-17 — Remove closed campaign tooling
+
+- **Decision.** The user asked for the code of earlier campaigns to be
+  removed, so the codebase keeps only what maintained workflows use. A
+  read-only dependency map sorted the code into two tiers:
+  - **Tier 1:** nothing maintained reaches it.
+  - **Tier 2:** campaign modules that production tests still use to generate
+    or score their data.
+- **The user chose:**
+  - to remove Tier 1 now;
+  - to keep the closed Phase 4/5 dataset manifests for seed-disjointness
+    checks;
+  - to delete the dated Phase 0–4 review, readiness and protocol pages,
+    linking to `v0.7.0` for history.
+- **Removed:**
+  - 24 `hebog.validation` modules: the Phase 5 filter, corrective, astrometry,
+    external-comparison, terminal-cycle, publication and source-union
+    evaluators, plus `noninferiority` and `rapthor_profile`;
+  - the Phase 4 paired campaign runners and compiler, and the Phase 5
+    source-union scripts;
+  - 29 test files and the tests of removed code in 11 mixed test files;
+  - 29 closed contract JSON files;
+  - 11 docs pages.
+- **Trimmed:**
+  - `contracts.py`: 4,062 → 718 lines;
+  - `evidence.py`: 1,980 → 816 lines. `load_evidence` now accepts only
+    benchmark and scientific-comparison documents;
+  - `campaign_runtime`, `campaigns`, `materialization`, `products`,
+    `hebog_campaign`, `external_successor_compiler`,
+    `source_catalogue_measurements` and the adaptive-background modules.
+- **Kept:**
+  - Phase 0 baseline and overhead tooling;
+  - the Phase 3/4 gates and measurement contracts used by equivalence tests;
+  - `phase-5-corrective-a-review.json`, which the installed science profile
+    must match;
+  - production modules with phase names (renamed in a later entry).
+- **Follow-up (Tier 2):** done in the next entry.
+
+## 2026-09-17 — Remove Tier 2 campaign modules
+
+- **Outcome.** The production tests no longer import campaign tooling, and the
+  Tier 2 modules are gone: `hebog_campaign`, `diagnostics`,
+  `adaptive_background_lane` and `_development`,
+  `source_catalogue_diagnostics` and `_measurements`, `external_comparison`,
+  `external_successor_compiler` and `observable_truth`. Their unit tests went
+  with them, and so did the per-source and per-realization diagnostic
+  evidence records (`SourcePairDiagnostic`, `AssociationPairDiagnostic`,
+  `CampaignRealizationDiagnostic` and their parts), which nothing else used.
+- **Trimmed:**
+  - `campaigns.py` now holds only `phase_four_truth_source`;
+  - `campaign_runtime.py` lost `phase_four_outlier_thresholds`;
+  - `ContinuumCatalogueObject` moved into `public_measurement_projection`;
+  - `test_external_comparison.py` became `test_external_runners.py`.
+- **Rewritten tests.** Each keeps its production inputs and assertions, using
+  local helpers over `comparison`, `datasets` and `materialization`:
+  - `test_phase_four_recovery.py` runs the frozen serial compact branch with
+    production stages. It now also holds the rotated-blend photometry matrix
+    from the removed `test_phase_four_blend_photometry.py`.
+  - `test_source_catalogue_development_matrix.py` generates its 36 geometries
+    locally and scores recovery of the single truth object directly.
+  - `test_noiseless_edge_background.py` builds its recipe and header locally.
+  - `test_source_catalogue_repairs.py` integrates the observed truth flux
+    inline.
+- **Equivalence evidence (scratch scripts, run before deletion):**
+  - Phase 4: on all 28 images (10 manifest seeds and 18 blend cases), every
+    association and source pair had identical match, separation, flux
+    difference, gated catastrophic decision, deconvolution status and quality
+    flags.
+  - Development matrix: all 36 recipes, images, analytic signals, truth
+    supports, RMS planes and truth references are bit-identical. FITS headers
+    differ only in the `HEBOGDS`/`HEBOGRCP` provenance cards. In all 108
+    cases the new scorer agreed exactly with `measure_continuum_image` on
+    completeness, split, flux error, mask recall and mask IoU, and every case
+    passed.
+  - Edge blend: both FITS inputs are pixel-identical.
+- **Coverage no longer provided:**
+  - Failed development-matrix cases no longer write `diagnostics.json` and
+    `absolute-objectives.json`; assertion messages carry the recovery values
+    instead.
+  - The Phase 4 tests no longer compute normalized residuals or uncertainty
+    rows, which they never asserted.
+  - No production assertion was dropped.
+- **Checks:** all pass:
+  - `just check`;
+  - `just test-equivalence` (27 tests);
+  - `just docs-build`;
+  - `just coverage` (2,164 tests, 96% branch-aware; the changed production
+    files are fully covered except pre-existing benchmark-validator lines in
+    `evidence.py`);
+  - the slow development matrix (108 cases).
+
+## 2026-09-17 — Replace phase names in production code
+
+- **Decision.** Phase numbers are historical identifiers only, so production
+  code, tests and current docs now use descriptive names. The user approved
+  the names and scope before the rename. No compatibility aliases were kept.
+- **Renamed:**
+  - `algorithms/phase_five_execution.py` → `algorithms/multiscale_tiles.py`:
+    `StageHalo`, `StageHaloPlan`, `HaloStageName`, `HaloBasis`,
+    `derive_stage_halo_plan`, `MultiscaleFilterTileResult`,
+    `evaluate_multiscale_filter_tile`, `MultiscaleDetectionTileEvidence` and
+    `derive_multiscale_detection_tile_evidence`;
+  - in `stages/multiscale.py`: `MultiscaleStageConfig`,
+    `MultiscaleStageResult`, `run_multiscale_stage` and
+    `multiscale_product_names`. Error messages say "multiscale" instead of
+    "Phase 5";
+  - `resources/phase_5_continuum_review.json` →
+    `resources/reviewed_continuum_profile.json`. The bytes are unchanged and
+    still match `config/contracts/phase-5-corrective-a-review.json`;
+  - three test files: `test_stage_halo_planning.py`,
+    `test_multiscale_partition_equivalence.py` and
+    `test_multiscale_stage_execution.py`;
+  - two docs pages: `reference/scientific-campaign-overview.md` and
+    `reference/scientific-readiness.md`. The nav labels are unchanged.
+- **Scientific-composition digest:** changed from `9c68a9d6…c2ec` to
+  `193624e6…e112`. The only cause is the `_PROFILE_RESOURCE` string in
+  `public_api.py`. The renamed modules are not in `_SCIENTIFIC_MODULES`,
+  because the public path does not use them yet. Scientific behaviour is
+  unchanged. Bundles and quick-check reports recorded before this commit show
+  the old digest. No cache is keyed on the digest.
+- **Kept as historical or emitted identifiers:** the `phase-5-*` identity
+  namespaces hashed into source and island IDs, `_COMPOSITION_NAME`, the
+  `config/contracts` and `config/datasets` `phase-5-*` files, and
+  `benchmark-results/phase-5/` paths. "Phase 5" wording in other modules is
+  also unchanged, because several of them are in `_SCIENTIFIC_MODULES`.
+- **Validation:** `just check`, `just test-equivalence` (27 tests),
+  `just marimo-check`, `just docs-build` and `just coverage` (2,164 tests,
+  95.85% branch-aware; `multiscale_tiles.py` fully covered) pass.
