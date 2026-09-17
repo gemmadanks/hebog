@@ -22473,10 +22473,57 @@ scientific pass from fixture validation.
   - `phase-5-corrective-a-review.json`, which the installed science profile
     must match;
   - production modules with phase names.
-- **Follow-up (Tier 2, not done):** about 3,000 lines of campaign modules
-  (`hebog_campaign`, `diagnostics`, `adaptive_background_lane` and
-  `_development`, `source_catalogue_diagnostics` and `_measurements`,
-  `external_comparison`, `observable_truth`). Four production tests still use
-  them: the two Phase 4 equivalence tests, `test_noiseless_edge_background`
-  and `test_source_catalogue_development_matrix`, plus
-  `test_source_catalogue_repairs`. Removing them needs those tests rewritten.
+- **Follow-up (Tier 2):** done in the next entry.
+
+## 2026-09-17 — Remove Tier 2 campaign modules
+
+- **Outcome.** The production tests no longer import campaign tooling, and the
+  Tier 2 modules are gone: `hebog_campaign`, `diagnostics`,
+  `adaptive_background_lane` and `_development`,
+  `source_catalogue_diagnostics` and `_measurements`, `external_comparison`,
+  `external_successor_compiler` and `observable_truth`. Their unit tests went
+  with them, and so did the per-source and per-realization diagnostic
+  evidence records (`SourcePairDiagnostic`, `AssociationPairDiagnostic`,
+  `CampaignRealizationDiagnostic` and their parts), which nothing else used.
+- **Trimmed:**
+  - `campaigns.py` now holds only `phase_four_truth_source`;
+  - `campaign_runtime.py` lost `phase_four_outlier_thresholds`;
+  - `ContinuumCatalogueObject` moved into `public_measurement_projection`;
+  - `test_external_comparison.py` became `test_external_runners.py`.
+- **Rewritten tests.** Each keeps its production inputs and assertions, using
+  local helpers over `comparison`, `datasets` and `materialization`:
+  - `test_phase_four_recovery.py` runs the frozen serial compact branch with
+    production stages. It now also holds the rotated-blend photometry matrix
+    from the removed `test_phase_four_blend_photometry.py`.
+  - `test_source_catalogue_development_matrix.py` generates its 36 geometries
+    locally and scores recovery of the single truth object directly.
+  - `test_noiseless_edge_background.py` builds its recipe and header locally.
+  - `test_source_catalogue_repairs.py` integrates the observed truth flux
+    inline.
+- **Equivalence evidence (scratch scripts, run before deletion):**
+  - Phase 4: on all 28 images (10 manifest seeds and 18 blend cases), every
+    association and source pair had identical match, separation, flux
+    difference, gated catastrophic decision, deconvolution status and quality
+    flags.
+  - Development matrix: all 36 recipes, images, analytic signals, truth
+    supports, RMS planes and truth references are bit-identical. FITS headers
+    differ only in the `HEBOGDS`/`HEBOGRCP` provenance cards. In all 108
+    cases the new scorer agreed exactly with `measure_continuum_image` on
+    completeness, split, flux error, mask recall and mask IoU, and every case
+    passed.
+  - Edge blend: both FITS inputs are pixel-identical.
+- **Coverage no longer provided:**
+  - Failed development-matrix cases no longer write `diagnostics.json` and
+    `absolute-objectives.json`; assertion messages carry the recovery values
+    instead.
+  - The Phase 4 tests no longer compute normalized residuals or uncertainty
+    rows, which they never asserted.
+  - No production assertion was dropped.
+- **Checks:** all pass:
+  - `just check`;
+  - `just test-equivalence` (27 tests);
+  - `just docs-build`;
+  - `just coverage` (2,164 tests, 96% branch-aware; the changed production
+    files are fully covered except pre-existing benchmark-validator lines in
+    `evidence.py`);
+  - the slow development matrix (108 cases).

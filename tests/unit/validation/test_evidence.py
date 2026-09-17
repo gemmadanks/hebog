@@ -17,21 +17,16 @@ from hebog.validation.comparison import (
 )
 from hebog.validation.datasets import DatasetRole
 from hebog.validation.evidence import (
-    AssociationPairDiagnostic,
     BenchmarkEvidence,
-    CampaignFailure,
-    CatastrophicMetricDiagnostic,
     DatasetIdentity,
     EvidenceStatus,
     ExecutorKind,
     Measurement,
-    NormalizedResidualDiagnostic,
     ResourceAllocation,
     RuntimeMetrics,
     ScalabilityMetrics,
     ScientificComparisonEvidence,
     SoftwareIdentity,
-    SourcePairDiagnostic,
     StageMetrics,
     StorageEvidence,
     UnavailableMetric,
@@ -404,141 +399,3 @@ def test_scientific_comparison_evidence_round_trips(tmp_path: Path) -> None:
 
     assert loaded == evidence
     assert isinstance(loaded, ScientificComparisonEvidence)
-
-
-def _matched_source(
-    candidate_identifier: str,
-    *,
-    truth_identifier: str = "truth-source-00001",
-) -> SourcePairDiagnostic:
-    """Return one fully explainable matched-source diagnostic."""
-    return SourcePairDiagnostic(
-        decision="matched",
-        truth_identifier=truth_identifier,
-        candidate_identifier=candidate_identifier,
-        truth_strata=("shape-unresolved", "snr-10"),
-        candidate_deconvolution_status="unresolved",
-        candidate_quality_flags=("edge", "unresolved"),
-        classification_agrees=True,
-        separation_beam_fwhm=0.04,
-        peak_flux_fractional_difference=0.02,
-        integrated_flux_fractional_difference=0.02,
-        maximum_absolute_fitted_axis_fractional_difference=0.03,
-        maximum_absolute_deconvolved_axis_fractional_difference=None,
-        fitted_position_angle_difference_degrees=2.0,
-        deconvolved_position_angle_difference_degrees=None,
-        catastrophic=CatastrophicMetricDiagnostic(
-            position=False,
-            peak_flux=False,
-            integrated_flux=False,
-            fitted_axis=False,
-            deconvolved_axis=False,
-        ),
-        gated_catastrophic=False,
-        normalized_residuals=(
-            NormalizedResidualDiagnostic(metric="peak-flux", value=0.2),
-            NormalizedResidualDiagnostic(
-                metric="right-ascension",
-                value=-0.1,
-            ),
-        ),
-    )
-
-
-def test_association_pair_requires_complete_group_measurements() -> None:
-    """A matched unresolved group retains both governed paired metrics."""
-    with pytest.raises(ValidationError, match="group measurements"):
-        AssociationPairDiagnostic(
-            decision="matched",
-            truth_group_identifier="blend-00001",
-            candidate_identifier="candidate-00001",
-            resolution_class="unresolved-blend",
-            truth_strata=("unresolved-blend",),
-            separation_beam_fwhm=0.1,
-        )
-
-
-def test_source_pair_rejects_match_fields_for_unmatched_truth() -> None:
-    """Unmatched truth cannot retain a misleading candidate measurement."""
-    document = _matched_source("candidate").model_dump(mode="json")
-    document["decision"] = "unmatched-truth"
-    document["candidate_identifier"] = None
-
-    with pytest.raises(ValidationError, match="unmatched truth"):
-        SourcePairDiagnostic.model_validate(document)
-
-
-@pytest.mark.parametrize(
-    ("field", "value", "message"),
-    [
-        ("truth_strata", ["snr-10", "shape-unresolved"], "truth strata"),
-        (
-            "candidate_quality_flags",
-            ["unresolved", "edge"],
-            "quality flags",
-        ),
-        (
-            "normalized_residuals",
-            [
-                {"metric": "right-ascension", "value": 0.0},
-                {"metric": "peak-flux", "value": 0.0},
-            ],
-            "residual metrics",
-        ),
-        ("truth_identifier", None, "both identifiers"),
-        ("truth_strata", [], "requires truth strata"),
-        ("candidate_deconvolution_status", None, "candidate status"),
-        (
-            "separation_beam_fwhm",
-            None,
-            "position and flux metrics",
-        ),
-        ("catastrophic", None, "catastrophic decisions"),
-    ],
-)
-def test_matched_source_requires_canonical_complete_diagnostics(
-    field: str,
-    value: object,
-    message: str,
-) -> None:
-    """Matched rows reject ambiguous ordering or incomplete measurements."""
-    document = _matched_source("candidate").model_dump(mode="json")
-    document[field] = value
-
-    with pytest.raises(ValidationError, match=message):
-        SourcePairDiagnostic.model_validate(document)
-
-
-def test_unmatched_candidate_rejects_truth_measurements() -> None:
-    """An extra candidate cannot be presented as a measured truth pair."""
-    document = {
-        "decision": "unmatched-candidate",
-        "truth_identifier": "truth-source-00001",
-        "candidate_identifier": "candidate-source-00001",
-        "candidate_deconvolution_status": "unresolved",
-    }
-
-    with pytest.raises(ValidationError, match="unmatched candidate"):
-        SourcePairDiagnostic.model_validate(document)
-
-
-def test_unmatched_truth_requires_scientific_strata() -> None:
-    """A missed truth source remains attributable to its governed stratum."""
-    document = {
-        "decision": "unmatched-truth",
-        "truth_identifier": "truth-source-00001",
-    }
-
-    with pytest.raises(ValidationError, match="requires strata"):
-        SourcePairDiagnostic.model_validate(document)
-
-
-def test_campaign_failure_rejects_blank_message() -> None:
-    """Captured failures retain a useful stable explanation."""
-    with pytest.raises(ValidationError, match="message must not be blank"):
-        CampaignFailure(
-            stage="catalogue",
-            exception_type="RuntimeError",
-            message="   ",
-            traceback_sha256="6" * 64,
-        )

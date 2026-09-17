@@ -62,20 +62,11 @@ document embeds the complete reports for those products. Released PyBDSF and
 pinned PyBDSF `master` therefore produce separate documents even when they use
 the same dataset and candidate output.
 
-## Source-pair diagnostics
-
-Use `hebog.validation.diagnostics.source_pair_diagnostics` to derive one
-deterministic row for every matched source, unmatched truth source and
-unmatched candidate from an independent catalogue comparison report. Rows
-include truth strata, flux and position differences, catastrophic flags and
-normalized residuals. The function shares the normalized-residual calculation
-used by the aggregate uncertainty report, so per-source and aggregate
-statistics cannot silently diverge.
-
 ## Closed campaign evidence
 
 The Phase 4 paired-campaign, Phase 4 one-look decision, Phase 5 filter-review,
-corrective-review and astrometry evidence schemas were removed with the closed
+corrective-review and astrometry evidence schemas, and the per-source and
+per-realization campaign diagnostic records, were removed with the closed
 campaign tooling. `load_evidence` accepts only benchmark and
 scientific-comparison documents. Read the historical schemas and their
 documentation at [`v0.7.0`](https://github.com/gemmadanks/hebog/blob/v0.7.0/docs/reference/evidence-documents.md).
@@ -122,10 +113,6 @@ ignored; the committed records are complete typed evidence rather than copied
 console summaries.
 
 ::: hebog.validation.evidence
-    options:
-      show_symbol_type_toc: true
-
-::: hebog.validation.diagnostics
     options:
       show_symbol_type_toc: true
 

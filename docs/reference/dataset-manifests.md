@@ -81,15 +81,15 @@ favourable seeds. The unresolved-group absolute-metric stratum retains 200
 independent samples.
 
 The separate `phase-4-paired-regression.json` manifest is deliberately
-viewable planning and TDD evidence, not qualification data. Its 200 seeds are
-disjoint from every earlier Phase 4 population. It preserves the proposed
-final campaign's 33 observable groups, 32 individually resolvable sources,
-eight beam-compatible point sources, one clearly resolved source, and one
-unresolved blend per realization, while using a distinct WCS, background,
-noise gradient, invalid region, and a 180-degree mirrored layout that preserves
-the governed blend-to-beam geometry. This makes the
-paired variance audit structurally relevant without consuming or pretending
-to be unseen evidence.
+viewable regression and TDD data, not qualification data. Its 200 seeds are
+disjoint from every earlier Phase 4 population. It preserves the Phase 4
+campaign's 33 observable groups, 32 individually resolvable sources, eight
+beam-compatible point sources, one clearly resolved source, and one unresolved
+blend per realization, while using a distinct WCS, background, noise gradient,
+invalid region, and a 180-degree mirrored layout that preserves the governed
+blend-to-beam geometry. The Phase 4 recovery regression tests in
+`tests/equivalence/test_phase_four_recovery.py` run selected seeds through the
+compact branch without consuming or pretending to be unseen evidence.
 
 Phase 4 manifest schema 2 also records `association_truth_groups`. Every
 analytic emitter belongs to exactly one canonical group. A singleton group is

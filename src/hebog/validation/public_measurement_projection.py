@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
 
 import numpy as np
 from astropy.coordinates import SkyCoord
@@ -17,11 +18,34 @@ from hebog.science.catalogues import (
     _source_label_plane,  # pyright: ignore[reportPrivateUsage]
 )
 from hebog.science.models import CatalogueSource, ContinuumProducts
-from hebog.validation.external_successor_compiler import (
-    ContinuumCatalogueObject,
-)
 
 _IMAGE_DIMENSIONS = 2
+
+
+@dataclass(frozen=True, slots=True)
+class ContinuumCatalogueObject:
+    """One measurable catalogue row and its support label, in pixels."""
+
+    identifier: str
+    support_label: int
+    centre_xy: tuple[float, float]
+    integrated_flux_jy: float
+
+    def __post_init__(self) -> None:
+        """Require a finite positive catalogue measurement."""
+        if not self.identifier:
+            raise ValueError("continuum object identifier must not be empty")
+        if self.support_label <= 0:
+            raise ValueError("continuum support label must be positive")
+        if not all(isfinite(value) for value in self.centre_xy):
+            raise ValueError("continuum object centre must be finite")
+        if (
+            not isfinite(self.integrated_flux_jy)
+            or self.integrated_flux_jy <= 0
+        ):
+            raise ValueError(
+                "continuum object flux must be finite and positive"
+            )
 
 
 def _rows(

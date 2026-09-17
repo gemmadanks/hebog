@@ -34,7 +34,6 @@ from hebog.science import catalogues as product_builder
 from hebog.science.catalogues import _segment_position
 from hebog.science.models import ContinuumProducts
 from hebog.science.profile import load_continuum_science_profile
-from hebog.validation.observable_truth import measure_observable_truth
 
 _ROOT = Path(__file__).parents[2]
 
@@ -44,19 +43,16 @@ def test_clipped_gaussian_source_keeps_observable_domain() -> None:
     yy, xx = np.mgrid[:49, :65]
     signal = 10 * np.exp(-0.5 * (((xx - 0.7) / 6) ** 2 + ((yy - 24) / 4) ** 2))
     products = _products(signal)
-    truth = measure_observable_truth(
-        signal,
-        signal >= 3,
-        np.ones_like(signal, dtype=bool),
-        beam_major_fwhm_pixels=4,
-        beam_minor_fwhm_pixels=4,
+    # Truth is the injected flux inside the image, per 4-pixel beam area.
+    observed_truth_flux = float(np.sum(signal)) / (
+        np.pi * 4 * 4 / (4 * np.log(2))
     )
     assert len(products.catalogue) == len(products.component_catalogue) == 1
     source, component = products.catalogue[0], products.component_catalogue[0]
     assert "original-pixel-gaussian-model" in component.quality_flags
     assert "original-pixel-gaussian-model" not in source.quality_flags
     assert source.integrated_flux_jy == pytest.approx(
-        truth.integrated_flux_jy, rel=0.001
+        observed_truth_flux, rel=0.001
     )
     assert component.integrated_flux_jy > 1.5 * source.integrated_flux_jy
     positions = np.asarray(
