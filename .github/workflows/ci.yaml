@@ -143,6 +143,32 @@ jobs:
           uv run pytest -q
           -m "(equivalence or acceptance) and not qualification and not scalability and not slow and not requires_data"
 
+  quick-benchmark-smoke:
+    name: Quick benchmark smoke
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version-file: ".python-version"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --all-groups
+
+      # Hosted-runner timings are not evidence; this checks the measurement
+      # path end to end on the smoke case.
+      - name: Run the quick benchmark smoke tier
+        run: uv run pytest -q -m "benchmark and not scalability" tests/benchmark
+
   notebooks:
     name: Validate Marimo notebooks
     runs-on: ubuntu-latest

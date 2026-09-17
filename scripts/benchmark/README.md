@@ -3,7 +3,8 @@
 This directory contains reproducible benchmark entry points for:
 
 - PyBDSF reference runs;
-- Hebog using serial, threaded, and Dask executors;
+- the quick benchmark of complete Hebog runs against the previous release
+  and pinned PyBDSF `master`;
 - Rapthor's complete `filter_skymodel` task;
 - the source-finder comparison notebook's PyBDSF, Aegean and Hebog runs.
 
@@ -169,145 +170,40 @@ latency where applicable. The exploratory backend-comparison runner was
 removed after ADR-007 selected a single backend, so rejected private storage
 code does not become a maintained benchmark dependency.
 
-`measure_phase1_io.py` exercises the implemented warm local path from a
-deterministic FITS image through aligned Zarr v3 chunks and back to final RMS
-and mask FITS products. It requires at least one warm-up and five measured
-repetitions, records each repetition with the versioned evidence model, and
-uses a platform-safe peak-RSS observation on Windows and POSIX. For example:
+The Phase 1 to 5 stage and matrix benchmark runners (`measure_phase1_io.py`
+to `measure_phase5_multiscale.py`, their input generators, matrix drivers and
+`config/benchmarks/phase-4-performance.json` and `phase-5-performance.json`)
+were replaced by the quick benchmark below. Their component budgets timed
+stages of the whole-array path that milestone M2 replaces. They remain in
+[Git history at `v0.7.0`](https://github.com/gemmadanks/hebog/tree/v0.7.0/scripts/benchmark).
+
+## Quick benchmark
+
+`quick_benchmark.py` times complete FITS-to-products runs on the cases in
+`config/benchmarks/quick-benchmark.json`, compares them with the previous
+Hebog release and pinned PyBDSF `master`, and writes one `BenchmarkEvidence`
+record per case. The [development workflow guide](../../docs/how-to/index.md#run-the-quick-benchmark)
+describes the tiers, protocol, baselines and exit status:
 
 ```console
-uv run python scripts/benchmark/measure_phase1_io.py \
-  --size 1024 --tile-size 512 --zarr-concurrency 10 \
-  --output benchmark-results/phase-1/io-1024-c10.json
+just quick-benchmark
+just quick-benchmark --tier large --allow-download
+just quick-benchmark --tier smoke --no-previous-release --no-reference
 ```
 
-The runner records Hebog-controlled row assembly as bounded by one complete
-tile row. Allocation counts inside Astropy and Zarr are explicitly unavailable
-because those libraries do not expose complete counters; the bounded-copy
-contract is established separately by structural integration tests. These
-warm `LocalStore` observations do not qualify cold-cache behaviour,
-deployment-store atomicity, Dask transfer, or distributed scaling.
+`quick_benchmark_worker.py` is the process it times. It uses only the public
+API and the standard library, so the same worker runs current Hebog and a
+release installed from its tag. Its `--diagnostic-size-limit` option is the
+diagnostic entry point for inputs above the public 1,024-pixel limit: it
+raises the limit only inside that worker process and leaves
+`hebog.find_sources` unchanged.
 
-`measure_phase2_background.py` measures the implemented coarse-grid and
-bounded interpolation stages with a caller-owned, reused local Dask client.
-It requires an explicit FITS input and dataset identity, uses one warm-up and
-at least five measured repetitions, and writes exploratory
-`BenchmarkEvidence`. The runner deliberately excludes client startup and does
-not assemble a complete image plane: its peak-RSS observation therefore
-matches Hebog's tile-output contract rather than a validation-only full-map
-comparison. For the frozen Rapthor geometry and four-core component gate, run
-each branch independently:
-
-```console
-uv run python scripts/benchmark/measure_phase2_background.py \
-  --input /controlled/path/sector-MFS-image-pb.fits \
-  --dataset-id rapthor-representative-3000-true-sky \
-  --stage true-sky-background --workers 4 \
-  --output benchmark-results/phase-2/true-sky-background.json
-
-uv run python scripts/benchmark/measure_phase2_background.py \
-  --input /controlled/path/sector-MFS-image.fits \
-  --dataset-id rapthor-representative-3000-flat-noise \
-  --stage flat-noise-rms --workers 4 \
-  --output benchmark-results/phase-2/flat-noise-rms.json
-```
-
-The default 64-cell statistic batches and 1500-by-1500 interpolation tiles
-are measured execution policy, not scientific geometry. The script records
-float64 because Phase 2 equivalence was established with that precision; a
-lower-precision kernel remains inadmissible until it passes the same
-scientific suite.
-
-`measure_phase3_detection.py` reuses one prepared Phase 2 coarse grid and
-measures the complete compact Phase 3 component: automatic adaptive discovery
-and refinement, thresholding, connected reconciliation, durable Zarr
-publication, and compact deblending. It requires one warm-up and at least five
-measurements. The exact governed Rapthor run is:
-
-```console
-uv run python scripts/benchmark/measure_phase3_detection.py \
-  --input /controlled/path/sector-MFS-image-pb.fits \
-  --dataset-id rapthor-representative-3000-phase3 \
-  --workload-class normal --executor dask --workers 4 --tile-size 1000 \
-  --output benchmark-results/phase-3/representative-3000.json
-```
-
-Generate and measure the frozen 256, 512, 1,024, and 3,000 square
-sparse/normal/dense compact ladder with:
-
-```console
-uv run python scripts/benchmark/run_phase3_matrix.py \
-  --output-directory benchmark-results/phase-3/matrix --workers 4
-```
-
-The matrix generator creates performance-only FITS inputs with deterministic
-noise and bounded Gaussian patches. These inputs measure size and density
-scaling; the governed scientific manifests and held-out qualification tests,
-not the performance generator, establish scientific correctness.
-
-`run_phase4_matrix.py` measures the incremental Phase 4 compact-catalogue
-component after a Phase 3 detection result has been prepared. The frozen
-protocol in `config/benchmarks/phase-4-performance.json` covers 256, 512,
-1,024, and 3,000 pixels across sparse, normal, dense, blend-heavy, and
-deliberately unfit fields. It times measurement/fitting, bounded catalogue
-reduction, and Rapthor FITS materialisation separately, with one warm-up and
-five measured repetitions:
-
-```console
-uv run python scripts/benchmark/run_phase4_matrix.py \
-  --output-directory benchmark-results/phase-4/matrix
-```
-
-The 3,000-square component gate uses a reused four-worker, process-isolated
-Dask client and 1,000-square tiles. Small tiers use the serial reference to
-avoid scheduler overhead. Its performance-only noise has the declared
-restoring-beam correlation, so it exercises the same qualified correlated-
-noise fitter rather than an inconsistent independent-pixel field. Deliberately
-unfit islands must be recorded as omissions and close without publishing a
-partial catalogue. Phase 3 preparation time is retained as context but
-excluded from the incremental Phase 4 budgets. Peak RSS is the sampled
-aggregate of the driver process tree; exact retained processor-array bytes
-independently establish the worker-local bounded-work invariant. This matrix
-establishes Hebog's component curve; existing PyBDSF figures cover Rapthor's
-complete filter step and therefore cannot support a matched speedup claim for
-this narrower boundary.
-
-## Phase 5 incremental multiscale matrix
-
-`run_phase5_matrix.py` measures the complete incremental Phase 5 stage after
-the Phase 2 background and RMS generation has been prepared. The frozen
-protocol in `config/benchmarks/phase-5-performance.json` covers 256, 512,
-1,024, and 3,000 pixels with sparse, normal, and extended morphology. Each
-cell performs one warm-up and five measured repetitions of both multiscale
-passes, global topology reconciliation, and atomic Zarr publication:
-
-```console
-uv run python scripts/benchmark/run_phase5_matrix.py \
-  --output-directory benchmark-results/phase-5/incremental-multiscale
-```
-
-The primary policy uses the serial reference through 1,024 pixels and the
-existing four-worker, one-thread-per-worker Dask client at 3,000 pixels. Both
-executors are also measured at 1,024 and 3,000 pixels for every workload, so a
-crossover is observed rather than inferred from a kernel timer. The
-3,000-square primary medians must each remain within the frozen 6.0-second
-multiscale budget.
-
-The generated FITS fields use deterministic beam-correlated noise and bounded
-compact or extended source patches. Their hashes, workload classes, complete
-runtime environment, source tree, resource allocation, task count, aggregate
-process-tree RSS, retained arrays, workspaces, summaries, partitions, and
-published shards are recorded in typed evidence. Phase 2 setup time is
-retained as context but excluded from the incremental gate. The reviewed
-five-pixel benchmark beam has an exact 34-pixel filter halo, so a 256-pixel
-core satisfies the halo-admission rule and keeps the smallest image to one
-tile. A 12-tile task bound balances the 144 partitions into 12 tasks per pass
-at the 3,000-square anchor, avoiding an under-filled final four-core wave.
-
-This is a component budget and initial reviewed Hebog curve, not a complete
-Rapthor or PyBDSF speedup claim. Later candidates must compare affected and
-adjacent cells against the retained curve before the performance policy can
-change.
+The pinned-`master` timings reuse the notebook reference container through
+`prepare_notebook_comparison.py`. `run_notebook_reference.py` records its own
+wall time, CPU time and peak memory, including PyBDSF's worker processes, from
+input validation to product normalisation. Container start-up and interpreter
+imports are excluded, while Hebog's timings include them, so the ratio
+slightly favours PyBDSF.
 
 ## Phase 4 paired scientific campaign runners
 

@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +29,8 @@ from hebog.data_models import (
 )
 from hebog.science.models import CatalogueSource
 from hebog.validation.quick_check import (
+    REFERENCE_CONTAINER_COMMAND,
+    REFERENCE_WORKER,
     GeneratedCase,
     ImageCase,
     RegressionTolerances,
@@ -38,6 +41,7 @@ from hebog.validation.quick_check import (
     public_catalogue_sources,
     reference_cache_directory,
     reference_code_sha256,
+    reference_identity,
     truth_metrics,
     write_report,
 )
@@ -242,14 +246,14 @@ def test_generated_case_is_materialised_once_with_truth(
 
     first = prepare_case(
         case,
-        configuration=configuration,
+        dataset_manifest=_ROOT / configuration.dataset_manifest,
         repository_root=_ROOT,
         inputs_root=tmp_path,
     )
     modified = first.input_path.stat().st_mtime_ns
     second = prepare_case(
         case,
-        configuration=configuration,
+        dataset_manifest=_ROOT / configuration.dataset_manifest,
         repository_root=_ROOT,
         inputs_root=tmp_path,
     )
@@ -309,7 +313,7 @@ def test_image_case_crops_and_completes_the_reference_header(
 
     prepared = prepare_case(
         configuration.cases[0],
-        configuration=configuration,
+        dataset_manifest=_ROOT / configuration.dataset_manifest,
         repository_root=root,
         inputs_root=tmp_path / "inputs",
     )
@@ -344,7 +348,7 @@ def test_missing_remote_input_needs_explicit_download(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError, match="downloads allowed"):
         prepare_case(
             configuration.cases[0],
-            configuration=configuration,
+            dataset_manifest=_ROOT / configuration.dataset_manifest,
             repository_root=tmp_path,
             inputs_root=tmp_path / "inputs",
         )
@@ -507,3 +511,38 @@ def test_reference_code_identity_covers_the_worker_import_closure(
     assert changed_helper != first
     worker.write_text("import demo.helper  # edited\n")
     assert digest() != changed_helper
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="uses a shell script")
+def test_reference_identity_names_image_settings_cores_and_code(
+    tmp_path: Path,
+) -> None:
+    """The identity changes with the image ID and with the reference code."""
+    for relative in (REFERENCE_WORKER, REFERENCE_CONTAINER_COMMAND):
+        (tmp_path / relative).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / relative).write_text("VALUE = 1\n")
+    settings = tmp_path / "config/comparisons/notebook-comparison.json"
+    settings.parent.mkdir(parents=True)
+    settings.write_text(
+        json.dumps({"reference_finders": {"pinned-pybdsf-master": {"a": 1}}})
+    )
+    engine = tmp_path / "engine"
+    engine.write_text("#!/bin/sh\necho image-one\n")
+    engine.chmod(0o755)
+    reference = load_quick_check_configuration(_CONFIGURATION).reference
+
+    def identity() -> dict[str, object]:
+        return reference_identity(
+            reference, engine=str(engine), repository_root=tmp_path
+        )
+
+    first = identity()
+    assert first["container_image_id"] == "image-one"
+    assert first["finder_settings"] == {"a": 1}
+    assert first["ncores"] == reference.ncores
+    (tmp_path / REFERENCE_WORKER).write_text("VALUE = 2\n")
+    assert (
+        identity()["reference_code_sha256"] != first["reference_code_sha256"]
+    )
+    engine.write_text("#!/bin/sh\necho image-two\n")
+    assert identity()["container_image_id"] == "image-two"

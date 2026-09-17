@@ -73,8 +73,8 @@ not assumed ground truth.
 
 ## Four-core component evidence
 
-The committed runner at
-`scripts/benchmark/measure_phase2_background.py` measured each representative
+The runner `scripts/benchmark/measure_phase2_background.py`, removed after
+[`v0.7.0`](https://github.com/gemmadanks/hebog/tree/v0.7.0/scripts/benchmark), measured each representative
 branch independently with one warm-up and five repetitions. It used a reused,
 caller-owned in-process Dask client with four one-thread workers, 150-by-150
 windows at 50-pixel steps, 64-cell statistic batches, 1,500-by-1,500 output

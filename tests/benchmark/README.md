@@ -4,6 +4,8 @@ This directory contains performance and scalability tests that do not run in
 portable CI.
 
 - Mark controlled component and end-to-end timing tests with `benchmark`.
+  `test_quick_benchmark_smoke.py` runs the quick benchmark's smoke tier
+  end to end; CI runs it to check the measurement path, not to time Hebog.
 - Mark large-image or multi-node tests with both `benchmark` and
   `scalability`; add `slow` and `requires_data` when applicable.
 - `just test-benchmark` excludes scalability qualification.

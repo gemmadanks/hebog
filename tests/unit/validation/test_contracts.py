@@ -252,6 +252,30 @@ def test_checked_in_performance_matrix_covers_curve_and_workloads() -> None:
     assert matrix.previous_hebog.minimum_measured_repetitions >= 5
 
 
+def test_performance_matrix_gates_only_on_pinned_pybdsf_master() -> None:
+    """One upper-bound ratio against pinned ``master`` is the runtime gate."""
+    matrix = load_performance_matrix(_PERFORMANCE_PATH)
+
+    assert matrix.schema_version == 2
+    assert matrix.pybdsf_master.commit_sha == (
+        "c70103be3ae9ae9908286f144e6ce956acc0ce5c"
+    )
+    assert matrix.pybdsf_master.maximum_ratio == 0.5
+    assert matrix.pybdsf_master.confidence_level == 0.95
+    assert matrix.pybdsf_master.bound == "upper-one-sided"
+    assert "released_pybdsf_maximum_ratio" not in type(matrix).model_fields
+
+
+def test_performance_matrix_rejects_a_former_release_gate() -> None:
+    """A version-1 matrix with the released-PyBDSF gate fails clearly."""
+    matrix = load_performance_matrix(_PERFORMANCE_PATH)
+    payload = matrix.model_dump(mode="json")
+    payload["released_pybdsf_maximum_ratio"] = 0.5
+
+    with pytest.raises(ValidationError, match="released_pybdsf_maximum"):
+        PerformanceMatrixContract.model_validate(payload)
+
+
 def test_performance_matrix_rejects_a_missing_workload_class() -> None:
     """A fast sparse path cannot stand in for normal and dense work."""
     matrix = load_performance_matrix(_PERFORMANCE_PATH)

@@ -39,6 +39,7 @@ from hebog.io import (
 )
 from hebog.validation.products import load_pybdsf_catalogue
 from hebog.validation.quick_check import (
+    REFERENCE_CONTAINER_COMMAND,
     MetricValues,
     PreparedCase,
     QuickCheckConfiguration,
@@ -49,7 +50,7 @@ from hebog.validation.quick_check import (
     prepare_case,
     public_catalogue_sources,
     reference_cache_directory,
-    reference_code_sha256,
+    reference_identity,
     reference_metrics,
     truth_metrics,
     write_report,
@@ -58,9 +59,7 @@ from hebog.validation.quick_check import (
 _ROOT = Path(__file__).resolve().parents[2]
 _DEFAULT_CONFIGURATION = _ROOT / "config/checks/quick-science-check.json"
 _DEFAULT_OUTPUT = _ROOT / "benchmark-results/quick-check"
-_PREPARE = _ROOT / "scripts/benchmark/prepare_notebook_comparison.py"
-_NOTEBOOK_CONFIGURATION = _ROOT / "config/comparisons/notebook-comparison.json"
-_WORKER = _ROOT / "scripts/benchmark/run_notebook_reference.py"
+_PREPARE = _ROOT / REFERENCE_CONTAINER_COMMAND
 _SUMMARY_METRICS = (
     "truth.completeness",
     "truth.reliability",
@@ -116,40 +115,6 @@ def _default_label() -> str:
     ).stdout.strip()
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     return f"{commit}{'-dirty' if dirty else ''}-{stamp}"
-
-
-def _image_identity(engine: str, image: str) -> str:
-    result = subprocess.run(
-        [engine, "image", "inspect", "--format", "{{.Id}}", image],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    return result.stdout.strip()
-
-
-def _reference_identity(
-    configuration: QuickCheckConfiguration, engine: str
-) -> dict[str, object]:
-    """Describe everything that can change a reference result or timing.
-
-    The container runs the worker and its ``hebog`` imports from this
-    checkout, and the host builds its command line, so both are part of the
-    identity alongside the image, finder settings and core count.
-    """
-    reference = configuration.reference
-    settings = json.loads(_NOTEBOOK_CONFIGURATION.read_text(encoding="utf-8"))
-    return {
-        "container_image_id": _image_identity(
-            engine, reference.container_image
-        ),
-        "finder_settings": settings["reference_finders"][reference.finder_id],
-        "ncores": reference.ncores,
-        "reference_code_sha256": reference_code_sha256(
-            _WORKER, repository_root=_ROOT, source_root=_ROOT / "src"
-        ),
-        "container_command_sha256": file_sha256(_PREPARE),
-    }
 
 
 def _reference_result(  # noqa: PLR0913
@@ -385,14 +350,16 @@ def main() -> int:
     unknown = selected - {case.case_id for case in configuration.cases}
     if unknown:
         raise SystemExit(f"unknown case IDs: {sorted(unknown)}")
-    identity = _reference_identity(configuration, args.engine)
+    identity = reference_identity(
+        configuration.reference, engine=args.engine, repository_root=_ROOT
+    )
     records: list[dict[str, Any]] = []
     for case in configuration.cases:
         if selected and case.case_id not in selected:
             continue
         prepared = prepare_case(
             case,
-            configuration=configuration,
+            dataset_manifest=_ROOT / configuration.dataset_manifest,
             repository_root=_ROOT,
             inputs_root=output_root / "inputs",
             allow_download=args.allow_download,

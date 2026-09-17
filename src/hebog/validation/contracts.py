@@ -121,18 +121,31 @@ class OneTileOverheadBudget(_ContractModel):
     dask_dispatch_seconds: float = Field(ge=0)
 
 
+class PyBdsfMasterGate(_ContractModel):
+    """Deployment runtime gate against one pinned PyBDSF ``master`` commit.
+
+    A candidate passes a matrix cell when the upper one-sided confidence
+    bound of its median wall-time ratio to the pinned commit is at most
+    ``maximum_ratio``.
+    """
+
+    commit_sha: str = Field(pattern=r"^[0-9a-f]{40}$")
+    maximum_ratio: float = Field(gt=0, lt=1)
+    confidence_level: float = Field(gt=0, lt=1)
+    bound: Literal["upper-one-sided"]
+
+
 class PerformanceMatrixContract(_ContractModel):
     """Frozen logarithmic size and scientific-work performance matrix."""
 
-    schema_version: Literal[1]
+    schema_version: Literal[2]
     matrix_id: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
     status: Literal["frozen-provisional"]
     sizes_pixels: tuple[int, ...] = Field(min_length=2)
     workload_classes: tuple[WorkloadClass, ...]
     initial_crossover_probes: tuple[CrossoverProbe, ...]
     crossover_bracketing_rule: str = Field(min_length=1)
-    released_pybdsf_maximum_ratio: float = Field(gt=0, le=1)
-    master_pybdsf_exclusive_ratio_limit: float = Field(gt=0, le=1)
+    pybdsf_master: PyBdsfMasterGate
     previous_hebog: PreviousHebogGate
     one_tile_overhead_budget: OneTileOverheadBudget
 

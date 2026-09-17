@@ -1,0 +1,129 @@
+{
+  "benchmark_id": "quick-benchmark",
+  "cases": [
+    {
+      "case": {
+        "case_id": "compact-snr-ladder",
+        "dataset_id": "quick-compact-snr-ladder",
+        "kind": "generated"
+      },
+      "tier": "smoke",
+      "workload_class": "empty-or-sparse"
+    },
+    {
+      "case": {
+        "case_id": "dense-field",
+        "dataset_id": "quick-dense-field",
+        "kind": "generated"
+      },
+      "tier": "default",
+      "workload_class": "dense-or-extended"
+    },
+    {
+      "case": {
+        "case_id": "lotss-dr3-1312-sparse",
+        "image": "benchmark-results/quick-check/cutouts/lotss-dr3-1312-sparse/image.fits",
+        "kind": "image",
+        "remote_source": {
+          "url": "https://lofar-surveys.org/public/DR3/healpix_mosaics/1312/mosaic.fits",
+          "window": {
+            "size": 1024,
+            "x_start": 9749,
+            "y_start": 9749
+          }
+        }
+      },
+      "tier": "default",
+      "workload_class": "empty-or-sparse"
+    },
+    {
+      "case": {
+        "case_id": "lotss-dr3-1312-dense",
+        "image": "benchmark-results/quick-check/cutouts/lotss-dr3-1312-dense/image.fits",
+        "kind": "image",
+        "remote_source": {
+          "url": "https://lofar-surveys.org/public/DR3/healpix_mosaics/1312/mosaic.fits",
+          "window": {
+            "size": 1024,
+            "x_start": 7701,
+            "y_start": 6677
+          }
+        }
+      },
+      "tier": "default",
+      "workload_class": "dense-or-extended"
+    },
+    {
+      "case": {
+        "case_id": "sdc1-b2-1000h-crowded",
+        "image": "benchmark-results/quick-check/cutouts/sdc1-b2-1000h-crowded/image.fits",
+        "kind": "image",
+        "remote_source": {
+          "url": "https://zenodo.org/api/records/4328029/files/SKAMid_B2_1000h_v3.fits/content",
+          "window": {
+            "size": 1024,
+            "x_start": 16896,
+            "y_start": 16896
+          }
+        },
+        "supplied_metadata": {
+          "beam_position_angle_degrees": 0.0
+        }
+      },
+      "tier": "large",
+      "workload_class": "dense-or-extended"
+    },
+    {
+      "case": {
+        "case_id": "sdc1-b2-1000h-crowded-2048",
+        "image": "benchmark-results/quick-benchmark/cutouts/sdc1-b2-1000h-crowded-2048/image.fits",
+        "kind": "image",
+        "remote_source": {
+          "url": "https://zenodo.org/api/records/4328029/files/SKAMid_B2_1000h_v3.fits/content",
+          "window": {
+            "size": 2048,
+            "x_start": 16384,
+            "y_start": 16384
+          }
+        },
+        "supplied_metadata": {
+          "beam_position_angle_degrees": 0.0
+        }
+      },
+      "tier": "large",
+      "workload_class": "dense-or-extended"
+    },
+    {
+      "case": {
+        "case_id": "lotss-dr3-1312-dense-3600",
+        "image": "benchmark-results/quick-benchmark/cutouts/lotss-dr3-1312-dense-3600/image.fits",
+        "kind": "image",
+        "remote_source": {
+          "url": "https://lofar-surveys.org/public/DR3/healpix_mosaics/1312/mosaic.fits",
+          "window": {
+            "size": 3600,
+            "x_start": 6413,
+            "y_start": 5389
+          }
+        }
+      },
+      "tier": "large",
+      "workload_class": "dense-or-extended"
+    }
+  ],
+  "dataset_manifest": "config/datasets/quick-science-check.json",
+  "default_budget_seconds": 600.0,
+  "hebog": {
+    "detection_threshold_sigma": 5.0,
+    "island_threshold_sigma": 3.0,
+    "minimum_island_pixels": 7,
+    "profile": "continuum"
+  },
+  "performance_contract": "config/benchmarks/phase-0-performance.json",
+  "reference": {
+    "container_image": "localhost/hebog-pybdsf-master:c70103be3-reconstructed",
+    "finder_id": "pinned-pybdsf-master",
+    "ncores": 4
+  },
+  "schema_version": 1
+}

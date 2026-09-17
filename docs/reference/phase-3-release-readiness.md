@@ -94,9 +94,9 @@ catalogue/filter-output budget by the same amount; it does not increase the
 complete-path budget.
 
 Raw exploratory evidence stays in ignored `benchmark-results/phase-3/`.
-Reproduce the governed representative run with
-`measure_phase3_detection.py`; reproduce the generated size/density ladder
-with `run_phase3_matrix.py` as documented in the benchmark README.
+The representative runner `measure_phase3_detection.py` and the generated
+size/density ladder `run_phase3_matrix.py` were removed after [`v0.7.0`](https://github.com/gemmadanks/hebog/tree/v0.7.0/scripts/benchmark); use
+that revision to reproduce them.
 
 ## Portability, limitations, and review
 

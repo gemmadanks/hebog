@@ -101,6 +101,65 @@ fetched with HTTP range requests only when `--allow-download` is given. Use
 This is a regression detector, not powered scientific parity. Each case is
 one realization and no confidence interval is claimed.
 
+## Run the quick benchmark
+
+Run the quick benchmark for every change that can affect runtime. The default
+tier takes about ten minutes of Hebog time on the development machine once
+its baselines are cached:
+
+```console
+just quick-benchmark
+```
+
+The cases are in `config/benchmarks/quick-benchmark.json`, grouped in tiers:
+
+- `smoke`: one 512² generated image, run in CI;
+- `default`: the 1,024² generated dense field and sparse and dense 1,024²
+  LoTSS-DR3 cut-outs; and
+- `large`: the default cases plus SDC1 crowded cut-outs at 1,024² and 2,048²
+  and a 3,600² LoTSS-DR3 cut-out. Run it with `--tier large` before
+  profiling or a release; it currently takes hours.
+
+The protocol comes from `config/benchmarks/phase-0-performance.json`: one
+warm-up and five measured repetitions per case. Every repetition runs the
+public finder with the serial executor in a fresh process, limited to one
+numerical-library thread, so it includes interpreter start-up, imports, FITS
+input and product writing. Inputs above the public 1,024-pixel limit use the
+worker's `--diagnostic-size-limit`, which raises the limit only inside that
+process.
+
+Each case is compared with two cached baselines, measured once per input and
+machine with the same protocol:
+
+- the previous Hebog release, by default the latest `v*` tag in `HEAD`. It is
+  installed from the tag with its locked dependencies under
+  `benchmark-results/quick-benchmark/releases/`. Use `--previous-release` to
+  choose another tag, or `--no-previous-release` to skip it.
+- pinned PyBDSF `master` in the quick science check's Podman image with four
+  cores. The container worker times itself from input validation to product
+  normalisation, so container start-up is excluded. Use `--no-reference` to
+  skip it.
+
+The run prints median wall time with its range, both ratios with their
+one-sided 95% bootstrap bounds and outcomes, and peak memory; the report also
+records median CPU time. Each repetition writes its products to the system
+temporary directory, which Spotlight does not index, and deletes them. It writes `report.json` and
+one `BenchmarkEvidence` record (`hebog.validation.evidence`) per case under
+`benchmark-results/quick-benchmark/runs/<label>/`.
+
+A comparison passes when the upper ratio bound is within the limit, fails
+when the lower bound exceeds it, and is otherwise inconclusive. The run exits
+non-zero when a case fails or the previous-release comparison fails.
+
+Cached baselines drift with machine state: the same v0.7.0 dense-field
+median measured 25.8 s and 29.8 s in two sessions. Before acting on a
+regression whose CPU time did not change, confirm it with
+`--refresh-previous-release`, which measures the previous release again in
+the same session. The `master` ratio is diagnostic, not the
+deployment gate: Hebog runs natively on one thread and PyBDSF runs in a Linux
+container with four cores. Only the matched benchmark in milestone M4 can pass
+or fail that gate.
+
 ## Develop test-first
 
 For a public behaviour or scientific kernel:

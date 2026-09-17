@@ -22385,3 +22385,54 @@ scientific pass from fixture validation.
 - **Follow-up.** A plan task now covers the integrated-flux and major-axis
   bias of beam-sized components. The compact-fitting reference records the
   calibration evidence.
+
+## 2026-09-17 — Quick benchmark
+
+- **Outcome.** `just quick-benchmark` times complete FITS-to-products runs:
+  one warm-up and five measured repetitions per case, each in a fresh
+  single-thread process, written as exploratory `BenchmarkEvidence`. It
+  compares each case with the previous release, installed from its tag with
+  locked dependencies, and with pinned PyBDSF `master` in its container. Both
+  baselines are cached per input and machine.
+  Configuration: `config/benchmarks/quick-benchmark.json`.
+- **Tiers.** The user chose two tiers over one tier of up to 3,600² or fewer
+  repetitions for large inputs:
+  - `default`: the generated 1,024² dense field and sparse and dense 1,024²
+    LoTSS-DR3 cut-outs;
+  - `large`: adds SDC1 crowded at 1,024² and 2,048² and LoTSS-DR3 dense at
+    3,600²; it takes hours at current speed;
+  - `smoke`: one 512² case, run in CI.
+- **Contract.** `phase-0-performance.json` is now schema 2, with a single
+  `pybdsf_master` gate: upper one-sided 95% bound ≤0.50 against `c70103b`.
+  The released-PyBDSF and exclusive `master` limits were removed.
+- **Removed.** The Phase 1–5 stage and matrix benchmark runners, their input
+  generators and `phase-4-performance.json`/`phase-5-performance.json`, which
+  timed stages of the whole-array path. They are in Git history at `v0.7.0`.
+  The Phase 0 overhead and PyBDSF baseline runners remain.
+- **Default tier, `third-default-20260917`** (Hebog `f8c90cd` plus this
+  change; v0.7.0 measured in the same session; `master` cached from the same
+  day):
+
+  | Case | Hebog s | v0.7.0 s | Ratio [bounds] | `master` s | Ratio [bounds] | CPU s Hebog / `master` |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | dense field | 30.3 | 29.8 | 1.02 [0.97, 1.08] inconclusive | 3.3 | 9.10 [7.84, 10.21] | 24.4 / 5.0 |
+  | LoTSS sparse | 33.2 | 32.9 | 1.01 [1.00, 1.03] pass | 5.3 | 6.22 [5.81, 6.44] | 27.1 / 9.8 |
+  | LoTSS dense | 37.7 | 38.2 | 0.99 [0.94, 1.00] pass | 6.1 | 6.18 [5.86, 6.61] | 31.5 / 11.8 |
+
+  Hebog time was 606 s against the 600 s budget. The `master` ratio is
+  diagnostic: Hebog runs natively on one thread and PyBDSF runs in a
+  four-core Linux container.
+- **Drift.** In `second-default-20260917`, dense field was flagged as a
+  regression (1.13 [1.06, 1.13]) against a v0.7.0 baseline cached earlier in
+  the day, although finder CPU time was lower (21.2 s vs 21.9 s). The extra
+  time was off-CPU: start-up 3.5 s vs 1.4 s. Products were written under the
+  Spotlight-indexed `benchmark-results/`. Products now go to the system
+  temporary directory, and the cache was remeasured. The same v0.7.0 case then
+  measured 29.8 s instead of 25.8 s. `--refresh-previous-release` confirms a
+  flagged regression in one session.
+- **Profile hints for M1.** Start-up and imports take about 3 s of every
+  process; importing `hebog.public_api` alone takes 3.4 s, including
+  `scipy.signal` and `scipy.ndimage`. A 512² smoke case takes 8.5 s per
+  process against 5.2 s in-process.
+- **Next.** Profile complete execution (M1), starting from these default-tier
+  results and a first large-tier run.

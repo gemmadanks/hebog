@@ -8,6 +8,7 @@ import ast
 import json
 import os
 import runpy
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
@@ -144,6 +145,15 @@ def test_empty_native_outputs_are_published_and_readable(
     assert result["status"] == "success"
     assert result["finder_id"] == finder
     assert result["scientific_claims_authorized"] is False
+    if sys.platform != "win32":
+        for usage in (result["finder_usage"], result["process_usage"]):
+            assert usage["wall_seconds"] >= 0.0
+            assert usage["cpu_seconds"] >= 0.0
+            assert usage["peak_rss_bytes"] > 0
+        assert (
+            result["process_usage"]["wall_seconds"]
+            >= result["finder_usage"]["wall_seconds"]
+        )
     assert (
         json.loads((destination / "comparison_catalogue.json").read_text())
         == []

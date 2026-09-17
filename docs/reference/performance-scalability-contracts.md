@@ -33,12 +33,21 @@ Every affected tier compares a candidate Hebog run with the previous reviewed
 Hebog baseline. One warm-up and at least five measured repetitions are
 required. A change is a regression when the lower 95% bootstrap confidence
 bound for the new/previous median ratio exceeds 1.05 without an approved
-trade-off. The deployment gate is an upper bound of at most 0.50 against
-pinned PyBDSF `master` (`c70103b`), with one confirmation against release
-1.14.1 before 1.0.0. The machine-readable file still records the former
-release (0.50) and `master` (1.00) limits until the benchmark lane amends it,
-as scheduled in the
-[implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md).
+trade-off.
+
+The deployment gate is the single `pybdsf_master` record: the upper one-sided
+95% bound of the Hebog/PyBDSF median wall-time ratio must be at most 0.50
+against pinned PyBDSF `master` (`c70103b`). Release 1.14.1 is checked once
+before 1.0.0, as the
+[implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
+describes; it is not a gate in this file. Schema version 2 removed the former
+`released_pybdsf_maximum_ratio` and `master_pybdsf_exclusive_ratio_limit`
+fields, and a version 1 file fails validation.
+
+The [quick benchmark](../how-to/index.md#run-the-quick-benchmark) reads its
+repetition counts and both comparison rules from this file. Its `master`
+ratio is diagnostic because the environments are not matched; only the
+matched `filter_skymodel` benchmark can pass the deployment gate.
 
 The warm one-tile framework budgets are 250 ms for configuration, 500 ms for
 FITS I/O, 10 ms for partition planning, 5 ms for serial dispatch, 50 ms for

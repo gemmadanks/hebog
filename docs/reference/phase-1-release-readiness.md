@@ -35,8 +35,8 @@ boundary after the relevant catalogue behaviour is implemented and reviewed.
 
 ## Exploratory local I/O evidence
 
-The committed runner at
-`scripts/benchmark/measure_phase1_io.py` generated a deterministic float64
+The runner `scripts/benchmark/measure_phase1_io.py`, removed after
+[`v0.7.0`](https://github.com/gemmadanks/hebog/tree/v0.7.0/scripts/benchmark), generated a deterministic float64
 FITS input, wrote float64 RMS and boolean-mask Zarr products, validated a
 completed generation, and streamed both final FITS products. Each campaign
 used one warm-up followed by five measured repetitions. Raw evidence remains
