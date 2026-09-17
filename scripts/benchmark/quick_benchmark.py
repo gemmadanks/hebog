@@ -503,6 +503,26 @@ def _comparison(comparison: BaselineComparison) -> dict[str, Any]:
     return asdict(comparison.ratio) | {"outcome": comparison.outcome}
 
 
+def _baseline_identity(
+    subject: dict[str, object],
+    *,
+    machine: dict[str, object],
+    contract: PerformanceMatrixContract,
+) -> dict[str, object]:
+    """Key a cached baseline by its subject and how its repetitions ran."""
+    return subject | {
+        "machine": machine,
+        "measurement_revision": _MEASUREMENT_REVISION,
+        "protocol": contract.previous_hebog.model_dump(mode="json"),
+    }
+
+
+def _cached_failure(directory: Path) -> str:
+    """Return the recorded error of a baseline that could not be measured."""
+    failure = json.loads((directory / "failure.json").read_text("utf-8"))
+    return str(failure["error"])
+
+
 def _run_case(  # noqa: PLR0913
     case: BenchmarkCase,
     *,
@@ -560,16 +580,17 @@ def _run_case(  # noqa: PLR0913
             case_id=case.case_id,
             reference_input_sha256=prepared.input_sha256,
             finder_id=f"hebog-{previous.label}",
-            identity={
-                "commit_sha": previous.commit_sha,
-                "configuration_sha256": _configuration_sha256(
-                    configuration, case
-                ),
-                "machine": machine,
-                "measurement_revision": _MEASUREMENT_REVISION,
-                "protocol": contract.previous_hebog.model_dump(mode="json"),
-                "worker_sha256": file_sha256(_WORKER),
-            },
+            identity=_baseline_identity(
+                {
+                    "commit_sha": previous.commit_sha,
+                    "configuration_sha256": _configuration_sha256(
+                        configuration, case
+                    ),
+                    "worker_sha256": file_sha256(_WORKER),
+                },
+                machine=machine,
+                contract=contract,
+            ),
         )
         status, evidence = _cached_or_measured(
             directory,
@@ -582,7 +603,9 @@ def _run_case(  # noqa: PLR0913
             "status": status,
             "cache": str(directory),
         }
-        if evidence is not None:
+        if evidence is None:
+            record["previous_release"]["error"] = _cached_failure(directory)
+        else:
             record["previous_release"] |= _summary(evidence) | {
                 "comparison": _comparison(
                     compare_with_previous_release(
@@ -598,11 +621,9 @@ def _run_case(  # noqa: PLR0913
             case_id=case.case_id,
             reference_input_sha256=file_sha256(prepared.reference_input_path),
             finder_id=configuration.reference.finder_id,
-            identity=reference_identity_value
-            | {
-                "machine": machine,
-                "protocol": contract.previous_hebog.model_dump(mode="json"),
-            },
+            identity=_baseline_identity(
+                reference_identity_value, machine=machine, contract=contract
+            ),
         )
         status, evidence = _cached_or_measured(
             directory,
@@ -614,7 +635,9 @@ def _run_case(  # noqa: PLR0913
             description="pinned PyBDSF master",
         )
         record["pybdsf_master"] = {"status": status, "cache": str(directory)}
-        if evidence is not None:
+        if evidence is None:
+            record["pybdsf_master"]["error"] = _cached_failure(directory)
+        else:
             record["pybdsf_master"] |= _summary(evidence) | {
                 "comparison": _comparison(
                     compare_with_pybdsf_master(
@@ -627,6 +650,65 @@ def _run_case(  # noqa: PLR0913
                 "matched": False,
             }
     return record
+
+
+@dataclass(frozen=True, slots=True)
+class _RunOutcome:
+    """Cases that failed, regressed or had no previous-release check."""
+
+    failed_cases: tuple[str, ...]
+    regressions: tuple[str, ...]
+    unchecked_cases: tuple[str, ...]
+
+    @property
+    def exit_status(self) -> int:
+        """Fail on a failed case or regression, not on a missing baseline.
+
+        A release that cannot run a case, for example because the case needs
+        a later feature, cannot run it until the next release, so a missing
+        baseline is reported instead of failing every run.
+        """
+        return 1 if self.failed_cases or self.regressions else 0
+
+
+def _run_outcome(records: list[dict[str, Any]]) -> _RunOutcome:
+    succeeded = [
+        record
+        for record in records
+        if record["status"] == "success"
+        and record["previous_release"] is not None
+    ]
+    return _RunOutcome(
+        failed_cases=tuple(
+            record["case_id"]
+            for record in records
+            if record["status"] != "success"
+        ),
+        regressions=tuple(
+            record["case_id"]
+            for record in succeeded
+            if record["previous_release"].get("comparison", {}).get("outcome")
+            == "fail"
+        ),
+        unchecked_cases=tuple(
+            record["case_id"]
+            for record in succeeded
+            if "comparison" not in record["previous_release"]
+        ),
+    )
+
+
+def _within_budget(
+    hebog_seconds: float, budget: float | None, outcome: _RunOutcome
+) -> bool | None:
+    """Compare Hebog time with the budget when that time is complete.
+
+    A failed case records no evidence, so its time is missing from the total
+    and the budget cannot be assessed.
+    """
+    if budget is None or outcome.failed_cases:
+        return None
+    return hebog_seconds <= budget
 
 
 def _ratio_text(baseline: dict[str, Any] | None) -> str:
@@ -672,7 +754,16 @@ def _print_summary(report: dict[str, Any]) -> None:
                 )
             )
         )
-    if report["budget_seconds"] is not None:
+    if (
+        report["budget_seconds"] is not None
+        and report["within_budget"] is None
+    ):
+        print(
+            f"Hebog time {report['hebog_elapsed_seconds']:.0f} s of "
+            "successful cases only; the budget was not assessed because a "
+            "case failed"
+        )
+    elif report["budget_seconds"] is not None:
         print(
             f"Hebog time {report['hebog_elapsed_seconds']:.0f} s of a "
             f"{report['budget_seconds']:.0f} s budget; total "
@@ -732,7 +823,10 @@ def main() -> int:
     hebog_seconds = 0.0
     for record in records:
         if record["status"] == "success":
-            evidence = load_evidence(Path(record["hebog"]["evidence"]))
+            evidence = cast(
+                BenchmarkEvidence,
+                load_evidence(Path(record["hebog"]["evidence"])),
+            )
             hebog_seconds += sum(
                 measurement.complete.wall_seconds
                 for measurement in evidence.measurements
@@ -740,6 +834,7 @@ def main() -> int:
     budget = (
         configuration.default_budget_seconds if tier == "default" else None
     )
+    outcome = _run_outcome(records)
     report: dict[str, Any] = {
         "schema_version": 1,
         "benchmark_id": configuration.benchmark_id,
@@ -755,27 +850,23 @@ def main() -> int:
         "pybdsf_master_gate": contract.pybdsf_master.model_dump(mode="json"),
         "budget_seconds": budget,
         "hebog_elapsed_seconds": hebog_seconds,
-        "within_budget": None if budget is None else hebog_seconds <= budget,
+        "within_budget": _within_budget(hebog_seconds, budget, outcome),
         "total_elapsed_seconds": time.perf_counter() - started,
         "cases": records,
     }
     write_report(run_root / "report.json", report)
     _print_summary(report)
     print(f"Report: {run_root / 'report.json'}")
-    failed = [r["case_id"] for r in records if r["status"] != "success"]
-    regressions = [
-        r["case_id"]
-        for r in records
-        if r["status"] == "success"
-        and r["previous_release"] is not None
-        and "comparison" in r["previous_release"]
-        and r["previous_release"]["comparison"]["outcome"] == "fail"
-    ]
-    for case_id in regressions:
+    label_text = previous.label if previous is not None else ""
+    for case_id in outcome.regressions:
+        print(f"REGRESSION {case_id}: slower than {label_text}")
+    for case_id in outcome.unchecked_cases:
         print(
-            f"REGRESSION {case_id}: slower than {previous and previous.label}"
+            f"NOT CHECKED {case_id}: {label_text} could not be measured, so "
+            "there is no regression check; see the case's previous_release "
+            "error, or retry with --refresh-previous-release"
         )
-    return 1 if failed or regressions else 0
+    return outcome.exit_status
 
 
 if __name__ == "__main__":

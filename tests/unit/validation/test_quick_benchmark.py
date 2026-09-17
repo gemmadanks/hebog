@@ -340,8 +340,94 @@ def test_runner_caches_baseline_evidence_and_failures(tmp_path: Path) -> None:
         "failed",
         None,
     )
+    assert runner["_cached_failure"](tmp_path / "bad") == (
+        "CalledProcessError: Command '['worker']' returned non-zero exit "
+        "status 1."
+    )
     status, _ = cached_or_measured(
         tmp_path / "ok", measure, description="ok", refresh=True
     )
     assert status == "measured"
     assert calls == ["measure", "fail", "measure"]
+
+
+def _runner() -> dict[str, Any]:
+    return runpy.run_path(str(_ROOT / "scripts/benchmark/quick_benchmark.py"))
+
+
+def test_every_baseline_identity_includes_the_measurement_revision() -> None:
+    """Changing how repetitions run remeasures Hebog and PyBDSF baselines."""
+    runner = _runner()
+    machine: dict[str, object] = {"processor": "arm"}
+
+    identity = runner["_baseline_identity"](
+        {"container_image_id": "image"}, machine=machine, contract=_CONTRACT
+    )
+
+    assert identity == {
+        "container_image_id": "image",
+        "machine": machine,
+        "measurement_revision": runner["_MEASUREMENT_REVISION"],
+        "protocol": _CONTRACT.previous_hebog.model_dump(mode="json"),
+    }
+
+
+def _case_record(
+    case_id: str, *, previous_release: dict[str, Any] | None
+) -> dict[str, Any]:
+    return {
+        "case_id": case_id,
+        "status": "success",
+        "previous_release": previous_release,
+    }
+
+
+def test_missing_previous_release_is_reported_without_failing() -> None:
+    """A baseline that cannot be measured is named, not a silent pass."""
+    runner = _runner()
+    records = [
+        _case_record(
+            "passed", previous_release={"comparison": {"outcome": "pass"}}
+        ),
+        _case_record("unchecked", previous_release={"status": "failed"}),
+        _case_record("skipped", previous_release=None),
+    ]
+
+    outcome = runner["_run_outcome"](records)
+
+    assert outcome.failed_cases == ()
+    assert outcome.regressions == ()
+    assert outcome.unchecked_cases == ("unchecked",)
+    assert outcome.exit_status == 0
+
+
+def test_failed_cases_and_regressions_fail_the_run() -> None:
+    """A failed case or a previous-release regression exits non-zero."""
+    runner = _runner()
+    regressed = _case_record(
+        "slower", previous_release={"comparison": {"outcome": "fail"}}
+    )
+    failed = {"case_id": "broken", "status": "failure", "error": "boom"}
+
+    regression = runner["_run_outcome"]([regressed])
+    failure = runner["_run_outcome"]([failed])
+
+    assert (regression.regressions, regression.exit_status) == (("slower",), 1)
+    assert (failure.failed_cases, failure.exit_status) == (("broken",), 1)
+
+
+def test_budget_is_not_assessed_when_a_case_failed() -> None:
+    """A failed case's time is missing, so the total cannot pass a budget."""
+    runner = _runner()
+    within_budget = runner["_within_budget"]
+    complete = runner["_run_outcome"](
+        [_case_record("ok", previous_release=None)]
+    )
+    incomplete = runner["_run_outcome"](
+        [{"case_id": "broken", "status": "failure", "error": "boom"}]
+    )
+
+    assert within_budget(10.0, 600.0, complete) is True
+    assert within_budget(900.0, 600.0, complete) is False
+    assert within_budget(10.0, 600.0, incomplete) is None
+    assert within_budget(10.0, None, complete) is None

@@ -151,6 +151,14 @@ A comparison passes when the upper ratio bound is within the limit, fails
 when the lower bound exceeds it, and is otherwise inconclusive. The run exits
 non-zero when a case fails or the previous-release comparison fails.
 
+A baseline that cannot be measured, for example a case that needs a feature
+the previous release lacks, is cached with its error and does not fail the
+run. The report records the error, and the run prints `NOT CHECKED` for each
+case without a previous-release comparison; `--refresh-previous-release`
+retries it. When a case fails, its time is missing from the Hebog total, so
+the report sets `within_budget` to `null` instead of comparing an incomplete
+total with the budget.
+
 Cached baselines drift with machine state: the same v0.7.0 dense-field
 median measured 25.8 s and 29.8 s in two sessions. Before acting on a
 regression whose CPU time did not change, confirm it with
