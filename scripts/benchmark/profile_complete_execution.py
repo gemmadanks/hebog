@@ -120,10 +120,17 @@ def _run_worker(
 
 
 def _top_level_stages(profile: dict[str, Any]) -> dict[str, float]:
-    """Split process wall time into start-up, stages and other overhead."""
+    """Split process wall time into imports, stages and process overhead."""
+    if "worker_lifetime_seconds" not in profile:
+        raise SystemExit(
+            "this profile predates worker lifetime recording, so process "
+            "creation cannot be separated from the work after the run; "
+            "run the profile again"
+        )
     return process_wall_seconds_by_stage(
         stage_records(profile["stages"]),
         process_wall_seconds=float(profile["process"]["wall_seconds"]),
+        worker_lifetime_seconds=float(profile["worker_lifetime_seconds"]),
         import_seconds=float(profile["import_seconds"]),
         root_stage=str(profile["root_stage"]),
     )

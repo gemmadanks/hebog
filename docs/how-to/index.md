@@ -189,7 +189,7 @@ The cases are in `config/benchmarks/complete-execution-profile.json`:
   cut-out at 512², 1,024² and 2,048², all centred on the same field.
 
 Each case runs once in a fresh single-thread process with the serial
-executor. The worker wraps the functions of the public path with timers in its
+executor, on macOS or Linux: stage timing needs the POSIX `resource` module. The worker wraps the functions of the public path with timers in its
 own process, so no Hebog code changes, and records each stage's calls, wall
 and CPU time, and the process peak memory when the stage ends. A function
 imported into several modules is wrapped in each of them, so a call through an
@@ -200,9 +200,13 @@ case a second time under `cProfile` and keeps its statistics and the functions
 with the most self time; `cProfile` misses Zarr's I/O thread and slows
 Python-heavy code, so stage times come from the first run.
 
-Process time outside the run is split in two: `interpreter start-up and
-imports` is measured directly, and `other process overhead` is what remains
-(temporary-product cleanup, result writing and interpreter shutdown).
+Process time outside the run is split into three measured parts, so no part
+of the fixed cost is charged to the wrong one: `module imports`, `other
+worker overhead` (temporary-product cleanup and result writing) and `process
+creation and shutdown`, which is the time outside the worker script itself.
+The worker's clock starts at its first line, so process creation and
+interpreter start-up precede it and interpreter shutdown follows it; an
+in-process clock cannot separate the two, so they are reported together.
 
 `summary.json` under `benchmark-results/profiles/runs/<label>/` fits each
 top-level stage on the ladder as a fixed cost plus a cost per megapixel and

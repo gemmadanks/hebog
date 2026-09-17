@@ -22660,3 +22660,68 @@ scientific pass from fixture validation.
   device I/O.
 - **Next.** The plan's M1 now carries three measured repair rows, ordered by
   the ranking above. The component-bias row is unchanged.
+
+## 2026-09-17 — M1: profile corrections and a second run
+
+- **Why.** The profiler was added without tests, against this repository's
+  own conventions: `tests/unit/validation/` covers script-level tooling with
+  `runpy`, and `scripts/` are thin runners over `hebog.validation`. Review
+  then found defects in what the profile measured. The timing, stage
+  splitting and cost model now live in
+  `hebog.validation.execution_profile` with 21 unit tests and 100%
+  branch-aware coverage; the scripts only configure and run them.
+- **Defect 1: untimed alias calls.** A function imported into several
+  modules has one binding in each, and only one was wrapped.
+  `evaluate_residual_atrous` is called through the bindings of
+  `public_science`, `science.continuum` and `component_measurement`, so two
+  of its call sites were invisible and their time sat in the caller's self
+  time. Every binding in the package is now wrapped: 44 bindings for 25
+  stages. The newly visible work is small — 247 position-filter calls
+  totalling 0.09 s inside component fitting on the dense 1,024² case — so
+  the ranking below is unchanged.
+- **Defect 2: start-up absorbed post-run work.** Start-up was reported as
+  the process time outside `find_sources`, which also included
+  temporary-product cleanup and result writing.
+- **Defect 3: process creation charged to the wrong part.** The worker's
+  clock starts at its first line, so process creation and interpreter
+  start-up precede it and interpreter shutdown follows it; both landed in
+  the bucket documented as post-run work. Process time is now split into
+  three measured parts: `module imports` (1.9–3.2 s), `other worker
+  overhead` (cleanup and result writing, 0.01–0.3 s) and `process creation
+  and shutdown` (0.17 s for the profiled worker; a bare interpreter on this
+  machine takes 40 ms, so most of it is shutdown of a large process).
+- **Defect 4: Windows CI.** `execution_profile` imported the POSIX-only
+  `resource` module at import, so every test that imported it failed to
+  collect on Windows. It is now imported where it is used, with an explicit
+  `OSError`; the cost model, configuration and `cProfile` ranking work on
+  Windows and only the timing tests skip there.
+- **Second run `m1-profile-2-20260917`** (corrected timers, no `cProfile`,
+  same machine and settings). Wall seconds:
+
+  | Case | Components | Total | Background/RMS | of which refinement | Science | of which association | multiscale | fitting | Peak RSS MiB |
+  | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+  | empty 512² | 0 | 7.3 | 3.9 | 2.8 | 0.1 | 0.0 | 0.1 | 0.0 | 276 |
+  | empty 1,024² | 0 | 18.5 | 14.9 | 11.9 | 0.5 | 0.0 | 0.5 | 0.0 | 585 |
+  | empty 2,048² | 1 | 80.1 | 70.2 | 55.1 | 6.6 | 3.3 | 2.8 | 0.1 | 2,489 |
+  | dense 512² | 62 | 11.1 | 4.8 | 3.9 | 2.9 | 1.6 | 0.4 | 0.9 | 325 |
+  | dense 1,024² | 246 | 44.7 | 21.3 | 18.3 | 19.8 | 12.7 | 3.6 | 3.4 | 600 |
+  | dense 2,048² | 982 | 322.2 | 102.7 | 87.2 | 201.9 | 137.5 | 49.9 | 13.7 | 1,718 |
+  | LoTSS sparse 1,024² | 61 | 31.3 | 19.4 | 14.8 | 8.2 | 5.3 | 1.6 | 1.1 | 835 |
+  | LoTSS dense 1,024² | 108 | 35.3 | 20.0 | 15.7 | 11.6 | 6.8 | 2.7 | 1.9 | 838 |
+  | SDC1 crowded 512² | 177 | 21.0 | 8.4 | 7.1 | 9.0 | 5.7 | 0.8 | 2.4 | 334 |
+  | SDC1 crowded 1,024² | 794 | 118.8 | 45.0 | 40.1 | 67.9 | 45.8 | 12.6 | 9.1 | 785 |
+  | SDC1 crowded 2,048² | 3,110 | 955.5 | 248.9 | 229.8 | 663.3 | 446.3 | 181.6 | 34.1 | 1,736 |
+
+  The ladder fits `1.35 s + 18.59 s/Mpx + 48.5 ms/component +
+  47.4 ms/(Mpx·component)`, largest residual 2.4 s on totals up to 322 s,
+  and the real cases lie within 1.12–1.23× of it. Against the first run the
+  coefficients move by at most 8% and every conclusion holds, so the two
+  runs are consistent repetitions rather than a correction of the ranking.
+  This run remains the reference for the M1 repair rows.
+- **Evidence caveat.** This run's process split still used the earlier
+  two-part scheme, so its start-up figure bundles process creation and
+  shutdown (about 0.2 s). Re-summarising it with the current tool is
+  refused rather than silently mis-split; the next profile records all
+  three parts. Function-level rankings stay those of
+  `m1-profile-20260917`, whose `cProfile` statistics see every call
+  regardless of which binding made it.

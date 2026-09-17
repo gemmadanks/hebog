@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import functools
 import importlib
-import resource
 import sys
 import time
 from collections.abc import Callable, Generator, Mapping, Sequence
@@ -28,14 +27,23 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from hebog.validation.quick_check import HebogSettings, QuickCheckCase
 
-STARTUP_STAGE = "interpreter start-up and imports"
-"""Time from process start until the profiled imports are complete."""
+IMPORTS_STAGE = "module imports"
+"""Time from the worker's first line until its imports are complete."""
 
-OVERHEAD_STAGE = "other process overhead"
-"""Process time outside start-up and the root stage.
+OVERHEAD_STAGE = "other worker overhead"
+"""Worker time outside imports and the root stage.
 
-It covers temporary-product cleanup, result writing and interpreter
-shutdown, which all happen after the root stage ends.
+It covers temporary-product cleanup and result writing, which happen after
+the root stage ends.
+"""
+
+PROCESS_STAGE = "process creation and shutdown"
+"""Process time outside the worker script itself.
+
+The worker's clock starts at its first line, so process creation and
+interpreter start-up precede it and interpreter shutdown follows it. An
+in-process clock cannot separate the two, so they are reported together;
+they are about 40 ms on the development machine.
 """
 
 SELF_STAGE_SUFFIX = "other {stage} work"
@@ -98,6 +106,34 @@ def peak_rss_bytes(maximum_resident_set: int) -> int:
     )
 
 
+def _process_usage() -> Any:
+    """Return this process's resource usage.
+
+    ``resource`` is POSIX-only, and importing it here keeps the cost model
+    and configuration usable on Windows, where only stage timing is
+    unavailable.
+
+    Raises:
+        OSError: If this platform has no ``resource`` module.
+    """
+    try:
+        import resource  # noqa: PLC0415
+    except ImportError as error:
+        raise OSError(
+            "stage timing needs the resource module (macOS or Linux)"
+        ) from error
+    return resource.getrusage(resource.RUSAGE_SELF)
+
+
+def current_peak_rss_bytes() -> int:
+    """Return the peak resident memory of this process, in bytes.
+
+    Raises:
+        OSError: If this platform cannot report resource usage.
+    """
+    return peak_rss_bytes(_process_usage().ru_maxrss)
+
+
 class StageRecorder:
     """Accumulate nested stage usage for one single-threaded run.
 
@@ -117,7 +153,7 @@ class StageRecorder:
         """Measure one call of ``name`` under the active stage."""
         parent = self._path
         path = (*parent, name)
-        before = resource.getrusage(resource.RUSAGE_SELF)
+        before = _process_usage()
         wall_started = time.perf_counter()
         cpu_started = time.process_time()
         self._path = path
@@ -127,7 +163,7 @@ class StageRecorder:
             self._path = parent
             wall = time.perf_counter() - wall_started
             cpu = time.process_time() - cpu_started
-            after = resource.getrusage(resource.RUSAGE_SELF)
+            after = _process_usage()
             totals = self._totals.setdefault(path, _StageTotals())
             totals.calls += 1
             totals.wall_seconds += wall
@@ -247,14 +283,16 @@ def process_wall_seconds_by_stage(
     records: Sequence[StageRecord],
     *,
     process_wall_seconds: float,
+    worker_lifetime_seconds: float,
     import_seconds: float,
     root_stage: str,
 ) -> dict[str, float]:
-    """Split one process's wall time into start-up, stages and overhead.
+    """Split one process's wall time into every part that spent it.
 
-    Nested stages stay inside their parent; the root stage's own work and
-    the time outside it are reported separately, so start-up is the measured
-    import time rather than everything the root stage did not cover.
+    Nested stages stay inside their parent; the root stage's own work, the
+    worker's imports, what the worker did after the run and the process time
+    outside the worker script are reported separately. Every part is
+    measured, so the parts sum to ``process_wall_seconds``.
     """
     stages = {record.stage: record for record in records}
     root = stages[(root_stage,)]
@@ -264,10 +302,11 @@ def process_wall_seconds_by_stage(
         if len(path) == 2  # noqa: PLR2004 pairs are (root, stage)
     }
     split[SELF_STAGE_SUFFIX.format(stage=root_stage)] = root.self_wall_seconds
-    split[STARTUP_STAGE] = import_seconds
+    split[IMPORTS_STAGE] = import_seconds
     split[OVERHEAD_STAGE] = (
-        process_wall_seconds - import_seconds - root.wall_seconds
+        worker_lifetime_seconds - import_seconds - root.wall_seconds
     )
+    split[PROCESS_STAGE] = process_wall_seconds - worker_lifetime_seconds
     return split
 
 

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import runpy
+import sys
 import types
 from pathlib import Path
 from typing import Any
@@ -16,11 +18,13 @@ from hebog.validation.datasets import (
     load_dataset_manifest,
 )
 from hebog.validation.execution_profile import (
+    IMPORTS_STAGE,
     OVERHEAD_STAGE,
-    STARTUP_STAGE,
+    PROCESS_STAGE,
     ProfiledCase,
     StageRecorder,
     compare_with_model,
+    current_peak_rss_bytes,
     fit_stage_cost_models,
     install_stage_timers,
     load_profile_configuration,
@@ -34,6 +38,11 @@ _CONFIGURATION = _ROOT / "config/benchmarks/complete-execution-profile.json"
 _MANIFEST = _ROOT / "config/datasets/complete-execution-profile.json"
 _BUILDER = _ROOT / "scripts/benchmark/build_profile_datasets.py"
 _WORKER = _ROOT / "scripts/benchmark/profile_complete_execution_worker.py"
+_POSIX_USAGE = importlib.util.find_spec("resource") is not None
+_needs_usage = pytest.mark.skipif(
+    not _POSIX_USAGE,
+    reason="stage timing needs the POSIX resource module",
+)
 
 
 def _busy(seconds: float) -> None:
@@ -45,6 +54,7 @@ def _busy(seconds: float) -> None:
         pass
 
 
+@_needs_usage
 def test_nested_stages_report_time_under_their_parent() -> None:
     recorder = StageRecorder()
     with recorder.stage("parent"):
@@ -67,6 +77,7 @@ def test_nested_stages_report_time_under_their_parent() -> None:
     assert child.self_wall_seconds == pytest.approx(child.wall_seconds)
 
 
+@_needs_usage
 def test_stage_records_survive_the_worker_result_document() -> None:
     """The driver rebuilds stages from the worker's JSON, so both agree."""
     recorder = StageRecorder()
@@ -77,6 +88,7 @@ def test_stage_records_survive_the_worker_result_document() -> None:
     assert restored == original
 
 
+@_needs_usage
 def test_repeated_calls_accumulate_into_one_stage() -> None:
     recorder = StageRecorder()
     for _ in range(3):
@@ -87,6 +99,7 @@ def test_repeated_calls_accumulate_into_one_stage() -> None:
     assert record.wall_seconds > 0.0
 
 
+@_needs_usage
 def test_timers_wrap_every_module_binding_of_one_function() -> None:
     """A stage must be timed wherever the public path calls it.
 
@@ -125,6 +138,7 @@ def test_timers_wrap_every_module_binding_of_one_function() -> None:
     assert record.calls == 2
 
 
+@_needs_usage
 def test_methods_are_wrapped_on_their_class() -> None:
     class Reader:
         def read(self) -> str:
@@ -144,11 +158,13 @@ def test_methods_are_wrapped_on_their_class() -> None:
     assert record.calls == 1
 
 
+@_needs_usage
 def test_process_split_separates_imports_from_work_after_the_run() -> None:
-    """Start-up is the measured import time, not everything outside the run.
+    """Every part of the process lands in the bucket that describes it.
 
-    The remainder covers temporary-product cleanup, result writing and
-    interpreter shutdown, which happen after the root stage ends.
+    The worker's clock starts at its first line, so process creation and
+    interpreter start-up happen before it and interpreter shutdown after
+    it; neither is import time nor work the run did.
     """
     recorder = StageRecorder()
     with recorder.stage("find_sources"):
@@ -157,18 +173,36 @@ def test_process_split_separates_imports_from_work_after_the_run() -> None:
         _busy(0.01)
     records = recorder.records()
     root = next(item for item in records if item.stage == ("find_sources",))
+    worker_lifetime = root.wall_seconds + 3.5
     split = process_wall_seconds_by_stage(
         records,
-        process_wall_seconds=root.wall_seconds + 5.0,
+        process_wall_seconds=worker_lifetime + 0.25,
+        worker_lifetime_seconds=worker_lifetime,
         import_seconds=3.0,
         root_stage="find_sources",
     )
-    assert split[STARTUP_STAGE] == pytest.approx(3.0)
-    assert split[OVERHEAD_STAGE] == pytest.approx(2.0)
+    assert split[IMPORTS_STAGE] == pytest.approx(3.0)
+    assert split[OVERHEAD_STAGE] == pytest.approx(0.5)
+    assert split[PROCESS_STAGE] == pytest.approx(0.25)
     assert split["science"] == pytest.approx(
         root.wall_seconds - root.self_wall_seconds
     )
-    assert sum(split.values()) == pytest.approx(root.wall_seconds + 5.0)
+    assert sum(split.values()) == pytest.approx(worker_lifetime + 0.25)
+
+
+def test_stage_timing_reports_a_clear_error_without_resource(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Windows has no ``resource``; the profiler says so instead of failing
+    at import, so the cost model and configuration stay usable there."""
+    monkeypatch.setitem(sys.modules, "resource", None)
+    with pytest.raises(OSError, match="macOS or Linux"):
+        current_peak_rss_bytes()
+
+
+@_needs_usage
+def test_peak_memory_is_reported_in_bytes() -> None:
+    assert current_peak_rss_bytes() > 0
 
 
 def _case(

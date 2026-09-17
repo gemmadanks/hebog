@@ -14,6 +14,9 @@ its own stage; no Hebog code changes. ``--cprofile`` additionally writes a
 Python-heavy code, so stage times come from runs without it.
 ``--diagnostic-size-limit`` raises the public 1,024-pixel limit inside this
 process only, as in the quick-benchmark worker.
+
+Stage timing needs the POSIX ``resource`` module, so this worker runs on
+macOS and Linux.
 """
 
 from __future__ import annotations
@@ -26,7 +29,6 @@ import argparse  # noqa: E402
 import cProfile  # noqa: E402
 import importlib  # noqa: E402
 import json  # noqa: E402
-import resource  # noqa: E402
 import sys  # noqa: E402
 from pathlib import Path  # noqa: E402
 from tempfile import TemporaryDirectory  # noqa: E402
@@ -39,8 +41,8 @@ from hebog.data_models import SuppliedImageMetadata  # noqa: E402
 from hebog.executors import SerialExecutor  # noqa: E402
 from hebog.validation.execution_profile import (  # noqa: E402
     StageRecorder,
+    current_peak_rss_bytes,
     install_stage_timers,
-    peak_rss_bytes,
     top_self_time,
 )
 
@@ -173,9 +175,7 @@ def main() -> None:
     )
     recorder = StageRecorder()
     wrapped_bindings = install_stage_timers(recorder, _STAGES)
-    import_rss_bytes = peak_rss_bytes(
-        resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    )
+    import_rss_bytes = current_peak_rss_bytes()
     profiler = cProfile.Profile() if args.cprofile is not None else None
     with TemporaryDirectory(prefix="hebog-profile-") as temporary:
         if profiler is not None:
@@ -212,6 +212,9 @@ def main() -> None:
             "statistics": str(args.cprofile),
             "top_self_time": top_self_time(args.cprofile),
         }
+    # Process creation, interpreter start-up and shutdown lie outside this
+    # script; the driver derives them from the lifetime recorded here.
+    record["worker_lifetime_seconds"] = time.perf_counter() - _PROCESS_STARTED
     args.result.write_text(
         json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
