@@ -480,8 +480,15 @@ def _catalogue_ellipse(shape: GaussianShape) -> CatalogueEllipse:
 def _segment_pixel_moment_covariance(
     residual_jy_per_beam: npt.NDArray[np.float64],
     support: npt.NDArray[np.bool_],
+    *,
+    window: SegmentWindow | None = None,
 ) -> tuple[tuple[float, float], npt.NDArray[np.float64]] | None:
-    """Return a positive centroid and exact-support covariance."""
+    """Return a positive centroid and exact-support covariance.
+
+    The planes may be one segment's window of the image; ``window`` then
+    keeps the centroid in the image's pixel frame.
+    """
+    y_origin, x_origin = (0, 0) if window is None else window.origin_yx
     positive = (
         support
         & np.isfinite(residual_jy_per_beam)
@@ -493,7 +500,9 @@ def _segment_pixel_moment_covariance(
     weight = float(np.sum(weights, dtype=np.float64))
     if not np.isfinite(weight) or weight <= 0.0:
         return None
-    y_pixels, x_pixels = np.nonzero(positive)
+    local_y, local_x = np.nonzero(positive)
+    y_pixels = local_y + y_origin
+    x_pixels = local_x + x_origin
     centroid_x = float(np.sum(x_pixels * weights, dtype=np.float64) / weight)
     centroid_y = float(np.sum(y_pixels * weights, dtype=np.float64) / weight)
     delta_x = x_pixels - centroid_x
@@ -524,11 +533,13 @@ def _moment_shape_fields(
     support: npt.NDArray[np.bool_],
     celestial_wcs: WCS,
     beam: RestoringBeam,
+    window: SegmentWindow | None = None,
 ) -> dict[str, object]:
     """Return catalogue fields for one moment-equivalent owner shape."""
     moment = _segment_pixel_moment_covariance(
         residual_jy_per_beam,
         support,
+        window=window,
     )
     provenance = "segment-moment-equivalent-shape"
     if moment is None:
@@ -638,6 +649,7 @@ def build_hebog_segment_moment_catalogue(  # noqa: PLR0913
             for source in sources
         )
     by_identifier = {source.identifier: source for source in sources}
+    segment_windows = find_objects(labels)
     output: list[CatalogueSource] = []
     for label_value in sorted(
         int(item) for item in np.unique(labels) if item > 0
@@ -646,12 +658,17 @@ def build_hebog_segment_moment_catalogue(  # noqa: PLR0913
         source = by_identifier.get(identifier)
         if source is None:
             continue
-        support = (labels == label_value) & valid
+        crop = _segment_crop(segment_windows, segment_windows, label_value)
+        support = (labels[crop] == label_value) & valid[crop]
         shape_fields = _moment_shape_fields(
-            residual,
+            residual[crop],
             support,
             celestial_wcs,
             beam,
+            SegmentWindow(
+                origin_yx=(crop[0].start, crop[1].start),
+                plane_shape_yx=residual.shape,
+            ),
         )
         shape_fields["quality_flags"] = tuple(
             sorted(

@@ -15,7 +15,7 @@ from typing import cast
 
 import numpy as np
 import numpy.typing as npt
-from scipy.ndimage import binary_dilation
+from scipy.ndimage import binary_dilation, find_objects
 from scipy.ndimage import label as connected_component_labels
 
 from hebog.algorithms.multiscale import residual_atrous_scale_halos_pixels
@@ -121,23 +121,28 @@ def _positive_moment_geometry(
     tuple[float, float],
     tuple[tuple[float, float], tuple[float, float]] | None,
 ]:
-    """Return positive-signal centroid and exact-support covariance."""
+    """Return positive-signal centroid and exact-support covariance.
+
+    Pixel coordinates carry ``origin_yx`` before they are weighted, so the
+    geometry depends on where the component lies in the image and not on
+    the plane or window it was measured in.
+    """
+    y_offset, x_offset = origin_yx
     positive = support & np.isfinite(signal) & (signal > 0.0)
     if not bool(np.any(positive)):
-        y_pixels, x_pixels = np.nonzero(support)
+        local_y, local_x = np.nonzero(support)
         return (
-            float(np.mean(y_pixels)) + origin_yx[0],
-            float(np.mean(x_pixels)) + origin_yx[1],
+            float(np.mean(local_y + y_offset)),
+            float(np.mean(local_x + x_offset)),
         ), None
     weights = signal[positive]
     weight = float(np.sum(weights, dtype=np.float64))
-    y_pixels, x_pixels = np.nonzero(positive)
+    local_y, local_x = np.nonzero(positive)
+    y_pixels = local_y + y_offset
+    x_pixels = local_x + x_offset
     centroid_y = float(np.sum(y_pixels * weights, dtype=np.float64) / weight)
     centroid_x = float(np.sum(x_pixels * weights, dtype=np.float64) / weight)
-    centroid = (
-        centroid_y + origin_yx[0],
-        centroid_x + origin_yx[1],
-    )
+    centroid = (centroid_y, centroid_x)
     if weights.size < _MINIMUM_SHAPE_PIXELS:
         return centroid, None
     delta_y = y_pixels - centroid_y
@@ -174,15 +179,24 @@ def build_detection_component_records(
         valid_pixels,
     )
     records: list[DetectionComponentRecord] = []
+    # One pass gives every component its window, so the geometry below
+    # costs each component's own pixels instead of the whole plane.
+    component_windows = find_objects(labels)
     for label_value in sorted(
         int(value) for value in np.unique(labels) if value > 0
     ):
-        support = (labels == label_value) & valid
-        local_pixels = np.column_stack(np.nonzero(support))
-        first_local = tuple(int(value) for value in local_pixels[0])
+        crop = component_windows[label_value - 1]
+        if crop is None:
+            raise ValueError("component labels must own at least one pixel")
+        window_origin_yx = (
+            origin_yx[0] + crop[0].start,
+            origin_yx[1] + crop[1].start,
+        )
+        support = (labels[crop] == label_value) & valid[crop]
+        first_local = tuple(int(value) for value in np.argwhere(support)[0])
         derived_reference = (
-            first_local[0] + origin_yx[0],
-            first_local[1] + origin_yx[1],
+            first_local[0] + window_origin_yx[0],
+            first_local[1] + window_origin_yx[1],
         )
         canonical_reference = (
             canonical_component_references_yx.get(
@@ -195,9 +209,9 @@ def build_detection_component_records(
         if min(canonical_reference) < 0:
             raise ValueError("canonical component references must be positive")
         centroid, covariance = _positive_moment_geometry(
-            signal,
+            signal[crop],
             support,
-            origin_yx=origin_yx,
+            origin_yx=window_origin_yx,
         )
         records.append(
             DetectionComponentRecord(

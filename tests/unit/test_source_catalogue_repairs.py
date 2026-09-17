@@ -23,6 +23,7 @@ from hebog.algorithms import component_measurement
 from hebog.algorithms import fitting as gaussian_fitting
 from hebog.algorithms.component_measurement import ComponentGroupingEvidence
 from hebog.algorithms.extended_measurement import (
+    SegmentWindow,
     measure_detected_segment_position,
 )
 from hebog.algorithms.multiscale import BeamShapePixels
@@ -31,7 +32,10 @@ from hebog.data_models.fitting import CompactGaussianFitResult
 from hebog.data_models.measurement import ValidMomentMeasurement
 from hebog.public_science import build_configured_continuum_products
 from hebog.science import catalogues as product_builder
-from hebog.science.catalogues import _segment_position
+from hebog.science.catalogues import (
+    _segment_pixel_moment_covariance,
+    _segment_position,
+)
 from hebog.science.models import ContinuumProducts
 from hebog.science.profile import load_continuum_science_profile
 
@@ -1029,3 +1033,32 @@ def test_centroid_attribution_separates_mask_background_and_aperture(
     assert record.aperture_background_mean == background_offset
     assert record.aperture_signed_flux_jy == rows[0].integrated_flux_jy
     assert record.selected_xy == record.denoised_xy
+
+
+def test_segment_moments_in_a_window_match_the_whole_plane() -> None:
+    """A segment's window changes the work, not the measured shape.
+
+    Moments over the whole plane for each segment cost image size times
+    segment count; the windowed result must be identical, in the plane's
+    pixel frame.
+    """
+    generator = np.random.default_rng(2026091903)
+    residual = generator.uniform(-0.1, 0.4, (70, 90))
+    support = np.zeros(residual.shape, dtype=np.bool_)
+    support[52:60, 61:72] = generator.random((8, 11)) < 0.8
+    residual[52:60, 61:72] += 1.5
+
+    whole_plane = _segment_pixel_moment_covariance(residual, support)
+    crop = (slice(52, 60), slice(61, 72))
+    windowed = _segment_pixel_moment_covariance(
+        residual[crop],
+        support[crop],
+        window=SegmentWindow(
+            origin_yx=(52, 61), plane_shape_yx=residual.shape
+        ),
+    )
+
+    assert whole_plane is not None
+    assert windowed is not None
+    assert windowed[0] == whole_plane[0]
+    assert np.array_equal(windowed[1], whole_plane[1])
