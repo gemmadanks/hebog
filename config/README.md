@@ -23,8 +23,9 @@ role merely to make a dataset available in more than one test lane.
 `benchmarks/` contains the complete size/density matrix, crossover rules,
 one-tile overhead budgets and the pinned-PyBDSF-`master` deployment gate
 (`phase-0-performance.json`), the provisional 100,000-square resource and
-scaling gates (`phase-0-scalability.json`), and the quick benchmark's cases
-(`quick-benchmark.json`). `checks/` contains the quick science check's cases.
+scaling gates (`phase-0-scalability.json`), the quick benchmark's cases
+(`quick-benchmark.json`) and the complete-execution profile's cases
+(`complete-execution-profile.json`). `checks/` contains the quick science check's cases.
 `contracts/` contains the public-behaviour ownership manifest, the Phase 3 and
 Phase 4 scientific gates and measurement semantics used by the equivalence
 tests, and `phase-5-corrective-a-review.json`, which the installed science

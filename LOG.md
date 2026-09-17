@@ -22565,3 +22565,98 @@ scientific pass from fixture validation.
 - **Validation:** `just check`, `just test-equivalence` (27 tests),
   `just marimo-check`, `just docs-build` and `just coverage` (2,164 tests,
   95.85% branch-aware; `multiscale_tiles.py` fully covered) pass.
+
+## 2026-09-17 — M1: complete-execution profile
+
+- **What was built.** `just profile-execution` splits one complete
+  FITS-to-products run into its public stages and fits stage cost against
+  image size and source count. `profile_complete_execution_worker.py` wraps
+  the functions of the public path with timers in its own process, so no
+  Hebog code changes, and records each stage's calls, wall and CPU time and
+  the process peak resident memory when it ends; nested stages report FITS
+  and Zarr work under the stage that made it. `--cprofile` repeats each case
+  under `cProfile` for function-level detail. Cases are in
+  `config/benchmarks/complete-execution-profile.json`:
+  - a generated ladder (`config/datasets/complete-execution-profile.json`,
+    seeds 2026091801–06) of noise-only and dense images at 512², 1,024² and
+    2,048², with the same density of 256 isolated SNR 5–50 sources per
+    1,024² at every size;
+  - real cut-outs: sparse and dense LoTSS-DR3 1312 at 1,024², and SDC1 B2
+    1,000 h crowded at 512², 1,024² and 2,048², nested on the same centre.
+- **Run `m1-profile-20260917`** (Hebog `e33f326` plus the profiling tooling,
+  M3 Pro, one thread, serial executor, one repetition per case). Wall
+  seconds:
+
+  | Case | Components | Total | Background/RMS | of which refinement | Science | of which association | multiscale | fitting | Peak RSS MiB |
+  | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+  | empty 512² | 0 | 6.8 | 4.0 | 2.9 | 0.1 | 0.0 | 0.1 | 0.0 | 278 |
+  | empty 1,024² | 0 | 20.0 | 16.0 | 12.2 | 0.5 | 0.0 | 0.5 | 0.0 | 589 |
+  | empty 2,048² | 1 | 80.3 | 69.5 | 54.0 | 6.8 | 3.2 | 3.0 | 0.1 | 1,997 |
+  | dense 512² | 62 | 10.9 | 5.0 | 3.8 | 2.8 | 1.5 | 0.3 | 0.9 | 310 |
+  | dense 1,024² | 246 | 45.5 | 22.1 | 18.3 | 18.7 | 11.7 | 3.6 | 3.4 | 717 |
+  | dense 2,048² | 982 | 317.5 | 102.0 | 86.2 | 198.2 | 134.0 | 49.9 | 13.6 | 1,728 |
+  | LoTSS sparse 1,024² | 61 | 31.6 | 19.7 | 15.2 | 7.9 | 5.1 | 1.6 | 1.1 | 827 |
+  | LoTSS dense 1,024² | 108 | 33.6 | 20.2 | 15.7 | 11.2 | 6.6 | 2.7 | 1.8 | 814 |
+  | SDC1 crowded 512² | 177 | 21.4 | 8.5 | 7.0 | 8.4 | 5.3 | 0.8 | 2.2 | 321 |
+  | SDC1 crowded 1,024² | 794 | 112.2 | 44.1 | 38.4 | 60.9 | 41.0 | 11.3 | 8.2 | 793 |
+  | SDC1 crowded 2,048² | 3,110 | 956.2 | 250.1 | 229.8 | 662.4 | 447.4 | 179.5 | 34.1 | 1,611 |
+
+- **Size and density separate.** The ladder fits
+  `1.4 s + 18.7 s/Mpx + 53 ms/component + 45 ms/(Mpx·component)`, with a
+  largest residual of 1.0 s on totals up to 317 s. The interaction term is
+  work repeated per component over the whole image, so at a fixed density it
+  grows with the square of image size: it is 186 s of the dense 2,048² run
+  and 588 s of the SDC1 2,048² run.
+  - Every real case lies within 1.06–1.20× of that generated model (LoTSS
+    dense 1.06, SDC1 1,024² 1.12, SDC1 2,048² 1.15, LoTSS sparse 1.17, SDC1
+    512² 1.21). Source density, not real-image structure, explains the
+    earlier "far above the synthetic probe" per-pixel cost: the 10 September
+    ratios compared images of very different component counts.
+- **Ranked bottlenecks.**
+  1. **Per-component whole-image scans**, 45 ms per Mpx and component, 59%
+     of the dense 2,048² run and 47% of SDC1 2,048². `cProfile` on dense
+     2,048²: 113 s in `ndarray.nonzero` and 22 s in `scipy.ndimage.label`,
+     from `build_scale_detection_plane` (48 s; `np.nonzero(labels ==
+     value)` per feature), `measure_detected_segment_position` (31 s),
+     `_segment_pixel_moment_covariance` (16 s), `source_association`
+     (16 s), `_preserve_refined_segment_connectivity` (20 s, one
+     `ndimage.label` of the whole plane per label) and `_label_bounds`
+     (2 s). `public_api._support_statistics` repeats the pattern (7.8 s).
+     `_nearest_canonical_seed_ranks` adds 11 s. These are kernels the tiled
+     path keeps; a tile core of 2,048–8,192 pixels does not remove the
+     scan, it only bounds the plane it scans.
+  2. **Background refinement and local noise**, about 12 s/Mpx on
+     noise-only images plus 19 ms per component: 54.0 s of the 69.5 s
+     background stage at empty 2,048². Its own cost is masked-median sigma
+     clipping (`argsort` 8.3 s), the scale filter bank (FFT 8.2 s) and grid
+     interpolation (3.2 s).
+  3. **FITS window reads**, about 990 reads per megapixel (3,203 of them in
+     background refinement alone at 2,048²), each reopening the file and
+     re-parsing header, metadata and both WCS objects: 5.0 s wall (2.3 s
+     CPU) per megapixel on generated images and 12.4 s (6.7 s) on SDC1,
+     whose header is larger. This is most of the off-CPU time, which is
+     13–25% of wall time on background-dominated runs; `_io.open` alone
+     takes about 1 ms per call on this machine.
+  4. **Process start-up and imports**, 2.1–3.7 s of every run, which
+     dominates only the smallest tier.
+  5. Zarr chunk writes 1.2 s/Mpx; product writes, hashing and publication
+     together under 1 s.
+- **Memory.** Peak RSS rises about 55 `float64` planes' worth per image
+  pixel above the 150 MiB left after imports, and is reached in the
+  whole-array continuum science (`multiscale candidate products` raises it
+  by 1.2 GB at 2,048²). The background stage stays near 460 MiB at 2,048².
+  This is the whole-array state M2 deletes; it is an M2 design input, not a
+  separate repair.
+- **Baseline.** The known-issues baselines the plan asks for are the
+  quick-check run `v0.7.0-plus-supplied-metadata` (16 September, superseded
+  for science by `diagonal-weighted-fits`) and the quick-benchmark run
+  `third-default-20260917`, which measured v0.7.0 in the same session.
+  Current Hebog was within 2% of v0.7.0 there, so this profile of `e33f326`
+  describes v0.7.0's costs as well.
+- **Caveats.** One repetition per case, so differences below about 5% mean
+  nothing; `cProfile` adds 12–22% and sees only the calling thread, so
+  Zarr's I/O thread is missing from its totals; block-I/O counters are zero
+  on macOS and are recorded as measured zeroes by `resource`, not as real
+  device I/O.
+- **Next.** The plan's M1 now carries three measured repair rows, ordered by
+  the ranking above. The component-bias row is unchanged.
