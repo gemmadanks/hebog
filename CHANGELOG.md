@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.10.0](https://github.com/gemmadanks/hebog/compare/v0.9.0...v0.10.0) (2026-09-17)
+
+
+### 🚀 Features
+
+* complete execution profile ([#62](https://github.com/gemmadanks/hebog/issues/62)) ([582a78b](https://github.com/gemmadanks/hebog/commit/582a78bdb1280cf4909ee8354116bc018241e515))
+
 ## [0.9.0](https://github.com/gemmadanks/hebog/compare/v0.8.0...v0.9.0) (2026-09-17)
 
 
