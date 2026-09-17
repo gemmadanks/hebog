@@ -202,11 +202,14 @@ Python-heavy code, so stage times come from the first run.
 
 Process time outside the run is split into three measured parts, so no part
 of the fixed cost is charged to the wrong one: `module imports`, `other
-worker overhead` (temporary-product cleanup and result writing) and `process
-creation and shutdown`, which is the time outside the worker script itself.
-The worker's clock starts at its first line, so process creation and
+worker overhead` (temporary-product cleanup and building the result) and
+`process creation and shutdown`, which is the time outside the worker script
+itself. The worker's clock starts at its first line, so process creation and
 interpreter start-up precede it and interpreter shutdown follows it; an
 in-process clock cannot separate the two, so they are reported together.
+That part also holds the worker's own result write, which no process can
+time from inside itself: about 2 ms, bounded by the stage and `cProfile` row
+limits rather than by image size.
 
 `summary.json` under `benchmark-results/profiles/runs/<label>/` fits each
 top-level stage on the ladder as a fixed cost plus a cost per megapixel and

@@ -33,17 +33,24 @@ IMPORTS_STAGE = "module imports"
 OVERHEAD_STAGE = "other worker overhead"
 """Worker time outside imports and the root stage.
 
-It covers temporary-product cleanup and result writing, which happen after
-the root stage ends.
+It covers temporary-product cleanup and building the result record, which
+happen after the root stage ends.
 """
 
 PROCESS_STAGE = "process creation and shutdown"
-"""Process time outside the worker script itself.
+"""Process time the worker cannot attribute from inside itself.
 
 The worker's clock starts at its first line, so process creation and
-interpreter start-up precede it and interpreter shutdown follows it. An
-in-process clock cannot separate the two, so they are reported together;
-they are about 40 ms on the development machine.
+interpreter start-up precede it and interpreter shutdown follows it; an
+in-process clock cannot separate the two, so they are reported together. A
+bare interpreter costs about 40 ms on the development machine and a
+profiled worker about 170 ms, most of it shutdown.
+
+It also holds the last thing the worker does, which no process can time
+from inside: serializing and writing its own result. That is about 2 ms for
+the largest record measured, and the record is bounded by the number of
+stages and the ``cProfile`` row limit, so it does not grow with image size
+or source count.
 """
 
 SELF_STAGE_SUFFIX = "other {stage} work"

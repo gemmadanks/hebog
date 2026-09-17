@@ -213,7 +213,10 @@ def main() -> None:
             "top_self_time": top_self_time(args.cprofile),
         }
     # Process creation, interpreter start-up and shutdown lie outside this
-    # script; the driver derives them from the lifetime recorded here.
+    # script; the driver derives them from the lifetime recorded here. The
+    # lifetime cannot cover the serialization and write below, because their
+    # result is the file carrying it; those few milliseconds are reported
+    # with the process time instead.
     record["worker_lifetime_seconds"] = time.perf_counter() - _PROCESS_STARTED
     args.result.write_text(
         json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8"
