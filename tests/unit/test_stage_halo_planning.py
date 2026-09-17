@@ -1,4 +1,4 @@
-"""Contracts for reviewed Phase 5 stage halos and tile admission."""
+"""Contracts for reviewed continuum stage halos and tile admission."""
 
 from __future__ import annotations
 
@@ -18,8 +18,8 @@ from hebog.algorithms.multiscale import (
 from hebog.algorithms.multiscale_association import (
     compact_context_halo_pixels,
 )
-from hebog.algorithms.phase_five_execution import (
-    derive_phase_five_halo_plan,
+from hebog.algorithms.multiscale_tiles import (
+    derive_stage_halo_plan,
     scale_filter_halo_pixels,
     segment_association_halo_pixels,
 )
@@ -43,8 +43,8 @@ def _measurement_config() -> ExtendedEmissionMeasurementConfig:
 
 
 def test_halo_plan_derives_every_stage_from_implemented_science() -> None:
-    """The reviewed core admits all image and record-only Phase 5 stages."""
-    plan = derive_phase_five_halo_plan(
+    """The reviewed core admits all image and record-only continuum stages."""
+    plan = derive_stage_halo_plan(
         _beam(),
         tile_core_shape_yx=(256, 256),
         maximum_task_pixels=200_000,
@@ -88,7 +88,7 @@ def test_halo_plan_derives_every_stage_from_implemented_science() -> None:
 
 def test_halo_plan_supports_rectangular_cores() -> None:
     """Worst-case reads preserve the two independent core dimensions."""
-    plan = derive_phase_five_halo_plan(
+    plan = derive_stage_halo_plan(
         _beam(),
         tile_core_shape_yx=(320, 288),
         maximum_task_pixels=200_000,
@@ -156,7 +156,7 @@ def test_measurement_halo_helper_rejects_invalid_beam() -> None:
 def test_halo_plan_rejects_core_that_cannot_contain_largest_halo() -> None:
     """The shared core must preserve the canonical quarter-core guardrail."""
     with pytest.raises(ValueError, match="below one quarter"):
-        derive_phase_five_halo_plan(
+        derive_stage_halo_plan(
             _beam(),
             tile_core_shape_yx=(128, 128),
             maximum_task_pixels=200_000,
@@ -173,7 +173,7 @@ def test_halo_plan_rejects_invalid_core_shape(
 ) -> None:
     """Core geometry must be exactly two positive integral dimensions."""
     with pytest.raises(ValueError, match="tile_core_shape_yx"):
-        derive_phase_five_halo_plan(
+        derive_stage_halo_plan(
             _beam(),
             tile_core_shape_yx=tile_core_shape_yx,  # type: ignore[arg-type]
             maximum_task_pixels=200_000,
@@ -187,7 +187,7 @@ def test_halo_plan_rejects_filter_read_over_global_task_cap() -> None:
         ValueError,
         match=r"matched-filter-seed.*104976.*100000",
     ):
-        derive_phase_five_halo_plan(
+        derive_stage_halo_plan(
             _beam(),
             tile_core_shape_yx=(256, 256),
             maximum_task_pixels=100_000,
@@ -201,7 +201,7 @@ def test_halo_plan_rejects_measurement_read_over_its_stage_cap() -> None:
         ValueError,
         match=r"extended-measurement.*73984.*70000",
     ):
-        derive_phase_five_halo_plan(
+        derive_stage_halo_plan(
             _beam(),
             tile_core_shape_yx=(256, 256),
             maximum_task_pixels=200_000,
@@ -215,7 +215,7 @@ def test_halo_plan_rejects_measurement_read_over_its_stage_cap() -> None:
 def test_halo_plan_rejects_nonreviewed_measurement_aperture() -> None:
     """The Rapthor profile cannot silently drift from 1.5 beam photometry."""
     with pytest.raises(ValueError, match=r"1\.5-beam aperture"):
-        derive_phase_five_halo_plan(
+        derive_stage_halo_plan(
             _beam(),
             tile_core_shape_yx=(256, 256),
             maximum_task_pixels=200_000,
@@ -232,7 +232,7 @@ def test_halo_plan_rejects_invalid_global_task_cap(
 ) -> None:
     """The global task-pixel memory contract is explicit and positive."""
     with pytest.raises(ValueError, match="maximum_task_pixels"):
-        derive_phase_five_halo_plan(
+        derive_stage_halo_plan(
             _beam(),
             tile_core_shape_yx=(256, 256),
             maximum_task_pixels=maximum_task_pixels,

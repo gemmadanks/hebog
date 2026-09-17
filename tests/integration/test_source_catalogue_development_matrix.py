@@ -452,7 +452,7 @@ def test_joint_geometry_with_controlled_or_public_background(
     else:
         review = load_continuum_science_profile(
             (
-                _ROOT / "src/hebog/resources/phase_5_continuum_review.json"
+                _ROOT / "src/hebog/resources/reviewed_continuum_profile.json"
             ).read_bytes()
         )
         products = build_configured_continuum_products(

@@ -16,7 +16,7 @@ CPU time, and peak resident memory. Generated results belong in the ignored
 Closed Phase 5 campaign launchers, freezers, reviews, compilers and evaluators
 were removed after that development phase closed. Their scientific conclusions
 are summarized in the
-[campaign overview](../../docs/reference/phase-5-campaign-overview.md); the
+[campaign overview](../../docs/reference/scientific-campaign-overview.md); the
 code remains in [Git history at `4babf0b`](https://github.com/gemmadanks/hebog/tree/4babf0baaf5609e72764183e543df84ec6be09e0).
 
 ## Source-finder comparison notebook

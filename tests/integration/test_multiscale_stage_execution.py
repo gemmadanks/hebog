@@ -1,7 +1,7 @@
 # pyright: reportMissingTypeStubs=false
 # pyright: reportUnknownMemberType=false
 # pyright: reportUnknownVariableType=false
-"""Executor, batching, retry, and product contracts for Phase 5 science."""
+"""Executor, batching, retry, and product contracts for multiscale science."""
 
 from __future__ import annotations
 
@@ -21,11 +21,11 @@ from hebog.algorithms.multiscale import (
     detect_residual_multiscale_islands,
     prepare_scale_filter_inputs,
 )
-from hebog.algorithms.partitioning import plan_image_partitions
-from hebog.algorithms.phase_five_execution import (
-    evaluate_phase_five_filter_tile,
+from hebog.algorithms.multiscale_tiles import (
+    evaluate_multiscale_filter_tile,
     scale_filter_halo_pixels,
 )
+from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.config import ResidualMultiscaleDetectionConfig
 from hebog.data_models.partitioning import ImageBounds, PartitionManifest
 from hebog.data_models.products import ProductChunk
@@ -33,10 +33,10 @@ from hebog.executors import DaskExecutor, SerialExecutor
 from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
 from hebog.stages.multiscale import (
-    PhaseFiveMultiscaleStageConfig,
-    PhaseFiveMultiscaleStageResult,
-    phase_five_multiscale_product_names,
-    run_phase_five_multiscale_stage,
+    MultiscaleStageConfig,
+    MultiscaleStageResult,
+    multiscale_product_names,
+    run_multiscale_stage,
 )
 
 pytestmark = pytest.mark.integration
@@ -283,19 +283,19 @@ def _run(
     background_source: ZarrProductSink,
     executor: object,
     tiles_per_batch: int,
-) -> tuple[PhaseFiveMultiscaleStageResult, ZarrProductSink]:
+) -> tuple[MultiscaleStageResult, ZarrProductSink]:
     """Execute one isolated stage variant with a common generation ID."""
     image, valid, _, _ = _planes()
     sink = ZarrProductSink(
         root,
         manifest,
-        generation_id="phase-five-invariance",
+        generation_id="multiscale-invariance",
     )
-    result = run_phase_five_multiscale_stage(
+    result = run_multiscale_stage(
         _ArrayImageSource(image, valid),
         background_source,
         manifest,
-        config=PhaseFiveMultiscaleStageConfig(
+        config=MultiscaleStageConfig(
             beam=_beam(),
             detection=_detection_config(),
             maximum_tiles_per_batch=tiles_per_batch,
@@ -331,7 +331,7 @@ def _float_window(
 
 
 def _science_identity(
-    result: PhaseFiveMultiscaleStageResult,
+    result: MultiscaleStageResult,
     source: ZarrProductSink,
 ) -> _ScienceIdentity:
     """Read only the small test products and reconciled identities."""
@@ -447,7 +447,7 @@ def test_multiscale_stage_is_batch_order_retry_and_executor_invariant(
         assert result.boundary_summary_array_bytes > 0
         assert result.maximum_task_summary_array_bytes > 0
         assert result.published_product_shard_count == (
-            len(phase_five_multiscale_product_names()) * len(manifest.tiles)
+            len(multiscale_product_names()) * len(manifest.tiles)
         )
         assert result.maximum_task_product_shard_count > 0
         _assert_science_identity_equal(
@@ -468,7 +468,7 @@ def test_multiscale_stage_is_batch_order_retry_and_executor_invariant(
             len(manifest.tiles),
         )
         assert result.maximum_task_product_shard_count <= (
-            len(phase_five_multiscale_product_names()) * batch_size
+            len(multiscale_product_names()) * batch_size
         )
 
     batch_two_reference = outputs[2][0]
@@ -519,7 +519,7 @@ def test_multiscale_science_and_topology_ids_are_partition_invariant(
         many_result.generation.partition_manifest
     )
     bounds = ImageBounds(0, 129, 0, 137)
-    for product_name in phase_five_multiscale_product_names():
+    for product_name in multiscale_product_names():
         one = one_source.read_completed_window(product_name, bounds)
         many = many_source.read_completed_window(product_name, bounds)
         if one.dtype == np.dtype(np.bool_):
@@ -552,7 +552,7 @@ def test_multiscale_stage_matches_promoted_one_tile_science(
         tiles_per_batch=1,
     )
     tile = manifest.tiles[0]
-    filtered = evaluate_phase_five_filter_tile(
+    filtered = evaluate_multiscale_filter_tile(
         prepare_scale_filter_inputs(image, valid, background, rms),
         partition=tile,
         image_shape_yx=manifest.image_shape_yx,
@@ -613,7 +613,7 @@ def test_multiscale_stage_rejects_invalid_batch_size_before_writes(
 ) -> None:
     """Batching must have one explicit positive bounded task size."""
     with pytest.raises(ValueError, match="maximum_tiles_per_batch"):
-        PhaseFiveMultiscaleStageConfig(
+        MultiscaleStageConfig(
             beam=_beam(),
             detection=_detection_config(),
             maximum_tiles_per_batch=maximum_tiles_per_batch,
@@ -635,11 +635,11 @@ def test_multiscale_stage_requires_exact_filter_halo(tmp_path: Path) -> None:
     )
 
     with pytest.raises(ValueError, match="exact widest filter halo"):
-        run_phase_five_multiscale_stage(
+        run_multiscale_stage(
             _ArrayImageSource(image, valid),
             _background_source(tmp_path / "background"),
             manifest,
-            config=PhaseFiveMultiscaleStageConfig(
+            config=MultiscaleStageConfig(
                 beam=_beam(),
                 detection=_detection_config(),
                 maximum_tiles_per_batch=1,
@@ -669,11 +669,11 @@ def test_multiscale_stage_rejects_invalid_image_windows(
     )
 
     with pytest.raises(ValueError, match=message):
-        run_phase_five_multiscale_stage(
+        run_multiscale_stage(
             _InvalidImageSource(image, valid, failure=failure),
             _background_source(tmp_path / "background"),
             manifest,
-            config=PhaseFiveMultiscaleStageConfig(
+            config=MultiscaleStageConfig(
                 beam=_beam(),
                 detection=_detection_config(),
                 maximum_tiles_per_batch=1,
@@ -689,7 +689,7 @@ def test_multiscale_stage_rejects_noncomposable_generations(
     """Output, image-shape, and Phase 2 product identities fail closed."""
     image, valid, _, _ = _planes()
     manifest = _manifest((61, 67))
-    config = PhaseFiveMultiscaleStageConfig(
+    config = MultiscaleStageConfig(
         beam=_beam(),
         detection=_detection_config(),
         maximum_tiles_per_batch=1,
@@ -700,7 +700,7 @@ def test_multiscale_stage_rejects_noncomposable_generations(
         generation_id="wrong-sink",
     )
     with pytest.raises(ValueError, match="sink must use"):
-        run_phase_five_multiscale_stage(
+        run_multiscale_stage(
             _ArrayImageSource(image, valid),
             _background_source(tmp_path / "background-a"),
             manifest,
@@ -733,7 +733,7 @@ def test_multiscale_stage_rejects_noncomposable_generations(
             generation_id=name,
         )
         with pytest.raises(ValueError, match=message):
-            run_phase_five_multiscale_stage(
+            run_multiscale_stage(
                 _ArrayImageSource(image, valid),
                 background,
                 manifest,
@@ -746,8 +746,8 @@ def test_multiscale_stage_rejects_noncomposable_generations(
 @pytest.mark.parametrize(
     ("executor", "message"),
     (
-        (_EmptyExecutor(), "no Phase 5 topology results"),
-        (_EmptySecondPassExecutor(), "no Phase 5 publication results"),
+        (_EmptyExecutor(), "no multiscale topology results"),
+        (_EmptySecondPassExecutor(), "no multiscale publication results"),
     ),
 )
 def test_multiscale_stage_rejects_missing_executor_results(
@@ -765,11 +765,11 @@ def test_multiscale_stage_rejects_missing_executor_results(
     )
 
     with pytest.raises(ValueError, match=message):
-        run_phase_five_multiscale_stage(
+        run_multiscale_stage(
             _ArrayImageSource(image, valid),
             _background_source(tmp_path / "background"),
             manifest,
-            config=PhaseFiveMultiscaleStageConfig(
+            config=MultiscaleStageConfig(
                 beam=_beam(),
                 detection=_detection_config(),
                 maximum_tiles_per_batch=1,

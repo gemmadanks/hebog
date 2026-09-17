@@ -68,8 +68,8 @@ nav:
       - Notebooks and comparison refreshes: how-to/notebooks.md
   - Reference:
       - Current capability and releases: reference/release-status.md
-      - Current scientific campaign: reference/phase-5-campaign-overview.md
-      - Scientific readiness: reference/phase-5-release-readiness.md
+      - Current scientific campaign: reference/scientific-campaign-overview.md
+      - Scientific readiness: reference/scientific-readiness.md
       - API: reference/index.md
       - Public source-finder outputs: reference/public-products.md
       - Domain glossary: reference/domain-glossary.md

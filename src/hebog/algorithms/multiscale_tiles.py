@@ -1,4 +1,4 @@
-"""Reviewed stage-halo derivation for bounded Phase 5 execution."""
+"""Reviewed stage halos and bounded multiscale tile evaluation."""
 
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ from hebog.config import (
 )
 from hebog.data_models.partitioning import PartitionManifest, TilePartition
 
-PhaseFiveStageName = Literal[
+HaloStageName = Literal[
     "matched-filter-seed",
     "residual-b3-atrous",
     "segment-labelling",
@@ -50,7 +50,7 @@ PhaseFiveStageName = Literal[
     "combined-reconciliation",
     "product-materialization",
 ]
-PhaseFiveHaloBasis = Literal[
+HaloBasis = Literal[
     "four-sigma-gaussian-kernel-radius",
     "cumulative-b3-spline-support",
     "boundary-summary-reconciliation",
@@ -76,33 +76,33 @@ _ArrayScalar = TypeVar("_ArrayScalar", bound=np.generic)
 
 
 @dataclass(frozen=True, slots=True)
-class PhaseFiveStageHalo:
+class StageHalo:
     """One stage's worst-case interior read and admission evidence."""
 
-    stage_name: PhaseFiveStageName
+    stage_name: HaloStageName
     halo_yx: tuple[int, int]
     read_shape_yx: tuple[int, int]
     read_pixel_count: int
     admission_limit_pixels: int
-    basis: PhaseFiveHaloBasis
+    basis: HaloBasis
     scale_halos_pixels: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
-class PhaseFiveHaloPlan:
+class StageHaloPlan:
     """Complete pre-allocation halo plan for the frozen Rapthor profile."""
 
     tile_core_shape_yx: tuple[int, int]
     maximum_task_pixels: int
-    stages: tuple[PhaseFiveStageHalo, ...]
+    stages: tuple[StageHalo, ...]
     maximum_halo_yx: tuple[int, int]
     maximum_read_shape_yx: tuple[int, int]
     maximum_read_pixel_count: int
 
 
 @dataclass(frozen=True, slots=True)
-class PhaseFiveFilterTileResult:
-    """Core-only Phase 5 filter evidence from one bounded halo read.
+class MultiscaleFilterTileResult:
+    """Core-only multiscale filter evidence from one bounded halo read.
 
     Workspace evidence describes the complete read evaluation. Every array in
     the returned scientific records is an owned immutable core copy, so no
@@ -127,7 +127,7 @@ class PhaseFiveFilterTileResult:
 
 
 @dataclass(frozen=True, slots=True)
-class PhaseFiveDetectionTileEvidence:
+class MultiscaleDetectionTileEvidence:
     """Core-local fields that precede global topology reconciliation."""
 
     partition: TilePartition
@@ -236,7 +236,7 @@ def _scale_filter_halos_pixels(
 
 
 def scale_filter_halo_pixels(beam: BeamShapePixels) -> int:
-    """Return the widest frozen Phase 5 filter halo without allocation."""
+    """Return the widest frozen multiscale filter halo without allocation."""
     return max(
         *_scale_filter_halos_pixels(beam),
         *residual_atrous_scale_halos_pixels(),
@@ -268,7 +268,7 @@ def _validate_filter_read(
     )
     if partition.read_bounds != expected_read:
         raise ValueError(
-            "partition read bounds must provide the exact clipped Phase 5 "
+            "partition read bounds must provide the exact clipped multiscale "
             "filter halo"
         )
 
@@ -318,10 +318,10 @@ def _immutable_array(
     return values
 
 
-def derive_phase_five_detection_tile_evidence(
-    result: PhaseFiveFilterTileResult,
+def derive_multiscale_detection_tile_evidence(
+    result: MultiscaleFilterTileResult,
     config: ResidualMultiscaleDetectionConfig,
-) -> PhaseFiveDetectionTileEvidence:
+) -> MultiscaleDetectionTileEvidence:
     """Derive local masks and seeds before bounded global reconciliation.
 
     No connected component is accepted here because support may cross any
@@ -376,7 +376,7 @@ def derive_phase_five_detection_tile_evidence(
     detection_seeds = detection_membership & (
         combined_seed_snr >= config.detection_threshold_sigma
     )
-    return PhaseFiveDetectionTileEvidence(
+    return MultiscaleDetectionTileEvidence(
         partition=result.partition,
         direct_snr=_immutable_array(direct_snr),
         matched_maximum_snr=_immutable_array(matched_maximum),
@@ -392,19 +392,19 @@ def derive_phase_five_detection_tile_evidence(
     )
 
 
-def evaluate_phase_five_filter_tile(
+def evaluate_multiscale_filter_tile(
     prepared_read: PreparedScaleInputs,
     *,
     partition: TilePartition,
     image_shape_yx: tuple[int, int],
     beam: BeamShapePixels,
     minimum_support_fraction: float,
-) -> PhaseFiveFilterTileResult:
+) -> MultiscaleFilterTileResult:
     """Evaluate the promoted filters on one read and return its owned core.
 
-    This is the bounded local-neighbourhood seam for Phase 5. Connected
-    support is deliberately not labelled here: callers reconcile core labels
-    through the existing bounded edge and corner summaries.
+    This is the bounded local-neighbourhood seam for multiscale detection.
+    Connected support is deliberately not labelled here: callers reconcile core
+    labels through the existing bounded edge and corner summaries.
     """
     read_shape_yx = prepared_read.residual_jy_per_beam.shape
     if not (
@@ -514,7 +514,7 @@ def evaluate_phase_five_filter_tile(
         + _residual_atrous_array_bytes(atrous_read)
         + _residual_atrous_array_bytes(atrous_core),
     )
-    return PhaseFiveFilterTileResult(
+    return MultiscaleFilterTileResult(
         partition=partition,
         prepared_inputs=prepared_core,
         matched_filter=matched_core,
@@ -526,17 +526,17 @@ def evaluate_phase_five_filter_tile(
 
 
 def _stage_halo(  # noqa: PLR0913
-    stage_name: PhaseFiveStageName,
+    stage_name: HaloStageName,
     *,
     halo_pixels: int,
     tile_core_shape_yx: tuple[int, int],
     admission_limit_pixels: int,
-    basis: PhaseFiveHaloBasis,
+    basis: HaloBasis,
     scale_halos_pixels: tuple[int, ...] = (),
-) -> PhaseFiveStageHalo:
+) -> StageHalo:
     """Validate and record one stage's worst-case interior read."""
     halo_yx = (halo_pixels, halo_pixels)
-    # Reuse the canonical geometry validator rather than allowing the Phase 5
+    # Reuse the canonical geometry validator rather than allowing the halo
     # planner to drift from the partition-manifest guardrail.
     PartitionManifest.create(
         image_shape_yx=tile_core_shape_yx,
@@ -553,7 +553,7 @@ def _stage_halo(  # noqa: PLR0913
             f"{stage_name} requires {read_pixel_count} pixels but its "
             f"admission limit is {admission_limit_pixels}"
         )
-    return PhaseFiveStageHalo(
+    return StageHalo(
         stage_name=stage_name,
         halo_yx=halo_yx,
         read_shape_yx=read_shape_yx,
@@ -564,14 +564,14 @@ def _stage_halo(  # noqa: PLR0913
     )
 
 
-def derive_phase_five_halo_plan(
+def derive_stage_halo_plan(
     beam: BeamShapePixels,
     *,
     tile_core_shape_yx: tuple[int, int],
     maximum_task_pixels: int,
     measurement_config: ExtendedEmissionMeasurementConfig,
-) -> PhaseFiveHaloPlan:
-    """Derive and admit every frozen Phase 5 stage before execution.
+) -> StageHaloPlan:
+    """Derive and admit every frozen continuum stage before execution.
 
     The returned sizes describe worst-case interior tiles. Image-edge reads
     may be smaller because manifests clip halos to the logical image. Pixel
@@ -584,7 +584,9 @@ def derive_phase_five_halo_plan(
         measurement_config.aperture_radius_beams
         != _FROZEN_MEASUREMENT_APERTURE_BEAMS
     ):
-        raise ValueError("Phase 5 requires the reviewed 1.5-beam aperture")
+        raise ValueError(
+            "stage halo planning requires the reviewed 1.5-beam aperture"
+        )
     matched_halos = _scale_filter_halos_pixels(beam)
     atrous_halos = residual_atrous_scale_halos_pixels()
     measurement_limit = min(
@@ -593,10 +595,10 @@ def derive_phase_five_halo_plan(
     )
     definitions: tuple[
         tuple[
-            PhaseFiveStageName,
+            HaloStageName,
             int,
             int,
-            PhaseFiveHaloBasis,
+            HaloBasis,
             tuple[int, ...],
         ],
         ...,
@@ -694,7 +696,7 @@ def derive_phase_five_halo_plan(
     )
     maximum_halo = max(stage.halo_yx[0] for stage in stages)
     maximum_stage = max(stages, key=lambda stage: stage.read_pixel_count)
-    return PhaseFiveHaloPlan(
+    return StageHaloPlan(
         tile_core_shape_yx=tile_core_shape_yx,
         maximum_task_pixels=maximum_task_pixels,
         stages=stages,

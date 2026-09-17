@@ -52,5 +52,5 @@ or change a Rapthor default.
 
 Historical command examples and campaign-specific records remain accessible
 in [Git history](https://github.com/gemmadanks/hebog/blob/0ce253cf26a7954a58dc9a211eb01d8502e69025/docs/reference/phase-5-release-readiness.md).
-For current evidence, use the [campaign overview](phase-5-campaign-overview.md)
+For current evidence, use the [campaign overview](scientific-campaign-overview.md)
 and [execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md).

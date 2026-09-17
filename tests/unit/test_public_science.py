@@ -101,7 +101,7 @@ def _review() -> ContinuumScienceProfile:
     """Load the installed phase-neutral science profile fixture."""
     return load_continuum_science_profile(
         (
-            _ROOT / "src/hebog/resources/phase_5_continuum_review.json"
+            _ROOT / "src/hebog/resources/reviewed_continuum_profile.json"
         ).read_bytes()
     )
 

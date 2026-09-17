@@ -58,7 +58,7 @@ fail only because 32 comparisons regressed slightly against an earlier Hebog
 version, mainly in uncertainty calibration and some centroid and flux tails.
 Later changes, including the current composition, have focused regression,
 Serial/Dask, equivalence and installed-wheel evidence only. The
-[Phase 5 campaign overview](phase-5-campaign-overview.md) records every
+[scientific campaign overview](scientific-campaign-overview.md) records every
 non-passing comparison. This is development evidence: Hebog is not yet
 scientifically qualified, and no release claims general parity with PyBDSF.
 

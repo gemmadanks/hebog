@@ -92,4 +92,4 @@ For the detailed record, see the
 [execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md),
 [Git history](https://github.com/gemmadanks/hebog/commits/main/),
 [current plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
-and [Phase 5 campaign overview](../reference/phase-5-campaign-overview.md).
+and [scientific campaign overview](../reference/scientific-campaign-overview.md).

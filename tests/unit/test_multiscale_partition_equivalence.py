@@ -1,6 +1,6 @@
 # pyright: reportMissingTypeStubs=false
 # pyright: reportUnknownVariableType=false
-"""One-tile/many-tile equality for the promoted Phase 5 science path."""
+"""One-tile/many-tile equality for the promoted multiscale science path."""
 
 from __future__ import annotations
 
@@ -28,14 +28,14 @@ from hebog.algorithms.multiscale import (
     prepare_scale_filter_inputs,
     reconstruct_significant_atrous,
 )
-from hebog.algorithms.partitioning import plan_image_partitions
-from hebog.algorithms.phase_five_execution import (
-    PhaseFiveFilterTileResult,
-    derive_phase_five_detection_tile_evidence,
-    evaluate_phase_five_filter_tile,
+from hebog.algorithms.multiscale_tiles import (
+    MultiscaleFilterTileResult,
+    derive_multiscale_detection_tile_evidence,
+    evaluate_multiscale_filter_tile,
     scale_filter_halo_pixels,
     segment_association_halo_pixels,
 )
+from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.algorithms.reconciliation import (
     DetectedIsland,
     apply_reconciled_labels,
@@ -142,7 +142,7 @@ def _freeze(values: np.ndarray) -> np.ndarray:
 
 
 def _assemble_response(
-    results: tuple[PhaseFiveFilterTileResult, ...],
+    results: tuple[MultiscaleFilterTileResult, ...],
     manifest: PartitionManifest,
     *,
     response_index: int,
@@ -182,7 +182,7 @@ def _assemble_response(
 
 
 def _assemble_filter_evidence(
-    results: tuple[PhaseFiveFilterTileResult, ...],
+    results: tuple[MultiscaleFilterTileResult, ...],
     manifest: PartitionManifest,
 ) -> _AssembledFilterEvidence:
     """Assemble bounded cores only for this small deterministic test oracle."""
@@ -273,10 +273,10 @@ def _filter_evidence(manifest: PartitionManifest) -> _AssembledFilterEvidence:
 def _evaluate_filter_tile(
     tile: TilePartition,
     manifest: PartitionManifest,
-) -> PhaseFiveFilterTileResult:
+) -> MultiscaleFilterTileResult:
     """Prepare and evaluate one bounded analytic read."""
     image, valid, background, rms = _analytic_planes()
-    return evaluate_phase_five_filter_tile(
+    return evaluate_multiscale_filter_tile(
         prepare_scale_filter_inputs(
             _read_plane(image, tile.read_bounds),
             _read_plane(valid, tile.read_bounds),
@@ -648,7 +648,7 @@ def test_filter_tile_returns_owned_immutable_core_evidence() -> None:
         result.retained_array_bytes
     )
 
-    evidence = derive_phase_five_detection_tile_evidence(result, _config())
+    evidence = derive_multiscale_detection_tile_evidence(result, _config())
     evidence_arrays = (
         evidence.direct_snr,
         evidence.matched_maximum_snr,
@@ -684,14 +684,14 @@ def test_reviewed_256_core_records_exact_filter_memory_evidence() -> None:
         np.ones(shape, dtype=np.float64),
     )
 
-    result = evaluate_phase_five_filter_tile(
+    result = evaluate_multiscale_filter_tile(
         prepared,
         partition=tile,
         image_shape_yx=manifest.image_shape_yx,
         beam=beam,
         minimum_support_fraction=_SUPPORT_FRACTION,
     )
-    evidence = derive_phase_five_detection_tile_evidence(result, _config())
+    evidence = derive_multiscale_detection_tile_evidence(result, _config())
 
     assert tile.read_bounds.shape_yx == (324, 324)
     assert result.read_pixel_count == 104_976
@@ -718,7 +718,9 @@ def test_filter_tile_rejects_incomplete_interior_halo() -> None:
         ),
     )
 
-    with pytest.raises(ValueError, match="exact clipped Phase 5 filter halo"):
+    with pytest.raises(
+        ValueError, match="exact clipped multiscale filter halo"
+    ):
         _evaluate_filter_tile(shortened, manifest)
 
 
@@ -735,7 +737,7 @@ def test_filter_tile_rejects_inconsistent_prepared_shapes() -> None:
     )
 
     with pytest.raises(ValueError, match="prepared filter-read arrays"):
-        evaluate_phase_five_filter_tile(
+        evaluate_multiscale_filter_tile(
             replace(
                 prepared,
                 rms_jy_per_beam=prepared.rms_jy_per_beam[:-1],
@@ -760,7 +762,7 @@ def test_filter_tile_rejects_read_shape_outside_partition_bounds() -> None:
     )
 
     with pytest.raises(ValueError, match="match the partition read bounds"):
-        evaluate_phase_five_filter_tile(
+        evaluate_multiscale_filter_tile(
             prepared,
             partition=tile,
             image_shape_yx=manifest.image_shape_yx,
@@ -791,10 +793,10 @@ def test_detection_tile_evidence_rejects_misaligned_scale_response() -> None:
     )
 
     with pytest.raises(ValueError, match="same shape"):
-        derive_phase_five_detection_tile_evidence(malformed, _config())
+        derive_multiscale_detection_tile_evidence(malformed, _config())
 
 
-def test_phase_five_science_is_one_tile_many_tile_equal() -> None:
+def test_multiscale_science_is_one_tile_many_tile_equal() -> None:
     """All reviewed boundary and scale cases agree across partitions."""
     one = _evaluate_partitioned(_manifest(core_yx=(193, 211)))
     many = tuple(

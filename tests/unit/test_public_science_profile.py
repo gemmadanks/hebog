@@ -154,7 +154,7 @@ def test_profile_matches_reviewed_repository_record() -> None:
     """The wheel cannot silently drift from the reviewed science profile."""
     installed = (
         files("hebog.resources")
-        .joinpath("phase_5_continuum_review.json")
+        .joinpath("reviewed_continuum_profile.json")
         .read_bytes()
     )
     reviewed = (

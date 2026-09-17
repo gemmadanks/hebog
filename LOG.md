@@ -22472,7 +22472,7 @@ scientific pass from fixture validation.
   - the Phase 3/4 gates and measurement contracts used by equivalence tests;
   - `phase-5-corrective-a-review.json`, which the installed science profile
     must match;
-  - production modules with phase names.
+  - production modules with phase names (renamed in a later entry).
 - **Follow-up (Tier 2):** done in the next entry.
 
 ## 2026-09-17 — Remove Tier 2 campaign modules
@@ -22527,3 +22527,41 @@ scientific pass from fixture validation.
     files are fully covered except pre-existing benchmark-validator lines in
     `evidence.py`);
   - the slow development matrix (108 cases).
+
+## 2026-09-17 — Replace phase names in production code
+
+- **Decision.** Phase numbers are historical identifiers only, so production
+  code, tests and current docs now use descriptive names. The user approved
+  the names and scope before the rename. No compatibility aliases were kept.
+- **Renamed:**
+  - `algorithms/phase_five_execution.py` → `algorithms/multiscale_tiles.py`:
+    `StageHalo`, `StageHaloPlan`, `HaloStageName`, `HaloBasis`,
+    `derive_stage_halo_plan`, `MultiscaleFilterTileResult`,
+    `evaluate_multiscale_filter_tile`, `MultiscaleDetectionTileEvidence` and
+    `derive_multiscale_detection_tile_evidence`;
+  - in `stages/multiscale.py`: `MultiscaleStageConfig`,
+    `MultiscaleStageResult`, `run_multiscale_stage` and
+    `multiscale_product_names`. Error messages say "multiscale" instead of
+    "Phase 5";
+  - `resources/phase_5_continuum_review.json` →
+    `resources/reviewed_continuum_profile.json`. The bytes are unchanged and
+    still match `config/contracts/phase-5-corrective-a-review.json`;
+  - three test files: `test_stage_halo_planning.py`,
+    `test_multiscale_partition_equivalence.py` and
+    `test_multiscale_stage_execution.py`;
+  - two docs pages: `reference/scientific-campaign-overview.md` and
+    `reference/scientific-readiness.md`. The nav labels are unchanged.
+- **Scientific-composition digest:** changed from `9c68a9d6…c2ec` to
+  `193624e6…e112`. The only cause is the `_PROFILE_RESOURCE` string in
+  `public_api.py`. The renamed modules are not in `_SCIENTIFIC_MODULES`,
+  because the public path does not use them yet. Scientific behaviour is
+  unchanged. Bundles and quick-check reports recorded before this commit show
+  the old digest. No cache is keyed on the digest.
+- **Kept as historical or emitted identifiers:** the `phase-5-*` identity
+  namespaces hashed into source and island IDs, `_COMPOSITION_NAME`, the
+  `config/contracts` and `config/datasets` `phase-5-*` files, and
+  `benchmark-results/phase-5/` paths. "Phase 5" wording in other modules is
+  also unchanged, because several of them are in `_SCIENTIFIC_MODULES`.
+- **Validation:** `just check`, `just test-equivalence` (27 tests),
+  `just marimo-check`, `just docs-build` and `just coverage` (2,164 tests,
+  95.85% branch-aware; `multiscale_tiles.py` fully covered) pass.

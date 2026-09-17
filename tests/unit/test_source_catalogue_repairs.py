@@ -363,7 +363,7 @@ def _products(signal: np.ndarray) -> ContinuumProducts:
     """Exercise the complete configured composition with analytic noise."""
     review = load_continuum_science_profile(
         (
-            _ROOT / "src/hebog/resources/phase_5_continuum_review.json"
+            _ROOT / "src/hebog/resources/reviewed_continuum_profile.json"
         ).read_bytes()
     )
     result = build_configured_continuum_products(
@@ -387,7 +387,7 @@ def test_missing_optional_beam_angle_uses_zero_position_angle() -> None:
     del header["BPA"]
     review = load_continuum_science_profile(
         (
-            _ROOT / "src/hebog/resources/phase_5_continuum_review.json"
+            _ROOT / "src/hebog/resources/reviewed_continuum_profile.json"
         ).read_bytes()
     )
     products = build_configured_continuum_products(

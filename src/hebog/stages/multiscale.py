@@ -1,4 +1,4 @@
-"""Bounded Phase 5 multiscale execution and atomic product publication."""
+"""Bounded multiscale execution and atomic product publication."""
 
 from __future__ import annotations
 
@@ -22,11 +22,11 @@ from hebog.algorithms.multiscale import (
     minimum_residual_island_pixels,
     prepare_scale_filter_inputs,
 )
-from hebog.algorithms.phase_five_execution import (
-    PhaseFiveDetectionTileEvidence,
-    PhaseFiveFilterTileResult,
-    derive_phase_five_detection_tile_evidence,
-    evaluate_phase_five_filter_tile,
+from hebog.algorithms.multiscale_tiles import (
+    MultiscaleDetectionTileEvidence,
+    MultiscaleFilterTileResult,
+    derive_multiscale_detection_tile_evidence,
+    evaluate_multiscale_filter_tile,
     scale_filter_halo_pixels,
 )
 from hebog.algorithms.reconciliation import (
@@ -48,7 +48,7 @@ from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
 
 _SCALE_ORDERS = (1, 2, 3)
-_PHASE_FIVE_MULTISCALE_PRODUCT_NAMES = tuple(
+_MULTISCALE_PRODUCT_NAMES = tuple(
     sorted(
         (
             "combined-snr",
@@ -96,7 +96,7 @@ class _CompletedProductSource(Protocol):
 
 
 @dataclass(frozen=True, slots=True)
-class PhaseFiveMultiscaleStageConfig:
+class MultiscaleStageConfig:
     """Reviewed residual science and coarse executor-batch limit."""
 
     beam: BeamShapePixels
@@ -116,7 +116,7 @@ class PhaseFiveMultiscaleStageConfig:
 
 
 @dataclass(frozen=True, slots=True)
-class PhaseFiveMultiscaleStageResult:
+class MultiscaleStageResult:
     """Published products, stable topology, and scalar execution evidence."""
 
     generation: ProductGenerationManifest
@@ -149,7 +149,7 @@ class _PartitionBatch:
     def __post_init__(self) -> None:
         """Forbid empty executor work records."""
         if not self.partitions:
-            raise ValueError("Phase 5 partition batch must not be empty")
+            raise ValueError("multiscale partition batch must not be empty")
 
 
 @dataclass(frozen=True, slots=True)
@@ -183,7 +183,7 @@ class _PublicationBatch:
     def __post_init__(self) -> None:
         """Forbid empty publication work records."""
         if not self.requests:
-            raise ValueError("Phase 5 publication batch must not be empty")
+            raise ValueError("multiscale publication batch must not be empty")
 
 
 @dataclass(frozen=True, slots=True)
@@ -199,9 +199,9 @@ class _PublicationBatchResult:
     summary_array_bytes: int
 
 
-def phase_five_multiscale_product_names() -> tuple[str, ...]:
+def multiscale_product_names() -> tuple[str, ...]:
     """Return the canonical accepted multiscale product set."""
-    return _PHASE_FIVE_MULTISCALE_PRODUCT_NAMES
+    return _MULTISCALE_PRODUCT_NAMES
 
 
 def _require_image_window(
@@ -266,7 +266,7 @@ def _evaluate_tile(  # noqa: PLR0913
     beam: BeamShapePixels,
     detection: ResidualMultiscaleDetectionConfig,
     image_window: ImageWindow | None = None,
-) -> tuple[PhaseFiveFilterTileResult, PhaseFiveDetectionTileEvidence]:
+) -> tuple[MultiscaleFilterTileResult, MultiscaleDetectionTileEvidence]:
     """Recompute one bounded filter read without persistent response banks."""
     window = (
         _read_image_window(source, partition)
@@ -288,21 +288,21 @@ def _evaluate_tile(  # noqa: PLR0913
         rms,
     )
     del window, background, rms
-    result = evaluate_phase_five_filter_tile(
+    result = evaluate_multiscale_filter_tile(
         prepared,
         partition=partition,
         image_shape_yx=image_shape_yx,
         beam=beam,
         minimum_support_fraction=detection.minimum_scale_support_fraction,
     )
-    return result, derive_phase_five_detection_tile_evidence(
+    return result, derive_multiscale_detection_tile_evidence(
         result,
         detection,
     )
 
 
 def _label_topology(
-    evidence: PhaseFiveDetectionTileEvidence,
+    evidence: MultiscaleDetectionTileEvidence,
     *,
     image_shape_yx: tuple[int, int],
 ) -> tuple[LocalIslandTile, LocalIslandTile]:
@@ -334,7 +334,7 @@ def _label_topology(
     return reconstruction, detection
 
 
-def _workspace_bytes(result: PhaseFiveFilterTileResult) -> int:
+def _workspace_bytes(result: MultiscaleFilterTileResult) -> int:
     """Return the larger reviewed filter workspace for one tile read."""
     return max(
         result.matched_filter.maximum_workspace_bytes,
@@ -481,8 +481,8 @@ def _retain_mapping_labels(
 
 
 def _publication_products(
-    result: PhaseFiveFilterTileResult,
-    evidence: PhaseFiveDetectionTileEvidence,
+    result: MultiscaleFilterTileResult,
+    evidence: MultiscaleDetectionTileEvidence,
     *,
     reconstruction_mask: npt.NDArray[np.bool_],
     retained_mask: npt.NDArray[np.bool_],
@@ -742,16 +742,16 @@ def _publication_batches(
 def _validate_stage_inputs(
     background_rms_source: _CompletedProductSource,
     manifest: PartitionManifest,
-    config: PhaseFiveMultiscaleStageConfig,
+    config: MultiscaleStageConfig,
     sink: ZarrProductSink,
 ) -> None:
     """Fail before output initialization when identities cannot compose."""
     if sink.manifest != manifest:
-        raise ValueError("Phase 5 multiscale sink must use the stage manifest")
+        raise ValueError("multiscale sink must use the stage manifest")
     required_halo = scale_filter_halo_pixels(config.beam)
     if manifest.halo_yx != (required_halo, required_halo):
         raise ValueError(
-            "Phase 5 manifest must provide the exact widest filter halo"
+            "multiscale manifest must provide the exact widest filter halo"
         )
     if (
         background_rms_source.manifest.image_shape_yx
@@ -767,15 +767,15 @@ def _validate_stage_inputs(
         )
 
 
-def run_phase_five_multiscale_stage(  # noqa: PLR0913
+def run_multiscale_stage(  # noqa: PLR0913
     source: _WindowReadable,
     background_rms_source: _CompletedProductSource,
     manifest: PartitionManifest,
     *,
-    config: PhaseFiveMultiscaleStageConfig,
+    config: MultiscaleStageConfig,
     executor: Executor,
     sink: ZarrProductSink,
-) -> PhaseFiveMultiscaleStageResult:
+) -> MultiscaleStageResult:
     """Reconcile bounded multiscale topology and publish accepted products.
 
     The first pass returns only compact side/corner summaries. After global
@@ -804,7 +804,7 @@ def run_phase_five_multiscale_stage(  # noqa: PLR0913
     )
     topology_results = tuple(executor.map_batches(scan, partition_batches))
     if not topology_results:
-        raise ValueError("executor returned no Phase 5 topology results")
+        raise ValueError("executor returned no multiscale topology results")
     reconstruction = reconcile_candidate_tiles(
         manifest,
         tuple(
@@ -848,7 +848,7 @@ def run_phase_five_multiscale_stage(  # noqa: PLR0913
         )
         for partition in manifest.tiles
     )
-    for product_name in _PHASE_FIVE_MULTISCALE_PRODUCT_NAMES:
+    for product_name in _MULTISCALE_PRODUCT_NAMES:
         dtype = (
             np.dtype(np.bool_)
             if product_name.endswith("mask")
@@ -873,9 +873,9 @@ def run_phase_five_multiscale_stage(  # noqa: PLR0913
         executor.map_batches(publish, publication_batches)
     )
     if not publication_results:
-        raise ValueError("executor returned no Phase 5 publication results")
+        raise ValueError("executor returned no multiscale publication results")
     generation = sink.publish_generation(
-        product_names=_PHASE_FIVE_MULTISCALE_PRODUCT_NAMES,
+        product_names=_MULTISCALE_PRODUCT_NAMES,
         chunks=(
             chunk
             for result in publication_results
@@ -895,7 +895,7 @@ def run_phase_five_multiscale_stage(  # noqa: PLR0913
     )
     all_results = (*topology_results, *publication_results)
     batch_counts = (len(partition_batches), len(publication_batches))
-    return PhaseFiveMultiscaleStageResult(
+    return MultiscaleStageResult(
         generation=generation,
         detection_islands=detection_islands,
         reconstruction_islands=reconstruction.islands,
