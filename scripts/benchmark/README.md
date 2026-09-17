@@ -217,6 +217,9 @@ in `config/benchmarks/complete-execution-profile.json` and fits stage times
 against image size and fitted components. `profile_complete_execution_worker.py`
 is the single-thread process it starts for each case, and
 `build_profile_datasets.py` writes the generated size and density ladder. The
+timing, stage splitting and cost model live in
+`hebog.validation.execution_profile`, with unit tests in
+`tests/unit/validation/test_execution_profile.py`. The
 [development workflow guide](../../docs/how-to/index.md#profile-complete-execution)
 describes the cases and outputs:
 

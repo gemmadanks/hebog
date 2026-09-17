@@ -30,13 +30,19 @@ import sys
 import time
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Literal, cast
-
-import numpy as np
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Any, cast
 
 import hebog
 from hebog.io import FitsImageSource
+from hebog.validation.execution_profile import (
+    ProfileCase,
+    ProfiledCase,
+    compare_with_model,
+    fit_stage_cost_models,
+    load_profile_configuration,
+    process_wall_seconds_by_stage,
+    stage_records,
+)
 from hebog.validation.quick_benchmark import (
     SINGLE_THREAD_ENVIRONMENT,
     machine_identity,
@@ -45,8 +51,6 @@ from hebog.validation.quick_benchmark import (
     worker_environment,
 )
 from hebog.validation.quick_check import (
-    HebogSettings,
-    QuickCheckCase,
     file_sha256,
     prepare_case,
     write_report,
@@ -59,26 +63,6 @@ _DEFAULT_CONFIGURATION = (
 _DEFAULT_OUTPUT = _ROOT / "benchmark-results/profiles"
 _WORKER = _ROOT / "scripts/benchmark/profile_complete_execution_worker.py"
 _PUBLIC_LIMIT = 1024
-_ROOT_STAGE = "find_sources"
-_STARTUP_STAGE = "process start-up and imports"
-_OTHER_STAGE = "other find_sources work"
-_MODEL_TERMS = 4
-
-
-class _ProfileCase(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    group: Literal["ladder", "real"]
-    case: QuickCheckCase
-
-
-class _ProfileConfiguration(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    schema_version: Literal[1]
-    dataset_manifest: str = Field(min_length=1)
-    hebog: HebogSettings
-    cases: tuple[_ProfileCase, ...] = Field(min_length=1)
 
 
 def _parse_args() -> argparse.Namespace:
@@ -136,32 +120,37 @@ def _run_worker(
 
 
 def _top_level_stages(profile: dict[str, Any]) -> dict[str, float]:
-    """Return process wall seconds split into start-up and public stages."""
-    stages = {tuple(item["stage"]): item for item in profile["stages"]}
-    root = stages[(_ROOT_STAGE,)]
-    split = {
-        path[1]: float(item["wall_seconds"])
-        for path, item in stages.items()
-        if len(path) == 2  # noqa: PLR2004
-    }
-    split[_OTHER_STAGE] = float(root["self_wall_seconds"])
-    split[_STARTUP_STAGE] = float(profile["process"]["wall_seconds"]) - float(
-        root["wall_seconds"]
+    """Split process wall time into start-up, stages and other overhead."""
+    return process_wall_seconds_by_stage(
+        stage_records(profile["stages"]),
+        process_wall_seconds=float(profile["process"]["wall_seconds"]),
+        import_seconds=float(profile["import_seconds"]),
+        root_stage=str(profile["root_stage"]),
     )
-    return split
+
+
+def _profiled_case(record: dict[str, Any]) -> ProfiledCase:
+    return ProfiledCase(
+        case_id=record["case_id"],
+        group=record["group"],
+        megapixels=record["megapixels"],
+        components=record["profile"]["gaussian_component_count"],
+        stage_wall_seconds=record["top_level_wall_seconds"],
+    )
 
 
 def _run_case(
-    item: _ProfileCase,
+    item: ProfileCase,
     *,
-    configuration: _ProfileConfiguration,
+    hebog_settings: str,
+    dataset_manifest: Path,
     args: argparse.Namespace,
     run_root: Path,
 ) -> dict[str, Any]:
     case = item.case
     prepared = prepare_case(
         case,
-        dataset_manifest=_ROOT / configuration.dataset_manifest,
+        dataset_manifest=dataset_manifest,
         repository_root=_ROOT,
         inputs_root=args.output_root.resolve() / "inputs",
         allow_download=args.allow_download,
@@ -178,7 +167,7 @@ def _run_case(
         "--input",
         str(prepared.input_path),
         "--settings",
-        configuration.hebog.model_dump_json(),
+        hebog_settings,
     ]
     supplied = getattr(case, "supplied_metadata", None)
     if supplied is not None:
@@ -214,76 +203,18 @@ def _run_case(
     return record
 
 
-def _model_terms(record: dict[str, Any]) -> list[float]:
-    megapixels = float(record["megapixels"])
-    components = float(record["profile"]["gaussian_component_count"])
-    return [1.0, megapixels, components, megapixels * components]
-
-
 def _size_density_model(
     records: list[dict[str, Any]],
 ) -> dict[str, Any] | None:
-    """Fit each stage on the ladder against image size and components.
-
-    The interaction term is the cost of work repeated per component over the
-    whole image, which grows with the square of image size at fixed density.
-    """
-    ladder = [record for record in records if record["group"] == "ladder"]
-    design = np.array([_model_terms(record) for record in ladder])
-    if len(ladder) < _MODEL_TERMS or (
-        np.linalg.matrix_rank(design) < _MODEL_TERMS
-    ):
+    """Fit the ladder and compare every real case with the fitted total."""
+    cases = [_profiled_case(record) for record in records]
+    models = fit_stage_cost_models(cases)
+    if models is None:
         return None
-    stages = sorted(
-        {
-            stage
-            for record in ladder
-            for stage in record["top_level_wall_seconds"]
-        }
-    )
-    coefficients: dict[str, dict[str, float]] = {}
-    for stage in [*stages, "total"]:
-        seconds = np.array(
-            [
-                sum(record["top_level_wall_seconds"].values())
-                if stage == "total"
-                else record["top_level_wall_seconds"].get(stage, 0.0)
-                for record in ladder
-            ]
-        )
-        solution, *_ = np.linalg.lstsq(design, seconds, rcond=None)
-        coefficients[stage] = {
-            "fixed_seconds": float(solution[0]),
-            "seconds_per_megapixel": float(solution[1]),
-            "seconds_per_component": float(solution[2]),
-            "seconds_per_megapixel_component": float(solution[3]),
-            "maximum_absolute_residual_seconds": float(
-                np.max(np.abs(seconds - design @ solution))
-            ),
-        }
-    total = coefficients["total"]
-    real = [
-        {
-            "case_id": record["case_id"],
-            "megapixels": record["megapixels"],
-            "components": record["profile"]["gaussian_component_count"],
-            "measured_seconds": sum(record["top_level_wall_seconds"].values()),
-            "ladder_model_seconds": float(
-                np.dot(
-                    _model_terms(record),
-                    [
-                        total["fixed_seconds"],
-                        total["seconds_per_megapixel"],
-                        total["seconds_per_component"],
-                        total["seconds_per_megapixel_component"],
-                    ],
-                )
-            ),
-        }
-        for record in records
-        if record["group"] == "real"
-    ]
-    return {"stages": coefficients, "real_cases": real}
+    return {
+        "stages": {stage: model.document() for stage, model in models.items()},
+        "real_cases": compare_with_model(cases, models["total"]),
+    }
 
 
 def _print_summary(records: list[dict[str, Any]]) -> None:
@@ -302,9 +233,7 @@ def _print_summary(records: list[dict[str, Any]]) -> None:
 
 def main() -> int:
     args = _parse_args()
-    configuration = _ProfileConfiguration.model_validate_json(
-        args.configuration.read_text(encoding="utf-8")
-    )
+    configuration = load_profile_configuration(args.configuration)
     selected = set(cast(list[str], args.cases or []))
     unknown = selected - {item.case.case_id for item in configuration.cases}
     if unknown:
@@ -324,7 +253,8 @@ def main() -> int:
         records = [
             _run_case(
                 item,
-                configuration=configuration,
+                hebog_settings=configuration.hebog.model_dump_json(),
+                dataset_manifest=_ROOT / configuration.dataset_manifest,
                 args=args,
                 run_root=run_root,
             )

@@ -191,12 +191,18 @@ The cases are in `config/benchmarks/complete-execution-profile.json`:
 Each case runs once in a fresh single-thread process with the serial
 executor. The worker wraps the functions of the public path with timers in its
 own process, so no Hebog code changes, and records each stage's calls, wall
-and CPU time, and the process peak memory when the stage ends. Stages nest:
-FITS and Zarr reads and writes appear under the stage that made them. Wall
-time minus CPU time is mostly file-system wait. `--cprofile` runs each case a
-second time under `cProfile` and keeps its statistics and the functions with
-the most self time; `cProfile` misses Zarr's I/O thread and slows
+and CPU time, and the process peak memory when the stage ends. A function
+imported into several modules is wrapped in each of them, so a call through an
+alias is timed as its own stage instead of vanishing into its caller. Stages
+nest: FITS and Zarr reads and writes appear under the stage that made them.
+Wall time minus CPU time is mostly file-system wait. `--cprofile` runs each
+case a second time under `cProfile` and keeps its statistics and the functions
+with the most self time; `cProfile` misses Zarr's I/O thread and slows
 Python-heavy code, so stage times come from the first run.
+
+Process time outside the run is split in two: `interpreter start-up and
+imports` is measured directly, and `other process overhead` is what remains
+(temporary-product cleanup, result writing and interpreter shutdown).
 
 `summary.json` under `benchmark-results/profiles/runs/<label>/` fits each
 top-level stage on the ladder as a fixed cost plus a cost per megapixel and
