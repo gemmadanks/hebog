@@ -5,6 +5,7 @@ This directory contains reproducible benchmark entry points for:
 - PyBDSF reference runs;
 - the quick benchmark of complete Hebog runs against the previous release
   and pinned PyBDSF `master`;
+- a stage profile of complete Hebog runs across image size and source density;
 - Rapthor's complete `filter_skymodel` task;
 - the source-finder comparison notebook's PyBDSF, Aegean and Hebog runs.
 
@@ -208,3 +209,20 @@ slightly favours PyBDSF.
 The closed Phase 4 paired campaign runners and compiler were removed with the
 campaign tooling and remain in
 [Git history at `v0.7.0`](https://github.com/gemmadanks/hebog/tree/v0.7.0/scripts/benchmark).
+
+## Complete-execution profile
+
+`profile_complete_execution.py` profiles complete runs by stage on the cases
+in `config/benchmarks/complete-execution-profile.json` and fits stage times
+against image size and fitted components. `profile_complete_execution_worker.py`
+is the single-thread process it starts for each case, and
+`build_profile_datasets.py` writes the generated size and density ladder. The
+timing, stage splitting and cost model live in
+`hebog.validation.execution_profile`, with unit tests in
+`tests/unit/validation/test_execution_profile.py`. The
+[development workflow guide](../../docs/how-to/index.md#profile-complete-execution)
+describes the cases and outputs:
+
+```console
+just profile-execution --label <label> --cprofile
+```

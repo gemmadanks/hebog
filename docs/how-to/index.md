@@ -168,6 +168,55 @@ deployment gate: Hebog runs natively on one thread and PyBDSF runs in a Linux
 container with four cores. Only the matched benchmark in milestone M4 can pass
 or fail that gate.
 
+## Profile complete execution
+
+Profile before optimizing, to choose what to change. The profile splits one
+complete run into its public stages and separates the cost of image size from
+the cost of sources:
+
+```console
+just profile-execution --label <label> --cprofile
+just profile-execution --label <label> --cases profile-dense-1024
+```
+
+The cases are in `config/benchmarks/complete-execution-profile.json`:
+
+- `ladder`: noise-only and dense generated images at 512², 1,024² and
+  2,048², with 256 sources per 1,024² at every size. The manifest
+  `config/datasets/complete-execution-profile.json` is rebuilt by
+  `scripts/benchmark/build_profile_datasets.py`.
+- `real`: the sparse and dense 1,024² LoTSS-DR3 cut-outs and the SDC1 crowded
+  cut-out at 512², 1,024² and 2,048², all centred on the same field.
+
+Each case runs once in a fresh single-thread process with the serial
+executor, on macOS or Linux: stage timing needs the POSIX `resource` module. The worker wraps the functions of the public path with timers in its
+own process, so no Hebog code changes, and records each stage's calls, wall
+and CPU time, and the process peak memory when the stage ends. A function
+imported into several modules is wrapped in each of them, so a call through an
+alias is timed as its own stage instead of vanishing into its caller. Stages
+nest: FITS and Zarr reads and writes appear under the stage that made them.
+Wall time minus CPU time is mostly file-system wait. `--cprofile` runs each
+case a second time under `cProfile` and keeps its statistics and the functions
+with the most self time; `cProfile` misses Zarr's I/O thread and slows
+Python-heavy code, so stage times come from the first run.
+
+Process time outside the run is split into three measured parts, so no part
+of the fixed cost is charged to the wrong one: `module imports`, `other
+worker overhead` (temporary-product cleanup and building the result) and
+`process creation and shutdown`, which is the time outside the worker script
+itself. The worker's clock starts at its first line, so process creation and
+interpreter start-up precede it and interpreter shutdown follows it; an
+in-process clock cannot separate the two, so they are reported together.
+That part also holds the worker's own result write, which no process can
+time from inside itself: about 2 ms, bounded by the stage and `cProfile` row
+limits rather than by image size.
+
+`summary.json` under `benchmark-results/profiles/runs/<label>/` fits each
+top-level stage on the ladder as a fixed cost plus a cost per megapixel and
+per fitted component, and compares every real case with that model. A
+profile is a single diagnostic run: use the quick benchmark for before and
+after timings.
+
 ## Develop test-first
 
 For a public behaviour or scientific kernel:

@@ -82,6 +82,10 @@ quick-science-check *args:
 quick-benchmark *args:
     uv run python scripts/benchmark/quick_benchmark.py {{args}}
 
+# Profile complete runs by stage across image size and source density
+profile-execution *args:
+    uv run python scripts/benchmark/profile_complete_execution.py {{args}}
+
 # Run explicitly requested performance tests
 test-benchmark:
     uv run pytest -q -m "benchmark and not scalability" tests/
