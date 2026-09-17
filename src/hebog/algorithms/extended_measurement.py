@@ -27,6 +27,7 @@ from scipy.spatial import (
     cKDTree,  # pyright: ignore[reportAttributeAccessIssue]
 )
 
+from hebog.algorithms.label_groups import label_windows
 from hebog.config import ExtendedEmissionMeasurementConfig
 from hebog.data_models.measurement import (
     ExtendedEmissionMeasurementResult,
@@ -161,25 +162,71 @@ def clean_detected_segment_labels(
     return np.where(retained, labels, 0).astype(np.int32, copy=False)
 
 
+def _owner_windows(
+    original_labels: npt.NDArray[np.int64],
+    refined_labels: npt.NDArray[np.int32],
+) -> dict[int, tuple[slice, slice] | None]:
+    """Return the window holding each owner in both label planes."""
+    original_windows = label_windows(original_labels)
+    refined_windows = label_windows(refined_labels)
+    owners: dict[int, tuple[slice, slice] | None] = {}
+    for label_value in np.unique(original_labels):
+        value = int(label_value)
+        if value <= 0:
+            continue
+        crops = [
+            windows[value - 1]
+            for windows in (original_windows, refined_windows)
+            if value <= len(windows) and windows[value - 1] is not None
+        ]
+        owners[value] = (
+            None
+            if not crops
+            else (
+                slice(
+                    min(crop[0].start for crop in crops if crop is not None),
+                    max(crop[0].stop for crop in crops if crop is not None),
+                ),
+                slice(
+                    min(crop[1].start for crop in crops if crop is not None),
+                    max(crop[1].stop for crop in crops if crop is not None),
+                ),
+            )
+        )
+    return owners
+
+
 def _preserve_refined_segment_connectivity(
     original_labels: npt.NDArray[np.int64],
     refined_labels: npt.NDArray[np.int32],
 ) -> npt.NDArray[np.int32]:
-    """Restore a direct owner only when cleanup would split its support."""
+    """Restore a direct owner only when cleanup would split its support.
+
+    Each owner is examined in the window holding both its original and its
+    refined support, instead of over the whole plane. Refinement recovers
+    multiscale emission, so an owner can reach pixels its original support
+    never covered, and those pixels decide whether cleanup split it.
+    """
     connected = np.asarray(refined_labels, dtype=np.int32).copy()
     structure = np.ones((3, 3), dtype=np.int8)
+    windows = _owner_windows(original_labels, connected)
     for label_value in np.unique(original_labels):
         if label_value <= 0:
             continue
+        crop = windows[int(label_value)]
+        if crop is None:
+            continue
+        window_original = original_labels[crop] == label_value
+        window_connected = connected[crop]
         _, component_count = cast(
             tuple[npt.NDArray[np.int32], int],
             connected_component_labels(
-                connected == label_value,
+                window_connected == label_value,
                 structure=structure,
             ),
         )
         if component_count > 1:
-            connected[original_labels == label_value] = label_value
+            window_connected[window_original] = label_value
     return connected
 
 

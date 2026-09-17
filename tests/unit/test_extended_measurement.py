@@ -1,3 +1,4 @@
+# pyright: reportPrivateUsage=false
 """Tests for standard-practice irregular extended-position measurement."""
 
 from __future__ import annotations
@@ -10,6 +11,7 @@ import pytest
 
 from hebog.algorithms.extended_measurement import (
     SegmentWindow,
+    _preserve_refined_segment_connectivity,
     assign_persistent_source_support,
     assign_seeded_multiscale_support,
     clean_detected_segment_labels,
@@ -1017,3 +1019,26 @@ def test_segment_position_in_a_window_keeps_the_plane_pixel_frame() -> None:
     assert windowed.support_pixel_count == 1
     assert windowed.centroid_xy == pytest.approx((5.0, 3.0))
     assert windowed.peak_position_xy == (5, 3)
+
+
+def test_connectivity_restores_owners_split_beyond_their_first_support() -> (
+    None
+):
+    """Multiscale recovery can place an owner outside its original box.
+
+    `refine_detected_segment_labels` propagates labels into recovered
+    regions, so a refined owner may reach pixels its original support never
+    covered. Deciding whether cleanup split that owner has to consider
+    those pixels too.
+    """
+    original = np.zeros((9, 20), dtype=np.int64)
+    original[4, 2:5] = 1
+    refined = np.zeros(original.shape, dtype=np.int32)
+    refined[4, 2:4] = 1
+    refined[4, 14:17] = 1
+
+    connected = _preserve_refined_segment_connectivity(original, refined)
+
+    assert np.array_equal(
+        np.nonzero(connected == 1)[1], np.array([2, 3, 4, 14, 15, 16])
+    )
