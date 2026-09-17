@@ -9,6 +9,7 @@ import numpy.typing as npt
 import pytest
 
 from hebog.algorithms.extended_measurement import (
+    SegmentWindow,
     assign_persistent_source_support,
     assign_seeded_multiscale_support,
     clean_detected_segment_labels,
@@ -955,3 +956,64 @@ def test_detected_segment_position_rejects_bad_array_contract() -> None:
                 np.ones((2, 2), dtype=np.int64),
             ),
         )
+
+
+def test_segment_position_within_bounds_matches_the_whole_plane() -> None:
+    """A window over the segment's support changes nothing it reports.
+
+    Scanning the whole plane for each segment costs image size times
+    segment count. The window bounds that work, and the estimate must stay
+    identical, including the pixel frame and tie-breaking.
+    """
+    generator = np.random.default_rng(2026091902)
+    signal = generator.uniform(-0.2, 1.0, (64, 96))
+    support = np.zeros(signal.shape, dtype=np.bool_)
+    support[40:47, 70:79] = generator.random((7, 9)) < 0.7
+    support[41, 71] = True
+    signal[np.nonzero(support)[0][0], np.nonzero(support)[1][0]] = 5.0
+
+    crop = (slice(40, 47), slice(70, 79))
+    whole_plane = measure_detected_segment_position(signal, support)
+    windowed = measure_detected_segment_position(
+        signal[crop],
+        support[crop],
+        window=SegmentWindow(origin_yx=(40, 70), plane_shape_yx=signal.shape),
+    )
+
+    assert whole_plane.available is True
+    assert windowed == whole_plane
+
+
+def test_segment_position_window_must_lie_inside_the_plane() -> None:
+    signal = np.ones((4, 5), dtype=np.float64)
+    support = np.ones(signal.shape, dtype=np.bool_)
+    with pytest.raises(ValueError, match="stay inside its plane"):
+        measure_detected_segment_position(
+            signal,
+            support,
+            window=SegmentWindow(
+                origin_yx=(2, 0), plane_shape_yx=signal.shape
+            ),
+        )
+    with pytest.raises(ValueError, match="non-negative"):
+        measure_detected_segment_position(
+            signal,
+            support,
+            window=SegmentWindow(origin_yx=(-1, 0), plane_shape_yx=(5, 5)),
+        )
+
+
+def test_segment_position_in_a_window_keeps_the_plane_pixel_frame() -> None:
+    """Coordinates name pixels of the plane, not of the window."""
+    signal = np.ones((4, 6), dtype=np.float64)
+    support = np.ones((1, 1), dtype=np.bool_)
+
+    windowed = measure_detected_segment_position(
+        signal[3:4, 5:6],
+        support,
+        window=SegmentWindow(origin_yx=(3, 5), plane_shape_yx=signal.shape),
+    )
+
+    assert windowed.support_pixel_count == 1
+    assert windowed.centroid_xy == pytest.approx((5.0, 3.0))
+    assert windowed.peak_position_xy == (5, 3)

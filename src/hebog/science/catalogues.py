@@ -14,6 +14,7 @@ import numpy as np
 import numpy.typing as npt
 from astropy.io import fits
 from astropy.wcs import WCS
+from scipy.ndimage import find_objects
 
 from hebog.algorithms.astrometry import (
     deconvolve_gaussian_shapes,
@@ -25,6 +26,7 @@ from hebog.algorithms.astrometry import (
 from hebog.algorithms.component_measurement import ComponentMeasurements
 from hebog.algorithms.extended_measurement import (
     DetectedSegmentPosition,
+    SegmentWindow,
     assign_persistent_source_support,
     expand_detected_segment_labels,
     expand_source_measurement_labels,
@@ -126,8 +128,13 @@ def _segment_position(
     support: npt.NDArray[np.bool_],
     *,
     maximum_peak_to_mean_ratio: float,
+    window: SegmentWindow | None = None,
 ) -> DetectedSegmentPosition:
-    """Select original or denoised weights from measured concentration."""
+    """Select original or denoised weights from measured concentration.
+
+    The planes may be one segment's window of the image; ``window`` then
+    keeps the reported positions in the image's pixel frame.
+    """
     selected = residual
     if denoised_position_signal is not None:
         direct_weights = residual[support]
@@ -140,7 +147,9 @@ def _segment_position(
             )
             if peak_to_mean <= maximum_peak_to_mean_ratio:
                 selected = denoised_position_signal
-    estimate = measure_detected_segment_position(selected, support)
+    estimate = measure_detected_segment_position(
+        selected, support, window=window
+    )
     if not estimate.available and denoised_position_signal is not None:
         alternative = (
             residual
@@ -148,12 +157,60 @@ def _segment_position(
             else denoised_position_signal
         )
         selected = alternative
-        estimate = measure_detected_segment_position(selected, support)
+        estimate = measure_detected_segment_position(
+            selected, support, window=window
+        )
     return replace(
         estimate,
         weighting="denoised"
         if selected is denoised_position_signal
         else "signed-original",
+    )
+
+
+def _label_window(
+    windows: list[tuple[slice, slice] | None], label_value: int
+) -> tuple[slice, slice] | None:
+    """Return one label's window, or ``None`` when it owns no pixel."""
+    if label_value > len(windows):
+        return None
+    return windows[label_value - 1]
+
+
+def _segment_crop(
+    segment_windows: list[tuple[slice, slice] | None],
+    aperture_windows: list[tuple[slice, slice] | None],
+    label_value: int,
+) -> tuple[slice, slice]:
+    """Return the window holding one segment and its measurement aperture.
+
+    A segment whose pixels are all invalid keeps no aperture, so the two
+    windows are combined rather than assuming the aperture contains the
+    segment.
+
+    Raises:
+        ValueError: If neither plane owns the label, which would leave the
+            segment unmeasurable.
+    """
+    crops = [
+        crop
+        for crop in (
+            _label_window(segment_windows, label_value),
+            _label_window(aperture_windows, label_value),
+        )
+        if crop is not None
+    ]
+    if not crops:
+        raise ValueError("Hebog segment labels must own at least one pixel")
+    return (
+        slice(
+            min(crop[0].start for crop in crops),
+            max(crop[0].stop for crop in crops),
+        ),
+        slice(
+            min(crop[1].start for crop in crops),
+            max(crop[1].stop for crop in crops),
+        ),
     )
 
 
@@ -188,11 +245,20 @@ def _position_attribution(  # noqa: PLR0913, PLR0917
     background: npt.ArrayLike,
     estimate: DetectedSegmentPosition,
     integrated_flux: float,
+    window: SegmentWindow,
 ) -> SourcePositionDiagnostics:
-    """Retain both centroid estimators and their distinct flux domain."""
-    original = measure_detected_segment_position(residual, support)
+    """Retain both centroid estimators and their distinct flux domain.
+
+    Every plane is this segment's aperture window, in the frame ``window``
+    describes.
+    """
+    original = measure_detected_segment_position(
+        residual, support, window=window
+    )
     denoised = (
-        measure_detected_segment_position(position_signal, support)
+        measure_detected_segment_position(
+            position_signal, support, window=window
+        )
         if position_signal is not None
         else None
     )
@@ -299,43 +365,61 @@ def build_hebog_segment_catalogue(  # noqa: PLR0913
         * beam_minor_fwhm_pixels
     )
     celestial_wcs = WCS(header, relax=True).celestial
+    background = np.asarray(background_jy_per_beam)
+    # One pass gives every segment its aperture window, so the work below
+    # costs each segment's own pixels instead of the whole image.
+    aperture_windows = find_objects(measurement_labels)
+    segment_windows = find_objects(labels)
     output: list[CatalogueSource] = []
     for label_value in sorted(
         int(item) for item in np.unique(labels) if item > 0
     ):
+        crop = _segment_crop(segment_windows, aperture_windows, label_value)
+        window = SegmentWindow(
+            origin_yx=(crop[0].start, crop[1].start),
+            plane_shape_yx=residual.shape,
+        )
+        residual_window = residual[crop]
+        position_signal_window = (
+            None if position_signal is None else position_signal[crop]
+        )
         support = (
-            (centroid_labels == label_value) & valid & np.isfinite(residual)
+            (centroid_labels[crop] == label_value)
+            & valid[crop]
+            & np.isfinite(residual_window)
         )
         estimate = _segment_position(
-            residual,
-            position_signal,
+            residual_window,
+            position_signal_window,
             support,
             maximum_peak_to_mean_ratio=(
                 denoised_position_maximum_peak_to_mean_ratio
             ),
+            window=window,
         )
-        measurement_support = measurement_labels == label_value
+        measurement_support = measurement_labels[crop] == label_value
         integrated_weight = float(
-            np.sum(residual[measurement_support], dtype=np.float64)
+            np.sum(residual_window[measurement_support], dtype=np.float64)
         )
         if position_diagnostics is not None:
             position_diagnostics[label_value] = _position_attribution(
-                residual,
-                position_signal,
+                residual_window,
+                position_signal_window,
                 support,
                 measurement_support,
-                background_jy_per_beam,
+                background[crop],
                 estimate,
                 integrated_weight / beam_area_pixels,
+                window,
             )
         if not estimate.available or estimate.centroid_xy is None:
             continue
         quality_flags: tuple[str, ...] = ()
         if not np.isfinite(integrated_weight) or integrated_weight <= 0.0:
-            exact_positive_support = support & (residual > 0.0)
+            exact_positive_support = support & (residual_window > 0.0)
             integrated_weight = float(
                 np.sum(
-                    residual[exact_positive_support],
+                    residual_window[exact_positive_support],
                     dtype=np.float64,
                 )
             )
@@ -346,7 +430,7 @@ def build_hebog_segment_catalogue(  # noqa: PLR0913
         if not np.isfinite(integrated_weight) or integrated_weight <= 0.0:
             continue
         integrated_flux = integrated_weight / beam_area_pixels
-        peak_flux = float(np.max(residual[support]))
+        peak_flux = float(np.max(residual_window[support]))
         position = cast(
             Any, celestial_wcs.pixel_to_world(*estimate.centroid_xy)
         ).icrs
