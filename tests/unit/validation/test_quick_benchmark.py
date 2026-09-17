@@ -37,6 +37,7 @@ from hebog.validation.quick_benchmark import (
     measured_wall_seconds,
     median_ratio,
     peak_rss_bytes,
+    physical_memory_bytes,
     run_measured_process,
     source_tree_sha256,
     summarise_timings,
@@ -53,6 +54,9 @@ _CONTRACT = load_performance_matrix(
 _SHA = "a" * 64
 _POSIX_ONLY = pytest.mark.skipif(
     not hasattr(os, "wait4"), reason="process measurement needs os.wait4"
+)
+_SYSCONF_ONLY = pytest.mark.skipif(
+    not hasattr(os, "sysconf"), reason="physical memory needs os.sysconf"
 )
 
 
@@ -296,6 +300,17 @@ def test_source_tree_identity_ignores_bytecode_caches(tmp_path: Path) -> None:
     assert source_tree_sha256(package) != first
 
 
+def test_physical_memory_needs_sysconf(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Without POSIX sysconf, as on Windows, memory is a clear OSError."""
+    monkeypatch.delattr(os, "sysconf", raising=False)
+
+    with pytest.raises(OSError, match=r"os\.sysconf"):
+        physical_memory_bytes()
+
+
+@_SYSCONF_ONLY
 def test_machine_identity_describes_hardware_and_system() -> None:
     """Cached baselines are keyed by the processor, memory and system."""
     identity = machine_identity()

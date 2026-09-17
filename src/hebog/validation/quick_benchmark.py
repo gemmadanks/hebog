@@ -511,8 +511,15 @@ def _processor_name() -> str:
 
 
 def physical_memory_bytes() -> int:
-    """Return the machine's physical memory on POSIX systems."""
-    return os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
+    """Return the machine's physical memory on POSIX systems.
+
+    Raises:
+        OSError: If this platform has no ``sysconf``, as on Windows.
+    """
+    sysconf = getattr(os, "sysconf", None)
+    if sysconf is None:
+        raise OSError("physical memory needs os.sysconf (macOS or Linux)")
+    return sysconf("SC_PAGE_SIZE") * sysconf("SC_PHYS_PAGES")
 
 
 def machine_identity() -> dict[str, object]:
