@@ -11,7 +11,10 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 
-from hebog.algorithms.label_groups import group_labelled_pixels
+from hebog.algorithms.label_groups import (
+    group_labelled_pixels,
+    label_windows,
+)
 
 
 def _labels(rows: str) -> npt.NDArray[np.int32]:
@@ -95,3 +98,24 @@ def test_values_must_align_with_the_grouped_pixels() -> None:
     groups = group_labelled_pixels(labels, label_count=1)
     with pytest.raises(ValueError, match="aligned"):
         groups.maximum(np.array([1.0], dtype=np.float64))
+
+
+def test_label_windows_bound_each_label() -> None:
+    labels = _labels("""
+        0110
+        0100
+        0002
+    """)
+    windows = label_windows(labels)
+    assert windows[0] == (slice(0, 2), slice(1, 3))
+    assert windows[1] == (slice(2, 3), slice(3, 4))
+
+
+def test_a_label_without_pixels_has_no_window() -> None:
+    labels = _labels("""
+        0100
+        0003
+    """)
+    windows = label_windows(labels)
+    assert windows[1] is None
+    assert len(windows) == 3

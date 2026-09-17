@@ -15,9 +15,10 @@ from typing import cast
 
 import numpy as np
 import numpy.typing as npt
-from scipy.ndimage import binary_dilation, find_objects
+from scipy.ndimage import binary_dilation
 from scipy.ndimage import label as connected_component_labels
 
+from hebog.algorithms.label_groups import label_windows
 from hebog.algorithms.multiscale import residual_atrous_scale_halos_pixels
 from hebog.algorithms.multiscale_association import (
     ScaleDetectionPlane,
@@ -181,7 +182,7 @@ def build_detection_component_records(
     records: list[DetectionComponentRecord] = []
     # One pass gives every component its window, so the geometry below
     # costs each component's own pixels instead of the whole plane.
-    component_windows = find_objects(labels)
+    component_windows = label_windows(labels)
     for label_value in sorted(
         int(value) for value in np.unique(labels) if value > 0
     ):

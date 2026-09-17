@@ -1,3 +1,5 @@
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUnknownVariableType=false
 """Group the pixels of a label plane once, for bounded per-label work.
 
 A scan of the whole plane for each label, such as
@@ -15,10 +17,11 @@ label order.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 import numpy as np
 import numpy.typing as npt
+from scipy.ndimage import find_objects
 
 _ValueT = TypeVar("_ValueT", bound=np.generic)
 
@@ -61,6 +64,23 @@ class LabelledPixelGroups:
         if self.starts.size == 0:
             return values[:0]
         return np.maximum.reduceat(values, self.starts)
+
+
+def label_windows(
+    labels: npt.NDArray[np.int32] | npt.NDArray[np.int64],
+) -> tuple[tuple[slice, slice] | None, ...]:
+    """Return the smallest window holding each label, in one pass.
+
+    Entry ``index`` describes label ``index + 1``, and is ``None`` when no
+    pixel carries that label. Measuring a label inside its window costs its
+    own support instead of the whole plane.
+    """
+    return tuple(
+        cast(
+            list[tuple[slice, slice] | None],
+            find_objects(np.asarray(labels)),
+        )
+    )
 
 
 def group_labelled_pixels(

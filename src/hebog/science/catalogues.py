@@ -14,7 +14,6 @@ import numpy as np
 import numpy.typing as npt
 from astropy.io import fits
 from astropy.wcs import WCS
-from scipy.ndimage import find_objects
 
 from hebog.algorithms.astrometry import (
     deconvolve_gaussian_shapes,
@@ -32,6 +31,7 @@ from hebog.algorithms.extended_measurement import (
     expand_source_measurement_labels,
     measure_detected_segment_position,
 )
+from hebog.algorithms.label_groups import label_windows
 from hebog.algorithms.multiscale_association import (
     ScaleDetectionPlane,
     persistent_adjacent_scale_support,
@@ -169,7 +169,7 @@ def _segment_position(
 
 
 def _label_window(
-    windows: list[tuple[slice, slice] | None], label_value: int
+    windows: tuple[tuple[slice, slice] | None, ...], label_value: int
 ) -> tuple[slice, slice] | None:
     """Return one label's window, or ``None`` when it owns no pixel."""
     if label_value > len(windows):
@@ -178,8 +178,8 @@ def _label_window(
 
 
 def _segment_crop(
-    segment_windows: list[tuple[slice, slice] | None],
-    aperture_windows: list[tuple[slice, slice] | None],
+    segment_windows: tuple[tuple[slice, slice] | None, ...],
+    aperture_windows: tuple[tuple[slice, slice] | None, ...],
     label_value: int,
 ) -> tuple[slice, slice]:
     """Return the window holding one segment and its measurement aperture.
@@ -368,8 +368,8 @@ def build_hebog_segment_catalogue(  # noqa: PLR0913
     background = np.asarray(background_jy_per_beam)
     # One pass gives every segment its aperture window, so the work below
     # costs each segment's own pixels instead of the whole image.
-    aperture_windows = find_objects(measurement_labels)
-    segment_windows = find_objects(labels)
+    aperture_windows = label_windows(measurement_labels)
+    segment_windows = label_windows(labels)
     output: list[CatalogueSource] = []
     for label_value in sorted(
         int(item) for item in np.unique(labels) if item > 0
@@ -649,7 +649,7 @@ def build_hebog_segment_moment_catalogue(  # noqa: PLR0913
             for source in sources
         )
     by_identifier = {source.identifier: source for source in sources}
-    segment_windows = find_objects(labels)
+    segment_windows = label_windows(labels)
     output: list[CatalogueSource] = []
     for label_value in sorted(
         int(item) for item in np.unique(labels) if item > 0
