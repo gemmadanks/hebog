@@ -22933,3 +22933,60 @@ scientific pass from fixture validation.
   Hebog's own Python is 16–19% and is orchestration and validation, not
   numerical loops: no hand-written per-pixel loop remains for a compiled
   language to replace.
+
+## 2026-09-18 — M1: a calibration endpoint that covers the population
+
+- **Why.** The endpoint behind the component bias row was a pull, which is
+  defined only where an uncertainty is published. Hebog publishes a
+  beam-constrained shape without a shape uncertainty, so the shape pull
+  covered a minority selected for having fluctuated large. The endpoint,
+  not the estimator, had to change first, and the population could not
+  distinguish a correct shape from one always constrained to the beam.
+- **Step 1: what is measured.** `hebog.validation.component_calibration`
+  summarises each stratum with the fractional excess against truth,
+  `published / truth - 1`, over every matched component, and keeps pulls as
+  a secondary statistic reported with `reported_fraction`, the share of
+  matched components carrying that uncertainty. Positions are reported as
+  offsets in beams. Each stratum also reports its beam-constrained share,
+  which explains the selection behind every shape statistic beside it.
+  Seven unit tests, 100% branch coverage.
+- **Step 2: a population that can tell the two apart.** The calibration
+  sources were beam-sized or 1.5× the beam. Beam-sized truth *is* the beam,
+  so publishing the beam scores perfectly and over-constraining cannot be
+  seen. Sizes 1.15× and 1.3× the beam are added, where publishing the beam
+  would bias sizes and fluxes low and a free fit would bias them high.
+- **Run `m1-endpoint-diagonal`** (diagonal weighting, five realizations per
+  noise class, 340 matched beam-correlated components). Median excess
+  against truth, with the beam-constrained share:
+
+  | Injected size | SNR 10 | SNR 20 | SNR 50 |
+  | --- | --- | --- | --- |
+  | Beam | 80% constrained, axis 0.0%, flux +6.8% | 92%, 0.0%, +4.9% | 88%, 0.0%, +0.5% |
+  | 1.15 beam | 10% constrained, axis +9.7%, flux +9.5% | 0%, +0.6%, −1.7% | 0%, +0.4%, −0.5% |
+  | 1.3 beam | 0% constrained, axis +6.7%, flux +6.0% | 0%, +2.9%, +1.3% | 0%, +0.4%, 0.0% |
+  | 1.5 beam | 0% constrained, axis +9.0%, flux +14.9% | 0%, +3.1%, +5.5% | 0%, +1.3%, +0.9% |
+
+- **Findings.**
+  1. The selection effect reproduces at five realizations: the major-axis
+     pull covers 8–20% of beam-sized components and reads +1.7 to +1.9,
+     while their population axis excess is exactly zero.
+  2. The extension test does not flatten slightly resolved sources. Sources
+     15% larger than the beam are beam-constrained only at SNR 10, and then
+     for 10% of them; at SNR 20 and 50 none are, and their axis excess is
+     +0.6% and +0.4%. This was the blind spot the old population could not
+     see, and it is not a defect.
+  3. **Integrated flux is biased high at low signal-to-noise in every size
+     class, including beam-sized components whose axes are exact**: +6.8%
+     at SNR 10, +4.9% at SNR 20, +0.5% at SNR 50 for beam-sized sources,
+     and up to +14.9% at SNR 10 for 1.5× beam. The old pull-based summary
+     reported +0.06 for the same beam-sized stratum, which read as
+     negligible. The 95th percentile of absolute flux excess is 29–58% at
+     SNR 10, 11–14% at SNR 20 and 5–6% at SNR 50.
+  4. Peak flux is mildly low for resolved sources at low SNR (−2.8% at SNR
+     10), consistent with flux conserved into an inflated size.
+- **Consequence for the plan.** The binding defect is the low-SNR
+  integrated-flux bias across all size classes, not an axis bias, and it is
+  larger than the record suggested. `Total_flux` is Rapthor-consumed, so
+  this is the measurement the row should be aimed at. No estimator changed
+  here: this task replaced the endpoint and the population it is measured
+  over.
