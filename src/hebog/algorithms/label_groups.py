@@ -92,9 +92,11 @@ def group_labelled_pixels(
 
     Raises:
         ValueError: If ``labels`` is not a non-negative two-dimensional
-            plane, or a label in the range has no pixel. Reductions assume
-            non-empty groups, so a missing label fails closed rather than
-            silently borrowing its neighbour's pixels.
+            plane, a label in the range has no pixel, or the plane carries a
+            label above ``label_count``. Reductions assume contiguous
+            non-empty groups running to the end of the grouped pixels, so
+            both a missing label and a stray one fail closed rather than
+            borrowing or donating another label's pixels.
     """
     plane = np.asarray(labels)
     if plane.ndim != _IMAGE_DIMENSIONS:
@@ -104,6 +106,10 @@ def group_labelled_pixels(
     flat_labels = plane.reshape(-1)
     positions = np.flatnonzero(flat_labels)
     values = flat_labels[positions]
+    if values.size and int(values.max()) > label_count:
+        raise ValueError(
+            "label groups cannot hold a label above the declared label count"
+        )
     order = np.argsort(values, kind="stable")
     positions = positions[order].astype(np.int64, copy=False)
     values = values[order]

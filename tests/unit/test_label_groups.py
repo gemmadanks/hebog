@@ -119,3 +119,14 @@ def test_a_label_without_pixels_has_no_window() -> None:
     windows = label_windows(labels)
     assert windows[1] is None
     assert len(windows) == 3
+
+
+def test_a_label_above_the_declared_count_is_rejected() -> None:
+    """Reductions run to the end of the array, so a stray label would fold
+    into the last group's extrema instead of being ignored."""
+    labels = _labels("""
+        0110
+        0002
+    """)
+    with pytest.raises(ValueError, match="above the declared label count"):
+        group_labelled_pixels(labels, label_count=1)
