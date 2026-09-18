@@ -96,6 +96,16 @@ _STAGES = (
         "Zarr plane read",
     ),
     (
+        "hebog.public_api",
+        "detect_multiscale_products",
+        "tiled multiscale detection pass",
+    ),
+    (
+        "hebog.stages.multiscale",
+        "run_multiscale_stage",
+        "multiscale filters, thresholds and labelling",
+    ),
+    (
         "hebog.public_science",
         "build_configured_continuum_products",
         "continuum science",
@@ -115,16 +125,6 @@ _STAGES = (
         "hebog.public_science",
         "measure_component_models",
         "component moments and fitting",
-    ),
-    (
-        "hebog.public_science",
-        "evaluate_residual_atrous",
-        "position filter transform",
-    ),
-    (
-        "hebog.public_science",
-        "reconstruct_denoised_atrous",
-        "position filter reconstruction",
     ),
     (
         "hebog.public_science",

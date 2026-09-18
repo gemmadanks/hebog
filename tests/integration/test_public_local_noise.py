@@ -41,7 +41,7 @@ def _public_maps(
     input_path = tmp_path / "noise.fits"
     fits.PrimaryHDU(image, header).writeto(input_path)
     source = FitsImageSource(input_path)
-    return public_api._estimate_background_rms(
+    _, background, rms = public_api._estimate_background_rms(
         source,
         source.metadata(),
         SourceFinderConfig(5.0, 3.0, 7),
@@ -49,6 +49,7 @@ def _public_maps(
         tmp_path / "work",
         generation_id="noise-fixture",
     )
+    return background, rms
 
 
 @pytest.mark.parametrize("width", (18, 40, 80))

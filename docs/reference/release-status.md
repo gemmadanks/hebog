@@ -39,8 +39,10 @@ photometry, and atomic product publication. Start with
 | Execution | Deterministic `SerialExecutor`, or `DaskExecutor` with a Dask client owned by the caller. Hebog does not create or close a cluster. Dask workers need the input image and the output directory's parent on shared storage. |
 | Publication | A new caller-owned directory containing `catalogue.fits`, `rms.fits`, `source-mask.fits`, and `diagnostics.json`. Existing directories are never overwritten. |
 
-Background/RMS estimation uses bounded tiles. Later measurement stages operate
-on the complete admitted image, which is why the public size limit applies.
+Background/RMS estimation and the multiscale detection pass use bounded
+tiles and publish their planes to an intermediate store. Later measurement
+stages operate on the complete admitted image, which is why the public size
+limit applies.
 Serial and existing-Dask execution are required to produce the same scientific
 products.
 

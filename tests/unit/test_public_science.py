@@ -25,11 +25,13 @@ from hebog.public_science import (
 from hebog.science.models import (
     ContinuumCandidateProducts,
     ThresholdFilterResult,
+    TiledMultiscaleDetection,
 )
 from hebog.science.profile import (
     ContinuumScienceProfile,
     load_continuum_science_profile,
 )
+from hebog.validation.tiled_detection import detect_multiscale_planes
 
 _ROOT = Path(__file__).parents[2]
 
@@ -94,6 +96,24 @@ def _products(
             dtype=np.bool_,
         ),
         scale_detection_planes=(),
+    )
+
+
+def _multiscale(
+    image: np.ndarray,
+    config: SourceFinderConfig,
+    beam: BeamShapePixels,
+    work_directory: Path,
+) -> TiledMultiscaleDetection:
+    """Publish the tiled detection pass over one zero-background plane."""
+    return detect_multiscale_planes(
+        np.asarray(image, dtype=np.float64),
+        np.ones(image.shape, dtype=np.bool_),
+        np.zeros(image.shape, dtype=np.float64),
+        np.ones(image.shape, dtype=np.float64),
+        beam=beam,
+        review=_execution_review(_review(), config),
+        work_directory=work_directory,
     )
 
 
@@ -248,7 +268,9 @@ def test_aligned_plane_rejects_invalid_public_science_inputs(
         _aligned_plane(values, name="test", shape=shape)
 
 
-def test_configured_builder_rejects_inconsistent_finite_support() -> None:
+def test_configured_builder_rejects_inconsistent_finite_support(
+    tmp_path: Path,
+) -> None:
     """Finite image pixels require finite background and RMS values."""
     review = _review()
     image = np.ones((2, 2), dtype=np.float64)
@@ -264,11 +286,18 @@ def test_configured_builder_rejects_inconsistent_finite_support() -> None:
             beam=BeamShapePixels(4.0, 3.0, 0.0),
             review=review,
             config=_config(),
+            multiscale=_multiscale(
+                np.ones((2, 2), dtype=np.float64),
+                _config(),
+                BeamShapePixels(4.0, 3.0, 0.0),
+                tmp_path,
+            ),
         )
 
 
 def test_configured_builder_deblends_components_before_catalogue_measurement(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
     """The public composition cannot bypass compact component topology."""
     normalized = np.zeros((11, 12), dtype=np.float64)
@@ -326,6 +355,12 @@ def test_configured_builder_deblends_components_before_catalogue_measurement(
         beam=BeamShapePixels(5.0, 4.0, 0.0),
         review=review,
         config=SourceFinderConfig(5.0, 3.0, 7),
+        multiscale=_multiscale(
+            normalized,
+            SourceFinderConfig(5.0, 3.0, 7),
+            BeamShapePixels(5.0, 4.0, 0.0),
+            tmp_path,
+        ),
     )
 
     assert result is not None
@@ -338,7 +373,9 @@ def test_configured_builder_deblends_components_before_catalogue_measurement(
     )
 
 
-def test_configured_builder_publishes_independent_connected_sources() -> None:
+def test_configured_builder_publishes_independent_connected_sources(
+    tmp_path: Path,
+) -> None:
     """Independent Gaussian models remain two sources in one island."""
     yy, xx = np.mgrid[:65, :65]
     normalized = 10.0 * np.exp(
@@ -354,6 +391,12 @@ def test_configured_builder_publishes_independent_connected_sources() -> None:
         beam=BeamShapePixels(5.0, 4.0, 0.0),
         review=review,
         config=SourceFinderConfig(5.0, 3.0, 7),
+        multiscale=_multiscale(
+            normalized,
+            SourceFinderConfig(5.0, 3.0, 7),
+            BeamShapePixels(5.0, 4.0, 0.0),
+            tmp_path,
+        ),
     )
 
     assert result is not None
@@ -369,7 +412,9 @@ def test_configured_builder_publishes_independent_connected_sources() -> None:
     ) == (1, 1)
 
 
-def test_configured_builder_retains_three_components_in_one_parent() -> None:
+def test_configured_builder_retains_three_components_in_one_parent(
+    tmp_path: Path,
+) -> None:
     """Multi-peak topology is not limited to a pairwise special case."""
     yy, xx = np.mgrid[:65, :65]
     normalized = np.zeros(yy.shape, dtype=np.float64)
@@ -387,6 +432,12 @@ def test_configured_builder_retains_three_components_in_one_parent() -> None:
         beam=BeamShapePixels(5.0, 4.0, 0.0),
         review=review,
         config=SourceFinderConfig(5.0, 3.0, 7),
+        multiscale=_multiscale(
+            normalized,
+            SourceFinderConfig(5.0, 3.0, 7),
+            BeamShapePixels(5.0, 4.0, 0.0),
+            tmp_path,
+        ),
     )
 
     assert result is not None

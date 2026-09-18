@@ -23207,3 +23207,84 @@ the per-worker placement finding.
   unit tests including four stub-client tests for reduction throttling,
   combine-failure cancellation and combine release on both paths; Dask
   integration tests pass; Pyright and Ruff clean.
+
+## 2026-09-18 — M2: the public path runs the tiled detection pass
+
+- **What changed.** `public_science` no longer evaluates the matched-filter
+  bank, the residual B3 à trous transform, thresholding or island labelling
+  over whole planes. The public path now runs ADR-008's pass B through
+  `hebog.stages.multiscale.run_multiscale_stage` on haloed tile cores, and the
+  composition reads that pass's published planes. Candidate v21 becomes v22;
+  the reviewed profile, thresholds and every downstream stage are unchanged.
+- **What the pass publishes.** `combined-snr`, `detection-labels`,
+  `position-signal`, `reconstruction-mask` and one `scale-N-significant` mask
+  per scale. Two products changed so that the pass
+  serves the composition rather than only its own tests: `detection-labels` is
+  new and carries the globally reconciled detection components that the seeded
+  support stage needs, and `position-signal` is now the composition's denoised
+  position signal with the signed residual as its documented edge fallback,
+  which removes the second whole-image à trous evaluation the public path used
+  to run for it alone. `reconstructed-signal` was removed because nothing
+  reads it; ADR-008 stores a plane only when a later pass or a product needs
+  one.
+- **Per-scale features without storing responses.** The cross-scale
+  persistence rule needs each scale feature's peak response, and ADR-008
+  forbids storing filter responses. `label_detection_tile` therefore takes an
+  optional response plane and reduces its per-island maximum while the
+  response is still on the task that evaluated it; reconciliation merges those
+  maxima associatively, and `build_scale_detection_plane_from_islands`
+  rebuilds the scale planes from the stored mask plus the reconciled records.
+  It relabels the stored mask and rejects any island set whose global labels,
+  canonical pixels or pixel counts do not match it, so a stale record set
+  fails loudly instead of silently relabelling published support. A
+  parametrized unit test proves the reconstruction equals the whole-plane
+  `build_scale_detection_plane` for one-tile and many-tile geometries.
+- **Ownership and tile geometry.** The detection pass plans cores at the
+  scalability contract's smallest admitted 2,048 pixels, widened when the
+  widest filter halo would exceed a quarter of the core, so every image inside
+  the current 1,024-pixel public envelope is one tile and the composition
+  exercises the same code at every size. `detect_multiscale_products` takes
+  the core as a parameter so tests drive many-tile geometry through the
+  production path rather than a parallel one.
+- **Invariance evidence.** `tests/integration/test_public_detection_partitioning.py`
+  runs the public detection pass over an analytic image with sources on every
+  edge and corner, a pair straddling a tile boundary, a close blend and
+  extended emission, at 16, 9, 4 and 1 tiles. Detection labels, the
+  reconstruction mask, every scale mask and every reconciled scale island are
+  exactly equal across geometries; the combined signal-to-noise and position
+  signal agree to the reviewed 2×10⁻¹³. A companion test asserts that those
+  edge, corner and blended cases carry real support, so the equality is not
+  vacuous.
+- **Scientific result: no change.** The quick science check
+  (`m2-tiled-detection`, baselined on `m1-performance`) reproduces every case
+  exactly: identical source and component counts and identical truth metrics
+  on all sixteen cases, including the SDC1 and LoTSS cut-outs, empty noise and
+  the all-invalid image. The run used `--skip-references`, so its pinned
+  PyBDSF `master` comparisons are reported as no longer measurable; no Hebog
+  metric moved.
+- **Performance: a measured regression, below the gate, to remove next.** The
+  quick benchmark (`m2-tiled-detection`, five measured repetitions after
+  warm-up, against v0.12.0 on the same machine) gives dense-field 17.83 s vs
+  17.97 s, ratio 0.99 [0.96, 1.04] pass; LoTSS sparse 20.94 vs 19.54, 1.07
+  [1.04, 1.09] inconclusive; LoTSS dense 21.98 vs 20.70, 1.06 [1.05, 1.10]
+  inconclusive. Both lower bounds sit just under the contract's 1.05
+  regression threshold, so the run passes and no approved trade-off is owed,
+  but the 6–7% is real. Peak RSS is 929 vs 869, 838 vs 819 and 753 vs 835 MiB,
+  so memory did not regress materially and fell on the densest case. The
+  sixteen-case quick check, which is dominated by small inputs, rose 135.6 s →
+  155.2 s (about 14%): negative-background 0.9 → 1.8 s and empty-noise 0.7 →
+  1.3 s pay the extra Zarr generation proportionally, while SDC1 crowded went
+  33.6 → 37.1 s and LoTSS dense 17.2 → 19.5 s. The cost is structural rather
+  than incidental: the stage deliberately evaluates each tile twice, once for
+  boundary topology and once to publish accepted cores, so the public path now
+  evaluates the matched-filter bank and the à trous transform twice where it
+  used to evaluate the bank once and the transform twice. M2's bottleneck row
+  owns this; the obvious candidate is to publish the boundary pass's accepted
+  cores from a retained bounded read rather than re-evaluating them.
+- **Test-only convergence cost.** Substituting the background stage no longer
+  means returning two arrays, because the detection pass reads a published
+  generation rather than an image-sized argument. `hebog.validation.
+  tiled_detection` publishes analytic planes and drives the production
+  detection pass, so no test reimplements detection science, and the
+  integration lane gained a `published_background_rms` fixture for the tests
+  that inject analytic background and RMS.

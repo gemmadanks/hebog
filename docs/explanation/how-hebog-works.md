@@ -36,7 +36,7 @@ flowchart TD
     destination -- No --> reject_destination
     destination -- Yes --> input
     input -- No --> reject_input
-    input -- Yes --> partition[Plan deterministic 128 x 128 detection tiles]
+    input -- Yes --> partition[Plan deterministic background and detection tile cores]
 
     profile{Continuum or compact profile?}
     continuum[Source-protected background and adaptive local RMS]
@@ -54,7 +54,7 @@ flowchart TD
     usable -- No --> empty
 
     residual[Subtract background; exclude invalid pixels; divide by local RMS]
-    filters[Evaluate beam-aware matched filters and residual B3 à trous scales]
+    filters[Evaluate beam-aware matched filters and residual B3 à trous scales per tile]
     flood[Grow eight-connected candidate islands on original residual pixels at island threshold]
     seed{Candidate has detection-threshold evidence?}
     drop_unseeded[Discard unseeded region]
@@ -148,11 +148,13 @@ positive reference frequency, and no more than 1,024 pixels along either
 spatial axis. NaN pixels are allowed and excluded. The 1,024-pixel limit is a
 current public-preview limit, not Hebog's target architecture.
 
-The detection/background stage uses deterministic 128-by-128 tile cores and
-can run through either the serial executor or a caller-supplied Dask client.
-Later measurement stages operate on the complete admitted image, which is why
-the size limit matters. Hebog does not create a Dask cluster and scientific
-ownership does not depend on task order.
+The background and detection passes run on deterministic tile cores through
+either the serial executor or a caller-supplied Dask client, and publish their
+planes to an intermediate Zarr store. Tile geometry decides which task
+computes a value, never the value. The later measurement stages still operate
+on the complete admitted image, which is why the size limit matters. Hebog
+does not create a Dask cluster and scientific ownership does not depend on
+task order.
 
 ### 2. Estimate background and local noise
 
@@ -177,6 +179,14 @@ beam-aware matched-filter bank and a residual B3 à trous representation. The
 filtered representations help decide whether emission is significant; the
 initial flood itself grows over eight-connected original-residual pixels at
 the caller's lower island threshold.
+
+This detection pass is tiled. Each task reads one tile core plus the widest
+filter halo, evaluates the filters for that read only, and returns compact
+boundary summaries; island labels are then reconciled globally and each task
+writes the accepted labels, masks, combined signal to noise and denoised
+position signal for its own core. Filter responses are never stored, so the
+number of published planes does not grow with the number of stages, and each
+scale feature's peak response is reduced on the task that held the response.
 
 A flooded region needs evidence at the higher detection threshold. A
 filter-promoted region must also satisfy the beam-area rule; a region

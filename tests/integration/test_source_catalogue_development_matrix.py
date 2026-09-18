@@ -22,7 +22,10 @@ from hebog.data_models.source_finding import SourceFinderRequest
 from hebog.executors.serial import SerialExecutor
 from hebog.io.fits import FitsImageSource
 from hebog.public_science import build_configured_continuum_products
-from hebog.science.profile import load_continuum_science_profile
+from hebog.science.profile import (
+    configured_science_profile,
+    load_continuum_science_profile,
+)
 from hebog.validation.datasets import (
     BeamMetadata,
     DatasetManifest,
@@ -43,6 +46,7 @@ from hebog.validation.public_measurement_projection import (
     ContinuumCatalogueObject,
     project_public_measurements,
 )
+from hebog.validation.tiled_detection import detect_multiscale_planes
 
 _ROOT = Path(__file__).parents[2]
 _FWHM_PER_SIGMA = 2.0 * sqrt(2.0 * np.log(2.0))
@@ -455,18 +459,29 @@ def test_joint_geometry_with_controlled_or_public_background(
                 _ROOT / "src/hebog/resources/reviewed_continuum_profile.json"
             ).read_bytes()
         )
+        config = SourceFinderConfig(5.0, 3.0, 7)
+        beam_pixels = BeamShapePixels(
+            beam.major_fwhm_pixels,
+            beam.minor_fwhm_pixels,
+            beam.position_angle_degrees,
+        )
         products = build_configured_continuum_products(
             image,
             background,
             rms,
             header,
-            beam=BeamShapePixels(
-                beam.major_fwhm_pixels,
-                beam.minor_fwhm_pixels,
-                beam.position_angle_degrees,
-            ),
+            beam=beam_pixels,
             review=review,
-            config=SourceFinderConfig(5.0, 3.0, 7),
+            config=config,
+            multiscale=detect_multiscale_planes(
+                np.asarray(image, dtype=np.float64),
+                np.ones(image.shape, dtype=np.bool_),
+                background,
+                rms,
+                beam=beam_pixels,
+                review=configured_science_profile(review, config),
+                work_directory=tmp_path / "detection",
+            ),
         )
         scientific = public_api._ScientificProducts(
             image, background, rms, products

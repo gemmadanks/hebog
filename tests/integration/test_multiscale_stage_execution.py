@@ -20,6 +20,7 @@ from hebog.algorithms.multiscale import (
     BeamShapePixels,
     detect_residual_multiscale_islands,
     prepare_scale_filter_inputs,
+    reconstruct_denoised_atrous,
 )
 from hebog.algorithms.multiscale_tiles import (
     evaluate_multiscale_filter_tile,
@@ -348,6 +349,18 @@ def _float_window(
     )
 
 
+def _int_window(
+    source: ZarrProductSink,
+    product_name: str,
+    bounds: ImageBounds,
+) -> npt.NDArray[np.int32]:
+    """Read one label test product with its reviewed storage dtype."""
+    return np.asarray(
+        source.read_completed_window(product_name, bounds),
+        dtype=np.int32,
+    )
+
+
 def _science_identity(
     result: MultiscaleStageResult,
     source: ZarrProductSink,
@@ -355,7 +368,7 @@ def _science_identity(
     """Read only the small test products and reconciled identities."""
     bounds = ImageBounds(0, 129, 0, 137)
     return _ScienceIdentity(
-        retained_mask=_bool_window(source, "retained-mask", bounds),
+        retained_mask=_int_window(source, "detection-labels", bounds) > 0,
         reconstruction_mask=_bool_window(
             source,
             "reconstruction-mask",
@@ -587,7 +600,7 @@ def test_multiscale_stage_matches_promoted_one_tile_science(
     bounds = tile.core_bounds
 
     np.testing.assert_array_equal(
-        _bool_window(source, "retained-mask", bounds),
+        _int_window(source, "detection-labels", bounds) > 0,
         oracle.retained_mask,
     )
     np.testing.assert_array_equal(
@@ -600,19 +613,27 @@ def test_multiscale_stage_matches_promoted_one_tile_science(
         rtol=2e-13,
         atol=2e-13,
     )
-    np.testing.assert_allclose(
-        _float_window(source, "reconstructed-signal", bounds),
-        oracle.reconstruction.signal_jy_per_beam,
-        rtol=2e-13,
-        atol=2e-13,
+    denoised = reconstruct_denoised_atrous(
+        filtered.atrous_result,
+        significance_sigma=_detection_config().island_threshold_sigma,
     )
     np.testing.assert_allclose(
         _float_window(source, "position-signal", bounds),
-        filtered.prepared_inputs.residual_jy_per_beam
-        + oracle.reconstruction.signal_jy_per_beam,
+        np.where(
+            np.isfinite(denoised),
+            denoised,
+            filtered.prepared_inputs.residual_jy_per_beam,
+        ),
         rtol=2e-13,
         atol=2e-13,
     )
+    np.testing.assert_array_equal(
+        _int_window(source, "detection-labels", bounds) > 0,
+        oracle.retained_mask,
+    )
+    assert sorted(
+        set(np.unique(_int_window(source, "detection-labels", bounds)))
+    ) == [0, *(island.global_label for island in result.detection_islands)]
     for order, significant in enumerate(
         oracle.reconstruction.significant_scale_masks,
         start=1,

@@ -21,6 +21,7 @@ from hebog.algorithms.multiscale import (
     BeamShapePixels,
     minimum_residual_island_pixels,
     prepare_scale_filter_inputs,
+    reconstruct_denoised_atrous,
 )
 from hebog.algorithms.multiscale_tiles import (
     MultiscaleDetectionTileEvidence,
@@ -52,10 +53,9 @@ _MULTISCALE_PRODUCT_NAMES = tuple(
     sorted(
         (
             "combined-snr",
+            "detection-labels",
             "position-signal",
-            "reconstructed-signal",
             "reconstruction-mask",
-            "retained-mask",
             *(f"scale-{order}-significant" for order in _SCALE_ORDERS),
         )
     )
@@ -123,6 +123,7 @@ class MultiscaleStageResult:
     detection_islands: tuple[DetectedIsland, ...]
     reconstruction_islands: tuple[DetectedIsland, ...]
     scale_islands_by_order: tuple[tuple[DetectedIsland, ...], ...]
+    scale_nominal_beam_fwhms: tuple[float, ...]
     partition_count: int
     executor_task_count: int
     maximum_graph_width: int
@@ -192,11 +193,21 @@ class _PublicationBatchResult:
 
     product_chunks: tuple[ProductChunk, ...]
     scale_summaries_by_order: tuple[tuple[LocalIslandTileSummary, ...], ...]
+    scale_nominal_beam_fwhms: tuple[float, ...]
     maximum_read_pixel_count: int
     maximum_workspace_bytes: int
     maximum_retained_array_bytes: int
     maximum_worker_bytes: int
     summary_array_bytes: int
+
+
+def _product_dtype(product_name: str) -> np.dtype[np.generic]:
+    """Return the stored element type of one published multiscale plane."""
+    if product_name == "detection-labels":
+        return np.dtype("<i4")
+    if product_name.endswith(("mask", "significant")):
+        return np.dtype(np.bool_)
+    return np.dtype("<f8")
 
 
 def multiscale_product_names() -> tuple[str, ...]:
@@ -485,7 +496,8 @@ def _publication_products(
     evidence: MultiscaleDetectionTileEvidence,
     *,
     reconstruction_mask: npt.NDArray[np.bool_],
-    retained_mask: npt.NDArray[np.bool_],
+    detection_labels: npt.NDArray[np.int32],
+    island_threshold_sigma: float,
 ) -> tuple[
     tuple[tuple[str, npt.NDArray[np.generic]], ...],
     tuple[npt.NDArray[np.bool_], ...],
@@ -495,18 +507,18 @@ def _publication_products(
         np.asarray(mask & reconstruction_mask, dtype=np.bool_)
         for mask in evidence.significant_scale_masks
     )
-    reconstructed = np.zeros(retained_mask.shape, dtype=np.float64)
-    for response, mask in zip(
-        result.atrous_result.responses,
-        scale_masks,
-        strict=True,
-    ):
-        np.add(
-            reconstructed,
-            response.response_jy_per_beam,
-            out=reconstructed,
-            where=mask,
-        )
+    # An insufficient filter halo leaves the denoised value unavailable,
+    # which is not a reason to discard a valid edge source: the signed
+    # residual remains the documented fallback there.
+    denoised = reconstruct_denoised_atrous(
+        result.atrous_result,
+        significance_sigma=island_threshold_sigma,
+    )
+    position_signal = np.where(
+        np.isfinite(denoised),
+        denoised,
+        result.prepared_inputs.residual_jy_per_beam,
+    )
     combined_snr = np.maximum(
         evidence.matched_maximum_snr,
         evidence.direct_snr,
@@ -518,16 +530,11 @@ def _publication_products(
         where=reconstruction_mask,
     )
     combined_snr[~result.prepared_inputs.scientifically_valid] = -np.inf
-    position_signal = np.asarray(
-        result.prepared_inputs.residual_jy_per_beam + reconstructed,
-        dtype=np.float64,
-    )
     products: tuple[tuple[str, npt.NDArray[np.generic]], ...] = (
         ("combined-snr", combined_snr),
+        ("detection-labels", detection_labels),
         ("position-signal", position_signal),
-        ("reconstructed-signal", reconstructed),
         ("reconstruction-mask", reconstruction_mask),
-        ("retained-mask", retained_mask),
         *(
             (f"scale-{order}-significant", mask)
             for order, mask in zip(_SCALE_ORDERS, scale_masks, strict=True)
@@ -572,6 +579,7 @@ def _publish_batch_in_session(  # noqa: PLR0913
     """Recompute, map global labels, and persist only accepted products."""
     chunks: list[ProductChunk] = []
     scale_summaries: list[list[LocalIslandTileSummary]] = [[], [], []]
+    scale_nominal_beam_fwhms: tuple[float, ...] = ()
     maximum_read_pixels = 0
     maximum_workspace_bytes = 0
     maximum_retained_array_bytes = 0
@@ -593,6 +601,10 @@ def _publish_batch_in_session(  # noqa: PLR0913
             beam=beam,
             detection=detection,
             image_window=image_window,
+        )
+        scale_nominal_beam_fwhms = tuple(
+            float(response.nominal_scale_beam_fwhm)
+            for response in result.atrous_result.responses
         )
         reconstruction, direct_detection = _label_topology(
             evidence,
@@ -618,20 +630,20 @@ def _publish_batch_in_session(  # noqa: PLR0913
             > 0,
             dtype=np.bool_,
         )
-        retained_mask = np.asarray(
+        detection_labels = np.asarray(
             apply_tile_label_mapping(
                 direct_detection,
                 request.detection_mapping,
-            )
-            > 0,
-            dtype=np.bool_,
+            ),
+            dtype=np.int32,
         )
         del reconstruction, direct_detection
         products, scale_masks = _publication_products(
             result,
             evidence,
             reconstruction_mask=reconstruction_mask,
-            retained_mask=retained_mask,
+            detection_labels=detection_labels,
+            island_threshold_sigma=detection.island_threshold_sigma,
         )
         product_retained_bytes = (
             image_batch_bytes
@@ -660,8 +672,13 @@ def _publish_batch_in_session(  # noqa: PLR0913
             )
             for product_name, values in products
         )
-        for index, (scale_snr, scale_mask) in enumerate(
-            zip(evidence.atrous_scale_snrs, scale_masks, strict=True)
+        for index, (scale_snr, scale_mask, scale_response) in enumerate(
+            zip(
+                evidence.atrous_scale_snrs,
+                scale_masks,
+                result.atrous_result.responses,
+                strict=True,
+            )
         ):
             scale_tile = label_detection_tile(
                 DetectionThresholdMasks(
@@ -672,6 +689,7 @@ def _publish_batch_in_session(  # noqa: PLR0913
                 ),
                 request.partition,
                 image_shape_yx=image_shape_yx,
+                response_jy_per_beam=scale_response.response_jy_per_beam,
             )
             scale_retained_bytes = product_retained_bytes + _tile_array_bytes(
                 scale_tile
@@ -703,6 +721,7 @@ def _publish_batch_in_session(  # noqa: PLR0913
         scale_summaries_by_order=tuple(
             tuple(summaries) for summaries in scale_summaries
         ),
+        scale_nominal_beam_fwhms=scale_nominal_beam_fwhms,
         maximum_read_pixel_count=maximum_read_pixels,
         maximum_workspace_bytes=maximum_workspace_bytes,
         maximum_retained_array_bytes=maximum_retained_array_bytes,
@@ -849,13 +868,10 @@ def run_multiscale_stage(  # noqa: PLR0913
         for partition in manifest.tiles
     )
     for product_name in _MULTISCALE_PRODUCT_NAMES:
-        dtype = (
-            np.dtype(np.bool_)
-            if product_name.endswith("mask")
-            or product_name.endswith("significant")
-            else np.dtype("<f8")
+        sink.initialize_product(
+            product_name=product_name,
+            dtype=_product_dtype(product_name),
         )
-        sink.initialize_product(product_name=product_name, dtype=dtype)
     publication_batches = _publication_batches(
         publication_requests,
         maximum_tiles_per_batch=config.maximum_tiles_per_batch,
@@ -900,6 +916,9 @@ def run_multiscale_stage(  # noqa: PLR0913
         detection_islands=detection_islands,
         reconstruction_islands=reconstruction.islands,
         scale_islands_by_order=scale_islands,
+        scale_nominal_beam_fwhms=publication_results[
+            0
+        ].scale_nominal_beam_fwhms,
         partition_count=len(manifest.tiles),
         executor_task_count=sum(batch_counts),
         maximum_graph_width=max(batch_counts),

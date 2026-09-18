@@ -11,6 +11,7 @@ import numpy as np
 import numpy.typing as npt
 
 from hebog.algorithms.multiscale_association import ScaleDetectionPlane
+from hebog.algorithms.reconciliation import DetectedIsland
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
 from hebog.data_models.source_association import SourceAssociationResult
 
@@ -261,6 +262,26 @@ class ThresholdFilterResult:
     retained_mask: npt.NDArray[np.bool_]
     component_labels: npt.NDArray[np.int32]
     component_count: int
+
+
+@dataclass(frozen=True, slots=True)
+class TiledMultiscaleDetection:
+    """Published tiled detection planes and reconciled per-scale features.
+
+    These are the pass-B products of the tile-native composition described in
+    ADR-008. Every plane covers the complete image and is read from the
+    published generation; the per-scale island records were reduced on the
+    tasks that held the filter responses, so the responses themselves are
+    never stored.
+    """
+
+    combined_snr: npt.NDArray[np.float64]
+    detection_labels: npt.NDArray[np.int32]
+    reconstruction_mask: npt.NDArray[np.bool_]
+    position_signal_jy_per_beam: npt.NDArray[np.float64]
+    significant_scale_masks: tuple[npt.NDArray[np.bool_], ...]
+    scale_islands_by_order: tuple[tuple[DetectedIsland, ...], ...]
+    scale_nominal_beam_fwhms: tuple[float, ...]
 
 
 @dataclass(frozen=True, slots=True)

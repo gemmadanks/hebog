@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any
 
 import numpy as np
@@ -37,7 +38,12 @@ from hebog.science.catalogues import (
     _segment_position,
 )
 from hebog.science.models import ContinuumProducts
-from hebog.science.profile import load_continuum_science_profile
+from hebog.science.profile import (
+    ContinuumScienceProfile,
+    configured_science_profile,
+    load_continuum_science_profile,
+)
+from hebog.validation.tiled_detection import detect_multiscale_planes
 
 _ROOT = Path(__file__).parents[2]
 
@@ -363,22 +369,50 @@ def _header(shape: tuple[int, int]) -> fits.Header:
     )
 
 
-def _products(signal: np.ndarray) -> ContinuumProducts:
-    """Exercise the complete configured composition with analytic noise."""
-    review = load_continuum_science_profile(
+def _review() -> ContinuumScienceProfile:
+    """Load the installed reviewed continuum profile fixture."""
+    return load_continuum_science_profile(
         (
             _ROOT / "src/hebog/resources/reviewed_continuum_profile.json"
         ).read_bytes()
     )
-    result = build_configured_continuum_products(
-        signal,
-        np.zeros_like(signal),
-        np.ones_like(signal),
-        _header(signal.shape),
-        beam=BeamShapePixels(4.0, 4.0, 0.0),
-        review=review,
-        config=SourceFinderConfig(5.0, 3.0, 7),
-    )
+
+
+def _configured_products(
+    signal: np.ndarray,
+    header: fits.Header,
+) -> ContinuumProducts | None:
+    """Run the tiled detection pass and the composition it feeds."""
+    review = _review()
+    beam = BeamShapePixels(4.0, 4.0, 0.0)
+    config = SourceFinderConfig(5.0, 3.0, 7)
+    background = np.zeros_like(signal)
+    rms = np.ones_like(signal)
+    with TemporaryDirectory() as directory:
+        multiscale = detect_multiscale_planes(
+            np.asarray(signal, dtype=np.float64),
+            np.ones(signal.shape, dtype=np.bool_),
+            background,
+            rms,
+            beam=beam,
+            review=configured_science_profile(review, config),
+            work_directory=Path(directory),
+        )
+        return build_configured_continuum_products(
+            signal,
+            background,
+            rms,
+            header,
+            beam=beam,
+            review=review,
+            config=config,
+            multiscale=multiscale,
+        )
+
+
+def _products(signal: np.ndarray) -> ContinuumProducts:
+    """Exercise the complete configured composition with analytic noise."""
+    result = _configured_products(signal, _header(signal.shape))
     assert result is not None
     return result
 
@@ -389,20 +423,7 @@ def test_missing_optional_beam_angle_uses_zero_position_angle() -> None:
     signal = 10 * np.exp(-((xx - 20) ** 2 + (yy - 16) ** 2) / 8)
     header = _header(signal.shape)
     del header["BPA"]
-    review = load_continuum_science_profile(
-        (
-            _ROOT / "src/hebog/resources/reviewed_continuum_profile.json"
-        ).read_bytes()
-    )
-    products = build_configured_continuum_products(
-        signal,
-        np.zeros_like(signal),
-        np.ones_like(signal),
-        header,
-        beam=BeamShapePixels(4.0, 4.0, 0.0),
-        review=review,
-        config=SourceFinderConfig(5.0, 3.0, 7),
-    )
+    products = _configured_products(signal, header)
     assert products is not None
     assert len(products.catalogue) == 1
 

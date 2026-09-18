@@ -16,9 +16,6 @@ from hebog.algorithms.component_topology import deblend_component_topology
 from hebog.algorithms.multiscale import (
     BeamShapePixels,
     build_residual_atrous_plan,
-    evaluate_residual_atrous,
-    prepare_scale_filter_inputs,
-    reconstruct_denoised_atrous,
 )
 from hebog.config import SourceFinderConfig
 from hebog.data_models.images import RestoringBeam
@@ -33,6 +30,7 @@ from hebog.science.continuum import (
 from hebog.science.models import (
     ContinuumCandidateProducts,
     ContinuumProducts,
+    TiledMultiscaleDetection,
 )
 from hebog.science.profile import (
     ContinuumScienceProfile,
@@ -126,6 +124,7 @@ def build_configured_continuum_products(  # noqa: PLR0913
     beam: BeamShapePixels,
     review: ContinuumScienceProfile,
     config: SourceFinderConfig,
+    multiscale: TiledMultiscaleDetection,
 ) -> ContinuumProducts | None:
     """Build terminal products using caller thresholds and island limits."""
     image = _aligned_plane(image_jy_per_beam, name="image")
@@ -147,6 +146,7 @@ def build_configured_continuum_products(  # noqa: PLR0913
         rms,
         beam=beam,
         review=_execution_review(review, config),
+        multiscale=multiscale,
     )
     retained = _retain_configured_islands(products, config)
     if retained is None:
@@ -194,19 +194,6 @@ def build_configured_continuum_products(  # noqa: PLR0913
         atrous_plan=build_residual_atrous_plan(beam, noise_correlation=beam),
         minimum_support_fraction=review.matrix.support_fraction_bounds[0],
     )
-    position_transform = evaluate_residual_atrous(
-        prepare_scale_filter_inputs(image, valid, background, rms),
-        build_residual_atrous_plan(beam, noise_correlation=beam),
-        minimum_support_fraction=review.matrix.support_fraction_bounds[0],
-    )
-    denoised_position = reconstruct_denoised_atrous(
-        position_transform, significance_sigma=config.island_threshold_sigma
-    )
-    # An insufficient filter halo is unavailable, not a reason to discard
-    # a valid edge source. Its original signed position remains available.
-    position_signal = np.where(
-        np.isfinite(denoised_position), denoised_position, image - background
-    )
     catalogues = build_hebog_reconstructed_source_catalogues(
         image,
         background,
@@ -221,7 +208,7 @@ def build_configured_continuum_products(  # noqa: PLR0913
         measurement_aperture_radius_beams=(
             CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS
         ),
-        position_signal_jy_per_beam=position_signal,
+        position_signal_jy_per_beam=retained.position_signal_jy_per_beam,
         component_measurements=measurements,
     )
     valid.setflags(write=False)

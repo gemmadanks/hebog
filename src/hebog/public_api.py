@@ -16,7 +16,7 @@ from math import prod
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import monotonic
-from typing import Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, Protocol, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -52,6 +52,7 @@ from hebog.data_models.images import ImageMetadata
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
 from hebog.executors import Executor
 from hebog.io import FitsImageSource, ZarrProductSink
+from hebog.io.base import ImageWindow
 from hebog.io.filesystem import rename_without_replacement
 from hebog.io.materialization import (
     write_catalogue_fits_product,
@@ -68,12 +69,18 @@ from hebog.pipeline import (
 )
 from hebog.stages.detection import run_detection_stage
 
+if TYPE_CHECKING:  # pragma: no cover - import-time typing only
+    from hebog.science.models import TiledMultiscaleDetection
+    from hebog.science.profile import ContinuumScienceProfile
+
 _MAXIMUM_PREVIEW_DIMENSION = 1024
 _TILE_SHAPE_YX = (128, 128)
+DETECTION_TILE_CORE_PIXELS = 2048
+"""Smallest tile core the scalability contract admits, in pixels."""
 _DETECTION_THRESHOLD_SIGMA = 5.0
 _ISLAND_THRESHOLD_SIGMA = 3.0
 _MINIMUM_ISLAND_PIXELS = 7
-_COMPOSITION_NAME = "phase-5-evidence-bound-public-catalogue-v21"
+_COMPOSITION_NAME = "phase-5-evidence-bound-public-catalogue-v22"
 _PROFILE_RESOURCE = "reviewed_continuum_profile.json"
 _FWHM_PER_SIGMA = 2.0 * np.sqrt(2.0 * np.log(2.0))
 # Finite-difference WCS Jacobians carry ~1e-8 pixel round-off. Quantising the
@@ -93,6 +100,7 @@ _SCIENTIFIC_MODULES = (
     "hebog.algorithms.measurement",
     "hebog.algorithms.multiscale",
     "hebog.algorithms.multiscale_association",
+    "hebog.algorithms.multiscale_tiles",
     "hebog.algorithms.reconciliation",
     "hebog.algorithms.source_association",
     "hebog.data_models.catalogues",
@@ -108,7 +116,16 @@ _SCIENTIFIC_MODULES = (
     "hebog.science.profile",
     "hebog.stages.background",
     "hebog.stages.detection",
+    "hebog.stages.multiscale",
 )
+
+
+class _WindowReadable(Protocol):
+    """Read bounded global image windows without scheduler state."""
+
+    def read_window(self, bounds: ImageBounds) -> ImageWindow:
+        """Read one bounded global window."""
+        ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -371,7 +388,7 @@ def _estimate_background_rms(  # noqa: PLR0913
     work_directory: Path,
     *,
     generation_id: str,
-) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+) -> tuple[ZarrProductSink, npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     """Run the exact candidate-owned bounded background/RMS stage."""
     from hebog.science.configuration import (  # noqa: PLC0415
         source_finder_configs,
@@ -436,6 +453,7 @@ def _estimate_background_rms(  # noqa: PLR0913
     )
     bounds = _full_bounds(metadata)
     return (
+        sink,
         np.asarray(
             sink.read_completed_window("background", bounds),
             dtype=np.float64,
@@ -444,6 +462,92 @@ def _estimate_background_rms(  # noqa: PLR0913
             sink.read_completed_window("rms", bounds),
             dtype=np.float64,
         ),
+    )
+
+
+def detect_multiscale_products(  # noqa: PLR0913
+    source: _WindowReadable,
+    background_rms_source: ZarrProductSink,
+    executor: Executor,
+    work_directory: Path,
+    *,
+    image_shape_yx: tuple[int, int],
+    beam: BeamShapePixels,
+    review: ContinuumScienceProfile,
+    generation_id: str,
+    tile_core_pixels: int = DETECTION_TILE_CORE_PIXELS,
+) -> TiledMultiscaleDetection:
+    """Run the tiled detection pass and read its published planes.
+
+    The composition owns no filter response plane: the pass publishes the
+    planes a later pass reads, and reduces each scale feature's peak while
+    its response is still on the task that evaluated it.
+
+    ``tile_core_pixels`` is the non-overlapping output core each task owns.
+    It defaults to the smallest core the scalability contract admits, and is
+    widened when the widest filter halo would exceed a quarter of it. Tile
+    geometry changes which task computes a value, never the value. One tile
+    per batch is already a coarse task at that core, so batching adds nothing
+    here.
+    """
+    from hebog.algorithms.multiscale_tiles import (  # noqa: PLC0415
+        scale_filter_halo_pixels,
+    )
+    from hebog.science.continuum import (  # noqa: PLC0415
+        residual_detection_config,
+    )
+    from hebog.science.models import (  # noqa: PLC0415
+        TiledMultiscaleDetection,
+    )
+    from hebog.stages.multiscale import (  # noqa: PLC0415
+        MultiscaleStageConfig,
+        run_multiscale_stage,
+    )
+
+    halo = scale_filter_halo_pixels(beam)
+    core = max(tile_core_pixels, 4 * halo + 1)
+    manifest = plan_image_partitions(
+        image_shape_yx=image_shape_yx,
+        tile_core_shape_yx=(core, core),
+        halo_yx=(halo, halo),
+    )
+    sink = ZarrProductSink(
+        work_directory / "multiscale.zarr",
+        manifest,
+        generation_id=generation_id,
+    )
+    result = run_multiscale_stage(
+        source,
+        background_rms_source,
+        manifest,
+        config=MultiscaleStageConfig(
+            beam=beam,
+            detection=residual_detection_config(review),
+            maximum_tiles_per_batch=1,
+        ),
+        executor=executor,
+        sink=sink,
+    )
+    bounds = ImageBounds(0, image_shape_yx[0], 0, image_shape_yx[1])
+
+    def plane(product_name: str, dtype: str) -> npt.NDArray[Any]:
+        """Read one published detection plane over the whole image."""
+        return np.asarray(
+            sink.read_completed_window(product_name, bounds),
+            dtype=dtype,
+        )
+
+    return TiledMultiscaleDetection(
+        combined_snr=plane("combined-snr", "float64"),
+        detection_labels=plane("detection-labels", "int32"),
+        reconstruction_mask=plane("reconstruction-mask", "bool"),
+        position_signal_jy_per_beam=plane("position-signal", "float64"),
+        significant_scale_masks=tuple(
+            plane(f"scale-{order}-significant", "bool")
+            for order in range(1, len(result.scale_islands_by_order) + 1)
+        ),
+        scale_islands_by_order=result.scale_islands_by_order,
+        scale_nominal_beam_fwhms=result.scale_nominal_beam_fwhms,
     )
 
 
@@ -462,20 +566,22 @@ def _analyse_image(  # noqa: PLR0913
         build_configured_continuum_products,
     )
     from hebog.science.profile import (  # noqa: PLC0415
+        configured_science_profile,
         load_continuum_science_profile,
     )
 
     bounds = _full_bounds(metadata)
     image = np.asarray(source.read_window(bounds).values, dtype=np.float64)
-    background, rms = _estimate_background_rms(
+    generation_id = (
+        f"public-{hashlib.sha256(request.run_id.encode()).hexdigest()}"
+    )
+    background_rms_source, background, rms = _estimate_background_rms(
         source,
         metadata,
         config,
         executor,
         work_directory,
-        generation_id=(
-            f"public-{hashlib.sha256(request.run_id.encode()).hexdigest()}"
-        ),
+        generation_id=generation_id,
     )
     usable_rms = np.isfinite(rms) & (rms > 0)
     if not np.any(usable_rms):
@@ -485,15 +591,29 @@ def _analyse_image(  # noqa: PLR0913
             rms=np.full(metadata.shape_yx, np.nan, dtype=np.float64),
             terminal=None,
         )
-    review = load_continuum_science_profile(_profile_bytes())
+    review = configured_science_profile(
+        load_continuum_science_profile(_profile_bytes()),
+        config,
+    )
+    beam = _beam_shape_pixels(metadata)
     terminal = build_configured_continuum_products(
         image,
         background,
         rms,
         header,
-        beam=_beam_shape_pixels(metadata),
+        beam=beam,
         review=review,
         config=config,
+        multiscale=detect_multiscale_products(
+            source,
+            background_rms_source,
+            executor,
+            work_directory,
+            image_shape_yx=metadata.shape_yx,
+            beam=beam,
+            review=review,
+            generation_id=generation_id,
+        ),
     )
     return _ScientificProducts(image, background, rms, terminal)
 
