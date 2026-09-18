@@ -22990,3 +22990,68 @@ scientific pass from fixture validation.
   this is the measurement the row should be aimed at. No estimator changed
   here: this task replaced the endpoint and the population it is measured
   over.
+
+## 2026-09-18 — M2: the tile-native composition design
+
+- **What this is.** The first M2 row, the design of the tile-native continuum
+  composition, drafted as
+  [ADR-008](docs/architecture/adr/008-make-the-continuum-composition-tile-native.md),
+  status Proposed and awaiting human review. No production code changed.
+- **Three findings that made the design tractable**, established by reading the
+  installed composition rather than assumed:
+  1. No stage needs a global continuous statistic. Scale signal-to-noise is
+     calibrated analytically per pixel from a propagated RMS
+     (`calibrated_scale_snrs`), so the only global objects are label
+     equivalences, per-object record aggregates and the noise grid.
+  2. **The noise grid, not the multiscale filters, sets the maximum halo.**
+     For a 5-pixel beam `derive_stage_halo_plan` gives 34 pixels for the
+     matched-filter bank, 14 for the à trous transform, 15 for segment
+     association and 3 for refinement; the reviewed 150/50 coarse grid needs
+     about 125 and the 35/7 adaptive grid with its 75-pixel influence radius
+     needs about 120. At a 2,048 core that is within the contract's
+     quarter-core halo limit, with room for an 8-pixel beam (55, 24).
+  3. Several kernels already take tiled inputs:
+     `assign_seeded_multiscale_support` breaks ties on a caller-supplied
+     global row-major seed reference, `reconcile_island_tiles` merges boundary
+     equivalences hierarchically, and deblending, deferred completion and
+     extended measurement already shard exact membership.
+- **The shape decided.** Four passes over image-anchored geometry — noise,
+  detection, support, objects — with a pass boundary only where a global
+  reduction must complete first; cores own pixels, canonical row-major pixels
+  own objects, derived geometry is anchored to the image rather than the
+  partition, and label mappings are sharded to the labels a tile holds
+  instead of broadcast. The ADR carries the per-stage halo, ownership,
+  boundary summary and merge table the plan requires.
+- **Objects larger than one halo** get a three-tier rule: one task where the
+  box fits; an associative accumulation over intersected cores where the
+  quantity reduces (moments, photometry, counts, line minima, equivalences);
+  and, where it does not reduce, publication through the reducible path with
+  an explicit disposition. Truncating, dropping or splitting such an object
+  is prohibited.
+- **Extended association** is a record graph, not a pixel pass. The edge
+  predicate is a minimum and an all-valid test along the line between two
+  centroids, both associative, so a long pair reduces over the cores its line
+  crosses. Edges are canonicalised before complete-link agglomeration, and
+  groups resolve per connected component, so the driver never gathers the
+  component set.
+- **Numerical invariance** is exact for labels, masks, memberships,
+  identities and catalogue rows, and bounded at the 2×10⁻¹³ already used by
+  the reviewed multiscale partition-equivalence tests for continuous filter
+  responses. The à trous transform is separable direct convolution and is
+  exact under tiling; the tolerance comes from the matched-filter FFT, whose
+  rounding depends on transform shape. The recorded escalation, if a
+  knife-edge threshold flip is ever observed, is an image-anchored fixed
+  transform block; the invariance suite gains deliberate knife-edge cases.
+- **`float64` stays**, with the path to `float32` recorded: a profile showing
+  bandwidth or admitted planes binding, stored intermediate planes only,
+  scientific-equivalence evidence on the dataset matrix, and an ADR
+  amendment. A 2,048 core with a 125-pixel halo is about 42 MB per `float64`
+  plane, so a ten-plane task stays near 420 MB at any image size.
+- **Consequence recorded for sequencing.** `map_batches` with a driver-side
+  gather cannot express the support and object passes, so completing the
+  executor contract is a prerequisite for the convergence work rather than an
+  independent M2 row.
+- **Next step.** Human review of ADR-008. On acceptance, converge
+  `public_science.py` onto the tiled stages pass by pass, keeping the quick
+  science check and Serial/Dask agreement green, and delete the whole-array
+  path only once one-tile and many-tile runs agree.
