@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.11.0](https://github.com/gemmadanks/hebog/compare/v0.10.1...v0.11.0) (2026-09-18)
+
+
+### 🚀 Features
+
+* measure component calibration over the whole population ([#66](https://github.com/gemmadanks/hebog/issues/66)) ([17b4877](https://github.com/gemmadanks/hebog/commit/17b4877117e2d641b9cbce3b87db8d886cb7429a))
+
 ## [0.10.1](https://github.com/gemmadanks/hebog/compare/v0.10.0...v0.10.1) (2026-09-18)
 
 
