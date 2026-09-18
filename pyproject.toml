@@ -1,6 +1,6 @@
 [project]
 name = "hebog"
-version = "0.11.0"
+version = "0.12.0"
 description = "Experimental radio-continuum source finder with serial and Dask execution"
 authors = [
     {name = "Gemma Danks", email = "gemma.danks@skao.int"},
