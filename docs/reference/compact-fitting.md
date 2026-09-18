@@ -217,9 +217,37 @@ deviation of about one for position, peak flux and fitted axes (0.72 to 1.10).
 The former GLS covariance was overconfident there, with pull standard
 deviations up to 2. On pixel-independent noise the uncertainties are
 conservative (pull standard deviation 0.25 to 0.55), because they assume
-beam-correlated noise, as Condon-style errors do. Two biases remain under
-both estimators: the integrated flux of beam-sized sources (median pull
-about +0.4) and their fitted major axis (about +1.5). The
+beam-correlated noise, as Condon-style errors do.
+
+Pulls describe only the components that publish an uncertainty. A shape
+uncertainty accompanies a free fit, not a beam-constrained one, so a shape
+pull covers the minority whose free model survived the extension test, which
+selects upward fluctuations. Measured on 18 September over 340 matched
+beam-correlated components, a shape pull covered 8 to 20 per cent of
+beam-sized components and read about +1.7, while the whole population's
+major-axis excess against truth was zero. Report how far published values
+lie from truth over every matched component, and read a pull against the
+share of the population it covers.
+
+Measured that way, published sizes carry the expected low-SNR noise bias of
+fitted second moments, and integrated flux follows it. Median excess against
+truth, by injected size and signal-to-noise:
+
+| Injected size | SNR 10 | SNR 20 | SNR 50 |
+| --- | --- | --- | --- |
+| Beam | axis 0.0%, flux +6.8% | axis 0.0%, flux +4.9% | axis 0.0%, flux +0.5% |
+| 1.15 beam | axis +9.7%, flux +9.5% | axis +0.6%, flux −1.7% | axis +0.4%, flux −0.5% |
+| 1.3 beam | axis +6.7%, flux +6.0% | axis +2.9%, flux +1.3% | axis +0.4%, flux 0.0% |
+| 1.5 beam | axis +9.0%, flux +14.9% | axis +3.1%, flux +5.5% | axis +1.3%, flux +0.9% |
+
+Beam-sized sources are published at the beam, which is exactly their truth,
+so their axis excess is zero by construction; 80 to 92 per cent of them are
+beam-constrained. Sources 15 per cent larger than the beam are
+beam-constrained only at SNR 10, and then for 10 per cent of them, so the
+extension test does not flatten slightly resolved sources at usable
+signal-to-noise. The integrated-flux tail is the wider concern: the 95th
+percentile of absolute excess is 29 to 58 per cent at SNR 10, 11 to 14 per
+cent at SNR 20 and 5 to 6 per cent at SNR 50. The
 Phase 5 external component profile additionally applies a 0.075-sigma
 downward correction to the fitted Gaussian total before celestial catalogue
 publication. It leaves the fitted amplitude, axes, angle, centroid, formal

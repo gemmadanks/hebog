@@ -5,11 +5,14 @@ Generates seed-disjoint 1,024-pixel images of isolated sources on a grid,
 with pixel-independent and beam-correlated noise, runs the public finder with
 each requested point estimator, and reports pulls against truth::
 
-    pull = (published - truth) / published one-sigma error
+    excess = published / truth - 1        (positions: offset in beams)
+    pull  = (published - truth) / published one-sigma error
 
-for position, peak flux, integrated flux and fitted axes. Calibrated errors
-give a pull standard deviation near one and 68.3% of pulls within one. The
-median pull measures bias in units of the reported error.
+for position, peak flux, integrated flux and fitted axes. The excess covers
+every matched component; the pull covers only those publishing an
+uncertainty, and is reported with the share of the population that is.
+Calibrated errors give a pull standard deviation near one and 68.3% of
+pulls within one, read against that share.
 
 Outputs go under ``benchmark-results/uncertainty-calibration/<label>``.
 This is development evidence for choosing uncertainty calibration, not
@@ -33,6 +36,10 @@ from hebog import public_api, public_science
 from hebog.executors import SerialExecutor
 from hebog.io import read_catalogue_fits_product
 from hebog.validation.campaigns import phase_four_truth_source
+from hebog.validation.component_calibration import (
+    ComponentComparison,
+    summarise_component_calibration,
+)
 from hebog.validation.datasets import (
     DatasetManifest,
     SyntheticRecipe,
@@ -51,7 +58,11 @@ _PIXEL_SCALE_DEGREES = 1.5 / 3600.0
 _GRID = 8
 _SIZE = 1024
 _SNRS = (10.0, 20.0, 50.0)
-_SIZE_FACTORS = (1.0, 1.5)
+# Beam-sized sources cannot distinguish a correct shape from one always
+# constrained to the beam, because their truth is the beam. The two factors
+# between them are the ones where publishing the beam would bias sizes and
+# fluxes low, and a free fit would bias them high.
+_SIZE_FACTORS = (1.0, 1.15, 1.3, 1.5)
 _ONE_SIGMA = 0.6827
 
 
@@ -202,62 +213,108 @@ def _pulls(
             truth_shape = truth.fitted_shape
             assert truth_shape is not None
 
+            def difference(published: float, expected: float) -> float:
+                return published - expected
+
+            def excess(published: float, expected: float) -> float | None:
+                """Return the fractional distance from truth."""
+                return published / expected - 1.0 if expected else None
+
             def pull(delta: float, error: float | None) -> float | None:
+                """Return the distance from truth in published errors."""
                 return delta / error if error else None
 
+            offsets = {
+                "ra": difference(
+                    position.right_ascension_degrees,
+                    truth.right_ascension_degrees,
+                )
+                * cos_dec,
+                "dec": difference(
+                    position.declination_degrees, truth.declination_degrees
+                ),
+            }
             record |= {
-                "ra": pull(
-                    (
-                        position.right_ascension_degrees
-                        - truth.right_ascension_degrees
-                    )
-                    * cos_dec,
-                    position.right_ascension_error_degrees,
+                "beam_constrained": (
+                    "beam-constrained-fit" in best.quality_flags
                 ),
-                "dec": pull(
-                    position.declination_degrees - truth.declination_degrees,
-                    position.declination_error_degrees,
-                ),
-                "peak": pull(
-                    flux.peak_flux_jy_per_beam - truth.peak_flux_jy_per_beam,
-                    flux.peak_flux_error_jy_per_beam,
-                ),
-                "integrated": pull(
-                    flux.integrated_flux_jy - truth.integrated_flux_jy,
-                    flux.integrated_flux_error_jy,
-                ),
-                "major": pull(
-                    shape.major_fwhm_degrees - truth_shape.major_fwhm_degrees,
-                    shape.major_fwhm_error_degrees,
-                ),
-                "minor": pull(
-                    shape.minor_fwhm_degrees - truth_shape.minor_fwhm_degrees,
-                    shape.minor_fwhm_error_degrees,
-                ),
+                # Positions are reported in beams, the unit a position error
+                # is judged in; the rest are fractions of truth.
+                "excesses": {
+                    "ra": offsets["ra"] / beam_degrees,
+                    "dec": offsets["dec"] / beam_degrees,
+                    "peak": excess(
+                        flux.peak_flux_jy_per_beam,
+                        truth.peak_flux_jy_per_beam,
+                    ),
+                    "integrated": excess(
+                        flux.integrated_flux_jy, truth.integrated_flux_jy
+                    ),
+                    "major": excess(
+                        shape.major_fwhm_degrees,
+                        truth_shape.major_fwhm_degrees,
+                    ),
+                    "minor": excess(
+                        shape.minor_fwhm_degrees,
+                        truth_shape.minor_fwhm_degrees,
+                    ),
+                },
+                "pulls": {
+                    "ra": pull(
+                        offsets["ra"],
+                        position.right_ascension_error_degrees,
+                    ),
+                    "dec": pull(
+                        offsets["dec"],
+                        position.declination_error_degrees,
+                    ),
+                    "peak": pull(
+                        difference(
+                            flux.peak_flux_jy_per_beam,
+                            truth.peak_flux_jy_per_beam,
+                        ),
+                        flux.peak_flux_error_jy_per_beam,
+                    ),
+                    "integrated": pull(
+                        difference(
+                            flux.integrated_flux_jy,
+                            truth.integrated_flux_jy,
+                        ),
+                        flux.integrated_flux_error_jy,
+                    ),
+                    "major": pull(
+                        difference(
+                            shape.major_fwhm_degrees,
+                            truth_shape.major_fwhm_degrees,
+                        ),
+                        shape.major_fwhm_error_degrees,
+                    ),
+                    "minor": pull(
+                        difference(
+                            shape.minor_fwhm_degrees,
+                            truth_shape.minor_fwhm_degrees,
+                        ),
+                        shape.minor_fwhm_error_degrees,
+                    ),
+                },
             }
         rows.append(record)
     return rows
 
 
 def _summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
-    output: dict[str, Any] = {
-        "sources": len(rows),
-        "completeness": sum(row["matched"] for row in rows) / len(rows),
-    }
-    for name in ("ra", "dec", "peak", "integrated", "major", "minor"):
-        values = np.array(
-            [row[name] for row in rows if row.get(name) is not None]
-        )
-        if values.size == 0:
-            output[name] = None
-            continue
-        output[name] = {
-            "count": int(values.size),
-            "std": float(np.std(values, ddof=1)),
-            "coverage": float(np.mean(np.abs(values) <= 1.0)),
-            "median": float(np.median(values)),
-        }
-    return output
+    """Summarise one stratum over every matched component."""
+    return summarise_component_calibration(
+        [
+            ComponentComparison(
+                matched=bool(row["matched"]),
+                beam_constrained=bool(row.get("beam_constrained", False)),
+                excesses=row.get("excesses", {}),
+                pulls=row.get("pulls", {}),
+            )
+            for row in rows
+        ]
+    )
 
 
 def main() -> None:
