@@ -27,7 +27,7 @@ from hebog.config import (
     SourceFinderConfig,
 )
 from hebog.data_models import ImageBounds
-from hebog.executors import SerialExecutor
+from hebog.executors import SerialExecutor, TaskRequirement
 from hebog.io.base import ImageWindow
 from hebog.stages import background as background_stage
 from hebog.stages.background import (
@@ -59,16 +59,23 @@ class _Source:
         return ImageWindow(bounds, values, np.isfinite(values))
 
 
-class _ReverseRetryExecutor:
+class _ReverseRetryExecutor(SerialExecutor):
     """Reorder completed blocks and repeat one without duplicating results."""
 
     def map_batches(
-        self, function: Callable[[Input], Output], batches: Iterable[Input]
+        self,
+        function: Callable[[Input], Output],
+        batches: Iterable[Input],
+        *,
+        requirement: TaskRequirement | None = None,
     ) -> list[Output]:
+        """Reverse completion order and retry the first block."""
         inputs = list(batches)
         if inputs:
-            function(inputs[0])
-        return [function(item) for item in reversed(inputs)]
+            super().map_batches(function, inputs[:1])
+        return super().map_batches(
+            function, list(reversed(inputs)), requirement=requirement
+        )
 
 
 def _config(batch_cells: int = 8) -> BackgroundRmsConfig:

@@ -24,42 +24,50 @@ tool handles automatically.
    changed lines.
 2. Trace important inputs, outputs, error paths, and platform-dependent paths.
 3. Compare behavior with tests, documentation, and public API promises.
-4. Run the narrowest command that can confirm or refute a suspected problem.
-5. Check that generated files, lockfiles, and release-managed files changed only
+4. Check that every guarantee the change states in a docstring, guide, or
+   contract has a code path that enforces it. A promise with no mechanism
+   behind it is a finding in its own right, whether the fix is the mechanism
+   or the wording.
+5. Run the narrowest command that can confirm or refute a suspected problem.
+6. Check that generated files, lockfiles, and release-managed files changed only
    when the task requires them.
-6. Confirm dependencies still point inward: scientific algorithms and domain
+7. Confirm dependencies still point inward: scientific algorithms and domain
    records must not acquire workflow, adapter, concrete-scheduler, global
    state, or import-time I/O dependencies.
-7. Look for unclear domain names, mixed abstraction levels, hidden side
+8. Look for unclear domain names, mixed abstraction levels, hidden side
    effects, boolean mode proliferation, speculative extension frameworks,
    accidental duplication, and complexity not justified by scientific or
    performance evidence.
-8. For substantial custom infrastructure or a newly implemented generally
+9. For substantial custom infrastructure or a newly implemented generally
    available capability, confirm established standards, the standard library,
    and mature maintained libraries were considered. Require a concrete reason
    when scientific, performance, scalability, portability, security, licence,
    or dependency-cost constraints make custom code the better choice.
-9. For a new executor, store, adapter, or workflow integration, confirm the
-   existing public API or a narrow protocol supports it without conditionals
-   spreading through unrelated scientific modules.
-10. Confirm each changed behaviour has a focused test that would fail for the
-   intended reason if that behaviour were removed. Look for normal, boundary,
-   failure, short-circuit, and regression cases rather than line execution
-   without meaningful assertions.
-11. Run `just coverage` for production changes. Inspect branch-aware project
+10. For a new executor, store, adapter, or workflow integration, confirm the
+    existing public API or a narrow protocol supports it without conditionals
+    spreading through unrelated scientific modules.
+11. Confirm each changed behaviour has a focused test that would fail for the
+    intended reason if that behaviour were removed. Look for normal, boundary,
+    failure, short-circuit, and regression cases rather than line execution
+    without meaningful assertions.
+12. Where one contract covers several implementations or entry points, check
+    the whole behaviour-by-entry-point matrix required by `AGENTS.md`, not the
+    entry point the change was written around. Check platform-dependent
+    comparisons the same way: the development machine never runs Windows.
+13. Run `just coverage` for production changes. Inspect branch-aware project
     coverage, changed-file misses, and the Codecov diff/patch report when
     available. The 80% project floor does not excuse a poorly covered patch.
     Treat reduced project or patch coverage as a finding unless an explicit
     human-approved exception explains the risk and follow-up.
-12. Reject coverage gaming, including weakened assertions, inappropriate
+14. Reject coverage gaming, including weakened assertions, inappropriate
     `pragma: no cover` markers or omit rules, tests coupled to implementation
     details only to execute a line, and deletion of meaningful cases.
-13. For native code, verify the recorded profile and end-to-end gate, FFI array
+15. For native code, verify the recorded profile and end-to-end gate, FFI array
     ownership and copy contract, interpreter release, thread budget, exception
     safety, readable serial oracle, scientific parity, safety tooling, license,
     and complete supported wheel matrix. Reject a kernel-only speedup that is
     immaterial end to end.
-14. Finish with `just check` when proportional to the change, plus the additional
+16. Finish with `just check` when proportional to the change, plus the additional
     commands required by `AGENTS.md`.
 
 ## Finding quality

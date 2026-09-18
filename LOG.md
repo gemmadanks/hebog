@@ -22990,3 +22990,220 @@ scientific pass from fixture validation.
   this is the measurement the row should be aimed at. No estimator changed
   here: this task replaced the endpoint and the population it is measured
   over.
+
+## 2026-09-18 — M2: the tile-native composition design
+
+- **What this is.** The first M2 row, the design of the tile-native continuum
+  composition, drafted as
+  [ADR-008](docs/architecture/adr/008-make-the-continuum-composition-tile-native.md),
+  status Proposed and awaiting human review. No production code changed.
+- **Three findings that made the design tractable**, established by reading the
+  installed composition rather than assumed:
+  1. No stage needs a global continuous statistic. Scale signal-to-noise is
+     calibrated analytically per pixel from a propagated RMS
+     (`calibrated_scale_snrs`), so the only global objects are label
+     equivalences, per-object record aggregates and the noise grid.
+  2. **The noise grid, not the multiscale filters, sets the maximum halo.**
+     For a 5-pixel beam `derive_stage_halo_plan` gives 34 pixels for the
+     matched-filter bank, 14 for the à trous transform, 15 for segment
+     association and 3 for refinement; the reviewed 150/50 coarse grid needs
+     about 125 and the 35/7 adaptive grid with its 75-pixel influence radius
+     needs about 120. At a 2,048 core that is within the contract's
+     quarter-core halo limit, with room for an 8-pixel beam (55, 24).
+  3. Several kernels already take tiled inputs:
+     `assign_seeded_multiscale_support` breaks ties on a caller-supplied
+     global row-major seed reference, `reconcile_island_tiles` merges boundary
+     equivalences hierarchically, and deblending, deferred completion and
+     extended measurement already shard exact membership.
+- **The shape decided.** Four passes over image-anchored geometry — noise,
+  detection, support, objects — with a pass boundary only where a global
+  reduction must complete first; cores own pixels, canonical row-major pixels
+  own objects, derived geometry is anchored to the image rather than the
+  partition, and label mappings are sharded to the labels a tile holds
+  instead of broadcast. The ADR carries the per-stage halo, ownership,
+  boundary summary and merge table the plan requires.
+- **Objects larger than one halo** get a three-tier rule: one task where the
+  box fits; an associative accumulation over intersected cores where the
+  quantity reduces (moments, photometry, counts, line minima, equivalences);
+  and, where it does not reduce, publication through the reducible path with
+  an explicit disposition. Truncating, dropping or splitting such an object
+  is prohibited.
+- **Extended association** is a record graph, not a pixel pass. The edge
+  predicate is a minimum and an all-valid test along the line between two
+  centroids, both associative, so a long pair reduces over the cores its line
+  crosses. Edges are canonicalised before complete-link agglomeration, and
+  groups resolve per connected component, so the driver never gathers the
+  component set.
+- **Numerical invariance** is exact for labels, masks, memberships,
+  identities and catalogue rows, and bounded at the 2×10⁻¹³ already used by
+  the reviewed multiscale partition-equivalence tests for continuous filter
+  responses. The à trous transform is separable direct convolution and is
+  exact under tiling; the tolerance comes from the matched-filter FFT, whose
+  rounding depends on transform shape. The recorded escalation, if a
+  knife-edge threshold flip is ever observed, is an image-anchored fixed
+  transform block; the invariance suite gains deliberate knife-edge cases.
+- **`float64` stays**, with the path to `float32` recorded: a profile showing
+  bandwidth or admitted planes binding, stored intermediate planes only,
+  scientific-equivalence evidence on the dataset matrix, and an ADR
+  amendment. A 2,048 core with a 125-pixel halo is about 42 MB per `float64`
+  plane, so a ten-plane task stays near 420 MB at any image size.
+- **Consequence recorded for sequencing.** `map_batches` with a driver-side
+  gather cannot express the support and object passes, so completing the
+  executor contract is a prerequisite for the convergence work rather than an
+  independent M2 row.
+- **Next step.** Human review of ADR-008. On acceptance, converge
+  `public_science.py` onto the tiled stages pass by pass, keeping the quick
+  science check and Serial/Dask agreement green, and delete the whole-array
+  path only once one-tile and many-tile runs agree.
+
+## 2026-09-18 — M2: one executor contract for three policies
+
+- **Why first.** ADR-008 records that the support and object passes cannot be
+  expressed by `map_batches` with a driver-side gather, so the executor row
+  moved ahead of the convergence it enables. ADR-008 is accepted.
+- **The contract.** `hebog.executors` now states one contract that the serial
+  reference, a caller-owned persistent thread pool and a caller-owned Dask
+  client all satisfy: results follow input order whatever the completion
+  order; submission stays inside `capacity.maximum_tasks_in_flight`; the
+  first failing batch **by input index** is the error that propagates, which
+  is deterministic because every policy consumes results in index order; a
+  failure cancels the rest of the plan; payloads are validated before
+  anything is submitted; and an idempotent task is retried up to
+  `retry_limit` times.
+- **Bounded gathering.** `reduce_batches` maps batches and combines them in a
+  binary tree fixed by input index, holding one accumulator per tree level
+  rather than one result per batch. `reduce_in_canonical_order` is shared, so
+  Serial, threads and Dask associate identically and floating-point
+  summation does not move with completion order. `DaskExecutor` submits the
+  combines to workers and gathers one value.
+- **Resources.** `ExecutorCapacity` reports the budget the caller admitted
+  and `TaskRequirement` declares one task's working set. Admission rejects an
+  impossible plan before submission, and a declared working set narrows the
+  in-flight window so concurrent tasks fit the admitted memory; it never
+  widens the caller's bound. `DaskExecutor` reads the budget from the
+  caller's cluster when none is declared. Dask `resources={...}` annotations
+  are deliberately **not** attached: a cluster whose workers declare no
+  matching resource would never run the task, so the requirement is honoured
+  through admission and concurrency instead.
+- **Serialization is checked on every policy, including Serial.** A payload
+  that cannot cross a worker boundary now fails the same way on the reference
+  executor as on a cluster, instead of surfacing only when workers are
+  separate processes. Measured cost on a complete 512² serial run: 3.4 ms of
+  6.77 s over 256 validated payloads, 0.05%. A probe of a complete public run
+  found all 148 function, batch and result payloads already serializable, so
+  nothing in the current stages had to change.
+- **No nested pools or clusters.** An architecture test asserts that no
+  library module constructs `LocalCluster`, `Client`, `ProcessPoolExecutor`
+  or a multiprocessing `Pool`, and that only `executors/threads.py`
+  constructs a `ThreadPoolExecutor`, which the caller owns and closes.
+- **Validation.** One parametrized suite,
+  `tests/contract/test_executor_contract.py`, runs 17 behaviours against all
+  three policies; the serial and thread parameters carry `contract` and the
+  Dask parameter carries `integration`, so the contract lane stays
+  scheduler-free. Dask submission throttling is additionally proved without a
+  scheduler by a stub client that records the submit/wait sequence. The eight
+  fault-injecting executor doubles in the existing suites became
+  `SerialExecutor` subclasses, so they inherit the contract they are testing
+  around. Full unit, contract and integration lanes pass, with Pyright and
+  Ruff clean.
+- **Next step.** Converge `public_science.py` onto the tiled stages pass by
+  pass under ADR-008, moving the boundary-state merges onto
+  `reduce_batches` as each pass lands.
+
+## 2026-09-18 — M2: executor contract review repairs
+
+Four review findings against the executor contract, all valid, plus one
+Windows CI failure. The common cause of the first four is that the contract
+suite exercised every invariant through `map_batches` and almost none through
+`reduce_batches`, so three of the four defects sat in the untested cells of a
+behaviour-by-entry-point matrix that was never written down.
+
+- **A declared thread count did not narrow concurrency.** `TaskRequirement`
+  was checked only as a per-task ceiling, so a four-thread executor accepted
+  four four-thread tasks and ran them at once, oversubscribing the admitted
+  threads fourfold. A task now occupies slots in proportion to the threads it
+  declares (`limit // requirement.threads`), which leaves a single-threaded
+  task on the caller's full window and so preserves the pipelining that the
+  Dask window's two-per-thread factor exists for. The first repair narrowed to
+  `total_threads // requirement.threads` and halved the window for ordinary
+  tasks; the unit suite caught it.
+- **The memory window is cluster-wide, not per worker.** The narrowed window
+  bounds concurrency across the admitted budget, but Hebog pins no task to a
+  worker, so a distributed scheduler may still co-locate several admitted
+  tasks and exceed one worker's memory. The mechanism that would fix this is
+  Dask `resources` annotations, which are deliberately not attached because a
+  cluster whose workers declare no matching resource would never run the task.
+  The defect was therefore the claim, not the code: `admitted_tasks_in_flight`
+  and the how-to now state that admission proves one task fits one worker,
+  that the window is cluster-wide, and that per-worker safety rests on the
+  caller's worker memory limits and spill thresholds. Revisit annotations in
+  M3, when the Rapthor cluster and its worker resources are pinned.
+- **Reduction combines escaped the in-flight bound and their failures were
+  observed late.** Worker-side combines were submitted outside
+  `_ordered_futures`, so a reduction could hold `maximum_tasks_in_flight`
+  mappers plus one combine per tree level, and a failed combine surfaced only
+  at the final gather while mappers kept being submitted. Combines now count
+  against the same window and are checked as the reduction proceeds, so a
+  failure cancels the plan like a failed mapper. One mapper is always
+  admitted, so in-flight combines slow a reduction but cannot stall it; the
+  first repair omitted that escape and silently truncated reductions, which
+  the contract suite caught.
+- **`combine` was never validated for serializability.** A combine capturing
+  an unserializable object passed on Serial and threads and failed on Dask
+  only after mapping had started. All three policies now validate it before
+  mapping, through the extracted `require_serializable`.
+- **Windows CI.** The new no-nested-workers architecture test compared
+  `str(path.relative_to(...))` against a POSIX literal, so its exemption for
+  `executors/threads.py` never matched on Windows and the test failed there.
+  Paths are now compared as POSIX text, and the test asserts that the exempted
+  module really does construct the pool, so a stale exemption fails loudly
+  instead of making the rule vacuous.
+- **Validation.** The contract suite is now 19 behaviours on each of the three
+  policies, including combine validation and thread narrowing; two stub-client
+  unit tests cover reduction throttling and combine-failure cancellation with
+  no scheduler. Unit, contract and integration lanes pass (1,916 and 406
+  tests), with Pyright, Ruff and the strict docs build clean.
+- **Rules that follow.** `AGENTS.md` now requires every behaviour of a shared
+  contract to be asserted through every implementation and entry point it
+  covers, keeps platform-dependent values out of tests (POSIX path text, no
+  separator literals) because Windows is the only supported platform never
+  exercised locally, and requires an exemption list to assert that it still
+  matches. `CODE_REVIEW.md` adds the matching review steps: a stated guarantee
+  needs a code path that enforces it, and a shared contract is reviewed across
+  its whole behaviour-by-entry-point matrix.
+
+## 2026-09-18 — M2: the reduction now holds the bound it states
+
+Second review round on the executor contract. Two valid defects, both in the
+part of `reduce_batches` that the first repair introduced, and one repeat of
+the per-worker placement finding.
+
+- **The bound could be exceeded by design, then by accident.** The first
+  repair let one mapper through whenever combines filled the window, so a
+  reduction could run `maximum_tasks_in_flight + 1` tasks. That escape existed
+  only to avoid a stall, and it was the wrong trade: combines depend solely on
+  work already submitted, so waiting for one to settle always makes progress.
+  Measuring the bound properly then showed a second breach the first stricter
+  test had missed: combines themselves were never throttled at all, so a
+  cascade of them ran past the window. Mapper and combine accounting is now
+  one `_BoundedWindow` object rather than two half-views, and both submission
+  sites consult it. The stub test asserts the peak is *exactly* the bound, so
+  it cannot pass by never filling the window.
+- **Failed or finished combines kept running.** Cleanup cancelled mapper
+  futures only, so a failed combine left its siblings running, and a failure
+  raised by the final gather cleaned up nothing. The reduction now releases
+  every combine when it ends, however it ends, which also frees worker memory
+  promptly on the success path.
+- **Per-worker placement, reported a second time.** Assessed again and the
+  position is unchanged: admission proves one task fits one worker, the window
+  bounds concurrency across the admitted budget, and Hebog pins no task to a
+  worker, so a scheduler may still co-locate admitted tasks. The only real
+  mechanism is a Dask `resources` annotation, which would silently never
+  schedule on a cluster whose workers declare no matching resource. Rather
+  than leave this as prose, M3 now carries a row to decide it once the Rapthor
+  cluster is pinned: annotate against a resource its workers declare, or
+  document the limitation with measured spill and worker-loss behaviour.
+- **Validation.** Contract suite 19 behaviours on three policies, 45 executor
+  unit tests including four stub-client tests for reduction throttling,
+  combine-failure cancellation and combine release on both paths; Dask
+  integration tests pass; Pyright and Ruff clean.

@@ -407,3 +407,53 @@ def test_public_pipeline_import_does_not_load_distributed() -> None:
     )
 
     assert completed.returncode == 0, completed.stderr
+
+
+def _constructed_names(path: Path) -> set[str]:
+    """Return every callable name this module constructs in any scope."""
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    alias_visitor = _ImportAliasVisitor()
+    alias_visitor.visit(tree)
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            name = _qualified_name(node.func, alias_visitor.aliases)
+            if name is not None:
+                names.add(name.rsplit(".", maxsplit=1)[-1])
+    return names
+
+
+@pytest.mark.parametrize(
+    ("constructor", "permitted_module"),
+    [
+        ("LocalCluster", None),
+        ("Client", None),
+        ("ProcessPoolExecutor", None),
+        ("ThreadPoolExecutor", "executors/threads.py"),
+        ("Pool", None),
+    ],
+)
+def test_library_never_creates_its_own_workers(
+    constructor: str,
+    permitted_module: str | None,
+) -> None:
+    """Only the caller's executor owns workers; stages never nest pools."""
+    if permitted_module is not None:
+        # Fail loudly if the exemption stops matching the module it names,
+        # which would make this rule silently vacuous.
+        assert constructor in _constructed_names(
+            PACKAGE_ROOT / permitted_module
+        )
+    violations = [
+        path.relative_to(PACKAGE_ROOT).as_posix()
+        for path in sorted(PACKAGE_ROOT.rglob("*.py"))
+        # Module paths are compared as POSIX text so the rule reads the same
+        # on every supported platform.
+        if not path.relative_to(PACKAGE_ROOT)
+        .as_posix()
+        .startswith("validation/")
+        and path.relative_to(PACKAGE_ROOT).as_posix() != permitted_module
+        and constructor in _constructed_names(path)
+    ]
+
+    assert violations == []

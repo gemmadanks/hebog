@@ -2,13 +2,31 @@
 
 from typing import TYPE_CHECKING
 
-from hebog.executors.base import Executor
+from hebog.executors.base import (
+    Executor,
+    ExecutorAdmissionError,
+    ExecutorCapacity,
+    ExecutorPayloadError,
+    TaskRequirement,
+    reduce_in_canonical_order,
+)
 from hebog.executors.serial import SerialExecutor
+from hebog.executors.threads import ThreadExecutor
 
 if TYPE_CHECKING:
     from hebog.executors.dask import DaskExecutor
 
-__all__ = ["DaskExecutor", "Executor", "SerialExecutor"]
+__all__ = [
+    "DaskExecutor",
+    "Executor",
+    "ExecutorAdmissionError",
+    "ExecutorCapacity",
+    "ExecutorPayloadError",
+    "SerialExecutor",
+    "TaskRequirement",
+    "ThreadExecutor",
+    "reduce_in_canonical_order",
+]
 
 
 def __getattr__(name: str) -> object:

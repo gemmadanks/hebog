@@ -376,6 +376,21 @@ explain the rationale.
 - Use deterministic fault injection for normal executor tests; reserve actual
   worker termination, spilling, private data, and wall-time gates for
   controlled runners.
+- When one contract covers several implementations or entry points, assert
+  every behaviour of that contract through every one of them, and prefer a
+  parametrized suite that makes the behaviour-by-entry-point matrix explicit.
+  An invariant proved only through the entry point a change happens to be
+  written around is unproven for the rest, and that is where defects survive
+  review.
+- CI runs the portable tests on Linux, macOS and Windows, and Windows is the
+  only supported platform never exercised on the development machine. Keep
+  platform-dependent values out of tests: compare paths as POSIX text through
+  `Path.as_posix()` rather than `str(path)`, never write a separator into a
+  literal or a comparison, and do not assert on line endings,
+  temporary-directory layout or filename case.
+- A test that exempts or allow-lists something must also assert that its
+  exemption still matches, so a stale or unmatched entry fails loudly instead
+  of silently making the rule vacuous.
 - Maintain at least 80% branch-aware project coverage and do not reduce
   project or patch coverage without an explicit, documented, human-approved
   exception. Run `just coverage` after changing production code, validation

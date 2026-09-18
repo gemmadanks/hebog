@@ -29,7 +29,7 @@ from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.config import ResidualMultiscaleDetectionConfig
 from hebog.data_models.partitioning import ImageBounds, PartitionManifest
 from hebog.data_models.products import ProductChunk
-from hebog.executors import DaskExecutor, SerialExecutor
+from hebog.executors import DaskExecutor, SerialExecutor, TaskRequirement
 from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
 from hebog.stages.multiscale import (
@@ -101,62 +101,80 @@ class _InvalidImageSource(_ArrayImageSource):
         )
 
 
-class _ReverseCompletionExecutor:
+class _ReverseCompletionExecutor(SerialExecutor):
     """Return completed task records in reverse order."""
 
     def map_batches(
         self,
         function: Callable[[_Input], _Output],
         batches: Iterable[_Input],
+        *,
+        requirement: TaskRequirement | None = None,
     ) -> list[_Output]:
         """Evaluate canonically but expose reverse completion order."""
-        return list(reversed([function(batch) for batch in batches]))
+        return list(
+            reversed(
+                super().map_batches(function, batches, requirement=requirement)
+            )
+        )
 
 
-class _RetryExecutor:
+class _RetryExecutor(SerialExecutor):
     """Retry every batch identically before returning one result."""
 
     def map_batches(
         self,
         function: Callable[[_Input], _Output],
         batches: Iterable[_Input],
+        *,
+        requirement: TaskRequirement | None = None,
     ) -> list[_Output]:
         """Prove completed chunks accept identical task retry."""
         results: list[_Output] = []
         for batch in batches:
-            function(batch)
-            second = function(batch)
-            results.append(second)
+            super().map_batches(function, [batch])
+            results.extend(
+                super().map_batches(function, [batch], requirement=requirement)
+            )
         return results
 
 
-class _EmptyExecutor:
+class _EmptyExecutor(SerialExecutor):
     """Drop every submitted result for fail-closed executor testing."""
 
     def map_batches(
         self,
-        _function: Callable[[_Input], _Output],
-        _batches: Iterable[_Input],
+        function: Callable[[_Input], _Output],
+        batches: Iterable[_Input],
+        *,
+        requirement: TaskRequirement | None = None,
     ) -> list[_Output]:
         """Return no result without evaluating work."""
+        del function, batches, requirement
         return []
 
 
-class _EmptySecondPassExecutor:
+class _EmptySecondPassExecutor(SerialExecutor):
     """Complete topology but drop every publication result."""
 
     def __init__(self) -> None:
+        """Count maps so the second one can publish nothing."""
+        super().__init__()
         self._call_count = 0
 
     def map_batches(
         self,
         function: Callable[[_Input], _Output],
         batches: Iterable[_Input],
+        *,
+        requirement: TaskRequirement | None = None,
     ) -> list[_Output]:
         """Run the first map and return nothing from the second."""
         self._call_count += 1
         if self._call_count == 1:
-            return [function(batch) for batch in batches]
+            return super().map_batches(
+                function, batches, requirement=requirement
+            )
         return []
 
 

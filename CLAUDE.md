@@ -92,6 +92,6 @@ Dependencies point inward:
   `site/`, `dist/`, and `.coverage` are generated and ignored.
 - `.python-version` pins 3.14, but 3.12 is the floor. Pyright checks against
   3.12, so do not use syntax newer than 3.12.
-- Architecture decisions live in `docs/architecture/adr/` (ADRs 001–007
+- Architecture decisions live in `docs/architecture/adr/` (ADRs 001–008
   cover uv, the Rapthor contract scope, scheduling ownership, hierarchical
-  tiles, versioned schemas, and Zarr).
+  tiles, versioned schemas, Zarr, and the tile-native continuum composition).
