@@ -11,7 +11,7 @@ Closed Phase 5 contracts, reviews and campaign tooling are in Git history at
 
 | Item | Current position |
 | --- | --- |
-| Release | v0.9.0, tagged on 17 September 2026; releases upload to TestPyPI. Experimental and scientifically unqualified. |
+| Release | v0.10.0, tagged on 17 September 2026; releases upload to TestPyPI. Experimental and scientifically unqualified. |
 | Candidate | Public composition v21, which fits components with diagonal weighting. Development-unqualified. |
 | Functionality | Standalone FITS-to-products finder: background/RMS, compact and multiscale detection, deblending, fitting, source association, catalogue/mask/RMS/diagnostics, Serial and caller-owned Dask execution. No Rapthor backend: `hebog.adapters` holds records and the 8-column catalogue codec only, and the seven acceptance scenarios are strict-xfail placeholders. No flat-noise branch or LSMTool filtering has run on Hebog products. |
 | Scalability | Public envelope ≤1,024 pixels per side. Only background/RMS and first-pass detection run per tile through the executor, on hard-coded 128-pixel cores (the scalability contract's candidates are 2,048–8,192); the public science in `public_science.py` holds several full `float64` planes in one process. Tiled multiscale, deblending, measurement, fitting and compact catalogue stages exist in `stages/` but only tests use them; continuum candidate products, extended association, the à trous position filter and the continuum catalogue have no tiled form. Two background sub-steps are capped at 10⁶ pixels. The executor offers only `map_batches` with a driver-side gather. |

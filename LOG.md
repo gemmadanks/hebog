@@ -22900,7 +22900,8 @@ scientific pass from fixture validation.
 
 - **Quick benchmark** on `13d04f9`, five measured repetitions after a
   warm-up, against v0.9.0 and pinned PyBDSF `master` in its four-core
-  container:
+  container. v0.10.0 released the profiling tooling and changed no finder
+  code, so the comparison stands for it too:
 
   | Case | Hebog wall s | Hebog CPU s | v0.9.0 s | Ratio [bounds] | `master` wall s | `master` CPU s |
   | --- | --- | --- | --- | --- | --- | --- |
