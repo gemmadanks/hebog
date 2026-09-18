@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections import deque
 from collections.abc import Callable, Iterable, Iterator
-from functools import partial
 from typing import Any, TypeVar, cast
 
 from distributed import (
@@ -29,21 +28,54 @@ Output = TypeVar("Output")
 _TASKS_IN_FLIGHT_PER_THREAD = 2
 
 
-def _nothing_reserved() -> int:
-    """Report no tasks submitted outside one bounded submission loop."""
-    return 0
+class _BoundedWindow:
+    """Every task one executor call has in flight, and the bound on them.
 
+    Mappers are held until their result is consumed, because an unconsumed
+    result occupies worker memory. Reserved tasks are the combines a
+    reduction submits from its fold rather than from the mapper loop; they
+    are counted the same way, and because they depend only on work already
+    submitted, waiting for one of them always makes progress.
+    """
 
-def _outstanding(futures: list[Any]) -> int:
-    """Drop settled tasks, raise the first failure and count the rest."""
-    remaining: list[Any] = []
-    for future in futures:
-        if future.status == "error":
-            future.result()
-        if future.status != "finished":
-            remaining.append(future)
-    futures[:] = remaining
-    return len(remaining)
+    def __init__(self, limit: int) -> None:
+        """Bind one admitted in-flight bound."""
+        self._limit = limit
+        self.mappers: deque[Any] = deque()
+        self._reserved: list[Any] = []
+
+    def _live_reserved(self) -> int:
+        """Drop settled combines, raise the first failure, count the rest."""
+        remaining: list[Any] = []
+        for future in self._reserved:
+            if future.status == "error":
+                future.result()
+            if future.status == "pending":
+                remaining.append(future)
+        self._reserved = remaining
+        return len(remaining)
+
+    def has_room(self) -> bool:
+        """Return whether one more task fits, raising a failed combine."""
+        return len(self.mappers) + self._live_reserved() < self._limit
+
+    def wait_for_reserved(self) -> bool:
+        """Wait for one combine to settle; report whether any could."""
+        if not self._reserved:
+            return False
+        wait(self._reserved, return_when="FIRST_COMPLETED")
+        self._live_reserved()
+        return True
+
+    def reserve(self, future: Any) -> None:
+        """Record one task submitted outside the mapper loop."""
+        self._reserved.append(future)
+
+    def release_reserved(self) -> None:
+        """Release combines whose result no caller will read."""
+        for future in self._reserved:
+            future.cancel()
+        self._reserved = []
 
 
 class DaskExecutor:
@@ -122,33 +154,39 @@ class DaskExecutor:
         batches: Iterable[Input],
         requirement: TaskRequirement | None,
         *,
-        reserved_in_flight: Callable[[], int] = _nothing_reserved,
+        window: _BoundedWindow | None = None,
     ) -> Iterator[Any]:
         """Yield completed futures in input order, bounding submission.
 
-        ``reserved_in_flight`` reports tasks this caller has already
-        submitted outside this loop, so a reduction's combines count against
-        the same in-flight bound as its mappers. One mapper is always
-        admitted, so reserved work can never stall the plan. It may raise,
-        which cancels the rest of the plan exactly as a failed mapper does.
+        A reduction passes its own window, so its combines occupy the same
+        bound as its mappers. When the window is full this loop consumes a
+        mapper, or waits for a combine when no mapper is in flight; it never
+        submits past the bound. Counting combines may raise, which cancels
+        the rest of the plan exactly as a failed mapper does.
         """
         self.capacity.admit(requirement)
         prepared = require_serializable_payloads(function, batches)
-        limit = admitted_tasks_in_flight(self.capacity, requirement)
-        pending: deque[Any] = deque()
+        if window is None:
+            window = _BoundedWindow(
+                admitted_tasks_in_flight(self.capacity, requirement)
+            )
         submitted = 0
         try:
             while True:
-                while submitted < len(prepared) and (
-                    # One mapper always runs, so combines filling the window
-                    # slow a reduction down but can never stall it.
-                    not pending or len(pending) + reserved_in_flight() < limit
-                ):
-                    pending.append(self._submit(function, prepared[submitted]))
+                while submitted < len(prepared):
+                    if not window.has_room():
+                        # Free a slot by consuming the oldest mapper, or by
+                        # waiting for a combine when none is in flight.
+                        if window.mappers or not window.wait_for_reserved():
+                            break
+                        continue
+                    window.mappers.append(
+                        self._submit(function, prepared[submitted])
+                    )
                     submitted += 1
-                if not pending:
+                if not window.mappers:
                     return
-                future = pending.popleft()
+                future = window.mappers.popleft()
                 wait([future])
                 if future.status == "error":
                     # Futures are consumed in input order, so the first
@@ -158,8 +196,9 @@ class DaskExecutor:
         finally:
             # Release the rest of the plan rather than running work whose
             # result no caller will read.
-            for remaining in pending:
+            for remaining in window.mappers:
                 remaining.cancel()
+            window.mappers.clear()
 
     def map_batches(
         self,
@@ -184,28 +223,39 @@ class DaskExecutor:
     ) -> Output:
         """Combine batch results on workers and gather one value.
 
-        Combines are submitted to workers, so they count against the same
-        in-flight bound as the mappers and are checked for failure as the
-        reduction proceeds. A failed combine therefore stops submission
-        instead of surfacing only when the final value is gathered.
+        Combines are submitted to workers and occupy the same in-flight
+        bound as the mappers, so a reduction never runs more tasks than the
+        caller admitted. They are checked for failure as the reduction
+        proceeds, so a failed combine stops submission instead of surfacing
+        only when the final value is gathered, and every combine still
+        running is released when the reduction ends, however it ends.
         """
         require_serializable(combine, name="combine")
-        live: list[Any] = []
+        window = _BoundedWindow(
+            admitted_tasks_in_flight(self.capacity, requirement)
+        )
 
         def combine_on_worker(first: Any, second: Any) -> Any:
             """Submit one combine so intermediates stay on the cluster."""
-            _outstanding(live)
+            # A mapper was consumed to reach this fold, so the first combine
+            # of a cascade always has room and each later one waits for an
+            # earlier combine. Waiting stops when nothing can free a slot,
+            # so a mistaken bound cannot hang the reduction.
+            while not window.has_room() and window.wait_for_reserved():
+                pass
             future = self._submit(combine, first, second)
-            live.append(future)
+            window.reserve(future)
             return future
 
-        reduced = reduce_in_canonical_order(
-            self._ordered_futures(
-                function,
-                batches,
-                requirement,
-                reserved_in_flight=partial(_outstanding, live),
-            ),
-            combine_on_worker,
-        )
-        return cast(Output, reduced.result())
+        try:
+            reduced = reduce_in_canonical_order(
+                self._ordered_futures(
+                    function, batches, requirement, window=window
+                ),
+                combine_on_worker,
+            )
+            return cast(Output, reduced.result())
+        finally:
+            # A failed or gathered reduction releases its combines rather
+            # than leaving worker-side work nobody will read.
+            window.release_reserved()

@@ -23171,3 +23171,39 @@ behaviour-by-entry-point matrix that was never written down.
   matches. `CODE_REVIEW.md` adds the matching review steps: a stated guarantee
   needs a code path that enforces it, and a shared contract is reviewed across
   its whole behaviour-by-entry-point matrix.
+
+## 2026-09-18 — M2: the reduction now holds the bound it states
+
+Second review round on the executor contract. Two valid defects, both in the
+part of `reduce_batches` that the first repair introduced, and one repeat of
+the per-worker placement finding.
+
+- **The bound could be exceeded by design, then by accident.** The first
+  repair let one mapper through whenever combines filled the window, so a
+  reduction could run `maximum_tasks_in_flight + 1` tasks. That escape existed
+  only to avoid a stall, and it was the wrong trade: combines depend solely on
+  work already submitted, so waiting for one to settle always makes progress.
+  Measuring the bound properly then showed a second breach the first stricter
+  test had missed: combines themselves were never throttled at all, so a
+  cascade of them ran past the window. Mapper and combine accounting is now
+  one `_BoundedWindow` object rather than two half-views, and both submission
+  sites consult it. The stub test asserts the peak is *exactly* the bound, so
+  it cannot pass by never filling the window.
+- **Failed or finished combines kept running.** Cleanup cancelled mapper
+  futures only, so a failed combine left its siblings running, and a failure
+  raised by the final gather cleaned up nothing. The reduction now releases
+  every combine when it ends, however it ends, which also frees worker memory
+  promptly on the success path.
+- **Per-worker placement, reported a second time.** Assessed again and the
+  position is unchanged: admission proves one task fits one worker, the window
+  bounds concurrency across the admitted budget, and Hebog pins no task to a
+  worker, so a scheduler may still co-locate admitted tasks. The only real
+  mechanism is a Dask `resources` annotation, which would silently never
+  schedule on a cluster whose workers declare no matching resource. Rather
+  than leave this as prose, M3 now carries a row to decide it once the Rapthor
+  cluster is pinned: annotate against a resource its workers declare, or
+  document the limitation with measured spill and worker-loss behaviour.
+- **Validation.** Contract suite 19 behaviours on three policies, 45 executor
+  unit tests including four stub-client tests for reduction throttling,
+  combine-failure cancellation and combine release on both paths; Dask
+  integration tests pass; Pyright and Ruff clean.
