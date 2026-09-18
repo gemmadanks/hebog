@@ -1023,30 +1023,35 @@ def find_sources(
         ) from error
     output.parent.mkdir(parents=True, exist_ok=True)
     started = monotonic()
-    with TemporaryDirectory(
-        prefix=f".{output.name}.",
-        dir=output.parent,
-    ) as temporary_directory:
-        temporary = Path(temporary_directory)
-        scientific = _analyse_image(
-            request,
-            source,
-            metadata,
-            executor,
-            temporary / "work",
-            config=config,
-            header=header,
-        )
-        unpublished = temporary / "bundle"
-        unpublished.mkdir()
-        result = _materialize_bundle(
-            request,
-            config,
-            metadata,
-            scientific,
-            unpublished,
-            input_sha256=input_sha256,
-            wall_seconds=monotonic() - started,
-        )
-        _publish_bundle(unpublished, output)
+    try:
+        with TemporaryDirectory(
+            prefix=f".{output.name}.",
+            dir=output.parent,
+        ) as temporary_directory:
+            temporary = Path(temporary_directory)
+            scientific = _analyse_image(
+                request,
+                source,
+                metadata,
+                executor,
+                temporary / "work",
+                config=config,
+                header=header,
+            )
+            unpublished = temporary / "bundle"
+            unpublished.mkdir()
+            result = _materialize_bundle(
+                request,
+                config,
+                metadata,
+                scientific,
+                unpublished,
+                input_sha256=input_sha256,
+                wall_seconds=monotonic() - started,
+            )
+            _publish_bundle(unpublished, output)
+    finally:
+        # This call owns the source it opened, so it releases the input
+        # when the run ends rather than leaving it to the collector.
+        source.close()
     return result.model_copy(update={"wall_seconds": monotonic() - started})

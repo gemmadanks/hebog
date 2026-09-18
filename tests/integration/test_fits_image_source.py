@@ -7,7 +7,9 @@
 
 from __future__ import annotations
 
+import gc
 import pickle
+import warnings
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
@@ -633,3 +635,55 @@ def test_closing_a_source_releases_its_files_and_it_reads_again(
     second = source.read_window(ImageBounds(0, 2, 0, 2))
 
     np.testing.assert_array_equal(second.values, first.values)
+
+
+@pytest.mark.integration
+def test_dropping_a_source_leaves_no_open_file(tmp_path: Path) -> None:
+    """Holding a file open must not mean leaking it.
+
+    A caller that simply drops a source, as scripts and workers do, would
+    otherwise leave the file to the garbage collector and Python would
+    report an unclosed file.
+    """
+    path = tmp_path / "dropped.fits"
+    _write_image(path, np.arange(16, dtype=np.float32).reshape(4, 4))
+    source = FitsImageSource(path)
+    source.read_window(ImageBounds(0, 2, 0, 2))
+
+    with warnings.catch_warnings(record=True) as log:
+        warnings.simplefilter("always")
+        del source
+        gc.collect()
+
+    assert [
+        str(item.message) for item in log if item.category is ResourceWarning
+    ] == []
+
+
+@pytest.mark.integration
+def test_closing_releases_files_opened_on_other_threads(
+    tmp_path: Path,
+) -> None:
+    """Worker threads each open the file, and one close must free them all."""
+    path = tmp_path / "threads.fits"
+    _write_image(path, np.arange(16, dtype=np.float32).reshape(4, 4))
+    source = FitsImageSource(path)
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        list(
+            pool.map(
+                source.read_window,
+                [ImageBounds(0, 2, 0, 2)] * 12,
+            )
+        )
+
+    with warnings.catch_warnings(record=True) as log:
+        warnings.simplefilter("always")
+        source.close()
+        gc.collect()
+
+    assert [
+        str(item.message) for item in log if item.category is ResourceWarning
+    ] == []
+    np.testing.assert_array_equal(
+        source.read_window(ImageBounds(0, 2, 0, 2)).values, [[0, 1], [4, 5]]
+    )

@@ -250,7 +250,8 @@ class FitsImageSource:
         self._path = path
         self._supplied_metadata = supplied_metadata
         self._metadata: ImageMetadata | None = None
-        self._open_files = threading.local()
+        self._open_files: dict[int, Any] = {}
+        self._open_files_lock = threading.Lock()
 
     def __getstate__(self) -> dict[str, Any]:
         """Serialize the request to read a file, never what it once held.
@@ -281,7 +282,8 @@ class FitsImageSource:
         Raises:
             InvalidFitsImageError: If the file cannot be opened.
         """
-        hdus = getattr(self._open_files, "hdus", None)
+        thread = threading.get_ident()
+        hdus = self._open_files.get(thread)
         if hdus is None:
             try:
                 hdus = fits.open(self._path, mode="readonly", memmap=True)
@@ -289,19 +291,29 @@ class FitsImageSource:
                 raise InvalidFitsImageError(
                     f"cannot read FITS image {self._path}: {error}"
                 ) from error
-            self._open_files.hdus = hdus
+            with self._open_files_lock:
+                self._open_files[thread] = hdus
         return hdus[0]
 
     def close(self) -> None:
-        """Release the file this thread holds open, if any.
+        """Release every file this source holds open.
 
-        The source stays usable and opens the file again when it is next
-        read.
+        Worker threads each open the file, so one close frees them all. The
+        source stays usable and opens the file again when it is next read.
         """
-        hdus = getattr(self._open_files, "hdus", None)
-        if hdus is not None:
-            self._open_files.hdus = None
+        with self._open_files_lock:
+            open_files, self._open_files = self._open_files, {}
+        for hdus in open_files.values():
             hdus.close()
+
+    def __del__(self) -> None:
+        """Release open files when the last reference goes away.
+
+        Callers that simply drop a source, as scripts and workers do, would
+        otherwise leave the file to the garbage collector, which reports it
+        as an unclosed file.
+        """
+        self.close()
 
     def metadata(self) -> ImageMetadata:
         """Return shape and unit without materialising the image plane.
