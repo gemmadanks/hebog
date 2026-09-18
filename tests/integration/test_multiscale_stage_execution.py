@@ -45,6 +45,7 @@ pytestmark = pytest.mark.integration
 _Input = TypeVar("_Input")
 _Output = TypeVar("_Output")
 _SUPPORT_FRACTION = 0.5
+_CONTINUOUS_TOLERANCE = 2e-13
 
 
 class _ArrayImageSource:
@@ -185,6 +186,7 @@ class _ScienceIdentity:
 
     retained_mask: npt.NDArray[np.bool_]
     reconstruction_mask: npt.NDArray[np.bool_]
+    combined_snr: npt.NDArray[np.float64]
     scale_masks: tuple[npt.NDArray[np.bool_], ...]
     detection_island_ids: tuple[str, ...]
     reconstruction_island_ids: tuple[str, ...]
@@ -374,6 +376,7 @@ def _science_identity(
             "reconstruction-mask",
             bounds,
         ),
+        combined_snr=_float_window(source, "combined-snr", bounds),
         scale_masks=tuple(
             _bool_window(source, f"scale-{order}-significant", bounds)
             for order in (1, 2, 3)
@@ -402,6 +405,14 @@ def _assert_science_identity_equal(
     np.testing.assert_array_equal(
         candidate.reconstruction_mask,
         expected.reconstruction_mask,
+    )
+    # The matched-filter FFT's rounding depends on transform shape, so the
+    # reviewed tolerance applies to continuous responses, not to decisions.
+    np.testing.assert_allclose(
+        candidate.combined_snr,
+        expected.combined_snr,
+        rtol=_CONTINUOUS_TOLERANCE,
+        atol=_CONTINUOUS_TOLERANCE,
     )
     for candidate_mask, expected_mask in zip(
         candidate.scale_masks,

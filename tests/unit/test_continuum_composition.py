@@ -37,7 +37,6 @@ def _multiscale(
     """Return one empty published detection pass over a small plane."""
     empty = np.zeros(_SHAPE, dtype=np.bool_)
     return TiledMultiscaleDetection(
-        combined_snr=np.full(_SHAPE, -np.inf, dtype=np.float64),
         detection_labels=np.zeros(_SHAPE, dtype=np.int32),
         reconstruction_mask=empty,
         position_signal_jy_per_beam=np.zeros(_SHAPE, dtype=np.float64),

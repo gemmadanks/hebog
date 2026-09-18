@@ -258,7 +258,6 @@ class CatalogueSource:
 class ThresholdFilterResult:
     """Candidate-neutral seeds and connected lower-threshold support."""
 
-    combined_snr: npt.NDArray[np.float64]
     retained_mask: npt.NDArray[np.bool_]
     component_labels: npt.NDArray[np.int32]
     component_count: int
@@ -275,7 +274,6 @@ class TiledMultiscaleDetection:
     never stored.
     """
 
-    combined_snr: npt.NDArray[np.float64]
     detection_labels: npt.NDArray[np.int32]
     reconstruction_mask: npt.NDArray[np.bool_]
     position_signal_jy_per_beam: npt.NDArray[np.float64]

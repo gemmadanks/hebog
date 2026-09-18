@@ -12,7 +12,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-09-18 |
-| **Last Updated** | 2026-09-18 |
+| **Last Updated** | 2026-09-18 (pass C rounds) |
 | **Deciders** | Gemma Danks |
 | **Tags** | tiling, halos, ownership, reconciliation, memory, invariance |
 
@@ -114,8 +114,10 @@ before the next stage can decide anything.
   share one read window.
 - **Pass C — support.** Seeded multiscale support, segment refinement,
   cross-scale persistence and island admission, using globally reconciled
-  label mappings sharded per tile. Final labels, mask and the position signal
-  are written here.
+  label mappings sharded per tile. Final labels and mask are written here.
+  Pass C is several rounds rather than one, because two of its steps are
+  scoped to an owner and two of its inputs are global reductions; the rounds
+  are listed under *Owner-scoped connectivity* below.
 - **Pass D — objects.** Deblending, compact measurement and fitting, extended
   measurement, source association and catalogue rows, as bounded per-object
   tasks reduced hierarchically.
@@ -159,9 +161,11 @@ Halo values are for a 5-pixel beam and the reviewed 150/50 and 35/7 grids.
 | Residual B3 à trous | 14 (frozen cumulative) | pixel core | none | none |
 | Island labelling | 0 | pixel core; labels tile-local | edge label runs, per-label pixel count, sum, bounding box, canonical pixel | union–find over boundary equivalences, tree-reduced; aggregates summed |
 | Island admission | 0 | reconciled island | accepted-label set | area and pixel-count predicates on merged aggregates; the accept map is sharded per tile |
-| Seeded multiscale support | 15 (3 beams) | support pixel owned by its nearest global seed reference | global seed references of owners present in the read | none; ties are broken by row-major seed reference in-read |
-| Segment refinement | 3 (opening and 0.5-beam recovery) | pixel core | none | none |
+| Seeded multiscale support | 15 (3 beams) | support pixel owned by its nearest global seed reference | global seed references of owners present in the read | none; the read carries globally reconciled support components, and ties are broken by row-major seed reference in-read |
+| Segment refinement, pixel work | opening radius + 0.5-beam recovery | pixel core | none | none |
+| Segment refinement, owner connectivity | owner window | owner canonical pixel | one restore decision per owner | none; decisions are applied in the core round |
 | Cross-scale association | 0 | scale detection owned by its canonical pixel | per-scale label overlaps observed in the core | union of edge sets, then persistence per connected group |
+| Persistent publication, owner bridges | owner window | owner canonical pixel | label patch bounded by the owner window | patches applied in the core round |
 | Compact deblending | island bounding box within the admission limit | island canonical pixel | exact membership shard | concatenation by island |
 | Compact measurement and fitting | component box + 8 (1.5 beams) | component canonical pixel | component record | none |
 | Extended measurement | 8 (1.5 beams) per owned core | object canonical pixel; each intersected core contributes | additive moment and photometry accumulators, bounding box | accumulators summed at the owner |
@@ -193,6 +197,47 @@ extent, never from a guess:
   splitting such an object is prohibited; if T3 becomes common on real LOFAR
   mosaics, the admitted task size is raised, or the case is escalated to a
   scientific decision, rather than weakened in place.
+
+### Owner-scoped connectivity
+
+Two steps of the support pass are scoped to an **owner**, not to a bounded
+neighbourhood, and were found by reading the installed composition rather than
+assumed. `refine_multiscale_segment_labels` ends by restoring an owner's
+original support when cleanup would split it, and
+`refine_persistent_publication_labels` ends by preserving the previously
+published regions that bridge two retained parts of one owner. Both iterate
+over the window holding an owner, so neither can be decided inside a tile core
+whose halo is smaller than that owner. Two further quantities are global: the
+connected components of `(direct support ∪ significant multiscale support) ∩
+valid`, which decide which seed a support pixel may be attached to, and the
+set of owners published anywhere, which decides which owners persistent
+support may restore.
+
+Pass C therefore runs as rounds, each cheap relative to pass B's filters:
+
+| Round | Scope | Reads | Writes or returns |
+| --- | --- | --- | --- |
+| Topology | core, halo 0 | detection labels, reconstruction mask, validity, scale masks | support-union and per-scale island summaries, adjacent-scale label overlaps, detection labels present |
+| Auxiliary publication | core, halo 0 | as above, plus the reconciled mappings | `support-components`, `persistent-support` |
+| Measurement | core + 0.5-beam recovery | detection labels, reconstruction mask, `support-components`, owner reference pixels | `measurement-labels` |
+| Owner connectivity | owner window + refinement halo | detection labels, reconstruction mask, validity | one restore decision per owner |
+| Publication | core + opening and recovery halo | as above, plus `measurement-labels` and the restore shard | `publication-labels`; owners published in the core |
+| Persistent | core + opening halo | `measurement-labels`, `publication-labels`, `persistent-support`, published-owner shard | `persistent-labels` |
+| Owner bridges | owner window | `measurement-labels`, `publication-labels`, `persistent-labels` | a label patch bounded by the owner window |
+| Final write | core, halo 0 | `persistent-labels`, patch and admission shards | final labels and mask |
+
+The refinement pixel work needs the opening radius **and** the recovery radius
+together, not their maximum: a pixel recovered at the recovery radius is
+labelled from opened support that must itself be correct there. Recomputing
+the refinement in a later round is preferred to storing it, exactly as pass B
+recomputes its filters rather than persisting a response bank.
+
+Both owner quantities are ADR-008 T1 work keyed by the owner's canonical
+pixel, so they do not move with tile geometry, label integers or completion
+order. An owner whose window exceeds the admitted task is T3: it keeps its
+pixel-round support and is published with a disposition recording that its
+connectivity was not restored, exactly as compact deferrals are published
+today. It is never silently split.
 
 ### Extended association
 

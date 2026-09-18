@@ -538,7 +538,6 @@ def detect_multiscale_products(  # noqa: PLR0913
         )
 
     return TiledMultiscaleDetection(
-        combined_snr=plane("combined-snr", "float64"),
         detection_labels=plane("detection-labels", "int32"),
         reconstruction_mask=plane("reconstruction-mask", "bool"),
         position_signal_jy_per_beam=plane("position-signal", "float64"),

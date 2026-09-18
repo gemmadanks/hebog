@@ -23288,3 +23288,60 @@ the per-worker placement finding.
   detection pass, so no test reimplements detection science, and the
   integration lane gained a `published_background_rms` fixture for the tests
   that inject analytic background and RMS.
+
+## 2026-09-18 — M2: two publication refinements were never read
+
+- **What this is.** Preparation for ADR-008's pass C, which has to make the
+  support pass tile-native. Reading the chain closely to decide what each
+  layer needs showed that two of its four whole-image layers produced results
+  nothing consumed.
+- **The dead layers.** `_initial_candidate_products` refined publication
+  labels on the filtered combined signal to noise, `_publication_snr_products`
+  refined them again on original-pixel signal to noise, and
+  `_direct_origin_products` then discarded both: it recomputes publication
+  from `products.direct_component_labels`, never from either refinement, and
+  replaces `detection.component_labels` outright. Each discarded layer ran a
+  whole-image binary opening, a 3×3 convolution, a binary dilation and a
+  `distance_transform_edt`. The three functions collapse into one
+  `_publication_products`, which attaches bounded multiscale support and then
+  refines publication from immutable direct-owner support exactly as before.
+- **Two dead fields went with them.** `ThresholdFilterResult.combined_snr` was
+  never read by any caller, and once the first layer is gone the composition
+  has no consumer for the published `combined-snr` plane either, so
+  `TiledMultiscaleDetection` no longer carries it and the driver no longer
+  reads that plane into memory. The plane itself stays published: the
+  internals notebook renders it as the maximum seed evidence, and the unit
+  partition-equivalence suite already proves it agrees across partitions to
+  2×10⁻¹³.
+- **Evidence that nothing changed.** The quick science check
+  (`m2-pass-c-dead-layers`, baselined on `m2-tiled-detection`) reproduces all
+  sixteen cases exactly: identical source and component counts and identical
+  truth metrics, including the SDC1 and LoTSS cut-outs.
+- **What it recovers.** Quick-check wall time falls 155.2 → 141.3 s, about 9%,
+  which returns most of the 14% the tiled detection pass cost: SDC1 sparse
+  30.8 → 27.6 s, SDC1 crowded 37.1 → 34.4 s, LoTSS dense 19.5 → 17.0 s,
+  negative-background 1.8 → 1.1 s. Against the pre-convergence baseline the
+  sixteen cases now stand at 141.3 s versus 135.6 s.
+- **What pass C still has to solve, recorded before it is built.** The two
+  surviving layers are not purely halo-bounded.
+  `refine_multiscale_segment_labels` ends in
+  `_preserve_refined_segment_connectivity` and
+  `refine_persistent_publication_labels` ends in
+  `_preserve_publication_bridges`; both iterate over **owner windows**, not
+  over a bounded neighbourhood, so an owner larger than a tile cannot be
+  decided inside one core. ADR-008's per-stage table gives segment refinement
+  a 3-pixel halo and pixel-core ownership, which describes the pixel work but
+  not these two steps. Two further inputs are global rather than
+  haloed: the connected components of direct support unioned with significant
+  multiscale support, which decide which seed a support pixel may attach to,
+  and the set of owners published anywhere, which decides which owners
+  persistent support may restore. Pass C is therefore a sequence of rounds,
+  not one haloed map: topology, auxiliary publication, measurement, owner
+  connectivity, publication, persistent, owner bridges and the final write.
+  ADR-008 now carries that table, with the two owner quantities as T1 work
+  keyed by the owner's canonical pixel and a T3 disposition for an owner
+  larger than the admitted task, and with the correction that refinement needs
+  the opening radius and the recovery radius together rather than their
+  maximum. Each round is cheap beside pass B's filters, and the refinement is
+  recomputed in the rounds that need it rather than stored, exactly as pass B
+  recomputes its filters.

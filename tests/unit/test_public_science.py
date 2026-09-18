@@ -83,7 +83,6 @@ def _products(
     )
     return ContinuumCandidateProducts(
         detection=ThresholdFilterResult(
-            combined_snr=np.ones(direct.shape, dtype=np.float64),
             retained_mask=np.asarray(measurement > 0, dtype=np.bool_),
             component_labels=measurement,
             component_count=int(np.count_nonzero(np.unique(measurement) > 0)),

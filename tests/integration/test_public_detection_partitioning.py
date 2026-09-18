@@ -106,12 +106,6 @@ def test_detection_pass_is_one_tile_many_tile_equal(
     assert many.scale_islands_by_order == one.scale_islands_by_order
     assert many.scale_nominal_beam_fwhms == one.scale_nominal_beam_fwhms
     np.testing.assert_allclose(
-        many.combined_snr,
-        one.combined_snr,
-        rtol=_TOLERANCE,
-        atol=_TOLERANCE,
-    )
-    np.testing.assert_allclose(
         many.position_signal_jy_per_beam,
         one.position_signal_jy_per_beam,
         rtol=_TOLERANCE,

@@ -156,125 +156,40 @@ def _retained_scale_detection_planes(
     )
 
 
-def _initial_candidate_products(
-    valid_pixels: npt.NDArray[np.bool_],
+def _publication_products(  # noqa: PLR0913
+    image_jy_per_beam: npt.ArrayLike,
+    valid_pixels: npt.ArrayLike,
+    background_jy_per_beam: npt.ArrayLike,
+    rms_jy_per_beam: npt.ArrayLike,
     *,
     beam: BeamShapePixels,
     review: ContinuumScienceProfile,
     multiscale: TiledMultiscaleDetection,
 ) -> ContinuumCandidateProducts:
-    """Attach bounded multiscale support to published detection seeds."""
+    """Attach bounded multiscale support and publish direct-owner support.
+
+    Direct residual labels are authoritative identities. Multiscale support
+    may enlarge an owner within a bounded recovery radius but never merges two
+    identities, and publication is refined from immutable direct-owner support
+    on original-pixel signal to noise rather than on the filtered evidence
+    that promoted the seed.
+    """
+    scientifically_valid = _scientifically_valid(
+        image_jy_per_beam,
+        valid_pixels,
+        background_jy_per_beam,
+        rms_jy_per_beam,
+    )
     direct_labels = np.asarray(multiscale.detection_labels, dtype=np.int32)
     support_mask = np.asarray(multiscale.reconstruction_mask, dtype=np.bool_)
-    measurement_labels = assign_seeded_multiscale_support(
-        direct_labels,
-        support_mask,
-        valid_pixels,
-        beam_major_fwhm_pixels=beam.major_fwhm_pixels,
-    )
-    labels = refine_multiscale_segment_labels(
-        measurement_labels,
-        multiscale.combined_snr,
-        support_mask,
-        beam_major_fwhm_pixels=beam.major_fwhm_pixels,
-        recovered_minimum_snr=review.matrix.island_sigma,
-    )
-    retained = np.asarray(labels > 0, dtype=np.bool_)
-    labels.setflags(write=False)
-    retained.setflags(write=False)
-    detection = ThresholdFilterResult(
-        combined_snr=multiscale.combined_snr,
-        retained_mask=retained,
-        component_labels=labels,
-        component_count=int(np.count_nonzero(np.unique(labels) > 0)),
-    )
-    significant_support = support_mask.copy()
-    significant_support.setflags(write=False)
-    direct_labels = direct_labels.copy()
-    direct_labels.setflags(write=False)
-    measurement_labels = np.asarray(measurement_labels, dtype=np.int32).copy()
-    measurement_labels.setflags(write=False)
-    return ContinuumCandidateProducts(
-        detection=detection,
-        direct_component_labels=direct_labels,
-        measurement_component_labels=measurement_labels,
-        position_signal_jy_per_beam=multiscale.position_signal_jy_per_beam,
-        significant_multiscale_support=significant_support,
-        scale_detection_planes=_retained_scale_detection_planes(
-            multiscale,
-            valid_pixels,
+    measurement_labels = np.asarray(
+        assign_seeded_multiscale_support(
+            direct_labels,
+            support_mask,
+            scientifically_valid,
+            beam_major_fwhm_pixels=beam.major_fwhm_pixels,
         ),
-    )
-
-
-def _publication_snr_products(  # noqa: PLR0913
-    image_jy_per_beam: npt.ArrayLike,
-    valid_pixels: npt.ArrayLike,
-    background_jy_per_beam: npt.ArrayLike,
-    rms_jy_per_beam: npt.ArrayLike,
-    *,
-    beam: BeamShapePixels,
-    review: ContinuumScienceProfile,
-    multiscale: TiledMultiscaleDetection,
-) -> ContinuumCandidateProducts:
-    """Publish refined support from original-pixel rather than filtered S/N."""
-    products = _initial_candidate_products(
-        _scientifically_valid(
-            image_jy_per_beam,
-            valid_pixels,
-            background_jy_per_beam,
-            rms_jy_per_beam,
-        ),
-        beam=beam,
-        review=review,
-        multiscale=multiscale,
-    )
-    direct_snr = _direct_snr(
-        image_jy_per_beam,
-        valid_pixels,
-        background_jy_per_beam,
-        rms_jy_per_beam,
-    )
-    labels = refine_multiscale_segment_labels(
-        products.measurement_component_labels,
-        direct_snr,
-        products.significant_multiscale_support,
-        beam_major_fwhm_pixels=beam.major_fwhm_pixels,
-        recovered_minimum_snr=review.matrix.island_sigma,
-    )
-    retained = np.asarray(labels > 0, dtype=np.bool_)
-    labels.setflags(write=False)
-    retained.setflags(write=False)
-    return replace(
-        products,
-        detection=replace(
-            products.detection,
-            retained_mask=retained,
-            component_labels=labels,
-            component_count=int(np.count_nonzero(np.unique(labels) > 0)),
-        ),
-    )
-
-
-def _direct_origin_products(  # noqa: PLR0913
-    image_jy_per_beam: npt.ArrayLike,
-    valid_pixels: npt.ArrayLike,
-    background_jy_per_beam: npt.ArrayLike,
-    rms_jy_per_beam: npt.ArrayLike,
-    *,
-    beam: BeamShapePixels,
-    review: ContinuumScienceProfile,
-    multiscale: TiledMultiscaleDetection,
-) -> ContinuumCandidateProducts:
-    """Refine publication from immutable direct-owner support only."""
-    products = _publication_snr_products(
-        image_jy_per_beam,
-        valid_pixels,
-        background_jy_per_beam,
-        rms_jy_per_beam,
-        beam=beam,
-        review=review,
-        multiscale=multiscale,
+        dtype=np.int32,
     )
     direct_snr = _direct_snr(
         image_jy_per_beam,
@@ -283,14 +198,12 @@ def _direct_origin_products(  # noqa: PLR0913
         rms_jy_per_beam,
     )
     direct_publication_labels = refine_multiscale_segment_labels(
-        products.direct_component_labels,
+        direct_labels,
         direct_snr,
-        products.significant_multiscale_support,
+        support_mask,
         beam_major_fwhm_pixels=beam.major_fwhm_pixels,
         recovered_minimum_snr=review.matrix.island_sigma,
     )
-    direct_labels = np.asarray(products.direct_component_labels)
-    measurement_labels = np.asarray(products.measurement_component_labels)
     direct_support = direct_labels > 0
     if np.any(
         direct_support
@@ -303,18 +216,31 @@ def _direct_origin_products(  # noqa: PLR0913
         measurement_labels > 0
     )
     labels = np.where(publication_support, measurement_labels, 0).astype(
-        np.int32, copy=False
+        np.int32,
+        copy=False,
     )
     retained = np.asarray(labels > 0, dtype=np.bool_)
     labels.setflags(write=False)
     retained.setflags(write=False)
-    return replace(
-        products,
-        detection=replace(
-            products.detection,
+    significant_support = support_mask.copy()
+    significant_support.setflags(write=False)
+    owned_labels = direct_labels.copy()
+    owned_labels.setflags(write=False)
+    measurement_labels = measurement_labels.copy()
+    measurement_labels.setflags(write=False)
+    return ContinuumCandidateProducts(
+        detection=ThresholdFilterResult(
             retained_mask=retained,
             component_labels=labels,
             component_count=int(np.count_nonzero(np.unique(labels) > 0)),
+        ),
+        direct_component_labels=owned_labels,
+        measurement_component_labels=measurement_labels,
+        position_signal_jy_per_beam=multiscale.position_signal_jy_per_beam,
+        significant_multiscale_support=significant_support,
+        scale_detection_planes=_retained_scale_detection_planes(
+            multiscale,
+            scientifically_valid,
         ),
     )
 
@@ -330,7 +256,7 @@ def evaluate_continuum_candidate_products(  # noqa: PLR0913
     multiscale: TiledMultiscaleDetection,
 ) -> ContinuumCandidateProducts:
     """Refine publication support using exact adjacent-scale persistence."""
-    products = _direct_origin_products(
+    products = _publication_products(
         image_jy_per_beam,
         valid_pixels,
         background_jy_per_beam,
