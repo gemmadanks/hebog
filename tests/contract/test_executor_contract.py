@@ -394,6 +394,36 @@ def test_executor_narrows_concurrency_to_a_declared_working_set(
     assert TRACKER.peak_active == 1
 
 
+def test_executor_narrows_concurrency_to_a_declared_thread_count(
+    executor: Executor,
+) -> None:
+    """A task claiming every admitted thread stops running beside another."""
+    executor.map_batches(
+        tracked_square,
+        list(range(6)),
+        requirement=TaskRequirement(
+            memory_bytes=1,
+            threads=executor.capacity.threads_per_worker,
+        ),
+    )
+
+    assert TRACKER.peak_active == 1
+
+
+def test_executor_rejects_an_unserializable_combine(
+    executor: Executor,
+) -> None:
+    """A reduction validates its combine before it maps anything."""
+    with pytest.raises(ExecutorPayloadError, match="combine"):
+        executor.reduce_batches(
+            tracked_square,
+            [1, 2, 3],
+            lambda first, second: first + second,
+        )
+
+    assert TRACKER.started == []
+
+
 def test_executor_runs_an_admitted_requirement(executor: Executor) -> None:
     """A task within the admitted budget runs unchanged."""
     results = executor.map_batches(

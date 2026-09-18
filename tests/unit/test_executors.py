@@ -211,16 +211,24 @@ def test_thread_executor_releases_its_pool_when_closed() -> None:
 
 
 class _StubFuture:
-    """One already-completed future recording its release."""
+    """One eagerly evaluated future whose settlement the test controls."""
 
-    def __init__(self, value: object) -> None:
+    def __init__(self, value: object, error: Exception | None = None) -> None:
         """Evaluate eagerly so the stub needs no scheduler."""
-        self.status = "finished"
+        self.status = "error" if error is not None else "pending"
         self._value = value
+        self._error = error
         self.cancelled = False
 
+    def settle(self) -> None:
+        """Mark this task finished, as waiting on a cluster would."""
+        if self._error is None:
+            self.status = "finished"
+
     def result(self) -> object:
-        """Return the value this stub computed at submission."""
+        """Return the value this stub computed, or raise its failure."""
+        if self._error is not None:
+            raise self._error
         return self._value
 
     def cancel(self) -> None:
@@ -259,8 +267,19 @@ class _StubClient:
     ) -> _StubFuture:
         """Evaluate one task eagerly and record its submission."""
         del keywords
-        self.events.append("submit")
-        return _StubFuture(function(*arguments))
+        self.events.append(f"submit:{function.__name__}")
+        # A real client resolves future arguments to their values before the
+        # task runs, so combines see results rather than futures.
+        values = [
+            argument.result()
+            if isinstance(argument, _StubFuture)
+            else argument
+            for argument in arguments
+        ]
+        try:
+            return _StubFuture(function(*values))
+        except Exception as error:
+            return _StubFuture(None, error)
 
 
 def _stub_executor(client: _StubClient, **keywords: Any) -> Any:
@@ -288,9 +307,10 @@ def test_dask_executor_bounds_submission(
 
     client = _StubClient()
 
-    def record_wait(futures: Iterable[object]) -> None:
-        del futures
+    def record_wait(futures: Iterable[Any]) -> None:
         client.events.append("wait")
+        for future in futures:
+            future.settle()
 
     monkeypatch.setattr(dask_module, "wait", record_wait)
     executor = _stub_executor(
@@ -305,10 +325,7 @@ def test_dask_executor_bounds_submission(
     results = executor.map_batches(_square, list(range(9)))
 
     assert results == [value**2 for value in range(9)]
-    in_flight = 0
-    for event in client.events:
-        in_flight += 1 if event == "submit" else -1
-        assert in_flight <= 3
+    assert _peak_in_flight(client.events) <= 3
 
 
 @pytest.mark.parametrize(
@@ -337,6 +354,29 @@ def test_declared_working_set_narrows_the_in_flight_window(
     )
 
     assert admitted_tasks_in_flight(capacity, requirement) == expected
+
+
+@pytest.mark.parametrize(
+    ("threads", "expected"),
+    [(1, 8), (2, 4), (3, 2), (4, 2), (8, 1)],
+)
+def test_declared_threads_occupy_proportional_in_flight_slots(
+    threads: int,
+    expected: int,
+) -> None:
+    """A multi-threaded task takes several slots, a single-threaded one."""
+    capacity = ExecutorCapacity(
+        worker_count=2,
+        threads_per_worker=4,
+        maximum_tasks_in_flight=8,
+    )
+
+    assert (
+        admitted_tasks_in_flight(
+            capacity, TaskRequirement(memory_bytes=1, threads=threads)
+        )
+        == expected
+    )
 
 
 def test_undeclared_memory_budget_keeps_the_caller_bound() -> None:
@@ -385,3 +425,100 @@ def test_executors_package_rejects_an_unknown_name() -> None:
 
     with pytest.raises(AttributeError, match="ClusterExecutor"):
         _ = executors_package.ClusterExecutor  # pyright: ignore[reportAttributeAccessIssue]
+
+
+def _peak_in_flight(events: list[str]) -> int:
+    """Return the most tasks outstanding at once in one submission log."""
+    in_flight = 0
+    peak = 0
+    for event in events:
+        in_flight += 1 if event.startswith("submit") else -1
+        peak = max(peak, in_flight)
+    return peak
+
+
+def _sum_values(first: int, second: int) -> int:
+    """Combine two mapped values on a worker."""
+    return first + second
+
+
+def _fail_to_combine(first: int, second: int) -> int:
+    """Fail every combine so the reduction cannot finish."""
+    del first, second
+    raise RuntimeError("combine failed")
+
+
+def _stub_reduction_executor(client: _StubClient) -> Any:
+    """Build one Dask executor with a small explicit in-flight bound."""
+    return _stub_executor(
+        client,
+        capacity=ExecutorCapacity(
+            worker_count=1,
+            threads_per_worker=1,
+            maximum_tasks_in_flight=3,
+        ),
+    )
+
+
+def _patch_wait(
+    monkeypatch: pytest.MonkeyPatch,
+    client: _StubClient,
+) -> None:
+    """Settle only the futures the executor explicitly waits for."""
+    from hebog.executors import dask as dask_module  # noqa: PLC0415
+
+    def record_wait(futures: Iterable[Any]) -> None:
+        client.events.append("wait")
+        for future in futures:
+            future.settle()
+
+    monkeypatch.setattr(dask_module, "wait", record_wait)
+
+
+def test_dask_reduction_counts_combines_against_the_in_flight_bound(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Mappers wait for in-flight combines instead of running past them."""
+    client = _StubClient()
+    _patch_wait(monkeypatch, client)
+
+    reduced = _stub_reduction_executor(client).reduce_batches(
+        _square, list(range(9)), _sum_values
+    )
+
+    assert reduced == sum(value**2 for value in range(9))
+    # This stub never settles a combine, which is the worst case: every
+    # combine keeps throttling mapper submission for the whole reduction.
+    mappers = 0
+    combines = 0
+    mapper_submissions = 0
+    for event in client.events:
+        if event == f"submit:{_square.__name__}":
+            # Either the window has room, or this is the single mapper that
+            # is always admitted so the reduction cannot stall.
+            assert mappers == 0 or mappers + combines < 3
+            mappers += 1
+            mapper_submissions += 1
+        elif event.startswith("submit"):
+            combines += 1
+        else:
+            mappers -= 1
+    assert mapper_submissions == 9
+
+
+def test_dask_reduction_stops_mapping_when_a_combine_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A failed combine cancels the plan instead of waiting for the value."""
+    client = _StubClient()
+    _patch_wait(monkeypatch, client)
+
+    with pytest.raises(RuntimeError, match="combine failed"):
+        _stub_reduction_executor(client).reduce_batches(
+            _square, list(range(32)), _fail_to_combine
+        )
+
+    submitted = sum(
+        1 for event in client.events if event == f"submit:{_square.__name__}"
+    )
+    assert submitted < 32

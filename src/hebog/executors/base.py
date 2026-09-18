@@ -99,43 +99,59 @@ def admitted_tasks_in_flight(
 ) -> int:
     """Return how many declared tasks may run at once within the budget.
 
-    A declared working set narrows the in-flight window so concurrent tasks
-    fit the admitted memory. It never widens it: the caller's in-flight bound
-    remains the ceiling, and a narrower window changes scheduling only, never
-    ownership or results.
+    A declared requirement narrows the in-flight window so that concurrent
+    tasks fit both the admitted memory and the admitted threads. A task
+    claiming several threads occupies several slots, because the admission
+    ceiling alone would let a four-thread executor run four four-thread tasks
+    at once. It never widens the window: the caller's bound remains the
+    ceiling, and a narrower window changes scheduling only, never ownership
+    or results.
+
+    The bound is the whole admitted budget, so it limits concurrency across
+    the cluster rather than on any one worker. Hebog does not pin tasks to
+    workers, so a distributed scheduler may still place several admitted
+    tasks on one worker; per-worker safety then rests on the worker memory
+    limits and spill policy the caller configured.
     """
     limit = capacity.maximum_tasks_in_flight
-    admitted = capacity.memory_bytes_per_worker
-    if requirement is None or admitted is None:
+    if requirement is None:
         return limit
-    per_worker = admitted // requirement.memory_bytes
-    return max(1, min(limit, per_worker * capacity.worker_count))
+    admitted = capacity.memory_bytes_per_worker
+    if admitted is not None:
+        by_memory = (admitted // requirement.memory_bytes) * (
+            capacity.worker_count
+        )
+        limit = min(limit, by_memory)
+    # A task claiming several threads occupies several slots, so the window
+    # narrows in proportion. A single-threaded task leaves it untouched, and
+    # the pipelining a caller built into its bound is preserved.
+    return max(1, limit // requirement.threads)
+
+
+def require_serializable(payload: object, *, name: str) -> None:
+    """Fail before submission when one payload cannot cross a worker.
+
+    Every executor validates before submitting anything, so an unserializable
+    payload fails the same way on the serial reference as on a cluster,
+    instead of surfacing only when a worker is a separate process.
+    """
+    try:
+        pickle.dumps(payload)
+    except Exception as error:
+        raise ExecutorPayloadError(
+            f"executor {name} payload is not serializable"
+        ) from error
 
 
 def require_serializable_payloads(
     function: Callable[[Input], Output],
     batches: Iterable[Input],
 ) -> list[Input]:
-    """Return materialized batches once every payload can be serialized.
-
-    Every executor validates before submitting anything, so an unserializable
-    payload fails the same way on the serial reference as on a cluster,
-    instead of surfacing only when a worker is a separate process.
-    """
+    """Return materialized batches once every payload can be serialized."""
     materialized = list(batches)
-    for name, payload in (
-        ("function", function),
-        *(
-            (f"batch {index}", batch)
-            for index, batch in enumerate(materialized)
-        ),
-    ):
-        try:
-            pickle.dumps(payload)
-        except Exception as error:
-            raise ExecutorPayloadError(
-                f"executor {name} payload is not serializable"
-            ) from error
+    require_serializable(function, name="function")
+    for index, batch in enumerate(materialized):
+        require_serializable(batch, name=f"batch {index}")
     return materialized
 
 
@@ -214,7 +230,8 @@ class Executor(Protocol):
     ) -> Output:
         """Map batches and combine them without gathering every result.
 
-        ``combine`` must be deterministic; it need not be commutative or
-        associative, because the reduction tree is fixed by input order.
+        ``combine`` must be deterministic and serializable; it need not be
+        commutative or associative, because the reduction tree is fixed by
+        input order.
         """
         ...

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import deque
 from collections.abc import Callable, Iterable, Iterator
+from functools import partial
 from typing import Any, TypeVar, cast
 
 from distributed import (
@@ -16,6 +17,7 @@ from hebog.executors.base import (
     TaskRequirement,
     admitted_tasks_in_flight,
     reduce_in_canonical_order,
+    require_serializable,
     require_serializable_payloads,
 )
 
@@ -25,6 +27,23 @@ Output = TypeVar("Output")
 # Enough runnable work to keep every admitted thread busy while one batch
 # waits on storage, without publishing the whole plan to the scheduler.
 _TASKS_IN_FLIGHT_PER_THREAD = 2
+
+
+def _nothing_reserved() -> int:
+    """Report no tasks submitted outside one bounded submission loop."""
+    return 0
+
+
+def _outstanding(futures: list[Any]) -> int:
+    """Drop settled tasks, raise the first failure and count the rest."""
+    remaining: list[Any] = []
+    for future in futures:
+        if future.status == "error":
+            future.result()
+        if future.status != "finished":
+            remaining.append(future)
+    futures[:] = remaining
+    return len(remaining)
 
 
 class DaskExecutor:
@@ -102,8 +121,17 @@ class DaskExecutor:
         function: Callable[[Input], Output],
         batches: Iterable[Input],
         requirement: TaskRequirement | None,
+        *,
+        reserved_in_flight: Callable[[], int] = _nothing_reserved,
     ) -> Iterator[Any]:
-        """Yield completed futures in input order, bounding submission."""
+        """Yield completed futures in input order, bounding submission.
+
+        ``reserved_in_flight`` reports tasks this caller has already
+        submitted outside this loop, so a reduction's combines count against
+        the same in-flight bound as its mappers. One mapper is always
+        admitted, so reserved work can never stall the plan. It may raise,
+        which cancels the rest of the plan exactly as a failed mapper does.
+        """
         self.capacity.admit(requirement)
         prepared = require_serializable_payloads(function, batches)
         limit = admitted_tasks_in_flight(self.capacity, requirement)
@@ -111,7 +139,11 @@ class DaskExecutor:
         submitted = 0
         try:
             while True:
-                while len(pending) < limit and submitted < len(prepared):
+                while submitted < len(prepared) and (
+                    # One mapper always runs, so combines filling the window
+                    # slow a reduction down but can never stall it.
+                    not pending or len(pending) + reserved_in_flight() < limit
+                ):
                     pending.append(self._submit(function, prepared[submitted]))
                     submitted += 1
                 if not pending:
@@ -150,14 +182,30 @@ class DaskExecutor:
         *,
         requirement: TaskRequirement | None = None,
     ) -> Output:
-        """Combine batch results on workers and gather one value."""
+        """Combine batch results on workers and gather one value.
+
+        Combines are submitted to workers, so they count against the same
+        in-flight bound as the mappers and are checked for failure as the
+        reduction proceeds. A failed combine therefore stops submission
+        instead of surfacing only when the final value is gathered.
+        """
+        require_serializable(combine, name="combine")
+        live: list[Any] = []
 
         def combine_on_worker(first: Any, second: Any) -> Any:
             """Submit one combine so intermediates stay on the cluster."""
-            return self._submit(combine, first, second)
+            _outstanding(live)
+            future = self._submit(combine, first, second)
+            live.append(future)
+            return future
 
         reduced = reduce_in_canonical_order(
-            self._ordered_futures(function, batches, requirement),
+            self._ordered_futures(
+                function,
+                batches,
+                requirement,
+                reserved_in_flight=partial(_outstanding, live),
+            ),
             combine_on_worker,
         )
         return cast(Output, reduced.result())

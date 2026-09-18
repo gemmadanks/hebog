@@ -14,6 +14,7 @@ from hebog.executors.base import (
     admitted_tasks_in_flight,
     call_with_retries,
     reduce_in_canonical_order,
+    require_serializable,
     require_serializable_payloads,
 )
 
@@ -128,6 +129,7 @@ class ThreadExecutor:
         requirement: TaskRequirement | None = None,
     ) -> Output:
         """Map batches and combine them in the canonical reduction tree."""
+        require_serializable(combine, name="combine")
         return reduce_in_canonical_order(
             self._results(function, batches, requirement), combine
         )

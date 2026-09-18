@@ -23109,3 +23109,57 @@ scientific pass from fixture validation.
 - **Next step.** Converge `public_science.py` onto the tiled stages pass by
   pass under ADR-008, moving the boundary-state merges onto
   `reduce_batches` as each pass lands.
+
+## 2026-09-18 — M2: executor contract review repairs
+
+Four review findings against the executor contract, all valid, plus one
+Windows CI failure. The common cause of the first four is that the contract
+suite exercised every invariant through `map_batches` and almost none through
+`reduce_batches`, so three of the four defects sat in the untested cells of a
+behaviour-by-entry-point matrix that was never written down.
+
+- **A declared thread count did not narrow concurrency.** `TaskRequirement`
+  was checked only as a per-task ceiling, so a four-thread executor accepted
+  four four-thread tasks and ran them at once, oversubscribing the admitted
+  threads fourfold. A task now occupies slots in proportion to the threads it
+  declares (`limit // requirement.threads`), which leaves a single-threaded
+  task on the caller's full window and so preserves the pipelining that the
+  Dask window's two-per-thread factor exists for. The first repair narrowed to
+  `total_threads // requirement.threads` and halved the window for ordinary
+  tasks; the unit suite caught it.
+- **The memory window is cluster-wide, not per worker.** The narrowed window
+  bounds concurrency across the admitted budget, but Hebog pins no task to a
+  worker, so a distributed scheduler may still co-locate several admitted
+  tasks and exceed one worker's memory. The mechanism that would fix this is
+  Dask `resources` annotations, which are deliberately not attached because a
+  cluster whose workers declare no matching resource would never run the task.
+  The defect was therefore the claim, not the code: `admitted_tasks_in_flight`
+  and the how-to now state that admission proves one task fits one worker,
+  that the window is cluster-wide, and that per-worker safety rests on the
+  caller's worker memory limits and spill thresholds. Revisit annotations in
+  M3, when the Rapthor cluster and its worker resources are pinned.
+- **Reduction combines escaped the in-flight bound and their failures were
+  observed late.** Worker-side combines were submitted outside
+  `_ordered_futures`, so a reduction could hold `maximum_tasks_in_flight`
+  mappers plus one combine per tree level, and a failed combine surfaced only
+  at the final gather while mappers kept being submitted. Combines now count
+  against the same window and are checked as the reduction proceeds, so a
+  failure cancels the plan like a failed mapper. One mapper is always
+  admitted, so in-flight combines slow a reduction but cannot stall it; the
+  first repair omitted that escape and silently truncated reductions, which
+  the contract suite caught.
+- **`combine` was never validated for serializability.** A combine capturing
+  an unserializable object passed on Serial and threads and failed on Dask
+  only after mapping had started. All three policies now validate it before
+  mapping, through the extracted `require_serializable`.
+- **Windows CI.** The new no-nested-workers architecture test compared
+  `str(path.relative_to(...))` against a POSIX literal, so its exemption for
+  `executors/threads.py` never matched on Windows and the test failed there.
+  Paths are now compared as POSIX text, and the test asserts that the exempted
+  module really does construct the pool, so a stale exemption fails loudly
+  instead of making the rule vacuous.
+- **Validation.** The contract suite is now 19 behaviours on each of the three
+  policies, including combine validation and thread narrowing; two stub-client
+  unit tests cover reduction throttling and combine-failure cancellation with
+  no scheduler. Unit, contract and integration lanes pass (1,916 and 406
+  tests), with Pyright, Ruff and the strict docs build clean.

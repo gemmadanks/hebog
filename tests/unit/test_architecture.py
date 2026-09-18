@@ -438,11 +438,21 @@ def test_library_never_creates_its_own_workers(
     permitted_module: str | None,
 ) -> None:
     """Only the caller's executor owns workers; stages never nest pools."""
+    if permitted_module is not None:
+        # Fail loudly if the exemption stops matching the module it names,
+        # which would make this rule silently vacuous.
+        assert constructor in _constructed_names(
+            PACKAGE_ROOT / permitted_module
+        )
     violations = [
-        str(path.relative_to(PACKAGE_ROOT))
+        path.relative_to(PACKAGE_ROOT).as_posix()
         for path in sorted(PACKAGE_ROOT.rglob("*.py"))
-        if not str(path.relative_to(PACKAGE_ROOT)).startswith("validation/")
-        and str(path.relative_to(PACKAGE_ROOT)) != permitted_module
+        # Module paths are compared as POSIX text so the rule reads the same
+        # on every supported platform.
+        if not path.relative_to(PACKAGE_ROOT)
+        .as_posix()
+        .startswith("validation/")
+        and path.relative_to(PACKAGE_ROOT).as_posix() != permitted_module
         and constructor in _constructed_names(path)
     ]
 

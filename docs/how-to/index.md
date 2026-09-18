@@ -419,10 +419,20 @@ executor.map_batches(
 ```
 
 `executor.capacity` reports the budget the caller admitted. `DaskExecutor`
-reads it from the client's own cluster unless the caller declares one. A
-declared working set also narrows how many tasks run at once, so concurrent
-tasks fit the admitted memory; it never widens the caller's in-flight bound,
-and it changes scheduling only, never ownership or results.
+reads it from the client's own cluster unless the caller declares one.
+Admission proves that one task fits one worker, and a declared requirement
+narrows how many tasks run at once: a large working set reduces the window to
+what the admitted memory holds, and a task claiming several threads occupies
+several slots. Narrowing never widens the caller's bound and changes
+scheduling only, never ownership or results.
+
+That window bounds concurrency across the whole admitted budget, not on any
+one worker. Hebog does not pin tasks to workers, so a distributed scheduler
+may still place several admitted tasks on the same worker; per-worker safety
+then rests on the worker memory limits and spill thresholds the caller
+configured. Hebog deliberately attaches no Dask `resources` annotations,
+because a cluster whose workers declare no matching resource would never run
+the task at all.
 
 Use `reduce_batches` when the driver must not hold one result per batch. It
 maps batches and combines them in a tree fixed by input index, so the value,
