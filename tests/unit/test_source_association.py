@@ -469,3 +469,43 @@ def test_association_rejects_missing_or_ambiguous_component_records(
 
     with pytest.raises(ValueError, match=message):
         _associate(labels, records)
+
+
+def test_component_geometry_does_not_depend_on_the_plane_around_it() -> None:
+    """The same component measured in a bigger plane gives the same record.
+
+    Component geometry is computed in the image's pixel frame, so padding
+    the plane and moving the tile origin to match changes which pixels are
+    visited and nothing about the result. This is what lets each component
+    be measured in its own window instead of over the whole image.
+    """
+    generator = np.random.default_rng(2026091904)
+    labels = np.zeros((12, 15), dtype=np.int32)
+    labels[3:8, 4:11] = np.where(generator.random((5, 7)) < 0.85, 5, 0)
+    labels[3, 4] = 5
+    signal = generator.uniform(0.1, 2.0, labels.shape)
+
+    tight = build_detection_component_records(
+        labels,
+        signal,
+        np.ones(labels.shape, dtype=np.bool_),
+        origin_yx=(40, 70),
+    )
+
+    padded_labels = np.zeros((30, 40), dtype=np.int32)
+    padded_signal = np.zeros(padded_labels.shape, dtype=np.float64)
+    padded_labels[9:21, 6:21] = labels
+    padded_signal[9:21, 6:21] = signal
+    padded = build_detection_component_records(
+        padded_labels,
+        padded_signal,
+        np.ones(padded_labels.shape, dtype=np.bool_),
+        origin_yx=(31, 64),
+    )
+
+    assert len(tight) == 1
+    assert padded[0].centroid_yx == tight[0].centroid_yx
+    assert padded[0].covariance_pixels_squared == (
+        tight[0].covariance_pixels_squared
+    )
+    assert padded[0].canonical_pixel_yx == tight[0].canonical_pixel_yx

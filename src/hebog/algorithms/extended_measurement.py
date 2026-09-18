@@ -27,6 +27,7 @@ from scipy.spatial import (
     cKDTree,  # pyright: ignore[reportAttributeAccessIssue]
 )
 
+from hebog.algorithms.label_groups import label_windows
 from hebog.config import ExtendedEmissionMeasurementConfig
 from hebog.data_models.measurement import (
     ExtendedEmissionMeasurementResult,
@@ -161,25 +162,71 @@ def clean_detected_segment_labels(
     return np.where(retained, labels, 0).astype(np.int32, copy=False)
 
 
+def _owner_windows(
+    original_labels: npt.NDArray[np.int64],
+    refined_labels: npt.NDArray[np.int32],
+) -> dict[int, tuple[slice, slice] | None]:
+    """Return the window holding each owner in both label planes."""
+    original_windows = label_windows(original_labels)
+    refined_windows = label_windows(refined_labels)
+    owners: dict[int, tuple[slice, slice] | None] = {}
+    for label_value in np.unique(original_labels):
+        value = int(label_value)
+        if value <= 0:
+            continue
+        crops = [
+            windows[value - 1]
+            for windows in (original_windows, refined_windows)
+            if value <= len(windows) and windows[value - 1] is not None
+        ]
+        owners[value] = (
+            None
+            if not crops
+            else (
+                slice(
+                    min(crop[0].start for crop in crops if crop is not None),
+                    max(crop[0].stop for crop in crops if crop is not None),
+                ),
+                slice(
+                    min(crop[1].start for crop in crops if crop is not None),
+                    max(crop[1].stop for crop in crops if crop is not None),
+                ),
+            )
+        )
+    return owners
+
+
 def _preserve_refined_segment_connectivity(
     original_labels: npt.NDArray[np.int64],
     refined_labels: npt.NDArray[np.int32],
 ) -> npt.NDArray[np.int32]:
-    """Restore a direct owner only when cleanup would split its support."""
+    """Restore a direct owner only when cleanup would split its support.
+
+    Each owner is examined in the window holding both its original and its
+    refined support, instead of over the whole plane. Refinement recovers
+    multiscale emission, so an owner can reach pixels its original support
+    never covered, and those pixels decide whether cleanup split it.
+    """
     connected = np.asarray(refined_labels, dtype=np.int32).copy()
     structure = np.ones((3, 3), dtype=np.int8)
+    windows = _owner_windows(original_labels, connected)
     for label_value in np.unique(original_labels):
         if label_value <= 0:
             continue
+        crop = windows[int(label_value)]
+        if crop is None:
+            continue
+        window_original = original_labels[crop] == label_value
+        window_connected = connected[crop]
         _, component_count = cast(
             tuple[npt.NDArray[np.int32], int],
             connected_component_labels(
-                connected == label_value,
+                window_connected == label_value,
                 structure=structure,
             ),
         )
         if component_count > 1:
-            connected[original_labels == label_value] = label_value
+            window_connected[window_original] = label_value
     return connected
 
 
@@ -873,9 +920,41 @@ def _unavailable_position(
     )
 
 
+@dataclass(frozen=True, slots=True)
+class SegmentWindow:
+    """Where one measured window sits inside its image plane.
+
+    Measuring a segment over the whole plane costs image size for every
+    segment. A window lets a caller pass only the pixels around one segment
+    while keeping every reported position in the plane's pixel frame.
+    """
+
+    origin_yx: tuple[int, int]
+    plane_shape_yx: tuple[int, int]
+
+    def require_holds(self, shape_yx: tuple[int, int]) -> None:
+        """Reject a window that does not fit its plane.
+
+        Raises:
+            ValueError: If the origin is negative or the window leaves the
+                plane.
+        """
+        if min(self.origin_yx) < 0:
+            raise ValueError("segment window origin must be non-negative")
+        if any(
+            origin + extent > plane
+            for origin, extent, plane in zip(
+                self.origin_yx, shape_yx, self.plane_shape_yx, strict=True
+            )
+        ):
+            raise ValueError("segment window must stay inside its plane")
+
+
 def measure_detected_segment_position(
     signal_jy_per_beam: npt.NDArray[np.float64],
     support_mask: npt.NDArray[np.bool_],
+    *,
+    window: SegmentWindow | None = None,
 ) -> DetectedSegmentPosition:
     """Measure a signed-flux centroid and peak on exact source support.
 
@@ -884,16 +963,25 @@ def measure_detected_segment_position(
     applied. Equal peak values use NumPy's first flat maximum, which is
     deterministic row-major ``y`` then ``x`` order.
 
+    ``window`` says that the arrays are one window of a larger plane, so
+    measuring many segments costs each segment's own support instead of the
+    whole image every time. Positions stay in the plane's pixel frame, and
+    the returned values are identical to measuring the whole plane, as long
+    as the window holds this segment's support.
+
     Args:
-        signal_jy_per_beam: Two-dimensional original-pixel signal plane.
+        signal_jy_per_beam: Two-dimensional original-pixel signal plane, or
+            one window of it.
         support_mask: Boolean pixels owned by this source segment.
+        window: Where the arrays sit inside their plane, when they are a
+            window of one.
 
     Returns:
         A position estimate or a typed unavailable result.
 
     Raises:
-        ValueError: If arrays are not aligned two-dimensional planes or the
-            support array is not boolean.
+        ValueError: If arrays are not aligned two-dimensional planes, the
+            support array is not boolean, or the window leaves the plane.
     """
     if (
         signal_jy_per_beam.ndim != _IMAGE_DIMENSIONS
@@ -905,6 +993,13 @@ def measure_detected_segment_position(
         )
     if support_mask.dtype != np.bool_:
         raise ValueError("segment support must have boolean dtype")
+    if window is None:
+        window = SegmentWindow(
+            origin_yx=(0, 0), plane_shape_yx=signal_jy_per_beam.shape
+        )
+    window.require_holds(signal_jy_per_beam.shape)
+    plane_shape = window.plane_shape_yx
+    y_origin, x_origin = window.origin_yx
     finite_support = support_mask & np.isfinite(signal_jy_per_beam)
     support_pixel_count = int(np.count_nonzero(finite_support))
     if support_pixel_count == 0:
@@ -931,7 +1026,12 @@ def measure_detected_segment_position(
             support_pixel_count=support_pixel_count,
             integrated_weight=integrated_weight,
         )
-    y_pixels, x_pixels = np.nonzero(finite_support)
+    local_y, local_x = np.nonzero(finite_support)
+    # Offsetting before the weighted sums keeps the plane's pixel frame, so
+    # a window changes which pixels are visited and nothing about the
+    # arithmetic over them.
+    y_pixels = local_y + y_origin
+    x_pixels = local_x + x_origin
     centroid_xy = (
         float(
             np.sum(x_pixels * weights, dtype=np.float64) / integrated_weight
@@ -943,12 +1043,7 @@ def measure_detected_segment_position(
     # Signed cancellation can give a finite but physically unusable centroid.
     # Test the support rectangle, not mask membership: a shell's centre can
     # legitimately lie in its hole. Do not clamp the result to a bright pixel.
-    roundoff = (
-        epsilon
-        * support_pixel_count
-        * conditioning
-        * max(signal_jy_per_beam.shape)
-    )
+    roundoff = epsilon * support_pixel_count * conditioning * max(plane_shape)
     if not (
         x_pixels.min() - roundoff
         <= centroid_xy[0]
@@ -971,7 +1066,7 @@ def measure_detected_segment_position(
     return DetectedSegmentPosition(
         available=True,
         centroid_xy=centroid_xy,
-        peak_position_xy=(int(peak_x), int(peak_y)),
+        peak_position_xy=(int(peak_x) + x_origin, int(peak_y) + y_origin),
         support_pixel_count=support_pixel_count,
         integrated_weight=integrated_weight,
         unavailable_reason=None,

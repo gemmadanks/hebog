@@ -1,4 +1,5 @@
 # pyright: reportAttributeAccessIssue=false
+# pyright: reportPrivateUsage=false
 # pyright: reportMissingTypeStubs=false
 # pyright: reportUnknownMemberType=false
 # pyright: reportUnknownVariableType=false
@@ -6,14 +7,19 @@
 
 from __future__ import annotations
 
+import gc
 import pickle
+import warnings
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
 from astropy.io import fits
 
 from hebog.data_models import SuppliedImageMetadata
+from hebog.data_models.images import ImageMetadata
 from hebog.io import (
     FitsImageSource,
     ImageBounds,
@@ -21,6 +27,7 @@ from hebog.io import (
     UnsupportedFitsImageError,
     celestial_wcs_from_metadata,
 )
+from hebog.io import fits as fits_module
 
 
 def _write_image(
@@ -504,3 +511,179 @@ def test_supplied_metadata_travels_with_a_serialized_source(
 
     assert restored.metadata().reference_frequency_hz == 144_000_000.0
     np.testing.assert_array_equal(window.values, [[0, 1], [2, 3]])
+
+
+@pytest.mark.integration
+def test_header_and_wcs_are_validated_once_per_source(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Many bounded reads share one validation of the same file.
+
+    Tiled stages read hundreds of windows per image, and re-parsing the
+    header and rebuilding both WCS objects for each of them cost more than
+    reading the pixels.
+    """
+    path = tmp_path / "repeat.fits"
+    _write_image(path, np.arange(64, dtype=np.float32).reshape(8, 8))
+    validations = 0
+    original = fits_module._metadata
+
+    def counted(*arguments: Any, **keywords: Any) -> ImageMetadata:
+        nonlocal validations
+        validations += 1
+        return original(*arguments, **keywords)
+
+    monkeypatch.setattr(fits_module, "_metadata", counted)
+    source = FitsImageSource(path)
+
+    first = source.metadata()
+    for start in range(4):
+        source.read_window(ImageBounds(start, start + 2, 0, 2))
+    again = source.metadata()
+
+    assert validations == 1
+    assert again == first
+
+
+@pytest.mark.integration
+def test_a_serialized_source_validates_the_file_itself(
+    tmp_path: Path,
+) -> None:
+    """A cached validation must not travel to a worker as stale metadata.
+
+    The file a worker opens is the authority on its own contents, so the
+    restored source reads and validates it again.
+    """
+    path = tmp_path / "worker-validation.fits"
+    _write_image(path, np.arange(4, dtype=np.float32).reshape(2, 2))
+    source = FitsImageSource(path)
+    source.metadata()
+
+    payload = pickle.dumps(source)
+    restored = pickle.loads(payload)
+
+    assert not any(
+        isinstance(value, ImageMetadata)
+        for value in restored.__dict__.values()
+    )
+    assert restored.metadata() == source.metadata()
+
+
+@pytest.mark.integration
+def test_windows_share_one_open_file_per_thread(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Opening and parsing a FITS header costs more than reading pixels."""
+    path = tmp_path / "reuse.fits"
+    _write_image(path, np.arange(64, dtype=np.float32).reshape(8, 8))
+    opens = 0
+    original = fits.open
+
+    def counted(*arguments: Any, **keywords: Any) -> Any:
+        nonlocal opens
+        opens += 1
+        return original(*arguments, **keywords)
+
+    monkeypatch.setattr(fits_module.fits, "open", counted)
+    source = FitsImageSource(path)
+
+    windows = [
+        source.read_window(ImageBounds(start, start + 2, 0, 2))
+        for start in range(4)
+    ]
+
+    assert opens == 1
+    np.testing.assert_array_equal(windows[1].values, [[8, 9], [16, 17]])
+
+
+@pytest.mark.integration
+def test_threads_read_their_own_windows_correctly(tmp_path: Path) -> None:
+    """Worker threads share a source, so they must not share a file cursor."""
+    path = tmp_path / "threaded.fits"
+    values = np.arange(4096, dtype=np.float32).reshape(64, 64)
+    _write_image(path, values)
+    source = FitsImageSource(path)
+    requests = [
+        ImageBounds(y, y + 8, x, x + 8)
+        for y in range(0, 64, 8)
+        for x in range(0, 64, 8)
+    ] * 4
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        windows = list(pool.map(source.read_window, requests))
+
+    for bounds, window in zip(requests, windows, strict=True):
+        np.testing.assert_array_equal(
+            window.values,
+            values[
+                bounds.y_start : bounds.y_stop, bounds.x_start : bounds.x_stop
+            ],
+        )
+
+
+@pytest.mark.integration
+def test_closing_a_source_releases_its_files_and_it_reads_again(
+    tmp_path: Path,
+) -> None:
+    """A caller may release files without giving up the source."""
+    path = tmp_path / "closed.fits"
+    _write_image(path, np.arange(16, dtype=np.float32).reshape(4, 4))
+    source = FitsImageSource(path)
+    first = source.read_window(ImageBounds(0, 2, 0, 2))
+
+    source.close()
+    second = source.read_window(ImageBounds(0, 2, 0, 2))
+
+    np.testing.assert_array_equal(second.values, first.values)
+
+
+@pytest.mark.integration
+def test_dropping_a_source_leaves_no_open_file(tmp_path: Path) -> None:
+    """Holding a file open must not mean leaking it.
+
+    A caller that simply drops a source, as scripts and workers do, would
+    otherwise leave the file to the garbage collector and Python would
+    report an unclosed file.
+    """
+    path = tmp_path / "dropped.fits"
+    _write_image(path, np.arange(16, dtype=np.float32).reshape(4, 4))
+    source = FitsImageSource(path)
+    source.read_window(ImageBounds(0, 2, 0, 2))
+
+    with warnings.catch_warnings(record=True) as log:
+        warnings.simplefilter("always")
+        del source
+        gc.collect()
+
+    assert [
+        str(item.message) for item in log if item.category is ResourceWarning
+    ] == []
+
+
+@pytest.mark.integration
+def test_closing_releases_files_opened_on_other_threads(
+    tmp_path: Path,
+) -> None:
+    """Worker threads each open the file, and one close must free them all."""
+    path = tmp_path / "threads.fits"
+    _write_image(path, np.arange(16, dtype=np.float32).reshape(4, 4))
+    source = FitsImageSource(path)
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        list(
+            pool.map(
+                source.read_window,
+                [ImageBounds(0, 2, 0, 2)] * 12,
+            )
+        )
+
+    with warnings.catch_warnings(record=True) as log:
+        warnings.simplefilter("always")
+        source.close()
+        gc.collect()
+
+    assert [
+        str(item.message) for item in log if item.category is ResourceWarning
+    ] == []
+    np.testing.assert_array_equal(
+        source.read_window(ImageBounds(0, 2, 0, 2)).values, [[0, 1], [4, 5]]
+    )

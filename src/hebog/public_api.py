@@ -28,6 +28,7 @@ from hebog.algorithms.astrometry import (
     celestial_wcs_from_metadata,
     compact_geometry_from_wcs,
 )
+from hebog.algorithms.label_groups import label_windows
 from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.config import BackgroundRmsConfig, SourceFinderConfig
@@ -559,19 +560,52 @@ def _source_candidate(
     )
 
 
-def _support_statistics(
+def _support_local_rms(
     labels: npt.NDArray[np.integer[Any]],
     label_values: tuple[int, ...],
     products: _ScientificProducts,
-) -> tuple[npt.NDArray[np.bool_], float, float]:
-    """Return exact support, local RMS, and mean residual brightness."""
-    support = np.isin(labels, label_values)
-    valid = support & np.isfinite(products.rms) & (products.rms > 0)
-    if not np.any(valid):
-        raise SourceFinderError("catalogue support has no valid local RMS")
-    local_rms = float(np.median(products.rms[valid]))
-    residual = products.image - products.background
-    return support, local_rms, float(np.mean(residual[valid]))
+    windows: tuple[tuple[slice, slice] | None, ...],
+) -> float:
+    """Return the median RMS over the exact support of these labels.
+
+    The windows bound the work to the labels' own pixels, so a catalogue of
+    many sources does not scan the whole image for each of them.
+
+    Raises:
+        SourceFinderError: If no supported pixel has a usable local RMS.
+    """
+    crop = _label_value_window(windows, label_values)
+    if crop is not None:
+        support = np.isin(labels[crop], label_values)
+        rms = products.rms[crop]
+        valid = support & np.isfinite(rms) & (rms > 0)
+        if np.any(valid):
+            return float(np.median(rms[valid]))
+    raise SourceFinderError("catalogue support has no valid local RMS")
+
+
+def _label_value_window(
+    windows: tuple[tuple[slice, slice] | None, ...],
+    label_values: tuple[int, ...],
+) -> tuple[slice, slice] | None:
+    """Return the window holding every one of these labels."""
+    crops = [
+        windows[value - 1]
+        for value in label_values
+        if 0 < value <= len(windows) and windows[value - 1] is not None
+    ]
+    if not crops:
+        return None
+    return (
+        slice(
+            min(crop[0].start for crop in crops if crop is not None),
+            max(crop[0].stop for crop in crops if crop is not None),
+        ),
+        slice(
+            min(crop[1].start for crop in crops if crop is not None),
+            max(crop[1].stop for crop in crops if crop is not None),
+        ),
+    )
 
 
 def _empty_catalogue(
@@ -692,6 +726,7 @@ def _public_catalogue(
         for component in terminal.component_catalogue
     }
     source_rows = {source.identifier: source for source in terminal.catalogue}
+    component_windows = label_windows(labels)
     source_candidates: list[SourceCandidate] = []
     gaussian_components: list[GaussianComponent] = []
     publication_mask = np.array(
@@ -720,10 +755,11 @@ def _public_catalogue(
             components_by_id[component_id].label_value
             for component_id in membership.component_ids
         )
-        _, local_rms, _ = _support_statistics(
+        local_rms = _support_local_rms(
             labels,
             label_values,
             products,
+            component_windows,
         )
         island_ids = tuple(
             sorted(
@@ -754,10 +790,11 @@ def _public_catalogue(
             component_label = components_by_id[component_id].label_value
             if component_label not in component_islands:
                 continue
-            _, component_rms, _ = _support_statistics(
+            component_rms = _support_local_rms(
                 labels,
                 (component_label,),
                 products,
+                component_windows,
             )
             candidate = _source_candidate(
                 component_row,
@@ -986,30 +1023,35 @@ def find_sources(
         ) from error
     output.parent.mkdir(parents=True, exist_ok=True)
     started = monotonic()
-    with TemporaryDirectory(
-        prefix=f".{output.name}.",
-        dir=output.parent,
-    ) as temporary_directory:
-        temporary = Path(temporary_directory)
-        scientific = _analyse_image(
-            request,
-            source,
-            metadata,
-            executor,
-            temporary / "work",
-            config=config,
-            header=header,
-        )
-        unpublished = temporary / "bundle"
-        unpublished.mkdir()
-        result = _materialize_bundle(
-            request,
-            config,
-            metadata,
-            scientific,
-            unpublished,
-            input_sha256=input_sha256,
-            wall_seconds=monotonic() - started,
-        )
-        _publish_bundle(unpublished, output)
+    try:
+        with TemporaryDirectory(
+            prefix=f".{output.name}.",
+            dir=output.parent,
+        ) as temporary_directory:
+            temporary = Path(temporary_directory)
+            scientific = _analyse_image(
+                request,
+                source,
+                metadata,
+                executor,
+                temporary / "work",
+                config=config,
+                header=header,
+            )
+            unpublished = temporary / "bundle"
+            unpublished.mkdir()
+            result = _materialize_bundle(
+                request,
+                config,
+                metadata,
+                scientific,
+                unpublished,
+                input_sha256=input_sha256,
+                wall_seconds=monotonic() - started,
+            )
+            _publish_bundle(unpublished, output)
+    finally:
+        # This call owns the source it opened, so it releases the input
+        # when the run ends rather than leaving it to the collector.
+        source.close()
     return result.model_copy(update={"wall_seconds": monotonic() - started})

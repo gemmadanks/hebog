@@ -6,10 +6,10 @@
 
 from __future__ import annotations
 
+import threading
 from collections.abc import Iterable
-from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Generator
+from typing import Any
 
 import numpy as np
 from astropy import units
@@ -234,21 +234,6 @@ def _metadata(
     )
 
 
-@contextmanager
-def _open_primary(path: Path) -> Generator[Any, None, None]:
-    """Open one FITS file lazily and translate low-level read failures."""
-    try:
-        hdus = fits.open(path, mode="readonly", memmap=True)
-    except (OSError, ValueError) as error:
-        raise InvalidFitsImageError(
-            f"cannot read FITS image {path}: {error}"
-        ) from error
-    try:
-        yield hdus[0]
-    finally:
-        hdus.close()
-
-
 class FitsImageSource:
     """Read validated logical image planes through bounded FITS sections.
 
@@ -264,11 +249,84 @@ class FitsImageSource:
         """Retain the path and supplied metadata; open files only on use."""
         self._path = path
         self._supplied_metadata = supplied_metadata
+        self._metadata: ImageMetadata | None = None
+        self._open_files: dict[int, Any] = {}
+        self._open_files_lock = threading.Lock()
+
+    def __getstate__(self) -> dict[str, Any]:
+        """Serialize the request to read a file, never what it once held.
+
+        A worker opens the file itself, so neither an open file nor
+        validated metadata travels with the source: an open file cannot
+        cross a process, and metadata could go stale in transit.
+        """
+        return {
+            "_path": self._path,
+            "_supplied_metadata": self._supplied_metadata,
+        }
+
+    def __setstate__(self, state: dict[str, Any]) -> None:
+        """Restore a source that has not yet read its file."""
+        self.__init__(  # pyright: ignore[reportUnknownMemberType]
+            state["_path"], state["_supplied_metadata"]
+        )
+
+    def _primary_hdu(self) -> Any:
+        """Return this file's primary HDU, opening it once per thread.
+
+        Opening a FITS file and parsing its header costs several times a
+        bounded window read, and tiled stages read hundreds of windows per
+        image. Each thread keeps its own open file, because worker threads
+        share a source and a file cursor cannot be shared.
+
+        Raises:
+            InvalidFitsImageError: If the file cannot be opened.
+        """
+        thread = threading.get_ident()
+        hdus = self._open_files.get(thread)
+        if hdus is None:
+            try:
+                hdus = fits.open(self._path, mode="readonly", memmap=True)
+            except (OSError, ValueError) as error:
+                raise InvalidFitsImageError(
+                    f"cannot read FITS image {self._path}: {error}"
+                ) from error
+            with self._open_files_lock:
+                self._open_files[thread] = hdus
+        return hdus[0]
+
+    def close(self) -> None:
+        """Release every file this source holds open.
+
+        Worker threads each open the file, so one close frees them all. The
+        source stays usable and opens the file again when it is next read.
+        """
+        with self._open_files_lock:
+            open_files, self._open_files = self._open_files, {}
+        for hdus in open_files.values():
+            hdus.close()
+
+    def __del__(self) -> None:
+        """Release open files when the last reference goes away.
+
+        Callers that simply drop a source, as scripts and workers do, would
+        otherwise leave the file to the garbage collector, which reports it
+        as an unclosed file.
+        """
+        self.close()
 
     def metadata(self) -> ImageMetadata:
-        """Return shape and unit without materialising the image plane."""
-        with _open_primary(self._path) as primary_hdu:
-            return _metadata(primary_hdu, self._path, self._supplied_metadata)
+        """Return shape and unit without materialising the image plane.
+
+        A source validates one file once: tiled stages read hundreds of
+        windows, and re-parsing the header and rebuilding both WCS objects
+        for each of them costs more than reading the pixels.
+        """
+        if self._metadata is None:
+            self._metadata = _metadata(
+                self._primary_hdu(), self._path, self._supplied_metadata
+            )
+        return self._metadata
 
     def read_window(self, bounds: ImageBounds) -> ImageWindow:
         """Read one half-open global window into owned read-only arrays."""
@@ -283,31 +341,29 @@ class FitsImageSource:
         if not requested_bounds:
             return ()
         windows: list[ImageWindow] = []
-        with _open_primary(self._path) as primary_hdu:
-            metadata = _metadata(
-                primary_hdu, self._path, self._supplied_metadata
-            )
-            leading_indices = (0,) * (len(primary_hdu.shape) - 2)
-            for bounds in requested_bounds:
-                bounds.require_inside(metadata.shape_yx)
-                section = primary_hdu.section[
-                    (
-                        *leading_indices,
-                        slice(bounds.y_start, bounds.y_stop),
-                        slice(bounds.x_start, bounds.x_stop),
-                    )
-                ]
-                values = np.array(section, dtype=np.float64, copy=True)
-                valid_pixels = np.asarray(np.isfinite(values), dtype=np.bool_)
-                values.setflags(write=False)
-                valid_pixels.setflags(write=False)
-                windows.append(
-                    ImageWindow(
-                        bounds=bounds,
-                        values=values,
-                        valid_pixels=valid_pixels,
-                    )
+        metadata = self.metadata()
+        primary_hdu = self._primary_hdu()
+        leading_indices = (0,) * (len(primary_hdu.shape) - 2)
+        for bounds in requested_bounds:
+            bounds.require_inside(metadata.shape_yx)
+            section = primary_hdu.section[
+                (
+                    *leading_indices,
+                    slice(bounds.y_start, bounds.y_stop),
+                    slice(bounds.x_start, bounds.x_stop),
                 )
+            ]
+            values = np.array(section, dtype=np.float64, copy=True)
+            valid_pixels = np.asarray(np.isfinite(values), dtype=np.bool_)
+            values.setflags(write=False)
+            valid_pixels.setflags(write=False)
+            windows.append(
+                ImageWindow(
+                    bounds=bounds,
+                    values=values,
+                    valid_pixels=valid_pixels,
+                )
+            )
         return tuple(windows)
 
 

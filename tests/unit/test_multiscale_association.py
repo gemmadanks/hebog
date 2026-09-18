@@ -1,3 +1,5 @@
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUnknownVariableType=false
 """Analytic contracts for deterministic Phase 5 scale association."""
 
 from __future__ import annotations
@@ -8,6 +10,7 @@ from typing import cast
 import numpy as np
 import numpy.typing as npt
 import pytest
+from scipy.ndimage import label as ndimage_label
 
 from hebog.algorithms.multiscale import (
     BeamShapePixels,
@@ -654,3 +657,93 @@ def test_canonical_pixel_must_belong_to_exact_support() -> None:
 
     with pytest.raises(ValueError, match="canonical pixel"):
         associate_adjacent_scale_detections((changed,))
+
+
+def _reference_scale_detections(
+    support: npt.NDArray[np.bool_],
+    response: npt.NDArray[np.float64],
+    snr: npt.NDArray[np.float64],
+    *,
+    origin_yx: tuple[int, int],
+) -> tuple[tuple[object, ...], ...]:
+    """Describe every feature with one straightforward per-label scan.
+
+    This is the readable definition of the contract: the vectorised kernel
+    must agree with it exactly, feature for feature and field for field.
+    """
+    labels, count = cast(
+        tuple[npt.NDArray[np.int32], int],
+        ndimage_label(support, np.ones((3, 3), dtype=np.int8)),
+    )
+    y_origin, x_origin = origin_yx
+    rows: list[tuple[object, ...]] = []
+    for label_value in range(1, count + 1):
+        local_y, local_x = np.nonzero(labels == label_value)
+        rows.append(
+            (
+                int(local_y.size),
+                (
+                    int(np.min(local_y)) + y_origin,
+                    int(np.max(local_y)) + y_origin + 1,
+                    int(np.min(local_x)) + x_origin,
+                    int(np.max(local_x)) + x_origin + 1,
+                ),
+                (int(local_y[0]) + y_origin, int(local_x[0]) + x_origin),
+                float(np.max(response[local_y, local_x])),
+                float(np.max(snr[local_y, local_x])),
+                bool(
+                    np.any(local_y == 0)
+                    or np.any(local_x == 0)
+                    or np.any(local_y == support.shape[0] - 1)
+                    or np.any(local_x == support.shape[1] - 1)
+                ),
+            )
+        )
+    return tuple(rows)
+
+
+@pytest.mark.parametrize("origin_yx", ((0, 0), (17, 23)))
+def test_scale_features_match_a_per_label_scan_on_a_crowded_plane(
+    origin_yx: tuple[int, int],
+) -> None:
+    """Many features, including ones on every edge and one whole row."""
+    generator = np.random.default_rng(2026091900)
+    shape = (48, 61)
+    support = generator.random(shape) < 0.18
+    support[0, :] = True
+    support[:, 0] = True
+    support[-1, 3:9] = True
+    support[7:13, -1] = True
+    response = generator.uniform(0.5, 4.0, shape)
+    snr = generator.uniform(3.0, 40.0, shape)
+    plane = build_scale_detection_plane(
+        support,
+        response,
+        snr,
+        np.ones(shape, dtype=np.bool_),
+        scale_order=2,
+        nominal_scale_beam_fwhm=2.0,
+        origin_yx=origin_yx,
+    )
+    measured = tuple(
+        (
+            detection.support_pixel_count,
+            detection.bounds_yx,
+            detection.canonical_pixel_yx,
+            detection.peak_response_jy_per_beam,
+            detection.peak_signal_to_noise,
+            detection.touches_image_edge,
+        )
+        for detection in plane.detections
+    )
+    expected = _reference_scale_detections(
+        support,
+        response,
+        snr,
+        origin_yx=origin_yx,
+    )
+    assert len(measured) > 20
+    assert measured == expected
+    assert len(
+        {detection.detection_id for detection in plane.detections}
+    ) == len(measured)

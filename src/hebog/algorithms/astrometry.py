@@ -81,18 +81,23 @@ def local_tangent_plane_transform_from_wcs(
         raise ValueError("astrometry requires a celestial WCS")
     x, y = position_xy
     wcs = celestial_wcs.celestial
-    center = wcs.pixel_to_world(x, y).icrs
     step = _FINITE_DIFFERENCE_STEP_PIXELS
+    # One conversion for the centre and the four finite-difference
+    # neighbours together. Converting them one at a time builds five sky
+    # coordinates and five frame transforms per measured source, which
+    # costs more than everything else in the catalogue.
+    sampled = wcs.pixel_to_world(
+        np.asarray([x, x + step, x - step, x, x], dtype=np.float64),
+        np.asarray([y, y, y, y + step, y - step], dtype=np.float64),
+    ).icrs
+    center = sampled[0]
+    east, north = center.spherical_offsets_to(sampled[1:])
     columns: list[tuple[float, float]] = []
-    for x_offset, y_offset in ((step, 0.0), (0.0, step)):
-        plus = wcs.pixel_to_world(x + x_offset, y + y_offset).icrs
-        minus = wcs.pixel_to_world(x - x_offset, y - y_offset).icrs
-        plus_east, plus_north = center.spherical_offsets_to(plus)
-        minus_east, minus_north = center.spherical_offsets_to(minus)
+    for plus, minus in ((0, 1), (2, 3)):
         columns.append(
             (
-                (plus_east.degree - minus_east.degree) / (2.0 * step),
-                (plus_north.degree - minus_north.degree) / (2.0 * step),
+                (east[plus].degree - east[minus].degree) / (2.0 * step),
+                (north[plus].degree - north[minus].degree) / (2.0 * step),
             )
         )
     jacobian = (

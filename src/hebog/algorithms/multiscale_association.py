@@ -16,6 +16,7 @@ import numpy.typing as npt
 from scipy.ndimage import binary_dilation
 from scipy.ndimage import label as connected_component_labels
 
+from hebog.algorithms.label_groups import group_labelled_pixels
 from hebog.data_models.multiscale import (
     CompactExtendedContextEdge,
     CompactSourceSupport,
@@ -176,26 +177,32 @@ def build_scale_detection_plane(  # noqa: PLR0913
             structure=np.ones((3, 3), dtype=np.int8),
         ),
     )
-    detections: list[ScaleDetection] = []
-    y_origin, x_origin = origin_yx
-    for label_value in range(1, count + 1):
-        local_y, local_x = np.nonzero(labels == label_value)
-        feature_response = np.asarray(
-            response[local_y, local_x],
-            dtype=np.float64,
+    groups = group_labelled_pixels(labels, label_count=count)
+    feature_response = np.asarray(response, dtype=np.float64).reshape(-1)[
+        groups.flat_positions
+    ]
+    feature_snr = np.asarray(snr, dtype=np.float64).reshape(-1)[
+        groups.flat_positions
+    ]
+    if (
+        not bool(np.all(np.isfinite(feature_response)))
+        or not bool(np.all(np.isfinite(feature_snr)))
+        or bool(np.any(groups.maximum(feature_response) <= 0.0))
+    ):
+        raise ValueError(
+            "significant scale features require finite positive response"
         )
-        feature_snr = np.asarray(snr[local_y, local_x], dtype=np.float64)
-        if (
-            not np.all(np.isfinite(feature_response))
-            or not np.all(np.isfinite(feature_snr))
-            or float(np.max(feature_response)) <= 0.0
-        ):
-            raise ValueError(
-                "significant scale features require finite positive response"
-            )
+    y_origin, x_origin = origin_yx
+    height, width = support.shape
+    minimum_y, maximum_y = groups.minimum(groups.y), groups.maximum(groups.y)
+    minimum_x, maximum_x = groups.minimum(groups.x), groups.maximum(groups.x)
+    peak_response = groups.maximum(feature_response)
+    peak_snr = groups.maximum(feature_snr)
+    detections: list[ScaleDetection] = []
+    for index in range(count):
         canonical = (
-            int(local_y[0]) + y_origin,
-            int(local_x[0]) + x_origin,
+            int(groups.first_y[index]) + y_origin,
+            int(groups.first_x[index]) + x_origin,
         )
         detections.append(
             ScaleDetection(
@@ -203,22 +210,22 @@ def build_scale_detection_plane(  # noqa: PLR0913
                 parent_island_id=None,
                 scale_order=scale_order,
                 nominal_scale_beam_fwhm=nominal_scale_beam_fwhm,
-                support_pixel_count=int(local_y.size),
+                support_pixel_count=int(groups.sizes[index]),
                 valid_support_fraction=1.0,
                 bounds_yx=(
-                    int(np.min(local_y)) + y_origin,
-                    int(np.max(local_y)) + y_origin + 1,
-                    int(np.min(local_x)) + x_origin,
-                    int(np.max(local_x)) + x_origin + 1,
+                    int(minimum_y[index]) + y_origin,
+                    int(maximum_y[index]) + y_origin + 1,
+                    int(minimum_x[index]) + x_origin,
+                    int(maximum_x[index]) + x_origin + 1,
                 ),
                 canonical_pixel_yx=canonical,
-                peak_response_jy_per_beam=float(np.max(feature_response)),
-                peak_signal_to_noise=float(np.max(feature_snr)),
+                peak_response_jy_per_beam=float(peak_response[index]),
+                peak_signal_to_noise=float(peak_snr[index]),
                 touches_image_edge=bool(
-                    np.any(local_y == 0)
-                    or np.any(local_x == 0)
-                    or np.any(local_y == support.shape[0] - 1)
-                    or np.any(local_x == support.shape[1] - 1)
+                    minimum_y[index] == 0
+                    or minimum_x[index] == 0
+                    or maximum_y[index] == height - 1
+                    or maximum_x[index] == width - 1
                 ),
             )
         )
@@ -275,26 +282,24 @@ def _label_bounds(
     label_count: int,
     origin_yx: tuple[int, int],
 ) -> tuple[tuple[int, int, int, int], ...]:
-    """Return global half-open bounds through one vectorized label scan."""
-    y_pixels, x_pixels = np.nonzero(labels)
-    label_values = labels[y_pixels, x_pixels]
-    y_minimum = np.full(label_count + 1, labels.shape[0], dtype=np.int64)
-    y_maximum = np.full(label_count + 1, -1, dtype=np.int64)
-    x_minimum = np.full(label_count + 1, labels.shape[1], dtype=np.int64)
-    x_maximum = np.full(label_count + 1, -1, dtype=np.int64)
-    np.minimum.at(y_minimum, label_values, y_pixels)
-    np.maximum.at(y_maximum, label_values, y_pixels)
-    np.minimum.at(x_minimum, label_values, x_pixels)
-    np.maximum.at(x_maximum, label_values, x_pixels)
+    """Return global half-open bounds through one vectorized label scan.
+
+    A label without pixels cannot be described, and every caller has already
+    required its labels to cover each record exactly once, so an empty
+    label raises rather than returning inverted bounds.
+    """
+    groups = group_labelled_pixels(labels, label_count=label_count)
+    minimum_y, maximum_y = groups.minimum(groups.y), groups.maximum(groups.y)
+    minimum_x, maximum_x = groups.minimum(groups.x), groups.maximum(groups.x)
     y_origin, x_origin = origin_yx
     return tuple(
         (
-            int(y_minimum[label_value]) + y_origin,
-            int(y_maximum[label_value]) + y_origin + 1,
-            int(x_minimum[label_value]) + x_origin,
-            int(x_maximum[label_value]) + x_origin + 1,
+            int(minimum_y[index]) + y_origin,
+            int(maximum_y[index]) + y_origin + 1,
+            int(minimum_x[index]) + x_origin,
+            int(maximum_x[index]) + x_origin + 1,
         )
-        for label_value in range(1, label_count + 1)
+        for index in range(label_count)
     )
 
 
