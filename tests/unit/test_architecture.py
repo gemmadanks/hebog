@@ -407,3 +407,43 @@ def test_public_pipeline_import_does_not_load_distributed() -> None:
     )
 
     assert completed.returncode == 0, completed.stderr
+
+
+def _constructed_names(path: Path) -> set[str]:
+    """Return every callable name this module constructs in any scope."""
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    alias_visitor = _ImportAliasVisitor()
+    alias_visitor.visit(tree)
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            name = _qualified_name(node.func, alias_visitor.aliases)
+            if name is not None:
+                names.add(name.rsplit(".", maxsplit=1)[-1])
+    return names
+
+
+@pytest.mark.parametrize(
+    ("constructor", "permitted_module"),
+    [
+        ("LocalCluster", None),
+        ("Client", None),
+        ("ProcessPoolExecutor", None),
+        ("ThreadPoolExecutor", "executors/threads.py"),
+        ("Pool", None),
+    ],
+)
+def test_library_never_creates_its_own_workers(
+    constructor: str,
+    permitted_module: str | None,
+) -> None:
+    """Only the caller's executor owns workers; stages never nest pools."""
+    violations = [
+        str(path.relative_to(PACKAGE_ROOT))
+        for path in sorted(PACKAGE_ROOT.rglob("*.py"))
+        if not str(path.relative_to(PACKAGE_ROOT)).startswith("validation/")
+        and str(path.relative_to(PACKAGE_ROOT)) != permitted_module
+        and constructor in _constructed_names(path)
+    ]
+
+    assert violations == []

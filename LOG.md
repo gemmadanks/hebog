@@ -23055,3 +23055,57 @@ scientific pass from fixture validation.
   `public_science.py` onto the tiled stages pass by pass, keeping the quick
   science check and Serial/Dask agreement green, and delete the whole-array
   path only once one-tile and many-tile runs agree.
+
+## 2026-09-18 — M2: one executor contract for three policies
+
+- **Why first.** ADR-008 records that the support and object passes cannot be
+  expressed by `map_batches` with a driver-side gather, so the executor row
+  moved ahead of the convergence it enables. ADR-008 is accepted.
+- **The contract.** `hebog.executors` now states one contract that the serial
+  reference, a caller-owned persistent thread pool and a caller-owned Dask
+  client all satisfy: results follow input order whatever the completion
+  order; submission stays inside `capacity.maximum_tasks_in_flight`; the
+  first failing batch **by input index** is the error that propagates, which
+  is deterministic because every policy consumes results in index order; a
+  failure cancels the rest of the plan; payloads are validated before
+  anything is submitted; and an idempotent task is retried up to
+  `retry_limit` times.
+- **Bounded gathering.** `reduce_batches` maps batches and combines them in a
+  binary tree fixed by input index, holding one accumulator per tree level
+  rather than one result per batch. `reduce_in_canonical_order` is shared, so
+  Serial, threads and Dask associate identically and floating-point
+  summation does not move with completion order. `DaskExecutor` submits the
+  combines to workers and gathers one value.
+- **Resources.** `ExecutorCapacity` reports the budget the caller admitted
+  and `TaskRequirement` declares one task's working set. Admission rejects an
+  impossible plan before submission, and a declared working set narrows the
+  in-flight window so concurrent tasks fit the admitted memory; it never
+  widens the caller's bound. `DaskExecutor` reads the budget from the
+  caller's cluster when none is declared. Dask `resources={...}` annotations
+  are deliberately **not** attached: a cluster whose workers declare no
+  matching resource would never run the task, so the requirement is honoured
+  through admission and concurrency instead.
+- **Serialization is checked on every policy, including Serial.** A payload
+  that cannot cross a worker boundary now fails the same way on the reference
+  executor as on a cluster, instead of surfacing only when workers are
+  separate processes. Measured cost on a complete 512² serial run: 3.4 ms of
+  6.77 s over 256 validated payloads, 0.05%. A probe of a complete public run
+  found all 148 function, batch and result payloads already serializable, so
+  nothing in the current stages had to change.
+- **No nested pools or clusters.** An architecture test asserts that no
+  library module constructs `LocalCluster`, `Client`, `ProcessPoolExecutor`
+  or a multiprocessing `Pool`, and that only `executors/threads.py`
+  constructs a `ThreadPoolExecutor`, which the caller owns and closes.
+- **Validation.** One parametrized suite,
+  `tests/contract/test_executor_contract.py`, runs 17 behaviours against all
+  three policies; the serial and thread parameters carry `contract` and the
+  Dask parameter carries `integration`, so the contract lane stays
+  scheduler-free. Dask submission throttling is additionally proved without a
+  scheduler by a stub client that records the submit/wait sequence. The eight
+  fault-injecting executor doubles in the existing suites became
+  `SerialExecutor` subclasses, so they inherit the contract they are testing
+  around. Full unit, contract and integration lanes pass, with Pyright and
+  Ruff clean.
+- **Next step.** Converge `public_science.py` onto the tiled stages pass by
+  pass under ADR-008, moving the boundary-state merges onto
+  `reduce_batches` as each pass lands.

@@ -24,7 +24,7 @@ from hebog.algorithms.background import (
 )
 from hebog.config import RmsGridConfig, RmsWindowStatisticsConfig
 from hebog.data_models import ImageBounds
-from hebog.executors import SerialExecutor
+from hebog.executors import SerialExecutor, TaskRequirement
 from hebog.io.base import ImageWindow
 from hebog.stages.background import estimate_rms_grid
 
@@ -63,19 +63,23 @@ class _ArrayImageSource:
         )
 
 
-class _RetryExecutor:
+class _RetryExecutor(SerialExecutor):
     """Repeat one completed batch before returning canonical results."""
 
     def map_batches(
         self,
         function: Callable[[Input], Output],
         batches: Iterable[Input],
+        *,
+        requirement: TaskRequirement | None = None,
     ) -> list[Output]:
         """Inject an identical retry but publish only its first result."""
         inputs = list(batches)
-        results = [function(batch) for batch in inputs]
+        results = super().map_batches(
+            function, inputs, requirement=requirement
+        )
         if inputs:
-            function(inputs[0])
+            super().map_batches(function, inputs[:1])
         return results
 
 

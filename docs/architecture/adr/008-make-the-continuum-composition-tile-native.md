@@ -10,7 +10,7 @@ tags:
 
 | | |
 | --- | --- |
-| **Status** | 🟡 Proposed |
+| **Status** | 🟢 Accepted |
 | **Created** | 2026-09-18 |
 | **Last Updated** | 2026-09-18 |
 | **Deciders** | Gemma Danks |

@@ -379,6 +379,63 @@ Hebog never starts or closes that client. Serial and Dask results obey the
 same contract; client lifecycle and the top-level graph remain with the
 workflow.
 
+## Choose and bound an executor
+
+Three executors satisfy one contract: `SerialExecutor` is the deterministic
+reference, `ThreadExecutor` runs one caller-owned persistent thread pool in
+this process, and `DaskExecutor` submits to a caller-owned client. Hebog never
+creates a cluster or a pool of its own, and a task never nests one.
+
+```python
+from hebog.executors import ThreadExecutor
+
+with ThreadExecutor(thread_count=4) as executor:
+    results = executor.map_batches(estimate_tile, tiles)
+```
+
+Every executor obeys the same rules, so a defect appears on the serial
+reference rather than only on a cluster:
+
+- results follow input order, whatever order batches complete in;
+- submission stays within `capacity.maximum_tasks_in_flight`, and a failure
+  cancels the rest of the plan instead of running it;
+- the first failing batch by input index is the error that propagates;
+- payloads must be serializable, which every executor checks before it
+  submits anything, so a lambda or an open file fails immediately;
+- tasks must be idempotent, because a `retry_limit` above zero repeats one
+  that fails.
+
+Declare what a task needs, and admission refuses an impossible plan before any
+work starts:
+
+```python
+from hebog.executors import TaskRequirement
+
+executor.map_batches(
+    estimate_tile,
+    tiles,
+    requirement=TaskRequirement(memory_bytes=512 * 1024**2, threads=1),
+)
+```
+
+`executor.capacity` reports the budget the caller admitted. `DaskExecutor`
+reads it from the client's own cluster unless the caller declares one. A
+declared working set also narrows how many tasks run at once, so concurrent
+tasks fit the admitted memory; it never widens the caller's in-flight bound,
+and it changes scheduling only, never ownership or results.
+
+Use `reduce_batches` when the driver must not hold one result per batch. It
+maps batches and combines them in a tree fixed by input index, so the value,
+including floating-point summation, does not depend on completion order, and
+only one accumulator per tree level is held:
+
+```python
+merged = executor.reduce_batches(summarise_tile, tiles, merge_summaries)
+```
+
+`DaskExecutor` runs those combines on workers and gathers one value. The
+combine must be deterministic; it need not be commutative or associative.
+
 ## Publish retryable product chunks
 
 Publish intermediate image planes as independent tile-owned chunks in one

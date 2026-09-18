@@ -23,7 +23,7 @@ import hebog
 from hebog import SourceFinderConfig, SourceFinderRequest, public_api
 from hebog.algorithms import fitting as fitting_algorithm
 from hebog.data_models import PublicSourceFindingDiagnostics
-from hebog.executors import DaskExecutor, SerialExecutor
+from hebog.executors import DaskExecutor, SerialExecutor, TaskRequirement
 from hebog.io import (
     FitsImageSource,
     read_catalogue_fits_product,
@@ -103,21 +103,25 @@ def test_public_workflow_retires_stale_coarse_anchors(
     assert np.all(np.isfinite(rms))
 
 
-class _RecordingExecutor:
+class _RecordingExecutor(SerialExecutor):
     """Ordered executor double proving the public facade uses its caller."""
 
     def __init__(self) -> None:
+        """Record the batch count of every submitted map."""
+        super().__init__()
         self.batch_counts: list[int] = []
 
     def map_batches(
         self,
         function: Callable[[Input], Output],
         batches: Iterable[Input],
+        *,
+        requirement: TaskRequirement | None = None,
     ) -> list[Output]:
         """Execute in order while retaining each submitted batch count."""
-        items = tuple(batches)
+        items = list(batches)
         self.batch_counts.append(len(items))
-        return [function(item) for item in items]
+        return super().map_batches(function, items, requirement=requirement)
 
 
 def _header(shape_yx: tuple[int, int]) -> fits.Header:

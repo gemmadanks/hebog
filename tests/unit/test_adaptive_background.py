@@ -19,7 +19,7 @@ from hebog.config import (
     SourceFinderConfig,
 )
 from hebog.data_models import ImageBounds, TilePartition
-from hebog.executors import SerialExecutor
+from hebog.executors import SerialExecutor, TaskRequirement
 from hebog.io.base import ImageWindow
 from hebog.stages.background import (
     BackgroundRmsGrids,
@@ -70,19 +70,23 @@ class _ArrayImageSource:
         )
 
 
-class _RetryExecutor:
+class _RetryExecutor(SerialExecutor):
     """Repeat region work while returning one canonical ordered result."""
 
     def map_batches(
         self,
         function: Callable[[Input], Output],
         batches: Iterable[Input],
+        *,
+        requirement: TaskRequirement | None = None,
     ) -> list[Output]:
         """Inject one identical retry without changing returned evidence."""
         inputs = list(batches)
-        results = [function(batch) for batch in inputs]
+        results = super().map_batches(
+            function, inputs, requirement=requirement
+        )
         if inputs:
-            function(inputs[-1])
+            super().map_batches(function, inputs[-1:])
         return results
 
 
