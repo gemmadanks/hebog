@@ -23163,3 +23163,11 @@ behaviour-by-entry-point matrix that was never written down.
   unit tests cover reduction throttling and combine-failure cancellation with
   no scheduler. Unit, contract and integration lanes pass (1,916 and 406
   tests), with Pyright, Ruff and the strict docs build clean.
+- **Rules that follow.** `AGENTS.md` now requires every behaviour of a shared
+  contract to be asserted through every implementation and entry point it
+  covers, keeps platform-dependent values out of tests (POSIX path text, no
+  separator literals) because Windows is the only supported platform never
+  exercised locally, and requires an exemption list to assert that it still
+  matches. `CODE_REVIEW.md` adds the matching review steps: a stated guarantee
+  needs a code path that enforces it, and a shared contract is reviewed across
+  its whole behaviour-by-entry-point matrix.
