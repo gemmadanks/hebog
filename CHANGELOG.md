@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.12.0](https://github.com/gemmadanks/hebog/compare/v0.11.0...v0.12.0) (2026-09-18)
+
+
+### 🚀 Features
+
+* add executor contract for every policy ([#68](https://github.com/gemmadanks/hebog/issues/68)) ([719f645](https://github.com/gemmadanks/hebog/commit/719f6455d0bbde819bef8bbae607946374b7af6f))
+* complete the executor contract for every policy ([719f645](https://github.com/gemmadanks/hebog/commit/719f6455d0bbde819bef8bbae607946374b7af6f))
+
+
+### 📚 Documentation
+
+* propose the tile-native continuum composition ([719f645](https://github.com/gemmadanks/hebog/commit/719f6455d0bbde819bef8bbae607946374b7af6f))
+
 ## [0.11.0](https://github.com/gemmadanks/hebog/compare/v0.10.1...v0.11.0) (2026-09-18)
 
 
