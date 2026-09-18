@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.10.1](https://github.com/gemmadanks/hebog/compare/v0.10.0...v0.10.1) (2026-09-18)
+
+
+### ⚡ Performance
+
+* bounded component scans ([#64](https://github.com/gemmadanks/hebog/issues/64)) ([b600906](https://github.com/gemmadanks/hebog/commit/b60090641304e266645ef6bed57a6127d50022c0))
+* carry excluded background samples as NaN ([b600906](https://github.com/gemmadanks/hebog/commit/b60090641304e266645ef6bed57a6127d50022c0))
+* convert one tangent-plane sample set at a time ([b600906](https://github.com/gemmadanks/hebog/commit/b60090641304e266645ef6bed57a6127d50022c0))
+* group labelled pixels once for multiscale scale features ([b600906](https://github.com/gemmadanks/hebog/commit/b60090641304e266645ef6bed57a6127d50022c0))
+* measure each segment in its own window ([b600906](https://github.com/gemmadanks/hebog/commit/b60090641304e266645ef6bed57a6127d50022c0))
+* validate and open an image once per source ([b600906](https://github.com/gemmadanks/hebog/commit/b60090641304e266645ef6bed57a6127d50022c0))
+* window owner connectivity and catalogue local RMS ([b600906](https://github.com/gemmadanks/hebog/commit/b60090641304e266645ef6bed57a6127d50022c0))
+* window segment moments and component geometry ([b600906](https://github.com/gemmadanks/hebog/commit/b60090641304e266645ef6bed57a6127d50022c0))
+
+
+### 🧹 Refactoring
+
+* give label windows one typed home ([b600906](https://github.com/gemmadanks/hebog/commit/b60090641304e266645ef6bed57a6127d50022c0))
+
+
+### 📚 Documentation
+
+* close the M1 performance rows and re-aim the bias row ([b600906](https://github.com/gemmadanks/hebog/commit/b60090641304e266645ef6bed57a6127d50022c0))
+* record the bounded-scan evidence ([b600906](https://github.com/gemmadanks/hebog/commit/b60090641304e266645ef6bed57a6127d50022c0))
+
 ## [0.10.0](https://github.com/gemmadanks/hebog/compare/v0.9.0...v0.10.0) (2026-09-17)
 
 
