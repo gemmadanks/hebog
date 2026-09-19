@@ -23636,3 +23636,41 @@ the per-worker placement finding.
   convergence. M2's bottleneck row still owns that total.
 - **What pass D still holds whole-array.** Source association, the continuum
   catalogue and the per-scale detection records.
+
+## 2026-09-19 — M2: the source association's pixel facts are separated
+
+- **What this is.** The preparatory half of ADR-008's association round. The
+  multiscale hierarchy association no longer reads planes while it decides:
+  `summarize_hierarchy_overlaps` answers every pixel question first, and
+  `associate_from_hierarchy_overlaps` decides from those records alone.
+- **What the pixel questions turned out to be.** Reading the installed
+  association found exactly five, and every one is either a per-tile
+  reduction or bounded by one feature's own window: which scale features a
+  component's exact support intersects; which parent feature each child
+  overlaps; which components lie in a feature's exact support and in the B3
+  influence of its envelope; which retained support component contains each
+  feature and each component; and which two features' envelopes overlap.
+  `HierarchyOverlaps` is that answer set. ADR-008 records the boundary, and
+  replaces the centroid-pair association it first anticipated with the
+  hierarchy that is actually installed.
+- **Why this is the hard half.** The association is the plan's named largest
+  M2 risk. Splitting it is a behaviour-preserving refactor of the most
+  intricate module in the repository, so it is validated on its own before
+  any stage consumes it: 231 tests across
+  `test_source_reconstruction`, `test_source_association`,
+  `test_source_catalogue_repairs` and `test_multiscale_association` pass
+  unchanged, and module coverage returns to its committed 96%.
+- **Two pieces of dead code the split exposed.** `_envelope_adjacency` became
+  the only caller of a sweep it duplicated, and its box prefilter repeated a
+  test `_envelopes_overlap` already performs; both are removed rather than
+  left uncovered. A terminal feature without a B3 envelope now fails closed
+  where the previous code would have raised `KeyError`.
+- **What the remaining half needs.** Every overlap is stated between globally
+  labelled scale features, so those labels must be readable by window. The
+  detection pass already reconciles the per-scale islands and writes their
+  masks, so it gains one publication round writing `scale-{order}-labels`.
+  That is three more stored planes, admitted because the object pass now
+  needs them; reconciling each scale a second time in pass D would repeat a
+  reduction pass B has already performed.
+- **Not done.** The tiled stage that produces `HierarchyOverlaps`, and the
+  continuum catalogue. `public_science.py` still holds whole planes for both.

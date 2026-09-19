@@ -296,7 +296,8 @@ that only one round reads would cost a generation for nothing.
 | Support write | core, halo 0 | the patches | `measurement-support` |
 | Support features | core, halo 0 | `measurement-support`, `valid-pixels`, `component-measurement-labels` | feature island summaries and each measurement label's bounds |
 | Cross-parent loops and extended residual | support-feature window + margin | residual, RMS, validity, `measurement-support`, `component-measurement-labels`, the sharded fit records | extended group records and grouping evidence |
-| Source association | pair box, or a reduced line | component records and the line between two centroids | canonicalised edge records |
+| Scale feature labels | core, halo 0 | the reconciled per-scale mappings | `scale-{order}-labels` |
+| Hierarchy overlaps | core, halo 0, then one feature's window plus its B3 footprint | `component-direct-labels`, `valid-pixels`, `reconstruction-mask`, the scale label planes | component, feature, support and envelope overlap records |
 | Source rows | source window + 1.5-beam aperture | image, background, validity, source labels, position signal | catalogue shards |
 
 Component numbering is canonical because the driver offsets each parent's
@@ -307,21 +308,40 @@ reviewed science rather than a new rule.
 
 ### Extended association
 
-Association is a record-graph computation, not a pixel pass. Component records
-carry global centroids, moments, parent support and stable identities, so the
-candidate pairs follow from a spatial index over centroids with a cutoff equal
-to the mean directional FWHM of the pair. The edge predicate needs pixels only
-along the straight line between the two centroids, and its two tests — the
-minimum signal-to-noise on that line and the validity of every line pixel —
-are both associative reductions. A pair whose box fits one task is evaluated
-by the owner of its canonically first component; a longer pair is evaluated as
-a segmented reduction over the cores the line crosses. The edge set is then
-canonicalised, so the complete-link agglomeration that forms sources consumes
-a partition-independent input. Groups are resolved per connected component of
-the edge graph, which keeps the clique work local and bounded.
+Association is a record-graph computation, not a pixel pass. The installed
+association is the multiscale hierarchy, not the centroid-pair predicate this
+decision first anticipated, so the boundary is drawn where that hierarchy
+actually touches pixels. Reading it found exactly five pixel questions, and
+every one of them is either a per-tile reduction or bounded by one feature's
+own window:
+
+- which scale features each direct component's exact support intersects;
+- which parent feature each child feature overlaps at the adjacent scale;
+- which components lie inside a feature's exact support, and which lie inside
+  the reviewed B3 influence of its envelope;
+- which retained support component contains each feature and each direct
+  component, over the connected support the detection pass published;
+- which two features' B3 envelopes overlap.
+
+`HierarchyOverlaps` is that answer set, and `associate_from_hierarchy_overlaps`
+is the decision that consumes it. The decision holds no plane, so it cannot
+depend on tile geometry or completion order, and
+`summarize_hierarchy_overlaps` evaluates the same reductions over whole planes
+as the serial oracle. Envelope masks never cross the executor boundary: a
+feature's task derives its own influence set and its envelope's overlaps
+inside the pair box, and returns records.
 
 The driver never gathers the component set. Records live in owner-tile shards
 and reduce hierarchically.
+
+Every overlap above is stated between *globally* labelled features, so the
+scale feature labels must be readable by window. The detection pass already
+reconciles the per-scale islands and writes their support masks, so it gains
+one publication round that writes `scale-{order}-labels` beside
+`scale-{order}-significant`. That is three more stored planes, admitted under
+*Store a plane only if a later pass or a product needs it* because the object
+pass now needs them; the alternative, reconciling each scale a second time in
+pass D, would repeat a reduction pass B has already performed.
 
 ### The à trous position filter
 
