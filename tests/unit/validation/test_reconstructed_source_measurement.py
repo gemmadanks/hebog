@@ -13,6 +13,10 @@ from astropy.io import fits  # pyright: ignore[reportMissingTypeStubs]
 from astropy.wcs import WCS  # pyright: ignore[reportMissingTypeStubs]
 
 from hebog.algorithms.multiscale_association import ScaleDetectionPlane
+from hebog.algorithms.source_association import (
+    build_detection_component_records,
+    summarize_hierarchy_overlaps,
+)
 from hebog.data_models.multiscale import ScaleDetection
 from hebog.science import catalogues as product_builder
 from hebog.science.catalogues import (
@@ -88,19 +92,39 @@ def _measure(  # noqa: PLR0913
     resolved_background = (
         np.zeros_like(image) if background is None else background
     )
+    valid = np.ones(image.shape, dtype=np.bool_)
+    direct = direct_labels if direct_labels is not None else labels
     return build_hebog_reconstructed_source_catalogues(
         image,
         resolved_background,
-        np.ones(image.shape, dtype=np.bool_),
+        valid,
         labels,
-        direct_labels if direct_labels is not None else labels,
-        np.zeros(labels.shape, dtype=np.bool_),
+        direct,
         planes,
         _header(image.shape),
         beam_major_fwhm_pixels=2.0,
         beam_minor_fwhm_pixels=1.0,
         measurement_aperture_radius_beams=radius,
         position_signal_jy_per_beam=image,
+        hierarchy_overlaps=_overlaps(direct, image, valid, planes),
+    )
+
+
+def _overlaps(
+    direct: np.ndarray,
+    image: np.ndarray,
+    valid: np.ndarray,
+    planes: tuple[ScaleDetectionPlane, ...],
+):
+    """Summarise the overlaps the hierarchy decides from, whole-plane."""
+    return summarize_hierarchy_overlaps(
+        build_detection_component_records(
+            np.asarray(direct, dtype=np.int64), image, valid
+        ),
+        np.asarray(direct, dtype=np.int64),
+        planes,
+        valid,
+        np.zeros(image.shape, dtype=np.bool_),
     )
 
 

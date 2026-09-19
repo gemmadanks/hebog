@@ -25,6 +25,7 @@ from hebog.algorithms.multiscale_association import (
     adjacent_scale_overlap_edges,
     associate_adjacent_scale_detections,
 )
+from hebog.data_models.partitioning import ImageBounds
 from hebog.data_models.source_association import (
     CatalogueSourceMembership,
     DetectionComponentRecord,
@@ -658,8 +659,11 @@ class HierarchyOverlaps:
     produce and that merges associatively, so the decision that consumes it
     is pure record logic and cannot depend on tile geometry.
     ``support_component`` is zero where a feature is not wholly inside one
-    retained support component, and ``envelope_edges`` holds one unordered
-    pair for every two features whose B3 envelopes overlap, at any scale.
+    retained support component. ``influence_component_ids`` is filled only
+    for the features :func:`influence_candidate_feature_ids` admits, and
+    ``envelope_edges`` only for the scale pairs
+    :func:`envelope_pair_is_needed` admits, because no decision reads the
+    rest and deriving them is pixel work.
     """
 
     features: tuple[FeatureOverlaps, ...]
@@ -845,53 +849,159 @@ def _hierarchy_attachments(
     )
 
 
+def scale_feature_envelope_bounds(
+    feature_bounds: ImageBounds,
+    *,
+    scale_order: int,
+    image_shape_yx: tuple[int, int],
+) -> ImageBounds | None:
+    """Return one feature's B3 envelope box, or absence beyond the footprint.
+
+    The box follows from the feature's own bounds, so a driver knows it from
+    records alone and one task can evaluate the envelope inside it.
+    """
+    halos = residual_atrous_scale_halos_pixels()
+    if scale_order > len(halos):
+        return None
+    radius = halos[scale_order - 1]
+    return ImageBounds(
+        max(0, feature_bounds.y_start - radius),
+        min(image_shape_yx[0], feature_bounds.y_stop + radius),
+        max(0, feature_bounds.x_start - radius),
+        min(image_shape_yx[1], feature_bounds.x_stop + radius),
+    )
+
+
+def scale_feature_envelope_support(
+    exact_support: npt.NDArray[np.bool_],
+    valid: npt.NDArray[np.bool_],
+    *,
+    scale_order: int,
+) -> npt.NDArray[np.bool_]:
+    """Dilate one feature's exact support over its own envelope window.
+
+    Both arrays cover the envelope box that
+    :func:`scale_feature_envelope_bounds` returns.
+    """
+    radius = residual_atrous_scale_halos_pixels()[scale_order - 1]
+    return np.asarray(
+        binary_dilation(
+            exact_support,
+            structure=np.ones((3, 3), dtype=np.bool_),
+            iterations=radius,
+            mask=valid,
+        ),
+        dtype=np.bool_,
+    )
+
+
+def scale_feature_influence_bounds(
+    envelope_bounds: ImageBounds,
+    *,
+    scale_order: int,
+    image_shape_yx: tuple[int, int],
+) -> ImageBounds:
+    """Return the symmetric reviewed B3 influence box of one envelope."""
+    radius = residual_atrous_scale_halos_pixels()[scale_order - 1]
+    return ImageBounds(
+        max(0, envelope_bounds.y_start - radius),
+        min(image_shape_yx[0], envelope_bounds.y_stop + radius),
+        max(0, envelope_bounds.x_start - radius),
+        min(image_shape_yx[1], envelope_bounds.x_stop + radius),
+    )
+
+
+def scale_feature_influence_component_ids(
+    envelope_seed: npt.NDArray[np.bool_],
+    valid: npt.NDArray[np.bool_],
+    component_labels: npt.NDArray[np.int64],
+    *,
+    scale_order: int,
+    component_id_by_label: Mapping[int, str],
+) -> frozenset[str]:
+    """Return owners within the symmetric reviewed B3 influence support.
+
+    Every array covers the influence box that
+    :func:`scale_feature_influence_bounds` returns, with the envelope support
+    already placed at its offset inside ``envelope_seed``.
+    """
+    radius = residual_atrous_scale_halos_pixels()[scale_order - 1]
+    influence = np.asarray(
+        binary_dilation(
+            envelope_seed,
+            structure=np.ones((3, 3), dtype=np.bool_),
+            iterations=radius,
+            mask=valid,
+        ),
+        dtype=np.bool_,
+    )
+    return frozenset(
+        component_id_by_label[int(label_value)]
+        for label_value in np.unique(component_labels[influence])
+        if int(label_value) > 0
+    )
+
+
+def scale_feature_envelopes_overlap(
+    first_support: npt.NDArray[np.bool_],
+    first_bounds: ImageBounds,
+    second_support: npt.NDArray[np.bool_],
+    second_bounds: ImageBounds,
+) -> bool:
+    """Return whether two bounded envelopes share a supported pixel."""
+    y0 = max(first_bounds.y_start, second_bounds.y_start)
+    y1 = min(first_bounds.y_stop, second_bounds.y_stop)
+    x0 = max(first_bounds.x_start, second_bounds.x_start)
+    x1 = min(first_bounds.x_stop, second_bounds.x_stop)
+    if y0 >= y1 or x0 >= x1:
+        return False
+    return bool(
+        np.any(
+            first_support[
+                y0 - first_bounds.y_start : y1 - first_bounds.y_start,
+                x0 - first_bounds.x_start : x1 - first_bounds.x_start,
+            ]
+            & second_support[
+                y0 - second_bounds.y_start : y1 - second_bounds.y_start,
+                x0 - second_bounds.x_start : x1 - second_bounds.x_start,
+            ]
+        )
+    )
+
+
 def _feature_envelopes(
     plane: ScaleDetectionPlane,
     valid: npt.NDArray[np.bool_],
 ) -> tuple[_FeatureEnvelope, ...]:
     """Derive bounded valid envelopes from the fixed B3 filter footprint."""
-    halos = residual_atrous_scale_halos_pixels()
-    if plane.scale_order > len(halos):
-        return ()
-    radius = halos[plane.scale_order - 1]
     origin_y, origin_x = plane.origin_yx
     height, width = plane.component_labels.shape
     envelopes: list[_FeatureEnvelope] = []
     for label_value, detection in enumerate(plane.detections, start=1):
         global_y0, global_y1, global_x0, global_x1 = detection.bounds_yx
-        exact_y0 = global_y0 - origin_y
-        exact_y1 = global_y1 - origin_y
-        exact_x0 = global_x0 - origin_x
-        exact_x1 = global_x1 - origin_x
-        y0 = max(0, exact_y0 - radius)
-        y1 = min(height, exact_y1 + radius)
-        x0 = max(0, exact_x0 - radius)
-        x1 = min(width, exact_x1 + radius)
-        seed = np.zeros((y1 - y0, x1 - x0), dtype=np.bool_)
-        seed[
-            exact_y0 - y0 : exact_y1 - y0,
-            exact_x0 - x0 : exact_x1 - x0,
-        ] = (
-            plane.component_labels[
-                exact_y0:exact_y1,
-                exact_x0:exact_x1,
-            ]
-            == label_value
-        )
-        envelope = np.asarray(
-            binary_dilation(
-                seed,
-                structure=np.ones((3, 3), dtype=np.bool_),
-                iterations=radius,
-                mask=valid[y0:y1, x0:x1],
+        box = scale_feature_envelope_bounds(
+            ImageBounds(
+                global_y0 - origin_y,
+                global_y1 - origin_y,
+                global_x0 - origin_x,
+                global_x1 - origin_x,
             ),
-            dtype=np.bool_,
+            scale_order=plane.scale_order,
+            image_shape_yx=(height, width),
+        )
+        if box is None:
+            return ()
+        window = np.s_[box.y_start : box.y_stop, box.x_start : box.x_stop]
+        envelope = scale_feature_envelope_support(
+            np.asarray(plane.component_labels[window] == label_value),
+            valid[window],
+            scale_order=plane.scale_order,
         )
         envelope.setflags(write=False)
         envelopes.append(
             _FeatureEnvelope(
                 feature_id=detection.detection_id,
-                bounds_yx=(y0, y1, x0, x1),
+                bounds_yx=(box.y_start, box.y_stop, box.x_start, box.x_stop),
                 support=envelope,
             )
         )
@@ -903,25 +1013,11 @@ def _envelopes_overlap(
     second: _FeatureEnvelope,
 ) -> bool:
     """Return whether box-overlapping bounded envelopes share support."""
-    first_y0, first_y1, first_x0, first_x1 = first.bounds_yx
-    second_y0, second_y1, second_x0, second_x1 = second.bounds_yx
-    y0 = max(first_y0, second_y0)
-    y1 = min(first_y1, second_y1)
-    x0 = max(first_x0, second_x0)
-    x1 = min(first_x1, second_x1)
-    if y0 >= y1 or x0 >= x1:
-        return False
-    return bool(
-        np.any(
-            first.support[
-                y0 - first_y0 : y1 - first_y0,
-                x0 - first_x0 : x1 - first_x0,
-            ]
-            & second.support[
-                y0 - second_y0 : y1 - second_y0,
-                x0 - second_x0 : x1 - second_x0,
-            ]
-        )
+    return scale_feature_envelopes_overlap(
+        first.support,
+        ImageBounds(*first.bounds_yx),
+        second.support,
+        ImageBounds(*second.bounds_yx),
     )
 
 
@@ -1021,45 +1117,25 @@ def _feature_influence_component_ids(
     component_id_by_label: Mapping[int, str],
 ) -> frozenset[str]:
     """Return owners within the symmetric reviewed B3 influence support."""
-    halos = residual_atrous_scale_halos_pixels()
-    # The caller supplies only envelopes returned by _feature_envelopes,
-    # which omits scales without a reviewed B3 footprint.
-    radius = halos[plane.scale_order - 1]
     y0, y1, x0, x1 = envelope.bounds_yx
-    expanded_y0 = max(0, y0 - radius)
-    expanded_y1 = min(labels.shape[0], y1 + radius)
-    expanded_x0 = max(0, x0 - radius)
-    expanded_x1 = min(labels.shape[1], x1 + radius)
-    seed = np.zeros(
-        (expanded_y1 - expanded_y0, expanded_x1 - expanded_x0),
-        dtype=np.bool_,
+    envelope_bounds = ImageBounds(y0, y1, x0, x1)
+    box = scale_feature_influence_bounds(
+        envelope_bounds,
+        scale_order=plane.scale_order,
+        image_shape_yx=(labels.shape[0], labels.shape[1]),
     )
+    seed = np.zeros(box.shape_yx, dtype=np.bool_)
     seed[
-        y0 - expanded_y0 : y1 - expanded_y0,
-        x0 - expanded_x0 : x1 - expanded_x0,
+        y0 - box.y_start : y1 - box.y_start,
+        x0 - box.x_start : x1 - box.x_start,
     ] = envelope.support
-    influence = np.asarray(
-        binary_dilation(
-            seed,
-            structure=np.ones((3, 3), dtype=np.bool_),
-            iterations=radius,
-            mask=valid[
-                expanded_y0:expanded_y1,
-                expanded_x0:expanded_x1,
-            ],
-        ),
-        dtype=np.bool_,
-    )
-    influenced_labels = np.unique(
-        labels[
-            expanded_y0:expanded_y1,
-            expanded_x0:expanded_x1,
-        ][influence]
-    )
-    return frozenset(
-        component_id_by_label[int(label_value)]
-        for label_value in influenced_labels
-        if int(label_value) > 0
+    window = np.s_[box.y_start : box.y_stop, box.x_start : box.x_stop]
+    return scale_feature_influence_component_ids(
+        seed,
+        valid[window],
+        labels[window],
+        scale_order=plane.scale_order,
+        component_id_by_label=component_id_by_label,
     )
 
 
@@ -1994,6 +2070,57 @@ def _connected_support_components(
     return support_labels, by_component
 
 
+def influence_candidate_feature_ids(
+    exact_component_ids: Mapping[str, frozenset[str]],
+    parent_edges: tuple[tuple[str, str], ...],
+) -> frozenset[str]:
+    """Return the features whose B3 influence a decision can ever read.
+
+    :func:`_feature_influence_candidate` rejects every other feature on
+    record evidence alone, so deriving their influence would be pixel work
+    nothing consumes.
+    """
+    parents: dict[str, set[str]] = {}
+    children: dict[str, set[str]] = {}
+    for child_id, parent_id in parent_edges:
+        parents.setdefault(child_id, set()).add(parent_id)
+        children.setdefault(parent_id, set()).add(child_id)
+    candidates: set[str] = set()
+    for feature_id, child_ids in children.items():
+        if len(child_ids) != 1:
+            continue
+        child_id = next(iter(child_ids))
+        exact = exact_component_ids.get(feature_id, frozenset())
+        if (
+            parents.get(child_id) != {feature_id}
+            or len(exact) != 1
+            or exact_component_ids.get(child_id, frozenset()) != exact
+        ):
+            continue
+        candidates.add(feature_id)
+    return frozenset(candidates)
+
+
+def envelope_pair_is_needed(
+    first_scale_order: int,
+    second_scale_order: int,
+    *,
+    terminal_scale_order: int,
+) -> bool:
+    """Return whether any decision asks about this pair of scales.
+
+    Within-scale overlap builds each scale's adjacency graph, and the last
+    two scales are paired once to corroborate a displaced terminal child.
+    No other combination is read.
+    """
+    if first_scale_order == second_scale_order:
+        return True
+    return {first_scale_order, second_scale_order} == {
+        terminal_scale_order - 1,
+        terminal_scale_order,
+    }
+
+
 def summarize_hierarchy_overlaps(
     records: tuple[DetectionComponentRecord, ...],
     labels: npt.NDArray[np.int64],
@@ -2019,51 +2146,68 @@ def summarize_hierarchy_overlaps(
         for envelope in _feature_envelopes(plane, valid)
     )
     enveloped = {envelope.feature_id: envelope for envelope in envelopes}
-    features: list[FeatureOverlaps] = []
+    scale_by_feature: dict[str, int] = {}
+    exact_by_feature: dict[str, frozenset[str]] = {}
+    support_by_feature: dict[str, int] = {}
+    plane_by_feature: dict[str, tuple[ScaleDetectionPlane, int]] = {}
     for plane in planes:
-        support_by_feature = _feature_support_components(plane, support_labels)
+        supports = _feature_support_components(plane, support_labels)
         for feature_label, detection in enumerate(plane.detections, start=1):
-            envelope = enveloped.get(detection.detection_id)
-            features.append(
-                FeatureOverlaps(
-                    feature_id=detection.detection_id,
-                    scale_order=plane.scale_order,
-                    exact_component_ids=_feature_exact_component_ids(
-                        plane, feature_label, labels, component_id_by_label
-                    ),
-                    has_envelope=envelope is not None,
-                    influence_component_ids=frozenset()
-                    if envelope is None
-                    else _feature_influence_component_ids(
-                        plane,
-                        envelope,
-                        labels,
-                        valid,
-                        component_id_by_label,
-                    ),
-                    support_component=support_by_feature.get(
-                        detection.detection_id, 0
-                    ),
-                )
+            feature_id = detection.detection_id
+            scale_by_feature[feature_id] = plane.scale_order
+            plane_by_feature[feature_id] = (plane, feature_label)
+            exact_by_feature[feature_id] = _feature_exact_component_ids(
+                plane, feature_label, labels, component_id_by_label
             )
+            support_by_feature[feature_id] = supports.get(feature_id, 0)
+    parent_edges = adjacent_scale_overlap_edges(planes)
+    influence_candidates = influence_candidate_feature_ids(
+        exact_by_feature, parent_edges
+    )
     return HierarchyOverlaps(
-        features=tuple(features),
+        features=tuple(
+            FeatureOverlaps(
+                feature_id=feature_id,
+                scale_order=scale_by_feature[feature_id],
+                exact_component_ids=exact_by_feature[feature_id],
+                has_envelope=feature_id in enveloped,
+                influence_component_ids=_feature_influence_component_ids(
+                    plane_by_feature[feature_id][0],
+                    enveloped[feature_id],
+                    labels,
+                    valid,
+                    component_id_by_label,
+                )
+                if feature_id in influence_candidates
+                and feature_id in enveloped
+                else frozenset(),
+                support_component=support_by_feature[feature_id],
+            )
+            for feature_id in scale_by_feature
+        ),
         finest_features_by_component={
             record.component_id: _attached_finest_features(
                 record, labels, planes
             )
             for record in records
         },
-        parent_edges=adjacent_scale_overlap_edges(planes),
+        parent_edges=parent_edges,
         support_component_by_component=support_by_component,
-        envelope_edges=_envelope_overlap_edges(envelopes),
+        envelope_edges=_envelope_overlap_edges(
+            envelopes,
+            scale_by_feature,
+            terminal_scale_order=planes[-1].scale_order,
+        ),
     )
 
 
 def _envelope_overlap_edges(
     envelopes: tuple[_FeatureEnvelope, ...],
+    scale_by_feature: Mapping[str, int],
+    *,
+    terminal_scale_order: int,
 ) -> frozenset[frozenset[str]]:
-    """Return one unordered pair per two overlapping bounded envelopes."""
+    """Return one unordered pair per overlapping pair a decision reads."""
     edges: set[frozenset[str]] = set()
     active: list[_FeatureEnvelope] = []
     for envelope in sorted(
@@ -2072,7 +2216,11 @@ def _envelope_overlap_edges(
         y0 = envelope.bounds_yx[0]
         active = [item for item in active if item.bounds_yx[1] > y0]
         for other in active:
-            if not _envelopes_overlap(other, envelope):
+            if not envelope_pair_is_needed(
+                scale_by_feature[other.feature_id],
+                scale_by_feature[envelope.feature_id],
+                terminal_scale_order=terminal_scale_order,
+            ) or not _envelopes_overlap(other, envelope):
                 continue
             edges.add(frozenset((other.feature_id, envelope.feature_id)))
         active.append(envelope)

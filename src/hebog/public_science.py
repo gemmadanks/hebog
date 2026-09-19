@@ -13,6 +13,7 @@ from hebog.algorithms.component_measurement import (
 from hebog.algorithms.multiscale import (
     BeamShapePixels,
 )
+from hebog.algorithms.source_association import HierarchyOverlaps
 from hebog.science.catalogues import (
     build_hebog_reconstructed_source_catalogues,
 )
@@ -63,6 +64,7 @@ def build_configured_continuum_products(  # noqa: PLR0913
     labels: TiledSupportLabels,
     topology: TiledComponentTopology,
     component_fits: TiledComponentFits,
+    hierarchy_overlaps: HierarchyOverlaps,
 ) -> ContinuumProducts | None:
     """Build terminal products from the published tiled passes.
 
@@ -105,7 +107,6 @@ def build_configured_continuum_products(  # noqa: PLR0913
         valid,
         topology.measurement_component_labels,
         topology.direct_component_labels,
-        retained.significant_multiscale_support,
         retained.scale_detection_planes,
         header,
         beam_major_fwhm_pixels=beam.major_fwhm_pixels,
@@ -115,6 +116,7 @@ def build_configured_continuum_products(  # noqa: PLR0913
         ),
         position_signal_jy_per_beam=retained.position_signal_jy_per_beam,
         component_measurements=measurements,
+        hierarchy_overlaps=hierarchy_overlaps,
     )
     valid.setflags(write=False)
     support_stages = tuple(

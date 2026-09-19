@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import importlib
 import json
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass, replace
 from functools import lru_cache
 from importlib.resources import files
@@ -70,6 +71,8 @@ from hebog.pipeline import (
 from hebog.stages.detection import run_detection_stage
 
 if TYPE_CHECKING:  # pragma: no cover - import-time typing only
+    from hebog.algorithms.reconciliation import DetectedIsland
+    from hebog.algorithms.source_association import HierarchyOverlaps
     from hebog.science.models import (
         TiledComponentFits,
         TiledComponentTopology,
@@ -84,6 +87,8 @@ ADMITTED_TILE_CORE_PIXELS = 2048
 """Smallest tile core the scalability contract admits, in pixels."""
 _SUPPORT_TILES_PER_BATCH = 4
 _OWNER_BATCH_READ_PIXELS = 4 * 1024 * 1024
+_OWNER_OBJECTS_PER_BATCH = 16
+_ENVELOPE_PAIRS_PER_BATCH = 256
 _DETECTION_THRESHOLD_SIGMA = 5.0
 _ISLAND_THRESHOLD_SIGMA = 3.0
 _MINIMUM_ISLAND_PIXELS = 7
@@ -750,6 +755,57 @@ def publish_component_topology(  # noqa: PLR0913
     )
 
 
+def publish_hierarchy_overlaps(  # noqa: PLR0913
+    detection_source: ZarrProductSink,
+    component_source: ZarrProductSink,
+    executor: Executor,
+    *,
+    image_shape_yx: tuple[int, int],
+    direct_component_labels: npt.NDArray[np.int32],
+    residual_jy_per_beam: npt.NDArray[np.float64],
+    valid_pixels: npt.NDArray[np.bool_],
+    scale_islands_by_order: Sequence[tuple[DetectedIsland, ...]],
+    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
+) -> HierarchyOverlaps:
+    """Reduce every pixel fact the source hierarchy decision needs.
+
+    The cores observe which components, features and retained support
+    components meet, one task per feature derives its reviewed B3 influence,
+    and one task per candidate pair decides whether two envelopes overlap.
+    The decision that consumes the result holds no plane.
+    """
+    from hebog.algorithms.source_association import (  # noqa: PLC0415
+        build_detection_component_records,
+    )
+    from hebog.stages.association import (  # noqa: PLC0415
+        HierarchyOverlapStageConfig,
+        run_hierarchy_overlap_stage,
+    )
+
+    return run_hierarchy_overlap_stage(
+        detection_source,
+        component_source,
+        plan_image_partitions(
+            image_shape_yx=image_shape_yx,
+            tile_core_shape_yx=(tile_core_pixels, tile_core_pixels),
+            halo_yx=(0, 0),
+        ),
+        config=HierarchyOverlapStageConfig(
+            maximum_tiles_per_batch=_SUPPORT_TILES_PER_BATCH,
+            maximum_features_per_batch=_OWNER_OBJECTS_PER_BATCH,
+            maximum_pairs_per_batch=_ENVELOPE_PAIRS_PER_BATCH,
+            maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
+        ),
+        records=build_detection_component_records(
+            direct_component_labels,
+            residual_jy_per_beam,
+            valid_pixels,
+        ),
+        scale_islands_by_order=scale_islands_by_order,
+        executor=executor,
+    ).overlaps
+
+
 def publish_component_fits(  # noqa: PLR0913, PLR0917
     source: _WindowReadable,
     background_rms_source: ZarrProductSink,
@@ -1009,6 +1065,18 @@ def _analyse_image(  # noqa: PLR0913
             config=config,
             review=review,
             generation_id=generation_id,
+        ),
+        hierarchy_overlaps=publish_hierarchy_overlaps(
+            detection_source,
+            component_source,
+            executor,
+            image_shape_yx=metadata.shape_yx,
+            direct_component_labels=topology.direct_component_labels,
+            residual_jy_per_beam=image - background,
+            valid_pixels=np.isfinite(image)
+            & np.isfinite(background)
+            & np.isfinite(rms),
+            scale_islands_by_order=multiscale.scale_islands_by_order,
         ),
     )
     return _ScientificProducts(image, background, rms, terminal)

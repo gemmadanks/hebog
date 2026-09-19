@@ -410,6 +410,7 @@ def _configured_products(
             labels=published.labels,
             topology=published.topology,
             component_fits=published.component_fits,
+            hierarchy_overlaps=published.hierarchy_overlaps,
         )
 
 

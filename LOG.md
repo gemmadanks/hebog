@@ -23674,3 +23674,55 @@ the per-worker placement finding.
   reduction pass B has already performed.
 - **Not done.** The tiled stage that produces `HierarchyOverlaps`, and the
   continuum catalogue. `public_science.py` still holds whole planes for both.
+
+## 2026-09-19 — M2: the source association is tile-native
+
+- **What this is.** The second half of ADR-008's association round. The
+  detection pass publishes the reconciled per-scale feature labels, and a
+  three-round stage produces `HierarchyOverlaps` from them: the cores observe
+  which components, features and retained support components meet, one task
+  per feature derives its reviewed B3 influence, and one task per candidate
+  pair decides whether two envelopes overlap. The decision that consumes the
+  result holds no plane.
+- **Why pass B gained a round.** Every overlap is stated between globally
+  labelled features, so the labels must be readable by window. The
+  publication round already writes each scale's support mask and returns the
+  per-core summaries that reconcile it, so a third round re-derives the same
+  tile-local labelling from the chunk it wrote and applies the mapping
+  sharded to that tile. Only chunk identities and that shard cross the
+  boundary.
+- **Candidate pairs are record work.** A feature's envelope box follows from
+  its reconciled bounds, so the driver prefilters pairs by box overlap and
+  only the admitted pairs read pixels. `envelope_pair_is_needed` narrows that
+  further to the pairs a decision actually reads — within a scale, and once
+  between the last two — and `influence_candidate_feature_ids` narrows the
+  influence round to the features
+  `_feature_influence_candidate` cannot reject on records alone.
+- **Performance: three measured repairs.** The first working version cost
+  649 s against the 190 s baseline, over the check's 600 s budget. Three
+  causes, each measured: influence was derived for every feature where the
+  whole-plane pass derived it lazily (649 → 445 s); envelope overlap was
+  evaluated for every scale combination and recomputed both envelopes per
+  pair (445 → 375 s with a per-batch envelope cache); and each feature read
+  its own windows, so Zarr chunk opens scaled with features rather than with
+  work. Giving each batch one spatially grouped read, as the object rounds
+  already do, took it to **214 s** (`m2-association-final`), about 13% over the baseline and in line
+  with the other pass conversions. That confirms the M1 profile's
+  attribution of the Zarr share to chunk opens.
+- **Evidence.** A new stage test reproduces `summarize_hierarchy_overlaps`
+  exactly on a fixture with 4 components, 12 features across 3 scales, 8
+  parent edges, 34 envelope edges and 4 retained support components, every
+  one of which crosses a core boundary; it asserts the fixture is non-trivial
+  before comparing. A second test asserts the reduced overlaps decide the
+  same association as the whole-plane summary. Overlaps are invariant across
+  cores 16, 32 and 96, one object per batch, and a real Dask client. The
+  published scale labels are compared against the plane builder that labels
+  the stored mask and refuses any labelling disagreeing with the reconciled
+  islands. The quick science check `m2-association-final` reports no regression
+  against `m2-pass-d-groups`.
+- **What this removed.** `build_configured_continuum_products` no longer
+  takes `significant_multiscale_support`: the only step that read it was the
+  association, which now receives the reduced overlaps instead.
+- **What pass D still holds whole-array.** The continuum catalogue and the
+  per-scale detection records, including the component records the overlaps
+  are keyed by.

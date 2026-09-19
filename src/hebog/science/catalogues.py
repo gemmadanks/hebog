@@ -37,7 +37,8 @@ from hebog.algorithms.multiscale_association import (
     persistent_adjacent_scale_support,
 )
 from hebog.algorithms.source_association import (
-    associate_components_by_multiscale_hierarchy,
+    HierarchyOverlaps,
+    associate_from_hierarchy_overlaps,
     build_detection_component_records,
     constrain_source_memberships,
 )
@@ -1009,7 +1010,6 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
     valid_pixels: npt.ArrayLike,
     measurement_component_labels: npt.ArrayLike,
     direct_component_labels: npt.ArrayLike,
-    significant_multiscale_support: npt.ArrayLike,
     scale_detection_planes: tuple[ScaleDetectionPlane, ...],
     header: fits.Header,
     *,
@@ -1019,6 +1019,7 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
     position_signal_jy_per_beam: npt.ArrayLike | None = None,
     denoised_position_maximum_peak_to_mean_ratio: float = 3.0,
     component_measurements: ComponentMeasurements | None = None,
+    hierarchy_overlaps: HierarchyOverlaps,
 ) -> AssociatedMomentCatalogues:
     """Measure each common-parent catalogue source exactly once.
 
@@ -1077,12 +1078,10 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
         component_measurements,
         header,
     )
-    association = associate_components_by_multiscale_hierarchy(
+    association = associate_from_hierarchy_overlaps(
         records,
-        direct,
         scale_detection_planes,
-        valid,
-        significant_multiscale_support=significant_multiscale_support,
+        hierarchy_overlaps,
     )
     hierarchy = association
     if component_measurements is not None:

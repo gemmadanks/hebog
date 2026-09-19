@@ -125,11 +125,16 @@ class ScaleDetectionPlane:
         object.__setattr__(self, "component_labels", canonical)
 
 
-def _scale_detection_id(
+def scale_detection_id(
     scale_order: int,
     canonical_pixel_yx: tuple[int, int],
 ) -> str:
-    """Derive one stable feature identity from scale and global owner pixel."""
+    """Derive one stable feature identity from scale and global owner pixel.
+
+    A later pass names the same features from the reconciled island records
+    alone, so this identity is part of the published contract rather than an
+    internal detail of the plane builder.
+    """
     digest = sha256(_DETECTION_ID_NAMESPACE)
     for value in (scale_order, *canonical_pixel_yx):
         digest.update(str(value).encode("ascii"))
@@ -238,7 +243,7 @@ def _scale_detections(  # noqa: PLR0913
     )
     return tuple(
         ScaleDetection(
-            detection_id=_scale_detection_id(scale_order, canonical),
+            detection_id=scale_detection_id(scale_order, canonical),
             parent_island_id=None,
             scale_order=scale_order,
             nominal_scale_beam_fwhm=nominal_scale_beam_fwhm,

@@ -199,6 +199,7 @@ def test_configured_builder_rejects_inconsistent_finite_support(
             labels=published.labels,
             topology=published.topology,
             component_fits=published.component_fits,
+            hierarchy_overlaps=published.hierarchy_overlaps,
         )
 
 
@@ -254,6 +255,7 @@ def test_configured_builder_measures_the_published_component_topology(
         labels=published.labels,
         topology=published.topology,
         component_fits=published.component_fits,
+        hierarchy_overlaps=published.hierarchy_overlaps,
     )
 
     assert result is not None
@@ -298,6 +300,7 @@ def test_configured_builder_publishes_independent_connected_sources(
         labels=published.labels,
         topology=published.topology,
         component_fits=published.component_fits,
+        hierarchy_overlaps=published.hierarchy_overlaps,
     )
 
     assert result is not None
@@ -341,6 +344,7 @@ def test_configured_builder_retains_three_components_in_one_parent(
         labels=published.labels,
         topology=published.topology,
         component_fits=published.component_fits,
+        hierarchy_overlaps=published.hierarchy_overlaps,
     )
 
     assert result is not None

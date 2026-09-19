@@ -211,6 +211,11 @@ object is the last step of this kind. It looks at the emission each fit left
 behind, so it can only run once every fit is done, and it too is answered one
 connected region at a time inside the window holding that region.
 
+Deciding which detected pieces belong to one source works the same way once
+more. It asks a fixed set of questions about which regions touch which
+others, every one of them answerable by a tile or by one region's own
+neighbourhood, and the decision itself then reads only the answers.
+
 A flooded region needs evidence at the higher detection threshold. A
 filter-promoted region must also satisfy the beam-area rule; a region
 with a direct original-pixel detection-threshold sample can survive below that

@@ -106,6 +106,11 @@ _STAGES = (
         "multiscale filters, thresholds and labelling",
     ),
     (
+        "hebog.stages.multiscale",
+        "_publish_scale_labels",
+        "reconciled per-scale feature labels",
+    ),
+    (
         "hebog.public_science",
         "build_configured_continuum_products",
         "continuum science",
@@ -164,6 +169,16 @@ _STAGES = (
         "hebog.public_science",
         "reconcile_component_measurements",
         "measurement record reduction",
+    ),
+    (
+        "hebog.public_api",
+        "publish_hierarchy_overlaps",
+        "tiled source hierarchy overlaps",
+    ),
+    (
+        "hebog.stages.association",
+        "run_hierarchy_overlap_stage",
+        "per-core and per-feature overlap reduction",
     ),
     (
         "hebog.public_science",

@@ -486,6 +486,7 @@ def test_joint_geometry_with_controlled_or_public_background(
             labels=published.labels,
             topology=published.topology,
             component_fits=published.component_fits,
+            hierarchy_overlaps=published.hierarchy_overlaps,
         )
         scientific = public_api._ScientificProducts(
             image, background, rms, products

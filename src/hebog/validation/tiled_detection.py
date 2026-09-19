@@ -19,6 +19,7 @@ from astropy.io import fits
 
 from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.algorithms.partitioning import plan_image_partitions
+from hebog.algorithms.source_association import HierarchyOverlaps
 from hebog.config import SourceFinderConfig
 from hebog.data_models.partitioning import ImageBounds
 from hebog.data_models.products import ProductChunk
@@ -30,6 +31,7 @@ from hebog.public_api import (
     detect_multiscale_products,
     publish_component_fits,
     publish_component_topology,
+    publish_hierarchy_overlaps,
     publish_support_labels,
     reduce_support_topology,
 )
@@ -126,6 +128,7 @@ class PublishedContinuumInputs:
     labels: TiledSupportLabels
     topology: TiledComponentTopology
     component_fits: TiledComponentFits
+    hierarchy_overlaps: HierarchyOverlaps
 
 
 def publish_continuum_inputs(  # noqa: PLR0913
@@ -206,6 +209,17 @@ def publish_continuum_inputs(  # noqa: PLR0913
         tile_core_pixels=support_tile_core_pixels,
     )
     return PublishedContinuumInputs(
+        hierarchy_overlaps=publish_hierarchy_overlaps(
+            detection_source,
+            component_source,
+            resolved_executor,
+            image_shape_yx=image_jy_per_beam.shape,
+            direct_component_labels=topology.direct_component_labels,
+            residual_jy_per_beam=(image_jy_per_beam - background_jy_per_beam),
+            valid_pixels=valid_pixels,
+            scale_islands_by_order=multiscale.scale_islands_by_order,
+            tile_core_pixels=support_tile_core_pixels,
+        ),
         multiscale=multiscale,
         support=TiledSupportTopology(
             support_component_labels=np.asarray(

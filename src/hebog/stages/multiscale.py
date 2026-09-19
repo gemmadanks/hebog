@@ -59,6 +59,7 @@ _MULTISCALE_PRODUCT_NAMES = tuple(
             "reconstruction-mask",
             "valid-pixels",
             *(f"scale-{order}-significant" for order in _SCALE_ORDERS),
+            *(f"scale-{order}-labels" for order in _SCALE_ORDERS),
         )
     )
 )
@@ -205,7 +206,7 @@ class _PublicationBatchResult:
 
 def _product_dtype(product_name: str) -> np.dtype[np.generic]:
     """Return the stored element type of one published multiscale plane."""
-    if product_name == "detection-labels":
+    if product_name.endswith("labels"):
         return np.dtype("<i4")
     if product_name.endswith(("mask", "significant", "pixels")):
         return np.dtype(np.bool_)
@@ -545,6 +546,98 @@ def _publication_products(
         ),
     )
     return products, scale_masks
+
+
+@dataclass(frozen=True, slots=True)
+class _ScaleLabelRequest:
+    """One core and the global label each local scale feature carries."""
+
+    partition: TilePartition
+    significant_chunks: tuple[ProductChunk, ...]
+    global_by_local_label_by_order: tuple[tuple[tuple[int, int], ...], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class _ScaleLabelBatch:
+    """One bounded coarse executor task over several cores."""
+
+    requests: tuple[_ScaleLabelRequest, ...]
+
+    def __post_init__(self) -> None:
+        """Forbid empty executor work records."""
+        if not self.requests:
+            raise ValueError("scale label batch must not be empty")
+
+
+@dataclass(frozen=True, slots=True)
+class _ScaleLabelBatchResult:
+    """Persisted scale-label chunk identities from one bounded task."""
+
+    product_chunks: tuple[ProductChunk, ...]
+
+
+def _scale_label_batches(
+    requests: tuple[_ScaleLabelRequest, ...],
+    *,
+    maximum_tiles_per_batch: int,
+) -> tuple[_ScaleLabelBatch, ...]:
+    """Group cores into bounded coarse scale-label tasks."""
+    return tuple(
+        _ScaleLabelBatch(
+            requests=tuple(requests[start : start + maximum_tiles_per_batch])
+        )
+        for start in range(0, len(requests), maximum_tiles_per_batch)
+    )
+
+
+def _publish_scale_labels(
+    batch: _ScaleLabelBatch,
+    *,
+    sink: ZarrProductSink,
+    image_shape_yx: tuple[int, int],
+) -> _ScaleLabelBatchResult:
+    """Write the reconciled global label each scale feature carries.
+
+    The core re-derives the same tile-local labelling the publication round
+    summarised, from the chunk that round wrote, and applies the mapping
+    sharded to the labels that tile holds. Only chunk identities and that
+    shard cross the boundary.
+    """
+    with sink.access_session():
+        chunks: list[ProductChunk] = []
+        for request in batch.requests:
+            partition = request.partition
+            for order, chunk, pairs in zip(
+                _SCALE_ORDERS,
+                request.significant_chunks,
+                request.global_by_local_label_by_order,
+                strict=True,
+            ):
+                mask = np.asarray(sink.read_chunk(chunk), dtype=np.bool_)
+                local = label_detection_tile(
+                    DetectionThresholdMasks(
+                        normalized_residual=np.zeros(
+                            mask.shape,
+                            dtype=np.float64,
+                        ),
+                        island_membership=mask,
+                        detection_seeds=mask,
+                        valid_pixel_count=int(np.count_nonzero(mask)),
+                    ),
+                    partition,
+                    image_shape_yx=image_shape_yx,
+                )
+                values = np.zeros(mask.shape, dtype=np.int32)
+                for local_label, global_label in pairs:
+                    values[local.labels == local_label] = global_label
+                chunks.append(
+                    sink.write_chunk(
+                        product_name=f"scale-{order}-labels",
+                        tile=partition,
+                        values=values,
+                    )
+                )
+        return _ScaleLabelBatchResult(product_chunks=tuple(chunks))
 
 
 def _publish_batch(  # noqa: PLR0913
@@ -894,15 +987,7 @@ def run_multiscale_stage(  # noqa: PLR0913
     )
     if not publication_results:
         raise ValueError("executor returned no multiscale publication results")
-    generation = sink.publish_generation(
-        product_names=_MULTISCALE_PRODUCT_NAMES,
-        chunks=(
-            chunk
-            for result in publication_results
-            for chunk in result.product_chunks
-        ),
-    )
-    scale_islands = tuple(
+    reconciled_scales = tuple(
         reconcile_candidate_tiles(
             manifest,
             tuple(
@@ -910,11 +995,73 @@ def run_multiscale_stage(  # noqa: PLR0913
                 for result in publication_results
                 for summary in result.scale_summaries_by_order[scale_index]
             ),
-        ).islands
+        )
         for scale_index in range(len(_SCALE_ORDERS))
     )
+    scale_islands = tuple(
+        reconciled.islands for reconciled in reconciled_scales
+    )
+    significant_chunks_by_tile: dict[str, dict[str, ProductChunk]] = {}
+    for result in publication_results:
+        for chunk in result.product_chunks:
+            if chunk.product_name.endswith("-significant"):
+                significant_chunks_by_tile.setdefault(chunk.tile_id, {})[
+                    chunk.product_name
+                ] = chunk
+    scale_label_batches = _scale_label_batches(
+        tuple(
+            _ScaleLabelRequest(
+                partition=partition,
+                significant_chunks=tuple(
+                    significant_chunks_by_tile[partition.tile_id][
+                        f"scale-{order}-significant"
+                    ]
+                    for order in _SCALE_ORDERS
+                ),
+                global_by_local_label_by_order=tuple(
+                    tuple(
+                        zip(
+                            mapping.local_labels,
+                            mapping.global_labels,
+                            strict=True,
+                        )
+                    )
+                    for mapping in (
+                        reconciled.mapping_for_tile(partition.tile_id)
+                        for reconciled in reconciled_scales
+                    )
+                ),
+            )
+            for partition in manifest.tiles
+        ),
+        maximum_tiles_per_batch=config.maximum_tiles_per_batch,
+    )
+    scale_label_results = tuple(
+        executor.map_batches(
+            partial(
+                _publish_scale_labels,
+                sink=sink,
+                image_shape_yx=manifest.image_shape_yx,
+            ),
+            scale_label_batches,
+        )
+    )
+    if not scale_label_results:
+        raise ValueError("executor returned no scale label results")
+    generation = sink.publish_generation(
+        product_names=_MULTISCALE_PRODUCT_NAMES,
+        chunks=(
+            chunk
+            for result in (*publication_results, *scale_label_results)
+            for chunk in result.product_chunks
+        ),
+    )
     all_results = (*topology_results, *publication_results)
-    batch_counts = (len(partition_batches), len(publication_batches))
+    batch_counts = (
+        len(partition_batches),
+        len(publication_batches),
+        len(scale_label_batches),
+    )
     return MultiscaleStageResult(
         generation=generation,
         detection_islands=detection_islands,
