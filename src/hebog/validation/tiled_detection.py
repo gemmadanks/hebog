@@ -27,10 +27,12 @@ from hebog.io.zarr import ZarrProductSink
 from hebog.public_api import (
     ADMITTED_TILE_CORE_PIXELS,
     detect_multiscale_products,
+    publish_component_topology,
     publish_support_labels,
     reduce_support_topology,
 )
 from hebog.science.models import (
+    TiledComponentTopology,
     TiledMultiscaleDetection,
     TiledSupportLabels,
     TiledSupportTopology,
@@ -119,6 +121,7 @@ class PublishedContinuumInputs:
     multiscale: TiledMultiscaleDetection
     support: TiledSupportTopology
     labels: TiledSupportLabels
+    topology: TiledComponentTopology
 
 
 def publish_continuum_inputs(  # noqa: PLR0913
@@ -174,6 +177,19 @@ def publish_continuum_inputs(  # noqa: PLR0913
         0,
         image_jy_per_beam.shape[1],
     )
+    support_labels, labels_source = publish_support_labels(
+        detection_source,
+        support_source,
+        resolved_executor,
+        work_directory,
+        image_shape_yx=image_jy_per_beam.shape,
+        beam=beam,
+        detection_islands=multiscale.detection_islands,
+        config=config,
+        review=review,
+        generation_id=generation_id,
+        tile_core_pixels=support_tile_core_pixels,
+    )
     return PublishedContinuumInputs(
         multiscale=multiscale,
         support=TiledSupportTopology(
@@ -192,16 +208,14 @@ def publish_continuum_inputs(  # noqa: PLR0913
                 dtype=np.bool_,
             ),
         ),
-        labels=publish_support_labels(
+        labels=support_labels,
+        topology=publish_component_topology(
+            labels_source,
             detection_source,
-            support_source,
             resolved_executor,
             work_directory,
             image_shape_yx=image_jy_per_beam.shape,
-            beam=beam,
-            detection_islands=multiscale.detection_islands,
             config=config,
-            review=review,
             generation_id=generation_id,
             tile_core_pixels=support_tile_core_pixels,
         ),

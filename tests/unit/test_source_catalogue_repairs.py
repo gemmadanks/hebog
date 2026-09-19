@@ -409,6 +409,7 @@ def _configured_products(
             config=config,
             multiscale=published.multiscale,
             labels=published.labels,
+            topology=published.topology,
         )
 
 

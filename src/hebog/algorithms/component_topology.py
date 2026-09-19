@@ -173,16 +173,158 @@ def _assign_parent_measurement_support(
     return assigned
 
 
-def _retain_single_parent_component(
-    direct_output: npt.NDArray[np.int32],
-    measurement_output: npt.NDArray[np.int32],
+@dataclass(frozen=True, slots=True)
+class ParentComponentMembership:
+    """One parent's deblended components, in that parent's own windows.
+
+    The labels are local to the parent, numbered from one in the order the
+    reviewed watershed produced them. A caller that deblends one parent per
+    task offsets them by the components every earlier parent produced, which
+    is what :func:`deblend_component_topology` does in one pass.
+    """
+
+    component_count: int
+    direct_labels: npt.NDArray[np.int32]
+    measurement_labels: npt.NDArray[np.int32]
+    deblended: bool
+    deferred: bool
+
+
+def _one_parent_component(
     direct_membership: npt.NDArray[np.bool_],
     measurement_membership: npt.NDArray[np.bool_],
-    component_label: int,
-) -> None:
-    """Publish one admitted parent unchanged as one component."""
-    direct_output[direct_membership] = component_label
-    measurement_output[measurement_membership] = component_label
+    *,
+    direct_bounds: ImageBounds,
+    measurement_labels: npt.NDArray[np.int32],
+    deferred: bool,
+) -> ParentComponentMembership:
+    """Publish one admitted parent unchanged as a single component."""
+    direct_labels = np.zeros(direct_bounds.shape_yx, dtype=np.int32)
+    direct_labels[direct_membership] = 1
+    measurement_labels[measurement_membership] = 1
+    return ParentComponentMembership(
+        component_count=1,
+        direct_labels=direct_labels,
+        measurement_labels=measurement_labels,
+        deblended=False,
+        deferred=deferred,
+    )
+
+
+def deblend_parent_components(  # noqa: PLR0913
+    normalized_window: npt.NDArray[np.float64],
+    direct_membership: npt.NDArray[np.bool_],
+    measurement_membership: npt.NDArray[np.bool_],
+    valid_window: npt.NDArray[np.bool_],
+    *,
+    parent_label: int,
+    direct_bounds: ImageBounds,
+    measurement_bounds: ImageBounds,
+    image_shape_yx: tuple[int, int],
+    first_pixel_yx: tuple[int, int],
+    config: CompactDeblendConfig,
+) -> ParentComponentMembership:
+    """Deblend one admitted parent inside the windows that hold it.
+
+    Every decision needs the parent's complete support and nothing beyond it,
+    so one task can evaluate one parent exactly. A parent above either hard
+    compact-work bound stays one explicit deferred component rather than
+    losing its science, and so does a parent whose peak never reaches the
+    detection threshold.
+    """
+    image_height, image_width = image_shape_yx
+    measurement_labels = np.zeros(
+        measurement_bounds.shape_yx,
+        dtype=np.int32,
+    )
+    bounds_pixels = direct_bounds.shape_yx[0] * direct_bounds.shape_yx[1]
+    direct_pixels = int(np.count_nonzero(direct_membership))
+    deferred = (
+        direct_pixels > config.maximum_compact_island_pixels
+        or bounds_pixels > config.maximum_compact_bounds_pixels
+    )
+    if deferred:
+        return _one_parent_component(
+            direct_membership,
+            measurement_membership,
+            direct_bounds=direct_bounds,
+            measurement_labels=measurement_labels,
+            deferred=True,
+        )
+    peak_linear = int(
+        np.argmax(np.where(direct_membership, normalized_window, -np.inf))
+    )
+    peak_local = np.unravel_index(peak_linear, direct_membership.shape)
+    if (
+        float(normalized_window[peak_local])
+        <= config.minimum_peak_signal_to_noise
+    ):
+        return _one_parent_component(
+            direct_membership,
+            measurement_membership,
+            direct_bounds=direct_bounds,
+            measurement_labels=measurement_labels,
+            deferred=False,
+        )
+    result = deblend_compact_island(
+        CompactIslandPixels(
+            island=DetectedIsland(
+                island_id=f"component-parent-{parent_label:08d}",
+                global_label=parent_label,
+                pixel_count=direct_pixels,
+                bounds=direct_bounds,
+                peak_signal_to_noise=float(normalized_window[peak_local]),
+                peak_position_yx=(
+                    direct_bounds.y_start + int(peak_local[0]),
+                    direct_bounds.x_start + int(peak_local[1]),
+                ),
+                first_pixel_yx=first_pixel_yx,
+                touches_image_edge=(
+                    direct_bounds.y_start == 0
+                    or direct_bounds.x_start == 0
+                    or direct_bounds.y_stop == image_height
+                    or direct_bounds.x_stop == image_width
+                ),
+            ),
+            normalized_residual=normalized_window,
+            island_membership=direct_membership,
+        ),
+        config,
+        marker_partition="nearest-marker",
+    )
+    direct_labels = np.asarray(result.region_labels, dtype=np.int32)
+    if len(result.regions) == 1:
+        measurement_labels[measurement_membership] = 1
+        return ParentComponentMembership(
+            component_count=1,
+            direct_labels=direct_labels,
+            measurement_labels=measurement_labels,
+            deblended=False,
+            deferred=False,
+        )
+    seed_labels = np.zeros(measurement_bounds.shape_yx, dtype=np.int32)
+    seed_labels[
+        slice(
+            direct_bounds.y_start - measurement_bounds.y_start,
+            direct_bounds.y_stop - measurement_bounds.y_start,
+        ),
+        slice(
+            direct_bounds.x_start - measurement_bounds.x_start,
+            direct_bounds.x_stop - measurement_bounds.x_start,
+        ),
+    ] = direct_labels
+    measurement_labels += _assign_parent_measurement_support(
+        seed_labels,
+        measurement_membership,
+        valid_window,
+    )
+    return ParentComponentMembership(
+        component_count=len(result.regions),
+        direct_labels=direct_labels,
+        measurement_labels=measurement_labels,
+        deblended=True,
+        deferred=False,
+    )
 
 
 def deblend_component_topology(
@@ -212,7 +354,6 @@ def deblend_component_topology(
     next_label = 1
     deblended_parent_count = 0
     deferred_parent_count = 0
-    image_height, image_width = direct.shape
     measurement_records = {
         label: (bounds, slices)
         for label, bounds, slices, _ in _parent_records(measurement)
@@ -221,101 +362,31 @@ def deblend_component_topology(
         measurement_bounds, measurement_slices = measurement_records[
             parent_label
         ]
-        local_direct = direct[slices] == parent_label
-        local_measurement = measurement[measurement_slices] == parent_label
-        bounds_pixels = bounds.shape_yx[0] * bounds.shape_yx[1]
-        direct_pixels = int(np.count_nonzero(local_direct))
-        if (
-            direct_pixels > config.maximum_compact_island_pixels
-            or bounds_pixels > config.maximum_compact_bounds_pixels
-        ):
-            _retain_single_parent_component(
-                output_direct[slices],
-                output_measurement[measurement_slices],
-                local_direct,
-                local_measurement,
-                next_label,
-            )
-            next_label += 1
-            deferred_parent_count += 1
-            continue
-        local_normalized = normalized[slices]
-        peak_linear = int(
-            np.argmax(np.where(local_direct, local_normalized, -np.inf))
+        membership = deblend_parent_components(
+            normalized[slices],
+            direct[slices] == parent_label,
+            measurement[measurement_slices] == parent_label,
+            valid[measurement_slices],
+            parent_label=parent_label,
+            direct_bounds=bounds,
+            measurement_bounds=measurement_bounds,
+            image_shape_yx=direct.shape,
+            first_pixel_yx=first_pixel,
+            config=config,
         )
-        peak_local = np.unravel_index(peak_linear, local_direct.shape)
-        if (
-            float(local_normalized[peak_local])
-            <= config.minimum_peak_signal_to_noise
-        ):
-            _retain_single_parent_component(
-                output_direct[slices],
-                output_measurement[measurement_slices],
-                local_direct,
-                local_measurement,
-                next_label,
-            )
-            next_label += 1
-            continue
-        result = deblend_compact_island(
-            CompactIslandPixels(
-                island=DetectedIsland(
-                    island_id=f"component-parent-{parent_label:08d}",
-                    global_label=parent_label,
-                    pixel_count=direct_pixels,
-                    bounds=bounds,
-                    peak_signal_to_noise=float(local_normalized[peak_local]),
-                    peak_position_yx=(
-                        bounds.y_start + int(peak_local[0]),
-                        bounds.x_start + int(peak_local[1]),
-                    ),
-                    first_pixel_yx=first_pixel,
-                    touches_image_edge=(
-                        bounds.y_start == 0
-                        or bounds.x_start == 0
-                        or bounds.y_stop == image_height
-                        or bounds.x_stop == image_width
-                    ),
-                ),
-                normalized_residual=local_normalized,
-                island_membership=local_direct,
-            ),
-            config,
-            marker_partition="nearest-marker",
-        )
-        local_labels = np.where(
-            result.region_labels > 0,
-            result.region_labels + next_label - 1,
+        output_direct[slices] += np.where(
+            membership.direct_labels > 0,
+            membership.direct_labels + next_label - 1,
             0,
         ).astype(np.int32, copy=False)
-        output_direct[slices] += local_labels
-        if len(result.regions) == 1:
-            measurement_output = output_measurement[measurement_slices]
-            measurement_output[local_measurement] = next_label
-        else:
-            measurement_seed_labels = np.zeros(
-                measurement_bounds.shape_yx,
-                dtype=np.int32,
-            )
-            seed_slices = (
-                slice(
-                    bounds.y_start - measurement_bounds.y_start,
-                    bounds.y_stop - measurement_bounds.y_start,
-                ),
-                slice(
-                    bounds.x_start - measurement_bounds.x_start,
-                    bounds.x_stop - measurement_bounds.x_start,
-                ),
-            )
-            measurement_seed_labels[seed_slices] = local_labels
-            assigned = _assign_parent_measurement_support(
-                measurement_seed_labels,
-                local_measurement,
-                valid[measurement_slices],
-            )
-            output_measurement[measurement_slices] += assigned
-            deblended_parent_count += 1
-        next_label += len(result.regions)
+        output_measurement[measurement_slices] += np.where(
+            membership.measurement_labels > 0,
+            membership.measurement_labels + next_label - 1,
+            0,
+        ).astype(np.int32, copy=False)
+        next_label += membership.component_count
+        deblended_parent_count += int(membership.deblended)
+        deferred_parent_count += int(membership.deferred)
     if not np.array_equal(output_direct > 0, direct > 0):
         raise ValueError("component deblending changed direct support")
     if not np.array_equal(output_measurement > 0, measurement > 0):

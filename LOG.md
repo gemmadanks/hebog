@@ -23463,3 +23463,41 @@ the per-worker placement finding.
   no image inside the 1,024-pixel envelope can reach that size, so the stage
   currently decides every owner. The T3 path lands with pass D's object
   phase, which owns the disposition records.
+
+## 2026-09-19 — M2: component topology is the first tile-native object round
+
+- **What this is.** The first round of ADR-008's pass D. The public
+  composition no longer deblends over whole planes:
+  `hebog.stages.objects.run_component_topology_stage` decides each parent
+  inside the window that holds it and the cores write the component labels
+  they own. The whole-image normalised-residual plane the composition built
+  only to deblend is gone with it.
+- **The split.** `deblend_component_topology` already worked parent by parent
+  in each parent's own bounding boxes, so the loop body became
+  `deblend_parent_components`, which takes one parent's windows and returns
+  its component memberships with labels local to that parent. The whole-plane
+  function is now that helper in a loop and remains the serial oracle.
+- **Three rounds.** The cores observe each parent's direct and measurement
+  extent and first pixel; one task per batch of parents deblends them inside
+  those extents and returns bounded sparse memberships; the cores write the
+  labels they own. The driver offsets each parent's local labels by the
+  components every earlier parent produced, in canonical first-pixel order,
+  which is the order a whole-plane pass uses, so the numbering does not move
+  with tile geometry or completion order. Parents are batched until the union
+  of their reads would exceed the admitted pixel budget.
+- **The deferral is already the T3 disposition.** A parent above either hard
+  compact-work bound stays one explicit component and is counted in
+  `deferred_parent_count`, which is the reviewed science and exactly ADR-008's
+  T3 rule for this round: the object is measured and published with its
+  disposition rather than truncated or split.
+- **Evidence.** The quick science check (`m2-pass-d-topology`) reproduces all
+  sixteen cases exactly. A new stage suite deblends a two-peak parent that
+  spans several tile cores and whose measurement support has to be
+  partitioned between the new seeds; it asserts the published planes equal
+  the whole-plane deblender exactly, survive tile geometry, batching, one
+  parent per read, reverse completion and Dask, and that an oversized parent
+  defers rather than losing support. Quick-check wall time rose 161.9 →
+  164.4 s.
+- **What pass D still holds whole-array.** Component moments and fitting,
+  source association, the continuum catalogue and the per-scale detection
+  records. Those are the remaining rounds.

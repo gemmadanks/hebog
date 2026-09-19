@@ -485,6 +485,7 @@ def test_joint_geometry_with_controlled_or_public_background(
             config=config,
             multiscale=published.multiscale,
             labels=published.labels,
+            topology=published.topology,
         )
         scientific = public_api._ScientificProducts(
             image, background, rms, products

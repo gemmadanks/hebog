@@ -312,6 +312,21 @@ class TiledSupportLabels:
 
 
 @dataclass(frozen=True, slots=True)
+class TiledComponentTopology:
+    """The object pass's component ownership, as published per core.
+
+    Each parent was deblended inside the window that holds it, and the
+    component numbering follows canonical parent order, so it does not move
+    with tile geometry or completion order.
+    """
+
+    direct_component_labels: npt.NDArray[np.int32]
+    measurement_component_labels: npt.NDArray[np.int32]
+    deblended_parent_count: int
+    deferred_parent_count: int
+
+
+@dataclass(frozen=True, slots=True)
 class ContinuumCandidateProducts:
     """Detection, ownership, and multiscale measurement products."""
 

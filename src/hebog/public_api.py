@@ -71,6 +71,7 @@ from hebog.stages.detection import run_detection_stage
 
 if TYPE_CHECKING:  # pragma: no cover - import-time typing only
     from hebog.science.models import (
+        TiledComponentTopology,
         TiledMultiscaleDetection,
         TiledSupportLabels,
     )
@@ -615,7 +616,7 @@ def publish_support_labels(  # noqa: PLR0913
     review: ContinuumScienceProfile,
     generation_id: str,
     tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
-) -> TiledSupportLabels:
+) -> tuple[TiledSupportLabels, ZarrProductSink]:
     """Decide owner connectivity and publish the support pass's labels.
 
     Two of the decisions here are scoped to an owner rather than to a tile,
@@ -669,11 +670,82 @@ def publish_support_labels(  # noqa: PLR0913
             dtype=dtype,
         )
 
-    return TiledSupportLabels(
-        component_labels=plane("component-labels", "int32"),
-        measurement_labels=plane("measurement-labels", "int32"),
-        publication_labels=plane("publication-labels", "int32"),
-        retained_mask=plane("retained-mask", "bool"),
+    return (
+        TiledSupportLabels(
+            component_labels=plane("component-labels", "int32"),
+            measurement_labels=plane("measurement-labels", "int32"),
+            publication_labels=plane("publication-labels", "int32"),
+            retained_mask=plane("retained-mask", "bool"),
+        ),
+        sink,
+    )
+
+
+def publish_component_topology(  # noqa: PLR0913
+    support_source: ZarrProductSink,
+    detection_source: ZarrProductSink,
+    executor: Executor,
+    work_directory: Path,
+    *,
+    image_shape_yx: tuple[int, int],
+    config: SourceFinderConfig,
+    generation_id: str,
+    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
+) -> TiledComponentTopology:
+    """Deblend every parent in its own window and read the components.
+
+    Deblending needs a parent's complete support and nothing beyond it, so
+    the object pass decides one parent per task and the cores write the
+    component labels they own.
+    """
+    from hebog.science.continuum import (  # noqa: PLC0415
+        compact_deblend_config,
+    )
+    from hebog.science.models import (  # noqa: PLC0415
+        TiledComponentTopology,
+    )
+    from hebog.stages.objects import (  # noqa: PLC0415
+        ComponentTopologyStageConfig,
+        run_component_topology_stage,
+    )
+
+    manifest = plan_image_partitions(
+        image_shape_yx=image_shape_yx,
+        tile_core_shape_yx=(tile_core_pixels, tile_core_pixels),
+        halo_yx=(0, 0),
+    )
+    sink = ZarrProductSink(
+        work_directory / "components.zarr",
+        manifest,
+        generation_id=generation_id,
+    )
+    result = run_component_topology_stage(
+        support_source,
+        detection_source,
+        manifest,
+        config=ComponentTopologyStageConfig(
+            deblend=compact_deblend_config(config),
+            maximum_tiles_per_batch=_SUPPORT_TILES_PER_BATCH,
+            maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
+        ),
+        executor=executor,
+        sink=sink,
+    )
+    bounds = ImageBounds(0, image_shape_yx[0], 0, image_shape_yx[1])
+    return TiledComponentTopology(
+        direct_component_labels=np.asarray(
+            sink.read_completed_window("component-direct-labels", bounds),
+            dtype=np.int32,
+        ),
+        measurement_component_labels=np.asarray(
+            sink.read_completed_window(
+                "component-measurement-labels",
+                bounds,
+            ),
+            dtype=np.int32,
+        ),
+        deblended_parent_count=result.deblended_parent_count,
+        deferred_parent_count=result.deferred_parent_count,
     )
 
 
@@ -742,6 +814,18 @@ def _analyse_image(  # noqa: PLR0913
         ),
         generation_id=generation_id,
     )
+    support_labels, labels_source = publish_support_labels(
+        detection_source,
+        support_source,
+        executor,
+        work_directory,
+        image_shape_yx=metadata.shape_yx,
+        beam=beam,
+        detection_islands=multiscale.detection_islands,
+        config=config,
+        review=review,
+        generation_id=generation_id,
+    )
     terminal = build_configured_continuum_products(
         image,
         background,
@@ -751,16 +835,14 @@ def _analyse_image(  # noqa: PLR0913
         review=review,
         config=config,
         multiscale=multiscale,
-        labels=publish_support_labels(
+        labels=support_labels,
+        topology=publish_component_topology(
+            labels_source,
             detection_source,
-            support_source,
             executor,
             work_directory,
             image_shape_yx=metadata.shape_yx,
-            beam=beam,
-            detection_islands=multiscale.detection_islands,
             config=config,
-            review=review,
             generation_id=generation_id,
         ),
     )

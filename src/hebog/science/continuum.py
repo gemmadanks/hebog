@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import numpy as np
 import numpy.typing as npt
 
@@ -10,7 +12,12 @@ from hebog.algorithms.multiscale_association import (
     ScaleDetectionPlane,
     build_scale_detection_plane_from_islands,
 )
-from hebog.config import ResidualMultiscaleDetectionConfig
+from hebog.config import (
+    CompactDeblendConfig,
+    ResidualMultiscaleDetectionConfig,
+    SourceFinderConfig,
+)
+from hebog.science.configuration import source_finder_configs
 from hebog.science.models import (
     ContinuumCandidateProducts,
     ThresholdFilterResult,
@@ -20,6 +27,23 @@ from hebog.science.models import (
 from hebog.science.profile import ContinuumScienceProfile
 
 CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS = 1.5
+
+
+def compact_deblend_config(
+    config: SourceFinderConfig,
+) -> CompactDeblendConfig:
+    """Return the reviewed deblending policy at the caller's threshold.
+
+    A parent is deblended only where its peak clears the caller's detection
+    threshold, so the reviewed minimum is lowered to just below it rather
+    than to a second, independent threshold.
+    """
+    return replace(
+        source_finder_configs()[1],
+        minimum_peak_signal_to_noise=float(
+            np.nextafter(config.detection_threshold_sigma, -np.inf)
+        ),
+    )
 
 
 def residual_detection_config(

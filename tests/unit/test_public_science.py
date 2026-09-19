@@ -20,10 +20,6 @@ from hebog.public_science import (
     _aligned_plane,
     build_configured_continuum_products,
 )
-from hebog.science.models import (
-    ContinuumCandidateProducts,
-    ThresholdFilterResult,
-)
 from hebog.science.profile import (
     ContinuumScienceProfile,
     configured_science_profile,
@@ -68,34 +64,6 @@ def _config(
         island_threshold_sigma=6.0,
         minimum_island_pixels=minimum_island_pixels,
         maximum_island_pixels=maximum_island_pixels,
-    )
-
-
-def _products(
-    direct_labels: np.ndarray,
-    *,
-    measurement_labels: np.ndarray | None = None,
-) -> ContinuumCandidateProducts:
-    """Build minimal terminal products around exact label planes."""
-    direct = np.asarray(direct_labels, dtype=np.int32)
-    measurement = np.asarray(
-        direct if measurement_labels is None else measurement_labels,
-        dtype=np.int32,
-    )
-    return ContinuumCandidateProducts(
-        detection=ThresholdFilterResult(
-            retained_mask=np.asarray(measurement > 0, dtype=np.bool_),
-            component_labels=measurement,
-            component_count=int(np.count_nonzero(np.unique(measurement) > 0)),
-        ),
-        direct_component_labels=direct,
-        measurement_component_labels=measurement,
-        position_signal_jy_per_beam=np.ones(direct.shape, dtype=np.float64),
-        significant_multiscale_support=np.asarray(
-            measurement > 0,
-            dtype=np.bool_,
-        ),
-        scale_detection_planes=(),
     )
 
 
@@ -231,33 +199,24 @@ def test_configured_builder_rejects_inconsistent_finite_support(
             config=_config(),
             multiscale=published.multiscale,
             labels=published.labels,
+            topology=published.topology,
         )
 
 
-def test_configured_builder_deblends_components_before_catalogue_measurement(
+def test_configured_builder_measures_the_published_component_topology(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    """The public composition cannot bypass compact component topology."""
+    """The composition measures deblended components, never their parents."""
     normalized = np.zeros((11, 12), dtype=np.float64)
     normalized[2:9, 2:10] = np.array([6.0, 5.0, 4.0, 3.0, 3.0, 4.0, 5.0, 9.0])
-    direct = np.where(normalized >= 3.0, 17, 0).astype(np.int32)
-    measurement = direct.copy()
-    measurement[1:10, 1:11] = 17
-    products = _products(direct, measurement_labels=measurement)
-    captured: dict[str, np.ndarray] = {}
-
-    def return_products(
-        *_args: object,
-        **_kwargs: object,
-    ) -> ContinuumCandidateProducts:
-        return products
-
-    monkeypatch.setattr(
-        public_science,
-        "build_continuum_candidate_products",
-        return_products,
+    published = _published(
+        normalized,
+        SourceFinderConfig(5.0, 3.0, 7),
+        BeamShapePixels(5.0, 4.0, 0.0),
+        tmp_path,
     )
+    captured: dict[str, np.ndarray] = {}
 
     def capture_catalogues(
         image: np.ndarray,
@@ -268,6 +227,7 @@ def test_configured_builder_deblends_components_before_catalogue_measurement(
         *args: object,
         **kwargs: object,
     ) -> SimpleNamespace:
+        """Record the ownership planes the catalogue builder received."""
         del image, background, valid, args, kwargs
         captured["measurement"] = measurement_labels
         captured["direct"] = direct_labels
@@ -284,14 +244,6 @@ def test_configured_builder_deblends_components_before_catalogue_measurement(
         "build_hebog_reconstructed_source_catalogues",
         capture_catalogues,
     )
-    review = _review()
-
-    published = _published(
-        normalized,
-        SourceFinderConfig(5.0, 3.0, 7),
-        BeamShapePixels(5.0, 4.0, 0.0),
-        tmp_path,
-    )
 
     result = build_configured_continuum_products(
         normalized,
@@ -299,19 +251,26 @@ def test_configured_builder_deblends_components_before_catalogue_measurement(
         np.ones(normalized.shape, dtype=np.float64),
         _header(normalized.shape),
         beam=BeamShapePixels(5.0, 4.0, 0.0),
-        review=review,
+        review=_review(),
         config=SourceFinderConfig(5.0, 3.0, 7),
         multiscale=published.multiscale,
         labels=published.labels,
+        topology=published.topology,
     )
 
     assert result is not None
-    assert set(np.unique(captured["direct"])) == {0, 1, 2}
-    assert set(np.unique(captured["measurement"])) == {0, 1, 2}
-    np.testing.assert_array_equal(captured["direct"] > 0, direct > 0)
     np.testing.assert_array_equal(
-        captured["measurement"] > 0,
-        measurement > 0,
+        captured["direct"],
+        published.topology.direct_component_labels,
+    )
+    np.testing.assert_array_equal(
+        captured["measurement"],
+        published.topology.measurement_component_labels,
+    )
+    # Deblending changes component identity, never the support it covers.
+    np.testing.assert_array_equal(
+        captured["direct"] > 0,
+        published.labels.component_labels > 0,
     )
 
 
@@ -342,6 +301,7 @@ def test_configured_builder_publishes_independent_connected_sources(
         config=SourceFinderConfig(5.0, 3.0, 7),
         multiscale=published.multiscale,
         labels=published.labels,
+        topology=published.topology,
     )
 
     assert result is not None
@@ -386,6 +346,7 @@ def test_configured_builder_retains_three_components_in_one_parent(
         config=SourceFinderConfig(5.0, 3.0, 7),
         multiscale=published.multiscale,
         labels=published.labels,
+        topology=published.topology,
     )
 
     assert result is not None

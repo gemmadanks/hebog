@@ -12,7 +12,6 @@ from astropy.io import fits
 from astropy.wcs import WCS
 
 from hebog.algorithms.component_measurement import measure_component_models
-from hebog.algorithms.component_topology import deblend_component_topology
 from hebog.algorithms.multiscale import (
     BeamShapePixels,
     build_residual_atrous_plan,
@@ -26,9 +25,11 @@ from hebog.science.configuration import source_finder_configs
 from hebog.science.continuum import (
     CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS,
     build_continuum_candidate_products,
+    compact_deblend_config,
 )
 from hebog.science.models import (
     ContinuumProducts,
+    TiledComponentTopology,
     TiledMultiscaleDetection,
     TiledSupportLabels,
 )
@@ -69,6 +70,7 @@ def build_configured_continuum_products(  # noqa: PLR0913
     config: SourceFinderConfig,
     multiscale: TiledMultiscaleDetection,
     labels: TiledSupportLabels,
+    topology: TiledComponentTopology,
 ) -> ContinuumProducts | None:
     """Build terminal products from the published tiled passes.
 
@@ -96,26 +98,7 @@ def build_configured_continuum_products(  # noqa: PLR0913
         multiscale=multiscale,
         labels=labels,
     )
-    normalized = np.full(image.shape, np.nan, dtype=np.float64)
-    np.divide(
-        image - background,
-        rms,
-        out=normalized,
-        where=positive_rms,
-    )
-    deblend_config = replace(
-        source_finder_configs()[1],
-        minimum_peak_signal_to_noise=float(
-            np.nextafter(config.detection_threshold_sigma, -np.inf)
-        ),
-    )
-    topology = deblend_component_topology(
-        normalized,
-        retained.direct_component_labels,
-        retained.measurement_component_labels,
-        valid,
-        deblend_config,
-    )
+    deblend_config = compact_deblend_config(config)
     _, _, moment_config, fit_config, _ = source_finder_configs()
     measurements = measure_component_models(
         image - background,

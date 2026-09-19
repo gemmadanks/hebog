@@ -130,7 +130,16 @@ _STAGES = (
         "build_continuum_candidate_products",
         "candidate products from published planes",
     ),
-    ("hebog.public_science", "deblend_component_topology", "deblending"),
+    (
+        "hebog.public_api",
+        "publish_component_topology",
+        "tiled component topology",
+    ),
+    (
+        "hebog.stages.objects",
+        "run_component_topology_stage",
+        "per-parent deblending",
+    ),
     (
         "hebog.public_science",
         "measure_component_models",

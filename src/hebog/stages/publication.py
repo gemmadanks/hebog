@@ -407,9 +407,7 @@ def _decide_restores(
         )
         return _RestoreBatchResult(
             restored_owners=restored,
-            maximum_owner_read_pixels=int(
-                np.prod(batch.read_bounds.shape_yx)
-            ),
+            maximum_owner_read_pixels=int(np.prod(batch.read_bounds.shape_yx)),
         )
 
 
@@ -501,9 +499,7 @@ def _decide_bridges(
                 patches.append(patch)
         return _BridgeBatchResult(
             patches=tuple(patches),
-            maximum_owner_read_pixels=int(
-                np.prod(batch.read_bounds.shape_yx)
-            ),
+            maximum_owner_read_pixels=int(np.prod(batch.read_bounds.shape_yx)),
         )
 
 
@@ -700,9 +696,11 @@ def _owner_batches(
     grouped: list[_OwnerRequest] = []
     for request in requests:
         candidate = [*grouped, request]
-        if grouped and int(
-            np.prod(_batch_bounds(candidate).shape_yx)
-        ) > maximum_batch_read_pixels:
+        if (
+            grouped
+            and int(np.prod(_batch_bounds(candidate).shape_yx))
+            > maximum_batch_read_pixels
+        ):
             batches.append(_owner_batch(grouped))
             grouped = [request]
             continue
@@ -842,8 +840,12 @@ def _validate_stage_inputs(
     for source, names in (
         (
             detection_source,
-            ("detection-labels", "direct-snr", "reconstruction-mask",
-             "valid-pixels"),
+            (
+                "detection-labels",
+                "direct-snr",
+                "reconstruction-mask",
+                "valid-pixels",
+            ),
         ),
         (support_source, ("support-components", "persistent-support")),
     ):
@@ -906,9 +908,7 @@ def run_publication_stage(  # noqa: PLR0913
         ),
     )
     restored = frozenset(
-        owner
-        for result in restore_results
-        for owner in result.restored_owners
+        owner for result in restore_results for owner in result.restored_owners
     )
 
     def tile_request(
@@ -948,9 +948,7 @@ def run_publication_stage(  # noqa: PLR0913
     if not scan_results:
         raise ValueError("executor returned no published-owner results")
     published = frozenset(
-        owner
-        for result in scan_results
-        for owner in result.published_owners
+        owner for result in scan_results for owner in result.published_owners
     )
     bridge_results = _map_owner_batches(
         executor,
@@ -1051,9 +1049,7 @@ def run_publication_stage(  # noqa: PLR0913
         published_owner_count=len(published),
         partition_count=len(manifest.tiles),
         executor_task_count=(
-            2 * len(owner_batches)
-            + len(scan_batches)
-            + len(publish_batches)
+            2 * len(owner_batches) + len(scan_batches) + len(publish_batches)
         ),
         maximum_graph_width=max(
             len(owner_batches),
