@@ -1,22 +1,31 @@
 # pyright: reportMissingTypeStubs=false
-"""One-tile/many-tile agreement for the public tiled detection pass."""
+# pyright: reportUnknownVariableType=false
+"""One-tile/many-tile agreement for the public tiled passes."""
 
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 import numpy.typing as npt
 import pytest
+from scipy.ndimage import label
 
 from hebog.algorithms.multiscale import BeamShapePixels
+from hebog.algorithms.multiscale_association import (
+    build_scale_detection_plane_from_islands,
+    persistent_adjacent_scale_support,
+)
 from hebog.config import SourceFinderConfig
-from hebog.science.models import TiledMultiscaleDetection
 from hebog.science.profile import (
     configured_science_profile,
     load_continuum_science_profile,
 )
-from hebog.validation.tiled_detection import detect_multiscale_planes
+from hebog.validation.tiled_detection import (
+    PublishedContinuumInputs,
+    publish_continuum_inputs,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -58,7 +67,7 @@ def _detect(
     work_directory: Path,
     *,
     tile_core_pixels: int,
-) -> TiledMultiscaleDetection:
+) -> PublishedContinuumInputs:
     """Run the public detection pass over one analytic tile geometry."""
     config = SourceFinderConfig(5.0, 3.0, 7)
     review = load_continuum_science_profile(
@@ -66,7 +75,7 @@ def _detect(
             _ROOT / "src/hebog/resources/reviewed_continuum_profile.json"
         ).read_bytes()
     )
-    return detect_multiscale_planes(
+    return publish_continuum_inputs(
         image,
         np.ones(image.shape, dtype=np.bool_),
         np.zeros(image.shape, dtype=np.float64),
@@ -75,11 +84,12 @@ def _detect(
         review=configured_science_profile(review, config),
         work_directory=work_directory,
         tile_core_pixels=tile_core_pixels,
+        support_tile_core_pixels=tile_core_pixels,
     )
 
 
 @pytest.mark.parametrize("tile_core_pixels", [60, 80, 120])
-def test_detection_pass_is_one_tile_many_tile_equal(
+def test_published_passes_are_one_tile_many_tile_equal(
     tmp_path: Path,
     tile_core_pixels: int,
 ) -> None:
@@ -90,36 +100,50 @@ def test_detection_pass_is_one_tile_many_tile_equal(
     many = _detect(image, tmp_path / "many", tile_core_pixels=tile_core_pixels)
 
     np.testing.assert_array_equal(
-        many.detection_labels,
-        one.detection_labels,
+        many.multiscale.detection_labels,
+        one.multiscale.detection_labels,
     )
     np.testing.assert_array_equal(
-        many.reconstruction_mask,
-        one.reconstruction_mask,
+        many.multiscale.reconstruction_mask,
+        one.multiscale.reconstruction_mask,
     )
     for many_mask, one_mask in zip(
-        many.significant_scale_masks,
-        one.significant_scale_masks,
+        many.multiscale.significant_scale_masks,
+        one.multiscale.significant_scale_masks,
         strict=True,
     ):
         np.testing.assert_array_equal(many_mask, one_mask)
-    assert many.scale_islands_by_order == one.scale_islands_by_order
-    assert many.scale_nominal_beam_fwhms == one.scale_nominal_beam_fwhms
+    assert (
+        many.multiscale.scale_islands_by_order
+        == one.multiscale.scale_islands_by_order
+    )
+    assert (
+        many.multiscale.scale_nominal_beam_fwhms
+        == one.multiscale.scale_nominal_beam_fwhms
+    )
     np.testing.assert_allclose(
-        many.position_signal_jy_per_beam,
-        one.position_signal_jy_per_beam,
+        many.multiscale.position_signal_jy_per_beam,
+        one.multiscale.position_signal_jy_per_beam,
         rtol=_TOLERANCE,
         atol=_TOLERANCE,
     )
+    np.testing.assert_array_equal(
+        many.support.support_component_labels,
+        one.support.support_component_labels,
+    )
+    np.testing.assert_array_equal(
+        many.support.persistent_scale_support,
+        one.support.persistent_scale_support,
+    )
 
 
-def test_detection_pass_publishes_labelled_edge_and_corner_sources(
+def test_published_passes_cover_labelled_edge_and_corner_sources(
     tmp_path: Path,
 ) -> None:
     """The invariance above is not vacuous: the cases carry real support."""
-    detection = _detect(_image(), tmp_path / "one", tile_core_pixels=4096)
+    published = _detect(_image(), tmp_path / "one", tile_core_pixels=4096)
 
-    labels = detection.detection_labels
+    labels = published.multiscale.detection_labels
     assert labels[0, 0] > 0
     assert labels[0, -1] > 0
     assert labels[-1, 0] > 0
@@ -127,5 +151,58 @@ def test_detection_pass_publishes_labelled_edge_and_corner_sources(
     assert labels[60, 60] > 0
     assert labels[100, 119] == labels[100, 122]
     assert int(labels.max()) >= 8
-    assert np.any(detection.reconstruction_mask)
-    assert all(islands for islands in detection.scale_islands_by_order[:2])
+    assert np.any(published.multiscale.reconstruction_mask)
+    assert all(
+        islands for islands in published.multiscale.scale_islands_by_order[:2]
+    )
+    components = published.support.support_component_labels
+    assert int(components.max()) > 1
+    np.testing.assert_array_equal(
+        components > 0,
+        (labels > 0) | published.multiscale.reconstruction_mask,
+    )
+    assert np.any(published.support.persistent_scale_support)
+
+
+def test_published_support_matches_the_whole_plane_reduction(
+    tmp_path: Path,
+) -> None:
+    """The tiled reductions reproduce the whole-plane kernels exactly."""
+    published = _detect(_image(), tmp_path / "one", tile_core_pixels=4096)
+    multiscale = published.multiscale
+
+    expected_components, _ = cast(
+        tuple[npt.NDArray[np.int32], int],
+        label(
+            (multiscale.detection_labels > 0) | multiscale.reconstruction_mask,
+            structure=np.ones((3, 3), dtype=np.int8),
+        ),
+    )
+    expected_persistent = persistent_adjacent_scale_support(
+        tuple(
+            build_scale_detection_plane_from_islands(
+                scale_mask,
+                islands,
+                scale_order=scale_order,
+                nominal_scale_beam_fwhm=nominal,
+            )
+            for scale_order, (scale_mask, islands, nominal) in enumerate(
+                zip(
+                    multiscale.significant_scale_masks,
+                    multiscale.scale_islands_by_order,
+                    multiscale.scale_nominal_beam_fwhms,
+                    strict=True,
+                ),
+                start=1,
+            )
+        )
+    )
+
+    np.testing.assert_array_equal(
+        published.support.support_component_labels,
+        expected_components,
+    )
+    np.testing.assert_array_equal(
+        published.support.persistent_scale_support,
+        expected_persistent,
+    )

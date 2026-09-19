@@ -188,6 +188,14 @@ position signal for its own core. Filter responses are never stored, so the
 number of published planes does not grow with the number of stages, and each
 scale feature's peak response is reduced on the task that held the response.
 
+Two decisions the support step then makes cannot be taken inside one tile.
+Support is attached to the nearest seed of its own connected region, and that
+region can follow a path of any length; and multiscale support stays published
+only when its feature is corroborated at an adjacent scale, which is a
+relationship across the whole image. Both are reconciled from compact per-core
+summaries and written back per core, so the support step reads them rather
+than deriving them from a complete image.
+
 A flooded region needs evidence at the higher detection threshold. A
 filter-promoted region must also satisfy the beam-area rule; a region
 with a direct original-pixel detection-threshold sample can survive below that

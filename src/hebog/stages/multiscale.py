@@ -56,6 +56,7 @@ _MULTISCALE_PRODUCT_NAMES = tuple(
             "detection-labels",
             "position-signal",
             "reconstruction-mask",
+            "valid-pixels",
             *(f"scale-{order}-significant" for order in _SCALE_ORDERS),
         )
     )
@@ -205,7 +206,7 @@ def _product_dtype(product_name: str) -> np.dtype[np.generic]:
     """Return the stored element type of one published multiscale plane."""
     if product_name == "detection-labels":
         return np.dtype("<i4")
-    if product_name.endswith(("mask", "significant")):
+    if product_name.endswith(("mask", "significant", "pixels")):
         return np.dtype(np.bool_)
     return np.dtype("<f8")
 
@@ -535,6 +536,7 @@ def _publication_products(
         ("detection-labels", detection_labels),
         ("position-signal", position_signal),
         ("reconstruction-mask", reconstruction_mask),
+        ("valid-pixels", result.prepared_inputs.scientifically_valid),
         *(
             (f"scale-{order}-significant", mask)
             for order, mask in zip(_SCALE_ORDERS, scale_masks, strict=True)

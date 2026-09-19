@@ -11,7 +11,10 @@ import pytest
 
 from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.science.continuum import evaluate_continuum_candidate_products
-from hebog.science.models import TiledMultiscaleDetection
+from hebog.science.models import (
+    TiledMultiscaleDetection,
+    TiledSupportTopology,
+)
 from hebog.science.profile import (
     ContinuumScienceProfile,
     load_continuum_science_profile,
@@ -50,6 +53,14 @@ def _multiscale(
     )
 
 
+def _support() -> TiledSupportTopology:
+    """Return one empty published support reduction over a small plane."""
+    return TiledSupportTopology(
+        support_component_labels=np.zeros(_SHAPE, dtype=np.int32),
+        persistent_scale_support=np.zeros(_SHAPE, dtype=np.bool_),
+    )
+
+
 def _evaluate(
     valid_pixels: npt.NDArray[np.bool_],
     multiscale: TiledMultiscaleDetection,
@@ -63,6 +74,7 @@ def _evaluate(
         beam=BeamShapePixels(4.0, 3.0, 0.0),
         review=_review(),
         multiscale=multiscale,
+        support=_support(),
     )
 
 

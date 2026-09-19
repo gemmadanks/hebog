@@ -70,13 +70,17 @@ from hebog.pipeline import (
 from hebog.stages.detection import run_detection_stage
 
 if TYPE_CHECKING:  # pragma: no cover - import-time typing only
-    from hebog.science.models import TiledMultiscaleDetection
+    from hebog.science.models import (
+        TiledMultiscaleDetection,
+        TiledSupportTopology,
+    )
     from hebog.science.profile import ContinuumScienceProfile
 
 _MAXIMUM_PREVIEW_DIMENSION = 1024
 _TILE_SHAPE_YX = (128, 128)
-DETECTION_TILE_CORE_PIXELS = 2048
+ADMITTED_TILE_CORE_PIXELS = 2048
 """Smallest tile core the scalability contract admits, in pixels."""
+_SUPPORT_TILES_PER_BATCH = 4
 _DETECTION_THRESHOLD_SIGMA = 5.0
 _ISLAND_THRESHOLD_SIGMA = 3.0
 _MINIMUM_ISLAND_PIXELS = 7
@@ -403,7 +407,7 @@ def _estimate_background_rms(  # noqa: PLR0913
         halo_yx=(0, 0),
     )
     sink = ZarrProductSink(
-        work_directory / "detection.zarr",
+        work_directory / "background.zarr",
         manifest,
         generation_id=generation_id,
     )
@@ -475,8 +479,8 @@ def detect_multiscale_products(  # noqa: PLR0913
     beam: BeamShapePixels,
     review: ContinuumScienceProfile,
     generation_id: str,
-    tile_core_pixels: int = DETECTION_TILE_CORE_PIXELS,
-) -> TiledMultiscaleDetection:
+    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
+) -> tuple[ZarrProductSink, TiledMultiscaleDetection]:
     """Run the tiled detection pass and read its published planes.
 
     The composition owns no filter response plane: the pass publishes the
@@ -537,7 +541,7 @@ def detect_multiscale_products(  # noqa: PLR0913
             dtype=dtype,
         )
 
-    return TiledMultiscaleDetection(
+    return sink, TiledMultiscaleDetection(
         detection_labels=plane("detection-labels", "int32"),
         reconstruction_mask=plane("reconstruction-mask", "bool"),
         position_signal_jy_per_beam=plane("position-signal", "float64"),
@@ -547,6 +551,64 @@ def detect_multiscale_products(  # noqa: PLR0913
         ),
         scale_islands_by_order=result.scale_islands_by_order,
         scale_nominal_beam_fwhms=result.scale_nominal_beam_fwhms,
+    )
+
+
+def reduce_support_topology(  # noqa: PLR0913
+    detection_source: ZarrProductSink,
+    executor: Executor,
+    work_directory: Path,
+    *,
+    image_shape_yx: tuple[int, int],
+    scale_orders: tuple[int, ...],
+    generation_id: str,
+    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
+) -> TiledSupportTopology:
+    """Reconcile the support pass's global topology and read its planes.
+
+    Neither reduction is bounded by a halo: support components follow paths of
+    arbitrary length, and adjacent-scale persistence is a record graph over
+    the whole image. Both are reconciled from compact per-core summaries and
+    published as owned cores, so the composition reads them by window.
+    """
+    from hebog.science.models import (  # noqa: PLC0415
+        TiledSupportTopology,
+    )
+    from hebog.stages.support import (  # noqa: PLC0415
+        SupportTopologyStageConfig,
+        run_support_topology_stage,
+    )
+
+    manifest = plan_image_partitions(
+        image_shape_yx=image_shape_yx,
+        tile_core_shape_yx=(tile_core_pixels, tile_core_pixels),
+        halo_yx=(0, 0),
+    )
+    sink = ZarrProductSink(
+        work_directory / "support.zarr",
+        manifest,
+        generation_id=generation_id,
+    )
+    run_support_topology_stage(
+        detection_source,
+        manifest,
+        config=SupportTopologyStageConfig(
+            scale_orders=scale_orders,
+            maximum_tiles_per_batch=_SUPPORT_TILES_PER_BATCH,
+        ),
+        executor=executor,
+        sink=sink,
+    )
+    bounds = ImageBounds(0, image_shape_yx[0], 0, image_shape_yx[1])
+    return TiledSupportTopology(
+        support_component_labels=np.asarray(
+            sink.read_completed_window("support-components", bounds),
+            dtype=np.int32,
+        ),
+        persistent_scale_support=np.asarray(
+            sink.read_completed_window("persistent-support", bounds),
+            dtype=np.bool_,
+        ),
     )
 
 
@@ -595,6 +657,16 @@ def _analyse_image(  # noqa: PLR0913
         config,
     )
     beam = _beam_shape_pixels(metadata)
+    detection_source, multiscale = detect_multiscale_products(
+        source,
+        background_rms_source,
+        executor,
+        work_directory,
+        image_shape_yx=metadata.shape_yx,
+        beam=beam,
+        review=review,
+        generation_id=generation_id,
+    )
     terminal = build_configured_continuum_products(
         image,
         background,
@@ -603,14 +675,15 @@ def _analyse_image(  # noqa: PLR0913
         beam=beam,
         review=review,
         config=config,
-        multiscale=detect_multiscale_products(
-            source,
-            background_rms_source,
+        multiscale=multiscale,
+        support=reduce_support_topology(
+            detection_source,
             executor,
             work_directory,
             image_shape_yx=metadata.shape_yx,
-            beam=beam,
-            review=review,
+            scale_orders=tuple(
+                range(1, len(multiscale.significant_scale_masks) + 1)
+            ),
             generation_id=generation_id,
         ),
     )

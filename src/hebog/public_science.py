@@ -31,6 +31,7 @@ from hebog.science.models import (
     ContinuumCandidateProducts,
     ContinuumProducts,
     TiledMultiscaleDetection,
+    TiledSupportTopology,
 )
 from hebog.science.profile import (
     ContinuumScienceProfile,
@@ -125,6 +126,7 @@ def build_configured_continuum_products(  # noqa: PLR0913
     review: ContinuumScienceProfile,
     config: SourceFinderConfig,
     multiscale: TiledMultiscaleDetection,
+    support: TiledSupportTopology,
 ) -> ContinuumProducts | None:
     """Build terminal products using caller thresholds and island limits."""
     image = _aligned_plane(image_jy_per_beam, name="image")
@@ -147,6 +149,7 @@ def build_configured_continuum_products(  # noqa: PLR0913
         beam=beam,
         review=_execution_review(review, config),
         multiscale=multiscale,
+        support=support,
     )
     retained = _retain_configured_islands(products, config)
     if retained is None:

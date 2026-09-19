@@ -25,13 +25,15 @@ from hebog.public_science import (
 from hebog.science.models import (
     ContinuumCandidateProducts,
     ThresholdFilterResult,
-    TiledMultiscaleDetection,
 )
 from hebog.science.profile import (
     ContinuumScienceProfile,
     load_continuum_science_profile,
 )
-from hebog.validation.tiled_detection import detect_multiscale_planes
+from hebog.validation.tiled_detection import (
+    PublishedContinuumInputs,
+    publish_continuum_inputs,
+)
 
 _ROOT = Path(__file__).parents[2]
 
@@ -98,14 +100,14 @@ def _products(
     )
 
 
-def _multiscale(
+def _published(
     image: np.ndarray,
     config: SourceFinderConfig,
     beam: BeamShapePixels,
     work_directory: Path,
-) -> TiledMultiscaleDetection:
-    """Publish the tiled detection pass over one zero-background plane."""
-    return detect_multiscale_planes(
+) -> PublishedContinuumInputs:
+    """Publish the tiled passes over one zero-background plane."""
+    return publish_continuum_inputs(
         np.asarray(image, dtype=np.float64),
         np.ones(image.shape, dtype=np.bool_),
         np.zeros(image.shape, dtype=np.float64),
@@ -276,6 +278,13 @@ def test_configured_builder_rejects_inconsistent_finite_support(
     background = np.zeros((2, 2), dtype=np.float64)
     background[0, 0] = np.nan
 
+    published = _published(
+        np.ones((2, 2), dtype=np.float64),
+        _config(),
+        BeamShapePixels(4.0, 3.0, 0.0),
+        tmp_path,
+    )
+
     with pytest.raises(ValueError, match="validity differs from image"):
         build_configured_continuum_products(
             image,
@@ -285,12 +294,8 @@ def test_configured_builder_rejects_inconsistent_finite_support(
             beam=BeamShapePixels(4.0, 3.0, 0.0),
             review=review,
             config=_config(),
-            multiscale=_multiscale(
-                np.ones((2, 2), dtype=np.float64),
-                _config(),
-                BeamShapePixels(4.0, 3.0, 0.0),
-                tmp_path,
-            ),
+            multiscale=published.multiscale,
+            support=published.support,
         )
 
 
@@ -346,6 +351,13 @@ def test_configured_builder_deblends_components_before_catalogue_measurement(
     )
     review = _review()
 
+    published = _published(
+        normalized,
+        SourceFinderConfig(5.0, 3.0, 7),
+        BeamShapePixels(5.0, 4.0, 0.0),
+        tmp_path,
+    )
+
     result = build_configured_continuum_products(
         normalized,
         np.zeros(normalized.shape, dtype=np.float64),
@@ -354,12 +366,8 @@ def test_configured_builder_deblends_components_before_catalogue_measurement(
         beam=BeamShapePixels(5.0, 4.0, 0.0),
         review=review,
         config=SourceFinderConfig(5.0, 3.0, 7),
-        multiscale=_multiscale(
-            normalized,
-            SourceFinderConfig(5.0, 3.0, 7),
-            BeamShapePixels(5.0, 4.0, 0.0),
-            tmp_path,
-        ),
+        multiscale=published.multiscale,
+        support=published.support,
     )
 
     assert result is not None
@@ -382,6 +390,13 @@ def test_configured_builder_publishes_independent_connected_sources(
     ) + 9.5 * np.exp(-((yy - 32) ** 2 + (xx - 36) ** 2) / 8.0)
     review = _review()
 
+    published = _published(
+        normalized,
+        SourceFinderConfig(5.0, 3.0, 7),
+        BeamShapePixels(5.0, 4.0, 0.0),
+        tmp_path,
+    )
+
     result = build_configured_continuum_products(
         normalized,
         np.zeros(normalized.shape, dtype=np.float64),
@@ -390,12 +405,8 @@ def test_configured_builder_publishes_independent_connected_sources(
         beam=BeamShapePixels(5.0, 4.0, 0.0),
         review=review,
         config=SourceFinderConfig(5.0, 3.0, 7),
-        multiscale=_multiscale(
-            normalized,
-            SourceFinderConfig(5.0, 3.0, 7),
-            BeamShapePixels(5.0, 4.0, 0.0),
-            tmp_path,
-        ),
+        multiscale=published.multiscale,
+        support=published.support,
     )
 
     assert result is not None
@@ -423,6 +434,13 @@ def test_configured_builder_retains_three_components_in_one_parent(
         )
     review = _review()
 
+    published = _published(
+        normalized,
+        SourceFinderConfig(5.0, 3.0, 7),
+        BeamShapePixels(5.0, 4.0, 0.0),
+        tmp_path,
+    )
+
     result = build_configured_continuum_products(
         normalized,
         np.zeros(normalized.shape, dtype=np.float64),
@@ -431,12 +449,8 @@ def test_configured_builder_retains_three_components_in_one_parent(
         beam=BeamShapePixels(5.0, 4.0, 0.0),
         review=review,
         config=SourceFinderConfig(5.0, 3.0, 7),
-        multiscale=_multiscale(
-            normalized,
-            SourceFinderConfig(5.0, 3.0, 7),
-            BeamShapePixels(5.0, 4.0, 0.0),
-            tmp_path,
-        ),
+        multiscale=published.multiscale,
+        support=published.support,
     )
 
     assert result is not None

@@ -1,4 +1,6 @@
 # pyright: reportPrivateUsage=false
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUnknownVariableType=false
 """Tests for standard-practice irregular extended-position measurement."""
 
 from __future__ import annotations
@@ -8,6 +10,7 @@ from typing import cast
 import numpy as np
 import numpy.typing as npt
 import pytest
+from scipy.ndimage import label as ndimage_label
 
 from hebog.algorithms.extended_measurement import (
     SegmentWindow,
@@ -1042,3 +1045,94 @@ def test_connectivity_restores_owners_split_beyond_their_first_support() -> (
     assert np.array_equal(
         np.nonzero(connected == 1)[1], np.array([2, 3, 4, 14, 15, 16])
     )
+
+
+def _labelled(mask: npt.NDArray[np.bool_]) -> npt.NDArray[np.int32]:
+    """Return eight-connected labels of one analytic support mask."""
+    labels, _ = cast(
+        tuple[npt.NDArray[np.int32], int],
+        ndimage_label(mask, structure=np.ones((3, 3), dtype=np.int8)),
+    )
+    return labels
+
+
+def _bridged_support() -> tuple[
+    npt.NDArray[np.int32],
+    npt.NDArray[np.bool_],
+    npt.NDArray[np.bool_],
+]:
+    """Return two seeds joined only by a long path of diffuse support."""
+    seeds = np.zeros((11, 13), dtype=np.int32)
+    seeds[5, 1] = 4
+    seeds[5, 11] = 2
+    significant = np.zeros(seeds.shape, dtype=np.bool_)
+    significant[5, 1:12] = True
+    return seeds, significant, np.ones(seeds.shape, dtype=np.bool_)
+
+
+def test_supplied_support_components_reproduce_the_derived_assignment() -> (
+    None
+):
+    """A caller's reconciled components give the whole-plane result."""
+    seeds, significant, valid = _bridged_support()
+    components = _labelled(((seeds > 0) | significant) & valid)
+
+    supplied = assign_seeded_multiscale_support(
+        seeds,
+        significant,
+        valid,
+        beam_major_fwhm_pixels=6.0,
+        support_component_labels=components,
+    )
+
+    np.testing.assert_array_equal(
+        supplied,
+        assign_seeded_multiscale_support(
+            seeds,
+            significant,
+            valid,
+            beam_major_fwhm_pixels=6.0,
+        ),
+    )
+    assert set(np.unique(supplied)) == {0, 2, 4}
+
+
+def test_tile_local_support_components_would_separate_joined_support() -> None:
+    """The supplied components are what makes a tiled call exact."""
+    seeds, significant, valid = _bridged_support()
+    severed = ((seeds > 0) | significant) & valid
+    severed[5, 6] = False
+    tile_local = _labelled(severed)
+
+    with pytest.raises(ValueError, match="exactly the eligible support"):
+        assign_seeded_multiscale_support(
+            seeds,
+            significant,
+            valid,
+            beam_major_fwhm_pixels=6.0,
+            support_component_labels=tile_local,
+        )
+
+
+@pytest.mark.parametrize(
+    "components",
+    [
+        np.zeros((3, 3), dtype=np.int32),
+        np.zeros((11, 13), dtype=np.float64),
+        np.full((11, 13), -1, dtype=np.int32),
+    ],
+)
+def test_supplied_support_components_must_be_an_aligned_label_plane(
+    components: npt.NDArray[np.generic],
+) -> None:
+    """A misaligned, real or negative component plane fails closed."""
+    seeds, significant, valid = _bridged_support()
+
+    with pytest.raises(ValueError, match="aligned non-negative label plane"):
+        assign_seeded_multiscale_support(
+            seeds,
+            significant,
+            valid,
+            beam_major_fwhm_pixels=6.0,
+            support_component_labels=components,
+        )

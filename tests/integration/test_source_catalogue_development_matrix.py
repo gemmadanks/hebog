@@ -46,7 +46,7 @@ from hebog.validation.public_measurement_projection import (
     ContinuumCatalogueObject,
     project_public_measurements,
 )
-from hebog.validation.tiled_detection import detect_multiscale_planes
+from hebog.validation.tiled_detection import publish_continuum_inputs
 
 _ROOT = Path(__file__).parents[2]
 _FWHM_PER_SIGMA = 2.0 * sqrt(2.0 * np.log(2.0))
@@ -465,6 +465,15 @@ def test_joint_geometry_with_controlled_or_public_background(
             beam.minor_fwhm_pixels,
             beam.position_angle_degrees,
         )
+        published = publish_continuum_inputs(
+            np.asarray(image, dtype=np.float64),
+            np.ones(image.shape, dtype=np.bool_),
+            background,
+            rms,
+            beam=beam_pixels,
+            review=configured_science_profile(review, config),
+            work_directory=tmp_path / "detection",
+        )
         products = build_configured_continuum_products(
             image,
             background,
@@ -473,15 +482,8 @@ def test_joint_geometry_with_controlled_or_public_background(
             beam=beam_pixels,
             review=review,
             config=config,
-            multiscale=detect_multiscale_planes(
-                np.asarray(image, dtype=np.float64),
-                np.ones(image.shape, dtype=np.bool_),
-                background,
-                rms,
-                beam=beam_pixels,
-                review=configured_science_profile(review, config),
-                work_directory=tmp_path / "detection",
-            ),
+            multiscale=published.multiscale,
+            support=published.support,
         )
         scientific = public_api._ScientificProducts(
             image, background, rms, products

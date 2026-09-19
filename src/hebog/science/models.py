@@ -283,6 +283,20 @@ class TiledMultiscaleDetection:
 
 
 @dataclass(frozen=True, slots=True)
+class TiledSupportTopology:
+    """Published support reductions no bounded halo can supply.
+
+    These are the pass-C reductions described in ADR-008: the globally
+    reconciled components of the eligible support, which decide which seed a
+    support pixel may attach to, and the support corroborated at an adjacent
+    scale, which decides which recovered support stays published.
+    """
+
+    support_component_labels: npt.NDArray[np.int32]
+    persistent_scale_support: npt.NDArray[np.bool_]
+
+
+@dataclass(frozen=True, slots=True)
 class ContinuumCandidateProducts:
     """Detection, ownership, and multiscale measurement products."""
 

@@ -17,13 +17,13 @@ from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.algorithms.multiscale_association import (
     ScaleDetectionPlane,
     build_scale_detection_plane_from_islands,
-    persistent_adjacent_scale_support,
 )
 from hebog.config import ResidualMultiscaleDetectionConfig
 from hebog.science.models import (
     ContinuumCandidateProducts,
     ThresholdFilterResult,
     TiledMultiscaleDetection,
+    TiledSupportTopology,
 )
 from hebog.science.profile import ContinuumScienceProfile
 
@@ -165,6 +165,7 @@ def _publication_products(  # noqa: PLR0913
     beam: BeamShapePixels,
     review: ContinuumScienceProfile,
     multiscale: TiledMultiscaleDetection,
+    support: TiledSupportTopology,
 ) -> ContinuumCandidateProducts:
     """Attach bounded multiscale support and publish direct-owner support.
 
@@ -188,6 +189,7 @@ def _publication_products(  # noqa: PLR0913
             support_mask,
             scientifically_valid,
             beam_major_fwhm_pixels=beam.major_fwhm_pixels,
+            support_component_labels=support.support_component_labels,
         ),
         dtype=np.int32,
     )
@@ -254,6 +256,7 @@ def evaluate_continuum_candidate_products(  # noqa: PLR0913
     beam: BeamShapePixels,
     review: ContinuumScienceProfile,
     multiscale: TiledMultiscaleDetection,
+    support: TiledSupportTopology,
 ) -> ContinuumCandidateProducts:
     """Refine publication support using exact adjacent-scale persistence."""
     products = _publication_products(
@@ -264,6 +267,7 @@ def evaluate_continuum_candidate_products(  # noqa: PLR0913
         beam=beam,
         review=review,
         multiscale=multiscale,
+        support=support,
     )
     direct_snr = _direct_snr(
         image_jy_per_beam,
@@ -271,16 +275,11 @@ def evaluate_continuum_candidate_products(  # noqa: PLR0913
         background_jy_per_beam,
         rms_jy_per_beam,
     )
-    persistent_support = (
-        persistent_adjacent_scale_support(products.scale_detection_planes)
-        if products.scale_detection_planes
-        else np.zeros(direct_snr.shape, dtype=np.bool_)
-    )
     labels = refine_persistent_publication_labels(
         products.measurement_component_labels,
         products.detection.component_labels,
         direct_snr,
-        persistent_support,
+        support.persistent_scale_support,
     )
     retained = np.asarray(labels > 0, dtype=np.bool_)
     retained.setflags(write=False)

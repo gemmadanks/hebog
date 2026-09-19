@@ -1,5 +1,5 @@
 # pyright: reportMissingTypeStubs=false
-"""Run the public tiled detection pass over in-memory science planes.
+"""Run the public tiled passes over in-memory science planes.
 
 Tests and notebooks that hold analytic planes rather than a FITS file still
 have to give the composition a published detection generation, because no
@@ -10,6 +10,7 @@ reimplements the detection science it is checking.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -23,10 +24,14 @@ from hebog.executors import Executor, SerialExecutor
 from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
 from hebog.public_api import (
-    DETECTION_TILE_CORE_PIXELS,
+    ADMITTED_TILE_CORE_PIXELS,
     detect_multiscale_products,
+    reduce_support_topology,
 )
-from hebog.science.models import TiledMultiscaleDetection
+from hebog.science.models import (
+    TiledMultiscaleDetection,
+    TiledSupportTopology,
+)
 from hebog.science.profile import ContinuumScienceProfile
 
 _BACKGROUND_TILE_SHAPE_YX = (128, 128)
@@ -76,7 +81,7 @@ def publish_background_rms(
         halo_yx=(0, 0),
     )
     sink = ZarrProductSink(
-        work_directory / "detection.zarr",
+        work_directory / "background.zarr",
         manifest,
         generation_id=generation_id,
     )
@@ -104,7 +109,15 @@ def publish_background_rms(
     return sink
 
 
-def detect_multiscale_planes(  # noqa: PLR0913
+@dataclass(frozen=True, slots=True)
+class PublishedContinuumInputs:
+    """Every published plane the continuum composition reads."""
+
+    multiscale: TiledMultiscaleDetection
+    support: TiledSupportTopology
+
+
+def publish_continuum_inputs(  # noqa: PLR0913
     image_jy_per_beam: npt.NDArray[np.float64],
     valid_pixels: npt.NDArray[np.bool_],
     background_jy_per_beam: npt.NDArray[np.float64],
@@ -114,24 +127,42 @@ def detect_multiscale_planes(  # noqa: PLR0913
     review: ContinuumScienceProfile,
     work_directory: Path,
     executor: Executor | None = None,
-    generation_id: str = "tiled-detection",
-    tile_core_pixels: int = DETECTION_TILE_CORE_PIXELS,
-) -> TiledMultiscaleDetection:
-    """Publish and read the detection pass the composition consumes."""
+    generation_id: str = "published-continuum-inputs",
+    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
+    support_tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
+) -> PublishedContinuumInputs:
+    """Publish and read every pass the composition consumes."""
     work_directory.mkdir(parents=True, exist_ok=True)
-    return detect_multiscale_products(
-        ArrayImageSource(image_jy_per_beam, valid_pixels),
-        publish_background_rms(
-            work_directory,
-            background_jy_per_beam,
-            rms_jy_per_beam,
-            generation_id=generation_id,
-        ),
-        SerialExecutor() if executor is None else executor,
+    image_source = ArrayImageSource(image_jy_per_beam, valid_pixels)
+    background_rms_source = publish_background_rms(
+        work_directory,
+        background_jy_per_beam,
+        rms_jy_per_beam,
+        generation_id=generation_id,
+    )
+    resolved_executor = SerialExecutor() if executor is None else executor
+    detection_source, multiscale = detect_multiscale_products(
+        image_source,
+        background_rms_source,
+        resolved_executor,
         work_directory,
         image_shape_yx=image_jy_per_beam.shape,
         beam=beam,
         review=review,
         generation_id=generation_id,
         tile_core_pixels=tile_core_pixels,
+    )
+    return PublishedContinuumInputs(
+        multiscale=multiscale,
+        support=reduce_support_topology(
+            detection_source,
+            resolved_executor,
+            work_directory,
+            image_shape_yx=image_jy_per_beam.shape,
+            scale_orders=tuple(
+                range(1, len(multiscale.significant_scale_masks) + 1)
+            ),
+            generation_id=generation_id,
+            tile_core_pixels=support_tile_core_pixels,
+        ),
     )

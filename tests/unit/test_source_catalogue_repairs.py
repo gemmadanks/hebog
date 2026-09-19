@@ -43,7 +43,7 @@ from hebog.science.profile import (
     configured_science_profile,
     load_continuum_science_profile,
 )
-from hebog.validation.tiled_detection import detect_multiscale_planes
+from hebog.validation.tiled_detection import publish_continuum_inputs
 
 _ROOT = Path(__file__).parents[2]
 
@@ -389,7 +389,7 @@ def _configured_products(
     background = np.zeros_like(signal)
     rms = np.ones_like(signal)
     with TemporaryDirectory() as directory:
-        multiscale = detect_multiscale_planes(
+        published = publish_continuum_inputs(
             np.asarray(signal, dtype=np.float64),
             np.ones(signal.shape, dtype=np.bool_),
             background,
@@ -406,7 +406,8 @@ def _configured_products(
             beam=beam,
             review=review,
             config=config,
-            multiscale=multiscale,
+            multiscale=published.multiscale,
+            support=published.support,
         )
 
 

@@ -40,7 +40,7 @@ def _publish_background_rms(
         halo_yx=(0, 0),
     )
     sink = ZarrProductSink(
-        work_directory / "detection.zarr",
+        work_directory / "background.zarr",
         manifest,
         generation_id=generation_id,
     )

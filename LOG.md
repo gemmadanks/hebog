@@ -23345,3 +23345,57 @@ the per-worker placement finding.
   maximum. Each round is cheap beside pass B's filters, and the refinement is
   recomputed in the rounds that need it rather than stored, exactly as pass B
   recomputes its filters.
+
+## 2026-09-18 — M2: pass C's global reductions are tile-native
+
+- **What this is.** The first rounds of ADR-008's pass C: the two quantities
+  the support pass needs that no bounded halo can supply. `hebog.stages.support`
+  reconciles them from compact per-core summaries and publishes them as owned
+  cores, and the composition reads the planes instead of computing them over
+  whole planes.
+- **Support components.** `assign_seeded_multiscale_support` attaches a
+  support pixel to the nearest seed **of its own component** of
+  `(direct support ∪ significant multiscale support) ∩ valid`. That
+  connectivity follows paths of arbitrary length, so a tile that labelled its
+  own read would separate support a longer path joins, and would silently drop
+  the assignment. The function now takes `support_component_labels`, the
+  globally reconciled components, and validates that they label exactly the
+  eligible support, so a tile-local plane fails loudly instead of changing
+  science quietly. A whole-plane caller may still omit it.
+- **Adjacent-scale persistence.** Each core observes the label overlaps
+  between adjacent scales, the driver maps them to global labels, unions them,
+  and keeps the features whose group spans at least two scale orders. The
+  accepted labels are sharded to the tiles that hold them rather than
+  broadcast, and the second round writes `persistent-support` per core.
+- **One plane replaced three reads.** The support rounds first re-derived the
+  scientifically valid domain from the image, background and RMS. The
+  detection pass already has that domain, so it now publishes `valid-pixels`
+  and the support stage reads it: the stage needs neither the image source nor
+  the background generation, and its whole API is one published generation.
+- **Evidence.** The quick science check (`m2-pass-c-valid`, baselined on
+  `m2-pass-c-dead-layers`) reproduces all sixteen cases exactly. A new
+  integration test asserts that both published planes equal the whole-plane
+  kernels they replace — `scipy.ndimage.label` of the union mask and
+  `persistent_adjacent_scale_support` of the scale detection planes — with the
+  reconciled component labels identical, not merely an identical partition.
+  The partition-invariance suite now covers both planes at 16, 9, 4 and 1
+  tiles, and an eighteen-test stage suite at 100% branch coverage covers a
+  component crossing several cores, an invalid pixel inside the support,
+  persistence over a three-scale chain and its rejection of a single-scale
+  feature, geometry, batching, reverse completion and Dask invariance,
+  order-independent grouping, the canonical product set, a haloed manifest, a
+  mismatched sink and image shape, a generation missing the planes the stage
+  reads, both silent-executor paths, empty batch records and configuration
+  validation.
+- **Cost.** Quick-check wall time rose 141.3 → 152.1 s, about 7%, from the
+  extra generation and its per-core chunk writes rather than from the reads:
+  publishing `valid-pixels` and dropping three whole-plane reads per core
+  changed nothing measurable (151.1 → 152.1 s, inside the noise). The cost is
+  the price of removing two whole-image reductions that could not run at all
+  above 22,500²; M2's bottleneck row owns the Zarr write overhead, which the
+  M1 profile already identified as chunk opens and atomic renames.
+- **Still whole-array in pass C.** Seeded support assignment, segment
+  refinement, the publication rule and persistent publication are still
+  evaluated over whole planes, as are the per-scale detection records that
+  pass D consumes. The next rounds are the haloed pixel work and the two
+  owner-scoped connectivity steps ADR-008 now describes.

@@ -609,6 +609,37 @@ def _nearest_canonical_seed_ranks(
     return minimum_distances, owner_ranks
 
 
+def _support_components(
+    support_component_labels: npt.ArrayLike | None,
+    *,
+    eligible_support: npt.NDArray[np.bool_],
+) -> npt.NDArray[np.int32]:
+    """Return the support components a caller supplied, or derive them."""
+    if support_component_labels is None:
+        derived, _ = cast(
+            tuple[npt.NDArray[np.int32], int],
+            connected_component_labels(
+                eligible_support,
+                structure=np.ones((3, 3), dtype=np.int8),
+            ),
+        )
+        return derived
+    components = np.asarray(support_component_labels)
+    if (
+        components.shape != eligible_support.shape
+        or not np.issubdtype(components.dtype, np.integer)
+        or bool(np.any(components < 0))
+    ):
+        raise ValueError(
+            "support components must be one aligned non-negative label plane"
+        )
+    if bool(np.any((components > 0) != eligible_support)):
+        raise ValueError(
+            "support components must label exactly the eligible support"
+        )
+    return np.asarray(components, dtype=np.int32)
+
+
 def assign_seeded_multiscale_support(  # noqa: PLR0913
     component_labels: npt.ArrayLike,
     significant_multiscale_support: npt.ArrayLike,
@@ -619,15 +650,22 @@ def assign_seeded_multiscale_support(  # noqa: PLR0913
     canonical_seed_references_yx: (
         Mapping[int, tuple[int, int]] | None
     ) = None,
+    support_component_labels: npt.ArrayLike | None = None,
 ) -> npt.NDArray[np.int32]:
     """Attach bounded multiscale support without merging direct seed owners.
 
     Positive input labels are authoritative direct-residual source identities.
-    Eligible support is assigned to the nearest exact seed pixel. Equal
-    distances use the owner whose globally row-major seed reference appears
-    first, independently of task-local label integers or completion order.
+    Eligible support is assigned to the nearest exact seed pixel of its own
+    support component. Equal distances use the owner whose globally row-major
+    seed reference appears first, independently of task-local label integers
+    or completion order.
+
     Tiled callers must pass the global reference pixel of every owner present
-    in the tile; a complete-plane call can derive those references directly.
+    in the tile, and ``support_component_labels``: the globally reconciled
+    eight-connected components of ``(labels > 0 | significant) & valid``. That
+    connectivity is not bounded by any halo, so a tile that labelled its own
+    read would separate support a longer path joins. A complete-plane call may
+    omit both and have them derived here.
     """
     labels = _segment_label_plane(component_labels)
     significant = np.asarray(significant_multiscale_support)
@@ -668,12 +706,9 @@ def assign_seeded_multiscale_support(  # noqa: PLR0913
     seed_points = np.column_stack(np.nonzero(labels > 0))
     if not seed_points.size:
         return output
-    connected_labels, _ = cast(
-        tuple[npt.NDArray[np.int32], int],
-        connected_component_labels(
-            ((labels > 0) | significant) & valid,
-            structure=np.ones((3, 3), dtype=np.int8),
-        ),
+    connected_labels = _support_components(
+        support_component_labels,
+        eligible_support=((labels > 0) | significant) & valid,
     )
     candidate_points = np.column_stack(
         np.nonzero(significant & valid & (labels == 0))
