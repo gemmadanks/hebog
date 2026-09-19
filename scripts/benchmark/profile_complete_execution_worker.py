@@ -156,9 +156,14 @@ _STAGES = (
         "per-parent moments and fitting",
     ),
     (
+        "hebog.stages.objects",
+        "run_extended_group_stage",
+        "per-feature cross-parent grouping",
+    ),
+    (
         "hebog.public_science",
         "reconcile_component_measurements",
-        "cross-parent measurement reconciliation",
+        "measurement record reduction",
     ),
     (
         "hebog.public_science",

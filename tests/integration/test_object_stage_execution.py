@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import TypeVar, cast
 
@@ -56,6 +56,8 @@ from hebog.stages.objects import (
     ComponentFitStageResult,
     ComponentTopologyStageConfig,
     ComponentTopologyStageResult,
+    ExtendedGroupStageConfig,
+    ExtendedGroupStageResult,
     FitParentStageConfig,
     _ContextLink,
     _ContextPublicationBatch,
@@ -73,6 +75,7 @@ from hebog.stages.objects import (
     fit_parent_product_names,
     run_component_fit_stage,
     run_component_topology_stage,
+    run_extended_group_stage,
     run_fit_parent_stage,
 )
 from hebog.validation.tiled_detection import ArrayImageSource
@@ -750,13 +753,25 @@ def _measurement_sources(root: Path) -> tuple[ZarrProductSink, ...]:
     )
 
 
+@dataclass(frozen=True, slots=True)
+class _PublishedFits:
+    """Everything the fit rounds published, for the grouping round."""
+
+    result: ComponentFitStageResult
+    sink: ZarrProductSink
+    fit_parent_count: int
+    background_source: ZarrProductSink
+    detection_source: ZarrProductSink
+    component_source: ZarrProductSink
+
+
 def _run_fits(
     root: Path,
     *,
     core: int = 16,
     executor: object | None = None,
     maximum_batch_read_pixels: int = 8192,
-) -> tuple[ComponentFitStageResult, ZarrProductSink, int]:
+) -> _PublishedFits:
     """Reconcile the fit parents, then measure them, in isolation."""
     root.mkdir(parents=True, exist_ok=True)
     residual, _, _, _, _ = _measurement_inputs()
@@ -825,7 +840,14 @@ def _run_fits(
         executor=resolved,  # type: ignore[arg-type]
         sink=sink,
     )
-    return result, sink, fit_parents.fit_parent_count
+    return _PublishedFits(
+        result=result,
+        sink=sink,
+        fit_parent_count=fit_parents.fit_parent_count,
+        background_source=background_source,
+        detection_source=detection_source,
+        component_source=component_source,
+    )
 
 
 def _whole_plane_measurements() -> ComponentMeasurements:
@@ -856,40 +878,81 @@ def _whole_plane_measurements() -> ComponentMeasurements:
     )
 
 
-def test_published_fits_match_the_whole_plane_measurement(
-    tmp_path: Path,
-) -> None:
-    """One fit parent per task reproduces the whole-plane measurement."""
-    result, sink, fit_parent_count = _run_fits(tmp_path / "run")
+def _group_config(**overrides: object) -> ExtendedGroupStageConfig:
+    """Return the grouping configuration with one field replaced."""
+    fields: dict[str, object] = {
+        "atrous_plan": build_residual_atrous_plan(
+            _MEASUREMENT_BEAM,
+            noise_correlation=_MEASUREMENT_BEAM,
+        ),
+        "detection_sigma": _DETECTION_SIGMA,
+        "island_sigma": 3.0,
+        "minimum_pixels": 7,
+        "maximum_bounds_pixels": (
+            _deblend_config().maximum_compact_bounds_pixels
+        ),
+        "minimum_support_fraction": 0.5,
+        "maximum_tiles_per_batch": 2,
+        "maximum_batch_read_pixels": 8192,
+        **overrides,
+    }
+    return ExtendedGroupStageConfig(**fields)  # type: ignore[arg-type]
 
-    expected = _whole_plane_measurements()
-    reconciled = reconcile_component_measurements(
-        *_measurement_inputs()[:3],
-        _measurement_inputs()[4],
-        WCS(_measurement_header(), relax=True).celestial,
-        RestoringBeam(4.0 / 3600.0, 4.0 / 3600.0, 0.0),
-        parents=result.parents,
-        measurement_support=np.asarray(
-            sink.read_completed_window(
+
+def _run_groups(
+    published: _PublishedFits,
+    *,
+    core: int = 16,
+    executor: object | None = None,
+    **overrides: object,
+) -> ExtendedGroupStageResult:
+    """Group every reconciled support feature, in isolation."""
+    residual, _, _, _, _ = _measurement_inputs()
+    return run_extended_group_stage(
+        ArrayImageSource(residual, np.ones(_SHAPE_YX, dtype=np.bool_)),
+        published.background_source,
+        published.detection_source,
+        published.component_source,
+        published.sink,
+        _manifest(core),
+        config=_group_config(**overrides),
+        parents=published.result.parents,
+        wcs_header_text=_measurement_header().tostring(),
+        beam=RestoringBeam(4.0 / 3600.0, 4.0 / 3600.0, 0.0),
+        executor=SerialExecutor() if executor is None else executor,  # type: ignore[arg-type]
+    )
+
+
+def _reconciled(
+    published: _PublishedFits, groups: ExtendedGroupStageResult
+) -> ComponentMeasurements:
+    """Reduce the published parent and feature records, as the public path."""
+    return reconcile_component_measurements(
+        np.asarray(
+            published.sink.read_completed_window(
                 "measurement-support",
                 ImageBounds(0, _SHAPE_YX[0], 0, _SHAPE_YX[1]),
             ),
             dtype=np.bool_,
         ).copy(),
-        atrous_plan=build_residual_atrous_plan(
-            _MEASUREMENT_BEAM,
-            noise_correlation=_MEASUREMENT_BEAM,
-        ),
-        detection_sigma=_DETECTION_SIGMA,
-        island_sigma=3.0,
-        minimum_pixels=7,
-        maximum_bounds_pixels=(
-            _deblend_config().maximum_compact_bounds_pixels
-        ),
-        minimum_support_fraction=0.5,
+        parents=published.result.parents,
+        features=groups.features,
     )
 
+
+def test_published_fits_match_the_whole_plane_measurement(
+    tmp_path: Path,
+) -> None:
+    """One fit parent per task reproduces the whole-plane measurement."""
+    published = _run_fits(tmp_path / "run")
+    fit_parent_count = published.fit_parent_count
+
+    expected = _whole_plane_measurements()
+    groups = _run_groups(published)
+    reconciled = _reconciled(published, groups)
+
     assert fit_parent_count > 1
+    assert groups.grouped_feature_count > 1
     assert reconciled.fits == expected.fits
     assert reconciled.compact_groups == expected.compact_groups
     assert reconciled.extended_groups == expected.extended_groups
@@ -934,7 +997,8 @@ def test_component_fits_are_executor_invariant(tmp_path: Path) -> None:
     it reformats itself. See
     :func:`~hebog.algorithms.astrometry.celestial_wcs_from_header_text`.
     """
-    reference, reference_sink, _ = _run_fits(tmp_path / "reference")
+    baseline = _run_fits(tmp_path / "reference")
+    reference, reference_sink = baseline.result, baseline.sink
 
     with Client(
         processes=False,
@@ -942,15 +1006,17 @@ def test_component_fits_are_executor_invariant(tmp_path: Path) -> None:
         threads_per_worker=1,
         dashboard_address=None,
     ) as client:
-        result, sink, _ = _run_fits(
+        variant = _run_fits(
             tmp_path / "dask",
             executor=DaskExecutor(client),
         )
 
-    _assert_parents_equal(result.parents, reference.parents)
+    _assert_parents_equal(variant.result.parents, reference.parents)
     bounds = ImageBounds(0, _SHAPE_YX[0], 0, _SHAPE_YX[1])
     np.testing.assert_array_equal(
-        np.asarray(sink.read_completed_window("measurement-support", bounds)),
+        np.asarray(
+            variant.sink.read_completed_window("measurement-support", bounds)
+        ),
         np.asarray(
             reference_sink.read_completed_window(
                 "measurement-support",
@@ -966,18 +1032,21 @@ def test_component_fits_are_partition_and_batch_invariant(
     core: int,
 ) -> None:
     """Tile geometry and batching decide which task runs, not the fits."""
-    reference, reference_sink, _ = _run_fits(tmp_path / "reference", core=64)
+    baseline = _run_fits(tmp_path / "reference", core=64)
+    reference, reference_sink = baseline.result, baseline.sink
 
-    result, sink, _ = _run_fits(
+    variant = _run_fits(
         tmp_path / f"core-{core}",
         core=core,
         maximum_batch_read_pixels=1,
     )
 
-    _assert_parents_equal(result.parents, reference.parents)
+    _assert_parents_equal(variant.result.parents, reference.parents)
     bounds = ImageBounds(0, _SHAPE_YX[0], 0, _SHAPE_YX[1])
     np.testing.assert_array_equal(
-        np.asarray(sink.read_completed_window("measurement-support", bounds)),
+        np.asarray(
+            variant.sink.read_completed_window("measurement-support", bounds)
+        ),
         np.asarray(
             reference_sink.read_completed_window(
                 "measurement-support",
@@ -1040,7 +1109,9 @@ def test_object_stages_publish_their_canonical_product_sets(
     tmp_path: Path,
 ) -> None:
     """Both fit rounds name exactly the products their cores write."""
-    result, sink, fit_parent_count = _run_fits(tmp_path / "run")
+    published = _run_fits(tmp_path / "run")
+    result, sink = published.result, published.sink
+    fit_parent_count = published.fit_parent_count
 
     assert fit_parent_product_names() == ("fit-parent-labels",)
     assert component_fit_product_names() == ("measurement-support",)

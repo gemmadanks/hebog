@@ -75,20 +75,20 @@ def test_persistent_support_uses_filtered_response_domain(
         labels[5, 6] = 1
         labels[7, 8] = 2
         evidence: list[measurement.ComponentGroupingEvidence] = []
-        actual = measurement._extended_residual_groups(
+        actual = measurement._residual_groups_in_feature(
             residual,
             np.ones_like(residual),
             valid,
             labels,
-            (),
-            (),
             feature > 0,
+            (),
+            frozenset(),
             plan,
             0.5,
             5.0,
             3.0,
             7,
-            10000,
+            bounds=ImageBounds(0, residual.shape[0], 0, residual.shape[1]),
             evidence=evidence,
         )
         assert actual == (frozenset((1, 2)),)
@@ -302,7 +302,7 @@ def test_extended_evidence_does_not_split_an_admitted_source_group(
         return (group,)
 
     monkeypatch.setattr(
-        measurement, "_cross_parent_loop_groups", extended_proposal
+        measurement, "_loop_groups_in_feature", extended_proposal
     )
     result = _measure(
         centers=((12.0, 16.0), (15.0, 16.0), (60.0, 16.0), (95.0, 16.0)),
@@ -527,26 +527,33 @@ def test_residual_merge_attribution_does_not_change_membership() -> None:
         np.ones(signal.shape),
         np.ones(signal.shape, dtype=bool),
         labels,
-        (),
-        (),
         support,
+        (),
+        frozenset(),
         build_residual_atrous_plan(beam, noise_correlation=beam),
         0.5,
         5.0,
         3.0,
         7,
-        signal.size,
     )
+    bounds = ImageBounds(0, signal.shape[0], 0, signal.shape[1])
     evidence: list[measurement.ComponentGroupingEvidence] = []
-    baseline = measurement._extended_residual_groups(
-        *arguments, evidence=evidence
+    baseline = measurement._residual_groups_in_feature(
+        *arguments, bounds=bounds, evidence=evidence
     )
     assert baseline == (frozenset((1, 2)),)
     assert len(evidence) == 1
     assert evidence[0].reason == "persistent-residual"
     assert evidence[0].component_labels == frozenset((1, 2))
     assert evidence[0].scale_ids
-    assert measurement._extended_residual_groups(*arguments) == baseline
+    repeated: list[measurement.ComponentGroupingEvidence] = []
+    assert (
+        measurement._residual_groups_in_feature(
+            *arguments, bounds=bounds, evidence=repeated
+        )
+        == baseline
+    )
+    assert repeated == evidence
 
 
 def test_all_invalid_parent_defers_without_fabricating_measurement() -> None:
@@ -574,37 +581,31 @@ def test_morphology_work_limits_apply_before_context_model_allocation(
     monkeypatch.setattr(measurement, "_resolved_emission_loop", forbidden)
     monkeypatch.setattr(measurement, "_model_and_groups", forbidden)
     assert (
-        measurement._cross_parent_loop_groups(
+        measurement.support_feature_window(
+            ImageBounds(12, 13, 12, 15),
+            margin=measurement.support_feature_margin_pixels(plan),
+            image_shape_yx=labels.shape,
+            maximum_bounds_pixels=1,
+        )
+        is None
+    )
+    assert (
+        measurement._whole_plane_feature_groups(
             labels.astype(float),
             np.ones(labels.shape),
             np.ones(labels.shape, dtype=bool),
             labels,
+            labels > 0,
             fits,
+            frozenset(),
             WCS(naxis=2),
             RestoringBeam(4 / 3600, 3 / 3600, 0.0),
             plan,
-            3.0,
-            0.5,
-            1,
-            measurement_support=labels > 0,
-        )
-        == ()
-    )
-    assert (
-        measurement._extended_residual_groups(
-            labels.astype(float),
-            np.ones(labels.shape),
-            np.ones(labels.shape, dtype=bool),
-            labels,
-            fits,
-            (),
-            labels > 0,
-            plan,
-            0.5,
-            5.0,
-            3.0,
-            7,
-            1,
+            detection_sigma=5.0,
+            island_sigma=3.0,
+            minimum_pixels=7,
+            maximum_bounds_pixels=1,
+            minimum_support_fraction=0.5,
         )
         == ()
     )

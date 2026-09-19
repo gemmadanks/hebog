@@ -206,7 +206,10 @@ sees the whole island and nothing else, and the tiles write the component
 labels covering the pixels they own. Fitting works the same way again, with
 one extra step first: sources whose fitting contexts touch have to be fitted
 together, and that chain can run across the image, so it is worked out once
-before any fit runs.
+before any fit runs. Deciding which fitted components belong to one extended
+object is the last step of this kind. It looks at the emission each fit left
+behind, so it can only run once every fit is done, and it too is answered one
+connected region at a time inside the window holding that region.
 
 A flooded region needs evidence at the higher detection threshold. A
 filter-promoted region must also satisfy the beam-area rule; a region

@@ -482,8 +482,6 @@ def test_joint_geometry_with_controlled_or_public_background(
             rms,
             header,
             beam=beam_pixels,
-            review=review,
-            config=config,
             multiscale=published.multiscale,
             labels=published.labels,
             topology=published.topology,

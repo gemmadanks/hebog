@@ -406,8 +406,6 @@ def _configured_products(
             rms,
             header,
             beam=beam,
-            review=review,
-            config=config,
             multiscale=published.multiscale,
             labels=published.labels,
             topology=published.topology,

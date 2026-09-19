@@ -177,7 +177,6 @@ def test_configured_builder_rejects_inconsistent_finite_support(
     tmp_path: Path,
 ) -> None:
     """Finite image pixels require finite background and RMS values."""
-    review = _review()
     image = np.ones((2, 2), dtype=np.float64)
     background = np.zeros((2, 2), dtype=np.float64)
     background[0, 0] = np.nan
@@ -196,8 +195,6 @@ def test_configured_builder_rejects_inconsistent_finite_support(
             np.ones((2, 2), dtype=np.float64),
             fits.Header(),
             beam=BeamShapePixels(4.0, 3.0, 0.0),
-            review=review,
-            config=_config(),
             multiscale=published.multiscale,
             labels=published.labels,
             topology=published.topology,
@@ -253,8 +250,6 @@ def test_configured_builder_measures_the_published_component_topology(
         np.ones(normalized.shape, dtype=np.float64),
         _header(normalized.shape),
         beam=BeamShapePixels(5.0, 4.0, 0.0),
-        review=_review(),
-        config=SourceFinderConfig(5.0, 3.0, 7),
         multiscale=published.multiscale,
         labels=published.labels,
         topology=published.topology,
@@ -285,7 +280,6 @@ def test_configured_builder_publishes_independent_connected_sources(
     normalized = 10.0 * np.exp(
         -((yy - 32) ** 2 + (xx - 29) ** 2) / 8.0
     ) + 9.5 * np.exp(-((yy - 32) ** 2 + (xx - 36) ** 2) / 8.0)
-    review = _review()
 
     published = _published(
         normalized,
@@ -300,8 +294,6 @@ def test_configured_builder_publishes_independent_connected_sources(
         np.ones(normalized.shape, dtype=np.float64),
         _header(normalized.shape),
         beam=BeamShapePixels(5.0, 4.0, 0.0),
-        review=review,
-        config=SourceFinderConfig(5.0, 3.0, 7),
         multiscale=published.multiscale,
         labels=published.labels,
         topology=published.topology,
@@ -331,7 +323,6 @@ def test_configured_builder_retains_three_components_in_one_parent(
         normalized += amplitude * np.exp(
             -((yy - 32) ** 2 + (xx - x_center) ** 2) / 8.0
         )
-    review = _review()
 
     published = _published(
         normalized,
@@ -346,8 +337,6 @@ def test_configured_builder_retains_three_components_in_one_parent(
         np.ones(normalized.shape, dtype=np.float64),
         _header(normalized.shape),
         beam=BeamShapePixels(5.0, 4.0, 0.0),
-        review=review,
-        config=SourceFinderConfig(5.0, 3.0, 7),
         multiscale=published.multiscale,
         labels=published.labels,
         topology=published.topology,

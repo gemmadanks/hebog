@@ -771,7 +771,8 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
     Owners whose fit contexts touch need a joint model, so the contexts are
     reconciled first and each fit parent is then measured inside the window
     holding it. The cores combine the persistent measurement support the
-    parents contributed.
+    parents contributed, and the connected features of that support are then
+    grouped one window at a time.
     """
     from hebog.algorithms.multiscale import (  # noqa: PLC0415
         build_residual_atrous_plan,
@@ -785,8 +786,10 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
     from hebog.science.models import TiledComponentFits  # noqa: PLC0415
     from hebog.stages.objects import (  # noqa: PLC0415
         ComponentFitStageConfig,
+        ExtendedGroupStageConfig,
         FitParentStageConfig,
         run_component_fit_stage,
+        run_extended_group_stage,
         run_fit_parent_stage,
     )
 
@@ -857,6 +860,36 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
         executor=executor,
         sink=sink,
     )
+    groups = run_extended_group_stage(
+        source,
+        background_rms_source,
+        detection_source,
+        component_source,
+        sink,
+        manifest,
+        config=ExtendedGroupStageConfig(
+            atrous_plan=atrous_plan,
+            detection_sigma=config.detection_threshold_sigma,
+            island_sigma=config.island_threshold_sigma,
+            minimum_pixels=config.minimum_island_pixels,
+            maximum_bounds_pixels=(
+                compact_deblend_config(config).maximum_compact_bounds_pixels
+            ),
+            minimum_support_fraction=(
+                review.matrix.support_fraction_bounds[0]
+            ),
+            maximum_tiles_per_batch=_SUPPORT_TILES_PER_BATCH,
+            maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
+        ),
+        parents=result.parents,
+        wcs_header_text=header.tostring(),
+        beam=RestoringBeam(
+            cast(float, header["BMAJ"]),
+            cast(float, header["BMIN"]),
+            cast(float, header["BPA"]) if "BPA" in header else 0.0,
+        ),
+        executor=executor,
+    )
     bounds = ImageBounds(0, image_shape_yx[0], 0, image_shape_yx[1])
     return TiledComponentFits(
         parents=result.parents,
@@ -864,6 +897,7 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
             sink.read_completed_window("measurement-support", bounds),
             dtype=np.bool_,
         ),
+        features=groups.features,
     )
 
 
@@ -959,8 +993,6 @@ def _analyse_image(  # noqa: PLR0913
         rms,
         header,
         beam=beam,
-        review=review,
-        config=config,
         multiscale=multiscale,
         labels=support_labels,
         topology=topology,

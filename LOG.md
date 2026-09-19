@@ -23586,3 +23586,53 @@ the per-worker placement finding.
 - **What pass D still holds whole-array.** The cross-parent reconciliation
   itself, source association, the continuum catalogue and the per-scale
   detection records.
+
+## 2026-09-19 — M2: the cross-parent grouping is tile-native
+
+- **What this is.** The last global step of ADR-008's pass D. Nothing in the
+  composition now labels or searches a whole plane: the connected features of
+  the accumulated measurement support are reconciled from per-core summaries,
+  and each feature's grouping is decided inside the window holding it.
+- **One work unit, not two.** `_cross_parent_loop_groups` and
+  `_extended_residual_groups` labelled the same accumulated support with the
+  same connectivity and computed the same per-feature bounds, so they are one
+  round rather than two. `group_support_feature_components` evaluates both
+  inside one read of a feature's window, and the whole-plane driver is that
+  same function in a loop, which keeps the serial oracle exact by
+  construction rather than by agreement.
+- **What `reconcile_component_measurements` is now.** A reduction over
+  records. It takes the parents' and features' contributions and the support
+  plane, and holds no other image-sized array. Both merges are transitive
+  closures and the evidence is sorted, so feature completion order cannot
+  reach the result.
+- **Sharding the fit records.** A feature's window can contain a component
+  that belongs to no feature, and that component's model is still subtracted,
+  so the shard cannot be the feature's own members. The scan round returns
+  each measurement label's global bounds and the driver selects by
+  bounding-box overlap with the batch read. That is a superset of what the
+  task uses and the task re-checks pixel membership, so the result is exact
+  and no accepted-label table is broadcast.
+- **No new plane.** A feature's window is its reconciled bounds plus the
+  margin, so the task recovers the feature by labelling the support it has
+  already read and taking the component holding the canonical first pixel.
+  Publishing feature labels would have cost a generation that one round reads.
+- **The composition takes no configuration.** Every threshold and island limit
+  is applied by the pass that publishes its records, so
+  `build_configured_continuum_products` no longer accepts `config` or
+  `review`. That is the clearest evidence that the convergence is complete for
+  these steps.
+- **Evidence.** A new stage test reproduces the whole-plane grouping exactly —
+  extended groups, compact groups, grouping evidence, proposed compact groups
+  and fits — on a fixture whose two peaks sit on a halo carrying most of the
+  flux, so the admitted compact models do not explain it and the persistent
+  residual joins them. The test asserts the fixture actually groups before
+  comparing, and the halo spans many cores, so the reconciliation is
+  exercised rather than assumed. Groups are invariant across cores 16, 32 and
+  97, one feature per read, and a real Dask client. The quick science check
+  `m2-pass-d-groups` reports no regression against `m2-pass-d-wcs-repair`.
+- **Cost.** Quick-check wall time 184 → 190 s, about 3%, for one more
+  reconciliation and one more per-object round; no plane is written. Across
+  M2 the sixteen cases now stand at 190 s against 135.6 s before the
+  convergence. M2's bottleneck row still owns that total.
+- **What pass D still holds whole-array.** Source association, the continuum
+  catalogue and the per-scale detection records.

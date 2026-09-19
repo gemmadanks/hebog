@@ -3,29 +3,22 @@
 
 from __future__ import annotations
 
-from typing import cast
-
 import numpy as np
 import numpy.typing as npt
 from astropy.io import fits
-from astropy.wcs import WCS
 
 from hebog.algorithms.component_measurement import (
     reconcile_component_measurements,
 )
 from hebog.algorithms.multiscale import (
     BeamShapePixels,
-    build_residual_atrous_plan,
 )
-from hebog.config import SourceFinderConfig
-from hebog.data_models.images import RestoringBeam
 from hebog.science.catalogues import (
     build_hebog_reconstructed_source_catalogues,
 )
 from hebog.science.continuum import (
     CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS,
     build_continuum_candidate_products,
-    compact_deblend_config,
 )
 from hebog.science.models import (
     ContinuumProducts,
@@ -34,7 +27,6 @@ from hebog.science.models import (
     TiledMultiscaleDetection,
     TiledSupportLabels,
 )
-from hebog.science.profile import ContinuumScienceProfile
 
 _IMAGE_DIMENSIONS = 2
 
@@ -67,8 +59,6 @@ def build_configured_continuum_products(  # noqa: PLR0913
     header: fits.Header,
     *,
     beam: BeamShapePixels,
-    review: ContinuumScienceProfile,
-    config: SourceFinderConfig,
     multiscale: TiledMultiscaleDetection,
     labels: TiledSupportLabels,
     topology: TiledComponentTopology,
@@ -76,9 +66,9 @@ def build_configured_continuum_products(  # noqa: PLR0913
 ) -> ContinuumProducts | None:
     """Build terminal products from the published tiled passes.
 
-    The detection and support passes have already applied the caller's
-    thresholds and island limits on their own cores, so an image whose
-    admitted islands are all rejected publishes nothing.
+    Every threshold and island limit has already been applied by the passes
+    that published these records, so this step takes no configuration: an
+    image whose admitted islands are all rejected publishes nothing.
     """
     image = _aligned_plane(image_jy_per_beam, name="image")
     background = _aligned_plane(
@@ -100,30 +90,14 @@ def build_configured_continuum_products(  # noqa: PLR0913
         multiscale=multiscale,
         labels=labels,
     )
-    deblend_config = compact_deblend_config(config)
     measurements = reconcile_component_measurements(
-        image - background,
-        rms,
-        positive_rms,
-        topology.measurement_component_labels,
-        WCS(header, relax=True).celestial,
-        RestoringBeam(
-            cast(float, header["BMAJ"]),
-            cast(float, header["BMIN"]),
-            cast(float, header["BPA"]) if "BPA" in header else 0.0,
-        ),
-        parents=component_fits.parents,
-        measurement_support=np.array(
+        np.array(
             component_fits.measurement_support,
             dtype=np.bool_,
             copy=True,
         ),
-        atrous_plan=build_residual_atrous_plan(beam, noise_correlation=beam),
-        detection_sigma=config.detection_threshold_sigma,
-        island_sigma=config.island_threshold_sigma,
-        minimum_pixels=config.minimum_island_pixels,
-        maximum_bounds_pixels=deblend_config.maximum_compact_bounds_pixels,
-        minimum_support_fraction=review.matrix.support_fraction_bounds[0],
+        parents=component_fits.parents,
+        features=component_fits.features,
     )
     catalogues = build_hebog_reconstructed_source_catalogues(
         image,

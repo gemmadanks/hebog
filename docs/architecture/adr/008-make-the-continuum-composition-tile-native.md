@@ -264,6 +264,28 @@ steps, and they set the round boundaries:
   measurement support and reconciles resolved loops that span several fit
   parents, so it can only run once every parent's patch is known.
 
+The extended-residual search, `_extended_residual_groups`, labels the same
+accumulated support with the same connectivity and works feature by feature,
+so it shares that work unit rather than adding a fourth. One round evaluates
+both steps inside one support feature's window, reading the window once. A
+feature is therefore the object of the last grouping round, exactly as a
+parent is the object of the deblend round.
+
+That round needs the fit records and the proposed compact groups of every
+component whose *measurement-label* footprint reaches its window, which is
+not the same set as the feature's own members: a fit outside the feature
+still enters the subtracted model. The scan round therefore also returns each
+measurement label's global bounds, and the driver shards the records by
+bounding-box intersection with each feature's window. The shard is a superset
+of what the task uses, and the task re-checks pixel membership, so no
+accepted-label table is broadcast whole.
+
+The feature labels are not published. A feature's window is its reconciled
+global bounds plus the margin, so it contains the feature entirely, and the
+task recovers it by labelling the support inside its own window and selecting
+the component holding the feature's canonical first pixel. Publishing a plane
+that only one round reads would cost a generation for nothing.
+
 | Round | Scope | Reads | Writes or returns |
 | --- | --- | --- | --- |
 | Parent extents | core, halo 0 | `component-labels`, `measurement-labels` | each parent's bounds and first pixel in both planes |
@@ -272,7 +294,8 @@ steps, and they set the round boundaries:
 | Fit parents | core, halo 0 | `component-measurement-labels` | context island summaries; then `fit-parent-labels` |
 | Component fits | fit-parent window + margin | residual, RMS, validity, both component planes | fit records, groups, grouping evidence, a measurement-support patch |
 | Support write | core, halo 0 | the patches | `measurement-support` |
-| Cross-parent loops | loop-region window | `measurement-support`, validity, the fit records | extended group records |
+| Support features | core, halo 0 | `measurement-support`, `valid-pixels`, `component-measurement-labels` | feature island summaries and each measurement label's bounds |
+| Cross-parent loops and extended residual | support-feature window + margin | residual, RMS, validity, `measurement-support`, `component-measurement-labels`, the sharded fit records | extended group records and grouping evidence |
 | Source association | pair box, or a reduced line | component records and the line between two centroids | canonicalised edge records |
 | Source rows | source window + 1.5-beam aperture | image, background, validity, source labels, position signal | catalogue shards |
 
