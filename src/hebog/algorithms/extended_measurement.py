@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 from math import atan2, ceil, degrees, fsum, hypot, isfinite, log, sqrt
 from numbers import Integral
@@ -48,6 +48,11 @@ SegmentPositionUnavailableReason = Literal[
 ]
 _IMAGE_DIMENSIONS = 2
 _SUB_BEAM_OPENING_WIDTH_PIXELS = 3
+# A 3x3 binary opening erodes then dilates, so one pixel's opened value
+# depends on the input two pixels away, and the 3x3 dense-core count
+# reaches one pixel beyond that.
+_OPENING_INFLUENCE_PIXELS = _SUB_BEAM_OPENING_WIDTH_PIXELS - 1
+_DENSE_CORE_INFLUENCE_PIXELS = _OPENING_INFLUENCE_PIXELS + 1
 _MULTISCALE_CORE_MINIMUM_NEIGHBORS = 5
 _MULTISCALE_BOUNDARY_MINIMUM_SNR = 6.0
 _MULTISCALE_RECOVERY_RADIUS_BEAMS = 0.5
@@ -95,14 +100,20 @@ def segment_refinement_halo_pixels(
     *,
     recovery_radius_beams: float = _MULTISCALE_RECOVERY_RADIUS_BEAMS,
 ) -> int:
-    """Return the halo covering opening and multiscale support recovery."""
-    opening_radius_pixels = _SUB_BEAM_OPENING_WIDTH_PIXELS // 2
+    """Return the halo covering opening and multiscale support recovery.
+
+    The two radii add rather than compete: a pixel recovered at the recovery
+    radius takes its identity from opened support, which must itself be
+    correct that far out. The dense-core count sets the floor when the
+    recovery radius is small.
+    """
     return max(
-        opening_radius_pixels,
+        _DENSE_CORE_INFLUENCE_PIXELS,
         multiscale_recovery_radius_pixels(
             beam_major_fwhm_pixels,
             recovery_radius_beams=recovery_radius_beams,
-        ),
+        )
+        + _OPENING_INFLUENCE_PIXELS,
     )
 
 
@@ -196,7 +207,51 @@ def _owner_windows(
     return owners
 
 
-def _preserve_refined_segment_connectivity(
+def owner_support_is_split(
+    refined_window: npt.NDArray[np.int32],
+    *,
+    label_value: int,
+) -> bool:
+    """Return whether one owner's refined support falls into several parts.
+
+    The window must hold the owner's original and refined support completely;
+    connectivity cannot be decided from a part of it. Callers that evaluate
+    one owner per task use this decision, and the plane-wide
+    :func:`restore_split_segment_owners` applies it to every owner.
+    """
+    _, component_count = cast(
+        tuple[npt.NDArray[np.int32], int],
+        connected_component_labels(
+            np.asarray(refined_window) == label_value,
+            structure=np.ones((3, 3), dtype=np.int8),
+        ),
+    )
+    return component_count > 1
+
+
+def apply_owner_restores(
+    original_labels: npt.ArrayLike,
+    refined_labels: npt.ArrayLike,
+    restored_owners: Collection[int],
+) -> npt.NDArray[np.int32]:
+    """Restore the original support of every owner cleanup would split.
+
+    The decision is one boolean per owner, so a tile applies it to its own
+    core without seeing the owner's whole window.
+    """
+    original = np.asarray(original_labels)
+    refined = np.asarray(refined_labels, dtype=np.int32).copy()
+    if not restored_owners:
+        return refined
+    restored = np.isin(
+        original,
+        np.asarray(sorted(restored_owners), dtype=original.dtype),
+    )
+    np.copyto(refined, original.astype(np.int32, copy=False), where=restored)
+    return refined
+
+
+def restore_split_segment_owners(
     original_labels: npt.NDArray[np.int64],
     refined_labels: npt.NDArray[np.int32],
 ) -> npt.NDArray[np.int32]:
@@ -208,7 +263,6 @@ def _preserve_refined_segment_connectivity(
     never covered, and those pixels decide whether cleanup split it.
     """
     connected = np.asarray(refined_labels, dtype=np.int32).copy()
-    structure = np.ones((3, 3), dtype=np.int8)
     windows = _owner_windows(original_labels, connected)
     for label_value in np.unique(original_labels):
         if label_value <= 0:
@@ -216,17 +270,11 @@ def _preserve_refined_segment_connectivity(
         crop = windows[int(label_value)]
         if crop is None:
             continue
-        window_original = original_labels[crop] == label_value
-        window_connected = connected[crop]
-        _, component_count = cast(
-            tuple[npt.NDArray[np.int32], int],
-            connected_component_labels(
-                window_connected == label_value,
-                structure=structure,
-            ),
-        )
-        if component_count > 1:
-            window_connected[window_original] = label_value
+        if owner_support_is_split(
+            connected[crop],
+            label_value=int(label_value),
+        ):
+            connected[crop][original_labels[crop] == label_value] = label_value
     return connected
 
 
@@ -244,49 +292,51 @@ def _dense_label_ranks(
     return ranked, positive_values
 
 
-def _preserve_publication_bridges(
-    owner_labels: npt.NDArray[np.int64],
-    previous_labels: npt.NDArray[np.int64],
-    refined_labels: npt.NDArray[np.int32],
+def preserve_owner_publication_bridges(
+    previous_window: npt.ArrayLike,
+    refined_window: npt.ArrayLike,
+    *,
+    label_value: int,
 ) -> npt.NDArray[np.int32]:
-    """Keep only previous regions needed to connect retained owner support."""
-    connected = np.asarray(refined_labels, dtype=np.int32).copy()
-    ranked, label_values = _dense_label_ranks(owner_labels)
+    """Keep only the previous regions that connect one owner's support.
+
+    The window must hold the owner completely; connectivity cannot be decided
+    from a part of it. A bridge is a previously published region touching two
+    retained parts of the same owner. When the owner still falls apart, its
+    whole previous support is restored, and a part that remains disconnected
+    from the previous support is dropped rather than published separately.
+    """
     structure = np.ones((3, 3), dtype=np.int8)
-    for label_value, bounds in zip(
-        label_values,
-        find_objects(ranked),
-        strict=True,
-    ):
-        if bounds is None:
-            continue
-        previous = previous_labels[bounds] == label_value
-        local = connected[bounds]
-        base_components, base_count = cast(
-            tuple[npt.NDArray[np.int32], int],
-            connected_component_labels(
-                local == label_value,
-                structure=structure,
-            ),
+    previous = np.asarray(previous_window) == label_value
+    local = np.asarray(refined_window, dtype=np.int32).copy()
+    base_components, base_count = cast(
+        tuple[npt.NDArray[np.int32], int],
+        connected_component_labels(local == label_value, structure=structure),
+    )
+    if base_count == 0:
+        return local
+    candidates, candidate_count = cast(
+        tuple[npt.NDArray[np.int32], int],
+        connected_component_labels(
+            previous & (local == 0),
+            structure=structure,
+        ),
+    )
+    for candidate_value in range(1, candidate_count + 1):
+        candidate = candidates == candidate_value
+        dilated_candidate = np.asarray(
+            binary_dilation(candidate, structure=structure),
+            dtype=np.bool_,
         )
-        if base_count == 0:
-            continue
-        candidates, candidate_count = cast(
-            tuple[npt.NDArray[np.int32], int],
-            connected_component_labels(
-                previous & (local == 0),
-                structure=structure,
-            ),
-        )
-        for candidate_value in range(1, candidate_count + 1):
-            candidate = candidates == candidate_value
-            dilated_candidate = np.asarray(
-                binary_dilation(candidate, structure=structure),
-                dtype=np.bool_,
-            )
-            touching = np.unique(base_components[dilated_candidate])
-            if np.count_nonzero(touching > 0) >= _MINIMUM_BRIDGE_TOUCH_COUNT:
-                local[candidate] = label_value
+        touching = np.unique(base_components[dilated_candidate])
+        if np.count_nonzero(touching > 0) >= _MINIMUM_BRIDGE_TOUCH_COUNT:
+            local[candidate] = label_value
+    final_components, final_count = cast(
+        tuple[npt.NDArray[np.int32], int],
+        connected_component_labels(local == label_value, structure=structure),
+    )
+    if final_count > 1:
+        local[previous] = label_value
         final_components, final_count = cast(
             tuple[npt.NDArray[np.int32], int],
             connected_component_labels(
@@ -294,44 +344,71 @@ def _preserve_publication_bridges(
                 structure=structure,
             ),
         )
-        if final_count > 1:
-            local[previous] = label_value
-            final_components, final_count = cast(
-                tuple[npt.NDArray[np.int32], int],
-                connected_component_labels(
-                    local == label_value,
-                    structure=structure,
-                ),
+    if final_count > 1:
+        previous_components = np.unique(final_components[previous])
+        previous_components = previous_components[previous_components > 0]
+        if previous_components.size != 1:
+            raise ValueError(
+                "previous publication ownership must be connected"
             )
-        if final_count > 1:
-            previous_components = np.unique(final_components[previous])
-            previous_components = previous_components[previous_components > 0]
-            if previous_components.size != 1:
-                raise ValueError(
-                    "previous publication ownership must be connected"
-                )
-            local[
-                (final_components > 0)
-                & (final_components != previous_components[0])
-            ] = 0
+        local[
+            (final_components > 0)
+            & (final_components != previous_components[0])
+        ] = 0
+    return local
+
+
+def publication_owner_windows(
+    owner_labels: npt.NDArray[np.int64],
+) -> tuple[tuple[int, tuple[slice, slice]], ...]:
+    """Return each owner's label and the window holding its support."""
+    ranked, label_values = _dense_label_ranks(owner_labels)
+    return tuple(
+        (int(label_value), bounds)
+        for label_value, bounds in zip(
+            label_values,
+            find_objects(ranked),
+            strict=True,
+        )
+        if bounds is not None
+    )
+
+
+def _preserve_publication_bridges(
+    owner_labels: npt.NDArray[np.int64],
+    previous_labels: npt.NDArray[np.int64],
+    refined_labels: npt.NDArray[np.int32],
+) -> npt.NDArray[np.int32]:
+    """Apply the owner bridge rule to every owner of a complete plane."""
+    connected = np.asarray(refined_labels, dtype=np.int32).copy()
+    for label_value, bounds in publication_owner_windows(owner_labels):
+        connected[bounds] = preserve_owner_publication_bridges(
+            previous_labels[bounds],
+            connected[bounds],
+            label_value=label_value,
+        )
     connected.setflags(write=False)
     return connected
 
 
-def refine_persistent_publication_labels(
+def refine_persistent_publication_support(
     component_labels: npt.ArrayLike,
     publication_labels: npt.ArrayLike,
     combined_snr: npt.ArrayLike,
     persistent_scale_support: npt.ArrayLike,
+    *,
+    published_owner_values: npt.ArrayLike | None = None,
 ) -> npt.NDArray[np.int32]:
-    """Publish connected owner support corroborated across adjacent scales.
+    """Retain owner support corroborated across adjacent scales, per pixel.
 
     Dense opened support and independently strong original-image boundaries
     remain unchanged. Sparse recovered pixels remain only when their exact
-    scale feature participates in an adjacent-scale association. Previously
-    published low-confidence regions are retained only when they connect two
-    retained parts of the same owner; no new threshold or ownership is
-    introduced.
+    scale feature participates in an adjacent-scale association.
+
+    Whether an owner is published *anywhere* decides whether its persistent
+    support is restored, which no bounded neighbourhood can answer. Tiled
+    callers pass ``published_owner_values``, the owners published over the
+    whole image; a complete-plane call derives them.
     """
     owners = _segment_label_plane(component_labels)
     previous = _segment_label_plane(publication_labels)
@@ -376,16 +453,44 @@ def refine_persistent_publication_labels(
     retained = previously_published & (
         dense_core | high_confidence_boundary | persistent
     )
-    published_owner_values = np.unique(previous[previous > 0])
-    restored_persistent = persistent & np.isin(owners, published_owner_values)
-    refined = np.where(retained | restored_persistent, owners, 0).astype(
+    published_owners = (
+        np.unique(previous[previous > 0])
+        if published_owner_values is None
+        else np.asarray(published_owner_values)
+    )
+    restored_persistent = persistent & np.isin(owners, published_owners)
+    return np.where(retained | restored_persistent, owners, 0).astype(
         np.int32,
         copy=False,
     )
-    return _preserve_publication_bridges(owners, previous, refined)
 
 
-def refine_multiscale_segment_labels(  # noqa: PLR0913
+def refine_persistent_publication_labels(
+    component_labels: npt.ArrayLike,
+    publication_labels: npt.ArrayLike,
+    combined_snr: npt.ArrayLike,
+    persistent_scale_support: npt.ArrayLike,
+) -> npt.NDArray[np.int32]:
+    """Publish connected owner support corroborated across adjacent scales.
+
+    Previously published low-confidence regions are retained only when they
+    connect two retained parts of the same owner; no new threshold or
+    ownership is introduced.
+    """
+    owners = _segment_label_plane(component_labels)
+    return _preserve_publication_bridges(
+        owners,
+        _segment_label_plane(publication_labels),
+        refine_persistent_publication_support(
+            component_labels,
+            publication_labels,
+            combined_snr,
+            persistent_scale_support,
+        ),
+    )
+
+
+def refine_multiscale_segment_support(  # noqa: PLR0913
     component_labels: npt.ArrayLike,
     combined_snr: npt.ArrayLike,
     significant_multiscale_support: npt.ArrayLike,
@@ -405,6 +510,11 @@ def refine_multiscale_segment_labels(  # noqa: PLR0913
     support must also meet that original-pixel S/N floor. Recovered pixels
     inherit the nearest original segment identity, preserving deterministic
     ownership without merging or relabelling sources.
+
+    Every decision here is bounded by the opening and recovery radii, so a
+    tile evaluates its own core exactly. Whether cleanup split an owner is
+    not: :func:`restore_split_segment_owners` decides that per owner, and
+    :func:`refine_multiscale_segment_labels` composes the two.
     """
     labels = _segment_label_plane(component_labels)
     snr = np.asarray(combined_snr)
@@ -456,10 +566,9 @@ def refine_multiscale_segment_labels(  # noqa: PLR0913
     cleaned = clean_detected_segment_labels(labels)
     cleaned_support = cleaned > 0
     if not np.any(cleaned_support):
-        refined = np.where(high_confidence_boundary, labels, 0).astype(
+        return np.where(high_confidence_boundary, labels, 0).astype(
             np.int32, copy=False
         )
-        return _preserve_refined_segment_connectivity(labels, refined)
     neighbor_count = convolve(
         cleaned_support.astype(np.int8),
         np.ones((3, 3), dtype=np.int8),
@@ -485,11 +594,38 @@ def refine_multiscale_segment_labels(  # noqa: PLR0913
     )
     nearest_labels = cleaned[tuple(nearest_indices)]
     refined = np.where(dense_core | recovered, nearest_labels, 0)
-    refined = np.where(high_confidence_boundary, labels, refined).astype(
+    return np.where(high_confidence_boundary, labels, refined).astype(
         np.int32,
         copy=False,
     )
-    return _preserve_refined_segment_connectivity(labels, refined)
+
+
+def refine_multiscale_segment_labels(  # noqa: PLR0913
+    component_labels: npt.ArrayLike,
+    combined_snr: npt.ArrayLike,
+    significant_multiscale_support: npt.ArrayLike,
+    *,
+    beam_major_fwhm_pixels: float,
+    core_minimum_neighbors: int = _MULTISCALE_CORE_MINIMUM_NEIGHBORS,
+    boundary_minimum_snr: float = _MULTISCALE_BOUNDARY_MINIMUM_SNR,
+    recovery_radius_beams: float = _MULTISCALE_RECOVERY_RADIUS_BEAMS,
+    recovered_minimum_snr: float | None = None,
+) -> npt.NDArray[np.int32]:
+    """Refine segment support and restore any owner cleanup would split."""
+    labels = _segment_label_plane(component_labels)
+    return restore_split_segment_owners(
+        labels,
+        refine_multiscale_segment_support(
+            component_labels,
+            combined_snr,
+            significant_multiscale_support,
+            beam_major_fwhm_pixels=beam_major_fwhm_pixels,
+            core_minimum_neighbors=core_minimum_neighbors,
+            boundary_minimum_snr=boundary_minimum_snr,
+            recovery_radius_beams=recovery_radius_beams,
+            recovered_minimum_snr=recovered_minimum_snr,
+        ),
+    )
 
 
 def _canonical_seed_ranks(

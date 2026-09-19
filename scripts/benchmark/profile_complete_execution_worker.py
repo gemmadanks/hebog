@@ -111,14 +111,24 @@ _STAGES = (
         "continuum science",
     ),
     (
-        "hebog.public_science",
-        "evaluate_continuum_candidate_products",
-        "multiscale candidate products",
+        "hebog.public_api",
+        "reduce_support_topology",
+        "support component and persistence reductions",
+    ),
+    (
+        "hebog.public_api",
+        "publish_support_labels",
+        "tiled support pass",
+    ),
+    (
+        "hebog.stages.publication",
+        "run_publication_stage",
+        "owner connectivity and final labels",
     ),
     (
         "hebog.public_science",
-        "_retain_configured_islands",
-        "island size limits",
+        "build_continuum_candidate_products",
+        "candidate products from published planes",
     ),
     ("hebog.public_science", "deblend_component_topology", "deblending"),
     (

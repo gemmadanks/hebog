@@ -162,7 +162,7 @@ Halo values are for a 5-pixel beam and the reviewed 150/50 and 35/7 grids.
 | Island labelling | 0 | pixel core; labels tile-local | edge label runs, per-label pixel count, sum, bounding box, canonical pixel | union–find over boundary equivalences, tree-reduced; aggregates summed |
 | Island admission | 0 | reconciled island | accepted-label set | area and pixel-count predicates on merged aggregates; the accept map is sharded per tile |
 | Seeded multiscale support | 15 (3 beams) | support pixel owned by its nearest global seed reference | global seed references of owners present in the read | none; the read carries globally reconciled support components, and ties are broken by row-major seed reference in-read |
-| Segment refinement, pixel work | opening radius + 0.5-beam recovery | pixel core | none | none |
+| Segment refinement, pixel work | 3x3 opening influence + 0.5-beam recovery | pixel core | none | none |
 | Segment refinement, owner connectivity | owner window | owner canonical pixel | one restore decision per owner | none; decisions are applied in the core round |
 | Cross-scale association | 0 | scale detection owned by its canonical pixel | per-scale label overlaps observed in the core | union of edge sets, then persistence per connected group |
 | Persistent publication, owner bridges | owner window | owner canonical pixel | label patch bounded by the owner window | patches applied in the core round |
@@ -217,20 +217,24 @@ Pass C therefore runs as rounds, each cheap relative to pass B's filters:
 
 | Round | Scope | Reads | Writes or returns |
 | --- | --- | --- | --- |
-| Topology | core, halo 0 | detection labels, reconstruction mask, validity, scale masks | support-union and per-scale island summaries, adjacent-scale label overlaps, detection labels present |
+| Topology | core, halo 0 | detection labels, reconstruction mask, validity, scale masks | support-union and per-scale island summaries, adjacent-scale label overlaps |
 | Auxiliary publication | core, halo 0 | as above, plus the reconciled mappings | `support-components`, `persistent-support` |
-| Measurement | core + 0.5-beam recovery | detection labels, reconstruction mask, `support-components`, owner reference pixels | `measurement-labels` |
-| Owner connectivity | owner window + refinement halo | detection labels, reconstruction mask, validity | one restore decision per owner |
-| Publication | core + opening and recovery halo | as above, plus `measurement-labels` and the restore shard | `publication-labels`; owners published in the core |
-| Persistent | core + opening halo | `measurement-labels`, `publication-labels`, `persistent-support`, published-owner shard | `persistent-labels` |
-| Owner bridges | owner window | `measurement-labels`, `publication-labels`, `persistent-labels` | a label patch bounded by the owner window |
-| Final write | core, halo 0 | `persistent-labels`, patch and admission shards | final labels and mask |
+| Owner connectivity | owner window + refinement halo | detection labels, direct signal to noise, reconstruction mask | one restore decision per owner |
+| Published owners | core + refinement halo | the published planes, owner reference pixels, restore shard | the owners published in the core |
+| Owner bridges | owner window + refinement halo | as above, plus the published-owner shard | a label patch bounded by the owner window |
+| Final write | core + refinement halo | as above, plus the patch and admission shards | `component-labels`, `measurement-labels`, `publication-labels`, `retained-mask` |
 
-The refinement pixel work needs the opening radius **and** the recovery radius
-together, not their maximum: a pixel recovered at the recovery radius is
-labelled from opened support that must itself be correct there. Recomputing
-the refinement in a later round is preferred to storing it, exactly as pass B
-recomputes its filters rather than persisting a response bank.
+Only the last round writes. Each pixel quantity is recomputed in the round
+that needs it, which costs a bounded repeat of cheap neighbourhood work and
+saves three intermediate label planes.
+
+The refinement pixel work needs the opening influence **and** the recovery
+radius together, not their maximum: a pixel recovered at the recovery radius
+is labelled from opened support that must itself be correct there. A 3x3
+binary opening erodes then dilates, so its influence is two pixels, and the
+dense-core count reaches one further. Recomputing the refinement in a later
+round is preferred to storing it, exactly as pass B recomputes its filters
+rather than persisting a response bank.
 
 Both owner quantities are ADR-008 T1 work keyed by the owner's canonical
 pixel, so they do not move with tile geometry, label integers or completion

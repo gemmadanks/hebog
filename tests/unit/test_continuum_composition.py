@@ -1,43 +1,31 @@
 # pyright: reportMissingTypeStubs=false
-"""Boundary validation of the composition over published detection planes."""
+"""Boundary validation of the composition over published support planes."""
 
 from __future__ import annotations
-
-from pathlib import Path
 
 import numpy as np
 import numpy.typing as npt
 import pytest
 
-from hebog.algorithms.multiscale import BeamShapePixels
-from hebog.science.continuum import evaluate_continuum_candidate_products
+from hebog.algorithms.reconciliation import DetectedIsland
+from hebog.data_models.partitioning import ImageBounds
+from hebog.science.continuum import build_continuum_candidate_products
 from hebog.science.models import (
     TiledMultiscaleDetection,
-    TiledSupportTopology,
-)
-from hebog.science.profile import (
-    ContinuumScienceProfile,
-    load_continuum_science_profile,
+    TiledSupportLabels,
 )
 
-_ROOT = Path(__file__).parents[2]
 _SHAPE = (6, 7)
-
-
-def _review() -> ContinuumScienceProfile:
-    """Load the installed reviewed continuum profile fixture."""
-    return load_continuum_science_profile(
-        (
-            _ROOT / "src/hebog/resources/reviewed_continuum_profile.json"
-        ).read_bytes()
-    )
 
 
 def _multiscale(
     *,
     significant_scale_masks: tuple[npt.NDArray[np.bool_], ...] | None = None,
+    scale_islands_by_order: (
+        tuple[tuple[DetectedIsland, ...], ...] | None
+    ) = None,
 ) -> TiledMultiscaleDetection:
-    """Return one empty published detection pass over a small plane."""
+    """Return one published detection pass over a small analytic plane."""
     empty = np.zeros(_SHAPE, dtype=np.bool_)
     return TiledMultiscaleDetection(
         detection_labels=np.zeros(_SHAPE, dtype=np.int32),
@@ -48,43 +36,31 @@ def _multiscale(
             if significant_scale_masks is None
             else significant_scale_masks
         ),
-        scale_islands_by_order=((), (), ()),
+        detection_islands=(),
+        scale_islands_by_order=(
+            ((), (), ())
+            if scale_islands_by_order is None
+            else scale_islands_by_order
+        ),
         scale_nominal_beam_fwhms=(1.0, 2.0, 4.0),
     )
 
 
-def _support() -> TiledSupportTopology:
-    """Return one empty published support reduction over a small plane."""
-    return TiledSupportTopology(
-        support_component_labels=np.zeros(_SHAPE, dtype=np.int32),
-        persistent_scale_support=np.zeros(_SHAPE, dtype=np.bool_),
+def _labels(
+    *,
+    retained_mask: npt.NDArray[np.bool_] | None = None,
+) -> TiledSupportLabels:
+    """Return one published support pass over a small analytic plane."""
+    return TiledSupportLabels(
+        component_labels=np.zeros(_SHAPE, dtype=np.int32),
+        measurement_labels=np.zeros(_SHAPE, dtype=np.int32),
+        publication_labels=np.zeros(_SHAPE, dtype=np.int32),
+        retained_mask=(
+            np.zeros(_SHAPE, dtype=np.bool_)
+            if retained_mask is None
+            else retained_mask
+        ),
     )
-
-
-def _evaluate(
-    valid_pixels: npt.NDArray[np.bool_],
-    multiscale: TiledMultiscaleDetection,
-) -> None:
-    """Run the composition over one analytic plane and its published pass."""
-    evaluate_continuum_candidate_products(
-        np.zeros(_SHAPE, dtype=np.float64),
-        valid_pixels,
-        np.zeros(_SHAPE, dtype=np.float64),
-        np.ones(_SHAPE, dtype=np.float64),
-        beam=BeamShapePixels(4.0, 3.0, 0.0),
-        review=_review(),
-        multiscale=multiscale,
-        support=_support(),
-    )
-
-
-def test_composition_rejects_a_validity_plane_it_cannot_align() -> None:
-    """The detection domain must be one aligned boolean plane."""
-    with pytest.raises(ValueError, match="aligned boolean plane"):
-        _evaluate(
-            np.ones(_SHAPE, dtype=np.int32),  # pyright: ignore[reportArgumentType]
-            _multiscale(),
-        )
 
 
 def test_composition_rejects_scale_support_outside_the_valid_domain() -> None:
@@ -95,13 +71,67 @@ def test_composition_rejects_scale_support_outside_the_valid_domain() -> None:
     valid[2, 3] = False
 
     with pytest.raises(ValueError, match="scientifically valid"):
-        _evaluate(
+        build_continuum_candidate_products(
             valid,
-            _multiscale(
+            multiscale=_multiscale(
                 significant_scale_masks=(
                     invalid_support,
                     np.zeros(_SHAPE, dtype=np.bool_),
                     np.zeros(_SHAPE, dtype=np.bool_),
                 )
             ),
+            labels=_labels(),
         )
+
+
+def test_composition_rejects_a_mask_its_publication_labels_contradict() -> (
+    None
+):
+    """The published mask is the publication labels, not a second decision."""
+    disagreeing = np.zeros(_SHAPE, dtype=np.bool_)
+    disagreeing[1, 1] = True
+
+    with pytest.raises(ValueError, match="retained mask must agree"):
+        build_continuum_candidate_products(
+            np.ones(_SHAPE, dtype=np.bool_),
+            multiscale=_multiscale(),
+            labels=_labels(retained_mask=disagreeing),
+        )
+
+
+def test_composition_describes_each_published_scale_feature() -> None:
+    """Scale records are rebuilt from the published masks and islands."""
+    support = np.zeros(_SHAPE, dtype=np.bool_)
+    support[1:3, 1:3] = True
+    island = DetectedIsland(
+        island_id="island-00001",
+        global_label=1,
+        pixel_count=4,
+        bounds=ImageBounds(1, 3, 1, 3),
+        peak_signal_to_noise=7.0,
+        peak_position_yx=(1, 1),
+        first_pixel_yx=(1, 1),
+        touches_image_edge=False,
+        peak_response_jy_per_beam=0.5,
+    )
+
+    products = build_continuum_candidate_products(
+        np.ones(_SHAPE, dtype=np.bool_),
+        multiscale=_multiscale(
+            significant_scale_masks=(
+                support,
+                np.zeros(_SHAPE, dtype=np.bool_),
+                np.zeros(_SHAPE, dtype=np.bool_),
+            ),
+            scale_islands_by_order=((island,), (), ()),
+        ),
+        labels=_labels(),
+    )
+
+    planes = products.scale_detection_planes
+    assert len(planes) == 3
+    assert planes[0].scale_order == 1
+    assert len(planes[0].detections) == 1
+    assert planes[0].detections[0].support_pixel_count == 4
+    assert planes[0].detections[0].peak_response_jy_per_beam == 0.5
+    assert products.detection.component_count == 0

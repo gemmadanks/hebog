@@ -72,7 +72,7 @@ from hebog.stages.detection import run_detection_stage
 if TYPE_CHECKING:  # pragma: no cover - import-time typing only
     from hebog.science.models import (
         TiledMultiscaleDetection,
-        TiledSupportTopology,
+        TiledSupportLabels,
     )
     from hebog.science.profile import ContinuumScienceProfile
 
@@ -81,6 +81,7 @@ _TILE_SHAPE_YX = (128, 128)
 ADMITTED_TILE_CORE_PIXELS = 2048
 """Smallest tile core the scalability contract admits, in pixels."""
 _SUPPORT_TILES_PER_BATCH = 4
+_OWNER_BATCH_READ_PIXELS = 4 * 1024 * 1024
 _DETECTION_THRESHOLD_SIGMA = 5.0
 _ISLAND_THRESHOLD_SIGMA = 3.0
 _MINIMUM_ISLAND_PIXELS = 7
@@ -549,6 +550,7 @@ def detect_multiscale_products(  # noqa: PLR0913
             plane(f"scale-{order}-significant", "bool")
             for order in range(1, len(result.scale_islands_by_order) + 1)
         ),
+        detection_islands=result.detection_islands,
         scale_islands_by_order=result.scale_islands_by_order,
         scale_nominal_beam_fwhms=result.scale_nominal_beam_fwhms,
     )
@@ -563,17 +565,15 @@ def reduce_support_topology(  # noqa: PLR0913
     scale_orders: tuple[int, ...],
     generation_id: str,
     tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
-) -> TiledSupportTopology:
+) -> ZarrProductSink:
     """Reconcile the support pass's global topology and read its planes.
 
     Neither reduction is bounded by a halo: support components follow paths of
     arbitrary length, and adjacent-scale persistence is a record graph over
     the whole image. Both are reconciled from compact per-core summaries and
-    published as owned cores, so the composition reads them by window.
+    published as owned cores, and the generation is returned so the support
+    rounds read them by window.
     """
-    from hebog.science.models import (  # noqa: PLC0415
-        TiledSupportTopology,
-    )
     from hebog.stages.support import (  # noqa: PLC0415
         SupportTopologyStageConfig,
         run_support_topology_stage,
@@ -599,16 +599,81 @@ def reduce_support_topology(  # noqa: PLR0913
         executor=executor,
         sink=sink,
     )
+    return sink
+
+
+def publish_support_labels(  # noqa: PLR0913
+    detection_source: ZarrProductSink,
+    support_source: ZarrProductSink,
+    executor: Executor,
+    work_directory: Path,
+    *,
+    image_shape_yx: tuple[int, int],
+    beam: BeamShapePixels,
+    detection_islands: tuple[Any, ...],
+    config: SourceFinderConfig,
+    review: ContinuumScienceProfile,
+    generation_id: str,
+    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
+) -> TiledSupportLabels:
+    """Decide owner connectivity and publish the support pass's labels.
+
+    Two of the decisions here are scoped to an owner rather than to a tile,
+    so they are taken once per owner from the window holding it and applied
+    by the core that owns each pixel. The caller's island admission is
+    applied in the same write.
+    """
+    from hebog.algorithms.extended_measurement import (  # noqa: PLC0415
+        segment_refinement_halo_pixels,
+    )
+    from hebog.science.models import TiledSupportLabels  # noqa: PLC0415
+    from hebog.stages.publication import (  # noqa: PLC0415
+        PublicationStageConfig,
+        run_publication_stage,
+    )
+
+    halo = segment_refinement_halo_pixels(beam.major_fwhm_pixels)
+    core = max(tile_core_pixels, 4 * halo + 1)
+    manifest = plan_image_partitions(
+        image_shape_yx=image_shape_yx,
+        tile_core_shape_yx=(core, core),
+        halo_yx=(halo, halo),
+    )
+    sink = ZarrProductSink(
+        work_directory / "publication.zarr",
+        manifest,
+        generation_id=generation_id,
+    )
+    run_publication_stage(
+        detection_source,
+        support_source,
+        manifest,
+        detection_islands=detection_islands,
+        config=PublicationStageConfig(
+            beam=beam,
+            island_threshold_sigma=review.matrix.island_sigma,
+            minimum_island_pixels=config.minimum_island_pixels,
+            maximum_island_pixels=config.maximum_island_pixels,
+            maximum_tiles_per_batch=1,
+            maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
+        ),
+        executor=executor,
+        sink=sink,
+    )
     bounds = ImageBounds(0, image_shape_yx[0], 0, image_shape_yx[1])
-    return TiledSupportTopology(
-        support_component_labels=np.asarray(
-            sink.read_completed_window("support-components", bounds),
-            dtype=np.int32,
-        ),
-        persistent_scale_support=np.asarray(
-            sink.read_completed_window("persistent-support", bounds),
-            dtype=np.bool_,
-        ),
+
+    def plane(product_name: str, dtype: str) -> npt.NDArray[Any]:
+        """Read one published support plane over the whole image."""
+        return np.asarray(
+            sink.read_completed_window(product_name, bounds),
+            dtype=dtype,
+        )
+
+    return TiledSupportLabels(
+        component_labels=plane("component-labels", "int32"),
+        measurement_labels=plane("measurement-labels", "int32"),
+        publication_labels=plane("publication-labels", "int32"),
+        retained_mask=plane("retained-mask", "bool"),
     )
 
 
@@ -667,6 +732,16 @@ def _analyse_image(  # noqa: PLR0913
         review=review,
         generation_id=generation_id,
     )
+    support_source = reduce_support_topology(
+        detection_source,
+        executor,
+        work_directory,
+        image_shape_yx=metadata.shape_yx,
+        scale_orders=tuple(
+            range(1, len(multiscale.significant_scale_masks) + 1)
+        ),
+        generation_id=generation_id,
+    )
     terminal = build_configured_continuum_products(
         image,
         background,
@@ -676,14 +751,16 @@ def _analyse_image(  # noqa: PLR0913
         review=review,
         config=config,
         multiscale=multiscale,
-        support=reduce_support_topology(
+        labels=publish_support_labels(
             detection_source,
+            support_source,
             executor,
             work_directory,
             image_shape_yx=metadata.shape_yx,
-            scale_orders=tuple(
-                range(1, len(multiscale.significant_scale_masks) + 1)
-            ),
+            beam=beam,
+            detection_islands=multiscale.detection_islands,
+            config=config,
+            review=review,
             generation_id=generation_id,
         ),
     )

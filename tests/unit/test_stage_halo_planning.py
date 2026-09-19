@@ -71,7 +71,7 @@ def test_halo_plan_derives_every_stage_from_implemented_science() -> None:
     assert by_name["matched-filter-seed"].scale_halos_pixels == (9, 17, 34)
     assert by_name["residual-b3-atrous"].scale_halos_pixels == (2, 6, 14)
     assert by_name["segment-association"].halo_yx == (15, 15)
-    assert by_name["segment-refinement"].halo_yx == (3, 3)
+    assert by_name["segment-refinement"].halo_yx == (5, 5)
     assert by_name["compact-context"].halo_yx == (3, 3)
     assert by_name["extended-measurement"].halo_yx == (8, 8)
     assert by_name["extended-measurement"].read_shape_yx == (272, 272)
@@ -112,7 +112,8 @@ def test_allocation_free_halo_helpers_match_kernel_policies() -> None:
     assert residual_atrous_scale_halos_pixels() == (2, 6, 14)
     assert scale_filter_halo_pixels(_beam()) == 34
     assert segment_association_halo_pixels(_beam()) == 15
-    assert segment_refinement_halo_pixels(5.0) == 3
+    assert segment_refinement_halo_pixels(5.0) == 5
+    assert segment_refinement_halo_pixels(0.5) == 3
     assert compact_context_halo_pixels(5.0) == 3
     assert (
         extended_measurement_halo_pixels(

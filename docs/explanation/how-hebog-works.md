@@ -196,6 +196,12 @@ relationship across the whole image. Both are reconciled from compact per-core
 summaries and written back per core, so the support step reads them rather
 than deriving them from a complete image.
 
+Two more are scoped to a source rather than to a neighbourhood: whether
+cleaning up a source's boundary would break it into pieces, and which
+previously published pixels hold its parts together. Each is decided once, in
+the window holding that source, and the answer is a small record the tiles
+then apply, so the decision never depends on where the tile boundaries fall.
+
 A flooded region needs evidence at the higher detection threshold. A
 filter-promoted region must also satisfy the beam-area rule; a region
 with a direct original-pixel detection-threshold sample can survive below that

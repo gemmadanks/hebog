@@ -14,7 +14,6 @@ from scipy.ndimage import label as ndimage_label
 
 from hebog.algorithms.extended_measurement import (
     SegmentWindow,
-    _preserve_refined_segment_connectivity,
     assign_persistent_source_support,
     assign_seeded_multiscale_support,
     clean_detected_segment_labels,
@@ -23,6 +22,7 @@ from hebog.algorithms.extended_measurement import (
     measure_detected_segment_position,
     refine_multiscale_segment_labels,
     refine_persistent_publication_labels,
+    restore_split_segment_owners,
 )
 
 
@@ -1040,7 +1040,7 @@ def test_connectivity_restores_owners_split_beyond_their_first_support() -> (
     refined[4, 2:4] = 1
     refined[4, 14:17] = 1
 
-    connected = _preserve_refined_segment_connectivity(original, refined)
+    connected = restore_split_segment_owners(original, refined)
 
     assert np.array_equal(
         np.nonzero(connected == 1)[1], np.array([2, 3, 4, 14, 15, 16])

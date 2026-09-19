@@ -12,6 +12,11 @@ import numpy.typing as npt
 import pytest
 from scipy.ndimage import label
 
+from hebog.algorithms.extended_measurement import (
+    assign_seeded_multiscale_support,
+    refine_multiscale_segment_labels,
+    refine_persistent_publication_labels,
+)
 from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.algorithms.multiscale_association import (
     build_scale_detection_plane_from_islands,
@@ -32,6 +37,7 @@ pytestmark = pytest.mark.integration
 _ROOT = Path(__file__).parents[2]
 _BEAM = BeamShapePixels(2.0, 1.6, 0.0)
 _TOLERANCE = 2e-13
+_MINIMUM_ISLAND_PIXELS = 7
 
 
 def _image() -> npt.NDArray[np.float64]:
@@ -62,6 +68,17 @@ def _image() -> npt.NDArray[np.float64]:
     )
 
 
+def _retain(
+    labels: npt.NDArray[np.int32],
+    accepted: npt.NDArray[np.int32],
+) -> npt.NDArray[np.int32]:
+    """Apply the caller's island admission the way the published planes do."""
+    return np.where(np.isin(labels, accepted), labels, 0).astype(
+        np.int32,
+        copy=False,
+    )
+
+
 def _detect(
     image: npt.NDArray[np.float64],
     work_directory: Path,
@@ -69,7 +86,7 @@ def _detect(
     tile_core_pixels: int,
 ) -> PublishedContinuumInputs:
     """Run the public detection pass over one analytic tile geometry."""
-    config = SourceFinderConfig(5.0, 3.0, 7)
+    config = SourceFinderConfig(5.0, 3.0, _MINIMUM_ISLAND_PIXELS)
     review = load_continuum_science_profile(
         (
             _ROOT / "src/hebog/resources/reviewed_continuum_profile.json"
@@ -83,6 +100,7 @@ def _detect(
         beam=_BEAM,
         review=configured_science_profile(review, config),
         work_directory=work_directory,
+        config=config,
         tile_core_pixels=tile_core_pixels,
         support_tile_core_pixels=tile_core_pixels,
     )
@@ -135,6 +153,13 @@ def test_published_passes_are_one_tile_many_tile_equal(
         many.support.persistent_scale_support,
         one.support.persistent_scale_support,
     )
+    for many_labels, one_labels in (
+        (many.labels.component_labels, one.labels.component_labels),
+        (many.labels.measurement_labels, one.labels.measurement_labels),
+        (many.labels.publication_labels, one.labels.publication_labels),
+        (many.labels.retained_mask, one.labels.retained_mask),
+    ):
+        np.testing.assert_array_equal(many_labels, one_labels)
 
 
 def test_published_passes_cover_labelled_edge_and_corner_sources(
@@ -162,6 +187,25 @@ def test_published_passes_cover_labelled_edge_and_corner_sources(
         (labels > 0) | published.multiscale.reconstruction_mask,
     )
     assert np.any(published.support.persistent_scale_support)
+    publication = published.labels.publication_labels
+    np.testing.assert_array_equal(
+        published.labels.retained_mask,
+        publication > 0,
+    )
+    assert int(publication.max()) > 0
+    measurement = published.labels.measurement_labels
+    component = published.labels.component_labels
+    published_pixels = publication > 0
+    owned_pixels = component > 0
+    np.testing.assert_array_equal(
+        measurement[published_pixels],
+        publication[published_pixels],
+    )
+    np.testing.assert_array_equal(
+        measurement[owned_pixels],
+        component[owned_pixels],
+    )
+    assert np.count_nonzero(measurement) >= np.count_nonzero(component)
 
 
 def test_published_support_matches_the_whole_plane_reduction(
@@ -205,4 +249,71 @@ def test_published_support_matches_the_whole_plane_reduction(
     np.testing.assert_array_equal(
         published.support.persistent_scale_support,
         expected_persistent,
+    )
+
+
+def test_published_labels_match_the_whole_plane_support_chain(
+    tmp_path: Path,
+) -> None:
+    """The tiled support rounds reproduce the whole-plane kernels exactly."""
+    image = _image()
+    published = _detect(image, tmp_path / "one", tile_core_pixels=4096)
+    multiscale = published.multiscale
+    valid = np.ones(image.shape, dtype=np.bool_)
+    direct_snr = np.divide(image, np.ones(image.shape, dtype=np.float64))
+    review = load_continuum_science_profile(
+        (
+            _ROOT / "src/hebog/resources/reviewed_continuum_profile.json"
+        ).read_bytes()
+    )
+    island_sigma = configured_science_profile(
+        review,
+        SourceFinderConfig(5.0, 3.0, _MINIMUM_ISLAND_PIXELS),
+    ).matrix.island_sigma
+
+    measurement = assign_seeded_multiscale_support(
+        multiscale.detection_labels,
+        multiscale.reconstruction_mask,
+        valid,
+        beam_major_fwhm_pixels=_BEAM.major_fwhm_pixels,
+    )
+    direct_publication = refine_multiscale_segment_labels(
+        multiscale.detection_labels,
+        direct_snr,
+        multiscale.reconstruction_mask,
+        beam_major_fwhm_pixels=_BEAM.major_fwhm_pixels,
+        recovered_minimum_snr=island_sigma,
+    )
+    publication = np.where(
+        (direct_publication > 0) & (measurement > 0),
+        measurement,
+        0,
+    ).astype(np.int32, copy=False)
+    expected = refine_persistent_publication_labels(
+        measurement,
+        publication,
+        direct_snr,
+        published.support.persistent_scale_support,
+    )
+    accepted = np.asarray(
+        [
+            island.global_label
+            for island in multiscale.detection_islands
+            if island.pixel_count >= _MINIMUM_ISLAND_PIXELS
+        ],
+        dtype=np.int32,
+    )
+
+    assert accepted.size < len(multiscale.detection_islands)
+    np.testing.assert_array_equal(
+        published.labels.publication_labels,
+        _retain(expected, accepted),
+    )
+    np.testing.assert_array_equal(
+        published.labels.measurement_labels,
+        _retain(measurement, accepted),
+    )
+    np.testing.assert_array_equal(
+        published.labels.component_labels,
+        _retain(multiscale.detection_labels, accepted),
     )

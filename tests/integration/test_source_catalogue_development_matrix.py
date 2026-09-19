@@ -473,6 +473,7 @@ def test_joint_geometry_with_controlled_or_public_background(
             beam=beam_pixels,
             review=configured_science_profile(review, config),
             work_directory=tmp_path / "detection",
+            config=config,
         )
         products = build_configured_continuum_products(
             image,
@@ -483,7 +484,7 @@ def test_joint_geometry_with_controlled_or_public_background(
             review=review,
             config=config,
             multiscale=published.multiscale,
-            support=published.support,
+            labels=published.labels,
         )
         scientific = public_api._ScientificProducts(
             image, background, rms, products

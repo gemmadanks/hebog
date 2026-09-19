@@ -25,18 +25,14 @@ from hebog.science.catalogues import (
 from hebog.science.configuration import source_finder_configs
 from hebog.science.continuum import (
     CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS,
-    evaluate_continuum_candidate_products,
+    build_continuum_candidate_products,
 )
 from hebog.science.models import (
-    ContinuumCandidateProducts,
     ContinuumProducts,
     TiledMultiscaleDetection,
-    TiledSupportTopology,
+    TiledSupportLabels,
 )
-from hebog.science.profile import (
-    ContinuumScienceProfile,
-    configured_science_profile,
-)
+from hebog.science.profile import ContinuumScienceProfile
 
 _IMAGE_DIMENSIONS = 2
 
@@ -62,60 +58,6 @@ def _aligned_plane(
     return np.asarray(plane, dtype=np.float64)
 
 
-def _execution_review(
-    review: ContinuumScienceProfile,
-    config: SourceFinderConfig,
-) -> ContinuumScienceProfile:
-    """Apply caller thresholds without changing frozen review evidence."""
-    return configured_science_profile(review, config)
-
-
-def _retain_configured_islands(
-    products: ContinuumCandidateProducts,
-    config: SourceFinderConfig,
-) -> ContinuumCandidateProducts | None:
-    """Apply caller pixel-count limits to terminal direct-island identity."""
-    direct = np.asarray(products.direct_component_labels, dtype=np.int32)
-    component_sizes = np.bincount(direct.ravel())
-    accepted = component_sizes >= config.minimum_island_pixels
-    accepted[0] = False
-    if config.maximum_island_pixels is not None:
-        accepted &= component_sizes <= config.maximum_island_pixels
-    if not np.any(accepted):
-        return None
-
-    def retain(labels: npt.ArrayLike) -> npt.NDArray[np.int32]:
-        label_plane = np.asarray(labels, dtype=np.int32)
-        if (
-            np.any(label_plane < 0)
-            or int(np.max(label_plane)) >= accepted.size
-        ):
-            raise ValueError("public source-finder labels are inconsistent")
-        retained = np.where(accepted[label_plane], label_plane, 0).astype(
-            np.int32,
-            copy=False,
-        )
-        retained.setflags(write=False)
-        return retained
-
-    direct_labels = retain(products.direct_component_labels)
-    measurement_labels = retain(products.measurement_component_labels)
-    publication_labels = retain(products.detection.component_labels)
-    retained_mask = np.asarray(publication_labels > 0, dtype=np.bool_)
-    retained_mask.setflags(write=False)
-    return replace(
-        products,
-        detection=replace(
-            products.detection,
-            retained_mask=retained_mask,
-            component_labels=publication_labels,
-            component_count=int(np.count_nonzero(accepted)),
-        ),
-        direct_component_labels=direct_labels,
-        measurement_component_labels=measurement_labels,
-    )
-
-
 def build_configured_continuum_products(  # noqa: PLR0913
     image_jy_per_beam: npt.ArrayLike,
     background_jy_per_beam: npt.ArrayLike,
@@ -126,9 +68,14 @@ def build_configured_continuum_products(  # noqa: PLR0913
     review: ContinuumScienceProfile,
     config: SourceFinderConfig,
     multiscale: TiledMultiscaleDetection,
-    support: TiledSupportTopology,
+    labels: TiledSupportLabels,
 ) -> ContinuumProducts | None:
-    """Build terminal products using caller thresholds and island limits."""
+    """Build terminal products from the published tiled passes.
+
+    The detection and support passes have already applied the caller's
+    thresholds and island limits on their own cores, so an image whose
+    admitted islands are all rejected publishes nothing.
+    """
     image = _aligned_plane(image_jy_per_beam, name="image")
     background = _aligned_plane(
         background_jy_per_beam,
@@ -141,21 +88,15 @@ def build_configured_continuum_products(  # noqa: PLR0913
         raise ValueError(
             "public source-finder mean/RMS validity differs from image"
         )
-    products = evaluate_continuum_candidate_products(
-        image,
-        valid,
-        background,
-        rms,
-        beam=beam,
-        review=_execution_review(review, config),
-        multiscale=multiscale,
-        support=support,
-    )
-    retained = _retain_configured_islands(products, config)
-    if retained is None:
-        return None
-    normalized = np.full(image.shape, np.nan, dtype=np.float64)
     positive_rms = valid & (rms > 0.0)
+    if not np.any(np.asarray(labels.component_labels) > 0):
+        return None
+    retained = build_continuum_candidate_products(
+        positive_rms,
+        multiscale=multiscale,
+        labels=labels,
+    )
+    normalized = np.full(image.shape, np.nan, dtype=np.float64)
     np.divide(
         image - background,
         rms,

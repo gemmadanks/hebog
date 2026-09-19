@@ -54,6 +54,7 @@ _MULTISCALE_PRODUCT_NAMES = tuple(
         (
             "combined-snr",
             "detection-labels",
+            "direct-snr",
             "position-signal",
             "reconstruction-mask",
             "valid-pixels",
@@ -534,6 +535,7 @@ def _publication_products(
     products: tuple[tuple[str, npt.NDArray[np.generic]], ...] = (
         ("combined-snr", combined_snr),
         ("detection-labels", detection_labels),
+        ("direct-snr", evidence.direct_snr),
         ("position-signal", position_signal),
         ("reconstruction-mask", reconstruction_mask),
         ("valid-pixels", result.prepared_inputs.scientifically_valid),

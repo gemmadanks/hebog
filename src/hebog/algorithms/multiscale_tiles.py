@@ -55,7 +55,7 @@ HaloBasis = Literal[
     "cumulative-b3-spline-support",
     "boundary-summary-reconciliation",
     "three-beam-residual-reconstruction-association-dilation",
-    "three-pixel-opening-and-half-beam-recovery",
+    "three-pixel-opening-influence-and-half-beam-recovery",
     "reconciled-exact-support-records",
     "half-beam-context-dilation",
     "one-point-five-beam-nearest-owned-aperture",
@@ -635,7 +635,7 @@ def derive_stage_halo_plan(
             "segment-refinement",
             segment_refinement_halo_pixels(beam.major_fwhm_pixels),
             maximum_task_pixels,
-            "three-pixel-opening-and-half-beam-recovery",
+            "three-pixel-opening-influence-and-half-beam-recovery",
             (),
         ),
         (

@@ -18,8 +18,6 @@ from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.config import SourceFinderConfig
 from hebog.public_science import (
     _aligned_plane,
-    _execution_review,
-    _retain_configured_islands,
     build_configured_continuum_products,
 )
 from hebog.science.models import (
@@ -28,6 +26,7 @@ from hebog.science.models import (
 )
 from hebog.science.profile import (
     ContinuumScienceProfile,
+    configured_science_profile,
     load_continuum_science_profile,
 )
 from hebog.validation.tiled_detection import (
@@ -113,8 +112,9 @@ def _published(
         np.zeros(image.shape, dtype=np.float64),
         np.ones(image.shape, dtype=np.float64),
         beam=beam,
-        review=_execution_review(_review(), config),
+        review=configured_science_profile(_review(), config),
         work_directory=work_directory,
+        config=config,
     )
 
 
@@ -125,23 +125,6 @@ def _review() -> ContinuumScienceProfile:
             _ROOT / "src/hebog/resources/reviewed_continuum_profile.json"
         ).read_bytes()
     )
-
-
-def test_execution_review_changes_only_runtime_thresholds() -> None:
-    """Caller sigma values do not mutate the frozen review record."""
-    review = _review()
-
-    execution = _execution_review(review, _config())
-
-    assert (review.matrix.detection_sigma, review.matrix.island_sigma) == (
-        5.0,
-        3.0,
-    )
-    assert (
-        execution.matrix.detection_sigma,
-        execution.matrix.island_sigma,
-    ) == (8.0, 6.0)
-    assert execution.corrections is review.corrections
 
 
 @pytest.mark.parametrize(
@@ -205,54 +188,6 @@ def test_science_profile_rejects_malformed_runtime_fields(
         load_continuum_science_profile(payload)
 
 
-def test_island_limits_filter_every_terminal_identity_plane() -> None:
-    """Minimum and maximum limits retain only accepted direct islands."""
-    products = _products(np.array([[1, 1, 0], [2, 2, 2]], dtype=np.int32))
-
-    retained = _retain_configured_islands(
-        products,
-        _config(minimum_island_pixels=2, maximum_island_pixels=2),
-    )
-
-    assert retained is not None
-    expected = np.array([[1, 1, 0], [0, 0, 0]], dtype=np.int32)
-    np.testing.assert_array_equal(retained.direct_component_labels, expected)
-    np.testing.assert_array_equal(
-        retained.measurement_component_labels,
-        expected,
-    )
-    np.testing.assert_array_equal(
-        retained.detection.component_labels,
-        expected,
-    )
-    assert retained.detection.component_count == 1
-    assert not retained.detection.component_labels.flags.writeable
-
-
-def test_island_limits_can_select_an_empty_catalogue() -> None:
-    """An island-size cut may honestly remove every detected component."""
-    products = _products(np.array([[1, 1, 0]], dtype=np.int32))
-
-    assert (
-        _retain_configured_islands(
-            products,
-            _config(minimum_island_pixels=3),
-        )
-        is None
-    )
-
-
-def test_island_filter_rejects_inconsistent_label_identity() -> None:
-    """Measurement labels cannot introduce an unknown direct component."""
-    products = _products(
-        np.array([[1, 1, 0]], dtype=np.int32),
-        measurement_labels=np.array([[1, 3, 0]], dtype=np.int32),
-    )
-
-    with pytest.raises(ValueError, match="labels are inconsistent"):
-        _retain_configured_islands(products, _config())
-
-
 @pytest.mark.parametrize(
     "values, shape",
     [
@@ -295,7 +230,7 @@ def test_configured_builder_rejects_inconsistent_finite_support(
             review=review,
             config=_config(),
             multiscale=published.multiscale,
-            support=published.support,
+            labels=published.labels,
         )
 
 
@@ -320,7 +255,7 @@ def test_configured_builder_deblends_components_before_catalogue_measurement(
 
     monkeypatch.setattr(
         public_science,
-        "evaluate_continuum_candidate_products",
+        "build_continuum_candidate_products",
         return_products,
     )
 
@@ -367,7 +302,7 @@ def test_configured_builder_deblends_components_before_catalogue_measurement(
         review=review,
         config=SourceFinderConfig(5.0, 3.0, 7),
         multiscale=published.multiscale,
-        support=published.support,
+        labels=published.labels,
     )
 
     assert result is not None
@@ -406,7 +341,7 @@ def test_configured_builder_publishes_independent_connected_sources(
         review=review,
         config=SourceFinderConfig(5.0, 3.0, 7),
         multiscale=published.multiscale,
-        support=published.support,
+        labels=published.labels,
     )
 
     assert result is not None
@@ -450,7 +385,7 @@ def test_configured_builder_retains_three_components_in_one_parent(
         review=review,
         config=SourceFinderConfig(5.0, 3.0, 7),
         multiscale=published.multiscale,
-        support=published.support,
+        labels=published.labels,
     )
 
     assert result is not None

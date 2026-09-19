@@ -278,6 +278,7 @@ class TiledMultiscaleDetection:
     reconstruction_mask: npt.NDArray[np.bool_]
     position_signal_jy_per_beam: npt.NDArray[np.float64]
     significant_scale_masks: tuple[npt.NDArray[np.bool_], ...]
+    detection_islands: tuple[DetectedIsland, ...]
     scale_islands_by_order: tuple[tuple[DetectedIsland, ...], ...]
     scale_nominal_beam_fwhms: tuple[float, ...]
 
@@ -294,6 +295,20 @@ class TiledSupportTopology:
 
     support_component_labels: npt.NDArray[np.int32]
     persistent_scale_support: npt.NDArray[np.bool_]
+
+
+@dataclass(frozen=True, slots=True)
+class TiledSupportLabels:
+    """The support pass's final labels and mask, as published per core.
+
+    Island admission has already been applied, so every label here is one the
+    caller's pixel-count limits admit.
+    """
+
+    component_labels: npt.NDArray[np.int32]
+    measurement_labels: npt.NDArray[np.int32]
+    publication_labels: npt.NDArray[np.int32]
+    retained_mask: npt.NDArray[np.bool_]
 
 
 @dataclass(frozen=True, slots=True)

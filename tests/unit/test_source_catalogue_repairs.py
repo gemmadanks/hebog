@@ -397,6 +397,7 @@ def _configured_products(
             beam=beam,
             review=configured_science_profile(review, config),
             work_directory=Path(directory),
+            config=config,
         )
         return build_configured_continuum_products(
             signal,
@@ -407,7 +408,7 @@ def _configured_products(
             review=review,
             config=config,
             multiscale=published.multiscale,
-            support=published.support,
+            labels=published.labels,
         )
 
 

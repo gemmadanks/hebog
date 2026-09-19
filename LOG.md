@@ -23399,3 +23399,67 @@ the per-worker placement finding.
   evaluated over whole planes, as are the per-scale detection records that
   pass D consumes. The next rounds are the haloed pixel work and the two
   owner-scoped connectivity steps ADR-008 now describes.
+
+## 2026-09-19 — M2: the support pass is tile-native
+
+- **What this is.** The remaining rounds of ADR-008's pass C. The public
+  composition no longer evaluates seeded multiscale support, segment
+  refinement, the publication rule or persistent publication over whole
+  planes: `hebog.stages.publication` decides them on tile cores and on owner
+  windows, and writes the final labels and mask per core.
+  `science/continuum.py` falls from 376 lines to 120 and now only assembles
+  published planes into the candidate record.
+- **Splitting the two owner-scoped steps.** `refine_multiscale_segment_labels`
+  and `refine_persistent_publication_labels` each ended in a step scoped to
+  an owner window. Both are split into a halo-bounded pixel kernel
+  (`refine_multiscale_segment_support`,
+  `refine_persistent_publication_support`) and an owner decision
+  (`owner_support_is_split`, `preserve_owner_publication_bridges`). The
+  original functions remain as the composed whole-plane oracle, so every
+  existing kernel test still exercises the science it always did.
+- **Four rounds, one generation.** Owner restores, then the owners published
+  anywhere, then the bridge patches, then the core write. Only the last round
+  writes, because each pixel quantity is recomputed where it is needed rather
+  than persisted, exactly as the detection pass recomputes its filters. The
+  restore decision is one boolean per owner; the bridge decision is a label
+  patch bounded by that owner's window, applied by the core that owns each
+  pixel. Owners are batched until the union of their reads would exceed the
+  admitted pixel budget, so one task's memory stays bounded however the
+  owners are distributed.
+- **Island admission moved to the cores.** The caller's pixel-count limits are
+  decided from the reconciled island records and sharded to the tiles that
+  hold those labels, so `_retain_configured_islands` and its whole-plane
+  `bincount` are gone. Admission is applied after the owner rounds, which is
+  where the whole-plane path applied it.
+- **A halo that was too small.** `segment_refinement_halo_pixels` returned the
+  larger of the opening radius and the recovery radius. Both are needed
+  together, and the opening's influence is two pixels rather than one,
+  because a 3x3 binary opening erodes then dilates; the dense-core count
+  reaches one pixel further again. For a 5-pixel beam the declared halo goes
+  from 3 to 5. Nothing read outside its read before — the halo was only
+  declared, never relied upon — but the plan and ADR-008 both quoted it.
+- **Evidence.** The quick science check (`m2-pass-c-rounds`) reproduces all
+  sixteen cases exactly. `tests/integration/test_publication_stage_execution.py`
+  drives a dumbbell owner whose single weak waist pixel the 3x3 opening
+  removes: every pixel decision drops it and only the owner rounds put it
+  back, so `restored_owner_count` and `bridged_owner_count` are both one and
+  the published waist pixel proves it. The same suite asserts the published
+  planes equal the whole-plane chain exactly, and that the result survives
+  tile geometry, batching, one owner per read, reverse completion and Dask.
+  The public partitioning suite adds the four label planes to its one-tile
+  and many-tile comparison and to its whole-plane equivalence. Nineteen stage
+  tests reach 100% branch coverage, including the empty image, island records
+  that do not describe the planes, and each of the four rounds failing closed
+  on a silent executor.
+- **Cost.** Quick-check wall time rose 152.1 → 161.9 s, about 6%, for the
+  extra generation and the recomputation the rounds trade against storing
+  planes. Across the whole of M2 so far the sixteen cases stand at 161.9 s
+  against 135.6 s before the convergence, about 19%; the M1 profile
+  attributes the Zarr share to chunk opens and atomic renames, which M2's
+  bottleneck row owns.
+- **What pass C still defers.** An owner whose window exceeds the admitted
+  task is ADR-008 T3 and must publish a disposition rather than lose its
+  connectivity restoration. No disposition channel exists before pass D, and
+  no image inside the 1,024-pixel envelope can reach that size, so the stage
+  currently decides every owner. The T3 path lands with pass D's object
+  phase, which owns the disposition records.

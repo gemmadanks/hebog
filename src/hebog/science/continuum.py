@@ -3,17 +3,9 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
-
 import numpy as np
 import numpy.typing as npt
 
-from hebog.algorithms.extended_measurement import (
-    assign_seeded_multiscale_support,
-    refine_multiscale_segment_labels,
-    refine_persistent_publication_labels,
-)
-from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.algorithms.multiscale_association import (
     ScaleDetectionPlane,
     build_scale_detection_plane_from_islands,
@@ -23,94 +15,11 @@ from hebog.science.models import (
     ContinuumCandidateProducts,
     ThresholdFilterResult,
     TiledMultiscaleDetection,
-    TiledSupportTopology,
+    TiledSupportLabels,
 )
 from hebog.science.profile import ContinuumScienceProfile
 
 CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS = 1.5
-_IMAGE_DIMENSIONS = 2
-
-
-def _aligned_plane(
-    values: npt.ArrayLike,
-    *,
-    name: str,
-    shape: tuple[int, int] | None = None,
-) -> npt.NDArray[np.float64]:
-    """Return one aligned real two-dimensional science plane."""
-    plane = np.asarray(values)
-    if (
-        plane.ndim != _IMAGE_DIMENSIONS
-        or not np.issubdtype(plane.dtype, np.number)
-        or np.iscomplexobj(plane)
-        or (shape is not None and plane.shape != shape)
-    ):
-        raise ValueError(
-            f"continuum science {name} must be an aligned real "
-            "two-dimensional plane"
-        )
-    return np.asarray(plane, dtype=np.float64)
-
-
-def _direct_snr(
-    image_jy_per_beam: npt.ArrayLike,
-    valid_pixels: npt.ArrayLike,
-    background_jy_per_beam: npt.ArrayLike,
-    rms_jy_per_beam: npt.ArrayLike,
-) -> npt.NDArray[np.float64]:
-    """Return original-pixel signal to noise on the exact valid domain."""
-    image = _aligned_plane(image_jy_per_beam, name="image")
-    background = _aligned_plane(
-        background_jy_per_beam, name="background", shape=image.shape
-    )
-    rms = _aligned_plane(rms_jy_per_beam, name="RMS", shape=image.shape)
-    valid = np.asarray(valid_pixels)
-    if valid.shape != image.shape or valid.dtype != np.bool_:
-        raise ValueError(
-            "continuum science validity must be one aligned boolean plane"
-        )
-    direct_snr = np.full(image.shape, -np.inf, dtype=np.float64)
-    direct_valid = (
-        valid
-        & np.isfinite(image)
-        & np.isfinite(background)
-        & np.isfinite(rms)
-        & (rms > 0)
-    )
-    np.divide(image - background, rms, out=direct_snr, where=direct_valid)
-    return direct_snr
-
-
-def _scientifically_valid(
-    image_jy_per_beam: npt.ArrayLike,
-    valid_pixels: npt.ArrayLike,
-    background_jy_per_beam: npt.ArrayLike,
-    rms_jy_per_beam: npt.ArrayLike,
-) -> npt.NDArray[np.bool_]:
-    """Return the exact domain the filtered detection pass ran over.
-
-    This is the domain ``prepare_scale_filter_inputs`` forms on a task, so
-    the pixels a later pass may attach support to are the pixels the tiled
-    pass could have detected on.
-    """
-    image = _aligned_plane(image_jy_per_beam, name="image")
-    background = _aligned_plane(
-        background_jy_per_beam, name="background", shape=image.shape
-    )
-    rms = _aligned_plane(rms_jy_per_beam, name="RMS", shape=image.shape)
-    valid = np.asarray(valid_pixels)
-    if valid.shape != image.shape or valid.dtype != np.bool_:
-        raise ValueError(
-            "continuum science validity must be one aligned boolean plane"
-        )
-    return np.asarray(
-        valid
-        & np.isfinite(image)
-        & np.isfinite(background)
-        & np.isfinite(rms)
-        & (rms > 0),
-        dtype=np.bool_,
-    )
 
 
 def residual_detection_config(
@@ -156,139 +65,68 @@ def _retained_scale_detection_planes(
     )
 
 
-def _publication_products(  # noqa: PLR0913
-    image_jy_per_beam: npt.ArrayLike,
-    valid_pixels: npt.ArrayLike,
-    background_jy_per_beam: npt.ArrayLike,
-    rms_jy_per_beam: npt.ArrayLike,
+def build_continuum_candidate_products(
+    valid_pixels: npt.NDArray[np.bool_],
     *,
-    beam: BeamShapePixels,
-    review: ContinuumScienceProfile,
     multiscale: TiledMultiscaleDetection,
-    support: TiledSupportTopology,
+    labels: TiledSupportLabels,
 ) -> ContinuumCandidateProducts:
-    """Attach bounded multiscale support and publish direct-owner support.
+    """Assemble the candidate products from the published tiled passes.
 
-    Direct residual labels are authoritative identities. Multiscale support
-    may enlarge an owner within a bounded recovery radius but never merges two
-    identities, and publication is refined from immutable direct-owner support
-    on original-pixel signal to noise rather than on the filtered evidence
-    that promoted the seed.
+    Every decision these products carry was taken on a tile core or on one
+    owner's window: the detection pass published the seeds, support and
+    position signal, and the support pass published the owner labels, the
+    publication labels and the mask with island admission applied.
     """
-    scientifically_valid = _scientifically_valid(
-        image_jy_per_beam,
-        valid_pixels,
-        background_jy_per_beam,
-        rms_jy_per_beam,
-    )
-    direct_labels = np.asarray(multiscale.detection_labels, dtype=np.int32)
-    support_mask = np.asarray(multiscale.reconstruction_mask, dtype=np.bool_)
-    measurement_labels = np.asarray(
-        assign_seeded_multiscale_support(
-            direct_labels,
-            support_mask,
-            scientifically_valid,
-            beam_major_fwhm_pixels=beam.major_fwhm_pixels,
-            support_component_labels=support.support_component_labels,
-        ),
+    # The published planes belong to the caller, so this record owns copies
+    # rather than freezing arrays it did not create.
+    publication_labels = np.array(
+        labels.publication_labels,
         dtype=np.int32,
+        copy=True,
     )
-    direct_snr = _direct_snr(
-        image_jy_per_beam,
-        valid_pixels,
-        background_jy_per_beam,
-        rms_jy_per_beam,
+    component_labels = np.array(
+        labels.component_labels,
+        dtype=np.int32,
+        copy=True,
     )
-    direct_publication_labels = refine_multiscale_segment_labels(
-        direct_labels,
-        direct_snr,
-        support_mask,
-        beam_major_fwhm_pixels=beam.major_fwhm_pixels,
-        recovered_minimum_snr=review.matrix.island_sigma,
+    measurement_labels = np.array(
+        labels.measurement_labels,
+        dtype=np.int32,
+        copy=True,
     )
-    direct_support = direct_labels > 0
-    if np.any(
-        direct_support
-        & ((measurement_labels <= 0) | (measurement_labels != direct_labels))
-    ):
+    retained_mask = np.array(labels.retained_mask, dtype=np.bool_, copy=True)
+    if np.any(retained_mask != (publication_labels > 0)):
         raise ValueError(
-            "direct support must be an exact subset of measurement ownership"
+            "published retained mask must agree with publication labels"
         )
-    publication_support = (direct_publication_labels > 0) & (
-        measurement_labels > 0
+    significant_support = np.array(
+        multiscale.reconstruction_mask,
+        dtype=np.bool_,
+        copy=True,
     )
-    labels = np.where(publication_support, measurement_labels, 0).astype(
-        np.int32,
-        copy=False,
-    )
-    retained = np.asarray(labels > 0, dtype=np.bool_)
-    labels.setflags(write=False)
-    retained.setflags(write=False)
-    significant_support = support_mask.copy()
-    significant_support.setflags(write=False)
-    owned_labels = direct_labels.copy()
-    owned_labels.setflags(write=False)
-    measurement_labels = measurement_labels.copy()
-    measurement_labels.setflags(write=False)
+    for plane in (
+        publication_labels,
+        component_labels,
+        measurement_labels,
+        retained_mask,
+        significant_support,
+    ):
+        plane.setflags(write=False)
     return ContinuumCandidateProducts(
         detection=ThresholdFilterResult(
-            retained_mask=retained,
-            component_labels=labels,
-            component_count=int(np.count_nonzero(np.unique(labels) > 0)),
+            retained_mask=retained_mask,
+            component_labels=publication_labels,
+            component_count=int(
+                np.count_nonzero(np.unique(component_labels) > 0)
+            ),
         ),
-        direct_component_labels=owned_labels,
+        direct_component_labels=component_labels,
         measurement_component_labels=measurement_labels,
         position_signal_jy_per_beam=multiscale.position_signal_jy_per_beam,
         significant_multiscale_support=significant_support,
         scale_detection_planes=_retained_scale_detection_planes(
             multiscale,
-            scientifically_valid,
-        ),
-    )
-
-
-def evaluate_continuum_candidate_products(  # noqa: PLR0913
-    image_jy_per_beam: npt.ArrayLike,
-    valid_pixels: npt.ArrayLike,
-    background_jy_per_beam: npt.ArrayLike,
-    rms_jy_per_beam: npt.ArrayLike,
-    *,
-    beam: BeamShapePixels,
-    review: ContinuumScienceProfile,
-    multiscale: TiledMultiscaleDetection,
-    support: TiledSupportTopology,
-) -> ContinuumCandidateProducts:
-    """Refine publication support using exact adjacent-scale persistence."""
-    products = _publication_products(
-        image_jy_per_beam,
-        valid_pixels,
-        background_jy_per_beam,
-        rms_jy_per_beam,
-        beam=beam,
-        review=review,
-        multiscale=multiscale,
-        support=support,
-    )
-    direct_snr = _direct_snr(
-        image_jy_per_beam,
-        valid_pixels,
-        background_jy_per_beam,
-        rms_jy_per_beam,
-    )
-    labels = refine_persistent_publication_labels(
-        products.measurement_component_labels,
-        products.detection.component_labels,
-        direct_snr,
-        support.persistent_scale_support,
-    )
-    retained = np.asarray(labels > 0, dtype=np.bool_)
-    retained.setflags(write=False)
-    return replace(
-        products,
-        detection=replace(
-            products.detection,
-            retained_mask=retained,
-            component_labels=labels,
-            component_count=int(np.count_nonzero(np.unique(labels) > 0)),
+            valid_pixels,
         ),
     )

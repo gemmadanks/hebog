@@ -18,6 +18,7 @@ import numpy.typing as npt
 
 from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.algorithms.partitioning import plan_image_partitions
+from hebog.config import SourceFinderConfig
 from hebog.data_models.partitioning import ImageBounds
 from hebog.data_models.products import ProductChunk
 from hebog.executors import Executor, SerialExecutor
@@ -26,10 +27,12 @@ from hebog.io.zarr import ZarrProductSink
 from hebog.public_api import (
     ADMITTED_TILE_CORE_PIXELS,
     detect_multiscale_products,
+    publish_support_labels,
     reduce_support_topology,
 )
 from hebog.science.models import (
     TiledMultiscaleDetection,
+    TiledSupportLabels,
     TiledSupportTopology,
 )
 from hebog.science.profile import ContinuumScienceProfile
@@ -115,6 +118,7 @@ class PublishedContinuumInputs:
 
     multiscale: TiledMultiscaleDetection
     support: TiledSupportTopology
+    labels: TiledSupportLabels
 
 
 def publish_continuum_inputs(  # noqa: PLR0913
@@ -128,6 +132,7 @@ def publish_continuum_inputs(  # noqa: PLR0913
     work_directory: Path,
     executor: Executor | None = None,
     generation_id: str = "published-continuum-inputs",
+    config: SourceFinderConfig,
     tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
     support_tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
 ) -> PublishedContinuumInputs:
@@ -152,16 +157,51 @@ def publish_continuum_inputs(  # noqa: PLR0913
         generation_id=generation_id,
         tile_core_pixels=tile_core_pixels,
     )
+    support_source = reduce_support_topology(
+        detection_source,
+        resolved_executor,
+        work_directory,
+        image_shape_yx=image_jy_per_beam.shape,
+        scale_orders=tuple(
+            range(1, len(multiscale.significant_scale_masks) + 1)
+        ),
+        generation_id=generation_id,
+        tile_core_pixels=support_tile_core_pixels,
+    )
+    bounds = ImageBounds(
+        0,
+        image_jy_per_beam.shape[0],
+        0,
+        image_jy_per_beam.shape[1],
+    )
     return PublishedContinuumInputs(
         multiscale=multiscale,
-        support=reduce_support_topology(
+        support=TiledSupportTopology(
+            support_component_labels=np.asarray(
+                support_source.read_completed_window(
+                    "support-components",
+                    bounds,
+                ),
+                dtype=np.int32,
+            ),
+            persistent_scale_support=np.asarray(
+                support_source.read_completed_window(
+                    "persistent-support",
+                    bounds,
+                ),
+                dtype=np.bool_,
+            ),
+        ),
+        labels=publish_support_labels(
             detection_source,
+            support_source,
             resolved_executor,
             work_directory,
             image_shape_yx=image_jy_per_beam.shape,
-            scale_orders=tuple(
-                range(1, len(multiscale.significant_scale_masks) + 1)
-            ),
+            beam=beam,
+            detection_islands=multiscale.detection_islands,
+            config=config,
+            review=review,
             generation_id=generation_id,
             tile_core_pixels=support_tile_core_pixels,
         ),

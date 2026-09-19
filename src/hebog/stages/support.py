@@ -629,9 +629,7 @@ def run_support_topology_stage(
     topology_results = tuple(executor.map_batches(scan, partition_batches))
     if not topology_results:
         raise ValueError("executor returned no support topology results")
-    tiles = tuple(
-        tile for result in topology_results for tile in result.tiles
-    )
+    tiles = tuple(tile for result in topology_results for tile in result.tiles)
     support = reconcile_candidate_tiles(
         manifest,
         tuple(tile.support_summary for tile in tiles),
