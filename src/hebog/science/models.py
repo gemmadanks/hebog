@@ -10,6 +10,7 @@ from typing import Literal, Self
 import numpy as np
 import numpy.typing as npt
 
+from hebog.algorithms.component_measurement import FitParentMeasurement
 from hebog.algorithms.multiscale_association import ScaleDetectionPlane
 from hebog.algorithms.reconciliation import DetectedIsland
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
@@ -324,6 +325,19 @@ class TiledComponentTopology:
     measurement_component_labels: npt.NDArray[np.int32]
     deblended_parent_count: int
     deferred_parent_count: int
+
+
+@dataclass(frozen=True, slots=True)
+class TiledComponentFits:
+    """The object pass's per-parent fits and the support they published.
+
+    Each fit parent was measured inside the window holding its support and
+    the reviewed context margin, so these records carry no image-sized array
+    except the support plane the cores combined.
+    """
+
+    parents: tuple[FitParentMeasurement, ...]
+    measurement_support: npt.NDArray[np.bool_]
 
 
 @dataclass(frozen=True, slots=True)

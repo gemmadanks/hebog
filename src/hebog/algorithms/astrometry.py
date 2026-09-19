@@ -49,6 +49,20 @@ def celestial_wcs_from_metadata(metadata: ImageMetadata) -> WCS:
     return WCS(header, relax=True).celestial
 
 
+def celestial_wcs_from_header_text(header_text: str) -> WCS:
+    """Rebuild a celestial WCS from the header text it was written from.
+
+    Work that crosses a task boundary carries this text rather than a
+    :class:`~astropy.wcs.WCS`. Astropy pickles a ``WCS`` through a header it
+    reformats itself, which perturbs the transform in its last bits and moves
+    fitted uncertainties by parts in ``1e9``; rebuilding from the caller's own
+    header text instead keeps every executor bit-identical. ``header_text``
+    is :meth:`astropy.io.fits.Header.tostring` output, so its cards are
+    fixed-width and unseparated.
+    """
+    return WCS(fits.Header.fromstring(header_text), relax=True).celestial
+
+
 def local_tangent_plane_transform(
     metadata: ImageMetadata,
     position_xy: tuple[float, float],

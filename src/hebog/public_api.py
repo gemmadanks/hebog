@@ -48,7 +48,7 @@ from hebog.data_models import (
     SourceFinderResult,
     SpectralModel,
 )
-from hebog.data_models.images import ImageMetadata
+from hebog.data_models.images import ImageMetadata, RestoringBeam
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
 from hebog.executors import Executor
 from hebog.io import FitsImageSource, ZarrProductSink
@@ -71,6 +71,7 @@ from hebog.stages.detection import run_detection_stage
 
 if TYPE_CHECKING:  # pragma: no cover - import-time typing only
     from hebog.science.models import (
+        TiledComponentFits,
         TiledComponentTopology,
         TiledMultiscaleDetection,
         TiledSupportLabels,
@@ -691,7 +692,7 @@ def publish_component_topology(  # noqa: PLR0913
     config: SourceFinderConfig,
     generation_id: str,
     tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
-) -> TiledComponentTopology:
+) -> tuple[ZarrProductSink, TiledComponentTopology]:
     """Deblend every parent in its own window and read the components.
 
     Deblending needs a parent's complete support and nothing beyond it, so
@@ -732,7 +733,7 @@ def publish_component_topology(  # noqa: PLR0913
         sink=sink,
     )
     bounds = ImageBounds(0, image_shape_yx[0], 0, image_shape_yx[1])
-    return TiledComponentTopology(
+    return sink, TiledComponentTopology(
         direct_component_labels=np.asarray(
             sink.read_completed_window("component-direct-labels", bounds),
             dtype=np.int32,
@@ -746,6 +747,123 @@ def publish_component_topology(  # noqa: PLR0913
         ),
         deblended_parent_count=result.deblended_parent_count,
         deferred_parent_count=result.deferred_parent_count,
+    )
+
+
+def publish_component_fits(  # noqa: PLR0913, PLR0917
+    source: _WindowReadable,
+    background_rms_source: ZarrProductSink,
+    detection_source: ZarrProductSink,
+    component_source: ZarrProductSink,
+    executor: Executor,
+    work_directory: Path,
+    *,
+    image_shape_yx: tuple[int, int],
+    beam: BeamShapePixels,
+    header: fits.Header,
+    config: SourceFinderConfig,
+    review: ContinuumScienceProfile,
+    generation_id: str,
+    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
+) -> TiledComponentFits:
+    """Fit every measurement parent in its own context window.
+
+    Owners whose fit contexts touch need a joint model, so the contexts are
+    reconciled first and each fit parent is then measured inside the window
+    holding it. The cores combine the persistent measurement support the
+    parents contributed.
+    """
+    from hebog.algorithms.multiscale import (  # noqa: PLC0415
+        build_residual_atrous_plan,
+    )
+    from hebog.science.configuration import (  # noqa: PLC0415
+        source_finder_configs,
+    )
+    from hebog.science.continuum import (  # noqa: PLC0415
+        compact_deblend_config,
+    )
+    from hebog.science.models import TiledComponentFits  # noqa: PLC0415
+    from hebog.stages.objects import (  # noqa: PLC0415
+        ComponentFitStageConfig,
+        FitParentStageConfig,
+        run_component_fit_stage,
+        run_fit_parent_stage,
+    )
+
+    _, _, moment_config, fit_config, _ = source_finder_configs()
+    fit_config = replace(fit_config, integrated_flux_bias_correction_sigma=0.0)
+    atrous_plan = build_residual_atrous_plan(beam, noise_correlation=beam)
+    context_margin = int(fit_config.context_margin_pixels)
+    core = max(tile_core_pixels, 4 * context_margin + 1)
+    fit_parent_manifest = plan_image_partitions(
+        image_shape_yx=image_shape_yx,
+        tile_core_shape_yx=(core, core),
+        halo_yx=(context_margin, context_margin),
+    )
+    fit_parent_sink = ZarrProductSink(
+        work_directory / "fit-parents.zarr",
+        fit_parent_manifest,
+        generation_id=generation_id,
+    )
+    run_fit_parent_stage(
+        component_source,
+        fit_parent_manifest,
+        config=FitParentStageConfig(
+            context_margin_pixels=context_margin,
+            maximum_tiles_per_batch=_SUPPORT_TILES_PER_BATCH,
+        ),
+        executor=executor,
+        sink=fit_parent_sink,
+    )
+    manifest = plan_image_partitions(
+        image_shape_yx=image_shape_yx,
+        tile_core_shape_yx=(tile_core_pixels, tile_core_pixels),
+        halo_yx=(0, 0),
+    )
+    sink = ZarrProductSink(
+        work_directory / "component-fits.zarr",
+        manifest,
+        generation_id=generation_id,
+    )
+    result = run_component_fit_stage(
+        source,
+        background_rms_source,
+        detection_source,
+        component_source,
+        fit_parent_sink,
+        manifest,
+        config=ComponentFitStageConfig(
+            moment=moment_config,
+            fit=fit_config,
+            atrous_plan=atrous_plan,
+            detection_sigma=config.detection_threshold_sigma,
+            island_sigma=config.island_threshold_sigma,
+            minimum_pixels=config.minimum_island_pixels,
+            maximum_bounds_pixels=(
+                compact_deblend_config(config).maximum_compact_bounds_pixels
+            ),
+            minimum_support_fraction=(
+                review.matrix.support_fraction_bounds[0]
+            ),
+            maximum_tiles_per_batch=_SUPPORT_TILES_PER_BATCH,
+            maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
+        ),
+        wcs_header_text=header.tostring(),
+        beam=RestoringBeam(
+            cast(float, header["BMAJ"]),
+            cast(float, header["BMIN"]),
+            cast(float, header["BPA"]) if "BPA" in header else 0.0,
+        ),
+        executor=executor,
+        sink=sink,
+    )
+    bounds = ImageBounds(0, image_shape_yx[0], 0, image_shape_yx[1])
+    return TiledComponentFits(
+        parents=result.parents,
+        measurement_support=np.asarray(
+            sink.read_completed_window("measurement-support", bounds),
+            dtype=np.bool_,
+        ),
     )
 
 
@@ -826,6 +944,15 @@ def _analyse_image(  # noqa: PLR0913
         review=review,
         generation_id=generation_id,
     )
+    component_source, topology = publish_component_topology(
+        labels_source,
+        detection_source,
+        executor,
+        work_directory,
+        image_shape_yx=metadata.shape_yx,
+        config=config,
+        generation_id=generation_id,
+    )
     terminal = build_configured_continuum_products(
         image,
         background,
@@ -836,13 +963,19 @@ def _analyse_image(  # noqa: PLR0913
         config=config,
         multiscale=multiscale,
         labels=support_labels,
-        topology=publish_component_topology(
-            labels_source,
+        topology=topology,
+        component_fits=publish_component_fits(
+            source,
+            background_rms_source,
             detection_source,
+            component_source,
             executor,
             work_directory,
             image_shape_yx=metadata.shape_yx,
+            beam=beam,
+            header=header,
             config=config,
+            review=review,
             generation_id=generation_id,
         ),
     )

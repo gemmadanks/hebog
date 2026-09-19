@@ -159,7 +159,7 @@ def test_public_merge_evidence_cannot_join_foreign_source_owners(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Corrupt grouping attribution fails before publishing a false claim."""
-    original = public_science.measure_component_models
+    original = public_science.reconcile_component_measurements
 
     def invalid_evidence(*args: Any, **kwargs: Any):
         result = original(*args, **kwargs)
@@ -176,7 +176,7 @@ def test_public_merge_evidence_cannot_join_foreign_source_owners(
         )
 
     monkeypatch.setattr(
-        public_science, "measure_component_models", invalid_evidence
+        public_science, "reconcile_component_measurements", invalid_evidence
     )
     yy, xx = np.mgrid[:49, :97]
     signal = 10 * np.exp(-((xx - 16) ** 2 + (yy - 24) ** 2) / 8)
@@ -397,6 +397,7 @@ def _configured_products(
             beam=beam,
             review=configured_science_profile(review, config),
             work_directory=Path(directory),
+            header=header,
             config=config,
         )
         return build_configured_continuum_products(
@@ -410,6 +411,7 @@ def _configured_products(
             multiscale=published.multiscale,
             labels=published.labels,
             topology=published.topology,
+            component_fits=published.component_fits,
         )
 
 

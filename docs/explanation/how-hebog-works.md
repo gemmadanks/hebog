@@ -203,7 +203,10 @@ the window holding that source, and the answer is a small record the tiles
 then apply, so the decision never depends on where the tile boundaries fall.
 Splitting a blended island into its components works the same way: one task
 sees the whole island and nothing else, and the tiles write the component
-labels covering the pixels they own.
+labels covering the pixels they own. Fitting works the same way again, with
+one extra step first: sources whose fitting contexts touch have to be fitted
+together, and that chain can run across the image, so it is worked out once
+before any fit runs.
 
 A flooded region needs evidence at the higher detection threshold. A
 filter-promoted region must also satisfy the beam-area rule; a region

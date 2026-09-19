@@ -15,6 +15,7 @@ from pathlib import Path
 
 import numpy as np
 import numpy.typing as npt
+from astropy.io import fits
 
 from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.algorithms.partitioning import plan_image_partitions
@@ -27,11 +28,13 @@ from hebog.io.zarr import ZarrProductSink
 from hebog.public_api import (
     ADMITTED_TILE_CORE_PIXELS,
     detect_multiscale_products,
+    publish_component_fits,
     publish_component_topology,
     publish_support_labels,
     reduce_support_topology,
 )
 from hebog.science.models import (
+    TiledComponentFits,
     TiledComponentTopology,
     TiledMultiscaleDetection,
     TiledSupportLabels,
@@ -122,6 +125,7 @@ class PublishedContinuumInputs:
     support: TiledSupportTopology
     labels: TiledSupportLabels
     topology: TiledComponentTopology
+    component_fits: TiledComponentFits
 
 
 def publish_continuum_inputs(  # noqa: PLR0913
@@ -133,6 +137,7 @@ def publish_continuum_inputs(  # noqa: PLR0913
     beam: BeamShapePixels,
     review: ContinuumScienceProfile,
     work_directory: Path,
+    header: fits.Header,
     executor: Executor | None = None,
     generation_id: str = "published-continuum-inputs",
     config: SourceFinderConfig,
@@ -190,6 +195,16 @@ def publish_continuum_inputs(  # noqa: PLR0913
         generation_id=generation_id,
         tile_core_pixels=support_tile_core_pixels,
     )
+    component_source, topology = publish_component_topology(
+        labels_source,
+        detection_source,
+        resolved_executor,
+        work_directory,
+        image_shape_yx=image_jy_per_beam.shape,
+        config=config,
+        generation_id=generation_id,
+        tile_core_pixels=support_tile_core_pixels,
+    )
     return PublishedContinuumInputs(
         multiscale=multiscale,
         support=TiledSupportTopology(
@@ -209,13 +224,19 @@ def publish_continuum_inputs(  # noqa: PLR0913
             ),
         ),
         labels=support_labels,
-        topology=publish_component_topology(
-            labels_source,
+        topology=topology,
+        component_fits=publish_component_fits(
+            image_source,
+            background_rms_source,
             detection_source,
+            component_source,
             resolved_executor,
             work_directory,
             image_shape_yx=image_jy_per_beam.shape,
+            beam=beam,
+            header=header,
             config=config,
+            review=review,
             generation_id=generation_id,
             tile_core_pixels=support_tile_core_pixels,
         ),

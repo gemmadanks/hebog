@@ -23513,3 +23513,76 @@ the per-worker placement finding.
   patch is known. Source association is already a record graph with a
   bounded pair predicate along the line between two centroids, so it needs
   candidate records and a windowed line test rather than a redesign.
+
+## 2026-09-19 — M2: fit parents and component fits are tile-native
+
+- **What this is.** The next two rounds of ADR-008's pass D. The composition
+  no longer fits components over whole planes: the fit contexts owners share
+  are reconciled first, then each fit parent is measured inside the window
+  holding its support and the reviewed context margin, and the cores combine
+  the persistent measurement support the parents contributed.
+- **Why the contexts come first.** `_measurement_fit_parents` dilates the
+  measurement support by the fit context margin and labels the result, so
+  owners whose contexts touch are fitted jointly. That connectivity follows a
+  chain of any length. `run_fit_parent_stage` reconciles it from compact
+  per-core summaries and the owner-to-context links each core observes, then
+  numbers the joined contexts by their smallest reconciled label — which is
+  the order a whole-plane pass produces, because `connected_components`
+  numbers by smallest node index and reconciled labels ascend with their
+  canonical first pixel.
+- **The split.** `measure_component_models` already worked fit parent by fit
+  parent in each parent's own window, so its loop body became
+  `measure_fit_parent_components`, returning one parent's fits, groups,
+  grouping evidence, deferral and the support window it contributes. Its tail
+  became `reconcile_component_measurements`, which is where the two steps
+  that span parents live: resolved loops reconciled over the accumulated
+  support, and extended residual emission searched over the plane. The
+  whole-plane function is those two around a loop and remains the oracle.
+- **Evidence.** The quick science check (`m2-pass-d-fits`) reproduces all
+  sixteen cases exactly. A new stage test asserts that the published fits,
+  compact groups, extended groups, grouping evidence, deferred count and
+  measurement-support plane equal the whole-plane measurement exactly, over a
+  fixture with more than one fit parent, and that they survive tile geometry
+  and one fit parent per read.
+- **Cost.** Quick-check wall time rose 164.4 → 182.7 s, about 11%, the largest
+  single increment of the convergence: two more generations, and the fit
+  contexts are dilated and labelled twice over the image. Across M2 the
+  sixteen cases now stand at 182.7 s against 135.6 s before the convergence,
+  about 35%. M2's bottleneck row owns this; the fit-context dilation and the
+  per-round Zarr generation are the two obvious targets.
+- **Repair: a `WCS` must not cross a task boundary.** The integration lane
+  failed three `test_public_corner_background` cases: serial and Dask agreed
+  on background, RMS, the mask and every fitted value, but four components'
+  uncertainties differed by parts in `1e9`. The fit inputs hashed identically
+  per parent, and the covariance is thread-stable, so the difference was not
+  ordering. Replaying one parent's captured arguments showed a pickle round
+  trip alone changed the result, and isolating the arguments named the `WCS`:
+  Astropy serializes one through a FITS header it reformats itself, which
+  leaves `wcs_pix2world` exact but perturbs `wcs_world2pix` by about `6e-13`
+  pixels — enough, through the correlated-noise sandwich, to move the
+  uncertainties of the ill-conditioned corner fits. The fit stage now carries
+  the caller's own `Header.tostring()` text and rebuilds the transform on the
+  worker through `celestial_wcs_from_header_text`, which round-trips exactly.
+  This was the first `WCS` sent through a task, so no other stage is affected.
+  The quick science check `m2-pass-d-wcs-repair` reports no regression against
+  `m2-pass-d-fits`, at 184 s against its 182.7 s.
+- **What the tests establish.** A unit test pins the helper's exactness and
+  asserts Astropy's own `WCS` pickle is still inexact, so the workaround fails
+  loudly if that changes; it fails for the intended reason when the helper
+  round-trips a `WCS`. The stage's invariance test now runs a real Dask client,
+  matching the topology test. That stage fixture is too well-conditioned to
+  resolve a `6e-13` pixel shift, so `test_public_corner_background` remains the
+  behavioural guard that catches this class of defect end to end.
+- **Coverage.** Both new rounds now carry the fails-closed suite their
+  siblings have: canonical product sets, configuration and empty-batch
+  rejection, a silent executor per round, sink, halo, image-shape and missing
+  plane identities, a read that answers different bounds, the context
+  union-find and its numbering, and an image with no fit parent at all. That
+  returns `stages/objects.py` to full line and branch coverage.
+- **Unrelated to the repair.** Adding `Header.tostring()` call sites gave
+  Pyright a concrete return type for it, which made a defensive `isinstance`
+  in `validation/materialization.py` and a `cast` in `test_notebook_wcs.py`
+  provably unnecessary. Both were untested dead code and are removed.
+- **What pass D still holds whole-array.** The cross-parent reconciliation
+  itself, source association, the continuum catalogue and the per-scale
+  detection records.

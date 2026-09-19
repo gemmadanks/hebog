@@ -165,7 +165,10 @@ heavyweight production tools to the core runtime solely for tests.
   A Dask executor may receive an existing client, but never send open files,
   scheduler clients, mutable pipeline state, or repeatedly embedded full
   images through tasks. Public requests and results remain small and
-  serializable.
+  serializable. Every value a task carries must also survive serialization
+  exactly, or results stop being executor-invariant: send an Astropy `WCS` as
+  the header text it was built from and rebuild it on the worker, because
+  Astropy re-serializes a `WCS` through a header it reformats itself.
 - Maintain `SerialExecutor` as the deterministic reference. Alternate
   executors, stores, and workflow adapters must pass the same contract suite
   and produce equivalent results.

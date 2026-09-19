@@ -234,8 +234,6 @@ def synthetic_image_metadata(dataset: DatasetRecord) -> ImageMetadata:
         endcard=False,
         padding=False,
     )
-    if not isinstance(header_text, str):
-        raise TypeError("FITS header serialization did not return text")
     return ImageMetadata(
         shape_yx=dataset.recipe.shape_yx,
         unit="Jy/beam",

@@ -82,6 +82,7 @@ def _published(
         beam=beam,
         review=configured_science_profile(_review(), config),
         work_directory=work_directory,
+        header=_header(image.shape),
         config=config,
     )
 
@@ -200,6 +201,7 @@ def test_configured_builder_rejects_inconsistent_finite_support(
             multiscale=published.multiscale,
             labels=published.labels,
             topology=published.topology,
+            component_fits=published.component_fits,
         )
 
 
@@ -256,6 +258,7 @@ def test_configured_builder_measures_the_published_component_topology(
         multiscale=published.multiscale,
         labels=published.labels,
         topology=published.topology,
+        component_fits=published.component_fits,
     )
 
     assert result is not None
@@ -302,6 +305,7 @@ def test_configured_builder_publishes_independent_connected_sources(
         multiscale=published.multiscale,
         labels=published.labels,
         topology=published.topology,
+        component_fits=published.component_fits,
     )
 
     assert result is not None
@@ -347,6 +351,7 @@ def test_configured_builder_retains_three_components_in_one_parent(
         multiscale=published.multiscale,
         labels=published.labels,
         topology=published.topology,
+        component_fits=published.component_fits,
     )
 
     assert result is not None

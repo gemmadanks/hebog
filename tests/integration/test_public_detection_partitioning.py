@@ -10,6 +10,7 @@ from typing import cast
 import numpy as np
 import numpy.typing as npt
 import pytest
+from astropy.io import fits
 from scipy.ndimage import label
 
 from hebog.algorithms.extended_measurement import (
@@ -68,6 +69,26 @@ def _image() -> npt.NDArray[np.float64]:
     )
 
 
+def _header(shape: tuple[int, int]) -> fits.Header:
+    """Return one valid one-arcsecond celestial fixture header."""
+    header = fits.Header()
+    header["NAXIS"] = 2
+    header["NAXIS1"] = shape[1]
+    header["NAXIS2"] = shape[0]
+    header["CTYPE1"] = "RA---SIN"
+    header["CTYPE2"] = "DEC--SIN"
+    header["CRPIX1"] = (shape[1] + 1) / 2
+    header["CRPIX2"] = (shape[0] + 1) / 2
+    header["CRVAL1"] = 10.0
+    header["CRVAL2"] = -30.0
+    header["CDELT1"] = -1.0 / 3600.0
+    header["CDELT2"] = 1.0 / 3600.0
+    header["BMAJ"] = _BEAM.major_fwhm_pixels / 3600.0
+    header["BMIN"] = _BEAM.minor_fwhm_pixels / 3600.0
+    header["BPA"] = 0.0
+    return header
+
+
 def _retain(
     labels: npt.NDArray[np.int32],
     accepted: npt.NDArray[np.int32],
@@ -100,6 +121,7 @@ def _detect(
         beam=_BEAM,
         review=configured_science_profile(review, config),
         work_directory=work_directory,
+        header=_header(image.shape),
         config=config,
         tile_core_pixels=tile_core_pixels,
         support_tile_core_pixels=tile_core_pixels,

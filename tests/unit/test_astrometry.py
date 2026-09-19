@@ -6,14 +6,17 @@
 
 from __future__ import annotations
 
+import pickle
 from dataclasses import replace
 
 import numpy as np
 import pytest
+from astropy.io import fits
 from astropy.wcs import WCS
 
 from hebog.algorithms import astrometry
 from hebog.algorithms.astrometry import (
+    celestial_wcs_from_header_text,
     compact_geometry_at_pixel,
     deconvolve_gaussian_shapes,
     local_tangent_plane_transform,
@@ -825,3 +828,41 @@ def test_astrometry_rejects_wrong_unit_or_frame() -> None:
         transform_compact_gaussian_fit(_fit(), wrong_unit)
     with pytest.raises(ValueError, match="ICRS"):
         transform_compact_gaussian_fit(_fit(), wrong_frame)
+
+
+def test_header_text_rebuilds_a_bit_identical_celestial_wcs() -> None:
+    """Task payloads carry header text because a WCS is not exact.
+
+    Astropy pickles a :class:`~astropy.wcs.WCS` through a FITS header it
+    formats itself, which perturbs the inverse transform in its last bits.
+    The second assertion keeps that reason honest: if Astropy ever pickles a
+    WCS exactly, this test fails and the workaround can go.
+    """
+    header = fits.Header()
+    header["NAXIS"] = 2
+    header["NAXIS1"] = 96
+    header["NAXIS2"] = 48
+    header["CTYPE1"] = "RA---SIN"
+    header["CTYPE2"] = "DEC--SIN"
+    header["CRPIX1"] = 48.5
+    header["CRPIX2"] = 24.5
+    header["CRVAL1"] = 10.0
+    header["CRVAL2"] = -30.0
+    header["CDELT1"] = -1.0 / 3600.0
+    header["CDELT2"] = 1.0 / 3600.0
+    expected = WCS(header, relax=True).celestial
+    sky = expected.wcs_pix2world(
+        np.asarray([[0.0, 0.0], [10.5, 20.25], [95.0, 47.0]]), 0
+    )
+
+    rebuilt = celestial_wcs_from_header_text(
+        pickle.loads(pickle.dumps(header.tostring()))
+    )
+    cycled = pickle.loads(pickle.dumps(expected))
+
+    np.testing.assert_array_equal(
+        rebuilt.wcs_world2pix(sky, 0), expected.wcs_world2pix(sky, 0)
+    )
+    assert not np.array_equal(
+        cycled.wcs_world2pix(sky, 0), expected.wcs_world2pix(sky, 0)
+    )

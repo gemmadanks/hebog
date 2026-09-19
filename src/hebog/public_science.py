@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
 from typing import cast
 
 import numpy as np
@@ -11,7 +10,9 @@ import numpy.typing as npt
 from astropy.io import fits
 from astropy.wcs import WCS
 
-from hebog.algorithms.component_measurement import measure_component_models
+from hebog.algorithms.component_measurement import (
+    reconcile_component_measurements,
+)
 from hebog.algorithms.multiscale import (
     BeamShapePixels,
     build_residual_atrous_plan,
@@ -21,7 +22,6 @@ from hebog.data_models.images import RestoringBeam
 from hebog.science.catalogues import (
     build_hebog_reconstructed_source_catalogues,
 )
-from hebog.science.configuration import source_finder_configs
 from hebog.science.continuum import (
     CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS,
     build_continuum_candidate_products,
@@ -29,6 +29,7 @@ from hebog.science.continuum import (
 )
 from hebog.science.models import (
     ContinuumProducts,
+    TiledComponentFits,
     TiledComponentTopology,
     TiledMultiscaleDetection,
     TiledSupportLabels,
@@ -71,6 +72,7 @@ def build_configured_continuum_products(  # noqa: PLR0913
     multiscale: TiledMultiscaleDetection,
     labels: TiledSupportLabels,
     topology: TiledComponentTopology,
+    component_fits: TiledComponentFits,
 ) -> ContinuumProducts | None:
     """Build terminal products from the published tiled passes.
 
@@ -99,12 +101,10 @@ def build_configured_continuum_products(  # noqa: PLR0913
         labels=labels,
     )
     deblend_config = compact_deblend_config(config)
-    _, _, moment_config, fit_config, _ = source_finder_configs()
-    measurements = measure_component_models(
+    measurements = reconcile_component_measurements(
         image - background,
         rms,
         positive_rms,
-        topology.direct_component_labels,
         topology.measurement_component_labels,
         WCS(header, relax=True).celestial,
         RestoringBeam(
@@ -112,13 +112,17 @@ def build_configured_continuum_products(  # noqa: PLR0913
             cast(float, header["BMIN"]),
             cast(float, header["BPA"]) if "BPA" in header else 0.0,
         ),
-        moment_config,
-        replace(fit_config, integrated_flux_bias_correction_sigma=0.0),
+        parents=component_fits.parents,
+        measurement_support=np.array(
+            component_fits.measurement_support,
+            dtype=np.bool_,
+            copy=True,
+        ),
+        atrous_plan=build_residual_atrous_plan(beam, noise_correlation=beam),
         detection_sigma=config.detection_threshold_sigma,
         island_sigma=config.island_threshold_sigma,
         minimum_pixels=config.minimum_island_pixels,
         maximum_bounds_pixels=deblend_config.maximum_compact_bounds_pixels,
-        atrous_plan=build_residual_atrous_plan(beam, noise_correlation=beam),
         minimum_support_fraction=review.matrix.support_fraction_bounds[0],
     )
     catalogues = build_hebog_reconstructed_source_catalogues(

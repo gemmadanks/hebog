@@ -141,9 +141,24 @@ _STAGES = (
         "per-parent deblending",
     ),
     (
+        "hebog.public_api",
+        "publish_component_fits",
+        "tiled component fits",
+    ),
+    (
+        "hebog.stages.objects",
+        "run_fit_parent_stage",
+        "fit-context reconciliation",
+    ),
+    (
+        "hebog.stages.objects",
+        "run_component_fit_stage",
+        "per-parent moments and fitting",
+    ),
+    (
         "hebog.public_science",
-        "measure_component_models",
-        "component moments and fitting",
+        "reconcile_component_measurements",
+        "cross-parent measurement reconciliation",
     ),
     (
         "hebog.public_science",

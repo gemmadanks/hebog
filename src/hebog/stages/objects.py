@@ -1,3 +1,5 @@
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUnknownVariableType=false
 """Bounded per-object rounds of the tile-native continuum composition.
 
 ADR-008's pass D evaluates each object inside the window that holds it and
@@ -22,10 +24,33 @@ from typing import Protocol
 
 import numpy as np
 import numpy.typing as npt
+from scipy.ndimage import binary_dilation
 
+from hebog.algorithms.astrometry import celestial_wcs_from_header_text
+from hebog.algorithms.component_measurement import (
+    FitParentMeasurement,
+    fit_parent_margin_pixels,
+    measure_fit_parent_components,
+)
 from hebog.algorithms.component_topology import deblend_parent_components
-from hebog.config import CompactDeblendConfig
+from hebog.algorithms.detection import DetectionThresholdMasks
+from hebog.algorithms.labelling import (
+    LocalIslandTileSummary,
+    label_detection_tile,
+)
+from hebog.algorithms.multiscale import ResidualAtrousPlan
+from hebog.algorithms.reconciliation import (
+    ReconciledIslands,
+    TileLabelMapping,
+    reconcile_candidate_tiles,
+)
+from hebog.config import (
+    CompactDeblendConfig,
+    CompactGaussianFitConfig,
+    CompactMomentConfig,
+)
 from hebog.data_models.generations import ProductGenerationManifest
+from hebog.data_models.images import RestoringBeam
 from hebog.data_models.partitioning import (
     ImageBounds,
     PartitionManifest,
@@ -33,12 +58,21 @@ from hebog.data_models.partitioning import (
 )
 from hebog.data_models.products import ProductChunk
 from hebog.executors.base import Executor
+from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
 
 _TOPOLOGY_PRODUCT_NAMES = (
     "component-direct-labels",
     "component-measurement-labels",
 )
+
+
+class _WindowReadable(Protocol):
+    """Read bounded global image windows without scheduler state."""
+
+    def read_window(self, bounds: ImageBounds) -> ImageWindow:
+        """Read one bounded global window."""
+        ...
 
 
 class _CompletedProductSource(Protocol):
@@ -794,4 +828,940 @@ def run_component_topology_stage(  # noqa: PLR0913
             default=0,
         ),
         parent_batch_count=len(parent_batches),
+    )
+
+
+_FIT_PARENT_PRODUCT_NAMES = ("fit-parent-labels",)
+
+
+def fit_parent_product_names() -> tuple[str, ...]:
+    """Return the canonical published fit-parent product set."""
+    return _FIT_PARENT_PRODUCT_NAMES
+
+
+@dataclass(frozen=True, slots=True)
+class FitParentStageConfig:
+    """The reviewed fit context margin and the bounded task limit."""
+
+    context_margin_pixels: int
+    maximum_tiles_per_batch: int
+
+    def __post_init__(self) -> None:
+        """Reject an unbounded task before stage products are initialized."""
+        if (
+            isinstance(self.maximum_tiles_per_batch, bool)
+            or not isinstance(self.maximum_tiles_per_batch, Integral)
+            or self.maximum_tiles_per_batch < 1
+        ):
+            raise ValueError(
+                "maximum_tiles_per_batch must be a positive integer"
+            )
+        if self.context_margin_pixels < 0:
+            raise ValueError("context margin must be non-negative")
+
+
+@dataclass(frozen=True, slots=True)
+class FitParentStageResult:
+    """Published fit-parent labels and scalar execution evidence."""
+
+    generation: ProductGenerationManifest
+    fit_parent_count: int
+    context_count: int
+    partition_count: int
+    executor_task_count: int
+    maximum_graph_width: int
+    reconciliation_round_count: int
+
+
+@dataclass(frozen=True, slots=True)
+class _ContextLink:
+    """One owner seen inside one local fit-context component of a core."""
+
+    owner_label: int
+    local_context_label: int
+
+
+@dataclass(frozen=True, slots=True)
+class _ContextTile:
+    """Compact per-core fit-context topology safe to return."""
+
+    partition: TilePartition
+    summary: LocalIslandTileSummary
+    links: tuple[_ContextLink, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class _ContextBatchResult:
+    """Array-free fit-context topology from one bounded scan task."""
+
+    tiles: tuple[_ContextTile, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class _ContextPublicationRequest:
+    """One core and the fit-parent number each local context carries."""
+
+    partition: TilePartition
+    fit_parent_by_local_label: tuple[tuple[int, int], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class _ContextPublicationBatch:
+    """One bounded coarse executor task over several cores."""
+
+    requests: tuple[_ContextPublicationRequest, ...]
+
+    def __post_init__(self) -> None:
+        """Forbid empty executor work records."""
+        if not self.requests:
+            raise ValueError("fit-parent publication batch must not be empty")
+
+
+def _fit_context_core(
+    partition: TilePartition,
+    *,
+    component_source: _CompletedProductSource,
+    context_margin_pixels: int,
+) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.int32]]:
+    """Return one core's fit-context mask and its measurement owners.
+
+    The context is the measurement support dilated by the reviewed margin, so
+    a core reads that far beyond itself and nothing further.
+    """
+    read = partition.read_bounds
+    labels = np.asarray(
+        component_source.read_completed_window(
+            "component-measurement-labels",
+            read,
+        ),
+        dtype=np.int32,
+    )
+    support = labels > 0
+    contexts = (
+        np.asarray(
+            binary_dilation(
+                support,
+                structure=np.ones((3, 3), dtype=np.bool_),
+                iterations=context_margin_pixels,
+            ),
+            dtype=np.bool_,
+        )
+        if context_margin_pixels
+        else support
+    )
+    core = _crop(read, partition.core_bounds)
+    return contexts[core], labels[core]
+
+
+def _scan_contexts(
+    batch: _ContextPublicationBatch,
+    *,
+    component_source: _CompletedProductSource,
+    image_shape_yx: tuple[int, int],
+    context_margin_pixels: int,
+) -> _ContextBatchResult:
+    """Label each core's fit contexts and observe the owners inside them."""
+    with component_source.access_session():
+        tiles: list[_ContextTile] = []
+        for request in batch.requests:
+            partition = request.partition
+            contexts, labels = _fit_context_core(
+                partition,
+                component_source=component_source,
+                context_margin_pixels=context_margin_pixels,
+            )
+            tile = label_detection_tile(
+                DetectionThresholdMasks(
+                    normalized_residual=np.zeros(
+                        contexts.shape,
+                        dtype=np.float64,
+                    ),
+                    island_membership=contexts,
+                    detection_seeds=contexts,
+                    valid_pixel_count=int(np.count_nonzero(contexts)),
+                ),
+                partition,
+                image_shape_yx=image_shape_yx,
+            )
+            support = labels > 0
+            pairs = (
+                np.unique(
+                    np.column_stack((labels[support], tile.labels[support])),
+                    axis=0,
+                )
+                if bool(np.any(support))
+                else np.zeros((0, 2), dtype=np.int32)
+            )
+            tiles.append(
+                _ContextTile(
+                    partition=partition,
+                    summary=tile.compact_summary(),
+                    links=tuple(
+                        _ContextLink(
+                            owner_label=int(pair[0]),
+                            local_context_label=int(pair[1]),
+                        )
+                        for pair in pairs
+                    ),
+                )
+            )
+        return _ContextBatchResult(tiles=tuple(tiles))
+
+
+class _DisjointContexts:
+    """Deterministic union-find over global fit-context labels."""
+
+    def __init__(self, labels: tuple[int, ...]) -> None:
+        """Start with every reconciled context as its own fit parent."""
+        self._parent = {label: label for label in labels}
+
+    def find(self, label: int) -> int:
+        """Return a canonical root with path compression."""
+        parent = self._parent[label]
+        while parent != self._parent[parent]:
+            parent = self._parent[parent]
+        while label != parent:
+            self._parent[label], label = parent, self._parent[label]
+        return parent
+
+    def union(self, first: int, second: int) -> None:
+        """Join two contexts under the smaller label."""
+        first_root, second_root = self.find(first), self.find(second)
+        if first_root == second_root:
+            return
+        root, child = sorted((first_root, second_root))
+        self._parent[child] = root
+
+    def fit_parent_numbers(self) -> dict[int, int]:
+        """Number the joined contexts by their smallest global label.
+
+        A whole-plane pass numbers connected components by the smallest node
+        index each contains, and reconciled context labels ascend with their
+        canonical first pixel, so this reproduces that order exactly.
+        """
+        roots = sorted({self.find(label) for label in self._parent})
+        numbers = {root: index for index, root in enumerate(roots, start=1)}
+        return {
+            label: numbers[self.find(label)] for label in sorted(self._parent)
+        }
+
+
+def _fit_parent_numbers(
+    tiles: tuple[_ContextTile, ...],
+    contexts: ReconciledIslands,
+) -> dict[int, int]:
+    """Join the contexts one owner's support reaches, then number them."""
+    components = _DisjointContexts(
+        tuple(island.global_label for island in contexts.islands)
+    )
+    for tile in tiles:
+        mapping = contexts.mapping_for_tile(tile.partition.tile_id)
+        by_owner: dict[int, list[int]] = {}
+        for link in tile.links:
+            by_owner.setdefault(link.owner_label, []).append(
+                _global_context(mapping, link.local_context_label)
+            )
+        for joined in by_owner.values():
+            for follower in joined[1:]:
+                components.union(joined[0], follower)
+    return components.fit_parent_numbers()
+
+
+def _global_context(mapping: TileLabelMapping, local_label: int) -> int:
+    """Return the global context one tile assigns to a local label."""
+    for candidate, global_label in zip(
+        mapping.local_labels,
+        mapping.global_labels,
+        strict=True,
+    ):
+        if candidate == local_label:
+            return global_label
+    raise ValueError("fit-context mapping must cover every local label")
+
+
+def _publish_fit_parents(
+    batch: _ContextPublicationBatch,
+    *,
+    component_source: _CompletedProductSource,
+    sink: ZarrProductSink,
+    image_shape_yx: tuple[int, int],
+    context_margin_pixels: int,
+) -> _PublishBatchResult:
+    """Write the fit-parent number each core's support belongs to."""
+    with component_source.access_session(), sink.access_session():
+        chunks: list[ProductChunk] = []
+        for request in batch.requests:
+            partition = request.partition
+            contexts, labels = _fit_context_core(
+                partition,
+                component_source=component_source,
+                context_margin_pixels=context_margin_pixels,
+            )
+            local = label_detection_tile(
+                DetectionThresholdMasks(
+                    normalized_residual=np.zeros(
+                        contexts.shape,
+                        dtype=np.float64,
+                    ),
+                    island_membership=contexts,
+                    detection_seeds=contexts,
+                    valid_pixel_count=int(np.count_nonzero(contexts)),
+                ),
+                partition,
+                image_shape_yx=image_shape_yx,
+            )
+            numbers = dict(request.fit_parent_by_local_label)
+            values = np.zeros(contexts.shape, dtype=np.int32)
+            for local_label, fit_parent in numbers.items():
+                values[local.labels == local_label] = fit_parent
+            chunks.append(
+                sink.write_chunk(
+                    product_name="fit-parent-labels",
+                    tile=partition,
+                    values=np.where(labels > 0, values, 0).astype(
+                        np.int32,
+                        copy=False,
+                    ),
+                )
+            )
+        return _PublishBatchResult(product_chunks=tuple(chunks))
+
+
+def _context_batches(
+    requests: tuple[_ContextPublicationRequest, ...],
+    *,
+    maximum_tiles_per_batch: int,
+) -> tuple[_ContextPublicationBatch, ...]:
+    """Group canonical cores without changing scientific ownership."""
+    return tuple(
+        _ContextPublicationBatch(
+            requests=requests[start : start + maximum_tiles_per_batch]
+        )
+        for start in range(0, len(requests), maximum_tiles_per_batch)
+    )
+
+
+def run_fit_parent_stage(
+    component_source: _CompletedProductSource,
+    manifest: PartitionManifest,
+    *,
+    config: FitParentStageConfig,
+    executor: Executor,
+    sink: ZarrProductSink,
+) -> FitParentStageResult:
+    """Reconcile the fit contexts owners share and publish their numbers.
+
+    Owners whose contexts touch need a joint model, and that connectivity
+    follows a chain of any length, so it is reconciled from compact per-core
+    summaries before any fit runs. The cores then write the fit-parent number
+    each support pixel belongs to.
+    """
+    if sink.manifest != manifest:
+        raise ValueError("fit-parent sink must use the stage manifest")
+    required_halo = config.context_margin_pixels
+    if manifest.halo_yx != (required_halo, required_halo):
+        raise ValueError(
+            "fit-parent manifest must provide the exact context margin"
+        )
+    if component_source.manifest.image_shape_yx != manifest.image_shape_yx:
+        raise ValueError(
+            "component generation must match the fit-parent image shape"
+        )
+    if "component-measurement-labels" not in (
+        component_source.read_generation().product_names
+    ):
+        raise ValueError(
+            "component generation must publish measurement component labels"
+        )
+    scan_batches = _context_batches(
+        tuple(
+            _ContextPublicationRequest(
+                partition=partition,
+                fit_parent_by_local_label=(),
+            )
+            for partition in manifest.tiles
+        ),
+        maximum_tiles_per_batch=config.maximum_tiles_per_batch,
+    )
+    scan_results = tuple(
+        executor.map_batches(
+            partial(
+                _scan_contexts,
+                component_source=component_source,
+                image_shape_yx=manifest.image_shape_yx,
+                context_margin_pixels=config.context_margin_pixels,
+            ),
+            scan_batches,
+        )
+    )
+    if not scan_results:
+        raise ValueError("executor returned no fit-context results")
+    tiles = tuple(tile for result in scan_results for tile in result.tiles)
+    contexts = reconcile_candidate_tiles(
+        manifest,
+        tuple(tile.summary for tile in tiles),
+    )
+    numbers = _fit_parent_numbers(tiles, contexts)
+    sink.initialize_product(
+        product_name="fit-parent-labels",
+        dtype=np.dtype("<i4"),
+    )
+    publish_batches = _context_batches(
+        tuple(
+            _ContextPublicationRequest(
+                partition=tile.partition,
+                fit_parent_by_local_label=tuple(
+                    (
+                        local_label,
+                        numbers[
+                            _global_context(
+                                contexts.mapping_for_tile(
+                                    tile.partition.tile_id
+                                ),
+                                local_label,
+                            )
+                        ],
+                    )
+                    for local_label in contexts.mapping_for_tile(
+                        tile.partition.tile_id
+                    ).local_labels
+                ),
+            )
+            for tile in tiles
+        ),
+        maximum_tiles_per_batch=config.maximum_tiles_per_batch,
+    )
+    publish_results = tuple(
+        executor.map_batches(
+            partial(
+                _publish_fit_parents,
+                component_source=component_source,
+                sink=sink,
+                image_shape_yx=manifest.image_shape_yx,
+                context_margin_pixels=config.context_margin_pixels,
+            ),
+            publish_batches,
+        )
+    )
+    if not publish_results:
+        raise ValueError("executor returned no fit-parent publication results")
+    return FitParentStageResult(
+        generation=sink.publish_generation(
+            product_names=_FIT_PARENT_PRODUCT_NAMES,
+            chunks=(
+                chunk
+                for result in publish_results
+                for chunk in result.product_chunks
+            ),
+        ),
+        fit_parent_count=len(set(numbers.values())),
+        context_count=len(contexts.islands),
+        partition_count=len(manifest.tiles),
+        executor_task_count=len(scan_batches) + len(publish_batches),
+        maximum_graph_width=max(len(scan_batches), len(publish_batches)),
+        reconciliation_round_count=contexts.reduction_round_count,
+    )
+
+
+_MEASUREMENT_PRODUCT_NAMES = ("measurement-support",)
+
+
+def component_fit_product_names() -> tuple[str, ...]:
+    """Return the canonical published component-fit product set."""
+    return _MEASUREMENT_PRODUCT_NAMES
+
+
+@dataclass(frozen=True, slots=True)
+class ComponentFitStageConfig:
+    """Reviewed measurement policy and the bounded task limits."""
+
+    moment: CompactMomentConfig
+    fit: CompactGaussianFitConfig
+    atrous_plan: ResidualAtrousPlan
+    detection_sigma: float
+    island_sigma: float
+    minimum_pixels: int
+    maximum_bounds_pixels: int
+    minimum_support_fraction: float
+    maximum_tiles_per_batch: int
+    maximum_batch_read_pixels: int
+
+    def __post_init__(self) -> None:
+        """Reject an unbounded task before stage products are initialized."""
+        for name, value in (
+            ("maximum_tiles_per_batch", self.maximum_tiles_per_batch),
+            ("maximum_batch_read_pixels", self.maximum_batch_read_pixels),
+        ):
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, Integral)
+                or value < 1
+            ):
+                raise ValueError(f"{name} must be a positive integer")
+
+    @property
+    def margin_pixels(self) -> int:
+        """Return the context a fit parent reads beyond its own support."""
+        return fit_parent_margin_pixels(self.fit, self.atrous_plan)
+
+
+@dataclass(frozen=True, slots=True)
+class ComponentFitStageResult:
+    """Published measurement support and every fit parent's records."""
+
+    generation: ProductGenerationManifest
+    parents: tuple[FitParentMeasurement, ...]
+    fit_parent_count: int
+    deferred_parent_count: int
+    partition_count: int
+    executor_task_count: int
+    maximum_graph_width: int
+    maximum_parent_read_pixels: int
+    parent_batch_count: int
+
+
+@dataclass(frozen=True, slots=True)
+class _FitParentExtent:
+    """One fit parent's support bounds and the window that measures it."""
+
+    parent_index: int
+    read_bounds: ImageBounds
+
+
+@dataclass(frozen=True, slots=True)
+class _FitBatch:
+    """One bounded coarse executor task over several fit parents."""
+
+    parents: tuple[_FitParentExtent, ...]
+    read_bounds: ImageBounds
+
+    def __post_init__(self) -> None:
+        """Forbid empty executor work records."""
+        if not self.parents:
+            raise ValueError("fit batch must not be empty")
+
+
+@dataclass(frozen=True, slots=True)
+class _FitBatchResult:
+    """Bounded measurement records one batch of fit parents produced."""
+
+    parents: tuple[tuple[int, FitParentMeasurement], ...]
+    maximum_parent_read_pixels: int
+
+
+@dataclass(frozen=True, slots=True)
+class _SupportRequest:
+    """One core and the bounded support windows that cover it."""
+
+    partition: TilePartition
+    patches: tuple[tuple[ImageBounds, npt.NDArray[np.bool_]], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class _SupportBatch:
+    """One bounded coarse executor task over several cores."""
+
+    requests: tuple[_SupportRequest, ...]
+
+    def __post_init__(self) -> None:
+        """Forbid empty executor work records."""
+        if not self.requests:
+            raise ValueError("support batch must not be empty")
+
+
+def _scan_fit_parent_extents(
+    batch: _SupportBatch,
+    *,
+    fit_parent_source: _CompletedProductSource,
+) -> _ExtentBatchResult:
+    """Observe every fit parent's extent inside the cores of one batch."""
+    with fit_parent_source.access_session():
+        extents: list[_CoreExtent] = []
+        for request in batch.requests:
+            bounds = request.partition.core_bounds
+            for parent_index, (parent_bounds, first) in _label_extents(
+                np.asarray(
+                    fit_parent_source.read_completed_window(
+                        "fit-parent-labels",
+                        bounds,
+                    ),
+                    dtype=np.int32,
+                ),
+                bounds,
+            ).items():
+                extents.append(
+                    _CoreExtent(
+                        parent_label=parent_index,
+                        direct_bounds=parent_bounds,
+                        measurement_bounds=parent_bounds,
+                        first_pixel_yx=first,
+                    )
+                )
+        return _ExtentBatchResult(extents=tuple(extents))
+
+
+def _fit_batches(
+    parents: tuple[_FitParentExtent, ...],
+    *,
+    maximum_batch_read_pixels: int,
+) -> tuple[_FitBatch, ...]:
+    """Group fit parents so one read serves several, within the budget."""
+    batches: list[_FitBatch] = []
+    grouped: list[_FitParentExtent] = []
+    for parent in parents:
+        candidate = [*grouped, parent]
+        if (
+            grouped
+            and int(np.prod(_fit_batch_bounds(candidate).shape_yx))
+            > maximum_batch_read_pixels
+        ):
+            batches.append(
+                _FitBatch(
+                    parents=tuple(grouped),
+                    read_bounds=_fit_batch_bounds(grouped),
+                )
+            )
+            grouped = [parent]
+            continue
+        grouped = candidate
+    if grouped:
+        batches.append(
+            _FitBatch(
+                parents=tuple(grouped),
+                read_bounds=_fit_batch_bounds(grouped),
+            )
+        )
+    return tuple(batches)
+
+
+def _fit_batch_bounds(parents: list[_FitParentExtent]) -> ImageBounds:
+    """Return the one read that serves every fit parent in a batch."""
+    bounds = parents[0].read_bounds
+    for parent in parents[1:]:
+        merged = _union_bounds(bounds, parent.read_bounds)
+        if merged is None:  # pragma: no cover - both bounds always exist
+            raise ValueError("fit batch bounds must exist")
+        bounds = merged
+    return bounds
+
+
+def _fit_batch(  # noqa: PLR0913
+    batch: _FitBatch,
+    *,
+    source: _WindowReadable,
+    background_rms_source: _CompletedProductSource,
+    detection_source: _CompletedProductSource,
+    component_source: _CompletedProductSource,
+    fit_parent_source: _CompletedProductSource,
+    config: ComponentFitStageConfig,
+    wcs_header_text: str,
+    beam: RestoringBeam,
+    image_shape_yx: tuple[int, int],
+) -> _FitBatchResult:
+    """Fit every parent of one batch inside its own context window."""
+    wcs = celestial_wcs_from_header_text(wcs_header_text)
+    with (
+        background_rms_source.access_session(),
+        detection_source.access_session(),
+        component_source.access_session(),
+        fit_parent_source.access_session(),
+    ):
+        bounds = batch.read_bounds
+        window = source.read_window(bounds)
+        if window.bounds != bounds:
+            raise ValueError("image source returned different fit-read bounds")
+        background = np.asarray(
+            background_rms_source.read_completed_window("background", bounds),
+            dtype=np.float64,
+        )
+        residual = np.asarray(window.values, dtype=np.float64) - background
+        rms = np.asarray(
+            background_rms_source.read_completed_window("rms", bounds),
+            dtype=np.float64,
+        )
+        valid = np.asarray(
+            detection_source.read_completed_window("valid-pixels", bounds),
+            dtype=np.bool_,
+        )
+        fit_parents = np.asarray(
+            fit_parent_source.read_completed_window(
+                "fit-parent-labels",
+                bounds,
+            ),
+            dtype=np.int32,
+        )
+        direct = np.asarray(
+            component_source.read_completed_window(
+                "component-direct-labels",
+                bounds,
+            ),
+            dtype=np.int32,
+        )
+        measurement = np.asarray(
+            component_source.read_completed_window(
+                "component-measurement-labels",
+                bounds,
+            ),
+            dtype=np.int32,
+        )
+        measured: list[tuple[int, FitParentMeasurement]] = []
+        for parent in batch.parents:
+            crop = _crop(bounds, parent.read_bounds)
+            measured.append(
+                (
+                    parent.parent_index,
+                    measure_fit_parent_components(
+                        residual[crop],
+                        rms[crop],
+                        valid[crop],
+                        fit_parents[crop],
+                        direct[crop],
+                        measurement[crop],
+                        wcs,
+                        beam,
+                        config.moment,
+                        config.fit,
+                        parent_index=parent.parent_index,
+                        bounds=parent.read_bounds,
+                        image_shape_yx=image_shape_yx,
+                        detection_sigma=config.detection_sigma,
+                        island_sigma=config.island_sigma,
+                        minimum_pixels=config.minimum_pixels,
+                        maximum_bounds_pixels=config.maximum_bounds_pixels,
+                        atrous_plan=config.atrous_plan,
+                        minimum_support_fraction=(
+                            config.minimum_support_fraction
+                        ),
+                    ),
+                )
+            )
+        return _FitBatchResult(
+            parents=tuple(measured),
+            maximum_parent_read_pixels=int(np.prod(bounds.shape_yx)),
+        )
+
+
+def _publish_support(
+    batch: _SupportBatch,
+    *,
+    sink: ZarrProductSink,
+) -> _PublishBatchResult:
+    """Combine every fit parent's support patch over the cores it reaches."""
+    with sink.access_session():
+        chunks: list[ProductChunk] = []
+        for request in batch.requests:
+            core = request.partition.core_bounds
+            values = np.zeros(core.shape_yx, dtype=np.bool_)
+            for patch_bounds, patch in request.patches:
+                overlap = ImageBounds(
+                    max(core.y_start, patch_bounds.y_start),
+                    min(core.y_stop, patch_bounds.y_stop),
+                    max(core.x_start, patch_bounds.x_start),
+                    min(core.x_stop, patch_bounds.x_stop),
+                )
+                values[_crop(core, overlap)] |= patch[
+                    _crop(patch_bounds, overlap)
+                ]
+            chunks.append(
+                sink.write_chunk(
+                    product_name="measurement-support",
+                    tile=request.partition,
+                    values=values,
+                )
+            )
+        return _PublishBatchResult(product_chunks=tuple(chunks))
+
+
+def _support_batches(
+    requests: tuple[_SupportRequest, ...],
+    *,
+    maximum_tiles_per_batch: int,
+) -> tuple[_SupportBatch, ...]:
+    """Group canonical cores without changing scientific ownership."""
+    return tuple(
+        _SupportBatch(
+            requests=requests[start : start + maximum_tiles_per_batch]
+        )
+        for start in range(0, len(requests), maximum_tiles_per_batch)
+    )
+
+
+def _intersects(first: ImageBounds, second: ImageBounds) -> bool:
+    """Return whether two half-open bounds share a pixel."""
+    return (
+        first.y_start < second.y_stop
+        and second.y_start < first.y_stop
+        and first.x_start < second.x_stop
+        and second.x_start < first.x_stop
+    )
+
+
+def run_component_fit_stage(  # noqa: PLR0913, PLR0917
+    source: _WindowReadable,
+    background_rms_source: _CompletedProductSource,
+    detection_source: _CompletedProductSource,
+    component_source: _CompletedProductSource,
+    fit_parent_source: _CompletedProductSource,
+    manifest: PartitionManifest,
+    *,
+    config: ComponentFitStageConfig,
+    wcs_header_text: str,
+    beam: RestoringBeam,
+    executor: Executor,
+    sink: ZarrProductSink,
+) -> ComponentFitStageResult:
+    """Fit every parent in its own context window and publish its support.
+
+    Three rounds: the cores observe each fit parent's extent, one task per
+    batch of parents measures them inside that extent plus the reviewed
+    context margin, and the cores combine the support patches the parents
+    contributed. Only the last round writes.
+
+    ``wcs_header_text`` is the caller's own header as
+    :meth:`astropy.io.fits.Header.tostring` writes it, not a ``WCS``; see
+    :func:`~hebog.algorithms.astrometry.celestial_wcs_from_header_text`.
+    """
+    if sink.manifest != manifest:
+        raise ValueError("component fit sink must use the stage manifest")
+    if manifest.halo_yx != (0, 0):
+        raise ValueError("measurement support writes cores without a halo")
+    for product_source, names in (
+        (background_rms_source, ("background", "rms")),
+        (detection_source, ("valid-pixels",)),
+        (
+            component_source,
+            ("component-direct-labels", "component-measurement-labels"),
+        ),
+        (fit_parent_source, ("fit-parent-labels",)),
+    ):
+        if product_source.manifest.image_shape_yx != manifest.image_shape_yx:
+            raise ValueError(
+                "published generations must match the fit image shape"
+            )
+        if not set(names).issubset(
+            product_source.read_generation().product_names
+        ):
+            raise ValueError(
+                "published generations must carry every fit plane read"
+            )
+    image_shape_yx = manifest.image_shape_yx
+    margin = config.margin_pixels
+    scan_batches = _support_batches(
+        tuple(
+            _SupportRequest(partition=partition, patches=())
+            for partition in manifest.tiles
+        ),
+        maximum_tiles_per_batch=config.maximum_tiles_per_batch,
+    )
+    scan_results = tuple(
+        executor.map_batches(
+            partial(
+                _scan_fit_parent_extents,
+                fit_parent_source=fit_parent_source,
+            ),
+            scan_batches,
+        )
+    )
+    if not scan_results:
+        raise ValueError("executor returned no fit-parent extent results")
+    extents = tuple(
+        _FitParentExtent(
+            parent_index=parent.parent_label,
+            read_bounds=parent.direct_bounds.expanded(margin, image_shape_yx),
+        )
+        for parent in sorted(
+            _reduce_extents(scan_results),
+            key=lambda item: item.parent_label,
+        )
+    )
+    fit_batches = _fit_batches(
+        extents,
+        maximum_batch_read_pixels=config.maximum_batch_read_pixels,
+    )
+    fit_results: tuple[_FitBatchResult, ...] = ()
+    if fit_batches:
+        fit_results = tuple(
+            executor.map_batches(
+                partial(
+                    _fit_batch,
+                    source=source,
+                    background_rms_source=background_rms_source,
+                    detection_source=detection_source,
+                    component_source=component_source,
+                    fit_parent_source=fit_parent_source,
+                    config=config,
+                    wcs_header_text=wcs_header_text,
+                    beam=beam,
+                    image_shape_yx=image_shape_yx,
+                ),
+                fit_batches,
+            )
+        )
+        if not fit_results:
+            raise ValueError("executor returned no component fit results")
+    measured = tuple(
+        parent
+        for result in fit_results
+        for parent in sorted(result.parents, key=lambda item: item[0])
+    )
+    patches = tuple(
+        (parent.support_bounds, parent.support_window)
+        for _, parent in measured
+        if parent.support_bounds is not None
+        and parent.support_window is not None
+    )
+    sink.initialize_product(
+        product_name="measurement-support",
+        dtype=np.dtype(np.bool_),
+    )
+    publish_batches = _support_batches(
+        tuple(
+            _SupportRequest(
+                partition=partition,
+                patches=tuple(
+                    (bounds, window)
+                    for bounds, window in patches
+                    if _intersects(bounds, partition.core_bounds)
+                ),
+            )
+            for partition in manifest.tiles
+        ),
+        maximum_tiles_per_batch=config.maximum_tiles_per_batch,
+    )
+    publish_results = tuple(
+        executor.map_batches(
+            partial(_publish_support, sink=sink),
+            publish_batches,
+        )
+    )
+    if not publish_results:
+        raise ValueError("executor returned no support publication results")
+    return ComponentFitStageResult(
+        generation=sink.publish_generation(
+            product_names=_MEASUREMENT_PRODUCT_NAMES,
+            chunks=(
+                chunk
+                for result in publish_results
+                for chunk in result.product_chunks
+            ),
+        ),
+        parents=tuple(parent for _, parent in measured),
+        fit_parent_count=len(extents),
+        deferred_parent_count=sum(
+            int(parent.deferred) for _, parent in measured
+        ),
+        partition_count=len(manifest.tiles),
+        executor_task_count=(
+            len(scan_batches) + len(fit_batches) + len(publish_batches)
+        ),
+        maximum_graph_width=max(
+            len(scan_batches),
+            len(fit_batches),
+            len(publish_batches),
+        ),
+        maximum_parent_read_pixels=max(
+            (result.maximum_parent_read_pixels for result in fit_results),
+            default=0,
+        ),
+        parent_batch_count=len(fit_batches),
     )
