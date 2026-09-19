@@ -23498,6 +23498,18 @@ the per-worker placement finding.
   parent per read, reverse completion and Dask, and that an oversized parent
   defers rather than losing support. Quick-check wall time rose 161.9 →
   164.4 s.
-- **What pass D still holds whole-array.** Component moments and fitting,
-  source association, the continuum catalogue and the per-scale detection
-  records. Those are the remaining rounds.
+- **What pass D still holds whole-array, and what its rounds are.**
+  Component moments and fitting, source association, the continuum catalogue
+  and the per-scale detection records. Reading them for the round boundaries
+  found three steps whose *work unit* is global rather than per object, which
+  ADR-008 now records as a table:
+  `_measurement_fit_parents` dilates the measurement support by the fit
+  context margin and labels it, so owners whose contexts touch are fitted
+  jointly and the grouping must be reconciled before any fit runs;
+  each fit parent ORs its persistent measurement support into its own window,
+  which is associative and therefore a patch the cores apply; and
+  `_cross_parent_loop_groups` labels the *accumulated* support and reconciles
+  resolved loops spanning several fit parents, so it can only run once every
+  patch is known. Source association is already a record graph with a
+  bounded pair predicate along the line between two centroids, so it needs
+  candidate records and a windowed line test rather than a redesign.

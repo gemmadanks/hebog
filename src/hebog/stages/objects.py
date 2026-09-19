@@ -358,9 +358,11 @@ def _parent_batches(
     grouped: list[_ParentExtent] = []
     for parent in parents:
         candidate = [*grouped, parent]
-        if grouped and int(
-            np.prod(_batch_bounds(candidate).shape_yx)
-        ) > maximum_batch_read_pixels:
+        if (
+            grouped
+            and int(np.prod(_batch_bounds(candidate).shape_yx))
+            > maximum_batch_read_pixels
+        ):
             batches.append(_parent_batch(grouped))
             grouped = [parent]
             continue

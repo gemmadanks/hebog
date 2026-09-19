@@ -12,7 +12,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-09-18 |
-| **Last Updated** | 2026-09-18 (pass C rounds) |
+| **Last Updated** | 2026-09-19 (pass C and pass D rounds) |
 | **Deciders** | Gemma Danks |
 | **Tags** | tiling, halos, ownership, reconciliation, memory, invariance |
 
@@ -120,7 +120,9 @@ before the next stage can decide anything.
   are listed under *Owner-scoped connectivity* below.
 - **Pass D — objects.** Deblending, compact measurement and fitting, extended
   measurement, source association and catalogue rows, as bounded per-object
-  tasks reduced hierarchically.
+  tasks reduced hierarchically. Like pass C it is several rounds, because
+  three of its steps are global reductions rather than per-object work; the
+  rounds are listed under *The object pass's rounds* below.
 
 ### Rules that hold for every stage
 
@@ -242,6 +244,43 @@ order. An owner whose window exceeds the admitted task is T3: it keeps its
 pixel-round support and is published with a disposition recording that its
 connectivity was not restored, exactly as compact deferrals are published
 today. It is never silently split.
+
+### The object pass's rounds
+
+Every scientific step of pass D already works on one object inside its own
+bounding box, so converting it is mechanical — except where a step's *work
+unit* is itself global. Reading the installed composition found three such
+steps, and they set the round boundaries:
+
+- **Fit parents.** `_measurement_fit_parents` dilates the measurement support
+  by the fit context margin and labels the result, so owners whose contexts
+  touch are fitted jointly. That connectivity follows a chain of any length,
+  exactly like pass C's support components, and must be reconciled before any
+  fit runs.
+- **Measurement support.** Each fit parent contributes persistent measurement
+  support into its own window with a boolean OR. The accumulation is
+  associative, so each parent returns a patch and the cores write the plane.
+- **Cross-parent loops.** `_cross_parent_loop_groups` labels the *accumulated*
+  measurement support and reconciles resolved loops that span several fit
+  parents, so it can only run once every parent's patch is known.
+
+| Round | Scope | Reads | Writes or returns |
+| --- | --- | --- | --- |
+| Parent extents | core, halo 0 | `component-labels`, `measurement-labels` | each parent's bounds and first pixel in both planes |
+| Deblend | parent window | `direct-snr`, `valid-pixels`, both label planes | bounded component memberships, local to the parent |
+| Component write | core, halo 0 | the numbered memberships | `component-direct-labels`, `component-measurement-labels` |
+| Fit parents | core, halo 0 | `component-measurement-labels` | context island summaries; then `fit-parent-labels` |
+| Component fits | fit-parent window + margin | residual, RMS, validity, both component planes | fit records, groups, grouping evidence, a measurement-support patch |
+| Support write | core, halo 0 | the patches | `measurement-support` |
+| Cross-parent loops | loop-region window | `measurement-support`, validity, the fit records | extended group records |
+| Source association | pair box, or a reduced line | component records and the line between two centroids | canonicalised edge records |
+| Source rows | source window + 1.5-beam aperture | image, background, validity, source labels, position signal | catalogue shards |
+
+Component numbering is canonical because the driver offsets each parent's
+local labels by the components every earlier parent produced, in ascending
+first-pixel order. A parent above either hard compact-work bound is ADR-008
+T3 and is already published as one explicit deferred component, which is the
+reviewed science rather than a new rule.
 
 ### Extended association
 

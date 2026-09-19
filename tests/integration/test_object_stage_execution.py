@@ -314,9 +314,7 @@ def test_component_topology_is_partition_and_executor_invariant(
 ) -> None:
     """One published generation survives geometry, batching and workers."""
     expected = _published(_run(tmp_path / "reference", core=64)[1])
-    variants: list[
-        tuple[str, int, object, ComponentTopologyStageConfig]
-    ] = [
+    variants: list[tuple[str, int, object, ComponentTopologyStageConfig]] = [
         ("cores-16", 16, SerialExecutor(), _config()),
         ("cores-24", 24, SerialExecutor(), _config(maximum_tiles_per_batch=1)),
         (
