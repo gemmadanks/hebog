@@ -7,13 +7,13 @@ import numpy as np
 import numpy.typing as npt
 from astropy.io import fits
 
-from hebog.algorithms.component_measurement import (
-    reconcile_component_measurements,
-)
+from hebog.algorithms.component_measurement import ComponentMeasurements
 from hebog.algorithms.multiscale import (
     BeamShapePixels,
 )
-from hebog.algorithms.source_association import HierarchyOverlaps
+from hebog.data_models.source_association import (
+    SourceAssociationResult,
+)
 from hebog.science.catalogues import (
     build_hebog_reconstructed_source_catalogues,
 )
@@ -23,7 +23,6 @@ from hebog.science.continuum import (
 )
 from hebog.science.models import (
     ContinuumProducts,
-    TiledComponentFits,
     TiledComponentTopology,
     TiledMultiscaleDetection,
     TiledSupportLabels,
@@ -63,8 +62,11 @@ def build_configured_continuum_products(  # noqa: PLR0913
     multiscale: TiledMultiscaleDetection,
     labels: TiledSupportLabels,
     topology: TiledComponentTopology,
-    component_fits: TiledComponentFits,
-    hierarchy_overlaps: HierarchyOverlaps,
+    measurements: ComponentMeasurements,
+    association: SourceAssociationResult,
+    hierarchy: SourceAssociationResult,
+    source_labels: npt.NDArray[np.int32],
+    source_measurement_labels: npt.NDArray[np.int32],
     persistent_scale_support: npt.NDArray[np.bool_],
 ) -> ContinuumProducts | None:
     """Build terminal products from the published tiled passes.
@@ -93,22 +95,12 @@ def build_configured_continuum_products(  # noqa: PLR0913
         multiscale=multiscale,
         labels=labels,
     )
-    measurements = reconcile_component_measurements(
-        np.array(
-            component_fits.measurement_support,
-            dtype=np.bool_,
-            copy=True,
-        ),
-        parents=component_fits.parents,
-        features=component_fits.features,
-    )
     catalogues = build_hebog_reconstructed_source_catalogues(
         image,
         background,
         valid,
         topology.measurement_component_labels,
         topology.direct_component_labels,
-        retained.scale_detections,
         header,
         beam_major_fwhm_pixels=beam.major_fwhm_pixels,
         beam_minor_fwhm_pixels=beam.minor_fwhm_pixels,
@@ -117,7 +109,10 @@ def build_configured_continuum_products(  # noqa: PLR0913
         ),
         position_signal_jy_per_beam=retained.position_signal_jy_per_beam,
         component_measurements=measurements,
-        hierarchy_overlaps=hierarchy_overlaps,
+        association=association,
+        hierarchy=hierarchy,
+        source_labels=source_labels,
+        source_measurement_labels=source_measurement_labels,
         persistent_scale_support=persistent_scale_support,
     )
     valid.setflags(write=False)

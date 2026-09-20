@@ -485,9 +485,12 @@ def test_joint_geometry_with_controlled_or_public_background(
             multiscale=published.multiscale,
             labels=published.labels,
             topology=published.topology,
-            component_fits=published.component_fits,
-            hierarchy_overlaps=published.hierarchy_overlaps,
-            persistent_scale_support=published.persistent_scale_support,
+            measurements=published.measurements,
+            association=published.association,
+            hierarchy=published.hierarchy,
+            source_labels=published.source_labels,
+            source_measurement_labels=(published.source_measurement_labels),
+            persistent_scale_support=(published.persistent_scale_support),
         )
         scientific = public_api._ScientificProducts(
             image, background, rms, products

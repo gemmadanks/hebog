@@ -166,9 +166,19 @@ _STAGES = (
         "per-feature cross-parent grouping",
     ),
     (
-        "hebog.public_science",
-        "reconcile_component_measurements",
-        "measurement record reduction",
+        "hebog.public_api",
+        "publish_source_planes",
+        "tiled source labels and owned support",
+    ),
+    (
+        "hebog.stages.sources",
+        "run_source_label_stage",
+        "source labels from the membership shard",
+    ),
+    (
+        "hebog.stages.sources",
+        "run_source_support_stage",
+        "per-component source support assignment",
     ),
     (
         "hebog.public_api",

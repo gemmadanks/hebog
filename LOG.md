@@ -23784,3 +23784,42 @@ the per-worker placement finding.
   apertures at the reviewed 1.5-beam halo; and the component and source rows,
   each measured inside its own window. Everything but the support labelling
   is per core or per object.
+
+## 2026-09-20 — M2: the catalogue's source planes are tile-native
+
+- **What this is.** The continuum catalogue's two planes. `stages/sources.py`
+  publishes `source-labels` from the membership shard that reaches each core,
+  then reconciles the support those labels seed and assigns each connected
+  component's unseeded pixels inside that component's own window. The
+  composition receives both planes instead of deriving them.
+- **Why the association moved to the driver.** Writing the source labels needs
+  the membership map, which the association produces, so the decision now runs
+  before the stages rather than inside the catalogue builder. The driver
+  reduces the measurements, builds the component records, decides the
+  hierarchy and constrains it, and only then publishes the planes. The builder
+  takes the association, the two planes and the persistent support, and
+  validates each plane against the memberships rather than deriving it.
+- **A component's bounds are not its own.** Another component's support can
+  share a bounding box, so the assignment task labels the union inside the
+  window and selects the piece holding the reconciled canonical first pixel.
+  Two globally distinct components are never adjacent, so that labelling
+  separates them exactly.
+- **A defect the tests missed and the science check caught.** The first
+  version referenced `SourceAssociationResult` at runtime in `public_api`
+  while importing it only under `TYPE_CHECKING`. Every lane passed: the blank
+  and all-NaN inputs stop before the object rounds, so nothing exercised an
+  image with a usable RMS and no admitted owner. `empty-noise` did, and failed
+  with a `NameError`. A public-path test on pure noise now covers that
+  boundary, and fails for that reason without the fix.
+- **Evidence.** A new stage test reproduces `assign_persistent_source_support`
+  exactly on a fixture with four owners, three sources and three support
+  components, every one of which crosses a core boundary and one of which is
+  divided between two sources by distance; it asserts the fixture assigns
+  beyond its seeds before comparing. Both planes are invariant across cores
+  16, 32 and 80, one object per batch, and a real Dask client. The quick
+  science check `m2-source-planes-fixed` reports no regression.
+- **Cost.** Quick-check wall time 204 → 215 s for two more generations.
+- **What remains.** The catalogue rows: the component and source moment
+  catalogues and the aperture expansion still run whole-plane, so the
+  composition still holds the image, background, validity and label planes
+  they measure.

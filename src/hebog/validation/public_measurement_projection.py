@@ -14,9 +14,7 @@ from astropy.wcs import WCS
 
 from hebog.data_models.catalogues import SourceCatalogue
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
-from hebog.science.catalogues import (
-    _source_label_plane,  # pyright: ignore[reportPrivateUsage]
-)
+from hebog.science.catalogues import source_label_by_owner
 from hebog.science.models import CatalogueSource, ContinuumProducts
 
 _IMAGE_DIMENSIONS = 2
@@ -130,11 +128,14 @@ def project_public_measurements(
         or not np.array_equal(mask, terminal.detection.retained_mask)
     ):
         raise ValueError("public measurement ownership or publication changed")
-    labels, memberships = _source_label_plane(
-        np.asarray(owners, dtype=np.int64), terminal.source_association
-    )
+    association = terminal.source_association
+    source_by_owner = source_label_by_owner(association)
+    labels = np.zeros(np.asarray(owners).shape, dtype=np.int32)
+    for owner, source_label in source_by_owner.items():
+        labels[np.asarray(owners) == owner] = source_label
     source_labels = {
-        row.source_id: value for value, row in memberships.items()
+        membership.source_id: index
+        for index, membership in enumerate(association.memberships, start=1)
     }
     component_labels = {
         row.component_id: row.label_value

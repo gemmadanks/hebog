@@ -12,19 +12,27 @@ import pytest
 from astropy.io import fits  # pyright: ignore[reportMissingTypeStubs]
 from astropy.wcs import WCS  # pyright: ignore[reportMissingTypeStubs]
 
+from hebog.algorithms.extended_measurement import (
+    assign_persistent_source_support,
+)
 from hebog.algorithms.multiscale_association import (
     ScaleDetectionPlane,
     persistent_adjacent_scale_support,
 )
 from hebog.algorithms.source_association import (
+    associate_from_hierarchy_overlaps,
     build_detection_component_records,
     summarize_hierarchy_overlaps,
 )
 from hebog.data_models.multiscale import ScaleDetection
+from hebog.data_models.source_association import (
+    SourceAssociationResult,
+)
 from hebog.science import catalogues as product_builder
 from hebog.science.catalogues import (
     build_hebog_reconstructed_source_catalogues,
     build_hebog_segment_catalogue,
+    source_label_by_owner,
 )
 
 
@@ -97,20 +105,50 @@ def _measure(  # noqa: PLR0913
     )
     valid = np.ones(image.shape, dtype=np.bool_)
     direct = direct_labels if direct_labels is not None else labels
+    records = (
+        build_detection_component_records(
+            np.asarray(direct, dtype=np.int64), image, valid
+        )
+        if np.issubdtype(np.asarray(direct).dtype, np.integer)
+        and np.any(np.asarray(direct) > 0)
+        else ()
+    )
+    # The driver skips the hierarchy when no owner remains, so the builder's
+    # own identity checks are the ones these cases must reach.
+    association = (
+        associate_from_hierarchy_overlaps(
+            records, planes, _overlaps(direct, image, valid, planes)
+        )
+        if records
+        else SourceAssociationResult(
+            components=(),
+            edges=(),
+            memberships=(),
+            ambiguous_component_ids=(),
+        )
+    )
+    persistent = persistent_adjacent_scale_support(planes)
+    source_labels = np.zeros(image.shape, dtype=np.int32)
+    for owner, source_label in source_label_by_owner(association).items():
+        source_labels[np.asarray(labels) == owner] = source_label
     return build_hebog_reconstructed_source_catalogues(
         image,
         resolved_background,
         valid,
         labels,
         direct,
-        planes,
         _header(image.shape),
         beam_major_fwhm_pixels=2.0,
         beam_minor_fwhm_pixels=1.0,
         measurement_aperture_radius_beams=radius,
         position_signal_jy_per_beam=image,
-        hierarchy_overlaps=_overlaps(direct, image, valid, planes),
-        persistent_scale_support=persistent_adjacent_scale_support(planes),
+        association=association,
+        hierarchy=association,
+        source_labels=source_labels,
+        source_measurement_labels=assign_persistent_source_support(
+            source_labels, persistent, valid
+        ),
+        persistent_scale_support=persistent,
     )
 
 
@@ -386,3 +424,46 @@ def test_nonpositive_source_aperture_falls_back_once_per_source() -> None:
     assert source.integrated_flux_jy == pytest.approx(5.0 / beam_area)
     assert "association-aperture-nonpositive" in source.quality_flags
     assert "exact-owner-positive-residual-flux" in source.quality_flags
+
+
+@pytest.mark.parametrize(
+    ("plane", "message"),
+    (
+        (np.ones((2, 2), dtype=np.float64), "non-negative integer plane"),
+        (np.full((2, 2), 9, dtype=np.int32), "published membership"),
+        (np.zeros((2, 2), dtype=np.int32), "own every component pixel"),
+    ),
+)
+def test_published_source_planes_fail_closed(
+    plane: np.ndarray, message: str
+) -> None:
+    """A source plane that disagrees with the memberships is a defect."""
+    measurement = np.asarray([[1, 0], [0, 0]], dtype=np.int32)
+    image = np.asarray(measurement > 0, dtype=np.float64)
+    planes = (_plane((("scale-owner", ((0, 0),)),), measurement.shape),)
+    valid = np.ones(image.shape, dtype=np.bool_)
+    association = associate_from_hierarchy_overlaps(
+        build_detection_component_records(
+            np.asarray(measurement, dtype=np.int64), image, valid
+        ),
+        planes,
+        _overlaps(measurement, image, valid, planes),
+    )
+
+    with pytest.raises(ValueError, match=message):
+        build_hebog_reconstructed_source_catalogues(
+            image,
+            np.zeros_like(image),
+            valid,
+            measurement,
+            measurement,
+            _header(image.shape),
+            beam_major_fwhm_pixels=2.0,
+            beam_minor_fwhm_pixels=1.0,
+            position_signal_jy_per_beam=image,
+            association=association,
+            hierarchy=association,
+            source_labels=plane,
+            source_measurement_labels=plane,
+            persistent_scale_support=persistent_adjacent_scale_support(planes),
+        )

@@ -802,6 +802,39 @@ def test_blank_and_all_nan_inputs_publish_honest_empty_products(
 
 
 @pytest.mark.integration
+def test_pure_noise_publishes_no_source_through_the_whole_path(
+    tmp_path: Path,
+) -> None:
+    """Noise with a usable RMS but no admitted owner still publishes.
+
+    Blank and all-NaN inputs stop before the object rounds, so they never
+    reach the source hierarchy. Noise does: it has a usable RMS and reaches
+    the association with no direct component to describe, which is the case
+    that has to skip the decision rather than fabricate one.
+    """
+    image_path = tmp_path / "noise.fits"
+    _write_image(
+        image_path,
+        np.random.default_rng(20260920).normal(size=(96, 128)) * 0.01,
+    )
+
+    result = hebog.find_sources(
+        SourceFinderRequest(
+            image_path=image_path,
+            output_directory=tmp_path / "noise",
+            run_id="noise",
+        ),
+        _config(),
+        _RecordingExecutor(),
+    )
+
+    assert result.rms.scientific_status != "unavailable"
+    assert result.source_count == 0
+    assert result.gaussian_component_count == 0
+    assert result.island_count == 0
+
+
+@pytest.mark.integration
 def test_publication_fails_closed_for_existing_output(
     tmp_path: Path,
 ) -> None:

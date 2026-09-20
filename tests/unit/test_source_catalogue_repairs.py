@@ -19,7 +19,6 @@ from astropy.io import fits
 from astropy.wcs import WCS
 from scipy.ndimage import gaussian_filter
 
-from hebog import public_science
 from hebog.algorithms import component_measurement
 from hebog.algorithms import fitting as gaussian_fitting
 from hebog.algorithms.component_measurement import ComponentGroupingEvidence
@@ -43,6 +42,7 @@ from hebog.science.profile import (
     configured_science_profile,
     load_continuum_science_profile,
 )
+from hebog.validation import tiled_detection
 from hebog.validation.tiled_detection import publish_continuum_inputs
 
 _ROOT = Path(__file__).parents[2]
@@ -159,7 +159,7 @@ def test_public_merge_evidence_cannot_join_foreign_source_owners(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Corrupt grouping attribution fails before publishing a false claim."""
-    original = public_science.reconcile_component_measurements
+    original = tiled_detection.reconcile_component_measurements
 
     def invalid_evidence(*args: Any, **kwargs: Any):
         result = original(*args, **kwargs)
@@ -176,7 +176,9 @@ def test_public_merge_evidence_cannot_join_foreign_source_owners(
         )
 
     monkeypatch.setattr(
-        public_science, "reconcile_component_measurements", invalid_evidence
+        tiled_detection,
+        "reconcile_component_measurements",
+        invalid_evidence,
     )
     yy, xx = np.mgrid[:49, :97]
     signal = 10 * np.exp(-((xx - 16) ** 2 + (yy - 24) ** 2) / 8)
@@ -287,10 +289,7 @@ def test_reconstructed_rows_preserve_ambiguity_and_validate_ids() -> None:
     yy, xx = np.mgrid[:49, :49]
     products = _products(10 * np.exp(-((xx - 24) ** 2 + (yy - 24) ** 2) / 8))
     association = products.source_association
-    _, memberships = product_builder._source_label_plane(
-        np.asarray(products.measurement_component_labels, dtype=np.int64),
-        association,
-    )
+    memberships = dict(enumerate(association.memberships, start=1))
     label = next(iter(memberships))
     measured = replace(
         products.catalogue[0], identifier=f"hebog-segment-{label}"
@@ -409,9 +408,12 @@ def _configured_products(
             multiscale=published.multiscale,
             labels=published.labels,
             topology=published.topology,
-            component_fits=published.component_fits,
-            hierarchy_overlaps=published.hierarchy_overlaps,
-            persistent_scale_support=published.persistent_scale_support,
+            measurements=published.measurements,
+            association=published.association,
+            hierarchy=published.hierarchy,
+            source_labels=published.source_labels,
+            source_measurement_labels=(published.source_measurement_labels),
+            persistent_scale_support=(published.persistent_scale_support),
         )
 
 

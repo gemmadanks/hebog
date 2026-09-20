@@ -198,9 +198,12 @@ def test_configured_builder_rejects_inconsistent_finite_support(
             multiscale=published.multiscale,
             labels=published.labels,
             topology=published.topology,
-            component_fits=published.component_fits,
-            hierarchy_overlaps=published.hierarchy_overlaps,
-            persistent_scale_support=published.persistent_scale_support,
+            measurements=published.measurements,
+            association=published.association,
+            hierarchy=published.hierarchy,
+            source_labels=published.source_labels,
+            source_measurement_labels=(published.source_measurement_labels),
+            persistent_scale_support=(published.persistent_scale_support),
         )
 
 
@@ -255,9 +258,12 @@ def test_configured_builder_measures_the_published_component_topology(
         multiscale=published.multiscale,
         labels=published.labels,
         topology=published.topology,
-        component_fits=published.component_fits,
-        hierarchy_overlaps=published.hierarchy_overlaps,
-        persistent_scale_support=published.persistent_scale_support,
+        measurements=published.measurements,
+        association=published.association,
+        hierarchy=published.hierarchy,
+        source_labels=published.source_labels,
+        source_measurement_labels=(published.source_measurement_labels),
+        persistent_scale_support=(published.persistent_scale_support),
     )
 
     assert result is not None
@@ -301,9 +307,12 @@ def test_configured_builder_publishes_independent_connected_sources(
         multiscale=published.multiscale,
         labels=published.labels,
         topology=published.topology,
-        component_fits=published.component_fits,
-        hierarchy_overlaps=published.hierarchy_overlaps,
-        persistent_scale_support=published.persistent_scale_support,
+        measurements=published.measurements,
+        association=published.association,
+        hierarchy=published.hierarchy,
+        source_labels=published.source_labels,
+        source_measurement_labels=(published.source_measurement_labels),
+        persistent_scale_support=(published.persistent_scale_support),
     )
 
     assert result is not None
@@ -346,9 +355,12 @@ def test_configured_builder_retains_three_components_in_one_parent(
         multiscale=published.multiscale,
         labels=published.labels,
         topology=published.topology,
-        component_fits=published.component_fits,
-        hierarchy_overlaps=published.hierarchy_overlaps,
-        persistent_scale_support=published.persistent_scale_support,
+        measurements=published.measurements,
+        association=published.association,
+        hierarchy=published.hierarchy,
+        source_labels=published.source_labels,
+        source_measurement_labels=(published.source_measurement_labels),
+        persistent_scale_support=(published.persistent_scale_support),
     )
 
     assert result is not None

@@ -73,6 +73,10 @@ from hebog.stages.detection import run_detection_stage
 if TYPE_CHECKING:  # pragma: no cover - import-time typing only
     from hebog.algorithms.multiscale_association import ScaleDetections
     from hebog.algorithms.source_association import HierarchyOverlaps
+    from hebog.data_models.source_association import (
+        DetectionComponentRecord,
+        SourceAssociationResult,
+    )
     from hebog.science.models import (
         TiledComponentFits,
         TiledComponentTopology,
@@ -755,6 +759,91 @@ def publish_component_topology(  # noqa: PLR0913
     )
 
 
+def publish_source_planes(  # noqa: PLR0913, PLR0917
+    component_source: ZarrProductSink,
+    detection_source: ZarrProductSink,
+    scale_support_source: ZarrProductSink,
+    measurement_support_source: ZarrProductSink,
+    executor: Executor,
+    work_directory: Path,
+    *,
+    image_shape_yx: tuple[int, int],
+    association: SourceAssociationResult,
+    generation_id: str,
+    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
+) -> tuple[npt.NDArray[np.int32], npt.NDArray[np.int32]]:
+    """Publish the source labels and the persistent support they own.
+
+    The owners a source holds are a record map, so the cores write the
+    labels from the shard that reaches them; the support a source owns spans
+    tiles, so it is reconciled before each connected component divides its
+    unseeded pixels between the sources that seed it.
+    """
+    from hebog.science.catalogues import (  # noqa: PLC0415
+        source_label_by_owner,
+    )
+    from hebog.stages.sources import (  # noqa: PLC0415
+        SourceLabelStageConfig,
+        SourceSupportStageConfig,
+        run_source_label_stage,
+        run_source_support_stage,
+    )
+
+    manifest = plan_image_partitions(
+        image_shape_yx=image_shape_yx,
+        tile_core_shape_yx=(tile_core_pixels, tile_core_pixels),
+        halo_yx=(0, 0),
+    )
+    label_sink = ZarrProductSink(
+        work_directory / "source-labels.zarr",
+        manifest,
+        generation_id=generation_id,
+    )
+    run_source_label_stage(
+        component_source,
+        manifest,
+        config=SourceLabelStageConfig(
+            maximum_tiles_per_batch=_SUPPORT_TILES_PER_BATCH,
+        ),
+        source_by_owner=source_label_by_owner(association),
+        executor=executor,
+        sink=label_sink,
+    )
+    support_sink = ZarrProductSink(
+        work_directory / "source-support.zarr",
+        manifest,
+        generation_id=generation_id,
+    )
+    run_source_support_stage(
+        label_sink,
+        detection_source,
+        scale_support_source,
+        measurement_support_source,
+        manifest,
+        config=SourceSupportStageConfig(
+            maximum_tiles_per_batch=_SUPPORT_TILES_PER_BATCH,
+            maximum_objects_per_batch=_OWNER_OBJECTS_PER_BATCH,
+            maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
+        ),
+        executor=executor,
+        sink=support_sink,
+    )
+    bounds = ImageBounds(0, image_shape_yx[0], 0, image_shape_yx[1])
+    return (
+        np.asarray(
+            label_sink.read_completed_window("source-labels", bounds),
+            dtype=np.int32,
+        ),
+        np.asarray(
+            support_sink.read_completed_window(
+                "source-measurement-labels",
+                bounds,
+            ),
+            dtype=np.int32,
+        ),
+    )
+
+
 def publish_hierarchy_overlaps(  # noqa: PLR0913
     detection_source: ZarrProductSink,
     component_source: ZarrProductSink,
@@ -768,7 +857,7 @@ def publish_hierarchy_overlaps(  # noqa: PLR0913
     scale_detections: Sequence[ScaleDetections],
     generation_id: str,
     tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
-) -> tuple[HierarchyOverlaps, npt.NDArray[np.bool_]]:
+) -> tuple[HierarchyOverlaps, ZarrProductSink]:
     """Reduce every pixel fact the source hierarchy decision needs.
 
     The cores observe which components, features and retained support
@@ -813,13 +902,7 @@ def publish_hierarchy_overlaps(  # noqa: PLR0913
         executor=executor,
         sink=sink,
     )
-    return result.overlaps, np.asarray(
-        sink.read_completed_window(
-            "persistent-scale-support",
-            ImageBounds(0, image_shape_yx[0], 0, image_shape_yx[1]),
-        ),
-        dtype=np.bool_,
-    )
+    return result.overlaps, sink
 
 
 def publish_component_fits(  # noqa: PLR0913, PLR0917
@@ -837,7 +920,7 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
     review: ContinuumScienceProfile,
     generation_id: str,
     tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
-) -> TiledComponentFits:
+) -> tuple[TiledComponentFits, ZarrProductSink]:
     """Fit every measurement parent in its own context window.
 
     Owners whose fit contexts touch need a joint model, so the contexts are
@@ -970,7 +1053,41 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
             dtype=np.bool_,
         ),
         features=groups.features,
+    ), sink
+
+
+def _source_association(
+    records: tuple[DetectionComponentRecord, ...],
+    scale_detections: Sequence[ScaleDetections],
+    overlaps: HierarchyOverlaps,
+    groups: tuple[frozenset[int], ...],
+) -> tuple[SourceAssociationResult, SourceAssociationResult]:
+    """Decide source membership, or nothing when no owner remains.
+
+    The terminal composition publishes nothing for an image whose admitted
+    islands are all rejected, and the hierarchy has no direct component to
+    describe, so the decision is skipped rather than fabricated.
+    """
+    from hebog.algorithms.source_association import (  # noqa: PLC0415
+        associate_from_hierarchy_overlaps,
+        constrain_source_memberships,
     )
+    from hebog.data_models.source_association import (  # noqa: PLC0415
+        SourceAssociationResult as _Association,
+    )
+
+    if not records:
+        empty = _Association(
+            components=(),
+            edges=(),
+            memberships=(),
+            ambiguous_component_ids=(),
+        )
+        return empty, empty
+    hierarchy = associate_from_hierarchy_overlaps(
+        records, tuple(scale_detections), overlaps
+    )
+    return hierarchy, constrain_source_memberships(hierarchy, groups)
 
 
 def _analyse_image(  # noqa: PLR0913
@@ -984,6 +1101,12 @@ def _analyse_image(  # noqa: PLR0913
     header: fits.Header,
 ) -> _ScientificProducts:
     """Resolve the frozen terminal composition without changing its science."""
+    from hebog.algorithms.component_measurement import (  # noqa: PLC0415
+        reconcile_component_measurements,
+    )
+    from hebog.algorithms.source_association import (  # noqa: PLC0415
+        build_detection_component_records,
+    )
     from hebog.public_science import (  # noqa: PLC0415
         build_configured_continuum_products,
     )
@@ -1062,7 +1185,23 @@ def _analyse_image(  # noqa: PLR0913
         config=config,
         generation_id=generation_id,
     )
-    overlaps, persistent_scale_support = publish_hierarchy_overlaps(
+    valid = np.isfinite(image) & np.isfinite(background) & np.isfinite(rms)
+    scale_detections = retained_scale_detections(multiscale, valid)
+    component_fits, fit_source = publish_component_fits(
+        source,
+        background_rms_source,
+        detection_source,
+        component_source,
+        executor,
+        work_directory,
+        image_shape_yx=metadata.shape_yx,
+        beam=beam,
+        header=header,
+        config=config,
+        review=review,
+        generation_id=generation_id,
+    )
+    overlaps, hierarchy_source = publish_hierarchy_overlaps(
         detection_source,
         component_source,
         executor,
@@ -1070,13 +1209,32 @@ def _analyse_image(  # noqa: PLR0913
         image_shape_yx=metadata.shape_yx,
         direct_component_labels=topology.direct_component_labels,
         residual_jy_per_beam=image - background,
-        valid_pixels=np.isfinite(image)
-        & np.isfinite(background)
-        & np.isfinite(rms),
-        scale_detections=retained_scale_detections(
-            multiscale,
-            np.isfinite(image) & np.isfinite(background) & np.isfinite(rms),
+        valid_pixels=valid,
+        scale_detections=scale_detections,
+        generation_id=generation_id,
+    )
+    measurements = reconcile_component_measurements(
+        np.array(component_fits.measurement_support, dtype=np.bool_),
+        parents=component_fits.parents,
+        features=component_fits.features,
+    )
+    hierarchy, association = _source_association(
+        build_detection_component_records(
+            topology.direct_component_labels, image - background, valid
         ),
+        scale_detections,
+        overlaps,
+        (*measurements.compact_groups, *measurements.extended_groups),
+    )
+    source_labels, source_measurement_labels = publish_source_planes(
+        component_source,
+        detection_source,
+        hierarchy_source,
+        fit_source,
+        executor,
+        work_directory,
+        image_shape_yx=metadata.shape_yx,
+        association=association,
         generation_id=generation_id,
     )
     terminal = build_configured_continuum_products(
@@ -1088,22 +1246,18 @@ def _analyse_image(  # noqa: PLR0913
         multiscale=multiscale,
         labels=support_labels,
         topology=topology,
-        component_fits=publish_component_fits(
-            source,
-            background_rms_source,
-            detection_source,
-            component_source,
-            executor,
-            work_directory,
-            image_shape_yx=metadata.shape_yx,
-            beam=beam,
-            header=header,
-            config=config,
-            review=review,
-            generation_id=generation_id,
+        measurements=measurements,
+        association=association,
+        hierarchy=hierarchy,
+        source_labels=source_labels,
+        source_measurement_labels=source_measurement_labels,
+        persistent_scale_support=np.asarray(
+            hierarchy_source.read_completed_window(
+                "persistent-scale-support",
+                _full_bounds(metadata),
+            ),
+            dtype=np.bool_,
         ),
-        hierarchy_overlaps=overlaps,
-        persistent_scale_support=persistent_scale_support,
     )
     return _ScientificProducts(image, background, rms, terminal)
 

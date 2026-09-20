@@ -26,21 +26,11 @@ from hebog.algorithms.component_measurement import ComponentMeasurements
 from hebog.algorithms.extended_measurement import (
     DetectedSegmentPosition,
     SegmentWindow,
-    assign_persistent_source_support,
     expand_detected_segment_labels,
     expand_source_measurement_labels,
     measure_detected_segment_position,
 )
 from hebog.algorithms.label_groups import label_windows
-from hebog.algorithms.multiscale_association import (
-    ScaleDetections,
-)
-from hebog.algorithms.source_association import (
-    HierarchyOverlaps,
-    associate_from_hierarchy_overlaps,
-    build_detection_component_records,
-    constrain_source_memberships,
-)
 from hebog.data_models.catalogues import GaussianShape
 from hebog.data_models.fitting import ValidCompactGaussianFit
 from hebog.data_models.images import RestoringBeam
@@ -698,32 +688,46 @@ class AssociatedMomentCatalogues:
     support_stages: tuple[tuple[str, npt.NDArray[np.bool_]], ...] = ()
 
 
-def _source_label_plane(
-    labels: npt.NDArray[np.int64],
+def source_label_by_owner(
     association: SourceAssociationResult,
-) -> tuple[
-    npt.NDArray[np.int32],
-    dict[int, CatalogueSourceMembership],
-]:
-    """Map immutable component owners to canonical source-local labels."""
+) -> dict[int, int]:
+    """Map each immutable component owner to its canonical source label."""
     records_by_id = {
         item.component_id: item for item in association.components
     }
-    output = np.zeros(labels.shape, dtype=np.int32)
-    memberships_by_label: dict[int, CatalogueSourceMembership] = {}
-    for source_label, membership in enumerate(
-        association.memberships,
-        start=1,
-    ):
-        component_labels = tuple(
-            records_by_id[component_id].label_value
-            for component_id in membership.component_ids
+    return {
+        records_by_id[component_id].label_value: source_label
+        for source_label, membership in enumerate(
+            association.memberships, start=1
         )
-        output[np.isin(labels, component_labels)] = source_label
-        memberships_by_label[source_label] = membership
-    if np.any((labels > 0) & (output == 0)):
+        for component_id in membership.component_ids
+    }
+
+
+def _validated_source_label_plane(
+    values: npt.ArrayLike,
+    labels: npt.NDArray[np.int64],
+    association: SourceAssociationResult,
+    *,
+    seeded: bool = True,
+) -> npt.NDArray[np.int32]:
+    """Validate one published source plane against the memberships."""
+    plane = np.asarray(values)
+    if (
+        plane.ndim != labels.ndim
+        or plane.shape != labels.shape
+        or not np.issubdtype(plane.dtype, np.integer)
+        or bool(np.any(plane < 0))
+    ):
+        raise ValueError(
+            "source labels must be one aligned non-negative integer plane"
+        )
+    output = np.asarray(plane, dtype=np.int32)
+    if bool(np.any(output > len(association.memberships))):
+        raise ValueError("source labels must name a published membership")
+    if seeded and bool(np.any((labels > 0) & (output == 0))):
         raise ValueError("source memberships must own every component pixel")
-    return output, memberships_by_label
+    return output
 
 
 def _fitted_component_row(
@@ -1009,7 +1013,6 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
     valid_pixels: npt.ArrayLike,
     measurement_component_labels: npt.ArrayLike,
     direct_component_labels: npt.ArrayLike,
-    scale_detections: tuple[ScaleDetections, ...],
     header: fits.Header,
     *,
     beam_major_fwhm_pixels: float,
@@ -1018,7 +1021,10 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
     position_signal_jy_per_beam: npt.ArrayLike | None = None,
     denoised_position_maximum_peak_to_mean_ratio: float = 3.0,
     component_measurements: ComponentMeasurements | None = None,
-    hierarchy_overlaps: HierarchyOverlaps,
+    association: SourceAssociationResult,
+    hierarchy: SourceAssociationResult,
+    source_labels: npt.ArrayLike,
+    source_measurement_labels: npt.ArrayLike,
     persistent_scale_support: npt.ArrayLike,
 ) -> AssociatedMomentCatalogues:
     """Measure each common-parent catalogue source exactly once.
@@ -1029,7 +1035,7 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
     before aperture expansion, so every observable pixel belongs to at most one
     source aperture.
     """
-    residual, valid, labels = _validated_hebog_segment_planes(
+    _, valid, labels = _validated_hebog_segment_planes(
         image_jy_per_beam,
         background_jy_per_beam,
         valid_pixels,
@@ -1072,34 +1078,19 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
             denoised_position_maximum_peak_to_mean_ratio
         ),
     )
-    records = build_detection_component_records(direct, residual, valid)
     component_sources, _ = _apply_component_measurements(
         component_sources,
         component_measurements,
         header,
     )
-    association = associate_from_hierarchy_overlaps(
-        records,
-        scale_detections,
-        hierarchy_overlaps,
-    )
-    hierarchy = association
-    if component_measurements is not None:
-        association = constrain_source_memberships(
-            association,
-            (
-                *component_measurements.compact_groups,
-                *component_measurements.extended_groups,
-            ),
-        )
     stable_components = _stable_component_catalogue(
         component_sources,
         association,
     )
-    source_labels, membership_by_label = _source_label_plane(
-        labels,
-        association,
+    source_label_plane = _validated_source_label_plane(
+        source_labels, labels, association
     )
+    membership_by_label = dict(enumerate(association.memberships, start=1))
     persistent_support = np.asarray(persistent_scale_support, dtype=np.bool_)
     if (
         component_measurements is not None
@@ -1108,17 +1099,15 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
         persistent_support = (
             persistent_support | component_measurements.measurement_support
         )
-    source_measurement_labels = assign_persistent_source_support(
-        source_labels,
-        persistent_support,
-        valid,
+    source_support_plane = _validated_source_label_plane(
+        source_measurement_labels, labels, association, seeded=False
     )
     source_positions: dict[int, SourcePositionDiagnostics] = {}
     measured_sources = build_hebog_segment_moment_catalogue(
         image_jy_per_beam,
         background_jy_per_beam,
         valid,
-        source_measurement_labels,
+        source_support_plane,
         header,
         beam_major_fwhm_pixels=beam_major_fwhm_pixels,
         beam_minor_fwhm_pixels=beam_minor_fwhm_pixels,
@@ -1129,7 +1118,7 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
         ),
         aperture_tie_policy="canonical-source",
         # Measurement-only wings extend flux, not source-position support.
-        position_labels=source_labels,
+        position_labels=source_label_plane,
         position_diagnostics=source_positions,
     )
     output = _reconstructed_source_rows(
@@ -1148,12 +1137,12 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
     support_stages = (
         (
             ("persistent", persistent_support),
-            ("source-union", source_labels > 0),
-            ("source-owned-persistent", source_measurement_labels > 0),
+            ("source-union", source_label_plane > 0),
+            ("source-owned-persistent", source_support_plane > 0),
             (
                 "source-measurement",
                 expand_source_measurement_labels(
-                    source_measurement_labels,
+                    source_support_plane,
                     valid,
                     radius_pixels=ceil(
                         measurement_aperture_radius_beams

@@ -10,6 +10,7 @@ reimplements the detection science it is checking.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -17,12 +18,26 @@ import numpy as np
 import numpy.typing as npt
 from astropy.io import fits
 
+from hebog.algorithms.component_measurement import (
+    ComponentMeasurements,
+    reconcile_component_measurements,
+)
 from hebog.algorithms.multiscale import BeamShapePixels
+from hebog.algorithms.multiscale_association import ScaleDetections
 from hebog.algorithms.partitioning import plan_image_partitions
-from hebog.algorithms.source_association import HierarchyOverlaps
+from hebog.algorithms.source_association import (
+    HierarchyOverlaps,
+    associate_from_hierarchy_overlaps,
+    build_detection_component_records,
+    constrain_source_memberships,
+)
 from hebog.config import SourceFinderConfig
 from hebog.data_models.partitioning import ImageBounds
 from hebog.data_models.products import ProductChunk
+from hebog.data_models.source_association import (
+    DetectionComponentRecord,
+    SourceAssociationResult,
+)
 from hebog.executors import Executor, SerialExecutor
 from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
@@ -32,12 +47,12 @@ from hebog.public_api import (
     publish_component_fits,
     publish_component_topology,
     publish_hierarchy_overlaps,
+    publish_source_planes,
     publish_support_labels,
     reduce_support_topology,
 )
 from hebog.science.continuum import retained_scale_detections
 from hebog.science.models import (
-    TiledComponentFits,
     TiledComponentTopology,
     TiledMultiscaleDetection,
     TiledSupportLabels,
@@ -128,9 +143,38 @@ class PublishedContinuumInputs:
     support: TiledSupportTopology
     labels: TiledSupportLabels
     topology: TiledComponentTopology
-    component_fits: TiledComponentFits
-    hierarchy_overlaps: HierarchyOverlaps
+    measurements: ComponentMeasurements
+    association: SourceAssociationResult
+    hierarchy: SourceAssociationResult
+    source_labels: npt.NDArray[np.int32]
+    source_measurement_labels: npt.NDArray[np.int32]
     persistent_scale_support: npt.NDArray[np.bool_]
+
+
+def _source_association(
+    records: tuple[DetectionComponentRecord, ...],
+    scale_detections: Sequence[ScaleDetections],
+    overlaps: HierarchyOverlaps,
+    groups: tuple[frozenset[int], ...],
+) -> tuple[SourceAssociationResult, SourceAssociationResult]:
+    """Decide source membership, or nothing when no owner remains.
+
+    The terminal composition publishes nothing for an image whose admitted
+    islands are all rejected, and the hierarchy has no direct component to
+    describe, so the decision is skipped rather than fabricated.
+    """
+    if not records:
+        empty = SourceAssociationResult(
+            components=(),
+            edges=(),
+            memberships=(),
+            ambiguous_component_ids=(),
+        )
+        return empty, empty
+    hierarchy = associate_from_hierarchy_overlaps(
+        records, tuple(scale_detections), overlaps
+    )
+    return hierarchy, constrain_source_memberships(hierarchy, groups)
 
 
 def publish_continuum_inputs(  # noqa: PLR0913
@@ -210,7 +254,23 @@ def publish_continuum_inputs(  # noqa: PLR0913
         generation_id=generation_id,
         tile_core_pixels=support_tile_core_pixels,
     )
-    overlaps, persistent_scale_support = publish_hierarchy_overlaps(
+    scale_detections = retained_scale_detections(multiscale, valid_pixels)
+    component_fits, fit_source = publish_component_fits(
+        image_source,
+        background_rms_source,
+        detection_source,
+        component_source,
+        resolved_executor,
+        work_directory,
+        image_shape_yx=image_jy_per_beam.shape,
+        beam=beam,
+        header=header,
+        config=config,
+        review=review,
+        generation_id=generation_id,
+        tile_core_pixels=support_tile_core_pixels,
+    )
+    overlaps, hierarchy_source = publish_hierarchy_overlaps(
         detection_source,
         component_source,
         resolved_executor,
@@ -219,13 +279,50 @@ def publish_continuum_inputs(  # noqa: PLR0913
         direct_component_labels=topology.direct_component_labels,
         residual_jy_per_beam=(image_jy_per_beam - background_jy_per_beam),
         valid_pixels=valid_pixels,
-        scale_detections=retained_scale_detections(multiscale, valid_pixels),
+        scale_detections=scale_detections,
+        generation_id=generation_id,
+        tile_core_pixels=support_tile_core_pixels,
+    )
+    measurements = reconcile_component_measurements(
+        np.array(component_fits.measurement_support, dtype=np.bool_),
+        parents=component_fits.parents,
+        features=component_fits.features,
+    )
+    hierarchy, association = _source_association(
+        build_detection_component_records(
+            topology.direct_component_labels,
+            image_jy_per_beam - background_jy_per_beam,
+            valid_pixels,
+        ),
+        scale_detections,
+        overlaps,
+        (*measurements.compact_groups, *measurements.extended_groups),
+    )
+    source_labels, source_measurement_labels = publish_source_planes(
+        component_source,
+        detection_source,
+        hierarchy_source,
+        fit_source,
+        resolved_executor,
+        work_directory,
+        image_shape_yx=image_jy_per_beam.shape,
+        association=association,
         generation_id=generation_id,
         tile_core_pixels=support_tile_core_pixels,
     )
     return PublishedContinuumInputs(
-        hierarchy_overlaps=overlaps,
-        persistent_scale_support=persistent_scale_support,
+        measurements=measurements,
+        association=association,
+        hierarchy=hierarchy,
+        source_labels=source_labels,
+        source_measurement_labels=source_measurement_labels,
+        persistent_scale_support=np.asarray(
+            hierarchy_source.read_completed_window(
+                "persistent-scale-support",
+                bounds,
+            ),
+            dtype=np.bool_,
+        ),
         multiscale=multiscale,
         support=TiledSupportTopology(
             support_component_labels=np.asarray(
@@ -245,19 +342,4 @@ def publish_continuum_inputs(  # noqa: PLR0913
         ),
         labels=support_labels,
         topology=topology,
-        component_fits=publish_component_fits(
-            image_source,
-            background_rms_source,
-            detection_source,
-            component_source,
-            resolved_executor,
-            work_directory,
-            image_shape_yx=image_jy_per_beam.shape,
-            beam=beam,
-            header=header,
-            config=config,
-            review=review,
-            generation_id=generation_id,
-            tile_core_pixels=support_tile_core_pixels,
-        ),
     )
