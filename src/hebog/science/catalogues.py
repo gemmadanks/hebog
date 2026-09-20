@@ -33,8 +33,7 @@ from hebog.algorithms.extended_measurement import (
 )
 from hebog.algorithms.label_groups import label_windows
 from hebog.algorithms.multiscale_association import (
-    ScaleDetectionPlane,
-    persistent_adjacent_scale_support,
+    ScaleDetections,
 )
 from hebog.algorithms.source_association import (
     HierarchyOverlaps,
@@ -1010,7 +1009,7 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
     valid_pixels: npt.ArrayLike,
     measurement_component_labels: npt.ArrayLike,
     direct_component_labels: npt.ArrayLike,
-    scale_detection_planes: tuple[ScaleDetectionPlane, ...],
+    scale_detections: tuple[ScaleDetections, ...],
     header: fits.Header,
     *,
     beam_major_fwhm_pixels: float,
@@ -1020,6 +1019,7 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
     denoised_position_maximum_peak_to_mean_ratio: float = 3.0,
     component_measurements: ComponentMeasurements | None = None,
     hierarchy_overlaps: HierarchyOverlaps,
+    persistent_scale_support: npt.ArrayLike,
 ) -> AssociatedMomentCatalogues:
     """Measure each common-parent catalogue source exactly once.
 
@@ -1080,7 +1080,7 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
     )
     association = associate_from_hierarchy_overlaps(
         records,
-        scale_detection_planes,
+        scale_detections,
         hierarchy_overlaps,
     )
     hierarchy = association
@@ -1100,9 +1100,7 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
         labels,
         association,
     )
-    persistent_support = persistent_adjacent_scale_support(
-        scale_detection_planes
-    )
+    persistent_support = np.asarray(persistent_scale_support, dtype=np.bool_)
     if (
         component_measurements is not None
         and component_measurements.measurement_support is not None

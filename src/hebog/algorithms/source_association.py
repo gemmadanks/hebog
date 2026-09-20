@@ -22,6 +22,7 @@ from hebog.algorithms.label_groups import label_windows
 from hebog.algorithms.multiscale import residual_atrous_scale_halos_pixels
 from hebog.algorithms.multiscale_association import (
     ScaleDetectionPlane,
+    ScaleDetections,
     adjacent_scale_overlap_edges,
     associate_adjacent_scale_detections,
 )
@@ -566,7 +567,7 @@ def _hierarchy_inputs(
 
 
 def _feature_by_id(
-    planes: tuple[ScaleDetectionPlane, ...],
+    planes: tuple[ScaleDetections, ...],
 ) -> dict[str, tuple[int, int]]:
     """Map stable feature identities to scale order and local label."""
     return {
@@ -734,7 +735,7 @@ class _ScaleAwareInputs:
     """Aligned immutable inputs used by scale-aware parent construction."""
 
     records: tuple[DetectionComponentRecord, ...]
-    planes: tuple[ScaleDetectionPlane, ...]
+    planes: tuple[ScaleDetections, ...]
     overlaps: HierarchyOverlaps
     attachments: _HierarchyAttachments
     parents_by_id: Mapping[str, tuple[str, ...]]
@@ -1410,9 +1411,9 @@ def _feature_support_components(
 
 def _support_components_of(
     overlaps: HierarchyOverlaps,
-    plane: ScaleDetectionPlane,
+    plane: ScaleDetections,
 ) -> dict[str, int]:
-    """Return the one support component each of a plane's features occupies."""
+    """Return the one support component each scale's features occupy."""
     by_id = overlaps.by_id()
     return {
         detection.detection_id: by_id[detection.detection_id].support_component
@@ -1422,7 +1423,7 @@ def _support_components_of(
 
 
 def _terminal_feature_persistence(
-    planes: tuple[ScaleDetectionPlane, ...],
+    planes: tuple[ScaleDetections, ...],
     overlaps: HierarchyOverlaps,
     parent_edges: tuple[tuple[str, str], ...],
     candidate_feature_ids: frozenset[str],
@@ -1520,7 +1521,7 @@ def _resilient_missing_child_cycle_groups(
     candidate_feature_groups: list[frozenset[str]],
     persistence: _TerminalFeaturePersistence,
     attachments: _HierarchyAttachments,
-    terminal: ScaleDetectionPlane,
+    terminal: ScaleDetections,
     overlaps: HierarchyOverlaps,
 ) -> tuple[tuple[frozenset[str], ...], int, int]:
     """Admit one missing owned child only in an exclusive source graph."""
@@ -1572,7 +1573,7 @@ def _resilient_missing_child_cycle_groups(
 
 
 def _terminal_cycle_evidence(
-    planes: tuple[ScaleDetectionPlane, ...],
+    planes: tuple[ScaleDetections, ...],
     overlaps: HierarchyOverlaps,
     attachments: _HierarchyAttachments,
     parent_edges: tuple[tuple[str, str], ...],
@@ -1943,7 +1944,7 @@ def constrain_source_memberships(
 
 def _hierarchy_diagnostics(  # noqa: PLR0913, PLR0917
     memberships: tuple[CatalogueSourceMembership, ...],
-    planes: tuple[ScaleDetectionPlane, ...],
+    planes: tuple[ScaleDetections, ...],
     parent_edges: tuple[tuple[str, str], ...],
     attachments: _HierarchyAttachments,
     scale_aware_parents: _ScaleAwareParentEvidence,
@@ -2284,7 +2285,7 @@ def associate_components_by_multiscale_hierarchy(
 
 def associate_from_hierarchy_overlaps(
     records: tuple[DetectionComponentRecord, ...],
-    planes: tuple[ScaleDetectionPlane, ...],
+    planes: tuple[ScaleDetections, ...],
     overlaps: HierarchyOverlaps,
 ) -> SourceAssociationResult:
     """Decide source membership from reduced pixel facts alone.

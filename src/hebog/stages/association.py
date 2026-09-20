@@ -29,9 +29,12 @@ from hebog.algorithms.labelling import (
     LocalIslandTileSummary,
     label_detection_tile,
 )
-from hebog.algorithms.multiscale_association import scale_detection_id
+from hebog.algorithms.multiscale_association import (
+    ScaleDetections,
+    persistent_scale_labels,
+    persistent_scale_support_window,
+)
 from hebog.algorithms.reconciliation import (
-    DetectedIsland,
     ReconciledIslands,
     TileLabelMapping,
     reconcile_candidate_tiles,
@@ -53,8 +56,10 @@ from hebog.data_models.partitioning import (
     PartitionManifest,
     TilePartition,
 )
+from hebog.data_models.products import ProductChunk
 from hebog.data_models.source_association import DetectionComponentRecord
 from hebog.executors.base import Executor
+from hebog.io.zarr import ZarrProductSink
 
 _SCALE_ORDERS = (1, 2, 3)
 
@@ -113,6 +118,7 @@ class HierarchyOverlapStageConfig:
 class HierarchyOverlapStageResult:
     """The reduced pixel facts and this stage's scalar execution evidence."""
 
+    generation: ProductGenerationManifest
     overlaps: HierarchyOverlaps
     partition_count: int
     feature_count: int
@@ -697,27 +703,25 @@ def _pair_batch(
 
 
 def _features(
-    scale_islands_by_order: Sequence[tuple[DetectedIsland, ...]],
+    scale_detections: Sequence[ScaleDetections],
     *,
     image_shape_yx: tuple[int, int],
 ) -> tuple[_Feature, ...]:
     """Name every reconciled scale feature and bound its envelope."""
     return tuple(
         _Feature(
-            feature_id=scale_detection_id(order, island.first_pixel_yx),
-            scale_order=order,
-            label_value=island.global_label,
-            bounds=island.bounds,
+            feature_id=detection.detection_id,
+            scale_order=scale.scale_order,
+            label_value=label_value,
+            bounds=ImageBounds(*detection.bounds_yx),
             envelope_bounds=scale_feature_envelope_bounds(
-                island.bounds,
-                scale_order=order,
+                ImageBounds(*detection.bounds_yx),
+                scale_order=scale.scale_order,
                 image_shape_yx=image_shape_yx,
             ),
         )
-        for order, islands in zip(
-            _SCALE_ORDERS, scale_islands_by_order, strict=True
-        )
-        for island in islands
+        for scale in scale_detections
+        for label_value, detection in enumerate(scale.detections, start=1)
     )
 
 
@@ -881,26 +885,77 @@ def _finest_features(
     return ()
 
 
-def run_hierarchy_overlap_stage(  # noqa: PLR0913
+_PRODUCT_NAMES = ("persistent-scale-support",)
+
+
+def hierarchy_overlap_product_names() -> tuple[str, ...]:
+    """Return the canonical published hierarchy-overlap product set."""
+    return _PRODUCT_NAMES
+
+
+@dataclass(frozen=True, slots=True)
+class _SupportBatch:
+    """One bounded coarse executor task over several cores."""
+
+    partitions: tuple[TilePartition, ...]
+    retained_by_scale: tuple[tuple[int, tuple[int, ...]], ...]
+
+    def __post_init__(self) -> None:
+        """Forbid empty executor work records."""
+        if not self.partitions:
+            raise ValueError("persistent support batch must not be empty")
+
+
+@dataclass(frozen=True, slots=True)
+class _SupportBatchResult:
+    """Persisted persistent-support chunk identities from one task."""
+
+    product_chunks: tuple[ProductChunk, ...]
+
+
+def _publish_persistent_support(
+    batch: _SupportBatch,
+    *,
+    detection_source: _CompletedProductSource,
+    sink: ZarrProductSink,
+) -> _SupportBatchResult:
+    """Write the support whose features persist to an adjacent scale.
+
+    Persistence was decided from the reduced overlap edges and the feature
+    records, so each core only paints the labels its shard names.
+    """
+    with detection_source.access_session(), sink.access_session():
+        chunks: list[ProductChunk] = []
+        for partition in batch.partitions:
+            core = partition.core_bounds
+            support = np.zeros(core.shape_yx, dtype=np.bool_)
+            for scale_order, retained in batch.retained_by_scale:
+                support |= persistent_scale_support_window(
+                    np.asarray(
+                        detection_source.read_completed_window(
+                            f"scale-{scale_order}-labels",
+                            core,
+                        ),
+                        dtype=np.int32,
+                    ),
+                    retained,
+                )
+            chunks.append(
+                sink.write_chunk(
+                    product_name="persistent-scale-support",
+                    tile=partition,
+                    values=support,
+                )
+            )
+        return _SupportBatchResult(product_chunks=tuple(chunks))
+
+
+def _require_overlap_inputs(
     detection_source: _CompletedProductSource,
     component_source: _CompletedProductSource,
     manifest: PartitionManifest,
-    *,
-    config: HierarchyOverlapStageConfig,
-    records: tuple[DetectionComponentRecord, ...],
-    scale_islands_by_order: Sequence[tuple[DetectedIsland, ...]],
-    executor: Executor,
-) -> HierarchyOverlapStageResult:
-    """Answer every pixel question the source hierarchy decision asks.
-
-    Three rounds and no write. The cores observe which components, features
-    and retained support components meet, and the support components are
-    reconciled across core boundaries; one task per feature derives that
-    feature's reviewed B3 influence inside its own window; and one task per
-    candidate pair decides whether two envelopes overlap inside the box that
-    holds them both. Candidate pairs follow from the reconciled bounds, so
-    only the pairs that can possibly meet read pixels.
-    """
+) -> None:
+    """Check every identity before any round is submitted."""
     if manifest.halo_yx != (0, 0):
         raise ValueError("hierarchy overlaps read cores without a halo")
     for product_source, names in (
@@ -924,6 +979,82 @@ def run_hierarchy_overlap_stage(  # noqa: PLR0913
             raise ValueError(
                 "published generations must carry every overlap plane read"
             )
+
+
+def _publish_persistent_scale_support(  # noqa: PLR0913
+    manifest: PartitionManifest,
+    scale_detections: Sequence[ScaleDetections],
+    parent_edges: tuple[tuple[str, str], ...],
+    *,
+    maximum_tiles_per_batch: int,
+    detection_source: _CompletedProductSource,
+    executor: Executor,
+    sink: ZarrProductSink,
+) -> ProductGenerationManifest:
+    """Write the support whose features persist to an adjacent scale."""
+    retained_by_scale = tuple(
+        sorted(
+            persistent_scale_labels(
+                tuple(scale_detections), parent_edges
+            ).items()
+        )
+    )
+    sink.initialize_product(
+        product_name="persistent-scale-support",
+        dtype=np.dtype(np.bool_),
+    )
+    results = tuple(
+        executor.map_batches(
+            partial(
+                _publish_persistent_support,
+                detection_source=detection_source,
+                sink=sink,
+            ),
+            tuple(
+                _SupportBatch(
+                    partitions=tuple(
+                        manifest.tiles[start : start + maximum_tiles_per_batch]
+                    ),
+                    retained_by_scale=retained_by_scale,
+                )
+                for start in range(
+                    0, len(manifest.tiles), maximum_tiles_per_batch
+                )
+            ),
+        )
+    )
+    if not results:
+        raise ValueError("executor returned no persistent support results")
+    return sink.publish_generation(
+        product_names=_PRODUCT_NAMES,
+        chunks=(
+            chunk for result in results for chunk in result.product_chunks
+        ),
+    )
+
+
+def run_hierarchy_overlap_stage(  # noqa: PLR0913
+    detection_source: _CompletedProductSource,
+    component_source: _CompletedProductSource,
+    manifest: PartitionManifest,
+    *,
+    config: HierarchyOverlapStageConfig,
+    records: tuple[DetectionComponentRecord, ...],
+    scale_detections: Sequence[ScaleDetections],
+    executor: Executor,
+    sink: ZarrProductSink,
+) -> HierarchyOverlapStageResult:
+    """Answer every pixel question the source hierarchy decision asks.
+
+    Three rounds and no write. The cores observe which components, features
+    and retained support components meet, and the support components are
+    reconciled across core boundaries; one task per feature derives that
+    feature's reviewed B3 influence inside its own window; and one task per
+    candidate pair decides whether two envelopes overlap inside the box that
+    holds them both. Candidate pairs follow from the reconciled bounds, so
+    only the pairs that can possibly meet read pixels.
+    """
+    _require_overlap_inputs(detection_source, component_source, manifest)
     scan_results = tuple(
         executor.map_batches(
             partial(
@@ -946,7 +1077,7 @@ def run_hierarchy_overlap_stage(  # noqa: PLR0913
         tuple(core.summary for core in cores),
     )
     features = _features(
-        scale_islands_by_order,
+        scale_detections,
         image_shape_yx=manifest.image_shape_yx,
     )
     merged = _merge_cores(cores, support, features, records)
@@ -1009,6 +1140,15 @@ def run_hierarchy_overlap_stage(  # noqa: PLR0913
             frozenset(edge) for result in pair_results for edge in result.edges
         )
     return HierarchyOverlapStageResult(
+        generation=_publish_persistent_scale_support(
+            manifest,
+            scale_detections,
+            merged.parent_edges,
+            maximum_tiles_per_batch=config.maximum_tiles_per_batch,
+            detection_source=detection_source,
+            executor=executor,
+            sink=sink,
+        ),
         overlaps=_reduce_overlaps(merged, features, influence, edges),
         partition_count=len(manifest.tiles),
         feature_count=len(features),
@@ -1017,7 +1157,9 @@ def run_hierarchy_overlap_stage(  # noqa: PLR0913
         ),
         candidate_pair_count=len(pairs),
         executor_task_count=(
-            len(manifest.tiles) + len(influence_batches) + len(pair_batches)
+            2 * len(manifest.tiles)
+            + len(influence_batches)
+            + len(pair_batches)
         ),
         maximum_graph_width=max(
             len(manifest.tiles), len(influence_batches), len(pair_batches)

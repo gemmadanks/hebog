@@ -35,6 +35,7 @@ from hebog.public_api import (
     publish_support_labels,
     reduce_support_topology,
 )
+from hebog.science.continuum import retained_scale_detections
 from hebog.science.models import (
     TiledComponentFits,
     TiledComponentTopology,
@@ -129,6 +130,7 @@ class PublishedContinuumInputs:
     topology: TiledComponentTopology
     component_fits: TiledComponentFits
     hierarchy_overlaps: HierarchyOverlaps
+    persistent_scale_support: npt.NDArray[np.bool_]
 
 
 def publish_continuum_inputs(  # noqa: PLR0913
@@ -208,18 +210,22 @@ def publish_continuum_inputs(  # noqa: PLR0913
         generation_id=generation_id,
         tile_core_pixels=support_tile_core_pixels,
     )
+    overlaps, persistent_scale_support = publish_hierarchy_overlaps(
+        detection_source,
+        component_source,
+        resolved_executor,
+        work_directory,
+        image_shape_yx=image_jy_per_beam.shape,
+        direct_component_labels=topology.direct_component_labels,
+        residual_jy_per_beam=(image_jy_per_beam - background_jy_per_beam),
+        valid_pixels=valid_pixels,
+        scale_detections=retained_scale_detections(multiscale, valid_pixels),
+        generation_id=generation_id,
+        tile_core_pixels=support_tile_core_pixels,
+    )
     return PublishedContinuumInputs(
-        hierarchy_overlaps=publish_hierarchy_overlaps(
-            detection_source,
-            component_source,
-            resolved_executor,
-            image_shape_yx=image_jy_per_beam.shape,
-            direct_component_labels=topology.direct_component_labels,
-            residual_jy_per_beam=(image_jy_per_beam - background_jy_per_beam),
-            valid_pixels=valid_pixels,
-            scale_islands_by_order=multiscale.scale_islands_by_order,
-            tile_core_pixels=support_tile_core_pixels,
-        ),
+        hierarchy_overlaps=overlaps,
+        persistent_scale_support=persistent_scale_support,
         multiscale=multiscale,
         support=TiledSupportTopology(
             support_component_labels=np.asarray(

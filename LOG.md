@@ -23706,8 +23706,9 @@ the per-worker placement finding.
   pair (445 → 375 s with a per-batch envelope cache); and each feature read
   its own windows, so Zarr chunk opens scaled with features rather than with
   work. Giving each batch one spatially grouped read, as the object rounds
-  already do, took it to **214 s** (`m2-association-final`), about 13% over the baseline and in line
-  with the other pass conversions. That confirms the M1 profile's
+  already do, took it to **214 s** (`m2-association-final`), about 13% over
+  the baseline and in line with the other pass conversions. That confirms
+  the M1 profile's
   attribution of the Zarr share to chunk opens.
 - **Evidence.** A new stage test reproduces `summarize_hierarchy_overlaps`
   exactly on a fixture with 4 components, 12 features across 3 scales, 8
@@ -23726,3 +23727,30 @@ the per-worker placement finding.
 - **What pass D still holds whole-array.** The continuum catalogue and the
   per-scale detection records, including the component records the overlaps
   are keyed by.
+
+## 2026-09-20 — M2: the per-scale detection records leave their planes behind
+
+- **What this is.** The composition no longer labels a plane to describe the
+  scale features it already reconciled. `scale_detections_from_islands`
+  builds each scale's `ScaleDetection` records from the published islands —
+  every field it needs is already reduced — and a `ScaleDetections` protocol
+  lets the hierarchy decision read those records or a plane's, unchanged.
+- **Why the decision never needed the planes.** Reading it found that no
+  step on the decision path touches `ScaleDetectionPlane.component_labels`;
+  every one reads identities, bounds and responses. The only pixel consumer
+  was `persistent_adjacent_scale_support`, and its two halves separate
+  cleanly: `persistent_scale_labels` decides persistence from the reduced
+  adjacent-scale overlap edges and the records alone, and
+  `persistent_scale_support_window` paints one window's retained labels.
+- **Where the painting went.** Persistence is decided from the overlap edges
+  the association stage already reduces, so the stage gained a fourth round
+  that writes `persistent-scale-support` from each core's published scale
+  labels. The stage now publishes a generation rather than only returning
+  records.
+- **What this removed.** Three whole-image labellings per run, and the three
+  `ScaleDetectionPlane` label arrays the composition held.
+  `build_hebog_reconstructed_source_catalogues` takes the records and the
+  published support plane instead.
+- **Cost.** Quick-check wall time 214 → 204 s (`m2-scale-records`), no
+  regression against `m2-association-final`. Removing the labellings paid
+  for the extra round.

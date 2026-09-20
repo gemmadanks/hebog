@@ -411,6 +411,7 @@ def _configured_products(
             topology=published.topology,
             component_fits=published.component_fits,
             hierarchy_overlaps=published.hierarchy_overlaps,
+            persistent_scale_support=published.persistent_scale_support,
         )
 
 

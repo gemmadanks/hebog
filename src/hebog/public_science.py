@@ -65,6 +65,7 @@ def build_configured_continuum_products(  # noqa: PLR0913
     topology: TiledComponentTopology,
     component_fits: TiledComponentFits,
     hierarchy_overlaps: HierarchyOverlaps,
+    persistent_scale_support: npt.NDArray[np.bool_],
 ) -> ContinuumProducts | None:
     """Build terminal products from the published tiled passes.
 
@@ -107,7 +108,7 @@ def build_configured_continuum_products(  # noqa: PLR0913
         valid,
         topology.measurement_component_labels,
         topology.direct_component_labels,
-        retained.scale_detection_planes,
+        retained.scale_detections,
         header,
         beam_major_fwhm_pixels=beam.major_fwhm_pixels,
         beam_minor_fwhm_pixels=beam.minor_fwhm_pixels,
@@ -117,6 +118,7 @@ def build_configured_continuum_products(  # noqa: PLR0913
         position_signal_jy_per_beam=retained.position_signal_jy_per_beam,
         component_measurements=measurements,
         hierarchy_overlaps=hierarchy_overlaps,
+        persistent_scale_support=persistent_scale_support,
     )
     valid.setflags(write=False)
     support_stages = tuple(

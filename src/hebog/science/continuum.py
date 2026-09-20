@@ -9,8 +9,8 @@ import numpy as np
 import numpy.typing as npt
 
 from hebog.algorithms.multiscale_association import (
-    ScaleDetectionPlane,
-    build_scale_detection_plane_from_islands,
+    ScaleDetectionRecords,
+    scale_detections_from_islands,
 )
 from hebog.config import (
     CompactDeblendConfig,
@@ -60,26 +60,28 @@ def residual_detection_config(
     )
 
 
-def _retained_scale_detection_planes(
+def retained_scale_detections(
     multiscale: TiledMultiscaleDetection,
     valid_pixels: npt.NDArray[np.bool_],
-) -> tuple[ScaleDetectionPlane, ...]:
-    """Describe the retained per-scale features from published support."""
+) -> tuple[ScaleDetectionRecords, ...]:
+    """Describe the retained per-scale features from published records.
+
+    The detection pass reconciled these features and published their labels,
+    so this step names them without labelling a plane again.
+    """
     for scale_mask in multiscale.significant_scale_masks:
         if scale_mask.shape != valid_pixels.shape or np.any(
             scale_mask & ~valid_pixels
         ):
             raise ValueError("scale support must be scientifically valid")
     return tuple(
-        build_scale_detection_plane_from_islands(
-            scale_mask,
+        scale_detections_from_islands(
             islands,
             scale_order=scale_order,
             nominal_scale_beam_fwhm=nominal_beam_fwhm,
         )
-        for scale_order, (scale_mask, islands, nominal_beam_fwhm) in enumerate(
+        for scale_order, (islands, nominal_beam_fwhm) in enumerate(
             zip(
-                multiscale.significant_scale_masks,
                 multiscale.scale_islands_by_order,
                 multiscale.scale_nominal_beam_fwhms,
                 strict=True,
@@ -149,7 +151,7 @@ def build_continuum_candidate_products(
         measurement_component_labels=measurement_labels,
         position_signal_jy_per_beam=multiscale.position_signal_jy_per_beam,
         significant_multiscale_support=significant_support,
-        scale_detection_planes=_retained_scale_detection_planes(
+        scale_detections=retained_scale_detections(
             multiscale,
             valid_pixels,
         ),

@@ -18,13 +18,12 @@ from scipy.ndimage import label as ndimage_label
 
 from hebog.algorithms.multiscale_association import (
     ScaleDetectionPlane,
+    ScaleDetectionRecords,
     build_scale_detection_plane,
+    persistent_adjacent_scale_support,
 )
 from hebog.algorithms.partitioning import plan_image_partitions
-from hebog.algorithms.reconciliation import (
-    DetectedIsland,
-    TileLabelMapping,
-)
+from hebog.algorithms.reconciliation import TileLabelMapping
 from hebog.algorithms.source_association import (
     HierarchyOverlaps,
     associate_from_hierarchy_overlaps,
@@ -43,6 +42,8 @@ from hebog.stages.association import (
     _InfluenceBatch,
     _one_support,
     _PairBatch,
+    _SupportBatch,
+    hierarchy_overlap_product_names,
     run_hierarchy_overlap_stage,
 )
 
@@ -160,23 +161,13 @@ def _scale_planes() -> tuple[ScaleDetectionPlane, ...]:
     )
 
 
-def _scale_islands(
+def _scale_records(
     planes: tuple[ScaleDetectionPlane, ...],
-) -> tuple[tuple[DetectedIsland, ...], ...]:
-    """Describe the same features as the reconciled records a pass returns."""
+) -> tuple[ScaleDetectionRecords, ...]:
+    """Describe the same features as the records a published pass returns."""
     return tuple(
-        tuple(
-            DetectedIsland(
-                island_id=detection.detection_id,
-                global_label=index,
-                pixel_count=detection.support_pixel_count,
-                bounds=ImageBounds(*detection.bounds_yx),
-                peak_signal_to_noise=detection.peak_signal_to_noise,
-                peak_position_yx=detection.canonical_pixel_yx,
-                first_pixel_yx=detection.canonical_pixel_yx,
-                touches_image_edge=detection.touches_image_edge,
-            )
-            for index, detection in enumerate(plane.detections, start=1)
+        ScaleDetectionRecords(
+            scale_order=plane.scale_order, detections=plane.detections
         )
         for plane in planes
     )
@@ -287,14 +278,18 @@ def _run(
 ) -> HierarchyOverlapStageResult:
     """Reduce every overlap the hierarchy decision needs, in isolation."""
     detection, component = _sources(root)
+    manifest = _manifest(core)
     return run_hierarchy_overlap_stage(
         detection,
         component,
-        _manifest(core),
+        manifest,
         config=_config(**overrides),
         records=_records(),
-        scale_islands_by_order=_scale_islands(_scale_planes()),
+        scale_detections=_scale_records(_scale_planes()),
         executor=SerialExecutor() if executor is None else executor,  # type: ignore[arg-type]
+        sink=ZarrProductSink(
+            root / "hierarchy.zarr", manifest, generation_id="hierarchy"
+        ),
     )
 
 
@@ -398,11 +393,16 @@ def test_overlap_stage_publishes_scalar_execution_evidence(
     """The stage reports the work it did without publishing a plane."""
     result = _run(tmp_path / "run")
 
+    assert hierarchy_overlap_product_names() == ("persistent-scale-support",)
+    assert set(result.generation.product_names) == set(
+        hierarchy_overlap_product_names()
+    )
+    assert len(result.generation.chunks) == len(_manifest(16).tiles)
     assert result.partition_count == len(_manifest(16).tiles)
     assert result.feature_count > 0
     assert result.enveloped_feature_count == result.feature_count
     assert result.candidate_pair_count > len(result.overlaps.envelope_edges)
-    assert result.executor_task_count > result.partition_count
+    assert result.executor_task_count > 2 * result.partition_count
     assert result.maximum_graph_width > 0
     assert result.reconciliation_round_count >= 1
 
@@ -432,6 +432,8 @@ def test_overlap_rounds_forbid_empty_executor_work_records() -> None:
         _InfluenceBatch(features=(), read_bounds=ImageBounds(0, 1, 0, 1))
     with pytest.raises(ValueError, match="envelope pair batch must not be"):
         _PairBatch(pairs=(), read_bounds=ImageBounds(0, 1, 0, 1))
+    with pytest.raises(ValueError, match="persistent support batch must not"):
+        _SupportBatch(partitions=(), retained_by_scale=())
 
 
 @pytest.mark.parametrize(
@@ -440,6 +442,7 @@ def test_overlap_rounds_forbid_empty_executor_work_records() -> None:
         (1, "no overlap scan results"),
         (2, "no feature influence results"),
         (3, "no envelope pair results"),
+        (4, "no persistent support results"),
     ],
 )
 def test_every_overlap_round_fails_closed_on_a_silent_executor(
@@ -485,8 +488,13 @@ def test_overlap_stage_requires_matching_generations_and_a_core_manifest(
             manifest,
             config=_config(),
             records=_records(),
-            scale_islands_by_order=_scale_islands(_scale_planes()),
+            scale_detections=_scale_records(_scale_planes()),
             executor=SerialExecutor(),
+            sink=ZarrProductSink(
+                tmp_path / f"sink-{manifest.tile_core_shape_yx[0]}.zarr",
+                manifest,
+                generation_id="hierarchy",
+            ),
         )
 
     with pytest.raises(ValueError, match="cores without a halo"):
@@ -559,8 +567,14 @@ def test_an_image_with_no_scale_feature_reduces_to_nothing(
         _manifest(16),
         config=_config(),
         records=_records(),
-        scale_islands_by_order=((), (), ()),
+        scale_detections=tuple(
+            ScaleDetectionRecords(scale_order=order, detections=())
+            for order in _SCALE_ORDERS
+        ),
         executor=SerialExecutor(),
+        sink=ZarrProductSink(
+            tmp_path / "hierarchy.zarr", _manifest(16), generation_id="empty"
+        ),
     )
 
     assert result.feature_count == 0
@@ -572,4 +586,37 @@ def test_an_image_with_no_scale_feature_reduces_to_nothing(
         not features
         for features in result.overlaps.finest_features_by_component.values()
     )
-    assert result.executor_task_count == result.partition_count
+    assert result.executor_task_count == 2 * result.partition_count
+
+
+def test_the_published_support_is_the_whole_plane_persistence(
+    tmp_path: Path,
+) -> None:
+    """Cores paint exactly the support a whole-plane pass would keep."""
+    planes = _scale_planes()
+
+    result = _run(tmp_path / "run")
+
+    published = np.asarray(
+        ZarrProductSink(
+            tmp_path / "run" / "hierarchy.zarr",
+            _manifest(16),
+            generation_id="hierarchy",
+        ).read_completed_window(
+            "persistent-scale-support",
+            ImageBounds(0, _SHAPE_YX[0], 0, _SHAPE_YX[1]),
+        ),
+        dtype=np.bool_,
+    )
+
+    expected = persistent_adjacent_scale_support(planes)
+    assert expected.any(), "the fixture must hold persistent support"
+    np.testing.assert_array_equal(published, expected)
+    assert result.generation.product_names
+
+
+def test_an_unconfigured_scale_record_fails_closed() -> None:
+    """A scale order below one is a defect, not a set of features."""
+    assert ScaleDetectionRecords(scale_order=1, detections=()).detections == ()
+    with pytest.raises(ValueError, match="scale order must be positive"):
+        ScaleDetectionRecords(scale_order=0, detections=())

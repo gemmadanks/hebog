@@ -14,7 +14,7 @@ from hebog.algorithms.component_measurement import (
     FitParentMeasurement,
     SupportFeatureGroups,
 )
-from hebog.algorithms.multiscale_association import ScaleDetectionPlane
+from hebog.algorithms.multiscale_association import ScaleDetectionRecords
 from hebog.algorithms.reconciliation import DetectedIsland
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
 from hebog.data_models.source_association import SourceAssociationResult
@@ -354,7 +354,7 @@ class ContinuumCandidateProducts:
     measurement_component_labels: npt.NDArray[np.int32]
     position_signal_jy_per_beam: npt.NDArray[np.float64]
     significant_multiscale_support: npt.NDArray[np.bool_]
-    scale_detection_planes: tuple[ScaleDetectionPlane, ...]
+    scale_detections: tuple[ScaleDetectionRecords, ...]
 
 
 @dataclass(frozen=True, slots=True)

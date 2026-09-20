@@ -71,7 +71,7 @@ from hebog.pipeline import (
 from hebog.stages.detection import run_detection_stage
 
 if TYPE_CHECKING:  # pragma: no cover - import-time typing only
-    from hebog.algorithms.reconciliation import DetectedIsland
+    from hebog.algorithms.multiscale_association import ScaleDetections
     from hebog.algorithms.source_association import HierarchyOverlaps
     from hebog.science.models import (
         TiledComponentFits,
@@ -759,14 +759,16 @@ def publish_hierarchy_overlaps(  # noqa: PLR0913
     detection_source: ZarrProductSink,
     component_source: ZarrProductSink,
     executor: Executor,
+    work_directory: Path,
     *,
     image_shape_yx: tuple[int, int],
     direct_component_labels: npt.NDArray[np.int32],
     residual_jy_per_beam: npt.NDArray[np.float64],
     valid_pixels: npt.NDArray[np.bool_],
-    scale_islands_by_order: Sequence[tuple[DetectedIsland, ...]],
+    scale_detections: Sequence[ScaleDetections],
+    generation_id: str,
     tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
-) -> HierarchyOverlaps:
+) -> tuple[HierarchyOverlaps, npt.NDArray[np.bool_]]:
     """Reduce every pixel fact the source hierarchy decision needs.
 
     The cores observe which components, features and retained support
@@ -782,14 +784,20 @@ def publish_hierarchy_overlaps(  # noqa: PLR0913
         run_hierarchy_overlap_stage,
     )
 
-    return run_hierarchy_overlap_stage(
+    manifest = plan_image_partitions(
+        image_shape_yx=image_shape_yx,
+        tile_core_shape_yx=(tile_core_pixels, tile_core_pixels),
+        halo_yx=(0, 0),
+    )
+    sink = ZarrProductSink(
+        work_directory / "hierarchy.zarr",
+        manifest,
+        generation_id=generation_id,
+    )
+    result = run_hierarchy_overlap_stage(
         detection_source,
         component_source,
-        plan_image_partitions(
-            image_shape_yx=image_shape_yx,
-            tile_core_shape_yx=(tile_core_pixels, tile_core_pixels),
-            halo_yx=(0, 0),
-        ),
+        manifest,
         config=HierarchyOverlapStageConfig(
             maximum_tiles_per_batch=_SUPPORT_TILES_PER_BATCH,
             maximum_features_per_batch=_OWNER_OBJECTS_PER_BATCH,
@@ -801,9 +809,17 @@ def publish_hierarchy_overlaps(  # noqa: PLR0913
             residual_jy_per_beam,
             valid_pixels,
         ),
-        scale_islands_by_order=scale_islands_by_order,
+        scale_detections=scale_detections,
         executor=executor,
-    ).overlaps
+        sink=sink,
+    )
+    return result.overlaps, np.asarray(
+        sink.read_completed_window(
+            "persistent-scale-support",
+            ImageBounds(0, image_shape_yx[0], 0, image_shape_yx[1]),
+        ),
+        dtype=np.bool_,
+    )
 
 
 def publish_component_fits(  # noqa: PLR0913, PLR0917
@@ -971,6 +987,9 @@ def _analyse_image(  # noqa: PLR0913
     from hebog.public_science import (  # noqa: PLC0415
         build_configured_continuum_products,
     )
+    from hebog.science.continuum import (  # noqa: PLC0415
+        retained_scale_detections,
+    )
     from hebog.science.profile import (  # noqa: PLC0415
         configured_science_profile,
         load_continuum_science_profile,
@@ -1043,6 +1062,23 @@ def _analyse_image(  # noqa: PLR0913
         config=config,
         generation_id=generation_id,
     )
+    overlaps, persistent_scale_support = publish_hierarchy_overlaps(
+        detection_source,
+        component_source,
+        executor,
+        work_directory,
+        image_shape_yx=metadata.shape_yx,
+        direct_component_labels=topology.direct_component_labels,
+        residual_jy_per_beam=image - background,
+        valid_pixels=np.isfinite(image)
+        & np.isfinite(background)
+        & np.isfinite(rms),
+        scale_detections=retained_scale_detections(
+            multiscale,
+            np.isfinite(image) & np.isfinite(background) & np.isfinite(rms),
+        ),
+        generation_id=generation_id,
+    )
     terminal = build_configured_continuum_products(
         image,
         background,
@@ -1066,18 +1102,8 @@ def _analyse_image(  # noqa: PLR0913
             review=review,
             generation_id=generation_id,
         ),
-        hierarchy_overlaps=publish_hierarchy_overlaps(
-            detection_source,
-            component_source,
-            executor,
-            image_shape_yx=metadata.shape_yx,
-            direct_component_labels=topology.direct_component_labels,
-            residual_jy_per_beam=image - background,
-            valid_pixels=np.isfinite(image)
-            & np.isfinite(background)
-            & np.isfinite(rms),
-            scale_islands_by_order=multiscale.scale_islands_by_order,
-        ),
+        hierarchy_overlaps=overlaps,
+        persistent_scale_support=persistent_scale_support,
     )
     return _ScientificProducts(image, background, rms, terminal)
 

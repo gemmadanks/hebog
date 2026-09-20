@@ -12,7 +12,10 @@ import pytest
 from astropy.io import fits  # pyright: ignore[reportMissingTypeStubs]
 from astropy.wcs import WCS  # pyright: ignore[reportMissingTypeStubs]
 
-from hebog.algorithms.multiscale_association import ScaleDetectionPlane
+from hebog.algorithms.multiscale_association import (
+    ScaleDetectionPlane,
+    persistent_adjacent_scale_support,
+)
 from hebog.algorithms.source_association import (
     build_detection_component_records,
     summarize_hierarchy_overlaps,
@@ -107,6 +110,7 @@ def _measure(  # noqa: PLR0913
         measurement_aperture_radius_beams=radius,
         position_signal_jy_per_beam=image,
         hierarchy_overlaps=_overlaps(direct, image, valid, planes),
+        persistent_scale_support=persistent_adjacent_scale_support(planes),
     )
 
 

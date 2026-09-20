@@ -128,10 +128,10 @@ def test_composition_describes_each_published_scale_feature() -> None:
         labels=_labels(),
     )
 
-    planes = products.scale_detection_planes
-    assert len(planes) == 3
-    assert planes[0].scale_order == 1
-    assert len(planes[0].detections) == 1
-    assert planes[0].detections[0].support_pixel_count == 4
-    assert planes[0].detections[0].peak_response_jy_per_beam == 0.5
+    scales = products.scale_detections
+    assert len(scales) == 3
+    assert scales[0].scale_order == 1
+    assert len(scales[0].detections) == 1
+    assert scales[0].detections[0].support_pixel_count == 4
+    assert scales[0].detections[0].peak_response_jy_per_beam == 0.5
     assert products.detection.component_count == 0
