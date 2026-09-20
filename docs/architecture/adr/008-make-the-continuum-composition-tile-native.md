@@ -380,6 +380,18 @@ Everything else the catalogue does is per core or per object: mapping owners
 to source labels, expanding apertures by the reviewed 1.5-beam radius, and
 measuring each component's and each source's moments inside its own window.
 
+The rows need no reconciliation at all. `build_hebog_segment_catalogue`
+already measures one label at a time inside the window holding its support
+and its aperture, so `build_segment_row` and `segment_moment_fields` are that
+work taken out of the loop. The one step that crosses a segment's bounds is
+the aperture expansion, and it reaches no further than the reviewed radius:
+every seed that can own a core pixel lies inside the core read plus that
+halo, and the tie towards the smaller canonical label is decided the same way
+in a window as over the plane. So the row round is cores writing
+`aperture-labels` under that halo, cores observing each label's bounds, and
+one task per batch of segments measuring their rows — the simplest of pass
+D's rounds, and the only one with no global reduction.
+
 ### A small image stays one tile
 
 When the image fits inside one tile core, the manifest contains one tile,

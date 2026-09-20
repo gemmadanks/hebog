@@ -23823,3 +23823,33 @@ the per-worker placement finding.
   catalogues and the aperture expansion still run whole-plane, so the
   composition still holds the image, background, validity and label planes
   they measure.
+
+## 2026-09-20 — M2: the catalogue rows are separated from their plane
+
+- **What this is.** Preparation for pass D's last round.
+  `build_hebog_segment_catalogue` already measured one label at a time inside
+  the window holding its support and its aperture, so its loop body became
+  `build_segment_row` and the moment step became `segment_moment_fields`.
+  Both take windows; the whole-plane builders are those two in a loop and
+  remain the oracle.
+- **The rows need no reconciliation.** The only step that crosses a segment's
+  own bounds is the aperture expansion, and it reaches no further than the
+  reviewed radius, so every seed that can own a core pixel lies inside the
+  core read plus that halo. The tie towards the smaller canonical label is
+  decided the same way in a window as over the plane, as the source support
+  assignment already established. That makes the row round the simplest of
+  pass D's: cores write `aperture-labels` under the radius halo, cores observe
+  each label's bounds, and one task per batch of segments measures its rows.
+  ADR-008 records it.
+- **Evidence.** 106 tests across `test_reconstructed_source_measurement` and
+  `test_source_catalogue_repairs` pass unchanged, which is what establishes
+  the split is behaviour-preserving.
+- **Not done, and why.** The row stage itself. A first draft of
+  `stages/catalogue_rows.py` was written and set aside rather than landed: it
+  had not compiled clean, had no tests, was unwired, and was untuned, and two
+  defects this session — the pickled `WCS` and the `TYPE_CHECKING` import —
+  were both found by validation rather than by writing, so shipping an
+  unvalidated stage would be the wrong trade. What remains is that stage, its
+  two call sites (component rows and source rows, which differ only in the
+  label plane, the tie policy and whether position diagnostics are kept), a
+  test module, and the performance tuning every previous round needed.

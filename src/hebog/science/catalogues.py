@@ -365,94 +365,128 @@ def build_hebog_segment_catalogue(  # noqa: PLR0913
         int(item) for item in np.unique(labels) if item > 0
     ):
         crop = _segment_crop(segment_windows, aperture_windows, label_value)
-        window = SegmentWindow(
-            origin_yx=(crop[0].start, crop[1].start),
-            plane_shape_yx=residual.shape,
+        row = build_segment_row(
+            residual[crop],
+            None if position_signal is None else position_signal[crop],
+            valid[crop],
+            centroid_labels[crop],
+            measurement_labels[crop],
+            background[crop],
+            celestial_wcs,
+            label_value=label_value,
+            window=SegmentWindow(
+                origin_yx=(crop[0].start, crop[1].start),
+                plane_shape_yx=residual.shape,
+            ),
+            beam_area_pixels=beam_area_pixels,
+            denoised_position_maximum_peak_to_mean_ratio=(
+                denoised_position_maximum_peak_to_mean_ratio
+            ),
+            position_diagnostics=position_diagnostics,
         )
-        residual_window = residual[crop]
-        position_signal_window = (
-            None if position_signal is None else position_signal[crop]
-        )
-        support = (
-            (centroid_labels[crop] == label_value)
-            & valid[crop]
-            & np.isfinite(residual_window)
-        )
-        estimate = _segment_position(
+        if row is not None:
+            output.append(row)
+    return tuple(output)
+
+
+def build_segment_row(  # noqa: PLR0913, PLR0917
+    residual_window: npt.NDArray[np.float64],
+    position_signal_window: npt.NDArray[np.float64] | None,
+    valid_window: npt.NDArray[np.bool_],
+    centroid_window: npt.NDArray[np.int64],
+    aperture_window: npt.NDArray[np.int32],
+    background_window: npt.NDArray[np.float64],
+    celestial_wcs: WCS,
+    *,
+    label_value: int,
+    window: SegmentWindow,
+    beam_area_pixels: float,
+    denoised_position_maximum_peak_to_mean_ratio: float,
+    position_diagnostics: dict[int, SourcePositionDiagnostics] | None = None,
+) -> CatalogueSource | None:
+    """Measure one segment's catalogue row inside its own window.
+
+    Every array covers that segment's exact support joined with its expanded
+    aperture, which is the window :func:`_segment_crop` returns, so this work
+    costs the segment's own pixels rather than the plane around it. Absence
+    means the segment has no measurable row, not an error.
+    """
+    support = (
+        (centroid_window == label_value)
+        & valid_window
+        & np.isfinite(residual_window)
+    )
+    estimate = _segment_position(
+        residual_window,
+        position_signal_window,
+        support,
+        maximum_peak_to_mean_ratio=(
+            denoised_position_maximum_peak_to_mean_ratio
+        ),
+        window=window,
+    )
+    measurement_support = aperture_window == label_value
+    integrated_weight = float(
+        np.sum(residual_window[measurement_support], dtype=np.float64)
+    )
+    if position_diagnostics is not None:
+        position_diagnostics[label_value] = _position_attribution(
             residual_window,
             position_signal_window,
             support,
-            maximum_peak_to_mean_ratio=(
-                denoised_position_maximum_peak_to_mean_ratio
-            ),
-            window=window,
+            measurement_support,
+            background_window,
+            estimate,
+            integrated_weight / beam_area_pixels,
+            window,
         )
-        measurement_support = measurement_labels[crop] == label_value
+    if not estimate.available or estimate.centroid_xy is None:
+        return None
+    quality_flags: tuple[str, ...] = ()
+    if not np.isfinite(integrated_weight) or integrated_weight <= 0.0:
+        exact_positive_support = support & (residual_window > 0.0)
         integrated_weight = float(
-            np.sum(residual_window[measurement_support], dtype=np.float64)
-        )
-        if position_diagnostics is not None:
-            position_diagnostics[label_value] = _position_attribution(
-                residual_window,
-                position_signal_window,
-                support,
-                measurement_support,
-                background[crop],
-                estimate,
-                integrated_weight / beam_area_pixels,
-                window,
-            )
-        if not estimate.available or estimate.centroid_xy is None:
-            continue
-        quality_flags: tuple[str, ...] = ()
-        if not np.isfinite(integrated_weight) or integrated_weight <= 0.0:
-            exact_positive_support = support & (residual_window > 0.0)
-            integrated_weight = float(
-                np.sum(
-                    residual_window[exact_positive_support],
-                    dtype=np.float64,
-                )
-            )
-            quality_flags = (
-                "association-aperture-nonpositive",
-                "exact-owner-positive-residual-flux",
-            )
-        if not np.isfinite(integrated_weight) or integrated_weight <= 0.0:
-            continue
-        integrated_flux = integrated_weight / beam_area_pixels
-        peak_flux = float(np.max(residual_window[support]))
-        position = cast(
-            Any, celestial_wcs.pixel_to_world(*estimate.centroid_xy)
-        ).icrs
-        identifier = f"hebog-segment-{label_value}"
-        output.append(
-            CatalogueSource(
-                identifier=identifier,
-                right_ascension_degrees=float(position.ra.deg),
-                declination_degrees=float(position.dec.deg),
-                peak_flux_jy_per_beam=peak_flux,
-                integrated_flux_jy=integrated_flux,
-                association_integrated_flux_jy=integrated_flux,
-                deconvolution_status="unavailable",
-                island_identifier=identifier,
-                component_count=1,
-                quality_flags=tuple(
-                    sorted(
-                        {
-                            *quality_flags,
-                            f"position-{estimate.weighting}",
-                            "positive-exact-owner-flux"
-                            if "exact-owner-positive-residual-flux"
-                            in quality_flags
-                            else "source-owned-signed-aperture",
-                            "aperture-flux-uncertainty-unavailable",
-                            "position-uncertainty-unavailable",
-                        }
-                    )
-                ),
+            np.sum(
+                residual_window[exact_positive_support],
+                dtype=np.float64,
             )
         )
-    return tuple(output)
+        quality_flags = (
+            "association-aperture-nonpositive",
+            "exact-owner-positive-residual-flux",
+        )
+    if not np.isfinite(integrated_weight) or integrated_weight <= 0.0:
+        return None
+    integrated_flux = integrated_weight / beam_area_pixels
+    peak_flux = float(np.max(residual_window[support]))
+    position = cast(
+        Any, celestial_wcs.pixel_to_world(*estimate.centroid_xy)
+    ).icrs
+    identifier = f"hebog-segment-{label_value}"
+    return CatalogueSource(
+        identifier=identifier,
+        right_ascension_degrees=float(position.ra.deg),
+        declination_degrees=float(position.dec.deg),
+        peak_flux_jy_per_beam=peak_flux,
+        integrated_flux_jy=integrated_flux,
+        association_integrated_flux_jy=integrated_flux,
+        deconvolution_status="unavailable",
+        island_identifier=identifier,
+        component_count=1,
+        quality_flags=tuple(
+            sorted(
+                {
+                    *quality_flags,
+                    f"position-{estimate.weighting}",
+                    "positive-exact-owner-flux"
+                    if "exact-owner-positive-residual-flux" in quality_flags
+                    else "source-owned-signed-aperture",
+                    "aperture-flux-uncertainty-unavailable",
+                    "position-uncertainty-unavailable",
+                }
+            )
+        ),
+    )
 
 
 def _catalogue_ellipse(shape: GaussianShape) -> CatalogueEllipse:
@@ -516,6 +550,23 @@ def _segment_pixel_moment_covariance(
     ):
         return None
     return (centroid_x, centroid_y), covariance
+
+
+def segment_moment_fields(
+    residual_window: npt.NDArray[np.float64],
+    support: npt.NDArray[np.bool_],
+    celestial_wcs: WCS,
+    beam: RestoringBeam,
+    window: SegmentWindow,
+) -> dict[str, object]:
+    """Return one segment's moment-equivalent shape fields, in its window.
+
+    Both arrays cover the segment's own window, so this work costs its
+    support rather than the plane around it.
+    """
+    return _moment_shape_fields(
+        residual_window, support, celestial_wcs, beam, window
+    )
 
 
 def _moment_shape_fields(
