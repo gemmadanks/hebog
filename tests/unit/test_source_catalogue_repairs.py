@@ -404,7 +404,6 @@ def _configured_products(
             background,
             rms,
             header,
-            beam=beam,
             multiscale=published.multiscale,
             labels=published.labels,
             topology=published.topology,
@@ -413,6 +412,10 @@ def _configured_products(
             hierarchy=published.hierarchy,
             source_labels=published.source_labels,
             source_measurement_labels=(published.source_measurement_labels),
+            source_aperture_labels=(published.source_aperture_labels),
+            component_rows=published.component_rows,
+            source_rows=published.source_rows,
+            source_positions=published.source_positions,
             persistent_scale_support=(published.persistent_scale_support),
         )
 
@@ -576,15 +579,23 @@ def test_extended_single_source_survives_compact_separation(
 def test_valid_fit_survives_unavailable_aperture_moment_row(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A missing auxiliary moment row cannot erase a measured Gaussian."""
+    """A missing auxiliary moment row cannot erase a measured Gaussian.
 
-    def missing_aperture(*_args: object, **_kwargs: object) -> tuple[()]:
-        return ()
+    The source rows are published by their own round now, so an absent one
+    reaches the composition as an empty shard rather than as a builder that
+    measured nothing.
+    """
+
+    original = tiled_detection.publish_segment_rows
+
+    def missing_source_rows(*args: Any, **kwargs: Any):
+        rows, positions, apertures = original(*args, **kwargs)
+        if kwargs["aperture_tie_policy"] == "canonical-source":
+            return (), positions, apertures
+        return rows, positions, apertures
 
     monkeypatch.setattr(
-        product_builder,
-        "build_hebog_segment_moment_catalogue",
-        missing_aperture,
+        tiled_detection, "publish_segment_rows", missing_source_rows
     )
     yy, xx = np.mgrid[:65, :65]
     signal = 10 * np.exp(-((xx - 32) ** 2 / 8 + (yy - 32) ** 2 / 5))

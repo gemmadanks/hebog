@@ -10,7 +10,7 @@ reimplements the detection science it is checking.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -32,6 +32,9 @@ from hebog.algorithms.source_association import (
     constrain_source_memberships,
 )
 from hebog.config import SourceFinderConfig
+from hebog.data_models.measurement_diagnostics import (
+    SourcePositionDiagnostics,
+)
 from hebog.data_models.partitioning import ImageBounds
 from hebog.data_models.products import ProductChunk
 from hebog.data_models.source_association import (
@@ -47,12 +50,14 @@ from hebog.public_api import (
     publish_component_fits,
     publish_component_topology,
     publish_hierarchy_overlaps,
+    publish_segment_rows,
     publish_source_planes,
     publish_support_labels,
     reduce_support_topology,
 )
 from hebog.science.continuum import retained_scale_detections
 from hebog.science.models import (
+    CatalogueSource,
     TiledComponentTopology,
     TiledMultiscaleDetection,
     TiledSupportLabels,
@@ -148,6 +153,10 @@ class PublishedContinuumInputs:
     hierarchy: SourceAssociationResult
     source_labels: npt.NDArray[np.int32]
     source_measurement_labels: npt.NDArray[np.int32]
+    source_aperture_labels: npt.NDArray[np.int32]
+    component_rows: tuple[CatalogueSource, ...]
+    source_rows: tuple[CatalogueSource, ...]
+    source_positions: Mapping[int, SourcePositionDiagnostics]
     persistent_scale_support: npt.NDArray[np.bool_]
 
 
@@ -298,7 +307,12 @@ def publish_continuum_inputs(  # noqa: PLR0913
         overlaps,
         (*measurements.compact_groups, *measurements.extended_groups),
     )
-    source_labels, source_measurement_labels = publish_source_planes(
+    (
+        source_labels,
+        source_measurement_labels,
+        source_label_source,
+        source_support_source,
+    ) = publish_source_planes(
         component_source,
         detection_source,
         hierarchy_source,
@@ -310,7 +324,51 @@ def publish_continuum_inputs(  # noqa: PLR0913
         generation_id=generation_id,
         tile_core_pixels=support_tile_core_pixels,
     )
+    component_rows, _, _ = publish_segment_rows(
+        image_source,
+        background_rms_source,
+        detection_source,
+        component_source,
+        component_source,
+        resolved_executor,
+        work_directory,
+        image_shape_yx=image_jy_per_beam.shape,
+        beam=beam,
+        header=header,
+        label_product_name="component-measurement-labels",
+        centroid_product_name="component-measurement-labels",
+        aperture_tie_policy="nearest-support",
+        with_position_diagnostics=False,
+        generation_id=generation_id,
+        sink_name="component-rows",
+        tile_core_pixels=support_tile_core_pixels,
+    )
+    source_rows, source_positions, source_aperture_labels = (
+        publish_segment_rows(
+            image_source,
+            background_rms_source,
+            detection_source,
+            source_support_source,
+            source_label_source,
+            resolved_executor,
+            work_directory,
+            image_shape_yx=image_jy_per_beam.shape,
+            beam=beam,
+            header=header,
+            label_product_name="source-measurement-labels",
+            centroid_product_name="source-labels",
+            aperture_tie_policy="canonical-source",
+            with_position_diagnostics=True,
+            generation_id=generation_id,
+            sink_name="source-rows",
+            tile_core_pixels=support_tile_core_pixels,
+        )
+    )
     return PublishedContinuumInputs(
+        component_rows=component_rows,
+        source_rows=source_rows,
+        source_positions=source_positions,
+        source_aperture_labels=source_aperture_labels,
         measurements=measurements,
         association=association,
         hierarchy=hierarchy,

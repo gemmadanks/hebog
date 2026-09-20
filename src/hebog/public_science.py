@@ -3,13 +3,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 import numpy as np
 import numpy.typing as npt
 from astropy.io import fits
 
 from hebog.algorithms.component_measurement import ComponentMeasurements
-from hebog.algorithms.multiscale import (
-    BeamShapePixels,
+from hebog.data_models.measurement_diagnostics import (
+    SourcePositionDiagnostics,
 )
 from hebog.data_models.source_association import (
     SourceAssociationResult,
@@ -18,10 +20,10 @@ from hebog.science.catalogues import (
     build_hebog_reconstructed_source_catalogues,
 )
 from hebog.science.continuum import (
-    CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS,
     build_continuum_candidate_products,
 )
 from hebog.science.models import (
+    CatalogueSource,
     ContinuumProducts,
     TiledComponentTopology,
     TiledMultiscaleDetection,
@@ -58,7 +60,6 @@ def build_configured_continuum_products(  # noqa: PLR0913
     rms_jy_per_beam: npt.ArrayLike,
     header: fits.Header,
     *,
-    beam: BeamShapePixels,
     multiscale: TiledMultiscaleDetection,
     labels: TiledSupportLabels,
     topology: TiledComponentTopology,
@@ -67,6 +68,10 @@ def build_configured_continuum_products(  # noqa: PLR0913
     hierarchy: SourceAssociationResult,
     source_labels: npt.NDArray[np.int32],
     source_measurement_labels: npt.NDArray[np.int32],
+    source_aperture_labels: npt.NDArray[np.int32],
+    component_rows: tuple[CatalogueSource, ...],
+    source_rows: tuple[CatalogueSource, ...],
+    source_positions: Mapping[int, SourcePositionDiagnostics],
     persistent_scale_support: npt.NDArray[np.bool_],
 ) -> ContinuumProducts | None:
     """Build terminal products from the published tiled passes.
@@ -102,17 +107,15 @@ def build_configured_continuum_products(  # noqa: PLR0913
         topology.measurement_component_labels,
         topology.direct_component_labels,
         header,
-        beam_major_fwhm_pixels=beam.major_fwhm_pixels,
-        beam_minor_fwhm_pixels=beam.minor_fwhm_pixels,
-        measurement_aperture_radius_beams=(
-            CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS
-        ),
-        position_signal_jy_per_beam=retained.position_signal_jy_per_beam,
         component_measurements=measurements,
         association=association,
         hierarchy=hierarchy,
         source_labels=source_labels,
         source_measurement_labels=source_measurement_labels,
+        source_aperture_labels=source_aperture_labels,
+        component_rows=component_rows,
+        source_rows=source_rows,
+        source_positions=source_positions,
         persistent_scale_support=persistent_scale_support,
     )
     valid.setflags(write=False)

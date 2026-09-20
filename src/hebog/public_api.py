@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 import importlib
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, replace
 from functools import lru_cache
 from importlib.resources import files
@@ -92,6 +92,7 @@ ADMITTED_TILE_CORE_PIXELS = 2048
 _SUPPORT_TILES_PER_BATCH = 4
 _OWNER_BATCH_READ_PIXELS = 4 * 1024 * 1024
 _OWNER_OBJECTS_PER_BATCH = 16
+_DENOISED_POSITION_PEAK_TO_MEAN_RATIO = 3.0
 _ENVELOPE_PAIRS_PER_BATCH = 256
 _DETECTION_THRESHOLD_SIGMA = 5.0
 _ISLAND_THRESHOLD_SIGMA = 3.0
@@ -759,6 +760,109 @@ def publish_component_topology(  # noqa: PLR0913
     )
 
 
+def publish_segment_rows(  # noqa: PLR0913, PLR0917
+    source: _WindowReadable,
+    background_rms_source: ZarrProductSink,
+    detection_source: ZarrProductSink,
+    label_source: ZarrProductSink,
+    centroid_source: ZarrProductSink,
+    executor: Executor,
+    work_directory: Path,
+    *,
+    image_shape_yx: tuple[int, int],
+    beam: BeamShapePixels,
+    header: fits.Header,
+    label_product_name: str,
+    centroid_product_name: str,
+    aperture_tie_policy: Literal["nearest-support", "canonical-source"],
+    with_position_diagnostics: bool,
+    generation_id: str,
+    sink_name: str,
+    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
+) -> tuple[
+    tuple[Any, ...],
+    Mapping[int, Any],
+    npt.NDArray[np.int32],
+]:
+    """Measure one catalogue row per segment, each in its own window.
+
+    The cores write the expanded apertures under the reviewed radius, they
+    observe the bounds each segment and aperture occupies, and one task per
+    batch of segments measures their rows and moment shapes.
+    """
+    from math import ceil, log, pi  # noqa: PLC0415
+
+    from hebog.science.continuum import (  # noqa: PLC0415
+        CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS,
+    )
+    from hebog.stages.catalogue_rows import (  # noqa: PLC0415
+        SegmentRowStageConfig,
+        run_segment_row_stage,
+    )
+
+    manifest = plan_image_partitions(
+        image_shape_yx=image_shape_yx,
+        tile_core_shape_yx=(tile_core_pixels, tile_core_pixels),
+        halo_yx=(0, 0),
+    )
+    sink = ZarrProductSink(
+        work_directory / f"{sink_name}.zarr",
+        manifest,
+        generation_id=generation_id,
+    )
+    result = run_segment_row_stage(
+        source,
+        background_rms_source,
+        detection_source,
+        label_source,
+        centroid_source,
+        detection_source,
+        manifest,
+        config=SegmentRowStageConfig(
+            label_product_name=label_product_name,
+            centroid_product_name=centroid_product_name,
+            aperture_radius_pixels=ceil(
+                CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS
+                * beam.major_fwhm_pixels
+            ),
+            aperture_tie_policy=aperture_tie_policy,
+            beam_area_pixels=(
+                2.0
+                * pi
+                / (8.0 * log(2.0))
+                * beam.major_fwhm_pixels
+                * beam.minor_fwhm_pixels
+            ),
+            denoised_position_maximum_peak_to_mean_ratio=(
+                _DENOISED_POSITION_PEAK_TO_MEAN_RATIO
+            ),
+            with_position_diagnostics=with_position_diagnostics,
+            maximum_tiles_per_batch=_SUPPORT_TILES_PER_BATCH,
+            maximum_objects_per_batch=_OWNER_OBJECTS_PER_BATCH,
+            maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
+        ),
+        wcs_header_text=header.tostring(),
+        beam=RestoringBeam(
+            cast(float, header["BMAJ"]),
+            cast(float, header["BMIN"]),
+            cast(float, header["BPA"]) if "BPA" in header else 0.0,
+        ),
+        executor=executor,
+        sink=sink,
+    )
+    return (
+        result.rows,
+        result.position_diagnostics,
+        np.asarray(
+            sink.read_completed_window(
+                "aperture-labels",
+                ImageBounds(0, image_shape_yx[0], 0, image_shape_yx[1]),
+            ),
+            dtype=np.int32,
+        ),
+    )
+
+
 def publish_source_planes(  # noqa: PLR0913, PLR0917
     component_source: ZarrProductSink,
     detection_source: ZarrProductSink,
@@ -771,7 +875,12 @@ def publish_source_planes(  # noqa: PLR0913, PLR0917
     association: SourceAssociationResult,
     generation_id: str,
     tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
-) -> tuple[npt.NDArray[np.int32], npt.NDArray[np.int32]]:
+) -> tuple[
+    npt.NDArray[np.int32],
+    npt.NDArray[np.int32],
+    ZarrProductSink,
+    ZarrProductSink,
+]:
     """Publish the source labels and the persistent support they own.
 
     The owners a source holds are a record map, so the cores write the
@@ -841,6 +950,8 @@ def publish_source_planes(  # noqa: PLR0913, PLR0917
             ),
             dtype=np.int32,
         ),
+        label_sink,
+        support_sink,
     )
 
 
@@ -1226,7 +1337,12 @@ def _analyse_image(  # noqa: PLR0913
         overlaps,
         (*measurements.compact_groups, *measurements.extended_groups),
     )
-    source_labels, source_measurement_labels = publish_source_planes(
+    (
+        source_labels,
+        source_measurement_labels,
+        source_label_source,
+        source_support_source,
+    ) = publish_source_planes(
         component_source,
         detection_source,
         hierarchy_source,
@@ -1237,12 +1353,49 @@ def _analyse_image(  # noqa: PLR0913
         association=association,
         generation_id=generation_id,
     )
+    component_rows, _, _ = publish_segment_rows(
+        source,
+        background_rms_source,
+        detection_source,
+        component_source,
+        component_source,
+        executor,
+        work_directory,
+        image_shape_yx=metadata.shape_yx,
+        beam=beam,
+        header=header,
+        label_product_name="component-measurement-labels",
+        centroid_product_name="component-measurement-labels",
+        aperture_tie_policy="nearest-support",
+        with_position_diagnostics=False,
+        generation_id=generation_id,
+        sink_name="component-rows",
+    )
+    source_rows, source_positions, source_aperture_labels = (
+        publish_segment_rows(
+            source,
+            background_rms_source,
+            detection_source,
+            source_support_source,
+            source_label_source,
+            executor,
+            work_directory,
+            image_shape_yx=metadata.shape_yx,
+            beam=beam,
+            header=header,
+            label_product_name="source-measurement-labels",
+            centroid_product_name="source-labels",
+            aperture_tie_policy="canonical-source",
+            with_position_diagnostics=True,
+            generation_id=generation_id,
+            sink_name="source-rows",
+        )
+    )
     terminal = build_configured_continuum_products(
         image,
         background,
         rms,
         header,
-        beam=beam,
         multiscale=multiscale,
         labels=support_labels,
         topology=topology,
@@ -1251,6 +1404,10 @@ def _analyse_image(  # noqa: PLR0913
         hierarchy=hierarchy,
         source_labels=source_labels,
         source_measurement_labels=source_measurement_labels,
+        source_aperture_labels=source_aperture_labels,
+        component_rows=component_rows,
+        source_rows=source_rows,
+        source_positions=source_positions,
         persistent_scale_support=np.asarray(
             hierarchy_source.read_completed_window(
                 "persistent-scale-support",

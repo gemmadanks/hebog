@@ -194,7 +194,6 @@ def test_configured_builder_rejects_inconsistent_finite_support(
             background,
             np.ones((2, 2), dtype=np.float64),
             fits.Header(),
-            beam=BeamShapePixels(4.0, 3.0, 0.0),
             multiscale=published.multiscale,
             labels=published.labels,
             topology=published.topology,
@@ -203,6 +202,10 @@ def test_configured_builder_rejects_inconsistent_finite_support(
             hierarchy=published.hierarchy,
             source_labels=published.source_labels,
             source_measurement_labels=(published.source_measurement_labels),
+            source_aperture_labels=(published.source_aperture_labels),
+            component_rows=published.component_rows,
+            source_rows=published.source_rows,
+            source_positions=published.source_positions,
             persistent_scale_support=(published.persistent_scale_support),
         )
 
@@ -254,7 +257,6 @@ def test_configured_builder_measures_the_published_component_topology(
         np.zeros(normalized.shape, dtype=np.float64),
         np.ones(normalized.shape, dtype=np.float64),
         _header(normalized.shape),
-        beam=BeamShapePixels(5.0, 4.0, 0.0),
         multiscale=published.multiscale,
         labels=published.labels,
         topology=published.topology,
@@ -263,6 +265,10 @@ def test_configured_builder_measures_the_published_component_topology(
         hierarchy=published.hierarchy,
         source_labels=published.source_labels,
         source_measurement_labels=(published.source_measurement_labels),
+        source_aperture_labels=(published.source_aperture_labels),
+        component_rows=published.component_rows,
+        source_rows=published.source_rows,
+        source_positions=published.source_positions,
         persistent_scale_support=(published.persistent_scale_support),
     )
 
@@ -303,7 +309,6 @@ def test_configured_builder_publishes_independent_connected_sources(
         np.zeros(normalized.shape, dtype=np.float64),
         np.ones(normalized.shape, dtype=np.float64),
         _header(normalized.shape),
-        beam=BeamShapePixels(5.0, 4.0, 0.0),
         multiscale=published.multiscale,
         labels=published.labels,
         topology=published.topology,
@@ -312,6 +317,10 @@ def test_configured_builder_publishes_independent_connected_sources(
         hierarchy=published.hierarchy,
         source_labels=published.source_labels,
         source_measurement_labels=(published.source_measurement_labels),
+        source_aperture_labels=(published.source_aperture_labels),
+        component_rows=published.component_rows,
+        source_rows=published.source_rows,
+        source_positions=published.source_positions,
         persistent_scale_support=(published.persistent_scale_support),
     )
 
@@ -351,7 +360,6 @@ def test_configured_builder_retains_three_components_in_one_parent(
         np.zeros(normalized.shape, dtype=np.float64),
         np.ones(normalized.shape, dtype=np.float64),
         _header(normalized.shape),
-        beam=BeamShapePixels(5.0, 4.0, 0.0),
         multiscale=published.multiscale,
         labels=published.labels,
         topology=published.topology,
@@ -360,6 +368,10 @@ def test_configured_builder_retains_three_components_in_one_parent(
         hierarchy=published.hierarchy,
         source_labels=published.source_labels,
         source_measurement_labels=(published.source_measurement_labels),
+        source_aperture_labels=(published.source_aperture_labels),
+        component_rows=published.component_rows,
+        source_rows=published.source_rows,
+        source_positions=published.source_positions,
         persistent_scale_support=(published.persistent_scale_support),
     )
 

@@ -481,7 +481,6 @@ def test_joint_geometry_with_controlled_or_public_background(
             background,
             rms,
             header,
-            beam=beam_pixels,
             multiscale=published.multiscale,
             labels=published.labels,
             topology=published.topology,
@@ -490,6 +489,10 @@ def test_joint_geometry_with_controlled_or_public_background(
             hierarchy=published.hierarchy,
             source_labels=published.source_labels,
             source_measurement_labels=(published.source_measurement_labels),
+            source_aperture_labels=(published.source_aperture_labels),
+            component_rows=published.component_rows,
+            source_rows=published.source_rows,
+            source_positions=published.source_positions,
             persistent_scale_support=(published.persistent_scale_support),
         )
         scientific = public_api._ScientificProducts(

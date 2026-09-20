@@ -23853,3 +23853,46 @@ the per-worker placement finding.
   two call sites (component rows and source rows, which differ only in the
   label plane, the tie policy and whether position diagnostics are kept), a
   test module, and the performance tuning every previous round needed.
+
+## 2026-09-20 — M2: the catalogue rows are tile-native, and pass D is complete
+
+- **What this is.** The last round of ADR-008's pass D.
+  `stages/catalogue_rows.py` writes each core's expanded apertures under the
+  reviewed radius, observes the bounds every segment and aperture occupies,
+  and measures one catalogue row per segment inside the window holding it.
+  `public_science.py` now receives the component rows, the source rows, their
+  position diagnostics and the source apertures, and derives no plane of its
+  own.
+- **The only round with no global reduction.** An aperture reaches no further
+  than the radius, so every seed that can own a core pixel lies inside the
+  core read plus that halo, and the tie towards the smaller canonical label
+  is decided the same way in a window as over the plane. Nothing else the
+  rows do crosses a segment's own bounds.
+- **One stage serves both catalogues.** The component and source rows differ
+  only in the label plane, the centroid plane, the aperture tie policy and
+  whether position diagnostics are kept, so they are two invocations rather
+  than two stages. The centroid plane lives in a different published
+  generation from the label plane, so the stage takes both sources.
+- **What this removed.** The composition no longer takes a beam, an aperture
+  radius, a position signal or a peak-to-mean ratio:
+  `build_hebog_reconstructed_source_catalogues` reduces published records and
+  validates published planes, and measures nothing itself.
+- **A test the conversion invalidated.** The unavailable-aperture repair
+  test patched the builder's moment call, which the builder no longer
+  makes, so the patch silently stopped doing anything and the
+  assertion failed. It now empties the source-row shard instead, which is how
+  an absent row reaches the composition under the new structure.
+- **Evidence.** A new stage test reproduces
+  `build_hebog_segment_moment_catalogue` exactly on a fixture of four
+  segments, three of which cross a core boundary and two of which have
+  competing apertures, under both tie policies and with the position
+  diagnostics compared. Rows are invariant across cores 16, 24 and 72, one
+  segment per batch, and a real Dask client, and an unmeasurable segment
+  keeps its label and publishes no row in both paths. The quick science check
+  `m2-catalogue-rows` reports no regression.
+- **Cost.** Quick-check wall time 215 → 235 s for two more generations.
+- **Where M2 stands.** Every scientific step of the continuum composition now
+  runs through the executor and reads published windows. What remains is not
+  conversion but the envelope: the driver still reads whole planes from the
+  store to hand the composition its image, background and RMS, and M2's
+  bottleneck row still owns the 235 s against 135.6 s before the convergence.

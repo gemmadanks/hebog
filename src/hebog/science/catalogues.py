@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from math import ceil
 from typing import Any, Literal, cast
@@ -1066,16 +1067,15 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
     direct_component_labels: npt.ArrayLike,
     header: fits.Header,
     *,
-    beam_major_fwhm_pixels: float,
-    beam_minor_fwhm_pixels: float,
-    measurement_aperture_radius_beams: float = 4.0,
-    position_signal_jy_per_beam: npt.ArrayLike | None = None,
-    denoised_position_maximum_peak_to_mean_ratio: float = 3.0,
     component_measurements: ComponentMeasurements | None = None,
     association: SourceAssociationResult,
     hierarchy: SourceAssociationResult,
     source_labels: npt.ArrayLike,
     source_measurement_labels: npt.ArrayLike,
+    source_aperture_labels: npt.ArrayLike,
+    component_rows: tuple[CatalogueSource, ...],
+    source_rows: tuple[CatalogueSource, ...],
+    source_positions: Mapping[int, SourcePositionDiagnostics],
     persistent_scale_support: npt.ArrayLike,
 ) -> AssociatedMomentCatalogues:
     """Measure each common-parent catalogue source exactly once.
@@ -1115,22 +1115,8 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
         raise ValueError(
             "direct and measurement component identities must match"
         )
-    component_sources = build_hebog_segment_moment_catalogue(
-        image_jy_per_beam,
-        background_jy_per_beam,
-        valid,
-        labels,
-        header,
-        beam_major_fwhm_pixels=beam_major_fwhm_pixels,
-        beam_minor_fwhm_pixels=beam_minor_fwhm_pixels,
-        measurement_aperture_radius_beams=measurement_aperture_radius_beams,
-        position_signal_jy_per_beam=position_signal_jy_per_beam,
-        denoised_position_maximum_peak_to_mean_ratio=(
-            denoised_position_maximum_peak_to_mean_ratio
-        ),
-    )
     component_sources, _ = _apply_component_measurements(
-        component_sources,
+        component_rows,
         component_measurements,
         header,
     )
@@ -1153,27 +1139,8 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
     source_support_plane = _validated_source_label_plane(
         source_measurement_labels, labels, association, seeded=False
     )
-    source_positions: dict[int, SourcePositionDiagnostics] = {}
-    measured_sources = build_hebog_segment_moment_catalogue(
-        image_jy_per_beam,
-        background_jy_per_beam,
-        valid,
-        source_support_plane,
-        header,
-        beam_major_fwhm_pixels=beam_major_fwhm_pixels,
-        beam_minor_fwhm_pixels=beam_minor_fwhm_pixels,
-        measurement_aperture_radius_beams=measurement_aperture_radius_beams,
-        position_signal_jy_per_beam=position_signal_jy_per_beam,
-        denoised_position_maximum_peak_to_mean_ratio=(
-            denoised_position_maximum_peak_to_mean_ratio
-        ),
-        aperture_tie_policy="canonical-source",
-        # Measurement-only wings extend flux, not source-position support.
-        position_labels=source_label_plane,
-        position_diagnostics=source_positions,
-    )
     output = _reconstructed_source_rows(
-        measured_sources,
+        source_rows,
         stable_components,
         membership_by_label,
         association,
@@ -1192,15 +1159,7 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
             ("source-owned-persistent", source_support_plane > 0),
             (
                 "source-measurement",
-                expand_source_measurement_labels(
-                    source_support_plane,
-                    valid,
-                    radius_pixels=ceil(
-                        measurement_aperture_radius_beams
-                        * beam_major_fwhm_pixels
-                    ),
-                )
-                > 0,
+                np.asarray(source_aperture_labels, dtype=np.int32) > 0,
             ),
         )
         if component_measurements is not None

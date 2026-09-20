@@ -171,6 +171,16 @@ _STAGES = (
         "tiled source labels and owned support",
     ),
     (
+        "hebog.public_api",
+        "publish_segment_rows",
+        "tiled catalogue rows",
+    ),
+    (
+        "hebog.stages.catalogue_rows",
+        "run_segment_row_stage",
+        "per-segment apertures and rows",
+    ),
+    (
         "hebog.stages.sources",
         "run_source_label_stage",
         "source labels from the membership shard",

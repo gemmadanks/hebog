@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from math import log, pi
+from functools import partial
+from math import ceil, log, pi
 from typing import cast
 
 import numpy as np
@@ -14,6 +15,7 @@ from astropy.wcs import WCS  # pyright: ignore[reportMissingTypeStubs]
 
 from hebog.algorithms.extended_measurement import (
     assign_persistent_source_support,
+    expand_source_measurement_labels,
 )
 from hebog.algorithms.multiscale_association import (
     ScaleDetectionPlane,
@@ -24,6 +26,9 @@ from hebog.algorithms.source_association import (
     build_detection_component_records,
     summarize_hierarchy_overlaps,
 )
+from hebog.data_models.measurement_diagnostics import (
+    SourcePositionDiagnostics,
+)
 from hebog.data_models.multiscale import ScaleDetection
 from hebog.data_models.source_association import (
     SourceAssociationResult,
@@ -32,6 +37,7 @@ from hebog.science import catalogues as product_builder
 from hebog.science.catalogues import (
     build_hebog_reconstructed_source_catalogues,
     build_hebog_segment_catalogue,
+    build_hebog_segment_moment_catalogue,
     source_label_by_owner,
 )
 
@@ -131,23 +137,46 @@ def _measure(  # noqa: PLR0913
     source_labels = np.zeros(image.shape, dtype=np.int32)
     for owner, source_label in source_label_by_owner(association).items():
         source_labels[np.asarray(labels) == owner] = source_label
+    source_support = assign_persistent_source_support(
+        source_labels, persistent, valid
+    )
+    header = _header(image.shape)
+    rows = partial(
+        build_hebog_segment_moment_catalogue,
+        image,
+        resolved_background,
+        valid,
+        header=header,
+        beam_major_fwhm_pixels=2.0,
+        beam_minor_fwhm_pixels=1.0,
+        measurement_aperture_radius_beams=radius,
+        position_signal_jy_per_beam=image,
+    )
+    source_positions: dict[int, SourcePositionDiagnostics] = {}
     return build_hebog_reconstructed_source_catalogues(
         image,
         resolved_background,
         valid,
         labels,
         direct,
-        _header(image.shape),
-        beam_major_fwhm_pixels=2.0,
-        beam_minor_fwhm_pixels=1.0,
-        measurement_aperture_radius_beams=radius,
-        position_signal_jy_per_beam=image,
+        header,
         association=association,
         hierarchy=association,
         source_labels=source_labels,
-        source_measurement_labels=assign_persistent_source_support(
-            source_labels, persistent, valid
+        source_measurement_labels=source_support,
+        source_aperture_labels=expand_source_measurement_labels(
+            source_support,
+            valid,
+            radius_pixels=ceil(radius * 2.0),
         ),
+        component_rows=rows(labels),
+        source_rows=rows(
+            source_support,
+            aperture_tie_policy="canonical-source",
+            position_labels=source_labels,
+            position_diagnostics=source_positions,
+        ),
+        source_positions=source_positions,
         persistent_scale_support=persistent,
     )
 
@@ -458,12 +487,13 @@ def test_published_source_planes_fail_closed(
             measurement,
             measurement,
             _header(image.shape),
-            beam_major_fwhm_pixels=2.0,
-            beam_minor_fwhm_pixels=1.0,
-            position_signal_jy_per_beam=image,
             association=association,
             hierarchy=association,
             source_labels=plane,
             source_measurement_labels=plane,
+            source_aperture_labels=np.zeros_like(measurement),
+            component_rows=(),
+            source_rows=(),
+            source_positions={},
             persistent_scale_support=persistent_adjacent_scale_support(planes),
         )
