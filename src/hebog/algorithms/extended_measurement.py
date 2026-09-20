@@ -921,45 +921,57 @@ def assign_persistent_source_support(
             "persistent source support must be scientifically valid"
         )
     output = np.asarray(labels, dtype=np.int32).copy()
-    seed_points = np.column_stack(np.nonzero(labels > 0))
-    candidate_points = np.column_stack(np.nonzero(persistent & (labels == 0)))
-    if not seed_points.size or not candidate_points.size:
+    if not np.any(labels > 0) or not np.any(persistent & (labels == 0)):
         return output
-    connected_labels, _ = cast(
+    connected_labels, count = cast(
         tuple[npt.NDArray[np.int32], int],
         connected_component_labels(
             (labels > 0) | persistent,
             structure=np.ones((3, 3), dtype=np.int8),
         ),
     )
-    seed_components = connected_labels[seed_points[:, 0], seed_points[:, 1]]
-    candidate_components = connected_labels[
-        candidate_points[:, 0], candidate_points[:, 1]
-    ]
-    canonical_labels = np.asarray(
-        sorted(int(value) for value in np.unique(labels) if value > 0),
-        dtype=np.int32,
+    for component in range(1, count + 1):
+        assign_connected_source_support(
+            output,
+            persistent,
+            np.asarray(connected_labels == component),
+        )
+    return output
+
+
+def assign_connected_source_support(
+    source_labels: npt.NDArray[np.int32],
+    persistent: npt.NDArray[np.bool_],
+    component: npt.NDArray[np.bool_],
+) -> npt.NDArray[np.int32]:
+    """Assign one connected support component to its nearest source seeds.
+
+    Every array covers the window that holds this component. Candidates are
+    the component's persistent pixels that no source seeds; the nearest
+    immutable source pixel owns each, and an exact distance tie goes to the
+    smaller source label, whose order follows the canonical source IDs.
+    ``source_labels`` is written in place and returned.
+    """
+    seed_points = np.column_stack(np.nonzero(component & (source_labels > 0)))
+    candidate_points = np.column_stack(
+        np.nonzero(component & persistent & (source_labels == 0))
     )
-    ranks_by_label = {
-        int(label): rank for rank, label in enumerate(canonical_labels)
-    }
-    seed_ranks = np.asarray(
-        [ranks_by_label[int(labels[tuple(point)])] for point in seed_points],
+    if not seed_points.size or not candidate_points.size:
+        return source_labels
+    seed_labels = np.asarray(
+        source_labels[seed_points[:, 0], seed_points[:, 1]],
         dtype=np.int64,
     )
-    for component in sorted({int(value) for value in seed_components}):
-        local_seed = seed_components == component
-        local_candidate = candidate_components == component
-        if not np.any(local_candidate):
-            continue
-        points = np.asarray(candidate_points[local_candidate], dtype=np.int64)
-        _, owner_ranks = _nearest_canonical_seed_ranks(
-            cast(_NearestSeedTree, cKDTree(seed_points[local_seed])),
-            points,
-            seed_ranks[local_seed],
-        )
-        output[points[:, 0], points[:, 1]] = canonical_labels[owner_ranks]
-    return output
+    points = np.asarray(candidate_points, dtype=np.int64)
+    _, owners = _nearest_canonical_seed_ranks(
+        cast(_NearestSeedTree, cKDTree(seed_points)),
+        points,
+        seed_labels,
+    )
+    source_labels[points[:, 0], points[:, 1]] = owners.astype(
+        np.int32, copy=False
+    )
+    return source_labels
 
 
 def expand_source_measurement_labels(

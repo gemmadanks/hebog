@@ -298,6 +298,9 @@ that only one round reads would cost a generation for nothing.
 | Cross-parent loops and extended residual | support-feature window + margin | residual, RMS, validity, `measurement-support`, `component-measurement-labels`, the sharded fit records | extended group records and grouping evidence |
 | Scale feature labels | core, halo 0 | the reconciled per-scale mappings | `scale-{order}-labels` |
 | Hierarchy overlaps | core, halo 0, then one feature's window plus its B3 footprint | `component-direct-labels`, `valid-pixels`, `reconstruction-mask`, the scale label planes | component, feature, support and envelope overlap records |
+| Source labels | core, halo 0 | `component-measurement-labels`, the sharded owner-to-source map | `source-labels` |
+| Source support | core, halo 0, then one connected support component's window | `source-labels`, `persistent-scale-support`, `measurement-support` | support island summaries, then owner patches, then `source-measurement-labels` |
+| Source apertures | core, halo 1.5 beams | `source-measurement-labels` | `source-aperture-labels` |
 | Source rows | source window + 1.5-beam aperture | image, background, validity, source labels, position signal | catalogue shards |
 
 Component numbering is canonical because the driver offsets each parent's
@@ -360,6 +363,22 @@ stored position signal, and merged as catalogue shards through the existing
 hierarchical reduction. Row order in the published catalogue is canonical, by
 source identity, not by completion order. Measurement dispositions and support
 stages accompany the rows as records, not as planes.
+
+The catalogue holds one global step, and it is the same shape as pass D's
+others. `assign_persistent_source_support` labels the union of the source
+seeds and the persistent support, then assigns each unseeded pixel of a
+connected component to its nearest source seed, breaking an exact tie towards
+the smaller source label. The labelling spans tiles and must be reconciled;
+the assignment does not, because a component's candidates and seeds both lie
+inside its own bounds. `assign_connected_source_support` is that per-component
+step, and the whole-plane function is it in a loop, which keeps the serial
+oracle exact by construction. Tie-breaking needs no global table: ranking the
+seeds by canonical source identity and taking the smallest rank among tied
+neighbours is the same as taking the smallest label, which one window knows.
+
+Everything else the catalogue does is per core or per object: mapping owners
+to source labels, expanding apertures by the reviewed 1.5-beam radius, and
+measuring each component's and each source's moments inside its own window.
 
 ### A small image stays one tile
 

@@ -23754,3 +23754,33 @@ the per-worker placement finding.
 - **Cost.** Quick-check wall time 214 → 204 s (`m2-scale-records`), no
   regression against `m2-association-final`. Removing the labellings paid
   for the extra round.
+
+## 2026-09-20 — M2: the catalogue's one global step is separated
+
+- **What this is.** Preparation for the continuum catalogue, the last of
+  ADR-008's pass D. Reading it found one step whose work unit is global:
+  `assign_persistent_source_support` labels the union of the source seeds and
+  the persistent support, then assigns each unseeded pixel of a connected
+  component to its nearest source seed. The labelling spans tiles; the
+  assignment does not, because a component's candidates and seeds both lie
+  inside its own bounds.
+- **The split.** `assign_connected_source_support` is that per-component
+  step, and the whole-plane function is it in a loop, so the serial oracle
+  stays exact by construction rather than by agreement.
+- **Tie-breaking needs no global table.** The installed code ranked every
+  source label in the image and resolved an exact distance tie towards the
+  smallest rank. Ranking is monotone in the label, so taking the smallest
+  label among tied neighbours is the same decision, and one window knows it.
+  That removes the only reason the step needed the whole plane.
+- **Evidence.** 163 tests across `test_extended_measurement`,
+  `test_extended_emission_measurement`,
+  `test_reconstructed_source_measurement` and
+  `test_source_catalogue_repairs` pass unchanged, which is what establishes
+  the split is behaviour-preserving.
+- **What remains.** The catalogue stage itself. ADR-008 now names its rounds:
+  source labels from the sharded owner-to-source map; support island
+  summaries, then per-component owner patches, then the source measurement
+  labels;
+  apertures at the reviewed 1.5-beam halo; and the component and source rows,
+  each measured inside its own window. Everything but the support labelling
+  is per core or per object.
