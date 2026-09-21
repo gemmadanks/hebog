@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import replace
 from math import cos, isfinite, log, pi, sqrt
 
@@ -809,4 +810,134 @@ def transform_compact_fit_at_tangent(  # noqa: PLR0913
         deconvolved_shape=deconvolution.shape,
         deconvolved_major_fwhm_degrees=(deconvolution.major_axis_fwhm_degrees),
         quality_flags=tuple(sorted(flags)),
+    )
+
+
+def local_tangent_plane_transforms_from_wcs(
+    celestial_wcs: WCS,
+    positions_xy: Sequence[tuple[float, float]],
+) -> tuple[LocalTangentPlaneTransform, ...]:
+    """Return one ICRS tangent transform per position, in one conversion.
+
+    Equivalent to :func:`local_tangent_plane_transform_from_wcs` at each
+    position, and exact rather than approximate: Astropy applies the same
+    element-wise transform whether it is given one coordinate or many, so
+    the sampled sky positions are bit-for-bit those of the single-position
+    calls. Its cost is the per-call frame machinery, which one conversion
+    pays once instead of once per measured object.
+    """
+    if not celestial_wcs.has_celestial:
+        raise ValueError("astrometry requires a celestial WCS")
+    if not positions_xy:
+        return ()
+    wcs = celestial_wcs.celestial
+    step = _FINITE_DIFFERENCE_STEP_PIXELS
+    xs = np.asarray([x for x, _ in positions_xy], dtype=np.float64)
+    ys = np.asarray([y for _, y in positions_xy], dtype=np.float64)
+    count = xs.size
+    sampled = wcs.pixel_to_world(
+        np.concatenate((xs, xs + step, xs - step, xs, xs)),
+        np.concatenate((ys, ys, ys, ys + step, ys - step)),
+    ).icrs
+    centers = sampled[:count]
+    offsets = [
+        centers.spherical_offsets_to(
+            sampled[index * count : (index + 1) * count]
+        )
+        for index in range(1, 5)
+    ]
+    east_degrees = [offset[0].degree for offset in offsets]
+    north_degrees = [offset[1].degree for offset in offsets]
+    right_ascension = centers.ra.degree % 360.0
+    declination = centers.dec.degree
+    return tuple(
+        LocalTangentPlaneTransform(
+            position=SkyPosition(
+                right_ascension_degrees=float(right_ascension[index]),
+                declination_degrees=float(declination[index]),
+                right_ascension_error_degrees=None,
+                declination_error_degrees=None,
+            ),
+            jacobian_degrees_per_pixel=(
+                (
+                    float(
+                        (east_degrees[0][index] - east_degrees[1][index])
+                        / (2.0 * step)
+                    ),
+                    float(
+                        (east_degrees[2][index] - east_degrees[3][index])
+                        / (2.0 * step)
+                    ),
+                ),
+                (
+                    float(
+                        (north_degrees[0][index] - north_degrees[1][index])
+                        / (2.0 * step)
+                    ),
+                    float(
+                        (north_degrees[2][index] - north_degrees[3][index])
+                        / (2.0 * step)
+                    ),
+                ),
+            ),
+        )
+        for index in range(count)
+    )
+
+
+def restoring_beams_in_icrs(
+    beam: RestoringBeam,
+    celestial_wcs: WCS,
+    positions_xy: Sequence[tuple[float, float]],
+) -> tuple[RestoringBeam, ...]:
+    """Rotate one native beam into local ICRS axes at several positions.
+
+    Equivalent to :func:`restoring_beam_in_icrs` at each position, for the
+    same reason :func:`local_tangent_plane_transforms_from_wcs` is: the
+    offset and position-angle transforms are element-wise.
+    """
+    if not celestial_wcs.has_celestial:
+        raise ValueError("beam geometry requires a celestial WCS")
+    # Validate the frame before the empty batch returns, so an unsupported
+    # one fails closed whether or not this batch holds an object.
+    frame = wcs_to_celestial_frame(celestial_wcs)
+    if frame.name not in {"icrs", "fk5"}:
+        raise ValueError("beam geometry requires an ICRS or FK5 celestial WCS")
+    if not positions_xy:
+        return ()
+    if frame.name == "icrs":
+        return (beam,) * len(positions_xy)
+    centers = celestial_wcs.celestial.pixel_to_world(
+        np.asarray([x for x, _ in positions_xy], dtype=np.float64),
+        np.asarray([y for _, y in positions_xy], dtype=np.float64),
+    )
+    directions = centers.directional_offset_by(
+        beam.position_angle_degrees * u.deg, 1.0 * u.arcsec
+    )
+    angles = centers.icrs.position_angle(directions.icrs).deg % 180.0
+    return tuple(
+        replace(beam, position_angle_degrees=float(angle)) for angle in angles
+    )
+
+
+def compact_geometries_from_wcs(
+    beam: RestoringBeam,
+    celestial_wcs: WCS,
+    positions_xy: Sequence[tuple[float, float]],
+) -> tuple[CompactMeasurementGeometry, ...]:
+    """Transform beam and pixels for several positions in one conversion.
+
+    Equivalent to :func:`compact_geometry_from_wcs` at each position. One
+    conversion pays Astropy's per-call frame machinery once rather than once
+    per measured object, which dominates it at these window sizes.
+    """
+    return tuple(
+        compact_geometry_from_transform(rotated, transform)
+        for rotated, transform in zip(
+            restoring_beams_in_icrs(beam, celestial_wcs, positions_xy),
+            local_tangent_plane_transforms_from_wcs(
+                celestial_wcs, positions_xy
+            ),
+            strict=True,
+        )
     )

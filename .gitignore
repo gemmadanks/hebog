@@ -213,3 +213,6 @@ tmp/
 
 !tests/data/**/*.fits
 !tests/data/**/*.fits.gz
+
+# Nested agent worktrees: a whole second checkout, never a repository file
+.claude/worktrees/

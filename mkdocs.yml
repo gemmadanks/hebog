@@ -79,6 +79,7 @@ nav:
       - Scientific comparison reports: reference/scientific-comparison.md
       - Evidence documents: reference/evidence-documents.md
       - Performance and scalability contracts: reference/performance-scalability-contracts.md
+      - Where Hebog spends its time: reference/performance-profile.md
       - Compact deblending: reference/compact-deblending.md
       - Extended-emission measurement: reference/extended-emission-measurement.md
       - Compact moment measurement: reference/compact-measurement.md

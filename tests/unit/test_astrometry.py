@@ -17,11 +17,16 @@ from astropy.wcs import WCS
 from hebog.algorithms import astrometry
 from hebog.algorithms.astrometry import (
     celestial_wcs_from_header_text,
+    compact_geometries_from_wcs,
     compact_geometry_at_pixel,
+    compact_geometry_from_wcs,
     deconvolve_gaussian_shapes,
     local_tangent_plane_transform,
     local_tangent_plane_transform_from_wcs,
+    local_tangent_plane_transforms_from_wcs,
     moment_equivalent_gaussian_shape,
+    restoring_beam_in_icrs,
+    restoring_beams_in_icrs,
     transform_compact_gaussian_fit,
 )
 from hebog.data_models.astrometry import CelestialCompactGaussianFit
@@ -866,3 +871,137 @@ def test_header_text_rebuilds_a_bit_identical_celestial_wcs() -> None:
     assert not np.array_equal(
         cycled.wcs_world2pix(sky, 0), expected.wcs_world2pix(sky, 0)
     )
+
+
+def _fk5_celestial_wcs() -> WCS:
+    """Return an FK5 WCS, so the beam rotation does real work."""
+    wcs = WCS(naxis=2)
+    wcs.wcs.ctype = ["RA---TAN", "DEC--TAN"]
+    wcs.wcs.cunit = ["deg", "deg"]
+    wcs.wcs.crpix = [50.0, 40.0]
+    wcs.wcs.crval = [83.0, -5.0]
+    wcs.wcs.cd = np.diag([-0.001, 0.001])
+    wcs.wcs.equinox = 2000.0
+    wcs.wcs.radesys = "FK5"
+    return wcs
+
+
+def _sample_positions() -> tuple[tuple[float, float], ...]:
+    """Return positions spread across the plane, including its corners."""
+    generator = np.random.default_rng(11)
+    scattered = zip(
+        generator.uniform(1.0, 99.0, 24),
+        generator.uniform(1.0, 79.0, 24),
+        strict=True,
+    )
+    return (
+        (0.0, 0.0),
+        (99.0, 79.0),
+        (49.5, 39.5),
+        *((float(x), float(y)) for x, y in scattered),
+    )
+
+
+def test_batched_tangent_transforms_equal_one_call_each() -> None:
+    """Batching only amortises Astropy's per-call frame machinery.
+
+    Astropy applies the same element-wise transform to one coordinate or to
+    many, so the batch must agree exactly, not approximately.
+    """
+    wcs = _fk5_celestial_wcs()
+    positions = _sample_positions()
+
+    batched = local_tangent_plane_transforms_from_wcs(wcs, positions)
+
+    assert len(batched) == len(positions)
+    assert batched == tuple(
+        local_tangent_plane_transform_from_wcs(wcs, position)
+        for position in positions
+    )
+
+
+def test_batched_beam_rotations_equal_one_call_each() -> None:
+    """The FK5 beam rotation must agree exactly across the batch."""
+    wcs = _fk5_celestial_wcs()
+    beam = RestoringBeam(
+        major_fwhm_degrees=0.004,
+        minor_fwhm_degrees=0.002,
+        position_angle_degrees=37.0,
+    )
+    positions = _sample_positions()
+
+    batched = restoring_beams_in_icrs(beam, wcs, positions)
+
+    assert {rotated.position_angle_degrees for rotated in batched} != {
+        beam.position_angle_degrees
+    }, "an FK5 WCS must actually rotate the beam"
+    assert batched == tuple(
+        restoring_beam_in_icrs(beam, wcs, position) for position in positions
+    )
+
+
+def test_batched_geometries_equal_one_call_each() -> None:
+    """The composed geometry must agree exactly across the batch."""
+    wcs = _fk5_celestial_wcs()
+    beam = RestoringBeam(
+        major_fwhm_degrees=0.004,
+        minor_fwhm_degrees=0.002,
+        position_angle_degrees=37.0,
+    )
+    positions = _sample_positions()
+
+    assert compact_geometries_from_wcs(beam, wcs, positions) == tuple(
+        compact_geometry_from_wcs(beam, wcs, position)
+        for position in positions
+    )
+
+
+def test_batched_astrometry_of_no_positions_is_empty() -> None:
+    """A batch with no objects must not reach Astropy at all."""
+    wcs = _fk5_celestial_wcs()
+    beam = RestoringBeam(
+        major_fwhm_degrees=0.004,
+        minor_fwhm_degrees=0.002,
+        position_angle_degrees=37.0,
+    )
+
+    assert local_tangent_plane_transforms_from_wcs(wcs, ()) == ()
+    assert restoring_beams_in_icrs(beam, wcs, ()) == ()
+    assert compact_geometries_from_wcs(beam, wcs, ()) == ()
+
+
+def test_batched_astrometry_requires_a_celestial_wcs() -> None:
+    """A batch must fail closed exactly as one position does."""
+    beam = RestoringBeam(
+        major_fwhm_degrees=0.004,
+        minor_fwhm_degrees=0.002,
+        position_angle_degrees=37.0,
+    )
+    with pytest.raises(ValueError, match="celestial"):
+        local_tangent_plane_transforms_from_wcs(WCS(), ((0.0, 0.0),))
+    with pytest.raises(ValueError, match="celestial"):
+        restoring_beams_in_icrs(beam, WCS(), ((0.0, 0.0),))
+
+
+def test_batched_beam_rotation_rejects_an_unsupported_frame() -> None:
+    """An unsupported frame fails closed even when the batch is empty.
+
+    The frame is a property of the WCS, not of the objects in one batch, so
+    an empty batch must not be a way to pass an unsupported one.
+    """
+    wcs = WCS(naxis=2)
+    wcs.wcs.ctype = ["GLON-TAN", "GLAT-TAN"]
+    wcs.wcs.cunit = ["deg", "deg"]
+    wcs.wcs.crpix = [50.0, 40.0]
+    wcs.wcs.crval = [120.0, 30.0]
+    wcs.wcs.cd = np.diag([-0.001, 0.001])
+    beam = RestoringBeam(
+        major_fwhm_degrees=0.004,
+        minor_fwhm_degrees=0.002,
+        position_angle_degrees=37.0,
+    )
+
+    with pytest.raises(ValueError, match="ICRS or FK5"):
+        restoring_beams_in_icrs(beam, wcs, ())
+    with pytest.raises(ValueError, match="ICRS or FK5"):
+        restoring_beams_in_icrs(beam, wcs, ((10.0, 10.0),))

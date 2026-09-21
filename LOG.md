@@ -24062,3 +24062,43 @@ the per-worker placement finding.
   Across the four changes of 21 September the same anchors move 23.5 → 17.1 s
   and 323.5 → 153.1 s, so the convergence regression is closed and the
   quick check's sixteen cases stand at 155 s against 221 s this morning.
+
+## 2026-09-21 — M2: the astrometry transforms a batch, not a source
+
+- **What this is.** The largest cost the `m2-fitting` profile ranks at
+  `8646901`, and the point at which the bottleneck row stops for now.
+- **Where it went.** Fitting is 15–17% of the crowded SDC1 runs, and
+  `compact_geometry_from_wcs` is 26.5% of it at 6.4 ms a call. Tracing the
+  callers found the same two helpers called 11,046 times in one run — 6,113
+  from `_moment_shape_fields`, 3,307 from `_fitted_component_row` and 1,626
+  from the fit — with Astropy's coordinate machinery 14.3% of self time.
+  The cost is its per-call frame handling, not arithmetic: `SkyCoord`
+  attribute access alone was 23.8 s.
+- **Why batching is exact.** Astropy applies the same element-wise transform
+  to one coordinate or to many. That was verified before any production
+  code: 200 random positions agree bit for bit, and
+  `tests/unit/test_astrometry.py` now pins each batched helper against its
+  single-position counterpart, failing on a perturbation of `1e-12`.
+- **The change.** `local_tangent_plane_transforms_from_wcs`,
+  `restoring_beams_in_icrs` and `compact_geometries_from_wcs` convert a whole
+  batch at once. The fit stage derives every parent's geometry per batch, and
+  `measure_fit_parent_components` takes that geometry rather than a `WCS` and
+  a beam, which were only ever used to build it. `_apply_component_measurements`
+  transforms all its fitted centroids together.
+- **A defect this found.** The first batched beam rotation returned early for
+  an empty batch before validating the frame, so an unsupported frame would
+  have passed silently on a batch with no objects. The frame belongs to the
+  WCS, not the batch, so it is now validated first and has its own test.
+- **What was measured and not changed.** `wcs.celestial` is reconstructed on
+  every call and is bitwise redundant when the WCS is already celestial, but
+  it is only about 0.9 s of a 157 s run, below the bar this row has been
+  holding to. It is recorded rather than taken.
+- **Evidence.** Products are bitwise identical on SDC1 crowded and LoTSS
+  dense, and the quick science check's sixteen cases report no regression
+  against the `9866a1b` baseline.
+- **Where the row stops.** The remaining 6,113 transforms are in the row
+  builder, whose position is a measured centroid rather than a window centre,
+  so batching them needs the builder split into a measure pass and a
+  transform pass. That is the largest single remaining item and is recorded
+  in [where Hebog spends its time](../docs/reference/performance-profile.md)
+  rather than started here.

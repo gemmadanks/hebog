@@ -19,8 +19,10 @@ from astropy.wcs import WCS
 from hebog.algorithms.astrometry import (
     deconvolve_gaussian_shapes,
     local_tangent_plane_transform_from_wcs,
+    local_tangent_plane_transforms_from_wcs,
     moment_equivalent_gaussian_shape,
     restoring_beam_in_icrs,
+    restoring_beams_in_icrs,
     transform_compact_fit_at_tangent,
 )
 from hebog.algorithms.component_measurement import ComponentMeasurements
@@ -32,6 +34,7 @@ from hebog.algorithms.extended_measurement import (
     measure_detected_segment_position,
 )
 from hebog.algorithms.label_groups import label_windows
+from hebog.data_models.astrometry import LocalTangentPlaneTransform
 from hebog.data_models.catalogues import GaussianShape
 from hebog.data_models.fitting import ValidCompactGaussianFit
 from hebog.data_models.images import RestoringBeam
@@ -785,18 +788,15 @@ def _validated_source_label_plane(
 def _fitted_component_row(
     index: int,
     fitted: ValidCompactGaussianFit,
-    header: fits.Header,
-    wcs: WCS,
+    beam: RestoringBeam,
+    tangent: LocalTangentPlaneTransform,
 ) -> CatalogueSource:
-    """Publish native model measurements, not threshold-truncated moments."""
-    beam = RestoringBeam(
-        cast(float, header["BMAJ"]),
-        cast(float, header["BMIN"]),
-        cast(float, header.get("BPA", 0.0)),
-    )
-    position = fitted.parameters.centroid_xy
-    tangent = local_tangent_plane_transform_from_wcs(wcs, position)
-    beam = restoring_beam_in_icrs(beam, wcs, position)
+    """Publish native model measurements, not threshold-truncated moments.
+
+    ``beam`` and ``tangent`` are this fit's own local geometry, which the
+    caller derives for every fit in one conversion; see
+    :func:`~hebog.algorithms.astrometry.local_tangent_plane_transforms_from_wcs`.
+    """
     sky = transform_compact_fit_at_tangent(fitted, beam, tangent)
     return CatalogueSource(
         identifier=f"hebog-segment-{index}",
@@ -830,12 +830,32 @@ def _apply_component_measurements(
         return sources, set()
     # Parse the header once: each WCS parse repeats Astropy header fixes.
     wcs = WCS(header, relax=True).celestial
-    replacements = {
-        f"hebog-segment-{index}": _fitted_component_row(
-            index, fitted, header, wcs
-        )
+    native_beam = RestoringBeam(
+        cast(float, header["BMAJ"]),
+        cast(float, header["BMIN"]),
+        cast(float, header.get("BPA", 0.0)),
+    )
+    fitted_rows = tuple(
+        (index, fitted)
         for index, fitted in measurements.fits
         if isinstance(fitted, ValidCompactGaussianFit)
+    )
+    # One conversion for every fit. Astropy pays its frame machinery per
+    # call, so transforming each centroid on its own costs more here than
+    # the rest of the catalogue together.
+    positions = tuple(
+        fitted.parameters.centroid_xy for _, fitted in fitted_rows
+    )
+    replacements = {
+        f"hebog-segment-{index}": _fitted_component_row(
+            index, fitted, beam, tangent
+        )
+        for (index, fitted), beam, tangent in zip(
+            fitted_rows,
+            restoring_beams_in_icrs(native_beam, wcs, positions),
+            local_tangent_plane_transforms_from_wcs(wcs, positions),
+            strict=True,
+        )
     }
     return (
         tuple(

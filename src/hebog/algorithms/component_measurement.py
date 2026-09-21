@@ -54,6 +54,7 @@ from hebog.data_models.fitting import (
     ValidCompactGaussianFit,
 )
 from hebog.data_models.images import RestoringBeam
+from hebog.data_models.measurement import CompactMeasurementGeometry
 from hebog.data_models.measurement_diagnostics import AssociationEvidenceKind
 from hebog.data_models.partitioning import ImageBounds
 
@@ -1087,8 +1088,7 @@ def measure_fit_parent_components(  # noqa: PLR0913, PLR0917
     fit_parent_window: np.ndarray,
     direct_window: np.ndarray,
     measurement_window: np.ndarray,
-    wcs: WCS,
-    beam: RestoringBeam,
+    geometry: CompactMeasurementGeometry,
     moment_config: CompactMomentConfig,
     fit_config: CompactGaussianFitConfig,
     *,
@@ -1108,6 +1108,13 @@ def measure_fit_parent_components(  # noqa: PLR0913, PLR0917
     around it; no decision here reads further, so one task can measure one
     fit parent exactly. A parent whose window exceeds the admitted bound is
     deferred rather than fitted on truncated pixels.
+
+    ``geometry`` is the caller's local beam and pixel geometry at the centre
+    of ``bounds``, as
+    :func:`~hebog.algorithms.astrometry.compact_geometries_from_wcs` builds
+    it for a whole batch at once. Deriving it here instead would pay
+    Astropy's per-call frame machinery once per parent, which costs more
+    than the fit.
     """
     if np.prod(bounds.shape_yx) > maximum_bounds_pixels:
         return FitParentMeasurement(deferred=True)
@@ -1151,11 +1158,6 @@ def measure_fit_parent_components(  # noqa: PLR0913, PLR0917
         local_valid,
         seeds,
     )
-    center_xy = (
-        (bounds.x_start + bounds.x_stop - 1) / 2,
-        (bounds.y_start + bounds.y_stop - 1) / 2,
-    )
-    geometry = compact_geometry_from_wcs(beam, wcs, center_xy)
     moments = measure_compact_moments(compact, geometry, moment_config)[1:]
     # These are native component measurements, not Gaussian source
     # surrogates. Apply the already configured component extension rule
@@ -1336,8 +1338,14 @@ def measure_component_models(  # noqa: PLR0913, PLR0917
             parents[window],
             direct_labels[window],
             measurement_labels[window],
-            wcs,
-            beam,
+            compact_geometry_from_wcs(
+                beam,
+                wcs,
+                (
+                    (bounds.x_start + bounds.x_stop - 1) / 2,
+                    (bounds.y_start + bounds.y_stop - 1) / 2,
+                ),
+            ),
             moment_config,
             fit_config,
             parent_index=parent_index,

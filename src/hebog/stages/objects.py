@@ -27,7 +27,10 @@ import numpy.typing as npt
 from scipy.ndimage import binary_dilation
 from scipy.ndimage import label as ndimage_label
 
-from hebog.algorithms.astrometry import celestial_wcs_from_header_text
+from hebog.algorithms.astrometry import (
+    celestial_wcs_from_header_text,
+    compact_geometries_from_wcs,
+)
 from hebog.algorithms.component_measurement import (
     FitParentMeasurement,
     SupportFeatureGroups,
@@ -1465,6 +1468,14 @@ def _fit_batch_bounds(parents: list[_FitParentExtent]) -> ImageBounds:
     return bounds
 
 
+def _window_center_xy(bounds: ImageBounds) -> tuple[float, float]:
+    """Return the centre pixel of one window, in global x and y."""
+    return (
+        (bounds.x_start + bounds.x_stop - 1) / 2,
+        (bounds.y_start + bounds.y_stop - 1) / 2,
+    )
+
+
 def _fit_batch(  # noqa: PLR0913
     batch: _FitBatch,
     *,
@@ -1524,8 +1535,19 @@ def _fit_batch(  # noqa: PLR0913
             ),
             dtype=np.int32,
         )
+        # One conversion for the batch. Astropy pays its frame machinery per
+        # call, not per position, so deriving each parent's geometry inside
+        # the fit costs more than the fit does.
+        geometries = compact_geometries_from_wcs(
+            beam,
+            wcs,
+            tuple(
+                _window_center_xy(parent.read_bounds)
+                for parent in batch.parents
+            ),
+        )
         measured: list[tuple[int, FitParentMeasurement]] = []
-        for parent in batch.parents:
+        for parent, geometry in zip(batch.parents, geometries, strict=True):
             crop = _crop(bounds, parent.read_bounds)
             measured.append(
                 (
@@ -1537,8 +1559,7 @@ def _fit_batch(  # noqa: PLR0913
                         fit_parents[crop],
                         direct[crop],
                         measurement[crop],
-                        wcs,
-                        beam,
+                        geometry,
                         config.moment,
                         config.fit,
                         parent_index=parent.parent_index,
