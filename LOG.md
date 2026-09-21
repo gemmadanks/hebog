@@ -23896,3 +23896,57 @@ the per-worker placement finding.
   conversion but the envelope: the driver still reads whole planes from the
   store to hand the composition its image, background and RMS, and M2's
   bottleneck row still owns the 235 s against 135.6 s before the convergence.
+
+## 2026-09-21 — M2: the first two profiled bottlenecks in the tiled kernels
+
+- **What this is.** M2's bottleneck row, opened with a complete-path profile
+  at `9866a1b` (`m2-bottleneck-baseline`, eight clean cases; the two SDC1
+  cases that started after the first edit were discarded). It ranks two
+  costs, and this entry removes both.
+- **The profile.** Store I/O is 19–49% of every case: `_io.open` alone is
+  2.1–9.5 s, and `posix.replace` 0.7–2.5 s. `_label_extents` is 23% of the
+  dense 2,048² case (33.2 s of 142.1 s) and 7% of dense 1,024², growing as
+  label count times core area.
+- **A hypothesis the evidence refuted.** The obvious repair for repeated
+  chunk decodes is a session-scoped cache. Counting decodes showed 420 of
+  438 were already the first in their session: the redundancy is across 377
+  short sessions, not within them, so that cache would have bought nothing.
+  The cost is per-session metadata, not re-read data.
+- **What the store was actually doing.** Counting every `LocalStore` call on
+  dense 1,024² gave 6,138 gets: 2,906 chunks, 1,037 `zarr.json`, 385
+  completion manifests and **1,810 `.zarray`/`.zattrs` probes that always
+  miss**, because `_open_array` did not name the Zarr format. Of 513 puts,
+  282 were `zarr.json`: `initialize_product` assigned five group attributes
+  one at a time and each assignment is a separate atomic metadata write.
+- **The two changes.** `algorithms/label_groups.py` gains `label_extents`,
+  which describes every positive label in one pass over the labelled pixels;
+  it sits beside `group_labelled_pixels`, which could not serve because it
+  requires dense labels `1..n` and these are sparse global labels.
+  `_open_array` names `zarr_format=3`, and the group attributes are written
+  once, and only when one is stale.
+- **Counted effect.** Store gets 6,138 → 4,328 (every v2 probe gone) and
+  puts 513 → 315, with `zarr.json` writes 282 → 84.
+- **Measured effect.** On `sdc1-b2-1000h-crowded-2048`, both endpoints
+  measured the same morning: 323.5 s at `9866a1b` → 250.5 s with the label
+  pass → 237.8 s with the store change, −26.5% overall, and the ratio to
+  v0.12.0 falls from 1.87 to 1.37. `sdc1-b2-1000h-crowded` 60.8 → 53.8 s,
+  1.63 → 1.44.
+- **Evidence.** 1,972 unit and contract tests and 660 integration tests
+  pass, and the quick science check's sixteen cases report no regression
+  against `m2-catalogue-rows`. `label_extents` is compared with the per-label
+  scan it replaces on six random sparse-label planes; both store changes have
+  a test that fails without them, one asserting no v2 probe on an array open
+  and one that re-initializing an unchanged product writes nothing.
+- **Evidence not established, and why.** The per-change split on the three
+  1,024² anchors is not reported. Those runs were measured at load average
+  4.0 with an endpoint-security scanner at 51% CPU and unrelated editor
+  processes at 40%+, which the performance contract forbids, and the split
+  they give is mechanically impossible (the label pass appears to cost 7% on
+  three anchors while saving 23% on a fourth, though it strictly removes
+  work). The combined `9866a1b` → both-changes figures above are between two
+  runs of that same morning and the effects are far outside that noise; the
+  1,024² attribution needs a quiet-machine re-run before it is quoted.
+- **A machine-specific coupling worth knowing.** The scanner was the top
+  consumer of CPU and the benchmark creates thousands of small store files,
+  so part of the store change's local benefit is reduced scanning. That is
+  real on this machine and not a portable speedup claim.

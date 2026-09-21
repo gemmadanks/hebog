@@ -187,13 +187,16 @@ class ZarrProductSink:
             "partition_schema_version": self._manifest.schema_version,
             "generation_id": self._generation_id,
         }
+        stale = False
         for name, expected in expected_group_attributes.items():
             existing = group.attrs.get(name)
             if existing is not None and existing != expected:
                 raise InvalidProductChunkError(
                     f"Zarr group attribute {name!r} conflicts with manifest"
                 )
-            group.attrs[name] = expected
+            stale = stale or existing != expected
+        if stale:
+            group.update_attributes(expected_group_attributes)
 
         if product_name in group:
             self._require_array_metadata(
@@ -279,6 +282,7 @@ class ZarrProductSink:
                 store=LocalStore(self._root),
                 path=product_name,
                 mode="r+",
+                zarr_format=_ZARR_FORMAT,
             )
         except (ArrayNotFoundError, FileNotFoundError) as error:
             raise InvalidProductChunkError(

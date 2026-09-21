@@ -20,6 +20,7 @@ import numpy.typing as npt
 import pytest
 import zarr
 from zarr.errors import ChunkNotFoundError
+from zarr.storage import _local
 
 from hebog.data_models import (
     ImageBounds,
@@ -929,3 +930,64 @@ def test_read_rejects_noncanonical_or_wrong_generation_metadata(
     marker.write_bytes(other_partition_generation.canonical_json_bytes())
     with pytest.raises(InvalidProductGenerationError, match="partition"):
         sink.read_generation()
+
+
+def _counted_store_keys(
+    monkeypatch: pytest.MonkeyPatch,
+) -> tuple[list[str], list[str]]:
+    """Record the name of every store file the sink reads and writes."""
+    reads: list[str] = []
+    writes: list[str] = []
+    original_get = _local._get
+    original_put = _local._put
+
+    def counting_get(path: Path, prototype: Any, byte_range: Any) -> Any:
+        reads.append(path.name)
+        return original_get(path, prototype, byte_range)
+
+    def counting_put(path: Path, value: Any, exclusive: bool = False) -> Any:
+        writes.append(path.name)
+        return original_put(path, value, exclusive)
+
+    monkeypatch.setattr(_local, "_get", counting_get)
+    monkeypatch.setattr(_local, "_put", counting_put)
+    return reads, writes
+
+
+def test_opening_a_product_never_probes_for_zarr_2_metadata(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The sink writes only Zarr v3, so a v2 probe is a guaranteed miss.
+
+    Without an explicit format every array open reads ``.zarray`` and
+    ``.zattrs`` first, which on a complete run is thousands of failed file
+    opens for metadata that can never exist.
+    """
+    sink = _sink(tmp_path)
+    sink.initialize_product(product_name="signal", dtype=np.float64)
+    reads, _ = _counted_store_keys(monkeypatch)
+
+    sink._open_array("signal")
+
+    assert reads, "opening a product must read its metadata"
+    assert ".zarray" not in reads
+    assert ".zattrs" not in reads
+
+
+def test_reinitializing_a_product_writes_nothing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Validating an unchanged product must not rewrite its group metadata.
+
+    The group attributes are identical for every product of one generation.
+    Assigning them one key at a time saves the group metadata once per key,
+    so a run would pay those writes again for every product it initializes,
+    and each is a separate atomic replace.
+    """
+    sink = _sink(tmp_path)
+    sink.initialize_product(product_name="signal", dtype=np.float64)
+    _, writes = _counted_store_keys(monkeypatch)
+
+    sink.initialize_product(product_name="signal", dtype=np.float64)
+
+    assert writes == []

@@ -39,6 +39,7 @@ from hebog.algorithms.component_measurement import (
 )
 from hebog.algorithms.component_topology import deblend_parent_components
 from hebog.algorithms.detection import DetectionThresholdMasks
+from hebog.algorithms.label_groups import label_extents
 from hebog.algorithms.labelling import (
     LocalIslandTileSummary,
     label_detection_tile,
@@ -263,26 +264,28 @@ def _label_extents(
     bounds: ImageBounds,
 ) -> dict[int, tuple[ImageBounds, tuple[int, int]]]:
     """Return each label's bounds and first pixel inside one owned core."""
-    extents: dict[int, tuple[ImageBounds, tuple[int, int]]] = {}
-    present = np.unique(labels)
-    for value in present:
-        label_value = int(value)
-        if label_value <= 0:
-            continue
-        rows, columns = np.nonzero(labels == label_value)
-        extents[label_value] = (
+    extents = label_extents(labels)
+    return {
+        int(value): (
             ImageBounds(
-                bounds.y_start + int(rows.min()),
-                bounds.y_start + int(rows.max()) + 1,
-                bounds.x_start + int(columns.min()),
-                bounds.x_start + int(columns.max()) + 1,
+                bounds.y_start + int(y_start),
+                bounds.y_start + int(y_stop),
+                bounds.x_start + int(x_start),
+                bounds.x_start + int(x_stop),
             ),
-            (
-                bounds.y_start + int(rows[0]),
-                bounds.x_start + int(columns[0]),
-            ),
+            (bounds.y_start + int(first_y), bounds.x_start + int(first_x)),
         )
-    return extents
+        for value, y_start, y_stop, x_start, x_stop, first_y, first_x in zip(
+            extents.values,
+            extents.y_start,
+            extents.y_stop,
+            extents.x_start,
+            extents.x_stop,
+            extents.first_y,
+            extents.first_x,
+            strict=True,
+        )
+    }
 
 
 def _scan_extents(
