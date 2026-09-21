@@ -23950,3 +23950,27 @@ the per-worker placement finding.
   consumer of CPU and the benchmark creates thousands of small store files,
   so part of the store change's local benefit is reduced scanning. That is
   real on this machine and not a portable speedup claim.
+
+## 2026-09-21 — M2: the fit-context dilation is retired as a bottleneck target
+
+- **What this is.** The remaining named target of M2's bottleneck row,
+  measured rather than repaired.
+- **The measurement.** In `m2-bottleneck-baseline`, every `binary_dilation`
+  call in a complete run costs 0.1–0.5% of it, and `_fit_context_core` with
+  `_measurement_fit_parents` together cost 0.1–0.3%: 27 ms of a 16.8 s dense
+  512², 45 ms of 39.3 s at dense 1,024², 108 ms of 165.6 s at dense 2,048².
+- **The repair that was not made.** Eight iterations of a 3×3 structure is a
+  17×17 square dilation, which `scipy.ndimage.maximum_filter` computes
+  separably. The replacement is exactly equal on random sparse masks and
+  2.2× faster on a 2,048² plane, and it was left unlanded: against a 165 s
+  run it returns about 0.03%, far under the contract's repetition noise and
+  the assessment's 10% profile share, so no before/after evidence could
+  support it.
+- **Why the target was stale.** It was named from the M1 profile, when the
+  composition dilated whole planes. ADR-008's object pass made the context
+  a per-core operation over a bounded read, which removed the cost without
+  anyone revisiting the target.
+- **What owns the row now.** Per-pixel background refinement and local
+  noise: 7.2 s of 31.0 s at dense 1,024², 35.4 s of 142.1 s at dense 2,048²
+  and 6.2 s of 17.3 s at noise-only 1,024², the largest single cost in every
+  profiled case and untouched by the two changes in `08bb1ab`.
