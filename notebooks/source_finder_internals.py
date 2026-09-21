@@ -1388,13 +1388,6 @@ def _(
         "combined-snr",
         multiscale_bounds,
     )
-    multiscale_reconstructed_snr = (
-        _multiscale_sink.read_completed_window(
-            "reconstructed-signal",
-            multiscale_bounds,
-        )
-        / multiscale_rms
-    )
     multiscale_position_snr = (
         _multiscale_sink.read_completed_window(
             "position-signal",
@@ -1419,12 +1412,17 @@ def _(
         ),
         dtype=np.bool_,
     )
-    multiscale_retained_support = np.asarray(
-        _multiscale_sink.read_completed_window(
-            "retained-mask",
-            multiscale_bounds,
-        ),
-        dtype=np.bool_,
+    # The pass publishes the retained detection as labels rather than a
+    # mask, so its support is every labelled pixel.
+    multiscale_retained_support = (
+        np.asarray(
+            _multiscale_sink.read_completed_window(
+                "detection-labels",
+                multiscale_bounds,
+            ),
+            dtype=np.int32,
+        )
+        > 0
     )
     return (
         multiscale_atrous,
@@ -1435,7 +1433,6 @@ def _(
         multiscale_invalid_bounds_yxyx,
         multiscale_matched,
         multiscale_position_snr,
-        multiscale_reconstructed_snr,
         multiscale_residual,
         multiscale_retained_support,
         multiscale_scale_support,
@@ -1456,7 +1453,6 @@ def _(
     multiscale_invalid_bounds_yxyx,
     multiscale_matched,
     multiscale_position_snr,
-    multiscale_reconstructed_snr,
     multiscale_retained_support,
     multiscale_scale_support,
     multiscale_stage_result,
@@ -1465,15 +1461,14 @@ def _(
     plt,
 ):
     _evidence_figure, _evidence_axes = plt.subplots(
-        2,
-        2,
-        figsize=(13.0, 8.5),
+        1,
+        3,
+        figsize=(15.0, 4.8),
         constrained_layout=True,
     )
     _evidence_panels = (
         (multiscale_direct_snr, "Original residual S/N"),
         (multiscale_combined_snr, "Maximum seed evidence"),
-        (multiscale_reconstructed_snr, "B3 reconstructed signal / RMS"),
         (multiscale_position_snr, "Regularized position signal / RMS"),
     )
     _invalid_y_start, _invalid_y_stop, _invalid_x_start, _invalid_x_stop = (
