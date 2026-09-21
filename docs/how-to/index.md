@@ -1,7 +1,32 @@
-# Development workflows
+# Contribute to Hebog
 
-For a short introduction to the project's algorithms, decisions and testing
-process, read [how Hebog has been developed](../explanation/development-history.md).
+This page is for developers working on Hebog itself. To call Hebog from your
+own pipeline, read [Integrate Hebog into a pipeline](integrate-into-a-pipeline.md)
+instead. For orientation, read the
+[architecture overview](../architecture/index.md) and
+[how Hebog has been developed](../explanation/development-history.md). The
+repository's
+[`AGENTS.md`](https://github.com/gemmadanks/hebog/blob/main/AGENTS.md) and
+[`CODE_REVIEW.md`](https://github.com/gemmadanks/hebog/blob/main/CODE_REVIEW.md)
+hold the full working rules.
+
+## Set up a source checkout
+
+Hebog uses [uv](https://docs.astral.sh/uv/) for environments and
+[just](https://just.systems) for task recipes:
+
+```console
+git clone https://github.com/gemmadanks/hebog.git
+cd hebog
+uv sync --all-groups
+just check
+uv run hebog --version
+```
+
+`just check` formats, lints, type-checks and runs the unit tests.
+`just --list` shows every recipe, and `just ci` reproduces continuous
+integration locally. Try the demonstration notebook with
+`uv run marimo edit notebooks/source_finder_demo.py`.
 
 ## Choose the appropriate test lane
 

@@ -1,10 +1,28 @@
 # Source-finding domain model
 
-This page maps the stable boundaries around Hebog. It describes ownership and
-data flow, not a detailed class design. The terms are defined in the
-[domain glossary](../reference/domain-glossary.md), and current compatibility
-behaviour is frozen in the
-[Rapthor source-finding contract](../reference/rapthor-source-finding-contract.md).
+This page is for developers and architects. It maps the boundaries around
+Hebog in its first intended deployment, inside the Rapthor imaging pipeline.
+It describes ownership and data flow, not class design. Start with the
+[architecture overview](../architecture/index.md) if you are new to Hebog.
+
+!!! note "Target design"
+    The Rapthor integration shown here is the target. Today Hebog implements
+    the standalone scientific boundary only; see
+    [capability and status](../reference/release-status.md#integration-status).
+
+A few domain terms used below (the
+[glossary](../reference/domain-glossary.md) has the rest):
+
+- A **sky model** is a list of known sources that a calibration pipeline uses
+  to predict what the telescope should see. Rapthor's `filter_skymodel` step
+  keeps only the sky-model entries that lie on real detected emission, which
+  is why it needs a source finder's mask.
+- A telescope is less sensitive away from the centre of its field of view. A
+  **flat-noise** (apparent-sky) image has uniform noise but attenuated
+  fluxes; a **true-sky** image has corrected fluxes but noise that rises
+  towards the edge. Rapthor uses both.
+- **PyBDSF** is the source finder Rapthor uses today, and **LSMTool** is the
+  library that manipulates its sky models.
 
 ## System context
 
@@ -48,11 +66,13 @@ adapter. Their integration code does not need Rapthor, Prefect, LSMTool, or
 Dask objects when serial execution and Hebog-format products satisfy the
 workflow.
 
-ADR-006 defines versioned, domain-oriented internal schemas and keeps legacy
-product names, units, suffixes, empty behaviour, and filtering rules in outer
-compatibility adapters. Phase 1 contract tests still freeze the exact fields
-and representation. PyBDSF remains a test oracle and feature-flagged fallback,
-not a runtime dependency of Hebog's scientific kernels.
+[ADR-006](../architecture/adr/006-isolate-compatibility-with-versioned-schemas.md)
+defines versioned, domain-oriented internal schemas and keeps legacy product
+names, units, suffixes, empty behaviour, and filtering rules in outer
+compatibility adapters. The
+[Rapthor source-finding contract](../reference/rapthor-source-finding-contract.md)
+records the behaviour an adapter must reproduce. PyBDSF is a test oracle and
+a fallback inside Rapthor, never a runtime dependency of Hebog.
 
 ## Processing and data flow
 
@@ -115,7 +135,10 @@ flowchart LR
     DC --> CP
 ```
 
-ADR-005 makes the partition manifest part of the stable scientific boundary.
+[How Hebog distributes work](../architecture/distributed-execution.md)
+explains this decomposition in full.
+[ADR-005](../architecture/adr/005-scale-large-images-with-hierarchical-tiles.md)
+makes the partition manifest part of the stable scientific boundary.
 Every tile has a non-overlapping output core and a stage-specific read-only
 halo. Local maps emit bounded boundary summaries; tree reductions reconcile
 global statistics, connected labels, cross-scale sources, and stable
@@ -129,10 +152,10 @@ core containing that position; a position exactly on an internal boundary is
 owned by the core that begins there. Emission and fitting windows may cross
 cores and halos, but they do not change catalogue ownership.
 
-The physical chunk store and final large-product materialisation format remain
-Phase 0 and Phase 1 evidence-driven decisions. FITS compatibility at the
-Rapthor boundary does not require every internal stage to rewrite a complete
-FITS plane.
+Intermediate planes are stored in Zarr
+([ADR-007](../architecture/adr/007-use-zarr-for-intermediate-image-storage.md)).
+FITS compatibility at the Rapthor boundary does not require any internal stage
+to rewrite a complete FITS plane.
 
 Production nodes are expected to have hundreds of GB of RAM. Executor policy
 may use the admitted fraction for larger tile batches and bounded caches, while
@@ -162,8 +185,3 @@ execution topology, not tile ownership or scientific results.
   internal algorithm or domain model.
 - A product is not considered compatible until schema, units, empty behaviour,
   and downstream Rapthor decisions pass contract tests.
-
-A detailed executor diagram is intentionally deferred until the asynchronous
-executor contract stabilizes in Phase 6. The large-image decomposition above
-records the stable data and ownership boundaries without fixing executor
-classes or a physical chunk-store technology.
