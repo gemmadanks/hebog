@@ -32,6 +32,19 @@ class ImageBounds:
             self.x_stop - self.x_start,
         )
 
+    @property
+    def center_xy(self) -> tuple[float, float]:
+        """Return the centre of the bounded pixels, in global ``(x, y)``.
+
+        Local geometry is derived here rather than at a corner, and every
+        caller that derives it must agree, so the definition lives with the
+        bounds instead of beside each use.
+        """
+        return (
+            (self.x_start + self.x_stop - 1) / 2,
+            (self.y_start + self.y_stop - 1) / 2,
+        )
+
     def require_inside(self, shape_yx: tuple[int, int]) -> None:
         """Reject bounds extending beyond one logical image plane."""
         if self.y_stop > shape_yx[0] or self.x_stop > shape_yx[1]:

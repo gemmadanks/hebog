@@ -1468,14 +1468,6 @@ def _fit_batch_bounds(parents: list[_FitParentExtent]) -> ImageBounds:
     return bounds
 
 
-def _window_center_xy(bounds: ImageBounds) -> tuple[float, float]:
-    """Return the centre pixel of one window, in global x and y."""
-    return (
-        (bounds.x_start + bounds.x_stop - 1) / 2,
-        (bounds.y_start + bounds.y_stop - 1) / 2,
-    )
-
-
 def _fit_batch(  # noqa: PLR0913
     batch: _FitBatch,
     *,
@@ -1541,10 +1533,7 @@ def _fit_batch(  # noqa: PLR0913
         geometries = compact_geometries_from_wcs(
             beam,
             wcs,
-            tuple(
-                _window_center_xy(parent.read_bounds)
-                for parent in batch.parents
-            ),
+            tuple(parent.read_bounds.center_xy for parent in batch.parents),
         )
         measured: list[tuple[int, FitParentMeasurement]] = []
         for parent, geometry in zip(batch.parents, geometries, strict=True):

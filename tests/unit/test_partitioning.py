@@ -314,3 +314,33 @@ def test_rejects_an_incomplete_or_misordered_manifest(
     """A manifest cannot omit ownership or relabel its row-major tiles."""
     with pytest.raises(ValueError, match="tiles"):
         replace(_one_tile_manifest(), tiles=tiles)
+
+
+def test_bounds_centre_is_the_middle_of_the_bounded_pixels() -> None:
+    """Local geometry is derived at the centre, not a corner.
+
+    The centre of half-open bounds is the midpoint of the pixels they hold,
+    so an even span falls between two pixel centres and an odd span on one.
+    """
+    assert ImageBounds(0, 4, 0, 4).center_xy == (1.5, 1.5)
+    assert ImageBounds(0, 5, 0, 5).center_xy == (2.0, 2.0)
+    assert ImageBounds(10, 14, 20, 30).center_xy == (24.5, 11.5)
+    assert ImageBounds(7, 8, 3, 4).center_xy == (3.0, 7.0)
+
+
+@given(
+    y_start=st.integers(min_value=0, max_value=2_000),
+    x_start=st.integers(min_value=0, max_value=2_000),
+    height=st.integers(min_value=1, max_value=500),
+    width=st.integers(min_value=1, max_value=500),
+)
+def test_bounds_centre_is_inside_the_bounds(
+    y_start: int, x_start: int, height: int, width: int
+) -> None:
+    """The centre must lie on the bounded pixels for any span."""
+    bounds = ImageBounds(y_start, y_start + height, x_start, x_start + width)
+
+    x, y = bounds.center_xy
+
+    assert bounds.x_start <= x <= bounds.x_stop - 1
+    assert bounds.y_start <= y <= bounds.y_stop - 1

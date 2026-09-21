@@ -747,11 +747,7 @@ def _loop_groups_in_feature(  # noqa: PLR0913, PLR0917
     indexes = _feature_components(labels, feature) & by_label.keys()
     if len(indexes) < _MINIMUM_LOOP_COMPONENTS:
         return ()
-    center = (
-        (bounds.x_start + bounds.x_stop - 1) / 2,
-        (bounds.y_start + bounds.y_stop - 1) / 2,
-    )
-    geometry = compact_geometry_from_wcs(beam, wcs, center)
+    geometry = compact_geometry_from_wcs(beam, wcs, bounds.center_xy)
     covariance = geometry.restoring_beam_covariance_pixels_squared
     assert covariance is not None
     xx, xy, yy = covariance
@@ -1338,14 +1334,7 @@ def measure_component_models(  # noqa: PLR0913, PLR0917
             parents[window],
             direct_labels[window],
             measurement_labels[window],
-            compact_geometry_from_wcs(
-                beam,
-                wcs,
-                (
-                    (bounds.x_start + bounds.x_stop - 1) / 2,
-                    (bounds.y_start + bounds.y_stop - 1) / 2,
-                ),
-            ),
+            compact_geometry_from_wcs(beam, wcs, bounds.center_xy),
             moment_config,
             fit_config,
             parent_index=parent_index,
