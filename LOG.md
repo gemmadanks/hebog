@@ -24015,3 +24015,50 @@ the per-worker placement finding.
   dominated by deblending and fitting. That also controls the measurement:
   this run sat at load average 3.5 against 6-7 for its baseline, and a
   uniformly faster machine would have moved the SDC1 cases too.
+
+## 2026-09-21 — M2: object batches stop decoding a plane once per sixteen objects
+
+- **What this is.** The cost that dominated the crowded SDC1 anchors, and
+  the last of M2's convergence regression against v0.12.0.
+- **A target this corrected.** The row was entered believing deblending and
+  fitting dominated those runs. A profile of the three SDC1 crowded sizes at
+  `bd7517f` shows deblending is 0.67 s of a 51.7 s crowded 1,024² run, 1.3%,
+  and outside the top fourteen at 2,048². The earlier figure came from the
+  dense 2,048² profile taken before `08bb1ab`, and `08bb1ab` is what removed
+  it, because the one-pass label extents it introduced are what the topology
+  stage's extent scan spends its time on.
+- **What actually dominates.** Windowed Zarr reads inside the object rounds:
+  68.8 s of the 217.7 s crowded 2,048² run, 31.6%, over 4,664 reads. Row
+  measurement is 13.0% and fitting 10.7%.
+- **The mechanism.** A storage chunk holds a whole tile core, so a window
+  read decodes and revalidates every chunk it touches however little of it
+  the objects occupy, and at these sizes one chunk is the whole plane. The
+  row and source-support batches held sixteen objects, so a crowded 1,024²
+  run decoded 1,236 chunks of 25 distinct ones, 49 times over, for 4.06 GiB
+  against a 4 MB image.
+- **A conclusion this overturns.** The store entry of `08bb1ab` rejected a
+  chunk cache after finding 420 of 438 decodes were the first in their
+  session. That was the right answer to the wrong question: the redundancy
+  is across sessions, not within them, and it is the batch count that sets
+  how many sessions there are.
+- **The change.** `_OWNER_OBJECTS_PER_BATCH` 16 → 256, which is where the
+  saving flattens: decodes 1,236 → 242 and 4.06 → 0.74 GiB, while 1,024
+  returns only 0.16 GiB more. `_OWNER_BATCH_READ_PIXELS` still bounds the
+  window a batch may hold, and peak RSS is unchanged at 1.64 → 1.73 GiB on
+  the 2,048² anchor.
+- **Why it changes no value.** Batching decides which task runs, not what it
+  computes. Every published FITS plane is bitwise identical at 1, 16 and 256
+  objects a batch on generated dense 512² and 1,024², noise-only 1,024² and
+  real LoTSS data, and the row and source stages already pin that invariance
+  at one object a batch.
+- **Evidence.** 2,635 unit, contract and integration tests, 2,526 under
+  coverage at 96.63% branch-aware, and the quick science check's sixteen
+  cases with no regression against the `9866a1b` baseline.
+- **Measured effect, and where M2 now stands.** Against
+  `m2-local-noise-batches`: SDC1 crowded 2,048² 230.9 → 153.1 s and 1,024²
+  52.4 → 38.5 s, LoTSS dense 21.7 → 19.4 s, LoTSS sparse 19.8 → 18.0 s,
+  dense-field 18.3 → 17.1 s. Every anchor now passes the previous-release
+  rule and three are faster than v0.12.0: 0.95, 0.92, 0.94, 1.03 and 0.88.
+  Across the four changes of 21 September the same anchors move 23.5 → 17.1 s
+  and 323.5 → 153.1 s, so the convergence regression is closed and the
+  quick check's sixteen cases stand at 155 s against 221 s this morning.

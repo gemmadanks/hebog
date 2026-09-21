@@ -91,7 +91,13 @@ ADMITTED_TILE_CORE_PIXELS = 2048
 """Smallest tile core the scalability contract admits, in pixels."""
 _SUPPORT_TILES_PER_BATCH = 4
 _OWNER_BATCH_READ_PIXELS = 4 * 1024 * 1024
-_OWNER_OBJECTS_PER_BATCH = 16
+# One storage chunk holds a whole tile core, so a batch that reads a window
+# decodes and revalidates every chunk the window touches, whatever fraction of
+# it the objects occupy. Small batches therefore pay that decode many times
+# over: sixteen objects a batch decoded 4.06 GiB for a 4 MB crowded image,
+# against 0.74 GiB at 256, which is where the saving flattens. The read budget
+# below still bounds the window a batch may hold.
+_OWNER_OBJECTS_PER_BATCH = 256
 _DENOISED_POSITION_PEAK_TO_MEAN_RATIO = 3.0
 _ENVELOPE_PAIRS_PER_BATCH = 256
 _DETECTION_THRESHOLD_SIGMA = 5.0
