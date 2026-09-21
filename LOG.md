@@ -23974,3 +23974,44 @@ the per-worker placement finding.
   noise: 7.2 s of 31.0 s at dense 1,024², 35.4 s of 142.1 s at dense 2,048²
   and 6.2 s of 17.3 s at noise-only 1,024², the largest single cost in every
   profiled case and untouched by the two changes in `08bb1ab`.
+
+## 2026-09-21 — M2: the local-noise batch stops re-filtering its own halo
+
+- **What this is.** The largest remaining cost the `m2-bottleneck-baseline`
+  profile ranks: `refine_background_rms_grids`, 45.4 s of the 142 s dense
+  2,048² run and 36% of a noise-only 1,024² one.
+- **Where it went.** `_estimate_local_noise_grid` is 37.4 s of that 45.4 s,
+  and source protection is 58% of it: the wavelet bank 9.8 s, persistent
+  scale support 7.1 s, the guard and connected protection 3.4 s. Each is
+  re-derived once per noise batch.
+- **The measurement that named the defect.** A batch reads its own cells
+  plus the protection halo, and the halo is about 200 pixels a side against
+  a cell stride near 5, so a 16-by-16-cell batch is almost entirely halo.
+  Counting the pixels the bank filters gave 22.1 times the image on dense
+  1,024², and 18.3 M of that 23.1 M was local noise.
+- **The change.** `_LOCAL_NOISE_CONTEXT_CELLS` 256 → 2,304. The sweep at
+  1,024, 2,304 and 5,184 shows the knee at 2,304: local-noise bank pixels
+  18.3 M → 3.5 M, and 5,184 returns only 1.4 M more while dropping from nine
+  runnable batches to four, which the coarse-batch rule weighs against.
+  20,736 is refused by the existing context admission, so the bound still
+  fails closed.
+- **Why it changes no value.** The owned cells decide the result and the
+  halo only feeds the protection mask. Every published FITS plane —
+  catalogue, RMS and mask — is bitwise identical at 256 and 2,304 on
+  noise-only, dense 512² and real LoTSS data.
+- **Evidence.** 1,973 unit and contract tests, 2,526 under coverage at
+  96.63% branch-aware, and the quick science check's sixteen cases with no
+  regression against the `9866a1b` baseline. A new test refines one scene
+  through 180 batches and through one and requires the same grid; it fails
+  when the context halo is removed.
+- **Measured effect.** Against `m2-store-metadata` on the same anchors:
+  dense-field 21.8 → 18.3 s, LoTSS sparse 23.1 → 19.8 s, LoTSS dense
+  25.4 → 21.7 s, all about 15%, and SDC1 crowded 1,024² and 2,048² only
+  2.5% and 2.9%. The ratios to v0.12.0 fall from 1.21, 1.18 and 1.23 to
+  1.02, 1.01 and 1.05, so the default tier is back at release parity.
+- **Why the two SDC1 cases barely move, and what that establishes.** A
+  source-dense image spends its filter-bank work elsewhere — 1,191 bank
+  calls on SDC1 crowded, of which nine are local noise — and its run is
+  dominated by deblending and fitting. That also controls the measurement:
+  this run sat at load average 3.5 against 6-7 for its baseline, and a
+  uniformly faster machine would have moved the SDC1 cases too.

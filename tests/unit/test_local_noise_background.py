@@ -9,6 +9,7 @@ from dataclasses import replace
 from typing import TypeVar
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 
 from hebog.algorithms.background import PreparedRmsGrid
@@ -637,3 +638,59 @@ def test_unavailable_bright_region_does_not_discard_a_noisy_neighbour(
         (300.0, 300.0),
     )
     assert refined.adaptive_regions[0].protected_pixel_count > 0
+
+
+def _refined_local_noise(
+    monkeypatch: pytest.MonkeyPatch, *, context_cells: int
+) -> tuple[npt.NDArray[np.float64], int]:
+    """Refine one fixed scene with a given local-noise batch size."""
+    yy, xx = np.mgrid[:80, :96]
+    image = np.where((yy + xx) % 2, -1.0, 1.0)
+    image += 30 * np.exp(-0.5 * ((yy - 30) ** 2 + (xx - 60) ** 2) / 4**2)
+    image[10:20, 10:30] *= 8
+    config = _config()
+    source = _Source(image)
+    coarse = estimate_background_rms_grids(
+        source,
+        image.shape,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=(),
+    )
+    monkeypatch.setattr(
+        background_stage, "_LOCAL_NOISE_CONTEXT_CELLS", context_cells
+    )
+    refined = refine_background_rms_grids(
+        source,
+        coarse,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=(),
+        source_protection_island_threshold_sigma=3,
+        multiscale_protection=_policy(),
+        refine_local_noise=True,
+    )
+    assert refined.local_noise is not None
+    assert refined.local_noise.scientifically_available
+    return refined.local_noise.rms, refined.local_noise_protected_window_count
+
+
+def test_local_noise_grid_does_not_depend_on_the_context_batch_size(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Owned cells decide the result, so batching only trades work.
+
+    Every batch re-derives the protection bank over its own cells plus the
+    halo, so a small batch is mostly halo and filters the image many times
+    over. Enlarging it is sound only while the grid it produces is unchanged.
+    """
+    many_batches, protected = _refined_local_noise(
+        monkeypatch, context_cells=4
+    )
+    one_batch, also_protected = _refined_local_noise(
+        monkeypatch, context_cells=4096
+    )
+
+    assert protected > 0, "the scene must exercise source protection"
+    np.testing.assert_array_equal(many_batches, one_batch)
+    assert protected == also_protected

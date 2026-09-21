@@ -48,7 +48,14 @@ from hebog.data_models.partitioning import ImageBounds, TilePartition
 from hebog.executors.base import Executor
 from hebog.io.base import ImageWindow
 
-_LOCAL_NOISE_CONTEXT_CELLS = 256
+# Every local-noise batch reads its own cells plus the protection halo, and
+# re-derives the wavelet bank over that whole context, so halo pixels are paid
+# for once per batch. The halo is many cell strides wide, which makes small
+# batches overwhelmingly halo: 16-by-16 cells filtered 22 times the image on a
+# dense 1,024-pixel case, against 3.4 times at 48 by 48. Larger batches are
+# still bounded by the same context admission, and the owned cells decide the
+# result, so this trades occupancy for work rather than changing any value.
+_LOCAL_NOISE_CONTEXT_CELLS = 2304
 
 
 class _WindowReadable(Protocol):
