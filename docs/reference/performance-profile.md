@@ -28,6 +28,14 @@ time under `cProfile` when asked. It writes per-stage wall time and the
 `cProfile` statistics under `benchmark-results/profiles/runs/<label>`. A
 profile ranks costs; only the quick benchmark establishes a speedup.
 
+!!! note "Sizes above the public envelope"
+
+    `find_sources` refuses an image wider than 1,024 pixels with
+    `SourceFinderImageTooLargeError`. The profiler and the quick benchmark
+    raise that limit deliberately so the size ladder can be measured ahead
+    of the envelope. A 2,048-pixel figure on this page is a measurement, not
+    a supported size; the plan's scalability row states what is supported.
+
 !!! warning "Measure on a quiet machine"
 
     The contract requires no concurrent unrelated workload. Runs taken at
