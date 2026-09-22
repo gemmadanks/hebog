@@ -24177,3 +24177,38 @@ the per-worker placement finding.
   gain whose repetitions do not overlap the previous run's, taking it to
   0.75 of v0.12.0. Crowded 1,024² is neutral at +2.2%, inside its own
   spread. Across 21 and 22 September that anchor moves 323.5 → 129.7 s.
+
+## 2026-09-22 — M2: nearest-seed candidates are the reachable band
+
+- **What this is.** The first step of removing whole-plane state, and a
+  correction to where that state actually is.
+- **The change.** `expand_source_measurement_labels` queried every valid
+  unlabelled pixel of its window for a nearest seed, at 128 bytes of
+  neighbour state each, then discarded every candidate further than the
+  radius. Only a pixel within the radius of some seed can survive that test,
+  so the candidates are now the band a square dilation of the seeds reaches.
+  The square is a superset of the Euclidean disc, and the distance test is
+  unchanged, so the result is identical.
+- **What it is worth, measured rather than assumed.** On dense 1,024² the
+  candidates fall 2,361,133 → 1,572,991 across 248 calls, two thirds kept,
+  and the cumulative neighbour state 288 → 192 MiB. That is a third, not an
+  order of magnitude: the expansion already runs per segment on segment
+  windows, so most of a window is genuinely within the radius. A 120 MiB
+  single allocation seen in one sample was one unusually large window, not
+  the plane.
+- **Evidence.** Products are bitwise identical on SDC1 crowded and LoTSS
+  dense, 2,647 tests pass, and the quick science check's sixteen cases
+  report no regression against the `9866a1b` baseline.
+- **What the memory profile established, and its limit.** Peak RSS is about
+  258 MiB fixed plus 350–415 MiB per megapixel, which extrapolates to some
+  83 GB at LoTSS-DR3 15,402² and 177 GB at 22,500². The largest live
+  allocations at 1,024² are multiscale tile cores, but that is an artefact
+  of the envelope: with 2,048-pixel cores every admitted image is one tile,
+  so a core and a plane are the same size and no profile below 4,096² can
+  separate state that scales with the tile from state that scales with the
+  image. A core is capped at 32 MiB at any image size; a plane reaches 1.77
+  GiB at 15,402², and the driver holds several. The driver's five
+  whole-plane reads are therefore the envelope's constraint, and the next
+  step is a 4,096-pixel profile case, the smallest size with more than one
+  tile, so that "peak RSS scales with tile size, not image size" can be
+  measured at all.

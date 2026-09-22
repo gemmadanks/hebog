@@ -19,6 +19,7 @@ from scipy.ndimage import (
     convolve,
     distance_transform_edt,
     find_objects,
+    maximum_filter,
 )
 from scipy.ndimage import (
     label as connected_component_labels,
@@ -998,7 +999,19 @@ def expand_source_measurement_labels(
     seed_points = np.column_stack(np.nonzero(labels > 0))
     if not seed_points.size or radius_pixels == 0:
         return output
-    candidate_points = np.column_stack(np.nonzero(valid & (labels == 0)))
+    # Only a pixel within the radius of some seed can survive the distance
+    # test below, so the reachable band is the candidate set. Querying every
+    # unlabelled pixel instead costs 128 bytes of nearest-neighbour state
+    # each, which is the plane's area rather than the sources' extent.
+    reachable = maximum_filter(
+        labels > 0,
+        size=2 * radius_pixels + 1,
+        mode="constant",
+        cval=False,
+    )
+    candidate_points = np.column_stack(
+        np.nonzero(valid & (labels == 0) & reachable)
+    )
     if not candidate_points.size:
         return output
     canonical_labels = np.asarray(
