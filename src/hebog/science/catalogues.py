@@ -393,27 +393,45 @@ def build_hebog_segment_catalogue(  # noqa: PLR0913
     return tuple(output)
 
 
-def build_segment_row(  # noqa: PLR0913, PLR0917
+@dataclass(frozen=True, slots=True)
+class SegmentRowMeasurement:
+    """One segment's measured row, before its centroid has a sky position.
+
+    ``centroid_xy`` is where the row's coordinate belongs, in the image's
+    pixel frame, so a caller measuring many segments takes every centroid
+    first and converts them together; see :func:`segment_row_at`.
+    """
+
+    label_value: int
+    centroid_xy: tuple[float, float]
+    peak_flux_jy_per_beam: float
+    integrated_flux_jy: float
+    quality_flags: tuple[str, ...]
+
+
+def measure_segment_row(  # noqa: PLR0913, PLR0917
     residual_window: npt.NDArray[np.float64],
     position_signal_window: npt.NDArray[np.float64] | None,
     valid_window: npt.NDArray[np.bool_],
     centroid_window: npt.NDArray[np.int64],
     aperture_window: npt.NDArray[np.int32],
     background_window: npt.NDArray[np.float64],
-    celestial_wcs: WCS,
     *,
     label_value: int,
     window: SegmentWindow,
     beam_area_pixels: float,
     denoised_position_maximum_peak_to_mean_ratio: float,
     position_diagnostics: dict[int, SourcePositionDiagnostics] | None = None,
-) -> CatalogueSource | None:
+) -> SegmentRowMeasurement | None:
     """Measure one segment's catalogue row inside its own window.
 
     Every array covers that segment's exact support joined with its expanded
     aperture, which is the window :func:`_segment_crop` returns, so this work
     costs the segment's own pixels rather than the plane around it. Absence
     means the segment has no measurable row, not an error.
+
+    This is the half that reads pixels. It needs no WCS, so the sky
+    coordinate its centroid earns is a separate step.
     """
     support = (
         (centroid_window == label_value)
@@ -461,22 +479,11 @@ def build_segment_row(  # noqa: PLR0913, PLR0917
         )
     if not np.isfinite(integrated_weight) or integrated_weight <= 0.0:
         return None
-    integrated_flux = integrated_weight / beam_area_pixels
-    peak_flux = float(np.max(residual_window[support]))
-    position = cast(
-        Any, celestial_wcs.pixel_to_world(*estimate.centroid_xy)
-    ).icrs
-    identifier = f"hebog-segment-{label_value}"
-    return CatalogueSource(
-        identifier=identifier,
-        right_ascension_degrees=float(position.ra.deg),
-        declination_degrees=float(position.dec.deg),
-        peak_flux_jy_per_beam=peak_flux,
-        integrated_flux_jy=integrated_flux,
-        association_integrated_flux_jy=integrated_flux,
-        deconvolution_status="unavailable",
-        island_identifier=identifier,
-        component_count=1,
+    return SegmentRowMeasurement(
+        label_value=label_value,
+        centroid_xy=estimate.centroid_xy,
+        peak_flux_jy_per_beam=float(np.max(residual_window[support])),
+        integrated_flux_jy=integrated_weight / beam_area_pixels,
         quality_flags=tuple(
             sorted(
                 {
@@ -490,6 +497,76 @@ def build_segment_row(  # noqa: PLR0913, PLR0917
                 }
             )
         ),
+    )
+
+
+def segment_row_at(
+    measurement: SegmentRowMeasurement,
+    *,
+    right_ascension_degrees: float,
+    declination_degrees: float,
+) -> CatalogueSource:
+    """Return one measured row at the sky position its centroid earns."""
+    identifier = f"hebog-segment-{measurement.label_value}"
+    return CatalogueSource(
+        identifier=identifier,
+        right_ascension_degrees=right_ascension_degrees,
+        declination_degrees=declination_degrees,
+        peak_flux_jy_per_beam=measurement.peak_flux_jy_per_beam,
+        integrated_flux_jy=measurement.integrated_flux_jy,
+        association_integrated_flux_jy=measurement.integrated_flux_jy,
+        deconvolution_status="unavailable",
+        island_identifier=identifier,
+        component_count=1,
+        quality_flags=measurement.quality_flags,
+    )
+
+
+def build_segment_row(  # noqa: PLR0913, PLR0917
+    residual_window: npt.NDArray[np.float64],
+    position_signal_window: npt.NDArray[np.float64] | None,
+    valid_window: npt.NDArray[np.bool_],
+    centroid_window: npt.NDArray[np.int64],
+    aperture_window: npt.NDArray[np.int32],
+    background_window: npt.NDArray[np.float64],
+    celestial_wcs: WCS,
+    *,
+    label_value: int,
+    window: SegmentWindow,
+    beam_area_pixels: float,
+    denoised_position_maximum_peak_to_mean_ratio: float,
+    position_diagnostics: dict[int, SourcePositionDiagnostics] | None = None,
+) -> CatalogueSource | None:
+    """Measure and place one segment's row, one segment at a time.
+
+    This is the readable reference for the batched path in
+    :mod:`hebog.stages.catalogue_rows`, which converts every centroid of a
+    batch together.
+    """
+    measurement = measure_segment_row(
+        residual_window,
+        position_signal_window,
+        valid_window,
+        centroid_window,
+        aperture_window,
+        background_window,
+        label_value=label_value,
+        window=window,
+        beam_area_pixels=beam_area_pixels,
+        denoised_position_maximum_peak_to_mean_ratio=(
+            denoised_position_maximum_peak_to_mean_ratio
+        ),
+        position_diagnostics=position_diagnostics,
+    )
+    if measurement is None:
+        return None
+    position = cast(
+        Any, celestial_wcs.pixel_to_world(*measurement.centroid_xy)
+    ).icrs
+    return segment_row_at(
+        measurement,
+        right_ascension_degrees=float(position.ra.deg),
+        declination_degrees=float(position.dec.deg),
     )
 
 

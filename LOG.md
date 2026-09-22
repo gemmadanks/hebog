@@ -24149,3 +24149,31 @@ the per-worker placement finding.
   one position per segment for the row's own sky coordinate. That is the
   last per-source Astropy call and needs the same treatment; it is recorded
   in [where Hebog spends its time](../docs/reference/performance-profile.md).
+
+## 2026-09-22 — M3: the row's own coordinate joins the batch
+
+- **What this is.** The last per-source Astropy call. `build_segment_row`
+  converted one position per segment for the coordinate its row publishes,
+  so a crowded run made that call once per row on top of the moment's two.
+- **The split, and why it is the same one.** The row's coordinate belongs at
+  its own position estimate, which exists only after the pixels are read, so
+  it needed the treatment the moment shape had:
+  `measure_segment_row` reads pixels and returns a `SegmentRowMeasurement`
+  carrying the centroid, fluxes and flags but no sky position;
+  `segment_row_at` places a measured row at the coordinate its centroid
+  earns. `build_segment_row` composes them and stays the per-segment
+  reference.
+- **What the stage now does.** The two-pass batch already in place absorbed
+  it: one `pixel_to_world` for every row coordinate of a batch, beside the
+  one conversion already serving every moment geometry. A batch of any size
+  now makes a fixed number of Astropy calls rather than three per segment.
+- **Evidence.** Every published FITS plane is bitwise identical on SDC1
+  crowded and LoTSS dense. 2,646 tests pass and the quick science check's
+  sixteen cases report no regression against the `9866a1b` baseline. The
+  batch-equivalence test already covered the new path, which was confirmed
+  by giving every row the batch's first position and watching it fail; it is
+  renamed, because it now guards coordinates as well as shapes.
+- **Measured effect.** SDC1 crowded 2,048² 138.7 → 129.7 s, a 6.5%
+  gain whose repetitions do not overlap the previous run's, taking it to
+  0.75 of v0.12.0. Crowded 1,024² is neutral at +2.2%, inside its own
+  spread. Across 21 and 22 September that anchor moves 323.5 → 129.7 s.

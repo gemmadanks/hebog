@@ -30,6 +30,7 @@ from hebog.stages.catalogue_rows import (
     SegmentRowStageResult,
     _CoreBatch,
     _RowBatch,
+    _shaped_rows,
     run_segment_row_stage,
     segment_row_product_names,
 )
@@ -616,15 +617,15 @@ def test_an_unmeasurable_segment_publishes_no_row(tmp_path: Path) -> None:
     assert result.rows == expected
 
 
-def test_a_batch_reports_the_shapes_one_segment_at_a_time_would(
+def test_a_batch_reports_the_rows_one_segment_at_a_time_would(
     tmp_path: Path,
 ) -> None:
-    """Transforming a batch together must not change what it reports.
+    """Converting a batch together must not change what it reports.
 
-    Local geometry belongs at each segment's own moment centroid, so a batch
-    transforms every centroid in one conversion. That is only sound while it
-    gives each segment the shape its own centroid earns, whatever else is in
-    the batch with it.
+    A row's coordinate belongs at its own position estimate and its shape's
+    geometry at its own moment centroid, and a batch converts every one of
+    both in one call. That is only sound while each segment still receives
+    what its own centroids earn, whatever else is in the batch with it.
     """
     reference = _run(tmp_path / "one-at-a-time", maximum_objects_per_batch=1)
 
@@ -654,3 +655,15 @@ def test_a_geometry_the_wcs_cannot_give_leaves_every_shape_unavailable(
         assert row.fitted_shape is None
         assert row.deconvolution_status == "unavailable"
         assert "shape-unavailable" in row.quality_flags
+
+
+def test_a_batch_with_no_measurable_segment_converts_nothing() -> None:
+    """A batch whose segments all fail to measure must reach no conversion.
+
+    Every segment of a batch can be unmeasurable, and an empty batch has no
+    position to convert. Asking Astropy to transform nothing is not an error
+    worth risking, so the batch returns before it reaches the WCS.
+    """
+    assert _shaped_rows((), celestial_wcs=None, beam=_beam()) == (), (
+        "an empty batch must not touch the WCS"
+    )

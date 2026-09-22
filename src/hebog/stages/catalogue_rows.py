@@ -47,9 +47,11 @@ from hebog.executors.base import Executor
 from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
 from hebog.science.catalogues import (
-    build_segment_row,
+    SegmentRowMeasurement,
+    measure_segment_row,
     moment_shape_fields_at,
     segment_moment,
+    segment_row_at,
     unavailable_moment_shape_fields,
 )
 from hebog.science.models import CatalogueSource
@@ -494,18 +496,17 @@ def _read_rows(  # noqa: PLR0913
 
 @dataclass(frozen=True, slots=True)
 class _MeasuredSegment:
-    """One segment's row and the moment its shape still needs transforming."""
+    """One segment's measurements, before either is given a sky position."""
 
     label_value: int
-    row: CatalogueSource
+    row: SegmentRowMeasurement
     moment: tuple[tuple[float, float], npt.NDArray[np.float64]] | None
 
 
-def _measure_segment(  # noqa: PLR0913
+def _measure_segment(
     segment: _Segment,
     read: _RowRead,
     *,
-    celestial_wcs: Any,
     config: SegmentRowStageConfig,
     image_shape_yx: tuple[int, int],
     diagnostics: dict[int, SourcePositionDiagnostics] | None,
@@ -516,14 +517,13 @@ def _measure_segment(  # noqa: PLR0913
         origin_yx=(segment.bounds.y_start, segment.bounds.x_start),
         plane_shape_yx=image_shape_yx,
     )
-    row = build_segment_row(
+    row = measure_segment_row(
         read.residual[crop],
         read.position_signal[crop],
         read.valid[crop],
         read.centroids[crop],
         read.apertures[crop],
         read.background[crop],
-        celestial_wcs,
         label_value=segment.label_value,
         window=window,
         beam_area_pixels=config.beam_area_pixels,
@@ -560,6 +560,23 @@ def _shaped_rows(
     the batch is then unavailable, exactly as measuring them one at a time
     would report.
     """
+    if not measured:
+        return ()
+    # One conversion for every row coordinate, and one for every moment's
+    # local geometry. Astropy pays its frame machinery per call rather than
+    # per position, so a batch costs what one segment used to.
+    sky = celestial_wcs.pixel_to_world(
+        np.asarray(
+            [item.row.centroid_xy[0] for item in measured],
+            dtype=np.float64,
+        ),
+        np.asarray(
+            [item.row.centroid_xy[1] for item in measured],
+            dtype=np.float64,
+        ),
+    ).icrs
+    right_ascension = sky.ra.deg
+    declination = sky.dec.deg
     positions = tuple(
         item.moment[0] for item in measured if item.moment is not None
     )
@@ -572,7 +589,12 @@ def _shaped_rows(
         transforms, beams = (), ()
     geometries = iter(zip(transforms, beams, strict=True))
     rows: list[tuple[int, CatalogueSource]] = []
-    for item in measured:
+    for index, item in enumerate(measured):
+        row = segment_row_at(
+            item.row,
+            right_ascension_degrees=float(right_ascension[index]),
+            declination_degrees=float(declination[index]),
+        )
         geometry = None if item.moment is None else next(geometries, None)
         fields = (
             unavailable_moment_shape_fields()
@@ -582,9 +604,9 @@ def _shaped_rows(
             )
         )
         fields["quality_flags"] = tuple(
-            sorted({*item.row.quality_flags, *tuple(fields["quality_flags"])})  # type: ignore[misc]
+            sorted({*row.quality_flags, *tuple(fields["quality_flags"])})  # type: ignore[misc]
         )
-        rows.append((item.label_value, replace(item.row, **fields)))  # type: ignore[arg-type]
+        rows.append((item.label_value, replace(row, **fields)))  # type: ignore[arg-type]
     return tuple(rows)
 
 
@@ -631,7 +653,6 @@ def _row_batch(  # noqa: PLR0913
                 _measure_segment(
                     segment,
                     read,
-                    celestial_wcs=celestial_wcs,
                     config=config,
                     image_shape_yx=image_shape_yx,
                     diagnostics=(

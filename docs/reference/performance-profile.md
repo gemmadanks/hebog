@@ -70,10 +70,11 @@ is why the next gains are structural rather than kernel-level.
 figure of 11% came from a profile taken before one-pass label extents
 landed; the extent scan, not the deblender, was what that profile measured.
 
-**The remaining concentrated cost is coordinate transforms.** Astropy's
-`SkyCoord` machinery accounted for 14% of self time before batching, spread
-over about 11,000 single-position calls. Batching the fitting and fitted-row
-paths removed roughly a third of those.
+**Coordinate transforms are no longer a concentrated cost.** Astropy's
+`SkyCoord` machinery accounted for 14% of self time, spread over about
+11,000 single-position calls. Every one of those paths now converts a whole
+batch in one call, so the cost follows the batch count rather than the
+source count.
 
 ## What the work removed, and why
 
@@ -92,12 +93,12 @@ once per object multiplies it by the object count.
 
 ## What remains, in priority order
 
-1. **The row's own sky coordinate.** `build_segment_row` still transforms
-   one position per segment, for the coordinate the row publishes. It is the
-   last per-source Astropy call, and needs the same measure-then-transform
-   split that the moment shape received on 22 September: that one removed
-   1,641 transform pairs from a crowded 1,024-pixel run and took SDC1
-   crowded 2,048² from 153.1 to 138.7 s.
+1. **Per-pixel background refinement.** No per-source Astropy call now
+   remains: the fit, the fitted rows, the moment shapes and the rows' own
+   coordinates all convert a batch at a time, and a batch makes a fixed
+   number of calls whatever its size. Background refinement is again the
+   largest stage, and its remaining cost is the wavelet bank and sigma
+   clipping themselves, which are already vectorised SciPy.
 2. **Per-pixel background refinement.** Still 13 to 18% after its batch size
    was corrected. The remaining cost is the wavelet bank and sigma clipping
    themselves, which are already vectorised SciPy.
