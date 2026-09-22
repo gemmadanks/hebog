@@ -229,6 +229,7 @@ def _run(
     *,
     core: int = 16,
     executor: object | None = None,
+    header: fits.Header | None = None,
     **overrides: object,
 ) -> SegmentRowStageResult:
     """Measure every segment's row, in isolation."""
@@ -244,7 +245,7 @@ def _run(
         detection,
         manifest,
         config=_config(**overrides),
-        wcs_header_text=_header().tostring(),
+        wcs_header_text=(_header() if header is None else header).tostring(),
         beam=_beam(),
         executor=SerialExecutor() if executor is None else executor,  # type: ignore[arg-type]
         sink=ZarrProductSink(
@@ -613,3 +614,43 @@ def test_an_unmeasurable_segment_publishes_no_row(tmp_path: Path) -> None:
     assert len(expected) < int(labels_plane.max())
     assert result.measured_segment_count < result.segment_count
     assert result.rows == expected
+
+
+def test_a_batch_reports_the_shapes_one_segment_at_a_time_would(
+    tmp_path: Path,
+) -> None:
+    """Transforming a batch together must not change what it reports.
+
+    Local geometry belongs at each segment's own moment centroid, so a batch
+    transforms every centroid in one conversion. That is only sound while it
+    gives each segment the shape its own centroid earns, whatever else is in
+    the batch with it.
+    """
+    reference = _run(tmp_path / "one-at-a-time", maximum_objects_per_batch=1)
+
+    batched = _run(tmp_path / "together", maximum_objects_per_batch=64)
+
+    assert len(reference.rows) > 1, "the fixture must hold several segments"
+    assert batched.rows == reference.rows
+
+
+def test_a_geometry_the_wcs_cannot_give_leaves_every_shape_unavailable(
+    tmp_path: Path,
+) -> None:
+    """An unusable frame belongs to the WCS, not to one segment.
+
+    The per-segment path reports such a segment as shape-unavailable rather
+    than failing, so a batch must report every one of its segments that way
+    rather than failing the task.
+    """
+    galactic = _header()
+    galactic["CTYPE1"] = "GLON-TAN"
+    galactic["CTYPE2"] = "GLAT-TAN"
+
+    result = _run(tmp_path / "galactic", header=galactic)
+
+    assert result.rows, "the fixture must still measure rows"
+    for row in result.rows:
+        assert row.fitted_shape is None
+        assert row.deconvolution_status == "unavailable"
+        assert "shape-unavailable" in row.quality_flags

@@ -28,13 +28,18 @@ from hebog.algorithms.extended_measurement import (
 )
 from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.config import CompactGaussianFitConfig, SourceFinderConfig
+from hebog.data_models.astrometry import LocalTangentPlaneTransform
+from hebog.data_models.catalogues import SkyPosition
 from hebog.data_models.fitting import CompactGaussianFitResult
+from hebog.data_models.images import RestoringBeam
 from hebog.data_models.measurement import ValidMomentMeasurement
 from hebog.public_science import build_configured_continuum_products
 from hebog.science import catalogues as product_builder
 from hebog.science.catalogues import (
     _segment_pixel_moment_covariance,
     _segment_position,
+    moment_shape_fields_at,
+    unavailable_moment_shape_fields,
 )
 from hebog.science.models import ContinuumProducts
 from hebog.science.profile import (
@@ -1101,3 +1106,36 @@ def test_segment_moments_in_a_window_match_the_whole_plane() -> None:
     assert windowed is not None
     assert windowed[0] == whole_plane[0]
     assert np.array_equal(windowed[1], whole_plane[1])
+
+
+def test_a_shape_the_local_geometry_cannot_describe_is_unavailable() -> None:
+    """A moment no ellipse can describe is reported, not raised.
+
+    Measuring a moment and transforming it are separate steps, so a
+    covariance the tangent plane cannot turn into a positive ellipse reaches
+    the shape step on its own. It must be reported exactly as an unmeasurable
+    segment is, because a catalogue row still exists for it.
+    """
+    transform = LocalTangentPlaneTransform(
+        position=SkyPosition(
+            right_ascension_degrees=10.0,
+            declination_degrees=-30.0,
+            right_ascension_error_degrees=None,
+            declination_error_degrees=None,
+        ),
+        jacobian_degrees_per_pixel=((1.0 / 3600.0, 0.0), (0.0, 1.0 / 3600.0)),
+    )
+    beam = RestoringBeam(
+        major_fwhm_degrees=0.004,
+        minor_fwhm_degrees=0.002,
+        position_angle_degrees=0.0,
+    )
+    degenerate = np.zeros((2, 2), dtype=np.float64)
+
+    fields = moment_shape_fields_at(
+        ((5.0, 5.0), degenerate), transform=transform, beam_icrs=beam
+    )
+
+    assert fields == unavailable_moment_shape_fields()
+    assert fields["fitted_shape"] is None
+    assert fields["deconvolution_status"] == "unavailable"

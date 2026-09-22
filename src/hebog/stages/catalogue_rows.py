@@ -11,7 +11,7 @@ bounded by the segment it describes. No round reduces anything globally.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from contextlib import AbstractContextManager
 from dataclasses import dataclass, replace
 from functools import partial
@@ -21,7 +21,11 @@ from typing import Any, Literal, Protocol
 import numpy as np
 import numpy.typing as npt
 
-from hebog.algorithms.astrometry import celestial_wcs_from_header_text
+from hebog.algorithms.astrometry import (
+    celestial_wcs_from_header_text,
+    local_tangent_plane_transforms_from_wcs,
+    restoring_beams_in_icrs,
+)
 from hebog.algorithms.extended_measurement import (
     SegmentWindow,
     expand_detected_segment_labels,
@@ -44,7 +48,9 @@ from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
 from hebog.science.catalogues import (
     build_segment_row,
-    segment_moment_fields,
+    moment_shape_fields_at,
+    segment_moment,
+    unavailable_moment_shape_fields,
 )
 from hebog.science.models import CatalogueSource
 
@@ -486,17 +492,25 @@ def _read_rows(  # noqa: PLR0913
     )
 
 
-def _segment_row(  # noqa: PLR0913
+@dataclass(frozen=True, slots=True)
+class _MeasuredSegment:
+    """One segment's row and the moment its shape still needs transforming."""
+
+    label_value: int
+    row: CatalogueSource
+    moment: tuple[tuple[float, float], npt.NDArray[np.float64]] | None
+
+
+def _measure_segment(  # noqa: PLR0913
     segment: _Segment,
     read: _RowRead,
     *,
     celestial_wcs: Any,
-    beam: RestoringBeam,
     config: SegmentRowStageConfig,
     image_shape_yx: tuple[int, int],
     diagnostics: dict[int, SourcePositionDiagnostics] | None,
-) -> CatalogueSource | None:
-    """Measure one segment's row and moment shape inside its own window."""
+) -> _MeasuredSegment | None:
+    """Measure one segment's row and moment inside its own window."""
     crop = _crop(read.bounds, segment.bounds)
     window = SegmentWindow(
         origin_yx=(segment.bounds.y_start, segment.bounds.x_start),
@@ -520,17 +534,58 @@ def _segment_row(  # noqa: PLR0913
     )
     if row is None:
         return None
-    fields = segment_moment_fields(
-        read.residual[crop],
-        (read.labels[crop] == segment.label_value) & read.valid[crop],
-        celestial_wcs,
-        beam,
-        window,
+    return _MeasuredSegment(
+        label_value=segment.label_value,
+        row=row,
+        moment=segment_moment(
+            read.residual[crop],
+            (read.labels[crop] == segment.label_value) & read.valid[crop],
+            window,
+        ),
     )
-    fields["quality_flags"] = tuple(
-        sorted({*row.quality_flags, *tuple(fields["quality_flags"])})  # type: ignore[misc]
+
+
+def _shaped_rows(
+    measured: Sequence[_MeasuredSegment],
+    *,
+    celestial_wcs: Any,
+    beam: RestoringBeam,
+) -> tuple[tuple[int, CatalogueSource], ...]:
+    """Give every measured segment its shape, transforming them together.
+
+    A moment's local geometry belongs at its own centroid, and Astropy pays
+    its frame machinery per call rather than per position, so one conversion
+    for the batch costs what one segment used to. A geometry the WCS cannot
+    provide is a property of that WCS, not of one segment, so every shape in
+    the batch is then unavailable, exactly as measuring them one at a time
+    would report.
+    """
+    positions = tuple(
+        item.moment[0] for item in measured if item.moment is not None
     )
-    return replace(row, **fields)  # type: ignore[arg-type]
+    try:
+        transforms = local_tangent_plane_transforms_from_wcs(
+            celestial_wcs, positions
+        )
+        beams = restoring_beams_in_icrs(beam, celestial_wcs, positions)
+    except (TypeError, ValueError):
+        transforms, beams = (), ()
+    geometries = iter(zip(transforms, beams, strict=True))
+    rows: list[tuple[int, CatalogueSource]] = []
+    for item in measured:
+        geometry = None if item.moment is None else next(geometries, None)
+        fields = (
+            unavailable_moment_shape_fields()
+            if item.moment is None or geometry is None
+            else moment_shape_fields_at(
+                item.moment, transform=geometry[0], beam_icrs=geometry[1]
+            )
+        )
+        fields["quality_flags"] = tuple(
+            sorted({*item.row.quality_flags, *tuple(fields["quality_flags"])})  # type: ignore[misc]
+        )
+        rows.append((item.label_value, replace(item.row, **fields)))  # type: ignore[arg-type]
+    return tuple(rows)
 
 
 def _row_batch(  # noqa: PLR0913
@@ -570,23 +625,29 @@ def _row_batch(  # noqa: PLR0913
             config=config,
         )
         diagnostics: dict[int, SourcePositionDiagnostics] = {}
-        rows: list[tuple[int, CatalogueSource]] = []
-        for segment in batch.segments:
-            row = _segment_row(
-                segment,
-                read,
-                celestial_wcs=celestial_wcs,
-                beam=beam,
-                config=config,
-                image_shape_yx=image_shape_yx,
-                diagnostics=(
-                    diagnostics if config.with_position_diagnostics else None
-                ),
+        measured = [
+            item
+            for item in (
+                _measure_segment(
+                    segment,
+                    read,
+                    celestial_wcs=celestial_wcs,
+                    config=config,
+                    image_shape_yx=image_shape_yx,
+                    diagnostics=(
+                        diagnostics
+                        if config.with_position_diagnostics
+                        else None
+                    ),
+                )
+                for segment in batch.segments
             )
-            if row is not None:
-                rows.append((segment.label_value, row))
+            if item is not None
+        ]
         return _RowBatchResult(
-            rows=tuple(rows),
+            rows=_shaped_rows(
+                measured, celestial_wcs=celestial_wcs, beam=beam
+            ),
             diagnostics=tuple(sorted(diagnostics.items())),
             maximum_segment_read_pixels=int(
                 np.prod(batch.read_bounds.shape_yx)

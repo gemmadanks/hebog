@@ -92,11 +92,12 @@ once per object multiplies it by the object count.
 
 ## What remains, in priority order
 
-1. **The catalogue row builder's astrometry.** About 6,100 single-position
-   transforms remain in `_moment_shape_fields`, whose position is a measured
-   centroid rather than a window centre. Batching them needs the row builder
-   split into a measure pass and a transform pass. On the evidence above this
-   is the largest single remaining item.
+1. **The row's own sky coordinate.** `build_segment_row` still transforms
+   one position per segment, for the coordinate the row publishes. It is the
+   last per-source Astropy call, and needs the same measure-then-transform
+   split that the moment shape received on 22 September: that one removed
+   1,641 transform pairs from a crowded 1,024-pixel run and took SDC1
+   crowded 2,048² from 153.1 to 138.7 s.
 2. **Per-pixel background refinement.** Still 13 to 18% after its batch size
    was corrected. The remaining cost is the wavelet bank and sigma clipping
    themselves, which are already vectorised SciPy.

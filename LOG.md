@@ -24102,3 +24102,50 @@ the per-worker placement finding.
   transform pass. That is the largest single remaining item and is recorded
   in [where Hebog spends its time](../docs/reference/performance-profile.md)
   rather than started here.
+
+## 2026-09-22 — M3: the row builder transforms a batch of centroids
+
+- **What this is.** The largest item the 21 September profile left, and the
+  last of the per-source Astropy calls.
+- **Why it needed a restructure.** `_fitted_component_row` and the fit could
+  be batched because their positions are known before measuring.
+  `_moment_shape_fields` measures a moment and transforms at its centroid,
+  so its position exists only after the pixels are read. Batching it needed
+  the work split into a measure pass and a transform pass.
+- **The split.** `segment_moment` reads pixels and returns the centroid and
+  covariance; `moment_shape_fields_at` takes an already-transformed geometry
+  and returns the fields. `_moment_shape_fields` composes the two and stays
+  the readable per-segment reference. `_row_batch` measures every segment of
+  a batch, transforms all their centroids in one conversion, then gives each
+  segment its own geometry.
+- **The behaviour that had to be preserved.** The original wrapped the
+  transform and the shape in one `try`, so a WCS that cannot give geometry
+  reported `shape-unavailable` rather than failing. Batching moves the
+  transform outside that guard. A frame is a property of the WCS, not of one
+  segment, so a batch that cannot transform marks every segment unavailable,
+  which is what measuring them one at a time would have reported. A galactic
+  WCS through the stage now tests exactly that.
+- **A gap the split created.** With the transform failing earlier, the
+  shape-failure fallback became reachable only through a degenerate
+  covariance, which nothing exercised. Coverage found it; a focused test
+  now reaches it.
+- **Evidence.** Every published FITS plane is bitwise identical on SDC1
+  crowded and LoTSS dense. 2,646 tests pass, coverage holds at 96.63% with
+  `stages/catalogue_rows.py` at 100%, and the quick science check's sixteen
+  cases report no regression against the `9866a1b` baseline. Its Hebog time
+  falls 155 → 144 s. Both new stage tests were checked against a mutation:
+  one fails when a WCS failure propagates, the other when a segment is given
+  another segment's geometry.
+- **Measured effect, and what is not claimed.** The calls
+  `_moment_shape_fields` made to the two astrometry helpers go from 1,641
+  each on crowded 1,024² to none. SDC1 crowded 1,024² 38.5 → 33.0 s and
+  2,048² 153.1 → 138.7 s, both far outside their dispersion. The three
+  1,024² anchors are neutral: a first run at load average 5.4 put them 2–9%
+  slower with a spread wider than the difference, and a quiet rerun puts
+  them within 1–4%, inside their own 4–5% spread. They have few segments,
+  so there was little there to win. All five anchors still pass the
+  previous-release rule.
+- **Where the astrometry now stands.** `build_segment_row` still transforms
+  one position per segment for the row's own sky coordinate. That is the
+  last per-source Astropy call and needs the same treatment; it is recorded
+  in [where Hebog spends its time](../docs/reference/performance-profile.md).

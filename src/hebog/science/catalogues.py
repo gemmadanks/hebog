@@ -556,66 +556,62 @@ def _segment_pixel_moment_covariance(
     return (centroid_x, centroid_y), covariance
 
 
-def segment_moment_fields(
-    residual_window: npt.NDArray[np.float64],
-    support: npt.NDArray[np.bool_],
-    celestial_wcs: WCS,
-    beam: RestoringBeam,
-    window: SegmentWindow,
-) -> dict[str, object]:
-    """Return one segment's moment-equivalent shape fields, in its window.
-
-    Both arrays cover the segment's own window, so this work costs its
-    support rather than the plane around it.
-    """
-    return _moment_shape_fields(
-        residual_window, support, celestial_wcs, beam, window
-    )
+_MOMENT_SHAPE_PROVENANCE = "segment-moment-equivalent-shape"
 
 
-def _moment_shape_fields(
+def unavailable_moment_shape_fields() -> dict[str, object]:
+    """Return the fields of a segment whose shape cannot be measured."""
+    return {
+        "fitted_shape": None,
+        "deconvolved_shape": None,
+        "deconvolved_major_fwhm_degrees": None,
+        "deconvolution_status": "unavailable",
+        "quality_flags": (_MOMENT_SHAPE_PROVENANCE, "shape-unavailable"),
+    }
+
+
+def segment_moment(
     residual_jy_per_beam: npt.NDArray[np.float64],
     support: npt.NDArray[np.bool_],
-    celestial_wcs: WCS,
-    beam: RestoringBeam,
     window: SegmentWindow | None = None,
-) -> dict[str, object]:
-    """Return catalogue fields for one moment-equivalent owner shape."""
-    moment = _segment_pixel_moment_covariance(
+) -> tuple[tuple[float, float], npt.NDArray[np.float64]] | None:
+    """Return one segment's weighted centroid and covariance, or ``None``.
+
+    This is the half of a moment shape that reads pixels. Its centroid is
+    where the shape's local geometry belongs, so a caller measuring many
+    segments takes every centroid first and transforms them together; see
+    :func:`moment_shape_fields_at`.
+    """
+    return _segment_pixel_moment_covariance(
         residual_jy_per_beam,
         support,
         window=window,
     )
-    provenance = "segment-moment-equivalent-shape"
-    if moment is None:
-        return {
-            "fitted_shape": None,
-            "deconvolved_shape": None,
-            "deconvolved_major_fwhm_degrees": None,
-            "deconvolution_status": "unavailable",
-            "quality_flags": (provenance, "shape-unavailable"),
-        }
-    centroid_xy, covariance = moment
+
+
+def moment_shape_fields_at(
+    moment: tuple[tuple[float, float], npt.NDArray[np.float64]],
+    *,
+    transform: LocalTangentPlaneTransform,
+    beam_icrs: RestoringBeam,
+) -> dict[str, object]:
+    """Return catalogue fields for one moment under its own local geometry.
+
+    ``transform`` and ``beam_icrs`` belong to this moment's centroid. A
+    moment the local geometry cannot describe is reported as unavailable,
+    exactly as an unmeasurable one is.
+    """
+    _, covariance = moment
     try:
-        transform = local_tangent_plane_transform_from_wcs(
-            celestial_wcs,
-            centroid_xy,
-        )
         fitted = moment_equivalent_gaussian_shape(covariance, transform)
         deconvolution = deconvolve_gaussian_shapes(
             fitted,
-            restoring_beam_in_icrs(beam, celestial_wcs, centroid_xy),
+            beam_icrs,
             relative_tolerance=1e-10,
         )
     except (TypeError, ValueError, np.linalg.LinAlgError):
-        return {
-            "fitted_shape": None,
-            "deconvolved_shape": None,
-            "deconvolved_major_fwhm_degrees": None,
-            "deconvolution_status": "unavailable",
-            "quality_flags": (provenance, "shape-unavailable"),
-        }
-    flags = {provenance}
+        return unavailable_moment_shape_fields()
+    flags = {_MOMENT_SHAPE_PROVENANCE}
     if deconvolution.status in {"major-axis-only", "unresolved"}:
         flags.update(deconvolution.quality_flags)
     return {
@@ -631,6 +627,35 @@ def _moment_shape_fields(
         "deconvolution_status": deconvolution.status,
         "quality_flags": tuple(sorted(flags)),
     }
+
+
+def _moment_shape_fields(
+    residual_jy_per_beam: npt.NDArray[np.float64],
+    support: npt.NDArray[np.bool_],
+    celestial_wcs: WCS,
+    beam: RestoringBeam,
+    window: SegmentWindow | None = None,
+) -> dict[str, object]:
+    """Return catalogue fields for one moment-equivalent owner shape.
+
+    This measures and transforms one segment at a time, and is the readable
+    reference for the batched path in :mod:`hebog.stages.catalogue_rows`.
+    """
+    moment = segment_moment(residual_jy_per_beam, support, window)
+    if moment is None:
+        return unavailable_moment_shape_fields()
+    centroid_xy, _ = moment
+    try:
+        transform = local_tangent_plane_transform_from_wcs(
+            celestial_wcs,
+            centroid_xy,
+        )
+        beam_icrs = restoring_beam_in_icrs(beam, celestial_wcs, centroid_xy)
+    except (TypeError, ValueError):
+        return unavailable_moment_shape_fields()
+    return moment_shape_fields_at(
+        moment, transform=transform, beam_icrs=beam_icrs
+    )
 
 
 def build_hebog_segment_moment_catalogue(  # noqa: PLR0913
