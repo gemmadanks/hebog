@@ -1,63 +1,48 @@
-# Find radio-continuum sources in a FITS image
+# Find sources in a FITS image
 
-This tutorial runs Hebog as a standalone scientific library. It uses no
-Rapthor, Prefect, LSMTool, or private Dask cluster.
+In this tutorial you run Hebog on one radio-continuum image and read the
+catalogue it produces. It takes a few minutes and needs only
+[an installed Hebog](index.md) and a FITS image.
 
-The interface is experimental and not yet scientifically qualified. A successful
-run does not by itself qualify Hebog for a survey; see
-[current capability and release status](../reference/release-status.md).
+No image to hand? From a [source checkout](../how-to/index.md#set-up-a-source-checkout),
+`uv run marimo edit notebooks/source_finder_demo.py` generates a small
+synthetic field and runs the same steps.
 
 ## Prepare the input
 
-Use one two-dimensional FITS image, or a FITS image with only singleton axes
-before its final two spatial axes. The image must have:
+Hebog accepts one two-dimensional FITS image. Extra axes, such as frequency
+and Stokes, are fine if each has length one. The image needs:
 
-- pixel values in `Jy/beam`;
+- pixel values in `Jy/beam` (`BUNIT`);
 - an ICRS or FK5 J2000 celestial WCS;
-- finite positive `BMAJ` and `BMIN` restoring-beam axes and a `BPA` position angle;
-- a positive reference frequency in `RESTFRQ`, `RESTFREQ`, or a frequency WCS
-  axis; and
-- no more than 1,024 pixels along either spatial axis.
+- a restoring beam: `BMAJ`, `BMIN` and `BPA`;
+- a reference frequency: `RESTFRQ`, `RESTFREQ` or a frequency axis; and
+- at most 1,024 pixels on each side. Cut out a region of a larger image, for
+  example with `astropy.nddata.Cutout2D`.
 
-NaN pixels are allowed and are excluded from the analysis. Missing or invalid
-physical metadata fails clearly before any output bundle is published.
+NaN pixels are allowed and ignored. If anything is missing, Hebog stops with
+an error that names the problem before writing any output.
 
-Some published images omit a keyword Hebog needs. The LOFAR-HD mosaics, for
-example, carry a beam but no reference frequency, and the SKA Data Challenge 1
-images give `BMAJ` and `BMIN` but no `BPA`. Supply only the missing values in
-the request:
+### Supply missing header values
+
+Some published images omit a keyword. LOFAR-HD mosaics carry no reference
+frequency, and the SKA Science Data Challenge 1 images have no `BPA`. Supply
+only what is missing:
 
 ```python
-request = hebog.SourceFinderRequest(
-    image_path=Path("continuum-image.fits"),
-    output_directory=Path("hebog-products"),
-    run_id="observation-001",
-    supplied_metadata=hebog.SuppliedImageMetadata(
-        reference_frequency_hz=144e6,
-    ),
-)
+supplied = hebog.SuppliedImageMetadata(reference_frequency_hz=144e6)
 ```
 
-`SuppliedImageMetadata` accepts `reference_frequency_hz` and the beam values
-`beam_major_fwhm_degrees`, `beam_minor_fwhm_degrees` and
-`beam_position_angle_degrees`. A supplied value fills a missing keyword only.
-Supplying a value the header already provides is an input error, so Hebog
-never overrides an image's own description. `diagnostics.json` records the
-supplied values with the run's provenance.
+and pass `supplied_metadata=supplied` to the request below. The accepted
+fields are `reference_frequency_hz`, `beam_major_fwhm_degrees`,
+`beam_minor_fwhm_degrees` and `beam_position_angle_degrees`. Hebog never
+overrides a value the header already has; supplying one is an error. Supplied
+values are recorded in the diagnostics.
 
-A header with `EQUINOX = 2000` but no `RADESYS` keyword, as written by
-WSClean, declares FK5 J2000 under the FITS WCS standard. Hebog accepts it and
-converts every catalogue position and beam angle to ICRS; the two frames
-differ by tens of milliarcseconds. Other frames and equinoxes raise
-`hebog.UnsupportedSourceFinderConfigurationError`.
+Images written by WSClean declare `EQUINOX = 2000` without `RADESYS`, which
+means FK5 J2000. Hebog accepts them and reports all positions in ICRS.
 
-## Run the continuum profile
-
-The output directory must not already exist. Hebog treats it as one
-caller-owned product bundle: it claims the path and then moves the complete
-bundle into place with a single rename, so no partially written bundle is
-ever visible. A successful return, not the existence of the directory, means
-the products are ready.
+## Run the finder
 
 ```python
 from pathlib import Path
@@ -80,80 +65,31 @@ result = hebog.find_sources(request, config, SerialExecutor())
 
 print(f"sources: {result.source_count}")
 print(f"Gaussian components: {result.gaussian_component_count}")
-print(f"wall time: {result.wall_seconds:.3f} s")
-print(result.catalogue_path)
+print(f"wall time: {result.wall_seconds:.1f} s")
 ```
 
-`continuum` is the default profile. The example uses a 5-sigma detection
-threshold, a 3-sigma island-growth threshold, and a seven-pixel minimum.
-Diagnostics report `configuration_qualification="development-unqualified"`:
-the configuration is supported for evaluation but is not survey-qualified.
+The three settings mean: an island must contain emission above 5σ, it grows
+outwards to 3σ, and it must cover at least seven pixels.
+[Choose thresholds and a profile](../how-to/configure-a-run.md) explains the
+options.
 
-For spatially admitted continuum images, background and noise have different
-resolution policies. Background retains its coarse/source-protected and
-bright-region estimates; RMS uses the source-protected 35/7 fine grid even
-away from bright sources. Source-overlapping noise windows are excluded,
-missing cells are interpolated globally and fine RMS edge values are extended
-without extrapolating to zero. An absence of clean noise samples remains
-unavailable. This does not lower detection thresholds or imply that noise
-structure below the estimator resolution is measured accurately.
+The output directory must not exist yet. Hebog never overwrites results, and
+the directory appears only when all products are complete.
 
-At physical image edges, background and coarse-RMS slopes use mesh samples
-separated by at least the distance being extrapolated (or the full available
-span on a short grid). This avoids amplifying small errors between nearly
-coincident final windows. It preserves genuine affine backgrounds instead of
-flattening them at the edge; interior interpolation and the constant extension
-of fine RMS values are unchanged. A singleton grid still supplies a constant
-estimate, not an independently measured spatial gradient.
+## Look at the products
 
-Callers may select other valid thresholds and island-size limits. Hebog uses
-those values throughout background masking, direct and multiscale detection,
-island growth, and final size filtering. The continuum background stage retains
-its private 75-sigma bright-candidate trigger when that exceeds the caller's
-island threshold. Otherwise it uses the caller's detection threshold, which is
-validated to exceed the island threshold, so refinement seeds lie within their
-protected support. This does not alter the caller's detection/growth thresholds
-or the standard 5/3-sigma profile. Custom runs report
-`configuration_qualification="custom-unqualified"` so they cannot be confused
-with the reference evidence:
+`hebog-products/` now contains four files:
 
-```python
-custom_config = hebog.SourceFinderConfig(
-    detection_threshold_sigma=6.0,
-    island_threshold_sigma=4.0,
-    minimum_island_pixels=10,
-)
-
-custom_result = hebog.find_sources(
-    hebog.SourceFinderRequest(
-        image_path=Path("continuum-image.fits"),
-        output_directory=Path("custom-hebog-products"),
-        run_id="observation-001-custom",
-    ),
-    custom_config,
-    SerialExecutor(),
-)
-```
-
-## Interpret the products
-
-For the full field-by-field contract, units, null handling, diagnostic census,
-and evaluation checklist, see
-[Public source-finder outputs](../reference/public-products.md). The summary
-below introduces the distinctions needed for this example.
-
-The returned `SourceFinderResult` contains closed paths, byte counts, SHA-256
-identities, scientific status, and schema versions for four files:
-
-| Product | Meaning |
+| File | Contents |
 | --- | --- |
-| `catalogue.fits` | Source-level catalogue plus its Gaussian components and parent islands. |
-| `rms.fits` | Hebog's local RMS estimate in `Jy/beam`; an empty image may report this as scientifically unavailable. |
-| `source-mask.fits` | Binary source-support mask aligned with the input image. |
-| `diagnostics.json` | Counts, configuration qualification, profile limitations, input/configuration identities, and the exact implementation identity. |
+| `catalogue.fits` | Three tables: `SOURCES`, `GAUSSIAN_COMPONENTS` and `ISLANDS` |
+| `rms.fits` | The local noise map in `Jy/beam`, aligned with the input |
+| `source-mask.fits` | 1 where a detection was kept, 0 elsewhere, aligned with the input |
+| `diagnostics.json` | Provenance, counts, and the fate of every detection, including those without a catalogue row |
 
-Read validated products through Hebog rather than assuming FITS extension or
-column details:
+You can open the FITS files in any viewer, such as DS9, CARTA or TOPCAT.
+In Python, use Hebog's readers, which check that each file is intact and of a
+supported version:
 
 ```python
 from hebog.io import read_catalogue_fits_product, read_diagnostics_product
@@ -170,127 +106,48 @@ for source in catalogue.sources:
     )
 
 for component in catalogue.gaussian_components:
-    print(
-        component.gaussian_component_id,
-        component.source_id,
-        component.position.right_ascension_degrees,
-        component.position.declination_degrees,
-    )
+    print(component.gaussian_component_id, component.source_id)
 
-print(diagnostics.provenance.input_sha256)
 print(diagnostics.configuration_qualification)
-print(diagnostics.deblended_parent_count)
-print(diagnostics.deferred_deblend_parent_count)
 ```
 
-Those provenance identities make it possible to establish which input,
-configuration, science profile, and implementation produced the result. Treat
-the implementation label as opaque; compare its SHA-256 when exact identity
-matters.
-The three catalogue populations have deliberately different meanings:
+## Understand what you are looking at
 
-- a support island is one connected detected footprint in the mask;
-- a detection component has a stable owned region and may or may not admit a
-  Gaussian fit; only successful fits appear in `gaussian_components`; and
-- a source is an image-domain association hypothesis. It can contain several
-  components and span several disconnected islands; two independent compact
-  sources can also share one island.
+Hebog publishes three related populations:
 
-`source.island_id` and `source.additional_island_ids` enumerate its detected
-islands. They do not describe the larger, source-owned measurement aperture.
-The published mask contains detections, not every pixel used for photometry.
+- an **island** is a connected region of the mask;
+- a **Gaussian component** is one successfully fitted Gaussian; and
+- a **source** groups one or more components that Hebog considers a single
+  object.
 
-Gaussian components use bounded joint fits to original background-subtracted
-pixels, with the configured beam/free selection and likelihood support.
-Their flux is the full Gaussian model integral, including any off-image tail.
-Every associated source instead uses a signed, non-overlapping aperture on
-finite valid image pixels, including compact singletons. Source positions use
-the unexpanded source-owned footprint, not measurement-only flux wings.
-A source centroid can lie between peaks or inside a shell's hole. A denoised
-position fallback is explicitly flagged; positive-only pixels never silently
-replace a failed signed flux estimate. An aperture shape is unavailable,
-not a claimed fitted Gaussian or an unresolved source.
+Two points often surprise new users:
 
-`diagnostics.measurement_dispositions` retains every component and associated
-source, including unavailable or bounded-work-deferred measurements. Each
-entry gives its estimator or failure reason, source membership and whether
-a catalogue row was published. Component diagnostics retain the fitted model,
-likelihood pixel count, point-estimator fallback reason, covariance basis and competing
-association group IDs. Source diagnostics retain both signed-original and
-denoised centroids, their selection rule, position/aperture counts and signed
-flux. Source `association_evidence` records each admitted multi-component
-merge's reason, scale IDs, component IDs and overridden compact protection.
-An unconfirmed hierarchy remainder is not positive source evidence: its
-components remain independent. Fit batches follow interacting measurement
-contexts, not associated-source membership; an inseparable over-budget fit
-still reports its unavailable disposition. These are attribution records,
-not new scientific scores.
-A failed fit does not discard its detection
-or abort an unrelated valid source. Missing uncertainty remains unavailable,
-not zero. The current catalogue JSON, catalogue FITS and public diagnostics
-schemas are versions 3, 4 and 8 respectively; stale versions fail clearly.
-Precision-limited noise uses stable local arithmetic without an invented RMS
-floor. Source-protected regions with no positive RMS remain unavailable for
-sigma-based detection. A noiseless image containing emission can therefore
-return no catalogue rows with an **unavailable RMS**; this is not evidence
-that the image contains no sources. No artificial noise floor is supplied.
+1. **Source flux is not a sum of Gaussians.** It is the sum of
+   background-subtracted pixels in an aperture owned by that source. Gaussian
+   components carry their own model fluxes.
+2. **Some sources have no Gaussian.** If a fit fails Hebog's quality checks,
+   the source can still be published with its aperture measurement. The
+   diagnostics say why.
 
-The continuum RMS policy is covered by source-retention and spatial-noise
-tests, but it is **not survey-qualified**. Use the diagnostic provenance and
-an exact package version when comparing or repeating runs.
+So when you compare with a PyBDSF Gaussian list or an Aegean component list,
+use `catalogue.gaussian_components`, not `catalogue.sources`.
 
-For a component-level comparison with a PyBDSF Gaussian catalogue, compare
-`catalogue.gaussian_components`, not `catalogue.sources`. Plotting one marker
-per associated source can otherwise make a correctly detected multi-peak
-island look as though components are missing. The two deblend disposition
-counts expose how many retained parents were split and how many exceeded the
-bounded deblending envelope.
+`diagnostics.configuration_qualification` reads `development-unqualified` for
+the settings above and `custom-unqualified` for any others. Both mean the same
+thing: Hebog has not yet been qualified for survey use.
 
-## Choose compact-only output explicitly
+## If the catalogue is empty
 
-For work that deliberately excludes extended-emission association, select the
-compact profile:
+An empty catalogue with `result.rms.scientific_status == "unavailable"` means
+Hebog found no usable noise estimate, which usually means a noiseless
+simulated image. It does **not** mean the sky is empty. Add realistic noise
+and run again.
 
-```python
-compact_config = hebog.SourceFinderConfig(
-    detection_threshold_sigma=5.0,
-    island_threshold_sigma=3.0,
-    minimum_island_pixels=7,
-    profile="compact",
-)
-```
+## Next steps
 
-The resulting diagnostics contain the limitation
-`extended-emission-incomplete`. Compact mode must not be presented as a
-general continuum-source catalogue.
-
-## Reproducibility, retries, and cleanup
-
-Hebog writes into a private sibling directory, validates all four products,
-and renames the complete bundle into place only after success. If analysis or
-publication fails, the requested output directory remains absent and the same
-request can be retried.
-
-An existing output directory is never overwritten, even when its files appear
-to match. Inspect or archive it, then choose a new directory or remove it
-yourself before retrying. Hebog does not delete caller-owned products.
-
-Malformed or unreadable FITS inputs raise
-`hebog.InvalidSourceFinderInputError`. Unsupported physical metadata and
-images outside the bounded preview envelope use distinct public exception
-types, so workflow code does not need to parse error strings.
-
-Callers that already own a Dask client may pass `DaskExecutor(client)` instead
-of `SerialExecutor()`. Hebog never creates a cluster or inspects ambient
-scheduler state. Workers open the input image and write intermediate planes
-beside the output directory, so on a multi-node cluster use absolute paths on
-storage that every worker can read and write. Serial and existing-Dask execution are required to publish
-byte-identical scientific products.
-
-## Current limits
-
-The 1,024-pixel cap is deliberate: measurement currently materializes one
-complete image plane after tiled detection. `hebog.find_sources()` does not
-perform primary-beam branch composition, filter a sky model, or emit
-Rapthor/LSMTool compatibility products; an integrating pipeline must own those
-steps.
+- [Choose thresholds and a profile](../how-to/configure-a-run.md), including
+  running on a Dask cluster.
+- [How Hebog finds sources](../explanation/how-hebog-works.md).
+- [Output reference](../reference/public-products.md) for every column, unit
+  and quality flag.
+- [Capability and status](../reference/release-status.md) for current limits.

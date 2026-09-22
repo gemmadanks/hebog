@@ -121,7 +121,7 @@ then in `.github/workflows/release-please.yaml` rename the `publish-testpypi`
 job and its environment to `pypi`, point the environment URL at
 `https://pypi.org/project/hebog/` and remove the publishing step's
 `repository-url`. Update the installation instructions in `README.md`, the
-[quick start](../tutorials/index.md) and the
+[installation page](../tutorials/index.md) and the
 [release status](../reference/release-status.md) in the same change. A version
 already uploaded to TestPyPI can be uploaded to PyPI unchanged; the indexes
 are independent.
