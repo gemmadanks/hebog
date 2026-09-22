@@ -108,6 +108,33 @@ once per object multiplies it by the object count.
    of the fitting stage and 5 to 8% of a run. It is already a compiled SciPy
    least-squares solve.
 
+## What scales with the tile, and what with the image
+
+With 2,048-pixel cores every image the public envelope admits is exactly one
+tile, so a profile inside the envelope cannot tell tile-bounded state from
+image-bounded state: a core and a plane are the same array. The ladder
+therefore carries a 4,096-pixel pair, the smallest images holding more than
+one core.
+
+| case | megapixels | peak RSS | MiB per megapixel |
+| --- | --- | --- | --- |
+| dense 2,048² | 4.19 | 1,581 MiB | 377 |
+| dense 4,096² | 16.78 | 2,264 MiB | 135 |
+| empty 4,096² | 16.78 | 2,458 MiB | 147 |
+
+Quadrupling the area raises peak RSS by half, not fourfold, and the cost per
+megapixel collapses once the image passes one tile. Above that point the fit
+is about **1.3 GB fixed and tile-bounded plus 62 MiB per megapixel**, which
+is roughly six to eight live whole planes: the driver's `ImageBounds(0, H,
+0, W)` reads and the products.
+
+!!! warning "Do not extrapolate from inside the envelope"
+
+    Fitting the slope below 2,048 pixels gives about 350 MiB per megapixel
+    and predicts 83 GB at LoTSS-DR3 15,402². That is five times too high,
+    because in that regime the tile grows with the image. The slope above
+    one tile predicts about 16 GB there and 32 GB at 22,500².
+
 ## Cost model
 
 The complete-path profile fits generated cost as

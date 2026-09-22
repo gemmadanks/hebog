@@ -24212,3 +24212,30 @@ the per-worker placement finding.
   step is a 4,096-pixel profile case, the smallest size with more than one
   tile, so that "peak RSS scales with tile size, not image size" can be
   measured at all.
+
+## 2026-09-22 — M2: the ladder reaches past one tile, and corrects an extrapolation
+
+- **What this is.** The measurement the driver's whole-plane work needs, and
+  a correction to the figures the previous entry gave.
+- **Why the ladder needed a rung.** M2 asks that peak RSS scale with tile
+  size rather than image size. With 2,048-pixel cores every image the
+  envelope admits is exactly one tile, so no profile below 4,096 pixels can
+  tell the two apart. The generated ladder now carries an empty and a dense
+  4,096-pixel case, the smallest that holds more than one core.
+- **What it shows, against the expectation.** Quadrupling the area from
+  4.19 to 16.78 megapixels raises peak RSS only 1,581 → 2,264 MiB on the
+  dense case, a factor of 1.5 rather than 4, and the cost per megapixel
+  collapses from 377 to about 140 MiB. Fitting the regime above one tile
+  gives roughly 1.3 GB fixed and tile-bounded plus about 62 MiB per
+  megapixel. Hebog is already substantially tile-bounded.
+- **The correction.** The previous entry extrapolated 83 GB at LoTSS-DR3
+  15,402² and 177 GB at 22,500² from the slope below 2,048 pixels, where the
+  image is the tile and every kind of state grows together. On the slope
+  that governs larger images the figures are about 16 GB and 32 GB. The
+  constraint is real and still linear in image size, but five times smaller
+  than recorded.
+- **What remains, and its size.** About 62 MiB per megapixel still grows
+  with the image, which is some six to eight live whole planes: the driver's
+  five `ImageBounds(0, H, 0, W)` reads and the products. Removing them would
+  leave peak RSS essentially flat in image size, which is what the milestone
+  asks for.

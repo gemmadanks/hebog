@@ -1,11 +1,15 @@
 """Build the generated size and density ladder of the execution profile.
 
 Writes ``config/datasets/complete-execution-profile.json``, a
-development-role manifest of six images: 512, 1,024 and 2,048 pixels per
-side, each as noise only and as a dense field of 256 sources per 1,024²
+development-role manifest of eight images: 512, 1,024, 2,048 and 4,096
+pixels per side, each as noise only and as a dense field of 256 sources per
+1,024²
 (about twice the densest LoTSS-DR3 quick-check cut-out). Source density per
 pixel is the same at every size, so ``profile_complete_execution.py`` can
-separate the cost of image size from the cost of sources. Sources are
+separate the cost of image size from the cost of sources. The 4,096-pixel
+pair is the smallest that holds more than one admitted tile core, so it is
+also the smallest that can separate state scaling with the tile from state
+scaling with the image. Sources are
 isolated beam-shaped Gaussians with SNR 5 to 50 on a jittered grid, and noise
 is beam-correlated, as in restored radio images. The images carry no
 scientific authority.
@@ -41,7 +45,7 @@ _POINT_MAJOR_SIGMA = _BEAM_MAJOR_FWHM_PIXELS / _FWHM_PER_SIGMA
 _POINT_MINOR_SIGMA = _BEAM_MINOR_FWHM_PIXELS / _FWHM_PER_SIGMA
 _PIXEL_SCALE_DEGREES = 1.5 / 3600.0
 _EDGE_MARGIN_PIXELS = 20
-_SIZES = (512, 1024, 2048)
+_SIZES = (512, 1024, 2048, 4096)
 # Sources per 1,024² image. The dense grid spacing of about 12 beams keeps
 # every source isolated.
 _DENSITIES = (("empty", 0), ("dense", 256))
