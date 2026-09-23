@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
-from math import ceil
+from math import ceil, fsum, sqrt
 from typing import Any, Literal, cast
 
 import numpy as np
@@ -462,6 +462,12 @@ def measure_segment_row(  # noqa: PLR0913, PLR0917
     integrated_weight = float(
         np.sum(residual_window[measurement_support], dtype=np.float64)
     )
+    # Emission this segment owns that no fitted model accounts for. A source
+    # whose flux is the sum of its fits would otherwise lose it, because the
+    # fits describe the compact parts and nothing describes the rest. This is
+    # the residual after the models, not the residual outside their support:
+    # a fit's support is the region it measured over, which covers emission
+    # its model does not explain.
     if position_diagnostics is not None:
         position_diagnostics[label_value] = _position_attribution(
             residual_window,
@@ -1092,9 +1098,7 @@ def _measurement_dispositions(
                 object_kind="source",
                 object_id=membership.source_id,
                 status="unavailable" if row is None else "measured",
-                estimator=None
-                if row is None
-                else "source-owned-signed-aperture",
+                estimator=_source_estimator(row),
                 reason="non-positive-or-unavailable-signed-measurement"
                 if row is None
                 else None,
@@ -1112,6 +1116,47 @@ def _measurement_dispositions(
             dispositions, key=lambda item: (item.object_kind, item.object_id)
         )
     )
+
+
+def _source_estimator(
+    row: CatalogueSource | None,
+) -> (
+    Literal["source-owned-signed-aperture", "summed-fitted-component-flux"]
+    | None
+):
+    """Name the estimator that produced a published source's flux.
+
+    A continuum source's flux is the sum of its fitted components, except
+    where it has none and falls back to the aperture it was measured in.
+    The disposition records which, because the two describe different
+    quantities: the aperture is observable flux, the sum integrates each
+    fitted model over the whole plane.
+    """
+    if row is None:
+        return None
+    if "aperture-flux-without-fitted-component" in row.quality_flags:
+        return "source-owned-signed-aperture"
+    return "summed-fitted-component-flux"
+
+
+def _summed_fitted_component_flux(
+    components: tuple[CatalogueSource, ...],
+) -> tuple[float, float | None]:
+    """Return a source's summed fitted flux and its uncertainty.
+
+    PyBDSF defines a source's total flux as the sum of its Gaussians, and
+    Rapthor's photometry check compares Hebog against catalogues built that
+    way, so the continuum source flux follows the same definition.
+
+    The uncertainty is the quadrature sum, which treats the component fits as
+    independent. It is published only when every component publishes one,
+    because a partial sum would understate the total.
+    """
+    total = fsum(component.integrated_flux_jy for component in components)
+    errors = [component.integrated_flux_error_jy for component in components]
+    if any(error is None for error in errors):
+        return total, None
+    return total, sqrt(fsum(error * error for error in errors if error))
 
 
 def _reconstructed_source_rows(
@@ -1182,12 +1227,30 @@ def _reconstructed_source_rows(
             for component_id in membership.component_ids
         ):
             flags.add("ambiguous-multiscale-parent")
+        fitted_members = tuple(
+            component
+            for component_id in membership.component_ids
+            for component in (by_id.get(component_id),)
+            if component is not None
+            and "original-pixel-gaussian-model" in component.quality_flags
+        )
+        integrated_flux_jy = source.integrated_flux_jy
+        integrated_flux_error_jy = source.integrated_flux_error_jy
+        if require_signed_aperture:
+            if fitted_members:
+                integrated_flux_jy, integrated_flux_error_jy = (
+                    _summed_fitted_component_flux(fitted_members)
+                )
+            else:
+                flags.add("aperture-flux-without-fitted-component")
         output.append(
             replace(
                 source,
                 identifier=membership.source_id,
                 island_identifier=membership.source_id,
                 component_count=len(membership.component_ids),
+                integrated_flux_jy=integrated_flux_jy,
+                integrated_flux_error_jy=integrated_flux_error_jy,
                 quality_flags=tuple(sorted(flags)),
             )
         )

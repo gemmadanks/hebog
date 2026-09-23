@@ -28,6 +28,14 @@ class ContinuumCatalogueObject:
     support_label: int
     centre_xy: tuple[float, float]
     integrated_flux_jy: float
+    aperture_integrated_flux_jy: float | None = None
+    """Observable flux in the object's own aperture, where published.
+
+    ``integrated_flux_jy`` is the catalogue's own estimator, which for a
+    continuum source is the sum of its fitted components and so integrates
+    each model over the whole plane. Flux-recovery comparisons against
+    injected truth belong on this field instead.
+    """
 
     def __post_init__(self) -> None:
         """Require a finite positive catalogue measurement."""
@@ -43,6 +51,11 @@ class ContinuumCatalogueObject:
         ):
             raise ValueError(
                 "continuum object flux must be finite and positive"
+            )
+        aperture = self.aperture_integrated_flux_jy
+        if aperture is not None and (not isfinite(aperture) or aperture <= 0):
+            raise ValueError(
+                "continuum object aperture flux must be finite and positive"
             )
 
 
@@ -79,6 +92,7 @@ def _rows(
                 labels[row.identifier],
                 (float(coordinates[0]), float(coordinates[1])),
                 row.integrated_flux_jy,
+                row.association_integrated_flux_jy,
             )
         )
     return tuple(result)

@@ -54,7 +54,13 @@ _ROOT = Path(__file__).parents[2]
 
 
 def test_clipped_gaussian_source_keeps_observable_domain() -> None:
-    """A full Gaussian component cannot replace observed source flux."""
+    """The aperture keeps the observable domain the fitted flux leaves.
+
+    The source flux is the summed fitted component flux (23 September
+    decision), which integrates the sky beyond the image edge and so exceeds
+    the observable truth. The observable quantity stays published as the
+    association aperture, which is what this guards.
+    """
     yy, xx = np.mgrid[:49, :65]
     signal = 10 * np.exp(-0.5 * (((xx - 0.7) / 6) ** 2 + ((yy - 24) / 4) ** 2))
     products = _products(signal)
@@ -66,10 +72,13 @@ def test_clipped_gaussian_source_keeps_observable_domain() -> None:
     source, component = products.catalogue[0], products.component_catalogue[0]
     assert "original-pixel-gaussian-model" in component.quality_flags
     assert "original-pixel-gaussian-model" not in source.quality_flags
-    assert source.integrated_flux_jy == pytest.approx(
+    assert source.association_integrated_flux_jy == pytest.approx(
         observed_truth_flux, rel=0.001
     )
-    assert component.integrated_flux_jy > 1.5 * source.integrated_flux_jy
+    assert source.integrated_flux_jy == pytest.approx(
+        component.integrated_flux_jy
+    )
+    assert component.integrated_flux_jy > 1.5 * observed_truth_flux
     positions = np.asarray(
         WCS(_header(signal.shape)).celestial.all_world2pix(
             [
@@ -82,7 +91,9 @@ def test_clipped_gaussian_source_keeps_observable_domain() -> None:
     assert positions[0, 0] > 3
     assert positions[1, 0] == pytest.approx(0.7, abs=0.001)
     assert source.deconvolution_status == "unavailable"
-    assert source.integrated_flux_error_jy is None
+    assert source.integrated_flux_error_jy == pytest.approx(
+        component.integrated_flux_error_jy
+    )
 
 
 def test_public_measurements_retain_fit_and_centroid_attribution() -> None:
@@ -543,7 +554,9 @@ def test_extended_single_source_survives_compact_separation(
         for item in result.measurement_dispositions
         if item.object_kind == "source"
     )
-    assert source_disposition.estimator == "source-owned-signed-aperture"
+    # The source's flux is its components' summed fitted flux, but the
+    # source itself still claims no Gaussian shape of its own.
+    assert source_disposition.estimator == "summed-fitted-component-flux"
     assert (
         "original-pixel-gaussian-model"
         not in result.catalogue[0].quality_flags
@@ -727,8 +740,22 @@ def test_inadequate_beam_fallback_keeps_source_not_gaussian(
     assert disposition.reason == "fit-model-inadequate"
     assert not disposition.catalogue_row_published
     assert len(rejected.catalogue) == len(baseline.catalogue) == 1
+    # The aperture is what the rejected fit cannot disturb. The source flux
+    # itself moves by design: with no fitted component to sum, the source
+    # falls back to that aperture and says so.
+    assert rejected.catalogue[0].association_integrated_flux_jy == (
+        pytest.approx(baseline.catalogue[0].association_integrated_flux_jy)
+    )
     assert rejected.catalogue[0].integrated_flux_jy == pytest.approx(
-        baseline.catalogue[0].integrated_flux_jy
+        rejected.catalogue[0].association_integrated_flux_jy
+    )
+    assert (
+        "aperture-flux-without-fitted-component"
+        in rejected.catalogue[0].quality_flags
+    )
+    assert (
+        "aperture-flux-without-fitted-component"
+        not in baseline.catalogue[0].quality_flags
     )
     np.testing.assert_array_equal(
         rejected.measurement_component_labels,
@@ -803,7 +830,11 @@ def test_compact_shape_is_not_a_threshold_truncated_moment(
 
     assert len(result.catalogue) == len(result.component_catalogue) == 1
     assert result.catalogue[0].fitted_shape is None
-    assert result.catalogue[0].integrated_flux_error_jy is None
+    # The source claims no shape of its own, but its flux is its component's
+    # fitted flux, so it carries that component's uncertainty.
+    assert result.catalogue[0].integrated_flux_error_jy == pytest.approx(
+        result.component_catalogue[0].integrated_flux_error_jy
+    )
     for row in result.component_catalogue:
         assert row.fitted_shape is not None
         np.testing.assert_allclose(
@@ -892,11 +923,20 @@ def test_mixed_core_and_halo_remains_one_extended_source() -> None:
         for item in result.measurement_dispositions
         if item.object_kind == "source"
     )
-    assert source.estimator == "source-owned-signed-aperture"
+    assert source.estimator == "summed-fitted-component-flux"
     beam_area = np.pi * 16 / (4 * np.log(2))
     truth_flux = float(np.sum(core + halo)) / beam_area
-    # The pre-existing Continuum aperture retention floor remains binding.
-    assert result.catalogue[0].integrated_flux_jy >= 0.9 * truth_flux
+    # The aperture retention floor remains binding on the aperture, which is
+    # still published. The source flux no longer measures it.
+    assert result.catalogue[0].association_integrated_flux_jy >= (
+        0.9 * truth_flux
+    )
+    # The 23 September definition costs this morphology most of its flux: the
+    # fits describe the compact core and no fit describes the diffuse halo,
+    # so the summed flux is far below the emission the aperture retains.
+    # PyBDSF sums Gaussians the same way. Documented, not corrected; the M1
+    # calibration population contains no extended emission.
+    assert result.catalogue[0].integrated_flux_jy < 0.5 * truth_flux
 
 
 @pytest.mark.parametrize("opening", (np.pi / 2, np.pi))
@@ -923,9 +963,17 @@ def test_open_arc_keeps_its_components_and_single_flux_owner(
     truth_flux = float(signal.sum()) / (np.pi * 16 / (4 * np.log(2)))
     if asymmetric:
         assert len(products.catalogue) == 3
+        # Ownership is what this guards: the arc's emission is apportioned
+        # across the sources exactly once, which the apertures measure
+        # exactly. The summed fitted flux carries the few per cent each
+        # Gaussian adds by integrating beyond the observed arc.
+        assert sum(
+            source.association_integrated_flux_jy or 0.0
+            for source in products.catalogue
+        ) == pytest.approx(truth_flux, rel=0.05)
         assert sum(
             source.integrated_flux_jy for source in products.catalogue
-        ) == pytest.approx(truth_flux, rel=0.05)
+        ) == pytest.approx(truth_flux, rel=0.10)
         return
     assert len(products.catalogue) == 1
     assert len(products.component_catalogue) >= 3
@@ -939,8 +987,11 @@ def test_open_arc_keeps_its_components_and_single_flux_owner(
     assert products.catalogue[0].component_count == len(
         products.component_catalogue
     ) + len(unavailable)
+    assert products.catalogue[0].association_integrated_flux_jy == (
+        pytest.approx(truth_flux, rel=0.05)
+    )
     assert products.catalogue[0].integrated_flux_jy == pytest.approx(
-        truth_flux, rel=0.05
+        truth_flux, rel=0.10
     )
 
 

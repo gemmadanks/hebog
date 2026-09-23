@@ -531,11 +531,16 @@ def test_joint_geometry_with_controlled_or_public_background(
 
     assert recovery.matched_source is not None, recovery
     assert recovery.eligible_support_count == 1, recovery
-    assert (
-        abs(recovery.matched_source.integrated_flux_jy - truth_flux_jy)
-        / truth_flux_jy
-        <= 0.25
-    ), recovery
+    # Flux recovery is asserted on the observable aperture, which is the
+    # quantity injected truth states. The catalogue's own `Total_flux` is the
+    # sum of the source's fitted components, PyBDSF's definition, which
+    # integrates each model over the whole plane and so does not recover the
+    # extended emission these cells inject; see the product reference.
+    recovered_flux_jy = recovery.matched_source.aperture_integrated_flux_jy
+    assert recovered_flux_jy is not None, recovery
+    assert abs(recovered_flux_jy - truth_flux_jy) / truth_flux_jy <= 0.25, (
+        recovery
+    )
     assert 0 <= recovery.mask_recall <= 1
     assert 0 <= recovery.mask_iou <= 1
     if not with_noise:

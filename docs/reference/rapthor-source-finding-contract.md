@@ -88,7 +88,7 @@ columns:
 | `Source_id` | Stable source identifier used when converting rows to a comparison sky model |
 | `RA`, `DEC` | Sky position used for matching, beam-radius cuts, and astrometry |
 | `Isl_Total_flux` | Island-integrated flux used by the default astrometry comparison conversion |
-| `Total_flux` | Fitted source flux used for photometry and flux-normalization consistency |
+| `Total_flux` | Source flux used for photometry and flux-normalization consistency. In `continuum` it is the sum of the source's fitted Gaussian components, PyBDSF's definition, falling back to the signed aperture when no fit was admitted; see [public products](public-products.md#what-the-two-source-fluxes-measure-and-where-they-part) for where the two part |
 | `DC_Maj` | Deconvolved major axis in degrees; sources at or above 10 arcsec are excluded from compact-source checks |
 | `E_RA`, `E_DEC` | Position uncertainties in degrees; sources at or above 2 arcsec are excluded from astrometry checks |
 

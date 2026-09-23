@@ -1353,11 +1353,25 @@ def test_fk5_j2000_input_publishes_the_same_icrs_sky(
     icrs_catalogue = read_catalogue_fits_product(icrs_result.catalogue)
     fk5_catalogue = read_catalogue_fits_product(fk5_result.catalogue)
     assert fk5_catalogue.coordinate_frame == "icrs"
+    # The aperture is a pixel sum, so the frame tie cannot move it. The
+    # source flux is its components' fitted integral, which depends on the
+    # local tangent plane the tie does perturb, well below any scientific
+    # significance.
+    assert [
+        source.association_aperture_integrated_flux_jy
+        for source in fk5_catalogue.sources
+    ] == pytest.approx(
+        [
+            source.association_aperture_integrated_flux_jy
+            for source in icrs_catalogue.sources
+        ],
+        rel=1e-9,
+    )
     assert [
         source.flux.integrated_flux_jy for source in fk5_catalogue.sources
     ] == pytest.approx(
         [source.flux.integrated_flux_jy for source in icrs_catalogue.sources],
-        rel=1e-9,
+        rel=1e-6,
     )
 
 
@@ -1558,7 +1572,8 @@ def test_whole_pixel_beam_is_invariant_to_sub_milliarcsecond_reference_shift(
     measurements are unchanged.
     """
     image = _ring_image()
-    fluxes: list[list[float]] = []
+    fluxes: list[list[float | None]] = []
+    fitted: list[list[float]] = []
     for index, reference_ra in enumerate((180.0, 180.0 + 2e-7)):
         header = _header(image.shape)
         header["CRVAL1"] = reference_ra
@@ -1580,10 +1595,20 @@ def test_whole_pixel_beam_is_invariant_to_sub_milliarcsecond_reference_shift(
         )
         catalogue = read_catalogue_fits_product(result.catalogue)
         fluxes.append(
+            [
+                source.association_aperture_integrated_flux_jy
+                for source in catalogue.sources
+            ]
+        )
+        fitted.append(
             [source.flux.integrated_flux_jy for source in catalogue.sources]
         )
 
+    # The aperture is the quantity the `ceil` radii decide, so it must be
+    # exactly unchanged. The fitted flux varies continuously with the tangent
+    # plane and moves only at the shift's own scale.
     assert fluxes[0] == pytest.approx(fluxes[1], rel=1e-9)
+    assert fitted[0] == pytest.approx(fitted[1], rel=1e-6)
 
 
 @pytest.mark.integration

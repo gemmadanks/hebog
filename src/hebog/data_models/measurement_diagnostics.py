@@ -93,7 +93,9 @@ class MeasurementDisposition(BaseModel):
     status: Literal["measured", "unavailable", "deferred"]
     estimator: (
         Literal[
-            "original-pixel-gaussian-model", "source-owned-signed-aperture"
+            "original-pixel-gaussian-model",
+            "source-owned-signed-aperture",
+            "summed-fitted-component-flux",
         ]
         | None
     )

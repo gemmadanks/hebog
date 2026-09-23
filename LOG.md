@@ -24539,3 +24539,76 @@ the per-worker placement finding.
   only when a coarse window is shrunk to fit a small image, which the
   shrink factor prevents above about 600 pixels a side, so neither bounds a
   large image. Both were carried in the plan as outstanding work.
+
+## 2026-09-23 — M1: the source `Total_flux` becomes the summed fitted flux
+
+- **What this is.** The redefinition the 23 September decision called for, the
+  binding limits re-asserted on a freshly measured population, and the record
+  of two estimators that were built, measured and rejected on the way.
+- **The change.** A continuum source's `Total_flux` is the sum of its fitted
+  Gaussian components' integrated fluxes, carrying their quadrature
+  uncertainty when every component supplies one. A source with no admitted
+  fit keeps its signed aperture and carries
+  `aperture-flux-without-fitted-component`. The aperture is still published as
+  `ASSOCIATION_APERTURE_FLUX`, and `MeasurementDisposition.estimator` gained
+  `summed-fitted-component-flux`, because it was hard-coded to
+  `source-owned-signed-aperture` and would otherwise have recorded false
+  provenance.
+- **Every binding limit passes**, on `m1-endpoint-summed-fit`, measured with
+  current code rather than the pre-`75ec12f` products the 23 September table
+  used:
+
+  | Gate | Limit | Hebog sources | Pinned `master` |
+  | --- | --- | --- | --- |
+  | median excess, SNR 10/20/50 | ≤ +14% / +3.5% / +1% | +13.5% / +2.5% / +0.4% | +13.8% / +3.0% / +0.5% |
+  | absolute p95, SNR 10/20/50 | ≤ 35% / 12% / 6% | 29.4% / 11.0% / 4.6% | 34.4% / 11.2% / 5.1% |
+  | paired upper one-sided 95% | ≤ +1 point | +0.4 / −0.2 / +0.1 pt | — |
+  | 3σ-clipped ratio, SNR ≥ 20 | ±3%, scatter ≤ 5% | 1.014, 0.035 | 1.017, 0.037 |
+
+  The old aperture definition failed the tail at every stratum (79.4%, 41.0%,
+  20.3%), which is what this closes. One sub-cell the gate does not name,
+  `correlated/snr10`, reaches +1.1 and +1.7 points.
+- **Where the definitions part, measured and documented not corrected.**
+  Against injected truth: isolated compact −0.0% for both estimators; open arc
+  aperture −0.0% against summed fit +7.4%; edge-clipped Gaussian −0.0% against
+  +72.6%, because a fit integrates sky the image does not cover; compact core
+  with a diffuse halo −4.8% against −61.7%, because the fits describe the core
+  and nothing describes the halo. PyBDSF's definition behaves the same way.
+- **Two estimators were built and rejected.** A *conditional* rule on the
+  summed-fit-to-aperture ratio fails: at SNR 10 noise alone drives that ratio
+  below any useful threshold, so it routes compact sources to the aperture and
+  restores its tail (p95 0.357 at threshold 0.5, 0.734 at 0.75, against a
+  0.35 limit). An *additive* rule, summed fit plus the aperture residual after
+  subtracting a published `fitted-model-signal` plane, recovers the halo
+  exactly (−61.7% → −4.8%) but fails every gate (p95 0.781, 0.353, 0.166),
+  because the residual is a pixel sum and carries the aperture's variance. A
+  3σ detection test on that residual does not rescue it (0.778, 0.353, 0.166):
+  at high signal-to-noise the residual is dominated by fit-model imperfection,
+  which is significant for the wrong reason. Both were reverted; the model
+  plane with them.
+- **What that establishes.** The aperture and the fit measure different
+  quantities with different noise, and any estimator mixing them inherits the
+  aperture's tail. The 23 September limits were set at PyBDSF parity and
+  PyBDSF is a pure fit-sum estimator, so meeting them requires one too. The
+  two requirements cannot both bind one column.
+- **How flux recovery is still asserted.** The development matrix's 25%
+  recovery tolerance now reads `ASSOCIATION_APERTURE_FLUX`, the column that
+  measures the observable flux injected truth states, and all 108 cells pass.
+  Asserting recovery of observable flux on a whole-plane model integral was
+  the mismatch, not the tolerance. Three unit tests and two integration tests
+  moved the same way: the frame-tie and sub-milliarcsecond-shift invariants
+  are exact on the aperture and hold to 1e-6 on the fitted flux, which depends
+  on a tangent plane those shifts perturb.
+- **Evidence and tooling.** `run_pybdsf_calibration.py` and
+  `compare_flux_calibration.py` are checked in under `scripts/validation/`,
+  the latter with the paired bootstrap folded in, `--root`, `--hebog-run` and
+  `--output` so it is not path-bound, and the 3σ-clipped ratio, which no
+  retained script computed. `measure_component_uncertainty_calibration.py`
+  was repaired: it patched `public_science.source_finder_configs`, removed by
+  `75ec12f` on 19 September, so the point-estimator override had been silently
+  inert; it now patches `hebog.science.configuration` and
+  `hebog.science.continuum`, which binds the name at import.
+- **Not covered.** The population is isolated compact sources on a grid, ten
+  1,024² realizations, one beam, no blends or extended emission. It cannot
+  see the morphology divergence above, which is why that was measured
+  separately and asserted in the tests rather than inferred from these gates.
