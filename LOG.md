@@ -24704,3 +24704,48 @@ the per-worker placement finding.
   `pytest tests/integration` runs the slow-marked cases the gate excludes.
 - **Not covered.** No benchmark claim on complete runs: 2.3 s of a 116 s
   run at 3,000² is inside the noise of a loaded machine.
+
+## 2026-09-23 — M2: the background stage publishes what the composition asks of it
+
+- **What this is.** The step the previous two were clearing the way for, and
+  the first one that moves the traced peak.
+- **What was wrong.** The composition never wanted the image, the background
+  and the RMS. It wanted two facts about them: where the estimate exists,
+  and where it carries a usable local noise. The driver carried three
+  `float64` planes from the background stage to the terminal builder to
+  derive those two masks, and `public_science` derived them again.
+- **The change.** `_detect_and_write_background_rms` publishes `valid` and
+  `positive-rms` beside the background and the RMS, computed on the core
+  that computed the estimate. `_estimate_background_rms` returns those two
+  `bool` planes instead of the two `float64` estimates, so the driver never
+  reads the image plane at all, and `build_configured_continuum_products`
+  takes the masks rather than deriving them. The "estimate must be finite
+  wherever the image is" check moved into the stage, where it runs per tile
+  and names the tile that broke it.
+- **What it is worth.** The deterministic traced peak falls 1530.7 →
+  1342.1 MiB at 3,000² and 444.1 → 422.2 MiB at 1,024². Across the three
+  steps that is 1539.3 → 1342.1 MiB, a 197.2 MiB reduction against the
+  198 MiB the array arithmetic predicted: three `float64` planes out at
+  24 bytes a pixel, two `bool` planes in at 2.
+- **What is left, counted rather than estimated.** A run now walks the
+  driver's own locals at the terminal builder and counts the distinct
+  image-shaped arrays reachable from them: **18**, at 49 bytes a pixel — 8
+  `int32` label planes, 9 masks and the position signal. That is 0.41 GiB at
+  3,000², 4.6 GiB at 10,000² and 10.8 GiB at 15,402². The earlier figure of
+  19 arrays was a hand count of the source; this one is measured, and the
+  two differ by one.
+- **Evidence.** On the 1,024² dense cut-out and the real 3,000² LoTSS-DR3
+  field the catalogue, RMS and mask are bitwise identical, with only the
+  composition digest moving. 1,973 unit and 40 contract tests pass.
+- **What the integration gate caught that the science check did not.** Two
+  test helpers unpacked `_estimate_background_rms` for the estimate planes
+  and silently received masks: one asserted `estimated_rms > truth/2` on a
+  boolean array, which is true for every pixel. They now read the estimate
+  from the store through one shared `estimated_maps` helper. Eight identical
+  background-stage substitutes across two files became one
+  `substituted_background_rms` fixture, and the test doubles publish the
+  generation the real stage publishes rather than the two products someone
+  remembered.
+- **A second measurement discipline note.** The first reading of those
+  failures was taken through `| tail -6`, which threw away 39 of the 43
+  `FAILED` lines. Capture a gate's whole output to a file and tail the file.

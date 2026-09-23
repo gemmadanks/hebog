@@ -476,10 +476,10 @@ def test_joint_geometry_with_controlled_or_public_background(
             header=header,
             config=config,
         )
+        valid = np.isfinite(image) & np.isfinite(background) & np.isfinite(rms)
         products = build_configured_continuum_products(
-            image,
-            background,
-            rms,
+            valid,
+            valid & (rms > 0.0),
             header,
             multiscale=published.multiscale,
             labels=published.labels,

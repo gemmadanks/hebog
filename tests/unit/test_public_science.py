@@ -21,7 +21,7 @@ from hebog.public_api import (
     component_records_from_windows,
 )
 from hebog.public_science import (
-    _aligned_plane,
+    _aligned_mask,
     build_configured_continuum_products,
 )
 from hebog.science.profile import (
@@ -164,26 +164,26 @@ def test_science_profile_rejects_malformed_runtime_fields(
 @pytest.mark.parametrize(
     "values, shape",
     [
-        (np.ones((2, 2), dtype=np.complex128), None),
-        (np.ones((2, 2), dtype=np.float64), (3, 2)),
+        (np.ones((2, 2), dtype=np.float64), None),
+        (np.ones((2, 2), dtype=np.bool_), (3, 2)),
+        (np.ones((2, 2, 2), dtype=np.bool_), None),
     ],
 )
-def test_aligned_plane_rejects_invalid_public_science_inputs(
+def test_aligned_mask_rejects_invalid_public_science_inputs(
     values: np.ndarray,
     shape: tuple[int, int] | None,
 ) -> None:
-    """The adapter fails closed on complex or misaligned planes."""
-    with pytest.raises(ValueError, match="aligned real two-dimensional"):
-        _aligned_plane(values, name="test", shape=shape)
+    """The adapter fails closed on non-boolean or misaligned masks."""
+    with pytest.raises(ValueError, match="aligned boolean two-dimensional"):
+        _aligned_mask(values, name="test", shape=shape)
 
 
-def test_configured_builder_rejects_inconsistent_finite_support(
+def test_configured_builder_rejects_usable_noise_outside_the_valid_domain(
     tmp_path: Path,
 ) -> None:
-    """Finite image pixels require finite background and RMS values."""
-    image = np.ones((2, 2), dtype=np.float64)
-    background = np.zeros((2, 2), dtype=np.float64)
-    background[0, 0] = np.nan
+    """A usable local noise cannot exist where the estimate does not."""
+    valid = np.ones((2, 2), dtype=np.bool_)
+    valid[0, 0] = False
 
     published = _published(
         np.ones((2, 2), dtype=np.float64),
@@ -192,11 +192,10 @@ def test_configured_builder_rejects_inconsistent_finite_support(
         tmp_path,
     )
 
-    with pytest.raises(ValueError, match="validity differs from image"):
+    with pytest.raises(ValueError, match="positive RMS must be"):
         build_configured_continuum_products(
-            image,
-            background,
-            np.ones((2, 2), dtype=np.float64),
+            valid,
+            np.ones((2, 2), dtype=np.bool_),
             fits.Header(),
             multiscale=published.multiscale,
             labels=published.labels,
@@ -252,9 +251,8 @@ def test_configured_builder_measures_the_published_component_topology(
     )
 
     result = build_configured_continuum_products(
-        normalized,
-        np.zeros(normalized.shape, dtype=np.float64),
-        np.ones(normalized.shape, dtype=np.float64),
+        np.ones(normalized.shape, dtype=np.bool_),
+        np.ones(normalized.shape, dtype=np.bool_),
         _header(normalized.shape),
         multiscale=published.multiscale,
         labels=published.labels,
@@ -302,9 +300,8 @@ def test_configured_builder_publishes_independent_connected_sources(
     )
 
     result = build_configured_continuum_products(
-        normalized,
-        np.zeros(normalized.shape, dtype=np.float64),
-        np.ones(normalized.shape, dtype=np.float64),
+        np.ones(normalized.shape, dtype=np.bool_),
+        np.ones(normalized.shape, dtype=np.bool_),
         _header(normalized.shape),
         multiscale=published.multiscale,
         labels=published.labels,
@@ -351,9 +348,8 @@ def test_configured_builder_retains_three_components_in_one_parent(
     )
 
     result = build_configured_continuum_products(
-        normalized,
-        np.zeros(normalized.shape, dtype=np.float64),
-        np.ones(normalized.shape, dtype=np.float64),
+        np.ones(normalized.shape, dtype=np.bool_),
+        np.ones(normalized.shape, dtype=np.bool_),
         _header(normalized.shape),
         multiscale=published.multiscale,
         labels=published.labels,

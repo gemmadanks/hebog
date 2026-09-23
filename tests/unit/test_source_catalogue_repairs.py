@@ -388,10 +388,12 @@ def _configured_products(
             header=header,
             config=config,
         )
+        valid = (
+            np.isfinite(signal) & np.isfinite(background) & np.isfinite(rms)
+        )
         return build_configured_continuum_products(
-            signal,
-            background,
-            rms,
+            valid,
+            valid & (rms > 0.0),
             header,
             multiscale=published.multiscale,
             labels=published.labels,

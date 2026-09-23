@@ -128,15 +128,16 @@ megapixel collapses once the image passes one tile. Read those three figures
 as an envelope, not as measurements: they are RSS, and the warning below
 applies to them.
 
-Counting the arrays is the reliable way to size what grows with the image.
-The driver holds **19 image-sized arrays** — the image, background, RMS
-and their residual in `float64`, the position signal, six label planes in
-`int32`, and the validity, reconstruction, scale-significance, retained and
-support masks. That is 0.7 GiB at 3,000², 7.5 GiB at 10,000² and
-17.7 GiB at LoTSS-DR3 15,402², against 18 GiB of development-machine
-memory. The plan's M2 row sets out the order they come out in.
+Counting the arrays is the reliable way to size what grows with the image,
+and the count is measured rather than read off the source: a run walks the
+driver's own locals at the terminal builder and counts the distinct
+image-shaped arrays reachable from them. There are **18**, at 49 bytes a
+pixel — 8 `int32` label planes, 9 masks and the position signal in
+`float64`. That is 0.41 GiB at 3,000², 4.6 GiB at 10,000² and 10.8 GiB at
+LoTSS-DR3 15,402², against 18 GiB of development-machine memory. The plan's
+M2 row sets out the order they come out in.
 
-The RMS and the residual are out of everything after the science. The
+The image, the background, the RMS and their residual are all out. The
 catalogue projection reads each island's and each owner's own bounded window
 from the store, the final RMS product streams one canonical tile row at a
 time rather than validating a whole plane in memory, and the component
@@ -147,15 +148,16 @@ than a component, so one read per component decodes the same chunks again
 for every neighbour sharing them, which measured 5.5× slower at 111
 components and 8.2× at 846.
 
-What is left of that group is the image, the background and the RMS
-themselves, which survive only because the driver derives the validity and
-positive-RMS masks from them. Publishing those two `bool` planes from the
-background stage replaces three `float64` planes with them — 216 MiB against
-18 MiB at 3,000² — and is the first step that moves the peak, which sits in
-the multiscale pass rather than in anything the catalogue does.
+The background stage publishes the two masks the composition actually asks
+of its estimate — where the estimate exists, and where it carries a usable
+local noise — so two `bool` planes stand where three `float64` ones did.
+That is the change that moved the peak, which sits in the multiscale pass
+rather than in anything the catalogue does: 1539.3 → 1342.1 MiB at 3,000²
+across the three steps, within 1 MiB of the 198 MiB the array arithmetic
+predicted. What remains is the label, mask and position-signal planes.
 
 A real 3,000² LoTSS-DR3 field has a deterministic traced peak of
-**1,531 MiB** through the public path.
+**1,342 MiB** through the public path.
 
 !!! warning "Peak RSS is an envelope, not a threshold"
 

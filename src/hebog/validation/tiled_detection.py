@@ -13,6 +13,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
@@ -100,12 +101,18 @@ class ArrayImageSource:
 
 def publish_background_rms(
     work_directory: Path,
+    image_jy_per_beam: npt.NDArray[np.float64],
     background_jy_per_beam: npt.NDArray[np.float64],
     rms_jy_per_beam: npt.NDArray[np.float64],
     *,
     generation_id: str,
 ) -> ZarrProductSink:
-    """Publish background and RMS planes as one completed generation."""
+    """Publish the background/RMS generation the detection stage publishes.
+
+    That includes the two masks the composition asks of the estimate, so a
+    caller substituting this stage stands in for all of it rather than the
+    part it remembered.
+    """
     manifest = plan_image_partitions(
         image_shape_yx=background_jy_per_beam.shape,
         tile_core_shape_yx=_BACKGROUND_TILE_SHAPE_YX,
@@ -116,27 +123,39 @@ def publish_background_rms(
         manifest,
         generation_id=generation_id,
     )
-    product_names = ("background", "rms")
-    for product_name in product_names:
-        sink.initialize_product(
-            product_name=product_name,
-            dtype=np.dtype("<f8"),
-        )
+    valid = np.asarray(
+        np.isfinite(image_jy_per_beam)
+        & np.isfinite(background_jy_per_beam)
+        & np.isfinite(rms_jy_per_beam),
+        dtype=np.bool_,
+    )
+    planes: tuple[tuple[str, npt.NDArray[Any], np.dtype[Any]], ...] = (
+        ("background", background_jy_per_beam, np.dtype("<f8")),
+        ("rms", rms_jy_per_beam, np.dtype("<f8")),
+        ("valid", valid, np.dtype(np.bool_)),
+        (
+            "positive-rms",
+            np.asarray(valid & (rms_jy_per_beam > 0.0), dtype=np.bool_),
+            np.dtype(np.bool_),
+        ),
+    )
+    for product_name, _, dtype in planes:
+        sink.initialize_product(product_name=product_name, dtype=dtype)
     chunks: list[ProductChunk] = []
     for tile in manifest.tiles:
         selection = _selection(tile.core_bounds)
-        for product_name, values in (
-            ("background", background_jy_per_beam),
-            ("rms", rms_jy_per_beam),
-        ):
+        for product_name, values, dtype in planes:
             chunks.append(
                 sink.write_chunk(
                     product_name=product_name,
                     tile=tile,
-                    values=np.asarray(values[selection], dtype=np.float64),
+                    values=np.asarray(values[selection], dtype=dtype),
                 )
             )
-    sink.publish_generation(product_names=product_names, chunks=chunks)
+    sink.publish_generation(
+        product_names=tuple(name for name, _, _ in planes),
+        chunks=chunks,
+    )
     return sink
 
 
@@ -207,6 +226,7 @@ def publish_continuum_inputs(  # noqa: PLR0913
     image_source = ArrayImageSource(image_jy_per_beam, valid_pixels)
     background_rms_source = publish_background_rms(
         work_directory,
+        image_jy_per_beam,
         background_jy_per_beam,
         rms_jy_per_beam,
         generation_id=generation_id,

@@ -33,31 +33,29 @@ from hebog.science.models import (
 _IMAGE_DIMENSIONS = 2
 
 
-def _aligned_plane(
+def _aligned_mask(
     values: npt.ArrayLike,
     *,
     name: str,
     shape: tuple[int, int] | None = None,
-) -> npt.NDArray[np.float64]:
-    """Return one aligned real two-dimensional public science plane."""
+) -> npt.NDArray[np.bool_]:
+    """Return one aligned two-dimensional public science mask."""
     plane = np.asarray(values)
     if (
         plane.ndim != _IMAGE_DIMENSIONS
-        or not np.issubdtype(plane.dtype, np.number)
-        or np.iscomplexobj(plane)
+        or plane.dtype != np.bool_
         or (shape is not None and plane.shape != shape)
     ):
         raise ValueError(
-            f"public source-finder {name} must be an aligned real "
+            f"public source-finder {name} must be an aligned boolean "
             "two-dimensional plane"
         )
-    return np.asarray(plane, dtype=np.float64)
+    return plane
 
 
 def build_configured_continuum_products(  # noqa: PLR0913
-    image_jy_per_beam: npt.ArrayLike,
-    background_jy_per_beam: npt.ArrayLike,
-    rms_jy_per_beam: npt.ArrayLike,
+    valid_pixels: npt.ArrayLike,
+    positive_rms_pixels: npt.ArrayLike,
     header: fits.Header,
     *,
     multiscale: TiledMultiscaleDetection,
@@ -76,21 +74,20 @@ def build_configured_continuum_products(  # noqa: PLR0913
 
     Every threshold and island limit has already been applied by the passes
     that published these records, so this step takes no configuration: an
-    image whose admitted islands are all rejected publishes nothing.
+    image whose admitted islands are all rejected publishes nothing. The two
+    masks arrive already reconciled from the background stage's cores, which
+    is where the estimate they describe was computed.
     """
-    image = _aligned_plane(image_jy_per_beam, name="image")
-    background = _aligned_plane(
-        background_jy_per_beam,
-        name="background",
-        shape=image.shape,
+    valid = _aligned_mask(valid_pixels, name="validity")
+    positive_rms = _aligned_mask(
+        positive_rms_pixels,
+        name="positive-RMS validity",
+        shape=valid.shape,
     )
-    rms = _aligned_plane(rms_jy_per_beam, name="RMS", shape=image.shape)
-    valid = np.isfinite(image) & np.isfinite(background) & np.isfinite(rms)
-    if np.any(np.isfinite(image) != valid):
+    if np.any(positive_rms & ~valid):
         raise ValueError(
-            "public source-finder mean/RMS validity differs from image"
+            "public source-finder positive RMS must be scientifically valid"
         )
-    positive_rms = valid & (rms > 0.0)
     if not np.any(np.asarray(labels.component_labels) > 0):
         return None
     retained = build_continuum_candidate_products(

@@ -588,8 +588,15 @@ def _estimate_background_rms(  # noqa: PLR0913
     work_directory: Path,
     *,
     generation_id: str,
-) -> tuple[ZarrProductSink, npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-    """Run the exact candidate-owned bounded background/RMS stage."""
+) -> tuple[ZarrProductSink, npt.NDArray[np.bool_], npt.NDArray[np.bool_]]:
+    """Run the exact candidate-owned bounded background/RMS stage.
+
+    The stage publishes the background and the RMS as tiled planes and the
+    two masks the composition asks of them: where the estimate exists, and
+    where it carries a usable local noise. Returning those two ``bool``
+    planes rather than the two ``float64`` estimates is what keeps the
+    driver from holding the estimate itself.
+    """
     from hebog.science.configuration import (  # noqa: PLC0415
         source_finder_configs,
     )
@@ -655,12 +662,12 @@ def _estimate_background_rms(  # noqa: PLR0913
     return (
         sink,
         np.asarray(
-            sink.read_completed_window("background", bounds),
-            dtype=np.float64,
+            sink.read_completed_window("valid", bounds),
+            dtype=np.bool_,
         ),
         np.asarray(
-            sink.read_completed_window("rms", bounds),
-            dtype=np.float64,
+            sink.read_completed_window("positive-rms", bounds),
+            dtype=np.bool_,
         ),
     )
 
@@ -1389,12 +1396,10 @@ def _analyse_image(  # noqa: PLR0913
         load_continuum_science_profile,
     )
 
-    bounds = _full_bounds(metadata)
-    image = np.asarray(source.read_window(bounds).values, dtype=np.float64)
     generation_id = (
         f"public-{hashlib.sha256(request.run_id.encode()).hexdigest()}"
     )
-    background_rms_source, background, rms = _estimate_background_rms(
+    background_rms_source, valid, positive_rms = _estimate_background_rms(
         source,
         metadata,
         config,
@@ -1402,7 +1407,7 @@ def _analyse_image(  # noqa: PLR0913
         work_directory,
         generation_id=generation_id,
     )
-    if not np.any(np.isfinite(rms) & (rms > 0)):
+    if not np.any(positive_rms):
         return _ScientificProducts(
             source=source,
             background_rms_source=background_rms_source,
@@ -1455,7 +1460,6 @@ def _analyse_image(  # noqa: PLR0913
         config=config,
         generation_id=generation_id,
     )
-    valid = np.isfinite(image) & np.isfinite(background) & np.isfinite(rms)
     scale_detections = retained_scale_detections(multiscale, valid)
     component_fits, fit_source = publish_component_fits(
         source,
@@ -1551,9 +1555,8 @@ def _analyse_image(  # noqa: PLR0913
         sink_name="source-rows",
     )
     terminal = build_configured_continuum_products(
-        image,
-        background,
-        rms,
+        valid,
+        positive_rms,
         header,
         multiscale=multiscale,
         labels=support_labels,

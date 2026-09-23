@@ -7,6 +7,7 @@ from functools import partial
 from typing import Protocol
 
 import numpy as np
+import numpy.typing as npt
 
 from hebog.algorithms.detection import (
     detect_high_significance_candidates,
@@ -36,6 +37,7 @@ from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
 from hebog.stages.background import (
     BackgroundRmsGrids,
+    BackgroundRmsTile,
     BackgroundRmsTileRequest,
     MultiscaleSourceProtection,
     estimate_background_rms_grids,
@@ -58,7 +60,7 @@ class _DetectionTileProducts:
     """Compact scheduler result from one first-pass detection tile."""
 
     summary: LocalIslandTileSummary
-    product_chunks: tuple[ProductChunk, ProductChunk]
+    product_chunks: tuple[ProductChunk, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -185,6 +187,7 @@ def _detect_and_write_background_rms(
         request.partition,
         image_shape_yx=image_shape_yx,
     )
+    valid = _estimated_validity(window, background_rms)
     chunks = (
         sink.write_chunk(
             product_name="background",
@@ -196,11 +199,53 @@ def _detect_and_write_background_rms(
             tile=request.partition,
             values=np.asarray(background_rms.rms),
         ),
+        sink.write_chunk(
+            product_name="valid",
+            tile=request.partition,
+            values=valid,
+        ),
+        sink.write_chunk(
+            product_name="positive-rms",
+            tile=request.partition,
+            values=np.asarray(
+                valid & (np.asarray(background_rms.rms) > 0.0),
+                dtype=np.bool_,
+            ),
+        ),
     )
     return _DetectionTileProducts(
         summary=tile.compact_summary(),
         product_chunks=chunks,
     )
+
+
+def _estimated_validity(
+    window: ImageWindow,
+    background_rms: BackgroundRmsTile,
+) -> npt.NDArray[np.bool_]:
+    """Return where this core carries an image, a mean and a noise estimate.
+
+    Every later pass measures inside this domain, so the estimate has to
+    cover the image rather than narrow it: a pixel the image defines and the
+    estimate does not would be silently dropped from the science instead of
+    reported.
+
+    Raises:
+        ValueError: If the estimate is not finite wherever the image is.
+    """
+    finite_image = np.isfinite(window.values)
+    valid = np.asarray(
+        finite_image
+        & np.isfinite(background_rms.background)
+        & np.isfinite(background_rms.rms),
+        dtype=np.bool_,
+    )
+    if np.any(finite_image != valid):
+        raise ValueError(
+            "background/RMS validity differs from the image on tile "
+            f"{window.bounds}"
+        )
+    return valid
 
 
 def _write_source_filtering_mask(
@@ -336,6 +381,8 @@ def run_detection_from_coarse_grids(  # noqa: PLR0913
     for product_name, dtype in (
         ("background", np.dtype("<f8")),
         ("rms", np.dtype("<f8")),
+        ("valid", np.dtype(np.bool_)),
+        ("positive-rms", np.dtype(np.bool_)),
         ("source-filtering-mask", np.dtype(np.bool_)),
     ):
         sink.initialize_product(product_name=product_name, dtype=dtype)
@@ -387,7 +434,13 @@ def run_detection_from_coarse_grids(  # noqa: PLR0913
         + mask_chunks
     )
     generation = sink.publish_generation(
-        product_names=("background", "rms", "source-filtering-mask"),
+        product_names=(
+            "background",
+            "rms",
+            "valid",
+            "positive-rms",
+            "source-filtering-mask",
+        ),
         chunks=product_chunks,
     )
     boundary_label_count = sum(

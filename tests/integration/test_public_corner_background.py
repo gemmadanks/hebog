@@ -14,6 +14,7 @@ from typing import Any
 import numpy as np
 import pytest
 from astropy.io import fits
+from conftest import estimated_maps
 from distributed import Client
 from scipy.ndimage import gaussian_filter
 
@@ -75,7 +76,7 @@ def test_public_corner_sources_survive_background_estimation(
 
     def capture_maps(*args: Any, **kwargs: Any):
         result = original_estimator(*args, **kwargs)
-        maps.append(result[1:])
+        maps.append(estimated_maps(result[0], args[1].shape_yx))
         return result
 
     monkeypatch.setattr(public_api, "_estimate_background_rms", capture_maps)

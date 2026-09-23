@@ -9,7 +9,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from dataclasses import replace
 from pathlib import Path
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar
 
 import numpy as np
 import pytest
@@ -17,7 +17,7 @@ from astropy import units
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
-from conftest import PublishBackgroundRms
+from conftest import SubstituteBackgroundRms
 from distributed import Client, LocalCluster
 
 import hebog
@@ -194,7 +194,7 @@ def _request(
 def test_measurement_owner_without_published_support_has_no_public_row(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
-    published_background_rms: PublishBackgroundRms,
+    substituted_background_rms: SubstituteBackgroundRms,
 ) -> None:
     """Publication pruning must not create dangling island references."""
     yy, xx = np.mgrid[:65, :97]
@@ -223,22 +223,13 @@ def test_measurement_owner_without_published_support_has_no_public_row(
         retained.append(updated.terminal)
         return updated
 
-    def background(
-        *args: object,
-        generation_id: str,
-        **_kwargs: object,
-    ):
-        background = np.zeros_like(signal)
-        rms = np.ones_like(signal)
-        return (
-            published_background_rms(
-                cast(Path, args[4]), background, rms, generation_id
-            ),
-            background,
-            rms,
-        )
-
-    monkeypatch.setattr(public_api, "_estimate_background_rms", background)
+    monkeypatch.setattr(
+        public_api,
+        "_estimate_background_rms",
+        substituted_background_rms(
+            signal, np.zeros_like(signal), np.ones_like(signal)
+        ),
+    )
     monkeypatch.setattr(public_api, "_analyse_image", analysis)
     result = hebog.find_sources(
         _request(tmp_path), _config(), SerialExecutor()
@@ -277,28 +268,13 @@ def test_public_degenerate_owner_does_not_abort_a_healthy_neighbour(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     owner_pixels: int,
-    published_background_rms: PublishBackgroundRms,
+    substituted_background_rms: SubstituteBackgroundRms,
 ) -> None:
     """An admitted thin owner is retained without inventing a Gaussian."""
     yy, xx = np.mgrid[:65, :97]
     signal = 10 * np.exp(-((xx - 70) ** 2 + (yy - 32) ** 2) / 8)
     signal[32, 12 : 12 + owner_pixels] = 10.0
     _write_image(tmp_path / "image.fits", signal)
-
-    def analytic_background(
-        *args: object,
-        generation_id: str,
-        **_kwargs: object,
-    ):
-        background = np.zeros_like(signal)
-        rms = np.ones_like(signal)
-        return (
-            published_background_rms(
-                cast(Path, args[4]), background, rms, generation_id
-            ),
-            background,
-            rms,
-        )
 
     original_catalogue = public_api._public_catalogue  # pyright: ignore[reportPrivateUsage]
     projections = []
@@ -319,7 +295,11 @@ def test_public_degenerate_owner_does_not_abort_a_healthy_neighbour(
     monkeypatch.setattr(public_api, "_public_catalogue", projected_catalogue)
 
     monkeypatch.setattr(
-        public_api, "_estimate_background_rms", analytic_background
+        public_api,
+        "_estimate_background_rms",
+        substituted_background_rms(
+            signal, np.zeros_like(signal), np.ones_like(signal)
+        ),
     )
     result = hebog.find_sources(
         _request(tmp_path),
@@ -364,7 +344,7 @@ def test_public_degenerate_owner_does_not_abort_a_healthy_neighbour(
 def test_pruned_component_of_a_published_source_keeps_its_disposition(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
-    published_background_rms: PublishBackgroundRms,
+    substituted_background_rms: SubstituteBackgroundRms,
 ) -> None:
     """An extended source can remain published after one owner is pruned."""
     yy, xx = np.mgrid[:97, :97]
@@ -377,21 +357,6 @@ def test_pruned_component_of_a_published_source_keeps_its_disposition(
     )
     _write_image(tmp_path / "image.fits", signal)
     original = public_api._analyse_image  # pyright: ignore[reportPrivateUsage]
-
-    def background(
-        *args: object,
-        generation_id: str,
-        **_kwargs: object,
-    ):
-        background = np.zeros_like(signal)
-        rms = np.ones_like(signal)
-        return (
-            published_background_rms(
-                cast(Path, args[4]), background, rms, generation_id
-            ),
-            background,
-            rms,
-        )
 
     def prune_one_component(*args: Any, **kwargs: Any):
         products = original(*args, **kwargs)
@@ -416,7 +381,13 @@ def test_pruned_component_of_a_published_source_keeps_its_disposition(
             ),
         )
 
-    monkeypatch.setattr(public_api, "_estimate_background_rms", background)
+    monkeypatch.setattr(
+        public_api,
+        "_estimate_background_rms",
+        substituted_background_rms(
+            signal, np.zeros_like(signal), np.ones_like(signal)
+        ),
+    )
     monkeypatch.setattr(public_api, "_analyse_image", prune_one_component)
     result = hebog.find_sources(
         _request(tmp_path), _config(), SerialExecutor()
@@ -439,33 +410,25 @@ def test_pruned_component_of_a_published_source_keeps_its_disposition(
 def test_two_sources_share_one_actual_detection_island(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
-    published_background_rms: PublishBackgroundRms,
+    substituted_background_rms: SubstituteBackgroundRms,
 ) -> None:
     """Island counts describe connectivity, not the number of source rows."""
     yy, xx = np.mgrid[:65, :65]
-    signal = sum(
-        peak * np.exp(-((xx - cx) ** 2 + (yy - 32) ** 2) / 8)
-        for peak, cx in ((10, 28), (9.5, 35))
+    signal = np.asarray(
+        sum(
+            peak * np.exp(-((xx - cx) ** 2 + (yy - 32) ** 2) / 8)
+            for peak, cx in ((10, 28), (9.5, 35))
+        ),
+        dtype=np.float64,
     )
-    _write_image(tmp_path / "image.fits", np.asarray(signal))
-
-    def analytic_background(
-        *args: object,
-        generation_id: str,
-        **_kwargs: object,
-    ):
-        background = np.zeros_like(signal)
-        rms = np.ones_like(signal)
-        return (
-            published_background_rms(
-                cast(Path, args[4]), background, rms, generation_id
-            ),
-            background,
-            rms,
-        )
+    _write_image(tmp_path / "image.fits", signal)
 
     monkeypatch.setattr(
-        public_api, "_estimate_background_rms", analytic_background
+        public_api,
+        "_estimate_background_rms",
+        substituted_background_rms(
+            signal, np.zeros_like(signal), np.ones_like(signal)
+        ),
     )
     result = hebog.find_sources(
         _request(tmp_path), _config(), SerialExecutor()
@@ -485,7 +448,7 @@ def test_two_sources_share_one_actual_detection_island(
 def test_current_projection_rejects_inconsistent_public_evidence(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
-    published_background_rms: PublishBackgroundRms,
+    substituted_background_rms: SubstituteBackgroundRms,
 ) -> None:
     """Malformed ownership, rows or dispositions cannot become parity input."""
     yy, xx = np.mgrid[:65, :97]
@@ -493,25 +456,12 @@ def test_current_projection_rejects_inconsistent_public_evidence(
     path = tmp_path / "image.fits"
     _write_image(path, signal)
 
-    def analytic_background(
-        *args: object,
-        generation_id: str,
-        **_kwargs: object,
-    ):
-        background = np.zeros_like(signal)
-        rms = np.ones_like(signal)
-        return (
-            published_background_rms(
-                cast(Path, args[4]), background, rms, generation_id
-            ),
-            background,
-            rms,
-        )
-
     monkeypatch.setattr(
         public_api,
         "_estimate_background_rms",
-        analytic_background,
+        substituted_background_rms(
+            signal, np.zeros_like(signal), np.ones_like(signal)
+        ),
     )
     source = FitsImageSource(path)
     metadata = source.metadata()
@@ -604,7 +554,7 @@ def test_signed_aperture_failure_never_becomes_positive_only_flux(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     negative_context: float,
-    published_background_rms: PublishBackgroundRms,
+    substituted_background_rms: SubstituteBackgroundRms,
 ) -> None:
     """The public result keeps detection but does not invent positive flux."""
     yy, xx = np.mgrid[:65, :97]
@@ -613,23 +563,12 @@ def test_signed_aperture_failure_never_becomes_positive_only_flux(
     signal[32, 12:19] = 10.0
     _write_image(tmp_path / "image.fits", signal)
 
-    def analytic_background(
-        *args: object,
-        generation_id: str,
-        **_kwargs: object,
-    ):
-        background = np.zeros_like(signal)
-        rms = np.ones_like(signal)
-        return (
-            published_background_rms(
-                cast(Path, args[4]), background, rms, generation_id
-            ),
-            background,
-            rms,
-        )
-
     monkeypatch.setattr(
-        public_api, "_estimate_background_rms", analytic_background
+        public_api,
+        "_estimate_background_rms",
+        substituted_background_rms(
+            signal, np.zeros_like(signal), np.ones_like(signal)
+        ),
     )
     result = hebog.find_sources(
         _request(tmp_path), _config(), SerialExecutor()
@@ -808,7 +747,7 @@ def test_blank_and_all_nan_inputs_publish_honest_empty_products(
 def test_published_rms_streams_the_estimate_across_many_tile_rows(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
-    published_background_rms: PublishBackgroundRms,
+    substituted_background_rms: SubstituteBackgroundRms,
 ) -> None:
     """The RMS product carries the store's estimate row block by row block.
 
@@ -822,20 +761,11 @@ def test_published_rms_streams_the_estimate_across_many_tile_rows(
     _write_image(tmp_path / "image.fits", signal)
     zero_background = np.zeros_like(signal)
 
-    def background(
-        *args: object,
-        generation_id: str,
-        **_kwargs: object,
-    ):
-        return (
-            published_background_rms(
-                cast(Path, args[4]), zero_background, estimate, generation_id
-            ),
-            zero_background,
-            estimate,
-        )
-
-    monkeypatch.setattr(public_api, "_estimate_background_rms", background)
+    monkeypatch.setattr(
+        public_api,
+        "_estimate_background_rms",
+        substituted_background_rms(signal, zero_background, estimate),
+    )
 
     result = hebog.find_sources(
         _request(tmp_path), _config(), SerialExecutor()
@@ -850,7 +780,7 @@ def test_published_rms_streams_the_estimate_across_many_tile_rows(
 def test_catalogue_local_rms_reads_each_owner_own_store_window(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
-    published_background_rms: PublishBackgroundRms,
+    substituted_background_rms: SubstituteBackgroundRms,
 ) -> None:
     """Every published local RMS comes from that owner's own pixels.
 
@@ -865,20 +795,11 @@ def test_catalogue_local_rms_reads_each_owner_own_store_window(
     _write_image(tmp_path / "image.fits", signal)
     zero_background = np.zeros_like(signal)
 
-    def background(
-        *args: object,
-        generation_id: str,
-        **_kwargs: object,
-    ):
-        return (
-            published_background_rms(
-                cast(Path, args[4]), zero_background, estimate, generation_id
-            ),
-            zero_background,
-            estimate,
-        )
-
-    monkeypatch.setattr(public_api, "_estimate_background_rms", background)
+    monkeypatch.setattr(
+        public_api,
+        "_estimate_background_rms",
+        substituted_background_rms(signal, zero_background, estimate),
+    )
 
     result = hebog.find_sources(
         _request(tmp_path), _config(), SerialExecutor()

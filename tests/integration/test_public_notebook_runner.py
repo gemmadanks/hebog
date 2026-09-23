@@ -18,7 +18,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
-from conftest import PublishBackgroundRms
+from conftest import SubstituteBackgroundRms
 
 from hebog import public_api
 from hebog.algorithms import fitting as fitting_algorithm
@@ -205,7 +205,7 @@ def test_notebook_native_measurements_preserve_rotated_unequal_pixel_geometry(
     monkeypatch: pytest.MonkeyPatch,
     rotation: float,
     frame: str,
-    published_background_rms: PublishBackgroundRms,
+    substituted_background_rms: SubstituteBackgroundRms,
 ) -> None:
     """Native flux, sky shape and errors survive the complete FITS boundary."""
     header = _header((96, 128))
@@ -246,23 +246,12 @@ def test_notebook_native_measurements_preserve_rotated_unequal_pixel_geometry(
         )
     )
 
-    def analytic_background(
-        *args: object,
-        generation_id: str,
-        **_kwargs: object,
-    ):
-        background = np.zeros_like(image)
-        rms = np.ones_like(image)
-        return (
-            published_background_rms(
-                cast(Path, args[4]), background, rms, generation_id
-            ),
-            background,
-            rms,
-        )
-
     monkeypatch.setattr(
-        public_api, "_estimate_background_rms", analytic_background
+        public_api,
+        "_estimate_background_rms",
+        substituted_background_rms(
+            image, np.zeros_like(image), np.ones_like(image)
+        ),
     )
     path = tmp_path / "rotated.fits"
     fits.PrimaryHDU(image, header).writeto(path)
