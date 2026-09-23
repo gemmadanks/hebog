@@ -494,7 +494,7 @@ def test_joint_geometry_with_controlled_or_public_background(
             source_positions=published.source_positions,
         )
         scientific = public_api._ScientificProducts(
-            image, background, rms, products
+            image, background, published.background_rms, "valid", products
         )
     assert products is not None
     catalogue, mask = public_api._public_catalogue(

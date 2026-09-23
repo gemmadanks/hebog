@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 import importlib
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import asdict, dataclass, replace
 from functools import lru_cache
 from importlib.resources import files
@@ -153,12 +153,37 @@ class _WindowReadable(Protocol):
 
 @dataclass(frozen=True, slots=True)
 class _ScientificProducts:
-    """Exact evaluated science plus the candidate-owned background/RMS."""
+    """Exact evaluated science plus the candidate-owned background/RMS.
+
+    The RMS is carried as the store that published it rather than as a plane,
+    so neither the catalogue projection nor the final product write holds an
+    array that grows with the image. ``rms_scientific_status`` records the
+    one decision the estimate makes about itself: whether any pixel has a
+    usable local noise estimate.
+    """
 
     image: npt.NDArray[np.float64]
     background: npt.NDArray[np.float64]
-    rms: npt.NDArray[np.float64]
+    background_rms_source: ZarrProductSink
+    rms_scientific_status: Literal["valid", "unavailable"]
     terminal: Any | None
+
+    def read_rms_window(
+        self, crop: tuple[slice, slice]
+    ) -> npt.NDArray[np.float64]:
+        """Read the estimated RMS over one bounded label-support crop."""
+        return np.asarray(
+            self.background_rms_source.read_completed_window(
+                "rms",
+                ImageBounds(
+                    crop[0].start,
+                    crop[0].stop,
+                    crop[1].start,
+                    crop[1].stop,
+                ),
+            ),
+            dtype=np.float64,
+        )
 
 
 def _require_unclaimed_output(output: Path) -> None:
@@ -1236,12 +1261,12 @@ def _analyse_image(  # noqa: PLR0913
         work_directory,
         generation_id=generation_id,
     )
-    usable_rms = np.isfinite(rms) & (rms > 0)
-    if not np.any(usable_rms):
+    if not np.any(np.isfinite(rms) & (rms > 0)):
         return _ScientificProducts(
             image=image,
             background=background,
-            rms=np.full(metadata.shape_yx, np.nan, dtype=np.float64),
+            background_rms_source=background_rms_source,
+            rms_scientific_status="unavailable",
             terminal=None,
         )
     review = configured_science_profile(
@@ -1400,7 +1425,13 @@ def _analyse_image(  # noqa: PLR0913
         source_rows=source_rows,
         source_positions=source_positions,
     )
-    return _ScientificProducts(image, background, rms, terminal)
+    return _ScientificProducts(
+        image,
+        background,
+        background_rms_source,
+        "valid",
+        terminal,
+    )
 
 
 def _shape(value: Any | None) -> GaussianShape | None:
@@ -1482,7 +1513,7 @@ def _support_local_rms(
     crop = _label_value_window(windows, label_values)
     if crop is not None:
         support = np.isin(labels[crop], label_values)
-        rms = products.rms[crop]
+        rms = products.read_rms_window(crop)
         valid = support & np.isfinite(rms) & (rms > 0)
         if np.any(valid):
             return float(np.median(rms[valid]))
@@ -1575,7 +1606,7 @@ def _detection_islands(
         residual = (products.image[bounds] - products.background[bounds])[
             support
         ]
-        local_rms = products.rms[bounds][support]
+        local_rms = products.read_rms_window(bounds)[support]
         islands.append(
             Island(
                 island_id=identifier,
@@ -1613,13 +1644,38 @@ def _public_catalogue(
     run_id: str,
     profile: str,
 ) -> tuple[SourceCatalogue, npt.NDArray[np.bool_]]:
-    """Project the exact evaluated source topology into stable public rows."""
+    """Project the exact evaluated source topology into stable public rows.
+
+    Every island and catalogue row reads its own local RMS from the store, so
+    the projection runs inside one access session: the store's immutable
+    metadata is then opened once for the whole catalogue rather than once for
+    each object.
+    """
     terminal = products.terminal
     if terminal is None:
         return (
             _empty_catalogue(run_id, metadata.reference_frequency_hz),
             np.zeros(metadata.shape_yx, dtype=np.bool_),
         )
+    with products.background_rms_source.access_session():
+        return _projected_catalogue(
+            products,
+            metadata,
+            terminal,
+            run_id=run_id,
+            profile=profile,
+        )
+
+
+def _projected_catalogue(
+    products: _ScientificProducts,
+    metadata: ImageMetadata,
+    terminal: Any,
+    *,
+    run_id: str,
+    profile: str,
+) -> tuple[SourceCatalogue, npt.NDArray[np.bool_]]:
+    """Project one evaluated composition that published at least one owner."""
     association = terminal.source_association
     labels = np.asarray(terminal.measurement_component_labels)
     components_by_id = {
@@ -1796,6 +1852,37 @@ def _final_product(product: Any, output: Path) -> Any:
     return product.model_copy(update={"path": output / product.path.name})
 
 
+def _rms_row_blocks(
+    products: _ScientificProducts,
+    metadata: ImageMetadata,
+) -> Iterator[npt.NDArray[np.float64]]:
+    """Yield the published RMS as full-width row blocks of one tile row.
+
+    An estimate no pixel can use publishes an all-NaN product, which is what
+    ``unavailable`` means to its consumers, so those rows are generated
+    rather than read back from a store that holds the unusable estimate.
+    Either way the block held at once grows with image width alone.
+    """
+    height, width = metadata.shape_yx
+    block_rows = min(
+        height,
+        products.background_rms_source.manifest.tile_core_shape_yx[0],
+    )
+    if products.rms_scientific_status == "unavailable":
+        for start in range(0, height, block_rows):
+            yield np.full(
+                (min(block_rows, height - start), width),
+                np.nan,
+                dtype=np.float64,
+            )
+        return
+    for block in products.background_rms_source.iter_completed_row_blocks(
+        "rms",
+        max_block_bytes=block_rows * width * np.dtype(np.float64).itemsize,
+    ):
+        yield np.asarray(block, dtype=np.float64)
+
+
 def _materialize_bundle(  # noqa: PLR0913
     request: SourceFinderRequest,
     config: SourceFinderConfig,
@@ -1813,11 +1900,7 @@ def _materialize_bundle(  # noqa: PLR0913
         run_id=request.run_id,
         profile=config.profile,
     )
-    rms_status = (
-        "valid"
-        if np.any(np.isfinite(products.rms) & (products.rms > 0))
-        else "unavailable"
-    )
+    rms_status = products.rms_scientific_status
     catalogue_product = write_catalogue_fits_product(
         unpublished / "catalogue.fits",
         catalogue,
@@ -1825,7 +1908,7 @@ def _materialize_bundle(  # noqa: PLR0913
     rms_product = write_rms_fits_product(
         unpublished / "rms.fits",
         metadata,
-        (np.asarray(products.rms, dtype=np.float64),),
+        _rms_row_blocks(products, metadata),
         dtype=np.dtype("float64"),
         scientific_status=rms_status,
     )
@@ -1860,7 +1943,7 @@ def _materialize_bundle(  # noqa: PLR0913
         measurement_dispositions=_public_dispositions(
             products.terminal, catalogue, config.profile
         ),
-        rms_scientific_status=cast(Any, rms_status),
+        rms_scientific_status=rms_status,
         provenance=PublicSourceFindingProvenance(
             input_sha256=input_sha256,
             configuration_sha256=_canonical_sha256(asdict(config)),

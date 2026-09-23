@@ -136,8 +136,15 @@ support masks. That is 0.7 GiB at 3,000², 7.5 GiB at 10,000² and
 17.7 GiB at LoTSS-DR3 15,402², against 18 GiB of development-machine
 memory. The plan's M2 row sets out the order they come out in.
 
+The RMS is the first one being taken out. Nothing after the science holds
+it: the catalogue projection reads each island's and each owner's own
+bounded window from the store, and the final FITS product streams one
+canonical tile row at a time rather than validating a whole plane in memory.
+Its one remaining whole-plane use is the validity and positive-RMS masks the
+driver derives from it, which is the step that removes it from the peak.
+
 A real 3,000² LoTSS-DR3 field has a deterministic traced peak of
-**1,539 MiB** through the public path.
+**1,531 MiB** through the public path.
 
 !!! warning "Peak RSS is an envelope, not a threshold"
 

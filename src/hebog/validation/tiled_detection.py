@@ -144,6 +144,7 @@ def publish_background_rms(
 class PublishedContinuumInputs:
     """Every published plane the continuum composition reads."""
 
+    background_rms: ZarrProductSink
     multiscale: TiledMultiscaleDetection
     support: TiledSupportTopology
     labels: TiledSupportLabels
@@ -361,6 +362,7 @@ def publish_continuum_inputs(  # noqa: PLR0913
         tile_core_pixels=support_tile_core_pixels,
     )
     return PublishedContinuumInputs(
+        background_rms=background_rms_source,
         component_rows=component_rows,
         source_rows=source_rows,
         source_positions=source_positions,

@@ -799,6 +799,102 @@ def test_blank_and_all_nan_inputs_publish_honest_empty_products(
         assert result.gaussian_component_count == 0
         assert result.island_count == 0
         assert result.rms.scientific_status == expected_rms_status
+        published = np.asarray(fits.getdata(result.rms.path), dtype=np.float64)
+        assert published.shape == shape
+        assert np.all(np.isnan(published))
+
+
+@pytest.mark.integration
+def test_published_rms_streams_the_estimate_across_many_tile_rows(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    published_background_rms: PublishBackgroundRms,
+) -> None:
+    """The RMS product carries the store's estimate row block by row block.
+
+    The image spans three background tile rows and two tile columns and gives
+    every tile its own value, so a row assembled from the wrong chunks, or in
+    the wrong order, changes the published pixels.
+    """
+    yy, xx = np.mgrid[:300, :200]
+    estimate = 1.0 + 0.5 * (yy // 128) + 0.25 * (xx // 128)
+    signal = 40.0 * np.exp(-((xx - 150) ** 2 + (yy - 200) ** 2) / 8)
+    _write_image(tmp_path / "image.fits", signal)
+    zero_background = np.zeros_like(signal)
+
+    def background(
+        *args: object,
+        generation_id: str,
+        **_kwargs: object,
+    ):
+        return (
+            published_background_rms(
+                cast(Path, args[4]), zero_background, estimate, generation_id
+            ),
+            zero_background,
+            estimate,
+        )
+
+    monkeypatch.setattr(public_api, "_estimate_background_rms", background)
+
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+
+    assert result.rms.scientific_status == "valid"
+    published = np.asarray(fits.getdata(result.rms.path), dtype=np.float64)
+    np.testing.assert_array_equal(published, estimate)
+
+
+@pytest.mark.integration
+def test_catalogue_local_rms_reads_each_owner_own_store_window(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    published_background_rms: PublishBackgroundRms,
+) -> None:
+    """Every published local RMS comes from that owner's own pixels.
+
+    The two halves of this non-square image carry different noise, so a
+    source or island that read a shifted or transposed window would publish
+    its neighbour's RMS rather than its own.
+    """
+    yy, xx = np.mgrid[:96, :320]
+    estimate = np.where(xx < 160, 1.0, 4.0).astype(np.float64)
+    signal = 60.0 * np.exp(-((xx - 40) ** 2 + (yy - 48) ** 2) / 8)
+    signal += 240.0 * np.exp(-((xx - 280) ** 2 + (yy - 48) ** 2) / 8)
+    _write_image(tmp_path / "image.fits", signal)
+    zero_background = np.zeros_like(signal)
+
+    def background(
+        *args: object,
+        generation_id: str,
+        **_kwargs: object,
+    ):
+        return (
+            published_background_rms(
+                cast(Path, args[4]), zero_background, estimate, generation_id
+            ),
+            zero_background,
+            estimate,
+        )
+
+    monkeypatch.setattr(public_api, "_estimate_background_rms", background)
+
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+
+    catalogue = read_catalogue_fits_product(result.catalogue)
+    assert result.source_count == 2
+    assert sorted(
+        row.flux.local_rms_jy_per_beam for row in catalogue.sources
+    ) == [1.0, 4.0]
+    assert sorted(
+        row.flux.local_rms_jy_per_beam for row in catalogue.gaussian_components
+    ) == [1.0, 4.0]
+    assert sorted(
+        island.local_rms_jy_per_beam for island in catalogue.islands
+    ) == [1.0, 4.0]
 
 
 @pytest.mark.integration

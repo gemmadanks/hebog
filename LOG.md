@@ -24612,3 +24612,46 @@ the per-worker placement finding.
   1,024² realizations, one beam, no blends or extended emission. It cannot
   see the morphology divergence above, which is why that was measured
   separately and asserted in the tests rather than inferred from these gates.
+
+## 2026-09-23 — M2: the RMS product streams from the store
+
+- **What this is.** The first of the steps that take the driver's
+  whole-plane state out. The driver carries the store that published the
+  estimated RMS instead of the plane, and every consumer of that plane reads
+  a bounded window or a stream.
+- **The change.** `_ScientificProducts` holds `background_rms_source` and
+  `rms_scientific_status`, the one decision the estimate makes about itself,
+  instead of a `float64` plane and, on the no-usable-RMS path, an all-NaN
+  plane built only to be written. The catalogue projection reads each
+  island's and each owner's own bounding-box window through
+  `read_completed_window`, inside one `access_session` so the store's
+  immutable metadata is parsed once for a whole catalogue rather than once
+  per object. `write_rms_fits_product` receives `iter_completed_row_blocks`,
+  one canonical tile row at a time, which also retires the three image-sized
+  temporaries its scientific validation allocated for a whole-plane block.
+- **Evidence.** On the real 3,000² LoTSS-DR3 dense field and the 1,024²
+  dense cut-out the catalogue, RMS and mask are bitwise identical before and
+  after, under a held run identifier. The single diagnostics difference is
+  `scientific_composition_sha256`, which `public_api` is part of and which is
+  designed to move when the composition source changes. Unit (98), contract
+  (59 passed, 2 xfailed) and public integration (81) suites pass.
+- **What it is worth: 8.6 MiB at 3,000², and it is not the RMS plane.**
+  The deterministic traced peak falls 1539.3 → 1530.7 MiB at 3,000² and
+  445.5 → 444.5 MiB at 1,024² — in both cases exactly one boolean plane,
+  because the `usable_rms` mask the early return tested was a local that
+  lived to the end of the analysis and is now a temporary. The estimated RMS
+  itself is still a plane at the peak: the driver derives `valid` and
+  `positive_rms` from it, and it leaves with them. The 1539.3 MiB baseline
+  reproduces the figure recorded earlier today to the decimal, so the two
+  harnesses are comparable.
+- **Two new integration cases, each failing under its own mutation.** A
+  300×200 image spanning three background tile rows and two tile columns,
+  with a distinct value per tile, catches row blocks assembled or published
+  in the wrong order. A 96×320 image whose halves carry different noise
+  catches a shifted or transposed window through the source, component and
+  island rows alike; transposing the bounds raises on the non-square shape
+  rather than returning a plausible number. The blank, all-NaN and
+  constant-negative cases now assert that the unavailable product is
+  entirely NaN, which the driver generates rather than substitutes.
+- **Not covered.** No benchmark claim: both 3,000² runs were traced, which
+  roughly doubles wall time, and the machine was loaded.

@@ -147,7 +147,7 @@ def _build_bundle(
         config=_CONFIG,
         header=header,
     )
-    background, rms = scientific.background, scientific.rms
+    background = scientific.background
     products = scientific.terminal
     published_catalogue, public_mask = public_api._public_catalogue(
         scientific,
@@ -240,7 +240,10 @@ def _build_bundle(
         ),
         (mask_path, np.asarray(publication_mask[slices], dtype=np.uint8)),
         (background_path, np.asarray(background[slices], dtype=np.float64)),
-        (rms_path, np.asarray(rms[slices], dtype=np.float64)),
+        (
+            rms_path,
+            scientific.read_rms_window(slices),
+        ),
     ):
         _write_plane(path, values, core_header)
     artifacts = {

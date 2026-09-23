@@ -84,6 +84,9 @@ def test_bright_halo_is_not_background_but_noise_inflation_is_retained(
         header=header,
     )
     support = halo >= 3 * rms
+    estimated_rms = scientific.read_rms_window(
+        (slice(0, image.shape[0]), slice(0, image.shape[1]))
+    )
     assert (
         np.median(
             np.abs(scientific.background[support] - background[support])
@@ -91,10 +94,10 @@ def test_bright_halo_is_not_background_but_noise_inflation_is_retained(
         )
         < 0.5
     )
-    assert np.median(np.abs(scientific.rms[support] / rms[support] - 1)) < 0.25
+    assert np.median(np.abs(estimated_rms[support] / rms[support] - 1)) < 0.25
     assert scientific.terminal is not None
     recovered = scientific.terminal.detection.retained_mask & support
     assert np.count_nonzero(recovered) / np.count_nonzero(support) >= 0.75
     if noisy_neighbourhood:
-        assert scientific.rms[centre_y, 96] > 2.0
+        assert estimated_rms[centre_y, 96] > 2.0
     assert scientific.background[centre_y, 256] < 0
