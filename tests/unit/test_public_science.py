@@ -10,12 +10,16 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 from astropy.io import fits
 
 from hebog import public_science
 from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.config import SourceFinderConfig
+from hebog.public_api import (
+    component_records_from_windows,
+)
 from hebog.public_science import (
     _aligned_plane,
     build_configured_continuum_products,
@@ -375,3 +379,49 @@ def test_configured_builder_retains_three_components_in_one_parent(
         len(membership.component_ids)
         for membership in result.source_association.memberships
     ) == (1, 1, 1)
+
+
+def test_component_records_do_not_depend_on_the_read_batch_size(
+    tmp_path: Path,
+) -> None:
+    """One read per batch must describe what one read per component does.
+
+    The residual is assembled from storage chunks far larger than a
+    component, so neighbours share a read. How many share it is a memory
+    and decode decision, and it may never reach the records.
+    """
+    yy, xx = np.mgrid[:96, :96]
+    normalized: npt.NDArray[np.float64] = np.zeros((96, 96), dtype=np.float64)
+    for centre_y, centre_x, peak in (
+        (16, 16, 12.0),
+        (16, 76, 9.0),
+        (52, 44, 15.0),
+        (80, 20, 10.5),
+        (80, 78, 11.0),
+    ):
+        normalized += peak * np.exp(
+            -((yy - centre_y) ** 2 + (xx - centre_x) ** 2) / 8.0
+        )
+    published = _published(
+        normalized,
+        SourceFinderConfig(5.0, 3.0, 7),
+        BeamShapePixels(5.0, 4.0, 0.0),
+        tmp_path,
+    )
+    labels = published.topology.direct_component_labels
+    assert int(np.count_nonzero(np.unique(labels) > 0)) == 5
+    valid_pixels: npt.NDArray[np.bool_] = np.ones((96, 96), dtype=np.bool_)
+
+    batched, per_component = (
+        component_records_from_windows(
+            published.image_source,
+            published.background_rms,
+            direct_component_labels=labels,
+            valid_pixels=valid_pixels,
+            maximum_batch_read_pixels=budget,
+        )
+        for budget in (normalized.size, 1)
+    )
+
+    assert batched == per_component
+    assert len(batched) == 5

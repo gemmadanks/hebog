@@ -155,15 +155,14 @@ class _WindowReadable(Protocol):
 class _ScientificProducts:
     """Exact evaluated science plus the candidate-owned background/RMS.
 
-    The RMS is carried as the store that published it rather than as a plane,
-    so neither the catalogue projection nor the final product write holds an
-    array that grows with the image. ``rms_scientific_status`` records the
+    The image, the background and the RMS are carried as the sources that
+    published them rather than as planes, so nothing after the science holds
+    an array that grows with the image. ``rms_scientific_status`` records the
     one decision the estimate makes about itself: whether any pixel has a
     usable local noise estimate.
     """
 
-    image: npt.NDArray[np.float64]
-    background: npt.NDArray[np.float64]
+    source: _WindowReadable
     background_rms_source: ZarrProductSink
     rms_scientific_status: Literal["valid", "unavailable"]
     terminal: Any | None
@@ -175,14 +174,19 @@ class _ScientificProducts:
         return np.asarray(
             self.background_rms_source.read_completed_window(
                 "rms",
-                ImageBounds(
-                    crop[0].start,
-                    crop[0].stop,
-                    crop[1].start,
-                    crop[1].stop,
-                ),
+                _crop_bounds(crop),
             ),
             dtype=np.float64,
+        )
+
+    def read_residual_window(
+        self, crop: tuple[slice, slice]
+    ) -> npt.NDArray[np.float64]:
+        """Read the background-subtracted signal over one bounded crop."""
+        return _residual_window(
+            self.source,
+            self.background_rms_source,
+            crop,
         )
 
 
@@ -308,6 +312,154 @@ def _header_with_metadata(
 def _full_bounds(metadata: ImageMetadata) -> ImageBounds:
     """Return the complete bounded image plane."""
     return ImageBounds(0, metadata.shape_yx[0], 0, metadata.shape_yx[1])
+
+
+def _crop_bounds(crop: tuple[slice, slice]) -> ImageBounds:
+    """Return the global bounds of one label-support crop."""
+    return ImageBounds(
+        crop[0].start,
+        crop[0].stop,
+        crop[1].start,
+        crop[1].stop,
+    )
+
+
+def _residual_window(
+    source: _WindowReadable,
+    background_rms_source: ZarrProductSink,
+    crop: tuple[slice, slice],
+) -> npt.NDArray[np.float64]:
+    """Return the background-subtracted signal over one bounded crop.
+
+    The residual is the association signal every component record and island
+    row measures. Reading it a window at a time is what keeps the driver
+    from holding the image, the background and their difference at once.
+    """
+    bounds = _crop_bounds(crop)
+    return np.asarray(
+        source.read_window(bounds).values, dtype=np.float64
+    ) - np.asarray(
+        background_rms_source.read_completed_window("background", bounds),
+        dtype=np.float64,
+    )
+
+
+def _component_read_batches(
+    windows: tuple[tuple[slice, slice] | None, ...],
+    *,
+    maximum_batch_read_pixels: int,
+) -> Iterator[
+    tuple[tuple[slice, slice], tuple[tuple[int, tuple[slice, slice]], ...]]
+]:
+    """Group components so one read serves several without growing unbounded.
+
+    Components are visited in raster order of their windows, so a batch
+    covers a compact region. One read per component would decode and
+    revalidate the storage chunks under it again for every neighbour that
+    shares them, which is the cost the owner-batch note above measured.
+    """
+    grouped: list[tuple[int, tuple[slice, slice]]] = []
+    covering: tuple[slice, slice] | None = None
+    for label_value, crop in sorted(
+        (
+            (label_value, crop)
+            for label_value, crop in enumerate(windows, start=1)
+            if crop is not None
+        ),
+        key=lambda item: (item[1][0].start, item[1][1].start),
+    ):
+        candidate = crop if covering is None else _union_crop(covering, crop)
+        if grouped and _crop_pixels(candidate) > maximum_batch_read_pixels:
+            assert covering is not None
+            yield covering, tuple(grouped)
+            grouped = [(label_value, crop)]
+            covering = crop
+            continue
+        grouped.append((label_value, crop))
+        covering = candidate
+    if grouped:
+        assert covering is not None
+        yield covering, tuple(grouped)
+
+
+def _union_crop(
+    left: tuple[slice, slice],
+    right: tuple[slice, slice],
+) -> tuple[slice, slice]:
+    """Return the smallest crop containing both of these crops."""
+    return (
+        slice(
+            min(left[0].start, right[0].start),
+            max(left[0].stop, right[0].stop),
+        ),
+        slice(
+            min(left[1].start, right[1].start),
+            max(left[1].stop, right[1].stop),
+        ),
+    )
+
+
+def _crop_pixels(crop: tuple[slice, slice]) -> int:
+    """Return how many pixels one crop covers."""
+    return (crop[0].stop - crop[0].start) * (crop[1].stop - crop[1].start)
+
+
+def component_records_from_windows(
+    source: _WindowReadable,
+    background_rms_source: ZarrProductSink,
+    *,
+    direct_component_labels: npt.NDArray[np.int32],
+    valid_pixels: npt.NDArray[np.bool_],
+    maximum_batch_read_pixels: int = _OWNER_BATCH_READ_PIXELS,
+) -> tuple[DetectionComponentRecord, ...]:
+    """Describe every direct component from bounded residual windows.
+
+    A component's record depends only on the pixels that carry its label, so
+    each one is built inside the smallest window holding it, with its
+    neighbours' labels cleared: a bounding box may contain them, and their
+    own support may reach outside it. Neighbouring components share one read,
+    because the residual is assembled from storage chunks far larger than a
+    component. Building the records once here also leaves the hierarchy pass
+    and the association decision reading one set rather than deriving the
+    same one twice.
+    """
+    from hebog.algorithms.source_association import (  # noqa: PLC0415
+        build_detection_component_records,
+    )
+
+    records: list[DetectionComponentRecord] = []
+    with background_rms_source.access_session():
+        for covering, batch in _component_read_batches(
+            label_windows(direct_component_labels),
+            maximum_batch_read_pixels=maximum_batch_read_pixels,
+        ):
+            residual = _residual_window(
+                source, background_rms_source, covering
+            )
+            for label_value, crop in batch:
+                local = (
+                    slice(
+                        crop[0].start - covering[0].start,
+                        crop[0].stop - covering[0].start,
+                    ),
+                    slice(
+                        crop[1].start - covering[1].start,
+                        crop[1].stop - covering[1].start,
+                    ),
+                )
+                records.extend(
+                    build_detection_component_records(
+                        np.where(
+                            direct_component_labels[crop] == label_value,
+                            label_value,
+                            0,
+                        ),
+                        residual[local],
+                        valid_pixels[crop],
+                        origin_yx=(crop[0].start, crop[1].start),
+                    )
+                )
+    return tuple(sorted(records, key=lambda item: item.canonical_pixel_yx))
 
 
 def _profile_bytes() -> bytes:
@@ -981,9 +1133,7 @@ def publish_hierarchy_overlaps(  # noqa: PLR0913
     work_directory: Path,
     *,
     image_shape_yx: tuple[int, int],
-    direct_component_labels: npt.NDArray[np.int32],
-    residual_jy_per_beam: npt.NDArray[np.float64],
-    valid_pixels: npt.NDArray[np.bool_],
+    records: tuple[DetectionComponentRecord, ...],
     scale_detections: Sequence[ScaleDetections],
     generation_id: str,
     tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
@@ -993,11 +1143,9 @@ def publish_hierarchy_overlaps(  # noqa: PLR0913
     The cores observe which components, features and retained support
     components meet, one task per feature derives its reviewed B3 influence,
     and one task per candidate pair decides whether two envelopes overlap.
-    The decision that consumes the result holds no plane.
+    The decision that consumes the result holds no plane, and the component
+    records reach both it and this pass already built.
     """
-    from hebog.algorithms.source_association import (  # noqa: PLC0415
-        build_detection_component_records,
-    )
     from hebog.stages.association import (  # noqa: PLC0415
         HierarchyOverlapStageConfig,
         run_hierarchy_overlap_stage,
@@ -1023,11 +1171,7 @@ def publish_hierarchy_overlaps(  # noqa: PLR0913
             maximum_pairs_per_batch=_ENVELOPE_PAIRS_PER_BATCH,
             maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
         ),
-        records=build_detection_component_records(
-            direct_component_labels,
-            residual_jy_per_beam,
-            valid_pixels,
-        ),
+        records=records,
         scale_detections=scale_detections,
         executor=executor,
         sink=sink,
@@ -1234,9 +1378,6 @@ def _analyse_image(  # noqa: PLR0913
     from hebog.algorithms.component_measurement import (  # noqa: PLC0415
         reconcile_component_measurements,
     )
-    from hebog.algorithms.source_association import (  # noqa: PLC0415
-        build_detection_component_records,
-    )
     from hebog.public_science import (  # noqa: PLC0415
         build_configured_continuum_products,
     )
@@ -1263,8 +1404,7 @@ def _analyse_image(  # noqa: PLR0913
     )
     if not np.any(np.isfinite(rms) & (rms > 0)):
         return _ScientificProducts(
-            image=image,
-            background=background,
+            source=source,
             background_rms_source=background_rms_source,
             rms_scientific_status="unavailable",
             terminal=None,
@@ -1331,15 +1471,19 @@ def _analyse_image(  # noqa: PLR0913
         review=review,
         generation_id=generation_id,
     )
+    records = component_records_from_windows(
+        source,
+        background_rms_source,
+        direct_component_labels=topology.direct_component_labels,
+        valid_pixels=valid,
+    )
     overlaps, hierarchy_source = publish_hierarchy_overlaps(
         detection_source,
         component_source,
         executor,
         work_directory,
         image_shape_yx=metadata.shape_yx,
-        direct_component_labels=topology.direct_component_labels,
-        residual_jy_per_beam=image - background,
-        valid_pixels=valid,
+        records=records,
         scale_detections=scale_detections,
         generation_id=generation_id,
     )
@@ -1349,9 +1493,7 @@ def _analyse_image(  # noqa: PLR0913
         features=component_fits.features,
     )
     hierarchy, association = _source_association(
-        build_detection_component_records(
-            topology.direct_component_labels, image - background, valid
-        ),
+        records,
         scale_detections,
         overlaps,
         (*measurements.compact_groups, *measurements.extended_groups),
@@ -1426,8 +1568,7 @@ def _analyse_image(  # noqa: PLR0913
         source_positions=source_positions,
     )
     return _ScientificProducts(
-        image,
-        background,
+        source,
         background_rms_source,
         "valid",
         terminal,
@@ -1603,9 +1744,7 @@ def _detection_islands(
             f"-{int(first_x) + bounds[1].start}"
         )
         identifiers[index] = identifier
-        residual = (products.image[bounds] - products.background[bounds])[
-            support
-        ]
+        residual = products.read_residual_window(bounds)[support]
         local_rms = products.read_rms_window(bounds)[support]
         islands.append(
             Island(

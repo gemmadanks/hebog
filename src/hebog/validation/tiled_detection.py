@@ -28,7 +28,6 @@ from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.algorithms.source_association import (
     HierarchyOverlaps,
     associate_from_hierarchy_overlaps,
-    build_detection_component_records,
     constrain_source_memberships,
 )
 from hebog.config import SourceFinderConfig
@@ -46,6 +45,7 @@ from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
 from hebog.public_api import (
     ADMITTED_TILE_CORE_PIXELS,
+    component_records_from_windows,
     detect_multiscale_products,
     publish_component_fits,
     publish_component_topology,
@@ -144,6 +144,7 @@ def publish_background_rms(
 class PublishedContinuumInputs:
     """Every published plane the continuum composition reads."""
 
+    image_source: ArrayImageSource
     background_rms: ZarrProductSink
     multiscale: TiledMultiscaleDetection
     support: TiledSupportTopology
@@ -278,15 +279,19 @@ def publish_continuum_inputs(  # noqa: PLR0913
         generation_id=generation_id,
         tile_core_pixels=support_tile_core_pixels,
     )
+    records = component_records_from_windows(
+        image_source,
+        background_rms_source,
+        direct_component_labels=topology.direct_component_labels,
+        valid_pixels=valid_pixels,
+    )
     overlaps, hierarchy_source = publish_hierarchy_overlaps(
         detection_source,
         component_source,
         resolved_executor,
         work_directory,
         image_shape_yx=image_jy_per_beam.shape,
-        direct_component_labels=topology.direct_component_labels,
-        residual_jy_per_beam=(image_jy_per_beam - background_jy_per_beam),
-        valid_pixels=valid_pixels,
+        records=records,
         scale_detections=scale_detections,
         generation_id=generation_id,
         tile_core_pixels=support_tile_core_pixels,
@@ -297,11 +302,7 @@ def publish_continuum_inputs(  # noqa: PLR0913
         features=component_fits.features,
     )
     hierarchy, association = _source_association(
-        build_detection_component_records(
-            topology.direct_component_labels,
-            image_jy_per_beam - background_jy_per_beam,
-            valid_pixels,
-        ),
+        records,
         scale_detections,
         overlaps,
         (*measurements.compact_groups, *measurements.extended_groups),
@@ -362,6 +363,7 @@ def publish_continuum_inputs(  # noqa: PLR0913
         tile_core_pixels=support_tile_core_pixels,
     )
     return PublishedContinuumInputs(
+        image_source=image_source,
         background_rms=background_rms_source,
         component_rows=component_rows,
         source_rows=source_rows,

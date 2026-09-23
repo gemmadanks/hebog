@@ -136,12 +136,23 @@ support masks. That is 0.7 GiB at 3,000², 7.5 GiB at 10,000² and
 17.7 GiB at LoTSS-DR3 15,402², against 18 GiB of development-machine
 memory. The plan's M2 row sets out the order they come out in.
 
-The RMS is the first one being taken out. Nothing after the science holds
-it: the catalogue projection reads each island's and each owner's own
-bounded window from the store, and the final FITS product streams one
-canonical tile row at a time rather than validating a whole plane in memory.
-Its one remaining whole-plane use is the validity and positive-RMS masks the
-driver derives from it, which is the step that removes it from the peak.
+The RMS and the residual are out of everything after the science. The
+catalogue projection reads each island's and each owner's own bounded window
+from the store, the final RMS product streams one canonical tile row at a
+time rather than validating a whole plane in memory, and the component
+records are built once from bounded residual windows instead of twice from
+two whole-plane differences. Windows are read a batch at a time under the
+owner read budget: the residual is assembled from storage chunks far larger
+than a component, so one read per component decodes the same chunks again
+for every neighbour sharing them, which measured 5.5× slower at 111
+components and 8.2× at 846.
+
+What is left of that group is the image, the background and the RMS
+themselves, which survive only because the driver derives the validity and
+positive-RMS masks from them. Publishing those two `bool` planes from the
+background stage replaces three `float64` planes with them — 216 MiB against
+18 MiB at 3,000² — and is the first step that moves the peak, which sits in
+the multiscale pass rather than in anything the catalogue does.
 
 A real 3,000² LoTSS-DR3 field has a deterministic traced peak of
 **1,531 MiB** through the public path.

@@ -24655,3 +24655,52 @@ the per-worker placement finding.
   entirely NaN, which the driver generates rather than substitutes.
 - **Not covered.** No benchmark claim: both 3,000² runs were traced, which
   roughly doubles wall time, and the machine was loaded.
+
+## 2026-09-23 — M2: the component records are built once, from their own windows
+
+- **What this is.** The residual leaves the driver's carried state, and the
+  set of component records that two passes were each deriving becomes one.
+- **What was wrong.** `_analyse_image` built
+  `build_detection_component_records` twice from the same three arguments:
+  once inside `publish_hierarchy_overlaps` and once for the association
+  decision. Each call allocated its own whole-plane `image - background`,
+  72 MB at 3,000² and about 1.9 GB at LoTSS-DR3 15,402², and then repeated
+  the same per-component geometry.
+- **The change.** `component_records_from_windows` builds the set once from
+  bounded residual windows and both consumers read it. A component's record
+  depends only on the pixels carrying its label, so each is built inside the
+  smallest window holding it with its neighbours' labels cleared — a
+  bounding box may contain them, and their support may reach outside it.
+  `_ScientificProducts` carries the image source rather than the image and
+  background planes, and the island rows read their residual the same way.
+- **Neighbouring components share one read, and that is measured.** The
+  residual is assembled from storage chunks far larger than a component, so
+  one read per component decodes the same chunks again for every neighbour
+  sharing them. Median of three, on the arguments a real run supplies:
+
+  | components | batched | one read per component |
+  | --- | --- | --- |
+  | 5, synthetic and sparse | 0.047 s | 0.031 s |
+  | 111, real 1,024² LoTSS | 0.062 s | 0.338 s |
+  | 846, real 3,000² LoTSS | 0.315 s | 2.588 s |
+
+  The crossover is low and the ratio grows with density, 5.5× then 8.2× —
+  the same factor the owner-batch note in `public_api.py` recorded for a
+  different stage. Batches follow that note's read budget. A unit test
+  asserts the records are identical at any batch size and fails when the
+  batch window's offset is wrong.
+- **Evidence.** On the 1,024² dense cut-out the catalogue, RMS and mask are
+  bitwise identical to the previous commit and to the state before it; the
+  only diagnostics difference is the composition digest. 579 integration,
+  40 contract and 104 composition tests pass.
+- **What it is worth, and a correction about how that was established.** The
+  traced peak moves 444.5 → 444.1 MiB at 1,024², because both residuals are
+  transient and the peak sits in the multiscale pass, long before them. What
+  the change removes is state and duplicated work that grow with the image,
+  not peak memory. An earlier reading of this branch reported a 76%
+  slow-down from the unbatched version: that compared one test file against
+  the whole `tests/integration` directory and was wrong. The table above is
+  the measurement; `just test-integration` is the gate, and a bare
+  `pytest tests/integration` runs the slow-marked cases the gate excludes.
+- **Not covered.** No benchmark claim on complete runs: 2.3 s of a 116 s
+  run at 3,000² is inside the noise of a loaded machine.
