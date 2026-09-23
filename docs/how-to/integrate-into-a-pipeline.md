@@ -30,9 +30,12 @@ holds no global state, starts no cluster and leaves no open files. Importing
 ```python
 from hebog.executors import DaskExecutor, SerialExecutor, ThreadExecutor
 
-executor = SerialExecutor()                     # reference, single process
-executor = ThreadExecutor(thread_count=4)       # one process, use as a context manager
-executor = DaskExecutor(client, retry_limit=1)  # your existing dask.distributed client
+# the reference, in one process
+executor = SerialExecutor()
+# one process, used as a context manager
+executor = ThreadExecutor(thread_count=4)
+# your existing dask.distributed client
+executor = DaskExecutor(client, retry_limit=1)
 ```
 
 All three produce the same products. Hebog never creates, resizes or closes
