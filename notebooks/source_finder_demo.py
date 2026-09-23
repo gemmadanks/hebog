@@ -520,7 +520,7 @@ def _(mo):
     association behind that boundary, so the four fitted lobes can belong to
     one source without notebook code coordinating those stages.
 
-    The current scientific preview accepts images no larger than 1,024 pixels
+    The current scientific preview accepts images no larger than 3,000 pixels
     on either spatial axis. The values shown above identify the evaluated
     Phase 5 reference; callers can choose other valid thresholds without
     inheriting that evidence. Output directories are caller-owned and must not

@@ -95,6 +95,23 @@
     },
     {
       "case": {
+        "case_id": "lotss-dr3-1312-dense-3000",
+        "image": "benchmark-results/quick-benchmark/cutouts/lotss-dr3-1312-dense-3000/image.fits",
+        "kind": "image",
+        "remote_source": {
+          "url": "https://lofar-surveys.org/public/DR3/healpix_mosaics/1312/mosaic.fits",
+          "window": {
+            "size": 3000,
+            "x_start": 6713,
+            "y_start": 5689
+          }
+        }
+      },
+      "tier": "large",
+      "workload_class": "dense-or-extended"
+    },
+    {
+      "case": {
         "case_id": "lotss-dr3-1312-dense-3600",
         "image": "benchmark-results/quick-benchmark/cutouts/lotss-dr3-1312-dense-3600/image.fits",
         "kind": "image",

@@ -915,7 +915,7 @@ def _(mo):
     ## Scope and limitations
 
     - The current public scientific preview accepts ICRS Jy/beam images no
-      larger than 1,024 pixels on either spatial axis.
+      larger than 3,000 pixels on either spatial axis.
     - The continuum profile is a development candidate. Its diagnostics do not
       claim production or publication readiness.
     - The catalogue and mask are not primary-beam corrected, cross-matched, or

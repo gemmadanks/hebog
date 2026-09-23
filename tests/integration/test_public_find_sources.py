@@ -1019,13 +1019,33 @@ def test_unsupported_public_unit_fails_before_publication(
 def test_public_preview_rejects_inputs_beyond_qualified_envelope(
     tmp_path: Path,
 ) -> None:
-    """Phase 5 never extrapolates its in-memory science past 1024 square."""
-    _write_image(tmp_path / "image.fits", np.zeros((2, 1025)))
+    """The finder never extrapolates past the qualified envelope."""
+    _write_image(tmp_path / "image.fits", np.zeros((2, 3001)))
 
-    with pytest.raises(SourceFinderImageTooLargeError, match="1024"):
+    with pytest.raises(SourceFinderImageTooLargeError, match="3000"):
         hebog.find_sources(_request(tmp_path), _config(), _RecordingExecutor())
 
     assert not (tmp_path / "products").exists()
+
+
+@pytest.mark.integration
+def test_public_preview_admits_the_largest_qualified_dimension(
+    tmp_path: Path,
+) -> None:
+    """The documented limit is the largest admitted size, not the first
+    refused one.
+
+    The rejection above only pins the limit from outside: a limit one pixel
+    too small would refuse a documented size and still pass it. This runs the
+    boundary itself through the public path.
+    """
+    _write_image(tmp_path / "image.fits", np.zeros((2, 3000)))
+
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), _RecordingExecutor()
+    )
+
+    assert result.source_count == 0
 
 
 @pytest.mark.integration
@@ -1476,14 +1496,14 @@ def test_oversized_input_is_rejected_before_it_is_hashed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """An inadmissible image costs a header read, not a full-file digest."""
-    _write_image(tmp_path / "image.fits", np.zeros((2, 1025)))
+    _write_image(tmp_path / "image.fits", np.zeros((2, 3001)))
 
     def forbidden_hash(_path: Path) -> str:
         pytest.fail("oversized input was hashed")
 
     monkeypatch.setattr(public_api, "_file_sha256", forbidden_hash)
 
-    with pytest.raises(SourceFinderImageTooLargeError, match="1024"):
+    with pytest.raises(SourceFinderImageTooLargeError, match="3000"):
         hebog.find_sources(_request(tmp_path), _config(), _RecordingExecutor())
 
 

@@ -12,10 +12,13 @@ astronomy background. The decisions behind it are recorded in
 !!! note "Current status"
     Every scientific step already runs as tiled tasks through an executor and
     exchanges image planes through Zarr. The public API still limits images
-    to 1,024 pixels per side, because the driver still assembles some complete
-    planes. Inside that limit every image is a single tile. The design target
-    is 100,000 × 100,000 pixels on hundreds of nodes; scale beyond one machine
-    has not been demonstrated yet.
+    to 3,000 pixels per side, because the driver still assembles some complete
+    planes. Background and RMS estimation always tiles, on 128-pixel cores;
+    every other stage uses 2,048-pixel cores, so an image up to 2,048 pixels
+    is one tile there and 3,000 is the first supported size that reconciles
+    those stages across tiles. The design target is 100,000 × 100,000 pixels
+    on hundreds of nodes; scale beyond one machine has not been demonstrated
+    yet.
 
 ## The problem in one paragraph
 

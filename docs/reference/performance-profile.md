@@ -30,10 +30,10 @@ profile ranks costs; only the quick benchmark establishes a speedup.
 
 !!! note "Sizes above the public envelope"
 
-    `find_sources` refuses an image wider than 1,024 pixels with
+    `find_sources` refuses an image wider than 3,000 pixels with
     `SourceFinderImageTooLargeError`. The profiler and the quick benchmark
     raise that limit deliberately so the size ladder can be measured ahead
-    of the envelope. A 2,048-pixel figure on this page is a measurement, not
+    of the envelope. A 4,096-pixel figure on this page is a measurement, not
     a supported size; the plan's scalability row states what is supported.
 
 !!! warning "Measure on a quiet machine"
@@ -110,11 +110,12 @@ once per object multiplies it by the object count.
 
 ## What scales with the tile, and what with the image
 
-With 2,048-pixel cores every image the public envelope admits is exactly one
-tile, so a profile inside the envelope cannot tell tile-bounded state from
-image-bounded state: a core and a plane are the same array. The ladder
-therefore carries a 4,096-pixel pair, the smallest images holding more than
-one core.
+With 2,048-pixel cores, 2,048² is the last single-tile size. Every image
+the envelope admitted before 22 September 2026 was one tile, so a profile
+inside it could not tell tile-bounded state from image-bounded state: a core
+and a plane were the same array. The ladder therefore carries a 4,096-pixel
+pair, the smallest generated images holding more than one core, and the
+envelope now reaches 3,000, which is four.
 
 | case | megapixels | peak RSS | MiB per megapixel |
 | --- | --- | --- | --- |
@@ -127,6 +128,13 @@ megapixel collapses once the image passes one tile. Above that point the fit
 is about **1.3 GB fixed and tile-bounded plus 62 MiB per megapixel**, which
 is roughly six to eight live whole planes: the driver's `ImageBounds(0, H,
 0, W)` reads and the products.
+
+A real 3,000² LoTSS-DR3 field, measured through the public path rather
+than the profiler, peaks at 2,144 MiB serial and 1,347 MiB in a four-worker
+Dask driver. The fit above predicts 1,858 MiB for its 9.0 megapixels, so a
+dense real field sits somewhat above a generated one of the same area; the
+driver holding less than the serial process is the whole-plane state the
+milestone is removing.
 
 !!! warning "Do not extrapolate from inside the envelope"
 

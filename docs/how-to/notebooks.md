@@ -26,7 +26,7 @@ uv run marimo edit notebooks/campaign_source_finder_comparison.py
 
 The offline demonstrations normally take seconds to a minute, depending on
 compilation and machine load. Workbench time depends on the selected image;
-the public API accepts at most 1,024 pixels along either spatial axis. The
+the public API accepts at most 3,000 pixels along either spatial axis. The
 comparison viewer can display larger existing diagnostic products, which is
 not an extension of the public API's size limit.
 
@@ -286,7 +286,7 @@ looks for a sibling `hebog-refreshes/` directory.
 | Setup output already exists | Use `--resume` with unchanged options or choose a new `--output`. Omit `--build-images` when resuming. |
 | Existing staging directory | Resume an unchanged interrupted refresh with `--resume`; preserve older staging when its scientific identity differs. |
 | LoTSS service unavailable or incomplete download | Retry the downloader. Use `--overwrite` to replace a bad cached file, or select an offline synthetic field. |
-| Image exceeds 1,024 pixels in the workbench | Choose a smaller cutout. Larger campaign diagnostics do not imply public finder support for the same size. |
+| Image exceeds 3,000 pixels in the workbench | Choose a smaller cutout. Larger campaign diagnostics do not imply public finder support for the same size. |
 
 The refresh's preflight records the checkout, source-tree, runner and
 configuration identities and checks the input and reference records; it is not

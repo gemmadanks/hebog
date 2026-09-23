@@ -142,14 +142,17 @@ The cases are in `config/benchmarks/quick-benchmark.json`, grouped in tiers:
 - `default`: the 1,024² generated dense field and sparse and dense 1,024²
   LoTSS-DR3 cut-outs; and
 - `large`: the default cases plus SDC1 crowded cut-outs at 1,024² and 2,048²
-  and a 3,600² LoTSS-DR3 cut-out. Run it with `--tier large` before
-  profiling or a release; it currently takes hours.
+  and LoTSS-DR3 cut-outs at 3,000² and 3,600², all on the same field as the
+  1,024² dense case. Every stage outside background and RMS uses 2,048-pixel
+  tile cores, so 2,048² is the last size they run as one tile and 3,000² the
+  first they tile: the pair measures that execution crossover. Run it with
+  `--tier large` before profiling or a release; it currently takes hours.
 
 The protocol comes from `config/benchmarks/phase-0-performance.json`: one
 warm-up and five measured repetitions per case. Every repetition runs the
 public finder with the serial executor in a fresh process, limited to one
 numerical-library thread, so it includes interpreter start-up, imports, FITS
-input and product writing. Inputs above the public 1,024-pixel limit use the
+input and product writing. Inputs above the public 3,000-pixel limit use the
 worker's `--diagnostic-size-limit`, which raises the limit only inside that
 process.
 

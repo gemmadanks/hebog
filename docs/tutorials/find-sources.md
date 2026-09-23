@@ -17,7 +17,7 @@ and Stokes, are fine if each has length one. The image needs:
 - an ICRS or FK5 J2000 celestial WCS;
 - a restoring beam: `BMAJ`, `BMIN` and `BPA`;
 - a reference frequency: `RESTFRQ`, `RESTFREQ` or a frequency axis; and
-- at most 1,024 pixels on each side. Cut out a region of a larger image, for
+- at most 3,000 pixels on each side. Cut out a region of a larger image, for
   example with `astropy.nddata.Cutout2D`.
 
 NaN pixels are allowed and ignored. If anything is missing, Hebog stops with

@@ -63,7 +63,7 @@ Hebog needs pixel values in `Jy/beam`, an ICRS or FK5 J2000 celestial WCS, a
 restoring beam and a reference frequency. NaN pixels are allowed and are
 excluded everywhere. Anything else is rejected before analysis, with an error
 that says what is missing. [Capability and status](../reference/release-status.md)
-lists the exact requirements, including the current 1,024-pixel size limit.
+lists the exact requirements, including the current 3,000-pixel size limit.
 
 ### 2. Estimate background and noise
 

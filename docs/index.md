@@ -8,7 +8,7 @@ a Dask cluster that you already own.
 
 !!! warning "Status"
     Hebog is not yet scientifically qualified and currently accepts images of
-    at most 1,024 pixels per side. Treat its output as measurements to
+    at most 3,000 pixels per side. Treat its output as measurements to
     evaluate. See [capability and status](reference/release-status.md).
 
 ## I am an astronomer

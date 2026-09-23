@@ -6,7 +6,7 @@ and software properties, not measured accuracy.
 
 !!! warning "Hebog is experimental"
     The other tools here have produced published survey catalogues. Hebog has
-    not, accepts images only up to 1,024 pixels per side today, and is not
+    not, accepts images only up to 3,000 pixels per side today, and is not
     scientifically qualified. For a science catalogue now, use an established
     finder. See [capability and status](../reference/release-status.md).
 
@@ -46,7 +46,7 @@ map.
 
 | Finder | Language and interface | Parallelism | Image must fit in memory | Outputs | Licence | Used by |
 | --- | --- | --- | --- | --- | --- | --- |
-| **Hebog** | Python library | Serial, threads, or a caller-owned Dask cluster; tiles with halos; Zarr intermediates | By design no; today limited to 1,024 px per side | FITS catalogue (islands, sources, Gaussians), RMS image, mask, JSON diagnostics with provenance | BSD-3-Clause | No survey yet; Rapthor integration planned |
+| **Hebog** | Python library | Serial, threads, or a caller-owned Dask cluster; tiles with halos; Zarr intermediates | By design no; today limited to 3,000 px per side | FITS catalogue (islands, sources, Gaussians), RMS image, mask, JSON diagnostics with provenance | BSD-3-Clause | No survey yet; Rapthor integration planned |
 | **PyBDSF** | Python with C++ and Fortran; API and interactive shell | Multiprocessing on one node | Yes | Gaussian and source lists in many formats; RMS, mean, model, residual and island images | GPL-3 | LoTSS, Rapthor, MIGHTEE, VLASS Quick Look |
 | **Aegean** | Python; CLI and API | Multiple cores on one node; BANE can work in stripes | Yes | Component and island catalogues; residual and model images (AeRes) | AFL-3.0 | GLEAM, GLEAM-X, MWA transients |
 | **Selavy** | C++; CLI with parameter files | MPI: sub-images with overlap, merged by a master process | No | Island and component catalogues; noise, threshold, residual and component images | Part of ASKAPsoft | RACS, EMU and other ASKAP surveys |

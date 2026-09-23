@@ -12,7 +12,7 @@ that binds the function, so a call through an imported alias is timed as
 its own stage; no Hebog code changes. ``--cprofile`` additionally writes a
 ``cProfile`` statistics file, which sees only the calling thread and slows
 Python-heavy code, so stage times come from runs without it.
-``--diagnostic-size-limit`` raises the public 1,024-pixel limit inside this
+``--diagnostic-size-limit`` raises the public 3,000-pixel limit inside this
 process only, as in the quick-benchmark worker.
 
 Stage timing needs the POSIX ``resource`` module, so this worker runs on

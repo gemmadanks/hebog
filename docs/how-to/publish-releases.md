@@ -5,7 +5,7 @@ Hebog publishes new Release Please releases through
 merging the next release PR. The workflow does not upload older releases.
 
 Uploads go to [TestPyPI](https://test.pypi.org/project/hebog/), not PyPI,
-while the public input envelope is limited to 1,024 pixels per side. That
+while the public input envelope is limited to 3,000 pixels per side. That
 exercises the complete release path without presenting Hebog as ready for
 general installation; the installable artifact for users is the tagged GitHub
 release. Move to PyPI when the envelope is useful beyond cut-outs, as

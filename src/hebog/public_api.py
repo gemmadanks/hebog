@@ -85,7 +85,7 @@ if TYPE_CHECKING:  # pragma: no cover - import-time typing only
     )
     from hebog.science.profile import ContinuumScienceProfile
 
-_MAXIMUM_PREVIEW_DIMENSION = 1024
+_MAXIMUM_PREVIEW_DIMENSION = 3000
 _TILE_SHAPE_YX = (128, 128)
 ADMITTED_TILE_CORE_PIXELS = 2048
 """Smallest tile core the scalability contract admits, in pixels."""
@@ -252,8 +252,8 @@ def _qualified_metadata(metadata: ImageMetadata) -> None:
         )
     if max(metadata.shape_yx) > _MAXIMUM_PREVIEW_DIMENSION:
         raise SourceFinderImageTooLargeError(
-            "the public source finder supports at most 1024 pixels per "
-            "image dimension"
+            "the public source finder supports at most "
+            f"{_MAXIMUM_PREVIEW_DIMENSION} pixels per image dimension"
         )
 
 
@@ -1920,7 +1920,7 @@ def find_sources(
     """Analyse one supported FITS image and atomically publish its products.
 
     The public finder supports ICRS or FK5 J2000 ``Jy/beam`` images no larger
-    than 1024 pixels on either axis; catalogue positions are ICRS. Relative
+    than 3000 pixels on either axis; catalogue positions are ICRS. Relative
     request paths are bound to the caller's working directory before any
     executor task is built. Caller thresholds are executed exactly;
     diagnostics distinguish the unqualified development candidate from custom

@@ -16,16 +16,17 @@ version when results must be repeatable.
 | Units | `BUNIT=Jy/beam`. |
 | Coordinates | ICRS or FK5 J2000 celestial WCS. A header with `EQUINOX = 2000` and no `RADESYS`, as written by WSClean, is FK5 J2000. Catalogue positions are always ICRS. Other frames are rejected. |
 | Beam and frequency | Finite positive `BMAJ` and `BMIN`, a `BPA`, and a positive reference frequency. The request can supply a value the header omits, never one it already has. |
-| Image size | At most 1,024 pixels on each side. Larger images fail before analysis. |
+| Image size | At most 3,000 pixels on each side. Larger images fail before analysis. |
 | Invalid pixels | NaN pixels are excluded from estimation, detection and measurement. |
 | Profiles | `continuum` (default), or `compact`, which omits extended-source association and reports `extended-emission-incomplete`. |
 | Thresholds | Caller-set detection and island thresholds (island below detection), minimum and optional maximum island size. |
 | Execution | `SerialExecutor`, `ThreadExecutor`, or `DaskExecutor` with a client you own. Dask workers need the image and the output directory's parent on shared storage. All must give the same products. |
 | Output | A new directory with `catalogue.fits`, `rms.fits`, `source-mask.fits` and `diagnostics.json`. Existing directories are never overwritten. |
 
-Every scientific step already runs on bounded tiles through the executor. The
-size limit remains because the driver still assembles some complete image
-planes; raising it is current work.
+Every scientific step already runs on bounded tiles through the executor, and
+an image larger than 2,048 pixels on either side is reconciled across several
+tiles rather than held as one. The size limit remains because the driver still
+assembles some complete image planes; raising it is current work.
 
 ## Scientific status
 

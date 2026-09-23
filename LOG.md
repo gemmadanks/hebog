@@ -24239,3 +24239,82 @@ the per-worker placement finding.
   five `ImageBounds(0, H, 0, W)` reads and the products. Removing them would
   leave peak RSS essentially flat in image size, which is what the milestone
   asks for.
+
+## 2026-09-22 — Benchmark: time each release against its own size limit
+
+- **What this is.** A latent defect in the quick benchmark that the envelope
+  raise exposed, found because every previous-release baseline silently
+  stopped being measured.
+- **The defect.** `_time_hebog` decided whether the timed worker needed
+  `--diagnostic-size-limit` by comparing the input against **this source
+  tree's** `_MAXIMUM_PREVIEW_DIMENSION`, then ran that command against a
+  different installation carrying its own limit. While current Hebog was at
+  1,024 the two agreed by accident. At 3,000 they stopped agreeing, so
+  v0.12.0 was handed a 2,048-pixel image with no override, refused it, and
+  both crossover cases reported `NOT CHECKED` instead of a ratio.
+- **Why it had never surfaced.** The 2,048 baseline was cached. The cache key
+  includes `file_sha256` of the worker, so editing the worker's docstring for
+  the raise dropped the cache and ran the untested path for the first time.
+- **The repair.** The question is not whether this tree would refuse the
+  image, so it is no longer asked: `_worker_command` always passes the limit,
+  set to the input's own long axis, which is a no-op for an installation that
+  already admits that size. Extracting the command construction makes it
+  testable; reinstating the conditional fails the new test at 512, 2,048 and
+  3,000, which are exactly the sizes whose baselines disappeared.
+- **Evidence.** With the repair, `sdc1-b2-1000h-crowded-2048` measures
+  v0.12.0 at 174.5–175.7 s and current Hebog at 119.1 s (118.6–119.8),
+  ratio **0.68 [0.68, 0.68] pass**, peak RSS 2,052 MiB, at load average
+  about 3.0.
+
+## 2026-09-22 — M2: the public envelope reaches 3,000 pixels, and tiles
+
+- **What this is.** The first of the plan's envelope tiers, and the first
+  supported size at which the public path exercises more than one tile.
+- **What changed.** `_MAXIMUM_PREVIEW_DIMENSION` is 3,000, its refusal
+  message is derived from the constant rather than repeating it, and the
+  thirteen documentation pages and two benchmark workers that stated 1,024
+  now state 3,000. The boundary is now asserted from both sides: the
+  existing test pins the first refused size, and a new one runs 3,000 itself
+  through the public path, because a limit one pixel too small would have
+  refused a documented size and still passed. Setting the constant to 2,999
+  fails both.
+- **Why 3,000 is the interesting tier, measured rather than assumed.** A
+  recorder on `PartitionManifest` shows the real 3,000² run planning 576
+  tiles at the 128-pixel background cores and **4 tiles at the 2,048-pixel
+  cores** every other stage uses, against one at 2,048². Every image the
+  1,024 envelope admitted was a single tile at those cores, so no supported
+  input had ever reconciled across a tile boundary.
+- **Real-sky evidence.** A 3,000² cut-out of the LoTSS-DR3 1312 mosaic
+  (`sha256:378f38af…`, window x 6713, y 5689 of
+  `healpix_mosaics/1312/mosaic.fits`) runs to completion and finds 659
+  sources, 828 Gaussian components and 814 islands. Serial takes 117.0 s at
+  2,144 MiB peak RSS; a four-worker Dask cluster takes 95.8 s at 1,347 MiB
+  in the driver. The two product sets are **bitwise identical**
+  (`ec5ea720c8ed9110`), so tile reconciliation on real extended emission is
+  executor-invariant, not only invariant on synthetic Gaussians.
+- **Synthetic evidence carried from the screen.** A synthetic 3,000² run
+  completes at 2,106 MiB; sources placed on the 2,048 seam are all found and
+  serial and Dask agree bitwise (`9f6b815d5352ada7`); 2,049², 800×3,000,
+  3,000×800 and 3,000² all publish. The quick science check's sixteen cases
+  report no regression.
+- **A case for the crossover.** `lotss-dr3-1312-dense-3000` joins the
+  quick benchmark's large tier on the same field as the 1,024² dense case,
+  so 2,048² (one tile) and 3,000² (four) can be compared directly. Tile
+  cores are fixed at 2,048, so no image can be run both ways; the pair
+  measures the crossover, not the cost of tiling one image.
+- **The crossover, measured.** Under the contract's protocol, one warm-up and
+  five measured repetitions in fresh single-thread processes:
+  `sdc1-b2-1000h-crowded-2048` 119.1 s (118.6–119.8) at 2,052 MiB, ratio
+  0.68 [0.68, 0.68] against v0.12.0, a pass; `lotss-dr3-1312-dense-3000`
+  115.8 s (115.4–116.7) at 2,267 MiB. The tiled side has no
+  previous-release ratio and cannot have one: v0.12.0 does not accept 3,000
+  pixels, and no earlier Hebog measurement of that case exists, so the first
+  measurement is its baseline rather than a regression check. Four tiles of
+  9.0 megapixels cost less wall time than one tile of 4.2 on a different
+  field, which says the tiling is not a penalty, not that it is a saving —
+  the fields differ.
+- **What this evidence does not cover.** The 3,000² figures above were
+  taken at load average 2.6–4.5 with a browser and an endpoint scanner
+  active; the 2,048² pair was taken at about 3.0 with the same scanner. The
+  2,048² ratio's bounds are tight enough to survive that, but neither
+  number should be quoted as a clean anchor without a quiet re-measurement.
