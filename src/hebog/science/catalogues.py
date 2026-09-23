@@ -54,19 +54,17 @@ _PLANE_DIMENSIONS = 2
 _MINIMUM_MOMENT_PIXELS = 3
 
 
-def _validated_hebog_segment_planes(
-    image_jy_per_beam: npt.ArrayLike,
-    background_jy_per_beam: npt.ArrayLike,
+def _validated_segment_labels(
     valid_pixels: npt.ArrayLike,
     component_labels: npt.ArrayLike,
-) -> tuple[
-    npt.NDArray[np.float64],
-    npt.NDArray[np.bool_],
-    npt.NDArray[np.int64],
-]:
-    """Return aligned residual, validity, and exact segment labels."""
-    image = np.asarray(image_jy_per_beam, dtype=np.float64)
-    background = np.asarray(background_jy_per_beam, dtype=np.float64)
+) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.int64]]:
+    """Return validity and exact segment labels, checked against each other.
+
+    A caller that measures nothing needs no image or background: the labels
+    and the validity plane carry every shape this has to agree with.
+    :func:`_validated_hebog_segment_planes` adds the residual and the planes
+    it is computed from.
+    """
     valid = np.asarray(valid_pixels, dtype=np.bool_)
     label_values = np.asarray(component_labels)
     if label_values.ndim != _PLANE_DIMENSIONS or not np.issubdtype(
@@ -78,15 +76,28 @@ def _validated_hebog_segment_planes(
         )
     if np.any(label_values < 0):
         raise ValueError("component labels must be non-negative")
+    if label_values.shape != valid.shape:
+        raise ValueError("Hebog segment labels must match the image")
+    return valid, np.asarray(label_values, dtype=np.int64)
+
+
+def _validated_hebog_segment_planes(
+    image_jy_per_beam: npt.ArrayLike,
+    background_jy_per_beam: npt.ArrayLike,
+    valid_pixels: npt.ArrayLike,
+    component_labels: npt.ArrayLike,
+) -> tuple[
+    npt.NDArray[np.float64],
+    npt.NDArray[np.bool_],
+    npt.NDArray[np.int64],
+]:
+    """Return aligned residual, validity, and exact segment labels."""
+    valid, labels = _validated_segment_labels(valid_pixels, component_labels)
+    image = np.asarray(image_jy_per_beam, dtype=np.float64)
+    background = np.asarray(background_jy_per_beam, dtype=np.float64)
     if image.shape != background.shape or image.shape != valid.shape:
         raise ValueError("Hebog segment planes must share one shape")
-    if label_values.shape != image.shape:
-        raise ValueError("Hebog segment labels must match the image")
-    return (
-        np.where(valid, image - background, np.nan),
-        valid,
-        np.asarray(label_values, dtype=np.int64),
-    )
+    return np.where(valid, image - background, np.nan), valid, labels
 
 
 def _validated_position_signal(
@@ -1183,9 +1194,7 @@ def _reconstructed_source_rows(
     return tuple(sorted(output, key=lambda item: item.identifier))
 
 
-def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
-    image_jy_per_beam: npt.ArrayLike,
-    background_jy_per_beam: npt.ArrayLike,
+def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913
     valid_pixels: npt.ArrayLike,
     measurement_component_labels: npt.ArrayLike,
     direct_component_labels: npt.ArrayLike,
@@ -1200,17 +1209,18 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
     source_rows: tuple[CatalogueSource, ...],
     source_positions: Mapping[int, SourcePositionDiagnostics],
 ) -> AssociatedMomentCatalogues:
-    """Measure each common-parent catalogue source exactly once.
+    """Assemble each common-parent catalogue source exactly once.
 
     Direct seed labels define hierarchy identity. Recovered measurement labels
     define masks and apertures. Immutable component measurements remain
     diagnostic. Binding source rows are measured from a source-label plane
     before aperture expansion, so every observable pixel belongs to at most one
     source aperture.
+
+    Every row this assembles was already measured, by the stage that held the
+    window it was measured in, so this takes no image or background plane.
     """
-    _, valid, labels = _validated_hebog_segment_planes(
-        image_jy_per_beam,
-        background_jy_per_beam,
+    valid, labels = _validated_segment_labels(
         valid_pixels,
         measurement_component_labels,
     )

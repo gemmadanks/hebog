@@ -99,8 +99,6 @@ def build_configured_continuum_products(  # noqa: PLR0913
         labels=labels,
     )
     catalogues = build_hebog_reconstructed_source_catalogues(
-        image,
-        background,
         valid,
         topology.measurement_component_labels,
         topology.direct_component_labels,

@@ -136,12 +136,20 @@ dense real field sits about 30% above a generated one of the same area; the
 driver holding less than the serial process is the whole-plane state the
 milestone is removing.
 
-!!! warning "A first run is not a measurement"
+!!! warning "Peak RSS is an envelope, not a threshold"
 
-    The figures above replace 2,144 MiB and 1,347 MiB recorded on
-    22 September 2026. Those were single first runs in a fresh session and
-    were 12% and 22% low; five later repetitions agree within 1%. Peak RSS
-    needs the same repetition discipline as wall time.
+    Ten runs of identical code at 3,000² gave peak RSS from 1,559 to
+    2,477 MiB, a 42% spread, and the variation tracked machine load rather
+    than the code: `ru_maxrss` is the high-water mark of *resident* pages,
+    so it records how aggressively the operating system reclaimed as much as
+    what Hebog demanded. Quote it as a range, and never gate a change on it.
+
+    `tracemalloc`'s peak counts the process's own allocations instead. It
+    gave **1539.3 MiB** in every run at loads from 2.9 to 4.6, identical to
+    the decimal, so a scaling claim or a tier gate uses the traced peak. It
+    roughly doubles wall time, which is acceptable for a gate measurement.
+    Earlier figures on this page of 2,144 MiB and 1,347 MiB were single
+    first runs and should not be compared with anything.
 
 !!! warning "Do not extrapolate from inside the envelope"
 

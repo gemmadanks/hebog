@@ -24458,3 +24458,47 @@ the per-worker placement finding.
   larger haloed read behind it. They are the tile-bounded component the
   4,096-pixel ladder rung measured as roughly 1.3 GB fixed, and they do not
   grow with the image.
+
+## 2026-09-23 — M2: the terminal builder stops holding measured planes
+
+- **What this is.** The prerequisite for removing the driver's image,
+  background and RMS planes, and the measurement discipline that made it
+  possible to say what it is worth.
+- **What was wrong.** `build_hebog_reconstructed_source_catalogues` took the
+  image and background only to hand them to a validator whose residual it
+  discarded. Every call allocated `np.where(valid, image - background, nan)`,
+  an image-sized `float64` plane, and dropped it: 72 MB at 3,000 pixels and
+  about 1.9 GB at LoTSS-DR3 15,402.
+- **The change.** `_validated_segment_labels` checks the labels against the
+  validity plane and allocates nothing; `_validated_hebog_segment_planes`
+  composes it with the residual for the two builders that measure. The
+  terminal builder takes neither plane now, which its signature says: it
+  assembles rows the stages already measured in the windows that measured
+  them.
+- **Evidence.** On the real 3,000² LoTSS field the catalogue, RMS and mask
+  are bitwise identical to both the previous state and the commit before it.
+  Four new cases reach the label checks through the terminal builder, where
+  nothing reached them before, and all four fail under a mutation that skips
+  the validation.
+- **What it is worth: nothing at the peak, and that is the finding.** The
+  deterministic traced peak is 1539.3 MiB before the split, after the split
+  and after narrowing the builder — identical to the decimal in every run. A
+  discarded allocation only lowers peak memory when it happens at the peak,
+  and this one happens in the terminal builder, long after the multiscale
+  pass that sets the high-water mark. The waste is real and grows with the
+  image; the peak does not move.
+- **Peak RSS is not an instrument on this machine.** Ten runs of identical
+  code at 3,000² gave 1,559 to 2,477 MiB, a 42% spread, and the variation
+  tracked machine load: `ru_maxrss` is the high-water mark of *resident*
+  pages, so it records how aggressively the operating system reclaimed as
+  much as what Hebog demanded. `tracemalloc`'s peak gave 1539.3 MiB in every
+  run at loads from 2.9 to 4.6. Scaling claims and tier gates need the
+  traced peak; RSS belongs beside it as an envelope, never as a threshold.
+  This supersedes the figures in the two entries above, including the
+  "within 1%" claim, which five lucky repetitions supported and five more
+  did not.
+- **A comparison that lied.** `CATID` is `sha256(run_id)`, so two runs of
+  identical code under different run identifiers differ in the catalogue's
+  primary header and checksum. A digest comparison across two measurement
+  scripts briefly looked like a regression. Hold the run identifier constant
+  when comparing products.

@@ -153,8 +153,6 @@ def _measure(  # noqa: PLR0913
     )
     source_positions: dict[int, SourcePositionDiagnostics] = {}
     return build_hebog_reconstructed_source_catalogues(
-        image,
-        resolved_background,
         valid,
         labels,
         direct,
@@ -333,6 +331,47 @@ def test_reconstructed_measurement_rejects_unknown_aperture_policy() -> None:
 
 
 @pytest.mark.parametrize(
+    ("measurement", "message"),
+    (
+        (np.zeros((3, 2), dtype=np.int32), "must match the image"),
+        (np.zeros((2, 2), dtype=np.float64), "two-dimensional integer array"),
+        (np.full((2, 2), -1, dtype=np.int32), "must be non-negative"),
+        (np.zeros(2, dtype=np.int32), "two-dimensional integer array"),
+    ),
+)
+def test_terminal_builder_rejects_labels_that_do_not_fit_validity(
+    measurement: np.ndarray,
+    message: str,
+) -> None:
+    """The terminal builder checks its labels without measuring anything.
+
+    It assembles rows the stages already measured, so it holds no image or
+    background and validates the labels against the validity plane alone.
+    These cases reach that check through the terminal builder rather than
+    through the two builders that still measure from planes.
+    """
+    valid = np.ones((2, 2), dtype=np.bool_)
+    association = SourceAssociationResult(
+        components=(), edges=(), memberships=(), ambiguous_component_ids=()
+    )
+
+    with pytest.raises(ValueError, match=message):
+        build_hebog_reconstructed_source_catalogues(
+            valid,
+            measurement,
+            measurement,
+            _header(valid.shape),
+            association=association,
+            hierarchy=association,
+            source_labels=np.zeros((2, 2), dtype=np.int32),
+            source_measurement_labels=np.zeros((2, 2), dtype=np.int32),
+            component_rows=(),
+            source_rows=(),
+            source_positions={},
+        )
+
+
+@pytest.mark.parametrize(
     ("direct", "message"),
     (
         (np.ones((2, 2), dtype=np.float64), "integer plane"),
@@ -474,8 +513,6 @@ def test_published_source_planes_fail_closed(
 
     with pytest.raises(ValueError, match=message):
         build_hebog_reconstructed_source_catalogues(
-            image,
-            np.zeros_like(image),
             valid,
             measurement,
             measurement,

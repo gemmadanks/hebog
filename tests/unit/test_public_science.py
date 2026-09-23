@@ -224,8 +224,6 @@ def test_configured_builder_measures_the_published_component_topology(
     captured: dict[str, np.ndarray] = {}
 
     def capture_catalogues(
-        image: np.ndarray,
-        background: np.ndarray,
         valid: np.ndarray,
         measurement_labels: np.ndarray,
         direct_labels: np.ndarray,
@@ -233,7 +231,7 @@ def test_configured_builder_measures_the_published_component_topology(
         **kwargs: object,
     ) -> SimpleNamespace:
         """Record the ownership planes the catalogue builder received."""
-        del image, background, valid, args, kwargs
+        del valid, args, kwargs
         captured["measurement"] = measurement_labels
         captured["direct"] = direct_labels
         return SimpleNamespace(
