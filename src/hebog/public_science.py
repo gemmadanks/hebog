@@ -112,12 +112,10 @@ def build_configured_continuum_products(  # noqa: PLR0913
         source_rows=source_rows,
         source_positions=source_positions,
     )
-    valid.setflags(write=False)
     return ContinuumProducts(
         detection=retained.detection,
         measurement_component_labels=(topology.measurement_component_labels),
         catalogue=catalogues.source_catalogue,
-        valid_pixels=valid,
         component_catalogue=catalogues.component_catalogue,
         source_association=catalogues.association,
         deblended_parent_count=topology.deblended_parent_count,

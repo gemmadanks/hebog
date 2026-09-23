@@ -363,7 +363,6 @@ class ContinuumProducts:
     detection: ThresholdFilterResult
     measurement_component_labels: npt.NDArray[np.int32]
     catalogue: tuple[CatalogueSource, ...]
-    valid_pixels: npt.NDArray[np.bool_]
     component_catalogue: tuple[CatalogueSource, ...]
     source_association: SourceAssociationResult
     deblended_parent_count: int = 0

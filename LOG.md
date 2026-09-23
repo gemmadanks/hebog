@@ -24502,3 +24502,40 @@ the per-worker placement finding.
   primary header and checksum. A digest comparison across two measurement
   scripts briefly looked like a regression. Hold the run identifier constant
   when comparing products.
+
+## 2026-09-23 — M2: the driver's remaining whole-plane state, counted
+
+- **What this is.** The size of the remaining driver work, established by
+  counting rather than by extrapolating a profile, and a plan rewrite that
+  moves execution history out of the plan.
+- **What is left.** The driver holds 19 image-sized arrays: image,
+  background, RMS and their residual in `float64`; the position signal; six
+  `int32` label planes; and the validity, reconstruction, three
+  scale-significance, retained and support masks. That is 0.7 GiB at
+  3,000², 7.5 GiB at 10,000² and 17.7 GiB at LoTSS-DR3 15,402², against
+  18 GiB of development-machine memory. The 10,000 tier is reachable; 15,402
+  is not, on this alone.
+- **The order they come out in, and why.** (1) The RMS product streams from
+  the store and the driver carries the background/RMS sink instead of the
+  plane, which also serves the two windowed RMS consumers;
+  `write_rms_fits_product` already accepts row blocks, so the seam exists.
+  (2) The residual is read by window, removing image, background and their
+  difference, 5.3 GiB at 15,402² and the largest group;
+  `build_detection_component_records` already takes an `origin_yx` and works
+  per component window. (3) `valid` and `positive-rms` become tiled boolean
+  planes published by the background stage. (4) The label, mask and
+  position-signal planes follow, one publishing stage at a time.
+- **One more unread plane.** `ContinuumProducts.valid_pixels` was written and
+  never read, like the support stages before it. The record is not exported
+  from `hebog`, so removing the field removes a whole boolean plane with no
+  caller to consider.
+- **Two plan rows retired to here.** The Performance row had grown to 5,427
+  characters of execution narrative and the Scalability row to 1,118. Both
+  now carry current position only; the attributions, ratios and evidence
+  identities they held are in this file already, which is where the working
+  rules put them.
+- **Two exit criteria were already met.** Input hashing has streamed in 1 MiB
+  blocks since before this milestone. The two 10⁶-pixel background caps fire
+  only when a coarse window is shrunk to fit a small image, which the
+  shrink factor prevents above about 600 pixels a side, so neither bounds a
+  large image. Both were carried in the plan as outstanding work.

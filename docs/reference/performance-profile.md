@@ -124,17 +124,20 @@ envelope now reaches 3,000, which is four.
 | empty 4,096² | 16.78 | 2,458 MiB | 147 |
 
 Quadrupling the area raises peak RSS by half, not fourfold, and the cost per
-megapixel collapses once the image passes one tile. Above that point the fit
-is about **1.3 GB fixed and tile-bounded plus 62 MiB per megapixel**, which
-is roughly six to eight live whole planes: the driver's `ImageBounds(0, H,
-0, W)` reads and the products.
+megapixel collapses once the image passes one tile. Read those three figures
+as an envelope, not as measurements: they are RSS, and the warning below
+applies to them.
 
-A real 3,000² LoTSS-DR3 field, measured through the public path rather than
-the profiler, peaks at about 2,450 MiB serial and 1,720 MiB in a four-worker
-Dask driver. The fit above predicts 1,858 MiB for its 9.0 megapixels, so a
-dense real field sits about 30% above a generated one of the same area; the
-driver holding less than the serial process is the whole-plane state the
-milestone is removing.
+Counting the arrays is the reliable way to size what grows with the image.
+The driver holds **19 image-sized arrays** — the image, background, RMS
+and their residual in `float64`, the position signal, six label planes in
+`int32`, and the validity, reconstruction, scale-significance, retained and
+support masks. That is 0.7 GiB at 3,000², 7.5 GiB at 10,000² and
+17.7 GiB at LoTSS-DR3 15,402², against 18 GiB of development-machine
+memory. The plan's M2 row sets out the order they come out in.
+
+A real 3,000² LoTSS-DR3 field has a deterministic traced peak of
+**1,539 MiB** through the public path.
 
 !!! warning "Peak RSS is an envelope, not a threshold"
 
