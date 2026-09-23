@@ -24318,3 +24318,94 @@ the per-worker placement finding.
   active; the 2,048² pair was taken at about 3.0 with the same scanner. The
   2,048² ratio's bounds are tight enough to survive that, but neither
   number should be quoted as a clean anchor without a quiet re-measurement.
+
+## 2026-09-23 — M1: `Total_flux` limits set from PyBDSF, and the source flux redefined
+
+- **Why.** The M1 row left two decisions to the human: the binding median and
+  tail limits per signal-to-noise stratum for `Total_flux`, and whether to
+  correct the low-SNR flux bias, flag it, or document it. The user asked for
+  limits derived from what PyBDSF achieves on the same population, with Hebog
+  required to match or outperform it, and for the disposition to follow what
+  Rapthor's self-calibration needs from the column.
+- **Measurement.** Pinned PyBDSF `master` (`c70103b`, container
+  `hebog-pybdsf-master:c70103be3-reconstructed`) and released 1.14.1
+  (`hebog-notebook-pybdsf:1.14.1`) ran with the notebook comparison's Rapthor
+  profile options (5/3 hard thresholds, adaptive RMS boxes 150/50 and 35/7,
+  three à trous scales) on the ten `m1-endpoint-diagonal` images, three cores
+  each in Podman. Their `srl` and `gaul` catalogues were matched to truth with
+  the calibration script's rule, nearest entry within one beam FWHM, and
+  summarised with `summarise_component_calibration`. The two PyBDSF revisions
+  agree to every digit on this population. Evidence:
+  `benchmark-results/uncertainty-calibration/m1-endpoint-pybdsf-master/`,
+  `…-release/` and `m1-endpoint-pybdsf-comparison.json`; the container
+  runner, comparison and bootstrap scripts are retained beside them and are
+  not yet checked in. Source-level `Total_flux` excess over truth, pooled
+  over both noise classes and all sizes:
+
+  | SNR | PyBDSF sources, median / p95 | Hebog components | Hebog sources (aperture) |
+  | --- | --- | --- | --- |
+  | 10 | +13.8% / 34.4% | +13.5% / 29.4% | +2.8% / 79.4% |
+  | 20 | +3.0% / 11.2% | +2.5% / 11.0% | +1.1% / 41.0% |
+  | 50 | +0.5% / 5.1% | +0.4% / 4.6% | −0.2% / 20.3% |
+
+- **Findings.**
+  1. The low-SNR excess is inherent to free Gaussian fitting: PyBDSF carries
+     it at the same size, so it is not a Hebog defect, and a 5% median cap
+     would fail both finders. Hebog's beam constraint halves it for
+     beam-sized sources at SNR 10 (+5.0% against PyBDSF's +11.1%). A paired
+     bootstrap over whole realizations (4,000 resamples within noise class)
+     gives Hebog components minus PyBDSF Gaussians an upper one-sided 95%
+     bound of at most +0.1 points on the p95 and +1.6 points on the median
+     in every stratum.
+  2. The Rapthor-consumed column fails. Hebog's source `Total_flux`, which
+     the continuum profile defines as the signed source-owned aperture sum,
+     has an absolute p95 of 96.5%, 49.5% and 24.0% at SNR 10, 20 and 50 on
+     beam-correlated noise against PyBDSF's 38.5%, 12.7% and 6.7%, while the
+     same sources' single fitted component is within a few percent: the
+     worst SNR 50 apertures read −41% and +31% with their components within
+     3%. On white noise the aperture beats the fit (p95 14.8% at SNR 10).
+     Correlated noise integrates coherently over the aperture. This is the
+     measurement-tail limitation accepted on 13 September, now quantified
+     against PyBDSF on one population.
+- **What Rapthor does with the column**, read from the `sdp/rapthor`
+  (`c437e00e`) and `sdp/LSMTool` (`f85829e`) checkouts, ahead of the Phase 0
+  pin. Calibration model fluxes come from WSClean's component lists; the
+  finder contributes the island mask, which selects components and groups
+  them into patches. `Total_flux` has one decision consumer: the photometry
+  check matches sources to TGSS or LoTSS within 5 arcsec, takes the
+  3σ-clipped mean flux ratio with its scatter floored at 10%, and later
+  cycles multiply the calibrator target flux by that ratio when it departs
+  from unity by more than the scatter and no flux normalization ran.
+  `Isl_Total_flux` is only carried through the astrometry check. Flux
+  normalization fits per-channel `Total_flux` weighted by the inverse
+  `E_Total_flux`, outside the MFS-only contract. The clipped ratio to truth
+  on this population, computed as LSMTool computes it:
+
+  | Estimator | Correlated noise | SNR ≥ 20 |
+  | --- | --- | --- |
+  | Hebog fitted components | 1.032 ± 0.087 | 1.014 ± 0.035 |
+  | Hebog aperture sources | 1.048 ± 0.280 | 1.007 ± 0.089 |
+  | PyBDSF master sources | 1.034 ± 0.088 | 1.017 ± 0.037 |
+
+- **Decision (human, 23 September).**
+  1. The continuum profile's source `Total_flux` becomes the summed fitted
+     component flux, PyBDSF's definition. The signed aperture remains
+     published as `ASSOCIATION_APERTURE_FLUX`, and `Isl_Total_flux` remains
+     the island sum. Only a fit supplies the `E_Total_flux` the
+     normalization path weights by.
+  2. No noise-bias correction to the fit: PyBDSF carries the same bias,
+     Rapthor's 10% floor was set against it, and the SNR ≥ 20 clipped ratio
+     is within 2%. The measured curve is documented; an SNR quality flag is
+     optional later, since Rapthor reads no flags.
+  3. The binding limits are in the plan's scientific gates table: per
+     stratum, median excess ≤ +14%, +3.5% and +1% and absolute p95 ≤ 35%,
+     12% and 6% at SNR 10, 20 and 50; the paired Hebog-minus-PyBDSF upper
+     one-sided 95% bound ≤ +1 point in both statistics; and, for Rapthor, a
+     3σ-clipped mean ratio to truth within ±3% with clipped scatter ≤ 5% at
+     SNR ≥ 20, half Rapthor's decision floor.
+  4. Under these limits the fitted flux passes today and the current source
+     `Total_flux` fails on correlated noise, so the next M1 action is the
+     redefinition and a re-run of the calibration against the limits.
+- **Not covered.** Isolated sources on a grid, ten 1,024² realizations, one
+  beam, no blends or extended emission: development evidence for the limit
+  choice, not qualification. The M6 powered study asserts the limits.
