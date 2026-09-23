@@ -195,9 +195,11 @@ just quick-benchmark --tier smoke --no-previous-release --no-reference
 `quick_benchmark_worker.py` is the process it times. It uses only the public
 API and the standard library, so the same worker runs current Hebog and a
 release installed from its tag. Its `--diagnostic-size-limit` option is the
-diagnostic entry point for inputs above the public 1,024-pixel limit: it
-raises the limit only inside that worker process and leaves
-`hebog.find_sources` unchanged.
+diagnostic entry point for inputs above an installation's public size limit:
+it raises the limit only inside that worker process and leaves
+`hebog.find_sources` unchanged. The benchmark passes it on every run, set to
+the input's own size, so a timing never depends on which release's envelope
+is in force.
 
 The pinned-`master` timings reuse the notebook reference container through
 `prepare_notebook_comparison.py`. `run_notebook_reference.py` records its own
