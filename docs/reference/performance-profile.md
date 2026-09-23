@@ -129,12 +129,19 @@ is about **1.3 GB fixed and tile-bounded plus 62 MiB per megapixel**, which
 is roughly six to eight live whole planes: the driver's `ImageBounds(0, H,
 0, W)` reads and the products.
 
-A real 3,000² LoTSS-DR3 field, measured through the public path rather
-than the profiler, peaks at 2,144 MiB serial and 1,347 MiB in a four-worker
+A real 3,000² LoTSS-DR3 field, measured through the public path rather than
+the profiler, peaks at about 2,450 MiB serial and 1,720 MiB in a four-worker
 Dask driver. The fit above predicts 1,858 MiB for its 9.0 megapixels, so a
-dense real field sits somewhat above a generated one of the same area; the
+dense real field sits about 30% above a generated one of the same area; the
 driver holding less than the serial process is the whole-plane state the
 milestone is removing.
+
+!!! warning "A first run is not a measurement"
+
+    The figures above replace 2,144 MiB and 1,347 MiB recorded on
+    22 September 2026. Those were single first runs in a fresh session and
+    were 12% and 22% low; five later repetitions agree within 1%. Peak RSS
+    needs the same repetition discipline as wall time.
 
 !!! warning "Do not extrapolate from inside the envelope"
 

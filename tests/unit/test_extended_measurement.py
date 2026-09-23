@@ -68,6 +68,27 @@ def test_source_measurement_guard_breaks_equal_ties_by_source_identity() -> (
     assert expanded[3, 8] == 3
 
 
+def test_measurement_aperture_reaches_beyond_the_retained_support() -> None:
+    """Flux is measured over more pixels than detection retains.
+
+    The composition used to carry an image-sized "source-measurement" mask
+    beside the published one so this could be compared plane against plane.
+    Nothing read those planes, so the comparison now happens where the
+    expansion itself does.
+    """
+    seeds = np.zeros((9, 9), dtype=np.int32)
+    seeds[4, 4] = 1
+
+    expanded = expand_source_measurement_labels(
+        seeds,
+        np.ones(seeds.shape, dtype=np.bool_),
+        radius_pixels=2,
+    )
+
+    assert np.count_nonzero(expanded) > np.count_nonzero(seeds)
+    assert set(np.unique(expanded)) == {0, 1}
+
+
 def test_persistent_source_support_omits_disconnected_emission() -> None:
     """Persistent support without an accepted source seed remains unowned."""
     seeds = np.zeros((9, 13), dtype=np.int32)

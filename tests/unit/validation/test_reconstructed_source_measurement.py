@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from functools import partial
-from math import ceil, log, pi
+from math import log, pi
 from typing import cast
 
 import numpy as np
@@ -15,7 +15,6 @@ from astropy.wcs import WCS  # pyright: ignore[reportMissingTypeStubs]
 
 from hebog.algorithms.extended_measurement import (
     assign_persistent_source_support,
-    expand_source_measurement_labels,
 )
 from hebog.algorithms.multiscale_association import (
     ScaleDetectionPlane,
@@ -164,11 +163,6 @@ def _measure(  # noqa: PLR0913
         hierarchy=association,
         source_labels=source_labels,
         source_measurement_labels=source_support,
-        source_aperture_labels=expand_source_measurement_labels(
-            source_support,
-            valid,
-            radius_pixels=ceil(radius * 2.0),
-        ),
         component_rows=rows(labels),
         source_rows=rows(
             source_support,
@@ -177,7 +171,6 @@ def _measure(  # noqa: PLR0913
             position_diagnostics=source_positions,
         ),
         source_positions=source_positions,
-        persistent_scale_support=persistent,
     )
 
 
@@ -491,9 +484,7 @@ def test_published_source_planes_fail_closed(
             hierarchy=association,
             source_labels=plane,
             source_measurement_labels=plane,
-            source_aperture_labels=np.zeros_like(measurement),
             component_rows=(),
             source_rows=(),
             source_positions={},
-            persistent_scale_support=persistent_adjacent_scale_support(planes),
         )

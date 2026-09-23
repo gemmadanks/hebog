@@ -202,11 +202,9 @@ def test_configured_builder_rejects_inconsistent_finite_support(
             hierarchy=published.hierarchy,
             source_labels=published.source_labels,
             source_measurement_labels=(published.source_measurement_labels),
-            source_aperture_labels=(published.source_aperture_labels),
             component_rows=published.component_rows,
             source_rows=published.source_rows,
             source_positions=published.source_positions,
-            persistent_scale_support=(published.persistent_scale_support),
         )
 
 
@@ -243,7 +241,6 @@ def test_configured_builder_measures_the_published_component_topology(
             component_catalogue=(),
             association=object(),
             measurement_dispositions=(),
-            support_stages=(),
         )
 
     monkeypatch.setattr(
@@ -265,11 +262,9 @@ def test_configured_builder_measures_the_published_component_topology(
         hierarchy=published.hierarchy,
         source_labels=published.source_labels,
         source_measurement_labels=(published.source_measurement_labels),
-        source_aperture_labels=(published.source_aperture_labels),
         component_rows=published.component_rows,
         source_rows=published.source_rows,
         source_positions=published.source_positions,
-        persistent_scale_support=(published.persistent_scale_support),
     )
 
     assert result is not None
@@ -317,11 +312,9 @@ def test_configured_builder_publishes_independent_connected_sources(
         hierarchy=published.hierarchy,
         source_labels=published.source_labels,
         source_measurement_labels=(published.source_measurement_labels),
-        source_aperture_labels=(published.source_aperture_labels),
         component_rows=published.component_rows,
         source_rows=published.source_rows,
         source_positions=published.source_positions,
-        persistent_scale_support=(published.persistent_scale_support),
     )
 
     assert result is not None
@@ -368,11 +361,9 @@ def test_configured_builder_retains_three_components_in_one_parent(
         hierarchy=published.hierarchy,
         source_labels=published.source_labels,
         source_measurement_labels=(published.source_measurement_labels),
-        source_aperture_labels=(published.source_aperture_labels),
         component_rows=published.component_rows,
         source_rows=published.source_rows,
         source_positions=published.source_positions,
-        persistent_scale_support=(published.persistent_scale_support),
     )
 
     assert result is not None

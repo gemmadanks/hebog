@@ -842,7 +842,6 @@ class AssociatedMomentCatalogues:
     source_catalogue: tuple[CatalogueSource, ...]
     association: SourceAssociationResult
     measurement_dispositions: tuple[MeasurementDisposition, ...] = ()
-    support_stages: tuple[tuple[str, npt.NDArray[np.bool_]], ...] = ()
 
 
 def source_label_by_owner(
@@ -861,14 +860,19 @@ def source_label_by_owner(
     }
 
 
-def _validated_source_label_plane(
+def _require_valid_source_label_plane(
     values: npt.ArrayLike,
     labels: npt.NDArray[np.int64],
     association: SourceAssociationResult,
     *,
     seeded: bool = True,
-) -> npt.NDArray[np.int32]:
-    """Validate one published source plane against the memberships."""
+) -> None:
+    """Reject one published source plane that disagrees with the memberships.
+
+    The plane itself is not returned: nothing downstream reads it, and
+    materialising an image-sized copy to discard would scale with the image
+    rather than the tile.
+    """
     plane = np.asarray(values)
     if (
         plane.ndim != labels.ndim
@@ -879,12 +883,10 @@ def _validated_source_label_plane(
         raise ValueError(
             "source labels must be one aligned non-negative integer plane"
         )
-    output = np.asarray(plane, dtype=np.int32)
-    if bool(np.any(output > len(association.memberships))):
+    if bool(np.any(plane > len(association.memberships))):
         raise ValueError("source labels must name a published membership")
-    if seeded and bool(np.any((labels > 0) & (output == 0))):
+    if seeded and bool(np.any((labels > 0) & (plane == 0))):
         raise ValueError("source memberships must own every component pixel")
-    return output
 
 
 def _fitted_component_row(
@@ -1194,11 +1196,9 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
     hierarchy: SourceAssociationResult,
     source_labels: npt.ArrayLike,
     source_measurement_labels: npt.ArrayLike,
-    source_aperture_labels: npt.ArrayLike,
     component_rows: tuple[CatalogueSource, ...],
     source_rows: tuple[CatalogueSource, ...],
     source_positions: Mapping[int, SourcePositionDiagnostics],
-    persistent_scale_support: npt.ArrayLike,
 ) -> AssociatedMomentCatalogues:
     """Measure each common-parent catalogue source exactly once.
 
@@ -1246,21 +1246,11 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
         component_sources,
         association,
     )
-    source_label_plane = _validated_source_label_plane(
-        source_labels, labels, association
-    )
-    membership_by_label = dict(enumerate(association.memberships, start=1))
-    persistent_support = np.asarray(persistent_scale_support, dtype=np.bool_)
-    if (
-        component_measurements is not None
-        and component_measurements.measurement_support is not None
-    ):
-        persistent_support = (
-            persistent_support | component_measurements.measurement_support
-        )
-    source_support_plane = _validated_source_label_plane(
+    _require_valid_source_label_plane(source_labels, labels, association)
+    _require_valid_source_label_plane(
         source_measurement_labels, labels, association, seeded=False
     )
+    membership_by_label = dict(enumerate(association.memberships, start=1))
     output = _reconstructed_source_rows(
         source_rows,
         stable_components,
@@ -1274,21 +1264,6 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
         raise ValueError(
             "reconstructed source has no measurable catalogue row"
         )
-    support_stages = (
-        (
-            ("persistent", persistent_support),
-            ("source-union", source_label_plane > 0),
-            ("source-owned-persistent", source_support_plane > 0),
-            (
-                "source-measurement",
-                np.asarray(source_aperture_labels, dtype=np.int32) > 0,
-            ),
-        )
-        if component_measurements is not None
-        else ()
-    )
-    for _, mask in support_stages:
-        mask.setflags(write=False)
     return AssociatedMomentCatalogues(
         component_catalogue=stable_components
         if component_measurements is None
@@ -1299,7 +1274,6 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
         ),
         source_catalogue=output,
         association=association,
-        support_stages=support_stages,
         measurement_dispositions=()
         if component_measurements is None
         else (

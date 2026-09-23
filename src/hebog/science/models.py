@@ -353,7 +353,6 @@ class ContinuumCandidateProducts:
     direct_component_labels: npt.NDArray[np.int32]
     measurement_component_labels: npt.NDArray[np.int32]
     position_signal_jy_per_beam: npt.NDArray[np.float64]
-    significant_multiscale_support: npt.NDArray[np.bool_]
     scale_detections: tuple[ScaleDetectionRecords, ...]
 
 
@@ -370,4 +369,3 @@ class ContinuumProducts:
     deblended_parent_count: int = 0
     deferred_deblend_parent_count: int = 0
     measurement_dispositions: tuple[MeasurementDisposition, ...] = ()
-    support_stages: tuple[tuple[str, npt.NDArray[np.bool_]], ...] = ()

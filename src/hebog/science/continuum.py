@@ -126,17 +126,11 @@ def build_continuum_candidate_products(
         raise ValueError(
             "published retained mask must agree with publication labels"
         )
-    significant_support = np.array(
-        multiscale.reconstruction_mask,
-        dtype=np.bool_,
-        copy=True,
-    )
     for plane in (
         publication_labels,
         component_labels,
         measurement_labels,
         retained_mask,
-        significant_support,
     ):
         plane.setflags(write=False)
     return ContinuumCandidateProducts(
@@ -150,7 +144,6 @@ def build_continuum_candidate_products(
         direct_component_labels=component_labels,
         measurement_component_labels=measurement_labels,
         position_signal_jy_per_beam=multiscale.position_signal_jy_per_beam,
-        significant_multiscale_support=significant_support,
         scale_detections=retained_scale_detections(
             multiscale,
             valid_pixels,

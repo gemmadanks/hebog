@@ -24288,8 +24288,10 @@ the per-worker placement finding.
   (`sha256:378f38af…`, window x 6713, y 5689 of
   `healpix_mosaics/1312/mosaic.fits`) runs to completion and finds 659
   sources, 828 Gaussian components and 814 islands. Serial takes 117.0 s at
-  2,144 MiB peak RSS; a four-worker Dask cluster takes 95.8 s at 1,347 MiB
-  in the driver. The two product sets are **bitwise identical**
+  about 2,450 MiB peak RSS; a four-worker Dask cluster takes 83–96 s at
+  about 1,720 MiB in the driver. (The memory figures first recorded here,
+  2,144 and 1,347 MiB, were single first runs and 12% and 22% low; see the
+  entry for 23 September.) The two product sets are **bitwise identical**
   (`ec5ea720c8ed9110`), so tile reconciliation on real extended emission is
   executor-invariant, not only invariant on synthetic Gaussians.
 - **Synthetic evidence carried from the screen.** A synthetic 3,000² run
@@ -24409,3 +24411,50 @@ the per-worker placement finding.
 - **Not covered.** Isolated sources on a grid, ten 1,024² realizations, one
   beam, no blends or extended emission: development evidence for the limit
   choice, not qualification. The M6 powered study asserts the limits.
+
+## 2026-09-23 — M2: the unread support-stage diagnostics are removed
+
+- **What this is.** The first step of removing whole-plane state from the
+  driver, taken on the human disposition that the diagnostic is not worth
+  its memory, and a correction to the memory figures the previous entry
+  recorded.
+- **What was there.** `ContinuumProducts.support_stages` carried eight
+  image-sized boolean planes — `direct`, `multiscale`, `persistent`,
+  `component-owner`, `source-union`, `source-owned-persistent`,
+  `source-measurement` and `publication`. Nothing consumed them. The only
+  reader in the tracked tree was one unit test asserting they existed and
+  differed, for a truth-linked runner that was removed with the Phase 1–5
+  campaign tooling and survives only in Git history at `v0.7.0`.
+- **What it took with it.** The planes were the sole consumers of two of the
+  driver's whole-plane Zarr reads: `persistent-scale-support` and
+  `aperture-labels`. Both planes stay published, because the source and row
+  stages read them by window; only the driver's image-sized copies are gone.
+  `publish_segment_rows` returns two values instead of three, and
+  `_validated_source_label_plane` becomes `_require_valid_source_label_plane`,
+  which validates without materialising an int32 copy to discard.
+- **What was kept.** The deleted test's one unique invariant, that the
+  measurement aperture reaches beyond the retained support, now sits beside
+  the expansion kernel that produces it, where it needs two small arrays
+  rather than eight planes.
+- **Evidence.** On the real 3,000² LoTSS field the catalogue, RMS and mask
+  are bitwise identical before and after; the only diagnostics difference is
+  `scientific_composition_sha256`, which is designed to move when the
+  composition source changes.
+- **What it is worth, and what it is not.** Eight planes are 72 MB at
+  3,000² and about 1.9 GB at LoTSS-DR3 15,402². At 3,000² that is 3% of peak
+  RSS, which is below measurement resolution: HEAD measures 2,451 and
+  2,458 MiB, and the removal 2,449, 2,477 and 2,452 MiB. This change is
+  product-neutral and removes state that grows with the image; it is not a
+  measurable saving at any size the envelope currently admits.
+- **The correction.** The 2,144 MiB and 1,347 MiB recorded on 22 September
+  were single first runs in a fresh session, 12% and 22% below five later
+  repetitions that agree within 1%. The figures are about 2,450 MiB serial
+  and 1,720 MiB in the Dask driver. Peak RSS needs the repetition discipline
+  wall time already has.
+- **What the 3,000² memory profile ranks.** Traced allocation peaks at
+  1,432 MiB, of which 608 MiB is `multiscale_tiles.py`'s per-tile core
+  copies, 137 MiB Zarr window reads and 102 MiB the FITS input. The core
+  copies are not waste: each one exists so a core record cannot pin the
+  larger haloed read behind it. They are the tile-bounded component the
+  4,096-pixel ladder rung measured as roughly 1.3 GB fixed, and they do not
+  grow with the image.

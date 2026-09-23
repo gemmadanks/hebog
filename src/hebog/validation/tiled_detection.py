@@ -153,11 +153,9 @@ class PublishedContinuumInputs:
     hierarchy: SourceAssociationResult
     source_labels: npt.NDArray[np.int32]
     source_measurement_labels: npt.NDArray[np.int32]
-    source_aperture_labels: npt.NDArray[np.int32]
     component_rows: tuple[CatalogueSource, ...]
     source_rows: tuple[CatalogueSource, ...]
     source_positions: Mapping[int, SourcePositionDiagnostics]
-    persistent_scale_support: npt.NDArray[np.bool_]
 
 
 def _source_association(
@@ -324,7 +322,7 @@ def publish_continuum_inputs(  # noqa: PLR0913
         generation_id=generation_id,
         tile_core_pixels=support_tile_core_pixels,
     )
-    component_rows, _, _ = publish_segment_rows(
+    component_rows, _ = publish_segment_rows(
         image_source,
         background_rms_source,
         detection_source,
@@ -343,44 +341,34 @@ def publish_continuum_inputs(  # noqa: PLR0913
         sink_name="component-rows",
         tile_core_pixels=support_tile_core_pixels,
     )
-    source_rows, source_positions, source_aperture_labels = (
-        publish_segment_rows(
-            image_source,
-            background_rms_source,
-            detection_source,
-            source_support_source,
-            source_label_source,
-            resolved_executor,
-            work_directory,
-            image_shape_yx=image_jy_per_beam.shape,
-            beam=beam,
-            header=header,
-            label_product_name="source-measurement-labels",
-            centroid_product_name="source-labels",
-            aperture_tie_policy="canonical-source",
-            with_position_diagnostics=True,
-            generation_id=generation_id,
-            sink_name="source-rows",
-            tile_core_pixels=support_tile_core_pixels,
-        )
+    source_rows, source_positions = publish_segment_rows(
+        image_source,
+        background_rms_source,
+        detection_source,
+        source_support_source,
+        source_label_source,
+        resolved_executor,
+        work_directory,
+        image_shape_yx=image_jy_per_beam.shape,
+        beam=beam,
+        header=header,
+        label_product_name="source-measurement-labels",
+        centroid_product_name="source-labels",
+        aperture_tie_policy="canonical-source",
+        with_position_diagnostics=True,
+        generation_id=generation_id,
+        sink_name="source-rows",
+        tile_core_pixels=support_tile_core_pixels,
     )
     return PublishedContinuumInputs(
         component_rows=component_rows,
         source_rows=source_rows,
         source_positions=source_positions,
-        source_aperture_labels=source_aperture_labels,
         measurements=measurements,
         association=association,
         hierarchy=hierarchy,
         source_labels=source_labels,
         source_measurement_labels=source_measurement_labels,
-        persistent_scale_support=np.asarray(
-            hierarchy_source.read_completed_window(
-                "persistent-scale-support",
-                bounds,
-            ),
-            dtype=np.bool_,
-        ),
         multiscale=multiscale,
         support=TiledSupportTopology(
             support_component_labels=np.asarray(

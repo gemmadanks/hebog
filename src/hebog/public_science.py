@@ -68,11 +68,9 @@ def build_configured_continuum_products(  # noqa: PLR0913
     hierarchy: SourceAssociationResult,
     source_labels: npt.NDArray[np.int32],
     source_measurement_labels: npt.NDArray[np.int32],
-    source_aperture_labels: npt.NDArray[np.int32],
     component_rows: tuple[CatalogueSource, ...],
     source_rows: tuple[CatalogueSource, ...],
     source_positions: Mapping[int, SourcePositionDiagnostics],
-    persistent_scale_support: npt.NDArray[np.bool_],
 ) -> ContinuumProducts | None:
     """Build terminal products from the published tiled passes.
 
@@ -112,27 +110,11 @@ def build_configured_continuum_products(  # noqa: PLR0913
         hierarchy=hierarchy,
         source_labels=source_labels,
         source_measurement_labels=source_measurement_labels,
-        source_aperture_labels=source_aperture_labels,
         component_rows=component_rows,
         source_rows=source_rows,
         source_positions=source_positions,
-        persistent_scale_support=persistent_scale_support,
     )
     valid.setflags(write=False)
-    support_stages = tuple(
-        sorted(
-            (
-                *catalogues.support_stages,
-                ("direct", topology.direct_component_labels > 0),
-                ("multiscale", retained.significant_multiscale_support),
-                ("component-owner", topology.measurement_component_labels > 0),
-                ("publication", retained.detection.retained_mask),
-            ),
-            key=lambda item: item[0],
-        )
-    )
-    for _, mask in support_stages:
-        mask.setflags(write=False)
     return ContinuumProducts(
         detection=retained.detection,
         measurement_component_labels=(topology.measurement_component_labels),
@@ -143,5 +125,4 @@ def build_configured_continuum_products(  # noqa: PLR0913
         deblended_parent_count=topology.deblended_parent_count,
         deferred_deblend_parent_count=topology.deferred_parent_count,
         measurement_dispositions=catalogues.measurement_dispositions,
-        support_stages=support_stages,
     )

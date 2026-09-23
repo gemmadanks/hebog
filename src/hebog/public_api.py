@@ -785,16 +785,14 @@ def publish_segment_rows(  # noqa: PLR0913, PLR0917
     generation_id: str,
     sink_name: str,
     tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
-) -> tuple[
-    tuple[Any, ...],
-    Mapping[int, Any],
-    npt.NDArray[np.int32],
-]:
+) -> tuple[tuple[Any, ...], Mapping[int, Any]]:
     """Measure one catalogue row per segment, each in its own window.
 
     The cores write the expanded apertures under the reviewed radius, they
     observe the bounds each segment and aperture occupies, and one task per
-    batch of segments measures their rows and moment shapes.
+    batch of segments measures their rows and moment shapes. The aperture
+    plane stays in the published generation: the rows carry what the
+    catalogue needs from it, so the driver never holds it.
     """
     from math import ceil, log, pi  # noqa: PLC0415
 
@@ -856,17 +854,7 @@ def publish_segment_rows(  # noqa: PLR0913, PLR0917
         executor=executor,
         sink=sink,
     )
-    return (
-        result.rows,
-        result.position_diagnostics,
-        np.asarray(
-            sink.read_completed_window(
-                "aperture-labels",
-                ImageBounds(0, image_shape_yx[0], 0, image_shape_yx[1]),
-            ),
-            dtype=np.int32,
-        ),
-    )
+    return result.rows, result.position_diagnostics
 
 
 def publish_source_planes(  # noqa: PLR0913, PLR0917
@@ -1359,7 +1347,7 @@ def _analyse_image(  # noqa: PLR0913
         association=association,
         generation_id=generation_id,
     )
-    component_rows, _, _ = publish_segment_rows(
+    component_rows, _ = publish_segment_rows(
         source,
         background_rms_source,
         detection_source,
@@ -1377,25 +1365,23 @@ def _analyse_image(  # noqa: PLR0913
         generation_id=generation_id,
         sink_name="component-rows",
     )
-    source_rows, source_positions, source_aperture_labels = (
-        publish_segment_rows(
-            source,
-            background_rms_source,
-            detection_source,
-            source_support_source,
-            source_label_source,
-            executor,
-            work_directory,
-            image_shape_yx=metadata.shape_yx,
-            beam=beam,
-            header=header,
-            label_product_name="source-measurement-labels",
-            centroid_product_name="source-labels",
-            aperture_tie_policy="canonical-source",
-            with_position_diagnostics=True,
-            generation_id=generation_id,
-            sink_name="source-rows",
-        )
+    source_rows, source_positions = publish_segment_rows(
+        source,
+        background_rms_source,
+        detection_source,
+        source_support_source,
+        source_label_source,
+        executor,
+        work_directory,
+        image_shape_yx=metadata.shape_yx,
+        beam=beam,
+        header=header,
+        label_product_name="source-measurement-labels",
+        centroid_product_name="source-labels",
+        aperture_tie_policy="canonical-source",
+        with_position_diagnostics=True,
+        generation_id=generation_id,
+        sink_name="source-rows",
     )
     terminal = build_configured_continuum_products(
         image,
@@ -1410,17 +1396,9 @@ def _analyse_image(  # noqa: PLR0913
         hierarchy=hierarchy,
         source_labels=source_labels,
         source_measurement_labels=source_measurement_labels,
-        source_aperture_labels=source_aperture_labels,
         component_rows=component_rows,
         source_rows=source_rows,
         source_positions=source_positions,
-        persistent_scale_support=np.asarray(
-            hierarchy_source.read_completed_window(
-                "persistent-scale-support",
-                _full_bounds(metadata),
-            ),
-            dtype=np.bool_,
-        ),
     )
     return _ScientificProducts(image, background, rms, terminal)
 

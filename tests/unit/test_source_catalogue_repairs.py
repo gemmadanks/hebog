@@ -243,33 +243,6 @@ def test_noisy_compact_chain_keeps_independent_source_memberships(
     assert len(set(detected)) == len(detected)
 
 
-def test_terminal_keeps_stage_support_separate_from_published_mask() -> None:
-    """A truth-linked runner can locate losses before scratch cleanup."""
-    yy, xx = np.mgrid[:97, :97]
-    signal = 12 * np.exp(-((xx - 48) ** 2 + (yy - 48) ** 2) / 8)
-    signal += 2 * np.exp(-0.5 * (((xx - 48) / 12) ** 2 + ((yy - 48) / 6) ** 2))
-    products = _products(signal)
-    stages = dict(products.support_stages)
-    assert set(stages) == {
-        "direct",
-        "multiscale",
-        "persistent",
-        "component-owner",
-        "source-union",
-        "source-owned-persistent",
-        "source-measurement",
-        "publication",
-    }
-    assert stages["source-measurement"].sum() > stages["publication"].sum()
-    np.testing.assert_array_equal(
-        stages["publication"], products.detection.retained_mask
-    )
-    assert all(
-        mask.dtype == np.bool_ and not mask.flags.writeable
-        for mask in stages.values()
-    )
-
-
 def test_independent_resolved_loops_keep_distinct_source_membership() -> None:
     """Scale evidence must neither duplicate nor merge disjoint shells."""
     yy, xx = np.mgrid[:97, :193]
@@ -417,11 +390,9 @@ def _configured_products(
             hierarchy=published.hierarchy,
             source_labels=published.source_labels,
             source_measurement_labels=(published.source_measurement_labels),
-            source_aperture_labels=(published.source_aperture_labels),
             component_rows=published.component_rows,
             source_rows=published.source_rows,
             source_positions=published.source_positions,
-            persistent_scale_support=(published.persistent_scale_support),
         )
 
 
@@ -594,10 +565,10 @@ def test_valid_fit_survives_unavailable_aperture_moment_row(
     original = tiled_detection.publish_segment_rows
 
     def missing_source_rows(*args: Any, **kwargs: Any):
-        rows, positions, apertures = original(*args, **kwargs)
+        rows, positions = original(*args, **kwargs)
         if kwargs["aperture_tie_policy"] == "canonical-source":
-            return (), positions, apertures
-        return rows, positions, apertures
+            return (), positions
+        return rows, positions
 
     monkeypatch.setattr(
         tiled_detection, "publish_segment_rows", missing_source_rows
