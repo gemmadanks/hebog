@@ -24910,3 +24910,65 @@ the per-worker placement finding.
   quick science check and the calibration scripts themselves were not run:
   both need local data and containers, and the calibration re-run is the
   maintainer's call.
+
+## 2026-09-24 — M2: the RA pull, re-measured
+
+- **Why.** The `E_RA` convention fix earlier today voided every recorded RA
+  pull. This closes that follow-up, in two parts: the same cached catalogues
+  re-scored to isolate the statistic, then a fresh run of the installed
+  composition.
+- **Part one: the statistic alone.** The 2026-09-16 catalogues under
+  `benchmark-results/uncertainty-calibration/{gls-1,diagonal-1}` still load, so
+  the pulls were re-derived from them with everything else held constant. RA
+  standard deviation / fraction within one sigma, recorded then corrected:
+
+  | Run and noise | Recorded | Corrected |
+  | --- | --- | --- |
+  | diagonal, correlated | 0.72 / 0.83 | 1.01 / 0.68 |
+  | diagonal, white | 0.25 / 1.00 | 0.35 / 1.00 |
+  | GLS, correlated | 0.87 / 0.78 | 1.23 / 0.59 |
+  | GLS, white | 507 / 0.27 | 717 / 0.23 |
+
+  Every other parameter — Dec, peak, integrated, both axes — re-derived
+  bit-for-bit identical, which is the control: only RA moved. The ratio is
+  1.4132–1.4141 rather than exactly 1/cos(45°) = 1.41421, because the
+  conversion is per row and the sources span about ±0.2° of declination.
+  The GLS estimator was not re-run: that decision closed on 2026-09-16 and
+  diagonal weighting is installed, so part one is the whole correction for it.
+- **Part two: the installed composition.** `--point-estimator
+  diagonal-weighted --label ra-convention-diagonal-1`, ten seed-disjoint
+  1,024² realizations, composition `683a4c9ee741bb87`. Pull standard
+  deviation / median / fraction within one sigma, every matched component
+  reporting a position error:
+
+  | Noise | RA | Dec |
+  | --- | --- | --- |
+  | Correlated | 1.015 / −0.060 / 0.675 | 1.006 / +0.020 / 0.672 |
+  | White | 0.348 / +0.027 / 0.994 | 0.334 / +0.023 / 0.997 |
+
+- **What this changes scientifically.** On beam-correlated noise, the
+  realistic case, `E_RA` is calibrated: 1.015 against an expected 1.000, and
+  67.5% within one sigma against an expected 68.27%. The 2026-09-16 reading of
+  0.72 as *conservative* was an artifact of the convention error, which is
+  exactly what dividing by an error inflated by 1/cos(dec) manufactures. The
+  strongest evidence that the corrected statistic is the right one is that RA
+  and Dec now agree — 1.015 against 1.006, where before they differed by 35%
+  with no physical reason to. On white noise both axes stay conservative by
+  about 3x, which is a real property of the estimator and not this defect.
+- **A Rapthor compatibility divergence this exposed.** Rapthor's astrometry
+  check cuts on `E_RA < 2/3600` degrees
+  (`rapthor/execution/image/diagnostic_calculation.py:726`), a threshold
+  written for PyBDSF, whose `E_RA` is a great-circle error. Hebog publishes an
+  RA *coordinate* error, larger by 1/cos(dec), and
+  `adapters/rapthor_catalogue.py` passes it through unconverted. The cut is
+  therefore tighter for Hebog than for PyBDSF at the same true precision:
+  2.00″ becomes 1.98″ at the LoTSS-DR3 cut-out's +7°, 1.73″ at SDC1's −30°,
+  and about 1.15″ at +55°, where LOFAR's fields mostly sit. Hebog would drop
+  sources PyBDSF keeps, more so the further from the equator, and can reach
+  Rapthor's `min_number` skip sooner. No column was changed: this alters a
+  Rapthor-consumed field and needs a scientific disposition, so it is a plan
+  task, not a repair made here.
+- **Checks.** Both measurements are development evidence, not qualification.
+  The fresh run used the serial executor on generated development datasets at
+  one declination (+45°) with isolated sources only, so it establishes
+  estimator calibration, not the astrometry behaviour of a real field.
