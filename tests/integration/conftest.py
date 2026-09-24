@@ -21,17 +21,15 @@ _BACKGROUND_TILE_SHAPE_YX = (128, 128)
 
 def _publish_background_rms(
     work_directory: Path,
-    image_jy_per_beam: npt.NDArray[np.float64],
     background_jy_per_beam: npt.NDArray[np.float64],
     rms_jy_per_beam: npt.NDArray[np.float64],
     generation_id: str,
 ) -> ZarrProductSink:
-    """Publish an analytic background/RMS generation, masks included.
+    """Publish one analytic background/RMS generation.
 
     A test that substitutes the background stage still has to give the later
     passes a published generation to read, because no image-sized plane
-    reaches a stage through the executor. The stage publishes the two masks
-    the composition asks of its estimate, so this double publishes them too.
+    reaches a stage through the executor.
     """
     manifest = plan_image_partitions(
         image_shape_yx=background_jy_per_beam.shape,
@@ -43,21 +41,9 @@ def _publish_background_rms(
         manifest,
         generation_id=generation_id,
     )
-    valid = np.asarray(
-        np.isfinite(image_jy_per_beam)
-        & np.isfinite(background_jy_per_beam)
-        & np.isfinite(rms_jy_per_beam),
-        dtype=np.bool_,
-    )
     planes: tuple[tuple[str, npt.NDArray[Any], np.dtype[Any]], ...] = (
         ("background", background_jy_per_beam, np.dtype("<f8")),
         ("rms", rms_jy_per_beam, np.dtype("<f8")),
-        ("valid", valid, np.dtype(np.bool_)),
-        (
-            "positive-rms",
-            np.asarray(valid & (rms_jy_per_beam > 0.0), dtype=np.bool_),
-            np.dtype(np.bool_),
-        ),
     )
     for product_name, _, dtype in planes:
         sink.initialize_product(product_name=product_name, dtype=dtype)
@@ -119,7 +105,6 @@ def _substituted_background_rms(
         """Publish the analytic planes and describe their valid domain."""
         sink = _publish_background_rms(
             cast(Path, args[4]),
-            image_jy_per_beam,
             background_jy_per_beam,
             rms_jy_per_beam,
             generation_id,

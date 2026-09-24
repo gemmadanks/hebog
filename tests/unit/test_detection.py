@@ -16,7 +16,7 @@ from hebog.algorithms.detection import (
 from hebog.config import SourceFinderConfig
 from hebog.data_models.partitioning import ImageBounds
 from hebog.io.base import ImageWindow
-from hebog.stages.detection import _estimated_validity
+from hebog.stages.detection import _require_estimate_covers_image
 
 
 def _config(
@@ -277,13 +277,11 @@ def _estimate_tile(
     )
 
 
-def test_estimated_validity_is_the_image_where_the_estimate_covers_it() -> (
-    None
-):
-    """An invalid image pixel needs no estimate, and reports as invalid."""
+def test_an_invalid_image_pixel_needs_no_estimate() -> None:
+    """The estimate may be absent exactly where the image is."""
     values = np.array([[1.0, np.nan], [2.0, 3.0]])
 
-    valid = _estimated_validity(
+    _require_estimate_covers_image(
         _tile_window(values),
         _estimate_tile(
             values,
@@ -292,13 +290,9 @@ def test_estimated_validity_is_the_image_where_the_estimate_covers_it() -> (
         ),
     )
 
-    np.testing.assert_array_equal(
-        valid, np.array([[True, False], [True, True]])
-    )
-
 
 @pytest.mark.parametrize("missing", ("background", "rms"))
-def test_estimated_validity_rejects_an_estimate_that_narrows_the_image(
+def test_an_estimate_that_narrows_the_image_is_rejected(
     missing: str,
 ) -> None:
     """A finite image pixel the estimate does not cover fails loudly."""
@@ -311,6 +305,6 @@ def test_estimated_validity_rejects_an_estimate_that_narrows_the_image(
         rms[0, 1] = np.nan
 
     with pytest.raises(ValueError, match="validity differs from the image"):
-        _estimated_validity(
+        _require_estimate_covers_image(
             _tile_window(values), _estimate_tile(values, background, rms)
         )

@@ -7,7 +7,6 @@ from functools import partial
 from typing import Protocol
 
 import numpy as np
-import numpy.typing as npt
 
 from hebog.algorithms.detection import (
     detect_high_significance_candidates,
@@ -187,7 +186,7 @@ def _detect_and_write_background_rms(
         request.partition,
         image_shape_yx=image_shape_yx,
     )
-    valid = _estimated_validity(window, background_rms)
+    _require_estimate_covers_image(window, background_rms)
     chunks = (
         sink.write_chunk(
             product_name="background",
@@ -199,19 +198,6 @@ def _detect_and_write_background_rms(
             tile=request.partition,
             values=np.asarray(background_rms.rms),
         ),
-        sink.write_chunk(
-            product_name="valid",
-            tile=request.partition,
-            values=valid,
-        ),
-        sink.write_chunk(
-            product_name="positive-rms",
-            tile=request.partition,
-            values=np.asarray(
-                valid & (np.asarray(background_rms.rms) > 0.0),
-                dtype=np.bool_,
-            ),
-        ),
     )
     return _DetectionTileProducts(
         summary=tile.compact_summary(),
@@ -219,35 +205,35 @@ def _detect_and_write_background_rms(
     )
 
 
-def _estimated_validity(
+def _require_estimate_covers_image(
     window: ImageWindow,
     background_rms: BackgroundRmsTile,
-) -> npt.NDArray[np.bool_]:
-    """Return where this core carries an image, a mean and a noise estimate.
+) -> None:
+    """Require a finite mean and noise wherever this core carries an image.
 
     The image is the pixels whose brightness is finite, which is what the
-    composition has always measured; the source's own ``valid_pixels`` narrow
-    detection but not this domain. Every later pass measures inside it, so
-    the estimate has to cover the image rather than narrow it: a pixel the
-    image defines and the estimate does not would be silently dropped from
-    the science instead of reported.
+    composition measures; the source's own ``valid_pixels`` narrow detection
+    but not that domain. Every later pass measures inside it, so the
+    estimate has to cover the image rather than narrow it: a pixel the image
+    defines and the estimate does not would be silently dropped from the
+    science instead of reported. Holding this on the core that computed the
+    estimate is what lets the validity planes be derived from the image
+    alone.
 
     Raises:
         ValueError: If the estimate is not finite wherever the image is.
     """
     finite_image = np.isfinite(window.values)
-    valid = np.asarray(
+    covered = (
         finite_image
         & np.isfinite(background_rms.background)
-        & np.isfinite(background_rms.rms),
-        dtype=np.bool_,
+        & np.isfinite(background_rms.rms)
     )
-    if np.any(finite_image != valid):
+    if np.any(finite_image != covered):
         raise ValueError(
             "background/RMS validity differs from the image on tile "
             f"{window.bounds}"
         )
-    return valid
 
 
 def _write_source_filtering_mask(
@@ -383,8 +369,6 @@ def run_detection_from_coarse_grids(  # noqa: PLR0913
     for product_name, dtype in (
         ("background", np.dtype("<f8")),
         ("rms", np.dtype("<f8")),
-        ("valid", np.dtype(np.bool_)),
-        ("positive-rms", np.dtype(np.bool_)),
         ("source-filtering-mask", np.dtype(np.bool_)),
     ):
         sink.initialize_product(product_name=product_name, dtype=dtype)
@@ -436,13 +420,7 @@ def run_detection_from_coarse_grids(  # noqa: PLR0913
         + mask_chunks
     )
     generation = sink.publish_generation(
-        product_names=(
-            "background",
-            "rms",
-            "valid",
-            "positive-rms",
-            "source-filtering-mask",
-        ),
+        product_names=("background", "rms", "source-filtering-mask"),
         chunks=product_chunks,
     )
     boundary_label_count = sum(

@@ -495,10 +495,8 @@ def test_one_and_many_tile_detection_publish_identical_topology(
     assert many_result.separate_candidate_scan
     assert many_result.generation.product_names == (
         "background",
-        "positive-rms",
         "rms",
         "source-filtering-mask",
-        "valid",
     )
     catalogue_config = _catalogue_config()
     one_catalogue_stage = run_compact_catalogue_stage(

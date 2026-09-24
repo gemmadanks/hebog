@@ -24788,3 +24788,65 @@ the per-worker placement finding.
 - **Evidence.** Products stay bitwise identical on the 1,024² dense cut-out
   through both changes. 2,553 tests pass under coverage, the quick science
   check's 16 cases pass, and `just pre-commit` passes.
+
+## 2026-09-24 — M2: what the driver's whole-plane removal costs, measured
+
+- **What this is.** The quick benchmark that the change check asks for, the
+  two defects it found, and the trade-off the maintainer accepted on
+  24 September.
+- **Skipping it would have shipped a 23% regression.** Against the branch
+  point `ea67a3a`, the four commits took the 1,024² LoTSS dense cut-out from
+  14.06 s to 17.35 s, medians of five. The bisect attributed it:
+
+  | commit | median | delta |
+  | --- | --- | --- |
+  | `ea67a3a` branch point | 14.06 s | — |
+  | `5077d5c` RMS streams from its store | 15.55 s | +1.49 s |
+  | `3dad1dd` component records | 16.00 s | +0.45 s |
+  | `fbb05db` validity planes | 17.42 s | +1.42 s |
+  | `5ab9e02` narrowing | 17.35 s | −0.07 s |
+
+- **The first defect was the mistake this branch had already diagnosed.**
+  `_support_local_rms` and `_detection_islands` read one window per object,
+  about 300 of them, each re-decoding storage chunks their neighbours share.
+  That is the pattern measured at 5.5–8.2× when the component records were
+  batched, and it was never applied to the RMS reads written in the same
+  commit. Each label's usable RMS is now collected once, a batch of reads at
+  a time, and a source's median comes from its components' pixels rather
+  than a second read: 17.35 → 15.88 s.
+- **The second was publishing two products for 16 KiB of payload each.**
+  The background stage alone went 5.597 → 6.758 s, so `valid` and
+  `positive-rms` cost 21% of it. At a 128-pixel core a boolean chunk is
+  16 KiB, and the cost is the per-chunk write and its revalidation at
+  publication, not the bytes. The driver derives both by streaming the RMS a
+  tile row at a time against the image's finite domain instead, which is
+  sound because the stage still requires, on the core that computed the
+  estimate, that it covers the image. 15.88 → 15.18 s, and the driver now
+  reads no whole plane at all: `_full_bounds` has no caller left.
+- **Where the rest goes.** 56% of a profiled run is inside Zarr's
+  `sync()` bridge — 1,841 calls, 600 array reads, 3,561 local gets — so the
+  remaining cost is per-read overhead in the store, not checksum bytes. At
+  1,024² the whole image is 1 megapixel, under the 4-megapixel owner read
+  budget, so every batched window degenerates to one whole-image read and
+  the driver reads the store three times where it used to slice memory
+  once. At 3,000² and above the batches are genuinely bounded, which is the
+  design intent.
+- **The gate passes; the branch point does not.** Against v0.12.0, which is
+  the previous release the rule names, every 1,024² anchor passes:
+  `dense-field` 17.8 s ratio 1.00 [0.85, 1.02], `lotss-dr3-1312-sparse`
+  18.1 s ratio 0.93 [0.92, 0.95], `lotss-dr3-1312-dense` 19.4 s ratio 0.94
+  [0.91, 0.95]. Peak RSS is 636/666/636 MiB against 676/670/657 at the
+  branch point. Against `ea67a3a` the same case is 15.18 s to its 14.06 s.
+- **The accepted trade-off.** On 24 September the maintainer accepted about
+  8% of wall time at 1,024² for the 12.8% traced-peak reduction at 3,000²
+  and the much larger one above it, on the basis that the per-object passes
+  move into the tiled stages later, which removes the cost rather than
+  mitigating it. Revisit when the island rows, the owner local RMS and the
+  component records are measured inside the passes that already read those
+  tiles.
+- **Two measurement lessons.** A 23% regression was invisible to the
+  1,024² end-to-end wall time I had been quoting per commit, because those
+  runs were traced and loaded; it took the benchmark's repetition
+  discipline to see it. And the pinned PyBDSF container failed to start
+  throughout with a podman overlay mount error, so no `master` ratio was
+  taken; those are diagnostic only and did not block the comparison.

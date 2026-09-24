@@ -23,7 +23,7 @@ import numpy as np
 import numpy.typing as npt
 from astropy.io import fits
 from astropy.wcs.utils import wcs_to_celestial_frame
-from scipy.ndimage import find_objects, label
+from scipy.ndimage import label
 
 from hebog.algorithms.astrometry import (
     celestial_wcs_from_metadata,
@@ -307,11 +307,6 @@ def _header_with_metadata(
         if completed.get(keyword) is None:
             completed[keyword] = value
     return completed
-
-
-def _full_bounds(metadata: ImageMetadata) -> ImageBounds:
-    """Return the complete bounded image plane."""
-    return ImageBounds(0, metadata.shape_yx[0], 0, metadata.shape_yx[1])
 
 
 def _crop_bounds(crop: tuple[slice, slice]) -> ImageBounds:
@@ -684,18 +679,50 @@ def _estimate_background_rms(  # noqa: PLR0913
             else None
         ),
     )
-    bounds = _full_bounds(metadata)
-    return (
-        sink,
-        np.asarray(
-            sink.read_completed_window("valid", bounds),
-            dtype=np.bool_,
-        ),
-        np.asarray(
-            sink.read_completed_window("positive-rms", bounds),
-            dtype=np.bool_,
-        ),
+    return (sink, *_estimated_validity_planes(source, sink, metadata))
+
+
+def _estimated_validity_planes(
+    source: _WindowReadable,
+    background_rms_source: ZarrProductSink,
+    metadata: ImageMetadata,
+) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.bool_]]:
+    """Derive where the estimate exists and carries a usable local noise.
+
+    The stage has already required, on the core that computed it, that the
+    estimate is finite wherever the image is, so validity is the image's own
+    finite domain and needs no second opinion from the estimate. Both planes
+    are filled one canonical tile row at a time, so the `float64` they come
+    from is never held whole.
+
+    Publishing these two as tiled products instead was measured at 21% of
+    the background stage: a boolean tile core is 16 KiB, and the cost is the
+    per-chunk write and its revalidation at publication, not the payload.
+    """
+    height, width = metadata.shape_yx
+    valid = np.empty((height, width), dtype=np.bool_)
+    positive_rms = np.empty((height, width), dtype=np.bool_)
+    rows = min(
+        height,
+        background_rms_source.manifest.tile_core_shape_yx[0],
     )
+    start = 0
+    for block in background_rms_source.iter_completed_row_blocks(
+        "rms",
+        max_block_bytes=rows * width * np.dtype(np.float64).itemsize,
+    ):
+        stop = start + block.shape[0]
+        window = source.read_window(ImageBounds(start, stop, 0, width))
+        valid[start:stop] = np.isfinite(window.values)
+        positive_rms[start:stop] = valid[start:stop] & (
+            np.asarray(block, dtype=np.float64) > 0.0
+        )
+        start = stop
+    if start != height:
+        raise SourceFinderError(
+            f"background/RMS rows must total {height}; received {start}"
+        )
+    return valid, positive_rms
 
 
 def detect_multiscale_products(  # noqa: PLR0913
@@ -1666,52 +1693,58 @@ def _source_candidate(
     )
 
 
-def _support_local_rms(
-    labels: npt.NDArray[np.integer[Any]],
-    label_values: tuple[int, ...],
+def _usable_support_rms(
     products: _ScientificProducts,
+    labels: npt.NDArray[np.integer[Any]],
     windows: tuple[tuple[slice, slice] | None, ...],
+) -> tuple[npt.NDArray[np.float64], ...]:
+    """Collect each label's usable local RMS, a batch of reads at a time.
+
+    Entry ``index`` holds label ``index + 1``'s finite positive RMS values,
+    and is empty for a label that owns no such pixel. Reading one window per
+    label would decode the storage chunks under it again for every
+    neighbour sharing them, which is the cost the owner-batch note above
+    measured; collecting the values once also lets a source's median come
+    from its components' pixels without reading them a second time.
+    """
+    gathered = [np.empty(0, dtype=np.float64) for _ in windows]
+    with products.background_rms_source.access_session():
+        for batch in _component_read_batches(
+            windows, maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS
+        ):
+            rms_window = products.read_rms_window(batch.covering)
+            for component in batch.components:
+                crop = component.crop
+                values = rms_window[_relative_crop(crop, batch.covering)]
+                usable = (
+                    (labels[crop] == component.label_value)
+                    & np.isfinite(values)
+                    & (values > 0)
+                )
+                gathered[component.label_value - 1] = np.asarray(
+                    values[usable], dtype=np.float64
+                )
+    return tuple(gathered)
+
+
+def _support_local_rms(
+    label_values: tuple[int, ...],
+    support_rms: tuple[npt.NDArray[np.float64], ...],
 ) -> float:
     """Return the median RMS over the exact support of these labels.
-
-    The windows bound the work to the labels' own pixels, so a catalogue of
-    many sources does not scan the whole image for each of them.
 
     Raises:
         SourceFinderError: If no supported pixel has a usable local RMS.
     """
-    crop = _label_value_window(windows, label_values)
-    if crop is not None:
-        support = np.isin(labels[crop], label_values)
-        rms = products.read_rms_window(crop)
-        valid = support & np.isfinite(rms) & (rms > 0)
-        if np.any(valid):
-            return float(np.median(rms[valid]))
-    raise SourceFinderError("catalogue support has no valid local RMS")
-
-
-def _label_value_window(
-    windows: tuple[tuple[slice, slice] | None, ...],
-    label_values: tuple[int, ...],
-) -> tuple[slice, slice] | None:
-    """Return the window holding every one of these labels."""
-    crops = [
-        windows[value - 1]
+    owned = [
+        support_rms[value - 1]
         for value in label_values
-        if 0 < value <= len(windows) and windows[value - 1] is not None
+        if 0 < value <= len(support_rms)
     ]
-    if not crops:
-        return None
-    return (
-        slice(
-            min(crop[0].start for crop in crops if crop is not None),
-            max(crop[0].stop for crop in crops if crop is not None),
-        ),
-        slice(
-            min(crop[1].start for crop in crops if crop is not None),
-            max(crop[1].stop for crop in crops if crop is not None),
-        ),
-    )
+    values = np.concatenate(owned) if owned else np.empty(0, dtype=np.float64)
+    if values.size:
+        return float(np.median(values))
+    raise SourceFinderError("catalogue support has no valid local RMS")
 
 
 def _empty_catalogue(
@@ -1762,29 +1795,42 @@ def _detection_islands(
         * beam.minor_fwhm_pixels
         / (4.0 * np.log(2.0))
     )
-    islands: list[Island] = []
+    windows = label_windows(labels)
+    measured: dict[int, Island] = {}
     identifiers: dict[int, str] = {}
-    for index, bounds in enumerate(find_objects(labels), start=1):
-        assert bounds is not None
-        support = labels[bounds] == index
-        first_y, first_x = np.unravel_index(np.argmax(support), support.shape)
-        identifier = (
-            f"island-detection-{int(first_y) + bounds[0].start}"
-            f"-{int(first_x) + bounds[1].start}"
-        )
-        identifiers[index] = identifier
-        residual = products.read_residual_window(bounds)[support]
-        local_rms = products.read_rms_window(bounds)[support]
-        islands.append(
-            Island(
-                island_id=identifier,
-                pixel_count=int(support.sum()),
-                integrated_flux_jy=float(residual.sum() / beam_area),
-                integrated_flux_error_jy=None,
-                local_rms_jy_per_beam=float(np.median(local_rms)),
-                mean_brightness_jy_per_beam=float(residual.mean()),
-            )
-        )
+    # Neighbouring islands share storage chunks, so one read serves a batch
+    # of them rather than decoding the same chunks once for each.
+    with products.background_rms_source.access_session():
+        for batch in _component_read_batches(
+            windows, maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS
+        ):
+            residual_window = products.read_residual_window(batch.covering)
+            rms_window = products.read_rms_window(batch.covering)
+            for island_window in batch.components:
+                index = island_window.label_value
+                bounds = island_window.crop
+                local = _relative_crop(bounds, batch.covering)
+                support = labels[bounds] == index
+                first_y, first_x = np.unravel_index(
+                    np.argmax(support), support.shape
+                )
+                identifier = (
+                    f"island-detection-{int(first_y) + bounds[0].start}"
+                    f"-{int(first_x) + bounds[1].start}"
+                )
+                identifiers[index] = identifier
+                residual = residual_window[local][support]
+                local_rms = rms_window[local][support]
+                measured[index] = Island(
+                    island_id=identifier,
+                    pixel_count=int(support.sum()),
+                    integrated_flux_jy=float(residual.sum() / beam_area),
+                    integrated_flux_error_jy=None,
+                    local_rms_jy_per_beam=float(np.median(local_rms)),
+                    mean_brightness_jy_per_beam=float(residual.mean()),
+                )
+    # Batches follow the image, so the rows are restored to label order.
+    islands = [measured[index] for index in sorted(measured)]
     positive = publication_mask & (measurement_labels > 0)
     pairs = np.unique(
         np.column_stack(
@@ -1856,6 +1902,7 @@ def _projected_catalogue(
     }
     source_rows = {source.identifier: source for source in terminal.catalogue}
     component_windows = label_windows(labels)
+    support_rms = _usable_support_rms(products, labels, component_windows)
     source_candidates: list[SourceCandidate] = []
     gaussian_components: list[GaussianComponent] = []
     publication_mask = np.array(
@@ -1884,12 +1931,7 @@ def _projected_catalogue(
             components_by_id[component_id].label_value
             for component_id in membership.component_ids
         )
-        local_rms = _support_local_rms(
-            labels,
-            label_values,
-            products,
-            component_windows,
-        )
+        local_rms = _support_local_rms(label_values, support_rms)
         island_ids = tuple(
             sorted(
                 {
@@ -1919,12 +1961,7 @@ def _projected_catalogue(
             component_label = components_by_id[component_id].label_value
             if component_label not in component_islands:
                 continue
-            component_rms = _support_local_rms(
-                labels,
-                (component_label,),
-                products,
-                component_windows,
-            )
+            component_rms = _support_local_rms((component_label,), support_rms)
             candidate = _source_candidate(
                 component_row,
                 island_id=component_islands[component_label][0],
