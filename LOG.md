@@ -24844,6 +24844,10 @@ the per-worker placement finding.
   mitigating it. Revisit when the island rows, the owner local RMS and the
   component records are measured inside the passes that already read those
   tiles.
+- **Re-verified at the fixed head.** The 3,000² LoTSS-DR3 field gives a
+  traced peak of 1341.5 MiB and bitwise-identical catalogue, RMS and mask,
+  so the 1,342 MiB the plan and the profile page quote is the figure for
+  the branch as it stands, not only for the commit that first reached it.
 - **Two measurement lessons.** A 23% regression was invisible to the
   1,024² end-to-end wall time I had been quoting per commit, because those
   runs were traced and loaded; it took the benchmark's repetition
