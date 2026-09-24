@@ -24972,3 +24972,30 @@ the per-worker placement finding.
   The fresh run used the serial executor on generated development datasets at
   one declination (+45°) with isolated sources only, so it establishes
   estimator calibration, not the astrometry behaviour of a real field.
+
+## 2026-09-24 — M2: the fingerprint binds the algorithms stages reach
+
+- **Why.** A review pass found `label_extents`, new on this branch, reached
+  only through `hebog.algorithms.label_groups`, which the fingerprint did not
+  name. It decides parent and component windows and the canonical first pixels
+  that break ownership ties, so a change there changes fitting and catalogue
+  rows while leaving `scientific_composition_sha256` unchanged.
+- **The gap was wider than the report.** `label_groups` is imported by
+  `public_api`, by the `objects` and `catalogue_rows` stages, and by
+  `science.catalogues`. The earlier derived test only walked the driver's own
+  stage imports, so binding an algorithm the *stages* reach was never checked.
+  Every `hebog` import in this layer names its submodule, so deriving the
+  expectation with a regex is complete rather than approximate.
+- **What the test now asserts.** The expectation follows imports one level in,
+  through `public_api` and every bound stage and science module, and each
+  algorithm reached that way must be bound. `hebog.algorithms.partitioning`
+  stays out by design: every result is required to be partition-invariant and
+  that contract is tested separately, so planning a different partition must
+  not read as a scientific change. A third test keeps that exemption honest,
+  failing both if the name stops being imported and if someone binds it.
+- **Each new assertion was checked against its own defect.** Unbinding
+  `label_groups` fails the reached-algorithms test; binding `partitioning`
+  fails the exemption test as obsolete; renaming the exemption to a module
+  nobody imports fails it as stale.
+- **Checks.** Unit and contract suites pass (2,005 passed, 2 xfailed); ruff and
+  pyright clean. The fingerprint digest changes again, which is the intent.

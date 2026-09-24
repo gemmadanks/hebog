@@ -119,6 +119,7 @@ _SCIENTIFIC_MODULES = (
     "hebog.algorithms.detection",
     "hebog.algorithms.extended_measurement",
     "hebog.algorithms.fitting",
+    "hebog.algorithms.label_groups",
     "hebog.algorithms.labelling",
     "hebog.algorithms.measurement",
     "hebog.algorithms.multiscale",

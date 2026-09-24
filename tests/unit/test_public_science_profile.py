@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import re
 import sys
 from dataclasses import replace
@@ -77,6 +78,40 @@ def test_repaired_science_cannot_inherit_reference_qualification() -> None:
     } <= set(public_api._SCIENTIFIC_MODULES)
 
 
+# Tiling geometry is deliberately outside the fingerprint: every result is
+# required to be partition-invariant, and that contract is tested on its own,
+# so planning a different partition must not read as a scientific change.
+_UNBOUND_BY_DESIGN = frozenset({"hebog.algorithms.partitioning"})
+
+
+def _module_source(module_name: str) -> str:
+    """Return one installed module's source without importing it."""
+    specification = importlib.util.find_spec(module_name)
+    assert specification is not None, module_name
+    assert specification.origin is not None, module_name
+    return Path(specification.origin).read_text(encoding="utf-8")
+
+
+def _imported_submodules(source: str, package: str) -> set[str]:
+    """Return the ``hebog.<package>`` submodules one source file imports."""
+    return {
+        f"hebog.{package}.{match.group(1)}"
+        for match in re.finditer(
+            rf"from hebog\.{package}\.(\w+) import", source
+        )
+    }
+
+
+def _bound(package: str) -> set[str]:
+    """Return the fingerprint's modules from one package."""
+    prefix = f"hebog.{package}."
+    return {
+        name
+        for name in public_api._SCIENTIFIC_MODULES
+        if name.startswith(prefix)
+    }
+
+
 def test_composition_fingerprint_binds_every_stage_the_public_path_runs() -> (
     None
 ):
@@ -87,19 +122,55 @@ def test_composition_fingerprint_binds_every_stage_the_public_path_runs() -> (
     expectation is derived from the imports themselves, so adding a stage
     without binding it fails here instead of silently reusing a digest.
     """
-    source = Path(public_api.__file__).read_text(encoding="utf-8")
-    imported = {
-        f"hebog.stages.{match.group(1)}"
-        for match in re.finditer(r"from hebog\.stages\.(\w+) import", source)
-    }
-    bound = {
-        name
-        for name in public_api._SCIENTIFIC_MODULES
-        if name.startswith("hebog.stages.")
-    }
+    imported = _imported_submodules(
+        _module_source("hebog.public_api"), "stages"
+    )
 
     assert imported, "no stage import was found to derive the expectation from"
-    assert imported == bound
+    assert imported == _bound("stages")
+
+
+def test_composition_fingerprint_binds_the_algorithms_those_stages_reach() -> (
+    None
+):
+    """An algorithm is no less scientific for being reached through a stage.
+
+    Binding only what the driver imports directly leaves a kernel that decides
+    fitting windows or ownership unbound as soon as a stage, rather than the
+    driver, is the one that calls it. The expectation therefore follows the
+    imports one level in, through every bound stage and science module.
+    """
+    reached: set[str] = set()
+    sources = ["hebog.public_api", *_bound("stages"), *_bound("science")]
+    for module_name in sources:
+        reached |= _imported_submodules(
+            _module_source(module_name), "algorithms"
+        )
+
+    assert reached, "no algorithm import was found to derive from"
+    assert reached - _UNBOUND_BY_DESIGN <= _bound("algorithms")
+
+
+def test_every_algorithm_left_out_of_the_fingerprint_is_still_left_out() -> (
+    None
+):
+    """An exemption that stops matching must fail, not quietly widen.
+
+    A stale entry here would exempt nothing while looking deliberate, and an
+    entry that someone has since bound would hide that the rule changed.
+    """
+    reached: set[str] = set()
+    sources = ["hebog.public_api", *_bound("stages"), *_bound("science")]
+    for module_name in sources:
+        reached |= _imported_submodules(
+            _module_source(module_name), "algorithms"
+        )
+
+    for module_name in _UNBOUND_BY_DESIGN:
+        assert module_name in reached, f"{module_name} is no longer imported"
+        assert module_name not in _bound("algorithms"), (
+            f"{module_name} is bound now, so its exemption is obsolete"
+        )
 
 
 def test_intermediate_mesh_cannot_bypass_the_bounded_read_admission() -> None:
