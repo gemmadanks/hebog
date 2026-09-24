@@ -122,12 +122,17 @@ Hebog publishes three related populations:
 
 Two points often surprise new users:
 
-1. **Source flux is not a sum of Gaussians.** It is the sum of
-   background-subtracted pixels in an aperture owned by that source. Gaussian
-   components carry their own model fluxes.
+1. **A source has two fluxes.** `INTEGRATED_FLUX` is the sum of the
+   source's fitted Gaussian components, the same definition PyBDSF uses.
+   `ASSOCIATION_APERTURE_FLUX` is the sum of background-subtracted pixels in
+   an aperture owned by that source. They agree for isolated compact sources
+   and differ for extended or edge-clipped ones; the
+   [output reference](../reference/public-products.md#what-the-two-source-fluxes-measure-and-where-they-part)
+   shows by how much.
 2. **Some sources have no Gaussian.** If a fit fails Hebog's quality checks,
-   the source can still be published with its aperture measurement. The
-   diagnostics say why.
+   the source can still be published; its `INTEGRATED_FLUX` then falls back
+   to the aperture and the row carries the flag
+   `aperture-flux-without-fitted-component`. The diagnostics say why.
 
 So when you compare with a PyBDSF Gaussian list or an Aegean component list,
 use `catalogue.gaussian_components`, not `catalogue.sources`.

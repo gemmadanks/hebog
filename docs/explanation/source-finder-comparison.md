@@ -26,7 +26,7 @@ over several nodes, and both do so with MPI.
 
 | Finder | Background and noise | Detection | Deblending and characterisation | Extended emission | Source flux |
 | --- | --- | --- | --- | --- | --- |
-| **Hebog** | Sigma-clipped grid, interpolated; source pixels protected; finer RMS grid near bright sources | Seed 5σ, grow to 3σ (user-set); beam-matched filters and B3 à trous scales add evidence | Peak and saddle splitting; bounded joint Gaussian fits with admission checks | Cross-scale wavelet hierarchy associates components into sources | Signed sum in a non-overlapping aperture; Gaussians reported separately |
+| **Hebog** | Sigma-clipped grid, interpolated; source pixels protected; finer RMS grid near bright sources | Seed 5σ, grow to 3σ (user-set); beam-matched filters and B3 à trous scales add evidence | Peak and saddle splitting; bounded joint Gaussian fits with admission checks | Cross-scale wavelet hierarchy associates components into sources | Sum of fitted Gaussians, as PyBDSF; a signed non-overlapping aperture flux is published alongside |
 | **PyBDSF** | Sliding box, sigma-clipped, interpolated; optional adaptive smaller box near bright sources | Islands at 3σ with a 5σ peak; optional false-detection-rate threshold | Multi-Gaussian fit per island; Gaussians grouped into S, C or M sources; optional shapelets | Optional à trous wavelet fit of the Gaussian residual | Sum of grouped Gaussians |
 | **Aegean** | BANE: sliding-box sigma-clipped median and RMS, interpolated | Flood fill, seed 5σ, flood 4σ | Negative-curvature map sets component count; constrained Gaussian fit that accounts for correlated noise; priorized (forced) fitting | None; Gaussian-only | Per component |
 | **Selavy** | Optional sliding-box noise; robust median and MADFM | Signal-to-noise cut with optional growth to a lower threshold | Gaussian fits per island, seeded by sub-thresholds or curvature | Optional à trous reconstruction before searching | Per island and per component |
@@ -70,10 +70,11 @@ PyBDSF is the reference Hebog is developed against, because Rapthor uses it.
   residual and adds them to the source. Hebog uses the wavelet scales only as
   evidence for detection and association, and measures flux on the original
   pixels.
-- **Source flux.** A PyBDSF source flux is the sum of its Gaussians. A Hebog
-  source flux is an aperture sum, and Gaussian components are a separate
-  table. Compare Hebog's `GAUSSIAN_COMPONENTS` with PyBDSF's Gaussian list,
-  and `SOURCES` with its source list.
+- **Source flux.** Both define a source's total flux as the sum of its
+  Gaussians. Hebog additionally publishes a signed aperture flux measured on
+  the original pixels, which retains diffuse emission no Gaussian fits and
+  excludes sky outside the image. Compare Hebog's `GAUSSIAN_COMPONENTS` with
+  PyBDSF's Gaussian list, and `SOURCES` with its source list.
 - **Failures are explicit.** Hebog publishes a Gaussian only if the fit passes
   admission checks, and records every rejected or deferred item in
   `diagnostics.json`.
@@ -112,9 +113,10 @@ offers a Python API.
 ### ProFound
 
 ProFound showed that free-form segments recover the flux of complex extended
-sources better than sums of Gaussians (Hale et al. 2019). Hebog's aperture
-flux follows the same reasoning, while keeping Gaussian components, beam
-deconvolution and position uncertainties, which ProFound does not provide.
+sources better than sums of Gaussians (Hale et al. 2019). Hebog's
+`ASSOCIATION_APERTURE_FLUX` follows the same reasoning, alongside the summed
+Gaussian flux, beam deconvolution and position uncertainties that ProFound
+does not provide.
 ProFound is an R package.
 
 ### PySE
@@ -150,8 +152,8 @@ survey-specific artefacts.
   core embedded in diffuse emission poorly.
 
 These findings shaped Hebog's priorities: robust source-protected noise
-estimation, explicit handling of extended emission, and pixel-based source
-flux.
+estimation, explicit handling of extended emission, and a pixel-based
+aperture flux published next to the Gaussian sum.
 
 ## Which should I use?
 

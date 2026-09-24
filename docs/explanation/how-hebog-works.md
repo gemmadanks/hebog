@@ -27,7 +27,7 @@ flowchart TD
         deblend["Deblend: split islands at significant<br/>peaks separated by a saddle"]
         fit["Fit elliptical Gaussians to<br/>background-subtracted pixels"]
         associate["Associate components into sources<br/>using cross-scale evidence"]
-        measure["Measure each source in its own<br/>non-overlapping aperture"]
+        measure["Sum the fitted components; also measure<br/>each source in its own non-overlapping aperture"]
         deblend --> fit --> associate --> measure
     end
     products[/"catalogue.fits · rms.fits<br/>source-mask.fits · diagnostics.json"/]
@@ -37,8 +37,8 @@ flowchart TD
 
 The approach belongs to the same family as PyBDSF and Aegean: estimate local
 noise, threshold into islands, and fit Gaussians. It differs mainly in how it
-treats extended emission, in reporting source flux from an aperture rather
-than a sum of Gaussians, and in running every step on independent tiles. See
+treats extended emission, in reporting an aperture flux alongside the summed
+Gaussian flux, and in running every step on independent tiles. See
 the [comparison with other source finders](source-finder-comparison.md).
 
 ## Three populations, not one
@@ -147,11 +147,17 @@ the emission left after subtracting them. Every merge is recorded with its
 evidence in `diagnostics.json`. Components without positive evidence stay
 independent.
 
-Source flux is **not** the sum of member Gaussians. Each source owns a
-non-overlapping aperture, and its flux is the signed sum of
-background-subtracted pixels in that aperture. If that sum is not positive or
-cannot be measured, the source gets no catalogue row; Hebog does not
-substitute a positive-only estimate. The source position comes from the
+Each source is measured twice. Its catalogue `INTEGRATED_FLUX` is the sum of
+its fitted Gaussian components, which is how PyBDSF defines a source's total
+flux. Each source also owns a non-overlapping aperture, and the signed sum of
+background-subtracted pixels in it is published as
+`ASSOCIATION_APERTURE_FLUX`; a source with no admitted fit uses this aperture
+flux as its `INTEGRATED_FLUX` and is flagged. The two agree for isolated
+compact sources but part for extended or edge-clipped emission, because a
+fit integrates sky the image does not cover and misses diffuse emission no
+component describes. If the aperture sum is not positive or cannot be
+measured, the source gets no catalogue row; Hebog does not substitute a
+positive-only estimate. The source position comes from the
 detection footprint, not from faint measurement-only wings, so a centroid can
 lie between two peaks or inside a ring.
 
@@ -247,7 +253,7 @@ flowchart TD
     association{Profile allows source association?}
     associate[Choose independent, compact-model, or extended-morphology grouping]
     singleton[Use one source per component; declare extended-emission limitation]
-    source_measure[Measure each source once with signed, non-overlapping owned aperture]
+    source_measure[Measure each source once in its signed, non-overlapping owned aperture; sum its fitted components]
     source_valid{Positive, available source measurement with publication support?}
     compact_valid{Admitted component measurement with publication support?}
     source_row[Publish source row]

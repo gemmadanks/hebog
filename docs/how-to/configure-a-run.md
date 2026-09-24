@@ -35,8 +35,8 @@ reproducible. Every configuration is labelled `development-unqualified` or
 
 | Profile | Use it for | Behaviour |
 | --- | --- | --- |
-| `continuum` (default) | General continuum images, including extended emission | Finer RMS grid near bright sources; associates components into multi-component sources; source flux from apertures |
-| `compact` | Fields of unresolved or barely resolved sources, where you want one source per Gaussian | No extended-source association; each source carries its Gaussian measurement; diagnostics declare `extended-emission-incomplete` |
+| `continuum` (default) | General continuum images, including extended emission | Finer RMS grid near bright sources; associates components into multi-component sources; source `INTEGRATED_FLUX` is the sum of the fitted components (PyBDSF's definition), or the source's own aperture when no fit was admitted; `ASSOCIATION_APERTURE_FLUX` always holds the aperture |
+| `compact` | Fields of unresolved or barely resolved sources, where you want one source per Gaussian | No extended-source association; each source carries its one Gaussian's measurement and no aperture flux; diagnostics declare `extended-emission-incomplete` |
 
 ```python
 config = hebog.SourceFinderConfig(
@@ -48,6 +48,8 @@ config = hebog.SourceFinderConfig(
 ```
 
 Do not present a `compact` catalogue as a general continuum-source catalogue.
+The [output reference](../reference/public-products.md#source-only-fields-and-measurement-meaning)
+defines both source fluxes and where they differ.
 
 ## Use several cores or a Dask cluster
 
