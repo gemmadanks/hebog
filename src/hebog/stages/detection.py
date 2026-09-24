@@ -225,10 +225,12 @@ def _estimated_validity(
 ) -> npt.NDArray[np.bool_]:
     """Return where this core carries an image, a mean and a noise estimate.
 
-    Every later pass measures inside this domain, so the estimate has to
-    cover the image rather than narrow it: a pixel the image defines and the
-    estimate does not would be silently dropped from the science instead of
-    reported.
+    The image is the pixels whose brightness is finite, which is what the
+    composition has always measured; the source's own ``valid_pixels`` narrow
+    detection but not this domain. Every later pass measures inside it, so
+    the estimate has to cover the image rather than narrow it: a pixel the
+    image defines and the estimate does not would be silently dropped from
+    the science instead of reported.
 
     Raises:
         ValueError: If the estimate is not finite wherever the image is.

@@ -9,7 +9,10 @@ import pytest
 
 from hebog.algorithms.reconciliation import DetectedIsland
 from hebog.data_models.partitioning import ImageBounds
-from hebog.science.continuum import build_continuum_candidate_products
+from hebog.science.continuum import (
+    build_continuum_detection,
+    retained_scale_detections,
+)
 from hebog.science.models import (
     TiledMultiscaleDetection,
     TiledSupportLabels,
@@ -71,7 +74,7 @@ def test_composition_rejects_scale_support_outside_the_valid_domain() -> None:
     valid[2, 3] = False
 
     with pytest.raises(ValueError, match="scientifically valid"):
-        build_continuum_candidate_products(
+        build_continuum_detection(
             valid,
             multiscale=_multiscale(
                 significant_scale_masks=(
@@ -92,7 +95,7 @@ def test_composition_rejects_a_mask_its_publication_labels_contradict() -> (
     disagreeing[1, 1] = True
 
     with pytest.raises(ValueError, match="retained mask must agree"):
-        build_continuum_candidate_products(
+        build_continuum_detection(
             np.ones(_SHAPE, dtype=np.bool_),
             multiscale=_multiscale(),
             labels=_labels(retained_mask=disagreeing),
@@ -115,23 +118,27 @@ def test_composition_describes_each_published_scale_feature() -> None:
         peak_response_jy_per_beam=0.5,
     )
 
-    products = build_continuum_candidate_products(
-        np.ones(_SHAPE, dtype=np.bool_),
-        multiscale=_multiscale(
-            significant_scale_masks=(
-                support,
-                np.zeros(_SHAPE, dtype=np.bool_),
-                np.zeros(_SHAPE, dtype=np.bool_),
-            ),
-            scale_islands_by_order=((island,), (), ()),
+    multiscale = _multiscale(
+        significant_scale_masks=(
+            support,
+            np.zeros(_SHAPE, dtype=np.bool_),
+            np.zeros(_SHAPE, dtype=np.bool_),
         ),
+        scale_islands_by_order=((island,), (), ()),
+    )
+
+    scales = retained_scale_detections(
+        multiscale, np.ones(_SHAPE, dtype=np.bool_)
+    )
+    detection = build_continuum_detection(
+        np.ones(_SHAPE, dtype=np.bool_),
+        multiscale=multiscale,
         labels=_labels(),
     )
 
-    scales = products.scale_detections
     assert len(scales) == 3
     assert scales[0].scale_order == 1
     assert len(scales[0].detections) == 1
     assert scales[0].detections[0].support_pixel_count == 4
     assert scales[0].detections[0].peak_response_jy_per_beam == 0.5
-    assert products.detection.component_count == 0
+    assert detection.component_count == 0

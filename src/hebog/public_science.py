@@ -20,7 +20,7 @@ from hebog.science.catalogues import (
     build_hebog_reconstructed_source_catalogues,
 )
 from hebog.science.continuum import (
-    build_continuum_candidate_products,
+    build_continuum_detection,
 )
 from hebog.science.models import (
     CatalogueSource,
@@ -90,7 +90,7 @@ def build_configured_continuum_products(  # noqa: PLR0913
         )
     if not np.any(np.asarray(labels.component_labels) > 0):
         return None
-    retained = build_continuum_candidate_products(
+    detection = build_continuum_detection(
         positive_rms,
         multiscale=multiscale,
         labels=labels,
@@ -110,7 +110,7 @@ def build_configured_continuum_products(  # noqa: PLR0913
         source_positions=source_positions,
     )
     return ContinuumProducts(
-        detection=retained.detection,
+        detection=detection,
         measurement_component_labels=(topology.measurement_component_labels),
         catalogue=catalogues.source_catalogue,
         component_catalogue=catalogues.component_catalogue,

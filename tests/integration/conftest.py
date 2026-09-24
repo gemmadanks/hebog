@@ -83,13 +83,19 @@ def _publish_background_rms(
     return sink
 
 
+EstimatedValidity = tuple[
+    ZarrProductSink,
+    npt.NDArray[np.bool_],
+    npt.NDArray[np.bool_],
+]
+
 SubstituteBackgroundRms = Callable[
     [
         npt.NDArray[np.float64],
         npt.NDArray[np.float64],
         npt.NDArray[np.float64],
     ],
-    Callable[..., tuple[ZarrProductSink, Any, Any]],
+    Callable[..., EstimatedValidity],
 ]
 
 
@@ -97,7 +103,7 @@ def _substituted_background_rms(
     image_jy_per_beam: npt.NDArray[np.float64],
     background_jy_per_beam: npt.NDArray[np.float64],
     rms_jy_per_beam: npt.NDArray[np.float64],
-) -> Callable[..., tuple[ZarrProductSink, Any, Any]]:
+) -> Callable[..., EstimatedValidity]:
     """Return a stand-in for the background stage over analytic planes.
 
     The stage publishes its estimate and returns the two masks the
@@ -109,7 +115,7 @@ def _substituted_background_rms(
         *args: object,
         generation_id: str,
         **_kwargs: object,
-    ) -> tuple[ZarrProductSink, Any, Any]:
+    ) -> EstimatedValidity:
         """Publish the analytic planes and describe their valid domain."""
         sink = _publish_background_rms(
             cast(Path, args[4]),

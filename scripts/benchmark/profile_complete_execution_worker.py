@@ -132,7 +132,7 @@ _STAGES = (
     ),
     (
         "hebog.public_science",
-        "build_continuum_candidate_products",
+        "build_continuum_detection",
         "candidate products from published planes",
     ),
     (

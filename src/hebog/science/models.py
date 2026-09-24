@@ -14,7 +14,6 @@ from hebog.algorithms.component_measurement import (
     FitParentMeasurement,
     SupportFeatureGroups,
 )
-from hebog.algorithms.multiscale_association import ScaleDetectionRecords
 from hebog.algorithms.reconciliation import DetectedIsland
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
 from hebog.data_models.source_association import SourceAssociationResult
@@ -343,17 +342,6 @@ class TiledComponentFits:
     parents: tuple[FitParentMeasurement, ...]
     measurement_support: npt.NDArray[np.bool_]
     features: tuple[SupportFeatureGroups, ...]
-
-
-@dataclass(frozen=True, slots=True)
-class ContinuumCandidateProducts:
-    """Detection, ownership, and multiscale measurement products."""
-
-    detection: ThresholdFilterResult
-    direct_component_labels: npt.NDArray[np.int32]
-    measurement_component_labels: npt.NDArray[np.int32]
-    position_signal_jy_per_beam: npt.NDArray[np.float64]
-    scale_detections: tuple[ScaleDetectionRecords, ...]
 
 
 @dataclass(frozen=True, slots=True)

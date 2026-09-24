@@ -19,7 +19,6 @@ from hebog.config import (
 )
 from hebog.science.configuration import source_finder_configs
 from hebog.science.models import (
-    ContinuumCandidateProducts,
     ThresholdFilterResult,
     TiledMultiscaleDetection,
     TiledSupportLabels,
@@ -60,6 +59,22 @@ def residual_detection_config(
     )
 
 
+def require_valid_scale_support(
+    multiscale: TiledMultiscaleDetection,
+    valid_pixels: npt.NDArray[np.bool_],
+) -> None:
+    """Reject published scale support outside the valid scientific domain.
+
+    Raises:
+        ValueError: If any scale claims a pixel the domain excludes.
+    """
+    for scale_mask in multiscale.significant_scale_masks:
+        if scale_mask.shape != valid_pixels.shape or np.any(
+            scale_mask & ~valid_pixels
+        ):
+            raise ValueError("scale support must be scientifically valid")
+
+
 def retained_scale_detections(
     multiscale: TiledMultiscaleDetection,
     valid_pixels: npt.NDArray[np.bool_],
@@ -69,11 +84,7 @@ def retained_scale_detections(
     The detection pass reconciled these features and published their labels,
     so this step names them without labelling a plane again.
     """
-    for scale_mask in multiscale.significant_scale_masks:
-        if scale_mask.shape != valid_pixels.shape or np.any(
-            scale_mask & ~valid_pixels
-        ):
-            raise ValueError("scale support must be scientifically valid")
+    require_valid_scale_support(multiscale, valid_pixels)
     return tuple(
         scale_detections_from_islands(
             islands,
@@ -91,33 +102,29 @@ def retained_scale_detections(
     )
 
 
-def build_continuum_candidate_products(
-    valid_pixels: npt.NDArray[np.bool_],
+def build_continuum_detection(
+    positive_rms_pixels: npt.NDArray[np.bool_],
     *,
     multiscale: TiledMultiscaleDetection,
     labels: TiledSupportLabels,
-) -> ContinuumCandidateProducts:
-    """Assemble the candidate products from the published tiled passes.
+) -> ThresholdFilterResult:
+    """Assemble the published detection from the tiled passes.
 
-    Every decision these products carry was taken on a tile core or on one
-    owner's window: the detection pass published the seeds, support and
-    position signal, and the support pass published the owner labels, the
-    publication labels and the mask with island admission applied.
+    Every decision it carries was taken on a tile core or on one owner's
+    window: the detection pass published the seeds and support, and the
+    support pass published the owner labels, the publication labels and the
+    mask with island admission applied. No scale may claim a pixel with no
+    usable local noise, which is what this step still checks.
+
+    Raises:
+        ValueError: If the mask and the publication labels disagree, or a
+            scale claims a pixel outside the usable domain.
     """
+    require_valid_scale_support(multiscale, positive_rms_pixels)
     # The published planes belong to the caller, so this record owns copies
     # rather than freezing arrays it did not create.
     publication_labels = np.array(
         labels.publication_labels,
-        dtype=np.int32,
-        copy=True,
-    )
-    component_labels = np.array(
-        labels.component_labels,
-        dtype=np.int32,
-        copy=True,
-    )
-    measurement_labels = np.array(
-        labels.measurement_labels,
         dtype=np.int32,
         copy=True,
     )
@@ -126,26 +133,12 @@ def build_continuum_candidate_products(
         raise ValueError(
             "published retained mask must agree with publication labels"
         )
-    for plane in (
-        publication_labels,
-        component_labels,
-        measurement_labels,
-        retained_mask,
-    ):
-        plane.setflags(write=False)
-    return ContinuumCandidateProducts(
-        detection=ThresholdFilterResult(
-            retained_mask=retained_mask,
-            component_labels=publication_labels,
-            component_count=int(
-                np.count_nonzero(np.unique(component_labels) > 0)
-            ),
-        ),
-        direct_component_labels=component_labels,
-        measurement_component_labels=measurement_labels,
-        position_signal_jy_per_beam=multiscale.position_signal_jy_per_beam,
-        scale_detections=retained_scale_detections(
-            multiscale,
-            valid_pixels,
+    publication_labels.setflags(write=False)
+    retained_mask.setflags(write=False)
+    return ThresholdFilterResult(
+        retained_mask=retained_mask,
+        component_labels=publication_labels,
+        component_count=int(
+            np.count_nonzero(np.unique(labels.component_labels) > 0)
         ),
     )

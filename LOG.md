@@ -24749,3 +24749,42 @@ the per-worker placement finding.
 - **A second measurement discipline note.** The first reading of those
   failures was taken through `| tail -6`, which threw away 39 of the 43
   `FAILED` lines. Capture a gate's whole output to a file and tail the file.
+
+## 2026-09-24 — M2: review pass over the driver's whole-plane removal
+
+- **What this is.** The review of the three preceding commits against
+  `CODE_REVIEW.md`, and the changes it produced.
+- **A check that moved and lost its test.** The "estimate must be finite
+  wherever the image is" check moved from `public_science` into the
+  background stage, and the `public_science` test that covered it was
+  replaced by a test for a different check. Coverage found the moved raise
+  unexercised. It now has two unit tests against `_estimated_validity`
+  itself: one that an invalid image pixel needs no estimate, and one, over
+  both the background and the RMS, that a finite image pixel the estimate
+  does not cover fails loudly.
+- **A record whose caller read one field of five.**
+  `build_continuum_candidate_products` returned a detection, two `int32`
+  label planes, the position signal and the scale records;
+  `build_configured_continuum_products` read the detection. The two label
+  planes were *copies*, made and discarded. It is now
+  `build_continuum_detection`, returning the `ThresholdFilterResult`, and
+  `ContinuumCandidateProducts` is gone. The scale-support check the
+  discarded computation carried is extracted as
+  `require_valid_scale_support` and called explicitly, so the validation is
+  no longer a side effect of a result nobody wanted. This removes transient
+  allocation at the end of a run, not peak memory: the copies were made
+  inside the terminal builder, after the driver's own state is measured.
+- **Readability.** The component read batching carried an optional covering
+  crop and two `assert`s to convince the type checker it was set, behind a
+  `tuple[tuple[slice, slice], tuple[tuple[int, tuple[slice, slice]], ...]]`
+  return type. It is now two small records, `_ComponentWindow` and
+  `_ComponentReadBatch`, and a loop seeded from the first component: no
+  optional, no asserts, no nested tuple. A `# type: ignore[return-value]`
+  for a generator-built tuple was written out explicitly instead.
+- **Coverage.** 96.65% project, up from 95.98%. `public_science.py`,
+  `science/continuum.py` and `validation/tiled_detection.py` are at 100%,
+  `public_api.py` at 98% and `stages/detection.py` at 91%; every remaining
+  miss in those files is a defensive `raise` that predates this work.
+- **Evidence.** Products stay bitwise identical on the 1,024² dense cut-out
+  through both changes. 2,553 tests pass under coverage, the quick science
+  check's 16 cases pass, and `just pre-commit` passes.

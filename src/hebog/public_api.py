@@ -344,13 +344,27 @@ def _residual_window(
     )
 
 
+@dataclass(frozen=True, slots=True)
+class _ComponentWindow:
+    """One component's label value and the smallest crop holding it."""
+
+    label_value: int
+    crop: tuple[slice, slice]
+
+
+@dataclass(frozen=True, slots=True)
+class _ComponentReadBatch:
+    """One residual read and the component windows it serves."""
+
+    covering: tuple[slice, slice]
+    components: tuple[_ComponentWindow, ...]
+
+
 def _component_read_batches(
     windows: tuple[tuple[slice, slice] | None, ...],
     *,
     maximum_batch_read_pixels: int,
-) -> Iterator[
-    tuple[tuple[slice, slice], tuple[tuple[int, tuple[slice, slice]], ...]]
-]:
+) -> Iterator[_ComponentReadBatch]:
     """Group components so one read serves several without growing unbounded.
 
     Components are visited in raster order of their windows, so a batch
@@ -358,28 +372,31 @@ def _component_read_batches(
     revalidate the storage chunks under it again for every neighbour that
     shares them, which is the cost the owner-batch note above measured.
     """
-    grouped: list[tuple[int, tuple[slice, slice]]] = []
-    covering: tuple[slice, slice] | None = None
-    for label_value, crop in sorted(
+    ordered = sorted(
         (
-            (label_value, crop)
+            _ComponentWindow(label_value, crop)
             for label_value, crop in enumerate(windows, start=1)
             if crop is not None
         ),
-        key=lambda item: (item[1][0].start, item[1][1].start),
-    ):
-        candidate = crop if covering is None else _union_crop(covering, crop)
-        if grouped and _crop_pixels(candidate) > maximum_batch_read_pixels:
-            assert covering is not None
-            yield covering, tuple(grouped)
-            grouped = [(label_value, crop)]
-            covering = crop
+        key=lambda component: (
+            component.crop[0].start,
+            component.crop[1].start,
+        ),
+    )
+    if not ordered:
+        return
+    grouped = [ordered[0]]
+    covering = ordered[0].crop
+    for component in ordered[1:]:
+        candidate = _union_crop(covering, component.crop)
+        if _crop_pixels(candidate) > maximum_batch_read_pixels:
+            yield _ComponentReadBatch(covering, tuple(grouped))
+            grouped = [component]
+            covering = component.crop
             continue
-        grouped.append((label_value, crop))
+        grouped.append(component)
         covering = candidate
-    if grouped:
-        assert covering is not None
-        yield covering, tuple(grouped)
+    yield _ComponentReadBatch(covering, tuple(grouped))
 
 
 def _union_crop(
@@ -429,37 +446,46 @@ def component_records_from_windows(
 
     records: list[DetectionComponentRecord] = []
     with background_rms_source.access_session():
-        for covering, batch in _component_read_batches(
+        for batch in _component_read_batches(
             label_windows(direct_component_labels),
             maximum_batch_read_pixels=maximum_batch_read_pixels,
         ):
             residual = _residual_window(
-                source, background_rms_source, covering
+                source, background_rms_source, batch.covering
             )
-            for label_value, crop in batch:
-                local = (
-                    slice(
-                        crop[0].start - covering[0].start,
-                        crop[0].stop - covering[0].start,
-                    ),
-                    slice(
-                        crop[1].start - covering[1].start,
-                        crop[1].stop - covering[1].start,
-                    ),
-                )
+            for component in batch.components:
+                crop = component.crop
                 records.extend(
                     build_detection_component_records(
                         np.where(
-                            direct_component_labels[crop] == label_value,
-                            label_value,
+                            direct_component_labels[crop]
+                            == component.label_value,
+                            component.label_value,
                             0,
                         ),
-                        residual[local],
+                        residual[_relative_crop(crop, batch.covering)],
                         valid_pixels[crop],
                         origin_yx=(crop[0].start, crop[1].start),
                     )
                 )
     return tuple(sorted(records, key=lambda item: item.canonical_pixel_yx))
+
+
+def _relative_crop(
+    crop: tuple[slice, slice],
+    covering: tuple[slice, slice],
+) -> tuple[slice, slice]:
+    """Return one crop's position inside the read that covers it."""
+    return (
+        slice(
+            crop[0].start - covering[0].start,
+            crop[0].stop - covering[0].start,
+        ),
+        slice(
+            crop[1].start - covering[1].start,
+            crop[1].stop - covering[1].start,
+        ),
+    )
 
 
 def _profile_bytes() -> bytes:

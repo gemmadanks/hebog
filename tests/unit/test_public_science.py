@@ -421,3 +421,26 @@ def test_component_records_do_not_depend_on_the_read_batch_size(
 
     assert batched == per_component
     assert len(batched) == 5
+
+
+def test_component_records_describe_nothing_without_a_component(
+    tmp_path: Path,
+) -> None:
+    """Labels that admit no component ask the store for no residual."""
+    normalized: npt.NDArray[np.float64] = np.zeros((48, 48), dtype=np.float64)
+    normalized[24, 24] = 40.0
+    published = _published(
+        normalized,
+        SourceFinderConfig(5.0, 3.0, 7),
+        BeamShapePixels(5.0, 4.0, 0.0),
+        tmp_path,
+    )
+
+    records = component_records_from_windows(
+        published.image_source,
+        published.background_rms,
+        direct_component_labels=np.zeros((48, 48), dtype=np.int32),
+        valid_pixels=np.ones((48, 48), dtype=np.bool_),
+    )
+
+    assert records == ()
