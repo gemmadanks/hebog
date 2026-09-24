@@ -203,8 +203,8 @@ just profile-execution --label <label> --cases profile-dense-1024
 
 The cases are in `config/benchmarks/complete-execution-profile.json`:
 
-- `ladder`: noise-only and dense generated images at 512², 1,024² and
-  2,048², with 256 sources per 1,024² at every size. The manifest
+- `ladder`: noise-only and dense generated images at 512², 1,024², 2,048²
+  and 4,096², with 256 sources per 1,024² at every size. The manifest
   `config/datasets/complete-execution-profile.json` is rebuilt by
   `scripts/benchmark/build_profile_datasets.py`.
 - `real`: the sparse and dense 1,024² LoTSS-DR3 cut-outs and the SDC1 crowded
