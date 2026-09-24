@@ -999,10 +999,16 @@ def run_publication_stage(  # noqa: PLR0913
                     published,
                     partition.read_bounds,
                 ),
+                # Both shards are read-scoped, not core-scoped: an owner's
+                # recovered support reaches the recovery radius beyond its
+                # reconciled bounds, so an owner whose bounds stop just short
+                # of this core can still hold pixels inside it. Naming only
+                # the owners the core's bounds intersect would clear those
+                # pixels, and the published support would move with the tiles.
                 accepted_owners=_owner_shard(
                     detection_islands,
                     accepted,
-                    partition.core_bounds,
+                    partition.read_bounds,
                 ),
                 patches=_patch_shard(
                     patches,

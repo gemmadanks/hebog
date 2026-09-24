@@ -24854,3 +24854,59 @@ the per-worker placement finding.
   discipline to see it. And the pinned PyBDSF container failed to start
   throughout with a podman overlay mount error, so no `master` ratio was
   taken; those are diagnostic only and did not block the comparison.
+
+## 2026-09-24 — M2: three review findings on the tiled-stage branch
+
+- **What this is.** Greptile reported three findings on the open pull request.
+  All three are real. Each is fixed here, with the evidence that establishes
+  it and, for the third, the reading of the pinned reference it rests on.
+- **Tile placement moved the published support.** The publication stage
+  sharded its island admission against each core's own bounds, so a core only
+  learned about the owners whose *reconciled* bounds it intersects. An owner's
+  recovered support reaches the recovery radius beyond those bounds, so an
+  owner whose bounds stop exactly at a core edge still holds pixels inside the
+  next core, and the admission step cleared them. One tile never saw it,
+  because its core is the image. A new integration case puts a 40-pixel owner
+  at columns 24–31 with significant multiscale support reaching column 33: at
+  16-pixel cores five measurement, publication and retained-mask pixels in
+  column 32 were lost, and the one-tile run kept them. The shard is now
+  read-scoped, like the published-owner shard beside it, which is sound
+  because the refinement halo covers the recovery radius. The case fails on
+  the old shard and passes on the new one; the existing partition, batching,
+  ordering and Dask invariance cases are unchanged.
+- **The fingerprint had stopped identifying the implementation.** Converging
+  the public path onto tiled stages added six stage modules —
+  `support`, `publication`, `objects`, `catalogue_rows`, `sources` and
+  `association` — and `_SCIENTIFIC_MODULES` still named only `background`,
+  `detection` and `multiscale`. A scientific change in any of the six, the
+  support fix above included, would have left `scientific_composition_sha256`
+  unchanged. All six are now bound, and the expectation is derived from
+  `public_api`'s own stage imports rather than restated, so the next stage the
+  driver runs cannot be left out silently. `_COMPOSITION_NAME` already reads
+  `v22` on this branch, so the composition is marked as unreviewed and needs
+  no further bump.
+- **Hebog and PyBDSF do not publish `E_RA` in the same convention.** Both
+  calibration scripts divided a great-circle RA offset by the published
+  `E_RA`. Hebog publishes an error on the RA *coordinate*, the tangent-plane
+  one-sigma divided by cos(dec), which `tests/unit/test_astrometry.py` pins.
+  PyBDSF `c70103be3` publishes a great-circle error: `pix2coord` returns
+  `pixdist2angdist`, which is `func.angsep`. Checked against Astropy on a SIN
+  WCS at +45°, a one-pixel step in x gives a great-circle separation of one
+  pixel scale and an RA coordinate difference of 1.414 pixel scales. So the
+  Hebog RA pull was understated by cos(dec) — a factor 0.707 at the
+  calibration declination of +45° — while the PyBDSF column was right. The
+  conversion is one function in `hebog.validation.component_calibration`, the
+  module whose subject is what a pull means, so both scripts share it and it
+  carries unit tests rather than living twice in `scripts/`.
+- **This invalidates one recorded number.** The RA row of the 2026-09-16
+  component uncertainty calibration table (pull standard deviation 0.87 GLS /
+  0.72 diagonal, and the ±1σ fractions beside them) came from the understated
+  statistic. The corrected values are larger by about 1/cos(45°); the table is
+  left as the record of what was measured, and the RA uncertainty calibration
+  needs a re-run before it can be read again. Dec, flux and shape pulls are
+  unaffected: those errors are great-circle in both finders.
+- **Checks.** Unit (1,939), contract (59, 2 xfailed), integration (669),
+  equivalence (27) and acceptance all pass, as does the coverage suite. The
+  quick science check and the calibration scripts themselves were not run:
+  both need local data and containers, and the calibration re-run is the
+  maintainer's call.

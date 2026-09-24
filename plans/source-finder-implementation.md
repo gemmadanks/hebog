@@ -93,7 +93,11 @@ operational soak of the 1.0.0 backend; the PyBDSF fallback remains until then.
 - **Limitations that block 1.0.0.** Of the limitations accepted for v0.7.0,
   those that change Rapthor-consumed fields must pass before 1.0.0:
   - `E_RA`/`E_DEC` uncertainty calibration (Rapthor excludes sources at
-    ≥2 arcsec);
+    ≥2 arcsec). The RA pull must be re-measured: Hebog publishes `E_RA` as an
+    error on the RA coordinate and PyBDSF publishes a great-circle error, and
+    the calibration scripts divided a great-circle offset by both until
+    2026-09-24, so every recorded RA pull understates by cos(dec). Dec, flux
+    and shape pulls are unaffected;
   - `Total_flux` tails, under the limits in the
     [scientific gates](#scientific-gates) table (`Isl_Total_flux` is only
     carried through Rapthor's astrometry check);

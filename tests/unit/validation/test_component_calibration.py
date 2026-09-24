@@ -9,12 +9,14 @@ is selected for having fluctuated large.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping
 
 import pytest
 
 from hebog.validation.component_calibration import (
     ComponentComparison,
+    great_circle_right_ascension_error_degrees,
     summarise_component_calibration,
 )
 
@@ -141,3 +143,37 @@ def test_a_stratum_without_matches_reports_no_statistics() -> None:
     assert summary["excess"]["integrated"] is None
     assert summary["pull"]["integrated"] is None
     assert summary["beam_constrained_fraction"] is None
+
+
+@pytest.mark.parametrize(
+    ("declination", "expected"),
+    (
+        (0.0, 0.002),
+        (45.0, 0.002 / math.sqrt(2.0)),
+        (-45.0, 0.002 / math.sqrt(2.0)),
+        (60.0, 0.001),
+    ),
+)
+def test_a_coordinate_ra_error_becomes_a_great_circle_error(
+    declination: float, expected: float
+) -> None:
+    """The offset is great-circle, so the divisor has to be as well.
+
+    Hebog publishes ``E_RA`` as an error on the RA coordinate, larger than the
+    on-sky error by 1/cos(dec). Dividing a great-circle offset by it directly
+    would report a pull a factor cos(dec) too small, and the sign of the
+    declination cannot change the conversion.
+    """
+    assert great_circle_right_ascension_error_degrees(
+        0.002, declination_degrees=declination
+    ) == pytest.approx(expected)
+
+
+def test_an_unpublished_ra_error_has_no_great_circle_value() -> None:
+    """A component without an uncertainty has no pull to convert."""
+    assert (
+        great_circle_right_ascension_error_degrees(
+            None, declination_degrees=45.0
+        )
+        is None
+    )

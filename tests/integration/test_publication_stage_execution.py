@@ -710,3 +710,118 @@ def test_publication_stage_requires_records_for_every_published_owner(
                 generation_id="publication",
             ),
         )
+
+
+def _edge_owner_sources(
+    root: Path,
+) -> tuple[ZarrProductSink, ZarrProductSink]:
+    """Publish one owner whose direct support stops at a 16-pixel core edge.
+
+    The owner's reconciled bounds end at column 32, so they do not intersect
+    the core starting there, while its significant multiscale support reaches
+    one column past the edge and refinement recovers it for the owner.
+    """
+    labels = np.zeros(_SHAPE_YX, dtype=np.int32)
+    labels[20:25, 24:32] = 1
+    reconstruction = np.zeros(_SHAPE_YX, dtype=np.bool_)
+    reconstruction[19:26, 23:34] = True
+    direct_snr = np.full(_SHAPE_YX, -np.inf, dtype=np.float64)
+    direct_snr[(labels > 0) | reconstruction] = _HIGH_SNR
+    valid = np.ones(_SHAPE_YX, dtype=np.bool_)
+    components, _ = cast(
+        tuple[npt.NDArray[np.int32], int],
+        ndimage_label(
+            ((labels > 0) | reconstruction) & valid,
+            structure=np.ones((3, 3), dtype=np.int8),
+        ),
+    )
+    return (
+        _publish(
+            root / "detection.zarr",
+            (
+                ("detection-labels", labels, "<i4"),
+                ("direct-snr", direct_snr, "<f8"),
+                ("reconstruction-mask", reconstruction, "bool"),
+                ("valid-pixels", valid, "bool"),
+            ),
+            generation_id="detection-fixture",
+        ),
+        _publish(
+            root / "support.zarr",
+            (
+                ("support-components", components, "<i4"),
+                (
+                    "persistent-support",
+                    np.zeros(_SHAPE_YX, dtype=np.bool_),
+                    "bool",
+                ),
+            ),
+            generation_id="support-fixture",
+        ),
+    )
+
+
+def _edge_owner_islands() -> tuple[DetectedIsland, ...]:
+    """Describe the edge owner the way reconciliation would."""
+    return (
+        DetectedIsland(
+            island_id="island-00001",
+            global_label=1,
+            pixel_count=40,
+            bounds=ImageBounds(20, 25, 24, 32),
+            peak_signal_to_noise=_HIGH_SNR,
+            peak_position_yx=(20, 24),
+            first_pixel_yx=(20, 24),
+            touches_image_edge=False,
+        ),
+    )
+
+
+def _run_edge_owner(
+    root: Path,
+    *,
+    core: int,
+) -> dict[str, npt.NDArray[np.generic]]:
+    """Publish the edge owner's support over one partition geometry."""
+    root.mkdir(parents=True, exist_ok=True)
+    detection_source, support_source = _edge_owner_sources(root)
+    manifest = _manifest(core)
+    sink = ZarrProductSink(
+        root / "publication.zarr",
+        manifest,
+        generation_id="publication",
+    )
+    run_publication_stage(
+        detection_source,
+        support_source,
+        manifest,
+        detection_islands=_edge_owner_islands(),
+        config=_config(),
+        executor=SerialExecutor(),
+        sink=sink,
+    )
+    return _published(sink)
+
+
+def test_recovered_support_survives_a_core_edge_its_owner_stops_short_of(
+    tmp_path: Path,
+) -> None:
+    """Island admission is read-scoped, so tiles keep recovered support.
+
+    The owner's reconciled bounds end exactly at the x=32 core edge, so a
+    core-scoped admission shard would omit it from the core starting there and
+    clear the column of support refinement recovered for it.
+    """
+    expected = _run_edge_owner(tmp_path / "one-tile", core=64)
+    published = _run_edge_owner(tmp_path / "cores-16", core=16)
+
+    # The recovered column belongs to the owner in both geometries.
+    for name in ("measurement-labels", "publication-labels"):
+        np.testing.assert_array_equal(
+            expected[name][20:25, 32],
+            np.ones(5, dtype=np.int32),
+            name,
+        )
+    assert np.all(expected["retained-mask"][20:25, 32])
+    for name, values in expected.items():
+        np.testing.assert_array_equal(published[name], values, name)

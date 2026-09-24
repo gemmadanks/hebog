@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 import sys
 from dataclasses import replace
 from importlib.resources import files
@@ -74,6 +75,31 @@ def test_repaired_science_cannot_inherit_reference_qualification() -> None:
         "hebog.algorithms.multiscale_tiles",
         "hebog.stages.multiscale",
     } <= set(public_api._SCIENTIFIC_MODULES)
+
+
+def test_composition_fingerprint_binds_every_stage_the_public_path_runs() -> (
+    None
+):
+    """A stage the public path imports must reach the recorded fingerprint.
+
+    The fingerprint identifies the implementation that produced a result, so a
+    scientific change in any stage the public path runs has to change it. The
+    expectation is derived from the imports themselves, so adding a stage
+    without binding it fails here instead of silently reusing a digest.
+    """
+    source = Path(public_api.__file__).read_text(encoding="utf-8")
+    imported = {
+        f"hebog.stages.{match.group(1)}"
+        for match in re.finditer(r"from hebog\.stages\.(\w+) import", source)
+    }
+    bound = {
+        name
+        for name in public_api._SCIENTIFIC_MODULES
+        if name.startswith("hebog.stages.")
+    }
+
+    assert imported, "no stage import was found to derive the expectation from"
+    assert imported == bound
 
 
 def test_intermediate_mesh_cannot_bypass_the_bounded_read_admission() -> None:

@@ -137,9 +137,15 @@ _SCIENTIFIC_MODULES = (
     "hebog.science.continuum",
     "hebog.science.models",
     "hebog.science.profile",
+    "hebog.stages.association",
     "hebog.stages.background",
+    "hebog.stages.catalogue_rows",
     "hebog.stages.detection",
     "hebog.stages.multiscale",
+    "hebog.stages.objects",
+    "hebog.stages.publication",
+    "hebog.stages.sources",
+    "hebog.stages.support",
 )
 
 
