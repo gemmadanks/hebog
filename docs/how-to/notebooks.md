@@ -223,10 +223,8 @@ repository-relative paths together, not just `campaign.json` or the `latest`
 symlink. Use the input/reference options below if restoring a different
 supported campaign layout.
 
-To create a fresh comparison instead of restoring this historical bundle,
-use the setup workflow above. It generates new reference products from public
-images. The closed Phase 5 acquisition, selection and campaign commands are
-not needed for that workflow and have been removed from the live tree.
+To create a fresh comparison instead of restoring this saved bundle, use the
+setup workflow above. It generates new reference products from public images.
 
 ## Refresh the existing SDC1/Hydra/LoTSS comparison
 

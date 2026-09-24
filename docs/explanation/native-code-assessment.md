@@ -12,7 +12,7 @@ extension becomes justified, prefer Rust for a new self-contained kernel and
 C++ when integrating a mature C/C++ library or when a C++ implementation has a
 clear evidence-backed ecosystem or team advantage.
 
-## The 21 September 2026 profile does not open the gate
+## The current profile does not open the gate
 
 The tile-native composition has now been profiled end to end across the
 generated ladder and the SDC1 and LoTSS cut-outs; see
@@ -50,13 +50,12 @@ and the profile is flat at a level the gates still fail.
 
 ## Why native code is premature
 
-Hebog has implemented and qualified its compact Phase 4 scientific kernels.
-Their controlled incremental matrix passes the existing measurement, fitting,
-and catalogue budgets using Python with vectorized NumPy and SciPy. Early
-Phase 5 evidence likewise has not identified a self-contained Python kernel
-that meets the native-code decision gate. Complete Rapthor and production-
-scale profiles remain outstanding, so there is still no evidence that a
-project-owned native extension would improve the limiting end-to-end path.
+Hebog's compact and multiscale kernels pass their measurement, fitting, and
+catalogue budgets using Python with vectorized NumPy and SciPy, and no
+profile has identified a self-contained Python kernel that meets the
+native-code decision gate. Complete Rapthor and production-scale profiles
+remain outstanding, so there is no evidence that a project-owned native
+extension would improve the limiting end-to-end path.
 
 NumPy and SciPy already wrap compiled numerical implementations. SciPy
 explicitly describes itself as using optimized Fortran, C, and C++ code, while

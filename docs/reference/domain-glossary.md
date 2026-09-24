@@ -1,13 +1,7 @@
 # Source-finding domain glossary
 
-**Status:** amended after the 2026-07-31 scientific pre-review and approved for
-the documented experimental scope on 2026-08-02.
-
 This glossary establishes Hebog's domain language and maps the current
-Rapthor/PyBDSF/LSMTool vocabulary onto it. The
-[Phase 3 scientific review](https://github.com/gemmadanks/hebog/blob/v0.7.0/docs/reference/phase-3-review-record.md) and
-[Phase 4 scientific review](https://github.com/gemmadanks/hebog/blob/v0.7.0/docs/reference/phase-4-review-record.md) approved these
-definitions and naming conventions for the current experimental scope.
+Rapthor/PyBDSF/LSMTool vocabulary onto it.
 
 ## Images and noise
 
@@ -36,14 +30,14 @@ definitions and naming conventions for the current experimental scope.
 | Minimum island size | Smallest accepted number of connected island-member pixels. Hebog requires it explicitly in scientific configuration. The Rapthor compatibility adapter may derive it from reviewed beam metadata; scientific kernels do not inherit an implicit survey default. |
 | Pixel | One array sample. Array indexing is `(y, x)` even when external APIs expose pixel coordinates as `(x, y)`. |
 | Island | Connected above-island-threshold pixels associated with at least one accepted detection peak. It is a segmentation object, not automatically one source. |
-| Deblended region | A deterministic subdivision of overlapping emission associated with one or more detection seeds for later measurement. It remains a segmentation result until Phase 4 measurement and grouping establish a source candidate or fitted component. |
+| Deblended region | A deterministic subdivision of overlapping emission associated with one or more detection seeds for later measurement. It remains a segmentation result until measurement and grouping establish a source candidate or fitted component. |
 | Owned-pixel photometry | Peak, mean, local RMS, and finite-mask pixel-sum flux reduced over one exact island or deblended-region membership. It is preliminary measurement evidence, not a fitted Gaussian or catalogue row. Use `owned_pixel_integrated_flux_jy` so it cannot be confused with fitted-model flux. |
 | Moment initializer | Brightness-weighted pixel centroid and covariance reduced over exact owned pixels to initialize a nonlinear fit. Its axes and pixel-space angle are not fitted or beam-deconvolved source shape. |
 | Detected-segment flux centroid | Brightness-weighted coordinate inside one accepted extended-source segment. Compact-dominated segments use original background-subtracted pixels; diffuse segments use the already-computed denoised residual-B3 reconstruction when their measured peak-to-mean ratio is at most 3.0. It is conditioned on the detection/island threshold, reported separately from the brightest pixel and fitted Gaussian centres, and is not a host-galaxy position. |
 | Extended-source peak | Global `(x, y)` coordinate of the brightest original background-subtracted pixel owned by an extended-source segment, with deterministic row-major tie-breaking. It is a location descriptor, not a fitted component or host-galaxy position. |
 | Fitted-Gaussian integrated flux | Infinite-plane integral of a fitted Gaussian component, calculated from its fitted amplitude and Gaussian area relative to the restoring beam. A Gaussian-component product retains it for both resolved and unresolved fits. The source product uses it only for significantly resolved sources and uses peak flux for unresolved sources. Never copy owned-pixel flux into this field. |
 | Association aperture flux | Direct background-subtracted pixel sum inside either the restoring-beam ellipse or the selected-fit ellipse, divided by the same Gaussian model's fraction visible through image, validity, and competing-region masks. The lower-variance beam aperture is selected when it contains at least 90% of the fitted model; otherwise the fitted ellipse avoids clipping elongated or rotated blends. It is bounded compact-source association photometry, not a fitted-Gaussian integral or threshold-truncated owned-pixel flux. Use `association_aperture_integrated_flux_jy`. |
-| Extension significance | Evidence that a geometrically deconvolved Gaussian is measurably larger than the restoring beam. Phase 4 requires the log integrated-to-peak flux ratio to exceed five times its propagated uncertainty; positive deconvolution alone is not sufficient for noisy data. |
+| Extension significance | Evidence that a geometrically deconvolved Gaussian is measurably larger than the restoring beam. Hebog requires the log integrated-to-peak flux ratio to exceed five times its propagated uncertainty; positive deconvolution alone is not sufficient for noisy data. |
 | Gaussian component | One fitted Gaussian belonging to a PyBDSF source. Use the full qualifier; bare `component` is ambiguous. |
 | Source candidate | One catalogue-level association inferred to represent astrophysical emission. In the PyBDSF source-list model, one or more fitted Gaussians may be grouped into a source and an island may contain one or more sources. A detection is not established astrophysical truth. |
 | Source reference position | Finite zero-based continuous `(y, x)` pixel position used only to assign one reconciled source to a tile core. Exact internal-boundary ties belong to the core beginning at that boundary. A source may overlap other cores and halos; its reference position alone selects catalogue ownership. |
@@ -132,6 +126,3 @@ definitions and naming conventions for the current experimental scope.
 | `Source_id` | Compatibility source identifier |
 | `Isl_Total_flux` | Compatibility island-integrated flux field |
 | `filter_skymodel` | Cross-system behaviour that detects emission, filters/groups sky-model components, writes diagnostics products, and currently mixes PyBDSF with LSMTool |
-
-Open vocabulary questions are tracked in the implementation plan. A domain
-review must resolve them before the Phase 0 exit gate.

@@ -1,9 +1,10 @@
 # Compact Gaussian fitting
 
-Phase 4 fits every eligible compact deblended region. Phase 4R evaluates a
-nested free-elliptical and restoring-beam-constrained model rather than making
-every source pay the variance of a free shape. Hebog does not skip apparently
-easy regions or substitute moment parameters for fitted parameters.
+Hebog fits every eligible compact deblended region. The `beam-or-free`
+policy evaluates a nested free-elliptical and restoring-beam-constrained model
+rather than making every source pay the variance of a free shape. Hebog does
+not skip apparently easy regions or substitute moment parameters for fitted
+parameters.
 
 ## Numerical model
 
@@ -11,15 +12,16 @@ easy regions or substitute moment parameters for fitted parameters.
 watershed membership, moment calculation, and nonlinear fit inside the same
 coarse executor task. A task may contain several islands and regions; Hebog
 does not create one Dask task per source. Retained image arrays stay subject to
-the Phase 3 coarse-batch pixel limit.
+the deblending stage's coarse-batch pixel limit.
 
 The full model has positive peak amplitude, global zero-based `(x, y)`
 centroid, two positive pixel sigma axes, pixel-space orientation, and an
 optional bounded local residual-background offset. The smaller model fixes
-the axes and orientation to the restoring beam. The Rapthor campaign uses the
-already background-subtracted residual, fixes the remaining offset to zero,
-and fits exact deblended-region membership; the alternate offset and bounded
-context policies remain explicit development ablations. Moment parameters
+the axes and orientation to the restoring beam. The reviewed Rapthor profile
+uses the already background-subtracted residual, fixes the remaining offset to
+zero, and fits exact deblended-region membership; the alternate offset and
+bounded context policies remain explicit development ablations. Moment
+parameters
 initialize both fits, and configuration bounds limit centre movement, axes,
 amplitude, background offset, iterations, and convergence tolerance.
 
@@ -63,8 +65,7 @@ it is a condition estimate, not an exact SVD rank test. Failed estimation
 reports `correlation-conditioning-failed`; failed Cholesky reports
 `correlation-factorization-failed`. All three use the existing diagonal point
 estimator with correlated-noise sandwich errors, not independent-pixel errors.
-The previous silent `1e-10` diagonal jitter is removed: no unmeasured white
-noise is introduced merely to make the likelihood invertible.
+No unmeasured white noise is added to make the likelihood invertible.
 
 This check is independent of source brightness and fitted residuals. It does
 not certify that every converged Gaussian is an adequate physical model, nor
@@ -105,10 +106,10 @@ for resolved or marginal sources, so that uncertainty remains report-only.
 Position, peak flux, and the peak-as-total unresolved policy pass their
 applicable regression gates.
 
-The established public default remains the single free-elliptical fit used by
-the Phase 4 serial oracle. Phase 4R explicitly opts into the reviewed
-`beam-or-free` policy; model selection therefore cannot silently change an
-existing caller's model-selection policy. Every published single or joint
+The pipeline-neutral default is the single free-elliptical fit; the reviewed
+continuum profile explicitly opts into the `beam-or-free` policy, so model
+selection cannot silently change a caller's policy. Every published single or
+joint
 candidate must be finite, away from physical parameter bounds, and sufficiently
 well conditioned under the existing configured information limit. Free-only
 fitting and absent beam metadata do not bypass those checks. A separately
@@ -127,8 +128,7 @@ covariance from the same joint solution; no alternative fits are spliced in.
 Unavailable peers supply no shape evidence but do not veto independent
 resolved-arc evidence from at least three valid neighbours. This is a bounded
 fallback correctness guard, not a general certification of every Gaussian or
-a new chi-squared cutoff. Independent analytic controls, not closed campaign
-seeds, govern it.
+a new chi-squared cutoff. Independent analytic controls govern it.
 
 Under `beam-or-free`, a five-sigma log-area test selects clear extension directly.
 Otherwise the nested candidates use BIC with the number of independent
@@ -148,9 +148,6 @@ free angle for beam-like objects and the scientifically incoherent alternative
 of mixing free axes with a beam angle. PyBDSF and Aegean likewise represent a
 Gaussian component as one fitted ellipse; Hebog's explicit low-information
 beam fallback is recorded in diagnostics rather than disguised as a free fit.
-The 1.5-sigma component boundary was selected prospectively on the fixed
-viewed development slice and must pass the complete cumulative regression
-ledger before a fresh campaign can be frozen.
 
 The association aperture is an explicit configurable radius, currently three
 Gaussian sigmas. Hebog uses the lower-variance restoring-beam ellipse when it
@@ -164,13 +161,13 @@ flux. This bounded aperture is used only for association and blend-total
 comparisons; fitted component flux and Rapthor's unresolved peak-as-total
 catalogue convention are unchanged.
 
-Phase 4R also selects position independently from morphology and photometry.
+Position can also be selected independently from morphology and photometry.
 The selected owned-region model continues to define peak, integrated flux,
 shape, and extension. A second free elliptical likelihood uses all finite
 bounded context belonging to the source or background while excluding pixels
 owned by competitors. This avoids shifting the reported position toward only
 the threshold-selected side of a low-SNR or edge source. The public default
-continues to use the selected model's centroid; the governed campaign opts in
+continues to use the selected model's centroid; the reviewed profile opts in
 with `position_estimator="bounded-context-free"`.
 
 If the context likelihood itself reaches an image boundary, Hebog does not
@@ -206,7 +203,7 @@ unavailable fit. Exhausted iterations and scientifically invalid fitted
 parameters return a typed failed fit that retains the moment initializer and
 diagnostics. Unknown values are never encoded as zero. A normal catalogue may
 only be built when every admitted compact region has a valid fit and there are
-no Phase 5 deferrals.
+no multiscale deferrals.
 
 ## Integrated-flux uncertainty calibration
 
@@ -222,8 +219,7 @@ beam-correlated noise, as Condon-style errors do.
 Pulls describe only the components that publish an uncertainty. A shape
 uncertainty accompanies a free fit, not a beam-constrained one, so a shape
 pull covers the minority whose free model survived the extension test, which
-selects upward fluctuations. Measured on 18 September over 340 matched
-beam-correlated components, a shape pull covered 8 to 20 per cent of
+selects upward fluctuations. Measured over 340 matched beam-correlated components, a shape pull covered 8 to 20 per cent of
 beam-sized components and read about +1.7, while the whole population's
 major-axis excess against truth was zero. Report how far published values
 lie from truth over every matched component, and read a pull against the
@@ -248,12 +244,12 @@ extension test does not flatten slightly resolved sources at usable
 signal-to-noise. The integrated-flux tail is the wider concern: the 95th
 percentile of absolute excess is 29 to 58 per cent at SNR 10, 11 to 14 per
 cent at SNR 20 and 5 to 6 per cent at SNR 50. The
-Phase 5 external component profile additionally applies a 0.075-sigma
+reviewed external component profile additionally applies a 0.075-sigma
 downward correction to the fitted Gaussian total before celestial catalogue
 publication. It leaves the fitted amplitude, axes, angle, centroid, formal
 error, and covariance unchanged and adds the
 `fitted-integrated-flux-bias-corrected` quality flag. The correction is
-explicit in the campaign configuration; the pipeline-neutral default is zero.
+explicit in that profile's configuration; the pipeline-neutral default is zero.
 
 This follows the standard practice of reporting calibrated Gaussian-fit
 uncertainties while keeping the correction distinguishable from the formal
@@ -265,7 +261,7 @@ rejected for causing over-coverage. See
 [Condon (1997)](https://adsabs.harvard.edu/pdf/1997PASP..109..166C) and the
 [PyBDSF processing reference](https://pybdsf.readthedocs.io/en/latest/process_image.html).
 
-The Phase 4 configuration aligns the detection and deblending minima with
+The compact configuration aligns the detection and deblending minima with
 this seven-pixel fit requirement. If a prominent watershed peak initially
 owns fewer pixels, its basin is merged across its strongest shared saddle
 before measurement. This preserves all parent-island pixels and prevents a

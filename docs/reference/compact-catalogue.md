@@ -1,9 +1,9 @@
 # Compact catalogue construction and Rapthor FITS view
 
-Phase 4 can turn a complete set of valid compact fits into the version-one
-internal catalogue and the smallest FITS table directly consumed by Rapthor.
-This is an experimental compact-source boundary, not yet the public
-`find_sources` result or a Rapthor backend.
+The compact catalogue stage turns a complete set of valid compact fits into
+the internal catalogue and the smallest FITS table directly consumed by
+Rapthor. This is an experimental compact-source boundary, not yet a Rapthor
+backend.
 
 ## Internal records and association
 
@@ -32,13 +32,13 @@ while a future larger catalogue can add streaming materialization without
 changing the scientific records.
 
 A normal completed catalogue fails closed if any admitted fit is unavailable,
-any compact result was omitted, or any Phase 5 multiscale island was deferred.
+any compact result was omitted, or any multiscale island was deferred.
 An explicitly incomplete stage result retains those reasons for inspection but
 cannot masquerade as a successful `find_sources` result.
 
-## Phase 5 preservation boundary
+## Preservation boundary
 
-Phase 5 pre-association work does not rebuild a completed Phase 4 compact
+Multiscale pre-association work does not rebuild a completed compact
 catalogue. `preserve_unassociated_compact_catalogue` accepts only
 `extended-only` scale associations that contain no compact source identity and
 returns the exact same `CompletedCompactCatalogue` object. Consequently its
@@ -48,15 +48,15 @@ and reduction evidence cannot be reordered or recomputed.
 Any `contains-compact-support` or `overlaps-compact-support` relationship
 raises
 `CompactAssociationDecisionRequiredError`. Such evidence must pass through the
-governed Step 4 ownership and association rules before it can affect a
+governed ownership and association rules before it can affect a
 combined catalogue. The same no-op catalogue produces byte-identical Rapthor
-FITS output. Phase 2 RMS and the Phase 4 accepted mask remain immutable
+FITS output. The RMS plane and the accepted compact mask remain immutable
 read-only inputs to the bounded multiscale stages rather than products this
 boundary can replace.
 
 The subsequent combined-identity stage still preserves every compact source
 and Gaussian-component ID. A compact-only graph component also keeps its exact
-Phase 4 island ID. Spatial context may place compact and extended sources in a
+compact island ID. Spatial context may place compact and extended sources in a
 new combined island, but it never relabels the compact objects or fabricates a
 Gaussian component for an irregular extended source.
 
@@ -104,32 +104,15 @@ The writer uses a same-directory temporary file, validates the closed FITS
 product before publication, adds deterministic FITS checksums, reuses an
 identical destination on retry, and rejects conflicting existing bytes.
 
-## Evidence and limitations
+## Limitations
 
-After applying the documented unresolved-source compatibility policy, the same
-three-row Hebog compact catalogue passes the complete frozen Phase 4
-position, flux, fitted/deconvolved shape, classification, uncertainty
-availability, association, and catastrophic-outlier gates against both the
-released and pinned-`master` PyBDSF products. Rapthor's 10-arcsec deconvolved
-major-axis and 2-arcsec position-error diagnostic cuts retain the same three
-rows. Pixel-centre mask decisions on this no-deferral reference agree with both
-PyBDSF masks above the 99.5% downstream threshold.
-
-The close-pair regression exposed a necessary contract amendment:
-three sub-beam pairs contain only one observable image maximum, so a frozen
-one-region/one-source policy cannot claim seven-source completeness. That
-population is not being silently tuned or relabelled and now uses explicit
-observable truth groups. Joint multi-component selection is deferred until it
-has identifiability evidence. A later held-out campaign failed extension
-classification and flux calibration; the literature-led correction passes
-independent regression. Its second held-out campaign then exposed a mismatch
-between the already report-only marginal-extension population and the
-all-metrics catastrophic harness, plus edge fits that could leave the image
-footprint. Development regression now reports marginal integrated-flux
-catastrophes separately while retaining every other outlier gate, and the
-fitter keeps centroids within sampled image bounds. The third unseen campaign
-remains unopened pending named review.
+Sub-beam pairs that produce only one observable image maximum are one
+observable truth group, not two sources: a one-region/one-source policy cannot
+claim completeness for them, and the equivalence tests use explicit observable
+truth groups. Marginal-extension integrated-flux outliers are reported
+separately from the gated outlier populations, and the fitter keeps centroids
+within sampled image bounds.
 
 Per-channel catalogue columns used by later Rapthor flux normalization,
-multiscale/extended emission, complete sky-model filtering, and orchestration
-remain later-phase work.
+complete sky-model filtering, and orchestration are not part of this
+boundary.

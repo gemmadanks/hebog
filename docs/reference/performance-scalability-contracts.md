@@ -1,19 +1,13 @@
 # Performance and scalability contracts
 
-Phase 0 freezes machine-readable gates in
+The machine-readable gates live in
 `config/benchmarks/phase-0-performance.json` and
-`config/benchmarks/phase-0-scalability.json`. They prevent later
-implementation and tuning from selecting only favourable inputs or hardware.
-The files have `frozen-provisional` status: changing a gate requires a reviewed
-plan decision and a `LOG.md` entry; passing the file schema does not claim that
-the gate has been demonstrated.
-
-The [Phase 0 baseline results](phase-0-baseline-results.md) record the matched
-released/master timings and the exploratory warm one-tile measurements. All
-six overhead probes passed their provisional budgets. The local-thread and
-planning probes remain framework proxies until their Phase 1 implementations
-replace them; this preserves the budgets without presenting placeholder code
-as production performance.
+`config/benchmarks/phase-0-scalability.json`. They prevent implementation and
+tuning from selecting only favourable inputs or hardware. The files have
+`frozen-provisional` status: changing a gate requires a reviewed plan decision
+and a `LOG.md` entry; passing the file schema does not claim that the gate has
+been demonstrated. Matched PyBDSF reference timings are recorded under
+`config/baselines/`.
 
 ## Complete performance curve
 
@@ -40,9 +34,7 @@ The deployment gate is the single `pybdsf_master` record: the upper one-sided
 against pinned PyBDSF `master` (`c70103b`). Release 1.14.1 is checked once
 before 1.0.0, as the
 [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
-describes; it is not a gate in this file. Schema version 2 removed the former
-`released_pybdsf_maximum_ratio` and `master_pybdsf_exclusive_ratio_limit`
-fields, and a version 1 file fails validation.
+describes; it is not a gate in this file.
 
 The [quick benchmark](../how-to/index.md#run-the-quick-benchmark) reads its
 repetition counts and both comparison rules from this file. Its `master`

@@ -1,6 +1,7 @@
 # Compact astrometry and beam deconvolution
 
-Phase 4 transforms a valid compact Gaussian fit from global pixel coordinates
+The astrometry boundary transforms a valid compact Gaussian fit from global
+pixel coordinates
 to the internal ICRS catalogue model. The transformation is deliberately kept
 separate from fitting: the nonlinear optimizer remains a pure pixel-space
 operation, while this boundary owns WCS, angular geometry, and restoring-beam
@@ -42,11 +43,10 @@ sufficient evidence of physical extension. Hebog uses the standardized
 one-sided [ATLAS DR3](https://doi.org/10.1093/mnras/stv1866) statistic:
 `ln(S_integrated / S_peak)` divided by the quadrature relative uncertainty of
 the two fluxes. ATLAS used a two-sigma decision and explicitly reported a 2.3%
-point-source false-extension probability. Phase 4 uses a conservative
+point-source false-extension probability. Hebog uses a conservative
 five-sigma threshold because a false resolved shape is a material catalogue
-error and the paired closure contract
-requires Hebog to be no worse than released PyBDSF, not merely to pass the 95%
-absolute specificity floor. A geometrically resolved fit that does not pass is
+error and the equivalence contract requires Hebog to be no worse than released
+PyBDSF, not merely to pass the 95% absolute specificity floor. A geometrically resolved fit that does not pass is
 reported as unresolved with `extension-not-significant`. If the fit declares
 its flux uncertainty unavailable, the extension classification is also
 unavailable. Exact analytic fits without an uncertainty-unavailable flag
@@ -65,8 +65,8 @@ ellipse. This axis test prevents unstable relative errors near zero from being
 mistaken for precise physical sizes while retaining the `DC_Maj` value that
 Rapthor actually consumes whenever it is identifiable.
 
-The classification threshold is explicit runtime configuration. The frozen
-Phase 4 contract separately gates point-source specificity and recall for
+The classification threshold is explicit runtime configuration. The
+equivalence contract separately gates point-source specificity and recall for
 clearly resolved truth. "Clearly resolved" is selected from injected truth
 before fitting: fitted-to-beam area ratio at least 3 and signal-to-noise ratio
 at least 25. Less decisive injected extension is a predeclared marginal,
@@ -113,12 +113,10 @@ For an unresolved source, the catalogue reports peak flux density as its best
 integrated-flux estimate and uses the peak-flux uncertainty. This avoids the
 well-known upward width/area noise bias in low-SNR free Gaussian fits. For a
 resolved source, the infinite-plane fitted-Gaussian integral remains the
-catalogue value, but its propagated uncertainty is report-only in Phase 4.
+catalogue value, but its propagated uncertainty is report-only.
 
-The independent paired-regression margin audit covers 1,600 predeclared point
-sources and 200 predeclared clear extensions. Point-source values span
--2.08--3.38 sigma, while every clear extension spans 17.92--23.83 sigma. The
-five-sigma decision therefore classified every point and clear source
-correctly without choosing a boundary close to either population. This is
-regression evidence, not final qualification; the paired protocol and final
-population still require named review.
+On the paired regression population of 1,600 predeclared point sources and
+200 predeclared clear extensions, point-source statistics span
+−2.08 to 3.38 sigma and every clear extension spans 17.92 to 23.83 sigma, so
+the five-sigma decision classifies both populations correctly with a wide
+margin. This is regression evidence, not qualification.

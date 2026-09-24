@@ -1,6 +1,6 @@
 # Compact moment measurement
 
-Phase 4 Step 3 adds a readable, deterministic moment oracle for every admitted
+The moment oracle is a readable, deterministic measurement of every admitted
 compact island and exact deblended region. It produces owned-pixel photometry
 and a pixel-space Gaussian initializer. The subsequent
 [compact Gaussian fitting](compact-fitting.md) lane consumes this initializer.
@@ -59,9 +59,10 @@ sigma axes in pixels, and a major-axis angle counterclockwise from positive
 pixel x modulo 180 degrees. A circular covariance receives the canonical
 pixel angle zero because its orientation is not physically determined.
 
-This angle is not a celestial position angle. Phase 4 Step 5 will transform
-the covariance with Astropy's local tangent-plane Jacobian and report the
-reviewed east-of-north convention.
+This angle is not a celestial position angle. The
+[astrometry boundary](compact-astrometry.md) transforms the covariance with
+Astropy's local tangent-plane Jacobian and reports the east-of-north
+convention.
 
 ## Explicit availability
 
@@ -77,4 +78,5 @@ zeroes:
 `CompactMomentConfig` makes the minimum shape population and covariance
 relative tolerance explicit. These are numerical availability rules, not
 detection thresholds. Nonlinear fit convergence, fitted component semantics,
-beam deconvolution, and calibrated uncertainty remain later Phase 4 steps.
+beam deconvolution, and calibrated uncertainty belong to the later fitting
+and astrometry stages.

@@ -35,7 +35,7 @@ next generation radio astronomy data processing pipelines such as
   for survey use. See
   [scientific status](https://gemmadanks.github.io/hebog/reference/release-status/#scientific-status).
 - **Supported inputs:** one FITS image in `Jy/beam` with ICRS or FK5 J2000 sky
-  coordinates and at most 1,024 pixels on each side.
+  coordinates and at most 3,000 pixels on each side.
 
 [Current capability and release status](https://gemmadanks.github.io/hebog/reference/release-status/)
 lists the full input requirements and known limitations.

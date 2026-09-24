@@ -34,23 +34,17 @@ Hebog is suitable for demonstrations, integration work, algorithm inspection
 and bounded evaluation. It is **not** yet suitable for claiming
 interchangeability with PyBDSF or readiness for a survey.
 
-In the most recent synthetic comparison campaign, no comparison against
-released PyBDSF, PyBDSF `master` or Aegean failed, and 19 of 676 PyBDSF
-comparisons were statistically inconclusive. The campaign was nevertheless
-recorded as a fail, because 32 comparisons regressed slightly against an
-earlier Hebog version, mainly in uncertainty calibration and in some centroid
-and flux tails. Later changes have focused regression, Serial/Dask and
-packaging evidence only. The
-[scientific campaign overview](scientific-campaign-overview.md) lists every
-non-passing comparison. All of this is development evidence, not
-qualification.
+Development comparisons against PyBDSF and Aegean on simulated and public
+images are recorded in the repository's
+[execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md) and
+[implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md).
+They are development evidence, not qualification.
 
 Known limitations when interpreting results:
 
 - Uncertainties are not yet calibrated across all morphologies and
   signal-to-noise ratios.
-- Extended-source flux-error tails and centroid offsets are worse than in an
-  earlier Hebog candidate.
+- Extended-source flux errors have wide tails and centroids can be offset.
 - Faint extended emission is sensitive to association, mask-boundary and
   aperture decisions.
 - A detection whose Gaussian fit fails has no Gaussian-component row.

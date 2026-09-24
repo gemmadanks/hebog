@@ -36,6 +36,7 @@ a Dask cluster that you already own.
 The documentation follows the [Diátaxis](https://diataxis.fr) framework. The
 **User guide** holds the tutorial, how-to guides, explanation and reference an
 astronomer needs. The **Developer guide** holds the same four kinds of page
-for people who integrate or extend Hebog. **Project records** keep dated
-scientific evidence and contracts, which describe named past candidates rather
-than the current release.
+for people who integrate or extend Hebog. Dated evidence and decisions live in
+the repository's
+[execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md), not in
+these pages.

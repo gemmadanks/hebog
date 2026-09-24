@@ -1,8 +1,8 @@
 # Validation dataset manifests
 
-Hebog identifies validation data through strict, versioned JSON manifests.
-Phase 0 freezes separate development, regression, and qualification manifests
-under `config/datasets/`. `hebog.validation` is repository tooling and is not
+Hebog identifies validation data through strict, versioned JSON manifests
+under `config/datasets/`, with separate development, regression, and
+qualification manifests. `hebog.validation` is repository tooling and is not
 installed from the Hebog wheel; use it from a source checkout after
 `uv sync --all-groups`. A manifest can be loaded without resolving,
 downloading, or generating any image:
@@ -36,15 +36,15 @@ geometry, stale checksums, and inconsistent statistics.
 A recipe checksum protects the generation inputs. It is not an artifact
 checksum for a materialised FITS file. Frozen released-PyBDSF and
 PyBDSF-`master` reference products additionally record artifact checksums,
-complete tool revisions, and configuration in their own Phase 0 manifest.
+complete tool revisions, and configuration in their own manifest.
 
 The 30,000-square regression and 100,000-square qualification entries are
 logical recipes: tests generate bounded windows and must never allocate the
 whole plane. The qualification case is held out from routine tuning even
 though its seed is necessarily recorded for reproducibility.
 
-Phase 4 adds generator version 2 without changing any version-1 recipe or
-checksum. Version 2 can declare an affine, globally addressed RMS multiplier,
+Generator version 2 leaves every version-1 recipe and checksum unchanged. It
+can declare an affine, globally addressed RMS multiplier,
 non-overlapping half-open invalid rectangles, unequal pixel scales, and WCS
 rotation metadata. Invalid rectangles materialise as NaN and are included in
 the checked expected finite fraction. Both the RMS field and invalid pixels
@@ -73,25 +73,22 @@ indices. These declarations keep SNR, shape, blend, edge, or other governed
 populations explicit and let qualification code prove the required sample
 count before looking at scientific results. Stratum identifiers and indices
 are unique, indices are sorted and non-negative, and every index resolves to
-source truth in the shared recipe. The Phase 4 campaign uses 200 independent
-noise realizations, but its powered source population supplies at least 1,600
-eligible measurements in every SNR, shape, and edge stratum. This gives the
-reviewed entire-confidence-interval test useful power without selecting
-favourable seeds. The unresolved-group absolute-metric stratum retains 200
-independent samples.
+source truth in the shared recipe. The compact qualification manifests use
+200 independent noise realizations whose powered source population supplies
+at least 1,600 eligible measurements in every SNR, shape, and edge stratum,
+which gives the entire-confidence-interval test useful power without selecting
+favourable seeds.
 
-The separate `phase-4-paired-regression.json` manifest is deliberately
-viewable regression and TDD data, not qualification data. Its 200 seeds are
-disjoint from every earlier Phase 4 population. It preserves the Phase 4
-campaign's 33 observable groups, 32 individually resolvable sources, eight
-beam-compatible point sources, one clearly resolved source, and one unresolved
-blend per realization, while using a distinct WCS, background, noise gradient,
-invalid region, and a 180-degree mirrored layout that preserves the governed
-blend-to-beam geometry. The Phase 4 recovery regression tests in
-`tests/equivalence/test_phase_four_recovery.py` run selected seeds through the
-compact branch without consuming or pretending to be unseen evidence.
+The `phase-4-paired-regression.json` manifest is viewable regression and TDD
+data, not qualification data. Its 200 seeds are disjoint from every
+qualification population. Each realization holds 33 observable groups: 32
+individually resolvable sources, eight beam-compatible point sources, one
+clearly resolved source, and one unresolved blend, with a distinct WCS,
+background, noise gradient, invalid region, and a 180-degree mirrored layout.
+`tests/equivalence/test_phase_four_recovery.py` runs selected seeds through
+the compact branch.
 
-Phase 4 manifest schema 2 also records `association_truth_groups`. Every
+Manifest schema 2 also records `association_truth_groups`. Every
 analytic emitter belongs to exactly one canonical group. A singleton group is
 `individually-resolvable`; two or more emitters that produce one eligible
 observed maximum are an `unresolved-blend`. Each group freezes its identifier,
@@ -103,19 +100,16 @@ quantities, or ambiguous group strata.
 `association_group_strata` names group-level qualification populations
 separately from per-emitter `validation_strata`. This prevents unresolved
 members from entering individual completeness, position, flux, or shape
-denominators while retaining them in provenance. The replacement Phase 4
-qualification dataset has a new identifier, base seed, recipe checksum, and
-explicit unresolved-blend stratum. These inputs were frozen after the named
-association amendment and before any replacement result was generated or
-inspected.
+denominators while retaining them in provenance. Qualification inputs are
+frozen before any result is generated or inspected.
 
 Generator version 3 adds an explicit elliptical Gaussian noise-correlation
 function in image-pixel coordinates. It generates an expanded deterministic
 white-noise window, applies an L2-normalized Gaussian filter whose
 autocorrelation has the declared FWHM covariance, and crops the requested
 window. The result has the requested RMS and stitches exactly across arbitrary
-window layouts, including image edges. Phase 4 uses the restoring-beam
-covariance as this correlation function; generator versions 1 and 2 and their
+window layouts, including image edges. The compact datasets use the
+restoring-beam covariance as this correlation function; generator versions 1 and 2 and their
 checksums remain unchanged.
 
 ## Deterministic generation

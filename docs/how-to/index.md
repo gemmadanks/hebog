@@ -3,9 +3,7 @@
 This page is for developers working on Hebog itself. To call Hebog from your
 own pipeline, read [Integrate Hebog into a pipeline](integrate-into-a-pipeline.md)
 instead. For orientation, read the
-[architecture overview](../architecture/index.md) and
-[how Hebog has been developed](../explanation/development-history.md). The
-repository's
+[architecture overview](../architecture/index.md). The repository's
 [`AGENTS.md`](https://github.com/gemmadanks/hebog/blob/main/AGENTS.md) and
 [`CODE_REVIEW.md`](https://github.com/gemmadanks/hebog/blob/main/CODE_REVIEW.md)
 hold the full working rules.
@@ -45,8 +43,7 @@ Unit tests must be deterministic and require no scheduler or downloaded data.
 Tests that need ignored local products use `integration` and `requires_data`
 and are excluded from routine CI. They still fail if explicitly requested data
 is missing or has changed; never substitute a conditional skip or regenerate
-frozen expected products in a test. Closed Phase 5 campaign archive checks were
-removed with that campaign tooling and remain in Git history.
+frozen expected products in a test.
 
 Select data-dependent checks explicitly on a host that holds the data; do not
 enable every controlled test lane just to validate a checkout.
@@ -56,13 +53,11 @@ present does not establish CI portability: also run the quick lane from a clean
 checkout without those ignored products.
 
 Keep inexpensive protocol and write-once safety tests in portable CI while
-their builders or readers remain maintained. Completing a campaign does not
-remove the need to detect changed seeds, references, gates or authorization.
-Compare recomputed floating-point planning results with an explicit round-off
-tolerance; frozen artifact bytes and their recorded hashes still require exact
-equality. Retire obsolete campaign builders and their implementation-specific
-tests together after checking remaining consumers, preserving evidence and the
-identity checks needed by supported readers.
+their builders or readers remain maintained. Compare recomputed floating-point
+planning results with an explicit round-off tolerance; frozen artifact bytes
+and their recorded hashes still require exact equality. When retiring a
+builder, retire its implementation-specific tests with it after checking for
+remaining consumers.
 
 Contract tests hold strict-xfail executable specifications until their planned
 implementation turns them green; an unexpected pass fails CI until the test is
@@ -187,14 +182,13 @@ retries it. When a case fails, its time is missing from the Hebog total, so
 the report sets `within_budget` to `null` instead of comparing an incomplete
 total with the budget.
 
-Cached baselines drift with machine state: the same v0.7.0 dense-field
-median measured 25.8 s and 29.8 s in two sessions. Before acting on a
-regression whose CPU time did not change, confirm it with
-`--refresh-previous-release`, which measures the previous release again in
-the same session. The `master` ratio is diagnostic, not the
+Cached baselines drift with machine state: the same case can differ by 15%
+between sessions. Before acting on a regression whose CPU time did not change,
+confirm it with `--refresh-previous-release`, which measures the previous
+release again in the same session. The `master` ratio is diagnostic, not the
 deployment gate: Hebog runs natively on one thread and PyBDSF runs in a Linux
-container with four cores. Only the matched benchmark in milestone M4 can pass
-or fail that gate.
+container with four cores. Only the matched `filter_skymodel` benchmark can
+pass or fail that gate.
 
 ## Profile complete execution
 
@@ -392,8 +386,6 @@ pass finite global `(y, x)` candidate positions while preparing the grids.
 Tile requests derive their local positions from that immutable grid result, so
 callers cannot accidentally omit a previously estimated region. Only merged
 local fine-grid regions are estimated.
-Automatic bright-candidate discovery and the Rapthor configuration adapter are
-not yet public Phase 2 capabilities.
 
 Use a caller-owned Dask client when coarse batches should run remotely:
 

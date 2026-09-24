@@ -102,7 +102,7 @@ once per object multiplies it by the object count.
 2. **Per-pixel background refinement.** Still 13 to 18% after its batch size
    was corrected. The remaining cost is the wavelet bank and sigma clipping
    themselves, which are already vectorised SciPy.
-3. **The driver's whole-plane reads.** M2's own row; it governs the envelope
+3. **The driver's whole-plane reads.** The plan's next scalability step; it governs the envelope
    rather than the clock, but it also removes the largest remaining copies.
 4. **`fit_compact_gaussian_mixture`.** The genuine nonlinear fit, about 35%
    of the fitting stage and 5 to 8% of a run. It is already a compiled SciPy
@@ -134,8 +134,8 @@ driver's own locals at the terminal builder and counts the distinct
 image-shaped arrays reachable from them. There are **18**, at 49 bytes a
 pixel — 8 `int32` label planes, 9 masks and the position signal in
 `float64`. That is 0.41 GiB at 3,000², 4.6 GiB at 10,000² and 10.8 GiB at
-LoTSS-DR3 15,402², against 18 GiB of development-machine memory. The plan's
-M2 row sets out the order they come out in.
+LoTSS-DR3 15,402², against 18 GiB of development-machine memory. The
+implementation plan sets out the order they come out in.
 
 The image, the background, the RMS and their residual are all out. The
 catalogue projection reads each island's and each owner's own bounded window
@@ -187,5 +187,5 @@ The complete-path profile fits generated cost as
 `fixed + a·megapixels + b·components + c·megapixels·components`. The
 17 September fit, before this work, was
 `11.6 s/Mpx + 25 ms/component + 4.3 ms/(Mpx·component)`, against
-`18.6 + 49 ms + 47 ms` at the start of M1. Refit it with
+`18.6 + 49 ms + 47 ms` before the bottleneck work began. Refit it with
 `just profile-execution` after any change that moves a size or density tier.

@@ -87,7 +87,6 @@ nav:
       - Contributing:
           - Contribute to Hebog: how-to/index.md
           - Publish releases: how-to/publish-releases.md
-          - Development history: explanation/development-history.md
       - Reference:
           - Internal API: reference/internal-api.md
           - Internal schemas: reference/internal-schemas.md
@@ -104,12 +103,6 @@ nav:
               - Compact astrometry and beam deconvolution: reference/compact-astrometry.md
               - Compact catalogue and Rapthor FITS view: reference/compact-catalogue.md
               - Extended-emission measurement: reference/extended-emission-measurement.md
-  - Project records:
-      - Scientific readiness: reference/scientific-readiness.md
-      - Scientific campaign overview: reference/scientific-campaign-overview.md
-      - Scientific pre-review findings: reference/scientific-pre-review.md
-      - Phase 0 starting revisions: reference/starting-revisions.md
-      - Phase 0 baseline results: reference/phase-0-baseline-results.md
   - Tags: tags.md
 
 extra_javascript:

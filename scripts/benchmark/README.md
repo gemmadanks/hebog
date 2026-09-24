@@ -14,11 +14,9 @@ Python and dependency versions, worker topology, CPU allocation, wall time,
 CPU time, and peak resident memory. Generated results belong in the ignored
 `benchmark-results/` directory.
 
-Closed Phase 5 campaign launchers, freezers, reviews, compilers and evaluators
-were removed after that development phase closed. Their scientific conclusions
-are summarized in the
-[campaign overview](../../docs/reference/scientific-campaign-overview.md); the
-code remains in [Git history at `4babf0b`](https://github.com/gemmadanks/hebog/tree/4babf0baaf5609e72764183e543df84ec6be09e0).
+Earlier campaign launchers, freezers, reviews, compilers and evaluators were
+removed; their conclusions are in `LOG.md` and the code remains in
+[Git history at `4babf0b`](https://github.com/gemmadanks/hebog/tree/4babf0baaf5609e72764183e543df84ec6be09e0).
 
 ## Source-finder comparison notebook
 
