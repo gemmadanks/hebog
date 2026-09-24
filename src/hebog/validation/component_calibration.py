@@ -21,7 +21,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from math import cos, radians
 from typing import Any
 
 import numpy as np
@@ -48,42 +47,6 @@ class ComponentComparison:
     pulls: Mapping[str, float | None] = field(
         default_factory=dict[str, "float | None"]
     )
-
-
-def great_circle_right_ascension_error_degrees(
-    right_ascension_error_degrees: float | None,
-    *,
-    declination_degrees: float,
-) -> float | None:
-    """Convert an error on the RA coordinate into a great-circle error.
-
-    A pull divides an offset by an uncertainty, so the two must share a
-    convention, and published catalogues do not agree on which one ``E_RA``
-    uses. Hebog publishes an error on the RA coordinate: the tangent-plane
-    one-sigma divided by cos(dec), in :mod:`hebog.algorithms.astrometry`.
-    PyBDSF ``c70103be3`` publishes a great-circle error instead, because its
-    ``pix2coord`` returns an angular separation. Position offsets are reported
-    as great-circle angles, so a coordinate error is converted here rather than
-    by scaling the offset, which would leave the pull a factor cos(dec) small.
-
-    ``None`` passes through, because an unpublished uncertainty has no pull.
-
-    Examples:
-        >>> round(
-        ...     great_circle_right_ascension_error_degrees(
-        ...         0.002, declination_degrees=60.0
-        ...     ),
-        ...     9,
-        ... )
-        0.001
-        >>> great_circle_right_ascension_error_degrees(
-        ...     None, declination_degrees=60.0
-        ... ) is None
-        True
-    """
-    if right_ascension_error_degrees is None:
-        return None
-    return right_ascension_error_degrees * cos(radians(declination_degrees))
 
 
 def _values(

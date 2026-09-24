@@ -26,7 +26,6 @@ from hebog.io import read_catalogue_fits_product
 from hebog.validation.campaigns import phase_four_truth_source
 from hebog.validation.component_calibration import (
     ComponentComparison,
-    great_circle_right_ascension_error_degrees,
     summarise_component_calibration,
 )
 from hebog.validation.datasets import load_dataset_manifest
@@ -53,8 +52,8 @@ class Measured:
     """One catalogue entry in the units the truth is expressed in.
 
     Positions are RA/Dec in degrees, and ``e_ra`` is a great-circle one-sigma
-    error, the convention the reported offsets and pulls use. The two finders
-    do not publish it in the same convention, so each loader converts.
+    error, the convention the reported offsets and pulls use. Hebog and PyBDSF
+    both publish it that way, so no loader converts.
     """
 
     ra: float
@@ -90,10 +89,7 @@ def _hebog(products: Path, level: str) -> list[Measured]:
                 integrated=item.flux.integrated_flux_jy,
                 major=shape.major_fwhm_degrees if shape else None,
                 minor=shape.minor_fwhm_degrees if shape else None,
-                e_ra=great_circle_right_ascension_error_degrees(
-                    item.position.right_ascension_error_degrees,
-                    declination_degrees=item.position.declination_degrees,
-                ),
+                e_ra=item.position.right_ascension_error_degrees,
                 e_dec=item.position.declination_error_degrees,
                 e_peak=item.flux.peak_flux_error_jy_per_beam,
                 e_integrated=item.flux.integrated_flux_error_jy,
@@ -123,7 +119,6 @@ def _pybdsf(case_dir: Path, level: str) -> list[Measured]:
                 integrated=item.integrated_flux_jy,
                 major=shape.major_fwhm_degrees if shape else None,
                 minor=shape.minor_fwhm_degrees if shape else None,
-                # Already a great-circle error, so no conversion.
                 e_ra=item.right_ascension_error_degrees,
                 e_dec=item.declination_error_degrees,
                 e_peak=item.peak_flux_error_jy_per_beam,
@@ -192,8 +187,8 @@ def _match(
                 "minor": _excess(best.minor, truth_shape.minor_fwhm_degrees),
             }
             record["pulls"] = {
-                # Offsets and every loaded `e_ra` are great-circle, so scaling
-                # the RA difference by cos(dec) keeps the pull dimensionless.
+                # Offsets and every `e_ra` are great-circle, so scaling the
+                # RA difference by cos(dec) keeps the pull dimensionless.
                 "ra": _pull(
                     best.ra * cos_dec,
                     truth.right_ascension_degrees * cos_dec,

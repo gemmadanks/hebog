@@ -24999,3 +24999,58 @@ the per-worker placement finding.
   nobody imports fails it as stale.
 - **Checks.** Unit and contract suites pass (2,005 passed, 2 xfailed); ruff and
   pyright clean. The fingerprint digest changes again, which is the intent.
+
+## 2026-09-24 — M2: `E_RA` is published as a great-circle angle
+
+- **Why.** Rapthor's astrometry check cuts on `E_RA < 2 arcsec`, a fixed angle
+  written for PyBDSF. Hebog published an error on the RA coordinate, larger by
+  1/cos(dec), so the cut was tighter for Hebog the further a field lies from
+  the equator. The user chose to match PyBDSF, and asked for the convention to
+  be confirmed empirically before the change.
+- **Measured, not inferred.** The earlier diagnosis read PyBDSF's source. This
+  test needs no absolute prediction: one calibration image was written twice,
+  identical pixels with only `CRVAL2` changed from +0° to +60°. A great-circle
+  error is invariant to that; a coordinate error scales by 1/cos(60°) = 2.
+
+  | `E_RA` ratio, dec 0° → 60° | Value |
+  | --- | --- |
+  | PyBDSF `c70103be3`, in its pinned container | 1.0000 |
+  | Hebog, before | 1.9997 |
+  | Hebog, after | 1.0000 |
+
+  `E_DEC` gave 1.0000 throughout, in both finders, as it must. So PyBDSF is
+  great-circle and Hebog was not, and Hebog now matches.
+- **The change.** `_position_with_errors` no longer divides by cos(dec). The
+  local Jacobian is already east/north, so the tangent-plane variances are
+  great-circle and the division was what made `E_RA` a coordinate error. The
+  pole guard went with it: it existed only to protect that division, and was
+  never covered. A parametrized test pins the property rather than one value —
+  the same pixel covariance must give the same sky error at 0°, −30°, +45°,
+  +60° and +85° — and fails at every non-zero declination on the old code.
+- **A mirror defect the change created, and fixed.**
+  `validation/comparison.py` divided a *coordinate* RA difference by `E_RA`.
+  That was consistent while `E_RA` was a coordinate error and became wrong the
+  moment it was not, inflating the normalized RA residual by 1/cos(dec). The
+  offset is now converted instead. Its unit test had pinned the old pairing
+  and now expresses a one-sigma great-circle offset. Every other reader of
+  `right_ascension_error_degrees` is a passthrough, so nothing else paired the
+  error with a difference.
+- **The conversion helper is gone.** Both finders now publish great-circle, so
+  `great_circle_right_ascension_error_degrees` had no caller left; it and its
+  tests are removed rather than kept as a no-op.
+- **Pull-neutral, as it must be.** The calibration was re-run natively
+  (`--label ra-great-circle-1`, composition `284d2f9a6de5ae06`). Every RA and
+  Dec pull matches the converted-in-script run to four decimals: correlated RA
+  1.0148 / 0.6750, Dec 1.0058 / 0.6719; white RA 0.3478 / 0.9938, Dec 0.3340 /
+  0.9969. The script used to convert and Hebog now publishes natively, so the
+  statistic could not move, and the calibration evidence carries over.
+- **Breaking.** `E_RA` shrinks by cos(dec): 29% at +45°, 43% at +55°. Anyone
+  reading `RA ± E_RA` as a coordinate interval must now divide by cos(dec).
+  The compact-catalogue, Rapthor-contract and compact-astrometry references all
+  state the convention.
+- **Checks.** Unit, contract (2,005 passed, 2 xfailed), integration (669),
+  equivalence (27) and acceptance pass. What this does not establish: the
+  astrometry behaviour of a real high-declination field. The development
+  population is one declination with isolated sources, and the quick-check
+  cut-outs are at +7° and −30°, where the effect is 1–15%. Qualification on a
+  LOFAR field remains open.

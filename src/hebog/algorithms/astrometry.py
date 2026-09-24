@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import replace
-from math import cos, isfinite, log, pi, sqrt
+from math import isfinite, log, pi, sqrt
 
 import numpy as np
 import numpy.typing as npt
@@ -366,7 +366,16 @@ def _position_with_errors(
     transform: LocalTangentPlaneTransform,
     fit: ValidCompactGaussianFit,
 ) -> SkyPosition:
-    """Transform available centroid covariance to RA/Dec one-sigma errors."""
+    """Transform available centroid covariance to sky one-sigma errors.
+
+    Both errors are great-circle angles: the local Jacobian is east/north, so
+    its tangent-plane variances already are, and neither is divided by
+    cos(dec) to become an error on the RA coordinate. PyBDSF publishes `E_RA`
+    the same way, and Rapthor's astrometry check compares it with a fixed
+    2-arcsecond angle, so the coordinate convention would tighten that cut by
+    1/cos(dec) and drop sources PyBDSF keeps. Measured against pinned PyBDSF
+    `c70103be3` on one field at two declinations (`LOG.md`, 24 September).
+    """
     position_estimate = fit.position_estimate
     if position_estimate is not None:
         xx = position_estimate.covariance_xx_pixels_squared
@@ -382,16 +391,10 @@ def _position_with_errors(
     pixel_covariance = np.asarray([[xx, xy], [xy, yy]], dtype=np.float64)
     jacobian = np.asarray(transform.jacobian_degrees_per_pixel)
     tangent_covariance = jacobian @ pixel_covariance @ jacobian.T
-    declination = transform.position.declination_degrees
-    cosine_declination = abs(cos(np.deg2rad(declination)))
-    if cosine_declination <= np.finfo(np.float64).eps:
-        return transform.position
     return SkyPosition(
         right_ascension_degrees=transform.position.right_ascension_degrees,
-        declination_degrees=declination,
-        right_ascension_error_degrees=(
-            float(sqrt(tangent_covariance[0, 0])) / cosine_declination
-        ),
+        declination_degrees=transform.position.declination_degrees,
+        right_ascension_error_degrees=float(sqrt(tangent_covariance[0, 0])),
         declination_error_degrees=float(sqrt(tangent_covariance[1, 1])),
     )
 

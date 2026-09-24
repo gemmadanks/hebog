@@ -91,7 +91,10 @@ and tests it against governed truth.
 ## Uncertainty status
 
 The position estimator's nonsingular covariance can be transformed into
-one-sigma position errors; flux errors continue to use the selected
+one-sigma position errors. Both are great-circle angles, because the local
+Jacobian is east/north: `E_RA` is not divided by cos(dec), which matches
+PyBDSF and the fixed angle Rapthor's astrometry check compares it with.
+Flux errors continue to use the selected
 morphology/photometry fit covariance. A declared synthesized-beam correlation
 function produces
 generalized OLS sandwich errors flagged

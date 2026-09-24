@@ -95,23 +95,22 @@ operational soak of the 1.0.0 backend; the PyBDSF fallback remains until then.
   - `E_RA`/`E_DEC` uncertainty calibration (Rapthor excludes sources at
     ≥2 arcsec). Calibration itself now passes on beam-correlated noise: RA and
     Dec pull standard deviations are 1.015 and 1.006 with 67.5% and 67.2%
-    within one sigma (`LOG.md`, 24 September). What remains is the convention,
-    below;
+    within one sigma (`LOG.md`, 24 September), unchanged by the convention
+    change below. What remains is qualification on a real field;
   - `Total_flux` tails, under the limits in the
     [scientific gates](#scientific-gates) table (`Isl_Total_flux` is only
     carried through Rapthor's astrometry check);
   - faint association where it changes island grouping, and therefore
     patches.
 
-  A further `E_RA` decision is open, and the user owns it. Rapthor cuts on
-  `E_RA < 2 arcsec` with PyBDSF's great-circle meaning, while Hebog publishes
-  an error on the RA coordinate, larger by 1/cos(dec) and passed through
-  unconverted. The cut is therefore tighter for Hebog the further a field lies
-  from the equator — about 1.15 arcsec at +55°, where LOFAR mostly observes.
-  Either publish `E_RA` as a great-circle error, matching PyBDSF and the
-  threshold's intent, or keep the coordinate convention and document the
-  departure. The first changes a Rapthor-consumed column and needs equivalence
-  evidence and scientific review; neither is done.
+  `E_RA` is now published as a great-circle angle, matching PyBDSF and the
+  fixed angle Rapthor's astrometry cut compares it with. The convention was
+  measured, not inferred: on one field at two declinations, pinned PyBDSF
+  `c70103be3` reports the same `E_RA` at +0° and +60° while Hebog reported
+  twice as much, and Hebog now matches (`LOG.md`, 24 September). This is a
+  breaking change to a Rapthor-consumed column — values shrink by cos(dec) —
+  and it leaves position uncertainties needing qualification on a real
+  high-declination field, which the development population does not cover.
 
   The others stay documented limitations.
 - **Iteration budgets.** The budgets under

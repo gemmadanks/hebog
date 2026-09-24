@@ -171,8 +171,9 @@ def test_explicit_position_estimator_owns_position_and_covariance() -> None:
     assert result.position.declination_degrees == pytest.approx(
         expected.position.declination_degrees
     )
+    # A great-circle error, not an error on the RA coordinate: no cos(dec).
     assert result.position.right_ascension_error_degrees == pytest.approx(
-        0.0001 / np.cos(np.deg2rad(result.position.declination_degrees)),
+        0.0001,
         rel=1e-5,
     )
     assert result.position.declination_error_degrees == pytest.approx(0.0002)
@@ -302,7 +303,7 @@ def test_transform_uses_xy_centers_east_of_north_and_local_flux_area() -> None:
     )
     assert result.fitted_shape.position_angle_degrees == pytest.approx(90.0)
     assert result.position.right_ascension_error_degrees == pytest.approx(
-        0.0002 / np.cos(np.deg2rad(-30.0)),
+        0.0002,
         rel=1e-5,
     )
     assert result.position.declination_error_degrees == pytest.approx(0.0003)
@@ -1005,3 +1006,33 @@ def test_batched_beam_rotation_rejects_an_unsupported_frame() -> None:
         restoring_beams_in_icrs(beam, wcs, ())
     with pytest.raises(ValueError, match="ICRS or FK5"):
         restoring_beams_in_icrs(beam, wcs, ((10.0, 10.0),))
+
+
+@pytest.mark.parametrize("declination", (0.0, -30.0, 45.0, 60.0, 85.0))
+def test_position_errors_are_great_circle_angles(declination: float) -> None:
+    """One pixel uncertainty gives one sky error, wherever the field points.
+
+    `E_RA` is a great-circle angle, so the same pixel covariance under the same
+    pixel scale must give the same error at every declination. Dividing by
+    cos(dec) to report an error on the RA coordinate would scale this by
+    1/cos(dec), which is what pinned PyBDSF `c70103be3` does not do and what
+    Rapthor's fixed 2-arcsecond astrometry cut does not expect.
+    """
+    result = transform_compact_gaussian_fit(
+        _fit(
+            position_estimate=GaussianPositionEstimate(
+                centroid_xy=(49.0, 39.0),
+                covariance_xx_pixels_squared=0.25,
+                covariance_xy_pixels_squared=0.0,
+                covariance_yy_pixels_squared=0.25,
+            )
+        ),
+        _metadata(reference_sky_degrees=(180.0, declination)),
+    )
+
+    assert result.position.right_ascension_error_degrees == pytest.approx(
+        0.0005, rel=1e-4
+    )
+    assert result.position.declination_error_degrees == pytest.approx(
+        0.0005, rel=1e-4
+    )

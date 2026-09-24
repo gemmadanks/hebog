@@ -73,8 +73,8 @@ Rapthor diagnostic path:
 | `Isl_Total_flux` | 64-bit float | Jy | parent island pixel-sum flux |
 | `Total_flux` | 64-bit float | Jy | unresolved peak flux or resolved fitted source flux |
 | `DC_Maj` | 64-bit float | deg | deconvolved major FWHM |
-| `E_RA` | 64-bit float | deg | optional formal RA error |
-| `E_DEC` | 64-bit float | deg | optional formal Dec error |
+| `E_RA` | 64-bit float | deg | optional formal RA error, as a great-circle angle (not divided by cos(dec)) |
+| `E_DEC` | 64-bit float | deg | optional formal Dec error, as a great-circle angle |
 
 Rapthor reads the FITS table with Astropy. Its diagnostic conversion then
 writes `Source_id`, `RA`, `DEC`, and the selected flux to a minimal

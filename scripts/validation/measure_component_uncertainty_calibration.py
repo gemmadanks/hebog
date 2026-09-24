@@ -38,7 +38,6 @@ from hebog.io import read_catalogue_fits_product
 from hebog.validation.campaigns import phase_four_truth_source
 from hebog.validation.component_calibration import (
     ComponentComparison,
-    great_circle_right_ascension_error_degrees,
     summarise_component_calibration,
 )
 from hebog.validation.datasets import (
@@ -270,12 +269,10 @@ def _pulls(
                     ),
                 },
                 "pulls": {
+                    # Offset and error are both great-circle angles.
                     "ra": pull(
                         offsets["ra"],
-                        great_circle_right_ascension_error_degrees(
-                            position.right_ascension_error_degrees,
-                            declination_degrees=truth.declination_degrees,
-                        ),
+                        position.right_ascension_error_degrees,
                     ),
                     "dec": pull(
                         offsets["dec"],

@@ -87,7 +87,7 @@ columns:
 | `Isl_Total_flux` | Island-integrated flux used by the default astrometry comparison conversion |
 | `Total_flux` | Source flux used for photometry and flux-normalization consistency. In `continuum` it is the sum of the source's fitted Gaussian components, PyBDSF's definition, falling back to the signed aperture when no fit was admitted; see [public products](public-products.md#what-the-two-source-fluxes-measure-and-where-they-part) for where the two part |
 | `DC_Maj` | Deconvolved major axis in degrees; sources at or above 10 arcsec are excluded from compact-source checks |
-| `E_RA`, `E_DEC` | Position uncertainties in degrees; sources at or above 2 arcsec are excluded from astrometry checks |
+| `E_RA`, `E_DEC` | Position uncertainties in degrees, both great-circle angles; sources at or above 2 arcsec are excluded from astrometry checks. Rapthor compares these with a fixed angle, and PyBDSF publishes `E_RA` the same way, so `E_RA` is *not* divided by cos(dec) to become an error on the RA coordinate: that convention would tighten the cut by 1/cos(dec) and drop sources PyBDSF keeps |
 
 The adapter freezes these as an exact eight-column view: zero-based
 canonical 32-bit integer source numbering; 64-bit floating values; degrees for
