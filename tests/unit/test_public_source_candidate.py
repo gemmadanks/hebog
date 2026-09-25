@@ -3,9 +3,12 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 
 from hebog import public_api
+from hebog.pipeline import SourceFinderError
 from hebog.science.models import CatalogueSource
 
 
@@ -60,3 +63,19 @@ def test_major_axis_only_flag_follows_the_published_measurement(
     assert candidate.deconvolved_major_fwhm_degrees == major_fwhm
     assert candidate.additional_island_ids == ("island-2",)
     assert candidate.flux.local_rms_jy_per_beam == 0.01
+
+
+def test_a_row_without_measured_noise_fails_closed() -> None:
+    """An owner the row passes left unmeasured has no publishable noise.
+
+    Every published row quotes the noise over the support it owns, so an
+    owner absent from the measured mapping is an error rather than a row
+    with a fabricated or neighbouring estimate.
+    """
+    terminal = SimpleNamespace(
+        local_rms_by_object_id={"component-1": 0.01},
+    )
+
+    assert public_api._published_local_rms(terminal, "component-1") == 0.01
+    with pytest.raises(SourceFinderError, match="no valid local RMS"):
+        public_api._published_local_rms(terminal, "component-2")

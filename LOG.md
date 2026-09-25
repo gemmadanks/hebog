@@ -25054,3 +25054,92 @@ the per-worker placement finding.
   population is one declination with isolated sources, and the quick-check
   cut-outs are at +7° and −30°, where the effect is 1–15%. Qualification on a
   LOFAR field remains open.
+
+## 2026-09-25 — M2: two per-object rounds move into their own passes
+
+- **What this is.** The plan's authorized next action, in two of its three
+  parts: every direct component's association record and every catalogue
+  row's local noise are now produced by the stage that already holds the
+  tile they need, and the driver reads no window for either. The detection
+  island rows are not part of this change; see *What is left*.
+- **The records belong to the fit round.** A component's record is its
+  identity, its canonical pixel and the positive-residual moments over its
+  own valid support, so it needs the residual, the validity and the direct
+  labels — the three planes `_fit_batch` already reads for the fit itself. A
+  fit parent is the labelled dilation of the measurement support that a
+  component's direct support lies inside, so the parent's window holds each
+  of its components entirely; the reviewed context margin can expose a
+  neighbour's pixels, so each parent describes only the components standing
+  on its own support. The reduction rejects a component claimed by two
+  parents, which is what a truncated window would look like.
+- **The noise belongs to the row round.** The median local RMS a catalogue
+  row quotes is taken over that row's own seeded ownership, which is the
+  centroid plane the row round already reads: `component-measurement-labels`
+  for a component and `source-labels` for a source. The second is by
+  construction the union of that source's components' measurement
+  footprints, so the median over it is the median over the multiset the
+  driver used to concatenate. The round measures every segment it observes,
+  not only the measurable ones, because a component whose row is
+  unmeasurable can still be published from its fitted model and quotes the
+  same noise. `build_configured_continuum_products` names the two
+  label-keyed mappings by catalogue identity; an owner with no usable
+  estimate is absent, and that absence is what raises `SourceFinderError`.
+- **Evidence: the products do not move.** On the real 1,024² LoTSS-DR3 dense
+  cut-out the catalogue, RMS and mask are bitwise identical to `f0db9ca`,
+  including all 83 source, 108 Gaussian-component and 109 island local-noise
+  values, and the traced peak moves 342.11 → 342.01 MiB. The same holds at
+  the envelope's largest admitted size: on the 3,000² cut-out, 659 sources,
+  828 components and 814 islands are identical and the traced peak is
+  1261.39 MiB before and after, to four decimals. Both trees were measured
+  with one throw-away `tracemalloc` harness at the benchmark's settings, so
+  the pair is like for like; it is not comparable with the 1,342 MiB the plan
+  quotes, which came from a different harness. Nothing committed measures the
+  traced peak, although the plan makes it the envelope gate. The quick
+  science check reports no regression against the 24 September baseline
+  (`656f68e`), all 16 cases successful, with cached references only because
+  the container is still down. New tests pin each round against its
+  whole-plane oracle, at any batch size, under Dask and over tile geometries;
+  the driver's noise lookup fails closed for an owner the rounds never
+  measured; and the batched object reads, which only the island round uses
+  now, are tested directly rather than through the consumer that moved.
+  Branch-aware coverage is 96.68% over 2,574 portable tests, with the two
+  stages and the composition at 100% and the driver at 99%, whose three
+  remaining misses predate this work.
+- **Evidence: the 1,024² anchors do not regress.** Against v0.13.0, the
+  previous release the rule names, medians of five on a quiet machine:
+  `dense-field` 9.48 s, ratio 0.98 [0.96, 1.00]; `lotss-dr3-1312-sparse`
+  10.47 s, 0.97 [0.93, 1.00]; `lotss-dr3-1312-dense` 11.83 s, 1.00
+  [0.99, 1.02]. Peak RSS 695/700/700 MiB. No `master` ratio: the comparison
+  container still fails to start. These absolute times are about half the
+  24 September figures for the same cases because that session ran loaded;
+  only the ratio is the gate.
+- **Evidence: what the move is worth, which is not what the plan expected.**
+  Profiled on the same cut-out, 111 components and 83 sources in a 13.5 s
+  run:
+
+  | round | in the driver | inside the pass |
+  | --- | --- | --- |
+  | component association records | 0.058 s | 0.019 s |
+  | owner local noise | 0.027 s | 0.005 s |
+
+  The row round's own read grows 0.215 → 0.270 s because it now reads the
+  RMS window too, so the net effect is a few tens of milliseconds. The two
+  rounds together were 0.6% of the run before the move.
+- **Consequence for the 8% accepted on 24 September.** That trade-off cannot
+  be recovered by moving these rounds, and the profile says why: at 1,024²
+  the whole image is under the 4-megapixel owner read budget, so each driver
+  round was already one whole-image read, and one whole-image read costs
+  tens of milliseconds. The 8% sits in the store's per-read overhead — 56%
+  of a profiled run inside Zarr's `sync()` bridge — so only reducing that
+  recovers it. The plan's row and next action now say so rather than
+  carrying the expectation forward.
+- **The driver's plane count is unchanged, as it must be.** Walking the
+  driver's locals at the terminal builder still finds 18 image-shaped arrays
+  at 49 bytes a pixel: 8 `int32` label planes, 9 masks and the position
+  signal. This change removes reads, not planes; the planes are the next row.
+- **What is left.** The detection island rows still read one window per
+  island in the driver, 0.077 s on this cut-out. They cannot move the same
+  way: an island is a connected component of the retained mask, whose
+  connectivity spans tiles, so the round needs a reconciled labelling and a
+  reduced owner-to-island map rather than a home in an existing pass.
+  ADR-008's object table has no round for it yet.

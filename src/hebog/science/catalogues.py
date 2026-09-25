@@ -664,6 +664,39 @@ def unavailable_moment_shape_fields() -> dict[str, object]:
     }
 
 
+def segment_local_rms(
+    rms_jy_per_beam: npt.NDArray[np.float64],
+    owner_window: npt.NDArray[np.integer[Any]],
+    *,
+    label_value: int,
+) -> float | None:
+    """Return the median local noise over one segment's exact owned support.
+
+    ``owner_window`` is the segment's seeded ownership, not its expanded
+    aperture: the noise a catalogue row quotes describes the pixels the
+    segment itself owns. Both arrays cover the same window. A pixel whose
+    estimate is not finite and positive carries no usable noise, and
+    ``None`` means this segment owns no pixel that does.
+
+    Examples:
+        >>> import numpy as np
+        >>> rms = np.array([[1.0, 3.0], [np.nan, 5.0]])
+        >>> owners = np.array([[2, 2], [2, 0]])
+        >>> segment_local_rms(rms, owners, label_value=2)
+        2.0
+        >>> segment_local_rms(rms, owners, label_value=1) is None
+        True
+    """
+    usable = (
+        (owner_window == label_value)
+        & np.isfinite(rms_jy_per_beam)
+        & (rms_jy_per_beam > 0.0)
+    )
+    if not bool(np.any(usable)):
+        return None
+    return float(np.median(rms_jy_per_beam[usable]))
+
+
 def segment_moment(
     residual_jy_per_beam: npt.NDArray[np.float64],
     support: npt.NDArray[np.bool_],
@@ -875,6 +908,35 @@ def source_label_by_owner(
         )
         for component_id in membership.component_ids
     }
+
+
+def local_rms_by_object_id(
+    association: SourceAssociationResult,
+    *,
+    component_local_rms: Mapping[int, float],
+    source_local_rms: Mapping[int, float],
+) -> dict[str, float]:
+    """Name each measured owner's local noise by its catalogue identity.
+
+    The row passes measure noise per label, because that is what the plane
+    they read carries: components by their measurement label and sources by
+    their canonical source label, which is the membership's position here.
+    An owner whose support carries no usable estimate is absent, exactly as
+    it is in the mappings this joins.
+    """
+    by_object_id = {
+        record.component_id: component_local_rms[record.label_value]
+        for record in association.components
+        if record.label_value in component_local_rms
+    }
+    by_object_id.update(
+        (membership.source_id, source_local_rms[source_label])
+        for source_label, membership in enumerate(
+            association.memberships, start=1
+        )
+        if source_label in source_local_rms
+    )
+    return by_object_id
 
 
 def _require_valid_source_label_plane(

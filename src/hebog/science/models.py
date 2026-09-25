@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Literal, Self
 
@@ -16,7 +16,10 @@ from hebog.algorithms.component_measurement import (
 )
 from hebog.algorithms.reconciliation import DetectedIsland
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
-from hebog.data_models.source_association import SourceAssociationResult
+from hebog.data_models.source_association import (
+    DetectionComponentRecord,
+    SourceAssociationResult,
+)
 
 _MINIMUM_DECLINATION_DEGREES = -90.0
 _MAXIMUM_DECLINATION_DEGREES = 90.0
@@ -337,22 +340,35 @@ class TiledComponentFits:
     the reviewed context margin, and each connected feature of the combined
     support contributed its extended groups inside its own window, so these
     records carry no image-sized array except the support plane itself.
+
+    ``component_records`` describes every direct component in canonical
+    first-pixel order. The fit parent that reads a component's pixels builds
+    it, so the association decision and the hierarchy pass read one set of
+    records that no later step measures again.
     """
 
     parents: tuple[FitParentMeasurement, ...]
     measurement_support: npt.NDArray[np.bool_]
     features: tuple[SupportFeatureGroups, ...]
+    component_records: tuple[DetectionComponentRecord, ...]
 
 
 @dataclass(frozen=True, slots=True)
 class ContinuumProducts:
-    """Binding associated sources and immutable component diagnostics."""
+    """Binding associated sources and immutable component diagnostics.
+
+    ``local_rms_by_object_id`` holds the median local noise over each
+    component's and each source's own support, measured by the row pass that
+    read the window it belongs to. An owner whose support carries no usable
+    estimate is absent, which is what makes it unpublishable.
+    """
 
     detection: ThresholdFilterResult
     measurement_component_labels: npt.NDArray[np.int32]
     catalogue: tuple[CatalogueSource, ...]
     component_catalogue: tuple[CatalogueSource, ...]
     source_association: SourceAssociationResult
+    local_rms_by_object_id: Mapping[str, float]
     deblended_parent_count: int = 0
     deferred_deblend_parent_count: int = 0
     measurement_dispositions: tuple[MeasurementDisposition, ...] = ()

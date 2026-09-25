@@ -12,7 +12,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-09-18 |
-| **Last Updated** | 2026-09-19 (pass C and pass D rounds) |
+| **Last Updated** | 2026-09-25 (the per-object rounds each pass owns) |
 | **Deciders** | Gemma Danks |
 | **Tags** | tiling, halos, ownership, reconciliation, memory, invariance |
 
@@ -292,7 +292,7 @@ that only one round reads would cost a generation for nothing.
 | Deblend | parent window | `direct-snr`, `valid-pixels`, both label planes | bounded component memberships, local to the parent |
 | Component write | core, halo 0 | the numbered memberships | `component-direct-labels`, `component-measurement-labels` |
 | Fit parents | core, halo 0 | `component-measurement-labels` | context island summaries; then `fit-parent-labels` |
-| Component fits | fit-parent window + margin | residual, RMS, validity, both component planes | fit records, groups, grouping evidence, a measurement-support patch |
+| Component fits | fit-parent window + margin | residual, RMS, validity, both component planes | fit records, groups, grouping evidence, a measurement-support patch, each owned component's association record |
 | Support write | core, halo 0 | the patches | `measurement-support` |
 | Support features | core, halo 0 | `measurement-support`, `valid-pixels`, `component-measurement-labels` | feature island summaries and each measurement label's bounds |
 | Cross-parent loops and extended residual | support-feature window + margin | residual, RMS, validity, `measurement-support`, `component-measurement-labels`, the sharded fit records | extended group records and grouping evidence |
@@ -301,7 +301,7 @@ that only one round reads would cost a generation for nothing.
 | Source labels | core, halo 0 | `component-measurement-labels`, the sharded owner-to-source map | `source-labels` |
 | Source support | core, halo 0, then one connected support component's window | `source-labels`, `persistent-scale-support`, `measurement-support` | support island summaries, then owner patches, then `source-measurement-labels` |
 | Source apertures | core, halo 1.5 beams | `source-measurement-labels` | `source-aperture-labels` |
-| Source rows | source window + 1.5-beam aperture | image, background, validity, source labels, position signal | catalogue shards |
+| Source rows | source window + 1.5-beam aperture | image, background, RMS, validity, source labels, position signal | catalogue shards, each segment's local noise |
 
 Component numbering is canonical because the driver offsets each parent's
 local labels by the components every earlier parent produced, in ascending
@@ -335,7 +335,9 @@ feature's task derives its own influence set and its envelope's overlaps
 inside the pair box, and returns records.
 
 The driver never gathers the component set. Records live in owner-tile shards
-and reduce hierarchically.
+and reduce hierarchically. Each record is built by the fit parent that already
+reads that component's residual and validity, so describing a component costs
+no round and no read of its own.
 
 Every overlap above is stated between *globally* labelled features, so the
 scale feature labels must be readable by window. The detection pass already
@@ -378,7 +380,10 @@ neighbours is the same as taking the smallest label, which one window knows.
 
 Everything else the catalogue does is per core or per object: mapping owners
 to source labels, expanding apertures by the reviewed 1.5-beam radius, and
-measuring each component's and each source's moments inside its own window.
+measuring each component's and each source's moments, and the local noise over
+the support it owns, inside its own window. The noise is measured for every
+segment the round observes, not only for the measurable ones, because a row
+published from a fitted model quotes the same value.
 
 The rows need no reconciliation at all. `build_hebog_segment_catalogue`
 already measures one label at a time inside the window holding its support

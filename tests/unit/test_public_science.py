@@ -10,16 +10,12 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
-import numpy.typing as npt
 import pytest
 from astropy.io import fits
 
 from hebog import public_science
 from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.config import SourceFinderConfig
-from hebog.public_api import (
-    component_records_from_windows,
-)
 from hebog.public_science import (
     _aligned_mask,
     build_configured_continuum_products,
@@ -76,13 +72,16 @@ def _published(
     config: SourceFinderConfig,
     beam: BeamShapePixels,
     work_directory: Path,
+    rms: np.ndarray | None = None,
 ) -> PublishedContinuumInputs:
     """Publish the tiled passes over one zero-background plane."""
     return publish_continuum_inputs(
         np.asarray(image, dtype=np.float64),
         np.ones(image.shape, dtype=np.bool_),
         np.zeros(image.shape, dtype=np.float64),
-        np.ones(image.shape, dtype=np.float64),
+        np.ones(image.shape, dtype=np.float64)
+        if rms is None
+        else np.asarray(rms, dtype=np.float64),
         beam=beam,
         review=configured_science_profile(_review(), config),
         work_directory=work_directory,
@@ -208,6 +207,8 @@ def test_configured_builder_rejects_usable_noise_outside_the_valid_domain(
             component_rows=published.component_rows,
             source_rows=published.source_rows,
             source_positions=published.source_positions,
+            component_local_rms=published.component_local_rms,
+            source_local_rms=published.source_local_rms,
         )
 
 
@@ -265,6 +266,8 @@ def test_configured_builder_measures_the_published_component_topology(
         component_rows=published.component_rows,
         source_rows=published.source_rows,
         source_positions=published.source_positions,
+        component_local_rms=published.component_local_rms,
+        source_local_rms=published.source_local_rms,
     )
 
     assert result is not None
@@ -314,6 +317,8 @@ def test_configured_builder_publishes_independent_connected_sources(
         component_rows=published.component_rows,
         source_rows=published.source_rows,
         source_positions=published.source_positions,
+        component_local_rms=published.component_local_rms,
+        source_local_rms=published.source_local_rms,
     )
 
     assert result is not None
@@ -362,6 +367,8 @@ def test_configured_builder_retains_three_components_in_one_parent(
         component_rows=published.component_rows,
         source_rows=published.source_rows,
         source_positions=published.source_positions,
+        component_local_rms=published.component_local_rms,
+        source_local_rms=published.source_local_rms,
     )
 
     assert result is not None
@@ -377,70 +384,114 @@ def test_configured_builder_retains_three_components_in_one_parent(
     ) == (1, 1, 1)
 
 
-def test_component_records_do_not_depend_on_the_read_batch_size(
+def _owner_local_rms(
+    rms: np.ndarray,
+    labels: np.ndarray,
+) -> dict[int, float]:
+    """Return each label's median local noise over its own exact support."""
+    usable = np.isfinite(rms) & (rms > 0.0)
+    return {
+        int(label_value): float(
+            np.median(rms[(labels == label_value) & usable])
+        )
+        for label_value in sorted(
+            int(value) for value in np.unique(labels) if value > 0
+        )
+        if np.any((labels == label_value) & usable)
+    }
+
+
+def test_published_local_noise_belongs_to_each_owner_support(
     tmp_path: Path,
 ) -> None:
-    """One read per batch must describe what one read per component does.
+    """Every owner's noise is the median over the pixels it owns itself.
 
-    The residual is assembled from storage chunks far larger than a
-    component, so neighbours share a read. How many share it is a memory
-    and decode decision, and it may never reach the records.
+    A component owns its measurement support and a source owns the union of
+    its components', which is exactly what the published source-label plane
+    carries, so both are checked against the planes rather than the rounds
+    that measured them.
     """
-    yy, xx = np.mgrid[:96, :96]
-    normalized: npt.NDArray[np.float64] = np.zeros((96, 96), dtype=np.float64)
-    for centre_y, centre_x, peak in (
-        (16, 16, 12.0),
-        (16, 76, 9.0),
-        (52, 44, 15.0),
-        (80, 20, 10.5),
-        (80, 78, 11.0),
+    yy, xx = np.mgrid[:65, :80]
+    normalized = np.zeros(yy.shape, dtype=np.float64)
+    for amplitude, centre_y, centre_x in (
+        (12.0, 32, 20),
+        (11.0, 32, 27),
+        (10.0, 16, 60),
     ):
-        normalized += peak * np.exp(
+        normalized += amplitude * np.exp(
             -((yy - centre_y) ** 2 + (xx - centre_x) ** 2) / 8.0
         )
+    rms = 1.0 + 0.01 * np.asarray(xx, dtype=np.float64)
+    rms[:, 20] = np.nan
+
     published = _published(
         normalized,
         SourceFinderConfig(5.0, 3.0, 7),
         BeamShapePixels(5.0, 4.0, 0.0),
         tmp_path,
-    )
-    labels = published.topology.direct_component_labels
-    assert int(np.count_nonzero(np.unique(labels) > 0)) == 5
-    valid_pixels: npt.NDArray[np.bool_] = np.ones((96, 96), dtype=np.bool_)
-
-    batched, per_component = (
-        component_records_from_windows(
-            published.image_source,
-            published.background_rms,
-            direct_component_labels=labels,
-            valid_pixels=valid_pixels,
-            maximum_batch_read_pixels=budget,
-        )
-        for budget in (normalized.size, 1)
+        rms=rms,
     )
 
-    assert batched == per_component
-    assert len(batched) == 5
+    components = _owner_local_rms(
+        rms, published.topology.measurement_component_labels
+    )
+    sources = _owner_local_rms(rms, published.source_labels)
+    assert len(components) > 1, "the fixture must measure several components"
+    assert len({*components.values()}) == len(components)
+    assert dict(published.component_local_rms) == components
+    assert dict(published.source_local_rms) == sources
 
 
-def test_component_records_describe_nothing_without_a_component(
+def test_the_composition_names_each_owner_noise_by_its_identity(
     tmp_path: Path,
 ) -> None:
-    """Labels that admit no component ask the store for no residual."""
-    normalized: npt.NDArray[np.float64] = np.zeros((48, 48), dtype=np.float64)
-    normalized[24, 24] = 40.0
+    """Rows are published by identity, so the noise they quote must be too."""
+    yy, xx = np.mgrid[:65, :65]
+    normalized = 10.0 * np.exp(
+        -((yy - 32) ** 2 + (xx - 29) ** 2) / 8.0
+    ) + 9.5 * np.exp(-((yy - 32) ** 2 + (xx - 36) ** 2) / 8.0)
+    rms = 1.0 + 0.01 * np.asarray(xx, dtype=np.float64)
+
     published = _published(
         normalized,
         SourceFinderConfig(5.0, 3.0, 7),
         BeamShapePixels(5.0, 4.0, 0.0),
         tmp_path,
+        rms=rms,
+    )
+    result = build_configured_continuum_products(
+        np.ones(normalized.shape, dtype=np.bool_),
+        np.ones(normalized.shape, dtype=np.bool_),
+        _header(normalized.shape),
+        multiscale=published.multiscale,
+        labels=published.labels,
+        topology=published.topology,
+        measurements=published.measurements,
+        association=published.association,
+        hierarchy=published.hierarchy,
+        source_labels=published.source_labels,
+        source_measurement_labels=(published.source_measurement_labels),
+        component_rows=published.component_rows,
+        source_rows=published.source_rows,
+        source_positions=published.source_positions,
+        component_local_rms=published.component_local_rms,
+        source_local_rms=published.source_local_rms,
     )
 
-    records = component_records_from_windows(
-        published.image_source,
-        published.background_rms,
-        direct_component_labels=np.zeros((48, 48), dtype=np.int32),
-        valid_pixels=np.ones((48, 48), dtype=np.bool_),
-    )
-
-    assert records == ()
+    assert result is not None
+    association = published.association
+    assert len(association.components) > 1
+    assert result.local_rms_by_object_id == {
+        **{
+            record.component_id: published.component_local_rms[
+                record.label_value
+            ]
+            for record in association.components
+        },
+        **{
+            membership.source_id: published.source_local_rms[source_label]
+            for source_label, membership in enumerate(
+                association.memberships, start=1
+            )
+        },
+    }

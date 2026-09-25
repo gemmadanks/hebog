@@ -46,7 +46,6 @@ from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
 from hebog.public_api import (
     ADMITTED_TILE_CORE_PIXELS,
-    component_records_from_windows,
     detect_multiscale_products,
     publish_component_fits,
     publish_component_topology,
@@ -159,6 +158,8 @@ class PublishedContinuumInputs:
     component_rows: tuple[CatalogueSource, ...]
     source_rows: tuple[CatalogueSource, ...]
     source_positions: Mapping[int, SourcePositionDiagnostics]
+    component_local_rms: Mapping[int, float]
+    source_local_rms: Mapping[int, float]
 
 
 def _source_association(
@@ -280,12 +281,7 @@ def publish_continuum_inputs(  # noqa: PLR0913
         generation_id=generation_id,
         tile_core_pixels=support_tile_core_pixels,
     )
-    records = component_records_from_windows(
-        image_source,
-        background_rms_source,
-        direct_component_labels=topology.direct_component_labels,
-        valid_pixels=valid_pixels,
-    )
+    records = component_fits.component_records
     overlaps, hierarchy_source = publish_hierarchy_overlaps(
         detection_source,
         component_source,
@@ -325,7 +321,7 @@ def publish_continuum_inputs(  # noqa: PLR0913
         generation_id=generation_id,
         tile_core_pixels=support_tile_core_pixels,
     )
-    component_rows, _ = publish_segment_rows(
+    component_rows, component_local_rms, _ = publish_segment_rows(
         image_source,
         background_rms_source,
         detection_source,
@@ -344,7 +340,7 @@ def publish_continuum_inputs(  # noqa: PLR0913
         sink_name="component-rows",
         tile_core_pixels=support_tile_core_pixels,
     )
-    source_rows, source_positions = publish_segment_rows(
+    source_rows, source_local_rms, source_positions = publish_segment_rows(
         image_source,
         background_rms_source,
         detection_source,
@@ -369,6 +365,8 @@ def publish_continuum_inputs(  # noqa: PLR0913
         component_rows=component_rows,
         source_rows=source_rows,
         source_positions=source_positions,
+        component_local_rms=component_local_rms,
+        source_local_rms=source_local_rms,
         measurements=measurements,
         association=association,
         hierarchy=hierarchy,

@@ -24,7 +24,10 @@ from hebog.data_models.images import RestoringBeam
 from hebog.data_models.partitioning import ImageBounds, PartitionManifest
 from hebog.executors import DaskExecutor, SerialExecutor, TaskRequirement
 from hebog.io.zarr import ZarrProductSink
-from hebog.science.catalogues import build_hebog_segment_moment_catalogue
+from hebog.science.catalogues import (
+    build_hebog_segment_moment_catalogue,
+    segment_local_rms,
+)
 from hebog.stages.catalogue_rows import (
     SegmentRowStageConfig,
     SegmentRowStageResult,
@@ -181,14 +184,33 @@ def _publish(
     return sink
 
 
-def _sources(root: Path) -> tuple[ZarrProductSink, ...]:
+def _rms() -> npt.NDArray[np.float64]:
+    """Return one local-noise plane that varies across the image.
+
+    A constant plane would make every segment quote the same noise, so the
+    estimate rises with x and one blanked column carries none at all.
+    """
+    _, xx = np.mgrid[: _SHAPE_YX[0], : _SHAPE_YX[1]]
+    rms = 1.0 + 0.01 * np.asarray(xx, dtype=np.float64)
+    rms[:, 30] = np.nan
+    rms[:, 44] = -1.0
+    return rms
+
+
+def _sources(
+    root: Path,
+    rms: npt.NDArray[np.float64] | None = None,
+) -> tuple[ZarrProductSink, ...]:
     """Publish every generation the row rounds read."""
     root.mkdir(parents=True, exist_ok=True)
     image, background, valid, labels = _planes()
     return (
         _publish(
             root / "background.zarr",
-            (("background", background, "<f8"),),
+            (
+                ("background", background, "<f8"),
+                ("rms", _rms() if rms is None else rms, "<f8"),
+            ),
             generation_id="background-fixture",
         ),
         _publish(
@@ -231,10 +253,11 @@ def _run(
     core: int = 16,
     executor: object | None = None,
     header: fits.Header | None = None,
+    rms: npt.NDArray[np.float64] | None = None,
     **overrides: object,
 ) -> SegmentRowStageResult:
     """Measure every segment's row, in isolation."""
-    background, detection, labels = _sources(root)
+    background, detection, labels = _sources(root, rms)
     image, _, valid, _ = _planes()
     manifest = _manifest(core)
     return run_segment_row_stage(
@@ -306,6 +329,43 @@ def test_the_canonical_source_policy_and_diagnostics_also_match(
     assert dict(result.position_diagnostics) == diagnostics
 
 
+def test_published_local_rms_matches_the_whole_plane_estimate(
+    tmp_path: Path,
+) -> None:
+    """Each segment's noise comes from the pixels it owns, not its aperture.
+
+    The row round reads the estimate with the window it already measures in,
+    so the noise a catalogue row quotes is the median over that segment's own
+    support, ignoring pixels with no finite positive estimate.
+    """
+    _, _, _, labels = _planes()
+    expected = {
+        label_value: segment_local_rms(_rms(), labels, label_value=label_value)
+        for label_value in sorted(
+            int(value) for value in np.unique(labels) if value > 0
+        )
+    }
+
+    result = _run(tmp_path / "run")
+
+    assert len(expected) > 1, "the fixture must measure several segments"
+    assert all(value is not None for value in expected.values())
+    assert dict(result.local_rms_by_label) == expected
+    assert len({*expected.values()}) == len(expected), (
+        "the fixture's segments must not share one noise estimate"
+    )
+
+
+def test_a_segment_owning_no_usable_estimate_quotes_no_noise(
+    tmp_path: Path,
+) -> None:
+    """An unusable estimate over a segment's whole support reports nothing."""
+    result = _run(tmp_path / "run", rms=np.zeros(_SHAPE_YX, dtype=np.float64))
+
+    assert result.rows, "the fixture must still measure its rows"
+    assert dict(result.local_rms_by_label) == {}
+
+
 @pytest.mark.parametrize("core", [16, 24, 72])
 def test_rows_are_partition_and_batch_invariant(
     tmp_path: Path, core: int
@@ -322,6 +382,7 @@ def test_rows_are_partition_and_batch_invariant(
     )
 
     assert result.rows == reference.rows
+    assert result.local_rms_by_label == reference.local_rms_by_label
 
 
 def test_rows_are_executor_invariant(tmp_path: Path) -> None:
@@ -337,6 +398,7 @@ def test_rows_are_executor_invariant(tmp_path: Path) -> None:
         result = _run(tmp_path / "dask", executor=DaskExecutor(client))
 
     assert result.rows == reference.rows
+    assert result.local_rms_by_label == reference.local_rms_by_label
 
 
 def test_the_row_stage_publishes_canonical_products(tmp_path: Path) -> None:
@@ -463,7 +525,10 @@ def test_an_image_with_no_segment_publishes_an_empty_catalogue(
     image, background_plane, valid, _ = _planes()
     background = _publish(
         root / "background.zarr",
-        (("background", background_plane, "<f8"),),
+        (
+            ("background", background_plane, "<f8"),
+            ("rms", _rms(), "<f8"),
+        ),
         generation_id="background-fixture",
     )
     detection = _publish(
@@ -500,6 +565,7 @@ def test_an_image_with_no_segment_publishes_an_empty_catalogue(
 
     assert result.segment_count == 0
     assert result.rows == ()
+    assert dict(result.local_rms_by_label) == {}
     assert result.maximum_segment_read_pixels == 0
     assert len(result.generation.chunks) == len(manifest.tiles)
 
@@ -566,7 +632,10 @@ def test_an_unmeasurable_segment_publishes_no_row(tmp_path: Path) -> None:
     masked = valid & (labels_plane != hidden)
     background = _publish(
         root / "background.zarr",
-        (("background", background_plane, "<f8"),),
+        (
+            ("background", background_plane, "<f8"),
+            ("rms", _rms(), "<f8"),
+        ),
         generation_id="background-fixture",
     )
     detection = _publish(

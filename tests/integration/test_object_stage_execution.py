@@ -40,6 +40,9 @@ from hebog.algorithms.reconciliation import (
     ReconciledIslands,
     TileLabelMapping,
 )
+from hebog.algorithms.source_association import (
+    build_detection_component_records,
+)
 from hebog.config import (
     CompactDeblendConfig,
     CompactGaussianFitConfig,
@@ -47,6 +50,7 @@ from hebog.config import (
 )
 from hebog.data_models.images import RestoringBeam
 from hebog.data_models.partitioning import ImageBounds, PartitionManifest
+from hebog.data_models.source_association import DetectionComponentRecord
 from hebog.executors import DaskExecutor, SerialExecutor, TaskRequirement
 from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
@@ -65,8 +69,10 @@ from hebog.stages.objects import (
     _DisjointContexts,
     _fit_parent_numbers,
     _FitBatch,
+    _FitBatchResult,
     _global_context,
     _ParentBatch,
+    _reduce_component_records,
     _SupportBatch,
     _TileBatch,
     _union_bounds,
@@ -965,6 +971,66 @@ def test_published_fits_match_the_whole_plane_measurement(
     )
 
 
+def _whole_plane_component_records() -> tuple[DetectionComponentRecord, ...]:
+    """Describe every direct component over complete planes, as the oracle."""
+    residual, _, valid, direct, _ = _measurement_inputs()
+    return tuple(
+        sorted(
+            build_detection_component_records(direct, residual, valid),
+            key=lambda record: record.canonical_pixel_yx,
+        )
+    )
+
+
+def test_published_component_records_match_the_whole_plane_builder(
+    tmp_path: Path,
+) -> None:
+    """Each fit parent describes its own components from pixels it reads.
+
+    The parent window holds every component the parent owns, because a fit
+    parent is the labelled dilation of the measurement support a component's
+    direct support lies inside, so no record is built from truncated pixels.
+    """
+    expected = _whole_plane_component_records()
+
+    published = _run_fits(tmp_path / "run")
+
+    assert len(expected) > 1, "the fixture must describe several components"
+    assert published.result.component_records == expected
+
+
+def test_two_fit_parents_cannot_describe_one_component() -> None:
+    """A component belongs to exactly one fit parent, or the stage stops.
+
+    Two parents describing one component would mean its support reached
+    beyond the measurement support the parent was dilated from, so the
+    records would have been built from truncated pixels.
+    """
+    record = DetectionComponentRecord(
+        component_id="component-00000004-00000008",
+        label_value=1,
+        canonical_pixel_yx=(4, 8),
+        centroid_yx=(4.0, 8.0),
+        covariance_pixels_squared=None,
+    )
+    duplicated = (
+        _FitBatchResult(
+            parents=(),
+            component_records=(record,),
+            maximum_parent_read_pixels=1,
+        ),
+        _FitBatchResult(
+            parents=(),
+            component_records=(record,),
+            maximum_parent_read_pixels=1,
+        ),
+    )
+
+    assert _reduce_component_records(duplicated[:1]) == (record,)
+    with pytest.raises(ValueError, match="one fit parent"):
+        _reduce_component_records(duplicated)
+
+
 def _assert_parents_equal(
     candidate: tuple[FitParentMeasurement, ...],
     expected: tuple[FitParentMeasurement, ...],
@@ -1012,6 +1078,7 @@ def test_component_fits_are_executor_invariant(tmp_path: Path) -> None:
         )
 
     _assert_parents_equal(variant.result.parents, reference.parents)
+    assert variant.result.component_records == reference.component_records
     bounds = ImageBounds(0, _SHAPE_YX[0], 0, _SHAPE_YX[1])
     np.testing.assert_array_equal(
         np.asarray(
@@ -1042,6 +1109,7 @@ def test_component_fits_are_partition_and_batch_invariant(
     )
 
     _assert_parents_equal(variant.result.parents, reference.parents)
+    assert variant.result.component_records == reference.component_records
     bounds = ImageBounds(0, _SHAPE_YX[0], 0, _SHAPE_YX[1])
     np.testing.assert_array_equal(
         np.asarray(
@@ -1510,6 +1578,7 @@ def test_fit_rounds_publish_an_image_with_no_fit_parent(
     assert result.fit_parent_count == 0
     assert result.parent_batch_count == 0
     assert result.parents == ()
+    assert result.component_records == ()
     assert len(result.generation.chunks) == len(manifest.tiles)
     assert not np.asarray(
         sink.read_completed_window(

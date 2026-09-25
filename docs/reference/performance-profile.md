@@ -137,16 +137,26 @@ pixel — 8 `int32` label planes, 9 masks and the position signal in
 LoTSS-DR3 15,402², against 18 GiB of development-machine memory. The
 implementation plan sets out the order they come out in.
 
-The image, the background, the RMS and their residual are all out. The
-catalogue projection reads each island's and each owner's own bounded window
-from the store, the final RMS product streams one canonical tile row at a
-time rather than validating a whole plane in memory, and the component
-records are built once from bounded residual windows instead of twice from
-two whole-plane differences. Windows are read a batch at a time under the
-owner read budget: the residual is assembled from storage chunks far larger
-than a component, so one read per component decodes the same chunks again
-for every neighbour sharing them, which measured 5.5× slower at 111
-components and 8.2× at 846.
+The image, the background, the RMS and their residual are all out. The final
+RMS product streams one canonical tile row at a time rather than validating a
+whole plane in memory, each direct component's association record is built by
+the fit parent that already reads its residual, and each catalogue row's local
+noise is measured by the row round that already reads its window. The
+detection islands are the one object round the driver still reads for, and
+they read a batch at a time under the owner read budget: the residual is
+assembled from storage chunks far larger than one object, so one read per
+object decodes the same chunks again for every neighbour sharing them, which
+measured 5.5× slower at 111 components and 8.2× at 846.
+
+Moving those two rounds into the passes changed the clock by a few tens of
+milliseconds, which is itself the finding. On the 1,024² dense LoTSS cut-out,
+with 111 components and 83 sources, the driver spent 0.058 s describing
+components and 0.027 s collecting owner noise in a 13.5 s profiled run;
+inside the passes the same work is 0.019 s and 0.005 s, and the row round's
+read grows by 0.055 s because it now reads the RMS window too. The rounds
+were never the 8% of wall time the whole-plane removal cost at this size:
+that sits in the store's per-read overhead, and only reducing it recovers the
+trade-off.
 
 The background stage publishes the two masks the composition actually asks
 of its estimate — where the estimate exists, and where it carries a usable

@@ -492,6 +492,8 @@ def test_joint_geometry_with_controlled_or_public_background(
             component_rows=published.component_rows,
             source_rows=published.source_rows,
             source_positions=published.source_positions,
+            component_local_rms=published.component_local_rms,
+            source_local_rms=published.source_local_rms,
         )
         scientific = public_api._ScientificProducts(
             published.image_source,

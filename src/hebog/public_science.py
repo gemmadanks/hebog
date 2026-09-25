@@ -18,6 +18,7 @@ from hebog.data_models.source_association import (
 )
 from hebog.science.catalogues import (
     build_hebog_reconstructed_source_catalogues,
+    local_rms_by_object_id,
 )
 from hebog.science.continuum import (
     build_continuum_detection,
@@ -69,6 +70,8 @@ def build_configured_continuum_products(  # noqa: PLR0913
     component_rows: tuple[CatalogueSource, ...],
     source_rows: tuple[CatalogueSource, ...],
     source_positions: Mapping[int, SourcePositionDiagnostics],
+    component_local_rms: Mapping[int, float],
+    source_local_rms: Mapping[int, float],
 ) -> ContinuumProducts | None:
     """Build terminal products from the published tiled passes.
 
@@ -77,6 +80,10 @@ def build_configured_continuum_products(  # noqa: PLR0913
     image whose admitted islands are all rejected publishes nothing. The two
     masks arrive already reconciled from the background stage's cores, which
     is where the estimate they describe was computed.
+
+    The row passes measured each owner's local noise by label, so this step
+    names it by catalogue identity; no step after it reads an owner's pixels
+    again.
     """
     valid = _aligned_mask(valid_pixels, name="validity")
     positive_rms = _aligned_mask(
@@ -115,6 +122,11 @@ def build_configured_continuum_products(  # noqa: PLR0913
         catalogue=catalogues.source_catalogue,
         component_catalogue=catalogues.component_catalogue,
         source_association=catalogues.association,
+        local_rms_by_object_id=local_rms_by_object_id(
+            association,
+            component_local_rms=component_local_rms,
+            source_local_rms=source_local_rms,
+        ),
         deblended_parent_count=topology.deblended_parent_count,
         deferred_deblend_parent_count=topology.deferred_parent_count,
         measurement_dispositions=catalogues.measurement_dispositions,

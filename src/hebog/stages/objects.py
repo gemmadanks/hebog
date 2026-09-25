@@ -53,6 +53,9 @@ from hebog.algorithms.reconciliation import (
     TileLabelMapping,
     reconcile_candidate_tiles,
 )
+from hebog.algorithms.source_association import (
+    build_detection_component_records,
+)
 from hebog.config import (
     CompactDeblendConfig,
     CompactGaussianFitConfig,
@@ -67,6 +70,7 @@ from hebog.data_models.partitioning import (
     TilePartition,
 )
 from hebog.data_models.products import ProductChunk
+from hebog.data_models.source_association import DetectionComponentRecord
 from hebog.executors.base import Executor
 from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
@@ -1330,10 +1334,18 @@ class ComponentFitStageConfig:
 
 @dataclass(frozen=True, slots=True)
 class ComponentFitStageResult:
-    """Published measurement support and every fit parent's records."""
+    """Published measurement support and every fit parent's records.
+
+    ``component_records`` describes every direct component the association
+    decision reads, in canonical first-pixel order. The parent that reads a
+    component's pixels builds it: the residual, the validity and both
+    component planes are already on that task, so nothing after the fits
+    reads a component's window again.
+    """
 
     generation: ProductGenerationManifest
     parents: tuple[FitParentMeasurement, ...]
+    component_records: tuple[DetectionComponentRecord, ...]
     fit_parent_count: int
     deferred_parent_count: int
     partition_count: int
@@ -1369,6 +1381,7 @@ class _FitBatchResult:
     """Bounded measurement records one batch of fit parents produced."""
 
     parents: tuple[tuple[int, FitParentMeasurement], ...]
+    component_records: tuple[DetectionComponentRecord, ...]
     maximum_parent_read_pixels: int
 
 
@@ -1536,8 +1549,18 @@ def _fit_batch(  # noqa: PLR0913
             tuple(parent.read_bounds.center_xy for parent in batch.parents),
         )
         measured: list[tuple[int, FitParentMeasurement]] = []
+        records: list[DetectionComponentRecord] = []
         for parent, geometry in zip(batch.parents, geometries, strict=True):
             crop = _crop(bounds, parent.read_bounds)
+            records.extend(
+                _parent_component_records(
+                    residual[crop],
+                    valid[crop],
+                    fit_parents[crop],
+                    direct[crop],
+                    parent,
+                )
+            )
             measured.append(
                 (
                     parent.parent_index,
@@ -1567,8 +1590,37 @@ def _fit_batch(  # noqa: PLR0913
             )
         return _FitBatchResult(
             parents=tuple(measured),
+            component_records=tuple(records),
             maximum_parent_read_pixels=int(np.prod(bounds.shape_yx)),
         )
+
+
+def _parent_component_records(
+    residual_window: npt.NDArray[np.float64],
+    valid_window: npt.NDArray[np.bool_],
+    fit_parent_window: npt.NDArray[np.int32],
+    direct_window: npt.NDArray[np.int32],
+    parent: _FitParentExtent,
+) -> tuple[DetectionComponentRecord, ...]:
+    """Describe the direct components one fit parent owns, from its own read.
+
+    Every array covers that parent's support and the reviewed context margin
+    around it. A component's direct support lies inside the measurement
+    support this parent was dilated from, so the window holds each owned
+    component entirely and the record costs the component's own pixels. The
+    margin can expose a neighbour's pixels, so only the components standing
+    on this parent's support are described.
+    """
+    return build_detection_component_records(
+        np.where(
+            fit_parent_window == parent.parent_index,
+            direct_window,
+            0,
+        ).astype(np.int32, copy=False),
+        residual_window,
+        valid_window,
+        origin_yx=(parent.read_bounds.y_start, parent.read_bounds.x_start),
+    )
 
 
 def _publish_support(
@@ -1626,6 +1678,35 @@ def _intersects(first: ImageBounds, second: ImageBounds) -> bool:
     )
 
 
+def _reduce_component_records(
+    results: tuple[_FitBatchResult, ...],
+) -> tuple[DetectionComponentRecord, ...]:
+    """Order every parent's component records canonically, once.
+
+    Completion order decides nothing: the records are sorted by canonical
+    first pixel, which is how a whole-plane pass over the direct labels would
+    present them.
+
+    Raises:
+        ValueError: If two fit parents described the same component, which
+            would mean a component's support reached beyond the parent whose
+            measurement support it belongs to.
+    """
+    records = tuple(
+        sorted(
+            (
+                record
+                for result in results
+                for record in result.component_records
+            ),
+            key=lambda record: record.canonical_pixel_yx,
+        )
+    )
+    if len({record.label_value for record in records}) != len(records):
+        raise ValueError("every component must belong to one fit parent")
+    return records
+
+
 def run_component_fit_stage(  # noqa: PLR0913, PLR0917
     source: _WindowReadable,
     background_rms_source: _CompletedProductSource,
@@ -1646,6 +1727,10 @@ def run_component_fit_stage(  # noqa: PLR0913, PLR0917
     batch of parents measures them inside that extent plus the reviewed
     context margin, and the cores combine the support patches the parents
     contributed. Only the last round writes.
+
+    The measuring round also describes the direct components each parent
+    owns, because the residual and the validity those records need are
+    already on the task that fits them.
 
     ``wcs_header_text`` is the caller's own header as
     :meth:`astropy.io.fits.Header.tostring` writes it, not a ``WCS``; see
@@ -1734,6 +1819,7 @@ def run_component_fit_stage(  # noqa: PLR0913, PLR0917
         for result in fit_results
         for parent in sorted(result.parents, key=lambda item: item[0])
     )
+    component_records = _reduce_component_records(fit_results)
     patches = tuple(
         (parent.support_bounds, parent.support_window)
         for _, parent in measured
@@ -1776,6 +1862,7 @@ def run_component_fit_stage(  # noqa: PLR0913, PLR0917
             ),
         ),
         parents=tuple(parent for _, parent in measured),
+        component_records=component_records,
         fit_parent_count=len(extents),
         deferred_parent_count=sum(
             int(parent.deferred) for _, parent in measured

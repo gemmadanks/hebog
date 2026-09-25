@@ -406,6 +406,8 @@ def _configured_products(
             component_rows=published.component_rows,
             source_rows=published.source_rows,
             source_positions=published.source_positions,
+            component_local_rms=published.component_local_rms,
+            source_local_rms=published.source_local_rms,
         )
 
 
@@ -580,10 +582,10 @@ def test_valid_fit_survives_unavailable_aperture_moment_row(
     original = tiled_detection.publish_segment_rows
 
     def missing_source_rows(*args: Any, **kwargs: Any):
-        rows, positions = original(*args, **kwargs)
+        rows, local_rms, positions = original(*args, **kwargs)
         if kwargs["aperture_tie_policy"] == "canonical-source":
-            return (), positions
-        return rows, positions
+            return (), local_rms, positions
+        return rows, local_rms, positions
 
     monkeypatch.setattr(
         tiled_detection, "publish_segment_rows", missing_source_rows

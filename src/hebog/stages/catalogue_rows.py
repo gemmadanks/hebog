@@ -50,6 +50,7 @@ from hebog.science.catalogues import (
     SegmentRowMeasurement,
     measure_segment_row,
     moment_shape_fields_at,
+    segment_local_rms,
     segment_moment,
     segment_row_at,
     unavailable_moment_shape_fields,
@@ -142,10 +143,17 @@ class SegmentRowStageConfig:
 
 @dataclass(frozen=True, slots=True)
 class SegmentRowStageResult:
-    """Published apertures, the rows they measure, and scalar evidence."""
+    """Published apertures, the rows they measure, and scalar evidence.
+
+    ``local_rms_by_label`` holds the median local noise over each segment's
+    exact owned support, for every segment the rounds observed rather than
+    only the measurable ones: a catalogue row that no row measured can still
+    be published from a fitted model, and it quotes the same noise.
+    """
 
     generation: ProductGenerationManifest
     rows: tuple[CatalogueSource, ...]
+    local_rms_by_label: Mapping[int, float]
     position_diagnostics: Mapping[int, SourcePositionDiagnostics]
     segment_count: int
     measured_segment_count: int
@@ -204,9 +212,10 @@ class _RowBatch:
 
 @dataclass(frozen=True, slots=True)
 class _RowBatchResult:
-    """The rows and diagnostics one batch of segments produced."""
+    """The rows, noise and diagnostics one batch of segments produced."""
 
     rows: tuple[tuple[int, CatalogueSource], ...]
+    local_rms: tuple[tuple[int, float], ...]
     diagnostics: tuple[tuple[int, SourcePositionDiagnostics], ...]
     maximum_segment_read_pixels: int
 
@@ -438,6 +447,7 @@ class _RowRead:
     bounds: ImageBounds
     background: npt.NDArray[np.float64]
     residual: npt.NDArray[np.float64]
+    rms: npt.NDArray[np.float64]
     valid: npt.NDArray[np.bool_]
     position_signal: npt.NDArray[np.float64]
     labels: npt.NDArray[np.int64]
@@ -472,6 +482,10 @@ def _read_rows(  # noqa: PLR0913
         bounds=bounds,
         background=background,
         residual=residual,
+        rms=np.asarray(
+            background_rms_source.read_completed_window("rms", bounds),
+            dtype=np.float64,
+        ),
         valid=valid,
         position_signal=np.asarray(
             position_source.read_completed_window("position-signal", bounds),
@@ -669,11 +683,36 @@ def _row_batch(  # noqa: PLR0913
             rows=_shaped_rows(
                 measured, celestial_wcs=celestial_wcs, beam=beam
             ),
+            local_rms=_batch_local_rms(batch, read),
             diagnostics=tuple(sorted(diagnostics.items())),
             maximum_segment_read_pixels=int(
                 np.prod(batch.read_bounds.shape_yx)
             ),
         )
+
+
+def _batch_local_rms(
+    batch: _RowBatch,
+    read: _RowRead,
+) -> tuple[tuple[int, float], ...]:
+    """Measure the local noise every segment of one batch owns.
+
+    The noise belongs to the segment's own seeded ownership, which is the
+    centroid plane rather than the measured support the label plane carries,
+    and the read already holds both. A segment owning no usable estimate
+    reports none instead of a fabricated value.
+    """
+    measured: list[tuple[int, float]] = []
+    for segment in batch.segments:
+        crop = _crop(read.bounds, segment.bounds)
+        local_rms = segment_local_rms(
+            read.rms[crop],
+            read.centroids[crop],
+            label_value=segment.label_value,
+        )
+        if local_rms is not None:
+            measured.append((segment.label_value, local_rms))
+    return tuple(measured)
 
 
 def _require_row_inputs(  # noqa: PLR0913, PLR0917
@@ -689,7 +728,7 @@ def _require_row_inputs(  # noqa: PLR0913, PLR0917
     if manifest.halo_yx != (0, 0):
         raise ValueError("segment apertures write cores without a halo")
     for product_source, names in (
-        (background_rms_source, ("background",)),
+        (background_rms_source, ("background", "rms")),
         (detection_source, ("valid-pixels",)),
         (position_source, ("position-signal",)),
         (label_source, (config.label_product_name,)),
@@ -741,7 +780,8 @@ def run_segment_row_stage(  # noqa: PLR0913, PLR0917
     Three rounds and one global reduction fewer than every other object
     round: the cores write the expanded apertures under the reviewed radius,
     they then observe the bounds each segment and aperture occupies, and one
-    task per batch of segments measures their rows and moment shapes.
+    task per batch of segments measures their rows, moment shapes and the
+    local noise over the support they own.
 
     ``wcs_header_text`` is the caller's own header as
     :meth:`astropy.io.fits.Header.tostring` writes it, not a ``WCS``; see
@@ -843,6 +883,9 @@ def run_segment_row_stage(  # noqa: PLR0913, PLR0917
     return SegmentRowStageResult(
         generation=generation,
         rows=rows,
+        local_rms_by_label=dict(
+            sorted(item for result in row_results for item in result.local_rms)
+        ),
         position_diagnostics=dict(
             sorted(
                 item for result in row_results for item in result.diagnostics
