@@ -54,6 +54,7 @@ from hebog.data_models.fitting import (
     ValidCompactGaussianFit,
 )
 from hebog.data_models.images import RestoringBeam
+from hebog.data_models.measurement import CompactMeasurementGeometry
 from hebog.data_models.measurement_diagnostics import AssociationEvidenceKind
 from hebog.data_models.partitioning import ImageBounds
 
@@ -676,108 +677,117 @@ def _measurement_island(
     )
 
 
-def _cross_parent_loop_groups(  # noqa: PLR0913, PLR0917
+@dataclass(frozen=True, slots=True)
+class SupportFeatureGroups:
+    """Extended groups and evidence one support feature contributed."""
+
+    extended_groups: tuple[frozenset[int], ...] = ()
+    evidence: tuple[ComponentGroupingEvidence, ...] = ()
+
+
+def support_feature_margin_pixels(atrous_plan: ResidualAtrousPlan) -> int:
+    """Return the context one support feature reads beyond its own bounds."""
+    return _adequacy_filter_bank(atrous_plan).maximum_halo_pixels
+
+
+def support_feature_window(
+    feature_bounds: ImageBounds,
+    *,
+    margin: int,
+    image_shape_yx: tuple[int, int],
+    maximum_bounds_pixels: int,
+) -> ImageBounds | None:
+    """Return one feature's grouping window, or absence when unbounded.
+
+    A feature wider than the reviewed compact bound is ADR-008 T3 work and
+    contributes no grouping, exactly as the whole-plane pass leaves it.
+    """
+    bounds = ImageBounds(
+        max(0, feature_bounds.y_start - margin),
+        min(image_shape_yx[0], feature_bounds.y_stop + margin),
+        max(0, feature_bounds.x_start - margin),
+        min(image_shape_yx[1], feature_bounds.x_stop + margin),
+    )
+    if np.prod(bounds.shape_yx) > maximum_bounds_pixels:
+        return None
+    return bounds
+
+
+def _loop_groups_in_feature(  # noqa: PLR0913, PLR0917
     residual: np.ndarray,
     rms: np.ndarray,
     valid: np.ndarray,
     labels: np.ndarray,
+    feature: np.ndarray,
     fits: tuple[tuple[int, CompactGaussianFitResult], ...],
     wcs: WCS,
     beam: RestoringBeam,
     plan: ResidualAtrousPlan,
     island_sigma: float,
     minimum_support_fraction: float,
-    maximum_bounds_pixels: int,
     *,
-    measurement_support: np.ndarray,
-    evidence: list[ComponentGroupingEvidence] | None = None,
+    bounds: ImageBounds,
+    evidence: list[ComponentGroupingEvidence],
 ) -> tuple[frozenset[int], ...]:
     """Reconcile resolved loops larger than a wavelet-parent footprint.
 
     Reuse local fits; never allocate a joint fit of an extended island. A
-    connected region is only a work unit. Actual grouping still requires
-    resolved tangential shape evidence around a hole or along a connected
-    beam-scale arc.
+    connected support feature is only a work unit. Actual grouping still
+    requires resolved tangential shape evidence around a hole or along a
+    connected beam-scale arc. Every array is this feature's window; ``feature``
+    selects the pixels the reconciled feature owns inside it.
     """
-    connected, _ = cast(
-        tuple[np.ndarray, int],
-        label(measurement_support & valid, np.ones((3, 3))),
-    )
     by_label = {
         index: fit
         for index, fit in fits
         if isinstance(fit, ValidCompactGaussianFit)
     }
-    margin = _adequacy_filter_bank(plan).maximum_halo_pixels
-    groups: list[frozenset[int]] = []
-    for identity, slices in enumerate(find_objects(connected), 1):
-        assert slices is not None
-        ys, xs = slices
-        indexes = frozenset(
-            int(index)
-            for index in np.unique(
-                labels[slices][connected[slices] == identity]
-            )
-            if index > 0
-        )
-        # An unavailable component supplies no shape evidence, but cannot
-        # veto independent tangential evidence from three measured peers.
-        indexes &= by_label.keys()
-        if len(indexes) < _MINIMUM_LOOP_COMPONENTS:
-            continue
-        bounds = ImageBounds(
-            max(0, ys.start - margin),
-            min(labels.shape[0], ys.stop + margin),
-            max(0, xs.start - margin),
-            min(labels.shape[1], xs.stop + margin),
-        )
-        if np.prod(bounds.shape_yx) > maximum_bounds_pixels:
-            continue
-        center = (
-            (bounds.x_start + bounds.x_stop - 1) / 2,
-            (bounds.y_start + bounds.y_stop - 1) / 2,
-        )
-        geometry = compact_geometry_from_wcs(beam, wcs, center)
-        covariance = geometry.restoring_beam_covariance_pixels_squared
-        assert covariance is not None
-        xx, xy, yy = covariance
-        window = np.s_[
-            bounds.y_start : bounds.y_stop, bounds.x_start : bounds.x_stop
-        ]
-        groups.extend(
-            _resolved_emission_loop(
-                residual[window],
-                rms[window],
-                valid[window],
-                plan,
-                fits=tuple(
-                    (index, by_label[index]) for index in sorted(indexes)
-                ),
-                bounds=bounds,
-                beam_covariance=np.array(((xx, xy), (xy, yy))),
-                island_sigma=island_sigma,
-                minimum_support_fraction=minimum_support_fraction,
-                evidence=evidence,
-            )
-        )
-        groups.extend(
-            _resolved_open_arc_groups(
-                _matched_snrs(
-                    residual[window],
-                    rms[window],
-                    valid[window],
-                    plan,
-                    minimum_support_fraction,
-                )[0],
-                valid[window],
-                tuple((index, by_label[index]) for index in sorted(indexes)),
-                bounds,
-                np.array(((xx, xy), (xy, yy))),
-                island_sigma,
-                evidence=evidence,
-            )
-        )
-    return tuple(groups)
+    # An unavailable component supplies no shape evidence, but cannot veto
+    # independent tangential evidence from three measured peers.
+    indexes = _feature_components(labels, feature) & by_label.keys()
+    if len(indexes) < _MINIMUM_LOOP_COMPONENTS:
+        return ()
+    geometry = compact_geometry_from_wcs(beam, wcs, bounds.center_xy)
+    covariance = geometry.restoring_beam_covariance_pixels_squared
+    assert covariance is not None
+    xx, xy, yy = covariance
+    beam_covariance = np.array(((xx, xy), (xy, yy)))
+    members = tuple((index, by_label[index]) for index in sorted(indexes))
+    beam_scale_significance = _matched_snrs(
+        residual, rms, valid, plan, minimum_support_fraction
+    )[0]
+    return (
+        *_resolved_emission_loop(
+            residual,
+            rms,
+            valid,
+            plan,
+            fits=members,
+            bounds=bounds,
+            beam_covariance=beam_covariance,
+            island_sigma=island_sigma,
+            minimum_support_fraction=minimum_support_fraction,
+            evidence=evidence,
+        ),
+        *_resolved_open_arc_groups(
+            beam_scale_significance,
+            valid,
+            members,
+            bounds,
+            beam_covariance,
+            island_sigma,
+            evidence=evidence,
+        ),
+    )
+
+
+def _feature_components(
+    labels: np.ndarray, feature: np.ndarray
+) -> frozenset[int]:
+    """Return the measurement components one support feature holds."""
+    return frozenset(
+        int(index) for index in np.unique(labels[feature]) if index > 0
+    )
 
 
 def _merge_overlapping_groups(
@@ -795,22 +805,22 @@ def _merge_overlapping_groups(
     return tuple(sorted(reconciled, key=min))
 
 
-def _extended_residual_groups(  # noqa: PLR0913, PLR0917
+def _residual_groups_in_feature(  # noqa: PLR0913, PLR0917
     residual: np.ndarray,
     rms: np.ndarray,
     valid: np.ndarray,
     labels: np.ndarray,
+    feature: np.ndarray,
     fits: tuple[tuple[int, CompactGaussianFitResult], ...],
-    compact_groups: tuple[frozenset[int], ...],
-    measurement_support: np.ndarray,
+    protected_labels: frozenset[int],
     plan: ResidualAtrousPlan,
     minimum_support_fraction: float,
     detection_sigma: float,
     island_sigma: float,
     minimum_pixels: int,
-    maximum_bounds_pixels: int,
     *,
-    evidence: list[ComponentGroupingEvidence] | None = None,
+    bounds: ImageBounds,
+    evidence: list[ComponentGroupingEvidence],
 ) -> tuple[frozenset[int], ...]:
     """Join residual halo fragments, without absorbing proven compact rows.
 
@@ -819,117 +829,146 @@ def _extended_residual_groups(  # noqa: PLR0913, PLR0917
     compact models. An auxiliary fit that failed the parent's adequacy check
     cannot explain away the extended emission that prevented its admission.
     The residual determines membership only; flux still uses original pixels.
+    Every array is this feature's window, and a model component may sit
+    outside the feature yet inside that window.
     """
-    protected = {index for group in compact_groups for index in group}
-    connected, _ = cast(
-        tuple[np.ndarray, int],
-        label(measurement_support & valid, np.ones((3, 3))),
+    indexes = _feature_components(labels, feature)
+    if len(indexes) <= 1:
+        return ()
+    model, _ = _model_and_groups(
+        tuple(
+            (index, fit)
+            for index, fit in fits
+            if isinstance(fit, ValidCompactGaussianFit)
+            and index in protected_labels
+            and "fit-at-bound" not in fit.quality_flags
+            and np.any(labels == index)
+        ),
+        bounds,
+    )
+    responses = _matched_responses(
+        residual - model, rms, valid, plan, minimum_support_fraction
+    )
+    snrs = calibrated_scale_snrs(
+        responses, minimum_support_fraction=minimum_support_fraction
+    )
+    persistent = persistent_seeded_scale_support(
+        snrs,
+        tuple(item.response_jy_per_beam for item in responses),
+        valid,
+        detection_sigma=detection_sigma,
+        island_sigma=island_sigma,
+        minimum_pixels=minimum_pixels,
+    )
+    residual_labels, _ = cast(
+        tuple[np.ndarray, int], label(persistent, np.ones((3, 3)))
+    )
+    local_residual_support = np.logical_or.reduce(
+        tuple(
+            (first >= island_sigma) & (second >= island_sigma)
+            for first, second in pairwise(snrs)
+        )
     )
     groups: list[frozenset[int]] = []
-    for identity, slices in enumerate(find_objects(connected), 1):
-        assert slices is not None
-        ys, xs = slices
-        indexes = frozenset(
+    for item in range(1, int(residual_labels.max()) + 1):
+        members = frozenset(
             int(index)
-            for index in np.unique(
-                labels[slices][connected[slices] == identity]
-            )
-            if index > 0
-        )
-        if len(indexes) <= 1:
-            continue
-        margin = _adequacy_filter_bank(plan).maximum_halo_pixels
-        bounds = ImageBounds(
-            max(0, ys.start - margin),
-            min(labels.shape[0], ys.stop + margin),
-            max(0, xs.start - margin),
-            min(labels.shape[1], xs.stop + margin),
-        )
-        if np.prod(bounds.shape_yx) > maximum_bounds_pixels:
-            continue
-        window = np.s_[
-            bounds.y_start : bounds.y_stop, bounds.x_start : bounds.x_stop
-        ]
-        model, _ = _model_and_groups(
-            tuple(
-                (index, fit)
-                for index, fit in fits
-                if isinstance(fit, ValidCompactGaussianFit)
-                and index in protected
-                and "fit-at-bound" not in fit.quality_flags
-                and np.any(labels[window] == index)
-            ),
-            bounds,
-        )
-        remainder = residual[window] - model
-        responses = _matched_responses(
-            remainder,
-            rms[window],
-            valid[window],
-            plan,
-            minimum_support_fraction,
-        )
-        snrs = calibrated_scale_snrs(
-            responses, minimum_support_fraction=minimum_support_fraction
-        )
-        persistent = persistent_seeded_scale_support(
-            snrs,
-            tuple(item.response_jy_per_beam for item in responses),
-            valid[window],
-            detection_sigma=detection_sigma,
-            island_sigma=island_sigma,
-            minimum_pixels=minimum_pixels,
-        )
-        residual_labels, _ = cast(
-            tuple[np.ndarray, int], label(persistent, np.ones((3, 3)))
-        )
-        local_residual_support = np.logical_or.reduce(
-            tuple(
-                (first >= island_sigma) & (second >= island_sigma)
-                for first, second in pairwise(snrs)
-            )
-        )
-        for feature in range(1, int(residual_labels.max()) + 1):
-            members = frozenset(
-                int(index)
-                for index in np.unique(
-                    labels[window][residual_labels == feature]
-                )
-                if index in indexes
-                and (
-                    index not in protected
-                    or _fit_core_in_feature(
-                        index,
-                        fits,
-                        residual_labels,
-                        feature,
-                        bounds,
-                        local_residual_support,
-                    )
+            for index in np.unique(labels[residual_labels == item])
+            if index in indexes
+            and (
+                index not in protected_labels
+                or _fit_core_in_feature(
+                    index,
+                    fits,
+                    residual_labels,
+                    item,
+                    bounds,
+                    local_residual_support,
                 )
             )
-            if len(members) > 1:
-                groups.append(members)
-                if evidence is not None:
-                    scales = set()
-                    for scale_id, (first, second) in enumerate(
-                        pairwise(snrs), 1
-                    ):
-                        if np.any(
-                            (residual_labels == feature)
-                            & (first >= island_sigma)
-                            & (second >= island_sigma)
-                        ):
-                            scales.update((scale_id, scale_id + 1))
-                    evidence.append(
-                        ComponentGroupingEvidence(
-                            "persistent-residual",
-                            tuple(sorted(scales)),
-                            members,
-                            members & protected,
-                        )
-                    )
+        )
+        if len(members) <= 1:
+            continue
+        groups.append(members)
+        scales: set[int] = set()
+        for scale_id, (first, second) in enumerate(pairwise(snrs), 1):
+            if np.any(
+                (residual_labels == item)
+                & (first >= island_sigma)
+                & (second >= island_sigma)
+            ):
+                scales.update((scale_id, scale_id + 1))
+        evidence.append(
+            ComponentGroupingEvidence(
+                "persistent-residual",
+                tuple(sorted(scales)),
+                members,
+                members & protected_labels,
+            )
+        )
     return tuple(groups)
+
+
+def group_support_feature_components(  # noqa: PLR0913, PLR0917
+    residual_window: np.ndarray,
+    rms_window: np.ndarray,
+    valid_window: np.ndarray,
+    measurement_window: np.ndarray,
+    feature_window: np.ndarray,
+    fits: tuple[tuple[int, CompactGaussianFitResult], ...],
+    protected_labels: frozenset[int],
+    wcs: WCS,
+    beam: RestoringBeam,
+    atrous_plan: ResidualAtrousPlan,
+    *,
+    bounds: ImageBounds,
+    detection_sigma: float,
+    island_sigma: float,
+    minimum_pixels: int,
+    minimum_support_fraction: float,
+) -> SupportFeatureGroups:
+    """Group the components one connected support feature holds.
+
+    Both remaining cross-parent steps label the accumulated measurement
+    support with the same connectivity, so they share this work unit and one
+    read of its window. ``fits`` and ``protected_labels`` need only cover the
+    components whose measurement labels reach this window.
+    """
+    evidence: list[ComponentGroupingEvidence] = []
+    groups = (
+        *_loop_groups_in_feature(
+            residual_window,
+            rms_window,
+            valid_window,
+            measurement_window,
+            feature_window,
+            fits,
+            wcs,
+            beam,
+            atrous_plan,
+            island_sigma,
+            minimum_support_fraction,
+            bounds=bounds,
+            evidence=evidence,
+        ),
+        *_residual_groups_in_feature(
+            residual_window,
+            rms_window,
+            valid_window,
+            measurement_window,
+            feature_window,
+            fits,
+            protected_labels,
+            atrous_plan,
+            minimum_support_fraction,
+            detection_sigma,
+            island_sigma,
+            minimum_pixels,
+            bounds=bounds,
+            evidence=evidence,
+        ),
+    )
+    return SupportFeatureGroups(groups, tuple(evidence))
 
 
 def _fit_core_in_feature(  # noqa: PLR0913, PLR0917
@@ -1007,7 +1046,244 @@ def _measurement_fit_parents(
     return np.where(support, lookup[context_labels], 0).astype(np.int32)
 
 
-def measure_component_models(  # noqa: PLR0913, PLR0917, PLR0915
+@dataclass(frozen=True, slots=True)
+class FitParentMeasurement:
+    """One fit parent's bounded measurement outputs.
+
+    Every field is a record or an array bounded by that parent's own read, so
+    a caller that measures one fit parent per task returns nothing
+    image-sized. ``support_window`` is the persistent measurement support the
+    parent contributes, which callers combine with a boolean OR.
+    """
+
+    fits: tuple[tuple[int, CompactGaussianFitResult], ...] = ()
+    compact_groups: tuple[frozenset[int], ...] = ()
+    extended_groups: tuple[frozenset[int], ...] = ()
+    evidence: tuple[ComponentGroupingEvidence, ...] = ()
+    deferred: bool = False
+    support_bounds: ImageBounds | None = None
+    support_window: np.ndarray | None = None
+
+
+def fit_parent_margin_pixels(
+    fit_config: CompactGaussianFitConfig,
+    atrous_plan: ResidualAtrousPlan,
+) -> int:
+    """Return the context a fit parent reads beyond its own support."""
+    return max(
+        ceil(fit_config.context_margin_pixels),
+        atrous_plan.maximum_halo_pixels,
+        _adequacy_filter_bank(atrous_plan).maximum_halo_pixels,
+    )
+
+
+def measure_fit_parent_components(  # noqa: PLR0913, PLR0917
+    residual_window: np.ndarray,
+    rms_window: np.ndarray,
+    valid_window: np.ndarray,
+    fit_parent_window: np.ndarray,
+    direct_window: np.ndarray,
+    measurement_window: np.ndarray,
+    geometry: CompactMeasurementGeometry,
+    moment_config: CompactMomentConfig,
+    fit_config: CompactGaussianFitConfig,
+    *,
+    parent_index: int,
+    bounds: ImageBounds,
+    image_shape_yx: tuple[int, int],
+    detection_sigma: float,
+    island_sigma: float,
+    minimum_pixels: int,
+    maximum_bounds_pixels: int,
+    atrous_plan: ResidualAtrousPlan,
+    minimum_support_fraction: float,
+) -> FitParentMeasurement:
+    """Fit one bounded measurement parent from its own original pixels.
+
+    The window must hold the parent's support and the reviewed context margin
+    around it; no decision here reads further, so one task can measure one
+    fit parent exactly. A parent whose window exceeds the admitted bound is
+    deferred rather than fitted on truncated pixels.
+
+    ``geometry`` is the caller's local beam and pixel geometry at the centre
+    of ``bounds``, as
+    :func:`~hebog.algorithms.astrometry.compact_geometries_from_wcs` builds
+    it for a whole batch at once. Deriving it here instead would pay
+    Astropy's per-call frame machinery once per parent, which costs more
+    than the fit.
+    """
+    if np.prod(bounds.shape_yx) > maximum_bounds_pixels:
+        return FitParentMeasurement(deferred=True)
+    parent_support = fit_parent_window == parent_index
+    local_valid = (
+        valid_window
+        & np.isfinite(residual_window)
+        & np.isfinite(rms_window)
+        & (rms_window > 0.0)
+    )
+    local_valid &= (fit_parent_window == 0) | parent_support
+    seeds = np.where(
+        parent_support & (residual_window > 0.0) & local_valid,
+        direct_window,
+        0,
+    ).astype(np.int32)
+    indexes = tuple(int(index) for index in np.unique(seeds) if index > 0)
+    if not indexes:
+        return FitParentMeasurement(deferred=True)
+    island_id = f"measurement-parent-{parent_index}"
+    regions = tuple(
+        _region(
+            seeds,
+            index,
+            residual_window,
+            rms_window,
+            (bounds.y_start, bounds.x_start),
+            island_id,
+        )
+        for index in indexes
+    )
+    island = _measurement_island(
+        regions, seeds, bounds, parent_index, image_shape_yx
+    )
+    compact = _ComponentFitInput(
+        island,
+        bounds,
+        regions,
+        residual_window,
+        rms_window,
+        local_valid,
+        seeds,
+    )
+    moments = measure_compact_moments(compact, geometry, moment_config)[1:]
+    # These are native component measurements, not Gaussian source
+    # surrogates. Apply the already configured component extension rule
+    # to the whole joint solution; do not splice per-component fits from
+    # competing source/component models. Source flux is an aperture.
+    fitted = fit_compact_gaussian_mixture(
+        compact,
+        moments,
+        geometry,
+        replace(
+            fit_config,
+            extension_significance_sigma=fit_config.component_extension_significance_sigma,
+        ),
+    )
+    labelled = tuple(zip(indexes, fitted, strict=True))
+    # Measurement-only persistent emission belongs to admitted owners
+    # independently of whether a compact Gaussian describes them. A
+    # bounded or unavailable fit must not truncate extended photometry.
+    support_window = _persistent_measurement_support(
+        residual_window,
+        rms_window,
+        local_valid,
+        atrous_plan,
+        minimum_support_fraction,
+        detection_sigma,
+        island_sigma,
+        minimum_pixels,
+    )
+    complete = tuple(
+        (index, fit)
+        for index, fit in labelled
+        if isinstance(fit, ValidCompactGaussianFit)
+        and "fit-at-bound" not in fit.quality_flags
+    )
+    admitted = _admit_fallbacks(
+        complete,
+        compact,
+        fit_config,
+        atrous_plan,
+        minimum_support_fraction,
+        detection_sigma,
+        island_sigma,
+        minimum_pixels,
+    )
+    by_index = dict(admitted)
+    fits = tuple((index, by_index.get(index, fit)) for index, fit in labelled)
+    measured = FitParentMeasurement(
+        fits=fits,
+        support_bounds=bounds,
+        support_window=support_window,
+    )
+    expected_indexes = set(np.unique(measurement_window[parent_support])) - {0}
+    if len(complete) != len(expected_indexes) or any(
+        isinstance(fit, FailedCompactGaussianFit) for _, fit in admitted
+    ):
+        return measured
+    evidence: list[ComponentGroupingEvidence] = []
+    model, groups = _model_and_groups(complete, bounds)
+    covariance = geometry.restoring_beam_covariance_pixels_squared
+    assert covariance is not None
+    beam_xx, beam_xy, beam_yy = covariance
+    loop_groups = (
+        _resolved_emission_loop(
+            residual_window,
+            rms_window,
+            local_valid,
+            atrous_plan,
+            fits=complete,
+            bounds=bounds,
+            beam_covariance=np.array(((beam_xx, beam_xy), (beam_xy, beam_yy))),
+            island_sigma=island_sigma,
+            minimum_support_fraction=minimum_support_fraction,
+            evidence=evidence,
+        )
+        if len(groups) > 1
+        else ()
+    )
+    compact_groups: list[frozenset[int]] = []
+    if loop_groups:
+        loop_labels = {index for group in loop_groups for index in group}
+        nearest = expand_source_measurement_labels(
+            measurement_window,
+            valid_window,
+            radius_pixels=ceil(float(np.hypot(*bounds.shape_yx))),
+        )
+        for group in groups:
+            remaining = group - loop_labels
+            if remaining and not _unmodelled_detection(
+                residual_window - model,
+                rms_window,
+                local_valid,
+                detection_sigma,
+                island_sigma,
+                minimum_pixels,
+                atrous_plan,
+                minimum_support_fraction,
+                np.isin(nearest, tuple(remaining)),
+            ):
+                compact_groups.append(remaining)
+        return replace(
+            measured,
+            compact_groups=tuple(compact_groups),
+            extended_groups=tuple(loop_groups),
+            evidence=tuple(evidence),
+        )
+    if not _unmodelled_detection(
+        residual_window - model,
+        rms_window,
+        local_valid,
+        detection_sigma,
+        island_sigma,
+        minimum_pixels,
+        atrous_plan,
+        minimum_support_fraction,
+        expand_source_measurement_labels(
+            fit_parent_window,
+            valid_window,
+            radius_pixels=ceil(float(np.hypot(*bounds.shape_yx))),
+        )
+        == parent_index,
+    ):
+        compact_groups.extend(groups)
+    return replace(
+        measured,
+        compact_groups=tuple(compact_groups),
+        evidence=tuple(evidence),
+    )
+
+
+def measure_component_models(  # noqa: PLR0913, PLR0917
     residual: np.ndarray,
     rms: np.ndarray,
     valid: np.ndarray,
@@ -1036,17 +1312,9 @@ def measure_component_models(  # noqa: PLR0913, PLR0917, PLR0915
         measurement_labels, fit_config.context_margin_pixels
     )
     objects = find_objects(parents)
-    output: list[tuple[int, CompactGaussianFitResult]] = []
-    compact_groups: list[frozenset[int]] = []
-    extended_groups: list[frozenset[int]] = []
-    evidence: list[ComponentGroupingEvidence] = []
-    deferred = 0
+    measured_parents: list[FitParentMeasurement] = []
     measurement_support = np.zeros(residual.shape, dtype=np.bool_)
-    margin = max(
-        ceil(fit_config.context_margin_pixels),
-        atrous_plan.maximum_halo_pixels,
-        _adequacy_filter_bank(atrous_plan).maximum_halo_pixels,
-    )
+    margin = fit_parent_margin_pixels(fit_config, atrous_plan)
     for parent_index, slices in enumerate(objects, start=1):
         assert slices is not None, "fit-context labels must be dense"
         ys, xs = slices
@@ -1056,210 +1324,152 @@ def measure_component_models(  # noqa: PLR0913, PLR0917, PLR0915
             max(0, xs.start - margin),
             min(residual.shape[1], xs.stop + margin),
         )
-        if np.prod(bounds.shape_yx) > maximum_bounds_pixels:
-            deferred += 1
+        window = np.s_[
+            bounds.y_start : bounds.y_stop, bounds.x_start : bounds.x_stop
+        ]
+        measured = measure_fit_parent_components(
+            residual[window],
+            rms[window],
+            valid[window],
+            parents[window],
+            direct_labels[window],
+            measurement_labels[window],
+            compact_geometry_from_wcs(beam, wcs, bounds.center_xy),
+            moment_config,
+            fit_config,
+            parent_index=parent_index,
+            bounds=bounds,
+            image_shape_yx=residual.shape,
+            detection_sigma=detection_sigma,
+            island_sigma=island_sigma,
+            minimum_pixels=minimum_pixels,
+            maximum_bounds_pixels=maximum_bounds_pixels,
+            atrous_plan=atrous_plan,
+            minimum_support_fraction=minimum_support_fraction,
+        )
+        measured_parents.append(measured)
+        if measured.support_window is not None:
+            measurement_support[window] |= measured.support_window
+    fits = tuple(
+        item for measured in measured_parents for item in measured.fits
+    )
+    protected_labels = frozenset(
+        index
+        for measured in measured_parents
+        for group in measured.compact_groups
+        for index in group
+    )
+    return reconcile_component_measurements(
+        measurement_support,
+        parents=tuple(measured_parents),
+        features=_whole_plane_feature_groups(
+            residual,
+            rms,
+            valid,
+            measurement_labels,
+            measurement_support,
+            fits,
+            protected_labels,
+            wcs,
+            beam,
+            atrous_plan,
+            detection_sigma=detection_sigma,
+            island_sigma=island_sigma,
+            minimum_pixels=minimum_pixels,
+            maximum_bounds_pixels=maximum_bounds_pixels,
+            minimum_support_fraction=minimum_support_fraction,
+        ),
+    )
+
+
+def _whole_plane_feature_groups(  # noqa: PLR0913, PLR0917
+    residual: np.ndarray,
+    rms: np.ndarray,
+    valid: np.ndarray,
+    measurement_labels: np.ndarray,
+    measurement_support: np.ndarray,
+    fits: tuple[tuple[int, CompactGaussianFitResult], ...],
+    protected_labels: frozenset[int],
+    wcs: WCS,
+    beam: RestoringBeam,
+    atrous_plan: ResidualAtrousPlan,
+    *,
+    detection_sigma: float,
+    island_sigma: float,
+    minimum_pixels: int,
+    maximum_bounds_pixels: int,
+    minimum_support_fraction: float,
+) -> tuple[SupportFeatureGroups, ...]:
+    """Group every connected support feature, as the serial oracle."""
+    connected, _ = cast(
+        tuple[np.ndarray, int],
+        label(measurement_support & valid, np.ones((3, 3))),
+    )
+    margin = support_feature_margin_pixels(atrous_plan)
+    grouped: list[SupportFeatureGroups] = []
+    for identity, slices in enumerate(find_objects(connected), 1):
+        assert slices is not None, "support-feature labels must be dense"
+        ys, xs = slices
+        bounds = support_feature_window(
+            ImageBounds(ys.start, ys.stop, xs.start, xs.stop),
+            margin=margin,
+            image_shape_yx=residual.shape,
+            maximum_bounds_pixels=maximum_bounds_pixels,
+        )
+        if bounds is None:
             continue
         window = np.s_[
             bounds.y_start : bounds.y_stop, bounds.x_start : bounds.x_stop
         ]
-        parent_support = parents[window] == parent_index
-        local_valid = (
-            valid[window]
-            & np.isfinite(residual[window])
-            & np.isfinite(rms[window])
-            & (rms[window] > 0.0)
-        )
-        local_valid &= (parents[window] == 0) | parent_support
-        seeds = np.where(
-            parent_support & (residual[window] > 0.0) & local_valid,
-            direct_labels[window],
-            0,
-        ).astype(np.int32)
-        indexes = tuple(int(index) for index in np.unique(seeds) if index > 0)
-        if not indexes:
-            deferred += 1
-            continue
-        island_id = f"measurement-parent-{parent_index}"
-        regions = tuple(
-            _region(
-                seeds,
-                index,
+        grouped.append(
+            group_support_feature_components(
                 residual[window],
                 rms[window],
-                (bounds.y_start, bounds.x_start),
-                island_id,
-            )
-            for index in indexes
-        )
-        island = _measurement_island(
-            regions, seeds, bounds, parent_index, residual.shape
-        )
-        compact = _ComponentFitInput(
-            island,
-            bounds,
-            regions,
-            residual[window],
-            rms[window],
-            local_valid,
-            seeds,
-        )
-        center_xy = (
-            (bounds.x_start + bounds.x_stop - 1) / 2,
-            (bounds.y_start + bounds.y_stop - 1) / 2,
-        )
-        geometry = compact_geometry_from_wcs(beam, wcs, center_xy)
-        moments = measure_compact_moments(compact, geometry, moment_config)[1:]
-        # These are native component measurements, not Gaussian source
-        # surrogates. Apply the already configured component extension rule
-        # to the whole joint solution; do not splice per-component fits from
-        # competing source/component models. Source flux is an aperture.
-        fitted = fit_compact_gaussian_mixture(
-            compact,
-            moments,
-            geometry,
-            replace(
-                fit_config,
-                extension_significance_sigma=fit_config.component_extension_significance_sigma,
-            ),
-        )
-        labelled = tuple(zip(indexes, fitted, strict=True))
-        # Measurement-only persistent emission belongs to admitted owners
-        # independently of whether a compact Gaussian describes them. A
-        # bounded or unavailable fit must not truncate extended photometry.
-        measurement_support[window] |= _persistent_measurement_support(
-            residual[window],
-            rms[window],
-            local_valid,
-            atrous_plan,
-            minimum_support_fraction,
-            detection_sigma,
-            island_sigma,
-            minimum_pixels,
-        )
-        complete = tuple(
-            (index, fit)
-            for index, fit in labelled
-            if isinstance(fit, ValidCompactGaussianFit)
-            and "fit-at-bound" not in fit.quality_flags
-        )
-        admitted = _admit_fallbacks(
-            complete,
-            compact,
-            fit_config,
-            atrous_plan,
-            minimum_support_fraction,
-            detection_sigma,
-            island_sigma,
-            minimum_pixels,
-        )
-        by_index = dict(admitted)
-        output.extend(
-            (index, by_index.get(index, fit)) for index, fit in labelled
-        )
-        expected_indexes = set(
-            np.unique(measurement_labels[window][parent_support])
-        ) - {0}
-        if len(complete) != len(expected_indexes) or any(
-            isinstance(fit, FailedCompactGaussianFit) for _, fit in admitted
-        ):
-            continue
-        model, groups = _model_and_groups(complete, bounds)
-        covariance = geometry.restoring_beam_covariance_pixels_squared
-        assert covariance is not None
-        beam_xx, beam_xy, beam_yy = covariance
-        loop_groups = (
-            _resolved_emission_loop(
-                residual[window],
-                rms[window],
-                local_valid,
-                atrous_plan,
-                fits=complete,
-                bounds=bounds,
-                beam_covariance=np.array(
-                    ((beam_xx, beam_xy), (beam_xy, beam_yy))
-                ),
-                island_sigma=island_sigma,
-                minimum_support_fraction=minimum_support_fraction,
-                evidence=evidence,
-            )
-            if len(groups) > 1
-            else ()
-        )
-        if loop_groups:
-            extended_groups.extend(loop_groups)
-            loop_labels = {index for group in loop_groups for index in group}
-            nearest = expand_source_measurement_labels(
+                valid[window],
                 measurement_labels[window],
-                valid[window],
-                radius_pixels=ceil(float(np.hypot(*bounds.shape_yx))),
+                connected[window] == identity,
+                fits,
+                protected_labels,
+                wcs,
+                beam,
+                atrous_plan,
+                bounds=bounds,
+                detection_sigma=detection_sigma,
+                island_sigma=island_sigma,
+                minimum_pixels=minimum_pixels,
+                minimum_support_fraction=minimum_support_fraction,
             )
-            for group in groups:
-                remaining = group - loop_labels
-                if remaining and not _unmodelled_detection(
-                    residual[window] - model,
-                    rms[window],
-                    local_valid,
-                    detection_sigma,
-                    island_sigma,
-                    minimum_pixels,
-                    atrous_plan,
-                    minimum_support_fraction,
-                    np.isin(nearest, tuple(remaining)),
-                ):
-                    compact_groups.append(remaining)
-            continue
-        if not _unmodelled_detection(
-            residual[window] - model,
-            rms[window],
-            local_valid,
-            detection_sigma,
-            island_sigma,
-            minimum_pixels,
-            atrous_plan,
-            minimum_support_fraction,
-            expand_source_measurement_labels(
-                parents[window],
-                valid[window],
-                radius_pixels=ceil(float(np.hypot(*bounds.shape_yx))),
-            )
-            == parent_index,
-        ):
-            compact_groups.extend(groups)
-    extended_groups.extend(
-        _cross_parent_loop_groups(
-            residual,
-            rms,
-            valid,
-            measurement_labels,
-            tuple(output),
-            wcs,
-            beam,
-            atrous_plan,
-            island_sigma,
-            minimum_support_fraction,
-            maximum_bounds_pixels,
-            measurement_support=measurement_support,
-            evidence=evidence,
         )
-    )
-    extended_groups.extend(
-        _extended_residual_groups(
-            residual,
-            rms,
-            valid,
-            measurement_labels,
-            tuple(output),
-            tuple(compact_groups),
-            measurement_support,
-            atrous_plan,
-            minimum_support_fraction,
-            detection_sigma,
-            island_sigma,
-            minimum_pixels,
-            maximum_bounds_pixels,
-            evidence=evidence,
-        )
-    )
+    return tuple(grouped)
+
+
+def reconcile_component_measurements(
+    measurement_support: np.ndarray,
+    *,
+    parents: tuple[FitParentMeasurement, ...],
+    features: tuple[SupportFeatureGroups, ...],
+) -> ComponentMeasurements:
+    """Reconcile the parents' and features' records into one measurement.
+
+    Every step that spans fit parents has already run: each connected support
+    feature contributed its extended groups and grouping evidence. What is
+    left is a reduction over records, so it holds no image-sized array beyond
+    the support plane the parents published.
+    """
+    output: list[tuple[int, CompactGaussianFitResult]] = []
+    compact_groups: list[frozenset[int]] = []
+    extended_groups: list[frozenset[int]] = []
+    evidence: list[ComponentGroupingEvidence] = []
+    deferred = 0
+    for measured in parents:
+        deferred += int(measured.deferred)
+        output.extend(measured.fits)
+        compact_groups.extend(measured.compact_groups)
+        extended_groups.extend(measured.extended_groups)
+        evidence.extend(measured.evidence)
+    for item in features:
+        extended_groups.extend(item.extended_groups)
+        evidence.extend(item.evidence)
     # Reconcile admitted sources as whole owners. An extended proposal may
     # include only some Gaussian members of an accepted compact source; it
     # must not split the other members into a second, overlapping source.

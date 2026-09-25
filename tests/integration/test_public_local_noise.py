@@ -14,6 +14,7 @@ import numpy as np
 import pytest
 from astropy.io import fits
 from astropy.wcs import WCS
+from conftest import estimated_maps
 from scipy.ndimage import gaussian_filter
 
 from hebog import public_api
@@ -41,14 +42,16 @@ def _public_maps(
     input_path = tmp_path / "noise.fits"
     fits.PrimaryHDU(image, header).writeto(input_path)
     source = FitsImageSource(input_path)
-    return public_api._estimate_background_rms(
+    metadata = source.metadata()
+    sink, _, _ = public_api._estimate_background_rms(
         source,
-        source.metadata(),
+        metadata,
         SourceFinderConfig(5.0, 3.0, 7),
         SerialExecutor(),
         tmp_path / "work",
         generation_id="noise-fixture",
     )
+    return estimated_maps(sink, metadata.shape_yx)
 
 
 @pytest.mark.parametrize("width", (18, 40, 80))

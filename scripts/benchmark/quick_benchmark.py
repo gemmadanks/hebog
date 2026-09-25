@@ -39,7 +39,6 @@ from tempfile import TemporaryDirectory
 from typing import Any, cast
 
 import hebog
-from hebog import public_api
 from hebog.io import FitsImageSource
 from hebog.validation.contracts import (
     PerformanceMatrixContract,
@@ -266,6 +265,38 @@ def _environment_sha256(machine: dict[str, object]) -> str:
     )
 
 
+def _worker_command(  # noqa: PLR0913
+    *,
+    python: Path,
+    input_path: Path,
+    case_id: str,
+    settings_json: str,
+    supplied_metadata: dict[str, float] | None,
+    shape_yx: tuple[int, int],
+) -> list[str]:
+    """Build the worker invocation that times one Hebog installation.
+
+    The diagnostic size limit is always passed, set to the input's own long
+    axis. The installation being timed may be a release whose public envelope
+    differs from this source tree's, so asking whether this tree would refuse
+    the image measures the wrong program; raising the limit to the exact size
+    changes nothing for an installation that already admits it.
+    """
+    command = [
+        str(python),
+        str(_WORKER),
+        "--input",
+        str(input_path),
+        "--run-id",
+        case_id,
+        "--settings",
+        settings_json,
+    ]
+    if supplied_metadata is not None:
+        command += ["--supplied-metadata", json.dumps(supplied_metadata)]
+    return [*command, "--diagnostic-size-limit", str(max(shape_yx))]
+
+
 def _time_hebog(  # noqa: PLR0913
     installation: _Installation,
     *,
@@ -278,21 +309,14 @@ def _time_hebog(  # noqa: PLR0913
     """Run the warm-up and measured repetitions of one Hebog installation."""
     protocol = contract.previous_hebog
     shape_yx = _shape_yx(prepared)
-    command = [
-        str(installation.python),
-        str(_WORKER),
-        "--input",
-        str(prepared.input_path),
-        "--run-id",
-        case.case_id,
-        "--settings",
-        configuration.hebog.model_dump_json(),
-    ]
-    supplied = _supplied_metadata(case)
-    if supplied is not None:
-        command += ["--supplied-metadata", json.dumps(supplied)]
-    if max(shape_yx) > public_api._MAXIMUM_PREVIEW_DIMENSION:
-        command += ["--diagnostic-size-limit", str(max(shape_yx))]
+    command = _worker_command(
+        python=installation.python,
+        input_path=prepared.input_path,
+        case_id=case.case_id,
+        settings_json=configuration.hebog.model_dump_json(),
+        supplied_metadata=_supplied_metadata(case),
+        shape_yx=shape_yx,
+    )
     repetitions: list[Repetition] = []
     record: dict[str, Any] = {}
     total = protocol.warmup_repetitions + protocol.minimum_measured_repetitions

@@ -6,9 +6,8 @@ immutable Pydantic records, reject unknown fields and unsupported versions,
 and serialize to canonical JSON for restart metadata and cross-process
 exchange.
 
-The Phase 0 named scientific sign-off approved the schema meanings on
-2026-08-02. Automated round-trip and compatibility tests remain the evidence
-for individual outputs. The schemas are still pre-`1.0`: a later semantic
+Automated round-trip and compatibility tests are the evidence for individual
+outputs. The schemas are pre-`1.0`: a later semantic
 change requires a new schema version and updated current documentation, and
 must not silently reinterpret persisted data. Stale development products may
 be rejected and recreated rather than supported through legacy readers or
@@ -169,7 +168,7 @@ other valid caller configurations are `custom-unqualified`. The configuration
 SHA-256 still binds every threshold, island-size limit, and profile choice.
 This label separates execution from scientific qualification: custom settings
 are supported computations but do not inherit the reference evidence. The
-changed default science does not inherit historical qualification either.
+changed default science does not inherit earlier qualification either.
 
 Its canonical `measurement_dispositions` records each detected component and
 associated source exactly once. A source's member IDs partition the component
@@ -209,22 +208,9 @@ continue, and an independently valid signed-aperture source remains subject
 to its existing admission rules. Successful product publication does not
 imply that all measurements or scientific gates passed.
 
-The prospective source-measurement evidence summary is schema version 4.
-It binds source-level catalogue metrics and published source-union topology
-separately from binary published-mask metrics. Gaussian-component diagnostics
-are non-binding; unavailable Gaussian fits do not invalidate an otherwise
-valid signed-aperture source. Array-free records retain all measurement
-dispositions, including unpublished rows, truth-match edges, signed residuals,
-and support-stage counts. A write-once diagnostic packet publishes the full
-record and Dask-comparison census before its checksum-verified manifest and
-the final decision. Scratch cleanup requires the actual retained records,
-not only their digests; a failed scientific decision is retained unchanged.
-
-Version 2 replaces the earlier path-only `SourceFinderResult` constructor.
 The `catalogue_path`, `rms_path`, `mask_path`, and `diagnostics_path`
-properties remain available to workflow consumers, but producers must create
-the corresponding `MaterializedProduct` records. No implemented Hebog
-source-finding pipeline emitted the version 1 scaffold.
+properties are conveniences for workflow consumers; producers must create the
+corresponding `MaterializedProduct` records.
 
 ## Product materialisation
 
@@ -273,14 +259,14 @@ one new output directory and moves the complete bundle into it with a single
 rename.
 
 The combined helper
-reuses the exact Phase 2 RMS `MaterializedProduct`; writes the internal
+reuses the exact RMS `MaterializedProduct`; writes the internal
 catalogue and Rapthor compatibility view from the same combined catalogue;
 and writes the source-filtering mask as a bounded row-block union of compact
 and accepted extended support. Compact-only composition rejects an extended
 mask or provenance and reproduces the existing catalogue, mask, diagnostics,
 and Rapthor bytes.
 
-## Phase 3 intermediate generation
+## Intermediate Zarr generation
 
 The compact-detection stage publishes one immutable Zarr v3 generation with
 exactly three two-dimensional products: float64 `background`, float64 `rms`,
@@ -312,16 +298,16 @@ reuse at most four validated chunks while assembling multiple compact-island
 windows. The cache is worker-local and cannot grow with the image or island
 count.
 
-Phase 4 exact region labels remain transient worker data. A
+Exact deblended-region labels remain transient worker data. A
 `WorkerLocalRegionBatch` aligns immutable float64 physical residual and RMS,
 boolean validity, and int32 region labels with reconciled island and region
 records. It is an in-task scientific-kernel input, not a durable schema or a
 scheduler result. `CompactRegionStageResult` contains only processor-produced
-compact records, deblending summaries, explicit Phase 5 deferrals, batch
+compact records, deblending summaries, explicit multiscale deferrals, batch
 counts, admitted bounds pixels, and the largest retained processor-array byte
 count. A summary rectangle cannot be deserialized into membership.
 
-The Phase 4 moment processor returns frozen compact records, not a durable
+The moment processor returns frozen compact records, not a durable
 catalogue schema. `OwnedPixelPhotometry` keeps finite-mask pixel-sum flux
 distinct from fitted-Gaussian flux. A valid result includes a pixel-space
 `GaussianMomentInitializer`; shape-unavailable and fully unavailable union
@@ -343,18 +329,16 @@ classified because its flux uncertainty was unavailable.
 WCS objects are reconstructed transiently inside the astrometry boundary and
 never enter a public record or executor result.
 
-Catalogue FITS schema version 3 replaces the earlier fixed-beam association
-aperture with
-`SourceCandidate.association_aperture_integrated_flux_jy`. It uses the
+`SourceCandidate.association_aperture_integrated_flux_jy` uses the
 restoring-beam ellipse when that contains at least 90% of the fitted model and
 otherwise follows the selected-fit ellipse so rotated and elongated blends are
 not clipped by the restoring beam's narrow axis. `GaussianComponent.flux`
 continues to describe the selected Gaussian model, and materialized Rapthor
 catalogue columns retain their reviewed peak/integrated component semantics.
 
-## Phase 5 multiscale records
+## Multiscale records
 
-Phase 5 adds scheduler-safe scale, association, identity, completion, and
+The multiscale path adds scheduler-safe scale, association, identity, completion, and
 provenance records without adding image planes to public state.
 `ScaleDetection` describes one finite,
 beam-normalized response and retains its global bounds, valid-support
@@ -362,14 +346,14 @@ fraction, normalized peak response, significance, and contributing scale. A
 `CrossScaleAssociation` canonically joins scale detections and, when present,
 any number of spatially related compact sources. It records the selected
 detection explicitly rather than letting task or scale iteration order choose
-a catalogue representation. `CompactSourceSupport` binds one immutable Phase
-4 source and parent island identity to exact bounded support metadata and an
+a catalogue representation. `CompactSourceSupport` binds one immutable compact
+source and parent island identity to exact bounded support metadata and an
 image-plane reference position. `CompactExtendedContextEdge` retains the
 per-source containment or overlap relation when one extended association has
 several different compact relationships.
 
 `CombinedIslandIdentity` is the array-free connected-component result. A
-compact-only component keeps its original Phase 4 island ID; a mixed or
+compact-only component keeps its original compact island ID; a mixed or
 extended component uses a namespaced SHA-256 identity over canonical compact
 island and extended-association membership. It also retains the exact compact
 source and Gaussian-component IDs. `ExtendedSourceIdentity` assigns one
@@ -385,7 +369,7 @@ unavailable until nonlinear segment-selection uncertainty has a validated
 per-source approximation; flux-uncertainty availability remains independent.
 It also stores association-level flux and beam-normalized extent.
 `CrossScaleAssociation` and `CombinedCatalogueState` are schema version 2;
-`ExtendedEmissionMeasurement` is schema version 3; the remaining Phase 5
+`ExtendedEmissionMeasurement` is schema version 3; the remaining multiscale
 records are schema version 1.
 `MultiscaleOmission` is a typed fail-closed explanation for unavailable scale
 support, measurement, or association. `CombinedIslandDisposition` gives every
@@ -428,17 +412,17 @@ associations therefore remain distinct even in a many-to-many component.
 no-op seam. It
 returns the same `CompletedCompactCatalogue` only for `extended-only`
 associations with no compact identities. Compact-touching and ambiguous
-relationships raise a typed Step 4 decision error, so pre-association evidence
-cannot silently reconstruct or mutate Phase 4 catalogue records.
+relationships raise a typed association decision error, so pre-association evidence
+cannot silently reconstruct or mutate compact catalogue records.
 
 `derive_combined_identities` validates complete agreement between association
 summaries and per-edge context evidence before deriving any hash. It groups
-Phase 4 islands and extended associations by graph connectivity, not by input,
+compact islands and extended associations by graph connectivity, not by input,
 tile, task, or completion order. Duplicate identities, unknown relationships,
 missing edges, and contradictory aggregate relationships fail closed.
 
 `construct_combined_catalogue` validates exact agreement among the completed
-terminal state, combined identities, associations, measurements, and Phase 4
+terminal state, combined identities, associations, measurements, and compact
 catalogue before constructing any row. Compact-only composition returns the
 same `SourceCatalogue` object. Mixed composition remaps retained compact rows
 to their combined islands, adds one irregular source per association, and

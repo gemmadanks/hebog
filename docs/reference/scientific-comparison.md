@@ -1,7 +1,8 @@
 # Scientific comparison reports
 
-The Phase 0 comparison oracle is independent of PyBDSF product readers and
-Hebog's future scientific algorithms. Its purpose is to make catalogue, RMS,
+The comparison oracle in `hebog.validation.comparison` is independent of
+PyBDSF product readers and of Hebog's scientific algorithms. Its purpose is to
+make catalogue, RMS,
 and mask equivalence calculations testable before any frozen external product
 is treated as evidence.
 
@@ -35,7 +36,7 @@ empty denominator has value `1.0`, so two empty catalogues agree while a
 candidate-only catalogue has zero reliability. Match-only numerical metrics
 are `None` when there are no pairs.
 
-For matched rows, the Phase 4 report additionally contains signed fitted and
+For matched rows, the report additionally contains signed fitted and
 deconvolved major/minor-axis fractional differences, shortest position-angle
 differences modulo 180 degrees, resolved/unresolved classification accuracy,
 component-count agreement, exact and Jaccard quality-flag agreement, and
@@ -43,7 +44,7 @@ summary medians and 95th percentiles. Axis summaries use the worse of the
 major/minor fractional errors for each matched row, and fitted and deconvolved
 position angles remain separate so one population cannot conceal another.
 The caller supplies the reviewed minimum reference major/minor-axis ratio for
-position-angle evidence; Phase 4 uses `1.1`, below which orientation is not a
+position-angle evidence; the compact contract uses `1.1`, below which orientation is not a
 meaningful scientific quantity. Axis evidence remains eligible. Reference or
 injected truth alone selects every governed population. A missing candidate
 shape, classification, or parent identity therefore counts as unavailable
@@ -107,18 +108,13 @@ optional valid mask excludes pixels before objects and overlaps are counted.
 This object report prevents high background agreement from concealing a
 topologically wrong source-filtering mask.
 
-The compact released/master products now exercise the same oracle through the
-equivalence lane. Their immutable manifest and persisted scientific record are
-summarized in the [Phase 0 baseline results](phase-0-baseline-results.md).
-Future Hebog/reference documents use the same typed reports. Per-source-class
-stratification begins with later algorithm/regression slices; it must not
-change these core calculations.
-
-The corrected representative `5.0/3.0` campaigns produce 12 released-PyBDSF
-source rows and 14 pinned-master rows. They are not yet frozen as a row-level
-comparison because the controlled 3,000-square input is restricted. That
-count difference is an explicit reference divergence to resolve against
-governed truth, not by selecting either PyBDSF version as authoritative.
+The frozen released and `master` PyBDSF products under `config/baselines/`
+exercise the same oracle through the equivalence lane, and Hebog/reference
+comparisons use the same typed reports. Per-source-class stratification is
+layered on top and must not change these core calculations. Released and
+pinned-`master` PyBDSF do not produce identical catalogues on the same image;
+that divergence is resolved against injected truth, not by treating either
+version as authoritative.
 
 ::: hebog.validation.comparison
     options:

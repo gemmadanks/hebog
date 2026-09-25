@@ -365,12 +365,3 @@ class FitsImageSource:
                 )
             )
         return tuple(windows)
-
-
-def celestial_wcs_from_metadata(metadata: ImageMetadata) -> WCS:
-    """Reconstruct an independent Astropy WCS from serialized metadata."""
-    header = fits.Header.fromstring(
-        metadata.celestial_wcs.fits_header,
-        sep="\n",
-    )
-    return WCS(header, relax=True).celestial

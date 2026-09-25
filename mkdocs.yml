@@ -1,5 +1,5 @@
 site_name: Hebog Documentation
-site_description: Dask-aware radio-continuum source finding for SKA SDP pipelines
+site_description: A scalable, Dask-aware source finder for radio-continuum images
 site_url: https://gemmadanks.github.io/hebog/
 repo_url: https://github.com/gemmadanks/hebog
 repo_name: gemmadanks/hebog
@@ -46,6 +46,8 @@ plugins:
   - tags
 
 markdown_extensions:
+  - admonition
+  - tables
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
@@ -59,45 +61,48 @@ extra:
 
 nav:
   - Home: index.md
-  - Quick start: tutorials/index.md
-  - Find sources: tutorials/find-sources.md
-  - Development:
-      - Development history: explanation/development-history.md
-      - Workflows: how-to/index.md
-      - Publish releases to PyPI: how-to/publish-releases.md
-      - Notebooks and comparison refreshes: how-to/notebooks.md
-  - Reference:
-      - Current capability and releases: reference/release-status.md
-      - Current scientific campaign: reference/scientific-campaign-overview.md
-      - Scientific readiness: reference/scientific-readiness.md
-      - API: reference/index.md
-      - Public source-finder outputs: reference/public-products.md
-      - Domain glossary: reference/domain-glossary.md
-      - Internal catalogue and result schemas: reference/internal-schemas.md
-      - Rapthor source-finding contract: reference/rapthor-source-finding-contract.md
-      - Validation dataset manifests: reference/dataset-manifests.md
-      - Scientific comparison reports: reference/scientific-comparison.md
-      - Evidence documents: reference/evidence-documents.md
-      - Performance and scalability contracts: reference/performance-scalability-contracts.md
-      - Compact deblending: reference/compact-deblending.md
-      - Extended-emission measurement: reference/extended-emission-measurement.md
-      - Compact moment measurement: reference/compact-measurement.md
-      - Compact Gaussian fitting: reference/compact-fitting.md
-      - Compact astrometry and beam deconvolution: reference/compact-astrometry.md
-      - Compact catalogue and Rapthor FITS view: reference/compact-catalogue.md
-      - Dated scientific evidence and contracts:
-          - Scientific pre-review findings: reference/scientific-pre-review.md
-          - Phase 0 starting revisions: reference/starting-revisions.md
-          - Phase 0 baseline results: reference/phase-0-baseline-results.md
-  - Explanation:
-      - Architecture: explanation/index.md
-      - How Hebog finds sources: explanation/how-hebog-works.md
-      - Domain model: explanation/domain-model.md
-      - Quality attributes: explanation/quality-attributes.md
-      - Native-code assessment: explanation/native-code-assessment.md
-  - Architecture:
-      - Overview: architecture/index.md
-      - ADRs: architecture/adr/index.md
+  - User guide:
+      - Install Hebog: tutorials/index.md
+      - "Tutorial: find sources in a FITS image": tutorials/find-sources.md
+      - How-to guides:
+          - Choose thresholds, a profile and an executor: how-to/configure-a-run.md
+          - Use the notebooks and compare finders: how-to/notebooks.md
+      - Explanation:
+          - How Hebog finds sources: explanation/how-hebog-works.md
+          - Hebog and other source finders: explanation/source-finder-comparison.md
+      - Reference:
+          - Capability and status: reference/release-status.md
+          - Outputs: reference/public-products.md
+          - Python API: reference/index.md
+          - Glossary: reference/domain-glossary.md
+  - Developer guide:
+      - Integrate Hebog into a pipeline: how-to/integrate-into-a-pipeline.md
+      - Architecture:
+          - Overview: architecture/index.md
+          - How Hebog distributes work: architecture/distributed-execution.md
+          - Domain model: explanation/domain-model.md
+          - Quality attributes: explanation/quality-attributes.md
+          - Native-code assessment: explanation/native-code-assessment.md
+          - Decision records (ADRs): architecture/adr/index.md
+      - Contributing:
+          - Contribute to Hebog: how-to/index.md
+          - Publish releases: how-to/publish-releases.md
+      - Reference:
+          - Internal API: reference/internal-api.md
+          - Internal schemas: reference/internal-schemas.md
+          - Rapthor source-finding contract: reference/rapthor-source-finding-contract.md
+          - Performance and scalability contracts: reference/performance-scalability-contracts.md
+          - Where Hebog spends its time: reference/performance-profile.md
+          - Validation dataset manifests: reference/dataset-manifests.md
+          - Scientific comparison reports: reference/scientific-comparison.md
+          - Evidence documents: reference/evidence-documents.md
+          - Algorithm contracts:
+              - Compact deblending: reference/compact-deblending.md
+              - Compact moment measurement: reference/compact-measurement.md
+              - Compact Gaussian fitting: reference/compact-fitting.md
+              - Compact astrometry and beam deconvolution: reference/compact-astrometry.md
+              - Compact catalogue and Rapthor FITS view: reference/compact-catalogue.md
+              - Extended-emission measurement: reference/extended-emission-measurement.md
   - Tags: tags.md
 
 extra_javascript:

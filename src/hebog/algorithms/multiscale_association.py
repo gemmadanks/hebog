@@ -9,14 +9,18 @@ from hashlib import sha256
 from itertools import pairwise
 from math import ceil, floor, isfinite
 from numbers import Real
-from typing import cast
+from typing import Protocol, cast
 
 import numpy as np
 import numpy.typing as npt
 from scipy.ndimage import binary_dilation
 from scipy.ndimage import label as connected_component_labels
 
-from hebog.algorithms.label_groups import group_labelled_pixels
+from hebog.algorithms.label_groups import (
+    LabelledPixelGroups,
+    group_labelled_pixels,
+)
+from hebog.algorithms.reconciliation import DetectedIsland
 from hebog.data_models.multiscale import (
     CompactExtendedContextEdge,
     CompactSourceSupport,
@@ -87,6 +91,88 @@ def compact_context_halo_pixels(beam_major_fwhm_pixels: float) -> int:
     return ceil(_COMPACT_CONTEXT_RADIUS_BEAMS * beam_major_fwhm_pixels)
 
 
+class ScaleDetections(Protocol):
+    """One scale's stable feature records, with or without its labels.
+
+    Every hierarchy decision reads identities, bounds and responses, never
+    the label plane, so a pass that has already reconciled its features can
+    supply :class:`ScaleDetectionRecords` and hold no image-sized array.
+    """
+
+    @property
+    def scale_order(self) -> int:
+        """Return the configured scale these features belong to."""
+        ...
+
+    @property
+    def detections(self) -> tuple[ScaleDetection, ...]:
+        """Return the features, ordered by their canonical first pixel."""
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class ScaleDetectionRecords:
+    """One scale's features, without the plane that labelled them."""
+
+    scale_order: int
+    detections: tuple[ScaleDetection, ...]
+
+    def __post_init__(self) -> None:
+        """Reject an unconfigured scale before any decision reads it."""
+        if self.scale_order < 1:
+            raise ValueError("scale order must be positive")
+
+
+def scale_detections_from_islands(
+    islands: tuple[DetectedIsland, ...],
+    *,
+    scale_order: int,
+    nominal_scale_beam_fwhm: float,
+) -> ScaleDetectionRecords:
+    """Describe one scale's features from its reconciled islands alone.
+
+    A tiled pass reduces each feature's extent, canonical pixel and peak
+    response while its filter response is still in the task's memory, so a
+    later pass names the same features without labelling a plane again.
+    """
+    return ScaleDetectionRecords(
+        scale_order=scale_order,
+        detections=tuple(
+            ScaleDetection(
+                detection_id=scale_detection_id(
+                    scale_order, island.first_pixel_yx
+                ),
+                parent_island_id=None,
+                scale_order=scale_order,
+                nominal_scale_beam_fwhm=nominal_scale_beam_fwhm,
+                support_pixel_count=island.pixel_count,
+                valid_support_fraction=1.0,
+                bounds_yx=(
+                    island.bounds.y_start,
+                    island.bounds.y_stop,
+                    island.bounds.x_start,
+                    island.bounds.x_stop,
+                ),
+                canonical_pixel_yx=island.first_pixel_yx,
+                peak_response_jy_per_beam=_island_peak_response(island),
+                peak_signal_to_noise=island.peak_signal_to_noise,
+                touches_image_edge=island.touches_image_edge,
+            )
+            for island in islands
+        ),
+    )
+
+
+def _island_peak_response(island: DetectedIsland) -> float:
+    """Return one island's peak response, or fail closed on its absence."""
+    response = island.peak_response_jy_per_beam
+    if response is None:
+        raise ValueError(
+            "scale detection records require a reduced peak response"
+        )
+    return response
+
+
 @dataclass(frozen=True, slots=True)
 class ScaleDetectionPlane:
     """One bounded exact-support label plane and its local label records.
@@ -121,11 +207,16 @@ class ScaleDetectionPlane:
         object.__setattr__(self, "component_labels", canonical)
 
 
-def _scale_detection_id(
+def scale_detection_id(
     scale_order: int,
     canonical_pixel_yx: tuple[int, int],
 ) -> str:
-    """Derive one stable feature identity from scale and global owner pixel."""
+    """Derive one stable feature identity from scale and global owner pixel.
+
+    A later pass names the same features from the reconciled island records
+    alone, so this identity is part of the published contract rather than an
+    internal detail of the plane builder.
+    """
     digest = sha256(_DETECTION_ID_NAMESPACE)
     for value in (scale_order, *canonical_pixel_yx):
         digest.update(str(value).encode("ascii"))
@@ -192,48 +283,147 @@ def build_scale_detection_plane(  # noqa: PLR0913
         raise ValueError(
             "significant scale features require finite positive response"
         )
+    return ScaleDetectionPlane(
+        scale_order=scale_order,
+        component_labels=np.asarray(labels, dtype=np.int32),
+        detections=_scale_detections(
+            groups,
+            count=count,
+            peak_response_jy_per_beam=groups.maximum(feature_response),
+            peak_signal_to_noise=groups.maximum(feature_snr),
+            support_shape_yx=support.shape,
+            origin_yx=origin_yx,
+            scale_order=scale_order,
+            nominal_scale_beam_fwhm=nominal_scale_beam_fwhm,
+        ),
+        origin_yx=origin_yx,
+    )
+
+
+def _scale_detections(  # noqa: PLR0913
+    groups: LabelledPixelGroups,
+    *,
+    count: int,
+    peak_response_jy_per_beam: npt.NDArray[np.float64],
+    peak_signal_to_noise: npt.NDArray[np.float64],
+    support_shape_yx: tuple[int, int],
+    origin_yx: tuple[int, int],
+    scale_order: int,
+    nominal_scale_beam_fwhm: float,
+) -> tuple[ScaleDetection, ...]:
+    """Describe each labelled feature from its reduced pixel group."""
     y_origin, x_origin = origin_yx
-    height, width = support.shape
+    height, width = support_shape_yx
     minimum_y, maximum_y = groups.minimum(groups.y), groups.maximum(groups.y)
     minimum_x, maximum_x = groups.minimum(groups.x), groups.maximum(groups.x)
-    peak_response = groups.maximum(feature_response)
-    peak_snr = groups.maximum(feature_snr)
-    detections: list[ScaleDetection] = []
-    for index in range(count):
-        canonical = (
+    canonical_pixels = tuple(
+        (
             int(groups.first_y[index]) + y_origin,
             int(groups.first_x[index]) + x_origin,
         )
-        detections.append(
-            ScaleDetection(
-                detection_id=_scale_detection_id(scale_order, canonical),
-                parent_island_id=None,
-                scale_order=scale_order,
-                nominal_scale_beam_fwhm=nominal_scale_beam_fwhm,
-                support_pixel_count=int(groups.sizes[index]),
-                valid_support_fraction=1.0,
-                bounds_yx=(
-                    int(minimum_y[index]) + y_origin,
-                    int(maximum_y[index]) + y_origin + 1,
-                    int(minimum_x[index]) + x_origin,
-                    int(maximum_x[index]) + x_origin + 1,
-                ),
-                canonical_pixel_yx=canonical,
-                peak_response_jy_per_beam=float(peak_response[index]),
-                peak_signal_to_noise=float(peak_snr[index]),
-                touches_image_edge=bool(
-                    minimum_y[index] == 0
-                    or minimum_x[index] == 0
-                    or maximum_y[index] == height - 1
-                    or maximum_x[index] == width - 1
-                ),
-            )
+        for index in range(count)
+    )
+    return tuple(
+        ScaleDetection(
+            detection_id=scale_detection_id(scale_order, canonical),
+            parent_island_id=None,
+            scale_order=scale_order,
+            nominal_scale_beam_fwhm=nominal_scale_beam_fwhm,
+            support_pixel_count=int(groups.sizes[index]),
+            valid_support_fraction=1.0,
+            bounds_yx=(
+                int(minimum_y[index]) + y_origin,
+                int(maximum_y[index]) + y_origin + 1,
+                int(minimum_x[index]) + x_origin,
+                int(maximum_x[index]) + x_origin + 1,
+            ),
+            canonical_pixel_yx=canonical,
+            peak_response_jy_per_beam=float(peak_response_jy_per_beam[index]),
+            peak_signal_to_noise=float(peak_signal_to_noise[index]),
+            touches_image_edge=bool(
+                minimum_y[index] == 0
+                or minimum_x[index] == 0
+                or maximum_y[index] == height - 1
+                or maximum_x[index] == width - 1
+            ),
+        )
+        for index, canonical in enumerate(canonical_pixels)
+    )
+
+
+def build_scale_detection_plane_from_islands(
+    significant_support: npt.ArrayLike,
+    islands: tuple[DetectedIsland, ...],
+    *,
+    scale_order: int,
+    nominal_scale_beam_fwhm: float,
+) -> ScaleDetectionPlane:
+    """Describe one scale from its stored support and reconciled islands.
+
+    A tiled pass reduces each feature's peak response and signal to noise
+    while the filter response is still in the task's memory, so a later pass
+    can describe the same features from the stored support mask alone. The
+    reconciled islands are ordered by their globally row-major canonical
+    pixel, which is the order ``scipy.ndimage.label`` assigns to the same
+    mask, so the labelling here reproduces the tiled global labels exactly.
+    """
+    support = np.asarray(significant_support)
+    if support.ndim != _IMAGE_DIMENSIONS or support.dtype != np.bool_:
+        raise ValueError("significant scale support must be a boolean plane")
+    labels, count = cast(
+        tuple[npt.NDArray[np.int32], int],
+        connected_component_labels(
+            support,
+            structure=np.ones((3, 3), dtype=np.int8),
+        ),
+    )
+    if count != len(islands):
+        raise ValueError(
+            "reconciled scale islands must describe the stored support once"
+        )
+    groups = group_labelled_pixels(labels, label_count=count)
+    canonical = tuple(
+        (int(groups.first_y[index]), int(groups.first_x[index]))
+        for index in range(count)
+    )
+    if any(
+        island.global_label != index + 1
+        or island.first_pixel_yx != canonical[index]
+        or island.pixel_count != int(groups.sizes[index])
+        for index, island in enumerate(islands)
+    ):
+        raise ValueError(
+            "reconciled scale islands must match the stored support exactly"
+        )
+    peak_response = np.asarray(
+        [island.peak_response_jy_per_beam for island in islands],
+        dtype=np.float64,
+    )
+    peak_snr = np.asarray(
+        [island.peak_signal_to_noise for island in islands],
+        dtype=np.float64,
+    )
+    if (
+        not bool(np.all(np.isfinite(peak_response)))
+        or not bool(np.all(np.isfinite(peak_snr)))
+        or bool(np.any(peak_response <= 0.0))
+    ):
+        raise ValueError(
+            "significant scale features require finite positive response"
         )
     return ScaleDetectionPlane(
         scale_order=scale_order,
         component_labels=np.asarray(labels, dtype=np.int32),
-        detections=tuple(detections),
-        origin_yx=origin_yx,
+        detections=_scale_detections(
+            groups,
+            count=count,
+            peak_response_jy_per_beam=peak_response,
+            peak_signal_to_noise=peak_snr,
+            support_shape_yx=support.shape,
+            origin_yx=(0, 0),
+            scale_order=scale_order,
+            nominal_scale_beam_fwhm=nominal_scale_beam_fwhm,
+        ),
     )
 
 
@@ -572,32 +762,73 @@ def persistent_adjacent_scale_support(
     if not planes:
         raise ValueError("persistent support requires a scale detection plane")
     ordered_planes, _ = _validated_inputs(planes)
+    retained = persistent_scale_labels(
+        ordered_planes,
+        adjacent_scale_overlap_edges(ordered_planes),
+    )
+    support = np.zeros(
+        ordered_planes[0].component_labels.shape,
+        dtype=np.bool_,
+    )
+    for plane in ordered_planes:
+        support |= persistent_scale_support_window(
+            plane.component_labels,
+            retained[plane.scale_order],
+        )
+    support.setflags(write=False)
+    return support
+
+
+def persistent_scale_labels(
+    scales: tuple[ScaleDetections, ...],
+    parent_edges: tuple[tuple[str, str], ...],
+) -> dict[int, tuple[int, ...]]:
+    """Return each scale's labels whose feature persists to a neighbour.
+
+    Persistence is decided from the reduced adjacent-scale overlap edges and
+    the feature records alone, so it holds no plane.
+    """
+    detections_by_id = {
+        detection.detection_id: detection
+        for scale in scales
+        for detection in scale.detections
+    }
+    components = _DisjointDetections(tuple(detections_by_id))
+    for child_id, parent_id in parent_edges:
+        components.union(child_id, parent_id)
     persistent_ids = {
         detection_id
-        for association in associate_adjacent_scale_detections(ordered_planes)
+        for detection_ids in components.groups()
+        for association in (
+            _build_association(detection_ids, detections_by_id),
+        )
         if (
             len(association.contributing_scale_orders)
             >= _MINIMUM_PERSISTENT_SCALE_COUNT
         )
         for detection_id in association.scale_detection_ids
     }
-    support = np.zeros(
-        ordered_planes[0].component_labels.shape,
+    return {
+        scale.scale_order: tuple(
+            index
+            for index, detection in enumerate(scale.detections, start=1)
+            if detection.detection_id in persistent_ids
+        )
+        for scale in scales
+    }
+
+
+def persistent_scale_support_window(
+    labels: npt.NDArray[np.int32],
+    retained_labels: tuple[int, ...],
+) -> npt.NDArray[np.bool_]:
+    """Return the pixels of one window that one scale's retained labels own."""
+    if not retained_labels:
+        return np.zeros(labels.shape, dtype=np.bool_)
+    return np.asarray(
+        np.isin(labels, np.asarray(retained_labels, dtype=np.int32)),
         dtype=np.bool_,
     )
-    for plane in ordered_planes:
-        retained_labels = np.asarray(
-            [
-                index
-                for index, detection in enumerate(plane.detections, start=1)
-                if detection.detection_id in persistent_ids
-            ],
-            dtype=np.int32,
-        )
-        if retained_labels.size:
-            support |= np.isin(plane.component_labels, retained_labels)
-    support.setflags(write=False)
-    return support
 
 
 def _validate_uncontextualized_associations(

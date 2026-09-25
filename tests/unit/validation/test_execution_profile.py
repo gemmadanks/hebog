@@ -333,10 +333,14 @@ def test_generated_ladder_holds_density_constant() -> None:
         if dataset.recipe.sources
     }
     assert len(densities) == 1
+    # The 4,096-pixel rung is the smallest holding more than one admitted
+    # tile core, so it is the smallest that separates state scaling with the
+    # tile from state scaling with the image.
     assert {dataset.recipe.shape_yx for dataset in datasets} == {
         (512, 512),
         (1024, 1024),
         (2048, 2048),
+        (4096, 4096),
     }
     assert all(dataset.role == "development" for dataset in datasets)
 

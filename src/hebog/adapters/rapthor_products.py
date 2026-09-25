@@ -14,6 +14,7 @@ import numpy as np
 import numpy.typing as npt
 
 from hebog.adapters.rapthor_catalogue import write_rapthor_catalogue_fits
+from hebog.algorithms.astrometry import celestial_wcs_from_metadata
 from hebog.algorithms.combined_products import (
     build_combined_diagnostics,
     combine_source_filtering_mask_blocks,
@@ -26,7 +27,6 @@ from hebog.data_models.source_finding import (
     MaterializedProduct,
     SourceFinderResult,
 )
-from hebog.io.fits import celestial_wcs_from_metadata
 from hebog.io.materialization import (
     FitsProductImageSource,
     MaterializedProductConflictError,

@@ -18,6 +18,7 @@ from scipy.ndimage import gaussian_filter
 
 from hebog import public_api
 from hebog.config import SourceFinderConfig
+from hebog.data_models.partitioning import ImageBounds
 from hebog.data_models.source_finding import SourceFinderRequest
 from hebog.executors import SerialExecutor
 from hebog.io import FitsImageSource
@@ -84,17 +85,25 @@ def test_bright_halo_is_not_background_but_noise_inflation_is_retained(
         header=header,
     )
     support = halo >= 3 * rms
+    plane = (slice(0, image.shape[0]), slice(0, image.shape[1]))
+    estimated_rms = scientific.read_rms_window(plane)
+    estimated_background = np.asarray(
+        scientific.background_rms_source.read_completed_window(
+            "background", ImageBounds(0, image.shape[0], 0, image.shape[1])
+        ),
+        dtype=np.float64,
+    )
     assert (
         np.median(
-            np.abs(scientific.background[support] - background[support])
+            np.abs(estimated_background[support] - background[support])
             / rms[support]
         )
         < 0.5
     )
-    assert np.median(np.abs(scientific.rms[support] / rms[support] - 1)) < 0.25
+    assert np.median(np.abs(estimated_rms[support] / rms[support] - 1)) < 0.25
     assert scientific.terminal is not None
     recovered = scientific.terminal.detection.retained_mask & support
     assert np.count_nonzero(recovered) / np.count_nonzero(support) >= 0.75
     if noisy_neighbourhood:
-        assert scientific.rms[centre_y, 96] > 2.0
-    assert scientific.background[centre_y, 256] < 0
+        assert estimated_rms[centre_y, 96] > 2.0
+    assert estimated_background[centre_y, 256] < 0

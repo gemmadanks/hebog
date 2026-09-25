@@ -14,9 +14,7 @@ from astropy.wcs import WCS
 
 from hebog.data_models.catalogues import SourceCatalogue
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
-from hebog.science.catalogues import (
-    _source_label_plane,  # pyright: ignore[reportPrivateUsage]
-)
+from hebog.science.catalogues import source_label_by_owner
 from hebog.science.models import CatalogueSource, ContinuumProducts
 
 _IMAGE_DIMENSIONS = 2
@@ -30,6 +28,14 @@ class ContinuumCatalogueObject:
     support_label: int
     centre_xy: tuple[float, float]
     integrated_flux_jy: float
+    aperture_integrated_flux_jy: float | None = None
+    """Observable flux in the object's own aperture, where published.
+
+    ``integrated_flux_jy`` is the catalogue's own estimator, which for a
+    continuum source is the sum of its fitted components and so integrates
+    each model over the whole plane. Flux-recovery comparisons against
+    injected truth belong on this field instead.
+    """
 
     def __post_init__(self) -> None:
         """Require a finite positive catalogue measurement."""
@@ -45,6 +51,11 @@ class ContinuumCatalogueObject:
         ):
             raise ValueError(
                 "continuum object flux must be finite and positive"
+            )
+        aperture = self.aperture_integrated_flux_jy
+        if aperture is not None and (not isfinite(aperture) or aperture <= 0):
+            raise ValueError(
+                "continuum object aperture flux must be finite and positive"
             )
 
 
@@ -81,6 +92,7 @@ def _rows(
                 labels[row.identifier],
                 (float(coordinates[0]), float(coordinates[1])),
                 row.integrated_flux_jy,
+                row.association_integrated_flux_jy,
             )
         )
     return tuple(result)
@@ -130,11 +142,14 @@ def project_public_measurements(
         or not np.array_equal(mask, terminal.detection.retained_mask)
     ):
         raise ValueError("public measurement ownership or publication changed")
-    labels, memberships = _source_label_plane(
-        np.asarray(owners, dtype=np.int64), terminal.source_association
-    )
+    association = terminal.source_association
+    source_by_owner = source_label_by_owner(association)
+    labels = np.zeros(np.asarray(owners).shape, dtype=np.int32)
+    for owner, source_label in source_by_owner.items():
+        labels[np.asarray(owners) == owner] = source_label
     source_labels = {
-        row.source_id: value for value, row in memberships.items()
+        membership.source_id: index
+        for index, membership in enumerate(association.memberships, start=1)
     }
     component_labels = {
         row.component_id: row.label_value

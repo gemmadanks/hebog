@@ -62,14 +62,7 @@ document embeds the complete reports for those products. Released PyBDSF and
 pinned PyBDSF `master` therefore produce separate documents even when they use
 the same dataset and candidate output.
 
-## Closed campaign evidence
-
-The Phase 4 paired-campaign, Phase 4 one-look decision, Phase 5 filter-review,
-corrective-review and astrometry evidence schemas, and the per-source and
-per-realization campaign diagnostic records, were removed with the closed
-campaign tooling. `load_evidence` accepts only benchmark and
-scientific-comparison documents. Read the historical schemas and their
-documentation at [`v0.7.0`](https://github.com/gemmadanks/hebog/blob/v0.7.0/docs/reference/evidence-documents.md).
+`load_evidence` accepts benchmark and scientific-comparison documents only.
 
 ## Writing and loading evidence
 
@@ -95,22 +88,18 @@ update the integer version and current contract tests. Before `1.0`, old
 evidence schemas do not require migration support unless the user explicitly
 requests it.
 
-## Phase 0 records
+## Reference baselines
 
 `config/baselines/` contains reviewed compact and representative benchmark
-documents for released PyBDSF and pinned master. The reference-product manifest
-binds all seven compact products, and the master-versus-release scientific
-document records exact compact catalogue, RMS, and mask agreement. The
-`phase-0-reference-environments.json` record retains sanitized installed
-package inventories, raw inventory hashes, exact runner/compiler hashes,
-verified source checkouts, and the explicit `5.0/3.0` profile. The exploratory
+documents for released PyBDSF and pinned `master`, the reference-product
+manifest that binds the frozen PyBDSF products, and the master-versus-release
+scientific comparison. `phase-0-reference-environments.json` retains sanitized
+installed package inventories, raw inventory hashes, exact runner and compiler
+hashes, verified source checkouts, and the explicit `5.0/3.0` profile. The
 one-tile overhead record uses the separate strict model in
-`hebog.validation.overhead`.
-
-The [baseline results](phase-0-baseline-results.md) summarize the observations,
-limitations, and reproduction workflow. Raw logs and repeated products remain
-ignored; the committed records are complete typed evidence rather than copied
-console summaries.
+`hebog.validation.overhead`. Raw logs and repeated products remain ignored;
+the committed records are complete typed evidence rather than copied console
+summaries.
 
 ::: hebog.validation.evidence
     options:

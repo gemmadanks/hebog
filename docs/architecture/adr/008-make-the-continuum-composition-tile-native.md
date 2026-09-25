@@ -12,7 +12,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-09-18 |
-| **Last Updated** | 2026-09-18 |
+| **Last Updated** | 2026-09-19 (pass C and pass D rounds) |
 | **Deciders** | Gemma Danks |
 | **Tags** | tiling, halos, ownership, reconciliation, memory, invariance |
 
@@ -114,11 +114,15 @@ before the next stage can decide anything.
   share one read window.
 - **Pass C — support.** Seeded multiscale support, segment refinement,
   cross-scale persistence and island admission, using globally reconciled
-  label mappings sharded per tile. Final labels, mask and the position signal
-  are written here.
+  label mappings sharded per tile. Final labels and mask are written here.
+  Pass C is several rounds rather than one, because two of its steps are
+  scoped to an owner and two of its inputs are global reductions; the rounds
+  are listed under *Owner-scoped connectivity* below.
 - **Pass D — objects.** Deblending, compact measurement and fitting, extended
   measurement, source association and catalogue rows, as bounded per-object
-  tasks reduced hierarchically.
+  tasks reduced hierarchically. Like pass C it is several rounds, because
+  three of its steps are global reductions rather than per-object work; the
+  rounds are listed under *The object pass's rounds* below.
 
 ### Rules that hold for every stage
 
@@ -159,9 +163,11 @@ Halo values are for a 5-pixel beam and the reviewed 150/50 and 35/7 grids.
 | Residual B3 à trous | 14 (frozen cumulative) | pixel core | none | none |
 | Island labelling | 0 | pixel core; labels tile-local | edge label runs, per-label pixel count, sum, bounding box, canonical pixel | union–find over boundary equivalences, tree-reduced; aggregates summed |
 | Island admission | 0 | reconciled island | accepted-label set | area and pixel-count predicates on merged aggregates; the accept map is sharded per tile |
-| Seeded multiscale support | 15 (3 beams) | support pixel owned by its nearest global seed reference | global seed references of owners present in the read | none; ties are broken by row-major seed reference in-read |
-| Segment refinement | 3 (opening and 0.5-beam recovery) | pixel core | none | none |
+| Seeded multiscale support | 15 (3 beams) | support pixel owned by its nearest global seed reference | global seed references of owners present in the read | none; the read carries globally reconciled support components, and ties are broken by row-major seed reference in-read |
+| Segment refinement, pixel work | 3x3 opening influence + 0.5-beam recovery | pixel core | none | none |
+| Segment refinement, owner connectivity | owner window | owner canonical pixel | one restore decision per owner | none; decisions are applied in the core round |
 | Cross-scale association | 0 | scale detection owned by its canonical pixel | per-scale label overlaps observed in the core | union of edge sets, then persistence per connected group |
+| Persistent publication, owner bridges | owner window | owner canonical pixel | label patch bounded by the owner window | patches applied in the core round |
 | Compact deblending | island bounding box within the admission limit | island canonical pixel | exact membership shard | concatenation by island |
 | Compact measurement and fitting | component box + 8 (1.5 beams) | component canonical pixel | component record | none |
 | Extended measurement | 8 (1.5 beams) per owned core | object canonical pixel; each intersected core contributes | additive moment and photometry accumulators, bounding box | accumulators summed at the owner |
@@ -194,23 +200,151 @@ extent, never from a guess:
   mosaics, the admitted task size is raised, or the case is escalated to a
   scientific decision, rather than weakened in place.
 
+### Owner-scoped connectivity
+
+Two steps of the support pass are scoped to an **owner**, not to a bounded
+neighbourhood, and were found by reading the installed composition rather than
+assumed. `refine_multiscale_segment_labels` ends by restoring an owner's
+original support when cleanup would split it, and
+`refine_persistent_publication_labels` ends by preserving the previously
+published regions that bridge two retained parts of one owner. Both iterate
+over the window holding an owner, so neither can be decided inside a tile core
+whose halo is smaller than that owner. Two further quantities are global: the
+connected components of `(direct support ∪ significant multiscale support) ∩
+valid`, which decide which seed a support pixel may be attached to, and the
+set of owners published anywhere, which decides which owners persistent
+support may restore.
+
+Pass C therefore runs as rounds, each cheap relative to pass B's filters:
+
+| Round | Scope | Reads | Writes or returns |
+| --- | --- | --- | --- |
+| Topology | core, halo 0 | detection labels, reconstruction mask, validity, scale masks | support-union and per-scale island summaries, adjacent-scale label overlaps |
+| Auxiliary publication | core, halo 0 | as above, plus the reconciled mappings | `support-components`, `persistent-support` |
+| Owner connectivity | owner window + refinement halo | detection labels, direct signal to noise, reconstruction mask | one restore decision per owner |
+| Published owners | core + refinement halo | the published planes, owner reference pixels, restore shard | the owners published in the core |
+| Owner bridges | owner window + refinement halo | as above, plus the published-owner shard | a label patch bounded by the owner window |
+| Final write | core + refinement halo | as above, plus the patch and admission shards | `component-labels`, `measurement-labels`, `publication-labels`, `retained-mask` |
+
+Only the last round writes. Each pixel quantity is recomputed in the round
+that needs it, which costs a bounded repeat of cheap neighbourhood work and
+saves three intermediate label planes.
+
+The refinement pixel work needs the opening influence **and** the recovery
+radius together, not their maximum: a pixel recovered at the recovery radius
+is labelled from opened support that must itself be correct there. A 3x3
+binary opening erodes then dilates, so its influence is two pixels, and the
+dense-core count reaches one further. Recomputing the refinement in a later
+round is preferred to storing it, exactly as pass B recomputes its filters
+rather than persisting a response bank.
+
+Both owner quantities are ADR-008 T1 work keyed by the owner's canonical
+pixel, so they do not move with tile geometry, label integers or completion
+order. An owner whose window exceeds the admitted task is T3: it keeps its
+pixel-round support and is published with a disposition recording that its
+connectivity was not restored, exactly as compact deferrals are published
+today. It is never silently split.
+
+### The object pass's rounds
+
+Every scientific step of pass D already works on one object inside its own
+bounding box, so converting it is mechanical — except where a step's *work
+unit* is itself global. Reading the installed composition found three such
+steps, and they set the round boundaries:
+
+- **Fit parents.** `_measurement_fit_parents` dilates the measurement support
+  by the fit context margin and labels the result, so owners whose contexts
+  touch are fitted jointly. That connectivity follows a chain of any length,
+  exactly like pass C's support components, and must be reconciled before any
+  fit runs.
+- **Measurement support.** Each fit parent contributes persistent measurement
+  support into its own window with a boolean OR. The accumulation is
+  associative, so each parent returns a patch and the cores write the plane.
+- **Cross-parent loops.** `_cross_parent_loop_groups` labels the *accumulated*
+  measurement support and reconciles resolved loops that span several fit
+  parents, so it can only run once every parent's patch is known.
+
+The extended-residual search, `_extended_residual_groups`, labels the same
+accumulated support with the same connectivity and works feature by feature,
+so it shares that work unit rather than adding a fourth. One round evaluates
+both steps inside one support feature's window, reading the window once. A
+feature is therefore the object of the last grouping round, exactly as a
+parent is the object of the deblend round.
+
+That round needs the fit records and the proposed compact groups of every
+component whose *measurement-label* footprint reaches its window, which is
+not the same set as the feature's own members: a fit outside the feature
+still enters the subtracted model. The scan round therefore also returns each
+measurement label's global bounds, and the driver shards the records by
+bounding-box intersection with each feature's window. The shard is a superset
+of what the task uses, and the task re-checks pixel membership, so no
+accepted-label table is broadcast whole.
+
+The feature labels are not published. A feature's window is its reconciled
+global bounds plus the margin, so it contains the feature entirely, and the
+task recovers it by labelling the support inside its own window and selecting
+the component holding the feature's canonical first pixel. Publishing a plane
+that only one round reads would cost a generation for nothing.
+
+| Round | Scope | Reads | Writes or returns |
+| --- | --- | --- | --- |
+| Parent extents | core, halo 0 | `component-labels`, `measurement-labels` | each parent's bounds and first pixel in both planes |
+| Deblend | parent window | `direct-snr`, `valid-pixels`, both label planes | bounded component memberships, local to the parent |
+| Component write | core, halo 0 | the numbered memberships | `component-direct-labels`, `component-measurement-labels` |
+| Fit parents | core, halo 0 | `component-measurement-labels` | context island summaries; then `fit-parent-labels` |
+| Component fits | fit-parent window + margin | residual, RMS, validity, both component planes | fit records, groups, grouping evidence, a measurement-support patch |
+| Support write | core, halo 0 | the patches | `measurement-support` |
+| Support features | core, halo 0 | `measurement-support`, `valid-pixels`, `component-measurement-labels` | feature island summaries and each measurement label's bounds |
+| Cross-parent loops and extended residual | support-feature window + margin | residual, RMS, validity, `measurement-support`, `component-measurement-labels`, the sharded fit records | extended group records and grouping evidence |
+| Scale feature labels | core, halo 0 | the reconciled per-scale mappings | `scale-{order}-labels` |
+| Hierarchy overlaps | core, halo 0, then one feature's window plus its B3 footprint | `component-direct-labels`, `valid-pixels`, `reconstruction-mask`, the scale label planes | component, feature, support and envelope overlap records |
+| Source labels | core, halo 0 | `component-measurement-labels`, the sharded owner-to-source map | `source-labels` |
+| Source support | core, halo 0, then one connected support component's window | `source-labels`, `persistent-scale-support`, `measurement-support` | support island summaries, then owner patches, then `source-measurement-labels` |
+| Source apertures | core, halo 1.5 beams | `source-measurement-labels` | `source-aperture-labels` |
+| Source rows | source window + 1.5-beam aperture | image, background, validity, source labels, position signal | catalogue shards |
+
+Component numbering is canonical because the driver offsets each parent's
+local labels by the components every earlier parent produced, in ascending
+first-pixel order. A parent above either hard compact-work bound is ADR-008
+T3 and is already published as one explicit deferred component, which is the
+reviewed science rather than a new rule.
+
 ### Extended association
 
-Association is a record-graph computation, not a pixel pass. Component records
-carry global centroids, moments, parent support and stable identities, so the
-candidate pairs follow from a spatial index over centroids with a cutoff equal
-to the mean directional FWHM of the pair. The edge predicate needs pixels only
-along the straight line between the two centroids, and its two tests — the
-minimum signal-to-noise on that line and the validity of every line pixel —
-are both associative reductions. A pair whose box fits one task is evaluated
-by the owner of its canonically first component; a longer pair is evaluated as
-a segmented reduction over the cores the line crosses. The edge set is then
-canonicalised, so the complete-link agglomeration that forms sources consumes
-a partition-independent input. Groups are resolved per connected component of
-the edge graph, which keeps the clique work local and bounded.
+Association is a record-graph computation, not a pixel pass. The installed
+association is the multiscale hierarchy, not the centroid-pair predicate this
+decision first anticipated, so the boundary is drawn where that hierarchy
+actually touches pixels. Reading it found exactly five pixel questions, and
+every one of them is either a per-tile reduction or bounded by one feature's
+own window:
+
+- which scale features each direct component's exact support intersects;
+- which parent feature each child feature overlaps at the adjacent scale;
+- which components lie inside a feature's exact support, and which lie inside
+  the reviewed B3 influence of its envelope;
+- which retained support component contains each feature and each direct
+  component, over the connected support the detection pass published;
+- which two features' B3 envelopes overlap.
+
+`HierarchyOverlaps` is that answer set, and `associate_from_hierarchy_overlaps`
+is the decision that consumes it. The decision holds no plane, so it cannot
+depend on tile geometry or completion order, and
+`summarize_hierarchy_overlaps` evaluates the same reductions over whole planes
+as the serial oracle. Envelope masks never cross the executor boundary: a
+feature's task derives its own influence set and its envelope's overlaps
+inside the pair box, and returns records.
 
 The driver never gathers the component set. Records live in owner-tile shards
 and reduce hierarchically.
+
+Every overlap above is stated between *globally* labelled features, so the
+scale feature labels must be readable by window. The detection pass already
+reconciles the per-scale islands and writes their support masks, so it gains
+one publication round that writes `scale-{order}-labels` beside
+`scale-{order}-significant`. That is three more stored planes, admitted under
+*Store a plane only if a later pass or a product needs it* because the object
+pass now needs them; the alternative, reconciling each scale a second time in
+pass D, would repeat a reduction pass B has already performed.
 
 ### The à trous position filter
 
@@ -229,6 +363,34 @@ stored position signal, and merged as catalogue shards through the existing
 hierarchical reduction. Row order in the published catalogue is canonical, by
 source identity, not by completion order. Measurement dispositions and support
 stages accompany the rows as records, not as planes.
+
+The catalogue holds one global step, and it is the same shape as pass D's
+others. `assign_persistent_source_support` labels the union of the source
+seeds and the persistent support, then assigns each unseeded pixel of a
+connected component to its nearest source seed, breaking an exact tie towards
+the smaller source label. The labelling spans tiles and must be reconciled;
+the assignment does not, because a component's candidates and seeds both lie
+inside its own bounds. `assign_connected_source_support` is that per-component
+step, and the whole-plane function is it in a loop, which keeps the serial
+oracle exact by construction. Tie-breaking needs no global table: ranking the
+seeds by canonical source identity and taking the smallest rank among tied
+neighbours is the same as taking the smallest label, which one window knows.
+
+Everything else the catalogue does is per core or per object: mapping owners
+to source labels, expanding apertures by the reviewed 1.5-beam radius, and
+measuring each component's and each source's moments inside its own window.
+
+The rows need no reconciliation at all. `build_hebog_segment_catalogue`
+already measures one label at a time inside the window holding its support
+and its aperture, so `build_segment_row` and `segment_moment_fields` are that
+work taken out of the loop. The one step that crosses a segment's bounds is
+the aperture expansion, and it reaches no further than the reviewed radius:
+every seed that can own a core pixel lies inside the core read plus that
+halo, and the tie towards the smaller canonical label is decided the same way
+in a window as over the plane. So the row round is cores writing
+`aperture-labels` under that halo, cores observing each label's bounds, and
+one task per batch of segments measuring their rows — the simplest of pass
+D's rounds, and the only one with no global reduction.
 
 ### A small image stays one tile
 

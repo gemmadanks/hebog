@@ -132,3 +132,75 @@ def group_labelled_pixels(
         first_y=y_pixels[starts] if label_count else y_pixels[:0],
         first_x=x_pixels[starts] if label_count else x_pixels[:0],
     )
+
+
+@dataclass(frozen=True, slots=True)
+class LabelExtents:
+    """Each present label's window and first pixel, in row-major order.
+
+    Entry ``index`` of every array describes label ``values[index]``, and
+    ``values`` is ascending. ``y_stop`` and ``x_stop`` are exclusive, so the
+    window of a label is ``labels[y_start:y_stop, x_start:x_stop]``.
+    """
+
+    values: npt.NDArray[np.int64]
+    y_start: npt.NDArray[np.int64]
+    y_stop: npt.NDArray[np.int64]
+    x_start: npt.NDArray[np.int64]
+    x_stop: npt.NDArray[np.int64]
+    first_y: npt.NDArray[np.int64]
+    first_x: npt.NDArray[np.int64]
+
+
+def label_extents(
+    labels: npt.NDArray[np.int32] | npt.NDArray[np.int64],
+) -> LabelExtents:
+    """Return the window and first pixel of every positive label, in one pass.
+
+    Unlike :func:`group_labelled_pixels` this accepts any positive labels,
+    including a sparse global set with gaps, and describes only the labels a
+    pixel actually carries. Non-positive pixels are background.
+
+    Raises:
+        ValueError: If ``labels`` is not a two-dimensional plane.
+    """
+    plane = np.asarray(labels)
+    if plane.ndim != _IMAGE_DIMENSIONS:
+        raise ValueError("label extents need a two-dimensional label plane")
+    flat_labels = plane.reshape(-1)
+    positions = np.flatnonzero(flat_labels > 0)
+    values = flat_labels[positions]
+    order = np.argsort(values, kind="stable")
+    positions = positions[order]
+    values = values[order].astype(np.int64, copy=False)
+    starts = np.flatnonzero(
+        np.concatenate(
+            (
+                np.ones(min(values.size, 1), dtype=np.bool_),
+                values[1:] != values[:-1],
+            )
+        )
+    )
+    width = plane.shape[1]
+    y_pixels = (positions // width).astype(np.int64, copy=False)
+    x_pixels = (positions % width).astype(np.int64, copy=False)
+    if starts.size == 0:
+        empty = np.zeros(0, dtype=np.int64)
+        return LabelExtents(
+            values=empty,
+            y_start=empty,
+            y_stop=empty,
+            x_start=empty,
+            x_stop=empty,
+            first_y=empty,
+            first_x=empty,
+        )
+    return LabelExtents(
+        values=values[starts],
+        y_start=np.minimum.reduceat(y_pixels, starts),
+        y_stop=np.maximum.reduceat(y_pixels, starts) + 1,
+        x_start=np.minimum.reduceat(x_pixels, starts),
+        x_stop=np.maximum.reduceat(x_pixels, starts) + 1,
+        first_y=y_pixels[starts],
+        first_x=x_pixels[starts],
+    )

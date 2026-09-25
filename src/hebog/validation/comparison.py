@@ -14,6 +14,7 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
+from math import cos, radians
 from statistics import NormalDist
 from typing import Any, Literal, Protocol, cast
 
@@ -577,7 +578,13 @@ def normalized_uncertainty_samples(
     *,
     position_angle_minimum_axis_ratio: float,
 ) -> tuple[tuple[UncertaintyMetric, float], ...]:
-    """Return normalized candidate-minus-reference residuals."""
+    """Return normalized candidate-minus-reference residuals.
+
+    A residual divides an offset by an uncertainty, so both must be the same
+    kind of angle. `E_RA` is a great-circle error, while differencing two right
+    ascensions gives coordinate degrees, so the RA offset is converted before
+    the division; without that the residual would be 1/cos(dec) too large.
+    """
     samples: list[tuple[UncertaintyMetric, float]] = []
 
     def add(
@@ -594,7 +601,8 @@ def normalized_uncertainty_samples(
             candidate.right_ascension_degrees,
             reference.right_ascension_degrees,
             period=_FULL_CIRCLE_DEGREES,
-        ),
+        )
+        * cos(radians(candidate.declination_degrees)),
         candidate.right_ascension_error_degrees,
     )
     add(

@@ -12,15 +12,50 @@ extension becomes justified, prefer Rust for a new self-contained kernel and
 C++ when integrating a mature C/C++ library or when a C++ implementation has a
 clear evidence-backed ecosystem or team advantage.
 
+## The current profile does not open the gate
+
+The tile-native composition has now been profiled end to end across the
+generated ladder and the SDC1 and LoTSS cut-outs; see
+[where Hebog spends its time](../reference/performance-profile.md). The
+result argues against a native extension more strongly than the earlier
+deferral did, for three reasons.
+
+**No kernel meets gate 1.** After the bottleneck work the profile is flat:
+the largest stage is about a fifth of a run, and the largest single Hebog
+kernel, `fit_compact_gaussian_mixture`, is 5 to 8%. Nothing reaches 10% in
+one size regime, let alone two. The stages that look large are compositions
+of several SciPy calls, not self-contained kernels a native rewrite could
+replace.
+
+**Every bottleneck found so far was redundant work, not slow work.** The six
+changes of 21 September removed a whole-core scan per label, two classes of
+useless store metadata I/O, a protection halo refiltered per cell block, a
+plane decoded once per sixteen objects, and per-position coordinate
+machinery. Each was a structural redundancy that vectorisation, batching or
+a single argument removed, and together they took the crowded 2,048-pixel
+case from 323.5 s to 153.1 s. A native extension would have made the
+redundant work faster instead of removing it.
+
+**The remaining concentrated cost is a third-party library's per-call
+overhead.** Astropy's `SkyCoord` machinery was 14% of self time, and the fix
+is to call it once per batch rather than once per source. That is not a
+candidate for native code; it is a candidate for finishing the batching.
+
+Numba is likewise not yet indicated. It earns its place on a profiled custom
+loop that NumPy and SciPy cannot express, and no such loop is currently
+material: the per-pixel background refinement, the wavelet bank and the fit
+are already vectorised NumPy or compiled SciPy. Reassess Numba first, and
+only for a specific measured loop, when the batching work above is complete
+and the profile is flat at a level the gates still fail.
+
 ## Why native code is premature
 
-Hebog has implemented and qualified its compact Phase 4 scientific kernels.
-Their controlled incremental matrix passes the existing measurement, fitting,
-and catalogue budgets using Python with vectorized NumPy and SciPy. Early
-Phase 5 evidence likewise has not identified a self-contained Python kernel
-that meets the native-code decision gate. Complete Rapthor and production-
-scale profiles remain outstanding, so there is still no evidence that a
-project-owned native extension would improve the limiting end-to-end path.
+Hebog's compact and multiscale kernels pass their measurement, fitting, and
+catalogue budgets using Python with vectorized NumPy and SciPy, and no
+profile has identified a self-contained Python kernel that meets the
+native-code decision gate. Complete Rapthor and production-scale profiles
+remain outstanding, so there is no evidence that a project-owned native
+extension would improve the limiting end-to-end path.
 
 NumPy and SciPy already wrap compiled numerical implementations. SciPy
 explicitly describes itself as using optimized Fortran, C, and C++ code, while

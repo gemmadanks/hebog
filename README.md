@@ -35,7 +35,7 @@ next generation radio astronomy data processing pipelines such as
   for survey use. See
   [scientific status](https://gemmadanks.github.io/hebog/reference/release-status/#scientific-status).
 - **Supported inputs:** one FITS image in `Jy/beam` with ICRS or FK5 J2000 sky
-  coordinates and at most 1,024 pixels on each side.
+  coordinates and at most 3,000 pixels on each side.
 
 [Current capability and release status](https://gemmadanks.github.io/hebog/reference/release-status/)
 lists the full input requirements and known limitations.
@@ -48,7 +48,7 @@ generally useful. Install a tagged release from GitHub into a Python 3.12 to
 [release](https://github.com/gemmadanks/hebog/releases) you want:
 
 ```shell
-pip install git+https://github.com/gemmadanks/hebog@v0.7.0
+pip install git+https://github.com/gemmadanks/hebog@v0.12.0
 ```
 
 Releases are also uploaded to
@@ -86,9 +86,12 @@ explains the settings, the products and how to run on Dask.
 
 - [Find sources in a FITS image](https://gemmadanks.github.io/hebog/tutorials/find-sources/)
 - [How Hebog finds sources](https://gemmadanks.github.io/hebog/explanation/how-hebog-works/)
+- [Hebog and other source finders](https://gemmadanks.github.io/hebog/explanation/source-finder-comparison/)
 - [Catalogue, image and diagnostic outputs](https://gemmadanks.github.io/hebog/reference/public-products/)
 - [Interactive notebooks](https://gemmadanks.github.io/hebog/how-to/notebooks/)
 - [Architecture](https://gemmadanks.github.io/hebog/architecture/)
+- [How Hebog distributes work](https://gemmadanks.github.io/hebog/architecture/distributed-execution/)
+- [Integrate Hebog into a pipeline](https://gemmadanks.github.io/hebog/how-to/integrate-into-a-pipeline/)
 - [API reference](https://gemmadanks.github.io/hebog/reference/)
 
 ## Development

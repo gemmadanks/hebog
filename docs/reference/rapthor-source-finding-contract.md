@@ -1,18 +1,15 @@
 # Rapthor source-finding contract
 
-This reviewed contract inventory describes the behaviour Rapthor consumes
-from its current PyBDSF/LSMTool source-finding path. It was traced at Rapthor
-commit `b1a64674b1022476cf052fc2d06ee3b16f031ecd` and checked against the local
-reference revisions listed in [Phase 0 starting revisions](starting-revisions.md).
-The authoritative orchestration target is Rapthor's
-`gec-468-ai-migrate-to-prefect` branch because it owns the Prefect/Dask task
-runner that will schedule Hebog. Its declared LSMTool revision is available
-locally and was used for this trace.
+This contract inventory describes the behaviour Rapthor consumes from its
+current PyBDSF/LSMTool source-finding path. It was traced at Rapthor commit
+`b1a64674b1022476cf052fc2d06ee3b16f031ecd` on its
+`gec-468-ai-migrate-to-prefect` branch, which owns the Prefect/Dask task
+runner that will schedule Hebog. The exact reference revisions are recorded in
+[`config/baselines/phase-0-starting-revisions.json`](https://github.com/gemmadanks/hebog/blob/main/config/baselines/phase-0-starting-revisions.json).
 
 The inventory freezes what must be tested. It does not require Hebog to copy
-PyBDSF internals or preserve incidental implementation details. The
-[scientific pre-review](scientific-pre-review.md) distinguishes compatibility
-observations from cross-pipeline scientific recommendations.
+PyBDSF internals or preserve incidental implementation details, and
+compatibility observations here are not scientific endorsements.
 
 ## Invocation boundary
 
@@ -88,11 +85,11 @@ columns:
 | `Source_id` | Stable source identifier used when converting rows to a comparison sky model |
 | `RA`, `DEC` | Sky position used for matching, beam-radius cuts, and astrometry |
 | `Isl_Total_flux` | Island-integrated flux used by the default astrometry comparison conversion |
-| `Total_flux` | Fitted source flux used for photometry and flux-normalization consistency |
+| `Total_flux` | Source flux used for photometry and flux-normalization consistency. In `continuum` it is the sum of the source's fitted Gaussian components, PyBDSF's definition, falling back to the signed aperture when no fit was admitted; see [public products](public-products.md#what-the-two-source-fluxes-measure-and-where-they-part) for where the two part |
 | `DC_Maj` | Deconvolved major axis in degrees; sources at or above 10 arcsec are excluded from compact-source checks |
-| `E_RA`, `E_DEC` | Position uncertainties in degrees; sources at or above 2 arcsec are excluded from astrometry checks |
+| `E_RA`, `E_DEC` | Position uncertainties in degrees, both great-circle angles; sources at or above 2 arcsec are excluded from astrometry checks. Rapthor compares these with a fixed angle, and PyBDSF publishes `E_RA` the same way, so `E_RA` is *not* divided by cos(dec) to become an error on the RA coordinate: that convention would tighten the cut by 1/cos(dec) and drop sources PyBDSF keeps |
 
-The Phase 4 adapter freezes these as an exact eight-column view: zero-based
+The adapter freezes these as an exact eight-column view: zero-based
 canonical 32-bit integer source numbering; 64-bit floating values; degrees for
 position, deconvolved size, and position error; Jy for flux; FITS NaN for
 unavailable error; and zero `DC_Maj` only for a reviewed unresolved source.
@@ -164,17 +161,8 @@ Hebog must use Rapthor's existing client rather than creating a private cluster
 or nested process pool, and no worker may require a complete large image
 plane.
 
-Domain review approved this boundary for the current experimental scope on
-2026-08-02. Catalogue fields and workflow behaviour remain under development
-until their later failing contract tests and phase-specific reviews pass.
-
-## Corrected baseline interpretation
-
-The first retained Phase 0 campaigns used the `7.5/5.0` helper fallback and
-trusted the declared LSMTool commit. They are superseded. The reviewed
-comparison anchors now use the rich-demo strategy's explicit `5.0/3.0`
-profile, mount clean Rapthor and LSMTool checkouts at their recorded commits,
-and verify the imported PyBDSF version, LSMTool module, master wheel, container
-digest, input identities, and runner scripts. Released and pinned-master
-PyBDSF produce 12 and 14 representative source rows respectively, which is a
-reference-version divergence requiring truth-based scientific assessment.
+Catalogue fields and workflow behaviour remain under development until the
+Rapthor acceptance tests pass. Reference comparisons use the explicit
+`5.0/3.0` profile with clean Rapthor and LSMTool checkouts at their recorded
+commits. Released and pinned-`master` PyBDSF do not produce identical
+catalogues on the same image, so neither is treated as truth.

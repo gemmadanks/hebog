@@ -135,12 +135,47 @@ complete ellipse.
 `SOURCE_ID` is the source identity. Source measurement semantics depend on the
 explicit profile:
 
-- In `continuum`, `INTEGRATED_FLUX` is the binding signed,
-  source-owned-aperture measurement. `ASSOCIATION_APERTURE_FLUX` reports that
-  same aperture quantity explicitly.
+- In `continuum`, `INTEGRATED_FLUX` is the sum of the source's fitted
+  Gaussian components' integrated fluxes, which is how PyBDSF defines a
+  source's total flux. `INTEGRATED_FLUX_ERROR` is the quadrature sum of the
+  component uncertainties, published only when every component supplies one.
+  A source with no admitted fit keeps its signed source-owned aperture
+  measurement and carries `aperture-flux-without-fitted-component`.
+  `ASSOCIATION_APERTURE_FLUX` always reports the aperture quantity, whether
+  or not the source flux is taken from it.
 - In `compact`, every published source represents exactly one fitted
   component. `INTEGRATED_FLUX` is its Gaussian-model integral and
   `ASSOCIATION_APERTURE_FLUX` is unavailable.
+
+### What the two source fluxes measure, and where they part
+
+The aperture measures emission observed inside the source's own footprint.
+The summed fit integrates each fitted Gaussian over the whole plane. They
+agree on isolated compact sources and part elsewhere; the divergence is
+measured, documented and deliberately not corrected, because PyBDSF's
+definition behaves the same way and Rapthor's photometry floor was set
+against it.
+
+| Injected morphology | Aperture against truth | Summed fit against truth |
+| --- | --- | --- |
+| Isolated compact Gaussian | −0.0% | −0.0% |
+| Open arc, several components | −0.0% | +7.4% |
+| Gaussian clipped by the image edge | −0.0% | +72.6% |
+| Compact core with a diffuse halo | −4.8% | −61.7% |
+
+A fit integrates sky the image does not cover, so an edge-clipped source
+reads high. A diffuse halo that no component fits contributes nothing to the
+sum, so extended emission reads low even though the aperture retains it.
+Read `ASSOCIATION_APERTURE_FLUX` when observed flux inside the footprint is
+the quantity you want, and `INTEGRATED_FLUX` when PyBDSF-comparable
+photometry is.
+
+Free Gaussian fitting also carries a signal-to-noise-dependent positive
+bias, inherent to the estimator rather than to Hebog: about +14% at SNR 10,
++3.5% at SNR 20 and +1% at SNR 50 in median excess over injected truth, with
+pinned PyBDSF `master` measured at the same size on the same population. It
+is documented rather than corrected; the 3σ-clipped mean ratio to truth is
+within 2% at SNR ≥ 20.
 
 Source apertures are formed from source ownership and adjacent-scale
 persistent support, then expanded by a bounded aperture. Competing
@@ -190,6 +225,7 @@ must preserve unknown flags. Common current categories include:
 | `uncertainty-unavailable`, `shape-uncertainty-unavailable`, `position-flux-uncertainty-unavailable`, `deconvolution-uncertainty-unavailable` | Which uncertainty calculation was unavailable. |
 | `fit-at-bound`, `beam-constrained-fit`, `centroid-constrained-fit`, `free-model-not-significantly-extended` | Selected-model and fallback evidence; consult diagnostics for the structured decision. |
 | `reconstructed-catalogue-source`, `shape-unavailable`, `resolution-unavailable`, `ambiguous-multiscale-parent` | Associated-source construction and interpretation. |
+| `aperture-flux-without-fitted-component` | The continuum source has no admitted fit, so `INTEGRATED_FLUX` is its aperture rather than a summed fit. |
 | `member-...` | A source-level propagation of a member component's flag; it does not change the source estimator. |
 
 Use structured diagnostics, not string parsing, for workflow decisions about
@@ -369,7 +405,7 @@ exceptions let a pipeline handle failures without parsing message text:
 | `SourceFinderOutputExistsError` | The caller-owned output path already exists; Hebog will not overwrite it. Publication claims the destination atomically, so a path another writer creates while the analysis runs is reported here rather than replaced. Products then appear in one rename; treat a successful return, not the directory's existence, as the completion boundary. |
 | `InvalidSourceFinderInputError` | The FITS file cannot be read as a supported image. |
 | `UnsupportedSourceFinderConfigurationError` | The image's physical unit or celestial frame (other than ICRS or FK5 J2000) is outside the public contract. |
-| `SourceFinderImageTooLargeError` | A spatial dimension exceeds 1,024 pixels. |
+| `SourceFinderImageTooLargeError` | A spatial dimension exceeds 3,000 pixels. |
 | `SourceFinderError` | Base class for other failures at the public boundary. |
 
 Input, configuration, and existing-output failures do not publish the requested

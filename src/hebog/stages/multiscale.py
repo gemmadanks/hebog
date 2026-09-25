@@ -21,6 +21,7 @@ from hebog.algorithms.multiscale import (
     BeamShapePixels,
     minimum_residual_island_pixels,
     prepare_scale_filter_inputs,
+    reconstruct_denoised_atrous,
 )
 from hebog.algorithms.multiscale_tiles import (
     MultiscaleDetectionTileEvidence,
@@ -52,11 +53,13 @@ _MULTISCALE_PRODUCT_NAMES = tuple(
     sorted(
         (
             "combined-snr",
+            "detection-labels",
+            "direct-snr",
             "position-signal",
-            "reconstructed-signal",
             "reconstruction-mask",
-            "retained-mask",
+            "valid-pixels",
             *(f"scale-{order}-significant" for order in _SCALE_ORDERS),
+            *(f"scale-{order}-labels" for order in _SCALE_ORDERS),
         )
     )
 )
@@ -123,6 +126,7 @@ class MultiscaleStageResult:
     detection_islands: tuple[DetectedIsland, ...]
     reconstruction_islands: tuple[DetectedIsland, ...]
     scale_islands_by_order: tuple[tuple[DetectedIsland, ...], ...]
+    scale_nominal_beam_fwhms: tuple[float, ...]
     partition_count: int
     executor_task_count: int
     maximum_graph_width: int
@@ -192,11 +196,21 @@ class _PublicationBatchResult:
 
     product_chunks: tuple[ProductChunk, ...]
     scale_summaries_by_order: tuple[tuple[LocalIslandTileSummary, ...], ...]
+    scale_nominal_beam_fwhms: tuple[float, ...]
     maximum_read_pixel_count: int
     maximum_workspace_bytes: int
     maximum_retained_array_bytes: int
     maximum_worker_bytes: int
     summary_array_bytes: int
+
+
+def _product_dtype(product_name: str) -> np.dtype[np.generic]:
+    """Return the stored element type of one published multiscale plane."""
+    if product_name.endswith("labels"):
+        return np.dtype("<i4")
+    if product_name.endswith(("mask", "significant", "pixels")):
+        return np.dtype(np.bool_)
+    return np.dtype("<f8")
 
 
 def multiscale_product_names() -> tuple[str, ...]:
@@ -485,7 +499,8 @@ def _publication_products(
     evidence: MultiscaleDetectionTileEvidence,
     *,
     reconstruction_mask: npt.NDArray[np.bool_],
-    retained_mask: npt.NDArray[np.bool_],
+    detection_labels: npt.NDArray[np.int32],
+    island_threshold_sigma: float,
 ) -> tuple[
     tuple[tuple[str, npt.NDArray[np.generic]], ...],
     tuple[npt.NDArray[np.bool_], ...],
@@ -495,18 +510,18 @@ def _publication_products(
         np.asarray(mask & reconstruction_mask, dtype=np.bool_)
         for mask in evidence.significant_scale_masks
     )
-    reconstructed = np.zeros(retained_mask.shape, dtype=np.float64)
-    for response, mask in zip(
-        result.atrous_result.responses,
-        scale_masks,
-        strict=True,
-    ):
-        np.add(
-            reconstructed,
-            response.response_jy_per_beam,
-            out=reconstructed,
-            where=mask,
-        )
+    # An insufficient filter halo leaves the denoised value unavailable,
+    # which is not a reason to discard a valid edge source: the signed
+    # residual remains the documented fallback there.
+    denoised = reconstruct_denoised_atrous(
+        result.atrous_result,
+        significance_sigma=island_threshold_sigma,
+    )
+    position_signal = np.where(
+        np.isfinite(denoised),
+        denoised,
+        result.prepared_inputs.residual_jy_per_beam,
+    )
     combined_snr = np.maximum(
         evidence.matched_maximum_snr,
         evidence.direct_snr,
@@ -518,22 +533,111 @@ def _publication_products(
         where=reconstruction_mask,
     )
     combined_snr[~result.prepared_inputs.scientifically_valid] = -np.inf
-    position_signal = np.asarray(
-        result.prepared_inputs.residual_jy_per_beam + reconstructed,
-        dtype=np.float64,
-    )
     products: tuple[tuple[str, npt.NDArray[np.generic]], ...] = (
         ("combined-snr", combined_snr),
+        ("detection-labels", detection_labels),
+        ("direct-snr", evidence.direct_snr),
         ("position-signal", position_signal),
-        ("reconstructed-signal", reconstructed),
         ("reconstruction-mask", reconstruction_mask),
-        ("retained-mask", retained_mask),
+        ("valid-pixels", result.prepared_inputs.scientifically_valid),
         *(
             (f"scale-{order}-significant", mask)
             for order, mask in zip(_SCALE_ORDERS, scale_masks, strict=True)
         ),
     )
     return products, scale_masks
+
+
+@dataclass(frozen=True, slots=True)
+class _ScaleLabelRequest:
+    """One core and the global label each local scale feature carries."""
+
+    partition: TilePartition
+    significant_chunks: tuple[ProductChunk, ...]
+    global_by_local_label_by_order: tuple[tuple[tuple[int, int], ...], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class _ScaleLabelBatch:
+    """One bounded coarse executor task over several cores."""
+
+    requests: tuple[_ScaleLabelRequest, ...]
+
+    def __post_init__(self) -> None:
+        """Forbid empty executor work records."""
+        if not self.requests:
+            raise ValueError("scale label batch must not be empty")
+
+
+@dataclass(frozen=True, slots=True)
+class _ScaleLabelBatchResult:
+    """Persisted scale-label chunk identities from one bounded task."""
+
+    product_chunks: tuple[ProductChunk, ...]
+
+
+def _scale_label_batches(
+    requests: tuple[_ScaleLabelRequest, ...],
+    *,
+    maximum_tiles_per_batch: int,
+) -> tuple[_ScaleLabelBatch, ...]:
+    """Group cores into bounded coarse scale-label tasks."""
+    return tuple(
+        _ScaleLabelBatch(
+            requests=tuple(requests[start : start + maximum_tiles_per_batch])
+        )
+        for start in range(0, len(requests), maximum_tiles_per_batch)
+    )
+
+
+def _publish_scale_labels(
+    batch: _ScaleLabelBatch,
+    *,
+    sink: ZarrProductSink,
+    image_shape_yx: tuple[int, int],
+) -> _ScaleLabelBatchResult:
+    """Write the reconciled global label each scale feature carries.
+
+    The core re-derives the same tile-local labelling the publication round
+    summarised, from the chunk that round wrote, and applies the mapping
+    sharded to the labels that tile holds. Only chunk identities and that
+    shard cross the boundary.
+    """
+    with sink.access_session():
+        chunks: list[ProductChunk] = []
+        for request in batch.requests:
+            partition = request.partition
+            for order, chunk, pairs in zip(
+                _SCALE_ORDERS,
+                request.significant_chunks,
+                request.global_by_local_label_by_order,
+                strict=True,
+            ):
+                mask = np.asarray(sink.read_chunk(chunk), dtype=np.bool_)
+                local = label_detection_tile(
+                    DetectionThresholdMasks(
+                        normalized_residual=np.zeros(
+                            mask.shape,
+                            dtype=np.float64,
+                        ),
+                        island_membership=mask,
+                        detection_seeds=mask,
+                        valid_pixel_count=int(np.count_nonzero(mask)),
+                    ),
+                    partition,
+                    image_shape_yx=image_shape_yx,
+                )
+                values = np.zeros(mask.shape, dtype=np.int32)
+                for local_label, global_label in pairs:
+                    values[local.labels == local_label] = global_label
+                chunks.append(
+                    sink.write_chunk(
+                        product_name=f"scale-{order}-labels",
+                        tile=partition,
+                        values=values,
+                    )
+                )
+        return _ScaleLabelBatchResult(product_chunks=tuple(chunks))
 
 
 def _publish_batch(  # noqa: PLR0913
@@ -572,6 +676,7 @@ def _publish_batch_in_session(  # noqa: PLR0913
     """Recompute, map global labels, and persist only accepted products."""
     chunks: list[ProductChunk] = []
     scale_summaries: list[list[LocalIslandTileSummary]] = [[], [], []]
+    scale_nominal_beam_fwhms: tuple[float, ...] = ()
     maximum_read_pixels = 0
     maximum_workspace_bytes = 0
     maximum_retained_array_bytes = 0
@@ -593,6 +698,10 @@ def _publish_batch_in_session(  # noqa: PLR0913
             beam=beam,
             detection=detection,
             image_window=image_window,
+        )
+        scale_nominal_beam_fwhms = tuple(
+            float(response.nominal_scale_beam_fwhm)
+            for response in result.atrous_result.responses
         )
         reconstruction, direct_detection = _label_topology(
             evidence,
@@ -618,20 +727,20 @@ def _publish_batch_in_session(  # noqa: PLR0913
             > 0,
             dtype=np.bool_,
         )
-        retained_mask = np.asarray(
+        detection_labels = np.asarray(
             apply_tile_label_mapping(
                 direct_detection,
                 request.detection_mapping,
-            )
-            > 0,
-            dtype=np.bool_,
+            ),
+            dtype=np.int32,
         )
         del reconstruction, direct_detection
         products, scale_masks = _publication_products(
             result,
             evidence,
             reconstruction_mask=reconstruction_mask,
-            retained_mask=retained_mask,
+            detection_labels=detection_labels,
+            island_threshold_sigma=detection.island_threshold_sigma,
         )
         product_retained_bytes = (
             image_batch_bytes
@@ -660,8 +769,13 @@ def _publish_batch_in_session(  # noqa: PLR0913
             )
             for product_name, values in products
         )
-        for index, (scale_snr, scale_mask) in enumerate(
-            zip(evidence.atrous_scale_snrs, scale_masks, strict=True)
+        for index, (scale_snr, scale_mask, scale_response) in enumerate(
+            zip(
+                evidence.atrous_scale_snrs,
+                scale_masks,
+                result.atrous_result.responses,
+                strict=True,
+            )
         ):
             scale_tile = label_detection_tile(
                 DetectionThresholdMasks(
@@ -672,6 +786,7 @@ def _publish_batch_in_session(  # noqa: PLR0913
                 ),
                 request.partition,
                 image_shape_yx=image_shape_yx,
+                response_jy_per_beam=scale_response.response_jy_per_beam,
             )
             scale_retained_bytes = product_retained_bytes + _tile_array_bytes(
                 scale_tile
@@ -703,6 +818,7 @@ def _publish_batch_in_session(  # noqa: PLR0913
         scale_summaries_by_order=tuple(
             tuple(summaries) for summaries in scale_summaries
         ),
+        scale_nominal_beam_fwhms=scale_nominal_beam_fwhms,
         maximum_read_pixel_count=maximum_read_pixels,
         maximum_workspace_bytes=maximum_workspace_bytes,
         maximum_retained_array_bytes=maximum_retained_array_bytes,
@@ -849,13 +965,10 @@ def run_multiscale_stage(  # noqa: PLR0913
         for partition in manifest.tiles
     )
     for product_name in _MULTISCALE_PRODUCT_NAMES:
-        dtype = (
-            np.dtype(np.bool_)
-            if product_name.endswith("mask")
-            or product_name.endswith("significant")
-            else np.dtype("<f8")
+        sink.initialize_product(
+            product_name=product_name,
+            dtype=_product_dtype(product_name),
         )
-        sink.initialize_product(product_name=product_name, dtype=dtype)
     publication_batches = _publication_batches(
         publication_requests,
         maximum_tiles_per_batch=config.maximum_tiles_per_batch,
@@ -874,15 +987,7 @@ def run_multiscale_stage(  # noqa: PLR0913
     )
     if not publication_results:
         raise ValueError("executor returned no multiscale publication results")
-    generation = sink.publish_generation(
-        product_names=_MULTISCALE_PRODUCT_NAMES,
-        chunks=(
-            chunk
-            for result in publication_results
-            for chunk in result.product_chunks
-        ),
-    )
-    scale_islands = tuple(
+    reconciled_scales = tuple(
         reconcile_candidate_tiles(
             manifest,
             tuple(
@@ -890,16 +995,81 @@ def run_multiscale_stage(  # noqa: PLR0913
                 for result in publication_results
                 for summary in result.scale_summaries_by_order[scale_index]
             ),
-        ).islands
+        )
         for scale_index in range(len(_SCALE_ORDERS))
     )
+    scale_islands = tuple(
+        reconciled.islands for reconciled in reconciled_scales
+    )
+    significant_chunks_by_tile: dict[str, dict[str, ProductChunk]] = {}
+    for result in publication_results:
+        for chunk in result.product_chunks:
+            if chunk.product_name.endswith("-significant"):
+                significant_chunks_by_tile.setdefault(chunk.tile_id, {})[
+                    chunk.product_name
+                ] = chunk
+    scale_label_batches = _scale_label_batches(
+        tuple(
+            _ScaleLabelRequest(
+                partition=partition,
+                significant_chunks=tuple(
+                    significant_chunks_by_tile[partition.tile_id][
+                        f"scale-{order}-significant"
+                    ]
+                    for order in _SCALE_ORDERS
+                ),
+                global_by_local_label_by_order=tuple(
+                    tuple(
+                        zip(
+                            mapping.local_labels,
+                            mapping.global_labels,
+                            strict=True,
+                        )
+                    )
+                    for mapping in (
+                        reconciled.mapping_for_tile(partition.tile_id)
+                        for reconciled in reconciled_scales
+                    )
+                ),
+            )
+            for partition in manifest.tiles
+        ),
+        maximum_tiles_per_batch=config.maximum_tiles_per_batch,
+    )
+    scale_label_results = tuple(
+        executor.map_batches(
+            partial(
+                _publish_scale_labels,
+                sink=sink,
+                image_shape_yx=manifest.image_shape_yx,
+            ),
+            scale_label_batches,
+        )
+    )
+    if not scale_label_results:
+        raise ValueError("executor returned no scale label results")
+    generation = sink.publish_generation(
+        product_names=_MULTISCALE_PRODUCT_NAMES,
+        chunks=(
+            chunk
+            for result in (*publication_results, *scale_label_results)
+            for chunk in result.product_chunks
+        ),
+    )
     all_results = (*topology_results, *publication_results)
-    batch_counts = (len(partition_batches), len(publication_batches))
+    batch_counts = (
+        len(partition_batches),
+        len(publication_batches),
+        len(scale_label_batches),
+    )
     return MultiscaleStageResult(
         generation=generation,
         detection_islands=detection_islands,
         reconstruction_islands=reconstruction.islands,
         scale_islands_by_order=scale_islands,
+        scale_nominal_beam_fwhms=publication_results[
+            0
+        ].scale_nominal_beam_fwhms,
         partition_count=len(manifest.tiles),
         executor_task_count=sum(batch_counts),
         maximum_graph_width=max(batch_counts),

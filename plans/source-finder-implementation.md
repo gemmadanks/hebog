@@ -1,6 +1,6 @@
 # Hebog implementation plan
 
-Authoritative remaining-work plan. Updated **17 September 2026**.
+Authoritative remaining-work plan. Updated **23 September 2026**.
 Current user-facing capability is in
 [release status](../docs/reference/release-status.md); execution history,
 evidence identities and completed decisions are in [`LOG.md`](../LOG.md).
@@ -11,14 +11,14 @@ Closed Phase 5 contracts, reviews and campaign tooling are in Git history at
 
 | Item | Current position |
 | --- | --- |
-| Release | v0.10.0, tagged on 17 September 2026; releases upload to TestPyPI. Experimental and scientifically unqualified. |
-| Candidate | Public composition v21, which fits components with diagonal weighting. Development-unqualified. |
+| Release | v0.12.0, tagged on 18 September 2026; releases upload to TestPyPI. Experimental and scientifically unqualified. |
+| Candidate | Public composition v22, which fits components with diagonal weighting and evaluates detection through the tiled pass. Development-unqualified. |
 | Functionality | Standalone FITS-to-products finder: background/RMS, compact and multiscale detection, deblending, fitting, source association, catalogue/mask/RMS/diagnostics, Serial and caller-owned Dask execution. No Rapthor backend: `hebog.adapters` holds records and the 8-column catalogue codec only, and the seven acceptance scenarios are strict-xfail placeholders. No flat-noise branch or LSMTool filtering has run on Hebog products. |
-| Scalability | Public envelope ≤1,024 pixels per side. Only background/RMS and first-pass detection run per tile through the executor, on hard-coded 128-pixel cores (the scalability contract's candidates are 2,048–8,192); the public science in `public_science.py` holds several full `float64` planes in one process. Tiled multiscale, deblending, measurement, fitting and compact catalogue stages exist in `stages/` but only tests use them; continuum candidate products, extended association, the à trous position filter and the continuum catalogue have no tiled form. Two background sub-steps are capped at 10⁶ pixels. The executor offers only `map_batches` with a driver-side gather. |
-| Performance | No matched benchmark exists. The complete-path profile (17 September, run `m1-profile-6-complete`) fits generated cost as `11.6 s/Mpx + 25 ms/component + 4.3 ms/(Mpx·component)`, against `18.6 + 49 ms + 47 ms` at the start of M1. Complete runs improved 1.6× to 5.5×: SDC1 crowded 2,048² 956 → 174 s, SDC1 crowded 1,024² 119 → 38 s, LoTSS 1,024² 31–35 → 20–21 s. Against v0.9.0 the quick benchmark gives 0.81–0.88 on the default tier and 0.54 on SDC1 1,024². Per-pixel background and RMS estimation now dominates: 41.6 s of a 51.3 s noise-only 2,048² run. Diagnostic one-thread `master` ratios on 1,024² inputs are about 3–4×, from 6.2–9.1× before M1; the gate is ≤0.50× pinned PyBDSF `master` (`c70103b`) on matched complete `filter_skymodel` runs, which needs M3 and M4. |
-| Science | The v15 campaign failed only through 32 regressions against the earlier Hebog incumbent; no comparison against released PyBDSF, PyBDSF `master` or Aegean failed, and 40 were underpowered. All campaign images were ≤1,024 pixels. v16–v20 have focused regression, Serial/Dask, equivalence and installed-wheel evidence only. Uncertainty calibration, measurement tails and faint association were accepted on 13 September as limitations of an experimental standalone release, not as passes. |
+| Scalability | Public envelope ≤3,000 pixels per side. ADR-008 passes A–D run through the executor and publish to Zarr: background/RMS on 128-pixel cores, every other stage on the contract's smallest admitted 2,048-pixel core, so 2,048² is the last single-tile size and 3,000² is four tiles. No composition step labels or searches a whole plane, and every scientific step reads published windows. **The driver still holds 18 image-sized arrays**, measured at the terminal builder: 8 `int32` label planes, 9 masks and the position signal, 49 bytes a pixel. That is 0.41 GiB at 3,000², 4.6 GiB at 10,000² and 10.8 GiB at 15,402² against 18 GiB of machine memory, so the 10,000 tier is reachable and 15,402 is not on this alone. The deterministic traced peak at 3,000² is 1,342 MiB. The two 10⁶-pixel background caps guard the small-image path only: they fire when a coarse window is shrunk to fit, which cannot happen above 600 pixels a side. Input hashing already streams in 1 MiB blocks. |
+| Performance | No matched benchmark exists; the gate is ≤0.50× pinned PyBDSF `master` (`c70103b`) on matched complete `filter_skymodel` runs, which needs M3 and M4. The three 1,024² anchors were re-measured against v0.12.0 in one matched session on 24 September and all pass the previous-release rule: `dense-field` 17.8 s, ratio 1.00 [0.85, 1.02]; `lotss-dr3-1312-sparse` 18.1 s, 0.93 [0.92, 0.95]; `lotss-dr3-1312-dense` 19.4 s, 0.94 [0.91, 0.95]. The 3,000-pixel crossover pair still carries its loaded-machine caveat and needs a quiet re-measurement before it is quoted: `sdc1-b2-1000h-crowded-2048` 119.1 s, ratio 0.68; `lotss-dr3-1312-dense-3000` 115.8 s, which can have no ratio because v0.12.0 refuses that size. No `master` ratio can be taken at all while the comparison container refuses to start (see Risks); the last diagnostic one-thread ratios on 1,024² inputs were about 3–4×. M2's bottleneck row is closed for kernels: the profile is flat and no kernel reaches the native-code assessment's 10% gate. What dominates a small-image run now is store access, not science — 56% of a profiled 1,024² run is inside Zarr's `sync()` bridge over 1,841 calls — and on 24 September the maintainer accepted about 8% of 1,024² wall time against the pre-M2 branch point for the driver's whole-plane removal, to be recovered by measuring the per-object rounds inside the passes that already read their tiles. Execution history, per-change attributions and evidence identities are in [`LOG.md`](../LOG.md); the ranked profile is in [where Hebog spends its time](../docs/reference/performance-profile.md). |
+| Science | The v15 campaign failed only through 32 regressions against the earlier Hebog incumbent; no comparison against released PyBDSF, PyBDSF `master` or Aegean failed, and 40 were underpowered. All campaign images were ≤1,024 pixels. v16–v20 have focused regression, Serial/Dask, equivalence and installed-wheel evidence only. Uncertainty calibration, measurement tails and faint association were accepted on 13 September as limitations of an experimental standalone release, not as passes. On 23 September the binding `Total_flux` limits were set at PyBDSF parity and the source flux was redefined as the summed fitted component flux, which passes every binding limit at or better than pinned `master` in each stratum; the aperture estimator fails those same limits on correlated noise (`LOG.md`, 23 September). The aperture stays published as `ASSOCIATION_APERTURE_FLUX` and remains the column that recovers observable flux: the two estimators part on edge-clipped and extended morphologies, which the [product reference](../docs/reference/public-products.md) documents and does not correct. One slow-marked equivalence regression, edge-source uncertainty availability, fails at 98.8% against 99% and predates this work. |
 | 1.0.0 blockers | Every milestone below. The largest risks are the performance gap, tile-native continuum association, the memory and disk of the local development machine, and SKA-Low coverage without public SKA-Low images. |
-| Next action | Human: set the binding `Total_flux` limits in the M1 row above, and free disk to about 60 GB before the envelope passes 22,500². Agent: converge `public_science.py` onto the tiled stages pass by pass under [ADR-008](../docs/architecture/adr/008-make-the-continuum-composition-tile-native.md), moving boundary-state merges onto the executor's bounded reduction as each pass lands. |
+| Next action | Human: merge the driver's whole-plane removal, six commits ending `76ec081`, and cut the `0.x` release it earns; disposition the 3,000-pixel envelope; decide the raise to 10,000, which driver memory no longer blocks but which still needs its own tier evidence; repair the container image store that blocks every PyBDSF comparison; free disk to about 60 GB before the envelope passes 22,500². Agent: measure the island rows, the owner local RMS and the component records inside the passes that already read their tiles, which recovers the accepted 8% and is the prerequisite for the remaining planes. Re-measure the two 3,000-pixel anchors when the machine is quiet. |
 | Deferred | Aegean comparisons (paused while development focuses on PyBDSF; reconsidered at M6), optional comparison finders such as ProFound or 2D SoFiA (see the [notebook guide](../docs/how-to/notebooks.md)), general science improvements outside Rapthor-consumed outputs, and native code without a passing profile gate. Reopen a deferred issue if it becomes a confirmed incorrect supported output. |
 
 ## Definition of 1.0.0
@@ -93,10 +93,24 @@ operational soak of the 1.0.0 backend; the PyBDSF fallback remains until then.
 - **Limitations that block 1.0.0.** Of the limitations accepted for v0.7.0,
   those that change Rapthor-consumed fields must pass before 1.0.0:
   - `E_RA`/`E_DEC` uncertainty calibration (Rapthor excludes sources at
-    ≥2 arcsec);
-  - `Total_flux`/`Isl_Total_flux` tails;
+    ≥2 arcsec). Calibration itself now passes on beam-correlated noise: RA and
+    Dec pull standard deviations are 1.015 and 1.006 with 67.5% and 67.2%
+    within one sigma (`LOG.md`, 24 September), unchanged by the convention
+    change below. What remains is qualification on a real field;
+  - `Total_flux` tails, under the limits in the
+    [scientific gates](#scientific-gates) table (`Isl_Total_flux` is only
+    carried through Rapthor's astrometry check);
   - faint association where it changes island grouping, and therefore
     patches.
+
+  `E_RA` is now published as a great-circle angle, matching PyBDSF and the
+  fixed angle Rapthor's astrometry cut compares it with. The convention was
+  measured, not inferred: on one field at two declinations, pinned PyBDSF
+  `c70103be3` reports the same `E_RA` at +0° and +60° while Hebog reported
+  twice as much, and Hebog now matches (`LOG.md`, 24 September). This is a
+  breaking change to a Rapthor-consumed column — values shrink by cos(dec) —
+  and it leaves position uncertainties needing qualification on a real
+  high-declination field, which the development population does not cover.
 
   The others stay documented limitations.
 - **Iteration budgets.** The budgets under
@@ -207,18 +221,12 @@ human decisions.
 Two rules govern the sequence:
 
 - **Measure before changing.** Nothing is optimized or re-architected without
-  a profile, and no science-touching change merges without the quick science
-  check from M1.
+  a profile, and no science-touching change merges without
+  `just quick-science-check`.
 - **Optimize the code that survives.** M2 replaces the whole-array public
   science with the tiled composition. Before M2 lands, fix only bottlenecks in
   kernels the tiled path will keep (fitting, measurement, filters, labelling),
   not whole-array orchestration it will delete.
-
-### M1 — Fast feedback and the performance gap
-
-| Owner | Task | Done when |
-| --- | --- | --- |
-| Agent, human dispositions | Choose the binding integrated-flux endpoint, now that the calibration measures the population. | `component_calibration` reports the fractional excess against truth over every matched component, with pulls kept as a secondary statistic carrying the share of the population they cover, and the calibration population now spans beam, 1.15, 1.3 and 1.5 times the beam (run `m1-endpoint-diagonal`, 18 September). Measured: the beam-sized axis pull of +1.7 covers 8–20% of those components while their population axis excess is zero, so there is no axis bias to remove; the extension test does not flatten 1.15-beam sources above SNR 10; and integrated flux is biased high at low signal-to-noise in every size class, +6.8% at SNR 10 and +4.9% at SNR 20 even for beam-sized components whose axes are exact, with an absolute p95 of 29–58% at SNR 10. The human sets the binding median and tail limits per signal-to-noise stratum for `Total_flux`, and decides between a noise-bias correction to fitted second moments, an SNR-dependent quality flag, and documenting the measured curve. `Total_flux` blocks 1.0.0. |
 
 ### M2 — One tile-native science path
 
@@ -229,10 +237,11 @@ development machine's memory.
 
 | Owner | Task | Done when |
 | --- | --- | --- |
-| Agent | Converge `public_science.py` onto `stages/` so one composition serves every size. | The public path runs the tiled stages; one-tile and many-tile runs on analytic edge, corner and partition-origin cases agree exactly; the quick science check and Serial/Dask invariance pass; the whole-array path is deleted. |
-| Agent | Remove whole-plane state from the driver and background. | The 10⁶-pixel coarse-protection and local-noise caps are tile-bounded; RMS and mask products stream from Zarr row blocks; the catalogue is a partitioned reduction; input hashing is chunked; merges of boundary states run on workers. Tile cores are configurable within the contract's 2,048–8,192 range, and admission rejects a plan above the admitted memory before submission. Peak RSS scales with tile size, not image size. |
+| Agent | Converge the remaining object rounds of `public_science.py` onto `stages/`, so one composition serves every size. | The catalogue rows run as the rounds the [ADR-008 object table](../docs/architecture/adr/008-make-the-continuum-composition-tile-native.md#the-object-passs-rounds) sets out. One-tile and many-tile runs on analytic edge, corner and partition-origin cases agree exactly; the quick science check and Serial/Dask invariance pass; no whole-plane science array remains in `public_science.py`. |
+| Agent | Measure the island rows, the owner local RMS and the component records inside the passes that already read their tiles, instead of in the driver from published windows. | Each is produced by the stage that reads the tile it needs, and the driver makes no per-object read. One-tile and many-tile runs agree exactly, the quick science check passes, the 1,024² anchors recover the wall time the 24 September trade-off accepted, and the traced peak does not rise. |
+| Agent | Remove the driver's remaining 18 image-sized arrays: the label, mask and position-signal planes, one publishing stage at a time. Eight are `int32` labels, 32 of the 49 bytes a pixel that remain. Object windows read in batches under the owner read budget, never one read per object. Size the work from the array count, measured by walking the driver's locals, not from a profile inside the envelope where the tile grows with the image. | Peak traced allocation is flat in image size. The 10⁶-pixel caps stay tile-bounded; the catalogue is a partitioned reduction; merges of boundary states run on workers. Tile cores are configurable within the contract's 2,048–8,192 range, and admission rejects a plan above the admitted memory before submission. |
 | Agent | Remove profiled bottlenecks in the tiled kernels. | Each change has quick-benchmark before/after evidence on affected and adjacent anchors and passes the quick science check. |
-| Agent, human approves each raise | Raise the public envelope one tier at a time on the development machine: 3,000, 10,000, then the LOFAR ladder of LoTSS-DR3 (15,402²), LOFAR-HD 22,500² and LOFAR-HD 45,000². | Each tier passes exact tiled-invariance tests, the quick science check, a quick benchmark on both sides of any crossover and a measured peak-RSS bound within the release-check budget, before the limit and release status change. Each raise is a release. Science on the large images uses the LoTSS-DR3 PyBDSF catalogue and maps and per-facet HD PyBDSF catalogues, with global invariants, as in ADR-005. |
+| Agent, human approves each raise | Raise the public envelope one tier at a time on the development machine. 3,000 landed on 22 September; the remaining tiers are 10,000, then the LOFAR ladder of LoTSS-DR3 (15,402²), LOFAR-HD 22,500² and LOFAR-HD 45,000². The 10,000 tier has no anchor yet and needs a cut-out from the LoTSS-DR3 mosaic before it can be measured. | Each tier passes exact tiled-invariance tests, the quick science check, a quick benchmark on both sides of any crossover and a measured traced-allocation peak within the release-check budget, before the limit and release status change. The gate is `tracemalloc`'s peak, which is deterministic; peak RSS varies 42% with machine load on the development machine and is reported beside it as an envelope, never as the threshold. Each raise is a release. Science on the large images uses the LoTSS-DR3 PyBDSF catalogue and maps and per-facet HD PyBDSF catalogues, with global invariants, as in ADR-005. |
 | Human | Switch uploads from TestPyPI to PyPI once the envelope covers Rapthor sector images. | The Trusted Publisher, `pypi` environment, publishing job, installation instructions and release status change together, as in the [publishing guide](../docs/how-to/publish-releases.md). |
 
 ### M3 — Telescope coverage and Rapthor functionality
@@ -293,6 +302,7 @@ All rows run on the development machine; none needs the cluster.
 | Rapthor and LSMTool change frequently. | Adapter, contract and benchmark churn, or a backend that only works on a stale revision. | Pin the latest commits when M3 starts. Move both pins forward deliberately, not continuously: before the Rapthor patch, before the M4 benchmarks and at the M6 freeze. At each move, rerun the contract audit, the acceptance scenarios and the Rapthor-profile agreement check, and record the revisions in `LOG.md`. |
 | Short checks miss a rare regression. | A defect reaches a `0.x` release. | Releases stay experimental; each escaped defect adds a fixed case; the powered M6 study is the backstop. |
 | The development machine's 18 GiB RAM and free disk limit local tiers. | Tiers above 22,500² stall, or runs spill to disk and slow iteration. | Tile-bounded memory from M2 onward; about 60 GB of free disk before tiers above 22,500²; 90,000² only on the cluster. |
+| The PyBDSF comparison container will not start. | No `master` ratio, no equivalence refresh and no M4 matched benchmark. | Podman failed every attempt on 24 September with an overlay mount I/O error on the host image store. Repair or rebuild that store before M4; until it runs, cached reference outputs are the only comparison and `master` ratios cannot be quoted at all. |
 | Scientific campaigns absorb the schedule again. | Performance and scale slip. | Iteration budgets, cached references, endpoints limited to Rapthor-consumed fields and one overnight powered study at M6. |
 
 ## Scientific gates
@@ -362,7 +372,17 @@ requirements.
 | Isolated SNR ≥10 position difference, median / p95 | ≤0.02 / 0.10 beam |
 | Isolated SNR ≥10 peak-flux difference, median / p95 | ≤2% / 5% |
 | Isolated SNR ≥10 integrated-flux difference, median / p95 | ≤5% / 10% |
+| `Total_flux` excess against injected truth, median, SNR 10 / 20 / 50 | ≤ +14% / +3.5% / +1% |
+| `Total_flux` absolute excess against injected truth, p95, SNR 10 / 20 / 50 | ≤ 35% / 12% / 6% |
+| `Total_flux` Hebog minus pinned PyBDSF `master`, paired over realizations, upper one-sided 95% bound, per stratum | ≤ +1 point in median and p95 |
+| `Total_flux` 3σ-clipped mean ratio to truth, SNR ≥ 20 | within ±3%, clipped scatter ≤ 5% |
 | Source-free RMS-map difference, median / p95 | ≤2% / 5% |
+
+The `Total_flux` rows are the binding limits set on 23 September from PyBDSF
+parity on the M1 calibration population and from Rapthor's 10% photometry
+decision floor. Strata are that population's SNR 10, 20 and 50 classes,
+pooled over white and beam-correlated noise; the excess is
+`published / truth - 1` over every matched source.
 
 ## Performance and scale gates
 

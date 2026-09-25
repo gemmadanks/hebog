@@ -56,7 +56,7 @@ def test_background_beam_uses_native_frame_axes(frame: str) -> None:
         unit="Jy/beam",
         beam=RestoringBeam(4 / 3600, 2 / 3600, 23),
         celestial_wcs=CelestialWcs(
-            fits_header=cast(str, header.tostring(sep="\n")),
+            fits_header=header.tostring(sep="\n"),
             coordinate_frame=frame,
         ),
         reference_frequency_hz=150e6,

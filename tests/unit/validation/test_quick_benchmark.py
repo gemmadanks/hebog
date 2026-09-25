@@ -370,6 +370,54 @@ def _runner() -> dict[str, Any]:
     return runpy.run_path(str(_ROOT / "scripts/benchmark/quick_benchmark.py"))
 
 
+@pytest.mark.parametrize("long_axis", (512, 2048, 3000, 8192))
+def test_worker_command_always_raises_the_timed_release_size_limit(
+    long_axis: int,
+) -> None:
+    """The limit follows the input, never the caller's own envelope.
+
+    A previous release carries its own public size limit, so gating the
+    option on the caller's limit refuses inputs the caller admits and the
+    release does not, and the baseline silently disappears.
+    """
+    runner = _runner()
+
+    command = runner["_worker_command"](
+        python=Path("/opt/release/bin/python"),
+        input_path=Path("image.fits"),
+        case_id="case",
+        settings_json="{}",
+        supplied_metadata=None,
+        shape_yx=(64, long_axis),
+    )
+
+    limit = command.index("--diagnostic-size-limit")
+    assert command[limit + 1] == str(long_axis)
+
+
+def test_worker_command_passes_supplied_metadata_only_when_present() -> None:
+    """A case without supplied metadata sends no metadata option."""
+    runner = _runner()
+    arguments = {
+        "python": Path("python"),
+        "input_path": Path("image.fits"),
+        "case_id": "case",
+        "settings_json": "{}",
+        "shape_yx": (64, 64),
+    }
+
+    without = runner["_worker_command"](supplied_metadata=None, **arguments)
+    with_metadata = runner["_worker_command"](
+        supplied_metadata={"beam_position_angle_degrees": 0.0}, **arguments
+    )
+
+    assert "--supplied-metadata" not in without
+    index = with_metadata.index("--supplied-metadata")
+    assert json.loads(with_metadata[index + 1]) == {
+        "beam_position_angle_degrees": 0.0
+    }
+
+
 def test_every_baseline_identity_includes_the_measurement_revision() -> None:
     """Changing how repetitions run remeasures Hebog and PyBDSF baselines."""
     runner = _runner()

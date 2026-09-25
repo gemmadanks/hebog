@@ -1,12 +1,12 @@
 """Image and product input/output boundaries."""
 
+from hebog.algorithms.astrometry import celestial_wcs_from_metadata
 from hebog.data_models.partitioning import ImageBounds
 from hebog.io.base import ImageMetadata, ImageSource, ImageWindow
 from hebog.io.fits import (
     FitsImageSource,
     InvalidFitsImageError,
     UnsupportedFitsImageError,
-    celestial_wcs_from_metadata,
 )
 from hebog.io.materialization import (
     FitsProductImageSource,

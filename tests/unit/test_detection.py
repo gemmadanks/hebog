@@ -1,15 +1,22 @@
 """Analytic tests for bounded two-threshold source detection."""
 
+# pyright: reportPrivateUsage=false
+
 from __future__ import annotations
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 
+from hebog.algorithms.background import BackgroundRmsTile
 from hebog.algorithms.detection import (
     detect_high_significance_candidates,
     detect_threshold_masks,
 )
 from hebog.config import SourceFinderConfig
+from hebog.data_models.partitioning import ImageBounds
+from hebog.io.base import ImageWindow
+from hebog.stages.detection import _require_estimate_covers_image
 
 
 def _config(
@@ -241,3 +248,63 @@ def test_detection_rejects_invalid_array_contracts(
 
     with pytest.raises((TypeError, ValueError), match=message):
         detect_threshold_masks(**arguments, config=_config())
+
+
+def _tile_window(
+    values: npt.NDArray[np.float64],
+) -> ImageWindow:
+    """Return one owned core window over these brightnesses."""
+    bounds = ImageBounds(0, values.shape[0], 0, values.shape[1])
+    return ImageWindow(
+        bounds=bounds,
+        values=values,
+        valid_pixels=np.isfinite(values),
+    )
+
+
+def _estimate_tile(
+    values: npt.NDArray[np.float64],
+    background: npt.NDArray[np.float64],
+    rms: npt.NDArray[np.float64],
+) -> BackgroundRmsTile:
+    """Return one interpolated estimate core over these planes."""
+    return BackgroundRmsTile(
+        bounds=ImageBounds(0, values.shape[0], 0, values.shape[1]),
+        background=background,
+        rms=rms,
+        scientifically_available=True,
+        fallback_cell_count=0,
+    )
+
+
+def test_an_invalid_image_pixel_needs_no_estimate() -> None:
+    """The estimate may be absent exactly where the image is."""
+    values = np.array([[1.0, np.nan], [2.0, 3.0]])
+
+    _require_estimate_covers_image(
+        _tile_window(values),
+        _estimate_tile(
+            values,
+            np.array([[0.0, np.nan], [0.0, 0.0]]),
+            np.ones((2, 2), dtype=np.float64),
+        ),
+    )
+
+
+@pytest.mark.parametrize("missing", ("background", "rms"))
+def test_an_estimate_that_narrows_the_image_is_rejected(
+    missing: str,
+) -> None:
+    """A finite image pixel the estimate does not cover fails loudly."""
+    values = np.ones((2, 2), dtype=np.float64)
+    background = np.zeros((2, 2), dtype=np.float64)
+    rms = np.ones((2, 2), dtype=np.float64)
+    if missing == "background":
+        background[1, 1] = np.nan
+    else:
+        rms[0, 1] = np.nan
+
+    with pytest.raises(ValueError, match="validity differs from the image"):
+        _require_estimate_covers_image(
+            _tile_window(values), _estimate_tile(values, background, rms)
+        )

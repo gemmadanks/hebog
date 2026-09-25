@@ -44,7 +44,14 @@ repos:
     rev: v2.3.0
     hooks:
       - id: codespell
-        args: ["--skip", "uv.lock,dist,build,.venv,*.min.js"]
+        # "priorized" is Aegean's own name for its fixed-position fitting
+        # mode, and "aas" appears inside Astronomy & Astrophysics Supplement
+        # DOIs. Correcting either would make the documentation wrong.
+        args:
+          - "--skip"
+          - "uv.lock,dist,build,.venv,*.min.js"
+          - "--ignore-words-list"
+          - "priorized,aas"
         exclude: |
           (?x)(
             ^docs/_build/|

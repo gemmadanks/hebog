@@ -32,7 +32,7 @@ from typing import Any
 import numpy as np
 
 import hebog
-from hebog import public_api, public_science
+from hebog import public_api
 from hebog.executors import SerialExecutor
 from hebog.io import read_catalogue_fits_product
 from hebog.validation.campaigns import phase_four_truth_source
@@ -163,14 +163,23 @@ def _manifest(path: Path, identifier: str, recipe: dict[str, Any]) -> Path:
 
 
 def _use_point_estimator(estimator: str) -> None:
-    original = public_science.source_finder_configs
+    """Override the installed fit config's point estimator everywhere.
+
+    `source_finder_configs` lives in `hebog.science.configuration`, and
+    `hebog.science.continuum` binds the name at import time, so patching one
+    module alone leaves the other calling the installed policy.
+    """
+    from hebog.science import configuration, continuum  # noqa: PLC0415
+
+    original = configuration.source_finder_configs
 
     def configured() -> Any:
         configs = list(original())
         configs[3] = replace(configs[3], point_estimator=estimator)
         return tuple(configs)
 
-    public_science.source_finder_configs = configured
+    configuration.source_finder_configs = configured
+    continuum.source_finder_configs = configured
 
 
 def _pulls(
@@ -260,6 +269,7 @@ def _pulls(
                     ),
                 },
                 "pulls": {
+                    # Offset and error are both great-circle angles.
                     "ra": pull(
                         offsets["ra"],
                         position.right_ascension_error_degrees,

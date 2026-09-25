@@ -1,35 +1,42 @@
 # Hebog
 
-Hebog is an **experimental** Dask-aware source finder for large
-radio-continuum survey images. It is being developed as a scientifically
-compatible, faster alternative to the PyBDSF work used by Rapthor's
-`filter_skymodel` step. Its scientific library also works independently of
-Rapthor, Prefect and LSMTool.
+Hebog is an **experimental** source finder for radio-continuum images. Given a
+FITS image it estimates the background and noise, detects compact and extended
+emission, fits Gaussians, and publishes a source catalogue, an RMS image, a
+source mask and diagnostics. The same code runs in a single process or across
+a Dask cluster that you already own.
 
-## What Hebog does
+!!! warning "Status"
+    Hebog is not yet scientifically qualified and currently accepts images of
+    at most 3,000 pixels per side. Treat its output as measurements to
+    evaluate. See [capability and status](reference/release-status.md).
 
-The public finder reads one ICRS or FK5 J2000 `Jy/beam` FITS image up to 1,024 pixels on
-either spatial axis and publishes a catalogue, RMS image, source mask and
-diagnostics. It implements background/noise estimation, compact and multiscale
-detection, Gaussian fitting and associated-source measurements. Use Serial
-execution or supply an existing Dask client; Hebog does not create a cluster.
+## I am an astronomer
 
-Hebog is experimental and not yet scientifically qualified. Treat its outputs as
-measurements to evaluate, not as established astrophysical truth or automatic
-evidence that a survey configuration is suitable. See
-[current capability and release status](reference/release-status.md) for the
-supported input envelope and known limitations.
+- [Install Hebog](tutorials/index.md) and
+  [find sources in your first image](tutorials/find-sources.md).
+- [Choose thresholds and a profile](how-to/configure-a-run.md).
+- [How Hebog finds sources](explanation/how-hebog-works.md): the algorithms,
+  with diagrams.
+- [Hebog and other source finders](explanation/source-finder-comparison.md):
+  how it compares with PyBDSF, Aegean, Selavy and others.
+- [Output reference](reference/public-products.md): every column, unit and
+  flag.
 
-- [Find sources in a FITS image](tutorials/find-sources.md)
-- [See how the finder makes each decision](explanation/how-hebog-works.md)
-- [Interpret every public output field](reference/public-products.md)
-- [Install and get started](tutorials/index.md)
-- [Public API](reference/index.md)
+## I am a pipeline developer or architect
 
-## Where it fits
+- [Integrate Hebog into a pipeline](how-to/integrate-into-a-pipeline.md).
+- [Architecture overview](architecture/index.md) and
+  [how Hebog distributes work](architecture/distributed-execution.md).
+- [Python API](reference/index.md).
+- [Contribute to Hebog](how-to/index.md).
 
-The scientific library is independent of Rapthor, Prefect, and LSMTool. A
-pipeline supplies a serial executor or an existing Dask client and receives
-small records pointing to closed files. Hebog does not create a cluster,
-filter a sky model, or place scheduler objects in public results. See the
-[architecture](architecture/index.md) for execution and ownership boundaries.
+## How this documentation is organised
+
+The documentation follows the [Diátaxis](https://diataxis.fr) framework. The
+**User guide** holds the tutorial, how-to guides, explanation and reference an
+astronomer needs. The **Developer guide** holds the same four kinds of page
+for people who integrate or extend Hebog. Dated evidence and decisions live in
+the repository's
+[execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md), not in
+these pages.

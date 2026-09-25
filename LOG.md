@@ -23207,3 +23207,1850 @@ the per-worker placement finding.
   unit tests including four stub-client tests for reduction throttling,
   combine-failure cancellation and combine release on both paths; Dask
   integration tests pass; Pyright and Ruff clean.
+
+## 2026-09-18 — M2: the public path runs the tiled detection pass
+
+- **What changed.** `public_science` no longer evaluates the matched-filter
+  bank, the residual B3 à trous transform, thresholding or island labelling
+  over whole planes. The public path now runs ADR-008's pass B through
+  `hebog.stages.multiscale.run_multiscale_stage` on haloed tile cores, and the
+  composition reads that pass's published planes. Candidate v21 becomes v22;
+  the reviewed profile, thresholds and every downstream stage are unchanged.
+- **What the pass publishes.** `combined-snr`, `detection-labels`,
+  `position-signal`, `reconstruction-mask` and one `scale-N-significant` mask
+  per scale. Two products changed so that the pass
+  serves the composition rather than only its own tests: `detection-labels` is
+  new and carries the globally reconciled detection components that the seeded
+  support stage needs, and `position-signal` is now the composition's denoised
+  position signal with the signed residual as its documented edge fallback,
+  which removes the second whole-image à trous evaluation the public path used
+  to run for it alone. `reconstructed-signal` was removed because nothing
+  reads it; ADR-008 stores a plane only when a later pass or a product needs
+  one.
+- **Per-scale features without storing responses.** The cross-scale
+  persistence rule needs each scale feature's peak response, and ADR-008
+  forbids storing filter responses. `label_detection_tile` therefore takes an
+  optional response plane and reduces its per-island maximum while the
+  response is still on the task that evaluated it; reconciliation merges those
+  maxima associatively, and `build_scale_detection_plane_from_islands`
+  rebuilds the scale planes from the stored mask plus the reconciled records.
+  It relabels the stored mask and rejects any island set whose global labels,
+  canonical pixels or pixel counts do not match it, so a stale record set
+  fails loudly instead of silently relabelling published support. A
+  parametrized unit test proves the reconstruction equals the whole-plane
+  `build_scale_detection_plane` for one-tile and many-tile geometries.
+- **Ownership and tile geometry.** The detection pass plans cores at the
+  scalability contract's smallest admitted 2,048 pixels, widened when the
+  widest filter halo would exceed a quarter of the core, so every image inside
+  the current 1,024-pixel public envelope is one tile and the composition
+  exercises the same code at every size. `detect_multiscale_products` takes
+  the core as a parameter so tests drive many-tile geometry through the
+  production path rather than a parallel one.
+- **Invariance evidence.** `tests/integration/test_public_detection_partitioning.py`
+  runs the public detection pass over an analytic image with sources on every
+  edge and corner, a pair straddling a tile boundary, a close blend and
+  extended emission, at 16, 9, 4 and 1 tiles. Detection labels, the
+  reconstruction mask, every scale mask and every reconciled scale island are
+  exactly equal across geometries; the combined signal-to-noise and position
+  signal agree to the reviewed 2×10⁻¹³. A companion test asserts that those
+  edge, corner and blended cases carry real support, so the equality is not
+  vacuous.
+- **Scientific result: no change.** The quick science check
+  (`m2-tiled-detection`, baselined on `m1-performance`) reproduces every case
+  exactly: identical source and component counts and identical truth metrics
+  on all sixteen cases, including the SDC1 and LoTSS cut-outs, empty noise and
+  the all-invalid image. The run used `--skip-references`, so its pinned
+  PyBDSF `master` comparisons are reported as no longer measurable; no Hebog
+  metric moved.
+- **Performance: a measured regression, below the gate, to remove next.** The
+  quick benchmark (`m2-tiled-detection`, five measured repetitions after
+  warm-up, against v0.12.0 on the same machine) gives dense-field 17.83 s vs
+  17.97 s, ratio 0.99 [0.96, 1.04] pass; LoTSS sparse 20.94 vs 19.54, 1.07
+  [1.04, 1.09] inconclusive; LoTSS dense 21.98 vs 20.70, 1.06 [1.05, 1.10]
+  inconclusive. Both lower bounds sit just under the contract's 1.05
+  regression threshold, so the run passes and no approved trade-off is owed,
+  but the 6–7% is real. Peak RSS is 929 vs 869, 838 vs 819 and 753 vs 835 MiB,
+  so memory did not regress materially and fell on the densest case. The
+  sixteen-case quick check, which is dominated by small inputs, rose 135.6 s →
+  155.2 s (about 14%): negative-background 0.9 → 1.8 s and empty-noise 0.7 →
+  1.3 s pay the extra Zarr generation proportionally, while SDC1 crowded went
+  33.6 → 37.1 s and LoTSS dense 17.2 → 19.5 s. The cost is structural rather
+  than incidental: the stage deliberately evaluates each tile twice, once for
+  boundary topology and once to publish accepted cores, so the public path now
+  evaluates the matched-filter bank and the à trous transform twice where it
+  used to evaluate the bank once and the transform twice. M2's bottleneck row
+  owns this; the obvious candidate is to publish the boundary pass's accepted
+  cores from a retained bounded read rather than re-evaluating them.
+- **Test-only convergence cost.** Substituting the background stage no longer
+  means returning two arrays, because the detection pass reads a published
+  generation rather than an image-sized argument. `hebog.validation.
+  tiled_detection` publishes analytic planes and drives the production
+  detection pass, so no test reimplements detection science, and the
+  integration lane gained a `published_background_rms` fixture for the tests
+  that inject analytic background and RMS.
+
+## 2026-09-18 — M2: two publication refinements were never read
+
+- **What this is.** Preparation for ADR-008's pass C, which has to make the
+  support pass tile-native. Reading the chain closely to decide what each
+  layer needs showed that two of its four whole-image layers produced results
+  nothing consumed.
+- **The dead layers.** `_initial_candidate_products` refined publication
+  labels on the filtered combined signal to noise, `_publication_snr_products`
+  refined them again on original-pixel signal to noise, and
+  `_direct_origin_products` then discarded both: it recomputes publication
+  from `products.direct_component_labels`, never from either refinement, and
+  replaces `detection.component_labels` outright. Each discarded layer ran a
+  whole-image binary opening, a 3×3 convolution, a binary dilation and a
+  `distance_transform_edt`. The three functions collapse into one
+  `_publication_products`, which attaches bounded multiscale support and then
+  refines publication from immutable direct-owner support exactly as before.
+- **Two dead fields went with them.** `ThresholdFilterResult.combined_snr` was
+  never read by any caller, and once the first layer is gone the composition
+  has no consumer for the published `combined-snr` plane either, so
+  `TiledMultiscaleDetection` no longer carries it and the driver no longer
+  reads that plane into memory. The plane itself stays published: the
+  internals notebook renders it as the maximum seed evidence, and the unit
+  partition-equivalence suite already proves it agrees across partitions to
+  2×10⁻¹³.
+- **Evidence that nothing changed.** The quick science check
+  (`m2-pass-c-dead-layers`, baselined on `m2-tiled-detection`) reproduces all
+  sixteen cases exactly: identical source and component counts and identical
+  truth metrics, including the SDC1 and LoTSS cut-outs.
+- **What it recovers.** Quick-check wall time falls 155.2 → 141.3 s, about 9%,
+  which returns most of the 14% the tiled detection pass cost: SDC1 sparse
+  30.8 → 27.6 s, SDC1 crowded 37.1 → 34.4 s, LoTSS dense 19.5 → 17.0 s,
+  negative-background 1.8 → 1.1 s. Against the pre-convergence baseline the
+  sixteen cases now stand at 141.3 s versus 135.6 s.
+- **What pass C still has to solve, recorded before it is built.** The two
+  surviving layers are not purely halo-bounded.
+  `refine_multiscale_segment_labels` ends in
+  `_preserve_refined_segment_connectivity` and
+  `refine_persistent_publication_labels` ends in
+  `_preserve_publication_bridges`; both iterate over **owner windows**, not
+  over a bounded neighbourhood, so an owner larger than a tile cannot be
+  decided inside one core. ADR-008's per-stage table gives segment refinement
+  a 3-pixel halo and pixel-core ownership, which describes the pixel work but
+  not these two steps. Two further inputs are global rather than
+  haloed: the connected components of direct support unioned with significant
+  multiscale support, which decide which seed a support pixel may attach to,
+  and the set of owners published anywhere, which decides which owners
+  persistent support may restore. Pass C is therefore a sequence of rounds,
+  not one haloed map: topology, auxiliary publication, measurement, owner
+  connectivity, publication, persistent, owner bridges and the final write.
+  ADR-008 now carries that table, with the two owner quantities as T1 work
+  keyed by the owner's canonical pixel and a T3 disposition for an owner
+  larger than the admitted task, and with the correction that refinement needs
+  the opening radius and the recovery radius together rather than their
+  maximum. Each round is cheap beside pass B's filters, and the refinement is
+  recomputed in the rounds that need it rather than stored, exactly as pass B
+  recomputes its filters.
+
+## 2026-09-18 — M2: pass C's global reductions are tile-native
+
+- **What this is.** The first rounds of ADR-008's pass C: the two quantities
+  the support pass needs that no bounded halo can supply. `hebog.stages.support`
+  reconciles them from compact per-core summaries and publishes them as owned
+  cores, and the composition reads the planes instead of computing them over
+  whole planes.
+- **Support components.** `assign_seeded_multiscale_support` attaches a
+  support pixel to the nearest seed **of its own component** of
+  `(direct support ∪ significant multiscale support) ∩ valid`. That
+  connectivity follows paths of arbitrary length, so a tile that labelled its
+  own read would separate support a longer path joins, and would silently drop
+  the assignment. The function now takes `support_component_labels`, the
+  globally reconciled components, and validates that they label exactly the
+  eligible support, so a tile-local plane fails loudly instead of changing
+  science quietly. A whole-plane caller may still omit it.
+- **Adjacent-scale persistence.** Each core observes the label overlaps
+  between adjacent scales, the driver maps them to global labels, unions them,
+  and keeps the features whose group spans at least two scale orders. The
+  accepted labels are sharded to the tiles that hold them rather than
+  broadcast, and the second round writes `persistent-support` per core.
+- **One plane replaced three reads.** The support rounds first re-derived the
+  scientifically valid domain from the image, background and RMS. The
+  detection pass already has that domain, so it now publishes `valid-pixels`
+  and the support stage reads it: the stage needs neither the image source nor
+  the background generation, and its whole API is one published generation.
+- **Evidence.** The quick science check (`m2-pass-c-valid`, baselined on
+  `m2-pass-c-dead-layers`) reproduces all sixteen cases exactly. A new
+  integration test asserts that both published planes equal the whole-plane
+  kernels they replace — `scipy.ndimage.label` of the union mask and
+  `persistent_adjacent_scale_support` of the scale detection planes — with the
+  reconciled component labels identical, not merely an identical partition.
+  The partition-invariance suite now covers both planes at 16, 9, 4 and 1
+  tiles, and an eighteen-test stage suite at 100% branch coverage covers a
+  component crossing several cores, an invalid pixel inside the support,
+  persistence over a three-scale chain and its rejection of a single-scale
+  feature, geometry, batching, reverse completion and Dask invariance,
+  order-independent grouping, the canonical product set, a haloed manifest, a
+  mismatched sink and image shape, a generation missing the planes the stage
+  reads, both silent-executor paths, empty batch records and configuration
+  validation.
+- **Cost.** Quick-check wall time rose 141.3 → 152.1 s, about 7%, from the
+  extra generation and its per-core chunk writes rather than from the reads:
+  publishing `valid-pixels` and dropping three whole-plane reads per core
+  changed nothing measurable (151.1 → 152.1 s, inside the noise). The cost is
+  the price of removing two whole-image reductions that could not run at all
+  above 22,500²; M2's bottleneck row owns the Zarr write overhead, which the
+  M1 profile already identified as chunk opens and atomic renames.
+- **Still whole-array in pass C.** Seeded support assignment, segment
+  refinement, the publication rule and persistent publication are still
+  evaluated over whole planes, as are the per-scale detection records that
+  pass D consumes. The next rounds are the haloed pixel work and the two
+  owner-scoped connectivity steps ADR-008 now describes.
+
+## 2026-09-19 — M2: the support pass is tile-native
+
+- **What this is.** The remaining rounds of ADR-008's pass C. The public
+  composition no longer evaluates seeded multiscale support, segment
+  refinement, the publication rule or persistent publication over whole
+  planes: `hebog.stages.publication` decides them on tile cores and on owner
+  windows, and writes the final labels and mask per core.
+  `science/continuum.py` falls from 376 lines to 120 and now only assembles
+  published planes into the candidate record.
+- **Splitting the two owner-scoped steps.** `refine_multiscale_segment_labels`
+  and `refine_persistent_publication_labels` each ended in a step scoped to
+  an owner window. Both are split into a halo-bounded pixel kernel
+  (`refine_multiscale_segment_support`,
+  `refine_persistent_publication_support`) and an owner decision
+  (`owner_support_is_split`, `preserve_owner_publication_bridges`). The
+  original functions remain as the composed whole-plane oracle, so every
+  existing kernel test still exercises the science it always did.
+- **Four rounds, one generation.** Owner restores, then the owners published
+  anywhere, then the bridge patches, then the core write. Only the last round
+  writes, because each pixel quantity is recomputed where it is needed rather
+  than persisted, exactly as the detection pass recomputes its filters. The
+  restore decision is one boolean per owner; the bridge decision is a label
+  patch bounded by that owner's window, applied by the core that owns each
+  pixel. Owners are batched until the union of their reads would exceed the
+  admitted pixel budget, so one task's memory stays bounded however the
+  owners are distributed.
+- **Island admission moved to the cores.** The caller's pixel-count limits are
+  decided from the reconciled island records and sharded to the tiles that
+  hold those labels, so `_retain_configured_islands` and its whole-plane
+  `bincount` are gone. Admission is applied after the owner rounds, which is
+  where the whole-plane path applied it.
+- **A halo that was too small.** `segment_refinement_halo_pixels` returned the
+  larger of the opening radius and the recovery radius. Both are needed
+  together, and the opening's influence is two pixels rather than one,
+  because a 3x3 binary opening erodes then dilates; the dense-core count
+  reaches one pixel further again. For a 5-pixel beam the declared halo goes
+  from 3 to 5. Nothing read outside its read before — the halo was only
+  declared, never relied upon — but the plan and ADR-008 both quoted it.
+- **Evidence.** The quick science check (`m2-pass-c-rounds`) reproduces all
+  sixteen cases exactly. `tests/integration/test_publication_stage_execution.py`
+  drives a dumbbell owner whose single weak waist pixel the 3x3 opening
+  removes: every pixel decision drops it and only the owner rounds put it
+  back, so `restored_owner_count` and `bridged_owner_count` are both one and
+  the published waist pixel proves it. The same suite asserts the published
+  planes equal the whole-plane chain exactly, and that the result survives
+  tile geometry, batching, one owner per read, reverse completion and Dask.
+  The public partitioning suite adds the four label planes to its one-tile
+  and many-tile comparison and to its whole-plane equivalence. Nineteen stage
+  tests reach 100% branch coverage, including the empty image, island records
+  that do not describe the planes, and each of the four rounds failing closed
+  on a silent executor.
+- **Cost.** Quick-check wall time rose 152.1 → 161.9 s, about 6%, for the
+  extra generation and the recomputation the rounds trade against storing
+  planes. Across the whole of M2 so far the sixteen cases stand at 161.9 s
+  against 135.6 s before the convergence, about 19%; the M1 profile
+  attributes the Zarr share to chunk opens and atomic renames, which M2's
+  bottleneck row owns.
+- **What pass C still defers.** An owner whose window exceeds the admitted
+  task is ADR-008 T3 and must publish a disposition rather than lose its
+  connectivity restoration. No disposition channel exists before pass D, and
+  no image inside the 1,024-pixel envelope can reach that size, so the stage
+  currently decides every owner. The T3 path lands with pass D's object
+  phase, which owns the disposition records.
+
+## 2026-09-19 — M2: component topology is the first tile-native object round
+
+- **What this is.** The first round of ADR-008's pass D. The public
+  composition no longer deblends over whole planes:
+  `hebog.stages.objects.run_component_topology_stage` decides each parent
+  inside the window that holds it and the cores write the component labels
+  they own. The whole-image normalised-residual plane the composition built
+  only to deblend is gone with it.
+- **The split.** `deblend_component_topology` already worked parent by parent
+  in each parent's own bounding boxes, so the loop body became
+  `deblend_parent_components`, which takes one parent's windows and returns
+  its component memberships with labels local to that parent. The whole-plane
+  function is now that helper in a loop and remains the serial oracle.
+- **Three rounds.** The cores observe each parent's direct and measurement
+  extent and first pixel; one task per batch of parents deblends them inside
+  those extents and returns bounded sparse memberships; the cores write the
+  labels they own. The driver offsets each parent's local labels by the
+  components every earlier parent produced, in canonical first-pixel order,
+  which is the order a whole-plane pass uses, so the numbering does not move
+  with tile geometry or completion order. Parents are batched until the union
+  of their reads would exceed the admitted pixel budget.
+- **The deferral is already the T3 disposition.** A parent above either hard
+  compact-work bound stays one explicit component and is counted in
+  `deferred_parent_count`, which is the reviewed science and exactly ADR-008's
+  T3 rule for this round: the object is measured and published with its
+  disposition rather than truncated or split.
+- **Evidence.** The quick science check (`m2-pass-d-topology`) reproduces all
+  sixteen cases exactly. A new stage suite deblends a two-peak parent that
+  spans several tile cores and whose measurement support has to be
+  partitioned between the new seeds; it asserts the published planes equal
+  the whole-plane deblender exactly, survive tile geometry, batching, one
+  parent per read, reverse completion and Dask, and that an oversized parent
+  defers rather than losing support. Quick-check wall time rose 161.9 →
+  164.4 s.
+- **What pass D still holds whole-array, and what its rounds are.**
+  Component moments and fitting, source association, the continuum catalogue
+  and the per-scale detection records. Reading them for the round boundaries
+  found three steps whose *work unit* is global rather than per object, which
+  ADR-008 now records as a table:
+  `_measurement_fit_parents` dilates the measurement support by the fit
+  context margin and labels it, so owners whose contexts touch are fitted
+  jointly and the grouping must be reconciled before any fit runs;
+  each fit parent ORs its persistent measurement support into its own window,
+  which is associative and therefore a patch the cores apply; and
+  `_cross_parent_loop_groups` labels the *accumulated* support and reconciles
+  resolved loops spanning several fit parents, so it can only run once every
+  patch is known. Source association is already a record graph with a
+  bounded pair predicate along the line between two centroids, so it needs
+  candidate records and a windowed line test rather than a redesign.
+
+## 2026-09-19 — M2: fit parents and component fits are tile-native
+
+- **What this is.** The next two rounds of ADR-008's pass D. The composition
+  no longer fits components over whole planes: the fit contexts owners share
+  are reconciled first, then each fit parent is measured inside the window
+  holding its support and the reviewed context margin, and the cores combine
+  the persistent measurement support the parents contributed.
+- **Why the contexts come first.** `_measurement_fit_parents` dilates the
+  measurement support by the fit context margin and labels the result, so
+  owners whose contexts touch are fitted jointly. That connectivity follows a
+  chain of any length. `run_fit_parent_stage` reconciles it from compact
+  per-core summaries and the owner-to-context links each core observes, then
+  numbers the joined contexts by their smallest reconciled label — which is
+  the order a whole-plane pass produces, because `connected_components`
+  numbers by smallest node index and reconciled labels ascend with their
+  canonical first pixel.
+- **The split.** `measure_component_models` already worked fit parent by fit
+  parent in each parent's own window, so its loop body became
+  `measure_fit_parent_components`, returning one parent's fits, groups,
+  grouping evidence, deferral and the support window it contributes. Its tail
+  became `reconcile_component_measurements`, which is where the two steps
+  that span parents live: resolved loops reconciled over the accumulated
+  support, and extended residual emission searched over the plane. The
+  whole-plane function is those two around a loop and remains the oracle.
+- **Evidence.** The quick science check (`m2-pass-d-fits`) reproduces all
+  sixteen cases exactly. A new stage test asserts that the published fits,
+  compact groups, extended groups, grouping evidence, deferred count and
+  measurement-support plane equal the whole-plane measurement exactly, over a
+  fixture with more than one fit parent, and that they survive tile geometry
+  and one fit parent per read.
+- **Cost.** Quick-check wall time rose 164.4 → 182.7 s, about 11%, the largest
+  single increment of the convergence: two more generations, and the fit
+  contexts are dilated and labelled twice over the image. Across M2 the
+  sixteen cases now stand at 182.7 s against 135.6 s before the convergence,
+  about 35%. M2's bottleneck row owns this; the fit-context dilation and the
+  per-round Zarr generation are the two obvious targets.
+- **Repair: a `WCS` must not cross a task boundary.** The integration lane
+  failed three `test_public_corner_background` cases: serial and Dask agreed
+  on background, RMS, the mask and every fitted value, but four components'
+  uncertainties differed by parts in `1e9`. The fit inputs hashed identically
+  per parent, and the covariance is thread-stable, so the difference was not
+  ordering. Replaying one parent's captured arguments showed a pickle round
+  trip alone changed the result, and isolating the arguments named the `WCS`:
+  Astropy serializes one through a FITS header it reformats itself, which
+  leaves `wcs_pix2world` exact but perturbs `wcs_world2pix` by about `6e-13`
+  pixels — enough, through the correlated-noise sandwich, to move the
+  uncertainties of the ill-conditioned corner fits. The fit stage now carries
+  the caller's own `Header.tostring()` text and rebuilds the transform on the
+  worker through `celestial_wcs_from_header_text`, which round-trips exactly.
+  This was the first `WCS` sent through a task, so no other stage is affected.
+  The quick science check `m2-pass-d-wcs-repair` reports no regression against
+  `m2-pass-d-fits`, at 184 s against its 182.7 s.
+- **What the tests establish.** A unit test pins the helper's exactness and
+  asserts Astropy's own `WCS` pickle is still inexact, so the workaround fails
+  loudly if that changes; it fails for the intended reason when the helper
+  round-trips a `WCS`. The stage's invariance test now runs a real Dask client,
+  matching the topology test. That stage fixture is too well-conditioned to
+  resolve a `6e-13` pixel shift, so `test_public_corner_background` remains the
+  behavioural guard that catches this class of defect end to end.
+- **Coverage.** Both new rounds now carry the fails-closed suite their
+  siblings have: canonical product sets, configuration and empty-batch
+  rejection, a silent executor per round, sink, halo, image-shape and missing
+  plane identities, a read that answers different bounds, the context
+  union-find and its numbering, and an image with no fit parent at all. That
+  returns `stages/objects.py` to full line and branch coverage.
+- **Unrelated to the repair.** Adding `Header.tostring()` call sites gave
+  Pyright a concrete return type for it, which made a defensive `isinstance`
+  in `validation/materialization.py` and a `cast` in `test_notebook_wcs.py`
+  provably unnecessary. Both were untested dead code and are removed.
+- **What pass D still holds whole-array.** The cross-parent reconciliation
+  itself, source association, the continuum catalogue and the per-scale
+  detection records.
+
+## 2026-09-19 — M2: the cross-parent grouping is tile-native
+
+- **What this is.** The last global step of ADR-008's pass D. Nothing in the
+  composition now labels or searches a whole plane: the connected features of
+  the accumulated measurement support are reconciled from per-core summaries,
+  and each feature's grouping is decided inside the window holding it.
+- **One work unit, not two.** `_cross_parent_loop_groups` and
+  `_extended_residual_groups` labelled the same accumulated support with the
+  same connectivity and computed the same per-feature bounds, so they are one
+  round rather than two. `group_support_feature_components` evaluates both
+  inside one read of a feature's window, and the whole-plane driver is that
+  same function in a loop, which keeps the serial oracle exact by
+  construction rather than by agreement.
+- **What `reconcile_component_measurements` is now.** A reduction over
+  records. It takes the parents' and features' contributions and the support
+  plane, and holds no other image-sized array. Both merges are transitive
+  closures and the evidence is sorted, so feature completion order cannot
+  reach the result.
+- **Sharding the fit records.** A feature's window can contain a component
+  that belongs to no feature, and that component's model is still subtracted,
+  so the shard cannot be the feature's own members. The scan round returns
+  each measurement label's global bounds and the driver selects by
+  bounding-box overlap with the batch read. That is a superset of what the
+  task uses and the task re-checks pixel membership, so the result is exact
+  and no accepted-label table is broadcast.
+- **No new plane.** A feature's window is its reconciled bounds plus the
+  margin, so the task recovers the feature by labelling the support it has
+  already read and taking the component holding the canonical first pixel.
+  Publishing feature labels would have cost a generation that one round reads.
+- **The composition takes no configuration.** Every threshold and island limit
+  is applied by the pass that publishes its records, so
+  `build_configured_continuum_products` no longer accepts `config` or
+  `review`. That is the clearest evidence that the convergence is complete for
+  these steps.
+- **Evidence.** A new stage test reproduces the whole-plane grouping exactly —
+  extended groups, compact groups, grouping evidence, proposed compact groups
+  and fits — on a fixture whose two peaks sit on a halo carrying most of the
+  flux, so the admitted compact models do not explain it and the persistent
+  residual joins them. The test asserts the fixture actually groups before
+  comparing, and the halo spans many cores, so the reconciliation is
+  exercised rather than assumed. Groups are invariant across cores 16, 32 and
+  97, one feature per read, and a real Dask client. The quick science check
+  `m2-pass-d-groups` reports no regression against `m2-pass-d-wcs-repair`.
+- **Cost.** Quick-check wall time 184 → 190 s, about 3%, for one more
+  reconciliation and one more per-object round; no plane is written. Across
+  M2 the sixteen cases now stand at 190 s against 135.6 s before the
+  convergence. M2's bottleneck row still owns that total.
+- **What pass D still holds whole-array.** Source association, the continuum
+  catalogue and the per-scale detection records.
+
+## 2026-09-19 — M2: the source association's pixel facts are separated
+
+- **What this is.** The preparatory half of ADR-008's association round. The
+  multiscale hierarchy association no longer reads planes while it decides:
+  `summarize_hierarchy_overlaps` answers every pixel question first, and
+  `associate_from_hierarchy_overlaps` decides from those records alone.
+- **What the pixel questions turned out to be.** Reading the installed
+  association found exactly five, and every one is either a per-tile
+  reduction or bounded by one feature's own window: which scale features a
+  component's exact support intersects; which parent feature each child
+  overlaps; which components lie in a feature's exact support and in the B3
+  influence of its envelope; which retained support component contains each
+  feature and each component; and which two features' envelopes overlap.
+  `HierarchyOverlaps` is that answer set. ADR-008 records the boundary, and
+  replaces the centroid-pair association it first anticipated with the
+  hierarchy that is actually installed.
+- **Why this is the hard half.** The association is the plan's named largest
+  M2 risk. Splitting it is a behaviour-preserving refactor of the most
+  intricate module in the repository, so it is validated on its own before
+  any stage consumes it: 231 tests across
+  `test_source_reconstruction`, `test_source_association`,
+  `test_source_catalogue_repairs` and `test_multiscale_association` pass
+  unchanged, and module coverage returns to its committed 96%.
+- **Two pieces of dead code the split exposed.** `_envelope_adjacency` became
+  the only caller of a sweep it duplicated, and its box prefilter repeated a
+  test `_envelopes_overlap` already performs; both are removed rather than
+  left uncovered. A terminal feature without a B3 envelope now fails closed
+  where the previous code would have raised `KeyError`.
+- **What the remaining half needs.** Every overlap is stated between globally
+  labelled scale features, so those labels must be readable by window. The
+  detection pass already reconciles the per-scale islands and writes their
+  masks, so it gains one publication round writing `scale-{order}-labels`.
+  That is three more stored planes, admitted because the object pass now
+  needs them; reconciling each scale a second time in pass D would repeat a
+  reduction pass B has already performed.
+- **Not done.** The tiled stage that produces `HierarchyOverlaps`, and the
+  continuum catalogue. `public_science.py` still holds whole planes for both.
+
+## 2026-09-19 — M2: the source association is tile-native
+
+- **What this is.** The second half of ADR-008's association round. The
+  detection pass publishes the reconciled per-scale feature labels, and a
+  three-round stage produces `HierarchyOverlaps` from them: the cores observe
+  which components, features and retained support components meet, one task
+  per feature derives its reviewed B3 influence, and one task per candidate
+  pair decides whether two envelopes overlap. The decision that consumes the
+  result holds no plane.
+- **Why pass B gained a round.** Every overlap is stated between globally
+  labelled features, so the labels must be readable by window. The
+  publication round already writes each scale's support mask and returns the
+  per-core summaries that reconcile it, so a third round re-derives the same
+  tile-local labelling from the chunk it wrote and applies the mapping
+  sharded to that tile. Only chunk identities and that shard cross the
+  boundary.
+- **Candidate pairs are record work.** A feature's envelope box follows from
+  its reconciled bounds, so the driver prefilters pairs by box overlap and
+  only the admitted pairs read pixels. `envelope_pair_is_needed` narrows that
+  further to the pairs a decision actually reads — within a scale, and once
+  between the last two — and `influence_candidate_feature_ids` narrows the
+  influence round to the features
+  `_feature_influence_candidate` cannot reject on records alone.
+- **Performance: three measured repairs.** The first working version cost
+  649 s against the 190 s baseline, over the check's 600 s budget. Three
+  causes, each measured: influence was derived for every feature where the
+  whole-plane pass derived it lazily (649 → 445 s); envelope overlap was
+  evaluated for every scale combination and recomputed both envelopes per
+  pair (445 → 375 s with a per-batch envelope cache); and each feature read
+  its own windows, so Zarr chunk opens scaled with features rather than with
+  work. Giving each batch one spatially grouped read, as the object rounds
+  already do, took it to **214 s** (`m2-association-final`), about 13% over
+  the baseline and in line with the other pass conversions. That confirms
+  the M1 profile's
+  attribution of the Zarr share to chunk opens.
+- **Evidence.** A new stage test reproduces `summarize_hierarchy_overlaps`
+  exactly on a fixture with 4 components, 12 features across 3 scales, 8
+  parent edges, 34 envelope edges and 4 retained support components, every
+  one of which crosses a core boundary; it asserts the fixture is non-trivial
+  before comparing. A second test asserts the reduced overlaps decide the
+  same association as the whole-plane summary. Overlaps are invariant across
+  cores 16, 32 and 96, one object per batch, and a real Dask client. The
+  published scale labels are compared against the plane builder that labels
+  the stored mask and refuses any labelling disagreeing with the reconciled
+  islands. The quick science check `m2-association-final` reports no regression
+  against `m2-pass-d-groups`.
+- **What this removed.** `build_configured_continuum_products` no longer
+  takes `significant_multiscale_support`: the only step that read it was the
+  association, which now receives the reduced overlaps instead.
+- **What pass D still holds whole-array.** The continuum catalogue and the
+  per-scale detection records, including the component records the overlaps
+  are keyed by.
+
+## 2026-09-20 — M2: the per-scale detection records leave their planes behind
+
+- **What this is.** The composition no longer labels a plane to describe the
+  scale features it already reconciled. `scale_detections_from_islands`
+  builds each scale's `ScaleDetection` records from the published islands —
+  every field it needs is already reduced — and a `ScaleDetections` protocol
+  lets the hierarchy decision read those records or a plane's, unchanged.
+- **Why the decision never needed the planes.** Reading it found that no
+  step on the decision path touches `ScaleDetectionPlane.component_labels`;
+  every one reads identities, bounds and responses. The only pixel consumer
+  was `persistent_adjacent_scale_support`, and its two halves separate
+  cleanly: `persistent_scale_labels` decides persistence from the reduced
+  adjacent-scale overlap edges and the records alone, and
+  `persistent_scale_support_window` paints one window's retained labels.
+- **Where the painting went.** Persistence is decided from the overlap edges
+  the association stage already reduces, so the stage gained a fourth round
+  that writes `persistent-scale-support` from each core's published scale
+  labels. The stage now publishes a generation rather than only returning
+  records.
+- **What this removed.** Three whole-image labellings per run, and the three
+  `ScaleDetectionPlane` label arrays the composition held.
+  `build_hebog_reconstructed_source_catalogues` takes the records and the
+  published support plane instead.
+- **Cost.** Quick-check wall time 214 → 204 s (`m2-scale-records`), no
+  regression against `m2-association-final`. Removing the labellings paid
+  for the extra round.
+
+## 2026-09-20 — M2: the catalogue's one global step is separated
+
+- **What this is.** Preparation for the continuum catalogue, the last of
+  ADR-008's pass D. Reading it found one step whose work unit is global:
+  `assign_persistent_source_support` labels the union of the source seeds and
+  the persistent support, then assigns each unseeded pixel of a connected
+  component to its nearest source seed. The labelling spans tiles; the
+  assignment does not, because a component's candidates and seeds both lie
+  inside its own bounds.
+- **The split.** `assign_connected_source_support` is that per-component
+  step, and the whole-plane function is it in a loop, so the serial oracle
+  stays exact by construction rather than by agreement.
+- **Tie-breaking needs no global table.** The installed code ranked every
+  source label in the image and resolved an exact distance tie towards the
+  smallest rank. Ranking is monotone in the label, so taking the smallest
+  label among tied neighbours is the same decision, and one window knows it.
+  That removes the only reason the step needed the whole plane.
+- **Evidence.** 163 tests across `test_extended_measurement`,
+  `test_extended_emission_measurement`,
+  `test_reconstructed_source_measurement` and
+  `test_source_catalogue_repairs` pass unchanged, which is what establishes
+  the split is behaviour-preserving.
+- **What remains.** The catalogue stage itself. ADR-008 now names its rounds:
+  source labels from the sharded owner-to-source map; support island
+  summaries, then per-component owner patches, then the source measurement
+  labels;
+  apertures at the reviewed 1.5-beam halo; and the component and source rows,
+  each measured inside its own window. Everything but the support labelling
+  is per core or per object.
+
+## 2026-09-20 — M2: the catalogue's source planes are tile-native
+
+- **What this is.** The continuum catalogue's two planes. `stages/sources.py`
+  publishes `source-labels` from the membership shard that reaches each core,
+  then reconciles the support those labels seed and assigns each connected
+  component's unseeded pixels inside that component's own window. The
+  composition receives both planes instead of deriving them.
+- **Why the association moved to the driver.** Writing the source labels needs
+  the membership map, which the association produces, so the decision now runs
+  before the stages rather than inside the catalogue builder. The driver
+  reduces the measurements, builds the component records, decides the
+  hierarchy and constrains it, and only then publishes the planes. The builder
+  takes the association, the two planes and the persistent support, and
+  validates each plane against the memberships rather than deriving it.
+- **A component's bounds are not its own.** Another component's support can
+  share a bounding box, so the assignment task labels the union inside the
+  window and selects the piece holding the reconciled canonical first pixel.
+  Two globally distinct components are never adjacent, so that labelling
+  separates them exactly.
+- **A defect the tests missed and the science check caught.** The first
+  version referenced `SourceAssociationResult` at runtime in `public_api`
+  while importing it only under `TYPE_CHECKING`. Every lane passed: the blank
+  and all-NaN inputs stop before the object rounds, so nothing exercised an
+  image with a usable RMS and no admitted owner. `empty-noise` did, and failed
+  with a `NameError`. A public-path test on pure noise now covers that
+  boundary, and fails for that reason without the fix.
+- **Evidence.** A new stage test reproduces `assign_persistent_source_support`
+  exactly on a fixture with four owners, three sources and three support
+  components, every one of which crosses a core boundary and one of which is
+  divided between two sources by distance; it asserts the fixture assigns
+  beyond its seeds before comparing. Both planes are invariant across cores
+  16, 32 and 80, one object per batch, and a real Dask client. The quick
+  science check `m2-source-planes-fixed` reports no regression.
+- **Cost.** Quick-check wall time 204 → 215 s for two more generations.
+- **What remains.** The catalogue rows: the component and source moment
+  catalogues and the aperture expansion still run whole-plane, so the
+  composition still holds the image, background, validity and label planes
+  they measure.
+
+## 2026-09-20 — M2: the catalogue rows are separated from their plane
+
+- **What this is.** Preparation for pass D's last round.
+  `build_hebog_segment_catalogue` already measured one label at a time inside
+  the window holding its support and its aperture, so its loop body became
+  `build_segment_row` and the moment step became `segment_moment_fields`.
+  Both take windows; the whole-plane builders are those two in a loop and
+  remain the oracle.
+- **The rows need no reconciliation.** The only step that crosses a segment's
+  own bounds is the aperture expansion, and it reaches no further than the
+  reviewed radius, so every seed that can own a core pixel lies inside the
+  core read plus that halo. The tie towards the smaller canonical label is
+  decided the same way in a window as over the plane, as the source support
+  assignment already established. That makes the row round the simplest of
+  pass D's: cores write `aperture-labels` under the radius halo, cores observe
+  each label's bounds, and one task per batch of segments measures its rows.
+  ADR-008 records it.
+- **Evidence.** 106 tests across `test_reconstructed_source_measurement` and
+  `test_source_catalogue_repairs` pass unchanged, which is what establishes
+  the split is behaviour-preserving.
+- **Not done, and why.** The row stage itself. A first draft of
+  `stages/catalogue_rows.py` was written and set aside rather than landed: it
+  had not compiled clean, had no tests, was unwired, and was untuned, and two
+  defects this session — the pickled `WCS` and the `TYPE_CHECKING` import —
+  were both found by validation rather than by writing, so shipping an
+  unvalidated stage would be the wrong trade. What remains is that stage, its
+  two call sites (component rows and source rows, which differ only in the
+  label plane, the tie policy and whether position diagnostics are kept), a
+  test module, and the performance tuning every previous round needed.
+
+## 2026-09-20 — M2: the catalogue rows are tile-native, and pass D is complete
+
+- **What this is.** The last round of ADR-008's pass D.
+  `stages/catalogue_rows.py` writes each core's expanded apertures under the
+  reviewed radius, observes the bounds every segment and aperture occupies,
+  and measures one catalogue row per segment inside the window holding it.
+  `public_science.py` now receives the component rows, the source rows, their
+  position diagnostics and the source apertures, and derives no plane of its
+  own.
+- **The only round with no global reduction.** An aperture reaches no further
+  than the radius, so every seed that can own a core pixel lies inside the
+  core read plus that halo, and the tie towards the smaller canonical label
+  is decided the same way in a window as over the plane. Nothing else the
+  rows do crosses a segment's own bounds.
+- **One stage serves both catalogues.** The component and source rows differ
+  only in the label plane, the centroid plane, the aperture tie policy and
+  whether position diagnostics are kept, so they are two invocations rather
+  than two stages. The centroid plane lives in a different published
+  generation from the label plane, so the stage takes both sources.
+- **What this removed.** The composition no longer takes a beam, an aperture
+  radius, a position signal or a peak-to-mean ratio:
+  `build_hebog_reconstructed_source_catalogues` reduces published records and
+  validates published planes, and measures nothing itself.
+- **A test the conversion invalidated.** The unavailable-aperture repair
+  test patched the builder's moment call, which the builder no longer
+  makes, so the patch silently stopped doing anything and the
+  assertion failed. It now empties the source-row shard instead, which is how
+  an absent row reaches the composition under the new structure.
+- **Evidence.** A new stage test reproduces
+  `build_hebog_segment_moment_catalogue` exactly on a fixture of four
+  segments, three of which cross a core boundary and two of which have
+  competing apertures, under both tie policies and with the position
+  diagnostics compared. Rows are invariant across cores 16, 24 and 72, one
+  segment per batch, and a real Dask client, and an unmeasurable segment
+  keeps its label and publishes no row in both paths. The quick science check
+  `m2-catalogue-rows` reports no regression.
+- **Cost.** Quick-check wall time 215 → 235 s for two more generations.
+- **Where M2 stands.** Every scientific step of the continuum composition now
+  runs through the executor and reads published windows. What remains is not
+  conversion but the envelope: the driver still reads whole planes from the
+  store to hand the composition its image, background and RMS, and M2's
+  bottleneck row still owns the 235 s against 135.6 s before the convergence.
+
+## 2026-09-21 — M2: the first two profiled bottlenecks in the tiled kernels
+
+- **What this is.** M2's bottleneck row, opened with a complete-path profile
+  at `9866a1b` (`m2-bottleneck-baseline`, eight clean cases; the two SDC1
+  cases that started after the first edit were discarded). It ranks two
+  costs, and this entry removes both.
+- **The profile.** Store I/O is 19–49% of every case: `_io.open` alone is
+  2.1–9.5 s, and `posix.replace` 0.7–2.5 s. `_label_extents` is 23% of the
+  dense 2,048² case (33.2 s of 142.1 s) and 7% of dense 1,024², growing as
+  label count times core area.
+- **A hypothesis the evidence refuted.** The obvious repair for repeated
+  chunk decodes is a session-scoped cache. Counting decodes showed 420 of
+  438 were already the first in their session: the redundancy is across 377
+  short sessions, not within them, so that cache would have bought nothing.
+  The cost is per-session metadata, not re-read data.
+- **What the store was actually doing.** Counting every `LocalStore` call on
+  dense 1,024² gave 6,138 gets: 2,906 chunks, 1,037 `zarr.json`, 385
+  completion manifests and **1,810 `.zarray`/`.zattrs` probes that always
+  miss**, because `_open_array` did not name the Zarr format. Of 513 puts,
+  282 were `zarr.json`: `initialize_product` assigned five group attributes
+  one at a time and each assignment is a separate atomic metadata write.
+- **The two changes.** `algorithms/label_groups.py` gains `label_extents`,
+  which describes every positive label in one pass over the labelled pixels;
+  it sits beside `group_labelled_pixels`, which could not serve because it
+  requires dense labels `1..n` and these are sparse global labels.
+  `_open_array` names `zarr_format=3`, and the group attributes are written
+  once, and only when one is stale.
+- **Counted effect.** Store gets 6,138 → 4,328 (every v2 probe gone) and
+  puts 513 → 315, with `zarr.json` writes 282 → 84.
+- **Measured effect.** On `sdc1-b2-1000h-crowded-2048`, both endpoints
+  measured the same morning: 323.5 s at `9866a1b` → 250.5 s with the label
+  pass → 237.8 s with the store change, −26.5% overall, and the ratio to
+  v0.12.0 falls from 1.87 to 1.37. `sdc1-b2-1000h-crowded` 60.8 → 53.8 s,
+  1.63 → 1.44.
+- **Evidence.** 1,972 unit and contract tests and 660 integration tests
+  pass, and the quick science check's sixteen cases report no regression
+  against `m2-catalogue-rows`. `label_extents` is compared with the per-label
+  scan it replaces on six random sparse-label planes; both store changes have
+  a test that fails without them, one asserting no v2 probe on an array open
+  and one that re-initializing an unchanged product writes nothing.
+- **Evidence not established, and why.** The per-change split on the three
+  1,024² anchors is not reported. Those runs were measured at load average
+  4.0 with an endpoint-security scanner at 51% CPU and unrelated editor
+  processes at 40%+, which the performance contract forbids, and the split
+  they give is mechanically impossible (the label pass appears to cost 7% on
+  three anchors while saving 23% on a fourth, though it strictly removes
+  work). The combined `9866a1b` → both-changes figures above are between two
+  runs of that same morning and the effects are far outside that noise; the
+  1,024² attribution needs a quiet-machine re-run before it is quoted.
+- **A machine-specific coupling worth knowing.** The scanner was the top
+  consumer of CPU and the benchmark creates thousands of small store files,
+  so part of the store change's local benefit is reduced scanning. That is
+  real on this machine and not a portable speedup claim.
+
+## 2026-09-21 — M2: the fit-context dilation is retired as a bottleneck target
+
+- **What this is.** The remaining named target of M2's bottleneck row,
+  measured rather than repaired.
+- **The measurement.** In `m2-bottleneck-baseline`, every `binary_dilation`
+  call in a complete run costs 0.1–0.5% of it, and `_fit_context_core` with
+  `_measurement_fit_parents` together cost 0.1–0.3%: 27 ms of a 16.8 s dense
+  512², 45 ms of 39.3 s at dense 1,024², 108 ms of 165.6 s at dense 2,048².
+- **The repair that was not made.** Eight iterations of a 3×3 structure is a
+  17×17 square dilation, which `scipy.ndimage.maximum_filter` computes
+  separably. The replacement is exactly equal on random sparse masks and
+  2.2× faster on a 2,048² plane, and it was left unlanded: against a 165 s
+  run it returns about 0.03%, far under the contract's repetition noise and
+  the assessment's 10% profile share, so no before/after evidence could
+  support it.
+- **Why the target was stale.** It was named from the M1 profile, when the
+  composition dilated whole planes. ADR-008's object pass made the context
+  a per-core operation over a bounded read, which removed the cost without
+  anyone revisiting the target.
+- **What owns the row now.** Per-pixel background refinement and local
+  noise: 7.2 s of 31.0 s at dense 1,024², 35.4 s of 142.1 s at dense 2,048²
+  and 6.2 s of 17.3 s at noise-only 1,024², the largest single cost in every
+  profiled case and untouched by the two changes in `08bb1ab`.
+
+## 2026-09-21 — M2: the local-noise batch stops re-filtering its own halo
+
+- **What this is.** The largest remaining cost the `m2-bottleneck-baseline`
+  profile ranks: `refine_background_rms_grids`, 45.4 s of the 142 s dense
+  2,048² run and 36% of a noise-only 1,024² one.
+- **Where it went.** `_estimate_local_noise_grid` is 37.4 s of that 45.4 s,
+  and source protection is 58% of it: the wavelet bank 9.8 s, persistent
+  scale support 7.1 s, the guard and connected protection 3.4 s. Each is
+  re-derived once per noise batch.
+- **The measurement that named the defect.** A batch reads its own cells
+  plus the protection halo, and the halo is about 200 pixels a side against
+  a cell stride near 5, so a 16-by-16-cell batch is almost entirely halo.
+  Counting the pixels the bank filters gave 22.1 times the image on dense
+  1,024², and 18.3 M of that 23.1 M was local noise.
+- **The change.** `_LOCAL_NOISE_CONTEXT_CELLS` 256 → 2,304. The sweep at
+  1,024, 2,304 and 5,184 shows the knee at 2,304: local-noise bank pixels
+  18.3 M → 3.5 M, and 5,184 returns only 1.4 M more while dropping from nine
+  runnable batches to four, which the coarse-batch rule weighs against.
+  20,736 is refused by the existing context admission, so the bound still
+  fails closed.
+- **Why it changes no value.** The owned cells decide the result and the
+  halo only feeds the protection mask. Every published FITS plane —
+  catalogue, RMS and mask — is bitwise identical at 256 and 2,304 on
+  noise-only, dense 512² and real LoTSS data.
+- **Evidence.** 1,973 unit and contract tests, 2,526 under coverage at
+  96.63% branch-aware, and the quick science check's sixteen cases with no
+  regression against the `9866a1b` baseline. A new test refines one scene
+  through 180 batches and through one and requires the same grid; it fails
+  when the context halo is removed.
+- **Measured effect.** Against `m2-store-metadata` on the same anchors:
+  dense-field 21.8 → 18.3 s, LoTSS sparse 23.1 → 19.8 s, LoTSS dense
+  25.4 → 21.7 s, all about 15%, and SDC1 crowded 1,024² and 2,048² only
+  2.5% and 2.9%. The ratios to v0.12.0 fall from 1.21, 1.18 and 1.23 to
+  1.02, 1.01 and 1.05, so the default tier is back at release parity.
+- **Why the two SDC1 cases barely move, and what that establishes.** A
+  source-dense image spends its filter-bank work elsewhere — 1,191 bank
+  calls on SDC1 crowded, of which nine are local noise — and its run is
+  dominated by deblending and fitting. That also controls the measurement:
+  this run sat at load average 3.5 against 6-7 for its baseline, and a
+  uniformly faster machine would have moved the SDC1 cases too.
+
+## 2026-09-21 — M2: object batches stop decoding a plane once per sixteen objects
+
+- **What this is.** The cost that dominated the crowded SDC1 anchors, and
+  the last of M2's convergence regression against v0.12.0.
+- **A target this corrected.** The row was entered believing deblending and
+  fitting dominated those runs. A profile of the three SDC1 crowded sizes at
+  `bd7517f` shows deblending is 0.67 s of a 51.7 s crowded 1,024² run, 1.3%,
+  and outside the top fourteen at 2,048². The earlier figure came from the
+  dense 2,048² profile taken before `08bb1ab`, and `08bb1ab` is what removed
+  it, because the one-pass label extents it introduced are what the topology
+  stage's extent scan spends its time on.
+- **What actually dominates.** Windowed Zarr reads inside the object rounds:
+  68.8 s of the 217.7 s crowded 2,048² run, 31.6%, over 4,664 reads. Row
+  measurement is 13.0% and fitting 10.7%.
+- **The mechanism.** A storage chunk holds a whole tile core, so a window
+  read decodes and revalidates every chunk it touches however little of it
+  the objects occupy, and at these sizes one chunk is the whole plane. The
+  row and source-support batches held sixteen objects, so a crowded 1,024²
+  run decoded 1,236 chunks of 25 distinct ones, 49 times over, for 4.06 GiB
+  against a 4 MB image.
+- **A conclusion this overturns.** The store entry of `08bb1ab` rejected a
+  chunk cache after finding 420 of 438 decodes were the first in their
+  session. That was the right answer to the wrong question: the redundancy
+  is across sessions, not within them, and it is the batch count that sets
+  how many sessions there are.
+- **The change.** `_OWNER_OBJECTS_PER_BATCH` 16 → 256, which is where the
+  saving flattens: decodes 1,236 → 242 and 4.06 → 0.74 GiB, while 1,024
+  returns only 0.16 GiB more. `_OWNER_BATCH_READ_PIXELS` still bounds the
+  window a batch may hold, and peak RSS is unchanged at 1.64 → 1.73 GiB on
+  the 2,048² anchor.
+- **Why it changes no value.** Batching decides which task runs, not what it
+  computes. Every published FITS plane is bitwise identical at 1, 16 and 256
+  objects a batch on generated dense 512² and 1,024², noise-only 1,024² and
+  real LoTSS data, and the row and source stages already pin that invariance
+  at one object a batch.
+- **Evidence.** 2,635 unit, contract and integration tests, 2,526 under
+  coverage at 96.63% branch-aware, and the quick science check's sixteen
+  cases with no regression against the `9866a1b` baseline.
+- **Measured effect, and where M2 now stands.** Against
+  `m2-local-noise-batches`: SDC1 crowded 2,048² 230.9 → 153.1 s and 1,024²
+  52.4 → 38.5 s, LoTSS dense 21.7 → 19.4 s, LoTSS sparse 19.8 → 18.0 s,
+  dense-field 18.3 → 17.1 s. Every anchor now passes the previous-release
+  rule and three are faster than v0.12.0: 0.95, 0.92, 0.94, 1.03 and 0.88.
+  Across the four changes of 21 September the same anchors move 23.5 → 17.1 s
+  and 323.5 → 153.1 s, so the convergence regression is closed and the
+  quick check's sixteen cases stand at 155 s against 221 s this morning.
+
+## 2026-09-21 — M2: the astrometry transforms a batch, not a source
+
+- **What this is.** The largest cost the `m2-fitting` profile ranks at
+  `8646901`, and the point at which the bottleneck row stops for now.
+- **Where it went.** Fitting is 15–17% of the crowded SDC1 runs, and
+  `compact_geometry_from_wcs` is 26.5% of it at 6.4 ms a call. Tracing the
+  callers found the same two helpers called 11,046 times in one run — 6,113
+  from `_moment_shape_fields`, 3,307 from `_fitted_component_row` and 1,626
+  from the fit — with Astropy's coordinate machinery 14.3% of self time.
+  The cost is its per-call frame handling, not arithmetic: `SkyCoord`
+  attribute access alone was 23.8 s.
+- **Why batching is exact.** Astropy applies the same element-wise transform
+  to one coordinate or to many. That was verified before any production
+  code: 200 random positions agree bit for bit, and
+  `tests/unit/test_astrometry.py` now pins each batched helper against its
+  single-position counterpart, failing on a perturbation of `1e-12`.
+- **The change.** `local_tangent_plane_transforms_from_wcs`,
+  `restoring_beams_in_icrs` and `compact_geometries_from_wcs` convert a whole
+  batch at once. The fit stage derives every parent's geometry per batch, and
+  `measure_fit_parent_components` takes that geometry rather than a `WCS` and
+  a beam, which were only ever used to build it. `_apply_component_measurements`
+  transforms all its fitted centroids together.
+- **A defect this found.** The first batched beam rotation returned early for
+  an empty batch before validating the frame, so an unsupported frame would
+  have passed silently on a batch with no objects. The frame belongs to the
+  WCS, not the batch, so it is now validated first and has its own test.
+- **What was measured and not changed.** `wcs.celestial` is reconstructed on
+  every call and is bitwise redundant when the WCS is already celestial, but
+  it is only about 0.9 s of a 157 s run, below the bar this row has been
+  holding to. It is recorded rather than taken.
+- **Evidence.** Products are bitwise identical on SDC1 crowded and LoTSS
+  dense, and the quick science check's sixteen cases report no regression
+  against the `9866a1b` baseline.
+- **Where the row stops.** The remaining 6,113 transforms are in the row
+  builder, whose position is a measured centroid rather than a window centre,
+  so batching them needs the builder split into a measure pass and a
+  transform pass. That is the largest single remaining item and is recorded
+  in [where Hebog spends its time](../docs/reference/performance-profile.md)
+  rather than started here.
+
+## 2026-09-22 — M3: the row builder transforms a batch of centroids
+
+- **What this is.** The largest item the 21 September profile left, and the
+  last of the per-source Astropy calls.
+- **Why it needed a restructure.** `_fitted_component_row` and the fit could
+  be batched because their positions are known before measuring.
+  `_moment_shape_fields` measures a moment and transforms at its centroid,
+  so its position exists only after the pixels are read. Batching it needed
+  the work split into a measure pass and a transform pass.
+- **The split.** `segment_moment` reads pixels and returns the centroid and
+  covariance; `moment_shape_fields_at` takes an already-transformed geometry
+  and returns the fields. `_moment_shape_fields` composes the two and stays
+  the readable per-segment reference. `_row_batch` measures every segment of
+  a batch, transforms all their centroids in one conversion, then gives each
+  segment its own geometry.
+- **The behaviour that had to be preserved.** The original wrapped the
+  transform and the shape in one `try`, so a WCS that cannot give geometry
+  reported `shape-unavailable` rather than failing. Batching moves the
+  transform outside that guard. A frame is a property of the WCS, not of one
+  segment, so a batch that cannot transform marks every segment unavailable,
+  which is what measuring them one at a time would have reported. A galactic
+  WCS through the stage now tests exactly that.
+- **A gap the split created.** With the transform failing earlier, the
+  shape-failure fallback became reachable only through a degenerate
+  covariance, which nothing exercised. Coverage found it; a focused test
+  now reaches it.
+- **Evidence.** Every published FITS plane is bitwise identical on SDC1
+  crowded and LoTSS dense. 2,646 tests pass, coverage holds at 96.63% with
+  `stages/catalogue_rows.py` at 100%, and the quick science check's sixteen
+  cases report no regression against the `9866a1b` baseline. Its Hebog time
+  falls 155 → 144 s. Both new stage tests were checked against a mutation:
+  one fails when a WCS failure propagates, the other when a segment is given
+  another segment's geometry.
+- **Measured effect, and what is not claimed.** The calls
+  `_moment_shape_fields` made to the two astrometry helpers go from 1,641
+  each on crowded 1,024² to none. SDC1 crowded 1,024² 38.5 → 33.0 s and
+  2,048² 153.1 → 138.7 s, both far outside their dispersion. The three
+  1,024² anchors are neutral: a first run at load average 5.4 put them 2–9%
+  slower with a spread wider than the difference, and a quiet rerun puts
+  them within 1–4%, inside their own 4–5% spread. They have few segments,
+  so there was little there to win. All five anchors still pass the
+  previous-release rule.
+- **Where the astrometry now stands.** `build_segment_row` still transforms
+  one position per segment for the row's own sky coordinate. That is the
+  last per-source Astropy call and needs the same treatment; it is recorded
+  in [where Hebog spends its time](../docs/reference/performance-profile.md).
+
+## 2026-09-22 — M3: the row's own coordinate joins the batch
+
+- **What this is.** The last per-source Astropy call. `build_segment_row`
+  converted one position per segment for the coordinate its row publishes,
+  so a crowded run made that call once per row on top of the moment's two.
+- **The split, and why it is the same one.** The row's coordinate belongs at
+  its own position estimate, which exists only after the pixels are read, so
+  it needed the treatment the moment shape had:
+  `measure_segment_row` reads pixels and returns a `SegmentRowMeasurement`
+  carrying the centroid, fluxes and flags but no sky position;
+  `segment_row_at` places a measured row at the coordinate its centroid
+  earns. `build_segment_row` composes them and stays the per-segment
+  reference.
+- **What the stage now does.** The two-pass batch already in place absorbed
+  it: one `pixel_to_world` for every row coordinate of a batch, beside the
+  one conversion already serving every moment geometry. A batch of any size
+  now makes a fixed number of Astropy calls rather than three per segment.
+- **Evidence.** Every published FITS plane is bitwise identical on SDC1
+  crowded and LoTSS dense. 2,646 tests pass and the quick science check's
+  sixteen cases report no regression against the `9866a1b` baseline. The
+  batch-equivalence test already covered the new path, which was confirmed
+  by giving every row the batch's first position and watching it fail; it is
+  renamed, because it now guards coordinates as well as shapes.
+- **Measured effect.** SDC1 crowded 2,048² 138.7 → 129.7 s, a 6.5%
+  gain whose repetitions do not overlap the previous run's, taking it to
+  0.75 of v0.12.0. Crowded 1,024² is neutral at +2.2%, inside its own
+  spread. Across 21 and 22 September that anchor moves 323.5 → 129.7 s.
+
+## 2026-09-22 — M2: nearest-seed candidates are the reachable band
+
+- **What this is.** The first step of removing whole-plane state, and a
+  correction to where that state actually is.
+- **The change.** `expand_source_measurement_labels` queried every valid
+  unlabelled pixel of its window for a nearest seed, at 128 bytes of
+  neighbour state each, then discarded every candidate further than the
+  radius. Only a pixel within the radius of some seed can survive that test,
+  so the candidates are now the band a square dilation of the seeds reaches.
+  The square is a superset of the Euclidean disc, and the distance test is
+  unchanged, so the result is identical.
+- **What it is worth, measured rather than assumed.** On dense 1,024² the
+  candidates fall 2,361,133 → 1,572,991 across 248 calls, two thirds kept,
+  and the cumulative neighbour state 288 → 192 MiB. That is a third, not an
+  order of magnitude: the expansion already runs per segment on segment
+  windows, so most of a window is genuinely within the radius. A 120 MiB
+  single allocation seen in one sample was one unusually large window, not
+  the plane.
+- **Evidence.** Products are bitwise identical on SDC1 crowded and LoTSS
+  dense, 2,647 tests pass, and the quick science check's sixteen cases
+  report no regression against the `9866a1b` baseline.
+- **What the memory profile established, and its limit.** Peak RSS is about
+  258 MiB fixed plus 350–415 MiB per megapixel, which extrapolates to some
+  83 GB at LoTSS-DR3 15,402² and 177 GB at 22,500². The largest live
+  allocations at 1,024² are multiscale tile cores, but that is an artefact
+  of the envelope: with 2,048-pixel cores every admitted image is one tile,
+  so a core and a plane are the same size and no profile below 4,096² can
+  separate state that scales with the tile from state that scales with the
+  image. A core is capped at 32 MiB at any image size; a plane reaches 1.77
+  GiB at 15,402², and the driver holds several. The driver's five
+  whole-plane reads are therefore the envelope's constraint, and the next
+  step is a 4,096-pixel profile case, the smallest size with more than one
+  tile, so that "peak RSS scales with tile size, not image size" can be
+  measured at all.
+
+## 2026-09-22 — M2: the ladder reaches past one tile, and corrects an extrapolation
+
+- **What this is.** The measurement the driver's whole-plane work needs, and
+  a correction to the figures the previous entry gave.
+- **Why the ladder needed a rung.** M2 asks that peak RSS scale with tile
+  size rather than image size. With 2,048-pixel cores every image the
+  envelope admits is exactly one tile, so no profile below 4,096 pixels can
+  tell the two apart. The generated ladder now carries an empty and a dense
+  4,096-pixel case, the smallest that holds more than one core.
+- **What it shows, against the expectation.** Quadrupling the area from
+  4.19 to 16.78 megapixels raises peak RSS only 1,581 → 2,264 MiB on the
+  dense case, a factor of 1.5 rather than 4, and the cost per megapixel
+  collapses from 377 to about 140 MiB. Fitting the regime above one tile
+  gives roughly 1.3 GB fixed and tile-bounded plus about 62 MiB per
+  megapixel. Hebog is already substantially tile-bounded.
+- **The correction.** The previous entry extrapolated 83 GB at LoTSS-DR3
+  15,402² and 177 GB at 22,500² from the slope below 2,048 pixels, where the
+  image is the tile and every kind of state grows together. On the slope
+  that governs larger images the figures are about 16 GB and 32 GB. The
+  constraint is real and still linear in image size, but five times smaller
+  than recorded.
+- **What remains, and its size.** About 62 MiB per megapixel still grows
+  with the image, which is some six to eight live whole planes: the driver's
+  five `ImageBounds(0, H, 0, W)` reads and the products. Removing them would
+  leave peak RSS essentially flat in image size, which is what the milestone
+  asks for.
+
+## 2026-09-22 — Benchmark: time each release against its own size limit
+
+- **What this is.** A latent defect in the quick benchmark that the envelope
+  raise exposed, found because every previous-release baseline silently
+  stopped being measured.
+- **The defect.** `_time_hebog` decided whether the timed worker needed
+  `--diagnostic-size-limit` by comparing the input against **this source
+  tree's** `_MAXIMUM_PREVIEW_DIMENSION`, then ran that command against a
+  different installation carrying its own limit. While current Hebog was at
+  1,024 the two agreed by accident. At 3,000 they stopped agreeing, so
+  v0.12.0 was handed a 2,048-pixel image with no override, refused it, and
+  both crossover cases reported `NOT CHECKED` instead of a ratio.
+- **Why it had never surfaced.** The 2,048 baseline was cached. The cache key
+  includes `file_sha256` of the worker, so editing the worker's docstring for
+  the raise dropped the cache and ran the untested path for the first time.
+- **The repair.** The question is not whether this tree would refuse the
+  image, so it is no longer asked: `_worker_command` always passes the limit,
+  set to the input's own long axis, which is a no-op for an installation that
+  already admits that size. Extracting the command construction makes it
+  testable; reinstating the conditional fails the new test at 512, 2,048 and
+  3,000, which are exactly the sizes whose baselines disappeared.
+- **Evidence.** With the repair, `sdc1-b2-1000h-crowded-2048` measures
+  v0.12.0 at 174.5–175.7 s and current Hebog at 119.1 s (118.6–119.8),
+  ratio **0.68 [0.68, 0.68] pass**, peak RSS 2,052 MiB, at load average
+  about 3.0.
+
+## 2026-09-22 — M2: the public envelope reaches 3,000 pixels, and tiles
+
+- **What this is.** The first of the plan's envelope tiers, and the first
+  supported size at which the public path exercises more than one tile.
+- **What changed.** `_MAXIMUM_PREVIEW_DIMENSION` is 3,000, its refusal
+  message is derived from the constant rather than repeating it, and the
+  thirteen documentation pages and two benchmark workers that stated 1,024
+  now state 3,000. The boundary is now asserted from both sides: the
+  existing test pins the first refused size, and a new one runs 3,000 itself
+  through the public path, because a limit one pixel too small would have
+  refused a documented size and still passed. Setting the constant to 2,999
+  fails both.
+- **Why 3,000 is the interesting tier, measured rather than assumed.** A
+  recorder on `PartitionManifest` shows the real 3,000² run planning 576
+  tiles at the 128-pixel background cores and **4 tiles at the 2,048-pixel
+  cores** every other stage uses, against one at 2,048². Every image the
+  1,024 envelope admitted was a single tile at those cores, so no supported
+  input had ever reconciled across a tile boundary.
+- **Real-sky evidence.** A 3,000² cut-out of the LoTSS-DR3 1312 mosaic
+  (`sha256:378f38af…`, window x 6713, y 5689 of
+  `healpix_mosaics/1312/mosaic.fits`) runs to completion and finds 659
+  sources, 828 Gaussian components and 814 islands. Serial takes 117.0 s at
+  about 2,450 MiB peak RSS; a four-worker Dask cluster takes 83–96 s at
+  about 1,720 MiB in the driver. (The memory figures first recorded here,
+  2,144 and 1,347 MiB, were single first runs and 12% and 22% low; see the
+  entry for 23 September.) The two product sets are **bitwise identical**
+  (`ec5ea720c8ed9110`), so tile reconciliation on real extended emission is
+  executor-invariant, not only invariant on synthetic Gaussians.
+- **Synthetic evidence carried from the screen.** A synthetic 3,000² run
+  completes at 2,106 MiB; sources placed on the 2,048 seam are all found and
+  serial and Dask agree bitwise (`9f6b815d5352ada7`); 2,049², 800×3,000,
+  3,000×800 and 3,000² all publish. The quick science check's sixteen cases
+  report no regression.
+- **A case for the crossover.** `lotss-dr3-1312-dense-3000` joins the
+  quick benchmark's large tier on the same field as the 1,024² dense case,
+  so 2,048² (one tile) and 3,000² (four) can be compared directly. Tile
+  cores are fixed at 2,048, so no image can be run both ways; the pair
+  measures the crossover, not the cost of tiling one image.
+- **The crossover, measured.** Under the contract's protocol, one warm-up and
+  five measured repetitions in fresh single-thread processes:
+  `sdc1-b2-1000h-crowded-2048` 119.1 s (118.6–119.8) at 2,052 MiB, ratio
+  0.68 [0.68, 0.68] against v0.12.0, a pass; `lotss-dr3-1312-dense-3000`
+  115.8 s (115.4–116.7) at 2,267 MiB. The tiled side has no
+  previous-release ratio and cannot have one: v0.12.0 does not accept 3,000
+  pixels, and no earlier Hebog measurement of that case exists, so the first
+  measurement is its baseline rather than a regression check. Four tiles of
+  9.0 megapixels cost less wall time than one tile of 4.2 on a different
+  field, which says the tiling is not a penalty, not that it is a saving —
+  the fields differ.
+- **What this evidence does not cover.** The 3,000² figures above were
+  taken at load average 2.6–4.5 with a browser and an endpoint scanner
+  active; the 2,048² pair was taken at about 3.0 with the same scanner. The
+  2,048² ratio's bounds are tight enough to survive that, but neither
+  number should be quoted as a clean anchor without a quiet re-measurement.
+
+## 2026-09-23 — M1: `Total_flux` limits set from PyBDSF, and the source flux redefined
+
+- **Why.** The M1 row left two decisions to the human: the binding median and
+  tail limits per signal-to-noise stratum for `Total_flux`, and whether to
+  correct the low-SNR flux bias, flag it, or document it. The user asked for
+  limits derived from what PyBDSF achieves on the same population, with Hebog
+  required to match or outperform it, and for the disposition to follow what
+  Rapthor's self-calibration needs from the column.
+- **Measurement.** Pinned PyBDSF `master` (`c70103b`, container
+  `hebog-pybdsf-master:c70103be3-reconstructed`) and released 1.14.1
+  (`hebog-notebook-pybdsf:1.14.1`) ran with the notebook comparison's Rapthor
+  profile options (5/3 hard thresholds, adaptive RMS boxes 150/50 and 35/7,
+  three à trous scales) on the ten `m1-endpoint-diagonal` images, three cores
+  each in Podman. Their `srl` and `gaul` catalogues were matched to truth with
+  the calibration script's rule, nearest entry within one beam FWHM, and
+  summarised with `summarise_component_calibration`. The two PyBDSF revisions
+  agree to every digit on this population. Evidence:
+  `benchmark-results/uncertainty-calibration/m1-endpoint-pybdsf-master/`,
+  `…-release/` and `m1-endpoint-pybdsf-comparison.json`; the container
+  runner, comparison and bootstrap scripts are retained beside them and are
+  not yet checked in. Source-level `Total_flux` excess over truth, pooled
+  over both noise classes and all sizes:
+
+  | SNR | PyBDSF sources, median / p95 | Hebog components | Hebog sources (aperture) |
+  | --- | --- | --- | --- |
+  | 10 | +13.8% / 34.4% | +13.5% / 29.4% | +2.8% / 79.4% |
+  | 20 | +3.0% / 11.2% | +2.5% / 11.0% | +1.1% / 41.0% |
+  | 50 | +0.5% / 5.1% | +0.4% / 4.6% | −0.2% / 20.3% |
+
+- **Findings.**
+  1. The low-SNR excess is inherent to free Gaussian fitting: PyBDSF carries
+     it at the same size, so it is not a Hebog defect, and a 5% median cap
+     would fail both finders. Hebog's beam constraint halves it for
+     beam-sized sources at SNR 10 (+5.0% against PyBDSF's +11.1%). A paired
+     bootstrap over whole realizations (4,000 resamples within noise class)
+     gives Hebog components minus PyBDSF Gaussians an upper one-sided 95%
+     bound of at most +0.1 points on the p95 and +1.6 points on the median
+     in every stratum.
+  2. The Rapthor-consumed column fails. Hebog's source `Total_flux`, which
+     the continuum profile defines as the signed source-owned aperture sum,
+     has an absolute p95 of 96.5%, 49.5% and 24.0% at SNR 10, 20 and 50 on
+     beam-correlated noise against PyBDSF's 38.5%, 12.7% and 6.7%, while the
+     same sources' single fitted component is within a few percent: the
+     worst SNR 50 apertures read −41% and +31% with their components within
+     3%. On white noise the aperture beats the fit (p95 14.8% at SNR 10).
+     Correlated noise integrates coherently over the aperture. This is the
+     measurement-tail limitation accepted on 13 September, now quantified
+     against PyBDSF on one population.
+- **What Rapthor does with the column**, read from the `sdp/rapthor`
+  (`c437e00e`) and `sdp/LSMTool` (`f85829e`) checkouts, ahead of the Phase 0
+  pin. Calibration model fluxes come from WSClean's component lists; the
+  finder contributes the island mask, which selects components and groups
+  them into patches. `Total_flux` has one decision consumer: the photometry
+  check matches sources to TGSS or LoTSS within 5 arcsec, takes the
+  3σ-clipped mean flux ratio with its scatter floored at 10%, and later
+  cycles multiply the calibrator target flux by that ratio when it departs
+  from unity by more than the scatter and no flux normalization ran.
+  `Isl_Total_flux` is only carried through the astrometry check. Flux
+  normalization fits per-channel `Total_flux` weighted by the inverse
+  `E_Total_flux`, outside the MFS-only contract. The clipped ratio to truth
+  on this population, computed as LSMTool computes it:
+
+  | Estimator | Correlated noise | SNR ≥ 20 |
+  | --- | --- | --- |
+  | Hebog fitted components | 1.032 ± 0.087 | 1.014 ± 0.035 |
+  | Hebog aperture sources | 1.048 ± 0.280 | 1.007 ± 0.089 |
+  | PyBDSF master sources | 1.034 ± 0.088 | 1.017 ± 0.037 |
+
+- **Decision (human, 23 September).**
+  1. The continuum profile's source `Total_flux` becomes the summed fitted
+     component flux, PyBDSF's definition. The signed aperture remains
+     published as `ASSOCIATION_APERTURE_FLUX`, and `Isl_Total_flux` remains
+     the island sum. Only a fit supplies the `E_Total_flux` the
+     normalization path weights by.
+  2. No noise-bias correction to the fit: PyBDSF carries the same bias,
+     Rapthor's 10% floor was set against it, and the SNR ≥ 20 clipped ratio
+     is within 2%. The measured curve is documented; an SNR quality flag is
+     optional later, since Rapthor reads no flags.
+  3. The binding limits are in the plan's scientific gates table: per
+     stratum, median excess ≤ +14%, +3.5% and +1% and absolute p95 ≤ 35%,
+     12% and 6% at SNR 10, 20 and 50; the paired Hebog-minus-PyBDSF upper
+     one-sided 95% bound ≤ +1 point in both statistics; and, for Rapthor, a
+     3σ-clipped mean ratio to truth within ±3% with clipped scatter ≤ 5% at
+     SNR ≥ 20, half Rapthor's decision floor.
+  4. Under these limits the fitted flux passes today and the current source
+     `Total_flux` fails on correlated noise, so the next M1 action is the
+     redefinition and a re-run of the calibration against the limits.
+- **Not covered.** Isolated sources on a grid, ten 1,024² realizations, one
+  beam, no blends or extended emission: development evidence for the limit
+  choice, not qualification. The M6 powered study asserts the limits.
+
+## 2026-09-23 — M2: the unread support-stage diagnostics are removed
+
+- **What this is.** The first step of removing whole-plane state from the
+  driver, taken on the human disposition that the diagnostic is not worth
+  its memory, and a correction to the memory figures the previous entry
+  recorded.
+- **What was there.** `ContinuumProducts.support_stages` carried eight
+  image-sized boolean planes — `direct`, `multiscale`, `persistent`,
+  `component-owner`, `source-union`, `source-owned-persistent`,
+  `source-measurement` and `publication`. Nothing consumed them. The only
+  reader in the tracked tree was one unit test asserting they existed and
+  differed, for a truth-linked runner that was removed with the Phase 1–5
+  campaign tooling and survives only in Git history at `v0.7.0`.
+- **What it took with it.** The planes were the sole consumers of two of the
+  driver's whole-plane Zarr reads: `persistent-scale-support` and
+  `aperture-labels`. Both planes stay published, because the source and row
+  stages read them by window; only the driver's image-sized copies are gone.
+  `publish_segment_rows` returns two values instead of three, and
+  `_validated_source_label_plane` becomes `_require_valid_source_label_plane`,
+  which validates without materialising an int32 copy to discard.
+- **What was kept.** The deleted test's one unique invariant, that the
+  measurement aperture reaches beyond the retained support, now sits beside
+  the expansion kernel that produces it, where it needs two small arrays
+  rather than eight planes.
+- **Evidence.** On the real 3,000² LoTSS field the catalogue, RMS and mask
+  are bitwise identical before and after; the only diagnostics difference is
+  `scientific_composition_sha256`, which is designed to move when the
+  composition source changes.
+- **What it is worth, and what it is not.** Eight planes are 72 MB at
+  3,000² and about 1.9 GB at LoTSS-DR3 15,402². At 3,000² that is 3% of peak
+  RSS, which is below measurement resolution: HEAD measures 2,451 and
+  2,458 MiB, and the removal 2,449, 2,477 and 2,452 MiB. This change is
+  product-neutral and removes state that grows with the image; it is not a
+  measurable saving at any size the envelope currently admits.
+- **The correction.** The 2,144 MiB and 1,347 MiB recorded on 22 September
+  were single first runs in a fresh session, 12% and 22% below five later
+  repetitions that agree within 1%. The figures are about 2,450 MiB serial
+  and 1,720 MiB in the Dask driver. Peak RSS needs the repetition discipline
+  wall time already has.
+- **What the 3,000² memory profile ranks.** Traced allocation peaks at
+  1,432 MiB, of which 608 MiB is `multiscale_tiles.py`'s per-tile core
+  copies, 137 MiB Zarr window reads and 102 MiB the FITS input. The core
+  copies are not waste: each one exists so a core record cannot pin the
+  larger haloed read behind it. They are the tile-bounded component the
+  4,096-pixel ladder rung measured as roughly 1.3 GB fixed, and they do not
+  grow with the image.
+
+## 2026-09-23 — M2: the terminal builder stops holding measured planes
+
+- **What this is.** The prerequisite for removing the driver's image,
+  background and RMS planes, and the measurement discipline that made it
+  possible to say what it is worth.
+- **What was wrong.** `build_hebog_reconstructed_source_catalogues` took the
+  image and background only to hand them to a validator whose residual it
+  discarded. Every call allocated `np.where(valid, image - background, nan)`,
+  an image-sized `float64` plane, and dropped it: 72 MB at 3,000 pixels and
+  about 1.9 GB at LoTSS-DR3 15,402.
+- **The change.** `_validated_segment_labels` checks the labels against the
+  validity plane and allocates nothing; `_validated_hebog_segment_planes`
+  composes it with the residual for the two builders that measure. The
+  terminal builder takes neither plane now, which its signature says: it
+  assembles rows the stages already measured in the windows that measured
+  them.
+- **Evidence.** On the real 3,000² LoTSS field the catalogue, RMS and mask
+  are bitwise identical to both the previous state and the commit before it.
+  Four new cases reach the label checks through the terminal builder, where
+  nothing reached them before, and all four fail under a mutation that skips
+  the validation.
+- **What it is worth: nothing at the peak, and that is the finding.** The
+  deterministic traced peak is 1539.3 MiB before the split, after the split
+  and after narrowing the builder — identical to the decimal in every run. A
+  discarded allocation only lowers peak memory when it happens at the peak,
+  and this one happens in the terminal builder, long after the multiscale
+  pass that sets the high-water mark. The waste is real and grows with the
+  image; the peak does not move.
+- **Peak RSS is not an instrument on this machine.** Ten runs of identical
+  code at 3,000² gave 1,559 to 2,477 MiB, a 42% spread, and the variation
+  tracked machine load: `ru_maxrss` is the high-water mark of *resident*
+  pages, so it records how aggressively the operating system reclaimed as
+  much as what Hebog demanded. `tracemalloc`'s peak gave 1539.3 MiB in every
+  run at loads from 2.9 to 4.6. Scaling claims and tier gates need the
+  traced peak; RSS belongs beside it as an envelope, never as a threshold.
+  This supersedes the figures in the two entries above, including the
+  "within 1%" claim, which five lucky repetitions supported and five more
+  did not.
+- **A comparison that lied.** `CATID` is `sha256(run_id)`, so two runs of
+  identical code under different run identifiers differ in the catalogue's
+  primary header and checksum. A digest comparison across two measurement
+  scripts briefly looked like a regression. Hold the run identifier constant
+  when comparing products.
+
+## 2026-09-23 — M2: the driver's remaining whole-plane state, counted
+
+- **What this is.** The size of the remaining driver work, established by
+  counting rather than by extrapolating a profile, and a plan rewrite that
+  moves execution history out of the plan.
+- **What is left.** The driver holds 19 image-sized arrays: image,
+  background, RMS and their residual in `float64`; the position signal; six
+  `int32` label planes; and the validity, reconstruction, three
+  scale-significance, retained and support masks. That is 0.7 GiB at
+  3,000², 7.5 GiB at 10,000² and 17.7 GiB at LoTSS-DR3 15,402², against
+  18 GiB of development-machine memory. The 10,000 tier is reachable; 15,402
+  is not, on this alone.
+- **The order they come out in, and why.** (1) The RMS product streams from
+  the store and the driver carries the background/RMS sink instead of the
+  plane, which also serves the two windowed RMS consumers;
+  `write_rms_fits_product` already accepts row blocks, so the seam exists.
+  (2) The residual is read by window, removing image, background and their
+  difference, 5.3 GiB at 15,402² and the largest group;
+  `build_detection_component_records` already takes an `origin_yx` and works
+  per component window. (3) `valid` and `positive-rms` become tiled boolean
+  planes published by the background stage. (4) The label, mask and
+  position-signal planes follow, one publishing stage at a time.
+- **One more unread plane.** `ContinuumProducts.valid_pixels` was written and
+  never read, like the support stages before it. The record is not exported
+  from `hebog`, so removing the field removes a whole boolean plane with no
+  caller to consider.
+- **Two plan rows retired to here.** The Performance row had grown to 5,427
+  characters of execution narrative and the Scalability row to 1,118. Both
+  now carry current position only; the attributions, ratios and evidence
+  identities they held are in this file already, which is where the working
+  rules put them.
+- **Two exit criteria were already met.** Input hashing has streamed in 1 MiB
+  blocks since before this milestone. The two 10⁶-pixel background caps fire
+  only when a coarse window is shrunk to fit a small image, which the
+  shrink factor prevents above about 600 pixels a side, so neither bounds a
+  large image. Both were carried in the plan as outstanding work.
+
+## 2026-09-23 — M1: the source `Total_flux` becomes the summed fitted flux
+
+- **What this is.** The redefinition the 23 September decision called for, the
+  binding limits re-asserted on a freshly measured population, and the record
+  of two estimators that were built, measured and rejected on the way.
+- **The change.** A continuum source's `Total_flux` is the sum of its fitted
+  Gaussian components' integrated fluxes, carrying their quadrature
+  uncertainty when every component supplies one. A source with no admitted
+  fit keeps its signed aperture and carries
+  `aperture-flux-without-fitted-component`. The aperture is still published as
+  `ASSOCIATION_APERTURE_FLUX`, and `MeasurementDisposition.estimator` gained
+  `summed-fitted-component-flux`, because it was hard-coded to
+  `source-owned-signed-aperture` and would otherwise have recorded false
+  provenance.
+- **Every binding limit passes**, on `m1-endpoint-summed-fit`, measured with
+  current code rather than the pre-`75ec12f` products the 23 September table
+  used:
+
+  | Gate | Limit | Hebog sources | Pinned `master` |
+  | --- | --- | --- | --- |
+  | median excess, SNR 10/20/50 | ≤ +14% / +3.5% / +1% | +13.5% / +2.5% / +0.4% | +13.8% / +3.0% / +0.5% |
+  | absolute p95, SNR 10/20/50 | ≤ 35% / 12% / 6% | 29.4% / 11.0% / 4.6% | 34.4% / 11.2% / 5.1% |
+  | paired upper one-sided 95% | ≤ +1 point | +0.4 / −0.2 / +0.1 pt | — |
+  | 3σ-clipped ratio, SNR ≥ 20 | ±3%, scatter ≤ 5% | 1.014, 0.035 | 1.017, 0.037 |
+
+  The old aperture definition failed the tail at every stratum (79.4%, 41.0%,
+  20.3%), which is what this closes. One sub-cell the gate does not name,
+  `correlated/snr10`, reaches +1.1 and +1.7 points.
+- **Where the definitions part, measured and documented not corrected.**
+  Against injected truth: isolated compact −0.0% for both estimators; open arc
+  aperture −0.0% against summed fit +7.4%; edge-clipped Gaussian −0.0% against
+  +72.6%, because a fit integrates sky the image does not cover; compact core
+  with a diffuse halo −4.8% against −61.7%, because the fits describe the core
+  and nothing describes the halo. PyBDSF's definition behaves the same way.
+- **Two estimators were built and rejected.** A *conditional* rule on the
+  summed-fit-to-aperture ratio fails: at SNR 10 noise alone drives that ratio
+  below any useful threshold, so it routes compact sources to the aperture and
+  restores its tail (p95 0.357 at threshold 0.5, 0.734 at 0.75, against a
+  0.35 limit). An *additive* rule, summed fit plus the aperture residual after
+  subtracting a published `fitted-model-signal` plane, recovers the halo
+  exactly (−61.7% → −4.8%) but fails every gate (p95 0.781, 0.353, 0.166),
+  because the residual is a pixel sum and carries the aperture's variance. A
+  3σ detection test on that residual does not rescue it (0.778, 0.353, 0.166):
+  at high signal-to-noise the residual is dominated by fit-model imperfection,
+  which is significant for the wrong reason. Both were reverted; the model
+  plane with them.
+- **What that establishes.** The aperture and the fit measure different
+  quantities with different noise, and any estimator mixing them inherits the
+  aperture's tail. The 23 September limits were set at PyBDSF parity and
+  PyBDSF is a pure fit-sum estimator, so meeting them requires one too. The
+  two requirements cannot both bind one column.
+- **How flux recovery is still asserted.** The development matrix's 25%
+  recovery tolerance now reads `ASSOCIATION_APERTURE_FLUX`, the column that
+  measures the observable flux injected truth states, and all 108 cells pass.
+  Asserting recovery of observable flux on a whole-plane model integral was
+  the mismatch, not the tolerance. Three unit tests and two integration tests
+  moved the same way: the frame-tie and sub-milliarcsecond-shift invariants
+  are exact on the aperture and hold to 1e-6 on the fitted flux, which depends
+  on a tangent plane those shifts perturb.
+- **Evidence and tooling.** `run_pybdsf_calibration.py` and
+  `compare_flux_calibration.py` are checked in under `scripts/validation/`,
+  the latter with the paired bootstrap folded in, `--root`, `--hebog-run` and
+  `--output` so it is not path-bound, and the 3σ-clipped ratio, which no
+  retained script computed. `measure_component_uncertainty_calibration.py`
+  was repaired: it patched `public_science.source_finder_configs`, removed by
+  `75ec12f` on 19 September, so the point-estimator override had been silently
+  inert; it now patches `hebog.science.configuration` and
+  `hebog.science.continuum`, which binds the name at import.
+- **Not covered.** The population is isolated compact sources on a grid, ten
+  1,024² realizations, one beam, no blends or extended emission. It cannot
+  see the morphology divergence above, which is why that was measured
+  separately and asserted in the tests rather than inferred from these gates.
+
+## 2026-09-23 — M2: the RMS product streams from the store
+
+- **What this is.** The first of the steps that take the driver's
+  whole-plane state out. The driver carries the store that published the
+  estimated RMS instead of the plane, and every consumer of that plane reads
+  a bounded window or a stream.
+- **The change.** `_ScientificProducts` holds `background_rms_source` and
+  `rms_scientific_status`, the one decision the estimate makes about itself,
+  instead of a `float64` plane and, on the no-usable-RMS path, an all-NaN
+  plane built only to be written. The catalogue projection reads each
+  island's and each owner's own bounding-box window through
+  `read_completed_window`, inside one `access_session` so the store's
+  immutable metadata is parsed once for a whole catalogue rather than once
+  per object. `write_rms_fits_product` receives `iter_completed_row_blocks`,
+  one canonical tile row at a time, which also retires the three image-sized
+  temporaries its scientific validation allocated for a whole-plane block.
+- **Evidence.** On the real 3,000² LoTSS-DR3 dense field and the 1,024²
+  dense cut-out the catalogue, RMS and mask are bitwise identical before and
+  after, under a held run identifier. The single diagnostics difference is
+  `scientific_composition_sha256`, which `public_api` is part of and which is
+  designed to move when the composition source changes. Unit (98), contract
+  (59 passed, 2 xfailed) and public integration (81) suites pass.
+- **What it is worth: 8.6 MiB at 3,000², and it is not the RMS plane.**
+  The deterministic traced peak falls 1539.3 → 1530.7 MiB at 3,000² and
+  445.5 → 444.5 MiB at 1,024² — in both cases exactly one boolean plane,
+  because the `usable_rms` mask the early return tested was a local that
+  lived to the end of the analysis and is now a temporary. The estimated RMS
+  itself is still a plane at the peak: the driver derives `valid` and
+  `positive_rms` from it, and it leaves with them. The 1539.3 MiB baseline
+  reproduces the figure recorded earlier today to the decimal, so the two
+  harnesses are comparable.
+- **Two new integration cases, each failing under its own mutation.** A
+  300×200 image spanning three background tile rows and two tile columns,
+  with a distinct value per tile, catches row blocks assembled or published
+  in the wrong order. A 96×320 image whose halves carry different noise
+  catches a shifted or transposed window through the source, component and
+  island rows alike; transposing the bounds raises on the non-square shape
+  rather than returning a plausible number. The blank, all-NaN and
+  constant-negative cases now assert that the unavailable product is
+  entirely NaN, which the driver generates rather than substitutes.
+- **Not covered.** No benchmark claim: both 3,000² runs were traced, which
+  roughly doubles wall time, and the machine was loaded.
+
+## 2026-09-23 — M2: the component records are built once, from their own windows
+
+- **What this is.** The residual leaves the driver's carried state, and the
+  set of component records that two passes were each deriving becomes one.
+- **What was wrong.** `_analyse_image` built
+  `build_detection_component_records` twice from the same three arguments:
+  once inside `publish_hierarchy_overlaps` and once for the association
+  decision. Each call allocated its own whole-plane `image - background`,
+  72 MB at 3,000² and about 1.9 GB at LoTSS-DR3 15,402², and then repeated
+  the same per-component geometry.
+- **The change.** `component_records_from_windows` builds the set once from
+  bounded residual windows and both consumers read it. A component's record
+  depends only on the pixels carrying its label, so each is built inside the
+  smallest window holding it with its neighbours' labels cleared — a
+  bounding box may contain them, and their support may reach outside it.
+  `_ScientificProducts` carries the image source rather than the image and
+  background planes, and the island rows read their residual the same way.
+- **Neighbouring components share one read, and that is measured.** The
+  residual is assembled from storage chunks far larger than a component, so
+  one read per component decodes the same chunks again for every neighbour
+  sharing them. Median of three, on the arguments a real run supplies:
+
+  | components | batched | one read per component |
+  | --- | --- | --- |
+  | 5, synthetic and sparse | 0.047 s | 0.031 s |
+  | 111, real 1,024² LoTSS | 0.062 s | 0.338 s |
+  | 846, real 3,000² LoTSS | 0.315 s | 2.588 s |
+
+  The crossover is low and the ratio grows with density, 5.5× then 8.2× —
+  the same factor the owner-batch note in `public_api.py` recorded for a
+  different stage. Batches follow that note's read budget. A unit test
+  asserts the records are identical at any batch size and fails when the
+  batch window's offset is wrong.
+- **Evidence.** On the 1,024² dense cut-out the catalogue, RMS and mask are
+  bitwise identical to the previous commit and to the state before it; the
+  only diagnostics difference is the composition digest. 579 integration,
+  40 contract and 104 composition tests pass.
+- **What it is worth, and a correction about how that was established.** The
+  traced peak moves 444.5 → 444.1 MiB at 1,024², because both residuals are
+  transient and the peak sits in the multiscale pass, long before them. What
+  the change removes is state and duplicated work that grow with the image,
+  not peak memory. An earlier reading of this branch reported a 76%
+  slow-down from the unbatched version: that compared one test file against
+  the whole `tests/integration` directory and was wrong. The table above is
+  the measurement; `just test-integration` is the gate, and a bare
+  `pytest tests/integration` runs the slow-marked cases the gate excludes.
+- **Not covered.** No benchmark claim on complete runs: 2.3 s of a 116 s
+  run at 3,000² is inside the noise of a loaded machine.
+
+## 2026-09-23 — M2: the background stage publishes what the composition asks of it
+
+- **What this is.** The step the previous two were clearing the way for, and
+  the first one that moves the traced peak.
+- **What was wrong.** The composition never wanted the image, the background
+  and the RMS. It wanted two facts about them: where the estimate exists,
+  and where it carries a usable local noise. The driver carried three
+  `float64` planes from the background stage to the terminal builder to
+  derive those two masks, and `public_science` derived them again.
+- **The change.** `_detect_and_write_background_rms` publishes `valid` and
+  `positive-rms` beside the background and the RMS, computed on the core
+  that computed the estimate. `_estimate_background_rms` returns those two
+  `bool` planes instead of the two `float64` estimates, so the driver never
+  reads the image plane at all, and `build_configured_continuum_products`
+  takes the masks rather than deriving them. The "estimate must be finite
+  wherever the image is" check moved into the stage, where it runs per tile
+  and names the tile that broke it.
+- **What it is worth.** The deterministic traced peak falls 1530.7 →
+  1342.1 MiB at 3,000² and 444.1 → 422.2 MiB at 1,024². Across the three
+  steps that is 1539.3 → 1342.1 MiB, a 197.2 MiB reduction against the
+  198 MiB the array arithmetic predicted: three `float64` planes out at
+  24 bytes a pixel, two `bool` planes in at 2.
+- **What is left, counted rather than estimated.** A run now walks the
+  driver's own locals at the terminal builder and counts the distinct
+  image-shaped arrays reachable from them: **18**, at 49 bytes a pixel — 8
+  `int32` label planes, 9 masks and the position signal. That is 0.41 GiB at
+  3,000², 4.6 GiB at 10,000² and 10.8 GiB at 15,402². The earlier figure of
+  19 arrays was a hand count of the source; this one is measured, and the
+  two differ by one.
+- **Evidence.** On the 1,024² dense cut-out and the real 3,000² LoTSS-DR3
+  field the catalogue, RMS and mask are bitwise identical, with only the
+  composition digest moving. 1,973 unit and 40 contract tests pass.
+- **What the integration gate caught that the science check did not.** Two
+  test helpers unpacked `_estimate_background_rms` for the estimate planes
+  and silently received masks: one asserted `estimated_rms > truth/2` on a
+  boolean array, which is true for every pixel. They now read the estimate
+  from the store through one shared `estimated_maps` helper. Eight identical
+  background-stage substitutes across two files became one
+  `substituted_background_rms` fixture, and the test doubles publish the
+  generation the real stage publishes rather than the two products someone
+  remembered.
+- **A second measurement discipline note.** The first reading of those
+  failures was taken through `| tail -6`, which threw away 39 of the 43
+  `FAILED` lines. Capture a gate's whole output to a file and tail the file.
+
+## 2026-09-24 — M2: review pass over the driver's whole-plane removal
+
+- **What this is.** The review of the three preceding commits against
+  `CODE_REVIEW.md`, and the changes it produced.
+- **A check that moved and lost its test.** The "estimate must be finite
+  wherever the image is" check moved from `public_science` into the
+  background stage, and the `public_science` test that covered it was
+  replaced by a test for a different check. Coverage found the moved raise
+  unexercised. It now has two unit tests against `_estimated_validity`
+  itself: one that an invalid image pixel needs no estimate, and one, over
+  both the background and the RMS, that a finite image pixel the estimate
+  does not cover fails loudly.
+- **A record whose caller read one field of five.**
+  `build_continuum_candidate_products` returned a detection, two `int32`
+  label planes, the position signal and the scale records;
+  `build_configured_continuum_products` read the detection. The two label
+  planes were *copies*, made and discarded. It is now
+  `build_continuum_detection`, returning the `ThresholdFilterResult`, and
+  `ContinuumCandidateProducts` is gone. The scale-support check the
+  discarded computation carried is extracted as
+  `require_valid_scale_support` and called explicitly, so the validation is
+  no longer a side effect of a result nobody wanted. This removes transient
+  allocation at the end of a run, not peak memory: the copies were made
+  inside the terminal builder, after the driver's own state is measured.
+- **Readability.** The component read batching carried an optional covering
+  crop and two `assert`s to convince the type checker it was set, behind a
+  `tuple[tuple[slice, slice], tuple[tuple[int, tuple[slice, slice]], ...]]`
+  return type. It is now two small records, `_ComponentWindow` and
+  `_ComponentReadBatch`, and a loop seeded from the first component: no
+  optional, no asserts, no nested tuple. A `# type: ignore[return-value]`
+  for a generator-built tuple was written out explicitly instead.
+- **Coverage.** 96.65% project, up from 95.98%. `public_science.py`,
+  `science/continuum.py` and `validation/tiled_detection.py` are at 100%,
+  `public_api.py` at 98% and `stages/detection.py` at 91%; every remaining
+  miss in those files is a defensive `raise` that predates this work.
+- **Evidence.** Products stay bitwise identical on the 1,024² dense cut-out
+  through both changes. 2,553 tests pass under coverage, the quick science
+  check's 16 cases pass, and `just pre-commit` passes.
+
+## 2026-09-24 — M2: what the driver's whole-plane removal costs, measured
+
+- **What this is.** The quick benchmark that the change check asks for, the
+  two defects it found, and the trade-off the maintainer accepted on
+  24 September.
+- **Skipping it would have shipped a 23% regression.** Against the branch
+  point `ea67a3a`, the four commits took the 1,024² LoTSS dense cut-out from
+  14.06 s to 17.35 s, medians of five. The bisect attributed it:
+
+  | commit | median | delta |
+  | --- | --- | --- |
+  | `ea67a3a` branch point | 14.06 s | — |
+  | `5077d5c` RMS streams from its store | 15.55 s | +1.49 s |
+  | `3dad1dd` component records | 16.00 s | +0.45 s |
+  | `fbb05db` validity planes | 17.42 s | +1.42 s |
+  | `5ab9e02` narrowing | 17.35 s | −0.07 s |
+
+- **The first defect was the mistake this branch had already diagnosed.**
+  `_support_local_rms` and `_detection_islands` read one window per object,
+  about 300 of them, each re-decoding storage chunks their neighbours share.
+  That is the pattern measured at 5.5–8.2× when the component records were
+  batched, and it was never applied to the RMS reads written in the same
+  commit. Each label's usable RMS is now collected once, a batch of reads at
+  a time, and a source's median comes from its components' pixels rather
+  than a second read: 17.35 → 15.88 s.
+- **The second was publishing two products for 16 KiB of payload each.**
+  The background stage alone went 5.597 → 6.758 s, so `valid` and
+  `positive-rms` cost 21% of it. At a 128-pixel core a boolean chunk is
+  16 KiB, and the cost is the per-chunk write and its revalidation at
+  publication, not the bytes. The driver derives both by streaming the RMS a
+  tile row at a time against the image's finite domain instead, which is
+  sound because the stage still requires, on the core that computed the
+  estimate, that it covers the image. 15.88 → 15.18 s, and the driver now
+  reads no whole plane at all: `_full_bounds` has no caller left.
+- **Where the rest goes.** 56% of a profiled run is inside Zarr's
+  `sync()` bridge — 1,841 calls, 600 array reads, 3,561 local gets — so the
+  remaining cost is per-read overhead in the store, not checksum bytes. At
+  1,024² the whole image is 1 megapixel, under the 4-megapixel owner read
+  budget, so every batched window degenerates to one whole-image read and
+  the driver reads the store three times where it used to slice memory
+  once. At 3,000² and above the batches are genuinely bounded, which is the
+  design intent.
+- **The gate passes; the branch point does not.** Against v0.12.0, which is
+  the previous release the rule names, every 1,024² anchor passes:
+  `dense-field` 17.8 s ratio 1.00 [0.85, 1.02], `lotss-dr3-1312-sparse`
+  18.1 s ratio 0.93 [0.92, 0.95], `lotss-dr3-1312-dense` 19.4 s ratio 0.94
+  [0.91, 0.95]. Peak RSS is 636/666/636 MiB against 676/670/657 at the
+  branch point. Against `ea67a3a` the same case is 15.18 s to its 14.06 s.
+- **The accepted trade-off.** On 24 September the maintainer accepted about
+  8% of wall time at 1,024² for the 12.8% traced-peak reduction at 3,000²
+  and the much larger one above it, on the basis that the per-object passes
+  move into the tiled stages later, which removes the cost rather than
+  mitigating it. Revisit when the island rows, the owner local RMS and the
+  component records are measured inside the passes that already read those
+  tiles.
+- **Re-verified at the fixed head.** The 3,000² LoTSS-DR3 field gives a
+  traced peak of 1341.5 MiB and bitwise-identical catalogue, RMS and mask,
+  so the 1,342 MiB the plan and the profile page quote is the figure for
+  the branch as it stands, not only for the commit that first reached it.
+- **Two measurement lessons.** A 23% regression was invisible to the
+  1,024² end-to-end wall time I had been quoting per commit, because those
+  runs were traced and loaded; it took the benchmark's repetition
+  discipline to see it. And the pinned PyBDSF container failed to start
+  throughout with a podman overlay mount error, so no `master` ratio was
+  taken; those are diagnostic only and did not block the comparison.
+
+## 2026-09-24 — M2: three review findings on the tiled-stage branch
+
+- **What this is.** Greptile reported three findings on the open pull request.
+  All three are real. Each is fixed here, with the evidence that establishes
+  it and, for the third, the reading of the pinned reference it rests on.
+- **Tile placement moved the published support.** The publication stage
+  sharded its island admission against each core's own bounds, so a core only
+  learned about the owners whose *reconciled* bounds it intersects. An owner's
+  recovered support reaches the recovery radius beyond those bounds, so an
+  owner whose bounds stop exactly at a core edge still holds pixels inside the
+  next core, and the admission step cleared them. One tile never saw it,
+  because its core is the image. A new integration case puts a 40-pixel owner
+  at columns 24–31 with significant multiscale support reaching column 33: at
+  16-pixel cores five measurement, publication and retained-mask pixels in
+  column 32 were lost, and the one-tile run kept them. The shard is now
+  read-scoped, like the published-owner shard beside it, which is sound
+  because the refinement halo covers the recovery radius. The case fails on
+  the old shard and passes on the new one; the existing partition, batching,
+  ordering and Dask invariance cases are unchanged.
+- **The fingerprint had stopped identifying the implementation.** Converging
+  the public path onto tiled stages added six stage modules —
+  `support`, `publication`, `objects`, `catalogue_rows`, `sources` and
+  `association` — and `_SCIENTIFIC_MODULES` still named only `background`,
+  `detection` and `multiscale`. A scientific change in any of the six, the
+  support fix above included, would have left `scientific_composition_sha256`
+  unchanged. All six are now bound, and the expectation is derived from
+  `public_api`'s own stage imports rather than restated, so the next stage the
+  driver runs cannot be left out silently. `_COMPOSITION_NAME` already reads
+  `v22` on this branch, so the composition is marked as unreviewed and needs
+  no further bump.
+- **Hebog and PyBDSF do not publish `E_RA` in the same convention.** Both
+  calibration scripts divided a great-circle RA offset by the published
+  `E_RA`. Hebog publishes an error on the RA *coordinate*, the tangent-plane
+  one-sigma divided by cos(dec), which `tests/unit/test_astrometry.py` pins.
+  PyBDSF `c70103be3` publishes a great-circle error: `pix2coord` returns
+  `pixdist2angdist`, which is `func.angsep`. Checked against Astropy on a SIN
+  WCS at +45°, a one-pixel step in x gives a great-circle separation of one
+  pixel scale and an RA coordinate difference of 1.414 pixel scales. So the
+  Hebog RA pull was understated by cos(dec) — a factor 0.707 at the
+  calibration declination of +45° — while the PyBDSF column was right. The
+  conversion is one function in `hebog.validation.component_calibration`, the
+  module whose subject is what a pull means, so both scripts share it and it
+  carries unit tests rather than living twice in `scripts/`.
+- **This invalidates one recorded number.** The RA row of the 2026-09-16
+  component uncertainty calibration table (pull standard deviation 0.87 GLS /
+  0.72 diagonal, and the ±1σ fractions beside them) came from the understated
+  statistic. The corrected values are larger by about 1/cos(45°); the table is
+  left as the record of what was measured, and the RA uncertainty calibration
+  needs a re-run before it can be read again. Dec, flux and shape pulls are
+  unaffected: those errors are great-circle in both finders.
+- **Checks.** Unit (1,939), contract (59, 2 xfailed), integration (669),
+  equivalence (27) and acceptance all pass, as does the coverage suite. The
+  quick science check and the calibration scripts themselves were not run:
+  both need local data and containers, and the calibration re-run is the
+  maintainer's call.
+
+## 2026-09-24 — M2: the RA pull, re-measured
+
+- **Why.** The `E_RA` convention fix earlier today voided every recorded RA
+  pull. This closes that follow-up, in two parts: the same cached catalogues
+  re-scored to isolate the statistic, then a fresh run of the installed
+  composition.
+- **Part one: the statistic alone.** The 2026-09-16 catalogues under
+  `benchmark-results/uncertainty-calibration/{gls-1,diagonal-1}` still load, so
+  the pulls were re-derived from them with everything else held constant. RA
+  standard deviation / fraction within one sigma, recorded then corrected:
+
+  | Run and noise | Recorded | Corrected |
+  | --- | --- | --- |
+  | diagonal, correlated | 0.72 / 0.83 | 1.01 / 0.68 |
+  | diagonal, white | 0.25 / 1.00 | 0.35 / 1.00 |
+  | GLS, correlated | 0.87 / 0.78 | 1.23 / 0.59 |
+  | GLS, white | 507 / 0.27 | 717 / 0.23 |
+
+  Every other parameter — Dec, peak, integrated, both axes — re-derived
+  bit-for-bit identical, which is the control: only RA moved. The ratio is
+  1.4132–1.4141 rather than exactly 1/cos(45°) = 1.41421, because the
+  conversion is per row and the sources span about ±0.2° of declination.
+  The GLS estimator was not re-run: that decision closed on 2026-09-16 and
+  diagonal weighting is installed, so part one is the whole correction for it.
+- **Part two: the installed composition.** `--point-estimator
+  diagonal-weighted --label ra-convention-diagonal-1`, ten seed-disjoint
+  1,024² realizations, composition `683a4c9ee741bb87`. Pull standard
+  deviation / median / fraction within one sigma, every matched component
+  reporting a position error:
+
+  | Noise | RA | Dec |
+  | --- | --- | --- |
+  | Correlated | 1.015 / −0.060 / 0.675 | 1.006 / +0.020 / 0.672 |
+  | White | 0.348 / +0.027 / 0.994 | 0.334 / +0.023 / 0.997 |
+
+- **What this changes scientifically.** On beam-correlated noise, the
+  realistic case, `E_RA` is calibrated: 1.015 against an expected 1.000, and
+  67.5% within one sigma against an expected 68.27%. The 2026-09-16 reading of
+  0.72 as *conservative* was an artifact of the convention error, which is
+  exactly what dividing by an error inflated by 1/cos(dec) manufactures. The
+  strongest evidence that the corrected statistic is the right one is that RA
+  and Dec now agree — 1.015 against 1.006, where before they differed by 35%
+  with no physical reason to. On white noise both axes stay conservative by
+  about 3x, which is a real property of the estimator and not this defect.
+- **A Rapthor compatibility divergence this exposed.** Rapthor's astrometry
+  check cuts on `E_RA < 2/3600` degrees
+  (`rapthor/execution/image/diagnostic_calculation.py:726`), a threshold
+  written for PyBDSF, whose `E_RA` is a great-circle error. Hebog publishes an
+  RA *coordinate* error, larger by 1/cos(dec), and
+  `adapters/rapthor_catalogue.py` passes it through unconverted. The cut is
+  therefore tighter for Hebog than for PyBDSF at the same true precision:
+  2.00″ becomes 1.98″ at the LoTSS-DR3 cut-out's +7°, 1.73″ at SDC1's −30°,
+  and about 1.15″ at +55°, where LOFAR's fields mostly sit. Hebog would drop
+  sources PyBDSF keeps, more so the further from the equator, and can reach
+  Rapthor's `min_number` skip sooner. No column was changed: this alters a
+  Rapthor-consumed field and needs a scientific disposition, so it is a plan
+  task, not a repair made here.
+- **Checks.** Both measurements are development evidence, not qualification.
+  The fresh run used the serial executor on generated development datasets at
+  one declination (+45°) with isolated sources only, so it establishes
+  estimator calibration, not the astrometry behaviour of a real field.
+
+## 2026-09-24 — M2: the fingerprint binds the algorithms stages reach
+
+- **Why.** A review pass found `label_extents`, new on this branch, reached
+  only through `hebog.algorithms.label_groups`, which the fingerprint did not
+  name. It decides parent and component windows and the canonical first pixels
+  that break ownership ties, so a change there changes fitting and catalogue
+  rows while leaving `scientific_composition_sha256` unchanged.
+- **The gap was wider than the report.** `label_groups` is imported by
+  `public_api`, by the `objects` and `catalogue_rows` stages, and by
+  `science.catalogues`. The earlier derived test only walked the driver's own
+  stage imports, so binding an algorithm the *stages* reach was never checked.
+  Every `hebog` import in this layer names its submodule, so deriving the
+  expectation with a regex is complete rather than approximate.
+- **What the test now asserts.** The expectation follows imports one level in,
+  through `public_api` and every bound stage and science module, and each
+  algorithm reached that way must be bound. `hebog.algorithms.partitioning`
+  stays out by design: every result is required to be partition-invariant and
+  that contract is tested separately, so planning a different partition must
+  not read as a scientific change. A third test keeps that exemption honest,
+  failing both if the name stops being imported and if someone binds it.
+- **Each new assertion was checked against its own defect.** Unbinding
+  `label_groups` fails the reached-algorithms test; binding `partitioning`
+  fails the exemption test as obsolete; renaming the exemption to a module
+  nobody imports fails it as stale.
+- **Checks.** Unit and contract suites pass (2,005 passed, 2 xfailed); ruff and
+  pyright clean. The fingerprint digest changes again, which is the intent.
+
+## 2026-09-24 — M2: `E_RA` is published as a great-circle angle
+
+- **Why.** Rapthor's astrometry check cuts on `E_RA < 2 arcsec`, a fixed angle
+  written for PyBDSF. Hebog published an error on the RA coordinate, larger by
+  1/cos(dec), so the cut was tighter for Hebog the further a field lies from
+  the equator. The user chose to match PyBDSF, and asked for the convention to
+  be confirmed empirically before the change.
+- **Measured, not inferred.** The earlier diagnosis read PyBDSF's source. This
+  test needs no absolute prediction: one calibration image was written twice,
+  identical pixels with only `CRVAL2` changed from +0° to +60°. A great-circle
+  error is invariant to that; a coordinate error scales by 1/cos(60°) = 2.
+
+  | `E_RA` ratio, dec 0° → 60° | Value |
+  | --- | --- |
+  | PyBDSF `c70103be3`, in its pinned container | 1.0000 |
+  | Hebog, before | 1.9997 |
+  | Hebog, after | 1.0000 |
+
+  `E_DEC` gave 1.0000 throughout, in both finders, as it must. So PyBDSF is
+  great-circle and Hebog was not, and Hebog now matches.
+- **The change.** `_position_with_errors` no longer divides by cos(dec). The
+  local Jacobian is already east/north, so the tangent-plane variances are
+  great-circle and the division was what made `E_RA` a coordinate error. The
+  pole guard went with it: it existed only to protect that division, and was
+  never covered. A parametrized test pins the property rather than one value —
+  the same pixel covariance must give the same sky error at 0°, −30°, +45°,
+  +60° and +85° — and fails at every non-zero declination on the old code.
+- **A mirror defect the change created, and fixed.**
+  `validation/comparison.py` divided a *coordinate* RA difference by `E_RA`.
+  That was consistent while `E_RA` was a coordinate error and became wrong the
+  moment it was not, inflating the normalized RA residual by 1/cos(dec). The
+  offset is now converted instead. Its unit test had pinned the old pairing
+  and now expresses a one-sigma great-circle offset. Every other reader of
+  `right_ascension_error_degrees` is a passthrough, so nothing else paired the
+  error with a difference.
+- **The conversion helper is gone.** Both finders now publish great-circle, so
+  `great_circle_right_ascension_error_degrees` had no caller left; it and its
+  tests are removed rather than kept as a no-op.
+- **Pull-neutral, as it must be.** The calibration was re-run natively
+  (`--label ra-great-circle-1`, composition `284d2f9a6de5ae06`). Every RA and
+  Dec pull matches the converted-in-script run to four decimals: correlated RA
+  1.0148 / 0.6750, Dec 1.0058 / 0.6719; white RA 0.3478 / 0.9938, Dec 0.3340 /
+  0.9969. The script used to convert and Hebog now publishes natively, so the
+  statistic could not move, and the calibration evidence carries over.
+- **Breaking.** `E_RA` shrinks by cos(dec): 29% at +45°, 43% at +55°. Anyone
+  reading `RA ± E_RA` as a coordinate interval must now divide by cos(dec).
+  The compact-catalogue, Rapthor-contract and compact-astrometry references all
+  state the convention.
+- **Checks.** Unit, contract (2,005 passed, 2 xfailed), integration (669),
+  equivalence (27) and acceptance pass. What this does not establish: the
+  astrometry behaviour of a real high-declination field. The development
+  population is one declination with isolated sources, and the quick-check
+  cut-outs are at +7° and −30°, where the effect is 1–15%. Qualification on a
+  LOFAR field remains open.

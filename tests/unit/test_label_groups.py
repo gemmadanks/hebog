@@ -13,6 +13,7 @@ import pytest
 
 from hebog.algorithms.label_groups import (
     group_labelled_pixels,
+    label_extents,
     label_windows,
 )
 
@@ -130,3 +131,90 @@ def test_a_label_above_the_declared_count_is_rejected() -> None:
     """)
     with pytest.raises(ValueError, match="above the declared label count"):
         group_labelled_pixels(labels, label_count=1)
+
+
+def _scanned_extents(
+    labels: npt.NDArray[np.int32],
+) -> dict[int, tuple[int, int, int, int, tuple[int, int]]]:
+    """Describe each label by scanning the whole plane once per label.
+
+    This is the readable oracle that ``label_extents`` replaces: it costs
+    plane area times label count, and states the intended result directly.
+    """
+    oracle: dict[int, tuple[int, int, int, int, tuple[int, int]]] = {}
+    for value in np.unique(labels):
+        if int(value) <= 0:
+            continue
+        rows, columns = np.nonzero(labels == value)
+        oracle[int(value)] = (
+            int(rows.min()),
+            int(rows.max()) + 1,
+            int(columns.min()),
+            int(columns.max()) + 1,
+            (int(rows[0]), int(columns[0])),
+        )
+    return oracle
+
+
+def _extent_mapping(
+    labels: npt.NDArray[np.int32],
+) -> dict[int, tuple[int, int, int, int, tuple[int, int]]]:
+    """Describe each label through the one-pass kernel, for comparison."""
+    extents = label_extents(labels)
+    return {
+        int(value): (
+            int(extents.y_start[index]),
+            int(extents.y_stop[index]),
+            int(extents.x_start[index]),
+            int(extents.x_stop[index]),
+            (int(extents.first_y[index]), int(extents.first_x[index])),
+        )
+        for index, value in enumerate(extents.values)
+    }
+
+
+def test_extents_bound_each_label_and_name_its_first_pixel() -> None:
+    labels = _labels("""
+        0330
+        0100
+        1002
+    """)
+    assert _extent_mapping(labels) == {
+        1: (1, 3, 0, 2, (1, 1)),
+        2: (2, 3, 3, 4, (2, 3)),
+        3: (0, 1, 1, 3, (0, 1)),
+    }
+
+
+def test_extents_describe_only_the_labels_pixels_carry() -> None:
+    """Global labels are sparse, so gaps must not become empty entries."""
+    labels = _labels("""
+        0090
+        4000
+    """)
+    assert sorted(label_extents(labels).values.tolist()) == [4, 9]
+
+
+def test_extents_of_an_unlabelled_plane_are_empty() -> None:
+    extents = label_extents(np.zeros((3, 4), dtype=np.int32))
+    assert extents.values.size == 0
+    assert extents.first_y.size == 0
+    assert extents.y_stop.size == 0
+
+
+def test_extents_reject_a_plane_that_is_not_two_dimensional() -> None:
+    with pytest.raises(ValueError, match="two-dimensional"):
+        label_extents(np.zeros((2, 2, 2), dtype=np.int32))
+
+
+@pytest.mark.parametrize("seed", range(6))
+def test_extents_agree_with_the_per_label_scan(seed: int) -> None:
+    """The one-pass kernel must equal the scan it replaces, gaps included."""
+    generator = np.random.default_rng(seed)
+    labels = generator.choice(
+        np.array([0, 0, 0, 1, 2, 5, 9, 40], dtype=np.int32),
+        size=(11, 7),
+    ).astype(np.int32)
+    scanned = _scanned_extents(labels)
+    assert len(scanned) > 1
+    assert _extent_mapping(labels) == scanned

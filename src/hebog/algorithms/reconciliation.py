@@ -31,6 +31,7 @@ class DetectedIsland:
     peak_position_yx: tuple[int, int]
     first_pixel_yx: tuple[int, int]
     touches_image_edge: bool
+    peak_response_jy_per_beam: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -234,7 +235,26 @@ def _aggregate_group(
         contains_detection_seed=any(
             item.contains_detection_seed for item in summaries
         ),
+        peak_response_jy_per_beam=_merged_peak_response(summaries),
     )
+
+
+def _merged_peak_response(
+    summaries: tuple[LocalIslandSummary, ...],
+) -> float | None:
+    """Reduce the optional per-fragment response maxima associatively."""
+    responses = tuple(
+        item.peak_response_jy_per_beam
+        for item in summaries
+        if item.peak_response_jy_per_beam is not None
+    )
+    if len(responses) != len(summaries):
+        if responses:
+            raise ValueError(
+                "island fragments must agree on carrying a peak response"
+            )
+        return None
+    return max(responses)
 
 
 @dataclass(frozen=True, slots=True)
@@ -419,6 +439,7 @@ def _reconcile_island_tiles(
             peak_position_yx=summary.peak_position_yx,
             first_pixel_yx=summary.first_pixel_yx,
             touches_image_edge=summary.touches_image_edge,
+            peak_response_jy_per_beam=summary.peak_response_jy_per_beam,
         )
         for global_label, (_, summary) in enumerate(accepted, start=1)
     )

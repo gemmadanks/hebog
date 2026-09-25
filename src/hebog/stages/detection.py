@@ -36,6 +36,7 @@ from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
 from hebog.stages.background import (
     BackgroundRmsGrids,
+    BackgroundRmsTile,
     BackgroundRmsTileRequest,
     MultiscaleSourceProtection,
     estimate_background_rms_grids,
@@ -58,7 +59,7 @@ class _DetectionTileProducts:
     """Compact scheduler result from one first-pass detection tile."""
 
     summary: LocalIslandTileSummary
-    product_chunks: tuple[ProductChunk, ProductChunk]
+    product_chunks: tuple[ProductChunk, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -185,6 +186,7 @@ def _detect_and_write_background_rms(
         request.partition,
         image_shape_yx=image_shape_yx,
     )
+    _require_estimate_covers_image(window, background_rms)
     chunks = (
         sink.write_chunk(
             product_name="background",
@@ -201,6 +203,37 @@ def _detect_and_write_background_rms(
         summary=tile.compact_summary(),
         product_chunks=chunks,
     )
+
+
+def _require_estimate_covers_image(
+    window: ImageWindow,
+    background_rms: BackgroundRmsTile,
+) -> None:
+    """Require a finite mean and noise wherever this core carries an image.
+
+    The image is the pixels whose brightness is finite, which is what the
+    composition measures; the source's own ``valid_pixels`` narrow detection
+    but not that domain. Every later pass measures inside it, so the
+    estimate has to cover the image rather than narrow it: a pixel the image
+    defines and the estimate does not would be silently dropped from the
+    science instead of reported. Holding this on the core that computed the
+    estimate is what lets the validity planes be derived from the image
+    alone.
+
+    Raises:
+        ValueError: If the estimate is not finite wherever the image is.
+    """
+    finite_image = np.isfinite(window.values)
+    covered = (
+        finite_image
+        & np.isfinite(background_rms.background)
+        & np.isfinite(background_rms.rms)
+    )
+    if np.any(finite_image != covered):
+        raise ValueError(
+            "background/RMS validity differs from the image on tile "
+            f"{window.bounds}"
+        )
 
 
 def _write_source_filtering_mask(

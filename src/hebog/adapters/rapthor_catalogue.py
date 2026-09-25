@@ -3,7 +3,15 @@
 # pyright: reportUnknownArgumentType=false
 # pyright: reportUnknownMemberType=false
 # pyright: reportUnknownVariableType=false
-"""Minimal deterministic PyBDSF-style catalogue view consumed by Rapthor."""
+"""Minimal deterministic PyBDSF-style catalogue view consumed by Rapthor.
+
+``Total_flux`` carries the source flux the public catalogue publishes. For
+the continuum profile that is the sum of the source's fitted Gaussian
+components, which is how PyBDSF defines it and what Rapthor's photometry
+check compares against; a source with no admitted fit falls back to its
+signed aperture. ``Isl_Total_flux`` remains the island sum, which Rapthor
+carries only through the astrometry check.
+"""
 
 from __future__ import annotations
 

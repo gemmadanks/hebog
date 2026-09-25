@@ -6,8 +6,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
-from math import ceil
+from math import ceil, fsum, sqrt
 from typing import Any, Literal, cast
 
 import numpy as np
@@ -18,29 +19,22 @@ from astropy.wcs import WCS
 from hebog.algorithms.astrometry import (
     deconvolve_gaussian_shapes,
     local_tangent_plane_transform_from_wcs,
+    local_tangent_plane_transforms_from_wcs,
     moment_equivalent_gaussian_shape,
     restoring_beam_in_icrs,
+    restoring_beams_in_icrs,
     transform_compact_fit_at_tangent,
 )
 from hebog.algorithms.component_measurement import ComponentMeasurements
 from hebog.algorithms.extended_measurement import (
     DetectedSegmentPosition,
     SegmentWindow,
-    assign_persistent_source_support,
     expand_detected_segment_labels,
     expand_source_measurement_labels,
     measure_detected_segment_position,
 )
 from hebog.algorithms.label_groups import label_windows
-from hebog.algorithms.multiscale_association import (
-    ScaleDetectionPlane,
-    persistent_adjacent_scale_support,
-)
-from hebog.algorithms.source_association import (
-    associate_components_by_multiscale_hierarchy,
-    build_detection_component_records,
-    constrain_source_memberships,
-)
+from hebog.data_models.astrometry import LocalTangentPlaneTransform
 from hebog.data_models.catalogues import GaussianShape
 from hebog.data_models.fitting import ValidCompactGaussianFit
 from hebog.data_models.images import RestoringBeam
@@ -60,19 +54,17 @@ _PLANE_DIMENSIONS = 2
 _MINIMUM_MOMENT_PIXELS = 3
 
 
-def _validated_hebog_segment_planes(
-    image_jy_per_beam: npt.ArrayLike,
-    background_jy_per_beam: npt.ArrayLike,
+def _validated_segment_labels(
     valid_pixels: npt.ArrayLike,
     component_labels: npt.ArrayLike,
-) -> tuple[
-    npt.NDArray[np.float64],
-    npt.NDArray[np.bool_],
-    npt.NDArray[np.int64],
-]:
-    """Return aligned residual, validity, and exact segment labels."""
-    image = np.asarray(image_jy_per_beam, dtype=np.float64)
-    background = np.asarray(background_jy_per_beam, dtype=np.float64)
+) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.int64]]:
+    """Return validity and exact segment labels, checked against each other.
+
+    A caller that measures nothing needs no image or background: the labels
+    and the validity plane carry every shape this has to agree with.
+    :func:`_validated_hebog_segment_planes` adds the residual and the planes
+    it is computed from.
+    """
     valid = np.asarray(valid_pixels, dtype=np.bool_)
     label_values = np.asarray(component_labels)
     if label_values.ndim != _PLANE_DIMENSIONS or not np.issubdtype(
@@ -84,15 +76,28 @@ def _validated_hebog_segment_planes(
         )
     if np.any(label_values < 0):
         raise ValueError("component labels must be non-negative")
+    if label_values.shape != valid.shape:
+        raise ValueError("Hebog segment labels must match the image")
+    return valid, np.asarray(label_values, dtype=np.int64)
+
+
+def _validated_hebog_segment_planes(
+    image_jy_per_beam: npt.ArrayLike,
+    background_jy_per_beam: npt.ArrayLike,
+    valid_pixels: npt.ArrayLike,
+    component_labels: npt.ArrayLike,
+) -> tuple[
+    npt.NDArray[np.float64],
+    npt.NDArray[np.bool_],
+    npt.NDArray[np.int64],
+]:
+    """Return aligned residual, validity, and exact segment labels."""
+    valid, labels = _validated_segment_labels(valid_pixels, component_labels)
+    image = np.asarray(image_jy_per_beam, dtype=np.float64)
+    background = np.asarray(background_jy_per_beam, dtype=np.float64)
     if image.shape != background.shape or image.shape != valid.shape:
         raise ValueError("Hebog segment planes must share one shape")
-    if label_values.shape != image.shape:
-        raise ValueError("Hebog segment labels must match the image")
-    return (
-        np.where(valid, image - background, np.nan),
-        valid,
-        np.asarray(label_values, dtype=np.int64),
-    )
+    return np.where(valid, image - background, np.nan), valid, labels
 
 
 def _validated_position_signal(
@@ -375,94 +380,211 @@ def build_hebog_segment_catalogue(  # noqa: PLR0913
         int(item) for item in np.unique(labels) if item > 0
     ):
         crop = _segment_crop(segment_windows, aperture_windows, label_value)
-        window = SegmentWindow(
-            origin_yx=(crop[0].start, crop[1].start),
-            plane_shape_yx=residual.shape,
+        row = build_segment_row(
+            residual[crop],
+            None if position_signal is None else position_signal[crop],
+            valid[crop],
+            centroid_labels[crop],
+            measurement_labels[crop],
+            background[crop],
+            celestial_wcs,
+            label_value=label_value,
+            window=SegmentWindow(
+                origin_yx=(crop[0].start, crop[1].start),
+                plane_shape_yx=residual.shape,
+            ),
+            beam_area_pixels=beam_area_pixels,
+            denoised_position_maximum_peak_to_mean_ratio=(
+                denoised_position_maximum_peak_to_mean_ratio
+            ),
+            position_diagnostics=position_diagnostics,
         )
-        residual_window = residual[crop]
-        position_signal_window = (
-            None if position_signal is None else position_signal[crop]
-        )
-        support = (
-            (centroid_labels[crop] == label_value)
-            & valid[crop]
-            & np.isfinite(residual_window)
-        )
-        estimate = _segment_position(
+        if row is not None:
+            output.append(row)
+    return tuple(output)
+
+
+@dataclass(frozen=True, slots=True)
+class SegmentRowMeasurement:
+    """One segment's measured row, before its centroid has a sky position.
+
+    ``centroid_xy`` is where the row's coordinate belongs, in the image's
+    pixel frame, so a caller measuring many segments takes every centroid
+    first and converts them together; see :func:`segment_row_at`.
+    """
+
+    label_value: int
+    centroid_xy: tuple[float, float]
+    peak_flux_jy_per_beam: float
+    integrated_flux_jy: float
+    quality_flags: tuple[str, ...]
+
+
+def measure_segment_row(  # noqa: PLR0913, PLR0917
+    residual_window: npt.NDArray[np.float64],
+    position_signal_window: npt.NDArray[np.float64] | None,
+    valid_window: npt.NDArray[np.bool_],
+    centroid_window: npt.NDArray[np.int64],
+    aperture_window: npt.NDArray[np.int32],
+    background_window: npt.NDArray[np.float64],
+    *,
+    label_value: int,
+    window: SegmentWindow,
+    beam_area_pixels: float,
+    denoised_position_maximum_peak_to_mean_ratio: float,
+    position_diagnostics: dict[int, SourcePositionDiagnostics] | None = None,
+) -> SegmentRowMeasurement | None:
+    """Measure one segment's catalogue row inside its own window.
+
+    Every array covers that segment's exact support joined with its expanded
+    aperture, which is the window :func:`_segment_crop` returns, so this work
+    costs the segment's own pixels rather than the plane around it. Absence
+    means the segment has no measurable row, not an error.
+
+    This is the half that reads pixels. It needs no WCS, so the sky
+    coordinate its centroid earns is a separate step.
+    """
+    support = (
+        (centroid_window == label_value)
+        & valid_window
+        & np.isfinite(residual_window)
+    )
+    estimate = _segment_position(
+        residual_window,
+        position_signal_window,
+        support,
+        maximum_peak_to_mean_ratio=(
+            denoised_position_maximum_peak_to_mean_ratio
+        ),
+        window=window,
+    )
+    measurement_support = aperture_window == label_value
+    integrated_weight = float(
+        np.sum(residual_window[measurement_support], dtype=np.float64)
+    )
+    # Emission this segment owns that no fitted model accounts for. A source
+    # whose flux is the sum of its fits would otherwise lose it, because the
+    # fits describe the compact parts and nothing describes the rest. This is
+    # the residual after the models, not the residual outside their support:
+    # a fit's support is the region it measured over, which covers emission
+    # its model does not explain.
+    if position_diagnostics is not None:
+        position_diagnostics[label_value] = _position_attribution(
             residual_window,
             position_signal_window,
             support,
-            maximum_peak_to_mean_ratio=(
-                denoised_position_maximum_peak_to_mean_ratio
-            ),
-            window=window,
+            measurement_support,
+            background_window,
+            estimate,
+            integrated_weight / beam_area_pixels,
+            window,
         )
-        measurement_support = measurement_labels[crop] == label_value
+    if not estimate.available or estimate.centroid_xy is None:
+        return None
+    quality_flags: tuple[str, ...] = ()
+    if not np.isfinite(integrated_weight) or integrated_weight <= 0.0:
+        exact_positive_support = support & (residual_window > 0.0)
         integrated_weight = float(
-            np.sum(residual_window[measurement_support], dtype=np.float64)
-        )
-        if position_diagnostics is not None:
-            position_diagnostics[label_value] = _position_attribution(
-                residual_window,
-                position_signal_window,
-                support,
-                measurement_support,
-                background[crop],
-                estimate,
-                integrated_weight / beam_area_pixels,
-                window,
-            )
-        if not estimate.available or estimate.centroid_xy is None:
-            continue
-        quality_flags: tuple[str, ...] = ()
-        if not np.isfinite(integrated_weight) or integrated_weight <= 0.0:
-            exact_positive_support = support & (residual_window > 0.0)
-            integrated_weight = float(
-                np.sum(
-                    residual_window[exact_positive_support],
-                    dtype=np.float64,
-                )
-            )
-            quality_flags = (
-                "association-aperture-nonpositive",
-                "exact-owner-positive-residual-flux",
-            )
-        if not np.isfinite(integrated_weight) or integrated_weight <= 0.0:
-            continue
-        integrated_flux = integrated_weight / beam_area_pixels
-        peak_flux = float(np.max(residual_window[support]))
-        position = cast(
-            Any, celestial_wcs.pixel_to_world(*estimate.centroid_xy)
-        ).icrs
-        identifier = f"hebog-segment-{label_value}"
-        output.append(
-            CatalogueSource(
-                identifier=identifier,
-                right_ascension_degrees=float(position.ra.deg),
-                declination_degrees=float(position.dec.deg),
-                peak_flux_jy_per_beam=peak_flux,
-                integrated_flux_jy=integrated_flux,
-                association_integrated_flux_jy=integrated_flux,
-                deconvolution_status="unavailable",
-                island_identifier=identifier,
-                component_count=1,
-                quality_flags=tuple(
-                    sorted(
-                        {
-                            *quality_flags,
-                            f"position-{estimate.weighting}",
-                            "positive-exact-owner-flux"
-                            if "exact-owner-positive-residual-flux"
-                            in quality_flags
-                            else "source-owned-signed-aperture",
-                            "aperture-flux-uncertainty-unavailable",
-                            "position-uncertainty-unavailable",
-                        }
-                    )
-                ),
+            np.sum(
+                residual_window[exact_positive_support],
+                dtype=np.float64,
             )
         )
-    return tuple(output)
+        quality_flags = (
+            "association-aperture-nonpositive",
+            "exact-owner-positive-residual-flux",
+        )
+    if not np.isfinite(integrated_weight) or integrated_weight <= 0.0:
+        return None
+    return SegmentRowMeasurement(
+        label_value=label_value,
+        centroid_xy=estimate.centroid_xy,
+        peak_flux_jy_per_beam=float(np.max(residual_window[support])),
+        integrated_flux_jy=integrated_weight / beam_area_pixels,
+        quality_flags=tuple(
+            sorted(
+                {
+                    *quality_flags,
+                    f"position-{estimate.weighting}",
+                    "positive-exact-owner-flux"
+                    if "exact-owner-positive-residual-flux" in quality_flags
+                    else "source-owned-signed-aperture",
+                    "aperture-flux-uncertainty-unavailable",
+                    "position-uncertainty-unavailable",
+                }
+            )
+        ),
+    )
+
+
+def segment_row_at(
+    measurement: SegmentRowMeasurement,
+    *,
+    right_ascension_degrees: float,
+    declination_degrees: float,
+) -> CatalogueSource:
+    """Return one measured row at the sky position its centroid earns."""
+    identifier = f"hebog-segment-{measurement.label_value}"
+    return CatalogueSource(
+        identifier=identifier,
+        right_ascension_degrees=right_ascension_degrees,
+        declination_degrees=declination_degrees,
+        peak_flux_jy_per_beam=measurement.peak_flux_jy_per_beam,
+        integrated_flux_jy=measurement.integrated_flux_jy,
+        association_integrated_flux_jy=measurement.integrated_flux_jy,
+        deconvolution_status="unavailable",
+        island_identifier=identifier,
+        component_count=1,
+        quality_flags=measurement.quality_flags,
+    )
+
+
+def build_segment_row(  # noqa: PLR0913, PLR0917
+    residual_window: npt.NDArray[np.float64],
+    position_signal_window: npt.NDArray[np.float64] | None,
+    valid_window: npt.NDArray[np.bool_],
+    centroid_window: npt.NDArray[np.int64],
+    aperture_window: npt.NDArray[np.int32],
+    background_window: npt.NDArray[np.float64],
+    celestial_wcs: WCS,
+    *,
+    label_value: int,
+    window: SegmentWindow,
+    beam_area_pixels: float,
+    denoised_position_maximum_peak_to_mean_ratio: float,
+    position_diagnostics: dict[int, SourcePositionDiagnostics] | None = None,
+) -> CatalogueSource | None:
+    """Measure and place one segment's row, one segment at a time.
+
+    This is the readable reference for the batched path in
+    :mod:`hebog.stages.catalogue_rows`, which converts every centroid of a
+    batch together.
+    """
+    measurement = measure_segment_row(
+        residual_window,
+        position_signal_window,
+        valid_window,
+        centroid_window,
+        aperture_window,
+        background_window,
+        label_value=label_value,
+        window=window,
+        beam_area_pixels=beam_area_pixels,
+        denoised_position_maximum_peak_to_mean_ratio=(
+            denoised_position_maximum_peak_to_mean_ratio
+        ),
+        position_diagnostics=position_diagnostics,
+    )
+    if measurement is None:
+        return None
+    position = cast(
+        Any, celestial_wcs.pixel_to_world(*measurement.centroid_xy)
+    ).icrs
+    return segment_row_at(
+        measurement,
+        right_ascension_degrees=float(position.ra.deg),
+        declination_degrees=float(position.dec.deg),
+    )
 
 
 def _catalogue_ellipse(shape: GaussianShape) -> CatalogueEllipse:
@@ -528,49 +650,62 @@ def _segment_pixel_moment_covariance(
     return (centroid_x, centroid_y), covariance
 
 
-def _moment_shape_fields(
+_MOMENT_SHAPE_PROVENANCE = "segment-moment-equivalent-shape"
+
+
+def unavailable_moment_shape_fields() -> dict[str, object]:
+    """Return the fields of a segment whose shape cannot be measured."""
+    return {
+        "fitted_shape": None,
+        "deconvolved_shape": None,
+        "deconvolved_major_fwhm_degrees": None,
+        "deconvolution_status": "unavailable",
+        "quality_flags": (_MOMENT_SHAPE_PROVENANCE, "shape-unavailable"),
+    }
+
+
+def segment_moment(
     residual_jy_per_beam: npt.NDArray[np.float64],
     support: npt.NDArray[np.bool_],
-    celestial_wcs: WCS,
-    beam: RestoringBeam,
     window: SegmentWindow | None = None,
-) -> dict[str, object]:
-    """Return catalogue fields for one moment-equivalent owner shape."""
-    moment = _segment_pixel_moment_covariance(
+) -> tuple[tuple[float, float], npt.NDArray[np.float64]] | None:
+    """Return one segment's weighted centroid and covariance, or ``None``.
+
+    This is the half of a moment shape that reads pixels. Its centroid is
+    where the shape's local geometry belongs, so a caller measuring many
+    segments takes every centroid first and transforms them together; see
+    :func:`moment_shape_fields_at`.
+    """
+    return _segment_pixel_moment_covariance(
         residual_jy_per_beam,
         support,
         window=window,
     )
-    provenance = "segment-moment-equivalent-shape"
-    if moment is None:
-        return {
-            "fitted_shape": None,
-            "deconvolved_shape": None,
-            "deconvolved_major_fwhm_degrees": None,
-            "deconvolution_status": "unavailable",
-            "quality_flags": (provenance, "shape-unavailable"),
-        }
-    centroid_xy, covariance = moment
+
+
+def moment_shape_fields_at(
+    moment: tuple[tuple[float, float], npt.NDArray[np.float64]],
+    *,
+    transform: LocalTangentPlaneTransform,
+    beam_icrs: RestoringBeam,
+) -> dict[str, object]:
+    """Return catalogue fields for one moment under its own local geometry.
+
+    ``transform`` and ``beam_icrs`` belong to this moment's centroid. A
+    moment the local geometry cannot describe is reported as unavailable,
+    exactly as an unmeasurable one is.
+    """
+    _, covariance = moment
     try:
-        transform = local_tangent_plane_transform_from_wcs(
-            celestial_wcs,
-            centroid_xy,
-        )
         fitted = moment_equivalent_gaussian_shape(covariance, transform)
         deconvolution = deconvolve_gaussian_shapes(
             fitted,
-            restoring_beam_in_icrs(beam, celestial_wcs, centroid_xy),
+            beam_icrs,
             relative_tolerance=1e-10,
         )
     except (TypeError, ValueError, np.linalg.LinAlgError):
-        return {
-            "fitted_shape": None,
-            "deconvolved_shape": None,
-            "deconvolved_major_fwhm_degrees": None,
-            "deconvolution_status": "unavailable",
-            "quality_flags": (provenance, "shape-unavailable"),
-        }
-    flags = {provenance}
+        return unavailable_moment_shape_fields()
+    flags = {_MOMENT_SHAPE_PROVENANCE}
     if deconvolution.status in {"major-axis-only", "unresolved"}:
         flags.update(deconvolution.quality_flags)
     return {
@@ -586,6 +721,35 @@ def _moment_shape_fields(
         "deconvolution_status": deconvolution.status,
         "quality_flags": tuple(sorted(flags)),
     }
+
+
+def _moment_shape_fields(
+    residual_jy_per_beam: npt.NDArray[np.float64],
+    support: npt.NDArray[np.bool_],
+    celestial_wcs: WCS,
+    beam: RestoringBeam,
+    window: SegmentWindow | None = None,
+) -> dict[str, object]:
+    """Return catalogue fields for one moment-equivalent owner shape.
+
+    This measures and transforms one segment at a time, and is the readable
+    reference for the batched path in :mod:`hebog.stages.catalogue_rows`.
+    """
+    moment = segment_moment(residual_jy_per_beam, support, window)
+    if moment is None:
+        return unavailable_moment_shape_fields()
+    centroid_xy, _ = moment
+    try:
+        transform = local_tangent_plane_transform_from_wcs(
+            celestial_wcs,
+            centroid_xy,
+        )
+        beam_icrs = restoring_beam_in_icrs(beam, celestial_wcs, centroid_xy)
+    except (TypeError, ValueError):
+        return unavailable_moment_shape_fields()
+    return moment_shape_fields_at(
+        moment, transform=transform, beam_icrs=beam_icrs
+    )
 
 
 def build_hebog_segment_moment_catalogue(  # noqa: PLR0913
@@ -695,52 +859,65 @@ class AssociatedMomentCatalogues:
     source_catalogue: tuple[CatalogueSource, ...]
     association: SourceAssociationResult
     measurement_dispositions: tuple[MeasurementDisposition, ...] = ()
-    support_stages: tuple[tuple[str, npt.NDArray[np.bool_]], ...] = ()
 
 
-def _source_label_plane(
-    labels: npt.NDArray[np.int64],
+def source_label_by_owner(
     association: SourceAssociationResult,
-) -> tuple[
-    npt.NDArray[np.int32],
-    dict[int, CatalogueSourceMembership],
-]:
-    """Map immutable component owners to canonical source-local labels."""
+) -> dict[int, int]:
+    """Map each immutable component owner to its canonical source label."""
     records_by_id = {
         item.component_id: item for item in association.components
     }
-    output = np.zeros(labels.shape, dtype=np.int32)
-    memberships_by_label: dict[int, CatalogueSourceMembership] = {}
-    for source_label, membership in enumerate(
-        association.memberships,
-        start=1,
-    ):
-        component_labels = tuple(
-            records_by_id[component_id].label_value
-            for component_id in membership.component_ids
+    return {
+        records_by_id[component_id].label_value: source_label
+        for source_label, membership in enumerate(
+            association.memberships, start=1
         )
-        output[np.isin(labels, component_labels)] = source_label
-        memberships_by_label[source_label] = membership
-    if np.any((labels > 0) & (output == 0)):
+        for component_id in membership.component_ids
+    }
+
+
+def _require_valid_source_label_plane(
+    values: npt.ArrayLike,
+    labels: npt.NDArray[np.int64],
+    association: SourceAssociationResult,
+    *,
+    seeded: bool = True,
+) -> None:
+    """Reject one published source plane that disagrees with the memberships.
+
+    The plane itself is not returned: nothing downstream reads it, and
+    materialising an image-sized copy to discard would scale with the image
+    rather than the tile.
+    """
+    plane = np.asarray(values)
+    if (
+        plane.ndim != labels.ndim
+        or plane.shape != labels.shape
+        or not np.issubdtype(plane.dtype, np.integer)
+        or bool(np.any(plane < 0))
+    ):
+        raise ValueError(
+            "source labels must be one aligned non-negative integer plane"
+        )
+    if bool(np.any(plane > len(association.memberships))):
+        raise ValueError("source labels must name a published membership")
+    if seeded and bool(np.any((labels > 0) & (plane == 0))):
         raise ValueError("source memberships must own every component pixel")
-    return output, memberships_by_label
 
 
 def _fitted_component_row(
     index: int,
     fitted: ValidCompactGaussianFit,
-    header: fits.Header,
-    wcs: WCS,
+    beam: RestoringBeam,
+    tangent: LocalTangentPlaneTransform,
 ) -> CatalogueSource:
-    """Publish native model measurements, not threshold-truncated moments."""
-    beam = RestoringBeam(
-        cast(float, header["BMAJ"]),
-        cast(float, header["BMIN"]),
-        cast(float, header.get("BPA", 0.0)),
-    )
-    position = fitted.parameters.centroid_xy
-    tangent = local_tangent_plane_transform_from_wcs(wcs, position)
-    beam = restoring_beam_in_icrs(beam, wcs, position)
+    """Publish native model measurements, not threshold-truncated moments.
+
+    ``beam`` and ``tangent`` are this fit's own local geometry, which the
+    caller derives for every fit in one conversion; see
+    :func:`~hebog.algorithms.astrometry.local_tangent_plane_transforms_from_wcs`.
+    """
     sky = transform_compact_fit_at_tangent(fitted, beam, tangent)
     return CatalogueSource(
         identifier=f"hebog-segment-{index}",
@@ -774,12 +951,32 @@ def _apply_component_measurements(
         return sources, set()
     # Parse the header once: each WCS parse repeats Astropy header fixes.
     wcs = WCS(header, relax=True).celestial
-    replacements = {
-        f"hebog-segment-{index}": _fitted_component_row(
-            index, fitted, header, wcs
-        )
+    native_beam = RestoringBeam(
+        cast(float, header["BMAJ"]),
+        cast(float, header["BMIN"]),
+        cast(float, header.get("BPA", 0.0)),
+    )
+    fitted_rows = tuple(
+        (index, fitted)
         for index, fitted in measurements.fits
         if isinstance(fitted, ValidCompactGaussianFit)
+    )
+    # One conversion for every fit. Astropy pays its frame machinery per
+    # call, so transforming each centroid on its own costs more here than
+    # the rest of the catalogue together.
+    positions = tuple(
+        fitted.parameters.centroid_xy for _, fitted in fitted_rows
+    )
+    replacements = {
+        f"hebog-segment-{index}": _fitted_component_row(
+            index, fitted, beam, tangent
+        )
+        for (index, fitted), beam, tangent in zip(
+            fitted_rows,
+            restoring_beams_in_icrs(native_beam, wcs, positions),
+            local_tangent_plane_transforms_from_wcs(wcs, positions),
+            strict=True,
+        )
     }
     return (
         tuple(
@@ -901,9 +1098,7 @@ def _measurement_dispositions(
                 object_kind="source",
                 object_id=membership.source_id,
                 status="unavailable" if row is None else "measured",
-                estimator=None
-                if row is None
-                else "source-owned-signed-aperture",
+                estimator=_source_estimator(row),
                 reason="non-positive-or-unavailable-signed-measurement"
                 if row is None
                 else None,
@@ -921,6 +1116,47 @@ def _measurement_dispositions(
             dispositions, key=lambda item: (item.object_kind, item.object_id)
         )
     )
+
+
+def _source_estimator(
+    row: CatalogueSource | None,
+) -> (
+    Literal["source-owned-signed-aperture", "summed-fitted-component-flux"]
+    | None
+):
+    """Name the estimator that produced a published source's flux.
+
+    A continuum source's flux is the sum of its fitted components, except
+    where it has none and falls back to the aperture it was measured in.
+    The disposition records which, because the two describe different
+    quantities: the aperture is observable flux, the sum integrates each
+    fitted model over the whole plane.
+    """
+    if row is None:
+        return None
+    if "aperture-flux-without-fitted-component" in row.quality_flags:
+        return "source-owned-signed-aperture"
+    return "summed-fitted-component-flux"
+
+
+def _summed_fitted_component_flux(
+    components: tuple[CatalogueSource, ...],
+) -> tuple[float, float | None]:
+    """Return a source's summed fitted flux and its uncertainty.
+
+    PyBDSF defines a source's total flux as the sum of its Gaussians, and
+    Rapthor's photometry check compares Hebog against catalogues built that
+    way, so the continuum source flux follows the same definition.
+
+    The uncertainty is the quadrature sum, which treats the component fits as
+    independent. It is published only when every component publishes one,
+    because a partial sum would understate the total.
+    """
+    total = fsum(component.integrated_flux_jy for component in components)
+    errors = [component.integrated_flux_error_jy for component in components]
+    if any(error is None for error in errors):
+        return total, None
+    return total, sqrt(fsum(error * error for error in errors if error))
 
 
 def _reconstructed_source_rows(
@@ -991,46 +1227,63 @@ def _reconstructed_source_rows(
             for component_id in membership.component_ids
         ):
             flags.add("ambiguous-multiscale-parent")
+        fitted_members = tuple(
+            component
+            for component_id in membership.component_ids
+            for component in (by_id.get(component_id),)
+            if component is not None
+            and "original-pixel-gaussian-model" in component.quality_flags
+        )
+        integrated_flux_jy = source.integrated_flux_jy
+        integrated_flux_error_jy = source.integrated_flux_error_jy
+        if require_signed_aperture:
+            if fitted_members:
+                integrated_flux_jy, integrated_flux_error_jy = (
+                    _summed_fitted_component_flux(fitted_members)
+                )
+            else:
+                flags.add("aperture-flux-without-fitted-component")
         output.append(
             replace(
                 source,
                 identifier=membership.source_id,
                 island_identifier=membership.source_id,
                 component_count=len(membership.component_ids),
+                integrated_flux_jy=integrated_flux_jy,
+                integrated_flux_error_jy=integrated_flux_error_jy,
                 quality_flags=tuple(sorted(flags)),
             )
         )
     return tuple(sorted(output, key=lambda item: item.identifier))
 
 
-def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
-    image_jy_per_beam: npt.ArrayLike,
-    background_jy_per_beam: npt.ArrayLike,
+def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913
     valid_pixels: npt.ArrayLike,
     measurement_component_labels: npt.ArrayLike,
     direct_component_labels: npt.ArrayLike,
-    significant_multiscale_support: npt.ArrayLike,
-    scale_detection_planes: tuple[ScaleDetectionPlane, ...],
     header: fits.Header,
     *,
-    beam_major_fwhm_pixels: float,
-    beam_minor_fwhm_pixels: float,
-    measurement_aperture_radius_beams: float = 4.0,
-    position_signal_jy_per_beam: npt.ArrayLike | None = None,
-    denoised_position_maximum_peak_to_mean_ratio: float = 3.0,
     component_measurements: ComponentMeasurements | None = None,
+    association: SourceAssociationResult,
+    hierarchy: SourceAssociationResult,
+    source_labels: npt.ArrayLike,
+    source_measurement_labels: npt.ArrayLike,
+    component_rows: tuple[CatalogueSource, ...],
+    source_rows: tuple[CatalogueSource, ...],
+    source_positions: Mapping[int, SourcePositionDiagnostics],
 ) -> AssociatedMomentCatalogues:
-    """Measure each common-parent catalogue source exactly once.
+    """Assemble each common-parent catalogue source exactly once.
 
     Direct seed labels define hierarchy identity. Recovered measurement labels
     define masks and apertures. Immutable component measurements remain
     diagnostic. Binding source rows are measured from a source-label plane
     before aperture expansion, so every observable pixel belongs to at most one
     source aperture.
+
+    Every row this assembles was already measured, by the stage that held the
+    window it was measured in, so this takes no image or background plane.
     """
-    residual, valid, labels = _validated_hebog_segment_planes(
-        image_jy_per_beam,
-        background_jy_per_beam,
+    valid, labels = _validated_segment_labels(
         valid_pixels,
         measurement_component_labels,
     )
@@ -1057,86 +1310,22 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
         raise ValueError(
             "direct and measurement component identities must match"
         )
-    component_sources = build_hebog_segment_moment_catalogue(
-        image_jy_per_beam,
-        background_jy_per_beam,
-        valid,
-        labels,
-        header,
-        beam_major_fwhm_pixels=beam_major_fwhm_pixels,
-        beam_minor_fwhm_pixels=beam_minor_fwhm_pixels,
-        measurement_aperture_radius_beams=measurement_aperture_radius_beams,
-        position_signal_jy_per_beam=position_signal_jy_per_beam,
-        denoised_position_maximum_peak_to_mean_ratio=(
-            denoised_position_maximum_peak_to_mean_ratio
-        ),
-    )
-    records = build_detection_component_records(direct, residual, valid)
     component_sources, _ = _apply_component_measurements(
-        component_sources,
+        component_rows,
         component_measurements,
         header,
     )
-    association = associate_components_by_multiscale_hierarchy(
-        records,
-        direct,
-        scale_detection_planes,
-        valid,
-        significant_multiscale_support=significant_multiscale_support,
-    )
-    hierarchy = association
-    if component_measurements is not None:
-        association = constrain_source_memberships(
-            association,
-            (
-                *component_measurements.compact_groups,
-                *component_measurements.extended_groups,
-            ),
-        )
     stable_components = _stable_component_catalogue(
         component_sources,
         association,
     )
-    source_labels, membership_by_label = _source_label_plane(
-        labels,
-        association,
+    _require_valid_source_label_plane(source_labels, labels, association)
+    _require_valid_source_label_plane(
+        source_measurement_labels, labels, association, seeded=False
     )
-    persistent_support = persistent_adjacent_scale_support(
-        scale_detection_planes
-    )
-    if (
-        component_measurements is not None
-        and component_measurements.measurement_support is not None
-    ):
-        persistent_support = (
-            persistent_support | component_measurements.measurement_support
-        )
-    source_measurement_labels = assign_persistent_source_support(
-        source_labels,
-        persistent_support,
-        valid,
-    )
-    source_positions: dict[int, SourcePositionDiagnostics] = {}
-    measured_sources = build_hebog_segment_moment_catalogue(
-        image_jy_per_beam,
-        background_jy_per_beam,
-        valid,
-        source_measurement_labels,
-        header,
-        beam_major_fwhm_pixels=beam_major_fwhm_pixels,
-        beam_minor_fwhm_pixels=beam_minor_fwhm_pixels,
-        measurement_aperture_radius_beams=measurement_aperture_radius_beams,
-        position_signal_jy_per_beam=position_signal_jy_per_beam,
-        denoised_position_maximum_peak_to_mean_ratio=(
-            denoised_position_maximum_peak_to_mean_ratio
-        ),
-        aperture_tie_policy="canonical-source",
-        # Measurement-only wings extend flux, not source-position support.
-        position_labels=source_labels,
-        position_diagnostics=source_positions,
-    )
+    membership_by_label = dict(enumerate(association.memberships, start=1))
     output = _reconstructed_source_rows(
-        measured_sources,
+        source_rows,
         stable_components,
         membership_by_label,
         association,
@@ -1148,29 +1337,6 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
         raise ValueError(
             "reconstructed source has no measurable catalogue row"
         )
-    support_stages = (
-        (
-            ("persistent", persistent_support),
-            ("source-union", source_labels > 0),
-            ("source-owned-persistent", source_measurement_labels > 0),
-            (
-                "source-measurement",
-                expand_source_measurement_labels(
-                    source_measurement_labels,
-                    valid,
-                    radius_pixels=ceil(
-                        measurement_aperture_radius_beams
-                        * beam_major_fwhm_pixels
-                    ),
-                )
-                > 0,
-            ),
-        )
-        if component_measurements is not None
-        else ()
-    )
-    for _, mask in support_stages:
-        mask.setflags(write=False)
     return AssociatedMomentCatalogues(
         component_catalogue=stable_components
         if component_measurements is None
@@ -1181,7 +1347,6 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
         ),
         source_catalogue=output,
         association=association,
-        support_stages=support_stages,
         measurement_dispositions=()
         if component_measurements is None
         else (

@@ -12,7 +12,7 @@ that binds the function, so a call through an imported alias is timed as
 its own stage; no Hebog code changes. ``--cprofile`` additionally writes a
 ``cProfile`` statistics file, which sees only the calling thread and slows
 Python-heavy code, so stage times come from runs without it.
-``--diagnostic-size-limit`` raises the public 1,024-pixel limit inside this
+``--diagnostic-size-limit`` raises the public 3,000-pixel limit inside this
 process only, as in the quick-benchmark worker.
 
 Stage timing needs the POSIX ``resource`` module, so this worker runs on
@@ -96,35 +96,109 @@ _STAGES = (
         "Zarr plane read",
     ),
     (
+        "hebog.public_api",
+        "detect_multiscale_products",
+        "tiled multiscale detection pass",
+    ),
+    (
+        "hebog.stages.multiscale",
+        "run_multiscale_stage",
+        "multiscale filters, thresholds and labelling",
+    ),
+    (
+        "hebog.stages.multiscale",
+        "_publish_scale_labels",
+        "reconciled per-scale feature labels",
+    ),
+    (
         "hebog.public_science",
         "build_configured_continuum_products",
         "continuum science",
     ),
     (
-        "hebog.public_science",
-        "evaluate_continuum_candidate_products",
-        "multiscale candidate products",
+        "hebog.public_api",
+        "reduce_support_topology",
+        "support component and persistence reductions",
+    ),
+    (
+        "hebog.public_api",
+        "publish_support_labels",
+        "tiled support pass",
+    ),
+    (
+        "hebog.stages.publication",
+        "run_publication_stage",
+        "owner connectivity and final labels",
     ),
     (
         "hebog.public_science",
-        "_retain_configured_islands",
-        "island size limits",
-    ),
-    ("hebog.public_science", "deblend_component_topology", "deblending"),
-    (
-        "hebog.public_science",
-        "measure_component_models",
-        "component moments and fitting",
+        "build_continuum_detection",
+        "candidate products from published planes",
     ),
     (
-        "hebog.public_science",
-        "evaluate_residual_atrous",
-        "position filter transform",
+        "hebog.public_api",
+        "publish_component_topology",
+        "tiled component topology",
     ),
     (
-        "hebog.public_science",
-        "reconstruct_denoised_atrous",
-        "position filter reconstruction",
+        "hebog.stages.objects",
+        "run_component_topology_stage",
+        "per-parent deblending",
+    ),
+    (
+        "hebog.public_api",
+        "publish_component_fits",
+        "tiled component fits",
+    ),
+    (
+        "hebog.stages.objects",
+        "run_fit_parent_stage",
+        "fit-context reconciliation",
+    ),
+    (
+        "hebog.stages.objects",
+        "run_component_fit_stage",
+        "per-parent moments and fitting",
+    ),
+    (
+        "hebog.stages.objects",
+        "run_extended_group_stage",
+        "per-feature cross-parent grouping",
+    ),
+    (
+        "hebog.public_api",
+        "publish_source_planes",
+        "tiled source labels and owned support",
+    ),
+    (
+        "hebog.public_api",
+        "publish_segment_rows",
+        "tiled catalogue rows",
+    ),
+    (
+        "hebog.stages.catalogue_rows",
+        "run_segment_row_stage",
+        "per-segment apertures and rows",
+    ),
+    (
+        "hebog.stages.sources",
+        "run_source_label_stage",
+        "source labels from the membership shard",
+    ),
+    (
+        "hebog.stages.sources",
+        "run_source_support_stage",
+        "per-component source support assignment",
+    ),
+    (
+        "hebog.public_api",
+        "publish_hierarchy_overlaps",
+        "tiled source hierarchy overlaps",
+    ),
+    (
+        "hebog.stages.association",
+        "run_hierarchy_overlap_stage",
+        "per-core and per-feature overlap reduction",
     ),
     (
         "hebog.public_science",

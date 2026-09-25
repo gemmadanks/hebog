@@ -8,9 +8,11 @@ standard library, so it runs unchanged on every release since 0.7.0;
 supplied image metadata needs 0.8.0 or later.
 
 ``--diagnostic-size-limit`` is the documented diagnostic entry point for
-inputs above the public 1,024-pixel limit. It raises the limit only inside
-this worker process; the public envelope and ``hebog.find_sources`` are
-unchanged.
+inputs above an installation's public size limit. The quick benchmark passes
+it on every run, set to the input's own size, because the installation being
+timed may be a release whose envelope differs from the caller's. It raises
+the limit only inside this worker process; the public envelope and
+``hebog.find_sources`` are unchanged.
 """
 
 from __future__ import annotations

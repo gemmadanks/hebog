@@ -29,6 +29,7 @@ class LocalIslandSummary:
     first_pixel_yx: tuple[int, int]
     touches_image_edge: bool
     contains_detection_seed: bool
+    peak_response_jy_per_beam: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,13 +90,39 @@ def _positions_from_linear_indices(
     )
 
 
+def _peak_responses(
+    response_jy_per_beam: npt.NDArray[np.float64] | None,
+    *,
+    member_indices: npt.NDArray[np.intp],
+    member_labels: npt.NDArray[np.int32],
+    label_count: int,
+) -> npt.NDArray[np.float64] | None:
+    """Reduce the per-island maximum of one optional response plane."""
+    if response_jy_per_beam is None:
+        return None
+    maximum_lookup = np.full(label_count + 1, -np.inf, dtype=np.float64)
+    np.maximum.at(
+        maximum_lookup,
+        member_labels,
+        response_jy_per_beam.ravel()[member_indices],
+    )
+    return maximum_lookup[1:]
+
+
 def label_detection_tile(
     masks: DetectionThresholdMasks,
     partition: TilePartition,
     *,
     image_shape_yx: tuple[int, int],
+    response_jy_per_beam: npt.NDArray[np.float64] | None = None,
 ) -> LocalIslandTile:
-    """Label one owned core and reduce component properties without copies."""
+    """Label one owned core and reduce component properties without copies.
+
+    ``response_jy_per_beam`` is the optional filtered response the island was
+    detected on. When it is given, each summary also carries that plane's
+    per-island maximum, so a caller that needs the peak response of a feature
+    does not have to store the response plane for a later pass.
+    """
     partition.core_bounds.require_inside(image_shape_yx)
     expected_shape = partition.core_bounds.shape_yx
     arrays = (
@@ -105,6 +132,11 @@ def label_detection_tile(
     )
     if any(array.shape != expected_shape for array in arrays):
         raise ValueError("detection masks must match the tile core shape")
+    if (
+        response_jy_per_beam is not None
+        and response_jy_per_beam.shape != expected_shape
+    ):
+        raise ValueError("detection response must match the tile core shape")
     if np.any(masks.detection_seeds & ~masks.island_membership):
         raise ValueError("detection seeds must be island members")
 
@@ -139,6 +171,12 @@ def label_detection_tile(
         maximum_lookup = np.full(count + 1, -np.inf, dtype=np.float64)
         np.maximum.at(maximum_lookup, member_labels, member_values)
         peak_values = maximum_lookup[1:]
+        peak_responses = _peak_responses(
+            response_jy_per_beam,
+            member_indices=member_indices,
+            member_labels=member_labels,
+            label_count=count,
+        )
         sentinel = np.iinfo(np.int64).max
         first_lookup = np.full(count + 1, sentinel, dtype=np.int64)
         np.minimum.at(first_lookup, member_labels, member_global_linear)
@@ -189,6 +227,11 @@ def label_detection_tile(
                     == image_shape_yx[1]
                 ),
                 contains_detection_seed=local_label in seed_labels,
+                peak_response_jy_per_beam=(
+                    None
+                    if peak_responses is None
+                    else float(peak_responses[local_label - 1])
+                ),
             )
             for local_label in range(1, count + 1)
         )

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any
 
 import numpy as np
@@ -18,7 +19,6 @@ from astropy.io import fits
 from astropy.wcs import WCS
 from scipy.ndimage import gaussian_filter
 
-from hebog import public_science
 from hebog.algorithms import component_measurement
 from hebog.algorithms import fitting as gaussian_fitting
 from hebog.algorithms.component_measurement import ComponentGroupingEvidence
@@ -28,22 +28,39 @@ from hebog.algorithms.extended_measurement import (
 )
 from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.config import CompactGaussianFitConfig, SourceFinderConfig
+from hebog.data_models.astrometry import LocalTangentPlaneTransform
+from hebog.data_models.catalogues import SkyPosition
 from hebog.data_models.fitting import CompactGaussianFitResult
+from hebog.data_models.images import RestoringBeam
 from hebog.data_models.measurement import ValidMomentMeasurement
 from hebog.public_science import build_configured_continuum_products
 from hebog.science import catalogues as product_builder
 from hebog.science.catalogues import (
     _segment_pixel_moment_covariance,
     _segment_position,
+    moment_shape_fields_at,
+    unavailable_moment_shape_fields,
 )
 from hebog.science.models import ContinuumProducts
-from hebog.science.profile import load_continuum_science_profile
+from hebog.science.profile import (
+    ContinuumScienceProfile,
+    configured_science_profile,
+    load_continuum_science_profile,
+)
+from hebog.validation import tiled_detection
+from hebog.validation.tiled_detection import publish_continuum_inputs
 
 _ROOT = Path(__file__).parents[2]
 
 
 def test_clipped_gaussian_source_keeps_observable_domain() -> None:
-    """A full Gaussian component cannot replace observed source flux."""
+    """The aperture keeps the observable domain the fitted flux leaves.
+
+    The source flux is the summed fitted component flux (23 September
+    decision), which integrates the sky beyond the image edge and so exceeds
+    the observable truth. The observable quantity stays published as the
+    association aperture, which is what this guards.
+    """
     yy, xx = np.mgrid[:49, :65]
     signal = 10 * np.exp(-0.5 * (((xx - 0.7) / 6) ** 2 + ((yy - 24) / 4) ** 2))
     products = _products(signal)
@@ -55,10 +72,13 @@ def test_clipped_gaussian_source_keeps_observable_domain() -> None:
     source, component = products.catalogue[0], products.component_catalogue[0]
     assert "original-pixel-gaussian-model" in component.quality_flags
     assert "original-pixel-gaussian-model" not in source.quality_flags
-    assert source.integrated_flux_jy == pytest.approx(
+    assert source.association_integrated_flux_jy == pytest.approx(
         observed_truth_flux, rel=0.001
     )
-    assert component.integrated_flux_jy > 1.5 * source.integrated_flux_jy
+    assert source.integrated_flux_jy == pytest.approx(
+        component.integrated_flux_jy
+    )
+    assert component.integrated_flux_jy > 1.5 * observed_truth_flux
     positions = np.asarray(
         WCS(_header(signal.shape)).celestial.all_world2pix(
             [
@@ -71,7 +91,9 @@ def test_clipped_gaussian_source_keeps_observable_domain() -> None:
     assert positions[0, 0] > 3
     assert positions[1, 0] == pytest.approx(0.7, abs=0.001)
     assert source.deconvolution_status == "unavailable"
-    assert source.integrated_flux_error_jy is None
+    assert source.integrated_flux_error_jy == pytest.approx(
+        component.integrated_flux_error_jy
+    )
 
 
 def test_public_measurements_retain_fit_and_centroid_attribution() -> None:
@@ -153,7 +175,7 @@ def test_public_merge_evidence_cannot_join_foreign_source_owners(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Corrupt grouping attribution fails before publishing a false claim."""
-    original = public_science.measure_component_models
+    original = tiled_detection.reconcile_component_measurements
 
     def invalid_evidence(*args: Any, **kwargs: Any):
         result = original(*args, **kwargs)
@@ -170,7 +192,9 @@ def test_public_merge_evidence_cannot_join_foreign_source_owners(
         )
 
     monkeypatch.setattr(
-        public_science, "measure_component_models", invalid_evidence
+        tiled_detection,
+        "reconcile_component_measurements",
+        invalid_evidence,
     )
     yy, xx = np.mgrid[:49, :97]
     signal = 10 * np.exp(-((xx - 16) ** 2 + (yy - 24) ** 2) / 8)
@@ -230,33 +254,6 @@ def test_noisy_compact_chain_keeps_independent_source_memberships(
     assert len(set(detected)) == len(detected)
 
 
-def test_terminal_keeps_stage_support_separate_from_published_mask() -> None:
-    """A truth-linked runner can locate losses before scratch cleanup."""
-    yy, xx = np.mgrid[:97, :97]
-    signal = 12 * np.exp(-((xx - 48) ** 2 + (yy - 48) ** 2) / 8)
-    signal += 2 * np.exp(-0.5 * (((xx - 48) / 12) ** 2 + ((yy - 48) / 6) ** 2))
-    products = _products(signal)
-    stages = dict(products.support_stages)
-    assert set(stages) == {
-        "direct",
-        "multiscale",
-        "persistent",
-        "component-owner",
-        "source-union",
-        "source-owned-persistent",
-        "source-measurement",
-        "publication",
-    }
-    assert stages["source-measurement"].sum() > stages["publication"].sum()
-    np.testing.assert_array_equal(
-        stages["publication"], products.detection.retained_mask
-    )
-    assert all(
-        mask.dtype == np.bool_ and not mask.flags.writeable
-        for mask in stages.values()
-    )
-
-
 def test_independent_resolved_loops_keep_distinct_source_membership() -> None:
     """Scale evidence must neither duplicate nor merge disjoint shells."""
     yy, xx = np.mgrid[:97, :193]
@@ -281,10 +278,7 @@ def test_reconstructed_rows_preserve_ambiguity_and_validate_ids() -> None:
     yy, xx = np.mgrid[:49, :49]
     products = _products(10 * np.exp(-((xx - 24) ** 2 + (yy - 24) ** 2) / 8))
     association = products.source_association
-    _, memberships = product_builder._source_label_plane(
-        np.asarray(products.measurement_component_labels, dtype=np.int64),
-        association,
-    )
+    memberships = dict(enumerate(association.memberships, start=1))
     label = next(iter(memberships))
     measured = replace(
         products.catalogue[0], identifier=f"hebog-segment-{label}"
@@ -363,22 +357,61 @@ def _header(shape: tuple[int, int]) -> fits.Header:
     )
 
 
-def _products(signal: np.ndarray) -> ContinuumProducts:
-    """Exercise the complete configured composition with analytic noise."""
-    review = load_continuum_science_profile(
+def _review() -> ContinuumScienceProfile:
+    """Load the installed reviewed continuum profile fixture."""
+    return load_continuum_science_profile(
         (
             _ROOT / "src/hebog/resources/reviewed_continuum_profile.json"
         ).read_bytes()
     )
-    result = build_configured_continuum_products(
-        signal,
-        np.zeros_like(signal),
-        np.ones_like(signal),
-        _header(signal.shape),
-        beam=BeamShapePixels(4.0, 4.0, 0.0),
-        review=review,
-        config=SourceFinderConfig(5.0, 3.0, 7),
-    )
+
+
+def _configured_products(
+    signal: np.ndarray,
+    header: fits.Header,
+) -> ContinuumProducts | None:
+    """Run the tiled detection pass and the composition it feeds."""
+    review = _review()
+    beam = BeamShapePixels(4.0, 4.0, 0.0)
+    config = SourceFinderConfig(5.0, 3.0, 7)
+    background = np.zeros_like(signal)
+    rms = np.ones_like(signal)
+    with TemporaryDirectory() as directory:
+        published = publish_continuum_inputs(
+            np.asarray(signal, dtype=np.float64),
+            np.ones(signal.shape, dtype=np.bool_),
+            background,
+            rms,
+            beam=beam,
+            review=configured_science_profile(review, config),
+            work_directory=Path(directory),
+            header=header,
+            config=config,
+        )
+        valid = (
+            np.isfinite(signal) & np.isfinite(background) & np.isfinite(rms)
+        )
+        return build_configured_continuum_products(
+            valid,
+            valid & (rms > 0.0),
+            header,
+            multiscale=published.multiscale,
+            labels=published.labels,
+            topology=published.topology,
+            measurements=published.measurements,
+            association=published.association,
+            hierarchy=published.hierarchy,
+            source_labels=published.source_labels,
+            source_measurement_labels=(published.source_measurement_labels),
+            component_rows=published.component_rows,
+            source_rows=published.source_rows,
+            source_positions=published.source_positions,
+        )
+
+
+def _products(signal: np.ndarray) -> ContinuumProducts:
+    """Exercise the complete configured composition with analytic noise."""
+    result = _configured_products(signal, _header(signal.shape))
     assert result is not None
     return result
 
@@ -389,20 +422,7 @@ def test_missing_optional_beam_angle_uses_zero_position_angle() -> None:
     signal = 10 * np.exp(-((xx - 20) ** 2 + (yy - 16) ** 2) / 8)
     header = _header(signal.shape)
     del header["BPA"]
-    review = load_continuum_science_profile(
-        (
-            _ROOT / "src/hebog/resources/reviewed_continuum_profile.json"
-        ).read_bytes()
-    )
-    products = build_configured_continuum_products(
-        signal,
-        np.zeros_like(signal),
-        np.ones_like(signal),
-        header,
-        beam=BeamShapePixels(4.0, 4.0, 0.0),
-        review=review,
-        config=SourceFinderConfig(5.0, 3.0, 7),
-    )
+    products = _configured_products(signal, header)
     assert products is not None
     assert len(products.catalogue) == 1
 
@@ -536,7 +556,9 @@ def test_extended_single_source_survives_compact_separation(
         for item in result.measurement_dispositions
         if item.object_kind == "source"
     )
-    assert source_disposition.estimator == "source-owned-signed-aperture"
+    # The source's flux is its components' summed fitted flux, but the
+    # source itself still claims no Gaussian shape of its own.
+    assert source_disposition.estimator == "summed-fitted-component-flux"
     assert (
         "original-pixel-gaussian-model"
         not in result.catalogue[0].quality_flags
@@ -548,15 +570,23 @@ def test_extended_single_source_survives_compact_separation(
 def test_valid_fit_survives_unavailable_aperture_moment_row(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A missing auxiliary moment row cannot erase a measured Gaussian."""
+    """A missing auxiliary moment row cannot erase a measured Gaussian.
 
-    def missing_aperture(*_args: object, **_kwargs: object) -> tuple[()]:
-        return ()
+    The source rows are published by their own round now, so an absent one
+    reaches the composition as an empty shard rather than as a builder that
+    measured nothing.
+    """
+
+    original = tiled_detection.publish_segment_rows
+
+    def missing_source_rows(*args: Any, **kwargs: Any):
+        rows, positions = original(*args, **kwargs)
+        if kwargs["aperture_tie_policy"] == "canonical-source":
+            return (), positions
+        return rows, positions
 
     monkeypatch.setattr(
-        product_builder,
-        "build_hebog_segment_moment_catalogue",
-        missing_aperture,
+        tiled_detection, "publish_segment_rows", missing_source_rows
     )
     yy, xx = np.mgrid[:65, :65]
     signal = 10 * np.exp(-((xx - 32) ** 2 / 8 + (yy - 32) ** 2 / 5))
@@ -712,8 +742,22 @@ def test_inadequate_beam_fallback_keeps_source_not_gaussian(
     assert disposition.reason == "fit-model-inadequate"
     assert not disposition.catalogue_row_published
     assert len(rejected.catalogue) == len(baseline.catalogue) == 1
+    # The aperture is what the rejected fit cannot disturb. The source flux
+    # itself moves by design: with no fitted component to sum, the source
+    # falls back to that aperture and says so.
+    assert rejected.catalogue[0].association_integrated_flux_jy == (
+        pytest.approx(baseline.catalogue[0].association_integrated_flux_jy)
+    )
     assert rejected.catalogue[0].integrated_flux_jy == pytest.approx(
-        baseline.catalogue[0].integrated_flux_jy
+        rejected.catalogue[0].association_integrated_flux_jy
+    )
+    assert (
+        "aperture-flux-without-fitted-component"
+        in rejected.catalogue[0].quality_flags
+    )
+    assert (
+        "aperture-flux-without-fitted-component"
+        not in baseline.catalogue[0].quality_flags
     )
     np.testing.assert_array_equal(
         rejected.measurement_component_labels,
@@ -788,7 +832,11 @@ def test_compact_shape_is_not_a_threshold_truncated_moment(
 
     assert len(result.catalogue) == len(result.component_catalogue) == 1
     assert result.catalogue[0].fitted_shape is None
-    assert result.catalogue[0].integrated_flux_error_jy is None
+    # The source claims no shape of its own, but its flux is its component's
+    # fitted flux, so it carries that component's uncertainty.
+    assert result.catalogue[0].integrated_flux_error_jy == pytest.approx(
+        result.component_catalogue[0].integrated_flux_error_jy
+    )
     for row in result.component_catalogue:
         assert row.fitted_shape is not None
         np.testing.assert_allclose(
@@ -877,11 +925,20 @@ def test_mixed_core_and_halo_remains_one_extended_source() -> None:
         for item in result.measurement_dispositions
         if item.object_kind == "source"
     )
-    assert source.estimator == "source-owned-signed-aperture"
+    assert source.estimator == "summed-fitted-component-flux"
     beam_area = np.pi * 16 / (4 * np.log(2))
     truth_flux = float(np.sum(core + halo)) / beam_area
-    # The pre-existing Continuum aperture retention floor remains binding.
-    assert result.catalogue[0].integrated_flux_jy >= 0.9 * truth_flux
+    # The aperture retention floor remains binding on the aperture, which is
+    # still published. The source flux no longer measures it.
+    assert result.catalogue[0].association_integrated_flux_jy >= (
+        0.9 * truth_flux
+    )
+    # The 23 September definition costs this morphology most of its flux: the
+    # fits describe the compact core and no fit describes the diffuse halo,
+    # so the summed flux is far below the emission the aperture retains.
+    # PyBDSF sums Gaussians the same way. Documented, not corrected; the M1
+    # calibration population contains no extended emission.
+    assert result.catalogue[0].integrated_flux_jy < 0.5 * truth_flux
 
 
 @pytest.mark.parametrize("opening", (np.pi / 2, np.pi))
@@ -908,9 +965,17 @@ def test_open_arc_keeps_its_components_and_single_flux_owner(
     truth_flux = float(signal.sum()) / (np.pi * 16 / (4 * np.log(2)))
     if asymmetric:
         assert len(products.catalogue) == 3
+        # Ownership is what this guards: the arc's emission is apportioned
+        # across the sources exactly once, which the apertures measure
+        # exactly. The summed fitted flux carries the few per cent each
+        # Gaussian adds by integrating beyond the observed arc.
+        assert sum(
+            source.association_integrated_flux_jy or 0.0
+            for source in products.catalogue
+        ) == pytest.approx(truth_flux, rel=0.05)
         assert sum(
             source.integrated_flux_jy for source in products.catalogue
-        ) == pytest.approx(truth_flux, rel=0.05)
+        ) == pytest.approx(truth_flux, rel=0.10)
         return
     assert len(products.catalogue) == 1
     assert len(products.component_catalogue) >= 3
@@ -924,8 +989,11 @@ def test_open_arc_keeps_its_components_and_single_flux_owner(
     assert products.catalogue[0].component_count == len(
         products.component_catalogue
     ) + len(unavailable)
+    assert products.catalogue[0].association_integrated_flux_jy == (
+        pytest.approx(truth_flux, rel=0.05)
+    )
     assert products.catalogue[0].integrated_flux_jy == pytest.approx(
-        truth_flux, rel=0.05
+        truth_flux, rel=0.10
     )
 
 
@@ -1062,3 +1130,36 @@ def test_segment_moments_in_a_window_match_the_whole_plane() -> None:
     assert windowed is not None
     assert windowed[0] == whole_plane[0]
     assert np.array_equal(windowed[1], whole_plane[1])
+
+
+def test_a_shape_the_local_geometry_cannot_describe_is_unavailable() -> None:
+    """A moment no ellipse can describe is reported, not raised.
+
+    Measuring a moment and transforming it are separate steps, so a
+    covariance the tangent plane cannot turn into a positive ellipse reaches
+    the shape step on its own. It must be reported exactly as an unmeasurable
+    segment is, because a catalogue row still exists for it.
+    """
+    transform = LocalTangentPlaneTransform(
+        position=SkyPosition(
+            right_ascension_degrees=10.0,
+            declination_degrees=-30.0,
+            right_ascension_error_degrees=None,
+            declination_error_degrees=None,
+        ),
+        jacobian_degrees_per_pixel=((1.0 / 3600.0, 0.0), (0.0, 1.0 / 3600.0)),
+    )
+    beam = RestoringBeam(
+        major_fwhm_degrees=0.004,
+        minor_fwhm_degrees=0.002,
+        position_angle_degrees=0.0,
+    )
+    degenerate = np.zeros((2, 2), dtype=np.float64)
+
+    fields = moment_shape_fields_at(
+        ((5.0, 5.0), degenerate), transform=transform, beam_icrs=beam
+    )
+
+    assert fields == unavailable_moment_shape_fields()
+    assert fields["fitted_shape"] is None
+    assert fields["deconvolution_status"] == "unavailable"

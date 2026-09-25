@@ -17,6 +17,7 @@ from astropy import units
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
+from conftest import SubstituteBackgroundRms
 from distributed import Client, LocalCluster
 
 import hebog
@@ -193,6 +194,7 @@ def _request(
 def test_measurement_owner_without_published_support_has_no_public_row(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    substituted_background_rms: SubstituteBackgroundRms,
 ) -> None:
     """Publication pruning must not create dangling island references."""
     yy, xx = np.mgrid[:65, :97]
@@ -221,10 +223,13 @@ def test_measurement_owner_without_published_support_has_no_public_row(
         retained.append(updated.terminal)
         return updated
 
-    def background(*_args: object, **_kwargs: object):
-        return np.zeros_like(signal), np.ones_like(signal)
-
-    monkeypatch.setattr(public_api, "_estimate_background_rms", background)
+    monkeypatch.setattr(
+        public_api,
+        "_estimate_background_rms",
+        substituted_background_rms(
+            signal, np.zeros_like(signal), np.ones_like(signal)
+        ),
+    )
     monkeypatch.setattr(public_api, "_analyse_image", analysis)
     result = hebog.find_sources(
         _request(tmp_path), _config(), SerialExecutor()
@@ -263,15 +268,13 @@ def test_public_degenerate_owner_does_not_abort_a_healthy_neighbour(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     owner_pixels: int,
+    substituted_background_rms: SubstituteBackgroundRms,
 ) -> None:
     """An admitted thin owner is retained without inventing a Gaussian."""
     yy, xx = np.mgrid[:65, :97]
     signal = 10 * np.exp(-((xx - 70) ** 2 + (yy - 32) ** 2) / 8)
     signal[32, 12 : 12 + owner_pixels] = 10.0
     _write_image(tmp_path / "image.fits", signal)
-
-    def analytic_background(*_args: object, **_kwargs: object):
-        return np.zeros_like(signal), np.ones_like(signal)
 
     original_catalogue = public_api._public_catalogue  # pyright: ignore[reportPrivateUsage]
     projections = []
@@ -292,7 +295,11 @@ def test_public_degenerate_owner_does_not_abort_a_healthy_neighbour(
     monkeypatch.setattr(public_api, "_public_catalogue", projected_catalogue)
 
     monkeypatch.setattr(
-        public_api, "_estimate_background_rms", analytic_background
+        public_api,
+        "_estimate_background_rms",
+        substituted_background_rms(
+            signal, np.zeros_like(signal), np.ones_like(signal)
+        ),
     )
     result = hebog.find_sources(
         _request(tmp_path),
@@ -337,6 +344,7 @@ def test_public_degenerate_owner_does_not_abort_a_healthy_neighbour(
 def test_pruned_component_of_a_published_source_keeps_its_disposition(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    substituted_background_rms: SubstituteBackgroundRms,
 ) -> None:
     """An extended source can remain published after one owner is pruned."""
     yy, xx = np.mgrid[:97, :97]
@@ -349,9 +357,6 @@ def test_pruned_component_of_a_published_source_keeps_its_disposition(
     )
     _write_image(tmp_path / "image.fits", signal)
     original = public_api._analyse_image  # pyright: ignore[reportPrivateUsage]
-
-    def background(*_args: object, **_kwargs: object):
-        return np.zeros_like(signal), np.ones_like(signal)
 
     def prune_one_component(*args: Any, **kwargs: Any):
         products = original(*args, **kwargs)
@@ -376,7 +381,13 @@ def test_pruned_component_of_a_published_source_keeps_its_disposition(
             ),
         )
 
-    monkeypatch.setattr(public_api, "_estimate_background_rms", background)
+    monkeypatch.setattr(
+        public_api,
+        "_estimate_background_rms",
+        substituted_background_rms(
+            signal, np.zeros_like(signal), np.ones_like(signal)
+        ),
+    )
     monkeypatch.setattr(public_api, "_analyse_image", prune_one_component)
     result = hebog.find_sources(
         _request(tmp_path), _config(), SerialExecutor()
@@ -399,20 +410,25 @@ def test_pruned_component_of_a_published_source_keeps_its_disposition(
 def test_two_sources_share_one_actual_detection_island(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    substituted_background_rms: SubstituteBackgroundRms,
 ) -> None:
     """Island counts describe connectivity, not the number of source rows."""
     yy, xx = np.mgrid[:65, :65]
-    signal = sum(
-        peak * np.exp(-((xx - cx) ** 2 + (yy - 32) ** 2) / 8)
-        for peak, cx in ((10, 28), (9.5, 35))
+    signal = np.asarray(
+        sum(
+            peak * np.exp(-((xx - cx) ** 2 + (yy - 32) ** 2) / 8)
+            for peak, cx in ((10, 28), (9.5, 35))
+        ),
+        dtype=np.float64,
     )
-    _write_image(tmp_path / "image.fits", np.asarray(signal))
-
-    def analytic_background(*_args: object, **_kwargs: object):
-        return np.zeros_like(signal), np.ones_like(signal)
+    _write_image(tmp_path / "image.fits", signal)
 
     monkeypatch.setattr(
-        public_api, "_estimate_background_rms", analytic_background
+        public_api,
+        "_estimate_background_rms",
+        substituted_background_rms(
+            signal, np.zeros_like(signal), np.ones_like(signal)
+        ),
     )
     result = hebog.find_sources(
         _request(tmp_path), _config(), SerialExecutor()
@@ -430,7 +446,9 @@ def test_two_sources_share_one_actual_detection_island(
 
 @pytest.mark.integration
 def test_current_projection_rejects_inconsistent_public_evidence(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    substituted_background_rms: SubstituteBackgroundRms,
 ) -> None:
     """Malformed ownership, rows or dispositions cannot become parity input."""
     yy, xx = np.mgrid[:65, :97]
@@ -438,13 +456,12 @@ def test_current_projection_rejects_inconsistent_public_evidence(
     path = tmp_path / "image.fits"
     _write_image(path, signal)
 
-    def analytic_background(*_args: object, **_kwargs: object):
-        return np.zeros_like(signal), np.ones_like(signal)
-
     monkeypatch.setattr(
         public_api,
         "_estimate_background_rms",
-        analytic_background,
+        substituted_background_rms(
+            signal, np.zeros_like(signal), np.ones_like(signal)
+        ),
     )
     source = FitsImageSource(path)
     metadata = source.metadata()
@@ -537,6 +554,7 @@ def test_signed_aperture_failure_never_becomes_positive_only_flux(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     negative_context: float,
+    substituted_background_rms: SubstituteBackgroundRms,
 ) -> None:
     """The public result keeps detection but does not invent positive flux."""
     yy, xx = np.mgrid[:65, :97]
@@ -545,11 +563,12 @@ def test_signed_aperture_failure_never_becomes_positive_only_flux(
     signal[32, 12:19] = 10.0
     _write_image(tmp_path / "image.fits", signal)
 
-    def analytic_background(*_args: object, **_kwargs: object):
-        return np.zeros_like(signal), np.ones_like(signal)
-
     monkeypatch.setattr(
-        public_api, "_estimate_background_rms", analytic_background
+        public_api,
+        "_estimate_background_rms",
+        substituted_background_rms(
+            signal, np.zeros_like(signal), np.ones_like(signal)
+        ),
     )
     result = hebog.find_sources(
         _request(tmp_path), _config(), SerialExecutor()
@@ -719,6 +738,117 @@ def test_blank_and_all_nan_inputs_publish_honest_empty_products(
         assert result.gaussian_component_count == 0
         assert result.island_count == 0
         assert result.rms.scientific_status == expected_rms_status
+        published = np.asarray(fits.getdata(result.rms.path), dtype=np.float64)
+        assert published.shape == shape
+        assert np.all(np.isnan(published))
+
+
+@pytest.mark.integration
+def test_published_rms_streams_the_estimate_across_many_tile_rows(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    substituted_background_rms: SubstituteBackgroundRms,
+) -> None:
+    """The RMS product carries the store's estimate row block by row block.
+
+    The image spans three background tile rows and two tile columns and gives
+    every tile its own value, so a row assembled from the wrong chunks, or in
+    the wrong order, changes the published pixels.
+    """
+    yy, xx = np.mgrid[:300, :200]
+    estimate = 1.0 + 0.5 * (yy // 128) + 0.25 * (xx // 128)
+    signal = 40.0 * np.exp(-((xx - 150) ** 2 + (yy - 200) ** 2) / 8)
+    _write_image(tmp_path / "image.fits", signal)
+    zero_background = np.zeros_like(signal)
+
+    monkeypatch.setattr(
+        public_api,
+        "_estimate_background_rms",
+        substituted_background_rms(signal, zero_background, estimate),
+    )
+
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+
+    assert result.rms.scientific_status == "valid"
+    published = np.asarray(fits.getdata(result.rms.path), dtype=np.float64)
+    np.testing.assert_array_equal(published, estimate)
+
+
+@pytest.mark.integration
+def test_catalogue_local_rms_reads_each_owner_own_store_window(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    substituted_background_rms: SubstituteBackgroundRms,
+) -> None:
+    """Every published local RMS comes from that owner's own pixels.
+
+    The two halves of this non-square image carry different noise, so a
+    source or island that read a shifted or transposed window would publish
+    its neighbour's RMS rather than its own.
+    """
+    yy, xx = np.mgrid[:96, :320]
+    estimate = np.where(xx < 160, 1.0, 4.0).astype(np.float64)
+    signal = 60.0 * np.exp(-((xx - 40) ** 2 + (yy - 48) ** 2) / 8)
+    signal += 240.0 * np.exp(-((xx - 280) ** 2 + (yy - 48) ** 2) / 8)
+    _write_image(tmp_path / "image.fits", signal)
+    zero_background = np.zeros_like(signal)
+
+    monkeypatch.setattr(
+        public_api,
+        "_estimate_background_rms",
+        substituted_background_rms(signal, zero_background, estimate),
+    )
+
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+
+    catalogue = read_catalogue_fits_product(result.catalogue)
+    assert result.source_count == 2
+    assert sorted(
+        row.flux.local_rms_jy_per_beam for row in catalogue.sources
+    ) == [1.0, 4.0]
+    assert sorted(
+        row.flux.local_rms_jy_per_beam for row in catalogue.gaussian_components
+    ) == [1.0, 4.0]
+    assert sorted(
+        island.local_rms_jy_per_beam for island in catalogue.islands
+    ) == [1.0, 4.0]
+
+
+@pytest.mark.integration
+def test_pure_noise_publishes_no_source_through_the_whole_path(
+    tmp_path: Path,
+) -> None:
+    """Noise with a usable RMS but no admitted owner still publishes.
+
+    Blank and all-NaN inputs stop before the object rounds, so they never
+    reach the source hierarchy. Noise does: it has a usable RMS and reaches
+    the association with no direct component to describe, which is the case
+    that has to skip the decision rather than fabricate one.
+    """
+    image_path = tmp_path / "noise.fits"
+    _write_image(
+        image_path,
+        np.random.default_rng(20260920).normal(size=(96, 128)) * 0.01,
+    )
+
+    result = hebog.find_sources(
+        SourceFinderRequest(
+            image_path=image_path,
+            output_directory=tmp_path / "noise",
+            run_id="noise",
+        ),
+        _config(),
+        _RecordingExecutor(),
+    )
+
+    assert result.rms.scientific_status != "unavailable"
+    assert result.source_count == 0
+    assert result.gaussian_component_count == 0
+    assert result.island_count == 0
 
 
 @pytest.mark.integration
@@ -906,13 +1036,33 @@ def test_unsupported_public_unit_fails_before_publication(
 def test_public_preview_rejects_inputs_beyond_qualified_envelope(
     tmp_path: Path,
 ) -> None:
-    """Phase 5 never extrapolates its in-memory science past 1024 square."""
-    _write_image(tmp_path / "image.fits", np.zeros((2, 1025)))
+    """The finder never extrapolates past the qualified envelope."""
+    _write_image(tmp_path / "image.fits", np.zeros((2, 3001)))
 
-    with pytest.raises(SourceFinderImageTooLargeError, match="1024"):
+    with pytest.raises(SourceFinderImageTooLargeError, match="3000"):
         hebog.find_sources(_request(tmp_path), _config(), _RecordingExecutor())
 
     assert not (tmp_path / "products").exists()
+
+
+@pytest.mark.integration
+def test_public_preview_admits_the_largest_qualified_dimension(
+    tmp_path: Path,
+) -> None:
+    """The documented limit is the largest admitted size, not the first
+    refused one.
+
+    The rejection above only pins the limit from outside: a limit one pixel
+    too small would refuse a documented size and still pass it. This runs the
+    boundary itself through the public path.
+    """
+    _write_image(tmp_path / "image.fits", np.zeros((2, 3000)))
+
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), _RecordingExecutor()
+    )
+
+    assert result.source_count == 0
 
 
 @pytest.mark.integration
@@ -1220,11 +1370,25 @@ def test_fk5_j2000_input_publishes_the_same_icrs_sky(
     icrs_catalogue = read_catalogue_fits_product(icrs_result.catalogue)
     fk5_catalogue = read_catalogue_fits_product(fk5_result.catalogue)
     assert fk5_catalogue.coordinate_frame == "icrs"
+    # The aperture is a pixel sum, so the frame tie cannot move it. The
+    # source flux is its components' fitted integral, which depends on the
+    # local tangent plane the tie does perturb, well below any scientific
+    # significance.
+    assert [
+        source.association_aperture_integrated_flux_jy
+        for source in fk5_catalogue.sources
+    ] == pytest.approx(
+        [
+            source.association_aperture_integrated_flux_jy
+            for source in icrs_catalogue.sources
+        ],
+        rel=1e-9,
+    )
     assert [
         source.flux.integrated_flux_jy for source in fk5_catalogue.sources
     ] == pytest.approx(
         [source.flux.integrated_flux_jy for source in icrs_catalogue.sources],
-        rel=1e-9,
+        rel=1e-6,
     )
 
 
@@ -1363,14 +1527,14 @@ def test_oversized_input_is_rejected_before_it_is_hashed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """An inadmissible image costs a header read, not a full-file digest."""
-    _write_image(tmp_path / "image.fits", np.zeros((2, 1025)))
+    _write_image(tmp_path / "image.fits", np.zeros((2, 3001)))
 
     def forbidden_hash(_path: Path) -> str:
         pytest.fail("oversized input was hashed")
 
     monkeypatch.setattr(public_api, "_file_sha256", forbidden_hash)
 
-    with pytest.raises(SourceFinderImageTooLargeError, match="1024"):
+    with pytest.raises(SourceFinderImageTooLargeError, match="3000"):
         hebog.find_sources(_request(tmp_path), _config(), _RecordingExecutor())
 
 
@@ -1425,7 +1589,8 @@ def test_whole_pixel_beam_is_invariant_to_sub_milliarcsecond_reference_shift(
     measurements are unchanged.
     """
     image = _ring_image()
-    fluxes: list[list[float]] = []
+    fluxes: list[list[float | None]] = []
+    fitted: list[list[float]] = []
     for index, reference_ra in enumerate((180.0, 180.0 + 2e-7)):
         header = _header(image.shape)
         header["CRVAL1"] = reference_ra
@@ -1447,10 +1612,20 @@ def test_whole_pixel_beam_is_invariant_to_sub_milliarcsecond_reference_shift(
         )
         catalogue = read_catalogue_fits_product(result.catalogue)
         fluxes.append(
+            [
+                source.association_aperture_integrated_flux_jy
+                for source in catalogue.sources
+            ]
+        )
+        fitted.append(
             [source.flux.integrated_flux_jy for source in catalogue.sources]
         )
 
+    # The aperture is the quantity the `ceil` radii decide, so it must be
+    # exactly unchanged. The fitted flux varies continuously with the tangent
+    # plane and moves only at the shift's own scale.
     assert fluxes[0] == pytest.approx(fluxes[1], rel=1e-9)
+    assert fitted[0] == pytest.approx(fitted[1], rel=1e-6)
 
 
 @pytest.mark.integration

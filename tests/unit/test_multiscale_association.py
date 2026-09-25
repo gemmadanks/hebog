@@ -12,6 +12,11 @@ import numpy.typing as npt
 import pytest
 from scipy.ndimage import label as ndimage_label
 
+from hebog.algorithms.detection import DetectionThresholdMasks
+from hebog.algorithms.labelling import (
+    LocalIslandTileSummary,
+    label_detection_tile,
+)
 from hebog.algorithms.multiscale import (
     BeamShapePixels,
     build_scale_filter_bank,
@@ -23,8 +28,14 @@ from hebog.algorithms.multiscale_association import (
     ScaleDetectionPlane,
     associate_adjacent_scale_detections,
     build_scale_detection_plane,
+    build_scale_detection_plane_from_islands,
     persistent_adjacent_scale_support,
     persistent_seeded_scale_support,
+)
+from hebog.algorithms.partitioning import plan_image_partitions
+from hebog.algorithms.reconciliation import (
+    DetectedIsland,
+    reconcile_candidate_tiles,
 )
 from hebog.data_models.multiscale import ScaleDetection
 
@@ -747,3 +758,162 @@ def test_scale_features_match_a_per_label_scan_on_a_crowded_plane(
     assert len(
         {detection.detection_id for detection in plane.detections}
     ) == len(measured)
+
+
+def _reconciled_scale_islands(
+    significant_support: npt.NDArray[np.bool_],
+    response_jy_per_beam: npt.NDArray[np.float64],
+    signal_to_noise: npt.NDArray[np.float64],
+    *,
+    tile_core_shape_yx: tuple[int, int],
+) -> tuple[DetectedIsland, ...]:
+    """Reduce one scale's features the way the tiled detection pass does."""
+    manifest = plan_image_partitions(
+        image_shape_yx=significant_support.shape,
+        tile_core_shape_yx=tile_core_shape_yx,
+        halo_yx=(0, 0),
+    )
+    summaries: list[LocalIslandTileSummary] = []
+    for partition in manifest.tiles:
+        bounds = partition.core_bounds
+        selection = (
+            slice(bounds.y_start, bounds.y_stop),
+            slice(bounds.x_start, bounds.x_stop),
+        )
+        core_support = significant_support[selection]
+        summaries.append(
+            label_detection_tile(
+                DetectionThresholdMasks(
+                    normalized_residual=signal_to_noise[selection],
+                    island_membership=core_support,
+                    detection_seeds=core_support,
+                    valid_pixel_count=int(np.count_nonzero(core_support)),
+                ),
+                partition,
+                image_shape_yx=significant_support.shape,
+                response_jy_per_beam=response_jy_per_beam[selection],
+            ).compact_summary()
+        )
+    return reconcile_candidate_tiles(manifest, tuple(summaries)).islands
+
+
+def _scale_support() -> tuple[
+    npt.NDArray[np.bool_],
+    npt.NDArray[np.float64],
+    npt.NDArray[np.float64],
+]:
+    """Return one analytic scale mask with its response and calibrated SNR."""
+    support = np.zeros((12, 16), dtype=np.bool_)
+    support[1:4, 1:4] = True
+    support[6:9, 9:14] = True
+    support[10:12, 0:2] = True
+    response = np.zeros(support.shape, dtype=np.float64)
+    signal_to_noise = np.zeros(support.shape, dtype=np.float64)
+    yy, xx = np.mgrid[: support.shape[0], : support.shape[1]]
+    response[support] = (1.0 + yy + 0.5 * xx)[support]
+    signal_to_noise[support] = (3.0 + 0.25 * xx + yy)[support]
+    return support, response, signal_to_noise
+
+
+@pytest.mark.parametrize("tile_core_shape_yx", [(16, 16), (4, 8), (8, 4)])
+def test_island_built_scale_plane_matches_the_whole_plane_construction(
+    tile_core_shape_yx: tuple[int, int],
+) -> None:
+    """Reduced island records describe the same features as the planes do."""
+    support, response, signal_to_noise = _scale_support()
+    expected = build_scale_detection_plane(
+        support,
+        response,
+        signal_to_noise,
+        np.ones(support.shape, dtype=np.bool_),
+        scale_order=2,
+        nominal_scale_beam_fwhm=2.0,
+    )
+
+    measured = build_scale_detection_plane_from_islands(
+        support,
+        _reconciled_scale_islands(
+            support,
+            response,
+            signal_to_noise,
+            tile_core_shape_yx=tile_core_shape_yx,
+        ),
+        scale_order=2,
+        nominal_scale_beam_fwhm=2.0,
+    )
+
+    assert measured.detections == expected.detections
+    np.testing.assert_array_equal(
+        measured.component_labels,
+        expected.component_labels,
+    )
+
+
+def test_island_built_scale_plane_rejects_support_it_cannot_describe() -> None:
+    """A stale island set must not silently relabel stored support."""
+    support, response, signal_to_noise = _scale_support()
+    islands = _reconciled_scale_islands(
+        support,
+        response,
+        signal_to_noise,
+        tile_core_shape_yx=(16, 16),
+    )
+
+    with pytest.raises(ValueError, match="describe the stored support once"):
+        build_scale_detection_plane_from_islands(
+            support,
+            islands[:-1],
+            scale_order=1,
+            nominal_scale_beam_fwhm=1.0,
+        )
+
+
+def test_island_built_scale_plane_rejects_a_shifted_support() -> None:
+    """Canonical pixels and pixel counts must match the stored support."""
+    support, response, signal_to_noise = _scale_support()
+    islands = _reconciled_scale_islands(
+        support,
+        response,
+        signal_to_noise,
+        tile_core_shape_yx=(16, 16),
+    )
+    shifted = np.roll(support, 1, axis=1)
+
+    with pytest.raises(ValueError, match="match the stored support exactly"):
+        build_scale_detection_plane_from_islands(
+            shifted,
+            islands,
+            scale_order=1,
+            nominal_scale_beam_fwhm=1.0,
+        )
+
+
+def test_island_built_scale_plane_requires_a_positive_peak_response() -> None:
+    """A feature without a reduced positive response cannot be published."""
+    support, response, signal_to_noise = _scale_support()
+    islands = _reconciled_scale_islands(
+        support,
+        np.zeros(support.shape, dtype=np.float64),
+        signal_to_noise,
+        tile_core_shape_yx=(16, 16),
+    )
+    del response
+
+    with pytest.raises(ValueError, match="finite positive response"):
+        build_scale_detection_plane_from_islands(
+            support,
+            islands,
+            scale_order=1,
+            nominal_scale_beam_fwhm=1.0,
+        )
+
+
+def test_island_built_scale_plane_requires_a_boolean_support() -> None:
+    """Stored support is a mask, not an integer or floating plane."""
+    with pytest.raises(ValueError, match="boolean plane"):
+        build_scale_detection_plane_from_islands(
+            np.zeros((4, 4), dtype=np.int32),
+            (),
+            scale_order=1,
+            nominal_scale_beam_fwhm=1.0,
+        )

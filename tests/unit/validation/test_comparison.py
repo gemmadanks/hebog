@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import replace
 from typing import Literal, cast
 
@@ -318,7 +319,13 @@ def test_catalogue_report_distinguishes_unresolved_from_unavailable() -> None:
 def test_catalogue_report_calibrates_candidate_reported_uncertainties() -> (
     None
 ):
-    """Normalized residuals expose bias, dispersion, and one-sigma coverage."""
+    """Normalized residuals expose bias, dispersion, and one-sigma coverage.
+
+    The candidate sits 0.01 degrees of right ascension east of truth, which at
+    this declination is a smaller great-circle angle. `E_RA` is a great-circle
+    error, so the one-sigma error matching that offset is the converted value,
+    and the residual is then exactly one.
+    """
     reference = CatalogueSource(
         identifier="truth",
         right_ascension_degrees=359.99,
@@ -333,7 +340,7 @@ def test_catalogue_report_calibrates_candidate_reported_uncertainties() -> (
         declination_degrees=-29.99,
         peak_flux_jy_per_beam=1.1,
         integrated_flux_jy=1.8,
-        right_ascension_error_degrees=0.01,
+        right_ascension_error_degrees=0.01 * math.cos(math.radians(-29.99)),
         declination_error_degrees=0.02,
         peak_flux_error_jy_per_beam=0.2,
         integrated_flux_error_jy=0.1,

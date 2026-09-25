@@ -1,9 +1,9 @@
 # Compact deblending
 
-Phase 3 deblending produces deterministic regions that initialize later
-measurement. A region is not yet a measured source, a fitted Gaussian, or a
-catalogue row. Those distinctions prevent segmentation choices from silently
-creating photometry that belongs to Phase 4.
+Deblending produces deterministic regions that initialize later measurement.
+A region is not yet a measured source, a fitted Gaussian, or a catalogue row.
+Those distinctions prevent segmentation choices from silently creating
+photometry that belongs to measurement.
 
 ## Observable rules
 
@@ -20,7 +20,7 @@ Compact deblending uses one explicit `CompactDeblendConfig`:
   survives;
 - after prominence merging, a basin smaller than
   `minimum_region_pixels` joins its neighbour across the highest shared
-  saddle. Phase 4 sets this to the seven owned pixels required by the
+  saddle. The compact configuration sets this to the seven owned pixels required by the
   seven-parameter Gaussian, so deblending cannot manufacture a child that is
   structurally impossible to fit; and
 - final region identifiers and labels follow the first global member pixel,
@@ -36,8 +36,8 @@ markers, so holes cannot flood or leave accepted pixels unassigned.
 
 The implementation combines maintained SciPy primitives rather than adding a
 new dependency. `maximum_filter` and `label` choose deterministic markers.
-The established Phase 3 compact path retains its reviewed marker-distance
-watershed, while the Phase 5 public component-topology path selects a bounded
+The compact measurement path retains its reviewed marker-distance
+watershed, while the public component-topology path selects a bounded
 `cKDTree` assignment to the exact nearest marker pixels, using canonical
 marker order for distance ties. Actual normalized intensities—not geometric
 distance—then measure the highest discrete saddle between adjacent basins. A
@@ -54,8 +54,8 @@ merged. Exact nearest-marker ownership avoids that implementation-dependent
 flooding in the new public topology while the subsequent intensity saddle
 retains the scientific split decision. It is deliberately scoped there so it
 cannot change the already-qualified compact photometry path. A two-dimensional
-unequal-Gaussian regression fixture preserves this failure mode, and the Phase
-4 blend-equivalence matrix guards the retained compact policy.
+unequal-Gaussian regression fixture preserves this failure mode, and the
+blend-equivalence matrix guards the retained compact policy.
 
 The minimum-area merge is deterministic and conservative: it preserves every
 parent-island pixel and changes only the ownership boundary between adjacent
@@ -65,7 +65,7 @@ successful source.
 A repeated multilevel superlevel-set implementation would be closer to some
 legacy source-finder descriptions, but it requires maintained level selection,
 repeated connected labelling, and cross-level identity logic. It is not
-simpler for the Phase 3 observable contract. Scikit-image was not added:
+simpler for this observable contract. Scikit-image was not added:
 SciPy supplies the required morphology, distance, watershed, and reduction
 operations, so another runtime and worker-image dependency provides no
 demonstrated benefit. This choice introduces no new durable dependency and
@@ -82,11 +82,10 @@ admission lets dense fields use several workers without lowering the largest
 compact island Hebog can process or creating one scheduler task per island.
 An island above the member-pixel or bounds-area limit is returned as a
 `DeferredDeblendIsland` with an explicit reason. It remains deterministic
-input to the Phase 5 partitioned/multiscale path and is never dropped or
+input to the partitioned multiscale path and is never dropped or
 reported as successfully deblended.
 
-Phase 5 now completes that handoff with
-`run_deferred_island_completion_stage`. A caller supplies a zero-halo
+That handoff is completed by `run_deferred_island_completion_stage`. A caller supplies a zero-halo
 partition manifest and a `DeferredIslandCompletionConfig` hard pixel limit.
 The completion grid may differ from the detection/storage grid, but it must
 cover the same logical image. Each task reads and relabels exactly one
@@ -114,7 +113,7 @@ The source-filtering mask remains the parent connected-island membership;
 deblending subdivides that topology without changing which pixels are
 detected.
 
-The Phase 5 public continuum composition applies the same bounded deblender to
+The public continuum composition applies the same bounded deblender to
 each retained connected parent before Gaussian measurement. Its direct and
 expanded measurement unions must remain byte-for-byte equivalent as boolean
 support. One connected support island can therefore contain multiple Gaussian
@@ -126,8 +125,8 @@ never dropped or silently presented as successfully deblended.
 A retained public parent can also be admitted by multiscale support without
 containing a direct-residual peak above the stricter deblending seed threshold.
 That parent remains one component with its direct and measurement support
-unchanged. This conservative public fallback does not alter the Phase 3
-compact kernel's fail-closed no-marker contract and cannot manufacture a
+unchanged. This conservative public fallback does not alter the compact
+kernel's fail-closed no-marker contract and cannot manufacture a
 split without an eligible peak.
 
 A boolean source-filtering-mask window may contain another disconnected
@@ -137,7 +136,7 @@ selects the component containing the reconciled island's canonical first
 pixel. It verifies the selected pixel count before deblending. It never treats
 the complete rectangular window as the island.
 
-## Worker-local Phase 4 handoff
+## Worker-local measurement handoff
 
 `run_compact_region_stage` is the only measurement handoff from these
 summaries. Inside each existing coarse executor task it reads the admitted

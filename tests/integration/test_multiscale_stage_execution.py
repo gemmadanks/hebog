@@ -1,4 +1,5 @@
 # pyright: reportMissingTypeStubs=false
+# pyright: reportPrivateUsage=false
 # pyright: reportUnknownMemberType=false
 # pyright: reportUnknownVariableType=false
 """Executor, batching, retry, and product contracts for multiscale science."""
@@ -20,6 +21,10 @@ from hebog.algorithms.multiscale import (
     BeamShapePixels,
     detect_residual_multiscale_islands,
     prepare_scale_filter_inputs,
+    reconstruct_denoised_atrous,
+)
+from hebog.algorithms.multiscale_association import (
+    build_scale_detection_plane_from_islands,
 )
 from hebog.algorithms.multiscale_tiles import (
     evaluate_multiscale_filter_tile,
@@ -35,6 +40,7 @@ from hebog.io.zarr import ZarrProductSink
 from hebog.stages.multiscale import (
     MultiscaleStageConfig,
     MultiscaleStageResult,
+    _ScaleLabelBatch,
     multiscale_product_names,
     run_multiscale_stage,
 )
@@ -44,6 +50,7 @@ pytestmark = pytest.mark.integration
 _Input = TypeVar("_Input")
 _Output = TypeVar("_Output")
 _SUPPORT_FRACTION = 0.5
+_CONTINUOUS_TOLERANCE = 2e-13
 
 
 class _ArrayImageSource:
@@ -154,6 +161,29 @@ class _EmptyExecutor(SerialExecutor):
         return []
 
 
+class _EmptyNthPassExecutor(SerialExecutor):
+    """Complete every round but one, to prove each fails closed."""
+
+    def __init__(self, dropped_round: int) -> None:
+        """Count maps so one chosen round can return nothing."""
+        super().__init__()
+        self._dropped_round = dropped_round
+        self._call_count = 0
+
+    def map_batches(
+        self,
+        function: Callable[[_Input], _Output],
+        batches: Iterable[_Input],
+        *,
+        requirement: TaskRequirement | None = None,
+    ) -> list[_Output]:
+        """Run every round except the chosen one."""
+        self._call_count += 1
+        if self._call_count == self._dropped_round:
+            return []
+        return super().map_batches(function, batches, requirement=requirement)
+
+
 class _EmptySecondPassExecutor(SerialExecutor):
     """Complete topology but drop every publication result."""
 
@@ -184,10 +214,22 @@ class _ScienceIdentity:
 
     retained_mask: npt.NDArray[np.bool_]
     reconstruction_mask: npt.NDArray[np.bool_]
+    combined_snr: npt.NDArray[np.float64]
     scale_masks: tuple[npt.NDArray[np.bool_], ...]
+    scale_labels: tuple[npt.NDArray[np.int32], ...]
     detection_island_ids: tuple[str, ...]
     reconstruction_island_ids: tuple[str, ...]
     scale_island_ids: tuple[tuple[str, ...], ...]
+
+
+def _overlaps(first: ImageBounds, second: ImageBounds) -> bool:
+    """Return whether two half-open bounds share a pixel."""
+    return (
+        first.y_start < second.y_stop
+        and second.y_start < first.y_stop
+        and first.x_start < second.x_stop
+        and second.x_start < first.x_stop
+    )
 
 
 def _selection(bounds: ImageBounds) -> tuple[slice, slice]:
@@ -348,6 +390,18 @@ def _float_window(
     )
 
 
+def _int_window(
+    source: ZarrProductSink,
+    product_name: str,
+    bounds: ImageBounds,
+) -> npt.NDArray[np.int32]:
+    """Read one label test product with its reviewed storage dtype."""
+    return np.asarray(
+        source.read_completed_window(product_name, bounds),
+        dtype=np.int32,
+    )
+
+
 def _science_identity(
     result: MultiscaleStageResult,
     source: ZarrProductSink,
@@ -355,14 +409,19 @@ def _science_identity(
     """Read only the small test products and reconciled identities."""
     bounds = ImageBounds(0, 129, 0, 137)
     return _ScienceIdentity(
-        retained_mask=_bool_window(source, "retained-mask", bounds),
+        retained_mask=_int_window(source, "detection-labels", bounds) > 0,
         reconstruction_mask=_bool_window(
             source,
             "reconstruction-mask",
             bounds,
         ),
+        combined_snr=_float_window(source, "combined-snr", bounds),
         scale_masks=tuple(
             _bool_window(source, f"scale-{order}-significant", bounds)
+            for order in (1, 2, 3)
+        ),
+        scale_labels=tuple(
+            _int_window(source, f"scale-{order}-labels", bounds)
             for order in (1, 2, 3)
         ),
         detection_island_ids=tuple(
@@ -390,12 +449,26 @@ def _assert_science_identity_equal(
         candidate.reconstruction_mask,
         expected.reconstruction_mask,
     )
+    # The matched-filter FFT's rounding depends on transform shape, so the
+    # reviewed tolerance applies to continuous responses, not to decisions.
+    np.testing.assert_allclose(
+        candidate.combined_snr,
+        expected.combined_snr,
+        rtol=_CONTINUOUS_TOLERANCE,
+        atol=_CONTINUOUS_TOLERANCE,
+    )
     for candidate_mask, expected_mask in zip(
         candidate.scale_masks,
         expected.scale_masks,
         strict=True,
     ):
         np.testing.assert_array_equal(candidate_mask, expected_mask)
+    for candidate_labels, expected_labels in zip(
+        candidate.scale_labels,
+        expected.scale_labels,
+        strict=True,
+    ):
+        np.testing.assert_array_equal(candidate_labels, expected_labels)
     assert candidate.detection_island_ids == expected.detection_island_ids
     assert (
         candidate.reconstruction_island_ids
@@ -479,7 +552,8 @@ def test_multiscale_stage_is_batch_order_retry_and_executor_invariant(
         strict=True,
     ):
         batch_count = ceil(len(manifest.tiles) / batch_size)
-        assert result.executor_task_count == 2 * batch_count, name
+        # Tile topology, publication, then the reconciled scale labels.
+        assert result.executor_task_count == 3 * batch_count, name
         assert result.maximum_graph_width == batch_count, name
         assert result.maximum_batch_partition_count == min(
             batch_size,
@@ -587,7 +661,7 @@ def test_multiscale_stage_matches_promoted_one_tile_science(
     bounds = tile.core_bounds
 
     np.testing.assert_array_equal(
-        _bool_window(source, "retained-mask", bounds),
+        _int_window(source, "detection-labels", bounds) > 0,
         oracle.retained_mask,
     )
     np.testing.assert_array_equal(
@@ -600,19 +674,27 @@ def test_multiscale_stage_matches_promoted_one_tile_science(
         rtol=2e-13,
         atol=2e-13,
     )
-    np.testing.assert_allclose(
-        _float_window(source, "reconstructed-signal", bounds),
-        oracle.reconstruction.signal_jy_per_beam,
-        rtol=2e-13,
-        atol=2e-13,
+    denoised = reconstruct_denoised_atrous(
+        filtered.atrous_result,
+        significance_sigma=_detection_config().island_threshold_sigma,
     )
     np.testing.assert_allclose(
         _float_window(source, "position-signal", bounds),
-        filtered.prepared_inputs.residual_jy_per_beam
-        + oracle.reconstruction.signal_jy_per_beam,
+        np.where(
+            np.isfinite(denoised),
+            denoised,
+            filtered.prepared_inputs.residual_jy_per_beam,
+        ),
         rtol=2e-13,
         atol=2e-13,
     )
+    np.testing.assert_array_equal(
+        _int_window(source, "detection-labels", bounds) > 0,
+        oracle.retained_mask,
+    )
+    assert sorted(
+        set(np.unique(_int_window(source, "detection-labels", bounds)))
+    ) == [0, *(island.global_label for island in result.detection_islands)]
     for order, significant in enumerate(
         oracle.reconstruction.significant_scale_masks,
         start=1,
@@ -623,6 +705,60 @@ def test_multiscale_stage_matches_promoted_one_tile_science(
         )
     assert result.detection_islands
     assert result.reconstruction_islands
+
+
+def test_published_scale_labels_match_the_whole_plane_labelling(
+    tmp_path: Path,
+) -> None:
+    """Reconciled scale labels equal one whole-plane labelling exactly.
+
+    The object pass reads these labels by window, so a core's label must be
+    the global one a serial pass would assign. The oracle is the existing
+    plane builder, which labels the stored mask and refuses any labelling
+    that disagrees with the reconciled islands.
+    """
+    manifest = _manifest((61, 67))
+    result, source = _run(
+        tmp_path / "stage",
+        manifest=manifest,
+        background_source=_background_source(tmp_path / "background"),
+        executor=SerialExecutor(),
+        tiles_per_batch=2,
+    )
+    bounds = ImageBounds(0, 129, 0, 137)
+
+    assert len(manifest.tiles) > 1
+    for index, order in enumerate((1, 2, 3)):
+        islands = result.scale_islands_by_order[index]
+        expected = build_scale_detection_plane_from_islands(
+            _bool_window(source, f"scale-{order}-significant", bounds),
+            islands,
+            scale_order=order,
+            nominal_scale_beam_fwhm=result.scale_nominal_beam_fwhms[index],
+        )
+        published = _int_window(source, f"scale-{order}-labels", bounds)
+        np.testing.assert_array_equal(published, expected.component_labels)
+        assert sorted(set(np.unique(published))) == [
+            0,
+            *(island.global_label for island in islands),
+        ]
+    # The mapping is only sharded where a feature outlives one core.
+    assert any(
+        sum(
+            1
+            for tile in manifest.tiles
+            if _overlaps(tile.core_bounds, island.bounds)
+        )
+        > 1
+        for islands in result.scale_islands_by_order
+        for island in islands
+    )
+
+
+def test_the_scale_label_round_forbids_empty_work_records() -> None:
+    """An empty batch is a scheduling defect, not a task to submit."""
+    with pytest.raises(ValueError, match="scale label batch must not be"):
+        _ScaleLabelBatch(requests=())
 
 
 @pytest.mark.parametrize("maximum_tiles_per_batch", [0, True])
@@ -766,6 +902,7 @@ def test_multiscale_stage_rejects_noncomposable_generations(
     (
         (_EmptyExecutor(), "no multiscale topology results"),
         (_EmptySecondPassExecutor(), "no multiscale publication results"),
+        (_EmptyNthPassExecutor(3), "no scale label results"),
     ),
 )
 def test_multiscale_stage_rejects_missing_executor_results(

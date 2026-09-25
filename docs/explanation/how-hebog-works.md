@@ -1,24 +1,187 @@
-# How Hebog finds radio-continuum sources
+# How Hebog finds sources
 
-This page follows one call to `hebog.find_sources()` from a FITS image to its
-four published products. Every box corresponds to behaviour in the public
-finder. The
-[public-products reference](../reference/public-products.md) defines the
-resulting fields, units, nulls, and scientific interpretation.
+This page is for astronomers who want to know what Hebog does to an image and
+why. It follows one call to `hebog.find_sources()` from a FITS image to the
+published catalogue. For field definitions and units, see the
+[output reference](../reference/public-products.md). For how the same steps
+are spread over many machines, see
+[How Hebog distributes work](../architecture/distributed-execution.md).
 
-Hebog separates three ideas that are easy to conflate:
+## Overview
 
-- an **island** is a connected footprint in the published detection mask;
-- a **Gaussian component** is a successfully fitted Gaussian model; and
-- a **source** is Hebog's image-domain association of one or more detection
-  components.
+```mermaid
+flowchart TD
+    image[/"FITS image (Jy/beam)"/]
+    subgraph noise["1 · Background and noise"]
+        bg["Sigma-clipped statistics on a coarse grid<br/>→ background and RMS maps"]
+        fine["Finer RMS grid around bright sources,<br/>with source pixels protected"]
+        bg --> fine
+    end
+    subgraph detect["2 · Detection"]
+        snr["Residual = image − background<br/>S/N = residual / RMS"]
+        filters["Beam-matched filters and<br/>B3 à trous wavelet scales 1–3"]
+        flood["Seed at the detection threshold,<br/>grow to the island threshold"]
+        snr --> filters --> flood
+    end
+    subgraph character["3 · Characterisation"]
+        deblend["Deblend: split islands at significant<br/>peaks separated by a saddle"]
+        fit["Fit elliptical Gaussians to<br/>background-subtracted pixels"]
+        associate["Associate components into sources<br/>using cross-scale evidence"]
+        measure["Sum the fitted components; also measure<br/>each source in its own non-overlapping aperture"]
+        deblend --> fit --> associate --> measure
+    end
+    products[/"catalogue.fits · rms.fits<br/>source-mask.fits · diagnostics.json"/]
 
-None of these is automatically an astrophysical object or a sky-model
-component. An island may contain multiple independent sources, a source may
-span multiple disconnected islands, and a detected component may have no
-Gaussian row when its fit is unavailable.
+    image --> noise --> detect --> character --> products
+```
 
-## End-to-end decision flow
+The approach belongs to the same family as PyBDSF and Aegean: estimate local
+noise, threshold into islands, and fit Gaussians. It differs mainly in how it
+treats extended emission, in reporting an aperture flux alongside the summed
+Gaussian flux, and in running every step on independent tiles. See
+the [comparison with other source finders](source-finder-comparison.md).
+
+## Three populations, not one
+
+Hebog keeps three things apart that are easy to conflate:
+
+| Term | Meaning | Catalogue table |
+| --- | --- | --- |
+| **Island** | A connected footprint in the published detection mask | `ISLANDS` |
+| **Gaussian component** | One successfully fitted elliptical Gaussian | `GAUSSIAN_COMPONENTS` |
+| **Source** | One or more detected components that Hebog associates as a single object in the image | `SOURCES` |
+
+An island can hold several independent sources. A source can span several
+islands. A detected component has no Gaussian row if its fit failed or was not
+admissible. None of the three is automatically one astrophysical object.
+
+## Step by step
+
+### 1. Check the image
+
+Hebog needs pixel values in `Jy/beam`, an ICRS or FK5 J2000 celestial WCS, a
+restoring beam and a reference frequency. NaN pixels are allowed and are
+excluded everywhere. Anything else is rejected before analysis, with an error
+that says what is missing. [Capability and status](../reference/release-status.md)
+lists the exact requirements, including the current 3,000-pixel size limit.
+
+### 2. Estimate background and noise
+
+The background (slowly varying offset) and the RMS (local noise) are estimated
+separately:
+
+- Iteratively sigma-clipped statistics are computed in windows on a coarse
+  grid, then interpolated to every pixel.
+- Pixels that belong to candidate sources are **protected**: they are excluded
+  from the statistics, so bright or extended emission does not inflate the
+  noise estimate around itself.
+- Near bright sources, where noise changes quickly because of imaging
+  artefacts, the `continuum` profile switches to a finer RMS grid.
+- At image edges, fine RMS values are extended as constants, never
+  extrapolated towards zero. Background and coarse-RMS slopes are taken from
+  grid samples at least as far apart as the distance being extrapolated, so a
+  genuine gradient is preserved without amplifying small errors.
+
+In the reviewed `continuum` profile the coarse grid uses 150-pixel windows
+every 50 pixels and the fine RMS grid 35-pixel windows every 7 pixels.
+Windows that overlap protected sources are dropped and
+the gaps interpolated; a region with no clean noise samples stays
+unavailable rather than receiving an invented floor. Background refinement
+around bright sources is triggered at 75σ, or at your detection threshold if
+your island threshold is higher than that. This never changes your detection
+or island thresholds. Noise structure finer than the grid is not measured.
+
+If no pixel has a finite positive RMS, a sigma threshold has no meaning. Hebog
+then returns an empty catalogue, a zero mask and an all-NaN RMS image marked
+`unavailable`. This is **not** evidence of an empty sky. A noiseless
+simulated image is the usual cause.
+
+### 3. Detect compact and extended emission
+
+Hebog forms the residual `image − background` and the signal-to-noise ratio
+`residual / RMS`. Detection then uses two thresholds, as PyBDSF and Aegean do:
+
+- a **detection threshold** (for example 5σ): an island must contain evidence
+  at this level; and
+- a lower **island threshold** (for example 3σ): an accepted island grows over
+  eight-connected pixels down to this level.
+
+To find emission that is faint per pixel but significant over a larger area,
+Hebog also evaluates the residual through a bank of beam-matched filters and
+a B3-spline à trous wavelet transform. These filtered images only help decide
+*whether* a region is significant. Islands still grow on the original residual
+pixels, and all fluxes are measured on the original image.
+
+Two area rules apply. A region promoted only by a filter must cover a minimum
+area in beams. A region with a pixel directly above the detection threshold
+can be smaller. Your `minimum_island_pixels` and optional
+`maximum_island_pixels` are applied afterwards.
+
+Diffuse multiscale emission can enlarge the region used to measure a nearby
+detection, but it is assigned to the nearest detection and cannot merge two
+detections merely because their faint wings touch. Multiscale support is kept
+only when it persists at an adjacent wavelet scale.
+
+### 4. Deblend and fit Gaussians
+
+Within each island Hebog looks for significant peaks separated by a
+sufficiently deep saddle and splits the island into one region per peak.
+
+Each component is then fitted with an elliptical Gaussian, initialised from
+image moments and fitted to the original background-subtracted pixels.
+Neighbouring components whose fitting regions touch are fitted jointly. A fit
+is **admitted** only if it converged, stayed within physical bounds, is well
+conditioned, leaves acceptable residuals and has usable uncertainties.
+Depending on the data, the admitted model is a free ellipse, a beam-shaped
+Gaussian, or an ellipse with a fixed centre.
+
+Fitting work is bounded. An island too large or too complex for the bounded
+deblend or joint fit is kept as a detection and recorded as **deferred** in
+the diagnostics. It is never silently dropped.
+
+### 5. Associate and measure sources
+
+In the `continuum` profile, Hebog decides which components form one source
+using a hierarchy of wavelet-scale features, the compact Gaussian models and
+the emission left after subtracting them. Every merge is recorded with its
+evidence in `diagnostics.json`. Components without positive evidence stay
+independent.
+
+Each source is measured twice. Its catalogue `INTEGRATED_FLUX` is the sum of
+its fitted Gaussian components, which is how PyBDSF defines a source's total
+flux. Each source also owns a non-overlapping aperture, and the signed sum of
+background-subtracted pixels in it is published as
+`ASSOCIATION_APERTURE_FLUX`; a source with no admitted fit uses this aperture
+flux as its `INTEGRATED_FLUX` and is flagged. The two agree for isolated
+compact sources but part for extended or edge-clipped emission, because a
+fit integrates sky the image does not cover and misses diffuse emission no
+component describes. If the aperture sum is not positive or cannot be
+measured, the source gets no catalogue row; Hebog does not substitute a
+positive-only estimate. The source position comes from the
+detection footprint, not from faint measurement-only wings, so a centroid can
+lie between two peaks or inside a ring.
+
+In the `compact` profile, association is skipped: every fitted component is
+its own source and carries its Gaussian measurement. Diagnostics then declare
+`extended-emission-incomplete`.
+
+### 6. Publish products
+
+The mask is the retained detection footprint, and its connected regions are
+the catalogue's islands. A Gaussian row is published only with its parent
+source row. All four files are written to a private directory, validated, and
+moved into place together, so a partial result is never visible.
+
+Hebog does not publish its background map, residual or model images, wavelet
+planes, or a filtered sky model.
+
+## Detailed decision flow
+
+The diagram below shows every accept or reject decision in the current
+finder. Input and configuration failures stop before any scientific work. A
+scientific rejection, such as an unseeded region or a rejected fit, does not
+stop the run: the item is left out of the catalogue and, where it had an
+identity, recorded in the diagnostics.
 
 ```mermaid
 flowchart TD
@@ -36,7 +199,7 @@ flowchart TD
     destination -- No --> reject_destination
     destination -- Yes --> input
     input -- No --> reject_input
-    input -- Yes --> partition[Plan deterministic 128 x 128 detection tiles]
+    input -- Yes --> partition[Plan deterministic background and detection tile cores]
 
     profile{Continuum or compact profile?}
     continuum[Source-protected background and adaptive local RMS]
@@ -54,7 +217,7 @@ flowchart TD
     usable -- No --> empty
 
     residual[Subtract background; exclude invalid pixels; divide by local RMS]
-    filters[Evaluate beam-aware matched filters and residual B3 à trous scales]
+    filters[Evaluate beam-aware matched filters and residual B3 à trous scales per tile]
     flood[Grow eight-connected candidate islands on original residual pixels at island threshold]
     seed{Candidate has detection-threshold evidence?}
     drop_unseeded[Discard unseeded region]
@@ -90,7 +253,7 @@ flowchart TD
     association{Profile allows source association?}
     associate[Choose independent, compact-model, or extended-morphology grouping]
     singleton[Use one source per component; declare extended-emission limitation]
-    source_measure[Measure each source once with signed, non-overlapping owned aperture]
+    source_measure[Measure each source once in its signed, non-overlapping owned aperture; sum its fitted components]
     source_valid{Positive, available source measurement with publication support?}
     compact_valid{Admitted component measurement with publication support?}
     source_row[Publish source row]
@@ -131,136 +294,14 @@ flowchart TD
     publish -- No --> fail
 ```
 
-The diagram has two kinds of rejection. Input and configuration failures stop
-before scientific work. Scientific non-admission does not normally abort the
-run: an unseeded region, a rejected fit, or an unavailable source measurement
-is omitted from the corresponding catalogue population and is represented in
-diagnostics where an identity was established.
+## Reading the results safely
 
-## What each stage means
-
-### 1. Admit a physically interpretable image
-
-The public finder accepts one two-dimensional image, or a FITS image with only
-singleton axes before its final two spatial axes. It currently requires
-`BUNIT=Jy/beam`, an ICRS or FK5 J2000 celestial WCS, a finite positive restoring beam, a
-positive reference frequency, and no more than 1,024 pixels along either
-spatial axis. NaN pixels are allowed and excluded. The 1,024-pixel limit is a
-current public-preview limit, not Hebog's target architecture.
-
-The detection/background stage uses deterministic 128-by-128 tile cores and
-can run through either the serial executor or a caller-supplied Dask client.
-Later measurement stages operate on the complete admitted image, which is why
-the size limit matters. Hebog does not create a Dask cluster and scientific
-ownership does not depend on task order.
-
-### 2. Estimate background and local noise
-
-Hebog estimates the slowly varying background independently of the RMS. It
-uses robust window statistics, excludes invalid samples, protects candidate
-source support, interpolates missing cells, and reconciles the bounded tile
-results. In the continuum profile, eligible images use a finer RMS estimate
-around protected emission; the compact profile does not claim
-complete extended-emission handling.
-
-If no finite positive RMS estimate exists anywhere, sigma thresholding is not
-scientifically defined. Hebog returns a successful, explicit empty result:
-the catalogue has no rows, the mask is zero, and `rms.fits` is all NaN with
-scientific status `unavailable`. This is **not** evidence that the image
-contains no emission.
-
-### 3. Detect compact and multiscale emission
-
-On scientifically valid pixels Hebog forms the residual
-`image - background` and its local signal-to-noise ratio. It also evaluates a
-beam-aware matched-filter bank and a residual B3 à trous representation. The
-filtered representations help decide whether emission is significant; the
-initial flood itself grows over eight-connected original-residual pixels at
-the caller's lower island threshold.
-
-A flooded region needs evidence at the higher detection threshold. A
-filter-promoted region must also satisfy the beam-area rule; a region
-with a direct original-pixel detection-threshold sample can survive below that
-multiscale area. Hebog then applies the caller's explicit minimum and optional
-maximum pixel count, so the two area decisions serve different purposes.
-
-Direct residual labels establish stable component identity. Significant
-multiscale support may enlarge the measurement owner within a bounded beam
-radius, but it is assigned to the nearest direct owner and cannot merge two
-direct identities merely because their diffuse support touches. Publication
-boundaries are rechecked using original-pixel S/N, adjacent-scale persistent
-support, and connectivity-preserving owner bridges.
-
-### 4. Deblend and fit components
-
-Hebog searches retained parents for sufficiently separated, significant peaks
-and can divide overlapping emission into deterministic owned regions. Hard
-bounds limit inseparable fitting work. If a parent cannot safely enter the
-bounded deblend or joint-fit path, Hebog preserves the detection and records a
-deferral instead of silently dropping it or allowing unbounded work.
-
-Each measurable component receives moment initialization and a bounded joint
-Gaussian fit against original, background-subtracted pixels. Model admission
-checks convergence, physical bounds, information conditioning, residual
-adequacy, visibility, and uncertainty availability. Depending on the data,
-the selected model can be free elliptical, beam constrained, or
-centroid-constrained elliptical. Only admitted fits appear in
-`GAUSSIAN_COMPONENTS`; every established component still has a diagnostic
-disposition.
-
-### 5. Associate and measure sources
-
-For the continuum profile, Hebog builds a hierarchy from per-scale features
-and records the evidence for any multi-component merge. Compact-model and
-extended-morphology evidence can constrain the final membership; an
-unconfirmed hierarchy remainder leaves components independent. In the compact
-profile, each successfully measured component becomes its own source and
-diagnostics explicitly declare `extended-emission-incomplete`.
-
-Continuum-profile source photometry is deliberately not copied from a member
-Gaussian. Hebog
-assigns every observable pixel to at most one source aperture, sums signed
-background-subtracted pixels, and reports that source-owned aperture
-measurement. Measurement-only persistent wings can contribute flux without
-moving the source position support. Position selection retains both the signed
-original and denoised estimates in diagnostics, including the rule used. A
-non-positive or unavailable signed source measurement is not replaced with a
-positive-only estimate; its disposition remains, but no source row is
-published. In the compact profile, a source row deliberately carries the same
-Gaussian-model measurement as its one component; it does not claim an
-extended-source aperture measurement.
-
-### 6. Assemble and publish products
-
-The source-filtering mask is the retained detection support. Hebog labels its
-eight-connected footprints to create the catalogue's `ISLANDS` population,
-then links the independently constructed source associations. A successful
-Gaussian fit is published only when its parent source row is also published.
-This final construction is why an island, a source, and a fit must not be
-counted interchangeably.
-
-All products are written and validated in a private sibling directory. Only a
-complete four-file bundle is renamed to the caller's output directory. Hebog
-never overwrites an existing destination. A failed run leaves the requested
-destination absent and can be retried with the same request.
-
-## A non-expert's mental model
-
-For pipeline developers, the simplest safe model is:
-
-1. the FITS image is the immutable input;
-2. `SourceFinderConfig` states the scientific thresholds and profile;
-3. the executor states **where** coarse work runs, not **what** the science
-   means;
-4. `SourceFinderResult` is small metadata pointing to four closed files; and
-5. the catalogue and diagnostics must be considered together.
-
-Do not infer a Gaussian fit from a source row, treat a blank catalogue as proof
-of a blank sky, or infer scientific qualification from a successful call. Use
-the product records and Hebog readers to verify role, schema, byte identity,
-and availability before downstream processing.
-
-Hebog does not publish its background plane, normalized residual,
-multiscale planes, component-label image, deblended model/residual images, or a
-filtered sky model. Those are internal scientific states or responsibilities
-of the integrating workflow.
+- Use the catalogue and `diagnostics.json` together. The diagnostics list
+  every detected component and source, including those without a catalogue
+  row.
+- Do not infer a Gaussian fit from a source row, or a blank sky from an empty
+  catalogue.
+- To compare with a PyBDSF or Aegean component list, use
+  `GAUSSIAN_COMPONENTS`, not `SOURCES`.
+- A successful run is not scientific qualification; see
+  [capability and status](../reference/release-status.md#scientific-status).

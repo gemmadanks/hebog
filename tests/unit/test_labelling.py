@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 import numpy.typing as npt
+import pytest
 
 from hebog.algorithms.detection import detect_threshold_masks
 from hebog.algorithms.labelling import LocalIslandTile, label_detection_tile
@@ -244,3 +245,154 @@ def test_empty_detection_has_no_islands_or_mapping_values() -> None:
     assert reconciliation.islands == ()
     assert reconciliation.reduction_round_count == 3
     assert not _mask_from_tiles(manifest, tiles, reconciliation).any()
+
+
+def _response_labelled_tiles(
+    normalized: npt.NDArray[np.float64],
+    response_jy_per_beam: npt.NDArray[np.float64],
+    *,
+    tile_shape_yx: tuple[int, int],
+) -> tuple[PartitionManifest, tuple[LocalIslandTile, ...]]:
+    """Label every owned core while reducing one filtered response peak."""
+    manifest = plan_image_partitions(
+        image_shape_yx=normalized.shape,
+        tile_core_shape_yx=tile_shape_yx,
+        halo_yx=(0, 0),
+    )
+    tiles: list[LocalIslandTile] = []
+    for partition in manifest.tiles:
+        bounds = partition.core_bounds
+        selection = (
+            slice(bounds.y_start, bounds.y_stop),
+            slice(bounds.x_start, bounds.x_stop),
+        )
+        values = normalized[selection]
+        tiles.append(
+            label_detection_tile(
+                detect_threshold_masks(
+                    values,
+                    np.ones(values.shape, dtype=np.bool_),
+                    np.zeros(values.shape),
+                    np.ones(values.shape),
+                    _config(),
+                ),
+                partition,
+                image_shape_yx=normalized.shape,
+                response_jy_per_beam=response_jy_per_beam[selection],
+            )
+        )
+    return manifest, tuple(tiles)
+
+
+def test_labelling_omits_a_response_peak_when_no_response_is_given() -> None:
+    """The reduced response stays absent for callers that do not need it."""
+    normalized = np.zeros((4, 4), dtype=np.float64)
+    normalized[1, 1] = 6.0
+
+    _, tiles = _label_tiles(normalized, tile_shape_yx=(8, 8))
+
+    assert tiles[0].islands[0].peak_response_jy_per_beam is None
+
+
+def test_labelling_reduces_the_response_peak_of_each_island() -> None:
+    """A peak response is reduced over island members, not over the core."""
+    normalized = np.zeros((4, 6), dtype=np.float64)
+    normalized[1, 1] = normalized[1, 2] = 6.0
+    response = np.full(normalized.shape, -1.0, dtype=np.float64)
+    response[1, 1] = 0.25
+    response[1, 2] = 0.75
+    response[3, 5] = 9.0
+
+    _, tiles = _response_labelled_tiles(
+        normalized,
+        response,
+        tile_shape_yx=(8, 8),
+    )
+
+    assert tiles[0].islands[0].peak_response_jy_per_beam == 0.75
+
+
+def test_response_peaks_merge_across_a_reconciled_tile_boundary() -> None:
+    """A split island keeps the larger response of its two fragments."""
+    normalized = np.zeros((4, 8), dtype=np.float64)
+    normalized[1, 3] = normalized[1, 4] = 6.0
+    response = np.zeros(normalized.shape, dtype=np.float64)
+    response[1, 3] = 0.25
+    response[1, 4] = 0.75
+
+    manifest, tiles = _response_labelled_tiles(
+        normalized,
+        response,
+        tile_shape_yx=(4, 4),
+    )
+    reconciliation = reconcile_island_tiles(manifest, tiles, _config())
+
+    assert len(reconciliation.islands) == 1
+    assert reconciliation.islands[0].peak_response_jy_per_beam == 0.75
+
+
+def test_labelling_rejects_a_response_outside_the_tile_core() -> None:
+    """A misaligned response cannot be reduced over the owned core."""
+    normalized = np.zeros((4, 4), dtype=np.float64)
+    normalized[1, 1] = 6.0
+    manifest = plan_image_partitions(
+        image_shape_yx=normalized.shape,
+        tile_core_shape_yx=(8, 8),
+        halo_yx=(0, 0),
+    )
+    masks = detect_threshold_masks(
+        normalized,
+        np.ones(normalized.shape, dtype=np.bool_),
+        np.zeros(normalized.shape),
+        np.ones(normalized.shape),
+        _config(),
+    )
+
+    with pytest.raises(ValueError, match="response must match the tile core"):
+        label_detection_tile(
+            masks,
+            manifest.tiles[0],
+            image_shape_yx=normalized.shape,
+            response_jy_per_beam=np.zeros((3, 4), dtype=np.float64),
+        )
+
+
+def test_reconciliation_rejects_fragments_that_disagree_on_a_response() -> (
+    None
+):
+    """One island cannot be half described by a reduced response."""
+    normalized = np.zeros((4, 8), dtype=np.float64)
+    normalized[1, 3] = normalized[1, 4] = 6.0
+    response = np.ones(normalized.shape, dtype=np.float64)
+    manifest = plan_image_partitions(
+        image_shape_yx=normalized.shape,
+        tile_core_shape_yx=(4, 4),
+        halo_yx=(0, 0),
+    )
+    tiles: list[LocalIslandTile] = []
+    for index, partition in enumerate(manifest.tiles):
+        bounds = partition.core_bounds
+        selection = (
+            slice(bounds.y_start, bounds.y_stop),
+            slice(bounds.x_start, bounds.x_stop),
+        )
+        values = normalized[selection]
+        tiles.append(
+            label_detection_tile(
+                detect_threshold_masks(
+                    values,
+                    np.ones(values.shape, dtype=np.bool_),
+                    np.zeros(values.shape),
+                    np.ones(values.shape),
+                    _config(),
+                ),
+                partition,
+                image_shape_yx=normalized.shape,
+                response_jy_per_beam=(
+                    response[selection] if index == 0 else None
+                ),
+            )
+        )
+
+    with pytest.raises(ValueError, match="agree on carrying a peak response"):
+        reconcile_island_tiles(manifest, tuple(tiles), _config())

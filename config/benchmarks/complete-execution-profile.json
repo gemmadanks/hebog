@@ -141,6 +141,22 @@
         }
       },
       "group": "real"
+    },
+    {
+      "case": {
+        "case_id": "profile-empty-4096",
+        "dataset_id": "profile-empty-4096",
+        "kind": "generated"
+      },
+      "group": "ladder"
+    },
+    {
+      "case": {
+        "case_id": "profile-dense-4096",
+        "dataset_id": "profile-dense-4096",
+        "kind": "generated"
+      },
+      "group": "ladder"
     }
   ],
   "dataset_manifest": "config/datasets/complete-execution-profile.json",

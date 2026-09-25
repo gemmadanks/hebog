@@ -22,7 +22,10 @@ from hebog.data_models.source_finding import SourceFinderRequest
 from hebog.executors.serial import SerialExecutor
 from hebog.io.fits import FitsImageSource
 from hebog.public_science import build_configured_continuum_products
-from hebog.science.profile import load_continuum_science_profile
+from hebog.science.profile import (
+    configured_science_profile,
+    load_continuum_science_profile,
+)
 from hebog.validation.datasets import (
     BeamMetadata,
     DatasetManifest,
@@ -43,6 +46,7 @@ from hebog.validation.public_measurement_projection import (
     ContinuumCatalogueObject,
     project_public_measurements,
 )
+from hebog.validation.tiled_detection import publish_continuum_inputs
 
 _ROOT = Path(__file__).parents[2]
 _FWHM_PER_SIGMA = 2.0 * sqrt(2.0 * np.log(2.0))
@@ -455,21 +459,45 @@ def test_joint_geometry_with_controlled_or_public_background(
                 _ROOT / "src/hebog/resources/reviewed_continuum_profile.json"
             ).read_bytes()
         )
-        products = build_configured_continuum_products(
-            image,
+        config = SourceFinderConfig(5.0, 3.0, 7)
+        beam_pixels = BeamShapePixels(
+            beam.major_fwhm_pixels,
+            beam.minor_fwhm_pixels,
+            beam.position_angle_degrees,
+        )
+        published = publish_continuum_inputs(
+            np.asarray(image, dtype=np.float64),
+            np.ones(image.shape, dtype=np.bool_),
             background,
             rms,
+            beam=beam_pixels,
+            review=configured_science_profile(review, config),
+            work_directory=tmp_path / "detection",
+            header=header,
+            config=config,
+        )
+        valid = np.isfinite(image) & np.isfinite(background) & np.isfinite(rms)
+        products = build_configured_continuum_products(
+            valid,
+            valid & (rms > 0.0),
             header,
-            beam=BeamShapePixels(
-                beam.major_fwhm_pixels,
-                beam.minor_fwhm_pixels,
-                beam.position_angle_degrees,
-            ),
-            review=review,
-            config=SourceFinderConfig(5.0, 3.0, 7),
+            multiscale=published.multiscale,
+            labels=published.labels,
+            topology=published.topology,
+            measurements=published.measurements,
+            association=published.association,
+            hierarchy=published.hierarchy,
+            source_labels=published.source_labels,
+            source_measurement_labels=(published.source_measurement_labels),
+            component_rows=published.component_rows,
+            source_rows=published.source_rows,
+            source_positions=published.source_positions,
         )
         scientific = public_api._ScientificProducts(
-            image, background, rms, products
+            published.image_source,
+            published.background_rms,
+            "valid",
+            products,
         )
     assert products is not None
     catalogue, mask = public_api._public_catalogue(
@@ -506,11 +534,16 @@ def test_joint_geometry_with_controlled_or_public_background(
 
     assert recovery.matched_source is not None, recovery
     assert recovery.eligible_support_count == 1, recovery
-    assert (
-        abs(recovery.matched_source.integrated_flux_jy - truth_flux_jy)
-        / truth_flux_jy
-        <= 0.25
-    ), recovery
+    # Flux recovery is asserted on the observable aperture, which is the
+    # quantity injected truth states. The catalogue's own `Total_flux` is the
+    # sum of the source's fitted components, PyBDSF's definition, which
+    # integrates each model over the whole plane and so does not recover the
+    # extended emission these cells inject; see the product reference.
+    recovered_flux_jy = recovery.matched_source.aperture_integrated_flux_jy
+    assert recovered_flux_jy is not None, recovery
+    assert abs(recovered_flux_jy - truth_flux_jy) / truth_flux_jy <= 0.25, (
+        recovery
+    )
     assert 0 <= recovery.mask_recall <= 1
     assert 0 <= recovery.mask_iou <= 1
     if not with_noise:

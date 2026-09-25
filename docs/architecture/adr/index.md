@@ -1,5 +1,12 @@
 # Architectural Decision Records
 
+An ADR records one architecturally significant decision: its context, the
+options considered, the outcome and its consequences. Read them to learn why
+Hebog is built the way it is; read the
+[architecture overview](../index.md) for what the design is today. New ADRs
+start from the [template](template.md). When a decision is replaced, the old
+ADR is kept and marked as superseded.
+
 | ADR | Status | Summary |
 |-----|---------|----------|
 | [ADR-001: Use Architecture Decision Records](001-use-architectural-decision-records.md) | 🟢 Accepted | Use ADRs to explain the rationale behind architecturally significant design choices for future developers and AI assistants |

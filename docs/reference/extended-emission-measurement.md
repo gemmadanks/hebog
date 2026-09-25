@@ -1,10 +1,10 @@
 # Extended-emission measurement
 
-Phase 5 measures accepted irregular emission without fitting a Gaussian model
+Hebog measures accepted irregular emission without fitting a Gaussian model
 to its morphology. Detection support determines ownership; physical values
 come from the original image, prepared background, and prepared RMS planes.
-The measurement record is a pre-association product. Step 4 still decides
-cross-scale and compact/extended relationships before catalogue publication.
+The measurement record is a pre-association product: source association
+decides cross-scale and compact/extended relationships afterwards.
 
 ## Measurement policy
 
@@ -31,9 +31,8 @@ immutable member support, and exact ties use canonical source identity.
 
 Compact-deferred islands do not yet have a multiscale reconstruction, so their
 bounded stage records direct-original-residual position weighting. The pure
-tile kernel also accepts a regularized position plane for multiscale targets,
-preserving the recovery-campaign estimator rather than silently substituting
-direct weighting.
+tile kernel also accepts a regularized position plane for multiscale targets
+rather than silently substituting direct weighting.
 
 ## Uncertainty and truncation
 
@@ -71,15 +70,7 @@ Workers return scalar sufficient statistics; arrays, open files, and complete
 islands never cross the executor boundary. Canonical scalar reduction makes
 results invariant to retries and executor scheduling. Equivalent shifted and
 rectangular completion grids are covered by integration tests. The stage reads
-the Phase 4 accepted mask and prepared fields without modifying the detection
-generation or compact catalogue products.
-
-## Current boundary
-
-This milestone establishes measurement semantics and its bounded execution.
-Step 4 now reconciles adjacent-scale exact supports, records many-to-many
-compact spatial context, derives stable combined identities, and publishes
-the combined products. The Phase 5
-[bounded-execution halo review](https://github.com/gemmadanks/hebog/blob/4babf0baaf5609e72764183e543df84ec6be09e0/docs/reference/phase-5-bounded-execution.md) derives the
-measurement halo through the same helper used here; tile/executor invariance
-and byte-level execution evidence remain open Step 5 work.
+the accepted compact mask and prepared fields without modifying the detection
+generation or compact catalogue products. The measurement halo is derived by
+the same helper as the other stage halos in
+[ADR-008](../architecture/adr/008-make-the-continuum-composition-tile-native.md#per-stage-contract).
