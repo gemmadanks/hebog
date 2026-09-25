@@ -86,6 +86,10 @@ quick-benchmark *args:
 profile-execution *args:
     uv run python scripts/benchmark/profile_complete_execution.py {{args}}
 
+# Measure the deterministic traced-allocation peak that gates envelope raises
+traced-peak *args:
+    uv run python scripts/benchmark/measure_traced_peak.py {{args}}
+
 # Run explicitly requested performance tests
 test-benchmark:
     uv run pytest -q -m "benchmark and not scalability" tests/

@@ -25144,6 +25144,95 @@ the per-worker placement finding.
   reduced owner-to-island map rather than a home in an existing pass.
   ADR-008's object table has no round for it yet.
 
+## 2026-09-25 — M2: the traced peak gets a harness, and the tiers are re-measured
+
+- **The gap.** The plan gates every public envelope raise on `tracemalloc`'s
+  peak, and the profile page quoted 1,342 MiB at 3,000², but no committed tool
+  measured it: `grep -rn tracemalloc scripts src` found nothing. Every traced
+  figure quoted so far came from an ad-hoc script that is not in the
+  repository, so none of them can be reproduced, and two of them disagreed by
+  80 MiB with no way to tell why.
+- **The harness.** `just traced-peak`
+  (`scripts/benchmark/measure_traced_peak.py`, over
+  `hebog.validation.traced_peak`) follows the quick benchmark's shape: a thin
+  runner, a worker in a fresh single-thread process for each repetition, and
+  one versioned evidence document per case under the ignored
+  `benchmark-results/traced-peak/`. Cases, tiers and finder settings are the
+  quick benchmark's own, and the runner writes the benchmark's own case
+  identity hash, which a test pins, so a peak and a timing provably describe
+  the same measured configuration. It is a separate runner so that it stays
+  out of the timing path: tracing roughly doubles wall time, the quick
+  benchmark never traces, and traced evidence publishes no timing that may be
+  compared with a benchmark. `TracedAllocationEvidence` is a new document type
+  rather than a field on `BenchmarkEvidence`, for the same reason.
+- **Three spans, because a peak means nothing without one.** The worker starts
+  tracing before it imports Hebog and then imports nothing but the standard
+  library and the public API — importing the validation package would add its
+  own allocations to the figure. It reports the process peak (the gate
+  figure), the peak of the `find_sources` call alone, and the import floor.
+- **The admitted tiers at `d70bb56` (0.13.0, source tree `9ad0bbdbc740`).** Two
+  repetitions of each case, in
+  `benchmark-results/traced-peak/runs/admitted-tiers-20260925b` and
+  `admitted-tiers-20260925b-smoke`, at the quick benchmark's settings
+  (detection 5.0, island 3.0, minimum 7, continuum), serial executor, one
+  numerical-library thread. The recorded source tree also covers the
+  validation-only edits made while the harness was being finished, which the
+  traced process never imports: the finder code that ran is `d70bb56`'s.
+
+  | case | side | traced peak | import floor | components | spread |
+  | --- | --- | --- | --- | --- | --- |
+  | `compact-snr-ladder` | 512 | 225.2 MiB | 90.4 MiB | 5 | 1.4 KiB |
+  | `dense-field` | 1,024 | 431.5 MiB | 90.4 MiB | 57 | 6.9 KiB |
+  | `lotss-dr3-1312-sparse` | 1,024 | 431.8 MiB | 90.4 MiB | 61 | 0.6 KiB |
+  | `lotss-dr3-1312-dense` | 1,024 | 432.4 MiB | 90.4 MiB | 108 | 5.2 KiB |
+  | `sdc1-b2-1000h-crowded` | 1,024 | 433.9 MiB | 90.4 MiB | 794 | 1.1 KiB |
+  | `sdc1-b2-1000h-crowded-2048` | 2,048 | 1,320.4 MiB | 90.4 MiB | 3,110 | 3.6 KiB |
+  | `lotss-dr3-1312-dense-3000` | 3,000 | 1,351.7 MiB | 90.4 MiB | 828 | 4.4 KiB |
+
+  Every case is inside the public envelope, and the process peak fell inside
+  the `find_sources` call in all of them, so that span and the process peak
+  coincide. `lotss-dr3-1312-dense-3600` was not measured: it is above the
+  envelope and its cut-out is not on this machine.
+- **1,342 MiB is replaced, and 1,261.39 MiB is explained.** The committed
+  figure for the 3,000² LoTSS-DR3 cut-out is **1,351.7 MiB**
+  (1,417,400,481 B; the two runs differ by 4.4 KiB). The 1,261.39 MiB that a
+  fresh ad-hoc harness reported earlier today is this run's finder span less
+  its import floor: 1,351.74 − 90.43 = 1,261.31 MiB, a 0.1 MiB match, so that
+  harness traced the call and not the imports. The older 1,342 MiB — measured
+  on this same code, re-verified as 1341.5 on 24 September — sits 10 MiB below
+  the committed process peak and 80 MiB above the call-only span, so it
+  matches neither span and cannot be attributed; the script that produced it
+  does not exist. Only figures from `just traced-peak` are quotable from now
+  on, and the plan and the profile page say so.
+- **The peak repeats to kilobytes, not to the byte.** The first pass of the
+  harness compared peaks exactly and reported every case as not reproduced.
+  Measured spreads across two repetitions are 0.6 to 6.9 KiB, about 1 part in
+  10⁵: a run allocates its own strings, paths and metadata slightly
+  differently from the next. Reproducibility is therefore assessed against
+  `TRACED_PEAK_TOLERANCE_BYTES`, a tenth of a mebibyte — the precision a peak
+  is quoted at, ten times the measured spread and two orders of magnitude
+  below the image-sized arrays a scalability change moves. The earlier claim
+  that the peak was "identical to the decimal" was right at that precision and
+  wrong about byte equality. One repetition now reports reproducibility as
+  unmeasured rather than as a pass, and repetitions that disagree fail the run.
+- **What the tiers say.** Image size governs the peak and source count does
+  not: at 1,024² the crowded SDC1 field carries 14 times the components of the
+  generated dense field for 2.4 MiB more. The peak triples from 1,024² to
+  2,048² and then adds 2.4% to 3,000², although the area more than doubles,
+  which is what the 2,048-pixel cores predict — 2,048² is the last single-tile
+  size. The import floor is fixed at 90.4 MiB, 40% of a 512² run and 7% of a
+  3,000² one.
+- **Checks.** Unit with doctests (2,004 passed, 2 xfailed), contract (40, 2
+  xfailed), integration (582) and both benchmark-marked smoke runs pass, as do
+  `just check`, `just docs-build` and `just pre-commit`. `just coverage` gives
+  97% branch-aware project coverage, 100% of `validation/traced_peak.py` and
+  every new evidence rule covered. No science, scheduler or public-API
+  behaviour changed, so no equivalence or quick-benchmark run was taken.
+- **Next.** The 10,000 tier still needs a LoTSS-DR3 cut-out before it can be
+  measured. The per-object rounds moving into their own passes must not raise
+  the tier figures above, which is now a reproducible check rather than a
+  claim.
+
 ## 2026-09-25 — M2: the detection islands get a round of their own
 
 - **What this is.** The last of the plan's three per-object rounds, and the

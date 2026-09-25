@@ -21,12 +21,14 @@ decision gate this page feeds.
 ```bash
 just profile-execution --label my-profile --cprofile
 just quick-benchmark --tier large
+just traced-peak --tier large --repetitions 2
 ```
 
 The profiler runs every case in a fresh single-thread process, and a second
 time under `cProfile` when asked. It writes per-stage wall time and the
 `cProfile` statistics under `benchmark-results/profiles/runs/<label>`. A
-profile ranks costs; only the quick benchmark establishes a speedup.
+profile ranks costs; only the quick benchmark establishes a speedup, and only
+`just traced-peak` establishes what a run allocates.
 
 !!! note "Sizes above the public envelope"
 
@@ -162,9 +164,12 @@ LoTSS field with 814 islands went from 216.4 s to 201.7 s under tracing, about
 
 The background stage was the change that moved the peak, which sits in the
 multiscale pass rather than in anything the catalogue does: returning two
-`bool` masks where three `float64` estimates had been took it from 1539.3 to
-1342.1 MiB at 3,000² across three steps, within 1 MiB of the 198 MiB the
-array arithmetic predicted. The stage now returns neither, only whether any
+`bool` masks where three `float64` estimates had been took it down by
+197 MiB at 3,000² across three steps, within 1 MiB of the 198 MiB the
+array arithmetic predicted. That difference, like the two below, was taken
+with an ad-hoc harness before `just traced-peak` existed; a difference of
+one harness's figures holds, but its levels are not comparable with the
+table further down. The stage now returns neither, only whether any
 pixel has a usable local noise estimate, reduced one tile row at a time, and
 the label, mask and position-signal planes followed it out.
 
@@ -182,8 +187,51 @@ those planes were held for were whole-plane comparisons: medians of five on a
 quiet machine give `dense-field` 9.3 s, `lotss-dr3-1312-sparse` 10.0 s and
 `lotss-dr3-1312-dense` 11.1 s, ratios 0.96, 0.93 and 0.94 against v0.13.0.
 
-A real 3,000² LoTSS-DR3 field has a deterministic traced peak of
-**1,244 MiB** through the public path.
+## What a run allocates
+
+`just traced-peak` measures it: `tracemalloc` in a fresh single-thread
+process, on the quick benchmark's own inputs and settings, writing one
+`TracedAllocationEvidence` record per case. It is the only committed way to
+produce the figure the envelope gate uses, and it stays out of the timing
+path, because tracing roughly doubles wall time.
+
+A peak means nothing without the span it covers, so every repetition reports
+three figures: the **process peak**, traced from before Hebog is imported; the
+peak of the **`find_sources` call** alone; and the **import floor**, what the
+imported modules still hold when that call begins.
+
+Measured at `0.13.0` (`d70bb56`), two repetitions of each case, in
+`benchmark-results/traced-peak/runs/admitted-tiers-20260925b` and, for the
+512² case, `admitted-tiers-20260925b-smoke`:
+
+| case | pixels per side | traced peak | components |
+| --- | --- | --- | --- |
+| generated compact ladder | 512 | 225.2 MiB | 5 |
+| generated dense field | 1,024 | 431.5 MiB | 57 |
+| LoTSS-DR3 sparse | 1,024 | 431.8 MiB | 61 |
+| LoTSS-DR3 dense | 1,024 | 432.4 MiB | 108 |
+| SDC1 crowded | 1,024 | 433.9 MiB | 794 |
+| SDC1 crowded | 2,048 | 1,320.4 MiB | 3,110 |
+| LoTSS-DR3 dense | 3,000 | 1,351.7 MiB | 828 |
+
+The process peak fell inside the `find_sources` call in every case, so the
+first two spans coincide. Three things in the table matter more than the exact
+figures.
+
+**Image size governs the peak, not source count.** At 1,024² the crowded SDC1
+field carries 14 times the components of the generated dense field for 2.4 MiB
+more. What grows with the image is the planes; what grows with the catalogue is
+bounded.
+
+**The peak crosses the tile boundary almost flat.** From 1,024² to 2,048² it
+triples; from 2,048² to 3,000² it adds 2.4%, although the area more than
+doubles. 2,048² is the last size every stage outside background and RMS runs as
+one tile, so tile-bounded state is image-bounded state there, and at 3,000² the
+same stages run four tiles.
+
+**The import floor is fixed.** It was 90.4 MiB in every case from 512² to
+3,000², so it is 40% of a 512² run and 7% of a 3,000² one. A tracer started
+after the imports cannot see that floor and reports a peak lower by its size.
 
 !!! warning "Peak RSS is an envelope, not a threshold"
 
@@ -193,13 +241,23 @@ A real 3,000² LoTSS-DR3 field has a deterministic traced peak of
     so it records how aggressively the operating system reclaimed as much as
     what Hebog demanded. Quote it as a range, and never gate a change on it.
 
-    `tracemalloc`'s peak counts the process's own allocations instead. In
-    that same experiment, on the code of the day, it gave **1539.3 MiB** in
-    every run at loads from 2.9 to 4.6, identical to the decimal, so a
-    scaling claim or a tier gate uses the traced peak. It
-    roughly doubles wall time, which is acceptable for a gate measurement.
-    Earlier figures on this page of 2,144 MiB and 1,347 MiB were single
-    first runs and should not be compared with anything.
+    The traced peak is what a scaling claim or a tier gate uses. Each figure
+    above repeated across its two runs to between 0.6 and 6.9 KiB — not to the
+    byte, because the strings, paths and metadata of one run allocate slightly
+    differently in the next, which is why repetitions count as agreeing within
+    a tenth of a mebibyte. Traced evidence records peak RSS beside the peak,
+    but tracing inflates it too, so read it only as an envelope.
+
+!!! warning "Quote only what `just traced-peak` measured"
+
+    Traced peaks quoted before `just traced-peak` existed came from ad-hoc
+    scripts that were never committed, so the span each covered is unknown
+    and none can be reproduced: 2,144, 1,347, 1,342, 1,261.39 and 1,244 MiB
+    were all quoted for 3,000², and 1,539.3 MiB before the background-mask
+    change. The table above replaces them. The 1,261.39 MiB is explained:
+    1,351.7 MiB less the 90.4 MiB import floor is 1,261.3 MiB, so that
+    harness traced the finder call and not the imports. `LOG.md`,
+    25 September 2026, records which harness produced which number.
 
 !!! warning "Do not extrapolate from inside the envelope"
 
