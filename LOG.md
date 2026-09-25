@@ -25143,3 +25143,76 @@ the per-worker placement finding.
   connectivity spans tiles, so the round needs a reconciled labelling and a
   reduced owner-to-island map rather than a home in an existing pass.
   ADR-008's object table has no round for it yet.
+
+## 2026-09-25 — M2: the detection islands get a round of their own
+
+- **What this is.** The last of the plan's three per-object rounds, and the
+  one that could not move into an existing pass. The driver now reads no
+  window and labels no plane: every object the catalogue publishes is measured
+  by the pass that holds its tile.
+- **Why it needed a round of its own.** An island is a connected region of the
+  retained mask the publication pass writes, not owner support, so no existing
+  pass reads the right thing: the row rounds read one segment's ownership and
+  the fit rounds read one parent's. The driver was labelling the whole plane
+  with `scipy.label`, 9 megapixels at 3,000², and then reading one window per
+  island, 814 of them on that field.
+- **The round.** `hebog.stages.islands` has two rounds and one reconciliation.
+  The cores label their own retained mask, through the same
+  `label_detection_tile` the support pass uses for a mask whose members are
+  all seeds, and return boundary labels plus the `(owner, local island)` pairs
+  they observe. `reconcile_candidate_tiles` merges the fragments and numbers
+  the islands by canonical first pixel, which is the order labelling a whole
+  plane gives, so the published row order is unchanged. One task per batch of
+  islands then measures their rows under the owner read budget.
+- **Why no plane is published.** Only these two rounds read island labels. An
+  island's reconciled bounds contain it entirely, and no second island can be
+  eight-connected to it inside them, so the measuring task recovers it by
+  labelling its own window and selecting the component holding the canonical
+  first pixel — the pattern ADR-008 already states for support features. It
+  then checks the recovered pixel count against the reconciled one, so a
+  window that truncated or merged an island fails closed rather than
+  publishing a row. The owner pairs cannot be produced by the publication
+  pass that writes the mask, because the component labels they name do not
+  exist until the topology pass has deblended.
+- **Evidence: the products do not move, across tiles as well as within one.**
+  On the real 1,024² LoTSS-DR3 dense cut-out (one tile, 109 islands) and the
+  3,000² field (four tiles, 814 islands) the catalogue, RMS and mask are
+  bitwise identical to `fe8dd7e`, with every island local-noise value
+  identical. The traced peak is flat: 342.01 → 342.04 MiB and
+  1261.39 → 1261.45 MiB. The stage's suite compares it against a new
+  whole-plane oracle, `build_detection_island_catalogue`, on a mask built to
+  be awkward: a filament through the corner where four cores meet, a bar along
+  a core boundary, an island on the image's own corner, and an owner whose
+  retained support is split between two islands. Rows and the owner map agree
+  at cores of 16, 24, 32 and 64 with every batch budget at 1, and under Dask.
+  The quick science check reports no regression against `m2-per-object-rounds`
+  across all 16 cases.
+- **Evidence: the anchors, and a measurement lesson.** On a quiet machine,
+  medians of five against v0.13.0: `dense-field` 9.87 s, ratio 1.02
+  [1.00, 1.04]; `lotss-dr3-1312-sparse` 10.55 s, 0.98 [0.94, 1.01];
+  `lotss-dr3-1312-dense` 11.92 s, 1.01 [1.00, 1.03]. All three pass. An
+  earlier run of the same benchmark reported 1.04, 1.02 and 1.08, all
+  inconclusive, because unit and lint runs of mine overlapped with it. The
+  contract's rule already says to avoid concurrent workloads; the cost of
+  ignoring it here was one wasted 200-second session and a false regression.
+- **What it is worth.** This is the round whose move shows on the clock,
+  because the work it replaces scaled with the image rather than with a tile:
+  the 3,000² field went 216.4 → 201.7 s under tracing, about 7%. At 1,024²,
+  where the image is one tile, the round instead pays about 2%: it trades an
+  in-memory whole-plane labelling for three tile reads. That crossover is the
+  M2 bargain, and it moves the right way as the envelope grows.
+- **The driver's plane count is unchanged.** Still 18 image-shaped arrays at
+  49 bytes a pixel, measured by walking the driver's locals. The reads are
+  gone; the planes are the next row.
+- **Two consumers had to follow, and the targeted runs missed both.** The
+  notebook runner called the driver's deleted RMS window reader, and two
+  public-path tests simulated publication pruning by mutating the terminal
+  record's retained mask, which the island round no longer reads. Both are
+  fixture-level: the runner reads the RMS plane from its store, and the tests
+  prune the island map beside the mask, so the case they exist for — a
+  measured owner that reaches no island keeps its disposition and gets no row
+  — still runs through the live branch. The stage, composition and
+  public-path suites I ran while building all passed; only `just coverage`
+  reached those two consumers, which is the argument for running it before
+  believing a change is done. Branch-aware coverage is 96.71% over 2,603
+  portable tests, with the new stage at 100% and the driver at 99%.

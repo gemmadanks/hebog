@@ -49,6 +49,7 @@ from hebog.public_api import (
     detect_multiscale_products,
     publish_component_fits,
     publish_component_topology,
+    publish_detection_islands,
     publish_hierarchy_overlaps,
     publish_segment_rows,
     publish_source_planes,
@@ -57,6 +58,7 @@ from hebog.public_api import (
 )
 from hebog.science.continuum import retained_scale_detections
 from hebog.science.models import (
+    CatalogueIsland,
     CatalogueSource,
     TiledComponentTopology,
     TiledMultiscaleDetection,
@@ -160,6 +162,8 @@ class PublishedContinuumInputs:
     source_positions: Mapping[int, SourcePositionDiagnostics]
     component_local_rms: Mapping[int, float]
     source_local_rms: Mapping[int, float]
+    islands: tuple[CatalogueIsland, ...]
+    island_ids_by_owner: Mapping[int, tuple[str, ...]]
 
 
 def _source_association(
@@ -321,6 +325,16 @@ def publish_continuum_inputs(  # noqa: PLR0913
         generation_id=generation_id,
         tile_core_pixels=support_tile_core_pixels,
     )
+    islands, island_ids_by_owner = publish_detection_islands(
+        image_source,
+        background_rms_source,
+        labels_source,
+        component_source,
+        resolved_executor,
+        image_shape_yx=image_jy_per_beam.shape,
+        beam=beam,
+        tile_core_pixels=support_tile_core_pixels,
+    )
     component_rows, component_local_rms, _ = publish_segment_rows(
         image_source,
         background_rms_source,
@@ -367,6 +381,8 @@ def publish_continuum_inputs(  # noqa: PLR0913
         source_positions=source_positions,
         component_local_rms=component_local_rms,
         source_local_rms=source_local_rms,
+        islands=islands,
+        island_ids_by_owner=island_ids_by_owner,
         measurements=measurements,
         association=association,
         hierarchy=hierarchy,

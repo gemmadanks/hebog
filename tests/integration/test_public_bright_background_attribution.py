@@ -85,11 +85,14 @@ def test_bright_halo_is_not_background_but_noise_inflation_is_retained(
         header=header,
     )
     support = halo >= 3 * rms
-    plane = (slice(0, image.shape[0]), slice(0, image.shape[1]))
-    estimated_rms = scientific.read_rms_window(plane)
+    plane = ImageBounds(0, image.shape[0], 0, image.shape[1])
+    estimated_rms = np.asarray(
+        scientific.background_rms_source.read_completed_window("rms", plane),
+        dtype=np.float64,
+    )
     estimated_background = np.asarray(
         scientific.background_rms_source.read_completed_window(
-            "background", ImageBounds(0, image.shape[0], 0, image.shape[1])
+            "background", plane
         ),
         dtype=np.float64,
     )

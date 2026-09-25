@@ -408,6 +408,8 @@ def _configured_products(
             source_positions=published.source_positions,
             component_local_rms=published.component_local_rms,
             source_local_rms=published.source_local_rms,
+            islands=published.islands,
+            island_ids_by_owner=published.island_ids_by_owner,
         )
 
 

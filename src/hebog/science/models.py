@@ -98,6 +98,29 @@ class CatalogueEllipse:
 
 
 @dataclass(frozen=True, slots=True)
+class CatalogueIsland:
+    """One measured detection island, before the public catalogue names it.
+
+    An island is a connected region of the published retained mask, so its
+    identity is its canonical first pixel rather than a label: labels depend
+    on how the plane was partitioned, and the first pixel does not.
+    """
+
+    identifier: str
+    pixel_count: int
+    integrated_flux_jy: float
+    local_rms_jy_per_beam: float
+    mean_brightness_jy_per_beam: float
+
+    def __post_init__(self) -> None:
+        """Require one named island that owns at least one pixel."""
+        if not self.identifier:
+            raise ValueError("island identifier must not be empty")
+        if self.pixel_count <= 0:
+            raise ValueError("island pixel count must be positive")
+
+
+@dataclass(frozen=True, slots=True)
 class CatalogueSource:
     """One internal source-catalogue row in canonical physical units."""
 
@@ -361,6 +384,11 @@ class ContinuumProducts:
     component's and each source's own support, measured by the row pass that
     read the window it belongs to. An owner whose support carries no usable
     estimate is absent, which is what makes it unpublishable.
+
+    ``islands`` are the retained mask's own connected regions, in canonical
+    first-pixel order, and ``island_ids_by_owner`` names the islands each
+    component's retained support reaches. Both come from the island round,
+    which reconciled that connectivity across tiles.
     """
 
     detection: ThresholdFilterResult
@@ -369,6 +397,8 @@ class ContinuumProducts:
     component_catalogue: tuple[CatalogueSource, ...]
     source_association: SourceAssociationResult
     local_rms_by_object_id: Mapping[str, float]
+    islands: tuple[CatalogueIsland, ...]
+    island_ids_by_owner: Mapping[int, tuple[str, ...]]
     deblended_parent_count: int = 0
     deferred_deblend_parent_count: int = 0
     measurement_dispositions: tuple[MeasurementDisposition, ...] = ()

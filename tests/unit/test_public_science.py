@@ -209,6 +209,8 @@ def test_configured_builder_rejects_usable_noise_outside_the_valid_domain(
             source_positions=published.source_positions,
             component_local_rms=published.component_local_rms,
             source_local_rms=published.source_local_rms,
+            islands=published.islands,
+            island_ids_by_owner=published.island_ids_by_owner,
         )
 
 
@@ -268,6 +270,8 @@ def test_configured_builder_measures_the_published_component_topology(
         source_positions=published.source_positions,
         component_local_rms=published.component_local_rms,
         source_local_rms=published.source_local_rms,
+        islands=published.islands,
+        island_ids_by_owner=published.island_ids_by_owner,
     )
 
     assert result is not None
@@ -319,6 +323,8 @@ def test_configured_builder_publishes_independent_connected_sources(
         source_positions=published.source_positions,
         component_local_rms=published.component_local_rms,
         source_local_rms=published.source_local_rms,
+        islands=published.islands,
+        island_ids_by_owner=published.island_ids_by_owner,
     )
 
     assert result is not None
@@ -369,6 +375,8 @@ def test_configured_builder_retains_three_components_in_one_parent(
         source_positions=published.source_positions,
         component_local_rms=published.component_local_rms,
         source_local_rms=published.source_local_rms,
+        islands=published.islands,
+        island_ids_by_owner=published.island_ids_by_owner,
     )
 
     assert result is not None
@@ -476,6 +484,8 @@ def test_the_composition_names_each_owner_noise_by_its_identity(
         source_positions=published.source_positions,
         component_local_rms=published.component_local_rms,
         source_local_rms=published.source_local_rms,
+        islands=published.islands,
+        island_ids_by_owner=published.island_ids_by_owner,
     )
 
     assert result is not None

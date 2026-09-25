@@ -12,7 +12,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-09-18 |
-| **Last Updated** | 2026-09-25 (the per-object rounds each pass owns) |
+| **Last Updated** | 2026-09-25 (the per-object rounds each pass owns, and the island round) |
 | **Deciders** | Gemma Danks |
 | **Tags** | tiling, halos, ownership, reconciliation, memory, invariance |
 
@@ -302,6 +302,7 @@ that only one round reads would cost a generation for nothing.
 | Source support | core, halo 0, then one connected support component's window | `source-labels`, `persistent-scale-support`, `measurement-support` | support island summaries, then owner patches, then `source-measurement-labels` |
 | Source apertures | core, halo 1.5 beams | `source-measurement-labels` | `source-aperture-labels` |
 | Source rows | source window + 1.5-beam aperture | image, background, RMS, validity, source labels, position signal | catalogue shards, each segment's local noise |
+| Detection island rows | core, halo 0, then one island's window | `retained-mask`, `component-measurement-labels`; then image, background, RMS, `retained-mask` | island boundary summaries and owner-to-island pairs; then catalogue island rows |
 
 Component numbering is canonical because the driver offsets each parent's
 local labels by the components every earlier parent produced, in ascending
@@ -384,6 +385,18 @@ measuring each component's and each source's moments, and the local noise over
 the support it owns, inside its own window. The noise is measured for every
 segment the round observes, not only for the measurable ones, because a row
 published from a fitted model quotes the same value.
+
+The published catalogue also names islands, and they are the one object in it
+that is not owner support: an island is a connected region of the retained
+mask the publication pass wrote. That connectivity spans tiles like every
+other label plane, so it is reconciled the same way — each core labels its own
+retained mask and returns boundary labels, and the reduction numbers the
+islands by canonical first pixel, which is the order labelling a whole plane
+gives. The island labels are never published, because only two rounds read
+them: the cores that observe which owners each island holds, and the task that
+measures an island inside its own global bounds, which contain it entirely and
+cannot connect it to another island. An owner is named against every island
+its retained support reaches, because publication can split that support.
 
 The rows need no reconciliation at all. `build_hebog_segment_catalogue`
 already measures one label at a time inside the window holding its support

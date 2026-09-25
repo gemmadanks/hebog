@@ -249,7 +249,12 @@ def _build_bundle(
         ),
         (
             rms_path,
-            scientific.read_rms_window(slices),
+            np.asarray(
+                scientific.background_rms_source.read_completed_window(
+                    "rms", selected_core
+                ),
+                dtype=np.float64,
+            ),
         ),
     ):
         _write_plane(path, values, core_header)

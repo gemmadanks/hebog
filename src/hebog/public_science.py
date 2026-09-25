@@ -24,6 +24,7 @@ from hebog.science.continuum import (
     build_continuum_detection,
 )
 from hebog.science.models import (
+    CatalogueIsland,
     CatalogueSource,
     ContinuumProducts,
     TiledComponentTopology,
@@ -72,6 +73,8 @@ def build_configured_continuum_products(  # noqa: PLR0913
     source_positions: Mapping[int, SourcePositionDiagnostics],
     component_local_rms: Mapping[int, float],
     source_local_rms: Mapping[int, float],
+    islands: tuple[CatalogueIsland, ...],
+    island_ids_by_owner: Mapping[int, tuple[str, ...]],
 ) -> ContinuumProducts | None:
     """Build terminal products from the published tiled passes.
 
@@ -83,7 +86,8 @@ def build_configured_continuum_products(  # noqa: PLR0913
 
     The row passes measured each owner's local noise by label, so this step
     names it by catalogue identity; no step after it reads an owner's pixels
-    again.
+    again. The islands arrive measured too, from the round that reconciled the
+    retained mask's own connectivity.
     """
     valid = _aligned_mask(valid_pixels, name="validity")
     positive_rms = _aligned_mask(
@@ -127,6 +131,8 @@ def build_configured_continuum_products(  # noqa: PLR0913
             component_local_rms=component_local_rms,
             source_local_rms=source_local_rms,
         ),
+        islands=islands,
+        island_ids_by_owner=island_ids_by_owner,
         deblended_parent_count=topology.deblended_parent_count,
         deferred_deblend_parent_count=topology.deferred_parent_count,
         measurement_dispositions=catalogues.measurement_dispositions,

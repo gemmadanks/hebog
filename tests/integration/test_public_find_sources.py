@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, TypeVar
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 from astropy import units
 from astropy.coordinates import SkyCoord
@@ -190,6 +191,44 @@ def _request(
     )
 
 
+def _pruned_terminal(terminal: Any, mask: npt.NDArray[np.bool_]) -> Any:
+    """Return the terminal a published mask this small would have produced.
+
+    The island round measures the published retained mask, so a fixture that
+    prunes that mask has to prune what the round measured from it: an owner
+    with no retained pixel reaches no island, which is the case these tests
+    exist for.
+    """
+    labels = np.asarray(terminal.measurement_component_labels)
+    retained_owners = {
+        int(value) for value in np.unique(labels[mask]) if value > 0
+    }
+    island_ids_by_owner = {
+        owner: identifiers
+        for owner, identifiers in terminal.island_ids_by_owner.items()
+        if owner in retained_owners
+    }
+    named = {
+        identifier
+        for identifiers in island_ids_by_owner.values()
+        for identifier in identifiers
+    }
+    return replace(
+        terminal,
+        detection=replace(
+            terminal.detection,
+            retained_mask=mask,
+            component_labels=np.where(
+                mask, terminal.detection.component_labels, 0
+            ),
+        ),
+        islands=tuple(
+            island for island in terminal.islands if island.identifier in named
+        ),
+        island_ids_by_owner=island_ids_by_owner,
+    )
+
+
 @pytest.mark.integration
 def test_measurement_owner_without_published_support_has_no_public_row(
     tmp_path: Path,
@@ -210,16 +249,7 @@ def test_measurement_owner_without_published_support_has_no_public_row(
         terminal = result.terminal
         mask = terminal.detection.retained_mask.copy()
         mask[:, :48] = False
-        detection = replace(
-            terminal.detection,
-            retained_mask=mask,
-            component_labels=np.where(
-                mask, terminal.detection.component_labels, 0
-            ),
-        )
-        updated = replace(
-            result, terminal=replace(terminal, detection=detection)
-        )
+        updated = replace(result, terminal=_pruned_terminal(terminal, mask))
         retained.append(updated.terminal)
         return updated
 
@@ -367,19 +397,7 @@ def test_pruned_component_of_a_published_source_keeps_its_disposition(
         labels = terminal.measurement_component_labels
         removed = terminal.source_association.components[0].label_value
         mask = terminal.detection.retained_mask & (labels != removed)
-        return replace(
-            products,
-            terminal=replace(
-                terminal,
-                detection=replace(
-                    terminal.detection,
-                    retained_mask=mask,
-                    component_labels=np.where(
-                        mask, terminal.detection.component_labels, 0
-                    ),
-                ),
-            ),
-        )
+        return replace(products, terminal=_pruned_terminal(terminal, mask))
 
     monkeypatch.setattr(
         public_api,

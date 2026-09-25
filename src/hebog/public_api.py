@@ -23,13 +23,11 @@ import numpy as np
 import numpy.typing as npt
 from astropy.io import fits
 from astropy.wcs.utils import wcs_to_celestial_frame
-from scipy.ndimage import label
 
 from hebog.algorithms.astrometry import (
     celestial_wcs_from_metadata,
     compact_geometry_from_wcs,
 )
-from hebog.algorithms.label_groups import label_windows
 from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.config import BackgroundRmsConfig, SourceFinderConfig
@@ -142,6 +140,7 @@ _SCIENTIFIC_MODULES = (
     "hebog.stages.background",
     "hebog.stages.catalogue_rows",
     "hebog.stages.detection",
+    "hebog.stages.islands",
     "hebog.stages.multiscale",
     "hebog.stages.objects",
     "hebog.stages.publication",
@@ -164,37 +163,16 @@ class _ScientificProducts:
 
     The image, the background and the RMS are carried as the sources that
     published them rather than as planes, so nothing after the science holds
-    an array that grows with the image. ``rms_scientific_status`` records the
-    one decision the estimate makes about itself: whether any pixel has a
-    usable local noise estimate.
+    an array that grows with the image, and no step after the science reads a
+    window: every object was measured by the pass that held its tile.
+    ``rms_scientific_status`` records the one decision the estimate makes
+    about itself: whether any pixel has a usable local noise estimate.
     """
 
     source: _WindowReadable
     background_rms_source: ZarrProductSink
     rms_scientific_status: Literal["valid", "unavailable"]
     terminal: Any | None
-
-    def read_rms_window(
-        self, crop: tuple[slice, slice]
-    ) -> npt.NDArray[np.float64]:
-        """Read the estimated RMS over one bounded label-support crop."""
-        return np.asarray(
-            self.background_rms_source.read_completed_window(
-                "rms",
-                _crop_bounds(crop),
-            ),
-            dtype=np.float64,
-        )
-
-    def read_residual_window(
-        self, crop: tuple[slice, slice]
-    ) -> npt.NDArray[np.float64]:
-        """Read the background-subtracted signal over one bounded crop."""
-        return _residual_window(
-            self.source,
-            self.background_rms_source,
-            crop,
-        )
 
 
 def _require_unclaimed_output(output: Path) -> None:
@@ -314,130 +292,6 @@ def _header_with_metadata(
         if completed.get(keyword) is None:
             completed[keyword] = value
     return completed
-
-
-def _crop_bounds(crop: tuple[slice, slice]) -> ImageBounds:
-    """Return the global bounds of one label-support crop."""
-    return ImageBounds(
-        crop[0].start,
-        crop[0].stop,
-        crop[1].start,
-        crop[1].stop,
-    )
-
-
-def _residual_window(
-    source: _WindowReadable,
-    background_rms_source: ZarrProductSink,
-    crop: tuple[slice, slice],
-) -> npt.NDArray[np.float64]:
-    """Return the background-subtracted signal over one bounded crop.
-
-    The residual is the association signal every component record and island
-    row measures. Reading it a window at a time is what keeps the driver
-    from holding the image, the background and their difference at once.
-    """
-    bounds = _crop_bounds(crop)
-    return np.asarray(
-        source.read_window(bounds).values, dtype=np.float64
-    ) - np.asarray(
-        background_rms_source.read_completed_window("background", bounds),
-        dtype=np.float64,
-    )
-
-
-@dataclass(frozen=True, slots=True)
-class _ComponentWindow:
-    """One component's label value and the smallest crop holding it."""
-
-    label_value: int
-    crop: tuple[slice, slice]
-
-
-@dataclass(frozen=True, slots=True)
-class _ComponentReadBatch:
-    """One residual read and the component windows it serves."""
-
-    covering: tuple[slice, slice]
-    components: tuple[_ComponentWindow, ...]
-
-
-def _component_read_batches(
-    windows: tuple[tuple[slice, slice] | None, ...],
-    *,
-    maximum_batch_read_pixels: int,
-) -> Iterator[_ComponentReadBatch]:
-    """Group components so one read serves several without growing unbounded.
-
-    Components are visited in raster order of their windows, so a batch
-    covers a compact region. One read per component would decode and
-    revalidate the storage chunks under it again for every neighbour that
-    shares them, which is the cost the owner-batch note above measured.
-    """
-    ordered = sorted(
-        (
-            _ComponentWindow(label_value, crop)
-            for label_value, crop in enumerate(windows, start=1)
-            if crop is not None
-        ),
-        key=lambda component: (
-            component.crop[0].start,
-            component.crop[1].start,
-        ),
-    )
-    if not ordered:
-        return
-    grouped = [ordered[0]]
-    covering = ordered[0].crop
-    for component in ordered[1:]:
-        candidate = _union_crop(covering, component.crop)
-        if _crop_pixels(candidate) > maximum_batch_read_pixels:
-            yield _ComponentReadBatch(covering, tuple(grouped))
-            grouped = [component]
-            covering = component.crop
-            continue
-        grouped.append(component)
-        covering = candidate
-    yield _ComponentReadBatch(covering, tuple(grouped))
-
-
-def _union_crop(
-    left: tuple[slice, slice],
-    right: tuple[slice, slice],
-) -> tuple[slice, slice]:
-    """Return the smallest crop containing both of these crops."""
-    return (
-        slice(
-            min(left[0].start, right[0].start),
-            max(left[0].stop, right[0].stop),
-        ),
-        slice(
-            min(left[1].start, right[1].start),
-            max(left[1].stop, right[1].stop),
-        ),
-    )
-
-
-def _crop_pixels(crop: tuple[slice, slice]) -> int:
-    """Return how many pixels one crop covers."""
-    return (crop[0].stop - crop[0].start) * (crop[1].stop - crop[1].start)
-
-
-def _relative_crop(
-    crop: tuple[slice, slice],
-    covering: tuple[slice, slice],
-) -> tuple[slice, slice]:
-    """Return one crop's position inside the read that covers it."""
-    return (
-        slice(
-            crop[0].start - covering[0].start,
-            crop[0].stop - covering[0].start,
-        ),
-        slice(
-            crop[1].start - covering[1].start,
-            crop[1].stop - covering[1].start,
-        ),
-    )
 
 
 def _profile_bytes() -> bytes:
@@ -1055,6 +909,58 @@ def publish_segment_rows(  # noqa: PLR0913, PLR0917
     )
 
 
+def publish_detection_islands(  # noqa: PLR0913
+    source: _WindowReadable,
+    background_rms_source: ZarrProductSink,
+    publication_source: ZarrProductSink,
+    component_source: ZarrProductSink,
+    executor: Executor,
+    *,
+    image_shape_yx: tuple[int, int],
+    beam: BeamShapePixels,
+    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
+) -> tuple[tuple[Any, ...], Mapping[int, tuple[str, ...]]]:
+    """Measure one catalogue row per island of the published retained mask.
+
+    The cores label their own mask and observe which owners its islands hold,
+    the fragments reconcile into islands named by canonical first pixel, and
+    one task per batch of islands measures their rows. Nothing is published:
+    the island labels exist only inside these rounds.
+    """
+    from math import log, pi  # noqa: PLC0415
+
+    from hebog.stages.islands import (  # noqa: PLC0415
+        DetectionIslandStageConfig,
+        run_detection_island_stage,
+    )
+
+    manifest = plan_image_partitions(
+        image_shape_yx=image_shape_yx,
+        tile_core_shape_yx=(tile_core_pixels, tile_core_pixels),
+        halo_yx=(0, 0),
+    )
+    result = run_detection_island_stage(
+        source,
+        background_rms_source,
+        publication_source,
+        component_source,
+        manifest,
+        config=DetectionIslandStageConfig(
+            beam_area_pixels=(
+                pi
+                * beam.major_fwhm_pixels
+                * beam.minor_fwhm_pixels
+                / (4.0 * log(2.0))
+            ),
+            maximum_tiles_per_batch=_SUPPORT_TILES_PER_BATCH,
+            maximum_objects_per_batch=_OWNER_OBJECTS_PER_BATCH,
+            maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
+        ),
+        executor=executor,
+    )
+    return result.islands, result.island_ids_by_owner
+
+
 def publish_source_planes(  # noqa: PLR0913, PLR0917
     component_source: ZarrProductSink,
     detection_source: ZarrProductSink,
@@ -1532,6 +1438,15 @@ def _analyse_image(  # noqa: PLR0913
         association=association,
         generation_id=generation_id,
     )
+    islands, island_ids_by_owner = publish_detection_islands(
+        source,
+        background_rms_source,
+        labels_source,
+        component_source,
+        executor,
+        image_shape_yx=metadata.shape_yx,
+        beam=beam,
+    )
     component_rows, component_local_rms, _ = publish_segment_rows(
         source,
         background_rms_source,
@@ -1585,6 +1500,8 @@ def _analyse_image(  # noqa: PLR0913
         source_positions=source_positions,
         component_local_rms=component_local_rms,
         source_local_rms=source_local_rms,
+        islands=islands,
+        island_ids_by_owner=island_ids_by_owner,
     )
     return _ScientificProducts(
         source,
@@ -1701,78 +1618,24 @@ def _memberships(terminal: Any, profile: str) -> tuple[Any, ...]:
     )
 
 
-def _detection_islands(
-    products: _ScientificProducts,
-    metadata: ImageMetadata,
-    publication_mask: npt.NDArray[np.bool_],
-    measurement_labels: npt.NDArray[np.integer[Any]],
-) -> tuple[list[Island], dict[int, tuple[str, ...]]]:
-    """Keep true mask connectivity separate from fitted source associations."""
-    labels, _ = cast(
-        tuple[npt.NDArray[np.int32], int],
-        label(publication_mask, np.ones((3, 3), dtype=np.bool_)),
-    )
-    beam = _beam_shape_pixels(metadata)
-    beam_area = (
-        np.pi
-        * beam.major_fwhm_pixels
-        * beam.minor_fwhm_pixels
-        / (4.0 * np.log(2.0))
-    )
-    windows = label_windows(labels)
-    measured: dict[int, Island] = {}
-    identifiers: dict[int, str] = {}
-    # Neighbouring islands share storage chunks, so one read serves a batch
-    # of them rather than decoding the same chunks once for each.
-    with products.background_rms_source.access_session():
-        for batch in _component_read_batches(
-            windows, maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS
-        ):
-            residual_window = products.read_residual_window(batch.covering)
-            rms_window = products.read_rms_window(batch.covering)
-            for island_window in batch.components:
-                index = island_window.label_value
-                bounds = island_window.crop
-                local = _relative_crop(bounds, batch.covering)
-                support = labels[bounds] == index
-                first_y, first_x = np.unravel_index(
-                    np.argmax(support), support.shape
-                )
-                identifier = (
-                    f"island-detection-{int(first_y) + bounds[0].start}"
-                    f"-{int(first_x) + bounds[1].start}"
-                )
-                identifiers[index] = identifier
-                residual = residual_window[local][support]
-                local_rms = rms_window[local][support]
-                measured[index] = Island(
-                    island_id=identifier,
-                    pixel_count=int(support.sum()),
-                    integrated_flux_jy=float(residual.sum() / beam_area),
-                    integrated_flux_error_jy=None,
-                    local_rms_jy_per_beam=float(np.median(local_rms)),
-                    mean_brightness_jy_per_beam=float(residual.mean()),
-                )
-    # Batches follow the image, so the rows are restored to label order.
-    islands = [measured[index] for index in sorted(measured)]
-    positive = publication_mask & (measurement_labels > 0)
-    pairs = np.unique(
-        np.column_stack(
-            (
-                measurement_labels[positive],
-                labels[positive],
-            )
-        ),
-        axis=0,
-    )
-    owners: dict[int, list[str]] = {}
-    for component_index, island_index in pairs:
-        owners.setdefault(int(component_index), []).append(
-            identifiers[int(island_index)]
+def _published_islands(terminal: Any) -> list[Island]:
+    """Project the measured islands the retained mask's own rounds published.
+
+    An island's flux is a signed sum over the pixels its mask retains, so it
+    carries no uncertainty; every other field the public row needs was
+    measured in the window that held the island.
+    """
+    return [
+        Island(
+            island_id=island.identifier,
+            pixel_count=island.pixel_count,
+            integrated_flux_jy=island.integrated_flux_jy,
+            integrated_flux_error_jy=None,
+            local_rms_jy_per_beam=island.local_rms_jy_per_beam,
+            mean_brightness_jy_per_beam=island.mean_brightness_jy_per_beam,
         )
-    return islands, {
-        index: tuple(sorted(values)) for index, values in owners.items()
-    }
+        for island in terminal.islands
+    ]
 
 
 def _public_catalogue(
@@ -1784,10 +1647,9 @@ def _public_catalogue(
 ) -> tuple[SourceCatalogue, npt.NDArray[np.bool_]]:
     """Project the exact evaluated source topology into stable public rows.
 
-    Catalogue rows carry the local noise the row passes measured with them,
-    so the only object windows left here are the detection islands. They read
-    inside one access session: the store's immutable metadata is then opened
-    once for the whole catalogue rather than once for each island.
+    Every row, every island and every local noise value was measured by the
+    pass that held the window it belongs to, so this projection reads no
+    pixels: it names records.
     """
     terminal = products.terminal
     if terminal is None:
@@ -1795,18 +1657,15 @@ def _public_catalogue(
             _empty_catalogue(run_id, metadata.reference_frequency_hz),
             np.zeros(metadata.shape_yx, dtype=np.bool_),
         )
-    with products.background_rms_source.access_session():
-        return _projected_catalogue(
-            products,
-            metadata,
-            terminal,
-            run_id=run_id,
-            profile=profile,
-        )
+    return _projected_catalogue(
+        metadata,
+        terminal,
+        run_id=run_id,
+        profile=profile,
+    )
 
 
 def _projected_catalogue(
-    products: _ScientificProducts,
     metadata: ImageMetadata,
     terminal: Any,
     *,
@@ -1815,7 +1674,6 @@ def _projected_catalogue(
 ) -> tuple[SourceCatalogue, npt.NDArray[np.bool_]]:
     """Project one evaluated composition that published at least one owner."""
     association = terminal.source_association
-    labels = np.asarray(terminal.measurement_component_labels)
     components_by_id = {
         component.component_id: component
         for component in association.components
@@ -1830,9 +1688,8 @@ def _projected_catalogue(
     publication_mask = np.array(
         terminal.detection.retained_mask, dtype=np.bool_, copy=True
     )
-    islands, component_islands = _detection_islands(
-        products, metadata, publication_mask, labels
-    )
+    islands = _published_islands(terminal)
+    component_islands = terminal.island_ids_by_owner
     measured_components = {
         entry.object_id
         for entry in terminal.measurement_dispositions
