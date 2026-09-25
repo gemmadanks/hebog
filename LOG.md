@@ -25216,3 +25216,97 @@ the per-worker placement finding.
   reached those two consumers, which is the argument for running it before
   believing a change is done. Branch-aware coverage is 96.71% over 2,603
   portable tests, with the new stage at 100% and the driver at 99%.
+
+## 2026-09-25 — M2: the driver holds no image-sized array
+
+- **What this is.** The plan's plane row, and the end of the driver's
+  image-sized state. Walking the driver's own locals at the terminal builder
+  now finds **no** image-shaped array, where it found 18 at 49 bytes a pixel:
+  8 `int32` label planes, 9 masks and the position signal. Nothing outside a
+  tile scales with the image.
+- **How each plane came out.** Every one was held for a check, not for a
+  product, and every check moved onto the core that already holds both of its
+  sides.
+    - *Detection.* `TiledMultiscaleDetection` carried the detection labels,
+      the reconstruction mask, the position signal and one mask per scale so
+      the composition could require that no scale claims a pixel with no
+      usable local noise. The core that derives those masks holds the domain
+      they must lie inside, so it asks there.
+    - *Support.* `TiledSupportLabels` carried four planes for two questions.
+      That the mask and the publication labels agree is now structural: the
+      core writes the mask as `publication-labels > 0` in the same statement.
+      Whether any owner survived admission is the accepted island count the
+      pass already reduces, so the composition takes an integer.
+    - *Objects.* `TiledComponentTopology` carried both ownership planes so the
+      composition could require direct ownership to be a valid subset of
+      measurement ownership, and both planes to name the same components. The
+      first is per-core and moved into the write; the second became a
+      reduction over the labels each core reports.
+    - *Fits.* `TiledComponentFits.measurement_support` was a whole `bool`
+      plane that nothing read once the measurement reconciliation stopped
+      taking it. The source passes read it from its generation by window.
+    - *Sources.* `publish_source_planes` returned its two label planes only so
+      the composition could check them against the memberships. The writing
+      core already requires every component pixel to reach a source, and the
+      values it writes come from the sharded owner-to-source map, so nothing
+      global was left to check.
+    - *Background.* The stage returned two `bool` masks. Both questions asked
+      of them are gone: the scale check moved onto its core, and whether any
+      pixel has a usable local noise estimate is reduced while streaming the
+      published RMS one tile row at a time. The stage returns one `bool`.
+- **The mask product streams.** `source-mask.fits` is written from row blocks
+  of the support pass's own `retained-mask`, as the RMS product already was.
+  An image whose estimate no pixel can use never reached that pass, so it has
+  no generation to stream and the product is generated all-false block by
+  block, which is what its consumers read as "nothing retained".
+- **What the driver names instead.** `_ScientificProducts` carries the
+  publication and component generations rather than planes. The bundle reads
+  only the first, for the mask; the validation projection and the notebook
+  comparison runner read ownership from the second, because a caller
+  comparing records with pixels has to supply the pixels, and they are in the
+  store.
+- **Evidence: the products do not move.** On the real 1,024² LoTSS-DR3 dense
+  cut-out and the 3,000² field the catalogue, RMS and mask are bitwise
+  identical to `de8d21c`, with every local-noise value identical across 83
+  sources, 109 islands and 108 components at 1,024², and 659, 814 and 828 at
+  3,000². Portable coverage is 96.67% branch-aware over 2,591 tests, with
+  `stages/objects.py` and `stages/islands.py` at 100% and the driver at 99%;
+  the complete integration and contract suites, including the 108-cell slow
+  development matrix, pass. The quick science check reports no regression
+  against `m2-island-round` across all 16 cases.
+- **Evidence: the peak moves by exactly what was live at the peak.** The
+  deterministic traced peak falls 342.04 → 339.98 MiB at 1,024² and
+  1261.45 → 1244.22 MiB at 3,000². That is 2 bytes a pixel, not 49: the peak
+  sits in the multiscale pass, so the only removed planes it can see are the
+  two background `bool` masks that existed by then. Array arithmetic predicts
+  2.00 and 17.17 MiB; the measurements are 2.06 and 17.23. The other 47 bytes
+  a pixel were allocated after the peak, which is why removing them shows in
+  the envelope rather than in this number.
+- **Evidence: the anchors are faster.** Medians of five on a quiet machine,
+  against v0.13.0: `dense-field` 9.3 s, ratio 0.96 [0.94, 0.97];
+  `lotss-dr3-1312-sparse` 10.0 s, 0.93 [0.89, 0.95]; `lotss-dr3-1312-dense`
+  11.1 s, 0.94 [0.93, 0.95]. The same three ratios measured this morning, on
+  the same machine and against the same release, were 1.02, 0.98 and 1.01, so
+  the improvement is 4 to 7%: the checks that moved onto cores were
+  whole-plane comparisons, and the reads that fed them are gone with them.
+  Part of the 8% accepted on 24 September comes back this way; the rest is
+  still the store's per-read overhead.
+- **The measurement was wrong before it was right.** The script that counts
+  the driver's image-shaped arrays inferred the image shape from the arrays
+  it found in the frame. With the planes gone it found none, inferred no
+  shape, and reported zero without looking — a measurement that could only
+  agree with me. Taking the shape from the input FITS instead turned the same
+  run into a real check, and it immediately found a survivor,
+  `TiledComponentFits.measurement_support`. A count that cannot fail is not
+  evidence.
+- **What this does and does not establish.** The driver's additive
+  image-sized term is gone, so at 10,000² the 4.6 GiB it would have cost is
+  not spent, and 15,402² is no longer blocked by driver memory. It does not
+  make the traced peak flat in image size: between 1,024² and 3,000² the tile
+  itself grows, because cores are 2,048 and a smaller image is one tile.
+  Flatness is what the 10,000 tier measures, and that tier still needs its
+  own anchor and evidence.
+- **Two guards keep it.** A static architecture test asserts that the
+  composition records declare no array field, which is the rule ADR-008's
+  confirmation names, and the empty-input test now asserts the streamed mask
+  product is all-false rather than only checking the RMS.

@@ -14,6 +14,7 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 from astropy.io import fits
+from conftest import published_plane
 
 from hebog import public_api
 from hebog.algorithms.multiscale import BeamShapePixels
@@ -476,19 +477,13 @@ def test_joint_geometry_with_controlled_or_public_background(
             header=header,
             config=config,
         )
-        valid = np.isfinite(image) & np.isfinite(background) & np.isfinite(rms)
         products = build_configured_continuum_products(
-            valid,
-            valid & (rms > 0.0),
             header,
-            multiscale=published.multiscale,
-            labels=published.labels,
+            component_count=published.accepted_island_count,
             topology=published.topology,
             measurements=published.measurements,
             association=published.association,
             hierarchy=published.hierarchy,
-            source_labels=published.source_labels,
-            source_measurement_labels=(published.source_measurement_labels),
             component_rows=published.component_rows,
             source_rows=published.source_rows,
             source_positions=published.source_positions,
@@ -500,14 +495,30 @@ def test_joint_geometry_with_controlled_or_public_background(
         scientific = public_api._ScientificProducts(
             published.image_source,
             published.background_rms,
+            published.labels_source,
+            published.component_source,
             "valid",
             products,
         )
     assert products is not None
-    catalogue, mask = public_api._public_catalogue(
+    assert scientific.publication_source is not None
+    assert scientific.component_source is not None
+    catalogue = public_api._public_catalogue(
         scientific, metadata, run_id=dataset.identifier, profile="continuum"
     )
-    projection = project_public_measurements(products, catalogue, mask, header)
+    projection = project_public_measurements(
+        products,
+        catalogue,
+        published_plane(
+            scientific.publication_source, "retained-mask", np.bool_
+        ),
+        header,
+        owner_labels=published_plane(
+            scientific.component_source,
+            "component-measurement-labels",
+            np.int32,
+        ),
+    )
     brightness = np.asarray(
         [
             item.peak_flux_jy_per_beam

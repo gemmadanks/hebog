@@ -62,8 +62,6 @@ from hebog.science.models import (
     CatalogueSource,
     TiledComponentTopology,
     TiledMultiscaleDetection,
-    TiledSupportLabels,
-    TiledSupportTopology,
 )
 from hebog.science.profile import ContinuumScienceProfile
 
@@ -144,19 +142,30 @@ def publish_background_rms(
 
 @dataclass(frozen=True, slots=True)
 class PublishedContinuumInputs:
-    """Every published plane the continuum composition reads."""
+    """Every record the continuum composition reads, and the stores behind it.
+
+    The composition holds no plane from these passes, so a caller comparing
+    published pixels — a partition-invariance test, or a notebook drawing a
+    mask — reads them from the generation that wrote them. The sinks below are
+    those generations, in pass order.
+    """
 
     image_source: ArrayImageSource
     background_rms: ZarrProductSink
+    accepted_island_count: int
+    detection_source: ZarrProductSink
+    support_source: ZarrProductSink
+    labels_source: ZarrProductSink
+    component_source: ZarrProductSink
+    fit_source: ZarrProductSink
+    hierarchy_source: ZarrProductSink
+    source_label_source: ZarrProductSink
+    source_support_source: ZarrProductSink
     multiscale: TiledMultiscaleDetection
-    support: TiledSupportTopology
-    labels: TiledSupportLabels
     topology: TiledComponentTopology
     measurements: ComponentMeasurements
     association: SourceAssociationResult
     hierarchy: SourceAssociationResult
-    source_labels: npt.NDArray[np.int32]
-    source_measurement_labels: npt.NDArray[np.int32]
     component_rows: tuple[CatalogueSource, ...]
     source_rows: tuple[CatalogueSource, ...]
     source_positions: Mapping[int, SourcePositionDiagnostics]
@@ -235,18 +244,12 @@ def publish_continuum_inputs(  # noqa: PLR0913
         work_directory,
         image_shape_yx=image_jy_per_beam.shape,
         scale_orders=tuple(
-            range(1, len(multiscale.significant_scale_masks) + 1)
+            range(1, len(multiscale.scale_islands_by_order) + 1)
         ),
         generation_id=generation_id,
         tile_core_pixels=support_tile_core_pixels,
     )
-    bounds = ImageBounds(
-        0,
-        image_jy_per_beam.shape[0],
-        0,
-        image_jy_per_beam.shape[1],
-    )
-    support_labels, labels_source = publish_support_labels(
+    accepted_island_count, labels_source = publish_support_labels(
         detection_source,
         support_source,
         resolved_executor,
@@ -269,7 +272,7 @@ def publish_continuum_inputs(  # noqa: PLR0913
         generation_id=generation_id,
         tile_core_pixels=support_tile_core_pixels,
     )
-    scale_detections = retained_scale_detections(multiscale, valid_pixels)
+    scale_detections = retained_scale_detections(multiscale)
     component_fits, fit_source = publish_component_fits(
         image_source,
         background_rms_source,
@@ -298,7 +301,6 @@ def publish_continuum_inputs(  # noqa: PLR0913
         tile_core_pixels=support_tile_core_pixels,
     )
     measurements = reconcile_component_measurements(
-        np.array(component_fits.measurement_support, dtype=np.bool_),
         parents=component_fits.parents,
         features=component_fits.features,
     )
@@ -308,12 +310,7 @@ def publish_continuum_inputs(  # noqa: PLR0913
         overlaps,
         (*measurements.compact_groups, *measurements.extended_groups),
     )
-    (
-        source_labels,
-        source_measurement_labels,
-        source_label_source,
-        source_support_source,
-    ) = publish_source_planes(
+    source_label_source, source_support_source = publish_source_planes(
         component_source,
         detection_source,
         hierarchy_source,
@@ -376,6 +373,15 @@ def publish_continuum_inputs(  # noqa: PLR0913
     return PublishedContinuumInputs(
         image_source=image_source,
         background_rms=background_rms_source,
+        accepted_island_count=accepted_island_count,
+        detection_source=detection_source,
+        support_source=support_source,
+        labels_source=labels_source,
+        component_source=component_source,
+        fit_source=fit_source,
+        hierarchy_source=hierarchy_source,
+        source_label_source=source_label_source,
+        source_support_source=source_support_source,
         component_rows=component_rows,
         source_rows=source_rows,
         source_positions=source_positions,
@@ -386,25 +392,6 @@ def publish_continuum_inputs(  # noqa: PLR0913
         measurements=measurements,
         association=association,
         hierarchy=hierarchy,
-        source_labels=source_labels,
-        source_measurement_labels=source_measurement_labels,
         multiscale=multiscale,
-        support=TiledSupportTopology(
-            support_component_labels=np.asarray(
-                support_source.read_completed_window(
-                    "support-components",
-                    bounds,
-                ),
-                dtype=np.int32,
-            ),
-            persistent_scale_support=np.asarray(
-                support_source.read_completed_window(
-                    "persistent-support",
-                    bounds,
-                ),
-                dtype=np.bool_,
-            ),
-        ),
-        labels=support_labels,
         topology=topology,
     )

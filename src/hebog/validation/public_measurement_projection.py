@@ -111,13 +111,32 @@ class PublicMeasurementProjection:
     measured_components: tuple[CatalogueSource, ...]
 
 
+def _required_owner_labels(owner_labels: np.ndarray | None) -> np.ndarray:
+    """Return the published ownership plane a projection cannot do without.
+
+    Raises:
+        ValueError: If a caller with a terminal supplied no ownership plane.
+    """
+    if owner_labels is None:
+        raise ValueError("public measurement projection needs owner labels")
+    return np.asarray(owner_labels)
+
+
 def project_public_measurements(
     terminal: ContinuumProducts | None,
     catalogue: SourceCatalogue,
     publication_mask: np.ndarray,
     header: fits.Header,
+    *,
+    owner_labels: np.ndarray | None = None,
 ) -> PublicMeasurementProjection:
-    """Project exact public rows, preserving fitless and pruned detections."""
+    """Project exact public rows, preserving fitless and pruned detections.
+
+    ``owner_labels`` are the published component measurement labels, read from
+    the generation that wrote them: the composition holds no plane, so a
+    caller comparing its rows with pixels supplies the pixels. They are
+    required whenever a terminal is given.
+    """
     if (
         publication_mask.ndim != _IMAGE_DIMENSIONS
         or publication_mask.dtype != np.bool_
@@ -133,13 +152,12 @@ def project_public_measurements(
         empty.setflags(write=False)
         mask.setflags(write=False)
         return PublicMeasurementProjection((), (), empty, mask, (), (), ())
-    owners = np.asarray(terminal.measurement_component_labels)
+    owners = _required_owner_labels(owner_labels)
     if (
         owners.shape != mask.shape
         or not np.issubdtype(owners.dtype, np.integer)
         or np.any(owners < 0)
         or np.any(mask & (owners == 0))
-        or not np.array_equal(mask, terminal.detection.retained_mask)
     ):
         raise ValueError("public measurement ownership or publication changed")
     association = terminal.source_association

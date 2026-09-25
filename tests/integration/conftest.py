@@ -69,11 +69,7 @@ def _publish_background_rms(
     return sink
 
 
-EstimatedValidity = tuple[
-    ZarrProductSink,
-    npt.NDArray[np.bool_],
-    npt.NDArray[np.bool_],
-]
+EstimatedNoise = tuple[ZarrProductSink, bool]
 
 SubstituteBackgroundRms = Callable[
     [
@@ -81,7 +77,7 @@ SubstituteBackgroundRms = Callable[
         npt.NDArray[np.float64],
         npt.NDArray[np.float64],
     ],
-    Callable[..., EstimatedValidity],
+    Callable[..., EstimatedNoise],
 ]
 
 
@@ -89,33 +85,31 @@ def _substituted_background_rms(
     image_jy_per_beam: npt.NDArray[np.float64],
     background_jy_per_beam: npt.NDArray[np.float64],
     rms_jy_per_beam: npt.NDArray[np.float64],
-) -> Callable[..., EstimatedValidity]:
+) -> Callable[..., EstimatedNoise]:
     """Return a stand-in for the background stage over analytic planes.
 
-    The stage publishes its estimate and returns the two masks the
-    composition asks of it, so the substitute has to do both. Keeping the
-    work-directory argument's position here means one place knows it.
+    The stage publishes its estimate and answers the one question the
+    composition asks of it: whether any pixel has a usable local noise
+    estimate. The substitute has to do both. Keeping the work-directory
+    argument's position here means one place knows it.
     """
 
     def estimate(
         *args: object,
         generation_id: str,
         **_kwargs: object,
-    ) -> EstimatedValidity:
-        """Publish the analytic planes and describe their valid domain."""
+    ) -> EstimatedNoise:
+        """Publish the analytic planes and answer for their usable domain."""
         sink = _publish_background_rms(
             cast(Path, args[4]),
             background_jy_per_beam,
             rms_jy_per_beam,
             generation_id,
         )
-        valid = np.asarray(
-            np.isfinite(image_jy_per_beam)
-            & np.isfinite(background_jy_per_beam)
-            & np.isfinite(rms_jy_per_beam),
-            dtype=np.bool_,
+        usable = bool(
+            np.any(np.isfinite(image_jy_per_beam) & (rms_jy_per_beam > 0.0))
         )
-        return sink, valid, valid & (rms_jy_per_beam > 0.0)
+        return sink, usable
 
     return estimate
 
@@ -126,24 +120,35 @@ def substituted_background_rms() -> SubstituteBackgroundRms:
     return _substituted_background_rms
 
 
+def published_plane(
+    sink: ZarrProductSink,
+    product_name: str,
+    dtype: npt.DTypeLike | None = None,
+) -> npt.NDArray[Any]:
+    """Read one complete published plane from the generation that wrote it.
+
+    No pass hands its planes on any more, so a test comparing published
+    pixels reads them back from the store that holds them. ``dtype`` is the
+    type the caller reads them as; omitting it keeps the published one.
+    """
+    height, width = sink.manifest.image_shape_yx
+    window = sink.read_completed_window(
+        product_name, ImageBounds(0, height, 0, width)
+    )
+    return np.asarray(window) if dtype is None else np.asarray(window, dtype)
+
+
 def estimated_maps(
     sink: ZarrProductSink,
     shape_yx: tuple[int, int],
 ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     """Read the background and RMS estimates one generation published.
 
-    The stage returns the masks the composition asks of its estimate, so a
-    test about the estimate itself reads it back from the store that holds
-    it.
+    The stage returns only its own decision about the estimate, so a test
+    about the estimate itself reads it back from the store that holds it.
     """
-    bounds = ImageBounds(0, shape_yx[0], 0, shape_yx[1])
+    assert sink.manifest.image_shape_yx == shape_yx
     return (
-        np.asarray(
-            sink.read_completed_window("background", bounds),
-            dtype=np.float64,
-        ),
-        np.asarray(
-            sink.read_completed_window("rms", bounds),
-            dtype=np.float64,
-        ),
+        published_plane(sink, "background", np.float64),
+        published_plane(sink, "rms", np.float64),
     )

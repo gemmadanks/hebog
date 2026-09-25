@@ -505,11 +505,21 @@ def _publication_products(
     tuple[tuple[str, npt.NDArray[np.generic]], ...],
     tuple[npt.NDArray[np.bool_], ...],
 ]:
-    """Derive accepted core products after global topology reconciliation."""
+    """Derive accepted core products after global topology reconciliation.
+
+    Raises:
+        ValueError: If a scale claims a pixel this core has no usable
+            estimate for. The scale masks and the domain they must lie inside
+            are both on this task, so the check belongs here rather than on a
+            later pass holding two whole planes.
+    """
     scale_masks = tuple(
         np.asarray(mask & reconstruction_mask, dtype=np.bool_)
         for mask in evidence.significant_scale_masks
     )
+    unusable = ~result.prepared_inputs.scientifically_valid
+    if any(bool(np.any(mask & unusable)) for mask in scale_masks):
+        raise ValueError("scale support must be scientifically valid")
     # An insufficient filter halo leaves the denoised value unavailable,
     # which is not a reason to discard a valid edge source: the signed
     # residual remains the documented fallback there.

@@ -131,9 +131,9 @@ _STAGES = (
         "owner connectivity and final labels",
     ),
     (
-        "hebog.public_science",
-        "build_continuum_detection",
-        "candidate products from published planes",
+        "hebog.public_api",
+        "publish_detection_islands",
+        "reconciled detection island rows",
     ),
     (
         "hebog.public_api",

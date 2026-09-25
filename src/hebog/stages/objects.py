@@ -239,9 +239,16 @@ class _TileBatch:
 
 @dataclass(frozen=True, slots=True)
 class _PublishBatchResult:
-    """Persisted product identities from one executor task."""
+    """Persisted product identities and the labels each plane carried.
+
+    ``observed_labels`` pairs every label a core wrote with the plane that
+    carried it — 0 for direct ownership, 1 for measurement ownership — so the
+    stage can require both planes to name the same components without holding
+    either.
+    """
 
     product_chunks: tuple[ProductChunk, ...]
+    observed_labels: tuple[tuple[int, int], ...] = ()
 
 
 def component_topology_product_names() -> tuple[str, ...]:
@@ -656,12 +663,24 @@ def _publish_request(
 def _publish_batch(
     batch: _TileBatch,
     *,
+    detection_source: _CompletedProductSource,
     sink: ZarrProductSink,
     image_width: int,
 ) -> _PublishBatchResult:
-    """Write the component labels each core of one batch owns."""
-    with sink.access_session():
+    """Write the component labels each core of one batch owns.
+
+    The core that writes both planes is where their agreement is decided, so
+    it checks it: a direct owner must be scientifically valid and must carry
+    the same label in the measurement plane. Asking the same question later
+    would need both whole planes at once.
+
+    Raises:
+        ValueError: If a core's direct ownership is not a valid subset of its
+            measurement ownership.
+    """
+    with detection_source.access_session(), sink.access_session():
         chunks: list[ProductChunk] = []
+        observed: set[tuple[int, int]] = set()
         for request in batch.requests:
             core = request.partition.core_bounds
             products: list[tuple[str, npt.NDArray[np.int32]]] = []
@@ -685,6 +704,22 @@ def _publish_batch(
                         columns - core.x_start,
                     ] = labels
                 products.append((product_name, values))
+            direct, measurement = (values for _, values in products)
+            valid = np.asarray(
+                detection_source.read_completed_window("valid-pixels", core),
+                dtype=np.bool_,
+            )
+            if bool(np.any((direct > 0) & (~valid | (measurement != direct)))):
+                raise ValueError(
+                    "direct component ownership must be a valid subset of "
+                    "measurement ownership"
+                )
+            observed.update(
+                (int(value), plane_index)
+                for plane_index, plane in enumerate((direct, measurement))
+                for value in np.unique(plane)
+                if value > 0
+            )
             chunks.extend(
                 sink.write_chunk(
                     product_name=product_name,
@@ -693,7 +728,10 @@ def _publish_batch(
                 )
                 for product_name, values in products
             )
-        return _PublishBatchResult(product_chunks=tuple(chunks))
+        return _PublishBatchResult(
+            product_chunks=tuple(chunks),
+            observed_labels=tuple(sorted(observed)),
+        )
 
 
 def _tile_batches(
@@ -731,6 +769,33 @@ def _validate_stage_inputs(
             raise ValueError(
                 "published generations must carry every component plane read"
             )
+
+
+def _require_matching_component_identities(
+    results: tuple[_PublishBatchResult, ...],
+    component_count: int,
+) -> None:
+    """Require both published planes to name exactly the same components.
+
+    Each core reported the labels it wrote and the plane that carried them, so
+    the identity sets are compared from those summaries rather than from two
+    whole planes. Every numbered component must appear in both: a component
+    with no direct pixel has no identity, and one with no measurement pixel
+    has no support to measure.
+
+    Raises:
+        ValueError: If the two planes name different components, or name one
+            the numbering never produced.
+    """
+    named: tuple[set[int], set[int]] = (set(), set())
+    for result in results:
+        for label_value, plane_index in result.observed_labels:
+            named[plane_index].add(label_value)
+    expected = set(range(1, component_count + 1))
+    if named[0] != expected or named[1] != expected:
+        raise ValueError(
+            "direct and measurement component identities must match"
+        )
 
 
 def run_component_topology_stage(  # noqa: PLR0913
@@ -818,12 +883,18 @@ def run_component_topology_stage(  # noqa: PLR0913
     )
     publish_results = tuple(
         executor.map_batches(
-            partial(_publish_batch, sink=sink, image_width=image_width),
+            partial(
+                _publish_batch,
+                detection_source=detection_source,
+                sink=sink,
+                image_width=image_width,
+            ),
             publish_batches,
         )
     )
     if not publish_results:
         raise ValueError("executor returned no component publication results")
+    _require_matching_component_identities(publish_results, component_count)
     return ComponentTopologyStageResult(
         generation=sink.publish_generation(
             product_names=_TOPOLOGY_PRODUCT_NAMES,

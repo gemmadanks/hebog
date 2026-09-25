@@ -20,6 +20,7 @@ from time import monotonic
 from typing import Any, cast
 
 import numpy as np
+import numpy.typing as npt
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
@@ -30,7 +31,7 @@ from hebog.data_models import ImageBounds, SourceFinderRequest
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
 from hebog.data_models.source_association import SourceAssociationResult
 from hebog.executors import SerialExecutor
-from hebog.io import FitsImageSource
+from hebog.io import FitsImageSource, ZarrProductSink
 from hebog.validation.external_runners import canonical_sha256, file_sha256
 from hebog.validation.products import write_comparison_catalogue
 from hebog.validation.public_measurement_projection import (
@@ -55,6 +56,29 @@ def _write_once_json(path: Path, value: object) -> None:
                 + "\n"
             ).encode()
         )
+
+
+def _published_plane(
+    sink: ZarrProductSink | None,
+    product_name: str,
+    dtype: npt.DTypeLike,
+    shape_yx: tuple[int, int],
+) -> npt.NDArray[Any]:
+    """Read one complete published plane from the generation that wrote it.
+
+    The composition holds no plane, so the comparison artifacts are read back
+    from the stores the passes published them to. An image whose estimate no
+    pixel can use reached no pass, and so has no plane to read.
+    """
+    if sink is None:
+        return np.zeros(shape_yx, dtype=dtype)
+    height, width = shape_yx
+    return np.asarray(
+        sink.read_completed_window(
+            product_name, ImageBounds(0, height, 0, width)
+        ),
+        dtype=dtype,
+    )
 
 
 def _core_catalogue(
@@ -148,14 +172,36 @@ def _build_bundle(
         header=header,
     )
     products = scientific.terminal
-    published_catalogue, public_mask = public_api._public_catalogue(
+    published_catalogue = public_api._public_catalogue(
         scientific,
         metadata,
         run_id=case_id,
         profile=_CONFIG.profile,
     )
+    publication_labels = _published_plane(
+        scientific.publication_source,
+        "publication-labels",
+        np.int32,
+        metadata.shape_yx,
+    )
+    component_labels = _published_plane(
+        scientific.component_source,
+        "component-measurement-labels",
+        np.int32,
+        metadata.shape_yx,
+    )
+    publication_mask = _published_plane(
+        scientific.publication_source,
+        "retained-mask",
+        np.bool_,
+        metadata.shape_yx,
+    )
     projection = project_public_measurements(
-        products, published_catalogue, public_mask, header
+        products,
+        published_catalogue,
+        publication_mask,
+        header,
+        owner_labels=component_labels,
     )
     _warn_numerical_fit_failures(case_id, projection.dispositions)
     published_source_ids = {
@@ -169,22 +215,6 @@ def _build_bundle(
         products.source_association
         if products is not None
         else SourceAssociationResult((), (), (), ())
-    )
-    empty_labels = np.zeros(metadata.shape_yx, dtype=np.int32)
-    publication_labels = (
-        products.detection.component_labels
-        if products is not None
-        else empty_labels
-    )
-    component_labels = (
-        products.measurement_component_labels
-        if products is not None
-        else empty_labels
-    )
-    publication_mask = (
-        products.detection.retained_mask
-        if products is not None
-        else np.zeros(metadata.shape_yx, dtype=np.bool_)
     )
     selected_core = core or ImageBounds(
         y_start=0,

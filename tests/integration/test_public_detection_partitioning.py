@@ -11,6 +11,7 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 from astropy.io import fits
+from conftest import published_plane
 from scipy.ndimage import label
 
 from hebog.algorithms.extended_measurement import (
@@ -39,11 +40,13 @@ _ROOT = Path(__file__).parents[2]
 _BEAM = BeamShapePixels(2.0, 1.6, 0.0)
 _TOLERANCE = 2e-13
 _MINIMUM_ISLAND_PIXELS = 7
+_SHAPE_YX = (200, 240)
+_SCALE_ORDERS = (1, 2, 3)
 
 
 def _image() -> npt.NDArray[np.float64]:
     """Return sources on every edge, corner and interior tile boundary."""
-    shape = (200, 240)
+    shape = _SHAPE_YX
     yy, xx = np.mgrid[: shape[0], : shape[1]]
     centres = (
         (0, 0),
@@ -140,19 +143,22 @@ def test_published_passes_are_one_tile_many_tile_equal(
     many = _detect(image, tmp_path / "many", tile_core_pixels=tile_core_pixels)
 
     np.testing.assert_array_equal(
-        many.multiscale.detection_labels,
-        one.multiscale.detection_labels,
+        published_plane(many.detection_source, "detection-labels"),
+        published_plane(one.detection_source, "detection-labels"),
     )
     np.testing.assert_array_equal(
-        many.multiscale.reconstruction_mask,
-        one.multiscale.reconstruction_mask,
+        published_plane(many.detection_source, "reconstruction-mask"),
+        published_plane(one.detection_source, "reconstruction-mask"),
     )
-    for many_mask, one_mask in zip(
-        many.multiscale.significant_scale_masks,
-        one.multiscale.significant_scale_masks,
-        strict=True,
-    ):
-        np.testing.assert_array_equal(many_mask, one_mask)
+    for order in _SCALE_ORDERS:
+        np.testing.assert_array_equal(
+            published_plane(
+                many.detection_source, f"scale-{order}-significant"
+            ),
+            published_plane(
+                one.detection_source, f"scale-{order}-significant"
+            ),
+        )
     assert (
         many.multiscale.scale_islands_by_order
         == one.multiscale.scale_islands_by_order
@@ -162,24 +168,36 @@ def test_published_passes_are_one_tile_many_tile_equal(
         == one.multiscale.scale_nominal_beam_fwhms
     )
     np.testing.assert_allclose(
-        many.multiscale.position_signal_jy_per_beam,
-        one.multiscale.position_signal_jy_per_beam,
+        published_plane(many.detection_source, "position-signal"),
+        published_plane(one.detection_source, "position-signal"),
         rtol=_TOLERANCE,
         atol=_TOLERANCE,
     )
     np.testing.assert_array_equal(
-        many.support.support_component_labels,
-        one.support.support_component_labels,
+        published_plane(many.support_source, "support-components"),
+        published_plane(one.support_source, "support-components"),
     )
     np.testing.assert_array_equal(
-        many.support.persistent_scale_support,
-        one.support.persistent_scale_support,
+        published_plane(many.support_source, "persistent-support"),
+        published_plane(one.support_source, "persistent-support"),
     )
     for many_labels, one_labels in (
-        (many.labels.component_labels, one.labels.component_labels),
-        (many.labels.measurement_labels, one.labels.measurement_labels),
-        (many.labels.publication_labels, one.labels.publication_labels),
-        (many.labels.retained_mask, one.labels.retained_mask),
+        (
+            published_plane(many.labels_source, "component-labels"),
+            published_plane(one.labels_source, "component-labels"),
+        ),
+        (
+            published_plane(many.labels_source, "measurement-labels"),
+            published_plane(one.labels_source, "measurement-labels"),
+        ),
+        (
+            published_plane(many.labels_source, "publication-labels"),
+            published_plane(one.labels_source, "publication-labels"),
+        ),
+        (
+            published_plane(many.labels_source, "retained-mask"),
+            published_plane(one.labels_source, "retained-mask"),
+        ),
     ):
         np.testing.assert_array_equal(many_labels, one_labels)
 
@@ -190,7 +208,7 @@ def test_published_passes_cover_labelled_edge_and_corner_sources(
     """The invariance above is not vacuous: the cases carry real support."""
     published = _detect(_image(), tmp_path / "one", tile_core_pixels=4096)
 
-    labels = published.multiscale.detection_labels
+    labels = published_plane(published.detection_source, "detection-labels")
     assert labels[0, 0] > 0
     assert labels[0, -1] > 0
     assert labels[-1, 0] > 0
@@ -198,25 +216,36 @@ def test_published_passes_cover_labelled_edge_and_corner_sources(
     assert labels[60, 60] > 0
     assert labels[100, 119] == labels[100, 122]
     assert int(labels.max()) >= 8
-    assert np.any(published.multiscale.reconstruction_mask)
+    assert np.any(
+        published_plane(published.detection_source, "reconstruction-mask")
+    )
     assert all(
         islands for islands in published.multiscale.scale_islands_by_order[:2]
     )
-    components = published.support.support_component_labels
+    components = published_plane(
+        published.support_source, "support-components"
+    )
     assert int(components.max()) > 1
     np.testing.assert_array_equal(
         components > 0,
-        (labels > 0) | published.multiscale.reconstruction_mask,
+        (labels > 0)
+        | published_plane(published.detection_source, "reconstruction-mask"),
     )
-    assert np.any(published.support.persistent_scale_support)
-    publication = published.labels.publication_labels
+    assert np.any(
+        published_plane(published.support_source, "persistent-support")
+    )
+    publication = published_plane(
+        published.labels_source, "publication-labels"
+    )
     np.testing.assert_array_equal(
-        published.labels.retained_mask,
+        published_plane(published.labels_source, "retained-mask"),
         publication > 0,
     )
     assert int(publication.max()) > 0
-    measurement = published.labels.measurement_labels
-    component = published.labels.component_labels
+    measurement = published_plane(
+        published.labels_source, "measurement-labels"
+    )
+    component = published_plane(published.labels_source, "component-labels")
     published_pixels = publication > 0
     owned_pixels = component > 0
     np.testing.assert_array_equal(
@@ -236,11 +265,17 @@ def test_published_support_matches_the_whole_plane_reduction(
     """The tiled reductions reproduce the whole-plane kernels exactly."""
     published = _detect(_image(), tmp_path / "one", tile_core_pixels=4096)
     multiscale = published.multiscale
+    detection_labels = published_plane(
+        published.detection_source, "detection-labels"
+    )
+    reconstruction = published_plane(
+        published.detection_source, "reconstruction-mask"
+    )
 
     expected_components, _ = cast(
         tuple[npt.NDArray[np.int32], int],
         label(
-            (multiscale.detection_labels > 0) | multiscale.reconstruction_mask,
+            (detection_labels > 0) | reconstruction,
             structure=np.ones((3, 3), dtype=np.int8),
         ),
     )
@@ -254,7 +289,13 @@ def test_published_support_matches_the_whole_plane_reduction(
             )
             for scale_order, (scale_mask, islands, nominal) in enumerate(
                 zip(
-                    multiscale.significant_scale_masks,
+                    tuple(
+                        published_plane(
+                            published.detection_source,
+                            f"scale-{order}-significant",
+                        )
+                        for order in _SCALE_ORDERS
+                    ),
                     multiscale.scale_islands_by_order,
                     multiscale.scale_nominal_beam_fwhms,
                     strict=True,
@@ -265,11 +306,11 @@ def test_published_support_matches_the_whole_plane_reduction(
     )
 
     np.testing.assert_array_equal(
-        published.support.support_component_labels,
+        published_plane(published.support_source, "support-components"),
         expected_components,
     )
     np.testing.assert_array_equal(
-        published.support.persistent_scale_support,
+        published_plane(published.support_source, "persistent-support"),
         expected_persistent,
     )
 
@@ -293,16 +334,22 @@ def test_published_labels_match_the_whole_plane_support_chain(
         SourceFinderConfig(5.0, 3.0, _MINIMUM_ISLAND_PIXELS),
     ).matrix.island_sigma
 
+    detection_labels = published_plane(
+        published.detection_source, "detection-labels"
+    )
+    reconstruction = published_plane(
+        published.detection_source, "reconstruction-mask"
+    )
     measurement = assign_seeded_multiscale_support(
-        multiscale.detection_labels,
-        multiscale.reconstruction_mask,
+        detection_labels,
+        reconstruction,
         valid,
         beam_major_fwhm_pixels=_BEAM.major_fwhm_pixels,
     )
     direct_publication = refine_multiscale_segment_labels(
-        multiscale.detection_labels,
+        detection_labels,
         direct_snr,
-        multiscale.reconstruction_mask,
+        reconstruction,
         beam_major_fwhm_pixels=_BEAM.major_fwhm_pixels,
         recovered_minimum_snr=island_sigma,
     )
@@ -315,7 +362,7 @@ def test_published_labels_match_the_whole_plane_support_chain(
         measurement,
         publication,
         direct_snr,
-        published.support.persistent_scale_support,
+        published_plane(published.support_source, "persistent-support"),
     )
     accepted = np.asarray(
         [
@@ -328,14 +375,14 @@ def test_published_labels_match_the_whole_plane_support_chain(
 
     assert accepted.size < len(multiscale.detection_islands)
     np.testing.assert_array_equal(
-        published.labels.publication_labels,
+        published_plane(published.labels_source, "publication-labels"),
         _retain(expected, accepted),
     )
     np.testing.assert_array_equal(
-        published.labels.measurement_labels,
+        published_plane(published.labels_source, "measurement-labels"),
         _retain(measurement, accepted),
     )
     np.testing.assert_array_equal(
-        published.labels.component_labels,
-        _retain(multiscale.detection_labels, accepted),
+        published_plane(published.labels_source, "component-labels"),
+        _retain(detection_labels, accepted),
     )

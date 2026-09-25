@@ -72,9 +72,13 @@ from hebog.stages.objects import (
     _FitBatchResult,
     _global_context,
     _ParentBatch,
+    _publish_batch,
+    _PublishBatchResult,
     _reduce_component_records,
+    _require_matching_component_identities,
     _SupportBatch,
     _TileBatch,
+    _TileRequest,
     _union_bounds,
     component_fit_product_names,
     component_topology_product_names,
@@ -360,6 +364,76 @@ def test_published_components_match_the_whole_plane_deblender(
         np.testing.assert_array_equal(published[name], values, name)
     assert result.deblended_parent_count >= 1
     assert result.component_count > result.parent_count
+
+
+def test_a_direct_owner_without_measurement_support_fails_closed(
+    tmp_path: Path,
+) -> None:
+    """Direct ownership must be a valid subset of measurement ownership.
+
+    The composition used to ask this of two whole planes. The core that writes
+    both planes holds the validity beside them, so it asks there. Deblending
+    cannot produce the disagreement, so the round is given it directly.
+    """
+    root = tmp_path / "run"
+    root.mkdir(parents=True, exist_ok=True)
+    _, detection_source = _sources(root)
+    manifest = _manifest(16)
+    partition = manifest.tiles[0]
+    sink = ZarrProductSink(
+        root / "components.zarr", manifest, generation_id="components"
+    )
+    for product_name in component_topology_product_names():
+        sink.initialize_product(
+            product_name=product_name, dtype=np.dtype("<i4")
+        )
+    owned = np.asarray(
+        [partition.core_bounds.y_start * _SHAPE_YX[1]], dtype=np.int64
+    )
+
+    with pytest.raises(ValueError, match="valid subset"):
+        _publish_batch(
+            _TileBatch(
+                requests=(
+                    _TileRequest(
+                        partition=partition,
+                        direct_indices=owned,
+                        direct_labels=np.asarray([1], dtype=np.int32),
+                        measurement_indices=np.zeros(0, dtype=np.int64),
+                        measurement_labels=np.zeros(0, dtype=np.int32),
+                    ),
+                ),
+            ),
+            detection_source=detection_source,
+            sink=sink,
+            image_width=_SHAPE_YX[1],
+        )
+
+
+def test_both_published_planes_must_name_the_same_components() -> None:
+    """A component with no pixel in one plane has nothing to measure.
+
+    The identity sets are compared from the labels each core reported, not
+    from two whole planes, so this checks that reduction directly.
+    """
+    complete = (
+        _PublishBatchResult(
+            product_chunks=(),
+            observed_labels=((1, 0), (1, 1), (2, 0), (2, 1)),
+        ),
+    )
+    missing_measurement = (
+        _PublishBatchResult(
+            product_chunks=(),
+            observed_labels=((1, 0), (1, 1), (2, 0)),
+        ),
+    )
+
+    _require_matching_component_identities(complete, 2)
+    with pytest.raises(ValueError, match="identities must match"):
+        _require_matching_component_identities(missing_measurement, 2)
+    with pytest.raises(ValueError, match="identities must match"):
+        _require_matching_component_identities(complete, 3)
 
 
 def test_component_topology_is_partition_and_executor_invariant(
@@ -934,13 +1008,6 @@ def _reconciled(
 ) -> ComponentMeasurements:
     """Reduce the published parent and feature records, as the public path."""
     return reconcile_component_measurements(
-        np.asarray(
-            published.sink.read_completed_window(
-                "measurement-support",
-                ImageBounds(0, _SHAPE_YX[0], 0, _SHAPE_YX[1]),
-            ),
-            dtype=np.bool_,
-        ).copy(),
         parents=published.result.parents,
         features=groups.features,
     )
@@ -964,9 +1031,18 @@ def test_published_fits_match_the_whole_plane_measurement(
     assert reconciled.extended_groups == expected.extended_groups
     assert reconciled.grouping_evidence == expected.grouping_evidence
     assert reconciled.deferred_parent_count == expected.deferred_parent_count
+    assert reconciled.measurement_support is None, (
+        "the tiled reduction holds no plane"
+    )
     assert expected.measurement_support is not None
     np.testing.assert_array_equal(
-        reconciled.measurement_support,
+        np.asarray(
+            published.sink.read_completed_window(
+                "measurement-support",
+                ImageBounds(0, _SHAPE_YX[0], 0, _SHAPE_YX[1]),
+            ),
+            dtype=np.bool_,
+        ),
         expected.measurement_support,
     )
 

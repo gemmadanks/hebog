@@ -388,21 +388,13 @@ def _configured_products(
             header=header,
             config=config,
         )
-        valid = (
-            np.isfinite(signal) & np.isfinite(background) & np.isfinite(rms)
-        )
         return build_configured_continuum_products(
-            valid,
-            valid & (rms > 0.0),
             header,
-            multiscale=published.multiscale,
-            labels=published.labels,
+            component_count=published.accepted_island_count,
             topology=published.topology,
             measurements=published.measurements,
             association=published.association,
             hierarchy=published.hierarchy,
-            source_labels=published.source_labels,
-            source_measurement_labels=(published.source_measurement_labels),
             component_rows=published.component_rows,
             source_rows=published.source_rows,
             source_positions=published.source_positions,
@@ -473,7 +465,7 @@ def test_connected_independent_gaussians_remain_separate_sources(
     )
     result = _products(np.asarray(signal))
 
-    assert result.detection.component_count == 1
+    assert result.component_count == 1
     assert len(result.component_catalogue) == count
     assert len(result.catalogue) == count
     assert all(row.component_count == 1 for row in result.catalogue)
@@ -674,10 +666,6 @@ def test_rejected_ellipse_keeps_source_photometry_and_support(
     assert rejected.catalogue[0].integrated_flux_jy == pytest.approx(
         baseline.catalogue[0].integrated_flux_jy
     )
-    np.testing.assert_array_equal(
-        rejected.measurement_component_labels,
-        baseline.measurement_component_labels,
-    )
     disposition = next(
         row
         for row in rejected.measurement_dispositions
@@ -762,10 +750,6 @@ def test_inadequate_beam_fallback_keeps_source_not_gaussian(
     assert (
         "aperture-flux-without-fitted-component"
         not in baseline.catalogue[0].quality_flags
-    )
-    np.testing.assert_array_equal(
-        rejected.measurement_component_labels,
-        baseline.measurement_component_labels,
     )
     assert (
         type(disposition).model_validate_json(disposition.model_dump_json())

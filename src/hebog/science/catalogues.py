@@ -1099,35 +1099,6 @@ def local_rms_by_object_id(
     return by_object_id
 
 
-def _require_valid_source_label_plane(
-    values: npt.ArrayLike,
-    labels: npt.NDArray[np.int64],
-    association: SourceAssociationResult,
-    *,
-    seeded: bool = True,
-) -> None:
-    """Reject one published source plane that disagrees with the memberships.
-
-    The plane itself is not returned: nothing downstream reads it, and
-    materialising an image-sized copy to discard would scale with the image
-    rather than the tile.
-    """
-    plane = np.asarray(values)
-    if (
-        plane.ndim != labels.ndim
-        or plane.shape != labels.shape
-        or not np.issubdtype(plane.dtype, np.integer)
-        or bool(np.any(plane < 0))
-    ):
-        raise ValueError(
-            "source labels must be one aligned non-negative integer plane"
-        )
-    if bool(np.any(plane > len(association.memberships))):
-        raise ValueError("source labels must name a published membership")
-    if seeded and bool(np.any((labels > 0) & (plane == 0))):
-        raise ValueError("source memberships must own every component pixel")
-
-
 def _fitted_component_row(
     index: int,
     fitted: ValidCompactGaussianFit,
@@ -1480,16 +1451,11 @@ def _reconstructed_source_rows(
 
 
 def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913
-    valid_pixels: npt.ArrayLike,
-    measurement_component_labels: npt.ArrayLike,
-    direct_component_labels: npt.ArrayLike,
     header: fits.Header,
     *,
     component_measurements: ComponentMeasurements | None = None,
     association: SourceAssociationResult,
     hierarchy: SourceAssociationResult,
-    source_labels: npt.ArrayLike,
-    source_measurement_labels: npt.ArrayLike,
     component_rows: tuple[CatalogueSource, ...],
     source_rows: tuple[CatalogueSource, ...],
     source_positions: Mapping[int, SourcePositionDiagnostics],
@@ -1502,36 +1468,12 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913
     before aperture expansion, so every observable pixel belongs to at most one
     source aperture.
 
-    Every row this assembles was already measured, by the stage that held the
-    window it was measured in, so this takes no image or background plane.
+    This assembles records only: every row was measured by the stage that held
+    the window it was measured in, and every plane the rows describe was
+    checked by the core that wrote it — direct ownership against the
+    measurement plane and the validity beside it, source ownership against the
+    memberships the cores were given.
     """
-    valid, labels = _validated_segment_labels(
-        valid_pixels,
-        measurement_component_labels,
-    )
-    direct = np.asarray(direct_component_labels)
-    if (
-        direct.ndim != labels.ndim
-        or direct.shape != labels.shape
-        or not np.issubdtype(direct.dtype, np.integer)
-        or bool(np.any(direct < 0))
-    ):
-        raise ValueError(
-            "direct component labels must be one aligned non-negative "
-            "integer plane"
-        )
-    direct = np.asarray(direct, dtype=np.int64)
-    if bool(np.any((direct > 0) & (~valid | (labels != direct)))):
-        raise ValueError(
-            "direct component ownership must be a valid subset of "
-            "measurement ownership"
-        )
-    if set(np.unique(direct[direct > 0])) != set(
-        np.unique(labels[labels > 0])
-    ):
-        raise ValueError(
-            "direct and measurement component identities must match"
-        )
     component_sources, _ = _apply_component_measurements(
         component_rows,
         component_measurements,
@@ -1540,10 +1482,6 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913
     stable_components = _stable_component_catalogue(
         component_sources,
         association,
-    )
-    _require_valid_source_label_plane(source_labels, labels, association)
-    _require_valid_source_label_plane(
-        source_measurement_labels, labels, association, seeded=False
     )
     membership_by_label = dict(enumerate(association.memberships, start=1))
     output = _reconstructed_source_rows(

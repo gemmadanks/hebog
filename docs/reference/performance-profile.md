@@ -102,9 +102,7 @@ once per object multiplies it by the object count.
 2. **Per-pixel background refinement.** Still 13 to 18% after its batch size
    was corrected. The remaining cost is the wavelet bank and sigma clipping
    themselves, which are already vectorised SciPy.
-3. **The driver's whole-plane reads.** The plan's next scalability step; it governs the envelope
-   rather than the clock, but it also removes the largest remaining copies.
-4. **`fit_compact_gaussian_mixture`.** The genuine nonlinear fit, about 35%
+3. **`fit_compact_gaussian_mixture`.** The genuine nonlinear fit, about 35%
    of the fitting stage and 5 to 8% of a run. It is already a compiled SciPy
    least-squares solve.
 
@@ -131,11 +129,13 @@ applies to them.
 Counting the arrays is the reliable way to size what grows with the image,
 and the count is measured rather than read off the source: a run walks the
 driver's own locals at the terminal builder and counts the distinct
-image-shaped arrays reachable from them. There are **18**, at 49 bytes a
-pixel — 8 `int32` label planes, 9 masks and the position signal in
-`float64`. That is 0.41 GiB at 3,000², 4.6 GiB at 10,000² and 10.8 GiB at
-LoTSS-DR3 15,402², against 18 GiB of development-machine memory. The
-implementation plan sets out the order they come out in.
+image-shaped arrays reachable from them. There are **none**. The count was
+18 at 49 bytes a pixel — 8 `int32` label planes, 9 masks and the position
+signal in `float64`, which would have been 0.41 GiB at 3,000², 4.6 GiB at
+10,000² and 10.8 GiB at LoTSS-DR3 15,402² against 18 GiB of
+development-machine memory. Nothing outside a tile scales with the image
+now, so what is left to measure is the tile working set, which the next
+envelope tier reports.
 
 The image, the background, the RMS and their residual are all out, and **the
 driver now reads no window at all**: the final RMS product streams one
@@ -165,16 +165,30 @@ image rather than with a tile, so the gain grows with size: a real 3,000²
 LoTSS field with 814 islands went from 216.4 s to 201.7 s under tracing, about
 7%, while its products stayed bitwise identical.
 
-The background stage publishes the two masks the composition actually asks
-of its estimate — where the estimate exists, and where it carries a usable
-local noise — so two `bool` planes stand where three `float64` ones did.
-That is the change that moved the peak, which sits in the multiscale pass
-rather than in anything the catalogue does: 1539.3 → 1342.1 MiB at 3,000²
-across the three steps, within 1 MiB of the 198 MiB the array arithmetic
-predicted. What remains is the label, mask and position-signal planes.
+The background stage was the change that moved the peak, which sits in the
+multiscale pass rather than in anything the catalogue does: returning two
+`bool` masks where three `float64` estimates had been took it from 1539.3 to
+1342.1 MiB at 3,000² across three steps, within 1 MiB of the 198 MiB the
+array arithmetic predicted. The stage now returns neither, only whether any
+pixel has a usable local noise estimate, reduced one tile row at a time, and
+the label, mask and position-signal planes followed it out.
+
+Removing the driver's 49 bytes a pixel moved the peak by 2 of them, and that
+is the lesson rather than a disappointment: only the planes alive at the peak
+can lower it, and the peak is in the multiscale pass, before the catalogue
+work allocates the other 47. What the peak does see is the two background
+masks, and it sees them exactly — 342.04 → 339.98 MiB at 1,024² and
+1261.45 → 1244.22 MiB at 3,000², against arithmetic of 2.00 and 17.17 MiB.
+The 47 bytes show in the envelope instead: they are what the image would have
+added on top of the tile, 4.6 GiB of it at 10,000².
+
+The same removal is worth 4 to 7% of the clock at 1,024², because the checks
+those planes were held for were whole-plane comparisons: medians of five on a
+quiet machine give `dense-field` 9.3 s, `lotss-dr3-1312-sparse` 10.0 s and
+`lotss-dr3-1312-dense` 11.1 s, ratios 0.96, 0.93 and 0.94 against v0.13.0.
 
 A real 3,000² LoTSS-DR3 field has a deterministic traced peak of
-**1,342 MiB** through the public path.
+**1,244 MiB** through the public path.
 
 !!! warning "Peak RSS is an envelope, not a threshold"
 
@@ -184,9 +198,10 @@ A real 3,000² LoTSS-DR3 field has a deterministic traced peak of
     so it records how aggressively the operating system reclaimed as much as
     what Hebog demanded. Quote it as a range, and never gate a change on it.
 
-    `tracemalloc`'s peak counts the process's own allocations instead. It
-    gave **1539.3 MiB** in every run at loads from 2.9 to 4.6, identical to
-    the decimal, so a scaling claim or a tier gate uses the traced peak. It
+    `tracemalloc`'s peak counts the process's own allocations instead. In
+    that same experiment, on the code of the day, it gave **1539.3 MiB** in
+    every run at loads from 2.9 to 4.6, identical to the decimal, so a
+    scaling claim or a tier gate uses the traced peak. It
     roughly doubles wall time, which is acceptable for a gate measurement.
     Earlier figures on this page of 2,144 MiB and 1,347 MiB were single
     first runs and should not be compared with anything.

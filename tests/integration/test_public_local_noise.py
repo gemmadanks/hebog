@@ -43,7 +43,7 @@ def _public_maps(
     fits.PrimaryHDU(image, header).writeto(input_path)
     source = FitsImageSource(input_path)
     metadata = source.metadata()
-    sink, _, _ = public_api._estimate_background_rms(
+    sink, _ = public_api._estimate_background_rms(
         source,
         metadata,
         SourceFinderConfig(5.0, 3.0, 7),

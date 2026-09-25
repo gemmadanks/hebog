@@ -408,13 +408,6 @@ def _reconciled(
 ) -> ComponentMeasurements:
     """Reduce the published parent and feature records, as the public path."""
     return reconcile_component_measurements(
-        np.asarray(
-            published.support_sink.read_completed_window(
-                "measurement-support",
-                ImageBounds(0, _SHAPE_YX[0], 0, _SHAPE_YX[1]),
-            ),
-            dtype=np.bool_,
-        ).copy(),
         parents=published.parents,  # type: ignore[arg-type]
         features=groups.features,
     )

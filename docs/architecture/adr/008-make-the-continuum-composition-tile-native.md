@@ -12,7 +12,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-09-18 |
-| **Last Updated** | 2026-09-25 (the per-object rounds each pass owns, and the island round) |
+| **Last Updated** | 2026-09-25 (the per-object rounds each pass owns, the island round, and the driver holding no plane) |
 | **Deciders** | Gemma Danks |
 | **Tags** | tiling, halos, ownership, reconciliation, memory, invariance |
 
@@ -506,6 +506,9 @@ milestone: the executor work comes before the convergence it enables.
   sources on every edge and corner topology and at knife-edge thresholds.
 - Architecture tests reject image-sized arrays in stage results, in executor
   payloads and in driver-held state, and reject whole-table label broadcasts.
+  The composition records carry no array field, which a static test asserts,
+  and a run that walks the driver's own locals at the terminal builder finds
+  no image-shaped array reachable from them.
 - A stage-halo admission test proves every declared halo is below one quarter
   of the admitted core, and that a plan exceeding the admitted memory is
   rejected before submission rather than during it.

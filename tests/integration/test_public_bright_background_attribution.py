@@ -14,6 +14,7 @@ import numpy as np
 import pytest
 from astropy.io import fits
 from astropy.wcs import WCS
+from conftest import published_plane
 from scipy.ndimage import gaussian_filter
 
 from hebog import public_api
@@ -105,7 +106,13 @@ def test_bright_halo_is_not_background_but_noise_inflation_is_retained(
     )
     assert np.median(np.abs(estimated_rms[support] / rms[support] - 1)) < 0.25
     assert scientific.terminal is not None
-    recovered = scientific.terminal.detection.retained_mask & support
+    assert scientific.publication_source is not None
+    recovered = (
+        published_plane(
+            scientific.publication_source, "retained-mask", np.bool_
+        )
+        & support
+    )
     assert np.count_nonzero(recovered) / np.count_nonzero(support) >= 0.75
     if noisy_neighbourhood:
         assert estimated_rms[centre_y, 96] > 2.0
