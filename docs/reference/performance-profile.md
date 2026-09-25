@@ -93,16 +93,11 @@ once per object multiplies it by the object count.
 
 ## What remains, in priority order
 
-1. **Per-pixel background refinement.** No per-source Astropy call now
-   remains: the fit, the fitted rows, the moment shapes and the rows' own
-   coordinates all convert a batch at a time, and a batch makes a fixed
-   number of calls whatever its size. Background refinement is again the
-   largest stage, and its remaining cost is the wavelet bank and sigma
+1. **Per-pixel background refinement.** Still 13 to 18% after its batch
+   size was corrected, and again the largest stage now that no per-source
+   Astropy call remains. The remaining cost is the wavelet bank and sigma
    clipping themselves, which are already vectorised SciPy.
-2. **Per-pixel background refinement.** Still 13 to 18% after its batch size
-   was corrected. The remaining cost is the wavelet bank and sigma clipping
-   themselves, which are already vectorised SciPy.
-3. **`fit_compact_gaussian_mixture`.** The genuine nonlinear fit, about 35%
+2. **`fit_compact_gaussian_mixture`.** The genuine nonlinear fit, about 35%
    of the fitting stage and 5 to 8% of a run. It is already a compiled SciPy
    least-squares solve.
 
