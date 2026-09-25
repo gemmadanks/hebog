@@ -2,6 +2,85 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.13.0](https://github.com/gemmadanks/hebog/compare/v0.12.0...v0.13.0) (2026-09-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* run the public detection pass through tiled stages
+* drop two publication refinements nothing read
+* make the support pass tile-native
+* deblend every parent in its own window
+* fit every parent in its own context window
+* group each support feature in its own window
+* reduce the source hierarchy's overlaps from tiles
+* describe the scale features from records, not their planes
+* publish the catalogue's source planes from tiles
+* measure each catalogue row in its own window
+* publish E_RA as a great-circle angle, as PyBDSF and Rapthor expect
+
+### 🚀 Features
+
+* converge detection pass onto tiled stages ([#70](https://github.com/gemmadanks/hebog/issues/70)) ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* deblend every parent in its own window ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* describe the scale features from records, not their planes ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* fit every parent in its own context window ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* group each support feature in its own window ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* make the support pass tile-native ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* measure each catalogue row in its own window ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* publish the catalogue's source planes from tiles ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* publish the summed fitted component flux as the source Total_flux ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* raise the public image envelope to 3,000 pixels ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* reconcile pass C's global support reductions per tile ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* reduce the source hierarchy's overlaps from tiles ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* run the public detection pass through tiled stages ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+
+
+### 🐛 Bug Fixes
+
+* keep recovered support across a core edge, and bind what produced it ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* let the ladder test know about the 4,096-pixel rung ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* publish E_RA as a great-circle angle, as PyBDSF and Rapthor expect ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* read the planes the multiscale pass actually publishes ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+
+
+### ⚡ Performance
+
+* batch local-noise cells so a halo is filtered once, not per cell block ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* batch object rows so a plane is decoded once, not once per sixteen ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* batch the local-RMS reads and derive the validity masks ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* convert a batch of row coordinates, not one per segment ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* describe labels in one pass and stop the store rewriting metadata ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* query only the seeds' reachable band for nearest owners ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* transform a batch of moment centroids, not one per segment ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* transform a batch of positions, not one source at a time ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+
+
+### 🧹 Refactoring
+
+* build the component records once, from their own windows ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* drop the support-stage planes nothing reads ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* drop two publication refinements nothing read ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* give image bounds their own centre ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* separate each catalogue row from the plane around it ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* separate the association's pixel facts from its decision ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* separate the catalogue's one global step ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* stop the catalogue builder holding planes it never measures ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* stream the public RMS product from its store ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+
+
+### 📚 Documentation
+
+* record the object pass's rounds before building them ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* retire the fit-context dilation as a bottleneck target ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* separate user and developer guides and compare Hebog with other finders ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+* set the binding Total_flux limits from PyBDSF parity ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+
+
+### 🧪 Tests
+
+* measure past one tile, and correct a memory extrapolation ([162f15e](https://github.com/gemmadanks/hebog/commit/162f15efa4ceabd3f5332f85d0ec90c2206994f5))
+
 ## [0.12.0](https://github.com/gemmadanks/hebog/compare/v0.11.0...v0.12.0) (2026-09-18)
 
 
