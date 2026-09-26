@@ -25598,7 +25598,47 @@ the per-worker placement finding.
 - **Cost.** At the default budget the three runs, made side by side, took
   the baseline's time on every case. Forcing hundreds of ordinary objects
   through the core paths is slower: the crowded SDC1 cut-out took 224 s
-  against 26 s, because each core task selects each object's pixels with its
-  own mask. Only objects wider than the budget take those paths, so this
-  matters when many are wide at once; grouping the pixels by label once per
-  core would remove it.
+  against 26 s. The next entry profiles that time; it is the window reads,
+  not the core paths.
+
+## 2026-09-26 — M2: the forced-budget slowdown is window reads, not core masks
+
+- **Question.** The entry above put the forced-budget slowdown down to the
+  core tasks selecting each wide object's pixels with a full-core mask, and
+  proposed grouping each core's pixels by label once. That was profiled
+  before changing anything.
+- **Profile.** The crowded SDC1 cut-out was run at `e397293` as that check
+  ran it: every public stage on 512-pixel cores, `_OWNER_BATCH_READ_PIXELS`
+  forced to 4,096, serial. Under cProfile, 207 s of 280 s is
+  `ZarrProductSink.read_completed_window`, called 33,594 times. Timed
+  without the profiler, the run takes 183 s, of which the window reads take
+  136 s. Only one segment and one support component are wide, and no island
+  or deferred parent is. The four core gathers
+  (`_gather_island_pixels`, `_gather_wide_support`,
+  `_gather_wide_segments`, `_gather_deferred_components`) take 0.08 s
+  between them. The sparse cut-out is the same: 140 s, with 107 s in 22,859
+  window reads and 0.08 s in the gathers.
+- **Where the reads go.** A 64² budget closes a batch after about one
+  object, so every round submits hundreds of batches. Each batch's session
+  opens each product's array and completion manifest again, and each window
+  decodes and checksums the whole 512² chunk under it. At the default budget
+  the same run makes 455 window reads, which take 2.6 s of 23 s. On this
+  machine the endpoint scanner intercepts every file open, which makes each
+  read dearer. The read count does not depend on the machine.
+- **Worst case for the masks.** A one-pixel budget sends every island,
+  segment and support component through its cores: 827 islands, 1,690
+  segment-core pairs and 722 support components, on four cores. Fit parents
+  are deferred by the compact bound rather than by the budget, and none is.
+  The gathers then take 4.3 s of 166 s. Window reads, from the rounds that
+  still read each object alone, take 81.5 s. At the default budget a wide
+  object needs a window of more than 2,048², so a core holds only a few of
+  them.
+- **Decision.** The per-object masks do not dominate even in the one-pixel
+  case, so they stay as they are. A budget small enough to batch objects one
+  at a time costs whole-chunk reads per window. That regime is a test
+  device, not a configuration. If many-small-batch reads ever matter, the
+  lever is chunk reuse in `ZarrProductSink`, not the gathers.
+- **Conditions.** The runs shared the machine with another session's tests,
+  so the absolute times are not controlled benchmarks and no speed claim
+  rests on them. The attribution uses ratios within each run. Scratch runner
+  and profiles are outside the repository.
