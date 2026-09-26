@@ -772,6 +772,7 @@ def publish_component_topology(  # noqa: PLR0913
         sink=sink,
     )
     return sink, TiledComponentTopology(
+        component_count=result.component_count,
         deblended_parent_count=result.deblended_parent_count,
         deferred_parent_count=result.deferred_parent_count,
     )
@@ -1062,6 +1063,7 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
     header: fits.Header,
     config: SourceFinderConfig,
     review: ContinuumScienceProfile,
+    component_count: int,
     generation_id: str,
     tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
 ) -> tuple[TiledComponentFits, ZarrProductSink]:
@@ -1076,6 +1078,8 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
     Each parent also describes the direct components it owns, so the records
     the association decision reads come from the residual the fits already
     hold rather than from a second pass of per-component reads.
+    ``component_count`` is the topology's, and the records must describe
+    every one of those components.
     """
     from hebog.algorithms.multiscale import (  # noqa: PLC0415
         build_residual_atrous_plan,
@@ -1154,6 +1158,7 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
             maximum_tiles_per_batch=_SUPPORT_TILES_PER_BATCH,
             maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
         ),
+        component_count=component_count,
         wcs_header_text=header.tostring(),
         beam=RestoringBeam(
             cast(float, header["BMAJ"]),
@@ -1338,6 +1343,7 @@ def _analyse_image(  # noqa: PLR0913
         header=header,
         config=config,
         review=review,
+        component_count=topology.component_count,
         generation_id=generation_id,
     )
     records = component_fits.component_records

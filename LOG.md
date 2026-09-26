@@ -25310,3 +25310,23 @@ the per-worker placement finding.
   composition records declare no array field, which is the rule ADR-008's
   confirmation names, and the empty-input test now asserts the streamed mask
   product is all-false rather than only checking the RMS.
+
+## 2026-09-26 — M2: the fit stage fails closed on a missing component
+
+- **Defect.** Since the fits began describing their own components
+  (`fe8dd7e`), `_reduce_component_records` rejected a component that two
+  fit parents described, but not one that no parent described. The old
+  whole-plane builder described every label of the direct plane, so a
+  fit-parent plane that missed a component would have failed there. Now it
+  returned one record fewer, and the association and catalogue would have
+  published one component fewer without error. A scratch reproduction confirmed it:
+  fit parents reconciled from measurement support without one of the
+  fixture's four components gave records for the other three, silently.
+- **Fix.** `run_component_fit_stage` takes the topology stage's
+  `component_count` (carried on `TiledComponentTopology`), and the reduction
+  requires the described labels to be exactly `1..component_count`, which the
+  topology stage already requires both of its planes to name. A regression
+  test runs the stage on that truncated fit-parent plane and expects it to
+  stop; a unit test covers a missing and an unpublished label.
+- **Evidence.** The check adds only a failure path, so honest runs are
+  untouched; the portable suite passes, 2,594 tests.

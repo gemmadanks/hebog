@@ -285,6 +285,7 @@ def publish_continuum_inputs(  # noqa: PLR0913
         header=header,
         config=config,
         review=review,
+        component_count=topology.component_count,
         generation_id=generation_id,
         tile_core_pixels=support_tile_core_pixels,
     )

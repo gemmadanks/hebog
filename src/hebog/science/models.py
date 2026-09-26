@@ -307,9 +307,11 @@ class TiledComponentTopology:
     with tile geometry or completion order. The two ownership planes stay in
     the generation: the cores that wrote them already required direct
     ownership to be a valid subset of measurement ownership, and the stage
-    required both to name the same components.
+    required both to name the same components, numbered
+    ``1..component_count``.
     """
 
+    component_count: int
     deblended_parent_count: int
     deferred_parent_count: int
 

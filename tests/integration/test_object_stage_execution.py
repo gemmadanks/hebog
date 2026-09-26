@@ -805,6 +805,11 @@ def _measurement_inputs() -> tuple[
     )
 
 
+def _component_count() -> int:
+    """Return how many direct components the fixture's topology numbered."""
+    return int(_measurement_inputs()[3].max())
+
+
 def _measurement_sources(root: Path) -> tuple[ZarrProductSink, ...]:
     """Publish every generation the fit rounds read."""
     _, rms, valid, direct, measurement = _measurement_inputs()
@@ -915,6 +920,7 @@ def _run_fits(
             maximum_tiles_per_batch=2,
             maximum_batch_read_pixels=maximum_batch_read_pixels,
         ),
+        component_count=_component_count(),
         wcs_header_text=_measurement_header().tostring(),
         beam=RestoringBeam(4.0 / 3600.0, 4.0 / 3600.0, 0.0),
         executor=resolved,  # type: ignore[arg-type]
@@ -1102,9 +1108,101 @@ def test_two_fit_parents_cannot_describe_one_component() -> None:
         ),
     )
 
-    assert _reduce_component_records(duplicated[:1]) == (record,)
+    assert _reduce_component_records(duplicated[:1], component_count=1) == (
+        record,
+    )
     with pytest.raises(ValueError, match="one fit parent"):
-        _reduce_component_records(duplicated)
+        _reduce_component_records(duplicated, component_count=1)
+
+
+@pytest.mark.parametrize(
+    "component_count", [0, 2], ids=("unpublished", "missing")
+)
+def test_fit_parents_must_describe_exactly_the_published_components(
+    component_count: int,
+) -> None:
+    """The records name every published component, and no other."""
+    record = DetectionComponentRecord(
+        component_id="component-00000004-00000008",
+        label_value=1,
+        canonical_pixel_yx=(4, 8),
+        centroid_yx=(4.0, 8.0),
+        covariance_pixels_squared=None,
+    )
+    result = _FitBatchResult(
+        parents=(),
+        component_records=(record,),
+        maximum_parent_read_pixels=1,
+    )
+
+    with pytest.raises(ValueError, match="every published component"):
+        _reduce_component_records((result,), component_count=component_count)
+
+
+def test_a_fit_parent_read_that_misses_a_component_fails_closed(
+    tmp_path: Path,
+) -> None:
+    """A component no fit parent reaches stops the stage, never vanishes.
+
+    The fit parents are reconciled from measurement support that lacks one
+    component, so no parent's read holds that component's direct pixels.
+    Without the topology stage's count, the records would silently describe
+    one component fewer and the association would decide over what is left.
+    """
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    residual, _, _, direct, measurement = _measurement_inputs()
+    background, detection, components = _measurement_sources(tmp_path)
+    omitted = _component_count()
+    truncated = _publish(
+        tmp_path / "truncated-components.zarr",
+        (
+            (
+                "component-direct-labels",
+                np.where(direct == omitted, 0, direct).astype(np.int32),
+                "<i4",
+            ),
+            (
+                "component-measurement-labels",
+                np.where(measurement == omitted, 0, measurement).astype(
+                    np.int32
+                ),
+                "<i4",
+            ),
+        ),
+        generation_id="truncated-components",
+    )
+    parent_manifest = _fit_parent_manifest()
+    parent_sink = ZarrProductSink(
+        tmp_path / "fit-parents.zarr",
+        parent_manifest,
+        generation_id="fit-parents",
+    )
+    run_fit_parent_stage(
+        truncated,
+        parent_manifest,
+        config=_fit_parent_config(),
+        executor=SerialExecutor(),
+        sink=parent_sink,
+    )
+    manifest = _manifest(16)
+
+    with pytest.raises(ValueError, match="every published component"):
+        run_component_fit_stage(
+            ArrayImageSource(residual, np.ones(_SHAPE_YX, dtype=np.bool_)),
+            background,
+            detection,
+            components,
+            parent_sink,
+            manifest,
+            config=_fit_stage_config(),
+            component_count=omitted,
+            wcs_header_text=_measurement_header().tostring(),
+            beam=RestoringBeam(4.0 / 3600.0, 4.0 / 3600.0, 0.0),
+            executor=SerialExecutor(),
+            sink=ZarrProductSink(
+                tmp_path / "fits.zarr", manifest, generation_id="fits"
+            ),
+        )
 
 
 def _assert_parents_equal(
@@ -1564,6 +1662,7 @@ def test_component_fit_stage_requires_matching_sinks_and_generations(
             fit_parents,
             target,
             config=_fit_stage_config(),
+            component_count=_component_count(),
             wcs_header_text=_measurement_header().tostring(),
             beam=RestoringBeam(4.0 / 3600.0, 4.0 / 3600.0, 0.0),
             executor=SerialExecutor(),
@@ -1644,6 +1743,7 @@ def test_fit_rounds_publish_an_image_with_no_fit_parent(
         parent_sink,
         manifest,
         config=_fit_stage_config(),
+        component_count=0,
         wcs_header_text=_measurement_header().tostring(),
         beam=RestoringBeam(4.0 / 3600.0, 4.0 / 3600.0, 0.0),
         executor=SerialExecutor(),

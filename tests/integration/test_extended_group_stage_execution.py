@@ -344,6 +344,7 @@ def _run_fits(root: Path) -> _Published:
             maximum_tiles_per_batch=2,
             maximum_batch_read_pixels=65536,
         ),
+        component_count=int(direct.max()),
         wcs_header_text=_header().tostring(),
         beam=_RESTORING_BEAM,
         executor=SerialExecutor(),

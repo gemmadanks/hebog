@@ -1751,17 +1751,24 @@ def _intersects(first: ImageBounds, second: ImageBounds) -> bool:
 
 def _reduce_component_records(
     results: tuple[_FitBatchResult, ...],
+    *,
+    component_count: int,
 ) -> tuple[DetectionComponentRecord, ...]:
     """Order every parent's component records canonically, once.
 
     Completion order decides nothing: the records are sorted by canonical
     first pixel, which is how a whole-plane pass over the direct labels would
-    present them.
+    present them. The topology stage numbered the direct components
+    ``1..component_count`` and required both of its planes to name exactly
+    those, so the records must describe each of them once.
 
     Raises:
         ValueError: If two fit parents described the same component, which
             would mean a component's support reached beyond the parent whose
-            measurement support it belongs to.
+            measurement support it belongs to, or if the records do not
+            describe exactly the published components, which would mean a
+            fit parent's read missed a component that the association would
+            otherwise silently lose.
     """
     records = tuple(
         sorted(
@@ -1773,8 +1780,11 @@ def _reduce_component_records(
             key=lambda record: record.canonical_pixel_yx,
         )
     )
-    if len({record.label_value for record in records}) != len(records):
+    described = {record.label_value for record in records}
+    if len(described) != len(records):
         raise ValueError("every component must belong to one fit parent")
+    if described != set(range(1, component_count + 1)):
+        raise ValueError("fit parents must describe every published component")
     return records
 
 
@@ -1787,6 +1797,7 @@ def run_component_fit_stage(  # noqa: PLR0913, PLR0917
     manifest: PartitionManifest,
     *,
     config: ComponentFitStageConfig,
+    component_count: int,
     wcs_header_text: str,
     beam: RestoringBeam,
     executor: Executor,
@@ -1802,6 +1813,11 @@ def run_component_fit_stage(  # noqa: PLR0913, PLR0917
     The measuring round also describes the direct components each parent
     owns, because the residual and the validity those records need are
     already on the task that fits them.
+
+    ``component_count`` is the count the topology stage that published
+    ``component_source`` returned. The records must describe exactly those
+    components, so a fit-parent read that misses one stops the stage rather
+    than publishing fewer components.
 
     ``wcs_header_text`` is the caller's own header as
     :meth:`astropy.io.fits.Header.tostring` writes it, not a ``WCS``; see
@@ -1890,7 +1906,9 @@ def run_component_fit_stage(  # noqa: PLR0913, PLR0917
         for result in fit_results
         for parent in sorted(result.parents, key=lambda item: item[0])
     )
-    component_records = _reduce_component_records(fit_results)
+    component_records = _reduce_component_records(
+        fit_results, component_count=component_count
+    )
     patches = tuple(
         (parent.support_bounds, parent.support_window)
         for _, parent in measured
