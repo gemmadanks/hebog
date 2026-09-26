@@ -28,12 +28,16 @@ from hebog.science.catalogues import (
     build_hebog_segment_moment_catalogue,
     segment_local_rms,
 )
+from hebog.stages.batching import read_pixels
 from hebog.stages.catalogue_rows import (
     SegmentRowStageConfig,
     SegmentRowStageResult,
     _CoreBatch,
     _RowBatch,
     _shaped_rows,
+    _wide_rows,
+    _WideSegmentBatch,
+    _WideSegmentCore,
     run_segment_row_stage,
     segment_row_product_names,
 )
@@ -356,11 +360,18 @@ def test_published_local_rms_matches_the_whole_plane_estimate(
     )
 
 
+@pytest.mark.parametrize(
+    "maximum_batch_read_pixels", [65536, 1], ids=("windows", "cores")
+)
 def test_a_segment_owning_no_usable_estimate_quotes_no_noise(
-    tmp_path: Path,
+    tmp_path: Path, maximum_batch_read_pixels: int
 ) -> None:
     """An unusable estimate over a segment's whole support reports nothing."""
-    result = _run(tmp_path / "run", rms=np.zeros(_SHAPE_YX, dtype=np.float64))
+    result = _run(
+        tmp_path / "run",
+        rms=np.zeros(_SHAPE_YX, dtype=np.float64),
+        maximum_batch_read_pixels=maximum_batch_read_pixels,
+    )
 
     assert result.rows, "the fixture must still measure its rows"
     assert dict(result.local_rms_by_label) == {}
@@ -441,6 +452,8 @@ def test_the_row_rounds_forbid_empty_executor_work_records() -> None:
         _CoreBatch(partitions=())
     with pytest.raises(ValueError, match="segment row batch must not be"):
         _RowBatch(segments=(), read_bounds=ImageBounds(0, 1, 0, 1))
+    with pytest.raises(ValueError, match="wide segment batch must not be"):
+        _WideSegmentBatch(cores=())
 
 
 @pytest.mark.parametrize(
@@ -618,11 +631,17 @@ def test_a_read_that_answers_different_bounds_fails_closed(
         )
 
 
-def test_an_unmeasurable_segment_publishes_no_row(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "maximum_batch_read_pixels", [65536, 1], ids=("windows", "cores")
+)
+def test_an_unmeasurable_segment_publishes_no_row(
+    tmp_path: Path, maximum_batch_read_pixels: int
+) -> None:
     """A segment whose pixels are all invalid keeps its label and no row.
 
     The whole-plane builder skips it for the same reason, so the two agree
-    on a catalogue shorter than the label set.
+    on a catalogue shorter than the label set, whether the segment is
+    measured in a window or from its cores.
     """
     root = tmp_path / "run"
     root.mkdir(parents=True, exist_ok=True)
@@ -661,7 +680,7 @@ def test_an_unmeasurable_segment_publishes_no_row(tmp_path: Path) -> None:
         labels,
         detection,
         manifest,
-        config=_config(),
+        config=_config(maximum_batch_read_pixels=maximum_batch_read_pixels),
         wcs_header_text=_header().tostring(),
         beam=_beam(),
         executor=SerialExecutor(),
@@ -736,3 +755,128 @@ def test_a_batch_with_no_measurable_segment_converts_nothing() -> None:
     assert _shaped_rows((), celestial_wcs=None, beam=_beam()) == (), (
         "an empty batch must not touch the WCS"
     )
+
+
+def _segment_windows() -> tuple[int, ...]:
+    """Return every segment's window size, over its support and aperture."""
+    _, _, _, labels = _planes()
+    radius = ceil(_APERTURE_BEAMS * _BEAM_MAJOR)
+    windows: list[int] = []
+    for value in range(1, int(labels.max()) + 1):
+        rows, columns = np.nonzero(labels == value)
+        windows.append(
+            read_pixels(
+                ImageBounds(
+                    int(rows.min()),
+                    int(rows.max()) + 1,
+                    int(columns.min()),
+                    int(columns.max()) + 1,
+                ).expanded(radius, _SHAPE_YX)
+            )
+        )
+    return tuple(windows)
+
+
+@pytest.mark.parametrize("core", [16, 24])
+def test_a_wide_segment_is_measured_from_its_cores(
+    tmp_path: Path, core: int
+) -> None:
+    """A segment wider than the budget is never read in its window.
+
+    Every row reduction is over the pixels a segment owns or holds in its
+    aperture, so those pixels, restored to raster order from its cores,
+    give the row its window gives. A one-pixel budget sends every segment
+    there: the rows, the noise and the position diagnostics equal the
+    whole-plane builder's, and no read is wider than one core.
+    """
+    diagnostics: dict[int, object] = {}
+    expected = _whole_plane(
+        aperture_tie_policy="canonical-source",
+        position_diagnostics=diagnostics,
+    )
+    _, _, _, labels = _planes()
+
+    result = _run(
+        tmp_path / "run",
+        core=core,
+        aperture_tie_policy="canonical-source",
+        with_position_diagnostics=True,
+        maximum_batch_read_pixels=1,
+    )
+
+    assert result.rows == expected
+    assert dict(result.position_diagnostics) == diagnostics
+    assert dict(result.local_rms_by_label) == {
+        label_value: segment_local_rms(_rms(), labels, label_value=label_value)
+        for label_value in range(1, int(labels.max()) + 1)
+    }
+    assert 0 < result.maximum_segment_read_pixels <= core * core
+
+
+def test_narrow_and_wide_segments_publish_one_catalogue(
+    tmp_path: Path,
+) -> None:
+    """A budget between the fixture's windows splits the work both ways."""
+    windows = _segment_windows()
+    budget = min(windows)
+    assert budget < max(windows), "the budget must leave work on both sides"
+
+    result = _run(tmp_path / "run", maximum_batch_read_pixels=budget)
+
+    assert result.rows == _whole_plane()
+    assert result.maximum_segment_read_pixels <= max(budget, 16 * 16)
+
+
+def test_wide_segments_are_executor_invariant(tmp_path: Path) -> None:
+    """Workers return the pixels one process would measure."""
+    reference = _run(tmp_path / "reference", maximum_batch_read_pixels=1)
+
+    with Client(
+        processes=False,
+        n_workers=2,
+        threads_per_worker=1,
+        dashboard_address=None,
+    ) as client:
+        result = _run(
+            tmp_path / "dask",
+            executor=DaskExecutor(client),
+            maximum_batch_read_pixels=1,
+        )
+
+    assert result.rows == reference.rows
+    assert result.local_rms_by_label == reference.local_rms_by_label
+
+
+def test_the_wide_segment_round_fails_closed_on_a_silent_executor(
+    tmp_path: Path,
+) -> None:
+    """With every segment wide, the third round is the cores' round."""
+    with pytest.raises(ValueError, match="no wide segment results"):
+        _run(
+            tmp_path / "run",
+            executor=_DropNthMapExecutor(3),
+            maximum_batch_read_pixels=1,
+        )
+
+
+def test_every_core_holding_a_wide_segment_must_answer() -> None:
+    """A row measured from part of a segment's pixels is not its row."""
+    batches = (
+        _WideSegmentBatch(
+            cores=(
+                _WideSegmentCore(
+                    partition=_manifest(16).tiles[0], label_values=(1,)
+                ),
+            )
+        ),
+    )
+
+    with pytest.raises(ValueError, match="must answer"):
+        _wide_rows(
+            batches,
+            (),
+            config=_config(),
+            image_shape_yx=_SHAPE_YX,
+            wcs_header_text=_header().tostring(),
+            beam=_beam(),
+        )

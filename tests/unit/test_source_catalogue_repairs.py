@@ -849,11 +849,14 @@ def test_cancelled_signed_centroid_uses_stable_denoised_alternative() -> None:
     support = np.zeros(signal.shape, dtype=np.bool_)
     support[4, 2:7] = True
 
+    rows, columns = np.nonzero(support)
     estimate = _segment_position(
-        signal,
-        np.maximum(signal, 0.0),
-        support,
+        rows,
+        columns,
+        signal[support],
+        np.maximum(signal, 0.0)[support],
         maximum_peak_to_mean_ratio=3.0,
+        plane_shape_yx=signal.shape,
     )
 
     assert estimate.available

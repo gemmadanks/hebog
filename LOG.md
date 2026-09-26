@@ -25515,3 +25515,33 @@ the per-worker placement finding.
   2,651 tests; the one changed line it missed, a wide component with no seed
   or no unseeded pixel, now has its own case, so `stages/sources.py`,
   `stages/islands.py` and `stages/batching.py` are at 100%.
+
+## 2026-09-26 — M2: a wide segment's row is measured from its cores
+
+- **Defect.** The row round measured each source or component segment in
+  the window holding its support and aperture, and its batches exempted the
+  first segment from the budget. A source is an association of components,
+  so its window is as wide as the extended emission it joins.
+- **Fix.** Nothing in a row needs a window: the position, flux, peak,
+  moments and local noise are sums, a first maximum and a median over the
+  pixels a segment owns, holds in its measured support or holds in its
+  aperture. Each reduction now has a pixel-list core
+  (`measure_segment_position_pixels`, `measure_segment_row_pixels`,
+  `segment_moment_pixels`, `segment_local_rms_pixels`), and the window
+  functions pass their window's pixels to it, so the window path is
+  unchanged by construction. A segment whose window exceeds the budget is no
+  longer read: every core the scan saw it in returns those pixels with their
+  values and global raster indices, and the driver measures the row, moment
+  and noise from them restored to raster order. The whole-plane builder and
+  the catalogue-repair suite pass unchanged.
+- **What it costs.** The driver holds a wide segment's own pixels, about 50
+  bytes each, while it measures them.
+- **Evidence.** A one-pixel budget sends every fixture segment to its cores:
+  the rows, local noise and position diagnostics equal the whole-plane
+  builder's at 16- and 24-pixel cores and under Dask, with no read wider
+  than one core. An unmeasurable segment publishes no row, and one owning no
+  usable noise quotes none, on either path. A budget that splits the
+  fixture's segments both ways gives the whole-plane catalogue. Portable
+  coverage is 96.75% branch-aware over 2,660 tests, with
+  `stages/catalogue_rows.py` at 100%; `science/catalogues.py` misses the
+  same six guard lines it missed before.

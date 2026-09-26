@@ -1228,17 +1228,41 @@ def measure_detected_segment_position(
             origin_yx=(0, 0), plane_shape_yx=signal_jy_per_beam.shape
         )
     window.require_holds(signal_jy_per_beam.shape)
-    plane_shape = window.plane_shape_yx
     y_origin, x_origin = window.origin_yx
-    finite_support = support_mask & np.isfinite(signal_jy_per_beam)
-    support_pixel_count = int(np.count_nonzero(finite_support))
+    local_y, local_x = np.nonzero(support_mask)
+    return measure_segment_position_pixels(
+        local_y + y_origin,
+        local_x + x_origin,
+        signal_jy_per_beam[support_mask],
+        plane_shape_yx=window.plane_shape_yx,
+    )
+
+
+def measure_segment_position_pixels(
+    y_pixels: npt.NDArray[np.int64],
+    x_pixels: npt.NDArray[np.int64],
+    signal_jy_per_beam: npt.NDArray[np.float64],
+    *,
+    plane_shape_yx: tuple[int, int],
+) -> DetectedSegmentPosition:
+    """Measure a signed-flux centroid and peak from support pixels alone.
+
+    The arrays hold one segment's support pixels in raster order, with
+    coordinates in the plane's pixel frame. This is
+    :func:`measure_detected_segment_position` without a window, so a segment
+    too wide to read at once is measured from the pixels its cores return,
+    and the result is the one a window would give, bit for bit: every sum
+    and the first maximum visit the same pixels in the same order.
+    """
+    finite = np.isfinite(signal_jy_per_beam)
+    support_pixel_count = int(np.count_nonzero(finite))
     if support_pixel_count == 0:
         return _unavailable_position(
             "empty-finite-support",
             support_pixel_count=0,
             integrated_weight=0.0,
         )
-    weights = signal_jy_per_beam[finite_support]
+    weights = signal_jy_per_beam[finite]
     integrated_weight = float(np.sum(weights, dtype=np.float64))
     if not np.isfinite(integrated_weight) or integrated_weight <= 0:
         return _unavailable_position(
@@ -1256,47 +1280,43 @@ def measure_detected_segment_position(
             support_pixel_count=support_pixel_count,
             integrated_weight=integrated_weight,
         )
-    local_y, local_x = np.nonzero(finite_support)
-    # Offsetting before the weighted sums keeps the plane's pixel frame, so
-    # a window changes which pixels are visited and nothing about the
-    # arithmetic over them.
-    y_pixels = local_y + y_origin
-    x_pixels = local_x + x_origin
+    # The coordinates are already in the plane's pixel frame, so which
+    # window, if any, the pixels came from changes nothing in the sums.
+    y_support = y_pixels[finite]
+    x_support = x_pixels[finite]
     centroid_xy = (
         float(
-            np.sum(x_pixels * weights, dtype=np.float64) / integrated_weight
+            np.sum(x_support * weights, dtype=np.float64) / integrated_weight
         ),
         float(
-            np.sum(y_pixels * weights, dtype=np.float64) / integrated_weight
+            np.sum(y_support * weights, dtype=np.float64) / integrated_weight
         ),
     )
     # Signed cancellation can give a finite but physically unusable centroid.
     # Test the support rectangle, not mask membership: a shell's centre can
     # legitimately lie in its hole. Do not clamp the result to a bright pixel.
-    roundoff = epsilon * support_pixel_count * conditioning * max(plane_shape)
+    roundoff = (
+        epsilon * support_pixel_count * conditioning * max(plane_shape_yx)
+    )
     if not (
-        x_pixels.min() - roundoff
+        x_support.min() - roundoff
         <= centroid_xy[0]
-        <= x_pixels.max() + roundoff
-        and y_pixels.min() - roundoff
+        <= x_support.max() + roundoff
+        and y_support.min() - roundoff
         <= centroid_xy[1]
-        <= y_pixels.max() + roundoff
+        <= y_support.max() + roundoff
     ):
         return _unavailable_position(
             "ill-conditioned-segment-position",
             support_pixel_count=support_pixel_count,
             integrated_weight=integrated_weight,
         )
-    peak_flat_index = int(
-        np.argmax(np.where(finite_support, signal_jy_per_beam, -np.inf))
-    )
-    peak_y, peak_x = np.unravel_index(
-        peak_flat_index, signal_jy_per_beam.shape
-    )
+    # Raster order makes the first maximum the row-major first one.
+    peak = int(np.argmax(weights))
     return DetectedSegmentPosition(
         available=True,
         centroid_xy=centroid_xy,
-        peak_position_xy=(int(peak_x) + x_origin, int(peak_y) + y_origin),
+        peak_position_xy=(int(x_support[peak]), int(y_support[peak])),
         support_pixel_count=support_pixel_count,
         integrated_weight=integrated_weight,
         unavailable_reason=None,
