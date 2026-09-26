@@ -26051,3 +26051,76 @@ the per-worker placement finding.
   driver and its declared wide-object limit.
 - **Next steps.** Tasks 1–6, in order; the human decisions among them are
   tasks 3 and 6.
+
+## 2026-09-26 — M2: 0.14.0 releases the tile-native object pass
+
+- **What this is.** Task 1 of the plan, closed by the human: Release
+  Please's pull request 73 was merged, `v0.14.0` is tagged at `c35fa6e`, and
+  TestPyPI holds `hebog-0.14.0-py3-none-any.whl` and `hebog-0.14.0.tar.gz`.
+- **What the release check covered.** The check was not run as one session
+  on `main` before the merge. Its parts are covered by the merged branch's
+  evidence: the quick science check and the field-by-field equality
+  comparisons on the 16 quick-check cases (entries of 25–26 September), the
+  3,000-pixel tier's traced peak at `29d2933` (26 September), the Serial and
+  Dask comparisons in the stage and public tests the branch added, and the
+  required package smoke test on the release pull request, which installs
+  the built wheel. The 3,000-pixel crossover pair has not been timed on a
+  quiet machine; that is task 2.
+- **Records.** The plan's Release row names 0.14.0 and task 1 is removed;
+  task numbers are now stable identifiers, so the close-out starts at
+  task 2. The release-status and distributed-execution corrections of the
+  previous entry are on the plan branch and reach the published site when
+  it merges; the 0.14.0 site still says the driver assembles complete
+  planes.
+
+## 2026-09-26 — M2: the crossover pair on a quiet machine, and the container back
+
+- **What this is.** Tasks 2 and 3 of the plan. The 3,000-pixel crossover
+  pair is re-measured on a quiet machine, and the pinned-`master` container
+  runs again after the maintainer repaired the Podman image store, so the
+  run also carries the first `master` ratios since 24 September.
+- **Run.** `just quick-benchmark --tier large --cases
+  sdc1-b2-1000h-crowded-2048 lotss-dr3-1312-dense-3000 --previous-release
+  v0.13.0`, label `m2-crossover-quiet-0.14.0`, at `b2c1ce7`, whose source
+  tree is `v0.14.0`'s. One warm-up and five measured repetitions per
+  endpoint, every endpoint measured in this session; v0.13.0 is named
+  explicitly because the latest tag, v0.14.0, is the code under test. The
+  one-minute load average, sampled every minute over the 63-minute run, had
+  median 2.29, minimum 1.36 and maximum 4.93, the peaks during the
+  container's four-core PyBDSF runs; nothing but the endpoint scanner ran
+  beside it. The `master` image is
+  `hebog-pybdsf-master:c70103be3-reconstructed` (image id `0360fbbf…`),
+  PyBDSF `1.14.2.dev40+gc70103be3`.
+
+  | case | Hebog median (min–max) | v0.13.0 | ratio [95% bounds] | `master` | ratio | peak RSS |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | `sdc1-b2-1000h-crowded-2048` | 110.2 s (109.5–110.7) | 118.8 s | 0.93 [0.92, 0.93] pass | 124.6 s | 0.88 [0.88, 0.89] | 1,994 MiB |
+  | `lotss-dr3-1312-dense-3000` | 118.3 s (117.7–118.8) | 117.6 s | 1.01 [1.00, 1.01] pass | 38.8 s | 3.05 [3.01, 3.06] | 2,242 MiB |
+
+- **What it shows.** The object pass is 7% faster on the crowded one-tile
+  field and unchanged on the four-tile LoTSS field, the same direction as
+  the 1,024² anchors: the work that moved onto cores was object work, and
+  the LoTSS field has a quarter of the components in twice the pixels. The
+  22 September figures, 119.1 s and 115.8 s, were taken at load 2.6–4.5;
+  the 2,048² case is 7.5% faster than then, and the 3,000² case is within
+  2% of it, where v0.13.0 measured in this session, 117.6 s, shows the case
+  has not moved since the envelope raise. These figures replace the loaded
+  ones in the plan.
+- **The `master` ratios are diagnostic**, Hebog on one thread against
+  `master` on four container cores, and both fail the 0.50 gate as
+  expected. Their CPU times are the finding: on the crowded field Hebog
+  uses 98 s of CPU to `master`'s 172 s and is faster on the wall; on the
+  LoTSS field the two use the same CPU, 102.6 s against 101.8 s, and
+  `master`'s 3.05× wall advantage is its four cores. On that field the gap
+  to the gate is parallel occupancy, not the amount of work, which the
+  matched benchmark of task 23 measures with matched cores; on the crowded
+  field it is neither.
+- **Task 3.** The maintainer repaired the image store on 26 September. The
+  quick science check rebuilt references for all 16 cases in the container
+  in 378 s (`b2c1ce7-20260926T205851Z`, every case successful), and the
+  benchmark measured `master` on both crossover inputs, which is the task's
+  done-when. The container row leaves the plan's risks.
+- **Records.** Evidence under
+  `benchmark-results/quick-benchmark/runs/m2-crossover-quiet-0.14.0/`. The
+  plan's Performance cell quotes these figures, and tasks 2 and 3 are
+  removed.

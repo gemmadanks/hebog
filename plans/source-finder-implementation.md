@@ -11,14 +11,14 @@ Closed Phase 5 contracts, reviews and campaign tooling are in Git history at
 
 | Item | Current position |
 | --- | --- |
-| Release | v0.13.0, tagged on 25 September 2026; releases upload to TestPyPI. Experimental and scientifically unqualified. `main` also carries the merged tile-native object pass (`f439896`, 26 September), not yet released. |
+| Release | v0.14.0, tagged on 26 September 2026 at `c35fa6e` and uploaded to TestPyPI; it carries the tile-native object pass. Experimental and scientifically unqualified. |
 | Candidate | Public composition v22: diagonal-weighted component fits, detection through the tiled pass. Development-unqualified. |
 | Functionality | Standalone FITS-to-products finder (background/RMS, compact and multiscale detection, deblending, fitting, association; catalogue, mask, RMS and diagnostics) under Serial, Thread and caller-owned Dask executors. No Rapthor backend: `hebog.adapters` holds records and the eight-column catalogue codec only, the seven acceptance scenarios are strict-xfail placeholders, and no flat-noise branch or LSMTool filtering has run on Hebog products. |
 | Scalability | Public envelope ≤3,000 pixels per side. Every stage runs through the executor on tiles and publishes to Zarr: background/RMS on 128-pixel cores, everything else on 2,048-pixel cores, so 3,000² is four tiles. The driver holds no image-sized plane and reads no object window. Traced peaks (`just traced-peak`, 26 September): 224.7 MiB at 512², 430 MiB at 1,024², 1,312 MiB at 2,048² and 1,335 MiB at 3,000², each reproduced, two bytes a pixel below 0.13.0, and almost flat across the single-tile boundary (+1.7%). Two driver terms are bounded by the object rather than the tile: an object wider than the read budget brings its own pixels to the driver in the island, deferred-fit and catalogue-row rounds (up to 186 bytes a pixel, about 1.7 GB for a field-filling segment at 3,000² and 19 GB at 10,000², a declared limit no traced case exercises; ADR-008, *Objects wider than the read budget*), and the fit round returns each fit parent's measurement-support patch (4.2 MB at 2,048²). Details are in the [performance profile](../docs/reference/performance-profile.md) and `LOG.md`, 22–26 September. |
-| Performance | No matched `filter_skymodel` benchmark exists; the gate needs the Rapthor adapter and the comparison container. Quick-benchmark 1,024² anchors against v0.13.0 on a quiet machine (25 September) pass the previous-release rule: `dense-field` 0.96 [0.94, 0.97], `lotss-dr3-1312-sparse` 0.93 [0.89, 0.95], `lotss-dr3-1312-dense` 0.94 [0.93, 0.95]. The 3,000-pixel crossover pair (`sdc1-b2-1000h-crowded-2048` 119.1 s, 0.68 against v0.12.0; `lotss-dr3-1312-dense-3000` 115.8 s, no ratio possible) was measured on a loaded machine and is not quotable until re-measured. Kernels are closed: the profile is flat and none reaches the native-code assessment's 10% gate. Store access dominates a small-image run, 56% of a profiled 1,024² run inside Zarr's `sync()` bridge, where the rest of the 8% accepted on 24 September sits. No pinned-`master` ratio can be taken while the Podman image store refuses to start; the last diagnostic one-thread ratios on 1,024² inputs were about 3–4×. |
+| Performance | No matched `filter_skymodel` benchmark exists; the gate needs the Rapthor adapter. Quick-benchmark anchors on a quiet machine, medians of five against v0.13.0: at 1,024² (25 September) `dense-field` 0.96 [0.94, 0.97], `lotss-dr3-1312-sparse` 0.93 [0.89, 0.95] and `lotss-dr3-1312-dense` 0.94 [0.93, 0.95]; the crossover pair with every endpoint measured in one session (26 September) `sdc1-b2-1000h-crowded-2048` 110.2 s, 0.93 [0.92, 0.93], and `lotss-dr3-1312-dense-3000` 118.3 s, 1.01 [1.00, 1.01]. All pass the previous-release rule. The diagnostic pinned-`master` ratios, Hebog on one thread against `master` on four container cores, are 0.88 [0.88, 0.89] on the crowded 2,048² field and 3.05 [3.01, 3.06] on the 3,000² LoTSS field, where the two use the same CPU time (102.6 s against 101.8 s): on that field the gap to the ≤0.50 gate is parallel occupancy, not the amount of work. Kernels are closed: the profile is flat and none reaches the native-code assessment's 10% gate. Store access dominates a small-image run, 56% of a profiled 1,024² run inside Zarr's `sync()` bridge, where the rest of the 8% accepted on 24 September sits. |
 | Science | Strongest evidence: the v15 campaign failed only against the earlier Hebog incumbent (32 regressions, 40 underpowered), with no failure against released PyBDSF, PyBDSF `master` or Aegean; every campaign image was ≤1,024². Since then, focused regression, Serial/Dask, equivalence and installed-wheel evidence only. Source `Total_flux` is the summed fitted component flux and passes every binding limit at or better than pinned `master` in each stratum (23 September); the aperture stays published as `ASSOCIATION_APERTURE_FLUX`. `E_RA` is a great-circle angle, as PyBDSF publishes it (24 September); position-uncertainty calibration passes on beam-correlated noise but is unqualified on a real high-declination field. One slow equivalence regression, edge-source uncertainty availability, fails at 98.8% against 99% and predates M2. |
-| Blockers to 1.0.0 | Every task in the [path below](#path-to-100). Largest risks: the performance gap, the wide-object driver term above 3,000², the development machine's memory and disk, the broken comparison container, and SKA-Low coverage without public SKA-Low images. |
-| Next action | Human: merge the release PR for the object pass (task 1); repair the Podman image store (task 3); disposition the 3,000-pixel envelope and authorize the 10,000 tier (task 6); free disk to about 60 GB before the envelope passes 22,500² (task 11). Agent: tasks 1, 2, 4 and 5, in that order. |
+| Blockers to 1.0.0 | Every task in the [path below](#path-to-100). Largest risks: the performance gap, the wide-object driver term above 3,000², the development machine's memory and disk, and SKA-Low coverage without public SKA-Low images. |
+| Next action | Human: disposition the 3,000-pixel envelope and authorize the 10,000 tier (task 6); free disk to about 60 GB before the envelope passes 22,500² (task 11). Agent: tasks 4 and 5, in that order. |
 | Deferred | Aegean comparisons (paused; reconsidered in the task 29 design), optional comparison finders such as ProFound or 2D SoFiA (see the [notebook guide](../docs/how-to/notebooks.md)), general science improvements outside Rapthor-consumed outputs, and native code without a passing profile gate. Reopen a deferred issue if it becomes a confirmed incorrect supported output. |
 
 ## Definition of 1.0.0
@@ -196,8 +196,9 @@ These rules govern agent work on this plan and are referenced from
 
 ## Path to 1.0.0
 
-The tasks below are numbered in the order they are expected to finish. Each
-is a bounded work item that merges, and normally releases as a `0.x`
+The tasks below are numbered in the order they are expected to finish, and
+a number is a stable identifier: a completed task is removed and its number
+is not reused. Each is a bounded work item that merges, and normally releases as a `0.x`
 increment, within the iteration budgets; split a task when a measured result
 reveals independent changes. Unless a task says otherwise, the agent
 implements and validates on the development machine and the human merges. A
@@ -210,10 +211,10 @@ merges without `just quick-science-check`. **One tier and one release at a
 time:** the public envelope rises only through its tier gate, and every raise
 is a release.
 
-M2 closes the current envelope (tasks 1–6), then climbs the local size ladder
+M2 closes the current envelope (tasks 4–6), then climbs the local size ladder
 (tasks 7–13). M3 does not depend on tiling and runs alongside M2; its adapter
-(task 19), the repaired container (task 3) and the envelope tier that covers
-the frozen deployment sectors are what M4 needs. M5 runs on the development
+(task 19) and the envelope tier that covers the frozen deployment sectors are
+what M4 needs. M5 runs on the development
 machine at any time, except that its dry run (task 27) needs the 22,500² and
 45,000² tiers. M6 starts when everything before it is done and the candidate
 is frozen.
@@ -222,9 +223,6 @@ is frozen.
 
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
-| 1 | Agent checks, human merges | Release the merged tile-native object pass as the next `0.x`. | The release check passes on `main` (change check, the 3,000-pixel tier, Serial/Dask agreement, installed wheel); release status and the distributed-execution note describe the tile-native driver; Release Please cuts the release and TestPyPI receives it. |
-| 2 | Agent | Re-measure the 3,000-pixel crossover pair on a quiet machine. | Medians of five for `sdc1-b2-1000h-crowded-2048` and `lotss-dr3-1312-dense-3000` at a quiet load average, with the previous-release ratio and bounds for the 2,048² case, replace the loaded-machine figures in the Performance cell and are recorded in `LOG.md`. |
-| 3 | Human | Repair or rebuild the Podman image store. | `just quick-science-check` can rebuild a PyBDSF reference in the container and `just quick-benchmark` reports a pinned-`master` ratio. Until then cached references are the only comparison and no `master` ratio is quotable. |
 | 4 | Agent | Reduce the store's per-read overhead. | The Zarr `sync()` share of a profiled 1,024² run falls from 56%, and the 1,024² anchors recover the 8% accepted on 24 September against the pre-M2 branch point `ea67a3a`, or the plan records the measured reason they cannot. Each change has quick-benchmark before/after evidence on affected and adjacent anchors and passes the quick science check. |
 | 5 | Agent | Keep the fit round's measurement-support patches off the driver without fitting twice. | The fit round returns no array and the payload-recording tests extend to it; the 16 quick-check cases at 512-pixel cores publish identical products field by field; the fit stage's time stays within the non-regression rule. |
 | 6 | Human | Disposition the 3,000-pixel envelope and authorize the 10,000 tier. | The decision, and the wide-object policy it implies for task 9, are recorded in `LOG.md`. |
@@ -300,7 +298,6 @@ invariants, as in ADR-005.
 | The 8–20× gap on real images does not close with NumPy/SciPy and Numba. | Task 23 fails. | Profile first; attack algorithmic cost before constant factors; use the native-code gates only for a profiled kernel. Report the gap honestly at each milestone. |
 | An object wider than the read budget brings its own pixels to the driver in the island, deferred-fit and catalogue-row rounds. | Driver memory scales with that object, not the tile: about 1.7 GB at 3,000², 19 GB at 10,000² and 1.9 TB at 100,000² for a field-filling segment. | Task 7's anchor contains an image-spanning filament; task 9 moves the reductions onto the cores if the term shows. |
 | Extended association cannot be made exactly tile-invariant. | A tier stalls or changes science. | Test analytic shells and filaments crossing corners at each tier; escalate a scientific trade-off to the human rather than weakening invariance silently. |
-| The PyBDSF comparison container will not start: Podman failed every attempt on 24 September with an overlay mount I/O error on the host image store. | No `master` ratio, no equivalence refresh, no reference rebuild and no task 23 benchmark. | Task 3. Until it runs, cached reference outputs are the only comparison. |
 | Scheduler, reduction or storage bottlenecks appear only above 10 nodes. | A later deployment at 100+ nodes fails or scales poorly. | Planner bounds for 200 nodes, a scaling model fitted to the cluster benchmark, and an explicit "not demonstrated" statement in release notes. |
 | Large public images have minimal or non-standard headers; the HD mosaic is published "for browsing only". | Anchors cannot run unmodified, or their science comparison is weak. | Headers checked 16 September; explicit request metadata; per-facet HD images and catalogues for science; LoTSS-DR3 mosaics as the fallback scale anchors. |
 | No large public SKA-Low image exists. | SKA-Low coverage relies on MWA precursor data. | GLEAM-X DR1 with its PSF maps (its Aegean catalogue is diagnostic only), and SKA-Low science-verification data once released (expected from 2027). |
