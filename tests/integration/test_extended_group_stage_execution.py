@@ -37,6 +37,7 @@ from hebog.executors import DaskExecutor, SerialExecutor, TaskRequirement
 from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
 from hebog.science.configuration import source_finder_configs
+from hebog.stages.batching import read_pixels
 from hebog.stages.objects import (
     ComponentFitStageConfig,
     ExtendedGroupStageConfig,
@@ -45,6 +46,7 @@ from hebog.stages.objects import (
     SupportFeature,
     _feature_mask,
     _FeatureScanBatch,
+    _group_batches,
     _GroupBatch,
     run_component_fit_stage,
     run_extended_group_stage,
@@ -704,3 +706,77 @@ def test_a_feature_beyond_the_work_bound_contributes_no_grouping(
     assert result.grouped_feature_count == 0
     assert result.features == ()
     assert result.feature_batch_count == 0
+
+
+def _feature_windows(published: _Published) -> tuple[ImageBounds, ...]:
+    """Return every support feature's grouping window, from whole planes."""
+    whole = ImageBounds(0, _SHAPE_YX[0], 0, _SHAPE_YX[1])
+    support = np.asarray(
+        published.support_sink.read_completed_window(
+            "measurement-support", whole
+        ),
+        dtype=np.bool_,
+    ) & np.asarray(
+        published.detection_source.read_completed_window(
+            "valid-pixels", whole
+        ),
+        dtype=np.bool_,
+    )
+    margin = _group_config().margin_pixels
+    labels = _labelled(support)
+    return tuple(
+        ImageBounds(
+            int(rows.min()),
+            int(rows.max()) + 1,
+            int(columns.min()),
+            int(columns.max()) + 1,
+        ).expanded(margin, _SHAPE_YX)
+        for rows, columns in (
+            np.nonzero(labels == value)
+            for value in range(1, int(labels.max()) + 1)
+        )
+    )
+
+
+def test_a_feature_wider_than_the_budget_is_read_alone_within_its_bound(
+    tmp_path: Path,
+) -> None:
+    """The reviewed compact bound, not the image, limits a wide feature's read.
+
+    Grouping needs a feature's whole window, so no core can stand in for it.
+    A feature beyond the reviewed bound is never grouped, which bounds every
+    window the round opens; one wider than the budget is read alone, and the
+    groups do not change.
+    """
+    published = _run_fits(tmp_path / "run")
+    windows = _feature_windows(published)
+    widest = max(read_pixels(window) for window in windows)
+    assert len(windows) > 1, "the fixture must hold several features"
+    reference = _run_groups(published)
+
+    result = _run_groups(
+        published,
+        maximum_bounds_pixels=widest,
+        maximum_batch_read_pixels=widest - 1,
+    )
+
+    _assert_groups_equal(result, reference)
+    assert result.grouped_feature_count == len(windows)
+    assert result.maximum_feature_read_pixels == widest
+
+
+def test_a_feature_beyond_the_reviewed_bound_is_never_batched() -> None:
+    """Such a feature is T3 work, so a batch holding it has no bound at all."""
+    feature = SupportFeature(
+        feature_label=1, first_pixel_yx=(0, 0), window=ImageBounds(0, 4, 0, 4)
+    )
+
+    with pytest.raises(ValueError, match="wider than the read budget"):
+        _group_batches(
+            (feature,),
+            maximum_batch_read_pixels=8,
+            maximum_bounds_pixels=15,
+            fits=(),
+            protected_labels=frozenset(),
+            component_bounds={},
+        )

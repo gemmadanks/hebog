@@ -12,7 +12,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-09-18 |
-| **Last Updated** | 2026-09-26 (an island wider than the read budget is measured from its cores) |
+| **Last Updated** | 2026-09-26 (one batching rule for objects wider than the read budget) |
 | **Deciders** | Gemma Danks |
 | **Tags** | tiling, halos, ownership, reconciliation, memory, invariance |
 
@@ -309,6 +309,31 @@ local labels by the components every earlier parent produced, in ascending
 first-pixel order. A parent above either hard compact-work bound is ADR-008
 T3 and is already published as one explicit deferred component, which is the
 reviewed science rather than a new rule.
+
+### Objects wider than the read budget
+
+Every per-object round batches neighbouring objects so that one read serves
+several, and `maximum_batch_read_pixels` bounds that read. The budget alone
+bounds nothing, though: no admission limits an object's own area, so a
+filament's bounds can span the image, and each round used to exempt a batch's
+first object from the budget. `hebog.stages.batching` now holds the one rule
+every round batches under. A batch closes before its read would exceed the
+budget, and an object wider than the budget shares a read with nothing. It
+is read alone only when a reviewed admission rule bounds its window
+independently of the image; otherwise the batcher refuses it, and the round
+must measure it from the cores that hold it or not read it at all.
+
+Which of the two a round takes follows from its science. Where the quantity
+is a set reduction over the object's pixels, each core returns its part and
+the driver reduces them in raster order, which reproduces the window's result
+bit for bit. Where the science needs the whole object at once, the round
+relies on an admission bound instead, and the bound it relies on is named
+here:
+
+| Round | Whole object at once? | An object wider than the budget |
+| --- | --- | --- |
+| Detection island rows | No: a count, sums and a median over the island's pixels | Measured from its cores |
+| Cross-parent loops and extended residual | Yes: grouping labels and fits the feature's window | Read alone. `support_feature_window` leaves a feature wider than `maximum_bounds_pixels` ungrouped as T3, exactly as the whole-plane pass does, so that bound (250,000 pixels in the reviewed profile) limits every grouping read |
 
 ### Extended association
 

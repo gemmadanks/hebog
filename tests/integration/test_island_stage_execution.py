@@ -661,7 +661,7 @@ def test_a_window_is_never_wider_than_the_read_budget() -> None:
     """
     wide = _Island(1, (0, 0), 3, ImageBounds(0, 3, 0, 3))
 
-    with pytest.raises(ValueError, match="measured by its cores"):
+    with pytest.raises(ValueError, match="wider than the read budget"):
         _island_batches(
             (wide,), maximum_objects_per_batch=1, maximum_batch_read_pixels=8
         )

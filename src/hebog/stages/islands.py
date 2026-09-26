@@ -55,6 +55,7 @@ from hebog.science.catalogues import (
     measure_detection_island,
 )
 from hebog.science.models import CatalogueIsland
+from hebog.stages.batching import batch_object_windows, read_pixels
 
 
 class _WindowReadable(Protocol):
@@ -405,29 +406,6 @@ def _islands(reconciled: tuple[DetectedIsland, ...]) -> tuple[_Island, ...]:
     )
 
 
-def _read_pixels(bounds: ImageBounds) -> int:
-    """Return how many pixels one read over these bounds holds."""
-    return int(np.prod(bounds.shape_yx))
-
-
-def _union(first: ImageBounds, second: ImageBounds) -> ImageBounds:
-    """Return the smallest bound holding both observations."""
-    return ImageBounds(
-        min(first.y_start, second.y_start),
-        max(first.y_stop, second.y_stop),
-        min(first.x_start, second.x_start),
-        max(first.x_stop, second.x_stop),
-    )
-
-
-def _batch_bounds(islands: list[_Island]) -> ImageBounds:
-    """Return the one read that serves every island in a batch."""
-    bounds = islands[0].bounds
-    for island in islands[1:]:
-        bounds = _union(bounds, island.bounds)
-    return bounds
-
-
 def _island_batches(
     islands: tuple[_Island, ...],
     *,
@@ -442,42 +420,22 @@ def _island_batches(
     neighbours share again for each of them.
 
     Raises:
-        ValueError: If one island's own window exceeds the read budget. Such
-            an island is measured from its cores instead, so every batch read
-            fits the budget.
+        ValueError: If one island's own window exceeds the read budget. No
+            admission bounds an island's area, so such an island is measured
+            from its cores instead, and every batch read fits the budget.
     """
-    ordered = sorted(
-        islands, key=lambda item: (item.bounds.y_start, item.bounds.x_start)
-    )
-    batches: list[_IslandBatch] = []
-    grouped: list[_Island] = []
-    for island in ordered:
-        if _read_pixels(island.bounds) > maximum_batch_read_pixels:
-            raise ValueError(
-                "an island wider than the read budget is measured by its cores"
-            )
-        candidate = [*grouped, island]
-        if grouped and (
-            len(candidate) > maximum_objects_per_batch
-            or _read_pixels(_batch_bounds(candidate))
-            > maximum_batch_read_pixels
-        ):
-            batches.append(
-                _IslandBatch(
-                    islands=tuple(grouped),
-                    read_bounds=_batch_bounds(grouped),
-                )
-            )
-            grouped = [island]
-            continue
-        grouped = candidate
-    if grouped:
-        batches.append(
-            _IslandBatch(
-                islands=tuple(grouped), read_bounds=_batch_bounds(grouped)
-            )
+    return tuple(
+        _IslandBatch(islands=batch.objects, read_bounds=batch.read_bounds)
+        for batch in batch_object_windows(
+            sorted(
+                islands,
+                key=lambda item: (item.bounds.y_start, item.bounds.x_start),
+            ),
+            window=lambda island: island.bounds,
+            maximum_batch_read_pixels=maximum_batch_read_pixels,
+            maximum_objects_per_batch=maximum_objects_per_batch,
         )
-    return tuple(batches)
+    )
 
 
 def _crop(read: ImageBounds, window: ImageBounds) -> tuple[slice, slice]:
@@ -601,7 +559,7 @@ def _measure_islands(
         )
         return _RowBatchResult(
             rows=rows,
-            maximum_island_read_pixels=_read_pixels(bounds),
+            maximum_island_read_pixels=read_pixels(bounds),
         )
 
 
@@ -690,9 +648,7 @@ def _gather_island_pixels(
                         rms=rms[member],
                     )
                 )
-            maximum_read_pixels = max(
-                maximum_read_pixels, _read_pixels(bounds)
-            )
+            maximum_read_pixels = max(maximum_read_pixels, read_pixels(bounds))
         return _PixelBatchResult(
             pieces=tuple(pieces),
             maximum_core_read_pixels=maximum_read_pixels,
@@ -849,13 +805,13 @@ def run_detection_island_stage(  # noqa: PLR0913
     }
     budget = config.maximum_batch_read_pixels
     spanning = tuple(
-        island for island in islands if _read_pixels(island.bounds) > budget
+        island for island in islands if read_pixels(island.bounds) > budget
     )
     row_batches = _island_batches(
         tuple(
             island
             for island in islands
-            if _read_pixels(island.bounds) <= budget
+            if read_pixels(island.bounds) <= budget
         ),
         maximum_objects_per_batch=config.maximum_objects_per_batch,
         maximum_batch_read_pixels=budget,

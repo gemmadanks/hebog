@@ -25365,3 +25365,34 @@ the per-worker placement finding.
   quick science check reports no regression against `m2-no-driver-planes`
   across all 16 cases; no island on those fields is wider than the 2,048²
   budget, so it checks the window path, not the new one.
+
+## 2026-09-26 — M2: one batching rule, and extended groups bounded by admission
+
+- **Defect.** Every per-object round batched its reads with its own copy of
+  one loop, and every copy exempted a batch's first object from
+  `maximum_batch_read_pixels`. The island rows stopped doing so this morning;
+  the other rounds still read an object of any width whole.
+- **One rule.** `hebog.stages.batching.batch_object_windows` now holds the
+  loop. A batch closes before its read would pass the budget, and an object
+  wider than the budget shares a read with nothing: it is read alone only
+  when a reviewed admission rule bounds its window independently of the
+  image, and is refused otherwise. The island rows batch through it with no
+  admission, so a wide island still goes to its cores. ADR-008 gains
+  *Objects wider than the read budget*, a table naming each round's
+  treatment, which the remaining rounds fill in as they move onto the rule.
+- **Extended groups are bounded by admission.** Grouping labels and fits a
+  support feature's whole window, so no core can stand in for it. It does
+  not need to: `support_feature_window` already leaves a feature wider than
+  `maximum_bounds_pixels` ungrouped as ADR-008 T3, exactly as the
+  whole-plane pass does, so that bound (250,000 pixels in the reviewed
+  profile, under the 4 Mi-pixel budget) limits every grouping read. A feature
+  wider than the budget is read alone, and one beyond the bound fails the
+  batcher rather than reading an unbounded window.
+- **Evidence.** A property test covers the rule over random windows, budgets
+  and object limits: every object is batched once, in order, and no shared
+  read passes the budget. With the budget one pixel below the widest fixture
+  feature and the bound set to that feature, the groups equal the default
+  run's and the widest read is exactly that feature's window. Portable
+  coverage is 96.68% branch-aware over 2,610 tests, with
+  `stages/batching.py`, `stages/islands.py` and `stages/objects.py` at
+  100%.

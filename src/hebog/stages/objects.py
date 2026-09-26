@@ -74,6 +74,11 @@ from hebog.data_models.source_association import DetectionComponentRecord
 from hebog.executors.base import Executor
 from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
+from hebog.stages.batching import (
+    WindowBatch,
+    batch_object_windows,
+    read_pixels,
+)
 
 _TOPOLOGY_PRODUCT_NAMES = (
     "component-direct-labels",
@@ -2235,41 +2240,48 @@ def _support_features(
     )
 
 
-def _group_batches(
+def _group_batches(  # noqa: PLR0913
     features: tuple[SupportFeature, ...],
     *,
     maximum_batch_read_pixels: int,
+    maximum_bounds_pixels: int,
     fits: tuple[tuple[int, CompactGaussianFitResult], ...],
     protected_labels: frozenset[int],
     component_bounds: dict[int, ImageBounds],
 ) -> tuple[_GroupBatch, ...]:
-    """Group features so one read serves several, within the budget."""
-    shard = partial(
-        _sharded_batch,
-        fits=fits,
-        protected_labels=protected_labels,
-        component_bounds=component_bounds,
+    """Group features so one read serves several, within the budget.
+
+    Grouping needs a feature's whole window at once, and no core can stand
+    in for it. The reviewed compact bound already limits that window: a
+    feature beyond it is ADR-008 T3 work and is never grouped, exactly as
+    the whole-plane pass leaves it. So a feature wider than the read budget
+    is read alone, and its read is bounded by that admission, not by the
+    image.
+
+    Raises:
+        ValueError: If a feature beyond the reviewed bound reaches a batch,
+            which would leave its read bounded by nothing.
+    """
+    return tuple(
+        _sharded_batch(
+            batch,
+            fits=fits,
+            protected_labels=protected_labels,
+            component_bounds=component_bounds,
+        )
+        for batch in batch_object_windows(
+            features,
+            window=lambda feature: feature.window,
+            maximum_batch_read_pixels=maximum_batch_read_pixels,
+            bounded_by_admission=lambda feature: (
+                read_pixels(feature.window) <= maximum_bounds_pixels
+            ),
+        )
     )
-    batches: list[_GroupBatch] = []
-    grouped: list[SupportFeature] = []
-    for feature in features:
-        candidate = [*grouped, feature]
-        if (
-            grouped
-            and int(np.prod(_group_batch_bounds(candidate).shape_yx))
-            > maximum_batch_read_pixels
-        ):
-            batches.append(shard(grouped))
-            grouped = [feature]
-            continue
-        grouped = candidate
-    if grouped:
-        batches.append(shard(grouped))
-    return tuple(batches)
 
 
 def _sharded_batch(
-    features: list[SupportFeature],
+    batch: WindowBatch[SupportFeature],
     *,
     fits: tuple[tuple[int, CompactGaussianFitResult], ...],
     protected_labels: frozenset[int],
@@ -2282,29 +2294,17 @@ def _sharded_batch(
     bounding-box overlap. It is a superset of what the task uses, and the
     task re-checks pixel membership.
     """
-    read_bounds = _group_batch_bounds(features)
     reachable = frozenset(
         component_label
         for component_label, bounds in component_bounds.items()
-        if _intersects(bounds, read_bounds)
+        if _intersects(bounds, batch.read_bounds)
     )
     return _GroupBatch(
-        features=tuple(features),
-        read_bounds=read_bounds,
+        features=batch.objects,
+        read_bounds=batch.read_bounds,
         fits=tuple(item for item in fits if item[0] in reachable),
         protected_labels=protected_labels & reachable,
     )
-
-
-def _group_batch_bounds(features: list[SupportFeature]) -> ImageBounds:
-    """Return the one read that serves every feature in a batch."""
-    bounds = features[0].window
-    for feature in features[1:]:
-        merged = _union_bounds(bounds, feature.window)
-        if merged is None:  # pragma: no cover - both bounds always exist
-            raise ValueError("group batch bounds must exist")
-        bounds = merged
-    return bounds
 
 
 def _group_batch(  # noqa: PLR0913
@@ -2493,6 +2493,7 @@ def run_extended_group_stage(  # noqa: PLR0913, PLR0917
     batches = _group_batches(
         features,
         maximum_batch_read_pixels=config.maximum_batch_read_pixels,
+        maximum_bounds_pixels=config.maximum_bounds_pixels,
         fits=tuple(item for parent in parents for item in parent.fits),
         protected_labels=frozenset(
             index
