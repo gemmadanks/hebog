@@ -4,7 +4,8 @@ The plan gates every public envelope raise on ``tracemalloc``'s peak
 rather than on peak resident memory: the traced peak counts the allocations the
 process itself makes, including NumPy array data, and repeats within the
 documented tolerance for one input, one configuration and one implementation,
-while ``ru_maxrss`` on the same machine varies by tens of percent with machine load.
+while ``ru_maxrss`` on the same machine varies by tens of percent with machine
+load.
 
 Tracing roughly doubles wall time, so a traced run is never a timing
 measurement. This module therefore serves a runner of its own, and the quick
