@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import runpy
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -304,6 +305,40 @@ def test_runner_fails_only_on_disagreeing_repetitions() -> None:
     assert runner["_reproduced_text"](None) == "-"
     assert runner["_reproduced_text"](True) == "yes"
     assert runner["_reproduced_text"](False) == "NO"
+
+
+def test_runner_prepares_every_input_before_tracing_any(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Given a missing last input, no earlier case is traced unreported."""
+    configuration = load_quick_benchmark_configuration(_CONFIGURATION)
+    cases = tier_cases(configuration, "default")
+    assert len(cases) > 1
+    namespace: dict[str, Any] = _runner()["main"].__globals__
+    traced: list[str] = []
+
+    def prepare(case: Any, **_: object) -> object:
+        if case.case_id == cases[-1].case_id:
+            raise FileNotFoundError(f"{case.case_id} is missing")
+        return object()
+
+    def trace(case: Any, **_: object) -> dict[str, Any]:
+        traced.append(case.case_id)
+        return {}
+
+    monkeypatch.setitem(namespace, "prepare_case", prepare)
+    monkeypatch.setitem(namespace, "_case_record", trace)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [str(_RUNNER), "--output-root", str(tmp_path), "--label", "missing"],
+    )
+
+    with pytest.raises(FileNotFoundError, match=cases[-1].case_id):
+        namespace["main"]()
+
+    assert traced == []
+    assert not (tmp_path / "runs").exists()
 
 
 def test_runner_identifies_the_quick_benchmark_configuration() -> None:

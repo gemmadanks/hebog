@@ -393,24 +393,33 @@ def main() -> int:
         source_tree_sha256=source_tree_sha256(_ROOT / "src/hebog"),
         dependency_inventory_sha256=dependency_inventory_sha256(),
     )
-    records = [
-        _case_record(
+    # Every input is ready before any case is traced, so a missing one fails
+    # the run before it spends traced work that no report would then record.
+    prepared_cases = [
+        (
             case,
-            prepared=prepare_case(
+            prepare_case(
                 case.case,
                 dataset_manifest=_ROOT / configuration.dataset_manifest,
                 repository_root=_ROOT,
                 inputs_root=_QUICK_CHECK_INPUTS,
                 allow_download=args.allow_download,
             ),
+        )
+        for case in cases
+        if not selected or case.case_id in selected
+    ]
+    records = [
+        _case_record(
+            case,
+            prepared=prepared,
             configuration=configuration,
             subject=subject,
             environment_sha256=environment_sha,
             run_root=run_root,
             repetitions=args.repetitions,
         )
-        for case in cases
-        if not selected or case.case_id in selected
+        for case, prepared in prepared_cases
     ]
     report: dict[str, Any] = {
         "schema_version": 1,
