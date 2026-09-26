@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
+from typing import TypeVar
+
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
 from hebog.data_models.partitioning import ImageBounds
-from hebog.stages.batching import batch_object_windows, read_pixels
+from hebog.executors import SerialExecutor, TaskRequirement
+from hebog.stages.batching import batch_object_windows, map_round, read_pixels
+
+_Input = TypeVar("_Input")
+_Output = TypeVar("_Output")
 
 
 def _square(y: int, x: int, side: int) -> ImageBounds:
@@ -156,3 +163,37 @@ def test_every_object_is_batched_once_and_no_shared_read_passes_the_budget(
         )
         if len(batch.objects) > 1:
             assert read_pixels(batch.read_bounds) <= budget
+
+
+class _SilentExecutor(SerialExecutor):
+    """Return nothing, as a lost round would."""
+
+    def map_batches(
+        self,
+        function: Callable[[_Input], _Output],
+        batches: Iterable[_Input],
+        *,
+        requirement: TaskRequirement | None = None,
+    ) -> list[_Output]:
+        """Drop every result."""
+        del function, batches, requirement
+        return []
+
+
+def test_a_round_with_no_work_submits_nothing() -> None:
+    """An image with no such object costs no task."""
+    assert map_round(_SilentExecutor(), str, (), round_name="empty") == ()
+
+
+def test_a_round_returns_one_result_per_batch() -> None:
+    """The executor's results come back in batch order."""
+    assert map_round(SerialExecutor(), str, (1, 2), round_name="numbers") == (
+        "1",
+        "2",
+    )
+
+
+def test_a_silent_round_fails_closed() -> None:
+    """Nothing back for work given would publish an incomplete result."""
+    with pytest.raises(ValueError, match="executor returned no lost results"):
+        map_round(_SilentExecutor(), str, (1,), round_name="lost")

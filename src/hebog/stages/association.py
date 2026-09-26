@@ -29,6 +29,7 @@ from hebog.algorithms.labelling import (
     LocalIslandTileSummary,
     label_detection_tile,
 )
+from hebog.algorithms.multiscale import residual_atrous_scale_halos_pixels
 from hebog.algorithms.multiscale_association import (
     ScaleDetections,
     persistent_scale_labels,
@@ -60,6 +61,11 @@ from hebog.data_models.products import ProductChunk
 from hebog.data_models.source_association import DetectionComponentRecord
 from hebog.executors.base import Executor
 from hebog.io.zarr import ZarrProductSink
+from hebog.stages.batching import (
+    batch_object_windows,
+    map_round,
+    read_pixels,
+)
 
 _SCALE_ORDERS = (1, 2, 3)
 
@@ -127,6 +133,7 @@ class HierarchyOverlapStageResult:
     executor_task_count: int
     maximum_graph_width: int
     reconciliation_round_count: int
+    maximum_feature_read_pixels: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -189,6 +196,7 @@ class _InfluenceBatchResult:
     """The owners each feature's reviewed B3 influence contains."""
 
     influence: tuple[tuple[str, tuple[str, ...]], ...]
+    maximum_read_pixels: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -209,6 +217,38 @@ class _PairBatchResult:
     """The candidate pairs whose bounded envelopes actually overlap."""
 
     edges: tuple[tuple[str, str], ...]
+    maximum_read_pixels: int
+
+
+@dataclass(frozen=True, slots=True)
+class _WideCore:
+    """One core and the wide work whose envelopes can reach it."""
+
+    partition: TilePartition
+    features: tuple[_Feature, ...]
+    pairs: tuple[tuple[_Feature, _Feature], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class _WideBatch:
+    """One bounded coarse executor task over the cores of wide work."""
+
+    cores: tuple[_WideCore, ...]
+
+    def __post_init__(self) -> None:
+        """Forbid empty executor work records."""
+        if not self.cores:
+            raise ValueError("wide overlap batch must not be empty")
+
+
+@dataclass(frozen=True, slots=True)
+class _WideBatchResult:
+    """What one batch of cores observed of the wide influences and pairs."""
+
+    influence: tuple[tuple[str, tuple[str, ...]], ...]
+    edges: tuple[tuple[str, str], ...]
+    tile_ids: tuple[str, ...]
+    maximum_read_pixels: int
 
 
 def _core_batches(
@@ -339,20 +379,13 @@ def _influence_batches(
     maximum_features_per_batch: int,
     maximum_batch_read_pixels: int,
     image_shape_yx: tuple[int, int],
-    candidates: frozenset[str],
 ) -> tuple[_InfluenceBatch, ...]:
-    """Group the admitted features into bounded coarse influence tasks.
+    """Group enveloped features into bounded coarse influence tasks.
 
     Features are grouped in canonical order so that neighbours share one
     read, which is what keeps a task's window opens proportional to the work
     it does rather than to the number of features.
     """
-    admitted = tuple(
-        feature
-        for feature in features
-        if feature.envelope_bounds is not None
-        and feature.feature_id in candidates
-    )
     window = partial(_influence_window, image_shape_yx=image_shape_yx)
     return tuple(
         _InfluenceBatch(
@@ -362,7 +395,7 @@ def _influence_batches(
             ),
         )
         for group in _spatial_groups(
-            admitted,
+            features,
             window=window,
             maximum_objects_per_batch=maximum_features_per_batch,
             maximum_batch_read_pixels=maximum_batch_read_pixels,
@@ -403,27 +436,27 @@ def _spatial_groups[T](
     maximum_objects_per_batch: int,
     maximum_batch_read_pixels: int,
 ) -> tuple[tuple[T, ...], ...]:
-    """Group objects so one read serves several, within both budgets."""
-    ordered = sorted(
-        objects,
-        key=lambda item: (window(item).y_start, window(item).x_start),
+    """Group objects so one read serves several, within both budgets.
+
+    Objects are visited in raster order of their windows, so a batch covers a
+    compact region.
+
+    Raises:
+        ValueError: If one object's own window exceeds the read budget. Such
+            work is decided from the cores it reaches instead.
+    """
+    return tuple(
+        batch.objects
+        for batch in batch_object_windows(
+            sorted(
+                objects,
+                key=lambda item: (window(item).y_start, window(item).x_start),
+            ),
+            window=window,
+            maximum_batch_read_pixels=maximum_batch_read_pixels,
+            maximum_objects_per_batch=maximum_objects_per_batch,
+        )
     )
-    groups: list[tuple[T, ...]] = []
-    grouped: list[T] = []
-    for item in ordered:
-        candidate = [*grouped, item]
-        read = _union_bounds(tuple(window(member) for member in candidate))
-        if grouped and (
-            len(candidate) > maximum_objects_per_batch
-            or int(np.prod(read.shape_yx)) > maximum_batch_read_pixels
-        ):
-            groups.append(tuple(grouped))
-            grouped = [item]
-            continue
-        grouped = candidate
-    if grouped:
-        groups.append(tuple(grouped))
-    return tuple(groups)
 
 
 @dataclass(frozen=True, slots=True)
@@ -557,7 +590,10 @@ def _influence_batch(
                     ),
                 )
             )
-        return _InfluenceBatchResult(influence=tuple(influence))
+        return _InfluenceBatchResult(
+            influence=tuple(influence),
+            maximum_read_pixels=read_pixels(batch.read_bounds),
+        )
 
 
 def _candidate_pairs(
@@ -699,7 +735,228 @@ def _pair_batch(
                 second_bounds,
             ):
                 edges.append((first.feature_id, second.feature_id))
-        return _PairBatchResult(edges=tuple(edges))
+        return _PairBatchResult(
+            edges=tuple(edges),
+            maximum_read_pixels=read_pixels(batch.read_bounds),
+        )
+
+
+def _scale_radius(scale_order: int) -> int:
+    """Return the reviewed B3 dilation radius of one scale, in pixels."""
+    return residual_atrous_scale_halos_pixels()[scale_order - 1]
+
+
+def _wide_overlap_batch(
+    batch: _WideBatch,
+    *,
+    detection_source: _CompletedProductSource,
+    component_source: _CompletedProductSource,
+    image_shape_yx: tuple[int, int],
+    component_id_by_label: Mapping[int, str],
+) -> _WideBatchResult:
+    """Decide wide influences and envelope pairs from the cores they reach.
+
+    An envelope is exact support dilated through valid pixels by the scale's
+    reviewed radius, and an influence is that envelope dilated by the radius
+    again, so every pixel either holds lies within that many pixels of the
+    support. A core read with that halo therefore decides each of its own
+    pixels exactly: an influence is the union of the owners each core finds
+    in its part, and two envelopes overlap where any core finds a shared
+    pixel.
+    """
+    with detection_source.access_session(), component_source.access_session():
+        influence: list[tuple[str, tuple[str, ...]]] = []
+        edges: list[tuple[str, str]] = []
+        maximum_read_pixels = 0
+        for core in batch.cores:
+            needed = {
+                feature.feature_id: feature
+                for feature in (
+                    *core.features,
+                    *(feature for pair in core.pairs for feature in pair),
+                )
+            }
+            read_bounds = core.partition.core_bounds.expanded(
+                max(
+                    (
+                        *(
+                            2 * _scale_radius(feature.scale_order)
+                            for feature in core.features
+                        ),
+                        *(
+                            _scale_radius(feature.scale_order)
+                            for feature in needed.values()
+                        ),
+                    )
+                ),
+                image_shape_yx,
+            )
+            maximum_read_pixels = max(
+                maximum_read_pixels, read_pixels(read_bounds)
+            )
+            read = _read_batch(
+                read_bounds,
+                frozenset(feature.scale_order for feature in needed.values()),
+                detection_source=detection_source,
+                component_source=component_source,
+            )
+            if read.components is None:  # pragma: no cover - always read
+                raise ValueError("wide batch must read component labels")
+            owned = np.zeros(read.valid.shape, dtype=np.bool_)
+            owned[read.crop(core.partition.core_bounds)] = True
+            owned_components = np.where(owned, read.components, 0)
+            envelopes = {
+                feature_id: scale_feature_envelope_support(
+                    np.asarray(
+                        read.labels_by_scale[feature.scale_order]
+                        == feature.label_value
+                    ),
+                    read.valid,
+                    scale_order=feature.scale_order,
+                )
+                for feature_id, feature in needed.items()
+            }
+            influence.extend(
+                (
+                    feature.feature_id,
+                    tuple(
+                        sorted(
+                            scale_feature_influence_component_ids(
+                                envelopes[feature.feature_id],
+                                read.valid,
+                                owned_components,
+                                scale_order=feature.scale_order,
+                                component_id_by_label=component_id_by_label,
+                            )
+                        )
+                    ),
+                )
+                for feature in core.features
+            )
+            edges.extend(
+                (first.feature_id, second.feature_id)
+                for first, second in core.pairs
+                if bool(
+                    np.any(
+                        envelopes[first.feature_id]
+                        & envelopes[second.feature_id]
+                        & owned
+                    )
+                )
+            )
+        return _WideBatchResult(
+            influence=tuple(influence),
+            edges=tuple(edges),
+            tile_ids=tuple(core.partition.tile_id for core in batch.cores),
+            maximum_read_pixels=maximum_read_pixels,
+        )
+
+
+def _feature_holders(
+    cores: tuple[_CoreOverlaps, ...],
+) -> dict[tuple[int, int], frozenset[str]]:
+    """Name the cores holding each scale feature, by scale and label."""
+    holders: dict[tuple[int, int], set[str]] = {}
+    for core in cores:
+        for order, feature_label, _ in core.feature_support:
+            holders.setdefault((order, feature_label), set()).add(
+                core.partition.tile_id
+            )
+    return {key: frozenset(tiles) for key, tiles in holders.items()}
+
+
+def _wide_batches(
+    features: tuple[_Feature, ...],
+    pairs: tuple[tuple[_Feature, _Feature], ...],
+    *,
+    holders: Mapping[tuple[int, int], frozenset[str]],
+    manifest: PartitionManifest,
+    maximum_tiles_per_batch: int,
+) -> tuple[_WideBatch, ...]:
+    """Name each core wide work can reach, and the work it reaches there.
+
+    A feature's influence can reach only cores within twice its radius of a
+    core holding it, and two envelopes can meet only in a core within each
+    feature's radius of one of its holders. The cores come from the grid, not
+    from a scan, so the cost follows the work rather than the image.
+    """
+    partitions = {partition.tile_id: partition for partition in manifest.tiles}
+    reach: dict[tuple[str, int], frozenset[str]] = {}
+
+    def cores_within(feature: _Feature, radius: int) -> frozenset[str]:
+        """Name every core within ``radius`` pixels of one of its holders."""
+        key = (feature.feature_id, radius)
+        if key not in reach:
+            reach[key] = frozenset(
+                tile.tile_id
+                for tile_id in holders.get(
+                    (feature.scale_order, feature.label_value), ()
+                )
+                for tile in manifest.tiles_meeting(
+                    partitions[tile_id].core_bounds.expanded(
+                        radius, manifest.image_shape_yx
+                    )
+                )
+            )
+        return reach[key]
+
+    features_by_tile: dict[str, list[_Feature]] = {}
+    for feature in features:
+        for tile_id in cores_within(
+            feature, 2 * _scale_radius(feature.scale_order)
+        ):
+            features_by_tile.setdefault(tile_id, []).append(feature)
+    pairs_by_tile: dict[str, list[tuple[_Feature, _Feature]]] = {}
+    for first, second in pairs:
+        for tile_id in cores_within(
+            first, _scale_radius(first.scale_order)
+        ) & cores_within(second, _scale_radius(second.scale_order)):
+            pairs_by_tile.setdefault(tile_id, []).append((first, second))
+    cores = tuple(
+        _WideCore(
+            partition=partition,
+            features=tuple(features_by_tile.get(partition.tile_id, ())),
+            pairs=tuple(pairs_by_tile.get(partition.tile_id, ())),
+        )
+        for partition in manifest.tiles
+        if partition.tile_id in features_by_tile
+        or partition.tile_id in pairs_by_tile
+    )
+    return tuple(
+        _WideBatch(cores=cores[start : start + maximum_tiles_per_batch])
+        for start in range(0, len(cores), maximum_tiles_per_batch)
+    )
+
+
+def _reduce_wide_results(
+    batches: tuple[_WideBatch, ...],
+    results: tuple[_WideBatchResult, ...],
+) -> tuple[dict[str, tuple[str, ...]], frozenset[frozenset[str]]]:
+    """Join what every core observed into influences and overlap edges.
+
+    Raises:
+        ValueError: If a core the wide work reaches did not answer, which
+            would decide an influence or an overlap from part of it.
+    """
+    requested = {
+        core.partition.tile_id for batch in batches for core in batch.cores
+    }
+    answered = {tile_id for result in results for tile_id in result.tile_ids}
+    if answered != requested:
+        raise ValueError("every core that wide work reaches must answer")
+    influence: dict[str, set[str]] = {}
+    for result in results:
+        for feature_id, component_ids in result.influence:
+            influence.setdefault(feature_id, set()).update(component_ids)
+    return (
+        {
+            feature_id: tuple(sorted(component_ids))
+            for feature_id, component_ids in influence.items()
+        },
+        frozenset(
+            frozenset(edge) for result in results for edge in result.edges
+        ),
+    )
 
 
 def _features(
@@ -1053,6 +1310,11 @@ def run_hierarchy_overlap_stage(  # noqa: PLR0913
     candidate pair decides whether two envelopes overlap inside the box that
     holds them both. Candidate pairs follow from the reconciled bounds, so
     only the pairs that can possibly meet read pixels.
+
+    A feature whose influence window, or a pair whose box, exceeds the read
+    budget is never read whole. Both are dilations by the reviewed B3
+    radius, so each core that the work can reach decides its own pixels
+    under that halo, and the parts join exactly.
     """
     _require_overlap_inputs(detection_source, component_source, manifest)
     scan_results = tuple(
@@ -1081,64 +1343,104 @@ def run_hierarchy_overlap_stage(  # noqa: PLR0913
         image_shape_yx=manifest.image_shape_yx,
     )
     merged = _merge_cores(cores, support, features, records)
-    influence_batches = _influence_batches(
-        features,
-        maximum_features_per_batch=config.maximum_features_per_batch,
-        maximum_batch_read_pixels=config.maximum_batch_read_pixels,
-        image_shape_yx=manifest.image_shape_yx,
-        candidates=influence_candidate_feature_ids(
-            merged.exact_component_ids, merged.parent_edges
-        ),
+    budget = config.maximum_batch_read_pixels
+    candidates = influence_candidate_feature_ids(
+        merged.exact_component_ids, merged.parent_edges
     )
-    influence: dict[str, tuple[str, ...]] = {}
-    if influence_batches:
-        influence_results = tuple(
-            executor.map_batches(
-                partial(
-                    _influence_batch,
-                    detection_source=detection_source,
-                    component_source=component_source,
-                    image_shape_yx=manifest.image_shape_yx,
-                    component_id_by_label={
-                        record.label_value: record.component_id
-                        for record in records
-                    },
-                ),
-                influence_batches,
-            )
-        )
-        if not influence_results:
-            raise ValueError("executor returned no feature influence results")
-        influence = {
-            feature_id: component_ids
-            for result in influence_results
-            for feature_id, component_ids in result.influence
-        }
+    influenced = tuple(
+        feature
+        for feature in features
+        if feature.envelope_bounds is not None
+        and feature.feature_id in candidates
+    )
+    influence_window = partial(
+        _influence_window, image_shape_yx=manifest.image_shape_yx
+    )
+    component_id_by_label = {
+        record.label_value: record.component_id for record in records
+    }
+    influence_batches = _influence_batches(
+        tuple(
+            feature
+            for feature in influenced
+            if read_pixels(influence_window(feature)) <= budget
+        ),
+        maximum_features_per_batch=config.maximum_features_per_batch,
+        maximum_batch_read_pixels=budget,
+        image_shape_yx=manifest.image_shape_yx,
+    )
+    influence_results = map_round(
+        executor,
+        partial(
+            _influence_batch,
+            detection_source=detection_source,
+            component_source=component_source,
+            image_shape_yx=manifest.image_shape_yx,
+            component_id_by_label=component_id_by_label,
+        ),
+        influence_batches,
+        round_name="feature influence",
+    )
     pairs = _candidate_pairs(
         features,
         terminal_scale_order=_SCALE_ORDERS[-1],
     )
     pair_batches = _pair_batches(
-        pairs,
+        tuple(
+            pair
+            for pair in pairs
+            if read_pixels(_pair_read_bounds_of(pair)) <= budget
+        ),
         maximum_pairs_per_batch=config.maximum_pairs_per_batch,
-        maximum_batch_read_pixels=config.maximum_batch_read_pixels,
+        maximum_batch_read_pixels=budget,
     )
-    edges: frozenset[frozenset[str]] = frozenset()
-    if pair_batches:
-        pair_results = tuple(
-            executor.map_batches(
-                partial(
-                    _pair_batch,
-                    detection_source=detection_source,
-                ),
-                pair_batches,
-            )
-        )
-        if not pair_results:
-            raise ValueError("executor returned no envelope pair results")
-        edges = frozenset(
-            frozenset(edge) for result in pair_results for edge in result.edges
-        )
+    pair_results = map_round(
+        executor,
+        partial(_pair_batch, detection_source=detection_source),
+        pair_batches,
+        round_name="envelope pair",
+    )
+    wide_batches = _wide_batches(
+        tuple(
+            feature
+            for feature in influenced
+            if read_pixels(influence_window(feature)) > budget
+        ),
+        tuple(
+            pair
+            for pair in pairs
+            if read_pixels(_pair_read_bounds_of(pair)) > budget
+        ),
+        holders=_feature_holders(cores),
+        manifest=manifest,
+        maximum_tiles_per_batch=config.maximum_tiles_per_batch,
+    )
+    wide_results = map_round(
+        executor,
+        partial(
+            _wide_overlap_batch,
+            detection_source=detection_source,
+            component_source=component_source,
+            image_shape_yx=manifest.image_shape_yx,
+            component_id_by_label=component_id_by_label,
+        ),
+        wide_batches,
+        round_name="wide overlap",
+    )
+    wide_influence, wide_edges = _reduce_wide_results(
+        wide_batches, wide_results
+    )
+    influence = {
+        **{
+            feature_id: component_ids
+            for result in influence_results
+            for feature_id, component_ids in result.influence
+        },
+        **wide_influence,
+    }
+    edges = wide_edges | frozenset(
+        frozenset(edge) for result in pair_results for edge in result.edges
+    )
     return HierarchyOverlapStageResult(
         generation=_publish_persistent_scale_support(
             manifest,
@@ -1160,9 +1462,21 @@ def run_hierarchy_overlap_stage(  # noqa: PLR0913
             2 * len(manifest.tiles)
             + len(influence_batches)
             + len(pair_batches)
+            + len(wide_batches)
         ),
         maximum_graph_width=max(
-            len(manifest.tiles), len(influence_batches), len(pair_batches)
+            len(manifest.tiles),
+            len(influence_batches),
+            len(pair_batches),
+            len(wide_batches),
         ),
         reconciliation_round_count=support.reduction_round_count,
+        maximum_feature_read_pixels=max(
+            (
+                *(result.maximum_read_pixels for result in influence_results),
+                *(result.maximum_read_pixels for result in pair_results),
+                *(result.maximum_read_pixels for result in wide_results),
+            ),
+            default=0,
+        ),
     )

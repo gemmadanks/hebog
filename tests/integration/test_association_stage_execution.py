@@ -28,6 +28,8 @@ from hebog.algorithms.source_association import (
     HierarchyOverlaps,
     associate_from_hierarchy_overlaps,
     build_detection_component_records,
+    scale_feature_envelope_bounds,
+    scale_feature_influence_bounds,
     summarize_hierarchy_overlaps,
 )
 from hebog.data_models.partitioning import ImageBounds, PartitionManifest
@@ -42,10 +44,14 @@ from hebog.stages.association import (
     _InfluenceBatch,
     _one_support,
     _PairBatch,
+    _reduce_wide_results,
     _SupportBatch,
+    _WideBatch,
+    _WideCore,
     hierarchy_overlap_product_names,
     run_hierarchy_overlap_stage,
 )
+from hebog.stages.batching import read_pixels
 
 pytestmark = pytest.mark.integration
 
@@ -434,6 +440,8 @@ def test_overlap_rounds_forbid_empty_executor_work_records() -> None:
         _PairBatch(pairs=(), read_bounds=ImageBounds(0, 1, 0, 1))
     with pytest.raises(ValueError, match="persistent support batch must not"):
         _SupportBatch(partitions=(), retained_by_scale=())
+    with pytest.raises(ValueError, match="wide overlap batch must not be"):
+        _WideBatch(cores=())
 
 
 @pytest.mark.parametrize(
@@ -620,3 +628,127 @@ def test_an_unconfigured_scale_record_fails_closed() -> None:
     assert ScaleDetectionRecords(scale_order=1, detections=()).detections == ()
     with pytest.raises(ValueError, match="scale order must be positive"):
         ScaleDetectionRecords(scale_order=0, detections=())
+
+
+# Twice the widest reviewed B3 radius: an influence dilates an envelope that
+# is itself a dilation of the feature's support.
+_HALO = 2 * 14
+
+
+@pytest.mark.parametrize("core", [16, 24, 32])
+def test_wide_work_is_decided_from_the_cores_it_reaches(
+    tmp_path: Path, core: int
+) -> None:
+    """No influence or envelope pair is read whole when it passes the budget.
+
+    Both are dilations by the reviewed B3 radius, so each core the work can
+    reach decides its own pixels under that halo. A one-pixel budget sends
+    every influence and every pair there: the overlaps equal the whole-plane
+    summary, and no read is wider than one core and that halo.
+    """
+    expected = _whole_plane()
+
+    result = _run(
+        tmp_path / f"core-{core}",
+        core=core,
+        maximum_tiles_per_batch=1,
+        maximum_batch_read_pixels=1,
+    )
+
+    assert result.overlaps.features == expected.features
+    assert result.overlaps.envelope_edges == expected.envelope_edges
+    assert 0 < result.maximum_feature_read_pixels <= (core + 2 * _HALO) ** 2
+
+
+def _influence_window_pixels() -> tuple[int, ...]:
+    """Return every enveloped feature's influence window size, from records."""
+    windows: list[int] = []
+    for scale in _scale_records(_scale_planes()):
+        for detection in scale.detections:
+            envelope = scale_feature_envelope_bounds(
+                ImageBounds(*detection.bounds_yx),
+                scale_order=scale.scale_order,
+                image_shape_yx=_SHAPE_YX,
+            )
+            if envelope is not None:
+                windows.append(
+                    read_pixels(
+                        scale_feature_influence_bounds(
+                            envelope,
+                            scale_order=scale.scale_order,
+                            image_shape_yx=_SHAPE_YX,
+                        )
+                    )
+                )
+    return tuple(windows)
+
+
+def test_narrow_and_wide_work_decide_one_answer(tmp_path: Path) -> None:
+    """A budget between the fixture's windows splits the work both ways.
+
+    Windows under it are read whole and the rest are decided in their cores,
+    and the reduced overlaps are the ones either path alone would give.
+    """
+    budget = 900
+    windows = _influence_window_pixels()
+    assert min(windows) <= budget < max(windows), (
+        "the budget must leave work on both sides"
+    )
+    reference = _run(tmp_path / "reference", core=96)
+
+    result = _run(
+        tmp_path / "mixed", core=16, maximum_batch_read_pixels=budget
+    )
+
+    assert result.overlaps == reference.overlaps
+    assert result.maximum_feature_read_pixels <= (16 + 2 * _HALO) ** 2
+
+
+def test_wide_work_is_executor_invariant(tmp_path: Path) -> None:
+    """Workers decide the cores' parts exactly as one process does."""
+    reference = _run(tmp_path / "reference", maximum_batch_read_pixels=1)
+
+    with Client(
+        processes=False,
+        n_workers=2,
+        threads_per_worker=1,
+        dashboard_address=None,
+    ) as client:
+        result = _run(
+            tmp_path / "dask",
+            executor=DaskExecutor(client),
+            maximum_batch_read_pixels=1,
+        )
+
+    assert result.overlaps == reference.overlaps
+
+
+def test_the_wide_round_fails_closed_on_a_silent_executor(
+    tmp_path: Path,
+) -> None:
+    """With every piece of work wide, the second round is the cores' round.
+
+    The window rounds have nothing to do, so they submit nothing.
+    """
+    with pytest.raises(ValueError, match="no wide overlap results"):
+        _run(
+            tmp_path / "run",
+            executor=_DropNthMapExecutor(2),
+            maximum_batch_read_pixels=1,
+        )
+
+
+def test_every_core_that_wide_work_reaches_must_answer() -> None:
+    """An influence or overlap decided from part of its cores is not one."""
+    batches = (
+        _WideBatch(
+            cores=(
+                _WideCore(
+                    partition=_manifest(16).tiles[0], features=(), pairs=()
+                ),
+            )
+        ),
+    )
+
+    with pytest.raises(ValueError, match="must answer"):
+        _reduce_wide_results(batches, ())

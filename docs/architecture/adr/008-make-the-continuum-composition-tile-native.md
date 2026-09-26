@@ -12,7 +12,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-09-18 |
-| **Last Updated** | 2026-09-26 (a deferred deblend parent is never read) |
+| **Last Updated** | 2026-09-26 (a wide feature's hierarchy overlaps are decided in its cores) |
 | **Deciders** | Gemma Danks |
 | **Tags** | tiling, halos, ownership, reconciliation, memory, invariance |
 
@@ -297,7 +297,7 @@ that only one round reads would cost a generation for nothing.
 | Support features | core, halo 0 | `measurement-support`, `valid-pixels`, `component-measurement-labels` | feature island summaries and each measurement label's bounds |
 | Cross-parent loops and extended residual | support-feature window + margin | residual, RMS, validity, `measurement-support`, `component-measurement-labels`, the sharded fit records | extended group records and grouping evidence |
 | Scale feature labels | core, halo 0 | the reconciled per-scale mappings | `scale-{order}-labels` |
-| Hierarchy overlaps | core, halo 0, then one feature's window plus its B3 footprint | `component-direct-labels`, `valid-pixels`, `reconstruction-mask`, the scale label planes | component, feature, support and envelope overlap records |
+| Hierarchy overlaps | core, halo 0, then one feature's window plus its B3 footprint, or each core that work reaches, under twice the widest B3 radius, when the window exceeds the read budget | `component-direct-labels`, `valid-pixels`, `reconstruction-mask`, the scale label planes | component, feature, support and envelope overlap records |
 | Source labels | core, halo 0 | `component-measurement-labels`, the sharded owner-to-source map | `source-labels` |
 | Source support | core, halo 0, then one connected support component's window | `source-labels`, `persistent-scale-support`, `measurement-support` | support island summaries, then owner patches, then `source-measurement-labels` |
 | Source apertures | core, halo 1.5 beams | `source-measurement-labels` | `source-aperture-labels` |
@@ -338,6 +338,7 @@ here:
 | --- | --- | --- |
 | Detection island rows | No: a count, sums and a median over the island's pixels | Measured from its cores |
 | Component topology | Yes: the watershed and the assignment of measurement support to its seeds need the parent's whole support | A parent beyond either hard compact-work bound is deferred as T3, exactly as the whole-plane deblender defers it, and never read. An admitted parent's direct window is within `maximum_compact_bounds_pixels` (250,000 pixels in the reviewed profile), and the support pass attaches measurement support only within the reviewed recovery radius of it, so a parent wider than the budget is read alone within that bound |
+| Hierarchy overlaps | No: an envelope is exact support dilated through valid pixels by the reviewed B3 radius, an influence is that envelope dilated again, and an overlap is one shared pixel | A feature whose influence window, or a pair whose box, exceeds the budget is decided in each core it can reach, read with twice the radius as its halo, which decides every pixel of that core exactly. An influence is the union of the owners the cores find, and a pair overlaps where any core finds a shared pixel |
 | Component fits | Yes for the fit: a joint model needs the parent's whole window. No for its components' association records, which are moments over each component's own pixels | A parent whose window `maximum_bounds_pixels` refuses is deferred as T3, exactly as the whole-plane pass defers it, so its window is never read: the records of the components it owns come from the cores that hold them, restored to raster order, bit for bit. A parent the bound admits is read in its window, alone when that window exceeds the budget |
 | Cross-parent loops and extended residual | Yes: grouping labels and fits the feature's window | Read alone. `support_feature_window` leaves a feature wider than `maximum_bounds_pixels` ungrouped as T3, exactly as the whole-plane pass does, so that bound (250,000 pixels in the reviewed profile) limits every grouping read |
 

@@ -25455,3 +25455,31 @@ the per-worker placement finding.
   96.72% branch-aware over 2,629 tests, with `stages/objects.py`,
   `algorithms/component_topology.py` and `algorithms/label_groups.py` at
   100%.
+
+## 2026-09-26 — M2: a wide feature's hierarchy overlaps come from its cores
+
+- **Defect.** The hierarchy-overlap round read each feature's B3 influence
+  window, and each candidate pair's box, whole; its batches exempted their
+  first window from the budget. Scale features are reconciled islands of a
+  scale's support, so a coarse-scale filament's influence window reaches as
+  far as the filament does.
+- **Fix.** None of the three questions needs a whole window. An envelope is
+  exact support dilated through valid pixels by the scale's reviewed radius,
+  an influence is that envelope dilated again, and an overlap is one shared
+  pixel, so a core read with twice the radius as halo decides each of its
+  own pixels exactly. A feature whose influence window, or a pair whose box,
+  exceeds the budget is now decided that way in every core it can reach:
+  the cores within twice the radius of a core holding the feature, which the
+  scan already names, found from the grid by the new
+  `PartitionManifest.tiles_meeting`. The influence is the union of the
+  owners the cores find, and a pair overlaps where any core finds a shared
+  pixel. Narrow work keeps its windows and batches under the shared rule, and
+  every core asked must answer. `map_round`, the fail-closed round runner the
+  object rounds share, moved into `hebog.stages.batching`.
+- **Evidence.** A one-pixel budget sends every influence and pair to the
+  cores: the overlaps equal the whole-plane summary at 16-, 24- and 32-pixel
+  cores and under Dask, and no read is wider than one core and its 28-pixel
+  halo. A 900-pixel budget, which the test checks leaves windows on both
+  sides, gives the overlaps a one-tile run gives. Portable coverage is
+  96.73% branch-aware over 2,642 tests, with `stages/association.py`,
+  `stages/batching.py` and `data_models/partitioning.py` at 100%.

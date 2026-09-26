@@ -19,6 +19,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 from hebog.data_models.partitioning import ImageBounds
+from hebog.executors.base import Executor
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,3 +103,27 @@ def batch_object_windows[T](
     if read is not None:
         batches.append(WindowBatch(tuple(grouped), read))
     return tuple(batches)
+
+
+def map_round[Batch, Result](
+    executor: Executor,
+    function: Callable[[Batch], Result],
+    batches: tuple[Batch, ...],
+    *,
+    round_name: str,
+) -> tuple[Result, ...]:
+    """Evaluate one round of object work, which may have none to do.
+
+    A round with no batch submits nothing, so an image without such objects
+    costs no task.
+
+    Raises:
+        ValueError: If the executor returns nothing for work it was given,
+            which would publish an incomplete result as a complete one.
+    """
+    if not batches:
+        return ()
+    results = tuple(executor.map_batches(function, batches))
+    if not results:
+        raise ValueError(f"executor returned no {round_name} results")
+    return results

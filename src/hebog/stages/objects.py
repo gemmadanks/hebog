@@ -15,7 +15,7 @@ parent order, which is the order a whole-plane pass would use.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from functools import partial
@@ -82,6 +82,7 @@ from hebog.io.zarr import ZarrProductSink
 from hebog.stages.batching import (
     WindowBatch,
     batch_object_windows,
+    map_round,
     read_pixels,
 )
 
@@ -822,27 +823,6 @@ def _publish_batch(
         )
 
 
-def _map_round[Batch, Result](
-    executor: Executor,
-    function: Callable[[Batch], Result],
-    batches: tuple[Batch, ...],
-    *,
-    round_name: str,
-) -> tuple[Result, ...]:
-    """Evaluate one round of object work, which may have none to do.
-
-    Raises:
-        ValueError: If the executor returns nothing for work it was given,
-            which would publish an incomplete result as a complete one.
-    """
-    if not batches:
-        return ()
-    results = tuple(executor.map_batches(function, batches))
-    if not results:
-        raise ValueError(f"executor returned no {round_name} results")
-    return results
-
-
 def _tile_batches(
     requests: tuple[_TileRequest, ...],
     *,
@@ -962,7 +942,7 @@ def run_component_topology_stage(  # noqa: PLR0913
         maximum_batch_read_pixels=config.maximum_batch_read_pixels,
         deblend=config.deblend,
     )
-    deblend_results = _map_round(
+    deblend_results = map_round(
         executor,
         partial(
             _deblend_batch,
@@ -2236,7 +2216,7 @@ def run_component_fit_stage(  # noqa: PLR0913, PLR0917
         maximum_batch_read_pixels=config.maximum_batch_read_pixels,
         maximum_bounds_pixels=config.maximum_bounds_pixels,
     )
-    fit_results = _map_round(
+    fit_results = map_round(
         executor,
         partial(
             _fit_batch,
@@ -2259,7 +2239,7 @@ def run_component_fit_stage(  # noqa: PLR0913, PLR0917
         manifest,
         maximum_tiles_per_batch=config.maximum_tiles_per_batch,
     )
-    deferred_results = _map_round(
+    deferred_results = map_round(
         executor,
         partial(
             _gather_deferred_components,
