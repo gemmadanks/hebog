@@ -2,9 +2,7 @@
 # pyright: reportMissingTypeStubs=false
 """Measure the deterministic traced-allocation peak of admitted size tiers.
 
-The plan gates every public envelope raise on ``tracemalloc``'s peak, which
-reproduces to the byte, rather than on peak resident memory, which varies by
-tens of percent with machine load. This runner measures that peak.
+The plan gates every public envelope raise on ``tracemalloc``'s peak, which is compared within the documented tolerance, rather than on peak resident memory, which varies by tens of percent with machine load. This runner measures that peak.
 
 Cases and finder settings come from ``config/benchmarks/quick-benchmark.json``,
 so the peak is measured on exactly the inputs and settings the quick benchmark
