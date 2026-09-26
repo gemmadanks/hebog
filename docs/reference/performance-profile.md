@@ -137,19 +137,26 @@ envelope tier reports.
 One driver term is still bounded by the image rather than the tile. It is a
 declared limit, not part of that count. An object wider than the owner read
 budget is measured from the cores that hold it, and in the island,
-deferred-fit, source-support and catalogue-row rounds those cores return the
-object's own pixels, which the driver joins in raster order so the result is
-the window's, bit for bit. Measured with `tracemalloc` on a synthetic
+deferred-fit and catalogue-row rounds those cores return the object's own
+pixels, which the driver joins in raster order so the result is the
+window's, bit for bit. Measured with `tracemalloc` on a synthetic
 10⁶-pixel object, the driver reduction costs 81 bytes an object pixel for an
-island row, 121 for a deferred parent's component records, 186 for a
-catalogue row and up to 294 for source support, whose nearest-seed query
-keeps eight neighbours a pixel. Each is linear in the object's pixels, so a
-component filling the field would put about 2.7 GB on the driver at 3,000²,
-30 GB at 10,000² and 3 TB at 100,000². The traced peaks below do not include
-it: no traced-peak case is known to take that path, and none at 2,048² or
-below can, because no window there exceeds the budget. ADR-008 declares this
+island row, 121 for a deferred parent's component records and 186 for a
+catalogue row. Each is linear in the object's pixels, so a segment filling
+the field would put about 1.7 GB on the driver at 3,000², 19 GB at 10,000²
+and 1.9 TB at 100,000². The traced peaks below do not include it: no
+traced-peak case is known to take that path, and none at 2,048² or below
+can, because no window there exceeds the budget. ADR-008 declares this
 exception to its rule that nothing image-sized reaches the driver, and the
 plan's risks carry its removal for the 10,000 tier.
+
+Source support no longer takes part. An unseeded pixel's owner depends only
+on its component's seeds, so the cores return those and the driver sends
+each core back the seeds that can own its pixels, which it assigns itself.
+The driver's share fell from up to 294 bytes a component pixel to 1.0, 9.4
+and 47 when 1%, 10% and 50% of the pixels are seeds: the seeds themselves,
+12 bytes each, and the copies sent back, which came to about three a seed
+across that object's four cores.
 
 The image, the background, the RMS and their residual are all out, and **the
 driver now reads no object window**: its only reads are the final RMS and

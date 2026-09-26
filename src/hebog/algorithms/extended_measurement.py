@@ -984,8 +984,8 @@ def nearest_source_seed_labels(
     The points are ``(y, x)`` pixel coordinates in any one frame, and an
     exact distance tie goes to the smaller source label, whose order follows
     the canonical source IDs. One candidate's owner depends only on the
-    seeds, so a component too wide to read at once is assigned exactly from
-    the seeds and candidates its cores return.
+    seeds, so a component too wide to read at once is assigned exactly by
+    each core that holds its candidates, from the seeds that can own them.
 
     Raises:
         ValueError: If there is no seed, or the arrays disagree.

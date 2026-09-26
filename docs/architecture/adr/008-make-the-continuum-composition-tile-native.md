@@ -312,7 +312,7 @@ that only one round reads would cost a generation for nothing.
 | Scale feature labels | core, halo 0 | the reconciled per-scale mappings | `scale-{order}-labels` |
 | Hierarchy overlaps | core, halo 0, then one feature's window plus its B3 footprint, or each core that work reaches, under twice the widest B3 radius, when the window exceeds the read budget | `component-direct-labels`, `valid-pixels`, `reconstruction-mask`, the scale label planes | component, feature, support and envelope overlap records |
 | Source labels | core, halo 0 | `component-measurement-labels`, the sharded owner-to-source map | `source-labels` |
-| Source support | core, halo 0, then the window of each connected support component it holds, or a component's cores when that window exceeds the read budget | `source-labels`, `persistent-scale-support`, `measurement-support` | support island summaries, then a wide component's seeds and candidates, then `source-measurement-labels` |
+| Source support | core, halo 0, then the window of each connected support component it holds, or a component's cores when that window exceeds the read budget | `source-labels`, `persistent-scale-support`, `measurement-support` | support island summaries, then a wide component's seeds, then `source-measurement-labels` |
 | Source apertures | core, halo 1.5 beams | `source-measurement-labels` | `source-aperture-labels` |
 | Source rows | source window + 1.5-beam aperture, or its cores when that window exceeds the read budget | image, background, RMS, validity, source labels, position signal | catalogue shards, each segment's local noise |
 | Detection island rows | core, halo 0, then one island's window, or the island's cores when that window exceeds the read budget | `retained-mask`, `component-measurement-labels`; then image, background, RMS, `retained-mask` | island boundary summaries and owner-to-island pairs; then catalogue island rows, or a wide island's pixels from each core |
@@ -360,10 +360,11 @@ the driver reduces them in raster order, which reproduces the window's result
 bit for bit. That keeps bit-for-bit equality at the cost of rules 4 and 5:
 the driver holds the object's own pixels, not its window, for every wide
 object of the round at once, so that memory is bounded by the image and not
-the tile. Source support costs the most, up to about 300 bytes an object
-pixel for its nearest-seed query, which for a component filling the field is
-about 2.7 GB at 3,000², 30 GB at 10,000² and 3 TB at 100,000². It is an
-explicit limit on the envelope, and the plan's risks carry its removal.
+the tile. The catalogue-row round costs the most, 186 bytes an object pixel,
+which for a segment filling the field is about 1.7 GB at 3,000², 19 GB at
+10,000² and 1.9 TB at 100,000². It is an explicit limit on the envelope, and
+the plan's risks carry its removal. Source support escapes it: an unseeded
+pixel's owner depends only on the seeds, so the driver holds only those.
 Where the science needs the whole object at once, the round relies on an
 admission bound instead, and the bound it relies on is named here, in
 pipeline order:
@@ -375,7 +376,7 @@ pipeline order:
 | Component fits | Yes for the fit: a joint model needs the parent's whole window. No for its components' association records, which are moments over each component's own pixels | A parent whose window `maximum_bounds_pixels` refuses is deferred as T3, exactly as the whole-plane pass defers it, so its window is never read: the records of the components it owns come from the cores that hold them, restored to raster order, bit for bit. A parent the bound admits is read in its window, alone when that window exceeds the budget |
 | Cross-parent loops and extended residual | Yes: grouping labels and fits the feature's window | Read alone. `support_feature_window` leaves a feature wider than `maximum_bounds_pixels` ungrouped as T3, exactly as the whole-plane pass does, so that bound (250,000 pixels in the reviewed profile) limits every grouping read |
 | Hierarchy overlaps | No: an envelope is exact support dilated through valid pixels by the reviewed B3 radius, an influence is that envelope dilated again, and an overlap is one shared pixel | A feature whose influence window, or a pair whose box, exceeds the budget is decided in each core it can reach, read with twice the radius as its halo, which decides every pixel of that core exactly. An influence is the union of the owners the cores find, and a pair overlaps where any core finds a shared pixel |
-| Source support | No: each unseeded pixel goes to its nearest seed of the same component, a per-pixel answer that depends only on the component's seeds | Its cores return the component's seeds and unseeded pixels, the driver assigns each pixel from the seeds alone, and the write round applies the assignment sharded to the cores. The seeds are the object's own pixels, not its window |
+| Source support | No: each unseeded pixel goes to its nearest seed of the same component, a per-pixel answer that depends only on the component's seeds | Its cores return the component's seeds, and in the write round each core holding its unseeded pixels gets back the seeds that can own them and assigns them itself: those within `d + 2h` of the core's centre, where `h` is its half-diagonal and `d` the distance from the centre to the nearest seed. The driver holds the seeds, never the unseeded support |
 | Source and component rows | No: the position, flux, peak, moments and noise are sums, a first maximum and a median over the pixels a segment owns, holds in its measured support or holds in its aperture | Measured from its cores: each returns those pixels with their values, and the row is measured from them restored to raster order, bit for bit |
 | Detection island rows | No: a count, sums and a median over the island's pixels | Measured from its cores |
 

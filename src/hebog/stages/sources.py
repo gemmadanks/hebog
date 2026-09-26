@@ -16,6 +16,7 @@ from collections.abc import Mapping
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from functools import partial
+from math import hypot
 from numbers import Integral
 from typing import Protocol, cast
 
@@ -34,6 +35,7 @@ from hebog.algorithms.labelling import (
     label_detection_tile,
 )
 from hebog.algorithms.reconciliation import (
+    TileLabelMapping,
     apply_tile_label_mapping,
     reconcile_candidate_tiles,
 )
@@ -431,43 +433,71 @@ class _WideSupportBatch:
 
 
 @dataclass(frozen=True, slots=True)
-class _SupportPixels:
-    """One wide component's seeds and unseeded support in one core.
+class _WideSeedPiece:
+    """One wide component's seeds in one core, and its unseeded count there.
 
     Every index is a global ``y * width + x`` position, so pieces from
-    several cores join into the component's own pixel sets.
+    several cores join into the component's own seed set. The unseeded
+    pixels stay in the core: its count says only whether the core has any
+    to assign.
     """
 
+    tile_id: str
     global_label: int
     seed_indices: npt.NDArray[np.int64]
-    seed_labels: npt.NDArray[np.int64]
-    candidate_indices: npt.NDArray[np.int64]
+    seed_labels: npt.NDArray[np.int32]
+    candidate_count: int
 
 
 @dataclass(frozen=True, slots=True)
 class _WideSupportResult:
-    """The wide components' pixels one batch of cores held."""
+    """The wide components' seeds one batch of cores held."""
 
-    pieces: tuple[_SupportPixels, ...]
+    pieces: tuple[_WideSeedPiece, ...]
     tile_ids: tuple[str, ...]
     maximum_core_read_pixels: int
 
 
 @dataclass(frozen=True, slots=True)
-class _Assignment:
-    """One wide component's unseeded pixels and the source each goes to."""
+class _ComponentSeeds:
+    """The seeds of one wide component that can own a core's pixels."""
 
-    indices: npt.NDArray[np.int64]
-    labels: npt.NDArray[np.int32]
+    global_label: int
+    seed_indices: npt.NDArray[np.int64]
+    seed_labels: npt.NDArray[np.int32]
+
+
+@dataclass(frozen=True, slots=True)
+class _WideSeedShards:
+    """The seeds each core needs to assign the wide support it holds.
+
+    ``assigning_component_count`` counts the wide components with a seed
+    and an unseeded pixel, which are the ones that assign anything.
+    """
+
+    by_tile: Mapping[str, tuple[_ComponentSeeds, ...]]
+    assigning_component_count: int
+
+
+@dataclass(frozen=True, slots=True)
+class _WideShare:
+    """The wide components one core assigns, and the seeds that can own them.
+
+    ``mapping`` is the core's reconciliation cut down to those components,
+    so the core finds their pixels again exactly as the scan labelled them.
+    """
+
+    mapping: TileLabelMapping
+    seeds: tuple[_ComponentSeeds, ...]
 
 
 @dataclass(frozen=True, slots=True)
 class _SupportWriteRequest:
-    """One core, the narrow components it holds and its wide assignments."""
+    """One core, the narrow components it holds and its wide share."""
 
     partition: TilePartition
     components: tuple[_SupportComponent, ...] = ()
-    assignments: tuple[_Assignment, ...] = ()
+    wide: _WideShare | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -711,6 +741,29 @@ def _raster_indices(
     )
 
 
+def _wide_component_labels(
+    seeds: npt.NDArray[np.int32],
+    persistent: npt.NDArray[np.bool_],
+    partition: TilePartition,
+    mapping: TileLabelMapping,
+    *,
+    image_shape_yx: tuple[int, int],
+) -> npt.NDArray[np.int64]:
+    """Name one core's wide components, relabelled exactly as the scan did.
+
+    ``mapping`` is the core's reconciliation cut down to those components,
+    so every other pixel maps to zero.
+    """
+    return apply_tile_label_mapping(
+        _label_support(
+            (seeds > 0) | persistent,
+            partition,
+            image_shape_yx=image_shape_yx,
+        ),
+        mapping,
+    )
+
+
 def _gather_wide_support(  # noqa: PLR0913
     batch: _WideSupportBatch,
     *,
@@ -720,11 +773,12 @@ def _gather_wide_support(  # noqa: PLR0913
     measurement_support_source: _CompletedProductSource,
     image_shape_yx: tuple[int, int],
 ) -> _WideSupportResult:
-    """Return each wide component's seeds and candidates, core by core.
+    """Return each wide component's seeds, core by core.
 
     A core is relabelled exactly as the scan labelled it, so its reconciled
     mapping names the component's pixels there, and nothing beyond the core
-    is read.
+    is read. The unseeded pixels stay here: the write round finds them
+    again the same way and assigns them from the seeds.
     """
     with (
         label_source.access_session(),
@@ -732,7 +786,7 @@ def _gather_wide_support(  # noqa: PLR0913
         scale_support_source.access_session(),
         measurement_support_source.access_session(),
     ):
-        pieces: list[_SupportPixels] = []
+        pieces: list[_WideSeedPiece] = []
         maximum_read_pixels = 0
         for core in batch.cores:
             bounds = core.partition.core_bounds
@@ -746,28 +800,28 @@ def _gather_wide_support(  # noqa: PLR0913
                 label_source.read_completed_window("source-labels", bounds),
                 dtype=np.int32,
             )
-            labels = apply_tile_label_mapping(
-                _label_support(
-                    (seeds > 0) | persistent,
-                    core.partition,
-                    image_shape_yx=image_shape_yx,
-                ),
+            labels = _wide_component_labels(
+                seeds,
+                persistent,
+                core.partition,
                 core.mapping,
+                image_shape_yx=image_shape_yx,
             )
             for global_label in sorted(set(core.mapping.global_labels)):
                 member = labels == global_label
                 seeded = member & (seeds > 0)
                 pieces.append(
-                    _SupportPixels(
+                    _WideSeedPiece(
+                        tile_id=core.partition.tile_id,
                         global_label=global_label,
                         seed_indices=_raster_indices(
                             seeded, bounds, image_width=image_shape_yx[1]
                         ),
-                        seed_labels=np.asarray(seeds[seeded], dtype=np.int64),
-                        candidate_indices=_raster_indices(
-                            member & persistent & (seeds == 0),
-                            bounds,
-                            image_width=image_shape_yx[1],
+                        seed_labels=seeds[seeded],
+                        candidate_count=int(
+                            np.count_nonzero(
+                                member & persistent & (seeds == 0)
+                            )
                         ),
                     )
                 )
@@ -779,79 +833,88 @@ def _gather_wide_support(  # noqa: PLR0913
         )
 
 
-def _assign_wide_components(
+def _seeds_near_core(
+    seed_indices: npt.NDArray[np.int64],
+    core: ImageBounds,
+    *,
+    image_width: int,
+) -> npt.NDArray[np.bool_]:
+    """Select every seed that can be the nearest to a pixel of one core.
+
+    Every core pixel lies within the core's half-diagonal ``h`` of its
+    centre, and the seed nearest the centre is ``d`` from it, so no pixel's
+    nearest seed is farther than ``d + h`` from that pixel, or ``d + 2h``
+    from the centre. A seed tied with it is exactly as near, and one pixel
+    of margin keeps the nearest-seed kernel's tie tolerance inside. A seed
+    beyond cannot own a core pixel, so leaving it out changes no owner.
+    """
+    rows, columns = np.divmod(seed_indices, image_width)
+    centre_y = (core.y_start + core.y_stop - 1) / 2
+    centre_x = (core.x_start + core.x_stop - 1) / 2
+    half_diagonal = hypot(
+        core.y_stop - 1 - centre_y, core.x_stop - 1 - centre_x
+    )
+    distances = np.hypot(rows - centre_y, columns - centre_x)
+    return distances <= float(distances.min()) + 2 * half_diagonal + 1
+
+
+def _wide_seed_shards(
     batches: tuple[_WideSupportBatch, ...],
     results: tuple[_WideSupportResult, ...],
     *,
     image_width: int,
-) -> tuple[_Assignment, ...]:
-    """Assign every wide component's unseeded pixels from its cores' pieces.
+) -> _WideSeedShards:
+    """Send each core the seeds that can own the wide support it holds.
 
-    Each unseeded pixel goes to its nearest seed of the same component, and
-    the pieces hold exactly that component's seeds and candidates, so this
-    is the assignment one window over the component would make.
+    Each unseeded pixel goes to its nearest seed of the same component, so
+    a core holding some of a component's unseeded pixels needs only the
+    seeds near it, and assigns those pixels itself. The driver holds each
+    wide component's seeds, never its unseeded support. The kernel breaks
+    an exact tie by label, so the seeds' order decides nothing.
 
     Raises:
         ValueError: If a core that holds a wide component did not answer,
             which would assign its support from part of its seeds.
     """
     requested = {
-        core.partition.tile_id for batch in batches for core in batch.cores
+        core.partition.tile_id: core.partition.core_bounds
+        for batch in batches
+        for core in batch.cores
     }
     answered = {tile_id for result in results for tile_id in result.tile_ids}
-    if answered != requested:
+    if answered != requested.keys():
         raise ValueError("every core holding a wide component must answer")
-    pieces: dict[int, list[_SupportPixels]] = {}
+    pieces: dict[int, list[_WideSeedPiece]] = {}
     for result in results:
         for piece in result.pieces:
             pieces.setdefault(piece.global_label, []).append(piece)
-    assignments: list[_Assignment] = []
-    for _, parts in sorted(pieces.items()):
+    by_tile: dict[str, list[_ComponentSeeds]] = {}
+    assigning_component_count = 0
+    for global_label, parts in sorted(pieces.items()):
         seed_indices = np.concatenate([part.seed_indices for part in parts])
-        candidates = np.sort(
-            np.concatenate([part.candidate_indices for part in parts])
-        )
-        if not seed_indices.size or not candidates.size:
+        if not seed_indices.size or not any(
+            part.candidate_count for part in parts
+        ):
             continue
-        order = np.argsort(seed_indices, kind="stable")
-        owners = nearest_source_seed_labels(
-            np.column_stack(np.divmod(seed_indices[order], image_width)),
-            np.concatenate([part.seed_labels for part in parts])[order],
-            np.column_stack(np.divmod(candidates, image_width)),
-        )
-        assignments.append(
-            _Assignment(
-                indices=candidates,
-                labels=owners.astype(np.int32, copy=False),
+        assigning_component_count += 1
+        seed_labels = np.concatenate([part.seed_labels for part in parts])
+        for part in parts:
+            if not part.candidate_count:
+                continue
+            kept = _seeds_near_core(
+                seed_indices, requested[part.tile_id], image_width=image_width
             )
-        )
-    return tuple(assignments)
-
-
-def _assignment_shard(
-    assignments: tuple[_Assignment, ...],
-    core: ImageBounds,
-    *,
-    image_width: int,
-) -> tuple[_Assignment, ...]:
-    """Restrict every wide assignment to the core that owns those pixels."""
-    shard: list[_Assignment] = []
-    for assignment in assignments:
-        rows, columns = np.divmod(assignment.indices, image_width)
-        inside = (
-            (rows >= core.y_start)
-            & (rows < core.y_stop)
-            & (columns >= core.x_start)
-            & (columns < core.x_stop)
-        )
-        if bool(np.any(inside)):
-            shard.append(
-                _Assignment(
-                    indices=assignment.indices[inside],
-                    labels=assignment.labels[inside],
+            by_tile.setdefault(part.tile_id, []).append(
+                _ComponentSeeds(
+                    global_label=global_label,
+                    seed_indices=seed_indices[kept],
+                    seed_labels=seed_labels[kept],
                 )
             )
-    return tuple(shard)
+    return _WideSeedShards(
+        by_tile={tile_id: tuple(seeds) for tile_id, seeds in by_tile.items()},
+        assigning_component_count=assigning_component_count,
+    )
 
 
 def _write_patch(
@@ -874,6 +937,46 @@ def _write_patch(
     np.copyto(values[_crop(core, overlap)], owned, where=owned > 0)
 
 
+def _assign_wide_share(  # noqa: PLR0913
+    values: npt.NDArray[np.int32],
+    seeds: npt.NDArray[np.int32],
+    persistent: npt.NDArray[np.bool_],
+    partition: TilePartition,
+    share: _WideShare,
+    *,
+    image_shape_yx: tuple[int, int],
+) -> None:
+    """Assign this core's unseeded pixels of each wide component, in place.
+
+    Each goes to its nearest seed of the same component, which the seeds
+    sent here include, so this is the assignment one window over the whole
+    component would make. Every pixel is in this core.
+    """
+    core = partition.core_bounds
+    labels = _wide_component_labels(
+        seeds,
+        persistent,
+        partition,
+        share.mapping,
+        image_shape_yx=image_shape_yx,
+    )
+    unseeded = persistent & (seeds == 0)
+    for component in share.seeds:
+        rows, columns = np.nonzero(
+            (labels == component.global_label) & unseeded
+        )
+        owners = nearest_source_seed_labels(
+            np.column_stack(
+                np.divmod(component.seed_indices, image_shape_yx[1])
+            ),
+            component.seed_labels.astype(np.int64),
+            np.column_stack(
+                (rows + core.y_start, columns + core.x_start)
+            ).astype(np.int64),
+        )
+        values[rows, columns] = owners.astype(np.int32, copy=False)
+
+
 def _publish_source_support(  # noqa: PLR0913
     batch: _SupportWriteBatch,
     *,
@@ -883,15 +986,15 @@ def _publish_source_support(  # noqa: PLR0913
     measurement_support_source: _CompletedProductSource,
     sink: ZarrProductSink,
     config: SourceSupportStageConfig,
-    image_width: int,
+    image_shape_yx: tuple[int, int],
 ) -> _SupportWriteResult:
     """Assign the support each core holds and write it over its seeds.
 
     A narrow component is assigned inside its own window by every core that
     holds part of it, and each keeps its own share, so no assignment crosses
-    the executor boundary. A wide component's assignment arrives as the
-    unseeded pixels this core owns and the source each one goes to, so no
-    window of it is ever held.
+    the executor boundary. A wide component is assigned here too, from the
+    seeds that can own this core's share of it, so no window of it is ever
+    held and no assignment reaches the driver.
     """
     with (
         label_source.access_session(),
@@ -905,13 +1008,11 @@ def _publish_source_support(  # noqa: PLR0913
         widest_read = 0
         for request in batch.requests:
             core = request.partition.core_bounds
-            values = np.array(
-                np.asarray(
-                    label_source.read_completed_window("source-labels", core),
-                    dtype=np.int32,
-                ),
-                copy=True,
+            seeds = np.asarray(
+                label_source.read_completed_window("source-labels", core),
+                dtype=np.int32,
             )
+            values = np.array(seeds, copy=True)
             for assign_batch in _assign_batches(
                 request.components,
                 maximum_objects_per_batch=config.maximum_objects_per_batch,
@@ -933,11 +1034,22 @@ def _publish_source_support(  # noqa: PLR0913
                 widest_read = max(
                     widest_read, read_pixels(assign_batch.read_bounds)
                 )
-            for assignment in request.assignments:
-                rows, columns = np.divmod(assignment.indices, image_width)
-                values[rows - core.y_start, columns - core.x_start] = (
-                    assignment.labels
+            if request.wide is not None:
+                _, persistent = _persistent_window(
+                    core,
+                    detection_source=detection_source,
+                    scale_support_source=scale_support_source,
+                    measurement_support_source=measurement_support_source,
                 )
+                _assign_wide_share(
+                    values,
+                    seeds,
+                    persistent,
+                    request.partition,
+                    request.wide,
+                    image_shape_yx=image_shape_yx,
+                )
+                widest_read = max(widest_read, read_pixels(core))
             chunks.append(
                 sink.write_chunk(
                     product_name="source-measurement-labels",
@@ -974,9 +1086,11 @@ def run_source_support_stage(  # noqa: PLR0913
     driver holds each component's bounds rather than its assignment.
 
     A component whose window exceeds ``maximum_batch_read_pixels`` is never
-    read whole. The cores holding it return its seeds and unseeded pixels in
-    a round between those two, and each of those pixels is assigned from the
-    component's seeds alone, which is the assignment its window would make.
+    read whole. The cores holding it return its seeds in a round between
+    those two, and each core that holds its unseeded pixels gets back the
+    seeds that can own them and assigns them itself, which is the
+    assignment its window would make. The driver holds the seeds, never the
+    unseeded support.
     """
     if sink.manifest != manifest:
         raise ValueError("source support sink must use the stage manifest")
@@ -1071,9 +1185,12 @@ def run_source_support_stage(  # noqa: PLR0913
         wide_batches,
         round_name="wide support",
     )
-    assignments = _assign_wide_components(
+    wide_seeds = _wide_seed_shards(
         wide_batches, wide_results, image_width=image_width
     )
+    wide_mappings = {
+        core.partition.tile_id: core.mapping for core in wide_cores
+    }
     sink.initialize_product(
         product_name="source-measurement-labels",
         dtype=np.dtype("<i4"),
@@ -1085,10 +1202,13 @@ def run_source_support_stage(  # noqa: PLR0913
                 _SupportWriteRequest(
                     partition=partition,
                     components=held_narrow.get(partition.tile_id, ()),
-                    assignments=_assignment_shard(
-                        assignments,
-                        partition.core_bounds,
-                        image_width=image_width,
+                    wide=(
+                        _WideShare(
+                            mapping=wide_mappings[partition.tile_id],
+                            seeds=wide_seeds.by_tile[partition.tile_id],
+                        )
+                        if partition.tile_id in wide_seeds.by_tile
+                        else None
                     ),
                 )
                 for partition in manifest.tiles
@@ -1106,7 +1226,7 @@ def run_source_support_stage(  # noqa: PLR0913
                 measurement_support_source=measurement_support_source,
                 sink=sink,
                 config=config,
-                image_width=image_width,
+                image_shape_yx=manifest.image_shape_yx,
             ),
             write_batches,
         )
@@ -1130,7 +1250,7 @@ def run_source_support_stage(  # noqa: PLR0913
                 for first_pixel in result.assigned_components
             }
         )
-        + len(assignments),
+        + wide_seeds.assigning_component_count,
         partition_count=len(manifest.tiles),
         executor_task_count=(
             len(scan_batches) + len(wide_batches) + len(write_batches)

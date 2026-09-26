@@ -25977,3 +25977,37 @@ the per-worker placement finding.
   measured cost, state that no traced peak includes it, and keep the risk's
   mitigation for the 10,000 tier unchanged. At 3,000² the term is about twice
   the tier's traced peak, for a field no traced case contains.
+
+## 2026-09-26 — M2: a wide support component is assigned on its cores
+
+- **Defect.** The source-support round returned every wide component's seeds
+  and unseeded pixels to the driver, which ran the nearest-seed query there.
+  That query keeps eight `float64` distances and `int64` neighbours for each
+  unseeded pixel, so it was the largest wide-object driver term: up to 294
+  bytes a component pixel (previous entry).
+- **Fix.** An unseeded pixel's owner depends only on its component's seeds,
+  so the cores now return only those, with a count of their unseeded pixels.
+  The driver sends each core holding unseeded pixels the seeds within
+  `d + 2h` of its centre, where `h` is the core's half-diagonal and `d` the
+  distance from the centre to the nearest seed. No core pixel's nearest seed,
+  or a seed tied with it, lies farther out, so the selection changes no owner.
+  The write round relabels the core as the scan did and assigns its own
+  pixels. Only the seeds cross the executor boundary, 12 bytes each.
+- **Driver cost.** The same `tracemalloc` harness, one 10⁶-pixel component
+  over four 500-pixel cores: 1.0, 9.4 and 47 bytes a component pixel when 1%,
+  10% and 50% of it is seeds, against 294, 274 and 188 before. The seeds
+  sent back came to 3.2 per seed. The catalogue-row round, at 186 bytes a
+  pixel, is now the largest wide-object term: 1.7 GB for a segment filling a
+  3,000² field.
+- **Evidence.** A recording executor with a one-pixel budget shows the
+  cores return exactly 12 bytes a seed pixel and get back only seed pixels.
+  A property test shows the selected seeds give every core pixel the owner
+  the full seed set gives, ties included. The published planes still equal
+  the whole-plane assignment at 16-, 24-, 32- and 80-pixel cores, and under
+  Dask with every component wide. On nine quick-check inputs, with every
+  public stage on 512-pixel cores and the read budget forced to 4,096
+  pixels, the public products of `ec65983` and of this change are identical
+  field by field. Seventeen wide support components took the new path, on
+  `extended-gaussians`, `filament-and-ring`, both LoTSS and both SDC1
+  cut-outs. Portable coverage is 96.80% branch-aware, with
+  `stages/sources.py` at 100%.

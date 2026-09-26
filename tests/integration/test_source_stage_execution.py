@@ -32,15 +32,15 @@ from hebog.stages.sources import (
     SourceLabelStageConfig,
     SourceSupportStageConfig,
     SourceSupportStageResult,
-    _assign_wide_components,
     _AssignBatch,
     _LabelWriteBatch,
     _OwnerScanBatch,
     _support_component,
     _SupportComponent,
-    _SupportPixels,
     _SupportScanBatch,
     _SupportWriteBatch,
+    _wide_seed_shards,
+    _WideSeedPiece,
     _WideSupportBatch,
     _WideSupportResult,
     run_source_label_stage,
@@ -374,9 +374,19 @@ def test_source_planes_are_partition_and_batch_invariant(
         )
 
 
-def test_source_planes_are_executor_invariant(tmp_path: Path) -> None:
-    """Workers publish exactly what one in-process reference publishes."""
-    reference = _run(tmp_path / "reference")
+@pytest.mark.parametrize("maximum_batch_read_pixels", [65536, 1])
+def test_source_planes_are_executor_invariant(
+    tmp_path: Path, maximum_batch_read_pixels: int
+) -> None:
+    """Workers publish exactly what one in-process reference publishes.
+
+    A one-pixel budget sends every support component through its cores,
+    so the wide seeds cross the executor boundary as well.
+    """
+    reference = _run(
+        tmp_path / "reference",
+        maximum_batch_read_pixels=maximum_batch_read_pixels,
+    )
 
     with Client(
         processes=False,
@@ -384,7 +394,11 @@ def test_source_planes_are_executor_invariant(tmp_path: Path) -> None:
         threads_per_worker=1,
         dashboard_address=None,
     ) as client:
-        result = _run(tmp_path / "dask", executor=DaskExecutor(client))
+        result = _run(
+            tmp_path / "dask",
+            executor=DaskExecutor(client),
+            maximum_batch_read_pixels=maximum_batch_read_pixels,
+        )
 
     for candidate, expected, product_name in zip(
         result,
@@ -844,6 +858,53 @@ def test_a_wide_support_component_is_assigned_from_its_cores(
     assert 0 < result.maximum_component_read_pixels <= core * core
 
 
+def test_only_a_wide_components_seeds_leave_its_cores(tmp_path: Path) -> None:
+    """A wide component's unseeded support never reaches the driver.
+
+    Its seeds decide every assignment, so its cores return those, 12 bytes
+    a seed, and each core gets back only the seeds that can own its own
+    pixels and assigns them itself. A one-pixel budget makes every
+    component wide, so every seed pixel comes back once.
+    """
+    executor = RecordingExecutor()
+    expected_labels, expected_support = _whole_plane()
+    seed_pixels = {int(index) for index in np.flatnonzero(expected_labels)}
+
+    _, support_sink, result = _run_support(
+        tmp_path / "run",
+        executor=executor,
+        maximum_objects_per_batch=1,
+        maximum_batch_read_pixels=1,
+    )
+
+    rounds = {
+        name: (batches, results) for name, batches, results in executor.rounds
+    }
+    assert carried_array_bytes(rounds["_gather_wide_support"][1]) == (
+        12 * len(seed_pixels),
+        0,
+    )
+    sent = [
+        seeds
+        for batch in rounds["_publish_source_support"][0]
+        for request in cast(_SupportWriteBatch, batch).requests
+        if request.wide is not None
+        for seeds in request.wide.seeds
+    ]
+    sent_pixels = {
+        int(index) for seeds in sent for index in seeds.seed_indices
+    }
+    assert sent_pixels and sent_pixels <= seed_pixels
+    assert carried_array_bytes(rounds["_publish_source_support"][0]) == (
+        12 * sum(seeds.seed_indices.size for seeds in sent),
+        0,
+    )
+    assert result.assigned_component_count == 3
+    np.testing.assert_array_equal(
+        _window(support_sink, "source-measurement-labels"), expected_support
+    )
+
+
 def test_narrow_and_wide_components_publish_one_assignment(
     tmp_path: Path,
 ) -> None:
@@ -898,7 +959,7 @@ def test_every_core_holding_a_wide_component_must_answer() -> None:
     )
 
     with pytest.raises(ValueError, match="must answer"):
-        _assign_wide_components(batches, (), image_width=_SHAPE_YX[1])
+        _wide_seed_shards(batches, (), image_width=_SHAPE_YX[1])
 
 
 def test_a_wide_component_without_seeds_or_candidates_assigns_nothing() -> (
@@ -909,7 +970,6 @@ def test_a_wide_component_without_seeds_or_candidates_assigns_nothing() -> (
     A component whose pixels are all seeds has nothing to assign either.
     """
     partition = _manifest(16).tiles[0]
-    empty = np.zeros(0, dtype=np.int64)
     batches = (
         _WideSupportBatch(
             cores=(
@@ -926,24 +986,78 @@ def test_a_wide_component_without_seeds_or_candidates_assigns_nothing() -> (
     )
     result = _WideSupportResult(
         pieces=(
-            _SupportPixels(
+            _WideSeedPiece(
+                tile_id=partition.tile_id,
                 global_label=1,
-                seed_indices=empty,
-                seed_labels=empty,
-                candidate_indices=np.asarray([3], dtype=np.int64),
+                seed_indices=np.zeros(0, dtype=np.int64),
+                seed_labels=np.zeros(0, dtype=np.int32),
+                candidate_count=1,
             ),
-            _SupportPixels(
+            _WideSeedPiece(
+                tile_id=partition.tile_id,
                 global_label=2,
                 seed_indices=np.asarray([5], dtype=np.int64),
-                seed_labels=np.asarray([7], dtype=np.int64),
-                candidate_indices=empty,
+                seed_labels=np.asarray([7], dtype=np.int32),
+                candidate_count=0,
             ),
         ),
         tile_ids=(partition.tile_id,),
         maximum_core_read_pixels=1,
     )
 
-    assert (
-        _assign_wide_components(batches, (result,), image_width=_SHAPE_YX[1])
-        == ()
+    shards = _wide_seed_shards(batches, (result,), image_width=_SHAPE_YX[1])
+
+    assert shards.by_tile == {}
+    assert shards.assigning_component_count == 0
+
+
+def test_only_a_core_with_unseeded_support_gets_seeds_back() -> None:
+    """A core holding only a wide component's seeds has nothing to assign.
+
+    The seeds it returned still reach the core that holds the unseeded
+    pixels, so the component is assigned once, from all of them.
+    """
+    seeded_core, unseeded_core = _manifest(16).tiles[:2]
+    batches = (
+        _WideSupportBatch(
+            cores=tuple(
+                HeldObjects(
+                    partition=partition,
+                    mapping=TileLabelMapping(
+                        tile_id=partition.tile_id,
+                        local_labels=(1,),
+                        global_labels=(1,),
+                    ),
+                )
+                for partition in (seeded_core, unseeded_core)
+            )
+        ),
     )
+    result = _WideSupportResult(
+        pieces=(
+            _WideSeedPiece(
+                tile_id=seeded_core.tile_id,
+                global_label=1,
+                seed_indices=np.asarray([5], dtype=np.int64),
+                seed_labels=np.asarray([7], dtype=np.int32),
+                candidate_count=0,
+            ),
+            _WideSeedPiece(
+                tile_id=unseeded_core.tile_id,
+                global_label=1,
+                seed_indices=np.zeros(0, dtype=np.int64),
+                seed_labels=np.zeros(0, dtype=np.int32),
+                candidate_count=3,
+            ),
+        ),
+        tile_ids=(seeded_core.tile_id, unseeded_core.tile_id),
+        maximum_core_read_pixels=1,
+    )
+
+    shards = _wide_seed_shards(batches, (result,), image_width=_SHAPE_YX[1])
+
+    assert shards.assigning_component_count == 1
+    assert list(shards.by_tile) == [unseeded_core.tile_id]
+    (seeds,) = shards.by_tile[unseeded_core.tile_id]
+    assert (seeds.global_label, seeds.seed_indices.tolist()) == (1, [5])
+    assert seeds.seed_labels.tolist() == [7]
