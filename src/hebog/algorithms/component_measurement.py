@@ -693,6 +693,20 @@ def support_feature_margin_pixels(atrous_plan: ResidualAtrousPlan) -> int:
     return _adequacy_filter_bank(atrous_plan).maximum_halo_pixels
 
 
+def compact_window_is_admitted(
+    window: ImageBounds,
+    *,
+    maximum_bounds_pixels: int,
+) -> bool:
+    """Return whether the reviewed compact bound admits one window.
+
+    A fit parent or support feature whose window the bound refuses is
+    ADR-008 T3 work: the parent is deferred rather than fitted on truncated
+    pixels, and the feature is left ungrouped, so neither window is read.
+    """
+    return int(np.prod(window.shape_yx)) <= maximum_bounds_pixels
+
+
 def support_feature_window(
     feature_bounds: ImageBounds,
     *,
@@ -711,7 +725,9 @@ def support_feature_window(
         max(0, feature_bounds.x_start - margin),
         min(image_shape_yx[1], feature_bounds.x_stop + margin),
     )
-    if np.prod(bounds.shape_yx) > maximum_bounds_pixels:
+    if not compact_window_is_admitted(
+        bounds, maximum_bounds_pixels=maximum_bounds_pixels
+    ):
         return None
     return bounds
 
@@ -1115,7 +1131,9 @@ def measure_fit_parent_components(  # noqa: PLR0913, PLR0917
     Astropy's per-call frame machinery once per parent, which costs more
     than the fit.
     """
-    if np.prod(bounds.shape_yx) > maximum_bounds_pixels:
+    if not compact_window_is_admitted(
+        bounds, maximum_bounds_pixels=maximum_bounds_pixels
+    ):
         return FitParentMeasurement(deferred=True)
     parent_support = fit_parent_window == parent_index
     local_valid = (

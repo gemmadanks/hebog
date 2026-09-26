@@ -55,6 +55,7 @@ from hebog.executors import DaskExecutor, SerialExecutor, TaskRequirement
 from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
 from hebog.science.configuration import source_finder_configs
+from hebog.stages.batching import read_pixels
 from hebog.stages.objects import (
     ComponentFitStageConfig,
     ComponentFitStageResult,
@@ -66,10 +67,14 @@ from hebog.stages.objects import (
     _ContextLink,
     _ContextPublicationBatch,
     _ContextTile,
+    _deferred_component_records,
+    _DeferredBatch,
+    _DeferredCore,
     _DisjointContexts,
+    _fit_batches,
     _fit_parent_numbers,
     _FitBatch,
-    _FitBatchResult,
+    _FitParentExtent,
     _global_context,
     _ParentBatch,
     _publish_batch,
@@ -810,9 +815,15 @@ def _component_count() -> int:
     return int(_measurement_inputs()[3].max())
 
 
-def _measurement_sources(root: Path) -> tuple[ZarrProductSink, ...]:
+def _measurement_sources(
+    root: Path,
+    *,
+    valid_pixels: npt.NDArray[np.bool_] | None = None,
+) -> tuple[ZarrProductSink, ...]:
     """Publish every generation the fit rounds read."""
     _, rms, valid, direct, measurement = _measurement_inputs()
+    if valid_pixels is not None:
+        valid = valid_pixels
     return (
         _publish(
             root / "background.zarr",
@@ -845,23 +856,26 @@ class _PublishedFits:
     result: ComponentFitStageResult
     sink: ZarrProductSink
     fit_parent_count: int
+    fit_parent_sink: ZarrProductSink
     background_source: ZarrProductSink
     detection_source: ZarrProductSink
     component_source: ZarrProductSink
 
 
-def _run_fits(
+def _run_fits(  # noqa: PLR0913
     root: Path,
     *,
     core: int = 16,
     executor: object | None = None,
     maximum_batch_read_pixels: int = 8192,
+    maximum_bounds_pixels: int | None = None,
+    valid_pixels: npt.NDArray[np.bool_] | None = None,
 ) -> _PublishedFits:
     """Reconcile the fit parents, then measure them, in isolation."""
     root.mkdir(parents=True, exist_ok=True)
     residual, _, _, _, _ = _measurement_inputs()
     background_source, detection_source, component_source = (
-        _measurement_sources(root)
+        _measurement_sources(root, valid_pixels=valid_pixels)
     )
     moment_config, fit_config = _fit_config()
     atrous_plan = build_residual_atrous_plan(
@@ -915,6 +929,8 @@ def _run_fits(
             minimum_pixels=7,
             maximum_bounds_pixels=(
                 _deblend_config().maximum_compact_bounds_pixels
+                if maximum_bounds_pixels is None
+                else maximum_bounds_pixels
             ),
             minimum_support_fraction=0.5,
             maximum_tiles_per_batch=2,
@@ -930,13 +946,16 @@ def _run_fits(
         result=result,
         sink=sink,
         fit_parent_count=fit_parents.fit_parent_count,
+        fit_parent_sink=fit_parent_sink,
         background_source=background_source,
         detection_source=detection_source,
         component_source=component_source,
     )
 
 
-def _whole_plane_measurements() -> ComponentMeasurements:
+def _whole_plane_measurements(
+    maximum_bounds_pixels: int | None = None,
+) -> ComponentMeasurements:
     """Measure every fit parent over complete planes, as the oracle."""
     residual, rms, valid, direct, measurement = _measurement_inputs()
     moment_config, fit_config = _fit_config()
@@ -955,6 +974,8 @@ def _whole_plane_measurements() -> ComponentMeasurements:
         minimum_pixels=7,
         maximum_bounds_pixels=(
             _deblend_config().maximum_compact_bounds_pixels
+            if maximum_bounds_pixels is None
+            else maximum_bounds_pixels
         ),
         atrous_plan=build_residual_atrous_plan(
             _MEASUREMENT_BEAM,
@@ -1095,24 +1116,9 @@ def test_two_fit_parents_cannot_describe_one_component() -> None:
         centroid_yx=(4.0, 8.0),
         covariance_pixels_squared=None,
     )
-    duplicated = (
-        _FitBatchResult(
-            parents=(),
-            component_records=(record,),
-            maximum_parent_read_pixels=1,
-        ),
-        _FitBatchResult(
-            parents=(),
-            component_records=(record,),
-            maximum_parent_read_pixels=1,
-        ),
-    )
-
-    assert _reduce_component_records(duplicated[:1], component_count=1) == (
-        record,
-    )
+    assert _reduce_component_records((record,), component_count=1) == (record,)
     with pytest.raises(ValueError, match="one fit parent"):
-        _reduce_component_records(duplicated, component_count=1)
+        _reduce_component_records((record, record), component_count=1)
 
 
 @pytest.mark.parametrize(
@@ -1129,14 +1135,8 @@ def test_fit_parents_must_describe_exactly_the_published_components(
         centroid_yx=(4.0, 8.0),
         covariance_pixels_squared=None,
     )
-    result = _FitBatchResult(
-        parents=(),
-        component_records=(record,),
-        maximum_parent_read_pixels=1,
-    )
-
     with pytest.raises(ValueError, match="every published component"):
-        _reduce_component_records((result,), component_count=component_count)
+        _reduce_component_records((record,), component_count=component_count)
 
 
 def test_a_fit_parent_read_that_misses_a_component_fails_closed(
@@ -1228,7 +1228,12 @@ def _assert_parents_equal(
         )
 
 
-def test_component_fits_are_executor_invariant(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "maximum_bounds_pixels", [None, 1], ids=("windows", "deferred")
+)
+def test_component_fits_are_executor_invariant(
+    tmp_path: Path, maximum_bounds_pixels: int | None
+) -> None:
     """Workers fit exactly what one in-process reference fits.
 
     Every value a task carries must survive the round trip a distributed
@@ -1237,7 +1242,9 @@ def test_component_fits_are_executor_invariant(tmp_path: Path) -> None:
     it reformats itself. See
     :func:`~hebog.algorithms.astrometry.celestial_wcs_from_header_text`.
     """
-    baseline = _run_fits(tmp_path / "reference")
+    baseline = _run_fits(
+        tmp_path / "reference", maximum_bounds_pixels=maximum_bounds_pixels
+    )
     reference, reference_sink = baseline.result, baseline.sink
 
     with Client(
@@ -1249,6 +1256,7 @@ def test_component_fits_are_executor_invariant(tmp_path: Path) -> None:
         variant = _run_fits(
             tmp_path / "dask",
             executor=DaskExecutor(client),
+            maximum_bounds_pixels=maximum_bounds_pixels,
         )
 
     _assert_parents_equal(variant.result.parents, reference.parents)
@@ -1427,6 +1435,8 @@ def test_fit_rounds_forbid_empty_executor_work_records() -> None:
         _ContextPublicationBatch(requests=())
     with pytest.raises(ValueError, match="fit batch must not be empty"):
         _FitBatch(parents=(), read_bounds=ImageBounds(0, 1, 0, 1))
+    with pytest.raises(ValueError, match="deferred component batch must not"):
+        _DeferredBatch(cores=())
     with pytest.raises(ValueError, match="support batch must not be empty"):
         _SupportBatch(requests=())
 
@@ -1646,13 +1656,14 @@ def test_component_fit_stage_requires_matching_sinks_and_generations(
         generation_id="incomplete",
     )
 
-    def run(
+    def run(  # noqa: PLR0913
         target: PartitionManifest,
         *,
         image_source: object = source,
         background_source: ZarrProductSink = background,
         sink_manifest: PartitionManifest | None = None,
         name: str = "fits",
+        config: ComponentFitStageConfig | None = None,
     ) -> None:
         run_component_fit_stage(
             image_source,  # type: ignore[arg-type]
@@ -1661,7 +1672,7 @@ def test_component_fit_stage_requires_matching_sinks_and_generations(
             components,
             fit_parents,
             target,
-            config=_fit_stage_config(),
+            config=_fit_stage_config() if config is None else config,
             component_count=_component_count(),
             wcs_header_text=_measurement_header().tostring(),
             beam=RestoringBeam(4.0 / 3600.0, 4.0 / 3600.0, 0.0),
@@ -1686,6 +1697,13 @@ def test_component_fit_stage_requires_matching_sinks_and_generations(
             manifest,
             image_source=_ShiftedBoundsSource(source),
             name="shifted",
+        )
+    with pytest.raises(ValueError, match="different fit-read bounds"):
+        run(
+            manifest,
+            image_source=_ShiftedBoundsSource(source),
+            name="shifted-deferred",
+            config=_fit_stage_config(maximum_bounds_pixels=1),
         )
 
 
@@ -1762,3 +1780,160 @@ def test_fit_rounds_publish_an_image_with_no_fit_parent(
             ImageBounds(0, _SHAPE_YX[0], 0, _SHAPE_YX[1]),
         )
     ).any()
+
+
+def _fit_parent_windows(published: _PublishedFits) -> dict[int, ImageBounds]:
+    """Return every fit parent's read window, from its published labels."""
+    labels = np.asarray(
+        published.fit_parent_sink.read_completed_window(
+            "fit-parent-labels",
+            ImageBounds(0, _SHAPE_YX[0], 0, _SHAPE_YX[1]),
+        ),
+        dtype=np.int32,
+    )
+    margin = _fit_stage_config().margin_pixels
+    windows: dict[int, ImageBounds] = {}
+    for parent_index in range(1, int(labels.max()) + 1):
+        rows, columns = np.nonzero(labels == parent_index)
+        windows[parent_index] = ImageBounds(
+            int(rows.min()),
+            int(rows.max()) + 1,
+            int(columns.min()),
+            int(columns.max()) + 1,
+        ).expanded(margin, _SHAPE_YX)
+    return windows
+
+
+@pytest.mark.parametrize("core", [16, 24, 48])
+def test_a_deferred_fit_parent_is_described_from_its_cores(
+    tmp_path: Path, core: int
+) -> None:
+    """A parent the compact bound defers is never read whole.
+
+    Deferral needs no pixel, so only the records of the components it owns
+    read anything, and each core that holds them returns their own pixels.
+    A bound of one pixel defers every fixture parent: the records still
+    equal the whole-plane builder's bit for bit, and no read is wider than
+    one core.
+    """
+    published = _run_fits(tmp_path / "run", core=core, maximum_bounds_pixels=1)
+    result = published.result
+
+    assert result.fit_parent_count > 1
+    assert result.component_records == _whole_plane_component_records()
+    assert result.parents == tuple(
+        FitParentMeasurement(deferred=True)
+        for _ in range(result.fit_parent_count)
+    )
+    assert result.deferred_parent_count == (
+        _whole_plane_measurements(
+            maximum_bounds_pixels=1
+        ).deferred_parent_count
+    )
+    assert result.parent_batch_count == 0
+    assert 0 < result.maximum_parent_read_pixels <= core * core
+
+
+def test_only_the_parents_the_compact_bound_admits_are_read_whole(
+    tmp_path: Path,
+) -> None:
+    """Fitting needs a parent's window, and admission bounds that window.
+
+    The bound admits every fixture parent but the widest, and the budget is
+    the narrowest parent's window, so an admitted parent above it is read
+    alone. The fits and the deferral equal the whole-plane measurement under
+    the same bound, the deferred parent's records come from its cores, and
+    the widest read is the widest admitted window.
+    """
+    areas = sorted(
+        read_pixels(window)
+        for window in _fit_parent_windows(
+            _run_fits(tmp_path / "reference")
+        ).values()
+    )
+    assert len(areas) > 2 and areas[-1] > areas[-2] > areas[0], (
+        "the fixture must hold parents of three distinct widths"
+    )
+    bound = areas[-2]
+
+    published = _run_fits(
+        tmp_path / "run",
+        maximum_bounds_pixels=bound,
+        maximum_batch_read_pixels=areas[0],
+    )
+    reconciled = _reconciled(
+        published, _run_groups(published, maximum_bounds_pixels=bound)
+    )
+
+    expected = _whole_plane_measurements(maximum_bounds_pixels=bound)
+    assert expected.deferred_parent_count == 1
+    assert reconciled.fits == expected.fits
+    assert reconciled.deferred_parent_count == expected.deferred_parent_count
+    assert published.result.component_records == (
+        _whole_plane_component_records()
+    )
+    assert published.result.maximum_parent_read_pixels == bound
+
+
+def test_the_deferred_round_fails_closed_on_a_silent_executor(
+    tmp_path: Path,
+) -> None:
+    """Records from a round that returned nothing are never published.
+
+    Every parent is deferred, so the fourth round is the deferred one: the
+    two fit-parent rounds, the extent scan, then the cores of the parents.
+    """
+    with pytest.raises(ValueError, match="no deferred component results"):
+        _run_fits(
+            tmp_path / "run",
+            executor=_DropNthMapExecutor(4),
+            maximum_bounds_pixels=1,
+        )
+
+
+def test_every_core_holding_a_deferred_parent_must_answer() -> None:
+    """A component described from part of its pixels would be wrong."""
+    partition = _manifest(16).tiles[0]
+    batches = (
+        _DeferredBatch(
+            cores=(_DeferredCore(partition=partition, parent_indexes=(1,)),)
+        ),
+    )
+
+    with pytest.raises(ValueError, match="must answer"):
+        _deferred_component_records(batches, (), image_width=_SHAPE_YX[1])
+
+
+@pytest.mark.parametrize(
+    "maximum_bounds_pixels", [None, 1], ids=("windows", "deferred")
+)
+def test_an_invalid_owner_pixel_fails_closed_on_either_path(
+    tmp_path: Path, maximum_bounds_pixels: int | None
+) -> None:
+    """A component that owns an invalid pixel is never described.
+
+    Both the window path and the cores of a deferred parent refuse it, so
+    deferral cannot turn an invalid ownership into a published record.
+    """
+    _, _, valid, direct, _ = _measurement_inputs()
+    holed = valid.copy()
+    holed[tuple(np.argwhere(direct > 0)[0])] = False
+
+    with pytest.raises(ValueError, match="must be scientifically valid"):
+        _run_fits(
+            tmp_path / "run",
+            maximum_bounds_pixels=maximum_bounds_pixels,
+            valid_pixels=holed,
+        )
+
+
+def test_a_fit_parent_beyond_the_reviewed_bound_is_never_batched() -> None:
+    """Such a parent is deferred, so a batch holding it has no bound at all."""
+    parent = _FitParentExtent(
+        parent_index=1, read_bounds=ImageBounds(0, 4, 0, 4)
+    )
+
+    with pytest.raises(ValueError, match="wider than the read budget"):
+        _fit_batches(
+            (parent,), maximum_batch_read_pixels=8, maximum_bounds_pixels=15
+        )

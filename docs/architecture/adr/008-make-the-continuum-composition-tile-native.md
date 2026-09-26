@@ -12,7 +12,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-09-18 |
-| **Last Updated** | 2026-09-26 (one batching rule for objects wider than the read budget) |
+| **Last Updated** | 2026-09-26 (a deferred fit parent is never read whole) |
 | **Deciders** | Gemma Danks |
 | **Tags** | tiling, halos, ownership, reconciliation, memory, invariance |
 
@@ -292,7 +292,7 @@ that only one round reads would cost a generation for nothing.
 | Deblend | parent window | `direct-snr`, `valid-pixels`, both label planes | bounded component memberships, local to the parent |
 | Component write | core, halo 0 | the numbered memberships | `component-direct-labels`, `component-measurement-labels` |
 | Fit parents | core, halo 0 | `component-measurement-labels` | context island summaries; then `fit-parent-labels` |
-| Component fits | fit-parent window + margin | residual, RMS, validity, both component planes | fit records, groups, grouping evidence, a measurement-support patch, each owned component's association record |
+| Component fits | fit-parent window + margin, or a deferred parent's cores | residual, RMS, validity, both component planes | fit records, groups, grouping evidence, a measurement-support patch, each owned component's association record |
 | Support write | core, halo 0 | the patches | `measurement-support` |
 | Support features | core, halo 0 | `measurement-support`, `valid-pixels`, `component-measurement-labels` | feature island summaries and each measurement label's bounds |
 | Cross-parent loops and extended residual | support-feature window + margin | residual, RMS, validity, `measurement-support`, `component-measurement-labels`, the sharded fit records | extended group records and grouping evidence |
@@ -333,6 +333,7 @@ here:
 | Round | Whole object at once? | An object wider than the budget |
 | --- | --- | --- |
 | Detection island rows | No: a count, sums and a median over the island's pixels | Measured from its cores |
+| Component fits | Yes for the fit: a joint model needs the parent's whole window. No for its components' association records, which are moments over each component's own pixels | A parent whose window `maximum_bounds_pixels` refuses is deferred as T3, exactly as the whole-plane pass defers it, so its window is never read: the records of the components it owns come from the cores that hold them, restored to raster order, bit for bit. A parent the bound admits is read in its window, alone when that window exceeds the budget |
 | Cross-parent loops and extended residual | Yes: grouping labels and fits the feature's window | Read alone. `support_feature_window` leaves a feature wider than `maximum_bounds_pixels` ungrouped as T3, exactly as the whole-plane pass does, so that bound (250,000 pixels in the reviewed profile) limits every grouping read |
 
 ### Extended association

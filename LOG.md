@@ -25396,3 +25396,35 @@ the per-worker placement finding.
   coverage is 96.68% branch-aware over 2,610 tests, with
   `stages/batching.py`, `stages/islands.py` and `stages/objects.py` at
   100%.
+
+## 2026-09-26 — M2: a deferred fit parent is never read whole
+
+- **Defect.** A fit parent whose window the reviewed compact bound refuses is
+  deferred by `measure_fit_parent_components` without touching a pixel, yet
+  the fit round still read its whole window, because the same read built the
+  association records of the components the parent owns. Fit parents are
+  the dilated measurement support, so a chain of sources whose contexts
+  touch, or one filament, makes a parent of any width.
+- **Fix.** The round now decides deferral from the reconciled extent, with
+  the kernel's own rule (`compact_window_is_admitted`, which the grouping
+  window uses too), and never opens a deferred parent's window. Each core
+  that holds one returns its components' direct pixels and residual with
+  global raster indices, and the driver restores raster order and builds
+  each record from them with `build_detection_component_record`. The window
+  builder now runs through the same pixel-list core, so the two paths give
+  the same record bit for bit. A parent the bound admits is still read in
+  its window, alone when that window passes the budget; that read is bounded
+  by the reviewed 250,000 pixels, not by the image. Every core asked for a
+  deferred parent must answer, and an invalid owner pixel fails on either
+  path.
+- **Evidence.** With a bound of one pixel every fixture parent is deferred:
+  the records equal the whole-plane builder's at 16-, 24- and 48-pixel cores
+  and under Dask, and no read is wider than one core, where the old round
+  read windows of up to 3,360 pixels. With the bound between the fixture's
+  widest parent and the next, the fits and the deferral equal the
+  whole-plane measurement under the same bound, and the widest read is the
+  widest admitted window. The driver holds a deferred parent's component
+  pixels, 16 bytes each, for as long as it takes to describe them. Portable
+  coverage is 96.71% branch-aware over 2,625 tests; the one changed line it
+  missed, the deferred round's bounds check, now has its own case, so
+  `stages/objects.py` is at 100%.

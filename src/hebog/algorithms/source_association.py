@@ -116,40 +116,33 @@ def _validated_planes(
 
 
 def _positive_moment_geometry(
+    y_pixels: npt.NDArray[np.int64],
+    x_pixels: npt.NDArray[np.int64],
     signal: npt.NDArray[np.float64],
-    support: npt.NDArray[np.bool_],
-    *,
-    origin_yx: tuple[int, int],
 ) -> tuple[
     tuple[float, float],
     tuple[tuple[float, float], tuple[float, float]] | None,
 ]:
     """Return positive-signal centroid and exact-support covariance.
 
-    Pixel coordinates carry ``origin_yx`` before they are weighted, so the
-    geometry depends on where the component lies in the image and not on
-    the plane or window it was measured in.
+    The arrays hold one component's support pixels in raster order, with
+    global coordinates, so the geometry depends on where the component lies
+    in the image and not on the plane, window or cores it was read from.
     """
-    y_offset, x_offset = origin_yx
-    positive = support & np.isfinite(signal) & (signal > 0.0)
+    positive = np.isfinite(signal) & (signal > 0.0)
     if not bool(np.any(positive)):
-        local_y, local_x = np.nonzero(support)
-        return (
-            float(np.mean(local_y + y_offset)),
-            float(np.mean(local_x + x_offset)),
-        ), None
+        return (float(np.mean(y_pixels)), float(np.mean(x_pixels))), None
     weights = signal[positive]
     weight = float(np.sum(weights, dtype=np.float64))
-    local_y, local_x = np.nonzero(positive)
-    y_pixels = local_y + y_offset
-    x_pixels = local_x + x_offset
-    centroid_y = float(np.sum(y_pixels * weights, dtype=np.float64) / weight)
-    centroid_x = float(np.sum(x_pixels * weights, dtype=np.float64) / weight)
+    y_positive = y_pixels[positive]
+    x_positive = x_pixels[positive]
+    centroid_y = float(np.sum(y_positive * weights, dtype=np.float64) / weight)
+    centroid_x = float(np.sum(x_positive * weights, dtype=np.float64) / weight)
     centroid = (centroid_y, centroid_x)
     if weights.size < _MINIMUM_SHAPE_PIXELS:
         return centroid, None
-    delta_y = y_pixels - centroid_y
-    delta_x = x_pixels - centroid_x
+    delta_y = y_positive - centroid_y
+    delta_x = x_positive - centroid_x
     yy = float(np.sum(weights * delta_y * delta_y) / weight)
     yx = float(np.sum(weights * delta_y * delta_x) / weight)
     xx = float(np.sum(weights * delta_x * delta_x) / weight)
@@ -161,6 +154,38 @@ def _positive_moment_geometry(
     ):
         return centroid, None
     return centroid, ((yy, yx), (yx, xx))
+
+
+def _component_record(
+    label_value: int,
+    y_pixels: npt.NDArray[np.int64],
+    x_pixels: npt.NDArray[np.int64],
+    signal: npt.NDArray[np.float64],
+    *,
+    canonical_reference_yx: tuple[int, int] | None,
+) -> DetectionComponentRecord:
+    """Describe one component from its support pixels, in raster order.
+
+    Without a caller's canonical reference, the component is named by its
+    first pixel, which raster order makes the same pixel wherever it is read.
+    """
+    reference = (
+        (int(y_pixels[0]), int(x_pixels[0]))
+        if canonical_reference_yx is None
+        else canonical_reference_yx
+    )
+    if min(reference) < 0:
+        raise ValueError("canonical component references must be positive")
+    centroid, covariance = _positive_moment_geometry(
+        y_pixels, x_pixels, signal
+    )
+    return DetectionComponentRecord(
+        component_id=_component_id(reference),
+        label_value=label_value,
+        canonical_pixel_yx=reference,
+        centroid_yx=centroid,
+        covariance_pixels_squared=covariance,
+    )
 
 
 def build_detection_component_records(
@@ -191,41 +216,60 @@ def build_detection_component_records(
         crop = component_windows[label_value - 1]
         if crop is None:
             raise ValueError("component labels must own at least one pixel")
-        window_origin_yx = (
-            origin_yx[0] + crop[0].start,
-            origin_yx[1] + crop[1].start,
-        )
         support = (labels[crop] == label_value) & valid[crop]
-        first_local = tuple(int(value) for value in np.argwhere(support)[0])
-        derived_reference = (
-            first_local[0] + window_origin_yx[0],
-            first_local[1] + window_origin_yx[1],
-        )
-        canonical_reference = (
-            canonical_component_references_yx.get(
-                label_value,
-                derived_reference,
-            )
-            if canonical_component_references_yx is not None
-            else derived_reference
-        )
-        if min(canonical_reference) < 0:
-            raise ValueError("canonical component references must be positive")
-        centroid, covariance = _positive_moment_geometry(
-            signal[crop],
-            support,
-            origin_yx=window_origin_yx,
-        )
+        local_y, local_x = np.nonzero(support)
         records.append(
-            DetectionComponentRecord(
-                component_id=_component_id(canonical_reference),
-                label_value=label_value,
-                canonical_pixel_yx=canonical_reference,
-                centroid_yx=centroid,
-                covariance_pixels_squared=covariance,
+            _component_record(
+                label_value,
+                local_y + (origin_yx[0] + crop[0].start),
+                local_x + (origin_yx[1] + crop[1].start),
+                signal[crop][support],
+                canonical_reference_yx=(
+                    None
+                    if canonical_component_references_yx is None
+                    else canonical_component_references_yx.get(label_value)
+                ),
             )
         )
     return tuple(sorted(records, key=lambda item: item.canonical_pixel_yx))
+
+
+def build_detection_component_record(
+    label_value: int,
+    raster_indices: npt.NDArray[np.int64],
+    association_signal: npt.NDArray[np.float64],
+    *,
+    image_width: int,
+) -> DetectionComponentRecord:
+    """Describe one component from its own valid support pixels.
+
+    ``raster_indices`` are global ``y * image_width + x`` positions in
+    ascending raster order, and ``association_signal`` is aligned with them.
+    A component too wide to read at once arrives as pixels from each core
+    that holds it; restored to raster order, they are exactly the pixels a
+    window over it presents, so this is the record
+    :func:`build_detection_component_records` builds there, bit for bit.
+
+    Raises:
+        ValueError: If the component has no pixel, the arrays disagree, or
+            the pixels are not in strictly ascending raster order.
+    """
+    indices = np.asarray(raster_indices, dtype=np.int64)
+    signal = np.asarray(association_signal, dtype=np.float64)
+    if indices.ndim != 1 or indices.shape != signal.shape or not indices.size:
+        raise ValueError(
+            "component pixels must be non-empty and aligned with their signal"
+        )
+    if bool(np.any(np.diff(indices) <= 0)):
+        raise ValueError("component pixels must be in ascending raster order")
+    y_pixels, x_pixels = np.divmod(indices, image_width)
+    return _component_record(
+        label_value,
+        y_pixels,
+        x_pixels,
+        signal,
+        canonical_reference_yx=None,
+    )
 
 
 def _validated_association_inputs(  # noqa: PLR0913

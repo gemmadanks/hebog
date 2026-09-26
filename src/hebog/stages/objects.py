@@ -15,7 +15,7 @@ parent order, which is the order a whole-plane pass would use.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Iterable, Sequence
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from functools import partial
@@ -34,6 +34,7 @@ from hebog.algorithms.astrometry import (
 from hebog.algorithms.component_measurement import (
     FitParentMeasurement,
     SupportFeatureGroups,
+    compact_window_is_admitted,
     fit_parent_margin_pixels,
     group_support_feature_components,
     measure_fit_parent_components,
@@ -54,6 +55,7 @@ from hebog.algorithms.reconciliation import (
     reconcile_candidate_tiles,
 )
 from hebog.algorithms.source_association import (
+    build_detection_component_record,
     build_detection_component_records,
 )
 from hebog.config import (
@@ -175,6 +177,7 @@ class _CoreExtent:
     direct_bounds: ImageBounds | None
     measurement_bounds: ImageBounds
     first_pixel_yx: tuple[int, int] | None
+    tile_id: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -352,6 +355,7 @@ def _scan_extents(
                         first_pixel_yx=(
                             None if direct_record is None else direct_record[1]
                         ),
+                        tile_id=request.partition.tile_id,
                     )
                 )
         return _ExtentBatchResult(extents=tuple(extents))
@@ -737,6 +741,27 @@ def _publish_batch(
             product_chunks=tuple(chunks),
             observed_labels=tuple(sorted(observed)),
         )
+
+
+def _map_round[Batch, Result](
+    executor: Executor,
+    function: Callable[[Batch], Result],
+    batches: tuple[Batch, ...],
+    *,
+    round_name: str,
+) -> tuple[Result, ...]:
+    """Evaluate one round of object work, which may have none to do.
+
+    Raises:
+        ValueError: If the executor returns nothing for work it was given,
+            which would publish an incomplete result as a complete one.
+    """
+    if not batches:
+        return ()
+    results = tuple(executor.map_batches(function, batches))
+    if not results:
+        raise ValueError(f"executor returned no {round_name} results")
+    return results
 
 
 def _tile_batches(
@@ -1481,6 +1506,48 @@ class _SupportBatch:
             raise ValueError("support batch must not be empty")
 
 
+@dataclass(frozen=True, slots=True)
+class _DeferredCore:
+    """One core and the deferred fit parents whose components it holds."""
+
+    partition: TilePartition
+    parent_indexes: tuple[int, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class _DeferredBatch:
+    """One bounded coarse executor task over the cores of deferred parents."""
+
+    cores: tuple[_DeferredCore, ...]
+
+    def __post_init__(self) -> None:
+        """Forbid empty executor work records."""
+        if not self.cores:
+            raise ValueError("deferred component batch must not be empty")
+
+
+@dataclass(frozen=True, slots=True)
+class _ComponentPiece:
+    """One component's direct pixels in one core, in raster order.
+
+    ``raster_indices`` are global ``y * width + x`` positions, so pieces
+    from several cores sort back into the order one window presents them in.
+    """
+
+    label_value: int
+    raster_indices: npt.NDArray[np.int64]
+    residual: npt.NDArray[np.float64]
+
+
+@dataclass(frozen=True, slots=True)
+class _DeferredBatchResult:
+    """The deferred parents' component pixels one batch of cores held."""
+
+    pieces: tuple[_ComponentPiece, ...]
+    tile_ids: tuple[str, ...]
+    maximum_core_read_pixels: int
+
+
 def _scan_fit_parent_extents(
     batch: _SupportBatch,
     *,
@@ -1507,6 +1574,7 @@ def _scan_fit_parent_extents(
                         direct_bounds=parent_bounds,
                         measurement_bounds=parent_bounds,
                         first_pixel_yx=first,
+                        tile_id=request.partition.tile_id,
                     )
                 )
         return _ExtentBatchResult(extents=tuple(extents))
@@ -1516,45 +1584,32 @@ def _fit_batches(
     parents: tuple[_FitParentExtent, ...],
     *,
     maximum_batch_read_pixels: int,
+    maximum_bounds_pixels: int,
 ) -> tuple[_FitBatch, ...]:
-    """Group fit parents so one read serves several, within the budget."""
-    batches: list[_FitBatch] = []
-    grouped: list[_FitParentExtent] = []
-    for parent in parents:
-        candidate = [*grouped, parent]
-        if (
-            grouped
-            and int(np.prod(_fit_batch_bounds(candidate).shape_yx))
-            > maximum_batch_read_pixels
-        ):
-            batches.append(
-                _FitBatch(
-                    parents=tuple(grouped),
-                    read_bounds=_fit_batch_bounds(grouped),
-                )
-            )
-            grouped = [parent]
-            continue
-        grouped = candidate
-    if grouped:
-        batches.append(
-            _FitBatch(
-                parents=tuple(grouped),
-                read_bounds=_fit_batch_bounds(grouped),
-            )
+    """Group fit parents so one read serves several, within the budget.
+
+    A joint fit needs a parent's whole window at once, and no core can stand
+    in for it. The reviewed compact bound limits that window: a parent beyond
+    it is deferred and never reaches a batch. So a parent wider than the
+    read budget is read alone, and its read is bounded by that admission,
+    not by the image.
+
+    Raises:
+        ValueError: If a parent beyond the reviewed bound reaches a batch,
+            which would leave its read bounded by nothing.
+    """
+    return tuple(
+        _FitBatch(parents=batch.objects, read_bounds=batch.read_bounds)
+        for batch in batch_object_windows(
+            parents,
+            window=lambda parent: parent.read_bounds,
+            maximum_batch_read_pixels=maximum_batch_read_pixels,
+            bounded_by_admission=lambda parent: compact_window_is_admitted(
+                parent.read_bounds,
+                maximum_bounds_pixels=maximum_bounds_pixels,
+            ),
         )
-    return tuple(batches)
-
-
-def _fit_batch_bounds(parents: list[_FitParentExtent]) -> ImageBounds:
-    """Return the one read that serves every fit parent in a batch."""
-    bounds = parents[0].read_bounds
-    for parent in parents[1:]:
-        merged = _union_bounds(bounds, parent.read_bounds)
-        if merged is None:  # pragma: no cover - both bounds always exist
-            raise ValueError("fit batch bounds must exist")
-        bounds = merged
-    return bounds
+    )
 
 
 def _fit_batch(  # noqa: PLR0913
@@ -1699,6 +1754,181 @@ def _parent_component_records(
     )
 
 
+def _parent_holders(
+    results: tuple[_ExtentBatchResult, ...],
+) -> dict[int, frozenset[str]]:
+    """Name the cores in which each fit parent holds a pixel."""
+    holders: dict[int, set[str]] = {}
+    for result in results:
+        for extent in result.extents:
+            holders.setdefault(extent.parent_label, set()).add(extent.tile_id)
+    return {label: frozenset(tiles) for label, tiles in holders.items()}
+
+
+def _deferred_batches(
+    deferred: tuple[_FitParentExtent, ...],
+    holders: dict[int, frozenset[str]],
+    manifest: PartitionManifest,
+    *,
+    maximum_tiles_per_batch: int,
+) -> tuple[_DeferredBatch, ...]:
+    """Name each core holding a deferred parent, and which parents it holds."""
+    parents_by_tile: dict[str, list[int]] = {}
+    for parent in deferred:
+        for tile_id in holders[parent.parent_index]:
+            parents_by_tile.setdefault(tile_id, []).append(parent.parent_index)
+    cores = tuple(
+        _DeferredCore(
+            partition=partition,
+            parent_indexes=tuple(sorted(parents_by_tile[partition.tile_id])),
+        )
+        for partition in manifest.tiles
+        if partition.tile_id in parents_by_tile
+    )
+    return tuple(
+        _DeferredBatch(cores=cores[start : start + maximum_tiles_per_batch])
+        for start in range(0, len(cores), maximum_tiles_per_batch)
+    )
+
+
+def _gather_deferred_components(  # noqa: PLR0913
+    batch: _DeferredBatch,
+    *,
+    source: _WindowReadable,
+    background_rms_source: _CompletedProductSource,
+    detection_source: _CompletedProductSource,
+    component_source: _CompletedProductSource,
+    fit_parent_source: _CompletedProductSource,
+    image_width: int,
+) -> _DeferredBatchResult:
+    """Return the direct pixels of deferred parents' components, per core.
+
+    A deferred parent is not fitted, so nothing needs its window: the record
+    of each component it owns reads only that component's own pixels, which
+    every core holding them returns with global raster indices.
+
+    Raises:
+        ValueError: If the image source answers with other bounds, or a
+            component owns a pixel that is not scientifically valid.
+    """
+    with (
+        background_rms_source.access_session(),
+        detection_source.access_session(),
+        component_source.access_session(),
+        fit_parent_source.access_session(),
+    ):
+        pieces: list[_ComponentPiece] = []
+        maximum_read_pixels = 0
+        for core in batch.cores:
+            bounds = core.partition.core_bounds
+            window = source.read_window(bounds)
+            if window.bounds != bounds:
+                raise ValueError(
+                    "image source returned different fit-read bounds"
+                )
+            residual = np.asarray(
+                window.values, dtype=np.float64
+            ) - np.asarray(
+                background_rms_source.read_completed_window(
+                    "background", bounds
+                ),
+                dtype=np.float64,
+            )
+            valid = np.asarray(
+                detection_source.read_completed_window("valid-pixels", bounds),
+                dtype=np.bool_,
+            )
+            direct = np.asarray(
+                component_source.read_completed_window(
+                    "component-direct-labels", bounds
+                ),
+                dtype=np.int32,
+            )
+            owned = (direct > 0) & np.isin(
+                np.asarray(
+                    fit_parent_source.read_completed_window(
+                        "fit-parent-labels", bounds
+                    ),
+                    dtype=np.int32,
+                ),
+                core.parent_indexes,
+            )
+            if bool(np.any(owned & ~valid)):
+                raise ValueError(
+                    "component owner pixels must be scientifically valid"
+                )
+            rows, columns = np.nonzero(owned)
+            labels = direct[rows, columns]
+            raster_indices = (
+                (rows.astype(np.int64) + bounds.y_start) * image_width
+                + columns
+                + bounds.x_start
+            )
+            values = residual[rows, columns]
+            # Boolean selection keeps each component's pixels in the raster
+            # order this core holds them in.
+            for label_value in np.unique(labels):
+                selected = labels == label_value
+                pieces.append(
+                    _ComponentPiece(
+                        label_value=int(label_value),
+                        raster_indices=raster_indices[selected],
+                        residual=values[selected],
+                    )
+                )
+            maximum_read_pixels = max(maximum_read_pixels, read_pixels(bounds))
+        return _DeferredBatchResult(
+            pieces=tuple(pieces),
+            tile_ids=tuple(core.partition.tile_id for core in batch.cores),
+            maximum_core_read_pixels=maximum_read_pixels,
+        )
+
+
+def _deferred_component_records(
+    batches: tuple[_DeferredBatch, ...],
+    results: tuple[_DeferredBatchResult, ...],
+    *,
+    image_width: int,
+) -> tuple[DetectionComponentRecord, ...]:
+    """Describe every component of a deferred parent from its cores' pieces.
+
+    The pieces are put back in raster order, which is the order a window
+    over the component presents its pixels, so each record is the one that
+    window would build, bit for bit.
+
+    Raises:
+        ValueError: If a core that holds a deferred parent did not answer,
+            which would describe its components from part of their pixels.
+    """
+    requested = {
+        core.partition.tile_id for batch in batches for core in batch.cores
+    }
+    answered = {tile_id for result in results for tile_id in result.tile_ids}
+    if answered != requested:
+        raise ValueError(
+            "every core holding a deferred fit parent must answer"
+        )
+    pieces: dict[int, list[_ComponentPiece]] = {}
+    for result in results:
+        for piece in result.pieces:
+            pieces.setdefault(piece.label_value, []).append(piece)
+    records: list[DetectionComponentRecord] = []
+    for label_value, parts in sorted(pieces.items()):
+        raster_indices = np.concatenate(
+            [part.raster_indices for part in parts]
+        )
+        order = np.argsort(raster_indices, kind="stable")
+        records.append(
+            build_detection_component_record(
+                label_value,
+                raster_indices[order],
+                np.concatenate([part.residual for part in parts])[order],
+                image_width=image_width,
+            )
+        )
+    return tuple(records)
+
+
 def _publish_support(
     batch: _SupportBatch,
     *,
@@ -1755,7 +1985,7 @@ def _intersects(first: ImageBounds, second: ImageBounds) -> bool:
 
 
 def _reduce_component_records(
-    results: tuple[_FitBatchResult, ...],
+    component_records: Iterable[DetectionComponentRecord],
     *,
     component_count: int,
 ) -> tuple[DetectionComponentRecord, ...]:
@@ -1777,11 +2007,7 @@ def _reduce_component_records(
     """
     records = tuple(
         sorted(
-            (
-                record
-                for result in results
-                for record in result.component_records
-            ),
+            component_records,
             key=lambda record: record.canonical_pixel_yx,
         )
     )
@@ -1818,6 +2044,13 @@ def run_component_fit_stage(  # noqa: PLR0913, PLR0917
     The measuring round also describes the direct components each parent
     owns, because the residual and the validity those records need are
     already on the task that fits them.
+
+    A parent whose window the reviewed compact bound refuses is deferred, as
+    the whole-plane pass defers it, so its window is never read. Its
+    components are described instead from the pixels each core holding them
+    returns, restored to raster order, which gives the records a window would
+    give, bit for bit. No read is then wider than the budget, one core, or
+    one window that bound admits, whichever is largest.
 
     ``component_count`` is the count the topology stage that published
     ``component_source`` returned. The records must describe exactly those
@@ -1881,38 +2114,90 @@ def run_component_fit_stage(  # noqa: PLR0913, PLR0917
             key=lambda item: item.parent_label,
         )
     )
-    fit_batches = _fit_batches(
-        extents,
-        maximum_batch_read_pixels=config.maximum_batch_read_pixels,
-    )
-    fit_results: tuple[_FitBatchResult, ...] = ()
-    if fit_batches:
-        fit_results = tuple(
-            executor.map_batches(
-                partial(
-                    _fit_batch,
-                    source=source,
-                    background_rms_source=background_rms_source,
-                    detection_source=detection_source,
-                    component_source=component_source,
-                    fit_parent_source=fit_parent_source,
-                    config=config,
-                    wcs_header_text=wcs_header_text,
-                    beam=beam,
-                    image_shape_yx=image_shape_yx,
-                ),
-                fit_batches,
-            )
+    fitted = tuple(
+        extent
+        for extent in extents
+        if compact_window_is_admitted(
+            extent.read_bounds,
+            maximum_bounds_pixels=config.maximum_bounds_pixels,
         )
-        if not fit_results:
-            raise ValueError("executor returned no component fit results")
+    )
+    deferred = tuple(
+        extent
+        for extent in extents
+        if not compact_window_is_admitted(
+            extent.read_bounds,
+            maximum_bounds_pixels=config.maximum_bounds_pixels,
+        )
+    )
+    fit_batches = _fit_batches(
+        fitted,
+        maximum_batch_read_pixels=config.maximum_batch_read_pixels,
+        maximum_bounds_pixels=config.maximum_bounds_pixels,
+    )
+    fit_results = _map_round(
+        executor,
+        partial(
+            _fit_batch,
+            source=source,
+            background_rms_source=background_rms_source,
+            detection_source=detection_source,
+            component_source=component_source,
+            fit_parent_source=fit_parent_source,
+            config=config,
+            wcs_header_text=wcs_header_text,
+            beam=beam,
+            image_shape_yx=image_shape_yx,
+        ),
+        fit_batches,
+        round_name="component fit",
+    )
+    deferred_batches = _deferred_batches(
+        deferred,
+        _parent_holders(scan_results),
+        manifest,
+        maximum_tiles_per_batch=config.maximum_tiles_per_batch,
+    )
+    deferred_results = _map_round(
+        executor,
+        partial(
+            _gather_deferred_components,
+            source=source,
+            background_rms_source=background_rms_source,
+            detection_source=detection_source,
+            component_source=component_source,
+            fit_parent_source=fit_parent_source,
+            image_width=image_shape_yx[1],
+        ),
+        deferred_batches,
+        round_name="deferred component",
+    )
     measured = tuple(
-        parent
-        for result in fit_results
-        for parent in sorted(result.parents, key=lambda item: item[0])
+        sorted(
+            (
+                *(item for result in fit_results for item in result.parents),
+                *(
+                    (parent.parent_index, FitParentMeasurement(deferred=True))
+                    for parent in deferred
+                ),
+            ),
+            key=lambda item: item[0],
+        )
     )
     component_records = _reduce_component_records(
-        fit_results, component_count=component_count
+        (
+            *(
+                record
+                for result in fit_results
+                for record in result.component_records
+            ),
+            *_deferred_component_records(
+                deferred_batches,
+                deferred_results,
+                image_width=image_shape_yx[1],
+            ),
+        ),
+        component_count=component_count,
     )
     patches = tuple(
         (parent.support_bounds, parent.support_window)
@@ -1963,15 +2248,25 @@ def run_component_fit_stage(  # noqa: PLR0913, PLR0917
         ),
         partition_count=len(manifest.tiles),
         executor_task_count=(
-            len(scan_batches) + len(fit_batches) + len(publish_batches)
+            len(scan_batches)
+            + len(fit_batches)
+            + len(deferred_batches)
+            + len(publish_batches)
         ),
         maximum_graph_width=max(
             len(scan_batches),
             len(fit_batches),
+            len(deferred_batches),
             len(publish_batches),
         ),
         maximum_parent_read_pixels=max(
-            (result.maximum_parent_read_pixels for result in fit_results),
+            (
+                *(result.maximum_parent_read_pixels for result in fit_results),
+                *(
+                    result.maximum_core_read_pixels
+                    for result in deferred_results
+                ),
+            ),
             default=0,
         ),
         parent_batch_count=len(fit_batches),
@@ -2273,8 +2568,8 @@ def _group_batches(  # noqa: PLR0913
             features,
             window=lambda feature: feature.window,
             maximum_batch_read_pixels=maximum_batch_read_pixels,
-            bounded_by_admission=lambda feature: (
-                read_pixels(feature.window) <= maximum_bounds_pixels
+            bounded_by_admission=lambda feature: compact_window_is_admitted(
+                feature.window, maximum_bounds_pixels=maximum_bounds_pixels
             ),
         )
     )
