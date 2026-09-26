@@ -570,11 +570,15 @@ def test_current_projection_rejects_inconsistent_public_evidence(
             )
     with pytest.raises(ValueError, match="needs owner labels"):
         project_public_measurements(terminal, catalogue, mask, header)
+    # One published pixel owned by a component the association never named.
+    unknown_owner = owners.copy()
+    unknown_owner.flat[np.flatnonzero(mask)[0]] = owners.max() + 1
     for invalid_owners, invalid_mask in (
         (owners, mask[:-1]),
         (owners, ~mask),
         (-owners, mask),
         (owners.astype(np.float64), mask),
+        (unknown_owner, mask),
     ):
         with pytest.raises(ValueError, match="ownership or publication"):
             project_public_measurements(

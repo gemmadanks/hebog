@@ -153,15 +153,17 @@ def project_public_measurements(
         mask.setflags(write=False)
         return PublicMeasurementProjection((), (), empty, mask, (), (), ())
     owners = _required_owner_labels(owner_labels)
+    association = terminal.source_association
+    source_by_owner = source_label_by_owner(association)
+    # An owner the association never named would silently map to no source.
     if (
         owners.shape != mask.shape
         or not np.issubdtype(owners.dtype, np.integer)
         or np.any(owners < 0)
         or np.any(mask & (owners == 0))
+        or np.setdiff1d(owners, [0, *source_by_owner]).size > 0
     ):
         raise ValueError("public measurement ownership or publication changed")
-    association = terminal.source_association
-    source_by_owner = source_label_by_owner(association)
     labels = np.zeros(np.asarray(owners).shape, dtype=np.int32)
     for owner, source_label in source_by_owner.items():
         labels[np.asarray(owners) == owner] = source_label
