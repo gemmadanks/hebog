@@ -130,15 +130,20 @@ image-shaped arrays reachable from them. There are **none**. The count was
 18 at 49 bytes a pixel — 8 `int32` label planes, 9 masks and the position
 signal in `float64`, which would have been 0.41 GiB at 3,000², 4.6 GiB at
 10,000² and 10.8 GiB at LoTSS-DR3 15,402² against 18 GiB of
-development-machine memory. Nothing outside a tile scales with the image
+development-machine memory. No plane outside a tile scales with the image
 now, so what is left to measure is the tile working set, which the next
-envelope tier reports.
+envelope tier reports. One term scales with an object instead: an object
+wider than the owner read budget is measured from its cores, and in the
+island, deferred-fit, source-support and catalogue-row rounds its own pixels
+come back to the driver, so an object that fills the field would still be
+image-sized there. The plan carries that as a risk for the 10,000 tier.
 
 The image, the background, the RMS and their residual are all out, and **the
-driver now reads no window at all**: the final RMS product streams one
-canonical tile row at a time rather than validating a whole plane in memory,
-each direct component's association record is built by the fit parent that
-already reads its residual, each catalogue row's local noise is measured by
+driver now reads no object window**: its only reads are the final RMS and
+mask products, streamed one full-width canonical tile row at a time rather
+than validated as a whole plane in memory, each direct component's
+association record is built by the fit parent that already reads its
+residual, each catalogue row's local noise is measured by
 the row round that already reads its window, and the detection islands are
 reconciled and measured by a round of their own. Objects are read a batch at a
 time inside those rounds under the owner read budget: the residual is

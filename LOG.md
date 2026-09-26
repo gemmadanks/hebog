@@ -25925,3 +25925,28 @@ the per-worker placement finding.
 - **Records.** The plan's Scalability row and the performance profile now
   quote these figures beside 0.13.0's; the profile's warning lists 1,244 MiB
   among the retired ad-hoc figures.
+
+## 2026-09-26 — M2: pull request 72 review disposition
+
+- **Scope.** The Copilot and Greptile comments on `8da700e` and `d703e86`.
+- **Already fixed on the branch.** An incomplete fit-parent component set
+  (`3c78d89`) and an island wider than the read budget read whole
+  (`6326fba`, `81ba09a`).
+- **Fixed now.** The public measurement projection rejects an ownership plane
+  naming a component the association does not hold; since it reads owners
+  from the store rather than the terminal, such a pixel would have mapped to
+  no source silently. The multiscale publication round requires every scale
+  mask and the reconstruction mask to have the core's shape, the check the
+  whole-plane composition made before `8da700e`, since broadcasting let a
+  single row pass as an empty scale. The traced-peak runner prepares every
+  input before it traces any case, so a missing cut-out stops the run before
+  it spends traced work that no report would record.
+- **Deferred, as the plan already records.** Four comments note that a wide
+  object's own pixels still reach the driver in the island, deferred-fit,
+  source-support and catalogue-row rounds. That is the plan's wide-object
+  risk, with the 10,000 tier's traced peak as its trigger: moving those
+  reductions onto the cores trades bit-for-bit equality with the window path
+  for summation-order rounding, and the local-noise median has no exact
+  associative form. The plan had said the driver holds no image-sized
+  array, and the profile that nothing outside a tile scales with the image;
+  both now say no image-sized plane and name the object term.
