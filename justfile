@@ -109,9 +109,9 @@ marimo-check:
 notebook-smoke:
     uv run python scripts/check_notebooks.py
 
-# Run the portable unit and integration suite with coverage
+# Run the portable unit and integration suite with coverage, in parallel
 coverage:
-    uv run pytest -m "not slow and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data" --cov --cov-report=term-missing
+    uv run pytest -n auto --dist worksteal -m "not slow and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data" --cov --cov-report=term-missing
 
 # Build docs (MkDocs strict)
 docs-build:
