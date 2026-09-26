@@ -26011,3 +26011,43 @@ the per-worker placement finding.
   `extended-gaussians`, `filament-and-ring`, both LoTSS and both SDC1
   cut-outs. Portable coverage is 96.80% branch-aware, with
   `stages/sources.py` at 100%.
+
+## 2026-09-26 — Plan: the path to 1.0.0 as ordered tasks
+
+- **What this is.** A plan-only change after pull request 72 merged. The
+  implementation plan's roadmap is now 34 numbered tasks in six
+  dependency-ordered stages (M2 close-out, M2 ladder, M3, M4, M5, M6), each
+  with an owner and a done-when, and its current-state table is about half
+  its previous length. No code, gate value, threshold or closed result
+  changed.
+- **What left the plan.** The current-state narrative — how each driver
+  plane came out, the per-round wide-object costs, the topology and support
+  rounds, the bisected cost of the whole-plane removal and the anchor
+  history — lives only in the entries of 22–26 September, in ADR-008 and in
+  the performance profile; the plan keeps one sentence per fact and the
+  pointer. The M2 convergence row is closed: pass D is tile-native
+  (20 September), the driver holds no image-sized plane (25 September) and
+  `public_science.py` holds no plane at all. The sequencing rule "optimize
+  the code that survives" is retired with the whole-array path it
+  protected; "measure before changing" stays and "one tier and one release
+  at a time" is the second rule. Two paragraphs that repeated `AGENTS.md`
+  (ownership, and the benchmark environment and instrumentation lists) are
+  now pointers.
+- **New tasks.** The M2 close-out names what the last entries left open as
+  tasks 1–6: release the merged object pass, re-measure the crossover pair
+  on a quiet machine, repair the comparison container, reduce the store's
+  per-read overhead, keep the fit round's measurement-support patches off
+  the driver, and disposition the envelope before the 10,000 tier. The
+  10,000 tier gains its own anchor task (7), chosen to contain an
+  image-spanning filament so the wide-object driver term is measured, and
+  the removal of that term is task 9, with the rounding-versus-exactness
+  choice as the human decision. Task 16 now also records Rapthor's
+  production sector sizes, which the PyPI switch (task 13) and the
+  deployment envelope (task 22) depend on.
+- **Corrections.** The M3 profile-audit row said "hard 4/5 thresholds"; the
+  traced Rapthor profiles are 5/3, 5/4 and 7.5/5, as the contract page
+  records. Release status and the distributed-execution note still said the
+  driver assembles complete planes; both now describe the tile-native
+  driver and its declared wide-object limit.
+- **Next steps.** Tasks 1–6, in order; the human decisions among them are
+  tasks 3 and 6.
