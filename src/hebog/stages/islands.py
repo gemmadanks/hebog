@@ -8,6 +8,12 @@ published retained mask, so it spans tiles exactly as a label plane does and is
 reconciled the same way. Its labels are never published, because only these
 rounds read them, and an island's own bounds hold it entirely, so the round
 that measures it recovers it by labelling its own window.
+
+An island is not bounded in area, so its window can exceed the read budget:
+a filament may cross the whole image. Such an island is never read whole.
+The cores that hold it relabel themselves exactly as the scan did, the
+reconciled mapping names its pixels there, and the row is measured from those
+pixels alone.
 """
 
 from __future__ import annotations
@@ -32,6 +38,7 @@ from hebog.algorithms.labelling import (
 from hebog.algorithms.reconciliation import (
     DetectedIsland,
     TileLabelMapping,
+    apply_tile_label_mapping,
     reconcile_candidate_tiles,
 )
 from hebog.data_models.generations import ProductGenerationManifest
@@ -185,6 +192,48 @@ class _RowBatchResult:
 
     rows: tuple[tuple[int, CatalogueIsland], ...]
     maximum_island_read_pixels: int
+
+
+@dataclass(frozen=True, slots=True)
+class _SpanningCore:
+    """One core and the local labels of the wide islands it holds."""
+
+    partition: TilePartition
+    mapping: TileLabelMapping
+
+
+@dataclass(frozen=True, slots=True)
+class _SpanningBatch:
+    """One bounded coarse executor task over the cores of wide islands."""
+
+    cores: tuple[_SpanningCore, ...]
+
+    def __post_init__(self) -> None:
+        """Forbid empty executor work records."""
+        if not self.cores:
+            raise ValueError("island pixel batch must not be empty")
+
+
+@dataclass(frozen=True, slots=True)
+class _IslandPixels:
+    """One wide island's pixels in one core, in raster order.
+
+    ``raster_indices`` are global ``y * width + x`` positions, so pixels from
+    several cores sort back into the order one window would present them in.
+    """
+
+    global_label: int
+    raster_indices: npt.NDArray[np.int64]
+    residual: npt.NDArray[np.float64]
+    rms: npt.NDArray[np.float64]
+
+
+@dataclass(frozen=True, slots=True)
+class _PixelBatchResult:
+    """The wide-island pixels one bounded batch of cores held."""
+
+    pieces: tuple[_IslandPixels, ...]
+    maximum_core_read_pixels: int
 
 
 def _core_batches(
@@ -356,6 +405,11 @@ def _islands(reconciled: tuple[DetectedIsland, ...]) -> tuple[_Island, ...]:
     )
 
 
+def _read_pixels(bounds: ImageBounds) -> int:
+    """Return how many pixels one read over these bounds holds."""
+    return int(np.prod(bounds.shape_yx))
+
+
 def _union(first: ImageBounds, second: ImageBounds) -> ImageBounds:
     """Return the smallest bound holding both observations."""
     return ImageBounds(
@@ -386,6 +440,11 @@ def _island_batches(
     compact region: the residual is assembled from storage chunks far larger
     than one island, and one read per island would decode the chunks its
     neighbours share again for each of them.
+
+    Raises:
+        ValueError: If one island's own window exceeds the read budget. Such
+            an island is measured from its cores instead, so every batch read
+            fits the budget.
     """
     ordered = sorted(
         islands, key=lambda item: (item.bounds.y_start, item.bounds.x_start)
@@ -393,10 +452,14 @@ def _island_batches(
     batches: list[_IslandBatch] = []
     grouped: list[_Island] = []
     for island in ordered:
+        if _read_pixels(island.bounds) > maximum_batch_read_pixels:
+            raise ValueError(
+                "an island wider than the read budget is measured by its cores"
+            )
         candidate = [*grouped, island]
         if grouped and (
             len(candidate) > maximum_objects_per_batch
-            or int(np.prod(_batch_bounds(candidate).shape_yx))
+            or _read_pixels(_batch_bounds(candidate))
             > maximum_batch_read_pixels
         ):
             batches.append(
@@ -464,6 +527,42 @@ def _island_mask(
     return mask
 
 
+def _read_island_planes(
+    bounds: ImageBounds,
+    *,
+    source: _WindowReadable,
+    background_rms_source: _CompletedProductSource,
+    publication_source: _CompletedProductSource,
+) -> tuple[
+    npt.NDArray[np.float64],
+    npt.NDArray[np.float64],
+    npt.NDArray[np.bool_],
+]:
+    """Read the residual, RMS and retained mask one island read needs.
+
+    Raises:
+        ValueError: If the image source answers with other bounds.
+    """
+    window = source.read_window(bounds)
+    if window.bounds != bounds:
+        raise ValueError("image source returned different island bounds")
+    background = np.asarray(
+        background_rms_source.read_completed_window("background", bounds),
+        dtype=np.float64,
+    )
+    return (
+        np.asarray(window.values, dtype=np.float64) - background,
+        np.asarray(
+            background_rms_source.read_completed_window("rms", bounds),
+            dtype=np.float64,
+        ),
+        np.asarray(
+            publication_source.read_completed_window("retained-mask", bounds),
+            dtype=np.bool_,
+        ),
+    )
+
+
 def _measure_islands(
     batch: _IslandBatch,
     *,
@@ -478,21 +577,11 @@ def _measure_islands(
         publication_source.access_session(),
     ):
         bounds = batch.read_bounds
-        window = source.read_window(bounds)
-        if window.bounds != bounds:
-            raise ValueError("image source returned different island bounds")
-        background = np.asarray(
-            background_rms_source.read_completed_window("background", bounds),
-            dtype=np.float64,
-        )
-        residual = np.asarray(window.values, dtype=np.float64) - background
-        rms = np.asarray(
-            background_rms_source.read_completed_window("rms", bounds),
-            dtype=np.float64,
-        )
-        retained = np.asarray(
-            publication_source.read_completed_window("retained-mask", bounds),
-            dtype=np.bool_,
+        residual, rms, retained = _read_island_planes(
+            bounds,
+            source=source,
+            background_rms_source=background_rms_source,
+            publication_source=publication_source,
         )
         rows = tuple(
             (
@@ -512,8 +601,168 @@ def _measure_islands(
         )
         return _RowBatchResult(
             rows=rows,
-            maximum_island_read_pixels=int(np.prod(bounds.shape_yx)),
+            maximum_island_read_pixels=_read_pixels(bounds),
         )
+
+
+def _spanning_cores(
+    spanning: tuple[_Island, ...],
+    manifest: PartitionManifest,
+    mappings: tuple[TileLabelMapping, ...],
+) -> tuple[_SpanningCore, ...]:
+    """Name each core holding part of a wide island, and which part.
+
+    Each mapping is cut down to the wide islands' local labels, so a core
+    carries a few integers rather than its whole reconciliation.
+    """
+    wide = frozenset(island.global_label for island in spanning)
+    partitions = {partition.tile_id: partition for partition in manifest.tiles}
+    cores: list[_SpanningCore] = []
+    for mapping in mappings:
+        pairs = tuple(
+            (local_label, global_label)
+            for local_label, global_label in zip(
+                mapping.local_labels, mapping.global_labels, strict=True
+            )
+            if global_label in wide
+        )
+        if pairs:
+            cores.append(
+                _SpanningCore(
+                    partition=partitions[mapping.tile_id],
+                    mapping=TileLabelMapping(
+                        tile_id=mapping.tile_id,
+                        local_labels=tuple(local for local, _ in pairs),
+                        global_labels=tuple(label for _, label in pairs),
+                    ),
+                )
+            )
+    return tuple(cores)
+
+
+def _gather_island_pixels(
+    batch: _SpanningBatch,
+    *,
+    source: _WindowReadable,
+    background_rms_source: _CompletedProductSource,
+    publication_source: _CompletedProductSource,
+    image_shape_yx: tuple[int, int],
+) -> _PixelBatchResult:
+    """Return each wide island's pixels from the cores that hold them.
+
+    A core is relabelled exactly as the scan labelled it, so its reconciled
+    mapping names the island's pixels there, and nothing beyond the core is
+    read.
+    """
+    with (
+        background_rms_source.access_session(),
+        publication_source.access_session(),
+    ):
+        pieces: list[_IslandPixels] = []
+        maximum_read_pixels = 0
+        for core in batch.cores:
+            bounds = core.partition.core_bounds
+            residual, rms, retained = _read_island_planes(
+                bounds,
+                source=source,
+                background_rms_source=background_rms_source,
+                publication_source=publication_source,
+            )
+            labels = apply_tile_label_mapping(
+                _label_core(
+                    retained, core.partition, image_shape_yx=image_shape_yx
+                ),
+                core.mapping,
+            )
+            for global_label in sorted(set(core.mapping.global_labels)):
+                member = labels == global_label
+                rows, columns = np.nonzero(member)
+                pieces.append(
+                    _IslandPixels(
+                        global_label=global_label,
+                        raster_indices=(
+                            (rows.astype(np.int64) + bounds.y_start)
+                            * image_shape_yx[1]
+                            + columns
+                            + bounds.x_start
+                        ),
+                        residual=residual[member],
+                        rms=rms[member],
+                    )
+                )
+            maximum_read_pixels = max(
+                maximum_read_pixels, _read_pixels(bounds)
+            )
+        return _PixelBatchResult(
+            pieces=tuple(pieces),
+            maximum_core_read_pixels=maximum_read_pixels,
+        )
+
+
+def _spanning_island_row(
+    island: _Island,
+    pieces: list[_IslandPixels],
+    *,
+    image_width: int,
+    beam_area_pixels: float,
+) -> CatalogueIsland:
+    """Measure one wide island from the pixels its cores returned.
+
+    The pixels are put back in the raster order a window over the island
+    presents them in, so the row is the one that window would measure, bit
+    for bit. The driver holds only the island's own pixels, 24 bytes each,
+    which is what its exact median noise needs.
+
+    Raises:
+        ValueError: If the cores do not reproduce the reconciled island.
+    """
+    if (
+        sum(piece.raster_indices.size for piece in pieces)
+        != island.pixel_count
+    ):
+        raise ValueError("detection island must match its reconciled extent")
+    raster_indices = np.concatenate([piece.raster_indices for piece in pieces])
+    order = np.argsort(raster_indices, kind="stable")
+    if divmod(int(raster_indices[order[0]]), image_width) != (
+        island.first_pixel_yx
+    ):
+        raise ValueError("detection island must own its canonical first pixel")
+    residual = np.concatenate([piece.residual for piece in pieces])[order]
+    return measure_detection_island(
+        residual,
+        np.concatenate([piece.rms for piece in pieces])[order],
+        np.ones(residual.shape, dtype=np.bool_),
+        first_pixel_yx=island.first_pixel_yx,
+        beam_area_pixels=beam_area_pixels,
+    )
+
+
+def _spanning_rows(
+    spanning: tuple[_Island, ...],
+    results: tuple[_PixelBatchResult, ...],
+    *,
+    image_width: int,
+    beam_area_pixels: float,
+) -> tuple[tuple[int, CatalogueIsland], ...]:
+    """Measure every wide island from the pieces its cores returned."""
+    pieces: dict[int, list[_IslandPixels]] = {
+        island.global_label: [] for island in spanning
+    }
+    for result in results:
+        for piece in result.pieces:
+            pieces[piece.global_label].append(piece)
+    return tuple(
+        (
+            island.global_label,
+            _spanning_island_row(
+                island,
+                pieces[island.global_label],
+                image_width=image_width,
+                beam_area_pixels=beam_area_pixels,
+            ),
+        )
+        for island in spanning
+    )
 
 
 def _require_island_inputs(
@@ -559,6 +808,11 @@ def run_detection_island_stage(  # noqa: PLR0913
     into islands numbered by canonical first pixel, and one task per batch of
     islands measures their rows. The round publishes no plane, because only
     these rounds read the island labels.
+
+    An island whose own window exceeds ``maximum_batch_read_pixels`` takes a
+    third round instead of a window: the cores holding it return its pixels,
+    and its row is measured from them, so no read is wider than the budget or
+    one core, whichever is larger.
     """
     _require_island_inputs(
         background_rms_source,
@@ -593,10 +847,18 @@ def run_detection_island_stage(  # noqa: PLR0913
         island.global_label: detection_island_identifier(island.first_pixel_yx)
         for island in islands
     }
+    budget = config.maximum_batch_read_pixels
+    spanning = tuple(
+        island for island in islands if _read_pixels(island.bounds) > budget
+    )
     row_batches = _island_batches(
-        islands,
+        tuple(
+            island
+            for island in islands
+            if _read_pixels(island.bounds) <= budget
+        ),
         maximum_objects_per_batch=config.maximum_objects_per_batch,
-        maximum_batch_read_pixels=config.maximum_batch_read_pixels,
+        maximum_batch_read_pixels=budget,
     )
     row_results: tuple[_RowBatchResult, ...] = ()
     if row_batches:
@@ -614,13 +876,47 @@ def run_detection_island_stage(  # noqa: PLR0913
         )
         if not row_results:
             raise ValueError("executor returned no island row results")
+    spanning_cores = _spanning_cores(
+        spanning, manifest, reconciled.tile_mappings
+    )
+    pixel_batches = tuple(
+        _SpanningBatch(
+            cores=spanning_cores[
+                start : start + config.maximum_tiles_per_batch
+            ]
+        )
+        for start in range(
+            0, len(spanning_cores), config.maximum_tiles_per_batch
+        )
+    )
+    pixel_results: tuple[_PixelBatchResult, ...] = ()
+    if pixel_batches:
+        pixel_results = tuple(
+            executor.map_batches(
+                partial(
+                    _gather_island_pixels,
+                    source=source,
+                    background_rms_source=background_rms_source,
+                    publication_source=publication_source,
+                    image_shape_yx=manifest.image_shape_yx,
+                ),
+                pixel_batches,
+            )
+        )
+        if not pixel_results:
+            raise ValueError("executor returned no island pixel results")
+    rows = (
+        *(item for result in row_results for item in result.rows),
+        *_spanning_rows(
+            spanning,
+            pixel_results,
+            image_width=manifest.image_shape_yx[1],
+            beam_area_pixels=config.beam_area_pixels,
+        ),
+    )
     return DetectionIslandStageResult(
         islands=tuple(
-            row
-            for _, row in sorted(
-                (item for result in row_results for item in result.rows),
-                key=lambda item: item[0],
-            )
+            row for _, row in sorted(rows, key=lambda item: item[0])
         ),
         island_ids_by_owner=island_ids_by_owner(
             _global_owner_pairs(tiles, reconciled.tile_mappings),
@@ -628,10 +924,17 @@ def run_detection_island_stage(  # noqa: PLR0913
         ),
         island_count=len(islands),
         partition_count=len(manifest.tiles),
-        executor_task_count=len(core_batches) + len(row_batches),
-        maximum_graph_width=max(len(core_batches), len(row_batches)),
+        executor_task_count=(
+            len(core_batches) + len(row_batches) + len(pixel_batches)
+        ),
+        maximum_graph_width=max(
+            len(core_batches), len(row_batches), len(pixel_batches)
+        ),
         maximum_island_read_pixels=max(
-            (result.maximum_island_read_pixels for result in row_results),
+            (
+                *(result.maximum_island_read_pixels for result in row_results),
+                *(result.maximum_core_read_pixels for result in pixel_results),
+            ),
             default=0,
         ),
         boundary_summary_array_bytes=sum(

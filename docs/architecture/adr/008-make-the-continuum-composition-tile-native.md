@@ -12,7 +12,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-09-18 |
-| **Last Updated** | 2026-09-25 (the per-object rounds each pass owns, the island round, and the driver holding no plane) |
+| **Last Updated** | 2026-09-26 (an island wider than the read budget is measured from its cores) |
 | **Deciders** | Gemma Danks |
 | **Tags** | tiling, halos, ownership, reconciliation, memory, invariance |
 
@@ -302,7 +302,7 @@ that only one round reads would cost a generation for nothing.
 | Source support | core, halo 0, then one connected support component's window | `source-labels`, `persistent-scale-support`, `measurement-support` | support island summaries, then owner patches, then `source-measurement-labels` |
 | Source apertures | core, halo 1.5 beams | `source-measurement-labels` | `source-aperture-labels` |
 | Source rows | source window + 1.5-beam aperture | image, background, RMS, validity, source labels, position signal | catalogue shards, each segment's local noise |
-| Detection island rows | core, halo 0, then one island's window | `retained-mask`, `component-measurement-labels`; then image, background, RMS, `retained-mask` | island boundary summaries and owner-to-island pairs; then catalogue island rows |
+| Detection island rows | core, halo 0, then one island's window, or the island's cores when that window exceeds the read budget | `retained-mask`, `component-measurement-labels`; then image, background, RMS, `retained-mask` | island boundary summaries and owner-to-island pairs; then catalogue island rows, or a wide island's pixels from each core |
 
 Component numbering is canonical because the driver offsets each parent's
 local labels by the components every earlier parent produced, in ascending
@@ -397,6 +397,13 @@ them: the cores that observe which owners each island holds, and the task that
 measures an island inside its own global bounds, which contain it entirely and
 cannot connect it to another island. An owner is named against every island
 its retained support reaches, because publication can split that support.
+Admission bounds no island's area, so a filament's bounds can reach across the
+image. An island whose window exceeds the read budget is therefore never read
+whole: each core holding it relabels itself exactly as the scan did, the
+reconciled mapping names the island's pixels there, and the row is measured
+from those pixels restored to raster order, so it is the row the window would
+give, bit for bit. The driver then holds that island's own pixels, not its
+window, because its median noise has to see all of them.
 
 The rows need no reconciliation at all. `build_hebog_segment_catalogue`
 already measures one label at a time inside the window holding its support

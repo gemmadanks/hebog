@@ -10,12 +10,13 @@ from collections.abc import Callable, Iterable
 from dataclasses import replace
 from math import log, pi
 from pathlib import Path
-from typing import TypeVar
+from typing import TypeVar, cast
 
 import numpy as np
 import numpy.typing as npt
 import pytest
 from distributed import Client
+from scipy import ndimage
 
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.algorithms.reconciliation import TileLabelMapping
@@ -32,7 +33,10 @@ from hebog.stages.islands import (
     _island_batches,
     _island_mask,
     _IslandBatch,
+    _IslandPixels,
     _scan_islands,
+    _spanning_island_row,
+    _SpanningBatch,
     run_detection_island_stage,
 )
 from hebog.validation.tiled_detection import ArrayImageSource
@@ -284,7 +288,11 @@ def test_an_owner_split_between_islands_names_both(tmp_path: Path) -> None:
 def test_islands_are_partition_and_batch_invariant(
     tmp_path: Path, core: int
 ) -> None:
-    """Tile geometry and batching decide which task runs, not the rows."""
+    """Tile geometry and batching decide which task runs, not the rows.
+
+    A budget of one pixel is narrower than every island, so every row here
+    is measured from its cores and compared with rows measured in windows.
+    """
     reference = _run(tmp_path / "reference", core=64)
 
     result = _run(
@@ -301,7 +309,12 @@ def test_islands_are_partition_and_batch_invariant(
     )
 
 
-def test_islands_are_executor_invariant(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "maximum_batch_read_pixels", [65536, 1], ids=("windows", "cores")
+)
+def test_islands_are_executor_invariant(
+    tmp_path: Path, maximum_batch_read_pixels: int
+) -> None:
     """Workers measure exactly what one in-process reference measures."""
     reference = _run(tmp_path / "reference")
 
@@ -311,12 +324,54 @@ def test_islands_are_executor_invariant(tmp_path: Path) -> None:
         threads_per_worker=1,
         dashboard_address=None,
     ) as client:
-        result = _run(tmp_path / "dask", executor=DaskExecutor(client))
+        result = _run(
+            tmp_path / "dask",
+            executor=DaskExecutor(client),
+            maximum_batch_read_pixels=maximum_batch_read_pixels,
+        )
 
     assert result.islands == reference.islands
     assert dict(result.island_ids_by_owner) == dict(
         reference.island_ids_by_owner
     )
+
+
+def test_an_island_wider_than_the_budget_is_never_read_whole(
+    tmp_path: Path,
+) -> None:
+    """A wide island's row comes from its cores, and no read passes the budget.
+
+    Island admission bounds no area, so a filament can span any window. The
+    fixture's diagonal filament spans 13 by 14 pixels, wider than the 64-pixel
+    budget, while 8-pixel cores and every other island fit inside it.
+    """
+    expected = _whole_plane()
+    budget = 64
+
+    result = _run(
+        tmp_path / "run",
+        core=8,
+        maximum_objects_per_batch=8,
+        maximum_batch_read_pixels=budget,
+    )
+
+    labels, _ = cast(
+        "tuple[npt.NDArray[np.int32], int]",
+        ndimage.label(_planes()[2], structure=np.ones((3, 3))),
+    )
+    windows = cast("list[tuple[slice, slice]]", ndimage.find_objects(labels))
+    assert (
+        max(
+            (rows.stop - rows.start) * (columns.stop - columns.start)
+            for rows, columns in windows
+        )
+        > budget
+    ), "the fixture must hold an island wider than the budget"
+    assert result.islands == expected.islands
+    assert dict(result.island_ids_by_owner) == dict(
+        expected.island_ids_by_owner
+    )
+    assert 0 < result.maximum_island_read_pixels <= budget
 
 
 def test_the_island_stage_publishes_no_plane(tmp_path: Path) -> None:
@@ -366,15 +421,26 @@ def test_a_retained_pixel_without_an_owner_still_publishes_its_island(
     assert np.any(mask), "the fixture must retain pixels"
 
 
-@pytest.mark.parametrize("dropped_round", [1, 2])
+@pytest.mark.parametrize(
+    ("dropped_round", "message"),
+    ((1, "topology"), (2, "row"), (3, "pixel")),
+)
 def test_every_island_round_fails_closed_on_a_silent_executor(
-    tmp_path: Path, dropped_round: int
+    tmp_path: Path, dropped_round: int, message: str
 ) -> None:
-    """A round that returns nothing is an error, never an empty catalogue."""
-    with pytest.raises(ValueError, match="executor returned no island"):
+    """A round that returns nothing is an error, never an empty catalogue.
+
+    The 64-pixel budget sends the filament to the third round, the cores
+    that hold a wide island, and keeps every other island in a window.
+    """
+    with pytest.raises(
+        ValueError, match=f"executor returned no island {message}"
+    ):
         _run(
             tmp_path / f"dropped-{dropped_round}",
             executor=_DropNthMapExecutor(dropped_round),
+            maximum_objects_per_batch=8,
+            maximum_batch_read_pixels=64,
         )
 
 
@@ -402,6 +468,8 @@ def test_the_island_rounds_forbid_empty_executor_work_records() -> None:
         _CoreBatch(partitions=())
     with pytest.raises(ValueError, match="row batch must not be empty"):
         _IslandBatch(islands=(), read_bounds=ImageBounds(0, 1, 0, 1))
+    with pytest.raises(ValueError, match="pixel batch must not be empty"):
+        _SpanningBatch(cores=())
 
 
 def test_the_island_stage_requires_matching_generations(
@@ -583,3 +651,60 @@ def test_one_read_serves_several_islands_within_the_budget() -> None:
         )
         == ()
     )
+
+
+def test_a_window_is_never_wider_than_the_read_budget() -> None:
+    """An island too wide to read at once is refused a window of its own.
+
+    The stage measures such an island from its cores, so a window batch that
+    received one would mean the budget no longer bounds the read.
+    """
+    wide = _Island(1, (0, 0), 3, ImageBounds(0, 3, 0, 3))
+
+    with pytest.raises(ValueError, match="measured by its cores"):
+        _island_batches(
+            (wide,), maximum_objects_per_batch=1, maximum_batch_read_pixels=8
+        )
+
+
+def _pixels(
+    global_label: int, raster_indices: tuple[int, ...]
+) -> _IslandPixels:
+    """Return one core's piece of an island, at unit residual and noise."""
+    count = len(raster_indices)
+    return _IslandPixels(
+        global_label=global_label,
+        raster_indices=np.asarray(raster_indices, dtype=np.int64),
+        residual=np.ones(count, dtype=np.float64),
+        rms=np.ones(count, dtype=np.float64),
+    )
+
+
+@pytest.mark.parametrize(
+    ("pieces", "message"),
+    (
+        ([], "match its reconciled extent"),
+        ([_pixels(1, (0, 1))], "match its reconciled extent"),
+        ([_pixels(1, (5, 1)), _pixels(1, (2,))], "own its canonical first"),
+    ),
+    ids=("absent", "truncated", "wrong-first-pixel"),
+)
+def test_a_wide_island_must_be_reproduced_by_its_cores(
+    pieces: list[_IslandPixels], message: str
+) -> None:
+    """A wide island's row needs exactly the pixels reconciliation counted.
+
+    A core that returned nothing, or too little, would otherwise publish a
+    truncated row under the island's name.
+    """
+    island = _Island(
+        global_label=1,
+        first_pixel_yx=(0, 0),
+        pixel_count=3,
+        bounds=ImageBounds(0, 1, 0, 6),
+    )
+
+    with pytest.raises(ValueError, match=message):
+        _spanning_island_row(
+            island, pieces, image_width=6, beam_area_pixels=1.0
+        )

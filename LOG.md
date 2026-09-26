@@ -25330,3 +25330,38 @@ the per-worker placement finding.
   stop; a unit test covers a missing and an unpublished label.
 - **Evidence.** The check adds only a failure path, so honest runs are
   untouched; the portable suite passes, 2,594 tests.
+
+## 2026-09-26 — M2: a wide island is measured from its cores
+
+- **Defect.** The island row batches exempt a batch's first island from
+  `maximum_batch_read_pixels`, and admission bounds no island's area, so an
+  island whose own bounds exceed the budget was read whole: image, background,
+  RMS and mask over its window, plus a labelling of it. A filament across a
+  3,000² field brings back the image-sized allocation the tiled rounds exist
+  to avoid. At 8-pixel cores and a 64-pixel budget, the pre-fix stage read the
+  fixture filament's 182-pixel window.
+- **Fix.** An island whose window exceeds the budget skips the window batches.
+  Every core the reconciliation maps it into relabels its own retained mask
+  exactly as the scan did, applies the mapping cut down to the wide islands'
+  local labels, and returns their pixels with global raster indices. The
+  driver sorts each island's pixels back into window raster order and measures
+  the row from them, so the row is the window's, bit for bit. No read is wider
+  than the budget or one core, whichever is larger; the window batches now
+  refuse an island wider than the budget, so that bound cannot quietly lapse.
+- **What it costs, and what it leaves.** The driver holds a wide island's own
+  pixels, 24 bytes each, because its median noise must see all of them. That
+  is proportional to the island's pixels, not its window, but an island that
+  genuinely fills the image would still be image-sized there. The other
+  per-object rounds (publication, topology, fits, extended groups, sources,
+  catalogue rows) exempt their first object in the same way; the plan's risks
+  now carry that as work before the 10,000 tier.
+- **Evidence.** A budget of one pixel sends every fixture island through its
+  cores, and those rows equal the window-measured rows at cores of 16, 24, 32
+  and 64 and under Dask. A mixed 64-pixel budget at 8-pixel cores matches the
+  whole-plane oracle while keeping every read at or under 64 pixels. A silent
+  third round and a core that returns too few pixels, or the wrong first
+  pixel, each fail closed. Portable coverage is 96.68% branch-aware over
+  2,601 tests, with `stages/islands.py` and `stages/objects.py` at 100%. The
+  quick science check reports no regression against `m2-no-driver-planes`
+  across all 16 cases; no island on those fields is wider than the 2,048²
+  budget, so it checks the window path, not the new one.
