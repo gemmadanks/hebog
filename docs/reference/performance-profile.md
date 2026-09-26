@@ -132,11 +132,24 @@ signal in `float64`, which would have been 0.41 GiB at 3,000², 4.6 GiB at
 10,000² and 10.8 GiB at LoTSS-DR3 15,402² against 18 GiB of
 development-machine memory. No plane outside a tile scales with the image
 now, so what is left to measure is the tile working set, which the next
-envelope tier reports. One term scales with an object instead: an object
-wider than the owner read budget is measured from its cores, and in the
-island, deferred-fit, source-support and catalogue-row rounds its own pixels
-come back to the driver, so an object that fills the field would still be
-image-sized there. The plan carries that as a risk for the 10,000 tier.
+envelope tier reports.
+
+One driver term is still bounded by the image rather than the tile. It is a
+declared limit, not part of that count. An object wider than the owner read
+budget is measured from the cores that hold it, and in the island,
+deferred-fit, source-support and catalogue-row rounds those cores return the
+object's own pixels, which the driver joins in raster order so the result is
+the window's, bit for bit. Measured with `tracemalloc` on a synthetic
+10⁶-pixel object, the driver reduction costs 81 bytes an object pixel for an
+island row, 121 for a deferred parent's component records, 186 for a
+catalogue row and up to 294 for source support, whose nearest-seed query
+keeps eight neighbours a pixel. Each is linear in the object's pixels, so a
+component filling the field would put about 2.7 GB on the driver at 3,000²,
+30 GB at 10,000² and 3 TB at 100,000². The traced peaks below do not include
+it: no traced-peak case is known to take that path, and none at 2,048² or
+below can, because no window there exceeds the budget. ADR-008 declares this
+exception to its rule that nothing image-sized reaches the driver, and the
+plan's risks carry its removal for the 10,000 tier.
 
 The image, the background, the RMS and their residual are all out, and **the
 driver now reads no object window**: its only reads are the final RMS and

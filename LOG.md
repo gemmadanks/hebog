@@ -25950,3 +25950,30 @@ the per-worker placement finding.
   associative form. The plan had said the driver holds no image-sized
   array, and the profile that nothing outside a tile scales with the image;
   both now say no image-sized plane and name the object term.
+
+## 2026-09-26 — M2: what a wide object costs the driver
+
+- **Why.** A second Copilot comment on pull request 72 held that the wide-object
+  fallback leaves an O(image-area) driver term that the documents still
+  folded into the claim that nothing image-sized reaches the driver.
+  It does: ADR-008's rules 4 and 5 are broken for such an object, and the
+  documents said so only as a risk.
+- **Measurement.** `tracemalloc` over each round's driver reduction, called
+  on one synthetic 10⁶-pixel object returned as four core pieces, on
+  `ebedd94`. Bytes per object pixel, returned pieces plus reduction peak:
+  island row 24 + 57 = 81; deferred parent's component records
+  16 + 105 = 121; catalogue row 44 + 142 = 186; source support 8.8 + 265.6 =
+  274 with 10% of the pixels seeds, 294 with 1% and 188 with 50%, because its
+  nearest-seed query keeps eight `float64` distances and `int64` neighbours
+  for each unseeded pixel. Every reduction is linear in the object's pixels,
+  so a component filling the field costs about 2.7 GB at 3,000², 30 GB at
+  10,000² and 3 TB at 100,000². The script is not committed; the numbers
+  follow from the four reducers' private record types and should be re-taken
+  if those change.
+- **Records.** ADR-008 now declares the exception under rule 4, states its
+  cost in *Objects wider than the read budget* and lists it as a bad
+  consequence; its confirmation says "image-shaped", which is what the
+  architecture tests check. The performance profile and the plan quote the
+  measured cost, state that no traced peak includes it, and keep the risk's
+  mitigation for the 10,000 tier unchanged. At 3,000² the term is about twice
+  the tier's traced peak, for a field no traced case contains.

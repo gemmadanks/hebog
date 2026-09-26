@@ -139,7 +139,9 @@ before the next stage can decide anything.
 4. **Nothing image-sized crosses the executor boundary or reaches the
    driver.** Tasks exchange records, bounded summaries and Zarr chunk
    identities. Label mappings are sharded to the labels present in a tile;
-   an accepted-label table is never broadcast whole.
+   an accepted-label table is never broadcast whole. One exception, bounded
+   by the image rather than the tile, is declared under *Objects wider than
+   the read budget*.
 5. **Reductions are hierarchical and order-independent.** Merge operations are
    associative and commutative, or are applied to a canonically sorted input.
 6. **Read once per pass.** A tile reads its window once and derives every
@@ -355,9 +357,16 @@ must measure it from the cores that hold it or not read it at all.
 Which of the two a round takes follows from its science. Where the quantity
 is a set reduction over the object's pixels, each core returns its part and
 the driver reduces them in raster order, which reproduces the window's result
-bit for bit. Where the science needs the whole object at once, the round
-relies on an admission bound instead, and the bound it relies on is named
-here, in pipeline order:
+bit for bit. That keeps bit-for-bit equality at the cost of rules 4 and 5:
+the driver holds the object's own pixels, not its window, for every wide
+object of the round at once, so that memory is bounded by the image and not
+the tile. Source support costs the most, up to about 300 bytes an object
+pixel for its nearest-seed query, which for a component filling the field is
+about 2.7 GB at 3,000², 30 GB at 10,000² and 3 TB at 100,000². It is an
+explicit limit on the envelope, and the plan's risks carry its removal.
+Where the science needs the whole object at once, the round relies on an
+admission bound instead, and the bound it relies on is named here, in
+pipeline order:
 
 | Round | Whole object at once? | An object wider than the budget |
 | --- | --- | --- |
@@ -554,6 +563,10 @@ milestone: the executor work comes before the convergence it enables.
   per pass, and pass D reads only object windows.
 - Bad, because every new scientific stage must now declare a halo, an
   ownership rule, a summary and a merge before it can be composed.
+- Bad, because an object wider than the read budget is reduced on the driver
+  from its own pixels, which keeps its rows bit for bit but bounds that
+  memory by the image, not the tile, until the reductions move onto the
+  cores (*Objects wider than the read budget*).
 - Bad, because the matched-filter FFT leaves a 2×10⁻¹³ tolerance on continuous
   responses, so invariance is exact for decisions but not bitwise for every
   plane.
@@ -571,7 +584,7 @@ milestone: the executor work comes before the convergence it enables.
   partition origins, completion orders and retries, asserting exact equality
   for identity-carrying outputs and 2×10⁻¹³ for continuous responses, with
   sources on every edge and corner topology and at knife-edge thresholds.
-- Architecture tests reject image-sized arrays in stage results, in executor
+- Architecture tests reject image-shaped arrays in stage results, in executor
   payloads and in driver-held state, and reject whole-table label broadcasts.
   The composition records carry no array field, which a static test asserts,
   and a run that walks the driver's own locals at the terminal builder finds
