@@ -2,6 +2,55 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.14.0](https://github.com/gemmadanks/hebog/compare/v0.13.0...v0.14.0) (2026-09-26)
+
+
+### 🚀 Features
+
+* measure the traced-allocation peak reproducibly ([f439896](https://github.com/gemmadanks/hebog/commit/f439896888e95ed0f82744ae06d1dcfe32e0559e))
+* reconcile and measure detection islands in their own round ([f439896](https://github.com/gemmadanks/hebog/commit/f439896888e95ed0f82744ae06d1dcfe32e0559e))
+
+
+### 🐛 Bug Fixes
+
+* assign a wide support component from its cores ([f439896](https://github.com/gemmadanks/hebog/commit/f439896888e95ed0f82744ae06d1dcfe32e0559e))
+* assign support components in the cores that hold them ([f439896](https://github.com/gemmadanks/hebog/commit/f439896888e95ed0f82744ae06d1dcfe32e0559e))
+* batch every object read under one bounded rule ([f439896](https://github.com/gemmadanks/hebog/commit/f439896888e95ed0f82744ae06d1dcfe32e0559e))
+* decide a wide feature's hierarchy overlaps in its cores ([f439896](https://github.com/gemmadanks/hebog/commit/f439896888e95ed0f82744ae06d1dcfe32e0559e))
+* decide a wide owner's connectivity from its cores ([f439896](https://github.com/gemmadanks/hebog/commit/f439896888e95ed0f82744ae06d1dcfe32e0559e))
+* describe a deferred fit parent's components from its cores ([f439896](https://github.com/gemmadanks/hebog/commit/f439896888e95ed0f82744ae06d1dcfe32e0559e))
+* fail the fit stage when a component goes undescribed ([f439896](https://github.com/gemmadanks/hebog/commit/f439896888e95ed0f82744ae06d1dcfe32e0559e))
+* keep deblended component pixels off the driver ([f439896](https://github.com/gemmadanks/hebog/commit/f439896888e95ed0f82744ae06d1dcfe32e0559e))
+* measure a segment wider than the read budget from its cores ([f439896](https://github.com/gemmadanks/hebog/commit/f439896888e95ed0f82744ae06d1dcfe32e0559e))
+* measure an island wider than the read budget from its cores ([f439896](https://github.com/gemmadanks/hebog/commit/f439896888e95ed0f82744ae06d1dcfe32e0559e))
+* prepare every traced-peak input before tracing ([f439896](https://github.com/gemmadanks/hebog/commit/f439896888e95ed0f82744ae06d1dcfe32e0559e))
+* publish a deferred deblend parent without reading it ([f439896](https://github.com/gemmadanks/hebog/commit/f439896888e95ed0f82744ae06d1dcfe32e0559e))
+* read a wide publication owner alone and count it ([f439896](https://github.com/gemmadanks/hebog/commit/f439896888e95ed0f82744ae06d1dcfe32e0559e))
+* reject unknown owners in the public measurement projection ([f439896](https://github.com/gemmadanks/hebog/commit/f439896888e95ed0f82744ae06d1dcfe32e0559e))
+* require core-shaped scale masks before publication ([f439896](https://github.com/gemmadanks/hebog/commit/f439896888e95ed0f82744ae06d1dcfe32e0559e))
+
+
+### ⚡ Performance
+
+* remove image sized arrays ([#72](https://github.com/gemmadanks/hebog/issues/72)) ([f439896](https://github.com/gemmadanks/hebog/commit/f439896888e95ed0f82744ae06d1dcfe32e0559e))
+
+
+### 🧹 Refactoring
+
+* measure component records and owner noise in their passes ([f439896](https://github.com/gemmadanks/hebog/commit/f439896888e95ed0f82744ae06d1dcfe32e0559e))
+* stop holding image-sized planes in the driver ([f439896](https://github.com/gemmadanks/hebog/commit/f439896888e95ed0f82744ae06d1dcfe32e0559e))
+
+
+### 📚 Documentation
+
+* attribute the forced-budget slowdown to window reads ([f439896](https://github.com/gemmadanks/hebog/commit/f439896888e95ed0f82744ae06d1dcfe32e0559e))
+
+
+### 🧩 CI
+
+* run the coverage recipe in parallel ([f439896](https://github.com/gemmadanks/hebog/commit/f439896888e95ed0f82744ae06d1dcfe32e0559e))
+* run the unit suite in parallel in test-unit and pre-commit ([f439896](https://github.com/gemmadanks/hebog/commit/f439896888e95ed0f82744ae06d1dcfe32e0559e))
+
 ## [0.13.0](https://github.com/gemmadanks/hebog/compare/v0.12.0...v0.13.0) (2026-09-25)
 
 
