@@ -18,6 +18,7 @@ from scipy.ndimage import label as ndimage_label
 
 from hebog.algorithms.extended_measurement import (
     assign_seeded_multiscale_support,
+    multiscale_recovery_radius_pixels,
     refine_multiscale_segment_labels,
     refine_persistent_publication_labels,
 )
@@ -27,6 +28,7 @@ from hebog.algorithms.reconciliation import DetectedIsland
 from hebog.data_models.partitioning import ImageBounds, PartitionManifest
 from hebog.executors import DaskExecutor, SerialExecutor, TaskRequirement
 from hebog.io.zarr import ZarrProductSink
+from hebog.stages.batching import read_pixels
 from hebog.stages.publication import (
     PublicationStageConfig,
     PublicationStageResult,
@@ -825,3 +827,43 @@ def test_recovered_support_survives_a_core_edge_its_owner_stops_short_of(
     assert np.all(expected["retained-mask"][20:25, 32])
     for name, values in expected.items():
         np.testing.assert_array_equal(published[name], values, name)
+
+
+def _owner_reads() -> tuple[int, ...]:
+    """Return every owner's read size: its window and the refinement halo."""
+    recovery = multiscale_recovery_radius_pixels(_BEAM.major_fwhm_pixels)
+    halo = _config().halo_pixels
+    return tuple(
+        read_pixels(
+            island.bounds.expanded(recovery, _SHAPE_YX).expanded(
+                halo, _SHAPE_YX
+            )
+        )
+        for island in _detection_islands()
+    )
+
+
+def test_an_owner_wider_than_the_budget_is_read_alone_and_counted(
+    tmp_path: Path,
+) -> None:
+    """The one read no admission bounds is explicit, never silent.
+
+    Restoring an owner and keeping its bridges ask about its whole support,
+    and nothing limits an owner's area, so an owner wider than the budget is
+    read alone and whole, and the stage says how many were. The budget here
+    is the second-widest owner's read, so only the dumbbell passes it.
+    """
+    reads = sorted(_owner_reads())
+    assert reads[-1] > reads[-2], "the fixture must hold one widest owner"
+
+    result, sink = _run(
+        tmp_path / "run",
+        config=_config(maximum_batch_read_pixels=reads[-2]),
+    )
+
+    published = _published(sink)
+    for name, values in _whole_plane_chain().items():
+        np.testing.assert_array_equal(published[name], values, name)
+    assert result.unbounded_owner_count == 1
+    assert result.maximum_owner_read_pixels == reads[-1]
+    assert _run(tmp_path / "default")[0].unbounded_owner_count == 0

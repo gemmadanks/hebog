@@ -45,6 +45,7 @@ from hebog.data_models.partitioning import (
 from hebog.data_models.products import ProductChunk
 from hebog.executors.base import Executor
 from hebog.io.zarr import ZarrProductSink
+from hebog.stages.batching import batch_object_windows, read_pixels
 
 _OwnerResult = TypeVar(
     "_OwnerResult",
@@ -138,6 +139,7 @@ class PublicationStageResult:
     maximum_owner_read_pixels: int
     maximum_batch_read_pixels: int
     owner_batch_count: int
+    unbounded_owner_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -670,59 +672,40 @@ def _owner_requests(
     return tuple(requests)
 
 
-def _union_bounds(first: ImageBounds, second: ImageBounds) -> ImageBounds:
-    """Return the smallest bounds containing both inputs."""
-    return ImageBounds(
-        min(first.y_start, second.y_start),
-        max(first.y_stop, second.y_stop),
-        min(first.x_start, second.x_start),
-        max(first.x_stop, second.x_stop),
-    )
-
-
 def _owner_batches(
     requests: tuple[_OwnerRequest, ...],
     *,
     maximum_batch_read_pixels: int,
 ) -> tuple[_OwnerBatch, ...]:
-    """Group owners so one read serves several without growing unbounded.
+    """Group owners so one read serves several, within the budget.
 
     Owners arrive in canonical row-major order, so neighbours share a read.
-    A batch closes as soon as the union of its reads would exceed the
-    admitted pixel budget, which keeps one task's memory bounded however the
-    owners are distributed.
+    Restoring an owner and keeping its bridges are connectivity questions
+    about the owner's whole support, and no admission bounds an owner's
+    area, so an owner whose read exceeds the budget cannot share a bounded
+    batch. It is read alone and whole, and that read is bounded by nothing
+    but the image; the stage counts such owners rather than hiding them.
+    ADR-008 records what would bound them.
     """
-    batches: list[_OwnerBatch] = []
-    grouped: list[_OwnerRequest] = []
-    for request in requests:
-        candidate = [*grouped, request]
-        if (
-            grouped
-            and int(np.prod(_batch_bounds(candidate).shape_yx))
-            > maximum_batch_read_pixels
-        ):
-            batches.append(_owner_batch(grouped))
-            grouped = [request]
-            continue
-        grouped = candidate
-    if grouped:
-        batches.append(_owner_batch(grouped))
-    return tuple(batches)
-
-
-def _batch_bounds(requests: list[_OwnerRequest]) -> ImageBounds:
-    """Return the one read that serves every owner in a batch."""
-    bounds = requests[0].read_bounds
-    for request in requests[1:]:
-        bounds = _union_bounds(bounds, request.read_bounds)
-    return bounds
-
-
-def _owner_batch(requests: list[_OwnerRequest]) -> _OwnerBatch:
-    """Close one batch over the union of its owners' reads."""
-    return _OwnerBatch(
-        requests=tuple(requests),
-        read_bounds=_batch_bounds(requests),
+    budget = maximum_batch_read_pixels
+    return (
+        *(
+            _OwnerBatch(requests=batch.objects, read_bounds=batch.read_bounds)
+            for batch in batch_object_windows(
+                tuple(
+                    request
+                    for request in requests
+                    if read_pixels(request.read_bounds) <= budget
+                ),
+                window=lambda request: request.read_bounds,
+                maximum_batch_read_pixels=budget,
+            )
+        ),
+        *(
+            _OwnerBatch(requests=(request,), read_bounds=request.read_bounds)
+            for request in requests
+            if read_pixels(request.read_bounds) > budget
+        ),
     )
 
 
@@ -875,6 +858,10 @@ def run_publication_stage(  # noqa: PLR0913
     cleanup would split, the owners published anywhere, the label patches
     that bridge an owner's support, and the cores that apply all three with
     the caller's island admission. Only the last round writes.
+
+    An owner whose read exceeds ``maximum_batch_read_pixels`` is read alone
+    and whole, because both owner decisions ask about its whole support and
+    nothing bounds its area. ``unbounded_owner_count`` reports how many were.
     """
     _validate_stage_inputs(
         detection_source,
@@ -981,8 +968,12 @@ def run_publication_stage(  # noqa: PLR0913
             image_width=image_width,
         ),
     )
+    # Patches apply in canonical owner order, whichever batch decided them.
     patches = tuple(
-        patch for result in bridge_results for patch in result.patches
+        sorted(
+            (patch for result in bridge_results for patch in result.patches),
+            key=lambda patch: patch.label_value,
+        )
     )
     accepted = _accepted_islands(detection_islands, config)
     for product_name in _PUBLICATION_PRODUCT_NAMES:
@@ -1065,6 +1056,12 @@ def run_publication_stage(  # noqa: PLR0913
         maximum_owner_read_pixels=max(owner_reads, default=0),
         maximum_batch_read_pixels=config.maximum_batch_read_pixels,
         owner_batch_count=len(owner_batches),
+        unbounded_owner_count=sum(
+            1
+            for request in owner_requests
+            if read_pixels(request.read_bounds)
+            > config.maximum_batch_read_pixels
+        ),
     )
 
 

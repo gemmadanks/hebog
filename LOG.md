@@ -25545,3 +25545,60 @@ the per-worker placement finding.
   coverage is 96.75% branch-aware over 2,660 tests, with
   `stages/catalogue_rows.py` at 100%; `science/catalogues.py` misses the
   same six guard lines it missed before.
+
+## 2026-09-26 — M2: the publication round's wide owners are explicit
+
+- **State.** The publication round decides, per owner, whether cleanup
+  splits its refined support and which earlier regions bridge its parts.
+  Both are connectivity over the owner's whole support, nothing admits an
+  owner's area, and ADR-008's T3 rule for this case (keep the pixel-round
+  support, publish a disposition) was never implemented. The round's batcher
+  exempted the first owner of a batch from the budget, and its docstring said
+  memory stayed bounded however the owners were distributed, which was not
+  true.
+- **Change.** Owners within the budget batch under the shared rule. An owner
+  wider than the budget is read alone and whole, as before, but now
+  explicitly: `PublicationStageResult.unbounded_owner_count` reports how
+  many were, and the docstring says what bounds that read, which is only the
+  image. Bridge patches apply in canonical owner order whichever batch
+  decided them, so nothing published changes.
+- **Decision needed.** Two ways bound the read. Deciding both questions
+  exactly from the cores changes no result: restore is a count of the
+  owner's refined-support components, which one reconciliation of that
+  owner answers, and bridging needs its persistent-support and candidate
+  components with their adjacency across core edges, then one more
+  reconciliation when it falls back to the earlier support. ADR-008's T3
+  rule is smaller but changes a wide owner's published support, the case
+  that matters for giant radio galaxies at LOFAR-HD resolution, so it needs
+  scientific review. The agent recommends the exact route; the plan carries
+  the choice as a human decision before the 10,000 tier.
+- **Evidence.** With the budget at the second-widest fixture owner's read,
+  the dumbbell owner is read alone, counted once, and the published planes
+  equal the whole-plane support chain; at the default budget no owner is
+  counted. Portable coverage is 96.75% branch-aware over 2,661 tests, with
+  `stages/publication.py` at 100%.
+
+## 2026-09-26 — M2: the wide-object paths reproduce the public products
+
+- **Check.** The series from `2e0a177` to this entry is meant to change no
+  published value, so it was checked for exact equality rather than against
+  tolerances. On the 16 quick-check cases, with every public stage on
+  512-pixel cores so that objects cross cores, the public products of the
+  baseline `6326fba`, of this series at the default read budget, and of this
+  series with the budget forced down to 4,096 pixels were compared field by
+  field, NaN equal to NaN, ignoring only provenance keys. The forced budget
+  sends every object whose window passes 64² through the new core paths in
+  every round, and the publication round's owners through its counted
+  whole reads. All 16 cases are identical in both comparisons, and the
+  comparison flags a one-ulp change to one catalogue flux.
+- **Why not the quick science check.** Its PyBDSF references are keyed on
+  the modules this series changed, so the check would have to rebuild them
+  in Podman; exact equality with the baseline is the stronger claim for a
+  change meant to alter nothing.
+- **Cost.** At the default budget the three runs, made side by side, took
+  the baseline's time on every case. Forcing hundreds of ordinary objects
+  through the core paths is slower: the crowded SDC1 cut-out took 224 s
+  against 26 s, because each core task selects each object's pixels with its
+  own mask. Only objects wider than the budget take those paths, so this
+  matters when many are wide at once; grouping the pixels by label once per
+  core would remove it.

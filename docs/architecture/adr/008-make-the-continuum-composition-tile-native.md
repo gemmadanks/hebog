@@ -12,7 +12,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-09-18 |
-| **Last Updated** | 2026-09-26 (a wide segment's row is measured from its cores) |
+| **Last Updated** | 2026-09-26 (an owner wider than the read budget is read alone and counted) |
 | **Deciders** | Gemma Danks |
 | **Tags** | tiling, halos, ownership, reconciliation, memory, invariance |
 
@@ -245,6 +245,12 @@ pixel-round support and is published with a disposition recording that its
 connectivity was not restored, exactly as compact deferrals are published
 today. It is never silently split.
 
+That T3 rule is not implemented. An owner wider than the read budget is read
+alone and whole, and the round counts it (*Objects wider than the read
+budget*). Both owner decisions are connectivity, which reconciliation can
+decide exactly from the cores, so the rule is one of two ways to bound that
+read, and the choice between them is open.
+
 ### The object pass's rounds
 
 Every scientific step of pass D already works on one object inside its own
@@ -325,24 +331,27 @@ every round batches under. A batch closes before its read would exceed the
 budget, and an object wider than the budget shares a read with nothing. It
 is read alone only when a reviewed admission rule bounds its window
 independently of the image; otherwise the batcher refuses it, and the round
-must measure it from the cores that hold it or not read it at all.
+must measure it from the cores that hold it or not read it at all. The
+publication round is the one exception left: it still reads a wide owner
+whole, alone and counted, until the choice in its row below is made.
 
 Which of the two a round takes follows from its science. Where the quantity
 is a set reduction over the object's pixels, each core returns its part and
 the driver reduces them in raster order, which reproduces the window's result
 bit for bit. Where the science needs the whole object at once, the round
 relies on an admission bound instead, and the bound it relies on is named
-here:
+here, in pipeline order:
 
 | Round | Whole object at once? | An object wider than the budget |
 | --- | --- | --- |
-| Detection island rows | No: a count, sums and a median over the island's pixels | Measured from its cores |
+| Owner connectivity and bridges (publication) | Yes as implemented: whether cleanup splits an owner, and which earlier regions bridge its parts, are asked of the owner's whole support | Not yet bounded. Nothing admits an owner's area, so an owner wider than the budget is read alone and whole, and `PublicationStageResult.unbounded_owner_count` reports how many were. Both questions are connected components, so they could be decided exactly from the cores by reconciling the owner's refined and persistent support; the T3 rule under *Owner-scoped connectivity* would instead keep a wide owner's pixel-round support, which changes its published support and needs scientific review |
 | Component topology | Yes: the watershed and the assignment of measurement support to its seeds need the parent's whole support | A parent beyond either hard compact-work bound is deferred as T3, exactly as the whole-plane deblender defers it, and never read. An admitted parent's direct window is within `maximum_compact_bounds_pixels` (250,000 pixels in the reviewed profile), and the support pass attaches measurement support only within the reviewed recovery radius of it, so a parent wider than the budget is read alone within that bound |
+| Component fits | Yes for the fit: a joint model needs the parent's whole window. No for its components' association records, which are moments over each component's own pixels | A parent whose window `maximum_bounds_pixels` refuses is deferred as T3, exactly as the whole-plane pass defers it, so its window is never read: the records of the components it owns come from the cores that hold them, restored to raster order, bit for bit. A parent the bound admits is read in its window, alone when that window exceeds the budget |
+| Cross-parent loops and extended residual | Yes: grouping labels and fits the feature's window | Read alone. `support_feature_window` leaves a feature wider than `maximum_bounds_pixels` ungrouped as T3, exactly as the whole-plane pass does, so that bound (250,000 pixels in the reviewed profile) limits every grouping read |
 | Hierarchy overlaps | No: an envelope is exact support dilated through valid pixels by the reviewed B3 radius, an influence is that envelope dilated again, and an overlap is one shared pixel | A feature whose influence window, or a pair whose box, exceeds the budget is decided in each core it can reach, read with twice the radius as its halo, which decides every pixel of that core exactly. An influence is the union of the owners the cores find, and a pair overlaps where any core finds a shared pixel |
 | Source support | No: each unseeded pixel goes to its nearest seed of the same component, a per-pixel answer that depends only on the component's seeds | Its cores return the component's seeds and unseeded pixels, the driver assigns each pixel from the seeds alone, and the write round applies the assignment sharded to the cores. The seeds are the object's own pixels, not its window |
 | Source and component rows | No: the position, flux, peak, moments and noise are sums, a first maximum and a median over the pixels a segment owns, holds in its measured support or holds in its aperture | Measured from its cores: each returns those pixels with their values, and the row is measured from them restored to raster order, bit for bit |
-| Component fits | Yes for the fit: a joint model needs the parent's whole window. No for its components' association records, which are moments over each component's own pixels | A parent whose window `maximum_bounds_pixels` refuses is deferred as T3, exactly as the whole-plane pass defers it, so its window is never read: the records of the components it owns come from the cores that hold them, restored to raster order, bit for bit. A parent the bound admits is read in its window, alone when that window exceeds the budget |
-| Cross-parent loops and extended residual | Yes: grouping labels and fits the feature's window | Read alone. `support_feature_window` leaves a feature wider than `maximum_bounds_pixels` ungrouped as T3, exactly as the whole-plane pass does, so that bound (250,000 pixels in the reviewed profile) limits every grouping read |
+| Detection island rows | No: a count, sums and a median over the island's pixels | Measured from its cores |
 
 ### Extended association
 
