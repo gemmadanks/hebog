@@ -326,8 +326,13 @@ def test_runner_prepares_every_input_before_tracing_any(
         traced.append(case.case_id)
         return {}
 
+    def machine() -> dict[str, object]:
+        # The ordering is portable; physical memory needs POSIX os.sysconf.
+        return {}
+
     monkeypatch.setitem(namespace, "prepare_case", prepare)
     monkeypatch.setitem(namespace, "_case_record", trace)
+    monkeypatch.setitem(namespace, "machine_identity", machine)
     monkeypatch.setattr(
         sys,
         "argv",
