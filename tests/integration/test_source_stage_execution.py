@@ -20,19 +20,26 @@ from hebog.algorithms.extended_measurement import (
     assign_persistent_source_support,
 )
 from hebog.algorithms.partitioning import plan_image_partitions
+from hebog.algorithms.reconciliation import TileLabelMapping
 from hebog.data_models.partitioning import ImageBounds, PartitionManifest
 from hebog.executors import DaskExecutor, SerialExecutor, TaskRequirement
 from hebog.io.zarr import ZarrProductSink
+from hebog.stages.batching import HeldObjects, read_pixels
 from hebog.stages.sources import (
     SourceLabelStageConfig,
     SourceSupportStageConfig,
+    SourceSupportStageResult,
+    _assign_wide_components,
     _AssignBatch,
     _LabelWriteBatch,
     _OwnerScanBatch,
     _support_component,
     _SupportComponent,
+    _SupportPixels,
     _SupportScanBatch,
     _SupportWriteBatch,
+    _WideSupportBatch,
+    _WideSupportResult,
     run_source_label_stage,
     run_source_support_stage,
     source_label_product_names,
@@ -202,6 +209,20 @@ def _run(
     **overrides: int,
 ) -> tuple[ZarrProductSink, ZarrProductSink]:
     """Publish the source labels and the support they own, in isolation."""
+    label_sink, support_sink, _ = _run_support(
+        root, core=core, executor=executor, **overrides
+    )
+    return label_sink, support_sink
+
+
+def _run_support(
+    root: Path,
+    *,
+    core: int = 16,
+    executor: object | None = None,
+    **overrides: int,
+) -> tuple[ZarrProductSink, ZarrProductSink, SourceSupportStageResult]:
+    """Publish both source planes, and keep the support round's evidence."""
     component, detection, hierarchy, fits = _sources(root)
     resolved = SerialExecutor() if executor is None else executor
     manifest = _manifest(core)
@@ -219,7 +240,7 @@ def _run(
     support_sink = ZarrProductSink(
         root / "support.zarr", manifest, generation_id="support"
     )
-    run_source_support_stage(
+    result = run_source_support_stage(
         label_sink,
         detection,
         hierarchy,
@@ -236,7 +257,7 @@ def _run(
         executor=resolved,  # type: ignore[arg-type]
         sink=support_sink,
     )
-    return label_sink, support_sink
+    return label_sink, support_sink, result
 
 
 def _window(sink: ZarrProductSink, product_name: str) -> npt.NDArray[np.int32]:
@@ -426,6 +447,8 @@ def test_source_rounds_forbid_empty_executor_work_records() -> None:
         _AssignBatch(components=(), read_bounds=ImageBounds(0, 1, 0, 1))
     with pytest.raises(ValueError, match="source support batch must not be"):
         _SupportWriteBatch(requests=())
+    with pytest.raises(ValueError, match="wide support batch must not be"):
+        _WideSupportBatch(cores=())
 
 
 def test_a_component_without_its_canonical_pixel_fails_closed() -> None:
@@ -727,3 +750,155 @@ def test_an_image_with_no_source_at_all_assigns_nothing(
     assert result.assigned_component_count == 0
     assert result.maximum_component_read_pixels == 0
     assert not _window(support_sink, "source-measurement-labels").any()
+
+
+def _component_windows() -> tuple[int, ...]:
+    """Return every connected support component's window size."""
+    owners, _, scale_support, measurement_support = _planes()
+    labels = _labelled((owners > 0) | scale_support | measurement_support)
+    windows: list[int] = []
+    for value in range(1, int(labels.max()) + 1):
+        rows, columns = np.nonzero(labels == value)
+        windows.append(
+            read_pixels(
+                ImageBounds(
+                    int(rows.min()),
+                    int(rows.max()) + 1,
+                    int(columns.min()),
+                    int(columns.max()) + 1,
+                )
+            )
+        )
+    return tuple(windows)
+
+
+@pytest.mark.parametrize("core", [16, 24])
+def test_a_wide_support_component_is_assigned_from_its_cores(
+    tmp_path: Path, core: int
+) -> None:
+    """A component wider than the budget is never read in its window.
+
+    Each unseeded pixel goes to its nearest seed of the same component, so
+    the seeds and candidates its cores return decide it exactly. A one-pixel
+    budget sends every component there: the planes equal the whole-plane
+    assignment and no read is wider than one core.
+    """
+    _, expected_support = _whole_plane()
+
+    _, support_sink, result = _run_support(
+        tmp_path / "run",
+        core=core,
+        maximum_objects_per_batch=1,
+        maximum_batch_read_pixels=1,
+    )
+
+    np.testing.assert_array_equal(
+        _window(support_sink, "source-measurement-labels"), expected_support
+    )
+    assert result.assigned_component_count > 1
+    assert 0 < result.maximum_component_read_pixels <= core * core
+
+
+def test_narrow_and_wide_components_publish_one_assignment(
+    tmp_path: Path,
+) -> None:
+    """A budget between the fixture's windows splits the work both ways."""
+    windows = _component_windows()
+    budget = min(windows)
+    assert budget < max(windows), "the budget must leave work on both sides"
+    _, expected_support = _whole_plane()
+
+    _, support_sink, result = _run_support(
+        tmp_path / "run", maximum_batch_read_pixels=budget
+    )
+
+    np.testing.assert_array_equal(
+        _window(support_sink, "source-measurement-labels"), expected_support
+    )
+    assert result.maximum_component_read_pixels <= max(budget, 16 * 16)
+
+
+def test_the_wide_support_round_fails_closed_on_a_silent_executor(
+    tmp_path: Path,
+) -> None:
+    """With every component wide, the fourth round is the cores' round.
+
+    The source labels take two rounds and the support scan one, and no
+    component is left for the window round, which submits nothing.
+    """
+    with pytest.raises(ValueError, match="no wide support results"):
+        _run(
+            tmp_path / "run",
+            executor=_DropNthMapExecutor(4),
+            maximum_batch_read_pixels=1,
+        )
+
+
+def test_every_core_holding_a_wide_component_must_answer() -> None:
+    """A component assigned from part of its seeds could move its owners."""
+    partition = _manifest(16).tiles[0]
+    batches = (
+        _WideSupportBatch(
+            cores=(
+                HeldObjects(
+                    partition=partition,
+                    mapping=TileLabelMapping(
+                        tile_id=partition.tile_id,
+                        local_labels=(1,),
+                        global_labels=(1,),
+                    ),
+                ),
+            )
+        ),
+    )
+
+    with pytest.raises(ValueError, match="must answer"):
+        _assign_wide_components(batches, (), image_width=_SHAPE_YX[1])
+
+
+def test_a_wide_component_without_seeds_or_candidates_assigns_nothing() -> (
+    None
+):
+    """Support no seed reaches keeps no owner, as the window kernel leaves it.
+
+    A component whose pixels are all seeds has nothing to assign either.
+    """
+    partition = _manifest(16).tiles[0]
+    empty = np.zeros(0, dtype=np.int64)
+    batches = (
+        _WideSupportBatch(
+            cores=(
+                HeldObjects(
+                    partition=partition,
+                    mapping=TileLabelMapping(
+                        tile_id=partition.tile_id,
+                        local_labels=(1, 2),
+                        global_labels=(1, 2),
+                    ),
+                ),
+            )
+        ),
+    )
+    result = _WideSupportResult(
+        pieces=(
+            _SupportPixels(
+                global_label=1,
+                seed_indices=empty,
+                seed_labels=empty,
+                candidate_indices=np.asarray([3], dtype=np.int64),
+            ),
+            _SupportPixels(
+                global_label=2,
+                seed_indices=np.asarray([5], dtype=np.int64),
+                seed_labels=np.asarray([7], dtype=np.int64),
+                candidate_indices=empty,
+            ),
+        ),
+        tile_ids=(partition.tile_id,),
+        maximum_core_read_pixels=1,
+    )
+
+    assert (
+        _assign_wide_components(batches, (result,), image_width=_SHAPE_YX[1])
+        == ()
+    )

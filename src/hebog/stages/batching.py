@@ -18,7 +18,12 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
-from hebog.data_models.partitioning import ImageBounds
+from hebog.algorithms.reconciliation import TileLabelMapping
+from hebog.data_models.partitioning import (
+    ImageBounds,
+    PartitionManifest,
+    TilePartition,
+)
 from hebog.executors.base import Executor
 
 
@@ -28,6 +33,52 @@ class WindowBatch[T]:
 
     objects: tuple[T, ...]
     read_bounds: ImageBounds
+
+
+@dataclass(frozen=True, slots=True)
+class HeldObjects:
+    """One core and the local labels of the wide objects it holds.
+
+    The mapping is cut down to those objects' labels, so a core carries a
+    few integers rather than its whole reconciliation.
+    """
+
+    partition: TilePartition
+    mapping: TileLabelMapping
+
+
+def cores_holding(
+    global_labels: frozenset[int],
+    manifest: PartitionManifest,
+    mappings: tuple[TileLabelMapping, ...],
+) -> tuple[HeldObjects, ...]:
+    """Name each core holding part of a reconciled object, and which part.
+
+    The reconciliation that numbered the objects already knows which local
+    label of which core each one joined, so no core is scanned to find them.
+    """
+    partitions = {partition.tile_id: partition for partition in manifest.tiles}
+    cores: list[HeldObjects] = []
+    for mapping in mappings:
+        pairs = tuple(
+            (local_label, global_label)
+            for local_label, global_label in zip(
+                mapping.local_labels, mapping.global_labels, strict=True
+            )
+            if global_label in global_labels
+        )
+        if pairs:
+            cores.append(
+                HeldObjects(
+                    partition=partitions[mapping.tile_id],
+                    mapping=TileLabelMapping(
+                        tile_id=mapping.tile_id,
+                        local_labels=tuple(local for local, _ in pairs),
+                        global_labels=tuple(label for _, label in pairs),
+                    ),
+                )
+            )
+    return tuple(cores)
 
 
 def read_pixels(bounds: ImageBounds) -> int:

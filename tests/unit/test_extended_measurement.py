@@ -20,6 +20,7 @@ from hebog.algorithms.extended_measurement import (
     expand_detected_segment_labels,
     expand_source_measurement_labels,
     measure_detected_segment_position,
+    nearest_source_seed_labels,
     refine_multiscale_segment_labels,
     refine_persistent_publication_labels,
     restore_split_segment_owners,
@@ -1156,4 +1157,38 @@ def test_supplied_support_components_must_be_an_aligned_label_plane(
             valid,
             beam_major_fwhm_pixels=6.0,
             support_component_labels=components,
+        )
+
+
+def test_a_candidate_goes_to_its_nearest_seed_and_ties_to_the_smaller_label():
+    """One candidate's owner depends on the seeds alone, in any frame."""
+    seeds = np.asarray([[0, 0], [0, 4], [9, 9]], dtype=np.int64)
+    labels = np.asarray([7, 3, 5], dtype=np.int64)
+    candidates = np.asarray([[0, 2], [0, 1], [8, 9]], dtype=np.int64)
+
+    owners = nearest_source_seed_labels(seeds, labels, candidates)
+    shifted = nearest_source_seed_labels(
+        seeds + 1000, labels, candidates + 1000
+    )
+
+    assert owners.tolist() == [3, 7, 5]
+    assert shifted.tolist() == owners.tolist()
+
+
+@pytest.mark.parametrize(
+    ("seeds", "labels"),
+    (
+        (np.zeros((0, 2), dtype=np.int64), np.zeros(0, dtype=np.int64)),
+        (np.zeros((2, 2), dtype=np.int64), np.zeros(1, dtype=np.int64)),
+        (np.zeros((2, 3), dtype=np.int64), np.zeros(2, dtype=np.int64)),
+    ),
+    ids=("no-seed", "misaligned-labels", "not-yx"),
+)
+def test_nearest_seeds_need_aligned_points(
+    seeds: npt.NDArray[np.int64], labels: npt.NDArray[np.int64]
+) -> None:
+    """Without a seed there is no owner to name, and none is invented."""
+    with pytest.raises(ValueError, match="non-empty, aligned"):
+        nearest_source_seed_labels(
+            seeds, labels, np.zeros((1, 2), dtype=np.int64)
         )

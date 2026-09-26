@@ -25483,3 +25483,35 @@ the per-worker placement finding.
   sides, gives the overlaps a one-tile run gives. Portable coverage is
   96.73% branch-aware over 2,642 tests, with `stages/association.py`,
   `stages/batching.py` and `data_models/partitioning.py` at 100%.
+
+## 2026-09-26 — M2: a wide support component is assigned from its cores
+
+- **Defect.** The source-support round assigned each connected component of
+  persistent support to its nearest source seeds inside the component's
+  whole window, and its batches exempted the first component from the
+  budget. Persistent support is the extended emission itself, so its
+  components are the widest objects the catalogue has.
+- **Fix.** The assignment is per pixel: an unseeded pixel goes to its
+  nearest seed of the same component, and an exact tie to the smaller source
+  label. `nearest_source_seed_labels` now holds that decision over point
+  lists, and the window kernel calls it. A component whose window exceeds
+  the budget is no longer read: each core the reconciliation maps it into
+  relabels itself as the scan did and returns the component's seeds and
+  unseeded pixels, the driver assigns the pixels from the seeds alone, and
+  the write round applies each core's share of the assignment. The cores
+  holding a reconciled object are named by `cores_holding`, which the island
+  rows now share. Distances between integer pixel coordinates are exact in
+  either frame, so the assignment is the window's, pixel for pixel.
+- **What it costs.** The driver holds a wide component's seeds and unseeded
+  pixels, the object's own pixels rather than its window. Narrow components
+  still return their assignment as a dense patch over their window, which
+  the driver holds until the write round.
+- **Evidence.** A one-pixel budget sends every fixture component to its
+  cores, and the published support equals the whole-plane assignment at 16-
+  and 24-pixel cores, with no read wider than one core; the existing
+  partition test now runs that path at 16-, 32- and 80-pixel cores against a
+  window-path reference. A budget that splits the fixture's components both
+  ways gives the same planes. Portable coverage is 96.73% branch-aware over
+  2,651 tests; the one changed line it missed, a wide component with no seed
+  or no unseeded pixel, now has its own case, so `stages/sources.py`,
+  `stages/islands.py` and `stages/batching.py` are at 100%.

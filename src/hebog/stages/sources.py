@@ -25,12 +25,17 @@ from scipy.ndimage import label as ndimage_label
 from hebog.algorithms.detection import DetectionThresholdMasks
 from hebog.algorithms.extended_measurement import (
     assign_connected_source_support,
+    nearest_source_seed_labels,
 )
 from hebog.algorithms.labelling import (
+    LocalIslandTile,
     LocalIslandTileSummary,
     label_detection_tile,
 )
-from hebog.algorithms.reconciliation import reconcile_candidate_tiles
+from hebog.algorithms.reconciliation import (
+    apply_tile_label_mapping,
+    reconcile_candidate_tiles,
+)
 from hebog.data_models.generations import ProductGenerationManifest
 from hebog.data_models.partitioning import (
     ImageBounds,
@@ -40,6 +45,13 @@ from hebog.data_models.partitioning import (
 from hebog.data_models.products import ProductChunk
 from hebog.executors.base import Executor
 from hebog.io.zarr import ZarrProductSink
+from hebog.stages.batching import (
+    HeldObjects,
+    batch_object_windows,
+    cores_holding,
+    map_round,
+    read_pixels,
+)
 
 _LABEL_PRODUCT_NAMES = ("source-labels",)
 _SUPPORT_PRODUCT_NAMES = ("source-measurement-labels",)
@@ -414,11 +426,55 @@ class _AssignBatchResult:
 
 
 @dataclass(frozen=True, slots=True)
+class _WideSupportBatch:
+    """One bounded coarse executor task over the cores of wide components."""
+
+    cores: tuple[HeldObjects, ...]
+
+    def __post_init__(self) -> None:
+        """Forbid empty executor work records."""
+        if not self.cores:
+            raise ValueError("wide support batch must not be empty")
+
+
+@dataclass(frozen=True, slots=True)
+class _SupportPixels:
+    """One wide component's seeds and unseeded support in one core.
+
+    Every index is a global ``y * width + x`` position, so pieces from
+    several cores join into the component's own pixel sets.
+    """
+
+    global_label: int
+    seed_indices: npt.NDArray[np.int64]
+    seed_labels: npt.NDArray[np.int64]
+    candidate_indices: npt.NDArray[np.int64]
+
+
+@dataclass(frozen=True, slots=True)
+class _WideSupportResult:
+    """The wide components' pixels one batch of cores held."""
+
+    pieces: tuple[_SupportPixels, ...]
+    tile_ids: tuple[str, ...]
+    maximum_core_read_pixels: int
+
+
+@dataclass(frozen=True, slots=True)
+class _Assignment:
+    """One wide component's unseeded pixels and the source each goes to."""
+
+    indices: npt.NDArray[np.int64]
+    labels: npt.NDArray[np.int32]
+
+
+@dataclass(frozen=True, slots=True)
 class _SupportWriteRequest:
     """One core and the bounded owner patches that reach it."""
 
     partition: TilePartition
     patches: tuple[tuple[ImageBounds, npt.NDArray[np.int32]], ...]
+    assignments: tuple[_Assignment, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -461,6 +517,25 @@ def _persistent_window(
     return valid, persistent
 
 
+def _label_support(
+    support: npt.NDArray[np.bool_],
+    partition: TilePartition,
+    *,
+    image_shape_yx: tuple[int, int],
+) -> LocalIslandTile:
+    """Label one core's connected source support, exactly as the scan does."""
+    return label_detection_tile(
+        DetectionThresholdMasks(
+            normalized_residual=np.zeros(support.shape, dtype=np.float64),
+            island_membership=support,
+            detection_seeds=support,
+            valid_pixel_count=int(np.count_nonzero(support)),
+        ),
+        partition,
+        image_shape_yx=image_shape_yx,
+    )
+
+
 def _scan_support(  # noqa: PLR0913
     batch: _SupportScanBatch,
     *,
@@ -493,33 +568,14 @@ def _scan_support(  # noqa: PLR0913
                 )
                 > 0
             )
-            support = seeds | persistent
             summaries.append(
-                label_detection_tile(
-                    DetectionThresholdMasks(
-                        normalized_residual=np.zeros(
-                            support.shape,
-                            dtype=np.float64,
-                        ),
-                        island_membership=support,
-                        detection_seeds=support,
-                        valid_pixel_count=int(np.count_nonzero(support)),
-                    ),
+                _label_support(
+                    seeds | persistent,
                     partition,
                     image_shape_yx=image_shape_yx,
                 ).compact_summary()
             )
         return _SupportScanResult(summaries=tuple(summaries))
-
-
-def _union_bounds(bounds: tuple[ImageBounds, ...]) -> ImageBounds:
-    """Return the one read that serves every window in a batch."""
-    return ImageBounds(
-        min(item.y_start for item in bounds),
-        max(item.y_stop for item in bounds),
-        min(item.x_start for item in bounds),
-        max(item.x_stop for item in bounds),
-    )
 
 
 def _assign_batches(
@@ -528,38 +584,24 @@ def _assign_batches(
     maximum_objects_per_batch: int,
     maximum_batch_read_pixels: int,
 ) -> tuple[_AssignBatch, ...]:
-    """Group components so one read serves several, within both budgets."""
-    ordered = sorted(
-        components,
-        key=lambda item: (item.bounds.y_start, item.bounds.x_start),
-    )
-    batches: list[_AssignBatch] = []
-    grouped: list[_SupportComponent] = []
-    for item in ordered:
-        candidate = [*grouped, item]
-        read = _union_bounds(tuple(member.bounds for member in candidate))
-        if grouped and (
-            len(candidate) > maximum_objects_per_batch
-            or int(np.prod(read.shape_yx)) > maximum_batch_read_pixels
-        ):
-            batches.append(_assign_batch_of(grouped))
-            grouped = [item]
-            continue
-        grouped = candidate
-    if grouped:
-        batches.append(_assign_batch_of(grouped))
-    return tuple(batches)
+    """Group components so one read serves several, within both budgets.
 
-
-def _assign_batch_of(
-    components: list[_SupportComponent],
-) -> _AssignBatch:
-    """Close one batch over the union of its components' bounds."""
-    return _AssignBatch(
-        components=tuple(components),
-        read_bounds=_union_bounds(
-            tuple(member.bounds for member in components)
-        ),
+    Raises:
+        ValueError: If one component's own window exceeds the read budget.
+            No admission bounds a component's area, so such a component is
+            assigned from its cores instead.
+    """
+    return tuple(
+        _AssignBatch(components=batch.objects, read_bounds=batch.read_bounds)
+        for batch in batch_object_windows(
+            sorted(
+                components,
+                key=lambda item: (item.bounds.y_start, item.bounds.x_start),
+            ),
+            window=lambda component: component.bounds,
+            maximum_batch_read_pixels=maximum_batch_read_pixels,
+            maximum_objects_per_batch=maximum_objects_per_batch,
+        )
     )
 
 
@@ -653,13 +695,176 @@ def _connected_components(
     return labels
 
 
+def _raster_indices(
+    member: npt.NDArray[np.bool_],
+    bounds: ImageBounds,
+    *,
+    image_width: int,
+) -> npt.NDArray[np.int64]:
+    """Return one core's selected pixels as global raster indices."""
+    rows, columns = np.nonzero(member)
+    return (
+        (rows.astype(np.int64) + bounds.y_start) * image_width
+        + columns
+        + bounds.x_start
+    )
+
+
+def _gather_wide_support(  # noqa: PLR0913
+    batch: _WideSupportBatch,
+    *,
+    label_source: _CompletedProductSource,
+    detection_source: _CompletedProductSource,
+    scale_support_source: _CompletedProductSource,
+    measurement_support_source: _CompletedProductSource,
+    image_shape_yx: tuple[int, int],
+) -> _WideSupportResult:
+    """Return each wide component's seeds and candidates, core by core.
+
+    A core is relabelled exactly as the scan labelled it, so its reconciled
+    mapping names the component's pixels there, and nothing beyond the core
+    is read.
+    """
+    with (
+        label_source.access_session(),
+        detection_source.access_session(),
+        scale_support_source.access_session(),
+        measurement_support_source.access_session(),
+    ):
+        pieces: list[_SupportPixels] = []
+        maximum_read_pixels = 0
+        for core in batch.cores:
+            bounds = core.partition.core_bounds
+            _, persistent = _persistent_window(
+                bounds,
+                detection_source=detection_source,
+                scale_support_source=scale_support_source,
+                measurement_support_source=measurement_support_source,
+            )
+            seeds = np.asarray(
+                label_source.read_completed_window("source-labels", bounds),
+                dtype=np.int32,
+            )
+            labels = apply_tile_label_mapping(
+                _label_support(
+                    (seeds > 0) | persistent,
+                    core.partition,
+                    image_shape_yx=image_shape_yx,
+                ),
+                core.mapping,
+            )
+            for global_label in sorted(set(core.mapping.global_labels)):
+                member = labels == global_label
+                seeded = member & (seeds > 0)
+                pieces.append(
+                    _SupportPixels(
+                        global_label=global_label,
+                        seed_indices=_raster_indices(
+                            seeded, bounds, image_width=image_shape_yx[1]
+                        ),
+                        seed_labels=np.asarray(seeds[seeded], dtype=np.int64),
+                        candidate_indices=_raster_indices(
+                            member & persistent & (seeds == 0),
+                            bounds,
+                            image_width=image_shape_yx[1],
+                        ),
+                    )
+                )
+            maximum_read_pixels = max(maximum_read_pixels, read_pixels(bounds))
+        return _WideSupportResult(
+            pieces=tuple(pieces),
+            tile_ids=tuple(core.partition.tile_id for core in batch.cores),
+            maximum_core_read_pixels=maximum_read_pixels,
+        )
+
+
+def _assign_wide_components(
+    batches: tuple[_WideSupportBatch, ...],
+    results: tuple[_WideSupportResult, ...],
+    *,
+    image_width: int,
+) -> tuple[_Assignment, ...]:
+    """Assign every wide component's unseeded pixels from its cores' pieces.
+
+    Each unseeded pixel goes to its nearest seed of the same component, and
+    the pieces hold exactly that component's seeds and candidates, so this
+    is the assignment one window over the component would make.
+
+    Raises:
+        ValueError: If a core that holds a wide component did not answer,
+            which would assign its support from part of its seeds.
+    """
+    requested = {
+        core.partition.tile_id for batch in batches for core in batch.cores
+    }
+    answered = {tile_id for result in results for tile_id in result.tile_ids}
+    if answered != requested:
+        raise ValueError("every core holding a wide component must answer")
+    pieces: dict[int, list[_SupportPixels]] = {}
+    for result in results:
+        for piece in result.pieces:
+            pieces.setdefault(piece.global_label, []).append(piece)
+    assignments: list[_Assignment] = []
+    for _, parts in sorted(pieces.items()):
+        seed_indices = np.concatenate([part.seed_indices for part in parts])
+        candidates = np.sort(
+            np.concatenate([part.candidate_indices for part in parts])
+        )
+        if not seed_indices.size or not candidates.size:
+            continue
+        order = np.argsort(seed_indices, kind="stable")
+        owners = nearest_source_seed_labels(
+            np.column_stack(np.divmod(seed_indices[order], image_width)),
+            np.concatenate([part.seed_labels for part in parts])[order],
+            np.column_stack(np.divmod(candidates, image_width)),
+        )
+        assignments.append(
+            _Assignment(
+                indices=candidates,
+                labels=owners.astype(np.int32, copy=False),
+            )
+        )
+    return tuple(assignments)
+
+
+def _assignment_shard(
+    assignments: tuple[_Assignment, ...],
+    core: ImageBounds,
+    *,
+    image_width: int,
+) -> tuple[_Assignment, ...]:
+    """Restrict every wide assignment to the core that owns those pixels."""
+    shard: list[_Assignment] = []
+    for assignment in assignments:
+        rows, columns = np.divmod(assignment.indices, image_width)
+        inside = (
+            (rows >= core.y_start)
+            & (rows < core.y_stop)
+            & (columns >= core.x_start)
+            & (columns < core.x_stop)
+        )
+        if bool(np.any(inside)):
+            shard.append(
+                _Assignment(
+                    indices=assignment.indices[inside],
+                    labels=assignment.labels[inside],
+                )
+            )
+    return tuple(shard)
+
+
 def _publish_source_support(
     batch: _SupportWriteBatch,
     *,
     label_source: _CompletedProductSource,
     sink: ZarrProductSink,
+    image_width: int,
 ) -> _WriteBatchResult:
-    """Combine the owner patches that reach each core and write them."""
+    """Combine the owner patches that reach each core and write them.
+
+    A wide component's assignment arrives as the unseeded pixels this core
+    owns and the source each one goes to, so no window of it is ever held.
+    """
     with label_source.access_session(), sink.access_session():
         chunks: list[ProductChunk] = []
         for request in batch.requests:
@@ -697,6 +902,11 @@ def _publish_source_support(
                     ),
                 ]
                 values[target] = np.where(owned > 0, owned, values[target])
+            for assignment in request.assignments:
+                rows, columns = np.divmod(assignment.indices, image_width)
+                values[rows - core.y_start, columns - core.x_start] = (
+                    assignment.labels
+                )
             chunks.append(
                 sink.write_chunk(
                     product_name="source-measurement-labels",
@@ -725,6 +935,11 @@ def run_source_support_stage(  # noqa: PLR0913
     component assigns its unseeded pixels to their nearest source seed inside
     that component's own window, and the cores write the owner patches that
     reach them over the seeds they already hold.
+
+    A component whose window exceeds ``maximum_batch_read_pixels`` is never
+    read whole. The cores holding it return its seeds and unseeded pixels,
+    and each of those pixels is assigned from the component's seeds alone,
+    which is the assignment its window would make.
     """
     if sink.manifest != manifest:
         raise ValueError("source support sink must use the stage manifest")
@@ -773,33 +988,62 @@ def run_source_support_stage(  # noqa: PLR0913
             summary for result in scan_results for summary in result.summaries
         ),
     )
-    components = tuple(
-        _SupportComponent(
-            bounds=island.bounds, first_pixel_yx=island.first_pixel_yx
-        )
-        for island in reconciled.islands
-    )
+    budget = config.maximum_batch_read_pixels
+    image_width = manifest.image_shape_yx[1]
     assign_batches = _assign_batches(
-        components,
-        maximum_objects_per_batch=config.maximum_objects_per_batch,
-        maximum_batch_read_pixels=config.maximum_batch_read_pixels,
-    )
-    assign_results: tuple[_AssignBatchResult, ...] = ()
-    if assign_batches:
-        assign_results = tuple(
-            executor.map_batches(
-                partial(
-                    _assign_batch,
-                    label_source=label_source,
-                    detection_source=detection_source,
-                    scale_support_source=scale_support_source,
-                    measurement_support_source=measurement_support_source,
-                ),
-                assign_batches,
+        tuple(
+            _SupportComponent(
+                bounds=island.bounds, first_pixel_yx=island.first_pixel_yx
             )
+            for island in reconciled.islands
+            if read_pixels(island.bounds) <= budget
+        ),
+        maximum_objects_per_batch=config.maximum_objects_per_batch,
+        maximum_batch_read_pixels=budget,
+    )
+    assign_results = map_round(
+        executor,
+        partial(
+            _assign_batch,
+            label_source=label_source,
+            detection_source=detection_source,
+            scale_support_source=scale_support_source,
+            measurement_support_source=measurement_support_source,
+        ),
+        assign_batches,
+        round_name="support assignment",
+    )
+    wide_cores = cores_holding(
+        frozenset(
+            island.global_label
+            for island in reconciled.islands
+            if read_pixels(island.bounds) > budget
+        ),
+        manifest,
+        reconciled.tile_mappings,
+    )
+    wide_batches = tuple(
+        _WideSupportBatch(
+            cores=wide_cores[start : start + config.maximum_tiles_per_batch]
         )
-        if not assign_results:
-            raise ValueError("executor returned no support assignment results")
+        for start in range(0, len(wide_cores), config.maximum_tiles_per_batch)
+    )
+    wide_results = map_round(
+        executor,
+        partial(
+            _gather_wide_support,
+            label_source=label_source,
+            detection_source=detection_source,
+            scale_support_source=scale_support_source,
+            measurement_support_source=measurement_support_source,
+            image_shape_yx=manifest.image_shape_yx,
+        ),
+        wide_batches,
+        round_name="wide support",
+    )
+    assignments = _assign_wide_components(
+        wide_batches, wide_results, image_width=image_width
+    )
     patches = tuple(
         patch
         for result in assign_results
@@ -816,6 +1060,7 @@ def run_source_support_stage(  # noqa: PLR0913
                 _publish_source_support,
                 label_source=label_source,
                 sink=sink,
+                image_width=image_width,
             ),
             tuple(
                 _SupportWriteBatch(requests=group)
@@ -827,6 +1072,11 @@ def run_source_support_stage(  # noqa: PLR0913
                                 (bounds, patch)
                                 for bounds, patch in patches
                                 if _intersects(bounds, partition.core_bounds)
+                            ),
+                            assignments=_assignment_shard(
+                                assignments,
+                                partition.core_bounds,
+                                image_width=image_width,
                             ),
                         )
                         for partition in manifest.tiles
@@ -847,15 +1097,22 @@ def run_source_support_stage(  # noqa: PLR0913
                 for chunk in result.product_chunks
             ),
         ),
-        support_component_count=len(components),
-        assigned_component_count=len(patches),
+        support_component_count=len(reconciled.islands),
+        assigned_component_count=len(patches) + len(assignments),
         partition_count=len(manifest.tiles),
-        executor_task_count=(2 * len(manifest.tiles) + len(assign_batches)),
-        maximum_graph_width=max(len(manifest.tiles), len(assign_batches)),
+        executor_task_count=(
+            2 * len(manifest.tiles) + len(assign_batches) + len(wide_batches)
+        ),
+        maximum_graph_width=max(
+            len(manifest.tiles), len(assign_batches), len(wide_batches)
+        ),
         maximum_component_read_pixels=max(
             (
-                result.maximum_component_read_pixels
-                for result in assign_results
+                *(
+                    result.maximum_component_read_pixels
+                    for result in assign_results
+                ),
+                *(result.maximum_core_read_pixels for result in wide_results),
             ),
             default=0,
         ),

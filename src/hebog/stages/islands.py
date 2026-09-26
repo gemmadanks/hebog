@@ -55,7 +55,12 @@ from hebog.science.catalogues import (
     measure_detection_island,
 )
 from hebog.science.models import CatalogueIsland
-from hebog.stages.batching import batch_object_windows, read_pixels
+from hebog.stages.batching import (
+    HeldObjects,
+    batch_object_windows,
+    cores_holding,
+    read_pixels,
+)
 
 
 class _WindowReadable(Protocol):
@@ -196,18 +201,10 @@ class _RowBatchResult:
 
 
 @dataclass(frozen=True, slots=True)
-class _SpanningCore:
-    """One core and the local labels of the wide islands it holds."""
-
-    partition: TilePartition
-    mapping: TileLabelMapping
-
-
-@dataclass(frozen=True, slots=True)
 class _SpanningBatch:
     """One bounded coarse executor task over the cores of wide islands."""
 
-    cores: tuple[_SpanningCore, ...]
+    cores: tuple[HeldObjects, ...]
 
     def __post_init__(self) -> None:
         """Forbid empty executor work records."""
@@ -563,41 +560,6 @@ def _measure_islands(
         )
 
 
-def _spanning_cores(
-    spanning: tuple[_Island, ...],
-    manifest: PartitionManifest,
-    mappings: tuple[TileLabelMapping, ...],
-) -> tuple[_SpanningCore, ...]:
-    """Name each core holding part of a wide island, and which part.
-
-    Each mapping is cut down to the wide islands' local labels, so a core
-    carries a few integers rather than its whole reconciliation.
-    """
-    wide = frozenset(island.global_label for island in spanning)
-    partitions = {partition.tile_id: partition for partition in manifest.tiles}
-    cores: list[_SpanningCore] = []
-    for mapping in mappings:
-        pairs = tuple(
-            (local_label, global_label)
-            for local_label, global_label in zip(
-                mapping.local_labels, mapping.global_labels, strict=True
-            )
-            if global_label in wide
-        )
-        if pairs:
-            cores.append(
-                _SpanningCore(
-                    partition=partitions[mapping.tile_id],
-                    mapping=TileLabelMapping(
-                        tile_id=mapping.tile_id,
-                        local_labels=tuple(local for local, _ in pairs),
-                        global_labels=tuple(label for _, label in pairs),
-                    ),
-                )
-            )
-    return tuple(cores)
-
-
 def _gather_island_pixels(
     batch: _SpanningBatch,
     *,
@@ -832,8 +794,10 @@ def run_detection_island_stage(  # noqa: PLR0913
         )
         if not row_results:
             raise ValueError("executor returned no island row results")
-    spanning_cores = _spanning_cores(
-        spanning, manifest, reconciled.tile_mappings
+    spanning_cores = cores_holding(
+        frozenset(island.global_label for island in spanning),
+        manifest,
+        reconciled.tile_mappings,
     )
     pixel_batches = tuple(
         _SpanningBatch(

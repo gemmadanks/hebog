@@ -959,20 +959,54 @@ def assign_connected_source_support(
     )
     if not seed_points.size or not candidate_points.size:
         return source_labels
-    seed_labels = np.asarray(
-        source_labels[seed_points[:, 0], seed_points[:, 1]],
-        dtype=np.int64,
-    )
     points = np.asarray(candidate_points, dtype=np.int64)
-    _, owners = _nearest_canonical_seed_ranks(
-        cast(_NearestSeedTree, cKDTree(seed_points)),
+    owners = nearest_source_seed_labels(
+        np.asarray(seed_points, dtype=np.int64),
+        np.asarray(
+            source_labels[seed_points[:, 0], seed_points[:, 1]],
+            dtype=np.int64,
+        ),
         points,
-        seed_labels,
     )
     source_labels[points[:, 0], points[:, 1]] = owners.astype(
         np.int32, copy=False
     )
     return source_labels
+
+
+def nearest_source_seed_labels(
+    seed_points_yx: npt.NDArray[np.int64],
+    seed_labels: npt.NDArray[np.int64],
+    candidate_points_yx: npt.NDArray[np.int64],
+) -> npt.NDArray[np.int64]:
+    """Return the label of each candidate pixel's nearest source seed.
+
+    The points are ``(y, x)`` pixel coordinates in any one frame, and an
+    exact distance tie goes to the smaller source label, whose order follows
+    the canonical source IDs. One candidate's owner depends only on the
+    seeds, so a component too wide to read at once is assigned exactly from
+    the seeds and candidates its cores return.
+
+    Raises:
+        ValueError: If there is no seed, or the arrays disagree.
+    """
+    if (
+        seed_points_yx.ndim != _IMAGE_DIMENSIONS
+        or seed_points_yx.shape[1:] != (_IMAGE_DIMENSIONS,)
+        or not seed_points_yx.shape[0]
+        or seed_labels.shape != seed_points_yx.shape[:1]
+        or candidate_points_yx.ndim != _IMAGE_DIMENSIONS
+        or candidate_points_yx.shape[1:] != (_IMAGE_DIMENSIONS,)
+    ):
+        raise ValueError(
+            "source seeds must be non-empty, aligned (y, x) points"
+        )
+    _, owners = _nearest_canonical_seed_ranks(
+        cast(_NearestSeedTree, cKDTree(seed_points_yx)),
+        candidate_points_yx,
+        seed_labels,
+    )
+    return owners
 
 
 def expand_source_measurement_labels(
