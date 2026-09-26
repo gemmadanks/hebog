@@ -32,8 +32,12 @@ from hebog.stages.batching import read_pixels
 from hebog.stages.publication import (
     PublicationStageConfig,
     PublicationStageResult,
+    _owner_batches,
     _OwnerBatch,
+    _OwnerRequest,
+    _require_every_core,
     _TileBatch,
+    _TileRequest,
     publication_product_names,
     run_publication_stage,
 )
@@ -418,15 +422,22 @@ def test_publication_stage_is_partition_and_executor_invariant(
         np.testing.assert_array_equal(published[product_name], values)
 
 
-def test_one_owner_per_read_still_decides_the_split(tmp_path: Path) -> None:
-    """A batch budget of one pixel gives every owner its own read."""
+def test_a_one_pixel_budget_decides_every_owner_from_its_cores(
+    tmp_path: Path,
+) -> None:
+    """No owner window fits a one-pixel budget, so no owner window is read.
+
+    The split is still decided and the bridge still fires, from the cores.
+    """
     result, _ = _run(
         tmp_path / "run",
         config=_config(maximum_batch_read_pixels=1),
     )
 
-    assert result.owner_batch_count == len(_detection_islands())
+    assert result.owner_batch_count == 0
+    assert result.wide_owner_count == len(_detection_islands())
     assert result.restored_owner_count == 1
+    assert result.bridged_owner_count == 1
 
 
 def test_publication_stage_publishes_the_canonical_product_set(
@@ -843,27 +854,108 @@ def _owner_reads() -> tuple[int, ...]:
     )
 
 
-def test_an_owner_wider_than_the_budget_is_read_alone_and_counted(
+def test_an_owner_wider_than_the_budget_is_decided_from_its_cores(
     tmp_path: Path,
 ) -> None:
-    """The one read no admission bounds is explicit, never silent.
+    """Restoring and bridging a wide owner never reads its window.
 
-    Restoring an owner and keeping its bridges ask about its whole support,
-    and nothing limits an owner's area, so an owner wider than the budget is
-    read alone and whole, and the stage says how many were. The budget here
-    is the second-widest owner's read, so only the dumbbell passes it.
+    Both are questions about the connected components of one owner's
+    pixels, so each core labels its own and the components join across core
+    edges. The budget is the second-widest owner's read, so only the
+    dumbbell, which spans three 13-pixel cores and is both split by cleanup
+    and bridged, takes that path; every read stays within one haloed core or
+    a narrow owner's window, below the dumbbell's own window.
     """
     reads = sorted(_owner_reads())
     assert reads[-1] > reads[-2], "the fixture must hold one widest owner"
+    core_read = (13 + 2 * _config().halo_pixels) ** 2
+    assert core_read < reads[-1], "a core read must be narrower than it"
 
     result, sink = _run(
         tmp_path / "run",
+        core=13,
         config=_config(maximum_batch_read_pixels=reads[-2]),
     )
 
     published = _published(sink)
     for name, values in _whole_plane_chain().items():
         np.testing.assert_array_equal(published[name], values, name)
-    assert result.unbounded_owner_count == 1
-    assert result.maximum_owner_read_pixels == reads[-1]
-    assert _run(tmp_path / "default")[0].unbounded_owner_count == 0
+    assert result.wide_owner_count == 1
+    assert result.restored_owner_count == 1
+    assert result.bridged_owner_count == 1
+    assert result.maximum_owner_read_pixels <= core_read
+    assert _run(tmp_path / "default")[0].wide_owner_count == 0
+
+
+def test_wide_owners_are_executor_invariant(tmp_path: Path) -> None:
+    """Workers decide the cores' parts exactly as one process does."""
+    expected = _published(_run(tmp_path / "reference", core=64)[1])
+
+    with Client(
+        processes=False,
+        n_workers=2,
+        threads_per_worker=1,
+        dashboard_address=None,
+    ) as client:
+        _, sink = _run(
+            tmp_path / "dask",
+            executor=DaskExecutor(client),
+            config=_config(maximum_batch_read_pixels=1),
+        )
+
+    published = _published(sink)
+    for product_name, values in expected.items():
+        np.testing.assert_array_equal(published[product_name], values)
+
+
+@pytest.mark.parametrize(
+    ("dropped_round", "message"),
+    ((1, "no wide owner split results"), (3, "no wide owner bridge results")),
+)
+def test_every_wide_owner_round_fails_closed_on_a_silent_executor(
+    tmp_path: Path, dropped_round: int, message: str
+) -> None:
+    """With every owner wide, the cores' rounds are the first and third.
+
+    No owner window fits, so the window rounds submit nothing; the second
+    round is the published-owner scan.
+    """
+    with pytest.raises(ValueError, match=message):
+        _run(
+            tmp_path / "run",
+            executor=_DropNthMapExecutor(dropped_round),
+            config=_config(maximum_batch_read_pixels=1),
+        )
+
+
+def test_every_core_a_wide_owner_reaches_must_answer() -> None:
+    """A component count taken from part of the cores could be wrong."""
+    partition = _manifest(16).tiles[0]
+    batches = (
+        _TileBatch(
+            requests=(
+                _TileRequest(
+                    partition=partition,
+                    seed_references_yx=(),
+                    restored_owners=(),
+                    wide_owners=(1,),
+                ),
+            )
+        ),
+    )
+
+    _require_every_core(batches, (partition.tile_id,), question="split")
+    with pytest.raises(ValueError, match="must answer its split"):
+        _require_every_core(batches, (), question="split")
+
+
+def test_an_owner_window_wider_than_the_budget_is_never_batched() -> None:
+    """Such an owner is decided from its cores, so no batch may read it."""
+    wide = _OwnerRequest(
+        label_value=1,
+        window=ImageBounds(0, 3, 0, 3),
+        read_bounds=ImageBounds(0, 4, 0, 4),
+    )
+
+    with pytest.raises(ValueError, match="wider than the read budget"):
+        _owner_batches((wide,), maximum_batch_read_pixels=8)

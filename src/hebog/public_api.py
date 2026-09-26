@@ -123,6 +123,7 @@ _SCIENTIFIC_MODULES = (
     "hebog.algorithms.multiscale",
     "hebog.algorithms.multiscale_association",
     "hebog.algorithms.multiscale_tiles",
+    "hebog.algorithms.owner_connectivity",
     "hebog.algorithms.reconciliation",
     "hebog.algorithms.source_association",
     "hebog.data_models.catalogues",

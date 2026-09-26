@@ -12,7 +12,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-09-18 |
-| **Last Updated** | 2026-09-26 (an owner wider than the read budget is read alone and counted) |
+| **Last Updated** | 2026-09-26 (a wide owner's connectivity is decided from its cores, replacing its T3 rule) |
 | **Deciders** | Gemma Danks |
 | **Tags** | tiling, halos, ownership, reconciliation, memory, invariance |
 
@@ -221,10 +221,10 @@ Pass C therefore runs as rounds, each cheap relative to pass B's filters:
 | --- | --- | --- | --- |
 | Topology | core, halo 0 | detection labels, reconstruction mask, validity, scale masks | support-union and per-scale island summaries, adjacent-scale label overlaps |
 | Auxiliary publication | core, halo 0 | as above, plus the reconciled mappings | `support-components`, `persistent-support` |
-| Owner connectivity | owner window + refinement halo | detection labels, direct signal to noise, reconstruction mask | one restore decision per owner |
+| Owner connectivity | owner window + refinement halo, or each core a wide owner's window reaches | detection labels, direct signal to noise, reconstruction mask | one restore decision per owner; for a wide owner, its refined support's components in each core |
 | Published owners | core + refinement halo | the published planes, owner reference pixels, restore shard | the owners published in the core |
-| Owner bridges | owner window + refinement halo | as above, plus the published-owner shard | a label patch bounded by the owner window |
-| Final write | core + refinement halo | as above, plus the patch and admission shards | `component-labels`, `measurement-labels`, `publication-labels`, `retained-mask` |
+| Owner bridges | owner window + refinement halo, or each core a wide owner's window reaches | as above, plus the published-owner shard | a label patch bounded by the owner window; for a wide owner, its base and candidate components in each core |
+| Final write | core + refinement halo | as above, plus the patch, wide-owner and admission shards | `component-labels`, `measurement-labels`, `publication-labels`, `retained-mask` |
 
 Only the last round writes. Each pixel quantity is recomputed in the round
 that needs it, which costs a bounded repeat of cheap neighbourhood work and
@@ -240,16 +240,21 @@ rather than persisting a response bank.
 
 Both owner quantities are ADR-008 T1 work keyed by the owner's canonical
 pixel, so they do not move with tile geometry, label integers or completion
-order. An owner whose window exceeds the admitted task is T3: it keeps its
-pixel-round support and is published with a disposition recording that its
-connectivity was not restored, exactly as compact deferrals are published
-today. It is never silently split.
-
-That T3 rule is not implemented. An owner wider than the read budget is read
-alone and whole, and the round counts it (*Objects wider than the read
-budget*). Both owner decisions are connectivity, which reconciliation can
-decide exactly from the cores, so the rule is one of two ways to bound that
-read, and the choice between them is open.
+order. An owner whose window exceeds the read budget is not T3, as this
+decision first had it, because neither quantity needs the window: both are
+connected components of the owner's own pixels, which are T2. Each core the
+owner's window reaches labels its same-label components and returns their
+labels and core-edge pixels; the components join where they meet across a
+core edge, with the island reconciliation's eight-connected edge rule
+restricted to equal labels, since two owners that touch must not merge; and
+the restore and bridge rules are applied to the joined components
+(`hebog.algorithms.owner_connectivity`). A candidate that touches two base
+parts is itself a bridge and two candidates never touch, so the bridge
+rule's fallback reduces to keeping the one part that holds the owner's
+earlier pixels. The write round relabels its own core exactly as the bridge
+round did and applies its share of the decision by component number. The
+answer is the window's for every owner, so a wide owner publishes exactly
+what a narrow one would.
 
 ### The object pass's rounds
 
@@ -331,9 +336,7 @@ every round batches under. A batch closes before its read would exceed the
 budget, and an object wider than the budget shares a read with nothing. It
 is read alone only when a reviewed admission rule bounds its window
 independently of the image; otherwise the batcher refuses it, and the round
-must measure it from the cores that hold it or not read it at all. The
-publication round is the one exception left: it still reads a wide owner
-whole, alone and counted, until the choice in its row below is made.
+must measure it from the cores that hold it or not read it at all.
 
 Which of the two a round takes follows from its science. Where the quantity
 is a set reduction over the object's pixels, each core returns its part and
@@ -344,7 +347,7 @@ here, in pipeline order:
 
 | Round | Whole object at once? | An object wider than the budget |
 | --- | --- | --- |
-| Owner connectivity and bridges (publication) | Yes as implemented: whether cleanup splits an owner, and which earlier regions bridge its parts, are asked of the owner's whole support | Not yet bounded. Nothing admits an owner's area, so an owner wider than the budget is read alone and whole, and `PublicationStageResult.unbounded_owner_count` reports how many were. Both questions are connected components, so they could be decided exactly from the cores by reconciling the owner's refined and persistent support; the T3 rule under *Owner-scoped connectivity* would instead keep a wide owner's pixel-round support, which changes its published support and needs scientific review |
+| Owner connectivity and bridges (publication) | No: whether cleanup splits an owner, and which earlier regions bridge its parts, are questions about the connected components of its own pixels | Decided from every core its window reaches: same-label components joined across core edges, as under *Owner-scoped connectivity*, and the write round applies each core's share. `PublicationStageResult.wide_owner_count` reports how many owners took that path |
 | Component topology | Yes: the watershed and the assignment of measurement support to its seeds need the parent's whole support | A parent beyond either hard compact-work bound is deferred as T3, exactly as the whole-plane deblender defers it, and never read. An admitted parent's direct window is within `maximum_compact_bounds_pixels` (250,000 pixels in the reviewed profile), and the support pass attaches measurement support only within the reviewed recovery radius of it, so a parent wider than the budget is read alone within that bound |
 | Component fits | Yes for the fit: a joint model needs the parent's whole window. No for its components' association records, which are moments over each component's own pixels | A parent whose window `maximum_bounds_pixels` refuses is deferred as T3, exactly as the whole-plane pass defers it, so its window is never read: the records of the components it owns come from the cores that hold them, restored to raster order, bit for bit. A parent the bound admits is read in its window, alone when that window exceeds the budget |
 | Cross-parent loops and extended residual | Yes: grouping labels and fits the feature's window | Read alone. `support_feature_window` leaves a feature wider than `maximum_bounds_pixels` ungrouped as T3, exactly as the whole-plane pass does, so that bound (250,000 pixels in the reviewed profile) limits every grouping read |

@@ -7,6 +7,14 @@ that bridge two retained parts of one owner. Each is decided once per owner,
 from the window holding that owner, and returns a record; the cores then apply
 those records and write the final labels and mask.
 
+No admission bounds an owner's area, so an owner's window can be wider than
+the read budget. Such an owner is never read whole: both of its questions are
+about the connected components of its own pixels, so each core that its
+window reaches labels its components, the components join across core edges,
+and the decisions are taken over them
+(:mod:`hebog.algorithms.owner_connectivity`), with exactly the answer the
+window would give.
+
 Every pixel quantity here is recomputed in the round that needs it rather than
 persisted, exactly as the detection pass recomputes its filters instead of
 storing a response bank.
@@ -14,7 +22,7 @@ storing a response bank.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from functools import partial
@@ -35,6 +43,17 @@ from hebog.algorithms.extended_measurement import (
     segment_refinement_halo_pixels,
 )
 from hebog.algorithms.multiscale import BeamShapePixels
+from hebog.algorithms.owner_connectivity import (
+    LabelComponentSummary,
+    OwnerBridgeCore,
+    OwnerBridgeShare,
+    apply_owner_bridges,
+    decide_owner_bridges,
+    label_components,
+    observe_owner_bridges,
+    owner_bridge_planes,
+    split_owners,
+)
 from hebog.algorithms.reconciliation import DetectedIsland
 from hebog.data_models.generations import ProductGenerationManifest
 from hebog.data_models.partitioning import (
@@ -45,7 +64,7 @@ from hebog.data_models.partitioning import (
 from hebog.data_models.products import ProductChunk
 from hebog.executors.base import Executor
 from hebog.io.zarr import ZarrProductSink
-from hebog.stages.batching import batch_object_windows, read_pixels
+from hebog.stages.batching import batch_object_windows, map_round, read_pixels
 
 _OwnerResult = TypeVar(
     "_OwnerResult",
@@ -139,7 +158,7 @@ class PublicationStageResult:
     maximum_owner_read_pixels: int
     maximum_batch_read_pixels: int
     owner_batch_count: int
-    unbounded_owner_count: int
+    wide_owner_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -206,6 +225,8 @@ class _TileRequest:
     published_owners: tuple[int, ...] = ()
     accepted_owners: tuple[int, ...] = ()
     patches: tuple[_OwnerBridgePatch, ...] = ()
+    wide_owners: tuple[int, ...] = ()
+    wide_share: OwnerBridgeShare | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -225,6 +246,22 @@ class _PublishedOwnerBatchResult:
     """Owners with published support inside the cores of one batch."""
 
     published_owners: tuple[int, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class _WideSplitResult:
+    """The wide owners' refined components each core of one batch holds."""
+
+    summaries: tuple[LabelComponentSummary, ...]
+    maximum_owner_read_pixels: int
+
+
+@dataclass(frozen=True, slots=True)
+class _WideBridgeResult:
+    """The wide owners' bridge components each core of one batch holds."""
+
+    cores: tuple[OwnerBridgeCore, ...]
+    maximum_owner_read_pixels: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -370,6 +407,37 @@ def _persistent_labels(
     )
 
 
+def _tile_labels(
+    planes: _ReadPlanes,
+    request: _TileRequest,
+    config: PublicationStageConfig,
+) -> tuple[
+    npt.NDArray[np.int32],
+    npt.NDArray[np.int32],
+    npt.NDArray[np.int32],
+]:
+    """Return one read's measurement, publication and persistent labels."""
+    measurement = _measurement_labels(
+        planes, config, request.seed_references_yx
+    )
+    publication = _publication_labels(
+        planes,
+        config,
+        measurement=measurement,
+        restored_owners=request.restored_owners,
+    )
+    return (
+        measurement,
+        publication,
+        _persistent_labels(
+            planes,
+            measurement=measurement,
+            publication=publication,
+            published_owners=request.published_owners,
+        ),
+    )
+
+
 def _crop(bounds: ImageBounds, window: ImageBounds) -> tuple[slice, slice]:
     """Return the slices selecting one window inside a wider read."""
     return (
@@ -505,6 +573,126 @@ def _decide_bridges(
         )
 
 
+def _observe_wide_splits(
+    batch: _TileBatch,
+    *,
+    detection_source: _CompletedProductSource,
+    support_source: _CompletedProductSource,
+    config: PublicationStageConfig,
+) -> _WideSplitResult:
+    """Label the wide owners' refined support in each core of one batch.
+
+    The read carries the refinement halo, so every core pixel is refined
+    exactly as a window over the owner would refine it.
+    """
+    with detection_source.access_session(), support_source.access_session():
+        summaries: list[LabelComponentSummary] = []
+        for request in batch.requests:
+            partition = request.partition
+            planes = _read_planes(
+                partition.read_bounds,
+                detection_source=detection_source,
+                support_source=support_source,
+            )
+            refined = _refined_support(planes, config)[
+                _crop(partition.read_bounds, partition.core_bounds)
+            ]
+            summaries.append(
+                label_components(
+                    np.where(
+                        np.isin(refined, request.wide_owners), refined, 0
+                    ).astype(np.int32, copy=False),
+                    partition,
+                ).summary()
+            )
+        return _WideSplitResult(
+            summaries=tuple(summaries),
+            maximum_owner_read_pixels=max(
+                read_pixels(request.partition.read_bounds)
+                for request in batch.requests
+            ),
+        )
+
+
+def _wide_bridge_planes(
+    request: _TileRequest,
+    *,
+    planes: _ReadPlanes,
+    config: PublicationStageConfig,
+) -> tuple[npt.NDArray[np.int32], npt.NDArray[np.int32]]:
+    """Return one core's persistent and publication labels, core only."""
+    _, publication, persistent = _tile_labels(planes, request, config)
+    core = _crop(request.partition.read_bounds, request.partition.core_bounds)
+    return persistent[core], publication[core]
+
+
+def _observe_wide_bridges(
+    batch: _TileBatch,
+    *,
+    detection_source: _CompletedProductSource,
+    support_source: _CompletedProductSource,
+    config: PublicationStageConfig,
+) -> _WideBridgeResult:
+    """Label the wide owners' base and candidate support in each core.
+
+    The shards are the ones the write round receives, so the write round
+    labels the same components and can apply the decision by number.
+    """
+    with detection_source.access_session(), support_source.access_session():
+        cores: list[OwnerBridgeCore] = []
+        for request in batch.requests:
+            persistent, publication = _wide_bridge_planes(
+                request,
+                planes=_read_planes(
+                    request.partition.read_bounds,
+                    detection_source=detection_source,
+                    support_source=support_source,
+                ),
+                config=config,
+            )
+            cores.append(
+                observe_owner_bridges(
+                    owner_bridge_planes(
+                        persistent,
+                        publication,
+                        request.wide_owners,
+                        request.partition,
+                    ),
+                    publication,
+                )
+            )
+        return _WideBridgeResult(
+            cores=tuple(cores),
+            maximum_owner_read_pixels=max(
+                read_pixels(request.partition.read_bounds)
+                for request in batch.requests
+            ),
+        )
+
+
+def _require_every_core(
+    batches: tuple[_TileBatch, ...],
+    answered: Iterable[str],
+    *,
+    question: str,
+) -> None:
+    """Refuse a decision taken from part of the cores a wide owner reaches.
+
+    Raises:
+        ValueError: If any core that was asked did not answer, which would
+            count or join components from part of an owner.
+    """
+    requested = {
+        request.partition.tile_id
+        for batch in batches
+        for request in batch.requests
+    }
+    if set(answered) != requested:
+        raise ValueError(
+            f"every core a wide owner reaches must answer its {question}"
+        )
+
+
 def _owner_patch(
     before: npt.NDArray[np.int32],
     after: npt.NDArray[np.int32],
@@ -553,23 +741,10 @@ def _publish_batch(  # noqa: PLR0913
                 detection_source=detection_source,
                 support_source=support_source,
             )
-            measurement = _measurement_labels(
-                planes,
-                config,
-                request.seed_references_yx,
+            measurement, publication, persistent = _tile_labels(
+                planes, request, config
             )
-            publication = _publication_labels(
-                planes,
-                config,
-                measurement=measurement,
-                restored_owners=request.restored_owners,
-            )
-            final = _persistent_labels(
-                planes,
-                measurement=measurement,
-                publication=publication,
-                published_owners=request.published_owners,
-            ).copy()
+            final = persistent.copy()
             _apply_patches(
                 final,
                 partition=partition,
@@ -577,6 +752,17 @@ def _publish_batch(  # noqa: PLR0913
                 image_width=image_width,
             )
             core = _crop(partition.read_bounds, partition.core_bounds)
+            if request.wide_share is not None:
+                apply_owner_bridges(
+                    final[core],
+                    owner_bridge_planes(
+                        persistent[core],
+                        publication[core],
+                        request.wide_owners,
+                        partition,
+                    ),
+                    request.wide_share,
+                )
             accepted = np.asarray(request.accepted_owners, dtype=np.int32)
             products = _accepted_products(
                 planes.detection_labels[core],
@@ -680,32 +866,35 @@ def _owner_batches(
     """Group owners so one read serves several, within the budget.
 
     Owners arrive in canonical row-major order, so neighbours share a read.
-    Restoring an owner and keeping its bridges are connectivity questions
-    about the owner's whole support, and no admission bounds an owner's
-    area, so an owner whose read exceeds the budget cannot share a bounded
-    batch. It is read alone and whole, and that read is bounded by nothing
-    but the image; the stage counts such owners rather than hiding them.
-    ADR-008 records what would bound them.
+
+    Raises:
+        ValueError: If one owner's own read exceeds the budget. No admission
+            bounds an owner's area, so such an owner is decided from its
+            cores instead, and every batch read fits the budget.
     """
-    budget = maximum_batch_read_pixels
-    return (
-        *(
-            _OwnerBatch(requests=batch.objects, read_bounds=batch.read_bounds)
-            for batch in batch_object_windows(
-                tuple(
-                    request
-                    for request in requests
-                    if read_pixels(request.read_bounds) <= budget
-                ),
-                window=lambda request: request.read_bounds,
-                maximum_batch_read_pixels=budget,
-            )
-        ),
-        *(
-            _OwnerBatch(requests=(request,), read_bounds=request.read_bounds)
-            for request in requests
-            if read_pixels(request.read_bounds) > budget
-        ),
+    return tuple(
+        _OwnerBatch(requests=batch.objects, read_bounds=batch.read_bounds)
+        for batch in batch_object_windows(
+            requests,
+            window=lambda request: request.read_bounds,
+            maximum_batch_read_pixels=maximum_batch_read_pixels,
+        )
+    )
+
+
+def _wide_shard(
+    wide: tuple[_OwnerRequest, ...],
+    partition: TilePartition,
+) -> tuple[int, ...]:
+    """Return the wide owners whose window reaches one core.
+
+    An owner's refined, published and persistent support all lie inside its
+    window, so these cores hold every pixel either decision asks about.
+    """
+    return tuple(
+        request.label_value
+        for request in wide
+        if _intersects(request.window, partition.core_bounds)
     )
 
 
@@ -859,9 +1048,12 @@ def run_publication_stage(  # noqa: PLR0913
     that bridge an owner's support, and the cores that apply all three with
     the caller's island admission. Only the last round writes.
 
-    An owner whose read exceeds ``maximum_batch_read_pixels`` is read alone
-    and whole, because both owner decisions ask about its whole support and
-    nothing bounds its area. ``unbounded_owner_count`` reports how many were.
+    An owner whose read exceeds ``maximum_batch_read_pixels`` is decided
+    from its cores instead of its window: one round labels its refined
+    support in every core its window reaches, before the scan, and another
+    labels its base and candidate support, after it. The write round applies
+    each core's share of the decisions. ``wide_owner_count`` reports how many
+    owners took that path.
     """
     _validate_stage_inputs(
         detection_source,
@@ -880,9 +1072,19 @@ def run_publication_stage(  # noqa: PLR0913
         ),
         halo_pixels=config.halo_pixels,
     )
+    budget = config.maximum_batch_read_pixels
+    wide = tuple(
+        request
+        for request in owner_requests
+        if read_pixels(request.read_bounds) > budget
+    )
     owner_batches = _owner_batches(
-        owner_requests,
-        maximum_batch_read_pixels=config.maximum_batch_read_pixels,
+        tuple(
+            request
+            for request in owner_requests
+            if read_pixels(request.read_bounds) <= budget
+        ),
+        maximum_batch_read_pixels=budget,
     )
     restore_results = _map_owner_batches(
         executor,
@@ -894,9 +1096,45 @@ def run_publication_stage(  # noqa: PLR0913
             config=config,
         ),
     )
+    wide_cores = tuple(
+        partition
+        for partition in manifest.tiles
+        if _wide_shard(wide, partition)
+    )
+    split_batches = _tile_batches(
+        tuple(
+            _TileRequest(
+                partition=partition,
+                seed_references_yx=(),
+                restored_owners=(),
+                wide_owners=_wide_shard(wide, partition),
+            )
+            for partition in wide_cores
+        ),
+        maximum_tiles_per_batch=config.maximum_tiles_per_batch,
+    )
+    split_results = map_round(
+        executor,
+        partial(
+            _observe_wide_splits,
+            detection_source=detection_source,
+            support_source=support_source,
+            config=config,
+        ),
+        split_batches,
+        round_name="wide owner split",
+    )
+    split_summaries = tuple(
+        summary for result in split_results for summary in result.summaries
+    )
+    _require_every_core(
+        split_batches,
+        (summary.partition.tile_id for summary in split_summaries),
+        question="split",
+    )
     restored = frozenset(
         owner for result in restore_results for owner in result.restored_owners
-    )
+    ) | split_owners(split_summaries)
 
     def tile_request(
         partition: TilePartition,
@@ -975,6 +1213,41 @@ def run_publication_stage(  # noqa: PLR0913
             key=lambda patch: patch.label_value,
         )
     )
+    wide_bridge_batches = _tile_batches(
+        tuple(
+            tile_request(
+                partition,
+                published_owners=_owner_shard(
+                    detection_islands,
+                    published,
+                    partition.read_bounds,
+                ),
+                wide_owners=_wide_shard(wide, partition),
+            )
+            for partition in wide_cores
+        ),
+        maximum_tiles_per_batch=config.maximum_tiles_per_batch,
+    )
+    wide_bridge_results = map_round(
+        executor,
+        partial(
+            _observe_wide_bridges,
+            detection_source=detection_source,
+            support_source=support_source,
+            config=config,
+        ),
+        wide_bridge_batches,
+        round_name="wide owner bridge",
+    )
+    bridge_cores = tuple(
+        core for result in wide_bridge_results for core in result.cores
+    )
+    _require_every_core(
+        wide_bridge_batches,
+        (core.base.partition.tile_id for core in bridge_cores),
+        question="bridges",
+    )
+    wide_shares, bridged_wide = decide_owner_bridges(bridge_cores)
     accepted = _accepted_islands(detection_islands, config)
     for product_name in _PUBLICATION_PRODUCT_NAMES:
         sink.initialize_product(
@@ -1006,6 +1279,8 @@ def run_publication_stage(  # noqa: PLR0913
                     partition,
                     image_width=image_width,
                 ),
+                wide_owners=_wide_shard(wide, partition),
+                wide_share=wide_shares.get(partition.tile_id),
             )
             for partition in manifest.tiles
         ),
@@ -1036,32 +1311,38 @@ def run_publication_stage(  # noqa: PLR0913
     )
     owner_reads = tuple(
         result.maximum_owner_read_pixels
-        for result in (*restore_results, *bridge_results)
+        for result in (
+            *restore_results,
+            *bridge_results,
+            *split_results,
+            *wide_bridge_results,
+        )
     )
     return PublicationStageResult(
         generation=generation,
         accepted_island_count=len(accepted),
         restored_owner_count=len(restored),
-        bridged_owner_count=len(patches),
+        bridged_owner_count=len(patches) + len(bridged_wide),
         published_owner_count=len(published),
         partition_count=len(manifest.tiles),
         executor_task_count=(
-            2 * len(owner_batches) + len(scan_batches) + len(publish_batches)
+            2 * len(owner_batches)
+            + len(split_batches)
+            + len(scan_batches)
+            + len(wide_bridge_batches)
+            + len(publish_batches)
         ),
         maximum_graph_width=max(
             len(owner_batches),
+            len(split_batches),
             len(scan_batches),
+            len(wide_bridge_batches),
             len(publish_batches),
         ),
         maximum_owner_read_pixels=max(owner_reads, default=0),
         maximum_batch_read_pixels=config.maximum_batch_read_pixels,
         owner_batch_count=len(owner_batches),
-        unbounded_owner_count=sum(
-            1
-            for request in owner_requests
-            if read_pixels(request.read_bounds)
-            > config.maximum_batch_read_pixels
-        ),
+        wide_owner_count=len(wide),
     )
 
 

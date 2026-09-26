@@ -25642,3 +25642,48 @@ the per-worker placement finding.
   so the absolute times are not controlled benchmarks and no speed claim
   rests on them. The attribution uses ratios within each run. Scratch runner
   and profiles are outside the repository.
+
+## 2026-09-26 — M2: a wide owner's connectivity is decided from its cores
+
+- **Decision.** The maintainer chose the exact route for the publication
+  round's wide owners over ADR-008's T3 rule, so no published support
+  changes. ADR-008 now records that an owner's two questions are T2, not T3.
+- **How.** Both questions are about connected components of one owner's
+  pixels, and a component of one label connects only through that label, so
+  the island reconciliation, which joins any touching mask pixels, would
+  merge owners that touch. `hebog.algorithms.owner_connectivity` labels each
+  core's same-label components, keeps their labels and core-edge pixels, and
+  joins them across the edges of the cores observed with the eight-connected
+  edge rule restricted to equal labels. The restore rule counts an owner's
+  joined refined-support components. The bridge rule works on joined base
+  (persistent) and candidate (earlier-published but not persistent)
+  components and the pairs that touch, within a core or across an edge. A
+  candidate touching two base parts is itself a bridge and two candidates
+  never touch, so the window rule's fallback, restoring the earlier support,
+  can never reconnect the parts; it always ends by keeping the one part that
+  holds earlier pixels. The decision takes that path directly, and a
+  disconnected earlier support still fails closed.
+- **Stage.** Owners whose read exceeds the budget skip the window rounds.
+  One round before the published-owner scan labels their refined support in
+  every core their windows reach, and one after it labels their base and
+  candidate support there. The write round relabels its own core exactly as
+  the bridge round did, from the same shards, and applies its share of the
+  decision by component number. `unbounded_owner_count` becomes
+  `wide_owner_count`, and every core asked must answer. No per-object read
+  in the object pass is now wider than the budget, one haloed core, or a
+  window a reviewed admission bounds.
+- **Evidence.** Over 150 random owner pairs with connected or split earlier
+  support, the joined decisions applied core by core equal the window
+  kernel owner by owner at core sizes from 2 to 7, including 41 refusals in
+  a 400-seed survey of the generator; tiled same-label labelling equals
+  whole-plane labelling over random planes, cores and origins. In the stage,
+  the dumbbell owner, split by cleanup and bridged, is decided from three
+  13-pixel cores with every read at or under one haloed core, and the planes
+  equal the whole-plane support chain under Serial and Dask; a one-pixel
+  budget decides every owner from its cores. On the 16 quick-check cases at
+  512-pixel cores, the public products at the default budget and at a
+  4,096-pixel budget, which sends the crowded fields' owners through the new
+  rounds, are identical to `6326fba`'s. Portable coverage is 96.80%
+  branch-aware over 2,679 tests, with `algorithms/owner_connectivity.py` and
+  `stages/publication.py` at 100%. The composition fingerprint now binds the
+  new module, which its test required.
