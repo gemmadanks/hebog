@@ -25054,3 +25054,960 @@ the per-worker placement finding.
   population is one declination with isolated sources, and the quick-check
   cut-outs are at +7° and −30°, where the effect is 1–15%. Qualification on a
   LOFAR field remains open.
+
+## 2026-09-25 — M2: two per-object rounds move into their own passes
+
+- **What this is.** The plan's authorized next action, in two of its three
+  parts: every direct component's association record and every catalogue
+  row's local noise are now produced by the stage that already holds the
+  tile they need, and the driver reads no window for either. The detection
+  island rows are not part of this change; see *What is left*.
+- **The records belong to the fit round.** A component's record is its
+  identity, its canonical pixel and the positive-residual moments over its
+  own valid support, so it needs the residual, the validity and the direct
+  labels — the three planes `_fit_batch` already reads for the fit itself. A
+  fit parent is the labelled dilation of the measurement support that a
+  component's direct support lies inside, so the parent's window holds each
+  of its components entirely; the reviewed context margin can expose a
+  neighbour's pixels, so each parent describes only the components standing
+  on its own support. The reduction rejects a component claimed by two
+  parents, which is what a truncated window would look like.
+- **The noise belongs to the row round.** The median local RMS a catalogue
+  row quotes is taken over that row's own seeded ownership, which is the
+  centroid plane the row round already reads: `component-measurement-labels`
+  for a component and `source-labels` for a source. The second is by
+  construction the union of that source's components' measurement
+  footprints, so the median over it is the median over the multiset the
+  driver used to concatenate. The round measures every segment it observes,
+  not only the measurable ones, because a component whose row is
+  unmeasurable can still be published from its fitted model and quotes the
+  same noise. `build_configured_continuum_products` names the two
+  label-keyed mappings by catalogue identity; an owner with no usable
+  estimate is absent, and that absence is what raises `SourceFinderError`.
+- **Evidence: the products do not move.** On the real 1,024² LoTSS-DR3 dense
+  cut-out the catalogue, RMS and mask are bitwise identical to `f0db9ca`,
+  including all 83 source, 108 Gaussian-component and 109 island local-noise
+  values, and the traced peak moves 342.11 → 342.01 MiB. The same holds at
+  the envelope's largest admitted size: on the 3,000² cut-out, 659 sources,
+  828 components and 814 islands are identical and the traced peak is
+  1261.39 MiB before and after, to four decimals. Both trees were measured
+  with one throw-away `tracemalloc` harness at the benchmark's settings, so
+  the pair is like for like; it is not comparable with the 1,342 MiB the plan
+  quotes, which came from a different harness. Nothing committed measures the
+  traced peak, although the plan makes it the envelope gate. The quick
+  science check reports no regression against the 24 September baseline
+  (`656f68e`), all 16 cases successful, with cached references only because
+  the container is still down. New tests pin each round against its
+  whole-plane oracle, at any batch size, under Dask and over tile geometries;
+  the driver's noise lookup fails closed for an owner the rounds never
+  measured; and the batched object reads, which only the island round uses
+  now, are tested directly rather than through the consumer that moved.
+  Branch-aware coverage is 96.68% over 2,574 portable tests, with the two
+  stages and the composition at 100% and the driver at 99%, whose three
+  remaining misses predate this work.
+- **Evidence: the 1,024² anchors do not regress.** Against v0.13.0, the
+  previous release the rule names, medians of five on a quiet machine:
+  `dense-field` 9.48 s, ratio 0.98 [0.96, 1.00]; `lotss-dr3-1312-sparse`
+  10.47 s, 0.97 [0.93, 1.00]; `lotss-dr3-1312-dense` 11.83 s, 1.00
+  [0.99, 1.02]. Peak RSS 695/700/700 MiB. No `master` ratio: the comparison
+  container still fails to start. These absolute times are about half the
+  24 September figures for the same cases because that session ran loaded;
+  only the ratio is the gate.
+- **Evidence: what the move is worth, which is not what the plan expected.**
+  Profiled on the same cut-out, 111 components and 83 sources in a 13.5 s
+  run:
+
+  | round | in the driver | inside the pass |
+  | --- | --- | --- |
+  | component association records | 0.058 s | 0.019 s |
+  | owner local noise | 0.027 s | 0.005 s |
+
+  The row round's own read grows 0.215 → 0.270 s because it now reads the
+  RMS window too, so the net effect is a few tens of milliseconds. The two
+  rounds together were 0.6% of the run before the move.
+- **Consequence for the 8% accepted on 24 September.** That trade-off cannot
+  be recovered by moving these rounds, and the profile says why: at 1,024²
+  the whole image is under the 4-megapixel owner read budget, so each driver
+  round was already one whole-image read, and one whole-image read costs
+  tens of milliseconds. The 8% sits in the store's per-read overhead — 56%
+  of a profiled run inside Zarr's `sync()` bridge — so only reducing that
+  recovers it. The plan's row and next action now say so rather than
+  carrying the expectation forward.
+- **The driver's plane count is unchanged, as it must be.** Walking the
+  driver's locals at the terminal builder still finds 18 image-shaped arrays
+  at 49 bytes a pixel: 8 `int32` label planes, 9 masks and the position
+  signal. This change removes reads, not planes; the planes are the next row.
+- **What is left.** The detection island rows still read one window per
+  island in the driver, 0.077 s on this cut-out. They cannot move the same
+  way: an island is a connected component of the retained mask, whose
+  connectivity spans tiles, so the round needs a reconciled labelling and a
+  reduced owner-to-island map rather than a home in an existing pass.
+  ADR-008's object table has no round for it yet.
+
+## 2026-09-25 — M2: the traced peak gets a harness, and the tiers are re-measured
+
+- **The gap.** The plan gates every public envelope raise on `tracemalloc`'s
+  peak, and the profile page quoted 1,342 MiB at 3,000², but no committed tool
+  measured it: `grep -rn tracemalloc scripts src` found nothing. Every traced
+  figure quoted so far came from an ad-hoc script that is not in the
+  repository, so none of them can be reproduced, and two of them disagreed by
+  80 MiB with no way to tell why.
+- **The harness.** `just traced-peak`
+  (`scripts/benchmark/measure_traced_peak.py`, over
+  `hebog.validation.traced_peak`) follows the quick benchmark's shape: a thin
+  runner, a worker in a fresh single-thread process for each repetition, and
+  one versioned evidence document per case under the ignored
+  `benchmark-results/traced-peak/`. Cases, tiers and finder settings are the
+  quick benchmark's own, and the runner writes the benchmark's own case
+  identity hash, which a test pins, so a peak and a timing provably describe
+  the same measured configuration. It is a separate runner so that it stays
+  out of the timing path: tracing roughly doubles wall time, the quick
+  benchmark never traces, and traced evidence publishes no timing that may be
+  compared with a benchmark. `TracedAllocationEvidence` is a new document type
+  rather than a field on `BenchmarkEvidence`, for the same reason.
+- **Three spans, because a peak means nothing without one.** The worker starts
+  tracing before it imports Hebog and then imports nothing but the standard
+  library and the public API — importing the validation package would add its
+  own allocations to the figure. It reports the process peak (the gate
+  figure), the peak of the `find_sources` call alone, and the import floor.
+- **The admitted tiers at `d70bb56` (0.13.0, source tree `9ad0bbdbc740`).** Two
+  repetitions of each case, in
+  `benchmark-results/traced-peak/runs/admitted-tiers-20260925b` and
+  `admitted-tiers-20260925b-smoke`, at the quick benchmark's settings
+  (detection 5.0, island 3.0, minimum 7, continuum), serial executor, one
+  numerical-library thread. The recorded source tree also covers the
+  validation-only edits made while the harness was being finished, which the
+  traced process never imports: the finder code that ran is `d70bb56`'s.
+
+  | case | side | traced peak | import floor | components | spread |
+  | --- | --- | --- | --- | --- | --- |
+  | `compact-snr-ladder` | 512 | 225.2 MiB | 90.4 MiB | 5 | 1.4 KiB |
+  | `dense-field` | 1,024 | 431.5 MiB | 90.4 MiB | 57 | 6.9 KiB |
+  | `lotss-dr3-1312-sparse` | 1,024 | 431.8 MiB | 90.4 MiB | 61 | 0.6 KiB |
+  | `lotss-dr3-1312-dense` | 1,024 | 432.4 MiB | 90.4 MiB | 108 | 5.2 KiB |
+  | `sdc1-b2-1000h-crowded` | 1,024 | 433.9 MiB | 90.4 MiB | 794 | 1.1 KiB |
+  | `sdc1-b2-1000h-crowded-2048` | 2,048 | 1,320.4 MiB | 90.4 MiB | 3,110 | 3.6 KiB |
+  | `lotss-dr3-1312-dense-3000` | 3,000 | 1,351.7 MiB | 90.4 MiB | 828 | 4.4 KiB |
+
+  Every case is inside the public envelope, and the process peak fell inside
+  the `find_sources` call in all of them, so that span and the process peak
+  coincide. `lotss-dr3-1312-dense-3600` was not measured: it is above the
+  envelope and its cut-out is not on this machine.
+- **1,342 MiB is replaced, and 1,261.39 MiB is explained.** The committed
+  figure for the 3,000² LoTSS-DR3 cut-out is **1,351.7 MiB**
+  (1,417,400,481 B; the two runs differ by 4.4 KiB). The 1,261.39 MiB that a
+  fresh ad-hoc harness reported earlier today is this run's finder span less
+  its import floor: 1,351.74 − 90.43 = 1,261.31 MiB, a 0.1 MiB match, so that
+  harness traced the call and not the imports. The older 1,342 MiB — measured
+  on this same code, re-verified as 1341.5 on 24 September — sits 10 MiB below
+  the committed process peak and 80 MiB above the call-only span, so it
+  matches neither span and cannot be attributed; the script that produced it
+  does not exist. Only figures from `just traced-peak` are quotable from now
+  on, and the plan and the profile page say so.
+- **The peak repeats to kilobytes, not to the byte.** The first pass of the
+  harness compared peaks exactly and reported every case as not reproduced.
+  Measured spreads across two repetitions are 0.6 to 6.9 KiB, about 1 part in
+  10⁵: a run allocates its own strings, paths and metadata slightly
+  differently from the next. Reproducibility is therefore assessed against
+  `TRACED_PEAK_TOLERANCE_BYTES`, a tenth of a mebibyte — the precision a peak
+  is quoted at, ten times the measured spread and two orders of magnitude
+  below the image-sized arrays a scalability change moves. The earlier claim
+  that the peak was "identical to the decimal" was right at that precision and
+  wrong about byte equality. One repetition now reports reproducibility as
+  unmeasured rather than as a pass, and repetitions that disagree fail the run.
+- **What the tiers say.** Image size governs the peak and source count does
+  not: at 1,024² the crowded SDC1 field carries 14 times the components of the
+  generated dense field for 2.4 MiB more. The peak triples from 1,024² to
+  2,048² and then adds 2.4% to 3,000², although the area more than doubles,
+  which is what the 2,048-pixel cores predict — 2,048² is the last single-tile
+  size. The import floor is fixed at 90.4 MiB, 40% of a 512² run and 7% of a
+  3,000² one.
+- **Checks.** Unit with doctests (2,004 passed, 2 xfailed), contract (40, 2
+  xfailed), integration (582) and both benchmark-marked smoke runs pass, as do
+  `just check`, `just docs-build` and `just pre-commit`. `just coverage` gives
+  97% branch-aware project coverage, 100% of `validation/traced_peak.py` and
+  every new evidence rule covered. No science, scheduler or public-API
+  behaviour changed, so no equivalence or quick-benchmark run was taken.
+- **Next.** The 10,000 tier still needs a LoTSS-DR3 cut-out before it can be
+  measured. The per-object rounds moving into their own passes must not raise
+  the tier figures above, which is now a reproducible check rather than a
+  claim.
+
+## 2026-09-25 — M2: the detection islands get a round of their own
+
+- **What this is.** The last of the plan's three per-object rounds, and the
+  one that could not move into an existing pass. The driver now reads no
+  window and labels no plane: every object the catalogue publishes is measured
+  by the pass that holds its tile.
+- **Why it needed a round of its own.** An island is a connected region of the
+  retained mask the publication pass writes, not owner support, so no existing
+  pass reads the right thing: the row rounds read one segment's ownership and
+  the fit rounds read one parent's. The driver was labelling the whole plane
+  with `scipy.label`, 9 megapixels at 3,000², and then reading one window per
+  island, 814 of them on that field.
+- **The round.** `hebog.stages.islands` has two rounds and one reconciliation.
+  The cores label their own retained mask, through the same
+  `label_detection_tile` the support pass uses for a mask whose members are
+  all seeds, and return boundary labels plus the `(owner, local island)` pairs
+  they observe. `reconcile_candidate_tiles` merges the fragments and numbers
+  the islands by canonical first pixel, which is the order labelling a whole
+  plane gives, so the published row order is unchanged. One task per batch of
+  islands then measures their rows under the owner read budget.
+- **Why no plane is published.** Only these two rounds read island labels. An
+  island's reconciled bounds contain it entirely, and no second island can be
+  eight-connected to it inside them, so the measuring task recovers it by
+  labelling its own window and selecting the component holding the canonical
+  first pixel — the pattern ADR-008 already states for support features. It
+  then checks the recovered pixel count against the reconciled one, so a
+  window that truncated or merged an island fails closed rather than
+  publishing a row. The owner pairs cannot be produced by the publication
+  pass that writes the mask, because the component labels they name do not
+  exist until the topology pass has deblended.
+- **Evidence: the products do not move, across tiles as well as within one.**
+  On the real 1,024² LoTSS-DR3 dense cut-out (one tile, 109 islands) and the
+  3,000² field (four tiles, 814 islands) the catalogue, RMS and mask are
+  bitwise identical to `fe8dd7e`, with every island local-noise value
+  identical. The traced peak is flat: 342.01 → 342.04 MiB and
+  1261.39 → 1261.45 MiB. The stage's suite compares it against a new
+  whole-plane oracle, `build_detection_island_catalogue`, on a mask built to
+  be awkward: a filament through the corner where four cores meet, a bar along
+  a core boundary, an island on the image's own corner, and an owner whose
+  retained support is split between two islands. Rows and the owner map agree
+  at cores of 16, 24, 32 and 64 with every batch budget at 1, and under Dask.
+  The quick science check reports no regression against `m2-per-object-rounds`
+  across all 16 cases.
+- **Evidence: the anchors, and a measurement lesson.** On a quiet machine,
+  medians of five against v0.13.0: `dense-field` 9.87 s, ratio 1.02
+  [1.00, 1.04]; `lotss-dr3-1312-sparse` 10.55 s, 0.98 [0.94, 1.01];
+  `lotss-dr3-1312-dense` 11.92 s, 1.01 [1.00, 1.03]. All three pass. An
+  earlier run of the same benchmark reported 1.04, 1.02 and 1.08, all
+  inconclusive, because unit and lint runs of mine overlapped with it. The
+  contract's rule already says to avoid concurrent workloads; the cost of
+  ignoring it here was one wasted 200-second session and a false regression.
+- **What it is worth.** This is the round whose move shows on the clock,
+  because the work it replaces scaled with the image rather than with a tile:
+  the 3,000² field went 216.4 → 201.7 s under tracing, about 7%. At 1,024²,
+  where the image is one tile, the round instead pays about 2%: it trades an
+  in-memory whole-plane labelling for three tile reads. That crossover is the
+  M2 bargain, and it moves the right way as the envelope grows.
+- **The driver's plane count is unchanged.** Still 18 image-shaped arrays at
+  49 bytes a pixel, measured by walking the driver's locals. The reads are
+  gone; the planes are the next row.
+- **Two consumers had to follow, and the targeted runs missed both.** The
+  notebook runner called the driver's deleted RMS window reader, and two
+  public-path tests simulated publication pruning by mutating the terminal
+  record's retained mask, which the island round no longer reads. Both are
+  fixture-level: the runner reads the RMS plane from its store, and the tests
+  prune the island map beside the mask, so the case they exist for — a
+  measured owner that reaches no island keeps its disposition and gets no row
+  — still runs through the live branch. The stage, composition and
+  public-path suites I ran while building all passed; only `just coverage`
+  reached those two consumers, which is the argument for running it before
+  believing a change is done. Branch-aware coverage is 96.71% over 2,603
+  portable tests, with the new stage at 100% and the driver at 99%.
+
+## 2026-09-25 — M2: the driver holds no image-sized array
+
+- **What this is.** The plan's plane row, and the end of the driver's
+  image-sized state. Walking the driver's own locals at the terminal builder
+  now finds **no** image-shaped array, where it found 18 at 49 bytes a pixel:
+  8 `int32` label planes, 9 masks and the position signal. Nothing outside a
+  tile scales with the image.
+- **How each plane came out.** Every one was held for a check, not for a
+  product, and every check moved onto the core that already holds both of its
+  sides.
+    - *Detection.* `TiledMultiscaleDetection` carried the detection labels,
+      the reconstruction mask, the position signal and one mask per scale so
+      the composition could require that no scale claims a pixel with no
+      usable local noise. The core that derives those masks holds the domain
+      they must lie inside, so it asks there.
+    - *Support.* `TiledSupportLabels` carried four planes for two questions.
+      That the mask and the publication labels agree is now structural: the
+      core writes the mask as `publication-labels > 0` in the same statement.
+      Whether any owner survived admission is the accepted island count the
+      pass already reduces, so the composition takes an integer.
+    - *Objects.* `TiledComponentTopology` carried both ownership planes so the
+      composition could require direct ownership to be a valid subset of
+      measurement ownership, and both planes to name the same components. The
+      first is per-core and moved into the write; the second became a
+      reduction over the labels each core reports.
+    - *Fits.* `TiledComponentFits.measurement_support` was a whole `bool`
+      plane that nothing read once the measurement reconciliation stopped
+      taking it. The source passes read it from its generation by window.
+    - *Sources.* `publish_source_planes` returned its two label planes only so
+      the composition could check them against the memberships. The writing
+      core already requires every component pixel to reach a source, and the
+      values it writes come from the sharded owner-to-source map, so nothing
+      global was left to check.
+    - *Background.* The stage returned two `bool` masks. Both questions asked
+      of them are gone: the scale check moved onto its core, and whether any
+      pixel has a usable local noise estimate is reduced while streaming the
+      published RMS one tile row at a time. The stage returns one `bool`.
+- **The mask product streams.** `source-mask.fits` is written from row blocks
+  of the support pass's own `retained-mask`, as the RMS product already was.
+  An image whose estimate no pixel can use never reached that pass, so it has
+  no generation to stream and the product is generated all-false block by
+  block, which is what its consumers read as "nothing retained".
+- **What the driver names instead.** `_ScientificProducts` carries the
+  publication and component generations rather than planes. The bundle reads
+  only the first, for the mask; the validation projection and the notebook
+  comparison runner read ownership from the second, because a caller
+  comparing records with pixels has to supply the pixels, and they are in the
+  store.
+- **Evidence: the products do not move.** On the real 1,024² LoTSS-DR3 dense
+  cut-out and the 3,000² field the catalogue, RMS and mask are bitwise
+  identical to `de8d21c`, with every local-noise value identical across 83
+  sources, 109 islands and 108 components at 1,024², and 659, 814 and 828 at
+  3,000². Portable coverage is 96.67% branch-aware over 2,591 tests, with
+  `stages/objects.py` and `stages/islands.py` at 100% and the driver at 99%;
+  the complete integration and contract suites, including the 108-cell slow
+  development matrix, pass. The quick science check reports no regression
+  against `m2-island-round` across all 16 cases.
+- **Evidence: the peak moves by exactly what was live at the peak.** The
+  deterministic traced peak falls 342.04 → 339.98 MiB at 1,024² and
+  1261.45 → 1244.22 MiB at 3,000². That is 2 bytes a pixel, not 49: the peak
+  sits in the multiscale pass, so the only removed planes it can see are the
+  two background `bool` masks that existed by then. Array arithmetic predicts
+  2.00 and 17.17 MiB; the measurements are 2.06 and 17.23. The other 47 bytes
+  a pixel were allocated after the peak, which is why removing them shows in
+  the envelope rather than in this number.
+- **Evidence: the anchors are faster.** Medians of five on a quiet machine,
+  against v0.13.0: `dense-field` 9.3 s, ratio 0.96 [0.94, 0.97];
+  `lotss-dr3-1312-sparse` 10.0 s, 0.93 [0.89, 0.95]; `lotss-dr3-1312-dense`
+  11.1 s, 0.94 [0.93, 0.95]. The same three ratios measured this morning, on
+  the same machine and against the same release, were 1.02, 0.98 and 1.01, so
+  the improvement is 4 to 7%: the checks that moved onto cores were
+  whole-plane comparisons, and the reads that fed them are gone with them.
+  Part of the 8% accepted on 24 September comes back this way; the rest is
+  still the store's per-read overhead.
+- **The measurement was wrong before it was right.** The script that counts
+  the driver's image-shaped arrays inferred the image shape from the arrays
+  it found in the frame. With the planes gone it found none, inferred no
+  shape, and reported zero without looking — a measurement that could only
+  agree with me. Taking the shape from the input FITS instead turned the same
+  run into a real check, and it immediately found a survivor,
+  `TiledComponentFits.measurement_support`. A count that cannot fail is not
+  evidence.
+- **What this does and does not establish.** The driver's additive
+  image-sized term is gone, so at 10,000² the 4.6 GiB it would have cost is
+  not spent, and 15,402² is no longer blocked by driver memory. It does not
+  make the traced peak flat in image size: between 1,024² and 3,000² the tile
+  itself grows, because cores are 2,048 and a smaller image is one tile.
+  Flatness is what the 10,000 tier measures, and that tier still needs its
+  own anchor and evidence.
+- **Two guards keep it.** A static architecture test asserts that the
+  composition records declare no array field, which is the rule ADR-008's
+  confirmation names, and the empty-input test now asserts the streamed mask
+  product is all-false rather than only checking the RMS.
+
+## 2026-09-26 — M2: the fit stage fails closed on a missing component
+
+- **Defect.** Since the fits began describing their own components
+  (`fe8dd7e`), `_reduce_component_records` rejected a component that two
+  fit parents described, but not one that no parent described. The old
+  whole-plane builder described every label of the direct plane, so a
+  fit-parent plane that missed a component would have failed there. Now it
+  returned one record fewer, and the association and catalogue would have
+  published one component fewer without error. A scratch reproduction confirmed it:
+  fit parents reconciled from measurement support without one of the
+  fixture's four components gave records for the other three, silently.
+- **Fix.** `run_component_fit_stage` takes the topology stage's
+  `component_count` (carried on `TiledComponentTopology`), and the reduction
+  requires the described labels to be exactly `1..component_count`, which the
+  topology stage already requires both of its planes to name. A regression
+  test runs the stage on that truncated fit-parent plane and expects it to
+  stop; a unit test covers a missing and an unpublished label.
+- **Evidence.** The check adds only a failure path, so honest runs are
+  untouched; the portable suite passes, 2,594 tests.
+
+## 2026-09-26 — M2: a wide island is measured from its cores
+
+- **Defect.** The island row batches exempt a batch's first island from
+  `maximum_batch_read_pixels`, and admission bounds no island's area, so an
+  island whose own bounds exceed the budget was read whole: image, background,
+  RMS and mask over its window, plus a labelling of it. A filament across a
+  3,000² field brings back the image-sized allocation the tiled rounds exist
+  to avoid. At 8-pixel cores and a 64-pixel budget, the pre-fix stage read the
+  fixture filament's 182-pixel window.
+- **Fix.** An island whose window exceeds the budget skips the window batches.
+  Every core the reconciliation maps it into relabels its own retained mask
+  exactly as the scan did, applies the mapping cut down to the wide islands'
+  local labels, and returns their pixels with global raster indices. The
+  driver sorts each island's pixels back into window raster order and measures
+  the row from them, so the row is the window's, bit for bit. No read is wider
+  than the budget or one core, whichever is larger; the window batches now
+  refuse an island wider than the budget, so that bound cannot quietly lapse.
+- **What it costs, and what it leaves.** The driver holds a wide island's own
+  pixels, 24 bytes each, because its median noise must see all of them. That
+  is proportional to the island's pixels, not its window, but an island that
+  genuinely fills the image would still be image-sized there. The other
+  per-object rounds (publication, topology, fits, extended groups, sources,
+  catalogue rows) exempt their first object in the same way; the plan's risks
+  now carry that as work before the 10,000 tier.
+- **Evidence.** A budget of one pixel sends every fixture island through its
+  cores, and those rows equal the window-measured rows at cores of 16, 24, 32
+  and 64 and under Dask. A mixed 64-pixel budget at 8-pixel cores matches the
+  whole-plane oracle while keeping every read at or under 64 pixels. A silent
+  third round and a core that returns too few pixels, or the wrong first
+  pixel, each fail closed. Portable coverage is 96.68% branch-aware over
+  2,601 tests, with `stages/islands.py` and `stages/objects.py` at 100%. The
+  quick science check reports no regression against `m2-no-driver-planes`
+  across all 16 cases; no island on those fields is wider than the 2,048²
+  budget, so it checks the window path, not the new one.
+
+## 2026-09-26 — M2: one batching rule, and extended groups bounded by admission
+
+- **Defect.** Every per-object round batched its reads with its own copy of
+  one loop, and every copy exempted a batch's first object from
+  `maximum_batch_read_pixels`. The island rows stopped doing so this morning;
+  the other rounds still read an object of any width whole.
+- **One rule.** `hebog.stages.batching.batch_object_windows` now holds the
+  loop. A batch closes before its read would pass the budget, and an object
+  wider than the budget shares a read with nothing: it is read alone only
+  when a reviewed admission rule bounds its window independently of the
+  image, and is refused otherwise. The island rows batch through it with no
+  admission, so a wide island still goes to its cores. ADR-008 gains
+  *Objects wider than the read budget*, a table naming each round's
+  treatment, which the remaining rounds fill in as they move onto the rule.
+- **Extended groups are bounded by admission.** Grouping labels and fits a
+  support feature's whole window, so no core can stand in for it. It does
+  not need to: `support_feature_window` already leaves a feature wider than
+  `maximum_bounds_pixels` ungrouped as ADR-008 T3, exactly as the
+  whole-plane pass does, so that bound (250,000 pixels in the reviewed
+  profile, under the 4 Mi-pixel budget) limits every grouping read. A feature
+  wider than the budget is read alone, and one beyond the bound fails the
+  batcher rather than reading an unbounded window.
+- **Evidence.** A property test covers the rule over random windows, budgets
+  and object limits: every object is batched once, in order, and no shared
+  read passes the budget. With the budget one pixel below the widest fixture
+  feature and the bound set to that feature, the groups equal the default
+  run's and the widest read is exactly that feature's window. Portable
+  coverage is 96.68% branch-aware over 2,610 tests, with
+  `stages/batching.py`, `stages/islands.py` and `stages/objects.py` at
+  100%.
+
+## 2026-09-26 — M2: a deferred fit parent is never read whole
+
+- **Defect.** A fit parent whose window the reviewed compact bound refuses is
+  deferred by `measure_fit_parent_components` without touching a pixel, yet
+  the fit round still read its whole window, because the same read built the
+  association records of the components the parent owns. Fit parents are
+  the dilated measurement support, so a chain of sources whose contexts
+  touch, or one filament, makes a parent of any width.
+- **Fix.** The round now decides deferral from the reconciled extent, with
+  the kernel's own rule (`compact_window_is_admitted`, which the grouping
+  window uses too), and never opens a deferred parent's window. Each core
+  that holds one returns its components' direct pixels and residual with
+  global raster indices, and the driver restores raster order and builds
+  each record from them with `build_detection_component_record`. The window
+  builder now runs through the same pixel-list core, so the two paths give
+  the same record bit for bit. A parent the bound admits is still read in
+  its window, alone when that window passes the budget; that read is bounded
+  by the reviewed 250,000 pixels, not by the image. Every core asked for a
+  deferred parent must answer, and an invalid owner pixel fails on either
+  path.
+- **Evidence.** With a bound of one pixel every fixture parent is deferred:
+  the records equal the whole-plane builder's at 16-, 24- and 48-pixel cores
+  and under Dask, and no read is wider than one core, where the old round
+  read windows of up to 3,360 pixels. With the bound between the fixture's
+  widest parent and the next, the fits and the deferral equal the
+  whole-plane measurement under the same bound, and the widest read is the
+  widest admitted window. The driver holds a deferred parent's component
+  pixels, 16 bytes each, for as long as it takes to describe them. Portable
+  coverage is 96.71% branch-aware over 2,625 tests; the one changed line it
+  missed, the deferred round's bounds check, now has its own case, so
+  `stages/objects.py` is at 100%.
+
+## 2026-09-26 — M2: a deferred deblend parent is never read
+
+- **Defect.** A parent beyond either hard compact-work bound is published
+  unchanged as one deferred component, which needs none of its pixels, but
+  the topology round still read its measurement window to decide that, and
+  returned every pixel of it to the driver as sparse indices. Such a parent
+  is by definition the wide one: a filament is deferred on its bounds.
+- **Fix.** The extent scan now also counts each parent's direct pixels
+  (`label_extents` reports each label's size), so the driver decides
+  deferral with the deblender's own rule, `parent_is_deferred`, before any
+  window is read. A deferred parent is numbered in canonical order like any
+  other, and the write round relabels it in each core that holds it, from
+  that core's own support planes; the driver keeps only its component
+  number. An admitted parent is still deblended in its window, alone when
+  that window exceeds the budget. Its direct window is within the reviewed
+  250,000 pixels and its measurement support lies within the recovery radius
+  of it, so that read is bounded by admission, not by the image.
+- **Evidence.** With every fixture parent deferred, the published planes
+  equal the whole-plane deblender's at 16- and 24-pixel cores and the round
+  reads no parent window at all. With the pixel bound one under the blended
+  parent, which spans several cores and is deferred only if their counts are
+  summed, the planes equal the whole-plane deblender's under Serial and Dask
+  and the widest read is the widest admitted parent. Portable coverage is
+  96.72% branch-aware over 2,629 tests, with `stages/objects.py`,
+  `algorithms/component_topology.py` and `algorithms/label_groups.py` at
+  100%.
+
+## 2026-09-26 — M2: a wide feature's hierarchy overlaps come from its cores
+
+- **Defect.** The hierarchy-overlap round read each feature's B3 influence
+  window, and each candidate pair's box, whole; its batches exempted their
+  first window from the budget. Scale features are reconciled islands of a
+  scale's support, so a coarse-scale filament's influence window reaches as
+  far as the filament does.
+- **Fix.** None of the three questions needs a whole window. An envelope is
+  exact support dilated through valid pixels by the scale's reviewed radius,
+  an influence is that envelope dilated again, and an overlap is one shared
+  pixel, so a core read with twice the radius as halo decides each of its
+  own pixels exactly. A feature whose influence window, or a pair whose box,
+  exceeds the budget is now decided that way in every core it can reach:
+  the cores within twice the radius of a core holding the feature, which the
+  scan already names, found from the grid by the new
+  `PartitionManifest.tiles_meeting`. The influence is the union of the
+  owners the cores find, and a pair overlaps where any core finds a shared
+  pixel. Narrow work keeps its windows and batches under the shared rule, and
+  every core asked must answer. `map_round`, the fail-closed round runner the
+  object rounds share, moved into `hebog.stages.batching`.
+- **Evidence.** A one-pixel budget sends every influence and pair to the
+  cores: the overlaps equal the whole-plane summary at 16-, 24- and 32-pixel
+  cores and under Dask, and no read is wider than one core and its 28-pixel
+  halo. A 900-pixel budget, which the test checks leaves windows on both
+  sides, gives the overlaps a one-tile run gives. Portable coverage is
+  96.73% branch-aware over 2,642 tests, with `stages/association.py`,
+  `stages/batching.py` and `data_models/partitioning.py` at 100%.
+
+## 2026-09-26 — M2: a wide support component is assigned from its cores
+
+- **Defect.** The source-support round assigned each connected component of
+  persistent support to its nearest source seeds inside the component's
+  whole window, and its batches exempted the first component from the
+  budget. Persistent support is the extended emission itself, so its
+  components are the widest objects the catalogue has.
+- **Fix.** The assignment is per pixel: an unseeded pixel goes to its
+  nearest seed of the same component, and an exact tie to the smaller source
+  label. `nearest_source_seed_labels` now holds that decision over point
+  lists, and the window kernel calls it. A component whose window exceeds
+  the budget is no longer read: each core the reconciliation maps it into
+  relabels itself as the scan did and returns the component's seeds and
+  unseeded pixels, the driver assigns the pixels from the seeds alone, and
+  the write round applies each core's share of the assignment. The cores
+  holding a reconciled object are named by `cores_holding`, which the island
+  rows now share. Distances between integer pixel coordinates are exact in
+  either frame, so the assignment is the window's, pixel for pixel.
+- **What it costs.** The driver holds a wide component's seeds and unseeded
+  pixels, the object's own pixels rather than its window. Narrow components
+  still return their assignment as a dense patch over their window, which
+  the driver holds until the write round.
+- **Evidence.** A one-pixel budget sends every fixture component to its
+  cores, and the published support equals the whole-plane assignment at 16-
+  and 24-pixel cores, with no read wider than one core; the existing
+  partition test now runs that path at 16-, 32- and 80-pixel cores against a
+  window-path reference. A budget that splits the fixture's components both
+  ways gives the same planes. Portable coverage is 96.73% branch-aware over
+  2,651 tests; the one changed line it missed, a wide component with no seed
+  or no unseeded pixel, now has its own case, so `stages/sources.py`,
+  `stages/islands.py` and `stages/batching.py` are at 100%.
+
+## 2026-09-26 — M2: a wide segment's row is measured from its cores
+
+- **Defect.** The row round measured each source or component segment in
+  the window holding its support and aperture, and its batches exempted the
+  first segment from the budget. A source is an association of components,
+  so its window is as wide as the extended emission it joins.
+- **Fix.** Nothing in a row needs a window: the position, flux, peak,
+  moments and local noise are sums, a first maximum and a median over the
+  pixels a segment owns, holds in its measured support or holds in its
+  aperture. Each reduction now has a pixel-list core
+  (`measure_segment_position_pixels`, `measure_segment_row_pixels`,
+  `segment_moment_pixels`, `segment_local_rms_pixels`), and the window
+  functions pass their window's pixels to it, so the window path is
+  unchanged by construction. A segment whose window exceeds the budget is no
+  longer read: every core the scan saw it in returns those pixels with their
+  values and global raster indices, and the driver measures the row, moment
+  and noise from them restored to raster order. The whole-plane builder and
+  the catalogue-repair suite pass unchanged.
+- **What it costs.** The driver holds a wide segment's own pixels, about 50
+  bytes each, while it measures them.
+- **Evidence.** A one-pixel budget sends every fixture segment to its cores:
+  the rows, local noise and position diagnostics equal the whole-plane
+  builder's at 16- and 24-pixel cores and under Dask, with no read wider
+  than one core. An unmeasurable segment publishes no row, and one owning no
+  usable noise quotes none, on either path. A budget that splits the
+  fixture's segments both ways gives the whole-plane catalogue. Portable
+  coverage is 96.75% branch-aware over 2,660 tests, with
+  `stages/catalogue_rows.py` at 100%; `science/catalogues.py` misses the
+  same six guard lines it missed before.
+
+## 2026-09-26 — M2: the publication round's wide owners are explicit
+
+- **State.** The publication round decides, per owner, whether cleanup
+  splits its refined support and which earlier regions bridge its parts.
+  Both are connectivity over the owner's whole support, nothing admits an
+  owner's area, and ADR-008's T3 rule for this case (keep the pixel-round
+  support, publish a disposition) was never implemented. The round's batcher
+  exempted the first owner of a batch from the budget, and its docstring said
+  memory stayed bounded however the owners were distributed, which was not
+  true.
+- **Change.** Owners within the budget batch under the shared rule. An owner
+  wider than the budget is read alone and whole, as before, but now
+  explicitly: `PublicationStageResult.unbounded_owner_count` reports how
+  many were, and the docstring says what bounds that read, which is only the
+  image. Bridge patches apply in canonical owner order whichever batch
+  decided them, so nothing published changes.
+- **Decision needed.** Two ways bound the read. Deciding both questions
+  exactly from the cores changes no result: restore is a count of the
+  owner's refined-support components, which one reconciliation of that
+  owner answers, and bridging needs its persistent-support and candidate
+  components with their adjacency across core edges, then one more
+  reconciliation when it falls back to the earlier support. ADR-008's T3
+  rule is smaller but changes a wide owner's published support, the case
+  that matters for giant radio galaxies at LOFAR-HD resolution, so it needs
+  scientific review. The agent recommends the exact route; the plan carries
+  the choice as a human decision before the 10,000 tier.
+- **Evidence.** With the budget at the second-widest fixture owner's read,
+  the dumbbell owner is read alone, counted once, and the published planes
+  equal the whole-plane support chain; at the default budget no owner is
+  counted. Portable coverage is 96.75% branch-aware over 2,661 tests, with
+  `stages/publication.py` at 100%.
+
+## 2026-09-26 — M2: the wide-object paths reproduce the public products
+
+- **Check.** The series from `2e0a177` to this entry is meant to change no
+  published value, so it was checked for exact equality rather than against
+  tolerances. On the 16 quick-check cases, with every public stage on
+  512-pixel cores so that objects cross cores, the public products of the
+  baseline `6326fba`, of this series at the default read budget, and of this
+  series with the budget forced down to 4,096 pixels were compared field by
+  field, NaN equal to NaN, ignoring only provenance keys. The forced budget
+  sends every object whose window passes 64² through the new core paths in
+  every round, and the publication round's owners through its counted
+  whole reads. All 16 cases are identical in both comparisons, and the
+  comparison flags a one-ulp change to one catalogue flux.
+- **Why not the quick science check.** Its PyBDSF references are keyed on
+  the modules this series changed, so the check would have to rebuild them
+  in Podman; exact equality with the baseline is the stronger claim for a
+  change meant to alter nothing.
+- **Cost.** At the default budget the three runs, made side by side, took
+  the baseline's time on every case. Forcing hundreds of ordinary objects
+  through the core paths is slower: the crowded SDC1 cut-out took 224 s
+  against 26 s. The next entry profiles that time; it is the window reads,
+  not the core paths.
+
+## 2026-09-26 — M2: the forced-budget slowdown is window reads, not core masks
+
+- **Question.** The entry above put the forced-budget slowdown down to the
+  core tasks selecting each wide object's pixels with a full-core mask, and
+  proposed grouping each core's pixels by label once. That was profiled
+  before changing anything.
+- **Profile.** The crowded SDC1 cut-out was run at `e397293` as that check
+  ran it: every public stage on 512-pixel cores, `_OWNER_BATCH_READ_PIXELS`
+  forced to 4,096, serial. Under cProfile, 207 s of 280 s is
+  `ZarrProductSink.read_completed_window`, called 33,594 times. Timed
+  without the profiler, the run takes 183 s, of which the window reads take
+  136 s. Only one segment and one support component are wide, and no island
+  or deferred parent is. The four core gathers
+  (`_gather_island_pixels`, `_gather_wide_support`,
+  `_gather_wide_segments`, `_gather_deferred_components`) take 0.08 s
+  between them. The sparse cut-out is the same: 140 s, with 107 s in 22,859
+  window reads and 0.08 s in the gathers.
+- **Where the reads go.** A 64² budget closes a batch after about one
+  object, so every round submits hundreds of batches. Each batch's session
+  opens each product's array and completion manifest again, and each window
+  decodes and checksums the whole 512² chunk under it. At the default budget
+  the same run makes 455 window reads, which take 2.6 s of 23 s. On this
+  machine the endpoint scanner intercepts every file open, which makes each
+  read dearer. The read count does not depend on the machine.
+- **Worst case for the masks.** A one-pixel budget sends every island,
+  segment and support component through its cores: 827 islands, 1,690
+  segment-core pairs and 722 support components, on four cores. Fit parents
+  are deferred by the compact bound rather than by the budget, and none is.
+  The gathers then take 4.3 s of 166 s. Window reads, from the rounds that
+  still read each object alone, take 81.5 s. At the default budget a wide
+  object needs a window of more than 2,048², so a core holds only a few of
+  them.
+- **Decision.** The per-object masks do not dominate even in the one-pixel
+  case, so they stay as they are. A budget small enough to batch objects one
+  at a time costs whole-chunk reads per window. That regime is a test
+  device, not a configuration. If many-small-batch reads ever matter, the
+  lever is chunk reuse in `ZarrProductSink`, not the gathers.
+- **Conditions.** The runs shared the machine with another session's tests,
+  so the absolute times are not controlled benchmarks and no speed claim
+  rests on them. The attribution uses ratios within each run. Scratch runner
+  and profiles are outside the repository.
+
+## 2026-09-26 — M2: a wide owner's connectivity is decided from its cores
+
+- **Decision.** The maintainer chose the exact route for the publication
+  round's wide owners over ADR-008's T3 rule, so no published support
+  changes. ADR-008 now records that an owner's two questions are T2, not T3.
+- **How.** Both questions are about connected components of one owner's
+  pixels, and a component of one label connects only through that label, so
+  the island reconciliation, which joins any touching mask pixels, would
+  merge owners that touch. `hebog.algorithms.owner_connectivity` labels each
+  core's same-label components, keeps their labels and core-edge pixels, and
+  joins them across the edges of the cores observed with the eight-connected
+  edge rule restricted to equal labels. The restore rule counts an owner's
+  joined refined-support components. The bridge rule works on joined base
+  (persistent) and candidate (earlier-published but not persistent)
+  components and the pairs that touch, within a core or across an edge. A
+  candidate touching two base parts is itself a bridge and two candidates
+  never touch, so the window rule's fallback, restoring the earlier support,
+  can never reconnect the parts; it always ends by keeping the one part that
+  holds earlier pixels. The decision takes that path directly, and a
+  disconnected earlier support still fails closed.
+- **Stage.** Owners whose read exceeds the budget skip the window rounds.
+  One round before the published-owner scan labels their refined support in
+  every core their windows reach, and one after it labels their base and
+  candidate support there. The write round relabels its own core exactly as
+  the bridge round did, from the same shards, and applies its share of the
+  decision by component number. `unbounded_owner_count` becomes
+  `wide_owner_count`, and every core asked must answer. No per-object read
+  in the object pass is now wider than the budget, one haloed core, or a
+  window a reviewed admission bounds.
+- **Evidence.** Over 150 random owner pairs with connected or split earlier
+  support, the joined decisions applied core by core equal the window
+  kernel owner by owner at core sizes from 2 to 7, including 41 refusals in
+  a 400-seed survey of the generator; tiled same-label labelling equals
+  whole-plane labelling over random planes, cores and origins. In the stage,
+  the dumbbell owner, split by cleanup and bridged, is decided from three
+  13-pixel cores with every read at or under one haloed core, and the planes
+  equal the whole-plane support chain under Serial and Dask; a one-pixel
+  budget decides every owner from its cores. On the 16 quick-check cases at
+  512-pixel cores, the public products at the default budget and at a
+  4,096-pixel budget, which sends the crowded fields' owners through the new
+  rounds, are identical to `6326fba`'s. Portable coverage is 96.80%
+  branch-aware over 2,679 tests, with `algorithms/owner_connectivity.py` and
+  `stages/publication.py` at 100%. The composition fingerprint now binds the
+  new module, which its test required.
+
+## 2026-09-26 — M2: the topology round returns counts, not component pixels
+
+- **Defect.** ADR-008 rule 4 keeps everything that grows with object area
+  off the driver, but the deblend round returned every admitted parent's
+  component memberships as sparse global indices, 12 bytes a pixel in each
+  plane, and the driver concatenated them for all parents before sharding
+  them to the cores. Summed over parents that is every component pixel in
+  the image. On the SDC1 crowded cut-outs, serial, the driver held 3.3 MB
+  across the round boundary at 1,024² and 13.4 MB at 2,048² (4.1 times as
+  much for 4 times the area, against 16.8 MB for a whole 2,048² `int32`
+  core), and at 2,048² the round returned 2.66 MB of arrays and the write
+  round was sent the same again. At that density the term reaches about
+  0.8 GB at 15,402² and 32 GB at 100,000².
+- **Fix.** Numbering needs only each parent's component count, so that is
+  all the deblend round returns. A parent published as one component
+  (deferred, too faint to split, or one watershed region, whose labels are
+  then exactly its support) is relabelled by its cores from their own
+  support planes, as deferred parents already were, now through one
+  sorted-label lookup per core rather than one mask per parent. A parent
+  that splits is deblended again by each core that holds it, inside the same
+  windows, and the core keeps its own pixels. `deblend_parent_components`
+  sees the same crops whichever read serves them, so the memberships are the
+  same bit for bit. The alternative, staging the memberships in the store
+  from the deblend round, needs a ragged intermediate format with its own
+  integrity and cleanup; a second deblend of the parents that split is
+  simpler and, as measured below, costs little.
+- **Evidence.** A new test records every payload and result the three
+  rounds exchange and requires them to carry no array bytes; before the fix
+  the deblend round returned 3,216 bytes on the fixture. The whole-plane,
+  partition (16-, 24- and 64-pixel cores, one parent per read, reverse
+  completion) and Dask comparisons pass unchanged, and the direct-subset
+  check is now driven through published inputs. On the 16 quick-check cases
+  with every public stage on 512-pixel cores, the public products equal the
+  baseline `e397293`'s field by field, NaN equal to NaN, at the default read
+  budget and with the budget forced to 4,096 pixels; only the composition
+  fingerprint differs. At 2,048² no topology round carries an array and the
+  driver holds 3.3 MB at the write round: the parents' extent, holder and
+  count records, which grow with the number of parents rather than their
+  area. Portable coverage, measured with the next entry's change
+  also applied, is 96.80% branch-aware over 2,682 tests, with `stages/objects.py` at 100%; the one changed line no fixture
+  reached, a core holding a split parent's support outside its direct
+  window, has its own case.
+- **What it costs.** Medians of five, alternating with the baseline in
+  single-thread processes after a warm-up, on a machine whose endpoint
+  scanner kept about 1.3 cores busy throughout: the topology stage takes 7
+  to 20% longer, 0.33 → 0.35 s on `dense-field`, 0.40 → 0.48 s on
+  `lotss-dr3-1312-dense`, and 0.56 → 0.63 s and 1.23 → 1.40 s on the 1,024²
+  and 2,048² SDC1 crowded cut-outs, which is the second deblend of the
+  parents that split. No whole run moves measurably: the ratios are 0.98,
+  1.00, 0.99 and 1.00, and every 95% bootstrap interval contains 1. These
+  were taken with the next entry's change also applied, which does not
+  touch this stage. The write task now holds its two output planes while it
+  reads a deblend batch, so the stage's traced peak at 2,048² rises from 141
+  to 175 MB; that is two `int32` cores and one budgeted read, bounded by the
+  tile rather than the image.
+
+## 2026-09-26 — M2: each core assigns the support components it holds
+
+- **Defect.** The source-support round assigned each narrow connected
+  component in its window and returned the assignment as a dense `int32`
+  patch over that window, and the driver held every non-empty patch until
+  the write round. On the SDC1 crowded cut-outs the driver held 1.6 MB there
+  at 1,024² and 6.8 MB at 2,048², with 3.18 MB of patches returned at 2,048²
+  and 3.16 MB sent on to the cores: the same area scaling as the topology
+  round's memberships.
+- **Fix.** Nothing global has to be decided before this assignment, so its
+  round is gone. Each core's write task assigns the narrow components the
+  reconciliation maps into it, each inside its own window, and writes its
+  share over its seeds; a component crossing cores is assigned by each of
+  them from the same window, so they agree. The driver sends each core those
+  components' bounds and first pixels, and receives the first pixels of the
+  ones that assigned any pixel, so `assigned_component_count` still counts
+  each once. Wide components keep their core path. The stage's
+  `executor_task_count` and `maximum_graph_width` counted cores for the scan
+  and write rounds rather than the batched tasks those rounds submit; they
+  now count tasks.
+- **Evidence.** A new test records every payload and result the support
+  rounds exchange and requires them to carry no array bytes except the scan's
+  core boundary labels, and requires that exemption to match; before the fix
+  the assignment round returned 3,636 bytes on the fixture. The whole-plane,
+  partition (16-, 32- and 80-pixel cores, one component per read), wide-path
+  and Dask comparisons pass unchanged. The 16 quick-check cases on 512-pixel
+  cores give the baseline `e397293`'s public products field by field at the
+  default and the forced 4,096-pixel budget, with both changes applied. At
+  2,048² no support round carries an array beyond the scan's 32 KB of
+  boundary labels, the driver holds 2.7 MB at the write round, and the
+  stage's traced peak is unchanged at 110.5 MB. `stages/sources.py` stays at
+  100% branch coverage.
+- **What it costs.** Nothing measurable, in the same timing session as the
+  topology entry: the support stage is 9% and 12% faster on the crowded
+  1,024² and 2,048² cut-outs (0.44 → 0.40 s, 1.16 → 1.02 s), because the
+  patches no longer travel and a round of tasks is gone, and unchanged
+  within noise on `dense-field` and `lotss-dr3-1312-dense`. A component
+  crossing cores is assigned once by each of them.
+- **What is left.** The fit round still returns each fit parent's
+  measurement-support patch, a `bool` window, and the driver holds all of
+  them until the support write: 1.08 MB over 371 fit parents at
+  1,024² and 4.22 MB over 1,421 at 2,048². The same core-side
+  treatment would need the fit again in the write round, which is the
+  expensive step, so it needs its own design. A wide object's core paths
+  still bring its own pixels to the driver, by design.
+
+## 2026-09-26 — M2: the traced peak on the tile-native object pass
+
+- **Why.** The harness entry of 25 September measured the admitted tiers at
+  0.13.0 and ruled that only `just traced-peak` figures are quotable, but it
+  was committed beside `main` rather than on this branch, so every traced
+  figure the branch quoted since (342.04 → 339.98 MiB at 1,024², 1,244 MiB at
+  3,000²) came from the ad-hoc harness that traced the finder call without
+  the imports. The harness is now on the branch and the tiers are measured
+  with it.
+- **Run.** `29d2933` (source tree `b5fd5ea57605`, clean worktree), two
+  repetitions of each case at the quick benchmark's settings, serial, one
+  numerical-library thread, in
+  `benchmark-results/traced-peak/runs/pr-tip-20260926` and
+  `pr-tip-20260926-smoke`; 20 minutes in all. The configuration, dataset,
+  thread-environment and dependency-inventory hashes equal those of
+  `admitted-tiers-20260925b`, so the comparison with 0.13.0 isolates the
+  code.
+
+  | case | side | traced peak | at 0.13.0 | change | spread |
+  | --- | --- | --- | --- | --- | --- |
+  | `compact-snr-ladder` | 512 | 224.7 MiB | 225.2 MiB | −0.5 MiB | 3.1 KiB |
+  | `dense-field` | 1,024 | 429.5 MiB | 431.5 MiB | −2.0 MiB | 1.0 KiB |
+  | `lotss-dr3-1312-sparse` | 1,024 | 429.8 MiB | 431.8 MiB | −2.0 MiB | 0.2 KiB |
+  | `lotss-dr3-1312-dense` | 1,024 | 430.3 MiB | 432.4 MiB | −2.0 MiB | 6.0 KiB |
+  | `sdc1-b2-1000h-crowded` | 1,024 | 431.8 MiB | 433.9 MiB | −2.0 MiB | 1.9 KiB |
+  | `sdc1-b2-1000h-crowded-2048` | 2,048 | 1,312.4 MiB | 1,320.4 MiB | −8.0 MiB | 4.2 KiB |
+  | `lotss-dr3-1312-dense-3000` | 3,000 | 1,334.6 MiB | 1,351.7 MiB | −17.2 MiB | 3.9 KiB |
+
+  Every case reproduced, the process peak fell inside the `find_sources` call
+  in each, the import floor is 90.4 MiB throughout, and every component count
+  equals 0.13.0's.
+- **What it shows.** The branch lowers the peak by two bytes a pixel at every
+  tier: 0.52, 2.02, 8.02 and 17.18 MiB against arithmetic of 0.50, 2.00, 8.00
+  and 17.17, which is the two background `bool` masks the driver stopped
+  holding. Nothing else on the
+  branch reaches the peak: it sits in the multiscale pass, and the object
+  rounds that moved into their own passes, the wide-object core paths and the
+  rounds that stopped returning object pixels all run after it. The ad-hoc
+  differences quoted on 25 September, 2.06 and 17.23 MiB, agree with these to
+  0.05 MiB; their levels were the call-only span, 90 MiB below the process
+  peak. The peak
+  still crosses the single-tile boundary almost flat, 1.7% from 2,048² to
+  3,000².
+- **Records.** The plan's Scalability row and the performance profile now
+  quote these figures beside 0.13.0's; the profile's warning lists 1,244 MiB
+  among the retired ad-hoc figures.
+
+## 2026-09-26 — M2: pull request 72 review disposition
+
+- **Scope.** The Copilot and Greptile comments on `8da700e` and `d703e86`.
+- **Already fixed on the branch.** An incomplete fit-parent component set
+  (`3c78d89`) and an island wider than the read budget read whole
+  (`6326fba`, `81ba09a`).
+- **Fixed now.** The public measurement projection rejects an ownership plane
+  naming a component the association does not hold; since it reads owners
+  from the store rather than the terminal, such a pixel would have mapped to
+  no source silently. The multiscale publication round requires every scale
+  mask and the reconstruction mask to have the core's shape, the check the
+  whole-plane composition made before `8da700e`, since broadcasting let a
+  single row pass as an empty scale. The traced-peak runner prepares every
+  input before it traces any case, so a missing cut-out stops the run before
+  it spends traced work that no report would record.
+- **Deferred, as the plan already records.** Four comments note that a wide
+  object's own pixels still reach the driver in the island, deferred-fit,
+  source-support and catalogue-row rounds. That is the plan's wide-object
+  risk, with the 10,000 tier's traced peak as its trigger: moving those
+  reductions onto the cores trades bit-for-bit equality with the window path
+  for summation-order rounding, and the local-noise median has no exact
+  associative form. The plan had said the driver holds no image-sized
+  array, and the profile that nothing outside a tile scales with the image;
+  both now say no image-sized plane and name the object term.
+
+## 2026-09-26 — M2: what a wide object costs the driver
+
+- **Why.** A second Copilot comment on pull request 72 held that the wide-object
+  fallback leaves an O(image-area) driver term that the documents still
+  folded into the claim that nothing image-sized reaches the driver.
+  It does: ADR-008's rules 4 and 5 are broken for such an object, and the
+  documents said so only as a risk.
+- **Measurement.** `tracemalloc` over each round's driver reduction, called
+  on one synthetic 10⁶-pixel object returned as four core pieces, on
+  `ebedd94`. Bytes per object pixel, returned pieces plus reduction peak:
+  island row 24 + 57 = 81; deferred parent's component records
+  16 + 105 = 121; catalogue row 44 + 142 = 186; source support 8.8 + 265.6 =
+  274 with 10% of the pixels seeds, 294 with 1% and 188 with 50%, because its
+  nearest-seed query keeps eight `float64` distances and `int64` neighbours
+  for each unseeded pixel. Every reduction is linear in the object's pixels,
+  so a component filling the field costs about 2.7 GB at 3,000², 30 GB at
+  10,000² and 3 TB at 100,000². The script is not committed; the numbers
+  follow from the four reducers' private record types and should be re-taken
+  if those change.
+- **Records.** ADR-008 now declares the exception under rule 4, states its
+  cost in *Objects wider than the read budget* and lists it as a bad
+  consequence; its confirmation says "image-shaped", which is what the
+  architecture tests check. The performance profile and the plan quote the
+  measured cost, state that no traced peak includes it, and keep the risk's
+  mitigation for the 10,000 tier unchanged. At 3,000² the term is about twice
+  the tier's traced peak, for a field no traced case contains.
+
+## 2026-09-26 — M2: a wide support component is assigned on its cores
+
+- **Defect.** The source-support round returned every wide component's seeds
+  and unseeded pixels to the driver, which ran the nearest-seed query there.
+  That query keeps eight `float64` distances and `int64` neighbours for each
+  unseeded pixel, so it was the largest wide-object driver term: up to 294
+  bytes a component pixel (previous entry).
+- **Fix.** An unseeded pixel's owner depends only on its component's seeds,
+  so the cores now return only those, with a count of their unseeded pixels.
+  The driver sends each core holding unseeded pixels the seeds within
+  `d + 2h` of its centre, where `h` is the core's half-diagonal and `d` the
+  distance from the centre to the nearest seed. No core pixel's nearest seed,
+  or a seed tied with it, lies farther out, so the selection changes no owner.
+  The write round relabels the core as the scan did and assigns its own
+  pixels. Only the seeds cross the executor boundary, 12 bytes each.
+- **Driver cost.** The same `tracemalloc` harness, one 10⁶-pixel component
+  over four 500-pixel cores: 1.0, 9.4 and 47 bytes a component pixel when 1%,
+  10% and 50% of it is seeds, against 294, 274 and 188 before. The seeds
+  sent back came to 3.2 per seed. The catalogue-row round, at 186 bytes a
+  pixel, is now the largest wide-object term: 1.7 GB for a segment filling a
+  3,000² field.
+- **Evidence.** A recording executor with a one-pixel budget shows the
+  cores return exactly 12 bytes a seed pixel and get back only seed pixels.
+  A property test shows the selected seeds give every core pixel the owner
+  the full seed set gives, ties included. The published planes still equal
+  the whole-plane assignment at 16-, 24-, 32- and 80-pixel cores, and under
+  Dask with every component wide. On nine quick-check inputs, with every
+  public stage on 512-pixel cores and the read budget forced to 4,096
+  pixels, the public products of `ec65983` and of this change are identical
+  field by field. Seventeen wide support components took the new path, on
+  `extended-gaussians`, `filament-and-ring`, both LoTSS and both SDC1
+  cut-outs. Portable coverage is 96.80% branch-aware, with
+  `stages/sources.py` at 100%.

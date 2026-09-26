@@ -164,9 +164,9 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-groups
 
-      # Hosted-runner timings are not evidence; this checks the measurement
-      # path end to end on the smoke case.
-      - name: Run the quick benchmark smoke tier
+      # Hosted-runner timings are not evidence; this checks the timing and
+      # traced-peak measurement paths end to end on the smoke case.
+      - name: Run the measurement smoke tier
         run: uv run pytest -q -m "benchmark and not scalability" tests/benchmark
 
   notebooks:

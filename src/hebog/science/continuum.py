@@ -6,7 +6,6 @@ from __future__ import annotations
 from dataclasses import replace
 
 import numpy as np
-import numpy.typing as npt
 
 from hebog.algorithms.multiscale_association import (
     ScaleDetectionRecords,
@@ -18,11 +17,7 @@ from hebog.config import (
     SourceFinderConfig,
 )
 from hebog.science.configuration import source_finder_configs
-from hebog.science.models import (
-    ThresholdFilterResult,
-    TiledMultiscaleDetection,
-    TiledSupportLabels,
-)
+from hebog.science.models import TiledMultiscaleDetection
 from hebog.science.profile import ContinuumScienceProfile
 
 CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS = 1.5
@@ -59,32 +54,16 @@ def residual_detection_config(
     )
 
 
-def require_valid_scale_support(
-    multiscale: TiledMultiscaleDetection,
-    valid_pixels: npt.NDArray[np.bool_],
-) -> None:
-    """Reject published scale support outside the valid scientific domain.
-
-    Raises:
-        ValueError: If any scale claims a pixel the domain excludes.
-    """
-    for scale_mask in multiscale.significant_scale_masks:
-        if scale_mask.shape != valid_pixels.shape or np.any(
-            scale_mask & ~valid_pixels
-        ):
-            raise ValueError("scale support must be scientifically valid")
-
-
 def retained_scale_detections(
     multiscale: TiledMultiscaleDetection,
-    valid_pixels: npt.NDArray[np.bool_],
 ) -> tuple[ScaleDetectionRecords, ...]:
     """Describe the retained per-scale features from published records.
 
     The detection pass reconciled these features and published their labels,
-    so this step names them without labelling a plane again.
+    so this step names them without labelling a plane again, and without
+    holding one: the cores that wrote the scale masks already required them to
+    lie inside the domain their own estimate covers.
     """
-    require_valid_scale_support(multiscale, valid_pixels)
     return tuple(
         scale_detections_from_islands(
             islands,
@@ -99,46 +78,4 @@ def retained_scale_detections(
             ),
             start=1,
         )
-    )
-
-
-def build_continuum_detection(
-    positive_rms_pixels: npt.NDArray[np.bool_],
-    *,
-    multiscale: TiledMultiscaleDetection,
-    labels: TiledSupportLabels,
-) -> ThresholdFilterResult:
-    """Assemble the published detection from the tiled passes.
-
-    Every decision it carries was taken on a tile core or on one owner's
-    window: the detection pass published the seeds and support, and the
-    support pass published the owner labels, the publication labels and the
-    mask with island admission applied. No scale may claim a pixel with no
-    usable local noise, which is what this step still checks.
-
-    Raises:
-        ValueError: If the mask and the publication labels disagree, or a
-            scale claims a pixel outside the usable domain.
-    """
-    require_valid_scale_support(multiscale, positive_rms_pixels)
-    # The published planes belong to the caller, so this record owns copies
-    # rather than freezing arrays it did not create.
-    publication_labels = np.array(
-        labels.publication_labels,
-        dtype=np.int32,
-        copy=True,
-    )
-    retained_mask = np.array(labels.retained_mask, dtype=np.bool_, copy=True)
-    if np.any(retained_mask != (publication_labels > 0)):
-        raise ValueError(
-            "published retained mask must agree with publication labels"
-        )
-    publication_labels.setflags(write=False)
-    retained_mask.setflags(write=False)
-    return ThresholdFilterResult(
-        retained_mask=retained_mask,
-        component_labels=publication_labels,
-        component_count=int(
-            np.count_nonzero(np.unique(labels.component_labels) > 0)
-        ),
     )

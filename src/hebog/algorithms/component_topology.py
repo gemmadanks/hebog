@@ -211,6 +211,33 @@ def _one_parent_component(
     )
 
 
+def parent_is_deferred(
+    direct_bounds: ImageBounds,
+    direct_pixel_count: int,
+    config: CompactDeblendConfig,
+) -> bool:
+    """Return whether a parent passes either hard compact-work bound.
+
+    Such a parent stays one explicit deferred component. That decision needs
+    only the parent's bounds and size, and publishing it needs none of its
+    pixels, so no task has to read a deferred parent's window.
+
+    Examples:
+        >>> bounds = CompactDeblendConfig(5.0, 2, 1.0, 7, 100, 250, 250, 250)
+        >>> parent_is_deferred(ImageBounds(0, 10, 0, 10), 60, bounds)
+        False
+        >>> parent_is_deferred(ImageBounds(0, 3, 0, 90), 60, bounds)
+        True
+        >>> parent_is_deferred(ImageBounds(0, 10, 0, 10), 101, bounds)
+        True
+    """
+    height, width = direct_bounds.shape_yx
+    return (
+        direct_pixel_count > config.maximum_compact_island_pixels
+        or height * width > config.maximum_compact_bounds_pixels
+    )
+
+
 def deblend_parent_components(  # noqa: PLR0913
     normalized_window: npt.NDArray[np.float64],
     direct_membership: npt.NDArray[np.bool_],
@@ -237,13 +264,8 @@ def deblend_parent_components(  # noqa: PLR0913
         measurement_bounds.shape_yx,
         dtype=np.int32,
     )
-    bounds_pixels = direct_bounds.shape_yx[0] * direct_bounds.shape_yx[1]
     direct_pixels = int(np.count_nonzero(direct_membership))
-    deferred = (
-        direct_pixels > config.maximum_compact_island_pixels
-        or bounds_pixels > config.maximum_compact_bounds_pixels
-    )
-    if deferred:
+    if parent_is_deferred(direct_bounds, direct_pixels, config):
         return _one_parent_component(
             direct_membership,
             measurement_membership,

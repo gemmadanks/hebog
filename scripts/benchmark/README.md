@@ -5,6 +5,7 @@ This directory contains reproducible benchmark entry points for:
 - PyBDSF reference runs;
 - the quick benchmark of complete Hebog runs against the previous release
   and pinned PyBDSF `master`;
+- the traced-allocation peak that gates a public envelope raise;
 - a stage profile of complete Hebog runs across image size and source density;
 - Rapthor's complete `filter_skymodel` task;
 - the source-finder comparison notebook's PyBDSF, Aegean and Hebog runs.
@@ -209,6 +210,35 @@ slightly favours PyBDSF.
 The closed Phase 4 paired campaign runners and compiler were removed with the
 campaign tooling and remain in
 [Git history at `v0.7.0`](https://github.com/gemmadanks/hebog/tree/v0.7.0/scripts/benchmark).
+
+## Traced-allocation peak
+
+`measure_traced_peak.py` measures the deterministic `tracemalloc` peak of
+complete runs on the quick benchmark's own cases and settings, and writes one
+`TracedAllocationEvidence` record per case. It is the only committed way to
+produce the figure the plan's envelope-raise gate names; a peak quoted from
+anywhere else is not reproducible. The
+[development workflow guide](../../docs/how-to/index.md#measure-the-traced-allocation-peak)
+describes the spans, repetitions and exit status:
+
+```console
+just traced-peak
+just traced-peak --tier large --cases lotss-dr3-1312-dense-3000 --repetitions 2
+```
+
+`measure_traced_peak_worker.py` is the traced process. It starts tracing
+before it imports Hebog and then imports nothing but the standard library and
+the public API, so the figure covers the run and only the run: importing the
+validation package would add its own allocations to what is being measured.
+Software identity comes from the parent, which runs the same interpreter. The
+statistics, the worker contract and the evidence live in
+`hebog.validation.traced_peak`, with unit tests in
+`tests/unit/validation/test_traced_peak.py`, the worker contract in
+`tests/integration/test_traced_peak_worker.py` and the complete measurement
+path in `tests/benchmark/test_traced_peak_smoke.py`, which CI runs.
+
+Tracing roughly doubles wall time, so this runner never times anything for
+comparison and the quick benchmark never traces.
 
 ## Complete-execution profile
 

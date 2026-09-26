@@ -29,9 +29,10 @@ from hebog.algorithms.component_measurement import ComponentMeasurements
 from hebog.algorithms.extended_measurement import (
     DetectedSegmentPosition,
     SegmentWindow,
+    connected_component_labels,
     expand_detected_segment_labels,
     expand_source_measurement_labels,
-    measure_detected_segment_position,
+    measure_segment_position_pixels,
 )
 from hebog.algorithms.label_groups import label_windows
 from hebog.data_models.astrometry import LocalTangentPlaneTransform
@@ -48,7 +49,11 @@ from hebog.data_models.source_association import (
     CatalogueSourceMembership,
     SourceAssociationResult,
 )
-from hebog.science.models import CatalogueEllipse, CatalogueSource
+from hebog.science.models import (
+    CatalogueEllipse,
+    CatalogueIsland,
+    CatalogueSource,
+)
 
 _PLANE_DIMENSIONS = 2
 _MINIMUM_MOMENT_PIXELS = 3
@@ -127,33 +132,32 @@ def _validated_position_signal(
     )
 
 
-def _segment_position(
+def _segment_position(  # noqa: PLR0913
+    y_pixels: npt.NDArray[np.int64],
+    x_pixels: npt.NDArray[np.int64],
     residual: npt.NDArray[np.float64],
     denoised_position_signal: npt.NDArray[np.float64] | None,
-    support: npt.NDArray[np.bool_],
     *,
     maximum_peak_to_mean_ratio: float,
-    window: SegmentWindow | None = None,
+    plane_shape_yx: tuple[int, int],
 ) -> DetectedSegmentPosition:
     """Select original or denoised weights from measured concentration.
 
-    The planes may be one segment's window of the image; ``window`` then
-    keeps the reported positions in the image's pixel frame.
+    Every array holds the segment's support pixels in raster order, with
+    coordinates in the image's pixel frame.
     """
     selected = residual
-    if denoised_position_signal is not None:
-        direct_weights = residual[support]
-        if direct_weights.size:
-            direct_mean = float(np.mean(direct_weights, dtype=np.float64))
-            peak_to_mean = (
-                float(np.max(direct_weights)) / direct_mean
-                if np.isfinite(direct_mean) and direct_mean > 0.0
-                else np.inf
-            )
-            if peak_to_mean <= maximum_peak_to_mean_ratio:
-                selected = denoised_position_signal
-    estimate = measure_detected_segment_position(
-        selected, support, window=window
+    if denoised_position_signal is not None and residual.size:
+        direct_mean = float(np.mean(residual, dtype=np.float64))
+        peak_to_mean = (
+            float(np.max(residual)) / direct_mean
+            if np.isfinite(direct_mean) and direct_mean > 0.0
+            else np.inf
+        )
+        if peak_to_mean <= maximum_peak_to_mean_ratio:
+            selected = denoised_position_signal
+    estimate = measure_segment_position_pixels(
+        y_pixels, x_pixels, selected, plane_shape_yx=plane_shape_yx
     )
     if not estimate.available and denoised_position_signal is not None:
         alternative = (
@@ -162,8 +166,8 @@ def _segment_position(
             else denoised_position_signal
         )
         selected = alternative
-        estimate = measure_detected_segment_position(
-            selected, support, window=window
+        estimate = measure_segment_position_pixels(
+            y_pixels, x_pixels, selected, plane_shape_yx=plane_shape_yx
         )
     return replace(
         estimate,
@@ -242,33 +246,33 @@ def _validated_centroid_labels(
     return np.asarray(values, dtype=np.int64)
 
 
-def _position_attribution(  # noqa: PLR0913, PLR0917
-    residual: npt.NDArray[np.float64],
-    position_signal: npt.NDArray[np.float64] | None,
+def _position_attribution(
+    pixels: SegmentPixels,
     support: npt.NDArray[np.bool_],
-    measurement_support: npt.NDArray[np.bool_],
-    background: npt.ArrayLike,
     estimate: DetectedSegmentPosition,
     integrated_flux: float,
-    window: SegmentWindow,
+    *,
+    plane_shape_yx: tuple[int, int],
 ) -> SourcePositionDiagnostics:
-    """Retain both centroid estimators and their distinct flux domain.
-
-    Every plane is this segment's aperture window, in the frame ``window``
-    describes.
-    """
-    original = measure_detected_segment_position(
-        residual, support, window=window
+    """Retain both centroid estimators and their distinct flux domain."""
+    y_support = pixels.y[support]
+    x_support = pixels.x[support]
+    residual = pixels.residual[support]
+    original = measure_segment_position_pixels(
+        y_support, x_support, residual, plane_shape_yx=plane_shape_yx
     )
     denoised = (
-        measure_detected_segment_position(
-            position_signal, support, window=window
+        measure_segment_position_pixels(
+            y_support,
+            x_support,
+            pixels.position_signal[support],
+            plane_shape_yx=plane_shape_yx,
         )
-        if position_signal is not None
+        if pixels.position_signal is not None
         else None
     )
-    background_values = np.asarray(background)[measurement_support]
-    signed_weight = float(np.sum(residual[support], dtype=np.float64))
+    background_values = pixels.background[pixels.aperture]
+    signed_weight = float(np.sum(residual, dtype=np.float64))
     return SourcePositionDiagnostics(
         signed_original_xy=original.centroid_xy,
         denoised_xy=None if denoised is None else denoised.centroid_xy,
@@ -277,7 +281,7 @@ def _position_attribution(  # noqa: PLR0913, PLR0917
         + estimate.weighting,
         unavailable_reason=estimate.unavailable_reason,
         position_pixel_count=int(np.count_nonzero(support)),
-        aperture_pixel_count=int(np.count_nonzero(measurement_support)),
+        aperture_pixel_count=int(np.count_nonzero(pixels.aperture)),
         position_signed_weight=signed_weight
         if np.isfinite(signed_weight)
         else None,
@@ -420,6 +424,107 @@ class SegmentRowMeasurement:
     quality_flags: tuple[str, ...]
 
 
+@dataclass(frozen=True, slots=True)
+class SegmentPixels:
+    """The pixels one segment's row reads, in raster order.
+
+    A pixel is here when the segment holds it in its seeded ownership
+    (``owned``) or in its expanded aperture (``aperture``); a caller may add
+    others. Coordinates are in the image's pixel frame and every array is
+    aligned with ``y``. Each reduction a row makes is over one of those two
+    sets, so any such superset in raster order gives the same row: a window
+    over the segment, or the pieces its cores return.
+    """
+
+    y: npt.NDArray[np.int64]
+    x: npt.NDArray[np.int64]
+    residual: npt.NDArray[np.float64]
+    position_signal: npt.NDArray[np.float64] | None
+    background: npt.NDArray[np.float64]
+    valid: npt.NDArray[np.bool_]
+    owned: npt.NDArray[np.bool_]
+    aperture: npt.NDArray[np.bool_]
+
+
+def measure_segment_row_pixels(  # noqa: PLR0913
+    pixels: SegmentPixels,
+    *,
+    label_value: int,
+    plane_shape_yx: tuple[int, int],
+    beam_area_pixels: float,
+    denoised_position_maximum_peak_to_mean_ratio: float,
+    position_diagnostics: dict[int, SourcePositionDiagnostics] | None = None,
+) -> SegmentRowMeasurement | None:
+    """Measure one segment's catalogue row from its own pixels.
+
+    This is the half that reads pixels, and it needs no WCS. Absence means
+    the segment has no measurable row, not an error.
+    """
+    support = pixels.owned & pixels.valid & np.isfinite(pixels.residual)
+    residual = pixels.residual[support]
+    estimate = _segment_position(
+        pixels.y[support],
+        pixels.x[support],
+        residual,
+        None
+        if pixels.position_signal is None
+        else pixels.position_signal[support],
+        maximum_peak_to_mean_ratio=(
+            denoised_position_maximum_peak_to_mean_ratio
+        ),
+        plane_shape_yx=plane_shape_yx,
+    )
+    integrated_weight = float(
+        np.sum(pixels.residual[pixels.aperture], dtype=np.float64)
+    )
+    # Emission this segment owns that no fitted model accounts for. A source
+    # whose flux is the sum of its fits would otherwise lose it, because the
+    # fits describe the compact parts and nothing describes the rest. This is
+    # the residual after the models, not the residual outside their support:
+    # a fit's support is the region it measured over, which covers emission
+    # its model does not explain.
+    if position_diagnostics is not None:
+        position_diagnostics[label_value] = _position_attribution(
+            pixels,
+            support,
+            estimate,
+            integrated_weight / beam_area_pixels,
+            plane_shape_yx=plane_shape_yx,
+        )
+    if not estimate.available or estimate.centroid_xy is None:
+        return None
+    quality_flags: tuple[str, ...] = ()
+    if not np.isfinite(integrated_weight) or integrated_weight <= 0.0:
+        integrated_weight = float(
+            np.sum(residual[residual > 0.0], dtype=np.float64)
+        )
+        quality_flags = (
+            "association-aperture-nonpositive",
+            "exact-owner-positive-residual-flux",
+        )
+    if not np.isfinite(integrated_weight) or integrated_weight <= 0.0:
+        return None
+    return SegmentRowMeasurement(
+        label_value=label_value,
+        centroid_xy=estimate.centroid_xy,
+        peak_flux_jy_per_beam=float(np.max(residual)),
+        integrated_flux_jy=integrated_weight / beam_area_pixels,
+        quality_flags=tuple(
+            sorted(
+                {
+                    *quality_flags,
+                    f"position-{estimate.weighting}",
+                    "positive-exact-owner-flux"
+                    if "exact-owner-positive-residual-flux" in quality_flags
+                    else "source-owned-signed-aperture",
+                    "aperture-flux-uncertainty-unavailable",
+                    "position-uncertainty-unavailable",
+                }
+            )
+        ),
+    )
+
+
 def measure_segment_row(  # noqa: PLR0913, PLR0917
     residual_window: npt.NDArray[np.float64],
     position_signal_window: npt.NDArray[np.float64] | None,
@@ -438,82 +543,34 @@ def measure_segment_row(  # noqa: PLR0913, PLR0917
 
     Every array covers that segment's exact support joined with its expanded
     aperture, which is the window :func:`_segment_crop` returns, so this work
-    costs the segment's own pixels rather than the plane around it. Absence
-    means the segment has no measurable row, not an error.
-
-    This is the half that reads pixels. It needs no WCS, so the sky
-    coordinate its centroid earns is a separate step.
+    costs the segment's own pixels rather than the plane around it. The row
+    is :func:`measure_segment_row_pixels` over the pixels of the window the
+    segment owns or holds in its aperture.
     """
-    support = (
-        (centroid_window == label_value)
-        & valid_window
-        & np.isfinite(residual_window)
-    )
-    estimate = _segment_position(
-        residual_window,
-        position_signal_window,
-        support,
-        maximum_peak_to_mean_ratio=(
+    owned = centroid_window == label_value
+    aperture = aperture_window == label_value
+    member = owned | aperture
+    local_y, local_x = np.nonzero(member)
+    return measure_segment_row_pixels(
+        SegmentPixels(
+            y=local_y + window.origin_yx[0],
+            x=local_x + window.origin_yx[1],
+            residual=residual_window[member],
+            position_signal=None
+            if position_signal_window is None
+            else position_signal_window[member],
+            background=np.asarray(background_window)[member],
+            valid=valid_window[member],
+            owned=owned[member],
+            aperture=aperture[member],
+        ),
+        label_value=label_value,
+        plane_shape_yx=window.plane_shape_yx,
+        beam_area_pixels=beam_area_pixels,
+        denoised_position_maximum_peak_to_mean_ratio=(
             denoised_position_maximum_peak_to_mean_ratio
         ),
-        window=window,
-    )
-    measurement_support = aperture_window == label_value
-    integrated_weight = float(
-        np.sum(residual_window[measurement_support], dtype=np.float64)
-    )
-    # Emission this segment owns that no fitted model accounts for. A source
-    # whose flux is the sum of its fits would otherwise lose it, because the
-    # fits describe the compact parts and nothing describes the rest. This is
-    # the residual after the models, not the residual outside their support:
-    # a fit's support is the region it measured over, which covers emission
-    # its model does not explain.
-    if position_diagnostics is not None:
-        position_diagnostics[label_value] = _position_attribution(
-            residual_window,
-            position_signal_window,
-            support,
-            measurement_support,
-            background_window,
-            estimate,
-            integrated_weight / beam_area_pixels,
-            window,
-        )
-    if not estimate.available or estimate.centroid_xy is None:
-        return None
-    quality_flags: tuple[str, ...] = ()
-    if not np.isfinite(integrated_weight) or integrated_weight <= 0.0:
-        exact_positive_support = support & (residual_window > 0.0)
-        integrated_weight = float(
-            np.sum(
-                residual_window[exact_positive_support],
-                dtype=np.float64,
-            )
-        )
-        quality_flags = (
-            "association-aperture-nonpositive",
-            "exact-owner-positive-residual-flux",
-        )
-    if not np.isfinite(integrated_weight) or integrated_weight <= 0.0:
-        return None
-    return SegmentRowMeasurement(
-        label_value=label_value,
-        centroid_xy=estimate.centroid_xy,
-        peak_flux_jy_per_beam=float(np.max(residual_window[support])),
-        integrated_flux_jy=integrated_weight / beam_area_pixels,
-        quality_flags=tuple(
-            sorted(
-                {
-                    *quality_flags,
-                    f"position-{estimate.weighting}",
-                    "positive-exact-owner-flux"
-                    if "exact-owner-positive-residual-flux" in quality_flags
-                    else "source-owned-signed-aperture",
-                    "aperture-flux-uncertainty-unavailable",
-                    "position-uncertainty-unavailable",
-                }
-            )
-        ),
+        position_diagnostics=position_diagnostics,
     )
 
 
@@ -599,36 +656,30 @@ def _catalogue_ellipse(shape: GaussianShape) -> CatalogueEllipse:
     )
 
 
-def _segment_pixel_moment_covariance(
+def segment_moment_pixels(
+    y_pixels: npt.NDArray[np.int64],
+    x_pixels: npt.NDArray[np.int64],
     residual_jy_per_beam: npt.NDArray[np.float64],
-    support: npt.NDArray[np.bool_],
-    *,
-    window: SegmentWindow | None = None,
 ) -> tuple[tuple[float, float], npt.NDArray[np.float64]] | None:
-    """Return a positive centroid and exact-support covariance.
+    """Return a positive centroid and covariance from support pixels alone.
 
-    The planes may be one segment's window of the image; ``window`` then
-    keeps the centroid in the image's pixel frame.
+    The arrays hold the segment's measured support in raster order, with
+    coordinates in the image's pixel frame, so a segment too wide to read at
+    once gives the moment its window would give, bit for bit.
     """
-    y_origin, x_origin = (0, 0) if window is None else window.origin_yx
-    positive = (
-        support
-        & np.isfinite(residual_jy_per_beam)
-        & (residual_jy_per_beam > 0.0)
-    )
+    positive = np.isfinite(residual_jy_per_beam) & (residual_jy_per_beam > 0.0)
     if int(np.count_nonzero(positive)) < _MINIMUM_MOMENT_PIXELS:
         return None
     weights = residual_jy_per_beam[positive]
     weight = float(np.sum(weights, dtype=np.float64))
     if not np.isfinite(weight) or weight <= 0.0:
         return None
-    local_y, local_x = np.nonzero(positive)
-    y_pixels = local_y + y_origin
-    x_pixels = local_x + x_origin
-    centroid_x = float(np.sum(x_pixels * weights, dtype=np.float64) / weight)
-    centroid_y = float(np.sum(y_pixels * weights, dtype=np.float64) / weight)
-    delta_x = x_pixels - centroid_x
-    delta_y = y_pixels - centroid_y
+    y_positive = y_pixels[positive]
+    x_positive = x_pixels[positive]
+    centroid_x = float(np.sum(x_positive * weights, dtype=np.float64) / weight)
+    centroid_y = float(np.sum(y_positive * weights, dtype=np.float64) / weight)
+    delta_x = x_positive - centroid_x
+    delta_y = y_positive - centroid_y
     covariance = np.asarray(
         (
             (
@@ -650,6 +701,26 @@ def _segment_pixel_moment_covariance(
     return (centroid_x, centroid_y), covariance
 
 
+def _segment_pixel_moment_covariance(
+    residual_jy_per_beam: npt.NDArray[np.float64],
+    support: npt.NDArray[np.bool_],
+    *,
+    window: SegmentWindow | None = None,
+) -> tuple[tuple[float, float], npt.NDArray[np.float64]] | None:
+    """Return a positive centroid and exact-support covariance.
+
+    The planes may be one segment's window of the image; ``window`` then
+    keeps the centroid in the image's pixel frame.
+    """
+    y_origin, x_origin = (0, 0) if window is None else window.origin_yx
+    local_y, local_x = np.nonzero(support)
+    return segment_moment_pixels(
+        local_y + y_origin,
+        local_x + x_origin,
+        residual_jy_per_beam[support],
+    )
+
+
 _MOMENT_SHAPE_PROVENANCE = "segment-moment-equivalent-shape"
 
 
@@ -662,6 +733,203 @@ def unavailable_moment_shape_fields() -> dict[str, object]:
         "deconvolution_status": "unavailable",
         "quality_flags": (_MOMENT_SHAPE_PROVENANCE, "shape-unavailable"),
     }
+
+
+def detection_island_identifier(first_pixel_yx: tuple[int, int]) -> str:
+    """Name one detection island by the first pixel it owns.
+
+    Raster order makes the first pixel canonical: it does not depend on how
+    the mask was partitioned or in which order the tiles completed.
+
+    Examples:
+        >>> detection_island_identifier((12, 40))
+        'island-detection-12-40'
+    """
+    return f"island-detection-{first_pixel_yx[0]}-{first_pixel_yx[1]}"
+
+
+def measure_detection_island(
+    residual_jy_per_beam: npt.NDArray[np.float64],
+    rms_jy_per_beam: npt.NDArray[np.float64],
+    support: npt.NDArray[np.bool_],
+    *,
+    first_pixel_yx: tuple[int, int],
+    beam_area_pixels: float,
+) -> CatalogueIsland:
+    """Summarise one island over the exact pixels its mask retains.
+
+    Every array covers the window that holds the island, and ``support`` is
+    that island alone: an island is mask connectivity, not owner support, so
+    nothing here consults a label plane. The flux is the signed residual over
+    those pixels, which is why an island row is reported without an
+    uncertainty.
+
+    Raises:
+        ValueError: If the island retains no pixel in this window.
+    """
+    if not bool(np.any(support)):
+        raise ValueError("detection island must retain at least one pixel")
+    residual = residual_jy_per_beam[support]
+    return CatalogueIsland(
+        identifier=detection_island_identifier(first_pixel_yx),
+        pixel_count=int(support.sum()),
+        integrated_flux_jy=float(
+            np.sum(residual, dtype=np.float64) / beam_area_pixels
+        ),
+        local_rms_jy_per_beam=float(np.median(rms_jy_per_beam[support])),
+        mean_brightness_jy_per_beam=float(np.mean(residual)),
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class DetectionIslandCatalogue:
+    """Every measured island and the islands each owner's support reaches."""
+
+    islands: tuple[CatalogueIsland, ...]
+    island_ids_by_owner: Mapping[int, tuple[str, ...]]
+
+
+def build_detection_island_catalogue(
+    residual_jy_per_beam: npt.NDArray[np.float64],
+    rms_jy_per_beam: npt.NDArray[np.float64],
+    retained_mask: npt.NDArray[np.bool_],
+    owner_labels: npt.NDArray[np.integer[Any]],
+    *,
+    beam_area_pixels: float,
+) -> DetectionIslandCatalogue:
+    """Measure every island of one complete retained mask, in raster order.
+
+    This is the readable whole-plane reference for the tiled rounds in
+    :mod:`hebog.stages.islands`, which label each core and reconcile the
+    fragments instead of labelling the plane. Rows are ordered by the island's
+    canonical first pixel, which is the order labelling a whole plane gives.
+
+    ``owner_labels`` are the measurement labels of the components the
+    catalogue publishes; an owner is linked to every island its retained
+    support reaches, because published support can be split between islands.
+    """
+    labels = _connected_island_labels(retained_mask)
+    windows = label_windows(labels)
+    islands: list[CatalogueIsland] = []
+    identifier_by_label: dict[int, str] = {}
+    for label_value, crop in enumerate(windows, start=1):
+        if crop is None:
+            raise ValueError("detection islands must own at least one pixel")
+        support = labels[crop] == label_value
+        first = np.argwhere(support)[0]
+        first_pixel_yx = (
+            int(first[0]) + crop[0].start,
+            int(first[1]) + crop[1].start,
+        )
+        island = measure_detection_island(
+            residual_jy_per_beam[crop],
+            rms_jy_per_beam[crop],
+            support,
+            first_pixel_yx=first_pixel_yx,
+            beam_area_pixels=beam_area_pixels,
+        )
+        identifier_by_label[label_value] = island.identifier
+        islands.append(island)
+    return DetectionIslandCatalogue(
+        islands=tuple(islands),
+        island_ids_by_owner=island_ids_by_owner(
+            _owner_island_pairs(labels, owner_labels, retained_mask),
+            identifier_by_island_label=identifier_by_label,
+        ),
+    )
+
+
+def _connected_island_labels(
+    retained_mask: npt.NDArray[np.bool_],
+) -> npt.NDArray[np.int32]:
+    """Label one retained mask's eight-connected islands."""
+    labels, _ = cast(
+        "tuple[npt.NDArray[np.int32], int]",
+        connected_component_labels(
+            retained_mask,
+            structure=np.ones((3, 3), dtype=np.int8),
+        ),
+    )
+    return labels
+
+
+def _owner_island_pairs(
+    island_labels: npt.NDArray[np.int32],
+    owner_labels: npt.NDArray[np.integer[Any]],
+    retained_mask: npt.NDArray[np.bool_],
+) -> tuple[tuple[int, int], ...]:
+    """Observe which islands each owner's retained support reaches."""
+    selected = retained_mask & (owner_labels > 0)
+    if not bool(np.any(selected)):
+        return ()
+    pairs = np.unique(
+        np.column_stack((owner_labels[selected], island_labels[selected])),
+        axis=0,
+    )
+    return tuple((int(owner), int(island)) for owner, island in pairs)
+
+
+def island_ids_by_owner(
+    pairs: tuple[tuple[int, int], ...],
+    *,
+    identifier_by_island_label: Mapping[int, str],
+) -> dict[int, tuple[str, ...]]:
+    """Name the islands every owner reaches, from observed label pairs.
+
+    The pairs come either from one whole plane or from the cores that
+    observed them, so this join is the same in both compositions.
+    """
+    owners: dict[int, set[str]] = {}
+    for owner, island_label in pairs:
+        owners.setdefault(owner, set()).add(
+            identifier_by_island_label[island_label]
+        )
+    return {
+        owner: tuple(sorted(identifiers))
+        for owner, identifiers in sorted(owners.items())
+    }
+
+
+def segment_local_rms(
+    rms_jy_per_beam: npt.NDArray[np.float64],
+    owner_window: npt.NDArray[np.integer[Any]],
+    *,
+    label_value: int,
+) -> float | None:
+    """Return the median local noise over one segment's exact owned support.
+
+    ``owner_window`` is the segment's seeded ownership, not its expanded
+    aperture: the noise a catalogue row quotes describes the pixels the
+    segment itself owns. Both arrays cover the same window. A pixel whose
+    estimate is not finite and positive carries no usable noise, and
+    ``None`` means this segment owns no pixel that does.
+
+    Examples:
+        >>> import numpy as np
+        >>> rms = np.array([[1.0, 3.0], [np.nan, 5.0]])
+        >>> owners = np.array([[2, 2], [2, 0]])
+        >>> segment_local_rms(rms, owners, label_value=2)
+        2.0
+        >>> segment_local_rms(rms, owners, label_value=1) is None
+        True
+    """
+    return segment_local_rms_pixels(
+        rms_jy_per_beam[owner_window == label_value]
+    )
+
+
+def segment_local_rms_pixels(
+    rms_jy_per_beam: npt.NDArray[np.float64],
+) -> float | None:
+    """Return the median usable noise over one segment's owned pixels.
+
+    The array holds the noise at the pixels the segment owns, so a segment
+    too wide to read at once quotes the noise its window would give.
+    """
+    usable = np.isfinite(rms_jy_per_beam) & (rms_jy_per_beam > 0.0)
+    if not bool(np.any(usable)):
+        return None
+    return float(np.median(rms_jy_per_beam[usable]))
 
 
 def segment_moment(
@@ -877,33 +1145,33 @@ def source_label_by_owner(
     }
 
 
-def _require_valid_source_label_plane(
-    values: npt.ArrayLike,
-    labels: npt.NDArray[np.int64],
+def local_rms_by_object_id(
     association: SourceAssociationResult,
     *,
-    seeded: bool = True,
-) -> None:
-    """Reject one published source plane that disagrees with the memberships.
+    component_local_rms: Mapping[int, float],
+    source_local_rms: Mapping[int, float],
+) -> dict[str, float]:
+    """Name each measured owner's local noise by its catalogue identity.
 
-    The plane itself is not returned: nothing downstream reads it, and
-    materialising an image-sized copy to discard would scale with the image
-    rather than the tile.
+    The row passes measure noise per label, because that is what the plane
+    they read carries: components by their measurement label and sources by
+    their canonical source label, which is the membership's position here.
+    An owner whose support carries no usable estimate is absent, exactly as
+    it is in the mappings this joins.
     """
-    plane = np.asarray(values)
-    if (
-        plane.ndim != labels.ndim
-        or plane.shape != labels.shape
-        or not np.issubdtype(plane.dtype, np.integer)
-        or bool(np.any(plane < 0))
-    ):
-        raise ValueError(
-            "source labels must be one aligned non-negative integer plane"
+    by_object_id = {
+        record.component_id: component_local_rms[record.label_value]
+        for record in association.components
+        if record.label_value in component_local_rms
+    }
+    by_object_id.update(
+        (membership.source_id, source_local_rms[source_label])
+        for source_label, membership in enumerate(
+            association.memberships, start=1
         )
-    if bool(np.any(plane > len(association.memberships))):
-        raise ValueError("source labels must name a published membership")
-    if seeded and bool(np.any((labels > 0) & (plane == 0))):
-        raise ValueError("source memberships must own every component pixel")
+        if source_label in source_local_rms
+    )
+    return by_object_id
 
 
 def _fitted_component_row(
@@ -1258,16 +1526,11 @@ def _reconstructed_source_rows(
 
 
 def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913
-    valid_pixels: npt.ArrayLike,
-    measurement_component_labels: npt.ArrayLike,
-    direct_component_labels: npt.ArrayLike,
     header: fits.Header,
     *,
     component_measurements: ComponentMeasurements | None = None,
     association: SourceAssociationResult,
     hierarchy: SourceAssociationResult,
-    source_labels: npt.ArrayLike,
-    source_measurement_labels: npt.ArrayLike,
     component_rows: tuple[CatalogueSource, ...],
     source_rows: tuple[CatalogueSource, ...],
     source_positions: Mapping[int, SourcePositionDiagnostics],
@@ -1280,36 +1543,12 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913
     before aperture expansion, so every observable pixel belongs to at most one
     source aperture.
 
-    Every row this assembles was already measured, by the stage that held the
-    window it was measured in, so this takes no image or background plane.
+    This assembles records only: every row was measured by the stage that held
+    the window it was measured in, and every plane the rows describe was
+    checked by the core that wrote it — direct ownership against the
+    measurement plane and the validity beside it, source ownership against the
+    memberships the cores were given.
     """
-    valid, labels = _validated_segment_labels(
-        valid_pixels,
-        measurement_component_labels,
-    )
-    direct = np.asarray(direct_component_labels)
-    if (
-        direct.ndim != labels.ndim
-        or direct.shape != labels.shape
-        or not np.issubdtype(direct.dtype, np.integer)
-        or bool(np.any(direct < 0))
-    ):
-        raise ValueError(
-            "direct component labels must be one aligned non-negative "
-            "integer plane"
-        )
-    direct = np.asarray(direct, dtype=np.int64)
-    if bool(np.any((direct > 0) & (~valid | (labels != direct)))):
-        raise ValueError(
-            "direct component ownership must be a valid subset of "
-            "measurement ownership"
-        )
-    if set(np.unique(direct[direct > 0])) != set(
-        np.unique(labels[labels > 0])
-    ):
-        raise ValueError(
-            "direct and measurement component identities must match"
-        )
     component_sources, _ = _apply_component_measurements(
         component_rows,
         component_measurements,
@@ -1318,10 +1557,6 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913
     stable_components = _stable_component_catalogue(
         component_sources,
         association,
-    )
-    _require_valid_source_label_plane(source_labels, labels, association)
-    _require_valid_source_label_plane(
-        source_measurement_labels, labels, association, seeded=False
     )
     membership_by_label = dict(enumerate(association.memberships, start=1))
     output = _reconstructed_source_rows(

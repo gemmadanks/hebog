@@ -153,14 +153,9 @@ def _measure(  # noqa: PLR0913
     )
     source_positions: dict[int, SourcePositionDiagnostics] = {}
     return build_hebog_reconstructed_source_catalogues(
-        valid,
-        labels,
-        direct,
         header,
         association=association,
         hierarchy=association,
-        source_labels=source_labels,
-        source_measurement_labels=source_support,
         component_rows=rows(labels),
         source_rows=rows(
             source_support,
@@ -330,73 +325,6 @@ def test_reconstructed_measurement_rejects_unknown_aperture_policy() -> None:
         )
 
 
-@pytest.mark.parametrize(
-    ("measurement", "message"),
-    (
-        (np.zeros((3, 2), dtype=np.int32), "must match the image"),
-        (np.zeros((2, 2), dtype=np.float64), "two-dimensional integer array"),
-        (np.full((2, 2), -1, dtype=np.int32), "must be non-negative"),
-        (np.zeros(2, dtype=np.int32), "two-dimensional integer array"),
-    ),
-)
-def test_terminal_builder_rejects_labels_that_do_not_fit_validity(
-    measurement: np.ndarray,
-    message: str,
-) -> None:
-    """The terminal builder checks its labels without measuring anything.
-
-    It assembles rows the stages already measured, so it holds no image or
-    background and validates the labels against the validity plane alone.
-    These cases reach that check through the terminal builder rather than
-    through the two builders that still measure from planes.
-    """
-    valid = np.ones((2, 2), dtype=np.bool_)
-    association = SourceAssociationResult(
-        components=(), edges=(), memberships=(), ambiguous_component_ids=()
-    )
-
-    with pytest.raises(ValueError, match=message):
-        build_hebog_reconstructed_source_catalogues(
-            valid,
-            measurement,
-            measurement,
-            _header(valid.shape),
-            association=association,
-            hierarchy=association,
-            source_labels=np.zeros((2, 2), dtype=np.int32),
-            source_measurement_labels=np.zeros((2, 2), dtype=np.int32),
-            component_rows=(),
-            source_rows=(),
-            source_positions={},
-        )
-
-
-@pytest.mark.parametrize(
-    ("direct", "message"),
-    (
-        (np.ones((2, 2), dtype=np.float64), "integer plane"),
-        (np.zeros((2, 2), dtype=np.int32), "identities must match"),
-        (np.asarray([[0, 1], [0, 0]], dtype=np.int32), "valid subset"),
-    ),
-)
-def test_direct_hierarchy_labels_fail_closed(
-    direct: np.ndarray,
-    message: str,
-) -> None:
-    """Hierarchy identities must be exact subsets of measurement owners."""
-    measurement = np.asarray([[1, 0], [0, 0]], dtype=np.int32)
-    image = np.asarray(measurement > 0, dtype=np.float64)
-    planes = (_plane((("scale-owner", ((0, 0),)),), measurement.shape),)
-
-    with pytest.raises(ValueError, match=message):
-        _measure(
-            measurement,
-            image,
-            planes,
-            direct_labels=direct,
-        )
-
-
 @pytest.mark.parametrize("offset", ((0, 0), (0, 5), (5, 5)))
 def test_source_flux_and_centroid_are_measured_once_at_edges(
     offset: tuple[int, int],
@@ -485,43 +413,3 @@ def test_nonpositive_source_aperture_falls_back_once_per_source() -> None:
     assert source.integrated_flux_jy == pytest.approx(5.0 / beam_area)
     assert "association-aperture-nonpositive" in source.quality_flags
     assert "exact-owner-positive-residual-flux" in source.quality_flags
-
-
-@pytest.mark.parametrize(
-    ("plane", "message"),
-    (
-        (np.ones((2, 2), dtype=np.float64), "non-negative integer plane"),
-        (np.full((2, 2), 9, dtype=np.int32), "published membership"),
-        (np.zeros((2, 2), dtype=np.int32), "own every component pixel"),
-    ),
-)
-def test_published_source_planes_fail_closed(
-    plane: np.ndarray, message: str
-) -> None:
-    """A source plane that disagrees with the memberships is a defect."""
-    measurement = np.asarray([[1, 0], [0, 0]], dtype=np.int32)
-    image = np.asarray(measurement > 0, dtype=np.float64)
-    planes = (_plane((("scale-owner", ((0, 0),)),), measurement.shape),)
-    valid = np.ones(image.shape, dtype=np.bool_)
-    association = associate_from_hierarchy_overlaps(
-        build_detection_component_records(
-            np.asarray(measurement, dtype=np.int64), image, valid
-        ),
-        planes,
-        _overlaps(measurement, image, valid, planes),
-    )
-
-    with pytest.raises(ValueError, match=message):
-        build_hebog_reconstructed_source_catalogues(
-            valid,
-            measurement,
-            measurement,
-            _header(image.shape),
-            association=association,
-            hierarchy=association,
-            source_labels=plane,
-            source_measurement_labels=plane,
-            component_rows=(),
-            source_rows=(),
-            source_positions={},
-        )

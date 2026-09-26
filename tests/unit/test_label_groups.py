@@ -135,13 +135,13 @@ def test_a_label_above_the_declared_count_is_rejected() -> None:
 
 def _scanned_extents(
     labels: npt.NDArray[np.int32],
-) -> dict[int, tuple[int, int, int, int, tuple[int, int]]]:
+) -> dict[int, tuple[int, int, int, int, tuple[int, int], int]]:
     """Describe each label by scanning the whole plane once per label.
 
     This is the readable oracle that ``label_extents`` replaces: it costs
     plane area times label count, and states the intended result directly.
     """
-    oracle: dict[int, tuple[int, int, int, int, tuple[int, int]]] = {}
+    oracle: dict[int, tuple[int, int, int, int, tuple[int, int], int]] = {}
     for value in np.unique(labels):
         if int(value) <= 0:
             continue
@@ -152,13 +152,14 @@ def _scanned_extents(
             int(columns.min()),
             int(columns.max()) + 1,
             (int(rows[0]), int(columns[0])),
+            int(rows.size),
         )
     return oracle
 
 
 def _extent_mapping(
     labels: npt.NDArray[np.int32],
-) -> dict[int, tuple[int, int, int, int, tuple[int, int]]]:
+) -> dict[int, tuple[int, int, int, int, tuple[int, int], int]]:
     """Describe each label through the one-pass kernel, for comparison."""
     extents = label_extents(labels)
     return {
@@ -168,6 +169,7 @@ def _extent_mapping(
             int(extents.x_start[index]),
             int(extents.x_stop[index]),
             (int(extents.first_y[index]), int(extents.first_x[index])),
+            int(extents.pixel_count[index]),
         )
         for index, value in enumerate(extents.values)
     }
@@ -180,9 +182,9 @@ def test_extents_bound_each_label_and_name_its_first_pixel() -> None:
         1002
     """)
     assert _extent_mapping(labels) == {
-        1: (1, 3, 0, 2, (1, 1)),
-        2: (2, 3, 3, 4, (2, 3)),
-        3: (0, 1, 1, 3, (0, 1)),
+        1: (1, 3, 0, 2, (1, 1), 2),
+        2: (2, 3, 3, 4, (2, 3), 1),
+        3: (0, 1, 1, 3, (0, 1), 2),
     }
 
 
@@ -200,6 +202,7 @@ def test_extents_of_an_unlabelled_plane_are_empty() -> None:
     assert extents.values.size == 0
     assert extents.first_y.size == 0
     assert extents.y_stop.size == 0
+    assert extents.pixel_count.size == 0
 
 
 def test_extents_reject_a_plane_that_is_not_two_dimensional() -> None:

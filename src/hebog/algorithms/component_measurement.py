@@ -91,6 +91,9 @@ class ComponentMeasurements:
     fits: tuple[tuple[int, CompactGaussianFitResult], ...]
     compact_groups: tuple[frozenset[int], ...]
     deferred_parent_count: int
+    # The whole-plane oracle measures the support as it goes and returns it;
+    # the tiled reconciliation reduces records only, and the cores published
+    # the same plane for a later pass to read by window.
     measurement_support: np.ndarray | None = None
     extended_groups: tuple[frozenset[int], ...] = ()
     proposed_compact_groups: tuple[frozenset[int], ...] = ()
@@ -690,6 +693,20 @@ def support_feature_margin_pixels(atrous_plan: ResidualAtrousPlan) -> int:
     return _adequacy_filter_bank(atrous_plan).maximum_halo_pixels
 
 
+def compact_window_is_admitted(
+    window: ImageBounds,
+    *,
+    maximum_bounds_pixels: int,
+) -> bool:
+    """Return whether the reviewed compact bound admits one window.
+
+    A fit parent or support feature whose window the bound refuses is
+    ADR-008 T3 work: the parent is deferred rather than fitted on truncated
+    pixels, and the feature is left ungrouped, so neither window is read.
+    """
+    return int(np.prod(window.shape_yx)) <= maximum_bounds_pixels
+
+
 def support_feature_window(
     feature_bounds: ImageBounds,
     *,
@@ -708,7 +725,9 @@ def support_feature_window(
         max(0, feature_bounds.x_start - margin),
         min(image_shape_yx[1], feature_bounds.x_stop + margin),
     )
-    if np.prod(bounds.shape_yx) > maximum_bounds_pixels:
+    if not compact_window_is_admitted(
+        bounds, maximum_bounds_pixels=maximum_bounds_pixels
+    ):
         return None
     return bounds
 
@@ -1112,7 +1131,9 @@ def measure_fit_parent_components(  # noqa: PLR0913, PLR0917
     Astropy's per-call frame machinery once per parent, which costs more
     than the fit.
     """
-    if np.prod(bounds.shape_yx) > maximum_bounds_pixels:
+    if not compact_window_is_admitted(
+        bounds, maximum_bounds_pixels=maximum_bounds_pixels
+    ):
         return FitParentMeasurement(deferred=True)
     parent_support = fit_parent_window == parent_index
     local_valid = (
@@ -1359,26 +1380,29 @@ def measure_component_models(  # noqa: PLR0913, PLR0917
         for group in measured.compact_groups
         for index in group
     )
-    return reconcile_component_measurements(
-        measurement_support,
-        parents=tuple(measured_parents),
-        features=_whole_plane_feature_groups(
-            residual,
-            rms,
-            valid,
-            measurement_labels,
-            measurement_support,
-            fits,
-            protected_labels,
-            wcs,
-            beam,
-            atrous_plan,
-            detection_sigma=detection_sigma,
-            island_sigma=island_sigma,
-            minimum_pixels=minimum_pixels,
-            maximum_bounds_pixels=maximum_bounds_pixels,
-            minimum_support_fraction=minimum_support_fraction,
+    measurement_support.setflags(write=False)
+    return replace(
+        reconcile_component_measurements(
+            parents=tuple(measured_parents),
+            features=_whole_plane_feature_groups(
+                residual,
+                rms,
+                valid,
+                measurement_labels,
+                measurement_support,
+                fits,
+                protected_labels,
+                wcs,
+                beam,
+                atrous_plan,
+                detection_sigma=detection_sigma,
+                island_sigma=island_sigma,
+                minimum_pixels=minimum_pixels,
+                maximum_bounds_pixels=maximum_bounds_pixels,
+                minimum_support_fraction=minimum_support_fraction,
+            ),
         ),
+        measurement_support=measurement_support,
     )
 
 
@@ -1444,7 +1468,6 @@ def _whole_plane_feature_groups(  # noqa: PLR0913, PLR0917
 
 
 def reconcile_component_measurements(
-    measurement_support: np.ndarray,
     *,
     parents: tuple[FitParentMeasurement, ...],
     features: tuple[SupportFeatureGroups, ...],
@@ -1453,8 +1476,9 @@ def reconcile_component_measurements(
 
     Every step that spans fit parents has already run: each connected support
     feature contributed its extended groups and grouping evidence. What is
-    left is a reduction over records, so it holds no image-sized array beyond
-    the support plane the parents published.
+    left is a reduction over records, so it holds no image-sized array at all:
+    the support the parents contributed stays in the generation the cores
+    wrote it to.
     """
     output: list[tuple[int, CompactGaussianFitResult]] = []
     compact_groups: list[frozenset[int]] = []
@@ -1509,12 +1533,11 @@ def reconcile_component_measurements(
         for group in compact_groups
         if group - extended_labels
     ]
-    measurement_support.setflags(write=False)
     return ComponentMeasurements(
         tuple(output),
         tuple(compact_groups),
         deferred,
-        measurement_support,
+        None,
         tuple(reconciled),
         proposed_compact_groups,
         tuple(

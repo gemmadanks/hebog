@@ -14,6 +14,7 @@ import numpy as np
 import pytest
 from astropy.io import fits
 from astropy.wcs import WCS
+from conftest import published_plane
 from scipy.ndimage import gaussian_filter
 
 from hebog import public_api
@@ -85,11 +86,14 @@ def test_bright_halo_is_not_background_but_noise_inflation_is_retained(
         header=header,
     )
     support = halo >= 3 * rms
-    plane = (slice(0, image.shape[0]), slice(0, image.shape[1]))
-    estimated_rms = scientific.read_rms_window(plane)
+    plane = ImageBounds(0, image.shape[0], 0, image.shape[1])
+    estimated_rms = np.asarray(
+        scientific.background_rms_source.read_completed_window("rms", plane),
+        dtype=np.float64,
+    )
     estimated_background = np.asarray(
         scientific.background_rms_source.read_completed_window(
-            "background", ImageBounds(0, image.shape[0], 0, image.shape[1])
+            "background", plane
         ),
         dtype=np.float64,
     )
@@ -102,7 +106,13 @@ def test_bright_halo_is_not_background_but_noise_inflation_is_retained(
     )
     assert np.median(np.abs(estimated_rms[support] / rms[support] - 1)) < 0.25
     assert scientific.terminal is not None
-    recovered = scientific.terminal.detection.retained_mask & support
+    assert scientific.publication_source is not None
+    recovered = (
+        published_plane(
+            scientific.publication_source, "retained-mask", np.bool_
+        )
+        & support
+    )
     assert np.count_nonzero(recovered) / np.count_nonzero(support) >= 0.75
     if noisy_neighbourhood:
         assert estimated_rms[centre_y, 96] > 2.0

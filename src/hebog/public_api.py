@@ -23,13 +23,11 @@ import numpy as np
 import numpy.typing as npt
 from astropy.io import fits
 from astropy.wcs.utils import wcs_to_celestial_frame
-from scipy.ndimage import label
 
 from hebog.algorithms.astrometry import (
     celestial_wcs_from_metadata,
     compact_geometry_from_wcs,
 )
-from hebog.algorithms.label_groups import label_windows
 from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.config import BackgroundRmsConfig, SourceFinderConfig
@@ -81,7 +79,6 @@ if TYPE_CHECKING:  # pragma: no cover - import-time typing only
         TiledComponentFits,
         TiledComponentTopology,
         TiledMultiscaleDetection,
-        TiledSupportLabels,
     )
     from hebog.science.profile import ContinuumScienceProfile
 
@@ -91,6 +88,7 @@ ADMITTED_TILE_CORE_PIXELS = 2048
 """Smallest tile core the scalability contract admits, in pixels."""
 _SUPPORT_TILES_PER_BATCH = 4
 _OWNER_BATCH_READ_PIXELS = 4 * 1024 * 1024
+_MASK_BLOCK_ROWS = 128
 # One storage chunk holds a whole tile core, so a batch that reads a window
 # decodes and revalidates every chunk the window touches, whatever fraction of
 # it the objects occupy. Small batches therefore pay that decode many times
@@ -125,6 +123,7 @@ _SCIENTIFIC_MODULES = (
     "hebog.algorithms.multiscale",
     "hebog.algorithms.multiscale_association",
     "hebog.algorithms.multiscale_tiles",
+    "hebog.algorithms.owner_connectivity",
     "hebog.algorithms.reconciliation",
     "hebog.algorithms.source_association",
     "hebog.data_models.catalogues",
@@ -142,6 +141,7 @@ _SCIENTIFIC_MODULES = (
     "hebog.stages.background",
     "hebog.stages.catalogue_rows",
     "hebog.stages.detection",
+    "hebog.stages.islands",
     "hebog.stages.multiscale",
     "hebog.stages.objects",
     "hebog.stages.publication",
@@ -164,37 +164,21 @@ class _ScientificProducts:
 
     The image, the background and the RMS are carried as the sources that
     published them rather than as planes, so nothing after the science holds
-    an array that grows with the image. ``rms_scientific_status`` records the
-    one decision the estimate makes about itself: whether any pixel has a
-    usable local noise estimate.
+    an array that grows with the image, and no step after the science reads a
+    window: every object was measured by the pass that held its tile.
+    ``rms_scientific_status`` records the one decision the estimate makes
+    about itself: whether any pixel has a usable local noise estimate.
+    ``component_source`` is named for the same reason: the bundle needs no
+    ownership plane, but a caller comparing these records with pixels reads
+    that ownership from the generation that wrote it.
     """
 
     source: _WindowReadable
     background_rms_source: ZarrProductSink
+    publication_source: ZarrProductSink | None
+    component_source: ZarrProductSink | None
     rms_scientific_status: Literal["valid", "unavailable"]
     terminal: Any | None
-
-    def read_rms_window(
-        self, crop: tuple[slice, slice]
-    ) -> npt.NDArray[np.float64]:
-        """Read the estimated RMS over one bounded label-support crop."""
-        return np.asarray(
-            self.background_rms_source.read_completed_window(
-                "rms",
-                _crop_bounds(crop),
-            ),
-            dtype=np.float64,
-        )
-
-    def read_residual_window(
-        self, crop: tuple[slice, slice]
-    ) -> npt.NDArray[np.float64]:
-        """Read the background-subtracted signal over one bounded crop."""
-        return _residual_window(
-            self.source,
-            self.background_rms_source,
-            crop,
-        )
 
 
 def _require_unclaimed_output(output: Path) -> None:
@@ -314,180 +298,6 @@ def _header_with_metadata(
         if completed.get(keyword) is None:
             completed[keyword] = value
     return completed
-
-
-def _crop_bounds(crop: tuple[slice, slice]) -> ImageBounds:
-    """Return the global bounds of one label-support crop."""
-    return ImageBounds(
-        crop[0].start,
-        crop[0].stop,
-        crop[1].start,
-        crop[1].stop,
-    )
-
-
-def _residual_window(
-    source: _WindowReadable,
-    background_rms_source: ZarrProductSink,
-    crop: tuple[slice, slice],
-) -> npt.NDArray[np.float64]:
-    """Return the background-subtracted signal over one bounded crop.
-
-    The residual is the association signal every component record and island
-    row measures. Reading it a window at a time is what keeps the driver
-    from holding the image, the background and their difference at once.
-    """
-    bounds = _crop_bounds(crop)
-    return np.asarray(
-        source.read_window(bounds).values, dtype=np.float64
-    ) - np.asarray(
-        background_rms_source.read_completed_window("background", bounds),
-        dtype=np.float64,
-    )
-
-
-@dataclass(frozen=True, slots=True)
-class _ComponentWindow:
-    """One component's label value and the smallest crop holding it."""
-
-    label_value: int
-    crop: tuple[slice, slice]
-
-
-@dataclass(frozen=True, slots=True)
-class _ComponentReadBatch:
-    """One residual read and the component windows it serves."""
-
-    covering: tuple[slice, slice]
-    components: tuple[_ComponentWindow, ...]
-
-
-def _component_read_batches(
-    windows: tuple[tuple[slice, slice] | None, ...],
-    *,
-    maximum_batch_read_pixels: int,
-) -> Iterator[_ComponentReadBatch]:
-    """Group components so one read serves several without growing unbounded.
-
-    Components are visited in raster order of their windows, so a batch
-    covers a compact region. One read per component would decode and
-    revalidate the storage chunks under it again for every neighbour that
-    shares them, which is the cost the owner-batch note above measured.
-    """
-    ordered = sorted(
-        (
-            _ComponentWindow(label_value, crop)
-            for label_value, crop in enumerate(windows, start=1)
-            if crop is not None
-        ),
-        key=lambda component: (
-            component.crop[0].start,
-            component.crop[1].start,
-        ),
-    )
-    if not ordered:
-        return
-    grouped = [ordered[0]]
-    covering = ordered[0].crop
-    for component in ordered[1:]:
-        candidate = _union_crop(covering, component.crop)
-        if _crop_pixels(candidate) > maximum_batch_read_pixels:
-            yield _ComponentReadBatch(covering, tuple(grouped))
-            grouped = [component]
-            covering = component.crop
-            continue
-        grouped.append(component)
-        covering = candidate
-    yield _ComponentReadBatch(covering, tuple(grouped))
-
-
-def _union_crop(
-    left: tuple[slice, slice],
-    right: tuple[slice, slice],
-) -> tuple[slice, slice]:
-    """Return the smallest crop containing both of these crops."""
-    return (
-        slice(
-            min(left[0].start, right[0].start),
-            max(left[0].stop, right[0].stop),
-        ),
-        slice(
-            min(left[1].start, right[1].start),
-            max(left[1].stop, right[1].stop),
-        ),
-    )
-
-
-def _crop_pixels(crop: tuple[slice, slice]) -> int:
-    """Return how many pixels one crop covers."""
-    return (crop[0].stop - crop[0].start) * (crop[1].stop - crop[1].start)
-
-
-def component_records_from_windows(
-    source: _WindowReadable,
-    background_rms_source: ZarrProductSink,
-    *,
-    direct_component_labels: npt.NDArray[np.int32],
-    valid_pixels: npt.NDArray[np.bool_],
-    maximum_batch_read_pixels: int = _OWNER_BATCH_READ_PIXELS,
-) -> tuple[DetectionComponentRecord, ...]:
-    """Describe every direct component from bounded residual windows.
-
-    A component's record depends only on the pixels that carry its label, so
-    each one is built inside the smallest window holding it, with its
-    neighbours' labels cleared: a bounding box may contain them, and their
-    own support may reach outside it. Neighbouring components share one read,
-    because the residual is assembled from storage chunks far larger than a
-    component. Building the records once here also leaves the hierarchy pass
-    and the association decision reading one set rather than deriving the
-    same one twice.
-    """
-    from hebog.algorithms.source_association import (  # noqa: PLC0415
-        build_detection_component_records,
-    )
-
-    records: list[DetectionComponentRecord] = []
-    with background_rms_source.access_session():
-        for batch in _component_read_batches(
-            label_windows(direct_component_labels),
-            maximum_batch_read_pixels=maximum_batch_read_pixels,
-        ):
-            residual = _residual_window(
-                source, background_rms_source, batch.covering
-            )
-            for component in batch.components:
-                crop = component.crop
-                records.extend(
-                    build_detection_component_records(
-                        np.where(
-                            direct_component_labels[crop]
-                            == component.label_value,
-                            component.label_value,
-                            0,
-                        ),
-                        residual[_relative_crop(crop, batch.covering)],
-                        valid_pixels[crop],
-                        origin_yx=(crop[0].start, crop[1].start),
-                    )
-                )
-    return tuple(sorted(records, key=lambda item: item.canonical_pixel_yx))
-
-
-def _relative_crop(
-    crop: tuple[slice, slice],
-    covering: tuple[slice, slice],
-) -> tuple[slice, slice]:
-    """Return one crop's position inside the read that covers it."""
-    return (
-        slice(
-            crop[0].start - covering[0].start,
-            crop[0].stop - covering[0].start,
-        ),
-        slice(
-            crop[1].start - covering[1].start,
-            crop[1].stop - covering[1].start,
-        ),
-    )
 
 
 def _profile_bytes() -> bytes:
@@ -616,14 +426,13 @@ def _estimate_background_rms(  # noqa: PLR0913
     work_directory: Path,
     *,
     generation_id: str,
-) -> tuple[ZarrProductSink, npt.NDArray[np.bool_], npt.NDArray[np.bool_]]:
+) -> tuple[ZarrProductSink, bool]:
     """Run the exact candidate-owned bounded background/RMS stage.
 
-    The stage publishes the background and the RMS as tiled planes and the
-    two masks the composition asks of them: where the estimate exists, and
-    where it carries a usable local noise. Returning those two ``bool``
-    planes rather than the two ``float64`` estimates is what keeps the
-    driver from holding the estimate itself.
+    The stage publishes the background and the RMS as tiled planes, and the
+    generation is what comes back: every later pass reads it by window. The
+    one fact the composition needs about the estimate is whether any pixel
+    can use it, which is reduced while streaming rather than kept as a mask.
     """
     from hebog.science.configuration import (  # noqa: PLC0415
         source_finder_configs,
@@ -686,33 +495,33 @@ def _estimate_background_rms(  # noqa: PLR0913
             else None
         ),
     )
-    return (sink, *_estimated_validity_planes(source, sink, metadata))
+    return sink, _estimate_has_usable_noise(source, sink, metadata)
 
 
-def _estimated_validity_planes(
+def _estimate_has_usable_noise(
     source: _WindowReadable,
     background_rms_source: ZarrProductSink,
     metadata: ImageMetadata,
-) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.bool_]]:
-    """Derive where the estimate exists and carries a usable local noise.
+) -> bool:
+    """Return whether any pixel has a usable local noise estimate.
 
-    The stage has already required, on the core that computed it, that the
-    estimate is finite wherever the image is, so validity is the image's own
-    finite domain and needs no second opinion from the estimate. Both planes
-    are filled one canonical tile row at a time, so the `float64` they come
-    from is never held whole.
+    This is the one decision the estimate makes about itself, and the only
+    thing the composition needs from it: a pixel is usable where the image is
+    finite and the estimate is positive. The stage has already required, on
+    the core that computed it, that the estimate is finite wherever the image
+    is, so validity is the image's own finite domain and needs no second
+    opinion. The answer is reduced one canonical tile row at a time, so
+    neither the estimate nor a mask over it is ever held whole.
 
-    Publishing these two as tiled products instead was measured at 21% of
-    the background stage: a boolean tile core is 16 KiB, and the cost is the
-    per-chunk write and its revalidation at publication, not the payload.
+    Raises:
+        SourceFinderError: If the published rows do not cover the image.
     """
     height, width = metadata.shape_yx
-    valid = np.empty((height, width), dtype=np.bool_)
-    positive_rms = np.empty((height, width), dtype=np.bool_)
     rows = min(
         height,
         background_rms_source.manifest.tile_core_shape_yx[0],
     )
+    usable = False
     start = 0
     for block in background_rms_source.iter_completed_row_blocks(
         "rms",
@@ -720,16 +529,18 @@ def _estimated_validity_planes(
     ):
         stop = start + block.shape[0]
         window = source.read_window(ImageBounds(start, stop, 0, width))
-        valid[start:stop] = np.isfinite(window.values)
-        positive_rms[start:stop] = valid[start:stop] & (
-            np.asarray(block, dtype=np.float64) > 0.0
+        usable = usable or bool(
+            np.any(
+                np.isfinite(window.values)
+                & (np.asarray(block, dtype=np.float64) > 0.0)
+            )
         )
         start = stop
     if start != height:
         raise SourceFinderError(
             f"background/RMS rows must total {height}; received {start}"
         )
-    return valid, positive_rms
+    return usable
 
 
 def detect_multiscale_products(  # noqa: PLR0913
@@ -746,9 +557,10 @@ def detect_multiscale_products(  # noqa: PLR0913
 ) -> tuple[ZarrProductSink, TiledMultiscaleDetection]:
     """Run the tiled detection pass and read its published planes.
 
-    The composition owns no filter response plane: the pass publishes the
-    planes a later pass reads, and reduces each scale feature's peak while
-    its response is still on the task that evaluated it.
+    The composition owns no plane at all: the pass publishes what a later
+    pass reads by window, and reduces each scale feature's peak while its
+    response is still on the task that evaluated it. Only the reconciled
+    island records come back.
 
     ``tile_core_pixels`` is the non-overlapping output core each task owns.
     It defaults to the smallest core the scalability contract admits, and is
@@ -795,23 +607,7 @@ def detect_multiscale_products(  # noqa: PLR0913
         executor=executor,
         sink=sink,
     )
-    bounds = ImageBounds(0, image_shape_yx[0], 0, image_shape_yx[1])
-
-    def plane(product_name: str, dtype: str) -> npt.NDArray[Any]:
-        """Read one published detection plane over the whole image."""
-        return np.asarray(
-            sink.read_completed_window(product_name, bounds),
-            dtype=dtype,
-        )
-
     return sink, TiledMultiscaleDetection(
-        detection_labels=plane("detection-labels", "int32"),
-        reconstruction_mask=plane("reconstruction-mask", "bool"),
-        position_signal_jy_per_beam=plane("position-signal", "float64"),
-        significant_scale_masks=tuple(
-            plane(f"scale-{order}-significant", "bool")
-            for order in range(1, len(result.scale_islands_by_order) + 1)
-        ),
         detection_islands=result.detection_islands,
         scale_islands_by_order=result.scale_islands_by_order,
         scale_nominal_beam_fwhms=result.scale_nominal_beam_fwhms,
@@ -877,18 +673,19 @@ def publish_support_labels(  # noqa: PLR0913
     review: ContinuumScienceProfile,
     generation_id: str,
     tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
-) -> tuple[TiledSupportLabels, ZarrProductSink]:
+) -> tuple[int, ZarrProductSink]:
     """Decide owner connectivity and publish the support pass's labels.
 
     Two of the decisions here are scoped to an owner rather than to a tile,
     so they are taken once per owner from the window holding it and applied
     by the core that owns each pixel. The caller's island admission is
-    applied in the same write.
+    applied in the same write, and the count of islands it accepted is the
+    only thing that comes back: every plane stays in the generation, where
+    the mask product and the object rounds read it by window.
     """
     from hebog.algorithms.extended_measurement import (  # noqa: PLC0415
         segment_refinement_halo_pixels,
     )
-    from hebog.science.models import TiledSupportLabels  # noqa: PLC0415
     from hebog.stages.publication import (  # noqa: PLC0415
         PublicationStageConfig,
         run_publication_stage,
@@ -906,7 +703,7 @@ def publish_support_labels(  # noqa: PLR0913
         manifest,
         generation_id=generation_id,
     )
-    run_publication_stage(
+    result = run_publication_stage(
         detection_source,
         support_source,
         manifest,
@@ -922,24 +719,7 @@ def publish_support_labels(  # noqa: PLR0913
         executor=executor,
         sink=sink,
     )
-    bounds = ImageBounds(0, image_shape_yx[0], 0, image_shape_yx[1])
-
-    def plane(product_name: str, dtype: str) -> npt.NDArray[Any]:
-        """Read one published support plane over the whole image."""
-        return np.asarray(
-            sink.read_completed_window(product_name, bounds),
-            dtype=dtype,
-        )
-
-    return (
-        TiledSupportLabels(
-            component_labels=plane("component-labels", "int32"),
-            measurement_labels=plane("measurement-labels", "int32"),
-            publication_labels=plane("publication-labels", "int32"),
-            retained_mask=plane("retained-mask", "bool"),
-        ),
-        sink,
-    )
+    return result.accepted_island_count, sink
 
 
 def publish_component_topology(  # noqa: PLR0913
@@ -992,19 +772,8 @@ def publish_component_topology(  # noqa: PLR0913
         executor=executor,
         sink=sink,
     )
-    bounds = ImageBounds(0, image_shape_yx[0], 0, image_shape_yx[1])
     return sink, TiledComponentTopology(
-        direct_component_labels=np.asarray(
-            sink.read_completed_window("component-direct-labels", bounds),
-            dtype=np.int32,
-        ),
-        measurement_component_labels=np.asarray(
-            sink.read_completed_window(
-                "component-measurement-labels",
-                bounds,
-            ),
-            dtype=np.int32,
-        ),
+        component_count=result.component_count,
         deblended_parent_count=result.deblended_parent_count,
         deferred_parent_count=result.deferred_parent_count,
     )
@@ -1029,14 +798,14 @@ def publish_segment_rows(  # noqa: PLR0913, PLR0917
     generation_id: str,
     sink_name: str,
     tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
-) -> tuple[tuple[Any, ...], Mapping[int, Any]]:
+) -> tuple[tuple[Any, ...], Mapping[int, float], Mapping[int, Any]]:
     """Measure one catalogue row per segment, each in its own window.
 
     The cores write the expanded apertures under the reviewed radius, they
     observe the bounds each segment and aperture occupies, and one task per
-    batch of segments measures their rows and moment shapes. The aperture
-    plane stays in the published generation: the rows carry what the
-    catalogue needs from it, so the driver never holds it.
+    batch of segments measures their rows, their local noise and their moment
+    shapes. The aperture plane stays in the published generation: the rows
+    carry what the catalogue needs from it, so the driver never holds it.
     """
     from math import ceil, log, pi  # noqa: PLC0415
 
@@ -1098,7 +867,63 @@ def publish_segment_rows(  # noqa: PLR0913, PLR0917
         executor=executor,
         sink=sink,
     )
-    return result.rows, result.position_diagnostics
+    return (
+        result.rows,
+        result.local_rms_by_label,
+        result.position_diagnostics,
+    )
+
+
+def publish_detection_islands(  # noqa: PLR0913
+    source: _WindowReadable,
+    background_rms_source: ZarrProductSink,
+    publication_source: ZarrProductSink,
+    component_source: ZarrProductSink,
+    executor: Executor,
+    *,
+    image_shape_yx: tuple[int, int],
+    beam: BeamShapePixels,
+    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
+) -> tuple[tuple[Any, ...], Mapping[int, tuple[str, ...]]]:
+    """Measure one catalogue row per island of the published retained mask.
+
+    The cores label their own mask and observe which owners its islands hold,
+    the fragments reconcile into islands named by canonical first pixel, and
+    one task per batch of islands measures their rows. Nothing is published:
+    the island labels exist only inside these rounds.
+    """
+    from math import log, pi  # noqa: PLC0415
+
+    from hebog.stages.islands import (  # noqa: PLC0415
+        DetectionIslandStageConfig,
+        run_detection_island_stage,
+    )
+
+    manifest = plan_image_partitions(
+        image_shape_yx=image_shape_yx,
+        tile_core_shape_yx=(tile_core_pixels, tile_core_pixels),
+        halo_yx=(0, 0),
+    )
+    result = run_detection_island_stage(
+        source,
+        background_rms_source,
+        publication_source,
+        component_source,
+        manifest,
+        config=DetectionIslandStageConfig(
+            beam_area_pixels=(
+                pi
+                * beam.major_fwhm_pixels
+                * beam.minor_fwhm_pixels
+                / (4.0 * log(2.0))
+            ),
+            maximum_tiles_per_batch=_SUPPORT_TILES_PER_BATCH,
+            maximum_objects_per_batch=_OWNER_OBJECTS_PER_BATCH,
+            maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
+        ),
+        executor=executor,
+    )
+    return result.islands, result.island_ids_by_owner
 
 
 def publish_source_planes(  # noqa: PLR0913, PLR0917
@@ -1113,12 +938,7 @@ def publish_source_planes(  # noqa: PLR0913, PLR0917
     association: SourceAssociationResult,
     generation_id: str,
     tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
-) -> tuple[
-    npt.NDArray[np.int32],
-    npt.NDArray[np.int32],
-    ZarrProductSink,
-    ZarrProductSink,
-]:
+) -> tuple[ZarrProductSink, ZarrProductSink]:
     """Publish the source labels and the persistent support they own.
 
     The owners a source holds are a record map, so the cores write the
@@ -1175,22 +995,7 @@ def publish_source_planes(  # noqa: PLR0913, PLR0917
         executor=executor,
         sink=support_sink,
     )
-    bounds = ImageBounds(0, image_shape_yx[0], 0, image_shape_yx[1])
-    return (
-        np.asarray(
-            label_sink.read_completed_window("source-labels", bounds),
-            dtype=np.int32,
-        ),
-        np.asarray(
-            support_sink.read_completed_window(
-                "source-measurement-labels",
-                bounds,
-            ),
-            dtype=np.int32,
-        ),
-        label_sink,
-        support_sink,
-    )
+    return label_sink, support_sink
 
 
 def publish_hierarchy_overlaps(  # noqa: PLR0913
@@ -1259,6 +1064,7 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
     header: fits.Header,
     config: SourceFinderConfig,
     review: ContinuumScienceProfile,
+    component_count: int,
     generation_id: str,
     tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
 ) -> tuple[TiledComponentFits, ZarrProductSink]:
@@ -1269,6 +1075,12 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
     holding it. The cores combine the persistent measurement support the
     parents contributed, and the connected features of that support are then
     grouped one window at a time.
+
+    Each parent also describes the direct components it owns, so the records
+    the association decision reads come from the residual the fits already
+    hold rather than from a second pass of per-component reads.
+    ``component_count`` is the topology's, and the records must describe
+    every one of those components.
     """
     from hebog.algorithms.multiscale import (  # noqa: PLC0415
         build_residual_atrous_plan,
@@ -1347,6 +1159,7 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
             maximum_tiles_per_batch=_SUPPORT_TILES_PER_BATCH,
             maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
         ),
+        component_count=component_count,
         wcs_header_text=header.tostring(),
         beam=RestoringBeam(
             cast(float, header["BMAJ"]),
@@ -1386,14 +1199,10 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
         ),
         executor=executor,
     )
-    bounds = ImageBounds(0, image_shape_yx[0], 0, image_shape_yx[1])
     return TiledComponentFits(
         parents=result.parents,
-        measurement_support=np.asarray(
-            sink.read_completed_window("measurement-support", bounds),
-            dtype=np.bool_,
-        ),
         features=groups.features,
+        component_records=result.component_records,
     ), sink
 
 
@@ -1459,7 +1268,7 @@ def _analyse_image(  # noqa: PLR0913
     generation_id = (
         f"public-{hashlib.sha256(request.run_id.encode()).hexdigest()}"
     )
-    background_rms_source, valid, positive_rms = _estimate_background_rms(
+    background_rms_source, usable_noise = _estimate_background_rms(
         source,
         metadata,
         config,
@@ -1467,10 +1276,12 @@ def _analyse_image(  # noqa: PLR0913
         work_directory,
         generation_id=generation_id,
     )
-    if not np.any(positive_rms):
+    if not usable_noise:
         return _ScientificProducts(
             source=source,
             background_rms_source=background_rms_source,
+            publication_source=None,
+            component_source=None,
             rms_scientific_status="unavailable",
             terminal=None,
         )
@@ -1495,11 +1306,11 @@ def _analyse_image(  # noqa: PLR0913
         work_directory,
         image_shape_yx=metadata.shape_yx,
         scale_orders=tuple(
-            range(1, len(multiscale.significant_scale_masks) + 1)
+            range(1, len(multiscale.scale_islands_by_order) + 1)
         ),
         generation_id=generation_id,
     )
-    support_labels, labels_source = publish_support_labels(
+    accepted_island_count, labels_source = publish_support_labels(
         detection_source,
         support_source,
         executor,
@@ -1520,7 +1331,7 @@ def _analyse_image(  # noqa: PLR0913
         config=config,
         generation_id=generation_id,
     )
-    scale_detections = retained_scale_detections(multiscale, valid)
+    scale_detections = retained_scale_detections(multiscale)
     component_fits, fit_source = publish_component_fits(
         source,
         background_rms_source,
@@ -1533,14 +1344,10 @@ def _analyse_image(  # noqa: PLR0913
         header=header,
         config=config,
         review=review,
+        component_count=topology.component_count,
         generation_id=generation_id,
     )
-    records = component_records_from_windows(
-        source,
-        background_rms_source,
-        direct_component_labels=topology.direct_component_labels,
-        valid_pixels=valid,
-    )
+    records = component_fits.component_records
     overlaps, hierarchy_source = publish_hierarchy_overlaps(
         detection_source,
         component_source,
@@ -1552,7 +1359,6 @@ def _analyse_image(  # noqa: PLR0913
         generation_id=generation_id,
     )
     measurements = reconcile_component_measurements(
-        np.array(component_fits.measurement_support, dtype=np.bool_),
         parents=component_fits.parents,
         features=component_fits.features,
     )
@@ -1562,12 +1368,7 @@ def _analyse_image(  # noqa: PLR0913
         overlaps,
         (*measurements.compact_groups, *measurements.extended_groups),
     )
-    (
-        source_labels,
-        source_measurement_labels,
-        source_label_source,
-        source_support_source,
-    ) = publish_source_planes(
+    source_label_source, source_support_source = publish_source_planes(
         component_source,
         detection_source,
         hierarchy_source,
@@ -1578,7 +1379,16 @@ def _analyse_image(  # noqa: PLR0913
         association=association,
         generation_id=generation_id,
     )
-    component_rows, _ = publish_segment_rows(
+    islands, island_ids_by_owner = publish_detection_islands(
+        source,
+        background_rms_source,
+        labels_source,
+        component_source,
+        executor,
+        image_shape_yx=metadata.shape_yx,
+        beam=beam,
+    )
+    component_rows, component_local_rms, _ = publish_segment_rows(
         source,
         background_rms_source,
         detection_source,
@@ -1596,7 +1406,7 @@ def _analyse_image(  # noqa: PLR0913
         generation_id=generation_id,
         sink_name="component-rows",
     )
-    source_rows, source_positions = publish_segment_rows(
+    source_rows, source_local_rms, source_positions = publish_segment_rows(
         source,
         background_rms_source,
         detection_source,
@@ -1615,24 +1425,25 @@ def _analyse_image(  # noqa: PLR0913
         sink_name="source-rows",
     )
     terminal = build_configured_continuum_products(
-        valid,
-        positive_rms,
         header,
-        multiscale=multiscale,
-        labels=support_labels,
+        component_count=accepted_island_count,
         topology=topology,
         measurements=measurements,
         association=association,
         hierarchy=hierarchy,
-        source_labels=source_labels,
-        source_measurement_labels=source_measurement_labels,
         component_rows=component_rows,
         source_rows=source_rows,
         source_positions=source_positions,
+        component_local_rms=component_local_rms,
+        source_local_rms=source_local_rms,
+        islands=islands,
+        island_ids_by_owner=island_ids_by_owner,
     )
     return _ScientificProducts(
         source,
         background_rms_source,
+        labels_source,
+        component_source,
         "valid",
         terminal,
     )
@@ -1700,58 +1511,19 @@ def _source_candidate(
     )
 
 
-def _usable_support_rms(
-    products: _ScientificProducts,
-    labels: npt.NDArray[np.integer[Any]],
-    windows: tuple[tuple[slice, slice] | None, ...],
-) -> tuple[npt.NDArray[np.float64], ...]:
-    """Collect each label's usable local RMS, a batch of reads at a time.
+def _published_local_rms(terminal: Any, object_id: str) -> float:
+    """Return the local noise the row pass measured over this owner's support.
 
-    Entry ``index`` holds label ``index + 1``'s finite positive RMS values,
-    and is empty for a label that owns no such pixel. Reading one window per
-    label would decode the storage chunks under it again for every
-    neighbour sharing them, which is the cost the owner-batch note above
-    measured; collecting the values once also lets a source's median come
-    from its components' pixels without reading them a second time.
-    """
-    gathered = [np.empty(0, dtype=np.float64) for _ in windows]
-    with products.background_rms_source.access_session():
-        for batch in _component_read_batches(
-            windows, maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS
-        ):
-            rms_window = products.read_rms_window(batch.covering)
-            for component in batch.components:
-                crop = component.crop
-                values = rms_window[_relative_crop(crop, batch.covering)]
-                usable = (
-                    (labels[crop] == component.label_value)
-                    & np.isfinite(values)
-                    & (values > 0)
-                )
-                gathered[component.label_value - 1] = np.asarray(
-                    values[usable], dtype=np.float64
-                )
-    return tuple(gathered)
-
-
-def _support_local_rms(
-    label_values: tuple[int, ...],
-    support_rms: tuple[npt.NDArray[np.float64], ...],
-) -> float:
-    """Return the median RMS over the exact support of these labels.
+    The pass that measured the owner's row read the estimate with it, so the
+    catalogue quotes that value rather than reading the owner's window again.
 
     Raises:
-        SourceFinderError: If no supported pixel has a usable local RMS.
+        SourceFinderError: If no pixel the owner holds had a usable local RMS.
     """
-    owned = [
-        support_rms[value - 1]
-        for value in label_values
-        if 0 < value <= len(support_rms)
-    ]
-    values = np.concatenate(owned) if owned else np.empty(0, dtype=np.float64)
-    if values.size:
-        return float(np.median(values))
-    raise SourceFinderError("catalogue support has no valid local RMS")
+    local_rms = terminal.local_rms_by_object_id.get(object_id)
+    if local_rms is None:
+        raise SourceFinderError("catalogue support has no valid local RMS")
+    return float(local_rms)
 
 
 def _empty_catalogue(
@@ -1784,78 +1556,24 @@ def _memberships(terminal: Any, profile: str) -> tuple[Any, ...]:
     )
 
 
-def _detection_islands(
-    products: _ScientificProducts,
-    metadata: ImageMetadata,
-    publication_mask: npt.NDArray[np.bool_],
-    measurement_labels: npt.NDArray[np.integer[Any]],
-) -> tuple[list[Island], dict[int, tuple[str, ...]]]:
-    """Keep true mask connectivity separate from fitted source associations."""
-    labels, _ = cast(
-        tuple[npt.NDArray[np.int32], int],
-        label(publication_mask, np.ones((3, 3), dtype=np.bool_)),
-    )
-    beam = _beam_shape_pixels(metadata)
-    beam_area = (
-        np.pi
-        * beam.major_fwhm_pixels
-        * beam.minor_fwhm_pixels
-        / (4.0 * np.log(2.0))
-    )
-    windows = label_windows(labels)
-    measured: dict[int, Island] = {}
-    identifiers: dict[int, str] = {}
-    # Neighbouring islands share storage chunks, so one read serves a batch
-    # of them rather than decoding the same chunks once for each.
-    with products.background_rms_source.access_session():
-        for batch in _component_read_batches(
-            windows, maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS
-        ):
-            residual_window = products.read_residual_window(batch.covering)
-            rms_window = products.read_rms_window(batch.covering)
-            for island_window in batch.components:
-                index = island_window.label_value
-                bounds = island_window.crop
-                local = _relative_crop(bounds, batch.covering)
-                support = labels[bounds] == index
-                first_y, first_x = np.unravel_index(
-                    np.argmax(support), support.shape
-                )
-                identifier = (
-                    f"island-detection-{int(first_y) + bounds[0].start}"
-                    f"-{int(first_x) + bounds[1].start}"
-                )
-                identifiers[index] = identifier
-                residual = residual_window[local][support]
-                local_rms = rms_window[local][support]
-                measured[index] = Island(
-                    island_id=identifier,
-                    pixel_count=int(support.sum()),
-                    integrated_flux_jy=float(residual.sum() / beam_area),
-                    integrated_flux_error_jy=None,
-                    local_rms_jy_per_beam=float(np.median(local_rms)),
-                    mean_brightness_jy_per_beam=float(residual.mean()),
-                )
-    # Batches follow the image, so the rows are restored to label order.
-    islands = [measured[index] for index in sorted(measured)]
-    positive = publication_mask & (measurement_labels > 0)
-    pairs = np.unique(
-        np.column_stack(
-            (
-                measurement_labels[positive],
-                labels[positive],
-            )
-        ),
-        axis=0,
-    )
-    owners: dict[int, list[str]] = {}
-    for component_index, island_index in pairs:
-        owners.setdefault(int(component_index), []).append(
-            identifiers[int(island_index)]
+def _published_islands(terminal: Any) -> list[Island]:
+    """Project the measured islands the retained mask's own rounds published.
+
+    An island's flux is a signed sum over the pixels its mask retains, so it
+    carries no uncertainty; every other field the public row needs was
+    measured in the window that held the island.
+    """
+    return [
+        Island(
+            island_id=island.identifier,
+            pixel_count=island.pixel_count,
+            integrated_flux_jy=island.integrated_flux_jy,
+            integrated_flux_error_jy=None,
+            local_rms_jy_per_beam=island.local_rms_jy_per_beam,
+            mean_brightness_jy_per_beam=island.mean_brightness_jy_per_beam,
         )
-    return islands, {
-        index: tuple(sorted(values)) for index, values in owners.items()
-    }
+        for island in terminal.islands
+    ]
 
 
 def _public_catalogue(
@@ -1864,41 +1582,33 @@ def _public_catalogue(
     *,
     run_id: str,
     profile: str,
-) -> tuple[SourceCatalogue, npt.NDArray[np.bool_]]:
+) -> SourceCatalogue:
     """Project the exact evaluated source topology into stable public rows.
 
-    Every island and catalogue row reads its own local RMS from the store, so
-    the projection runs inside one access session: the store's immutable
-    metadata is then opened once for the whole catalogue rather than once for
-    each object.
+    Every row, every island and every local noise value was measured by the
+    pass that held the window it belongs to, so this projection reads no
+    pixels: it names records.
     """
     terminal = products.terminal
     if terminal is None:
-        return (
-            _empty_catalogue(run_id, metadata.reference_frequency_hz),
-            np.zeros(metadata.shape_yx, dtype=np.bool_),
-        )
-    with products.background_rms_source.access_session():
-        return _projected_catalogue(
-            products,
-            metadata,
-            terminal,
-            run_id=run_id,
-            profile=profile,
-        )
+        return _empty_catalogue(run_id, metadata.reference_frequency_hz)
+    return _projected_catalogue(
+        metadata,
+        terminal,
+        run_id=run_id,
+        profile=profile,
+    )
 
 
 def _projected_catalogue(
-    products: _ScientificProducts,
     metadata: ImageMetadata,
     terminal: Any,
     *,
     run_id: str,
     profile: str,
-) -> tuple[SourceCatalogue, npt.NDArray[np.bool_]]:
+) -> SourceCatalogue:
     """Project one evaluated composition that published at least one owner."""
     association = terminal.source_association
-    labels = np.asarray(terminal.measurement_component_labels)
     components_by_id = {
         component.component_id: component
         for component in association.components
@@ -1908,16 +1618,10 @@ def _projected_catalogue(
         for component in terminal.component_catalogue
     }
     source_rows = {source.identifier: source for source in terminal.catalogue}
-    component_windows = label_windows(labels)
-    support_rms = _usable_support_rms(products, labels, component_windows)
     source_candidates: list[SourceCandidate] = []
     gaussian_components: list[GaussianComponent] = []
-    publication_mask = np.array(
-        terminal.detection.retained_mask, dtype=np.bool_, copy=True
-    )
-    islands, component_islands = _detection_islands(
-        products, metadata, publication_mask, labels
-    )
+    islands = _published_islands(terminal)
+    component_islands = terminal.island_ids_by_owner
     measured_components = {
         entry.object_id
         for entry in terminal.measurement_dispositions
@@ -1938,7 +1642,6 @@ def _projected_catalogue(
             components_by_id[component_id].label_value
             for component_id in membership.component_ids
         )
-        local_rms = _support_local_rms(label_values, support_rms)
         island_ids = tuple(
             sorted(
                 {
@@ -1957,7 +1660,7 @@ def _projected_catalogue(
                 source_row,
                 island_id=island_ids[0],
                 additional_island_ids=island_ids[1:],
-                local_rms=local_rms,
+                local_rms=_published_local_rms(terminal, source_id),
                 reference_frequency_hz=metadata.reference_frequency_hz,
             )
         )
@@ -1968,12 +1671,11 @@ def _projected_catalogue(
             component_label = components_by_id[component_id].label_value
             if component_label not in component_islands:
                 continue
-            component_rms = _support_local_rms((component_label,), support_rms)
             candidate = _source_candidate(
                 component_row,
                 island_id=component_islands[component_label][0],
                 additional_island_ids=component_islands[component_label][1:],
-                local_rms=component_rms,
+                local_rms=_published_local_rms(terminal, component_id),
                 reference_frequency_hz=metadata.reference_frequency_hz,
             )
             if candidate.fitted_shape is None:
@@ -2006,8 +1708,7 @@ def _projected_catalogue(
         sources=source_candidates,
         gaussian_components=gaussian_components,
     )
-    publication_mask.setflags(write=False)
-    return catalogue, publication_mask
+    return catalogue
 
 
 def _public_dispositions(
@@ -2064,6 +1765,36 @@ def _final_product(product: Any, output: Path) -> Any:
     return product.model_copy(update={"path": output / product.path.name})
 
 
+def _mask_row_blocks(
+    products: _ScientificProducts,
+    metadata: ImageMetadata,
+) -> Iterator[npt.NDArray[np.bool_]]:
+    """Yield the published retained mask as full-width row blocks.
+
+    The mask product is the support pass's own retained mask, so it streams
+    from that generation rather than from a plane the driver kept. An image
+    whose estimate no pixel can use never reached the pass, and publishes an
+    empty mask, which is what its consumers read as "nothing retained".
+    """
+    height, width = metadata.shape_yx
+    if products.publication_source is None:
+        for start in range(0, height, _MASK_BLOCK_ROWS):
+            yield np.zeros(
+                (min(_MASK_BLOCK_ROWS, height - start), width),
+                dtype=np.bool_,
+            )
+        return
+    rows = min(
+        height,
+        products.publication_source.manifest.tile_core_shape_yx[0],
+    )
+    for block in products.publication_source.iter_completed_row_blocks(
+        "retained-mask",
+        max_block_bytes=rows * width * np.dtype(np.bool_).itemsize,
+    ):
+        yield np.asarray(block, dtype=np.bool_)
+
+
 def _rms_row_blocks(
     products: _ScientificProducts,
     metadata: ImageMetadata,
@@ -2106,7 +1837,7 @@ def _materialize_bundle(  # noqa: PLR0913
     wall_seconds: float,
 ) -> SourceFinderResult:
     """Write and validate one unpublished complete public product bundle."""
-    catalogue, mask = _public_catalogue(
+    catalogue = _public_catalogue(
         products,
         metadata,
         run_id=request.run_id,
@@ -2127,7 +1858,7 @@ def _materialize_bundle(  # noqa: PLR0913
     mask_product = write_mask_fits_product(
         unpublished / "source-mask.fits",
         metadata,
-        (mask,),
+        _mask_row_blocks(products, metadata),
     )
     profile_payload = _profile_bytes()
     diagnostics = PublicSourceFindingDiagnostics(

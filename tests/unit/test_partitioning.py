@@ -344,3 +344,41 @@ def test_bounds_centre_is_inside_the_bounds(
 
     assert bounds.x_start <= x <= bounds.x_stop - 1
     assert bounds.y_start <= y <= bounds.y_stop - 1
+
+
+@pytest.mark.parametrize("origin", [(0, 0), (1, 3)])
+def test_the_tiles_a_region_meets_are_exactly_those_sharing_a_pixel(
+    origin: tuple[int, int],
+) -> None:
+    """The grid lookup names the same tiles a scan of every core would."""
+    manifest = plan_image_partitions(
+        image_shape_yx=(13, 17),
+        tile_core_shape_yx=(4, 5),
+        halo_yx=(0, 0),
+        partition_origin_yx=origin,
+    )
+    for region in (
+        ImageBounds(0, 13, 0, 17),
+        ImageBounds(3, 5, 4, 6),
+        ImageBounds(12, 13, 16, 17),
+        ImageBounds(6, 7, 0, 1),
+    ):
+        scanned = tuple(
+            tile
+            for tile in manifest.tiles
+            if tile.core_bounds.y_start < region.y_stop
+            and region.y_start < tile.core_bounds.y_stop
+            and tile.core_bounds.x_start < region.x_stop
+            and region.x_start < tile.core_bounds.x_stop
+        )
+        assert manifest.tiles_meeting(region) == scanned
+
+
+def test_a_region_beyond_the_image_meets_no_tile_silently() -> None:
+    """A region outside the image is a caller error, not an empty answer."""
+    manifest = plan_image_partitions(
+        image_shape_yx=(8, 8), tile_core_shape_yx=(4, 4), halo_yx=(0, 0)
+    )
+
+    with pytest.raises(ValueError, match="inside image shape"):
+        manifest.tiles_meeting(ImageBounds(0, 9, 0, 4))

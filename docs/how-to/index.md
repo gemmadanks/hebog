@@ -190,6 +190,69 @@ deployment gate: Hebog runs natively on one thread and PyBDSF runs in a Linux
 container with four cores. Only the matched `filter_skymodel` benchmark can
 pass or fail that gate.
 
+## Measure the traced-allocation peak
+
+Measure the traced peak before raising the public envelope, and whenever a
+change can move how much memory a run needs:
+
+```console
+just traced-peak
+just traced-peak --tier large --cases lotss-dr3-1312-dense-3000 --repetitions 2
+```
+
+The gate is `tracemalloc`'s peak, not peak resident memory. The traced peak
+counts the allocations the process itself makes, NumPy array data included,
+and repeats to a few kilobytes for one input, one configuration and one
+implementation. Peak resident memory of the same code at 3,000² varied by 42%
+with machine load, so it is reported beside the traced peak as an envelope and
+never as the threshold.
+
+Tracing roughly doubles wall time, so this measurement stays out of the timing
+path: the quick benchmark never traces, and a traced run records no timing that
+may be compared with a benchmark. Cases, tiers and finder settings are the
+quick benchmark's own, from `config/benchmarks/quick-benchmark.json`, so a peak
+and a timing describe the same measured configuration; the run records the
+shared case identity to prove it.
+
+Each repetition runs `measure_traced_peak_worker.py` in a fresh single-thread
+process that starts tracing before it imports Hebog, so the peak includes the
+modules the run loads. The worker reports three figures:
+
+- `peak_traced_bytes`, the process peak and the gate figure;
+- `finder_peak_traced_bytes`, the peak over the `find_sources` call alone;
+- `import_traced_bytes`, what the imports still hold when that call begins.
+
+The last two make a peak comparable with one measured over a different span: a
+tracer started after the imports cannot see that floor, and reports a peak
+lower by about its size.
+
+The peak is reproducible, so one repetition is the default. Ask for two or
+more to establish that it repeats; a single repetition reports reproducibility
+as unmeasured rather than as a pass, and repetitions that disagree fail the
+run, because a peak that does not repeat cannot gate a raise.
+
+Repetitions count as agreeing when their peaks lie within a tenth of a
+mebibyte (`TRACED_PEAK_TOLERANCE_BYTES`). They do not repeat to the byte: the
+strings, paths and metadata of one run allocate slightly differently in the
+next, which measured 2 to 11 KiB across the admitted tiers. The tolerance is
+the precision a peak is quoted at, and two orders of magnitude below the
+image-sized arrays a scalability change moves.
+
+Inputs above the public 3,000-pixel limit use the worker's
+`--diagnostic-size-limit`, which raises the limit only inside that process, so
+a raise candidate is measured before its tier is admitted. The worker reports
+the limit it would have applied, and the report says for each case whether the
+measured size is supported.
+
+The run writes `report.json` and one `TracedAllocationEvidence` record
+(`hebog.validation.evidence`) per case under
+`benchmark-results/traced-peak/runs/<label>/`. Both also record the traced
+process's peak resident memory, which tracing inflates on top of the machine
+load it already follows: read it as an envelope, and never compare it with the
+quick benchmark's. Records stay exploratory until a named envelope decision
+reviews them; reviewed traced evidence needs at least two repetitions whose
+peaks agree within that tolerance.
+
 ## Profile complete execution
 
 Profile before optimizing, to choose what to change. The profile splits one

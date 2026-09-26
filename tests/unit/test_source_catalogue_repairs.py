@@ -388,24 +388,20 @@ def _configured_products(
             header=header,
             config=config,
         )
-        valid = (
-            np.isfinite(signal) & np.isfinite(background) & np.isfinite(rms)
-        )
         return build_configured_continuum_products(
-            valid,
-            valid & (rms > 0.0),
             header,
-            multiscale=published.multiscale,
-            labels=published.labels,
+            component_count=published.accepted_island_count,
             topology=published.topology,
             measurements=published.measurements,
             association=published.association,
             hierarchy=published.hierarchy,
-            source_labels=published.source_labels,
-            source_measurement_labels=(published.source_measurement_labels),
             component_rows=published.component_rows,
             source_rows=published.source_rows,
             source_positions=published.source_positions,
+            component_local_rms=published.component_local_rms,
+            source_local_rms=published.source_local_rms,
+            islands=published.islands,
+            island_ids_by_owner=published.island_ids_by_owner,
         )
 
 
@@ -469,7 +465,7 @@ def test_connected_independent_gaussians_remain_separate_sources(
     )
     result = _products(np.asarray(signal))
 
-    assert result.detection.component_count == 1
+    assert result.component_count == 1
     assert len(result.component_catalogue) == count
     assert len(result.catalogue) == count
     assert all(row.component_count == 1 for row in result.catalogue)
@@ -580,10 +576,10 @@ def test_valid_fit_survives_unavailable_aperture_moment_row(
     original = tiled_detection.publish_segment_rows
 
     def missing_source_rows(*args: Any, **kwargs: Any):
-        rows, positions = original(*args, **kwargs)
+        rows, local_rms, positions = original(*args, **kwargs)
         if kwargs["aperture_tie_policy"] == "canonical-source":
-            return (), positions
-        return rows, positions
+            return (), local_rms, positions
+        return rows, local_rms, positions
 
     monkeypatch.setattr(
         tiled_detection, "publish_segment_rows", missing_source_rows
@@ -670,10 +666,6 @@ def test_rejected_ellipse_keeps_source_photometry_and_support(
     assert rejected.catalogue[0].integrated_flux_jy == pytest.approx(
         baseline.catalogue[0].integrated_flux_jy
     )
-    np.testing.assert_array_equal(
-        rejected.measurement_component_labels,
-        baseline.measurement_component_labels,
-    )
     disposition = next(
         row
         for row in rejected.measurement_dispositions
@@ -758,10 +750,6 @@ def test_inadequate_beam_fallback_keeps_source_not_gaussian(
     assert (
         "aperture-flux-without-fitted-component"
         not in baseline.catalogue[0].quality_flags
-    )
-    np.testing.assert_array_equal(
-        rejected.measurement_component_labels,
-        baseline.measurement_component_labels,
     )
     assert (
         type(disposition).model_validate_json(disposition.model_dump_json())
@@ -861,11 +849,14 @@ def test_cancelled_signed_centroid_uses_stable_denoised_alternative() -> None:
     support = np.zeros(signal.shape, dtype=np.bool_)
     support[4, 2:7] = True
 
+    rows, columns = np.nonzero(support)
     estimate = _segment_position(
-        signal,
-        np.maximum(signal, 0.0),
-        support,
+        rows,
+        columns,
+        signal[support],
+        np.maximum(signal, 0.0)[support],
         maximum_peak_to_mean_ratio=3.0,
+        plane_shape_yx=signal.shape,
     )
 
     assert estimate.available

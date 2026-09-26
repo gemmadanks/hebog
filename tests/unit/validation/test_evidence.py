@@ -29,6 +29,8 @@ from hebog.validation.evidence import (
     SoftwareIdentity,
     StageMetrics,
     StorageEvidence,
+    TracedAllocationEvidence,
+    TracedAllocationMeasurement,
     UnavailableMetric,
     WorkloadClass,
     load_evidence,
@@ -399,3 +401,93 @@ def test_scientific_comparison_evidence_round_trips(tmp_path: Path) -> None:
 
     assert loaded == evidence
     assert isinstance(loaded, ScientificComparisonEvidence)
+
+
+def _traced_measurement(
+    index: int, **changes: object
+) -> TracedAllocationMeasurement:
+    """Return one traced repetition of a 3,000² run."""
+    return TracedAllocationMeasurement.model_validate(
+        {
+            "repetition_index": index,
+            "peak_traced_bytes": 1_417_400_481,
+            "finder_peak_traced_bytes": 1_417_400_481,
+            "import_traced_bytes": 94_820_265,
+            "peak_rss_bytes": 2_247_000_000,
+            "traced_wall_seconds": 193.0,
+            "source_count": 659,
+            "gaussian_component_count": 828,
+        }
+        | changes
+    )
+
+
+def _traced_evidence(
+    *measurements: TracedAllocationMeasurement,
+) -> TracedAllocationEvidence:
+    """Return traced-allocation evidence with explicit provenance."""
+    return TracedAllocationEvidence(
+        schema_version=1,
+        evidence_type="traced-allocation",
+        run_id="traced-peak-lotss-dr3-1312-dense-3000",
+        captured_at=datetime(2026, 9, 25, 12, 0, tzinfo=UTC),
+        status=EvidenceStatus.EXPLORATORY,
+        dataset=_dataset(),
+        configuration_sha256=SHA256,
+        subject=_software("hebog", version="0.13.0", commit="6" * 40),
+        environment_sha256="7" * 64,
+        resources=ResourceAllocation(
+            executor=ExecutorKind.SERIAL,
+            worker_nodes=1,
+            workers_per_node=1,
+            threads_per_worker=1,
+            allocated_cpu_cores=1,
+            node_memory_bytes=19_327_352_832,
+            worker_memory_limit_bytes=19_327_352_832,
+            reserved_headroom_per_node_bytes=0,
+            storage_identifier="local-filesystem",
+        ),
+        measurements=measurements or (_traced_measurement(0),),
+    )
+
+
+def test_traced_allocation_evidence_round_trips(tmp_path: Path) -> None:
+    """A traced peak reloads as its own document type, beside benchmarks."""
+    path = tmp_path / "traced-peak.json"
+    evidence = _traced_evidence()
+
+    write_evidence(path, evidence)
+    loaded = load_evidence(path)
+
+    assert loaded == evidence
+    assert isinstance(loaded, TracedAllocationEvidence)
+    assert loaded.measurements[0].peak_traced_bytes == 1_417_400_481
+
+
+@pytest.mark.parametrize(
+    ("changes", "message"),
+    [
+        (
+            {"finder_peak_traced_bytes": 1_500_000_000},
+            "finder peak cannot exceed the process peak",
+        ),
+        (
+            {"import_traced_bytes": 1_417_400_482},
+            "import floor cannot exceed the finder peak",
+        ),
+    ],
+)
+def test_traced_measurement_rejects_impossible_spans(
+    changes: dict[str, object], message: str
+) -> None:
+    """The import span and the finder span partition one traced run."""
+    with pytest.raises(ValidationError, match=message):
+        _traced_measurement(0, **changes)
+
+
+def test_traced_evidence_requires_unique_ordered_repetitions() -> None:
+    """Repetitions are identified and ordered, as benchmark ones are."""
+    with pytest.raises(ValidationError, match="indices must be unique"):
+        _traced_evidence(_traced_measurement(0), _traced_measurement(0))
+    with pytest.raises(ValidationError, match="ordered by repetition index"):
+        _traced_evidence(_traced_measurement(1), _traced_measurement(0))

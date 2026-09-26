@@ -9,6 +9,7 @@ import pytest
 
 from hebog.algorithms.source_association import (
     associate_detection_components,
+    build_detection_component_record,
     build_detection_component_records,
     constrain_source_memberships,
     reduce_source_associations,
@@ -509,3 +510,73 @@ def test_component_geometry_does_not_depend_on_the_plane_around_it() -> None:
         tight[0].covariance_pixels_squared
     )
     assert padded[0].canonical_pixel_yx == tight[0].canonical_pixel_yx
+
+
+def test_one_component_described_from_its_pixels_matches_its_window() -> None:
+    """Pixels restored to raster order describe a component bit for bit.
+
+    A component too wide to read at once is described from the pixels each
+    core returns. The fixture covers a covariance, a centroid with too few
+    positive pixels for one, and a component with no positive signal at all,
+    whose centroid is the mean of its support.
+    """
+    rng = np.random.default_rng(20260926)
+    labels = np.zeros((23, 31), dtype=np.int32)
+    labels[2:9, 3:14] = 1
+    labels[12:14, 20:22] = 2
+    labels[15:21, 2:9] = 3
+    signal = rng.normal(0.3, 1.0, labels.shape)
+    signal[12:14, 20:22] = (-1.0, 2.0)
+    signal[15:21, 2:9] = -0.5
+    signal[4, 5] = np.nan
+    origin_yx = (40, 7)
+    width = 100
+
+    expected = build_detection_component_records(
+        labels,
+        signal,
+        np.ones(labels.shape, dtype=np.bool_),
+        origin_yx=origin_yx,
+    )
+    described: list[DetectionComponentRecord] = []
+    for label_value in (1, 2, 3):
+        rows, columns = np.nonzero(labels == label_value)
+        described.append(
+            build_detection_component_record(
+                label_value,
+                (rows + origin_yx[0]) * width + columns + origin_yx[1],
+                signal[rows, columns],
+                image_width=width,
+            )
+        )
+
+    assert tuple(
+        sorted(described, key=lambda item: item.canonical_pixel_yx)
+    ) == (expected)
+    assert {
+        record.label_value: record.covariance_pixels_squared is None
+        for record in expected
+    } == {1: False, 2: True, 3: True}
+
+
+@pytest.mark.parametrize(
+    ("raster_indices", "signal", "message"),
+    (
+        ((), (), "non-empty"),
+        ((3, 4), (1.0,), "aligned"),
+        ((4, 3), (1.0, 1.0), "ascending raster order"),
+        ((3, 3), (1.0, 1.0), "ascending raster order"),
+    ),
+    ids=("empty", "misaligned", "descending", "repeated"),
+)
+def test_a_component_described_from_pixels_needs_them_all_in_order(
+    raster_indices: tuple[int, ...], signal: tuple[float, ...], message: str
+) -> None:
+    """Pixels out of raster order would name the wrong first pixel."""
+    with pytest.raises(ValueError, match=message):
+        build_detection_component_record(
+            1,
+            np.asarray(raster_indices, dtype=np.int64),
+            np.asarray(signal, dtype=np.float64),
+            image_width=10,
+        )

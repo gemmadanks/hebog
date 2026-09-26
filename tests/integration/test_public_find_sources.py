@@ -12,17 +12,19 @@ from pathlib import Path
 from typing import Any, TypeVar
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 from astropy import units
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
-from conftest import SubstituteBackgroundRms
+from conftest import SubstituteBackgroundRms, published_plane
 from distributed import Client, LocalCluster
 
 import hebog
 from hebog import SourceFinderConfig, SourceFinderRequest, public_api
 from hebog.algorithms import fitting as fitting_algorithm
+from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.data_models import PublicSourceFindingDiagnostics
 from hebog.executors import DaskExecutor, SerialExecutor, TaskRequirement
 from hebog.io import (
@@ -30,6 +32,7 @@ from hebog.io import (
     read_catalogue_fits_product,
     read_diagnostics_product,
 )
+from hebog.io.zarr import ZarrProductSink
 from hebog.pipeline import (
     InvalidSourceFinderInputError,
     SourceFinderImageTooLargeError,
@@ -190,6 +193,98 @@ def _request(
     )
 
 
+def _published_mask(products: Any) -> npt.NDArray[np.bool_]:
+    """Return the retained mask the driver streams as its mask product."""
+    return published_plane(
+        products.publication_source, "retained-mask", np.bool_
+    )
+
+
+def _owner_labels(products: Any) -> npt.NDArray[np.int32]:
+    """Return the published component ownership a projection cannot infer."""
+    return published_plane(
+        products.component_source, "component-measurement-labels", np.int32
+    )
+
+
+def _published_mask_source(
+    directory: Path,
+    mask: npt.NDArray[np.bool_],
+) -> ZarrProductSink:
+    """Publish one pruned retained mask the way the support pass would."""
+    manifest = plan_image_partitions(
+        image_shape_yx=mask.shape,
+        tile_core_shape_yx=mask.shape,
+        halo_yx=(0, 0),
+    )
+    sink = ZarrProductSink(directory, manifest, generation_id="pruned")
+    sink.initialize_product(
+        product_name="retained-mask", dtype=np.dtype(np.bool_)
+    )
+    chunks = [
+        sink.write_chunk(
+            product_name="retained-mask", tile=tile, values=mask[_core(tile)]
+        )
+        for tile in manifest.tiles
+    ]
+    sink.publish_generation(
+        product_names=("retained-mask",), chunks=tuple(chunks)
+    )
+    return sink
+
+
+def _core(tile: Any) -> tuple[slice, slice]:
+    """Select one tile's core rows and columns from a complete plane."""
+    bounds = tile.core_bounds
+    return (
+        slice(bounds.y_start, bounds.y_stop),
+        slice(bounds.x_start, bounds.x_stop),
+    )
+
+
+def _pruned_products(
+    products: Any,
+    mask: npt.NDArray[np.bool_],
+    directory: Path,
+) -> Any:
+    """Return the products a published mask this small would have produced.
+
+    The island round measures the published retained mask, so a fixture that
+    prunes that mask has to prune what the round measured from it: an owner
+    with no retained pixel reaches no island, which is the case these tests
+    exist for. The pruned plane is published in place of the support pass's
+    own, because no step after the science holds a plane to edit.
+    """
+    terminal = products.terminal
+    owners = _owner_labels(products)
+    retained_owners = {
+        int(value) for value in np.unique(owners[mask]) if value > 0
+    }
+    island_ids_by_owner = {
+        owner: identifiers
+        for owner, identifiers in terminal.island_ids_by_owner.items()
+        if owner in retained_owners
+    }
+    named = {
+        identifier
+        for identifiers in island_ids_by_owner.values()
+        for identifier in identifiers
+    }
+    return replace(
+        products,
+        publication_source=_published_mask_source(directory, mask),
+        terminal=replace(
+            terminal,
+            islands=tuple(
+                island
+                for island in terminal.islands
+                if island.identifier in named
+            ),
+            island_ids_by_owner=island_ids_by_owner,
+        ),
+    )
+
+
 @pytest.mark.integration
 def test_measurement_owner_without_published_support_has_no_public_row(
     tmp_path: Path,
@@ -207,20 +302,12 @@ def test_measurement_owner_without_published_support_has_no_public_row(
     def analysis(*args: Any, **kwargs: Any):
         result = original(*args, **kwargs)
         assert result.terminal is not None
-        terminal = result.terminal
-        mask = terminal.detection.retained_mask.copy()
+        mask = _published_mask(result).copy()
         mask[:, :48] = False
-        detection = replace(
-            terminal.detection,
-            retained_mask=mask,
-            component_labels=np.where(
-                mask, terminal.detection.component_labels, 0
-            ),
-        )
-        updated = replace(
-            result, terminal=replace(terminal, detection=detection)
-        )
-        retained.append(updated.terminal)
+        updated = _pruned_products(result, mask, tmp_path / "pruned.zarr")
+        # The work directory goes with the run, so the ownership this
+        # projection needs is read while its generation still exists.
+        retained.append((updated.terminal, _owner_labels(result)))
         return updated
 
     monkeypatch.setattr(
@@ -247,11 +334,13 @@ def test_measurement_owner_without_published_support_has_no_public_row(
     assert sum(row.catalogue_row_published for row in sources) == 1
     assert all(row.status == "measured" for row in sources)
     mask = np.asarray(fits.getdata(result.mask_path), dtype=np.bool_)
+    terminal, owners = retained[0]
     projection = project_public_measurements(
-        retained[0],
+        terminal,
         read_catalogue_fits_product(result.catalogue),
         mask,
         _header(signal.shape),
+        owner_labels=owners,
     )
     assert len(projection.sources) == 1
     assert len(projection.measured_sources) == 2
@@ -282,15 +371,19 @@ def test_public_degenerate_owner_does_not_abort_a_healthy_neighbour(
     def projected_catalogue(
         products: Any, metadata: Any, *, run_id: str, profile: str
     ):
-        catalogue, mask = original_catalogue(
+        catalogue = original_catalogue(
             products, metadata, run_id=run_id, profile=profile
         )
         projections.append(
             project_public_measurements(
-                products.terminal, catalogue, mask, _header(signal.shape)
+                products.terminal,
+                catalogue,
+                _published_mask(products),
+                _header(signal.shape),
+                owner_labels=_owner_labels(products),
             )
         )
-        return catalogue, mask
+        return catalogue
 
     monkeypatch.setattr(public_api, "_public_catalogue", projected_catalogue)
 
@@ -364,22 +457,9 @@ def test_pruned_component_of_a_published_source_keeps_its_disposition(
         assert terminal is not None
         assert len(terminal.catalogue) == 1
         assert len(terminal.component_catalogue) == 6
-        labels = terminal.measurement_component_labels
         removed = terminal.source_association.components[0].label_value
-        mask = terminal.detection.retained_mask & (labels != removed)
-        return replace(
-            products,
-            terminal=replace(
-                terminal,
-                detection=replace(
-                    terminal.detection,
-                    retained_mask=mask,
-                    component_labels=np.where(
-                        mask, terminal.detection.component_labels, 0
-                    ),
-                ),
-            ),
-        )
+        mask = _published_mask(products) & (_owner_labels(products) != removed)
+        return _pruned_products(products, mask, tmp_path / "pruned.zarr")
 
     monkeypatch.setattr(
         public_api,
@@ -477,28 +557,38 @@ def test_current_projection_rejects_inconsistent_public_evidence(
     )
     terminal = products.terminal
     assert terminal is not None
-    catalogue, mask = public_api._public_catalogue(  # pyright: ignore[reportPrivateUsage]
+    catalogue = public_api._public_catalogue(  # pyright: ignore[reportPrivateUsage]
         products, metadata, run_id="fixture", profile="continuum"
     )
+    mask = _published_mask(products)
+    owners = _owner_labels(products)
     assert len(catalogue.sources) == 1
     for invalid_mask in (mask.astype(np.int32), mask[np.newaxis]):
         with pytest.raises(ValueError, match="Boolean"):
             project_public_measurements(
-                terminal, catalogue, invalid_mask, header
+                terminal, catalogue, invalid_mask, header, owner_labels=owners
             )
-    for invalid_mask in (mask[:-1], ~mask, np.zeros_like(mask)):
+    with pytest.raises(ValueError, match="needs owner labels"):
+        project_public_measurements(terminal, catalogue, mask, header)
+    # One published pixel owned by a component the association never named.
+    unknown_owner = owners.copy()
+    unknown_owner.flat[np.flatnonzero(mask)[0]] = owners.max() + 1
+    for invalid_owners, invalid_mask in (
+        (owners, mask[:-1]),
+        (owners, ~mask),
+        (-owners, mask),
+        (owners.astype(np.float64), mask),
+        (unknown_owner, mask),
+    ):
         with pytest.raises(ValueError, match="ownership or publication"):
             project_public_measurements(
-                terminal, catalogue, invalid_mask, header
+                terminal,
+                catalogue,
+                invalid_mask,
+                header,
+                owner_labels=invalid_owners,
             )
     for broken, message in (
-        (
-            replace(
-                terminal,
-                measurement_component_labels=-terminal.measurement_component_labels,
-            ),
-            "ownership",
-        ),
         (replace(terminal, measurement_dispositions=()), "dispositions"),
         (replace(terminal, catalogue=()), "exact measurements"),
         (replace(terminal, component_catalogue=()), "exact measurements"),
@@ -517,7 +607,9 @@ def test_current_projection_rejects_inconsistent_public_evidence(
         ),
     ):
         with pytest.raises(ValueError, match=message):
-            project_public_measurements(broken, catalogue, mask, header)
+            project_public_measurements(
+                broken, catalogue, mask, header, owner_labels=owners
+            )
     changed = catalogue.model_copy(
         update={
             "sources": (
@@ -528,21 +620,17 @@ def test_current_projection_rejects_inconsistent_public_evidence(
         }
     )
     with pytest.raises(ValueError, match="memberships"):
-        project_public_measurements(terminal, changed, mask, header)
+        project_public_measurements(
+            terminal, changed, mask, header, owner_labels=owners
+        )
     # A retained measurement alone cannot stand in for published support.
-    pruned = replace(
-        terminal,
-        detection=replace(
-            terminal.detection,
-            retained_mask=np.zeros_like(mask),
-            component_labels=np.zeros_like(
-                terminal.detection.component_labels
-            ),
-        ),
-    )
     with pytest.raises(ValueError, match="no published support"):
         project_public_measurements(
-            pruned, catalogue, np.zeros_like(mask), header
+            terminal,
+            catalogue,
+            np.zeros_like(mask),
+            header,
+            owner_labels=owners,
         )
     with pytest.raises(ValueError, match="absent terminal"):
         project_public_measurements(None, catalogue, mask, header)
@@ -741,6 +829,11 @@ def test_blank_and_all_nan_inputs_publish_honest_empty_products(
         published = np.asarray(fits.getdata(result.rms.path), dtype=np.float64)
         assert published.shape == shape
         assert np.all(np.isnan(published))
+        # No pass ran, so there is no published mask to stream: the product
+        # is generated row block by row block and retains nothing.
+        mask = np.asarray(fits.getdata(result.mask_path), dtype=np.bool_)
+        assert mask.shape == shape
+        assert not np.any(mask)
 
 
 @pytest.mark.integration

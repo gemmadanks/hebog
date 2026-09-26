@@ -27,6 +27,17 @@ _SHA256_PATTERN = r"^[0-9a-f]{64}$"
 _CONTAINER_DIGEST_PATTERN = r"^sha256:[0-9a-f]{64}$"
 _COMMIT_PATTERN = r"^[0-9a-f]{40}$"
 _MINIMUM_REVIEWED_REPETITIONS = 5
+_MINIMUM_REVIEWED_TRACED_REPETITIONS = 2
+
+TRACED_PEAK_TOLERANCE_BYTES = 2**20 // 10
+"""Largest spread of traced peaks that still counts as one peak.
+
+A traced peak repeats to a few kilobytes rather than to the byte, because the
+strings, paths and metadata of one run allocate slightly differently in the
+next. A tenth of a mebibyte is the precision a peak is quoted at, about ten
+times the spread measured across repetitions, and two orders of magnitude
+below the image-sized arrays a scalability change moves.
+"""
 
 OptionalMetricName: TypeAlias = Literal[
     "array_copy_count",
@@ -382,6 +393,84 @@ class BenchmarkEvidence(_EvidenceDocument):
         return self
 
 
+class TracedAllocationMeasurement(_EvidenceModel):
+    """One traced repetition of one input through the public finder.
+
+    ``peak_traced_bytes`` is the gate figure: the highest total of
+    interpreter and NumPy allocations traced in the worker process, from
+    before Hebog is imported until the products are written.
+    ``finder_peak_traced_bytes`` is the peak over the ``find_sources`` call
+    alone, measured from the same tracing session after its peak was reset,
+    and ``import_traced_bytes`` is what the imports still hold when that call
+    begins. Both make a peak comparable with one measured over a different
+    span. ``peak_rss_bytes`` is an envelope, not a threshold: it varies with
+    machine load, and tracing inflates it further.
+    """
+
+    repetition_index: int = Field(ge=0)
+    peak_traced_bytes: int = Field(gt=0)
+    finder_peak_traced_bytes: int = Field(gt=0)
+    import_traced_bytes: int = Field(gt=0)
+    peak_rss_bytes: int = Field(ge=0)
+    traced_wall_seconds: float = Field(ge=0, allow_inf_nan=False)
+    source_count: int = Field(ge=0)
+    gaussian_component_count: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def validate_peaks(self) -> Self:
+        """Require spans that one tracing session can have produced."""
+        if self.finder_peak_traced_bytes > self.peak_traced_bytes:
+            raise ValueError("the finder peak cannot exceed the process peak")
+        if self.import_traced_bytes > self.finder_peak_traced_bytes:
+            raise ValueError("the import floor cannot exceed the finder peak")
+        return self
+
+
+class TracedAllocationEvidence(_EvidenceDocument):
+    """Deterministic traced-allocation peaks for one input and configuration.
+
+    ``tracemalloc`` counts the allocations the process itself makes, so its
+    peak is reproducible for one input, one configuration and one
+    implementation, which is why it, and not peak resident memory, gates a
+    public envelope raise. Tracing roughly doubles wall time, so these
+    documents record no timing that may be compared with benchmark evidence.
+    """
+
+    evidence_type: Literal["traced-allocation"]
+    subject: SoftwareIdentity
+    environment_sha256: str = Field(pattern=_SHA256_PATTERN)
+    resources: ResourceAllocation
+    measurements: tuple[TracedAllocationMeasurement, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_traced_protocol(self) -> Self:
+        """Order repetitions, and require a reproduced reviewed peak."""
+        indices = [
+            measurement.repetition_index for measurement in self.measurements
+        ]
+        if len(set(indices)) != len(indices):
+            raise ValueError("repetition indices must be unique")
+        if indices != sorted(indices):
+            raise ValueError(
+                "measurements must be ordered by repetition index"
+            )
+        if self.status is EvidenceStatus.REVIEWED:
+            peaks = [
+                measurement.peak_traced_bytes
+                for measurement in self.measurements
+            ]
+            if len(self.measurements) < _MINIMUM_REVIEWED_TRACED_REPETITIONS:
+                raise ValueError(
+                    "reviewed traced evidence requires two repetitions"
+                )
+            if max(peaks) - min(peaks) > TRACED_PEAK_TOLERANCE_BYTES:
+                raise ValueError(
+                    "reviewed traced evidence requires one reproduced peak, "
+                    "within a tenth of a mebibyte"
+                )
+        return self
+
+
 class ScientificComparisonEvidence(_EvidenceDocument):
     """Provenance and reports for one candidate/reference comparison."""
 
@@ -398,7 +487,9 @@ class ScientificComparisonEvidence(_EvidenceDocument):
     mask: MaskComparisonReport
 
 
-EvidenceDocument: TypeAlias = BenchmarkEvidence | ScientificComparisonEvidence
+EvidenceDocument: TypeAlias = (
+    BenchmarkEvidence | ScientificComparisonEvidence | TracedAllocationEvidence
+)
 
 _EVIDENCE_ADAPTER: TypeAdapter[EvidenceDocument] = TypeAdapter(
     EvidenceDocument

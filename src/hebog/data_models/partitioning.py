@@ -290,6 +290,37 @@ class PartitionManifest:
         )
         return self.tiles[y_index * tiles_per_row + x_index]
 
+    def tiles_meeting(self, bounds: ImageBounds) -> tuple[TilePartition, ...]:
+        """Return every tile whose core shares a pixel with ``bounds``.
+
+        Cores form a grid, so the tiles are the index rectangle between the
+        owners of the region's first and last pixels; no tile is scanned.
+
+        Examples:
+            >>> manifest = PartitionManifest.create(
+            ...     image_shape_yx=(10, 10),
+            ...     tile_core_shape_yx=(4, 4),
+            ...     halo_yx=(0, 0),
+            ... )
+            >>> region = ImageBounds(3, 5, 7, 10)
+            >>> [
+            ...     (tile.tile_y_index, tile.tile_x_index)
+            ...     for tile in manifest.tiles_meeting(region)
+            ... ]
+            [(0, 1), (0, 2), (1, 1), (1, 2)]
+        """
+        bounds.require_inside(self.image_shape_yx)
+        first = self.owner_for_position_yx((bounds.y_start, bounds.x_start))
+        last = self.owner_for_position_yx(
+            (bounds.y_stop - 1, bounds.x_stop - 1)
+        )
+        tiles_per_row = self.tiles[-1].tile_x_index + 1
+        return tuple(
+            self.tiles[row * tiles_per_row + column]
+            for row in range(first.tile_y_index, last.tile_y_index + 1)
+            for column in range(first.tile_x_index, last.tile_x_index + 1)
+        )
+
     @classmethod
     def create(
         cls,

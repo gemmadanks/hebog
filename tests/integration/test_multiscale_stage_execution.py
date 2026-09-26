@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from math import ceil
 from pathlib import Path
 from typing import TypeVar
@@ -40,6 +40,8 @@ from hebog.io.zarr import ZarrProductSink
 from hebog.stages.multiscale import (
     MultiscaleStageConfig,
     MultiscaleStageResult,
+    _evaluate_tile,
+    _publication_products,
     _ScaleLabelBatch,
     multiscale_product_names,
     run_multiscale_stage,
@@ -753,6 +755,82 @@ def test_published_scale_labels_match_the_whole_plane_labelling(
         for islands in result.scale_islands_by_order
         for island in islands
     )
+
+
+def test_a_scale_claiming_an_unusable_pixel_fails_closed(
+    tmp_path: Path,
+) -> None:
+    """A published scale may not claim a pixel the estimate does not cover.
+
+    The composition used to check this over two whole planes. The core that
+    derives the scale masks holds the domain they must lie inside, so the
+    check runs there, and this is the case it exists for.
+    """
+    manifest = _manifest((129, 137))
+    partition = manifest.tiles[0]
+    result, evidence = _evaluate_tile(
+        partition,
+        source=_ArrayImageSource(*_planes()[:2]),
+        background_rms_source=_background_source(tmp_path / "background"),
+        image_shape_yx=_planes()[0].shape,
+        beam=_beam(),
+        detection=_detection_config(),
+    )
+    unusable = ~result.prepared_inputs.scientifically_valid
+    assert np.any(unusable), "the fixture must hold an unusable pixel"
+
+    with pytest.raises(ValueError, match="scientifically valid"):
+        _publication_products(
+            result,
+            replace(
+                evidence,
+                significant_scale_masks=tuple(
+                    np.ones(unusable.shape, dtype=np.bool_)
+                    for _ in evidence.significant_scale_masks
+                ),
+            ),
+            reconstruction_mask=np.ones(unusable.shape, dtype=np.bool_),
+            detection_labels=np.zeros(unusable.shape, dtype=np.int32),
+            island_threshold_sigma=3.0,
+        )
+
+
+@pytest.mark.parametrize("misshapen", ("scale", "reconstruction"))
+def test_a_scale_mask_of_another_shape_fails_closed(
+    tmp_path: Path, misshapen: str
+) -> None:
+    """A mask that only broadcasts to the core cannot pass as its support.
+
+    One row of a core broadcasts against the whole core, so without a shape
+    check an empty row would publish as an empty scale over every pixel.
+    """
+    manifest = _manifest((129, 137))
+    result, evidence = _evaluate_tile(
+        manifest.tiles[0],
+        source=_ArrayImageSource(*_planes()[:2]),
+        background_rms_source=_background_source(tmp_path / "background"),
+        image_shape_yx=_planes()[0].shape,
+        beam=_beam(),
+        detection=_detection_config(),
+    )
+    shape = result.prepared_inputs.scientifically_valid.shape
+    row = np.zeros((1, shape[1]), dtype=np.bool_)
+    core = np.zeros(shape, dtype=np.bool_)
+
+    with pytest.raises(ValueError, match="this core's shape"):
+        _publication_products(
+            result,
+            replace(
+                evidence,
+                significant_scale_masks=tuple(
+                    row if misshapen == "scale" else core
+                    for _ in evidence.significant_scale_masks
+                ),
+            ),
+            reconstruction_mask=row if misshapen == "reconstruction" else core,
+            detection_labels=np.zeros(shape, dtype=np.int32),
+            island_threshold_sigma=3.0,
+        )
 
 
 def test_the_scale_label_round_forbids_empty_work_records() -> None:

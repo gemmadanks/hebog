@@ -136,7 +136,7 @@ def group_labelled_pixels(
 
 @dataclass(frozen=True, slots=True)
 class LabelExtents:
-    """Each present label's window and first pixel, in row-major order.
+    """Each present label's window, first pixel and size, in row-major order.
 
     Entry ``index`` of every array describes label ``values[index]``, and
     ``values`` is ascending. ``y_stop`` and ``x_stop`` are exclusive, so the
@@ -150,12 +150,13 @@ class LabelExtents:
     x_stop: npt.NDArray[np.int64]
     first_y: npt.NDArray[np.int64]
     first_x: npt.NDArray[np.int64]
+    pixel_count: npt.NDArray[np.int64]
 
 
 def label_extents(
     labels: npt.NDArray[np.int32] | npt.NDArray[np.int64],
 ) -> LabelExtents:
-    """Return the window and first pixel of every positive label, in one pass.
+    """Return every positive label's window, first pixel and size, in one pass.
 
     Unlike :func:`group_labelled_pixels` this accepts any positive labels,
     including a sparse global set with gaps, and describes only the labels a
@@ -194,6 +195,7 @@ def label_extents(
             x_stop=empty,
             first_y=empty,
             first_x=empty,
+            pixel_count=empty,
         )
     return LabelExtents(
         values=values[starts],
@@ -203,4 +205,7 @@ def label_extents(
         x_stop=np.maximum.reduceat(x_pixels, starts) + 1,
         first_y=y_pixels[starts],
         first_x=x_pixels[starts],
+        pixel_count=np.diff(np.append(starts, values.size)).astype(
+            np.int64, copy=False
+        ),
     )

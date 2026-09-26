@@ -505,7 +505,27 @@ def _publication_products(
     tuple[tuple[str, npt.NDArray[np.generic]], ...],
     tuple[npt.NDArray[np.bool_], ...],
 ]:
-    """Derive accepted core products after global topology reconciliation."""
+    """Derive accepted core products after global topology reconciliation.
+
+    Raises:
+        ValueError: If a scale or the reconstruction is not this core's
+            shape, or a scale claims a pixel this core has no usable estimate
+            for. The scale masks and the domain they must lie inside are both
+            on this task, so the check belongs here rather than on a later
+            pass holding two whole planes.
+    """
+    unusable = ~result.prepared_inputs.scientifically_valid
+    # A mask that merely broadcasts to the core would publish silently.
+    if any(
+        mask.shape != unusable.shape
+        for mask in (reconstruction_mask, *evidence.significant_scale_masks)
+    ):
+        raise ValueError("scale support must have this core's shape")
+    if any(
+        bool(np.any(mask & unusable))
+        for mask in evidence.significant_scale_masks
+    ):
+        raise ValueError("scale support must be scientifically valid")
     scale_masks = tuple(
         np.asarray(mask & reconstruction_mask, dtype=np.bool_)
         for mask in evidence.significant_scale_masks

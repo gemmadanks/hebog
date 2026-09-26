@@ -52,7 +52,7 @@ type-check:
 test: test-unit
 
 test-unit:
-    uv run pytest -q -m "not slow and not integration and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data" --doctest-modules --doctest-glob="*.py" --maxfail=1 --disable-warnings
+    uv run pytest -q -n auto --dist worksteal -m "not slow and not integration and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data" --doctest-modules --doctest-glob="*.py" --maxfail=1 --disable-warnings
 
 # Run scheduler-independent public behaviour and product contracts
 test-contract:
@@ -86,6 +86,10 @@ quick-benchmark *args:
 profile-execution *args:
     uv run python scripts/benchmark/profile_complete_execution.py {{args}}
 
+# Measure the deterministic traced-allocation peak that gates envelope raises
+traced-peak *args:
+    uv run python scripts/benchmark/measure_traced_peak.py {{args}}
+
 # Run explicitly requested performance tests
 test-benchmark:
     uv run pytest -q -m "benchmark and not scalability" tests/
@@ -109,9 +113,9 @@ marimo-check:
 notebook-smoke:
     uv run python scripts/check_notebooks.py
 
-# Run the portable unit and integration suite with coverage
+# Run the portable unit and integration suite with coverage, in parallel
 coverage:
-    uv run pytest -m "not slow and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data" --cov --cov-report=term-missing
+    uv run pytest -n auto --dist worksteal -m "not slow and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data" --cov --cov-report=term-missing
 
 # Build docs (MkDocs strict)
 docs-build:

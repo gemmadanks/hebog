@@ -315,6 +315,38 @@ def test_public_core_does_not_import_outer_implementations(
     assert violations == []
 
 
+def _annotated_fields(path: Path) -> list[tuple[str, str, str]]:
+    """Return every annotated class field of one module, as source text."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    return [
+        (node.name, item.target.id, ast.unparse(item.annotation))
+        for node in tree.body
+        if isinstance(node, ast.ClassDef)
+        for item in node.body
+        if isinstance(item, ast.AnnAssign)
+        and isinstance(item.target, ast.Name)
+    ]
+
+
+def test_composition_records_declare_no_image_sized_array() -> None:
+    """The records the driver holds carry no plane, as ADR-008 requires.
+
+    Every plane a pass writes stays in the generation it published to, where
+    a later pass reads it by window, so a record that reaches the driver
+    declares no array at all. This is the static half of that rule; the
+    per-record fields it checks are what the terminal composition is made of.
+    """
+    fields = _annotated_fields(PACKAGE_ROOT / "science" / "models.py")
+    assert fields, "the composition records must be readable"
+    arrays = sorted(
+        f"{class_name}.{field}: {annotation}"
+        for class_name, field, annotation in fields
+        if "ndarray" in annotation.lower()
+    )
+
+    assert arrays == []
+
+
 def test_public_science_does_not_depend_on_campaign_validation() -> None:
     """Installed source finding must not import closed campaign machinery."""
     paths = [
