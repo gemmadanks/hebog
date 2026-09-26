@@ -6,7 +6,8 @@ ADR-008's catalogue rounds decide one object at a time. The owners a source
 holds are a record map, so the cores write the source labels from the shard
 that reaches them; the persistent support a source owns spans tiles, so it is
 reconciled first and then assigned inside each connected component's own
-window.
+window, by the cores that hold the component, so no assignment reaches the
+driver.
 """
 
 from __future__ import annotations
@@ -406,23 +407,15 @@ class _SupportComponent:
 
 @dataclass(frozen=True, slots=True)
 class _AssignBatch:
-    """One bounded coarse executor task over several support components."""
+    """Support components one core assigns from one shared read."""
 
     components: tuple[_SupportComponent, ...]
     read_bounds: ImageBounds
 
     def __post_init__(self) -> None:
-        """Forbid empty executor work records."""
+        """Forbid an empty read."""
         if not self.components:
             raise ValueError("support assignment batch must not be empty")
-
-
-@dataclass(frozen=True, slots=True)
-class _AssignBatchResult:
-    """Bounded owner patches one batch of components produced."""
-
-    patches: tuple[tuple[ImageBounds, npt.NDArray[np.int32]], ...]
-    maximum_component_read_pixels: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -470,10 +463,10 @@ class _Assignment:
 
 @dataclass(frozen=True, slots=True)
 class _SupportWriteRequest:
-    """One core and the bounded owner patches that reach it."""
+    """One core, the narrow components it holds and its wide assignments."""
 
     partition: TilePartition
-    patches: tuple[tuple[ImageBounds, npt.NDArray[np.int32]], ...]
+    components: tuple[_SupportComponent, ...] = ()
     assignments: tuple[_Assignment, ...] = ()
 
 
@@ -487,6 +480,20 @@ class _SupportWriteBatch:
         """Forbid empty executor work records."""
         if not self.requests:
             raise ValueError("source support batch must not be empty")
+
+
+@dataclass(frozen=True, slots=True)
+class _SupportWriteResult:
+    """Persisted chunk identities and the evidence of one write task.
+
+    ``assigned_components`` names, by canonical first pixel, each narrow
+    component that gave any pixel to a source, so the stage counts them once
+    however many cores assigned them.
+    """
+
+    product_chunks: tuple[ProductChunk, ...]
+    assigned_components: tuple[tuple[int, int], ...]
+    maximum_component_read_pixels: int
 
 
 def _persistent_window(
@@ -584,7 +591,7 @@ def _assign_batches(
     maximum_objects_per_batch: int,
     maximum_batch_read_pixels: int,
 ) -> tuple[_AssignBatch, ...]:
-    """Group components so one read serves several, within both budgets.
+    """Group one core's components so one read serves several, in budget.
 
     Raises:
         ValueError: If one component's own window exceeds the read budget.
@@ -605,57 +612,51 @@ def _assign_batches(
     )
 
 
-def _assign_batch(
+def _assigned_patches(
     batch: _AssignBatch,
     *,
     label_source: _CompletedProductSource,
     detection_source: _CompletedProductSource,
     scale_support_source: _CompletedProductSource,
     measurement_support_source: _CompletedProductSource,
-) -> _AssignBatchResult:
-    """Assign each component's unseeded support inside its own window."""
-    with (
-        label_source.access_session(),
-        detection_source.access_session(),
-        scale_support_source.access_session(),
-        measurement_support_source.access_session(),
-    ):
-        read = batch.read_bounds
-        valid, persistent = _persistent_window(
-            read,
-            detection_source=detection_source,
-            scale_support_source=scale_support_source,
-            measurement_support_source=measurement_support_source,
+) -> tuple[npt.NDArray[np.int32], ...]:
+    """Assign each component's unseeded support inside its own window.
+
+    The caller holds every source's access session open. Each patch covers
+    its component's bounds and holds only the pixels the assignment gave a
+    source, so the component's window alone decides it, whichever core reads
+    it.
+    """
+    read = batch.read_bounds
+    _, persistent = _persistent_window(
+        read,
+        detection_source=detection_source,
+        scale_support_source=scale_support_source,
+        measurement_support_source=measurement_support_source,
+    )
+    seeds = np.asarray(
+        label_source.read_completed_window("source-labels", read),
+        dtype=np.int32,
+    )
+    patches: list[npt.NDArray[np.int32]] = []
+    for component in batch.components:
+        crop = _crop(read, component.bounds)
+        window = np.array(seeds[crop], copy=True)
+        assign_connected_source_support(
+            window,
+            persistent[crop],
+            _support_component(window, persistent[crop], component),
         )
-        seeds = np.asarray(
-            label_source.read_completed_window("source-labels", read),
-            dtype=np.int32,
-        )
-        del valid
-        patches: list[tuple[ImageBounds, npt.NDArray[np.int32]]] = []
-        for component in batch.components:
-            bounds = component.bounds
-            crop = (
-                slice(
-                    bounds.y_start - read.y_start, bounds.y_stop - read.y_start
-                ),
-                slice(
-                    bounds.x_start - read.x_start, bounds.x_stop - read.x_start
-                ),
-            )
-            window = np.array(seeds[crop], copy=True)
-            assign_connected_source_support(
-                window,
-                persistent[crop],
-                _support_component(window, persistent[crop], component),
-            )
-            patches.append(
-                (bounds, np.where(seeds[crop] > 0, 0, window).astype(np.int32))
-            )
-        return _AssignBatchResult(
-            patches=tuple(patches),
-            maximum_component_read_pixels=int(np.prod(read.shape_yx)),
-        )
+        patches.append(np.where(seeds[crop] > 0, 0, window).astype(np.int32))
+    return tuple(patches)
+
+
+def _crop(bounds: ImageBounds, window: ImageBounds) -> tuple[slice, slice]:
+    """Return the slices selecting one window inside wider bounds."""
+    return (
+        slice(window.y_start - bounds.y_start, window.y_stop - bounds.y_start),
+        slice(window.x_start - bounds.x_start, window.x_stop - bounds.x_start),
+    )
 
 
 def _support_component(
@@ -853,20 +854,55 @@ def _assignment_shard(
     return tuple(shard)
 
 
-def _publish_source_support(
+def _write_patch(
+    values: npt.NDArray[np.int32],
+    core: ImageBounds,
+    bounds: ImageBounds,
+    patch: npt.NDArray[np.int32],
+) -> None:
+    """Write the part of one component's assignment a core owns, in place.
+
+    The core holds part of the component, so its bounds meet the core.
+    """
+    overlap = ImageBounds(
+        max(core.y_start, bounds.y_start),
+        min(core.y_stop, bounds.y_stop),
+        max(core.x_start, bounds.x_start),
+        min(core.x_stop, bounds.x_stop),
+    )
+    owned = patch[_crop(bounds, overlap)]
+    np.copyto(values[_crop(core, overlap)], owned, where=owned > 0)
+
+
+def _publish_source_support(  # noqa: PLR0913
     batch: _SupportWriteBatch,
     *,
     label_source: _CompletedProductSource,
+    detection_source: _CompletedProductSource,
+    scale_support_source: _CompletedProductSource,
+    measurement_support_source: _CompletedProductSource,
     sink: ZarrProductSink,
+    config: SourceSupportStageConfig,
     image_width: int,
-) -> _WriteBatchResult:
-    """Combine the owner patches that reach each core and write them.
+) -> _SupportWriteResult:
+    """Assign the support each core holds and write it over its seeds.
 
-    A wide component's assignment arrives as the unseeded pixels this core
-    owns and the source each one goes to, so no window of it is ever held.
+    A narrow component is assigned inside its own window by every core that
+    holds part of it, and each keeps its own share, so no assignment crosses
+    the executor boundary. A wide component's assignment arrives as the
+    unseeded pixels this core owns and the source each one goes to, so no
+    window of it is ever held.
     """
-    with label_source.access_session(), sink.access_session():
+    with (
+        label_source.access_session(),
+        detection_source.access_session(),
+        scale_support_source.access_session(),
+        measurement_support_source.access_session(),
+        sink.access_session(),
+    ):
         chunks: list[ProductChunk] = []
+        assigned: set[tuple[int, int]] = set()
+        widest_read = 0
         for request in batch.requests:
             core = request.partition.core_bounds
             values = np.array(
@@ -876,32 +912,27 @@ def _publish_source_support(
                 ),
                 copy=True,
             )
-            for bounds, patch in request.patches:
-                overlap = ImageBounds(
-                    max(core.y_start, bounds.y_start),
-                    min(core.y_stop, bounds.y_stop),
-                    max(core.x_start, bounds.x_start),
-                    min(core.x_stop, bounds.x_stop),
+            for assign_batch in _assign_batches(
+                request.components,
+                maximum_objects_per_batch=config.maximum_objects_per_batch,
+                maximum_batch_read_pixels=config.maximum_batch_read_pixels,
+            ):
+                patches = _assigned_patches(
+                    assign_batch,
+                    label_source=label_source,
+                    detection_source=detection_source,
+                    scale_support_source=scale_support_source,
+                    measurement_support_source=measurement_support_source,
                 )
-                target = (
-                    slice(
-                        overlap.y_start - core.y_start,
-                        overlap.y_stop - core.y_start,
-                    ),
-                    slice(
-                        overlap.x_start - core.x_start,
-                        overlap.x_stop - core.x_start,
-                    ),
+                for component, patch in zip(
+                    assign_batch.components, patches, strict=True
+                ):
+                    if bool(np.any(patch > 0)):
+                        assigned.add(component.first_pixel_yx)
+                    _write_patch(values, core, component.bounds, patch)
+                widest_read = max(
+                    widest_read, read_pixels(assign_batch.read_bounds)
                 )
-                owned = patch[
-                    overlap.y_start - bounds.y_start : (
-                        overlap.y_stop - bounds.y_start
-                    ),
-                    overlap.x_start - bounds.x_start : (
-                        overlap.x_stop - bounds.x_start
-                    ),
-                ]
-                values[target] = np.where(owned > 0, owned, values[target])
             for assignment in request.assignments:
                 rows, columns = np.divmod(assignment.indices, image_width)
                 values[rows - core.y_start, columns - core.x_start] = (
@@ -914,7 +945,11 @@ def _publish_source_support(
                     values=values,
                 )
             )
-        return _WriteBatchResult(product_chunks=tuple(chunks))
+        return _SupportWriteResult(
+            product_chunks=tuple(chunks),
+            assigned_components=tuple(sorted(assigned)),
+            maximum_component_read_pixels=widest_read,
+        )
 
 
 def run_source_support_stage(  # noqa: PLR0913
@@ -930,16 +965,18 @@ def run_source_support_stage(  # noqa: PLR0913
 ) -> SourceSupportStageResult:
     """Assign the persistent support each catalogue source owns.
 
-    Three rounds: the cores label the support they carry and the pieces that
-    meet across a core boundary are reconciled, one task per connected
-    component assigns its unseeded pixels to their nearest source seed inside
-    that component's own window, and the cores write the owner patches that
-    reach them over the seeds they already hold.
+    Two rounds: the cores label the support they carry and the pieces that
+    meet across a core boundary are reconciled, then each core assigns the
+    connected components it holds, every unseeded pixel to its nearest
+    source seed inside that component's own window, and writes its share
+    over the seeds it already holds. A component spanning several cores is
+    assigned by each of them from the same window, so they agree, and the
+    driver holds each component's bounds rather than its assignment.
 
     A component whose window exceeds ``maximum_batch_read_pixels`` is never
-    read whole. The cores holding it return its seeds and unseeded pixels,
-    and each of those pixels is assigned from the component's seeds alone,
-    which is the assignment its window would make.
+    read whole. The cores holding it return its seeds and unseeded pixels in
+    a round between those two, and each of those pixels is assigned from the
+    component's seeds alone, which is the assignment its window would make.
     """
     if sink.manifest != manifest:
         raise ValueError("source support sink must use the stage manifest")
@@ -961,6 +998,13 @@ def run_source_support_stage(  # noqa: PLR0913
             raise ValueError(
                 "published generations must carry every support plane read"
             )
+    scan_batches = tuple(
+        _SupportScanBatch(partitions=group)
+        for group in _core_batches(
+            manifest.tiles,
+            maximum_tiles_per_batch=config.maximum_tiles_per_batch,
+        )
+    )
     scan_results = tuple(
         executor.map_batches(
             partial(
@@ -971,13 +1015,7 @@ def run_source_support_stage(  # noqa: PLR0913
                 measurement_support_source=measurement_support_source,
                 image_shape_yx=manifest.image_shape_yx,
             ),
-            tuple(
-                _SupportScanBatch(partitions=group)
-                for group in _core_batches(
-                    manifest.tiles,
-                    maximum_tiles_per_batch=config.maximum_tiles_per_batch,
-                )
-            ),
+            scan_batches,
         )
     )
     if not scan_results:
@@ -990,34 +1028,26 @@ def run_source_support_stage(  # noqa: PLR0913
     )
     budget = config.maximum_batch_read_pixels
     image_width = manifest.image_shape_yx[1]
-    assign_batches = _assign_batches(
-        tuple(
-            _SupportComponent(
-                bounds=island.bounds, first_pixel_yx=island.first_pixel_yx
-            )
-            for island in reconciled.islands
-            if read_pixels(island.bounds) <= budget
-        ),
-        maximum_objects_per_batch=config.maximum_objects_per_batch,
-        maximum_batch_read_pixels=budget,
-    )
-    assign_results = map_round(
-        executor,
-        partial(
-            _assign_batch,
-            label_source=label_source,
-            detection_source=detection_source,
-            scale_support_source=scale_support_source,
-            measurement_support_source=measurement_support_source,
-        ),
-        assign_batches,
-        round_name="support assignment",
-    )
+    narrow = {
+        island.global_label: _SupportComponent(
+            bounds=island.bounds, first_pixel_yx=island.first_pixel_yx
+        )
+        for island in reconciled.islands
+        if read_pixels(island.bounds) <= budget
+    }
+    held_narrow = {
+        core.partition.tile_id: tuple(
+            narrow[label] for label in sorted(set(core.mapping.global_labels))
+        )
+        for core in cores_holding(
+            frozenset(narrow), manifest, reconciled.tile_mappings
+        )
+    }
     wide_cores = cores_holding(
         frozenset(
             island.global_label
             for island in reconciled.islands
-            if read_pixels(island.bounds) > budget
+            if island.global_label not in narrow
         ),
         manifest,
         reconciled.tile_mappings,
@@ -1044,46 +1074,41 @@ def run_source_support_stage(  # noqa: PLR0913
     assignments = _assign_wide_components(
         wide_batches, wide_results, image_width=image_width
     )
-    patches = tuple(
-        patch
-        for result in assign_results
-        for patch in result.patches
-        if bool(np.any(patch[1] > 0))
-    )
     sink.initialize_product(
         product_name="source-measurement-labels",
         dtype=np.dtype("<i4"),
+    )
+    write_batches = tuple(
+        _SupportWriteBatch(requests=group)
+        for group in _core_batches(
+            tuple(
+                _SupportWriteRequest(
+                    partition=partition,
+                    components=held_narrow.get(partition.tile_id, ()),
+                    assignments=_assignment_shard(
+                        assignments,
+                        partition.core_bounds,
+                        image_width=image_width,
+                    ),
+                )
+                for partition in manifest.tiles
+            ),
+            maximum_tiles_per_batch=config.maximum_tiles_per_batch,
+        )
     )
     write_results = tuple(
         executor.map_batches(
             partial(
                 _publish_source_support,
                 label_source=label_source,
+                detection_source=detection_source,
+                scale_support_source=scale_support_source,
+                measurement_support_source=measurement_support_source,
                 sink=sink,
+                config=config,
                 image_width=image_width,
             ),
-            tuple(
-                _SupportWriteBatch(requests=group)
-                for group in _core_batches(
-                    tuple(
-                        _SupportWriteRequest(
-                            partition=partition,
-                            patches=tuple(
-                                (bounds, patch)
-                                for bounds, patch in patches
-                                if _intersects(bounds, partition.core_bounds)
-                            ),
-                            assignments=_assignment_shard(
-                                assignments,
-                                partition.core_bounds,
-                                image_width=image_width,
-                            ),
-                        )
-                        for partition in manifest.tiles
-                    ),
-                    maximum_tiles_per_batch=config.maximum_tiles_per_batch,
-                )
-            ),
+            write_batches,
         )
     )
     if not write_results:
@@ -1098,33 +1123,30 @@ def run_source_support_stage(  # noqa: PLR0913
             ),
         ),
         support_component_count=len(reconciled.islands),
-        assigned_component_count=len(patches) + len(assignments),
+        assigned_component_count=len(
+            {
+                first_pixel
+                for result in write_results
+                for first_pixel in result.assigned_components
+            }
+        )
+        + len(assignments),
         partition_count=len(manifest.tiles),
         executor_task_count=(
-            2 * len(manifest.tiles) + len(assign_batches) + len(wide_batches)
+            len(scan_batches) + len(wide_batches) + len(write_batches)
         ),
         maximum_graph_width=max(
-            len(manifest.tiles), len(assign_batches), len(wide_batches)
+            len(scan_batches), len(wide_batches), len(write_batches)
         ),
         maximum_component_read_pixels=max(
             (
                 *(
                     result.maximum_component_read_pixels
-                    for result in assign_results
+                    for result in write_results
                 ),
                 *(result.maximum_core_read_pixels for result in wide_results),
             ),
             default=0,
         ),
         reconciliation_round_count=reconciled.reduction_round_count,
-    )
-
-
-def _intersects(first: ImageBounds, second: ImageBounds) -> bool:
-    """Return whether two half-open bounds share a pixel."""
-    return (
-        first.y_start < second.y_stop
-        and second.y_start < first.y_stop
-        and first.x_start < second.x_stop
-        and second.x_start < first.x_stop
     )

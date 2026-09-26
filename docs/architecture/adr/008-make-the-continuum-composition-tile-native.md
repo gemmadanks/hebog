@@ -310,7 +310,7 @@ that only one round reads would cost a generation for nothing.
 | Scale feature labels | core, halo 0 | the reconciled per-scale mappings | `scale-{order}-labels` |
 | Hierarchy overlaps | core, halo 0, then one feature's window plus its B3 footprint, or each core that work reaches, under twice the widest B3 radius, when the window exceeds the read budget | `component-direct-labels`, `valid-pixels`, `reconstruction-mask`, the scale label planes | component, feature, support and envelope overlap records |
 | Source labels | core, halo 0 | `component-measurement-labels`, the sharded owner-to-source map | `source-labels` |
-| Source support | core, halo 0, then one connected support component's window, or its cores when that window exceeds the read budget | `source-labels`, `persistent-scale-support`, `measurement-support` | support island summaries, then owner patches or a wide component's seeds and candidates, then `source-measurement-labels` |
+| Source support | core, halo 0, then the window of each connected support component it holds, or a component's cores when that window exceeds the read budget | `source-labels`, `persistent-scale-support`, `measurement-support` | support island summaries, then a wide component's seeds and candidates, then `source-measurement-labels` |
 | Source apertures | core, halo 1.5 beams | `source-measurement-labels` | `source-aperture-labels` |
 | Source rows | source window + 1.5-beam aperture, or its cores when that window exceeds the read budget | image, background, RMS, validity, source labels, position signal | catalogue shards, each segment's local noise |
 | Detection island rows | core, halo 0, then one island's window, or the island's cores when that window exceeds the read budget | `retained-mask`, `component-measurement-labels`; then image, background, RMS, `retained-mask` | island boundary summaries and owner-to-island pairs; then catalogue island rows, or a wide island's pixels from each core |
@@ -334,6 +334,10 @@ as they relabel a deferred parent. A parent that splits is deblended again by
 each core that holds it, inside the same windows, which decides the same
 memberships bit for bit; that costs a second deblend of the parents that
 split, and of a split parent once more for each further core it crosses.
+Source support needs no count first: each core assigns the narrow components
+it holds, each inside its own window, and writes its own share, so a
+component crossing cores is assigned once by each of them and nothing
+returns but the component's identity.
 
 ### Objects wider than the read budget
 
@@ -571,9 +575,10 @@ milestone: the executor work comes before the convergence it enables.
   payloads and in driver-held state, and reject whole-table label broadcasts.
   The composition records carry no array field, which a static test asserts,
   and a run that walks the driver's own locals at the terminal builder finds
-  no image-shaped array reachable from them. The component-topology test
-  records every payload and result its rounds exchange and requires them to
-  carry no array.
+  no image-shaped array reachable from them. The component-topology and
+  source-support tests record every payload and result their rounds exchange
+  and require them to carry no array but the support scan's core boundary
+  labels.
 - A stage-halo admission test proves every declared halo is below one quarter
   of the admitted core, and that a plan exceeding the admitted memory is
   rejected before submission rather than during it.

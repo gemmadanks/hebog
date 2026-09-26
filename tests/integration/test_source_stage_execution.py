@@ -7,18 +7,21 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
+from math import ceil
 from pathlib import Path
 from typing import TypeVar, cast
 
 import numpy as np
 import numpy.typing as npt
 import pytest
+from conftest import RecordingExecutor, carried_array_bytes
 from distributed import Client
 from scipy.ndimage import label as ndimage_label
 
 from hebog.algorithms.extended_measurement import (
     assign_persistent_source_support,
 )
+from hebog.algorithms.labelling import TileBoundaryLabels
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.algorithms.reconciliation import TileLabelMapping
 from hebog.data_models.partitioning import ImageBounds, PartitionManifest
@@ -303,6 +306,48 @@ def test_published_source_planes_match_the_whole_plane_assignment(
     )
 
 
+def test_no_support_round_carries_assigned_pixels(tmp_path: Path) -> None:
+    """The driver holds each component's bounds, never its assignment.
+
+    ADR-008 rule 4: nothing that grows with object area reaches the driver.
+    Summed over components, the assignments are as large as all the
+    persistent support in the image, so each core that holds a component
+    assigns it from its window and writes its own share. Only the support
+    scan returns arrays, and those are its core's boundary labels, which
+    reconciliation needs and one core bounds.
+    """
+    executor = RecordingExecutor()
+    expected_labels, expected_support = _whole_plane()
+
+    label_sink, support_sink, result = _run_support(
+        tmp_path / "run", executor=executor
+    )
+
+    support_rounds = [
+        (round_name, batches, results)
+        for round_name, batches, results in executor.rounds
+        if round_name not in {"_scan_owners", "_publish_source_labels"}
+    ]
+    for round_name, batches, results in support_rounds:
+        assert carried_array_bytes(batches) == (0, 0), round_name
+        carried, exempted = carried_array_bytes(
+            results, exempt=(TileBoundaryLabels,)
+        )
+        assert carried == 0, round_name
+        assert (exempted > 0) == (round_name == "_scan_support"), round_name
+    assert [round_name for round_name, _, _ in support_rounds] == [
+        "_scan_support",
+        "_publish_source_support",
+    ]
+    assert result.assigned_component_count == 3
+    np.testing.assert_array_equal(
+        _window(label_sink, "source-labels"), expected_labels
+    )
+    np.testing.assert_array_equal(
+        _window(support_sink, "source-measurement-labels"), expected_support
+    )
+
+
 @pytest.mark.parametrize("core", [16, 32, 80])
 def test_source_planes_are_partition_and_batch_invariant(
     tmp_path: Path, core: int
@@ -398,7 +443,8 @@ def test_source_stages_publish_canonical_products(tmp_path: Path) -> None:
     assert len(support.generation.chunks) == len(manifest.tiles)
     assert support.support_component_count == 3
     assert support.assigned_component_count > 0
-    assert support.executor_task_count > 2 * support.partition_count
+    assert support.executor_task_count == 2 * ceil(support.partition_count / 2)
+    assert support.maximum_graph_width == ceil(support.partition_count / 2)
     assert support.maximum_component_read_pixels > 0
     assert support.reconciliation_round_count >= 1
 
@@ -480,8 +526,7 @@ def test_a_component_without_its_canonical_pixel_fails_closed() -> None:
         (1, "no owner scan results"),
         (2, "no source label results"),
         (3, "no support scan results"),
-        (4, "no support assignment results"),
-        (5, "no source support results"),
+        (4, "no source support results"),
     ],
 )
 def test_every_source_round_fails_closed_on_a_silent_executor(

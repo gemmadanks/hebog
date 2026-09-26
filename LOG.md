@@ -25743,3 +25743,49 @@ the per-worker placement finding.
   reads a deblend batch, so the stage's traced peak at 2,048² rises from 141
   to 175 MB; that is two `int32` cores and one budgeted read, bounded by the
   tile rather than the image.
+
+## 2026-09-26 — M2: each core assigns the support components it holds
+
+- **Defect.** The source-support round assigned each narrow connected
+  component in its window and returned the assignment as a dense `int32`
+  patch over that window, and the driver held every non-empty patch until
+  the write round. On the SDC1 crowded cut-outs the driver held 1.6 MB there
+  at 1,024² and 6.8 MB at 2,048², with 3.18 MB of patches returned at 2,048²
+  and 3.16 MB sent on to the cores: the same area scaling as the topology
+  round's memberships.
+- **Fix.** Nothing global has to be decided before this assignment, so its
+  round is gone. Each core's write task assigns the narrow components the
+  reconciliation maps into it, each inside its own window, and writes its
+  share over its seeds; a component crossing cores is assigned by each of
+  them from the same window, so they agree. The driver sends each core those
+  components' bounds and first pixels, and receives the first pixels of the
+  ones that assigned any pixel, so `assigned_component_count` still counts
+  each once. Wide components keep their core path. The stage's
+  `executor_task_count` and `maximum_graph_width` counted cores for the scan
+  and write rounds rather than the batched tasks those rounds submit; they
+  now count tasks.
+- **Evidence.** A new test records every payload and result the support
+  rounds exchange and requires them to carry no array bytes except the scan's
+  core boundary labels, and requires that exemption to match; before the fix
+  the assignment round returned 3,636 bytes on the fixture. The whole-plane,
+  partition (16-, 32- and 80-pixel cores, one component per read), wide-path
+  and Dask comparisons pass unchanged. The 16 quick-check cases on 512-pixel
+  cores give the baseline `e397293`'s public products field by field at the
+  default and the forced 4,096-pixel budget, with both changes applied. At
+  2,048² no support round carries an array beyond the scan's 32 KB of
+  boundary labels, the driver holds 2.7 MB at the write round, and the
+  stage's traced peak is unchanged at 110.5 MB. `stages/sources.py` stays at
+  100% branch coverage.
+- **What it costs.** Nothing measurable, in the same timing session as the
+  topology entry: the support stage is 9% and 12% faster on the crowded
+  1,024² and 2,048² cut-outs (0.44 → 0.40 s, 1.16 → 1.02 s), because the
+  patches no longer travel and a round of tasks is gone, and unchanged
+  within noise on `dense-field` and `lotss-dr3-1312-dense`. A component
+  crossing cores is assigned once by each of them.
+- **What is left.** The fit round still returns each fit parent's
+  measurement-support patch, a `bool` window, and the driver holds all of
+  them until the support write: 1.08 MB over 371 fit parents at
+  1,024² and 4.22 MB over 1,421 at 2,048². The same core-side
+  treatment would need the fit again in the write round, which is the
+  expensive step, so it needs its own design. A wide object's core paths
+  still bring its own pixels to the driver, by design.
