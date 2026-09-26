@@ -521,12 +521,15 @@ def _publication_products(
         for mask in (reconstruction_mask, *evidence.significant_scale_masks)
     ):
         raise ValueError("scale support must have this core's shape")
+    if any(
+        bool(np.any(mask & unusable))
+        for mask in evidence.significant_scale_masks
+    ):
+        raise ValueError("scale support must be scientifically valid")
     scale_masks = tuple(
         np.asarray(mask & reconstruction_mask, dtype=np.bool_)
         for mask in evidence.significant_scale_masks
     )
-    if any(bool(np.any(mask & unusable)) for mask in scale_masks):
-        raise ValueError("scale support must be scientifically valid")
     # An insufficient filter halo leaves the denoised value unavailable,
     # which is not a reason to discard a valid edge source: the signed
     # residual remains the documented fallback there.
