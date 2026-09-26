@@ -25428,3 +25428,30 @@ the per-worker placement finding.
   coverage is 96.71% branch-aware over 2,625 tests; the one changed line it
   missed, the deferred round's bounds check, now has its own case, so
   `stages/objects.py` is at 100%.
+
+## 2026-09-26 — M2: a deferred deblend parent is never read
+
+- **Defect.** A parent beyond either hard compact-work bound is published
+  unchanged as one deferred component, which needs none of its pixels, but
+  the topology round still read its measurement window to decide that, and
+  returned every pixel of it to the driver as sparse indices. Such a parent
+  is by definition the wide one: a filament is deferred on its bounds.
+- **Fix.** The extent scan now also counts each parent's direct pixels
+  (`label_extents` reports each label's size), so the driver decides
+  deferral with the deblender's own rule, `parent_is_deferred`, before any
+  window is read. A deferred parent is numbered in canonical order like any
+  other, and the write round relabels it in each core that holds it, from
+  that core's own support planes; the driver keeps only its component
+  number. An admitted parent is still deblended in its window, alone when
+  that window exceeds the budget. Its direct window is within the reviewed
+  250,000 pixels and its measurement support lies within the recovery radius
+  of it, so that read is bounded by admission, not by the image.
+- **Evidence.** With every fixture parent deferred, the published planes
+  equal the whole-plane deblender's at 16- and 24-pixel cores and the round
+  reads no parent window at all. With the pixel bound one under the blended
+  parent, which spans several cores and is deferred only if their counts are
+  summed, the planes equal the whole-plane deblender's under Serial and Dask
+  and the widest read is the widest admitted parent. Portable coverage is
+  96.72% branch-aware over 2,629 tests, with `stages/objects.py`,
+  `algorithms/component_topology.py` and `algorithms/label_groups.py` at
+  100%.

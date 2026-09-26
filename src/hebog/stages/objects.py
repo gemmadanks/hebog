@@ -15,7 +15,7 @@ parent order, which is the order a whole-plane pass would use.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from functools import partial
@@ -41,7 +41,10 @@ from hebog.algorithms.component_measurement import (
     support_feature_margin_pixels,
     support_feature_window,
 )
-from hebog.algorithms.component_topology import deblend_parent_components
+from hebog.algorithms.component_topology import (
+    deblend_parent_components,
+    parent_is_deferred,
+)
 from hebog.algorithms.detection import DetectionThresholdMasks
 from hebog.algorithms.label_groups import label_extents
 from hebog.algorithms.labelling import (
@@ -167,6 +170,7 @@ class _ParentExtent:
     direct_bounds: ImageBounds
     measurement_bounds: ImageBounds
     first_pixel_yx: tuple[int, int]
+    direct_pixel_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -178,6 +182,7 @@ class _CoreExtent:
     measurement_bounds: ImageBounds
     first_pixel_yx: tuple[int, int] | None
     tile_id: str
+    direct_pixel_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -231,6 +236,7 @@ class _TileRequest:
     direct_labels: npt.NDArray[np.int32]
     measurement_indices: npt.NDArray[np.int64]
     measurement_labels: npt.NDArray[np.int32]
+    deferred_components: tuple[tuple[int, int], ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -284,8 +290,8 @@ def _union_bounds(
 def _label_extents(
     labels: npt.NDArray[np.int32],
     bounds: ImageBounds,
-) -> dict[int, tuple[ImageBounds, tuple[int, int]]]:
-    """Return each label's bounds and first pixel inside one owned core."""
+) -> dict[int, tuple[ImageBounds, tuple[int, int], int]]:
+    """Return each label's bounds, first pixel and size in one owned core."""
     extents = label_extents(labels)
     return {
         int(value): (
@@ -296,8 +302,18 @@ def _label_extents(
                 bounds.x_start + int(x_stop),
             ),
             (bounds.y_start + int(first_y), bounds.x_start + int(first_x)),
+            int(pixel_count),
         )
-        for value, y_start, y_stop, x_start, x_stop, first_y, first_x in zip(
+        for (
+            value,
+            y_start,
+            y_stop,
+            x_start,
+            x_stop,
+            first_y,
+            first_x,
+            pixel_count,
+        ) in zip(
             extents.values,
             extents.y_start,
             extents.y_stop,
@@ -305,6 +321,7 @@ def _label_extents(
             extents.x_stop,
             extents.first_y,
             extents.first_x,
+            extents.pixel_count,
             strict=True,
         )
     }
@@ -343,6 +360,7 @@ def _scan_extents(
             for parent_label, (
                 measurement_bounds,
                 _,
+                _,
             ) in measurement.items():
                 direct_record = direct.get(parent_label)
                 extents.append(
@@ -356,6 +374,9 @@ def _scan_extents(
                             None if direct_record is None else direct_record[1]
                         ),
                         tile_id=request.partition.tile_id,
+                        direct_pixel_count=(
+                            0 if direct_record is None else direct_record[2]
+                        ),
                     )
                 )
         return _ExtentBatchResult(extents=tuple(extents))
@@ -368,9 +389,13 @@ def _reduce_extents(
     direct: dict[int, ImageBounds | None] = {}
     measurement: dict[int, ImageBounds | None] = {}
     first: dict[int, tuple[int, int] | None] = {}
+    direct_pixel_counts: dict[int, int] = {}
     for result in results:
         for extent in result.extents:
             label = extent.parent_label
+            direct_pixel_counts[label] = (
+                direct_pixel_counts.get(label, 0) + extent.direct_pixel_count
+            )
             direct[label] = _union_bounds(
                 direct.get(label),
                 extent.direct_bounds,
@@ -404,6 +429,7 @@ def _reduce_extents(
                 direct_bounds=direct_bounds,
                 measurement_bounds=measurement_bounds,
                 first_pixel_yx=first_pixel,
+                direct_pixel_count=direct_pixel_counts[label],
             )
         )
     return tuple(
@@ -414,46 +440,42 @@ def _reduce_extents(
     )
 
 
+def _deferred(parent: _ParentExtent, deblend: CompactDeblendConfig) -> bool:
+    """Return whether a parent is deferred, from its reconciled extent."""
+    return parent_is_deferred(
+        parent.direct_bounds, parent.direct_pixel_count, deblend
+    )
+
+
 def _parent_batches(
     parents: tuple[_ParentExtent, ...],
     *,
     maximum_batch_read_pixels: int,
+    deblend: CompactDeblendConfig,
 ) -> tuple[_ParentBatch, ...]:
-    """Group parents so one read serves several without growing unbounded."""
-    batches: list[_ParentBatch] = []
-    grouped: list[_ParentExtent] = []
-    for parent in parents:
-        candidate = [*grouped, parent]
-        if (
-            grouped
-            and int(np.prod(_batch_bounds(candidate).shape_yx))
-            > maximum_batch_read_pixels
-        ):
-            batches.append(_parent_batch(grouped))
-            grouped = [parent]
-            continue
-        grouped = candidate
-    if grouped:
-        batches.append(_parent_batch(grouped))
-    return tuple(batches)
+    """Group parents so one read serves several, within the budget.
 
+    Deblending needs a parent's whole support at once, and no core can stand
+    in for it. The reviewed compact bounds limit that support: a parent
+    beyond either is deferred and never reaches a batch, so an admitted
+    parent's direct window is within ``maximum_compact_bounds_pixels``, and
+    its measurement support reaches no further beyond it than the reviewed
+    recovery radius the support pass attaches it within. So a parent wider
+    than the read budget is read alone, and its read is bounded by that
+    admission, not by the image.
 
-def _batch_bounds(parents: list[_ParentExtent]) -> ImageBounds:
-    """Return the one read that serves every parent in a batch."""
-    bounds = parents[0].measurement_bounds
-    for parent in parents[1:]:
-        merged = _union_bounds(bounds, parent.measurement_bounds)
-        if merged is None:  # pragma: no cover - both bounds always exist
-            raise ValueError("parent batch bounds must exist")
-        bounds = merged
-    return bounds
-
-
-def _parent_batch(parents: list[_ParentExtent]) -> _ParentBatch:
-    """Close one batch over the union of its parents' reads."""
-    return _ParentBatch(
-        parents=tuple(parents),
-        read_bounds=_batch_bounds(parents),
+    Raises:
+        ValueError: If a deferred parent reaches a batch, which would leave
+            its read bounded by nothing.
+    """
+    return tuple(
+        _ParentBatch(parents=batch.objects, read_bounds=batch.read_bounds)
+        for batch in batch_object_windows(
+            parents,
+            window=lambda parent: parent.measurement_bounds,
+            maximum_batch_read_pixels=maximum_batch_read_pixels,
+            bounded_by_admission=lambda parent: not _deferred(parent, deblend),
+        )
     )
 
 
@@ -578,15 +600,29 @@ class _ComponentPixels:
 
 
 def _numbered_components(
-    parents: tuple[_ParentComponents, ...],
-) -> tuple[_ComponentPixels, _ComponentPixels, int]:
-    """Offset each parent's local components into canonical global labels."""
+    parents: tuple[_ParentExtent, ...],
+    deblended: Mapping[int, _ParentComponents],
+) -> tuple[_ComponentPixels, _ComponentPixels, dict[int, int], int]:
+    """Offset each parent's local components into canonical global labels.
+
+    ``parents`` is in canonical order, so numbering does not move with tile
+    geometry or completion order. A parent absent from ``deblended`` is
+    deferred: it is one component and carries no pixels, because the cores
+    that hold it relabel it themselves, so only its component number is
+    returned.
+    """
     direct_indices: list[npt.NDArray[np.int64]] = []
     direct_labels: list[npt.NDArray[np.int32]] = []
     measurement_indices: list[npt.NDArray[np.int64]] = []
     measurement_labels: list[npt.NDArray[np.int32]] = []
+    deferred_components: dict[int, int] = {}
     next_label = 1
-    for parent in parents:
+    for extent in parents:
+        parent = deblended.get(extent.parent_label)
+        if parent is None:
+            deferred_components[extent.parent_label] = next_label
+            next_label += 1
+            continue
         offset = np.int32(next_label - 1)
         direct_indices.append(parent.direct_indices)
         direct_labels.append(parent.direct_components + offset)
@@ -602,6 +638,7 @@ def _numbered_components(
             indices=_concatenated_indices(measurement_indices),
             labels=_concatenated_labels(measurement_labels),
         ),
+        deferred_components,
         next_label - 1,
     )
 
@@ -648,8 +685,9 @@ def _publish_request(
     measurement_pixels: _ComponentPixels,
     *,
     image_width: int,
+    deferred_components: tuple[tuple[int, int], ...],
 ) -> _TileRequest:
-    """Shard every component pixel to the core that owns it."""
+    """Shard every component pixel, and deferred parent, to its cores."""
     direct_indices, direct_labels = _core_shard(
         direct_pixels,
         partition,
@@ -666,12 +704,30 @@ def _publish_request(
         direct_labels=direct_labels,
         measurement_indices=measurement_indices,
         measurement_labels=measurement_labels,
+        deferred_components=deferred_components,
     )
+
+
+def _relabel_deferred_parents(
+    planes: tuple[npt.NDArray[np.int32], npt.NDArray[np.int32]],
+    parent_planes: tuple[npt.NDArray[np.int32], npt.NDArray[np.int32]],
+    deferred_components: tuple[tuple[int, int], ...],
+) -> None:
+    """Write each deferred parent's one component over its pixels, in place.
+
+    A deferred parent is published unchanged, so its component is exactly
+    the parent's own support in each plane, and the core reads that support
+    from its own window instead of receiving the pixels.
+    """
+    for plane, parent_plane in zip(planes, parent_planes, strict=True):
+        for parent_label, component_label in deferred_components:
+            plane[parent_plane == parent_label] = component_label
 
 
 def _publish_batch(
     batch: _TileBatch,
     *,
+    support_source: _CompletedProductSource,
     detection_source: _CompletedProductSource,
     sink: ZarrProductSink,
     image_width: int,
@@ -687,7 +743,11 @@ def _publish_batch(
         ValueError: If a core's direct ownership is not a valid subset of its
             measurement ownership.
     """
-    with detection_source.access_session(), sink.access_session():
+    with (
+        support_source.access_session(),
+        detection_source.access_session(),
+        sink.access_session(),
+    ):
         chunks: list[ProductChunk] = []
         observed: set[tuple[int, int]] = set()
         for request in batch.requests:
@@ -714,6 +774,25 @@ def _publish_batch(
                     ] = labels
                 products.append((product_name, values))
             direct, measurement = (values for _, values in products)
+            if request.deferred_components:
+                _relabel_deferred_parents(
+                    (direct, measurement),
+                    (
+                        np.asarray(
+                            support_source.read_completed_window(
+                                "component-labels", core
+                            ),
+                            dtype=np.int32,
+                        ),
+                        np.asarray(
+                            support_source.read_completed_window(
+                                "measurement-labels", core
+                            ),
+                            dtype=np.int32,
+                        ),
+                    ),
+                    request.deferred_components,
+                )
             valid = np.asarray(
                 detection_source.read_completed_window("valid-pixels", core),
                 dtype=np.bool_,
@@ -843,6 +922,12 @@ def run_component_topology_stage(  # noqa: PLR0913
     of parents deblends them inside those extents, and the cores write the
     component labels they own. Parent order is canonical, so the component
     numbering does not move with tile geometry or completion order.
+
+    A parent beyond either hard compact-work bound is deferred, exactly as
+    the whole-plane deblender defers it, and the extent alone decides that.
+    Its one component is its own support, so its window is never read: the
+    cores that hold it relabel it in the write round, and the driver holds
+    none of its pixels.
     """
     _validate_stage_inputs(support_source, detection_source, manifest, sink)
     image_width = manifest.image_shape_yx[1]
@@ -869,31 +954,35 @@ def run_component_topology_stage(  # noqa: PLR0913
         raise ValueError("executor returned no parent extent results")
     parents = _reduce_extents(scan_results)
     parent_batches = _parent_batches(
-        parents,
+        tuple(
+            parent
+            for parent in parents
+            if not _deferred(parent, config.deblend)
+        ),
         maximum_batch_read_pixels=config.maximum_batch_read_pixels,
+        deblend=config.deblend,
     )
-    deblend_results: tuple[_DeblendBatchResult, ...] = ()
-    if parent_batches:
-        deblend_results = tuple(
-            executor.map_batches(
-                partial(
-                    _deblend_batch,
-                    support_source=support_source,
-                    detection_source=detection_source,
-                    config=config,
-                    image_shape_yx=manifest.image_shape_yx,
-                ),
-                parent_batches,
-            )
-        )
-        if not deblend_results:
-            raise ValueError("executor returned no component deblend results")
-    deblended = tuple(
-        parent for result in deblend_results for parent in result.parents
+    deblend_results = _map_round(
+        executor,
+        partial(
+            _deblend_batch,
+            support_source=support_source,
+            detection_source=detection_source,
+            config=config,
+            image_shape_yx=manifest.image_shape_yx,
+        ),
+        parent_batches,
+        round_name="component deblend",
     )
-    direct_pixels, measurement_pixels, component_count = _numbered_components(
-        deblended
+    deblended = {
+        parent.parent_label: parent
+        for result in deblend_results
+        for parent in result.parents
+    }
+    direct_pixels, measurement_pixels, deferred_components, component_count = (
+        _numbered_components(parents, deblended)
     )
+    holders = _parent_holders(scan_results)
     for product_name in _TOPOLOGY_PRODUCT_NAMES:
         sink.initialize_product(
             product_name=product_name,
@@ -906,6 +995,13 @@ def run_component_topology_stage(  # noqa: PLR0913
                 direct_pixels,
                 measurement_pixels,
                 image_width=image_width,
+                deferred_components=tuple(
+                    (parent_label, component_label)
+                    for parent_label, component_label in sorted(
+                        deferred_components.items()
+                    )
+                    if partition.tile_id in holders[parent_label]
+                ),
             )
             for partition in manifest.tiles
         ),
@@ -915,6 +1011,7 @@ def run_component_topology_stage(  # noqa: PLR0913
         executor.map_batches(
             partial(
                 _publish_batch,
+                support_source=support_source,
                 detection_source=detection_source,
                 sink=sink,
                 image_width=image_width,
@@ -937,11 +1034,10 @@ def run_component_topology_stage(  # noqa: PLR0913
         component_count=component_count,
         parent_count=len(parents),
         deblended_parent_count=sum(
-            int(parent.deblended) for parent in deblended
+            int(parent.deblended) for parent in deblended.values()
         ),
-        deferred_parent_count=sum(
-            int(parent.deferred) for parent in deblended
-        ),
+        deferred_parent_count=len(deferred_components)
+        + sum(int(parent.deferred) for parent in deblended.values()),
         partition_count=len(manifest.tiles),
         executor_task_count=(
             len(scan_batches) + len(parent_batches) + len(publish_batches)
@@ -1558,7 +1654,11 @@ def _scan_fit_parent_extents(
         extents: list[_CoreExtent] = []
         for request in batch.requests:
             bounds = request.partition.core_bounds
-            for parent_index, (parent_bounds, first) in _label_extents(
+            for parent_index, (
+                parent_bounds,
+                first,
+                pixel_count,
+            ) in _label_extents(
                 np.asarray(
                     fit_parent_source.read_completed_window(
                         "fit-parent-labels",
@@ -1575,6 +1675,7 @@ def _scan_fit_parent_extents(
                         measurement_bounds=parent_bounds,
                         first_pixel_yx=first,
                         tile_id=request.partition.tile_id,
+                        direct_pixel_count=pixel_count,
                     )
                 )
         return _ExtentBatchResult(extents=tuple(extents))
@@ -1757,7 +1858,7 @@ def _parent_component_records(
 def _parent_holders(
     results: tuple[_ExtentBatchResult, ...],
 ) -> dict[int, frozenset[str]]:
-    """Name the cores in which each fit parent holds a pixel."""
+    """Name the cores in which each parent holds a pixel."""
     holders: dict[int, set[str]] = {}
     for result in results:
         for extent in result.extents:
@@ -2478,7 +2579,7 @@ def _scan_support_features(
                     ),
                     component_bounds=tuple(
                         (component_label, bounds)
-                        for component_label, (bounds, _) in _label_extents(
+                        for component_label, (bounds, _, _) in _label_extents(
                             labels, core
                         ).items()
                     ),

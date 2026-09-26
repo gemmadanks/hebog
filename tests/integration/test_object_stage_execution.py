@@ -76,7 +76,9 @@ from hebog.stages.objects import (
     _FitBatch,
     _FitParentExtent,
     _global_context,
+    _parent_batches,
     _ParentBatch,
+    _ParentExtent,
     _publish_batch,
     _PublishBatchResult,
     _reduce_component_records,
@@ -334,7 +336,9 @@ def _published(
     }
 
 
-def _whole_plane_topology() -> dict[str, npt.NDArray[np.int32]]:
+def _whole_plane_topology(
+    deblend: CompactDeblendConfig | None = None,
+) -> dict[str, npt.NDArray[np.int32]]:
     """Deblend every parent over complete planes, as the oracle."""
     signal, direct, measurement, valid = _planes()
     topology = deblend_component_topology(
@@ -342,7 +346,7 @@ def _whole_plane_topology() -> dict[str, npt.NDArray[np.int32]]:
         direct,
         measurement,
         valid,
-        _deblend_config(),
+        _deblend_config() if deblend is None else deblend,
     )
     return {
         "component-direct-labels": np.asarray(
@@ -382,7 +386,7 @@ def test_a_direct_owner_without_measurement_support_fails_closed(
     """
     root = tmp_path / "run"
     root.mkdir(parents=True, exist_ok=True)
-    _, detection_source = _sources(root)
+    support_source, detection_source = _sources(root)
     manifest = _manifest(16)
     partition = manifest.tiles[0]
     sink = ZarrProductSink(
@@ -409,6 +413,7 @@ def test_a_direct_owner_without_measurement_support_fails_closed(
                     ),
                 ),
             ),
+            support_source=support_source,
             detection_source=detection_source,
             sink=sink,
             image_width=_SHAPE_YX[1],
@@ -1936,4 +1941,111 @@ def test_a_fit_parent_beyond_the_reviewed_bound_is_never_batched() -> None:
     with pytest.raises(ValueError, match="wider than the read budget"):
         _fit_batches(
             (parent,), maximum_batch_read_pixels=8, maximum_bounds_pixels=15
+        )
+
+
+def _assert_published_topology(
+    sink: ZarrProductSink, deblend: CompactDeblendConfig
+) -> None:
+    """Compare both published planes with the whole-plane deblender."""
+    published = _published(sink)
+    for product_name, values in _whole_plane_topology(deblend).items():
+        np.testing.assert_array_equal(published[product_name], values)
+
+
+@pytest.mark.parametrize("core", [16, 24])
+def test_a_deferred_parent_is_published_without_reading_its_window(
+    tmp_path: Path, core: int
+) -> None:
+    """A deferred parent's one component is its own support, read by nobody.
+
+    Deferral follows from a parent's bounds and size, which the extents
+    already carry, and publishing it needs none of its pixels. With every
+    fixture parent over the bounds bound, the published planes equal the
+    whole-plane deblender's and no parent window is read at all.
+    """
+    deblend = replace(_deblend_config(), maximum_compact_bounds_pixels=1)
+
+    result, sink = _run(
+        tmp_path / "run",
+        core=core,
+        config=ComponentTopologyStageConfig(
+            deblend=deblend,
+            maximum_tiles_per_batch=2,
+            maximum_batch_read_pixels=8192,
+        ),
+    )
+
+    assert result.parent_count > 1
+    assert result.deferred_parent_count == result.parent_count
+    assert result.parent_batch_count == 0
+    assert result.maximum_parent_read_pixels == 0
+    _assert_published_topology(sink, deblend)
+
+
+def test_only_the_parents_the_compact_bounds_admit_are_read(
+    tmp_path: Path,
+) -> None:
+    """Deblending needs a parent's support, and admission bounds that read.
+
+    The pixel bound sits one pixel under the blended parent, which spans
+    several 16-pixel cores, so it is deferred only if every core's count is
+    summed; the other parents are deblended, and a one-pixel budget reads
+    each of them alone. The planes equal the whole-plane deblender's under
+    the same bounds, on either executor.
+    """
+    _, direct, measurement, _ = _planes()
+    sizes = np.bincount(direct.ravel())[1:]
+    deblend = replace(
+        _deblend_config(), maximum_compact_island_pixels=int(sizes.max()) - 1
+    )
+    config = ComponentTopologyStageConfig(
+        deblend=deblend,
+        maximum_tiles_per_batch=1,
+        maximum_batch_read_pixels=1,
+    )
+    widest_admitted = 0
+    for label in np.flatnonzero(sizes < sizes.max()) + 1:
+        rows, columns = np.nonzero(measurement == label)
+        widest_admitted = max(
+            widest_admitted,
+            (int(rows.max()) - int(rows.min()) + 1)
+            * (int(columns.max()) - int(columns.min()) + 1),
+        )
+
+    result, sink = _run(tmp_path / "serial", config=config)
+    with Client(
+        processes=False,
+        n_workers=2,
+        threads_per_worker=1,
+        dashboard_address=None,
+    ) as client:
+        _, dask_sink = _run(
+            tmp_path / "dask", executor=DaskExecutor(client), config=config
+        )
+
+    assert result.deferred_parent_count == 1
+    assert result.parent_batch_count == result.parent_count - 1
+    assert result.maximum_parent_read_pixels == widest_admitted
+    _assert_published_topology(sink, deblend)
+    _assert_published_topology(dask_sink, deblend)
+
+
+def test_a_deferred_parent_is_never_batched() -> None:
+    """Such a parent needs no read, so a batch holding it has no bound."""
+    parent = _ParentExtent(
+        parent_label=1,
+        direct_bounds=ImageBounds(0, 4, 0, 4),
+        measurement_bounds=ImageBounds(0, 4, 0, 4),
+        first_pixel_yx=(0, 0),
+        direct_pixel_count=16,
+    )
+
+    with pytest.raises(ValueError, match="wider than the read budget"):
+        _parent_batches(
+            (parent,),
+            maximum_batch_read_pixels=8,
+            deblend=replace(
+                _deblend_config(), maximum_compact_bounds_pixels=15
+            ),
         )

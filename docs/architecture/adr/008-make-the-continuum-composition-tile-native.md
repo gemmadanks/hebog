@@ -12,7 +12,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-09-18 |
-| **Last Updated** | 2026-09-26 (a deferred fit parent is never read whole) |
+| **Last Updated** | 2026-09-26 (a deferred deblend parent is never read) |
 | **Deciders** | Gemma Danks |
 | **Tags** | tiling, halos, ownership, reconciliation, memory, invariance |
 
@@ -288,9 +288,9 @@ that only one round reads would cost a generation for nothing.
 
 | Round | Scope | Reads | Writes or returns |
 | --- | --- | --- | --- |
-| Parent extents | core, halo 0 | `component-labels`, `measurement-labels` | each parent's bounds and first pixel in both planes |
-| Deblend | parent window | `direct-snr`, `valid-pixels`, both label planes | bounded component memberships, local to the parent |
-| Component write | core, halo 0 | the numbered memberships | `component-direct-labels`, `component-measurement-labels` |
+| Parent extents | core, halo 0 | `component-labels`, `measurement-labels` | each parent's bounds and first pixel in both planes, and its direct size |
+| Deblend | parent window, for an admitted parent only | `direct-snr`, `valid-pixels`, both label planes | bounded component memberships, local to the parent |
+| Component write | core, halo 0 | the numbered memberships; both label planes where a deferred parent lies | `component-direct-labels`, `component-measurement-labels` |
 | Fit parents | core, halo 0 | `component-measurement-labels` | context island summaries; then `fit-parent-labels` |
 | Component fits | fit-parent window + margin, or a deferred parent's cores | residual, RMS, validity, both component planes | fit records, groups, grouping evidence, a measurement-support patch, each owned component's association record |
 | Support write | core, halo 0 | the patches | `measurement-support` |
@@ -308,7 +308,11 @@ Component numbering is canonical because the driver offsets each parent's
 local labels by the components every earlier parent produced, in ascending
 first-pixel order. A parent above either hard compact-work bound is ADR-008
 T3 and is already published as one explicit deferred component, which is the
-reviewed science rather than a new rule.
+reviewed science rather than a new rule. That component is the parent's own
+support in both planes, so deferral needs no pixel: the extents carry each
+parent's direct size, the driver decides deferral from them with the
+deblender's own rule, and the cores holding a deferred parent relabel it in
+the write round.
 
 ### Objects wider than the read budget
 
@@ -333,6 +337,7 @@ here:
 | Round | Whole object at once? | An object wider than the budget |
 | --- | --- | --- |
 | Detection island rows | No: a count, sums and a median over the island's pixels | Measured from its cores |
+| Component topology | Yes: the watershed and the assignment of measurement support to its seeds need the parent's whole support | A parent beyond either hard compact-work bound is deferred as T3, exactly as the whole-plane deblender defers it, and never read. An admitted parent's direct window is within `maximum_compact_bounds_pixels` (250,000 pixels in the reviewed profile), and the support pass attaches measurement support only within the reviewed recovery radius of it, so a parent wider than the budget is read alone within that bound |
 | Component fits | Yes for the fit: a joint model needs the parent's whole window. No for its components' association records, which are moments over each component's own pixels | A parent whose window `maximum_bounds_pixels` refuses is deferred as T3, exactly as the whole-plane pass defers it, so its window is never read: the records of the components it owns come from the cores that hold them, restored to raster order, bit for bit. A parent the bound admits is read in its window, alone when that window exceeds the budget |
 | Cross-parent loops and extended residual | Yes: grouping labels and fits the feature's window | Read alone. `support_feature_window` leaves a feature wider than `maximum_bounds_pixels` ungrouped as T3, exactly as the whole-plane pass does, so that bound (250,000 pixels in the reviewed profile) limits every grouping read |
 
