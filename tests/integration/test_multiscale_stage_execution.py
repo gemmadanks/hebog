@@ -795,6 +795,44 @@ def test_a_scale_claiming_an_unusable_pixel_fails_closed(
         )
 
 
+@pytest.mark.parametrize("misshapen", ("scale", "reconstruction"))
+def test_a_scale_mask_of_another_shape_fails_closed(
+    tmp_path: Path, misshapen: str
+) -> None:
+    """A mask that only broadcasts to the core cannot pass as its support.
+
+    One row of a core broadcasts against the whole core, so without a shape
+    check an empty row would publish as an empty scale over every pixel.
+    """
+    manifest = _manifest((129, 137))
+    result, evidence = _evaluate_tile(
+        manifest.tiles[0],
+        source=_ArrayImageSource(*_planes()[:2]),
+        background_rms_source=_background_source(tmp_path / "background"),
+        image_shape_yx=_planes()[0].shape,
+        beam=_beam(),
+        detection=_detection_config(),
+    )
+    shape = result.prepared_inputs.scientifically_valid.shape
+    row = np.zeros((1, shape[1]), dtype=np.bool_)
+    core = np.zeros(shape, dtype=np.bool_)
+
+    with pytest.raises(ValueError, match="this core's shape"):
+        _publication_products(
+            result,
+            replace(
+                evidence,
+                significant_scale_masks=tuple(
+                    row if misshapen == "scale" else core
+                    for _ in evidence.significant_scale_masks
+                ),
+            ),
+            reconstruction_mask=row if misshapen == "reconstruction" else core,
+            detection_labels=np.zeros(shape, dtype=np.int32),
+            island_threshold_sigma=3.0,
+        )
+
+
 def test_the_scale_label_round_forbids_empty_work_records() -> None:
     """An empty batch is a scheduling defect, not a task to submit."""
     with pytest.raises(ValueError, match="scale label batch must not be"):

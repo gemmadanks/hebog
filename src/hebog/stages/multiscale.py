@@ -508,16 +508,23 @@ def _publication_products(
     """Derive accepted core products after global topology reconciliation.
 
     Raises:
-        ValueError: If a scale claims a pixel this core has no usable
-            estimate for. The scale masks and the domain they must lie inside
-            are both on this task, so the check belongs here rather than on a
-            later pass holding two whole planes.
+        ValueError: If a scale or the reconstruction is not this core's
+            shape, or a scale claims a pixel this core has no usable estimate
+            for. The scale masks and the domain they must lie inside are both
+            on this task, so the check belongs here rather than on a later
+            pass holding two whole planes.
     """
+    unusable = ~result.prepared_inputs.scientifically_valid
+    # A mask that merely broadcasts to the core would publish silently.
+    if any(
+        mask.shape != unusable.shape
+        for mask in (reconstruction_mask, *evidence.significant_scale_masks)
+    ):
+        raise ValueError("scale support must have this core's shape")
     scale_masks = tuple(
         np.asarray(mask & reconstruction_mask, dtype=np.bool_)
         for mask in evidence.significant_scale_masks
     )
-    unusable = ~result.prepared_inputs.scientifically_valid
     if any(bool(np.any(mask & unusable)) for mask in scale_masks):
         raise ValueError("scale support must be scientifically valid")
     # An insufficient filter halo leaves the denoised value unavailable,
