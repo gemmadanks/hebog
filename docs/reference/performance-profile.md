@@ -166,21 +166,24 @@ The background stage was the change that moved the peak, which sits in the
 multiscale pass rather than in anything the catalogue does: returning two
 `bool` masks where three `float64` estimates had been took it down by
 197 MiB at 3,000² across three steps, within 1 MiB of the 198 MiB the
-array arithmetic predicted. That difference, like the two below, was taken
-with an ad-hoc harness before `just traced-peak` existed; a difference of
-one harness's figures holds, but its levels are not comparable with the
-table further down. The stage now returns neither, only whether any
-pixel has a usable local noise estimate, reduced one tile row at a time, and
-the label, mask and position-signal planes followed it out.
+array arithmetic predicted. That difference was taken with an ad-hoc harness
+before `just traced-peak` existed, before 0.13.0, so the harness cannot
+reproduce it. The stage now returns neither, only whether any pixel has a
+usable local noise estimate, reduced one tile row at a time, and the label,
+mask and position-signal planes followed it out.
 
 Removing the driver's 49 bytes a pixel moved the peak by 2 of them, and that
 is the lesson rather than a disappointment: only the planes alive at the peak
 can lower it, and the peak is in the multiscale pass, before the catalogue
 work allocates the other 47. What the peak does see is the two background
-masks, and it sees them exactly — 342.04 → 339.98 MiB at 1,024² and
-1261.45 → 1244.22 MiB at 3,000², against arithmetic of 2.00 and 17.17 MiB.
-The 47 bytes show in the envelope instead: they are what the image would have
-added on top of the tile, 4.6 GiB of it at 10,000².
+masks, and it sees them exactly: between 0.13.0 and the tile-native object
+pass `just traced-peak` finds the peak 0.5, 2.0, 8.0 and 17.2 MiB lower at
+512², 1,024², 2,048² and 3,000², which is two bytes a pixel at every tier,
+with every input, setting and dependency identical. The object rounds that
+moved into their own passes since, and those that stopped returning object
+pixels to the driver, run after the peak and do not reach it. The 47 bytes
+show in the envelope instead: they are what the image would have added on
+top of the tile, 4.6 GiB of it at 10,000².
 
 The same removal is worth 4 to 7% of the clock at 1,024², because the checks
 those planes were held for were whole-plane comparisons: medians of five on a
@@ -200,37 +203,41 @@ three figures: the **process peak**, traced from before Hebog is imported; the
 peak of the **`find_sources` call** alone; and the **import floor**, what the
 imported modules still hold when that call begins.
 
-Measured at `0.13.0` (`d70bb56`), two repetitions of each case, in
-`benchmark-results/traced-peak/runs/admitted-tiers-20260925b` and, for the
-512² case, `admitted-tiers-20260925b-smoke`:
+Measured on 26 September 2026 at `29d2933`, the tile-native object pass,
+two repetitions of each case, in
+`benchmark-results/traced-peak/runs/pr-tip-20260926` and, for the 512² case,
+`pr-tip-20260926-smoke`, beside the same measurement at `0.13.0` (`d70bb56`,
+`admitted-tiers-20260925b`). The two runs share their configuration,
+inputs, thread environment and dependency inventory, so only the code
+differs:
 
-| case | pixels per side | traced peak | components |
-| --- | --- | --- | --- |
-| generated compact ladder | 512 | 225.2 MiB | 5 |
-| generated dense field | 1,024 | 431.5 MiB | 57 |
-| LoTSS-DR3 sparse | 1,024 | 431.8 MiB | 61 |
-| LoTSS-DR3 dense | 1,024 | 432.4 MiB | 108 |
-| SDC1 crowded | 1,024 | 433.9 MiB | 794 |
-| SDC1 crowded | 2,048 | 1,320.4 MiB | 3,110 |
-| LoTSS-DR3 dense | 3,000 | 1,351.7 MiB | 828 |
+| case | pixels per side | traced peak | at 0.13.0 | components |
+| --- | --- | --- | --- | --- |
+| generated compact ladder | 512 | 224.7 MiB | 225.2 MiB | 5 |
+| generated dense field | 1,024 | 429.5 MiB | 431.5 MiB | 57 |
+| LoTSS-DR3 sparse | 1,024 | 429.8 MiB | 431.8 MiB | 61 |
+| LoTSS-DR3 dense | 1,024 | 430.3 MiB | 432.4 MiB | 108 |
+| SDC1 crowded | 1,024 | 431.8 MiB | 433.9 MiB | 794 |
+| SDC1 crowded | 2,048 | 1,312.4 MiB | 1,320.4 MiB | 3,110 |
+| LoTSS-DR3 dense | 3,000 | 1,334.6 MiB | 1,351.7 MiB | 828 |
 
 The process peak fell inside the `find_sources` call in every case, so the
 first two spans coincide. Three things in the table matter more than the exact
 figures.
 
 **Image size governs the peak, not source count.** At 1,024² the crowded SDC1
-field carries 14 times the components of the generated dense field for 2.4 MiB
+field carries 14 times the components of the generated dense field for 2.3 MiB
 more. What grows with the image is the planes; what grows with the catalogue is
 bounded.
 
 **The peak crosses the tile boundary almost flat.** From 1,024² to 2,048² it
-triples; from 2,048² to 3,000² it adds 2.4%, although the area more than
+triples; from 2,048² to 3,000² it adds 1.7%, although the area more than
 doubles. 2,048² is the last size every stage outside background and RMS runs as
 one tile, so tile-bounded state is image-bounded state there, and at 3,000² the
 same stages run four tiles.
 
-**The import floor is fixed.** It was 90.4 MiB in every case from 512² to
-3,000², so it is 40% of a 512² run and 7% of a 3,000² one. A tracer started
+**The import floor is fixed.** It is 90.4 MiB in every case from 512² to
+3,000², in both runs, so it is 40% of a 512² run and 7% of a 3,000² one. A tracer started
 after the imports cannot see that floor and reports a peak lower by its size.
 
 !!! warning "Peak RSS is an envelope, not a threshold"
@@ -242,7 +249,7 @@ after the imports cannot see that floor and reports a peak lower by its size.
     what Hebog demanded. Quote it as a range, and never gate a change on it.
 
     The traced peak is what a scaling claim or a tier gate uses. Each figure
-    above repeated across its two runs to between 0.6 and 6.9 KiB — not to the
+    above repeated across its two runs to between 0.2 and 6.9 KiB — not to the
     byte, because the strings, paths and metadata of one run allocate slightly
     differently in the next, which is why repetitions count as agreeing within
     a tenth of a mebibyte. Traced evidence records peak RSS beside the peak,

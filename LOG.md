@@ -25878,3 +25878,50 @@ the per-worker placement finding.
   treatment would need the fit again in the write round, which is the
   expensive step, so it needs its own design. A wide object's core paths
   still bring its own pixels to the driver, by design.
+
+## 2026-09-26 — M2: the traced peak on the tile-native object pass
+
+- **Why.** The harness entry of 25 September measured the admitted tiers at
+  0.13.0 and ruled that only `just traced-peak` figures are quotable, but it
+  was committed beside `main` rather than on this branch, so every traced
+  figure the branch quoted since (342.04 → 339.98 MiB at 1,024², 1,244 MiB at
+  3,000²) came from the ad-hoc harness that traced the finder call without
+  the imports. The harness is now on the branch and the tiers are measured
+  with it.
+- **Run.** `29d2933` (source tree `b5fd5ea57605`, clean worktree), two
+  repetitions of each case at the quick benchmark's settings, serial, one
+  numerical-library thread, in
+  `benchmark-results/traced-peak/runs/pr-tip-20260926` and
+  `pr-tip-20260926-smoke`; 20 minutes in all. The configuration, dataset,
+  thread-environment and dependency-inventory hashes equal those of
+  `admitted-tiers-20260925b`, so the comparison with 0.13.0 isolates the
+  code.
+
+  | case | side | traced peak | at 0.13.0 | change | spread |
+  | --- | --- | --- | --- | --- | --- |
+  | `compact-snr-ladder` | 512 | 224.7 MiB | 225.2 MiB | −0.5 MiB | 3.1 KiB |
+  | `dense-field` | 1,024 | 429.5 MiB | 431.5 MiB | −2.0 MiB | 1.0 KiB |
+  | `lotss-dr3-1312-sparse` | 1,024 | 429.8 MiB | 431.8 MiB | −2.0 MiB | 0.2 KiB |
+  | `lotss-dr3-1312-dense` | 1,024 | 430.3 MiB | 432.4 MiB | −2.0 MiB | 6.0 KiB |
+  | `sdc1-b2-1000h-crowded` | 1,024 | 431.8 MiB | 433.9 MiB | −2.0 MiB | 1.9 KiB |
+  | `sdc1-b2-1000h-crowded-2048` | 2,048 | 1,312.4 MiB | 1,320.4 MiB | −8.0 MiB | 4.2 KiB |
+  | `lotss-dr3-1312-dense-3000` | 3,000 | 1,334.6 MiB | 1,351.7 MiB | −17.2 MiB | 3.9 KiB |
+
+  Every case reproduced, the process peak fell inside the `find_sources` call
+  in each, the import floor is 90.4 MiB throughout, and every component count
+  equals 0.13.0's.
+- **What it shows.** The branch lowers the peak by two bytes a pixel at every
+  tier: 0.52, 2.02, 8.02 and 17.18 MiB against arithmetic of 0.50, 2.00, 8.00
+  and 17.17, which is the two background `bool` masks the driver stopped
+  holding. Nothing else on the
+  branch reaches the peak: it sits in the multiscale pass, and the object
+  rounds that moved into their own passes, the wide-object core paths and the
+  rounds that stopped returning object pixels all run after it. The ad-hoc
+  differences quoted on 25 September, 2.06 and 17.23 MiB, agree with these to
+  0.05 MiB; their levels were the call-only span, 90 MiB below the process
+  peak. The peak
+  still crosses the single-tile boundary almost flat, 1.7% from 2,048² to
+  3,000².
+- **Records.** The plan's Scalability row and the performance profile now
+  quote these figures beside 0.13.0's; the profile's warning lists 1,244 MiB
+  among the retired ad-hoc figures.
