@@ -300,8 +300,8 @@ that only one round reads would cost a generation for nothing.
 | Round | Scope | Reads | Writes or returns |
 | --- | --- | --- | --- |
 | Parent extents | core, halo 0 | `component-labels`, `measurement-labels` | each parent's bounds and first pixel in both planes, and its direct size |
-| Deblend | parent window, for an admitted parent only | `direct-snr`, `valid-pixels`, both label planes | bounded component memberships, local to the parent |
-| Component write | core, halo 0 | the numbered memberships; both label planes where a deferred parent lies | `component-direct-labels`, `component-measurement-labels` |
+| Deblend | parent window, for an admitted parent only | `direct-snr`, `valid-pixels`, both label planes | each parent's component count |
+| Component write | core, halo 0, then the window of each parent it holds that splits | both label planes; `direct-snr` and `valid-pixels` in a splitting parent's window | `component-direct-labels`, `component-measurement-labels` |
 | Fit parents | core, halo 0 | `component-measurement-labels` | context island summaries; then `fit-parent-labels` |
 | Component fits | fit-parent window + margin, or a deferred parent's cores | residual, RMS, validity, both component planes | fit records, groups, grouping evidence, a measurement-support patch, each owned component's association record |
 | Support write | core, halo 0 | the patches | `measurement-support` |
@@ -324,6 +324,16 @@ support in both planes, so deferral needs no pixel: the extents carry each
 parent's direct size, the driver decides deferral from them with the
 deblender's own rule, and the cores holding a deferred parent relabel it in
 the write round.
+
+The numbering needs each parent's component count and nothing else, so that
+is all the deblend round returns. Summed over parents, the memberships are as
+large as all the support in the image, and rule 4 keeps them off the driver.
+A parent published as one component (deferred, too faint to split, or one
+watershed region) is its own support in both planes, so its cores relabel it
+as they relabel a deferred parent. A parent that splits is deblended again by
+each core that holds it, inside the same windows, which decides the same
+memberships bit for bit; that costs a second deblend of the parents that
+split, and of a split parent once more for each further core it crosses.
 
 ### Objects wider than the read budget
 
@@ -561,7 +571,9 @@ milestone: the executor work comes before the convergence it enables.
   payloads and in driver-held state, and reject whole-table label broadcasts.
   The composition records carry no array field, which a static test asserts,
   and a run that walks the driver's own locals at the terminal builder finds
-  no image-shaped array reachable from them.
+  no image-shaped array reachable from them. The component-topology test
+  records every payload and result its rounds exchange and requires them to
+  carry no array.
 - A stage-halo admission test proves every declared halo is below one quarter
   of the admitted core, and that a plan exceeding the admitted memory is
   rejected before submission rather than during it.

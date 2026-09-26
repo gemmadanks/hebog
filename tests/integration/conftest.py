@@ -3,9 +3,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable, Mapping
+from dataclasses import fields, is_dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, TypeVar, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -14,9 +15,12 @@ import pytest
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.data_models.partitioning import ImageBounds
 from hebog.data_models.products import ProductChunk
+from hebog.executors import SerialExecutor, TaskRequirement
 from hebog.io.zarr import ZarrProductSink
 
 _BACKGROUND_TILE_SHAPE_YX = (128, 128)
+_Input = TypeVar("_Input")
+_Output = TypeVar("_Output")
 
 
 def _publish_background_rms(
@@ -152,3 +156,68 @@ def estimated_maps(
         published_plane(sink, "background", np.float64),
         published_plane(sink, "rms", np.float64),
     )
+
+
+class RecordingExecutor(SerialExecutor):
+    """Keep what every round sent to its tasks and what they returned.
+
+    Each entry names the task function, so a test can ask what crossed the
+    executor boundary in one round without depending on round order.
+    """
+
+    def __init__(self) -> None:
+        """Start with no recorded round."""
+        super().__init__()
+        self.rounds: list[tuple[str, tuple[object, ...], tuple[object, ...]]]
+        self.rounds = []
+
+    def map_batches(
+        self,
+        function: Callable[[_Input], _Output],
+        batches: Iterable[_Input],
+        *,
+        requirement: TaskRequirement | None = None,
+    ) -> list[_Output]:
+        """Evaluate serially and record the round's payloads and results."""
+        materialized = tuple(batches)
+        results = super().map_batches(
+            function, materialized, requirement=requirement
+        )
+        name = cast(Any, getattr(function, "func", function)).__name__
+        self.rounds.append((name, materialized, tuple(results)))
+        return results
+
+
+def carried_array_bytes(
+    value: object,
+    *,
+    exempt: tuple[type, ...] = (),
+) -> tuple[int, int]:
+    """Return the array bytes one payload carries, and how many were exempt.
+
+    Records, tuples and mappings are walked, so an array nested anywhere in
+    what a task receives or returns is counted. An instance of an ``exempt``
+    type is not walked; the second count says how many were met, so a test
+    can require its exemption to still match something.
+    """
+    if isinstance(value, exempt):
+        return 0, 1
+    if isinstance(value, np.ndarray):
+        return int(cast(npt.NDArray[Any], value).nbytes), 0
+    children: Iterable[object]
+    if is_dataclass(value) and not isinstance(value, type):
+        children = (getattr(value, item.name) for item in fields(value))
+    elif isinstance(value, Mapping):
+        mapping = cast(Mapping[object, object], value)
+        children = (*mapping.keys(), *mapping.values())
+    elif isinstance(value, tuple | list | set | frozenset):
+        children = cast(Iterable[object], value)
+    else:
+        return 0, 0
+    carried = 0
+    exempted = 0
+    for child in children:
+        child_bytes, child_exempted = carried_array_bytes(child, exempt=exempt)
+        carried += child_bytes
+        exempted += child_exempted
+    return carried, exempted

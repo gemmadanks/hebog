@@ -16,6 +16,7 @@ import numpy.typing as npt
 import pytest
 from astropy.io import fits
 from astropy.wcs import WCS
+from conftest import RecordingExecutor, carried_array_bytes
 from distributed import Client
 from scipy.ndimage import label as ndimage_label
 
@@ -79,14 +80,13 @@ from hebog.stages.objects import (
     _parent_batches,
     _ParentBatch,
     _ParentExtent,
-    _publish_batch,
     _PublishBatchResult,
     _reduce_component_records,
     _require_matching_component_identities,
     _SupportBatch,
     _TileBatch,
-    _TileRequest,
     _union_bounds,
+    _write_owned_components,
     component_fit_product_names,
     component_topology_product_names,
     fit_parent_product_names,
@@ -375,49 +375,118 @@ def test_published_components_match_the_whole_plane_deblender(
     assert result.component_count > result.parent_count
 
 
-def test_a_direct_owner_without_measurement_support_fails_closed(
-    tmp_path: Path,
+def test_no_topology_round_carries_component_pixels(tmp_path: Path) -> None:
+    """The driver holds each parent's component count, never its pixels.
+
+    ADR-008 rule 4: nothing that grows with object area reaches the driver.
+    Summed over parents, the component memberships the deblend round decides
+    are as large as all the support in the image, so the cores that write a
+    deblended parent decide its memberships again from its window, and every
+    round sends and returns records only. The fixture's blended parent spans
+    several cores, so each of them re-decides it.
+    """
+    executor = RecordingExecutor()
+
+    result, sink = _run(tmp_path / "run", executor=executor)
+
+    assert result.deblended_parent_count >= 1
+    for round_name, batches, results in executor.rounds:
+        assert carried_array_bytes(batches) == (0, 0), round_name
+        assert carried_array_bytes(results) == (0, 0), round_name
+    assert [round_name for round_name, _, _ in executor.rounds] == [
+        "_scan_extents",
+        "_deblend_batch",
+        "_publish_batch",
+    ]
+    published = _published(sink)
+    for name, values in _whole_plane_topology().items():
+        np.testing.assert_array_equal(published[name], values, name)
+
+
+@pytest.mark.parametrize("defect", ["no-measurement-owner", "invalid-pixel"])
+def test_a_direct_owner_outside_valid_measurement_support_fails_closed(
+    tmp_path: Path, defect: str
 ) -> None:
     """Direct ownership must be a valid subset of measurement ownership.
 
     The composition used to ask this of two whole planes. The core that writes
     both planes holds the validity beside them, so it asks there. Deblending
-    cannot produce the disagreement, so the round is given it directly.
+    cannot produce the disagreement, so the published support carries it, on
+    a parent the cores relabel straight from that support: with a one-pixel
+    bounds bound every fixture parent is deferred.
     """
     root = tmp_path / "run"
     root.mkdir(parents=True, exist_ok=True)
-    support_source, detection_source = _sources(root)
+    signal, direct, measurement, valid = _planes()
+    first_y, first_x = (int(value) for value in np.argwhere(direct > 0)[0])
+    if defect == "no-measurement-owner":
+        measurement = measurement.copy()
+        measurement[first_y, first_x] = 0
+    else:
+        valid = valid.copy()
+        valid[first_y, first_x] = False
+    support_source = _publish(
+        root / "support.zarr",
+        (
+            ("component-labels", direct, "<i4"),
+            ("measurement-labels", measurement, "<i4"),
+        ),
+        generation_id="support-fixture",
+    )
+    detection_source = _publish(
+        root / "detection.zarr",
+        (("direct-snr", signal, "<f8"), ("valid-pixels", valid, "bool")),
+        generation_id="detection-fixture",
+    )
     manifest = _manifest(16)
-    partition = manifest.tiles[0]
-    sink = ZarrProductSink(
-        root / "components.zarr", manifest, generation_id="components"
-    )
-    for product_name in component_topology_product_names():
-        sink.initialize_product(
-            product_name=product_name, dtype=np.dtype("<i4")
-        )
-    owned = np.asarray(
-        [partition.core_bounds.y_start * _SHAPE_YX[1]], dtype=np.int64
-    )
 
     with pytest.raises(ValueError, match="valid subset"):
-        _publish_batch(
-            _TileBatch(
-                requests=(
-                    _TileRequest(
-                        partition=partition,
-                        direct_indices=owned,
-                        direct_labels=np.asarray([1], dtype=np.int32),
-                        measurement_indices=np.zeros(0, dtype=np.int64),
-                        measurement_labels=np.zeros(0, dtype=np.int32),
-                    ),
+        run_component_topology_stage(
+            support_source,
+            detection_source,
+            manifest,
+            config=ComponentTopologyStageConfig(
+                deblend=replace(
+                    _deblend_config(), maximum_compact_bounds_pixels=1
                 ),
+                maximum_tiles_per_batch=2,
+                maximum_batch_read_pixels=8192,
             ),
-            support_source=support_source,
-            detection_source=detection_source,
-            sink=sink,
-            image_width=_SHAPE_YX[1],
+            executor=SerialExecutor(),
+            sink=ZarrProductSink(
+                root / "components.zarr", manifest, generation_id="components"
+            ),
         )
+
+
+def test_a_core_writes_only_the_split_components_it_owns() -> None:
+    """A split parent's window can miss a core that holds its support.
+
+    Measurement support reaches beyond the direct window, so a core can hold
+    a parent's measurement pixels and none of its direct ones. Each plane
+    then writes only where the parent's window meets the core, offset into
+    the canonical numbering, and never over another parent's pixels.
+    """
+    core = ImageBounds(0, 4, 0, 4)
+    plane = np.zeros((4, 4), dtype=np.int32)
+    plane[0, 0] = 9
+
+    _write_owned_components(
+        plane, core, ImageBounds(4, 6, 0, 2), np.ones((2, 2), np.int32), 5
+    )
+    unchanged = plane.copy()
+    _write_owned_components(
+        plane,
+        core,
+        ImageBounds(3, 5, 0, 2),
+        np.asarray([[0, 1], [2, 2]], dtype=np.int32),
+        5,
+    )
+
+    expected = unchanged.copy()
+    expected[3, 1] = 6
+    np.testing.assert_array_equal(unchanged[1:], 0)
+    np.testing.assert_array_equal(plane, expected)
 
 
 def test_both_published_planes_must_name_the_same_components() -> None:

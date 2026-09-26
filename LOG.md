@@ -25687,3 +25687,59 @@ the per-worker placement finding.
   branch-aware over 2,679 tests, with `algorithms/owner_connectivity.py` and
   `stages/publication.py` at 100%. The composition fingerprint now binds the
   new module, which its test required.
+
+## 2026-09-26 — M2: the topology round returns counts, not component pixels
+
+- **Defect.** ADR-008 rule 4 keeps everything that grows with object area
+  off the driver, but the deblend round returned every admitted parent's
+  component memberships as sparse global indices, 12 bytes a pixel in each
+  plane, and the driver concatenated them for all parents before sharding
+  them to the cores. Summed over parents that is every component pixel in
+  the image. On the SDC1 crowded cut-outs, serial, the driver held 3.3 MB
+  across the round boundary at 1,024² and 13.4 MB at 2,048² (4.1 times as
+  much for 4 times the area, against 16.8 MB for a whole 2,048² `int32`
+  core), and at 2,048² the round returned 2.66 MB of arrays and the write
+  round was sent the same again. At that density the term reaches about
+  0.8 GB at 15,402² and 32 GB at 100,000².
+- **Fix.** Numbering needs only each parent's component count, so that is
+  all the deblend round returns. A parent published as one component
+  (deferred, too faint to split, or one watershed region, whose labels are
+  then exactly its support) is relabelled by its cores from their own
+  support planes, as deferred parents already were, now through one
+  sorted-label lookup per core rather than one mask per parent. A parent
+  that splits is deblended again by each core that holds it, inside the same
+  windows, and the core keeps its own pixels. `deblend_parent_components`
+  sees the same crops whichever read serves them, so the memberships are the
+  same bit for bit. The alternative, staging the memberships in the store
+  from the deblend round, needs a ragged intermediate format with its own
+  integrity and cleanup; a second deblend of the parents that split is
+  simpler and, as measured below, costs little.
+- **Evidence.** A new test records every payload and result the three
+  rounds exchange and requires them to carry no array bytes; before the fix
+  the deblend round returned 3,216 bytes on the fixture. The whole-plane,
+  partition (16-, 24- and 64-pixel cores, one parent per read, reverse
+  completion) and Dask comparisons pass unchanged, and the direct-subset
+  check is now driven through published inputs. On the 16 quick-check cases
+  with every public stage on 512-pixel cores, the public products equal the
+  baseline `e397293`'s field by field, NaN equal to NaN, at the default read
+  budget and with the budget forced to 4,096 pixels; only the composition
+  fingerprint differs. At 2,048² no topology round carries an array and the
+  driver holds 3.3 MB at the write round: the parents' extent, holder and
+  count records, which grow with the number of parents rather than their
+  area. Portable coverage, measured with the next entry's change
+  also applied, is 96.80% branch-aware over 2,682 tests, with `stages/objects.py` at 100%; the one changed line no fixture
+  reached, a core holding a split parent's support outside its direct
+  window, has its own case.
+- **What it costs.** Medians of five, alternating with the baseline in
+  single-thread processes after a warm-up, on a machine whose endpoint
+  scanner kept about 1.3 cores busy throughout: the topology stage takes 7
+  to 20% longer, 0.33 → 0.35 s on `dense-field`, 0.40 → 0.48 s on
+  `lotss-dr3-1312-dense`, and 0.56 → 0.63 s and 1.23 → 1.40 s on the 1,024²
+  and 2,048² SDC1 crowded cut-outs, which is the second deblend of the
+  parents that split. No whole run moves measurably: the ratios are 0.98,
+  1.00, 0.99 and 1.00, and every 95% bootstrap interval contains 1. These
+  were taken with the next entry's change also applied, which does not
+  touch this stage. The write task now holds its two output planes while it
+  reads a deblend batch, so the stage's traced peak at 2,048² rises from 141
+  to 175 MB; that is two `int32` cores and one budgeted read, bounded by the
+  tile rather than the image.
