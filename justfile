@@ -52,7 +52,7 @@ type-check:
 test: test-unit
 
 test-unit:
-    uv run pytest -q -m "not slow and not integration and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data" --doctest-modules --doctest-glob="*.py" --maxfail=1 --disable-warnings
+    uv run pytest -q -n auto --dist worksteal -m "not slow and not integration and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data" --doctest-modules --doctest-glob="*.py" --maxfail=1 --disable-warnings
 
 # Run scheduler-independent public behaviour and product contracts
 test-contract:
