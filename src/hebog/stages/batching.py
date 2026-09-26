@@ -175,6 +175,11 @@ def map_round[Batch, Result](
     if not batches:
         return ()
     results = tuple(executor.map_batches(function, batches))
-    if not results:
-        raise ValueError(f"executor returned no {round_name} results")
+    if len(results) != len(batches):
+        if not results:
+            raise ValueError(f"executor returned no {round_name} results")
+        raise ValueError(
+            f"executor returned {len(results)} {round_name} results for "
+            f"{len(batches)} batches"
+        )
     return results
