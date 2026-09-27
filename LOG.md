@@ -26420,3 +26420,22 @@ the per-worker placement finding.
   at this size, the quick science check and the quick benchmark on the
   anchor before the limit moves. Task 9 stays behind its trigger, which
   the 10,000 tier did not pull.
+
+## 2026-09-27 — The wide-object term becomes deferred work
+
+- **Decision.** The maintainer moved task 9, the removal of the wide-object
+  driver term, out of the ordered roadmap into the plan's deferred work.
+  The term is dormant, not absent: no real LoTSS-DR3 object comes within a
+  factor of ten of the read budget, and a smooth object wider than the
+  150-pixel background box is absorbed by the background estimate, so what
+  can reach the driver is a long structure narrower than the box, about
+  100 MB for the generated 10,000² filament and about 3 GB at 100,000².
+  The plan's risk row and Scalability cell now state that bound rather
+  than the field-filling figures, and the deferred item names its
+  reopening condition: a tier's traced peak showing the term, or the
+  planning of the cluster benchmark, whichever comes first.
+- **ADR-008.** The sentence added on 27 September, that no tier at which
+  the exception can bind is admitted until the reductions run on the
+  cores, would have blocked the 10,000 raise on a case no real field
+  holds. It now states the bound above and that the resolution is deferred
+  work which does not gate the local tiers.
