@@ -368,6 +368,7 @@ def test_an_island_wider_than_the_budget_is_never_read_whole(
         > budget
     ), "the fixture must hold an island wider than the budget"
     assert result.islands == expected.islands
+    assert result.wide_island_count == 1
     assert dict(result.island_ids_by_owner) == dict(
         expected.island_ids_by_owner
     )

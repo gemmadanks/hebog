@@ -263,6 +263,8 @@ differs:
 | SDC1 crowded | 1,024 | 431.8 MiB | 433.9 MiB | 794 |
 | SDC1 crowded | 2,048 | 1,312.4 MiB | 1,320.4 MiB | 3,110 |
 | LoTSS-DR3 dense | 3,000 | 1,334.6 MiB | 1,351.7 MiB | 828 |
+| LoTSS-DR3 dense | 10,000 | 1,541.3 MiB | not admitted | 9,259 |
+| generated wide objects | 10,000 | 1,447.7 MiB | not admitted | 10 |
 
 The process peak fell inside the `find_sources` call in every case, so the
 first two spans coincide. Three things in the table matter more than the exact
@@ -273,11 +275,20 @@ field carries 14 times the components of the generated dense field for 2.3 MiB
 more. What grows with the image is the planes; what grows with the catalogue is
 bounded.
 
-**The peak crosses the tile boundary almost flat.** From 1,024² to 2,048² it
-triples; from 2,048² to 3,000² it adds 1.7%, although the area more than
-doubles. 2,048² is the last size every stage outside background and RMS runs as
-one tile, so tile-bounded state is image-bounded state there, and at 3,000² the
-same stages run four tiles.
+**The peak crosses the tile boundary almost flat, and then rises slowly.**
+From 1,024² to 2,048² it triples; from 2,048² to 3,000² it adds 1.7%, although
+the area more than doubles. 2,048² is the last size every stage outside
+background and RMS runs as one tile, so tile-bounded state is image-bounded
+state there, and at 3,000² the same stages run four tiles. The 10,000² rows,
+measured on 27 September 2026 at `v0.14.1` (`m2-tier-10000-lotss`, two
+repetitions agreeing to 0.1 MiB, and `m2-tier-10000-wide`, one repetition),
+add 15% for eleven times the area and, across the two 10,000² cases, 94 MiB
+for 7,124 more sources. Fitting the three points above one tile gives about
+1.4 bytes a pixel and 13 KiB a source still growing at the peak, with the
+rest bounded by the tile. Those two terms are small at every local tier
+(about 2.7 GiB from pixels at 45,000²) and are what the M5 planner bounds
+must account for at 100,000² and at survey source counts; an empty 10,000²
+case would separate them exactly.
 
 **The import floor is fixed.** It is 90.4 MiB in every case from 512² to
 3,000², in both runs, so it is 40% of a 512² run and 7% of a 3,000² one. A tracer started

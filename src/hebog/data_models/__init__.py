@@ -54,6 +54,7 @@ from hebog.data_models.source_finding import (
     SourceFinderResult,
     SourceFindingDiagnostics,
     SourceScaleProvenance,
+    WideObjectCounts,
 )
 
 __all__ = [
@@ -100,4 +101,5 @@ __all__ = [
     "SpectralModel",
     "SuppliedImageMetadata",
     "TilePartition",
+    "WideObjectCounts",
 ]

@@ -137,11 +137,19 @@ The cases are in `config/benchmarks/quick-benchmark.json`, grouped in tiers:
 - `default`: the 1,024² generated dense field and sparse and dense 1,024²
   LoTSS-DR3 cut-outs; and
 - `large`: the default cases plus SDC1 crowded cut-outs at 1,024² and 2,048²
-  and LoTSS-DR3 cut-outs at 3,000² and 3,600², all on the same field as the
-  1,024² dense case. Every stage outside background and RMS uses 2,048-pixel
-  tile cores, so 2,048² is the last size they run as one tile and 3,000² the
-  first they tile: the pair measures that execution crossover. Run it with
-  `--tier large` before profiling or a release; it currently takes hours.
+  and LoTSS-DR3 cut-outs at 3,000², 3,600² and 10,000², all on the same field
+  as the 1,024² dense case. Every stage outside background and RMS uses
+  2,048-pixel tile cores, so 2,048² is the last size they run as one tile and
+  3,000² the first they tile: the pair measures that execution crossover, and
+  the 10,000² cut-out, 25 tiles holding the field's largest islands, is the
+  anchor for that envelope tier. The tier ends with `wide-objects-10000`, a
+  generated 10,000² image holding a filament along its diagonal and a
+  diffuse Gaussian whose island covers millions of pixels: no public LOFAR
+  field holds an object wider than a task's read budget (the largest island
+  in LoTSS-DR3 mosaic 1312 spans 131 pixels), so this case exists to put
+  objects on the wide paths and measure what they cost the driver. It is a
+  diagnostic, not a science case. Run the tier with `--tier large` before
+  profiling or a release; it currently takes hours.
 
 The protocol comes from `config/benchmarks/phase-0-performance.json`: one
 warm-up and five measured repetitions per case. Every repetition runs the

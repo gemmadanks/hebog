@@ -126,6 +126,32 @@
       },
       "tier": "large",
       "workload_class": "dense-or-extended"
+    },
+    {
+      "case": {
+        "case_id": "lotss-dr3-1312-dense-10000",
+        "image": "benchmark-results/quick-benchmark/cutouts/lotss-dr3-1312-dense-10000/image.fits",
+        "kind": "image",
+        "remote_source": {
+          "url": "https://lofar-surveys.org/public/DR3/healpix_mosaics/1312/mosaic.fits",
+          "window": {
+            "size": 10000,
+            "x_start": 2000,
+            "y_start": 4500
+          }
+        }
+      },
+      "tier": "large",
+      "workload_class": "dense-or-extended"
+    },
+    {
+      "case": {
+        "case_id": "wide-objects-10000",
+        "dataset_id": "quick-wide-objects-10000",
+        "kind": "generated"
+      },
+      "tier": "large",
+      "workload_class": "dense-or-extended"
     }
   ],
   "dataset_manifest": "config/datasets/quick-science-check.json",

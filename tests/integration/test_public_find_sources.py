@@ -25,7 +25,7 @@ import hebog
 from hebog import SourceFinderConfig, SourceFinderRequest, public_api
 from hebog.algorithms import fitting as fitting_algorithm
 from hebog.algorithms.partitioning import plan_image_partitions
-from hebog.data_models import PublicSourceFindingDiagnostics
+from hebog.data_models import PublicSourceFindingDiagnostics, WideObjectCounts
 from hebog.executors import DaskExecutor, SerialExecutor, TaskRequirement
 from hebog.io import (
     FitsImageSource,
@@ -719,6 +719,7 @@ def test_public_find_sources_materializes_the_qualified_continuum_view(
     assert diagnostics.source_count == 1
     assert diagnostics.deblended_parent_count == 0
     assert diagnostics.deferred_deblend_parent_count == 0
+    assert diagnostics.wide_object_counts == WideObjectCounts()
     assert diagnostics.profile == "continuum"
     assert diagnostics.configuration_qualification == "development-unqualified"
     assert diagnostics.provenance.input_sha256

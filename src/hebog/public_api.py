@@ -10,7 +10,7 @@ import hashlib
 import importlib
 import json
 from collections.abc import Iterator, Mapping, Sequence
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, field, replace
 from functools import lru_cache
 from importlib.resources import files
 from math import prod
@@ -46,6 +46,7 @@ from hebog.data_models import (
     SourceFinderRequest,
     SourceFinderResult,
     SpectralModel,
+    WideObjectCounts,
 )
 from hebog.data_models.images import ImageMetadata, RestoringBeam
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
@@ -179,6 +180,9 @@ class _ScientificProducts:
     component_source: ZarrProductSink | None
     rms_scientific_status: Literal["valid", "unavailable"]
     terminal: Any | None
+    wide_object_counts: WideObjectCounts = field(
+        default_factory=WideObjectCounts
+    )
 
 
 def _require_unclaimed_output(output: Path) -> None:
@@ -673,7 +677,7 @@ def publish_support_labels(  # noqa: PLR0913
     review: ContinuumScienceProfile,
     generation_id: str,
     tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
-) -> tuple[int, ZarrProductSink]:
+) -> tuple[int, int, ZarrProductSink]:
     """Decide owner connectivity and publish the support pass's labels.
 
     Two of the decisions here are scoped to an owner rather than to a tile,
@@ -719,7 +723,7 @@ def publish_support_labels(  # noqa: PLR0913
         executor=executor,
         sink=sink,
     )
-    return result.accepted_island_count, sink
+    return result.accepted_island_count, result.wide_owner_count, sink
 
 
 def publish_component_topology(  # noqa: PLR0913
@@ -798,7 +802,7 @@ def publish_segment_rows(  # noqa: PLR0913, PLR0917
     generation_id: str,
     sink_name: str,
     tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
-) -> tuple[tuple[Any, ...], Mapping[int, float], Mapping[int, Any]]:
+) -> tuple[tuple[Any, ...], Mapping[int, float], Mapping[int, Any], int]:
     """Measure one catalogue row per segment, each in its own window.
 
     The cores write the expanded apertures under the reviewed radius, they
@@ -871,6 +875,7 @@ def publish_segment_rows(  # noqa: PLR0913, PLR0917
         result.rows,
         result.local_rms_by_label,
         result.position_diagnostics,
+        result.wide_segment_count,
     )
 
 
@@ -884,7 +889,7 @@ def publish_detection_islands(  # noqa: PLR0913
     image_shape_yx: tuple[int, int],
     beam: BeamShapePixels,
     tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
-) -> tuple[tuple[Any, ...], Mapping[int, tuple[str, ...]]]:
+) -> tuple[tuple[Any, ...], Mapping[int, tuple[str, ...]], int]:
     """Measure one catalogue row per island of the published retained mask.
 
     The cores label their own mask and observe which owners its islands hold,
@@ -923,7 +928,7 @@ def publish_detection_islands(  # noqa: PLR0913
         ),
         executor=executor,
     )
-    return result.islands, result.island_ids_by_owner
+    return result.islands, result.island_ids_by_owner, result.wide_island_count
 
 
 def publish_source_planes(  # noqa: PLR0913, PLR0917
@@ -938,7 +943,7 @@ def publish_source_planes(  # noqa: PLR0913, PLR0917
     association: SourceAssociationResult,
     generation_id: str,
     tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
-) -> tuple[ZarrProductSink, ZarrProductSink]:
+) -> tuple[ZarrProductSink, ZarrProductSink, int]:
     """Publish the source labels and the persistent support they own.
 
     The owners a source holds are a record map, so the cores write the
@@ -981,7 +986,7 @@ def publish_source_planes(  # noqa: PLR0913, PLR0917
         manifest,
         generation_id=generation_id,
     )
-    run_source_support_stage(
+    support_result = run_source_support_stage(
         label_sink,
         detection_source,
         scale_support_source,
@@ -995,7 +1000,7 @@ def publish_source_planes(  # noqa: PLR0913, PLR0917
         executor=executor,
         sink=support_sink,
     )
-    return label_sink, support_sink
+    return label_sink, support_sink, support_result.wide_component_count
 
 
 def publish_hierarchy_overlaps(  # noqa: PLR0913
@@ -1203,6 +1208,7 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
         parents=result.parents,
         features=groups.features,
         component_records=result.component_records,
+        wide_parent_count=result.wide_parent_count,
     ), sink
 
 
@@ -1284,6 +1290,7 @@ def _analyse_image(  # noqa: PLR0913
             component_source=None,
             rms_scientific_status="unavailable",
             terminal=None,
+            wide_object_counts=WideObjectCounts(),
         )
     review = configured_science_profile(
         load_continuum_science_profile(_profile_bytes()),
@@ -1310,17 +1317,19 @@ def _analyse_image(  # noqa: PLR0913
         ),
         generation_id=generation_id,
     )
-    accepted_island_count, labels_source = publish_support_labels(
-        detection_source,
-        support_source,
-        executor,
-        work_directory,
-        image_shape_yx=metadata.shape_yx,
-        beam=beam,
-        detection_islands=multiscale.detection_islands,
-        config=config,
-        review=review,
-        generation_id=generation_id,
+    accepted_island_count, wide_owner_count, labels_source = (
+        publish_support_labels(
+            detection_source,
+            support_source,
+            executor,
+            work_directory,
+            image_shape_yx=metadata.shape_yx,
+            beam=beam,
+            detection_islands=multiscale.detection_islands,
+            config=config,
+            review=review,
+            generation_id=generation_id,
+        )
     )
     component_source, topology = publish_component_topology(
         labels_source,
@@ -1368,45 +1377,56 @@ def _analyse_image(  # noqa: PLR0913
         overlaps,
         (*measurements.compact_groups, *measurements.extended_groups),
     )
-    source_label_source, source_support_source = publish_source_planes(
-        component_source,
-        detection_source,
-        hierarchy_source,
-        fit_source,
-        executor,
-        work_directory,
-        image_shape_yx=metadata.shape_yx,
-        association=association,
-        generation_id=generation_id,
+    source_label_source, source_support_source, wide_component_count = (
+        publish_source_planes(
+            component_source,
+            detection_source,
+            hierarchy_source,
+            fit_source,
+            executor,
+            work_directory,
+            image_shape_yx=metadata.shape_yx,
+            association=association,
+            generation_id=generation_id,
+        )
     )
-    islands, island_ids_by_owner = publish_detection_islands(
-        source,
-        background_rms_source,
-        labels_source,
-        component_source,
-        executor,
-        image_shape_yx=metadata.shape_yx,
-        beam=beam,
+    islands, island_ids_by_owner, wide_island_count = (
+        publish_detection_islands(
+            source,
+            background_rms_source,
+            labels_source,
+            component_source,
+            executor,
+            image_shape_yx=metadata.shape_yx,
+            beam=beam,
+        )
     )
-    component_rows, component_local_rms, _ = publish_segment_rows(
-        source,
-        background_rms_source,
-        detection_source,
-        component_source,
-        component_source,
-        executor,
-        work_directory,
-        image_shape_yx=metadata.shape_yx,
-        beam=beam,
-        header=header,
-        label_product_name="component-measurement-labels",
-        centroid_product_name="component-measurement-labels",
-        aperture_tie_policy="nearest-support",
-        with_position_diagnostics=False,
-        generation_id=generation_id,
-        sink_name="component-rows",
+    component_rows, component_local_rms, _, wide_component_segment_count = (
+        publish_segment_rows(
+            source,
+            background_rms_source,
+            detection_source,
+            component_source,
+            component_source,
+            executor,
+            work_directory,
+            image_shape_yx=metadata.shape_yx,
+            beam=beam,
+            header=header,
+            label_product_name="component-measurement-labels",
+            centroid_product_name="component-measurement-labels",
+            aperture_tie_policy="nearest-support",
+            with_position_diagnostics=False,
+            generation_id=generation_id,
+            sink_name="component-rows",
+        )
     )
-    source_rows, source_local_rms, source_positions = publish_segment_rows(
+    (
+        source_rows,
+        source_local_rms,
+        source_positions,
+        wide_source_segment_count,
+    ) = publish_segment_rows(
         source,
         background_rms_source,
         detection_source,
@@ -1446,6 +1466,13 @@ def _analyse_image(  # noqa: PLR0913
         component_source,
         "valid",
         terminal,
+        WideObjectCounts(
+            publication_owners=wide_owner_count,
+            support_components=wide_component_count,
+            deferred_fit_parents=component_fits.wide_parent_count,
+            islands=wide_island_count,
+            segments=wide_component_segment_count + wide_source_segment_count,
+        ),
     )
 
 
@@ -1883,6 +1910,7 @@ def _materialize_bundle(  # noqa: PLR0913
             if products.terminal is not None
             else 0
         ),
+        wide_object_counts=products.wide_object_counts,
         measurement_dispositions=_public_dispositions(
             products.terminal, catalogue, config.profile
         ),

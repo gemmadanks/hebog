@@ -249,7 +249,7 @@ def publish_continuum_inputs(  # noqa: PLR0913
         generation_id=generation_id,
         tile_core_pixels=support_tile_core_pixels,
     )
-    accepted_island_count, labels_source = publish_support_labels(
+    accepted_island_count, _, labels_source = publish_support_labels(
         detection_source,
         support_source,
         resolved_executor,
@@ -311,7 +311,7 @@ def publish_continuum_inputs(  # noqa: PLR0913
         overlaps,
         (*measurements.compact_groups, *measurements.extended_groups),
     )
-    source_label_source, source_support_source = publish_source_planes(
+    source_label_source, source_support_source, _ = publish_source_planes(
         component_source,
         detection_source,
         hierarchy_source,
@@ -323,7 +323,7 @@ def publish_continuum_inputs(  # noqa: PLR0913
         generation_id=generation_id,
         tile_core_pixels=support_tile_core_pixels,
     )
-    islands, island_ids_by_owner = publish_detection_islands(
+    islands, island_ids_by_owner, _ = publish_detection_islands(
         image_source,
         background_rms_source,
         labels_source,
@@ -333,7 +333,7 @@ def publish_continuum_inputs(  # noqa: PLR0913
         beam=beam,
         tile_core_pixels=support_tile_core_pixels,
     )
-    component_rows, component_local_rms, _ = publish_segment_rows(
+    component_rows, component_local_rms, _, _ = publish_segment_rows(
         image_source,
         background_rms_source,
         detection_source,
@@ -352,7 +352,7 @@ def publish_continuum_inputs(  # noqa: PLR0913
         sink_name="component-rows",
         tile_core_pixels=support_tile_core_pixels,
     )
-    source_rows, source_local_rms, source_positions = publish_segment_rows(
+    source_rows, source_local_rms, source_positions, _ = publish_segment_rows(
         image_source,
         background_rms_source,
         detection_source,

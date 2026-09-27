@@ -576,10 +576,10 @@ def test_valid_fit_survives_unavailable_aperture_moment_row(
     original = tiled_detection.publish_segment_rows
 
     def missing_source_rows(*args: Any, **kwargs: Any):
-        rows, local_rms, positions = original(*args, **kwargs)
+        rows, local_rms, positions, wide = original(*args, **kwargs)
         if kwargs["aperture_tie_policy"] == "canonical-source":
-            return (), local_rms, positions
-        return rows, local_rms, positions
+            return (), local_rms, positions, wide
+        return rows, local_rms, positions, wide
 
     monkeypatch.setattr(
         tiled_detection, "publish_segment_rows", missing_source_rows

@@ -16,7 +16,7 @@ the selected thresholds or algorithms are qualified for a survey.
 | `catalogue.fits` | `source-catalogue`, FITS schema 4 | What islands, associated sources, and admitted Gaussian components were measured? |
 | `rms.fits` | `rms`, FITS image schema 1 | What local RMS did thresholding and reported local-noise fields use? |
 | `source-mask.fits` | `source-filtering-mask`, FITS image schema 1 | Which input-aligned pixels belong to retained published detections? |
-| `diagnostics.json` | `diagnostics`, JSON schema 9 | What was omitted, deferred, selected, or unavailable, and exactly which science produced the bundle? |
+| `diagnostics.json` | `diagnostics`, JSON schema 10 | What was omitted, deferred, selected, or unavailable, and exactly which science produced the bundle? |
 
 Use all four together. In particular, `catalogue.fits` contains only published
 measurements, while `diagnostics.json` is the census of measured and
@@ -290,6 +290,7 @@ newline. Schema 9 rejects unknown fields and contains:
 | `source_count`, `gaussian_component_count`, `island_count` | Counts that must agree with the FITS tables. |
 | `deblended_parent_count` | Retained connected parents split by bounded deblending. |
 | `deferred_deblend_parent_count` | Parents preserved because they exceeded the bounded deblend envelope. |
+| `wide_object_counts` | How many objects each round decided from the cores that hold them rather than from one window, because their window exceeded a task's read budget: `publication_owners`, `support_components`, `deferred_fit_parents`, `islands` and `segments`. The driver then holds those objects' own pixels or seeds, the one term that grows with an object rather than a tile. All zero for any image within the public envelope observed so far. |
 | `measurement_dispositions` | Complete structured census described below. |
 | `rms_scientific_status` | `valid` or `unavailable`, matching the RMS product. |
 | `provenance` | Exact input, configuration, science-profile, and implementation identities, and any caller-supplied image metadata. |

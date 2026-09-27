@@ -58,6 +58,34 @@ def test_materialized_fits_is_repeatable_and_self_identifying(
         assert hdus[0].header["HEBOGDS"] == _DATASET_ID
 
 
+def test_materialization_in_row_blocks_writes_the_whole_image_file(
+    tmp_path: Path,
+) -> None:
+    """A recipe above the block bound streams through windows, unchanged.
+
+    The window generator is position-keyed and the blocks tile the plane
+    exactly, so a file generated in three-row blocks is the file whole-image
+    generation writes, byte for byte, checksum included.
+    """
+    whole = tmp_path / "whole.fits"
+    blocked = tmp_path / "blocked.fits"
+
+    whole_digest = materialize_dataset(_MANIFEST, _DATASET_ID, whole)
+    blocked_digest = materialize_dataset(
+        _MANIFEST, _DATASET_ID, blocked, maximum_block_pixels=3 * 256
+    )
+
+    assert blocked_digest == whole_digest == _EXPECTED_SHA256
+    assert blocked.read_bytes() == whole.read_bytes()
+    with pytest.raises(ValueError, match="maximum_block_pixels"):
+        materialize_dataset(
+            _MANIFEST,
+            _DATASET_ID,
+            tmp_path / "refused.fits",
+            maximum_block_pixels=0,
+        )
+
+
 def test_materialization_rejects_an_unknown_dataset(tmp_path: Path) -> None:
     """A typo cannot silently select or synthesize a different dataset."""
     with pytest.raises(ValueError, match="found 0"):
