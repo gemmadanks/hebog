@@ -265,11 +265,16 @@ class PublicSourceFindingProvenance(BaseModel):
 class WideObjectCounts(BaseModel):
     """How many objects each round decided from its cores, not a window.
 
-    An object whose window exceeds a task's read budget is measured from the
-    cores that hold it, and the driver then holds that object's own pixels
-    or seeds: the one term ADR-008 bounds by the object rather than the
-    tile. Every count is zero unless an object was wider than the budget,
-    which no image within the public envelope has been observed to hold.
+    ``publication_owners``, ``support_components``, ``islands`` and
+    ``segments`` count objects whose window exceeded a task's read budget:
+    the cores that hold such an object decide it, and the driver then holds
+    its own pixels or seeds, the one term ADR-008 bounds by the object
+    rather than the tile. ``deferred_fit_parents`` answers to a different
+    bound: the fit stage defers a parent whose direct window exceeds the
+    reviewed compact admission bound, whatever the read budget, and gathers
+    its component records from the cores instead of reading it whole. Every
+    count is zero unless an object exceeded its bound, which no image within
+    the public envelope has been observed to hold.
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)

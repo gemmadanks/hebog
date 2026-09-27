@@ -26439,3 +26439,15 @@ the per-worker placement finding.
   cores, would have blocked the 10,000 raise on a case no real field
   holds. It now states the bound above and that the resolution is deferred
   work which does not gate the local tiers.
+- **Correction (review, 27 September).** The 100 MB and 3 GB figures above
+  were stated as a bound; they are one measurement and an extrapolation of
+  it. The generated case's diagonal filament is 553,817 pixels, about
+  100 MB at 186 bytes a pixel, and a filament of that width spanning
+  100,000² would be about 5.5 million pixels, about 1 GB. The rounds gather
+  every pixel of every wide segment with no cap on its size, so the
+  background box limits what one smooth object can bring, not what a
+  connected network of narrow filaments can, and the field-filling figures
+  remain the declared limit. The plan's Scalability cell and risk row and
+  ADR-008 now say so; the deferral and its reopening condition stand, and a
+  network of narrow filaments is the diagnostic that would measure the
+  term's growth.

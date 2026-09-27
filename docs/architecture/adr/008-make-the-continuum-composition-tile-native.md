@@ -12,7 +12,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-09-18 |
-| **Last Updated** | 2026-09-27 (the wide-object exception is bounded by the background box and carried as deferred work) |
+| **Last Updated** | 2026-09-27 (the wide-object exception is carried as deferred work, with its one measurement distinguished from the field-filling limit) |
 | **Deciders** | Gemma Danks |
 | **Tags** | tiling, halos, ownership, reconciliation, memory, invariance |
 
@@ -379,16 +379,18 @@ object of the round at once, so that memory is bounded by the image and not
 the tile. The catalogue-row round costs the most, 186 bytes an object pixel,
 which for a segment filling the field is about 1.7 GB at 3,000², 19 GB at
 10,000² and 1.9 TB at 100,000². It is an explicit limit on the envelope, and
-the plan's risks carry its removal. In practice the term is bounded well
-below those figures: a smooth object wider than the background box is
-absorbed by the background estimate, so what can reach the driver is a long
-structure narrower than the box, about 100 MB for the image-spanning
-filament of the generated 10,000² case and about 3 GB at 100,000² (`LOG.md`,
-27 September 2026). Moving the reductions onto the cores, as associative
-partial sums with a reviewed design for the median, is the plan's deferred
-work, reopened when a tier's traced peak shows the term or when the cluster
-benchmark is planned; it does not gate the local tiers. Source support
-escapes it: an unseeded
+the plan's risks carry its removal. The one measurement so far is well below
+those figures: the generated 10,000² case's diagonal filament, 553,817
+pixels, cost the driver about 100 MB (`LOG.md`, 27 September 2026), and a
+smooth object wider than the background box is absorbed by the background
+estimate before it can reach the driver. That is a measurement of one
+object, not a bound: the rounds gather every pixel of every wide segment
+with no cap on its size, so a connected network of narrow filaments could
+cost substantially more, up to the field-filling figures. Moving the
+reductions onto the cores, as associative partial sums with a reviewed
+design for the median, is the plan's deferred work, reopened when a tier's
+traced peak shows the term or when the cluster benchmark is planned; it
+does not gate the local tiers. Source support escapes it: an unseeded
 pixel's owner depends only on the seeds, so the driver holds only those.
 Where the science needs the whole object at once, the round relies on an
 admission bound instead, and the bound it relies on is named here, in
