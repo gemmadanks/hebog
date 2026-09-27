@@ -176,7 +176,10 @@ task reads the window that contains the whole object, makes the decision once,
 and returns a small record that the tile tasks then apply to the cores they
 own; where the decision's pixels are needed, each core derives them again from
 its own reads rather than receiving them. The decision therefore cannot depend
-on where tile boundaries fall. Objects that exceed a hard size bound are published as one explicitly
+on where tile boundaries fall. One declared exception remains: an object wider
+than a task's read budget is reduced on the driver from the pixels, or seeds,
+its cores return, so that memory grows with the object; ADR-008 bounds it to
+the current envelope. Objects that exceed a hard size bound are published as one explicitly
 deferred detection instead of consuming unbounded memory.
 
 ## The executor contract

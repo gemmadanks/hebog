@@ -26298,3 +26298,28 @@ the per-worker placement finding.
   stay fixed at 2,048 until the M5 planner work needs it. Neither changes
   a published result; the first changes the wording of the plan's task 9
   and the second the ADR's small-image paragraph.
+
+## 2026-09-27 — M2: pull request 74 review disposition
+
+- **Scope.** The Copilot and Greptile comments on `4aae382` and `456250d`.
+- **Fixed now.** The plan's Scalability cell said no other round returns an
+  array; a wide support component's seeds, 12 bytes each, do reach the
+  driver under the same declared exception as a wide object's pixels, and
+  the support scans return boundary labels bounded by a core's perimeter.
+  The cell now says so, and the distributed-execution page qualifies its
+  object-task description with the same exception. The plan's Performance
+  cell now carries the fit-support write's measured cost beside the store
+  change. A test whose name said handles are never pickled is renamed to
+  what it asserts, that a pickled sink starts without them.
+- **Answered by the contract, and now documented.** Greptile noted that a
+  long-lived sink trusts cached array metadata, so a change to a product's
+  policy or geometry on shared storage after the open goes unchecked. That
+  metadata is immutable for a generation: an array's geometry and policy
+  are fixed when it is created and the completion marker is published
+  once, so the sink validates both when a process first opens them and
+  trusts them for its lifetime, while every chunk read is still checked
+  against its record. Revalidating on each access is the per-session
+  reopen that task 4 removed for 9% of a 1,024² run. The sink's docstrings
+  and the how-to state the boundary, and the changed-policy test now
+  asserts both sides of it: the sink that opened the array reads on, and
+  the next sink to open it fails with "policy".

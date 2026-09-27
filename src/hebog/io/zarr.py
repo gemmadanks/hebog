@@ -138,7 +138,13 @@ class ZarrProductSink:
 
         A sink travels inside executor payloads, so a copy on a worker opens
         its own array handles and reads the completion marker once, and the
-        pickled bytes never carry a store object.
+        pickled bytes never carry a store object. Both are immutable for a
+        generation: an array's geometry and policy are fixed when it is
+        created and the marker is published once, so a process validates
+        them when it first opens them and trusts them for the sink's
+        lifetime, while every chunk read is still checked against its
+        record. A change to either on disk is not a supported operation; the
+        next process or task to open the product rejects it.
         """
         state = self.__dict__.copy()
         state["_array_cache"] = {}
@@ -262,7 +268,12 @@ class ZarrProductSink:
         )
 
     def _open_array(self, product_name: str) -> Any:
-        """Open a pre-created product without racing metadata creation."""
+        """Open a pre-created product without racing metadata creation.
+
+        The handle is validated once per process and then cached for the
+        sink's lifetime, because array metadata is immutable for a
+        generation; see :meth:`__getstate__`.
+        """
         validate_product_name(product_name)
         cached = self._array_cache.get(product_name)
         if cached is not None:

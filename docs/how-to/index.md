@@ -586,7 +586,11 @@ Consumers call `read_generation`, which validates the marker and returns it
 without re-reading the chunks: each chunk is validated against its record
 whenever it is read, so a consumer never pays for a whole generation it does
 not use. A sink caches its array handles and the parsed marker for its
-lifetime in one process; a pickled copy starts empty.
+lifetime in one process, and a pickled copy starts empty. Both are immutable
+for a generation, so a process validates them when it first opens them and
+trusts them thereafter; changing either on disk is not a supported operation
+and is rejected by the next process or task that opens the product, while
+every chunk read is still checked against its record.
 
 Stream a completed product into final FITS without materialising the complete
 plane. Admit enough memory for one full-width canonical tile row:

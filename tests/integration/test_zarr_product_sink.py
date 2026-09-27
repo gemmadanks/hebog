@@ -320,7 +320,7 @@ def test_reads_reuse_metadata_but_revalidate_chunk_content(
     assert read_count == 2
 
 
-def test_array_handles_last_the_sink_lifetime_and_never_pickle(
+def test_a_pickled_sink_starts_without_the_handles_it_cached(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -741,6 +741,10 @@ def test_read_rejects_noncanonical_records_and_changed_policy(
 
     group = zarr.open_group(store=root, mode="r+")
     group["rms"].attrs["hebog_missing_chunk_policy"] = "fill"
+    # Array metadata is immutable for a generation, so the sink that
+    # validated it when it opened the array trusts it for its lifetime; the
+    # next process or task to open the product is where a change is caught.
+    np.testing.assert_array_equal(sink.read_chunk(record), _values_for(0))
     with pytest.raises(InvalidProductChunkError, match="policy"):
         _sink(root, manifest).read_chunk(record)
 
