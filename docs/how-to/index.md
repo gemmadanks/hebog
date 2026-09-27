@@ -144,10 +144,13 @@ The cases are in `config/benchmarks/quick-benchmark.json`, grouped in tiers:
   the 10,000² cut-out, 25 tiles holding the field's largest islands, is the
   anchor for that envelope tier. The tier ends with `wide-objects-10000`, a
   generated 10,000² image holding a filament along its diagonal and a
-  diffuse Gaussian whose island covers millions of pixels: no public LOFAR
-  field holds an object wider than a task's read budget (the largest island
-  in LoTSS-DR3 mosaic 1312 spans 131 pixels), so this case exists to put
-  objects on the wide paths and measure what they cost the driver. It is a
+  diffuse Gaussian 3,000 pixels across: no public LOFAR field holds an
+  object wider than a task's read budget (the largest island in LoTSS-DR3
+  mosaic 1312 spans 131 pixels), so this case exists to put objects on the
+  wide paths and measure what they cost the driver. In the recorded run the
+  filament formed one island of 553,817 pixels that every wide path measured
+  from its cores, while the diffuse Gaussian, wider than the background box,
+  was absorbed into the background estimate and formed no island. It is a
   diagnostic, not a science case. Run the tier with `--tier large` before
   profiling or a release; it currently takes hours.
 

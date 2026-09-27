@@ -26375,8 +26375,11 @@ the per-worker placement finding.
   `wide_parent_count`, beside the publication stage's `wide_owner_count`),
   and the public diagnostics carry them as `wide_object_counts`, which
   moves the diagnostics schema to 10. The stage tests assert the counts on
-  their wide fixtures, the public test asserts zeros, and the dataset-usage
-  test now requires every generated dataset in the shared manifest to be a
+  their wide fixtures; the public tests assert zeros on the shared fixture,
+  the full nonzero payload under a one-pixel read budget (with products
+  equal to the windowed run's) and a one-pixel compact bound, and that each
+  round's count reaches its own field; and the dataset-usage test now
+  requires every generated dataset in the shared manifest to be a
   science-check or benchmark case.
 - **Traced peaks** (`just traced-peak`, `v0.14.1`, single thread, load
   median 1.9 and 1.8 during the traces):
@@ -26410,7 +26413,7 @@ the per-worker placement finding.
   needs the term itself measured. The LoTSS anchor's counts are all zero.
   Untraced single runs took 22 min (LoTSS) and 13 min (wide), diagnostic
   figures only.
-- **Checks.** Coverage 97% over 2,716 portable tests with the four stage
+- **Checks.** Coverage 97% over 2,718 portable tests with the four stage
   modules at 100%; pyright clean; `just pre-commit` passes.
 - **What this leaves.** Task 7 leaves the plan. Task 8 has its anchor and a
   reproduced traced peak; it still needs the exact tiled-invariance tests

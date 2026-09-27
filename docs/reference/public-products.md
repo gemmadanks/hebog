@@ -279,7 +279,7 @@ mean every low-surface-brightness pixel near a source is included.
 ## Diagnostics JSON
 
 `diagnostics.json` is canonical UTF-8 JSON with sorted keys and one final
-newline. Schema 9 rejects unknown fields and contains:
+newline. Schema 10 rejects unknown fields and contains:
 
 | Field | Meaning |
 | --- | --- |
@@ -294,7 +294,7 @@ newline. Schema 9 rejects unknown fields and contains:
 | `measurement_dispositions` | Complete structured census described below. |
 | `rms_scientific_status` | `valid` or `unavailable`, matching the RMS product. |
 | `provenance` | Exact input, configuration, science-profile, and implementation identities, and any caller-supplied image metadata. |
-| `schema_version` | `9`. |
+| `schema_version` | `10`. |
 
 ### Provenance
 

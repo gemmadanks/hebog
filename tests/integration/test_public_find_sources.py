@@ -39,6 +39,8 @@ from hebog.pipeline import (
     SourceFinderOutputExistsError,
     UnsupportedSourceFinderConfigurationError,
 )
+from hebog.science import continuum
+from hebog.science.models import TiledComponentFits
 from hebog.stages import detection as detection_stage
 from hebog.stages.background import BackgroundRmsGrids
 from hebog.validation.public_measurement_projection import (
@@ -724,6 +726,162 @@ def test_public_find_sources_materializes_the_qualified_continuum_view(
     assert diagnostics.configuration_qualification == "development-unqualified"
     assert diagnostics.provenance.input_sha256
     assert diagnostics.provenance.scientific_composition_sha256
+
+
+@pytest.mark.integration
+def test_public_wide_object_counts_record_every_round_decided_from_cores(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A one-pixel read budget puts every object on the wide paths, unchanged.
+
+    No window fits a one-pixel budget, so each round decides every object
+    from its cores: the ring's four lobes are four publication owners and
+    four islands, one support component, and five segment rows (four
+    components and one source), while no fit parent is deferred. The
+    catalogue, dispositions, mask and RMS equal the windowed run's. A
+    one-pixel compact bound then defers the ring's one fit parent as well:
+    each island publishes its own source, so the support components and the
+    source rows number four and the segment rows eight.
+    """
+    _write_image(tmp_path / "image.fits", _ring_image())
+    reference = hebog.find_sources(
+        _request(tmp_path, output_name="reference"),
+        _config(),
+        SerialExecutor(),
+    )
+    monkeypatch.setattr(public_api, "_OWNER_BATCH_READ_PIXELS", 1)
+
+    result = hebog.find_sources(
+        _request(tmp_path, output_name="wide"), _config(), SerialExecutor()
+    )
+
+    diagnostics = read_diagnostics_product(result.diagnostics)
+    assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
+    assert diagnostics.wide_object_counts == WideObjectCounts(
+        publication_owners=4,
+        support_components=1,
+        deferred_fit_parents=0,
+        islands=4,
+        segments=5,
+    )
+    assert (diagnostics.island_count, diagnostics.source_count) == (4, 1)
+    assert diagnostics.gaussian_component_count == 4
+    expected_diagnostics = read_diagnostics_product(reference.diagnostics)
+    assert isinstance(expected_diagnostics, PublicSourceFindingDiagnostics)
+    assert (
+        diagnostics.measurement_dispositions
+        == expected_diagnostics.measurement_dispositions
+    )
+    catalogue = read_catalogue_fits_product(result.catalogue)
+    expected_catalogue = read_catalogue_fits_product(reference.catalogue)
+    assert catalogue.islands == expected_catalogue.islands
+    assert catalogue.sources == expected_catalogue.sources
+    assert (
+        catalogue.gaussian_components == expected_catalogue.gaussian_components
+    )
+    for product in ("mask_path", "rms_path"):
+        np.testing.assert_array_equal(
+            fits.getdata(getattr(result, product)),
+            fits.getdata(getattr(reference, product)),
+            product,
+        )
+
+    reviewed_deblend = continuum.compact_deblend_config
+
+    def one_pixel_deblend_bound(config: SourceFinderConfig) -> Any:
+        return replace(
+            reviewed_deblend(config), maximum_compact_bounds_pixels=1
+        )
+
+    monkeypatch.setattr(
+        continuum, "compact_deblend_config", one_pixel_deblend_bound
+    )
+    deferred = hebog.find_sources(
+        _request(tmp_path, output_name="deferred"),
+        _config(),
+        SerialExecutor(),
+    )
+
+    deferred_diagnostics = read_diagnostics_product(deferred.diagnostics)
+    assert isinstance(deferred_diagnostics, PublicSourceFindingDiagnostics)
+    assert deferred_diagnostics.wide_object_counts == WideObjectCounts(
+        publication_owners=4,
+        support_components=4,
+        deferred_fit_parents=1,
+        islands=4,
+        segments=8,
+    )
+    assert deferred_diagnostics.deferred_deblend_parent_count > 0
+    assert deferred_diagnostics.gaussian_component_count == 0
+    assert deferred_diagnostics.source_count == 4
+
+
+@pytest.mark.integration
+def test_public_wide_object_counts_map_each_round_to_its_own_field(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Each round's wide count reaches its own diagnostics field.
+
+    Distinct sentinels replace the count each publishing round reports, so a
+    swapped or dropped count would show in the payload. The two segment
+    rounds, component rows and source rows, are the one field that sums.
+    """
+    _write_image(tmp_path / "image.fits", _ring_image())
+    support_labels = public_api.publish_support_labels
+    source_planes = public_api.publish_source_planes
+    component_fits = public_api.publish_component_fits
+    detection_islands = public_api.publish_detection_islands
+    segment_rows = public_api.publish_segment_rows
+    segment_sentinels = {"component-rows": 50, "source-rows": 7}
+
+    def owners(*args: Any, **kwargs: Any) -> tuple[int, int, ZarrProductSink]:
+        accepted, _, sink = support_labels(*args, **kwargs)
+        return accepted, 11, sink
+
+    def components(
+        *args: Any, **kwargs: Any
+    ) -> tuple[ZarrProductSink, ZarrProductSink, int]:
+        labels, support, _ = source_planes(*args, **kwargs)
+        return labels, support, 22
+
+    def parents(
+        *args: Any, **kwargs: Any
+    ) -> tuple[TiledComponentFits, ZarrProductSink]:
+        fitted, sink = component_fits(*args, **kwargs)
+        return replace(fitted, wide_parent_count=33), sink
+
+    def islands(*args: Any, **kwargs: Any) -> tuple[Any, Any, int]:
+        rows, island_ids_by_owner, _ = detection_islands(*args, **kwargs)
+        return rows, island_ids_by_owner, 44
+
+    def segments(*args: Any, **kwargs: Any) -> tuple[Any, Any, Any, int]:
+        rows, local_rms, positions, _ = segment_rows(*args, **kwargs)
+        return (
+            rows,
+            local_rms,
+            positions,
+            segment_sentinels[kwargs["sink_name"]],
+        )
+
+    monkeypatch.setattr(public_api, "publish_support_labels", owners)
+    monkeypatch.setattr(public_api, "publish_source_planes", components)
+    monkeypatch.setattr(public_api, "publish_component_fits", parents)
+    monkeypatch.setattr(public_api, "publish_detection_islands", islands)
+    monkeypatch.setattr(public_api, "publish_segment_rows", segments)
+
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+
+    diagnostics = read_diagnostics_product(result.diagnostics)
+    assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
+    assert diagnostics.wide_object_counts == WideObjectCounts(
+        publication_owners=11,
+        support_components=22,
+        deferred_fit_parents=33,
+        islands=44,
+        segments=57,
+    )
 
 
 @pytest.mark.integration

@@ -65,25 +65,40 @@ def test_materialization_in_row_blocks_writes_the_whole_image_file(
 
     The window generator is position-keyed and the blocks tile the plane
     exactly, so a file generated in three-row blocks is the file whole-image
-    generation writes, byte for byte, checksum included.
+    generation writes, byte for byte, checksum included. A block is never
+    narrower than one full-width row, so a bound that cannot hold one row is
+    refused rather than silently exceeded.
     """
     whole = tmp_path / "whole.fits"
     blocked = tmp_path / "blocked.fits"
+    one_row = tmp_path / "one-row.fits"
 
     whole_digest = materialize_dataset(_MANIFEST, _DATASET_ID, whole)
     blocked_digest = materialize_dataset(
         _MANIFEST, _DATASET_ID, blocked, maximum_block_pixels=3 * 256
     )
+    one_row_digest = materialize_dataset(
+        _MANIFEST, _DATASET_ID, one_row, maximum_block_pixels=256
+    )
 
-    assert blocked_digest == whole_digest == _EXPECTED_SHA256
-    assert blocked.read_bytes() == whole.read_bytes()
-    with pytest.raises(ValueError, match="maximum_block_pixels"):
+    assert blocked_digest == one_row_digest == whole_digest
+    assert whole_digest == _EXPECTED_SHA256
+    assert blocked.read_bytes() == one_row.read_bytes() == whole.read_bytes()
+    with pytest.raises(ValueError, match="maximum_block_pixels must be pos"):
         materialize_dataset(
             _MANIFEST,
             _DATASET_ID,
             tmp_path / "refused.fits",
             maximum_block_pixels=0,
         )
+    with pytest.raises(ValueError, match="one full-width row of 256 pixels"):
+        materialize_dataset(
+            _MANIFEST,
+            _DATASET_ID,
+            tmp_path / "refused.fits",
+            maximum_block_pixels=255,
+        )
+    assert not (tmp_path / "refused.fits").exists()
 
 
 def test_materialization_rejects_an_unknown_dataset(tmp_path: Path) -> None:

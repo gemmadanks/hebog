@@ -254,6 +254,15 @@ def synthetic_image_metadata(dataset: DatasetRecord) -> ImageMetadata:
 _MAXIMUM_BLOCK_PIXELS = 4096 * 4096
 
 
+def _file_sha256(path: Path) -> str:
+    """Hash one artifact without retaining another complete copy in memory."""
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
 def materialize_dataset(
     manifest_path: Path,
     dataset_id: str,
@@ -270,6 +279,11 @@ def materialize_dataset(
     than the whole ``float64`` image. The blocks tile the plane exactly and
     the window generator is position-keyed, so the file is the one that
     whole-image generation writes, byte for byte.
+
+    Raises:
+        ValueError: If ``maximum_block_pixels`` is not positive, or if the
+            recipe needs blocking and the bound cannot hold one full-width
+            row, since a row block is never narrower than the image.
     """
     if maximum_block_pixels <= 0:
         raise ValueError("maximum_block_pixels must be positive")
@@ -283,7 +297,12 @@ def materialize_dataset(
             image[np.newaxis, np.newaxis, :, :], dtype=np.float32
         )
     else:
-        rows = max(1, maximum_block_pixels // width)
+        if maximum_block_pixels < width:
+            raise ValueError(
+                "maximum_block_pixels must hold one full-width row of "
+                f"{width} pixels, got {maximum_block_pixels}"
+            )
+        rows = maximum_block_pixels // width
         data = np.empty((1, 1, height, width), dtype=np.float32)
         for y_start in range(0, height, rows):
             y_stop = min(y_start + rows, height)
@@ -301,16 +320,7 @@ def materialize_dataset(
         output_path,
         overwrite=overwrite,
     )
-    return hashlib.sha256(output_path.read_bytes()).hexdigest()
-
-
-def _file_sha256(path: Path) -> str:
-    """Hash one artifact without retaining another complete copy in memory."""
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
+    return _file_sha256(output_path)
 
 
 def _verify_external_artifact(
