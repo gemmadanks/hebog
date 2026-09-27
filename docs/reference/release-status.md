@@ -16,7 +16,7 @@ version when results must be repeatable.
 | Units | `BUNIT=Jy/beam`. |
 | Coordinates | ICRS or FK5 J2000 celestial WCS. A header with `EQUINOX = 2000` and no `RADESYS`, as written by WSClean, is FK5 J2000. Catalogue positions are always ICRS. Other frames are rejected. |
 | Beam and frequency | Finite positive `BMAJ` and `BMIN`, a `BPA`, and a positive reference frequency. The request can supply a value the header omits, never one it already has. |
-| Image size | At most 3,000 pixels on each side. Larger images fail before analysis. |
+| Image size | At most 10,000 pixels on each side. Larger images fail before analysis. |
 | Invalid pixels | NaN pixels are excluded from estimation, detection and measurement. |
 | Profiles | `continuum` (default), or `compact`, which omits extended-source association and reports `extended-emission-incomplete`. |
 | Thresholds | Caller-set detection and island thresholds (island below detection), minimum and optional maximum island size. |

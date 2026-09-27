@@ -99,7 +99,7 @@ def test_worker_reports_both_traced_spans_of_a_complete_run(
     # floor this large is only reached when tracing covered the imports.
     assert record.import_traced_bytes > 10 * 2**20
     assert record.finder_peak_traced_bytes > record.import_traced_bytes
-    assert record.public_size_limit_pixels == 3000
+    assert record.public_size_limit_pixels == 10000
     assert record.source_count >= 1
     assert record.gaussian_component_count >= 1
     assert record.traced_wall_seconds > 0

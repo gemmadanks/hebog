@@ -6,7 +6,7 @@ and software properties, not measured accuracy.
 
 !!! warning "Hebog is experimental"
     The other tools here have produced published survey catalogues. Hebog has
-    not, accepts images only up to 3,000 pixels per side today, and is not
+    not, accepts images only up to 10,000 pixels per side today, and is not
     scientifically qualified. For a science catalogue now, use an established
     finder. See [capability and status](../reference/release-status.md).
 

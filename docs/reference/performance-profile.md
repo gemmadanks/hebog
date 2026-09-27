@@ -32,11 +32,12 @@ profile ranks costs; only the quick benchmark establishes a speedup, and only
 
 !!! note "Sizes above the public envelope"
 
-    `find_sources` refuses an image wider than 3,000 pixels with
-    `SourceFinderImageTooLargeError`. The profiler and the quick benchmark
-    raise that limit deliberately so the size ladder can be measured ahead
-    of the envelope. A 4,096-pixel figure on this page is a measurement, not
-    a supported size; the plan's scalability row states what is supported.
+    `find_sources` refuses an image wider than 10,000 pixels with
+    `SourceFinderImageTooLargeError`. The profiler, the quick benchmark and
+    the traced-peak harness raise that limit deliberately so the next tier
+    can be measured before it is admitted. A figure above 10,000 pixels on
+    this page is a measurement, not a supported size; the plan's scalability
+    row states what is supported.
 
 !!! warning "Measure on a quiet machine"
 
@@ -109,8 +110,8 @@ With 2,048-pixel cores, 2,048² is the last single-tile size. Every image
 the envelope admitted before 22 September 2026 was one tile, so a profile
 inside it could not tell tile-bounded state from image-bounded state: a core
 and a plane were the same array. The ladder therefore carries a 4,096-pixel
-pair, the smallest generated images holding more than one core, and the
-envelope now reaches 3,000, which is four.
+pair, the smallest generated images holding more than one core. The
+envelope now reaches 10,000, which is 25.
 
 | case | megapixels | peak RSS | MiB per megapixel |
 | --- | --- | --- | --- |
