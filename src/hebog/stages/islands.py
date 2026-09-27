@@ -19,7 +19,6 @@ pixels alone.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from functools import partial
 from numbers import Integral
@@ -77,10 +76,6 @@ class _CompletedProductSource(Protocol):
     @property
     def manifest(self) -> PartitionManifest:
         """Return the canonical partition the generation was written on."""
-        ...
-
-    def access_session(self) -> AbstractContextManager[None]:
-        """Hold one bounded read session open for a batch of windows."""
         ...
 
     def read_generation(self) -> ProductGenerationManifest:
@@ -310,50 +305,46 @@ def _scan_islands(
     image_shape_yx: tuple[int, int],
 ) -> _ScanBatchResult:
     """Label each core's islands and observe the owners they hold."""
-    with (
-        publication_source.access_session(),
-        component_source.access_session(),
-    ):
-        tiles: list[_TileIslands] = []
-        maximum_read_pixels = 0
-        summary_bytes = 0
-        for partition in batch.partitions:
-            bounds = partition.core_bounds
-            retained = np.asarray(
-                publication_source.read_completed_window(
-                    "retained-mask",
-                    bounds,
-                ),
-                dtype=np.bool_,
-            )
-            owners = np.asarray(
-                component_source.read_completed_window(
-                    "component-measurement-labels",
-                    bounds,
-                ),
-                dtype=np.int32,
-            )
-            tile = _label_core(
-                retained,
-                partition,
-                image_shape_yx=image_shape_yx,
-            )
-            tiles.append(
-                _TileIslands(
-                    summary=tile.compact_summary(),
-                    owner_pairs=_core_owner_pairs(tile.labels, owners),
-                )
-            )
-            maximum_read_pixels = max(
-                maximum_read_pixels,
-                int(np.prod(bounds.shape_yx)),
-            )
-            summary_bytes += _summary_array_bytes(tiles[-1].summary)
-        return _ScanBatchResult(
-            tiles=tuple(tiles),
-            maximum_core_read_pixels=maximum_read_pixels,
-            summary_array_bytes=summary_bytes,
+    tiles: list[_TileIslands] = []
+    maximum_read_pixels = 0
+    summary_bytes = 0
+    for partition in batch.partitions:
+        bounds = partition.core_bounds
+        retained = np.asarray(
+            publication_source.read_completed_window(
+                "retained-mask",
+                bounds,
+            ),
+            dtype=np.bool_,
         )
+        owners = np.asarray(
+            component_source.read_completed_window(
+                "component-measurement-labels",
+                bounds,
+            ),
+            dtype=np.int32,
+        )
+        tile = _label_core(
+            retained,
+            partition,
+            image_shape_yx=image_shape_yx,
+        )
+        tiles.append(
+            _TileIslands(
+                summary=tile.compact_summary(),
+                owner_pairs=_core_owner_pairs(tile.labels, owners),
+            )
+        )
+        maximum_read_pixels = max(
+            maximum_read_pixels,
+            int(np.prod(bounds.shape_yx)),
+        )
+        summary_bytes += _summary_array_bytes(tiles[-1].summary)
+    return _ScanBatchResult(
+        tiles=tuple(tiles),
+        maximum_core_read_pixels=maximum_read_pixels,
+        summary_array_bytes=summary_bytes,
+    )
 
 
 def _global_owner_pairs(
@@ -527,37 +518,33 @@ def _measure_islands(
     config: DetectionIslandStageConfig,
 ) -> _RowBatchResult:
     """Measure every island of one batch inside its own window."""
-    with (
-        background_rms_source.access_session(),
-        publication_source.access_session(),
-    ):
-        bounds = batch.read_bounds
-        residual, rms, retained = _read_island_planes(
-            bounds,
-            source=source,
-            background_rms_source=background_rms_source,
-            publication_source=publication_source,
-        )
-        rows = tuple(
-            (
-                island.global_label,
-                measure_detection_island(
-                    residual[_crop(bounds, island.bounds)],
-                    rms[_crop(bounds, island.bounds)],
-                    _island_mask(
-                        retained[_crop(bounds, island.bounds)],
-                        island,
-                    ),
-                    first_pixel_yx=island.first_pixel_yx,
-                    beam_area_pixels=config.beam_area_pixels,
+    bounds = batch.read_bounds
+    residual, rms, retained = _read_island_planes(
+        bounds,
+        source=source,
+        background_rms_source=background_rms_source,
+        publication_source=publication_source,
+    )
+    rows = tuple(
+        (
+            island.global_label,
+            measure_detection_island(
+                residual[_crop(bounds, island.bounds)],
+                rms[_crop(bounds, island.bounds)],
+                _island_mask(
+                    retained[_crop(bounds, island.bounds)],
+                    island,
                 ),
-            )
-            for island in batch.islands
+                first_pixel_yx=island.first_pixel_yx,
+                beam_area_pixels=config.beam_area_pixels,
+            ),
         )
-        return _RowBatchResult(
-            rows=rows,
-            maximum_island_read_pixels=read_pixels(bounds),
-        )
+        for island in batch.islands
+    )
+    return _RowBatchResult(
+        rows=rows,
+        maximum_island_read_pixels=read_pixels(bounds),
+    )
 
 
 def _gather_island_pixels(
@@ -574,47 +561,43 @@ def _gather_island_pixels(
     mapping names the island's pixels there, and nothing beyond the core is
     read.
     """
-    with (
-        background_rms_source.access_session(),
-        publication_source.access_session(),
-    ):
-        pieces: list[_IslandPixels] = []
-        maximum_read_pixels = 0
-        for core in batch.cores:
-            bounds = core.partition.core_bounds
-            residual, rms, retained = _read_island_planes(
-                bounds,
-                source=source,
-                background_rms_source=background_rms_source,
-                publication_source=publication_source,
-            )
-            labels = apply_tile_label_mapping(
-                _label_core(
-                    retained, core.partition, image_shape_yx=image_shape_yx
-                ),
-                core.mapping,
-            )
-            for global_label in sorted(set(core.mapping.global_labels)):
-                member = labels == global_label
-                rows, columns = np.nonzero(member)
-                pieces.append(
-                    _IslandPixels(
-                        global_label=global_label,
-                        raster_indices=(
-                            (rows.astype(np.int64) + bounds.y_start)
-                            * image_shape_yx[1]
-                            + columns
-                            + bounds.x_start
-                        ),
-                        residual=residual[member],
-                        rms=rms[member],
-                    )
-                )
-            maximum_read_pixels = max(maximum_read_pixels, read_pixels(bounds))
-        return _PixelBatchResult(
-            pieces=tuple(pieces),
-            maximum_core_read_pixels=maximum_read_pixels,
+    pieces: list[_IslandPixels] = []
+    maximum_read_pixels = 0
+    for core in batch.cores:
+        bounds = core.partition.core_bounds
+        residual, rms, retained = _read_island_planes(
+            bounds,
+            source=source,
+            background_rms_source=background_rms_source,
+            publication_source=publication_source,
         )
+        labels = apply_tile_label_mapping(
+            _label_core(
+                retained, core.partition, image_shape_yx=image_shape_yx
+            ),
+            core.mapping,
+        )
+        for global_label in sorted(set(core.mapping.global_labels)):
+            member = labels == global_label
+            rows, columns = np.nonzero(member)
+            pieces.append(
+                _IslandPixels(
+                    global_label=global_label,
+                    raster_indices=(
+                        (rows.astype(np.int64) + bounds.y_start)
+                        * image_shape_yx[1]
+                        + columns
+                        + bounds.x_start
+                    ),
+                    residual=residual[member],
+                    rms=rms[member],
+                )
+            )
+        maximum_read_pixels = max(maximum_read_pixels, read_pixels(bounds))
+    return _PixelBatchResult(
+        pieces=tuple(pieces),
+        maximum_core_read_pixels=maximum_read_pixels,
+    )
 
 
 def _spanning_island_row(

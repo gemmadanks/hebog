@@ -582,8 +582,11 @@ checksums every referenced Zarr chunk. Only after those checks pass does it
 conditionally create the canonical completion marker. Identical publication
 retries are idempotent; a different marker cannot replace the winner. An
 interrupted run has no marker and resumes by writing only its missing chunks.
-Consumers call `read_generation`, which validates the marker and its chunks
-again before returning them.
+Consumers call `read_generation`, which validates the marker and returns it
+without re-reading the chunks: each chunk is validated against its record
+whenever it is read, so a consumer never pays for a whole generation it does
+not use. A sink caches its array handles and the parsed marker for its
+lifetime in one process; a pickled copy starts empty.
 
 Stream a completed product into final FITS without materialising the complete
 plane. Admit enough memory for one full-width canonical tile row:

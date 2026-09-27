@@ -12,7 +12,6 @@ bounded by the segment it describes. No round reduces anything globally.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from contextlib import AbstractContextManager
 from dataclasses import dataclass, replace
 from functools import partial
 from numbers import Integral
@@ -88,10 +87,6 @@ class _CompletedProductSource(Protocol):
     @property
     def manifest(self) -> PartitionManifest:
         """Return the canonical partition the generation was written on."""
-        ...
-
-    def access_session(self) -> AbstractContextManager[None]:
-        """Hold one bounded read session open for a batch of windows."""
         ...
 
     def read_generation(self) -> ProductGenerationManifest:
@@ -346,43 +341,37 @@ def _publish_apertures(  # noqa: PLR0913
         if config.aperture_tie_policy == "canonical-source"
         else expand_detected_segment_labels
     )
-    with (
-        background_rms_source.access_session(),
-        detection_source.access_session(),
-        label_source.access_session(),
-        sink.access_session(),
-    ):
-        chunks: list[ProductChunk] = []
-        for partition in batch.partitions:
-            core = partition.core_bounds
-            read = core.expanded(config.aperture_radius_pixels, image_shape_yx)
-            _, residual, valid = _measurable_window(
-                read,
-                source=source,
-                background_rms_source=background_rms_source,
-                detection_source=detection_source,
-            )
-            apertures = expand(
-                np.asarray(
-                    label_source.read_completed_window(
-                        config.label_product_name,
-                        read,
-                    ),
-                    dtype=np.int32,
+    chunks: list[ProductChunk] = []
+    for partition in batch.partitions:
+        core = partition.core_bounds
+        read = core.expanded(config.aperture_radius_pixels, image_shape_yx)
+        _, residual, valid = _measurable_window(
+            read,
+            source=source,
+            background_rms_source=background_rms_source,
+            detection_source=detection_source,
+        )
+        apertures = expand(
+            np.asarray(
+                label_source.read_completed_window(
+                    config.label_product_name,
+                    read,
                 ),
-                valid & np.isfinite(residual),
-                radius_pixels=config.aperture_radius_pixels,
+                dtype=np.int32,
+            ),
+            valid & np.isfinite(residual),
+            radius_pixels=config.aperture_radius_pixels,
+        )
+        chunks.append(
+            sink.write_chunk(
+                product_name="aperture-labels",
+                tile=partition,
+                values=np.asarray(
+                    apertures[_crop(read, core)], dtype=np.int32
+                ),
             )
-            chunks.append(
-                sink.write_chunk(
-                    product_name="aperture-labels",
-                    tile=partition,
-                    values=np.asarray(
-                        apertures[_crop(read, core)], dtype=np.int32
-                    ),
-                )
-            )
-        return _ApertureBatchResult(product_chunks=tuple(chunks))
+        )
+    return _ApertureBatchResult(product_chunks=tuple(chunks))
 
 
 def _crop(read: ImageBounds, window: ImageBounds) -> tuple[slice, slice]:
@@ -423,26 +412,25 @@ def _scan_windows(
     label_product_name: str,
 ) -> _WindowBatchResult:
     """Observe the bounds each core holds for its segments and apertures."""
-    with label_source.access_session(), aperture_source.access_session():
-        observed: list[tuple[int, ImageBounds, str]] = []
-        for partition in batch.partitions:
-            core = partition.core_bounds
-            for product_source, product_name in (
-                (label_source, label_product_name),
-                (aperture_source, "aperture-labels"),
-            ):
-                observed.extend(
-                    _label_bounds(
-                        np.asarray(
-                            product_source.read_completed_window(
-                                product_name, core
-                            ),
-                            dtype=np.int32,
+    observed: list[tuple[int, ImageBounds, str]] = []
+    for partition in batch.partitions:
+        core = partition.core_bounds
+        for product_source, product_name in (
+            (label_source, label_product_name),
+            (aperture_source, "aperture-labels"),
+        ):
+            observed.extend(
+                _label_bounds(
+                    np.asarray(
+                        product_source.read_completed_window(
+                            product_name, core
                         ),
-                        partition,
-                    )
+                        dtype=np.int32,
+                    ),
+                    partition,
                 )
-        return _WindowBatchResult(observed=tuple(observed))
+            )
+    return _WindowBatchResult(observed=tuple(observed))
 
 
 def _union(first: ImageBounds | None, second: ImageBounds) -> ImageBounds:
@@ -685,54 +673,40 @@ def _row_batch(  # noqa: PLR0913
 ) -> _RowBatchResult:
     """Measure every segment of one batch inside its own window."""
     celestial_wcs = celestial_wcs_from_header_text(wcs_header_text)
-    with (
-        background_rms_source.access_session(),
-        detection_source.access_session(),
-        label_source.access_session(),
-        centroid_source.access_session(),
-        aperture_source.access_session(),
-        position_source.access_session(),
-    ):
-        read = _read_rows(
-            batch.read_bounds,
-            source=source,
-            background_rms_source=background_rms_source,
-            detection_source=detection_source,
-            label_source=label_source,
-            centroid_source=centroid_source,
-            aperture_source=aperture_source,
-            position_source=position_source,
-            config=config,
-        )
-        diagnostics: dict[int, SourcePositionDiagnostics] = {}
-        measured = [
-            item
-            for item in (
-                _measure_segment(
-                    segment,
-                    read,
-                    config=config,
-                    image_shape_yx=image_shape_yx,
-                    diagnostics=(
-                        diagnostics
-                        if config.with_position_diagnostics
-                        else None
-                    ),
-                )
-                for segment in batch.segments
+    read = _read_rows(
+        batch.read_bounds,
+        source=source,
+        background_rms_source=background_rms_source,
+        detection_source=detection_source,
+        label_source=label_source,
+        centroid_source=centroid_source,
+        aperture_source=aperture_source,
+        position_source=position_source,
+        config=config,
+    )
+    diagnostics: dict[int, SourcePositionDiagnostics] = {}
+    measured = [
+        item
+        for item in (
+            _measure_segment(
+                segment,
+                read,
+                config=config,
+                image_shape_yx=image_shape_yx,
+                diagnostics=(
+                    diagnostics if config.with_position_diagnostics else None
+                ),
             )
-            if item is not None
-        ]
-        return _RowBatchResult(
-            rows=_shaped_rows(
-                measured, celestial_wcs=celestial_wcs, beam=beam
-            ),
-            local_rms=_batch_local_rms(batch, read),
-            diagnostics=tuple(sorted(diagnostics.items())),
-            maximum_segment_read_pixels=int(
-                np.prod(batch.read_bounds.shape_yx)
-            ),
+            for segment in batch.segments
         )
+        if item is not None
+    ]
+    return _RowBatchResult(
+        rows=_shaped_rows(measured, celestial_wcs=celestial_wcs, beam=beam),
+        local_rms=_batch_local_rms(batch, read),
+        diagnostics=tuple(sorted(diagnostics.items())),
+        maximum_segment_read_pixels=int(np.prod(batch.read_bounds.shape_yx)),
+    )
 
 
 def _batch_local_rms(
@@ -810,60 +784,51 @@ def _gather_wide_segments(  # noqa: PLR0913
     keeps the pixels it owns, holds in its measured support or holds in its
     aperture, which are all the pixels its row, moment and noise visit.
     """
-    with (
-        background_rms_source.access_session(),
-        detection_source.access_session(),
-        label_source.access_session(),
-        centroid_source.access_session(),
-        aperture_source.access_session(),
-        position_source.access_session(),
-    ):
-        pieces: list[_SegmentPiece] = []
-        maximum_read_pixels = 0
-        for core in batch.cores:
-            bounds = core.partition.core_bounds
-            read = _read_rows(
-                bounds,
-                source=source,
-                background_rms_source=background_rms_source,
-                detection_source=detection_source,
-                label_source=label_source,
-                centroid_source=centroid_source,
-                aperture_source=aperture_source,
-                position_source=position_source,
-                config=config,
-            )
-            for label_value in core.label_values:
-                owned = read.centroids == label_value
-                labelled = read.labels == label_value
-                aperture = read.apertures == label_value
-                member = owned | labelled | aperture
-                rows, columns = np.nonzero(member)
-                pieces.append(
-                    _SegmentPiece(
-                        label_value=label_value,
-                        raster_indices=(
-                            (rows.astype(np.int64) + bounds.y_start)
-                            * image_width
-                            + columns
-                            + bounds.x_start
-                        ),
-                        residual=read.residual[member],
-                        position_signal=read.position_signal[member],
-                        background=read.background[member],
-                        rms=read.rms[member],
-                        valid=read.valid[member],
-                        owned=owned[member],
-                        labelled=labelled[member],
-                        aperture=aperture[member],
-                    )
-                )
-            maximum_read_pixels = max(maximum_read_pixels, read_pixels(bounds))
-        return _WideSegmentResult(
-            pieces=tuple(pieces),
-            tile_ids=tuple(core.partition.tile_id for core in batch.cores),
-            maximum_core_read_pixels=maximum_read_pixels,
+    pieces: list[_SegmentPiece] = []
+    maximum_read_pixels = 0
+    for core in batch.cores:
+        bounds = core.partition.core_bounds
+        read = _read_rows(
+            bounds,
+            source=source,
+            background_rms_source=background_rms_source,
+            detection_source=detection_source,
+            label_source=label_source,
+            centroid_source=centroid_source,
+            aperture_source=aperture_source,
+            position_source=position_source,
+            config=config,
         )
+        for label_value in core.label_values:
+            owned = read.centroids == label_value
+            labelled = read.labels == label_value
+            aperture = read.apertures == label_value
+            member = owned | labelled | aperture
+            rows, columns = np.nonzero(member)
+            pieces.append(
+                _SegmentPiece(
+                    label_value=label_value,
+                    raster_indices=(
+                        (rows.astype(np.int64) + bounds.y_start) * image_width
+                        + columns
+                        + bounds.x_start
+                    ),
+                    residual=read.residual[member],
+                    position_signal=read.position_signal[member],
+                    background=read.background[member],
+                    rms=read.rms[member],
+                    valid=read.valid[member],
+                    owned=owned[member],
+                    labelled=labelled[member],
+                    aperture=aperture[member],
+                )
+            )
+        maximum_read_pixels = max(maximum_read_pixels, read_pixels(bounds))
+    return _WideSegmentResult(
+        pieces=tuple(pieces),
+        tile_ids=tuple(core.partition.tile_id for core in batch.cores),
+        maximum_core_read_pixels=maximum_read_pixels,
+    )
 
 
 def _joined_piece(parts: list[_SegmentPiece]) -> _SegmentPiece:

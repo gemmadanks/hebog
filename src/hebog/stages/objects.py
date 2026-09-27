@@ -19,7 +19,6 @@ from the parent's own windows, which gives the same memberships bit for bit.
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
-from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from functools import partial
 from numbers import Integral
@@ -122,10 +121,6 @@ class _CompletedProductSource(Protocol):
         bounds: ImageBounds,
     ) -> npt.NDArray[np.generic]:
         """Read one validated bounded product window."""
-        ...
-
-    def access_session(self) -> AbstractContextManager[None]:
-        """Reuse immutable metadata within one bounded coarse task."""
         ...
 
 
@@ -345,53 +340,52 @@ def _scan_extents(
     support_source: _CompletedProductSource,
 ) -> _ExtentBatchResult:
     """Observe every parent's extent inside the cores of one batch."""
-    with support_source.access_session():
-        extents: list[_CoreExtent] = []
-        for request in batch.requests:
-            bounds = request.partition.core_bounds
-            direct = _label_extents(
-                np.asarray(
-                    support_source.read_completed_window(
-                        "component-labels",
-                        bounds,
-                    ),
-                    dtype=np.int32,
+    extents: list[_CoreExtent] = []
+    for request in batch.requests:
+        bounds = request.partition.core_bounds
+        direct = _label_extents(
+            np.asarray(
+                support_source.read_completed_window(
+                    "component-labels",
+                    bounds,
                 ),
-                bounds,
-            )
-            measurement = _label_extents(
-                np.asarray(
-                    support_source.read_completed_window(
-                        "measurement-labels",
-                        bounds,
-                    ),
-                    dtype=np.int32,
+                dtype=np.int32,
+            ),
+            bounds,
+        )
+        measurement = _label_extents(
+            np.asarray(
+                support_source.read_completed_window(
+                    "measurement-labels",
+                    bounds,
                 ),
-                bounds,
-            )
-            for parent_label, (
-                measurement_bounds,
-                _,
-                _,
-            ) in measurement.items():
-                direct_record = direct.get(parent_label)
-                extents.append(
-                    _CoreExtent(
-                        parent_label=parent_label,
-                        direct_bounds=(
-                            None if direct_record is None else direct_record[0]
-                        ),
-                        measurement_bounds=measurement_bounds,
-                        first_pixel_yx=(
-                            None if direct_record is None else direct_record[1]
-                        ),
-                        tile_id=request.partition.tile_id,
-                        direct_pixel_count=(
-                            0 if direct_record is None else direct_record[2]
-                        ),
-                    )
+                dtype=np.int32,
+            ),
+            bounds,
+        )
+        for parent_label, (
+            measurement_bounds,
+            _,
+            _,
+        ) in measurement.items():
+            direct_record = direct.get(parent_label)
+            extents.append(
+                _CoreExtent(
+                    parent_label=parent_label,
+                    direct_bounds=(
+                        None if direct_record is None else direct_record[0]
+                    ),
+                    measurement_bounds=measurement_bounds,
+                    first_pixel_yx=(
+                        None if direct_record is None else direct_record[1]
+                    ),
+                    tile_id=request.partition.tile_id,
+                    direct_pixel_count=(
+                        0 if direct_record is None else direct_record[2]
+                    ),
                 )
-        return _ExtentBatchResult(extents=tuple(extents))
+            )
+    return _ExtentBatchResult(extents=tuple(extents))
 
 
 def _reduce_extents(
@@ -572,14 +566,13 @@ def _deblend_batch(
     image_shape_yx: tuple[int, int],
 ) -> _DeblendBatchResult:
     """Count the components every parent of one batch deblends into."""
-    with support_source.access_session(), detection_source.access_session():
-        memberships = _deblend_parents(
-            batch,
-            support_source=support_source,
-            detection_source=detection_source,
-            deblend=config.deblend,
-            image_shape_yx=image_shape_yx,
-        )
+    memberships = _deblend_parents(
+        batch,
+        support_source=support_source,
+        detection_source=detection_source,
+        deblend=config.deblend,
+        image_shape_yx=image_shape_yx,
+    )
     return _DeblendBatchResult(
         parents=tuple(
             _ParentCount(
@@ -780,80 +773,75 @@ def _publish_batch(  # noqa: PLR0913
         ValueError: If a core's direct ownership is not a valid subset of its
             measurement ownership.
     """
-    with (
-        support_source.access_session(),
-        detection_source.access_session(),
-        sink.access_session(),
-    ):
-        chunks: list[ProductChunk] = []
-        observed: set[tuple[int, int]] = set()
-        widest_read = 0
-        for request in batch.requests:
-            core = request.partition.core_bounds
-            direct = np.zeros(core.shape_yx, dtype=np.int32)
-            measurement = np.zeros(core.shape_yx, dtype=np.int32)
-            if request.single_components:
-                _relabel_single_parents(
+    chunks: list[ProductChunk] = []
+    observed: set[tuple[int, int]] = set()
+    widest_read = 0
+    for request in batch.requests:
+        core = request.partition.core_bounds
+        direct = np.zeros(core.shape_yx, dtype=np.int32)
+        measurement = np.zeros(core.shape_yx, dtype=np.int32)
+        if request.single_components:
+            _relabel_single_parents(
+                (direct, measurement),
+                (
+                    np.asarray(
+                        support_source.read_completed_window(
+                            "component-labels", core
+                        ),
+                        dtype=np.int32,
+                    ),
+                    np.asarray(
+                        support_source.read_completed_window(
+                            "measurement-labels", core
+                        ),
+                        dtype=np.int32,
+                    ),
+                ),
+                request.single_components,
+            )
+        if request.deblended_parents:
+            widest_read = max(
+                widest_read,
+                _write_deblended_parents(
                     (direct, measurement),
-                    (
-                        np.asarray(
-                            support_source.read_completed_window(
-                                "component-labels", core
-                            ),
-                            dtype=np.int32,
-                        ),
-                        np.asarray(
-                            support_source.read_completed_window(
-                                "measurement-labels", core
-                            ),
-                            dtype=np.int32,
-                        ),
-                    ),
-                    request.single_components,
-                )
-            if request.deblended_parents:
-                widest_read = max(
-                    widest_read,
-                    _write_deblended_parents(
-                        (direct, measurement),
-                        core,
-                        request.deblended_parents,
-                        support_source=support_source,
-                        detection_source=detection_source,
-                        config=config,
-                        image_shape_yx=image_shape_yx,
-                    ),
-                )
-            valid = np.asarray(
-                detection_source.read_completed_window("valid-pixels", core),
-                dtype=np.bool_,
+                    core,
+                    request.deblended_parents,
+                    support_source=support_source,
+                    detection_source=detection_source,
+                    config=config,
+                    image_shape_yx=image_shape_yx,
+                ),
             )
-            if bool(np.any((direct > 0) & (~valid | (measurement != direct)))):
-                raise ValueError(
-                    "direct component ownership must be a valid subset of "
-                    "measurement ownership"
-                )
-            observed.update(
-                (int(value), plane_index)
-                for plane_index, plane in enumerate((direct, measurement))
-                for value in np.unique(plane)
-                if value > 0
-            )
-            chunks.extend(
-                sink.write_chunk(
-                    product_name=product_name,
-                    tile=request.partition,
-                    values=values,
-                )
-                for product_name, values in zip(
-                    _TOPOLOGY_PRODUCT_NAMES, (direct, measurement), strict=True
-                )
-            )
-        return _PublishBatchResult(
-            product_chunks=tuple(chunks),
-            observed_labels=tuple(sorted(observed)),
-            maximum_parent_read_pixels=widest_read,
+        valid = np.asarray(
+            detection_source.read_completed_window("valid-pixels", core),
+            dtype=np.bool_,
         )
+        if bool(np.any((direct > 0) & (~valid | (measurement != direct)))):
+            raise ValueError(
+                "direct component ownership must be a valid subset of "
+                "measurement ownership"
+            )
+        observed.update(
+            (int(value), plane_index)
+            for plane_index, plane in enumerate((direct, measurement))
+            for value in np.unique(plane)
+            if value > 0
+        )
+        chunks.extend(
+            sink.write_chunk(
+                product_name=product_name,
+                tile=request.partition,
+                values=values,
+            )
+            for product_name, values in zip(
+                _TOPOLOGY_PRODUCT_NAMES, (direct, measurement), strict=True
+            )
+        )
+    return _PublishBatchResult(
+        product_chunks=tuple(chunks),
+        observed_labels=tuple(sorted(observed)),
+        maximum_parent_read_pixels=widest_read,
+    )
 
 
 def _tile_batches(
@@ -1187,51 +1175,50 @@ def _scan_contexts(
     context_margin_pixels: int,
 ) -> _ContextBatchResult:
     """Label each core's fit contexts and observe the owners inside them."""
-    with component_source.access_session():
-        tiles: list[_ContextTile] = []
-        for request in batch.requests:
-            partition = request.partition
-            contexts, labels = _fit_context_core(
-                partition,
-                component_source=component_source,
-                context_margin_pixels=context_margin_pixels,
-            )
-            tile = label_detection_tile(
-                DetectionThresholdMasks(
-                    normalized_residual=np.zeros(
-                        contexts.shape,
-                        dtype=np.float64,
-                    ),
-                    island_membership=contexts,
-                    detection_seeds=contexts,
-                    valid_pixel_count=int(np.count_nonzero(contexts)),
+    tiles: list[_ContextTile] = []
+    for request in batch.requests:
+        partition = request.partition
+        contexts, labels = _fit_context_core(
+            partition,
+            component_source=component_source,
+            context_margin_pixels=context_margin_pixels,
+        )
+        tile = label_detection_tile(
+            DetectionThresholdMasks(
+                normalized_residual=np.zeros(
+                    contexts.shape,
+                    dtype=np.float64,
                 ),
-                partition,
-                image_shape_yx=image_shape_yx,
+                island_membership=contexts,
+                detection_seeds=contexts,
+                valid_pixel_count=int(np.count_nonzero(contexts)),
+            ),
+            partition,
+            image_shape_yx=image_shape_yx,
+        )
+        support = labels > 0
+        pairs = (
+            np.unique(
+                np.column_stack((labels[support], tile.labels[support])),
+                axis=0,
             )
-            support = labels > 0
-            pairs = (
-                np.unique(
-                    np.column_stack((labels[support], tile.labels[support])),
-                    axis=0,
-                )
-                if bool(np.any(support))
-                else np.zeros((0, 2), dtype=np.int32)
+            if bool(np.any(support))
+            else np.zeros((0, 2), dtype=np.int32)
+        )
+        tiles.append(
+            _ContextTile(
+                partition=partition,
+                summary=tile.compact_summary(),
+                links=tuple(
+                    _ContextLink(
+                        owner_label=int(pair[0]),
+                        local_context_label=int(pair[1]),
+                    )
+                    for pair in pairs
+                ),
             )
-            tiles.append(
-                _ContextTile(
-                    partition=partition,
-                    summary=tile.compact_summary(),
-                    links=tuple(
-                        _ContextLink(
-                            owner_label=int(pair[0]),
-                            local_context_label=int(pair[1]),
-                        )
-                        for pair in pairs
-                    ),
-                )
-            )
-        return _ContextBatchResult(tiles=tuple(tiles))
+        )
+    return _ContextBatchResult(tiles=tuple(tiles))
 
 
 class _DisjointContexts:
@@ -1314,43 +1301,42 @@ def _publish_fit_parents(
     context_margin_pixels: int,
 ) -> _PublishBatchResult:
     """Write the fit-parent number each core's support belongs to."""
-    with component_source.access_session(), sink.access_session():
-        chunks: list[ProductChunk] = []
-        for request in batch.requests:
-            partition = request.partition
-            contexts, labels = _fit_context_core(
-                partition,
-                component_source=component_source,
-                context_margin_pixels=context_margin_pixels,
-            )
-            local = label_detection_tile(
-                DetectionThresholdMasks(
-                    normalized_residual=np.zeros(
-                        contexts.shape,
-                        dtype=np.float64,
-                    ),
-                    island_membership=contexts,
-                    detection_seeds=contexts,
-                    valid_pixel_count=int(np.count_nonzero(contexts)),
+    chunks: list[ProductChunk] = []
+    for request in batch.requests:
+        partition = request.partition
+        contexts, labels = _fit_context_core(
+            partition,
+            component_source=component_source,
+            context_margin_pixels=context_margin_pixels,
+        )
+        local = label_detection_tile(
+            DetectionThresholdMasks(
+                normalized_residual=np.zeros(
+                    contexts.shape,
+                    dtype=np.float64,
                 ),
-                partition,
-                image_shape_yx=image_shape_yx,
+                island_membership=contexts,
+                detection_seeds=contexts,
+                valid_pixel_count=int(np.count_nonzero(contexts)),
+            ),
+            partition,
+            image_shape_yx=image_shape_yx,
+        )
+        numbers = dict(request.fit_parent_by_local_label)
+        values = np.zeros(contexts.shape, dtype=np.int32)
+        for local_label, fit_parent in numbers.items():
+            values[local.labels == local_label] = fit_parent
+        chunks.append(
+            sink.write_chunk(
+                product_name="fit-parent-labels",
+                tile=partition,
+                values=np.where(labels > 0, values, 0).astype(
+                    np.int32,
+                    copy=False,
+                ),
             )
-            numbers = dict(request.fit_parent_by_local_label)
-            values = np.zeros(contexts.shape, dtype=np.int32)
-            for local_label, fit_parent in numbers.items():
-                values[local.labels == local_label] = fit_parent
-            chunks.append(
-                sink.write_chunk(
-                    product_name="fit-parent-labels",
-                    tile=partition,
-                    values=np.where(labels > 0, values, 0).astype(
-                        np.int32,
-                        copy=False,
-                    ),
-                )
-            )
-        return _PublishBatchResult(product_chunks=tuple(chunks))
+        )
+    return _PublishBatchResult(product_chunks=tuple(chunks))
 
 
 def _context_batches(
@@ -1652,35 +1638,34 @@ def _scan_fit_parent_extents(
     fit_parent_source: _CompletedProductSource,
 ) -> _ExtentBatchResult:
     """Observe every fit parent's extent inside the cores of one batch."""
-    with fit_parent_source.access_session():
-        extents: list[_CoreExtent] = []
-        for request in batch.requests:
-            bounds = request.partition.core_bounds
-            for parent_index, (
-                parent_bounds,
-                first,
-                pixel_count,
-            ) in _label_extents(
-                np.asarray(
-                    fit_parent_source.read_completed_window(
-                        "fit-parent-labels",
-                        bounds,
-                    ),
-                    dtype=np.int32,
+    extents: list[_CoreExtent] = []
+    for request in batch.requests:
+        bounds = request.partition.core_bounds
+        for parent_index, (
+            parent_bounds,
+            first,
+            pixel_count,
+        ) in _label_extents(
+            np.asarray(
+                fit_parent_source.read_completed_window(
+                    "fit-parent-labels",
+                    bounds,
                 ),
-                bounds,
-            ).items():
-                extents.append(
-                    _CoreExtent(
-                        parent_label=parent_index,
-                        direct_bounds=parent_bounds,
-                        measurement_bounds=parent_bounds,
-                        first_pixel_yx=first,
-                        tile_id=request.partition.tile_id,
-                        direct_pixel_count=pixel_count,
-                    )
+                dtype=np.int32,
+            ),
+            bounds,
+        ).items():
+            extents.append(
+                _CoreExtent(
+                    parent_label=parent_index,
+                    direct_bounds=parent_bounds,
+                    measurement_bounds=parent_bounds,
+                    first_pixel_yx=first,
+                    tile_id=request.partition.tile_id,
+                    direct_pixel_count=pixel_count,
                 )
-        return _ExtentBatchResult(extents=tuple(extents))
+            )
+    return _ExtentBatchResult(extents=tuple(extents))
 
 
 def _fit_batches(
@@ -1730,103 +1715,95 @@ def _fit_batch(  # noqa: PLR0913
 ) -> _FitBatchResult:
     """Fit every parent of one batch inside its own context window."""
     wcs = celestial_wcs_from_header_text(wcs_header_text)
-    with (
-        background_rms_source.access_session(),
-        detection_source.access_session(),
-        component_source.access_session(),
-        fit_parent_source.access_session(),
-    ):
-        bounds = batch.read_bounds
-        window = source.read_window(bounds)
-        if window.bounds != bounds:
-            raise ValueError("image source returned different fit-read bounds")
-        background = np.asarray(
-            background_rms_source.read_completed_window("background", bounds),
-            dtype=np.float64,
+    bounds = batch.read_bounds
+    window = source.read_window(bounds)
+    if window.bounds != bounds:
+        raise ValueError("image source returned different fit-read bounds")
+    background = np.asarray(
+        background_rms_source.read_completed_window("background", bounds),
+        dtype=np.float64,
+    )
+    residual = np.asarray(window.values, dtype=np.float64) - background
+    rms = np.asarray(
+        background_rms_source.read_completed_window("rms", bounds),
+        dtype=np.float64,
+    )
+    valid = np.asarray(
+        detection_source.read_completed_window("valid-pixels", bounds),
+        dtype=np.bool_,
+    )
+    fit_parents = np.asarray(
+        fit_parent_source.read_completed_window(
+            "fit-parent-labels",
+            bounds,
+        ),
+        dtype=np.int32,
+    )
+    direct = np.asarray(
+        component_source.read_completed_window(
+            "component-direct-labels",
+            bounds,
+        ),
+        dtype=np.int32,
+    )
+    measurement = np.asarray(
+        component_source.read_completed_window(
+            "component-measurement-labels",
+            bounds,
+        ),
+        dtype=np.int32,
+    )
+    # One conversion for the batch. Astropy pays its frame machinery per
+    # call, not per position, so deriving each parent's geometry inside
+    # the fit costs more than the fit does.
+    geometries = compact_geometries_from_wcs(
+        beam,
+        wcs,
+        tuple(parent.read_bounds.center_xy for parent in batch.parents),
+    )
+    measured: list[tuple[int, FitParentMeasurement]] = []
+    records: list[DetectionComponentRecord] = []
+    for parent, geometry in zip(batch.parents, geometries, strict=True):
+        crop = _crop(bounds, parent.read_bounds)
+        records.extend(
+            _parent_component_records(
+                residual[crop],
+                valid[crop],
+                fit_parents[crop],
+                direct[crop],
+                parent,
+            )
         )
-        residual = np.asarray(window.values, dtype=np.float64) - background
-        rms = np.asarray(
-            background_rms_source.read_completed_window("rms", bounds),
-            dtype=np.float64,
-        )
-        valid = np.asarray(
-            detection_source.read_completed_window("valid-pixels", bounds),
-            dtype=np.bool_,
-        )
-        fit_parents = np.asarray(
-            fit_parent_source.read_completed_window(
-                "fit-parent-labels",
-                bounds,
-            ),
-            dtype=np.int32,
-        )
-        direct = np.asarray(
-            component_source.read_completed_window(
-                "component-direct-labels",
-                bounds,
-            ),
-            dtype=np.int32,
-        )
-        measurement = np.asarray(
-            component_source.read_completed_window(
-                "component-measurement-labels",
-                bounds,
-            ),
-            dtype=np.int32,
-        )
-        # One conversion for the batch. Astropy pays its frame machinery per
-        # call, not per position, so deriving each parent's geometry inside
-        # the fit costs more than the fit does.
-        geometries = compact_geometries_from_wcs(
-            beam,
-            wcs,
-            tuple(parent.read_bounds.center_xy for parent in batch.parents),
-        )
-        measured: list[tuple[int, FitParentMeasurement]] = []
-        records: list[DetectionComponentRecord] = []
-        for parent, geometry in zip(batch.parents, geometries, strict=True):
-            crop = _crop(bounds, parent.read_bounds)
-            records.extend(
-                _parent_component_records(
+        measured.append(
+            (
+                parent.parent_index,
+                measure_fit_parent_components(
                     residual[crop],
+                    rms[crop],
                     valid[crop],
                     fit_parents[crop],
                     direct[crop],
-                    parent,
-                )
+                    measurement[crop],
+                    geometry,
+                    config.moment,
+                    config.fit,
+                    parent_index=parent.parent_index,
+                    bounds=parent.read_bounds,
+                    image_shape_yx=image_shape_yx,
+                    detection_sigma=config.detection_sigma,
+                    island_sigma=config.island_sigma,
+                    minimum_pixels=config.minimum_pixels,
+                    maximum_bounds_pixels=config.maximum_bounds_pixels,
+                    atrous_plan=config.atrous_plan,
+                    minimum_support_fraction=(config.minimum_support_fraction),
+                ),
             )
-            measured.append(
-                (
-                    parent.parent_index,
-                    measure_fit_parent_components(
-                        residual[crop],
-                        rms[crop],
-                        valid[crop],
-                        fit_parents[crop],
-                        direct[crop],
-                        measurement[crop],
-                        geometry,
-                        config.moment,
-                        config.fit,
-                        parent_index=parent.parent_index,
-                        bounds=parent.read_bounds,
-                        image_shape_yx=image_shape_yx,
-                        detection_sigma=config.detection_sigma,
-                        island_sigma=config.island_sigma,
-                        minimum_pixels=config.minimum_pixels,
-                        maximum_bounds_pixels=config.maximum_bounds_pixels,
-                        atrous_plan=config.atrous_plan,
-                        minimum_support_fraction=(
-                            config.minimum_support_fraction
-                        ),
-                    ),
-                )
-            )
-        return _FitBatchResult(
-            parents=tuple(measured),
-            component_records=tuple(records),
-            maximum_parent_read_pixels=int(np.prod(bounds.shape_yx)),
         )
+    return _FitBatchResult(
+        parents=tuple(measured),
+        component_records=tuple(records),
+        maximum_parent_read_pixels=int(np.prod(bounds.shape_yx)),
+    )
 
 
 def _parent_component_records(
@@ -1914,77 +1891,65 @@ def _gather_deferred_components(  # noqa: PLR0913
         ValueError: If the image source answers with other bounds, or a
             component owns a pixel that is not scientifically valid.
     """
-    with (
-        background_rms_source.access_session(),
-        detection_source.access_session(),
-        component_source.access_session(),
-        fit_parent_source.access_session(),
-    ):
-        pieces: list[_ComponentPiece] = []
-        maximum_read_pixels = 0
-        for core in batch.cores:
-            bounds = core.partition.core_bounds
-            window = source.read_window(bounds)
-            if window.bounds != bounds:
-                raise ValueError(
-                    "image source returned different fit-read bounds"
-                )
-            residual = np.asarray(
-                window.values, dtype=np.float64
-            ) - np.asarray(
-                background_rms_source.read_completed_window(
-                    "background", bounds
-                ),
-                dtype=np.float64,
-            )
-            valid = np.asarray(
-                detection_source.read_completed_window("valid-pixels", bounds),
-                dtype=np.bool_,
-            )
-            direct = np.asarray(
-                component_source.read_completed_window(
-                    "component-direct-labels", bounds
+    pieces: list[_ComponentPiece] = []
+    maximum_read_pixels = 0
+    for core in batch.cores:
+        bounds = core.partition.core_bounds
+        window = source.read_window(bounds)
+        if window.bounds != bounds:
+            raise ValueError("image source returned different fit-read bounds")
+        residual = np.asarray(window.values, dtype=np.float64) - np.asarray(
+            background_rms_source.read_completed_window("background", bounds),
+            dtype=np.float64,
+        )
+        valid = np.asarray(
+            detection_source.read_completed_window("valid-pixels", bounds),
+            dtype=np.bool_,
+        )
+        direct = np.asarray(
+            component_source.read_completed_window(
+                "component-direct-labels", bounds
+            ),
+            dtype=np.int32,
+        )
+        owned = (direct > 0) & np.isin(
+            np.asarray(
+                fit_parent_source.read_completed_window(
+                    "fit-parent-labels", bounds
                 ),
                 dtype=np.int32,
-            )
-            owned = (direct > 0) & np.isin(
-                np.asarray(
-                    fit_parent_source.read_completed_window(
-                        "fit-parent-labels", bounds
-                    ),
-                    dtype=np.int32,
-                ),
-                core.parent_indexes,
-            )
-            if bool(np.any(owned & ~valid)):
-                raise ValueError(
-                    "component owner pixels must be scientifically valid"
-                )
-            rows, columns = np.nonzero(owned)
-            labels = direct[rows, columns]
-            raster_indices = (
-                (rows.astype(np.int64) + bounds.y_start) * image_width
-                + columns
-                + bounds.x_start
-            )
-            values = residual[rows, columns]
-            # Boolean selection keeps each component's pixels in the raster
-            # order this core holds them in.
-            for label_value in np.unique(labels):
-                selected = labels == label_value
-                pieces.append(
-                    _ComponentPiece(
-                        label_value=int(label_value),
-                        raster_indices=raster_indices[selected],
-                        residual=values[selected],
-                    )
-                )
-            maximum_read_pixels = max(maximum_read_pixels, read_pixels(bounds))
-        return _DeferredBatchResult(
-            pieces=tuple(pieces),
-            tile_ids=tuple(core.partition.tile_id for core in batch.cores),
-            maximum_core_read_pixels=maximum_read_pixels,
+            ),
+            core.parent_indexes,
         )
+        if bool(np.any(owned & ~valid)):
+            raise ValueError(
+                "component owner pixels must be scientifically valid"
+            )
+        rows, columns = np.nonzero(owned)
+        labels = direct[rows, columns]
+        raster_indices = (
+            (rows.astype(np.int64) + bounds.y_start) * image_width
+            + columns
+            + bounds.x_start
+        )
+        values = residual[rows, columns]
+        # Boolean selection keeps each component's pixels in the raster
+        # order this core holds them in.
+        for label_value in np.unique(labels):
+            selected = labels == label_value
+            pieces.append(
+                _ComponentPiece(
+                    label_value=int(label_value),
+                    raster_indices=raster_indices[selected],
+                    residual=values[selected],
+                )
+            )
+        maximum_read_pixels = max(maximum_read_pixels, read_pixels(bounds))
+    return _DeferredBatchResult(
+        pieces=tuple(pieces),
+        tile_ids=tuple(core.partition.tile_id for core in batch.cores),
+        maximum_core_read_pixels=maximum_read_pixels,
+    )
 
 
 def _deferred_component_records(
@@ -2038,29 +2003,26 @@ def _publish_support(
     sink: ZarrProductSink,
 ) -> _PublishBatchResult:
     """Combine every fit parent's support patch over the cores it reaches."""
-    with sink.access_session():
-        chunks: list[ProductChunk] = []
-        for request in batch.requests:
-            core = request.partition.core_bounds
-            values = np.zeros(core.shape_yx, dtype=np.bool_)
-            for patch_bounds, patch in request.patches:
-                overlap = ImageBounds(
-                    max(core.y_start, patch_bounds.y_start),
-                    min(core.y_stop, patch_bounds.y_stop),
-                    max(core.x_start, patch_bounds.x_start),
-                    min(core.x_stop, patch_bounds.x_stop),
-                )
-                values[_crop(core, overlap)] |= patch[
-                    _crop(patch_bounds, overlap)
-                ]
-            chunks.append(
-                sink.write_chunk(
-                    product_name="measurement-support",
-                    tile=request.partition,
-                    values=values,
-                )
+    chunks: list[ProductChunk] = []
+    for request in batch.requests:
+        core = request.partition.core_bounds
+        values = np.zeros(core.shape_yx, dtype=np.bool_)
+        for patch_bounds, patch in request.patches:
+            overlap = ImageBounds(
+                max(core.y_start, patch_bounds.y_start),
+                min(core.y_stop, patch_bounds.y_stop),
+                max(core.x_start, patch_bounds.x_start),
+                min(core.x_stop, patch_bounds.x_stop),
             )
-        return _PublishBatchResult(product_chunks=tuple(chunks))
+            values[_crop(core, overlap)] |= patch[_crop(patch_bounds, overlap)]
+        chunks.append(
+            sink.write_chunk(
+                product_name="measurement-support",
+                tile=request.partition,
+                values=values,
+            )
+        )
+    return _PublishBatchResult(product_chunks=tuple(chunks))
 
 
 def _support_batches(
@@ -2521,73 +2483,68 @@ def _scan_support_features(
     image_shape_yx: tuple[int, int],
 ) -> _FeatureBatchResult:
     """Label each core's support features and observe the owners inside."""
-    with (
-        detection_source.access_session(),
-        component_source.access_session(),
-        measurement_source.access_session(),
-    ):
-        tiles: list[_FeatureTile] = []
-        for partition in batch.partitions:
-            core = partition.core_bounds
-            support = np.asarray(
-                measurement_source.read_completed_window(
-                    "measurement-support",
-                    core,
+    tiles: list[_FeatureTile] = []
+    for partition in batch.partitions:
+        core = partition.core_bounds
+        support = np.asarray(
+            measurement_source.read_completed_window(
+                "measurement-support",
+                core,
+            ),
+            dtype=np.bool_,
+        ) & np.asarray(
+            detection_source.read_completed_window("valid-pixels", core),
+            dtype=np.bool_,
+        )
+        labels = np.asarray(
+            component_source.read_completed_window(
+                "component-measurement-labels",
+                core,
+            ),
+            dtype=np.int32,
+        )
+        tile = label_detection_tile(
+            DetectionThresholdMasks(
+                normalized_residual=np.zeros(
+                    support.shape,
+                    dtype=np.float64,
                 ),
-                dtype=np.bool_,
-            ) & np.asarray(
-                detection_source.read_completed_window("valid-pixels", core),
-                dtype=np.bool_,
+                island_membership=support,
+                detection_seeds=support,
+                valid_pixel_count=int(np.count_nonzero(support)),
+            ),
+            partition,
+            image_shape_yx=image_shape_yx,
+        )
+        owned = support & (labels > 0)
+        pairs = (
+            np.unique(
+                np.column_stack((labels[owned], tile.labels[owned])),
+                axis=0,
             )
-            labels = np.asarray(
-                component_source.read_completed_window(
-                    "component-measurement-labels",
-                    core,
+            if bool(np.any(owned))
+            else np.zeros((0, 2), dtype=np.int32)
+        )
+        tiles.append(
+            _FeatureTile(
+                partition=partition,
+                summary=tile.compact_summary(),
+                links=tuple(
+                    _FeatureLink(
+                        component_label=int(pair[0]),
+                        local_feature_label=int(pair[1]),
+                    )
+                    for pair in pairs
                 ),
-                dtype=np.int32,
-            )
-            tile = label_detection_tile(
-                DetectionThresholdMasks(
-                    normalized_residual=np.zeros(
-                        support.shape,
-                        dtype=np.float64,
-                    ),
-                    island_membership=support,
-                    detection_seeds=support,
-                    valid_pixel_count=int(np.count_nonzero(support)),
+                component_bounds=tuple(
+                    (component_label, bounds)
+                    for component_label, (bounds, _, _) in _label_extents(
+                        labels, core
+                    ).items()
                 ),
-                partition,
-                image_shape_yx=image_shape_yx,
             )
-            owned = support & (labels > 0)
-            pairs = (
-                np.unique(
-                    np.column_stack((labels[owned], tile.labels[owned])),
-                    axis=0,
-                )
-                if bool(np.any(owned))
-                else np.zeros((0, 2), dtype=np.int32)
-            )
-            tiles.append(
-                _FeatureTile(
-                    partition=partition,
-                    summary=tile.compact_summary(),
-                    links=tuple(
-                        _FeatureLink(
-                            component_label=int(pair[0]),
-                            local_feature_label=int(pair[1]),
-                        )
-                        for pair in pairs
-                    ),
-                    component_bounds=tuple(
-                        (component_label, bounds)
-                        for component_label, (bounds, _, _) in _label_extents(
-                            labels, core
-                        ).items()
-                    ),
-                )
-            )
-        return _FeatureBatchResult(tiles=tuple(tiles))
+        )
+    return _FeatureBatchResult(tiles=tuple(tiles))
 
 
 def _component_bounds(
@@ -2719,78 +2676,68 @@ def _group_batch(  # noqa: PLR0913
 ) -> _GroupBatchResult:
     """Group every support feature of one batch inside its own window."""
     wcs = celestial_wcs_from_header_text(wcs_header_text)
-    with (
-        background_rms_source.access_session(),
-        detection_source.access_session(),
-        component_source.access_session(),
-        measurement_source.access_session(),
-    ):
-        bounds = batch.read_bounds
-        window = source.read_window(bounds)
-        if window.bounds != bounds:
-            raise ValueError(
-                "image source returned different group-read bounds"
-            )
-        residual = np.asarray(window.values, dtype=np.float64) - np.asarray(
-            background_rms_source.read_completed_window("background", bounds),
-            dtype=np.float64,
-        )
-        rms = np.asarray(
-            background_rms_source.read_completed_window("rms", bounds),
-            dtype=np.float64,
-        )
-        valid = np.asarray(
-            detection_source.read_completed_window("valid-pixels", bounds),
-            dtype=np.bool_,
-        )
-        support = np.asarray(
-            measurement_source.read_completed_window(
-                "measurement-support",
-                bounds,
-            ),
-            dtype=np.bool_,
-        )
-        labels = np.asarray(
-            component_source.read_completed_window(
-                "component-measurement-labels",
-                bounds,
-            ),
-            dtype=np.int32,
-        )
-        grouped: list[tuple[int, SupportFeatureGroups]] = []
-        for feature in batch.features:
-            crop = _crop(bounds, feature.window)
-            grouped.append(
-                (
-                    feature.feature_label,
-                    group_support_feature_components(
-                        residual[crop],
-                        rms[crop],
-                        valid[crop],
-                        labels[crop],
-                        _feature_mask(
-                            support[crop] & valid[crop],
-                            feature,
-                        ),
-                        batch.fits,
-                        batch.protected_labels,
-                        wcs,
-                        beam,
-                        config.atrous_plan,
-                        bounds=feature.window,
-                        detection_sigma=config.detection_sigma,
-                        island_sigma=config.island_sigma,
-                        minimum_pixels=config.minimum_pixels,
-                        minimum_support_fraction=(
-                            config.minimum_support_fraction
-                        ),
+    bounds = batch.read_bounds
+    window = source.read_window(bounds)
+    if window.bounds != bounds:
+        raise ValueError("image source returned different group-read bounds")
+    residual = np.asarray(window.values, dtype=np.float64) - np.asarray(
+        background_rms_source.read_completed_window("background", bounds),
+        dtype=np.float64,
+    )
+    rms = np.asarray(
+        background_rms_source.read_completed_window("rms", bounds),
+        dtype=np.float64,
+    )
+    valid = np.asarray(
+        detection_source.read_completed_window("valid-pixels", bounds),
+        dtype=np.bool_,
+    )
+    support = np.asarray(
+        measurement_source.read_completed_window(
+            "measurement-support",
+            bounds,
+        ),
+        dtype=np.bool_,
+    )
+    labels = np.asarray(
+        component_source.read_completed_window(
+            "component-measurement-labels",
+            bounds,
+        ),
+        dtype=np.int32,
+    )
+    grouped: list[tuple[int, SupportFeatureGroups]] = []
+    for feature in batch.features:
+        crop = _crop(bounds, feature.window)
+        grouped.append(
+            (
+                feature.feature_label,
+                group_support_feature_components(
+                    residual[crop],
+                    rms[crop],
+                    valid[crop],
+                    labels[crop],
+                    _feature_mask(
+                        support[crop] & valid[crop],
+                        feature,
                     ),
-                )
+                    batch.fits,
+                    batch.protected_labels,
+                    wcs,
+                    beam,
+                    config.atrous_plan,
+                    bounds=feature.window,
+                    detection_sigma=config.detection_sigma,
+                    island_sigma=config.island_sigma,
+                    minimum_pixels=config.minimum_pixels,
+                    minimum_support_fraction=(config.minimum_support_fraction),
+                ),
             )
-        return _GroupBatchResult(
-            features=tuple(grouped),
-            maximum_feature_read_pixels=int(np.prod(bounds.shape_yx)),
         )
+    return _GroupBatchResult(
+        features=tuple(grouped),
+        maximum_feature_read_pixels=int(np.prod(bounds.shape_yx)),
+    )
 
 
 def _feature_mask(

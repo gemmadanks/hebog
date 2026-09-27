@@ -26124,3 +26124,71 @@ the per-worker placement finding.
   `benchmark-results/quick-benchmark/runs/m2-crossover-quiet-0.14.0/`. The
   plan's Performance cell quotes these figures, and tasks 2 and 3 are
   removed.
+
+## 2026-09-27 — M2: the store's per-read overhead, closed
+
+- **What this is.** Task 4 of the plan. The profile named the store's
+  per-read overhead as where the 8% accepted on 24 September sat; this
+  entry measures what it was, removes it and closes the task.
+- **What it was.** A `cProfile` run of the 1,024² LoTSS-DR3 dense cut-out
+  (`m2-store-baseline`, 14.1 s profiled) found two redundancies rather
+  than one bottleneck. Every consumer's `read_generation` re-read and
+  re-checksummed every chunk of the generation it consumed, 35 calls and
+  2.6 s (18%), although each window read already validates the chunk it
+  uses against the manifest's SHA-256. And every task session reopened
+  each product array and re-parsed the completion marker, 693 array opens
+  for 1.2 s and 167 marker reads, because the sink's caches were cleared
+  at the session boundary. Behind both, `_io.open` was the largest
+  self-time entry: 4,131 opens for 2.3 s, 0.56 ms each through the
+  endpoint scanner.
+- **The change.** `read_generation` validates the marker (JSON, canonical
+  bytes, run and partition identity) and returns it; chunks are validated
+  once when the generation is published and against their record on every
+  read, so no consumer re-reads a generation. The sink caches its array
+  handles and the parsed marker for its lifetime in one process and drops
+  them when pickled, so a copy on a worker opens each product once per
+  task, as before. That left `access_session` with nothing to hold, so it
+  is removed from the sink, the eight stage protocols and their 39 `with`
+  blocks; ignoring whitespace the change is 148 insertions and 251
+  deletions. The durable-policy check moves with the open: a sink that
+  opens an array whose attributes changed on disk still fails with
+  "policy", and the test asserts it through a fresh sink rather than a
+  handle cached mid-process. A new test pins where the chunk guarantee
+  now lives: `read_generation` reads no chunk, and a chunk corrupted after
+  publication is rejected by the window, chunk and row-block reads.
+- **Profile after.** `m2-store-cached`: 10.9 s profiled, `sync()` calls
+  1,851 → 991, file opens 4,131 → 2,058, `read_generation` 2.09 → 0.01 s,
+  `_open_array` 1.24 → 0.13 s. What remains in the store is one chunk
+  decode and checksum per window read (1.45 s), one atomic file per
+  written chunk (1.16 s) and the publication check (0.49 s), each
+  intrinsic to the storage policy.
+- **Benchmark.** Quick benchmark, default tier, medians of five, every
+  endpoint measured in its own session (`m2-store-cache-vs-0.14.0`,
+  727 s; `m2-store-cache-vs-ea67a3a`, 610 s). The one-minute load had
+  median 3.14 (2.31 to 4.24) with the endpoint scanner active, so the
+  absolute times are not quotable beside the 25 and 26 September anchors;
+  the ratios are.
+
+  | case | Hebog / v0.14.0 | ratio [95% bounds] | Hebog / `ea67a3a` | ratio [95% bounds] |
+  | --- | --- | --- | --- | --- |
+  | `dense-field` | 13.7 / 16.8 s | 0.81 [0.73, 0.86] pass | 14.5 / 16.0 s | 0.91 [0.88, 0.97] pass |
+  | `lotss-dr3-1312-sparse` | 15.1 / 17.5 s | 0.86 [0.81, 0.89] pass | 15.1 / 16.7 s | 0.91 [0.89, 0.93] pass |
+  | `lotss-dr3-1312-dense` | 16.2 / 18.8 s | 0.86 [0.75, 0.88] pass | 16.0 / 17.7 s | 0.90 [0.81, 0.92] pass |
+
+  `ea67a3a` is the pre-M2 branch point the 24 September trade-off named,
+  so the 8% is recovered with margin: current Hebog is 9 to 10% faster
+  than it on every 1,024² anchor. The diagnostic `master` ratios on these
+  cut-outs are 5.6, 3.7 and 3.2.
+- **Science.** The quick science check against the maintainer's
+  26 September run (`b2c1ce7-20260926T205851Z`) reports no regression on
+  all 16 cases, and every product of every case, catalogue, RMS, mask and
+  diagnostics less provenance, is identical data for data: 64 of 64 files.
+- **Checks.** Pyright clean; portable coverage 97% branch-aware over 2,712
+  tests, `io/zarr.py` at 99% with four error guards missed, none on a
+  changed path, and the stage modules at 100% but `multiscale.py` at 98%
+  on three guards it missed before. ADR-007's confirmation, the how-to and
+  the profile page state the validation contract as it now is.
+- **What this leaves.** Task 4 leaves the plan. The store's remaining cost
+  is intrinsic to its policy; the next lever at 1,024² is the background
+  refinement stage, 31% of the profiled run, which the profile page lists
+  first.

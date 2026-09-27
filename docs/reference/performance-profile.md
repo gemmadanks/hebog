@@ -171,6 +171,24 @@ assembled from storage chunks far larger than one object, so one read per
 object decodes the same chunks again for every neighbour sharing them, which
 measured 5.5× slower at 111 components and 8.2× at 846.
 
+The store's per-read overhead was the next thing measured, on 27 September
+2026, and it was two redundancies rather than one bottleneck. Every consumer's
+`read_generation` re-read and re-checksummed every chunk of the generation,
+2.6 s of a 14.1 s profiled 1,024² run, although each window read already
+validates the chunk it uses against the manifest's SHA-256; and every task
+session reopened each product array and re-parsed the completion marker,
+693 opens for 1.2 s, because the caches died at the session boundary. The
+sink now validates chunks once at publication and on every read, and caches
+its handles and the parsed marker for its lifetime in one process, with a
+pickled copy starting empty. The profiled run fell to 10.9 s, the `sync()`
+calls from 1,851 to 991 and the file opens from 4,131 to 2,058; the 1,024²
+anchors are 0.81, 0.86 and 0.86 against v0.14.0 and 0.91, 0.91 and 0.90
+against the pre-M2 branch point, all measured in one session, so the 8%
+accepted on 24 September is recovered with margin. What the store still
+costs is intrinsic to its policy: one chunk decode and checksum per window
+read, and one atomic file per written chunk, each open and rename passing
+through this machine's endpoint scanner.
+
 Moving the component records and the owner noise into the passes changed the
 clock by a few tens of milliseconds, which is itself the finding. On the
 1,024² dense LoTSS cut-out, with 111 components and 83 sources, the driver
@@ -178,8 +196,8 @@ spent 0.058 s describing components and 0.027 s collecting owner noise in a
 13.5 s profiled run; inside the passes the same work is 0.019 s and 0.005 s,
 and the row round's read grows by 0.055 s because it now reads the RMS window
 too. Those rounds were never the 8% of wall time the whole-plane removal cost
-at this size: that sits in the store's per-read overhead, and only reducing it
-recovers the trade-off.
+at this size: that sat in the store's per-read overhead, which the paragraph
+above records as recovered.
 
 The island round is the one whose move is visible on the clock, because the
 driver was labelling a whole plane to find its objects. It scales with the

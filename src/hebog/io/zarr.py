@@ -8,8 +8,7 @@ from __future__ import annotations
 
 import hashlib
 from collections import OrderedDict
-from collections.abc import Generator, Iterable, Iterator
-from contextlib import contextmanager
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any, cast
 
@@ -129,11 +128,22 @@ class ZarrProductSink:
         self._root = root.resolve()
         self._manifest = manifest
         self._generation_id = generation_id
-        self._access_depth = 0
         self._array_cache: dict[str, Any] = {}
         self._published_generation_cache: ProductGenerationManifest | None = (
             None
         )
+
+    def __getstate__(self) -> dict[str, Any]:
+        """Pickle the plain metadata only; open handles stay in this process.
+
+        A sink travels inside executor payloads, so a copy on a worker opens
+        its own array handles and reads the completion marker once, and the
+        pickled bytes never carry a store object.
+        """
+        state = self.__dict__.copy()
+        state["_array_cache"] = {}
+        state["_published_generation_cache"] = None
+        return state
 
     @property
     def manifest(self) -> PartitionManifest:
@@ -144,26 +154,6 @@ class ZarrProductSink:
     def generation_id(self) -> str:
         """Return the immutable run identity stored with every chunk."""
         return self._generation_id
-
-    @contextmanager
-    def access_session(self) -> Generator[None]:
-        """Amortise immutable metadata opens within one bounded coarse task.
-
-        Array handles and the parsed completion record remain local to this
-        sink instance and are discarded at the outermost session boundary.
-        Chunk bytes are still read and checksum-validated on every access.
-        """
-        if self._access_depth == 0:
-            self._array_cache.clear()
-            self._published_generation_cache = None
-        self._access_depth += 1
-        try:
-            yield
-        finally:
-            self._access_depth -= 1
-            if self._access_depth == 0:
-                self._array_cache.clear()
-                self._published_generation_cache = None
 
     def initialize_product(
         self,
@@ -292,8 +282,7 @@ class ZarrProductSink:
             array,
             product_name=product_name,
         )
-        if self._access_depth:
-            self._array_cache[product_name] = validated
+        self._array_cache[product_name] = validated
         return validated
 
     def _require_canonical_tile(self, tile: TilePartition) -> None:
@@ -576,8 +565,7 @@ class ZarrProductSink:
             raise InvalidProductGenerationError(
                 "product chunks do not form a complete generation"
             ) from error
-        with self.access_session():
-            self._require_generation_chunks(generation)
+        self._require_generation_chunks(generation)
         payload = generation.canonical_json_bytes()
         buffer = default_buffer_prototype().buffer.from_bytes(payload)
         with LocalStore(self._root) as store:
@@ -611,16 +599,19 @@ class ZarrProductSink:
                 "published completion manifest is not canonical"
             )
         self._require_generation_identity(generation)
-        if self._access_depth:
-            self._published_generation_cache = generation
+        self._published_generation_cache = generation
         return generation
 
     def read_generation(self) -> ProductGenerationManifest:
-        """Read and fully validate the published completion manifest."""
-        with self.access_session():
-            generation = self._read_published_generation()
-            self._require_generation_chunks(generation)
-        return generation
+        """Read and validate the published completion manifest.
+
+        The marker is parsed, required to be canonical and bound to this
+        sink's run and partition. Its chunks are not re-read: every one was
+        read and checksummed when the generation was published, and each is
+        validated against its record again whenever it is read, so a
+        consumer never pays for a whole generation it does not use.
+        """
+        return self._read_published_generation()
 
     def read_completed_window(
         self,

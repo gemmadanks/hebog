@@ -23,7 +23,6 @@ storing a response bank.
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
-from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from functools import partial
 from numbers import Integral
@@ -98,10 +97,6 @@ class _CompletedProductSource(Protocol):
         bounds: ImageBounds,
     ) -> npt.NDArray[np.generic]:
         """Read one validated bounded product window."""
-        ...
-
-    def access_session(self) -> AbstractContextManager[None]:
-        """Reuse immutable metadata within one bounded coarse task."""
         ...
 
 
@@ -460,25 +455,24 @@ def _decide_restores(
     config: PublicationStageConfig,
 ) -> _RestoreBatchResult:
     """Decide, per owner, whether cleanup split its refined support."""
-    with detection_source.access_session(), support_source.access_session():
-        planes = _read_planes(
-            batch.read_bounds,
-            detection_source=detection_source,
-            support_source=support_source,
+    planes = _read_planes(
+        batch.read_bounds,
+        detection_source=detection_source,
+        support_source=support_source,
+    )
+    refined = _refined_support(planes, config)
+    restored = tuple(
+        request.label_value
+        for request in batch.requests
+        if owner_support_is_split(
+            refined[_crop(batch.read_bounds, request.window)],
+            label_value=request.label_value,
         )
-        refined = _refined_support(planes, config)
-        restored = tuple(
-            request.label_value
-            for request in batch.requests
-            if owner_support_is_split(
-                refined[_crop(batch.read_bounds, request.window)],
-                label_value=request.label_value,
-            )
-        )
-        return _RestoreBatchResult(
-            restored_owners=restored,
-            maximum_owner_read_pixels=int(np.prod(batch.read_bounds.shape_yx)),
-        )
+    )
+    return _RestoreBatchResult(
+        restored_owners=restored,
+        maximum_owner_read_pixels=int(np.prod(batch.read_bounds.shape_yx)),
+    )
 
 
 def _scan_published_owners(
@@ -489,32 +483,29 @@ def _scan_published_owners(
     config: PublicationStageConfig,
 ) -> _PublishedOwnerBatchResult:
     """Return the owners published inside the cores of one batch."""
-    with detection_source.access_session(), support_source.access_session():
-        published: set[int] = set()
-        for request in batch.requests:
-            partition = request.partition
-            planes = _read_planes(
-                partition.read_bounds,
-                detection_source=detection_source,
-                support_source=support_source,
-            )
-            publication = _publication_labels(
+    published: set[int] = set()
+    for request in batch.requests:
+        partition = request.partition
+        planes = _read_planes(
+            partition.read_bounds,
+            detection_source=detection_source,
+            support_source=support_source,
+        )
+        publication = _publication_labels(
+            planes,
+            config,
+            measurement=_measurement_labels(
                 planes,
                 config,
-                measurement=_measurement_labels(
-                    planes,
-                    config,
-                    request.seed_references_yx,
-                ),
-                restored_owners=request.restored_owners,
-            )
-            core = publication[
-                _crop(partition.read_bounds, partition.core_bounds)
-            ]
-            published.update(int(value) for value in np.unique(core) if value)
-        return _PublishedOwnerBatchResult(
-            published_owners=tuple(sorted(published)),
+                request.seed_references_yx,
+            ),
+            restored_owners=request.restored_owners,
         )
+        core = publication[_crop(partition.read_bounds, partition.core_bounds)]
+        published.update(int(value) for value in np.unique(core) if value)
+    return _PublishedOwnerBatchResult(
+        published_owners=tuple(sorted(published)),
+    )
 
 
 def _decide_bridges(
@@ -526,51 +517,50 @@ def _decide_bridges(
     image_width: int,
 ) -> _BridgeBatchResult:
     """Decide, per owner, which previous regions bridge its support."""
-    with detection_source.access_session(), support_source.access_session():
-        planes = _read_planes(
-            batch.read_bounds,
-            detection_source=detection_source,
-            support_source=support_source,
+    planes = _read_planes(
+        batch.read_bounds,
+        detection_source=detection_source,
+        support_source=support_source,
+    )
+    measurement = _measurement_labels(
+        planes,
+        config,
+        batch.seed_references_yx,
+    )
+    publication = _publication_labels(
+        planes,
+        config,
+        measurement=measurement,
+        restored_owners=batch.restored_owners,
+    )
+    persistent = _persistent_labels(
+        planes,
+        measurement=measurement,
+        publication=publication,
+        published_owners=batch.published_owners,
+    )
+    patches: list[_OwnerBridgePatch] = []
+    for request in batch.requests:
+        crop = _crop(batch.read_bounds, request.window)
+        before = persistent[crop]
+        after = preserve_owner_publication_bridges(
+            publication[crop],
+            before,
+            label_value=request.label_value,
         )
-        measurement = _measurement_labels(
-            planes,
-            config,
-            batch.seed_references_yx,
+        patch = _owner_patch(
+            before,
+            after,
+            label_value=request.label_value,
+            window=request.window,
+            image_width=image_width,
         )
-        publication = _publication_labels(
-            planes,
-            config,
-            measurement=measurement,
-            restored_owners=batch.restored_owners,
-        )
-        persistent = _persistent_labels(
-            planes,
-            measurement=measurement,
-            publication=publication,
-            published_owners=batch.published_owners,
-        )
-        patches: list[_OwnerBridgePatch] = []
-        for request in batch.requests:
-            crop = _crop(batch.read_bounds, request.window)
-            before = persistent[crop]
-            after = preserve_owner_publication_bridges(
-                publication[crop],
-                before,
-                label_value=request.label_value,
-            )
-            patch = _owner_patch(
-                before,
-                after,
-                label_value=request.label_value,
-                window=request.window,
-                image_width=image_width,
-            )
-            if patch is not None:
-                patches.append(patch)
-        return _BridgeBatchResult(
-            patches=tuple(patches),
-            maximum_owner_read_pixels=int(np.prod(batch.read_bounds.shape_yx)),
-        )
+        if patch is not None:
+            patches.append(patch)
+    return _BridgeBatchResult(
+        patches=tuple(patches),
+        maximum_owner_read_pixels=int(np.prod(batch.read_bounds.shape_yx)),
+    )
 
 
 def _observe_wide_splits(
@@ -585,33 +575,32 @@ def _observe_wide_splits(
     The read carries the refinement halo, so every core pixel is refined
     exactly as a window over the owner would refine it.
     """
-    with detection_source.access_session(), support_source.access_session():
-        summaries: list[LabelComponentSummary] = []
-        for request in batch.requests:
-            partition = request.partition
-            planes = _read_planes(
-                partition.read_bounds,
-                detection_source=detection_source,
-                support_source=support_source,
-            )
-            refined = _refined_support(planes, config)[
-                _crop(partition.read_bounds, partition.core_bounds)
-            ]
-            summaries.append(
-                label_components(
-                    np.where(
-                        np.isin(refined, request.wide_owners), refined, 0
-                    ).astype(np.int32, copy=False),
-                    partition,
-                ).summary()
-            )
-        return _WideSplitResult(
-            summaries=tuple(summaries),
-            maximum_owner_read_pixels=max(
-                read_pixels(request.partition.read_bounds)
-                for request in batch.requests
-            ),
+    summaries: list[LabelComponentSummary] = []
+    for request in batch.requests:
+        partition = request.partition
+        planes = _read_planes(
+            partition.read_bounds,
+            detection_source=detection_source,
+            support_source=support_source,
         )
+        refined = _refined_support(planes, config)[
+            _crop(partition.read_bounds, partition.core_bounds)
+        ]
+        summaries.append(
+            label_components(
+                np.where(
+                    np.isin(refined, request.wide_owners), refined, 0
+                ).astype(np.int32, copy=False),
+                partition,
+            ).summary()
+        )
+    return _WideSplitResult(
+        summaries=tuple(summaries),
+        maximum_owner_read_pixels=max(
+            read_pixels(request.partition.read_bounds)
+            for request in batch.requests
+        ),
+    )
 
 
 def _wide_bridge_planes(
@@ -638,36 +627,35 @@ def _observe_wide_bridges(
     The shards are the ones the write round receives, so the write round
     labels the same components and can apply the decision by number.
     """
-    with detection_source.access_session(), support_source.access_session():
-        cores: list[OwnerBridgeCore] = []
-        for request in batch.requests:
-            persistent, publication = _wide_bridge_planes(
-                request,
-                planes=_read_planes(
-                    request.partition.read_bounds,
-                    detection_source=detection_source,
-                    support_source=support_source,
-                ),
-                config=config,
-            )
-            cores.append(
-                observe_owner_bridges(
-                    owner_bridge_planes(
-                        persistent,
-                        publication,
-                        request.wide_owners,
-                        request.partition,
-                    ),
-                    publication,
-                )
-            )
-        return _WideBridgeResult(
-            cores=tuple(cores),
-            maximum_owner_read_pixels=max(
-                read_pixels(request.partition.read_bounds)
-                for request in batch.requests
+    cores: list[OwnerBridgeCore] = []
+    for request in batch.requests:
+        persistent, publication = _wide_bridge_planes(
+            request,
+            planes=_read_planes(
+                request.partition.read_bounds,
+                detection_source=detection_source,
+                support_source=support_source,
             ),
+            config=config,
         )
+        cores.append(
+            observe_owner_bridges(
+                owner_bridge_planes(
+                    persistent,
+                    publication,
+                    request.wide_owners,
+                    request.partition,
+                ),
+                publication,
+            )
+        )
+    return _WideBridgeResult(
+        cores=tuple(cores),
+        maximum_owner_read_pixels=max(
+            read_pixels(request.partition.read_bounds)
+            for request in batch.requests
+        ),
+    )
 
 
 def _require_every_core(
@@ -728,57 +716,52 @@ def _publish_batch(  # noqa: PLR0913
     image_width: int,
 ) -> _PublishBatchResult:
     """Write the accepted support products for one bounded batch of cores."""
-    with (
-        detection_source.access_session(),
-        support_source.access_session(),
-        sink.access_session(),
-    ):
-        chunks: list[ProductChunk] = []
-        for request in batch.requests:
-            partition = request.partition
-            planes = _read_planes(
-                partition.read_bounds,
-                detection_source=detection_source,
-                support_source=support_source,
-            )
-            measurement, publication, persistent = _tile_labels(
-                planes, request, config
-            )
-            final = persistent.copy()
-            _apply_patches(
-                final,
-                partition=partition,
-                patches=request.patches,
-                image_width=image_width,
-            )
-            core = _crop(partition.read_bounds, partition.core_bounds)
-            if request.wide_share is not None:
-                apply_owner_bridges(
-                    final[core],
-                    owner_bridge_planes(
-                        persistent[core],
-                        publication[core],
-                        request.wide_owners,
-                        partition,
-                    ),
-                    request.wide_share,
-                )
-            accepted = np.asarray(request.accepted_owners, dtype=np.int32)
-            products = _accepted_products(
-                planes.detection_labels[core],
-                measurement[core],
+    chunks: list[ProductChunk] = []
+    for request in batch.requests:
+        partition = request.partition
+        planes = _read_planes(
+            partition.read_bounds,
+            detection_source=detection_source,
+            support_source=support_source,
+        )
+        measurement, publication, persistent = _tile_labels(
+            planes, request, config
+        )
+        final = persistent.copy()
+        _apply_patches(
+            final,
+            partition=partition,
+            patches=request.patches,
+            image_width=image_width,
+        )
+        core = _crop(partition.read_bounds, partition.core_bounds)
+        if request.wide_share is not None:
+            apply_owner_bridges(
                 final[core],
-                accepted=accepted,
+                owner_bridge_planes(
+                    persistent[core],
+                    publication[core],
+                    request.wide_owners,
+                    partition,
+                ),
+                request.wide_share,
             )
-            chunks.extend(
-                sink.write_chunk(
-                    product_name=product_name,
-                    tile=partition,
-                    values=values,
-                )
-                for product_name, values in products
+        accepted = np.asarray(request.accepted_owners, dtype=np.int32)
+        products = _accepted_products(
+            planes.detection_labels[core],
+            measurement[core],
+            final[core],
+            accepted=accepted,
+        )
+        chunks.extend(
+            sink.write_chunk(
+                product_name=product_name,
+                tile=partition,
+                values=values,
             )
-        return _PublishBatchResult(product_chunks=tuple(chunks))
+            for product_name, values in products
+        )
+    return _PublishBatchResult(product_chunks=tuple(chunks))
 
 
 def _apply_patches(
