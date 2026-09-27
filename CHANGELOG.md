@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.15.0](https://github.com/gemmadanks/hebog/compare/v0.14.1...v0.15.0) (2026-09-27)
+
+
+### 🚀 Features
+
+* add the 10,000-pixel tier anchor and record the wide-object paths ([#76](https://github.com/gemmadanks/hebog/issues/76)) ([7eb65c7](https://github.com/gemmadanks/hebog/commit/7eb65c7994d3bdd41f442f7a8321c0be88ef32b1))
+
 ## [0.14.1](https://github.com/gemmadanks/hebog/compare/v0.14.0...v0.14.1) (2026-09-27)
 
 
