@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.14.1](https://github.com/gemmadanks/hebog/compare/v0.14.0...v0.14.1) (2026-09-27)
+
+
+### ⚡ Performance
+
+* derive each fit parent's support on the cores, not through the driver ([e8422a9](https://github.com/gemmadanks/hebog/commit/e8422a93ad3570effed74273cd642990e8479a3f))
+* reduce zarr read overhead ([#74](https://github.com/gemmadanks/hebog/issues/74)) ([e8422a9](https://github.com/gemmadanks/hebog/commit/e8422a93ad3570effed74273cd642990e8479a3f))
+* validate chunks on read and cache store metadata for the sink's lifetime ([e8422a9](https://github.com/gemmadanks/hebog/commit/e8422a93ad3570effed74273cd642990e8479a3f))
+
+
+### 📚 Documentation
+
+* align ADR-008 with the composition as built and the project goals ([e8422a9](https://github.com/gemmadanks/hebog/commit/e8422a93ad3570effed74273cd642990e8479a3f))
+
 ## [0.14.0](https://github.com/gemmadanks/hebog/compare/v0.13.0...v0.14.0) (2026-09-26)
 
 
