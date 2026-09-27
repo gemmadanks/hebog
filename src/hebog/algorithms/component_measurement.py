@@ -1069,10 +1069,11 @@ def _measurement_fit_parents(
 class FitParentMeasurement:
     """One fit parent's bounded measurement outputs.
 
-    Every field is a record or an array bounded by that parent's own read, so
-    a caller that measures one fit parent per task returns nothing
-    image-sized. ``support_window`` is the persistent measurement support the
-    parent contributes, which callers combine with a boolean OR.
+    Every field is a record, so a caller that measures one fit parent per
+    task returns nothing that grows with the parent's area. The persistent
+    measurement support a measured parent contributes is not among them:
+    :func:`fit_parent_measurement_support` derives it from the planes in
+    ``support_bounds``, so whoever writes the plane can derive it again.
     """
 
     fits: tuple[tuple[int, CompactGaussianFitResult], ...] = ()
@@ -1081,7 +1082,70 @@ class FitParentMeasurement:
     evidence: tuple[ComponentGroupingEvidence, ...] = ()
     deferred: bool = False
     support_bounds: ImageBounds | None = None
-    support_window: np.ndarray | None = None
+
+
+def _fit_parent_local_valid(
+    residual_window: np.ndarray,
+    rms_window: np.ndarray,
+    valid_window: np.ndarray,
+    fit_parent_window: np.ndarray,
+    parent_index: int,
+) -> np.ndarray:
+    """Return the pixels one fit parent may measure inside its window.
+
+    Foreground owned by another fit parent is excluded; unowned context
+    stays, so negative background pixels remain in the fit.
+    """
+    local_valid = (
+        valid_window
+        & np.isfinite(residual_window)
+        & np.isfinite(rms_window)
+        & (rms_window > 0.0)
+    )
+    local_valid &= (fit_parent_window == 0) | (
+        fit_parent_window == parent_index
+    )
+    return local_valid
+
+
+def fit_parent_measurement_support(  # noqa: PLR0913
+    residual_window: np.ndarray,
+    rms_window: np.ndarray,
+    valid_window: np.ndarray,
+    fit_parent_window: np.ndarray,
+    *,
+    parent_index: int,
+    atrous_plan: ResidualAtrousPlan,
+    minimum_support_fraction: float,
+    detection_sigma: float,
+    island_sigma: float,
+    minimum_pixels: int,
+) -> np.ndarray:
+    """Return the persistent measurement support one measured parent adds.
+
+    The windows are the parent's own read, its support plus the reviewed
+    context margin. The support depends on these planes and the reviewed
+    thresholds only, never on the parent's fit, so a core that holds part of
+    the window derives exactly what the measuring task would have returned.
+    Callers combine parents with a boolean OR, and call this only for a
+    parent that :func:`measure_fit_parent_components` did not defer.
+    """
+    return _persistent_measurement_support(
+        residual_window,
+        rms_window,
+        _fit_parent_local_valid(
+            residual_window,
+            rms_window,
+            valid_window,
+            fit_parent_window,
+            parent_index,
+        ),
+        atrous_plan,
+        minimum_support_fraction,
+        detection_sigma,
+        island_sigma,
+        minimum_pixels,
+    )
 
 
 def fit_parent_margin_pixels(
@@ -1136,13 +1200,13 @@ def measure_fit_parent_components(  # noqa: PLR0913, PLR0917
     ):
         return FitParentMeasurement(deferred=True)
     parent_support = fit_parent_window == parent_index
-    local_valid = (
-        valid_window
-        & np.isfinite(residual_window)
-        & np.isfinite(rms_window)
-        & (rms_window > 0.0)
+    local_valid = _fit_parent_local_valid(
+        residual_window,
+        rms_window,
+        valid_window,
+        fit_parent_window,
+        parent_index,
     )
-    local_valid &= (fit_parent_window == 0) | parent_support
     seeds = np.where(
         parent_support & (residual_window > 0.0) & local_valid,
         direct_window,
@@ -1190,19 +1254,6 @@ def measure_fit_parent_components(  # noqa: PLR0913, PLR0917
         ),
     )
     labelled = tuple(zip(indexes, fitted, strict=True))
-    # Measurement-only persistent emission belongs to admitted owners
-    # independently of whether a compact Gaussian describes them. A
-    # bounded or unavailable fit must not truncate extended photometry.
-    support_window = _persistent_measurement_support(
-        residual_window,
-        rms_window,
-        local_valid,
-        atrous_plan,
-        minimum_support_fraction,
-        detection_sigma,
-        island_sigma,
-        minimum_pixels,
-    )
     complete = tuple(
         (index, fit)
         for index, fit in labelled
@@ -1221,11 +1272,7 @@ def measure_fit_parent_components(  # noqa: PLR0913, PLR0917
     )
     by_index = dict(admitted)
     fits = tuple((index, by_index.get(index, fit)) for index, fit in labelled)
-    measured = FitParentMeasurement(
-        fits=fits,
-        support_bounds=bounds,
-        support_window=support_window,
-    )
+    measured = FitParentMeasurement(fits=fits, support_bounds=bounds)
     expected_indexes = set(np.unique(measurement_window[parent_support])) - {0}
     if len(complete) != len(expected_indexes) or any(
         isinstance(fit, FailedCompactGaussianFit) for _, fit in admitted
@@ -1369,8 +1416,22 @@ def measure_component_models(  # noqa: PLR0913, PLR0917
             minimum_support_fraction=minimum_support_fraction,
         )
         measured_parents.append(measured)
-        if measured.support_window is not None:
-            measurement_support[window] |= measured.support_window
+        # Measurement-only persistent emission belongs to admitted owners
+        # independently of whether a compact Gaussian describes them. A
+        # bounded or unavailable fit must not truncate extended photometry.
+        if not measured.deferred:
+            measurement_support[window] |= fit_parent_measurement_support(
+                residual[window],
+                rms[window],
+                valid[window],
+                parents[window],
+                parent_index=parent_index,
+                atrous_plan=atrous_plan,
+                minimum_support_fraction=minimum_support_fraction,
+                detection_sigma=detection_sigma,
+                island_sigma=island_sigma,
+                minimum_pixels=minimum_pixels,
+            )
     fits = tuple(
         item for measured in measured_parents for item in measured.fits
     )

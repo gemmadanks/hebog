@@ -12,7 +12,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-09-18 |
-| **Last Updated** | 2026-09-26 (a wide owner's connectivity is decided from its cores, replacing its T3 rule) |
+| **Last Updated** | 2026-09-27 (each core derives a fit parent's measurement support; the fit round returns no array) |
 | **Deciders** | Gemma Danks |
 | **Tags** | tiling, halos, ownership, reconciliation, memory, invariance |
 
@@ -271,8 +271,11 @@ steps, and they set the round boundaries:
   exactly like pass C's support components, and must be reconciled before any
   fit runs.
 - **Measurement support.** Each fit parent contributes persistent measurement
-  support into its own window with a boolean OR. The accumulation is
-  associative, so each parent returns a patch and the cores write the plane.
+  support into its own window with a boolean OR. That support is a function
+  of the residual, RMS, validity and fit-parent labels in the window, not of
+  the fit, so each core the window reaches derives it again from the
+  published planes and writes its own pixels; the fit round returns records
+  only.
 - **Cross-parent loops.** `_cross_parent_loop_groups` labels the *accumulated*
   measurement support and reconciles resolved loops that span several fit
   parents, so it can only run once every parent's patch is known.
@@ -305,8 +308,8 @@ that only one round reads would cost a generation for nothing.
 | Deblend | parent window, for an admitted parent only | `direct-snr`, `valid-pixels`, both label planes | each parent's component count |
 | Component write | core, halo 0, then the window of each parent it holds that splits | both label planes; `direct-snr` and `valid-pixels` in a splitting parent's window | `component-direct-labels`, `component-measurement-labels` |
 | Fit parents | core, halo 0 | `component-measurement-labels` | context island summaries; then `fit-parent-labels` |
-| Component fits | fit-parent window + margin, or a deferred parent's cores | residual, RMS, validity, both component planes | fit records, groups, grouping evidence, a measurement-support patch, each owned component's association record |
-| Support write | core, halo 0 | the patches | `measurement-support` |
+| Component fits | fit-parent window + margin, or a deferred parent's cores | residual, RMS, validity, both component planes | fit records, groups, grouping evidence, each owned component's association record |
+| Support write | core, halo 0, then the window of each measured parent it holds | residual, RMS, validity, `fit-parent-labels` | `measurement-support` |
 | Support features | core, halo 0 | `measurement-support`, `valid-pixels`, `component-measurement-labels` | feature island summaries and each measurement label's bounds |
 | Cross-parent loops and extended residual | support-feature window + margin | residual, RMS, validity, `measurement-support`, `component-measurement-labels`, the sharded fit records | extended group records and grouping evidence |
 | Scale feature labels | core, halo 0 | the reconciled per-scale mappings | `scale-{order}-labels` |
@@ -589,10 +592,10 @@ milestone: the executor work comes before the convergence it enables.
   payloads and in driver-held state, and reject whole-table label broadcasts.
   The composition records carry no array field, which a static test asserts,
   and a run that walks the driver's own locals at the terminal builder finds
-  no image-shaped array reachable from them. The component-topology and
-  source-support tests record every payload and result their rounds exchange
-  and require them to carry no array but the support scan's core boundary
-  labels.
+  no image-shaped array reachable from them. The component-topology,
+  component-fit and source-support tests record every payload and result
+  their rounds exchange and require them to carry no array but the support
+  scan's core boundary labels.
 - A stage-halo admission test proves every declared halo is below one quarter
   of the admitted core, and that a plan exceeding the admitted memory is
   rejected before submission rather than during it.

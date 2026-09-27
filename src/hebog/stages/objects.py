@@ -38,6 +38,7 @@ from hebog.algorithms.component_measurement import (
     SupportFeatureGroups,
     compact_window_is_admitted,
     fit_parent_margin_pixels,
+    fit_parent_measurement_support,
     group_support_feature_components,
     measure_fit_parent_components,
     support_feature_margin_pixels,
@@ -1572,10 +1573,10 @@ class _FitBatchResult:
 
 @dataclass(frozen=True, slots=True)
 class _SupportRequest:
-    """One core and the bounded support windows that cover it."""
+    """One core and the measured fit parents whose windows reach it."""
 
     partition: TilePartition
-    patches: tuple[tuple[ImageBounds, npt.NDArray[np.bool_]], ...]
+    parents: tuple[_FitParentExtent, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -1997,24 +1998,98 @@ def _deferred_component_records(
     return tuple(records)
 
 
-def _publish_support(
+@dataclass(frozen=True, slots=True)
+class _SupportPublishResult:
+    """Persisted support chunks and the widest window one core read."""
+
+    product_chunks: tuple[ProductChunk, ...]
+    maximum_parent_read_pixels: int
+
+
+def _publish_support(  # noqa: PLR0913
     batch: _SupportBatch,
     *,
+    source: _WindowReadable,
+    background_rms_source: _CompletedProductSource,
+    detection_source: _CompletedProductSource,
+    fit_parent_source: _CompletedProductSource,
+    config: ComponentFitStageConfig,
     sink: ZarrProductSink,
-) -> _PublishBatchResult:
-    """Combine every fit parent's support patch over the cores it reaches."""
+) -> _SupportPublishResult:
+    """Derive each measured parent's support again and write the core's share.
+
+    The persistent measurement support a fit parent contributes is a
+    function of the residual, the RMS, the validity and the fit-parent
+    labels inside its own window, not of its fit, so every core the window
+    reaches derives it from the published planes and keeps its own pixels.
+    That costs the matched-filter bank once more for each further core a
+    window crosses, and returns nothing that grows with a parent's area.
+
+    Raises:
+        ValueError: If the image source answers with other bounds.
+    """
     chunks: list[ProductChunk] = []
+    maximum_read_pixels = 0
     for request in batch.requests:
         core = request.partition.core_bounds
         values = np.zeros(core.shape_yx, dtype=np.bool_)
-        for patch_bounds, patch in request.patches:
-            overlap = ImageBounds(
-                max(core.y_start, patch_bounds.y_start),
-                min(core.y_stop, patch_bounds.y_stop),
-                max(core.x_start, patch_bounds.x_start),
-                min(core.x_stop, patch_bounds.x_stop),
+        for read in _fit_batches(
+            request.parents,
+            maximum_batch_read_pixels=config.maximum_batch_read_pixels,
+            maximum_bounds_pixels=config.maximum_bounds_pixels,
+        ):
+            bounds = read.read_bounds
+            window = source.read_window(bounds)
+            if window.bounds != bounds:
+                raise ValueError(
+                    "image source returned different fit-read bounds"
+                )
+            residual = np.asarray(
+                window.values, dtype=np.float64
+            ) - np.asarray(
+                background_rms_source.read_completed_window(
+                    "background", bounds
+                ),
+                dtype=np.float64,
             )
-            values[_crop(core, overlap)] |= patch[_crop(patch_bounds, overlap)]
+            rms = np.asarray(
+                background_rms_source.read_completed_window("rms", bounds),
+                dtype=np.float64,
+            )
+            valid = np.asarray(
+                detection_source.read_completed_window("valid-pixels", bounds),
+                dtype=np.bool_,
+            )
+            fit_parents = np.asarray(
+                fit_parent_source.read_completed_window(
+                    "fit-parent-labels", bounds
+                ),
+                dtype=np.int32,
+            )
+            maximum_read_pixels = max(maximum_read_pixels, read_pixels(bounds))
+            for parent in read.parents:
+                crop = _crop(bounds, parent.read_bounds)
+                support = fit_parent_measurement_support(
+                    residual[crop],
+                    rms[crop],
+                    valid[crop],
+                    fit_parents[crop],
+                    parent_index=parent.parent_index,
+                    atrous_plan=config.atrous_plan,
+                    minimum_support_fraction=config.minimum_support_fraction,
+                    detection_sigma=config.detection_sigma,
+                    island_sigma=config.island_sigma,
+                    minimum_pixels=config.minimum_pixels,
+                )
+                overlap = ImageBounds(
+                    max(core.y_start, parent.read_bounds.y_start),
+                    min(core.y_stop, parent.read_bounds.y_stop),
+                    max(core.x_start, parent.read_bounds.x_start),
+                    min(core.x_stop, parent.read_bounds.x_stop),
+                )
+                values[_crop(core, overlap)] |= support[
+                    _crop(parent.read_bounds, overlap)
+                ]
         chunks.append(
             sink.write_chunk(
                 product_name="measurement-support",
@@ -2022,7 +2097,10 @@ def _publish_support(
                 values=values,
             )
         )
-    return _PublishBatchResult(product_chunks=tuple(chunks))
+    return _SupportPublishResult(
+        product_chunks=tuple(chunks),
+        maximum_parent_read_pixels=maximum_read_pixels,
+    )
 
 
 def _support_batches(
@@ -2103,8 +2181,9 @@ def run_component_fit_stage(  # noqa: PLR0913, PLR0917
 
     Three rounds: the cores observe each fit parent's extent, one task per
     batch of parents measures them inside that extent plus the reviewed
-    context margin, and the cores combine the support patches the parents
-    contributed. Only the last round writes.
+    context margin, and the cores derive each measured parent's persistent
+    support again inside that window and write their own pixels of it. Only
+    the last round writes, and no round returns an array.
 
     The measuring round also describes the direct components each parent
     owns, because the residual and the validity those records need are
@@ -2153,7 +2232,7 @@ def run_component_fit_stage(  # noqa: PLR0913, PLR0917
     margin = config.margin_pixels
     scan_batches = _support_batches(
         tuple(
-            _SupportRequest(partition=partition, patches=())
+            _SupportRequest(partition=partition, parents=())
             for partition in manifest.tiles
         ),
         maximum_tiles_per_batch=config.maximum_tiles_per_batch,
@@ -2264,11 +2343,15 @@ def run_component_fit_stage(  # noqa: PLR0913, PLR0917
         ),
         component_count=component_count,
     )
-    patches = tuple(
-        (parent.support_bounds, parent.support_window)
-        for _, parent in measured
-        if parent.support_bounds is not None
-        and parent.support_window is not None
+    # A parent the measurement deferred, by its bound or for want of a
+    # seed, contributes no support, exactly as the whole-plane pass.
+    contributing = {
+        parent_index
+        for parent_index, parent in measured
+        if not parent.deferred
+    }
+    supported = tuple(
+        extent for extent in fitted if extent.parent_index in contributing
     )
     sink.initialize_product(
         product_name="measurement-support",
@@ -2278,10 +2361,10 @@ def run_component_fit_stage(  # noqa: PLR0913, PLR0917
         tuple(
             _SupportRequest(
                 partition=partition,
-                patches=tuple(
-                    (bounds, window)
-                    for bounds, window in patches
-                    if _intersects(bounds, partition.core_bounds)
+                parents=tuple(
+                    extent
+                    for extent in supported
+                    if _intersects(extent.read_bounds, partition.core_bounds)
                 ),
             )
             for partition in manifest.tiles
@@ -2290,7 +2373,15 @@ def run_component_fit_stage(  # noqa: PLR0913, PLR0917
     )
     publish_results = tuple(
         executor.map_batches(
-            partial(_publish_support, sink=sink),
+            partial(
+                _publish_support,
+                source=source,
+                background_rms_source=background_rms_source,
+                detection_source=detection_source,
+                fit_parent_source=fit_parent_source,
+                config=config,
+                sink=sink,
+            ),
             publish_batches,
         )
     )
@@ -2330,6 +2421,10 @@ def run_component_fit_stage(  # noqa: PLR0913, PLR0917
                 *(
                     result.maximum_core_read_pixels
                     for result in deferred_results
+                ),
+                *(
+                    result.maximum_parent_read_pixels
+                    for result in publish_results
                 ),
             ),
             default=0,

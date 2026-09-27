@@ -26192,3 +26192,71 @@ the per-worker placement finding.
   is intrinsic to its policy; the next lever at 1,024² is the background
   refinement stage, 31% of the profiled run, which the profile page lists
   first.
+
+## 2026-09-27 — M2: the fit round returns no array
+
+- **What this is.** Task 5 of the plan. The fit round returned each fit
+  parent's persistent measurement-support patch, a `bool` window the driver
+  held until the support write: 1.08 MB over 371 parents at 1,024² and
+  4.22 MB over 1,421 at 2,048², growing with the summed area of the
+  parents. It was the last round of the object pass to return an array.
+- **Why no second fit is needed.** The patch is
+  `_persistent_measurement_support` over the residual, RMS, validity and
+  fit-parent labels inside the parent's window, at the reviewed thresholds.
+  It never reads the fit. So the write round, which owns the cores, derives
+  it again from the published planes, exactly as the topology round
+  re-deblends a split parent: `fit_parent_measurement_support` is the
+  extracted function, the oracle `measure_component_models` calls it in
+  the same loop, and `FitParentMeasurement` no longer has a window field.
+  A parent the measurement deferred, by its bound or for want of a seed,
+  contributes nothing, as before. Each core reads the windows of the
+  measured parents that reach it, batched under the shared read budget
+  with the parent bound as the admission rule, and ORs its own pixels.
+  ADR-008's rounds table and its measurement-support paragraph say so.
+- **Evidence: nothing changes.** A new stage test records every payload and
+  result of the fit stage's rounds and requires no array in any of them;
+  the fit-context scan's core boundary labels are the one exemption, as in
+  the support stage's test, and the test asserts the exemption matches only
+  there. The write round's own guard against a read of other bounds has
+  its failure test, which proves through the recording executor that the
+  fits had completed when it fired. The 112 object, extended-group and
+  measurement tests pass, including the whole-plane equality of the
+  published support and its partition, batch and executor invariance. On the 16 quick-check cases
+  with every public stage on 512-pixel cores, so that parent windows cross
+  cores and several cores derive one parent, the products of `d4bd3f4` and
+  of this change are identical data for data: 64 of 64 files. The quick
+  science check against the maintainer's 26 September run reports no
+  regression on all 16 cases.
+- **Evidence: what it costs, and a decision for the maintainer.** The
+  cores now read four planes and the image once per batch of parents
+  where the fit round already had them in memory. In the `cProfile` run of
+  the 1,024² LoTSS-DR3 dense cut-out the support derivation moved out of
+  `_fit_batch` (1.74 → 1.36 s) into `_publish_support` (0.01 → 0.51 s, of
+  which 0.37 s is the derivation) and the plane reads grew 1.45 → 1.71 s,
+  so the net cost is those reads, about 0.13 s profiled. The quick
+  benchmark's default tier against `d4bd3f4`, both endpoints refreshed in
+  one session on a quiet machine (`m2-fit-support-vs-d4bd3f4-quiet`,
+  load median 2.92):
+
+  | case | Hebog | `d4bd3f4` | ratio [95% bounds] | CPU ratio |
+  | --- | --- | --- | --- | --- |
+  | `dense-field` | 14.50 s | 14.15 s | 1.025 [1.007, 1.071] inconclusive | 1.015 |
+  | `lotss-dr3-1312-sparse` | 15.10 s | 14.63 s | 1.032 [0.990, 1.057] inconclusive | 1.032 |
+  | `lotss-dr3-1312-dense` | 16.07 s | 15.51 s | 1.037 [0.964, 1.056] inconclusive | 1.026 |
+
+  A first, noisier run (`m2-fit-support-vs-d4bd3f4`, load up to 6.3) gave
+  1.04, 1.04 and 1.02. So the change costs 2 to 4% of a 1,024² run, below
+  the 5% at which the plan requires an approved trade-off, and every
+  outcome is inconclusive under the previous-release rule because the
+  upper bounds pass 1.05 by up to 0.02. The adjacent anchor goes the other
+  way: on the crowded 2,048² SDC1 cut-out
+  (`m2-fit-support-2048-vs-d4bd3f4`, load median 2.25) the change is
+  faster, 101.3 s against 102.5 s, ratio 0.988 [0.980, 0.997], a pass, with
+  the same CPU ratio, because 1,421 parents' patches, 4.2 MB, no longer
+  cross the executor boundary, where every payload is pickled to prove it
+  serializable. The reads are a fixed handful per core batch, so their
+  share falls as the run grows, and the payload saving grows with the
+  source count. The agent recommends accepting the 1,024² cost, as the 8%
+  of 24 September was accepted, for the scaling property it buys: no round
+  of the fit stage carries anything that grows with source area. The plan
+  carries the acceptance as a human decision.

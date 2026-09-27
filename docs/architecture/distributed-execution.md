@@ -173,9 +173,10 @@ so no node sees every summary at once. The resulting global label map is
 
 From pass C onwards some work is scoped to one object instead of one tile. The
 task reads the window that contains the whole object, makes the decision once,
-and returns a small record or patch that the tile tasks then apply to the
-cores they own. The decision therefore cannot depend on where tile boundaries
-fall. Objects that exceed a hard size bound are published as one explicitly
+and returns a small record that the tile tasks then apply to the cores they
+own; where the decision's pixels are needed, each core derives them again from
+its own reads rather than receiving them. The decision therefore cannot depend
+on where tile boundaries fall. Objects that exceed a hard size bound are published as one explicitly
 deferred detection instead of consuming unbounded memory.
 
 ## The executor contract
