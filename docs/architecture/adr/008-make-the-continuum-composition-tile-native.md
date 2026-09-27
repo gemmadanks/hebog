@@ -12,7 +12,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-09-18 |
-| **Last Updated** | 2026-09-26 (a wide owner's connectivity is decided from its cores, replacing its T3 rule) |
+| **Last Updated** | 2026-09-27 (reviewed against the project goals: rules 4 and 6, three stage rows, cores as built, the bounded wide-object exception, and the traced peak) |
 | **Deciders** | Gemma Danks |
 | **Tags** | tiling, halos, ownership, reconciliation, memory, invariance |
 
@@ -20,14 +20,19 @@ tags:
 
 ## Context
 
+This section describes Hebog on 18 September 2026, when the decision was
+taken; the sections after *Decision Outcome* describe the composition as
+built, and are amended as it changes.
+
 ADR-005 decided that all image-sized scientific work uses hierarchical haloed
-tiles. Hebog implements that decision only for the first part of the pipeline.
-Background and RMS estimation and first-pass compact detection run per tile
-through an executor; tiled multiscale, deblending, measurement, fitting and
-compact catalogue stages exist in `hebog.stages` but only tests call them. The
-installed public path, `hebog.public_science.build_configured_continuum_products`,
-receives whole `float64` planes and holds about ten of them at once. That is
-why the public size limit is 1,024 pixels per side.
+tiles. Hebog implemented that decision only for the first part of the
+pipeline. Background and RMS estimation and first-pass compact detection ran
+per tile through an executor; tiled multiscale, deblending, measurement,
+fitting and compact catalogue stages existed in `hebog.stages` but only tests
+called them. The installed public path,
+`hebog.public_science.build_configured_continuum_products`, received whole
+`float64` planes and held about ten of them at once. That was why the public
+size limit was 1,024 pixels per side.
 
 The arithmetic is unforgiving. One `float64` plane is 16 GB at 45,000² and
 80 GB at 100,000². The development machine has 18 GiB of RAM, so from 22,500²
@@ -139,13 +144,21 @@ before the next stage can decide anything.
 4. **Nothing image-sized crosses the executor boundary or reaches the
    driver.** Tasks exchange records, bounded summaries and Zarr chunk
    identities. Label mappings are sharded to the labels present in a tile;
-   an accepted-label table is never broadcast whole. One exception, bounded
+   an accepted-label table is never broadcast whole, and every value a task
+   carries survives serialization exactly: a `WCS` travels as the header text
+   it was built from and is rebuilt on the worker, because Astropy
+   re-serializes one through a header it reformats. One exception, bounded
    by the image rather than the tile, is declared under *Objects wider than
    the read budget*.
 5. **Reductions are hierarchical and order-independent.** Merge operations are
    associative and commutative, or are applied to a canonically sorted input.
-6. **Read once per pass.** A tile reads its window once and derives every
-   quantity that pass needs from it.
+6. **Read once per round.** A task reads its window once and derives every
+   quantity its round needs from it; filter responses are recomputed in a
+   later round rather than stored. Passes B and C fuse their pixel work
+   into one read per tile, but the owner and object rounds of passes C and
+   D each read the windows they decide, so a plane is read once per round
+   that needs it, not once per pass. The measured cost of those reads is
+   recorded under *Consequences*.
 7. **Store a plane only if a later pass or a product needs it.** Background,
    RMS, publication labels, the mask and the position signal are stored;
    filter responses, à trous coefficients and normalised planes are not.
@@ -170,11 +183,11 @@ Halo values are for a 5-pixel beam and the reviewed 150/50 and 35/7 grids.
 | Segment refinement, owner connectivity | owner window | owner canonical pixel | one restore decision per owner | none; decisions are applied in the core round |
 | Cross-scale association | 0 | scale detection owned by its canonical pixel | per-scale label overlaps observed in the core | union of edge sets, then persistence per connected group |
 | Persistent publication, owner bridges | owner window | owner canonical pixel | label patch bounded by the owner window | patches applied in the core round |
-| Compact deblending | island bounding box within the admission limit | island canonical pixel | exact membership shard | concatenation by island |
-| Compact measurement and fitting | component box + 8 (1.5 beams) | component canonical pixel | component record | none |
+| Compact deblending | parent window within the admission limit | parent canonical pixel | each parent's component count | canonical numbering by first pixel; each core relabels or re-deblends the parents it holds from its own window |
+| Compact measurement and fitting | fit-parent support + the reviewed context margin | fit-parent canonical pixel | fit records, groups and component records | none; each core derives a parent's measurement support again from the published planes |
 | Extended measurement | 8 (1.5 beams) per owned core | object canonical pixel; each intersected core contributes | additive moment and photometry accumulators, bounding box | accumulators summed at the owner |
 | Position à trous filter | 14 | pixel core | none | none; see below |
-| Source association | pair bounding box, or a reduced line | the canonically first component of the pair | edge record with saddle margin and normalised separation | canonicalised edge union, union–find groups, complete-link cliques resolved per group |
+| Source association | one feature's window plus its B3 footprint, or each core that window reaches | feature canonical pixel | hierarchy overlap records | `associate_from_hierarchy_overlaps` over the reduced records; see *Extended association* |
 | Source measurement and rows | 8 (1.5-beam aperture) | source canonical pixel | catalogue shard | hierarchical shard reduction rejecting duplicates |
 | Product materialisation | 0 | row block | written chunk identity | ordered chunk index |
 
@@ -271,8 +284,11 @@ steps, and they set the round boundaries:
   exactly like pass C's support components, and must be reconciled before any
   fit runs.
 - **Measurement support.** Each fit parent contributes persistent measurement
-  support into its own window with a boolean OR. The accumulation is
-  associative, so each parent returns a patch and the cores write the plane.
+  support into its own window with a boolean OR. That support is a function
+  of the residual, RMS, validity and fit-parent labels in the window, not of
+  the fit, so each core the window reaches derives it again from the
+  published planes and writes its own pixels; the fit round returns records
+  only.
 - **Cross-parent loops.** `_cross_parent_loop_groups` labels the *accumulated*
   measurement support and reconciles resolved loops that span several fit
   parents, so it can only run once every parent's patch is known.
@@ -305,8 +321,8 @@ that only one round reads would cost a generation for nothing.
 | Deblend | parent window, for an admitted parent only | `direct-snr`, `valid-pixels`, both label planes | each parent's component count |
 | Component write | core, halo 0, then the window of each parent it holds that splits | both label planes; `direct-snr` and `valid-pixels` in a splitting parent's window | `component-direct-labels`, `component-measurement-labels` |
 | Fit parents | core, halo 0 | `component-measurement-labels` | context island summaries; then `fit-parent-labels` |
-| Component fits | fit-parent window + margin, or a deferred parent's cores | residual, RMS, validity, both component planes | fit records, groups, grouping evidence, a measurement-support patch, each owned component's association record |
-| Support write | core, halo 0 | the patches | `measurement-support` |
+| Component fits | fit-parent window + margin, or a deferred parent's cores | residual, RMS, validity, both component planes | fit records, groups, grouping evidence, each owned component's association record |
+| Support write | core, halo 0, then the window of each measured parent it holds | residual, RMS, validity, `fit-parent-labels` | `measurement-support` |
 | Support features | core, halo 0 | `measurement-support`, `valid-pixels`, `component-measurement-labels` | feature island summaries and each measurement label's bounds |
 | Cross-parent loops and extended residual | support-feature window + margin | residual, RMS, validity, `measurement-support`, `component-measurement-labels`, the sharded fit records | extended group records and grouping evidence |
 | Scale feature labels | core, halo 0 | the reconciled per-scale mappings | `scale-{order}-labels` |
@@ -363,7 +379,11 @@ object of the round at once, so that memory is bounded by the image and not
 the tile. The catalogue-row round costs the most, 186 bytes an object pixel,
 which for a segment filling the field is about 1.7 GB at 3,000², 19 GB at
 10,000² and 1.9 TB at 100,000². It is an explicit limit on the envelope, and
-the plan's risks carry its removal. Source support escapes it: an unseeded
+the plan's risks carry its removal: the exception holds for the 3,000-pixel
+envelope, and no tier at which it can bind is admitted until those reductions
+run on the cores, as associative partial sums or a hierarchical sub-reduction
+of the pixels, since the project's scale goal leaves no room for a driver
+term that grows with an object. Source support escapes it: an unseeded
 pixel's owner depends only on the seeds, so the driver holds only those.
 Where the science needs the whole object at once, the round relies on an
 admission bound instead, and the bound it relies on is named here, in
@@ -495,10 +515,13 @@ union–find performs zero rounds. The executor receives one batch per pass.
 The only cost relative to today is one Zarr chunk per stored plane, which
 ADR-007 already accepted as the single intermediate backend. Because filter
 responses and à trous coefficients are not stored, the number of stored planes
-does not grow with the number of stages. Tile cores are chosen from admitted
-memory within the contract's 2,048–8,192 range; the current hard-coded 128
-core is below that range and is replaced. A resource choice may change batch
-size and core size, but never ownership or results.
+does not grow with the number of stages. Every stage after the noise pass
+uses the contract's smallest admitted core, 2,048 pixels, and the noise pass
+keeps 128-pixel cores because they are its grid cells, not a memory choice;
+batches, not cores, are sized from admitted memory today. Choosing a larger
+core from admitted memory within the contract's 2,048–8,192 range remains the
+intent, and a resource choice may change batch size and core size, but never
+ownership or results.
 
 ### Numerical invariance
 
@@ -559,9 +582,17 @@ milestone: the executor work comes before the convergence it enables.
 - Good, because the largest halo is set by the noise grid at about 125 pixels,
   so halo re-reads cost a few per cent of a 2,048 core rather than a large
   multiple of it.
-- Bad, because four passes read the image more than once; the existing single
-  whole-array pass reads it once. Fusing within a pass limits this to one read
-  per pass, and pass D reads only object windows.
+- Bad, because the image and the stored planes are read once per round that
+  needs them, where the whole-array pass read the image once: passes A and B
+  read it per tile, and the fit, deferred-fit, support-write, source-row and
+  island-row rounds read it by object window. On a 1,024² field the store's
+  per-read overhead was measured at 56% of a profiled run before the sink
+  stopped re-validating generations and reopening arrays (`LOG.md`,
+  27 September 2026); what remains is one chunk decode and checksum per
+  window read and one atomic file per written chunk, and the support write
+  round's reads cost 2 to 4% at 1,024² while its removal of the fit patches
+  makes a crowded 2,048² run faster. Fusing rounds is the lever if a profile
+  shows the reads binding.
 - Bad, because every new scientific stage must now declare a halo, an
   ownership rule, a summary and a merge before it can be composed.
 - Bad, because an object wider than the read budget is reduced on the driver
@@ -589,18 +620,19 @@ milestone: the executor work comes before the convergence it enables.
   payloads and in driver-held state, and reject whole-table label broadcasts.
   The composition records carry no array field, which a static test asserts,
   and a run that walks the driver's own locals at the terminal builder finds
-  no image-shaped array reachable from them. The component-topology and
-  source-support tests record every payload and result their rounds exchange
-  and require them to carry no array but the support scan's core boundary
-  labels.
+  no image-shaped array reachable from them. The component-topology,
+  component-fit and source-support tests record every payload and result
+  their rounds exchange and require them to carry no array but the support
+  scan's core boundary labels.
 - A stage-halo admission test proves every declared halo is below one quarter
   of the admitted core, and that a plan exceeding the admitted memory is
   rejected before submission rather than during it.
 - Escalation tests place an object larger than the admitted task limit across
   several cores and assert that T2 accumulation reproduces the T1 result and
   that a T3 case publishes a disposition rather than a truncated measurement.
-- Peak-RSS measurements across the size ladder show memory scaling with tile
-  size, not image size, as each envelope tier is raised.
+- Traced-allocation peaks (`just traced-peak`, the only reproducible figure;
+  peak RSS varied 42% with machine load) across the size ladder show memory
+  scaling with tile size, not image size, as each envelope tier is raised.
 - The quick science check and Serial/Dask agreement pass at every step of the
   convergence, and the whole-array path is deleted only once they do.
 

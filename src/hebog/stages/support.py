@@ -11,7 +11,6 @@ reads them by window instead of computing them over whole planes.
 
 from __future__ import annotations
 
-from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from functools import partial
 from itertools import pairwise
@@ -65,10 +64,6 @@ class _CompletedProductSource(Protocol):
         bounds: ImageBounds,
     ) -> npt.NDArray[np.generic]:
         """Read one validated bounded product window."""
-        ...
-
-    def access_session(self) -> AbstractContextManager[None]:
-        """Reuse immutable metadata within one bounded coarse task."""
         ...
 
 
@@ -317,49 +312,46 @@ def _scan_topology_batch(
     scale_orders: tuple[int, ...],
 ) -> _TopologyBatchResult:
     """Return compact support and scale topology for one bounded batch."""
-    with detection_source.access_session():
-        tiles: list[_TileTopology] = []
-        maximum_read_pixels = 0
-        summary_bytes = 0
-        for partition in batch.partitions:
-            masks = _read_core_masks(
-                partition,
-                detection_source=detection_source,
-                scale_orders=scale_orders,
-            )
-            support = _label_core(
-                masks.support_union,
-                partition,
-                image_shape_yx=image_shape_yx,
-            )
-            scale_tiles = tuple(
-                _label_core(mask, partition, image_shape_yx=image_shape_yx)
-                for mask in masks.scale_masks
-            )
-            topology = _TileTopology(
-                partition=partition,
-                support_summary=support.compact_summary(),
-                scale_summaries=tuple(
-                    tile.compact_summary() for tile in scale_tiles
-                ),
-                overlaps=_core_overlaps(scale_tiles),
-            )
-            tiles.append(topology)
-            maximum_read_pixels = max(
-                maximum_read_pixels,
-                int(np.prod(partition.core_bounds.shape_yx)),
-            )
-            summary_bytes += _summary_array_bytes(
-                topology.support_summary
-            ) + sum(
-                _summary_array_bytes(summary)
-                for summary in topology.scale_summaries
-            )
-        return _TopologyBatchResult(
-            tiles=tuple(tiles),
-            maximum_read_pixel_count=maximum_read_pixels,
-            summary_array_bytes=summary_bytes,
+    tiles: list[_TileTopology] = []
+    maximum_read_pixels = 0
+    summary_bytes = 0
+    for partition in batch.partitions:
+        masks = _read_core_masks(
+            partition,
+            detection_source=detection_source,
+            scale_orders=scale_orders,
         )
+        support = _label_core(
+            masks.support_union,
+            partition,
+            image_shape_yx=image_shape_yx,
+        )
+        scale_tiles = tuple(
+            _label_core(mask, partition, image_shape_yx=image_shape_yx)
+            for mask in masks.scale_masks
+        )
+        topology = _TileTopology(
+            partition=partition,
+            support_summary=support.compact_summary(),
+            scale_summaries=tuple(
+                tile.compact_summary() for tile in scale_tiles
+            ),
+            overlaps=_core_overlaps(scale_tiles),
+        )
+        tiles.append(topology)
+        maximum_read_pixels = max(
+            maximum_read_pixels,
+            int(np.prod(partition.core_bounds.shape_yx)),
+        )
+        summary_bytes += _summary_array_bytes(topology.support_summary) + sum(
+            _summary_array_bytes(summary)
+            for summary in topology.scale_summaries
+        )
+    return _TopologyBatchResult(
+        tiles=tuple(tiles),
+        maximum_read_pixel_count=maximum_read_pixels,
+        summary_array_bytes=summary_bytes,
+    )
 
 
 class _DisjointScaleDetections:
@@ -485,63 +477,62 @@ def _publish_batch(
     scale_orders: tuple[int, ...],
 ) -> _PublicationBatchResult:
     """Write the accepted support planes for one bounded batch of cores."""
-    with detection_source.access_session(), sink.access_session():
-        chunks: list[ProductChunk] = []
-        maximum_read_pixels = 0
-        for request in batch.requests:
-            partition = request.partition
-            masks = _read_core_masks(
-                partition,
-                detection_source=detection_source,
-                scale_orders=scale_orders,
-            )
-            components = np.asarray(
-                apply_tile_label_mapping(
-                    _label_core(
-                        masks.support_union,
-                        partition,
-                        image_shape_yx=image_shape_yx,
-                    ),
-                    request.support_mapping,
-                ),
-                dtype=np.int32,
-            )
-            persistent = np.zeros(components.shape, dtype=np.bool_)
-            for mask, local_labels in zip(
-                masks.scale_masks,
-                request.persistent_local_labels,
-                strict=True,
-            ):
-                if not local_labels:
-                    continue
-                labels = _label_core(
-                    mask,
+    chunks: list[ProductChunk] = []
+    maximum_read_pixels = 0
+    for request in batch.requests:
+        partition = request.partition
+        masks = _read_core_masks(
+            partition,
+            detection_source=detection_source,
+            scale_orders=scale_orders,
+        )
+        components = np.asarray(
+            apply_tile_label_mapping(
+                _label_core(
+                    masks.support_union,
                     partition,
                     image_shape_yx=image_shape_yx,
-                ).labels
-                persistent |= np.isin(
-                    labels,
-                    np.asarray(local_labels, dtype=np.int32),
-                )
-            chunks.extend(
-                sink.write_chunk(
-                    product_name=product_name,
-                    tile=partition,
-                    values=values,
-                )
-                for product_name, values in (
-                    ("persistent-support", persistent),
-                    ("support-components", components),
-                )
-            )
-            maximum_read_pixels = max(
-                maximum_read_pixels,
-                int(np.prod(partition.core_bounds.shape_yx)),
-            )
-        return _PublicationBatchResult(
-            product_chunks=tuple(chunks),
-            maximum_read_pixel_count=maximum_read_pixels,
+                ),
+                request.support_mapping,
+            ),
+            dtype=np.int32,
         )
+        persistent = np.zeros(components.shape, dtype=np.bool_)
+        for mask, local_labels in zip(
+            masks.scale_masks,
+            request.persistent_local_labels,
+            strict=True,
+        ):
+            if not local_labels:
+                continue
+            labels = _label_core(
+                mask,
+                partition,
+                image_shape_yx=image_shape_yx,
+            ).labels
+            persistent |= np.isin(
+                labels,
+                np.asarray(local_labels, dtype=np.int32),
+            )
+        chunks.extend(
+            sink.write_chunk(
+                product_name=product_name,
+                tile=partition,
+                values=values,
+            )
+            for product_name, values in (
+                ("persistent-support", persistent),
+                ("support-components", components),
+            )
+        )
+        maximum_read_pixels = max(
+            maximum_read_pixels,
+            int(np.prod(partition.core_bounds.shape_yx)),
+        )
+    return _PublicationBatchResult(
+        product_chunks=tuple(chunks),
+        maximum_read_pixel_count=maximum_read_pixels,
+    )
 
 
 def _partition_batches(

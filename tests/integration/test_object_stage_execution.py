@@ -944,6 +944,7 @@ def _run_fits(  # noqa: PLR0913
     maximum_batch_read_pixels: int = 8192,
     maximum_bounds_pixels: int | None = None,
     valid_pixels: npt.NDArray[np.bool_] | None = None,
+    image_source: object | None = None,
 ) -> _PublishedFits:
     """Reconcile the fit parents, then measure them, in isolation."""
     root.mkdir(parents=True, exist_ok=True)
@@ -988,7 +989,11 @@ def _run_fits(  # noqa: PLR0913
         generation_id="fits",
     )
     result = run_component_fit_stage(
-        ArrayImageSource(residual, np.ones(_SHAPE_YX, dtype=np.bool_)),
+        (
+            ArrayImageSource(residual, np.ones(_SHAPE_YX, dtype=np.bool_))
+            if image_source is None
+            else image_source  # type: ignore[arg-type]
+        ),
         background_source,
         detection_source,
         component_source,
@@ -1176,6 +1181,88 @@ def test_published_component_records_match_the_whole_plane_builder(
     assert published.result.component_records == expected
 
 
+def test_no_fit_round_carries_a_support_patch(tmp_path: Path) -> None:
+    """The driver holds each parent's records, never its support window.
+
+    ADR-008 rule 4: nothing that grows with object area reaches the driver.
+    A fit parent's persistent measurement support is a function of the
+    published planes inside its window, not of its fit, so the cores that
+    write it derive it again from their own reads, and every round sends
+    and returns records only. The fit-context scan that precedes the fits
+    returns each core's boundary labels, a summary bounded by the core's
+    perimeter, and nothing else carries an array. At this core size a
+    parent's window crosses cores, so more than one core derives the same
+    parent.
+    """
+    executor = RecordingExecutor()
+
+    published = _run_fits(tmp_path / "run", executor=executor)
+
+    assert published.fit_parent_count > 1
+    round_names = [name for name, _, _ in executor.rounds]
+    assert "_fit_batch" in round_names
+    assert "_publish_support" in round_names
+    for round_name, batches, results in executor.rounds:
+        assert carried_array_bytes(batches) == (0, 0), round_name
+        carried, exempted = carried_array_bytes(
+            results, exempt=(TileBoundaryLabels,)
+        )
+        assert carried == 0, round_name
+        assert (exempted > 0) == (round_name == "_scan_contexts"), round_name
+    expected = _whole_plane_measurements()
+    assert expected.measurement_support is not None
+    np.testing.assert_array_equal(
+        np.asarray(
+            published.sink.read_completed_window(
+                "measurement-support",
+                ImageBounds(0, _SHAPE_YX[0], 0, _SHAPE_YX[1]),
+            ),
+            dtype=np.bool_,
+        ),
+        expected.measurement_support,
+    )
+
+
+class _LaterShiftedBoundsSource:
+    """An image source honest for its first reads, then answering others."""
+
+    def __init__(self, source: ArrayImageSource, *, honest_reads: int) -> None:
+        """Answer ``honest_reads`` reads truthfully before corrupting them."""
+        self._source = source
+        self._shifted = _ShiftedBoundsSource(source)
+        self._remaining = honest_reads
+
+    def read_window(self, bounds: ImageBounds) -> ImageWindow:
+        """Return the honest window until the honest reads are spent."""
+        if self._remaining > 0:
+            self._remaining -= 1
+            return self._source.read_window(bounds)
+        return self._shifted.read_window(bounds)
+
+
+def test_the_support_write_checks_its_own_reads(tmp_path: Path) -> None:
+    """The write round refuses a read of other bounds, after the fits passed.
+
+    The fit round reads the fixture in one batch, so a source that is
+    honest once and then answers other bounds corrupts the write round's
+    read of the same parents, and the stage stops there rather than
+    deriving support from pixels it did not ask for.
+    """
+    residual, _, _, _, _ = _measurement_inputs()
+    executor = RecordingExecutor()
+    source = _LaterShiftedBoundsSource(
+        ArrayImageSource(residual, np.ones(_SHAPE_YX, dtype=np.bool_)),
+        honest_reads=1,
+    )
+
+    with pytest.raises(ValueError, match="different fit-read bounds"):
+        _run_fits(tmp_path / "run", executor=executor, image_source=source)
+
+    round_names = [name for name, _, _ in executor.rounds]
+    assert "_fit_batch" in round_names
+    assert "_publish_support" not in round_names
+
+
 def test_two_fit_parents_cannot_describe_one_component() -> None:
     """A component belongs to exactly one fit parent, or the stage stops.
 
@@ -1292,14 +1379,6 @@ def _assert_parents_equal(
         assert measured.evidence == reference.evidence
         assert measured.deferred == reference.deferred
         assert measured.support_bounds == reference.support_bounds
-        if reference.support_window is None:
-            assert measured.support_window is None
-            continue
-        assert measured.support_window is not None
-        np.testing.assert_array_equal(
-            measured.support_window,
-            reference.support_window,
-        )
 
 
 @pytest.mark.parametrize(

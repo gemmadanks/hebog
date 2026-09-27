@@ -13,7 +13,6 @@ driver.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from functools import partial
 from math import hypot
@@ -76,10 +75,6 @@ class _CompletedProductSource(Protocol):
     @property
     def manifest(self) -> PartitionManifest:
         """Return the canonical partition the generation was written on."""
-        ...
-
-    def access_session(self) -> AbstractContextManager[None]:
-        """Hold one bounded read session open for a batch of windows."""
         ...
 
     def read_generation(self) -> ProductGenerationManifest:
@@ -188,27 +183,24 @@ def _scan_owners(
     component_source: _CompletedProductSource,
 ) -> _OwnerScanResult:
     """Observe which component owners each core holds."""
-    with component_source.access_session():
-        owners: list[tuple[str, tuple[int, ...]]] = []
-        for partition in batch.partitions:
-            labels = np.asarray(
-                component_source.read_completed_window(
-                    "component-measurement-labels",
-                    partition.core_bounds,
+    owners: list[tuple[str, tuple[int, ...]]] = []
+    for partition in batch.partitions:
+        labels = np.asarray(
+            component_source.read_completed_window(
+                "component-measurement-labels",
+                partition.core_bounds,
+            ),
+            dtype=np.int32,
+        )
+        owners.append(
+            (
+                partition.tile_id,
+                tuple(
+                    int(value) for value in np.unique(labels) if int(value) > 0
                 ),
-                dtype=np.int32,
             )
-            owners.append(
-                (
-                    partition.tile_id,
-                    tuple(
-                        int(value)
-                        for value in np.unique(labels)
-                        if int(value) > 0
-                    ),
-                )
-            )
-        return _OwnerScanResult(owners_by_tile=tuple(owners))
+        )
+    return _OwnerScanResult(owners_by_tile=tuple(owners))
 
 
 def _publish_source_labels(
@@ -218,31 +210,30 @@ def _publish_source_labels(
     sink: ZarrProductSink,
 ) -> _WriteBatchResult:
     """Write the source each core's component owners belong to."""
-    with component_source.access_session(), sink.access_session():
-        chunks: list[ProductChunk] = []
-        for request in batch.requests:
-            labels = np.asarray(
-                component_source.read_completed_window(
-                    "component-measurement-labels",
-                    request.partition.core_bounds,
-                ),
-                dtype=np.int32,
+    chunks: list[ProductChunk] = []
+    for request in batch.requests:
+        labels = np.asarray(
+            component_source.read_completed_window(
+                "component-measurement-labels",
+                request.partition.core_bounds,
+            ),
+            dtype=np.int32,
+        )
+        values = np.zeros(labels.shape, dtype=np.int32)
+        for owner, source_label in request.source_by_owner:
+            values[labels == owner] = source_label
+        if bool(np.any((labels > 0) & (values == 0))):
+            raise ValueError(
+                "source memberships must own every component pixel"
             )
-            values = np.zeros(labels.shape, dtype=np.int32)
-            for owner, source_label in request.source_by_owner:
-                values[labels == owner] = source_label
-            if bool(np.any((labels > 0) & (values == 0))):
-                raise ValueError(
-                    "source memberships must own every component pixel"
-                )
-            chunks.append(
-                sink.write_chunk(
-                    product_name="source-labels",
-                    tile=request.partition,
-                    values=values,
-                )
+        chunks.append(
+            sink.write_chunk(
+                product_name="source-labels",
+                tile=request.partition,
+                values=values,
             )
-        return _WriteBatchResult(product_chunks=tuple(chunks))
+        )
+    return _WriteBatchResult(product_chunks=tuple(chunks))
 
 
 def run_source_label_stage(  # noqa: PLR0913
@@ -583,36 +574,30 @@ def _scan_support(  # noqa: PLR0913
     image_shape_yx: tuple[int, int],
 ) -> _SupportScanResult:
     """Label the support each core carries, as compact summaries."""
-    with (
-        label_source.access_session(),
-        detection_source.access_session(),
-        scale_support_source.access_session(),
-        measurement_support_source.access_session(),
-    ):
-        summaries: list[LocalIslandTileSummary] = []
-        for partition in batch.partitions:
-            core = partition.core_bounds
-            _, persistent = _persistent_window(
-                core,
-                detection_source=detection_source,
-                scale_support_source=scale_support_source,
-                measurement_support_source=measurement_support_source,
+    summaries: list[LocalIslandTileSummary] = []
+    for partition in batch.partitions:
+        core = partition.core_bounds
+        _, persistent = _persistent_window(
+            core,
+            detection_source=detection_source,
+            scale_support_source=scale_support_source,
+            measurement_support_source=measurement_support_source,
+        )
+        seeds = (
+            np.asarray(
+                label_source.read_completed_window("source-labels", core),
+                dtype=np.int32,
             )
-            seeds = (
-                np.asarray(
-                    label_source.read_completed_window("source-labels", core),
-                    dtype=np.int32,
-                )
-                > 0
-            )
-            summaries.append(
-                _label_support(
-                    seeds | persistent,
-                    partition,
-                    image_shape_yx=image_shape_yx,
-                ).compact_summary()
-            )
-        return _SupportScanResult(summaries=tuple(summaries))
+            > 0
+        )
+        summaries.append(
+            _label_support(
+                seeds | persistent,
+                partition,
+                image_shape_yx=image_shape_yx,
+            ).compact_summary()
+        )
+    return _SupportScanResult(summaries=tuple(summaries))
 
 
 def _assign_batches(
@@ -780,57 +765,49 @@ def _gather_wide_support(  # noqa: PLR0913
     is read. The unseeded pixels stay here: the write round finds them
     again the same way and assigns them from the seeds.
     """
-    with (
-        label_source.access_session(),
-        detection_source.access_session(),
-        scale_support_source.access_session(),
-        measurement_support_source.access_session(),
-    ):
-        pieces: list[_WideSeedPiece] = []
-        maximum_read_pixels = 0
-        for core in batch.cores:
-            bounds = core.partition.core_bounds
-            _, persistent = _persistent_window(
-                bounds,
-                detection_source=detection_source,
-                scale_support_source=scale_support_source,
-                measurement_support_source=measurement_support_source,
-            )
-            seeds = np.asarray(
-                label_source.read_completed_window("source-labels", bounds),
-                dtype=np.int32,
-            )
-            labels = _wide_component_labels(
-                seeds,
-                persistent,
-                core.partition,
-                core.mapping,
-                image_shape_yx=image_shape_yx,
-            )
-            for global_label in sorted(set(core.mapping.global_labels)):
-                member = labels == global_label
-                seeded = member & (seeds > 0)
-                pieces.append(
-                    _WideSeedPiece(
-                        tile_id=core.partition.tile_id,
-                        global_label=global_label,
-                        seed_indices=_raster_indices(
-                            seeded, bounds, image_width=image_shape_yx[1]
-                        ),
-                        seed_labels=seeds[seeded],
-                        candidate_count=int(
-                            np.count_nonzero(
-                                member & persistent & (seeds == 0)
-                            )
-                        ),
-                    )
-                )
-            maximum_read_pixels = max(maximum_read_pixels, read_pixels(bounds))
-        return _WideSupportResult(
-            pieces=tuple(pieces),
-            tile_ids=tuple(core.partition.tile_id for core in batch.cores),
-            maximum_core_read_pixels=maximum_read_pixels,
+    pieces: list[_WideSeedPiece] = []
+    maximum_read_pixels = 0
+    for core in batch.cores:
+        bounds = core.partition.core_bounds
+        _, persistent = _persistent_window(
+            bounds,
+            detection_source=detection_source,
+            scale_support_source=scale_support_source,
+            measurement_support_source=measurement_support_source,
         )
+        seeds = np.asarray(
+            label_source.read_completed_window("source-labels", bounds),
+            dtype=np.int32,
+        )
+        labels = _wide_component_labels(
+            seeds,
+            persistent,
+            core.partition,
+            core.mapping,
+            image_shape_yx=image_shape_yx,
+        )
+        for global_label in sorted(set(core.mapping.global_labels)):
+            member = labels == global_label
+            seeded = member & (seeds > 0)
+            pieces.append(
+                _WideSeedPiece(
+                    tile_id=core.partition.tile_id,
+                    global_label=global_label,
+                    seed_indices=_raster_indices(
+                        seeded, bounds, image_width=image_shape_yx[1]
+                    ),
+                    seed_labels=seeds[seeded],
+                    candidate_count=int(
+                        np.count_nonzero(member & persistent & (seeds == 0))
+                    ),
+                )
+            )
+        maximum_read_pixels = max(maximum_read_pixels, read_pixels(bounds))
+    return _WideSupportResult(
+        pieces=tuple(pieces),
+        tile_ids=tuple(core.partition.tile_id for core in batch.cores),
+        maximum_core_read_pixels=maximum_read_pixels,
+    )
 
 
 def _seeds_near_core(
@@ -996,72 +973,65 @@ def _publish_source_support(  # noqa: PLR0913
     seeds that can own this core's share of it, so no window of it is ever
     held and no assignment reaches the driver.
     """
-    with (
-        label_source.access_session(),
-        detection_source.access_session(),
-        scale_support_source.access_session(),
-        measurement_support_source.access_session(),
-        sink.access_session(),
-    ):
-        chunks: list[ProductChunk] = []
-        assigned: set[tuple[int, int]] = set()
-        widest_read = 0
-        for request in batch.requests:
-            core = request.partition.core_bounds
-            seeds = np.asarray(
-                label_source.read_completed_window("source-labels", core),
-                dtype=np.int32,
-            )
-            values = np.array(seeds, copy=True)
-            for assign_batch in _assign_batches(
-                request.components,
-                maximum_objects_per_batch=config.maximum_objects_per_batch,
-                maximum_batch_read_pixels=config.maximum_batch_read_pixels,
-            ):
-                patches = _assigned_patches(
-                    assign_batch,
-                    label_source=label_source,
-                    detection_source=detection_source,
-                    scale_support_source=scale_support_source,
-                    measurement_support_source=measurement_support_source,
-                )
-                for component, patch in zip(
-                    assign_batch.components, patches, strict=True
-                ):
-                    if bool(np.any(patch > 0)):
-                        assigned.add(component.first_pixel_yx)
-                    _write_patch(values, core, component.bounds, patch)
-                widest_read = max(
-                    widest_read, read_pixels(assign_batch.read_bounds)
-                )
-            if request.wide is not None:
-                _, persistent = _persistent_window(
-                    core,
-                    detection_source=detection_source,
-                    scale_support_source=scale_support_source,
-                    measurement_support_source=measurement_support_source,
-                )
-                _assign_wide_share(
-                    values,
-                    seeds,
-                    persistent,
-                    request.partition,
-                    request.wide,
-                    image_shape_yx=image_shape_yx,
-                )
-                widest_read = max(widest_read, read_pixels(core))
-            chunks.append(
-                sink.write_chunk(
-                    product_name="source-measurement-labels",
-                    tile=request.partition,
-                    values=values,
-                )
-            )
-        return _SupportWriteResult(
-            product_chunks=tuple(chunks),
-            assigned_components=tuple(sorted(assigned)),
-            maximum_component_read_pixels=widest_read,
+    chunks: list[ProductChunk] = []
+    assigned: set[tuple[int, int]] = set()
+    widest_read = 0
+    for request in batch.requests:
+        core = request.partition.core_bounds
+        seeds = np.asarray(
+            label_source.read_completed_window("source-labels", core),
+            dtype=np.int32,
         )
+        values = np.array(seeds, copy=True)
+        for assign_batch in _assign_batches(
+            request.components,
+            maximum_objects_per_batch=config.maximum_objects_per_batch,
+            maximum_batch_read_pixels=config.maximum_batch_read_pixels,
+        ):
+            patches = _assigned_patches(
+                assign_batch,
+                label_source=label_source,
+                detection_source=detection_source,
+                scale_support_source=scale_support_source,
+                measurement_support_source=measurement_support_source,
+            )
+            for component, patch in zip(
+                assign_batch.components, patches, strict=True
+            ):
+                if bool(np.any(patch > 0)):
+                    assigned.add(component.first_pixel_yx)
+                _write_patch(values, core, component.bounds, patch)
+            widest_read = max(
+                widest_read, read_pixels(assign_batch.read_bounds)
+            )
+        if request.wide is not None:
+            _, persistent = _persistent_window(
+                core,
+                detection_source=detection_source,
+                scale_support_source=scale_support_source,
+                measurement_support_source=measurement_support_source,
+            )
+            _assign_wide_share(
+                values,
+                seeds,
+                persistent,
+                request.partition,
+                request.wide,
+                image_shape_yx=image_shape_yx,
+            )
+            widest_read = max(widest_read, read_pixels(core))
+        chunks.append(
+            sink.write_chunk(
+                product_name="source-measurement-labels",
+                tile=request.partition,
+                values=values,
+            )
+        )
+    return _SupportWriteResult(
+        product_chunks=tuple(chunks),
+        assigned_components=tuple(sorted(assigned)),
+        maximum_component_read_pixels=widest_read,
+    )
 
 
 def run_source_support_stage(  # noqa: PLR0913

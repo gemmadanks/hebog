@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from functools import partial
 from numbers import Integral
@@ -91,10 +90,6 @@ class _CompletedProductSource(Protocol):
         bounds: ImageBounds,
     ) -> npt.NDArray[np.generic]:
         """Read one validated bounded product window."""
-        ...
-
-    def access_session(self) -> AbstractContextManager[None]:
-        """Reuse immutable metadata within one bounded coarse task."""
         ...
 
 
@@ -388,15 +383,14 @@ def _scan_topology_batch(  # noqa: PLR0913
     detection: ResidualMultiscaleDetectionConfig,
 ) -> _TopologyBatchResult:
     """Evaluate one topology batch with task-local Zarr metadata reuse."""
-    with background_rms_source.access_session():
-        return _scan_topology_batch_in_session(
-            batch,
-            source=source,
-            background_rms_source=background_rms_source,
-            image_shape_yx=image_shape_yx,
-            beam=beam,
-            detection=detection,
-        )
+    return _scan_topology_batch_in_session(
+        batch,
+        source=source,
+        background_rms_source=background_rms_source,
+        image_shape_yx=image_shape_yx,
+        beam=beam,
+        detection=detection,
+    )
 
 
 def _scan_topology_batch_in_session(  # noqa: PLR0913
@@ -623,41 +617,40 @@ def _publish_scale_labels(
     sharded to the labels that tile holds. Only chunk identities and that
     shard cross the boundary.
     """
-    with sink.access_session():
-        chunks: list[ProductChunk] = []
-        for request in batch.requests:
-            partition = request.partition
-            for order, chunk, pairs in zip(
-                _SCALE_ORDERS,
-                request.significant_chunks,
-                request.global_by_local_label_by_order,
-                strict=True,
-            ):
-                mask = np.asarray(sink.read_chunk(chunk), dtype=np.bool_)
-                local = label_detection_tile(
-                    DetectionThresholdMasks(
-                        normalized_residual=np.zeros(
-                            mask.shape,
-                            dtype=np.float64,
-                        ),
-                        island_membership=mask,
-                        detection_seeds=mask,
-                        valid_pixel_count=int(np.count_nonzero(mask)),
+    chunks: list[ProductChunk] = []
+    for request in batch.requests:
+        partition = request.partition
+        for order, chunk, pairs in zip(
+            _SCALE_ORDERS,
+            request.significant_chunks,
+            request.global_by_local_label_by_order,
+            strict=True,
+        ):
+            mask = np.asarray(sink.read_chunk(chunk), dtype=np.bool_)
+            local = label_detection_tile(
+                DetectionThresholdMasks(
+                    normalized_residual=np.zeros(
+                        mask.shape,
+                        dtype=np.float64,
                     ),
-                    partition,
-                    image_shape_yx=image_shape_yx,
+                    island_membership=mask,
+                    detection_seeds=mask,
+                    valid_pixel_count=int(np.count_nonzero(mask)),
+                ),
+                partition,
+                image_shape_yx=image_shape_yx,
+            )
+            values = np.zeros(mask.shape, dtype=np.int32)
+            for local_label, global_label in pairs:
+                values[local.labels == local_label] = global_label
+            chunks.append(
+                sink.write_chunk(
+                    product_name=f"scale-{order}-labels",
+                    tile=partition,
+                    values=values,
                 )
-                values = np.zeros(mask.shape, dtype=np.int32)
-                for local_label, global_label in pairs:
-                    values[local.labels == local_label] = global_label
-                chunks.append(
-                    sink.write_chunk(
-                        product_name=f"scale-{order}-labels",
-                        tile=partition,
-                        values=values,
-                    )
-                )
-        return _ScaleLabelBatchResult(product_chunks=tuple(chunks))
+            )
+    return _ScaleLabelBatchResult(product_chunks=tuple(chunks))
 
 
 def _publish_batch(  # noqa: PLR0913
@@ -671,16 +664,15 @@ def _publish_batch(  # noqa: PLR0913
     detection: ResidualMultiscaleDetectionConfig,
 ) -> _PublicationBatchResult:
     """Publish one batch with bounded source and sink metadata reuse."""
-    with background_rms_source.access_session(), sink.access_session():
-        return _publish_batch_in_session(
-            batch,
-            source=source,
-            background_rms_source=background_rms_source,
-            sink=sink,
-            image_shape_yx=image_shape_yx,
-            beam=beam,
-            detection=detection,
-        )
+    return _publish_batch_in_session(
+        batch,
+        source=source,
+        background_rms_source=background_rms_source,
+        sink=sink,
+        image_shape_yx=image_shape_yx,
+        beam=beam,
+        detection=detection,
+    )
 
 
 def _publish_batch_in_session(  # noqa: PLR0913

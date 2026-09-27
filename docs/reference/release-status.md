@@ -23,10 +23,13 @@ version when results must be repeatable.
 | Execution | `SerialExecutor`, `ThreadExecutor`, or `DaskExecutor` with a client you own. Dask workers need the image and the output directory's parent on shared storage. All must give the same products. |
 | Output | A new directory with `catalogue.fits`, `rms.fits`, `source-mask.fits` and `diagnostics.json`. Existing directories are never overwritten. |
 
-Every scientific step already runs on bounded tiles through the executor, and
-an image larger than 2,048 pixels on either side is reconciled across several
-tiles rather than held as one. The size limit remains because the driver still
-assembles some complete image planes; raising it is current work.
+Every scientific step already runs on bounded tiles through the executor, an
+image larger than 2,048 pixels on either side is reconciled across several
+tiles rather than held as one, and the driver holds no image-sized plane. The
+size limit rises one tier at a time, as each tier's memory and invariance
+evidence is measured. One declared limit remains: an object wider than a
+task's read budget is still reduced on the driver from its own pixels, so that
+memory grows with the object rather than the tile.
 
 ## Scientific status
 

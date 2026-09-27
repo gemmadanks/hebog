@@ -26011,3 +26011,315 @@ the per-worker placement finding.
   `extended-gaussians`, `filament-and-ring`, both LoTSS and both SDC1
   cut-outs. Portable coverage is 96.80% branch-aware, with
   `stages/sources.py` at 100%.
+
+## 2026-09-26 — Plan: the path to 1.0.0 as ordered tasks
+
+- **What this is.** A plan-only change after pull request 72 merged. The
+  implementation plan's roadmap is now 34 numbered tasks in six
+  dependency-ordered stages (M2 close-out, M2 ladder, M3, M4, M5, M6), each
+  with an owner and a done-when, and its current-state table is about half
+  its previous length. No code, gate value, threshold or closed result
+  changed.
+- **What left the plan.** The current-state narrative — how each driver
+  plane came out, the per-round wide-object costs, the topology and support
+  rounds, the bisected cost of the whole-plane removal and the anchor
+  history — lives only in the entries of 22–26 September, in ADR-008 and in
+  the performance profile; the plan keeps one sentence per fact and the
+  pointer. The M2 convergence row is closed: pass D is tile-native
+  (20 September), the driver holds no image-sized plane (25 September) and
+  `public_science.py` holds no plane at all. The sequencing rule "optimize
+  the code that survives" is retired with the whole-array path it
+  protected; "measure before changing" stays and "one tier and one release
+  at a time" is the second rule. Two paragraphs that repeated `AGENTS.md`
+  (ownership, and the benchmark environment and instrumentation lists) are
+  now pointers.
+- **New tasks.** The M2 close-out names what the last entries left open as
+  tasks 1–6: release the merged object pass, re-measure the crossover pair
+  on a quiet machine, repair the comparison container, reduce the store's
+  per-read overhead, keep the fit round's measurement-support patches off
+  the driver, and disposition the envelope before the 10,000 tier. The
+  10,000 tier gains its own anchor task (7), chosen to contain an
+  image-spanning filament so the wide-object driver term is measured, and
+  the removal of that term is task 9, with the rounding-versus-exactness
+  choice as the human decision. Task 16 now also records Rapthor's
+  production sector sizes, which the PyPI switch (task 13) and the
+  deployment envelope (task 22) depend on.
+- **Corrections.** The M3 profile-audit row said "hard 4/5 thresholds"; the
+  traced Rapthor profiles are 5/3, 5/4 and 7.5/5, as the contract page
+  records. Release status and the distributed-execution note still said the
+  driver assembles complete planes; both now describe the tile-native
+  driver and its declared wide-object limit.
+- **Next steps.** Tasks 1–6, in order; the human decisions among them are
+  tasks 3 and 6.
+
+## 2026-09-26 — M2: 0.14.0 releases the tile-native object pass
+
+- **What this is.** Task 1 of the plan, closed by the human: Release
+  Please's pull request 73 was merged, `v0.14.0` is tagged at `c35fa6e`, and
+  TestPyPI holds `hebog-0.14.0-py3-none-any.whl` and `hebog-0.14.0.tar.gz`.
+- **What the release check covered.** The check was not run as one session
+  on `main` before the merge. Its parts are covered by the merged branch's
+  evidence: the quick science check and the field-by-field equality
+  comparisons on the 16 quick-check cases (entries of 25–26 September), the
+  3,000-pixel tier's traced peak at `29d2933` (26 September), the Serial and
+  Dask comparisons in the stage and public tests the branch added, and the
+  required package smoke test on the release pull request, which installs
+  the built wheel. The 3,000-pixel crossover pair has not been timed on a
+  quiet machine; that is task 2.
+- **Records.** The plan's Release row names 0.14.0 and task 1 is removed;
+  task numbers are now stable identifiers, so the close-out starts at
+  task 2. The release-status and distributed-execution corrections of the
+  previous entry are on the plan branch and reach the published site when
+  it merges; the 0.14.0 site still says the driver assembles complete
+  planes.
+
+## 2026-09-26 — M2: the crossover pair on a quiet machine, and the container back
+
+- **What this is.** Tasks 2 and 3 of the plan. The 3,000-pixel crossover
+  pair is re-measured on a quiet machine, and the pinned-`master` container
+  runs again after the maintainer repaired the Podman image store, so the
+  run also carries the first `master` ratios since 24 September.
+- **Run.** `just quick-benchmark --tier large --cases
+  sdc1-b2-1000h-crowded-2048 lotss-dr3-1312-dense-3000 --previous-release
+  v0.13.0`, label `m2-crossover-quiet-0.14.0`, at `b2c1ce7`, whose source
+  tree is `v0.14.0`'s. One warm-up and five measured repetitions per
+  endpoint, every endpoint measured in this session; v0.13.0 is named
+  explicitly because the latest tag, v0.14.0, is the code under test. The
+  one-minute load average, sampled every minute over the 63-minute run, had
+  median 2.29, minimum 1.36 and maximum 4.93, the peaks during the
+  container's four-core PyBDSF runs; nothing but the endpoint scanner ran
+  beside it. The `master` image is
+  `hebog-pybdsf-master:c70103be3-reconstructed` (image id `0360fbbf…`),
+  PyBDSF `1.14.2.dev40+gc70103be3`.
+
+  | case | Hebog median (min–max) | v0.13.0 | ratio [95% bounds] | `master` | ratio | peak RSS |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | `sdc1-b2-1000h-crowded-2048` | 110.2 s (109.5–110.7) | 118.8 s | 0.93 [0.92, 0.93] pass | 124.6 s | 0.88 [0.88, 0.89] | 1,994 MiB |
+  | `lotss-dr3-1312-dense-3000` | 118.3 s (117.7–118.8) | 117.6 s | 1.01 [1.00, 1.01] pass | 38.8 s | 3.05 [3.01, 3.06] | 2,242 MiB |
+
+- **What it shows.** The object pass is 7% faster on the crowded one-tile
+  field and unchanged on the four-tile LoTSS field, the same direction as
+  the 1,024² anchors: the work that moved onto cores was object work, and
+  the LoTSS field has a quarter of the components in twice the pixels. The
+  22 September figures, 119.1 s and 115.8 s, were taken at load 2.6–4.5;
+  the 2,048² case is 7.5% faster than then, and the 3,000² case is within
+  2% of it, where v0.13.0 measured in this session, 117.6 s, shows the case
+  has not moved since the envelope raise. These figures replace the loaded
+  ones in the plan.
+- **The `master` ratios are diagnostic**, Hebog on one thread against
+  `master` on four container cores, and both fail the 0.50 gate as
+  expected. Their CPU times are the finding: on the crowded field Hebog
+  uses 98 s of CPU to `master`'s 172 s and is faster on the wall; on the
+  LoTSS field the two use the same CPU, 102.6 s against 101.8 s, and
+  `master`'s 3.05× wall advantage is its four cores. On that field the gap
+  to the gate is parallel occupancy, not the amount of work, which the
+  matched benchmark of task 23 measures with matched cores; on the crowded
+  field it is neither.
+- **Task 3.** The maintainer repaired the image store on 26 September. The
+  quick science check rebuilt references for all 16 cases in the container
+  in 378 s (`b2c1ce7-20260926T205851Z`, every case successful), and the
+  benchmark measured `master` on both crossover inputs, which is the task's
+  done-when. The container row leaves the plan's risks.
+- **Records.** Evidence under
+  `benchmark-results/quick-benchmark/runs/m2-crossover-quiet-0.14.0/`. The
+  plan's Performance cell quotes these figures, and tasks 2 and 3 are
+  removed.
+
+## 2026-09-27 — M2: the store's per-read overhead, closed
+
+- **What this is.** Task 4 of the plan. The profile named the store's
+  per-read overhead as where the 8% accepted on 24 September sat; this
+  entry measures what it was, removes it and closes the task.
+- **What it was.** A `cProfile` run of the 1,024² LoTSS-DR3 dense cut-out
+  (`m2-store-baseline`, 14.1 s profiled) found two redundancies rather
+  than one bottleneck. Every consumer's `read_generation` re-read and
+  re-checksummed every chunk of the generation it consumed, 35 calls and
+  2.6 s (18%), although each window read already validates the chunk it
+  uses against the manifest's SHA-256. And every task session reopened
+  each product array and re-parsed the completion marker, 693 array opens
+  for 1.2 s and 167 marker reads, because the sink's caches were cleared
+  at the session boundary. Behind both, `_io.open` was the largest
+  self-time entry: 4,131 opens for 2.3 s, 0.56 ms each through the
+  endpoint scanner.
+- **The change.** `read_generation` validates the marker (JSON, canonical
+  bytes, run and partition identity) and returns it; chunks are validated
+  once when the generation is published and against their record on every
+  read, so no consumer re-reads a generation. The sink caches its array
+  handles and the parsed marker for its lifetime in one process and drops
+  them when pickled, so a copy on a worker opens each product once per
+  task, as before. That left `access_session` with nothing to hold, so it
+  is removed from the sink, the eight stage protocols and their 39 `with`
+  blocks; ignoring whitespace the change is 148 insertions and 251
+  deletions. The durable-policy check moves with the open: a sink that
+  opens an array whose attributes changed on disk still fails with
+  "policy", and the test asserts it through a fresh sink rather than a
+  handle cached mid-process. A new test pins where the chunk guarantee
+  now lives: `read_generation` reads no chunk, and a chunk corrupted after
+  publication is rejected by the window, chunk and row-block reads.
+- **Profile after.** `m2-store-cached`: 10.9 s profiled, `sync()` calls
+  1,851 → 991, file opens 4,131 → 2,058, `read_generation` 2.09 → 0.01 s,
+  `_open_array` 1.24 → 0.13 s. What remains in the store is one chunk
+  decode and checksum per window read (1.45 s), one atomic file per
+  written chunk (1.16 s) and the publication check (0.49 s), each
+  intrinsic to the storage policy.
+- **Benchmark.** Quick benchmark, default tier, medians of five, every
+  endpoint measured in its own session (`m2-store-cache-vs-0.14.0`,
+  727 s; `m2-store-cache-vs-ea67a3a`, 610 s). The one-minute load had
+  median 3.14 (2.31 to 4.24) with the endpoint scanner active, so the
+  absolute times are not quotable beside the 25 and 26 September anchors;
+  the ratios are.
+
+  | case | Hebog / v0.14.0 | ratio [95% bounds] | Hebog / `ea67a3a` | ratio [95% bounds] |
+  | --- | --- | --- | --- | --- |
+  | `dense-field` | 13.7 / 16.8 s | 0.81 [0.73, 0.86] pass | 14.5 / 16.0 s | 0.91 [0.88, 0.97] pass |
+  | `lotss-dr3-1312-sparse` | 15.1 / 17.5 s | 0.86 [0.81, 0.89] pass | 15.1 / 16.7 s | 0.91 [0.89, 0.93] pass |
+  | `lotss-dr3-1312-dense` | 16.2 / 18.8 s | 0.86 [0.75, 0.88] pass | 16.0 / 17.7 s | 0.90 [0.81, 0.92] pass |
+
+  `ea67a3a` is the pre-M2 branch point the 24 September trade-off named,
+  so the 8% is recovered with margin: current Hebog is 9 to 10% faster
+  than it on every 1,024² anchor. The diagnostic `master` ratios on these
+  cut-outs are 5.6, 3.7 and 3.2.
+- **Science.** The quick science check against the maintainer's
+  26 September run (`b2c1ce7-20260926T205851Z`) reports no regression on
+  all 16 cases, and every product of every case, catalogue, RMS, mask and
+  diagnostics less provenance, is identical data for data: 64 of 64 files.
+- **Checks.** Pyright clean; portable coverage 97% branch-aware over 2,712
+  tests, `io/zarr.py` at 99% with four error guards missed, none on a
+  changed path, and the stage modules at 100% but `multiscale.py` at 98%
+  on three guards it missed before. ADR-007's confirmation, the how-to and
+  the profile page state the validation contract as it now is.
+- **What this leaves.** Task 4 leaves the plan. The store's remaining cost
+  is intrinsic to its policy; the next lever at 1,024² is the background
+  refinement stage, 31% of the profiled run, which the profile page lists
+  first.
+
+## 2026-09-27 — M2: the fit round returns no array
+
+- **What this is.** Task 5 of the plan. The fit round returned each fit
+  parent's persistent measurement-support patch, a `bool` window the driver
+  held until the support write: 1.08 MB over 371 parents at 1,024² and
+  4.22 MB over 1,421 at 2,048², growing with the summed area of the
+  parents. It was the last round of the object pass to return an array.
+- **Why no second fit is needed.** The patch is
+  `_persistent_measurement_support` over the residual, RMS, validity and
+  fit-parent labels inside the parent's window, at the reviewed thresholds.
+  It never reads the fit. So the write round, which owns the cores, derives
+  it again from the published planes, exactly as the topology round
+  re-deblends a split parent: `fit_parent_measurement_support` is the
+  extracted function, the oracle `measure_component_models` calls it in
+  the same loop, and `FitParentMeasurement` no longer has a window field.
+  A parent the measurement deferred, by its bound or for want of a seed,
+  contributes nothing, as before. Each core reads the windows of the
+  measured parents that reach it, batched under the shared read budget
+  with the parent bound as the admission rule, and ORs its own pixels.
+  ADR-008's rounds table and its measurement-support paragraph say so.
+- **Evidence: nothing changes.** A new stage test records every payload and
+  result of the fit stage's rounds and requires no array in any of them;
+  the fit-context scan's core boundary labels are the one exemption, as in
+  the support stage's test, and the test asserts the exemption matches only
+  there. The write round's own guard against a read of other bounds has
+  its failure test, which proves through the recording executor that the
+  fits had completed when it fired. The 112 object, extended-group and
+  measurement tests pass, including the whole-plane equality of the
+  published support and its partition, batch and executor invariance. On the 16 quick-check cases
+  with every public stage on 512-pixel cores, so that parent windows cross
+  cores and several cores derive one parent, the products of `d4bd3f4` and
+  of this change are identical data for data: 64 of 64 files. The quick
+  science check against the maintainer's 26 September run reports no
+  regression on all 16 cases.
+- **Evidence: what it costs, and a decision for the maintainer.** The
+  cores now read four planes and the image once per batch of parents
+  where the fit round already had them in memory. In the `cProfile` run of
+  the 1,024² LoTSS-DR3 dense cut-out the support derivation moved out of
+  `_fit_batch` (1.74 → 1.36 s) into `_publish_support` (0.01 → 0.51 s, of
+  which 0.37 s is the derivation) and the plane reads grew 1.45 → 1.71 s,
+  so the net cost is those reads, about 0.13 s profiled. The quick
+  benchmark's default tier against `d4bd3f4`, both endpoints refreshed in
+  one session on a quiet machine (`m2-fit-support-vs-d4bd3f4-quiet`,
+  load median 2.92):
+
+  | case | Hebog | `d4bd3f4` | ratio [95% bounds] | CPU ratio |
+  | --- | --- | --- | --- | --- |
+  | `dense-field` | 14.50 s | 14.15 s | 1.025 [1.007, 1.071] inconclusive | 1.015 |
+  | `lotss-dr3-1312-sparse` | 15.10 s | 14.63 s | 1.032 [0.990, 1.057] inconclusive | 1.032 |
+  | `lotss-dr3-1312-dense` | 16.07 s | 15.51 s | 1.037 [0.964, 1.056] inconclusive | 1.026 |
+
+  A first, noisier run (`m2-fit-support-vs-d4bd3f4`, load up to 6.3) gave
+  1.04, 1.04 and 1.02. So the change costs 2 to 4% of a 1,024² run, below
+  the 5% at which the plan requires an approved trade-off, and every
+  outcome is inconclusive under the previous-release rule because the
+  upper bounds pass 1.05 by up to 0.02. The adjacent anchor goes the other
+  way: on the crowded 2,048² SDC1 cut-out
+  (`m2-fit-support-2048-vs-d4bd3f4`, load median 2.25) the change is
+  faster, 101.3 s against 102.5 s, ratio 0.988 [0.980, 0.997], a pass, with
+  the same CPU ratio, because 1,421 parents' patches, 4.2 MB, no longer
+  cross the executor boundary, where every payload is pickled to prove it
+  serializable. The reads are a fixed handful per core batch, so their
+  share falls as the run grows, and the payload saving grows with the
+  source count. The agent recommends accepting the 1,024² cost, as the 8%
+  of 24 September was accepted, for the scaling property it buys: no round
+  of the fit stage carries anything that grows with source area. The plan
+  carries the acceptance as a human decision.
+
+## 2026-09-27 — ADR-008 reviewed against the project goals
+
+- **What this is.** A review of ADR-008 against the goals `AGENTS.md`
+  states: 100,000² across hundreds of nodes with no whole plane on a
+  worker, results invariant under tiling and scheduling, equivalence with
+  what Rapthor consumes, the runtime gate, and a scheduler-neutral,
+  maintainable library. The decomposition itself serves them: one
+  composition for every size with Serial as the oracle, cores owning
+  pixels, canonical pixels owning objects, image-anchored geometry,
+  sharded label maps, hierarchical order-independent reductions, an
+  escalation path that never truncates, `float64` kept pending evidence,
+  and no scheduler named anywhere.
+- **Fixed in the record.** The context now reads as the state on
+  18 September, when it was decided, rather than as the present. Rule 4
+  carries the serialization lesson of the `WCS` repair. Rule 6 says what
+  holds, once per round rather than once per pass, and the consequences
+  state the read multiplicity with its measured cost instead of claiming
+  one read per pass. Three per-stage rows described designs since replaced
+  (membership shards from deblending, component-box fitting, a centroid
+  pair association predicate never installed) and now describe the rounds
+  as built. The small-image section said cores are chosen from admitted
+  memory and the 128-pixel core is replaced; it now says every stage after
+  noise uses the fixed 2,048-pixel core, the noise grid keeps its
+  128-pixel cells, and batches are what memory sizes today, with the
+  larger-core choice kept as intent. The wide-object exception to rules 4
+  and 5 is now bounded to the 3,000-pixel envelope, with no tier at which
+  it can bind admitted until the reductions run on the cores, which is
+  what the plan's task 9 already requires. The confirmation names the
+  traced peak, not peak RSS.
+- **Decisions the review leaves with the maintainer.** Whether task 9's
+  core-side reductions must reproduce the window path bit for bit, which
+  the local-noise median cannot do associatively, or may accept
+  summation-order rounding; and whether the core size should become a
+  memory-admitted choice within 2,048 to 8,192, as the ADR intends, or
+  stay fixed at 2,048 until the M5 planner work needs it. Neither changes
+  a published result; the first changes the wording of the plan's task 9
+  and the second the ADR's small-image paragraph.
+
+## 2026-09-27 — M2: pull request 74 review disposition
+
+- **Scope.** The Copilot and Greptile comments on `4aae382` and `456250d`.
+- **Fixed now.** The plan's Scalability cell said no other round returns an
+  array; a wide support component's seeds, 12 bytes each, do reach the
+  driver under the same declared exception as a wide object's pixels, and
+  the support scans return boundary labels bounded by a core's perimeter.
+  The cell now says so, and the distributed-execution page qualifies its
+  object-task description with the same exception. The plan's Performance
+  cell now carries the fit-support write's measured cost beside the store
+  change. A test whose name said handles are never pickled is renamed to
+  what it asserts, that a pickled sink starts without them.
+- **Answered by the contract, and now documented.** Greptile noted that a
+  long-lived sink trusts cached array metadata, so a change to a product's
+  policy or geometry on shared storage after the open goes unchecked. That
+  metadata is immutable for a generation: an array's geometry and policy
+  are fixed when it is created and the completion marker is published
+  once, so the sink validates both when a process first opens them and
+  trusts them for its lifetime, while every chunk read is still checked
+  against its record. Revalidating on each access is the per-session
+  reopen that task 4 removed for 9% of a 1,024² run. The sink's docstrings
+  and the how-to state the boundary, and the changed-policy test now
+  asserts both sides of it: the sink that opened the array reads on, and
+  the next sink to open it fails with "policy".

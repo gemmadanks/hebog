@@ -12,7 +12,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-07-31 |
-| **Last Updated** | 2026-08-01 |
+| **Last Updated** | 2026-09-27 (consumers validate chunks on read, not through `read_generation`) |
 | **Deciders** | Gemma Danks |
 | **Tags** | storage, Zarr, Dask, scalability, recovery |
 
@@ -141,8 +141,12 @@ size-based storage switch.
   disagreement, retries, invalid geometry and dtype, changed policy, shifted
   origins, interrupted-run resumption, immutable completion conflicts, and
   corrupt completion metadata.
-- A Zarr hierarchy becomes consumable only after its run-scoped marker and all
-  referenced chunks validate through `read_generation`.
+- A Zarr hierarchy becomes consumable only after its run-scoped marker
+  validates through `read_generation`. Every referenced chunk was read and
+  checksummed once when the generation was published, and is validated
+  against its record on every read, so consumers do not re-read a whole
+  generation (27 September 2026: that re-read was 18% of a profiled 1,024²
+  run).
 - End-to-end integration tests prove that one-tile and many-tile generations
   stream to identical RMS and binary-mask FITS products within the admitted
   tile-row memory budget.

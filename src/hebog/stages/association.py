@@ -15,7 +15,6 @@ the box that holds them both.
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from functools import partial
 from numbers import Integral
@@ -76,10 +75,6 @@ class _CompletedProductSource(Protocol):
     @property
     def manifest(self) -> PartitionManifest:
         """Return the canonical partition the generation was written on."""
-        ...
-
-    def access_session(self) -> AbstractContextManager[None]:
-        """Hold one bounded read session open for a batch of windows."""
         ...
 
     def read_generation(self) -> ProductGenerationManifest:
@@ -275,83 +270,82 @@ def _scan_core_overlaps(
     image_shape_yx: tuple[int, int],
 ) -> _CoreBatchResult:
     """Observe every overlap one core can see, as array-free records."""
-    with detection_source.access_session(), component_source.access_session():
-        cores: list[_CoreOverlaps] = []
-        for partition in batch.partitions:
-            core = partition.core_bounds
-            valid = np.asarray(
-                detection_source.read_completed_window("valid-pixels", core),
-                dtype=np.bool_,
-            )
-            significant = np.asarray(
+    cores: list[_CoreOverlaps] = []
+    for partition in batch.partitions:
+        core = partition.core_bounds
+        valid = np.asarray(
+            detection_source.read_completed_window("valid-pixels", core),
+            dtype=np.bool_,
+        )
+        significant = np.asarray(
+            detection_source.read_completed_window(
+                "reconstruction-mask",
+                core,
+            ),
+            dtype=np.bool_,
+        )
+        components = np.asarray(
+            component_source.read_completed_window(
+                "component-direct-labels",
+                core,
+            ),
+            dtype=np.int64,
+        )
+        scale_labels = tuple(
+            np.asarray(
                 detection_source.read_completed_window(
-                    "reconstruction-mask",
+                    f"scale-{order}-labels",
                     core,
                 ),
-                dtype=np.bool_,
+                dtype=np.int32,
             )
-            components = np.asarray(
-                component_source.read_completed_window(
-                    "component-direct-labels",
-                    core,
+            for order in _SCALE_ORDERS
+        )
+        support = ((components > 0) | significant) & valid
+        tile = label_detection_tile(
+            DetectionThresholdMasks(
+                normalized_residual=np.zeros(
+                    support.shape,
+                    dtype=np.float64,
                 ),
-                dtype=np.int64,
-            )
-            scale_labels = tuple(
-                np.asarray(
-                    detection_source.read_completed_window(
-                        f"scale-{order}-labels",
-                        core,
-                    ),
-                    dtype=np.int32,
-                )
-                for order in _SCALE_ORDERS
-            )
-            support = ((components > 0) | significant) & valid
-            tile = label_detection_tile(
-                DetectionThresholdMasks(
-                    normalized_residual=np.zeros(
-                        support.shape,
-                        dtype=np.float64,
-                    ),
-                    island_membership=support,
-                    detection_seeds=support,
-                    valid_pixel_count=int(np.count_nonzero(support)),
+                island_membership=support,
+                detection_seeds=support,
+                valid_pixel_count=int(np.count_nonzero(support)),
+            ),
+            partition,
+            image_shape_yx=image_shape_yx,
+        )
+        cores.append(
+            _CoreOverlaps(
+                partition=partition,
+                summary=tile.compact_summary(),
+                component_support=_pairs(components, tile.labels),
+                component_feature=tuple(
+                    (component, order, feature)
+                    for order, labels in zip(
+                        _SCALE_ORDERS, scale_labels, strict=True
+                    )
+                    for component, feature in _pairs(components, labels)
                 ),
-                partition,
-                image_shape_yx=image_shape_yx,
+                feature_support=tuple(
+                    (order, feature, support_label)
+                    for order, labels in zip(
+                        _SCALE_ORDERS, scale_labels, strict=True
+                    )
+                    for feature, support_label in _pairs(
+                        labels, tile.labels, include_zero_second=True
+                    )
+                ),
+                parent_links=tuple(
+                    (_SCALE_ORDERS[index], child, parent)
+                    for index in range(len(_SCALE_ORDERS) - 1)
+                    for child, parent in _pairs(
+                        scale_labels[index], scale_labels[index + 1]
+                    )
+                ),
             )
-            cores.append(
-                _CoreOverlaps(
-                    partition=partition,
-                    summary=tile.compact_summary(),
-                    component_support=_pairs(components, tile.labels),
-                    component_feature=tuple(
-                        (component, order, feature)
-                        for order, labels in zip(
-                            _SCALE_ORDERS, scale_labels, strict=True
-                        )
-                        for component, feature in _pairs(components, labels)
-                    ),
-                    feature_support=tuple(
-                        (order, feature, support_label)
-                        for order, labels in zip(
-                            _SCALE_ORDERS, scale_labels, strict=True
-                        )
-                        for feature, support_label in _pairs(
-                            labels, tile.labels, include_zero_second=True
-                        )
-                    ),
-                    parent_links=tuple(
-                        (_SCALE_ORDERS[index], child, parent)
-                        for index in range(len(_SCALE_ORDERS) - 1)
-                        for child, parent in _pairs(
-                            scale_labels[index], scale_labels[index + 1]
-                        )
-                    ),
-                )
-            )
-        return _CoreBatchResult(cores=tuple(cores))
+        )
+    return _CoreBatchResult(cores=tuple(cores))
 
 
 def _pairs(
@@ -546,54 +540,53 @@ def _influence_batch(
     component_id_by_label: Mapping[int, str],
 ) -> _InfluenceBatchResult:
     """Derive each feature's reviewed B3 influence inside its own window."""
-    with detection_source.access_session(), component_source.access_session():
-        read = _read_batch(
-            batch.read_bounds,
-            frozenset(feature.scale_order for feature in batch.features),
-            detection_source=detection_source,
-            component_source=component_source,
+    read = _read_batch(
+        batch.read_bounds,
+        frozenset(feature.scale_order for feature in batch.features),
+        detection_source=detection_source,
+        component_source=component_source,
+    )
+    components = read.components
+    if components is None:  # pragma: no cover - always read above
+        raise ValueError("influence batch must read component labels")
+    influence: list[tuple[str, tuple[str, ...]]] = []
+    for feature in batch.features:
+        envelope_bounds, envelope = _feature_envelope(feature, read)
+        bounds = scale_feature_influence_bounds(
+            envelope_bounds,
+            scale_order=feature.scale_order,
+            image_shape_yx=image_shape_yx,
         )
-        components = read.components
-        if components is None:  # pragma: no cover - always read above
-            raise ValueError("influence batch must read component labels")
-        influence: list[tuple[str, tuple[str, ...]]] = []
-        for feature in batch.features:
-            envelope_bounds, envelope = _feature_envelope(feature, read)
-            bounds = scale_feature_influence_bounds(
-                envelope_bounds,
-                scale_order=feature.scale_order,
-                image_shape_yx=image_shape_yx,
-            )
-            seed = np.zeros(bounds.shape_yx, dtype=np.bool_)
-            seed[
-                envelope_bounds.y_start - bounds.y_start : (
-                    envelope_bounds.y_stop - bounds.y_start
-                ),
-                envelope_bounds.x_start - bounds.x_start : (
-                    envelope_bounds.x_stop - bounds.x_start
-                ),
-            ] = envelope
-            crop = read.crop(bounds)
-            influence.append(
-                (
-                    feature.feature_id,
-                    tuple(
-                        sorted(
-                            scale_feature_influence_component_ids(
-                                seed,
-                                read.valid[crop],
-                                components[crop],
-                                scale_order=feature.scale_order,
-                                component_id_by_label=component_id_by_label,
-                            )
+        seed = np.zeros(bounds.shape_yx, dtype=np.bool_)
+        seed[
+            envelope_bounds.y_start - bounds.y_start : (
+                envelope_bounds.y_stop - bounds.y_start
+            ),
+            envelope_bounds.x_start - bounds.x_start : (
+                envelope_bounds.x_stop - bounds.x_start
+            ),
+        ] = envelope
+        crop = read.crop(bounds)
+        influence.append(
+            (
+                feature.feature_id,
+                tuple(
+                    sorted(
+                        scale_feature_influence_component_ids(
+                            seed,
+                            read.valid[crop],
+                            components[crop],
+                            scale_order=feature.scale_order,
+                            component_id_by_label=component_id_by_label,
                         )
-                    ),
-                )
+                    )
+                ),
             )
-        return _InfluenceBatchResult(
-            influence=tuple(influence),
-            maximum_read_pixels=read_pixels(batch.read_bounds),
         )
+    return _InfluenceBatchResult(
+        influence=tuple(influence),
+        maximum_read_pixels=read_pixels(batch.read_bounds),
+    )
 
 
 def _candidate_pairs(
@@ -705,40 +698,37 @@ def _pair_batch(
     the canonically first feature, which is what makes that reuse pay.
     """
     envelopes: dict[str, tuple[ImageBounds, npt.NDArray[np.bool_]]] = {}
-    with detection_source.access_session():
-        read = _read_batch(
-            batch.read_bounds,
-            frozenset(
-                feature.scale_order for pair in batch.pairs for feature in pair
-            ),
-            detection_source=detection_source,
-        )
+    read = _read_batch(
+        batch.read_bounds,
+        frozenset(
+            feature.scale_order for pair in batch.pairs for feature in pair
+        ),
+        detection_source=detection_source,
+    )
 
-        def envelope(
-            feature: _Feature,
-        ) -> tuple[ImageBounds, npt.NDArray[np.bool_]]:
-            """Return one feature's envelope, deriving it at most once."""
-            if feature.feature_id not in envelopes:
-                envelopes[feature.feature_id] = _feature_envelope(
-                    feature, read
-                )
-            return envelopes[feature.feature_id]
+    def envelope(
+        feature: _Feature,
+    ) -> tuple[ImageBounds, npt.NDArray[np.bool_]]:
+        """Return one feature's envelope, deriving it at most once."""
+        if feature.feature_id not in envelopes:
+            envelopes[feature.feature_id] = _feature_envelope(feature, read)
+        return envelopes[feature.feature_id]
 
-        edges: list[tuple[str, str]] = []
-        for first, second in batch.pairs:
-            first_bounds, first_support = envelope(first)
-            second_bounds, second_support = envelope(second)
-            if scale_feature_envelopes_overlap(
-                first_support,
-                first_bounds,
-                second_support,
-                second_bounds,
-            ):
-                edges.append((first.feature_id, second.feature_id))
-        return _PairBatchResult(
-            edges=tuple(edges),
-            maximum_read_pixels=read_pixels(batch.read_bounds),
-        )
+    edges: list[tuple[str, str]] = []
+    for first, second in batch.pairs:
+        first_bounds, first_support = envelope(first)
+        second_bounds, second_support = envelope(second)
+        if scale_feature_envelopes_overlap(
+            first_support,
+            first_bounds,
+            second_support,
+            second_bounds,
+        ):
+            edges.append((first.feature_id, second.feature_id))
+    return _PairBatchResult(
+        edges=tuple(edges),
+        maximum_read_pixels=read_pixels(batch.read_bounds),
+    )
 
 
 def _scale_radius(scale_order: int) -> int:
@@ -764,92 +754,91 @@ def _wide_overlap_batch(
     in its part, and two envelopes overlap where any core finds a shared
     pixel.
     """
-    with detection_source.access_session(), component_source.access_session():
-        influence: list[tuple[str, tuple[str, ...]]] = []
-        edges: list[tuple[str, str]] = []
-        maximum_read_pixels = 0
-        for core in batch.cores:
-            needed = {
-                feature.feature_id: feature
-                for feature in (
-                    *core.features,
-                    *(feature for pair in core.pairs for feature in pair),
+    influence: list[tuple[str, tuple[str, ...]]] = []
+    edges: list[tuple[str, str]] = []
+    maximum_read_pixels = 0
+    for core in batch.cores:
+        needed = {
+            feature.feature_id: feature
+            for feature in (
+                *core.features,
+                *(feature for pair in core.pairs for feature in pair),
+            )
+        }
+        read_bounds = core.partition.core_bounds.expanded(
+            max(
+                (
+                    *(
+                        2 * _scale_radius(feature.scale_order)
+                        for feature in core.features
+                    ),
+                    *(
+                        _scale_radius(feature.scale_order)
+                        for feature in needed.values()
+                    ),
                 )
-            }
-            read_bounds = core.partition.core_bounds.expanded(
-                max(
-                    (
-                        *(
-                            2 * _scale_radius(feature.scale_order)
-                            for feature in core.features
-                        ),
-                        *(
-                            _scale_radius(feature.scale_order)
-                            for feature in needed.values()
-                        ),
+            ),
+            image_shape_yx,
+        )
+        maximum_read_pixels = max(
+            maximum_read_pixels, read_pixels(read_bounds)
+        )
+        read = _read_batch(
+            read_bounds,
+            frozenset(feature.scale_order for feature in needed.values()),
+            detection_source=detection_source,
+            component_source=component_source,
+        )
+        if read.components is None:  # pragma: no cover - always read
+            raise ValueError("wide batch must read component labels")
+        owned = np.zeros(read.valid.shape, dtype=np.bool_)
+        owned[read.crop(core.partition.core_bounds)] = True
+        owned_components = np.where(owned, read.components, 0)
+        envelopes = {
+            feature_id: scale_feature_envelope_support(
+                np.asarray(
+                    read.labels_by_scale[feature.scale_order]
+                    == feature.label_value
+                ),
+                read.valid,
+                scale_order=feature.scale_order,
+            )
+            for feature_id, feature in needed.items()
+        }
+        influence.extend(
+            (
+                feature.feature_id,
+                tuple(
+                    sorted(
+                        scale_feature_influence_component_ids(
+                            envelopes[feature.feature_id],
+                            read.valid,
+                            owned_components,
+                            scale_order=feature.scale_order,
+                            component_id_by_label=component_id_by_label,
+                        )
                     )
                 ),
-                image_shape_yx,
             )
-            maximum_read_pixels = max(
-                maximum_read_pixels, read_pixels(read_bounds)
-            )
-            read = _read_batch(
-                read_bounds,
-                frozenset(feature.scale_order for feature in needed.values()),
-                detection_source=detection_source,
-                component_source=component_source,
-            )
-            if read.components is None:  # pragma: no cover - always read
-                raise ValueError("wide batch must read component labels")
-            owned = np.zeros(read.valid.shape, dtype=np.bool_)
-            owned[read.crop(core.partition.core_bounds)] = True
-            owned_components = np.where(owned, read.components, 0)
-            envelopes = {
-                feature_id: scale_feature_envelope_support(
-                    np.asarray(
-                        read.labels_by_scale[feature.scale_order]
-                        == feature.label_value
-                    ),
-                    read.valid,
-                    scale_order=feature.scale_order,
-                )
-                for feature_id, feature in needed.items()
-            }
-            influence.extend(
-                (
-                    feature.feature_id,
-                    tuple(
-                        sorted(
-                            scale_feature_influence_component_ids(
-                                envelopes[feature.feature_id],
-                                read.valid,
-                                owned_components,
-                                scale_order=feature.scale_order,
-                                component_id_by_label=component_id_by_label,
-                            )
-                        )
-                    ),
-                )
-                for feature in core.features
-            )
-            edges.extend(
-                (first.feature_id, second.feature_id)
-                for first, second in core.pairs
-                if bool(
-                    np.any(
-                        envelopes[first.feature_id]
-                        & envelopes[second.feature_id]
-                        & owned
-                    )
-                )
-            )
-        return _WideBatchResult(
-            influence=tuple(influence),
-            edges=tuple(edges),
-            tile_ids=tuple(core.partition.tile_id for core in batch.cores),
-            maximum_read_pixels=maximum_read_pixels,
+            for feature in core.features
         )
+        edges.extend(
+            (first.feature_id, second.feature_id)
+            for first, second in core.pairs
+            if bool(
+                np.any(
+                    envelopes[first.feature_id]
+                    & envelopes[second.feature_id]
+                    & owned
+                )
+            )
+        )
+    return _WideBatchResult(
+        influence=tuple(influence),
+        edges=tuple(edges),
+        tile_ids=tuple(core.partition.tile_id for core in batch.cores),
+        maximum_read_pixels=maximum_read_pixels,
+    )
 
 
 def _feature_holders(
@@ -1181,30 +1170,29 @@ def _publish_persistent_support(
     Persistence was decided from the reduced overlap edges and the feature
     records, so each core only paints the labels its shard names.
     """
-    with detection_source.access_session(), sink.access_session():
-        chunks: list[ProductChunk] = []
-        for partition in batch.partitions:
-            core = partition.core_bounds
-            support = np.zeros(core.shape_yx, dtype=np.bool_)
-            for scale_order, retained in batch.retained_by_scale:
-                support |= persistent_scale_support_window(
-                    np.asarray(
-                        detection_source.read_completed_window(
-                            f"scale-{scale_order}-labels",
-                            core,
-                        ),
-                        dtype=np.int32,
+    chunks: list[ProductChunk] = []
+    for partition in batch.partitions:
+        core = partition.core_bounds
+        support = np.zeros(core.shape_yx, dtype=np.bool_)
+        for scale_order, retained in batch.retained_by_scale:
+            support |= persistent_scale_support_window(
+                np.asarray(
+                    detection_source.read_completed_window(
+                        f"scale-{scale_order}-labels",
+                        core,
                     ),
-                    retained,
-                )
-            chunks.append(
-                sink.write_chunk(
-                    product_name="persistent-scale-support",
-                    tile=partition,
-                    values=support,
-                )
+                    dtype=np.int32,
+                ),
+                retained,
             )
-        return _SupportBatchResult(product_chunks=tuple(chunks))
+        chunks.append(
+            sink.write_chunk(
+                product_name="persistent-scale-support",
+                tile=partition,
+                values=support,
+            )
+        )
+    return _SupportBatchResult(product_chunks=tuple(chunks))
 
 
 def _require_overlap_inputs(

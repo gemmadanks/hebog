@@ -284,11 +284,11 @@ def test_completed_windows_reuse_a_bounded_validated_chunk_cache(
     assert read_count == 1
 
 
-def test_access_session_reuses_metadata_but_revalidates_chunk_content(
+def test_reads_reuse_metadata_but_revalidate_chunk_content(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """One coarse task amortises opens without trusting earlier chunk bytes."""
+    """A cached handle is reused, but chunk bytes are validated per read."""
     manifest = _manifest()
     sink = _sink(tmp_path / "run.zarr", manifest)
     records = _write_product(sink, manifest, "rms")
@@ -312,20 +312,19 @@ def test_access_session_reuses_metadata_but_revalidates_chunk_content(
     monkeypatch.setattr(sink, "_read_values", count_read_values)
     bounds = ImageBounds(0, 1, 0, 1)
 
-    with sink.access_session():
-        first = sink.read_completed_window("rms", bounds)
-        second = sink.read_completed_window("rms", bounds)
+    first = sink.read_completed_window("rms", bounds)
+    second = sink.read_completed_window("rms", bounds)
 
     np.testing.assert_array_equal(first, second)
-    assert open_count == 1
+    assert open_count == 0
     assert read_count == 2
 
 
-def test_access_session_releases_cached_arrays_after_coarse_task(
+def test_a_pickled_sink_starts_without_the_handles_it_cached(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Worker-local array handles never escape their bounded task session."""
+    """One process opens a product once; a pickled copy starts empty."""
     manifest = _manifest()
     sink = _sink(tmp_path / "run.zarr", manifest)
     records = _write_product(sink, manifest, "rms")
@@ -341,12 +340,76 @@ def test_access_session_releases_cached_arrays_after_coarse_task(
     monkeypatch.setattr(zarr, "open_array", count_open_array)
     bounds = ImageBounds(0, 1, 0, 1)
 
-    with sink.access_session():
-        sink.read_completed_window("rms", bounds)
-    with sink.access_session():
-        sink.read_completed_window("rms", bounds)
+    first = sink.read_completed_window("rms", bounds)
+    second = sink.read_completed_window("rms", bounds)
+    generation = sink.read_generation()
+    assert open_count == 0
 
-    assert open_count == 2
+    copy = pickle.loads(pickle.dumps(sink))
+    assert copy._array_cache == {}
+    assert copy._published_generation_cache is None
+    third = copy.read_completed_window("rms", bounds)
+    assert open_count == 1
+    assert copy.read_generation() == generation
+    np.testing.assert_array_equal(first, second)
+    np.testing.assert_array_equal(first, third)
+
+
+def test_read_generation_validates_the_marker_and_reads_no_chunk(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Chunks are checked when published and when read, not per consumer."""
+    root = tmp_path / "run.zarr"
+    manifest = _manifest()
+    sink = _sink(root, manifest)
+    records = _write_product(sink, manifest, "rms")
+    published = sink.publish_generation(
+        product_names=("rms",),
+        chunks=records,
+    )
+    reader = _sink(root, manifest)
+    original_block = reader._read_product_block
+    original_values = reader._read_values
+    chunk_reads = 0
+
+    def count_block(**kwargs: Any) -> tuple[npt.NDArray[np.generic], ...]:
+        nonlocal chunk_reads
+        chunk_reads += 1
+        return original_block(**kwargs)
+
+    def count_values(**kwargs: Any) -> npt.NDArray[np.generic]:
+        nonlocal chunk_reads
+        chunk_reads += 1
+        return original_values(**kwargs)
+
+    monkeypatch.setattr(reader, "_read_product_block", count_block)
+    monkeypatch.setattr(reader, "_read_values", count_values)
+
+    assert reader.read_generation() == published
+    assert chunk_reads == 0
+
+    tile = manifest.tiles[0]
+    corrupt_record = records[0]
+    chunk_path = (
+        root / "rms" / "c" / str(tile.tile_y_index) / str(tile.tile_x_index)
+    )
+    payload = bytearray(chunk_path.read_bytes())
+    payload[-1] ^= 1
+    chunk_path.write_bytes(payload)
+
+    assert reader.read_generation() == published
+    with pytest.raises(InvalidProductChunkError, match="corrupt"):
+        reader.read_completed_window("rms", tile.core_bounds)
+    with pytest.raises(InvalidProductChunkError, match="corrupt"):
+        reader.read_chunk(corrupt_record)
+    with pytest.raises(InvalidProductChunkError, match="corrupt"):
+        list(
+            reader.iter_completed_row_blocks(
+                "rms",
+                max_block_bytes=8 * manifest.image_shape_yx[0] ** 2,
+            )
+        )
 
 
 def test_completed_window_cache_evicts_old_chunks(
@@ -678,8 +741,12 @@ def test_read_rejects_noncanonical_records_and_changed_policy(
 
     group = zarr.open_group(store=root, mode="r+")
     group["rms"].attrs["hebog_missing_chunk_policy"] = "fill"
+    # Array metadata is immutable for a generation, so the sink that
+    # validated it when it opened the array trusts it for its lifetime; the
+    # next process or task to open the product is where a change is caught.
+    np.testing.assert_array_equal(sink.read_chunk(record), _values_for(0))
     with pytest.raises(InvalidProductChunkError, match="policy"):
-        sink.read_chunk(record)
+        _sink(root, manifest).read_chunk(record)
 
 
 def test_requires_preinitialized_products_and_canonical_tiles(
