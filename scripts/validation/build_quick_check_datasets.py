@@ -286,10 +286,13 @@ def _cases() -> list[dict[str, Any]]:
                 "A 10,000-pixel image holding two objects wider than the "
                 "per-task read budget: a filament of overlapping elongated "
                 "components along the diagonal, whose window is the whole "
-                "image, and a diffuse Gaussian whose island covers millions "
-                "of pixels. It exists to measure the driver memory those "
-                "objects cost, the one term ADR-008 bounds by the object; it "
-                "is not a science case."
+                "image, and a diffuse Gaussian 3,000 pixels across. It "
+                "exists to measure the driver memory those objects cost, "
+                "the one term ADR-008 bounds by the object; it is not a "
+                "science case. In the recorded run the filament formed one "
+                "island that every wide path measured from its cores, while "
+                "the diffuse Gaussian, wider than the background box, was "
+                "absorbed into the background estimate and formed no island."
             ),
             "shape_yx": (10000, 10000),
             "sources": [
