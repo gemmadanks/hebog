@@ -9,7 +9,7 @@ from math import isfinite
 from pathlib import Path
 from typing import Literal, Self
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from hebog.data_models.images import SuppliedImageMetadata
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
@@ -262,6 +262,46 @@ class PublicSourceFindingProvenance(BaseModel):
         return self
 
 
+class WideObjectCounts(BaseModel):
+    """How many objects each round decided from its cores, not a window.
+
+    ``publication_owners``, ``support_components``, ``islands`` and
+    ``segments`` count objects whose window exceeded a task's read budget:
+    the cores that hold such an object decide it, and the driver then holds
+    its own pixels or seeds, the one term ADR-008 bounds by the object
+    rather than the tile. ``deferred_fit_parents`` answers to a different
+    bound: the fit stage defers a parent whose direct window exceeds the
+    reviewed compact admission bound, whatever the read budget, and gathers
+    its component records from the cores instead of reading it whole. Every
+    count is zero unless an object exceeded its bound, which no image within
+    the public envelope has been observed to hold.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+
+    publication_owners: int = 0
+    support_components: int = 0
+    deferred_fit_parents: int = 0
+    islands: int = 0
+    segments: int = 0
+
+    @model_validator(mode="after")
+    def _validate_counts(self) -> Self:
+        """Reject a negative count."""
+        if (
+            min(
+                self.publication_owners,
+                self.support_components,
+                self.deferred_fit_parents,
+                self.islands,
+                self.segments,
+            )
+            < 0
+        ):
+            raise ValueError("wide-object counts cannot be negative")
+        return self
+
+
 class PublicSourceFindingDiagnostics(BaseModel):
     """Public-run diagnostics retain explicit measurement dispositions."""
 
@@ -278,10 +318,13 @@ class PublicSourceFindingDiagnostics(BaseModel):
     island_count: int
     deblended_parent_count: int = 0
     deferred_deblend_parent_count: int = 0
+    wide_object_counts: WideObjectCounts = Field(
+        default_factory=WideObjectCounts
+    )
     measurement_dispositions: tuple[MeasurementDisposition, ...] = ()
     rms_scientific_status: Literal["valid", "unavailable"]
     provenance: PublicSourceFindingProvenance
-    schema_version: Literal[9] = 9
+    schema_version: Literal[10] = 10
 
     @model_validator(mode="after")
     def _validate_diagnostics(self) -> Self:

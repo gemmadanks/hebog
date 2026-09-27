@@ -161,6 +161,7 @@ class SegmentRowStageResult:
     position_diagnostics: Mapping[int, SourcePositionDiagnostics]
     segment_count: int
     measured_segment_count: int
+    wide_segment_count: int
     partition_count: int
     executor_task_count: int
     maximum_graph_width: int
@@ -1105,10 +1106,13 @@ def run_segment_row_stage(  # noqa: PLR0913, PLR0917
         row_batches,
         round_name="segment row",
     )
+    wide_segments = tuple(
+        segment for segment in segments if read_pixels(segment.bounds) > budget
+    )
     wide_batches = _wide_segment_batches(
         tuple(
             segment
-            for segment in segments
+            for segment in wide_segments
             if read_pixels(segment.bounds) > budget
         ),
         window_results,
@@ -1163,6 +1167,7 @@ def run_segment_row_stage(  # noqa: PLR0913, PLR0917
         ),
         segment_count=len(segments),
         measured_segment_count=len(rows),
+        wide_segment_count=len(wide_segments),
         partition_count=len(manifest.tiles),
         executor_task_count=(
             2 * len(core_batches) + len(row_batches) + len(wide_batches)

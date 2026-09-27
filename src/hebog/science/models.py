@@ -336,6 +336,7 @@ class TiledComponentFits:
     parents: tuple[FitParentMeasurement, ...]
     features: tuple[SupportFeatureGroups, ...]
     component_records: tuple[DetectionComponentRecord, ...]
+    wide_parent_count: int = 0
 
 
 @dataclass(frozen=True, slots=True)

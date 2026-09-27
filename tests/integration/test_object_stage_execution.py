@@ -1984,6 +1984,7 @@ def test_a_deferred_fit_parent_is_described_from_its_cores(
         ).deferred_parent_count
     )
     assert result.parent_batch_count == 0
+    assert result.wide_parent_count == result.fit_parent_count
     assert 0 < result.maximum_parent_read_pixels <= core * core
 
 

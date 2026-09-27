@@ -811,6 +811,7 @@ def test_a_wide_segment_is_measured_from_its_cores(
         for label_value in range(1, int(labels.max()) + 1)
     }
     assert 0 < result.maximum_segment_read_pixels <= core * core
+    assert result.wide_segment_count == result.segment_count > 0
 
 
 def test_narrow_and_wide_segments_publish_one_catalogue(

@@ -363,6 +363,7 @@ class SourceSupportStageResult:
 
     generation: ProductGenerationManifest
     support_component_count: int
+    wide_component_count: int
     assigned_component_count: int
     partition_count: int
     executor_task_count: int
@@ -1213,6 +1214,9 @@ def run_source_support_stage(  # noqa: PLR0913
             ),
         ),
         support_component_count=len(reconciled.islands),
+        wide_component_count=sum(
+            island.global_label not in narrow for island in reconciled.islands
+        ),
         assigned_component_count=len(
             {
                 first_pixel

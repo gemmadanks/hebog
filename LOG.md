@@ -26323,3 +26323,131 @@ the per-worker placement finding.
   and the how-to state the boundary, and the changed-policy test now
   asserts both sides of it: the sink that opened the array reads on, and
   the next sink to open it fails with "policy".
+
+## 2026-09-27 — M2: the 3,000-pixel envelope is dispositioned and the 10,000 tier authorized
+
+- **Decisions.** The maintainer accepted the 3,000-pixel envelope as
+  released and authorized the 10,000 tier (task 6). If that tier shows the
+  wide-object driver term, the core-side reductions of task 9 may accept
+  summation-order rounding in place of bit-for-bit equality with the
+  window path, where the agent recommends it. The 2 to 4% cost at 1,024² of
+  the fit round returning no array (task 5) is accepted.
+- **Release.** Pull request 74 merged as `e8422a9` and Release Please cut
+  `v0.14.1` at `4cc0d14`, carrying the store's lifetime caching, the fit
+  round that returns no array and the ADR-008 review. Task 7 starts on
+  `m2/10000-tier-anchor` from that commit.
+
+## 2026-09-27 — M2: the 10,000 tier has its anchor, and its first measurements
+
+- **What this is.** Task 7 of the plan, on `m2/10000-tier-anchor` from
+  `v0.14.1`. The tier gains a real LoTSS-DR3 anchor, a generated companion
+  that puts objects on the wide paths, the counters that record those
+  paths, and the first traced peaks above 3,000².
+- **No real field holds a wide object.** The per-mosaic PyBDSF catalogues
+  of LoTSS-DR3 mosaic 1312 (`mosaic--final.srl.fits`, 22,420 sources;
+  `mosaic--final.gaul.fits`, 28,559 Gaussians; 1.5″ pixels, 9″ beam) put
+  every island's extent, Gaussian positions plus their FWHM, at or below
+  131 pixels (island 3440); none reaches 512, against the 2,048-pixel
+  window a task's 4-megapixel read budget admits. A real 10,000² window can
+  therefore contain no image-spanning filament, and the anchor's two jobs
+  are split: the real window measures the tile-bounded peak at 25 tiles,
+  and a generated companion exercises the wide paths.
+- **The anchor.** `lotss-dr3-1312-dense-10000`: the 10,000² window at
+  x 2,000, y 4,500 of the mosaic, chosen to hold 8 of its 12 largest
+  islands and 12,692 catalogued Gaussians, and containing the 1,024² dense
+  and 3,000² windows of the ladder. Cut-out `c435f375…`, 400,006,080 bytes,
+  finite fraction 0.999998. It joins the quick benchmark's large tier, and
+  so the traced-peak cases. `wide-objects-10000` is a generated 10,000²
+  image (dataset `quick-wide-objects-10000`, recipe `88c633d1…`, appended
+  to the builder so every earlier seed is unchanged) holding a filament of
+  61 overlapping elongated components along the diagonal and a diffuse
+  Gaussian of 600 by 500 pixel sigma at peak SNR 100; it is a diagnostic,
+  not a science case, and the how-to says so.
+- **Materialisation in row blocks.** The generator refuses a whole image
+  above 4,096² and offers position-keyed windows instead, so
+  `materialize_dataset` now generates a recipe above that bound in
+  full-width row blocks into the `float32` output plane. A test shows a
+  file generated in three-row blocks equals whole-image generation byte for
+  byte, checksum included; the 10,000² image generated in 44 s.
+- **Counting the wide paths.** The island, segment-row, source-support and
+  fit stages now report how many objects took their core paths
+  (`wide_island_count`, `wide_segment_count`, `wide_component_count`,
+  `wide_parent_count`, beside the publication stage's `wide_owner_count`),
+  and the public diagnostics carry them as `wide_object_counts`, which
+  moves the diagnostics schema to 10. The stage tests assert the counts on
+  their wide fixtures; the public tests assert zeros on the shared fixture,
+  the full nonzero payload under a one-pixel read budget (with products
+  equal to the windowed run's) and a one-pixel compact bound, and that each
+  round's count reaches its own field; and the dataset-usage test now
+  requires every generated dataset in the shared manifest to be a
+  science-check or benchmark case.
+- **Traced peaks** (`just traced-peak`, `v0.14.1`, single thread, load
+  median 1.9 and 1.8 during the traces):
+
+  | case | traced peak | repetitions | components | peak RSS | traced wall |
+  | --- | --- | --- | --- | --- | --- |
+  | `lotss-dr3-1312-dense-10000` | 1,541.3 MiB | 2, agreeing to 0.1 MiB | 9,259 | 4,035 MiB | 2,278 s and 2,265 s |
+  | `wide-objects-10000` | 1,447.7 MiB | 1 | 10 | 3,902 MiB | 1,366 s |
+
+  Against 1,334.6 MiB at 3,000², the LoTSS peak is 15% higher for eleven
+  times the area, so the peak is tile-bounded in the main but not flat.
+  The two 10,000² cases differ by 94 MiB for 7,124 sources, and fitting
+  the three points above one tile gives about 1.4 bytes a pixel and 13 KiB
+  a source still growing at the peak. At 45,000² the pixel term is about
+  2.7 GiB; at 100,000² and survey source counts both terms are what the M5
+  planner must bound, and the plan's risks now carry them. An empty
+  10,000² case would separate the two exactly; this attribution is a fit
+  to three points.
+- **The wide paths ran, and the term did not show.** The wide-object run's
+  diagnostics record `islands` 1, `segments` 2, `publication_owners` 1,
+  `support_components` 1 and `deferred_fit_parents` 1: the filament, one
+  island of 553,817 pixels, was measured from its cores in every round.
+  The diffuse Gaussian left no island: a smooth source 3,000 pixels across
+  is wider than the 150-pixel background box and is absorbed into the
+  background estimate, which is the estimator's documented behaviour, not
+  a defect. So the driver held about 100 MB of filament pixels in the row
+  round, below the multiscale peak, and the traced peak does not see it.
+  An object can only cost the driver what survives background
+  subtraction, which bounds the term in practice by structure narrower
+  than the box; a mesh of filaments would be the diagnostic if task 9 ever
+  needs the term itself measured. The LoTSS anchor's counts are all zero.
+  Untraced single runs took 22 min (LoTSS) and 13 min (wide), diagnostic
+  figures only.
+- **Checks.** Coverage 97% over 2,718 portable tests with the four stage
+  modules at 100%; pyright clean; `just pre-commit` passes.
+- **What this leaves.** Task 7 leaves the plan. Task 8 has its anchor and a
+  reproduced traced peak; it still needs the exact tiled-invariance tests
+  at this size, the quick science check and the quick benchmark on the
+  anchor before the limit moves. Task 9 stays behind its trigger, which
+  the 10,000 tier did not pull.
+
+## 2026-09-27 — The wide-object term becomes deferred work
+
+- **Decision.** The maintainer moved task 9, the removal of the wide-object
+  driver term, out of the ordered roadmap into the plan's deferred work.
+  The term is dormant, not absent: no real LoTSS-DR3 object comes within a
+  factor of ten of the read budget, and a smooth object wider than the
+  150-pixel background box is absorbed by the background estimate, so what
+  can reach the driver is a long structure narrower than the box, about
+  100 MB for the generated 10,000² filament and about 3 GB at 100,000².
+  The plan's risk row and Scalability cell now state that bound rather
+  than the field-filling figures, and the deferred item names its
+  reopening condition: a tier's traced peak showing the term, or the
+  planning of the cluster benchmark, whichever comes first.
+- **ADR-008.** The sentence added on 27 September, that no tier at which
+  the exception can bind is admitted until the reductions run on the
+  cores, would have blocked the 10,000 raise on a case no real field
+  holds. It now states the bound above and that the resolution is deferred
+  work which does not gate the local tiers.
+- **Correction (review, 27 September).** The 100 MB and 3 GB figures above
+  were stated as a bound; they are one measurement and an extrapolation of
+  it. The generated case's diagonal filament is 553,817 pixels, about
+  100 MB at 186 bytes a pixel, and a filament of that width spanning
+  100,000² would be about 5.5 million pixels, about 1 GB. The rounds gather
+  every pixel of every wide segment with no cap on its size, so the
+  background box limits what one smooth object can bring, not what a
+  connected network of narrow filaments can, and the field-filling figures
+  remain the declared limit. The plan's Scalability cell and risk row and
+  ADR-008 now say so; the deferral and its reopening condition stand, and a
+  network of narrow filaments is the diagnostic that would measure the
+  term's growth.

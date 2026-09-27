@@ -280,6 +280,36 @@ def _cases() -> list[dict[str, Any]]:
                 {"y_start": 0, "y_stop": 128, "x_start": 0, "x_stop": 128}
             ],
         },
+        {
+            "identifier": "wide-objects-10000",
+            "purpose": (
+                "A 10,000-pixel image holding two objects wider than the "
+                "per-task read budget: a filament of overlapping elongated "
+                "components along the diagonal, whose window is the whole "
+                "image, and a diffuse Gaussian 3,000 pixels across. It "
+                "exists to measure the driver memory those objects cost, "
+                "the one term ADR-008 bounds by the object; it is not a "
+                "science case. In the recorded run the filament formed one "
+                "island that every wide path measured from its cores, while "
+                "the diffuse Gaussian, wider than the background box, was "
+                "absorbed into the background estimate and formed no island."
+            ),
+            "shape_yx": (10000, 10000),
+            "sources": [
+                *(
+                    _ellipse(
+                        200.0 + 160.0 * index,
+                        200.0 + 160.0 * index,
+                        15.0,
+                        90.0,
+                        12.0,
+                        45.0,
+                    )
+                    for index in range(61)
+                ),
+                _ellipse(7000.0, 2500.0, 100.0, 600.0, 500.0, 20.0),
+            ],
+        },
     ]
 
 

@@ -855,6 +855,7 @@ def test_a_wide_support_component_is_assigned_from_its_cores(
         _window(support_sink, "source-measurement-labels"), expected_support
     )
     assert result.assigned_component_count > 1
+    assert result.wide_component_count == result.support_component_count > 1
     assert 0 < result.maximum_component_read_pixels <= core * core
 
 

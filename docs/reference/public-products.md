@@ -16,7 +16,7 @@ the selected thresholds or algorithms are qualified for a survey.
 | `catalogue.fits` | `source-catalogue`, FITS schema 4 | What islands, associated sources, and admitted Gaussian components were measured? |
 | `rms.fits` | `rms`, FITS image schema 1 | What local RMS did thresholding and reported local-noise fields use? |
 | `source-mask.fits` | `source-filtering-mask`, FITS image schema 1 | Which input-aligned pixels belong to retained published detections? |
-| `diagnostics.json` | `diagnostics`, JSON schema 9 | What was omitted, deferred, selected, or unavailable, and exactly which science produced the bundle? |
+| `diagnostics.json` | `diagnostics`, JSON schema 10 | What was omitted, deferred, selected, or unavailable, and exactly which science produced the bundle? |
 
 Use all four together. In particular, `catalogue.fits` contains only published
 measurements, while `diagnostics.json` is the census of measured and
@@ -279,7 +279,7 @@ mean every low-surface-brightness pixel near a source is included.
 ## Diagnostics JSON
 
 `diagnostics.json` is canonical UTF-8 JSON with sorted keys and one final
-newline. Schema 9 rejects unknown fields and contains:
+newline. Schema 10 rejects unknown fields and contains:
 
 | Field | Meaning |
 | --- | --- |
@@ -290,10 +290,11 @@ newline. Schema 9 rejects unknown fields and contains:
 | `source_count`, `gaussian_component_count`, `island_count` | Counts that must agree with the FITS tables. |
 | `deblended_parent_count` | Retained connected parents split by bounded deblending. |
 | `deferred_deblend_parent_count` | Parents preserved because they exceeded the bounded deblend envelope. |
+| `wide_object_counts` | How many objects each round decided from the cores that hold them rather than from one window. `publication_owners`, `support_components`, `islands` and `segments` count objects whose window exceeded a task's read budget; the driver then holds those objects' own pixels or seeds, the one term that grows with an object rather than a tile. `deferred_fit_parents` answers to a different bound: it counts parents the fit stage deferred because their direct window exceeded the science profile's compact admission bound (`maximum_compact_bounds_pixels`), whatever the read budget. Such a parent's component records are gathered from the cores, no Gaussian model is fitted to it, and its components carry `deferred` measurement dispositions. All zero for any image within the public envelope observed so far. |
 | `measurement_dispositions` | Complete structured census described below. |
 | `rms_scientific_status` | `valid` or `unavailable`, matching the RMS product. |
 | `provenance` | Exact input, configuration, science-profile, and implementation identities, and any caller-supplied image metadata. |
-| `schema_version` | `9`. |
+| `schema_version` | `10`. |
 
 ### Provenance
 

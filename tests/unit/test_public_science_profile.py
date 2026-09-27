@@ -19,6 +19,7 @@ from hebog.config import SourceFinderConfig
 from hebog.data_models import (
     PublicSourceFindingDiagnostics,
     PublicSourceFindingProvenance,
+    WideObjectCounts,
 )
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
 from hebog.science.configuration import source_finder_configs
@@ -289,7 +290,7 @@ def test_public_diagnostics_round_trip_exact_provenance() -> None:
         )
         == diagnostics
     )
-    assert diagnostics.schema_version == 9
+    assert diagnostics.schema_version == 10
     assert diagnostics.deblended_parent_count == 1
     assert diagnostics.deferred_deblend_parent_count == 0
 
@@ -430,3 +431,16 @@ def test_public_diagnostics_reject_negative_deblend_disposition() -> None:
             rms_scientific_status="valid",
             provenance=_provenance(),
         )
+
+
+def test_wide_object_counts_default_to_zero_and_reject_negatives() -> None:
+    """Every round's wide-object count is zero unless an object was wide."""
+    assert WideObjectCounts() == WideObjectCounts(
+        publication_owners=0,
+        support_components=0,
+        deferred_fit_parents=0,
+        islands=0,
+        segments=0,
+    )
+    with pytest.raises(ValueError, match="negative"):
+        WideObjectCounts(segments=-1)

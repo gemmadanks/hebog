@@ -158,10 +158,11 @@ schema version 1 so its diagnostics bytes do not change. When a
 `MaterializedProduct` record is supplied, the reader also requires its declared
 content schema to match the canonical JSON payload.
 
-`PublicSourceFindingDiagnostics` schema version 8 records the public profile,
-profile limitations, population counts, RMS status, exact provenance, and the
+`PublicSourceFindingDiagnostics` schema version 10 records the public profile,
+profile limitations, population counts, RMS status, exact provenance, the
 numbers of connected parents that were deblended or retained through the
-bounded deblend fallback. Its
+bounded deblend fallback, and the wide-object counts of the rounds that
+decided an object from its cores rather than from one window. Its
 `configuration_qualification` is `development-unqualified` for the repaired
 5-sigma/3-sigma, seven-pixel configuration without a maximum island cut; all
 other valid caller configurations are `custom-unqualified`. The configuration

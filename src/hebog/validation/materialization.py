@@ -19,6 +19,7 @@ from hebog.data_models.images import CelestialWcs, ImageMetadata, RestoringBeam
 from hebog.validation.datasets import (
     DatasetRecord,
     generate_synthetic_image,
+    generate_synthetic_window,
     load_dataset_manifest,
 )
 
@@ -250,25 +251,7 @@ def synthetic_image_metadata(dataset: DatasetRecord) -> ImageMetadata:
     )
 
 
-def materialize_dataset(
-    manifest_path: Path,
-    dataset_id: str,
-    output_path: Path,
-    *,
-    overwrite: bool = False,
-) -> str:
-    """Write one bounded deterministic recipe and return its file SHA-256."""
-    dataset = _dataset_by_id(manifest_path, dataset_id)
-    image = generate_synthetic_image(dataset.recipe)
-    data = np.asarray(image[np.newaxis, np.newaxis, :, :], dtype=np.float32)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    hdu = fits.PrimaryHDU(data=data, header=synthetic_fits_header(dataset))
-    hdu.add_checksum(when="hebog deterministic dataset recipe")
-    hdu.writeto(
-        output_path,
-        overwrite=overwrite,
-    )
-    return hashlib.sha256(output_path.read_bytes()).hexdigest()
+_MAXIMUM_BLOCK_PIXELS = 4096 * 4096
 
 
 def _file_sha256(path: Path) -> str:
@@ -278,6 +261,66 @@ def _file_sha256(path: Path) -> str:
         for block in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def materialize_dataset(
+    manifest_path: Path,
+    dataset_id: str,
+    output_path: Path,
+    *,
+    overwrite: bool = False,
+    maximum_block_pixels: int = _MAXIMUM_BLOCK_PIXELS,
+) -> str:
+    """Write one deterministic recipe and return its file SHA-256.
+
+    A recipe with more pixels than ``maximum_block_pixels`` is generated in
+    full-width row blocks through the window generator, so what it needs in
+    memory is one ``float64`` block and the ``float32`` output plane rather
+    than the whole ``float64`` image. The blocks tile the plane exactly and
+    the window generator is position-keyed, so the file is the one that
+    whole-image generation writes, byte for byte.
+
+    Raises:
+        ValueError: If ``maximum_block_pixels`` is not positive, or if the
+            recipe needs blocking and the bound cannot hold one full-width
+            row, since a row block is never narrower than the image.
+    """
+    if maximum_block_pixels <= 0:
+        raise ValueError("maximum_block_pixels must be positive")
+    dataset = _dataset_by_id(manifest_path, dataset_id)
+    height, width = dataset.recipe.shape_yx
+    if height * width <= maximum_block_pixels:
+        image = generate_synthetic_image(
+            dataset.recipe, maximum_pixels=maximum_block_pixels
+        )
+        data = np.asarray(
+            image[np.newaxis, np.newaxis, :, :], dtype=np.float32
+        )
+    else:
+        if maximum_block_pixels < width:
+            raise ValueError(
+                "maximum_block_pixels must hold one full-width row of "
+                f"{width} pixels, got {maximum_block_pixels}"
+            )
+        rows = maximum_block_pixels // width
+        data = np.empty((1, 1, height, width), dtype=np.float32)
+        for y_start in range(0, height, rows):
+            y_stop = min(y_start + rows, height)
+            data[0, 0, y_start:y_stop, :] = generate_synthetic_window(
+                dataset.recipe,
+                y_start=y_start,
+                y_stop=y_stop,
+                x_start=0,
+                x_stop=width,
+            )
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    hdu = fits.PrimaryHDU(data=data, header=synthetic_fits_header(dataset))
+    hdu.add_checksum(when="hebog deterministic dataset recipe")
+    hdu.writeto(
+        output_path,
+        overwrite=overwrite,
+    )
+    return _file_sha256(output_path)
 
 
 def _verify_external_artifact(

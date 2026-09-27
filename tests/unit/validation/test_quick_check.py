@@ -28,6 +28,9 @@ from hebog.data_models import (
     SpectralModel,
 )
 from hebog.science.models import CatalogueSource
+from hebog.validation.quick_benchmark import (
+    load_quick_benchmark_configuration,
+)
 from hebog.validation.quick_check import (
     REFERENCE_CONTAINER_COMMAND,
     REFERENCE_WORKER,
@@ -91,17 +94,34 @@ def _report(
 
 
 def test_checked_in_configuration_loads_every_case() -> None:
-    """The committed case set is valid and references known datasets."""
+    """The committed case set is valid and references known datasets.
+
+    The quick benchmark shares the manifest, so every generated dataset in
+    it must be a science-check case or a benchmark case: a dataset neither
+    runs is dead weight, and a case naming an unknown dataset cannot run.
+    """
     configuration = load_quick_check_configuration(_CONFIGURATION)
     manifest = json.loads(
         (_ROOT / configuration.dataset_manifest).read_text(encoding="utf-8")
     )
     dataset_ids = {item["identifier"] for item in manifest["datasets"]}
+    benchmark = load_quick_benchmark_configuration(
+        _ROOT / "config" / "benchmarks" / "quick-benchmark.json"
+    )
+    assert benchmark.dataset_manifest == configuration.dataset_manifest
 
     generated = [
         case for case in configuration.cases if isinstance(case, GeneratedCase)
     ]
-    assert {case.dataset_id for case in generated} == dataset_ids
+    benchmark_generated = {
+        item.case.dataset_id
+        for item in benchmark.cases
+        if isinstance(item.case, GeneratedCase)
+    }
+    assert {case.dataset_id for case in generated} <= dataset_ids
+    assert {case.dataset_id for case in generated} | benchmark_generated == (
+        dataset_ids
+    )
     assert any(isinstance(case, ImageCase) for case in configuration.cases)
     assert configuration.reference.finder_id == "pinned-pybdsf-master"
 

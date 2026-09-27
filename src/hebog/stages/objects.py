@@ -1534,6 +1534,7 @@ class ComponentFitStageResult:
     component_records: tuple[DetectionComponentRecord, ...]
     fit_parent_count: int
     deferred_parent_count: int
+    wide_parent_count: int
     partition_count: int
     executor_task_count: int
     maximum_graph_width: int
@@ -2402,6 +2403,7 @@ def run_component_fit_stage(  # noqa: PLR0913, PLR0917
         deferred_parent_count=sum(
             int(parent.deferred) for _, parent in measured
         ),
+        wide_parent_count=len(deferred),
         partition_count=len(manifest.tiles),
         executor_task_count=(
             len(scan_batches)

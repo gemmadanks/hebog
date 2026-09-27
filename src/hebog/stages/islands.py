@@ -127,6 +127,7 @@ class DetectionIslandStageResult:
     islands: tuple[CatalogueIsland, ...]
     island_ids_by_owner: Mapping[int, tuple[str, ...]]
     island_count: int
+    wide_island_count: int
     partition_count: int
     executor_task_count: int
     maximum_graph_width: int
@@ -826,6 +827,7 @@ def run_detection_island_stage(  # noqa: PLR0913
             identifier_by_island_label=identifier_by_island_label,
         ),
         island_count=len(islands),
+        wide_island_count=len(spanning),
         partition_count=len(manifest.tiles),
         executor_task_count=(
             len(core_batches) + len(row_batches) + len(pixel_batches)
