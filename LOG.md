@@ -26260,3 +26260,41 @@ the per-worker placement finding.
   of 24 September was accepted, for the scaling property it buys: no round
   of the fit stage carries anything that grows with source area. The plan
   carries the acceptance as a human decision.
+
+## 2026-09-27 — ADR-008 reviewed against the project goals
+
+- **What this is.** A review of ADR-008 against the goals `AGENTS.md`
+  states: 100,000² across hundreds of nodes with no whole plane on a
+  worker, results invariant under tiling and scheduling, equivalence with
+  what Rapthor consumes, the runtime gate, and a scheduler-neutral,
+  maintainable library. The decomposition itself serves them: one
+  composition for every size with Serial as the oracle, cores owning
+  pixels, canonical pixels owning objects, image-anchored geometry,
+  sharded label maps, hierarchical order-independent reductions, an
+  escalation path that never truncates, `float64` kept pending evidence,
+  and no scheduler named anywhere.
+- **Fixed in the record.** The context now reads as the state on
+  18 September, when it was decided, rather than as the present. Rule 4
+  carries the serialization lesson of the `WCS` repair. Rule 6 says what
+  holds, once per round rather than once per pass, and the consequences
+  state the read multiplicity with its measured cost instead of claiming
+  one read per pass. Three per-stage rows described designs since replaced
+  (membership shards from deblending, component-box fitting, a centroid
+  pair association predicate never installed) and now describe the rounds
+  as built. The small-image section said cores are chosen from admitted
+  memory and the 128-pixel core is replaced; it now says every stage after
+  noise uses the fixed 2,048-pixel core, the noise grid keeps its
+  128-pixel cells, and batches are what memory sizes today, with the
+  larger-core choice kept as intent. The wide-object exception to rules 4
+  and 5 is now bounded to the 3,000-pixel envelope, with no tier at which
+  it can bind admitted until the reductions run on the cores, which is
+  what the plan's task 9 already requires. The confirmation names the
+  traced peak, not peak RSS.
+- **Decisions the review leaves with the maintainer.** Whether task 9's
+  core-side reductions must reproduce the window path bit for bit, which
+  the local-noise median cannot do associatively, or may accept
+  summation-order rounding; and whether the core size should become a
+  memory-admitted choice within 2,048 to 8,192, as the ADR intends, or
+  stay fixed at 2,048 until the M5 planner work needs it. Neither changes
+  a published result; the first changes the wording of the plan's task 9
+  and the second the ADR's small-image paragraph.
