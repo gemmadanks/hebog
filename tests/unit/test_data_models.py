@@ -909,7 +909,9 @@ def test_image_metadata_rejects_incomplete_physical_values(
             {"beam_major_fwhm_degrees": 0.01, "beam_minor_fwhm_degrees": 0.02},
             "minor axis",
         ),
-        ({"brightness_unit": " "}, "brightness unit"),
+        ({"brightness_unit": " "}, "brightness unit must not be blank"),
+        ({"brightness_unit": 5}, "brightness unit must be text"),
+        ({"brightness_unit": b"Jy/beam"}, "brightness unit must be text"),
     ],
 )
 def test_supplied_image_metadata_rejects_unusable_values(

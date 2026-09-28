@@ -26654,3 +26654,34 @@ the per-worker placement finding.
   requirements may be supplied instead, and lists the Stokes and rotation
   rules beside the others; the contract page adds the malformed Stokes
   value.
+- **An independent self-review found more before the next push.** A
+  separate reviewer, given only the request, the diff and the revised
+  `CODE_REVIEW.md`, reported one P2 and five P3 findings; each was
+  reproduced on the branch before it was fixed.
+  - An ecliptic `ELON`/`ELAT` header was read as ICRS, or as FK5 J2000
+    with `EQUINOX`, so ecliptic longitudes would have been published as
+    right ascensions (P2). The reader now reads only `RA`/`DEC` and
+    `GLON`/`GLAT` axes, whose frames Astropy names correctly, and refuses
+    others by their axis types; supergalactic axes, which failed with the
+    generic WCS error, now get the same message, and an equatorial frame
+    Astropy cannot name, such as `RADESYS = 'GAPPT'`, is refused naming
+    that keyword.
+  - A text or logical `CROTA`, such as `'30'`, passed the rotation check as
+    a number while wcslib ignores it, so the plane would have been read
+    unrotated. Only numeric values are read now.
+  - `SuppliedImageMetadata(brightness_unit=5)` raised a bare
+    `AttributeError`; a non-text unit is now refused when the record is
+    built, and a supplied unit that does not parse is reported as the
+    request's, not the file's.
+  - The contract page called images "accepted" whose size the envelope
+    refuses; it now says a header's result does not admit the size. The
+    how-to's reader paragraph, the public unit refusal (which now names the
+    unit found), a docstring's AIPS attribution, the Stokes citation (FITS
+    WCS Paper I, not Paper III) and the plan's release, scalability and
+    next-action rows were stale after v0.16.0 and are current.
+  - The SKA SDP encoding of the Stokes parameter through `CRPIX` now has an
+    end-to-end refused case, an `XX` plane, beside the reader test.
+  - Left as they are: the public API maps both the reader's malformed and
+    unsupported refusals to `InvalidSourceFinderInputError`, as it did for
+    cubes, and `quick_check._reference_input` does not copy a supplied
+    `BUNIT` to the PyBDSF input, which no configured case exercises.

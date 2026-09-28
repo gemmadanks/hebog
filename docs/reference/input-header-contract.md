@@ -16,7 +16,7 @@ that names the keyword or layout at fault.
 | Restoring beam | `BMAJ`, `BMIN` and `BPA`, in degrees. | A supplied value for each missing keyword, else refused. |
 | Reference frequency | `RESTFRQ`, then `RESTFREQ`, then the first `FREQ` axis's `CRVAL`. | A supplied `reference_frequency_hz`, else refused. |
 | Celestial WCS | Astropy's reading of the header: any projection it supports (`SIN`, `TAN`, `ZEA` and others), with `CDELT`, a `PC` or `CD` matrix, or a legacy `CROTA`. | Refused when absent. A rotation Astropy would silently drop is refused; see [Rotation](#rotation). |
-| Coordinate frame | `RADESYS`, `EQUINOX` and `EPOCH`. With none of them, the frame is ICRS, as the WCS standard defines. `EQUINOX` or `EPOCH` of 2000 without `RADESYS` is FK5 J2000. | Only ICRS and FK5 J2000 are accepted; the error names the frame found, such as `GALACTIC` or `FK4, equinox 1950`. Catalogue positions are always ICRS. |
+| Coordinate frame | The celestial axis types, which must be `RA`/`DEC` or `GLON`/`GLAT`, then `RADESYS`, `EQUINOX` and `EPOCH`. With none of the three, the frame is ICRS, as the WCS standard defines. `EQUINOX` or `EPOCH` of 2000 without `RADESYS` is FK5 J2000. | Only ICRS and FK5 J2000 are accepted; the error names the frame found, such as `GALACTIC` or `FK4, equinox 1950`. Other celestial axes, such as ecliptic `ELON`/`ELAT` or supergalactic `SLON`/`SLAT`, are refused by their axis types, because Astropy would read ecliptic coordinates as ICRS. Catalogue positions are always ICRS. |
 | Size | `NAXIS1` and `NAXIS2`. | Refused above 10,000 pixels on either side. |
 
 Supplied values come from `SuppliedImageMetadata` on the request. Each one
@@ -34,8 +34,12 @@ supplied = hebog.SuppliedImageMetadata(
 ## Imager and pipeline conventions
 
 The table describes what each writer puts in the header, from its source
-code or documentation, and what the finder does with it. Each row has a
-fixture test in `tests/integration/test_input_header_contract.py`.
+code or documentation, and what the finder does with the header. Each row
+has a fixture test in `tests/integration/test_input_header_contract.py`.
+A header's result does not admit the image's size: an image larger than
+10,000 pixels on either side is refused whatever its header, so the full
+LoTSS-DR3, LoTSS-Deep, MIGHTEE XMM-LSS, LOFAR-HD, GLEAM-X and SDC1 images
+need a cut-out until the envelope reaches them.
 
 | Writer | What the header holds | Result |
 | --- | --- | --- |
@@ -56,14 +60,16 @@ fixture test in `tests/integration/test_input_header_contract.py`.
 
 The WCS standard reads a legacy `CROTAi` rotation from the latitude axis only,
 and ignores it when a `PCi_j` or `CDi_j` matrix is present. Astropy follows
-the standard without a warning, so two kinds of header would be read with a
-different orientation than their writer intended, and every catalogue
-position would move. Hebog refuses both:
+the standard without a warning, so three kinds of header would be read with
+a different orientation than their writer intended, and every catalogue
+position would move. Hebog refuses:
 
 - a rotation on the longitude axis (`CROTA1` for RA in axis 1) that is not
-  zero and differs from the latitude axis's; and
+  zero and differs from the latitude axis's;
 - a non-zero latitude-axis rotation beside a `PC` or `CD` matrix, in either
-  its current spelling or the older `PC001001` form.
+  its current spelling or the older `PC001001` form; and
+- a `CROTA` value written as text, such as `'30'`, or as a logical, which
+  wcslib ignores.
 
 A zero rotation, a rotation on the latitude axis alone, and equal rotations
 on both axes are unambiguous and accepted. OSKAR writes zeros; AIPS and Obit

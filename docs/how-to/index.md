@@ -365,8 +365,11 @@ celestial_wcs = celestial_wcs_from_metadata(metadata)
 ```
 
 The source accepts two-dimensional data and conventional radio-image FITS
-layouts whose leading axes are singleton. Non-singleton channel or Stokes
-cubes are rejected until their scientific semantics are explicitly supported.
+layouts whose leading axes are singleton, a Stokes axis selecting Stokes I.
+Non-singleton channel or Stokes cubes are rejected until their scientific
+semantics are explicitly supported, as are the other headers the
+[input header contract](../reference/input-header-contract.md) refuses.
+`SuppliedImageMetadata` fills a unit, beam or frequency the header omits.
 NaN and infinite pixels remain in the values array and are marked false in
 `valid_pixels`; kernels must exclude them from scientific calculations. Beam,
 celestial-WCS, coordinate-frame, brightness-unit, and reference-frequency

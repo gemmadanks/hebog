@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import isfinite
-from typing import Literal
+from typing import Literal, cast
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,6 +63,9 @@ beam_position_angle_degrees=None, brightness_unit=None)
         unit = self.brightness_unit
         if all(value is None for value in (frequency, *axes, angle, unit)):
             raise ValueError("supply at least one image metadata value")
+        # Annotations do not bind callers; a number would fail on strip().
+        if unit is not None and not isinstance(cast(object, unit), str):
+            raise ValueError("supplied brightness unit must be text")
         if unit is not None and not unit.strip():
             raise ValueError("supplied brightness unit must not be blank")
         if frequency is not None and not (

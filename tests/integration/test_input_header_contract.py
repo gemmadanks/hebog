@@ -405,6 +405,30 @@ _REFUSED: dict[str, tuple[_Convention, type[SourceFinderError], str]] = {
         InvalidSourceFinderInputError,
         "gives both CROTA2 and a PC or CD matrix",
     ),
+    "ecliptic": (
+        _Convention(
+            {**_lotss_mosaic(), "CTYPE1": "ELON-SIN", "CTYPE2": "ELAT-SIN"}
+        ),
+        InvalidSourceFinderInputError,
+        "ELON/ELAT celestial axes, and the finder reads RA/DEC or GLON/GLAT",
+    ),
+    "supergalactic": (
+        _Convention(
+            {**_lotss_mosaic(), "CTYPE1": "SLON-SIN", "CTYPE2": "SLAT-SIN"}
+        ),
+        InvalidSourceFinderInputError,
+        "SLON/SLAT celestial axes",
+    ),
+    "ska-sdp-instrumental-xx": (
+        # The SDP data models encode the parameter through CRPIX.
+        _Convention(
+            {**_ska_sdp(), "CRPIX3": -5.0, "CRVAL3": 1.0, "CDELT3": -1.0},
+            (1, 1),
+            supplied=SuppliedImageMetadata(brightness_unit="Jy/beam"),
+        ),
+        InvalidSourceFinderInputError,
+        "plane is Stokes XX",
+    ),
     "galactic": (
         _Convention(_galactic()),
         UnsupportedSourceFinderConfigurationError,

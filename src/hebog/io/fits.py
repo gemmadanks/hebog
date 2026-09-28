@@ -31,8 +31,8 @@ _COMMON_IMAGE_UNIT_ALIASES = {
     "JY/BEAM": "Jy/beam",
     "JYBEAM-1": "Jy/beam",
 }
-# FITS WCS Paper III Stokes codes: I, Q, U, V, then circular and linear
-# instrumental products.
+# Stokes codes of FITS WCS Paper I (Greisen & Calabretta 2002, table 7): I,
+# Q, U, V, then circular and linear instrumental products.
 _STOKES_NAMES = {
     1: "I",
     2: "Q",
@@ -50,6 +50,8 @@ _STOKES_NAMES = {
 # Stokes codes are integers; a world value may differ from one only by the
 # rounding of the world transform.
 _STOKES_CODE_TOLERANCE = 1e-6
+# Celestial axis types whose frame Astropy names correctly.
+_CELESTIAL_AXIS_TYPES = frozenset({("RA", "DEC"), ("GLON", "GLAT")})
 # Primary linear-transform matrix keywords, in current and AIPS-era spelling.
 _LINEAR_MATRIX_KEYWORD = re.compile(r"(PC|CD)(\d+_\d+|\d{6})")
 
@@ -100,7 +102,14 @@ def _brightness_unit(
         raise InvalidFitsImageError(
             f"FITS image has an invalid BUNIT {unit_value!r}: {path}"
         )
-    return _canonical_image_unit(unit_value, path)
+    if header_value is not None:
+        return _canonical_image_unit(unit_value, path)
+    try:
+        return _canonical_image_unit(unit_value, path)
+    except InvalidFitsImageError as error:
+        raise InvalidFitsImageError(
+            f"supplied brightness unit {unit_value!r} is not a unit: {path}"
+        ) from error
 
 
 def _restoring_beam(
@@ -144,12 +153,29 @@ def _restoring_beam(
 
 
 def _celestial_wcs(header: Any, path: Path) -> tuple[WCS, CelestialWcs]:
-    """Validate and serialize the celestial part of an image WCS."""
+    """Validate and serialize the celestial part of an image WCS.
+
+    Only equatorial and Galactic axes are read. Astropy names the frame of
+    other celestial axes wrongly or not at all: ecliptic ``ELON``/``ELAT``
+    axes come back as ICRS, so their longitudes would be published as right
+    ascensions.
+    """
     try:
         image_wcs = WCS(header, relax=True)
         celestial_wcs = image_wcs.celestial
         if not celestial_wcs.has_celestial:
             raise ValueError("no celestial axes")
+    except (TypeError, ValueError) as error:
+        raise InvalidFitsImageError(
+            f"FITS image requires a valid two-axis celestial WCS: {path}"
+        ) from error
+    axis_types = (celestial_wcs.wcs.lngtyp, celestial_wcs.wcs.lattyp)
+    if axis_types not in _CELESTIAL_AXIS_TYPES:
+        raise UnsupportedFitsImageError(
+            f"FITS image has {'/'.join(axis_types)} celestial axes, and the "
+            f"finder reads RA/DEC or GLON/GLAT axes only: {path}"
+        )
+    try:
         frame = wcs_to_celestial_frame(celestial_wcs)
         celestial_header = celestial_wcs.to_header(relax=True).tostring(
             sep="\n",
@@ -158,7 +184,8 @@ def _celestial_wcs(header: Any, path: Path) -> tuple[WCS, CelestialWcs]:
         )
     except (TypeError, ValueError) as error:
         raise InvalidFitsImageError(
-            f"FITS image requires a valid two-axis celestial WCS: {path}"
+            "FITS image has a celestial frame Astropy cannot name, RADESYS "
+            f"{header.get('RADESYS')!r}: {path}"
         ) from error
     return image_wcs, CelestialWcs(
         fits_header=celestial_header,
@@ -169,17 +196,17 @@ def _celestial_wcs(header: Any, path: Path) -> tuple[WCS, CelestialWcs]:
 def _rotation_degrees(header: Any, axis: int, path: Path) -> float:
     """Read one axis's optional legacy ``CROTA`` rotation in degrees."""
     keyword = f"CROTA{axis}"
-    try:
-        rotation = float(header.get(keyword, 0.0))
-    except (TypeError, ValueError) as error:
+    rotation = header.get(keyword, 0.0)
+    # wcslib ignores a text or logical CROTA, so it cannot be read as one.
+    if (
+        isinstance(rotation, bool)
+        or not isinstance(rotation, int | float)
+        or not np.isfinite(rotation)
+    ):
         raise InvalidFitsImageError(
-            f"FITS image has an invalid {keyword}: {path}"
-        ) from error
-    if not np.isfinite(rotation):
-        raise InvalidFitsImageError(
-            f"FITS image has an invalid {keyword}: {path}"
+            f"FITS image has an invalid {keyword} {rotation!r}: {path}"
         )
-    return rotation
+    return float(rotation)
 
 
 def _require_one_rotation(header: Any, image_wcs: WCS, path: Path) -> None:
@@ -189,8 +216,9 @@ def _require_one_rotation(header: Any, image_wcs: WCS, path: Path) -> None:
     no ``PCi_j`` or ``CDi_j`` matrix is present. Astropy follows it without a
     warning, so a rotation given on the longitude axis alone, or beside a
     matrix, would be read as a different orientation and misplace every
-    catalogue position. A zero rotation, or equal rotations on both axes as
-    AIPS writes them, is unambiguous.
+    catalogue position. A zero rotation, a rotation on the latitude axis
+    alone, as AIPS and Obit write it, and equal rotations on both axes are
+    unambiguous.
     """
     longitude_axis = image_wcs.wcs.lng + 1
     latitude_axis = image_wcs.wcs.lat + 1

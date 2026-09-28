@@ -348,6 +348,20 @@ def test_rejects_missing_celestial_wcs(tmp_path: Path) -> None:
 
 
 @pytest.mark.integration
+def test_rejects_a_frame_astropy_cannot_name(tmp_path: Path) -> None:
+    """A geocentric apparent frame is named rather than read as ICRS."""
+    path = tmp_path / "apparent.fits"
+    _write_image(path, np.zeros((2, 2), dtype=np.float32))
+    with fits.open(path, mode="update") as hdus:
+        hdus[0].header["RADESYS"] = "GAPPT"
+
+    with pytest.raises(
+        InvalidFitsImageError, match="cannot name, RADESYS 'GAPPT'"
+    ):
+        FitsImageSource(path).metadata()
+
+
+@pytest.mark.integration
 def test_uses_a_frequency_axis_when_rest_frequency_is_absent(
     tmp_path: Path,
 ) -> None:
@@ -508,7 +522,10 @@ def test_a_supplied_unit_meets_the_header_unit_rules(tmp_path: Path) -> None:
     path = tmp_path / "no-unit.fits"
     _write_image(path, np.zeros((2, 2), dtype=np.float32), unit=None)
 
-    with pytest.raises(InvalidFitsImageError, match="invalid BUNIT"):
+    with pytest.raises(
+        InvalidFitsImageError,
+        match="supplied brightness unit 'bananas' is not a unit",
+    ):
         FitsImageSource(
             path, SuppliedImageMetadata(brightness_unit="bananas")
         ).metadata()
@@ -648,8 +665,11 @@ def test_a_rotation_stated_once_is_read(
         ({"CROTA2": 30.0, "PC1_1": 1.0}, "both CROTA2 and a PC or CD"),
         ({"CROTA2": 30.0, "CD1_1": -0.001}, "both CROTA2 and a PC or CD"),
         ({"CROTA2": 30.0, "PC001001": 1.0}, "both CROTA2 and a PC or CD"),
-        ({"CROTA2": "thirty"}, "invalid CROTA2"),
-        ({"CROTA1": "nan"}, "invalid CROTA1"),
+        ({"CROTA2": "thirty"}, "invalid CROTA2 'thirty'"),
+        ({"CROTA1": "nan"}, "invalid CROTA1 'nan'"),
+        # wcslib ignores text and logical values, so none can be a rotation.
+        ({"CROTA2": "30"}, "invalid CROTA2 '30'"),
+        ({"CROTA2": True}, "invalid CROTA2 True"),
     ],
 )
 def test_a_rotation_the_wcs_standard_would_drop_is_refused(

@@ -277,7 +277,8 @@ def _qualified_metadata(metadata: ImageMetadata) -> None:
     """Require the evaluated physical frame, unit, and bounded size."""
     if metadata.unit != "Jy/beam":
         raise UnsupportedSourceFinderConfigurationError(
-            "the public source finder requires BUNIT=Jy/beam"
+            "the public source finder requires BUNIT=Jy/beam, not "
+            f"{metadata.unit}"
         )
     if not _supported_celestial_frame(metadata):
         raise UnsupportedSourceFinderConfigurationError(

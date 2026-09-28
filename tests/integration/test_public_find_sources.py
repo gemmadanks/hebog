@@ -1277,7 +1277,7 @@ def test_unsupported_public_unit_fails_before_publication(
 
     with pytest.raises(
         UnsupportedSourceFinderConfigurationError,
-        match="BUNIT=Jy/beam",
+        match=r"BUNIT=Jy/beam, not Jy$",
     ):
         hebog.find_sources(_request(tmp_path), _config(), _RecordingExecutor())
 
