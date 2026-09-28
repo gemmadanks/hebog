@@ -26717,3 +26717,183 @@ the per-worker placement finding.
 - **Not done.** The crash was intermittent, so one green Windows run does
   not prove the fix; the next few Windows runs are the evidence. Reporting
   the unguarded cache to SciPy is the maintainer's call.
+
+## 2026-09-29 — M2: the public envelope reaches 15,402 pixels
+
+- **What this is.** Task 10 of the plan, on `m2/envelope-15402` from
+  `v0.17.0`: the tier gate on the whole LoTSS-DR3 mosaic 1312 and the raise
+  it would authorize, pending the maintainer's approval.
+- **Gate outcome.** The exact tiled-invariance tests, the quick science check
+  and the quick benchmark on the anchor pass, and the traced peak is
+  reproduced; the gate's budget clause does not. The reproduced traced peak
+  took 3 h 23 min against the release-check budget of about an hour, and
+  the whole gate about 13 hours of machine time. No execution crossover lies
+  between 10,000² and 15,402²: both run every pass on the same tiled paths
+  (2,048-pixel object cores, 128-pixel background cells) with no object on
+  the wide paths, so the anchor alone was benchmarked, as at 10,000². Task 10
+  stays in the plan until the maintainer decides the budget clause.
+- **The anchor.** With the maintainer's approval the whole mosaic was
+  fetched through the cut-out tool as `lotss-dr3-1312-15402`, the window
+  at x 0, y 0 of size 15,402 (948,893,760 bytes, `5ac3924d…`, 17 s): a
+  two-axis `float32` `SIN` image, ICRS, `RESTFRQ` 144 MHz, a 9″ beam, finite
+  fraction 0.999999. It joins the quick benchmark's large tier. At 2,048-pixel
+  object cores it is an eight-by-eight grid whose last row and column are
+  1,066 pixels, and background and RMS run on 14,641 cells.
+- **What changed.** `_MAXIMUM_PREVIEW_DIMENSION` is 15,402, and the
+  documentation, notebooks, ADR-008 and plan state it; 15,403 is refused
+  before hashing and 15,402 runs through the public path. Widening the
+  envelope makes the declared wide-object term's field-filling figure
+  reachable at about 44 GB (15,402² × 186 bytes); the release status,
+  performance profile, ADR-008 and the plan's risk row now give it beside
+  the other tiers.
+- **Why the invariance test changed rather than grew.** The envelope admits
+  every size below its limit, so the grid to prove is the largest, eight by
+  eight, and a last row or column of tiles can be any width up to a core.
+  `tests/integration/test_public_tile_invariance.py` now gives an 860 × 960
+  analytic image that grid at 120-pixel cores, with the two extremes of a
+  last tile: a last row 20 pixels high, inside the widest multiscale filter
+  halo of 28, and a last column ending exactly on a core edge. A compact
+  source sits on each of the 49 interior four-way corners and on the image
+  corners and seam ends; the shell, diffuse Gaussian and seam-straddling
+  blend stay. A long filament crosses all seven column seams and four row
+  seams through four corner sources and ends in the narrow corner tile; its
+  fit window exceeds the reviewed 250,000-pixel compact bound, so its fit
+  parent is deferred on any grid and is described from the cores it
+  crosses. A short filament crosses three column seams and is fitted from
+  one window, as the old test's filament was. One tile, the grid on Serial
+  and the grid on a two-worker Dask cluster publish byte-identical
+  catalogue, RMS, mask and diagnostics (59 sources, 60 components, 62
+  islands, one deferred parent); every object pass planned 64 tiles. The
+  mask must hold every compact centre, both ends of the short filament and
+  the long filament's end in the narrow row, and the source count must be at
+  least the compact count less the four on the filament. Under a one-pixel
+  read budget every object is decided from its cores (62 islands, 64
+  publication owners, 56 support components, 173 segments) and the
+  catalogue, RMS and mask are unchanged. Two small tests pin the geometry:
+  the grid must equal the envelope's tiles per side, so a later raise that
+  adds tiles fails until the grid widens, and the last row must stay inside
+  the halo. The five-by-five test is replaced, not kept: it had a full last
+  column and an 80-pixel last row, and this image keeps the first and
+  narrows the second below the halo.
+- **Real-sky evidence.** The whole mosaic ran serially and on a four-worker,
+  one-thread, process-based `LocalCluster`: 16,084 sources, 20,661
+  components and 20,069 islands in both, with every wide-object count zero.
+  RMS (`1601c946…`) and mask (`733166d6…`) are byte-identical; the
+  catalogue and diagnostics are byte-identical once the one field that
+  differed by design, the run ID (`anchor-serial` against `anchor-dask`),
+  and what derives from it, the catalogue's `CATID` (the run ID's SHA-256)
+  and header checksum, are substituted. Source tree `2076ba57…`. Serial
+  took 3,507 s at a driver peak RSS of 3,275 MiB and Dask 11,248 s at
+  6,070 MiB, both on a machine shared with the quick check, the coverage
+  run and interactive work; neither is a timing.
+- **The Dask run spent about two and a half hours in background and RMS.**
+  Its work directory appeared at 19:58, 15 minutes after the start, its
+  background store last changed at 22:26, and every later store was written
+  within the following 26 minutes; through the first stretch the driver ran
+  at 55 to 70% of a core and one of the four workers at about 40%, the
+  others idle. No task declares a memory requirement, so admission
+  does not narrow the in-flight window. The whole 10,000² Dask run took
+  33 minutes on 6,241 cells, so at 14,641 cells this stage grows faster than
+  its cell count under Dask while the complete Serial run took 58 minutes.
+  This is a finding for the performance tasks, not a correctness defect:
+  the products agree. It is unmeasured by the quick benchmark, which times
+  Serial only; the next step is a Dask stage profile of background and RMS
+  at 3,000², 10,000² and 15,402².
+- **Quick science check.** `m2-envelope-15402` against `windows-fft-lock`:
+  no regression on the sixteen cases (Hebog 108 s, on a loaded machine).
+  PyBDSF `master` failed on `sdc1-b2-1000h-crowded` again, and refused the
+  all-invalid case as it always does.
+- **Traced peak.** `just traced-peak --tier large --cases
+  lotss-dr3-1312-15402 --repetitions 2` (`m2-tier-15402`, source tree
+  `2076ba57…`): 2,432.0 MiB twice (2,550,162,128 and 2,550,149,271 bytes),
+  import floor 90.3 MiB, peak RSS 4,298 and 3,489 MiB, traced in 6,007 s and
+  6,160 s. That is 58% above the 10,000² anchor's 1,541.3 MiB for 2.4 times
+  the area, where the three-point fit of 27 September (1.4 bytes a pixel,
+  13 KiB a source) predicted about 1,850 MiB. The 10,000² anchor traced
+  again on the same tree gave 1,541.4 MiB (`m2-tier-15402-control-10000`,
+  2,392 s), so the growth comes with the image, not with the code changed
+  since `v0.14.1`. Each traced run took 1 h 40 min; the two repetitions
+  and the control took 4 h 3 min, run overnight. The run's report records
+  commit `67db207` and a clean tree although it measured this change,
+  because the runner reads `HEAD` when it starts and the tree's state when
+  it ends, and the change was committed during the run; the source tree
+  hash identifies what was measured, and the runner defect is left for its
+  own fix.
+- **Where the peak grows.** A diagnostic script, not part of the harness,
+  wrapped every function of `hebog.public_api` so that `tracemalloc`
+  recorded the inclusive peak inside each, and ran the serial finder on the
+  3,000², 10,000² and whole-mosaic inputs; the script and its three records
+  are kept, uncommitted, in `benchmark-results/diagnostics/
+  stage-peaks-20260929/`. Its overall peaks (1,335.6, 1,542.5 and
+  2,433.2 MiB) match the harness to about 1 MiB, but its per-pass figures
+  are diagnostic, not gate evidence. At all three sizes the
+  peak is in the multiscale detection pass, which starts from 95, 112 and
+  134 MiB: what grows is held inside that pass, 2.4 bytes a pixel from
+  3,000² to 10,000² and 6.8 from 10,000² to 15,402². The pass gathers every
+  tile's candidate summaries, reconstruction, detection and then three
+  scale orders, and reconciles them on the driver without a size cut, so
+  those records are the first suspect. In a serial run tile tasks execute in
+  the driver process too, so anything a task builds at the scale of the
+  whole image is the second. Which it is is the next measurement, a
+  `tracemalloc` snapshot at the pass's peak from a committed harness. Background and
+  RMS, which run first, peak lower but grow a steady 3.2 bytes a pixel (274,
+  545 and 962 MiB, entered at 92.5 MiB every time), about 50 KiB for each of
+  its 128-pixel cells. At those slopes the multiscale pass would peak near
+  4.1 GiB at 22,500² and 13.7 GiB at 45,000², and background and RMS near
+  6.2 GiB at 45,000²; with peak RSS 1.3 to 3.1 times the traced figure on
+  these runs, the 45,000² demonstration (task 12) would not fit 18 GiB. The plan's
+  scalability row and risks now say so, and the 1.4-byte fit is withdrawn.
+- **Where the time goes.** The same traced runs time each pass, so these
+  are traced times, comparable with each other only. Background
+  and RMS take about half of every run, linear at 0.19 to 0.20 s a cell
+  (110, 1,250 and 2,972 s). Source association grows faster than anything
+  else: 1, 82 and 479 s for 659, 7,146 and 16,084 sources, about the 2.2
+  power of the source count, which at 45,000² and its roughly 140,000
+  sources would be many hours. Neither is a regression; both are new risk
+  rows in the plan, to profile before task 12 and within task 23.
+- **Quick benchmark.** `m2-envelope-15402`, the anchor alone, one warm-up
+  and five measured repetitions in fresh single-thread processes on source
+  tree `2076ba57…`, this change's: median 3,410.0 s (3,394.9 to
+  3,603.8 s, median absolute deviation 14.9 s), median CPU 3,200.4 s and
+  peak RSS 3,365 to 4,114 MiB, at a one-minute load median of 3.4 (1.8 to
+  10.6) sampled every minute; the last repetition, the slow one, ran while
+  the load rose above 4 in the morning. It is 2.7 times the 10,000² anchor's
+  1,259.1 s for 2.4 times the area; most of the excess is source
+  association (above). No earlier Hebog admitted this size, so this is the anchor's first
+  point on the Hebog curve, not a regression check; the previous-release
+  comparison was skipped because `v0.17.0` runs the same science code at a
+  lower limit, and the diagnostic pinned-`master` ratio for its run time on
+  this size. The benchmark took 5 h 44 min, so like the traced peak it
+  outgrows the release-check budget at this tier.
+- **Checks.** Coverage 97% over 2,802 portable tests, `public_api.py`
+  missing only the three lines it missed before (the one production change
+  is the constant); the wheel smoke test; `just check`; `just pre-commit`.
+- **Independent review.** A separate reviewer given the request, the diff
+  and `CODE_REVIEW.md` reported one P1, three P2 and several P3 findings.
+  Fixed: the gate outcome above now states the failed budget clause and the
+  absent crossover, and task 10 stays in the plan; the stage attribution is
+  labelled diagnostic, its evidence kept, and its cause worded as
+  unattributed in the profile, release status, plan and ADR-008; the
+  architecture status note and ADR-008 name the growth beside the declared
+  wide-object term; release status and the run guide give the Dask cost at
+  the new bound; the invariance image now ends its last column on a core
+  edge, adds a fitted multi-seam filament and asserts detection at every
+  compact centre and in the narrow row; and the stale repetition spread,
+  resident-memory projection, source-count paragraph, RSS multiple, Dask
+  comparison, load and disk figures are corrected. Left for its own fix:
+  the traced-peak runner's commit and dirty-tree identity, noted above.
+- **What this leaves.** Approving the raise, by merging it and cutting its
+  release, is the maintainer's, after the budget decision. The LoTSS-Deep
+  DR2 ELAIS-N1 pair, the representative two-branch Rapthor input, and
+  MIGHTEE XMM-LSS now fit the envelope whole. Two decisions are the
+  maintainer's. First, the tier gate's budget: this tier's gate took about
+  13 hours of machine time (Serial and Dask 4 h 6 min, the traced peak
+  3 h 23 min, the quick benchmark 5 h 44 min), at 22,500² it would take
+  about a day, and a release check that runs the largest admitted tier with
+  Serial/Dask agreement now takes over four hours; the plan's rule is to
+  sample, split or move such a check rather than extend its budget
+  silently. Second, when to bound the traced peak's growth: the agent
+  recommends before task 11, because task 12 cannot fit without it and a
+  22,500² gate would measure code about to change. Task 11's disk condition
+  is met but narrowing: 75 GiB free on 29 September, against 132 GiB the
+  evening before.

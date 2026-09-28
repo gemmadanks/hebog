@@ -3,16 +3,21 @@
 """Public products do not change with the tile grid the passes run on.
 
 The public passes after background and RMS run on 2,048-pixel cores, so the
-10,000-pixel envelope is a five-by-five grid: interior tiles bounded on all
-four sides and sixteen four-way corners, neither of which the four tiles of a
-3,000-pixel image hold. These tests give a small analytic image that same grid
-by shrinking the cores, put support on every interior corner, seam and image
-edge, and require the complete product set to equal the one-tile run's.
+15,402-pixel envelope is at most an eight-by-eight grid, with interior tiles
+bounded on all four sides and forty-nine four-way corners. The envelope admits
+every size below its limit, so a last row or column of tiles can be any width
+up to a core, including narrower than a filter halo. These tests give a small
+analytic image that grid by shrinking the cores, end its last row of tiles
+inside the widest filter halo and its last column exactly on a core edge, the
+two extremes a last tile can take, put support on every interior corner, seam
+and image edge, and require the complete product set to equal the one-tile
+run's.
 """
 
 from __future__ import annotations
 
 import inspect
+import math
 from collections.abc import Callable, Iterator
 from functools import partial
 from pathlib import Path
@@ -26,6 +31,8 @@ from distributed import Client, LocalCluster
 
 import hebog
 from hebog import SourceFinderConfig, SourceFinderRequest, public_api
+from hebog.algorithms.multiscale import BeamShapePixels
+from hebog.algorithms.multiscale_tiles import scale_filter_halo_pixels
 from hebog.data_models import (
     PartitionManifest,
     PublicSourceFindingDiagnostics,
@@ -37,13 +44,41 @@ from hebog.pipeline import SourceFinderResult
 
 pytestmark = pytest.mark.integration
 
-_SHAPE_YX = (560, 600)
 _CORE_PIXELS = 120
-_GRID_TILES = 25
+_TILES_PER_SIDE = 8
+_GRID_TILES = _TILES_PER_SIDE**2
+# The last row of tiles is 20 pixels high, inside the widest filter halo,
+# and the last column a whole core wide.
+_SHAPE_YX = (
+    (_TILES_PER_SIDE - 1) * _CORE_PIXELS + 20,
+    _TILES_PER_SIDE * _CORE_PIXELS,
+)
 _BEAM_FWHM_PIXELS = 4.0
-_SEAMS = tuple(_CORE_PIXELS * index - 0.5 for index in range(1, 5))
+_SEAMS = tuple(
+    _CORE_PIXELS * index - 0.5 for index in range(1, _TILES_PER_SIDE)
+)
+_BOTTOM, _RIGHT = _SHAPE_YX[0] - 1.0, _SHAPE_YX[1] - 1.0
+_COMPACT_CENTRES = (
+    *((y, x) for y in _SEAMS for x in _SEAMS),
+    (0.0, 0.0),
+    (0.0, _RIGHT),
+    (_BOTTOM, 0.0),
+    (_BOTTOM, _RIGHT),
+    (0.0, _SEAMS[0]),
+    (_BOTTOM, _SEAMS[2]),
+    (_SEAMS[1], 0.0),
+    (_SEAMS[3], _RIGHT),
+    (_BOTTOM, _SEAMS[6]),
+    (_SEAMS[6], _RIGHT),
+)
+# Through the corners (479.5, 119.5), (599.5, 359.5), (719.5, 599.5) and
+# (839.5, 839.5), ending in the narrow last row.
+_LONG_FILAMENT = ((439.75, 40.0), (849.75, 860.0))
+# Across three column seams, with a window the compact bound admits.
+_SHORT_FILAMENT = ((60.0, 250.0), (90.0, 610.0))
 # Background and RMS keep their own fixed cells whatever the object cores are.
 _BACKGROUND_CORE_YX = (128, 128)
+_DEFERRED_FILAMENT = WideObjectCounts(deferred_fit_parents=1)
 
 
 def _beam(
@@ -57,24 +92,44 @@ def _beam(
     return np.exp(-radius_squared / (2.0 * sigma_pixels**2))
 
 
-def _image() -> npt.NDArray[np.float64]:
-    """Return support on every seam topology of a five-by-five grid.
+def _filament(
+    yy: npt.NDArray[np.float64],
+    xx: npt.NDArray[np.float64],
+    ends_yx: tuple[tuple[float, float], tuple[float, float]],
+) -> npt.NDArray[np.float64]:
+    """Return one unit-peak straight filament two pixels in sigma."""
+    start, stop = np.array(ends_yx[0]), np.array(ends_yx[1])
+    length = np.linalg.norm(stop - start)
+    direction = (stop - start) / length
+    along = np.clip(
+        (yy - start[0]) * direction[0] + (xx - start[1]) * direction[1],
+        0.0,
+        length,
+    )
+    distance = np.hypot(
+        yy - (start[0] + along * direction[0]),
+        xx - (start[1] + along * direction[1]),
+    )
+    return np.exp(-(distance**2) / (2.0 * 2.0**2))
 
-    Units are the unit noise. A compact source sits on each of the sixteen
+
+def _image() -> npt.NDArray[np.float64]:
+    """Return support on every seam topology of an eight-by-eight grid.
+
+    Units are the unit noise. A compact source sits on each of the forty-nine
     interior four-way corners, and others on the image corners and where a
     seam meets an image edge. A four-lobe shell is centred on one interior
-    corner, a diffuse Gaussian on another, a close blend straddles a seam,
-    and a filament crosses four column seams and a row seam, passing a corner
-    source on its way.
+    corner, a diffuse Gaussian on another, and a close blend straddles a
+    seam. A long filament crosses every column seam and four row seams
+    through four corner sources, ending in the tile where the narrow last row
+    meets the last column; its fit window exceeds the reviewed compact bound,
+    so its fit parent is deferred on any grid. A short filament crosses three
+    column seams and is fitted from one window.
     """
     yy, xx = np.mgrid[: _SHAPE_YX[0], : _SHAPE_YX[1]].astype(np.float64)
     sigma = _BEAM_FWHM_PIXELS / (2.0 * np.sqrt(2.0 * np.log(2.0)))
-    image = np.random.default_rng(10_000).normal(0.0, 1.0, _SHAPE_YX)
-    compact = [(y, x) for y in _SEAMS for x in _SEAMS]
-    compact += [(0.0, 0.0), (0.0, 599.0), (559.0, 0.0), (559.0, 599.0)]
-    compact += [(0.0, _SEAMS[0]), (559.0, _SEAMS[2]), (_SEAMS[1], 0.0)]
-    compact += [(_SEAMS[3], 599.0)]
-    for centre in compact:
+    image = np.random.default_rng(15_402).normal(0.0, 1.0, _SHAPE_YX)
+    for centre in _COMPACT_CENTRES:
         image += 30.0 * _beam(yy, xx, centre, sigma)
     image += 25.0 * _beam(yy, xx, (300.0, 117.0), sigma)
     image += 20.0 * _beam(yy, xx, (300.0, 123.0), sigma)
@@ -85,19 +140,18 @@ def _image() -> npt.NDArray[np.float64]:
         np.cos(4.0 * np.arctan2(shell_y, shell_x)), 0, None
     )
     image += 2.0 * lobes * np.exp(-((radius - 25.0) ** 2) / 8.0)
-    start, stop = np.array([380.0, 40.0]), np.array([500.0, 560.0])
-    direction = (stop - start) / np.linalg.norm(stop - start)
-    along = np.clip(
-        (yy - start[0]) * direction[0] + (xx - start[1]) * direction[1],
-        0.0,
-        np.linalg.norm(stop - start),
-    )
-    distance = np.hypot(
-        yy - (start[0] + along * direction[0]),
-        xx - (start[1] + along * direction[1]),
-    )
-    image += 10.0 * np.exp(-(distance**2) / (2.0 * 2.0**2))
+    image += 10.0 * _filament(yy, xx, _LONG_FILAMENT)
+    image += 10.0 * _filament(yy, xx, _SHORT_FILAMENT)
     return image
+
+
+def _masked_around(
+    mask: npt.NDArray[np.bool_], centre_yx: tuple[float, float]
+) -> bool:
+    """Return whether the pixels nearest one centre are all retained."""
+    y, x = (int(value + 0.5) for value in centre_yx)
+    block = mask[max(y - 1, 0) : y + 1, max(x - 1, 0) : x + 1]
+    return block.size > 0 and bool(block.all())
 
 
 def _header(shape_yx: tuple[int, int]) -> fits.Header:
@@ -192,7 +246,7 @@ def one_tile(tmp_path_factory: pytest.TempPathFactory) -> SourceFinderResult:
 
 
 def _grid_cores(monkeypatch: pytest.MonkeyPatch) -> _PlanRecorder:
-    """Run every tiled public pass on the five-by-five grid's cores."""
+    """Run every tiled public pass on the eight-by-eight grid's cores."""
     passes = dict(_tiled_passes())
     # The composition's nine tiled passes; a new one must join this grid.
     assert len(passes) == 9
@@ -203,11 +257,36 @@ def _grid_cores(monkeypatch: pytest.MonkeyPatch) -> _PlanRecorder:
     return _PlanRecorder(monkeypatch)
 
 
-def test_products_on_the_ten_thousand_pixel_grid_equal_one_tile(
+def test_the_grid_is_the_largest_the_envelope_admits() -> None:
+    """A raise that adds tiles per side must widen this grid with it."""
+    envelope = public_api._MAXIMUM_PREVIEW_DIMENSION  # pyright: ignore[reportPrivateUsage]
+
+    tiles_per_side = math.ceil(envelope / public_api.ADMITTED_TILE_CORE_PIXELS)
+
+    assert tiles_per_side == _TILES_PER_SIDE
+    for side in _SHAPE_YX:
+        assert math.ceil(side / _CORE_PIXELS) == _TILES_PER_SIDE
+
+
+def test_the_last_row_of_tiles_ends_inside_the_widest_filter_halo() -> None:
+    """The halo of the row above spans the narrow row to the image edge."""
+    beam = BeamShapePixels(
+        major_fwhm_pixels=_BEAM_FWHM_PIXELS,
+        minor_fwhm_pixels=_BEAM_FWHM_PIXELS,
+        position_angle_degrees=0.0,
+    )
+    halo = scale_filter_halo_pixels(beam)
+
+    last_row_height = _SHAPE_YX[0] - (_TILES_PER_SIDE - 1) * _CORE_PIXELS
+
+    assert 0 < last_row_height < halo
+
+
+def test_products_on_the_envelope_grid_equal_one_tile(
     monkeypatch: pytest.MonkeyPatch,
     one_tile: SourceFinderResult,
 ) -> None:
-    """Twenty-five tiles, serial or on Dask, publish the one-tile products."""
+    """Sixty-four tiles, serial or on Dask, publish the one-tile products."""
     directory = one_tile.catalogue_path.parents[1]
     recorder = _grid_cores(monkeypatch)
 
@@ -224,12 +303,16 @@ def test_products_on_the_ten_thousand_pixel_grid_equal_one_tile(
     assert set(recorder.tile_counts) == {_GRID_TILES}
     assert _product_hashes(serial) == _product_hashes(one_tile)
     assert _product_hashes(dask) == _product_hashes(one_tile)
+    diagnostics = read_diagnostics_product(one_tile.diagnostics)
+    assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
+    # The filament's fit parent is deferred, so its components are described
+    # from the cores it crosses rather than from a window.
+    assert diagnostics.wide_object_counts == _DEFERRED_FILAMENT
     mask = np.asarray(fits.getdata(one_tile.mask_path), dtype=np.bool_)
-    for seam_y in _SEAMS:
-        for seam_x in _SEAMS:
-            y, x = int(seam_y + 0.5), int(seam_x + 0.5)
-            assert mask[y - 1 : y + 1, x - 1 : x + 1].all(), (y, x)
-    assert one_tile.source_count >= len(_SEAMS) ** 2
+    for centre in (*_COMPACT_CENTRES, _LONG_FILAMENT[1], *_SHORT_FILAMENT):
+        assert _masked_around(mask, centre), centre
+    # Four compact sources lie on the long filament and may join its source.
+    assert one_tile.source_count >= len(_COMPACT_CENTRES) - 4
 
 
 def test_wide_objects_decided_on_the_grid_cores_publish_one_tile_products(
@@ -259,10 +342,11 @@ def test_wide_objects_decided_on_the_grid_cores_publish_one_tile_products(
     assert counts.publication_owners > 0
     assert counts.support_components > 0
     assert counts.segments > 0
-    assert expected.wide_object_counts == WideObjectCounts()
+    assert counts.deferred_fit_parents == 1
+    assert expected.wide_object_counts == _DEFERRED_FILAMENT
     assert (
         diagnostics.model_copy(
-            update={"wide_object_counts": WideObjectCounts()}
+            update={"wide_object_counts": _DEFERRED_FILAMENT}
         )
         == expected
     )
