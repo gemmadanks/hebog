@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.16.0](https://github.com/gemmadanks/hebog/compare/v0.15.0...v0.16.0) (2026-09-28)
+
+
+### 🚀 Features
+
+* raise the public envelope to 10,000 pixels ([#78](https://github.com/gemmadanks/hebog/issues/78)) ([84632b9](https://github.com/gemmadanks/hebog/commit/84632b9fe9a693baf9e5dfdfd7a9e88fd0472682))
+
 ## [0.15.0](https://github.com/gemmadanks/hebog/compare/v0.14.1...v0.15.0) (2026-09-27)
 
 
