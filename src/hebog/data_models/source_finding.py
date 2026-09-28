@@ -246,7 +246,7 @@ class PublicSourceFindingProvenance(BaseModel):
         "phase-5-evidence-bound-public-catalogue-v22"
     ]
     supplied_image_metadata: SuppliedImageMetadata | None = None
-    schema_version: Literal[2] = 2
+    schema_version: Literal[3] = 3
 
     @model_validator(mode="after")
     def _validate_provenance(self) -> Self:
@@ -324,7 +324,7 @@ class PublicSourceFindingDiagnostics(BaseModel):
     measurement_dispositions: tuple[MeasurementDisposition, ...] = ()
     rms_scientific_status: Literal["valid", "unavailable"]
     provenance: PublicSourceFindingProvenance
-    schema_version: Literal[10] = 10
+    schema_version: Literal[11] = 11
 
     @model_validator(mode="after")
     def _validate_diagnostics(self) -> Self:

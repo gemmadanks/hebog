@@ -1928,3 +1928,30 @@ def test_unreadable_input_digest_is_an_invalid_input(
         hebog.find_sources(_request(tmp_path), _config(), _RecordingExecutor())
 
     assert not (tmp_path / "products").exists()
+
+
+@pytest.mark.integration
+def test_a_failed_header_reread_is_an_invalid_input_naming_the_file(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A failure outside header validation still names the input file.
+
+    Header-contract refusals carry the reader's own reason; anything else
+    that fails while the header is read, here the second read that fills
+    the composition's header, falls back to naming the file.
+    """
+    _write_image(tmp_path / "image.fits", np.zeros((8, 8)))
+
+    def unreadable(*_args: object, **_kwargs: object) -> fits.Header:
+        raise OSError("injected read failure")
+
+    monkeypatch.setattr(public_api.fits, "getheader", unreadable)
+
+    with pytest.raises(
+        InvalidSourceFinderInputError,
+        match=r"invalid FITS source-finder input: .*image\.fits$",
+    ):
+        hebog.find_sources(_request(tmp_path), _config(), _RecordingExecutor())
+
+    assert not (tmp_path / "products").exists()

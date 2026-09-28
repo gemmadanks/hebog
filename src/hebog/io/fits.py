@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import re
 import threading
 from collections.abc import Iterable
 from pathlib import Path
@@ -30,6 +31,24 @@ _COMMON_IMAGE_UNIT_ALIASES = {
     "JY/BEAM": "Jy/beam",
     "JYBEAM-1": "Jy/beam",
 }
+# FITS WCS Paper III Stokes codes: I, Q, U, V, then circular and linear
+# instrumental products.
+_STOKES_NAMES = {
+    1: "I",
+    2: "Q",
+    3: "U",
+    4: "V",
+    -1: "RR",
+    -2: "LL",
+    -3: "RL",
+    -4: "LR",
+    -5: "XX",
+    -6: "YY",
+    -7: "XY",
+    -8: "YX",
+}
+# Primary linear-transform matrix keywords, in current and AIPS-era spelling.
+_LINEAR_MATRIX_KEYWORD = re.compile(r"(PC|CD)(\d+_\d+|\d{6})")
 
 
 class InvalidFitsImageError(ValueError):
@@ -52,6 +71,33 @@ def _canonical_image_unit(unit_value: str, path: Path) -> str:
             f"FITS image has an invalid BUNIT {unit!r}: {path}"
         ) from error
     return canonical
+
+
+def _brightness_unit(
+    header: Any,
+    path: Path,
+    supplied: SuppliedImageMetadata | None,
+) -> str:
+    """Read BUNIT, or the supplied unit when the header has none."""
+    header_value = header.get("BUNIT")
+    if isinstance(header_value, str) and not header_value.strip():
+        header_value = None
+    supplied_value = None if supplied is None else supplied.brightness_unit
+    if header_value is not None and supplied_value is not None:
+        raise InvalidFitsImageError(
+            f"supplied BUNIT duplicates the FITS header value: {path}"
+        )
+    unit_value = header_value if header_value is not None else supplied_value
+    if unit_value is None:
+        raise InvalidFitsImageError(
+            "FITS image requires a non-empty BUNIT, or a supplied brightness "
+            f"unit: {path}"
+        )
+    if not isinstance(unit_value, str):
+        raise InvalidFitsImageError(
+            f"FITS image has an invalid BUNIT {unit_value!r}: {path}"
+        )
+    return _canonical_image_unit(unit_value, path)
 
 
 def _restoring_beam(
@@ -83,7 +129,8 @@ def _restoring_beam(
         )
     if any(value is None for value in raw_values):
         raise InvalidFitsImageError(
-            f"FITS image requires BMAJ, BMIN, and BPA restoring beam: {path}"
+            "FITS image requires BMAJ, BMIN, and BPA restoring beam, or "
+            f"supplied values for those it omits: {path}"
         )
     try:
         return RestoringBeam(*(float(value) for value in raw_values))
@@ -114,6 +161,81 @@ def _celestial_wcs(header: Any, path: Path) -> tuple[WCS, CelestialWcs]:
         fits_header=celestial_header,
         coordinate_frame=str(frame.name),
     )
+
+
+def _rotation_degrees(header: Any, axis: int, path: Path) -> float:
+    """Read one axis's optional legacy ``CROTA`` rotation in degrees."""
+    keyword = f"CROTA{axis}"
+    try:
+        rotation = float(header.get(keyword, 0.0))
+    except (TypeError, ValueError) as error:
+        raise InvalidFitsImageError(
+            f"FITS image has an invalid {keyword}: {path}"
+        ) from error
+    if not np.isfinite(rotation):
+        raise InvalidFitsImageError(
+            f"FITS image has an invalid {keyword}: {path}"
+        )
+    return rotation
+
+
+def _require_one_rotation(header: Any, image_wcs: WCS, path: Path) -> None:
+    """Refuse a rotation that the WCS standard would silently discard.
+
+    The standard reads ``CROTAi`` from the latitude axis only, and only when
+    no ``PCi_j`` or ``CDi_j`` matrix is present. Astropy follows it without a
+    warning, so a rotation given on the longitude axis alone, or beside a
+    matrix, would be read as a different orientation and misplace every
+    catalogue position. A zero rotation, or equal rotations on both axes as
+    AIPS writes them, is unambiguous.
+    """
+    longitude_axis = image_wcs.wcs.lng + 1
+    latitude_axis = image_wcs.wcs.lat + 1
+    longitude = _rotation_degrees(header, longitude_axis, path)
+    latitude = _rotation_degrees(header, latitude_axis, path)
+    if longitude not in (0.0, latitude):
+        raise InvalidFitsImageError(
+            f"FITS image rotates its longitude axis (CROTA{longitude_axis} = "
+            f"{longitude:g}) differently from its latitude axis "
+            f"(CROTA{latitude_axis} = {latitude:g}); the WCS standard reads "
+            f"only CROTA{latitude_axis}, so the orientation is ambiguous: "
+            f"{path}"
+        )
+    if latitude != 0.0 and any(
+        _LINEAR_MATRIX_KEYWORD.fullmatch(keyword) for keyword in header
+    ):
+        raise InvalidFitsImageError(
+            f"FITS image gives both CROTA{latitude_axis} and a PC or CD "
+            "matrix; the WCS standard ignores CROTA when a matrix is "
+            f"present, so the orientation is ambiguous: {path}"
+        )
+
+
+def _require_total_intensity(image_wcs: WCS, path: Path) -> None:
+    """Refuse a plane whose Stokes axis selects anything but Stokes I.
+
+    The public finder measures total intensity; a Q, U, V or instrumental
+    polarisation plane would be measured as if it were one. The value is the
+    Stokes axis's world coordinate at the plane's single pixel, which also
+    reads writers that encode the parameter through ``CRPIX`` rather than
+    ``CRVAL``.
+    """
+    stokes_axes = [
+        axis
+        for axis, axis_type in enumerate(image_wcs.wcs.ctype)
+        if axis_type.strip().upper() == "STOKES"
+    ]
+    if not stokes_axes:
+        return
+    world = image_wcs.wcs_pix2world([[0.0] * image_wcs.naxis], 0)[0]
+    for axis in stokes_axes:
+        code = round(float(world[axis]))
+        if code != 1:
+            name = _STOKES_NAMES.get(code, f"code {code}")
+            raise UnsupportedFitsImageError(
+                f"FITS image plane is Stokes {name}, and the public finder "
+                f"measures Stokes I only: {path}"
+            )
 
 
 def _positive_frequency_hz(raw_frequency: Any, path: Path) -> float:
@@ -178,7 +300,8 @@ def _reference_frequency_hz(
     )
     if frequency_hz is None:
         raise InvalidFitsImageError(
-            f"FITS image requires a reference frequency: {path}"
+            "FITS image requires a reference frequency in RESTFRQ, RESTFREQ "
+            f"or a FREQ axis, or a supplied one: {path}"
         )
     return frequency_hz
 
@@ -199,28 +322,35 @@ def _metadata(
         raise UnsupportedFitsImageError(
             f"FITS image must have at least two axes: {path}"
         )
-    if any(dimension != 1 for dimension in shape[:-2]):
+    cube_axes = [
+        f"{primary_hdu.header.get(f'CTYPE{axis}', 'untyped')} "
+        f"(NAXIS{axis} = {dimension})"
+        for axis, dimension in zip(
+            range(len(shape), 2, -1), shape[:-2], strict=True
+        )
+        if dimension != 1
+    ]
+    if cube_axes:
+        listed = ", ".join(cube_axes)
         raise UnsupportedFitsImageError(
-            "FITS image has non-singleton leading axes; channel, Stokes, "
-            f"and other cubes require an explicit contract: {path}"
+            f"FITS image has non-singleton leading axes, {listed}; "
+            "the public finder reads one plane, so channel, Stokes, and other "
+            f"cubes require an explicit contract: {path}"
         )
     shape_yx = (shape[-2], shape[-1])
     if min(shape_yx) < 1:
         raise InvalidFitsImageError(
             f"FITS image plane must be non-empty: {path}"
         )
-    unit_value = primary_hdu.header.get("BUNIT")
-    if not isinstance(unit_value, str) or not unit_value.strip():
-        raise InvalidFitsImageError(
-            f"FITS image requires a non-empty BUNIT: {path}"
-        )
-    unit = _canonical_image_unit(unit_value, path)
+    unit = _brightness_unit(primary_hdu.header, path, supplied)
     header_frequency_hz = _header_reference_frequency_hz(
         primary_hdu.header,
         path,
     )
     beam = _restoring_beam(primary_hdu.header, path, supplied)
     image_wcs, celestial_wcs = _celestial_wcs(primary_hdu.header, path)
+    _require_one_rotation(primary_hdu.header, image_wcs, path)
+    _require_total_intensity(image_wcs, path)
     if header_frequency_hz is None:
         header_frequency_hz = _wcs_reference_frequency_hz(image_wcs, path)
     return ImageMetadata(

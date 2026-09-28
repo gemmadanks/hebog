@@ -72,6 +72,7 @@ nav:
           - Hebog and other source finders: explanation/source-finder-comparison.md
       - Reference:
           - Capability and status: reference/release-status.md
+          - Input header contract: reference/input-header-contract.md
           - Outputs: reference/public-products.md
           - Python API: reference/index.md
           - Glossary: reference/domain-glossary.md

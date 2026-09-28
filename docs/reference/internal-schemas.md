@@ -158,7 +158,7 @@ schema version 1 so its diagnostics bytes do not change. When a
 `MaterializedProduct` record is supplied, the reader also requires its declared
 content schema to match the canonical JSON payload.
 
-`PublicSourceFindingDiagnostics` schema version 10 records the public profile,
+`PublicSourceFindingDiagnostics` schema version 11 records the public profile,
 profile limitations, population counts, RMS status, exact provenance, the
 numbers of connected parents that were deblended or retained through the
 bounded deblend fallback, and the wide-object counts of the rounds that

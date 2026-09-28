@@ -363,7 +363,8 @@ def prepare_case(
         if not input_path.exists():
             _write_local_window(image_path, input_path, window)
     supplied = (
-        SuppliedImageMetadata(**case.supplied_metadata)
+        # Keyword arguments from the manifest; the record validates each one.
+        SuppliedImageMetadata(**cast(dict[str, Any], case.supplied_metadata))
         if case.supplied_metadata is not None
         else None
     )

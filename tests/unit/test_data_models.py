@@ -4,7 +4,7 @@ import json
 import pickle
 from dataclasses import replace
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import pytest
 from pydantic import ValidationError
@@ -909,10 +909,11 @@ def test_image_metadata_rejects_incomplete_physical_values(
             {"beam_major_fwhm_degrees": 0.01, "beam_minor_fwhm_degrees": 0.02},
             "minor axis",
         ),
+        ({"brightness_unit": " "}, "brightness unit"),
     ],
 )
 def test_supplied_image_metadata_rejects_unusable_values(
-    values: dict[str, float],
+    values: dict[str, Any],
     message: str,
 ) -> None:
     """Caller-supplied physical metadata meets the header's own rules."""

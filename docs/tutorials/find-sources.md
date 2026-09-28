@@ -11,7 +11,8 @@ synthetic field and runs the same steps.
 ## Prepare the input
 
 Hebog accepts one two-dimensional FITS image. Extra axes, such as frequency
-and Stokes, are fine if each has length one. The image needs:
+and Stokes, are fine if each has length one, and a Stokes axis must select
+Stokes I. The image needs:
 
 - pixel values in `Jy/beam` (`BUNIT`);
 - an ICRS or FK5 J2000 celestial WCS;
@@ -21,13 +22,15 @@ and Stokes, are fine if each has length one. The image needs:
   example with `astropy.nddata.Cutout2D`.
 
 NaN pixels are allowed and ignored. If anything is missing, Hebog stops with
-an error that names the problem before writing any output.
+an error that names the problem before writing any output. The
+[input header contract](../reference/input-header-contract.md) lists what
+Hebog reads from each keyword and what common imagers write.
 
 ### Supply missing header values
 
 Some published images omit a keyword. LOFAR-HD mosaics carry no reference
-frequency, and the SKA Science Data Challenge 1 images have no `BPA`. Supply
-only what is missing:
+frequency, the SKA Science Data Challenge 1 images have no `BPA`, and SKA SDP
+exports have no `BUNIT`. Supply only what is missing:
 
 ```python
 supplied = hebog.SuppliedImageMetadata(reference_frequency_hz=144e6)
@@ -35,7 +38,8 @@ supplied = hebog.SuppliedImageMetadata(reference_frequency_hz=144e6)
 
 and pass `supplied_metadata=supplied` to the request below. The accepted
 fields are `reference_frequency_hz`, `beam_major_fwhm_degrees`,
-`beam_minor_fwhm_degrees` and `beam_position_angle_degrees`. Hebog never
+`beam_minor_fwhm_degrees`, `beam_position_angle_degrees` and
+`brightness_unit`. Hebog never
 overrides a value the header already has; supplying one is an error. Supplied
 values are recorded in the diagnostics.
 

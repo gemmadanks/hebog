@@ -26538,3 +26538,91 @@ the per-worker placement finding.
   that refused such inputs, rather than risk exhausting the driver, would
   need a driver memory budget that Hebog does not admit today; it is an
   option for the maintainer, not part of this raise.
+
+## 2026-09-28 — M3: the input header contract
+
+- **What this is.** Task 14 of the plan, on `m3/input-header-contract`,
+  stacked on the 10,000 raise. It states what the public finder reads from a
+  FITS header, where each value may come from, and how the headers of the
+  imagers and pipelines Hebog targets fare: the new reference page
+  [input header contract](docs/reference/input-header-contract.md).
+- **How the conventions were established.** From the writers' source
+  code, read on 27 and 28 September without downloading image data:
+  WSClean (the `aocommon` FITS writer), DDFacet, ddf-pipeline's two mosaic
+  scripts, the OSKAR imager, the SKA SDP data models, Obit `MFImage`,
+  casacore's `exportfits` converter and the GLEAM-X SWarp templates. The
+  LoTSS-DR2 and DR3, SDC1 and LOFAR-HD entries also match headers read from
+  the images. Three findings differ from the task's description of
+  16 September: of the ddf-pipeline and DDFacet products only the generic
+  `mosaic.py` omits `BUNIT`, while DDFacet images and the LoTSS mosaics
+  from `mosaic_pointing.py` carry it; OSKAR's `CROTA` keywords are zeros,
+  not a rotation; and MIGHTEE DR1 is not an Obit product (WSClean and
+  DDFacet, mosaicked with Montage).
+- **Reference-image headers read (28 September).** With the user's
+  approval, the first 57,600 bytes of seven public files were read with
+  HTTP range requests (every server answered 206) and parsed in memory; no
+  image data was kept. Each header was then run through the reader and the
+  public admission on an 8 × 8 stand-in.
+
+  | image | header | contract result |
+  | --- | --- | --- |
+  | MIGHTEE DR1 COSMOS 5.2″ | 7,486², `TAN`, two axes yet `FREQ` and `STOKES` declared by `CTYPE3` and `CTYPE4`, `EQUINOX = 2000`, `Jy/beam`, beam | accepted, FK5 J2000, 1.284 GHz from the declared axis |
+  | MIGHTEE DR1 XMM-LSS 5.0″ | 14,800², as COSMOS | accepted but above 10,000; needs the 15,402 tier |
+  | LoTSS-Deep DR2 ELAIS-N1 apparent and true-sky | 14,175², DDFacet 0.6, `STOKES` before `FREQ`, ICRS, `RESTFRQ`, 6″ beam | accepted but above 10,000; needs the 15,402 tier |
+  | GLEAM-X DR1 170–231 MHz mosaic | 31,468 × 11,151, `ZEA`, `EPOCH = 2000`, beam from one snapshot, frequency only in `FREQ`, written by Miriad | needs a supplied frequency; far above the envelope |
+  | GLEAM-X DR1 PSF map | 360 × 180 × 4 `CAR` planes typed `Beam` | refused as a cube; input for task 15 |
+  | SMGPS G342.5+000 | 7,500², 16 `SPECLNMF` planes, `GLON-SIN`, `EPOCH = 1950` beside `EQUINOX = 2000`, beam only in `CLEANBMJ` | refused as a cube, and Galactic |
+
+  The plan's reference table said about 20,900² for MIGHTEE XMM-LSS and
+  about 14,000² for LoTSS-Deep; both now carry the read sizes. The
+  representative Rapthor input therefore needs the 15,402 tier (task 10).
+- **Accepted as written:** WSClean (FK5 J2000 from `EQUINOX` alone, the
+  frequency from the `FREQ` axis), DDFacet (Stokes before frequency), the
+  LoTSS mosaics, MIGHTEE DR1 and CASA `exportfits`.
+- **Accepted with supplied values:** ddf-pipeline's generic mosaic (unit and
+  frequency), LOFAR-HD mosaics (frequency), OSKAR (beam), SKA SDP (unit),
+  GLEAM-X mosaics (frequency, which they carry only in a non-standard `FREQ`
+  keyword) and SDC1 (`BPA`).
+- **Refused, each with a specific error:** Obit `MFImage` cubes, CASA
+  images with only per-plane beams, Galactic and non-J2000 frames, planes
+  other than Stokes I and ambiguous rotations.
+- **What changed in the code.**
+  - `SuppliedImageMetadata` gains `brightness_unit`, which fills a missing
+    or blank `BUNIT` and is parsed exactly as a header unit is, so SKA SDP
+    exports and generic ddf-pipeline mosaics are usable without editing the
+    file. Provenance moves to schema 3 and diagnostics to schema 11, since
+    both carry the supplied record.
+  - A plane whose `STOKES` axis selects anything but Stokes I is refused.
+    The parameter is the axis's world value at the plane, so the SKA SDP
+    encoding through `CRPIX` reads correctly. Before this, a WSClean `XX`
+    or a Stokes V plane would have been measured as total intensity.
+  - A rotation Astropy would silently drop is refused. The WCS standard
+    reads `CROTA` from the latitude axis only and ignores it beside a `PC`
+    or `CD` matrix; a header rotated through `CROTA1` alone was read as
+    unrotated, which would have moved every catalogue position. Zero
+    rotations (OSKAR), latitude-only rotations (AIPS, Obit) and equal
+    rotations on both axes are accepted.
+  - `find_sources` now carries the reader's reason in
+    `InvalidSourceFinderInputError`; before, the public message named only
+    the file and the reason was reachable only through the chained
+    exception. The frame refusal names the frame found, the cube refusal
+    each longer axis, and the missing-value refusals what may be supplied.
+- **Tests.** `tests/integration/test_input_header_contract.py` writes one
+  fixture header per convention and runs the public finder: twelve accepted
+  cases must publish their one source within 0.05″ of where the header's
+  own WCS puts it, with the expected frame, unit and frequency and the
+  supplied values in provenance; thirteen refused cases must fail with their
+  error before any product exists. Reader tests cover the supplied unit,
+  Stokes coding and each rotation rule.
+- **Remaining limitation, owned by task 15.** One restoring beam, evaluated
+  in pixels at the image centre, describes the whole image; the GLEAM-X and
+  generic ddf-pipeline mosaics copy one input's beam, and GLEAM-X publishes
+  point-spread-function maps instead.
+- **Checks.** Coverage 97% over 2,774 portable tests, with `io/fits.py`
+  and `data_models/images.py` at 100% and `public_api.py` missing only the
+  three lines it missed before; a new test reaches the file-naming fallback
+  that the specific errors no longer pass through. The equivalence suite
+  passes (27 tests). The quick science check
+  (`m3-input-header-contract`, baselined on `m2-envelope-10000`) reports no
+  regression on the sixteen cases, so no existing input is newly refused.
+  Pyright clean; `just pre-commit` passes.

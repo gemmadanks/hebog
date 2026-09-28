@@ -37,29 +37,34 @@ class SuppliedImageMetadata:
     """Physical metadata a caller supplies for keywords a FITS header omits.
 
     Each value fills only a missing header keyword: frequency in Hz for
-    ``RESTFRQ`` or a frequency axis, and restoring-beam full widths and
-    position angle in degrees for ``BMAJ``, ``BMIN`` and ``BPA``. Supplying a
-    value the header already provides is an input error, so supplied metadata
-    never overrides an image's own description.
+    ``RESTFRQ`` or a frequency axis, restoring-beam full widths and position
+    angle in degrees for ``BMAJ``, ``BMIN`` and ``BPA``, and the pixel
+    brightness unit for ``BUNIT``. Supplying a value the header already
+    provides is an input error, so supplied metadata never overrides an
+    image's own description.
 
     >>> SuppliedImageMetadata(reference_frequency_hz=144e6)
     SuppliedImageMetadata(reference_frequency_hz=144000000.0, \
 beam_major_fwhm_degrees=None, beam_minor_fwhm_degrees=None, \
-beam_position_angle_degrees=None)
+beam_position_angle_degrees=None, brightness_unit=None)
     """
 
     reference_frequency_hz: float | None = None
     beam_major_fwhm_degrees: float | None = None
     beam_minor_fwhm_degrees: float | None = None
     beam_position_angle_degrees: float | None = None
+    brightness_unit: str | None = None
 
     def __post_init__(self) -> None:
         """Require at least one finite value with the header's own limits."""
         frequency = self.reference_frequency_hz
         axes = (self.beam_major_fwhm_degrees, self.beam_minor_fwhm_degrees)
         angle = self.beam_position_angle_degrees
-        if frequency is None and angle is None and axes == (None, None):
+        unit = self.brightness_unit
+        if all(value is None for value in (frequency, *axes, angle, unit)):
             raise ValueError("supply at least one image metadata value")
+        if unit is not None and not unit.strip():
+            raise ValueError("supplied brightness unit must not be blank")
         if frequency is not None and not (
             isfinite(frequency) and frequency > 0
         ):

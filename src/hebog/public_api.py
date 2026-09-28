@@ -51,7 +51,7 @@ from hebog.data_models import (
 from hebog.data_models.images import ImageMetadata, RestoringBeam
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
 from hebog.executors import Executor
-from hebog.io import FitsImageSource, ZarrProductSink
+from hebog.io import FitsImageSource, InvalidFitsImageError, ZarrProductSink
 from hebog.io.base import ImageWindow
 from hebog.io.filesystem import rename_without_replacement
 from hebog.io.materialization import (
@@ -263,6 +263,16 @@ def _supported_celestial_frame(metadata: ImageMetadata) -> bool:
     return bool(np.isclose(frame.equinox.jyear, 2000.0, rtol=0.0, atol=1e-9))
 
 
+def _frame_description(metadata: ImageMetadata) -> str:
+    """Name a celestial frame with its equinox where it has one."""
+    frame = cast(
+        Any, wcs_to_celestial_frame(celestial_wcs_from_metadata(metadata))
+    )
+    equinox = getattr(frame, "equinox", None)
+    name = str(frame.name).upper()
+    return name if equinox is None else f"{name}, equinox {equinox.value:g}"
+
+
 def _qualified_metadata(metadata: ImageMetadata) -> None:
     """Require the evaluated physical frame, unit, and bounded size."""
     if metadata.unit != "Jy/beam":
@@ -272,7 +282,8 @@ def _qualified_metadata(metadata: ImageMetadata) -> None:
     if not _supported_celestial_frame(metadata):
         raise UnsupportedSourceFinderConfigurationError(
             "the public source finder requires an ICRS or FK5 J2000 "
-            "celestial WCS"
+            "celestial WCS, not "
+            f"{_frame_description(metadata)}"
         )
     if max(metadata.shape_yx) > _MAXIMUM_PREVIEW_DIMENSION:
         raise SourceFinderImageTooLargeError(
@@ -1969,6 +1980,11 @@ def find_sources(
         header = _header_with_metadata(
             cast(fits.Header, fits.getheader(image_path)), metadata
         )
+    except InvalidFitsImageError as error:
+        # The reader names the keyword or layout at fault, and the file.
+        raise InvalidSourceFinderInputError(
+            f"invalid FITS source-finder input: {error}"
+        ) from error
     except (OSError, ValueError) as error:
         raise InvalidSourceFinderInputError(
             f"invalid FITS source-finder input: {image_path}"
