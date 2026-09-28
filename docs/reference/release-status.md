@@ -16,7 +16,7 @@ version when results must be repeatable.
 | Units | `BUNIT=Jy/beam`. |
 | Coordinates | ICRS or FK5 J2000 celestial WCS. A header with `EQUINOX = 2000` and no `RADESYS`, as written by WSClean, is FK5 J2000. Catalogue positions are always ICRS. Other frames are rejected. |
 | Beam and frequency | Finite positive `BMAJ` and `BMIN`, a `BPA`, and a positive reference frequency. The request can supply a value the header omits, never one it already has. |
-| Image size | At most 3,000 pixels on each side. Larger images fail before analysis. |
+| Image size | At most 10,000 pixels on each side. Larger images fail before analysis. |
 | Invalid pixels | NaN pixels are excluded from estimation, detection and measurement. |
 | Profiles | `continuum` (default), or `compact`, which omits extended-source association and reports `extended-emission-incomplete`. |
 | Thresholds | Caller-set detection and island thresholds (island below detection), minimum and optional maximum island size. |
@@ -29,7 +29,13 @@ tiles rather than held as one, and the driver holds no image-sized plane. The
 size limit rises one tier at a time, as each tier's memory and invariance
 evidence is measured. One declared limit remains: an object wider than a
 task's read budget is still reduced on the driver from its own pixels, so that
-memory grows with the object rather than the tile.
+memory grows with the object rather than the tile, by up to 186 bytes an
+object pixel. One connected object filling a 10,000-pixel field would need
+about 19 GB on the driver. No object in the real LoTSS-DR3 fields measured
+comes near that; the widest measured case, a generated filament of 553,817
+pixels, cost about 100 MB. The
+[performance profile](performance-profile.md#what-scales-with-the-tile-and-what-with-the-image)
+has the figures.
 
 ## Scientific status
 

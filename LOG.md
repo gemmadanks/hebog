@@ -26451,3 +26451,90 @@ the per-worker placement finding.
   ADR-008 now say so; the deferral and its reopening condition stand, and a
   network of narrow filaments is the diagnostic that would measure the
   term's growth.
+
+## 2026-09-28 — M2: the public envelope reaches 10,000 pixels
+
+- **What this is.** Task 8 of the plan, on `m2/envelope-10000` from
+  `v0.15.0`: the tier gate on the `lotss-dr3-1312-dense-10000` anchor and the
+  raise it authorizes, pending the maintainer's approval.
+- **What changed.** `_MAXIMUM_PREVIEW_DIMENSION` is 10,000, and the
+  documentation, notebooks and workers that stated 3,000 now state 10,000 or
+  name the limit without a number. The boundary is asserted from both sides
+  as before: 10,001 is refused before hashing, and 10,000 runs through the
+  public path.
+- **Why 10,000 needed its own invariance test.** At 2,048-pixel cores
+  10,000² is a five-by-five grid: nine interior tiles bounded on all four
+  sides and sixteen four-way corners, where the four tiles of 3,000² have no
+  interior tile and one corner. Every stage already had partition-invariance
+  tests of its own, but the complete public composition had only ever been
+  compared across executors on a fixed grid, never across grids.
+  `tests/integration/test_public_tile_invariance.py` now runs a 560 × 600
+  analytic image through `find_sources` on one tile and on 120-pixel cores,
+  which give it the same five-by-five grid: a compact source on each of the
+  sixteen interior corners, the image corners and seam ends, a four-lobe
+  shell centred on one corner, a diffuse Gaussian on another, a blend
+  straddling a seam and a filament crossing five seams. Serial and two-worker
+  Dask runs on the grid publish catalogue, RMS, mask and diagnostics
+  byte-identical to the one-tile run (28 sources, 28 components, 29
+  islands); a recorder on the planner proves every object pass planned 25
+  tiles and the one-tile run one. Under a one-pixel read budget every object
+  is decided from the cores it crosses (29 islands, 31 publication owners,
+  23 support components, 131 segments) and the catalogue, RMS and mask are
+  still identical, with every diagnostic but the wide counts equal.
+- **Real-sky evidence.** The `lotss-dr3-1312-dense-10000` anchor, 25 tiles
+  at the object cores, ran serially and on a four-worker, one-thread,
+  process-based `LocalCluster`: 7,146 sources, 9,259 components and 9,018
+  islands in both, with catalogue, RMS, mask and diagnostics byte-identical
+  (catalogue `7e7ab61c…`, RMS `66b3ebaa…`, mask `552c1b03…`, diagnostics
+  `e46ac13c…`). Serial took 1,247 s and Dask 1,970 s with a driver peak RSS
+  of 4,683 and 4,546 MiB; the Dask run shared the machine with test runs
+  and is a correctness check, not a timing.
+- **Quick science check.** `m2-envelope-10000` against `m2-fit-support`:
+  no regression on the sixteen cases (Hebog 105 s). PyBDSF `master` failed on
+  `sdc1-b2-1000h-crowded` again, as it has on every run since 16 September.
+- **Quick benchmark.** `m2-envelope-10000`, the anchor alone, one warm-up
+  and five measured repetitions in fresh single-thread processes on the
+  task's tree (`ae7a08ab…`): median 1,259.1 s (1,254.4 to 1,277.6 s, median
+  absolute deviation 2.1 s), median CPU 1,173.4 s and peak RSS 4,785 MiB, at
+  a one-minute load median of 1.9 (1.1 to 3.9) sampled every minute. No
+  earlier Hebog admitted this size, so this is the anchor's first point on
+  the Hebog curve rather than a regression check. The previous-release
+  comparison was skipped because `v0.15.0` runs the same science code at a
+  lower limit, and the pinned `master` ratio, which is diagnostic, was
+  skipped for its run time on this size; both can be added to a later
+  session from the cached inputs.
+- **Traced peak.** 1,541.3 MiB, reproduced on 27 September (entry above);
+  the raise changes no code the trace covers.
+- **Checks.** Coverage 97% over 2,720 portable tests; the one production
+  change is the constant; pyright clean; `just pre-commit` passes.
+- **What this leaves.** Task 8 leaves the plan; approving the raise, by
+  merging it and cutting its release, is the maintainer's. Task 10, the whole 15,402² LoTSS-DR3
+  mosaic 1312, is next on the ladder. The disk free on 28 September,
+  151 GiB, already meets task 11's 60 GB condition.
+
+## 2026-09-28 — M2: pull request 78 review disposition
+
+- **Scope.** Copilot's review of `d4de174`, the 10,000 raise; Greptile did
+  not review (trial credit limit).
+- **Fixed now.** The comparison page still said Hebog is limited to 3,000
+  pixels per side; it says 10,000. The performance profile said the plan
+  carries the wide-object term's removal "for the 10,000 tier" and that no
+  traced case takes the wide paths; since 27 September the removal is
+  deferred work, and `wide-objects-10000` takes those paths at about 100 MB.
+  The paragraph now says both, with the background-box and LoTSS-DR3
+  bounds. The capability page, which named the term only qualitatively, now
+  gives its cost, up to 186 bytes an object pixel and about 19 GB for one
+  connected object filling a 10,000-pixel field, beside the largest
+  measured case.
+- **Answered by an existing decision, not changed.** Copilot asked that the
+  tier stay behind a wide-object memory guard, or that the core-side
+  reductions land first, because a valid 10,000² input with one
+  field-filling connected object could need about 19 GB on the driver. That
+  is the declared limit the maintainer moved to deferred work on
+  27 September: its removal does not gate the local tiers and reopens when
+  a tier's traced peak shows the term or when the cluster benchmark is
+  planned. Neither condition holds: the 10,000² LoTSS anchor's wide-object
+  counts are zero, and the generated filament costs about 100 MB. A guard
+  that refused such inputs, rather than risk exhausting the driver, would
+  need a driver memory budget that Hebog does not admit today; it is an
+  option for the maintainer, not part of this raise.

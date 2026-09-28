@@ -72,7 +72,7 @@ with Client("tcp://scheduler:8786") as client:
 
 Hebog never starts a cluster for you. On a multi-node cluster, the image and
 the parent of the output directory must be on storage that every worker sees
-at the same absolute path. Today's limit is 3,000 pixels per side. Background
+at the same absolute path. Today's limit is 10,000 pixels per side. Background
 and RMS estimation tiles at every size, but every other stage uses 2,048-pixel
 cores, so an image up to 2,048 pixels gives those stages a single tile and
 little to parallelise; above that they tile too.

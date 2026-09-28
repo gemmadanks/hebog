@@ -158,7 +158,7 @@ The protocol comes from `config/benchmarks/phase-0-performance.json`: one
 warm-up and five measured repetitions per case. Every repetition runs the
 public finder with the serial executor in a fresh process, limited to one
 numerical-library thread, so it includes interpreter start-up, imports, FITS
-input and product writing. Inputs above the public 3,000-pixel limit use the
+input and product writing. Inputs above the public size limit use the
 worker's `--diagnostic-size-limit`, which raises the limit only inside that
 process.
 
@@ -249,7 +249,7 @@ next, which measured 2 to 11 KiB across the admitted tiers. The tolerance is
 the precision a peak is quoted at, and two orders of magnitude below the
 image-sized arrays a scalability change moves.
 
-Inputs above the public 3,000-pixel limit use the worker's
+Inputs above the public size limit use the worker's
 `--diagnostic-size-limit`, which raises the limit only inside that process, so
 a raise candidate is measured before its tier is admitted. The worker reports
 the limit it would have applied, and the report says for each case whether the
