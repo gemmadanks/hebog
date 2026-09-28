@@ -265,7 +265,7 @@ def test_rejects_a_zero_sized_image_plane(tmp_path: Path) -> None:
         (np.zeros(4, dtype=np.float32), "at least two axes"),
         (
             np.zeros((2, 3, 4), dtype=np.float32),
-            "non-singleton leading axes",
+            r"non-singleton leading axes, untyped \(NAXIS3 = 2\)",
         ),
     ],
 )
@@ -344,6 +344,20 @@ def test_rejects_missing_celestial_wcs(tmp_path: Path) -> None:
     )
 
     with pytest.raises(InvalidFitsImageError, match="celestial WCS"):
+        FitsImageSource(path).metadata()
+
+
+@pytest.mark.integration
+def test_rejects_a_frame_astropy_cannot_name(tmp_path: Path) -> None:
+    """A geocentric apparent frame is named rather than read as ICRS."""
+    path = tmp_path / "apparent.fits"
+    _write_image(path, np.zeros((2, 2), dtype=np.float32))
+    with fits.open(path, mode="update") as hdus:
+        hdus[0].header["RADESYS"] = "GAPPT"
+
+    with pytest.raises(
+        InvalidFitsImageError, match="cannot name, RADESYS 'GAPPT'"
+    ):
         FitsImageSource(path).metadata()
 
 
@@ -457,6 +471,12 @@ def test_supplied_beam_values_fill_only_missing_keywords(
             SuppliedImageMetadata(beam_position_angle_degrees=20.0),
             "BPA",
         ),
+        (
+            np.zeros((2, 2), dtype=np.float32),
+            150_000_000.0,
+            SuppliedImageMetadata(brightness_unit="Jy/beam"),
+            "supplied BUNIT duplicates",
+        ),
     ],
 )
 def test_supplying_a_value_the_header_provides_is_rejected(
@@ -472,6 +492,200 @@ def test_supplying_a_value_the_header_provides_is_rejected(
 
     with pytest.raises(InvalidFitsImageError, match=message):
         FitsImageSource(path, supplied).metadata()
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("header_unit", [None, " "])
+@pytest.mark.parametrize(
+    ("supplied_unit", "unit"), [("JY/BEAM", "Jy/beam"), ("Jy/beam", "Jy/beam")]
+)
+def test_supplied_unit_fills_a_missing_or_blank_bunit(
+    tmp_path: Path,
+    header_unit: str | None,
+    supplied_unit: str,
+    unit: str,
+) -> None:
+    """SKA SDP exports and ddf-pipeline mosaics write no BUNIT."""
+    path = tmp_path / "no-unit.fits"
+    _write_image(path, np.zeros((2, 2), dtype=np.float32), unit=header_unit)
+
+    metadata = FitsImageSource(
+        path, SuppliedImageMetadata(brightness_unit=supplied_unit)
+    ).metadata()
+
+    assert metadata.unit == unit
+
+
+@pytest.mark.integration
+def test_a_supplied_unit_meets_the_header_unit_rules(tmp_path: Path) -> None:
+    """A supplied unit is parsed exactly as a header BUNIT would be."""
+    path = tmp_path / "no-unit.fits"
+    _write_image(path, np.zeros((2, 2), dtype=np.float32), unit=None)
+
+    with pytest.raises(
+        InvalidFitsImageError,
+        match="supplied brightness unit 'bananas' is not a unit",
+    ):
+        FitsImageSource(
+            path, SuppliedImageMetadata(brightness_unit="bananas")
+        ).metadata()
+
+
+@pytest.mark.integration
+def test_a_non_text_bunit_is_rejected(tmp_path: Path) -> None:
+    """A numeric BUNIT is malformed rather than missing."""
+    path = tmp_path / "numeric-unit.fits"
+    _write_image(path, np.zeros((2, 2), dtype=np.float32), unit=None)
+    with fits.open(path, mode="update") as hdus:
+        hdus[0].header["BUNIT"] = 1.0
+
+    with pytest.raises(InvalidFitsImageError, match=r"invalid BUNIT 1\.0"):
+        FitsImageSource(path).metadata()
+
+
+def _write_stokes_plane(
+    path: Path, *, crval: float, crpix: float = 1.0, cdelt: float = 1.0
+) -> None:
+    """Write one plane whose fourth axis is a single Stokes parameter."""
+    _write_image(path, np.zeros((1, 1, 2, 2), dtype=np.float32))
+    with fits.open(path, mode="update") as hdus:
+        header = hdus[0].header
+        header["CRVAL4"], header["CRPIX4"], header["CDELT4"] = (
+            crval,
+            crpix,
+            cdelt,
+        )
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("crval", "crpix", "cdelt"),
+    [
+        (1.0, 1.0, 1.0),
+        (0.0, 0.0, 1.0),
+        (1.0, 1.0, -1.0),
+        # The world transform's own rounding still reads as a code.
+        (1.0000000001, 1.0, 1.0),
+    ],
+)
+def test_a_stokes_i_plane_is_read(
+    tmp_path: Path, crval: float, crpix: float, cdelt: float
+) -> None:
+    """The parameter is the axis's world value at the plane, however coded."""
+    path = tmp_path / "stokes-i.fits"
+    _write_stokes_plane(path, crval=crval, crpix=crpix, cdelt=cdelt)
+
+    assert FitsImageSource(path).metadata().shape_yx == (2, 2)
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("crval", "crpix", "cdelt", "name"),
+    [
+        (2.0, 1.0, 1.0, "Q"),
+        (4.0, 1.0, 1.0, "V"),
+        (-5.0, 1.0, -1.0, "XX"),
+        # SKA SDP data models encode the parameter in CRPIX, not CRVAL.
+        (1.0, -5.0, -1.0, "XX"),
+        (-2.0, 1.0, -1.0, "LL"),
+        (9.0, 1.0, 1.0, "code 9"),
+    ],
+)
+def test_a_plane_other_than_stokes_i_is_refused(
+    tmp_path: Path, crval: float, crpix: float, cdelt: float, name: str
+) -> None:
+    """Polarised and instrumental planes are not total intensity."""
+    path = tmp_path / "polarised.fits"
+    _write_stokes_plane(path, crval=crval, crpix=crpix, cdelt=cdelt)
+
+    with pytest.raises(UnsupportedFitsImageError, match=f"Stokes {name},"):
+        FitsImageSource(path).metadata()
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("crval", "crpix", "cdelt", "value"),
+    [(1.4, 1.0, 1.0, "1.4"), (1e308, -1.0, 1e308, "inf")],
+)
+def test_a_stokes_value_that_is_no_parameter_code_is_refused(
+    tmp_path: Path, crval: float, crpix: float, cdelt: float, value: str
+) -> None:
+    """A fractional or overflowing value is malformed, not near Stokes I."""
+    path = tmp_path / "malformed-stokes.fits"
+    _write_stokes_plane(path, crval=crval, crpix=crpix, cdelt=cdelt)
+
+    with pytest.raises(
+        InvalidFitsImageError,
+        match=f"Stokes axis value of {value}, which is not a Stokes",
+    ) as refusal:
+        FitsImageSource(path).metadata()
+
+    assert not isinstance(refusal.value, UnsupportedFitsImageError)
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    "rotation",
+    [
+        {"CROTA2": 30.0},
+        {"CROTA1": 0.0, "CROTA2": 30.0},
+        {"CROTA1": 30.0, "CROTA2": 30.0},
+        {"CROTA2": 0.0, "PC1_1": 1.0, "PC2_2": 1.0},
+    ],
+)
+def test_a_rotation_stated_once_is_read(
+    tmp_path: Path, rotation: dict[str, float]
+) -> None:
+    """AIPS, Obit and OSKAR state CROTA so that it has one reading."""
+    path = tmp_path / "rotated.fits"
+    _write_image(path, np.zeros((2, 2), dtype=np.float32))
+    with fits.open(path, mode="update") as hdus:
+        hdus[0].header.update(rotation)
+
+    metadata = FitsImageSource(path).metadata()
+
+    pixel_to_sky = np.asarray(
+        celestial_wcs_from_metadata(metadata).wcs.get_pc(), dtype=np.float64
+    )
+    angle = rotation.get("CROTA2", 0.0)
+    np.testing.assert_allclose(
+        pixel_to_sky[0, 1] / pixel_to_sky[0, 0], np.tan(np.radians(angle))
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("rotation", "message"),
+    [
+        ({"CROTA1": 30.0}, r"CROTA1 = 30\) differently from .*CROTA2 = 0"),
+        (
+            {"CROTA1": 10.0, "CROTA2": 30.0},
+            r"CROTA1 = 10\) differently from .*CROTA2 = 30",
+        ),
+        ({"CROTA2": 30.0, "PC1_1": 1.0}, "both CROTA2 and a PC or CD"),
+        ({"CROTA2": 30.0, "CD1_1": -0.001}, "both CROTA2 and a PC or CD"),
+        ({"CROTA2": 30.0, "PC001001": 1.0}, "both CROTA2 and a PC or CD"),
+        ({"CROTA2": "thirty"}, "invalid CROTA2 'thirty'"),
+        ({"CROTA1": "nan"}, "invalid CROTA1 'nan'"),
+        # wcslib ignores text and logical values, so none can be a rotation.
+        ({"CROTA2": "30"}, "invalid CROTA2 '30'"),
+        ({"CROTA2": True}, "invalid CROTA2 True"),
+    ],
+)
+def test_a_rotation_the_wcs_standard_would_drop_is_refused(
+    tmp_path: Path, rotation: dict[str, float | str], message: str
+) -> None:
+    """Astropy silently ignores these, which would misplace every source."""
+    path = tmp_path / "ambiguous-rotation.fits"
+    _write_image(path, np.zeros((2, 2), dtype=np.float32))
+    with fits.open(path, mode="update") as hdus:
+        hdus[0].header.update(rotation)
+
+    with warnings.catch_warnings():
+        # Astropy warns that the AIPS-era PC spelling is deprecated.
+        warnings.simplefilter("ignore")
+        with pytest.raises(InvalidFitsImageError, match=message):
+            FitsImageSource(path).metadata()
 
 
 @pytest.mark.integration

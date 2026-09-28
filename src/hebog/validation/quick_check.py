@@ -21,13 +21,13 @@ import os
 import subprocess
 import sys
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Annotated, Any, Literal, cast
 
 import numpy as np
 from astropy.io import fits
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
 from hebog.data_models import SuppliedImageMetadata
 from hebog.data_models.catalogues import SourceCatalogue
@@ -108,13 +108,43 @@ class ImageCase(_QuickCheckModel):
     image: str = Field(min_length=1)
     window: ImageWindow | None = None
     remote_source: RemoteImage | None = None
-    supplied_metadata: dict[str, float] | None = None
+    supplied_metadata: SuppliedImageMetadata | None = None
     published_maps: PublishedMaps | None = None
+
+    @field_serializer("supplied_metadata")
+    def _supplied_values(
+        self, supplied: SuppliedImageMetadata | None
+    ) -> dict[str, float | str] | None:
+        """Serialize only the values the case supplies, as its manifest does.
+
+        Case identities hash this form, so a field the manifest leaves unset
+        must not appear in it.
+        """
+        return supplied_metadata_values(supplied)
 
 
 QuickCheckCase = Annotated[
     GeneratedCase | ImageCase, Field(discriminator="kind")
 ]
+
+
+def supplied_metadata_values(
+    supplied: SuppliedImageMetadata | None,
+) -> dict[str, float | str] | None:
+    """Return the supplied values a worker's command line carries.
+
+    >>> supplied_metadata_values(
+    ...     SuppliedImageMetadata(beam_position_angle_degrees=0.0)
+    ... )
+    {'beam_position_angle_degrees': 0.0}
+    """
+    if supplied is None:
+        return None
+    return {
+        name: value
+        for name, value in asdict(supplied).items()
+        if value is not None
+    }
 
 
 class HebogSettings(_QuickCheckModel):
@@ -362,19 +392,16 @@ def prepare_case(
         )
         if not input_path.exists():
             _write_local_window(image_path, input_path, window)
-    supplied = (
-        SuppliedImageMetadata(**case.supplied_metadata)
-        if case.supplied_metadata is not None
-        else None
-    )
     return PreparedCase(
         case_id=case.case_id,
         input_path=input_path,
         input_sha256=file_sha256(input_path),
         reference_input_path=_reference_input(
-            input_path, supplied, case_root / "reference-input.fits"
+            input_path,
+            case.supplied_metadata,
+            case_root / "reference-input.fits",
         ),
-        supplied_metadata=supplied,
+        supplied_metadata=case.supplied_metadata,
         truth=None,
         noise_rms_jy_per_beam=None,
         published_rms_path=(

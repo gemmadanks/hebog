@@ -12,8 +12,8 @@ version when results must be repeatable.
 
 | Aspect | Supported |
 | --- | --- |
-| Input | One two-dimensional FITS image; leading axes of length one are allowed. |
-| Units | `BUNIT=Jy/beam`. |
+| Input | One two-dimensional FITS image; leading axes of length one are allowed, and a Stokes axis must select Stokes I. The [input header contract](input-header-contract.md) lists what each common imager writes and what to supply. |
+| Units | `BUNIT=Jy/beam`, or a supplied unit when the header has no `BUNIT`. |
 | Coordinates | ICRS or FK5 J2000 celestial WCS. A header with `EQUINOX = 2000` and no `RADESYS`, as written by WSClean, is FK5 J2000. Catalogue positions are always ICRS. Other frames are rejected. |
 | Beam and frequency | Finite positive `BMAJ` and `BMIN`, a `BPA`, and a positive reference frequency. The request can supply a value the header omits, never one it already has. |
 | Image size | At most 10,000 pixels on each side. Larger images fail before analysis. |

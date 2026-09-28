@@ -61,9 +61,11 @@ from hebog.validation.quick_benchmark import (
     worker_environment,
 )
 from hebog.validation.quick_check import (
+    ImageCase,
     PreparedCase,
     file_sha256,
     prepare_case,
+    supplied_metadata_values,
     write_report,
 )
 from hebog.validation.traced_peak import (
@@ -136,10 +138,10 @@ def _shape_yx(prepared: PreparedCase) -> tuple[int, int]:
     return metadata.shape_yx
 
 
-def _supplied_metadata(case: BenchmarkCase) -> dict[str, float] | None:
-    return cast(
-        dict[str, float] | None, getattr(case.case, "supplied_metadata", None)
-    )
+def _supplied_metadata(case: BenchmarkCase) -> dict[str, float | str] | None:
+    if isinstance(case.case, ImageCase):
+        return supplied_metadata_values(case.case.supplied_metadata)
+    return None
 
 
 def _configuration_sha256(
@@ -165,7 +167,7 @@ def _worker_command(
     input_path: Path,
     case_id: str,
     settings_json: str,
-    supplied_metadata: dict[str, float] | None,
+    supplied_metadata: dict[str, float | str] | None,
     shape_yx: tuple[int, int],
 ) -> list[str]:
     """Build the worker invocation that traces one repetition.
