@@ -51,8 +51,10 @@ from hebog.validation.quick_benchmark import (
     worker_environment,
 )
 from hebog.validation.quick_check import (
+    ImageCase,
     file_sha256,
     prepare_case,
+    supplied_metadata_values,
     write_report,
 )
 
@@ -176,7 +178,11 @@ def _run_case(
         "--settings",
         hebog_settings,
     ]
-    supplied = getattr(case, "supplied_metadata", None)
+    supplied = (
+        supplied_metadata_values(case.supplied_metadata)
+        if isinstance(case, ImageCase)
+        else None
+    )
     if supplied is not None:
         command += ["--supplied-metadata", json.dumps(supplied)]
     if max(shape_yx) > _PUBLIC_LIMIT:

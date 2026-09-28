@@ -26,6 +26,7 @@ from hebog.data_models import (
     SourceCandidate,
     SourceCatalogue,
     SpectralModel,
+    SuppliedImageMetadata,
 )
 from hebog.science.models import CatalogueSource
 from hebog.validation.quick_benchmark import (
@@ -45,6 +46,7 @@ from hebog.validation.quick_check import (
     reference_cache_directory,
     reference_code_sha256,
     reference_identity,
+    supplied_metadata_values,
     truth_metrics,
     write_report,
 )
@@ -347,7 +349,62 @@ def test_image_case_crops_and_completes_the_reference_header(
     reference = fits.getheader(prepared.reference_input_path)
     assert reference["BPA"] == 0.0
     assert reference["RESTFREQ"] == 144e6
-    assert prepared.supplied_metadata is not None
+    assert prepared.supplied_metadata == SuppliedImageMetadata(
+        beam_position_angle_degrees=0.0
+    )
+
+
+@pytest.mark.parametrize(
+    "supplied",
+    [
+        {"beam_position_angle_degrees": 0.0},
+        {"brightness_unit": "Jy/beam", "reference_frequency_hz": 144e6},
+    ],
+)
+def test_a_case_supplies_any_metadata_value_and_keeps_its_identity(
+    supplied: dict[str, Any],
+) -> None:
+    """A manifest's supplied values, text or number, are one typed record.
+
+    Case identities hash the dumped case, so it must carry exactly the
+    values the manifest states and none of the record's unset fields.
+    """
+    case = ImageCase.model_validate(
+        {
+            "kind": "image",
+            "case_id": "supplied",
+            "image": "image.fits",
+            "supplied_metadata": supplied,
+        }
+    )
+
+    assert case.supplied_metadata == SuppliedImageMetadata(**supplied)
+    assert case.model_dump(mode="json")["supplied_metadata"] == supplied
+    assert supplied_metadata_values(case.supplied_metadata) == supplied
+    assert supplied_metadata_values(None) is None
+
+
+@pytest.mark.parametrize(
+    ("supplied", "message"),
+    [
+        ({"beam_position_angel_degrees": 0.0}, "beam_position_angel_degrees"),
+        ({"brightness_unit": " "}, "brightness unit"),
+        ({"reference_frequency_hz": "high"}, "reference_frequency_hz"),
+    ],
+)
+def test_a_case_with_unusable_supplied_metadata_fails_to_load(
+    supplied: dict[str, Any], message: str
+) -> None:
+    """The manifest is checked by the record's own rules when it loads."""
+    with pytest.raises(ValidationError, match=message):
+        ImageCase.model_validate(
+            {
+                "kind": "image",
+                "case_id": "supplied",
+                "image": "image.fits",
+                "supplied_metadata": supplied,
+            }
+        )
 
 
 def test_missing_remote_input_needs_explicit_download(tmp_path: Path) -> None:

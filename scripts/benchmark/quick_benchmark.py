@@ -76,12 +76,14 @@ from hebog.validation.quick_benchmark import (
 )
 from hebog.validation.quick_check import (
     REFERENCE_CONTAINER_COMMAND,
+    ImageCase,
     PreparedCase,
     container_image_identity,
     file_sha256,
     prepare_case,
     reference_cache_directory,
     reference_identity,
+    supplied_metadata_values,
     write_report,
 )
 
@@ -230,10 +232,10 @@ def _release_installation(tag: str, output_root: Path) -> _Installation:
     )
 
 
-def _supplied_metadata(case: BenchmarkCase) -> dict[str, float] | None:
-    return cast(
-        dict[str, float] | None, getattr(case.case, "supplied_metadata", None)
-    )
+def _supplied_metadata(case: BenchmarkCase) -> dict[str, float | str] | None:
+    if isinstance(case.case, ImageCase):
+        return supplied_metadata_values(case.case.supplied_metadata)
+    return None
 
 
 def _shape_yx(prepared: PreparedCase) -> tuple[int, int]:
@@ -271,7 +273,7 @@ def _worker_command(  # noqa: PLR0913
     input_path: Path,
     case_id: str,
     settings_json: str,
-    supplied_metadata: dict[str, float] | None,
+    supplied_metadata: dict[str, float | str] | None,
     shape_yx: tuple[int, int],
 ) -> list[str]:
     """Build the worker invocation that times one Hebog installation.

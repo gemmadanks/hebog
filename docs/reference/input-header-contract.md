@@ -11,7 +11,7 @@ that names the keyword or layout at fault.
 | Needed | Read from | When it is missing or unusable |
 | --- | --- | --- |
 | One image plane | The primary HDU. The last two axes are the plane; every other axis must have length one. | Refused, naming each longer axis, for example `SPECLNMF (NAXIS3 = 16)`. Channel, Stokes and other cubes need their own contract. |
-| Stokes parameter | A `STOKES` axis's world value at the plane, so a writer that encodes it in `CRPIX` rather than `CRVAL` is read correctly. No `STOKES` axis means Stokes I. | Any parameter other than I is refused: Q, U and V, and instrumental planes such as `XX` or `RR`. |
+| Stokes parameter | A `STOKES` axis's world value at the plane, so a writer that encodes it in `CRPIX` rather than `CRVAL` is read correctly. No `STOKES` axis means Stokes I. | Any parameter other than I is refused: Q, U and V, and instrumental planes such as `XX` or `RR`. A value that is not an integer parameter code, such as `1.4`, is refused as malformed. |
 | Pixel unit | `BUNIT`. `JY/BEAM` and other spellings of Jy/beam are accepted. | A supplied `brightness_unit`, else refused. The public finder measures `Jy/beam` only. |
 | Restoring beam | `BMAJ`, `BMIN` and `BPA`, in degrees. | A supplied value for each missing keyword, else refused. |
 | Reference frequency | `RESTFRQ`, then `RESTFREQ`, then the first `FREQ` axis's `CRVAL`. | A supplied `reference_frequency_hz`, else refused. |

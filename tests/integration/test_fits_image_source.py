@@ -543,7 +543,13 @@ def _write_stokes_plane(
 @pytest.mark.integration
 @pytest.mark.parametrize(
     ("crval", "crpix", "cdelt"),
-    [(1.0, 1.0, 1.0), (0.0, 0.0, 1.0), (1.0, 1.0, -1.0)],
+    [
+        (1.0, 1.0, 1.0),
+        (0.0, 0.0, 1.0),
+        (1.0, 1.0, -1.0),
+        # The world transform's own rounding still reads as a code.
+        (1.0000000001, 1.0, 1.0),
+    ],
 )
 def test_a_stokes_i_plane_is_read(
     tmp_path: Path, crval: float, crpix: float, cdelt: float
@@ -577,6 +583,27 @@ def test_a_plane_other_than_stokes_i_is_refused(
 
     with pytest.raises(UnsupportedFitsImageError, match=f"Stokes {name},"):
         FitsImageSource(path).metadata()
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("crval", "crpix", "cdelt", "value"),
+    [(1.4, 1.0, 1.0, "1.4"), (1e308, -1.0, 1e308, "inf")],
+)
+def test_a_stokes_value_that_is_no_parameter_code_is_refused(
+    tmp_path: Path, crval: float, crpix: float, cdelt: float, value: str
+) -> None:
+    """A fractional or overflowing value is malformed, not near Stokes I."""
+    path = tmp_path / "malformed-stokes.fits"
+    _write_stokes_plane(path, crval=crval, crpix=crpix, cdelt=cdelt)
+
+    with pytest.raises(
+        InvalidFitsImageError,
+        match=f"Stokes axis value of {value}, which is not a Stokes",
+    ) as refusal:
+        FitsImageSource(path).metadata()
+
+    assert not isinstance(refusal.value, UnsupportedFitsImageError)
 
 
 @pytest.mark.integration

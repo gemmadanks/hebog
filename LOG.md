@@ -26626,3 +26626,31 @@ the per-worker placement finding.
   (`m3-input-header-contract`, baselined on `m2-envelope-10000`) reports no
   regression on the sixteen cases, so no existing input is newly refused.
   Pyright clean; `just pre-commit` passes.
+
+## 2026-09-28 — M3: pull request 80 review disposition
+
+- **Scope.** Copilot's review of `13e1f29`, the input header contract;
+  Greptile did not review (trial credit limit).
+- **Stokes codes are validated before they are read.** The reader rounded
+  the `STOKES` axis's world value, so a malformed `1.4` passed as Stokes I,
+  and a non-finite value escaped as the bare `ValueError` of `round`
+  instead of the reader's typed error. A value that is not finite or lies
+  more than 10⁻⁶ from an integer is now refused as malformed, naming the
+  value; the world transform's own rounding still reads as a code. Tests
+  cover `1.4`, an overflow to infinity and a value 10⁻¹⁰ from 1.
+- **The quick-check manifest takes a supplied unit.** `ImageCase` still
+  typed its supplied metadata as numbers only, so a manifest could not
+  state `brightness_unit`, and the cast added with the unit hid that. The
+  field is now the `SuppliedImageMetadata` record itself, validated when
+  the manifest loads by the record's own rules, with unknown keys refused.
+  A serializer keeps the dumped case to the manifest's own values, so the
+  quick-benchmark, traced-peak and profile runners pass their workers the
+  same JSON as before and every case identity is unchanged: the dumps of
+  all 26 configured cases hash identically before and after, and cached
+  previous-release and reference measurements stay valid. The runners read
+  those values through one helper, `supplied_metadata_values`, instead of
+  a cast.
+- **The tutorial's checklist matches the contract.** It now says which
+  requirements may be supplied instead, and lists the Stokes and rotation
+  rules beside the others; the contract page adds the malformed Stokes
+  value.

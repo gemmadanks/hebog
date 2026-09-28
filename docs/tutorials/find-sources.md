@@ -10,19 +10,22 @@ synthetic field and runs the same steps.
 
 ## Prepare the input
 
-Hebog accepts one two-dimensional FITS image. Extra axes, such as frequency
-and Stokes, are fine if each has length one, and a Stokes axis must select
-Stokes I. The image needs:
+Hebog accepts one two-dimensional FITS image. The image needs:
 
+- one plane: extra axes, such as frequency and Stokes, are fine if each has
+  length one, and a Stokes axis must select Stokes I;
 - pixel values in `Jy/beam` (`BUNIT`);
-- an ICRS or FK5 J2000 celestial WCS;
+- an ICRS or FK5 J2000 celestial WCS, with any legacy `CROTA` rotation
+  stated [so that it has one reading](../reference/input-header-contract.md#rotation);
 - a restoring beam: `BMAJ`, `BMIN` and `BPA`;
 - a reference frequency: `RESTFRQ`, `RESTFREQ` or a frequency axis; and
 - at most 10,000 pixels on each side. Cut out a region of a larger image, for
   example with `astropy.nddata.Cutout2D`.
 
-NaN pixels are allowed and ignored. If anything is missing, Hebog stops with
-an error that names the problem before writing any output. The
+The unit, beam and frequency may instead be supplied with the request when
+the header omits them, as the next section shows. NaN pixels are allowed and
+ignored. If anything else is missing, Hebog stops with an error that names
+the problem before writing any output. The
 [input header contract](../reference/input-header-contract.md) lists what
 Hebog reads from each keyword and what common imagers write.
 
@@ -39,9 +42,8 @@ supplied = hebog.SuppliedImageMetadata(reference_frequency_hz=144e6)
 and pass `supplied_metadata=supplied` to the request below. The accepted
 fields are `reference_frequency_hz`, `beam_major_fwhm_degrees`,
 `beam_minor_fwhm_degrees`, `beam_position_angle_degrees` and
-`brightness_unit`. Hebog never
-overrides a value the header already has; supplying one is an error. Supplied
-values are recorded in the diagnostics.
+`brightness_unit`. Hebog never overrides a value the header already has;
+supplying one is an error. Supplied values are recorded in the diagnostics.
 
 Images written by WSClean declare `EQUINOX = 2000` without `RADESYS`, which
 means FK5 J2000. Hebog accepts them and reports all positions in ICRS.

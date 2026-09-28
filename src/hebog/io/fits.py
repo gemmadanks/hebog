@@ -47,6 +47,9 @@ _STOKES_NAMES = {
     -7: "XY",
     -8: "YX",
 }
+# Stokes codes are integers; a world value may differ from one only by the
+# rounding of the world transform.
+_STOKES_CODE_TOLERANCE = 1e-6
 # Primary linear-transform matrix keywords, in current and AIPS-era spelling.
 _LINEAR_MATRIX_KEYWORD = re.compile(r"(PC|CD)(\d+_\d+|\d{6})")
 
@@ -229,7 +232,16 @@ def _require_total_intensity(image_wcs: WCS, path: Path) -> None:
         return
     world = image_wcs.wcs_pix2world([[0.0] * image_wcs.naxis], 0)[0]
     for axis in stokes_axes:
-        code = round(float(world[axis]))
+        value = float(world[axis])
+        if (
+            not np.isfinite(value)
+            or abs(value - round(value)) > _STOKES_CODE_TOLERANCE
+        ):
+            raise InvalidFitsImageError(
+                f"FITS image has a Stokes axis value of {value:g}, which is "
+                f"not a Stokes parameter code: {path}"
+            )
+        code = round(value)
         if code != 1:
             name = _STOKES_NAMES.get(code, f"code {code}")
             raise UnsupportedFitsImageError(
