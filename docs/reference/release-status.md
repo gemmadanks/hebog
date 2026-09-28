@@ -29,7 +29,13 @@ tiles rather than held as one, and the driver holds no image-sized plane. The
 size limit rises one tier at a time, as each tier's memory and invariance
 evidence is measured. One declared limit remains: an object wider than a
 task's read budget is still reduced on the driver from its own pixels, so that
-memory grows with the object rather than the tile.
+memory grows with the object rather than the tile, by up to 186 bytes an
+object pixel. One connected object filling a 10,000-pixel field would need
+about 19 GB on the driver. No object in the real LoTSS-DR3 fields measured
+comes near that; the widest measured case, a generated filament of 553,817
+pixels, cost about 100 MB. The
+[performance profile](performance-profile.md#what-scales-with-the-tile-and-what-with-the-image)
+has the figures.
 
 ## Scientific status
 

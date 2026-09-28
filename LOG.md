@@ -26511,3 +26511,30 @@ the per-worker placement finding.
   merging it and cutting its release, is the maintainer's. Task 10, the whole 15,402² LoTSS-DR3
   mosaic 1312, is next on the ladder. The disk free on 28 September,
   151 GiB, already meets task 11's 60 GB condition.
+
+## 2026-09-28 — M2: pull request 78 review disposition
+
+- **Scope.** Copilot's review of `d4de174`, the 10,000 raise; Greptile did
+  not review (trial credit limit).
+- **Fixed now.** The comparison page still said Hebog is limited to 3,000
+  pixels per side; it says 10,000. The performance profile said the plan
+  carries the wide-object term's removal "for the 10,000 tier" and that no
+  traced case takes the wide paths; since 27 September the removal is
+  deferred work, and `wide-objects-10000` takes those paths at about 100 MB.
+  The paragraph now says both, with the background-box and LoTSS-DR3
+  bounds. The capability page, which named the term only qualitatively, now
+  gives its cost, up to 186 bytes an object pixel and about 19 GB for one
+  connected object filling a 10,000-pixel field, beside the largest
+  measured case.
+- **Answered by an existing decision, not changed.** Copilot asked that the
+  tier stay behind a wide-object memory guard, or that the core-side
+  reductions land first, because a valid 10,000² input with one
+  field-filling connected object could need about 19 GB on the driver. That
+  is the declared limit the maintainer moved to deferred work on
+  27 September: its removal does not gate the local tiers and reopens when
+  a tier's traced peak shows the term or when the cluster benchmark is
+  planned. Neither condition holds: the 10,000² LoTSS anchor's wide-object
+  counts are zero, and the generated filament costs about 100 MB. A guard
+  that refused such inputs, rather than risk exhausting the driver, would
+  need a driver memory budget that Hebog does not admit today; it is an
+  option for the maintainer, not part of this raise.

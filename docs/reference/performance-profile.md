@@ -143,13 +143,21 @@ pixels, which the driver joins in raster order so the result is the
 window's, bit for bit. Measured with `tracemalloc` on a synthetic
 10⁶-pixel object, the driver reduction costs 81 bytes an object pixel for an
 island row, 121 for a deferred parent's component records and 186 for a
-catalogue row. Each is linear in the object's pixels, so a segment filling
-the field would put about 1.7 GB on the driver at 3,000², 19 GB at 10,000²
-and 1.9 TB at 100,000². The traced peaks below do not include it: no
-traced-peak case is known to take that path, and none at 2,048² or below
-can, because no window there exceeds the budget. ADR-008 declares this
-exception to its rule that nothing image-sized reaches the driver, and the
-plan's risks carry its removal for the 10,000 tier.
+catalogue row. Each is linear in the object's pixels and no segment's size
+is capped, so a segment filling the field would put about 1.7 GB on the
+driver at 3,000², 19 GB at 10,000² and 1.9 TB at 100,000². One traced case
+takes that path: the generated `wide-objects-10000` image, whose diagonal
+filament of 553,817 pixels cost the driver about 100 MB in the
+catalogue-row round, less than the multiscale stage's peak, so its traced
+peak does not show the term. Nothing at 2,048² or below can take the path, because no window there
+exceeds the budget, and no real LoTSS-DR3 object comes within a factor of
+ten of it. A smooth object wider than the 150-pixel background box is
+absorbed by the background estimate, so what reaches the driver is
+connected structure narrower than the box; a network of such filaments
+could cost up to the field-filling figures. ADR-008 declares this exception
+to its rule that nothing image-sized reaches the driver. Removing it is the
+plan's deferred work, reopened when a tier's traced peak shows the term or
+when the cluster benchmark is planned.
 
 Source support no longer takes part. An unseeded pixel's owner depends only
 on its component's seeds, so the cores return those and the driver sends
