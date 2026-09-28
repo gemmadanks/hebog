@@ -483,7 +483,8 @@ Before handing off a meaningful change:
 5. Build docs for public API, configuration, plan, or workflow changes.
 6. Update `LOG.md` and the plan as described under Working principles.
 7. Run `just check`, plus `just package-smoke-test` for packaging changes.
-8. Review the final diff against `CODE_REVIEW.md`.
+8. Self-review the final diff against `CODE_REVIEW.md`, fix each finding,
+   and rerun the checks the fixes invalidate.
 9. Run `just pre-commit` after all final edits and immediately before staging.
    It applies the fast lint and formatting fixers until they pass before running
    the slow hooks; while iterating, run `just pre-commit-fast` alone.
