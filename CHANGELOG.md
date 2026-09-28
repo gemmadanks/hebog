@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.17.0](https://github.com/gemmadanks/hebog/compare/v0.16.0...v0.17.0) (2026-09-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* define the input header contract ([#80](https://github.com/gemmadanks/hebog/issues/80))
+
+### 🚀 Features
+
+* define the input header contract ([#80](https://github.com/gemmadanks/hebog/issues/80)) ([18184b6](https://github.com/gemmadanks/hebog/commit/18184b633a2fc048c618b323fdcbb0dbf876a1b7))
+
+
+### 🐛 Bug Fixes
+
+* serialize FFT convolutions across threads on Windows ([75ac72c](https://github.com/gemmadanks/hebog/commit/75ac72c41b0d611f75d18cf1eeb6985963ea760b))
+
+
+### 📚 Documentation
+
+* make the code review guide an author self-review that fixes findings ([bc5b511](https://github.com/gemmadanks/hebog/commit/bc5b51104320a365d26d56281ce168551495db60))
+
 ## [0.16.0](https://github.com/gemmadanks/hebog/compare/v0.15.0...v0.16.0) (2026-09-28)
 
 
