@@ -13,8 +13,8 @@ from typing import Literal, TypeVar, cast
 import numpy as np
 import numpy.typing as npt
 from scipy.ndimage import convolve, convolve1d, label
-from scipy.signal import fftconvolve
 
+from hebog.algorithms.fft import fftconvolve
 from hebog.config import ResidualMultiscaleDetectionConfig
 
 FilterFamily = Literal[

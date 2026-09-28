@@ -481,7 +481,11 @@ workflow.
 Three executors satisfy one contract: `SerialExecutor` is the deterministic
 reference, `ThreadExecutor` runs one caller-owned persistent thread pool in
 this process, and `DaskExecutor` submits to a caller-owned client. Hebog never
-creates a cluster or a pool of its own, and a task never nests one.
+creates a cluster or a pool of its own, and a task never nests one. Tasks from
+one process's threads run concurrently, so a kernel calls FFT convolution
+through `hebog.algorithms.fft`, never SciPy or NumPy directly: SciPy's Windows
+wheels leave its FFT plan cache unlocked, and the wrapper serializes transforms
+there. A unit test fails on any direct FFT import elsewhere.
 
 ```python
 from hebog.executors import ThreadExecutor

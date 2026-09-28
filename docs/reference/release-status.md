@@ -20,7 +20,7 @@ version when results must be repeatable.
 | Invalid pixels | NaN pixels are excluded from estimation, detection and measurement. |
 | Profiles | `continuum` (default), or `compact`, which omits extended-source association and reports `extended-emission-incomplete`. |
 | Thresholds | Caller-set detection and island thresholds (island below detection), minimum and optional maximum island size. |
-| Execution | `SerialExecutor`, `ThreadExecutor`, or `DaskExecutor` with a client you own. Dask workers need the image and the output directory's parent on shared storage. All must give the same products. |
+| Execution | `SerialExecutor`, `ThreadExecutor`, or `DaskExecutor` with a client you own. Dask workers need the image and the output directory's parent on shared storage. All must give the same products. On Windows, threads of one process take turns at FFT convolutions, because SciPy's Windows wheels share an unlocked FFT plan cache. |
 | Output | A new directory with `catalogue.fits`, `rms.fits`, `source-mask.fits` and `diagnostics.json`. Existing directories are never overwritten. |
 
 Every scientific step already runs on bounded tiles through the executor, an

@@ -18,10 +18,10 @@ from scipy.linalg import solve_triangular
 from scipy.linalg.lapack import dpocon  # type: ignore[attr-defined]
 from scipy.ndimage import map_coordinates
 from scipy.optimize import OptimizeResult, least_squares
-from scipy.signal import fftconvolve
 from scipy.special import ndtr
 
 from hebog.algorithms.deblending import DeblendedRegion
+from hebog.algorithms.fft import fftconvolve
 from hebog.algorithms.measurement import (
     CompactMomentInput,
     fitted_gaussian_integrated_flux_jy,

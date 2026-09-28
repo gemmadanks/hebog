@@ -79,6 +79,12 @@ little to parallelise; above that they tile too.
 [Integrate Hebog into a pipeline](integrate-into-a-pipeline.md) has the
 details.
 
+On Windows, threads in one process take turns at the FFT convolutions of the
+multiscale and fitting stages. SciPy's Windows wheels build its FFT without
+the lock that protects its shared plan cache, so concurrent transforms can
+corrupt memory; Hebog serializes them there. For parallel FFTs on Windows,
+use Dask workers in separate processes rather than threads.
+
 ## Re-run or retry
 
 - A failed run leaves no output directory. Run the same request again.

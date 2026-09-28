@@ -26685,3 +26685,35 @@ the per-worker placement finding.
     unsupported refusals to `InvalidSourceFinderInputError`, as it did for
     cubes, and `quick_check._reference_input` does not copy a supplied
     `BUNIT` to the PyBDSF input, which no configured case exercises.
+
+## 2026-09-28 — Windows: concurrent FFTs corrupted the heap
+
+- **Observed.** The Windows portable job crashed the pytest worker running
+  `test_products_on_the_ten_thousand_pixel_grid_equal_one_tile` once, on
+  the push run of `cdb30f8`; the pull-request run of the same commit, and
+  every earlier run of the test, passed. Faulthandler reported
+  `0xc0000374`, heap corruption, in a threaded Dask worker inside SciPy's
+  FFT (`scipy.fft._duccfft` `r2cn`, from `fftconvolve` in
+  `algorithms/multiscale.py`) while a second worker thread ran another
+  task. That test is the only one that runs the public stages on many tiles
+  with two worker threads in one process, so it is the first to make
+  transforms overlap routinely. Twelve local runs on macOS did not crash.
+- **Cause.** SciPy 1.18.0's `win_amd64` wheels are built with MinGW-w64
+  (rtools; the wheel ships GNU `.dll.a` import libraries), and for that
+  toolchain `scipy/fft/_duccfft/meson.build` defines
+  `DUCC0_NO_LOWLEVEL_THREADING`. In SciPy's vendored ducc0 that macro turns
+  `Mutex` and `LockGuard` into no-ops, and they are the only guard on the
+  process-wide plan cache in `get_plan`, so two threads transforming at
+  once race on it. Other platforms, and SciPy's clang-cl ARM64 wheels,
+  keep the lock.
+- **Fix.** Every FFT convolution goes through `hebog.algorithms.fft`,
+  which on Windows holds one process-wide lock around each transform and
+  elsewhere adds none. Results are SciPy's to the bit; only threads of one
+  Windows process lose FFT parallelism, and the executor guide says to use
+  process-based Dask workers there. Tests show serialized calls never
+  overlap, unserialized calls take no lock, and both return SciPy's values;
+  a guard test fails on any FFT import elsewhere in the package, which a
+  mutation (restoring `multiscale.py`'s direct import) confirmed.
+- **Not done.** The crash was intermittent, so one green Windows run does
+  not prove the fix; the next few Windows runs are the evidence. Reporting
+  the unguarded cache to SciPy is the maintainer's call.
