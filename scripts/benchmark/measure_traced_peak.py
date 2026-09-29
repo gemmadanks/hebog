@@ -125,10 +125,10 @@ def _git(*arguments: str) -> str:
     ).stdout.strip()
 
 
-def _default_label() -> str:
-    dirty = "-dirty" if _git("status", "--porcelain") else ""
+def _default_label(commit_sha: str, *, worktree_dirty: bool) -> str:
+    dirty = "-dirty" if worktree_dirty else ""
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-    return f"{_git('rev-parse', '--short', 'HEAD')}{dirty}-{stamp}"
+    return f"{_git('rev-parse', '--short', commit_sha)}{dirty}-{stamp}"
 
 
 def _shape_yx(prepared: PreparedCase) -> tuple[int, int]:
@@ -378,7 +378,22 @@ def main() -> int:
         raise SystemExit(
             f"unknown case IDs for tier {tier}: {sorted(unknown)}"
         )
-    label = args.label or _default_label()
+    # A run can outlast the change it measures, and committing that change
+    # moves HEAD and cleans the tree, so the commit, dirty state and source
+    # hash are read together here, before any case runs, and only these
+    # identify the run.
+    commit_sha = _git("rev-parse", "HEAD")
+    worktree_dirty = bool(_git("status", "--porcelain"))
+    subject = SoftwareIdentity(
+        name="hebog",
+        version=hebog.__version__,
+        commit_sha=commit_sha,
+        source_tree_sha256=source_tree_sha256(_ROOT / "src/hebog"),
+        dependency_inventory_sha256=dependency_inventory_sha256(),
+    )
+    label = args.label or _default_label(
+        commit_sha, worktree_dirty=worktree_dirty
+    )
     run_root = args.output_root.resolve() / "runs" / label
     if run_root.exists():
         raise SystemExit(f"run directory already exists: {run_root}")
@@ -388,13 +403,6 @@ def main() -> int:
             "machine": machine,
             "thread_environment": dict(SINGLE_THREAD_ENVIRONMENT),
         }
-    )
-    subject = SoftwareIdentity(
-        name="hebog",
-        version=hebog.__version__,
-        commit_sha=_git("rev-parse", "HEAD"),
-        source_tree_sha256=source_tree_sha256(_ROOT / "src/hebog"),
-        dependency_inventory_sha256=dependency_inventory_sha256(),
     )
     # Every input is ready before any case is traced, so a missing one fails
     # the run before it spends traced work that no report would then record.
@@ -432,7 +440,7 @@ def main() -> int:
         "created_at": datetime.now(UTC).isoformat(),
         "hebog_version": hebog.__version__,
         "commit_sha": subject.commit_sha,
-        "worktree_dirty": bool(_git("status", "--porcelain")),
+        "worktree_dirty": worktree_dirty,
         "source_tree_sha256": subject.source_tree_sha256,
         "configuration_sha256": file_sha256(args.configuration),
         "machine": machine,

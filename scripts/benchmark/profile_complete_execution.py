@@ -263,6 +263,13 @@ def main() -> int:
         raise SystemExit(f"unknown case IDs: {sorted(unknown)}")
     run_root = args.output_root.resolve() / "runs" / args.label
     started = time.perf_counter()
+    # A run can outlast the change it measures, and committing that change
+    # moves HEAD and cleans the tree, so the commit, dirty state and source
+    # hash are read together here, before any case runs. A summary rebuilt
+    # by --summarise-existing records the checkout it is rebuilt from.
+    commit_sha = _git("rev-parse", "HEAD")
+    worktree_dirty = bool(_git("status", "--porcelain"))
+    source_sha256 = source_tree_sha256(_ROOT / "src/hebog")
     if args.summarise_existing:
         records = [
             cast(dict[str, Any], json.loads(path.read_text("utf-8")))
@@ -289,9 +296,9 @@ def main() -> int:
         "label": args.label,
         "created_at": datetime.now(UTC).isoformat(),
         "hebog_version": hebog.__version__,
-        "commit_sha": _git("rev-parse", "HEAD"),
-        "worktree_dirty": bool(_git("status", "--porcelain")),
-        "source_tree_sha256": source_tree_sha256(_ROOT / "src/hebog"),
+        "commit_sha": commit_sha,
+        "worktree_dirty": worktree_dirty,
+        "source_tree_sha256": source_sha256,
         "configuration_sha256": file_sha256(args.configuration),
         "machine": machine_identity(),
         "thread_environment": dict(SINGLE_THREAD_ENVIRONMENT),

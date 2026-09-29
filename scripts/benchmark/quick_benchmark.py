@@ -106,6 +106,7 @@ class _Installation:
     python: Path
     working_directory: Path
     commit_sha: str
+    worktree_dirty: bool
     source_tree_sha256: str
 
 
@@ -163,10 +164,10 @@ def _git(*arguments: str) -> str:
     ).stdout.strip()
 
 
-def _default_label() -> str:
-    dirty = "-dirty" if _git("status", "--porcelain") else ""
+def _default_label(commit_sha: str, *, worktree_dirty: bool) -> str:
+    dirty = "-dirty" if worktree_dirty else ""
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-    return f"{_git('rev-parse', '--short', 'HEAD')}{dirty}-{stamp}"
+    return f"{_git('rev-parse', '--short', commit_sha)}{dirty}-{stamp}"
 
 
 def _latest_release_tag() -> str | None:
@@ -183,11 +184,18 @@ def _canonical_sha256(value: object) -> str:
 
 
 def _current_installation() -> _Installation:
+    """Identify the checkout as the run starts, before any case runs.
+
+    A run can outlast the change it measures, and committing that change
+    moves HEAD and cleans the tree, so the commit, dirty state and source
+    hash are read together, once, and identify every case and the report.
+    """
     return _Installation(
         label="current",
         python=Path(sys.executable),
         working_directory=_ROOT,
         commit_sha=_git("rev-parse", "HEAD"),
+        worktree_dirty=bool(_git("status", "--porcelain")),
         source_tree_sha256=source_tree_sha256(_ROOT / "src/hebog"),
     )
 
@@ -228,6 +236,7 @@ def _release_installation(tag: str, output_root: Path) -> _Installation:
         python=directory / ".venv/bin/python",
         working_directory=directory,
         commit_sha=commit,
+        worktree_dirty=False,
         source_tree_sha256=source_tree_sha256(directory / "src/hebog"),
     )
 
@@ -556,6 +565,7 @@ def _run_case(  # noqa: PLR0913
     contract: PerformanceMatrixContract,
     args: argparse.Namespace,
     run_root: Path,
+    current: _Installation,
     previous: _Installation | None,
     reference_identity_value: dict[str, object] | None,
     machine: dict[str, object],
@@ -584,7 +594,7 @@ def _run_case(  # noqa: PLR0913
         "machine": machine,
     }
     try:
-        current = _time_hebog(_current_installation(), **timing)
+        current_evidence = _time_hebog(current, **timing)
     except (subprocess.CalledProcessError, OSError, ValueError) as error:
         return record | {
             "status": "failure",
@@ -592,11 +602,11 @@ def _run_case(  # noqa: PLR0913
         }
     evidence_path = run_root / case.case_id / "hebog.json"
     evidence_path.parent.mkdir(parents=True)
-    write_evidence(evidence_path, current)
-    current_seconds = measured_wall_seconds(current)
+    write_evidence(evidence_path, current_evidence)
+    current_seconds = measured_wall_seconds(current_evidence)
     record |= {
         "status": "success",
-        "hebog": _summary(current) | {"evidence": str(evidence_path)},
+        "hebog": _summary(current_evidence) | {"evidence": str(evidence_path)},
         "previous_release": None,
         "pybdsf_master": None,
     }
@@ -813,7 +823,10 @@ def main() -> int:
             f"unknown case IDs for tier {tier}: {sorted(unknown)}"
         )
     output_root = args.output_root.resolve()
-    label = args.label or _default_label()
+    current = _current_installation()
+    label = args.label or _default_label(
+        current.commit_sha, worktree_dirty=current.worktree_dirty
+    )
     run_root = output_root / "runs" / label
     if run_root.exists():
         raise SystemExit(f"run directory already exists: {run_root}")
@@ -839,6 +852,7 @@ def main() -> int:
             contract=contract,
             args=args,
             run_root=run_root,
+            current=current,
             previous=previous,
             reference_identity_value=identity,
             machine=machine,
@@ -868,8 +882,9 @@ def main() -> int:
         "label": label,
         "created_at": datetime.now(UTC).isoformat(),
         "hebog_version": hebog.__version__,
-        "commit_sha": _git("rev-parse", "HEAD"),
-        "source_tree_sha256": source_tree_sha256(_ROOT / "src/hebog"),
+        "commit_sha": current.commit_sha,
+        "worktree_dirty": current.worktree_dirty,
+        "source_tree_sha256": current.source_tree_sha256,
         "configuration_sha256": file_sha256(args.configuration),
         "machine": machine,
         "previous_hebog_gate": contract.previous_hebog.model_dump(mode="json"),

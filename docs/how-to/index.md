@@ -730,6 +730,13 @@ Use one warm-up and at least five measured repetitions. Store generated
 results under the ignored `benchmark-results/` directory and commit only small
 reviewed summaries with reproduction commands.
 
+The quick benchmark, traced-peak and profile runners identify the measured
+Hebog by its commit, whether the working tree had changes, and the hash of
+`src/hebog`, all read once as the run starts, so committing the measured
+change during a long run does not relabel it. Every repetition imports the
+checkout afresh, so an edit to `src/hebog` during a run changes what later
+repetitions measure: develop the next change in a separate worktree.
+
 Construct and write runs with `hebog.validation.evidence.BenchmarkEvidence`
 and `write_evidence`. Use `null` plus an explicit `unavailable_metrics` reason
 when instrumentation is genuinely unavailable; never substitute zero. Mark a
