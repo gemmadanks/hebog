@@ -314,6 +314,25 @@ per fitted component, and compares every real case with that model. A
 profile is a single diagnostic run: use the quick benchmark for before and
 after timings.
 
+`--dask-workers N` runs every case on a process-based local Dask cluster of
+`N` single-threaded workers instead of the serial executor. Stages are then
+timed in the driver, whose process also hosts the scheduler, and Dask's task
+stream is matched against each stage's calls: `tasks.stages` in a case's
+`profile.json` gives the tasks that started during a stage, their compute
+seconds and the share of the workers they kept busy. A stage with a long
+driver wall time and low occupancy is waiting on the driver, not on the
+workers. To profile one input outside the configured cases, such as a quick
+benchmark cut-out, run the worker directly:
+
+```console
+uv run python scripts/benchmark/profile_complete_execution_worker.py \
+  --input <image.fits> --settings '<finder JSON>' --result <profile.json> \
+  --dask-workers 4 --diagnostic-size-limit <side>
+```
+
+The finder JSON is the `hebog` block of the benchmark configuration, and
+`--diagnostic-size-limit` is needed only above the public limit.
+
 ## Develop test-first
 
 For a public behaviour or scientific kernel:

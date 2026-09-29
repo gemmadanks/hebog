@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import math
 import runpy
 import sys
 import types
@@ -30,6 +31,7 @@ from hebog.validation.execution_profile import (
     load_profile_configuration,
     process_wall_seconds_by_stage,
     stage_records,
+    task_occupancy_by_stage,
     top_self_time,
 )
 
@@ -97,6 +99,125 @@ def test_repeated_calls_accumulate_into_one_stage() -> None:
     (record,) = recorder.records()
     assert record.calls == 3
     assert record.wall_seconds > 0.0
+
+
+@_needs_usage
+def test_each_call_is_recorded_on_the_wall_clock() -> None:
+    """Calls carry ``time.time`` bounds, the clock Dask stamps tasks with."""
+    from time import time  # noqa: PLC0415
+
+    recorder = StageRecorder()
+    before = time()
+    for _ in range(2):
+        with recorder.stage("parent"), recorder.stage("child"):
+            _busy(0.001)
+    after = time()
+
+    intervals = recorder.intervals()
+
+    assert set(intervals) == {("parent",), ("parent", "child")}
+    child_calls = intervals[("parent", "child")]
+    parent_calls = intervals[("parent",)]
+    assert len(child_calls) == len(parent_calls) == 2
+    for (child_start, child_stop), (parent_start, parent_stop) in zip(
+        child_calls, parent_calls, strict=True
+    ):
+        assert before <= parent_start <= child_start <= child_stop
+        assert child_stop <= parent_stop <= after
+
+
+def test_task_time_counts_only_the_overlap_with_each_call() -> None:
+    """A task straddling a call's edge contributes only its overlap."""
+    (occupancy,) = task_occupancy_by_stage(
+        {("stage",): ((5.0, 15.0), (20.0, 22.0))},
+        ((0.0, 10.0), (12.0, 21.0), (30.0, 40.0)),
+        worker_count=1,
+    )
+
+    # 5 s of the first task, 3 + 1 s of the second, none of the third.
+    assert occupancy.task_seconds == pytest.approx(9.0)
+    assert occupancy.worker_occupancy == pytest.approx(9.0 / 12.0)
+
+
+def test_task_time_keeps_its_precision_at_epoch_timestamps() -> None:
+    """Dask stamps tasks in epoch seconds, about 1.8e9 each.
+
+    Running sums of ten thousand raw epoch values would carry errors of
+    milliseconds; measured from the earliest instant, the stage's task time
+    equals the exact sum of each task's own duration.
+    """
+    epoch = 1.8e9
+    tasks = tuple(
+        (epoch + index * 0.01, epoch + index * 0.01 + 0.001)
+        for index in range(10_000)
+    )
+
+    (occupancy,) = task_occupancy_by_stage(
+        {("run",): ((epoch - 1.0, epoch + 101.0),)},
+        tasks,
+        worker_count=1,
+    )
+
+    assert occupancy.task_count == 10_000
+    assert occupancy.task_seconds == pytest.approx(
+        math.fsum(stop - start for start, stop in tasks), abs=1e-6
+    )
+
+
+def test_a_task_is_counted_in_the_stage_it_starts_in() -> None:
+    occupancies = task_occupancy_by_stage(
+        {("first",): ((0.0, 10.0),), ("second",): ((10.5, 20.0),)},
+        ((1.0, 12.0), (2.0, 3.0), (11.0, 19.0)),
+        worker_count=2,
+    )
+
+    counts = {item.stage: item.task_count for item in occupancies}
+    assert counts == {("first",): 2, ("second",): 1}
+    second = next(item for item in occupancies if item.stage == ("second",))
+    # 1.5 s of the long first task and all 8 s of the third, on 2 workers.
+    assert second.task_seconds == pytest.approx(9.5)
+    assert second.worker_occupancy == pytest.approx(9.5 / (9.5 * 2))
+
+
+def test_a_stage_without_tasks_or_wall_time_reports_zero() -> None:
+    occupancies = task_occupancy_by_stage(
+        {("idle",): ((0.0, 5.0),), ("instant",): ((1.0, 1.0),)},
+        (),
+        worker_count=4,
+    )
+
+    assert [item.document() for item in occupancies] == [
+        {
+            "stage": ["idle"],
+            "task_count": 0,
+            "task_seconds": 0.0,
+            "worker_occupancy": 0.0,
+        },
+        {
+            "stage": ["instant"],
+            "task_count": 0,
+            "task_seconds": 0.0,
+            "worker_occupancy": 0.0,
+        },
+    ]
+
+
+@pytest.mark.parametrize(
+    ("stages", "tasks", "workers", "message"),
+    [
+        ({("s",): ((0.0, 1.0),)}, (), 0, "worker_count"),
+        ({("s",): ((2.0, 1.0),)}, (), 1, "ends before"),
+        ({("s",): ((0.0, 1.0),)}, ((3.0, 2.0),), 1, "ends before"),
+    ],
+)
+def test_task_attribution_refuses_invalid_inputs(
+    stages: dict[tuple[str, ...], tuple[tuple[float, float], ...]],
+    tasks: tuple[tuple[float, float], ...],
+    workers: int,
+    message: str,
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        task_occupancy_by_stage(stages, tasks, worker_count=workers)
 
 
 @_needs_usage

@@ -26897,3 +26897,64 @@ the per-worker placement finding.
   22,500² gate would measure code about to change. Task 11's disk condition
   is met but narrowing: 75 GiB free on 29 September, against 132 GiB the
   evening before.
+
+## 2026-09-29 — M2: why the Dask run waits on its driver
+
+- **What this is.** The first half of task 35's diagnosis, authorized by the
+  maintainer on 29 September after the 15,402 tier's four-worker Dask run
+  took 3.2 times the Serial time. On `m2/dask-driver-diagnosis`, stacked on
+  the unmerged 15,402 raise.
+- **A harness for it.** `profile_complete_execution_worker.py` takes
+  `--dask-workers N`: the stage-timed public path runs on a process-based
+  `LocalCluster` of `N` single-threaded workers, each stage's calls are
+  recorded on the wall clock, and Dask's task stream is matched against
+  them by `task_occupancy_by_stage`, which integrates the number of running
+  tasks over each call. Each stage then reports its tasks, their compute
+  time and the share of the workers they kept busy, beside the driver's
+  wall and CPU time. The runner passes the option through. A unit test
+  caught a precision flaw before any evidence was taken: running sums of
+  raw epoch timestamps lost up to 0.1 s over ten thousand tasks, so times
+  are measured from the earliest instant.
+- **Profiles** (`benchmark-results/profiles/runs/m2-dask-diagnosis-20260929`,
+  source tree `095a819b…`, whose science code is `2076ba57…`'s; one run
+  each, load 5 to 7 from other work, so diagnostic):
+
+  | size | Serial | four-worker Dask | Dask tasks | background/RMS, Serial and Dask |
+  | --- | --- | --- | --- | --- |
+  | 3,000² | 102.7 s | 93.1 s | 8,089 | 49.0 s and 49.5 s |
+  | 10,000² | 1,347.2 s | 2,453.8 s | 89,889 | 588.3 s and 1,937.8 s |
+
+  At 10,000² every stage but background/RMS is as fast or faster on Dask,
+  and background/RMS's excess, 1,350 s, exceeds the whole run's, 1,107 s.
+  Inside it the grid and local-noise rounds cost the driver a constant 2.1
+  to 2.7 ms a task at both sizes and already beat Serial (322.6 s against
+  399.4 s for refinement). The excess is the stage's own two rounds of
+  per-cell tasks, detection and background/RMS writes, then the
+  source-filtering mask: 12,482 tasks at 10,000² keeping the workers 17%
+  busy while the driver spent about 106 ms of CPU on each, against 10.6 ms
+  on each of 1,152 at 3,000². The cost of one task grew with the number of
+  tasks, so the total grows as the square of the area.
+- **Cause.** Both rounds submit a `partial` that carries the background
+  `ZarrProductSink`, and the sink pickles its whole partition manifest:
+  one record for each 128-pixel cell, 576 at 3,000², 6,241 at 10,000² and
+  14,641 at 15,402², which is 34 KB, 362 KB and 848 KB. The executor checks
+  the function's serializability once per round, but Dask serializes a
+  task's function with every task, and the scheduler in the driver's
+  process handles it again. Submitting 400 trivial tasks carrying a sink
+  (`benchmark-results/diagnostics/dask-sink-payload-20260929/`) cost the
+  driver 1.6 ms of CPU a task with none, and 10.0, 103.3 and 280.8 ms with
+  the 3,000², 10,000² and 15,402² sinks, matching the profile. At 10,000²
+  that is about 1,270 s over the 12,482 per-cell tasks, 94% of
+  background/RMS's excess; at 15,402² the 29,282 per-cell tasks cost about
+  2.3 hours, the run's observed 2.5. The object passes use 2,048-pixel
+  cores, so their manifests hold at most 64 tiles, and the tasks that carry
+  the background sink as a read source are few, which is why nothing else
+  was slow. Serial pays the payload once a round, not once a task.
+- **What this leaves.** The Dask half of the diagnosis meets task 35's
+  criterion. The repair, for the maintainer to approve, is to stop a task
+  carrying image-scale metadata: pickle a sink or manifest as the few
+  numbers its tiles are planned from, rebuilt once per process, and batch
+  the two per-cell rounds coarsely as every other round is. The memory half
+  of the diagnosis, the traced peak's growth inside the multiscale pass,
+  has a separate cause: the manifest is a few megabytes at 15,402²,
+  against the 0.9 GB the peak grew.

@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import numpy as np
+import numpy.typing as npt
 from pydantic import BaseModel, ConfigDict, Field
 
 from hebog.validation.quick_check import HebogSettings, QuickCheckCase
@@ -102,6 +103,9 @@ class _StageTotals:
     peak_rss_increase_bytes: int = 0
     block_inputs: int = 0
     block_outputs: int = 0
+    intervals: list[tuple[float, float]] = field(
+        default_factory=list[tuple[float, float]]
+    )
 
 
 def peak_rss_bytes(maximum_resident_set: int) -> int:
@@ -161,6 +165,7 @@ class StageRecorder:
         parent = self._path
         path = (*parent, name)
         before = _process_usage()
+        clock_started = time.time()
         wall_started = time.perf_counter()
         cpu_started = time.process_time()
         self._path = path
@@ -172,6 +177,7 @@ class StageRecorder:
             cpu = time.process_time() - cpu_started
             after = _process_usage()
             totals = self._totals.setdefault(path, _StageTotals())
+            totals.intervals.append((clock_started, time.time()))
             totals.calls += 1
             totals.wall_seconds += wall
             totals.cpu_seconds += cpu
@@ -219,6 +225,123 @@ class StageRecorder:
             )
             for path, totals in sorted(self._totals.items())
         )
+
+    def intervals(
+        self,
+    ) -> dict[tuple[str, ...], tuple[tuple[float, float], ...]]:
+        """Return each stage's calls as wall-clock ``(start, stop)`` seconds.
+
+        The clock is ``time.time``, the one Dask stamps task records with, so
+        a stage's calls can be matched with the tasks that ran during them.
+        """
+        return {
+            path: tuple(totals.intervals)
+            for path, totals in sorted(self._totals.items())
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class TaskOccupancy:
+    """Executor work that ran during one stage's calls."""
+
+    stage: tuple[str, ...]
+    task_count: int
+    task_seconds: float
+    worker_occupancy: float
+
+    def document(self) -> dict[str, Any]:
+        """Return one JSON-serializable record."""
+        return {
+            "stage": list(self.stage),
+            "task_count": self.task_count,
+            "task_seconds": self.task_seconds,
+            "worker_occupancy": self.worker_occupancy,
+        }
+
+
+def task_occupancy_by_stage(
+    stage_intervals: Mapping[tuple[str, ...], Sequence[tuple[float, float]]],
+    task_intervals: Sequence[tuple[float, float]],
+    *,
+    worker_count: int,
+) -> tuple[TaskOccupancy, ...]:
+    """Attribute executor task time to the driver stages it overlapped.
+
+    Every interval is ``(start, stop)`` in seconds on one wall clock. A
+    stage's task time is the time integral of the number of running tasks
+    over its calls, so a task straddling a stage boundary counts only its
+    overlap; a task is counted in a stage when it starts during one of its
+    calls. Occupancy is that task time over the stage's wall time times
+    ``worker_count``, the share of the executor's single-threaded workers
+    the stage kept busy.
+
+    Raises:
+        ValueError: If ``worker_count`` is not positive or an interval ends
+            before it starts.
+    """
+    if worker_count < 1:
+        raise ValueError("worker_count must be positive")
+    if any(stop < start for start, stop in task_intervals) or any(
+        stop < start
+        for calls in stage_intervals.values()
+        for start, stop in calls
+    ):
+        raise ValueError("an interval ends before it starts")
+    # Epoch seconds are about 1.8e9, so summing thousands of them would lose
+    # the sub-millisecond precision task times need; measure from the
+    # earliest instant instead.
+    origin = min(
+        (start for start, _ in task_intervals),
+        default=0.0,
+    )
+    starts = np.sort(
+        np.array([start for start, _ in task_intervals], float) - origin
+    )
+    stops = np.sort(
+        np.array([stop for _, stop in task_intervals], float) - origin
+    )
+    start_sums = np.concatenate(([0.0], np.cumsum(starts)))
+    stop_sums = np.concatenate(([0.0], np.cumsum(stops)))
+
+    def running_task_seconds(
+        times: npt.NDArray[np.float64],
+    ) -> npt.NDArray[np.float64]:
+        # Each started task contributes (t - start) and each finished one
+        # takes back (t - stop), leaving min(t, stop) - start per task.
+        started = np.searchsorted(starts, times, side="right")
+        finished = np.searchsorted(stops, times, side="right")
+        return (started * times - start_sums[started]) - (
+            finished * times - stop_sums[finished]
+        )
+
+    occupancies: list[TaskOccupancy] = []
+    for stage, calls in sorted(stage_intervals.items()):
+        call_starts = np.array([start for start, _ in calls], float) - origin
+        call_stops = np.array([stop for _, stop in calls], float) - origin
+        task_seconds = float(
+            np.sum(
+                running_task_seconds(call_stops)
+                - running_task_seconds(call_starts)
+            )
+        )
+        task_count = int(
+            np.sum(
+                np.searchsorted(starts, call_stops, side="right")
+                - np.searchsorted(starts, call_starts, side="left")
+            )
+        )
+        wall = float(np.sum(call_stops - call_starts))
+        occupancies.append(
+            TaskOccupancy(
+                stage=stage,
+                task_count=task_count,
+                task_seconds=task_seconds,
+                worker_occupancy=(
+                    task_seconds / (wall * worker_count) if wall > 0 else 0.0
+                ),
+            )
+        )
+    return tuple(occupancies)
 
 
 def stage_records(
