@@ -26958,3 +26958,45 @@ the per-worker placement finding.
   of the diagnosis, the traced peak's growth inside the multiscale pass,
   has a separate cause: the manifest is a few megabytes at 15,402²,
   against the 0.9 GB the peak grew.
+
+## 2026-09-29 — M2: the Dask run no longer waits on its driver
+
+- **What this is.** The repair of task 35's Dask half, approved by the
+  maintainer on 29 September after the diagnosis above: both fixes it
+  proposed, on `m2/dask-driver-diagnosis`.
+- **A manifest travels as its geometry.** `PartitionManifest` pickles as
+  its image shape, core, halo and origin, and is rebuilt from them where it
+  is unpickled, once per process for each geometry through a small
+  `lru_cache`; its tiles are already required to be the canonical tiling of
+  that geometry, so the rebuilt manifest equals the original. A 15,402²
+  background manifest pickled to 848 KB and now to a few hundred bytes,
+  and so does every sink or request that carries one. The 400-task
+  experiment of the diagnosis now costs the driver 1.3 to 1.4 ms of CPU a
+  task whichever sink the tasks carry, against 1.3 ms with none.
+- **Per-cell rounds send blocks.** The detection stage's two per-cell
+  rounds, detection with background/RMS writes and the source-filtering
+  mask, send 64 neighbouring cells a task in row-major order instead of one;
+  each cell is still read, estimated and written on its own, so only
+  scheduling changes.
+- **Measured at 10,000²** (source tree `b2e47d3c…`, which the commit
+  changes only by a docstring sentence; one run each at a load of 3 to 5): four-worker Dask took 769.5 s and Serial 1,266.3 s, a ratio of
+  0.61, against 1.6 to 1.8 before. The four products are byte-identical
+  between the two (both with run ID `anchor`), and RMS, mask and every
+  catalogue table equal the `v0.15.0` products of 28 September. The stage
+  profile (`benchmark-results/profiles/runs/m2-dask-repair-20260929`) puts
+  background/RMS at 383.6 s with the workers 67% busy, against 1,937.8 s
+  and 17%, and the driver's CPU over the whole run at 301 s against 1,699 s.
+  What keeps four workers from a quarter of the Serial time is mostly
+  background refinement's 69,000 tasks of about 13 ms each, a batching
+  question for task 23, not a defect.
+- **Checks.** Tests first: a manifest pickles to under 512 bytes and
+  round-trips exactly at four geometries, a sink's payload does not grow
+  from 3,000² to 15,402², and 168 two-pixel cells take three tasks a round
+  with topology and all three planes equal to one tile's; each failed
+  before the change for the reason it names. The quick science check
+  (`m2-dask-repair` against `m2-envelope-15402`) reports no regression on
+  the sixteen cases; coverage 97% over 2,818 portable tests, the changed
+  modules at 100% but for `detection.py`'s five earlier error branches.
+- **Not measured.** The whole 15,402² mosaic under Dask since the repair,
+  and runs with a scheduler outside the driver's process, which Rapthor's
+  cluster would have.

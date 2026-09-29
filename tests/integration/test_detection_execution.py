@@ -5,9 +5,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, fields, replace
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 import numpy.typing as npt
@@ -44,6 +45,7 @@ from hebog.data_models.measurement import (
     MeasuredExtendedEmission,
 )
 from hebog.executors import DaskExecutor, SerialExecutor
+from hebog.executors.base import TaskRequirement
 from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
 from hebog.stages.catalogue import run_compact_catalogue_stage
@@ -524,6 +526,73 @@ def test_one_and_many_tile_detection_publish_identical_topology(
         sink=many_sink,
     )
     assert many_catalogue_stage == one_catalogue_stage
+
+
+class _BatchRecordingExecutor(SerialExecutor):
+    """Serial reference that records how many tasks each round submitted."""
+
+    def __init__(self) -> None:
+        """Start with no recorded round."""
+        super().__init__()
+        self.task_counts: list[tuple[str, int]] = []
+
+    def map_batches(
+        self,
+        function: Callable[[Any], Any],
+        batches: Iterable[Any],
+        *,
+        requirement: TaskRequirement | None = None,
+    ) -> list[Any]:
+        """Record the round's task count, then run it serially."""
+        materialized = tuple(batches)
+        name = getattr(function, "func", function).__name__
+        self.task_counts.append((name, len(materialized)))
+        return super().map_batches(
+            function, materialized, requirement=requirement
+        )
+
+
+def test_per_cell_rounds_send_blocks_of_cells_and_keep_the_products(
+    tmp_path: Path,
+) -> None:
+    """The two per-cell rounds send 64 cells a task, not one.
+
+    Background cells are small, so a task a cell would pay the executor's
+    fixed cost on little work; 168 two-pixel cells take three tasks a round,
+    and topology and masks across the block edges equal one tile's.
+    """
+    one_tile = plan_image_partitions(
+        image_shape_yx=_image().shape,
+        tile_core_shape_yx=(32, 32),
+        halo_yx=(0, 0),
+    )
+    cells = plan_image_partitions(
+        image_shape_yx=_image().shape,
+        tile_core_shape_yx=(2, 2),
+        halo_yx=(0, 0),
+    )
+    assert len(cells.tiles) == 168
+    executor = _BatchRecordingExecutor()
+
+    one_result, one_sink = _run(tmp_path / "one.zarr", one_tile, executor)
+    executor.task_counts.clear()
+    cell_result, cell_sink = _run(tmp_path / "cells.zarr", cells, executor)
+
+    per_cell = {
+        name: count
+        for name, count in executor.task_counts
+        if name in {"_detect_and_write_cells", "_write_source_filtering_masks"}
+    }
+    assert per_cell == {
+        "_detect_and_write_cells": 3,
+        "_write_source_filtering_masks": 3,
+    }
+    assert cell_result.islands == one_result.islands
+    for product in ("background", "rms", "source-filtering-mask"):
+        np.testing.assert_array_equal(
+            _read_plane(cell_sink, cell_result, product),
+            _read_plane(one_sink, one_result, product),
+        )
 
 
 def test_compact_deblend_stage_supports_single_window_sources(

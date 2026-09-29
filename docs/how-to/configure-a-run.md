@@ -75,12 +75,12 @@ the parent of the output directory must be on storage that every worker sees
 at the same absolute path. Today's limit is 15,402 pixels per side. Background
 and RMS estimation tiles at every size, but every other stage uses 2,048-pixel
 cores, so an image up to 2,048 pixels gives those stages a single tile and
-little to parallelise; above that they tile too. Tiling is not yet speed: on
-the development machine a four-worker local Dask cluster took about three
-times the serial executor's time on the whole 15,402² LoTSS-DR3 mosaic
-1312, most of it in background and RMS estimation, which kept one worker
-busy at a time (a shared machine, so an indication rather than a
-benchmark).
+little to parallelise; above that they tile too. On the development
+machine a four-worker local Dask cluster finished the 10,000² LoTSS-DR3
+anchor in 0.61 of the serial executor's time (one run each on a shared
+machine, so an indication rather than a benchmark); background and RMS
+refinement, split into many small tasks, is most of what keeps it from a
+quarter.
 [Integrate Hebog into a pipeline](integrate-into-a-pipeline.md) has the
 details.
 

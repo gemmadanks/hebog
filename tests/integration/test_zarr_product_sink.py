@@ -22,6 +22,7 @@ import zarr
 from zarr.errors import ChunkNotFoundError
 from zarr.storage import _local
 
+from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.data_models import (
     ImageBounds,
     PartitionManifest,
@@ -318,6 +319,35 @@ def test_reads_reuse_metadata_but_revalidate_chunk_content(
     np.testing.assert_array_equal(first, second)
     assert open_count == 0
     assert read_count == 2
+
+
+def test_a_sink_pickles_without_its_tiles(tmp_path: Path) -> None:
+    """A sink travels in every task that writes through it.
+
+    Every 128-pixel background cell's task carried the background sink, and
+    its manifest of 14,641 cells made each task cost the driver about
+    280 ms at 15,402 pixels a side; the payload must not grow with the
+    image.
+    """
+    payloads = [
+        pickle.dumps(
+            ZarrProductSink(
+                tmp_path / f"{side}.zarr",
+                plan_image_partitions(
+                    image_shape_yx=(side, side),
+                    tile_core_shape_yx=(128, 128),
+                    halo_yx=(0, 0),
+                ),
+                generation_id="run-001",
+            )
+        )
+        for side in (3000, 15402)
+    ]
+
+    assert abs(len(payloads[1]) - len(payloads[0])) < 16
+    assert len(payloads[1]) < 1024
+    restored = pickle.loads(payloads[1])
+    assert len(restored.manifest.tiles) == 121**2
 
 
 def test_a_pickled_sink_starts_without_the_handles_it_cached(

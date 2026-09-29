@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 from itertools import pairwise
 from math import isfinite
 from typing import Literal, Self
@@ -321,6 +322,39 @@ class PartitionManifest:
             for column in range(first.tile_x_index, last.tile_x_index + 1)
         )
 
+    def __reduce__(
+        self,
+    ) -> tuple[
+        object,
+        tuple[
+            tuple[int, int],
+            tuple[int, int],
+            tuple[int, int],
+            tuple[int, int],
+        ],
+    ]:
+        """Pickle as the geometry the tiles are planned from.
+
+        The tiles are the one canonical tiling of that geometry, which
+        construction already requires, so they are rebuilt where the
+        manifest is unpickled rather than shipped with it. Executor tasks
+        carry manifests inside sinks and requests, and Dask serializes a
+        task's payload with every task, so a payload that grew with the
+        tile count made each task cost the driver time proportional to the
+        image: about 280 ms for 14,641 128-pixel cells. Schema version 1 is
+        the only one a manifest can have, so it is not carried; a second
+        version must be added here.
+        """
+        return (
+            _manifest_for_geometry,
+            (
+                self.image_shape_yx,
+                self.tile_core_shape_yx,
+                self.halo_yx,
+                self.partition_origin_yx,
+            ),
+        )
+
     @classmethod
     def create(
         cls,
@@ -349,3 +383,24 @@ class PartitionManifest:
                 partition_origin_yx,
             ),
         )
+
+
+@lru_cache(maxsize=16)
+def _manifest_for_geometry(
+    image_shape_yx: tuple[int, int],
+    tile_core_shape_yx: tuple[int, int],
+    halo_yx: tuple[int, int],
+    partition_origin_yx: tuple[int, int],
+) -> PartitionManifest:
+    """Rebuild one unpickled manifest, once per process for each geometry.
+
+    Every task of a round unpickles the same manifest, so a worker builds
+    its tiles once and later tasks share that immutable record; the cache
+    holds a few manifests of a run and changes no value.
+    """
+    return PartitionManifest.create(
+        image_shape_yx=image_shape_yx,
+        tile_core_shape_yx=tile_core_shape_yx,
+        halo_yx=halo_yx,
+        partition_origin_yx=partition_origin_yx,
+    )

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import partial
 from typing import Protocol
@@ -44,6 +45,26 @@ from hebog.stages.background import (
     prepare_background_rms_tile_request,
     refine_background_rms_grids,
 )
+
+# Background and RMS cells are 128 pixels, about 10 ms of work each, so one
+# task a cell would spend the executor's fixed cost of a task on little
+# work; 64 neighbouring cells in row-major order make one coarse task. Each
+# cell is still read, estimated and written on its own, so the block size
+# changes scheduling only.
+_CELLS_PER_TASK = 64
+
+
+def _cell_blocks[T](cells: Sequence[T]) -> tuple[tuple[T, ...], ...]:
+    """Group cells in row-major order into blocks of one task each.
+
+    Examples:
+        >>> _cell_blocks(tuple(range(130)))[2]
+        (128, 129)
+    """
+    return tuple(
+        tuple(cells[start : start + _CELLS_PER_TASK])
+        for start in range(0, len(cells), _CELLS_PER_TASK)
+    )
 
 
 class _WindowReadable(Protocol):
@@ -205,6 +226,27 @@ def _detect_and_write_background_rms(
     )
 
 
+def _detect_and_write_cells(
+    requests: tuple[BackgroundRmsTileRequest, ...],
+    *,
+    source: _WindowReadable,
+    sink: ZarrProductSink,
+    config: SourceFinderConfig,
+    image_shape_yx: tuple[int, int],
+) -> tuple[_DetectionTileProducts, ...]:
+    """Detect and write one block of cells, each from its own read."""
+    return tuple(
+        _detect_and_write_background_rms(
+            request,
+            source=source,
+            sink=sink,
+            config=config,
+            image_shape_yx=image_shape_yx,
+        )
+        for request in requests
+    )
+
+
 def _require_estimate_covers_image(
     window: ImageWindow,
     background_rms: BackgroundRmsTile,
@@ -271,6 +313,27 @@ def _write_source_filtering_mask(
         product_name="source-filtering-mask",
         tile=background_request.partition,
         values=accepted,
+    )
+
+
+def _write_source_filtering_masks(
+    requests: tuple[_MaskTileRequest, ...],
+    *,
+    source: _WindowReadable,
+    sink: ZarrProductSink,
+    config: SourceFinderConfig,
+    image_shape_yx: tuple[int, int],
+) -> tuple[ProductChunk, ...]:
+    """Publish one block of cells' accepted membership, cell by cell."""
+    return tuple(
+        _write_source_filtering_mask(
+            request,
+            source=source,
+            sink=sink,
+            config=config,
+            image_shape_yx=image_shape_yx,
+        )
+        for request in requests
     )
 
 
@@ -382,13 +445,17 @@ def run_detection_from_coarse_grids(  # noqa: PLR0913
         for partition in manifest.tiles
     )
     detect = partial(
-        _detect_and_write_background_rms,
+        _detect_and_write_cells,
         source=source,
         sink=sink,
         config=config.source_finder,
         image_shape_yx=manifest.image_shape_yx,
     )
-    tile_products = tuple(executor.map_batches(detect, requests))
+    tile_products = tuple(
+        product
+        for block in executor.map_batches(detect, _cell_blocks(requests))
+        for product in block
+    )
     summaries = tuple(result.summary for result in tile_products)
     reconciliation = reconcile_island_tiles(
         manifest,
@@ -404,13 +471,19 @@ def run_detection_from_coarse_grids(  # noqa: PLR0913
         )
     )
     write_mask = partial(
-        _write_source_filtering_mask,
+        _write_source_filtering_masks,
         source=source,
         sink=sink,
         config=config.source_finder,
         image_shape_yx=manifest.image_shape_yx,
     )
-    mask_chunks = tuple(executor.map_batches(write_mask, mask_requests))
+    mask_chunks = tuple(
+        chunk
+        for block in executor.map_batches(
+            write_mask, _cell_blocks(mask_requests)
+        )
+        for chunk in block
+    )
     product_chunks = (
         tuple(
             chunk

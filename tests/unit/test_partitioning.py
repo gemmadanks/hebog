@@ -37,6 +37,43 @@ def test_small_image_uses_one_tile_with_clipped_halo() -> None:
     assert pickle.loads(pickle.dumps(manifest)) == manifest
 
 
+@pytest.mark.parametrize(
+    ("shape_yx", "core_yx", "halo_yx", "origin_yx"),
+    [
+        ((3000, 3000), (128, 128), (0, 0), (0, 0)),
+        ((15402, 15402), (128, 128), (0, 0), (0, 0)),
+        ((15402, 14000), (2048, 2048), (41, 41), (0, 0)),
+        ((900, 700), (120, 100), (7, 3), (30, 45)),
+    ],
+)
+def test_a_manifest_pickles_as_its_geometry_and_round_trips_exactly(
+    shape_yx: tuple[int, int],
+    core_yx: tuple[int, int],
+    halo_yx: tuple[int, int],
+    origin_yx: tuple[int, int],
+) -> None:
+    """An executor task that carries a manifest pays for four pairs.
+
+    A manifest's tiles are the one canonical tiling of its geometry, so
+    they are rebuilt when it is unpickled rather than shipped: a manifest
+    of 14,641 128-pixel cells pickled to 848 KB, and Dask serializes it
+    with every task that carries it.
+    """
+    manifest = plan_image_partitions(
+        image_shape_yx=shape_yx,
+        tile_core_shape_yx=core_yx,
+        halo_yx=halo_yx,
+        partition_origin_yx=origin_yx,
+    )
+
+    payload = pickle.dumps(manifest)
+
+    assert len(payload) < 512
+    restored = pickle.loads(payload)
+    assert restored == manifest
+    assert restored.tiles == manifest.tiles
+
+
 def test_bounds_expansion_is_clipped_to_the_logical_image() -> None:
     """Fit context grows uniformly without crossing image edges."""
     bounds = ImageBounds(2, 5, 8, 12)

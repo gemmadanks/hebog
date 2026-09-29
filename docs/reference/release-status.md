@@ -31,15 +31,16 @@ evidence is measured. A serial run of the whole 15,402² LoTSS-DR3 mosaic 1312
 allocates at most 2.4 GiB and has used 3.2 to 4.0 GiB of resident memory.
 That peak still grows with the image beyond one tile, fastest above 10,000²,
 by a term not yet attributed, and bounding it is planned before much larger
-images are admitted. On a four-worker local Dask cluster the same image took
-about three times as long as the serial run, and the driver used up to
-5.9 GiB, on a shared machine. Separately, one declared limit remains: an
-object wider than a task's read budget is still reduced on the driver from
-its own pixels, so that memory grows with the object rather than the tile,
-by up to 186 bytes an object pixel. One connected object filling a
-15,402-pixel field would need about 44 GB on the driver. No object in the
-real LoTSS-DR3 fields measured comes near that; the widest measured case, a
-generated filament of 553,817 pixels, cost about 100 MB. The
+images are admitted. A four-worker local Dask cluster finishes the 10,000²
+anchor in 0.61 of the serial time with identical products; the whole mosaic
+has not been timed under Dask since that was repaired. Separately, one
+declared limit remains: an object wider than a task's read budget is still
+reduced on the driver from its own pixels, so that memory grows with the
+object rather than the tile, by up to 186 bytes an object pixel. One
+connected object filling a 15,402-pixel field would need about 44 GB on the
+driver. No object in the real LoTSS-DR3 fields measured comes near that; the
+widest measured case, a generated filament of 553,817 pixels, cost about
+100 MB. The
 [performance profile](performance-profile.md#what-scales-with-the-tile-and-what-with-the-image)
 has the figures.
 

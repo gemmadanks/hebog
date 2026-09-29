@@ -78,7 +78,12 @@ flowchart LR
 - **Storage carries pixels; the scheduler carries records.** Tasks read
   windows of the input and read or write Zarr chunks. Task arguments and
   results are small serializable records. No image-sized array is sent through
-  the scheduler or gathered on the driver.
+  the scheduler or gathered on the driver, and no task's arguments grow with
+  the image: Dask serializes a task's function with every task, so a partition
+  manifest pickles as the four pairs its tiles are planned from and is rebuilt
+  once per worker process. Before that rule, every 128-pixel background cell's
+  task carried a manifest of every cell, and at 10,000² the driver spent more
+  CPU on those tasks than the workers spent computing them.
 
 ## Tiles, cores and halos
 
