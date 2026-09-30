@@ -27126,3 +27126,13 @@ the per-worker placement finding.
   were removed on 27 September; `_persistent_window` in `stages/sources.py`
   still reads `valid-pixels` for every core scan, component batch and wide
   core, and every caller discards it, a small wasted read for task 23.
+
+## 2026-09-30 — M2: the 15,402 raise is merged
+
+- **Decision.** The maintainer merged task 10, the 15,402 raise, as pull
+  request 82 (`d282466`), its content identical to `4e12498b`. The release
+  that would carry it waits for task 36, the crowded-field refusal, under
+  the delivery policy. How the tier gate fits its budget, which task 10's
+  gate outgrew, is still to decide before task 11. Task 10 leaves the plan,
+  and `m2/dask-driver-diagnosis` is rebased onto `d282466` with its tree
+  unchanged.
