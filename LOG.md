@@ -27000,3 +27000,55 @@ the per-worker placement finding.
 - **Not measured.** The whole 15,402² mosaic under Dask since the repair,
   and runs with a scheduler outside the driver's process, which Rapthor's
   cluster would have.
+
+## 2026-09-29 — M2: what the traced peak holds as the image grows
+
+- **What this is.** The memory half of task 35's diagnosis, authorized by
+  the maintainer on 29 September: why the serial traced peak grew 2.4 bytes
+  for each pixel added from 3,000² to 10,000² and 6.8 from 10,000² to
+  15,402². On `m2/dask-driver-diagnosis`.
+- **A harness for it.** `scripts/benchmark/attribute_traced_peak.py` over
+  `hebog.validation.traced_attribution` traces one serial run and measures
+  every function of chosen modules, and every serial executor task, as a
+  nested call: `tracemalloc` keeps one peak, so each call saves its
+  caller's peak, resets it and folds its own back, giving every call its
+  inclusive peak and what the run held when it began. A task begins between
+  tasks, so the largest task entry inside a chosen pass is what that pass
+  keeps across tiles, and a snapshot there, reduced at once to its largest
+  Hebog call sites and never kept, names what holds it. Its overall peaks
+  match `just traced-peak` to about 1 MiB. Evidence is under
+  `benchmark-results/diagnostics/traced-attribution-20260929/`.
+- **The tile working set is flat.** A multiscale tile task allocates about
+  1,247 MiB of its own at 3,000², 10,000² and 15,402² alike, so what a task
+  holds is bounded by its tile.
+- **The peak is publication, above 3,000².** At 10,000² and 15,402² the
+  multiscale pass peaks at 1,540.7 and 2,431.4 MiB, above every task and
+  every reconciliation inside it (at most 1,488.7 and 1,697.6 MiB). The
+  remaining step is `ZarrProductSink.publish_generation`, which re-reads
+  and checksums every chunk in blocks of four tile rows across the whole
+  width, holding the read, its copy and each tile's contiguous copy. For
+  the multiscale store's 2,048-pixel tiles and `float64` products a block is
+  8,192 rows by the width. Publishing one such product alone traced
+  1,278 MiB at 10,000 wide and 1,942 MiB at 15,402 (2.0 times the block);
+  added to what the pass held then, 262 and 489 MiB, that is 1,540 and
+  2,431 MiB, the measured peaks. At 3,000² the block is 9 Mpx and stays
+  under the tile task.
+- **The rest is records kept across tiles.** What the multiscale tasks
+  begin holding grows 112, 262 and 489 MiB. At 10,000² a snapshot there
+  names about 120 MB of the 150 MB above 3,000²: per-label records of the
+  tile summaries, which keep every candidate island with no size cut
+  (`labelling.py`, about 50 MB), the multiscale rounds' per-tile island
+  summaries (about 25 MB), reconciled label mappings (`reconciliation.py`,
+  about 16 MB) and the background store's cached chunk records (about
+  13 MB). This grows about 1.7 bytes a pixel.
+- **Attribution.** Of the 891 MiB the peak grew from 10,000² to 15,402²,
+  publication's full-width read is 664 MiB (75%) and the records kept
+  across tiles 227 MiB (25%), which meets task 35's 80% criterion with
+  both causes named.
+- **Decision.** The maintainer chose on 30 September to repair the
+  publication read now and leave the kept records for later: bound each
+  validation read by pixels rather than by full-width tile rows. Expected
+  measurable change: the 15,402² traced peak from 2,432 MiB to about
+  1,700 MiB, what the tile task and the kept records then reach, with
+  byte-identical products. Stopping condition: the peak no longer depends
+  on publication, verified with `just traced-peak` at 10,000² and 15,402².

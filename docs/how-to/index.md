@@ -265,6 +265,24 @@ quick benchmark's. Records stay exploratory until a named envelope decision
 reviews them; reviewed traced evidence needs at least two repetitions whose
 peaks agree within that tolerance.
 
+To find where a peak lies and what it holds, attribute it:
+
+```console
+uv run python scripts/benchmark/attribute_traced_peak.py \
+  --input <image.fits> --settings '<finder JSON>' --result <attribution.json> \
+  --snapshot-within detect_multiscale_products --diagnostic-size-limit <side>
+```
+
+It traces one serial run and measures every public-path function, and every
+executor task, as a nested call, so each reports its inclusive peak and what
+the run already held when it began; `--wrap-module` adds another module's
+functions. A task begins between other tasks, so the largest task entry
+inside `--snapshot-within` is what that pass keeps across tiles, and a
+`tracemalloc` snapshot there names the call sites holding it. It is a
+diagnostic, not the gate: its own records add a little to the peak, and its
+tracebacks slow the run, by about three times with the default six frames.
+`--frames 1` is nearly as fast as the harness when call sites are not needed.
+
 ## Profile complete execution
 
 Profile before optimizing, to choose what to change. The profile splits one
