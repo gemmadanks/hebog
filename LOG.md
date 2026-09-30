@@ -27087,3 +27087,42 @@ the per-worker placement finding.
 - **What this leaves.** Task 35 leaves the plan: its diagnosis is done and
   both repairs the maintainer approved are made. The kept records and the
   background/RMS term are a risk row with mitigation before task 12.
+
+## 2026-09-30 — M2: a crowded field is refused before detection
+
+- **What this is.** A confirmed incorrect supported output whose record was
+  lost. It was found on 26 September and recorded in `6fe93384` on
+  `claude/vigorous-noyce-41ca6b`, the one commit of that branch that never
+  reached `main`; the rest of the branch merged as pull request 72. It was
+  found again on 30 September while that branch was checked before its
+  worktree was removed.
+- **Observed.** A synthetic 1,024² field is refused before detection:
+  `background/RMS validity differs from the image on tile
+  ImageBounds(y_start=0, y_stop=128, x_start=0, x_stop=128)`, raised by
+  `_require_estimate_covers_image` in `stages/detection.py`. The refusal
+  escapes `find_sources` as a bare `ValueError`, not a public
+  `SourceFinderError`, which is a second defect at the public boundary.
+- **Reproducer**, rebuilt on 30 September at `fadb022` because the
+  original script was not kept: the `quick-dense-field` record of
+  `config/datasets/quick-science-check.json` with no sources and the WCS
+  reference pixel at (512, 512); its noise from
+  `generate_synthetic_window` over the whole 1,024² window; Gaussians
+  centred on a grid of the given spacing starting half a spacing in, each
+  jittered by up to a third of the spacing, peak SNR log-uniform in [5, 300]
+  against the recipe's 1e-4 noise, 90% point sources of sigma 2.1233 ×
+  1.6986 pixels and 10% extended of major sigma 4 to 9 and minor from 2.5 to
+  the major, random position angle, stamped to six major sigma, drawn from
+  `numpy.random.default_rng(20260926)`; written as `float32` with
+  `synthetic_fits_header`, and run through the public finder at thresholds
+  5 and 3 with a minimum of 7 pixels. Spacings of 24 and 32 pixels (1,849
+  and 1,024 sources) both fail on the same tile. On 26 September the
+  original recipe (1,764 and 961 sources) failed the same way, while the
+  real SDC1 crowded cut-out, with 822 islands at 1,024², ran; whether the
+  estimator or the check is wrong is undecided.
+- **Status.** The plan's delivery policy makes a confirmed incorrect
+  supported output a release blocker, so it is task 36, due before the next
+  release is cut; releases 0.14.0 to 0.17.0 were cut while its record was
+  lost. The same commit's other follow-ups: the fit round's support patches
+  were removed on 27 September; `_persistent_window` in `stages/sources.py`
+  still reads `valid-pixels` for every core scan, component batch and wide
+  core, and every caller discards it, a small wasted read for task 23.
