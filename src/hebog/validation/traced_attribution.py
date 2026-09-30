@@ -247,19 +247,21 @@ def top_allocation_sites(
     Sites are grouped by their innermost ``frames`` frames inside the
     ``hebog`` package where it has any, so a site names the Hebog code
     that made the allocation rather than the library that performed it.
+    A frame is named by its file name alone, whichever separator the
+    platform's paths use, so a report carries no machine's directories.
     """
     statistics = snapshot.statistics("traceback")
     sites: dict[tuple[str, ...], list[int]] = {}
     for statistic in statistics:
-        frames_in_hebog = [
-            frame
+        named = [
+            (frame.filename.replace("\\", "/"), frame.lineno)
             for frame in statistic.traceback
-            if "/hebog/" in frame.filename.replace("\\", "/")
         ]
-        chosen = (frames_in_hebog or list(statistic.traceback))[-frames:]
+        in_hebog = [frame for frame in named if "/hebog/" in frame[0]]
+        chosen = (in_hebog or named)[-frames:]
         key = tuple(
-            f"{frame.filename.rsplit('/', 1)[-1]}:{frame.lineno}"
-            for frame in chosen
+            f"{filename.rsplit('/', 1)[-1]}:{lineno}"
+            for filename, lineno in chosen
         )
         totals = sites.setdefault(key, [0, 0])
         totals[0] += statistic.size

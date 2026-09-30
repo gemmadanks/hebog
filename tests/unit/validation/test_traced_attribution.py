@@ -14,6 +14,7 @@ from hebog.executors import SerialExecutor, serial
 from hebog.validation.traced_attribution import (
     TracedPeakTracker,
     serial_tasks_measured,
+    top_allocation_sites,
     wrap_module_functions,
 )
 
@@ -121,6 +122,30 @@ def test_the_largest_entry_below_a_prefix_names_what_it_held() -> None:
     largest = tracker.sites_at_largest_entry[0]
     assert largest["bytes"] >= 4 * _MEBIBYTE
     assert largest["site"][0].startswith("test_traced_attribution.py:")
+
+
+def test_a_call_site_names_its_file_alone_on_any_platform() -> None:
+    """A Windows traceback names its file as a POSIX one does.
+
+    ``tracemalloc`` reports each platform's own paths; a site keeps only the
+    file name of the innermost Hebog frame, so a report never carries a
+    machine's directories and reads the same on every CI lane.
+    """
+    windows = (r"C:\Users\runner\hebog\src\hebog\stages\multiscale.py", 12)
+    library = (r"C:\Python\Lib\site-packages\numpy\_core\numeric.py", 5)
+    posix = ("/home/runner/hebog/src/hebog/io/zarr.py", 7)
+    # Raw traces list their frames from the most recent to the oldest.
+    snapshot = tracemalloc.Snapshot(
+        [(0, 4096, (library, windows), 2), (0, 1024, (posix,), 1)],
+        2,
+    )
+
+    sites = top_allocation_sites(snapshot, limit=5, frames=1)
+
+    assert sites == [
+        {"site": ["multiscale.py:12"], "bytes": 4096, "count": 1},
+        {"site": ["zarr.py:7"], "bytes": 1024, "count": 1},
+    ]
 
 
 @pytest.mark.usefixtures("tracing")
