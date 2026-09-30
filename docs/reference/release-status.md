@@ -28,10 +28,10 @@ image larger than 2,048 pixels on either side is reconciled across several
 tiles rather than held as one, and the driver holds no image-sized plane. The
 size limit rises one tier at a time, as each tier's memory and invariance
 evidence is measured. A serial run of the whole 15,402² LoTSS-DR3 mosaic 1312
-allocates at most 2.4 GiB and has used 3.2 to 4.0 GiB of resident memory.
-That peak still grows with the image beyond one tile, fastest above 10,000²,
-by a term not yet attributed, and bounding it is planned before much larger
-images are admitted. A four-worker local Dask cluster finishes the 10,000²
+allocates at most 1.7 GiB. That peak is one tile's working set plus records
+the passes keep from every tile, which still grow about 1.7 bytes a pixel;
+bounding them, and an unattributed term in background and RMS, is planned
+before much larger images are admitted. A four-worker local Dask cluster finishes the 10,000²
 anchor in 0.61 of the serial time with identical products; the whole mosaic
 has not been timed under Dask since that was repaired. Separately, one
 declared limit remains: an object wider than a task's read budget is still

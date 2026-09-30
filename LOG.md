@@ -27052,3 +27052,38 @@ the per-worker placement finding.
   1,700 MiB, what the tile task and the kept records then reach, with
   byte-identical products. Stopping condition: the peak no longer depends
   on publication, verified with `just traced-peak` at 10,000² and 15,402².
+
+## 2026-09-30 — M2: generation publication reads a bounded block
+
+- **What this is.** Task 35's memory repair, the one the maintainer chose
+  on 30 September after the diagnosis above; the records kept across tiles
+  are left for later. On `m2/dask-driver-diagnosis`.
+- **What changed.** `ZarrProductSink.publish_generation` still re-reads and
+  checksums every chunk, but in blocks of at most one 2,048-pixel core's
+  pixels (4,194,304) instead of four full-width tile rows: whole tile rows
+  while they fit, otherwise runs of tiles within one row, so each read is
+  one rectangle of chunks. A 2,048-pixel store now checks one chunk a
+  read; a 128-pixel store two full tile rows a read at 15,402².
+- **Measured.** Publishing one `float64` product of 8,192 rows traced
+  64.0 MiB at 3,000, 10,000 and 15,402 pixels wide, against 444, 1,278 and
+  1,942 MiB before. `just traced-peak`, one repetition each
+  (`m2-publication-bound-10000` and `m2-publication-bound-15402`, the peak
+  being deterministic): 1,489.2 MiB at 10,000² and 1,698.2 MiB at 15,402²,
+  against 1,541.4 and 2,432.0 MiB, as predicted: the peak is now the
+  multiscale tile task, its flat 1,247 MiB working set on top of what the
+  pass keeps, 242 and 451 MiB. Traced peak RSS 2,445 and 3,004 MiB. The
+  peak grows about 1.7 bytes a pixel above one tile (1.8 from 3,000² to
+  10,000², 1.6 from 10,000² to 15,402²), which projects to about 2.1 GiB at
+  22,500² and 4.3 GiB at 45,000². Background/RMS, measured before this
+  repair at 274, 545 and 962 MiB, would overtake it near 27,000² at its
+  slope; it is unattributed and is the next measurement before task 12.
+- **Checks.** A test replacing the four-row contract asserts that every
+  validation read is one rectangle of consecutive chunks within a pixel
+  budget and that the reads cover the image once, at budgets giving two
+  rows, one row and runs within a row; it failed against the four-row read
+  for that reason. The quick science check (`m2-publication-bound` against
+  `m2-dask-repair`) reports no regression; coverage 97% over 2,828 portable
+  tests, the new code covered.
+- **What this leaves.** Task 35 leaves the plan: its diagnosis is done and
+  both repairs the maintainer approved are made. The kept records and the
+  background/RMS term are a risk row with mitigation before task 12.

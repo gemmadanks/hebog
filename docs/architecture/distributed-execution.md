@@ -17,7 +17,8 @@ astronomy background. The decisions behind it are recorded in
     invariance have been measured, and one declared driver term, an object
     wider than a task's read budget, still scales with that object rather
     than the tile (ADR-008). The traced memory peak also still grows with
-    the image beyond one tile, by a term not yet attributed (see the
+    the image beyond one tile, by the records the passes keep from every
+    tile (see the
     [performance profile](../reference/performance-profile.md#what-a-run-allocates)).
     Background and RMS estimation always tiles, on 128-pixel cores;
     every other stage uses 2,048-pixel cores, so an image up to 2,048 pixels

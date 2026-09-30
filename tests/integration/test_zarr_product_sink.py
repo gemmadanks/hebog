@@ -28,6 +28,7 @@ from hebog.data_models import (
     PartitionManifest,
     ProductChunk,
     ProductGenerationManifest,
+    TilePartition,
 )
 from hebog.io import (
     InvalidProductChunkError,
@@ -36,6 +37,7 @@ from hebog.io import (
     ProductGenerationConflictError,
     ZarrProductSink,
 )
+from hebog.io import zarr as product_store
 
 pytestmark = pytest.mark.integration
 
@@ -898,11 +900,47 @@ def test_generation_validation_rejects_store_corruption_before_publish(
         sink.read_generation()
 
 
-def test_generation_validation_reads_at_most_four_canonical_tile_rows(
+@pytest.mark.parametrize(
+    ("budget_pixels", "expected_blocks"),
+    [
+        (54, [(0, 6), (6, 12), (12, 15)]),
+        (27, [(0, 3), (3, 6), (6, 9), (9, 12), (12, 15)]),
+        (
+            18,
+            [
+                (0, 2),
+                (2, 3),
+                (3, 5),
+                (5, 6),
+                (6, 8),
+                (8, 9),
+                (9, 11),
+                (11, 12),
+                (12, 14),
+                (14, 15),
+            ],
+        ),
+    ],
+)
+def test_generation_validation_reads_are_bounded_by_pixels(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    budget_pixels: int,
+    expected_blocks: list[tuple[int, int]],
 ) -> None:
-    """Grouped validation reduces syncs without approaching a full plane."""
+    """Publication re-reads every chunk in blocks the image width cannot grow.
+
+    Four full-width rows of 2,048-pixel tiles held 1.9 GiB at 15,402 pixels
+    a side. A block now takes whole tile rows while they fit the budget, and
+    otherwise a run of tiles within one row, so every read is a rectangle
+    of consecutive chunks and none exceeds the budget.
+    """
+    monkeypatch.setattr(
+        product_store,
+        "_GENERATION_VALIDATION_BLOCK_PIXELS",
+        budget_pixels,
+        raising=False,
+    )
     manifest = PartitionManifest.create(
         image_shape_yx=(15, 9),
         tile_core_shape_yx=(3, 3),
@@ -911,18 +949,27 @@ def test_generation_validation_reads_at_most_four_canonical_tile_rows(
     sink = _sink(tmp_path / "run.zarr", manifest)
     records = _write_product(sink, manifest, "rms")
     original = sink._read_product_block
-    block_row_counts: list[int] = []
+    blocks: list[tuple[int, int]] = []
+    areas: list[int] = []
 
     def record_block(**kwargs: Any) -> tuple[npt.NDArray[np.generic], ...]:
-        tiles = cast(tuple[Any, ...], kwargs["tiles"])
-        block_row_counts.append(len({tile.tile_y_index for tile in tiles}))
+        tiles = cast(tuple[TilePartition, ...], kwargs["tiles"])
+        first = manifest.tiles.index(tiles[0])
+        blocks.append((first, first + len(tiles)))
+        top_left, bottom_right = tiles[0].core_bounds, tiles[-1].core_bounds
+        areas.append(
+            (bottom_right.y_stop - top_left.y_start)
+            * (bottom_right.x_stop - top_left.x_start)
+        )
         return original(**kwargs)
 
     monkeypatch.setattr(sink, "_read_product_block", record_block)
 
     sink.publish_generation(product_names=("rms",), chunks=records)
 
-    assert block_row_counts == [4, 1]
+    assert blocks == expected_blocks
+    assert max(areas) <= budget_pixels
+    assert sum(areas) == 15 * 9
 
 
 def test_completion_marker_is_immutable_and_run_scoped(tmp_path: Path) -> None:
