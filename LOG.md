@@ -27136,3 +27136,31 @@ the per-worker placement finding.
   gate outgrew, is still to decide before task 11. Task 10 leaves the plan,
   and `m2/dask-driver-diagnosis` is rebased onto `d282466` with its tree
   unchanged.
+
+## 2026-09-30 — M2: pull request 84 review disposition
+
+- **Scope.** Copilot's review of `4ac7e044`, task 35's Dask and
+  publication repairs; Greptile did not review (trial ended). The Windows
+  portable job failed on the push and pull-request runs.
+- **Windows paths (high).** `top_allocation_sites` named a frame's file by
+  splitting on `/` only, so on Windows a site kept the whole backslash path:
+  the unit test expecting a bare file name failed there, and a report would
+  have carried the machine's directories. Separators are normalized once
+  and used both to find Hebog frames and to name them (`08b98579`). A new
+  test builds a snapshot with Windows and POSIX paths and a library frame,
+  so it fails on every platform without the fix; it failed on macOS first.
+  The job log needs a GitHub sign-in, so the failing test was identified
+  from the review and by checking each new test's platform assumptions:
+  the profile worker's tests skip without the POSIX `resource` module and
+  the others do not depend on the platform.
+- **Single-repetition figures (two, low).** The 10,000² and 15,402² traced
+  peaks that the profile, the release status and the plan quoted came from
+  one repetition each, while reviewed traced evidence needs two that
+  agree. Rather than weaken the statements, both were measured again at
+  `08b98579` with two repetitions: 1,489.18 MiB twice at 10,000², agreeing
+  to 3.1 KiB (`m2-publication-bound-10000-reproduced`), and 1,698.19 MiB
+  twice at 15,402², agreeing to 4.3 KiB
+  (`m2-publication-bound-15402-reproduced`), traced peak RSS 2,325 to
+  3,587 MiB, 1 h 44 min to 1 h 51 min a repetition at 15,402². The documents
+  cite these records and say the figures are reproduced; like all traced
+  evidence they stay exploratory until an envelope decision reviews them.

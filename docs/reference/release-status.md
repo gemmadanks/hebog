@@ -28,19 +28,19 @@ image larger than 2,048 pixels on either side is reconciled across several
 tiles rather than held as one, and the driver holds no image-sized plane. The
 size limit rises one tier at a time, as each tier's memory and invariance
 evidence is measured. A serial run of the whole 15,402² LoTSS-DR3 mosaic 1312
-allocates at most 1.7 GiB. That peak is one tile's working set plus records
-the passes keep from every tile, which still grow about 1.7 bytes a pixel;
-bounding them, and an unattributed term in background and RMS, is planned
-before much larger images are admitted. A four-worker local Dask cluster finishes the 10,000²
-anchor in 0.61 of the serial time with identical products; the whole mosaic
-has not been timed under Dask since that was repaired. Separately, one
-declared limit remains: an object wider than a task's read budget is still
-reduced on the driver from its own pixels, so that memory grows with the
-object rather than the tile, by up to 186 bytes an object pixel. One
-connected object filling a 15,402-pixel field would need about 44 GB on the
-driver. No object in the real LoTSS-DR3 fields measured comes near that; the
-widest measured case, a generated filament of 553,817 pixels, cost about
-100 MB. The
+allocates at most 1.7 GiB, traced in two agreeing repetitions. That peak is
+one tile's working set plus records the passes keep from every tile, which
+still grow about 1.7 bytes a pixel; bounding them, and an unattributed term
+in background and RMS, is planned before much larger images are admitted. A
+four-worker local Dask cluster finishes the 10,000² anchor in 0.61 of the
+serial time with identical products; the whole mosaic has not been timed
+under Dask since that was repaired. Separately, one declared limit remains:
+an object wider than a task's read budget is still reduced on the driver
+from its own pixels, so that memory grows with the object rather than the
+tile, by up to 186 bytes an object pixel. One connected object filling a
+15,402-pixel field would need about 44 GB on the driver. No object in the
+real LoTSS-DR3 fields measured comes near that; the widest measured case, a
+generated filament of 553,817 pixels, cost about 100 MB. The
 [performance profile](performance-profile.md#what-scales-with-the-tile-and-what-with-the-image)
 has the figures.
 

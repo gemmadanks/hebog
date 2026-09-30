@@ -294,9 +294,10 @@ stage outside background and RMS runs as one tile, so tile-bounded state is
 image-bounded state there, and at 3,000² the same stages run four tiles. The
 generated 10,000² row was measured on 27 September 2026 at `v0.14.1`
 (`m2-tier-10000-wide`, one repetition). The LoTSS 10,000² and 15,402² rows
-were measured on 30 September 2026 (`m2-publication-bound-10000` and
-`m2-publication-bound-15402`, one repetition each, the peak being
-deterministic), after generation publication stopped reading four
+were measured on 30 September 2026
+(`m2-publication-bound-10000-reproduced` and
+`m2-publication-bound-15402-reproduced`, two repetitions each agreeing to
+3.1 and 4.3 KiB), after generation publication stopped reading four
 full-width tile rows at once to check its chunks. Before, the same inputs
 peaked at 1,541.4 and 2,432.0 MiB (reproduced), because that read held about
 1.3 and 1.9 GiB on top of the pass. Now the peak above one tile is one
