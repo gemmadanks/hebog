@@ -146,6 +146,23 @@
     },
     {
       "case": {
+        "case_id": "lotss-dr3-1312-15402",
+        "image": "benchmark-results/quick-benchmark/cutouts/lotss-dr3-1312-15402/image.fits",
+        "kind": "image",
+        "remote_source": {
+          "url": "https://lofar-surveys.org/public/DR3/healpix_mosaics/1312/mosaic.fits",
+          "window": {
+            "size": 15402,
+            "x_start": 0,
+            "y_start": 0
+          }
+        }
+      },
+      "tier": "large",
+      "workload_class": "dense-or-extended"
+    },
+    {
+      "case": {
         "case_id": "wide-objects-10000",
         "dataset_id": "quick-wide-objects-10000",
         "kind": "generated"

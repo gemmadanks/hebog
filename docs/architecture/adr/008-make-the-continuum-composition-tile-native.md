@@ -149,7 +149,11 @@ before the next stage can decide anything.
    it was built from and is rebuilt on the worker, because Astropy
    re-serializes one through a header it reformats. One exception, bounded
    by the image rather than the tile, is declared under *Objects wider than
-   the read budget*.
+   the read budget*. The serial traced peak still grows with the image
+   beyond one tile, most inside the multiscale detection pass (6.8 bytes for
+   each pixel added between 10,000² and 15,402², measured 29 September
+   2026). Until that growth is attributed it is not known whether it breaks
+   this rule; the plan's risks carry it.
 5. **Reductions are hierarchical and order-independent.** Merge operations are
    associative and commutative, or are applied to a canonically sorted input.
 6. **Read once per round.** A task reads its window once and derives every
@@ -378,10 +382,11 @@ the driver holds the object's own pixels, not its window, for every wide
 object of the round at once, so that memory is bounded by the image and not
 the tile. The catalogue-row round costs the most, 186 bytes an object pixel,
 which for a segment filling the field is about 1.7 GB at 3,000², 19 GB at
-10,000² and 1.9 TB at 100,000². It is an explicit limit on the envelope, and
-the plan's risks carry its removal. The one measurement so far is well below
-those figures: the generated 10,000² case's diagonal filament, 553,817
-pixels, cost the driver about 100 MB (`LOG.md`, 27 September 2026), and a
+10,000², 44 GB at 15,402² and 1.9 TB at 100,000². It is an explicit limit on
+the envelope, and the plan's risks carry its removal. The one measurement so
+far is well below those figures: the generated 10,000² case's diagonal
+filament, 553,817 pixels, cost the driver about 100 MB (`LOG.md`,
+27 September 2026), and a
 smooth object wider than the background box is absorbed by the background
 estimate before it can reach the driver. That is a measurement of one
 object, not a bound: the rounds gather every pixel of every wide segment

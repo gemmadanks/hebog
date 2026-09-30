@@ -32,10 +32,10 @@ profile ranks costs; only the quick benchmark establishes a speedup, and only
 
 !!! note "Sizes above the public envelope"
 
-    `find_sources` refuses an image wider than 10,000 pixels with
+    `find_sources` refuses an image wider than 15,402 pixels with
     `SourceFinderImageTooLargeError`. The profiler, the quick benchmark and
     the traced-peak harness raise that limit deliberately so the next tier
-    can be measured before it is admitted. A figure above 10,000 pixels on
+    can be measured before it is admitted. A figure above 15,402 pixels on
     this page is a measurement, not a supported size; the plan's scalability
     row states what is supported.
 
@@ -111,7 +111,7 @@ the envelope admitted before 22 September 2026 was one tile, so a profile
 inside it could not tell tile-bounded state from image-bounded state: a core
 and a plane were the same array. The ladder therefore carries a 4,096-pixel
 pair, the smallest generated images holding more than one core. The
-envelope now reaches 10,000, which is 25.
+envelope now reaches 15,402, which is 64.
 
 | case | megapixels | peak RSS | MiB per megapixel |
 | --- | --- | --- | --- |
@@ -132,8 +132,9 @@ image-shaped arrays reachable from them. There are **none**. The count was
 signal in `float64`, which would have been 0.41 GiB at 3,000², 4.6 GiB at
 10,000² and 10.8 GiB at LoTSS-DR3 15,402² against 18 GiB of
 development-machine memory. No plane outside a tile scales with the image
-now, so what is left to measure is the tile working set, which the next
-envelope tier reports.
+now, yet the traced peak still grows with the image beyond one tile: by 6.8
+bytes for each pixel added between 10,000² and 15,402².
+[What a run allocates](#what-a-run-allocates) has the figures.
 
 One driver term is still bounded by the image rather than the tile. It is a
 declared limit, not part of that count. An object wider than the owner read
@@ -145,7 +146,8 @@ window's, bit for bit. Measured with `tracemalloc` on a synthetic
 island row, 121 for a deferred parent's component records and 186 for a
 catalogue row. Each is linear in the object's pixels and no segment's size
 is capped, so a segment filling the field would put about 1.7 GB on the
-driver at 3,000², 19 GB at 10,000² and 1.9 TB at 100,000². One traced case
+driver at 3,000², 19 GB at 10,000², 44 GB at 15,402² and 1.9 TB at
+100,000². One traced case
 takes that path: the generated `wide-objects-10000` image, whose diagonal
 filament of 553,817 pixels cost the driver about 100 MB in the
 catalogue-row round, less than the multiscale stage's peak, so its traced
@@ -274,30 +276,45 @@ differs:
 | LoTSS-DR3 dense | 3,000 | 1,334.6 MiB | 1,351.7 MiB | 828 |
 | LoTSS-DR3 dense | 10,000 | 1,541.3 MiB | not admitted | 9,259 |
 | generated wide objects | 10,000 | 1,447.7 MiB | not admitted | 10 |
+| LoTSS-DR3 whole mosaic | 15,402 | 2,432.0 MiB | not admitted | 20,661 |
 
 The process peak fell inside the `find_sources` call in every case, so the
 first two spans coincide. Three things in the table matter more than the exact
 figures.
 
-**Image size governs the peak, not source count.** At 1,024² the crowded SDC1
-field carries 14 times the components of the generated dense field for 2.3 MiB
-more. What grows with the image is the planes; what grows with the catalogue is
-bounded.
+**Within one tile, image size governs the peak, not source count.** At
+1,024² the crowded SDC1 field carries 14 times the components of the
+generated dense field for 2.3 MiB more. Above one tile the two have not been
+separated, because the tiers that add area also add sources.
 
-**The peak crosses the tile boundary almost flat, and then rises slowly.**
-From 1,024² to 2,048² it triples; from 2,048² to 3,000² it adds 1.7%, although
-the area more than doubles. 2,048² is the last size every stage outside
-background and RMS runs as one tile, so tile-bounded state is image-bounded
-state there, and at 3,000² the same stages run four tiles. The 10,000² rows,
-measured on 27 September 2026 at `v0.14.1` (`m2-tier-10000-lotss`, two
-repetitions agreeing to 0.1 MiB, and `m2-tier-10000-wide`, one repetition),
-add 15% for eleven times the area and, across the two 10,000² cases, 94 MiB
-for 7,124 more sources. Fitting the three points above one tile gives about
-1.4 bytes a pixel and 13 KiB a source still growing at the peak, with the
-rest bounded by the tile. Those two terms are small at every local tier
-(about 2.7 GiB from pixels at 45,000²) and are what the M5 planner bounds
-must account for at 100,000² and at survey source counts; an empty 10,000²
-case would separate them exactly.
+**The peak crosses the tile boundary almost flat, then grows with the
+image.** From 1,024² to 2,048² it triples; from 2,048² to 3,000² it adds
+1.7%, although the area more than doubles. 2,048² is the last size every
+stage outside background and RMS runs as one tile, so tile-bounded state is
+image-bounded state there, and at 3,000² the same stages run four tiles. The
+10,000² rows, measured on 27 September 2026 at `v0.14.1`
+(`m2-tier-10000-lotss`, two repetitions agreeing to 0.1 MiB, and
+`m2-tier-10000-wide`, one repetition), add 15% for eleven times the area
+and, across the two 10,000² cases, 94 MiB for 7,124 more sources. The
+15,402² row, measured on 28 and 29 September 2026 at the 15,402 raise
+(`m2-tier-15402`, two repetitions agreeing to 12.6 KiB), adds 58% for 2.4
+times the area; the 10,000² anchor traced again on the same tree gave
+1,541.4 MiB (`m2-tier-15402-control-10000`), so the growth comes with the
+image, not with code changed since `v0.14.1`. Across the three LoTSS
+rows the peak grows 2.4 bytes for each pixel added from 3,000² to 10,000²
+and 6.8 from 10,000² to 15,402², so the earlier fit of 1.4 bytes a pixel and
+13 KiB a source understated it, most of all above 10,000². At the later
+slope the peak would be near 4.1 GiB at 22,500² and 13.7 GiB at 45,000²,
+where the 45,000² demonstration would not fit in 18 GiB.
+
+A diagnostic, not this harness, recorded `tracemalloc`'s peak inside each
+public pass (`LOG.md`, 29 September 2026). At all three sizes the peak falls
+in the multiscale detection pass, which starts from 95 to 134 MiB, so the
+growth is held inside that pass; background and RMS, which run first and
+peak lower, also grow with the image. Neither holds an image-shaped array,
+and what does grow is not yet attributed: in a serial run tile tasks execute
+in the driver process, so both the records gathered from every tile and
+anything a task builds at the scale of the whole image are candidates.
 
 **The import floor is fixed.** It is 90.4 MiB in every case from 512² to
 3,000², in both runs, so it is 40% of a 512² run and 7% of a 3,000² one. A tracer started
@@ -312,11 +329,12 @@ after the imports cannot see that floor and reports a peak lower by its size.
     what Hebog demanded. Quote it as a range, and never gate a change on it.
 
     The traced peak is what a scaling claim or a tier gate uses. Each figure
-    above repeated across its two runs to between 0.2 and 6.9 KiB — not to the
-    byte, because the strings, paths and metadata of one run allocate slightly
-    differently in the next, which is why repetitions count as agreeing within
-    a tenth of a mebibyte. Traced evidence records peak RSS beside the peak,
-    but tracing inflates it too, so read it only as an envelope.
+    above repeated across its two runs to between 0.2 and 12.6 KiB — not to
+    the byte, because the strings, paths and metadata of one run allocate
+    slightly differently in the next, which is why repetitions count as
+    agreeing within a tenth of a mebibyte. Traced evidence records peak RSS
+    beside the peak, but tracing inflates it too, so read it only as an
+    envelope.
 
 !!! warning "Quote only what `just traced-peak` measured"
 
@@ -332,9 +350,12 @@ after the imports cannot see that floor and reports a peak lower by its size.
 !!! warning "Do not extrapolate from inside the envelope"
 
     Fitting the slope below 2,048 pixels gives about 350 MiB per megapixel
-    and predicts 83 GB at LoTSS-DR3 15,402². That is five times too high,
-    because in that regime the tile grows with the image. The slope above
-    one tile predicts about 16 GB there and 32 GB at 22,500².
+    and predicts 83 GB at LoTSS-DR3 15,402², because in that regime the tile
+    grows with the image; the resident-memory slope just above one tile
+    predicted about 16 GB. The whole mosaic measured 2.4 GiB traced and
+    3.2 to 4.0 GiB resident. Project only from traced peaks across admitted
+    tiers, and treat a linear projection as a floor: the slope rose from 2.4
+    to 6.8 bytes a pixel between the last two.
 
 ## Cost model
 

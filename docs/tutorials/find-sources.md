@@ -19,7 +19,7 @@ Hebog accepts one two-dimensional FITS image. The image needs:
   stated [so that it has one reading](../reference/input-header-contract.md#rotation);
 - a restoring beam: `BMAJ`, `BMIN` and `BPA`;
 - a reference frequency: `RESTFRQ`, `RESTFREQ` or a frequency axis; and
-- at most 10,000 pixels on each side. Cut out a region of a larger image, for
+- at most 15,402 pixels on each side. Cut out a region of a larger image, for
   example with `astropy.nddata.Cutout2D`.
 
 The unit, beam and frequency may instead be supplied with the request when

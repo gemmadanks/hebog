@@ -72,10 +72,15 @@ with Client("tcp://scheduler:8786") as client:
 
 Hebog never starts a cluster for you. On a multi-node cluster, the image and
 the parent of the output directory must be on storage that every worker sees
-at the same absolute path. Today's limit is 10,000 pixels per side. Background
+at the same absolute path. Today's limit is 15,402 pixels per side. Background
 and RMS estimation tiles at every size, but every other stage uses 2,048-pixel
 cores, so an image up to 2,048 pixels gives those stages a single tile and
-little to parallelise; above that they tile too.
+little to parallelise; above that they tile too. Tiling is not yet speed: on
+the development machine a four-worker local Dask cluster took about three
+times the serial executor's time on the whole 15,402² LoTSS-DR3 mosaic
+1312, most of it in background and RMS estimation, which kept one worker
+busy at a time (a shared machine, so an indication rather than a
+benchmark).
 [Integrate Hebog into a pipeline](integrate-into-a-pipeline.md) has the
 details.
 

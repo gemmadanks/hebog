@@ -12,15 +12,18 @@ astronomy background. The decisions behind it are recorded in
 !!! note "Current status"
     Every scientific step already runs as tiled tasks through an executor and
     exchanges image planes through Zarr, and the driver holds no image-sized
-    plane. The public API limits images to 10,000 pixels per side: each
+    plane. The public API limits images to 15,402 pixels per side: each
     larger tier is admitted only once its traced memory peak and tiled
     invariance have been measured, and one declared driver term, an object
     wider than a task's read budget, still scales with that object rather
-    than the tile (ADR-008). Background and RMS estimation always tiles, on
-    128-pixel cores;
+    than the tile (ADR-008). The traced memory peak also still grows with
+    the image beyond one tile, by a term not yet attributed (see the
+    [performance profile](../reference/performance-profile.md#what-a-run-allocates)).
+    Background and RMS estimation always tiles, on 128-pixel cores;
     every other stage uses 2,048-pixel cores, so an image up to 2,048 pixels
     is one tile there, 3,000 is the first size that reconciles those stages
-    across tiles, and 10,000 is a five-by-five grid of them. The design target is 100,000 × 100,000 pixels
+    across tiles, 10,000 is a five-by-five grid of them and 15,402 an
+    eight-by-eight grid. The design target is 100,000 × 100,000 pixels
     on hundreds of nodes; scale beyond one machine has not been demonstrated
     yet.
 
@@ -235,7 +238,7 @@ path.
 
 | Guarantee | Level | Evidence |
 | --- | --- | --- |
-| Labels, masks, identifiers, catalogue membership and ordering do not depend on tile shape, partition origin, worker count, task order or retries | exact | contract and partition-invariance tests, including sources placed on tile edges and corners, and the complete public product set from one tile against the five-by-five grid a 10,000-pixel image runs on |
+| Labels, masks, identifiers, catalogue membership and ordering do not depend on tile shape, partition origin, worker count, task order or retries | exact | contract and partition-invariance tests, including sources placed on tile edges and corners, and the complete public product set of an analytic image from one tile against an eight-by-eight grid, the most a 15,402-pixel image runs on, on an image whose last row of tiles is narrower than a filter halo and whose last column ends on a core edge |
 | Continuous filter responses agree across tilings | within 2 × 10⁻¹³ | multiscale partition-equivalence tests, with knife-edge threshold cases |
 | Serial, thread and Dask execution publish the same products | byte-identical scientific products | the shared executor contract suite |
 | A failed run leaves no partial output | — | write-then-rename publication; the run can be retried with the same request |
