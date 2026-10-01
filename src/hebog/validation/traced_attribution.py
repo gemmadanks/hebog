@@ -257,7 +257,13 @@ def top_allocation_sites(
             (frame.filename.replace("\\", "/"), frame.lineno)
             for frame in statistic.traceback
         ]
-        in_hebog = [frame for frame in named if "/hebog/" in frame[0]]
+        in_hebog = [
+            frame
+            for frame in named
+            if "/src/hebog/" in frame[0]
+            or "/site-packages/hebog/" in frame[0]
+            or "/dist-packages/hebog/" in frame[0]
+        ]
         chosen = (in_hebog or named)[-frames:]
         key = tuple(
             f"{filename.rsplit('/', 1)[-1]}:{lineno}"
