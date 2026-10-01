@@ -49,14 +49,15 @@ from hebog.validation.quick_benchmark import (
     SINGLE_THREAD_ENVIRONMENT,
     BenchmarkCase,
     BenchmarkTier,
+    CheckoutIdentity,
     QuickBenchmarkConfiguration,
+    checkout_identity,
     development_dataset,
     load_quick_benchmark_configuration,
     local_resources,
     machine_identity,
     physical_memory_bytes,
     run_measured_process,
-    source_tree_sha256,
     tier_cases,
     worker_environment,
 )
@@ -125,10 +126,11 @@ def _git(*arguments: str) -> str:
     ).stdout.strip()
 
 
-def _default_label() -> str:
-    dirty = "-dirty" if _git("status", "--porcelain") else ""
+def _default_label(checkout: CheckoutIdentity) -> str:
+    commit = _git("rev-parse", "--short", checkout.commit_sha)
+    dirty = "-dirty" if checkout.worktree_dirty else ""
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-    return f"{_git('rev-parse', '--short', 'HEAD')}{dirty}-{stamp}"
+    return f"{commit}{dirty}-{stamp}"
 
 
 def _shape_yx(prepared: PreparedCase) -> tuple[int, int]:
@@ -378,7 +380,18 @@ def main() -> int:
         raise SystemExit(
             f"unknown case IDs for tier {tier}: {sorted(unknown)}"
         )
-    label = args.label or _default_label()
+    # A run can outlast the change it measures, and committing that change
+    # moves HEAD and cleans the tree, so the checkout is identified here,
+    # before any case runs, and only that identity names the run.
+    checkout = checkout_identity(_ROOT)
+    subject = SoftwareIdentity(
+        name="hebog",
+        version=hebog.__version__,
+        commit_sha=checkout.commit_sha,
+        source_tree_sha256=checkout.source_tree_sha256,
+        dependency_inventory_sha256=dependency_inventory_sha256(),
+    )
+    label = args.label or _default_label(checkout)
     run_root = args.output_root.resolve() / "runs" / label
     if run_root.exists():
         raise SystemExit(f"run directory already exists: {run_root}")
@@ -388,13 +401,6 @@ def main() -> int:
             "machine": machine,
             "thread_environment": dict(SINGLE_THREAD_ENVIRONMENT),
         }
-    )
-    subject = SoftwareIdentity(
-        name="hebog",
-        version=hebog.__version__,
-        commit_sha=_git("rev-parse", "HEAD"),
-        source_tree_sha256=source_tree_sha256(_ROOT / "src/hebog"),
-        dependency_inventory_sha256=dependency_inventory_sha256(),
     )
     # Every input is ready before any case is traced, so a missing one fails
     # the run before it spends traced work that no report would then record.
@@ -431,9 +437,9 @@ def main() -> int:
         "label": label,
         "created_at": datetime.now(UTC).isoformat(),
         "hebog_version": hebog.__version__,
-        "commit_sha": subject.commit_sha,
-        "worktree_dirty": bool(_git("status", "--porcelain")),
-        "source_tree_sha256": subject.source_tree_sha256,
+        "commit_sha": checkout.commit_sha,
+        "worktree_dirty": checkout.worktree_dirty,
+        "source_tree_sha256": checkout.source_tree_sha256,
         "configuration_sha256": file_sha256(args.configuration),
         "machine": machine,
         "repetitions": args.repetitions,

@@ -551,3 +551,74 @@ def source_tree_sha256(package_root: Path) -> str:
         digest.update(path.read_bytes())
         digest.update(b"\0")
     return digest.hexdigest()
+
+
+@dataclass(frozen=True, slots=True)
+class CheckoutIdentity:
+    """The Hebog source a run measures: one state of its Git checkout.
+
+    Attributes:
+        commit_sha: The checked-out commit.
+        worktree_dirty: Whether the working tree had uncommitted changes.
+        source_tree_sha256: The ``source_tree_sha256`` of ``src/hebog``.
+    """
+
+    commit_sha: str
+    worktree_dirty: bool
+    source_tree_sha256: str
+
+
+_CHECKOUT_READINGS = 5
+"""Readings of a changing checkout before its identity is abandoned."""
+
+
+def _git_output(repository_root: Path, *arguments: str) -> str:
+    return subprocess.run(
+        ["git", *arguments],
+        cwd=repository_root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+def _read_checkout(repository_root: Path) -> CheckoutIdentity:
+    return CheckoutIdentity(
+        commit_sha=_git_output(repository_root, "rev-parse", "HEAD"),
+        worktree_dirty=bool(
+            _git_output(repository_root, "status", "--porcelain")
+        ),
+        source_tree_sha256=source_tree_sha256(repository_root / "src/hebog"),
+    )
+
+
+def checkout_identity(repository_root: Path) -> CheckoutIdentity:
+    """Identify a checkout by reads that all describe one state of it.
+
+    The commit, dirty state and source hash are separate reads, so a commit
+    or edit between them can pair the old commit with the new tree: a source
+    that never existed. All three are read again until two consecutive
+    readings agree. Each value then held from its first read to its second,
+    so together they describe the checkout between the two readings, unless
+    one changed and changed back in that interval.
+
+    Args:
+        repository_root: Root of the Git checkout that holds ``src/hebog``.
+
+    Returns:
+        The commit, dirty state and source hash of one state of the checkout.
+
+    Raises:
+        RuntimeError: If no two consecutive readings agree.
+        subprocess.CalledProcessError: If Git cannot read the checkout.
+    """
+    previous = _read_checkout(repository_root)
+    for _ in range(_CHECKOUT_READINGS - 1):
+        current = _read_checkout(repository_root)
+        if current == previous:
+            return current
+        previous = current
+    raise RuntimeError(
+        f"{repository_root} kept changing across {_CHECKOUT_READINGS} "
+        "readings of its identity; wait until it is still and run again"
+    )

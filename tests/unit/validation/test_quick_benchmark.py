@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import itertools
 import json
 import os
 import runpy
@@ -14,6 +15,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
+from hebog.validation import quick_benchmark
 from hebog.validation.contracts import load_performance_matrix
 from hebog.validation.evidence import (
     BenchmarkEvidence,
@@ -25,9 +27,11 @@ from hebog.validation.evidence import (
 )
 from hebog.validation.quick_benchmark import (
     SINGLE_THREAD_ENVIRONMENT,
+    CheckoutIdentity,
     ProcessUsage,
     Repetition,
     benchmark_evidence,
+    checkout_identity,
     compare_with_previous_release,
     compare_with_pybdsf_master,
     development_dataset,
@@ -298,6 +302,67 @@ def test_source_tree_identity_ignores_bytecode_caches(tmp_path: Path) -> None:
 
     (package / "module.py").write_text("value = 2\n")
     assert source_tree_sha256(package) != first
+
+
+def test_checkout_identity_reads_the_commit_edit_and_tree(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Given an edit on a commit, the identity names the commit and edit."""
+    for name in [name for name in os.environ if name.startswith("GIT_")]:
+        monkeypatch.delenv(name)
+    package = tmp_path / "src" / "hebog"
+    package.mkdir(parents=True)
+    (package / "module.py").write_text("value = 1\n")
+
+    def git(*arguments: str) -> str:
+        return subprocess.run(
+            [
+                "git",
+                "-c",
+                "user.name=Hebog",
+                "-c",
+                "user.email=hebog@example.invalid",
+                "-c",
+                "commit.gpgsign=false",
+                *arguments,
+            ],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+
+    git("init", "--quiet")
+    git("add", ".")
+    git("commit", "--quiet", "--no-verify", "--message", "start")
+    (package / "module.py").write_text("value = 2\n")
+
+    assert checkout_identity(tmp_path) == CheckoutIdentity(
+        commit_sha=git("rev-parse", "HEAD"),
+        worktree_dirty=True,
+        source_tree_sha256=source_tree_sha256(package),
+    )
+
+
+def test_checkout_identity_fails_for_a_checkout_that_never_holds_still(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Given a HEAD that moves on every reading, no identity is recorded."""
+    commits = (f"{index:040x}" for index in itertools.count())
+
+    def git(_repository_root: Path, *arguments: str) -> str:
+        return next(commits) if arguments == ("rev-parse", "HEAD") else ""
+
+    def unchanged_tree_sha256(_package_root: Path) -> str:
+        return _SHA
+
+    monkeypatch.setattr(quick_benchmark, "_git_output", git)
+    monkeypatch.setattr(
+        quick_benchmark, "source_tree_sha256", unchanged_tree_sha256
+    )
+
+    with pytest.raises(RuntimeError, match="kept changing across 5 readings"):
+        checkout_identity(tmp_path)
 
 
 def test_physical_memory_needs_sysconf(
