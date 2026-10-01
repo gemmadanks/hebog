@@ -853,10 +853,16 @@ def test_coarse_protection_rejects_unadmitted_work_before_read(
 
 
 @pytest.mark.parametrize("source_fills_image", (False, True))
-def test_coarse_protection_preserves_retry_and_unavailable_semantics(
+def test_coarse_protection_is_retry_invariant_and_never_removes_noise(
     source_fills_image: bool,
 ) -> None:
-    """Source-only cells cannot fabricate RMS; normal noise remains usable."""
+    """Protection excludes source samples; with none left it refines nothing.
+
+    A field whose every pixel lies within the guard of some source support
+    keeps no sample to protect an estimate with. The unprotected estimate
+    then stands, as the coarse noise does for a bright region without a
+    usable fine cell, rather than leaving a field of sources without noise.
+    """
     noise = np.tile(np.array([-1.0, 1.0]), 80 * 40).reshape(80, 80)
     config = replace(
         _source_protection_config(), maximum_constant_map_pixels=6400
@@ -884,7 +890,6 @@ def test_coarse_protection_preserves_retry_and_unavailable_semantics(
         for executor in (SerialExecutor(), _RetryExecutor())
     ]
     first, second = results
-    assert first.coarse_protected_pixel_count > 0
     assert (
         first.coarse_protected_pixel_count
         == second.coarse_protected_pixel_count
@@ -893,12 +898,19 @@ def test_coarse_protection_preserves_retry_and_unavailable_semantics(
         first.coarse.background, second.coarse.background
     )
     np.testing.assert_array_equal(first.coarse.rms, second.coarse.rms)
-    assert first.coarse.scientifically_available is not source_fills_image
+    assert first.coarse.scientifically_available
     if source_fills_image:
-        assert first.coarse_protected_pixel_count == image.size
-        assert np.isnan(first.coarse.rms).all()
-        assert first.adaptive_regions == ()
+        assert first.coarse is coarse.coarse
+        assert first.coarse_protected_pixel_count == 0
+        # The bright region is still refined from the estimate that stands;
+        # its own protection keeps no fine cell, so it blends nothing in.
+        assert first.adaptive_regions
+        assert not any(
+            region.grid.scientifically_available
+            for region in first.adaptive_regions
+        )
     else:
+        assert first.coarse_protected_pixel_count > 0
         assert first.adaptive_regions
         yy, xx = np.mgrid[:80, :80]
         assert config.adaptive is not None

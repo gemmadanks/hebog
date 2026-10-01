@@ -27164,3 +27164,151 @@ the per-worker placement finding.
   3,587 MiB, 1 h 44 min to 1 h 51 min a repetition at 15,402². The documents
   cite these records and say the figures are reproduced; like all traced
   evidence they stay exploratory until an envelope decision reviews them.
+
+## 2026-10-01 — M2: task 36, the crowded-field background refusal
+
+- **Observed.** The 30 September reproducer, rebuilt at `a9a4aa4`, is
+  refused on tile (0–128, 0–128) at both spacings. Probing other sizes
+  finds the same refusal on crowded 512², 300² and 256² fields and on an
+  image with three finite pixels.
+- **Cause.** Every background/RMS grid is all-or-nothing: unavailable cells
+  are filled from the nearest available one, so a grid with no available
+  cell is NaN everywhere. Three refinements can end that way, and each then
+  replaces a finite estimate or leaves none:
+  1. *Local noise* (1,024² at both spacings, 512² at 32). A fine window
+     counts only if it misses every protected pixel, and protection reaches
+     half a 35-pixel window (17 pixels) past each island, so no window fits
+     between sources 24 or 32 pixels apart. The local-noise grid has no
+     available cell, and `interpolate_background_rms_tile` replaces the
+     finite coarse RMS with its NaN.
+  2. *Coarse protection* (below 600 pixels a side, 256² at 24 and 300² at
+     16). Every pixel is protected, so the protected coarse grid has no
+     sample and `refine_background_rms_grids` returns it in place of the
+     finite unprotected one.
+  3. *No estimate at all* (three finite pixels). No coarse window holds the
+     six samples the statistic needs, so there is no estimate to refine.
+  The real SDC1 crowded cut-out runs, so at least one fine window there
+  clears its sources.
+- **Policy in question.** The local-noise policy approved on 10 September
+  says wholly masked noise "remains explicitly unavailable". Before
+  25 September validity was where the estimate was finite, so by that code
+  such a field had no valid pixel and would have published RMS
+  `unavailable` and an empty catalogue (not rerun); since validity has been
+  derived from the image alone, `_require_estimate_covers_image` refuses it
+  instead. Neither is a
+  correct output for a field of 1,024 to 1,849 detectable sources, which
+  PyBDSF's clipped `rms_box` estimate would measure.
+- **Decision statement.** Repair, not refusal: a field so crowded that no
+  fine window anywhere clears source support is too crowded to protect, so
+  the unprotected sigma-clipped coarse estimate stands for background and
+  RMS, as PyBDSF's `rms_box` estimate does for every field, with its bright
+  anchors; local noise refines nothing there. An image with no coarse
+  estimate at all takes the existing `unavailable` path, as an all-NaN image
+  does, and gets no local noise. Independent test: unit tests for each
+  mechanism, an executor test and public-API runs, each written to fail
+  first. Expected change: the crowded fields complete with RMS near the
+  injected noise; the sparse images publish RMS `unavailable`; the quick
+  check's 16 existing cases keep byte-identical products, because each
+  change applies only where the stage now refuses. Stopping condition: no
+  finite input pixel reaches the refusal; a partly covering estimate still
+  does. This changes one line of the 10 September policy, so it needs the
+  maintainer's scientific disposition before release.
+- **Independent review changed the repair.** The first version let the
+  estimate that protection would refine stand at each step: the protected
+  coarse estimate when local noise kept no cell, the unprotected one when
+  coarse protection kept none. A separate review agent found two inputs it
+  got wrong, both confirmed here:
+  - A 300² field with a source every 28 pixels (the public test's
+    generator, seed 36) keeps 8 coarse samples after protection and no fine
+    window. Its protected estimate, resting on those 8 pixels, put the RMS
+    at 0.369 against a true 1.0 and published it `valid` with 269 islands
+    for 121 sources. Below 600 pixels coarse protection always ran with
+    local noise, so that estimate had never been published before. It now
+    gets the unprotected estimate: RMS 1.039, 121 islands. Seeds 1 and 2
+    give 1.039 and 1.041 the same way.
+  - A 160² image of six finite pixels fills one 35-pixel fine window but no
+    40-pixel coarse window, so it carried local noise with no background
+    and still reached the bare `ValueError`. Local noise is now skipped
+    without a coarse estimate, and it publishes `unavailable`.
+  The review also found that the records waived the association collapse
+  below as a limitation; it is now task 37.
+- **Repair.** `refine_background_rms_grids` keeps the unprotected coarse
+  estimate when the protected one keeps no sample. It estimates local noise
+  only from an available coarse estimate, and reverts to the unprotected
+  estimate and its anchors when local noise keeps no cell.
+  `interpolate_background_rms_tile` applies local noise only when its grid
+  has an available cell. `_require_estimate_covers_image` accepts an
+  estimate that is unavailable as a whole and finite nowhere, and still
+  refuses one that covers only part of the image. Every grid is
+  all-or-nothing, so each decision reads a whole-image flag and is
+  tile-invariant. On branch `fix/crowded-field-background`.
+- **Tests, each failing first for the stated reason** against `main` or
+  the first version.
+  - Unit tests, one per mechanism:
+    - a source-filled local-noise grid leaves the coarse tile unchanged;
+    - a source-filled protected coarse grid leaves the unprotected
+      estimate standing;
+    - a 22-pixel clean patch keeps coarse samples but no fine window, so
+      the unprotected estimate stands;
+    - local noise is not estimated without a coarse estimate;
+    - an estimate unavailable everywhere passes the coverage check, and
+      one finite on a pixel does not.
+  - An executor test runs both fallbacks on a two-by-two grid of cores
+    under Serial and an existing Dask client.
+  - Public tests:
+    - white-noise crowded fields complete at 160 × 224 and 300² at 20 and
+      28 pixels (coarse protection keeps nothing and 8 pixels) and at 600²
+      (local noise only). Each has a valid RMS within 15% of the noise at
+      its median, every injected peak in the mask and one island each;
+    - an image with three finite pixels and the 160² six-pixel image
+      publish the all-NaN `unavailable` products.
+  - The two tests that pinned all-NaN noise for a source-filled field now
+    state the new rule.
+- **Fixed case.** The defect escaped the quick checks, so `crowded-field`
+  joins them: the 30 September field at 32-pixel spacing, drawn in the
+  reproducer's order with a new noise seed. On `main`'s code
+  (`task36-main-baseline`) it fails in 6.7 s.
+- **Quick check.** `task36-crowded-repair-revised` against
+  `task36-main-baseline` reports no regression. The 16 existing cases'
+  catalogue, RMS and mask products are byte-identical to `main`'s, and
+  their diagnostics differ only in the composition hash. Hebog time is
+  135 s of the 600 s budget. `crowded-field` matches the first version's
+  products byte for byte. Serial and four-worker Dask products are
+  byte-identical on the 1,024² reproducer at 32-pixel spacing, the 300²
+  field at 28, the 160 × 224 field and the 160² six-pixel image.
+  Equivalence: 27 passed.
+- **What a crowded field now gets.** `crowded-field` runs in 31 s.
+  - **Components.** Of 1,024 injected sources, 872 have a Gaussian
+    component (completeness 0.852, 0.877 at SNR ≥ 10; reliability 1.000).
+    109 of 987 joint fits are deferred at their work bound
+    (`joint-fit-work-limit`).
+  - **Noise and mask.** The RMS is within a median 5.6% of pinned
+    `master`'s (p95 26.7%), and the mask's IoU with it is 0.886.
+  - **Sources.** The 962 islands are associated into 574 sources where
+    `master` publishes 1,006, so source completeness against `master` is
+    0.520.
+  - **At 24-pixel spacing** (the 30 September reproducer, not a fixed
+    case), 1,681 sources match truth at 0.903 completeness and 0.993
+    reliability, but 1,671 of 1,712 components are deferred
+    (`parent-work-deferred`) and 37 published.
+- **Association collapse, a confirmed incorrect supported output (task
+  37).** On small images a crowded field's islands collapse into a few
+  sources with no Gaussian row: 88 to 100 islands became 2 or 3 sources at
+  160² to 200² with a source every 20 pixels in the public test's
+  white-noise generator, and the task's correlated-noise field gave 7
+  sources at 256² with 24 pixels and one at 300² with 16. White-noise fields
+  at 300² and 400² with 28 pixels, 512² with 32 and 600² with 20 keep their
+  sources; the correlated-noise field merges at 512² with 32 pixels (127
+  sources for 256) and at 1,024², above. It predates this repair.
+  Recipe: the public test's `_crowded_field((240, 240), 20.0)` with its
+  bottom-right 100² replaced by `numpy.random.default_rng(7).normal(0, 1)`
+  noise. `main` at `a9a4aa4` runs that field because a fine window fits in
+  the patch, and gives 119 islands, 2 sources and no Gaussian row, as the
+  branch does. The same collapse appears with the coarse window left
+  unshrunk, and on a 200² cut of the 600² field, which keeps 900 sources
+  whole. The release status states it as a known incorrect output, and the
+  plan makes it task 37, due before the next release under the delivery
+  policy.
+- **Status.** Task 36 leaves the plan. Its change to the 10 September
+  policy needs the maintainer's scientific disposition. Task 37 now holds
+  the release that task 36 held.

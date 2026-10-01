@@ -262,20 +262,27 @@ def _require_estimate_covers_image(
     estimate is what lets the validity planes be derived from the image
     alone.
 
+    An image with too few finite pixels for any coarse background window
+    has no estimate at all, not even local noise. That estimate is
+    unavailable everywhere and covers no pixel, and the composition reports
+    the noise unavailable, as for an all-NaN image.
+
     Raises:
-        ValueError: If the estimate is not finite wherever the image is.
+        ValueError: If an available estimate is not finite wherever the
+            image is, or an unavailable one is finite anywhere it is.
     """
     finite_image = np.isfinite(window.values)
-    covered = (
+    expected = (
         finite_image
-        & np.isfinite(background_rms.background)
-        & np.isfinite(background_rms.rms)
+        if background_rms.scientifically_available
+        else np.zeros_like(finite_image)
     )
-    if np.any(finite_image != covered):
-        raise ValueError(
-            "background/RMS validity differs from the image on tile "
-            f"{window.bounds}"
-        )
+    for estimate in (background_rms.background, background_rms.rms):
+        if np.any((finite_image & np.isfinite(estimate)) != expected):
+            raise ValueError(
+                "background/RMS validity differs from the image on tile "
+                f"{window.bounds}"
+            )
 
 
 def _write_source_filtering_mask(

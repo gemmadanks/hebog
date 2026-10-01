@@ -266,13 +266,15 @@ def _estimate_tile(
     values: npt.NDArray[np.float64],
     background: npt.NDArray[np.float64],
     rms: npt.NDArray[np.float64],
+    *,
+    scientifically_available: bool = True,
 ) -> BackgroundRmsTile:
     """Return one interpolated estimate core over these planes."""
     return BackgroundRmsTile(
         bounds=ImageBounds(0, values.shape[0], 0, values.shape[1]),
         background=background,
         rms=rms,
-        scientifically_available=True,
+        scientifically_available=scientifically_available,
         fallback_cell_count=0,
     )
 
@@ -307,4 +309,40 @@ def test_an_estimate_that_narrows_the_image_is_rejected(
     with pytest.raises(ValueError, match="validity differs from the image"):
         _require_estimate_covers_image(
             _tile_window(values), _estimate_tile(values, background, rms)
+        )
+
+
+def test_an_image_with_no_estimate_anywhere_is_left_unavailable() -> None:
+    """With too few samples for any window, the estimate covers nothing.
+
+    The composition then reports the noise unavailable, as it does for an
+    all-NaN image, rather than the stage refusing a valid input.
+    """
+    values = np.array([[1.0, np.nan], [np.nan, 2.0]])
+    missing = np.full((2, 2), np.nan)
+
+    _require_estimate_covers_image(
+        _tile_window(values),
+        _estimate_tile(
+            values, missing, missing, scientifically_available=False
+        ),
+    )
+
+
+@pytest.mark.parametrize("finite", ("background", "rms"))
+def test_an_unavailable_estimate_that_covers_a_pixel_is_rejected(
+    finite: str,
+) -> None:
+    """An estimate is finite on the whole image or, if unavailable, nowhere."""
+    values = np.ones((2, 2), dtype=np.float64)
+    background = np.full((2, 2), np.nan)
+    rms = np.full((2, 2), np.nan)
+    (background if finite == "background" else rms)[0, 0] = 1.0
+
+    with pytest.raises(ValueError, match="validity differs from the image"):
+        _require_estimate_covers_image(
+            _tile_window(values),
+            _estimate_tile(
+                values, background, rms, scientifically_available=False
+            ),
         )

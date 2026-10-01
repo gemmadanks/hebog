@@ -84,17 +84,21 @@ separately:
 
 In the reviewed `continuum` profile the coarse grid uses 150-pixel windows
 every 50 pixels and the fine RMS grid 35-pixel windows every 7 pixels.
-Windows that overlap protected sources are dropped and
-the gaps interpolated; a region with no clean noise samples stays
-unavailable rather than receiving an invented floor. Background refinement
-around bright sources is triggered at 75σ, or at your detection threshold if
-your island threshold is higher than that. This never changes your detection
-or island thresholds. Noise structure finer than the grid is not measured.
+Windows that overlap protected sources are dropped and each gap takes the
+value of its nearest clean window, never an invented floor. A field so
+crowded that no fine window anywhere is clean is too crowded to protect: it
+keeps the unprotected sigma-clipped coarse statistics for both background
+and RMS, which, like PyBDSF's, include the sources' wings. Background
+refinement around bright sources is triggered at 75σ, or at your detection
+threshold if your island threshold is higher than that. This never changes
+your detection or island thresholds. Noise structure finer than the grid is
+not measured.
 
 If no pixel has a finite positive RMS, a sigma threshold has no meaning. Hebog
 then returns an empty catalogue, a zero mask and an all-NaN RMS image marked
 `unavailable`. This is **not** evidence of an empty sky. A noiseless
-simulated image is the usual cause.
+simulated image is the usual cause; an image with too few finite pixels for
+any coarse window to measure is another.
 
 ### 3. Detect compact and extended emission
 

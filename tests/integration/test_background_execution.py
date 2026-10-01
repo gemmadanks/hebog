@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 from distributed import Client
 
+from hebog.algorithms.background import BackgroundRmsTile
 from hebog.algorithms.component_measurement import (
     _persistent_measurement_support,
 )
@@ -444,3 +445,106 @@ def test_dask_and_serial_background_stages_are_equivalent(
             serial_tile.background,
         )
         np.testing.assert_array_equal(dask_tile.rms, serial_tile.rms)
+
+
+@pytest.mark.parametrize("scene", ("too-crowded-to-protect", "no-estimate"))
+def test_fallbacks_from_whole_image_grids_match_existing_dask(
+    scene: str,
+) -> None:
+    """Fallbacks decided from whole-image grids do not depend on executors.
+
+    In a field of source support with one 22-pixel clean patch, coarse
+    protection keeps a few samples but local noise keeps none, so the
+    unprotected estimate stands. With no coarse estimate at all, local noise
+    is not attempted. Each decision reads a whole-image grid flag, so every
+    core of a two-by-two grid gets the same estimate under either executor.
+    """
+    y, x = np.indices((80, 96))
+    noise = np.where((y + x) % 2 == 0, -1.0, 1.0)
+    image = noise + 100.0
+    image[30:52, 40:62] = noise[30:52, 40:62]
+    config = BackgroundRmsConfig(
+        coarse=_grid(32, 10),
+        adaptive=AdaptiveRmsConfig(_grid(11, 3), 75.0, 30.0, 10.0),
+        maximum_spatial_window_fraction=1,
+        maximum_constant_map_pixels=1_000_000,
+    )
+    coarse_source = _ArrayImageSource(
+        noise
+        if scene == "too-crowded-to-protect"
+        else np.full_like(noise, np.nan)
+    )
+    source = _ArrayImageSource(image)
+    manifest = plan_image_partitions(
+        image_shape_yx=image.shape,
+        tile_core_shape_yx=(40, 48),
+        halo_yx=(0, 0),
+    )
+
+    def run(
+        executor: Executor,
+    ) -> tuple[BackgroundRmsGrids, list[BackgroundRmsTile]]:
+        grids = refine_background_rms_grids(
+            source,
+            estimate_background_rms_grids(
+                coarse_source,
+                image.shape,
+                config,
+                executor,
+                bright_candidate_positions_yx=(),
+            ),
+            config,
+            executor,
+            bright_candidate_positions_yx=(),
+            source_protection_island_threshold_sigma=3.0,
+            multiscale_protection=MultiscaleSourceProtection(
+                BeamShapePixels(2.0, 2.0, 0.0),
+                SourceFinderConfig(5.0, 3.0, 7),
+                0.5,
+            ),
+            # Protection reads the image itself; only a field with a coarse
+            # estimate of its own has samples to protect.
+            protect_coarse_source_support=scene == "too-crowded-to-protect",
+            refine_local_noise=True,
+        )
+        tiles = executor.map_batches(
+            partial(estimate_background_rms_tile, source),
+            tuple(
+                prepare_background_rms_tile_request(tile, grids, config)
+                for tile in manifest.tiles
+            ),
+        )
+        return grids, tiles
+
+    serial_grids, serial_tiles = run(SerialExecutor())
+    with Client(
+        processes=False,
+        n_workers=2,
+        threads_per_worker=1,
+        dashboard_address=None,
+    ) as client:
+        dask_grids, dask_tiles = run(DaskExecutor(client))
+
+    assert serial_grids.coarse_protected_pixel_count == 0
+    assert dask_grids.coarse_protected_pixel_count == 0
+    np.testing.assert_array_equal(
+        dask_grids.coarse.rms, serial_grids.coarse.rms
+    )
+    if scene == "too-crowded-to-protect":
+        assert serial_grids.local_noise is not None
+        assert dask_grids.local_noise is not None
+        assert not serial_grids.local_noise.scientifically_available
+        assert not dask_grids.local_noise.scientifically_available
+    else:
+        assert serial_grids.local_noise is None
+        assert dask_grids.local_noise is None
+    for serial_tile, dask_tile in zip(serial_tiles, dask_tiles, strict=True):
+        assert dask_tile.bounds == serial_tile.bounds
+        np.testing.assert_array_equal(
+            dask_tile.background, serial_tile.background
+        )
+        np.testing.assert_array_equal(dask_tile.rms, serial_tile.rms)
+        covered = scene == "too-crowded-to-protect"
+        assert serial_tile.scientifically_available is covered
+        assert bool(np.isfinite(serial_tile.rms).all()) is covered
+        assert bool(np.isnan(serial_tile.background).all()) is not covered
