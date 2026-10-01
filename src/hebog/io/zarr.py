@@ -33,7 +33,11 @@ from hebog.data_models.products import (
 )
 
 _IMAGE_DIMENSIONS = 2
-_GENERATION_VALIDATION_TILE_ROWS = 4
+# Publishing re-reads every chunk to check it. One read holds at most one
+# 2,048-pixel core's worth of pixels, 32 MiB of float64 before its copies,
+# whatever the image width; blocks of four full-width tile rows had reached
+# 1.9 GiB at 15,402 pixels a side.
+_GENERATION_VALIDATION_BLOCK_PIXELS = 2048 * 2048
 _WINDOW_CHUNK_CACHE_SIZE = 4
 _ZARR_FORMAT = 3
 _COMPLETION_KEY = ".hebog/completed-generation-v1.json"
@@ -105,6 +109,40 @@ def _selection(tile: TilePartition) -> tuple[slice, slice]:
     return (
         slice(bounds.y_start, bounds.y_stop),
         slice(bounds.x_start, bounds.x_stop),
+    )
+
+
+def _validation_blocks(
+    *, tile_count: int, tiles_per_row: int, tiles_per_block: int
+) -> tuple[tuple[int, int], ...]:
+    """Return consecutive ``(start, stop)`` runs of row-major tiles to read.
+
+    Whole tile rows are grouped while they fit ``tiles_per_block``. A row
+    wider than that is split into runs within the row, because a run that
+    wrapped onto the next row would not be one rectangle of chunks.
+
+    Examples:
+        >>> _validation_blocks(
+        ...     tile_count=15, tiles_per_row=3, tiles_per_block=7
+        ... )
+        ((0, 6), (6, 12), (12, 15))
+        >>> _validation_blocks(
+        ...     tile_count=6, tiles_per_row=3, tiles_per_block=2
+        ... )
+        ((0, 2), (2, 3), (3, 5), (5, 6))
+    """
+    if tiles_per_block >= tiles_per_row:
+        step = tiles_per_block // tiles_per_row * tiles_per_row
+        return tuple(
+            (start, min(start + step, tile_count))
+            for start in range(0, tile_count, step)
+        )
+    return tuple(
+        (start, min(start + tiles_per_block, row_start + tiles_per_row))
+        for row_start in range(0, tile_count, tiles_per_row)
+        for start in range(
+            row_start, row_start + tiles_per_row, tiles_per_block
+        )
     )
 
 
@@ -513,8 +551,15 @@ class ZarrProductSink:
             + self._manifest.tile_core_shape_yx[1]
             - 1
         ) // self._manifest.tile_core_shape_yx[1]
-        tiles_per_validation_block = (
-            tiles_per_row * _GENERATION_VALIDATION_TILE_ROWS
+        core_height, core_width = self._manifest.tile_core_shape_yx
+        blocks = _validation_blocks(
+            tile_count=tile_count,
+            tiles_per_row=tiles_per_row,
+            tiles_per_block=max(
+                1,
+                _GENERATION_VALIDATION_BLOCK_PIXELS
+                // (core_height * core_width),
+            ),
         )
         try:
             for product_index, product_name in enumerate(
@@ -522,21 +567,13 @@ class ZarrProductSink:
             ):
                 array = self._open_array(product_name)
                 product_start = product_index * tile_count
-                for row_start in range(
-                    0,
-                    tile_count,
-                    tiles_per_validation_block,
-                ):
-                    row_stop = min(
-                        row_start + tiles_per_validation_block,
-                        tile_count,
-                    )
+                for block_start, block_stop in blocks:
                     self._read_product_block(
                         array=array,
-                        tiles=self._manifest.tiles[row_start:row_stop],
+                        tiles=self._manifest.tiles[block_start:block_stop],
                         records=generation.chunks[
-                            product_start + row_start : product_start
-                            + row_stop
+                            product_start + block_start : product_start
+                            + block_stop
                         ],
                     )
         except ProductChunkError as error:

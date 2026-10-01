@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUnknownMemberType=false
+# pyright: reportUnknownVariableType=false
 """Profile one complete public source-finding run by stage.
 
 ``profile_complete_execution.py`` starts this worker in a fresh
@@ -15,6 +18,15 @@ Python-heavy code, so stage times come from runs without it.
 ``--diagnostic-size-limit`` raises the public size limit inside this
 process only, as in the quick-benchmark worker.
 
+``--dask-workers N`` runs the same path on a process-based Dask
+``LocalCluster`` of ``N`` single-threaded workers instead of the serial
+executor. Stages are then timed in the driver, whose process also hosts the
+scheduler, and Dask's task stream records every task's compute interval, so
+each stage also reports how many tasks ran during it and what share of the
+workers they kept busy. That locates where a Dask run waits on its driver.
+The cluster starts before the root stage, so its start-up is not charged to
+the run.
+
 Stage timing needs the POSIX ``resource`` module, so this worker runs on
 macOS and Linux.
 """
@@ -30,19 +42,22 @@ import cProfile  # noqa: E402
 import importlib  # noqa: E402
 import json  # noqa: E402
 import sys  # noqa: E402
+from collections.abc import Generator  # noqa: E402
+from contextlib import contextmanager  # noqa: E402
 from pathlib import Path  # noqa: E402
 from tempfile import TemporaryDirectory  # noqa: E402
-from typing import Any  # noqa: E402
+from typing import Any, cast  # noqa: E402
 
 import hebog  # noqa: E402
 from hebog import public_api  # noqa: E402
 from hebog.config import SourceFinderConfig  # noqa: E402
 from hebog.data_models import SuppliedImageMetadata  # noqa: E402
-from hebog.executors import SerialExecutor  # noqa: E402
+from hebog.executors import Executor, SerialExecutor  # noqa: E402
 from hebog.validation.execution_profile import (  # noqa: E402
     StageRecorder,
     current_peak_rss_bytes,
     install_stage_timers,
+    task_occupancy_by_stage,
     top_self_time,
 )
 
@@ -235,7 +250,58 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--supplied-metadata", help="metadata JSON")
     parser.add_argument("--diagnostic-size-limit", type=int)
     parser.add_argument("--cprofile", type=Path, help="statistics path")
+    parser.add_argument(
+        "--dask-workers",
+        type=int,
+        help="run on a local Dask cluster of this many workers",
+    )
     return parser.parse_args()
+
+
+@contextmanager
+def _executor(
+    dask_workers: int | None, task_stream: list[dict[str, Any]]
+) -> Generator[Executor]:
+    """Yield the executor to profile, collecting Dask's task records."""
+    if dask_workers is None:
+        yield SerialExecutor()
+        return
+    from distributed import (  # noqa: PLC0415
+        Client,
+        LocalCluster,
+        get_task_stream,
+    )
+
+    from hebog.executors import DaskExecutor  # noqa: PLC0415
+
+    if dask_workers < 1:
+        raise SystemExit("--dask-workers must be positive")
+    with (
+        LocalCluster(
+            n_workers=dask_workers,
+            threads_per_worker=1,
+            processes=True,
+            dashboard_address="",
+        ) as cluster,
+        Client(cluster) as client,
+    ):
+        # The stream collects its records from the scheduler on exit.
+        with get_task_stream(client) as stream:
+            yield DaskExecutor(client)
+        records = cast(Any, stream).data
+        task_stream.extend(cast(list[dict[str, Any]], records))
+
+
+def _compute_intervals(
+    task_stream: list[dict[str, Any]], action: str
+) -> list[tuple[float, float]]:
+    """Return the ``(start, stop)`` of every task step of one kind."""
+    return [
+        (float(step["start"]), float(step["stop"]))
+        for task in task_stream
+        for step in task.get("startstops", ())
+        if step.get("action") == action
+    ]
 
 
 def main() -> None:
@@ -251,7 +317,11 @@ def main() -> None:
     wrapped_bindings = install_stage_timers(recorder, _STAGES)
     import_rss_bytes = current_peak_rss_bytes()
     profiler = cProfile.Profile() if args.cprofile is not None else None
-    with TemporaryDirectory(prefix="hebog-profile-") as temporary:
+    task_stream: list[dict[str, Any]] = []
+    with (
+        TemporaryDirectory(prefix="hebog-profile-") as temporary,
+        _executor(args.dask_workers, task_stream) as executor,
+    ):
         if profiler is not None:
             profiler.enable()
         with recorder.stage(ROOT_STAGE):
@@ -263,7 +333,7 @@ def main() -> None:
                     supplied_metadata=supplied,
                 ),
                 SourceFinderConfig(**json.loads(args.settings)),
-                SerialExecutor(),
+                executor,
             )
         if profiler is not None:
             profiler.disable()
@@ -279,7 +349,33 @@ def main() -> None:
         "island_count": result.island_count,
         "stages": [item.document() for item in recorder.records()],
         "cprofile": None,
+        "executor": (
+            {"kind": "serial"}
+            if args.dask_workers is None
+            else {
+                "kind": "dask",
+                "workers": args.dask_workers,
+                "threads_per_worker": 1,
+            }
+        ),
+        "tasks": None,
     }
+    if args.dask_workers is not None:
+        computes = _compute_intervals(task_stream, "compute")
+        transfers = _compute_intervals(task_stream, "transfer")
+        record["tasks"] = {
+            "count": len(task_stream),
+            "compute_seconds": sum(stop - start for start, stop in computes),
+            "transfer_seconds": sum(stop - start for start, stop in transfers),
+            "stages": [
+                item.document()
+                for item in task_occupancy_by_stage(
+                    recorder.intervals(),
+                    computes,
+                    worker_count=args.dask_workers,
+                )
+            ],
+        }
     if args.cprofile is not None and profiler is not None:
         profiler.dump_stats(args.cprofile)
         record["cprofile"] = {

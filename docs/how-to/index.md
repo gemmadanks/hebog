@@ -265,6 +265,24 @@ quick benchmark's. Records stay exploratory until a named envelope decision
 reviews them; reviewed traced evidence needs at least two repetitions whose
 peaks agree within that tolerance.
 
+To find where a peak lies and what it holds, attribute it:
+
+```console
+uv run python scripts/benchmark/attribute_traced_peak.py \
+  --input <image.fits> --settings '<finder JSON>' --result <attribution.json> \
+  --snapshot-within detect_multiscale_products --diagnostic-size-limit <side>
+```
+
+It traces one serial run and measures every public-path function, and every
+executor task, as a nested call, so each reports its inclusive peak and what
+the run already held when it began; `--wrap-module` adds another module's
+functions. A task begins between other tasks, so the largest task entry
+inside `--snapshot-within` is what that pass keeps across tiles, and a
+`tracemalloc` snapshot there names the call sites holding it. It is a
+diagnostic, not the gate: its own records add a little to the peak, and its
+tracebacks slow the run, by about three times with the default six frames.
+`--frames 1` is nearly as fast as the harness when call sites are not needed.
+
 ## Profile complete execution
 
 Profile before optimizing, to choose what to change. The profile splits one
@@ -313,6 +331,25 @@ top-level stage on the ladder as a fixed cost plus a cost per megapixel and
 per fitted component, and compares every real case with that model. A
 profile is a single diagnostic run: use the quick benchmark for before and
 after timings.
+
+`--dask-workers N` runs every case on a process-based local Dask cluster of
+`N` single-threaded workers instead of the serial executor. Stages are then
+timed in the driver, whose process also hosts the scheduler, and Dask's task
+stream is matched against each stage's calls: `tasks.stages` in a case's
+`profile.json` gives the tasks that started during a stage, their compute
+seconds and the share of the workers they kept busy. A stage with a long
+driver wall time and low occupancy is waiting on the driver, not on the
+workers. To profile one input outside the configured cases, such as a quick
+benchmark cut-out, run the worker directly:
+
+```console
+uv run python scripts/benchmark/profile_complete_execution_worker.py \
+  --input <image.fits> --settings '<finder JSON>' --result <profile.json> \
+  --dask-workers 4 --diagnostic-size-limit <side>
+```
+
+The finder JSON is the `hebog` block of the benchmark configuration, and
+`--diagnostic-size-limit` is needed only above the public limit.
 
 ## Develop test-first
 

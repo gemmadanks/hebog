@@ -26897,3 +26897,270 @@ the per-worker placement finding.
   22,500² gate would measure code about to change. Task 11's disk condition
   is met but narrowing: 75 GiB free on 29 September, against 132 GiB the
   evening before.
+
+## 2026-09-29 — M2: why the Dask run waits on its driver
+
+- **What this is.** The first half of task 35's diagnosis, authorized by the
+  maintainer on 29 September after the 15,402 tier's four-worker Dask run
+  took 3.2 times the Serial time. On `m2/dask-driver-diagnosis`, stacked on
+  the unmerged 15,402 raise.
+- **A harness for it.** `profile_complete_execution_worker.py` takes
+  `--dask-workers N`: the stage-timed public path runs on a process-based
+  `LocalCluster` of `N` single-threaded workers, each stage's calls are
+  recorded on the wall clock, and Dask's task stream is matched against
+  them by `task_occupancy_by_stage`, which integrates the number of running
+  tasks over each call. Each stage then reports its tasks, their compute
+  time and the share of the workers they kept busy, beside the driver's
+  wall and CPU time. The runner passes the option through. A unit test
+  caught a precision flaw before any evidence was taken: running sums of
+  raw epoch timestamps lost up to 0.1 s over ten thousand tasks, so times
+  are measured from the earliest instant.
+- **Profiles** (`benchmark-results/profiles/runs/m2-dask-diagnosis-20260929`,
+  source tree `095a819b…`, whose science code is `2076ba57…`'s; one run
+  each, load 5 to 7 from other work, so diagnostic):
+
+  | size | Serial | four-worker Dask | Dask tasks | background/RMS, Serial and Dask |
+  | --- | --- | --- | --- | --- |
+  | 3,000² | 102.7 s | 93.1 s | 8,089 | 49.0 s and 49.5 s |
+  | 10,000² | 1,347.2 s | 2,453.8 s | 89,889 | 588.3 s and 1,937.8 s |
+
+  At 10,000² every stage but background/RMS is as fast or faster on Dask,
+  and background/RMS's excess, 1,350 s, exceeds the whole run's, 1,107 s.
+  Inside it the grid and local-noise rounds cost the driver a constant 2.1
+  to 2.7 ms a task at both sizes and already beat Serial (322.6 s against
+  399.4 s for refinement). The excess is the stage's own two rounds of
+  per-cell tasks, detection and background/RMS writes, then the
+  source-filtering mask: 12,482 tasks at 10,000² keeping the workers 17%
+  busy while the driver spent about 106 ms of CPU on each, against 10.6 ms
+  on each of 1,152 at 3,000². The cost of one task grew with the number of
+  tasks, so the total grows as the square of the area.
+- **Cause.** Both rounds submit a `partial` that carries the background
+  `ZarrProductSink`, and the sink pickles its whole partition manifest:
+  one record for each 128-pixel cell, 576 at 3,000², 6,241 at 10,000² and
+  14,641 at 15,402², which is 34 KB, 362 KB and 848 KB. The executor checks
+  the function's serializability once per round, but Dask serializes a
+  task's function with every task, and the scheduler in the driver's
+  process handles it again. Submitting 400 trivial tasks carrying a sink
+  (`benchmark-results/diagnostics/dask-sink-payload-20260929/`) cost the
+  driver 1.6 ms of CPU a task with none, and 10.0, 103.3 and 280.8 ms with
+  the 3,000², 10,000² and 15,402² sinks, matching the profile. At 10,000²
+  that is about 1,270 s over the 12,482 per-cell tasks, 94% of
+  background/RMS's excess; at 15,402² the 29,282 per-cell tasks cost about
+  2.3 hours, the run's observed 2.5. The object passes use 2,048-pixel
+  cores, so their manifests hold at most 64 tiles, and the tasks that carry
+  the background sink as a read source are few, which is why nothing else
+  was slow. Serial pays the payload once a round, not once a task.
+- **What this leaves.** The Dask half of the diagnosis meets task 35's
+  criterion. The repair, for the maintainer to approve, is to stop a task
+  carrying image-scale metadata: pickle a sink or manifest as the few
+  numbers its tiles are planned from, rebuilt once per process, and batch
+  the two per-cell rounds coarsely as every other round is. The memory half
+  of the diagnosis, the traced peak's growth inside the multiscale pass,
+  has a separate cause: the manifest is a few megabytes at 15,402²,
+  against the 0.9 GB the peak grew.
+
+## 2026-09-29 — M2: the Dask run no longer waits on its driver
+
+- **What this is.** The repair of task 35's Dask half, approved by the
+  maintainer on 29 September after the diagnosis above: both fixes it
+  proposed, on `m2/dask-driver-diagnosis`.
+- **A manifest travels as its geometry.** `PartitionManifest` pickles as
+  its image shape, core, halo and origin, and is rebuilt from them where it
+  is unpickled, once per process for each geometry through a small
+  `lru_cache`; its tiles are already required to be the canonical tiling of
+  that geometry, so the rebuilt manifest equals the original. A 15,402²
+  background manifest pickled to 848 KB and now to a few hundred bytes,
+  and so does every sink or request that carries one. The 400-task
+  experiment of the diagnosis now costs the driver 1.3 to 1.4 ms of CPU a
+  task whichever sink the tasks carry, against 1.3 ms with none.
+- **Per-cell rounds send blocks.** The detection stage's two per-cell
+  rounds, detection with background/RMS writes and the source-filtering
+  mask, send 64 neighbouring cells a task in row-major order instead of one;
+  each cell is still read, estimated and written on its own, so only
+  scheduling changes.
+- **Measured at 10,000²** (source tree `b2e47d3c…`, which the commit
+  changes only by a docstring sentence; one run each at a load of 3 to 5): four-worker Dask took 769.5 s and Serial 1,266.3 s, a ratio of
+  0.61, against 1.6 to 1.8 before. The four products are byte-identical
+  between the two (both with run ID `anchor`), and RMS, mask and every
+  catalogue table equal the `v0.15.0` products of 28 September. The stage
+  profile (`benchmark-results/profiles/runs/m2-dask-repair-20260929`) puts
+  background/RMS at 383.6 s with the workers 67% busy, against 1,937.8 s
+  and 17%, and the driver's CPU over the whole run at 301 s against 1,699 s.
+  What keeps four workers from a quarter of the Serial time is mostly
+  background refinement's 69,000 tasks of about 13 ms each, a batching
+  question for task 23, not a defect.
+- **Checks.** Tests first: a manifest pickles to under 512 bytes and
+  round-trips exactly at four geometries, a sink's payload does not grow
+  from 3,000² to 15,402², and 168 two-pixel cells take three tasks a round
+  with topology and all three planes equal to one tile's; each failed
+  before the change for the reason it names. The quick science check
+  (`m2-dask-repair` against `m2-envelope-15402`) reports no regression on
+  the sixteen cases; coverage 97% over 2,818 portable tests, the changed
+  modules at 100% but for `detection.py`'s five earlier error branches.
+- **Not measured.** The whole 15,402² mosaic under Dask since the repair,
+  and runs with a scheduler outside the driver's process, which Rapthor's
+  cluster would have.
+
+## 2026-09-29 — M2: what the traced peak holds as the image grows
+
+- **What this is.** The memory half of task 35's diagnosis, authorized by
+  the maintainer on 29 September: why the serial traced peak grew 2.4 bytes
+  for each pixel added from 3,000² to 10,000² and 6.8 from 10,000² to
+  15,402². On `m2/dask-driver-diagnosis`.
+- **A harness for it.** `scripts/benchmark/attribute_traced_peak.py` over
+  `hebog.validation.traced_attribution` traces one serial run and measures
+  every function of chosen modules, and every serial executor task, as a
+  nested call: `tracemalloc` keeps one peak, so each call saves its
+  caller's peak, resets it and folds its own back, giving every call its
+  inclusive peak and what the run held when it began. A task begins between
+  tasks, so the largest task entry inside a chosen pass is what that pass
+  keeps across tiles, and a snapshot there, reduced at once to its largest
+  Hebog call sites and never kept, names what holds it. Its overall peaks
+  match `just traced-peak` to about 1 MiB. Evidence is under
+  `benchmark-results/diagnostics/traced-attribution-20260929/`.
+- **The tile working set is flat.** A multiscale tile task allocates about
+  1,247 MiB of its own at 3,000², 10,000² and 15,402² alike, so what a task
+  holds is bounded by its tile.
+- **The peak is publication, above 3,000².** At 10,000² and 15,402² the
+  multiscale pass peaks at 1,540.7 and 2,431.4 MiB, above every task and
+  every reconciliation inside it (at most 1,488.7 and 1,697.6 MiB). The
+  remaining step is `ZarrProductSink.publish_generation`, which re-reads
+  and checksums every chunk in blocks of four tile rows across the whole
+  width, holding the read, its copy and each tile's contiguous copy. For
+  the multiscale store's 2,048-pixel tiles and `float64` products a block is
+  8,192 rows by the width. Publishing one such product alone traced
+  1,278 MiB at 10,000 wide and 1,942 MiB at 15,402 (2.0 times the block);
+  added to what the pass held then, 262 and 489 MiB, that is 1,540 and
+  2,431 MiB, the measured peaks. At 3,000² the block is 9 Mpx and stays
+  under the tile task.
+- **The rest is records kept across tiles.** What the multiscale tasks
+  begin holding grows 112, 262 and 489 MiB. At 10,000² a snapshot there
+  names about 120 MB of the 150 MB above 3,000²: per-label records of the
+  tile summaries, which keep every candidate island with no size cut
+  (`labelling.py`, about 50 MB), the multiscale rounds' per-tile island
+  summaries (about 25 MB), reconciled label mappings (`reconciliation.py`,
+  about 16 MB) and the background store's cached chunk records (about
+  13 MB). This grows about 1.7 bytes a pixel.
+- **Attribution.** Of the 891 MiB the peak grew from 10,000² to 15,402²,
+  publication's full-width read is 664 MiB (75%) and the records kept
+  across tiles 227 MiB (25%), which meets task 35's 80% criterion with
+  both causes named.
+- **Decision.** The maintainer chose on 30 September to repair the
+  publication read now and leave the kept records for later: bound each
+  validation read by pixels rather than by full-width tile rows. Expected
+  measurable change: the 15,402² traced peak from 2,432 MiB to about
+  1,700 MiB, what the tile task and the kept records then reach, with
+  byte-identical products. Stopping condition: the peak no longer depends
+  on publication, verified with `just traced-peak` at 10,000² and 15,402².
+
+## 2026-09-30 — M2: generation publication reads a bounded block
+
+- **What this is.** Task 35's memory repair, the one the maintainer chose
+  on 30 September after the diagnosis above; the records kept across tiles
+  are left for later. On `m2/dask-driver-diagnosis`.
+- **What changed.** `ZarrProductSink.publish_generation` still re-reads and
+  checksums every chunk, but in blocks of at most one 2,048-pixel core's
+  pixels (4,194,304) instead of four full-width tile rows: whole tile rows
+  while they fit, otherwise runs of tiles within one row, so each read is
+  one rectangle of chunks. A 2,048-pixel store now checks one chunk a
+  read; a 128-pixel store two full tile rows a read at 15,402².
+- **Measured.** Publishing one `float64` product of 8,192 rows traced
+  64.0 MiB at 3,000, 10,000 and 15,402 pixels wide, against 444, 1,278 and
+  1,942 MiB before. `just traced-peak`, one repetition each
+  (`m2-publication-bound-10000` and `m2-publication-bound-15402`, the peak
+  being deterministic): 1,489.2 MiB at 10,000² and 1,698.2 MiB at 15,402²,
+  against 1,541.4 and 2,432.0 MiB, as predicted: the peak is now the
+  multiscale tile task, its flat 1,247 MiB working set on top of what the
+  pass keeps, 242 and 451 MiB. Traced peak RSS 2,445 and 3,004 MiB. The
+  peak grows about 1.7 bytes a pixel above one tile (1.8 from 3,000² to
+  10,000², 1.6 from 10,000² to 15,402²), which projects to about 2.1 GiB at
+  22,500² and 4.3 GiB at 45,000². Background/RMS, measured before this
+  repair at 274, 545 and 962 MiB, would overtake it near 27,000² at its
+  slope; it is unattributed and is the next measurement before task 12.
+- **Checks.** A test replacing the four-row contract asserts that every
+  validation read is one rectangle of consecutive chunks within a pixel
+  budget and that the reads cover the image once, at budgets giving two
+  rows, one row and runs within a row; it failed against the four-row read
+  for that reason. The quick science check (`m2-publication-bound` against
+  `m2-dask-repair`) reports no regression; coverage 97% over 2,828 portable
+  tests, the new code covered.
+- **What this leaves.** Task 35 leaves the plan: its diagnosis is done and
+  both repairs the maintainer approved are made. The kept records and the
+  background/RMS term are a risk row with mitigation before task 12.
+
+## 2026-09-30 — M2: a crowded field is refused before detection
+
+- **What this is.** A confirmed incorrect supported output whose record was
+  lost. It was found on 26 September and recorded in `6fe93384` on
+  `claude/vigorous-noyce-41ca6b`, the one commit of that branch that never
+  reached `main`; the rest of the branch merged as pull request 72. It was
+  found again on 30 September while that branch was checked before its
+  worktree was removed.
+- **Observed.** A synthetic 1,024² field is refused before detection:
+  `background/RMS validity differs from the image on tile
+  ImageBounds(y_start=0, y_stop=128, x_start=0, x_stop=128)`, raised by
+  `_require_estimate_covers_image` in `stages/detection.py`. The refusal
+  escapes `find_sources` as a bare `ValueError`, not a public
+  `SourceFinderError`, which is a second defect at the public boundary.
+- **Reproducer**, rebuilt on 30 September at `fadb022` because the
+  original script was not kept: the `quick-dense-field` record of
+  `config/datasets/quick-science-check.json` with no sources and the WCS
+  reference pixel at (512, 512); its noise from
+  `generate_synthetic_window` over the whole 1,024² window; Gaussians
+  centred on a grid of the given spacing starting half a spacing in, each
+  jittered by up to a third of the spacing, peak SNR log-uniform in [5, 300]
+  against the recipe's 1e-4 noise, 90% point sources of sigma 2.1233 ×
+  1.6986 pixels and 10% extended of major sigma 4 to 9 and minor from 2.5 to
+  the major, random position angle, stamped to six major sigma, drawn from
+  `numpy.random.default_rng(20260926)`; written as `float32` with
+  `synthetic_fits_header`, and run through the public finder at thresholds
+  5 and 3 with a minimum of 7 pixels. Spacings of 24 and 32 pixels (1,849
+  and 1,024 sources) both fail on the same tile. On 26 September the
+  original recipe (1,764 and 961 sources) failed the same way, while the
+  real SDC1 crowded cut-out, with 822 islands at 1,024², ran; whether the
+  estimator or the check is wrong is undecided.
+- **Status.** The plan's delivery policy makes a confirmed incorrect
+  supported output a release blocker, so it is task 36, due before the next
+  release is cut; releases 0.14.0 to 0.17.0 were cut while its record was
+  lost. The same commit's other follow-ups: the fit round's support patches
+  were removed on 27 September; `_persistent_window` in `stages/sources.py`
+  still reads `valid-pixels` for every core scan, component batch and wide
+  core, and every caller discards it, a small wasted read for task 23.
+
+## 2026-09-30 — M2: the 15,402 raise is merged
+
+- **Decision.** The maintainer merged task 10, the 15,402 raise, as pull
+  request 82 (`d282466`), its content identical to `4e12498b`. The release
+  that would carry it waits for task 36, the crowded-field refusal, under
+  the delivery policy. How the tier gate fits its budget, which task 10's
+  gate outgrew, is still to decide before task 11. Task 10 leaves the plan,
+  and `m2/dask-driver-diagnosis` is rebased onto `d282466` with its tree
+  unchanged.
+
+## 2026-09-30 — M2: pull request 84 review disposition
+
+- **Scope.** Copilot's review of `4ac7e044`, task 35's Dask and
+  publication repairs; Greptile did not review (trial ended). The Windows
+  portable job failed on the push and pull-request runs.
+- **Windows paths (high).** `top_allocation_sites` named a frame's file by
+  splitting on `/` only, so on Windows a site kept the whole backslash path:
+  the unit test expecting a bare file name failed there, and a report would
+  have carried the machine's directories. Separators are normalized once
+  and used both to find Hebog frames and to name them (`08b98579`). A new
+  test builds a snapshot with Windows and POSIX paths and a library frame,
+  so it fails on every platform without the fix; it failed on macOS first.
+  The job log needs a GitHub sign-in, so the failing test was identified
+  from the review and by checking each new test's platform assumptions:
+  the profile worker's tests skip without the POSIX `resource` module and
+  the others do not depend on the platform.
+- **Single-repetition figures (two, low).** The 10,000² and 15,402² traced
+  peaks that the profile, the release status and the plan quoted came from
+  one repetition each, while reviewed traced evidence needs two that
+  agree. Rather than weaken the statements, both were measured again at
+  `08b98579` with two repetitions: 1,489.18 MiB twice at 10,000², agreeing
+  to 3.1 KiB (`m2-publication-bound-10000-reproduced`), and 1,698.19 MiB
+  twice at 15,402², agreeing to 4.3 KiB
+  (`m2-publication-bound-15402-reproduced`), traced peak RSS 2,325 to
+  3,587 MiB, 1 h 44 min to 1 h 51 min a repetition at 15,402². The documents
+  cite these records and say the figures are reproduced; like all traced
+  evidence they stay exploratory until an envelope decision reviews them.

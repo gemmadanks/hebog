@@ -149,11 +149,11 @@ before the next stage can decide anything.
    it was built from and is rebuilt on the worker, because Astropy
    re-serializes one through a header it reformats. One exception, bounded
    by the image rather than the tile, is declared under *Objects wider than
-   the read budget*. The serial traced peak still grows with the image
-   beyond one tile, most inside the multiscale detection pass (6.8 bytes for
-   each pixel added between 10,000² and 15,402², measured 29 September
-   2026). Until that growth is attributed it is not known whether it breaks
-   this rule; the plan's risks carry it.
+   the read budget*. The implementation does not yet meet this rule in
+   aggregate: the records the passes keep from every tile, above all the
+   tile summaries' per-label records, which keep every candidate island,
+   grow the serial traced peak about 1.7 bytes a pixel (measured 29 and
+   30 September 2026), and the plan's risks carry them.
 5. **Reductions are hierarchical and order-independent.** Merge operations are
    associative and commutative, or are applied to a canonically sorted input.
 6. **Read once per round.** A task reads its window once and derives every
