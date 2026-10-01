@@ -28,7 +28,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import subprocess
 import sys
 import time
 from datetime import UTC, datetime
@@ -48,9 +47,9 @@ from hebog.validation.execution_profile import (
 )
 from hebog.validation.quick_benchmark import (
     SINGLE_THREAD_ENVIRONMENT,
+    checkout_identity,
     machine_identity,
     run_measured_process,
-    source_tree_sha256,
     worker_environment,
 )
 from hebog.validation.quick_check import (
@@ -99,16 +98,6 @@ def _parse_args() -> argparse.Namespace:
         help="fetch missing configured cut-outs",
     )
     return parser.parse_args()
-
-
-def _git(*arguments: str) -> str:
-    return subprocess.run(
-        ["git", *arguments],
-        cwd=_ROOT,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
 
 
 def _run_worker(
@@ -264,12 +253,10 @@ def main() -> int:
     run_root = args.output_root.resolve() / "runs" / args.label
     started = time.perf_counter()
     # A run can outlast the change it measures, and committing that change
-    # moves HEAD and cleans the tree, so the commit, dirty state and source
-    # hash are read together here, before any case runs. A summary rebuilt
-    # by --summarise-existing records the checkout it is rebuilt from.
-    commit_sha = _git("rev-parse", "HEAD")
-    worktree_dirty = bool(_git("status", "--porcelain"))
-    source_sha256 = source_tree_sha256(_ROOT / "src/hebog")
+    # moves HEAD and cleans the tree, so the checkout is identified here,
+    # before any case runs. A summary rebuilt by --summarise-existing
+    # records the checkout it is rebuilt from.
+    checkout = checkout_identity(_ROOT)
     if args.summarise_existing:
         records = [
             cast(dict[str, Any], json.loads(path.read_text("utf-8")))
@@ -296,9 +283,9 @@ def main() -> int:
         "label": args.label,
         "created_at": datetime.now(UTC).isoformat(),
         "hebog_version": hebog.__version__,
-        "commit_sha": commit_sha,
-        "worktree_dirty": worktree_dirty,
-        "source_tree_sha256": source_sha256,
+        "commit_sha": checkout.commit_sha,
+        "worktree_dirty": checkout.worktree_dirty,
+        "source_tree_sha256": checkout.source_tree_sha256,
         "configuration_sha256": file_sha256(args.configuration),
         "machine": machine_identity(),
         "thread_environment": dict(SINGLE_THREAD_ENVIRONMENT),

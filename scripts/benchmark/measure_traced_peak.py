@@ -49,14 +49,15 @@ from hebog.validation.quick_benchmark import (
     SINGLE_THREAD_ENVIRONMENT,
     BenchmarkCase,
     BenchmarkTier,
+    CheckoutIdentity,
     QuickBenchmarkConfiguration,
+    checkout_identity,
     development_dataset,
     load_quick_benchmark_configuration,
     local_resources,
     machine_identity,
     physical_memory_bytes,
     run_measured_process,
-    source_tree_sha256,
     tier_cases,
     worker_environment,
 )
@@ -125,10 +126,11 @@ def _git(*arguments: str) -> str:
     ).stdout.strip()
 
 
-def _default_label(commit_sha: str, *, worktree_dirty: bool) -> str:
-    dirty = "-dirty" if worktree_dirty else ""
+def _default_label(checkout: CheckoutIdentity) -> str:
+    commit = _git("rev-parse", "--short", checkout.commit_sha)
+    dirty = "-dirty" if checkout.worktree_dirty else ""
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-    return f"{_git('rev-parse', '--short', commit_sha)}{dirty}-{stamp}"
+    return f"{commit}{dirty}-{stamp}"
 
 
 def _shape_yx(prepared: PreparedCase) -> tuple[int, int]:
@@ -379,21 +381,17 @@ def main() -> int:
             f"unknown case IDs for tier {tier}: {sorted(unknown)}"
         )
     # A run can outlast the change it measures, and committing that change
-    # moves HEAD and cleans the tree, so the commit, dirty state and source
-    # hash are read together here, before any case runs, and only these
-    # identify the run.
-    commit_sha = _git("rev-parse", "HEAD")
-    worktree_dirty = bool(_git("status", "--porcelain"))
+    # moves HEAD and cleans the tree, so the checkout is identified here,
+    # before any case runs, and only that identity names the run.
+    checkout = checkout_identity(_ROOT)
     subject = SoftwareIdentity(
         name="hebog",
         version=hebog.__version__,
-        commit_sha=commit_sha,
-        source_tree_sha256=source_tree_sha256(_ROOT / "src/hebog"),
+        commit_sha=checkout.commit_sha,
+        source_tree_sha256=checkout.source_tree_sha256,
         dependency_inventory_sha256=dependency_inventory_sha256(),
     )
-    label = args.label or _default_label(
-        commit_sha, worktree_dirty=worktree_dirty
-    )
+    label = args.label or _default_label(checkout)
     run_root = args.output_root.resolve() / "runs" / label
     if run_root.exists():
         raise SystemExit(f"run directory already exists: {run_root}")
@@ -439,9 +437,9 @@ def main() -> int:
         "label": label,
         "created_at": datetime.now(UTC).isoformat(),
         "hebog_version": hebog.__version__,
-        "commit_sha": subject.commit_sha,
-        "worktree_dirty": worktree_dirty,
-        "source_tree_sha256": subject.source_tree_sha256,
+        "commit_sha": checkout.commit_sha,
+        "worktree_dirty": checkout.worktree_dirty,
+        "source_tree_sha256": checkout.source_tree_sha256,
         "configuration_sha256": file_sha256(args.configuration),
         "machine": machine,
         "repetitions": args.repetitions,

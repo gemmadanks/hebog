@@ -3,7 +3,8 @@
 A run can outlast the change it measures. The traced-peak run
 ``m2-tier-15402`` started on a dirty tree, the change was committed while it
 ran, and its report paired the commit read at the start with the clean tree
-read at the end: a source that was never measured.
+read at the end: a source that was never measured. A commit between the reads
+that identify the checkout as the run starts pairs them the same way.
 """
 
 from __future__ import annotations
@@ -18,40 +19,42 @@ from typing import Any
 
 import pytest
 
+from hebog.validation import quick_benchmark
+from hebog.validation.quick_benchmark import CheckoutIdentity
+
 _ROOT = Path(__file__).parents[3]
 
-
-@dataclass(frozen=True, slots=True)
-class _Identity:
-    commit_sha: str
-    worktree_dirty: bool
-    source_tree_sha256: str
-
-
-_STARTED = _Identity(
+_COMMITTING = CheckoutIdentity(
     "a" * 40, worktree_dirty=True, source_tree_sha256="1" * 64
 )
-_MOVED_ON = _Identity(
+_STARTED = CheckoutIdentity(
     "b" * 40, worktree_dirty=False, source_tree_sha256="2" * 64
+)
+_MOVED_ON = CheckoutIdentity(
+    "c" * 40, worktree_dirty=True, source_tree_sha256="3" * 64
 )
 
 
 class _Checkout:
-    """A checkout whose whole identity changes while a run measures it.
+    """A checkout that changes as a run identifies it, and again mid-run.
 
-    Every value differs after the move, so a report that reads any of them
-    after the run has started is recognisably late.
+    A commit lands just after HEAD is first read, so the reads that identify
+    the checkout straddle it. Every value differs after each change, so a
+    report that mixes reads from either side of one is recognisable.
     """
 
     def __init__(self) -> None:
-        self.identity = _STARTED
+        self.identity = _COMMITTING
 
     def move_on(self) -> None:
         self.identity = _MOVED_ON
 
-    def git(self, *arguments: str) -> str:
+    def git(self, _repository_root: Path, *arguments: str) -> str:
         if arguments == ("rev-parse", "HEAD"):
-            return self.identity.commit_sha
+            commit_sha = self.identity.commit_sha
+            if self.identity == _COMMITTING:
+                self.identity = _STARTED
+            return commit_sha
         if arguments == ("status", "--porcelain"):
             return (
                 " M src/hebog/pipeline.py"
@@ -128,10 +131,12 @@ _RUNNERS = (
 def test_report_identifies_the_checkout_the_run_started_from(
     runner: _Runner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Given a checkout that moves on mid-run, the report names its start.
+    """Given a checkout that keeps changing, the report names its start.
 
-    The commit, the dirty state and the source hash are one identity, so all
-    three come from the same moment, before the first case runs.
+    A commit lands between the reads that identify the checkout, and the
+    checkout moves on again during the first case. The commit, the dirty
+    state and the source hash are one identity, so all three come from the
+    same state, before the first case runs.
     """
     checkout = _Checkout()
     script = _ROOT / "scripts/benchmark" / runner.script
@@ -148,9 +153,11 @@ def test_report_identifies_the_checkout_the_run_started_from(
         # Physical memory needs POSIX os.sysconf; the identity is portable.
         return {}
 
+    monkeypatch.setattr(quick_benchmark, "_git_output", checkout.git)
+    monkeypatch.setattr(
+        quick_benchmark, "source_tree_sha256", checkout.source_tree_sha256
+    )
     replacements: dict[str, Callable[..., object]] = {
-        "_git": checkout.git,
-        "source_tree_sha256": checkout.source_tree_sha256,
         "prepare_case": prepare_case,
         "machine_identity": machine_identity,
         runner.case_function: run_case,

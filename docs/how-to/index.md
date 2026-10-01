@@ -732,9 +732,11 @@ reviewed summaries with reproduction commands.
 
 The quick benchmark, traced-peak and profile runners identify the measured
 Hebog by its commit, whether the working tree had changes, and the hash of
-`src/hebog`, all read once as the run starts, so committing the measured
-change during a long run does not relabel it. Every repetition imports the
-checkout afresh, so an edit to `src/hebog` during a run changes what later
+`src/hebog`, all read as the run starts, so committing the measured change
+during a long run does not relabel it. The three are read again until two
+consecutive readings agree, so a commit while they are read does not pair
+the old commit with the new tree. Every repetition imports the checkout
+afresh, so an edit to `src/hebog` during a run changes what later
 repetitions measure: develop the next change in a separate worktree.
 
 Construct and write runs with `hebog.validation.evidence.BenchmarkEvidence`
