@@ -27312,3 +27312,26 @@ the per-worker placement finding.
 - **Status.** Task 36 leaves the plan. Its change to the 10 September
   policy needs the maintainer's scientific disposition. Task 37 now holds
   the release that task 36 held.
+
+## 2026-10-02 — M2: pull request 86 review disposition
+
+- **Scope.** The reviews of `4b362af`, task 36's repair. Copilot left one
+  finding. Greptile did not review (trial ended). Codecov reports every
+  changed line covered.
+- **Refinement without a coarse estimate (medium).** The finding:
+  refinement still built the fine pilot grid, and with coarse protection
+  the protected coarse grid, before its guard skipped local noise. That is
+  about 4.8 million pilot cells for an image of 15,402 pixels a side that
+  has too few finite pixels for any coarse window, whose result must stay
+  unavailable anyway.
+  - **Fix.** `refine_background_rms_grids` now returns at once, after
+    validating its arguments, when the coarse grid has no available cell,
+    and the later guard is gone.
+  - **Test.** The test that local noise is not estimated without a coarse
+    estimate now also asserts that refinement reads no window, with and
+    without coarse protection. It failed on `4b362af` for that reason.
+  - **Products.** None changes: a coarse grid with no available cell left
+    every product all-NaN and `unavailable` before as well.
+  - **Refactor.** Validating the protection threshold moved into its own
+    function, to keep `refine_background_rms_grids` within the complexity
+    limit.

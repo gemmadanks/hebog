@@ -43,7 +43,12 @@ from hebog.algorithms.multiscale import (
 from hebog.algorithms.multiscale_association import (
     persistent_seeded_scale_support,
 )
-from hebog.config import BackgroundRmsConfig, RmsGridConfig, SourceFinderConfig
+from hebog.config import (
+    AdaptiveRmsConfig,
+    BackgroundRmsConfig,
+    RmsGridConfig,
+    SourceFinderConfig,
+)
 from hebog.data_models.partitioning import ImageBounds, TilePartition
 from hebog.executors.base import Executor
 from hebog.io.base import ImageWindow
@@ -873,6 +878,22 @@ def _require_local_noise_policy(
         )
 
 
+def _require_protection_threshold(
+    island_threshold_sigma: float | None,
+    adaptive: AdaptiveRmsConfig,
+) -> None:
+    """Require a protection threshold below the bright-candidate threshold."""
+    if island_threshold_sigma is not None and (
+        not isfinite(island_threshold_sigma)
+        or island_threshold_sigma <= 0
+        or island_threshold_sigma >= adaptive.candidate_threshold_sigma
+    ):
+        raise ValueError(
+            "adaptive refinement requires a finite positive public island "
+            "threshold below its candidate threshold for source protection"
+        )
+
+
 def _require_bounded_coarse_protection(
     image_shape_yx: tuple[int, int],
     config: BackgroundRmsConfig,
@@ -1014,20 +1035,18 @@ def refine_background_rms_grids(  # noqa: PLR0913
         and not refine_local_noise
     ):
         return coarse_grids
-    if source_protection_island_threshold_sigma is not None and (
-        not isfinite(source_protection_island_threshold_sigma)
-        or source_protection_island_threshold_sigma <= 0
-        or source_protection_island_threshold_sigma
-        >= adaptive_config.candidate_threshold_sigma
-    ):
-        raise ValueError(
-            "adaptive refinement requires a finite positive public island "
-            "threshold below its candidate threshold for source protection"
-        )
+    _require_protection_threshold(
+        source_protection_island_threshold_sigma, adaptive_config
+    )
     if protect_coarse_source_support:
         _require_bounded_coarse_protection(
             image_shape_yx, config, source_protection_island_threshold_sigma
         )
+    # Without a coarse estimate no pixel has a background, so nothing here
+    # can refine it and the estimate stays unavailable as a whole; the fine
+    # pilot alone would be 4.8 million cells at 15,402 pixels.
+    if not coarse_grids.coarse.scientifically_available:
+        return coarse_grids
     # A coarse RMS can dilute noise excursions and misclassify their peaks
     # as sources. This unmasked pilot only admits source protection.
     detection_rms = (
@@ -1079,9 +1098,7 @@ def refine_background_rms_grids(  # noqa: PLR0913
             island_threshold_sigma=source_protection_island_threshold_sigma,
             margin_pixels=adaptive_margin,
         )
-    # Without a coarse estimate no pixel has a background, so local noise has
-    # nothing to refine and the estimate stays unavailable as a whole.
-    if refine_local_noise and coarse_grids.coarse.scientifically_available:
+    if refine_local_noise:
         assert detection_rms is not None and multiscale_protection is not None
         statistics = _estimate_local_noise_grid(
             source,

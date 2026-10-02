@@ -353,13 +353,19 @@ def test_a_field_too_crowded_for_fine_noise_is_not_protected() -> None:
     assert refined.coarse_protected_pixel_count == 0
 
 
-def test_local_noise_is_not_estimated_without_a_coarse_estimate() -> None:
+@pytest.mark.parametrize("protect_coarse", (False, True))
+def test_local_noise_is_not_estimated_without_a_coarse_estimate(
+    protect_coarse: bool,
+) -> None:
     """Noise without a background is no estimate, so none is attempted.
 
     Here the coarse grid comes from an all-NaN image. A public image reaches
     this when its few finite pixels fill a fine window but no coarse one;
     its estimate must then stay unavailable as a whole, which the
     composition reports, rather than carry a noise with no background.
+    Nothing can refine it, so refinement reads no window at all: neither
+    the fine pilot, which at 15,402 pixels is 4.8 million cells, nor the
+    protected coarse grid.
     """
     yy, xx = np.mgrid[:80, :96]
     noise = np.where((yy + xx) % 2, -1.0, 1.0)
@@ -371,16 +377,19 @@ def test_local_noise_is_not_estimated_without_a_coarse_estimate() -> None:
         SerialExecutor(),
         bright_candidate_positions_yx=(),
     )
+    source = _Source(noise)
     grids = refine_background_rms_grids(
-        _Source(noise),
+        source,
         coarse,
         config,
         SerialExecutor(),
         bright_candidate_positions_yx=(),
         source_protection_island_threshold_sigma=3,
         multiscale_protection=_policy(),
+        protect_coarse_source_support=protect_coarse,
         refine_local_noise=True,
     )
+    assert source.bounds == []
     manifest = plan_image_partitions(
         image_shape_yx=noise.shape,
         tile_core_shape_yx=noise.shape,
