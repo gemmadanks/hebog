@@ -7,7 +7,8 @@ except in one case that tracks the effect of uncorrelated noise. Each case
 exercises one behaviour the plan requires every change to keep: compact
 sources across signal-to-noise, close blends, extended and elongated
 emission, edges and corners of a non-square image, negative background,
-invalid pixels, varying noise, a dense field and empty or all-invalid input.
+invalid pixels, varying noise, a dense field, a field too crowded for any
+source-free noise window, and empty or all-invalid input.
 
 Run ``uv run python scripts/validation/build_quick_check_datasets.py`` and
 commit the manifest. The quick science check reads only the manifest.
@@ -39,6 +40,7 @@ _FWHM_PER_SIGMA = 2.0 * np.sqrt(2.0 * np.log(2.0))
 _POINT_MAJOR_SIGMA = _BEAM_MAJOR_FWHM_PIXELS / _FWHM_PER_SIGMA
 _POINT_MINOR_SIGMA = _BEAM_MINOR_FWHM_PIXELS / _FWHM_PER_SIGMA
 _PIXEL_SCALE_DEGREES = 1.5 / 3600.0
+_CROWDED_RESOLVED_FRACTION = 0.1
 _BEAM_CORRELATION = {
     "major_fwhm_pixels": _BEAM_MAJOR_FWHM_PIXELS,
     "minor_fwhm_pixels": _BEAM_MINOR_FWHM_PIXELS,
@@ -95,6 +97,43 @@ def _dense_field(size: int, count: int, seed: int) -> list[dict[str, float]]:
         log_snr = float(generator.uniform(math.log(5.0), math.log(50.0)))
         snr = float(np.exp(log_snr))
         sources.append(_point(round(x, 3), round(y, 3), round(snr, 3)))
+    return sources
+
+
+def _crowded_field(size: int, spacing: float) -> list[dict[str, float]]:
+    """Put a source every ``spacing`` pixels, one in ten resolved.
+
+    This is the field that reached task 36's background refusal, drawn in
+    the order its 30 September reproducer drew it: each source is jittered
+    by up to a third of the spacing, with peak SNR log-uniform from 5 to
+    300; a resolved one has major sigma 4 to 9 pixels, minor sigma from 2.5
+    to the major and a uniform rotation.
+    """
+    generator = np.random.default_rng(20260926)
+    sources: list[dict[str, float]] = []
+    for y_centre in np.arange(spacing / 2, size, spacing):
+        for x_centre in np.arange(spacing / 2, size, spacing):
+            y = y_centre + generator.uniform(-spacing / 3, spacing / 3)
+            x = x_centre + generator.uniform(-spacing / 3, spacing / 3)
+            snr = float(
+                np.exp(generator.uniform(math.log(5.0), math.log(300.0)))
+            )
+            position = (round(float(x), 3), round(float(y), 3))
+            if generator.uniform() < _CROWDED_RESOLVED_FRACTION:
+                major = float(generator.uniform(4.0, 9.0))
+                minor = float(generator.uniform(2.5, major))
+                rotation = float(np.rad2deg(generator.uniform(0.0, np.pi)))
+                sources.append(
+                    _ellipse(
+                        *position,
+                        round(snr, 3),
+                        round(major, 3),
+                        round(minor, 3),
+                        round(rotation, 3),
+                    )
+                )
+            else:
+                sources.append(_point(*position, round(snr, 3)))
     return sources
 
 
@@ -309,6 +348,17 @@ def _cases() -> list[dict[str, Any]]:
                 ),
                 _ellipse(7000.0, 2500.0, 100.0, 600.0, 500.0, 20.0),
             ],
+        },
+        {
+            "identifier": "crowded-field",
+            "purpose": (
+                "A source every 32 pixels, peak SNR 5 to 300 and one in ten "
+                "resolved: so crowded that no fine noise window lies clear "
+                "of source support, which reached the background refusal "
+                "of task 36."
+            ),
+            "shape_yx": (1024, 1024),
+            "sources": _crowded_field(1024, 32.0),
         },
     ]
 

@@ -43,7 +43,12 @@ from hebog.algorithms.multiscale import (
 from hebog.algorithms.multiscale_association import (
     persistent_seeded_scale_support,
 )
-from hebog.config import BackgroundRmsConfig, RmsGridConfig, SourceFinderConfig
+from hebog.config import (
+    AdaptiveRmsConfig,
+    BackgroundRmsConfig,
+    RmsGridConfig,
+    SourceFinderConfig,
+)
 from hebog.data_models.partitioning import ImageBounds, TilePartition
 from hebog.executors.base import Executor
 from hebog.io.base import ImageWindow
@@ -873,6 +878,22 @@ def _require_local_noise_policy(
         )
 
 
+def _require_protection_threshold(
+    island_threshold_sigma: float | None,
+    adaptive: AdaptiveRmsConfig,
+) -> None:
+    """Require a protection threshold below the bright-candidate threshold."""
+    if island_threshold_sigma is not None and (
+        not isfinite(island_threshold_sigma)
+        or island_threshold_sigma <= 0
+        or island_threshold_sigma >= adaptive.candidate_threshold_sigma
+    ):
+        raise ValueError(
+            "adaptive refinement requires a finite positive public island "
+            "threshold below its candidate threshold for source protection"
+        )
+
+
 def _require_bounded_coarse_protection(
     image_shape_yx: tuple[int, int],
     config: BackgroundRmsConfig,
@@ -924,6 +945,55 @@ def _supported_candidate_positions(
     )
 
 
+def _adopt_protected_coarse(  # noqa: PLR0913
+    protected: AdaptiveRmsRegion,
+    unprotected: BackgroundRmsGrids,
+    candidate_regions: tuple[_CandidateRegion, ...],
+    source: _WindowReadable,
+    executor: Executor,
+    *,
+    island_threshold_sigma: float,
+    margin_pixels: float,
+) -> tuple[BackgroundRmsGrids, tuple[_CandidateRegion, ...]]:
+    """Adopt a protected coarse estimate and retire the anchors it explains.
+
+    A field whose every pixel lies within the guard of some source support
+    keeps no sample to protect with. Protection then refines nothing and the
+    unprotected estimate stands, with its anchors.
+
+    Initial bright work anchors are not immutable source seeds. The protected
+    coarse estimate can explain one as noise; retire only anchors without
+    support in that new estimate. Unchanged-cache callers still reach the
+    strict source-protection consistency guard.
+    """
+    if not protected.grid.scientifically_available:
+        return unprotected, candidate_regions
+    coarse = protected.grid
+    retain = partial(
+        _supported_candidate_positions,
+        source=source,
+        island_threshold_sigma=island_threshold_sigma,
+    )
+    retained = executor.map_batches(
+        retain,
+        tuple(
+            (region, subset_prepared_rms_grid(coarse, region.bounds))
+            for region in candidate_regions
+        ),
+    )
+    protected_grids = BackgroundRmsGrids(
+        coarse=coarse,
+        adaptive_regions=(),
+        coarse_protected_pixel_count=protected.protected_pixel_count,
+    )
+    supported_regions = _merge_candidate_regions(
+        tuple(position for positions in retained for position in positions),
+        image_shape_yx=coarse.geometry.image_shape_yx,
+        margin_pixels=margin_pixels,
+    )
+    return protected_grids, supported_regions
+
+
 def refine_background_rms_grids(  # noqa: PLR0913
     source: _WindowReadable,
     coarse_grids: BackgroundRmsGrids,
@@ -965,20 +1035,18 @@ def refine_background_rms_grids(  # noqa: PLR0913
         and not refine_local_noise
     ):
         return coarse_grids
-    if source_protection_island_threshold_sigma is not None and (
-        not isfinite(source_protection_island_threshold_sigma)
-        or source_protection_island_threshold_sigma <= 0
-        or source_protection_island_threshold_sigma
-        >= adaptive_config.candidate_threshold_sigma
-    ):
-        raise ValueError(
-            "adaptive refinement requires a finite positive public island "
-            "threshold below its candidate threshold for source protection"
-        )
+    _require_protection_threshold(
+        source_protection_island_threshold_sigma, adaptive_config
+    )
     if protect_coarse_source_support:
         _require_bounded_coarse_protection(
             image_shape_yx, config, source_protection_island_threshold_sigma
         )
+    # Without a coarse estimate no pixel has a background, so nothing here
+    # can refine it and the estimate stays unavailable as a whole; the fine
+    # pilot alone would be 4.8 million cells at 15,402 pixels.
+    if not coarse_grids.coarse.scientifically_available:
+        return coarse_grids
     # A coarse RMS can dilute noise excursions and misclassify their peaks
     # as sources. This unmasked pilot only admits source protection.
     detection_rms = (
@@ -998,6 +1066,7 @@ def refine_background_rms_grids(  # noqa: PLR0913
         and (protect_coarse_source_support or refine_local_noise)
         else None
     )
+    unprotected_grids, unprotected_regions = coarse_grids, candidate_regions
     if protect_coarse_source_support:
         assert source_protection_island_threshold_sigma is not None
         estimate_coarse = partial(
@@ -1020,39 +1089,13 @@ def refine_background_rms_grids(  # noqa: PLR0913
                 ),
             ),
         )
-        coarse_grids = BackgroundRmsGrids(
-            coarse=protected_coarse.grid,
-            adaptive_regions=(),
-            coarse_protected_pixel_count=protected_coarse.protected_pixel_count,
-        )
-        if not coarse_grids.coarse.scientifically_available:
-            return coarse_grids
-        # Initial bright work anchors are not immutable source seeds. The
-        # protected coarse estimate can explain one as noise; retire only
-        # anchors without support in that new estimate. Unchanged-cache
-        # callers still reach the strict source-protection consistency guard.
-        retain = partial(
-            _supported_candidate_positions,
-            source=source,
+        coarse_grids, candidate_regions = _adopt_protected_coarse(
+            protected_coarse,
+            coarse_grids,
+            candidate_regions,
+            source,
+            executor,
             island_threshold_sigma=source_protection_island_threshold_sigma,
-        )
-        retained = executor.map_batches(
-            retain,
-            tuple(
-                (
-                    region,
-                    subset_prepared_rms_grid(
-                        coarse_grids.coarse, region.bounds
-                    ),
-                )
-                for region in candidate_regions
-            ),
-        )
-        candidate_regions = _merge_candidate_regions(
-            tuple(
-                position for positions in retained for position in positions
-            ),
-            image_shape_yx=image_shape_yx,
             margin_pixels=adaptive_margin,
         )
     if refine_local_noise:
@@ -1065,9 +1108,20 @@ def refine_background_rms_grids(  # noqa: PLR0913
             executor,
             policy=multiscale_protection,
         )
+        local_noise = prepare_rms_grid_for_interpolation(statistics)
+        # A field so crowded that no fine window anywhere clears source
+        # support is too crowded to protect: a protected coarse estimate there
+        # rests on the few pixels farthest from every source. The unprotected
+        # sigma-clipped estimate stands instead, as PyBDSF's does, with its
+        # anchors, and the local noise refines nothing.
+        if not local_noise.scientifically_available:
+            coarse_grids, candidate_regions = (
+                unprotected_grids,
+                unprotected_regions,
+            )
         coarse_grids = replace(
             coarse_grids,
-            local_noise=prepare_rms_grid_for_interpolation(statistics),
+            local_noise=local_noise,
             local_noise_protected_window_count=statistics.protected_window_count,
         )
     if not candidate_regions:
@@ -1258,7 +1312,13 @@ def interpolate_background_rms_tile(
                 float, request.transition_width_pixels
             ),
         )
-    if request.local_noise is not None:
+    # Local noise that keeps no cell anywhere refines nothing, as a bright
+    # region without a usable fine cell does: the noise above stands, which
+    # refine_background_rms_grids has made the unprotected coarse estimate.
+    if (
+        request.local_noise is not None
+        and request.local_noise.scientifically_available
+    ):
         noise = interpolate_prepared_rms_grid(
             request.local_noise,
             bounds,
@@ -1268,10 +1328,6 @@ def interpolate_background_rms_tile(
         result = replace(
             result,
             rms=noise.rms,
-            scientifically_available=(
-                result.scientifically_available
-                and noise.scientifically_available
-            ),
             fallback_cell_count=result.fallback_cell_count
             + noise.fallback_cell_count,
         )

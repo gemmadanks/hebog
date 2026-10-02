@@ -965,11 +965,18 @@ def test_blank_and_all_nan_inputs_publish_honest_empty_products(
     tmp_path: Path,
     shape: tuple[int, int],
 ) -> None:
-    """Empty science remains successful without inventing sources or RMS."""
+    """Empty science remains successful without inventing sources or RMS.
+
+    Three finite pixels are fewer than any background window needs, so no
+    pixel has an estimate, which is the all-NaN image's case.
+    """
+    three_finite_pixels = np.full(shape, np.nan)
+    three_finite_pixels.flat[:: three_finite_pixels.size // 3] = 1.0
     for name, values, expected_rms_status in (
         ("blank", np.zeros(shape), "unavailable"),
         ("all-nan", np.full(shape, np.nan), "unavailable"),
         ("constant-negative", np.full(shape, -2.0), "unavailable"),
+        ("three-finite-pixels", three_finite_pixels, "unavailable"),
     ):
         image_path = tmp_path / f"{name}.fits"
         _write_image(image_path, values)
@@ -993,6 +1000,119 @@ def test_blank_and_all_nan_inputs_publish_honest_empty_products(
         mask = np.asarray(fits.getdata(result.mask_path), dtype=np.bool_)
         assert mask.shape == shape
         assert not np.any(mask)
+
+
+@pytest.mark.integration
+def test_pixels_no_background_window_can_measure_leave_noise_unavailable(
+    tmp_path: Path,
+) -> None:
+    """Six finite pixels fill one fine noise window but no coarse one.
+
+    A 160-pixel image has 40-pixel coarse windows every 13 pixels, and none
+    holds the six samples the statistic needs, so no pixel has a background.
+    The 35-pixel fine window that does hold them lends the image no noise of
+    its own: the estimate is unavailable as a whole, as for an all-NaN image.
+    """
+    values = np.full((160, 160), np.nan)
+    for value, pixel in enumerate(
+        ((7, 7), (7, 41), (41, 7), (41, 41), (24, 24), (24, 26)), start=1
+    ):
+        values[pixel] = float(value)
+    _write_image(tmp_path / "image.fits", values)
+
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+
+    assert result.rms.scientific_status == "unavailable"
+    assert result.source_count == 0
+    assert result.island_count == 0
+    published = np.asarray(fits.getdata(result.rms.path), dtype=np.float64)
+    assert np.all(np.isnan(published))
+
+
+def _crowded_field(
+    shape_yx: tuple[int, int],
+    spacing_pixels: float,
+) -> tuple[npt.NDArray[np.float64], tuple[tuple[int, int], ...]]:
+    """Return unit white noise under a beam-shaped source every spacing.
+
+    Peaks are log-uniform from 10 to 100 times the noise on a grid jittered
+    by up to a quarter of its spacing; each source is stamped six beam
+    sigmas out. Each source's peak pixel, or the image pixel nearest it for a
+    source jittered past the far edge, is returned in ``(y, x)`` order.
+    """
+    jitter = spacing_pixels / 4.0
+    beam_sigma_pixels = 4.0 / (2.0 * np.sqrt(2.0 * np.log(2.0)))
+    stamp_radius = int(np.ceil(6.0 * beam_sigma_pixels))
+    generator = np.random.default_rng(36)
+    image = generator.normal(0.0, 1.0, shape_yx)
+    peaks: list[tuple[int, int]] = []
+    centres_y = np.arange(spacing_pixels / 2.0, shape_yx[0], spacing_pixels)
+    centres_x = np.arange(spacing_pixels / 2.0, shape_yx[1], spacing_pixels)
+    for y_centre in centres_y:
+        for x_centre in centres_x:
+            y = y_centre + generator.uniform(-jitter, jitter)
+            x = x_centre + generator.uniform(-jitter, jitter)
+            peak = np.exp(generator.uniform(np.log(10.0), np.log(100.0)))
+            y_start = max(0, round(y) - stamp_radius)
+            x_start = max(0, round(x) - stamp_radius)
+            y_pixels, x_pixels = np.mgrid[
+                y_start : round(y) + stamp_radius + 1,
+                x_start : round(x) + stamp_radius + 1,
+            ]
+            stamp = peak * np.exp(
+                -((x_pixels - x) ** 2 + (y_pixels - y) ** 2)
+                / (2.0 * beam_sigma_pixels**2)
+            )
+            target = image[
+                y_start : y_start + stamp.shape[0],
+                x_start : x_start + stamp.shape[1],
+            ]
+            target += stamp[: target.shape[0], : target.shape[1]]
+            peaks.append(
+                (
+                    min(round(y), shape_yx[0] - 1),
+                    min(round(x), shape_yx[1] - 1),
+                )
+            )
+    return image, tuple(peaks)
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("shape_yx", "spacing_pixels"),
+    (((160, 224), 20.0), ((300, 300), 28.0), ((600, 600), 20.0)),
+)
+def test_a_field_too_crowded_for_source_free_noise_is_measured(
+    tmp_path: Path,
+    shape_yx: tuple[int, int],
+    spacing_pixels: float,
+) -> None:
+    """A field too crowded to protect is measured with unprotected noise.
+
+    At these spacings no 35-pixel fine window lies 17 pixels clear of every
+    island, so the local noise keeps no sample and the sigma-clipped coarse
+    estimate stands unprotected. Below 600 pixels a side the coarse estimate
+    is source-protected too: at 160 by 224 protection keeps no pixel, and at
+    300 square it keeps eight, whose estimate would put the noise at a third
+    of its true value. Such fields used to be refused because the estimate no
+    longer covered the image.
+    """
+    image, peaks = _crowded_field(shape_yx, spacing_pixels)
+    _write_image(tmp_path / "image.fits", image)
+
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+
+    assert result.rms.scientific_status == "valid"
+    rms = np.asarray(fits.getdata(result.rms.path), dtype=np.float64)
+    assert np.all(rms > 0.0)
+    assert abs(float(np.median(rms)) - 1.0) < 0.15
+    mask = np.asarray(fits.getdata(result.mask_path), dtype=np.bool_)
+    assert all(mask[peak] for peak in peaks)
+    assert result.island_count == len(peaks)
 
 
 @pytest.mark.integration

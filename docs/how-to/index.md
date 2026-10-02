@@ -80,7 +80,7 @@ just quick-science-check --baseline benchmark-results/quick-check/runs/<earlier-
 
 The cases are in `config/checks/quick-science-check.json`:
 
-- twelve generated images with injected truth, described in
+- thirteen generated images with injected truth, described in
   `config/datasets/quick-science-check.json` and rebuilt by
   `scripts/validation/build_quick_check_datasets.py`;
 - two SKA Data Challenge 1 cut-outs; and

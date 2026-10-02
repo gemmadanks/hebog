@@ -32,6 +32,7 @@ from hebog.executors import SerialExecutor, TaskRequirement
 from hebog.io.base import ImageWindow
 from hebog.stages import background as background_stage
 from hebog.stages.background import (
+    BackgroundRmsGrids,
     MultiscaleSourceProtection,
     _connected_source_protection,
     _estimate_local_noise_grid,
@@ -269,9 +270,25 @@ def test_local_noise_keeps_raw_availability_and_coverage(scene: str) -> None:
         _Source(image),
         prepare_background_rms_tile_request(manifest.tiles[0], grids, config),
     )
-    if scene in ("invalid", "source-filled"):
-        assert not tile.scientifically_available
+    coarse_only = estimate_background_rms_tile(
+        _Source(image),
+        prepare_background_rms_tile_request(
+            manifest.tiles[0], replace(grids, local_noise=None), config
+        ),
+    )
+    if scene == "invalid":
+        # The coarse grid here comes from the noise image, so the estimate
+        # is available; no pixel of the all-NaN image takes it.
+        assert tile.scientifically_available
         assert np.isnan(tile.rms).all()
+    elif scene == "source-filled":
+        # No fine window clears the source, so no local noise refines the
+        # coarse estimate: it stands, as it does for a bright region without
+        # a usable fine cell, rather than leaving the image without noise.
+        assert tile.scientifically_available
+        np.testing.assert_array_equal(tile.background, coarse_only.background)
+        np.testing.assert_array_equal(tile.rms, coarse_only.rms)
+        np.testing.assert_allclose(tile.rms, 1, atol=0.02)
     elif scene == "constant":
         # A zero-variance statistic is defined; normalize_residual separately
         # rejects zero RMS for source detection. Do not fabricate noise.
@@ -288,6 +305,106 @@ def test_local_noise_keeps_raw_availability_and_coverage(scene: str) -> None:
             bright_candidate_positions_yx=(),
             refine_local_noise=True,
         )
+
+
+def test_a_field_too_crowded_for_fine_noise_is_not_protected() -> None:
+    """Protection that leaves no clean fine window anywhere is not used.
+
+    A 22-pixel clean patch in a field of source support keeps a few coarse
+    samples inside the five-pixel guard but no clean 11-pixel fine window,
+    so a protected coarse estimate would rest on those few pixels alone. The
+    unprotected estimate stands instead and local noise refines nothing.
+    """
+    yy, xx = np.mgrid[:80, :96]
+    noise = np.where((yy + xx) % 2, -1.0, 1.0)
+    image = noise + 100.0
+    image[30:52, 40:62] = noise[30:52, 40:62]
+    config = _config()
+    coarse = estimate_background_rms_grids(
+        _Source(noise),
+        noise.shape,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=(),
+    )
+
+    def refine(*, refine_local_noise: bool) -> BackgroundRmsGrids:
+        return refine_background_rms_grids(
+            _Source(image),
+            coarse,
+            config,
+            SerialExecutor(),
+            bright_candidate_positions_yx=(),
+            source_protection_island_threshold_sigma=3,
+            multiscale_protection=_policy(),
+            protect_coarse_source_support=True,
+            refine_local_noise=refine_local_noise,
+        )
+
+    protected = refine(refine_local_noise=False)
+    refined = refine(refine_local_noise=True)
+
+    assert protected.coarse.scientifically_available
+    assert protected.coarse is not coarse.coarse
+    assert 0 < image.size - protected.coarse_protected_pixel_count < 50
+    assert refined.local_noise is not None
+    assert not refined.local_noise.scientifically_available
+    assert refined.coarse is coarse.coarse
+    assert refined.coarse_protected_pixel_count == 0
+
+
+@pytest.mark.parametrize("protect_coarse", (False, True))
+def test_local_noise_is_not_estimated_without_a_coarse_estimate(
+    protect_coarse: bool,
+) -> None:
+    """Noise without a background is no estimate, so none is attempted.
+
+    Here the coarse grid comes from an all-NaN image. A public image reaches
+    this when its few finite pixels fill a fine window but no coarse one;
+    its estimate must then stay unavailable as a whole, which the
+    composition reports, rather than carry a noise with no background.
+    Nothing can refine it, so refinement reads no window at all: neither
+    the fine pilot, which at 15,402 pixels is 4.8 million cells, nor the
+    protected coarse grid.
+    """
+    yy, xx = np.mgrid[:80, :96]
+    noise = np.where((yy + xx) % 2, -1.0, 1.0)
+    config = _config()
+    coarse = estimate_background_rms_grids(
+        _Source(np.full_like(noise, np.nan)),
+        noise.shape,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=(),
+    )
+    source = _Source(noise)
+    grids = refine_background_rms_grids(
+        source,
+        coarse,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=(),
+        source_protection_island_threshold_sigma=3,
+        multiscale_protection=_policy(),
+        protect_coarse_source_support=protect_coarse,
+        refine_local_noise=True,
+    )
+    assert source.bounds == []
+    manifest = plan_image_partitions(
+        image_shape_yx=noise.shape,
+        tile_core_shape_yx=noise.shape,
+        halo_yx=(0, 0),
+    )
+    tile = estimate_background_rms_tile(
+        _Source(noise),
+        prepare_background_rms_tile_request(manifest.tiles[0], grids, config),
+    )
+
+    assert not coarse.coarse.scientifically_available
+    assert grids.local_noise is None
+    assert not tile.scientifically_available
+    assert np.isnan(tile.background).all()
+    assert np.isnan(tile.rms).all()
 
 
 def test_local_noise_contexts_are_bounded_and_execution_invariant() -> None:

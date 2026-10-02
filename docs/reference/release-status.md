@@ -66,6 +66,18 @@ Known limitations when interpreting results:
 - A detection whose Gaussian fit fails has no Gaussian-component row.
 - An image with no usable positive RMS yields an all-NaN RMS product, an empty
   catalogue and a zero mask. This is not evidence of an empty sky.
+- In a field so crowded that no fine noise window lies clear of its sources,
+  the background and RMS are the unprotected sigma-clipped coarse estimate,
+  which includes the sources' wings.
+- Crowded fields are associated and fitted incorrectly, a known defect the
+  [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
+  tracks. On small images a crowded field's islands can collapse into a
+  few sources with no Gaussian-component row: generated fields of 160 to
+  300 pixels with a source every 16 to 24 pixels did, and 119 islands of a
+  240-pixel field became 2 sources. In a generated 1,024-pixel field with a
+  source every 32 pixels, 962 islands became 574 sources where PyBDSF finds
+  1,006, and 11% of the joint Gaussian fits were deferred at their work
+  bound; with a source every 24 pixels nearly all were.
 - The `compact` profile is not a general continuum catalogue.
 - Completeness, reliability, astrometry and photometry must be evaluated on
   data representative of your use.

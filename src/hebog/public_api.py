@@ -525,8 +525,9 @@ def _estimate_has_usable_noise(
     thing the composition needs from it: a pixel is usable where the image is
     finite and the estimate is positive. The stage has already required, on
     the core that computed it, that the estimate is finite wherever the image
-    is, so validity is the image's own finite domain and needs no second
-    opinion. The answer is reduced one canonical tile row at a time, so
+    is, or, when no coarse window held enough samples for a background,
+    nowhere, so validity is the image's own finite domain and needs no
+    second opinion. The answer is reduced one canonical tile row at a time, so
     neither the estimate nor a mask over it is ever held whole.
 
     Raises:

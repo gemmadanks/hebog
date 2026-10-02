@@ -61,6 +61,11 @@
       "kind": "generated"
     },
     {
+      "case_id": "crowded-field",
+      "dataset_id": "quick-crowded-field",
+      "kind": "generated"
+    },
+    {
       "case_id": "sdc1-b2-1000h-sparse",
       "image": "benchmark-results/quick-check/cutouts/sdc1-b2-1000h-sparse/image.fits",
       "kind": "image",
