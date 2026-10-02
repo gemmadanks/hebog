@@ -7,14 +7,20 @@
 
 from __future__ import annotations
 
+import importlib.metadata
 import json
+import runpy
+import subprocess
 import sys
 from pathlib import Path
+from types import FrameType, ModuleType
 from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 from astropy.io import fits
+from astropy.table import Table
 from pydantic import ValidationError
 
 from hebog.data_models import (
@@ -33,6 +39,7 @@ from hebog.validation.quick_benchmark import (
     load_quick_benchmark_configuration,
 )
 from hebog.validation.quick_check import (
+    REFERENCE_CODE,
     REFERENCE_CONTAINER_COMMAND,
     REFERENCE_WORKER,
     GeneratedCase,
@@ -563,31 +570,199 @@ def test_reference_cache_depends_on_the_reference_identity(
     )
 
 
-def test_reference_code_identity_covers_the_worker_import_closure(
+def _write_reference_checkout(root: Path) -> None:
+    """Write a checkout whose worker imports ``hebog`` as the real one does.
+
+    Importing the listed modules also runs the package's own imports and,
+    through the catalogue records, imports an algorithm module.
+    """
+    files = {
+        REFERENCE_WORKER: (
+            "import hebog.validation.campaign_runtime\n"
+            "import hebog.validation.products\n"
+        ),
+        Path("src/hebog/__init__.py"): (
+            'from hebog import config\n__version__ = "0.17.0"\n'
+        ),
+        Path("src/hebog/config.py"): "VALUE = 1\n",
+        Path("src/hebog/algorithms/__init__.py"): "",
+        Path("src/hebog/algorithms/fitting.py"): "VALUE = 1\n",
+        Path("src/hebog/science/__init__.py"): "",
+        Path("src/hebog/science/models.py"): (
+            "import hebog.algorithms.fitting\n"
+        ),
+        Path("src/hebog/validation/__init__.py"): "",
+        Path("src/hebog/validation/campaign_runtime.py"): "VALUE = 1\n",
+        Path("src/hebog/validation/products.py"): (
+            "import hebog.science.models\n"
+        ),
+    }
+    for relative, text in files.items():
+        (root / relative).parent.mkdir(parents=True, exist_ok=True)
+        (root / relative).write_text(text)
+
+
+def test_reference_code_identity_ignores_code_the_worker_does_not_run(
     tmp_path: Path,
 ) -> None:
-    """Editing any repository module the worker imports changes the key."""
-    package = tmp_path / "src" / "demo"
-    package.mkdir(parents=True)
-    (package / "__init__.py").write_text("")
-    (package / "helper.py").write_text("VALUE = 1\n")
-    (package / "unused.py").write_text("VALUE = 1\n")
-    worker = tmp_path / "worker.py"
-    worker.write_text("import demo.helper\n")
+    """Another checkout, a release or an algorithm change keeps references.
 
-    def digest() -> str:
-        return reference_code_sha256(
-            worker, repository_root=tmp_path, source_root=tmp_path / "src"
+    The worker imports the whole package but runs only the listed code, so
+    editing any listed file, and only those, selects a new reference.
+    """
+    main, worktree = tmp_path / "main", tmp_path / "worktree"
+    _write_reference_checkout(main)
+    _write_reference_checkout(worktree)
+    first = reference_code_sha256(main)
+
+    (worktree / "src/hebog/__init__.py").write_text(
+        'from hebog import config\n__version__ = "0.18.0"\n'
+    )
+    for unrun in ("src/hebog/config.py", "src/hebog/algorithms/fitting.py"):
+        (worktree / unrun).write_text("VALUE = 2\n")
+    assert reference_code_sha256(worktree) == first
+
+    digests = {first}
+    for relative in REFERENCE_CODE:
+        with (worktree / relative).open("a", encoding="utf-8") as handle:
+            handle.write("# edited\n")
+        digests.add(reference_code_sha256(worktree))
+    assert len(digests) == len(REFERENCE_CODE) + 1
+
+
+def test_reference_code_identity_needs_a_worker_that_imports(
+    tmp_path: Path,
+) -> None:
+    """A worker that cannot import fails before any reference runs.
+
+    In the container the failure would be cached under an identity that
+    fixing the broken, unhashed module does not change.
+    """
+    _write_reference_checkout(tmp_path)
+    (tmp_path / "src/hebog/algorithms/fitting.py").write_text(
+        "raise ImportError('broken')\n"
+    )
+
+    with pytest.raises(subprocess.CalledProcessError):
+        reference_code_sha256(tmp_path)
+
+
+_PYBDSF_COLUMNS = (
+    "Gaus_id",
+    "Isl_id",
+    "Source_id",
+    "Wave_id",
+    "RA",
+    "E_RA",
+    "DEC",
+    "E_DEC",
+    "Total_flux",
+    "E_Total_flux",
+    "Peak_flux",
+    "E_Peak_flux",
+    "Maj",
+    "E_Maj",
+    "Min",
+    "E_Min",
+    "PA",
+    "E_PA",
+    "DC_Maj",
+    "E_DC_Maj",
+    "DC_Min",
+    "E_DC_Min",
+    "DC_PA",
+    "E_DC_PA",
+)
+
+
+class _OneIslandPyBDSFImage:
+    """Stands in for PyBDSF's image: one resolved source in one island."""
+
+    def __init__(self, labels_yx: npt.NDArray[np.int32]) -> None:
+        self.labels_yx = labels_yx
+        self.pyrank = (labels_yx - 1).T
+
+    def write_catalog(self, *, outfile: str, **_options: object) -> None:
+        """Write the source or Gaussian list; one row serves as both."""
+        row = (0, 0, 0, 0, 10.0, 1e-5, 50.0, 1e-5, 0.02, 1e-3, 0.01, 1e-3)
+        shapes = (3e-3, 1e-4, 2e-3, 1e-4, 20.0, 2.0)
+        deconvolved = (2e-3, 1e-4, 1e-3, 1e-4, 20.0, 2.0)
+        Table(rows=[row + shapes + deconvolved], names=_PYBDSF_COLUMNS).write(
+            outfile
         )
 
-    first = digest()
-    (package / "unused.py").write_text("VALUE = 2\n")
-    assert digest() == first
-    (package / "helper.py").write_text("VALUE = 2\n")
-    changed_helper = digest()
-    assert changed_helper != first
-    worker.write_text("import demo.helper  # edited\n")
-    assert digest() != changed_helper
+    def export_image(
+        self, *, outfile: str, img_type: str, **_options: object
+    ) -> bool:
+        """Write the island mask or a flat RMS map."""
+        plane = (
+            self.labels_yx > 0
+            if img_type == "island_mask"
+            else np.ones(self.labels_yx.shape)
+        )
+        fits.PrimaryHDU(plane.astype(np.float32)).writeto(outfile)
+        return True
+
+
+def test_reference_code_is_exactly_the_code_the_worker_runs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The identity hashes every repository file a PyBDSF reference runs.
+
+    A profile hook records the files whose functions the worker calls while
+    it reads, checks and normalises PyBDSF's products. A module the worker
+    starts to use, or a listed one it stops using, fails here until the list
+    follows.
+    """
+    worker = runpy.run_path(str(_ROOT / REFERENCE_WORKER))
+    settings = worker["reference_settings"]()["pinned-pybdsf-master"]
+
+    def installed_version(_package: str) -> str:
+        return str(settings["version"])
+
+    labels = np.zeros((10, 10), dtype=np.int32)
+    labels[4:6, 5:7] = 1
+
+    def process_image(
+        *_arguments: object, **_options: object
+    ) -> _OneIslandPyBDSFImage:
+        return _OneIslandPyBDSFImage(labels)
+
+    bdsf = ModuleType("bdsf")
+    bdsf.process_image = process_image
+    monkeypatch.setitem(sys.modules, "bdsf", bdsf)
+    monkeypatch.setattr(importlib.metadata, "version", installed_version)
+    image = tmp_path / "input.fits"
+    _write_radio_image(image, with_bpa=True)
+    called: set[str] = set()
+
+    def record(frame: FrameType, event: str, _argument: object) -> None:
+        if event == "call":
+            called.add(frame.f_code.co_filename)
+
+    previous = sys.getprofile()
+    sys.setprofile(record)
+    try:
+        worker["run_reference"](
+            image=image,
+            output=tmp_path / "reference",
+            case_id="case",
+            finder="pinned-pybdsf-master",
+            container_image_id="image",
+            ncores=1,
+        )
+    finally:
+        sys.setprofile(previous)
+
+    root = _ROOT.resolve()
+    ran = {
+        path.relative_to(root).as_posix()
+        for path in (Path(name).resolve() for name in called)
+        if path.is_relative_to(root / "src")
+        or path.is_relative_to(root / "scripts")
+    }
+    assert ran == {path.as_posix() for path in REFERENCE_CODE}
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="uses a shell script")
@@ -595,7 +770,7 @@ def test_reference_identity_names_image_settings_cores_and_code(
     tmp_path: Path,
 ) -> None:
     """The identity changes with the image ID and with the reference code."""
-    for relative in (REFERENCE_WORKER, REFERENCE_CONTAINER_COMMAND):
+    for relative in (*REFERENCE_CODE, REFERENCE_CONTAINER_COMMAND):
         (tmp_path / relative).parent.mkdir(parents=True, exist_ok=True)
         (tmp_path / relative).write_text("VALUE = 1\n")
     settings = tmp_path / "config/comparisons/notebook-comparison.json"

@@ -27566,3 +27566,34 @@ the per-worker placement finding.
     bound, fails them. The oracle keeps its limits as keyword arguments, as
     the solver does, for unit tests.
   - **Products.** None changes: the public path never set the limits.
+
+## 2026-10-02 — Quick check: references keyed by the code their worker runs
+
+- **Problem.** Cached pinned-PyBDSF `master` references were keyed by the
+  reference worker's whole import closure: 43 Hebog modules, among them 13
+  in `hebog.algorithms` (reached through the catalogue records in
+  `hebog.science.models`) and `hebog/__init__.py`, which every release
+  edits, plus about 1,100 third-party files from the checkout's `.venv`,
+  which the container never uses. 24 of the 31 commits on `main` since the
+  cache was introduced on 16 September changed the key; 12 of those were
+  releases. Two checkouts with the same reference code had different keys.
+  Each change re-ran `master` for all 17 cases, or with `--skip-references`,
+  as for `task37-final`, left the run without `master` metrics.
+- **Decision.** Hash an explicit list: the worker and the three modules
+  whose code it runs, `hebog.validation.products`, `hebog.science.models`
+  and `hebog.validation.campaign_runtime`. Narrowing the worker's imports
+  could not do this: any `hebog` import runs the package `__init__`, and
+  lazy imports would hide real dependencies from a closure hash. A unit test
+  traces a synthetic PyBDSF run through the real worker and requires the
+  files it runs to equal the list. The worker is still imported before any
+  container runs, so a checkout that cannot import it fails without caching
+  that failure. The quick benchmark's `master` timings share the key.
+- **Evidence.** The key is the same in a worktree, the main checkout and a
+  scratch copy (`a0b94578…`), and survives a version bump and an algorithm
+  edit. `close-blends` ran `master` in Podman once and reused it on the next
+  run (36 s → 9 s, same metrics).
+- **Residual and next step.** `hebog/science/models.py` is hashed whole
+  because it defines the catalogue records, so edits to its other records
+  still re-run references. Under the new key, 5 of those 31 commits would
+  have re-run them, 3 only for that reason. The new key matches no earlier
+  one, so the first check after merging re-runs all 17 references once.
