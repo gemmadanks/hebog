@@ -14,8 +14,9 @@ from astropy.wcs import WCS
 
 from hebog.data_models.catalogues import SourceCatalogue
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
+from hebog.science.catalogue_rows import CatalogueSource
 from hebog.science.catalogues import source_label_by_owner
-from hebog.science.models import CatalogueSource, ContinuumProducts
+from hebog.science.models import ContinuumProducts
 
 _IMAGE_DIMENSIONS = 2
 

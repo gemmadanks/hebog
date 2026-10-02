@@ -49,11 +49,8 @@ from hebog.data_models.source_association import (
     CatalogueSourceMembership,
     SourceAssociationResult,
 )
-from hebog.science.models import (
-    CatalogueEllipse,
-    CatalogueIsland,
-    CatalogueSource,
-)
+from hebog.science.catalogue_rows import CatalogueEllipse, CatalogueSource
+from hebog.science.models import CatalogueIsland
 
 _PLANE_DIMENSIONS = 2
 _MINIMUM_MOMENT_PIXELS = 3

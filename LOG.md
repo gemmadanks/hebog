@@ -27597,3 +27597,29 @@ the per-worker placement finding.
   still re-run references. Under the new key, 5 of those 31 commits would
   have re-run them, 3 only for that reason. The new key matches no earlier
   one, so the first check after merging re-runs all 17 references once.
+
+## 2026-10-02 — Quick check: catalogue rows apart from the composition records
+
+- **Problem.** The reference key hashed `hebog/science/models.py` whole,
+  because it defines `CatalogueEllipse` and `CatalogueSource`, the rows the
+  reference worker builds, beside the composition records, which import
+  `hebog.algorithms`. 3 of the 31 commits on `main` from 16 September to
+  2 October (#70, #72, #76) changed only those records, so each would still
+  have re-run all 17 references and the quick benchmark's `master` timings.
+- **Decision.** The two rows, with their helpers and constants, move
+  unchanged to `hebog.science.catalogue_rows`, which imports no other Hebog
+  module, and it replaces `models.py` in `REFERENCE_CODE`. No compatibility
+  re-export was added. The worker now imports 28 Hebog modules instead of
+  43, none in `hebog.algorithms`, and a test requires every listed file to
+  import no algorithm. The new module is bound into the scientific
+  composition fingerprint; a test now requires every science module the
+  public path imports to be bound, as tests already did for stages and
+  algorithms.
+- **Evidence.** The trace test passes with the new list and fails with
+  `models.py` in its place. The key (`55c57009…`) is the same in a scratch
+  copy and survives edits to the composition records and an algorithm, but
+  not to the rows. `close-blends` ran `master` in Podman once and reused it
+  on the next run (10 s → 8 s, same metrics). Under this key, 2 of those 31
+  commits (#59, #60) would have re-run the references.
+- **Next step.** The key changes once more, so the first quick check and
+  quick benchmark after merging re-run their `master` references once.

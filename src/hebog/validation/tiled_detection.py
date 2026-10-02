@@ -56,10 +56,10 @@ from hebog.public_api import (
     publish_support_labels,
     reduce_support_topology,
 )
+from hebog.science.catalogue_rows import CatalogueSource
 from hebog.science.continuum import retained_scale_detections
 from hebog.science.models import (
     CatalogueIsland,
-    CatalogueSource,
     TiledComponentTopology,
     TiledMultiscaleDetection,
 )
