@@ -43,12 +43,22 @@ from hebog.science import continuum
 from hebog.science.models import TiledComponentFits
 from hebog.stages import detection as detection_stage
 from hebog.stages.background import BackgroundRmsGrids
+from hebog.validation.datasets import (
+    generate_synthetic_window,
+    load_dataset_manifest,
+)
+from hebog.validation.materialization import synthetic_fits_header
 from hebog.validation.public_measurement_projection import (
     project_public_measurements,
 )
 
 Input = TypeVar("Input")
 Output = TypeVar("Output")
+
+_QUICK_CHECK_DATASETS = (
+    Path(__file__).resolve().parents[2]
+    / "config/datasets/quick-science-check.json"
+)
 
 
 @pytest.mark.integration
@@ -1147,6 +1157,144 @@ def test_a_crowded_field_is_fitted_island_by_island(
     assert result.island_count == len(peaks)
     assert result.source_count == len(peaks)
     assert result.gaussian_component_count == len(peaks)
+
+
+def _correlated_crowded_field(
+    size: int, spacing: int
+) -> tuple[
+    npt.NDArray[np.float32], fits.Header, list[tuple[float, float, bool]]
+]:
+    """Return a square crowded field in beam-correlated noise.
+
+    The noise, beam and header are the quick check's ``quick-dense-field``
+    recipe at ``size`` pixels a side. A source sits every ``spacing``
+    pixels, jittered by up to a third of it, with peak SNR log-uniform from
+    5 to 300; one in ten is resolved, with a major sigma of 4 to 9 pixels.
+    Each injected source is returned as ``(x, y, resolved)``.
+    """
+    (dataset,) = (
+        record
+        for record in load_dataset_manifest(_QUICK_CHECK_DATASETS).datasets
+        if record.identifier == "quick-dense-field"
+    )
+    recipe = dataset.recipe.model_copy(
+        update={"sources": (), "shape_yx": (size, size)}
+    )
+    dataset = dataset.model_copy(
+        update={
+            "wcs": dataset.wcs.model_copy(
+                update={"reference_pixel_xy": (size / 2, size / 2)}
+            )
+        }
+    )
+    image = generate_synthetic_window(
+        recipe, y_start=0, y_stop=size, x_start=0, x_stop=size
+    )
+    generator = np.random.default_rng(20260926)
+    sources: list[tuple[float, float, bool]] = []
+    for y_centre in np.arange(spacing / 2, size, spacing):
+        for x_centre in np.arange(spacing / 2, size, spacing):
+            y = y_centre + generator.uniform(-spacing / 3, spacing / 3)
+            x = x_centre + generator.uniform(-spacing / 3, spacing / 3)
+            peak = recipe.noise_rms * np.exp(
+                generator.uniform(np.log(5.0), np.log(300.0))
+            )
+            resolved = bool(generator.uniform() < 0.1)
+            if resolved:
+                major = generator.uniform(4.0, 9.0)
+                minor = generator.uniform(2.5, major)
+                angle = generator.uniform(0.0, np.pi)
+            else:
+                major, minor, angle = 2.1233045007200477, 1.6986436005760381, 0
+            reach = int(np.ceil(6 * major))
+            y0, y1 = max(0, int(y) - reach), min(size, int(y) + reach + 1)
+            x0, x1 = max(0, int(x) - reach), min(size, int(x) + reach + 1)
+            dy = np.arange(y0, y1)[:, np.newaxis] - y
+            dx = np.arange(x0, x1)[np.newaxis, :] - x
+            along = np.cos(angle) * dx + np.sin(angle) * dy
+            across = -np.sin(angle) * dx + np.cos(angle) * dy
+            image[y0:y1, x0:x1] += peak * np.exp(
+                -0.5 * ((along / major) ** 2 + (across / minor) ** 2)
+            )
+            sources.append((x, y, resolved))
+    return image.astype(np.float32), synthetic_fits_header(dataset), sources
+
+
+@pytest.mark.integration
+def test_compact_sources_in_a_crowded_correlated_field_stay_separate(
+    tmp_path: Path,
+) -> None:
+    """Noise and a raised background do not join compact neighbours.
+
+    In beam-correlated noise with a source every 24 pixels, coherent
+    3-sigma noise features of either sign lie in most fit windows, and the
+    sources' wings raise the sigma-clipped background into a negative
+    plateau between them. A residual feature fails a compact model only if
+    it is positive, holds a detection-threshold seed and touches the model's
+    own support, so no fitted compact source shares a source with another
+    injected source; a model judged inadequate would let association join it
+    to its neighbours. Loop and residual evidence still join seven of the
+    field's resolved sources, across 208 pixels, into one source. The test
+    exempts resolved sources, and fails once there is nothing to exempt.
+    """
+    image, header, injected = _correlated_crowded_field(256, 24)
+    fits.PrimaryHDU(image[np.newaxis, np.newaxis], header=header).writeto(
+        tmp_path / "image.fits"
+    )
+
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+
+    assert result.island_count == 105
+    components = read_catalogue_fits_product(
+        result.catalogue
+    ).gaussian_components
+    positions = np.asarray(
+        WCS(header).celestial.all_world2pix(
+            [
+                (
+                    row.position.right_ascension_degrees,
+                    row.position.declination_degrees,
+                )
+                for row in components
+            ],
+            0,
+        )
+    )
+    truth = np.asarray([(x, y) for x, y, _ in injected])
+    distances = np.hypot(
+        positions[:, np.newaxis, 0] - truth[np.newaxis, :, 0],
+        positions[:, np.newaxis, 1] - truth[np.newaxis, :, 1],
+    )
+    nearest = distances.argmin(axis=1)
+    beam_major_pixels = 5.0
+    injected_by_source: dict[str, set[int]] = {}
+    for row, index, distance in zip(
+        components, nearest, distances.min(axis=1), strict=True
+    ):
+        if distance <= beam_major_pixels:
+            injected_by_source.setdefault(row.source_id, set()).add(int(index))
+    compact = {
+        index
+        for index, (_, _, resolved) in enumerate(injected)
+        if not resolved
+    }
+    found = {
+        index for indexes in injected_by_source.values() for index in indexes
+    }
+    shared = {
+        index
+        for indexes in injected_by_source.values()
+        if len(indexes) > 1
+        for index in indexes
+    }
+    # Most of the 107 compact sources are fitted, so the check below is not
+    # vacuous; the faintest and those inside a resolved neighbour are not.
+    assert len(found & compact) >= 80
+    assert not shared & compact
+    # The exemption still matches: resolved sources remain joined.
+    assert shared
 
 
 @pytest.mark.integration

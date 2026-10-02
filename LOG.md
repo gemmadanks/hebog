@@ -27642,3 +27642,169 @@ the per-worker placement finding.
   - **Residual.** The tests see calls and bindings, not declarative use: a
     class defined in an unlisted module and used on the PyBDSF path without
     running any of its own code would escape both. None is today.
+
+## 2026-10-02 — M2: task 38, the crowded-field adequacy rule
+
+- **Why parents failed the check.** A fit parent's components stay compact
+  sources, safe from `persistent-residual` grouping, only if its model
+  leaves no owned residual feature in its window. The matched-filter tier
+  counted any feature reaching 3σ (the island threshold) on a matched
+  scale, of either sign and with no detection-threshold seed, wherever the
+  parent was the nearest owner. Tallied per tier on `main` at `2e2f618`:
+  - On correlated noise it fails isolated compact sources on noise alone:
+    all 5 parents checked in `compact-snr-ladder`, all 4 in `varying-noise`
+    and 51 of 56 on the sparse LoTSS cut-out, mostly on scale-1 features of
+    either sign. `white-noise-snr-ladder` passes all 6. An isolated failure
+    costs nothing; next to a neighbour, residual grouping joins the two.
+  - `crowded-field`: 184 of 456 fail, 120 on negative-only matched features
+    (75, 24 and 21 at scales 1 to 3), 39 positive, 10 of both signs, 12
+    direct and 3 à trous.
+  - The SDC1 cut-outs: 103 of the 351 parents checked (sparse) and 140 of
+    402 (crowded) fail, most on positive scale-1 features (65 and 88).
+- **What PyBDSF does.** Pinned `c70103b`, with Rapthor's
+  `atrous_orig_isl=False`, subtracts every Gaussian, then searches each
+  wavelet scale of the residual for positive islands seeded at `thresh_pix`
+  on that scale's own RMS and grown to `thresh_isl`, and merges original
+  islands only where such an island overlaps them
+  (`check_islands_for_overlap`). The quick check runs it with
+  `mean_map='zero'`, so it never has the raised background behind the
+  negative failures.
+- **Options measured**, as diagnostics that patched the check in scratch
+  scripts (not committed). Each ran through the unchanged quick check
+  (labels `diag38-*`) against `task37-island-fits`, whose catalogue, RMS and
+  mask are byte-identical to `main`'s in every case. Each also ran on task
+  36's correlated-noise reproducer at 256² with a source every 24 pixels
+  (the task's field), 512² every 32 and 300² every 16, scored against the
+  injected truth (merged sources hold Gaussians matching two or more
+  injected sources within a beam):
+
+  | Rule | `crowded-field` sources | Against `master`: completeness, reliability | Merged sources (injected held): 256², 512², 300² |
+  | --- | --- | --- | --- |
+  | `main` | 652 | 0.595, 0.919 | 2 (13), 19 (94), 4 (67) |
+  | Every admitted model in the window | 652 | 0.595, 0.919 | 2 (14), 19 (94), 4 (67) |
+  | Positive only | 828 | 0.799, 0.971 | 2 (12), 12 (60), 4 (64) |
+  | Every admitted model, positive | 829 | 0.800, 0.971 | 2 (12), 12 (60), 4 (63) |
+  | Overlap with the parent's support | 830 | 0.800, 0.970 | 1 (7), 8 (45), 2 (52) |
+  | Overlap, positive | 893 | 0.875, 0.985 | 1 (7), 5 (31), 2 (50) |
+  | Seeded and positive | 895 | 0.877, 0.985 | 1 (8), 3 (21), 3 (54) |
+  | Seeded, positive and overlapping | 897 | 0.879, 0.986 | 1 (7), 3 (21), 2 (50) |
+
+  Subtracting every admitted model removes neighbours' wings but not the
+  negative plateau, and would need a round after every fit. The other rules
+  are local to the fit task.
+- **Decision (maintainer, 2 October).** Seeded, positive and overlapping:
+  a residual feature fails a model only if it is positive, grows to the
+  island threshold from a detection-threshold seed on the original pixels,
+  a residual à trous scale or a matched-filter scale, and touches the
+  model's own support. The maintainer approved the `close-blends`
+  peak-flux change below and made the remaining merges task 39, which
+  blocks the release.
+- **Change to an earlier rule.** The matched-filter tier was unseeded by
+  design, for sensitivity to faint halos. A matched scale accumulates a
+  halo's signal until it holds a seed: the core-and-halo, compact-neighbour,
+  arc, ring and polygon tests pass unchanged.
+- **Repair.** In `component_measurement.py`, `_unmodelled_detection` takes
+  the model's support, and its direct and matched-filter tiers keep only
+  seeded positive features through one helper, `_seeded_features`. A
+  feature counts only where it touches that support:
+  `_owned_residual_feature` checks it. A fit parent's compact grouping
+  passes the parent's support, through one closure shared by the plain and
+  the loop-group paths; a beam fallback passes its likelihood pixels, so
+  that guard keeps its declared domain. The rule runs inside each fit task
+  on the parent's own window, so it adds no round and no read.
+- **Tests.**
+  - **Unit, on the check itself:** four residuals beside a source's support,
+    each asserted first to be seeded or not and to touch the support or
+    not. A seeded dip on the support, a positive 4.2σ feature on it with no
+    seed and a seeded positive feature apart from it are adequate; a seeded
+    positive feature on it is not. The check's signature changed, so the
+    test cannot run on `main`; `main`'s check, called on the same four
+    residuals, judges all four unmodelled.
+  - **Unit, on the whole-plane oracle:** a seeded feature inside the fit
+    parent's window but off its support leaves the compact group, and one
+    on its support removes it. The first fails on `main`.
+  - **Mutations,** each run on a copy of `src`: removing the sign, the seed
+    or the overlap condition, or passing the parent's valid window instead
+    of its support, each fails at least one of these cases.
+  - **Public:** the 256² field gives 105 islands, and no compact injected
+    source shares a source with another injected source. On `main` five
+    did. Resolved sources are exempt, and the test asserts the exemption
+    still matches.
+  - **Restated:** `test_edge_blend_public_capture_matches_existing_dask`
+    pinned one source for two independent beam-shaped sources 7.2 pixels
+    apart at an image edge, joined on residual evidence. They are now two,
+    as PyBDSF's `gaul2srl` groups them: their centres lie farther apart than
+    half their summed FWHMs (about 5.3 pixels), and the emission between
+    them dips about 18σ below the fainter peak.
+  - **Extended:** the residual-grouping evidence test now also checks that
+    the evidence names only the scale pairs carrying the feature, a branch
+    the suite covered on `main` only through a residual group the new rule
+    no longer forms.
+- **Quick check.** `task38-seeded-overlap` against `task37-island-fits`:
+  one flagged regression, approved. All 17 catalogues are byte-identical to
+  the diagnostic `diag38-seeded-overlap`, and every RMS and mask to
+  `main`'s. Six catalogues change:
+  - `close-blends`: 4 → 6 sources, every pair split as in `master` and the
+    truth. Against `master`, completeness 0.500 → 1.000, reliability
+    0.750 → 1.000, integrated-flux error p95 0.788 → 0.092 and separation
+    p95 0.507 → 0.056 beams. Peak-flux error p95 rises 0.027 → 0.072, the
+    flagged change: Hebog's source `PEAK_FLUX` is the image peak, which on
+    the one-beam pair includes the neighbour's wing (0.00319 and 0.00321
+    Jy/beam, where the components fit 0.00301 and 0.00306 and the truth is
+    0.003). The pair was unmatched before.
+  - `crowded-field`: 652 → 897 sources; against `master` completeness
+    0.595 → 0.879, reliability 0.919 → 0.986, integrated-flux error p95
+    0.153 → 0.118. One Gaussian fewer (979 → 978): a faint compact source
+    now has a source of its own, whose signed aperture sum in the raised
+    crowded background is −0.31 mJy, so neither row is published; it was
+    published inside a merged source before.
+  - `sdc1-b2-1000h-sparse`: 485 → 513 sources; completeness 0.772 → 0.844,
+    reliability 0.951 → 0.982.
+  - `lotss-dr3-1312-dense`: 83 → 99 sources; completeness 0.613 → 0.773,
+    reliability 0.880 → 0.929; integrated-flux error p95 3.304 → 3.321.
+  - `lotss-dr3-1312-sparse`: 57 → 58 sources; completeness 0.825 → 0.857,
+    reliability 0.912 → 0.931; separation p95 0.234 → 0.282 beams.
+  - `sdc1-b2-1000h-crowded`: 690 → 778 sources, 831 → 832 Gaussians, with
+    no `master` reference to score.
+
+  Hebog time 145.7 s of the 600 s budget.
+- **What still merges (task 39).** 8 of `crowded-field`'s 897 sources hold
+  88 injected sources, 56 of them compact; each source has a resolved member
+  and spans 98 to 387 pixels. 5 are joined on `persistent-residual`
+  evidence, 2 on that and `resolved-loop` evidence, 1 on `resolved-loop`
+  alone. On `main` 65 sources held 391, 324 of them compact. On the 256²
+  field, loop and residual evidence join 7 resolved sources across 208
+  pixels; the 512² and 300² fields keep 3 and 2 such sources, holding 21
+  and 50 injected sources, 6 and 28 of them compact.
+- **Serial and Dask.** With one run ID, Serial and four-worker Dask
+  products are byte-identical on `crowded-field` (897 sources, 978
+  Gaussians), the 256² field (98, 101), the 512² field (221, 239) and
+  `close-blends` (6, 6).
+- **Checks.** The portable suite under `just coverage` passed (2,883 tests)
+  at 96.92% branch-aware coverage, with the same 379 missed statements and
+  299 partial branches as `main`. `component_measurement.py` keeps the one
+  miss `main` has, the à trous tier's owned-feature return: smooth planted
+  features reach a matched-filter seed first. One earlier run also missed
+  `executors/dask.py:182`, a scheduling-dependent wait the final run
+  covers. `task38-final`, run after the review's fixes, reproduces every
+  catalogue, RMS and mask of `task38-seeded-overlap` byte for byte, with the
+  same approved regression; its 309 s of Hebog time ran beside the coverage
+  suite. Equivalence: 27 passed. The strict docs build passed. Not run: the
+  quick benchmark, since the rule adds no round or read; the traced peak and
+  the tier anchors.
+- **Independent review.** A review agent given the request, the diff and
+  `CODE_REVIEW.md` found no defect in the production code: the rule holds at
+  every call site, the direct tier is unchanged and the fallback keeps its
+  domain. It found:
+  - **Fixed (P2).** The first unit test planted features in a fit window,
+    where the fit absorbs part of them: the dip's residual held no seed and,
+    like the faint feature's, missed the support, so both passed on the
+    overlap condition alone. Mutations removing the sign or the seed passed
+    every test. The check is now tested directly, as above, and the loop
+    path shares its call with the plain path.
+  - **Fixed (P2).** The plan said compact sources keep sources of their
+    own; 56 of the 88 injected sources still joined are compact.
+  - **Fixed (P3).** The remaining joins reach hundreds of pixels through
+    loop evidence, not only where emission overlaps; the release status,
+    the plan and the public test now say so.
+- **Status.** Task 38 leaves the plan, and task 39 now holds the release.

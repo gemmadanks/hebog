@@ -156,6 +156,15 @@ the emission left after subtracting them. Every merge is recorded with its
 evidence in `diagnostics.json`. Components without positive evidence stay
 independent.
 
+A fit's Gaussian models describe its components when the emission left after
+subtracting them holds no residual feature of its own. As in PyBDSF's search
+of its residual image, such a feature must be positive, grow from a
+detection-threshold seed on the original pixels or one of the wavelet or
+matched-filter scales, and touch the fitted components' support. Residual
+emission the components share can join them into one source, but a component
+whose model describes it joins that way only if the emission lies beneath
+its own fitted core; overlapping Gaussians and resolved arcs can join it too.
+
 Each source is measured twice. Its catalogue `INTEGRATED_FLUX` is the sum of
 its fitted Gaussian components, which is how PyBDSF defines a source's total
 flux. Each source also owns a non-overlapping aperture, and the signed sum of

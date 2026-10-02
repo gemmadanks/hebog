@@ -240,18 +240,24 @@ def _owned_residual_feature(
     support: np.ndarray,
     attribution: np.ndarray,
     minimum_pixels: int,
+    model_support: np.ndarray,
 ) -> bool:
     """Attribute a coherent residual to its peak's nearest detected parent.
 
     A filter halo may read a neighbour's extended emission. Its residual
     cannot invalidate a compact model just because the read windows overlap.
-    This changes model attribution, never source detection or published masks.
+    Nor can a feature that misses ``model_support``, the pixels the model
+    describes, as PyBDSF joins a residual wavelet island only to the islands
+    it overlaps. This changes model attribution, never source detection or
+    published masks.
     """
     labels, _ = cast(tuple[np.ndarray, int], label(support, np.ones((3, 3))))
     for index, slices in enumerate(find_objects(labels), start=1):
         assert slices is not None
         member = labels[slices] == index
         if np.count_nonzero(member) < minimum_pixels:
+            continue
+        if not np.any(member & model_support[slices]):
             continue
         position = np.argmax(
             np.where(member, np.abs(significance[slices]), -np.inf)
@@ -288,7 +294,8 @@ def _admit_fallbacks(  # noqa: PLR0913, PLR0917
     """Reject inadequate beam fallbacks on their actual likelihood support.
 
     A component need not explain extended emission outside its fitting
-    domain. Neighbours retain the original joint parameters/covariance;
+    domain, so the likelihood pixels are also the support a residual feature
+    must touch. Neighbours retain the original joint parameters/covariance;
     neither refit them independently nor splice in a competing solution.
     """
     if not any(_invalid_free_fallback(fit) for _, fit in fits):
@@ -314,6 +321,7 @@ def _admit_fallbacks(  # noqa: PLR0913, PLR0917
             plan,
             minimum_support_fraction,
             nearest == index,
+            valid,
         ):
             output.append(
                 (
@@ -334,6 +342,17 @@ def _admit_fallbacks(  # noqa: PLR0913, PLR0917
     return tuple(output)
 
 
+def _seeded_features(candidates: np.ndarray, seeds: np.ndarray) -> np.ndarray:
+    """Keep the eight-connected candidate features that hold a seed pixel."""
+    labels, count = cast(
+        tuple[np.ndarray, int], label(candidates, np.ones((3, 3)))
+    )
+    kept = np.zeros(count + 1, dtype=np.bool_)
+    kept[np.unique(labels[candidates & seeds])] = True
+    kept[0] = False
+    return kept[labels]
+
+
 def _unmodelled_detection(  # noqa: PLR0913, PLR0917
     residual: np.ndarray,
     rms: np.ndarray,
@@ -344,22 +363,29 @@ def _unmodelled_detection(  # noqa: PLR0913, PLR0917
     atrous_plan: ResidualAtrousPlan,
     minimum_support_fraction: float,
     attribution: np.ndarray,
+    model_support: np.ndarray,
 ) -> bool:
-    """Apply existing direct and multiscale admission to model residuals."""
+    """Return whether a model leaves emission it does not describe.
+
+    Each tier admits residual features as detection does: positive, grown
+    to the island threshold from a detection-threshold seed, on the original
+    pixels, the residual à trous scales or a matched-filter scale. A feature
+    counts only if it touches ``model_support`` and its peak is attributed
+    to the model, as PyBDSF searches its residual for seeded positive
+    wavelet islands and joins each to the islands it overlaps.
+    """
     normalized = np.divide(
         residual, rms, out=np.zeros_like(residual), where=valid
     )
-    labels, count = cast(
-        tuple[np.ndarray, int],
-        label(valid & (normalized >= island_sigma), np.ones((3, 3))),
-    )
-    sizes = np.bincount(labels.ravel(), minlength=count + 1)
-    seeded = np.unique(labels[valid & (normalized >= detection_sigma)])
-    accepted = np.zeros(count + 1, dtype=np.bool_)
-    accepted[seeded] = sizes[seeded] >= minimum_pixels
-    accepted[0] = False
     if _owned_residual_feature(
-        normalized, accepted[labels], attribution, minimum_pixels
+        normalized,
+        _seeded_features(
+            valid & (normalized >= island_sigma),
+            normalized >= detection_sigma,
+        ),
+        attribution,
+        minimum_pixels,
+        model_support,
     ):
         return True
     prepared = prepare_scale_filter_inputs(
@@ -377,18 +403,32 @@ def _unmodelled_detection(  # noqa: PLR0913, PLR0917
         minimum_support_fraction=minimum_support_fraction,
     )
     if _owned_residual_feature(
-        normalized, reconstruction.support_mask, attribution, minimum_pixels
+        normalized,
+        reconstruction.support_mask,
+        attribution,
+        minimum_pixels,
+        model_support,
     ):
         return True
-    # This is adequacy of an already detected parent's model, not discovery
-    # of a new source. Coherent residual emission at the existing island
-    # level need not contain a second detection-threshold seed.
+    # A matched scale accumulates a faint halo's signal until it holds a
+    # seed. An unseeded 3-sigma feature of either sign anywhere in the window
+    # would fail isolated compact sources on correlated noise alone, and in
+    # a crowded field the sigma-clipped background, raised by the sources'
+    # wings, leaves a negative plateau between them.
     snrs = _matched_snrs(
         residual, rms, valid, atrous_plan, minimum_support_fraction
     )
     for snr in snrs:
-        coherent = valid & (np.abs(snr) >= island_sigma) & np.isfinite(snr)
-        if _owned_residual_feature(snr, coherent, attribution, minimum_pixels):
+        finite = valid & np.isfinite(snr)
+        if _owned_residual_feature(
+            snr,
+            _seeded_features(
+                finite & (snr >= island_sigma), snr >= detection_sigma
+            ),
+            attribution,
+            minimum_pixels,
+            model_support,
+        ):
             return True
     return False
 
@@ -1362,6 +1402,22 @@ def measure_fit_parent_components(  # noqa: PLR0913, PLR0917
         if len(groups) > 1
         else ()
     )
+
+    def model_explains(attribution: np.ndarray) -> bool:
+        """Whether the parent's model leaves no emission on its support."""
+        return not _unmodelled_detection(
+            residual_window - model,
+            rms_window,
+            local_valid,
+            detection_sigma,
+            island_sigma,
+            minimum_pixels,
+            atrous_plan,
+            minimum_support_fraction,
+            attribution,
+            parent_support,
+        )
+
     compact_groups: list[frozenset[int]] = []
     if loop_groups:
         loop_labels = {index for group in loop_groups for index in group}
@@ -1372,16 +1428,8 @@ def measure_fit_parent_components(  # noqa: PLR0913, PLR0917
         )
         for group in groups:
             remaining = group - loop_labels
-            if remaining and not _unmodelled_detection(
-                residual_window - model,
-                rms_window,
-                local_valid,
-                detection_sigma,
-                island_sigma,
-                minimum_pixels,
-                atrous_plan,
-                minimum_support_fraction,
-                np.isin(nearest, tuple(remaining)),
+            if remaining and model_explains(
+                np.isin(nearest, tuple(remaining))
             ):
                 compact_groups.append(remaining)
         return replace(
@@ -1390,21 +1438,13 @@ def measure_fit_parent_components(  # noqa: PLR0913, PLR0917
             extended_groups=tuple(loop_groups),
             evidence=tuple(evidence),
         )
-    if not _unmodelled_detection(
-        residual_window - model,
-        rms_window,
-        local_valid,
-        detection_sigma,
-        island_sigma,
-        minimum_pixels,
-        atrous_plan,
-        minimum_support_fraction,
+    if model_explains(
         expand_source_measurement_labels(
             fit_parent_window,
             valid_window,
             radius_pixels=ceil(float(np.hypot(*bounds.shape_yx))),
         )
-        == parent_index,
+        == parent_index
     ):
         compact_groups.extend(groups)
     return replace(
