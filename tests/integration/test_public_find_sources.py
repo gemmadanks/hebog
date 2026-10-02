@@ -1225,23 +1225,34 @@ def _correlated_crowded_field(
 
 
 @pytest.mark.integration
+@pytest.mark.parametrize(
+    ("size", "spacing", "islands", "fitted_compact"),
+    ((256, 24, 105, 80), (512, 32, 231, 190)),
+)
 def test_compact_sources_in_a_crowded_correlated_field_stay_separate(
     tmp_path: Path,
+    size: int,
+    spacing: int,
+    islands: int,
+    fitted_compact: int,
 ) -> None:
-    """Noise and a raised background do not join compact neighbours.
+    """Noise, crowding and chance alignments do not join compact neighbours.
 
-    In beam-correlated noise with a source every 24 pixels, coherent
+    In beam-correlated noise with a source every 24 or 32 pixels, coherent
     3-sigma noise features of either sign lie in most fit windows, and the
     sources' wings raise the sigma-clipped background into a negative
     plateau between them. A residual feature fails a compact model only if
     it is positive, holds a detection-threshold seed and touches the model's
-    own support, so no fitted compact source shares a source with another
-    injected source; a model judged inadequate would let association join it
-    to its neighbours. Loop and residual evidence still join seven of the
-    field's resolved sources, across 208 pixels, into one source. The test
-    exempts resolved sources, and fails once there is nothing to exempt.
+    own support, and then fails only the compact groups it touches, not the
+    whole fit parent. The coarse support joins the field into one region
+    with many holes, about which resolved sources far apart can lie
+    tangentially by chance; a loop holds only arcs on its hole's rim, so no
+    loop forms. No fitted compact source then shares a source with another
+    injected source. Residual and arc evidence still join a few resolved
+    sources; the test exempts them, and fails once there is nothing to
+    exempt.
     """
-    image, header, injected = _correlated_crowded_field(256, 24)
+    image, header, injected = _correlated_crowded_field(size, spacing)
     fits.PrimaryHDU(image[np.newaxis, np.newaxis], header=header).writeto(
         tmp_path / "image.fits"
     )
@@ -1250,7 +1261,14 @@ def test_compact_sources_in_a_crowded_correlated_field_stay_separate(
         _request(tmp_path), _config(), SerialExecutor()
     )
 
-    assert result.island_count == 105
+    assert result.island_count == islands
+    diagnostics = read_diagnostics_product(result.diagnostics)
+    assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
+    assert not any(
+        evidence.reason == "resolved-loop"
+        for entry in diagnostics.measurement_dispositions
+        for evidence in entry.association_evidence
+    )
     components = read_catalogue_fits_product(
         result.catalogue
     ).gaussian_components
@@ -1293,9 +1311,9 @@ def test_compact_sources_in_a_crowded_correlated_field_stay_separate(
         if len(indexes) > 1
         for index in indexes
     }
-    # Most of the 107 compact sources are fitted, so the check below is not
-    # vacuous; the faintest and those inside a resolved neighbour are not.
-    assert len(found & compact) >= 80
+    # Most compact sources are fitted, so the check below is not vacuous;
+    # the faintest and those inside a resolved neighbour are not.
+    assert len(found & compact) >= fitted_compact
     assert not shared & compact
     # The exemption still matches: resolved sources remain joined.
     assert shared

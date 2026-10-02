@@ -69,18 +69,17 @@ Known limitations when interpreting results:
 - In a field so crowded that no fine noise window lies clear of its sources,
   the background and RMS are the unprotected sigma-clipped coarse estimate,
   which includes the sources' wings.
-- Resolved sources in a crowded field can be joined to distant neighbours, a
-  known defect the
+- A compact source beside a much brighter resolved one can get no component
+  of its own, a known defect the
   [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
-  tracks. Noise and a crowded background no longer join compact sources: a
-  fitted model fails only on positive, seeded residual emission on its own
-  support. But loop evidence, resolved sources elongated around a common
-  centre, and the residual emission they share can still join distinct
-  sources hundreds of pixels apart into one, with any compact sources among
-  them. In a generated 1,024-pixel field with a source every 32 pixels, one
-  in ten of them resolved, 962 islands become 897 sources where PyBDSF finds
-  1,006; 8 of them hold 88 injected sources, 56 of them compact, across up
-  to 387 pixels.
+  tracks. The deblender judges the saddle between two peaks on the line
+  equidistant from them, which can cross the brighter source's wing well
+  above the true saddle, so the fainter peak joins the brighter component.
+  In a generated 1,024-pixel field with a source every 32 pixels, one in ten
+  of them resolved, Gaussians are fitted to 976 of 1,024 injected sources
+  where PyBDSF fits 1,005, and 23 of those missed peak at 7 to 39 times the
+  noise. The field's 962 islands become 973 sources where PyBDSF finds
+  1,006; 3 of them join 6 injected sources, none more than 31 pixels apart.
 - The `compact` profile is not a general continuum catalogue.
 - Completeness, reliability, astrometry and photometry must be evaluated on
   data representative of your use.

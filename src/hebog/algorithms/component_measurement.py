@@ -183,8 +183,9 @@ def _model_and_groups(
     """Group fitted ellipses only where their directional FWHMs touch.
 
     This uses the existing half-sum directional-size association criterion.
-    The caller separately requires the complete model to explain the parent.
-    A shared threshold island or wavelet parent cannot substitute for it.
+    The caller separately requires the complete model to explain each
+    group's own support. A shared threshold island or wavelet parent cannot
+    substitute for it.
     """
     yy, xx = np.mgrid[
         bounds.y_start : bounds.y_stop, bounds.x_start : bounds.x_stop
@@ -309,19 +310,19 @@ def _admit_fallbacks(  # noqa: PLR0913, PLR0917
         compact.valid_pixels,
         radius_pixels=ceil(float(np.hypot(*model.shape))),
     )
+    features = _seeded_residual_features(
+        compact.physical_residual - model,
+        compact.rms,
+        valid,
+        detection_sigma=detection_sigma,
+        island_sigma=island_sigma,
+        atrous_plan=plan,
+        minimum_support_fraction=minimum_support_fraction,
+    )
     output: list[tuple[int, CompactGaussianFitResult]] = []
     for index, fit in fits:
-        if _invalid_free_fallback(fit) and _unmodelled_detection(
-            compact.physical_residual - model,
-            compact.rms,
-            valid,
-            detection_sigma,
-            island_sigma,
-            minimum_pixels,
-            plan,
-            minimum_support_fraction,
-            nearest == index,
-            valid,
+        if _invalid_free_fallback(fit) and _leaves_unmodelled_emission(
+            features, nearest == index, minimum_pixels, valid
         ):
             output.append(
                 (
@@ -353,41 +354,26 @@ def _seeded_features(candidates: np.ndarray, seeds: np.ndarray) -> np.ndarray:
     return kept[labels]
 
 
-def _unmodelled_detection(  # noqa: PLR0913, PLR0917
+def _seeded_residual_features(  # noqa: PLR0913
     residual: np.ndarray,
     rms: np.ndarray,
     valid: np.ndarray,
+    *,
     detection_sigma: float,
     island_sigma: float,
-    minimum_pixels: int,
     atrous_plan: ResidualAtrousPlan,
     minimum_support_fraction: float,
-    attribution: np.ndarray,
-    model_support: np.ndarray,
-) -> bool:
-    """Return whether a model leaves emission it does not describe.
+) -> tuple[tuple[np.ndarray, np.ndarray], ...]:
+    """Return each tier's significance and seeded positive residual features.
 
     Each tier admits residual features as detection does: positive, grown
     to the island threshold from a detection-threshold seed, on the original
-    pixels, the residual à trous scales or a matched-filter scale. A feature
-    counts only if it touches ``model_support`` and its peak is attributed
-    to the model, as PyBDSF searches its residual for seeded positive
-    wavelet islands and joins each to the islands it overlaps.
+    pixels, the residual à trous scales or a matched-filter scale. They are
+    found once for a residual and then tested against each model's support.
     """
     normalized = np.divide(
         residual, rms, out=np.zeros_like(residual), where=valid
     )
-    if _owned_residual_feature(
-        normalized,
-        _seeded_features(
-            valid & (normalized >= island_sigma),
-            normalized >= detection_sigma,
-        ),
-        attribution,
-        minimum_pixels,
-        model_support,
-    ):
-        return True
     prepared = prepare_scale_filter_inputs(
         residual, valid, np.zeros_like(residual), rms
     )
@@ -402,35 +388,55 @@ def _unmodelled_detection(  # noqa: PLR0913, PLR0917
         island_sigma=island_sigma,
         minimum_support_fraction=minimum_support_fraction,
     )
-    if _owned_residual_feature(
-        normalized,
-        reconstruction.support_mask,
-        attribution,
-        minimum_pixels,
-        model_support,
-    ):
-        return True
     # A matched scale accumulates a faint halo's signal until it holds a
     # seed. An unseeded 3-sigma feature of either sign anywhere in the window
     # would fail isolated compact sources on correlated noise alone, and in
     # a crowded field the sigma-clipped background, raised by the sources'
     # wings, leaves a negative plateau between them.
-    snrs = _matched_snrs(
-        residual, rms, valid, atrous_plan, minimum_support_fraction
-    )
-    for snr in snrs:
-        finite = valid & np.isfinite(snr)
-        if _owned_residual_feature(
+    matched = tuple(
+        (
             snr,
             _seeded_features(
-                finite & (snr >= island_sigma), snr >= detection_sigma
+                valid & np.isfinite(snr) & (snr >= island_sigma),
+                snr >= detection_sigma,
             ),
-            attribution,
-            minimum_pixels,
-            model_support,
-        ):
-            return True
-    return False
+        )
+        for snr in _matched_snrs(
+            residual, rms, valid, atrous_plan, minimum_support_fraction
+        )
+    )
+    return (
+        (
+            normalized,
+            _seeded_features(
+                valid & (normalized >= island_sigma),
+                normalized >= detection_sigma,
+            ),
+        ),
+        (normalized, reconstruction.support_mask),
+        *matched,
+    )
+
+
+def _leaves_unmodelled_emission(
+    features: tuple[tuple[np.ndarray, np.ndarray], ...],
+    attribution: np.ndarray,
+    minimum_pixels: int,
+    model_support: np.ndarray,
+) -> bool:
+    """Return whether a model leaves emission it does not describe.
+
+    A seeded residual feature counts only if it touches ``model_support``
+    and its peak is attributed to the model, as PyBDSF searches its residual
+    for seeded positive wavelet islands and joins each to the islands it
+    overlaps.
+    """
+    return any(
+        _owned_residual_feature(
+            significance, support, attribution, minimum_pixels, model_support
+        )
+        for significance, support in features
+    )
 
 
 def _matched_snrs(
@@ -556,7 +562,15 @@ def _resolved_emission_loop(  # noqa: PLR0913
     alone. Require additional resolved, covariant tangential-shape evidence.
     Invalid interiors cannot provide loop evidence. One beam area is the
     minimum resolved interior, not a catalogue acceptance threshold.
+
+    A loop's arcs lie on the rim of the hole they enclose: each is the
+    nearest component to some of the support bordering the hole. A crowded
+    field's coarse support can join into one region with many holes, and
+    elongated sources anywhere in it can lie tangentially about one of them
+    by chance.
     """
+    if len(fits) < _MINIMUM_LOOP_COMPONENTS:
+        return ()
     snrs = _matched_snrs(residual, rms, valid, plan, minimum_support_fraction)
     beam_area = (
         np.pi
@@ -564,6 +578,10 @@ def _resolved_emission_loop(  # noqa: PLR0913
         * plan.beam.minor_fwhm_pixels
         / (4 * np.log(2))
     )
+    indexes = tuple(index for index, _ in fits)
+    centres = np.array(
+        [fit.parameters.centroid_xy for _, fit in fits], dtype=np.float64
+    ) - (bounds.x_start, bounds.y_start)
     groups: list[set[int]] = []
     for scale_id, snr in enumerate(snrs, 1):
         support = valid & (snr >= island_sigma)
@@ -581,16 +599,31 @@ def _resolved_emission_loop(  # noqa: PLR0913
         holes &= ~np.isin(hole_labels, invalid_holes)
         identities, counts = np.unique(hole_labels[holes], return_counts=True)
         for identity in identities[counts >= beam_area]:
-            yy, xx = np.nonzero(hole_labels == identity)
+            hole = hole_labels == identity
+            yy, xx = np.nonzero(hole)
             loop_id = int(loops[yy[0], xx[0]])
             center = (
                 float(xx.mean()) + bounds.x_start,
                 float(yy.mean()) + bounds.y_start,
             )
+            bordering = np.asarray(
+                binary_dilation(hole, structure=np.ones((3, 3))),
+                dtype=np.bool_,
+            )
+            rim_y, rim_x = np.nonzero(support & bordering)
+            nearest = np.argmin(
+                np.hypot(
+                    rim_x[:, np.newaxis] - centres[np.newaxis, :, 0],
+                    rim_y[:, np.newaxis] - centres[np.newaxis, :, 1],
+                ),
+                axis=1,
+            )
+            rim_owners = {indexes[position] for position in np.unique(nearest)}
             selected = {
                 index
                 for index, fit in fits
                 if component_loops.get(index) == loop_id
+                and index in rim_owners
                 and _tangential_shape_evidence(
                     ((index, fit),), center, beam_covariance, island_sigma
                 )
@@ -1403,53 +1436,42 @@ def measure_fit_parent_components(  # noqa: PLR0913, PLR0917
         else ()
     )
 
-    def model_explains(attribution: np.ndarray) -> bool:
-        """Whether the parent's model leaves no emission on its support."""
-        return not _unmodelled_detection(
-            residual_window - model,
-            rms_window,
-            local_valid,
-            detection_sigma,
-            island_sigma,
-            minimum_pixels,
-            atrous_plan,
-            minimum_support_fraction,
-            attribution,
-            parent_support,
-        )
-
-    compact_groups: list[frozenset[int]] = []
-    if loop_groups:
-        loop_labels = {index for group in loop_groups for index in group}
-        nearest = expand_source_measurement_labels(
-            measurement_window,
-            valid_window,
-            radius_pixels=ceil(float(np.hypot(*bounds.shape_yx))),
-        )
-        for group in groups:
-            remaining = group - loop_labels
-            if remaining and model_explains(
-                np.isin(nearest, tuple(remaining))
-            ):
-                compact_groups.append(remaining)
-        return replace(
-            measured,
-            compact_groups=tuple(compact_groups),
-            extended_groups=tuple(loop_groups),
-            evidence=tuple(evidence),
-        )
-    if model_explains(
+    # A fit parent joins every owner whose fit context touches another's, so
+    # in a crowded field it holds many independent sources. Residual
+    # emission fails only the compact groups whose own support it touches.
+    features = _seeded_residual_features(
+        residual_window - model,
+        rms_window,
+        local_valid,
+        detection_sigma=detection_sigma,
+        island_sigma=island_sigma,
+        atrous_plan=atrous_plan,
+        minimum_support_fraction=minimum_support_fraction,
+    )
+    attribution = (
         expand_source_measurement_labels(
             fit_parent_window,
             valid_window,
             radius_pixels=ceil(float(np.hypot(*bounds.shape_yx))),
         )
         == parent_index
-    ):
-        compact_groups.extend(groups)
+    )
+    loop_labels = {index for group in loop_groups for index in group}
+    compact_groups = tuple(
+        remaining
+        for group in groups
+        if (remaining := group - loop_labels)
+        and not _leaves_unmodelled_emission(
+            features,
+            attribution,
+            minimum_pixels,
+            parent_support & np.isin(measurement_window, tuple(remaining)),
+        )
+    )
     return replace(
         measured,
-        compact_groups=tuple(compact_groups),
+        compact_groups=compact_groups,
+        extended_groups=loop_groups,
         evidence=tuple(evidence),
     )
 

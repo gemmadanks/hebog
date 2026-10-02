@@ -8,8 +8,8 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
-from typing import Any, Literal
+from dataclasses import fields, replace
+from typing import Any, Literal, cast
 
 import numpy as np
 import pytest
@@ -249,8 +249,17 @@ def test_unmodelled_emission_is_seeded_positive_and_on_the_model(  # noqa: PLR09
     assert (peak >= 5.0) is seeded
     assert any(np.any(support & (snr >= 3.0)) for snr in signed) is touching
 
-    actual = measurement._unmodelled_detection(
-        residual, unit, valid, 5.0, 3.0, 7, plan, 0.5, valid, support
+    features = measurement._seeded_residual_features(
+        residual,
+        unit,
+        valid,
+        detection_sigma=5.0,
+        island_sigma=3.0,
+        atrous_plan=plan,
+        minimum_support_fraction=0.5,
+    )
+    actual = measurement._leaves_unmodelled_emission(
+        features, valid, 7, support
     )
 
     assert actual is unmodelled
@@ -282,6 +291,96 @@ def test_a_fit_parent_is_judged_on_its_own_support(
 
     assert isinstance(result.fits[0][1], ValidCompactGaussianFit)
     assert result.compact_groups == ((frozenset((1,)),) if adequate else ())
+
+
+@pytest.mark.parametrize(
+    ("feature_x", "amplitude", "touching", "protected"),
+    (
+        (10.0, 4.5, (True, False), (frozenset((2,)),)),
+        (28.5, 6.0, (True, True), ()),
+    ),
+    ids=("first-only", "both"),
+)
+def test_residual_emission_fails_only_the_compact_groups_it_touches(
+    feature_x: float,
+    amplitude: float,
+    touching: tuple[bool, bool],
+    protected: tuple[frozenset[int], ...],
+) -> None:
+    """A fit parent is a unit of fitting work, not of model adequacy.
+
+    The two sources' fit contexts touch, so they share one fit parent, but
+    their Gaussians do not overlap, so each is a compact group of its own.
+    Seeded emission no model describes fails every group whose support it
+    touches, and only those, as a residual wavelet island joins the islands
+    it overlaps: against the first source only, the second keeps its group;
+    between them, nearer the second, both lose theirs.
+    """
+    yy, xx = np.mgrid[:25, :57]
+    supports = tuple(
+        10 * np.exp(-0.5 * (((xx - x) / 2.4) ** 2 + ((yy - 12) / 1.6) ** 2))
+        >= 3
+        for x in (20.0, 34.0)
+    )
+    labels = np.zeros(xx.shape, dtype=np.int32)
+    for index, support in enumerate(supports, start=1):
+        labels[support] = index
+    context_margin = cast(
+        int,
+        next(
+            field.default
+            for field in fields(CompactGaussianFitConfig)
+            if field.name == "context_margin_pixels"
+        ),
+    )
+    parents = measurement._bounded_fit_parents(
+        labels,
+        labels,
+        context_margin_pixels=context_margin,
+        read_margin_pixels=0,
+        maximum_bounds_pixels=10_000,
+    )
+    assert set(np.unique(parents[labels > 0]).tolist()) == {1}
+    unmodelled = amplitude * np.exp(
+        -0.5 * ((xx - feature_x) ** 2 + (yy - 12) ** 2) / 9
+    )
+    beam = BeamShapePixels(4.0, 3.0, 0.0)
+    snrs = measurement._matched_snrs(
+        unmodelled,
+        np.ones_like(unmodelled),
+        np.ones(unmodelled.shape, dtype=np.bool_),
+        build_residual_atrous_plan(beam, noise_correlation=beam),
+        0.5,
+    )
+    assert max(float(np.max(snr[np.isfinite(snr)])) for snr in snrs) >= 5.0
+    assert (
+        tuple(
+            any(bool(np.any(support & (snr >= 3.0))) for snr in snrs)
+            for support in supports
+        )
+        == touching
+    )
+    # Between the sources the feature peaks nearer the second, so judging it
+    # only against the group nearest its peak would spare the first.
+    first, second = (
+        float(np.min(np.hypot(*(np.argwhere(support) - (12.0, feature_x)).T)))
+        for support in supports
+    )
+    assert second < first or not touching[1]
+
+    result = _measure(
+        centers=((20.0, 12.0), (34.0, 12.0)),
+        shape_yx=(25, 57),
+        pixel_support="owned-region",
+        unlabelled=unmodelled,
+    )
+
+    assert result.deferred_parent_count == 0
+    assert len(result.fits) == 2
+    assert all(
+        isinstance(fit, ValidCompactGaussianFit) for _, fit in result.fits
+    )
+    assert result.compact_groups == protected
 
 
 @pytest.mark.parametrize("pixel_support", ("owned-region", "bounded-context"))
@@ -705,6 +804,124 @@ def test_disconnected_loops_in_one_context_do_not_share_fitted_arcs(
         minimum_support_fraction=0.5,
     )
     assert set(groups) == {frozenset(range(1, 5)), frozenset(range(5, 9))}
+
+
+@pytest.mark.parametrize("amplitude", (6.0, 60.0, 600.0))
+def test_a_ring_forms_a_loop_at_any_brightness(amplitude: float) -> None:
+    """A brighter ring's support reaches further from its arcs' ridges.
+
+    The 3-sigma contour of a smoothed arc lies further from its ridge as the
+    arc brightens, so a ring's arcs sit further from the hole they enclose.
+    They still border it, and own its rim, from 6 to 600 times the noise.
+    """
+    fitted = _measure().fits[0][1]
+    assert isinstance(fitted, ValidCompactGaussianFit)
+    yy, xx = np.mgrid[:81, :81]
+    radius = np.hypot(xx - 40, yy - 40)
+    signal = amplitude * np.exp(-0.5 * ((radius - 15) / 2) ** 2)
+    fits = tuple(
+        (
+            arc,
+            replace(
+                fitted,
+                parameters=replace(
+                    fitted.parameters,
+                    centroid_xy=(
+                        40 + 15 * np.cos(angle),
+                        40 + 15 * np.sin(angle),
+                    ),
+                    major_sigma_pixels=5.0,
+                    minor_sigma_pixels=2.0,
+                    major_axis_angle_degrees=float(
+                        (np.rad2deg(angle) + 90) % 180
+                    ),
+                ),
+            ),
+        )
+        for arc, angle in enumerate(np.arange(4) * np.pi / 2, start=1)
+    )
+    beam = BeamShapePixels(4.0, 3.0, 0.0)
+    groups = measurement._resolved_emission_loop(
+        signal,
+        np.ones(signal.shape),
+        np.ones(signal.shape, dtype=bool),
+        build_residual_atrous_plan(beam, noise_correlation=beam),
+        fits=fits,
+        bounds=ImageBounds(0, 81, 0, 81),
+        beam_covariance=np.diag(np.square(np.array((4.0, 3.0)) / 2.35482)),
+        island_sigma=3.0,
+        minimum_support_fraction=0.5,
+    )
+    assert groups == (frozenset(range(1, 5)),)
+
+
+def test_a_loop_holds_only_components_on_the_rim_of_its_hole() -> None:
+    """Tangential components far along connected emission are not its arcs.
+
+    A crowded field's coarse support joins into one region with many holes,
+    and elongated sources anywhere in it can lie tangentially about one of
+    them by chance. A ring's arcs lie on the rim of the hole they enclose:
+    within that scale's smoothing width plus their own half-maximum radius.
+    Three elongated components 60 to 90 pixels along a bridge from a ring
+    are tangential about its centre but stay out of its loop.
+    """
+    fitted = _measure().fits[0][1]
+    assert isinstance(fitted, ValidCompactGaussianFit)
+    yy, xx = np.mgrid[:81, :161]
+    radius = np.hypot(xx - 40, yy - 40)
+    signal = 6 * np.exp(-0.5 * ((radius - 15) / 2) ** 2)
+    signal += 6 * np.exp(-0.5 * ((yy - 40) / 2) ** 2) * (xx > 55)
+    fits = []
+    for arc, angle in enumerate(np.arange(4) * np.pi / 2, start=1):
+        fits.append(
+            (
+                arc,
+                replace(
+                    fitted,
+                    parameters=replace(
+                        fitted.parameters,
+                        centroid_xy=(
+                            40 + 15 * np.cos(angle),
+                            40 + 15 * np.sin(angle),
+                        ),
+                        major_sigma_pixels=5.0,
+                        minor_sigma_pixels=2.0,
+                        major_axis_angle_degrees=float(
+                            (np.rad2deg(angle) + 90) % 180
+                        ),
+                    ),
+                ),
+            )
+        )
+    for remote, x in enumerate((100.0, 115.0, 130.0), start=5):
+        fits.append(
+            (
+                remote,
+                replace(
+                    fitted,
+                    parameters=replace(
+                        fitted.parameters,
+                        centroid_xy=(x, 40.0),
+                        major_sigma_pixels=5.0,
+                        minor_sigma_pixels=2.0,
+                        major_axis_angle_degrees=90.0,
+                    ),
+                ),
+            )
+        )
+    beam = BeamShapePixels(4.0, 3.0, 0.0)
+    groups = measurement._resolved_emission_loop(
+        signal,
+        np.ones(signal.shape),
+        np.ones(signal.shape, dtype=bool),
+        build_residual_atrous_plan(beam, noise_correlation=beam),
+        fits=tuple(fits),
+        bounds=ImageBounds(0, 81, 0, 161),
+        beam_covariance=np.diag(np.square(np.array((4.0, 3.0)) / 2.35482)),
+        island_sigma=3.0,
+        minimum_support_fraction=0.5,
+    )
+    assert groups == (frozenset(range(1, 5)),)
 
 
 @pytest.mark.parametrize(
