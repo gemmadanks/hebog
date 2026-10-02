@@ -21,6 +21,7 @@ from scipy.ndimage import label as ndimage_label
 
 from hebog.algorithms.component_measurement import (
     ComponentMeasurements,
+    fit_parent_margin_pixels,
     measure_component_models,
     reconcile_component_measurements,
 )
@@ -316,7 +317,15 @@ def _run_fits(root: Path) -> _Published:
         component_source,
         parent_manifest,
         config=FitParentStageConfig(
-            context_margin_pixels=margin, maximum_tiles_per_batch=2
+            context_margin_pixels=margin,
+            maximum_tiles_per_batch=2,
+            read_margin_pixels=fit_parent_margin_pixels(
+                fit_config,  # type: ignore[arg-type]
+                _atrous_plan(),  # type: ignore[arg-type]
+            ),
+            maximum_bounds_pixels=(
+                _deblend_config().maximum_compact_bounds_pixels
+            ),
         ),
         executor=SerialExecutor(),
         sink=parent_sink,

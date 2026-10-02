@@ -23,6 +23,9 @@ from scipy.ndimage import label as ndimage_label
 from hebog.algorithms.component_measurement import (
     ComponentMeasurements,
     FitParentMeasurement,
+    _bounded_fit_parents,
+    _measurement_fit_parents,
+    fit_parent_margin_pixels,
     measure_component_models,
     reconcile_component_measurements,
 )
@@ -80,6 +83,7 @@ from hebog.stages.objects import (
     _parent_batches,
     _ParentBatch,
     _ParentExtent,
+    _parents_to_fit_by_island,
     _PublishBatchResult,
     _reduce_component_records,
     _require_matching_component_identities,
@@ -978,6 +982,14 @@ def _run_fits(  # noqa: PLR0913
         config=FitParentStageConfig(
             context_margin_pixels=margin,
             maximum_tiles_per_batch=2,
+            read_margin_pixels=fit_parent_margin_pixels(
+                fit_config, atrous_plan
+            ),
+            maximum_bounds_pixels=(
+                _deblend_config().maximum_compact_bounds_pixels
+                if maximum_bounds_pixels is None
+                else maximum_bounds_pixels
+            ),
         ),
         executor=resolved,  # type: ignore[arg-type]
         sink=fit_parent_sink,
@@ -1503,9 +1515,219 @@ def _fit_parent_config(**overrides: int) -> FitParentStageConfig:
         **{
             "context_margin_pixels": _fit_parent_margin(),
             "maximum_tiles_per_batch": 2,
+            "read_margin_pixels": fit_parent_margin_pixels(
+                _fit_config()[1],
+                build_residual_atrous_plan(
+                    _MEASUREMENT_BEAM, noise_correlation=_MEASUREMENT_BEAM
+                ),
+            ),
+            "maximum_bounds_pixels": (
+                _deblend_config().maximum_compact_bounds_pixels
+            ),
             **overrides,
         }
     )
+
+
+def test_an_owner_whose_pieces_lie_in_two_cores_is_one_fit_parent(
+    tmp_path: Path,
+) -> None:
+    """An owner's disconnected pieces stay one fit target across cores.
+
+    The two pieces are too far apart for their contexts to touch, and each
+    lies in a different core, so only the owner itself joins them.
+    """
+    labels = np.zeros(_SHAPE_YX, dtype=np.int32)
+    labels[5:8, 5:8] = 1
+    labels[40:43, 80:83] = 1
+    labels[40:43, 10:13] = 2
+    margin = _fit_parent_margin()
+    components = _publish(
+        tmp_path / "components.zarr",
+        (
+            ("component-direct-labels", labels, "<i4"),
+            ("component-measurement-labels", labels, "<i4"),
+        ),
+        generation_id="component-fixture",
+    )
+    manifest = plan_image_partitions(
+        image_shape_yx=_SHAPE_YX,
+        tile_core_shape_yx=(33, 33),
+        halo_yx=(margin, margin),
+    )
+    sink = ZarrProductSink(
+        tmp_path / "fit-parents.zarr", manifest, generation_id="fit-parents"
+    )
+
+    run_fit_parent_stage(
+        components,
+        manifest,
+        config=_fit_parent_config(),
+        executor=SerialExecutor(),
+        sink=sink,
+    )
+
+    published = np.asarray(
+        sink.read_completed_window(
+            "fit-parent-labels", ImageBounds(0, _SHAPE_YX[0], 0, _SHAPE_YX[1])
+        ),
+        dtype=np.int32,
+    )
+    np.testing.assert_array_equal(
+        published, _measurement_fit_parents(labels, margin)
+    )
+    assert published[6, 6] == published[41, 81] != published[41, 11]
+
+
+@pytest.mark.parametrize("core", (33, 48))
+def test_a_fit_parent_is_judged_by_its_direct_pixels_not_its_support(
+    tmp_path: Path,
+    core: int,
+) -> None:
+    """Measurement support beyond the direct pixels does not split a parent.
+
+    Each owner's measurement support is a 3-by-3 block but its direct
+    pixels only the centre, as multiscale support widens an owner past its
+    direct component. The joint fit counts direct pixels, so the chain's 42
+    parameters by 8 direct pixels, 336 Jacobian elements, fit within 1,000
+    and the chain stays one parent, though its 72 support pixels would not.
+    """
+    labels = np.zeros(_SHAPE_YX, dtype=np.int32)
+    direct = np.zeros(_SHAPE_YX, dtype=np.int32)
+    for owner, x_start in enumerate(range(10, 80, 10), start=1):
+        labels[20:23, x_start : x_start + 3] = owner
+        direct[21, x_start + 1] = owner
+    labels[40:43, 45:48] = 3
+    direct[41, 46] = 3
+    margin = _fit_parent_margin()
+    expected = _bounded_fit_parents(
+        labels,
+        direct,
+        context_margin_pixels=margin,
+        read_margin_pixels=4,
+        maximum_bounds_pixels=10_000,
+        maximum_jacobian_elements=1_000,
+    )
+    components = _publish(
+        tmp_path / "components.zarr",
+        (
+            ("component-direct-labels", direct, "<i4"),
+            ("component-measurement-labels", labels, "<i4"),
+        ),
+        generation_id="component-fixture",
+    )
+    manifest = plan_image_partitions(
+        image_shape_yx=_SHAPE_YX,
+        tile_core_shape_yx=(core, core),
+        halo_yx=(margin, margin),
+    )
+    sink = ZarrProductSink(
+        tmp_path / "fit-parents.zarr", manifest, generation_id="fit-parents"
+    )
+
+    run_fit_parent_stage(
+        components,
+        manifest,
+        config=_fit_parent_config(
+            read_margin_pixels=4,
+            maximum_bounds_pixels=10_000,
+            maximum_jacobian_elements=1_000,
+        ),
+        executor=SerialExecutor(),
+        sink=sink,
+    )
+
+    published = np.asarray(
+        sink.read_completed_window(
+            "fit-parent-labels", ImageBounds(0, _SHAPE_YX[0], 0, _SHAPE_YX[1])
+        ),
+        dtype=np.int32,
+    )
+    np.testing.assert_array_equal(published, expected)
+    np.testing.assert_array_equal(
+        published, _measurement_fit_parents(labels, margin)
+    )
+    assert len({int(published[21, x]) for x in range(11, 81, 10)}) == 1
+
+
+@pytest.mark.parametrize("core", (33, 48, 96))
+@pytest.mark.parametrize("limit", ("components", "pixels", "window"))
+def test_a_fit_parent_too_large_to_fit_jointly_takes_its_islands(
+    tmp_path: Path,
+    core: int,
+    limit: str,
+) -> None:
+    """Tiled fit parents follow the whole-plane rule at every core size.
+
+    Seven islands chain across core seams through their contexts, with one
+    owner's second piece reached only through that owner, and a separate
+    pair chains too. The chain is too large for one joint fit, by component
+    count, by its components' pixels or by read window, so its islands
+    become parents; owner 3's two pieces stay one, and the pair stays
+    joined. The chain's seven owners and 72 direct pixels are 42 parameters
+    and 3,024 Jacobian elements, the pair's 12 and 216.
+    """
+    labels = np.zeros(_SHAPE_YX, dtype=np.int32)
+    for owner, x_start in enumerate(range(10, 80, 10), start=1):
+        labels[20:23, x_start : x_start + 3] = owner
+    labels[40:43, 45:48] = 3
+    labels[40:43, 80:83] = 8
+    labels[40:43, 88:91] = 9
+    bounds = {
+        "components": {
+            "maximum_parameters": 18,
+            "maximum_bounds_pixels": 10_000,
+        },
+        "pixels": {
+            "maximum_jacobian_elements": 1_000,
+            "maximum_bounds_pixels": 10_000,
+        },
+        "window": {"maximum_bounds_pixels": 1_000},
+    }[limit]
+    margin = _fit_parent_margin()
+    expected = _bounded_fit_parents(
+        labels,
+        labels,
+        context_margin_pixels=margin,
+        read_margin_pixels=4,
+        **bounds,
+    )
+    components = _publish(
+        tmp_path / "components.zarr",
+        (
+            ("component-direct-labels", labels, "<i4"),
+            ("component-measurement-labels", labels, "<i4"),
+        ),
+        generation_id="component-fixture",
+    )
+    manifest = plan_image_partitions(
+        image_shape_yx=_SHAPE_YX,
+        tile_core_shape_yx=(core, core),
+        halo_yx=(margin, margin),
+    )
+    sink = ZarrProductSink(
+        tmp_path / "fit-parents.zarr", manifest, generation_id="fit-parents"
+    )
+
+    result = run_fit_parent_stage(
+        components,
+        manifest,
+        config=_fit_parent_config(read_margin_pixels=4, **bounds),
+        executor=_ReverseCompletionExecutor(),
+        sink=sink,
+    )
+
+    published = np.asarray(
+        sink.read_completed_window(
+            "fit-parent-labels", ImageBounds(0, _SHAPE_YX[0], 0, _SHAPE_YX[1])
+        ),
+        dtype=np.int32,
+    )
+    np.testing.assert_array_equal(published, expected)
+    assert len({int(published[21, x]) for x in range(11, 81, 10)}) == 7
+    assert published[41, 46] == published[21, 31]
+    assert published[41, 81] == published[41, 89] != 0
+    assert result.fit_parent_count == int(expected.max()) == 8
 
 
 def test_object_stages_publish_their_canonical_product_sets(
@@ -1537,6 +1759,10 @@ def test_object_stages_publish_their_canonical_product_sets(
     [
         ({"maximum_tiles_per_batch": 0}, "maximum_tiles_per_batch"),
         ({"context_margin_pixels": -1}, "context margin must be"),
+        ({"read_margin_pixels": -1}, "read margin must be"),
+        ({"maximum_bounds_pixels": 0}, "maximum_bounds_pixels"),
+        ({"maximum_parameters": 0}, "maximum_parameters"),
+        ({"maximum_jacobian_elements": 0}, "maximum_jacobian_elements"),
     ],
 )
 def test_fit_parent_stage_rejects_invalid_configuration(
@@ -1665,6 +1891,39 @@ def test_one_owner_reaching_two_contexts_makes_one_fit_parent() -> None:
     assert numbers == {1: 1, 2: 1}
 
 
+def test_a_fit_parent_without_support_bounds_fails_closed() -> None:
+    """A parent is never judged fittable from bounds no core reported."""
+    tile = _context_tile((_ContextLink(owner_label=1, local_context_label=1),))
+    contexts = _reconciled_contexts(tile.partition.tile_id)
+
+    with pytest.raises(ValueError, match="must hold measurement support"):
+        _parents_to_fit_by_island(
+            (tile,),
+            contexts,
+            _fit_parent_numbers((tile,), contexts),
+            config=_fit_parent_config(),
+            image_shape_yx=_SHAPE_YX,
+        )
+
+
+def test_a_fit_parent_without_direct_pixels_fails_closed() -> None:
+    """A parent is never judged fittable from pixels no core reported."""
+    tile = replace(
+        _context_tile((_ContextLink(owner_label=1, local_context_label=1),)),
+        support_bounds=((1, ImageBounds(1, 2, 1, 2)),),
+    )
+    contexts = _reconciled_contexts(tile.partition.tile_id)
+
+    with pytest.raises(ValueError, match="must hold direct pixels"):
+        _parents_to_fit_by_island(
+            (tile,),
+            contexts,
+            _fit_parent_numbers((tile,), contexts),
+            config=_fit_parent_config(),
+            image_shape_yx=_SHAPE_YX,
+        )
+
+
 def test_a_context_without_a_global_label_fails_closed() -> None:
     """A mapping that omits a local label is never silently numbered."""
     mapping = TileLabelMapping(
@@ -1711,6 +1970,11 @@ def test_fit_parent_stage_requires_a_matching_sink_and_generation(
         (("component-direct-labels", _measurement_inputs()[3], "<i4"),),
         generation_id="incomplete",
     )
+    no_direct = _publish(
+        tmp_path / "no-direct.zarr",
+        (("component-measurement-labels", _measurement_inputs()[4], "<i4"),),
+        generation_id="no-direct",
+    )
     other_shape = plan_image_partitions(
         image_shape_yx=(32, 32),
         tile_core_shape_yx=manifest.tile_core_shape_yx,
@@ -1744,6 +2008,8 @@ def test_fit_parent_stage_requires_a_matching_sink_and_generation(
         run(other_shape, name="other")
     with pytest.raises(ValueError, match="measurement component labels"):
         run(manifest, source=incomplete, name="incomplete-parents")
+    with pytest.raises(ValueError, match="direct and measurement component"):
+        run(manifest, source=no_direct, name="no-direct-parents")
 
 
 def _fit_stage_config(**overrides: object) -> ComponentFitStageConfig:
@@ -2034,13 +2300,26 @@ def test_the_deferred_round_fails_closed_on_a_silent_executor(
 ) -> None:
     """Records from a round that returned nothing are never published.
 
-    Every parent is deferred, so the fourth round is the deferred one: the
-    two fit-parent rounds, the extent scan, then the cores of the parents.
+    Every parent is deferred, and so too large to fit whole, so the fifth
+    round is the deferred one: the fit-parent stage's context scan, island
+    scan and publication, the extent scan, then the cores of the parents.
     """
     with pytest.raises(ValueError, match="no deferred component results"):
         _run_fits(
             tmp_path / "run",
-            executor=_DropNthMapExecutor(4),
+            executor=_DropNthMapExecutor(5),
+            maximum_bounds_pixels=1,
+        )
+
+
+def test_the_island_round_fails_closed_on_a_silent_executor(
+    tmp_path: Path,
+) -> None:
+    """A parent too large to fit whole is never split from missing islands."""
+    with pytest.raises(ValueError, match="no fit-island results"):
+        _run_fits(
+            tmp_path / "run",
+            executor=_DropNthMapExecutor(2),
             maximum_bounds_pixels=1,
         )
 

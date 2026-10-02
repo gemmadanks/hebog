@@ -139,9 +139,14 @@ conditioned, leaves acceptable residuals and has usable uncertainties.
 Depending on the data, the admitted model is a free ellipse, a beam-shaped
 Gaussian, or an ellipse with a fixed centre.
 
-Fitting work is bounded. An island too large or too complex for the bounded
-deblend or joint fit is kept as a detection and recorded as **deferred** in
-the diagnostics. It is never silently dropped.
+Fitting work is bounded. In a crowded field the touching fitting regions can
+chain across the whole image. A chain with more components or pixels than
+one joint fit admits (at most sixteen components), or wider than the
+bounded read window, is fitted island by island instead, as PyBDSF fits
+every island; a component's fit then does not model a neighbouring island's
+faint wings. An island too large or too complex
+for the bounded deblend or joint fit on its own is kept as a detection and
+recorded as **deferred** in the diagnostics. It is never silently dropped.
 
 ### 5. Associate and measure sources
 

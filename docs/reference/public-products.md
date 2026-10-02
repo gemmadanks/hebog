@@ -203,7 +203,8 @@ its fitted peak amplitude. Every Gaussian-component row has a complete fitted
 ellipse.
 
 Fits use original background-subtracted pixels and may be solved jointly where
-component contexts interact. An admitted fit can be free elliptical, beam
+component contexts interact; a group too large for one joint fit is fitted
+island by island. An admitted fit can be free elliptical, beam
 constrained, or centroid-constrained elliptical; the exact model and fallback
 evidence live in the component's diagnostic disposition. Failure to admit a
 fit removes the Gaussian row. It does not remove the detection footprint or an

@@ -30,7 +30,12 @@ from hebog.algorithms.deblending import DeblendedRegion
 from hebog.algorithms.extended_measurement import (
     expand_source_measurement_labels,
 )
-from hebog.algorithms.fitting import fit_compact_gaussian_mixture
+from hebog.algorithms.fitting import (
+    MAXIMUM_JOINT_FIT_JACOBIAN_ELEMENTS,
+    MAXIMUM_JOINT_FIT_PARAMETERS,
+    fit_compact_gaussian_mixture,
+    joint_fit_admits,
+)
 from hebog.algorithms.measurement import measure_compact_moments
 from hebog.algorithms.multiscale import (
     ResidualAtrousPlan,
@@ -1065,6 +1070,64 @@ def _measurement_fit_parents(
     return np.where(support, lookup[context_labels], 0).astype(np.int32)
 
 
+def _bounded_fit_parents(  # noqa: PLR0913
+    measurement_labels: np.ndarray,
+    direct_labels: np.ndarray,
+    *,
+    context_margin_pixels: int,
+    read_margin_pixels: int,
+    maximum_bounds_pixels: int,
+    maximum_parameters: int = MAXIMUM_JOINT_FIT_PARAMETERS,
+    maximum_jacobian_elements: int = MAXIMUM_JOINT_FIT_JACOBIAN_ELEMENTS,
+) -> np.ndarray:
+    """Join interacting fit contexts, fitting an unfittable parent by island.
+
+    A parent the joint fit would refuse, for its components and their own
+    pixels, or whose read window the compact bound refuses, would leave
+    every component deferred. It is fitted island by island instead, as
+    PyBDSF fits every island: its pixels take the parents its zero-margin
+    contexts form, which join an owner's disconnected pieces as the margin's
+    own contexts do. A parent of one owner is already one island and stays
+    as it is, as does every parent one joint fit can hold. Parents are
+    numbered in the order of the joined parents, a split parent's islands in
+    their own order. The component count and pixels are the owners and their
+    direct pixels, which are exactly what a joint fit with the reviewed
+    ``owned-region`` pixel support measures; one with ``bounded-context``
+    support counts its whole window, so a parent this admits may still be
+    refused and deferred whole.
+    """
+    joined = _measurement_fit_parents(
+        measurement_labels, context_margin_pixels
+    )
+    islands = _measurement_fit_parents(measurement_labels, 0)
+    parents = np.zeros_like(joined)
+    number = 0
+    for index, slices in enumerate(find_objects(joined), start=1):
+        assert slices is not None, "fit-context labels must be dense"
+        member = joined[slices] == index
+        owners = np.unique(measurement_labels[slices][member]).size
+        ys, xs = slices
+        window = ImageBounds(ys.start, ys.stop, xs.start, xs.stop).expanded(
+            read_margin_pixels, joined.shape
+        )
+        fittable = joint_fit_admits(
+            owners,
+            int(np.count_nonzero(member & (direct_labels[slices] > 0))),
+            maximum_parameters=maximum_parameters,
+            maximum_jacobian_elements=maximum_jacobian_elements,
+        ) and compact_window_is_admitted(
+            window, maximum_bounds_pixels=maximum_bounds_pixels
+        )
+        if fittable or owners == 1:
+            number += 1
+            parents[slices][member] = number
+            continue
+        for island in np.unique(islands[slices][member]):
+            number += 1
+            parents[slices][islands[slices] == island] = number
+    return parents
+
+
 @dataclass(frozen=True, slots=True)
 class FitParentMeasurement:
     """One fit parent's bounded measurement outputs.
@@ -1376,13 +1439,17 @@ def measure_component_models(  # noqa: PLR0913, PLR0917
     in the fit. Positive exact seed pixels initialize the existing moment
     oracle only. Published ownership is never replaced by these fit masks.
     """
-    parents = _measurement_fit_parents(
-        measurement_labels, fit_config.context_margin_pixels
+    margin = fit_parent_margin_pixels(fit_config, atrous_plan)
+    parents = _bounded_fit_parents(
+        measurement_labels,
+        direct_labels,
+        context_margin_pixels=fit_config.context_margin_pixels,
+        read_margin_pixels=margin,
+        maximum_bounds_pixels=maximum_bounds_pixels,
     )
     objects = find_objects(parents)
     measured_parents: list[FitParentMeasurement] = []
     measurement_support = np.zeros(residual.shape, dtype=np.bool_)
-    margin = fit_parent_margin_pixels(fit_config, atrous_plan)
     for parent_index, slices in enumerate(objects, start=1):
         assert slices is not None, "fit-context labels must be dense"
         ys, xs = slices

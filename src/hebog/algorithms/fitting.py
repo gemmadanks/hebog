@@ -61,6 +61,10 @@ _FREE_PARAMETER_NAMES = (
     "background",
 )
 _FREE_FIXED_BACKGROUND_PARAMETER_NAMES = _FREE_PARAMETER_NAMES[:-1]
+MAXIMUM_JOINT_FIT_PARAMETERS = 96
+"""Free parameters one joint fit admits: sixteen fixed-background ellipses."""
+MAXIMUM_JOINT_FIT_JACOBIAN_ELEMENTS = 1_000_000
+"""Parameters times fitted pixels one joint fit admits."""
 _CONSTRAINED_PARAMETER_NAMES = (
     "amplitude",
     "centroid-x",
@@ -2241,14 +2245,37 @@ def _publish_mixture_component(
     )
 
 
+def joint_fit_admits(
+    component_count: int,
+    pixel_count: int,
+    *,
+    maximum_parameters: int = MAXIMUM_JOINT_FIT_PARAMETERS,
+    maximum_jacobian_elements: int = MAXIMUM_JOINT_FIT_JACOBIAN_ELEMENTS,
+) -> bool:
+    """Return whether one joint fit admits this many components and pixels.
+
+    The work is a Jacobian of six parameters per component by the fitted
+    pixels, refused before it is allocated. With ``owned-region`` pixel
+    support the fitted pixels are the components' own, so a caller that
+    counts those can apply this rule before any fit runs.
+    """
+    parameter_count = len(_FREE_FIXED_BACKGROUND_PARAMETER_NAMES) * (
+        component_count
+    )
+    return (
+        parameter_count <= maximum_parameters
+        and parameter_count * pixel_count <= maximum_jacobian_elements
+    )
+
+
 def fit_compact_gaussian_mixture(  # noqa: PLR0913
     compact: CompactMomentInput,
     moments: tuple[CompactMomentMeasurement, ...],
     geometry: CompactMeasurementGeometry,
     config: CompactGaussianFitConfig,
     *,
-    maximum_parameters: int = 96,
-    maximum_jacobian_elements: int = 1_000_000,
+    maximum_parameters: int = MAXIMUM_JOINT_FIT_PARAMETERS,
+    maximum_jacobian_elements: int = MAXIMUM_JOINT_FIT_JACOBIAN_ELEMENTS,
 ) -> tuple[CompactGaussianFitResult, ...]:
     """Fit bounded neighbouring components jointly on original pixels.
 
@@ -2307,11 +2334,15 @@ def fit_compact_gaussian_mixture(  # noqa: PLR0913
             compact.region_labels,
             tuple(region.region_label for region in compact.regions),
         )
-    parameter_count = 6 * len(ordered)
+    parameter_count = len(_FREE_FIXED_BACKGROUND_PARAMETER_NAMES) * len(
+        ordered
+    )
     pixel_count = int(np.count_nonzero(valid))
-    if (
-        parameter_count > maximum_parameters
-        or parameter_count * pixel_count > maximum_jacobian_elements
+    if not joint_fit_admits(
+        len(ordered),
+        pixel_count,
+        maximum_parameters=maximum_parameters,
+        maximum_jacobian_elements=maximum_jacobian_elements,
     ):
         return tuple(
             UnavailableCompactGaussianFit(
