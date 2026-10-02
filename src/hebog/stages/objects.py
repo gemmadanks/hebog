@@ -50,11 +50,7 @@ from hebog.algorithms.component_topology import (
     parent_is_deferred,
 )
 from hebog.algorithms.detection import DetectionThresholdMasks
-from hebog.algorithms.fitting import (
-    MAXIMUM_JOINT_FIT_JACOBIAN_ELEMENTS,
-    MAXIMUM_JOINT_FIT_PARAMETERS,
-    joint_fit_admits,
-)
+from hebog.algorithms.fitting import joint_fit_admits
 from hebog.algorithms.label_groups import label_extents
 from hebog.algorithms.labelling import (
     LocalIslandTile,
@@ -1066,27 +1062,20 @@ class FitParentStageConfig:
 
     ``read_margin_pixels`` and ``maximum_bounds_pixels`` are the window the
     component-fit round reads around a parent and the compact bound that
-    admits it; ``maximum_parameters`` and ``maximum_jacobian_elements`` are
-    the joint fit's work limits, applied to a parent's owners and their
-    direct pixels as an ``owned-region`` fit counts them. A parent beyond
-    either is fitted island by island.
+    admits it, so they must be that round's own. The joint fit's work
+    limits are not settings: the stage applies the fit's fixed ones, to a
+    parent's owners and their direct pixels as an ``owned-region`` fit
+    counts them. A parent beyond either is fitted island by island.
     """
 
     context_margin_pixels: int
     maximum_tiles_per_batch: int
     read_margin_pixels: int
     maximum_bounds_pixels: int
-    maximum_parameters: int = MAXIMUM_JOINT_FIT_PARAMETERS
-    maximum_jacobian_elements: int = MAXIMUM_JOINT_FIT_JACOBIAN_ELEMENTS
 
     def __post_init__(self) -> None:
         """Reject an unbounded task before stage products are initialized."""
-        for name in (
-            "maximum_tiles_per_batch",
-            "maximum_bounds_pixels",
-            "maximum_parameters",
-            "maximum_jacobian_elements",
-        ):
+        for name in ("maximum_tiles_per_batch", "maximum_bounds_pixels"):
             value = getattr(self, name)
             if (
                 isinstance(value, bool)
@@ -1453,10 +1442,7 @@ def _parents_to_fit_by_island(
         if parent not in pixels:
             raise ValueError("every fit parent must hold direct pixels")
         fittable = joint_fit_admits(
-            len(parent_owners),
-            pixels[parent],
-            maximum_parameters=config.maximum_parameters,
-            maximum_jacobian_elements=config.maximum_jacobian_elements,
+            len(parent_owners), pixels[parent]
         ) and compact_window_is_admitted(
             support.expanded(config.read_margin_pixels, image_shape_yx),
             maximum_bounds_pixels=config.maximum_bounds_pixels,

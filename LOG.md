@@ -27406,7 +27406,7 @@ the per-worker placement finding.
     and an owner's pieces in two cores make one parent.
   - **Public:** the 160 × 224 and 600² fields with a source every 20
     pixels give one source and one Gaussian per island and defer nothing.
-  - **Guards:** a silent island round and invalid limits fail closed, and
+  - **Guards:** a silent island round and invalid settings fail closed, and
     the deferred-round test now counts the island round.
   - **Restated tests:**
     - The test that pinned the opposite rule ("context separation cannot
@@ -27534,3 +27534,35 @@ the per-worker placement finding.
   - **Refactor.** Validating the protection threshold moved into its own
     function, to keep `refine_background_rms_grids` within the complexity
     limit.
+
+## 2026-10-02 — M2: pull request 87 review disposition
+
+- **Scope.** The reviews of `fa0c060`, task 37's repair. Copilot left one
+  finding. Greptile did not review (trial ended). Codecov reports every
+  changed line covered.
+- **Admission limits that could diverge from the fit (high).** The
+  finding: `FitParentStageConfig` let a caller set the joint-fit limits,
+  while the component-fit round always fits with the solver's fixed ones.
+  Raising a limit there, for example `maximum_parameters=192`, would leave
+  a 17-component parent joined that the fit then defers whole.
+  - **Fix.** Of Copilot's two remedies, making the stage use the fixed
+    limits was chosen over passing them through to the fit. They are the
+    solver's work bounds, which no caller can set at the fit, so a stage
+    setting had no counterpart to agree with. The two fields are removed,
+    and the stage applies `joint_fit_admits` with the fit's own limits. The
+    read margin and the compact bound stay settings, because the
+    component-fit round takes them as settings too, from the same public
+    configuration.
+  - **Tests.** The stage tests used to shrink the limits; they now use
+    fixtures that cross the real ones:
+    - a chain of 18 owners, more components than one fit admits;
+    - two chained 190 × 220 islands, more Jacobian work than one fit
+      admits;
+    - the same islands with direct pixels trimmed to 54,000, within the
+      bound, which stay joined;
+    - and the refused window as before.
+
+    Mutating the stage to count support pixels, or to ignore the Jacobian
+    bound, fails them. The oracle keeps its limits as keyword arguments, as
+    the solver does, for unit tests.
+  - **Products.** None changes: the public path never set the limits.
