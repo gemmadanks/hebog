@@ -27623,3 +27623,22 @@ the per-worker placement finding.
   commits (#59, #60) would have re-run the references.
 - **Next step.** The key changes once more, so the first quick check and
   quick benchmark after merging re-run their `master` references once.
+
+## 2026-10-02 — Quick check: pull request 89 review disposition
+
+- **Scope.** The reviews of `0d4d2ca`, the catalogue-rows refactor. Copilot
+  left one finding. Greptile did not review (trial ended).
+- **Rows bound through an unhashed alias (medium).** `products` took both
+  row classes through `hebog.validation.comparison`, which the key does not
+  hash. The trace starts once the worker is imported, so it could not see
+  that binding: had `comparison` bound the names to other compatible rows,
+  the key would have kept stale references.
+  - **Fix.** Copilot's preferred remedy: `products` imports the rows from
+    `hebog.science.catalogue_rows`. `comparison` is still imported, through
+    the evidence manifest models, which the worker does not build, but no
+    name the reference uses passes through it.
+  - **Test.** No file in `REFERENCE_CODE` may import a Hebog name through
+    an unlisted module's re-export. It failed on `0d4d2ca` for that reason.
+  - **Residual.** The tests see calls and bindings, not declarative use: a
+    class defined in an unlisted module and used on the PyBDSF path without
+    running any of its own code would escape both. None is today.

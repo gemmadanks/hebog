@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import ast
+import importlib
 import importlib.metadata
 import json
 import runpy
@@ -801,6 +802,47 @@ def test_reference_code_imports_no_algorithm() -> None:
     )
 
     assert importing == []
+
+
+def test_reference_code_imports_no_unlisted_alias() -> None:
+    """No listed file imports a Hebog name through an unlisted re-export.
+
+    The trace starts once the worker is imported, so it cannot see an
+    import-time binding: rows taken through an unlisted module would keep
+    their key if that module bound the names to other rows. A name comes
+    from a listed module or from the module that defines it.
+    """
+    listed = {
+        ".".join(path.with_suffix("").parts[1:])
+        for path in REFERENCE_CODE
+        if path.parts[0] == "src"
+    }
+    imported: list[str] = []
+    aliased: list[str] = []
+    for relative in REFERENCE_CODE:
+        source = (_ROOT / relative).read_text(encoding="utf-8")
+        for node in ast.walk(ast.parse(source)):
+            if not (
+                isinstance(node, ast.ImportFrom)
+                and node.module is not None
+                and (
+                    node.module == "hebog" or node.module.startswith("hebog.")
+                )
+            ):
+                continue
+            module = importlib.import_module(node.module)
+            for alias in node.names:
+                binding = f"{relative.as_posix()}: {node.module}.{alias.name}"
+                imported.append(binding)
+                value = getattr(module, alias.name)
+                if (
+                    node.module not in listed
+                    and getattr(value, "__module__", None) != node.module
+                ):
+                    aliased.append(binding)
+
+    assert imported, "no Hebog import was found to check"
+    assert aliased == []
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="uses a shell script")

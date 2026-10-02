@@ -61,9 +61,10 @@ REFERENCE_CODE = (
 It reads, checks and normalises PyBDSF's products with
 ``hebog.validation.products`` into ``hebog.science.catalogue_rows`` rows,
 and records its environment with ``hebog.validation.campaign_runtime``.
-Importing them also imports other ``hebog`` modules, but the worker runs
-none of their code, so a change there cannot change a reference product. A
-unit test traces a PyBDSF run of the worker to keep this list exact.
+Importing them also imports other ``hebog`` modules, but the worker calls
+none of their code, and the listed files take no name through their
+re-exports. Unit tests trace a PyBDSF run of the worker and check the
+listed files' imports to keep this list exact.
 """
 REFERENCE_CONTAINER_COMMAND = Path(
     "scripts/benchmark/prepare_notebook_comparison.py"
