@@ -50,6 +50,22 @@ MetricValues = dict[str, float | None]
 
 REFERENCE_WORKER = Path("scripts/benchmark/run_notebook_reference.py")
 """Container worker for one reference finder run, relative to the checkout."""
+REFERENCE_CODE = (
+    REFERENCE_WORKER,
+    Path("src/hebog/science/models.py"),
+    Path("src/hebog/validation/campaign_runtime.py"),
+    Path("src/hebog/validation/products.py"),
+)
+"""The reference worker and the repository modules it runs for PyBDSF.
+
+It reads, checks and normalises PyBDSF's products with
+``hebog.validation.products``, whose rows are ``hebog.science.models``
+catalogue records, and records its environment with
+``hebog.validation.campaign_runtime``. Importing them also imports other
+``hebog`` modules, including the scientific algorithms, but the worker runs
+none of their code, so a change there cannot change a reference product. A
+unit test traces a PyBDSF run of the worker to keep this list exact.
+"""
 REFERENCE_CONTAINER_COMMAND = Path(
     "scripts/benchmark/prepare_notebook_comparison.py"
 )
@@ -730,50 +746,39 @@ def reference_cache_directory(
     )
 
 
-_IMPORT_CLOSURE = """
+_IMPORT_WORKER = """
 import runpy, sys
 runpy.run_path(sys.argv[1], run_name="quick_check_code_identity")
-for module in list(sys.modules.values()):
-    path = getattr(module, "__file__", None)
-    if path:
-        print(path)
 """
 
 
-def reference_code_sha256(
-    worker: Path,
-    *,
-    repository_root: Path,
-    source_root: Path,
-) -> str:
-    """Hash a reference worker and every repository module it imports.
+def reference_code_sha256(repository_root: Path) -> str:
+    """Hash the reference worker and the repository modules it runs.
 
-    The reference container runs the worker from the mounted checkout, so a
-    change to the worker or to any repository module in its import closure
-    can change the reference products. The closure is found by importing the
-    worker, without running its entry point, in a fresh interpreter that
-    uses ``source_root`` as its import path. Modules outside
-    ``repository_root``, such as the standard library, are not hashed.
+    Only :data:`REFERENCE_CODE` is hashed, so a release, or a change to code
+    the worker does not run such as Hebog's algorithms, keeps the cached
+    references. The worker is first imported, without running its entry
+    point, in a fresh interpreter that imports ``hebog`` from the checkout's
+    ``src`` directory, as the container does. A worker that cannot be
+    imported then fails here rather than in the container, where its failure
+    would be cached under an identity that fixing an unhashed module does not
+    change.
     """
-    environment = dict(os.environ, PYTHONPATH=str(source_root))
-    listing = subprocess.run(
-        [sys.executable, "-c", _IMPORT_CLOSURE, str(worker)],
+    subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            _IMPORT_WORKER,
+            str(repository_root / REFERENCE_WORKER),
+        ],
         check=True,
-        capture_output=True,
-        text=True,
-        env=environment,
-    ).stdout.splitlines()
-    root = repository_root.resolve()
-    files = {worker.resolve()} | {
-        Path(line).resolve()
-        for line in listing
-        if Path(line).resolve().is_relative_to(root)
-    }
+        env=dict(os.environ, PYTHONPATH=str(repository_root / "src")),
+    )
     digest = hashlib.sha256()
-    for path in sorted(files):
-        digest.update(str(path.relative_to(root)).encode())
+    for path in REFERENCE_CODE:
+        digest.update(path.as_posix().encode())
         digest.update(b"\0")
-        digest.update(path.read_bytes())
+        digest.update((repository_root / path).read_bytes())
         digest.update(b"\0")
     return digest.hexdigest()
 
@@ -794,10 +799,9 @@ def reference_identity(
 ) -> dict[str, object]:
     """Describe everything that can change a reference result or timing.
 
-    The container runs the notebook reference worker and its ``hebog``
-    imports from the checkout, and the host builds its command line, so both
-    are part of the identity alongside the image, finder settings and core
-    count.
+    The container runs the reference worker and the ``hebog`` code it uses
+    from the checkout, and the host builds its command line, so both are
+    part of the identity alongside the image, finder settings and core count.
     """
     settings = json.loads(
         (repository_root / _NOTEBOOK_CONFIGURATION).read_text(encoding="utf-8")
@@ -808,11 +812,7 @@ def reference_identity(
         ),
         "finder_settings": settings["reference_finders"][reference.finder_id],
         "ncores": reference.ncores,
-        "reference_code_sha256": reference_code_sha256(
-            repository_root / REFERENCE_WORKER,
-            repository_root=repository_root,
-            source_root=repository_root / "src",
-        ),
+        "reference_code_sha256": reference_code_sha256(repository_root),
         "container_command_sha256": file_sha256(
             repository_root / REFERENCE_CONTAINER_COMMAND
         ),

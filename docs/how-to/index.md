@@ -108,11 +108,14 @@ PyBDSF runs once per input in the local
 results are cached under `benchmark-results/quick-check/references`. The cache
 is keyed by the input and by the reference identity: the image's immutable ID,
 the finder settings in `config/comparisons/notebook-comparison.json`, the core
-count, the container command, and the reference worker with every repository
-module it imports. A change to that code, such as catalogue normalisation or
-the fitting modules it reaches, reruns the references once. Changing any of these reruns the reference, and a cached failure
-applies only to the identity that failed. Remote cut-outs are accepted only
-when the server returns exactly the requested bytes.
+count, the container command, and the code the reference worker runs. That
+code is the worker itself, `hebog.validation.products`,
+`hebog.validation.campaign_runtime` and `hebog.science.models`, which defines
+the catalogue records. Changing any of these, for example catalogue
+normalisation, reruns the references once, and a cached failure applies only
+to the identity that failed. A release, or a change to Hebog's algorithms,
+keeps the cached references. Remote cut-outs are accepted only when the server
+returns exactly the requested bytes.
 Generated inputs are materialised on first use. The SDC1 cut-outs are cut
 from a local copy of `SKAMid_B2_1000h_v3.fits`. Missing real cut-outs are
 fetched with HTTP range requests only when `--allow-download` is given. Use
