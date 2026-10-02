@@ -286,7 +286,11 @@ steps, and they set the round boundaries:
   by the fit context margin and labels the result, so owners whose contexts
   touch are fitted jointly. That connectivity follows a chain of any length,
   exactly like pass C's support components, and must be reconciled before any
-  fit runs.
+  fit runs. A parent of several owners that no joint fit can hold, by the
+  fit's work limits on its owners and their direct pixels or by the compact
+  bound on its window, is fitted island by island: its islands, the
+  zero-margin contexts joined by owner, are reconciled in a further round
+  that runs only when such a parent exists.
 - **Measurement support.** Each fit parent contributes persistent measurement
   support into its own window with a boolean OR. That support is a function
   of the residual, RMS, validity and fit-parent labels in the window, not of
@@ -324,7 +328,7 @@ that only one round reads would cost a generation for nothing.
 | Parent extents | core, halo 0 | `component-labels`, `measurement-labels` | each parent's bounds and first pixel in both planes, and its direct size |
 | Deblend | parent window, for an admitted parent only | `direct-snr`, `valid-pixels`, both label planes | each parent's component count |
 | Component write | core, halo 0, then the window of each parent it holds that splits | both label planes; `direct-snr` and `valid-pixels` in a splitting parent's window | `component-direct-labels`, `component-measurement-labels` |
-| Fit parents | core, halo 0 | `component-measurement-labels` | context island summaries; then `fit-parent-labels` |
+| Fit parents | core, halo 0 | `component-measurement-labels`, `component-direct-labels` | context island summaries, owners, direct pixel counts and support bounds; island summaries when a parent no joint fit can hold is split; then `fit-parent-labels` |
 | Component fits | fit-parent window + margin, or a deferred parent's cores | residual, RMS, validity, both component planes | fit records, groups, grouping evidence, each owned component's association record |
 | Support write | core, halo 0, then the window of each measured parent it holds | residual, RMS, validity, `fit-parent-labels` | `measurement-support` |
 | Support features | core, halo 0 | `measurement-support`, `valid-pixels`, `component-measurement-labels` | feature island summaries and each measurement label's bounds |

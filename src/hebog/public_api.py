@@ -1089,8 +1089,9 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
     """Fit every measurement parent in its own context window.
 
     Owners whose fit contexts touch need a joint model, so the contexts are
-    reconciled first and each fit parent is then measured inside the window
-    holding it. The cores combine the persistent measurement support the
+    reconciled first, a parent no joint fit can hold is split into its
+    islands, and each fit parent is then measured inside the window holding
+    it. The cores combine the persistent measurement support the
     parents contributed, and the connected features of that support are then
     grouped one window at a time.
 
@@ -1100,6 +1101,9 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
     ``component_count`` is the topology's, and the records must describe
     every one of those components.
     """
+    from hebog.algorithms.component_measurement import (  # noqa: PLC0415
+        fit_parent_margin_pixels,
+    )
     from hebog.algorithms.multiscale import (  # noqa: PLC0415
         build_residual_atrous_plan,
     )
@@ -1140,6 +1144,12 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
         config=FitParentStageConfig(
             context_margin_pixels=context_margin,
             maximum_tiles_per_batch=_SUPPORT_TILES_PER_BATCH,
+            read_margin_pixels=fit_parent_margin_pixels(
+                fit_config, atrous_plan
+            ),
+            maximum_bounds_pixels=(
+                compact_deblend_config(config).maximum_compact_bounds_pixels
+            ),
         ),
         executor=executor,
         sink=fit_parent_sink,

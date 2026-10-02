@@ -739,9 +739,11 @@ def test_public_wide_object_counts_record_every_round_decided_from_cores(
     four islands, one support component, and five segment rows (four
     components and one source), while no fit parent is deferred. The
     catalogue, dispositions, mask and RMS equal the windowed run's. A
-    one-pixel compact bound then defers the ring's one fit parent as well:
-    each island publishes its own source, so the support components and the
-    source rows number four and the segment rows eight.
+    one-pixel compact bound then refuses the ring's one fit parent, so it is
+    fitted island by island, and refuses each of its four islands too, so
+    four fit parents are deferred: each island publishes its own source, so
+    the support components and the source rows number four and the segment
+    rows eight.
     """
     _write_image(tmp_path / "image.fits", _ring_image())
     reference = hebog.find_sources(
@@ -807,7 +809,7 @@ def test_public_wide_object_counts_record_every_round_decided_from_cores(
     assert deferred_diagnostics.wide_object_counts == WideObjectCounts(
         publication_owners=4,
         support_components=4,
-        deferred_fit_parents=1,
+        deferred_fit_parents=4,
         islands=4,
         segments=8,
     )
@@ -1113,6 +1115,38 @@ def test_a_field_too_crowded_for_source_free_noise_is_measured(
     mask = np.asarray(fits.getdata(result.mask_path), dtype=np.bool_)
     assert all(mask[peak] for peak in peaks)
     assert result.island_count == len(peaks)
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("shape_yx", ((160, 224), (600, 600)))
+def test_a_crowded_field_is_fitted_island_by_island(
+    tmp_path: Path,
+    shape_yx: tuple[int, int],
+) -> None:
+    """A fit parent too large to fit whole is fitted one island at a time.
+
+    With a source every 20 pixels every eight-pixel fit context touches its
+    neighbours', so one parent holds the whole field: at 160 by 224 its 88
+    components exceed one joint fit's 16, and at 600 square its window
+    exceeds the compact read bound. Fitted whole it deferred every component,
+    and with no compact model to subtract, association joined the islands.
+    """
+    image, peaks = _crowded_field(shape_yx, 20.0)
+    _write_image(tmp_path / "image.fits", image)
+
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+
+    diagnostics = read_diagnostics_product(result.diagnostics)
+    assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
+    assert not any(
+        entry.status == "deferred"
+        for entry in diagnostics.measurement_dispositions
+    )
+    assert result.island_count == len(peaks)
+    assert result.source_count == len(peaks)
+    assert result.gaussian_component_count == len(peaks)
 
 
 @pytest.mark.integration

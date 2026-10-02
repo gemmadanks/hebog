@@ -69,15 +69,15 @@ Known limitations when interpreting results:
 - In a field so crowded that no fine noise window lies clear of its sources,
   the background and RMS are the unprotected sigma-clipped coarse estimate,
   which includes the sources' wings.
-- Crowded fields are associated and fitted incorrectly, a known defect the
+- Crowded fields are over-associated, a known defect the
   [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
-  tracks. On small images a crowded field's islands can collapse into a
-  few sources with no Gaussian-component row: generated fields of 160 to
-  300 pixels with a source every 16 to 24 pixels did, and 119 islands of a
-  240-pixel field became 2 sources. In a generated 1,024-pixel field with a
-  source every 32 pixels, 962 islands became 574 sources where PyBDSF finds
-  1,006, and 11% of the joint Gaussian fits were deferred at their work
-  bound; with a source every 24 pixels nearly all were.
+  tracks. A fitted component whose model appears to leave unmodelled
+  emission is not kept separate by association. In a crowded field the
+  neighbours' wings, and a background they raise, leave such emission
+  around many components, and neighbouring islands are then joined into one
+  source. In a generated 1,024-pixel field with a source every 32 pixels,
+  962 islands became 652 sources where PyBDSF finds 1,006; in a 256-pixel
+  field with a source every 24 pixels, 105 became 93.
 - The `compact` profile is not a general continuum catalogue.
 - Completeness, reliability, astrometry and photometry must be evaluated on
   data representative of your use.

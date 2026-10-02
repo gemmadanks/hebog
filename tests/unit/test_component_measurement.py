@@ -9,7 +9,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import pytest
@@ -108,6 +108,10 @@ def _measure(  # noqa: PLR0913
     valid: np.ndarray | None = None,
     centers: tuple[tuple[float, float], ...] | None = None,
     shape_yx: tuple[int, int] = (25, 33),
+    sigma_xy: tuple[float, float] = (2.4, 1.6),
+    pixel_support: Literal["bounded-context", "owned-region"] = (
+        "bounded-context"
+    ),
 ):
     """One original-pixel ellipse with independently supplied unit RMS."""
     yy, xx = np.mgrid[: shape_yx[0], : shape_yx[1]]
@@ -116,7 +120,10 @@ def _measure(  # noqa: PLR0913
     for index, center in enumerate(centers or (center_xy,), component_index):
         profile = 10 * np.exp(
             -0.5
-            * (((xx - center[0]) / 2.4) ** 2 + ((yy - center[1]) / 1.6) ** 2)
+            * (
+                ((xx - center[0]) / sigma_xy[0]) ** 2
+                + ((yy - center[1]) / sigma_xy[1]) ** 2
+            )
         )
         signal += profile
         labels[profile >= 3] = index
@@ -136,6 +143,7 @@ def _measure(  # noqa: PLR0913
         convergence_tolerance=1e-10,
         maximum_axis_ratio=20.0,
         background_model="fixed-zero",
+        pixel_support=pixel_support,
     )
     return measure_component_models(
         signal,
@@ -256,11 +264,64 @@ def test_fit_contexts_preserve_disconnected_owners_and_label_permutations(
     )
 
 
-def test_connected_oversized_fit_remains_explicitly_unavailable() -> None:
-    """Context separation cannot waive the joint-parameter limit of a chain."""
+@pytest.mark.parametrize(
+    ("count", "spacing", "sigma_xy", "centroid_pixels", "size_fraction"),
+    (
+        (17, 12.0, (2.4, 1.6), 0.002, 0.002),
+        (16, 40.0, (10.0, 10.0), 0.15, 0.04),
+    ),
+)
+def test_a_chain_too_large_to_fit_jointly_is_fitted_island_by_island(
+    count: int,
+    spacing: float,
+    sigma_xy: tuple[float, float],
+    centroid_pixels: float,
+    size_fraction: float,
+) -> None:
+    """Islands whose fit contexts chain are fitted one by one when needed.
+
+    Seventeen compact islands exceed one joint fit's sixteen components, and
+    sixteen islands of about 750 pixels its Jacobian bound. Fitting either
+    chain whole would leave every component deferred, so each island is
+    fitted alone instead, as PyBDSF fits every island, with the reviewed
+    owned-region pixels. An island's fit does not model a neighbouring
+    island's wings: the compact end source moves under 0.001 pixels and
+    0.11% in size, while the large sources, whose neighbours' wings reach
+    half a sigma into an island, move their end source 0.11 pixels and
+    change size up to 3.4%. Sources flanked on both sides are exact.
+    """
+    centers = tuple(
+        (spacing + spacing * index, 2.0 * sigma_xy[1] + 12.0)
+        for index in range(count)
+    )
     result = _measure(
-        centers=tuple((12.0 + 12 * index, 16.0) for index in range(17)),
-        shape_yx=(33, 217),
+        centers=centers,
+        shape_yx=(
+            int(4.0 * sigma_xy[1] + 25.0),
+            int(spacing * (count + 1)),
+        ),
+        maximum_bounds_pixels=100_000,
+        sigma_xy=sigma_xy,
+        pixel_support="owned-region",
+    )
+    assert len(result.fits) == len(centers)
+    assert result.deferred_parent_count == 0
+    for (_, fitted), center in zip(result.fits, centers, strict=True):
+        assert isinstance(fitted, ValidCompactGaussianFit)
+        assert fitted.parameters.centroid_xy == pytest.approx(
+            center, abs=centroid_pixels
+        )
+        assert (
+            fitted.parameters.major_sigma_pixels,
+            fitted.parameters.minor_sigma_pixels,
+        ) == pytest.approx(sigma_xy, rel=size_fraction)
+
+
+def test_one_island_too_large_to_fit_jointly_remains_unavailable() -> None:
+    """An island is the smallest fit parent, so its joint limit still holds."""
+    result = _measure(
+        centers=tuple((12.0 + 6 * index, 16.0) for index in range(17)),
+        shape_yx=(33, 121),
         maximum_bounds_pixels=100_000,
     )
     assert len(result.fits) == 17
@@ -268,6 +329,92 @@ def test_connected_oversized_fit_remains_explicitly_unavailable() -> None:
         isinstance(fit, UnavailableCompactGaussianFit)
         and fit.reason == "joint-fit-work-limit"
         for _, fit in result.fits
+    )
+
+
+def test_a_parent_is_judged_by_its_direct_pixels_not_its_support() -> None:
+    """Measurement support wider than the direct pixels is not fit work.
+
+    The chain's three owners hold 36 support pixels but only 4 direct
+    pixels, the centres: 18 parameters by 4 pixels fit within 100 Jacobian
+    elements though 648 would not, so the chain stays one parent; with
+    every support pixel direct it would split.
+    """
+    labels = np.zeros((20, 80), dtype=np.int32)
+    labels[5:8, 2:5] = 1
+    labels[5:8, 12:15] = 2
+    labels[16:19, 30:33] = 2
+    labels[5:8, 22:25] = 3
+    direct = np.zeros_like(labels)
+    for y, x in ((6, 3), (6, 13), (17, 31), (6, 23)):
+        direct[y, x] = labels[y, x]
+    bounds = {
+        "context_margin_pixels": 8,
+        "read_margin_pixels": 2,
+        "maximum_bounds_pixels": 10_000,
+        "maximum_jacobian_elements": 100,
+    }
+
+    narrow = measurement._bounded_fit_parents(labels, direct, **bounds)
+    wide = measurement._bounded_fit_parents(labels, labels, **bounds)
+
+    np.testing.assert_array_equal(
+        narrow, measurement._measurement_fit_parents(labels, 8)
+    )
+    assert (wide[6, 3], wide[6, 13], wide[6, 23]) == (1, 2, 3)
+
+
+@pytest.mark.parametrize("limit", ("components", "pixels", "window"))
+def test_a_fit_parent_too_large_to_fit_jointly_takes_its_islands(
+    limit: str,
+) -> None:
+    """Only a parent one joint fit cannot hold is split, into its islands.
+
+    Three islands chain through their eight-pixel contexts, and owner 2 has a
+    second piece joined to them through the owner itself; a separate pair
+    chains too. The chain exceeds the limit, by component count or by read
+    window, and each of its islands becomes a parent, owner 2's two pieces
+    one; the pair stays joined. The chain's three owners and 36 direct
+    pixels are 18 parameters and 648 Jacobian elements, the pair's 12 and
+    216. Parents keep the joined order.
+    """
+    labels = np.zeros((20, 80), dtype=np.int32)
+    labels[5:8, 2:5] = 1
+    labels[5:8, 12:15] = 2
+    labels[16:19, 30:33] = 2
+    labels[5:8, 22:25] = 3
+    labels[14:17, 50:53] = 4
+    labels[14:17, 60:63] = 5
+    joined = measurement._measurement_fit_parents(labels, 8)
+    assert joined[6, 3] == joined[6, 13] == joined[17, 31] == joined[6, 23]
+    assert joined[15, 51] == joined[15, 61] != joined[6, 3]
+    bounds = {
+        "components": {"maximum_parameters": 12},
+        "pixels": {"maximum_jacobian_elements": 500},
+        "window": {"maximum_bounds_pixels": 500},
+    }[limit]
+
+    parents = measurement._bounded_fit_parents(
+        labels,
+        labels,
+        context_margin_pixels=8,
+        read_margin_pixels=2,
+        **{"maximum_bounds_pixels": 10_000, **bounds},
+    )
+
+    assert (parents[6, 3], parents[6, 13], parents[6, 23]) == (1, 2, 3)
+    assert parents[17, 31] == parents[6, 13]
+    assert parents[15, 51] == parents[15, 61] == 4
+    assert np.all(parents[labels == 0] == 0)
+    np.testing.assert_array_equal(
+        measurement._bounded_fit_parents(
+            labels,
+            labels,
+            context_margin_pixels=8,
+            read_margin_pixels=2,
+            maximum_bounds_pixels=10_000,
+        ),
+        joined,
     )
 
 

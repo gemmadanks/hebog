@@ -27313,6 +27313,205 @@ the per-worker placement finding.
   policy needs the maintainer's scientific disposition. Task 37 now holds
   the release that task 36 held.
 
+## 2026-10-02 — M2: task 37, the crowded-field association and fit collapse
+
+- **Two mechanisms, independent.** Measured on the task's fields, on a
+  branch stacked on task 36's (`fix/crowded-field-association`, from
+  `4b362af`), because crowded fields without a clean noise window are
+  refused before that repair.
+  1. *Fit deferral.* A fit parent joins every owner whose support, dilated
+     by the 8-pixel context margin, touches another's, and the chain has no
+     bound. With a source every 20 pixels at 160 × 224 all 88 owners form
+     one parent. More than 16 components exceed the joint fit's 96
+     parameters, so all 88 are deferred (`joint-fit-work-limit`). At 600²
+     and on the 1,024² field at 24-pixel spacing, one parent spans the image
+     and its window exceeds the compact read bound, so every component is
+     deferred unread (`parent-work-deferred`). On `crowded-field`, 5 parents
+     hold 18 to 30 owners. A deferred component has no compact model to
+     subtract, so the `persistent-residual` grouping finds the field's
+     summed emission at coarse scales and joins its islands. That is the
+     whole collapse at 160² to 240². With an island-by-island fit (context
+     margin 0, a probe) the 160 × 224 field gives 88 sources and 88
+     Gaussians, all `compact-model`.
+  2. *Adequacy in a crowded field.* A parent's components become compact
+     models only when its own model leaves no unmodelled residual in its
+     window. The check subtracts only that parent's model, and its
+     matched-filter tier counts a coherent feature of either sign. On
+     `crowded-field`, with no parent deferred (an emulated split), 184 of
+     456 parents still fail it: 120 on negative-only features, 49 on
+     positive matched-filter features and 15 on direct or à trous residual.
+     The sigma-clipped coarse background there is biased high by the
+     sources' summed wings, a median 0.10σ (to 0.23σ) and RMS 6%, which
+     leaves a negative plateau between sources. Neighbours' wings add
+     positive residual. Unprotected fitted components are then grouped on
+     `persistent-residual`: 962 islands still give 652 sources where pinned
+     `master` publishes 1,006, and 55 of the 63 merged sources hold only
+     fitted components.
+- **Decision statement (mechanism 1).** Repair: a fit parent one joint
+  fit cannot hold (first stated as more than 16 components; the review
+  below widened it to the fit's own work rule), or whose window the
+  compact read bound refuses, is fitted island by island. Its pixels take the fit
+  parents its islands form, which are the 0-margin contexts joined by
+  owner, as PyBDSF fits every island. Every other parent is unchanged, so
+  only components that were deferred change. Independent test: the
+  whole-plane oracle and the tiled stage on a chained field, and public
+  runs of the 160 × 224 and 600² fields, each written to fail first.
+  Expected change: one source and one Gaussian per island on those fields;
+  about 1,680 Gaussians instead of 37 at 24 pixels; no deferral on
+  `crowded-field`; byte-identical products on the quick check's other 16
+  cases. Stopping condition: no component is deferred for its parent's
+  joint size unless one island alone exceeds the bound.
+- **Mechanism 2 is not repaired here.** Any change to how adequacy treats
+  neighbours, negative residuals or the crowded background changes
+  association on other images, which the task allows only as a reviewed
+  scientific change the maintainer approves. It is recorded with options
+  for that decision.
+- **Repair (mechanism 1).**
+  - **One admission rule.** `joint_fit_admits` in `fitting.py` is now the
+    joint fit's own admission rule: six parameters per component, at most
+    96 parameters, and at most 1,000,000 parameters times fitted pixels.
+  - **Oracle and stage apply it before any fit.** The whole-plane oracle
+    (`_bounded_fit_parents`) and `run_fit_parent_stage` apply that rule to
+    each joined parent's owners and their direct pixels. With the reviewed
+    `owned-region` pixel support those are exactly what the fit measures:
+    on the review's reproducer the fit's pixels equal the owned pixels,
+    11,984. A parent of several owners that the rule or the compact bound
+    on its window refuses takes its islands' numbers. A single-owner parent
+    is already one island and stays as it is.
+  - **Tiled stage.** It reduces owners, direct-pixel counts and support
+    bounds from per-core records. Only when some parent is split does it
+    scan and reconcile islands in one extra round, so an image without such
+    a parent does no island work.
+  - **Kept restriction.** An island too large on its own is still deferred.
+- **A latent tile dependence, found by the new stage test and fixed.**
+  `_fit_parent_numbers` joined an owner's contexts only within one core. An
+  owner whose disconnected pieces lay in different cores therefore became
+  two fit parents, against the rule that disconnected pieces of one owner
+  are one fit target. It now joins an owner's contexts across every core.
+  A test with one owner's two distant pieces in two 33-pixel cores fails
+  on the per-core join and passes now. It changes no quick-check product,
+  because at 2,048-pixel fit-parent cores the quick check's images are one
+  core.
+- **Tests, each failing first for the stated reason** (on `4b362af` or
+  on a probe of the earlier rule).
+  - **Oracle:**
+    - a chain of 17 compact islands and a chain of 16 islands of about
+      750 pixels (over the parameter and Jacobian bounds) are fitted island
+      by island with production pixels;
+    - one island of 17 components stays deferred;
+    - a parent too large by components, by pixels or by window takes its
+      islands while a smaller chain stays joined.
+  - **Stage:** the published labels equal the oracle's at 33-, 48- and
+    96-pixel cores under reversed completion, for each of the three limits,
+    and an owner's pieces in two cores make one parent.
+  - **Public:** the 160 × 224 and 600² fields with a source every 20
+    pixels give one source and one Gaussian per island and defer nothing.
+  - **Guards:** a silent island round and invalid settings fail closed, and
+    the deferred-round test now counts the island round.
+  - **Restated tests:**
+    - The test that pinned the opposite rule ("context separation cannot
+      waive the joint-parameter limit of a chain") is now the chain test.
+      Island fits do not model a neighbouring island's wings, so it states
+      the measured cost: under 0.001 pixels and 0.11% in size for the
+      compact end source, and 0.11 pixels and up to 3.4% for the large one,
+      whose neighbours' wings reach half a sigma into its island. Sources
+      flanked on both sides are exact.
+    - The wide-object test's deferred-parent count goes from 1 to 4: a
+      one-pixel bound now refuses the ring's parent and then each of its
+      four islands.
+  - **Serial and Dask:** products are byte-identical under four-worker
+    Dask on the 1,024² field at 24 pixels, the 160 × 224 field and the 240²
+    recipe field.
+- **Quick check.** `task37-island-fits` against
+  `task36-crowded-repair-revised` reports no regression. 15 cases are
+  byte-identical. The SDC1 crowded cut-out changes only by its 38
+  components that were deferred at the joint limit: none is deferred now,
+  Gaussians go 794 → 831 and sources 679 → 690. That case has no truth or
+  `master` reference to score it. `crowded-field`: no deferral, 979
+  Gaussians, truth completeness 0.852 → 0.955 at reliability 0.999,
+  completeness against `master` 0.520 → 0.595 (reliability 0.919), and
+  sources 574 → 652. Hebog time 144 s. With the admission rule in place of
+  a component count (`task37-admission-rule`), all 17 cases' products are
+  byte-identical to that run, with no regression. Hebog time was 156 s
+  against 144 s. The final revision (`task37-final`, references skipped)
+  is byte-identical again at 139 s, so the difference was machine load. No
+  benchmark was run.
+- **The task's fields.**
+  - The 240² recipe field gives 119 islands, 119 sources and 119 Gaussians
+    (was 2 sources, none).
+  - At 1,024² with 24-pixel spacing: 1,682 sources and 1,682 Gaussians
+    (was 37 Gaussians).
+  - The correlated-noise fields: 256² at 24 pixels gives 93 sources from
+    105 islands (was 7), and 300² at 16 gives 197 from 215 (was 1).
+  - The remaining merges are mechanism 2.
+- **Mechanism 2, measured for the decision (task 38).** On the real
+  implementation, 184 of `crowded-field`'s 456 fit parents fail the
+  adequacy check: 120 negative-only, 49 positive matched-filter, 15 direct
+  or à trous. As a diagnostic only, the quick check was run with the
+  matched-filter tier counting positive residual alone
+  (`diag-positive-adequacy` against `task37-island-fits`):
+  - `crowded-field` gives 828 sources, completeness against `master`
+    0.799 at reliability 0.971.
+  - Four other cases change: `close-blends` 4 → 5 sources, the LoTSS dense
+    and both SDC1 cut-outs one source more each.
+  - `close-blends` regresses: peak-flux error p95 against `master` rises
+    from 0.027 to 0.077.
+
+  Judging adequacy on the residual after every admitted model in the
+  window, as PyBDSF searches its residual image, needs a round after the
+  fits and has not been measured. Neither option is made here.
+- **Independent review.** A review agent confirmed that the tiled stage
+  matches the oracle: on 400 random label planes (283 with a split, cores
+  from 4m + 1 to the whole image) every label and count agreed. It found:
+  - **Fixed (P2).** The split rule checked components but not the
+    Jacobian bound, so 16 large sources stayed deferred while 17 were
+    fitted. The rule is now the fit's own, as above.
+  - **Fixed (P3).** The chain test ran with non-production pixel support
+    and asserted no size. It now uses production support and states the
+    measured cost.
+  - **Fixed (P3).** Three stale descriptions of the fit-parent round, in
+    the stage and public-API docstrings and in ADR-008's rounds table.
+  - **Open for task 38.** How many adequacy failures come from island fits
+    no longer modelling former joint neighbours. Before the split those
+    components were deferred and unprotected, so splitting cannot have
+    added merges among them. It can for their neighbours: a parent
+    deferred for its window contributed no measurement support, and its
+    islands now do, which can join support features with unsplit
+    neighbours.
+  - **Measured since.** The owner-across-cores fix could change an image
+    larger than one fit-parent core (2,048 pixels) where an owner's
+    disconnected pieces fall in different cores. The 3,000² LoTSS-DR3
+    anchor, 2 × 2 cores, has byte-identical catalogue, RMS and mask on
+    `4b362af` and on this branch (117 s and 113 s). The 10,000² and
+    15,402² anchors were not rerun.
+- **Second review.** The same agent re-reviewed the revision. Its fuzz
+  matched the oracle on 400 more inputs (274 split, 201 on pixels alone),
+  with direct labels a random part of the support. It traced why, on any
+  input `find_sources` makes, the direct-pixel count equals the fit's:
+  direct pixels lie inside measurement support, are valid, and sit above
+  the positive island threshold. Its findings:
+  - **Fixed (P3).** No test pinned counting direct pixels rather than
+    support; a mutation counting support passed all 45 targeted tests. An
+    oracle and a stage test, where an owner's support is wider than its
+    direct pixels, now fail under that mutation. A generation without
+    direct labels is tested. A parent no core reported direct pixels for
+    now fails closed instead of counting as zero.
+  - **Stated, not enforced (P3).** The rule predicts the fit's admission
+    only with `owned-region` pixel support, which the public profile fixes.
+    Under `bounded-context`, used by unit helpers, the fit counts its whole
+    window, so a chain can still be deferred whole: 16 sources deferred,
+    17 fitted. The precondition is now stated in the oracle, the stage and
+    its configuration.
+  - **Fixed.** The island round had re-read direct labels and computed
+    bounds it never used. It now has its own scan.
+- **Status.** Task 37 leaves the plan, and task 38 holds the maintainer's
+  choice of rule and the release. Task 37's change to the rule that context
+  separation cannot waive the joint limit needs the maintainer's
+  scientific disposition. Not run: the slow equivalence test, the quick
+  benchmark, the traced peak and the tier anchors. On those, only images
+  with a parent too large to fit whole change, and they also pay the island
+  round.
+
 ## 2026-10-02 — M2: pull request 86 review disposition
 
 - **Scope.** The reviews of `4b362af`, task 36's repair. Copilot left one
@@ -27335,3 +27534,35 @@ the per-worker placement finding.
   - **Refactor.** Validating the protection threshold moved into its own
     function, to keep `refine_background_rms_grids` within the complexity
     limit.
+
+## 2026-10-02 — M2: pull request 87 review disposition
+
+- **Scope.** The reviews of `fa0c060`, task 37's repair. Copilot left one
+  finding. Greptile did not review (trial ended). Codecov reports every
+  changed line covered.
+- **Admission limits that could diverge from the fit (high).** The
+  finding: `FitParentStageConfig` let a caller set the joint-fit limits,
+  while the component-fit round always fits with the solver's fixed ones.
+  Raising a limit there, for example `maximum_parameters=192`, would leave
+  a 17-component parent joined that the fit then defers whole.
+  - **Fix.** Of Copilot's two remedies, making the stage use the fixed
+    limits was chosen over passing them through to the fit. They are the
+    solver's work bounds, which no caller can set at the fit, so a stage
+    setting had no counterpart to agree with. The two fields are removed,
+    and the stage applies `joint_fit_admits` with the fit's own limits. The
+    read margin and the compact bound stay settings, because the
+    component-fit round takes them as settings too, from the same public
+    configuration.
+  - **Tests.** The stage tests used to shrink the limits; they now use
+    fixtures that cross the real ones:
+    - a chain of 18 owners, more components than one fit admits;
+    - two chained 190 × 220 islands, more Jacobian work than one fit
+      admits;
+    - the same islands with direct pixels trimmed to 54,000, within the
+      bound, which stay joined;
+    - and the refused window as before.
+
+    Mutating the stage to count support pixels, or to ignore the Jacobian
+    bound, fails them. The oracle keeps its limits as keyword arguments, as
+    the solver does, for unit tests.
+  - **Products.** None changes: the public path never set the limits.
