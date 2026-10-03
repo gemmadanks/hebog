@@ -120,7 +120,7 @@ def _measure(  # noqa: PLR0913
         "bounded-context"
     ),
     unlabelled: np.ndarray | None = None,
-):
+) -> measurement.ComponentMeasurements:
     """One original-pixel ellipse with independently supplied unit RMS.
 
     ``unlabelled`` is added to the image without a detection label.
