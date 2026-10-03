@@ -28003,8 +28003,9 @@ the per-worker placement finding.
 ## 2026-10-03 — M2: pull request 91 review disposition
 
 - **Scope.** The reviews of `8f7d5da`, task 39's repair rebased onto pull
-  request 90. Copilot left one finding. Greptile did not review (trial
-  ended). Codecov reports every changed line covered, and CI passed.
+  request 90, and of `0a6b5ff`, the first finding's fix. Copilot left one
+  finding on each. Greptile did not review (trial ended). Codecov reports
+  every changed line covered, and CI passed on both.
 - **Residual search for a parent its loops cover (low).** The finding: when
   resolved loops take every compact group of a fit parent, no group is left
   to judge, but the per-group check still filtered the parent's residual on
@@ -28018,3 +28019,8 @@ the per-worker placement finding.
   - **Products.** None changes: such a parent kept no compact group before
     or after. Not measured: how often a whole parent is one loop, so the
     time saved is unknown.
+- **Stale rim-test rationale (low).** Copilot's second review found, in
+  code it had not flagged before, that the rim test's docstring still gave
+  the fixed reach the independent review replaced: a scale's smoothing
+  width plus an arc's half-maximum radius. It now gives rim ownership, as
+  `_resolved_emission_loop` does. The test itself is unchanged.

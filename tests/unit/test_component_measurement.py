@@ -892,9 +892,10 @@ def test_a_loop_holds_only_components_on_the_rim_of_its_hole() -> None:
     A crowded field's coarse support joins into one region with many holes,
     and elongated sources anywhere in it can lie tangentially about one of
     them by chance. A ring's arcs lie on the rim of the hole they enclose:
-    within that scale's smoothing width plus their own half-maximum radius.
+    each is the nearest component to some of the support bordering the hole.
     Three elongated components 60 to 90 pixels along a bridge from a ring
-    are tangential about its centre but stay out of its loop.
+    are tangential about its centre but own none of its rim, so they stay
+    out of its loop.
     """
     fitted = _measure().fits[0][1]
     assert isinstance(fitted, ValidCompactGaussianFit)
