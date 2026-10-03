@@ -128,8 +128,12 @@ only when it persists at an adjacent wavelet scale.
 
 ### 4. Deblend and fit Gaussians
 
-Within each island Hebog looks for significant peaks separated by a
-sufficiently deep saddle and splits the island into one region per peak.
+Within each island Hebog looks for significant peaks and splits the island
+into one region per peak. Two peaks stay apart when the fainter lies at least
+1.5σ above the pass between them, the highest level at which one connected
+part of the island still holds both, so a faint source beside a much brighter
+one keeps its own region. Each region holds the pixels that rise to its own
+peak.
 
 Each component is then fitted with an elliptical Gaussian, initialised from
 image moments and fitted to the original background-subtracted pixels.

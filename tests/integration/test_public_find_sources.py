@@ -20,6 +20,7 @@ from astropy.io import fits
 from astropy.wcs import WCS
 from conftest import SubstituteBackgroundRms, published_plane
 from distributed import Client, LocalCluster
+from scipy import ndimage
 
 import hebog
 from hebog import SourceFinderConfig, SourceFinderRequest, public_api
@@ -534,6 +535,64 @@ def test_two_sources_share_one_actual_detection_island(
     assert catalogue.islands[0].pixel_count == np.count_nonzero(
         np.asarray(fits.getdata(result.mask_path), dtype=np.bool_)
     )
+
+
+@pytest.mark.integration
+def test_a_compact_source_beside_a_brighter_broad_one_gets_a_gaussian(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    substituted_background_rms: SubstituteBackgroundRms,
+) -> None:
+    """A deep pass between two peaks gives the fainter its own Gaussian.
+
+    Halfway between them the broad source alone outshines the compact one,
+    so a saddle judged on the line equidistant from the peaks merged the
+    pair, and the compact source's flux was left unmodelled in its
+    neighbour's fit.
+    """
+    yy, xx = np.mgrid[:81, :81]
+    injected = ((30.0, 40.0), (51.0, 40.0))
+    beam_sigma_pixels = 4.0 / np.sqrt(8.0 * np.log(2.0))
+    signal = np.asarray(
+        190.0 * np.exp(-((xx - 30) ** 2 + (yy - 40) ** 2) / (2.0 * 7.0**2))
+        + 39.0
+        * np.exp(
+            -((xx - 51) ** 2 + (yy - 40) ** 2) / (2.0 * beam_sigma_pixels**2)
+        ),
+        dtype=np.float64,
+    )
+    _write_image(tmp_path / "image.fits", signal)
+    monkeypatch.setattr(
+        public_api,
+        "_estimate_background_rms",
+        substituted_background_rms(
+            signal, np.zeros_like(signal), np.ones_like(signal)
+        ),
+    )
+
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+
+    components = read_catalogue_fits_product(
+        result.catalogue
+    ).gaussian_components
+    positions = np.asarray(
+        WCS(_header(signal.shape)).celestial.all_world2pix(
+            [
+                (
+                    row.position.right_ascension_degrees,
+                    row.position.declination_degrees,
+                )
+                for row in components
+            ],
+            0,
+        )
+    )
+    assert result.island_count == 1
+    assert len(components) == len(injected)
+    for x, y in injected:
+        assert np.min(np.hypot(positions[:, 0] - x, positions[:, 1] - y)) < 1
 
 
 @pytest.mark.integration
@@ -1226,15 +1285,19 @@ def _correlated_crowded_field(
 
 @pytest.mark.integration
 @pytest.mark.parametrize(
-    ("size", "spacing", "islands", "fitted_compact"),
-    ((256, 24, 105, 80), (512, 32, 231, 190)),
+    ("size", "spacing", "islands", "fitted_compact", "compact_joins"),
+    (
+        (256, 24, 105, 80, set[frozenset[int]]()),
+        (512, 32, 231, 190, {frozenset({61, 76, 77})}),
+    ),
 )
-def test_compact_sources_in_a_crowded_correlated_field_stay_separate(
+def test_compact_sources_in_a_crowded_correlated_field_stay_separate(  # noqa: PLR0913, PLR0917
     tmp_path: Path,
     size: int,
     spacing: int,
     islands: int,
     fitted_compact: int,
+    compact_joins: set[frozenset[int]],
 ) -> None:
     """Noise, crowding and chance alignments do not join compact neighbours.
 
@@ -1248,9 +1311,13 @@ def test_compact_sources_in_a_crowded_correlated_field_stay_separate(
     with many holes, about which resolved sources far apart can lie
     tangentially by chance; a loop holds only arcs on its hole's rim, so no
     loop forms. No fitted compact source then shares a source with another
-    injected source. Residual and arc evidence still join a few resolved
-    sources; the test exempts them, and fails once there is nothing to
-    exempt.
+    injected source, with one exception: in the 512-pixel field resolved
+    source 60 lies on the wing of the much brighter resolved source 76 with
+    no peak of its own, so it gets no component, and its residual joins the
+    compact sources 61 and 77 beside 76 to it; without source 60 all three
+    stay apart. Residual and arc evidence still join a few resolved
+    sources. The test exempts them and that one group, and fails once
+    either exemption no longer matches.
     """
     image, header, injected = _correlated_crowded_field(size, spacing)
     fits.PrimaryHDU(image[np.newaxis, np.newaxis], header=header).writeto(
@@ -1305,18 +1372,17 @@ def test_compact_sources_in_a_crowded_correlated_field_stay_separate(
     found = {
         index for indexes in injected_by_source.values() for index in indexes
     }
-    shared = {
-        index
+    joined = [
+        frozenset(indexes)
         for indexes in injected_by_source.values()
         if len(indexes) > 1
-        for index in indexes
-    }
+    ]
     # Most compact sources are fitted, so the check below is not vacuous;
     # the faintest and those inside a resolved neighbour are not.
     assert len(found & compact) >= fitted_compact
-    assert not shared & compact
-    # The exemption still matches: resolved sources remain joined.
-    assert shared
+    assert {group for group in joined if group & compact} == compact_joins
+    # The resolved exemption still matches: resolved sources remain joined.
+    assert any(not group & compact for group in joined)
 
 
 @pytest.mark.integration
@@ -1684,9 +1750,14 @@ def test_serial_and_existing_dask_publish_identical_scientific_products(
     if image_kind == "coarse-protection":
         yy, xx = np.mgrid[:256, :384]
         radius_squared = (yy - 128) ** 2 + (xx - 192) ** 2
-        image = (
-            -2 + xx / 1024 + np.random.default_rng(620).normal(size=xx.shape)
+        # Noise correlated over the header's 4-pixel beam, as in a radio
+        # image. On white noise the broad halo deblends into more components
+        # than one joint fit admits, so no fit, and no injected failure, runs.
+        noise = ndimage.gaussian_filter(
+            np.random.default_rng(620).normal(size=xx.shape),
+            4.0 / np.sqrt(8.0 * np.log(2.0)),
         )
+        image = -2 + xx / 1024 + noise / np.std(noise)
         image += 12 * np.exp(-radius_squared / (2 * 20**2))
         image += 1000 * np.exp(-radius_squared / (2 * 2**2))
     _write_image(tmp_path / "image.fits", image)
@@ -1733,6 +1804,15 @@ def test_serial_and_existing_dask_publish_identical_scientific_products(
             for row in diagnostic.measurement_dispositions
         )
         assert serial.source_count > 0
+        if fit_outcome == "inadequate-fallback":
+            # One coarse-protection fit is inadequate without the fault, so
+            # the injected rejection is also checked where each fit records it.
+            assert any(
+                row.fit_diagnostics is not None
+                and row.fit_diagnostics.fallback_reason
+                == "free-model-invalid-result"
+                for row in diagnostic.measurement_dispositions
+            )
 
 
 @pytest.mark.integration

@@ -1,11 +1,20 @@
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUnknownMemberType=false
+# pyright: reportUnknownVariableType=false
+# pyright: reportUnknownArgumentType=false
 """Analytic compact watershed deblending and admission tests."""
 
 from __future__ import annotations
 
 from dataclasses import replace
+from typing import cast
 
 import numpy as np
+import numpy.typing as npt
 import pytest
+from hypothesis import assume, given, settings
+from hypothesis import strategies as st
+from scipy import ndimage
 
 from hebog.algorithms.deblending import (
     CompactIslandPixels,
@@ -198,7 +207,7 @@ def test_deep_saddle_splits_close_pairs_across_flux_ratios(
     assert set(np.unique(result.region_labels)) == {1, 2}
 
 
-def test_nearest_marker_partition_keeps_two_dimensional_peaks() -> None:
+def test_intensity_watershed_keeps_two_dimensional_peaks() -> None:
     """Two beam-scale peaks retain balanced basins before saddle review."""
     yy, xx = np.mgrid[:33, :33]
     normalized = 10.0 * np.exp(
@@ -218,13 +227,260 @@ def test_nearest_marker_partition_keeps_two_dimensional_peaks() -> None:
             target_batch_pixels=2_000,
             maximum_batch_pixels=2_000,
         ),
-        marker_partition="nearest-marker",
+        marker_partition="intensity-watershed",
     )
 
     assert result.status == "deblended"
     assert len(result.regions) == 2
     assert min(region.pixel_count for region in result.regions) >= 30
     np.testing.assert_array_equal(result.region_labels > 0, membership)
+
+
+def test_a_weaker_peak_is_judged_at_the_lowest_point_on_the_way() -> None:
+    """The pass between two peaks, wherever it lies, decides the split.
+
+    Halfway between these peaks the profile has climbed back to within 0.3
+    of the weaker one, so a saddle taken there merged them. The pass, 2.5
+    below the weaker peak, clears the 2.0 cut, and each region keeps the
+    pixels that rise to its own peak.
+    """
+    compact = _compact_island(np.array([[6.0, 3.5, 5.6, 5.7, 5.8, 5.9, 8.0]]))
+
+    result = deblend_compact_island(
+        compact, _config(), marker_partition="intensity-watershed"
+    )
+
+    assert tuple(region.peak_position_yx for region in result.regions) == (
+        (0, 0),
+        (0, 6),
+    )
+    assert tuple(region.pixel_count for region in result.regions) == (2, 5)
+
+
+@pytest.mark.parametrize("bounds_origin_yx", [(0, 0), (3, 5)])
+def test_a_marker_heads_its_own_basin_beside_an_equal_neighbour(
+    bounds_origin_yx: tuple[int, int],
+) -> None:
+    """The brighter peak still speaks for a group that a marker joined.
+
+    The 7.0 marker's equal left neighbour is no marker, because the 8.0
+    pixel beside it is higher, and climbs to the 9.0 peak. Had the marker
+    followed it, both peaks would share one basin, the group would have
+    been judged by the 7.0 peak, and the 8.5 peak, 2.5 above the 6.0 pass,
+    would have absorbed both.
+    """
+    compact = _compact_island(
+        np.array([[9.0, 8.0, 7.0, 7.0, 6.5, 6.0, 8.5, 6.0]]),
+        bounds_origin_yx=bounds_origin_yx,
+    )
+
+    result = deblend_compact_island(
+        compact, _config(), marker_partition="intensity-watershed"
+    )
+
+    origin_y, origin_x = bounds_origin_yx
+    assert tuple(region.peak_position_yx for region in result.regions) == (
+        (origin_y, origin_x),
+        (origin_y, origin_x + 6),
+    )
+    assert tuple(region.pixel_count for region in result.regions) == (5, 3)
+
+
+def test_every_pixel_belongs_to_the_end_of_its_ascent() -> None:
+    """A pixel several steps from its peak belongs to that peak.
+
+    The 3.0 pixel climbs through 5.0 and 6.0 to the 8.0 peak, not to the
+    9.0 peak beside its 4.0 neighbour; a single pointer jump would leave it
+    at 6.0, in a basin of its own.
+    """
+    result = deblend_compact_island(
+        _compact_island(np.array([[9.0, 4.0, 3.0, 5.0, 6.0, 8.0]])),
+        _config(),
+        marker_partition="intensity-watershed",
+    )
+
+    assert tuple(region.pixel_count for region in result.regions) == (2, 4)
+
+
+def test_basins_without_a_peak_join_each_other_before_a_peak() -> None:
+    """Two bumps below the peak threshold flood together first.
+
+    The 4.0 and 4.5 bumps meet across 3.0, above the 2.0 and 1.0 saddles
+    to the peaks, so they join each other and then, together, the 9.0
+    peak across 2.0.
+    """
+    result = deblend_compact_island(
+        _compact_island(np.array([[9.0, 2.0, 4.0, 3.0, 4.5, 1.0, 8.0]])),
+        _config(),
+        marker_partition="intensity-watershed",
+    )
+
+    assert tuple(region.pixel_count for region in result.regions) == (5, 2)
+
+
+@pytest.mark.parametrize(
+    ("depth", "peaks", "pixel_counts"),
+    [(2.0, ((2, 0), (2, 4)), (9, 7)), (3.0, ((2, 0),), (16,))],
+)
+def test_peaks_are_judged_where_they_first_meet_as_the_island_floods(
+    depth: float,
+    peaks: tuple[tuple[int, int], ...],
+    pixel_counts: tuple[int, ...],
+) -> None:
+    """A pass through a third basin outranks a lower direct contact.
+
+    On this ring the 7.2 peak joins the 10.0 peak across a 7.0 saddle. The
+    8.0 peak meets that group first across the 6.0 saddle beside the 7.2
+    peak, exactly 2.0 below it, so it stays apart at a 2.0 cut; its direct
+    contact with the 10.0 peak, at 4.0, comes too late to matter. Taken
+    lowest first, the 7.2 peak would have joined the 8.0 peak and both the
+    10.0 one. At a 3.0 cut the 8.0 peak joins too, and that late contact
+    then closes the ring within one group.
+    """
+    normalized = np.full((5, 5), -1.0)
+    ring = {
+        (2, 0): 10.0,
+        (1, 0): 9.0,
+        (0, 0): 8.0,
+        (0, 1): 7.0,
+        (0, 2): 7.2,
+        (0, 3): 6.0,
+        (0, 4): 7.0,
+        (1, 4): 7.5,
+        (2, 4): 8.0,
+        (3, 4): 7.0,
+        (4, 4): 6.0,
+        (4, 3): 5.0,
+        (4, 2): 4.0,
+        (4, 1): 5.0,
+        (4, 0): 6.0,
+        (3, 0): 8.0,
+    }
+    for position, value in ring.items():
+        normalized[position] = value
+
+    result = deblend_compact_island(
+        _compact_island(normalized, membership=normalized > 0.0),
+        _config(minimum_saddle_depth_sigma=depth),
+        marker_partition="intensity-watershed",
+    )
+
+    assert tuple(region.peak_position_yx for region in result.regions) == peaks
+    assert (
+        tuple(region.pixel_count for region in result.regions) == pixel_counts
+    )
+
+
+def test_an_equal_neighbour_goes_to_the_first_in_row_major_order() -> None:
+    """A pixel between two equal neighbours climbs toward the first."""
+    result = deblend_compact_island(
+        _compact_island(np.array([[7.0, 5.0, 3.0, 5.0, 7.0]])),
+        _config(),
+        marker_partition="intensity-watershed",
+    )
+
+    assert tuple(region.pixel_count for region in result.regions) == (3, 2)
+
+
+def _eight_connected(mask: npt.NDArray[np.bool_]) -> npt.NDArray[np.int32]:
+    """Label the eight-connected components of one boolean plane."""
+    components, _ = cast(
+        tuple[npt.NDArray[np.int32], int],
+        ndimage.label(mask, structure=np.ones((3, 3), dtype=np.bool_)),
+    )
+    return components
+
+
+def _pass_between(
+    normalized: npt.NDArray[np.float64],
+    membership: npt.NDArray[np.bool_],
+    first: tuple[int, int],
+    second: tuple[int, int],
+) -> float:
+    """Return the highest level whose island component holds both pixels."""
+    levels = np.unique(normalized[membership])
+    low, high = 0, levels.size - 1
+    while low < high:
+        middle = (low + high + 1) // 2
+        components = _eight_connected(
+            membership & (normalized >= levels[middle])
+        )
+        if components[first] != 0 and components[first] == components[second]:
+            low = middle
+        else:
+            high = middle - 1
+    return float(levels[low])
+
+
+@settings(max_examples=60, deadline=None)
+@given(seed=st.integers(min_value=0, max_value=2**32 - 1))
+def test_two_peaks_split_exactly_when_the_weaker_clears_their_pass(
+    seed: int,
+) -> None:
+    """The split agrees with an independent level-set pass on noisy blends.
+
+    Two Gaussians of random height, width and position sit on smooth noise.
+    The pass between their peaks is the highest level at which one
+    eight-connected component of the island above it holds both.
+    """
+    generator = np.random.default_rng(seed)
+    y, x = np.mgrid[:24, :24]
+    normalized = np.asarray(
+        ndimage.gaussian_filter(generator.normal(size=(24, 24)), 1.5),
+        dtype=np.float64,
+    ) * generator.uniform(0.0, 8.0)
+    for _ in range(2):
+        centre_y, centre_x = generator.uniform(4.0, 20.0, size=2)
+        sigma = generator.uniform(1.0, 4.0)
+        normalized = normalized + generator.uniform(6.0, 40.0) * np.exp(
+            -((y - centre_y) ** 2 + (x - centre_x) ** 2) / (2.0 * sigma**2)
+        )
+    components = _eight_connected(normalized >= 3.0)
+    membership = components == components.flat[np.argmax(normalized)]
+    peaks = tuple(
+        (int(peak_y), int(peak_x))
+        for peak_y, peak_x in np.argwhere(
+            membership
+            & (normalized > 5.0)
+            & (
+                normalized
+                == ndimage.maximum_filter(
+                    np.where(membership, normalized, -np.inf), size=3
+                )
+            )
+        )
+    )
+    assume(len(peaks) == 2)
+    weaker, stronger = sorted(peaks, key=lambda peak: normalized[peak])
+    depth = normalized[weaker] - _pass_between(
+        normalized, membership, weaker, stronger
+    )
+
+    result = deblend_compact_island(
+        _compact_island(normalized, membership=membership),
+        _config(
+            minimum_region_pixels=1,
+            maximum_compact_island_pixels=1_000,
+            maximum_compact_bounds_pixels=1_000,
+            maximum_batch_pixels=1_000,
+        ),
+        marker_partition="intensity-watershed",
+    )
+
+    expected = {weaker, stronger} if depth >= 2.0 else {stronger}
+    assert {region.peak_position_yx for region in result.regions} == expected
+
+
+def test_an_island_part_without_a_peak_fails_closed() -> None:
+    """Every accepted pixel needs a peak to flood from; none is invented."""
+    normalized = np.array([[8.0, 3.0, 9.0, 0.0, 4.0]])
+
+    with pytest.raises(ValueError, match="did not assign every island pixel"):
+        deblend_compact_island(
+            _compact_island(normalized, membership=normalized >= 3.0),
+            _config(),
+            marker_partition="intensity-watershed",
+        )
 
 
 def test_undersized_watershed_child_merges_before_fitting() -> None:

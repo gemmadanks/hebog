@@ -15,9 +15,10 @@ Compact deblending uses one explicit `CompactDeblendConfig`:
   `minimum_peak_separation_pixels`;
 - eight-connected equal-valued marker plateaus collapse to their
   lexicographically first global `(y, x)` pixel;
-- a weaker basin remains separate when its peak minus the shared saddle is at
-  least `minimum_saddle_depth_sigma`; an exactly equal boundary therefore
-  survives;
+- a weaker basin remains separate when its peak minus the saddle it shares
+  with a brighter one is at least `minimum_saddle_depth_sigma`; an exactly
+  equal boundary therefore survives. Where that saddle is measured depends on
+  the partition, described below;
 - after prominence merging, a basin smaller than
   `minimum_region_pixels` joins its neighbour across the highest shared
   saddle. The compact configuration sets this to the seven owned pixels required by the
@@ -32,44 +33,70 @@ member pixels fail closed, as does an accepted island with no eligible marker.
 Masked pixels are maximum-cost watershed barriers rather than competing
 markers, so holes cannot flood or leave accepted pixels unassigned.
 
-## Selected SciPy approach
+## Partitions
 
-The implementation combines maintained SciPy primitives rather than adding a
-new dependency. `maximum_filter` and `label` choose deterministic markers.
-The compact measurement path retains its reviewed marker-distance
-watershed, while the public component-topology path selects a bounded
-`cKDTree` assignment to the exact nearest marker pixels, using canonical
-marker order for distance ties. Actual normalized intensities—not geometric
-distance—then measure the highest discrete saddle between adjacent basins. A
-sparse union-find merges basins whose weaker peak lacks the configured
-prominence.
+The implementation combines maintained NumPy and SciPy primitives rather than
+adding a new dependency. `maximum_filter` and `label` choose deterministic
+markers. Two partitions then divide an island between them, and a sparse
+union-find joins basins in descending order of the highest saddle each pair
+shares, so two groups are judged where they first meet.
 
-An intensity-topography watershed was evaluated first, but its image-forest
-tie/marker propagation can assign nearly the complete bridge to one marker,
-placing the measured basin boundary above the physical saddle. A later
-marker-distance image passed the one-dimensional fixtures but exposed the same
-problem in ordinary two-dimensional Gaussian blends: `watershed_ift` could
-leave only a few pixels in the second basin, which the minimum-area rule then
-merged. Exact nearest-marker ownership avoids that implementation-dependent
-flooding in the new public topology while the subsequent intensity saddle
-retains the scientific split decision. It is deliberately scoped there so it
-cannot change the already-qualified compact photometry path. A two-dimensional
-unequal-Gaussian regression fixture preserves this failure mode, and the
-blend-equivalence matrix guards the retained compact policy.
+The public component topology floods the island's own intensity
+(`intensity-watershed`). Every member pixel steps to its highest
+eight-connected member neighbour while that neighbour is higher, ties going
+to the first pixel in row-major order as they do between marker plateau
+pixels; a marker never steps. Pointer jumping resolves all of these paths in
+a few whole-array passes. Values only rise along a path, so every pixel
+joins its basin's maximum at or above its own value, and the true pass
+between two maxima, the highest level at which one eight-connected part of
+the island holds both, is the level at which the descending union-find first
+joins their basins, directly or through others. A basin without a marker
+joins the first neighbour it meets, and each region keeps the pixels that
+rise to its own peak. The public profile sets `minimum_saddle_depth_sigma`
+to 1.5.
+
+The compact measurement path keeps its reviewed marker-distance watershed
+with a 1σ depth, judging each pair on the boundary of that distance
+partition. On any partition the union-find joins two peaks at or above
+their true pass, so that rule keeps only peaks the true pass keeps too, and
+can merge more. Applied there, the true pass raised the Phase 4 blend
+95th-percentile flux error to 0.165 against its 0.15 gate, so the qualified
+compact photometry path keeps its policy, and the blend-equivalence matrix
+guards it.
+
+SciPy's `watershed_ift` was evaluated for intensity flooding first, but its
+image-forest tie and marker propagation can assign nearly the complete bridge
+to one marker, placing the measured boundary above the physical saddle; on
+ordinary two-dimensional blends it could leave only a few pixels in the
+second basin. The public path then assigned pixels to the nearest marker and
+measured intensity saddles on that partition's boundary, which lies on the
+line equidistant from two peaks. Beside a bright broad source that line
+crosses its wing far above the pass: a 39σ compact source 21 pixels from a
+188σ resolved one met 73σ there against a 15σ pass, and got no component of
+its own. Steepest-ascent flooding needs no `watershed_ift`, and its pass
+matches an independent level-set computation exactly.
+
+At the true pass a 1σ depth let noise bumps on smooth extended emission
+become components about twice as often as the boundary saddle had: a smooth
+Gaussian source at 8 to 30σ with a σ of 10 to 20 pixels, in beam-correlated
+noise, split into a median of one to four regions instead of one or two. At
+1.5σ it splits about as often as before, and every compact source the exact
+pass recovered still separates, its pass lying 4 to 30σ below its peak.
+Noise that is not correlated over a beam, which radio images do not have,
+still splits such a source more often.
 
 The minimum-area merge is deterministic and conservative: it preserves every
 parent-island pixel and changes only the ownership boundary between adjacent
 basins. It does not silently drop a weak child or treat a failed fit as a
 successful source.
 
-A repeated multilevel superlevel-set implementation would be closer to some
-legacy source-finder descriptions, but it requires maintained level selection,
-repeated connected labelling, and cross-level identity logic. It is not
-simpler for this observable contract. Scikit-image was not added:
-SciPy supplies the required morphology, distance, watershed, and reduction
-operations, so another runtime and worker-image dependency provides no
-demonstrated benefit. This choice introduces no new durable dependency and
-does not require an ADR.
+Flooding the ascent basins gives the island's superlevel-set merge tree
+exactly, without the level selection, repeated connected labelling and
+cross-level identity logic a repeated multilevel implementation needs.
+Scikit-image was not added: SciPy and NumPy supply the required morphology,
+distance, watershed, and reduction operations, so another runtime and
+worker-image dependency provides no demonstrated benefit. This choice
+introduces no new durable dependency and does not require an ADR.
 
 ## Bounded execution and deferral
 
@@ -113,8 +140,9 @@ The source-filtering mask remains the parent connected-island membership;
 deblending subdivides that topology without changing which pixels are
 detected.
 
-The public continuum composition applies the same bounded deblender to
-each retained connected parent before Gaussian measurement. Its direct and
+The public continuum composition applies the same bounded deblender, with
+its intensity watershed, to each retained connected parent before Gaussian
+measurement. Its direct and
 expanded measurement unions must remain byte-for-byte equivalent as boolean
 support. One connected support island can therefore contain multiple Gaussian
 components while still forming one associated catalogue source. Parents above
