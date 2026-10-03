@@ -9,7 +9,8 @@ import pytest
 
 from hebog.algorithms import component_topology
 from hebog.algorithms.component_topology import deblend_component_topology
-from hebog.config import CompactDeblendConfig
+from hebog.config import CompactDeblendConfig, SourceFinderConfig
+from hebog.science.continuum import compact_deblend_config
 
 
 def _config(**replacements: object) -> CompactDeblendConfig:
@@ -67,6 +68,91 @@ def test_deblends_independent_peaks_without_changing_support_union() -> None:
     )
     assert not result.direct_component_labels.flags.writeable
     assert not result.measurement_component_labels.flags.writeable
+
+
+@pytest.mark.parametrize(
+    ("bright_sigma_pixels", "compact_offset_yx"),
+    [(7.0, (0, 21)), (7.6, (16, -14)), (8.0, (0, 21))],
+)
+def test_a_compact_peak_beside_a_brighter_broad_one_gets_its_own_component(
+    bright_sigma_pixels: float,
+    compact_offset_yx: tuple[int, int],
+) -> None:
+    """A split is judged at the pass between two peaks, not across a wing.
+
+    Halfway between the peaks the broad source alone outshines the compact
+    one, so a saddle taken on the line equidistant from them lay above the
+    compact peak and the two merged, although the pass between them lies
+    20 to 26 below it. Each component holds its own peak, not a slice of
+    its brighter neighbour's wing.
+    """
+    y, x = np.mgrid[:64, :64]
+    bright_yx = (24, 34)
+    compact_yx = (24 + compact_offset_yx[0], 34 + compact_offset_yx[1])
+    normalized = 190.0 * np.exp(
+        -((y - bright_yx[0]) ** 2 + (x - bright_yx[1]) ** 2)
+        / (2.0 * bright_sigma_pixels**2)
+    ) + 39.0 * np.exp(
+        -((y - compact_yx[0]) ** 2 + (x - compact_yx[1]) ** 2) / 8.0
+    )
+    direct = np.where(normalized >= 3.0, 5, 0).astype(np.int32)
+
+    result = deblend_component_topology(
+        normalized,
+        direct,
+        direct,
+        np.ones(normalized.shape, dtype=np.bool_),
+        _config(),
+    )
+
+    labels = result.direct_component_labels
+    assert set(np.unique(labels)) == {0, 1, 2}
+    component_peaks = {
+        tuple(
+            int(index)
+            for index in np.unravel_index(
+                np.argmax(np.where(labels == label, normalized, -np.inf)),
+                labels.shape,
+            )
+        )
+        for label in (1, 2)
+    }
+    assert component_peaks == {bright_yx, compact_yx}
+
+
+@pytest.mark.parametrize(
+    ("bump_peak", "components"),
+    [(3.05, 1), (3.2, 2)],
+)
+def test_public_deblending_needs_one_and_a_half_sigma_above_the_pass(
+    bump_peak: float,
+    components: int,
+) -> None:
+    """A beam-sized bump on smooth extended emission needs 1.5 sigma.
+
+    Judged at the true pass, a 1-sigma depth let noise bumps on smooth
+    extended emission become components about twice as often as the
+    boundary saddle did. The first bump peaks 1.42 above its pass to the
+    broad peak and stays part of it; the second, 1.57 above, is kept.
+    """
+    y, x = np.mgrid[:81, :81]
+    beam_sigma_pixels = 4.0 / np.sqrt(8.0 * np.log(2.0))
+    normalized = 12.0 * np.exp(
+        -((y - 40) ** 2 + (x - 40) ** 2) / (2.0 * 20.0**2)
+    ) + bump_peak * np.exp(
+        -((y - 40) ** 2 + (x - 60) ** 2) / (2.0 * beam_sigma_pixels**2)
+    )
+    direct = np.where(normalized >= 3.0, 9, 0).astype(np.int32)
+
+    result = deblend_component_topology(
+        normalized,
+        direct,
+        direct,
+        np.ones(normalized.shape, dtype=np.bool_),
+        compact_deblend_config(SourceFinderConfig(5.0, 3.0, 7)),
+    )
+
+    assert int(np.max(result.direct_component_labels)) == components
 
 
 def test_single_peak_preserves_one_component_and_canonicalizes_identity() -> (
@@ -342,7 +428,7 @@ def test_rejects_internal_deblender_that_drops_direct_support(
         *,
         marker_partition: str,
     ) -> SimpleNamespace:
-        assert marker_partition == "nearest-marker"
+        assert marker_partition == "intensity-watershed"
         return SimpleNamespace(
             region_labels=np.zeros(direct[2:9, 2:10].shape, dtype=np.int32),
             regions=(object(),),

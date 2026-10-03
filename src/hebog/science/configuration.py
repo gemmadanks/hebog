@@ -46,7 +46,11 @@ def source_finder_configs() -> tuple[
         CompactDeblendConfig(
             5.0,
             2,
-            1.0,
+            # Judged at the true pass between two peaks. Smooth extended
+            # emission in beam-correlated noise then splits on noise about
+            # as often as 1.0 did on the higher saddle of a distance
+            # partition, and twice as often at 1.0.
+            1.5,
             7,
             100_000,
             250_000,

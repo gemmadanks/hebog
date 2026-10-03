@@ -312,7 +312,7 @@ def deblend_parent_components(  # noqa: PLR0913
             island_membership=direct_membership,
         ),
         config,
-        marker_partition="nearest-marker",
+        marker_partition="intensity-watershed",
     )
     direct_labels = np.asarray(result.region_labels, dtype=np.int32)
     if len(result.regions) == 1:
@@ -359,11 +359,13 @@ def deblend_component_topology(
     """Deblend admitted parents while preserving their complete support.
 
     Direct connected islands remain the parent/support topology. Within each
-    admitted parent, the reviewed compact watershed defines Gaussian-component
-    ownership. Measurement pixels keep their original parent membership and
-    are assigned to the nearest new direct seed with canonical tie-breaking.
-    Parents above either hard compact-work bound remain one explicit deferred
-    component; this bounded helper never drops their science.
+    admitted parent, an intensity watershed defines Gaussian-component
+    ownership: peaks split at the pass between them, and each component holds
+    the pixels that rise to its own peak. Measurement pixels keep their
+    original parent membership and are assigned to the nearest new direct
+    seed with canonical tie-breaking. Parents above either hard compact-work
+    bound remain one explicit deferred component; this bounded helper never
+    drops their science.
     """
     normalized, direct, measurement, valid = _validated_inputs(
         normalized_residual,

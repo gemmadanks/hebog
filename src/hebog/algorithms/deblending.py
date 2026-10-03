@@ -6,17 +6,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from math import hypot
 from typing import Literal, cast
 
 import numpy as np
 import numpy.typing as npt
 from scipy import ndimage
 
-from hebog.algorithms.extended_measurement import (
-    assign_seeded_multiscale_support,
-)
 from hebog.algorithms.labelling import (
     LocalIslandSummary,
     LocalIslandTileSummary,
@@ -30,6 +27,12 @@ from hebog.data_models.partitioning import (
 )
 
 _EIGHT_CONNECTIVITY = np.ones((3, 3), dtype=np.bool_)
+_EIGHT_NEIGHBOUR_OFFSETS = tuple(
+    (y_offset, x_offset)
+    for y_offset in (-1, 0, 1)
+    for x_offset in (-1, 0, 1)
+    if (y_offset, x_offset) != (0, 0)
+)
 _TOPOGRAPHY_MAXIMUM = np.iinfo(np.uint16).max
 _IMAGE_DIMENSIONS = 2
 
@@ -593,14 +596,12 @@ def _marker_positions(
     )
 
 
-def _watershed_labels(
+def _marker_distance_basins(
     membership: npt.NDArray[np.bool_],
     bounds: ImageBounds,
     peak_positions_yx: tuple[tuple[int, int], ...],
-    *,
-    marker_partition: Literal["marker-distance-watershed", "nearest-marker"],
 ) -> npt.NDArray[np.int32]:
-    """Partition one compact island with the selected marker policy."""
+    """Partition one compact island by a watershed of marker distance."""
     markers = np.zeros(membership.shape, dtype=np.int32)
     for marker_label, (global_y, global_x) in enumerate(
         peak_positions_yx,
@@ -609,41 +610,85 @@ def _watershed_labels(
         markers[global_y - bounds.y_start, global_x - bounds.x_start] = (
             marker_label
         )
-    if len(peak_positions_yx) == 1:
-        return np.where(membership, 1, 0).astype(np.int32)
-    if marker_partition == "nearest-marker":
-        labels = assign_seeded_multiscale_support(
+    distance = cast(
+        npt.NDArray[np.float64],
+        ndimage.distance_transform_edt(markers == 0),
+    )
+    maximum_distance = float(np.max(distance[membership]))
+    topography = np.zeros(membership.shape, dtype=np.uint16)
+    if maximum_distance > 0:
+        topography = np.rint(
+            distance / maximum_distance * (_TOPOGRAPHY_MAXIMUM - 1)
+        ).astype(np.uint16)
+    topography[~membership] = _TOPOGRAPHY_MAXIMUM
+    raw = np.asarray(
+        ndimage.watershed_ift(
+            topography,
             markers,
-            membership,
-            membership,
-            beam_major_fwhm_pixels=1.0,
-            recovery_radius_beams=(
-                hypot(membership.shape[0], membership.shape[1]) + 1.0
-            ),
-        )
-    else:
-        distance = cast(
-            npt.NDArray[np.float64],
-            ndimage.distance_transform_edt(markers == 0),
-        )
-        maximum_distance = float(np.max(distance[membership]))
-        topography = np.zeros(membership.shape, dtype=np.uint16)
-        if maximum_distance > 0:
-            topography = np.rint(
-                distance / maximum_distance * (_TOPOGRAPHY_MAXIMUM - 1)
-            ).astype(np.uint16)
-        topography[~membership] = _TOPOGRAPHY_MAXIMUM
-        raw = np.asarray(
-            ndimage.watershed_ift(
-                topography,
-                markers,
-                structure=_EIGHT_CONNECTIVITY,
-            ),
-            dtype=np.int32,
-        )
-        labels = np.where(membership & (raw > 0), raw, 0).astype(np.int32)
+            structure=_EIGHT_CONNECTIVITY,
+        ),
+        dtype=np.int32,
+    )
+    labels = np.where(membership & (raw > 0), raw, 0).astype(np.int32)
     if np.any(membership & (labels == 0)):
         raise ValueError("watershed did not assign every island pixel")
+    return labels
+
+
+def _ascent_basins(
+    normalized: npt.NDArray[np.float64],
+    membership: npt.NDArray[np.bool_],
+    bounds: ImageBounds,
+    peak_positions_yx: tuple[tuple[int, int], ...],
+) -> npt.NDArray[np.int32]:
+    """Label each member pixel by the maximum its steepest ascent reaches.
+
+    A pixel steps to its highest eight-connected member neighbour while that
+    neighbour is higher, ties going to the first in row-major order as they
+    do between marker plateau pixels; a marker never steps, so each heads its
+    own basin. Every path rises, so a basin's pixels all join its maximum at
+    or above their own value. The pass between two maxima is then the
+    highest bottleneck over chains of adjacent basins, each link the
+    highest saddle that pair shares, which joining basins in descending
+    saddle order finds. Pointer jumping resolves every path in a number of
+    whole-array passes logarithmic in the longest.
+    """
+    height, width = membership.shape
+    linear = np.arange(height * width, dtype=np.int64).reshape(height, width)
+    values = np.where(membership, normalized, -np.inf)
+    padded_values = np.pad(values, 1, constant_values=-np.inf)
+    padded_linear = np.pad(linear, 1)
+    highest = values.copy()
+    step = linear.copy()
+    for y_offset, x_offset in _EIGHT_NEIGHBOUR_OFFSETS:
+        window = (
+            slice(1 + y_offset, 1 + y_offset + height),
+            slice(1 + x_offset, 1 + x_offset + width),
+        )
+        neighbour = padded_values[window]
+        neighbour_linear = padded_linear[window]
+        higher = (neighbour > highest) | (
+            (neighbour == highest) & (neighbour_linear < step)
+        )
+        highest = np.where(higher, neighbour, highest)
+        step = np.where(higher, neighbour_linear, step)
+    # Pixels outside the island are never labelled; holding them in place
+    # keeps their equal -inf neighbours from adding jumps.
+    step = np.where(membership, step, linear)
+    for global_y, global_x in peak_positions_yx:
+        marker = (global_y - bounds.y_start, global_x - bounds.x_start)
+        step[marker] = linear[marker]
+    roots = step.ravel()
+    while True:
+        jumped = roots[roots]
+        if np.array_equal(jumped, roots):
+            break
+        roots = jumped
+    _, basins = np.unique(
+        roots.reshape(height, width)[membership], return_inverse=True
+    )
+    labels = np.zeros((height, width), dtype=np.int32)
+    labels[membership] = basins.astype(np.int32) + 1
     return labels
 
 
@@ -691,27 +736,20 @@ def _boundary_saddles(
 
 
 class _RegionGroups:
-    """Merge only basins whose weaker peak lacks reviewed prominence."""
+    """Merge only basins whose weaker peak lacks reviewed prominence.
+
+    A group that holds no deblending peak joins the first neighbour it is
+    offered; two groups that each hold one join only when the weaker peak
+    lies less than the minimum depth above the saddle between them.
+    """
 
     def __init__(
         self,
-        peak_positions_yx: tuple[tuple[int, int], ...],
-        normalized: npt.NDArray[np.float64],
-        bounds: ImageBounds,
+        basin_count: int,
+        peaks: Mapping[int, tuple[float, tuple[int, int]]],
     ) -> None:
-        self._parent = list(range(len(peak_positions_yx) + 1))
-        self._peak = {
-            label: (
-                float(
-                    normalized[
-                        position[0] - bounds.y_start,
-                        position[1] - bounds.x_start,
-                    ]
-                ),
-                position,
-            )
-            for label, position in enumerate(peak_positions_yx, start=1)
-        }
+        self._parent = list(range(basin_count + 1))
+        self._peak = dict(peaks)
 
     def find(self, label: int) -> int:
         """Return one root with path compression."""
@@ -732,21 +770,36 @@ class _RegionGroups:
         *,
         minimum_depth: float,
     ) -> None:
-        """Merge the weaker basin only when its saddle depth is too small."""
+        """Join two groups unless both hold a peak and the weaker is deep.
+
+        A group without a peak always joins; between two peaks, the weaker
+        stays apart when it lies at least ``minimum_depth`` above the saddle.
+        """
         first_root = self.find(first)
         second_root = self.find(second)
         if first_root == second_root:
             return
-        first_peak = self._peak[first_root]
-        second_peak = self._peak[second_root]
-        weaker_value = min(first_peak[0], second_peak[0])
-        if weaker_value - saddle >= minimum_depth:
-            return
-        winner, loser = sorted(
-            (first_root, second_root),
-            key=lambda root: (-self._peak[root][0], self._peak[root][1]),
-        )
+        if first_root not in self._peak or second_root not in self._peak:
+            winner, loser = (
+                (first_root, second_root)
+                if first_root in self._peak
+                else (second_root, first_root)
+            )
+        else:
+            weaker_value = min(
+                self._peak[first_root][0], self._peak[second_root][0]
+            )
+            if weaker_value - saddle >= minimum_depth:
+                return
+            winner, loser = sorted(
+                (first_root, second_root),
+                key=lambda root: (-self._peak[root][0], self._peak[root][1]),
+            )
         self._parent[loser] = winner
+
+    def holds_peak(self, label: int) -> bool:
+        """Return whether the label's group holds a deblending peak."""
+        return self.find(label) in self._peak
 
 
 def _merge_shallow_regions(
@@ -756,8 +809,21 @@ def _merge_shallow_regions(
     peak_positions_yx: tuple[tuple[int, int], ...],
     config: CompactDeblendConfig,
 ) -> npt.NDArray[np.int32]:
-    """Merge watershed basins by sparse boundary-saddle prominence."""
-    groups = _RegionGroups(peak_positions_yx, normalized, bounds)
+    """Merge basins by sparse boundary-saddle prominence.
+
+    Each peak's group is the basin holding it. Saddles are taken highest
+    first, so two groups are judged where they first meet as the island
+    floods down, and every basin must end in a group with a peak.
+    """
+    peaks: dict[int, tuple[float, tuple[int, int]]] = {}
+    for global_y, global_x in peak_positions_yx:
+        local = (global_y - bounds.y_start, global_x - bounds.x_start)
+        peaks[int(labels[local])] = (
+            float(normalized[local]),
+            (global_y, global_x),
+        )
+    basin_count = int(np.max(labels, initial=0))
+    groups = _RegionGroups(basin_count, peaks)
     saddles = sorted(
         _boundary_saddles(labels, normalized),
         key=lambda item: (-item[2], item[0], item[1]),
@@ -769,27 +835,15 @@ def _merge_shallow_regions(
             saddle,
             minimum_depth=config.minimum_saddle_depth_sigma,
         )
+    if not all(
+        groups.holds_peak(label) for label in range(1, basin_count + 1)
+    ):
+        raise ValueError("watershed did not assign every island pixel")
     root_lookup = np.array(
-        [groups.find(label) for label in range(len(peak_positions_yx) + 1)],
+        [groups.find(label) for label in range(basin_count + 1)],
         dtype=np.int32,
     )
-    merged = root_lookup[labels]
-    roots = np.unique(merged[merged > 0])
-    height, width = labels.shape
-    local_y, local_x = np.indices((height, width), dtype=np.int64)
-    local_linear = local_y * width + local_x
-    first_linear = np.asarray(
-        ndimage.minimum(local_linear, merged, index=roots),
-        dtype=np.int64,
-    )
-    ordered_roots = roots[np.argsort(first_linear)]
-    canonical = np.zeros(root_lookup.size, dtype=np.int32)
-    canonical[ordered_roots] = np.arange(
-        1,
-        ordered_roots.size + 1,
-        dtype=np.int32,
-    )
-    return canonical[merged]
+    return _canonicalize_labels(root_lookup[labels])
 
 
 def _canonicalize_labels(
@@ -921,26 +975,36 @@ def deblend_compact_island(
     config: CompactDeblendConfig,
     *,
     marker_partition: Literal[
-        "marker-distance-watershed", "nearest-marker"
+        "marker-distance-watershed", "intensity-watershed"
     ] = "marker-distance-watershed",
 ) -> CompactDeblendResult:
-    """Split one admitted island into deterministic watershed regions."""
+    """Split one admitted island into deterministic watershed regions.
+
+    ``intensity-watershed`` floods the island's own intensity: every pixel
+    belongs to the peak its steepest ascent reaches, and two peaks are
+    judged at the pass between them, the highest level at which one
+    connected part of the island holds both. The compact measurement path
+    keeps the reviewed ``marker-distance-watershed``, which judges each pair
+    on the boundary of a distance partition.
+    """
     normalized, membership = _validate_input(compact_island, config)
     bounds = compact_island.island.bounds
     peaks = _marker_positions(normalized, membership, bounds, config)
-    watershed = _watershed_labels(
-        membership,
-        bounds,
-        peaks,
-        marker_partition=marker_partition,
-    )
-    labels = _merge_shallow_regions(
-        watershed,
-        normalized,
-        bounds,
-        peaks,
-        config,
-    )
+    if len(peaks) == 1:
+        labels = np.where(membership, 1, 0).astype(np.int32)
+    else:
+        basins = (
+            _ascent_basins(normalized, membership, bounds, peaks)
+            if marker_partition == "intensity-watershed"
+            else _marker_distance_basins(membership, bounds, peaks)
+        )
+        labels = _merge_shallow_regions(
+            basins,
+            normalized,
+            bounds,
+            peaks,
+            config,
+        )
     labels = _merge_undersized_regions(
         labels,
         normalized,

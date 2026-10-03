@@ -28024,3 +28024,224 @@ the per-worker placement finding.
   the fixed reach the independent review replaced: a scale's smoothing
   width plus an arc's half-maximum radius. It now gives rim ownership, as
   `_resolved_emission_loop` does. The test itself is unchanged.
+
+## 2026-10-03 — M2: task 40, deblending at the true pass
+
+- **What the deblender did.** The public topology gave each pixel to its
+  nearest marker and judged two peaks on that partition's boundary, which
+  lies on the line equidistant from them. On any partition the union-find
+  joins two peaks at or above their true pass, the highest level at which
+  one eight-connected part of the island holds both, so the rule could only
+  merge too often. The 38.8σ compact source at (327, 295) in
+  `crowded-field`, 21 pixels from a 187.9σ resolved one, met 73.4σ on that
+  boundary against a 14.6σ pass, and got no component. Of the 23 injected
+  sources at 7σ or more without a Gaussian, 11 were this case, with passes
+  4.0 to 30.5σ below their peaks. The other 12 are 8 fitted sources whose
+  source is withheld as a non-positive signed measurement, 2 on a brighter
+  source's wing with no local maximum of their own, and 2 not detected.
+- **Exact pass.** Every member pixel steps to its highest eight-connected
+  neighbour while that neighbour is higher, ties going to the first pixel in
+  row-major order and markers never stepping; pointer jumping resolves the
+  paths in whole-array passes. Values only rise along a path, so every pixel
+  joins its basin's maximum at or above its own value, and joining basins in
+  descending order of the highest saddle each adjacent pair shares
+  (Kruskal) joins two maxima exactly at their pass, directly or through
+  other basins. A basin without a marker joins the first group it meets. A
+  scratch union-find of this algorithm matched a brute-force pass, a binary
+  search over the island's values for the highest level whose
+  eight-connected component holds both markers, on all 185 marker pairs of
+  54 random islands: smoothed noise with two to seven Gaussians, every third
+  field rounded to integers for ties. The 2 October prototype's failure was
+  SciPy's `watershed_ift`, not the idea: on the captured island it gave 763
+  of 882 pixels to the fainter marker and a boundary saddle of 117σ.
+- **Options measured.** Quick check against `task40-base`, the task 39 code
+  run once with references rebuilt under pull request 88's key; injected
+  truth scored on `crowded-field` and task 39's correlated fields. The
+  variants ran through an environment switch in scratch code, so their
+  products carry `task40-base`'s composition hash although their deblending
+  differs.
+
+  | Rule | `crowded-field` injected sources with a published Gaussian | Against `master`: completeness, reliability | Truth reliability | SDC1 sparse sources, completeness | Flagged |
+  | --- | --- | --- | --- | --- | --- |
+  | Current | 976 | 0.959, 0.992 | 0.999 | 525, 0.871 | — |
+  | Exact pass, nearest-marker pixels, 1σ | 987 | 0.960, 0.979 | 0.995 | 524, 0.868 | 1 |
+  | Exact pass, valley pixels, 1σ | 988 | 0.976, 0.994 | 0.995 | 524, 0.868 | none |
+  | Exact pass, valley pixels, 1.5σ | 988 | 0.976, 0.996 | 0.999 | 521, 0.864 | none |
+  | Exact pass, valley pixels, 2σ | 988 | 0.976, 0.996 | 0.999 | 521, 0.864 | 2 |
+
+  - With nearest-marker pixels a split-off region keeps a slice of its
+    brighter neighbour's wing and peaks there, so its moments start the fit
+    on the wrong emission; the flag is SDC1 sparse integrated-flux p95
+    0.482 → 0.517. At 2σ the flags are SDC1 sparse 0.482 → 0.520 and
+    `lotss-dr3-1312-dense` 3.263 → 3.286, with 104 → 103 sources there.
+  - Noise splits. Four smooth Gaussian sources on a 160² grid, with peak
+    and σ of 12σ and 20 pixels, 12σ and 10, 30σ and 20, and 8σ and 15, each
+    in five noise draws (seeds 0 to 4), white or filtered by a Gaussian of
+    5 × 4 pixels FWHM and rescaled to unit RMS. Each island is the
+    eight-connected part above 3σ holding the centre, deblended with the
+    public markers. The median region count per source, across the four,
+    is 1 to 2 under the current rule in beam-correlated noise, 1 to 4 at
+    1σ, 1 to 2 at 1.5σ and 1 at 2σ; in white noise 3 to 26, 9 to 64, 3 to
+    36 and 2 to 14. The review's own draws, with σ of 15 and 20 pixels and
+    peaks of 8, 15 and 30σ, gave ranges of 1 to 5, 1 to 7, 1 to 4 and 1 to
+    2 in correlated noise and 2 to 30, 13 to 64, 7 to 34 and 2 to 11 in
+    white noise: the same ordering.
+  - On the compact measurement branch the exact pass raised the Phase 4
+    rotated-blend 95th-percentile flux error to 0.165 against its 0.15
+    gate, as the broader 5 September draft did; with its reviewed partition
+    it stays at 0.147. That branch keeps it.
+- **Decisions (maintainer, 3 October).** First the exact pass with valley
+  pixels at 1σ; the joint-fit fallback below becomes a task after the
+  release (task 42); the withheld sources become a task that blocks it
+  (task 41). Then, shown the noise splits and a white-noise integration
+  fixture that split into 60 components at 1σ and 30 at 1.5σ, past the
+  16-component joint-fit limit, against 15 under the current rule: 1.5σ,
+  and that fixture gets beam-correlated noise.
+- **Repair.**
+  - `deblending.py`: `_ascent_basins` builds the basins; `_RegionGroups`
+    lets a group without a peak join the first group offered;
+    `_merge_shallow_regions` keys each peak by the basin holding it, fails
+    closed when a group ends without one, and canonicalises through
+    `_canonicalize_labels`. The `intensity-watershed` partition replaces
+    `nearest-marker` and its nearest-seed assignment;
+    `_marker_distance_basins` is the old marker-distance branch, unchanged.
+    The compact branch gives the same region labels and summaries before
+    and after on 1,149 islands (1,828 regions) cut from 300 seeded fields of
+    one to twelve Gaussians, a quarter of them rounded for ties; the review
+    repeated this on 6,000 islands.
+  - `component_topology.py` selects the new partition and
+    `science/configuration.py` sets the public depth to 1.5σ.
+- **Tests, failing first,** written before the repair and failing on task
+  39's code (`381c739`, squashed into `main` as `56366a3`):
+  - **Topology:** a 39σ compact source beside a broad 190σ one in three
+    geometries was one component; the test also requires each component to
+    peak on its own source, which nearest-marker pixels fail.
+  - **Public:** the same pair through `find_sources` published one Gaussian.
+  - **Kernel:** a one-dimensional pair whose midpoint saddle is shallow but
+    whose pass is deep; a Hypothesis property over 60 noisy two-Gaussian
+    islands against an independent level-set pass.
+  - **Public depth:** bumps above their pass on smooth emission, the first
+    to stay part of it and the second to be kept; after the review they sit
+    1.42σ and 1.57σ above it. Task 39's rule merged the second; a 1σ depth
+    keeps the first, and 1.75σ or 2σ merge the second.
+- **Guards,** written with or after the repair, each failed by a mutated
+  copy of `src`: markers forced as roots at any bounds origin (a marker
+  sharing a basin with a brighter peak let the group be judged by the
+  fainter one); a pixel's ascent followed to its end, not one pointer jump;
+  basins without a peak joining each other before a peak; saddles taken
+  highest first and ties going to the first pixel (a ring whose fainter peak
+  reaches the brighter only through a third basin, which a deeper cut also
+  closes into one group, and a tie test). The ring and the ascent test also
+  fail on task 39's code. An island part without a peak still fails closed,
+  as it did under the nearest-marker partition.
+- **Changed tests.**
+  - **Crowded fields:** the public test still requires that no fitted
+    compact source shares a source with another injected source, now with
+    one documented exception in the 512² field: compact sources 61 and 77,
+    which had no component before, share a source with resolved source 76.
+    Resolved source 60 lies on the wing of the 202σ source 76 with no peak
+    of its own, so its flux stays in the residual and joins them; with
+    source 60 removed from the image all three are separate sources.
+    Resolved sources 40 and 63 in the 256² field and 135, 151 and 168
+    (arcs) in the 512² one stay joined; 113 and 114, joined on task 39's
+    code, are now separate.
+  - **Fixture:** the Serial/Dask coarse-protection image has noise
+    correlated over its 4-pixel beam. Coarse protection still triggers, and
+    the injected linear-algebra failure reaches its five fits. One of its
+    fits is inadequate without any fault, so the injected free-model
+    rejection is now checked in the fallback reason each fit records; on
+    the white-noise image it went unchecked under any rule.
+- **Quick check.** `task40-final` against `task40-base`: no regression.
+  Every catalogue, RMS and mask is byte-identical to the diagnostic
+  `diag40-valley15`'s (the diagnostics differ only in the composition
+  hash), and every RMS and mask to `task40-base`'s. Six catalogues change:
+  - `crowded-field`: 977 → 989 Gaussians, 973 → 986 sources; against
+    `master` completeness 0.959 → 0.976, reliability 0.992 → 0.996,
+    separation p95 0.071 → 0.057 beams, peak-flux error p95 0.063 → 0.065;
+    against truth completeness 0.953 → 0.965. Injected sources with a
+    published Gaussian 976 → 988; joined sources 3 holding 6 injected → 2
+    holding 4.
+  - `sdc1-b2-1000h-sparse`: 537 → 530 Gaussians, 525 → 521 sources;
+    completeness 0.871 → 0.864, integrated-flux error p95 0.482 → 0.500,
+    within tolerance. In two fit parents a new component, one of them an
+    11.4σ source pinned `master` also fits, runs to the 30-pixel size bound
+    or collapses, so the joint free fit's condition number exceeds its limit
+    and every component falls back to a beam-shaped model: ill-conditioned
+    fallbacks 15 → 39, inadequate components 5 → 15 (task 42).
+  - `sdc1-b2-1000h-crowded`: 832 → 841 Gaussians, 822 → 825 sources, no
+    `master` reference; fallbacks 51 → 45, inadequate components 14 → 10,
+    and 2 fits now invalid.
+  - `close-blends`, `filament-and-ring` and `lotss-dr3-1312-dense` keep the
+    same Gaussians within a relative 2.6e-5. Component and source IDs follow
+    the new region pixels, and one blended source each in `close-blends`
+    and the LoTSS cut-out moves 0.46″ and 0.67″.
+
+  Hebog time 160 s under load from other work; the identical
+  `diag40-valley15` run took 139 s.
+- **Serial and Dask.** With one run ID, Serial and four-worker Dask
+  products are byte-identical on `crowded-field` (986 sources, 989
+  Gaussians), the 256² (104, 101), 512² (240, 244) and 300² (246, 270)
+  fields and the SDC1 sparse cut-out (521, 530).
+- **Performance.** Time in the public deblender over a whole run:
+  `crowded-field` 0.214 → 0.170 s, the 3,000² LoTSS cut-out 0.185 → 0.154
+  s; whole runs 36.3 → 36.4 s and 107.2 → 107.6 s. The review's worst case,
+  a 100,000-pixel island of white noise with 4,085 markers, takes 0.60 s
+  against 0.21 s; in correlated noise 0.055 s against 0.095 s, with the
+  traced peak about halved (15.5 against 30 MiB). Not run: the quick
+  benchmark, the traced peak of a whole run and the tier anchors.
+- **Reference cache.** These runs predate this branch's rebase onto pull
+  request 89, which changed the files the reference key hashes. They ran
+  from the worktree, with cut-out links under its ignored
+  `benchmark-results`, so as to reuse `task40-base`'s references, which a
+  run from the main checkout would not find.
+- **Checks.** After the review's fixes, the portable suite under
+  `just coverage` passed (2,908 tests) at 96.93% branch-aware coverage, as
+  for task 39; every line `deblending.py` leaves uncovered was uncovered
+  before. Equivalence: 27 passed with the exact pass at 1σ, at 1.5σ and
+  after the review. Acceptance: 7 expected failures, unchanged. `just check`
+  and the strict docs build passed. Not run: the slow equivalence lane.
+- **Independent review.** A review agent given the request, the decisions,
+  the diff and `CODE_REVIEW.md` found no correctness error. The algorithm
+  matched a re-implementation and a basin-free brute-force check on about
+  14,000 multi-marker islands, with ties, plateaus, holes, several parts,
+  bounds offsets, separations 1 to 3 and depths 0 to 7.5, and the compact
+  branch was byte-identical on 6,000 islands. It found:
+  - **Fixed (P2).** Valley ownership was unpinned: one pointer jump, or
+    basins without a peak never joining each other, passed every test;
+    two of the guards above now fail them.
+  - **Fixed (P2).** The depth test admitted any depth from 1.29σ to 2.08σ;
+    its bumps now sit 1.42σ and 1.57σ above their pass.
+  - **Fixed (P3).** The docstring, the reference page and this entry said
+    the highest saddle between two adjacent basins is their pass, which the
+    ring disproves, and that any partition's boundary lies at or above it,
+    which fails with three or more peaks; both now state the chain
+    bottleneck the union-find finds.
+  - **Fixed (P3).** Two stale docstrings; wrong figures in two test
+    docstrings; no test of marker forcing at a non-zero bounds origin; a
+    crowded-field test that pinned exact joined sets, brittle across
+    platforms, in place of its compact invariant; the unchecked injected
+    rejection on the coarse-protection image; a plan that said neither
+    LoTSS catalogue changed, kept a stale 95.5% and called both fits' extra
+    components correct; and an entry that overstated byte identity,
+    misdescribed the noise-split sources and gave no procedure for its
+    scratch measurements.
+  - **Kept (P3).** A line holding pixels outside the island in place is
+    not needed for correctness; it stays, commented, because it keeps their
+    equal −inf neighbours from adding jumps.
+- **Rebase.** Rebased onto `main` at `56366a3`, after pull request 90
+  merged task 38 and pull request 91 squashed task 39 (`8f7d5da` and its
+  review fix `0a6b5ff`). The code, test and documentation changes are
+  unchanged; only this entry and the plan's status rows were reconciled.
+  On `0a6b5ff` with this change, a tree that differs from the result only
+  in a test docstring and the pull request 91 review entry, every
+  catalogue table, RMS, mask and diagnostic of the quick check's 17 cases
+  matched `task40-final`'s apart from provenance (`task40-rebased`, run
+  without references: none exists yet under the key pull request 89
+  introduced). `just coverage` passed there (2,925 tests) at 96.99%
+  against the base's reported 97.00%; that run missed
+  `executors/dask.py:182`, the scheduling-dependent wait task 39's entry
+  describes, and the files this commit changes are covered as before. On
+  `main`, `just check` (2,146 tests), equivalence (27 passed) and
+  `just pre-commit` passed.
+- **Status.** Task 40 leaves the plan; task 41 now holds the release, and
+  task 42 follows it.

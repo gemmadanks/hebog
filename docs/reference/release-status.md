@@ -69,17 +69,27 @@ Known limitations when interpreting results:
 - In a field so crowded that no fine noise window lies clear of its sources,
   the background and RMS are the unprotected sigma-clipped coarse estimate,
   which includes the sources' wings.
-- A compact source beside a much brighter resolved one can get no component
-  of its own, a known defect the
+- In a crowded field a source can be withheld although its Gaussian fits, a
+  known defect the
   [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
-  tracks. The deblender judges the saddle between two peaks on the line
-  equidistant from them, which can cross the brighter source's wing well
-  above the true saddle, so the fainter peak joins the brighter component.
-  In a generated 1,024-pixel field with a source every 32 pixels, one in ten
-  of them resolved, Gaussians are fitted to 976 of 1,024 injected sources
-  where PyBDSF fits 1,005, and 23 of those missed peak at 7 to 39 times the
-  noise. The field's 962 islands become 973 sources where PyBDSF finds
-  1,006; 3 of them join 6 injected sources, none more than 31 pixels apart.
+  tracks. When the signed sum over its association aperture is not
+  positive, as it can be where the sources' wings raise the background,
+  neither the source nor its components get a row. In a generated
+  1,024-pixel field with a source every 32 pixels, one in ten of them
+  resolved, 988 of 1,024 injected sources have a published Gaussian, where
+  PyBDSF publishes one for 1,005; 9 sources are withheld, 8 of them injected
+  sources peaking at 7 to 13 times the noise that PyBDSF publishes. The
+  field's 962 islands become 986 sources where PyBDSF finds 1,006, and 2 of
+  them join 4 injected sources.
+- A source on the wing of a much brighter one that makes no peak of its own
+  gets no component. Its flux stays in the residual, which can join the
+  brighter source and that source's other neighbours into one source.
+- Neighbouring components are fitted jointly, and the joint fit is judged
+  well conditioned as a whole. When one component collapses or spreads into
+  diffuse emission, every component in that fit falls back to a beam-shaped
+  Gaussian, and resolved ones can then be left unpublished as inadequate. On
+  the sparse SDC1 cut-out 39 components fall back this way and 15 are left
+  unpublished.
 - The `compact` profile is not a general continuum catalogue.
 - Completeness, reliability, astrometry and photometry must be evaluated on
   data representative of your use.
