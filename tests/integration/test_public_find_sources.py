@@ -715,7 +715,11 @@ def test_signed_aperture_failure_never_becomes_positive_only_flux(
     negative_context: float,
     substituted_background_rms: SubstituteBackgroundRms,
 ) -> None:
-    """The public result keeps detection but does not invent positive flux."""
+    """The public result keeps detection but does not invent positive flux.
+
+    The line segment gets no fitted Gaussian, so its aperture is its only
+    flux: when that sums below zero the source has nothing to publish.
+    """
     yy, xx = np.mgrid[:65, :97]
     signal = 10 * np.exp(-((xx - 70) ** 2 + (yy - 32) ** 2) / 8)
     signal[20:45, 2:30] = negative_context
@@ -741,6 +745,16 @@ def test_signed_aperture_failure_never_becomes_positive_only_flux(
         if entry.object_kind == "source" and entry.status == "unavailable"
     ]
     assert len(missing) == (1 if negative_context == -1 else 0)
+    measured_components = {
+        entry.object_id
+        for entry in diagnostics.measurement_dispositions
+        if entry.object_kind == "component" and entry.status == "measured"
+    }
+    assert not any(
+        component in measured_components
+        for entry in missing
+        for component in entry.member_component_ids
+    )
     assert len(catalogue.sources) == (1 if negative_context == -1 else 2)
     assert result.island_count == 2
     assert np.asarray(fits.getdata(result.mask_path), dtype=bool)[
@@ -750,6 +764,90 @@ def test_signed_aperture_failure_never_becomes_positive_only_flux(
         "exact-owner-positive-residual-flux" in row.quality_flags
         for row in catalogue.sources
     )
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("profile", ("continuum", "compact"))
+def test_fitted_source_publishes_when_its_aperture_sums_below_zero(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    profile: str,
+    substituted_background_rms: SubstituteBackgroundRms,
+) -> None:
+    """A source whose Gaussian fits is published whatever its aperture sums.
+
+    The compact source at (20, 32) lies in a residual plateau at -1, as the
+    gaps of a crowded field lie below a background its sources' wings raise,
+    so the signed sum over its aperture is negative while its Gaussian
+    converges. Its flux is the fitted flux, so the aperture cannot veto it;
+    the aperture column is left empty instead.
+    """
+    yy, xx = np.mgrid[:65, :97]
+    signal = 10 * np.exp(-((xx - 70) ** 2 + (yy - 32) ** 2) / 8)
+    signal[20:45, 2:40] = -1.0
+    signal += 8 * np.exp(-((xx - 20) ** 2 + (yy - 32) ** 2) / 8)
+    _write_image(tmp_path / "image.fits", signal)
+    monkeypatch.setattr(
+        public_api,
+        "_estimate_background_rms",
+        substituted_background_rms(
+            signal, np.zeros_like(signal), np.ones_like(signal)
+        ),
+    )
+
+    result = hebog.find_sources(
+        _request(tmp_path), _config(profile=profile), SerialExecutor()
+    )
+
+    catalogue = read_catalogue_fits_product(result.catalogue)
+    diagnostics = read_diagnostics_product(result.diagnostics)
+    assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
+    assert len(catalogue.sources) == len(catalogue.gaussian_components) == 2
+    assert not any(
+        entry.status == "unavailable"
+        for entry in diagnostics.measurement_dispositions
+        if entry.object_kind == "source"
+    )
+    world = WCS(_header(signal.shape)).celestial
+    gaussian = min(
+        catalogue.gaussian_components,
+        key=lambda row: float(
+            np.hypot(
+                *np.subtract(
+                    world.all_world2pix(
+                        row.position.right_ascension_degrees,
+                        row.position.declination_degrees,
+                        0,
+                    ),
+                    (20.0, 32.0),
+                )
+            )
+        ),
+    )
+    source = next(
+        row for row in catalogue.sources if row.source_id == gaussian.source_id
+    )
+    assert source.flux.integrated_flux_jy == pytest.approx(
+        gaussian.flux.integrated_flux_jy
+    )
+    assert source.association_aperture_integrated_flux_jy is None
+    assert not {
+        "exact-owner-positive-residual-flux",
+        "positive-exact-owner-flux",
+    } & set(source.quality_flags)
+    if profile == "continuum":
+        assert "association-aperture-nonpositive" in source.quality_flags
+        disposition = next(
+            entry
+            for entry in diagnostics.measurement_dispositions
+            if entry.object_id == source.source_id
+        )
+        assert disposition.estimator == "summed-fitted-component-flux"
+        # The case exercises the rule only while the aperture is negative.
+        assert disposition.position_diagnostics is not None
+        aperture = disposition.position_diagnostics.aperture_signed_flux_jy
+        assert aperture is not None
+        assert aperture < 0.0
 
 
 @pytest.mark.integration

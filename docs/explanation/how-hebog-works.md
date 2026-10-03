@@ -182,9 +182,12 @@ background-subtracted pixels in it is published as
 flux as its `INTEGRATED_FLUX` and is flagged. The two agree for isolated
 compact sources but part for extended or edge-clipped emission, because a
 fit integrates sky the image does not cover and misses diffuse emission no
-component describes. If the aperture sum is not positive or cannot be
-measured, the source gets no catalogue row; Hebog does not substitute a
-positive-only estimate. The source position comes from the
+component describes. If the aperture sum is not positive, as it can be where
+neighbouring sources' wings raise the background, a source with an admitted
+fit keeps its summed flux and leaves `ASSOCIATION_APERTURE_FLUX` empty, while
+a source without one gets no catalogue row: Hebog does not substitute a
+positive-only estimate. A source whose aperture or position cannot be
+measured at all gets no row either. The source position comes from the
 detection footprint, not from faint measurement-only wings, so a centroid can
 lie between two peaks or inside a ring.
 
@@ -281,7 +284,7 @@ flowchart TD
     associate[Choose independent, compact-model, or extended-morphology grouping]
     singleton[Use one source per component; declare extended-emission limitation]
     source_measure[Measure each source once in its signed, non-overlapping owned aperture; sum its fitted components]
-    source_valid{Positive, available source measurement with publication support?}
+    source_valid{Position available, an admitted fit or a positive aperture, and publication support?}
     compact_valid{Admitted component measurement with publication support?}
     source_row[Publish source row]
     source_absent[Keep source disposition without a catalogue row]

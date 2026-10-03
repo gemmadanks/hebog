@@ -141,8 +141,11 @@ explicit profile:
   component uncertainties, published only when every component supplies one.
   A source with no admitted fit keeps its signed source-owned aperture
   measurement and carries `aperture-flux-without-fitted-component`.
-  `ASSOCIATION_APERTURE_FLUX` always reports the aperture quantity, whether
-  or not the source flux is taken from it.
+  `ASSOCIATION_APERTURE_FLUX` reports the aperture quantity, whether or not
+  the source flux is taken from it. Where the aperture sums to zero or
+  below, as it can where neighbouring sources' wings raise the background,
+  the column is empty and the row carries `association-aperture-nonpositive`;
+  only a source with an admitted fit has a flux to publish then.
 - In `compact`, every published source represents exactly one fitted
   component. `INTEGRATED_FLUX` is its Gaussian-model integral and
   `ASSOCIATION_APERTURE_FLUX` is unavailable.
@@ -190,9 +193,12 @@ Continuum source rows do not claim a Gaussian shape when the source is
 described by an irregular signed aperture. `FITTED_*` and `DECONVOLVED_*` can
 therefore be unavailable even when the source flux and position are valid. A
 non-positive or otherwise unavailable signed measurement is not replaced by
-positive-only photometry; diagnostics retain the source identity and reason
-without publishing a row. Compact-profile source rows carry the fitted and
-deconvolved shape of their one component when available.
+positive-only photometry. Where only the aperture sum is non-positive, a
+fitted source keeps its summed fit, as above, and a source without an
+admitted fit has no flux and no row. A source whose position cannot be
+measured has no row, fitted or not. Diagnostics retain the identity and
+reason of every source without a row. Compact-profile source rows carry the
+fitted and deconvolved shape of their one component when available.
 
 ### Gaussian-component fields and measurement meaning
 
@@ -227,6 +233,7 @@ must preserve unknown flags. Common current categories include:
 | `fit-at-bound`, `beam-constrained-fit`, `centroid-constrained-fit`, `free-model-not-significantly-extended` | Selected-model and fallback evidence; consult diagnostics for the structured decision. |
 | `reconstructed-catalogue-source`, `shape-unavailable`, `resolution-unavailable`, `ambiguous-multiscale-parent` | Associated-source construction and interpretation. |
 | `aperture-flux-without-fitted-component` | The continuum source has no admitted fit, so `INTEGRATED_FLUX` is its aperture rather than a summed fit. |
+| `association-aperture-nonpositive` | The continuum source's aperture summed to zero or below, so `ASSOCIATION_APERTURE_FLUX` is empty; `INTEGRATED_FLUX` is its summed fit. |
 | `member-...` | A source-level propagation of a member component's flag; it does not change the source estimator. |
 
 Use structured diagnostics, not string parsing, for workflow decisions about
@@ -322,7 +329,7 @@ including objects with no published catalogue row.
 | --- | --- |
 | `object_kind`, `object_id` | `component` or `source`, and its stable identity. |
 | `status` | `measured`, `unavailable`, or `deferred`. |
-| `estimator` | `original-pixel-gaussian-model` or `source-owned-signed-aperture` for measured objects; otherwise null. |
+| `estimator` | `original-pixel-gaussian-model` for a measured component; for a measured source, `summed-fitted-component-flux`, or `source-owned-signed-aperture` when it has no admitted fit; otherwise null. |
 | `reason` | Null for a measurement; explicit cause for unavailable/deferred work. |
 | `member_component_ids` | Complete canonical membership for a source; empty for a component. Source memberships partition the component population. |
 | `catalogue_row_published` | Whether this exact identity appears in its corresponding FITS table. |

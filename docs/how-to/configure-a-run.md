@@ -35,7 +35,7 @@ reproducible. Every configuration is labelled `development-unqualified` or
 
 | Profile | Use it for | Behaviour |
 | --- | --- | --- |
-| `continuum` (default) | General continuum images, including extended emission | Finer RMS grid near bright sources; associates components into multi-component sources; source `INTEGRATED_FLUX` is the sum of the fitted components (PyBDSF's definition), or the source's own aperture when no fit was admitted; `ASSOCIATION_APERTURE_FLUX` always holds the aperture |
+| `continuum` (default) | General continuum images, including extended emission | Finer RMS grid near bright sources; associates components into multi-component sources; source `INTEGRATED_FLUX` is the sum of the fitted components (PyBDSF's definition), or the source's own aperture when no fit was admitted; `ASSOCIATION_APERTURE_FLUX` holds the aperture, or is empty where it sums to zero or below |
 | `compact` | Fields of unresolved or barely resolved sources, where you want one source per Gaussian | No extended-source association; each source carries its one Gaussian's measurement and no aperture flux; diagnostics declare `extended-emission-incomplete` |
 
 ```python
