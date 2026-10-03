@@ -64,6 +64,10 @@ from hebog.data_models.measurement_diagnostics import AssociationEvidenceKind
 from hebog.data_models.partitioning import ImageBounds
 
 _MINIMUM_LOOP_COMPONENTS = 3
+# Distances one batch of the nearest-centre search may hold. A connected
+# support feature can hold as many components as its area allows, so a
+# rim-by-component matrix would grow faster than the window.
+_MAXIMUM_NEAREST_CENTRE_DISTANCES = 1_000_000
 
 
 @dataclass(frozen=True, slots=True)
@@ -542,6 +546,30 @@ def _tangential_shape_evidence(
     return excess > significance * error_bound
 
 
+def _nearest_centres(
+    x: np.ndarray, y: np.ndarray, centres_xy: np.ndarray
+) -> np.ndarray:
+    """Return the row of ``centres_xy`` nearest each ``(x, y)`` pixel.
+
+    ``centres_xy`` has shape ``(components, 2)`` in the pixels' frame. A tie
+    goes to the earlier centre. Pixels are taken in batches of at most
+    ``_MAXIMUM_NEAREST_CENTRE_DISTANCES`` distances, so working memory does
+    not grow with pixels times centres.
+    """
+    nearest = np.empty(x.size, dtype=np.intp)
+    rows = max(1, _MAXIMUM_NEAREST_CENTRE_DISTANCES // len(centres_xy))
+    for start in range(0, x.size, rows):
+        batch = slice(start, start + rows)
+        nearest[batch] = np.argmin(
+            np.hypot(
+                x[batch, np.newaxis] - centres_xy[np.newaxis, :, 0],
+                y[batch, np.newaxis] - centres_xy[np.newaxis, :, 1],
+            ),
+            axis=1,
+        )
+    return nearest
+
+
 def _resolved_emission_loop(  # noqa: PLR0913
     residual: np.ndarray,
     rms: np.ndarray,
@@ -611,13 +639,7 @@ def _resolved_emission_loop(  # noqa: PLR0913
                 dtype=np.bool_,
             )
             rim_y, rim_x = np.nonzero(support & bordering)
-            nearest = np.argmin(
-                np.hypot(
-                    rim_x[:, np.newaxis] - centres[np.newaxis, :, 0],
-                    rim_y[:, np.newaxis] - centres[np.newaxis, :, 1],
-                ),
-                axis=1,
-            )
+            nearest = _nearest_centres(rim_x, rim_y, centres)
             rim_owners = {indexes[position] for position in np.unique(nearest)}
             selected = {
                 index
