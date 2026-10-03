@@ -27808,3 +27808,34 @@ the per-worker placement finding.
     loop evidence, not only where emission overlaps; the release status,
     the plan and the public test now say so.
 - **Status.** Task 38 leaves the plan, and task 39 now holds the release.
+
+## 2026-10-03 — M2: pull request 90 review disposition
+
+- **Scope.** The reviews of `efb20e1`, task 38's repair before its rebase
+  onto `main`, and of `bde3e9d`. Copilot left three findings. Greptile did
+  not review (trial ended). Codecov reports every changed line covered.
+- **Unannotated test helper (low).** `_measure` in the component measurement
+  unit tests gained an argument without a return annotation. Fixed by
+  Copilot Autofix in `bde3e9d`.
+- **False provenance on the crowded-field fixture (medium).** The 256²
+  correlated field's header carried the `HEBOGDS` and `HEBOGRCP` cards of
+  the manifest's `quick-dense-field` recipe, but its image is a resized,
+  source-free copy of that recipe with sources injected by hand.
+  - **Fix.** The fixture drops both cards. Rebuilding a matching recipe
+    would still not describe the injected sources, and planting them
+    through the recipe would change the field task 38's evidence was
+    measured on.
+  - **Products.** None changes: only the validation tooling's
+    materialization cache reads the cards, and the pixels are unchanged, so
+    the public test passes as before.
+- **Adequacy support in the explanation (low).** The finding: the
+  explanation scopes adequacy to each component's fitted core, but the
+  check uses the whole fit parent's detected support.
+  - **Disposition.** The adequacy sentence was right but loose ("the fitted
+    components' support"); the fitted-core clause describes the separate
+    `persistent-residual` grouping rule, which admits an adequately modelled
+    component only through residual evidence inside its half-maximum
+    ellipse. Running the two together invited the reading.
+  - **Fix.** The adequacy sentence now names the joint fit's detected
+    support as a whole, and the grouping rule has its own paragraph, which
+    defines the fitted core.

@@ -1170,7 +1170,8 @@ def _correlated_crowded_field(
     recipe at ``size`` pixels a side. A source sits every ``spacing``
     pixels, jittered by up to a third of it, with peak SNR log-uniform from
     5 to 300; one in ten is resolved, with a major sigma of 4 to 9 pixels.
-    Each injected source is returned as ``(x, y, resolved)``.
+    Each injected source is returned as ``(x, y, resolved)``. The image is
+    not that recipe's, so the header drops its dataset provenance cards.
     """
     (dataset,) = (
         record
@@ -1217,7 +1218,10 @@ def _correlated_crowded_field(
                 -0.5 * ((along / major) ** 2 + (across / minor) ** 2)
             )
             sources.append((x, y, resolved))
-    return image.astype(np.float32), synthetic_fits_header(dataset), sources
+    header = synthetic_fits_header(dataset)
+    del header["HEBOGDS"]
+    del header["HEBOGRCP"]
+    return image.astype(np.float32), header, sources
 
 
 @pytest.mark.integration
