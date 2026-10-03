@@ -35,15 +35,19 @@ from hebog.data_models.partitioning import ImageBounds
 
 @pytest.mark.parametrize("residual_value", (-1.0, 0.0, 1.0))
 @pytest.mark.parametrize("residual_grouping", (False, True))
+@pytest.mark.parametrize("coarsest_scale_silent", (False, True))
 def test_persistent_support_uses_filtered_response_domain(
     monkeypatch: pytest.MonkeyPatch,
     residual_value: float,
     residual_grouping: bool,
+    coarsest_scale_silent: bool,
 ) -> None:
     """Filtered features need not contain positive unfiltered residuals.
 
     Inject the bounded filter result to isolate both measurement callers'
     response/SNR pairing; this is not a physical source-detection fixture.
+    Two adjacent scales make the feature persistent, and the grouping
+    evidence names only the scales whose adjacent pairs carry it.
     """
     residual = np.full((13, 15), residual_value)
     valid = np.ones(residual.shape, dtype=np.bool_)
@@ -53,7 +57,7 @@ def test_persistent_support_uses_filtered_response_domain(
         ScaleFilterResponse(
             order,
             float(2 ** (order - 1)),
-            feature * order,
+            feature * order * (order < 3 or not coarsest_scale_silent),
             np.full_like(residual, order),
             np.ones_like(residual),
             valid,
@@ -93,6 +97,9 @@ def test_persistent_support_uses_filtered_response_domain(
         )
         assert actual == (frozenset((1, 2)),)
         assert evidence[0].reason == "persistent-residual"
+        assert evidence[0].scale_ids == (
+            (1, 2) if coarsest_scale_silent else (1, 2, 3)
+        )
     else:
         actual = measurement._persistent_measurement_support(
             residual, np.ones_like(residual), valid, plan, 0.5, 5.0, 3.0, 7
@@ -112,10 +119,14 @@ def _measure(  # noqa: PLR0913
     pixel_support: Literal["bounded-context", "owned-region"] = (
         "bounded-context"
     ),
-):
-    """One original-pixel ellipse with independently supplied unit RMS."""
+    unlabelled: np.ndarray | None = None,
+) -> measurement.ComponentMeasurements:
+    """One original-pixel ellipse with independently supplied unit RMS.
+
+    ``unlabelled`` is added to the image without a detection label.
+    """
     yy, xx = np.mgrid[: shape_yx[0], : shape_yx[1]]
-    signal = np.zeros(shape_yx)
+    signal = np.zeros(shape_yx) if unlabelled is None else unlabelled.copy()
     labels = np.zeros(shape_yx, dtype=np.int32)
     for index, center in enumerate(centers or (center_xy,), component_index):
         profile = 10 * np.exp(
@@ -179,6 +190,98 @@ def test_sparse_parent_and_component_labels_preserve_model_measurements() -> (
     assert isinstance(first, ValidCompactGaussianFit)
     assert isinstance(second, ValidCompactGaussianFit)
     assert first.parameters == second.parameters
+
+
+def _planted_feature(
+    centre_xy: tuple[float, float], amplitude: float, sigma: float
+) -> np.ndarray:
+    """One circular Gaussian on the 49 by 81 pixel adequacy fixture."""
+    yy, xx = np.mgrid[:49, :81]
+    return amplitude * np.exp(
+        -0.5 * ((xx - centre_xy[0]) ** 2 + (yy - centre_xy[1]) ** 2) / sigma**2
+    )
+
+
+@pytest.mark.parametrize(
+    ("feature_xy", "amplitude", "sigma", "seeded", "touching", "unmodelled"),
+    (
+        ((27.0, 24.0), -3.5, 3.0, True, True, False),
+        ((28.0, 24.0), 2.2, 4.0, False, True, False),
+        ((42.0, 24.0), 6.0, 2.0, True, False, False),
+        ((27.0, 24.0), 4.5, 3.0, True, True, True),
+    ),
+    ids=("dip", "unseeded", "apart", "on-support"),
+)
+def test_unmodelled_emission_is_seeded_positive_and_on_the_model(  # noqa: PLR0913, PLR0917
+    feature_xy: tuple[float, float],
+    amplitude: float,
+    sigma: float,
+    seeded: bool,
+    touching: bool,
+    unmodelled: bool,
+) -> None:
+    """A residual fails a model only as PyBDSF's residual search would.
+
+    PyBDSF searches its residual for positive wavelet islands seeded at the
+    detection threshold and joins each to the islands it overlaps. Each
+    residual is one planted feature beside a perfectly modelled source: a
+    seeded dip on the source's support, a positive feature on it that no
+    matched scale lifts to a seed, and a seeded positive feature apart from
+    it leave the model adequate; a seeded positive feature on it does not.
+    The residual's own significance and footprint are checked first.
+    """
+    residual = _planted_feature(feature_xy, amplitude, sigma)
+    yy, xx = np.mgrid[:49, :81]
+    support = (
+        10 * np.exp(-0.5 * (((xx - 20) / 2.4) ** 2 + ((yy - 24) / 1.6) ** 2))
+        >= 3
+    )
+    unit = np.ones_like(residual)
+    valid = np.ones(residual.shape, dtype=np.bool_)
+    beam = BeamShapePixels(4.0, 3.0, 0.0)
+    plan = build_residual_atrous_plan(beam, noise_correlation=beam)
+    signed = tuple(
+        np.where(np.isfinite(snr), np.sign(amplitude) * snr, 0.0)
+        for snr in measurement._matched_snrs(residual, unit, valid, plan, 0.5)
+    )
+    peak = max(float(snr.max()) for snr in signed)
+    assert peak >= 3.0
+    assert (peak >= 5.0) is seeded
+    assert any(np.any(support & (snr >= 3.0)) for snr in signed) is touching
+
+    actual = measurement._unmodelled_detection(
+        residual, unit, valid, 5.0, 3.0, 7, plan, 0.5, valid, support
+    )
+
+    assert actual is unmodelled
+
+
+@pytest.mark.parametrize(
+    ("feature_xy", "amplitude", "sigma", "adequate"),
+    (((42.0, 24.0), 6.0, 2.0, True), ((27.0, 24.0), 4.5, 3.0, False)),
+    ids=("apart", "on-support"),
+)
+def test_a_fit_parent_is_judged_on_its_own_support(
+    feature_xy: tuple[float, float],
+    amplitude: float,
+    sigma: float,
+    adequate: bool,
+) -> None:
+    """Seeded emission beside a source fails its model only on its support.
+
+    Both features hold a detection-threshold seed. The one apart from the
+    source lies inside the parent's read window but off its support, so the
+    source keeps its compact group; the one on its support removes it.
+    """
+    result = _measure(
+        center_xy=(20.0, 24.0),
+        shape_yx=(49, 81),
+        pixel_support="owned-region",
+        unlabelled=_planted_feature(feature_xy, amplitude, sigma),
+    )
+
+    assert isinstance(result.fits[0][1], ValidCompactGaussianFit)
+    assert result.compact_groups == ((frozenset((1,)),) if adequate else ())
 
 
 @pytest.mark.parametrize("pixel_support", ("owned-region", "bounded-context"))

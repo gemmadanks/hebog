@@ -118,10 +118,13 @@ support and independent source photometry remain available instead.
 
 The current public composition additionally checks beam fallbacks selected
 because the free ellipse failed numerical, bound or identifiability admission.
-It applies the existing direct/multiscale residual-adequacy rule to the joint
-model on its declared likelihood pixels, attributing features to the nearest
-component. Coherent unexplained emission belonging to such a fallback makes
-that Gaussian `fit-model-inadequate`, not an ordinary unresolved measurement.
+It applies the residual-adequacy rule to the joint model on its declared
+likelihood pixels, attributing features to the nearest component. The rule
+admits residual features as detection does, positive and grown to the island
+threshold from a detection-threshold seed on the original pixels, the residual
+à trous scales or a matched-filter scale, and counts one only if it touches
+those pixels. Unexplained emission belonging to such a fallback makes that
+Gaussian `fit-model-inadequate`, not an ordinary unresolved measurement.
 Its attempted-model diagnostics, detected identity, support and independent
 source aperture remain available. Valid neighbours keep their parameters and
 covariance from the same joint solution; no alternative fits are spliced in.

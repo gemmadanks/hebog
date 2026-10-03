@@ -118,9 +118,11 @@ def test_edge_blend_public_capture_matches_existing_dask(
     else:
         assert result.rms.scientific_status == "valid"
         assert np.all(np.asarray(fits.getdata(result.rms.path)) > 0)
-        # V12 already associates this connected blend; both fitted peaks
+        # The two sources stay separate, as PyBDSF groups them: their centres
+        # lie farther apart than half their summed FWHMs, and the emission
+        # between them dips far below the fainter peak. Both fitted peaks
         # must remain measured rather than turning into unavailable rows.
-        assert result.source_count == 1
+        assert result.source_count == 2
         assert result.gaussian_component_count == 2
         components = read_catalogue_fits_product(
             result.catalogue

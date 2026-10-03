@@ -72,8 +72,9 @@ be positive and obey the configured ratio independent of optimizer ordering.
 Failed Gaussian admission preserves source support and its separate source
 measurements; convergence alone does not establish astrophysical model adequacy.
 Public fallback admission can report `fit-model-inadequate`: a beam fallback
-from an invalid free ellipse leaves coherent residuals on its fitted support.
-The component disposition is unavailable and its Gaussian row is absent;
+from an invalid free ellipse leaves seeded positive residual emission on its
+fitted support. The component disposition is unavailable and its Gaussian row
+is absent;
 the detected component identity and independent associated-source measurement
 are retained. Consequently a source's detected member count need not equal
 its number of published Gaussian rows. The existing schema's explicit
