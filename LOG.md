@@ -28245,3 +28245,28 @@ the per-worker placement finding.
   `just pre-commit` passed.
 - **Status.** Task 40 leaves the plan; task 41 now holds the release, and
   task 42 follows it.
+
+## 2026-10-03 — M2: rim ownership in bounded memory
+
+- **Finding.** Copilot's third review of pull request 91, on `9396222`,
+  which arrived after the merge (`56366a3`), flagged as previously missed
+  that task 39's rim-ownership test compared every pixel bordering a hole
+  with every fitted centre at once. Within a fit parent that is at most 16
+  centres. The cross-parent loop search passes every fitted member of a
+  connected support feature, and a crowded feature holds as many as its
+  area allows, so the rim-by-component distance matrix grew faster than the
+  window, outside the per-pixel driver bound the plan states for objects
+  wider than the read budget.
+- **Fix.** The nearest centre is found in batches of rim pixels holding at
+  most 1,000,000 distances, the joint fit's Jacobian bound. Each row's
+  `argmin` is unchanged, so owners and their tie-break are identical and no
+  product changes.
+- **Evidence.** A ring with four arcs and 50,000 fitted components beyond
+  its window peaked at 117 MB under `tracemalloc` before (the test failed
+  for that reason on `56366a3`) and at 24.7 MB after, with the same loop.
+  A second test pins batched owners to one distance matrix, ties and a
+  partial last batch included.
+- **Residual.** The search's time still grows as holes times rim pixels
+  times components in the feature. It was not measured on a crowded tier
+  anchor; reopen it if a profile of a crowded large field shows the loop
+  search.

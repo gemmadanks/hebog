@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import tracemalloc
 from dataclasses import fields, replace
 from typing import Any, Literal, cast
 
@@ -954,6 +955,104 @@ def test_a_loop_holds_only_components_on_the_rim_of_its_hole() -> None:
         minimum_support_fraction=0.5,
     )
     assert groups == (frozenset(range(1, 5)),)
+
+
+def test_rim_ownership_memory_does_not_scale_with_the_feature() -> None:
+    """A hole's rim is not compared with every component at once.
+
+    A connected support feature passes every fitted member to the loop
+    search, and a crowded feature holds as many components as its area
+    allows, so a rim-by-component distance matrix would grow faster than
+    the window. With 50,000 components beyond the window, one matrix for
+    the whole rim peaked at about 110 MiB; batched, the ring keeps its loop
+    within 48 MiB.
+    """
+    fitted = _measure().fits[0][1]
+    assert isinstance(fitted, ValidCompactGaussianFit)
+    yy, xx = np.mgrid[:81, :81]
+    radius = np.hypot(xx - 40, yy - 40)
+    signal = 6 * np.exp(-0.5 * ((radius - 15) / 2) ** 2)
+    arcs = tuple(
+        (
+            arc,
+            replace(
+                fitted,
+                parameters=replace(
+                    fitted.parameters,
+                    centroid_xy=(
+                        40 + 15 * np.cos(angle),
+                        40 + 15 * np.sin(angle),
+                    ),
+                    major_sigma_pixels=5.0,
+                    minor_sigma_pixels=2.0,
+                    major_axis_angle_degrees=float(
+                        (np.rad2deg(angle) + 90) % 180
+                    ),
+                ),
+            ),
+        )
+        for arc, angle in enumerate(np.arange(4) * np.pi / 2, start=1)
+    )
+    remote = tuple(
+        (
+            index,
+            replace(
+                fitted,
+                parameters=replace(
+                    fitted.parameters, centroid_xy=(10_000.0 + index, 0.0)
+                ),
+            ),
+        )
+        for index in range(5, 50_005)
+    )
+    beam = BeamShapePixels(4.0, 3.0, 0.0)
+    plan = build_residual_atrous_plan(beam, noise_correlation=beam)
+    tracemalloc.start()
+    try:
+        groups = measurement._resolved_emission_loop(
+            signal,
+            np.ones(signal.shape),
+            np.ones(signal.shape, dtype=bool),
+            plan,
+            fits=arcs + remote,
+            bounds=ImageBounds(0, 81, 0, 81),
+            beam_covariance=np.diag(np.square(np.array((4.0, 3.0)) / 2.35482)),
+            island_sigma=3.0,
+            minimum_support_fraction=0.5,
+        )
+        _, peak_bytes = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert groups == (frozenset(range(1, 5)),)
+    assert peak_bytes < 48 * 2**20
+
+
+def test_batched_nearest_centres_match_one_distance_matrix(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Batching changes neither the nearest centre nor how ties break.
+
+    Four distances a batch with two centres takes two pixels at a time, so
+    seven grid pixels, among them pixels equidistant from both centres, end
+    on a partial batch; an empty rim gives no owner.
+    """
+    monkeypatch.setattr(measurement, "_MAXIMUM_NEAREST_CENTRE_DISTANCES", 4)
+    centres_xy = np.array(((1.0, 0.0), (-1.0, 0.0)))
+    x = np.array((0, 0, 0, 2, -2, 1, -1))
+    y = np.array((0, 3, -3, 0, 0, 5, 5))
+    expected = np.argmin(
+        np.hypot(
+            x[:, np.newaxis] - centres_xy[np.newaxis, :, 0],
+            y[:, np.newaxis] - centres_xy[np.newaxis, :, 1],
+        ),
+        axis=1,
+    )
+    np.testing.assert_array_equal(
+        measurement._nearest_centres(x, y, centres_xy), expected
+    )
+    np.testing.assert_array_equal(expected, (0, 0, 0, 0, 1, 0, 1))
+    empty = np.array((), dtype=np.intp)
+    assert measurement._nearest_centres(empty, empty, centres_xy).size == 0
 
 
 @pytest.mark.parametrize(
