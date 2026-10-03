@@ -27809,6 +27809,165 @@ the per-worker placement finding.
     the plan and the public test now say so.
 - **Status.** Task 38 leaves the plan, and task 39 now holds the release.
 
+## 2026-10-02 — M2: task 39, crowded-field loops and fit-parent adequacy
+
+- **What joined distinct sources.** Under task 38's rule, 8 of
+  `crowded-field`'s 897 sources held 88 injected sources, 56 of them
+  compact. Every accepted grouping was recorded on that case and on task
+  36's correlated-noise reproducer at 256² (a source every 24 pixels), 512²
+  (every 32) and 300² (every 16). Two mechanisms account for them.
+  1. *Chance loops.* At the 2- and 4-beam matched scales, a crowded field's
+     3σ support joins into one region 200 to 600 pixels across, with up to
+     23 holes. A resolved loop took every tangentially elongated component
+     anywhere in that region. The 60 loops accepted across the four fields
+     had members 10 to 460 pixels from holes 3 to 26 pixels across, mostly
+     on one side of them. The unit tests' genuine rings have members 4 to
+     15 pixels from the hole, evenly around it.
+  2. *Missed components unprotect a whole fit parent.* Each of
+     `crowded-field`'s 14 direct-tier adequacy failures lay within 0.7
+     pixels of an injected compact source with no Gaussian, at 7 to 37σ.
+     The deblender's nearest-marker partition judges a saddle on the line
+     equidistant from two peaks, and beside a bright resolved source that
+     line crosses its wing. The 39σ source at (327, 295) lies 21 pixels from
+     a 195σ resolved one with a clear 15σ saddle between them, yet their
+     882-pixel parent stayed one component. The missed source's flux then
+     failed the whole joint fit parent, of 9 to 16 components, and residual
+     grouping joined them: all 73 members of the case's residual groups,
+     56 of them compact, sat in such parents.
+- **What PyBDSF does.** Pinned `master` gives `crowded-field` 1,019
+  Gaussians, 1,006 sources in 980 islands, fits 1,005 of the 1,024 injected
+  sources and joins one pair, 18 pixels apart. It has no loop grouping. At
+  `c70103b`, `gaul2srl` joins two Gaussians of one island only when they lie
+  within half their summed FWHMs along the joining line and the emission
+  between them dips less than about 3σ below the fainter peak, or when the
+  flux falls steadily from one peak to the other.
+- **Options measured**, through temporary switches in scratch code (quick
+  check labels `diag39-*`, against `task38-final`), with merged sources
+  scored against the injected truth:
+
+  | Rule | `crowded-field` sources | Merged (injected held, compact), largest span | 256², 512², 300² merged (injected held) | Quick check |
+  | --- | --- | --- | --- | --- |
+  | Task 38 | 897 | 8 (88, 56), 387 pixels | 1 (7), 3 (21), 2 (50) | — |
+  | Rim | 911 | 7 (73, 56), 194 pixels | 1 (2), 3 (14), 8 (38) | changes `crowded-field` only |
+  | Per group, nearest peak | 958 | 5 (23, 1), 387 pixels | 1 (7), 3 (15), 2 (45) | two flagged LoTSS-sparse regressions |
+  | Rim and per group, nearest peak | 973 | 3 (6, 1), 31 pixels | 1 (2), 2 (5), 8 (32) | the same two |
+  | Rim and per group, contact | 973 | 3 (6, 1), 31 pixels | 1 (2), 2 (5), 8 (33) | no flagged regression |
+
+  - **Rim:** a loop member lies within its scale's smoothing width plus its
+    own half-maximum radius of the hole. It removed all 60 chance loops and
+    keeps every test ring: their farthest members lie 5.0, 7.0 and 15.0
+    pixels from the hole against reaches of 6.4, 10.4 and 18.4.
+  - **Per group:** a residual feature fails only compact groups, attributed
+    either to the group nearest its peak or, with contact, to the whole
+    parent but counting only against groups whose own support it touches.
+  - **Pairs joined against `master`:** pairs of matched Gaussians that Hebog
+    joins and `master` keeps apart fall from 477 to 3 on `crowded-field`,
+    44 to 17 on SDC1 sparse and 7 to 4 on LoTSS dense. `filament-and-ring`
+    keeps its 28, from its filament's grouping.
+  - **Deblending prototype:** judging deblending saddles on intensity basins
+    fitted 968 Gaussians on `crowded-field` and left 14 merges, worse than
+    either rule.
+- **Decision (maintainer, 2 October).** Rim and per group with contact. The
+  deblending defect becomes task 40 and blocks the release. PyBDSF's
+  steadily-falling-profile grouping is a deferred note.
+- **Repair.** In `component_measurement.py`:
+  - `_resolved_emission_loop` keeps a component only if it owns part of
+    the hole's rim: some support pixel bordering the hole lies nearer its
+    centroid than any other fitted component's. This replaced the reach
+    measured above after the independent review (below).
+  - The adequacy check is split: `_seeded_residual_features` finds a
+    residual's seeded positive features on every tier once, and
+    `_leaves_unmodelled_emission` asks whether one of them belongs to a
+    given support.
+  - `measure_fit_parent_components` judges each compact group, minus any
+    loop members, against features attributed to the parent and touching
+    the group's own support; the plain and loop paths are now one.
+  - The fallback guard computes its features once too, with its likelihood
+    pixels as the support, unchanged in effect.
+- **Tests, failing first** on task 38's code (`347cac3`, run from an
+  exported copy):
+  - **Rim, unit:** a ring's four arcs and three tangential components 60 to
+    90 pixels along a bridge from it; the loop held all seven and holds the
+    four.
+  - **Bright rings, unit:** a ring of four arcs at 6, 60 and 600 times the
+    noise forms its loop each time; the reach rule the review examined
+    drops it at 60 and 600.
+  - **Per group, unit:** two compact sources in one fit parent, which the
+    test asserts. Seeded unmodelled emission against the first one's support
+    only fails only the first; emission between them, touching both and
+    peaking nearer the second, fails both. On task 38's code both cases
+    lost both groups; with attribution to the group nearest the peak, the
+    second case keeps both.
+  - **Mutations,** each on a copy of `src`: removing rim ownership fails the
+    rim test and both public fields; nearest-group attribution fails the
+    second per-group case.
+  - **Public:** the task 38 field test now also runs on the 512² field and
+    asserts that no resolved-loop evidence forms; on task 38's code both
+    fields held it.
+  - Task 38's direct test of the check now calls the two new functions.
+- **Quick check.** `task39-final` against `task38-final`: no regression. All
+  17 catalogues are byte-identical to the diagnostic `diag39-rim-contact`,
+  and every RMS and mask to task 38's. `task39-rim-owners`, run after the
+  change to rim ownership, reproduces every product of `task39-final` byte
+  for byte. Five catalogues change:
+  - `crowded-field`: 897 → 973 sources; against `master` completeness
+    0.879 → 0.959, reliability 0.986 → 0.992, integrated-flux error p95
+    0.118 → 0.112. One Gaussian fewer (978 → 977): another faint compact
+    source now heads its own source, whose signed aperture sum in the raised
+    background is −0.37 mJy, so neither row is published.
+  - `sdc1-b2-1000h-sparse`: 513 → 525 sources; completeness 0.844 → 0.871,
+    reliability 0.982 → 0.990.
+  - `sdc1-b2-1000h-crowded`: 778 → 822 sources, with no `master` reference.
+  - `lotss-dr3-1312-dense`: 99 → 104 sources; completeness 0.773 → 0.807,
+    reliability 0.929 → 0.923.
+  - `lotss-dr3-1312-sparse`: 58 → 59 sources; reliability 0.931 → 0.915,
+    within tolerance, and separation p95 0.282 → 0.229 beams. A 22″ × 11″
+    core and a 41″ × 7″ companion 33″ away, joined before only by residual
+    evidence, are two sources; `master` keeps them as one, most likely by
+    its steadily-falling-profile rule.
+
+  Hebog time 143.0 s and 140.3 s of the 600 s budget.
+- **What remains.** On `crowded-field`, 3 sources join 6 injected sources,
+  none more than 31 pixels apart, and 48 injected sources have no Gaussian,
+  23 of them at 7 to 39σ (task 40). The 300² field, a source every three
+  beams, keeps 8 merges of 35 injected sources within 77 pixels, one of
+  them from the chance loop rim ownership admits there.
+- **Serial and Dask.** With one run ID, Serial and four-worker Dask
+  products are byte-identical on `crowded-field` (973 sources, 977
+  Gaussians) and the 256² (104, 101), 512² (236, 239) and 300² (234, 263)
+  fields, before and after the change to rim ownership.
+- **Checks.** After the change to rim ownership, the portable suite under
+  `just coverage` passed (2,890 tests) at 96.92% branch-aware coverage,
+  with `component_measurement.py` fully covered; the run before the change
+  reached 96.93%, the difference being `executors/dask.py:182`, a
+  scheduling-dependent wait one run covers and another does not.
+  Equivalence: 27 passed before and after the change. `just check` and the
+  strict docs build passed. Not run: the quick benchmark, since the rules
+  add no round or read and a parent's residual features are found once
+  (the quick check's Hebog time stayed at 140 to 143 s against task 38's
+  145.7 s); the traced peak and the tier anchors.
+- **Independent review.** A review agent given the request, the diff and
+  `CODE_REVIEW.md` confirmed the per-group logic, the scale alignment, the
+  fallback guard's unchanged effect over 300 randomized cases and that no
+  filter work repeats per group (`crowded-field` 32.7 s → 33.0 s). It found:
+  - **Fixed (P2).** The rim reach dropped bright rings. A smoothed arc's
+    3σ contour lies further from its ridge the brighter it is: the review's
+    ring at ten times the test ring's brightness had arcs 6.7 to 8.0 pixels
+    from the hole against a reach of 6.4. Measured on every loop candidate,
+    a reach scaled with significance overlapped: genuine members lay at 0.93
+    to 1.29 times it and chance ones from 1.08. Rim ownership keeps every
+    ring loop from 6 to 600σ and on a smooth ring at 60σ, and still rejects
+    every chance loop on `crowded-field` and the
+    256² and 512² fields; one survives on the 300² field. Ring membership
+    in the catalogue was never at stake: open-arc and residual evidence
+    still joined the bright rings' arcs in all 76 of the review's probes.
+  - **Fixed (P2).** No test pinned attribution to the parent over the group
+    nearest a feature's peak; the second per-group case now does.
+  - **Fixed (P3).** The reach's half-maximum term was unpinned (moot with
+    ownership); a docstring of `_model_and_groups` still described judging
+    the parent; the per-group test did not assert its shared fit parent.
+- **Status.** Task 39 leaves the plan, and task 40 now holds the release.
+
 ## 2026-10-03 — M2: pull request 90 review disposition
 
 - **Scope.** The reviews of `efb20e1`, task 38's repair before its rebase
@@ -27838,4 +27997,30 @@ the per-worker placement finding.
     ellipse. Running the two together invited the reading.
   - **Fix.** The adequacy sentence now names the joint fit's detected
     support as a whole, and the grouping rule has its own paragraph, which
-    defines the fitted core.
+    defines the fitted core. Task 39, rebased onto this, keeps that split
+    and scopes the sentence to each compact group's own support.
+
+## 2026-10-03 — M2: pull request 91 review disposition
+
+- **Scope.** The reviews of `8f7d5da`, task 39's repair rebased onto pull
+  request 90, and of `0a6b5ff`, the first finding's fix. Copilot left one
+  finding on each. Greptile did not review (trial ended). Codecov reports
+  every changed line covered, and CI passed on both.
+- **Residual search for a parent its loops cover (low).** The finding: when
+  resolved loops take every compact group of a fit parent, no group is left
+  to judge, but the per-group check still filtered the parent's residual on
+  every direct, à trous and matched-filter scale and expanded its
+  attribution, then discarded both. Before task 39 that path judged each
+  remaining group lazily and skipped the work.
+  - **Fix.** The remaining groups are formed first, and a parent with none
+    returns its loop groups before any residual filtering.
+  - **Test.** A two-source parent whose proposed loop covers both groups may
+    not seek residual features. It failed on `8f7d5da` for that reason.
+  - **Products.** None changes: such a parent kept no compact group before
+    or after. Not measured: how often a whole parent is one loop, so the
+    time saved is unknown.
+- **Stale rim-test rationale (low).** Copilot's second review found, in
+  code it had not flagged before, that the rim test's docstring still gave
+  the fixed reach the independent review replaced: a scale's smoothing
+  width plus an arc's half-maximum radius. It now gives rim ownership, as
+  `_resolved_emission_loop` does. The test itself is unchanged.

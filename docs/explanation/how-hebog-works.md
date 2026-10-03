@@ -160,13 +160,15 @@ A fit's Gaussian models describe its components when the emission left after
 subtracting them holds no residual feature of its own. As in PyBDSF's search
 of its residual image, such a feature must be positive, grow from a
 detection-threshold seed on the original pixels or one of the wavelet or
-matched-filter scales, and touch the detected support of the joint fit as a
-whole, not of any one component.
+matched-filter scales, and touch the detected support of the fitted
+components. It counts against only the groups of overlapping Gaussians whose
+own support it touches, not every component fitted jointly with them.
 
 Residual emission the components share can join them into one source. That
 join is stricter for a component whose model describes it: the emission must
 lie beneath its own fitted core, the half-maximum ellipse of its Gaussian.
-Overlapping Gaussians and resolved arcs can join it too.
+Overlapping Gaussians and resolved arcs can join it too. Resolved arcs form a
+loop only where they lie on the rim of the hole they enclose.
 
 Each source is measured twice. Its catalogue `INTEGRATED_FLUX` is the sum of
 its fitted Gaussian components, which is how PyBDSF defines a source's total
