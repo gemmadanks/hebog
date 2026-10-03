@@ -27999,3 +27999,22 @@ the per-worker placement finding.
     support as a whole, and the grouping rule has its own paragraph, which
     defines the fitted core. Task 39, rebased onto this, keeps that split
     and scopes the sentence to each compact group's own support.
+
+## 2026-10-03 — M2: pull request 91 review disposition
+
+- **Scope.** The reviews of `8f7d5da`, task 39's repair rebased onto pull
+  request 90. Copilot left one finding. Greptile did not review (trial
+  ended). Codecov reports every changed line covered, and CI passed.
+- **Residual search for a parent its loops cover (low).** The finding: when
+  resolved loops take every compact group of a fit parent, no group is left
+  to judge, but the per-group check still filtered the parent's residual on
+  every direct, à trous and matched-filter scale and expanded its
+  attribution, then discarded both. Before task 39 that path judged each
+  remaining group lazily and skipped the work.
+  - **Fix.** The remaining groups are formed first, and a parent with none
+    returns its loop groups before any residual filtering.
+  - **Test.** A two-source parent whose proposed loop covers both groups may
+    not seek residual features. It failed on `8f7d5da` for that reason.
+  - **Products.** None changes: such a parent kept no compact group before
+    or after. Not measured: how often a whole parent is one loop, so the
+    time saved is unknown.

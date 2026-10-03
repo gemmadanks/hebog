@@ -669,6 +669,37 @@ def test_extended_evidence_does_not_split_an_admitted_source_group(
     assert loop.protected_labels == frozenset((2, 3))
 
 
+def test_a_parent_its_loops_cover_skips_the_residual_search(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """With no compact group left to judge, no residual feature is sought."""
+
+    def whole_parent_loop(
+        *_args: object, **kwargs: Any
+    ) -> tuple[frozenset[int], ...]:
+        group = frozenset((1, 2))
+        kwargs["evidence"].append(
+            measurement.ComponentGroupingEvidence("resolved-loop", (1,), group)
+        )
+        return (group,)
+
+    def forbidden(*_args: object, **_kwargs: object):
+        raise AssertionError("residual features sought for no compact group")
+
+    monkeypatch.setattr(
+        measurement, "_resolved_emission_loop", whole_parent_loop
+    )
+    monkeypatch.setattr(measurement, "_seeded_residual_features", forbidden)
+    # One fit parent whose two compact sources form separate groups.
+    result = _measure(
+        centers=((12.0, 16.0), (24.0, 16.0)),
+        shape_yx=(33, 41),
+        maximum_bounds_pixels=100_000,
+    )
+    assert result.extended_groups == (frozenset((1, 2)),)
+    assert result.compact_groups == ()
+
+
 @pytest.mark.parametrize("center", ((0.7, 1.2), (31.5, 23.3)))
 def test_edge_context_recovers_the_in_image_gaussian(
     center: tuple[float, float],

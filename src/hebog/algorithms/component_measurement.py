@@ -1435,6 +1435,14 @@ def measure_fit_parent_components(  # noqa: PLR0913, PLR0917
         if len(groups) > 1
         else ()
     )
+    loop_labels = {index for group in loop_groups for index in group}
+    remaining_groups = tuple(
+        remaining for group in groups if (remaining := group - loop_labels)
+    )
+    if not remaining_groups:
+        return replace(
+            measured, extended_groups=loop_groups, evidence=tuple(evidence)
+        )
 
     # A fit parent joins every owner whose fit context touches another's, so
     # in a crowded field it holds many independent sources. Residual
@@ -1456,12 +1464,10 @@ def measure_fit_parent_components(  # noqa: PLR0913, PLR0917
         )
         == parent_index
     )
-    loop_labels = {index for group in loop_groups for index in group}
     compact_groups = tuple(
         remaining
-        for group in groups
-        if (remaining := group - loop_labels)
-        and not _leaves_unmodelled_emission(
+        for remaining in remaining_groups
+        if not _leaves_unmodelled_emission(
             features,
             attribution,
             minimum_pixels,
