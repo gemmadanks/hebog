@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+import ast
+import importlib
 import importlib.metadata
 import json
 import runpy
@@ -34,7 +36,7 @@ from hebog.data_models import (
     SpectralModel,
     SuppliedImageMetadata,
 )
-from hebog.science.models import CatalogueSource
+from hebog.science.catalogue_rows import CatalogueSource
 from hebog.validation.quick_benchmark import (
     load_quick_benchmark_configuration,
 )
@@ -573,8 +575,9 @@ def test_reference_cache_depends_on_the_reference_identity(
 def _write_reference_checkout(root: Path) -> None:
     """Write a checkout whose worker imports ``hebog`` as the real one does.
 
-    Importing the listed modules also runs the package's own imports and,
-    through the catalogue records, imports an algorithm module.
+    Importing the listed modules also runs the package's own imports. The
+    composition records beside the catalogue rows import an algorithm
+    module, and the worker imports neither.
     """
     files = {
         REFERENCE_WORKER: (
@@ -588,13 +591,15 @@ def _write_reference_checkout(root: Path) -> None:
         Path("src/hebog/algorithms/__init__.py"): "",
         Path("src/hebog/algorithms/fitting.py"): "VALUE = 1\n",
         Path("src/hebog/science/__init__.py"): "",
+        Path("src/hebog/science/catalogue_rows.py"): "VALUE = 1\n",
         Path("src/hebog/science/models.py"): (
             "import hebog.algorithms.fitting\n"
+            "import hebog.science.catalogue_rows\n"
         ),
         Path("src/hebog/validation/__init__.py"): "",
         Path("src/hebog/validation/campaign_runtime.py"): "VALUE = 1\n",
         Path("src/hebog/validation/products.py"): (
-            "import hebog.science.models\n"
+            "import hebog.science.catalogue_rows\n"
         ),
     }
     for relative, text in files.items():
@@ -605,10 +610,11 @@ def _write_reference_checkout(root: Path) -> None:
 def test_reference_code_identity_ignores_code_the_worker_does_not_run(
     tmp_path: Path,
 ) -> None:
-    """Another checkout, a release or an algorithm change keeps references.
+    """Another checkout, a release or a change to unrun code keeps references.
 
-    The worker imports the whole package but runs only the listed code, so
-    editing any listed file, and only those, selects a new reference.
+    The worker imports the package's own modules but runs only the listed
+    code, so editing any listed file, and only those, selects a new
+    reference. Editing an algorithm or the composition records does not.
     """
     main, worktree = tmp_path / "main", tmp_path / "worktree"
     _write_reference_checkout(main)
@@ -618,7 +624,11 @@ def test_reference_code_identity_ignores_code_the_worker_does_not_run(
     (worktree / "src/hebog/__init__.py").write_text(
         'from hebog import config\n__version__ = "0.18.0"\n'
     )
-    for unrun in ("src/hebog/config.py", "src/hebog/algorithms/fitting.py"):
+    for unrun in (
+        "src/hebog/config.py",
+        "src/hebog/algorithms/fitting.py",
+        "src/hebog/science/models.py",
+    ):
         (worktree / unrun).write_text("VALUE = 2\n")
     assert reference_code_sha256(worktree) == first
 
@@ -639,7 +649,7 @@ def test_reference_code_identity_needs_a_worker_that_imports(
     fixing the broken, unhashed module does not change.
     """
     _write_reference_checkout(tmp_path)
-    (tmp_path / "src/hebog/algorithms/fitting.py").write_text(
+    (tmp_path / "src/hebog/config.py").write_text(
         "raise ImportError('broken')\n"
     )
 
@@ -763,6 +773,76 @@ def test_reference_code_is_exactly_the_code_the_worker_runs(
         or path.is_relative_to(root / "scripts")
     }
     assert ran == {path.as_posix() for path in REFERENCE_CODE}
+
+
+def _imported_modules(path: Path) -> set[str]:
+    """Return the modules one source file imports by name."""
+    modules: set[str] = set()
+    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+        if isinstance(node, ast.Import):
+            modules.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module is not None:
+            modules.add(node.module)
+    return modules
+
+
+def test_reference_code_imports_no_algorithm() -> None:
+    """No file the reference identity hashes imports an algorithm.
+
+    Every edit to a listed file reruns all the references, and records that
+    import an algorithm, such as the composition records, change with it. So
+    the catalogue rows the worker builds live in a module of their own.
+    """
+    importing = sorted(
+        f"{relative.as_posix()}: {module}"
+        for relative in REFERENCE_CODE
+        for module in _imported_modules(_ROOT / relative)
+        if module == "hebog.algorithms"
+        or module.startswith("hebog.algorithms.")
+    )
+
+    assert importing == []
+
+
+def test_reference_code_imports_no_unlisted_alias() -> None:
+    """No listed file imports a Hebog name through an unlisted re-export.
+
+    The trace starts once the worker is imported, so it cannot see an
+    import-time binding: rows taken through an unlisted module would keep
+    their key if that module bound the names to other rows. A name comes
+    from a listed module or from the module that defines it.
+    """
+    listed = {
+        ".".join(path.with_suffix("").parts[1:])
+        for path in REFERENCE_CODE
+        if path.parts[0] == "src"
+    }
+    imported: list[str] = []
+    aliased: list[str] = []
+    for relative in REFERENCE_CODE:
+        source = (_ROOT / relative).read_text(encoding="utf-8")
+        for node in ast.walk(ast.parse(source)):
+            if not (
+                isinstance(node, ast.ImportFrom)
+                and node.module is not None
+                and (
+                    node.module == "hebog" or node.module.startswith("hebog.")
+                )
+            ):
+                continue
+            module = importlib.import_module(node.module)
+            for alias in node.names:
+                binding = f"{relative.as_posix()}: {node.module}.{alias.name}"
+                imported.append(binding)
+                value = getattr(module, alias.name)
+                if (
+                    node.module not in listed
+                    and getattr(value, "__module__", None) != node.module
+                ):
+                    aliased.append(binding)
+
+    assert imported, "no Hebog import was found to check"
+    assert aliased == []
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="uses a shell script")

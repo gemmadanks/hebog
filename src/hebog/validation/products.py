@@ -20,7 +20,7 @@ from astropy.io import fits
 from astropy.wcs import WCS
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from hebog.validation.comparison import CatalogueEllipse, CatalogueSource
+from hebog.science.catalogue_rows import CatalogueEllipse, CatalogueSource
 from hebog.validation.evidence import DatasetIdentity, SoftwareIdentity
 
 _SHA256_PATTERN = r"^[0-9a-f]{64}$"

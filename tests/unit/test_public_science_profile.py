@@ -152,6 +152,29 @@ def test_composition_fingerprint_binds_the_algorithms_those_stages_reach() -> (
     assert reached - _UNBOUND_BY_DESIGN <= _bound("algorithms")
 
 
+def test_composition_fingerprint_binds_the_science_modules_it_reaches() -> (
+    None
+):
+    """A science module the public path imports must reach the fingerprint.
+
+    Science modules hold records whose validation and normalisation decide
+    what the catalogue publishes, such as the catalogue rows, so a module
+    split out of a bound one stays part of the composition.
+    """
+    reached: set[str] = set()
+    sources = [
+        "hebog.public_api",
+        "hebog.public_science",
+        *_bound("stages"),
+        *_bound("science"),
+    ]
+    for module_name in sources:
+        reached |= _imported_submodules(_module_source(module_name), "science")
+
+    assert reached, "no science import was found to derive from"
+    assert reached <= _bound("science")
+
+
 def test_every_algorithm_left_out_of_the_fingerprint_is_still_left_out() -> (
     None
 ):

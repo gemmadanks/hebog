@@ -26,7 +26,7 @@ from scipy.optimize import (
 from scipy.stats import bootstrap as _bootstrap
 from scipy.stats import t as _student_t
 
-from hebog.science.models import CatalogueEllipse, CatalogueSource
+from hebog.science.catalogue_rows import CatalogueEllipse, CatalogueSource
 
 _FULL_CIRCLE_DEGREES = 360.0
 _IMAGE_DIMENSIONS = 2

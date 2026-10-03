@@ -336,7 +336,11 @@ def test_composition_records_declare_no_image_sized_array() -> None:
     declares no array at all. This is the static half of that rule; the
     per-record fields it checks are what the terminal composition is made of.
     """
-    fields = _annotated_fields(PACKAGE_ROOT / "science" / "models.py")
+    fields = [
+        field
+        for module in ("models.py", "catalogue_rows.py")
+        for field in _annotated_fields(PACKAGE_ROOT / "science" / module)
+    ]
     assert fields, "the composition records must be readable"
     arrays = sorted(
         f"{class_name}.{field}: {annotation}"

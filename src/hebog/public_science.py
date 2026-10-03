@@ -14,13 +14,13 @@ from hebog.data_models.measurement_diagnostics import (
 from hebog.data_models.source_association import (
     SourceAssociationResult,
 )
+from hebog.science.catalogue_rows import CatalogueSource
 from hebog.science.catalogues import (
     build_hebog_reconstructed_source_catalogues,
     local_rms_by_object_id,
 )
 from hebog.science.models import (
     CatalogueIsland,
-    CatalogueSource,
     ContinuumProducts,
     TiledComponentTopology,
 )

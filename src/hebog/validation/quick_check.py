@@ -32,7 +32,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_serializer
 from hebog.data_models import SuppliedImageMetadata
 from hebog.data_models.catalogues import SourceCatalogue
 from hebog.io import FitsImageSource
-from hebog.science.models import CatalogueSource
+from hebog.science.catalogue_rows import CatalogueSource
 from hebog.validation.campaigns import phase_four_truth_source
 from hebog.validation.comparison import (
     CatalogueComparisonReport,
@@ -52,19 +52,19 @@ REFERENCE_WORKER = Path("scripts/benchmark/run_notebook_reference.py")
 """Container worker for one reference finder run, relative to the checkout."""
 REFERENCE_CODE = (
     REFERENCE_WORKER,
-    Path("src/hebog/science/models.py"),
+    Path("src/hebog/science/catalogue_rows.py"),
     Path("src/hebog/validation/campaign_runtime.py"),
     Path("src/hebog/validation/products.py"),
 )
 """The reference worker and the repository modules it runs for PyBDSF.
 
 It reads, checks and normalises PyBDSF's products with
-``hebog.validation.products``, whose rows are ``hebog.science.models``
-catalogue records, and records its environment with
-``hebog.validation.campaign_runtime``. Importing them also imports other
-``hebog`` modules, including the scientific algorithms, but the worker runs
-none of their code, so a change there cannot change a reference product. A
-unit test traces a PyBDSF run of the worker to keep this list exact.
+``hebog.validation.products`` into ``hebog.science.catalogue_rows`` rows,
+and records its environment with ``hebog.validation.campaign_runtime``.
+Importing them also imports other ``hebog`` modules, but the worker calls
+none of their code, and the listed files take no name through their
+re-exports. Unit tests trace a PyBDSF run of the worker and check the
+listed files' imports to keep this list exact.
 """
 REFERENCE_CONTAINER_COMMAND = Path(
     "scripts/benchmark/prepare_notebook_comparison.py"

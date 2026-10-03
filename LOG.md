@@ -27597,3 +27597,48 @@ the per-worker placement finding.
   still re-run references. Under the new key, 5 of those 31 commits would
   have re-run them, 3 only for that reason. The new key matches no earlier
   one, so the first check after merging re-runs all 17 references once.
+
+## 2026-10-02 — Quick check: catalogue rows apart from the composition records
+
+- **Problem.** The reference key hashed `hebog/science/models.py` whole,
+  because it defines `CatalogueEllipse` and `CatalogueSource`, the rows the
+  reference worker builds, beside the composition records, which import
+  `hebog.algorithms`. 3 of the 31 commits on `main` from 16 September to
+  2 October (#70, #72, #76) changed only those records, so each would still
+  have re-run all 17 references and the quick benchmark's `master` timings.
+- **Decision.** The two rows, with their helpers and constants, move
+  unchanged to `hebog.science.catalogue_rows`, which imports no other Hebog
+  module, and it replaces `models.py` in `REFERENCE_CODE`. No compatibility
+  re-export was added. The worker now imports 28 Hebog modules instead of
+  43, none in `hebog.algorithms`, and a test requires every listed file to
+  import no algorithm. The new module is bound into the scientific
+  composition fingerprint; a test now requires every science module the
+  public path imports to be bound, as tests already did for stages and
+  algorithms.
+- **Evidence.** The trace test passes with the new list and fails with
+  `models.py` in its place. The key (`55c57009…`) is the same in a scratch
+  copy and survives edits to the composition records and an algorithm, but
+  not to the rows. `close-blends` ran `master` in Podman once and reused it
+  on the next run (10 s → 8 s, same metrics). Under this key, 2 of those 31
+  commits (#59, #60) would have re-run the references.
+- **Next step.** The key changes once more, so the first quick check and
+  quick benchmark after merging re-run their `master` references once.
+
+## 2026-10-02 — Quick check: pull request 89 review disposition
+
+- **Scope.** The reviews of `0d4d2ca`, the catalogue-rows refactor. Copilot
+  left one finding. Greptile did not review (trial ended).
+- **Rows bound through an unhashed alias (medium).** `products` took both
+  row classes through `hebog.validation.comparison`, which the key does not
+  hash. The trace starts once the worker is imported, so it could not see
+  that binding: had `comparison` bound the names to other compatible rows,
+  the key would have kept stale references.
+  - **Fix.** Copilot's preferred remedy: `products` imports the rows from
+    `hebog.science.catalogue_rows`. `comparison` is still imported, through
+    the evidence manifest models, which the worker does not build, but no
+    name the reference uses passes through it.
+  - **Test.** No file in `REFERENCE_CODE` may import a Hebog name through
+    an unlisted module's re-export. It failed on `0d4d2ca` for that reason.
+  - **Residual.** The tests see calls and bindings, not declarative use: a
+    class defined in an unlisted module and used on the PyBDSF path without
+    running any of its own code would escape both. None is today.

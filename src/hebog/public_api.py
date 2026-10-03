@@ -133,6 +133,7 @@ _SCIENTIFIC_MODULES = (
     "hebog.data_models.source_finding",
     "hebog.public_api",
     "hebog.public_science",
+    "hebog.science.catalogue_rows",
     "hebog.science.catalogues",
     "hebog.science.configuration",
     "hebog.science.continuum",

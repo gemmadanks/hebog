@@ -45,6 +45,7 @@ from hebog.data_models.products import ProductChunk
 from hebog.executors.base import Executor
 from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
+from hebog.science.catalogue_rows import CatalogueSource
 from hebog.science.catalogues import (
     SegmentPixels,
     SegmentRowMeasurement,
@@ -58,7 +59,6 @@ from hebog.science.catalogues import (
     segment_row_at,
     unavailable_moment_shape_fields,
 )
-from hebog.science.models import CatalogueSource
 from hebog.stages.batching import (
     batch_object_windows,
     map_round,

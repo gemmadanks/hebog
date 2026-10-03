@@ -9,7 +9,7 @@ import pytest
 
 from hebog import public_api
 from hebog.pipeline import SourceFinderError
-from hebog.science.models import CatalogueSource
+from hebog.science.catalogue_rows import CatalogueSource
 
 
 def _source(

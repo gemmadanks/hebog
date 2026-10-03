@@ -890,6 +890,65 @@ def test_catalogue_ellipse_rejects_invalid_geometry(
         _ellipse(*ellipse)
 
 
+@pytest.mark.parametrize(
+    ("changes", "message"),
+    [
+        ({"identifier": ""}, "identifier must not be empty"),
+        ({"right_ascension_degrees": np.nan}, "must be finite"),
+        ({"integrated_flux_jy": np.inf}, "must be finite"),
+        ({"declination_degrees": 90.5}, r"within \[-90, 90\]"),
+        ({"declination_degrees": -90.5}, r"within \[-90, 90\]"),
+        ({"peak_flux_jy_per_beam": 0.0}, "fluxes must be positive"),
+        ({"integrated_flux_jy": -1.0}, "fluxes must be positive"),
+        ({"association_integrated_flux_jy": 0.0}, "association integrated"),
+        ({"association_integrated_flux_jy": np.nan}, "association integrated"),
+        (
+            {
+                "deconvolution_status": "major-axis-only",
+                "quality_flags": ("major-axis-only",),
+            },
+            "one positive axis",
+        ),
+        (
+            {
+                "deconvolution_status": "major-axis-only",
+                "deconvolved_major_fwhm_degrees": 0.0,
+                "quality_flags": ("major-axis-only",),
+            },
+            "one positive axis",
+        ),
+        (
+            {
+                "deconvolution_status": "major-axis-only",
+                "deconvolved_major_fwhm_degrees": 0.01,
+            },
+            "requires its quality flag",
+        ),
+    ],
+)
+def test_catalogue_source_rejects_values_outside_its_domain(
+    changes: dict[str, object],
+    message: str,
+) -> None:
+    """A row refuses values no published measurement can take.
+
+    That is a blank identifier, a non-finite, off-sky or non-positive value,
+    or a major-axis-only deconvolution without its positive axis or its flag.
+    """
+    with pytest.raises(ValueError, match=message):
+        replace(_source("source", right_ascension_degrees=1.0), **changes)
+
+
+def test_catalogue_source_accepts_the_poles() -> None:
+    """Declination is valid up to and including either pole."""
+    for declination in (-90.0, 90.0):
+        source = replace(
+            _source("pole", right_ascension_degrees=1.0),
+            declination_degrees=declination,
+        )
+        assert source.declination_degrees == declination
+
+
 def test_catalogue_outlier_thresholds_must_be_explicitly_positive() -> None:
     """A disabled or nonsensical outlier definition fails at construction."""
     with pytest.raises(ValueError, match="outlier thresholds"):
