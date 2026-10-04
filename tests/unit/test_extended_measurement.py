@@ -23,7 +23,7 @@ from hebog.algorithms.extended_measurement import (
     nearest_source_seed_labels,
     refine_multiscale_segment_labels,
     refine_persistent_publication_labels,
-    restore_split_segment_owners,
+    restore_segment_owners,
 )
 
 
@@ -519,10 +519,13 @@ def test_multiscale_refinement_requires_island_snr_for_recovered_support() -> (
     assert refined[4, 7] == 0
 
 
-def test_multiscale_refinement_preserves_opened_away_high_snr_support() -> (
-    None
-):
-    """Preserve a thin real detection only when independently strong."""
+def test_multiscale_refinement_never_removes_a_thin_detection() -> None:
+    """The opening may trim a detection but never remove all of it.
+
+    A three-pixel line holds no full opening element. At 6-sigma the boundary
+    floor keeps it; at 4-sigma nothing would, so the owner keeps its original
+    support rather than vanishing from the mask, its island and its row.
+    """
     labels = np.zeros((7, 7), dtype=np.int32)
     labels[3, 2:5] = 7
     support = np.zeros(labels.shape, dtype=np.bool_)
@@ -541,7 +544,40 @@ def test_multiscale_refinement_preserves_opened_away_high_snr_support() -> (
     )
 
     np.testing.assert_array_equal(high_snr, labels)
-    assert not low_snr.any()
+    np.testing.assert_array_equal(low_snr, labels)
+
+
+def test_multiscale_refinement_restores_a_compact_owner_it_would_remove() -> (
+    None
+):
+    """A narrow-beam compact detection below the boundary floor survives.
+
+    A 5.5-sigma point source in a three-pixel beam, centred on a pixel,
+    floods a plus shape at 3 sigma: no 3x3 block for the opening to keep and
+    no pixel at the 6-sigma floor. Its original support is restored; the
+    neighbouring owner with a full block is trimmed as before.
+    """
+    yy, xx = np.mgrid[:12, :16]
+    sigma = 3.0 / (2.0 * np.sqrt(2.0 * np.log(2.0)))
+    snr = 5.5 * np.exp(-((yy - 5) ** 2 + (xx - 4) ** 2) / (2.0 * sigma**2))
+    labels = np.where(snr >= 3.0, 3, 0).astype(np.int32)
+    labels[3:8, 9:14] = 8
+    snr[3:8, 9:14] = 4.0
+    labels[3, 9] = 8
+    snr[2, 9] = 4.0
+    labels[2, 9] = 8
+
+    refined = refine_multiscale_segment_labels(
+        labels,
+        snr,
+        np.zeros(labels.shape, dtype=np.bool_),
+        beam_major_fwhm_pixels=3.0,
+    )
+
+    assert np.count_nonzero(labels == 3) == 5
+    np.testing.assert_array_equal(refined == 3, labels == 3)
+    assert refined[2, 9] == 0
+    assert np.all(refined[4:7, 10:13] == 8)
 
 
 def test_multiscale_refinement_cannot_split_one_direct_component() -> None:
@@ -604,6 +640,34 @@ def test_persistent_publication_retains_owner_bridge_and_identity() -> None:
 
     assert np.all(refined[5, 7:10] == 9)
     assert set(np.unique(refined)) == {0, 9}
+
+
+def test_persistent_publication_keeps_an_owner_it_would_remove() -> None:
+    """An owner that persistence retains nothing of keeps its publication.
+
+    The compact owner has no dense core, no 6-sigma pixel and no persistent
+    support, so per-pixel persistence would remove it entirely; its whole
+    previous publication is kept instead, while the dense owner beside it is
+    refined as before.
+    """
+    owners = np.zeros((9, 14), dtype=np.int32)
+    owners[4, 1:4] = 2
+    owners[3:6, 2] = 2
+    owners[2:7, 7:12] = 6
+    owners[1, 7] = 6
+    publication = owners.copy()
+    persistent = np.zeros(owners.shape, dtype=np.bool_)
+
+    refined = refine_persistent_publication_labels(
+        owners,
+        publication,
+        np.where(owners > 0, 4.0, 0.0),
+        persistent,
+    )
+
+    np.testing.assert_array_equal(refined == 2, owners == 2)
+    assert refined[1, 7] == 0
+    assert np.all(refined[3:6, 8:11] == 6)
 
 
 def test_persistent_publication_restores_exact_persistent_owner_support() -> (
@@ -697,19 +761,25 @@ def test_persistent_publication_empty_input_remains_empty() -> None:
     assert not refined.flags.writeable
 
 
-def test_persistent_publication_drops_wholly_one_scale_owner() -> None:
-    """An owner with no retained evidence cannot restore itself wholesale."""
+def test_persistent_publication_keeps_a_wholly_one_scale_owner() -> None:
+    """An owner with no retained evidence keeps its previous publication.
+
+    Persistence may trim an owner but never remove all of it; the owner
+    publishes exactly what it published before, and nothing beyond it.
+    """
     owners = np.zeros((7, 9), dtype=np.int32)
     owners[3, 2:7] = 6
+    publication = owners.copy()
+    publication[3, 6] = 0
 
     refined = refine_persistent_publication_labels(
         owners,
-        owners,
+        publication,
         np.where(owners > 0, 4.0, 0.0),
         np.zeros(owners.shape, dtype=np.bool_),
     )
 
-    assert not refined.any()
+    np.testing.assert_array_equal(refined, publication)
 
 
 def test_persistent_publication_omits_detached_new_support() -> None:
@@ -1062,7 +1132,7 @@ def test_connectivity_restores_owners_split_beyond_their_first_support() -> (
     refined[4, 2:4] = 1
     refined[4, 14:17] = 1
 
-    connected = restore_split_segment_owners(original, refined)
+    connected = restore_segment_owners(original, refined)
 
     assert np.array_equal(
         np.nonzero(connected == 1)[1], np.array([2, 3, 4, 14, 15, 16])

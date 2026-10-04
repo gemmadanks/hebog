@@ -15,7 +15,7 @@ from hypothesis import strategies as st
 from scipy import ndimage
 
 from hebog.algorithms.extended_measurement import (
-    owner_support_is_split,
+    owner_support_needs_restore,
     preserve_owner_publication_bridges,
 )
 from hebog.algorithms.owner_connectivity import (
@@ -27,7 +27,7 @@ from hebog.algorithms.owner_connectivity import (
     label_components,
     observe_owner_bridges,
     owner_bridge_planes,
-    split_owners,
+    owners_needing_restore,
     touching_across_cores,
     touching_within_core,
 )
@@ -160,11 +160,13 @@ def test_joined_components_are_the_whole_plane_components(
         )
         assert len(pairs) == len({left for left, _ in pairs})
         assert len(pairs) == len({right for _, right in pairs})
-    assert split_owners(summaries) == frozenset(
+    # Label 7 never occurs: cleanup removed it, so it is restored too.
+    assert owners_needing_restore(summaries, (1, 2, 5, 7)) == frozenset(
         label_value
-        for label_value in (1, 2, 5)
-        if owner_support_is_split(plane, label_value=label_value)
+        for label_value in (1, 2, 5, 7)
+        if owner_support_needs_restore(plane, label_value=label_value)
     )
+    assert 7 in owners_needing_restore(summaries, (7,))
 
 
 def test_pixels_touch_inside_one_core_only_between_one_label() -> None:
@@ -210,9 +212,9 @@ def _previous_and_refined(
 
     Each owner's earlier publication is grown as one connected region, or
     now and then as two, and its persistent support keeps part of it plus a
-    few pixels outside it. An owner's published pixel therefore carries that
-    owner or nothing in the persistent plane, as the support pass
-    guarantees.
+    few pixels outside it, or now and then nothing at all. An owner's
+    published pixel therefore carries that owner or nothing in the
+    persistent plane, as the support pass guarantees.
     """
     rng = np.random.default_rng(seed)
     previous = np.zeros(shape_yx, dtype=np.int32)
@@ -227,6 +229,9 @@ def _previous_and_refined(
     refined[extra] = rng.choice(
         np.asarray((1, 2), dtype=np.int32), size=int(extra.sum())
     )
+    for owner in (1, 2):
+        if rng.random() < 0.2:
+            refined[refined == owner] = 0
     return previous, refined
 
 
@@ -372,13 +377,34 @@ def test_a_plane_must_cover_the_core_it_labels() -> None:
         label_components(np.zeros((3, 4), dtype=np.int32), tile)
 
 
-def test_an_owner_without_persistent_support_is_left_alone() -> None:
-    """With no base support there is nothing to bridge or keep."""
+@pytest.mark.parametrize("core", [2, 3, 5])
+def test_an_owner_without_persistent_support_keeps_its_earlier_support(
+    core: int,
+) -> None:
+    """With no base support left, the owner's earlier support is restored.
+
+    A compact detection that persistence refines away entirely would
+    otherwise lose every published pixel, and with them its island and row.
+    """
+    previous, refined = _case_planes(("PPP.",))
+    manifest = _manifest(previous.shape, core, (0, 0))
+
+    expected = _kernel_bridges(previous, refined)
+    result = _core_bridges(previous, refined, manifest)
+
+    assert not np.any(refined)
+    assert not isinstance(expected, str)
+    np.testing.assert_array_equal(expected, previous)
+    assert not isinstance(result, str)
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_a_disconnected_earlier_support_without_a_base_fails_closed() -> None:
+    """Restoring two separate earlier parts is refused, as elsewhere."""
     previous, refined = _case_planes(("PP.P",))
     manifest = _manifest(previous.shape, 2, (0, 0))
 
-    result = _core_bridges(previous, refined, manifest)
+    expected = _kernel_bridges(previous, refined)
 
-    assert not isinstance(result, str)
-    np.testing.assert_array_equal(result, refined)
-    assert np.array_equal(_kernel_bridges(previous, refined), refined)
+    assert expected == "previous publication ownership must be connected"
+    assert _core_bridges(previous, refined, manifest) == expected

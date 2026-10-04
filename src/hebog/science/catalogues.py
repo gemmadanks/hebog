@@ -786,11 +786,12 @@ class DetectionIslandCatalogue:
     island_ids_by_owner: Mapping[int, tuple[str, ...]]
 
 
-def build_detection_island_catalogue(
+def build_detection_island_catalogue(  # noqa: PLR0913
     residual_jy_per_beam: npt.NDArray[np.float64],
     rms_jy_per_beam: npt.NDArray[np.float64],
     retained_mask: npt.NDArray[np.bool_],
     owner_labels: npt.NDArray[np.integer[Any]],
+    parent_labels: npt.NDArray[np.integer[Any]],
     *,
     beam_area_pixels: float,
 ) -> DetectionIslandCatalogue:
@@ -804,6 +805,9 @@ def build_detection_island_catalogue(
     ``owner_labels`` are the measurement labels of the components the
     catalogue publishes; an owner is linked to every island its retained
     support reaches, because published support can be split between islands.
+    ``parent_labels`` are the measurement labels of the owners those
+    components were deblended from: a component whose own support reaches
+    no island is linked to the islands its parent's support reaches.
     """
     labels = _connected_island_labels(retained_mask)
     windows = label_windows(labels)
@@ -829,8 +833,10 @@ def build_detection_island_catalogue(
         islands.append(island)
     return DetectionIslandCatalogue(
         islands=tuple(islands),
-        island_ids_by_owner=island_ids_by_owner(
+        island_ids_by_owner=island_ids_by_component(
             _owner_island_pairs(labels, owner_labels, retained_mask),
+            _owner_island_pairs(labels, parent_labels, retained_mask),
+            observed_label_pairs(owner_labels, parent_labels),
             identifier_by_island_label=identifier_by_label,
         ),
     )
@@ -856,14 +862,37 @@ def _owner_island_pairs(
     retained_mask: npt.NDArray[np.bool_],
 ) -> tuple[tuple[int, int], ...]:
     """Observe which islands each owner's retained support reaches."""
-    selected = retained_mask & (owner_labels > 0)
+    return observed_label_pairs(
+        np.where(retained_mask, owner_labels, 0), island_labels
+    )
+
+
+def observed_label_pairs(
+    first_labels: npt.NDArray[np.integer[Any]],
+    second_labels: npt.NDArray[np.integer[Any]],
+) -> tuple[tuple[int, int], ...]:
+    """Pair every label of one plane with each label of another it meets.
+
+    This pairs an owner with the islands its support reaches, or a component
+    with the parent owner whose support holds it, over a whole plane or one
+    core; the island join is the same either way.
+
+    Examples:
+        >>> import numpy as np
+        >>> observed_label_pairs(
+        ...     np.array([[3, 3, 0], [0, 4, 4]]),
+        ...     np.array([[1, 2, 2], [0, 2, 0]]),
+        ... )
+        ((3, 1), (3, 2), (4, 2))
+    """
+    selected = (first_labels > 0) & (second_labels > 0)
     if not bool(np.any(selected)):
         return ()
     pairs = np.unique(
-        np.column_stack((owner_labels[selected], island_labels[selected])),
+        np.column_stack((first_labels[selected], second_labels[selected])),
         axis=0,
     )
-    return tuple((int(owner), int(island)) for owner, island in pairs)
+    return tuple((int(first), int(second)) for first, second in pairs)
 
 
 def island_ids_by_owner(
@@ -885,6 +914,56 @@ def island_ids_by_owner(
         owner: tuple(sorted(identifiers))
         for owner, identifiers in sorted(owners.items())
     }
+
+
+def island_ids_by_component(
+    component_pairs: tuple[tuple[int, int], ...],
+    parent_pairs: tuple[tuple[int, int], ...],
+    component_parents: tuple[tuple[int, int], ...],
+    *,
+    identifier_by_island_label: Mapping[int, str],
+) -> dict[int, tuple[str, ...]]:
+    """Name the islands each component reaches, or else its parent's.
+
+    A component reaches the islands its own support overlaps. Support
+    refinement can leave part of an owner outside the retained mask, such as
+    a faint component deblended onto a brighter one's rim; that component
+    then belongs to the islands its parent owner reaches, as a Gaussian
+    belongs to the island it was fitted in, rather than to none. The pairs
+    come either from one whole plane or from the cores that observed them.
+
+    Examples:
+        >>> island_ids_by_component(
+        ...     ((1, 10),),
+        ...     ((7, 10),),
+        ...     ((1, 7), (2, 7)),
+        ...     identifier_by_island_label={10: "island-a"},
+        ... )
+        {1: ('island-a',), 2: ('island-a',)}
+    """
+    own = island_ids_by_owner(
+        component_pairs,
+        identifier_by_island_label=identifier_by_island_label,
+    )
+    parents = island_ids_by_owner(
+        parent_pairs,
+        identifier_by_island_label=identifier_by_island_label,
+    )
+    inherited: dict[int, set[str]] = {}
+    for component, parent in component_parents:
+        if component not in own and parent in parents:
+            inherited.setdefault(component, set()).update(parents[parent])
+    return dict(
+        sorted(
+            (
+                *own.items(),
+                *(
+                    (component, tuple(sorted(identifiers)))
+                    for component, identifiers in inherited.items()
+                ),
+            )
+        )
+    )
 
 
 def segment_local_rms(

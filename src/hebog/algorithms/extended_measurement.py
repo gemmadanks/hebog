@@ -208,17 +208,22 @@ def _owner_windows(
     return owners
 
 
-def owner_support_is_split(
+def owner_support_needs_restore(
     refined_window: npt.NDArray[np.int32],
     *,
     label_value: int,
 ) -> bool:
-    """Return whether one owner's refined support falls into several parts.
+    """Return whether cleanup split one owner's refined support or removed it.
+
+    Refinement may trim an owner's flood, but it must leave one connected
+    part: an owner it splits, or one it removes entirely, such as a compact
+    detection between the detection threshold and the boundary floor whose
+    footprint holds no full opening element, keeps its original support.
 
     The window must hold the owner's original and refined support completely;
     connectivity cannot be decided from a part of it. Callers that evaluate
     one owner per task use this decision, and the plane-wide
-    :func:`restore_split_segment_owners` applies it to every owner.
+    :func:`restore_segment_owners` applies it to every owner.
     """
     _, component_count = cast(
         tuple[npt.NDArray[np.int32], int],
@@ -227,7 +232,7 @@ def owner_support_is_split(
             structure=np.ones((3, 3), dtype=np.int8),
         ),
     )
-    return component_count > 1
+    return component_count != 1
 
 
 def apply_owner_restores(
@@ -235,7 +240,7 @@ def apply_owner_restores(
     refined_labels: npt.ArrayLike,
     restored_owners: Collection[int],
 ) -> npt.NDArray[np.int32]:
-    """Restore the original support of every owner cleanup would split.
+    """Restore the original support of every owner cleanup splits or removes.
 
     The decision is one boolean per owner, so a tile applies it to its own
     core without seeing the owner's whole window.
@@ -252,11 +257,11 @@ def apply_owner_restores(
     return refined
 
 
-def restore_split_segment_owners(
+def restore_segment_owners(
     original_labels: npt.NDArray[np.int64],
     refined_labels: npt.NDArray[np.int32],
 ) -> npt.NDArray[np.int32]:
-    """Restore a direct owner only when cleanup would split its support.
+    """Restore a direct owner only when cleanup would split or remove it.
 
     Each owner is examined in the window holding both its original and its
     refined support, instead of over the whole plane. Refinement recovers
@@ -271,7 +276,7 @@ def restore_split_segment_owners(
         crop = windows[int(label_value)]
         if crop is None:
             continue
-        if owner_support_is_split(
+        if owner_support_needs_restore(
             connected[crop],
             label_value=int(label_value),
         ):
@@ -306,6 +311,8 @@ def preserve_owner_publication_bridges(
     retained parts of the same owner. When the owner still falls apart, its
     whole previous support is restored, and a part that remains disconnected
     from the previous support is dropped rather than published separately.
+    When refinement retained nothing of the owner, its whole previous support
+    is restored too, so no published owner loses all of its support.
     """
     structure = np.ones((3, 3), dtype=np.int8)
     previous = np.asarray(previous_window) == label_value
@@ -315,6 +322,15 @@ def preserve_owner_publication_bridges(
         connected_component_labels(local == label_value, structure=structure),
     )
     if base_count == 0:
+        _, previous_count = cast(
+            tuple[npt.NDArray[np.int32], int],
+            connected_component_labels(previous, structure=structure),
+        )
+        if previous_count > 1:
+            raise ValueError(
+                "previous publication ownership must be connected"
+            )
+        local[previous] = label_value
         return local
     candidates, candidate_count = cast(
         tuple[npt.NDArray[np.int32], int],
@@ -475,8 +491,8 @@ def refine_persistent_publication_labels(
     """Publish connected owner support corroborated across adjacent scales.
 
     Previously published low-confidence regions are retained only when they
-    connect two retained parts of the same owner; no new threshold or
-    ownership is introduced.
+    connect two retained parts of the same owner, or when nothing else of
+    that owner is retained; no new threshold or ownership is introduced.
     """
     owners = _segment_label_plane(component_labels)
     return _preserve_publication_bridges(
@@ -513,8 +529,8 @@ def refine_multiscale_segment_support(  # noqa: PLR0913
     ownership without merging or relabelling sources.
 
     Every decision here is bounded by the opening and recovery radii, so a
-    tile evaluates its own core exactly. Whether cleanup split an owner is
-    not: :func:`restore_split_segment_owners` decides that per owner, and
+    tile evaluates its own core exactly. Whether cleanup split or removed an
+    owner is not: :func:`restore_segment_owners` decides that per owner, and
     :func:`refine_multiscale_segment_labels` composes the two.
     """
     labels = _segment_label_plane(component_labels)
@@ -612,9 +628,9 @@ def refine_multiscale_segment_labels(  # noqa: PLR0913
     recovery_radius_beams: float = _MULTISCALE_RECOVERY_RADIUS_BEAMS,
     recovered_minimum_snr: float | None = None,
 ) -> npt.NDArray[np.int32]:
-    """Refine segment support and restore any owner cleanup would split."""
+    """Refine segment support, restoring owners cleanup splits or removes."""
     labels = _segment_label_plane(component_labels)
-    return restore_split_segment_owners(
+    return restore_segment_owners(
         labels,
         refine_multiscale_segment_support(
             component_labels,

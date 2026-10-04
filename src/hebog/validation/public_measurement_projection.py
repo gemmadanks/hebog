@@ -123,6 +123,31 @@ def _required_owner_labels(owner_labels: np.ndarray | None) -> np.ndarray:
     return np.asarray(owner_labels)
 
 
+def _published_support_is_complete(
+    catalogue: SourceCatalogue,
+    source_labels: dict[str, int],
+    supported_labels: np.ndarray,
+) -> bool:
+    """Return whether every published source stands on published support.
+
+    A source holds retained pixels of its own, or, when it was deblended onto
+    a brighter owner's rim outside that owner's retained support, it names
+    its parent's island, which a source holding retained pixels also names.
+    """
+    supported = {int(value) for value in np.unique(supported_labels) if value}
+    islands = {
+        island
+        for row in catalogue.sources
+        if source_labels[row.source_id] in supported
+        for island in (row.island_id, *row.additional_island_ids)
+    }
+    return all(
+        source_labels[row.source_id] in supported
+        or bool({row.island_id, *row.additional_island_ids} & islands)
+        for row in catalogue.sources
+    )
+
+
 def project_public_measurements(
     terminal: ContinuumProducts | None,
     catalogue: SourceCatalogue,
@@ -190,7 +215,7 @@ def project_public_measurements(
     selected_labels = tuple(source_labels[key] for key in published["source"])
     # Measurement-only pixels and unpublished objects never enter matching.
     labels = np.where(mask & np.isin(labels, selected_labels), labels, 0)
-    if set(np.unique(labels)) - {0} != set(selected_labels):
+    if not _published_support_is_complete(catalogue, source_labels, labels):
         raise ValueError("public source has no published support")
     dispositions = tuple(
         row.model_copy(
