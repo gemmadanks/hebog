@@ -28635,3 +28635,24 @@ the per-worker placement finding.
   case lacks a row.
 - **Next.** Human: push and merge `fix/publish-emptied-owners`. Read the
   LOFAR-HD mosaics' `BMAJ` before task 11.
+
+## 2026-10-04 — M2: tasks 36 and 37's rule changes approved
+
+- **Decision.** The maintainer approved both changes to earlier scientific
+  rules on 4 October, confirming that merging pull requests 86 and 87 was
+  the scientific disposition their task entries of 1 and 2 October asked
+  for before release. The review-disposition entries of 2 October covered
+  code-review findings only.
+    - *Task 36.* A field so crowded that no fine noise window anywhere
+      clears its sources is measured with the unprotected sigma-clipped
+      coarse estimate, as PyBDSF's `rms_box` estimate measures every field,
+      instead of being refused. This replaces the 10 September local-noise
+      policy's line that wholly masked noise "remains explicitly
+      unavailable"; an image with no coarse estimate at all still publishes
+      RMS `unavailable`.
+    - *Task 37.* A fit parent one joint fit cannot hold, or whose window the
+      compact read bound refuses, is fitted island by island, as PyBDSF fits
+      every island, instead of being deferred whole. This replaces the rule
+      that context separation cannot waive the joint-fit limit.
+- **Records.** The plan's Science row records both approvals, and its Next
+  action no longer asks for them. No code, test or product changes.
