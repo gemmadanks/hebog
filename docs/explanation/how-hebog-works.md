@@ -198,8 +198,14 @@ its own source and carries its Gaussian measurement. Diagnostics then declare
 ### 6. Publish products
 
 The mask is the retained detection footprint, and its connected regions are
-the catalogue's islands. A Gaussian row is published only with its parent
-source row. All four files are written to a private directory, validated, and
+the catalogue's islands. Publication smooths each detection's noisy edge with
+a 3×3 opening and keeps sparse edge pixels only at 6σ, but it never removes an
+accepted detection: one the smoothing would remove entirely, such as a 5–6σ
+point source in a beam only a few pixels wide, keeps its whole thresholded
+footprint. A component whose own pixels fall outside the mask, such as a faint
+companion on a brighter source's rim, belongs to the islands of the detection
+it was split from. A Gaussian row is published only with its parent source
+row. All four files are written to a private directory, validated, and
 moved into place together, so a partial result is never visible.
 
 Hebog does not publish its background map, residual or model images, wavelet

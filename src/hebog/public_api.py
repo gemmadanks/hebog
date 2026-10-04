@@ -1701,9 +1701,11 @@ def _projected_catalogue(
             )
         )
         if not island_ids:
-            # A measured owner may have lost all publication support. Keep
-            # its disposition, not a catalogue row with a fictitious island.
-            continue
+            # Support publication keeps a retained pixel for every admitted
+            # owner, and a component outside it takes its parent's islands,
+            # so a measured source can never lack one. Refuse rather than
+            # drop the row or invent an island.
+            raise SourceFinderError("measured source reaches no island")
         source_candidates.append(
             _source_candidate(
                 source_row,
@@ -1719,7 +1721,7 @@ def _projected_catalogue(
             component_row = component_rows[component_id]
             component_label = components_by_id[component_id].label_value
             if component_label not in component_islands:
-                continue
+                raise SourceFinderError("measured Gaussian reaches no island")
             candidate = _source_candidate(
                 component_row,
                 island_id=component_islands[component_label][0],

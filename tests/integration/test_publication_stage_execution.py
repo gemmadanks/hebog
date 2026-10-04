@@ -93,12 +93,15 @@ def _planes() -> tuple[
     npt.NDArray[np.bool_],
     npt.NDArray[np.bool_],
 ]:
-    """Return one dumbbell owner, one compact owner and one tiny owner.
+    """Return a dumbbell, a compact, a tiny and a faint cross-shaped owner.
 
     The dumbbell's waist is a single pixel of weak signal to noise, so the
     3x3 opening removes it and refinement splits the owner. That is what the
     owner rounds exist to notice: the split is only visible from the window
-    holding both lobes, which crosses several tile cores.
+    holding both lobes, which crosses several tile cores. The faint cross,
+    owner 4, is a narrow-beam detection below the 6-sigma boundary floor
+    with no 3x3 block, so refinement and then persistence would each remove
+    it entirely; it straddles the corner of four 16-pixel cores.
     """
     labels = np.zeros(_SHAPE_YX, dtype=np.int32)
     labels[8:13, 8:17] = 1
@@ -106,9 +109,12 @@ def _planes() -> tuple[
     labels[10, 17:24] = 1
     labels[25:31, 10:17] = 2
     labels[33, 60:63] = 3
+    labels[30:35, 48] = 4
+    labels[32, 46:51] = 4
     direct_snr = np.full(_SHAPE_YX, -np.inf, dtype=np.float64)
     direct_snr[labels > 0] = _HIGH_SNR
     direct_snr[10, 17:24] = _WEAK_SNR
+    direct_snr[labels == 4] = _WEAK_SNR
     reconstruction = np.zeros(_SHAPE_YX, dtype=np.bool_)
     reconstruction[7:14, 7:18] = True
     reconstruction[7:14, 23:34] = True
@@ -133,7 +139,7 @@ def _detection_islands() -> tuple[DetectedIsland, ...]:
     """Describe each direct owner the way reconciliation would."""
     labels, _, _, _ = _planes()
     islands: list[DetectedIsland] = []
-    for label_value in (1, 2, 3):
+    for label_value in (1, 2, 3, 4):
         rows, columns = np.nonzero(labels == label_value)
         islands.append(
             DetectedIsland(
@@ -358,25 +364,33 @@ def test_published_labels_match_the_whole_plane_support_chain(
     expected = _whole_plane_chain()
     for name, values in expected.items():
         np.testing.assert_array_equal(published[name], values, name)
-    assert result.accepted_island_count == 2
-    assert set(np.unique(published["component-labels"])) == {0, 1, 2}
+    assert result.accepted_island_count == 3
+    assert set(np.unique(published["component-labels"])) == {0, 1, 2, 4}
 
 
 def test_owner_rounds_fire_on_an_owner_no_core_contains(
     tmp_path: Path,
 ) -> None:
-    """The split and the bridge are both decided, and both change pixels."""
+    """The split and the bridge are both decided, and both change pixels.
+
+    The faint cross is restored by both rounds: refinement and persistence
+    would each leave it nothing.
+    """
     result, sink = _run(tmp_path / "run")
 
     published = _published(sink)
+    labels, _, _, _ = _planes()
 
-    assert result.restored_owner_count == 1
-    assert result.bridged_owner_count == 1
-    assert result.published_owner_count >= 1
+    assert result.restored_owner_count == 2
+    assert result.bridged_owner_count == 2
+    assert result.published_owner_count >= 2
     # The waist is a single weak pixel: every pixel decision drops it, and
     # only the owner rounds put it back.
     assert published["publication-labels"][10, 20] == 1
     assert bool(published["retained-mask"][10, 20])
+    np.testing.assert_array_equal(
+        published["publication-labels"] == 4, labels == 4
+    )
 
 
 def test_publication_stage_is_partition_and_executor_invariant(
@@ -436,8 +450,8 @@ def test_a_one_pixel_budget_decides_every_owner_from_its_cores(
 
     assert result.owner_batch_count == 0
     assert result.wide_owner_count == len(_detection_islands())
-    assert result.restored_owner_count == 1
-    assert result.bridged_owner_count == 1
+    assert result.restored_owner_count == 2
+    assert result.bridged_owner_count == 2
 
 
 def test_publication_stage_publishes_the_canonical_product_set(
@@ -881,8 +895,8 @@ def test_an_owner_wider_than_the_budget_is_decided_from_its_cores(
     for name, values in _whole_plane_chain().items():
         np.testing.assert_array_equal(published[name], values, name)
     assert result.wide_owner_count == 1
-    assert result.restored_owner_count == 1
-    assert result.bridged_owner_count == 1
+    assert result.restored_owner_count == 2
+    assert result.bridged_owner_count == 2
     assert result.maximum_owner_read_pixels <= core_read
     assert _run(tmp_path / "default")[0].wide_owner_count == 0
 

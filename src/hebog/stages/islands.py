@@ -50,8 +50,9 @@ from hebog.executors.base import Executor
 from hebog.io.base import ImageWindow
 from hebog.science.catalogues import (
     detection_island_identifier,
-    island_ids_by_owner,
+    island_ids_by_component,
     measure_detection_island,
+    observed_label_pairs,
 )
 from hebog.science.models import CatalogueIsland
 from hebog.stages.batching import (
@@ -150,10 +151,26 @@ class _CoreBatch:
 
 @dataclass(frozen=True, slots=True)
 class _TileIslands:
-    """One core's island topology and the owners its islands hold."""
+    """One core's island topology and the owners its islands hold.
+
+    ``owner_pairs`` pair each component with the local islands its support
+    reaches, ``parent_pairs`` each parent owner with the local islands its
+    support reaches, and ``component_parents`` each component with the
+    parent whose support holds it.
+    """
 
     summary: LocalIslandTileSummary
     owner_pairs: tuple[tuple[int, int], ...]
+    parent_pairs: tuple[tuple[int, int], ...]
+    component_parents: tuple[tuple[int, int], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class _OwnerIslandPairs:
+    """Every core's island observations, named by global island label."""
+
+    components: tuple[tuple[int, int], ...]
+    parents: tuple[tuple[int, int], ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -265,25 +282,6 @@ def _label_core(
     )
 
 
-def _core_owner_pairs(
-    island_labels: npt.NDArray[np.int32],
-    owner_labels: npt.NDArray[np.int32],
-) -> tuple[tuple[int, int], ...]:
-    """Observe which local islands each owner's support reaches in one core.
-
-    The pairs stay local: the reconciliation that names the islands has not
-    run yet, so the driver maps them once every core has been observed.
-    """
-    selected = (island_labels > 0) & (owner_labels > 0)
-    if not bool(np.any(selected)):
-        return ()
-    pairs = np.unique(
-        np.column_stack((owner_labels[selected], island_labels[selected])),
-        axis=0,
-    )
-    return tuple((int(owner), int(island)) for owner, island in pairs)
-
-
 def _summary_array_bytes(summary: LocalIslandTileSummary) -> int:
     """Return the boundary-array bytes one compact summary carries."""
     boundaries = summary.boundary_labels
@@ -305,7 +303,14 @@ def _scan_islands(
     component_source: _CompletedProductSource,
     image_shape_yx: tuple[int, int],
 ) -> _ScanBatchResult:
-    """Label each core's islands and observe the owners they hold."""
+    """Label each core's islands and observe the owners they hold.
+
+    Both the components and the parent owners they were deblended from are
+    observed, so a component whose own support reaches no island can be
+    given its parent's. The island pairs stay local: the reconciliation that
+    names the islands has not run yet, so the driver maps them once every
+    core has been observed.
+    """
     tiles: list[_TileIslands] = []
     maximum_read_pixels = 0
     summary_bytes = 0
@@ -325,6 +330,13 @@ def _scan_islands(
             ),
             dtype=np.int32,
         )
+        parents = np.asarray(
+            publication_source.read_completed_window(
+                "measurement-labels",
+                bounds,
+            ),
+            dtype=np.int32,
+        )
         tile = _label_core(
             retained,
             partition,
@@ -333,7 +345,9 @@ def _scan_islands(
         tiles.append(
             _TileIslands(
                 summary=tile.compact_summary(),
-                owner_pairs=_core_owner_pairs(tile.labels, owners),
+                owner_pairs=observed_label_pairs(owners, tile.labels),
+                parent_pairs=observed_label_pairs(parents, tile.labels),
+                component_parents=observed_label_pairs(owners, parents),
             )
         )
         maximum_read_pixels = max(
@@ -351,8 +365,8 @@ def _scan_islands(
 def _global_owner_pairs(
     tiles: tuple[_TileIslands, ...],
     mappings: tuple[TileLabelMapping, ...],
-) -> tuple[tuple[int, int], ...]:
-    """Name every core's owner-to-island observation globally, once.
+) -> _OwnerIslandPairs:
+    """Name every core's owner-to-island observations globally, once.
 
     Raises:
         ValueError: If a core observed an island the reconciliation did not
@@ -369,17 +383,36 @@ def _global_owner_pairs(
             strict=True,
         )
     }
-    pairs: set[tuple[int, int]] = set()
-    for tile in tiles:
-        tile_id = tile.summary.partition.tile_id
-        for owner, local_label in tile.owner_pairs:
-            global_label = global_labels[tile_id, local_label]
-            if global_label == 0:
-                raise ValueError(
-                    "every island a core observed must be reconciled"
-                )
-            pairs.add((owner, global_label))
-    return tuple(sorted(pairs))
+
+    def named(
+        observed: tuple[tuple[str, tuple[tuple[int, int], ...]], ...],
+    ) -> tuple[tuple[int, int], ...]:
+        """Replace each local island with its reconciled global label."""
+        pairs: set[tuple[int, int]] = set()
+        for tile_id, local_pairs in observed:
+            for owner, local_label in local_pairs:
+                global_label = global_labels[tile_id, local_label]
+                if global_label == 0:
+                    raise ValueError(
+                        "every island a core observed must be reconciled"
+                    )
+                pairs.add((owner, global_label))
+        return tuple(sorted(pairs))
+
+    return _OwnerIslandPairs(
+        components=named(
+            tuple(
+                (tile.summary.partition.tile_id, tile.owner_pairs)
+                for tile in tiles
+            )
+        ),
+        parents=named(
+            tuple(
+                (tile.summary.partition.tile_id, tile.parent_pairs)
+                for tile in tiles
+            )
+        ),
+    )
 
 
 def _islands(reconciled: tuple[DetectedIsland, ...]) -> tuple[_Island, ...]:
@@ -678,7 +711,7 @@ def _require_island_inputs(
         raise ValueError("island cores are labelled without a halo")
     for product_source, names in (
         (background_rms_source, ("background", "rms")),
-        (publication_source, ("retained-mask",)),
+        (publication_source, ("retained-mask", "measurement-labels")),
         (component_source, ("component-measurement-labels",)),
     ):
         if product_source.manifest.image_shape_yx != manifest.image_shape_yx:
@@ -710,6 +743,10 @@ def run_detection_island_stage(  # noqa: PLR0913
     into islands numbered by canonical first pixel, and one task per batch of
     islands measures their rows. The round publishes no plane, because only
     these rounds read the island labels.
+
+    ``island_ids_by_owner`` names, for every component, the islands its own
+    support reaches, or, when it reaches none, the islands of the parent
+    owner it was deblended from.
 
     An island whose own window exceeds ``maximum_batch_read_pixels`` takes a
     third round instead of a window: the cores holding it return its pixels,
@@ -745,6 +782,7 @@ def run_detection_island_stage(  # noqa: PLR0913
         tuple(tile.summary for tile in tiles),
     )
     islands = _islands(reconciled.islands)
+    owner_pairs = _global_owner_pairs(tiles, reconciled.tile_mappings)
     identifier_by_island_label = {
         island.global_label: detection_island_identifier(island.first_pixel_yx)
         for island in islands
@@ -822,8 +860,14 @@ def run_detection_island_stage(  # noqa: PLR0913
         islands=tuple(
             row for _, row in sorted(rows, key=lambda item: item[0])
         ),
-        island_ids_by_owner=island_ids_by_owner(
-            _global_owner_pairs(tiles, reconciled.tile_mappings),
+        island_ids_by_owner=island_ids_by_component(
+            owner_pairs.components,
+            owner_pairs.parents,
+            tuple(
+                sorted(
+                    {pair for tile in tiles for pair in tile.component_parents}
+                )
+            ),
             identifier_by_island_label=identifier_by_island_label,
         ),
         island_count=len(islands),

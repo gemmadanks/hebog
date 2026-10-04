@@ -28548,3 +28548,90 @@ the per-worker placement finding.
   the delivery policy requires for a confirmed incorrect supported output;
   the maintainer chooses the option, or reclassifies the finding. Read the
   LOFAR-HD `BMAJ` values before task 11.
+
+## 2026-10-04 — M2: task 43, no detection loses all of its published support
+
+- **Rule.** The maintainer chose option 1 of the diagnosis above. Refinement
+  may trim an admitted owner's published support but never remove all of it,
+  and a component whose own support reaches no island takes the islands of
+  the owner it was deblended from.
+    - *Restore round.* An owner whose cleanup leaves no part keeps its
+      original support, as one cleanup splits does
+      (`owner_support_needs_restore`, `restore_segment_owners`). Cores
+      deciding a wide owner name the owners they ask about, because a
+      removed owner leaves no component to count (`owners_needing_restore`).
+    - *Bridge round.* An owner that persistence retains nothing of keeps its
+      whole previous publication (`preserve_owner_publication_bridges`, and
+      `decide_owner_bridges` for wide owners); a previous support in two
+      parts is refused, as the bridge rule already refuses one elsewhere.
+    - *Island round.* The cores also read the owners' `measurement-labels`
+      and observe each owner's islands and each component's owner;
+      `island_ids_by_component` gives a component without islands its
+      parent's, in the tiled stage and in `build_detection_island_catalogue`.
+    - *Projection.* A measured source or Gaussian without an island can now
+      only come from a broken composition, so `_projected_catalogue` raises
+      instead of dropping the row. The validation projection accepts a
+      source without mask pixels of its own when another source holds pixels
+      of the island it names, and still refuses one standing on nothing.
+- **What this reverses.** On 1 September a Phase 5 review closed "an owner
+  made wholly from weak one-scale support could restore itself" as a
+  fail-open edge for mask precision against `master` on the closed smoke,
+  and pinned it with `test_persistent_publication_drops_wholly_one_scale_owner`.
+  That owner now keeps its publication; the test is replaced by
+  `test_persistent_publication_keeps_a_wholly_one_scale_owner`, and
+  `test_multiscale_refinement_preserves_opened_away_high_snr_support` (a thin
+  4σ line removed) by `test_multiscale_refinement_never_removes_a_thin_detection`.
+  The SDC1 truth puts these owners among real sources at the rate of
+  published ones, and mask IoU against `master` rises where they appear; the
+  Phase 5 mask-precision population was not re-measured. The maintainer
+  approved the reversal on 4 October.
+- **Tests.** Red on the unfixed `22deb79` code for the intended reason, green
+  after: a 5.9σ point source in a 3.4-pixel beam whose eight-pixel footprint
+  holds no 3×3 block now has a row, an island, a Gaussian and its mask pixels;
+  a faint nine-pixel cross added to the publication stage's fixture is
+  restored by both rounds, by owner windows and by cores at a one-pixel
+  budget, and matches the whole-plane chain across geometry, batching,
+  completion order and Dask; a hand-pruned source or Gaussian is refused
+  rather than dropped. The island fixture gains a component in a core with no
+  retained pixel that takes its parent's islands across cores, against the
+  whole-plane oracle at every core size and budget and under Dask. The bridge
+  property test now empties owners. `just coverage`: 2,937 passed, 97%
+  branch-aware, the changed stage modules at 100%. Equivalence lane: 27
+  passed.
+- **Quick check** `task43-final` against `task41-base`: products byte-identical
+  to the 4 October prototype in all 17 cases, and 14 cases byte-identical to
+  the base. No measured source lacks a row; the 9, 2 and 1 unpublished
+  Gaussians in `crowded-field`, `dense-field` and `lotss-dr3-1312-dense` are
+  task 41's.
+
+  | Case | Sources | Gaussians | Against `master` |
+  | --- | --- | --- | --- |
+  | `sdc1-b2-1000h-sparse` | 521 → 561 | 530 → 574 | completeness 0.864 → 0.910, mask IoU 0.807 → 0.816; flagged: reliability 0.990 → 0.968, peak-flux error p95 0.135 → 0.659, integrated p95 0.500 → 0.746 |
+  | `sdc1-b2-1000h-crowded` | 825 → 886 | 841 → 906 | no reference |
+  | `crowded-field` | 986 → 987 | 989 → 990 | completeness 0.976 → 0.977; truth completeness 0.965 → 0.966 |
+
+  The three flags are the ones the diagnosis predicted: the 13 restored
+  sparse sources `master` lacks, each with an SDC1 truth counterpart, and
+  threshold sources where `master` fits a wider Gaussian. The maintainer
+  approved all three on 4 October.
+- **Screen.** The analytic point-source screen detects the same sources as
+  before and leaves none of the 1,011 it measures unpublished, at 2.5, 3 and
+  4 pixels a beam and every peak.
+- **Cost.** The island scan reads one more `int32` plane per core and returns
+  two more pair lists, bounded like its owner pairs by the components a core
+  holds. Quick benchmark default tier against v0.17.0 measured in the same
+  session, medians of five: `dense-field` 1.05 [1.00, 1.06],
+  `lotss-dr3-1312-sparse` 1.03 [1.00, 1.06], `lotss-dr3-1312-dense` 1.00
+  [0.98, 1.06], all inconclusive; the machine was not quiet (load 3.7, Sophos
+  near a core, times about 1.6 times the 25 September anchors), and the
+  quick check's Hebog time was 141 s against 143 s on `task41-base`. A
+  conclusive ratio needs a quiet machine; the release check is the place.
+- **After task 41 merged.** Rebased onto `ad81965`, whose tree is the one
+  `task41-final` measured. Quick check `task43-rebased` against it: the same
+  three cases change, with the same SDC1 metrics and the same three approved
+  flags; `crowded-field` goes from 995 to 996 sources, 962 to 963 islands and
+  completeness against `master` 0.985 to 0.986, truth completeness 0.974 to
+  0.975. With both tasks, no measured source or Gaussian in any quick-check
+  case lacks a row.
+- **Next.** Human: push and merge `fix/publish-emptied-owners`. Read the
+  LOFAR-HD mosaics' `BMAJ` before task 11.

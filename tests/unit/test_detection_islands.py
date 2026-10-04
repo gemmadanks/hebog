@@ -9,6 +9,7 @@ import pytest
 from hebog.science.catalogues import (
     build_detection_island_catalogue,
     detection_island_identifier,
+    island_ids_by_component,
     island_ids_by_owner,
     measure_detection_island,
 )
@@ -41,6 +42,7 @@ def test_islands_are_ordered_by_their_canonical_first_pixel() -> None:
         rms,
         retained,
         np.zeros((12, 12), dtype=np.int32),
+        np.zeros((12, 12), dtype=np.int32),
         beam_area_pixels=_BEAM_AREA_PIXELS,
     )
 
@@ -63,6 +65,7 @@ def test_an_island_summarises_only_the_pixels_its_mask_retains() -> None:
         residual,
         rms,
         retained,
+        np.zeros((6, 6), dtype=np.int32),
         np.zeros((6, 6), dtype=np.int32),
         beam_area_pixels=_BEAM_AREA_PIXELS,
     )
@@ -89,6 +92,7 @@ def test_eight_connected_regions_are_one_island() -> None:
         np.ones((8, 8), dtype=np.float64),
         retained,
         np.zeros((8, 8), dtype=np.int32),
+        np.zeros((8, 8), dtype=np.int32),
         beam_area_pixels=_BEAM_AREA_PIXELS,
     )
 
@@ -111,11 +115,44 @@ def test_an_owner_names_every_island_its_retained_support_reaches() -> None:
         np.ones((10, 12), dtype=np.float64),
         retained,
         owners,
+        owners,
         beam_area_pixels=_BEAM_AREA_PIXELS,
     )
 
     assert dict(catalogue.island_ids_by_owner) == {
         4: ("island-detection-1-1", "island-detection-1-8")
+    }
+
+
+def test_a_component_outside_the_mask_takes_its_parents_islands() -> None:
+    """A component refinement left unretained belongs where its parent is.
+
+    Component 7 was deblended from parent 2 onto the rim of component 4,
+    outside the retained support, so its own support reaches no island; it
+    takes parent 2's island. Component 9's parent reaches no island either,
+    so it names none.
+    """
+    retained = _mask((10, 12), (slice(1, 4), slice(1, 4)))
+    components = np.zeros((10, 12), dtype=np.int32)
+    components[1:4, 1:4] = 4
+    components[4:6, 1:4] = 7
+    components[8:10, 8:10] = 9
+    parents = np.zeros((10, 12), dtype=np.int32)
+    parents[1:6, 1:4] = 2
+    parents[8:10, 8:10] = 3
+
+    catalogue = build_detection_island_catalogue(
+        np.ones((10, 12), dtype=np.float64),
+        np.ones((10, 12), dtype=np.float64),
+        retained,
+        components,
+        parents,
+        beam_area_pixels=_BEAM_AREA_PIXELS,
+    )
+
+    assert dict(catalogue.island_ids_by_owner) == {
+        4: ("island-detection-1-1",),
+        7: ("island-detection-1-1",),
     }
 
 
@@ -125,6 +162,7 @@ def test_a_mask_with_no_retained_pixel_measures_nothing() -> None:
         np.ones((4, 4), dtype=np.float64),
         np.ones((4, 4), dtype=np.float64),
         np.zeros((4, 4), dtype=np.bool_),
+        np.ones((4, 4), dtype=np.int32),
         np.ones((4, 4), dtype=np.int32),
         beam_area_pixels=_BEAM_AREA_PIXELS,
     )
@@ -160,6 +198,26 @@ def test_island_identity_survives_the_join_from_observed_pairs() -> None:
     assert joined == {
         5: ("island-detection-2-3", "island-detection-9-1"),
         6: ("island-detection-2-3",),
+    }
+
+
+def test_a_component_keeps_its_own_islands_over_its_parents() -> None:
+    """Only a component that reaches no island inherits its parent's."""
+    identifiers = {
+        1: detection_island_identifier((2, 3)),
+        2: detection_island_identifier((9, 1)),
+    }
+
+    joined = island_ids_by_component(
+        ((5, 2),),
+        ((8, 1), (8, 2)),
+        ((5, 8), (6, 8), (7, 9)),
+        identifier_by_island_label=identifiers,
+    )
+
+    assert joined == {
+        5: ("island-detection-9-1",),
+        6: ("island-detection-2-3", "island-detection-9-1"),
     }
 
 

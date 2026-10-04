@@ -3,8 +3,9 @@
 """Owner connectivity decided from tile cores, exactly.
 
 The support pass asks two questions of every owner that no bounded
-neighbourhood answers: whether cleanup splits its refined support, and which
-earlier published regions bridge the parts of its persistent support. Both
+neighbourhood answers: whether cleanup splits or removes its refined
+support, and which earlier published regions bridge the parts of its
+persistent support, or replace it when none is left. Both
 are about the connected components of one label's pixels, and a component
 of one label connects only through pixels of that label, so the island
 reconciliation, which joins any two touching mask pixels, cannot answer
@@ -15,7 +16,7 @@ labels its own same-label components and keeps only their labels and the
 component on each core-edge pixel; components join where they meet across
 the edges of the cores that were observed; and the decisions are taken over
 the joined components, exactly as
-:func:`~hebog.algorithms.extended_measurement.owner_support_is_split` and
+:func:`~hebog.algorithms.extended_measurement.owner_support_needs_restore` and
 :func:`~hebog.algorithms.extended_measurement.preserve_owner_publication_bridges`
 take them over a window holding the whole owner.
 """
@@ -337,19 +338,21 @@ def _joined(summaries: Sequence[LabelComponentSummary]) -> _Joined:
     return _Joined(roots=roots, by_label=by_label)
 
 
-def split_owners(
+def owners_needing_restore(
     summaries: Sequence[LabelComponentSummary],
+    owners: Iterable[int],
 ) -> frozenset[int]:
-    """Return the labels whose pixels fall into several joined components.
+    """Return the owners whose pixels fall into several joined parts, or none.
 
-    The cores must hold every pixel of each label they carry. This is
-    :func:`~hebog.algorithms.extended_measurement.owner_support_is_split`
-    for every label at once.
+    The cores must hold every pixel of each owner asked about. An owner that
+    cleanup removed leaves no component in any core, so the caller names the
+    owners it asks about rather than the summaries naming them. This is
+    :func:`~hebog.algorithms.extended_measurement.owner_support_needs_restore`
+    for every owner at once.
     """
+    by_label = _joined(summaries).by_label
     return frozenset(
-        label_value
-        for label_value, roots in _joined(summaries).by_label.items()
-        if len(roots) > 1
+        owner for owner in owners if len(by_label.get(owner, ())) != 1
     )
 
 
@@ -450,7 +453,8 @@ def decide_owner_bridges(
     A candidate touching two parts of its owner's base bridges them. If the
     base and its bridges are connected they are published; otherwise the
     part holding the owner's earlier pixels is kept, with every candidate it
-    holds, and every other part is cleared. That is
+    holds, and every other part is cleared. An owner with no base keeps all
+    of its candidates, which are then its whole earlier support. That is
     :func:`~hebog.algorithms.extended_measurement.preserve_owner_publication_bridges`,
     whose connected components here are the joined base and candidate
     components and the touching pairs between them: two candidates never
@@ -462,7 +466,8 @@ def decide_owner_bridges(
 
     Raises:
         ValueError: If an owner's earlier pixels lie in several parts that
-            nothing reconnects, which the window rule refuses too.
+            nothing reconnects, or it has no base and its earlier pixels are
+            not one part, which the window rule refuses too.
     """
     bases = _joined(tuple(core.base for core in cores))
     candidates = _joined(tuple(core.candidates for core in cores))
@@ -475,12 +480,13 @@ def decide_owner_bridges(
     added: set[ComponentKey] = set()
     cleared: set[ComponentKey] = set()
     changed: set[int] = set()
-    for owner, owner_bases in sorted(bases.by_label.items()):
-        owner_added, owner_cleared = _decide_owner(
-            owner_bases,
-            candidates.by_label.get(owner, set()),
-            touched,
-            holding,
+    for owner in sorted(bases.by_label.keys() | candidates.by_label.keys()):
+        owner_bases = bases.by_label.get(owner, set())
+        owner_candidates = candidates.by_label.get(owner, set())
+        owner_added, owner_cleared = (
+            _decide_owner(owner_bases, owner_candidates, touched, holding)
+            if owner_bases
+            else _restore_owner(owner_candidates)
         )
         added |= owner_added
         cleared |= owner_cleared
@@ -542,6 +548,19 @@ def _shares(
         if share.added or share.cleared:
             shares[core.base.partition.tile_id] = share
     return shares
+
+
+def _restore_owner(
+    candidates: set[ComponentKey],
+) -> tuple[set[ComponentKey], set[ComponentKey]]:
+    """Return an owner's whole earlier support when none of it persisted.
+
+    With no base, every pixel the owner published earlier is a candidate, so
+    adding them all restores that support, which must be one part.
+    """
+    if len(candidates) > 1:
+        raise ValueError("previous publication ownership must be connected")
+    return candidates, set()
 
 
 def _decide_owner(

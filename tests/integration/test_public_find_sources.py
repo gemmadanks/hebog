@@ -36,6 +36,7 @@ from hebog.io import (
 from hebog.io.zarr import ZarrProductSink
 from hebog.pipeline import (
     InvalidSourceFinderInputError,
+    SourceFinderError,
     SourceFinderImageTooLargeError,
     SourceFinderOutputExistsError,
     UnsupportedSourceFinderConfigurationError,
@@ -299,29 +300,29 @@ def _pruned_products(
 
 
 @pytest.mark.integration
-def test_measurement_owner_without_published_support_has_no_public_row(
+def test_a_measured_source_without_an_island_fails_closed(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     substituted_background_rms: SubstituteBackgroundRms,
 ) -> None:
-    """Publication pruning must not create dangling island references."""
+    """A measured source with no island is refused, never silently dropped.
+
+    Support publication keeps a retained pixel for every admitted owner, so
+    only a broken composition can leave a measured source without an island;
+    the fixture prunes half the mask and its island map by hand to build one.
+    """
     yy, xx = np.mgrid[:65, :97]
     signal = 10 * np.exp(-((xx - 25) ** 2 + (yy - 32) ** 2) / 8)
     signal += 10 * np.exp(-((xx - 70) ** 2 + (yy - 32) ** 2) / 8)
     _write_image(tmp_path / "image.fits", signal)
     original = public_api._analyse_image  # pyright: ignore[reportPrivateUsage]
-    retained = []
 
     def analysis(*args: Any, **kwargs: Any):
         result = original(*args, **kwargs)
         assert result.terminal is not None
         mask = _published_mask(result).copy()
         mask[:, :48] = False
-        updated = _pruned_products(result, mask, tmp_path / "pruned.zarr")
-        # The work directory goes with the run, so the ownership this
-        # projection needs is read while its generation still exists.
-        retained.append((updated.terminal, _owner_labels(result)))
-        return updated
+        return _pruned_products(result, mask, tmp_path / "pruned.zarr")
 
     monkeypatch.setattr(
         public_api,
@@ -331,36 +332,71 @@ def test_measurement_owner_without_published_support_has_no_public_row(
         ),
     )
     monkeypatch.setattr(public_api, "_analyse_image", analysis)
+
+    with pytest.raises(SourceFinderError, match="reaches no island"):
+        hebog.find_sources(_request(tmp_path), _config(), SerialExecutor())
+    assert not (tmp_path / "products").exists()
+
+
+@pytest.mark.integration
+def test_a_compact_detection_below_the_boundary_floor_is_published(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    substituted_background_rms: SubstituteBackgroundRms,
+) -> None:
+    """A narrow-beam source between 5 and 6 sigma keeps its row and island.
+
+    A 5.9-sigma point source in a 3.4-pixel beam, half a pixel off a pixel
+    centre, floods eight pixels at 3 sigma in two rows: no 3x3 block for the
+    mask opening and no pixel at the 6-sigma boundary floor. Refinement once
+    removed all of its support, so it was fitted and measured but had no
+    island, row or mask pixel, as on the SKA-Mid SDC1 cut-outs. It is
+    published like the 20-sigma source beside it.
+    """
+    shape_yx = (48, 80)
+    yy, xx = np.mgrid[: shape_yx[0], : shape_yx[1]]
+    beam_pixels = 3.4
+    sigma = beam_pixels / (2.0 * np.sqrt(2.0 * np.log(2.0)))
+    signal = np.zeros(shape_yx, dtype=np.float64)
+    for (y, x), peak in (((24.0, 20.0), 20.0), ((24.0, 56.5), 5.9)):
+        signal += peak * np.exp(
+            -((yy - y) ** 2 + (xx - x) ** 2) / (2.0 * sigma**2)
+        )
+    header = _header(shape_yx)
+    header["BMAJ"] = header["BMIN"] = beam_pixels / 3600.0
+    fits.PrimaryHDU(data=signal, header=header).writeto(
+        tmp_path / "image.fits"
+    )
+    monkeypatch.setattr(
+        public_api,
+        "_estimate_background_rms",
+        substituted_background_rms(
+            signal, np.zeros_like(signal), np.ones_like(signal)
+        ),
+    )
+
     result = hebog.find_sources(
         _request(tmp_path), _config(), SerialExecutor()
     )
+
+    catalogue = read_catalogue_fits_product(result.catalogue)
     diagnostics = read_diagnostics_product(result.diagnostics)
     assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
-    assert result.source_count == result.gaussian_component_count == 1
-    assert result.island_count == 1
-    sources = [
-        row
-        for row in diagnostics.measurement_dispositions
-        if row.object_kind == "source"
-    ]
-    assert len(sources) == 2
-    assert sum(row.catalogue_row_published for row in sources) == 1
-    assert all(row.status == "measured" for row in sources)
     mask = np.asarray(fits.getdata(result.mask_path), dtype=np.bool_)
-    terminal, owners = retained[0]
-    projection = project_public_measurements(
-        terminal,
-        read_catalogue_fits_product(result.catalogue),
-        mask,
-        _header(signal.shape),
-        owner_labels=owners,
-    )
-    assert len(projection.sources) == 1
-    assert len(projection.measured_sources) == 2
-    assert not np.any(projection.source_union_labels[:, :48])
-    assert (
-        sum(row.catalogue_row_published for row in projection.dispositions)
-        == 2
+    faint = signal[:, 40:] >= 3.0
+    assert np.count_nonzero(faint) == 8
+    assert signal[:, 40:].max() < 6.0
+    assert not ndimage.binary_opening(faint, np.ones((3, 3))).any()
+    assert result.source_count == result.island_count == 2
+    assert result.gaussian_component_count == 2
+    np.testing.assert_array_equal(mask[:, 40:], faint)
+    assert min(
+        row.flux.peak_flux_jy_per_beam for row in catalogue.gaussian_components
+    ) == pytest.approx(5.9, rel=0.05)
+    assert all(
+        entry.catalogue_row_published
+        for entry in diagnostics.measurement_dispositions
+        if entry.status == "measured"
     )
 
 
@@ -447,12 +483,19 @@ def test_public_degenerate_owner_does_not_abort_a_healthy_neighbour(
 
 
 @pytest.mark.integration
-def test_pruned_component_of_a_published_source_keeps_its_disposition(
+def test_a_measured_gaussian_without_an_island_fails_closed(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     substituted_background_rms: SubstituteBackgroundRms,
 ) -> None:
-    """An extended source can remain published after one owner is pruned."""
+    """A published source's Gaussian with no island is refused, not dropped.
+
+    A component outside the retained mask takes its parent owner's islands,
+    so only a broken composition leaves one with none; the fixture prunes
+    one of a ring's six components from the mask and island map by hand.
+    The source keeps islands through the other five, so only the Gaussian
+    check can catch it.
+    """
     yy, xx = np.mgrid[:97, :97]
     radius = np.hypot(xx - 48, yy - 48)
     angle = np.arctan2(yy - 48, xx - 48)
@@ -482,21 +525,10 @@ def test_pruned_component_of_a_published_source_keeps_its_disposition(
         ),
     )
     monkeypatch.setattr(public_api, "_analyse_image", prune_one_component)
-    result = hebog.find_sources(
-        _request(tmp_path), _config(), SerialExecutor()
-    )
-    assert result.source_count == 1
-    assert result.gaussian_component_count == 5
-    diagnostics = read_diagnostics_product(result.diagnostics)
-    assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
-    components = tuple(
-        row
-        for row in diagnostics.measurement_dispositions
-        if row.object_kind == "component"
-    )
-    assert len(components) == 6
-    assert all(row.status == "measured" for row in components)
-    assert sum(row.catalogue_row_published for row in components) == 5
+
+    with pytest.raises(SourceFinderError, match="Gaussian reaches no island"):
+        hebog.find_sources(_request(tmp_path), _config(), SerialExecutor())
+    assert not (tmp_path / "products").exists()
 
 
 @pytest.mark.integration
@@ -535,6 +567,79 @@ def test_two_sources_share_one_actual_detection_island(
     assert catalogue.islands[0].pixel_count == np.count_nonzero(
         np.asarray(fits.getdata(result.mask_path), dtype=np.bool_)
     )
+
+
+@pytest.mark.integration
+def test_projection_accepts_a_source_standing_on_a_shared_island(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    substituted_background_rms: SubstituteBackgroundRms,
+) -> None:
+    """A source with no mask pixel of its own may stand on a shared island.
+
+    A component deblended onto a brighter one's rim, outside its retained
+    support, is published on its parent's island. The projection accepts a
+    source whose own pixels are absent while another source holds pixels of
+    the island it names, and refuses once no source holds any.
+    """
+    path = tmp_path / "image.fits"
+    yy, xx = np.mgrid[:65, :65]
+    signal = np.asarray(
+        sum(
+            peak * np.exp(-((xx - cx) ** 2 + (yy - 32) ** 2) / 8)
+            for peak, cx in ((10, 28), (9.5, 35))
+        ),
+        dtype=np.float64,
+    )
+    _write_image(path, signal)
+    monkeypatch.setattr(
+        public_api,
+        "_estimate_background_rms",
+        substituted_background_rms(
+            signal, np.zeros_like(signal), np.ones_like(signal)
+        ),
+    )
+    source = FitsImageSource(path)
+    metadata = source.metadata()
+    header = _header(signal.shape)
+    products = public_api._analyse_image(  # pyright: ignore[reportPrivateUsage]
+        _request(tmp_path),
+        source,
+        metadata,
+        SerialExecutor(),
+        tmp_path / "scratch",
+        config=_config(),
+        header=header,
+    )
+    terminal = products.terminal
+    assert terminal is not None
+    catalogue = public_api._public_catalogue(  # pyright: ignore[reportPrivateUsage]
+        products, metadata, run_id="fixture", profile="continuum"
+    )
+    mask = _published_mask(products)
+    owners = _owner_labels(products)
+    assert len(catalogue.sources) == 2
+    assert len({row.island_id for row in catalogue.sources}) == 1
+    first_owner = terminal.source_association.components[0].label_value
+
+    projection = project_public_measurements(
+        terminal,
+        catalogue,
+        mask & (owners != first_owner),
+        header,
+        owner_labels=owners,
+    )
+
+    assert len(projection.sources) == 2
+    assert not np.any(projection.source_union_labels[owners == first_owner])
+    with pytest.raises(ValueError, match="no published support"):
+        project_public_measurements(
+            terminal,
+            catalogue,
+            mask & (owners == 0),
+            header,
+            owner_labels=owners,
+        )
 
 
 @pytest.mark.integration

@@ -84,7 +84,10 @@ def _planes() -> tuple[
     The mask is deliberately awkward: one island spans four 16-pixel cores
     through their shared corner, one runs along a core edge, one sits on the
     image's own corner, and one owner's retained support is split between two
-    islands, which is why an owner names a tuple of them.
+    islands, which is why an owner names a tuple of them. Component 5 lies in
+    a core with no retained pixel at all, deblended from the same parent as
+    component 1 (see :func:`_parent_labels`), so it names that parent's
+    islands, which only other cores observe.
     """
     yy, xx = np.mgrid[: _SHAPE_YX[0], : _SHAPE_YX[1]]
     retained = np.zeros(_SHAPE_YX, dtype=np.bool_)
@@ -105,11 +108,23 @@ def _planes() -> tuple[
     owners[48:51, 8:11] = 2
     owners[48:51, 20:23] = 2
     owners[0:3, 0:3] = 3
+    owners[56:58, 80:82] = 5
     image = np.where(retained, 6.0, 0.5) + 0.01 * np.asarray(
         xx, dtype=np.float64
     )
     rms = 1.0 + 0.02 * np.asarray(yy, dtype=np.float64)
     return image, rms, retained, owners
+
+
+def _parent_labels(owners: npt.NDArray[np.int32]) -> npt.NDArray[np.int32]:
+    """Return the parent owners the fixture's components were deblended from.
+
+    Each component has a parent of its own, numbered ten above it, except
+    component 5, which shares component 1's parent.
+    """
+    parents = np.where(owners > 0, owners + 10, 0)
+    parents[owners == 5] = 11
+    return parents.astype(np.int32)
 
 
 def _beam_area_pixels() -> float:
@@ -185,6 +200,11 @@ def _sources(
                     mask if retained is None else retained,
                     "bool",
                 ),
+                (
+                    "measurement-labels",
+                    _parent_labels(owner_labels if owners is None else owners),
+                    "<i4",
+                ),
             ),
             generation_id="publication-fixture",
         ),
@@ -245,11 +265,13 @@ def _whole_plane(
 ):
     """Measure every island over complete planes, as the serial oracle."""
     image, rms, mask, owner_labels = _planes()
+    components = owner_labels if owners is None else owners
     return build_detection_island_catalogue(
         image,
         rms,
         mask if retained is None else retained,
-        owner_labels if owners is None else owners,
+        components,
+        _parent_labels(components),
         beam_area_pixels=_beam_area_pixels(),
     )
 
@@ -281,6 +303,27 @@ def test_an_owner_split_between_islands_names_both(tmp_path: Path) -> None:
         identifier in {island.identifier for island in result.islands}
         for identifiers in result.island_ids_by_owner.values()
         for identifier in identifiers
+    )
+
+
+def test_a_component_outside_the_mask_names_its_parents_islands(
+    tmp_path: Path,
+) -> None:
+    """A component with no retained pixel takes its parent's islands.
+
+    Component 5's own support reaches no island and lies in a core holding
+    no retained pixel, so the cores that observe its parent's islands are
+    others; the join across them is the whole-plane one.
+    """
+    _, _, mask, owners = _planes()
+    expected = _whole_plane()
+
+    result = _run(tmp_path / "run")
+
+    assert not np.any(mask & (owners == 5))
+    assert result.island_ids_by_owner[5] == result.island_ids_by_owner[1]
+    assert dict(result.island_ids_by_owner) == dict(
+        expected.island_ids_by_owner
     )
 
 

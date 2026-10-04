@@ -224,9 +224,11 @@ extent, never from a guess:
 Two steps of the support pass are scoped to an **owner**, not to a bounded
 neighbourhood, and were found by reading the installed composition rather than
 assumed. `refine_multiscale_segment_labels` ends by restoring an owner's
-original support when cleanup would split it, and
+original support when cleanup would split it or remove it entirely, and
 `refine_persistent_publication_labels` ends by preserving the previously
-published regions that bridge two retained parts of one owner. Both iterate
+published regions that bridge two retained parts of one owner, or all of them
+when no part is retained. No admitted owner can therefore lose all of its
+published support. Both iterate
 over the window holding an owner, so neither can be decided inside a tile core
 whose halo is smaller than that owner. Two further quantities are global: the
 connected components of `(direct support ∪ significant multiscale support) ∩
@@ -502,7 +504,11 @@ gives. The island labels are never published, because only two rounds read
 them: the cores that observe which owners each island holds, and the task that
 measures an island inside its own global bounds, which contain it entirely and
 cannot connect it to another island. An owner is named against every island
-its retained support reaches, because publication can split that support.
+its retained support reaches, because publication can split that support. A
+component whose own support reaches no island, such as a faint part deblended
+onto a brighter one's rim outside its retained support, is named against the
+islands of the owner it was deblended from, so the cores also observe each
+owner's islands and each component's owner.
 Admission bounds no island's area, so a filament's bounds can reach across the
 image. An island whose window exceeds the read budget is therefore never read
 whole: each core holding it relabels itself exactly as the scan did, the

@@ -76,7 +76,9 @@ The file then contains exactly three binary-table extensions:
 Identifiers are stable domain strings and rows are in canonical identifier
 order. A source links to one primary island and zero or more additional
 islands. A Gaussian component links to one source and a subset of that
-source's islands. These relations permit all of the following:
+source's islands: those its own retained support reaches or, for a component
+deblended onto a brighter one's rim outside the mask, those of the detection
+it was split from. These relations permit all of the following:
 
 - one island containing several independent sources;
 - one source containing several Gaussian components;
@@ -282,7 +284,9 @@ source association is independent of mask connectivity.
 
 Invalid input pixels cannot be members. Persistent multiscale support is
 admitted only under the governed boundary and ownership rules; it does not
-mean every low-surface-brightness pixel near a source is included.
+mean every low-surface-brightness pixel near a source is included. Those rules
+trim a detection's footprint but never remove an accepted detection: one they
+would remove entirely keeps its whole thresholded footprint.
 
 ## Diagnostics JSON
 

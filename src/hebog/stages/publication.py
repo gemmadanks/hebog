@@ -2,10 +2,11 @@
 
 ADR-008 splits the support pass because two of its steps are scoped to an
 owner rather than to a bounded neighbourhood: restoring an owner whose refined
-support cleanup would split, and preserving the previously published regions
-that bridge two retained parts of one owner. Each is decided once per owner,
-from the window holding that owner, and returns a record; the cores then apply
-those records and write the final labels and mask.
+support cleanup would split or remove, and preserving the previously published
+regions that bridge two retained parts of one owner, or all of them when no
+part is retained. Each is decided once per owner, from the window holding that
+owner, and returns a record; the cores then apply those records and write the
+final labels and mask.
 
 No admission bounds an owner's area, so an owner's window can be wider than
 the read budget. Such an owner is never read whole: both of its questions are
@@ -35,7 +36,7 @@ from hebog.algorithms.extended_measurement import (
     apply_owner_restores,
     assign_seeded_multiscale_support,
     multiscale_recovery_radius_pixels,
-    owner_support_is_split,
+    owner_support_needs_restore,
     preserve_owner_publication_bridges,
     refine_multiscale_segment_support,
     refine_persistent_publication_support,
@@ -51,7 +52,7 @@ from hebog.algorithms.owner_connectivity import (
     label_components,
     observe_owner_bridges,
     owner_bridge_planes,
-    split_owners,
+    owners_needing_restore,
 )
 from hebog.algorithms.reconciliation import DetectedIsland
 from hebog.data_models.generations import ProductGenerationManifest
@@ -196,7 +197,7 @@ class _OwnerBridgePatch:
 
 @dataclass(frozen=True, slots=True)
 class _RestoreBatchResult:
-    """Owners whose refined support their own window shows to be split."""
+    """Owners whose own window shows cleanup split or removed their support."""
 
     restored_owners: tuple[int, ...]
     maximum_owner_read_pixels: int
@@ -454,7 +455,7 @@ def _decide_restores(
     support_source: _CompletedProductSource,
     config: PublicationStageConfig,
 ) -> _RestoreBatchResult:
-    """Decide, per owner, whether cleanup split its refined support."""
+    """Decide, per owner, whether cleanup split or removed its support."""
     planes = _read_planes(
         batch.read_bounds,
         detection_source=detection_source,
@@ -464,7 +465,7 @@ def _decide_restores(
     restored = tuple(
         request.label_value
         for request in batch.requests
-        if owner_support_is_split(
+        if owner_support_needs_restore(
             refined[_crop(batch.read_bounds, request.window)],
             label_value=request.label_value,
         )
@@ -1027,9 +1028,10 @@ def run_publication_stage(  # noqa: PLR0913
     """Decide owner connectivity, then publish the final support products.
 
     Four rounds, in the order ADR-008 sets out: owners whose refined support
-    cleanup would split, the owners published anywhere, the label patches
-    that bridge an owner's support, and the cores that apply all three with
-    the caller's island admission. Only the last round writes.
+    cleanup would split or remove, the owners published anywhere, the label
+    patches that bridge an owner's support or restore it when persistence
+    keeps none, and the cores that apply all three with the caller's island
+    admission. Only the last round writes.
 
     An owner whose read exceeds ``maximum_batch_read_pixels`` is decided
     from its cores instead of its window: one round labels its refined
@@ -1117,7 +1119,10 @@ def run_publication_stage(  # noqa: PLR0913
     )
     restored = frozenset(
         owner for result in restore_results for owner in result.restored_owners
-    ) | split_owners(split_summaries)
+    ) | owners_needing_restore(
+        split_summaries,
+        (request.label_value for request in wide),
+    )
 
     def tile_request(
         partition: TilePartition,
