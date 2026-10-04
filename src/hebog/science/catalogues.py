@@ -1424,6 +1424,43 @@ def _summed_fitted_component_flux(
     return total, sqrt(fsum(error * error for error in errors if error))
 
 
+def _publishable_source_row(
+    source: CatalogueSource | None,
+    *,
+    fitted: bool,
+    require_signed_aperture: bool,
+) -> CatalogueSource | None:
+    """Return the measured row a source can publish, or ``None``.
+
+    A row whose aperture summed to zero or below, as one can where
+    neighbours' wings raise the background, carries the positive part of
+    its owned pixels instead. A fitted source's flux is its summed fit, so
+    only its aperture column goes unmeasured. Without a fit the aperture is
+    the flux, and that positive-only sum is no substitute for it.
+    """
+    if (
+        source is None
+        or not require_signed_aperture
+        or "exact-owner-positive-residual-flux" not in source.quality_flags
+    ):
+        return source
+    if not fitted:
+        return None
+    return replace(
+        source,
+        association_integrated_flux_jy=None,
+        quality_flags=tuple(
+            sorted(
+                set(source.quality_flags)
+                - {
+                    "exact-owner-positive-residual-flux",
+                    "positive-exact-owner-flux",
+                }
+            )
+        ),
+    )
+
+
 def _reconstructed_source_rows(
     measured_sources: tuple[CatalogueSource, ...],
     components: tuple[CatalogueSource, ...],
@@ -1442,14 +1479,19 @@ def _reconstructed_source_rows(
     by_id = {row.identifier: row for row in components}
     output = []
     for source_label, membership in membership_by_label.items():
-        source = measured_by_label.get(source_label)
-        # Source photometry always belongs to its observable aperture.
-        # A native Gaussian integrates unobserved sky and describes a
-        # different quantity even when its source has only one component.
-        if source is None or (
-            require_signed_aperture
-            and ("exact-owner-positive-residual-flux" in source.quality_flags)
-        ):
+        fitted_members = tuple(
+            component
+            for component_id in membership.component_ids
+            for component in (by_id.get(component_id),)
+            if component is not None
+            and "original-pixel-gaussian-model" in component.quality_flags
+        )
+        source = _publishable_source_row(
+            measured_by_label.get(source_label),
+            fitted=bool(fitted_members),
+            require_signed_aperture=require_signed_aperture,
+        )
+        if source is None:
             continue
         if require_signed_aperture and (
             "original-pixel-gaussian-model" not in source.quality_flags
@@ -1492,13 +1534,6 @@ def _reconstructed_source_rows(
             for component_id in membership.component_ids
         ):
             flags.add("ambiguous-multiscale-parent")
-        fitted_members = tuple(
-            component
-            for component_id in membership.component_ids
-            for component in (by_id.get(component_id),)
-            if component is not None
-            and "original-pixel-gaussian-model" in component.quality_flags
-        )
         integrated_flux_jy = source.integrated_flux_jy
         integrated_flux_error_jy = source.integrated_flux_error_jy
         if require_signed_aperture:

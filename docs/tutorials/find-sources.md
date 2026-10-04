@@ -131,7 +131,8 @@ Two points often surprise new users:
 1. **A source has two fluxes.** `INTEGRATED_FLUX` is the sum of the
    source's fitted Gaussian components, the same definition PyBDSF uses.
    `ASSOCIATION_APERTURE_FLUX` is the sum of background-subtracted pixels in
-   an aperture owned by that source. They agree for isolated compact sources
+   an aperture owned by that source, left empty when that sum is not
+   positive. They agree for isolated compact sources
    and differ for extended or edge-clipped ones; the
    [output reference](../reference/public-products.md#what-the-two-source-fluxes-measure-and-where-they-part)
    shows by how much.

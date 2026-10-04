@@ -28270,3 +28270,114 @@ the per-worker placement finding.
   times components in the feature. It was not measured on a crowded tier
   anchor; reopen it if a profile of a crowded large field shows the loop
   search.
+
+## 2026-10-03 — M2: task 41, fitted sources with a non-positive aperture
+
+- **What withheld them.** The quick check's withheld sources, 9 in
+  `crowded-field`, 2 in `dense-field` and 1 in `lotss-dr3-1312-dense`, are
+  each one component with a valid Gaussian fit, an available position and a
+  positive signed sum over its owned pixels. Each fails one test only: the
+  signed sum over its expanded association aperture, 252 to 471 pixels, is
+  −5.6e-6 to −3.6e-4 Jy. The row measurement then substitutes the positive
+  part of the owned pixels and flags it, and the continuum catalogue drops
+  any row so flagged, taking its components with it. That drop dates from
+  14 September (`4babf0b`), when the aperture was the source flux; the
+  23 September redefinition of `Total_flux` as the summed fit left it in
+  place, so the aperture vetoed rows whose published flux it no longer
+  sets. `dense-field` and `lotss-dr3-1312-dense` have withheld their 2 and 1
+  in every kept run since 26 September, v0.17.0 included; `crowded-field`
+  went from 6 to 9 as tasks 36 to 39 fitted more of it.
+- **Decision statement.** Problem: a confirmed incorrect supported output,
+  fitted sources missing from both catalogues. Cause: the publication gate
+  tests the aperture, not the estimator a row publishes. Independent test:
+  an 8σ compact source in a residual plateau at −1, whose aperture sums to
+  −0.66 while its Gaussian converges. Expected change: 9, 2 and 1 more
+  sources and Gaussians in the three cases, every other row and every map
+  unchanged. Stop if any shared row or map changes.
+- **Options and decision (maintainer, 3 October).** Asked first why the
+  science should change at this point: the plan's experimental-release
+  rule admits no known incorrect supported output, the defect is in
+  released code, and the change moves no detection, fit or published
+  value. Of publishing on the fit with `ASSOCIATION_APERTURE_FLUX` empty,
+  publishing with the positive owned sum in that column (a different,
+  upward-biased quantity), or withholding and waiving the release rule, the
+  maintainer chose the first.
+- **Repair.** `_publishable_source_row` in `science/catalogues.py`: a
+  continuum row whose aperture is not positive keeps its row when the
+  source has a fitted Gaussian, with no association aperture flux, without
+  the positive-owner flags and with `association-aperture-nonpositive`;
+  without a fit it is still withheld, since the aperture is its flux. The
+  public projection's own check for the positive-owner flag could no longer
+  be reached and is removed.
+- **Tests, failing first.** The public test, the plateau source above
+  through `find_sources` under both profiles, published 1 source in
+  `continuum` instead of 2 (`compact` already published both); it requires
+  the summed fit, an empty aperture column, the flag and a negative recorded
+  aperture, so the case keeps exercising the rule. A unit test of the row
+  rule, fitted and unfitted, withheld the fitted row on `main`. The existing
+  negative-context test now also requires that the source it withholds has
+  no measured component.
+- **Quick check.** `task41-base`, `main` at `22deb79` run through a
+  worktree, is byte-identical to `task40-rebased` in every catalogue, RMS
+  and mask of the 17 cases, so pull request 93 changed no product; its run
+  built the references under key `18f6a58f11851e2c`, which `task41-final`
+  reused. Against `task41-base`, three catalogues change, every RMS and mask
+  is identical, and every row both runs publish is identical:
+  - `crowded-field`: 986 → 995 sources, 989 → 998 Gaussians; against
+    `master` completeness 0.976 → 0.985, reliability 0.996; against truth
+    completeness 0.965 → 0.974, reliability 0.999. Injected sources with a
+    published Gaussian 988 → 997, where `master` publishes one for 1,005.
+    The 9 new Gaussians are injected sources at 5.1 to 12.9σ, 8 of them the
+    7σ-or-more sources task 41 named; at 7σ or more 4 remain without one, 2
+    on a brighter source's wing and 2 undetected. Integrated-flux error p95
+    against truth 0.242, unchanged (`master`'s own Gaussians 0.313); against
+    `master` 0.113 → 0.115.
+  - `dense-field`: 57 → 59 sources and Gaussians; completeness against
+    truth 0.950 → 0.983 and against `master` 0.934 → 0.967. Flagged beyond
+    the 0.02 tolerance: integrated-flux error p95 against `master` 0.117 →
+    0.144 and against truth 0.293 → 0.316. Without the two new rows both are
+    the baseline's: the new Gaussians read −9.7% and +37.5% against injected
+    sources of 6.9σ and 6.4σ, where `master`'s read −26.5% and +29.1%, and
+    `master`'s own Gaussians reach 0.298 against truth.
+  - `lotss-dr3-1312-dense`: 104 → 105 sources, 108 → 109 Gaussians;
+    reliability against `master` 0.923 → 0.914, within tolerance. The new
+    source is an unresolved beam-constrained fit at 5.7σ against Hebog's
+    local RMS of 0.083 mJy/beam; `master`'s RMS there is 0.100 mJy/beam, or
+    4.7σ, and `master` has no island there, its nearest source 42.6″ away.
+
+  Hebog time 142 s against 143 s for the base.
+- **Serial and Dask.** With the quick check's run IDs, four-worker Dask
+  catalogues, RMS, masks and diagnostics are byte-identical to the Serial
+  quick-check products on `crowded-field`, `dense-field` and
+  `lotss-dr3-1312-dense`.
+- **Independent review.** A review agent given the request, the decision,
+  the diff and `CODE_REVIEW.md` found nothing at P0 to P2. With the old
+  rule patched back in, both new tests failed for the intended reasons; no
+  published row in the kept products carries a positive-owner flag, and
+  every new row has an empty aperture, the flag and a positive summed flux.
+  - **Fixed (P3).** The product reference said every fitted source keeps
+    its row; one whose position cannot be measured still has none, as the
+    explanation says. The explanation's flowchart still asked for a
+    positive source measurement. Release status put the crowded-field
+    counts under the wing-source limitation without saying what they
+    cover. No test had a source with fitted and unfitted members, so a
+    rule requiring every member fitted passed; the unit test now has one,
+    and fails under that mutant. The disposition table also omitted
+    `summed-fitted-component-flux`, stale since 23 September.
+  - **Not changed.** A source still copies `member-` flags from an unfitted
+    member's own row, positive-owner ones included; that predates this
+    change, describes the member and is documented as such.
+  - **Observed, outside this task.** Sources measured but given no row
+    because they reach no island: 1 in `crowded-field`, 61 in
+    `sdc1-b2-1000h-crowded` and 40 in `sdc1-b2-1000h-sparse`, identical
+    before and after this change. That path is designed (25 September), but
+    whether those counts are right is not diagnosed.
+- **Checks.** Equivalence: 27 passed. `just coverage` passed (2,930 tests)
+  at 97.00% branch-aware coverage, as for the base; every line this change
+  adds is covered, and the two changed files miss only lines they missed
+  before. `just check` (2,149 tests) and the strict docs build passed. Not
+  run: the slow equivalence lane, the quick benchmark and the traced peak;
+  the change adds catalogue rows and reads no pixels.
+- **Status.** Task 41 leaves the plan. The release waits on the
+  maintainer's review, including whether to approve the two flagged
+  `dense-field` tail changes; task 42 follows the release.

@@ -69,21 +69,15 @@ Known limitations when interpreting results:
 - In a field so crowded that no fine noise window lies clear of its sources,
   the background and RMS are the unprotected sigma-clipped coarse estimate,
   which includes the sources' wings.
-- In a crowded field a source can be withheld although its Gaussian fits, a
-  known defect the
-  [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
-  tracks. When the signed sum over its association aperture is not
-  positive, as it can be where the sources' wings raise the background,
-  neither the source nor its components get a row. In a generated
-  1,024-pixel field with a source every 32 pixels, one in ten of them
-  resolved, 988 of 1,024 injected sources have a published Gaussian, where
-  PyBDSF publishes one for 1,005; 9 sources are withheld, 8 of them injected
-  sources peaking at 7 to 13 times the noise that PyBDSF publishes. The
-  field's 962 islands become 986 sources where PyBDSF finds 1,006, and 2 of
-  them join 4 injected sources.
 - A source on the wing of a much brighter one that makes no peak of its own
   gets no component. Its flux stays in the residual, which can join the
-  brighter source and that source's other neighbours into one source.
+  brighter source and that source's other neighbours into one source. In a
+  generated 1,024-pixel field with a source every 32 pixels, one in ten of
+  them resolved, 997 of 1,024 injected sources have a published Gaussian,
+  where PyBDSF publishes one for 1,005. Of the 4 injected sources there
+  peaking at 7 or more times the noise without one, 2 lie on a brighter
+  source's wing and 2 are not detected. The field's 962 islands become 995
+  sources where PyBDSF finds 1,006, and 2 of them join 4 injected sources.
 - Neighbouring components are fitted jointly, and the joint fit is judged
   well conditioned as a whole. When one component collapses or spreads into
   diffuse emission, every component in that fit falls back to a beam-shaped

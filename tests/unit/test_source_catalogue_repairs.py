@@ -307,6 +307,90 @@ def test_reconstructed_rows_preserve_ambiguity_and_validate_ids() -> None:
         )
 
 
+def test_nonpositive_aperture_withholds_only_a_source_without_a_fit() -> None:
+    """A source with a fitted member keeps its row below a zero aperture.
+
+    The row measurement falls back to the positive part of the owned pixels
+    when the aperture is not positive. A source with at least one fitted
+    member publishes its summed fit instead and leaves the aperture column
+    empty; a source without a fit has no flux to publish, so it keeps no row.
+    """
+    yy, xx = np.mgrid[:49, :49]
+    products = _products(10 * np.exp(-((xx - 24) ** 2 + (yy - 24) ** 2) / 8))
+    association = products.source_association
+    memberships = dict(enumerate(association.memberships, start=1))
+    label = next(iter(memberships))
+    fallback = replace(
+        products.catalogue[0],
+        identifier=f"hebog-segment-{label}",
+        integrated_flux_jy=0.5,
+        association_integrated_flux_jy=0.5,
+        quality_flags=(
+            "aperture-flux-uncertainty-unavailable",
+            "association-aperture-nonpositive",
+            "exact-owner-positive-residual-flux",
+            "position-denoised",
+            "positive-exact-owner-flux",
+        ),
+    )
+    fitted = products.component_catalogue
+    assert fitted
+    assert all(
+        "original-pixel-gaussian-model" in row.quality_flags for row in fitted
+    )
+
+    (published,) = product_builder._reconstructed_source_rows(
+        (fallback,),
+        fitted,
+        memberships,
+        association,
+        require_signed_aperture=True,
+    )
+    unfitted = product_builder._reconstructed_source_rows(
+        (fallback,),
+        (),
+        memberships,
+        association,
+        require_signed_aperture=True,
+    )
+    # One fitted member is enough: an unfitted second member adds no flux.
+    moment_member = replace(
+        fallback,
+        identifier=f"{fitted[0].identifier}-moments",
+        integrated_flux_jy=7.0,
+        quality_flags=("segment-moment-equivalent-shape",),
+    )
+    membership = memberships[label]
+    (mixed,) = product_builder._reconstructed_source_rows(
+        (fallback,),
+        (*fitted, moment_member),
+        {
+            label: replace(
+                membership,
+                component_ids=tuple(
+                    sorted(
+                        (*membership.component_ids, moment_member.identifier)
+                    )
+                ),
+            )
+        },
+        association,
+        require_signed_aperture=True,
+    )
+
+    for row in (published, mixed):
+        assert row.integrated_flux_jy == pytest.approx(
+            sum(component.integrated_flux_jy for component in fitted)
+        )
+        assert row.association_integrated_flux_jy is None
+        assert "association-aperture-nonpositive" in row.quality_flags
+        assert not {
+            "exact-owner-positive-residual-flux",
+            "positive-exact-owner-flux",
+        } & set(row.quality_flags)
+    assert unfitted == ()
+
+
 def test_compact_neighbour_remains_separate_from_a_core_and_halo() -> None:
     """An extended source cannot absorb a distinct compact neighbour."""
     yy, xx = np.mgrid[:97, :97]

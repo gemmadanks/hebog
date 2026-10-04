@@ -1685,9 +1685,7 @@ def _projected_catalogue(
             if profile == "continuum"
             else component_rows.get(source_id)
         )
-        if source_row is None or (
-            "exact-owner-positive-residual-flux" in source_row.quality_flags
-        ):
+        if source_row is None:
             continue
         label_values = tuple(
             components_by_id[component_id].label_value
