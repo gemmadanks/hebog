@@ -29015,3 +29015,74 @@ the per-worker placement finding.
   confirmed incorrect supported output.
 - **Checks.** The strict docs build and `just pre-commit` passed. This change
   edits the plan and this log only.
+
+## 2026-10-05 — M2: the release check for 0.18.0
+
+- **Candidate.** `main` at `5ff636f`, run overnight in a clean checkout on
+  4 and 5 October; `6d07231` (pull request 97) changes only `LOG.md` and the
+  plan, so the check covers it. Logs, records and the two runner scripts:
+  `benchmark-results/release-check/0.18.0/`.
+- **Change check.** `just ci` passed in 9.5 minutes and left the checkout
+  unchanged: the pre-commit hooks, 2,940 portable tests at 97% branch
+  coverage, the 27 equivalence tests, the seven acceptance placeholders as
+  strict xfails, `marimo check`, the notebook smoke test, the strict docs
+  build, and the package smoke test, whose isolated wheel install runs the
+  blank, all-NaN, continuum, compact and custom public workflows. The quick
+  science check (`release-0.18.0`) gives catalogue, mask and RMS products
+  byte-identical to `task43-rebased` in all 17 cases.
+- **Quick benchmark,** default tier, medians of five, v0.17.0 measured in
+  the same session (`release-0.18.0-same-session`): `dense-field` 0.95
+  [0.90, 0.97], `lotss-dr3-1312-sparse` 0.95 [0.93, 0.96],
+  `lotss-dr3-1312-dense` 0.94 [0.90, 0.95], all passing. An earlier run
+  that evening against the v0.17.0 timings cached that afternoon gave 0.85
+  on all three; the cache came from a busier session, so it overstated the
+  gain. Load was 2.5 to 5 throughout, so absolute times (about 15 s) are
+  not quiet-machine figures.
+- **Largest admitted tier.** The whole 15,402² LoTSS-DR3 mosaic 1312, run
+  ID `release-anchor`, single-threaded numerical libraries:
+
+  | Executor | Wall time | Peak RSS | Sources, Gaussians, islands |
+  | --- | --- | --- | --- |
+  | Serial | 3,362 s | 3,101 MiB | 19,189, 21,010, 20,095 |
+  | Dask, four one-thread process workers | 2,116 s (0.63) | driver 2,531 MiB, largest worker 2,429 MiB | the same |
+
+  Catalogue, diagnostics, RMS and mask are byte-identical between the two.
+  Serial matches the 29 September baseline (median 3,410 s); Dask is the
+  first whole-mosaic run since the driver repair, which took it from
+  11,248 s. RMS is valid, every wide-object count is zero, and every
+  measured source and Gaussian has a row; 613 components are unavailable.
+  Against 29 September (16,084 sources, 20,661 Gaussians, 20,069 islands)
+  fewer Gaussians are joined into one source, 0.91 sources a Gaussian
+  against 0.78; the change is not attributed task by task. The survey's
+  PyBDSF catalogue for this mosaic has 22,420 sources and 28,559 Gaussians.
+- **Notebook comparison.** `refresh_public_notebook_hebog.py` ran the 13
+  saved SDC1, Hydra and LoTSS-DR2 inputs in 27 minutes, every case
+  successful, as `Release 0.18.0 candidate`
+  (`phase-5/hebog-notebook-refreshes/5ff636f-db0a56698f97-9add3ef0`, now
+  `latest`), reusing the saved released-PyBDSF and Aegean results. Hebog
+  sources against the 21 September refresh (`dc2c07d`), beside the two
+  references' source rows:
+
+  | Case | Hebog | PyBDSF 1.14.1 | Aegean |
+  | --- | --- | --- | --- |
+  | SDC1 sparse | 1,891 → 2,254 | 2,403 | 2,530 |
+  | SDC1 ordinary | 2,197 → 2,779 | 2,833 | 3,073 |
+  | SDC1 crowded | 2,552 → 3,291 | 3,498 | 3,708 |
+  | SDC1 resolved | 1,775 → 2,197 | 2,604 | 2,465 |
+  | SDC1 close pair | 1,966 → 2,426 | 2,713 | 2,709 |
+  | SDC1 high dynamic range | 2,444 → 3,275 | 3,268 | 3,605 |
+  | SDC1 low apparent S/N | 2,355 → 3,043 | 3,481 | 3,422 |
+  | SDC1 primary-beam boundary | 1,834 → 2,189 | 2,487 | 2,434 |
+  | Hydra deep | 2,479 → 4,341 | 4,197 | 3,996 |
+  | Hydra shallow | 451 → 613 | 590 | 604 |
+  | LoTSS-DR2 90′ field | 1,204 → 1,563 | 1,505 | 1,538 |
+  | LoTSS-DR2 3C 295 | 13 → 21 | 136 | 16 |
+  | LoTSS-DR2 M51 | 99 → 167 | 123 | 131 |
+
+  Counts only, not matched; the notebook shows the overlays. Hebog now
+  publishes more sources than both references on Hydra deep and M51, the
+  two places to look first for an extended source split into several.
+- **Not run.** The traced peak and the 10,000² anchor (the release check's
+  budget question is still open), and `master` timings, which are
+  diagnostic only.
+- **Next.** Human: inspect the refresh and cut the release.
