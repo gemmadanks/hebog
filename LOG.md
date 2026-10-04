@@ -28381,3 +28381,170 @@ the per-worker placement finding.
 - **Status.** Task 41 leaves the plan. The release waits on the
   maintainer's review, including whether to approve the two flagged
   `dense-field` tail changes; task 42 follows the release.
+
+## 2026-10-04 — M2: measured sources the published mask leaves without a row
+
+- **Question.** In quick-check runs `task41-base` and `task41-final`, which
+  agree here, sources with `status == "measured"` have no row in
+  `catalogue.fits`: 40 of 561 on `sdc1-b2-1000h-sparse`, 61 of 886 on
+  `sdc1-b2-1000h-crowded` and 1 on `crowded-field`, none on `dense-field` or
+  either LoTSS-DR3 cut-out. With them go 44, 65 and 1 measured Gaussians.
+  Diagnosis only; no scientific behaviour changed. Scripts and outputs:
+  `benchmark-results/diagnostics/measured-without-rows-20261004/`, run on
+  `22deb79`, whose in-process reruns reproduce the `task41-base` catalogues
+  byte for byte.
+- **Where the rows go.** The support pass writes `retained-mask` as
+  `publication-labels > 0` (`stages/publication.py`). Publication support is
+  each owner's 3σ detection support after a 3×3 binary opening, a dense-core
+  test and half-beam multiscale recovery around what the opening kept, with
+  boundary pixels kept only at direct S/N ≥ 6
+  (`refine_multiscale_segment_support`), then refined again by
+  `refine_persistent_publication_support`, which restores persistent support
+  only for owners already published elsewhere. An owner whose footprint holds
+  no full 3×3 block and no 6σ pixel publishes nothing, yet keeps its
+  measurement support, so topology, fitting and association measure it as
+  usual. The island round names a component's islands by the overlap of
+  `component-measurement-labels` with the retained mask (`stages/islands.py`).
+  `_projected_catalogue` skips a source none of whose components reaches an
+  island, and a Gaussian whose own component reaches none, rather than
+  invent an island.
+- **Every owner follows that rule.** "Published if its opening is non-empty
+  or it has a pixel at direct S/N ≥ 6" predicts publication for all 2,653
+  accepted owners of six cases (575, 884, 963, 59, 63, 109), with no
+  exception. The 43 and 62 SDC1 owners left without a retained pixel have 7
+  to 18 detection pixels, all emptied by the opening, and direct peaks of
+  3.95 to 6.0σ; the 16 and 15 below 5σ reach 5σ only in the combined
+  multiscale S/N.
+- **Classification.** Three forms of one rule, and two related findings.
+
+  | Form | Rows lost | Classification |
+  | --- | --- | --- |
+  | A compact owner the refinement empties | 99 sources and their Gaussians: 40 sparse SDC1, 58 crowded SDC1, 1 `crowded-field` | Confirmed incorrect supported output |
+  | A faint part deblended from a bright owner (17.7 to 98.7σ), lying on its rim outside the owner's retained support | 3 crowded SDC1 sources, fitted at 5.7 to 7.2σ | Same rule, same classification |
+  | A component of a published source whose support reaches no island | 8 Gaussians, 4 per SDC1 cut-out | Same rule, same classification: the source's `Total_flux` still sums their fitted flux, which is 0.1% to 100% of it, so it exceeds the sum of its published Gaussians (one source keeps no Gaussian) |
+  | The no-island skip in `_projected_catalogue` | — | Correct: it refuses a fictitious island; the defect is upstream |
+  | `measured` with `catalogue_row_published: false` | — | Correct by schema (all 102 sources and 110 Gaussians carry `false`, and `source_count` counts the flag), but undocumented and without a reason |
+
+- **They are real sources.** The SDC1 truth catalogue (`True_1400_v2.txt`,
+  kept from Phase 5) has a source within one beam of 39 of the 40 sparse and
+  all 61 crowded drops, against 6.4% at random positions; published
+  single-component sources at the same fitted peak S/N (4.4 to 7.6) match at
+  71 of 72 and 99 of 99. Pinned `master` publishes 27 of the 40 sparse drops,
+  all compact (`S`) and inside its island mask, against 72 of 72 published
+  peers; the 13 it lacks all have truth counterparts. `master` failed on the
+  crowded cut-out. The `crowded-field` drop is injected source `truth-067` at
+  6.57σ, which `master` publishes.
+- **The loss grows as the beam narrows.** Owners with a direct peak of 5 to
+  6σ left unpublished: 0 of 33 on the LoTSS cut-outs (9″ beam, 6 pixels),
+  1 of 34 on `crowded-field` (5 × 4 pixels), 27 of 29 and 47 of 52 on SDC1
+  (2.48 pixels). An analytic screen of isolated point sources in
+  beam-correlated noise (49 per 320² image, three noise draws, injected peaks
+  5.25 to 8σ, `screen.py`) leaves unpublished, of the injected sources Hebog
+  measures:
+
+  | Observed peak | 2.5-pixel beam | 3 pixels | 4 pixels |
+  | --- | --- | --- | --- |
+  | 5 to 6σ | 16 of 22 | 58 of 84 | 23 of 113 |
+  | 6 to 7σ | 2 of 74 | 9 of 134 | 1 of 138 |
+  | ≥ 7σ | 0 of 121 | 0 of 148 | 0 of 177 |
+
+  The opening's docstring assumes it is "smaller than the sampled restoring
+  beams supported by the source-finder contracts", but the input header
+  contract sets no minimum sampling. SKA-Mid's SDC1 image is 2.48 pixels a
+  beam, and the LOFAR-HD mosaics' names (`full_mosaic_03`, `06`, `12` at
+  0.1, 0.2 and 0.4″ pixels) suggest about 3 pixels at every tier; their
+  `BMAJ` was read on 16 September but not recorded.
+- **Why it matters for Rapthor.** Rapthor consumes the source rows and the
+  island mask and, with mask filtering on, removes sky-model components
+  outside detected islands
+  ([contract](docs/reference/rapthor-source-finding-contract.md)). A real
+  5 to 6σ source missing from both loses its components.
+- **How it arose.** The opening was added on 14 August and measured as a
+  mask policy, on mask precision, recall and IoU over ten development
+  images, where recall fell from 0.926 to 0.914. Because a row must name an
+  island of that mask, it also decides which compact sources are published,
+  which no check measured. The guard came with `4babf0b`; its test,
+  `test_measurement_owner_without_published_support_has_no_public_row`,
+  blanks half the mask by hand, so nothing exercised the refinement emptying
+  a real source. The public products reference explains a Gaussian omitted
+  because its parent source cannot be published, not a measured source that
+  loses its row, and its estimator list lacks
+  `summed-fitted-component-flux`.
+- **Prototype, scratch code only.** `prototype.py` monkeypatches two
+  changes: an owner the refinement would empty keeps its direct 3σ support,
+  and a component that reaches no island takes the islands of the owner it
+  was deblended from. Scored by the quick check's own `_case_metrics`
+  against the cached `master` references, the unpatched run reproduces every
+  `task41-base` metric, and with the patch 14 cases keep byte-identical
+  catalogue, mask, RMS and diagnostics. No measured source is left without a
+  row; the remaining unpublished Gaussians are task 41's (9, 2 and 1). The
+  screen under the patch (`screen_prototype.py`) detects the same sources
+  and publishes all 1,011 it measures, at every beam and peak.
+
+  | Case | Sources | Gaussians | Islands | Against `master` |
+  | --- | --- | --- | --- | --- |
+  | `sdc1-b2-1000h-sparse` | 521 → 561 | 530 → 574 | 532 → 575 | completeness 0.864 → 0.910, reliability 0.990 → 0.968, mask IoU 0.807 → 0.816, peak-flux error p95 0.135 → 0.660, integrated p95 0.500 → 0.746 |
+  | `sdc1-b2-1000h-crowded` | 825 → 886 | 841 → 906 | 822 → 884 | no reference |
+  | `crowded-field` | 986 → 987 | 989 → 990 | 962 → 963 | completeness 0.976 → 0.977; truth completeness 0.965 → 0.966 |
+
+  The reliability fall is the 13 restored sources `master` lacks. The flux
+  flags are threshold sources where `master` fits a wider Gaussian: for the
+  27 restored sources both finders publish, truth puts Hebog's peak at a
+  median 0.93 of the truth peak and `master`'s at 0.55, and integrated flux
+  at 1.49 and 0.84 (published peers at the same S/N: 0.88 and 0.81 for peak,
+  1.11 and 0.99 integrated). These truth ratios use a primary-beam factor of
+  0.525 fitted to 30 bright compact matches, so they are indicative only.
+- **Decision statement (task 43).**
+    - *Observed problem.* 102 measured sources and 8 more measured Gaussians
+      in the quick check have no catalogue row and no mask pixel, while
+      their dispositions say `measured`.
+    - *Proposed cause.* The support pass's publication refinement (3×3
+      opening, 6σ boundary floor, persistent support restored only for
+      owners already published) can leave an admitted owner, or a part
+      deblended from one, with no retained pixel; a row needs an island of
+      the retained mask. It removes most compact detections between the
+      5σ threshold and 6σ once the beam is about 3 pixels or narrower.
+    - *Independent test, done.* The rule predicts all 2,653 owners; the
+      screen shows the loss tracks beam sampling and observed peak; the
+      prototype that changes only those two decisions
+      restores exactly these rows and nothing else.
+    - *Expected measurable change.* The prototype's table above.
+    - *Stopping condition.* No measured source or Gaussian in the quick check
+      lacks a row except through a documented path; the 14 unaffected cases
+      stay byte-identical; the screen leaves no measured injected source
+      unpublished at 2.5, 3 or 4 pixels; and the maintainer has approved or
+      rejected the sparse SDC1 flux and reliability flags. If an
+      implementation restores fewer than 95 of the 102 sources or moves a
+      LoTSS product, re-diagnose before a second attempt.
+- **Options for the maintainer.**
+    1. *Recommended:* never let the refinement empty an admitted owner, and
+       let a component that reaches no island take its parent owner's
+       islands. The first belongs in the owner-scoped round that already
+       restores an owner whose cleanup would split it
+       (`owner_support_is_split`, `apply_owner_restores`), so it stays
+       decided once per owner as ADR-008 requires; the second belongs in the
+       island round's owner pairs. The opening keeps its job, smoothing mask
+       boundaries, and stops deciding which sources exist. This is what
+       PyBDSF does: an island that holds a detection and has the minimum
+       island size is published whatever its shape. The prototype restores the 3σ direct support; restoring
+       only the seed pixels is the narrower variant.
+    2. Restore only owners holding a direct pixel at or above the detection
+       threshold, PyBDSF's `thresh_pix` analogue: 26 of the 40 sparse and 46
+       of the 58 crowded form-A drops. It costs less reliability against
+       `master`, but leaves the owners that reach 5σ only at multiscale
+       (14 and 12 drops, 25 of them with a truth counterpart) measured
+       without a row, so it would also need option 4's documentation.
+    3. Scale or skip the opening by beam sampling. This alone reduces the
+       loss but does not end it: 20% of 5 to 6σ sources at 4 pixels.
+    4. Keep the rule as a documented limitation: state the effective
+       threshold, and give the omission a reason, which the disposition
+       schema forbids for `measured` today. This leaves SKA-Mid and,
+       probably, the LOFAR-HD tiers without real near-threshold sources.
+
+  With any option, the public products reference should describe a measured
+  source without a row, if one remains, and list
+  `summed-fitted-component-flux`.
+- **Next.** Plan task 43 is proposed as a release blocker beside task 41, as
+  the delivery policy requires for a confirmed incorrect supported output;
+  the maintainer chooses the option, or reclassifies the finding. Read the
+  LOFAR-HD `BMAJ` values before task 11.
