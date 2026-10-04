@@ -28656,3 +28656,134 @@ the per-worker placement finding.
       that context separation cannot waive the joint-fit limit.
 - **Records.** The plan's Science row records both approvals, and its Next
   action no longer asks for them. No code, test or product changes.
+
+## 2026-10-04 — Review: the whole codebase, and the tasks it adds
+
+- **Scope and method.** A review of `main` at `ad819653` (v0.17.0 plus
+  twelve commits), at the maintainer's request. Eight reviewers each read
+  one area: the public boundary and I/O; executors and the image-plane
+  stages; the object, association and publication stages; the fitting and
+  measurement kernels; the background, detection, deblending, multiscale and
+  association kernels; the science composition, adapters and data models;
+  the validation tooling and scripts; and the tests and documentation. Each
+  finding rated P1 or P2 was reproduced with a small script, and the lead
+  finding of every area was run again independently. The scripts are kept,
+  outside Git, under `benchmark-results/codebase-review-2026-10-04/`. They
+  use small synthetic inputs, so every cost and memory figure below is a
+  figure for that input, not a measurement of a real image.
+- **Baseline.** `ruff check`, `ruff format --check` and strict `pyright`
+  pass, and no function exceeds cyclomatic complexity 10. The portable suite
+  passes at 97% branch-aware coverage: 2,930 passed and 2 xfailed, with 480
+  warnings and no `filterwarnings` setting. Nothing was found at P0.
+- **Reproduced a second time.**
+  - *Rapthor view (task 57).* On five point sources in a 200² image the
+    `continuum` profile's source rows carry no position error and no
+    deconvolved size, so `DC_Maj`, `E_RA` and `E_DEC` are NaN and Rapthor's
+    cuts (`diagnostic_calculation.py:724-729`) keep 0 of 5; `compact` keeps
+    5 of 5. The codec raises on the finder's `J2000.0` epoch.
+  - *Header cards (task 44).* A `CRVAL1` card holding `nan`, the text
+    `'180.0'` or `180.0 deg` is accepted, and a source at (180.00253,
+    45.00142) is published at (0.00253, 45.00142).
+  - *Refusals (task 45).* Integer images with `BSCALE`, `BZERO` or `BLANK`
+    raise a bare `ValueError` from the memory-mapped read.
+    `SourceFinderConfig(5.0, 3.0, np.int64(7))` raises a bare `TypeError`
+    in `_materialize_bundle`, after the analysis.
+  - *RMS (task 46).* Coarse cells of 1.0, 1.6 and 2.5 at x = 74.5, 124.5
+    and 174.5 extrapolate to an RMS of exactly zero on 4,800 pixels of a
+    600² image. Four threads calling the RMS kernel let 5 of 1,200 warnings
+    escape and leave `ignore` filters for `RuntimeWarning` and
+    `AstropyUserWarning` in the process; a variant with no filter is
+    bitwise equal.
+  - *Failure cleanup (task 47).* After a failed `ThreadExecutor` run the
+    work directory is gone, and one second later three chunk files exist in
+    it again.
+  - *Noise seeds (task 48).* For generator version 1, seeds 1000 and 1001
+    give `b[address] == a[address ^ 1]` for every pixel, and seeds 1000 and
+    1007 give identical aligned 16-pixel block sums. Version 3 realizations
+    correlate at -0.03.
+  - *Lanes (tasks 49, 50 and 58).* No file in `tests/equivalence` calls
+    `find_sources`. A public run under either profile loads none of the
+    stages `catalogue`, `deblending`, `fitting` and `measurement`, or the
+    algorithms `catalogue`, `combined_catalogue`, `combined_identity`,
+    `combined_products` and `compact_preservation`: 2,875 lines. The unit
+    recipe's doctest flags collect 0 items under
+    `src/`, where naming `src/hebog` collects 16. 118 `slow` tests are
+    selected by no recipe or CI job. `ThreadExecutor` appears only in the
+    two executor test files.
+  - *Bright regions (task 53).* Sources at 200σ on a 150-pixel lattice in a
+    2,000² image give one task that reads (2000, 2000) at a traced peak of
+    993 MiB; on a 400-pixel lattice, 25 tasks of 273². At 15,402², 4,000
+    uniformly placed candidates merge into one region of the whole image;
+    2,000 give a largest region of 2.6 Mpx.
+  - *Batch reads (task 54).* The real `batch_object_windows`, with the
+    4 Mpx budget and 16,084 objects of 70-pixel windows at 15,402², gives a
+    median read of 274 × 15,270 and 656 chunk decodes a plane; ordered by
+    core first, 1,510 × 2,088 and 268. At 3,000² the two orders decode the
+    same 8 chunks.
+  - *Association (task 55).* A profile at 2,000 synthetic components shows
+    16 million `isdisjoint` calls in `_components_for_feature_group` and
+    `_hierarchy_groups`.
+  - *Admission (task 17).* No module outside `executors/` names
+    `TaskRequirement`, `requirement=`, `capacity` or `reduce_batches`.
+  - *Packaging (task 60).* A lowest-direct resolution fails: `astropy
+    8.0.1` and `zarr 3.2` need NumPy 2. Only `distributed` is imported.
+    `README.md` and `docs/tutorials/index.md` install `v0.12.0`.
+- **Run by the area reviewer only.**
+  - A logical `BMAJ` is read as a 1° beam; `BMAJ = nan` and an unquoted
+    `BUNIT` leak Astropy's `VerifyError`; a truncated file raises a bare
+    `TypeError`; a 400 × 2,600 image is refused with a bare `ValueError`;
+    a beam of 24 pixels FWHM fails local-noise refinement (task 45).
+  - A SIGKILL leaves `.out.<random>` beside the output, and a rerun leaves
+    it there (task 47).
+  - The same grid source's published integrated-flux error correlates
+    +0.36 to +0.45 between white-noise realization pairs of the retained
+    `m1-endpoint-summed-fit` products, for Hebog and for pinned `master`,
+    where independent pairs give 0 ± 0.125 (task 48).
+  - The composition hash lists 39 of the 65 modules in the finder's import
+    closure (task 51). The quick check returns the same prepared reference
+    input for a different image under one case name (task 51).
+  - The matcher pairs A→b and B→a at 0.60 beam when candidates sit exactly
+    on truth, because the fluxes then agree better; one component on a
+    faint neighbour makes `snr10_completeness` 1.0 for an undetected bright
+    source; `phase-0-pybdsf-master-vs-release-comparison.json` fails
+    `load_evidence` with 51 missing fields (task 52).
+  - The hierarchy decision takes 0.11, 0.41, 1.72 and 6.63 s at 500 to
+    4,000 components; with one inverted index, 0.078 s and an identical
+    result. The reconciliation tree takes 8.8 s against 0.7 s for one pass
+    at 14,641 cells (task 55).
+  - Local-noise requests hold 1.84 and 1.89 bytes a pixel on the driver at
+    5,000² and 8,000². Under Dask with a process worker each task parses
+    the generation marker again: 16.0 MB and 0.42 s at 15,402² (task 56).
+  - Each association task pickles a function of 1.38 MiB at 16,084
+    components, because it binds the whole component label table
+    (task 54).
+- **From reading only.** The layering gaps (task 59); the stale reference
+  pages and the pipeline guide's error table (tasks 45 and 58); the
+  reference-frequency precedence against PyBDSF's `readimage.py` (task 16);
+  the CI workflow, uv pins and unbuilt `Dockerfile` (task 60).
+- **Found sound, by execution.** Position, shape, angle and flux
+  conventions through the joint fit and the production astrometry call on
+  five WCS orientations; fitted pulls of 0.92 to 1.04 on beam-correlated
+  noise; tiled labelling against `scipy.ndimage.label` on 720 tilings;
+  deblending against an independent level-set rule in 300 of 300 blends;
+  owner connectivity on 1,000 tilings; executor agreement on order, empty
+  input, retries and exception type; the matcher's great-circle geometry;
+  and the benchmark protocol against this plan's rules.
+- **Not covered.** Nothing was run on Windows or on a real image, and no
+  real run was profiled. Most test files were scanned for patterns, not
+  read. About fifteen scripts, `support_plotting.py`,
+  `support_diagnostics.py` and this log were not read.
+- **Plan.** Tasks 44 to 60 are added, tasks 16, 17 and 19 are amended, the
+  association and kept-record risks name their located causes, and one risk
+  is added for the bright-region read. The current state records the limits
+  on the 23 September paired bound and on the equivalence lane. The
+  structural changes the review named and no task needs are deferred.
+- **Decisions for the maintainer.** What a source row gives Rapthor's three
+  cuts (task 57); whether the code no installed path runs is removed or
+  kept as a named oracle (task 58); what the comparison matcher optimizes
+  (task 52); the RMS of a constant-valued region (task 46); which keyword
+  gives the reference frequency (task 16); and the order of the new tasks.
+- **Checks.** The strict docs build and `just pre-commit` passed. This
+  change edits the plan and this log only: no production code, test or
+  configuration changed, so no coverage run, quick science check or
+  benchmark applies to it.
