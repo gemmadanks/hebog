@@ -17,14 +17,15 @@ Hebog accepts one two-dimensional FITS image. The image needs:
 - pixel values in `Jy/beam` (`BUNIT`);
 - an ICRS or FK5 J2000 celestial WCS, with any legacy `CROTA` rotation
   stated [so that it has one reading](../reference/input-header-contract.md#rotation);
-- a restoring beam: `BMAJ`, `BMIN` and `BPA`;
+- a restoring beam, `BMAJ`, `BMIN` and `BPA`, no wider than 22 pixels;
 - a reference frequency: `RESTFRQ`, `RESTFREQ` or a frequency axis; and
-- at most 15,402 pixels on each side. Cut out a region of a larger image, for
+- at most 15,402 pixels on each side, and at most 1,000,000 pixels in all if
+  the shorter side is under 600. Cut out a region of a larger image, for
   example with `astropy.nddata.Cutout2D`.
 
 The unit, beam and frequency may instead be supplied with the request when
 the header omits them, as the next section shows. NaN pixels are allowed and
-ignored. If anything else is missing, Hebog stops with an error that names
+ignored, as are integer pixels equal to `BLANK`. If anything else is missing, Hebog stops with an error that names
 the problem before writing any output. The
 [input header contract](../reference/input-header-contract.md) lists what
 Hebog reads from each keyword and what common imagers write.

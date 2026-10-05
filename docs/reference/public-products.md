@@ -409,21 +409,26 @@ persisted product.
 
 ## Failure handling
 
-Configuration construction raises `ValueError` for invalid threshold ordering,
-pixel limits, or profile names. Once `find_sources()` is called, its public
-exceptions let a pipeline handle failures without parsing message text:
+Configuration construction raises `ValueError` for a threshold that is not a
+number, invalid threshold ordering, pixel limits, or profile names. A NumPy
+scalar is accepted wherever a number is. Once `find_sources()` is called, its
+public exceptions let a pipeline handle failures without parsing message
+text:
 
 | Exception | Meaning |
 | --- | --- |
 | `SourceFinderOutputExistsError` | The caller-owned output path already exists; Hebog will not overwrite it. Publication claims the destination atomically, so a path another writer creates while the analysis runs is reported here rather than replaced. Products then appear in one rename; treat a successful return, not the directory's existence, as the completion boundary. |
-| `InvalidSourceFinderInputError` | The FITS file cannot be read as a supported image. |
-| `UnsupportedSourceFinderConfigurationError` | The image's physical unit or celestial frame (other than ICRS or FK5 J2000) is outside the public contract. |
-| `SourceFinderImageTooLargeError` | A spatial dimension exceeds 15,402 pixels. |
+| `InvalidSourceFinderInputError` | The FITS file cannot be read as a supported image: it is missing, truncated or not FITS, it is not one plane, or a header card the finder reads is missing, malformed or ambiguous. The message names the keyword or layout. A unit, beam or frequency that the header lacks and the request does not supply is reported here. |
+| `UnsupportedSourceFinderConfigurationError` | The image is readable but outside what the requested science runs on: a unit other than `Jy/beam`, a celestial frame other than ICRS or FK5 J2000, or a restoring beam wider than 22 pixels. |
+| `SourceFinderImageTooLargeError` | A spatial dimension exceeds 15,402 pixels, or the shorter side is under 600 pixels and the image holds more than 1,000,000. |
 | `SourceFinderError` | Base class for other failures at the public boundary. |
 
-Input, configuration, and existing-output failures do not publish the requested
-bundle. Analysis or product-validation failures use the same all-or-nothing
-directory boundary, so the caller can retry after addressing the cause.
+The [input header contract](input-header-contract.md) states each rule. All
+three input errors are raised before the analysis starts, and the input file
+is closed when the error reaches the caller. Input, configuration, and
+existing-output failures do not publish the requested bundle. Analysis or
+product-validation failures use the same all-or-nothing directory boundary,
+so the caller can retry after addressing the cause.
 
 ## Evaluation checklist for astronomers
 

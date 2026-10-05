@@ -6,10 +6,11 @@
 
 from __future__ import annotations
 
+import gc
 from collections.abc import Callable, Iterable
 from dataclasses import replace
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -20,6 +21,7 @@ from astropy.io import fits
 from astropy.wcs import WCS
 from conftest import SubstituteBackgroundRms, published_plane
 from distributed import Client, LocalCluster
+from pytest_mock import MockerFixture
 from scipy import ndimage
 
 import hebog
@@ -2562,3 +2564,342 @@ def test_a_failed_header_read_is_an_invalid_input_naming_the_file(
         hebog.find_sources(_request(tmp_path), _config(), _RecordingExecutor())
 
     assert not (tmp_path / "products").exists()
+
+
+class _AnalysisStartedError(Exception):
+    """The run passed every admission check and reached the executor."""
+
+
+class _StoppingExecutor(SerialExecutor):
+    """Executor double that ends a run at its first submitted work."""
+
+    def map_batches(
+        self,
+        function: Callable[[Input], Output],
+        batches: Iterable[Input],
+        *,
+        requirement: TaskRequirement | None = None,
+    ) -> list[Output]:
+        """Stop the run instead of executing anything."""
+        del function, batches, requirement
+        raise _AnalysisStartedError
+
+
+def _write_empty_image(
+    path: Path, shape_yx: tuple[int, int], *, beam_pixels: float = 4.0
+) -> None:
+    """Write blank sky with one-arcsecond pixels and a circular beam."""
+    header = _header(shape_yx)
+    header["BMAJ"] = header["BMIN"] = beam_pixels / 3600.0
+    fits.PrimaryHDU(
+        data=np.zeros(shape_yx, dtype=np.float32), header=header
+    ).writeto(path)
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("profile", ("continuum", "compact"))
+@pytest.mark.parametrize(
+    "shape_yx", ((400, 2600), (2600, 400), (599, 1670), (149, 7000))
+)
+def test_a_narrow_image_over_the_bounded_read_is_refused_before_analysis(
+    tmp_path: Path, shape_yx: tuple[int, int], profile: str
+) -> None:
+    """Given an image under 600 pixels wide with over a million pixels,
+    when the finder is asked for either profile,
+    then it states the rule and analyses nothing.
+
+    The background meshes cannot shrink to a strip that narrow, and one
+    estimate for the whole image may read at most a million pixels.
+    """
+    _write_empty_image(tmp_path / "image.fits", shape_yx)
+    executor = _RecordingExecutor()
+
+    with pytest.raises(
+        SourceFinderImageTooLargeError,
+        match=(
+            "at most 1,000,000 pixels in an image whose shorter side is "
+            f"under 600 pixels, not {shape_yx[0]} by {shape_yx[1]}"
+        ),
+    ):
+        hebog.find_sources(
+            _request(tmp_path), _config(profile=profile), executor
+        )
+
+    assert executor.batch_counts == []
+    assert not (tmp_path / "products").exists()
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("profile", ("continuum", "compact"))
+@pytest.mark.parametrize("shape_yx", ((599, 1669), (600, 1700), (149, 6700)))
+def test_an_image_on_the_admitted_side_of_the_narrow_rule_is_analysed(
+    tmp_path: Path, shape_yx: tuple[int, int], profile: str
+) -> None:
+    """The rule refuses nothing the stages can serve: a narrow image of at
+    most a million pixels, and any image at least 600 pixels wide.
+    """
+    _write_empty_image(tmp_path / "image.fits", shape_yx)
+
+    with pytest.raises(_AnalysisStartedError):
+        hebog.find_sources(
+            _request(tmp_path), _config(profile=profile), _StoppingExecutor()
+        )
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("profile", ("continuum", "compact"))
+@pytest.mark.parametrize(
+    ("shape_yx", "beam_pixels"),
+    (
+        # The width at which local-noise refinement failed mid-run.
+        ((1100, 1100), 26.0),
+        ((64, 64), 23.0),
+        # A beam given in arcseconds where the header means degrees.
+        ((64, 64), 14_400.0),
+    ),
+)
+def test_a_beam_wider_than_22_pixels_is_refused_before_analysis(
+    tmp_path: Path,
+    shape_yx: tuple[int, int],
+    beam_pixels: float,
+    profile: str,
+) -> None:
+    """Given a restoring beam wider than 22 pixels,
+    when the finder is asked for either profile,
+    then it states the limit and builds nothing for the beam.
+
+    Local noise is refined from a block of cells with a source-protection
+    filter around it that grows with the beam, and nothing wider is
+    measured correctly.
+    """
+    _write_empty_image(
+        tmp_path / "image.fits", shape_yx, beam_pixels=beam_pixels
+    )
+    executor = _RecordingExecutor()
+
+    with pytest.raises(
+        UnsupportedSourceFinderConfigurationError,
+        match=(
+            f"a restoring beam of at most 22 pixels FWHM, not {beam_pixels:g}$"
+        ),
+    ):
+        hebog.find_sources(
+            _request(tmp_path), _config(profile=profile), executor
+        )
+
+    assert executor.batch_counts == []
+    assert not (tmp_path / "products").exists()
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("profile", ("continuum", "compact"))
+def test_a_beam_of_22_pixels_is_analysed(tmp_path: Path, profile: str) -> None:
+    """The stated limit is the widest admitted beam, not the first refused."""
+    _write_empty_image(tmp_path / "image.fits", (1100, 1100), beam_pixels=22.0)
+
+    with pytest.raises(_AnalysisStartedError):
+        hebog.find_sources(
+            _request(tmp_path), _config(profile=profile), _StoppingExecutor()
+        )
+
+
+@pytest.mark.integration
+def test_a_beam_with_no_size_in_pixels_is_refused_before_analysis(
+    tmp_path: Path,
+) -> None:
+    """A pixel scale of nearly zero gives the beam no finite pixel width."""
+    header = _header((64, 64))
+    header["CDELT1"], header["CDELT2"] = -1e-12, 1e-12
+    fits.PrimaryHDU(data=np.zeros((64, 64)), header=header).writeto(
+        tmp_path / "image.fits"
+    )
+    executor = _RecordingExecutor()
+
+    with pytest.raises(
+        UnsupportedSourceFinderConfigurationError, match="restoring beam"
+    ):
+        hebog.find_sources(_request(tmp_path), _config(), executor)
+
+    assert executor.batch_counts == []
+
+
+@pytest.mark.integration
+@pytest.mark.filterwarnings("ignore:File may have been truncated")
+def test_a_truncated_image_is_refused_before_analysis(tmp_path: Path) -> None:
+    """A file that ends early is an invalid input, not a failed read."""
+    image = tmp_path / "image.fits"
+    _write_image(image, _ring_image())
+    image.write_bytes(image.read_bytes()[:-2880])
+    executor = _RecordingExecutor()
+
+    with pytest.raises(InvalidSourceFinderInputError, match="is truncated"):
+        hebog.find_sources(_request(tmp_path), _config(), executor)
+
+    assert executor.batch_counts == []
+    assert not (tmp_path / "products").exists()
+
+
+@pytest.mark.integration
+def test_scaled_integer_pixels_publish_the_sources_of_the_same_floats(
+    tmp_path: Path,
+) -> None:
+    """Given an image stored as 16-bit integers with BSCALE and BZERO,
+    when the finder runs,
+    then it publishes what it publishes for the same values as floats.
+    """
+    scale, zero = 2e-3, 30.0
+    stored = np.round((_ring_image() - zero) / scale).astype(np.int16)
+    _write_image(tmp_path / "image.fits", zero + scale * stored)
+    fits.PrimaryHDU(data=stored, header=_header(stored.shape)).writeto(
+        tmp_path / "integers.fits"
+    )
+    with fits.open(
+        tmp_path / "integers.fits",
+        mode="update",
+        do_not_scale_image_data=True,
+    ) as hdus:
+        cast(Any, hdus[0]).header.update(BSCALE=scale, BZERO=zero)
+
+    floats = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+    integers = hebog.find_sources(
+        SourceFinderRequest(
+            tmp_path / "integers.fits",
+            tmp_path / "integer-products",
+            "public-contract",
+        ),
+        _config(),
+        SerialExecutor(),
+    )
+
+    float_sources = read_catalogue_fits_product(floats.catalogue).sources
+    integer_sources = read_catalogue_fits_product(integers.catalogue).sources
+    assert len(float_sources) > 0
+    assert len(integer_sources) == len(float_sources)
+    for integer_source, float_source in zip(
+        integer_sources, float_sources, strict=True
+    ):
+        assert integer_source.position.right_ascension_degrees == (
+            pytest.approx(
+                float_source.position.right_ascension_degrees, abs=1e-7
+            )
+        )
+        assert integer_source.flux.integrated_flux_jy == pytest.approx(
+            float_source.flux.integrated_flux_jy, rel=1e-4
+        )
+
+
+@pytest.mark.integration
+def test_numpy_configuration_values_publish_under_the_plain_identity(
+    tmp_path: Path,
+) -> None:
+    """Thresholds computed with NumPy are the configuration they equal.
+
+    The run records a hash of its configuration, which once failed on a
+    NumPy scalar only after the whole analysis had finished.
+    """
+    _write_image(tmp_path / "image.fits", _ring_image())
+
+    result = hebog.find_sources(
+        _request(tmp_path),
+        SourceFinderConfig(
+            np.float32(5.0),  # type: ignore[arg-type]
+            np.float64(3.0),
+            np.int64(7),  # type: ignore[arg-type]
+        ),
+        SerialExecutor(),
+    )
+
+    diagnostics = read_diagnostics_product(result.diagnostics)
+    assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
+    assert diagnostics.provenance.configuration_sha256 == (
+        public_api._canonical_sha256(  # pyright: ignore[reportPrivateUsage]
+            {
+                "detection_threshold_sigma": 5.0,
+                "island_threshold_sigma": 3.0,
+                "minimum_island_pixels": 7,
+                "maximum_island_pixels": None,
+                "profile": "continuum",
+            }
+        )
+    )
+
+
+@pytest.mark.integration
+def test_an_identity_that_cannot_be_computed_stops_the_run_before_analysis(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Every provenance identity is known before the first pixel is read."""
+    _write_image(tmp_path / "image.fits", _ring_image())
+
+    def unidentified() -> str:
+        raise SourceFinderError("cannot identify scientific module")
+
+    monkeypatch.setattr(
+        public_api, "_scientific_composition_sha256", unidentified
+    )
+    executor = _RecordingExecutor()
+
+    with pytest.raises(SourceFinderError, match="cannot identify"):
+        hebog.find_sources(_request(tmp_path), _config(), executor)
+
+    assert executor.batch_counts == []
+    assert not (tmp_path / "products").exists()
+
+
+def _write_refused_image(path: Path, refusal: str) -> None:
+    """Write an image the finder refuses at one stage of its admission."""
+    if refusal == "narrow":
+        _write_empty_image(path, (400, 2600))
+        return
+    header = _header((8, 8))
+    if refusal == "missing-unit":
+        del header["BUNIT"]
+    elif refusal == "frame":
+        header["CTYPE1"], header["CTYPE2"] = "GLON-TAN", "GLAT-TAN"
+        del header["RADESYS"]
+    fits.PrimaryHDU(data=np.zeros((8, 8)), header=header).writeto(path)
+    if refusal == "truncated":
+        path.write_bytes(path.read_bytes()[:-2880])
+
+
+@pytest.mark.integration
+@pytest.mark.filterwarnings("ignore:File may have been truncated")
+@pytest.mark.parametrize(
+    "refusal", ("missing-unit", "truncated", "frame", "narrow", "unhashable")
+)
+def test_a_refused_input_is_released_before_the_error_reaches_the_caller(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mocker: MockerFixture,
+    refusal: str,
+) -> None:
+    """Given an input the finder refuses, at any stage of its admission,
+    when the error reaches the caller,
+    then the finder holds the file open no longer.
+
+    Windows will not move or delete a file that is still open, so a caller
+    could not set a refused input aside while handling the error.
+    """
+    image = tmp_path / "image.fits"
+    _write_refused_image(image, refusal)
+    if refusal == "unhashable":
+
+        def unreadable(_path: Path) -> str:
+            raise OSError("injected read failure")
+
+        monkeypatch.setattr(public_api, "_file_sha256", unreadable)
+    # An earlier test's source, once collected, would close through the spy.
+    gc.collect()
+    close = mocker.spy(FitsImageSource, "close")
+
+    # Holding the error keeps the finder's frame, and so its source, alive:
+    # a close seen here is the finder's own and not the collector's.
+    with pytest.raises(SourceFinderError) as refused:
+        hebog.find_sources(_request(tmp_path), _config(), SerialExecutor())
+
+    assert close.call_count == 1
+    assert refused.value is not None
+    image.unlink()

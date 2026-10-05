@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import isfinite
-from numbers import Integral
+from math import inf, isfinite
+from numbers import Integral, Real
 from typing import Literal
 
 _MINIMUM_RMS_SAMPLES = 2
@@ -150,6 +150,22 @@ class BackgroundRmsConfig:
             )
 
 
+def _sigma_threshold(name: str, value: object) -> float:
+    """Return one finite positive sigma threshold as a plain float."""
+    if isinstance(value, bool) or not isinstance(value, Real):
+        raise ValueError(f"{name} must be a number")
+    try:
+        threshold = float(value)
+    except OverflowError:
+        # An integer too large for a float is no more finite than infinity.
+        threshold = inf
+    if not isfinite(threshold):
+        raise ValueError(f"{name} must be finite")
+    if threshold <= 0:
+        raise ValueError(f"{name} must be positive")
+    return threshold
+
+
 @dataclass(frozen=True, slots=True)
 class SourceFinderConfig:
     """Pipeline-neutral scientific thresholds for one image analysis.
@@ -165,6 +181,15 @@ class SourceFinderConfig:
     its area and support rules use beam rather than pixel units.
     ``continuum`` is the general source-association profile; ``compact`` is an
     explicit component-level profile that is incomplete for extended emission.
+
+    A threshold or pixel count may be any real number or integer, a NumPy
+    scalar included, and is held as the Python ``float`` or ``int`` it
+    equals, so equal configurations serialize and hash alike.
+
+    >>> SourceFinderConfig(5, 3, 7)
+    SourceFinderConfig(detection_threshold_sigma=5.0, \
+island_threshold_sigma=3.0, minimum_island_pixels=7, \
+maximum_island_pixels=None, profile='continuum')
     """
 
     detection_threshold_sigma: float
@@ -174,19 +199,15 @@ class SourceFinderConfig:
     profile: Literal["continuum", "compact"] = "continuum"
 
     def __post_init__(self) -> None:
-        """Validate finite, positive, ordered sigma thresholds."""
+        """Validate thresholds and pixel cuts, and hold plain values."""
         if self.profile not in {"continuum", "compact"}:
             raise ValueError(
                 "source-finder profile must be 'continuum' or 'compact'"
             )
-        if not isfinite(self.detection_threshold_sigma):
-            raise ValueError("detection_threshold_sigma must be finite")
-        if self.detection_threshold_sigma <= 0:
-            raise ValueError("detection_threshold_sigma must be positive")
-        if not isfinite(self.island_threshold_sigma):
-            raise ValueError("island_threshold_sigma must be finite")
-        if self.island_threshold_sigma <= 0:
-            raise ValueError("island_threshold_sigma must be positive")
+        for name in ("detection_threshold_sigma", "island_threshold_sigma"):
+            object.__setattr__(
+                self, name, _sigma_threshold(name, getattr(self, name))
+            )
         if self.island_threshold_sigma >= self.detection_threshold_sigma:
             raise ValueError(
                 "island_threshold_sigma must be lower than "
@@ -210,6 +231,11 @@ class SourceFinderConfig:
                 "maximum_island_pixels must be an integer no smaller than "
                 "minimum_island_pixels"
             )
+        object.__setattr__(
+            self, "minimum_island_pixels", int(self.minimum_island_pixels)
+        )
+        if maximum is not None:
+            object.__setattr__(self, "maximum_island_pixels", int(maximum))
 
 
 @dataclass(frozen=True, slots=True)

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from dataclasses import replace
+from math import prod
 from typing import TypeVar
 
 import numpy as np
@@ -514,6 +515,49 @@ def test_oversize_noise_context_is_rejected_before_region_reads() -> None:
             policy=_policy(),
         )
     assert len(source.bounds) == count
+
+
+def test_the_planned_local_noise_contexts_are_the_windows_tasks_read() -> None:
+    """The plan can be asked for its reads without running the tasks."""
+    image = np.random.default_rng(5).normal(size=(240, 320))
+    source = _Source(image)
+    config = _config()
+    assert config.adaptive is not None
+    fine = config.adaptive.grid
+    coarse = estimate_background_rms_grids(
+        source,
+        image.shape,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=(),
+    ).coarse
+    pilot = background_stage.prepare_rms_grid_for_interpolation(
+        background_stage.estimate_rms_grid(
+            source,
+            background_stage.plan_rms_grid(
+                image_shape_yx=image.shape,
+                window_shape_yx=fine.window_shape_yx,
+                step_yx=fine.step_yx,
+            ),
+            fine,
+            SerialExecutor(),
+        )
+    )
+    source.bounds.clear()
+
+    _estimate_local_noise_grid(
+        source, coarse, pilot, config, SerialExecutor(), policy=_policy()
+    )
+
+    planned = [
+        bounds
+        for _, _, bounds in background_stage._local_noise_contexts(
+            pilot.geometry, config, _policy()
+        )
+    ]
+    assert len(planned) > 1
+    assert sorted(planned, key=repr) == sorted(source.bounds, key=repr)
+    assert all(prod(bounds.shape_yx) < image.size for bounds in planned)
 
 
 def test_coarse_bright_candidate_can_be_noise_under_the_fine_pilot() -> None:

@@ -4,7 +4,8 @@ Hebog reads its physical description of an image from the FITS header. This
 page says what the public finder reads, where each value may come from, and
 how the headers that common radio imagers and pipelines write fare against
 it. Every image is either accepted or refused before analysis, with an error
-that names the keyword or layout at fault.
+that names the keyword or layout at fault, or says that the file cannot be
+read as a FITS image.
 
 ## What the finder reads
 
@@ -12,12 +13,13 @@ that names the keyword or layout at fault.
 | --- | --- | --- |
 | One image plane | The primary HDU. The last two axes are the plane; every other axis must have length one. | Refused, naming each longer axis, for example `SPECLNMF (NAXIS3 = 16)`. Channel, Stokes and other cubes need their own contract. |
 | Stokes parameter | A `STOKES` axis's world value at the plane, so a writer that encodes it in `CRPIX` rather than `CRVAL` is read correctly. No `STOKES` axis means Stokes I. | Any parameter other than I is refused: Q, U and V, and instrumental planes such as `XX` or `RR`. A value that is not an integer parameter code, such as `1.4`, is refused as malformed. |
-| Pixel unit | `BUNIT`. `JY/BEAM` and other spellings of Jy/beam are accepted. | A supplied `brightness_unit`, else refused. The public finder measures `Jy/beam` only. |
-| Restoring beam | `BMAJ`, `BMIN` and `BPA`, in degrees. | A supplied value for each missing keyword, else refused. A card that is not a number is refused; see [Numbers](#numbers). |
+| Pixel values | The plane's pixels in any `BITPIX`. A stored value is scaled by `BSCALE` and `BZERO`, and a stored integer equal to `BLANK` is an invalid pixel, as NaN is. | A file that ends before its last pixel is refused as truncated. `BSCALE`, `BZERO` and an integer image's `BLANK` must be numbers; see [Numbers](#numbers). |
+| Pixel unit | `BUNIT`. `JY/BEAM` and other spellings of Jy/beam are accepted. | A supplied `brightness_unit`, else refused. The public finder measures `Jy/beam` only. A value without its quotes, which Astropy cannot parse, is refused. |
+| Restoring beam | `BMAJ`, `BMIN` and `BPA`, in degrees. | A supplied value for each missing keyword, else refused. A card that is not a number is refused; see [Numbers](#numbers). A beam wider than 22 pixels (FWHM) is refused; see [Limitations](#limitations). |
 | Reference frequency | `RESTFRQ`, then `RESTFREQ`, then the first `FREQ` axis's `CRVAL`. | A supplied `reference_frequency_hz`, else refused. A card that is not a number is refused. |
 | Celestial WCS | Astropy's reading of the header: any projection it supports (`SIN`, `TAN`, `ZEA` and others), with `CDELT`, a `PC` or `CD` matrix, or a legacy `CROTA`. | Refused when absent. A card that is not a number, and a rotation Astropy would silently drop, are refused; see [Numbers](#numbers) and [Rotation](#rotation). |
 | Coordinate frame | The celestial axis types, which must be `RA`/`DEC` or `GLON`/`GLAT`, then `RADESYS`, `EQUINOX` and `EPOCH`. With none of the three, the frame is ICRS, as the WCS standard defines. `EQUINOX` or `EPOCH` of 2000 without `RADESYS` is FK5 J2000. | Only ICRS and FK5 J2000 are accepted; the error names the frame found, such as `GALACTIC` or `FK4, equinox 1950`. Other celestial axes, such as ecliptic `ELON`/`ELAT` or supergalactic `SLON`/`SLAT`, are refused by their axis types, because Astropy would read ecliptic coordinates as ICRS. Catalogue positions are always ICRS. |
-| Size | `NAXIS1` and `NAXIS2`. | Refused above 15,402 pixels on either side. |
+| Size | `NAXIS1` and `NAXIS2`. | Refused above 15,402 pixels on either side, and above 1,000,000 pixels in all when the shorter side is under 600. |
 
 Supplied values come from `SuppliedImageMetadata` on the request. Each one
 fills only a keyword the header lacks; supplying a value the header already
@@ -85,6 +87,13 @@ and its older spelling `PROJPn`, `LONPOLE`, `LATPOLE`, `EQUINOX` and
 A WCS card with no value is refused too. A beam or frequency card with no
 value is a missing keyword, which a supplied value can fill.
 
+The pixel scaling follows the same rule: `BSCALE` and `BZERO` must each hold
+one finite number, and `BLANK`, on integer pixels, an integer, as FITS
+requires. A scaling card with no value takes its FITS default. On
+floating-point pixels FITS gives `BLANK` no meaning, and it is not read. A
+scaling card that Astropy cannot parse at all stops the file from opening,
+and is reported as a file that cannot be read.
+
 A number is read in any spelling FITS allows. That includes the `D` exponent
 that marks double precision, as in `1.8D+02`: wcslib on its own stops
 reading at the letter and takes the value for 1.8, so Hebog gives it every
@@ -120,10 +129,22 @@ write the rotation on the latitude axis.
   tens of milliarcseconds.
 - **Header only.** The contract checks what the header states, not whether
   it is true: a wrong `BUNIT` or beam is read as written.
+- **Narrow images.** An image whose shorter side is under 600 pixels may
+  hold at most 1,000,000 pixels. The 150-pixel background meshes do not fit
+  across so narrow a strip, and what replaces them reads the whole image in
+  one task, which is bounded at that size.
+- **Beam sampling.** A restoring beam wider than 22 pixels (FWHM, major
+  axis) is refused. Local noise is refined from a window that grows with
+  the beam, and 22 is the largest whole number of pixels whose window stays
+  within its bound of 1,000,000 pixels. The limit is not a measure of where the finder
+  is valid: the background and noise meshes are fixed in pixels, and in
+  tests with beams of 18 to 20 pixels it has missed bright sources. Which
+  sampling to support is the plan's task 62.
 - **Repeated keywords.** FITS does not define a keyword that appears twice,
-  and Hebog does not refuse one. The WCS is read from the last card of a
-  repeated keyword, as wcslib reads it, and the beam and frequency from the
-  first, as Astropy does.
+  and Hebog does not refuse one. The WCS, including a frequency taken from
+  its `FREQ` axis, is read from the last card of a repeated keyword, as
+  wcslib reads it. The beam and `RESTFRQ` are read from the first, as Astropy
+  reads them.
 
 ## Sources
 

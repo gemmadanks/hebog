@@ -1,5 +1,9 @@
 """Tests for source-finder configuration."""
 
+import json
+from dataclasses import asdict
+
+import numpy as np
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
@@ -182,4 +186,58 @@ def test_rejects_invalid_maximum_island_pixels(value: object) -> None:
             island_threshold_sigma=3.0,
             minimum_island_pixels=6,
             maximum_island_pixels=value,  # type: ignore[arg-type]
+        )
+
+
+@pytest.mark.parametrize("value", [float("inf"), float("nan"), 10**400])
+def test_rejects_a_threshold_that_is_not_finite(value: float) -> None:
+    """An integer too large for a float is refused like infinity."""
+    with pytest.raises(ValueError, match="must be finite"):
+        SourceFinderConfig(value, 3.0, 7)
+
+
+def test_numpy_scalars_are_held_as_the_python_numbers_they_equal() -> None:
+    """A threshold computed with NumPy serializes like the same plain one.
+
+    The run's configuration identity is a hash of its JSON form, which has no
+    spelling for a NumPy scalar and writes the integer 5 unlike 5.0.
+    """
+    plain = SourceFinderConfig(5.0, 3.0, 7, 900)
+    from_numpy = SourceFinderConfig(
+        np.float32(5.0),  # type: ignore[arg-type]
+        np.float64(3.0),
+        np.int64(7),  # type: ignore[arg-type]
+        np.int32(900),  # type: ignore[arg-type]
+    )
+    from_integers = SourceFinderConfig(5, 3, 7, 900)
+
+    assert from_numpy == plain
+    assert json.dumps(asdict(from_numpy)) == json.dumps(asdict(plain))
+    assert json.dumps(asdict(from_integers)) == json.dumps(asdict(plain))
+    assert [type(value) for value in asdict(from_numpy).values()] == [
+        float,
+        float,
+        int,
+        int,
+        str,
+    ]
+
+
+@pytest.mark.parametrize(
+    "name", ["detection_threshold_sigma", "island_threshold_sigma"]
+)
+@pytest.mark.parametrize("value", ["5", True, None, 5 + 0j])
+def test_rejects_a_threshold_that_is_not_a_real_number(
+    name: str, value: object
+) -> None:
+    """Text, a logical and a complex value are not thresholds."""
+    thresholds = {
+        "detection_threshold_sigma": 5.0,
+        "island_threshold_sigma": 3.0,
+        name: value,
+    }
+    with pytest.raises(ValueError, match=f"{name} must be a number"):
+        SourceFinderConfig(
+            minimum_island_pixels=7,
+            **thresholds,  # type: ignore[arg-type]
         )

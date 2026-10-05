@@ -26,6 +26,11 @@ completeness at the cost of reliability. The same values are used throughout
 background protection, direct and multiscale detection, and the final size
 filter.
 
+A threshold may be any real number and a pixel count any integer, NumPy
+scalars included. Each is held as the Python `float` or `int` it equals, so
+`SourceFinderConfig(5, 3, 10)` and `SourceFinderConfig(5.0, 3.0, 10)` are one
+configuration with one identity in the diagnostics.
+
 All other algorithm settings, such as noise-grid sizes, wavelet scales and
 fitting bounds, are fixed by the selected profile so that results are
 reproducible. Every configuration is labelled `development-unqualified` or

@@ -72,6 +72,20 @@ class UnsupportedFitsImageError(InvalidFitsImageError):
     """A valid FITS input uses an image layout Hebog does not yet support."""
 
 
+def _header_value(header: Any, keyword: str, path: Path) -> Any:
+    """Read one optional card, refusing a value Astropy cannot parse.
+
+    Text written without its quotes is the usual case: Astropy raises for
+    it, where a caller needs to be told which card is at fault.
+    """
+    try:
+        return header.get(keyword)
+    except fits.VerifyError as error:
+        raise InvalidFitsImageError(
+            f"FITS image has a {keyword} card that cannot be parsed: {path}"
+        ) from error
+
+
 def _card_number(card: Any, path: Path) -> float | None:
     """Read one card that must hold a finite number, if it has a value.
 
@@ -178,7 +192,7 @@ def _brightness_unit(
     supplied: SuppliedImageMetadata | None,
 ) -> str:
     """Read BUNIT, or the supplied unit when the header has none."""
-    header_value = header.get("BUNIT")
+    header_value = _header_value(header, "BUNIT", path)
     if isinstance(header_value, str) and not header_value.strip():
         header_value = None
     supplied_value = None if supplied is None else supplied.brightness_unit
@@ -243,6 +257,51 @@ def _restoring_beam(
     except (TypeError, ValueError) as error:
         raise InvalidFitsImageError(
             f"FITS image has an invalid restoring beam: {path}"
+        ) from error
+
+
+def _pixel_scaling(header: Any, path: Path) -> tuple[float, float, int | None]:
+    """Read how stored pixels encode physical ones: scale, zero and blank.
+
+    A physical value is ``BZERO + BSCALE * stored``, and a stored integer
+    equal to ``BLANK`` is no pixel at all, so each card must be the number
+    it should be. FITS gives ``BLANK`` no meaning on floating-point pixels,
+    where NaN is the invalid value, so it is not read there.
+    """
+    scale = _header_number(header, "BSCALE", path)
+    zero = _header_number(header, "BZERO", path)
+    blank = None
+    if header["BITPIX"] > 0:
+        blank = _header_value(header, "BLANK", path)
+        if blank is not None and (
+            isinstance(blank, bool) or not isinstance(blank, int)
+        ):
+            raise InvalidFitsImageError(
+                "FITS image has a BLANK card that is not an integer, "
+                f"{blank!r}: {path}"
+            )
+    return (
+        1.0 if scale is None else scale,
+        0.0 if zero is None else zero,
+        blank,
+    )
+
+
+def _require_readable_pixels(primary_hdu: Any, path: Path) -> None:
+    """Refuse pixels that cannot be read as their header describes.
+
+    A file that ends early still opens, and would fail only when a window
+    reached the missing bytes. FITS pixels are stored in order, so a file
+    that holds its last pixel holds them all.
+    """
+    _pixel_scaling(primary_hdu.header, path)
+    last_pixel = tuple(slice(size - 1, size) for size in primary_hdu.shape)
+    try:
+        primary_hdu.section[last_pixel]
+    except (KeyError, OSError, TypeError, ValueError) as error:
+        raise InvalidFitsImageError(
+            "FITS image is truncated or unreadable: its last pixel cannot "
+            f"be read: {path}"
         ) from error
 
 
@@ -426,6 +485,10 @@ def _metadata(
     supplied: SuppliedImageMetadata | None = None,
 ) -> ImageMetadata:
     """Validate one primary image HDU without loading its pixel plane."""
+    if not isinstance(primary_hdu, fits.PrimaryHDU):
+        raise InvalidFitsImageError(
+            f"FITS file does not begin with a standard image: {path}"
+        )
     raw_shape = primary_hdu.shape
     if not raw_shape:
         raise InvalidFitsImageError(
@@ -436,8 +499,9 @@ def _metadata(
         raise UnsupportedFitsImageError(
             f"FITS image must have at least two axes: {path}"
         )
+    header = primary_hdu.header
     cube_axes = [
-        f"{primary_hdu.header.get(f'CTYPE{axis}', 'untyped')} "
+        f"{_header_value(header, f'CTYPE{axis}', path) or 'untyped'} "
         f"(NAXIS{axis} = {dimension})"
         for axis, dimension in zip(
             range(len(shape), 2, -1), shape[:-2], strict=True
@@ -456,14 +520,12 @@ def _metadata(
         raise InvalidFitsImageError(
             f"FITS image plane must be non-empty: {path}"
         )
-    unit = _brightness_unit(primary_hdu.header, path, supplied)
-    header_frequency_hz = _header_reference_frequency_hz(
-        primary_hdu.header,
-        path,
-    )
-    beam = _restoring_beam(primary_hdu.header, path, supplied)
-    image_wcs, celestial_wcs = _celestial_wcs(primary_hdu.header, path)
-    _require_one_rotation(primary_hdu.header, image_wcs, path)
+    _require_readable_pixels(primary_hdu, path)
+    unit = _brightness_unit(header, path, supplied)
+    header_frequency_hz = _header_reference_frequency_hz(header, path)
+    beam = _restoring_beam(header, path, supplied)
+    image_wcs, celestial_wcs = _celestial_wcs(header, path)
+    _require_one_rotation(header, image_wcs, path)
     _require_total_intensity(image_wcs, path)
     if header_frequency_hz is None:
         header_frequency_hz = _wcs_reference_frequency_hz(image_wcs, path)
@@ -530,8 +592,19 @@ class FitsImageSource:
         hdus = self._open_files.get(thread)
         if hdus is None:
             try:
-                hdus = fits.open(self._path, mode="readonly", memmap=True)
-            except (OSError, ValueError) as error:
+                # Stored values are read as they are and scaled window by
+                # window in ``read_windows``. Astropy cannot map pixels it
+                # scales itself, scales 16-bit ones in single precision and
+                # skips a ``BLANK`` of zero.
+                hdus = fits.open(
+                    self._path,
+                    mode="readonly",
+                    memmap=True,
+                    do_not_scale_image_data=True,
+                )
+            # Astropy raises whatever a malformed BITPIX or NAXIS card
+            # first breaks, not one error for a file it cannot open.
+            except (KeyError, OSError, TypeError, ValueError) as error:
                 raise InvalidFitsImageError(
                     f"cannot read FITS image {self._path}: {error}"
                 ) from error
@@ -602,17 +675,22 @@ class FitsImageSource:
         windows: list[ImageWindow] = []
         metadata = self.metadata()
         primary_hdu = self._primary_hdu()
+        scale, zero, blank = _pixel_scaling(primary_hdu.header, self._path)
         leading_indices = (0,) * (len(primary_hdu.shape) - 2)
         for bounds in requested_bounds:
             bounds.require_inside(metadata.shape_yx)
-            section = primary_hdu.section[
+            stored = primary_hdu.section[
                 (
                     *leading_indices,
                     slice(bounds.y_start, bounds.y_stop),
                     slice(bounds.x_start, bounds.x_stop),
                 )
             ]
-            values = np.array(section, dtype=np.float64, copy=True)
+            values = np.array(stored, dtype=np.float64, copy=True)
+            if (scale, zero) != (1.0, 0.0):
+                values = zero + scale * values
+            if blank is not None:
+                values[stored == blank] = np.nan
             valid_pixels = np.asarray(np.isfinite(values), dtype=np.bool_)
             values.setflags(write=False)
             valid_pixels.setflags(write=False)
