@@ -73,10 +73,10 @@ Known limitations when interpreting results:
   gets no component. Its flux stays in the residual, which can join the
   brighter source and that source's other neighbours into one source. In a
   generated 1,024-pixel field with a source every 32 pixels, one in ten of
-  them resolved, 997 of 1,024 injected sources have a published Gaussian,
+  them resolved, 998 of 1,024 injected sources have a published Gaussian,
   where PyBDSF publishes one for 1,005. Of the 4 injected sources there
   peaking at 7 or more times the noise without one, 2 lie on a brighter
-  source's wing and 2 are not detected. The field's 962 islands become 995
+  source's wing and 2 are not detected. The field's 963 islands become 996
   sources where PyBDSF finds 1,006, and 2 of them join 4 injected sources.
 - Neighbouring components are fitted jointly, and the joint fit is judged
   well conditioned as a whole. When one component collapses or spreads into
