@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import gc
 import pickle
+import tracemalloc
 import warnings
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -70,6 +71,171 @@ def _write_image(
     if reference_frequency_hz is not None:
         header["RESTFRQ"] = reference_frequency_hz
     fits.PrimaryHDU(data=data, header=header).writeto(path)
+
+
+def _write_stored_integers(
+    path: Path,
+    stored: np.ndarray,
+    **scaling: float,
+) -> None:
+    """Write integers and their scaling cards as an integer-pixel writer does.
+
+    Astropy would apply the scaling itself and store floats, so the cards
+    are added afterwards with the pixels left alone.
+    """
+    _write_image(path, stored)
+    with fits.open(path, mode="update", do_not_scale_image_data=True) as hdus:
+        hdus[0].header.update(scaling)
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("dtype", "scaling"),
+    [
+        (np.int16, {"BSCALE": 4e-6, "BZERO": 0.05}),
+        (np.int32, {"BSCALE": 1e-9}),
+        (np.int32, {"BZERO": 2.5}),
+        # The FITS convention for unsigned 16-bit pixels.
+        (np.int16, {"BSCALE": 1, "BZERO": 32768}),
+        (np.int16, {"BSCALE": 4e-6, "BZERO": 0.05, "BLANK": -32768}),
+        (np.int32, {"BLANK": -2147483648}),
+        (np.uint8, {"BSCALE": 0.5, "BLANK": 255}),
+        # Astropy's own scaling skips a BLANK of zero, and any BLANK on
+        # unsigned pixels, and would read those pixels as valid.
+        (np.int16, {"BSCALE": 4e-6, "BZERO": 0.05, "BLANK": 0}),
+        (np.int16, {"BSCALE": 1, "BZERO": 32768, "BLANK": -32768}),
+        # Single precision cannot hold these stored steps.
+        (np.int16, {"BSCALE": 1e-3, "BZERO": 1e6}),
+        # The scaling cards apply to floating-point pixels too.
+        (np.float32, {"BSCALE": 2.0, "BZERO": -1.0}),
+    ],
+)
+def test_reads_stored_values_as_the_physical_values_they_encode(
+    tmp_path: Path,
+    dtype: type[np.generic],
+    scaling: dict[str, float],
+) -> None:
+    """A pixel is ``BZERO + BSCALE * stored``, and ``BLANK`` marks none."""
+    path = tmp_path / "scaled.fits"
+    stored = (np.arange(64).reshape(8, 8) - 20).astype(dtype)
+    if "BLANK" in scaling:
+        stored[2, 3] = scaling["BLANK"]
+    _write_stored_integers(path, stored, **scaling)
+
+    source = FitsImageSource(path)
+    window = source.read_window(ImageBounds(1, 5, 2, 6))
+    source.close()
+
+    physical = scaling.get("BZERO", 0.0) + scaling.get("BSCALE", 1.0) * stored[
+        1:5, 2:6
+    ].astype(np.float64)
+    blank = stored[1:5, 2:6] == scaling.get("BLANK")
+    np.testing.assert_array_equal(window.valid_pixels, ~blank)
+    np.testing.assert_array_equal(window.values[~blank], physical[~blank])
+    assert np.all(np.isnan(window.values[blank]))
+
+
+@pytest.mark.integration
+def test_a_scaled_window_is_read_without_loading_the_plane(
+    tmp_path: Path,
+) -> None:
+    """Scaling is applied to the window, never to the whole image."""
+    path = tmp_path / "scaled-plane.fits"
+    stored = np.zeros((2048, 2048), dtype=np.int16)
+    _write_stored_integers(path, stored, BSCALE=4e-6, BZERO=0.05)
+    source = FitsImageSource(path)
+    source.metadata()
+
+    tracemalloc.start()
+    source.read_window(ImageBounds(100, 164, 200, 264))
+    _, peak_bytes = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+    source.close()
+
+    assert peak_bytes < stored.nbytes // 8
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("keyword", "value", "message"),
+    [
+        ("BSCALE", "0.001", "BSCALE card that is not a finite number"),
+        ("BSCALE", True, "BSCALE card that is not a finite number"),
+        ("BZERO", "zero", "BZERO card that is not a finite number"),
+        # Astropy ignores a BLANK that is not an integer, which would read
+        # the blank pixels as valid ones.
+        ("BLANK", -32768.0, "BLANK card that is not an integer"),
+        ("BLANK", "-32768", "BLANK card that is not an integer"),
+        ("BLANK", True, "BLANK card that is not an integer"),
+    ],
+)
+def test_rejects_a_scaling_card_that_is_not_the_number_it_should_be(
+    tmp_path: Path, keyword: str, value: object, message: str
+) -> None:
+    """Every pixel value depends on these cards."""
+    path = tmp_path / "bad-scaling.fits"
+    _write_stored_integers(path, np.zeros((2, 2), dtype=np.int16))
+    with fits.open(path, mode="update", do_not_scale_image_data=True) as hdus:
+        hdus[0].header[keyword] = value
+
+    with warnings.catch_warnings():
+        # Astropy warns that it will ignore the BLANK card.
+        warnings.simplefilter("ignore")
+        with pytest.raises(InvalidFitsImageError, match=message):
+            FitsImageSource(path).metadata()
+
+
+@pytest.mark.integration
+def test_a_blank_card_on_floating_point_pixels_is_ignored(
+    tmp_path: Path,
+) -> None:
+    """FITS gives BLANK no meaning there: NaN marks an invalid pixel."""
+    path = tmp_path / "float-blank.fits"
+    _write_image(path, np.full((2, 2), -1.0, dtype=np.float32))
+    with fits.open(path, mode="update") as hdus:
+        hdus[0].header["BLANK"] = "none"
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        source = FitsImageSource(path)
+        window = source.read_window(ImageBounds(0, 2, 0, 2))
+        source.close()
+
+    assert np.all(window.valid_pixels)
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("kept_data_bytes", [0, 128, 252])
+def test_rejects_a_file_that_ends_before_its_last_pixel(
+    tmp_path: Path, kept_data_bytes: int
+) -> None:
+    """A truncated file opens, and would fail only when a read reached it."""
+    path = tmp_path / "truncated.fits"
+    _write_image(path, np.zeros((8, 8), dtype=np.float32))
+    path.write_bytes(path.read_bytes()[: 2880 + kept_data_bytes])
+
+    with warnings.catch_warnings():
+        # Astropy warns that the file may be truncated, and opens it.
+        warnings.simplefilter("ignore")
+        with pytest.raises(InvalidFitsImageError, match="is truncated"):
+            FitsImageSource(path).metadata()
+
+
+@pytest.mark.integration
+def test_reads_a_file_whose_last_block_is_not_padded(tmp_path: Path) -> None:
+    """Only the pixels are needed, not the padding FITS puts after them."""
+    path = tmp_path / "unpadded.fits"
+    values = np.arange(64, dtype=np.float32).reshape(8, 8)
+    _write_image(path, values)
+    path.write_bytes(path.read_bytes()[: 2880 + values.nbytes])
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        source = FitsImageSource(path)
+        window = source.read_window(ImageBounds(7, 8, 0, 8))
+        source.close()
+
+    np.testing.assert_array_equal(window.values, values[7:8])
 
 
 @pytest.mark.integration

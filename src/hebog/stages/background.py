@@ -754,6 +754,47 @@ def _estimate_local_noise_batch(
     )
 
 
+def _local_noise_context_halo(config: BackgroundRmsConfig) -> int:
+    """Return the coarse and fine window context around a block of cells."""
+    assert config.adaptive is not None
+    return (
+        max(config.coarse.window_shape_yx)
+        + max(config.adaptive.grid.window_shape_yx) // 2
+    )
+
+
+def _local_noise_contexts(
+    grid: RmsGridGeometry,
+    config: BackgroundRmsConfig,
+    policy: MultiscaleSourceProtection,
+) -> list[tuple[RmsWindowBatch, RmsGridGeometry, ImageBounds]]:
+    """Plan each block of fine cells with the window its task reads.
+
+    A task reads its cells with the coarse and fine windows and the widest
+    protection filter around them. The filter grows with the beam, so the
+    window does too, until the image clips it.
+    """
+    halo = (
+        _local_noise_context_halo(config)
+        + _protection_filter_bank(policy).maximum_halo_pixels
+    )
+    contexts: list[tuple[RmsWindowBatch, RmsGridGeometry, ImageBounds]] = []
+    for batch in plan_rms_window_batches(
+        grid, maximum_cells=_LOCAL_NOISE_CONTEXT_CELLS
+    ):
+        yy = slice(batch.grid_y_start, batch.grid_y_stop)
+        xx = slice(batch.grid_x_start, batch.grid_x_stop)
+        owned = replace(
+            grid,
+            window_starts_y=grid.window_starts_y[yy],
+            window_starts_x=grid.window_starts_x[xx],
+            sample_coordinates_y=grid.sample_coordinates_y[yy],
+            sample_coordinates_x=grid.sample_coordinates_x[xx],
+        )
+        contexts.append((batch, owned, _filter_read_bounds(owned, halo)))
+    return contexts
+
+
 def _estimate_local_noise_grid(  # noqa: PLR0913
     source: _WindowReadable,
     coarse: PreparedRmsGrid,
@@ -767,24 +808,9 @@ def _estimate_local_noise_grid(  # noqa: PLR0913
     assert config.adaptive is not None
     fine = config.adaptive.grid
     grid = pilot.geometry
-    context_halo = (
-        max(config.coarse.window_shape_yx) + max(fine.window_shape_yx) // 2
-    )
-    filter_halo = _protection_filter_bank(policy).maximum_halo_pixels
+    context_halo = _local_noise_context_halo(config)
     requests: list[_LocalNoiseRequest] = []
-    for batch in plan_rms_window_batches(
-        grid, maximum_cells=_LOCAL_NOISE_CONTEXT_CELLS
-    ):
-        yy = slice(batch.grid_y_start, batch.grid_y_stop)
-        xx = slice(batch.grid_x_start, batch.grid_x_stop)
-        owned = replace(
-            grid,
-            window_starts_y=grid.window_starts_y[yy],
-            window_starts_x=grid.window_starts_x[xx],
-            sample_coordinates_y=grid.sample_coordinates_y[yy],
-            sample_coordinates_x=grid.sample_coordinates_x[xx],
-        )
-        bounds = _filter_read_bounds(owned, context_halo + filter_halo)
+    for batch, owned, bounds in _local_noise_contexts(grid, config, policy):
         if prod(bounds.shape_yx) > config.maximum_constant_map_pixels:
             raise ValueError(
                 "local noise context exceeds bounded read admission"

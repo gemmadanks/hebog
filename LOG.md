@@ -29249,3 +29249,104 @@ the per-worker placement finding.
   reviewer measured the pass at 0.1 ms on an ordinary header.
 - **Recommendation.** Human: consider reporting the `D`-exponent reading
   to Astropy; one web search found no existing report.
+
+## 2026-10-05 — Task 45: every listed refusal is decided before the analysis
+
+- **Outcome.** Each input the task lists is supported, or refused before
+  the analysis with a typed error that states the rule. `find_sources`
+  binds its provenance identities before it analyses anything and closes
+  the input on every path.
+- **Supported.**
+    - *Scaled pixels.* The reader asked Astropy for a memory map and for
+      scaled values, which Astropy refuses together. It now reads the
+      stored values through the map and applies `BZERO + BSCALE * stored`
+      and `BLANK` itself, in double precision, a window at a time: a 256²
+      window of a 4,096² 16-bit image peaks at 1.6 MiB traced, where the
+      image is 32 MiB. Astropy's own scaling was tried first and dropped
+      after review: it works in single precision on 16-bit pixels, skips a
+      `BLANK` of zero and any `BLANK` under the unsigned-integer
+      convention, and depends on process-wide configuration. `BSCALE`,
+      `BZERO` and an integer image's `BLANK` join the contract's Numbers
+      rule.
+    - *NumPy scalars in `SourceFinderConfig`.* Thresholds and pixel counts
+      are held as the Python `float` or `int` they equal. One consequence:
+      `SourceFinderConfig(5, 3, 7)` and `(5.0, 3.0, 7)` now have one
+      `configuration_sha256`, where the integer form hashed differently. A
+      threshold that is text, a logical or complex is a `ValueError`; text
+      used to raise `TypeError`, and `True` passed as 1.0.
+    - *A repeated keyword.* It stays read as the contract's limitations
+      say: the WCS, and a frequency taken from its `FREQ` axis, from the
+      last card, and the beam and `RESTFRQ` from the first. That is how
+      wcslib and Astropy, and so PyBDSF, read the same header, and a
+      refusal would need its own rule for which keywords count. Tests now
+      pin the three readings.
+- **Refused before the analysis.**
+    - *A truncated file*, as an invalid input: the reader reads the last
+      pixel when it validates the header, since a file that holds its last
+      pixel holds them all.
+    - *Text Astropy cannot parse*, by keyword: an unquoted `BUNIT`, and an
+      unquoted `CTYPE` on a cube's axis, which leaked the same way.
+    - *A narrow image*, as too large: under 600 pixels on its shorter side
+      and over 1,000,000 pixels. The task named the continuum profile's
+      check; the compact profile refuses the same shapes at another one. A
+      property test holds the public rule equal to both stage checks on
+      shapes drawn up to 15,402 pixels a side, with each boundary as a
+      fixed example.
+    - *A wide beam*, as unsupported: wider than 22 pixels FWHM on its major
+      axis, under either profile and at any image size. Local-noise
+      refinement reads a block of cells with a filter around it that grows
+      with the beam, and 22 pixels is the widest whole-pixel beam whose
+      read fits the 1,000,000-pixel bound on every admitted shape: the
+      largest read is 996,004 pixels at 22 and passes the bound at 22.3,
+      on images just over 1,000 pixels square. A property test holds that
+      against the stage's own plan.
+- **Independent review.** A separate agent, given the request, the diff
+  and `CODE_REVIEW.md`, found nothing at P0. Its findings changed the
+  design:
+    - The first beam rule asked the stage's plan for its read, under the
+      continuum profile only. Building that plan allocates the filter
+      kernels, so a beam of thousands of pixels, from `BMAJ` in arcseconds
+      or a pixel scale near zero, exhausted memory in the check itself; a
+      probe here was killed the same way. Smaller images and the compact
+      profile were not covered at all, and ended in bare `ValueError`s or
+      gigabytes of kernels. The fixed bound refuses all of them before
+      anything is built.
+    - Structural cards escaped untyped: `SIMPLE = F`, and `BITPIX`, `NAXIS`
+      or `NAXIS1` that is a float, text, a logical or inconsistent. All
+      are invalid inputs now.
+    - The spy in the release test could count a close from an earlier
+      test's collected source; it collects first.
+- **Evidence.** Regression tests for every item run through `find_sources`,
+  with an executor double that proves a refusal precedes any submitted
+  work and that an admitted image on the other side of each rule reaches
+  the executor.
+- **Checks on the final code.** The portable suite passes with
+  `io/fits.py` at full line and branch coverage and no new miss in the
+  other changed modules. The quick science check `typed-refusals-final`
+  reports no regression against `release-0.18.0`, with every metric of
+  its 17 cases equal. Serial products of the SDC1 and LoTSS-DR3 sparse
+  1,024² cut-outs are byte-identical to those before the change. The 42
+  readable real headers kept locally are all admitted by the narrow-image
+  and beam rules; the widest beam among them is 9 pixels.
+- **Found: task 62.** The finder is not valid for a beam many pixels wide,
+  below the beam the new rule refuses. Four sources at SNR 10, 30, 100
+  and 300 on beam-correlated noise, continuum profile, counts only:
+
+  | Beam FWHM, pixels | 4 | 8 | 12 | 14 | 16 | 18 | 20 |
+  | --- | --- | --- | --- | --- | --- | --- | --- |
+  | Published, 512² | 4 | 4 | 8 | 8 | 8 | 2 | 1 |
+  | Published, 700² | 6 | 4 | 4 | – | 6 | – | 2 |
+
+  A single SNR 100 source on a 256² image is published at 12 pixels and
+  not at 20, on white or beam-correlated noise, and the reviewer saw none
+  of two bright sources published at 20 to 30 pixels under the compact
+  profile. The background and local-noise meshes are fixed in pixels, at
+  150 and 35. The counts are not matched to truth, so the extra rows are
+  not attributed.
+- **Observed, not changed.** A gzip-compressed image is read, with Astropy
+  decompressing it as windows are requested: the reviewer timed a 512²
+  `.fits.gz` at 50 s. A scaling card Astropy cannot parse stops the file
+  from opening and is reported without its keyword.
+- **Not run.** The quick benchmark: floating-point images are still read
+  through the map with no arithmetic added, and the new checks read one
+  pixel and compute the beam's size in pixels. Windows.

@@ -10,11 +10,16 @@ import re
 import sys
 from dataclasses import replace
 from importlib.resources import files
+from math import prod
 from pathlib import Path
 
 import pytest
+from hypothesis import example, given, settings
+from hypothesis import strategies as st
 
 from hebog import public_api
+from hebog.algorithms.background import plan_rms_grid
+from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.config import SourceFinderConfig
 from hebog.data_models import (
     PublicSourceFindingDiagnostics,
@@ -22,7 +27,9 @@ from hebog.data_models import (
     WideObjectCounts,
 )
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
+from hebog.pipeline import SourceFinderImageTooLargeError
 from hebog.science.configuration import source_finder_configs
+from hebog.stages import background as background_stage
 
 _ROOT = Path(__file__).parents[2]
 
@@ -206,6 +213,132 @@ def test_intermediate_mesh_cannot_bypass_the_bounded_read_admission() -> None:
             original,
             source_finder=SourceFinderConfig(5.0, 3.0, 7),
         )
+
+
+def _stages_refuse(shape_yx: tuple[int, int], profile: str) -> bool:
+    """Return whether the background stage would refuse this image shape."""
+    background = source_finder_configs()[0].background_rms
+    if profile == "continuum":
+        try:
+            background = public_api._public_background_config(
+                shape_yx,
+                background,
+                source_finder=SourceFinderConfig(5.0, 3.0, 7),
+            )
+        except ValueError:
+            return True
+    return (
+        background_stage._use_constant_map(shape_yx, background)
+        and prod(shape_yx) > background.maximum_constant_map_pixels
+    )
+
+
+@given(
+    height=st.integers(min_value=1, max_value=15_402),
+    width=st.integers(min_value=1, max_value=15_402),
+)
+@example(height=149, width=6_711)
+@example(height=149, width=6_712)
+@example(height=150, width=6_666)
+@example(height=150, width=6_667)
+@example(height=599, width=1_669)
+@example(height=599, width=1_670)
+@example(height=600, width=15_402)
+@example(height=1_000, width=1_000)
+@example(height=2_600, width=400)
+def test_the_narrow_image_rule_refuses_exactly_what_the_stages_would(
+    height: int, width: int
+) -> None:
+    """The public rule is decided before the analysis, and is the same rule.
+
+    Each profile reaches its own bounded-read check in the background
+    stage, after work has begun; the public boundary states one rule that
+    refuses the same shapes for both.
+    """
+    shape_yx = (height, width)
+    try:
+        public_api._require_bounded_shape(shape_yx)
+    except SourceFinderImageTooLargeError:
+        refused = True
+    else:
+        refused = False
+
+    assert _stages_refuse(shape_yx, "continuum") == refused
+    assert _stages_refuse(shape_yx, "compact") == refused
+
+
+def _largest_local_noise_read(
+    shape_yx: tuple[int, int], beam_fwhm_pixels: float
+) -> int:
+    """Return the most pixels one local-noise task reads for this beam."""
+    background = source_finder_configs()[0].background_rms
+    assert background.adaptive is not None
+    fine = background.adaptive.grid
+    grid = plan_rms_grid(
+        image_shape_yx=shape_yx,
+        window_shape_yx=fine.window_shape_yx,
+        step_yx=fine.step_yx,
+    )
+    policy = background_stage.MultiscaleSourceProtection(
+        BeamShapePixels(beam_fwhm_pixels, beam_fwhm_pixels, 0.0),
+        SourceFinderConfig(5.0, 3.0, 7),
+        0.5,
+    )
+    return max(
+        prod(bounds.shape_yx)
+        for _, _, bounds in background_stage._local_noise_contexts(
+            grid, background, policy
+        )
+    )
+
+
+@settings(deadline=None, max_examples=60)
+@given(
+    height=st.integers(min_value=150, max_value=15_402),
+    width=st.integers(min_value=150, max_value=15_402),
+)
+@example(height=1_017, width=1_017)
+@example(height=1_020, width=1_020)
+@example(height=150, width=6_666)
+@example(height=599, width=1_669)
+@example(height=15_402, width=15_402)
+def test_the_widest_admitted_beam_fits_the_local_noise_read_on_any_image(
+    height: int, width: int
+) -> None:
+    """The public beam bound is what keeps the stage's bounded read.
+
+    Refinement reads a block of noise cells with the widest protection
+    filter around it and refuses a read above its bound, after work has
+    begun. The read grows with the beam, so the widest admitted beam is the
+    case to check, on every shape the narrow-image rule admits.
+    """
+    shape_yx = (height, width)
+    try:
+        public_api._require_bounded_shape(shape_yx)
+    except SourceFinderImageTooLargeError:
+        return
+    background = source_finder_configs()[0].background_rms
+
+    assert (
+        _largest_local_noise_read(
+            shape_yx, public_api._MAXIMUM_BEAM_FWHM_PIXELS
+        )
+        <= background.maximum_constant_map_pixels
+    )
+
+
+def test_the_beam_bound_is_the_widest_whole_pixel_beam_the_stage_serves() -> (
+    None
+):
+    """One more pixel of beam would exceed the read on a large image."""
+    background = source_finder_configs()[0].background_rms
+
+    assert (
+        _largest_local_noise_read(
+            (1_100, 1_100), public_api._MAXIMUM_BEAM_FWHM_PIXELS + 1
+        )
+        > background.maximum_constant_map_pixels
+    )
 
 
 @pytest.mark.parametrize("shape", ((149, 512), (150, 512), (1024, 1024)))

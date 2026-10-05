@@ -15,9 +15,10 @@ version when results must be repeatable.
 | Input | One two-dimensional FITS image; leading axes of length one are allowed, and a Stokes axis must select Stokes I. The [input header contract](input-header-contract.md) lists what each common imager writes and what to supply. |
 | Units | `BUNIT=Jy/beam`, or a supplied unit when the header has no `BUNIT`. |
 | Coordinates | ICRS or FK5 J2000 celestial WCS. A header with `EQUINOX = 2000` and no `RADESYS`, as written by WSClean, is FK5 J2000. Catalogue positions are always ICRS. Other frames are rejected. |
-| Beam and frequency | Finite positive `BMAJ` and `BMIN`, a `BPA`, and a positive reference frequency. The request can supply a value the header omits, never one it already has. |
-| Image size | At most 15,402 pixels on each side. Larger images fail before analysis. |
-| Invalid pixels | NaN pixels are excluded from estimation, detection and measurement. |
+| Beam and frequency | Finite positive `BMAJ` and `BMIN`, a `BPA`, and a positive reference frequency. The request can supply a value the header omits, never one it already has. A beam wider than 22 pixels (FWHM) is refused. |
+| Image size | At most 15,402 pixels on each side, and at most 1,000,000 pixels in all when the shorter side is under 600. Other images fail before analysis. |
+| Pixel values | Any `BITPIX`. Stored integers are scaled by `BSCALE` and `BZERO`. |
+| Invalid pixels | NaN pixels, and stored integers equal to `BLANK`, are excluded from estimation, detection and measurement. |
 | Profiles | `continuum` (default), or `compact`, which omits extended-source association and reports `extended-emission-incomplete`. |
 | Thresholds | Caller-set detection and island thresholds (island below detection), minimum and optional maximum island size. |
 | Execution | `SerialExecutor`, `ThreadExecutor`, or `DaskExecutor` with a client you own. Dask workers need the image and the output directory's parent on shared storage. All must give the same products. On Windows, threads of one process take turns at FFT convolutions, because SciPy's Windows wheels share an unlocked FFT plan cache. |
@@ -66,6 +67,9 @@ Known limitations when interpreting results:
 - A detection whose Gaussian fit fails has no Gaussian-component row.
 - An image with no usable positive RMS yields an all-NaN RMS product, an empty
   catalogue and a zero mask. This is not evidence of an empty sky.
+- The background and noise meshes are fixed in pixels, so a beam many pixels
+  wide is not measured well: with beams of 18 to 20 pixels bright sources
+  have been missed. Beams above 22 pixels are refused.
 - In a field so crowded that no fine noise window lies clear of its sources,
   the background and RMS are the unprotected sigma-clipped coarse estimate,
   which includes the sources' wings.

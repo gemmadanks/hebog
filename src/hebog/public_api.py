@@ -13,7 +13,7 @@ from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import asdict, dataclass, field, replace
 from functools import lru_cache
 from importlib.resources import files
-from math import prod
+from math import ceil, prod
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import monotonic
@@ -84,6 +84,12 @@ if TYPE_CHECKING:  # pragma: no cover - import-time typing only
     from hebog.science.profile import ContinuumScienceProfile
 
 _MAXIMUM_PREVIEW_DIMENSION = 15402
+# The widest restoring beam, in whole pixels of FWHM, for which the continuum
+# profile's local-noise refinement reads at most its million-pixel bound on
+# every admitted image shape: the read is a block of noise cells with the
+# widest source-protection filter around it, and that filter grows with the
+# beam. Nothing wider is known to be measured correctly under either profile.
+_MAXIMUM_BEAM_FWHM_PIXELS = 22.0
 _TILE_SHAPE_YX = (128, 128)
 ADMITTED_TILE_CORE_PIXELS = 2048
 """Smallest tile core the scalability contract admits, in pixels."""
@@ -274,8 +280,56 @@ def _frame_description(metadata: ImageMetadata) -> str:
     return name if equinox is None else f"{name}, equinox {equinox.value:g}"
 
 
+def _require_bounded_shape(image_shape_yx: tuple[int, int]) -> None:
+    """Refuse a narrow image that one background estimate cannot read.
+
+    The background meshes are 150 pixels wide and may span at most a quarter
+    of the image's shorter side. Below 600 pixels they are shrunk, or one
+    estimate is made for the whole image, and either reads the image in one
+    task, which is bounded at a million pixels.
+    """
+    from hebog.science.configuration import (  # noqa: PLC0415
+        source_finder_configs,
+    )
+
+    background = source_finder_configs()[0].background_rms
+    narrow_below = ceil(
+        max(background.coarse.window_shape_yx)
+        / background.maximum_spatial_window_fraction
+    )
+    limit = background.maximum_constant_map_pixels
+    if min(image_shape_yx) < narrow_below and prod(image_shape_yx) > limit:
+        raise SourceFinderImageTooLargeError(
+            f"the public source finder supports at most {limit:,} pixels in "
+            f"an image whose shorter side is under {narrow_below} pixels, "
+            f"not {image_shape_yx[0]} by {image_shape_yx[1]}"
+        )
+
+
+def _require_sampled_beam(metadata: ImageMetadata) -> None:
+    """Refuse a restoring beam too wide in pixels for the stages to serve.
+
+    The check comes before any filter is built: a beam given in the wrong
+    unit, or a pixel scale that is nearly zero, is thousands of pixels wide.
+    """
+    try:
+        beam = _beam_shape_pixels(metadata)
+    except (np.linalg.LinAlgError, ValueError) as error:
+        raise UnsupportedSourceFinderConfigurationError(
+            "the restoring beam has no finite size in pixels at the image "
+            "centre; check the beam and the pixel scale"
+        ) from error
+    # Written so that a width that is not a number is refused as well.
+    if not beam.major_fwhm_pixels <= _MAXIMUM_BEAM_FWHM_PIXELS:
+        raise UnsupportedSourceFinderConfigurationError(
+            "the public source finder supports a restoring beam of at most "
+            f"{_MAXIMUM_BEAM_FWHM_PIXELS:g} pixels FWHM, not "
+            f"{beam.major_fwhm_pixels:g}"
+        )
+
+
 def _qualified_metadata(metadata: ImageMetadata) -> None:
-    """Require the evaluated physical frame, unit, and bounded size."""
+    """Require the evaluated unit, frame, bounded size and beam sampling."""
     if metadata.unit != "Jy/beam":
         raise UnsupportedSourceFinderConfigurationError(
             "the public source finder requires BUNIT=Jy/beam, not "
@@ -292,6 +346,8 @@ def _qualified_metadata(metadata: ImageMetadata) -> None:
             "the public source finder supports at most "
             f"{_MAXIMUM_PREVIEW_DIMENSION} pixels per image dimension"
         )
+    _require_bounded_shape(metadata.shape_yx)
+    _require_sampled_beam(metadata)
 
 
 def _header_with_metadata(
@@ -1884,7 +1940,7 @@ def _materialize_bundle(  # noqa: PLR0913
     products: _ScientificProducts,
     unpublished: Path,
     *,
-    input_sha256: str,
+    provenance: PublicSourceFindingProvenance,
     wall_seconds: float,
 ) -> SourceFinderResult:
     """Write and validate one unpublished complete public product bundle."""
@@ -1911,7 +1967,6 @@ def _materialize_bundle(  # noqa: PLR0913
         metadata,
         _mask_row_blocks(products, metadata),
     )
-    profile_payload = _profile_bytes()
     diagnostics = PublicSourceFindingDiagnostics(
         run_id=request.run_id,
         profile=config.profile,
@@ -1939,16 +1994,7 @@ def _materialize_bundle(  # noqa: PLR0913
             products.terminal, catalogue, config.profile
         ),
         rms_scientific_status=rms_status,
-        provenance=PublicSourceFindingProvenance(
-            input_sha256=input_sha256,
-            configuration_sha256=_canonical_sha256(asdict(config)),
-            scientific_profile_sha256=hashlib.sha256(
-                profile_payload
-            ).hexdigest(),
-            scientific_composition_sha256=(_scientific_composition_sha256()),
-            scientific_composition=_COMPOSITION_NAME,
-            supplied_image_metadata=request.supplied_metadata,
-        ),
+        provenance=provenance,
     )
     diagnostics_product = write_diagnostics_product(
         unpublished / "diagnostics.json",
@@ -1968,6 +2014,50 @@ def _materialize_bundle(  # noqa: PLR0913
     )
 
 
+def _read_input(
+    source: FitsImageSource,
+    image_path: Path,
+) -> tuple[ImageMetadata, fits.Header]:
+    """Read the validated metadata and the header the science reads."""
+    try:
+        metadata = source.metadata()
+        return metadata, _header_with_metadata(source.header(), metadata)
+    except InvalidFitsImageError as error:
+        # The reader names the keyword or layout at fault, and the file.
+        raise InvalidSourceFinderInputError(
+            f"invalid FITS source-finder input: {error}"
+        ) from error
+    except (OSError, ValueError) as error:
+        raise InvalidSourceFinderInputError(
+            f"invalid FITS source-finder input: {image_path}"
+        ) from error
+
+
+def _provenance(
+    request: SourceFinderRequest,
+    config: SourceFinderConfig,
+) -> PublicSourceFindingProvenance:
+    """Bind a run to its input, configuration and science before it starts.
+
+    Every identity is known before the first pixel is analysed, so one that
+    cannot be computed stops the run then and not after hours of work.
+    """
+    try:
+        input_sha256 = _file_sha256(request.image_path)
+    except OSError as error:
+        raise InvalidSourceFinderInputError(
+            f"invalid FITS source-finder input: {request.image_path}"
+        ) from error
+    return PublicSourceFindingProvenance(
+        input_sha256=input_sha256,
+        configuration_sha256=_canonical_sha256(asdict(config)),
+        scientific_profile_sha256=hashlib.sha256(_profile_bytes()).hexdigest(),
+        scientific_composition_sha256=_scientific_composition_sha256(),
+        scientific_composition=_COMPOSITION_NAME,
+        supplied_image_metadata=request.supplied_metadata,
+    )
+
+
 def find_sources(
     request: SourceFinderRequest,
     config: SourceFinderConfig,
@@ -1976,7 +2066,9 @@ def find_sources(
     """Analyse one supported FITS image and atomically publish its products.
 
     The public finder supports ICRS or FK5 J2000 ``Jy/beam`` images no larger
-    than 15,402 pixels on either axis; catalogue positions are ICRS. Relative
+    than 15,402 pixels on either axis; catalogue positions are ICRS. An image
+    outside the input header contract is refused before the analysis starts,
+    and the input file is released whatever the outcome. Relative
     request paths are bound to the caller's working directory before any
     executor task is built. Caller thresholds are executed exactly;
     diagnostics distinguish the unqualified development candidate from custom
@@ -1987,29 +2079,13 @@ def find_sources(
     _require_unclaimed_output(output)
     image_path = Path(request.image_path).absolute()
     request = replace(request, image_path=image_path, output_directory=output)
+    source = FitsImageSource(image_path, request.supplied_metadata)
     try:
-        source = FitsImageSource(image_path, request.supplied_metadata)
-        metadata = source.metadata()
-        header = _header_with_metadata(source.header(), metadata)
-    except InvalidFitsImageError as error:
-        # The reader names the keyword or layout at fault, and the file.
-        raise InvalidSourceFinderInputError(
-            f"invalid FITS source-finder input: {error}"
-        ) from error
-    except (OSError, ValueError) as error:
-        raise InvalidSourceFinderInputError(
-            f"invalid FITS source-finder input: {image_path}"
-        ) from error
-    _qualified_metadata(metadata)
-    try:
-        input_sha256 = _file_sha256(image_path)
-    except OSError as error:
-        raise InvalidSourceFinderInputError(
-            f"invalid FITS source-finder input: {image_path}"
-        ) from error
-    output.parent.mkdir(parents=True, exist_ok=True)
-    started = monotonic()
-    try:
+        metadata, header = _read_input(source, image_path)
+        _qualified_metadata(metadata)
+        provenance = _provenance(request, config)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        started = monotonic()
         with TemporaryDirectory(
             prefix=f".{output.name}.",
             dir=output.parent,
@@ -2032,12 +2108,13 @@ def find_sources(
                 metadata,
                 scientific,
                 unpublished,
-                input_sha256=input_sha256,
+                provenance=provenance,
                 wall_seconds=monotonic() - started,
             )
             _publish_bundle(unpublished, output)
     finally:
         # This call owns the source it opened, so it releases the input
-        # when the run ends rather than leaving it to the collector.
+        # when the run ends, or is refused, rather than leaving it to the
+        # collector: a caller handling the error may want to move the file.
         source.close()
     return result.model_copy(update={"wall_seconds": monotonic() - started})

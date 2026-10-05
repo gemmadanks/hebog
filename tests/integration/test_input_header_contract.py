@@ -911,3 +911,104 @@ def test_numbers_with_d_exponents_publish_the_source_where_they_put_it(
     source.close()
     # wcslib reads the date too, and the image products carry it.
     assert fits.getheader(result.rms_path)["MJD-OBS"] == 59000.0
+
+
+@pytest.mark.parametrize(
+    ("keyword", "card", "convention"),
+    [
+        ("BUNIT", "BUNIT   = Jy/beam", _Convention(_lotss_mosaic())),
+        # A cube is refused by naming its axes, which reads their CTYPE.
+        ("CTYPE3", "CTYPE3  = FREQ", _Convention(_wsclean(), (1, 4))),
+    ],
+    ids=["unquoted-unit", "unquoted-axis-type"],
+)
+def test_text_astropy_cannot_parse_is_refused_by_its_keyword(
+    tmp_path: Path, keyword: str, card: str, convention: _Convention
+) -> None:
+    """Text without its quotes is not a FITS value, and Astropy raises."""
+    _write(tmp_path / "image.fits", convention)
+    _overwrite_card(tmp_path / "image.fits", keyword, card)
+
+    with pytest.raises(
+        InvalidSourceFinderInputError,
+        match=f"has a {keyword} card that cannot be parsed",
+    ):
+        hebog.find_sources(
+            _request(tmp_path, convention),
+            SourceFinderConfig(5.0, 3.0, 7),
+            SerialExecutor(),
+        )
+
+    assert not (tmp_path / "products").exists()
+
+
+@pytest.mark.parametrize(
+    ("keyword", "card"),
+    [
+        ("SIMPLE", "SIMPLE  =                    F"),
+        ("BITPIX", "BITPIX  =                -32.0"),
+        ("BITPIX", "BITPIX  = 'x'"),
+        ("BITPIX", "BITPIX  =                    T"),
+        ("BITPIX", "BITPIX  =                  -16"),
+        ("NAXIS", "NAXIS   =                    3"),
+        ("NAXIS", "NAXIS   =                  2.0"),
+        ("NAXIS1", "NAXIS1  =                 64.0"),
+        ("NAXIS1", "NAXIS1  = 'wide'"),
+    ],
+)
+def test_a_structural_card_fits_does_not_allow_is_an_invalid_input(
+    tmp_path: Path, keyword: str, card: str
+) -> None:
+    """Astropy raises whatever such a card first breaks; the finder's error
+    is the one a caller handles for any file it cannot read.
+    """
+    convention = _Convention(_lotss_mosaic())
+    _write(tmp_path / "image.fits", convention)
+    _overwrite_card(tmp_path / "image.fits", keyword, card)
+
+    with pytest.raises(
+        InvalidSourceFinderInputError,
+        match=r"cannot read FITS image|standard image|unreadable",
+    ):
+        hebog.find_sources(
+            _request(tmp_path, convention),
+            SourceFinderConfig(5.0, 3.0, 7),
+            SerialExecutor(),
+        )
+
+    assert not (tmp_path / "products").exists()
+
+
+@pytest.mark.parametrize("keyword", ["RESTFRQ", "BMIN", "BPA"])
+def test_a_repeated_keyword_astropy_reads_comes_from_its_first_card(
+    tmp_path: Path, keyword: str
+) -> None:
+    """The limitation the contract states for the beam and ``RESTFRQ``."""
+    image = tmp_path / "image.fits"
+    _write_accepted(image, _Convention(_lotss_mosaic()))
+    source = FitsImageSource(image)
+    first = source.metadata()
+    source.close()
+    _overwrite_card(image, "TELESCOP", f"{keyword:<8}=               0.0001")
+
+    source = FitsImageSource(image)
+    repeated = source.metadata()
+    source.close()
+
+    assert repeated.beam == first.beam
+    assert repeated.reference_frequency_hz == first.reference_frequency_hz
+
+
+def test_a_repeated_frequency_axis_value_comes_from_its_last_card(
+    tmp_path: Path,
+) -> None:
+    """The limitation the contract states for what wcslib reads."""
+    image = tmp_path / "image.fits"
+    _write_accepted(image, _WSCLEAN)
+    _overwrite_card(image, "SPECSYS", "CRVAL3  =          200000000.0")
+
+    source = FitsImageSource(image)
+    frequency_hz = source.metadata().reference_frequency_hz
+    source.close()
+
+    assert frequency_hz == 200_000_000.0
