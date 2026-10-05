@@ -29138,3 +29138,48 @@ the per-worker placement finding.
   path does not reach a published product in any case tried; task 61 stops
   the run rather than publish a wrong one. Tasks 44 to 47 and 61 come first
   after the release, as the plan orders them.
+
+## 2026-10-05 — Task 44: a header card that is not a number is refused
+
+- **Outcome.** Every numeric card the reader uses is a finite number, or
+  the image is refused before analysis with `InvalidSourceFinderInputError`
+  naming the keyword. One helper in `io/fits.py`, `_header_number`, reads
+  `BMAJ`, `BMIN`, `BPA`, `RESTFRQ` and `RESTFREQ`, and checks every numeric
+  card of the primary WCS before wcslib parses the header: `CRVALi`,
+  `CRPIXi`, `CDELTi`, `CROTAi`, `PCi_j`, `CDi_j`, `PVi_m`, `LONPOLE`,
+  `LATPOLE`, `EQUINOX` and `EPOCH`, on every axis. The 27 September `CROTA`
+  rule now goes through the same helper.
+- **Forms refused.** Unquoted `NAN` and `INF`, quoted text, a number
+  followed by a unit, a number with two decimal points, a number too large
+  for a double, a logical and a complex value. Astropy raises `VerifyError` for a card it cannot parse
+  only until something serializes the header; after that it holds the text
+  as a string. The helper refuses both states.
+- **Choices.**
+    - `EQUINOX` and `EPOCH` are in the rule because the frame is read from
+      them. wcslib 8.6, which Astropy 8.0.1 bundles, ignores an equinox
+      written as text in any form: with no `RADESYS`, `'J2000'`, `'B1950'`
+      and `'1950'` are all read as ICRS, which would publish a B1950 image
+      50 years of precession away from its sources. Such a header was
+      accepted and is now refused.
+    - A WCS card with no value is refused, because wcslib reads the
+      keyword's default for it. A beam or frequency card with no value
+      stays a missing keyword that a supplied value fills.
+- **Evidence.** `tests/integration/test_input_header_contract.py` replaces
+  one card at a time in the bytes of a file the reader accepts and runs
+  `find_sources`: 35 cards by 8 forms, and the 30 WCS cards with no value,
+  each refused by keyword with no product directory. Before the change a
+  text or `NAN` `CRVAL1` ran to completion, an unparsable `BMAJ` or
+  `RESTFRQ` raised `VerifyError`, and a `BMAJ` of `'180.0'` was still
+  running after six minutes. The 42 distinct headers among the real images
+  kept locally (LoTSS-DR2 and DR3, SDC1, the EMU pilot and the quick-check
+  inputs) are read as before. The portable suite passes with `io/fits.py`
+  at full line and branch coverage.
+- **Recorded in task 45.** An unquoted `BUNIT` still leaks `VerifyError`.
+  Unquoted `RADESYS` and `CTYPE` cards are read correctly, because Astropy
+  turns them into the strings they were meant to be.
+- **Found, and repaired in the next entry.** wcslib reads a FITS `D`
+  exponent only as far as the letter, with no warning: `CRVAL1 = 1.8D2` is
+  1.8°, where Astropy reads 180°.
+- **Not run.** The quick science check and the quick benchmark: the change
+  adds refusals and alters no accepted reading. The quick science check
+  runs on the next entry's change, which does.

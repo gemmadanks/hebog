@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 import threading
 from collections.abc import Iterable
@@ -54,6 +55,12 @@ _STOKES_CODE_TOLERANCE = 1e-6
 _CELESTIAL_AXIS_TYPES = frozenset({("RA", "DEC"), ("GLON", "GLAT")})
 # Primary linear-transform matrix keywords, in current and AIPS-era spelling.
 _LINEAR_MATRIX_KEYWORD = re.compile(r"(PC|CD)(\d+_\d+|\d{6})")
+# Numeric keywords of the primary WCS: the linear transform, the projection
+# parameters, and the equinox that names the frame.
+_WCS_NUMBER_KEYWORD = re.compile(
+    r"(CRVAL|CRPIX|CDELT|CROTA)\d+|PV\d+_\d+|LONPOLE|LATPOLE|EQUINOX|EPOCH|"
+    + _LINEAR_MATRIX_KEYWORD.pattern
+)
 
 
 class InvalidFitsImageError(ValueError):
@@ -62,6 +69,54 @@ class InvalidFitsImageError(ValueError):
 
 class UnsupportedFitsImageError(InvalidFitsImageError):
     """A valid FITS input uses an image layout Hebog does not yet support."""
+
+
+def _header_number(header: Any, keyword: str, path: Path) -> float | None:
+    """Read one header card that must hold a finite number, if it has one.
+
+    Returns ``None`` when the header has no such card, or the card has no
+    value. Neither Astropy nor wcslib reports a card that holds anything
+    else: wcslib reads the keyword's default in its place, and ``float``
+    reads a logical as one. Text, a logical, a complex value and a value
+    Astropy cannot parse, such as ``NAN`` or a number followed by its unit,
+    are therefore refused.
+    """
+    try:
+        value = header.get(keyword)
+    except fits.VerifyError as error:
+        raise InvalidFitsImageError(
+            f"FITS image has a {keyword} card that is not a finite number: "
+            f"{path}"
+        ) from error
+    if value is None:
+        return None
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, int | float)
+        or not math.isfinite(value)
+    ):
+        raise InvalidFitsImageError(
+            f"FITS image has a {keyword} card that is not a finite number, "
+            f"{value!r}: {path}"
+        )
+    return float(value)
+
+
+def _require_numeric_wcs_cards(header: Any, path: Path) -> None:
+    """Refuse a WCS card that wcslib would replace with its default.
+
+    wcslib parses the header text itself and uses a keyword's default for a
+    card it cannot read as a number, so a ``CRVAL1`` of ``'180.0'`` would
+    place every source at right ascension zero.
+    """
+    for keyword in header:
+        if (
+            _WCS_NUMBER_KEYWORD.fullmatch(keyword)
+            and _header_number(header, keyword, path) is None
+        ):
+            raise InvalidFitsImageError(
+                f"FITS image has a {keyword} card with no value: {path}"
+            )
 
 
 def _canonical_image_unit(unit_value: str, path: Path) -> str:
@@ -131,7 +186,7 @@ def _restoring_beam(
     for keyword, supplied_value in zip(
         ("BMAJ", "BMIN", "BPA"), supplied_values, strict=True
     ):
-        header_value = header.get(keyword)
+        header_value = _header_number(header, keyword, path)
         if header_value is not None and supplied_value is not None:
             raise InvalidFitsImageError(
                 f"supplied {keyword} duplicates the FITS header value: {path}"
@@ -160,6 +215,7 @@ def _celestial_wcs(header: Any, path: Path) -> tuple[WCS, CelestialWcs]:
     axes come back as ICRS, so their longitudes would be published as right
     ascensions.
     """
+    _require_numeric_wcs_cards(header, path)
     try:
         image_wcs = WCS(header, relax=True)
         celestial_wcs = image_wcs.celestial
@@ -193,22 +249,6 @@ def _celestial_wcs(header: Any, path: Path) -> tuple[WCS, CelestialWcs]:
     )
 
 
-def _rotation_degrees(header: Any, axis: int, path: Path) -> float:
-    """Read one axis's optional legacy ``CROTA`` rotation in degrees."""
-    keyword = f"CROTA{axis}"
-    rotation = header.get(keyword, 0.0)
-    # wcslib ignores a text or logical CROTA, so it cannot be read as one.
-    if (
-        isinstance(rotation, bool)
-        or not isinstance(rotation, int | float)
-        or not np.isfinite(rotation)
-    ):
-        raise InvalidFitsImageError(
-            f"FITS image has an invalid {keyword} {rotation!r}: {path}"
-        )
-    return float(rotation)
-
-
 def _require_one_rotation(header: Any, image_wcs: WCS, path: Path) -> None:
     """Refuse a rotation that the WCS standard would silently discard.
 
@@ -222,8 +262,8 @@ def _require_one_rotation(header: Any, image_wcs: WCS, path: Path) -> None:
     """
     longitude_axis = image_wcs.wcs.lng + 1
     latitude_axis = image_wcs.wcs.lat + 1
-    longitude = _rotation_degrees(header, longitude_axis, path)
-    latitude = _rotation_degrees(header, latitude_axis, path)
+    longitude = _header_number(header, f"CROTA{longitude_axis}", path) or 0.0
+    latitude = _header_number(header, f"CROTA{latitude_axis}", path) or 0.0
     if longitude not in (0.0, latitude):
         raise InvalidFitsImageError(
             f"FITS image rotates its longitude axis (CROTA{longitude_axis} = "
@@ -278,14 +318,8 @@ def _require_total_intensity(image_wcs: WCS, path: Path) -> None:
             )
 
 
-def _positive_frequency_hz(raw_frequency: Any, path: Path) -> float:
-    """Validate and normalize one candidate reference frequency."""
-    try:
-        frequency_hz = float(raw_frequency)
-    except (TypeError, ValueError) as error:
-        raise InvalidFitsImageError(
-            f"FITS image requires a reference frequency: {path}"
-        ) from error
+def _positive_frequency_hz(frequency_hz: float, path: Path) -> float:
+    """Validate one candidate reference frequency."""
     if not np.isfinite(frequency_hz) or frequency_hz <= 0:
         raise InvalidFitsImageError(
             "FITS image reference frequency must be finite and positive: "
@@ -299,10 +333,11 @@ def _header_reference_frequency_hz(
     path: Path,
 ) -> float | None:
     """Read an optional RESTFRQ or RESTFREQ before WCS parsing."""
-    raw_frequency = header.get("RESTFRQ", header.get("RESTFREQ"))
-    if raw_frequency is None:
-        return None
-    return _positive_frequency_hz(raw_frequency, path)
+    for keyword in ("RESTFRQ", "RESTFREQ"):
+        frequency_hz = _header_number(header, keyword, path)
+        if frequency_hz is not None:
+            return _positive_frequency_hz(frequency_hz, path)
+    return None
 
 
 def _wcs_reference_frequency_hz(image_wcs: WCS, path: Path) -> float | None:
@@ -312,10 +347,10 @@ def _wcs_reference_frequency_hz(image_wcs: WCS, path: Path) -> float | None:
     ):
         if physical_type == "em.freq":
             axis_unit = image_wcs.world_axis_units[axis_index] or "Hz"
-            raw_frequency = (
+            frequency_hz: Any = (
                 float(image_wcs.wcs.crval[axis_index]) * units.Unit(axis_unit)
             ).to_value(units.Hz)
-            return _positive_frequency_hz(raw_frequency, path)
+            return _positive_frequency_hz(float(frequency_hz), path)
     return None
 
 

@@ -13,9 +13,9 @@ that names the keyword or layout at fault.
 | One image plane | The primary HDU. The last two axes are the plane; every other axis must have length one. | Refused, naming each longer axis, for example `SPECLNMF (NAXIS3 = 16)`. Channel, Stokes and other cubes need their own contract. |
 | Stokes parameter | A `STOKES` axis's world value at the plane, so a writer that encodes it in `CRPIX` rather than `CRVAL` is read correctly. No `STOKES` axis means Stokes I. | Any parameter other than I is refused: Q, U and V, and instrumental planes such as `XX` or `RR`. A value that is not an integer parameter code, such as `1.4`, is refused as malformed. |
 | Pixel unit | `BUNIT`. `JY/BEAM` and other spellings of Jy/beam are accepted. | A supplied `brightness_unit`, else refused. The public finder measures `Jy/beam` only. |
-| Restoring beam | `BMAJ`, `BMIN` and `BPA`, in degrees. | A supplied value for each missing keyword, else refused. |
-| Reference frequency | `RESTFRQ`, then `RESTFREQ`, then the first `FREQ` axis's `CRVAL`. | A supplied `reference_frequency_hz`, else refused. |
-| Celestial WCS | Astropy's reading of the header: any projection it supports (`SIN`, `TAN`, `ZEA` and others), with `CDELT`, a `PC` or `CD` matrix, or a legacy `CROTA`. | Refused when absent. A rotation Astropy would silently drop is refused; see [Rotation](#rotation). |
+| Restoring beam | `BMAJ`, `BMIN` and `BPA`, in degrees. | A supplied value for each missing keyword, else refused. A card that is not a number is refused; see [Numbers](#numbers). |
+| Reference frequency | `RESTFRQ`, then `RESTFREQ`, then the first `FREQ` axis's `CRVAL`. | A supplied `reference_frequency_hz`, else refused. A card that is not a number is refused. |
+| Celestial WCS | Astropy's reading of the header: any projection it supports (`SIN`, `TAN`, `ZEA` and others), with `CDELT`, a `PC` or `CD` matrix, or a legacy `CROTA`. | Refused when absent. A card that is not a number, and a rotation Astropy would silently drop, are refused; see [Numbers](#numbers) and [Rotation](#rotation). |
 | Coordinate frame | The celestial axis types, which must be `RA`/`DEC` or `GLON`/`GLAT`, then `RADESYS`, `EQUINOX` and `EPOCH`. With none of the three, the frame is ICRS, as the WCS standard defines. `EQUINOX` or `EPOCH` of 2000 without `RADESYS` is FK5 J2000. | Only ICRS and FK5 J2000 are accepted; the error names the frame found, such as `GALACTIC` or `FK4, equinox 1950`. Other celestial axes, such as ecliptic `ELON`/`ELAT` or supergalactic `SLON`/`SLAT`, are refused by their axis types, because Astropy would read ecliptic coordinates as ICRS. Catalogue positions are always ICRS. |
 | Size | `NAXIS1` and `NAXIS2`. | Refused above 15,402 pixels on either side. |
 
@@ -58,20 +58,45 @@ reaches them.
 | GLEAM-X DR1 mosaics (SWarp, then Miriad `fits`) | Two axes in the `ZEA` projection; `EPOCH = 2000`; `BUNIT` and beam copied from one input snapshot; the frequency in a non-standard `FREQ` keyword. | Read as FK5 J2000; supply `reference_frequency_hz`. The copied beam is not the mosaic's point-spread function, which the survey publishes as separate four-plane maps and which varies across the field; such a map is itself refused as a cube. |
 | SKA Data Challenge 1 (Miriad) | Four axes; `EPOCH = 2000`; `BMAJ` and `BMIN` without `BPA`. | Read as FK5 J2000; supply `beam_position_angle_degrees`. |
 
+## Numbers
+
+Astropy and wcslib do not report a card that should hold a number and holds
+something else. wcslib reads the keyword's default in its place, and a
+logical beam or frequency is read as the number one. A `CRVAL1` of `'180.0'`
+would put every source at right ascension zero, a `CDELT1` of `NAN` would
+make each pixel one degree wide, and a `BMAJ` of `T` would be a one-degree
+beam. Hebog refuses such an image and names the keyword.
+
+The rule covers the restoring beam (`BMAJ`, `BMIN` and `BPA`), the reference
+frequency (`RESTFRQ` and `RESTFREQ`) and, on every axis, the numeric cards of
+the WCS: `CRVALi`, `CRPIXi`, `CDELTi`, `CROTAi`, `PCi_j`, `CDi_j`, `PVi_m`,
+`LONPOLE`, `LATPOLE`, `EQUINOX` and `EPOCH`. Each must hold one finite
+number. None of these does:
+
+- text, including a quoted number such as `'180.0'` and an equinox written
+  as `'J2000'`;
+- a logical, `T` or `F`;
+- a complex number;
+- `NAN` or `INF`, which FITS has no way to write, or a number too large to
+  hold, such as `1.0E999`; and
+- a number followed by its unit, such as `180.0 deg` or `4 arcsec`, or
+  anything else that is not one number.
+
+A WCS card with no value is refused too. A beam or frequency card with no
+value is a missing keyword, which a supplied value can fill.
+
 ## Rotation
 
 The WCS standard reads a legacy `CROTAi` rotation from the latitude axis only,
 and ignores it when a `PCi_j` or `CDi_j` matrix is present. Astropy follows
-the standard without a warning, so three kinds of header would be read with
+the standard without a warning, so two kinds of header would be read with
 a different orientation than their writer intended, and every catalogue
 position would move. Hebog refuses:
 
 - a rotation on the longitude axis (`CROTA1` for RA in axis 1) that is not
-  zero and differs from the latitude axis's;
+  zero and differs from the latitude axis's; and
 - a non-zero latitude-axis rotation beside a `PC` or `CD` matrix, in either
-  its current spelling or the older `PC001001` form; and
-- a `CROTA` value written as text, such as `'30'`, or as a logical, which
-  wcslib ignores.
+  its current spelling or the older `PC001001` form.
 
 A zero rotation, a rotation on the latitude axis alone, and equal rotations
 on both axes are unambiguous and accepted. OSKAR writes zeros; AIPS and Obit
