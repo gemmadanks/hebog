@@ -29086,3 +29086,55 @@ the per-worker placement finding.
   budget question is still open), and `master` timings, which are
   diagnostic only.
 - **Next.** Human: inspect the refresh and cut the release.
+
+## 2026-10-05 — Review tasks 44 and 46 checked against the release candidate
+
+- **Why.** The release check found two review tasks that describe wrong
+  outputs, and the maintainer asked whether they still hold on the
+  candidate. Code on `main` has not changed since `5ff636f`; every case
+  below ran through `find_sources` there unless it says otherwise. Scripts:
+  `benchmark-results/release-check/0.18.0/review-tasks/`.
+- **Task 44 holds; the code is wrong, not the task.** A 128² image with one
+  source at (180.0°, 45.0°), one header card altered at a time, the
+  malformed cards written into the file bytes so Astropy cannot tidy them:
+    - `CRVAL1` as unquoted `NAN`, `180.0 deg` or `1.8E+02.0`, or quoted
+      text, publishes the source at RA 0.0° with no error; a text `CRPIX1`
+      publishes it at 179.9745°; a `nan` `CDELT1` reads 1° pixels, and the
+      4.4″ source is fitted as 15,387″.
+    - A logical `BMAJ` is read as 1°, and the run was still going after
+      120 s. An unparsable `BMAJ` or `RESTFRQ` leaks Astropy's
+      `VerifyError`; a quoted numeric `BMAJ` passes the reader and fails
+      later with a bare `TypeError`. `nan` beam or frequency values that
+      Astropy can parse are refused with the typed error.
+    - v0.17.0 gives the same RA 0.0° and the same `VerifyError`, so 0.18.0
+      changes nothing here. The task now quotes these figures.
+- **Task 46 overstated where the zero RMS goes.** The extrapolation is as
+  stated: the coarse RMS follows the secant to the cell at twice the edge
+  cell's distance, and `np.maximum` clamps it at zero. But the published
+  RMS and detection use the local-noise estimate wherever one exists, and
+  it is not extrapolated. A 600² public run whose left 40 columns have a
+  fifth of the noise publishes no zero RMS, and neither do the 17
+  quick-check cases or the whole LoTSS-DR3 mosaic. The zeros can reach
+  only bright-candidate discovery and fields where local noise refines
+  nothing. The task now says so.
+    - Its constant-region claim holds through the public API, and is the
+      larger effect: 150 zero-valued columns beside noise publish an RMS of
+      exactly zero on 82,956 pixels and under 10⁻⁶ Jy/beam on 3,703 more,
+      `rms_scientific_status` valid, and two sources injected inside the
+      region are not found.
+    - The quiet-edge run also gave four detections beside the noise step
+      that are not injected sources: the local noise there averages across
+      the step. Recorded, not a task.
+- **New: a crash, task 61.** The quick check's `crowded-field` input with
+  its left 40 columns scaled by 0.2 stops in the bridge round with a bare
+  `ValueError` ("previous publication ownership must be connected"). Owner
+  682's earlier publication is its 69-pixel body and one pixel two rows
+  below it; no bridge joins them and the restore round did not restore the
+  owner. `ad81965`, before task 43, fails identically, and v0.17.0 refused
+  the field earlier, as it refused every such crowded field before task
+  36. The run fails closed: nothing wrong is published.
+- **Recommendation.** None of this blocks 0.18.0. Task 44 is unchanged
+  since v0.17.0 and needs a malformed card to show; task 46's zero-RMS
+  path does not reach a published product in any case tried; task 61 stops
+  the run rather than publish a wrong one. Tasks 44 to 47 and 61 come first
+  after the release, as the plan orders them.
