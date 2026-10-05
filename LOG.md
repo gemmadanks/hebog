@@ -28656,3 +28656,362 @@ the per-worker placement finding.
       that context separation cannot waive the joint-fit limit.
 - **Records.** The plan's Science row records both approvals, and its Next
   action no longer asks for them. No code, test or product changes.
+
+## 2026-10-04 — Review: the whole codebase, and the tasks it adds
+
+- **Scope and method.** A review of `main` at `ad819653` (v0.17.0 plus
+  twelve commits), at the maintainer's request. Eight reviewers each read
+  one area: the public boundary and I/O; executors and the image-plane
+  stages; the object, association and publication stages; the fitting and
+  measurement kernels; the background, detection, deblending, multiscale and
+  association kernels; the science composition, adapters and data models;
+  the validation tooling and scripts; and the tests and documentation. Each
+  finding rated P1 or P2 was reproduced with a small script, and the lead
+  finding of every area was run again independently. The scripts are kept,
+  outside Git, under `benchmark-results/codebase-review-2026-10-04/`. They
+  use small synthetic inputs, so every cost and memory figure below is a
+  figure for that input, not a measurement of a real image.
+- **Baseline.** `ruff check`, `ruff format --check` and strict `pyright`
+  pass, and no function exceeds cyclomatic complexity 10. The portable suite
+  passes at 97% branch-aware coverage: 2,930 passed and 2 xfailed, with 480
+  warnings and no `filterwarnings` setting. Nothing was found at P0.
+- **Reproduced a second time.**
+  - *Rapthor view (task 57).* On five point sources in a 200² image the
+    `continuum` profile's source rows carry no position error and no
+    deconvolved size, so `DC_Maj`, `E_RA` and `E_DEC` are NaN and Rapthor's
+    cuts (`diagnostic_calculation.py:724-729`) keep 0 of 5; `compact` keeps
+    5 of 5. The codec raises on the finder's `J2000.0` epoch.
+  - *Header cards (task 44).* A `CRVAL1` card holding `nan`, the text
+    `'180.0'` or `180.0 deg` is accepted, and a source at (180.00253,
+    45.00142) is published at (0.00253, 45.00142).
+  - *Refusals (task 45).* Integer images with `BSCALE`, `BZERO` or `BLANK`
+    raise a bare `ValueError` from the memory-mapped read.
+    `SourceFinderConfig(5.0, 3.0, np.int64(7))` raises a bare `TypeError`
+    in `_materialize_bundle`, after the analysis.
+  - *RMS (task 46).* Coarse cells of 1.0, 1.6 and 2.5 at x = 74.5, 124.5
+    and 174.5 extrapolate to an RMS of exactly zero on 4,800 pixels of a
+    600² image. Four threads calling the RMS kernel let 5 of 1,200 warnings
+    escape and leave `ignore` filters for `RuntimeWarning` and
+    `AstropyUserWarning` in the process; a variant with no filter is
+    bitwise equal.
+  - *Failure cleanup (task 47).* After a failed `ThreadExecutor` run the
+    work directory is gone, and one second later three chunk files exist in
+    it again.
+  - *Noise seeds (task 48).* For generator version 1, seeds 1000 and 1001
+    give `b[address] == a[address ^ 1]` for every pixel, and seeds 1000 and
+    1007 give identical aligned 16-pixel block sums. Version 3 realizations
+    correlate at -0.03.
+  - *Lanes (tasks 49, 50 and 58).* No file in `tests/equivalence` calls
+    `find_sources`. A public run under either profile loads none of the
+    stages `catalogue`, `deblending`, `fitting` and `measurement`, or the
+    algorithms `catalogue`, `combined_catalogue`, `combined_identity`,
+    `combined_products` and `compact_preservation`: 2,875 lines. The unit
+    recipe's doctest flags collect 0 items under
+    `src/`, where naming `src/hebog` collects 16. 118 `slow` tests are
+    selected by no recipe or CI job. `ThreadExecutor` appears only in the
+    two executor test files.
+  - *Bright regions (task 53).* Sources at 200σ on a 150-pixel lattice in a
+    2,000² image give one task that reads (2000, 2000) at a traced peak of
+    993 MiB; on a 400-pixel lattice, 25 tasks of 273². At 15,402², 4,000
+    uniformly placed candidates merge into one region of the whole image;
+    2,000 give a largest region of 2.6 Mpx.
+  - *Batch reads (task 54).* The real `batch_object_windows`, with the
+    4 Mpx budget and 16,084 objects of 70-pixel windows at 15,402², gives a
+    median read of 274 × 15,270 and 656 chunk decodes a plane; ordered by
+    core first, 1,510 × 2,088 and 268. At 3,000² the two orders decode the
+    same 8 chunks.
+  - *Association (task 55).* A profile at 2,000 synthetic components shows
+    16 million `isdisjoint` calls in `_components_for_feature_group` and
+    `_hierarchy_groups`.
+  - *Admission (task 17).* No module outside `executors/` names
+    `TaskRequirement`, `requirement=`, `capacity` or `reduce_batches`.
+  - *Packaging (task 60).* A lowest-direct resolution fails: `astropy
+    8.0.1` and `zarr 3.2` need NumPy 2. Only `distributed` is imported.
+    `README.md` and `docs/tutorials/index.md` install `v0.12.0`.
+- **Run by the area reviewer only.**
+  - A logical `BMAJ` is read as a 1° beam; `BMAJ = nan` and an unquoted
+    `BUNIT` leak Astropy's `VerifyError`; a truncated file raises a bare
+    `TypeError`; a 400 × 2,600 image is refused with a bare `ValueError`;
+    a beam of 24 pixels FWHM fails local-noise refinement (task 45).
+  - A SIGKILL leaves `.out.<random>` beside the output, and a rerun leaves
+    it there (task 47).
+  - The same grid source's published integrated-flux error correlates
+    +0.36 to +0.45 between white-noise realization pairs of the retained
+    `m1-endpoint-summed-fit` products, for Hebog and for pinned `master`,
+    where independent pairs give 0 ± 0.125 (task 48).
+  - The composition hash lists 39 of the 65 modules in the finder's import
+    closure (task 51). The quick check returns the same prepared reference
+    input for a different image under one case name (task 51).
+  - The matcher pairs A→b and B→a at 0.60 beam when candidates sit exactly
+    on truth, because the fluxes then agree better; one component on a
+    faint neighbour makes `snr10_completeness` 1.0 for an undetected bright
+    source; `phase-0-pybdsf-master-vs-release-comparison.json` fails
+    `load_evidence` with 51 missing fields (task 52).
+  - The hierarchy decision takes 0.11, 0.41, 1.72 and 6.63 s at 500 to
+    4,000 components; with one inverted index, 0.078 s and an identical
+    result. The reconciliation tree takes 8.8 s against 0.7 s for one pass
+    at 14,641 cells (task 55).
+  - Local-noise requests hold 1.84 and 1.89 bytes a pixel on the driver at
+    5,000² and 8,000². Under Dask with a process worker each task parses
+    the generation marker again: 16.0 MB and 0.42 s at 15,402² (task 56).
+  - Each association task pickles a function of 1.38 MiB at 16,084
+    components, because it binds the whole component label table
+    (task 54).
+- **From reading only.** The layering gaps (task 59); the stale reference
+  pages and the pipeline guide's error table (tasks 45 and 58); the
+  reference-frequency precedence against PyBDSF's `readimage.py` (task 16);
+  the CI workflow, uv pins and unbuilt `Dockerfile` (task 60).
+- **Found sound, by execution.** Position, shape, angle and flux
+  conventions through the joint fit and the production astrometry call on
+  five WCS orientations; fitted pulls of 0.92 to 1.04 on beam-correlated
+  noise; tiled labelling against `scipy.ndimage.label` on 720 tilings;
+  deblending against an independent level-set rule in 300 of 300 blends;
+  owner connectivity on 1,000 tilings; executor agreement on order, empty
+  input, retries and exception type; the matcher's great-circle geometry;
+  and the benchmark protocol against this plan's rules.
+- **Not covered.** Nothing was run on Windows or on a real image, and no
+  real run was profiled. Most test files were scanned for patterns, not
+  read. About fifteen scripts, `support_plotting.py`,
+  `support_diagnostics.py` and this log were not read.
+- **Plan.** Tasks 44 to 60 are added, tasks 16, 17 and 19 are amended, the
+  association and kept-record risks name their located causes, and one risk
+  is added for the bright-region read. The current state records the limits
+  on the 23 September paired bound and on the equivalence lane. The
+  structural changes the review named and no task needs are deferred.
+- **Decisions for the maintainer.** What a source row gives Rapthor's three
+  cuts (task 57); whether the code no installed path runs is removed or
+  kept as a named oracle (task 58); what the comparison matcher optimizes
+  (task 52); the RMS of a constant-valued region (task 46); which keyword
+  gives the reference frequency (task 16); and the order of the new tasks.
+- **Checks.** The strict docs build and `just pre-commit` passed. This
+  change edits the plan and this log only: no production code, test or
+  configuration changed, so no coverage run, quick science check or
+  benchmark applies to it.
+
+## 2026-10-04 — Plan: current-state table trimmed, its history moved here
+
+- **Why.** The plan's current-state table had grown to about 15,000 characters
+  of dated narrative: measurements with their intervals, before and after
+  figures, and the reasoning of completed tasks. `AGENTS.md` assigns those to
+  this log. Each row of the table now states the current position and points to
+  the release status, the performance profile and this log for figures.
+- **What did not change.** Nothing was measured or decided. No claim, limit,
+  gate, risk or task changed, and every figure the trimmed table states comes
+  from the old table, some of them rounded.
+- **The table as it stood.** The nine rows below are the table's text at
+  `059fc77a`, word for word, so that no figure or date is lost; only the link
+  targets are rewritten for this file. "Below" and "above" in them refer to the
+  plan.
+- **Release.** v0.17.0, tagged on 28 September 2026 at `67db207` and uploaded
+  to TestPyPI; it adds the input header contract to the 10,000-pixel envelope
+  of v0.16.0. Experimental and scientifically unqualified.
+- **Candidate.** Public composition v22: diagonal-weighted component fits,
+  detection through the tiled pass. Development-unqualified.
+- **Functionality.** Standalone FITS-to-products finder (background/RMS,
+  compact and multiscale detection, deblending, fitting, association;
+  catalogue, mask, RMS and diagnostics) under Serial, Thread and caller-owned
+  Dask executors, reading FITS headers under the [input header
+  contract](docs/reference/input-header-contract.md): WSClean, DDFacet, LoTSS,
+  MIGHTEE and CASA headers as written, and ddf-pipeline, LOFAR-HD, OSKAR, SKA
+  SDP, GLEAM-X and SDC1 headers with supplied values; cubes, non-Stokes-I
+  planes, other frames and ambiguous rotations are refused by name. No Rapthor
+  backend: `hebog.adapters` holds records and the eight-column catalogue codec
+  only, the seven acceptance scenarios are strict-xfail placeholders, and no
+  flat-noise branch or LSMTool filtering has run on Hebog products. The codec
+  does not yet read a catalogue `find_sources` writes (it requires the epoch
+  `J2000` and the finder writes `J2000.0`), and a `continuum` source row
+  carries no position error or deconvolved size, so the three columns Rapthor
+  cuts on are empty (task 57). A header card that is not the number it should
+  be is not always refused (tasks 44 and 45).
+- **Scalability.** Public envelope ≤15,402 pixels per side on `main` since pull
+  request 82 (30 September), unreleased until the next release is cut; v0.17.0
+  admits 10,000. Every stage runs through the executor on tiles and publishes
+  to Zarr: background/RMS on 128-pixel cores, everything else on 2,048-pixel
+  cores, so 3,000² is four tiles, 10,000² a five-by-five grid and 15,402² an
+  eight-by-eight grid. Products are byte-identical on one tile and on that grid
+  for an analytic image with support on every seam and four-way corner and a
+  last row of tiles narrower than a filter halo, and Serial and four-worker
+  Dask agree on the whole 15,402² LoTSS-DR3 mosaic apart from the run ID each
+  was given (29 September). The driver holds no image-sized plane and reads no
+  object window. Traced peaks (`just traced-peak`): 224.7 MiB at 512², 430 MiB
+  at 1,024², 1,312 MiB at 2,048² and 1,335 MiB at 3,000², each reproduced, and
+  1,489 MiB on the 10,000² LoTSS anchor and 1,698 MiB on the whole 15,402²
+  mosaic, each reproduced after generation publication stopped reading four
+  full-width tile rows at once (30 September; before, 1,541 and 2,432 MiB).
+  Above one tile the peak is one multiscale tile task's flat 1,247 MiB working
+  set plus records the passes keep from every tile, growing about 1.7 bytes a
+  pixel, and background/RMS grew about 3 bytes a pixel below it, unattributed
+  on a real image (`LOG.md`, 29 and 30 September); on synthetic grids the
+  local-noise requests account for about 1.9 of it (4 October; task 56). One
+  driver term is bounded by the object rather than the tile: an object wider
+  than the read budget brings its own pixels to the driver in the island,
+  deferred-fit and catalogue-row rounds (up to 186 bytes a pixel with no cap on
+  a segment's size, so the declared limit is the field-filling figure, about
+  1.7 GB at 3,000², 19 GB at 10,000², 44 GB at 15,402² and 1.9 TB at 100,000²;
+  the one measurement, the generated 10,000² case's diagonal filament of
+  553,817 pixels, cost about 100 MB, and a smooth object wider than the
+  background box is absorbed by the background estimate before it can reach the
+  driver; ADR-008, *Objects wider than the read budget*), and a wide support
+  component's seeds, 12 bytes each, reach the driver the same way; no object in
+  the whole mosaic took that path. Every other array a round returns is a
+  boundary summary bounded by a core's perimeter; no round returns a patch or a
+  plane (27 September). One task read is bounded by the field, not the tile:
+  bright-candidate regions merge without a size limit, so sources at 75σ or
+  more that chain make one background task read their whole bounding box (task
+  53). No stage declares a task's memory, so executor admission has no effect
+  yet (task 17). Details are in the [performance
+  profile](docs/reference/performance-profile.md) and `LOG.md`, 22–29
+  September.
+- **Performance.** No matched `filter_skymodel` benchmark exists; the gate
+  needs the Rapthor adapter. Quick-benchmark anchors on a quiet machine,
+  medians of five against v0.13.0: at 1,024² (25 September) `dense-field` 0.96
+  [0.94, 0.97], `lotss-dr3-1312-sparse` 0.93 [0.89, 0.95] and
+  `lotss-dr3-1312-dense` 0.94 [0.93, 0.95]; the crossover pair with every
+  endpoint measured in one session (26 September) `sdc1-b2-1000h-crowded-2048`
+  110.2 s, 0.93 [0.92, 0.93], and `lotss-dr3-1312-dense-3000` 118.3 s, 1.01
+  [1.00, 1.01]. All pass the previous-release rule. The first measurements of
+  the tier anchors, their baselines on the Hebog curve, are 1,259.1 s (1,254.4
+  to 1,277.6 s) at 4,785 MiB peak RSS on the 10,000² anchor (28 September) and
+  3,410.0 s (3,394.9 to 3,603.8 s) at 4,114 MiB on the whole 15,402² mosaic (29
+  September, at a load median of 3.4 rather than on a quiet machine), 2.7 times
+  as long for 2.4 times the area; diagnostic stage timings put about half of
+  each run in background/RMS and most of the growth beyond area in source
+  association (risks below). Four-worker Dask finishes the 10,000² anchor in
+  0.61 of the Serial time with byte-identical products (29 September), since
+  each task stopped carrying a partition manifest that grew with the image and
+  the per-cell background rounds were batched 64 cells a task; before, it took
+  1.6 to 1.8 times as long, and the whole mosaic 3.2 times. Background
+  refinement's roughly 69,000 small tasks at 10,000² are the next occupancy
+  cost. The diagnostic pinned-`master` ratios, Hebog on one thread against
+  `master` on four container cores, are 0.88 [0.88, 0.89] on the crowded 2,048²
+  field and 3.05 [3.01, 3.06] on the 3,000² LoTSS field, where the two use the
+  same CPU time (102.6 s against 101.8 s): on that field the gap to the ≤0.50
+  gate is parallel occupancy, not the amount of work. Kernels are closed: the
+  profile is flat and none reaches the native-code assessment's 10% gate. The
+  store's per-read overhead is closed too (27 September): the sink caches its
+  metadata for its lifetime and consumers no longer re-read a whole generation,
+  which took a profiled 1,024² run from 14.1 s to 10.9 s and the 1,024² anchors
+  to 0.81, 0.86 and 0.86 against v0.14.0 and 0.91, 0.91 and 0.90 against the
+  pre-M2 branch point `ea67a3a`, all within one session, with identical
+  products on the 16 quick-check cases. What the store still costs is one chunk
+  decode and checksum per window read and one atomic file per written chunk.
+  The fit round's support write, which stopped the fit round returning patches,
+  costs 2 to 4% at 1,024² (inconclusive under the previous-release rule) and is
+  1% faster on the crowded 2,048² field; the maintainer accepted that cost on
+  27 September.
+- **Science.** Strongest evidence: the v15 campaign failed only against the
+  earlier Hebog incumbent (32 regressions, 40 underpowered), with no failure
+  against released PyBDSF, PyBDSF `master` or Aegean; every campaign image was
+  ≤1,024². Since then, focused regression, Serial/Dask, equivalence and
+  installed-wheel evidence only. Source `Total_flux` is the summed fitted
+  component flux and passes every binding limit at or better than pinned
+  `master` in each stratum (23 September); the aperture stays published as
+  `ASSOCIATION_APERTURE_FLUX`. `E_RA` is a great-circle angle, as PyBDSF
+  publishes it (24 September); position-uncertainty calibration passes on
+  beam-correlated noise but is unqualified on a real high-declination field.
+  One slow equivalence regression, edge-source uncertainty availability, fails
+  at 98.8% against 99% and predates M2. A field so crowded that no fine noise
+  window clears its sources, refused before detection since 25 September, is
+  now measured with the unprotected sigma-clipped coarse estimate, as PyBDSF
+  measures every field (1 October; the maintainer approved that change to the
+  10 September local-noise policy on 4 October). A crowded field whose chained
+  fit contexts no joint fit can hold is fitted island by island instead of
+  deferred (2 October; the maintainer approved that change to an earlier rule
+  on 4 October): a 240² field that `main` runs now gives 119 sources and 119
+  Gaussians instead of 2 and none, and the quick check's `crowded-field` case,
+  a source every 32 pixels at 1,024², defers no fit, and its RMS is within a
+  median 5.6% of pinned `master`'s. A residual feature now fails a compact
+  model, and so lets association join its components to their neighbours, only
+  if it is positive, holds a detection-threshold seed and touches the model's
+  own support, as PyBDSF searches its residual image (the maintainer's choice
+  for task 38, 2 October), and it fails only the compact groups whose own
+  support it touches, not the whole fit parent; a resolved loop holds only arcs
+  on the rim of the hole they enclose (the maintainer's choice for task 39, 2
+  October). Deblending judges two peaks at the pass between them, the highest
+  level at which one connected part of the island holds both, and keeps the
+  fainter apart when it lies at least 1.5σ above it; each region keeps the
+  pixels that rise to its own peak (the maintainer's choice for task 40, 3
+  October). A source whose association aperture sums to zero or below keeps its
+  row when its Gaussian fits, with `ASSOCIATION_APERTURE_FLUX` empty; without a
+  fit it is still withheld, since the aperture is its flux (the maintainer's
+  choice for task 41, 3 October). That case's 963 islands now give 996 sources
+  where `master` publishes 1,006, at completeness 0.986 and reliability 0.996
+  against it (652 sources at 0.595 and 0.919 before task 38), and 2 sources
+  join 4 injected sources. On the sparse LoTSS cut-out a core and elongated
+  companion that `master` keeps as one source are two; the dense one publishes
+  one more source than before task 41, a 5.7σ unresolved fit where `master`'s
+  RMS is 21% higher than Hebog's and `master` finds no island, so its
+  reliability against `master` is 0.914. Task 40 took the sparse SDC1 cut-out
+  to 521 sources at completeness 0.864 against `master`, from 525 at 0.871,
+  because extra components tip two joint fits into the fallback below. 998 of
+  the case's 1,024 injected sources have a published Gaussian, where `master`
+  publishes one for 1,005. Of the 4 injected sources at 7σ or more still
+  without one, 2 lie on a brighter source's wing with no peak of their own, so
+  they get no component and their residual can join their neighbours, and 2 are
+  not detected. A joint fit's free model is accepted or rejected on one
+  condition number, so one degenerate component sends every component in it to
+  a beam-shaped model: on the sparse SDC1 cut-out 39 components fall back that
+  way and 15 are left unpublished (task 42). The support pass's mask refinement
+  may trim a detection but no longer removes one entirely, and a component
+  outside the mask takes its parent's islands (the maintainer's choice for task
+  43, 4 October, reversing the 1 September rule that an owner made wholly of
+  weak one-scale support stays unpublished): a compact source between 5 and 6σ
+  in a beam of 3 pixels or fewer, or a faint part deblended onto a bright one's
+  rim, used to be fitted and measured with no row or mask pixel. The sparse
+  SDC1 cut-out now gives 561 sources at completeness 0.910 and reliability
+  0.968 against `master`, from 521 at 0.864 and 0.990, the crowded one 886 from
+  825, every new source matching the SDC1 truth; with task 41, no measured
+  source or Gaussian in the quick check lacks a row. A whole-codebase review
+  (`LOG.md`, 4 October) found two limits on this evidence. The white-noise
+  realizations of the M1 calibration population are one field with its pixels
+  rearranged, so the 23 September paired `Total_flux` bound is supported as
+  stated only by the beam-correlated realizations until task 48 re-measures it.
+  The CI equivalence lane runs modules `find_sources` never loads, so parity of
+  the public finder rests on the quick science check alone (tasks 49 and 58).
+- **Blockers to 1.0.0.** Every task in the [path
+  below](plans/source-finder-implementation.md#path-to-100). Largest risks: the
+  performance gap, the traced peak's growth with the image, the wide-object
+  driver term above 3,000², the development machine's memory and disk, and
+  SKA-Low coverage without public SKA-Low images.
+- **Next action.** Human: cut the release Release Please has prepared, now that
+  task 43 is merged (pull request 95, 4 October); its reversal of the 1
+  September one-scale-owner rule and its three quick-check flags on the sparse
+  SDC1 cut-out were approved that day (`LOG.md`). Decide how the tier gate fits
+  its budget before task 11. At 15,402² the reproduced traced peak took 3 h 23
+  min against the release-check budget of about an hour and the whole gate
+  about 13 hours of machine time; at 22,500² it would take about a day, and a
+  release check that runs the largest admitted tier with Serial/Dask agreement
+  takes hours. The plan's rule is to sample, split or move such a check rather
+  than extend its budget silently. Confirm or reorder the review tasks 44 to 60
+  (`LOG.md`, 4 October) and take the decisions they name: what a source row
+  gives Rapthor's cuts (57), the code no installed path runs (58), what the
+  comparison matcher optimizes (52), the RMS of a constant-valued region (46)
+  and which keyword gives the reference frequency (16). Agent: tasks 44 to 47
+  and, once the release is cut, task 42; then tasks 48 to 52 and task 11; tasks
+  53 to 56 and the kept records before task 12. Task 11's disk condition is met
+  but narrowing: 90 GiB free on 3 October.
+- **Deferred.** Moving the wide-object reductions onto the cores (the island,
+  deferred-fit and catalogue-row rounds as associative partial sums, with
+  summation-order rounding accepted on 27 September, and a reviewed design for
+  the local-noise median, which has no associative form), to be reopened when a
+  tier's traced peak shows the term or when the cluster benchmark is planned,
+  whichever comes first. Aegean comparisons (paused; reconsidered in the task
+  29 design), optional comparison finders such as ProFound or 2D SoFiA (see the
+  [notebook guide](docs/how-to/notebooks.md)), general science improvements
+  outside Rapthor-consumed outputs, and native code without a passing profile
+  gate. PyBDSF's second grouping rule, which joins two Gaussians in one island
+  when the flux falls steadily from one peak to the other, has no Hebog
+  counterpart: on the sparse LoTSS-DR3 cut-out a 22″ core and a 41″ companion
+  33″ away that pinned `master` keeps as one source are two (`LOG.md`, 2
+  October); reconsider with the Rapthor profile (task 18). Structural changes
+  the 4 October review named and no task needs, each taken when a task already
+  rewrites the module: one shared module for the stage tile plumbing
+  (`_WindowReadable` is defined 11 times and `_CompletedProductSource` 8),
+  small frozen records for the parameter groups behind the 125 `PLR0913`
+  suppressions, the stage wiring moved out of `public_api.py`,
+  `stages/objects.py`, `algorithms/source_association.py` and
+  `science/catalogues.py` split along their existing seams, and the integration
+  tests' copied helpers shared. Reopen a deferred issue if it becomes a
+  confirmed incorrect supported output.
+- **Checks.** The strict docs build and `just pre-commit` passed. This change
+  edits the plan and this log only.
