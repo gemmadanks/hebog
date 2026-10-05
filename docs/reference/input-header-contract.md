@@ -60,18 +60,18 @@ reaches them.
 
 ## Numbers
 
-Astropy and wcslib do not report a card that should hold a number and holds
-something else. wcslib reads the keyword's default in its place, and a
-logical beam or frequency is read as the number one. A `CRVAL1` of `'180.0'`
-would put every source at right ascension zero, a `CDELT1` of `NAN` would
-make each pixel one degree wide, and a `BMAJ` of `T` would be a one-degree
-beam. Hebog refuses such an image and names the keyword.
+Astropy and wcslib raise no error for a card that should hold a number and
+holds something else. wcslib warns and reads the keyword's default in its
+place, and a logical beam or frequency is read as the number one. A `CRVAL1`
+of `'180.0'` would put every source at right ascension zero, a `CDELT1` of
+`NAN` would make each pixel one degree wide, and a `BMAJ` of `T` would be a
+one-degree beam. Hebog refuses such an image and names the keyword.
 
 The rule covers the restoring beam (`BMAJ`, `BMIN` and `BPA`), the reference
 frequency (`RESTFRQ` and `RESTFREQ`) and, on every axis, the numeric cards of
-the WCS: `CRVALi`, `CRPIXi`, `CDELTi`, `CROTAi`, `PCi_j`, `CDi_j`, `PVi_m`,
-`LONPOLE`, `LATPOLE`, `EQUINOX` and `EPOCH`. Each must hold one finite
-number. None of these does:
+the WCS: `CRVALi`, `CRPIXi`, `CDELTi`, `CROTAi`, `PCi_j`, `CDi_j`, `PVi_m`
+and its older spelling `PROJPn`, `LONPOLE`, `LATPOLE`, `EQUINOX` and
+`EPOCH`. Each must hold one finite number. None of these does:
 
 - text, including a quoted number such as `'180.0'` and an equinox written
   as `'J2000'`;
@@ -84,6 +84,11 @@ number. None of these does:
 
 A WCS card with no value is refused too. A beam or frequency card with no
 value is a missing keyword, which a supplied value can fill.
+
+A number is read in any spelling FITS allows. That includes the `D` exponent
+that marks double precision, as in `1.8D+02`: wcslib on its own stops
+reading at the letter and takes the value for 1.8, so Hebog gives it every
+float in the header, among these cards or not, as Astropy read it.
 
 ## Rotation
 
@@ -115,6 +120,10 @@ write the rotation on the latitude axis.
   tens of milliarcseconds.
 - **Header only.** The contract checks what the header states, not whether
   it is true: a wrong `BUNIT` or beam is read as written.
+- **Repeated keywords.** FITS does not define a keyword that appears twice,
+  and Hebog does not refuse one. The WCS is read from the last card of a
+  repeated keyword, as wcslib reads it, and the beam and frequency from the
+  first, as Astropy does.
 
 ## Sources
 

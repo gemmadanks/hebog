@@ -2538,22 +2538,22 @@ def test_unreadable_input_digest_is_an_invalid_input(
 
 
 @pytest.mark.integration
-def test_a_failed_header_reread_is_an_invalid_input_naming_the_file(
+def test_a_failed_header_read_is_an_invalid_input_naming_the_file(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A failure outside header validation still names the input file.
 
     Header-contract refusals carry the reader's own reason; anything else
-    that fails while the header is read, here the second read that fills
-    the composition's header, falls back to naming the file.
+    that fails while the header is read, such as the device under an open
+    file, falls back to naming the file.
     """
     _write_image(tmp_path / "image.fits", np.zeros((8, 8)))
 
-    def unreadable(*_args: object, **_kwargs: object) -> fits.Header:
+    def unreadable(*_args: object, **_kwargs: object) -> None:
         raise OSError("injected read failure")
 
-    monkeypatch.setattr(public_api.fits, "getheader", unreadable)
+    monkeypatch.setattr(public_api.FitsImageSource, "metadata", unreadable)
 
     with pytest.raises(
         InvalidSourceFinderInputError,

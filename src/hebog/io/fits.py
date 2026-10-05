@@ -56,10 +56,11 @@ _CELESTIAL_AXIS_TYPES = frozenset({("RA", "DEC"), ("GLON", "GLAT")})
 # Primary linear-transform matrix keywords, in current and AIPS-era spelling.
 _LINEAR_MATRIX_KEYWORD = re.compile(r"(PC|CD)(\d+_\d+|\d{6})")
 # Numeric keywords of the primary WCS: the linear transform, the projection
-# parameters, and the equinox that names the frame.
+# parameters in current and AIPS-era spelling, and the equinox that names the
+# frame.
 _WCS_NUMBER_KEYWORD = re.compile(
-    r"(CRVAL|CRPIX|CDELT|CROTA)\d+|PV\d+_\d+|LONPOLE|LATPOLE|EQUINOX|EPOCH|"
-    + _LINEAR_MATRIX_KEYWORD.pattern
+    r"(CRVAL|CRPIX|CDELT|CROTA|PROJP)\d+|PV\d+_\d+|LONPOLE|LATPOLE|EQUINOX|"
+    r"EPOCH|" + _LINEAR_MATRIX_KEYWORD.pattern
 )
 
 
@@ -71,24 +72,24 @@ class UnsupportedFitsImageError(InvalidFitsImageError):
     """A valid FITS input uses an image layout Hebog does not yet support."""
 
 
-def _header_number(header: Any, keyword: str, path: Path) -> float | None:
-    """Read one header card that must hold a finite number, if it has one.
+def _card_number(card: Any, path: Path) -> float | None:
+    """Read one card that must hold a finite number, if it has a value.
 
-    Returns ``None`` when the header has no such card, or the card has no
-    value. Neither Astropy nor wcslib reports a card that holds anything
-    else: wcslib reads the keyword's default in its place, and ``float``
-    reads a logical as one. Text, a logical, a complex value and a value
-    Astropy cannot parse, such as ``NAN`` or a number followed by its unit,
-    are therefore refused.
+    Returns ``None`` when the card has no value. Astropy and wcslib raise no
+    error for a card that holds anything else: wcslib warns and reads the
+    keyword's default in its place, and ``float`` reads a logical as one.
+    Text, a logical, a complex value and a value Astropy cannot parse, such
+    as ``NAN`` or a number followed by its unit, are therefore refused.
     """
+    keyword = card.rawkeyword
     try:
-        value = header.get(keyword)
+        value = card.rawvalue
     except fits.VerifyError as error:
         raise InvalidFitsImageError(
             f"FITS image has a {keyword} card that is not a finite number: "
             f"{path}"
         ) from error
-    if value is None:
+    if isinstance(value, fits.Undefined):
         return None
     if (
         isinstance(value, bool)
@@ -102,21 +103,59 @@ def _header_number(header: Any, keyword: str, path: Path) -> float | None:
     return float(value)
 
 
-def _require_numeric_wcs_cards(header: Any, path: Path) -> None:
-    """Refuse a WCS card that wcslib would replace with its default.
+def _header_number(header: Any, keyword: str, path: Path) -> float | None:
+    """Read the card of one numeric keyword, if the header has it."""
+    if keyword not in header:
+        return None
+    return _card_number(header.cards[keyword], path)
 
-    wcslib parses the header text itself and uses a keyword's default for a
-    card it cannot read as a number, so a ``CRVAL1`` of ``'180.0'`` would
-    place every source at right ascension zero.
+
+def _float_value(card: Any) -> float | None:
+    """Return the value of a card that holds a float, however it is spelled."""
+    try:
+        value = card.rawvalue
+    except fits.VerifyError:
+        return None
+    return value if isinstance(value, float) and math.isfinite(value) else None
+
+
+def _wcs_header(header: Any, path: Path) -> Any:
+    """Return the header with each float written as wcslib reads it.
+
+    wcslib parses the header text itself, and does not read every card as
+    Astropy does. It warns and uses a keyword's default for a card it cannot
+    read as a number, so a ``CRVAL1`` of ``'180.0'`` would place every
+    source at right ascension zero; such a card of the WCS is refused. It
+    stops reading a FITS ``D`` exponent at the letter, so ``1.8D2`` would be
+    1.8; each float is therefore rewritten as Python prints it, which both
+    libraries read as the float Astropy parsed. Astropy's own card
+    formatting keeps 20 characters, which would shorten a double-precision
+    ``CDELT``.
+
+    Every card keeps its place and its own value, so wcslib still reads a
+    repeated keyword as it did. A record-valued card holds text, and wcslib
+    does not read a ``HIERARCH`` card; both stay as written.
     """
-    for keyword in header:
-        if (
-            _WCS_NUMBER_KEYWORD.fullmatch(keyword)
-            and _header_number(header, keyword, path) is None
-        ):
-            raise InvalidFitsImageError(
-                f"FITS image has a {keyword} card with no value: {path}"
+    cards: list[Any] = []
+    for card in header.cards:
+        keyword = card.rawkeyword
+        if _WCS_NUMBER_KEYWORD.fullmatch(keyword):
+            number = _card_number(card, path)
+            if number is None:
+                raise InvalidFitsImageError(
+                    f"FITS image has a {keyword} card with no value: {path}"
+                )
+        else:
+            number = _float_value(card)
+        if number is None or str(card).startswith("HIERARCH"):
+            cards.append(card)
+        else:
+            cards.append(
+                fits.Card.fromstring(
+                    f"{keyword:<8}= {repr(number).upper():>20}"
+                )
             )
+    return fits.Header(cards)
 
 
 def _canonical_image_unit(unit_value: str, path: Path) -> str:
@@ -215,9 +254,9 @@ def _celestial_wcs(header: Any, path: Path) -> tuple[WCS, CelestialWcs]:
     axes come back as ICRS, so their longitudes would be published as right
     ascensions.
     """
-    _require_numeric_wcs_cards(header, path)
+    wcs_header = _wcs_header(header, path)
     try:
-        image_wcs = WCS(header, relax=True)
+        image_wcs = WCS(wcs_header, relax=True)
         celestial_wcs = image_wcs.celestial
         if not celestial_wcs.has_celestial:
             raise ValueError("no celestial axes")
@@ -519,6 +558,21 @@ class FitsImageSource:
         as an unclosed file.
         """
         self.close()
+
+    def header(self) -> fits.Header:
+        """Return the primary header as the finder reads it.
+
+        Each float holds the number Astropy parsed, written so that wcslib
+        reads the same one. A WCS built from this header is therefore the
+        transform that :meth:`metadata` validates, which one built from the
+        file's own header text need not be. The header is the caller's own
+        copy.
+
+        Raises:
+            InvalidFitsImageError: If the file cannot be opened, or a
+                numeric WCS card is not a number.
+        """
+        return _wcs_header(self._primary_hdu().header, self._path).copy()
 
     def metadata(self) -> ImageMetadata:
         """Return shape and unit without materialising the image plane.

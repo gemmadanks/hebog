@@ -1990,9 +1990,7 @@ def find_sources(
     try:
         source = FitsImageSource(image_path, request.supplied_metadata)
         metadata = source.metadata()
-        header = _header_with_metadata(
-            cast(fits.Header, fits.getheader(image_path)), metadata
-        )
+        header = _header_with_metadata(source.header(), metadata)
     except InvalidFitsImageError as error:
         # The reader names the keyword or layout at fault, and the file.
         raise InvalidSourceFinderInputError(
