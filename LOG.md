@@ -29350,3 +29350,46 @@ the per-worker placement finding.
 - **Not run.** The quick benchmark: floating-point images are still read
   through the map with no arithmetic added, and the new checks read one
   pixel and compute the beam's size in pixels. Windows.
+
+## 2026-10-05 — Maintainer decisions on the open review tasks
+
+- **Why.** With tasks 44 and 45 merged (pull requests 101 and 103), the
+  maintainer asked which repairs matter before 1.0.0 and took every
+  decision the plan then named. The plan now states each as a rule. Two
+  options were checked against pinned PyBDSF `c70103b` first: it reads the
+  frequency from the spectral axis and only without one from `RESTFREQ` or
+  `FREQ` (`readimage.py`), and it treats zeros as data, stopping with
+  "Clipped rms appears to be zero" and asking for them to be blanked with
+  NaN (`preprocess.py`), with an optional `blank_limit`.
+- **Decided.**
+
+  | Task | Decision | Declined |
+  | --- | --- | --- |
+  | 57 | A source with one Gaussian takes its component's position errors and deconvolved size; multi-component rows stay empty, and task 21 measures the cost before the rule is extended. | The adapter deriving all three columns; native source-level values for every source. |
+  | 46 | A pixel inside a block of one repeated value is invalid at ingress, like NaN. The block's definition is confirmed in the task; proposed, a pixel equal to all eight neighbours. | Marking only the windows unavailable, which leaves windows at the block's edge reading low; refusing the image. |
+  | 16 | The reference frequency is read from the frequency axis before `RESTFRQ`, as PyBDSF reads it. | Keeping `RESTFRQ` first; leaving it to the audit. |
+  | 52 | The matcher prefers the smallest separations and uses flux only to break ties. | Keeping flux first and reporting the difference. |
+  | 58 | Each unused module is removed unless a test of the live path uses it as an oracle; the maintainer confirms any kept. | Keeping and labelling all of it; a table before any removal. |
+  | 62 | The supported beam sampling is measured soon, before the Rapthor profile work, and the 22-pixel refusal stands until then. | Deferring to qualification; refusing above 10 pixels now. |
+  | 48 | The white-noise stratum is re-measured on independent realizations. | Resting the limit on the beam-correlated realizations alone. |
+  | 42 | The agent prototypes two or three rules and brings measurements for the choice. | One proposal; deferring to task 21. |
+  | Tier gate | Its own check level, run once for each envelope raise and allowed a day unattended. The release check keeps its hour with Serial/Dask agreement on the largest anchor that fits, 10,000² today. | Sampling the gate; keeping a day-long gate inside the release check. |
+  | Repeated keywords | Stay read as the header contract documents. | Refusing conflicting repeats. |
+  | Upstream | The agent drafts an Astropy report of the `D`-exponent reading for the maintainer to file. | No report. |
+
+- **Order.** Tasks 49, 58 and 50 first, so that later changes are caught;
+  then 61, 46, 57, the beam study of task 62 and the options for task 42;
+  tasks 48, 51, 52, 47, 60 and 59 fitted in; tasks 53 to 56 before task 12.
+  Declined: output repairs first, the Rapthor path first, scale first.
+- **Not yet decidable.** The block rule of task 46, the supported sampling
+  after task 62's measurement, the rule for task 42 and any module task 58
+  keeps each need the agent's work first. How declared memory reaches the
+  scheduler (task 17) waits for the Rapthor pin, the varying point-spread
+  function (task 15) for its measurement, and the profile choice (task 21)
+  for its agreement figures.
+- **Upstream draft.** `benchmark-results/upstream/astropy-wcs-d-exponent.md`,
+  outside Git: a reproduction that needs only Astropy, run without
+  warnings on Astropy 8.0.1 with wcslib 8.6.
+- **Checks.** The strict docs build and `just pre-commit` passed. This
+  change edits the plan and this log only, so no coverage run, quick
+  science check or benchmark applies to it.
