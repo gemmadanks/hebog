@@ -2,6 +2,49 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.18.0](https://github.com/gemmadanks/hebog/compare/v0.17.0...v0.18.0) (2026-10-05)
+
+
+### 🚀 Features
+
+* attribute a traced peak to passes, tasks and call sites ([020f035](https://github.com/gemmadanks/hebog/commit/020f035f2c9808a68e8b7b1f1096c44b53f487b3))
+* dask driver diagnosis ([#84](https://github.com/gemmadanks/hebog/issues/84)) ([020f035](https://github.com/gemmadanks/hebog/commit/020f035f2c9808a68e8b7b1f1096c44b53f487b3))
+* profile a run's stages under Dask ([020f035](https://github.com/gemmadanks/hebog/commit/020f035f2c9808a68e8b7b1f1096c44b53f487b3))
+* raise the public envelope to 15,402 pixels ([#82](https://github.com/gemmadanks/hebog/issues/82)) ([d282466](https://github.com/gemmadanks/hebog/commit/d2824660289f5a3fcd2752c901a00b4e7c102789))
+
+
+### 🐛 Bug Fixes
+
+* bound the loop search's memory in large crowded features ([#93](https://github.com/gemmadanks/hebog/issues/93)) ([22deb79](https://github.com/gemmadanks/hebog/commit/22deb797cab2c19e515dddec8987848c8d8d9558))
+* crowded field adequacy ([#90](https://github.com/gemmadanks/hebog/issues/90)) ([0bfd82e](https://github.com/gemmadanks/hebog/commit/0bfd82e43c300f237ee464735858c5f5a690b6c9))
+* fit a crowded field island by island instead of deferring it ([#87](https://github.com/gemmadanks/hebog/issues/87)) ([2e2f618](https://github.com/gemmadanks/hebog/commit/2e2f6189b1fd319d74440a2fe618abb740b8b84f))
+* give a compact source beside a much brighter one its own component ([#92](https://github.com/gemmadanks/hebog/issues/92)) ([b2ccf99](https://github.com/gemmadanks/hebog/commit/b2ccf9959f990deb4ffa112d1e49ba170cfb5ea9))
+* identify benchmark runs by the checkout they started from ([#85](https://github.com/gemmadanks/hebog/issues/85)) ([a9a4aa4](https://github.com/gemmadanks/hebog/commit/a9a4aa406db7f37b8a0d54ff13a9dbf7eeb897c9))
+* key cached PyBDSF references by the code their worker runs ([#88](https://github.com/gemmadanks/hebog/issues/88)) ([9f3633f](https://github.com/gemmadanks/hebog/commit/9f3633f76ef18fb7ae7f986c830fcad121ae8504))
+* measure crowded fields instead of refusing them ([#86](https://github.com/gemmadanks/hebog/issues/86)) ([4bdd19e](https://github.com/gemmadanks/hebog/commit/4bdd19efc3a8b08c825b82ac2d531ddcaa19685b))
+* publish a fitted source whose aperture sums below zero ([#94](https://github.com/gemmadanks/hebog/issues/94)) ([ad81965](https://github.com/gemmadanks/hebog/commit/ad819653270e42d67eec020a8a83fa0c7af746bb))
+* publish emptied owners ([#95](https://github.com/gemmadanks/hebog/issues/95)) ([9edc975](https://github.com/gemmadanks/hebog/commit/9edc97538e638917ac49531e78915f01c4962c09))
+* stop chance loops and one missed source from merging crowded fields ([#91](https://github.com/gemmadanks/hebog/issues/91)) ([56366a3](https://github.com/gemmadanks/hebog/commit/56366a30d22b840557de8840e010242570bb15bb))
+
+
+### ⚡ Performance
+
+* bound generation publication's validation reads ([020f035](https://github.com/gemmadanks/hebog/commit/020f035f2c9808a68e8b7b1f1096c44b53f487b3))
+* stop Dask tasks carrying image-sized manifests ([020f035](https://github.com/gemmadanks/hebog/commit/020f035f2c9808a68e8b7b1f1096c44b53f487b3))
+
+
+### 🧹 Refactoring
+
+* move catalogue rows out of the composition records ([#89](https://github.com/gemmadanks/hebog/issues/89)) ([a837ba6](https://github.com/gemmadanks/hebog/commit/a837ba64c207dfa721c1c504ca57101d85e0147a))
+
+
+### 📚 Documentation
+
+* plan review tasks ([#97](https://github.com/gemmadanks/hebog/issues/97)) ([6d07231](https://github.com/gemmadanks/hebog/commit/6d0723168d209a406eab2b4c1ccf6ebb4c54476a))
+* plan review tasks ([#99](https://github.com/gemmadanks/hebog/issues/99)) ([65ec1d0](https://github.com/gemmadanks/hebog/commit/65ec1d089595b0f4a169f822ba13415cd8f70242))
+* update documentation ([#96](https://github.com/gemmadanks/hebog/issues/96)) ([5ff636f](https://github.com/gemmadanks/hebog/commit/5ff636f4c5c50ac14b4e15b02fa54d6e816df4a2))
+* update the crowded-field counts in the release status ([#98](https://github.com/gemmadanks/hebog/issues/98)) ([aea724c](https://github.com/gemmadanks/hebog/commit/aea724c1f8c87d1dde972944a9d119be32e8848d))
+
 ## [0.17.0](https://github.com/gemmadanks/hebog/compare/v0.16.0...v0.17.0) (2026-09-28)
 
 
