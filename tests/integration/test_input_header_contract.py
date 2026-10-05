@@ -33,6 +33,7 @@ from hebog.data_models import (
 from hebog.executors import SerialExecutor
 from hebog.io import (
     FitsImageSource,
+    celestial_wcs_from_metadata,
     read_catalogue_fits_product,
     read_diagnostics_product,
 )
@@ -288,6 +289,41 @@ def _galactic() -> dict[str, object]:
     return {**cards, "CTYPE1": "GLON-SIN", "CTYPE2": "GLAT-SIN"}
 
 
+def _cd_matrix() -> dict[str, object]:
+    """A ``CD`` matrix in place of ``CDELT``."""
+    cards = _lotss_mosaic()
+    del cards["CDELT1"], cards["CDELT2"]
+    return {
+        **cards,
+        "CD1_1": -_PIXEL_DEGREES,
+        "CD1_2": 0.0,
+        "CD2_1": 0.0,
+        "CD2_2": _PIXEL_DEGREES,
+    }
+
+
+def _ncp() -> dict[str, object]:
+    """A slant orthographic (NCP) projection, with its ``PV`` parameters."""
+    return {**_lotss_mosaic(), "PV2_1": 0.0, "PV2_2": 1.0, "LATPOLE": 45.0}
+
+
+def _aips_era_projection() -> dict[str, object]:
+    """NCP parameters as ``PROJP``, which wcslib still reads as ``PV``."""
+    return {**_lotss_mosaic(), "PROJP1": 0.0, "PROJP2": 1.0}
+
+
+def _aips_era_matrix() -> dict[str, object]:
+    """A ``PC`` matrix in the AIPS-era spelling, which wcslib still reads."""
+    return {**_lotss_mosaic(), "PC001001": 1.0, "PC002002": 1.0}
+
+
+def _rest_frequency() -> dict[str, object]:
+    """The frequency in ``RESTFREQ``, the older spelling of ``RESTFRQ``."""
+    cards = _lotss_mosaic()
+    del cards["RESTFRQ"]
+    return {**cards, "RESTFREQ": _FREQUENCY_HZ}
+
+
 _ACCEPTED: dict[str, tuple[_Convention, str]] = {
     "wsclean": (_Convention(_wsclean(), (1, 1)), "fk5"),
     "ddfacet": (_Convention(_ddfacet(), (1, 1)), "icrs"),
@@ -441,6 +477,67 @@ _REFUSED: dict[str, tuple[_Convention, type[SourceFinderError], str]] = {
     ),
 }
 
+_WSCLEAN = _Convention(_wsclean(), (1, 1))
+# Every numeric card the finder reads, each in a header it accepts.
+_NUMBER_CARDS: dict[str, _Convention] = {
+    **dict.fromkeys(
+        (
+            *(f"CRVAL{axis}" for axis in range(1, 5)),
+            *(f"CRPIX{axis}" for axis in range(1, 5)),
+            *(f"CDELT{axis}" for axis in range(1, 5)),
+            "LONPOLE",
+            "EQUINOX",
+            "BMAJ",
+            "BMIN",
+            "BPA",
+        ),
+        _WSCLEAN,
+    ),
+    **dict.fromkeys(
+        ("PC1_1", "PC1_2", "PC2_1", "PC2_2", "RESTFRQ"),
+        _Convention(_casa(), (1, 1)),
+    ),
+    **dict.fromkeys(("CROTA1", "CROTA2"), _Convention(_aips_rotated())),
+    **dict.fromkeys(
+        ("CD1_1", "CD1_2", "CD2_1", "CD2_2"), _Convention(_cd_matrix())
+    ),
+    **dict.fromkeys(("PV2_1", "PV2_2", "LATPOLE"), _Convention(_ncp())),
+    **dict.fromkeys(("PC001001", "PC002002"), _Convention(_aips_era_matrix())),
+    **dict.fromkeys(("PROJP1", "PROJP2"), _Convention(_aips_era_projection())),
+    "EPOCH": _Convention(
+        _gleam_x_mosaic(),
+        supplied=SuppliedImageMetadata(reference_frequency_hz=_FREQUENCY_HZ),
+    ),
+    "RESTFREQ": _Convention(_rest_frequency()),
+}
+# What fills each beam or frequency card when the header leaves it out.
+_SUPPLIED_FOR = {
+    "BMAJ": SuppliedImageMetadata(beam_major_fwhm_degrees=_BEAM_DEGREES),
+    "BMIN": SuppliedImageMetadata(beam_minor_fwhm_degrees=_BEAM_DEGREES / 2),
+    "BPA": SuppliedImageMetadata(beam_position_angle_degrees=0.0),
+    "RESTFRQ": SuppliedImageMetadata(reference_frequency_hz=_FREQUENCY_HZ),
+    "RESTFREQ": SuppliedImageMetadata(reference_frequency_hz=_FREQUENCY_HZ),
+}
+# The cards wcslib reads: one without a value takes the keyword's default.
+_WCS_NUMBER_CARDS = {
+    keyword: convention
+    for keyword, convention in _NUMBER_CARDS.items()
+    if keyword not in _SUPPLIED_FOR
+}
+# What a writer might leave where a card needs a number. Astropy and wcslib
+# raise no error for any of them: wcslib warns and reads the keyword's
+# default instead, and a logical beam or frequency is read as one.
+_NOT_NUMBERS = {
+    "not-a-number": "NAN",
+    "infinity": "INF",
+    "text": "'180.0'",
+    "number-with-unit": "180.0 deg",
+    "two-decimal-points": "1.8E+02.0",
+    "overflow": "1.0E999",
+    "logical": "T",
+    "complex": "(1.0, 2.0)",
+}
+
 
 def _plane() -> npt.NDArray[np.float32]:
     """Return a bright beam-sized source on one-milliJansky noise."""
@@ -462,6 +559,53 @@ def _write(path: Path, convention: _Convention) -> None:
     fits.PrimaryHDU(data=np.ascontiguousarray(data), header=header).writeto(
         path
     )
+
+
+def _overwrite_card(path: Path, keyword: str, card: str) -> None:
+    """Overwrite one keyword's card in the file with another card.
+
+    Astropy tidies or refuses a malformed card it is asked to write, so the
+    card is replaced in the file's bytes.
+    """
+    content = bytearray(path.read_bytes())
+    start = content.index(f"{keyword:<8}=".encode())
+    assert start % 80 == 0
+    content[start : start + 80] = card.ljust(80).encode()
+    path.write_bytes(content)
+
+
+def _replace_card(path: Path, keyword: str, value_text: str) -> None:
+    """Overwrite one card's value in the file, as a writer left it."""
+    _overwrite_card(path, keyword, f"{keyword:<8}= {value_text:>20}")
+
+
+def _write_accepted(path: Path, convention: _Convention) -> None:
+    """Write the shared plane under a header the reader accepts."""
+    _write(path, convention)
+    source = FitsImageSource(path, convention.supplied)
+    source.metadata()
+    source.close()
+
+
+def _separation_arcsec(
+    result: hebog.SourceFinderResult, header: fits.Header
+) -> float:
+    """Return how far the one published source lies from the injected one.
+
+    The injected position is where the header's own WCS puts its pixel.
+    """
+    catalogue = read_catalogue_fits_product(result.catalogue)
+    assert len(catalogue.sources) == 1
+    pixel = WCS(header).celestial.pixel_to_world(_SOURCE_YX[1], _SOURCE_YX[0])
+    expected = cast(SkyCoord, cast(SkyCoord, pixel).icrs)
+    position = catalogue.sources[0].position
+    published = SkyCoord(
+        position.right_ascension_degrees * units.deg,
+        position.declination_degrees * units.deg,
+        frame="icrs",
+    )
+    separation = cast(Any, published.separation(expected))
+    return float(separation.arcsec)
 
 
 def _request(tmp_path: Path, convention: _Convention) -> SourceFinderRequest:
@@ -498,18 +642,8 @@ def test_accepted_convention_publishes_its_source_where_its_wcs_puts_it(
     assert metadata.unit == "Jy/beam"
     catalogue = read_catalogue_fits_product(result.catalogue)
     assert catalogue.reference_frequency_hz == _FREQUENCY_HZ
-    assert len(catalogue.sources) == 1
     header = cast(fits.Header, fits.getheader(tmp_path / "image.fits"))
-    pixel = WCS(header).celestial.pixel_to_world(_SOURCE_YX[1], _SOURCE_YX[0])
-    expected = cast(SkyCoord, cast(SkyCoord, pixel).icrs)
-    position = catalogue.sources[0].position
-    published = SkyCoord(
-        position.right_ascension_degrees * units.deg,
-        position.declination_degrees * units.deg,
-        frame="icrs",
-    )
-    separation = cast(Any, published.separation(expected))
-    assert float(separation.arcsec) < 0.05
+    assert _separation_arcsec(result, header) < 0.05
     diagnostics = read_diagnostics_product(result.diagnostics)
     assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
     assert diagnostics.provenance.supplied_image_metadata == (
@@ -537,3 +671,243 @@ def test_refused_convention_names_what_is_wrong_before_any_product(
         )
 
     assert not (tmp_path / "products").exists()
+
+
+@pytest.mark.parametrize(
+    "value_text", _NOT_NUMBERS.values(), ids=_NOT_NUMBERS.keys()
+)
+@pytest.mark.parametrize(
+    ("keyword", "convention"), _NUMBER_CARDS.items(), ids=_NUMBER_CARDS.keys()
+)
+def test_a_card_that_is_not_a_number_is_refused_by_its_keyword(
+    tmp_path: Path,
+    keyword: str,
+    convention: _Convention,
+    value_text: str,
+) -> None:
+    """No numeric card is read as a default or as another number."""
+    _write_accepted(tmp_path / "image.fits", convention)
+    _replace_card(tmp_path / "image.fits", keyword, value_text)
+
+    with pytest.raises(
+        InvalidSourceFinderInputError,
+        match=f"has a {keyword} card that is not a finite number",
+    ):
+        hebog.find_sources(
+            _request(tmp_path, convention),
+            SourceFinderConfig(5.0, 3.0, 7),
+            SerialExecutor(),
+        )
+
+    assert not (tmp_path / "products").exists()
+
+
+@pytest.mark.parametrize(
+    ("keyword", "convention"),
+    _WCS_NUMBER_CARDS.items(),
+    ids=_WCS_NUMBER_CARDS.keys(),
+)
+def test_a_wcs_card_without_a_value_is_refused_by_its_keyword(
+    tmp_path: Path,
+    keyword: str,
+    convention: _Convention,
+) -> None:
+    """A card left empty is not read as the keyword's default."""
+    _write_accepted(tmp_path / "image.fits", convention)
+    _replace_card(tmp_path / "image.fits", keyword, "")
+
+    with pytest.raises(
+        InvalidSourceFinderInputError,
+        match=f"has a {keyword} card with no value",
+    ):
+        hebog.find_sources(
+            _request(tmp_path, convention),
+            SourceFinderConfig(5.0, 3.0, 7),
+            SerialExecutor(),
+        )
+
+    assert not (tmp_path / "products").exists()
+
+
+@pytest.mark.parametrize(
+    ("keyword", "supplied"), _SUPPLIED_FOR.items(), ids=_SUPPLIED_FOR.keys()
+)
+def test_a_beam_or_frequency_card_without_a_value_is_a_missing_keyword(
+    tmp_path: Path,
+    keyword: str,
+    supplied: SuppliedImageMetadata,
+) -> None:
+    """An empty card is refused like an absent one, and supplied like one."""
+    image = tmp_path / "image.fits"
+    cards = _rest_frequency() if keyword == "RESTFREQ" else _lotss_mosaic()
+    _write_accepted(image, _Convention(cards))
+    _replace_card(image, keyword, "")
+
+    with pytest.raises(InvalidSourceFinderInputError, match="requires"):
+        hebog.find_sources(
+            _request(tmp_path, _Convention(cards)),
+            SourceFinderConfig(5.0, 3.0, 7),
+            SerialExecutor(),
+        )
+
+    assert not (tmp_path / "products").exists()
+    # A value supplied for a card the header holds would be a duplicate.
+    source = FitsImageSource(image, supplied)
+    metadata = source.metadata()
+    source.close()
+    assert metadata.reference_frequency_hz == _FREQUENCY_HZ
+
+
+@pytest.mark.parametrize(
+    "value_text",
+    ("180", "+180.0", "1.8E2", ".18E3", "1.8D2", "1.80000000000000D+02"),
+)
+def test_a_number_is_read_in_any_fits_spelling(
+    tmp_path: Path, value_text: str
+) -> None:
+    """The rule refuses what is not a number, not how a number is written.
+
+    wcslib stops reading a FITS ``D`` exponent at the letter, so on its own
+    it would read the last two spellings as 1.8.
+    """
+    image = tmp_path / "image.fits"
+    _write_accepted(image, _Convention(_lotss_mosaic()))
+    _replace_card(image, "CRVAL1", value_text)
+
+    source = FitsImageSource(image)
+    celestial_wcs = celestial_wcs_from_metadata(source.metadata())
+    header = source.header()
+    source.close()
+
+    assert celestial_wcs.wcs.crval[0] == 180.0
+    assert WCS(header).wcs.crval[0] == 180.0
+
+
+def test_the_finder_header_holds_each_number_exactly(tmp_path: Path) -> None:
+    """A double-precision number reaches wcslib whole, and no card is lost.
+
+    Astropy keeps 20 characters when it writes a number, three fewer than
+    this pixel scale needs.
+    """
+    image = tmp_path / "image.fits"
+    _write_accepted(image, _Convention(_lotss_mosaic()))
+    _replace_card(image, "CDELT1", "-2.777777777777778E-04")
+
+    source = FitsImageSource(image)
+    header = source.header()
+    source.close()
+
+    assert WCS(header).wcs.cdelt[0] == -2.777777777777778e-04
+    assert header["CDELT1"] == -2.777777777777778e-04
+    written = cast(fits.Header, fits.getheader(image))
+    assert list(header) == list(written)
+    assert header["BUNIT"] == written["BUNIT"]
+
+
+def test_the_finder_header_keeps_wcslib_reading_of_a_repeated_keyword(
+    tmp_path: Path,
+) -> None:
+    """FITS leaves a repeated keyword undefined, and the reading stays put.
+
+    Astropy reads the first card and wcslib the last; each card keeps its
+    own value, so the transform is the one wcslib always built.
+    """
+    image = tmp_path / "image.fits"
+    _write_accepted(image, _Convention(_lotss_mosaic()))
+    _overwrite_card(image, "TELESCOP", "CRVAL1  =                 10.0")
+
+    source = FitsImageSource(image)
+    header = source.header()
+    source.close()
+
+    written = cast(fits.Header, fits.getheader(image))
+    assert written["CRVAL1"] == 180.0
+    assert WCS(header).wcs.crval[0] == WCS(written).wcs.crval[0] == 10.0
+
+
+def test_the_finder_header_leaves_cards_wcslib_does_not_read_as_numbers(
+    tmp_path: Path,
+) -> None:
+    """A ``HIERARCH`` or record-valued card is not turned into a number.
+
+    Astropy reads ``HIERARCH CRVAL1`` as ``CRVAL1`` and a record-valued
+    card as a float, and wcslib reads neither that way.
+    """
+    image = tmp_path / "image.fits"
+    kept = {
+        "ORIGIN": "HIERARCH CRVAL1 = 10.0",
+        "CUNIT1": "HIERARCH ESO DET GAIN = 1.5D0",
+        "TELESCOP": "DP1     = 'AXIS.1: 1.5'",
+    }
+    # ORIGIN is written first, so the HIERARCH card precedes the real one.
+    _write_accepted(image, _Convention({"ORIGIN": "x", **_lotss_mosaic()}))
+    for keyword, card in kept.items():
+        _overwrite_card(image, keyword, card)
+    # Unquoted text, which Astropy cannot parse, is no float either.
+    _overwrite_card(image, "CUNIT2", "OBSERVER= J. Smith")
+
+    source = FitsImageSource(image)
+    header = source.header()
+    source.close()
+
+    assert "OBSERVER" in header
+    assert WCS(header).wcs.crval[0] == 180.0
+    header_text = header.tostring()
+    assert all(card in header_text for card in kept.values())
+
+
+def test_the_finder_header_is_the_caller_s_own(tmp_path: Path) -> None:
+    """Changing a returned header changes no later reading of the file."""
+    image = tmp_path / "image.fits"
+    _write_accepted(image, _Convention(_lotss_mosaic()))
+
+    source = FitsImageSource(image)
+    header = source.header()
+    header["BUNIT"] = "K"
+    header["CRVAL1"] = 10.0
+    reread = source.header()
+    metadata = source.metadata()
+    source.close()
+
+    assert reread["BUNIT"] == "JY/BEAM"
+    assert reread["CRVAL1"] == 180.0
+    assert metadata.unit == "Jy/beam"
+
+
+def test_numbers_with_d_exponents_publish_the_source_where_they_put_it(
+    tmp_path: Path,
+) -> None:
+    """Given a header whose writer marked every number as double precision,
+    when the finder runs,
+    then the source, the frame and the frequency are read as written.
+
+    Read by wcslib alone, a ``CRVAL1`` of ``1.8D+02`` is 1.8 degrees, a
+    ``CDELT1`` of ``-2.8D-04`` is 2.8 degrees a pixel, a frequency-axis
+    ``CRVAL3`` of ``1.44D+08`` is 1.44 Hz and an ``MJD-OBS`` of ``5.9D+04``
+    is a day in 1858.
+    """
+    image = tmp_path / "image.fits"
+    convention = _Convention({**_wsclean(), "MJD-OBS": 59000.0}, (1, 1))
+    _write(image, convention)
+    header = cast(fits.Header, fits.getheader(image))
+    numbers = [
+        keyword for keyword, host in _NUMBER_CARDS.items() if host is _WSCLEAN
+    ]
+    for keyword in (*numbers, "MJD-OBS"):
+        number = cast(float, header[keyword])
+        _replace_card(image, keyword, f"{number:.15E}".replace("E", "D"))
+
+    result = hebog.find_sources(
+        _request(tmp_path, convention),
+        SourceFinderConfig(5.0, 3.0, 7),
+        SerialExecutor(),
+    )
+
+    assert _separation_arcsec(result, header) < 0.05
+    catalogue = read_catalogue_fits_product(result.catalogue)
+    assert catalogue.reference_frequency_hz == _FREQUENCY_HZ
+    source = FitsImageSource(image)
+    assert source.metadata().celestial_wcs.coordinate_frame == "fk5"
+    source.close()
+    # wcslib reads the date too, and the image products carry it.
+    assert fits.getheader(result.rms_path)["MJD-OBS"] == 59000.0

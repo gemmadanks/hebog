@@ -36,7 +36,7 @@ def _write_image(
     *,
     unit: str | None = "Jy/beam",
     include_wcs: bool = True,
-    reference_frequency_hz: float | str | None = 150_000_000.0,
+    reference_frequency_hz: float | None = 150_000_000.0,
 ) -> None:
     """Write a small radio-image fixture without hiding its axis layout."""
     header = fits.Header()
@@ -312,13 +312,12 @@ def test_rejects_a_missing_or_invalid_brightness_unit(tmp_path: Path) -> None:
         ("BPA", None),
         ("BMAJ", 0.0),
         ("BMIN", 0.02),
-        ("BPA", "nan"),
     ],
 )
 def test_rejects_missing_or_invalid_restoring_beam(
     tmp_path: Path,
     keyword: str,
-    value: float | str | None,
+    value: float | None,
 ) -> None:
     """Beam geometry is required and cannot be inferred from the image name."""
     path = tmp_path / f"beam-{keyword}.fits"
@@ -379,10 +378,10 @@ def test_uses_a_frequency_axis_when_rest_frequency_is_absent(
 
 
 @pytest.mark.integration
-@pytest.mark.parametrize("frequency", [None, 0.0, "nan", "not-a-number"])
+@pytest.mark.parametrize("frequency", [None, 0.0, -150_000_000.0])
 def test_rejects_missing_or_invalid_reference_frequency(
     tmp_path: Path,
-    frequency: float | str | None,
+    frequency: float | None,
 ) -> None:
     """Frequency-dependent measurements require an explicit positive value."""
     path = tmp_path / "bad-frequency.fits"
@@ -665,11 +664,11 @@ def test_a_rotation_stated_once_is_read(
         ({"CROTA2": 30.0, "PC1_1": 1.0}, "both CROTA2 and a PC or CD"),
         ({"CROTA2": 30.0, "CD1_1": -0.001}, "both CROTA2 and a PC or CD"),
         ({"CROTA2": 30.0, "PC001001": 1.0}, "both CROTA2 and a PC or CD"),
-        ({"CROTA2": "thirty"}, "invalid CROTA2 'thirty'"),
-        ({"CROTA1": "nan"}, "invalid CROTA1 'nan'"),
         # wcslib ignores text and logical values, so none can be a rotation.
-        ({"CROTA2": "30"}, "invalid CROTA2 '30'"),
-        ({"CROTA2": True}, "invalid CROTA2 True"),
+        ({"CROTA2": "thirty"}, "CROTA2 card that is not a finite number"),
+        ({"CROTA1": "nan"}, "CROTA1 card that is not a finite number, 'nan'"),
+        ({"CROTA2": "30"}, "CROTA2 card that is not a finite number, '30'"),
+        ({"CROTA2": True}, "CROTA2 card that is not a finite number, True"),
     ],
 )
 def test_a_rotation_the_wcs_standard_would_drop_is_refused(

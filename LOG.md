@@ -29138,3 +29138,114 @@ the per-worker placement finding.
   path does not reach a published product in any case tried; task 61 stops
   the run rather than publish a wrong one. Tasks 44 to 47 and 61 come first
   after the release, as the plan orders them.
+
+## 2026-10-05 — Task 44: a header card that is not a number is refused
+
+- **Outcome.** Every numeric card the reader uses is a finite number, or
+  the image is refused before analysis with `InvalidSourceFinderInputError`
+  naming the keyword. One helper in `io/fits.py`, `_header_number`, reads
+  `BMAJ`, `BMIN`, `BPA`, `RESTFRQ` and `RESTFREQ`, and checks every numeric
+  card of the primary WCS before wcslib parses the header: `CRVALi`,
+  `CRPIXi`, `CDELTi`, `CROTAi`, `PCi_j`, `CDi_j`, `PVi_m`, `LONPOLE`,
+  `LATPOLE`, `EQUINOX` and `EPOCH`, on every axis. The 27 September `CROTA`
+  rule now goes through the same helper.
+- **Forms refused.** Unquoted `NAN` and `INF`, quoted text, a number
+  followed by a unit, a number with two decimal points, a number too large
+  for a double, a logical and a complex value. Astropy raises `VerifyError` for a card it cannot parse
+  only until something serializes the header; after that it holds the text
+  as a string. The helper refuses both states.
+- **Choices.**
+    - `EQUINOX` and `EPOCH` are in the rule because the frame is read from
+      them. wcslib 8.6, which Astropy 8.0.1 bundles, ignores an equinox
+      written as text in any form: with no `RADESYS`, `'J2000'`, `'B1950'`
+      and `'1950'` are all read as ICRS, which would publish a B1950 image
+      50 years of precession away from its sources. Such a header was
+      accepted and is now refused.
+    - A WCS card with no value is refused, because wcslib reads the
+      keyword's default for it. A beam or frequency card with no value
+      stays a missing keyword that a supplied value fills.
+- **Evidence.** `tests/integration/test_input_header_contract.py` replaces
+  one card at a time in the bytes of a file the reader accepts and runs
+  `find_sources`: 35 cards by 8 forms, and the 30 WCS cards with no value,
+  each refused by keyword with no product directory. Before the change a
+  text or `NAN` `CRVAL1` ran to completion, an unparsable `BMAJ` or
+  `RESTFRQ` raised `VerifyError`, and a `BMAJ` of `'180.0'` was still
+  running after six minutes. The 42 distinct headers among the real images
+  kept locally (LoTSS-DR2 and DR3, SDC1, the EMU pilot and the quick-check
+  inputs) are read as before. The portable suite passes with `io/fits.py`
+  at full line and branch coverage.
+- **Recorded in task 45.** An unquoted `BUNIT` still leaks `VerifyError`.
+  Unquoted `RADESYS` and `CTYPE` cards are read correctly, because Astropy
+  turns them into the strings they were meant to be.
+- **Found, and repaired in the next entry.** wcslib reads a FITS `D`
+  exponent only as far as the letter, with no warning: `CRVAL1 = 1.8D2` is
+  1.8°, where Astropy reads 180°.
+- **Not run.** The quick science check and the quick benchmark: the change
+  adds refusals and alters no accepted reading. The quick science check
+  runs on the next entry's change, which does.
+
+## 2026-10-05 — A header number written with a `D` exponent is read as written
+
+- **Found while repairing task 44.** wcslib 8.6, which Astropy 8.0.1
+  bundles, reads a FITS `D` exponent only as far as the letter, with no
+  warning. Through `astropy.wcs.WCS`, `CRVAL1 = 1.8D2` is 1.8°,
+  `CDELT1 = -2.777777777778D-04` is 2.8° a pixel, `EQUINOX = 1.95D3` is
+  equinox 1.95 and a frequency-axis `CRVAL3 = 1.44D8` is 1.44 Hz, where
+  Astropy's header parser reads each number correctly. The spelling is
+  standard FITS, so this was a wrong reading of a valid header, in v0.18.0
+  and before, not a malformed card. None of the 42 distinct real headers
+  kept locally uses it.
+- **Repair.** The reader gives wcslib every float card of the header as
+  the float Astropy parsed, written as Python prints it, which both
+  libraries read as the same double. `FitsImageSource.header()` returns
+  that header and `find_sources` passes it to the science, in place of a
+  second read of the file, so the WCS the stages rebuild and the validated
+  metadata come from the same numbers. Astropy's own card formatting was
+  not used: it keeps 20 characters, which cuts a double-precision `CDELT`
+  short.
+- **Independent review.** A separate agent, given the request, the diff
+  and `CODE_REVIEW.md`, found nothing at P0 or P1. Its findings are
+  repaired in this change:
+    - The first version read a repeated WCS keyword from its first card,
+      as Astropy does, where wcslib and every earlier release read the
+      last, and turned a `HIERARCH CRVAL1` card into a standard one. Each
+      card now keeps its own value, and `HIERARCH` and record-valued cards
+      stay as written. The contract's limitations now say how a repeated
+      keyword is read; refusing one is a decision not taken here.
+    - `PROJPn`, the older spelling of `PVi_m`, is read by wcslib under
+      `relax` and was missing from task 44's rule. It is in the rule now.
+    - `MJD-OBS = 5.9D4` was published as `MJD-OBS = 5.9` in the RMS and
+      mask headers. Rewriting every float, not only the rule's cards,
+      repairs it.
+    - Astropy and wcslib do warn about a card that is not a number; the
+      contract said they report nothing. `header()` returned cards shared
+      with the open file and now returns a copy.
+- **Accepted readings are unchanged.**
+    - Serial runs of the quick check's SDC1 sparse and LoTSS-DR3 sparse
+      1,024² cut-outs give byte-identical catalogue, RMS and mask files
+      before and after, with the same run identity. The SDC1 header is
+      one whose cards are rewritten (`-6.71387000000E-05` becomes
+      `-6.71387E-05`).
+    - The quick science check `header-numbers-final` reports no regression
+      against `release-0.18.0`, and every metric of its 17 cases equals
+      that baseline's.
+    - For each of the 48 distinct headers among the real images kept
+      locally, wcslib builds the same transform from the rewritten header
+      as from the file's own, compared with no tolerance.
+    - 6,008 doubles, random bit patterns across the whole range and the
+      extremes, each reach wcslib from a rewritten card bit for bit.
+- **Evidence.** The header-contract tests write every numeric card of a
+  WSClean-style header, and `MJD-OBS`, with a `D` exponent. They require
+  the one source where the header puts it, the FK5 frame, the frequency
+  from the `FREQ` axis and the date in the RMS header; before the repair
+  that header was refused as "FK4, equinox 2". Others require
+  `CDELT1 = -2.777777777777778E-04` to reach wcslib exactly, a repeated
+  `CRVAL1` to be read as wcslib reads the file's own header, and
+  `HIERARCH` and record-valued cards to stay as written. The malformed-card
+  matrix is now 37 cards by 8 forms, with 32 WCS cards with no value. The
+  portable suite passes with `io/fits.py` at full line and branch coverage.
+- **Not run.** The quick benchmark: the change adds one pass over the
+  header cards and removes one opening of the file for each run. The
+  reviewer measured the pass at 0.1 ms on an ordinary header.
+- **Recommendation.** Human: consider reporting the `D`-exponent reading
+  to Astropy; one web search found no existing report.
