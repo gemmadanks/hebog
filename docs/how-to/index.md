@@ -579,7 +579,8 @@ reference rather than only on a cluster:
 
 - results follow input order, whatever order batches complete in;
 - submission stays within `capacity.maximum_tasks_in_flight`, and a failure
-  cancels the rest of the plan instead of running it;
+  stops the rest of the plan and raises only once the tasks already running
+  have finished, so none writes after the call returns;
 - the first failing batch by input index is the error that propagates;
 - payloads must be serializable, which every executor checks before it
   submits anything, so a lambda or an open file fails immediately;

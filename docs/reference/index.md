@@ -10,7 +10,7 @@ experimental and can change between `0.x` releases.
 | Run the finder | `hebog.find_sources`, `hebog.SourceFinderRequest`, `hebog.SourceFinderConfig` |
 | Choose where work runs | `hebog.executors` |
 | Read products | `hebog.io.read_catalogue_fits_product`, `hebog.io.read_diagnostics_product` |
-| Handle failures | `hebog.SourceFinderError` and its subclasses |
+| Handle failures | `hebog.SourceFinderError` and its subclasses; `hebog.SourceFinderStagingWarning` for what a killed run left |
 
 Developers extending Hebog will also want the
 [internal API](internal-api.md).

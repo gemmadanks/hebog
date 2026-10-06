@@ -98,9 +98,15 @@ use Dask workers in separate processes rather than threads.
 ## Re-run or retry
 
 - A failed run leaves no output directory. Run the same request again.
+- A killed run leaves a hidden `.<output name>.<random>` staging directory
+  beside the output. Running the same request again removes it once the
+  killed process has provably stopped, and warns with
+  `hebog.SourceFinderStagingWarning` about each one it finds; see
+  [failure handling](../reference/public-products.md#what-a-failed-or-killed-run-leaves).
 - An existing output directory raises `hebog.SourceFinderOutputExistsError`.
   Remove or rename it yourself, or choose another directory; Hebog never
-  deletes your files.
+  deletes your files, only the staging directories its own stopped runs
+  left.
 - To repeat a result exactly, pin the Hebog version and compare
   `diagnostics.provenance`, which records checksums of the input, the
   configuration and the implementation.

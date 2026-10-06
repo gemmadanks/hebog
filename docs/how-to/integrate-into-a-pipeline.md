@@ -82,6 +82,16 @@ oversubscribed.
 - After a failure the output directory is absent, so the same request can be
   retried. Use a new `output_directory` per attempt if your framework keeps
   failed attempts.
+- A failed run raises only once none of its tasks is still running, and
+  leaves nothing beside the output. A killed process leaves its hidden
+  staging directory; the next run to the same output removes it once that
+  process has provably stopped, and reports every one it finds with a
+  `SourceFinderStagingWarning`. A run to another output does not look, so
+  if you retry under a new `output_directory`, remove a killed attempt's
+  hidden directory yourself. Tasks a killed process left on your Dask
+  cluster keep running; let them finish, or restart the workers, before
+  retrying. See
+  [what a failed or killed run leaves](../reference/public-products.md#what-a-failed-or-killed-run-leaves).
 
 ## 4. Handle errors by type
 

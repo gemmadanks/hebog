@@ -9,13 +9,13 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import warnings
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import asdict, dataclass, field, replace
 from functools import lru_cache
 from importlib.resources import files
 from math import ceil, prod
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from time import monotonic
 from typing import TYPE_CHECKING, Any, Literal, Protocol, cast
 
@@ -60,11 +60,13 @@ from hebog.io.materialization import (
     write_mask_fits_product,
     write_rms_fits_product,
 )
+from hebog.io.staging import reclaim_abandoned_staging, staging_directory
 from hebog.pipeline import (
     InvalidSourceFinderInputError,
     SourceFinderError,
     SourceFinderImageTooLargeError,
     SourceFinderOutputExistsError,
+    SourceFinderStagingWarning,
     UnsupportedSourceFinderConfigurationError,
 )
 from hebog.stages.detection import run_detection_stage
@@ -171,6 +173,7 @@ _SCIENTIFIC_MODULES = (
     "hebog.io.fits",
     "hebog.io.materialization",
     "hebog.io.pixel_validity",
+    "hebog.io.staging",
     "hebog.io.zarr",
     "hebog.pipeline",
     "hebog.public_api",
@@ -261,6 +264,19 @@ def _require_unclaimed_output(output: Path) -> None:
     if output.exists() or output.is_symlink():
         raise SourceFinderOutputExistsError(
             f"source-finder output already exists: {output}"
+        )
+
+
+def _report_leftover_staging(output: Path) -> None:
+    """Reclaim what stopped runs left beside the output, and report it all.
+
+    A leftover never stops the run: the new run stages in a directory of
+    its own, and the operator is told about each one with a warning.
+    """
+    for leftover in reclaim_abandoned_staging(output):
+        # Attribute the warning to the caller of ``hebog.find_sources``.
+        warnings.warn(
+            leftover.notice, SourceFinderStagingWarning, stacklevel=4
         )
 
 
@@ -2173,6 +2189,13 @@ def find_sources(
     diagnostics distinguish the unqualified development candidate from custom
     unqualified science. ``compact`` intentionally omits extended-emission
     association.
+
+    The run stages its work in a hidden directory beside the output, which
+    records its owner. A failed run raises only once no task it submitted
+    is still running, and removes everything it staged. A killed run
+    leaves its staging directory; the next run to the same output removes
+    it once its owner has provably stopped, and otherwise leaves it in
+    place, reporting each with a ``SourceFinderStagingWarning``.
     """
     output = Path(request.output_directory).absolute()
     _require_unclaimed_output(output)
@@ -2184,12 +2207,9 @@ def find_sources(
         _qualified_metadata(metadata)
         provenance = _provenance(request, config)
         output.parent.mkdir(parents=True, exist_ok=True)
+        _report_leftover_staging(output)
         started = monotonic()
-        with TemporaryDirectory(
-            prefix=f".{output.name}.",
-            dir=output.parent,
-        ) as temporary_directory:
-            temporary = Path(temporary_directory)
+        with staging_directory(output, run_id=request.run_id) as temporary:
             scientific = _analyse_image(
                 request,
                 source,

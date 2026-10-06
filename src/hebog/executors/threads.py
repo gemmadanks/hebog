@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from collections import deque
-from collections.abc import Callable, Iterable, Iterator
-from concurrent.futures import Future, ThreadPoolExecutor
+from collections.abc import Callable, Generator, Iterable
+from concurrent.futures import Future, ThreadPoolExecutor, wait
+from contextlib import closing
 from types import TracebackType
 from typing import TypeVar
 
@@ -82,7 +83,7 @@ class ThreadExecutor:
         function: Callable[[Input], Output],
         batches: Iterable[Input],
         requirement: TaskRequirement | None,
-    ) -> Iterator[Output]:
+    ) -> Generator[Output]:
         """Yield results in input order from a bounded submission window."""
         self._capacity.admit(requirement)
         prepared = require_serializable_payloads(function, batches)
@@ -105,10 +106,14 @@ class ThreadExecutor:
                     return
                 yield pending.popleft().result()
         finally:
-            # A failure or an abandoned reduction cancels the rest of the
-            # plan instead of running work whose result nobody will read.
-            while pending:
-                pending.pop().cancel()
+            # A failure or an abandoned reduction cancels the batches that
+            # have not started, rather than running work whose result nobody
+            # will read, and waits for those that have: a task still running
+            # after the call returns could write into storage its caller is
+            # already removing.
+            for future in pending:
+                future.cancel()
+            wait(pending)
 
     def map_batches(
         self,
@@ -130,6 +135,7 @@ class ThreadExecutor:
     ) -> Output:
         """Map batches and combine them in the canonical reduction tree."""
         require_serializable(combine, name="combine")
-        return reduce_in_canonical_order(
-            self._results(function, batches, requirement), combine
-        )
+        # Closing settles the running batches when ``combine`` fails, rather
+        # than whenever the suspended generator is collected.
+        with closing(self._results(function, batches, requirement)) as results:
+            return reduce_in_canonical_order(results, combine)

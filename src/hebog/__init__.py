@@ -13,6 +13,7 @@ from hebog.pipeline import (
     SourceFinderError,
     SourceFinderImageTooLargeError,
     SourceFinderOutputExistsError,
+    SourceFinderStagingWarning,
     UnsupportedSourceFinderConfigurationError,
     find_sources,
 )
@@ -30,6 +31,7 @@ __all__ = [
     "SourceFinderOutputExistsError",
     "SourceFinderRequest",
     "SourceFinderResult",
+    "SourceFinderStagingWarning",
     "SuppliedImageMetadata",
     "UnsupportedSourceFinderConfigurationError",
     "__version__",
