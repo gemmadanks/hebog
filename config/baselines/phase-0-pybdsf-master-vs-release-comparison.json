@@ -5,46 +5,363 @@
     "container_image_digest": "sha256:dce93991e2e671428ff8043a7e0d132294d2d2decf1e1587e9904d3e8f49b754",
     "dependency_inventory_sha256": "9ae1698f862aba82638c5c71bcf699fbda4da056d59a79f939f76230aa32fe76",
     "name": "pybdsf",
+    "source_tree_sha256": null,
     "version": "1.14.2.dev40+gc70103be3"
   },
-  "candidate_product_manifest_sha256": "2fab85c3fb29af43b128fb77440854e0ecb85b375d30806e2e5008c3cf00ede1",
+  "candidate_product_manifest_sha256": "131326460cfb365f769cb7ef9ad3de6ce5a2427d38c3feacd98d4970deea02f0",
   "captured_at": "2026-07-31T10:47:30.940093Z",
   "catalogue": {
+    "association": {
+      "agreement_fraction": 1.0,
+      "compared_pair_count": 3,
+      "disagreement_pair_count": 0,
+      "false_negative_pair_count": 0,
+      "false_positive_pair_count": 0,
+      "identity_availability_fraction": 1.0,
+      "identity_available_count": 3,
+      "identity_eligible_count": 3,
+      "intersection_over_union": 1.0,
+      "matched_source_count": 3,
+      "precision": 1.0,
+      "recall": 1.0,
+      "true_positive_pair_count": 0
+    },
     "candidate_count": 3,
+    "catastrophic_outlier_fraction": null,
+    "catastrophic_outlier_reference_identifiers": [],
+    "catastrophic_outlier_thresholds": null,
     "completeness": 1.0,
+    "component_count_agreement_fraction": 1.0,
+    "component_count_comparison_count": 3,
+    "field_availability": [
+      {
+        "availability_fraction": 1.0,
+        "available_count": 3,
+        "eligible_count": 3,
+        "metric": "fitted-shape"
+      },
+      {
+        "availability_fraction": 1.0,
+        "available_count": 3,
+        "eligible_count": 3,
+        "metric": "deconvolution-classification"
+      },
+      {
+        "availability_fraction": 1.0,
+        "available_count": 1,
+        "eligible_count": 1,
+        "metric": "resolved-deconvolved-shape"
+      },
+      {
+        "availability_fraction": 1.0,
+        "available_count": 3,
+        "eligible_count": 3,
+        "metric": "parent-island-identity"
+      }
+    ],
     "matches": [
       {
         "candidate_identifier": "0",
+        "component_count_agrees": true,
+        "deconvolved_major_axis_fractional_difference": null,
+        "deconvolved_minor_axis_fractional_difference": null,
+        "deconvolved_position_angle_difference_degrees": null,
+        "fitted_major_axis_fractional_difference": 0.0,
+        "fitted_minor_axis_fractional_difference": 0.0,
+        "fitted_position_angle_difference_degrees": 0.0,
         "integrated_flux_fractional_difference": 0.0,
         "peak_flux_fractional_difference": 0.0,
+        "quality_flag_jaccard": 1.0,
+        "quality_flags_agree": true,
         "reference_identifier": "0",
-        "separation_beam_fwhm": 0.0
+        "separation_beam_fwhm": 0.0,
+        "unresolved_classification_agrees": true
       },
       {
         "candidate_identifier": "1",
+        "component_count_agrees": true,
+        "deconvolved_major_axis_fractional_difference": 0.0,
+        "deconvolved_minor_axis_fractional_difference": 0.0,
+        "deconvolved_position_angle_difference_degrees": 0.0,
+        "fitted_major_axis_fractional_difference": 0.0,
+        "fitted_minor_axis_fractional_difference": 0.0,
+        "fitted_position_angle_difference_degrees": 0.0,
         "integrated_flux_fractional_difference": 0.0,
         "peak_flux_fractional_difference": 0.0,
+        "quality_flag_jaccard": 1.0,
+        "quality_flags_agree": true,
         "reference_identifier": "1",
-        "separation_beam_fwhm": 0.0
+        "separation_beam_fwhm": 0.0,
+        "unresolved_classification_agrees": true
       },
       {
         "candidate_identifier": "2",
+        "component_count_agrees": true,
+        "deconvolved_major_axis_fractional_difference": null,
+        "deconvolved_minor_axis_fractional_difference": null,
+        "deconvolved_position_angle_difference_degrees": null,
+        "fitted_major_axis_fractional_difference": 0.0,
+        "fitted_minor_axis_fractional_difference": 0.0,
+        "fitted_position_angle_difference_degrees": 0.0,
         "integrated_flux_fractional_difference": 0.0,
         "peak_flux_fractional_difference": 0.0,
+        "quality_flag_jaccard": 1.0,
+        "quality_flags_agree": true,
         "reference_identifier": "2",
-        "separation_beam_fwhm": 0.0
+        "separation_beam_fwhm": 0.0,
+        "unresolved_classification_agrees": true
       }
     ],
+    "median_absolute_deconvolved_axis_fractional_difference": 0.0,
+    "median_absolute_deconvolved_position_angle_difference_degrees": 0.0,
+    "median_absolute_fitted_axis_fractional_difference": 0.0,
+    "median_absolute_fitted_position_angle_difference_degrees": 0.0,
     "median_absolute_integrated_flux_fractional_difference": 0.0,
     "median_absolute_peak_flux_fractional_difference": 0.0,
+    "median_quality_flag_jaccard": 1.0,
     "median_separation_beam_fwhm": 0.0,
+    "percentile_95_absolute_deconvolved_axis_fractional_difference": 0.0,
+    "percentile_95_absolute_deconvolved_position_angle_difference_degrees": 0.0,
+    "percentile_95_absolute_fitted_axis_fractional_difference": 0.0,
+    "percentile_95_absolute_fitted_position_angle_difference_degrees": 0.0,
     "percentile_95_absolute_integrated_flux_fractional_difference": 0.0,
     "percentile_95_absolute_peak_flux_fractional_difference": 0.0,
     "percentile_95_separation_beam_fwhm": 0.0,
+    "quality_flag_exact_agreement_fraction": 1.0,
     "reference_count": 3,
     "reliability": 1.0,
+    "uncertainty_calibration": [
+      {
+        "availability_fraction": 1.0,
+        "coverage_confidence_interval": {
+          "confidence_level": 0.95,
+          "lower": 0.43850296824495466,
+          "upper": 1.0
+        },
+        "coverage_fraction": 1.0,
+        "dispersion_confidence_interval": {
+          "confidence_level": 0.95,
+          "lower": 0.0,
+          "upper": 0.0
+        },
+        "eligible_count": 3,
+        "mean_confidence_interval": {
+          "confidence_level": 0.95,
+          "lower": 0.0,
+          "upper": 0.0
+        },
+        "mean_normalized_residual": 0.0,
+        "metric": "right-ascension",
+        "sample_count": 3,
+        "sample_standard_deviation": 0.0,
+        "within_one_sigma_count": 3
+      },
+      {
+        "availability_fraction": 1.0,
+        "coverage_confidence_interval": {
+          "confidence_level": 0.95,
+          "lower": 0.43850296824495466,
+          "upper": 1.0
+        },
+        "coverage_fraction": 1.0,
+        "dispersion_confidence_interval": {
+          "confidence_level": 0.95,
+          "lower": 0.0,
+          "upper": 0.0
+        },
+        "eligible_count": 3,
+        "mean_confidence_interval": {
+          "confidence_level": 0.95,
+          "lower": 0.0,
+          "upper": 0.0
+        },
+        "mean_normalized_residual": 0.0,
+        "metric": "declination",
+        "sample_count": 3,
+        "sample_standard_deviation": 0.0,
+        "within_one_sigma_count": 3
+      },
+      {
+        "availability_fraction": 1.0,
+        "coverage_confidence_interval": {
+          "confidence_level": 0.95,
+          "lower": 0.43850296824495466,
+          "upper": 1.0
+        },
+        "coverage_fraction": 1.0,
+        "dispersion_confidence_interval": {
+          "confidence_level": 0.95,
+          "lower": 0.0,
+          "upper": 0.0
+        },
+        "eligible_count": 3,
+        "mean_confidence_interval": {
+          "confidence_level": 0.95,
+          "lower": 0.0,
+          "upper": 0.0
+        },
+        "mean_normalized_residual": 0.0,
+        "metric": "peak-flux",
+        "sample_count": 3,
+        "sample_standard_deviation": 0.0,
+        "within_one_sigma_count": 3
+      },
+      {
+        "availability_fraction": 1.0,
+        "coverage_confidence_interval": {
+          "confidence_level": 0.95,
+          "lower": 0.43850296824495466,
+          "upper": 1.0
+        },
+        "coverage_fraction": 1.0,
+        "dispersion_confidence_interval": {
+          "confidence_level": 0.95,
+          "lower": 0.0,
+          "upper": 0.0
+        },
+        "eligible_count": 3,
+        "mean_confidence_interval": {
+          "confidence_level": 0.95,
+          "lower": 0.0,
+          "upper": 0.0
+        },
+        "mean_normalized_residual": 0.0,
+        "metric": "integrated-flux",
+        "sample_count": 3,
+        "sample_standard_deviation": 0.0,
+        "within_one_sigma_count": 3
+      },
+      {
+        "availability_fraction": 1.0,
+        "coverage_confidence_interval": {
+          "confidence_level": 0.95,
+          "lower": 0.43850296824495466,
+          "upper": 1.0
+        },
+        "coverage_fraction": 1.0,
+        "dispersion_confidence_interval": {
+          "confidence_level": 0.95,
+          "lower": 0.0,
+          "upper": 0.0
+        },
+        "eligible_count": 3,
+        "mean_confidence_interval": {
+          "confidence_level": 0.95,
+          "lower": 0.0,
+          "upper": 0.0
+        },
+        "mean_normalized_residual": 0.0,
+        "metric": "fitted-major-axis",
+        "sample_count": 3,
+        "sample_standard_deviation": 0.0,
+        "within_one_sigma_count": 3
+      },
+      {
+        "availability_fraction": 1.0,
+        "coverage_confidence_interval": {
+          "confidence_level": 0.95,
+          "lower": 0.43850296824495466,
+          "upper": 1.0
+        },
+        "coverage_fraction": 1.0,
+        "dispersion_confidence_interval": {
+          "confidence_level": 0.95,
+          "lower": 0.0,
+          "upper": 0.0
+        },
+        "eligible_count": 3,
+        "mean_confidence_interval": {
+          "confidence_level": 0.95,
+          "lower": 0.0,
+          "upper": 0.0
+        },
+        "mean_normalized_residual": 0.0,
+        "metric": "fitted-minor-axis",
+        "sample_count": 3,
+        "sample_standard_deviation": 0.0,
+        "within_one_sigma_count": 3
+      },
+      {
+        "availability_fraction": 1.0,
+        "coverage_confidence_interval": {
+          "confidence_level": 0.95,
+          "lower": 0.43850296824495466,
+          "upper": 1.0
+        },
+        "coverage_fraction": 1.0,
+        "dispersion_confidence_interval": {
+          "confidence_level": 0.95,
+          "lower": 0.0,
+          "upper": 0.0
+        },
+        "eligible_count": 3,
+        "mean_confidence_interval": {
+          "confidence_level": 0.95,
+          "lower": 0.0,
+          "upper": 0.0
+        },
+        "mean_normalized_residual": 0.0,
+        "metric": "fitted-position-angle",
+        "sample_count": 3,
+        "sample_standard_deviation": 0.0,
+        "within_one_sigma_count": 3
+      },
+      {
+        "availability_fraction": 1.0,
+        "coverage_confidence_interval": {
+          "confidence_level": 0.95,
+          "lower": 0.20654931437723753,
+          "upper": 1.0
+        },
+        "coverage_fraction": 1.0,
+        "dispersion_confidence_interval": null,
+        "eligible_count": 1,
+        "mean_confidence_interval": null,
+        "mean_normalized_residual": 0.0,
+        "metric": "deconvolved-major-axis",
+        "sample_count": 1,
+        "sample_standard_deviation": null,
+        "within_one_sigma_count": 1
+      },
+      {
+        "availability_fraction": 1.0,
+        "coverage_confidence_interval": {
+          "confidence_level": 0.95,
+          "lower": 0.20654931437723753,
+          "upper": 1.0
+        },
+        "coverage_fraction": 1.0,
+        "dispersion_confidence_interval": null,
+        "eligible_count": 1,
+        "mean_confidence_interval": null,
+        "mean_normalized_residual": 0.0,
+        "metric": "deconvolved-minor-axis",
+        "sample_count": 1,
+        "sample_standard_deviation": null,
+        "within_one_sigma_count": 1
+      },
+      {
+        "availability_fraction": 1.0,
+        "coverage_confidence_interval": {
+          "confidence_level": 0.95,
+          "lower": 0.20654931437723753,
+          "upper": 1.0
+        },
+        "coverage_fraction": 1.0,
+        "dispersion_confidence_interval": null,
+        "eligible_count": 1,
+        "mean_confidence_interval": null,
+        "mean_normalized_residual": 0.0,
+        "metric": "deconvolved-position-angle",
+        "sample_count": 1,
+        "sample_standard_deviation": null,
+        "within_one_sigma_count": 1
+      }
+    ],
     "unmatched_candidate_identifiers": [],
-    "unmatched_reference_identifiers": []
+    "unmatched_reference_identifiers": [],
+    "unresolved_classification_accuracy": 1.0,
+    "unresolved_classification_count": 3
   },
   "configuration_sha256": "8bf63e5f39159595b8ed20c4e0fe03da55bbed6a94d4ac27678aa22f41ac11f9",
   "dataset": {
@@ -74,6 +391,7 @@
     "excluded_pixel_count": 0,
     "false_negative_count": 0,
     "false_positive_count": 0,
+    "intersection_over_union": 1.0,
     "precision": 1.0,
     "recall": 1.0,
     "true_negative_count": 65358,
@@ -85,9 +403,10 @@
     "container_image_digest": "sha256:dce93991e2e671428ff8043a7e0d132294d2d2decf1e1587e9904d3e8f49b754",
     "dependency_inventory_sha256": "ad533f28942ba1d3891a1c5d960028c7bde558ea682e08da21a246235d2eb3c8",
     "name": "pybdsf",
+    "source_tree_sha256": null,
     "version": "1.14.1"
   },
-  "reference_product_manifest_sha256": "5120cfffca32c193890641c7863b26a655aac80cf9193c176b24588979871f13",
+  "reference_product_manifest_sha256": "914c21f84a5720d0444bda612238f83144ec97f7d736c55c7616a58f8639ab96",
   "run_id": "phase-0-pybdsf-master-vs-release-compact",
   "schema_version": 1,
   "status": "exploratory",

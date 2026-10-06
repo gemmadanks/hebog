@@ -18,8 +18,11 @@ pulls within one, read against that share.
 
 Outputs go under ``benchmark-results/uncertainty-calibration/<label>``, with
 each realization's record as a one-dataset manifest beside its image for
-``compare_flux_calibration.py``. This is development evidence for choosing
-uncertainty calibration, not qualification.
+``compare_flux_calibration.py``. The summary records the requested
+estimator and, read back from each run's diagnostics, the estimator every
+published component's fit used and any fallback from it. This is
+development evidence for choosing uncertainty calibration, not
+qualification.
 """
 
 from __future__ import annotations
@@ -29,14 +32,16 @@ import hashlib
 import json
 import math
 import shutil
+from collections import Counter
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
 import hebog
 from hebog import public_api
+from hebog.data_models import PublicSourceFindingDiagnostics
 from hebog.executors import SerialExecutor
-from hebog.io import read_catalogue_fits_product
+from hebog.io import read_catalogue_fits_product, read_diagnostics_product
 from hebog.validation.campaigns import phase_four_truth_source
 from hebog.validation.component_calibration import (
     ComponentComparison,
@@ -92,6 +97,37 @@ def _use_point_estimator(estimator: str) -> None:
 
     configuration.source_finder_configs = configured
     continuum.source_finder_configs = configured
+
+
+def _point_estimators_run(
+    diagnostics_path: Path,
+) -> tuple[Counter[str], Counter[str]]:
+    """Count the point estimator, and any fallback, of each published fit.
+
+    They are read from the run's diagnostics, so a request the override
+    did not reach, or a fit that fell back to the diagonal estimator, is
+    recorded as it ran.
+    """
+    diagnostics = read_diagnostics_product(diagnostics_path)
+    if not isinstance(diagnostics, PublicSourceFindingDiagnostics):
+        raise TypeError(
+            f"{diagnostics_path} is not a public run's diagnostics"
+        )
+    component_fits = [
+        disposition.fit_diagnostics
+        for disposition in diagnostics.measurement_dispositions
+        if disposition.object_kind == "component"
+        and disposition.catalogue_row_published
+        and disposition.fit_diagnostics is not None
+    ]
+    return (
+        Counter(fit.point_estimator for fit in component_fits),
+        Counter(
+            fit.point_estimator_fallback_reason
+            for fit in component_fits
+            if fit.point_estimator_fallback_reason is not None
+        ),
+    )
 
 
 def _pulls(manifest: Path, catalogue_path: Path) -> list[dict[str, Any]]:
@@ -269,13 +305,15 @@ def main() -> None:
             "manifest": _repository_path(args.manifest),
             "sha256": hashlib.sha256(args.manifest.read_bytes()).hexdigest(),
         },
-        "point_estimator": args.point_estimator,
+        "requested_point_estimator": args.point_estimator,
         "scientific_composition_sha256": (
             public_api._scientific_composition_sha256()
         ),
         "strata": {},
     }
     all_rows: dict[str, list[dict[str, Any]]] = {}
+    estimators: Counter[str] = Counter()
+    fallbacks: Counter[str] = Counter()
     for dataset in load_dataset_manifest(args.manifest).datasets:
         identifier = dataset.identifier
         correlated = dataset.recipe.noise_correlation is not None
@@ -291,11 +329,18 @@ def main() -> None:
             SerialExecutor(),
         )
         rows = _pulls(manifest, result.catalogue_path)
+        run_estimators, run_fallbacks = _point_estimators_run(
+            result.diagnostics_path
+        )
+        estimators.update(run_estimators)
+        fallbacks.update(run_fallbacks)
         for row in rows:
             key = f"{noise}/snr{int(row['snr'])}/x{row['size_factor']}"
             all_rows.setdefault(key, []).append(row)
             all_rows.setdefault(noise, []).append(row)
         print(f"{identifier}: {len(rows)} sources", flush=True)
+    results["point_estimators_run"] = dict(sorted(estimators.items()))
+    results["point_estimator_fallbacks"] = dict(sorted(fallbacks.items()))
     for key, rows in sorted(all_rows.items()):
         results["strata"][key] = _summary(rows)
     (root / "summary.json").write_text(

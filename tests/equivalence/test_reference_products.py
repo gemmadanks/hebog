@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+import runpy
+import sys
 from pathlib import Path
 
 import pytest
@@ -26,6 +29,12 @@ from hebog.validation.products import (
 _ROOT = Path(__file__).parents[2]
 _MANIFEST_PATH = (
     _ROOT / "config" / "baselines" / "phase-0-pybdsf-reference-products.json"
+)
+_COMPARISON_PATH = (
+    _ROOT
+    / "config"
+    / "baselines"
+    / "phase-0-pybdsf-master-vs-release-comparison.json"
 )
 _BEAM_FWHM_DEGREES = 0.001111111111111111
 _MAXIMUM_SEPARATION_BEAMS = 0.5
@@ -121,3 +130,34 @@ def test_master_and_release_reference_masks_are_equivalent() -> None:
     assert report.false_positive_count == 0
     assert report.false_negative_count == 0
     assert report.agreement_fraction == 1.0
+
+
+@pytest.mark.equivalence
+def test_committed_master_versus_release_comparison_is_reproduced(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Its generator, with today's matcher, writes the committed record."""
+    output = tmp_path / "comparison.json"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "compare_reference_products.py",
+            "--repository-root",
+            str(_ROOT),
+            "--manifest",
+            str(_MANIFEST_PATH),
+            "--output",
+            str(output),
+        ],
+    )
+
+    runpy.run_path(
+        str(_ROOT / "scripts/validation/compare_reference_products.py"),
+        run_name="__main__",
+    )
+
+    assert json.loads(output.read_text(encoding="utf-8")) == json.loads(
+        _COMPARISON_PATH.read_text(encoding="utf-8")
+    )

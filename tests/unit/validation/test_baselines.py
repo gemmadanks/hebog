@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -17,10 +18,56 @@ from hebog.validation.evidence import (
     BenchmarkEvidence,
     EvidenceStatus,
     ExecutorKind,
+    ScientificComparisonEvidence,
     WorkloadClass,
     load_evidence,
 )
+from hebog.validation.overhead import OverheadEvidence, load_overhead_evidence
+from hebog.validation.products import (
+    ReferenceProductManifest,
+    load_reference_product_manifest,
+)
 
+_BASELINE_DIRECTORY = Path(__file__).parents[3] / "config" / "baselines"
+_BASELINE_MODELS: dict[str, tuple[Callable[[Path], object], type]] = {
+    "phase-0-one-tile-overhead.json": (
+        load_overhead_evidence,
+        OverheadEvidence,
+    ),
+    "phase-0-pybdsf-master-compact-evidence.json": (
+        load_evidence,
+        BenchmarkEvidence,
+    ),
+    "phase-0-pybdsf-master-representative-evidence.json": (
+        load_evidence,
+        BenchmarkEvidence,
+    ),
+    "phase-0-pybdsf-master-vs-release-comparison.json": (
+        load_evidence,
+        ScientificComparisonEvidence,
+    ),
+    "phase-0-pybdsf-reference-products.json": (
+        load_reference_product_manifest,
+        ReferenceProductManifest,
+    ),
+    "phase-0-pybdsf-release-compact-evidence.json": (
+        load_evidence,
+        BenchmarkEvidence,
+    ),
+    "phase-0-pybdsf-release-representative-evidence.json": (
+        load_evidence,
+        BenchmarkEvidence,
+    ),
+}
+# Inventories that have no model; the tests at the end of this file read
+# the fields they bind.
+_INVENTORIES_WITHOUT_MODEL = frozenset(
+    {
+        "phase-0-reference-environments.json",
+        "phase-0-representative-dataset.json",
+        "phase-0-starting-revisions.json",
+    }
+)
 _ARTIFACT_NAMES = (
     "apparent_sky.txt",
     "diagnostics.json",
@@ -251,6 +298,34 @@ def test_compile_pybdsf_campaign_rejects_invalid_tool_digest(
 
     with pytest.raises(ValueError, match="tool SHA-256 is invalid"):
         _compile(tmp_path)
+
+
+def test_baseline_models_cover_every_committed_baseline() -> None:
+    """A new or renamed baseline file needs a model or a named exemption."""
+    committed = {
+        path.name
+        for path in _BASELINE_DIRECTORY.iterdir()
+        if not path.name.startswith(".")
+    }
+
+    assert committed == set(_BASELINE_MODELS) | _INVENTORIES_WITHOUT_MODEL
+    assert not set(_BASELINE_MODELS) & _INVENTORIES_WITHOUT_MODEL
+
+
+@pytest.mark.parametrize("name", sorted(_BASELINE_MODELS))
+def test_committed_baseline_loads_through_its_model(name: str) -> None:
+    """Every typed baseline still validates against today's model."""
+    load, model = _BASELINE_MODELS[name]
+
+    assert isinstance(load(_BASELINE_DIRECTORY / name), model)
+
+
+@pytest.mark.parametrize("name", sorted(_INVENTORIES_WITHOUT_MODEL))
+def test_committed_inventory_is_a_json_object(name: str) -> None:
+    """An inventory without a model is at least one parseable record."""
+    record = json.loads((_BASELINE_DIRECTORY / name).read_text("utf-8"))
+
+    assert isinstance(record, dict)
 
 
 def test_phase_zero_representative_inventory_matches_evidence() -> None:

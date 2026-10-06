@@ -187,6 +187,52 @@ def test_truth_metrics_count_completeness_reliability_and_bright_sources() -> (
     assert metrics["truth.separation_p50_beams"] == 0.0
 
 
+def test_bright_completeness_counts_only_pairs_of_the_full_assignment() -> (
+    None
+):
+    """A component paired with a faint source does not recover a bright one.
+
+    The one component sits on the faint source, inside the gate of the
+    undetected bright source too. Matched on its own, the bright subset
+    would take it and report full SNR>=10 completeness.
+    """
+    noise = 1e-4
+    faint_ra = 10.0 + 0.8 * _BEAM_DEGREES
+    truth = (
+        _source("bright", 10.0, 20 * noise),
+        _source("faint", faint_ra, 6 * noise),
+    )
+    found = (_source("only-component", faint_ra, 6 * noise),)
+
+    metrics = truth_metrics(
+        truth,
+        found,
+        beam_fwhm_degrees=_BEAM_DEGREES,
+        maximum_separation_beams=1.0,
+        noise_rms_jy_per_beam=noise,
+    )
+
+    assert metrics["truth.completeness"] == 0.5
+    assert metrics["truth.snr10_completeness"] == 0.0
+
+
+def test_bright_completeness_is_unavailable_without_bright_truth() -> None:
+    """A case with no SNR>=10 truth source has no bright completeness."""
+    noise = 1e-4
+    truth = (_source("faint", 10.0, 6 * noise),)
+
+    metrics = truth_metrics(
+        truth,
+        truth,
+        beam_fwhm_degrees=_BEAM_DEGREES,
+        maximum_separation_beams=1.0,
+        noise_rms_jy_per_beam=noise,
+    )
+
+    assert metrics["truth.completeness"] == 1.0
+    assert metrics["truth.snr10_completeness"] is None
+
+
 def test_map_metrics_ignore_invalid_reference_pixels(tmp_path: Path) -> None:
     """RMS error is fractional and mask IoU uses valid reference pixels."""
     reference_rms = tmp_path / "reference-rms.fits"

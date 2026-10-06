@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from hebog.validation.comparison import (
+    CatalogueComparisonReport,
     CatalogueEllipse,
     CatalogueOutlierThresholds,
     CatalogueSource,
@@ -145,31 +146,88 @@ def test_catalogue_matching_uses_great_circle_declination() -> None:
     assert report.matches[0].separation_beam_fwhm == pytest.approx(0.2)
 
 
-def test_ambiguous_matching_maximizes_total_matched_flux() -> None:
-    """Flux resolves a blend ambiguity before angular distance does."""
+def _pairs(report: CatalogueComparisonReport) -> set[tuple[str, str]]:
+    """Return the matched reference and candidate identifiers."""
+    return {
+        (match.reference_identifier, match.candidate_identifier)
+        for match in report.matches
+    }
+
+
+def test_matching_prefers_the_smallest_separations_over_flux_agreement() -> (
+    None
+):
+    """Candidates on the truth positions pair with them, whatever the flux.
+
+    Pairing A with b and B with a agrees better in flux, and is what a
+    flux-first objective chose, at 0.6 beam each. That hides both flux
+    errors behind a separation the candidates do not have.
+    """
     reference = (
-        _source(
-            "reference-bright",
-            right_ascension_degrees=0.0,
-            integrated_flux_jy=10.0,
-        ),
-        _source(
-            "reference-faint",
-            right_ascension_degrees=0.1,
-            integrated_flux_jy=1.0,
-        ),
+        _source("A", right_ascension_degrees=0.0, integrated_flux_jy=1.0),
+        _source("B", right_ascension_degrees=0.6, integrated_flux_jy=0.5),
     )
     candidate = (
-        _source(
-            "candidate-bright",
-            right_ascension_degrees=0.1,
-            integrated_flux_jy=10.0,
-        ),
-        _source(
-            "candidate-faint",
-            right_ascension_degrees=0.0,
-            integrated_flux_jy=1.0,
-        ),
+        _source("a", right_ascension_degrees=0.0, integrated_flux_jy=0.7),
+        _source("b", right_ascension_degrees=0.6, integrated_flux_jy=0.8),
+    )
+
+    report = compare_catalogues(
+        reference,
+        candidate,
+        beam_fwhm_degrees=1.0,
+        maximum_separation_beams=1.0,
+    )
+
+    assert _pairs(report) == {("A", "a"), ("B", "b")}
+    assert report.percentile_95_separation_beam_fwhm == 0.0
+    assert [
+        match.integrated_flux_fractional_difference for match in report.matches
+    ] == [pytest.approx(-0.3), pytest.approx(0.6)]
+
+
+def test_matching_minimizes_the_total_separation_of_the_pairs() -> None:
+    """The global assignment beats pairing each reference with its nearest.
+
+    Reference r1 is nearest c2, but taking that pair leaves r2 to c1 at 0.8
+    beam; the two pairs at 0.3 beam each sum to less.
+    """
+    reference = (
+        _source("r1", right_ascension_degrees=0.0),
+        _source("r2", right_ascension_degrees=0.5),
+    )
+    candidate = (
+        _source("c1", right_ascension_degrees=-0.3),
+        _source("c2", right_ascension_degrees=0.2),
+    )
+
+    report = compare_catalogues(
+        reference,
+        candidate,
+        beam_fwhm_degrees=1.0,
+        maximum_separation_beams=1.0,
+    )
+
+    assert _pairs(report) == {("r1", "c1"), ("r2", "c2")}
+    assert [match.separation_beam_fwhm for match in report.matches] == [
+        pytest.approx(0.3),
+        pytest.approx(0.3),
+    ]
+
+
+def test_matching_counts_pairs_inside_the_gate_before_separation() -> None:
+    """Two pairs inside the gate outrank one closer pair.
+
+    Pairing r1 with c1 at no separation would leave r2 and c2 outside each
+    other's gate, so completeness would fall to one half.
+    """
+    reference = (
+        _source("r1", right_ascension_degrees=0.0),
+        _source("r2", right_ascension_degrees=0.4),
+    )
+    candidate = (
+        _source("c1", right_ascension_degrees=0.0),
+        _source("c2", right_ascension_degrees=-0.4),
     )
 
     report = compare_catalogues(
@@ -179,13 +237,183 @@ def test_ambiguous_matching_maximizes_total_matched_flux() -> None:
         maximum_separation_beams=0.5,
     )
 
-    assert {
-        (match.reference_identifier, match.candidate_identifier)
-        for match in report.matches
-    } == {
+    assert _pairs(report) == {("r1", "c2"), ("r2", "c1")}
+    assert report.completeness == 1.0
+
+
+@pytest.mark.parametrize("candidate_order", [(0, 1), (1, 0)])
+@pytest.mark.parametrize("reference_order", [(0, 1), (1, 0)])
+def test_flux_agreement_breaks_an_exact_separation_tie(
+    reference_order: tuple[int, int],
+    candidate_order: tuple[int, int],
+) -> None:
+    """Coincident rows tie on separation, so flux decides, in any order."""
+    references = (
+        _source(
+            "reference-bright",
+            right_ascension_degrees=0.0,
+            integrated_flux_jy=10.0,
+        ),
+        _source(
+            "reference-faint",
+            right_ascension_degrees=0.0,
+            integrated_flux_jy=1.0,
+        ),
+    )
+    candidates = (
+        _source(
+            "candidate-bright",
+            right_ascension_degrees=0.1,
+            integrated_flux_jy=9.0,
+        ),
+        _source(
+            "candidate-faint",
+            right_ascension_degrees=0.1,
+            integrated_flux_jy=1.1,
+        ),
+    )
+
+    report = compare_catalogues(
+        [references[index] for index in reference_order],
+        [candidates[index] for index in candidate_order],
+        beam_fwhm_degrees=1.0,
+        maximum_separation_beams=0.5,
+    )
+
+    assert _pairs(report) == {
         ("reference-bright", "candidate-bright"),
         ("reference-faint", "candidate-faint"),
     }
+
+
+def _square_with_shifted_north(
+    shift_degrees: float,
+) -> tuple[list[CatalogueSource], list[CatalogueSource]]:
+    """Return rows on a square's corners, the north one moved east.
+
+    West and north are bright, east and south faint. Moving north east makes
+    the bright pairing's separation sum larger than the crossed one's by
+    about ``sqrt(2)`` times the shift.
+    """
+    offset = 0.1 / math.sqrt(2.0)
+    reference = [
+        _source(
+            "west-bright",
+            right_ascension_degrees=360.0 - offset,
+            integrated_flux_jy=10.0,
+        ),
+        _source(
+            "east-faint",
+            right_ascension_degrees=offset,
+            integrated_flux_jy=1.0,
+        ),
+    ]
+    candidate = [
+        replace(
+            _source(
+                "south-faint",
+                right_ascension_degrees=0.0,
+                integrated_flux_jy=1.0,
+            ),
+            declination_degrees=-offset,
+        ),
+        replace(
+            _source(
+                "north-bright",
+                right_ascension_degrees=shift_degrees,
+                integrated_flux_jy=10.0,
+            ),
+            declination_degrees=offset,
+        ),
+    ]
+    return reference, candidate
+
+
+def _separation_beams(
+    reference: CatalogueSource,
+    candidate: CatalogueSource,
+) -> float:
+    """Return the oracle's own separation of one pair, in 1-degree beams."""
+    report = compare_catalogues(
+        (reference,),
+        (candidate,),
+        beam_fwhm_degrees=1.0,
+        maximum_separation_beams=1.0,
+    )
+    return report.matches[0].separation_beam_fwhm
+
+
+@pytest.mark.parametrize(
+    ("shift_degrees", "flux_decides"),
+    [(1e-12, True), (1e-4, False)],
+)
+def test_flux_agreement_decides_only_within_the_tie_weight(
+    shift_degrees: float,
+    flux_decides: bool,
+) -> None:
+    """Flux overrides a separation difference only far below any real one.
+
+    Shifted 10^-12 degree, the bright pairing's separation sum is larger by
+    about 1.4 * 10^-12 beam, inside the 10^-9 beam a pair that flux may
+    outweigh, so flux agreement chooses it. Shifted 10^-4 degree, the
+    difference is a real separation and position decides.
+    """
+    reference, candidate = _square_with_shifted_north(shift_degrees)
+    west, east = reference
+    south, north = candidate
+    excess = (
+        _separation_beams(west, north)
+        + _separation_beams(east, south)
+        - _separation_beams(west, south)
+        - _separation_beams(east, north)
+    )
+    assert 0.0 < excess < (1e-9 if flux_decides else 1.0)
+
+    report = compare_catalogues(
+        reference,
+        candidate,
+        beam_fwhm_degrees=1.0,
+        maximum_separation_beams=0.5,
+    )
+
+    assert _pairs(report) == (
+        {("west-bright", "north-bright"), ("east-faint", "south-faint")}
+        if flux_decides
+        else {("west-bright", "south-faint"), ("east-faint", "north-bright")}
+    )
+
+
+def test_matching_gate_includes_its_boundary() -> None:
+    """A pair at the gate's radius matches; one just beyond it does not.
+
+    The gate is set to the separation the oracle itself computes, so the
+    boundary case does not depend on how a platform rounds trigonometry.
+    """
+    reference = (_source("reference", right_ascension_degrees=0.0),)
+    candidate = (
+        replace(
+            _source("candidate", right_ascension_degrees=0.3),
+            declination_degrees=0.4,
+        ),
+    )
+    separation = _separation_beams(reference[0], candidate[0])
+
+    at_boundary = compare_catalogues(
+        reference,
+        candidate,
+        beam_fwhm_degrees=1.0,
+        maximum_separation_beams=separation,
+    )
+    inside_boundary = compare_catalogues(
+        reference,
+        candidate,
+        beam_fwhm_degrees=1.0,
+        maximum_separation_beams=float(np.nextafter(separation, 0.0)),
+    )
+
+    assert at_boundary.completeness == 1.0
+    assert inside_boundary.matches == ()
+    assert inside_boundary.completeness == 0.0
 
 
 def test_catalogue_report_records_unmatched_rows_and_flux_metrics() -> None:

@@ -29,6 +29,9 @@ from hebog.validation.products import (
 
 _BEAM_FWHM_DEGREES = 0.001111111111111111
 _MAXIMUM_SEPARATION_BEAMS = 0.5
+# PyBDSF catalogues carry shapes; below this axis ratio a position angle is
+# not a meaningful quantity, as in the compact measurement contract.
+_POSITION_ANGLE_MINIMUM_AXIS_RATIO = 1.1
 
 
 def _parse_args() -> argparse.Namespace:
@@ -62,6 +65,7 @@ def main() -> None:
         load_pybdsf_catalogue(_path(root, candidate, "source_catalog.fits")),
         beam_fwhm_degrees=_BEAM_FWHM_DEGREES,
         maximum_separation_beams=_MAXIMUM_SEPARATION_BEAMS,
+        position_angle_minimum_axis_ratio=_POSITION_ANGLE_MINIMUM_AXIS_RATIO,
     )
     true_sky_rms = compare_rms_maps(
         load_fits_plane(_path(root, reference, "true_sky_rms.fits")),
