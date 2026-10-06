@@ -21,7 +21,6 @@ from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
 from conftest import (
-    IGNORE_RMS_KERNEL_WARNINGS,
     SubstituteBackgroundRms,
     product_hashes,
     published_plane,
@@ -841,11 +840,14 @@ def test_signed_aperture_failure_never_becomes_positive_only_flux(
     """The public result keeps detection but does not invent positive flux.
 
     The line segment gets no fitted Gaussian, so its aperture is its only
-    flux: when that sums below zero the source has nothing to publish.
+    flux: when that sums below zero the source has nothing to publish. The
+    negative context alternates by 10% from pixel to pixel: a constant one
+    is a block of one repeated value, invalid input that no aperture sums.
     """
     yy, xx = np.mgrid[:65, :97]
     signal = 10 * np.exp(-((xx - 70) ** 2 + (yy - 32) ** 2) / 8)
-    signal[20:45, 2:30] = negative_context
+    context = negative_context * (1.0 + 0.1 * ((xx + yy) % 2))
+    signal[20:45, 2:30] = context[20:45, 2:30]
     signal[32, 12:19] = 10.0
     _write_image(tmp_path / "image.fits", signal)
 
@@ -1292,6 +1294,80 @@ def test_blank_and_all_nan_inputs_publish_honest_empty_products(
         mask = np.asarray(fits.getdata(result.mask_path), dtype=np.bool_)
         assert mask.shape == shape
         assert not np.any(mask)
+
+
+@pytest.mark.integration
+def test_zero_padding_beside_noise_is_blanked_and_publishes_no_zero_noise(
+    tmp_path: Path,
+) -> None:
+    """A constant region is invalid up to its last pixel, as NaN padding is.
+
+    150 zero-valued columns beside noise published an RMS of exactly zero
+    on 82,956 pixels and under 1e-6 on 3,703 more, under a valid status.
+    The zeros are now outside the image: the RMS is NaN over every one of
+    them, and the sources in the noise are measured as before.
+    """
+    shape = (600, 600)
+    yy, xx = np.mgrid[: shape[0], : shape[1]]
+    image = np.random.default_rng(7).normal(0.0, 1e-4, shape)
+    for y, x in ((450, 300), (300, 160)):
+        image += 8e-4 * np.exp(-((xx - x) ** 2 + (yy - y) ** 2) / 5.78)
+    image[:, :150] = 0.0
+    _write_image(tmp_path / "image.fits", image.astype(np.float32))
+
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+
+    rms = np.asarray(fits.getdata(result.rms.path), dtype=np.float64)
+    assert result.rms.scientific_status == "valid"
+    assert np.isnan(rms[:, :150]).all()
+    assert np.isfinite(rms[:, 150:]).all()
+    assert rms[:, 150:].min() > 5e-5
+    assert result.source_count == 2
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    "region", ("zeros-between-nan-rows", "one-value-dithered-by-rounding")
+)
+def test_valid_pixels_without_noise_publish_no_noise_of_their_own(
+    tmp_path: Path,
+    region: str,
+) -> None:
+    """Pixels that no square of one value holds can still carry no noise.
+
+    Zero rows between NaN rows, and one value dithered by a unit of single
+    precision from pixel to pixel, hold no 3x3 square of one value, so they
+    are valid. A window whose only valid samples they are has a spread of
+    zero, or under single precision's resolution at its largest value, the
+    noise floor: it is unavailable, so those pixels take the estimate of the
+    nearest window that measures noise, and no RMS of zero or of rounding
+    (about 6e-8 here) is published. The nearest such window mixes the
+    region with the noise beside it and reads a lower noise than the noise
+    (as low as 2e-5 beside the dithered value), as at any sharp step in the
+    noise; the floor is not meant to change that.
+    """
+    image = np.random.default_rng(11).normal(0.0, 1.0, (200, 240))
+    if region == "zeros-between-nan-rows":
+        image[:, :150] = 0.0
+        image[::2, :150] = np.nan
+    else:
+        one = np.float32(1.0)
+        rounding = np.nextafter(one, np.float32(2.0))
+        image[:, :150] = np.where(
+            np.indices((200, 150)).sum(axis=0) % 2, rounding, one
+        )
+    _write_image(tmp_path / "image.fits", image.astype(np.float32))
+
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+
+    rms = np.asarray(fits.getdata(result.rms.path), dtype=np.float64)
+    assert result.rms.scientific_status == "valid"
+    np.testing.assert_array_equal(np.isfinite(rms), np.isfinite(image))
+    assert rms[np.isfinite(rms)].min() > 1e-5
 
 
 @pytest.mark.integration
@@ -1919,7 +1995,6 @@ def high_threshold_reference(
 
 
 @pytest.mark.integration
-@IGNORE_RMS_KERNEL_WARNINGS
 def test_custom_thresholds_publish_the_serial_products_under_every_executor(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -2121,7 +2196,6 @@ def fitted_reference(
 
 
 @pytest.mark.integration
-@IGNORE_RMS_KERNEL_WARNINGS
 def test_every_executor_on_other_tiles_publishes_the_serial_products(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -2139,7 +2213,6 @@ def test_every_executor_on_other_tiles_publishes_the_serial_products(
 
 
 @pytest.mark.integration
-@IGNORE_RMS_KERNEL_WARNINGS
 def test_dask_process_workers_publish_the_serial_products(
     tmp_path: Path,
 ) -> None:

@@ -25,7 +25,8 @@ Hebog accepts one two-dimensional FITS image. The image needs:
 
 The unit, beam and frequency may instead be supplied with the request when
 the header omits them, as the next section shows. NaN pixels are allowed and
-ignored, as are integer pixels equal to `BLANK`. If anything else is missing, Hebog stops with an error that names
+ignored, as are integer pixels equal to `BLANK` and every pixel of a 3×3
+square of one repeated value, such as zero padding. If anything else is missing, Hebog stops with an error that names
 the problem before writing any output. The
 [input header contract](../reference/input-header-contract.md) lists what
 Hebog reads from each keyword and what common imagers write.
@@ -152,9 +153,10 @@ thing: Hebog has not yet been qualified for survey use.
 ## If the catalogue is empty
 
 An empty catalogue with `result.rms.scientific_status == "unavailable"` means
-Hebog found no usable noise estimate, which usually means a noiseless
-simulated image. It does **not** mean the sky is empty. Add realistic noise
-and run again.
+Hebog found no usable noise estimate, which can mean a noiseless simulated
+image. It does **not** mean the sky is empty. Add realistic noise and run
+again: a noiseless image is not always reported this way, and may instead
+be measured against a tiny noise from its sources' far tails.
 
 ## Next steps
 

@@ -19,7 +19,7 @@ import numpy as np
 import pytest
 from astropy.io import fits
 
-from hebog.data_models import SuppliedImageMetadata
+from hebog.data_models import PartitionManifest, SuppliedImageMetadata
 from hebog.data_models.images import ImageMetadata
 from hebog.io import (
     FitsImageSource,
@@ -200,7 +200,7 @@ def test_a_blank_card_on_floating_point_pixels_is_ignored(
 ) -> None:
     """FITS gives BLANK no meaning there: NaN marks an invalid pixel."""
     path = tmp_path / "float-blank.fits"
-    _write_image(path, np.full((2, 2), -1.0, dtype=np.float32))
+    _write_image(path, np.array([[-1.0, -2.0], [-3.0, -4.0]], np.float32))
     with fits.open(path, mode="update") as hdus:
         hdus[0].header["BLANK"] = "none"
 
@@ -365,6 +365,137 @@ def test_accepts_an_all_invalid_but_structured_plane(tmp_path: Path) -> None:
     )
 
     assert not np.any(window.valid_pixels)
+
+
+def _in_a_constant_square(plane: np.ndarray) -> np.ndarray:
+    """Return, square by square, which pixels a square of one value holds.
+
+    A deliberately plain oracle for the vectorised rule: each pixel's 3x3
+    square, clipped to the image, and every pixel of it when it holds one
+    value.
+    """
+    height, width = plane.shape
+    held = np.zeros(plane.shape, dtype=np.bool_)
+    for y in range(height):
+        for x in range(width):
+            square = (
+                slice(max(y - 1, 0), y + 2),
+                slice(max(x - 1, 0), x + 2),
+            )
+            if np.all(plane[square] == plane[y, x]):
+                held[square] = True
+    return held
+
+
+def _blocked_plane() -> np.ndarray:
+    """Return noise with blocks across seams, corners and image edges.
+
+    A zero block crosses the seams and four-way corners of 8-pixel cores
+    and holds a NaN square; a constant block fills the top-right image
+    corner; a zero block ends exactly on core edges; a line two pixels
+    wide is no block.
+    """
+    plane = np.random.default_rng(46).normal(size=(37, 41)).astype(np.float32)
+    plane[5:18, 6:21] = 0.0
+    plane[10:12, 12:14] = np.nan
+    plane[0:7, 34:] = 3.0
+    plane[24:32, 0:16] = 0.0
+    plane[34:36, 10:30] = -1.5
+    return plane
+
+
+@pytest.mark.integration
+def test_marks_a_block_of_one_repeated_value_invalid_like_nan(
+    tmp_path: Path,
+) -> None:
+    """Zero padding beside data is invalid up to its last pixel.
+
+    The values are kept, as NaN values are; only validity changes.
+    """
+    plane = _blocked_plane()
+    path = tmp_path / "blocked.fits"
+    _write_image(path, plane)
+    source = FitsImageSource(path)
+
+    window = source.read_window(ImageBounds(0, 37, 0, 41))
+    source.close()
+
+    expected = np.isfinite(plane) & ~_in_a_constant_square(plane)
+    np.testing.assert_array_equal(window.valid_pixels, expected)
+    np.testing.assert_array_equal(window.values, plane)
+    # The zero blocks, the NaN square's neighbours inside one, and the
+    # corner block are out to their edges; the two-pixel line stays in.
+    assert not window.valid_pixels[5:18, 6:21].any()
+    assert not window.valid_pixels[0:7, 34:].any()
+    assert not window.valid_pixels[24:32, 0:16].any()
+    assert window.valid_pixels[34:36, 10:30].all()
+    assert np.count_nonzero(~expected) == 13 * 15 + 7 * 7 + 8 * 16
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    "core_shape_yx", [(1, 1), (8, 8), (5, 7), (37, 3), (13, 41)]
+)
+def test_validity_is_the_same_from_every_read_of_a_pixel(
+    tmp_path: Path, core_shape_yx: tuple[int, int]
+) -> None:
+    """Tiles, halo reads and batches judge each pixel from its surroundings.
+
+    A pixel's validity depends on pixels up to two beyond a tile that holds
+    it, so every read decides it from two pixels beyond itself, and any grid
+    of cores, with or without halos, assembles the whole-image validity.
+    """
+    plane = _blocked_plane()
+    path = tmp_path / "blocked.fits"
+    _write_image(path, plane)
+    source = FitsImageSource(path)
+    whole = source.read_window(ImageBounds(0, 37, 0, 41)).valid_pixels
+    manifest = PartitionManifest.create(
+        image_shape_yx=(37, 41),
+        tile_core_shape_yx=core_shape_yx,
+        halo_yx=(0, 0),
+    )
+
+    cores = source.read_windows(tile.core_bounds for tile in manifest.tiles)
+    halo_reads = tuple(
+        source.read_window(tile.core_bounds.expanded(3, (37, 41)))
+        for tile in manifest.tiles
+    )
+    source.close()
+
+    assembled = np.zeros(whole.shape, dtype=np.int64)
+    for window in (*cores, *halo_reads):
+        bounds = window.bounds
+        expected = whole[
+            bounds.y_start : bounds.y_stop, bounds.x_start : bounds.x_stop
+        ]
+        np.testing.assert_array_equal(window.valid_pixels, expected)
+    for window in cores:
+        bounds = window.bounds
+        assembled[
+            bounds.y_start : bounds.y_stop, bounds.x_start : bounds.x_stop
+        ] += 1
+    np.testing.assert_array_equal(assembled, 1)
+
+
+@pytest.mark.integration
+def test_the_block_rule_compares_physical_values(tmp_path: Path) -> None:
+    """Equal stored integers are equal pixels, and a BLANK block is NaN."""
+    path = tmp_path / "scaled-block.fits"
+    stored = (np.arange(64).reshape(8, 8) - 20).astype(np.int16)
+    stored[0:4, 0:4] = 17
+    stored[4:8, 4:8] = -32768
+    _write_stored_integers(path, stored, BSCALE=4e-6, BZERO=0.05, BLANK=-32768)
+    source = FitsImageSource(path)
+
+    window = source.read_window(ImageBounds(0, 8, 0, 8))
+    source.close()
+
+    expected = np.ones((8, 8), dtype=np.bool_)
+    expected[0:4, 0:4] = False
+    expected[4:8, 4:8] = False
+    np.testing.assert_array_equal(window.valid_pixels, expected)
+    assert np.all(window.values[0:4, 0:4] == 0.05 + 4e-6 * 17)
 
 
 @pytest.mark.integration

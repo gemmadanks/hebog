@@ -13,7 +13,7 @@ read as a FITS image.
 | --- | --- | --- |
 | One image plane | The primary HDU. The last two axes are the plane; every other axis must have length one. | Refused, naming each longer axis, for example `SPECLNMF (NAXIS3 = 16)`. Channel, Stokes and other cubes need their own contract. |
 | Stokes parameter | A `STOKES` axis's world value at the plane, so a writer that encodes it in `CRPIX` rather than `CRVAL` is read correctly. No `STOKES` axis means Stokes I. | Any parameter other than I is refused: Q, U and V, and instrumental planes such as `XX` or `RR`. A value that is not an integer parameter code, such as `1.4`, is refused as malformed. |
-| Pixel values | The plane's pixels in any `BITPIX`. A stored value is scaled by `BSCALE` and `BZERO`, and a stored integer equal to `BLANK` is an invalid pixel, as NaN is. | A file that ends before its last pixel is refused as truncated. `BSCALE`, `BZERO` and an integer image's `BLANK` must be numbers; see [Numbers](#numbers). |
+| Pixel values | The plane's pixels in any `BITPIX`. A stored value is scaled by `BSCALE` and `BZERO`. A stored integer equal to `BLANK` is an invalid pixel, as NaN is, and so is every pixel of a block of one repeated value; see [Invalid pixels](#invalid-pixels). | A file that ends before its last pixel is refused as truncated. `BSCALE`, `BZERO` and an integer image's `BLANK` must be numbers; see [Numbers](#numbers). |
 | Pixel unit | `BUNIT`. `JY/BEAM` and other spellings of Jy/beam are accepted. | A supplied `brightness_unit`, else refused. The public finder measures `Jy/beam` only. A value without its quotes, which Astropy cannot parse, is refused. |
 | Restoring beam | `BMAJ`, `BMIN` and `BPA`, in degrees. | A supplied value for each missing keyword, else refused. A card that is not a number is refused; see [Numbers](#numbers). A beam wider than 22 pixels (FWHM) is refused; see [Limitations](#limitations). |
 | Reference frequency | `RESTFRQ`, then `RESTFREQ`, then the first `FREQ` axis's `CRVAL`. | A supplied `reference_frequency_hz`, else refused. A card that is not a number is refused. |
@@ -115,6 +115,50 @@ position would move. Hebog refuses:
 A zero rotation, a rotation on the latitude axis alone, and equal rotations
 on both axes are unambiguous and accepted. OSKAR writes zeros; AIPS and Obit
 write the rotation on the latitude axis.
+
+## Invalid pixels
+
+A pixel is invalid when:
+
+- its value is NaN or infinite;
+- it is a stored integer equal to `BLANK`; or
+- it lies in a block of one repeated value: some 3×3 square of pixels that
+  holds it holds one value. Every pixel of such a square is invalid, its
+  edge as much as its centre.
+
+An invalid pixel takes no part in the background, the noise, detection or
+measurement, and the published RMS is NaN there. Imagers and mosaicking
+tools mark a region they did not observe with NaN or with a constant, often
+zero. A constant region is not noise: a noise window over it measures a
+noise of zero, and one at its edge too little. PyBDSF's preprocessing stops
+with "Clipped rms appears to be zero" only when the sigma-clipped RMS of the
+whole image is about zero, as it can be for an image that is mostly zeros, and
+then asks for such regions to be blanked with NaN or cut with `trim_box`; a
+zero strip beside noise does not stop it. Hebog treats a block as blanked
+whatever share of the image it covers.
+
+A block is blanked to its last pixel, as NaN padding is, so it leaves no
+step beside the data: a constant far from the noise, such as 1.0 Jy/beam
+beside noise of 10⁻⁴, or zero padding beside noise whose mean lies well
+below zero, publishes no island or source there. At the image edge a square
+is clipped to the image: a pixel at the edge is the centre of a square of
+one value when it equals the neighbours it has inside the image, five, or
+three at a corner. A block therefore reaches the edge, and a constant strip
+two pixels wide along an edge, or a 2×2 patch in a corner, is a block; a
+strip one pixel wide is not, nor is a constant line two pixels wide inside
+the image. NaN equals nothing, so a square that holds a NaN is not of one
+value, but a NaN inside zero padding leaves no zero valid, because other
+squares of zeros hold them. An image that is constant everywhere has no
+valid pixel, as an all-NaN image has none, and publishes the same empty
+products. Noise stored in steps much finer than its RMS does not repeat one
+value over nine pixels; an integer image quantized about as coarsely as its
+noise loses pixels to the rule (17% of one whose noise is about half a
+quantum).
+
+The rule is one function, `hebog.io.pixel_validity.valid_input_pixels`. A
+pixel's validity depends on the pixels up to two away, so each window is
+judged from a read two pixels wider than itself, and the rule does not
+depend on how the image is tiled.
 
 ## Limitations
 

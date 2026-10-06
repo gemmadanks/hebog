@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-import warnings
 from dataclasses import dataclass
 from math import isqrt
 from numbers import Integral
@@ -14,7 +13,6 @@ from typing import Any, cast
 import numpy as np
 import numpy.typing as npt
 from astropy.stats import sigma_clip
-from astropy.utils.exceptions import AstropyUserWarning
 from scipy.interpolate import RegularGridInterpolator
 from scipy.ndimage import distance_transform_edt
 
@@ -24,6 +22,10 @@ from hebog.data_models.partitioning import ImageBounds
 _WINDOW_DIMENSIONS = 3
 _STATISTIC_AXES = (-2, -1)
 _MINIMUM_LINEAR_SAMPLES = 2
+# The finest spread a window measures as noise, as a fraction of the
+# window's largest absolute valid value: single precision's machine epsilon,
+# 2**-23 (see estimate_rms_window_statistics).
+_NOISE_FLOOR_PER_WINDOW_SCALE = float(np.finfo(np.float32).eps)
 
 
 @dataclass(frozen=True, slots=True)
@@ -713,8 +715,17 @@ def _extend_grid_axis(
     *,
     axis: int,
     image_length: int,
+    bounded_below_by_edge_cell: bool,
 ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-    """Add physical-edge samples using stable, affine-preserving secants."""
+    """Add physical-edge samples using stable, affine-preserving secants.
+
+    With ``bounded_below_by_edge_cell``, a secant that falls towards the
+    image edge stops at the edge cell's value, so the extension is never
+    below the edge cell; one that rises is extended as it is. The second axis
+    takes its secants through samples the first has already extended, so at
+    a corner the extension can be lower than the unbounded one was, though
+    still not below the edge cell.
+    """
     lower, upper = _boundary_slope_anchors(coordinates, image_length)
     locations = [coordinates]
     samples = [values]
@@ -729,10 +740,46 @@ def _extend_grid_axis(
             coordinates[endpoint] - coordinates[anchor]
         )
         extended = edge + (location - coordinates[endpoint]) * slope
+        if bounded_below_by_edge_cell:
+            np.maximum(extended, edge, out=extended)
         insert_at = 0 if endpoint == 0 else len(locations)
         locations.insert(insert_at, np.array([location]))
         samples.insert(insert_at, extended)
     return np.concatenate(locations), np.concatenate(samples, axis=axis)
+
+
+def _extend_grid_to_image_edges(
+    sample_y: npt.NDArray[np.float64],
+    sample_x: npt.NDArray[np.float64],
+    values: npt.NDArray[np.float64],
+    image_shape_yx: tuple[int, int],
+    *,
+    bounded_below_by_edge_cell: bool,
+) -> tuple[
+    npt.NDArray[np.float64],
+    npt.NDArray[np.float64],
+    npt.NDArray[np.float64],
+]:
+    """Extend coarse samples along both axes to the physical image edges.
+
+    The corners are extended twice, from samples the first axis has already
+    extended, so a bound held along each axis also holds at the corners.
+    """
+    extended_y, values = _extend_grid_axis(
+        sample_y,
+        values,
+        axis=0,
+        image_length=image_shape_yx[0],
+        bounded_below_by_edge_cell=bounded_below_by_edge_cell,
+    )
+    extended_x, values = _extend_grid_axis(
+        sample_x,
+        values,
+        axis=1,
+        image_length=image_shape_yx[1],
+        bounded_below_by_edge_cell=bounded_below_by_edge_cell,
+    )
+    return extended_y, extended_x, values
 
 
 def interpolate_prepared_rms_grid(
@@ -747,7 +794,12 @@ def interpolate_prepared_rms_grid(
     Fine noise cells have stochastic slopes, not a measured noise gradient
     beyond their centres. Constant edge extension preserves positive convex
     weights there. Background edge slopes span the extrapolation distance,
-    not a possibly tiny gap between the final two window centres.
+    not a possibly tiny gap between the final two window centres. Extended
+    RMS follows the same secants but never falls below the edge cell: a noise
+    level falling towards the image edge is held there, one rising is
+    extended. At a corner the second axis' secant runs through samples the
+    first has already extended, so a corner value can be lower than before
+    the bound, but not below the corner cell.
     """
     bounds.require_inside(grid.geometry.image_shape_yx)
     validity = np.asarray(valid_pixels, dtype=np.bool_)
@@ -763,18 +815,7 @@ def interpolate_prepared_rms_grid(
             coarse_background,
             coarse_rms,
         ) = _expand_singleton_grid_axes(grid)
-        extended_y, coarse_statistics = _extend_grid_axis(
-            sample_y,
-            np.stack((coarse_background, coarse_rms), axis=-1),
-            axis=0,
-            image_length=grid.geometry.image_shape_yx[0],
-        )
-        extended_x, coarse_statistics = _extend_grid_axis(
-            sample_x,
-            coarse_statistics,
-            axis=1,
-            image_length=grid.geometry.image_shape_yx[1],
-        )
+        image_shape_yx = grid.geometry.image_shape_yx
         output_y = np.arange(bounds.y_start, bounds.y_stop, dtype=np.float64)
         output_x = np.arange(bounds.x_start, bounds.x_stop, dtype=np.float64)
         y_coordinates, x_coordinates = np.meshgrid(
@@ -783,38 +824,55 @@ def interpolate_prepared_rms_grid(
             indexing="ij",
         )
         query_points = np.stack((y_coordinates, x_coordinates), axis=-1)
+        background_y, background_x, background_samples = (
+            _extend_grid_to_image_edges(
+                sample_y,
+                sample_x,
+                coarse_background,
+                image_shape_yx,
+                bounded_below_by_edge_cell=False,
+            )
+        )
         background = np.asarray(
             RegularGridInterpolator(
-                (extended_y, extended_x),
-                coarse_statistics[..., 0],
+                (background_y, background_x),
+                background_samples,
                 method="linear",
                 bounds_error=False,
                 fill_value=None,  # pyright: ignore[reportArgumentType]
             )(query_points),
             dtype=np.float64,
         )
+        if extrapolate_rms:
+            rms_y, rms_x, rms_samples = _extend_grid_to_image_edges(
+                sample_y,
+                sample_x,
+                coarse_rms,
+                image_shape_yx,
+                bounded_below_by_edge_cell=True,
+            )
+            rms_points = query_points
+        else:
+            rms_y, rms_x, rms_samples = sample_y, sample_x, coarse_rms
+            rms_points = np.stack(
+                (
+                    np.clip(y_coordinates, sample_y[0], sample_y[-1]),
+                    np.clip(x_coordinates, sample_x[0], sample_x[-1]),
+                ),
+                axis=-1,
+            )
         rms = np.asarray(
             RegularGridInterpolator(
-                (extended_y, extended_x)
-                if extrapolate_rms
-                else (sample_y, sample_x),
-                coarse_statistics[..., 1] if extrapolate_rms else coarse_rms,
+                (rms_y, rms_x),
+                rms_samples,
                 method="linear",
                 bounds_error=False,
                 fill_value=None,  # pyright: ignore[reportArgumentType]
-            )(
-                query_points
-                if extrapolate_rms
-                else np.stack(
-                    (
-                        np.clip(y_coordinates, sample_y[0], sample_y[-1]),
-                        np.clip(x_coordinates, sample_x[0], sample_x[-1]),
-                    ),
-                    axis=-1,
-                )
-            ),
+            )(rms_points),
             dtype=np.float64,
         )
+        # Every sample is a non-negative cell value or an extension held at
+        # or above one, so this only guards the interpolation's rounding.
         np.maximum(rms, 0.0, out=rms)
         background[~validity] = np.nan
         rms[~validity] = np.nan
@@ -905,8 +963,31 @@ def estimate_rms_window_statistics(
     """Estimate robust background and RMS for a batch of 2-D windows.
 
     Non-finite or explicitly invalid pixels do not contribute. A window with
-    too few retained samples has NaN estimates and ``available=False`` so a
-    later interpolation stage can apply its documented fallback policy.
+    too few retained samples, or whose clipped spread is no greater than its
+    noise floor, has NaN estimates and ``available=False`` so a later
+    interpolation stage can apply its documented fallback policy. An
+    available window therefore has a positive RMS.
+
+    The noise floor is the window's largest absolute valid value, taken
+    before clipping, times single precision's machine epsilon (2**-23,
+    about 1.2e-7): single precision's resolution at that value. Radio
+    images are commonly made and stored in single precision, so a spread
+    finer than that resolution beside the window's brightest pixel is below
+    what such an image can be relied on to hold, and is not taken for
+    noise. Samples of
+    one value, whose spread is exactly zero, are the limit case; another is
+    a window holding a noise-free source, whose tails' clipped spread lies
+    near 1e-12 of its peak. A window of a noise-free source's far tails
+    alone has a spread close to its own values, which no floor relative to
+    them can tell from noise. Real noise falls under the floor only within
+    a window whose brightest pixel is more than eight million times the
+    noise, and that window then takes the fallback, as a window over a
+    protected source does. The floor scales with the values, so the units
+    and absolute level of an image do not change which windows it rejects.
+
+    The kernel runs on executor threads, so it emits no warning and never
+    touches the process's warning filters: an invalid or empty window is
+    ordinary input, reported through ``available``.
     """
     values = np.asarray(windows, dtype=np.float64)
     validity = np.asarray(valid_pixels, dtype=np.bool_)
@@ -927,18 +1008,29 @@ def estimate_rms_window_statistics(
         effective_validity,
         axis=_STATISTIC_AXES,
     ).astype(np.int64, copy=False)
-    # Excluded samples are carried as NaN rather than a masked array: the
-    # statistics are the same, and both the clipping and the reductions
-    # below are about twice as fast without the mask bookkeeping.
+    # The floor is taken before clipping, so a source the clipping removes
+    # still sets the window's scale; a window without a valid sample has a
+    # floor of zero, and too few samples anyway.
+    noise_floor = _NOISE_FLOOR_PER_WINDOW_SCALE * np.max(
+        np.abs(values),
+        axis=_STATISTIC_AXES,
+        where=effective_validity,
+        initial=0.0,
+    )
+    # Excluded samples are carried as NaN, which the reductions below skip
+    # about twice as fast as a mask. They are also masked for the clipping,
+    # which otherwise warns about every non-finite sample, and which returns
+    # the plain array with every excluded or clipped sample NaN. A window of
+    # subnormal values, as the tails of a noise-free source are, makes its
+    # compiled spread invalid; ``errstate`` is local to the calling thread's
+    # context, unlike a warning filter, and that spread is then NaN, which
+    # leaves the window unavailable below.
     retained = np.where(effective_validity, values, np.nan)
-    with warnings.catch_warnings():
-        # Invalid pixels are ordinary input here, and a window with no
-        # retained sample is reported through ``available``.
-        warnings.simplefilter("ignore", AstropyUserWarning)
+    with np.errstate(invalid="ignore", divide="ignore"):
         retained = cast(
             npt.NDArray[np.float64],
             sigma_clip(
-                retained,
+                np.ma.MaskedArray(retained, mask=~effective_validity),
                 sigma=config.clipping_sigma,
                 maxiters=config.maximum_iterations,
                 cenfunc="median",
@@ -952,17 +1044,23 @@ def estimate_rms_window_statistics(
         np.isfinite(retained),
         axis=_STATISTIC_AXES,
     ).astype(np.int64, copy=False)
-    available = retained_sample_count >= config.minimum_samples
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", RuntimeWarning)
-        background = np.asarray(
-            np.nanmedian(retained, axis=_STATISTIC_AXES), dtype=np.float64
-        )
-        rms = np.asarray(
-            np.nanstd(retained, axis=_STATISTIC_AXES), dtype=np.float64
-        )
-    background[~available] = np.nan
-    rms[~available] = np.nan
+    enough_samples = retained_sample_count >= config.minimum_samples
+    # Only windows with enough samples are reduced, because NumPy warns about
+    # a window with no sample. Selecting them copies, so a batch whose
+    # windows all have enough is reduced as it is.
+    samples = retained if np.all(enough_samples) else retained[enough_samples]
+    window_background = np.nanmedian(samples, axis=_STATISTIC_AXES)
+    window_rms = np.nanstd(samples, axis=_STATISTIC_AXES)
+    # A spread no greater than the floor, such as that of samples which all
+    # hold one value, is no noise estimate, and the window takes the
+    # fallback of one that holds too few samples.
+    measures_noise = window_rms > noise_floor[enough_samples]
+    available = enough_samples.copy()
+    available[enough_samples] = measures_noise
+    background = np.full(available.shape, np.nan, dtype=np.float64)
+    rms = np.full(available.shape, np.nan, dtype=np.float64)
+    background[available] = window_background[measures_noise]
+    rms[available] = window_rms[measures_noise]
 
     return RmsWindowStatistics(
         background=cast(npt.NDArray[np.float64], _read_only(background)),

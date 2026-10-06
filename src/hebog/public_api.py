@@ -137,6 +137,7 @@ _SCIENTIFIC_MODULES = (
     "hebog.data_models.fitting",
     "hebog.data_models.measurement_diagnostics",
     "hebog.data_models.source_finding",
+    "hebog.io.pixel_validity",
     "hebog.public_api",
     "hebog.public_science",
     "hebog.science.catalogue_rows",
@@ -580,11 +581,11 @@ def _estimate_has_usable_noise(
 
     This is the one decision the estimate makes about itself, and the only
     thing the composition needs from it: a pixel is usable where the image is
-    finite and the estimate is positive. The stage has already required, on
+    valid and the estimate is positive. The stage has already required, on
     the core that computed it, that the estimate is finite wherever the image
-    is, or, when no coarse window held enough samples for a background,
-    nowhere, so validity is the image's own finite domain and needs no
-    second opinion. The answer is reduced one canonical tile row at a time, so
+    is valid, or, when no coarse window held enough samples for a
+    background, nowhere, so validity is the image's own and needs no second
+    opinion. The answer is reduced one canonical tile row at a time, so
     neither the estimate nor a mask over it is ever held whole.
 
     Raises:
@@ -602,13 +603,16 @@ def _estimate_has_usable_noise(
         max_block_bytes=rows * width * np.dtype(np.float64).itemsize,
     ):
         stop = start + block.shape[0]
-        window = source.read_window(ImageBounds(start, stop, 0, width))
-        usable = usable or bool(
-            np.any(
-                np.isfinite(window.values)
-                & (np.asarray(block, dtype=np.float64) > 0.0)
+        # Once a usable pixel is found, the image is read no further: the
+        # remaining rows only confirm that the estimate covers the image.
+        if not usable:
+            window = source.read_window(ImageBounds(start, stop, 0, width))
+            usable = bool(
+                np.any(
+                    window.valid_pixels
+                    & (np.asarray(block, dtype=np.float64) > 0.0)
+                )
             )
-        )
         start = stop
     if start != height:
         raise SourceFinderError(

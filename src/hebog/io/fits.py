@@ -26,6 +26,7 @@ from hebog.data_models.images import (
     SuppliedImageMetadata,
 )
 from hebog.io.base import ImageBounds, ImageWindow
+from hebog.io.pixel_validity import valid_input_pixels, validity_read_bounds
 
 _LOGICAL_DIMENSIONS = 2
 _COMMON_IMAGE_UNIT_ALIASES = {
@@ -677,7 +678,13 @@ class FitsImageSource:
         self,
         bounds_collection: Iterable[ImageBounds],
     ) -> tuple[ImageWindow, ...]:
-        """Read bounded windows through one validated FITS open."""
+        """Read bounded windows through one validated FITS open.
+
+        A pixel is valid under the rule of :mod:`hebog.io.pixel_validity`:
+        finite, and in no 3x3 square of one repeated value. The rule looks
+        at the pixels up to two away, so each window is read two pixels
+        wider on every side inside the image, and only the window is kept.
+        """
         requested_bounds = tuple(bounds_collection)
         if not requested_bounds:
             return ()
@@ -688,19 +695,36 @@ class FitsImageSource:
         leading_indices = (0,) * (len(primary_hdu.shape) - 2)
         for bounds in requested_bounds:
             bounds.require_inside(metadata.shape_yx)
+            read = validity_read_bounds(bounds, metadata.shape_yx)
             stored = primary_hdu.section[
                 (
                     *leading_indices,
-                    slice(bounds.y_start, bounds.y_stop),
-                    slice(bounds.x_start, bounds.x_stop),
+                    slice(read.y_start, read.y_stop),
+                    slice(read.x_start, read.x_stop),
                 )
             ]
-            values = np.array(stored, dtype=np.float64, copy=True)
+            read_values = np.array(stored, dtype=np.float64, copy=True)
             if (scale, zero) != (1.0, 0.0):
-                values = zero + scale * values
+                read_values = zero + scale * read_values
             if blank is not None:
-                values[stored == blank] = np.nan
-            valid_pixels = np.asarray(np.isfinite(values), dtype=np.bool_)
+                read_values[stored == blank] = np.nan
+            del stored
+            valid_pixels = valid_input_pixels(
+                read_values, bounds, metadata.shape_yx
+            )
+            y_offset = bounds.y_start - read.y_start
+            x_offset = bounds.x_start - read.x_start
+            height, width = bounds.shape_yx
+            # The read is this call's own array, so a window that is the
+            # whole read, or whole rows of it, is kept without a copy; any
+            # other is copied out so it does not hold the margin's memory.
+            values = np.ascontiguousarray(
+                read_values[
+                    y_offset : y_offset + height,
+                    x_offset : x_offset + width,
+                ]
+            )
+            del read_values
             values.setflags(write=False)
             valid_pixels.setflags(write=False)
             windows.append(

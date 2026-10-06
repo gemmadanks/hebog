@@ -18,7 +18,7 @@ Rapthor/PyBDSF/LSMTool vocabulary onto it.
 | RMS image | A materialised image whose pixels contain local RMS estimates aligned with the input image. Qualify its primary-beam state canonically; `flat_noise_rms` and `true_sky_rms` are Rapthor compatibility names. An input image copied to an RMS filename is not an RMS image. |
 | Residual image | Image remaining after subtracting a current model. It is not synonymous with a background-subtracted or normalized image. |
 | Normalized image | Internal dimensionless array `(image - background) / rms` used for signal-to-noise thresholding. Spell “normalized” only where matching an external API; Hebog prose otherwise uses British English. |
-| Invalid pixel | A masked, non-finite, blanked, or otherwise excluded sample. Invalid pixels contribute to neither background/RMS statistics nor source measurements. |
+| Invalid pixel | A masked, non-finite, blanked, or otherwise excluded sample, including every pixel of a 3×3 square of one repeated value, such as zero padding. Invalid pixels contribute to neither background/RMS statistics nor source measurements. |
 
 ## Detection and measurement
 

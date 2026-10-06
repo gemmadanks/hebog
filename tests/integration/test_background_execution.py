@@ -9,7 +9,6 @@ from functools import partial
 
 import numpy as np
 import pytest
-from conftest import IGNORE_RMS_KERNEL_WARNINGS
 from distributed import Client
 
 from hebog.algorithms.background import BackgroundRmsTile
@@ -46,7 +45,6 @@ from hebog.stages.background import (
 pytestmark = pytest.mark.integration
 
 
-@IGNORE_RMS_KERNEL_WARNINGS
 def test_filtered_response_support_is_serial_dask_retry_invariant() -> None:
     """A negative central depression does not alter executor semantics."""
     yy, xx = np.mgrid[:65, :73]
@@ -82,7 +80,6 @@ def test_filtered_response_support_is_serial_dask_retry_invariant() -> None:
         np.testing.assert_array_equal(reference, actual)
 
 
-@IGNORE_RMS_KERNEL_WARNINGS
 def test_near_noiseless_filter_is_exact_with_existing_dask() -> None:
     """The precision fallback is deterministic under caller-owned workers."""
     image = np.zeros((73, 79))
@@ -174,7 +171,6 @@ def _config() -> BackgroundRmsConfig:
 
 
 @pytest.mark.parametrize("keep_source", (False, True))
-@IGNORE_RMS_KERNEL_WARNINGS
 def test_corrected_coarse_anchor_retention_is_exact_with_existing_dask(
     keep_source: bool,
 ) -> None:
@@ -257,11 +253,16 @@ def test_corrected_coarse_anchor_retention_is_exact_with_existing_dask(
 
 @pytest.mark.parametrize("noisy_neighbour", (False, True))
 @pytest.mark.parametrize("local_noise", (False, True))
-@IGNORE_RMS_KERNEL_WARNINGS
 def test_zero_noise_region_admission_matches_existing_dask(
     noisy_neighbour: bool, local_noise: bool
 ) -> None:
-    """Discard obsolete work, not independent noise estimates or regions."""
+    """Executors agree where part of the image has no noise to measure.
+
+    A spread of exactly zero is no estimate. With a noisy neighbour, the zero
+    half takes the nearest clean window's, so both bright candidates are
+    refined; without one, no window anywhere measures noise, the coarse
+    estimate is unavailable and nothing refines.
+    """
     yy, xx = np.mgrid[:128, :128]
     noise = np.where((yy + xx) % 2, -1.0, 1.0) * ((xx > 64) & noisy_neighbour)
     config = replace(_config(), maximum_constant_map_pixels=noise.size)
@@ -299,15 +300,16 @@ def test_zero_noise_region_admission_matches_existing_dask(
     assert (
         len(serial.adaptive_regions)
         == len(dask.adaptive_regions)
-        == (1 if noisy_neighbour else 0)
+        == (2 if noisy_neighbour else 0)
     )
     for actual in (serial, dask):
         assert actual.coarse is coarse.coarse
-        if noisy_neighbour:
-            assert actual.adaptive_regions[
-                0
-            ].bright_candidate_positions_yx == ((100.0, 100.0),)
-    if local_noise:
+        assert sorted(
+            position
+            for region in actual.adaptive_regions
+            for position in region.bright_candidate_positions_yx
+        ) == ([(20.0, 20.0), (100.0, 100.0)] if noisy_neighbour else [])
+    if local_noise and noisy_neighbour:
         assert serial.local_noise is not None and dask.local_noise is not None
         np.testing.assert_array_equal(
             serial.local_noise.rms, dask.local_noise.rms
@@ -315,10 +317,11 @@ def test_zero_noise_region_admission_matches_existing_dask(
         np.testing.assert_array_equal(
             serial.local_noise.fallback_cells, dask.local_noise.fallback_cells
         )
-    if noisy_neighbour:
+    for serial_region, dask_region in zip(
+        serial.adaptive_regions, dask.adaptive_regions, strict=True
+    ):
         np.testing.assert_array_equal(
-            serial.adaptive_regions[0].grid.rms,
-            dask.adaptive_regions[0].grid.rms,
+            serial_region.grid.rms, dask_region.grid.rms
         )
 
 
@@ -327,7 +330,6 @@ def test_zero_noise_region_admission_matches_existing_dask(
     ((False, False), (True, False), (True, True)),
 )
 @pytest.mark.parametrize("protect_coarse", (False, True))
-@IGNORE_RMS_KERNEL_WARNINGS
 def test_dask_and_serial_background_stages_are_equivalent(
     multiscale: bool,
     protect_coarse: bool,
@@ -454,7 +456,6 @@ def test_dask_and_serial_background_stages_are_equivalent(
 
 
 @pytest.mark.parametrize("scene", ("too-crowded-to-protect", "no-estimate"))
-@IGNORE_RMS_KERNEL_WARNINGS
 def test_fallbacks_from_whole_image_grids_match_existing_dask(
     scene: str,
 ) -> None:

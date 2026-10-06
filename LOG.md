@@ -29884,3 +29884,329 @@ the per-worker placement finding.
   benchmark should confirm its cost. Dask process workers; Windows.
 - **Next.** Human: decide whether the RMS finding and the attachment
   finding, with the residual it explains, become tasks.
+
+  `find_sources` on this input, generated from the recipe.
+- **Checks on the final code.** `just coverage`: 3,372 passed, 97%
+  branch-aware; the changed lines of `extended_measurement.py` are
+  covered, and its eight misses are older validation branches. `just
+  check`, the strict docs build and `just pre-commit` pass. The quick
+  science check `task61` reports no regression against
+  `typed-refusals-final`: every metric of the 17 cases is equal, and
+  catalogue, RMS and mask are byte-identical, the diagnostics differing
+  only by the composition hash.
+- **Not run.** A benchmark: the change adds one per-pixel selection to
+  arrays the kernel already holds. Dask process workers; Windows.
+- **Next.** Human: decide whether the two findings above become tasks.
+
+## 2026-10-06 — Task 46: the RMS map stops at its edge cells, and a block of one value is blanked
+
+- **Outcome.** The coarse RMS is never extrapolated below its edge cell;
+  every pixel of any 3×3 square of one repeated value is invalid at ingress,
+  as a NaN pixel is (the maintainer's decision of 6 October; the first
+  commits invalidated only a pixel equal to all eight of its neighbours); a
+  noise window whose clipped spread is no greater than single precision's
+  resolution at its largest absolute valid value is dropped, never
+  published as a zero or rounding RMS; and the RMS window kernel emits no
+  warning and touches no warning filter. Task 46 is closed and has left the
+  plan.
+- **Decision statement.** Observed: zero RMS at image edges (secant
+  clamped at zero) and over constant regions (82,956 published zeros
+  beside 150 zero columns), and warnings racing between executor threads.
+  Causes: an unbounded falling secant; constant pixels counted as data;
+  `warnings.catch_warnings()` in the kernel. Independent test: the review's
+  reproductions (`benchmark-results/codebase-review-2026-10-04/detect-review/`
+  `t1`, `t7`; `release-check/0.18.0/review-tasks/repro46.py`). Expected: no
+  zero, no escaped warning or left filter, and no quick-check change except
+  where local noise refines nothing. Stop when those hold.
+- **Edge rule.** A coarse RMS secant that falls towards the image edge is
+  held at the edge cell; one that rises, as noise does towards the edge of
+  a primary-beam-corrected image, is extended as before. The lower bound is
+  the edge cell, and it is the smallest change: PyBDSF holds its edge cells
+  flat both ways (`rmsimage.py`, `correct_borders`). The background's
+  secants are unchanged. The second axis takes its secants through samples
+  the first axis has already extended, so a corner value can be lower than
+  before the bound, though never below the corner cell: on 107 random grids
+  with falling and rising trends, every pixel lowered lies in a corner band
+  (the first commit's wording, "never below either cell", and its "rising
+  secant unchanged" were true along an edge only).
+- **Block rule.** `hebog.io.pixel_validity` holds it: an edge pixel is
+  compared with the neighbours it has, so a block reaches the image edge,
+  and a NaN neighbour equals nothing. Each FITS window is read one pixel
+  wider inside the image, so validity does not depend on tiling; the extra
+  cost is that ring and the comparisons. Detection's coverage check and the
+  usable-noise decision take the source's validity instead of finiteness,
+  and the usable-noise decision stops reading the image once it finds a
+  usable pixel. Product windows keep finite-only validity. Under this first
+  rule a block's one-pixel outer ring stayed valid; the decision below
+  replaced it. The `ImageSource` documentation now requires a window's
+  validity not to depend on the window.
+- **Zero spread.** Review found that a NaN pixel inside zero padding still
+  published a zero RMS under a valid status: its eight neighbours are valid
+  zeros, equal to each other and not to the NaN, and a window of only them
+  has a clipped spread of exactly zero (200×240 unit noise with 150 zero
+  columns and one NaN: 8 zero pixels; with a 3×3 NaN hole as well, 24). The
+  ring beside any NaN, or of any block, is the same case. `estimate_rms_window_statistics`
+  now calls a window available only if its spread is positive, so a window
+  of one repeated value takes the fallback of a window with too few samples
+  or a protected one, the estimate of the nearest clean window: no zero
+  pixels, minimum 0.82 and 0.86. Tests: the kernel (all samples equal, a NaN
+  pixel's ring, clipping that leaves equal samples) and `find_sources` with
+  one NaN pixel and with a 3×3 hole. The 17 quick-check cases publish the
+  same products with and without it.
+- **What the zero-spread rule changes.** Seven tests encoded the opposite
+  premise, that a spread of exactly zero is a defined estimate which fallback
+  must not replace ("do not fabricate noise"). That premise predates the
+  block rule: through a FITS source a constant region is now invalid, so the
+  zero-spread windows left are rings, never a noise-free region. The tests
+  now state the new premise: a constant image, or a region of exact zeros, has
+  no noise to measure and takes the nearest clean window's estimate, as a
+  region of NaN does (`test_local_noise_background.py`, three cases: the
+  constant scene, and the zero half beside a noisy neighbour, whose bright
+  candidate is now refined with its neighbour rather than discarded;
+  `test_background_execution.py`, three cases of the zero-noise admission
+  test, which now expects both candidates refined with a noisy neighbour and
+  no refinement, no local noise, without one). One public contract moves:
+  a noise-free image, `test_edge_blend_public_capture_matches_existing_dask[0.0]`
+  (two Gaussians, float64, no noise), published `unavailable` only because
+  the ring zeros anchored the estimate at zero; now the tails' valid pixels
+  give windows a spread of 10⁻¹⁵ to 10⁻¹⁴ and the finder publishes it as
+  noise, with two sources found against it. The block rule alone already did
+  this for a 256² noise-free float32 image (3 sources, RMS 2×10⁻¹⁰ to
+  3×10⁻⁸ under the first commit, with either kernel, where finite-only
+  ingress gave `unavailable`), so the old status was an accident of the
+  rings, not a rule. The case was a strict `xfail` until the noise floor
+  decided below, and the tutorial and the how-it-works page no longer
+  promise `unavailable` for every noiseless simulation.
+- **Ingress cost.** The rule compares each adjacent pair once and combines
+  the results (two comparison passes over the window where each pixel
+  against its eight neighbours took nine), with identical output: unit tests
+  compare it with the eight-comparison rule on 12 random arrays of repeated
+  values, NaN, both infinities and both zeros, and a window's validity with
+  the same pixels' in the whole image. A FITS window that is the whole read,
+  or whole rows of it, is kept without the extra copy. The product source
+  still computes the rule it then discards, now two comparison passes and a
+  one-pixel ring per window; skipping it needs a source mode that must also
+  survive pickling and a second branch in the read, which is not worth that
+  much, so it is left. Nothing was timed, because the machine was loaded;
+  the quick benchmark is still the maintainer's.
+- **Warnings.** The clipping now receives the excluded samples masked as
+  well as NaN, so Astropy's `sigma_clip` takes its compiled path, which
+  neither warns nor enters `catch_warnings`, and only windows with enough
+  samples are reduced. Results of an available window are bitwise those
+  before. A hand-written clipping loop was tried and dropped: 137 ms
+  against 28 ms on 32 windows of 150². The compiled clipping still reported
+  an invalid value for windows of subnormal values, such as the tails of a
+  noise-free source (17 of the 30-window batches of the noise-free edge-blend
+  case under `-W error`), so it runs inside `np.errstate(invalid="ignore",
+  divide="ignore")`, which is local to the call's thread and context and
+  leaves the filters alone. The statistics are those the window has: a
+  35×35 window of two Gaussians' tails, from 3×10⁻¹⁴⁸ to zero, is available
+  with an RMS of 1.4×10⁻¹⁴⁹ and nothing clipped, and its test fails
+  without the `errstate`. `-W error` over the noise-free edge-blend, kernel
+  and background-execution tests passes.
+- **Evidence.** The 600² kernel case: no zero (4,800 before), minimum 1.0,
+  the edge cell. Four threads, 1,200 calls: no escaped warning and no
+  filter left (5 and two before). Through `find_sources`, 150 zero columns
+  beside noise: no zero RMS and none under 10⁻⁶ (82,956 and 3,703 before);
+  the RMS is NaN over the block except its ring column. The same with
+  sources at its boundary, padded after they are added: no zero, four
+  sources. No quick-check input, and no pixel of the 10,000², 15,402² and
+  SDC1 2,048² anchors or of the frozen PyBDSF 256² input, is inside a block.
+- **Review of the commit.** The first commit's full `just coverage` run
+  failed one test, `test_signed_aperture_failure_never_becomes_positive_only_flux[-1.0]`
+  (3,396 passed, 1 failed, 2 xfailed; 97.01%). Its premise, not the change,
+  was at fault: the test filled a 25×28 region with one negative constant
+  (-0.05 or -1.0), which is now a block of one repeated value, invalid input
+  no aperture sums (571 of its 700 pixels), so the signed aperture had
+  nothing negative to sum. The context now alternates by 10% from pixel to
+  pixel, as real pixels do, and the assertions are unchanged: both cases pass.
+  The first commit had never run that test, because its full coverage runs
+  were cut short by a full disk. The second full run, after the zero-spread
+  rule, failed seven more tests that encoded a zero spread as a defined
+  estimate (see that item), and the stacked branch, where warnings are
+  errors, reported a warning the kernel still emitted for subnormal values
+  (see Warnings). Other review findings: the stale "finite
+  pixels" wording in the detection stage and the how-it-works page, the
+  header contract's claim about PyBDSF (it stops only when the sigma-clipped
+  RMS of the whole image is about zero, not for a zero strip beside noise;
+  `bdsf/preprocess.py`), and the `ImageSource` validity requirement, are
+  corrected; the commit message now carries a `BREAKING CHANGE:` footer.
+- **The block's definition, as put to the maintainer.** Measured on the
+  same cases, the proposal (a pixel equal to all eight neighbours; the ring
+  stays valid)
+  and the alternative (every pixel of any 3×3 square of one value is
+  invalid, the ring included, read with a two-pixel margin; prototyped out
+  of tree as the dilation of the proposal's block pixels, not part of the
+  commit):
+  - 400² noise (σ 10⁻⁴) with 150 columns of 1.0: the proposal publishes
+    one island of 792 mask pixels in columns 149 and 150, no source; the
+    alternative none, as NaN padding gives none. Constants of 0, 5×10⁻⁴ and
+    -1.0: none under either.
+  - Zero padding beside noise of mean -10σ and -30σ: the proposal one
+    source, 400 and 647 mask pixels in columns 149 and 150; the alternative
+    none. Means of 0, ±2σ and -5σ: none under either.
+  - 600² zero strip beside noise, with no sources, with two sources in the
+    data, and with two or four sources at its boundary zeroed after they
+    were added: the same source counts under both (0, 2, 2, 4); the finite
+    RMS differs by the ring column (270,600 against 270,000 pixels), and the
+    mask by a few boundary pixels (31 and 27, 64 and 56).
+  - Noise-free source tails in the strip (the strip set before the sources
+    were added, which no imager writes), with a source at the boundary and
+    four sources: the proposal publishes 2 islands and 31 mask pixels, then
+    4 islands, 73 mask pixels and a minimum RMS of 7.7×10⁻⁵; the
+    alternative 3 islands, 93 mask pixels and 178 pixels under 10⁻⁶, then
+    5 islands, 1,637 mask pixels and 1,890 pixels under 10⁻⁶, down to
+    4.5×10⁻⁴¹; two and four sources under both.
+  - Coarse quantisation (noise about half a quantum), 200×240: 96.7% of
+    pixels valid under the proposal, 82.7% under the alternative. A frame of
+    zeros, 40 valid columns, a 5-column sliver of 3.3, a one-pixel stripe
+    beside a block and an `int16` image with a zero block: the same status and
+    sources, the finite RMS differing by the ring (27,004 and 26,350; 8,200
+    and 8,000; 1,200 and 1,000), and the sliver's smallest RMS 1.48 and 0.89
+    for noise of 1.
+  - Recommendation: the alternative. The proposal's ring is a step that
+    zero padding with an offset, or any non-zero constant, turns into a
+    false island or source; the alternative's costs are the second margin
+    pixel, more pixels lost on coarsely quantised noise, and noise-free tails
+    beside padding, which a noise floor on the window spread would address.
+- **Quick science check** `task46-review` (with the zero-spread rule) and
+  `task46-review2` (the final code) against `typed-refusals-final`:
+  no regression, as before. Against the first commit's `task46` run every
+  metric is identical in both (the reports differ only in their creation
+  time), and all 17 cases publish identical catalogue tables, RMS images and
+  masks: the zero-spread rule never applies to them. `crowded-field`, where local
+  noise refines nothing (task 36), still changes against
+  `typed-refusals-final` only within 74 pixels of an edge: the RMS differs on
+  11,406 pixels, raised on 9,605 by the edge rule and lowered by at most 0.7%
+  on 1,801. The lowering is the corner effect described under the edge
+  rule: 1,583 of the 1,801 lie in one corner band, and the other 218, a
+  34×14 patch on the bottom edge lowered by at most 0.017%, follow through
+  what the coarse estimate drives, such as source protection. Its
+  minimum rises from 8.75×10⁻⁵ to 9.20×10⁻⁵. Source and component counts are
+  unchanged at 996 and 999; 21 source fluxes, 4 positions and 17 islands
+  change. Against pinned `master`, mask IoU 0.88660 to 0.88657 and RMS error
+  p50 0.05621 to 0.05618.
+- **Overlap.** An all-zero image is now all invalid, with the empty
+  products and unavailable RMS it published before. Task 50 marked the
+  threaded tests that run this kernel to ignore the warnings its race let
+  escape; the mark goes with the race.
+- **Checks on the first commits.** `just coverage`: 3,418 passed and 3
+  xfailed (the noise-free edge blend is the third); TOTAL 97.02% (18,807
+  statements, 370 missed; 5,104 branches, 294 partial). The changed files:
+  `algorithms/background.py` 97%, `io/base.py` 100%, `io/fits.py` 100%,
+  `io/materialization.py` 97%, `io/pixel_validity.py` 100%, `public_api.py`
+  99% and `stages/detection.py` 93%, with no missed line among the lines
+  this change touches (their misses, such as `background.py` 252, 261, 287,
+  413, 431 and 897, are older). `just check` (2,211 passed, 2 xfailed), the
+  noise-free edge-blend, kernel and background-execution tests under
+  `-W error` (38 passed, 1 xfailed), `just docs-build` and `just pre-commit`
+  pass.
+- **Decision (6 October 2026, maintainer).** A block of one repeated value
+  is every pixel of any 3×3 square of one value, ring included: the
+  alternative measured above. Declined: a pixel equal to all eight of its
+  neighbours, whose one-pixel outer ring stays valid and makes false
+  islands and sources beside a non-zero constant or beside noise with an
+  offset. A noise-free image whose sources leave non-zero tails must not
+  publish a valid RMS of about 10⁻¹⁵: a window whose clipped spread is under
+  a floor relative to the data's scale is unavailable, as a window of zero
+  spread is. Declined: publishing the tails' spread as noise, as the first
+  commits did. The form of the floor was left to the agent: the simplest
+  principled floor tied to floating-point resolution, which must not reject
+  real noise a millionth of a peak beside it.
+- **Block rule as implemented.** `hebog.io.pixel_validity` marks the
+  squares' centres with the unchanged pairwise test (a pixel equal to all
+  eight neighbours) and dilates them by a 3×3 square, three row passes and
+  three column passes, which is exactly the union of the squares. The image
+  edge keeps the first rule's convention: a square is clipped to the image,
+  so a pixel at the edge is a centre when it equals the neighbours it has,
+  and nothing outside the image is a centre. A constant strip two pixels
+  wide along an edge, or a 2×2 patch in a corner, is therefore a block; a
+  strip one pixel wide, or a line two pixels wide inside the image, is not.
+  Validity now depends on pixels two away, so `FitsImageSource.read_windows`,
+  the only reader that applies the rule, reads two pixels wider; product
+  windows stay finite-only. Tests: the vectorised rule against a plain
+  oracle that marks each clipped square on 12 random arrays (sides from 1
+  to 13, with NaN, both infinities and both zeros); every tiling of 1×1,
+  2×3, 4×4 and 5×7 tiles with blocks across seams, four-way corners and
+  image edges and ending one and two pixels from a seam; random windows;
+  the FITS source under five core shapes with halo reads; and `find_sources`
+  on one tile and on the grid with blocks across background and object
+  seams.
+- **Noise floor.** A window is unavailable when its clipped spread is no
+  greater than its largest absolute valid value, taken before clipping,
+  times single precision's machine epsilon, 2⁻²³ (about 1.2×10⁻⁷); a spread
+  of exactly zero is the limit case, so the zero-spread rule is now this
+  rule. Why this floor: radio images are commonly made and stored in single
+  precision, and a spread finer than single precision's resolution at the
+  window's brightest value is below what such an image can be relied on to
+  hold. Float64's own resolution does not suffice: on the noise-free
+  edge-blend case, floors of 10⁻¹³ and 10⁻¹² of each window's largest value
+  leave the image valid (RMS 2.6×10⁻¹⁵ to 4.7×10⁻¹⁴, and 8.5×10⁻¹⁵ to
+  4.3×10⁻¹⁴), and 10⁻¹¹ and above make it unavailable; 10⁻¹¹ is about 45,000
+  float64 units, and single precision clears it by four orders. The scale is
+  the window's, not the image's: an image-wide scale needs a reduction over
+  the whole image before the estimate, and lets one bright source raise the
+  floor in every window. The same fraction of the image's largest value,
+  added to the window floor, made one more of the three noise-free probes
+  below unavailable (the 512² float32 one), not the 256² one. The floor
+  scales with the values, so units and absolute level do not change it.
+- **What a noise-free image publishes.** The edge-blend case (512²,
+  float64, peak 0.004, no noise) publishes `unavailable` again under Serial
+  and Dask; its test lost the `xfail`. Not every noise-free image does.
+  Three probes with three sources each (generator version 3, noise 0): 512²
+  float64 with peak 0.0038, `unavailable`; 256² float32 with peak 0.0975,
+  valid with an RMS of 1.2×10⁻¹⁰ to 6.7×10⁻⁸ and 3 sources; 512² float32
+  with peak 0.959, valid with an RMS of 1.3×10⁻³³ to 2.6×10⁻⁹ and 3 sources.
+  A window that holds only a source's far tails, which in float32 reach the
+  subnormals within about 30 pixels, has a clipped spread of up to 0.37 of
+  its own largest value, so no floor relative to the window's values can
+  reject it, and tails at 10⁻⁶ of the image's peak are indistinguishable
+  from the 10⁻⁶ noise the floor must keep. The documentation says so and
+  still asks for noise in a simulation; refusing such an image remains
+  open to the maintainer.
+- **Real noise kept.** Noise of 10⁻⁶ beside a peak of 1 (512², float64 and
+  float32) and of 10⁻¹⁰ beside a peak of 10⁻⁴ publish the same RMS with and
+  without the floor (7.76×10⁻⁷ to 1.21×10⁻⁶, and 7.76×10⁻¹¹ to
+  1.21×10⁻¹⁰). The edge-blend case with noise 4×10⁻⁹, a millionth of its
+  peak, finds both sources at their true positions under Serial and Dask.
+  Kernel tests: noise a millionth of a peak in the window is measured, a
+  hundred-millionth is not, nor is a spread finer than single precision
+  about an offset of 1; decisions and estimates are unchanged when every
+  value is scaled by 2^±30 or 2^±250. Real noise loses a window only where
+  the window's brightest pixel exceeds 8.4 million times the noise, and that
+  window takes its nearest clean window's estimate.
+- **The decision's cases, re-measured on the implementation** (400², σ
+  10⁻⁴, seed 46, thresholds 5 and 3): 150 columns of 1.0, 0, 5×10⁻⁴ or -1.0
+  beside noise give no island, source or mask pixel, and the RMS is NaN over
+  all 150 columns and finite on the 100,000 noise pixels; zero padding
+  beside noise of mean -30σ, -10σ, -5σ, -2σ, 0 or +2σ gives the same.
+  Integer noise of about half a quantum keeps 83.2% of its pixels (the
+  prototype kept 82.7% on another realization).
+- **Tests whose premise moved.** The subnormal-tails kernel test held its
+  statistics on ring zeros that are now invalid; it moved to a window 98
+  pixels out that still makes the compiled clipping report an invalid value
+  (it fails without the `errstate`), and now asserts the window is
+  unavailable. The public test of a NaN inside zero padding, whose
+  neighbours are now invalid, became one of valid pixels without noise:
+  zero rows between NaN rows, and one value dithered by a unit of single
+  precision, which publish no RMS under 10⁻⁵ (6×10⁻⁸ without the floor). A
+  window that mixes such a region with the noise beside it reads a lower
+  noise, as at any sharp noise step (task 63).
+- **Quick science check** `decision46` against `stack-final`: no
+  regression; every metric identical; every case's catalogue, RMS image and
+  mask byte-identical, and the diagnostics differ only in the composition
+  hash. The stack's check script imports `changed_identities`, which this
+  branch's base predates, so it ran on `refactor/layering`, the source of
+  `stack-final` (composition hash `017d4be5…`), with this change's three
+  source files, which are identical between the two before the change.
+- **Checks.** `just coverage`: 3,245 passed and 1 xfailed (the contract
+  suite's unimplemented specification; the noise-free edge blend passes);
+  TOTAL 97.01% (16,467 statements, 324 missed; 4,332 branches, 250
+  partial). The changed files: `algorithms/background.py` 97.27%, missing
+  the six lines it missed before, moved by the four added;
+  `io/fits.py` and `io/pixel_validity.py` 100%. `just test-equivalence` (32
+  passed), `just docs-build`, `just check` and `just pre-commit` pass.
+- **Not run.** The quick benchmark: the ingress rule now reads two pixels
+  wider and adds a dilation, and each RMS window one reduction, so it needs
+  one on a quiet machine. The whole-mosaic and 10,000² runs, the slow and
+  acceptance lanes, and Windows.

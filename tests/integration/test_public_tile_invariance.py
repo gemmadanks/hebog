@@ -27,7 +27,7 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 from astropy.io import fits
-from conftest import IGNORE_RMS_KERNEL_WARNINGS, product_hashes
+from conftest import product_hashes
 
 import hebog
 from hebog import SourceFinderConfig, SourceFinderRequest, public_api
@@ -277,7 +277,6 @@ def test_the_last_row_of_tiles_ends_inside_the_widest_filter_halo() -> None:
     assert 0 < last_row_height < halo
 
 
-@IGNORE_RMS_KERNEL_WARNINGS
 def test_products_on_the_envelope_grid_equal_one_tile(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -350,3 +349,74 @@ def test_wide_objects_decided_on_the_grid_cores_publish_one_tile_products(
         )
         == expected
     )
+
+
+# Background cores for the blocked image: seams at y = 97, 194, 291 and
+# x = 111, 222, 333, none on an object seam.
+_BLOCKED_BACKGROUND_CORE_YX = (97, 111)
+_BLOCKED_SHAPE_YX = (300, 340)
+
+
+def _blocked_image() -> npt.NDArray[np.float64]:
+    """Return unit noise with constant blocks across every kind of seam.
+
+    A zero block holds the object corners (120, 120) and (120, 240) and
+    four background corners; a constant block fills the top-right image
+    corner across a background seam; and a zero block runs from the bottom
+    edge to end exactly on the object core edge x = 120. Compact sources
+    lie in the noise clear of every block.
+    """
+    yy, xx = np.mgrid[: _BLOCKED_SHAPE_YX[0], : _BLOCKED_SHAPE_YX[1]].astype(
+        np.float64
+    )
+    sigma = _BEAM_FWHM_PIXELS / (2.0 * np.sqrt(2.0 * np.log(2.0)))
+    image = np.random.default_rng(46).normal(0.0, 1.0, _BLOCKED_SHAPE_YX)
+    for centre in ((40.0, 50.0), (60.0, 270.0), (230.0, 300.0), (160.0, 60.0)):
+        image += 30.0 * _beam(yy, xx, centre, sigma)
+    image[90:210, 100:250] = 0.0
+    image[:40, 300:] = 2.5
+    image[240:, :120] = 0.0
+    return image
+
+
+def test_constant_blocks_across_seams_publish_the_one_tile_products(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A block pixel's validity looks past its tile, and agrees anyway.
+
+    Each read judges a pixel from two pixels beyond it, so blocks crossing
+    background and object seams, four-way corners and image edges are the
+    same on one tile and on the grid, and none publishes a noise estimate:
+    every block pixel is NaN in the RMS and no pixel's noise is zero.
+    """
+    image = _blocked_image()
+    fits.PrimaryHDU(data=image, header=_header(image.shape)).writeto(
+        tmp_path / "image.fits"
+    )
+    one_tile = _find_sources(
+        tmp_path / "image.fits", tmp_path / "one-tile", SerialExecutor()
+    )
+    passes = dict(_tiled_passes())
+    for name, function in passes.items():
+        monkeypatch.setattr(
+            public_api, name, partial(function, tile_core_pixels=_CORE_PIXELS)
+        )
+    monkeypatch.setattr(
+        public_api, "_TILE_SHAPE_YX", _BLOCKED_BACKGROUND_CORE_YX
+    )
+
+    grid = _find_sources(
+        tmp_path / "image.fits", tmp_path / "grid", SerialExecutor()
+    )
+
+    assert product_hashes(grid) == product_hashes(one_tile)
+    assert one_tile.source_count == 4
+    rms = np.asarray(fits.getdata(one_tile.rms_path), dtype=np.float64)
+    assert np.isnan(rms[90:210, 100:250]).all()
+    assert np.isnan(rms[:40, 300:]).all()
+    assert np.isnan(rms[240:, :120]).all()
+    finite = np.isfinite(rms)
+    assert np.all(rms[finite] > 0.0)
+    noise = np.ones(image.shape, dtype=np.bool_)
+    noise[90:210, 100:250] = noise[:40, 300:] = noise[240:, :120] = False
+    assert finite[noise].all()

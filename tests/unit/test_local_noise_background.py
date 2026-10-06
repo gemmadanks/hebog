@@ -255,7 +255,7 @@ def test_local_noise_keeps_raw_availability_and_coverage(scene: str) -> None:
     assert not grids.adaptive_regions
     assert grids.local_noise is not None
     assert grids.local_noise.scientifically_available == (
-        scene in ("source", "empty", "constant")
+        scene in ("source", "empty")
     )
     assert (grids.local_noise_protected_window_count > 0) == (
         scene in ("source", "source-filled")
@@ -282,18 +282,16 @@ def test_local_noise_keeps_raw_availability_and_coverage(scene: str) -> None:
         # is available; no pixel of the all-NaN image takes it.
         assert tile.scientifically_available
         assert np.isnan(tile.rms).all()
-    elif scene == "source-filled":
-        # No fine window clears the source, so no local noise refines the
-        # coarse estimate: it stands, as it does for a bright region without
-        # a usable fine cell, rather than leaving the image without noise.
+    elif scene in ("source-filled", "constant"):
+        # No fine window clears the source, or measures a spread above zero,
+        # so no local noise refines the coarse estimate: it stands, as it
+        # does for a bright region without a usable fine cell, rather than
+        # leaving the image without noise. A constant image has no noise to
+        # measure, so a spread of exactly zero is no estimate.
         assert tile.scientifically_available
         np.testing.assert_array_equal(tile.background, coarse_only.background)
         np.testing.assert_array_equal(tile.rms, coarse_only.rms)
         np.testing.assert_allclose(tile.rms, 1, atol=0.02)
-    elif scene == "constant":
-        # A zero-variance statistic is defined; normalize_residual separately
-        # rejects zero RMS for source detection. Do not fabricate noise.
-        np.testing.assert_array_equal(tile.rms, 0)
     else:
         np.testing.assert_allclose(tile.rms[np.isfinite(image)], 1, atol=0.02)
         assert np.isnan(tile.rms[~np.isfinite(image)]).all()
@@ -771,7 +769,13 @@ def test_usable_protection_still_rejects_malformed_anchors(
 def test_unavailable_bright_region_does_not_discard_a_noisy_neighbour(
     retry: bool,
 ) -> None:
-    """Regional noise admission preserves independent valid refinements."""
+    """A region with no noise to measure takes its neighbour's estimate.
+
+    The left half is exactly zero, so its windows have a spread of exactly
+    zero, which is no estimate: they take the nearest clean window's, as a
+    window of NaN does, and the bright candidate there is refined like its
+    noisy neighbour, not discarded with an estimate it never had.
+    """
     yy, xx = np.mgrid[:384, :384]
     noise = np.where((yy + xx) % 2, -1.0, 1.0) * (xx > 192)
     config = _config()
@@ -794,11 +798,14 @@ def test_unavailable_bright_region_does_not_discard_a_noisy_neighbour(
         bright_candidate_positions_yx=((50.0, 50.0), (300.0, 300.0)),
         source_protection_island_threshold_sigma=3,
     )
-    assert len(refined.adaptive_regions) == 1
-    assert refined.adaptive_regions[0].bright_candidate_positions_yx == (
-        (300.0, 300.0),
+    assert sorted(
+        position
+        for region in refined.adaptive_regions
+        for position in region.bright_candidate_positions_yx
+    ) == [(50.0, 50.0), (300.0, 300.0)]
+    assert all(
+        region.protected_pixel_count > 0 for region in refined.adaptive_regions
     )
-    assert refined.adaptive_regions[0].protected_pixel_count > 0
 
 
 def _refined_local_noise(
