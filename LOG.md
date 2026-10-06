@@ -31021,3 +31021,30 @@ the per-worker placement finding.
   the priority of tasks 63 and 64 against tasks 57 and 42.
 - **Checks.** The strict docs build and `just pre-commit`. This change
   edits the plan and this log only.
+
+## 2026-10-06 — Quick benchmark of the review-repair stack
+
+- **Why.** Tasks 46 and 61 add work to every run: task 46 reads each
+  window two pixels wider and adds the block rule's comparisons and a
+  dilation, and task 61's restore round measures ownership. Their entries,
+  and those of tasks 51 and 59, left the quick benchmark not run.
+- **Run.** `just quick-benchmark --previous-release 5a028bf2
+  --refresh-previous-release --no-reference`, default tier, the top of the
+  stack (`b1e00fcf`, clean) against `main` at `5a028bf2` (0.18.0 and two
+  refusal fixes) measured in the same session; one warm-up and five
+  measured repetitions each; run `pr-stack-2026-10-06-vs-5a028bf2-no-reference`.
+  Load averaged 1.7 to 3.7 (the scanner, a browser and the desktop app).
+
+  | Case | Stack median s (range) | `main` s | Ratio [95% bounds] | CPU s, stack / `main` | Peak RSS MiB, stack / `main` |
+  | --- | --- | --- | --- | --- | --- |
+  | `dense-field` | 13.5 (12.6–14.7) | 15.3 | 0.89 [0.82, 0.97] | 9.4 / 10.7 | 663 / 709 |
+  | `lotss-dr3-1312-sparse` | 14.2 (13.6–14.5) | 15.5 | 0.92 [0.88, 0.94] | 10.1 / 11.2 | 669 / 723 |
+  | `lotss-dr3-1312-dense` | 15.7 (14.0–16.8) | 16.7 | 0.94 [0.84, 1.00] | 11.5 / 12.3 | 689 / 701 |
+
+  All three pass the regression rule (a lower bound above 1.05 fails), so
+  tasks 46 and 61 cost less than the rest of the stack saves. The saving is
+  not attributed to a pull request.
+- **Not measured.** The diagnostic `master` ratios: the reference identity
+  no longer matched the cached timings, and the pinned PyBDSF container
+  would not start (Podman's overlay storage in the VM returned an
+  input/output error on every run). The 10,000² and whole-mosaic anchors.
