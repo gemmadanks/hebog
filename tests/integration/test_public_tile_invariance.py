@@ -27,7 +27,7 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 from astropy.io import fits
-from distributed import Client, LocalCluster
+from conftest import product_hashes
 
 import hebog
 from hebog import SourceFinderConfig, SourceFinderRequest, public_api
@@ -38,7 +38,7 @@ from hebog.data_models import (
     PublicSourceFindingDiagnostics,
     WideObjectCounts,
 )
-from hebog.executors import DaskExecutor, Executor, SerialExecutor
+from hebog.executors import Executor, SerialExecutor
 from hebog.io import read_diagnostics_product
 from hebog.pipeline import SourceFinderResult
 
@@ -206,28 +206,21 @@ class _PlanRecorder:
 
 
 def _find_sources(
-    directory: Path,
-    output_name: str,
+    image_path: Path,
+    output_directory: Path,
     executor: Executor,
 ) -> SourceFinderResult:
-    """Run the public finder on the shared input under one output name."""
+    """Run the public finder on the shared input into one directory."""
     return hebog.find_sources(
-        SourceFinderRequest(
-            directory / "image.fits", directory / output_name, "tile-grid"
-        ),
+        SourceFinderRequest(image_path, output_directory, "tile-grid"),
         SourceFinderConfig(5.0, 3.0, 7),
         executor,
     )
 
 
-def _product_hashes(result: SourceFinderResult) -> tuple[str, ...]:
-    """Return the content identity of every published product."""
-    return (
-        result.catalogue.content_sha256,
-        result.rms.content_sha256,
-        result.mask.content_sha256,
-        result.diagnostics.content_sha256,
-    )
+def _shared_input(one_tile: SourceFinderResult) -> Path:
+    """Return the input the one-tile products were published from."""
+    return one_tile.catalogue_path.parents[1] / "image.fits"
 
 
 @pytest.fixture(scope="module")
@@ -240,7 +233,9 @@ def one_tile(tmp_path_factory: pytest.TempPathFactory) -> SourceFinderResult:
     )
     with pytest.MonkeyPatch.context() as monkeypatch:
         recorder = _PlanRecorder(monkeypatch)
-        result = _find_sources(directory, "one-tile", SerialExecutor())
+        result = _find_sources(
+            directory / "image.fits", directory / "one-tile", SerialExecutor()
+        )
     assert recorder.tile_counts and set(recorder.tile_counts) == {1}
     return result
 
@@ -283,26 +278,26 @@ def test_the_last_row_of_tiles_ends_inside_the_widest_filter_halo() -> None:
 
 
 def test_products_on_the_envelope_grid_equal_one_tile(
+    tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     one_tile: SourceFinderResult,
+    each_executor: Executor,
 ) -> None:
-    """Sixty-four tiles, serial or on Dask, publish the one-tile products."""
-    directory = one_tile.catalogue_path.parents[1]
+    """Sixty-four tiles publish the one-tile products under every executor."""
     recorder = _grid_cores(monkeypatch)
 
-    serial = _find_sources(directory, "grid-serial", SerialExecutor())
-    cluster = LocalCluster(
-        n_workers=2,
-        threads_per_worker=1,
-        processes=False,
-        dashboard_address="",
+    grid = _find_sources(
+        _shared_input(one_tile), tmp_path / "products", each_executor
     )
-    with cluster, Client(cluster) as client:
-        dask = _find_sources(directory, "grid-dask", DaskExecutor(client))
 
     assert set(recorder.tile_counts) == {_GRID_TILES}
-    assert _product_hashes(serial) == _product_hashes(one_tile)
-    assert _product_hashes(dask) == _product_hashes(one_tile)
+    assert product_hashes(grid) == product_hashes(one_tile)
+
+
+def test_one_tile_publishes_support_on_every_seam_topology(
+    one_tile: SourceFinderResult,
+) -> None:
+    """The reference the grid runs match holds every object it was given."""
     diagnostics = read_diagnostics_product(one_tile.diagnostics)
     assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
     # The filament's fit parent is deferred, so its components are described
@@ -316,6 +311,7 @@ def test_products_on_the_envelope_grid_equal_one_tile(
 
 
 def test_wide_objects_decided_on_the_grid_cores_publish_one_tile_products(
+    tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     one_tile: SourceFinderResult,
 ) -> None:
@@ -323,16 +319,19 @@ def test_wide_objects_decided_on_the_grid_cores_publish_one_tile_products(
 
     A one-pixel read budget sends every object down the wide paths, so each
     island, segment and owner crossing a seam or a four-way corner is decided
-    from the cores it touches rather than from a window holding it.
+    from the cores it touches rather than from a window holding it. It runs
+    under the serial reference only, which keeps the portable suite's cost
+    down (``LOG.md``, task 49).
     """
-    directory = one_tile.catalogue_path.parents[1]
     recorder = _grid_cores(monkeypatch)
     monkeypatch.setattr(public_api, "_OWNER_BATCH_READ_PIXELS", 1)
 
-    wide = _find_sources(directory, "grid-wide", SerialExecutor())
+    wide = _find_sources(
+        _shared_input(one_tile), tmp_path / "products", SerialExecutor()
+    )
 
     assert set(recorder.tile_counts) == {_GRID_TILES}
-    assert _product_hashes(wide)[:3] == _product_hashes(one_tile)[:3]
+    assert product_hashes(wide)[:3] == product_hashes(one_tile)[:3]
     diagnostics = read_diagnostics_product(wide.diagnostics)
     expected = read_diagnostics_product(one_tile.diagnostics)
     assert isinstance(diagnostics, PublicSourceFindingDiagnostics)

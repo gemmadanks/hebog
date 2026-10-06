@@ -7,8 +7,9 @@
 from __future__ import annotations
 
 import gc
+import os
 from collections.abc import Callable, Iterable
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, TypeVar, cast
 
@@ -19,17 +20,27 @@ from astropy import units
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
-from conftest import SubstituteBackgroundRms, published_plane
-from distributed import Client, LocalCluster
+from conftest import SubstituteBackgroundRms, product_hashes, published_plane
+from distributed import Client, LocalCluster, get_task_stream
 from pytest_mock import MockerFixture
 from scipy import ndimage
 
 import hebog
-from hebog import SourceFinderConfig, SourceFinderRequest, public_api
+from hebog import (
+    SourceFinderConfig,
+    SourceFinderRequest,
+    SourceFinderResult,
+    public_api,
+)
 from hebog.algorithms import fitting as fitting_algorithm
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.data_models import PublicSourceFindingDiagnostics, WideObjectCounts
-from hebog.executors import DaskExecutor, SerialExecutor, TaskRequirement
+from hebog.executors import (
+    DaskExecutor,
+    Executor,
+    SerialExecutor,
+    TaskRequirement,
+)
 from hebog.io import (
     FitsImageSource,
     read_catalogue_fits_product,
@@ -1791,51 +1802,89 @@ def test_custom_thresholds_cross_private_refinement_and_mesh_boundaries(
     assert diagnostics.configuration_qualification == "custom-unqualified"
 
 
-@pytest.mark.integration
-@pytest.mark.parametrize("shape", ((149, 181), (150, 181), (256, 301)))
-@pytest.mark.parametrize("island_sigma", (75.0, 80.0))
-@pytest.mark.parametrize("include_source", (False, True))
-def test_custom_threshold_products_agree_in_serial_and_tiled_existing_dask(
-    tmp_path: Path,
+@dataclass(frozen=True, slots=True)
+class _SerialReference:
+    """One shared input and the products a serial run published from it.
+
+    ``fit_outcome`` names the fitting failure injected into that run, which
+    a run compared with it must inject too.
+    """
+
+    image_path: Path
+    config: SourceFinderConfig
+    result: SourceFinderResult
+    fit_outcome: str = "normal"
+
+
+def _run_on_small_tiles(
+    reference: _SerialReference,
+    output_directory: Path,
+    executor: Executor,
     monkeypatch: pytest.MonkeyPatch,
-    shape: tuple[int, int],
-    island_sigma: float,
-    include_source: bool,
-) -> None:
-    """Private threshold reconciliation cannot depend on executor or tiles."""
+) -> SourceFinderResult:
+    """Run the reference's input again, on 97-by-111 background tiles."""
+    monkeypatch.setattr(public_api, "_TILE_SHAPE_YX", (97, 111))
+    return hebog.find_sources(
+        SourceFinderRequest(
+            reference.image_path, output_directory, reference.result.run_id
+        ),
+        reference.config,
+        executor,
+    )
+
+
+@pytest.fixture(
+    scope="module",
+    params=tuple(
+        pytest.param(
+            (shape, island_sigma, include_source),
+            id=f"{shape[0]}x{shape[1]}-island{island_sigma:g}-"
+            + ("source" if include_source else "noise"),
+        )
+        for shape in ((149, 181), (150, 181), (256, 301))
+        for island_sigma in (75.0, 80.0)
+        for include_source in (False, True)
+    ),
+)
+def high_threshold_reference(
+    request: pytest.FixtureRequest,
+    tmp_path_factory: pytest.TempPathFactory,
+) -> _SerialReference:
+    """Publish one high-threshold control serially on the default tiles."""
+    shape, island_sigma, include_source = cast(
+        tuple[tuple[int, int], float, bool], request.param
+    )
+    directory = tmp_path_factory.mktemp("high-threshold")
     _write_image(
-        tmp_path / "image.fits",
+        directory / "image.fits",
         _high_threshold_image(shape, include_source=include_source),
     )
     config = SourceFinderConfig(100.0, island_sigma, 7)
-    serial = hebog.find_sources(
-        _request(tmp_path, output_name="serial"), config, SerialExecutor()
+    result = hebog.find_sources(
+        _request(directory, output_name="serial"), config, SerialExecutor()
     )
-    monkeypatch.setattr(public_api, "_TILE_SHAPE_YX", (97, 111))
-    cluster = LocalCluster(
-        n_workers=2,
-        threads_per_worker=1,
-        processes=False,
-        dashboard_address="",
+    assert result.source_count == int(include_source)
+    assert result.gaussian_component_count == int(include_source)
+    return _SerialReference(directory / "image.fits", config, result)
+
+
+@pytest.mark.integration
+def test_custom_thresholds_publish_the_serial_products_under_every_executor(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    high_threshold_reference: _SerialReference,
+    each_executor: Executor,
+) -> None:
+    """Private threshold reconciliation cannot depend on executor or tiles."""
+    tiled = _run_on_small_tiles(
+        high_threshold_reference,
+        tmp_path / "products",
+        each_executor,
+        monkeypatch,
     )
-    with cluster, Client(cluster) as client:
-        dask = hebog.find_sources(
-            _request(tmp_path, output_name="dask"),
-            config,
-            DaskExecutor(client),
-        )
-    assert serial.source_count == int(include_source)
-    assert serial.gaussian_component_count == int(include_source)
-    assert (
-        serial.catalogue.content_sha256,
-        serial.rms.content_sha256,
-        serial.mask.content_sha256,
-        serial.diagnostics.content_sha256,
-    ) == (
-        dask.catalogue.content_sha256,
-        dask.rms.content_sha256,
-        dask.mask.content_sha256,
-        dask.diagnostics.content_sha256,
+
+    assert product_hashes(tiled) == product_hashes(
+        high_threshold_reference.result
     )
 
 
@@ -1912,25 +1961,10 @@ def test_public_preview_admits_the_largest_qualified_dimension(
     assert result.source_count == 0
 
 
-@pytest.mark.integration
-@pytest.mark.parametrize(
-    ("image_kind", "fit_outcome"),
-    (
-        ("shell", "normal"),
-        ("shell", "linear-algebra-failure"),
-        ("ellipse", "inadequate-fallback"),
-        ("coarse-protection", "normal"),
-        ("coarse-protection", "linear-algebra-failure"),
-        ("coarse-protection", "inadequate-fallback"),
-    ),
-)
-def test_serial_and_existing_dask_publish_identical_scientific_products(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    fit_outcome: str,
-    image_kind: str,
+def _inject_fit_outcome(
+    monkeypatch: pytest.MonkeyPatch, fit_outcome: str
 ) -> None:
-    """Caller-owned execution policy cannot alter any scientific bytes."""
+    """Make every Gaussian fit fail the named way, or leave fitting alone."""
     if fit_outcome == "linear-algebra-failure":
 
         def fail(*_args: object, **_kwargs: object) -> None:
@@ -1945,13 +1979,16 @@ def test_serial_and_existing_dask_publish_identical_scientific_products(
         monkeypatch.setattr(
             fitting_algorithm, "_free_fallback_reason", invalid_free
         )
-    image = _ring_image()
+
+
+def _executor_case_image(image_kind: str) -> np.ndarray:
+    """Return the shell, the ellipse or the coarse-protection field."""
     if image_kind == "ellipse":
         yy, xx = np.mgrid[:49, :65]
         image = 100 * np.exp(
             -0.5 * (((xx - 32.3) / 6) ** 2 + ((yy - 24.1) / 2) ** 2)
         )
-        image += np.random.default_rng(2409).normal(0, 0.3, image.shape)
+        return image + np.random.default_rng(2409).normal(0, 0.3, image.shape)
     if image_kind == "coarse-protection":
         yy, xx = np.mgrid[:256, :384]
         radius_squared = (yy - 128) ** 2 + (xx - 192) ** 2
@@ -1964,60 +2001,132 @@ def test_serial_and_existing_dask_publish_identical_scientific_products(
         )
         image = -2 + xx / 1024 + noise / np.std(noise)
         image += 12 * np.exp(-radius_squared / (2 * 20**2))
-        image += 1000 * np.exp(-radius_squared / (2 * 2**2))
-    _write_image(tmp_path / "image.fits", image)
-    serial = hebog.find_sources(
-        _request(tmp_path, output_name="serial"),
-        _config(),
-        SerialExecutor(),
+        return image + 1000 * np.exp(-radius_squared / (2 * 2**2))
+    return _ring_image()
+
+
+def _require_injected_fit_outcome(
+    result: SourceFinderResult, fit_outcome: str
+) -> None:
+    """Require the diagnostics to record the injected fitting failure."""
+    if fit_outcome == "normal":
+        return
+    expected_reason = (
+        "fit-linear-algebra-failure"
+        if fit_outcome == "linear-algebra-failure"
+        else "fit-model-inadequate"
     )
-    monkeypatch.setattr(public_api, "_TILE_SHAPE_YX", (97, 111))
+    diagnostic = read_diagnostics_product(result.diagnostics_path)
+    assert isinstance(diagnostic, PublicSourceFindingDiagnostics)
+    assert any(
+        row.reason == expected_reason and not row.catalogue_row_published
+        for row in diagnostic.measurement_dispositions
+    )
+    assert result.source_count > 0
+    if fit_outcome == "inadequate-fallback":
+        # One coarse-protection fit is inadequate without the fault, so
+        # the injected rejection is also checked where each fit records it.
+        assert any(
+            row.fit_diagnostics is not None
+            and row.fit_diagnostics.fallback_reason
+            == "free-model-invalid-result"
+            for row in diagnostic.measurement_dispositions
+        )
+
+
+@pytest.fixture(
+    scope="module",
+    params=tuple(
+        pytest.param(case, id="-".join(case))
+        for case in (
+            ("shell", "normal"),
+            ("shell", "linear-algebra-failure"),
+            ("ellipse", "inadequate-fallback"),
+            ("coarse-protection", "normal"),
+            ("coarse-protection", "linear-algebra-failure"),
+            ("coarse-protection", "inadequate-fallback"),
+        )
+    ),
+)
+def fitted_reference(
+    request: pytest.FixtureRequest,
+    tmp_path_factory: pytest.TempPathFactory,
+) -> _SerialReference:
+    """Publish one fitted field serially on the default tiles."""
+    image_kind, fit_outcome = cast(tuple[str, str], request.param)
+    directory = tmp_path_factory.mktemp(image_kind)
+    _write_image(directory / "image.fits", _executor_case_image(image_kind))
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        _inject_fit_outcome(monkeypatch, fit_outcome)
+        result = hebog.find_sources(
+            _request(directory, output_name="serial"),
+            _config(),
+            SerialExecutor(),
+        )
+    _require_injected_fit_outcome(result, fit_outcome)
+    return _SerialReference(
+        directory / "image.fits", _config(), result, fit_outcome
+    )
+
+
+@pytest.mark.integration
+def test_every_executor_on_other_tiles_publishes_the_serial_products(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    fitted_reference: _SerialReference,
+    each_executor: Executor,
+) -> None:
+    """Caller-owned execution policy cannot alter any scientific bytes."""
+    _inject_fit_outcome(monkeypatch, fitted_reference.fit_outcome)
+
+    tiled = _run_on_small_tiles(
+        fitted_reference, tmp_path / "products", each_executor, monkeypatch
+    )
+
+    assert product_hashes(tiled) == product_hashes(fitted_reference.result)
+
+
+@pytest.mark.integration
+def test_dask_process_workers_publish_the_serial_products(
+    tmp_path: Path,
+) -> None:
+    """Every task crosses a process boundary and no product byte changes.
+
+    Each worker is its own Python process, so every task's arguments and
+    result are pickled on the way there and back, which in-process workers
+    never do: a value that does not survive that exactly, such as an Astropy
+    ``WCS`` rebuilt from a header it reformats, would change the products.
+    The field has a fitted bright source on a broad halo, local-noise
+    refinement and six background tiles.
+    """
+    _write_image(
+        tmp_path / "image.fits", _executor_case_image("coarse-protection")
+    )
+    serial = hebog.find_sources(
+        _request(tmp_path, output_name="serial"), _config(), SerialExecutor()
+    )
     cluster = LocalCluster(
         n_workers=2,
         threads_per_worker=1,
-        processes=False,
-        dashboard_address="",
+        processes=True,
+        # A random port, so parallel test workers never contend for one.
+        dashboard_address=":0",
     )
-    with cluster, Client(cluster) as client:
-        dask = hebog.find_sources(
-            _request(tmp_path, output_name="dask"),
-            _config(),
-            DaskExecutor(client),
-        )
-
-    assert (
-        serial.catalogue.content_sha256,
-        serial.rms.content_sha256,
-        serial.mask.content_sha256,
-        serial.diagnostics.content_sha256,
-    ) == (
-        dask.catalogue.content_sha256,
-        dask.rms.content_sha256,
-        dask.mask.content_sha256,
-        dask.diagnostics.content_sha256,
-    )
-    if fit_outcome != "normal":
-        expected_reason = (
-            "fit-linear-algebra-failure"
-            if fit_outcome == "linear-algebra-failure"
-            else "fit-model-inadequate"
-        )
-        diagnostic = read_diagnostics_product(serial.diagnostics_path)
-        assert isinstance(diagnostic, PublicSourceFindingDiagnostics)
-        assert any(
-            row.reason == expected_reason and not row.catalogue_row_published
-            for row in diagnostic.measurement_dispositions
-        )
-        assert serial.source_count > 0
-        if fit_outcome == "inadequate-fallback":
-            # One coarse-protection fit is inadequate without the fault, so
-            # the injected rejection is also checked where each fit records it.
-            assert any(
-                row.fit_diagnostics is not None
-                and row.fit_diagnostics.fallback_reason
-                == "free-model-invalid-result"
-                for row in diagnostic.measurement_dispositions
+    with cluster, Client(cluster, timeout="60s") as client:
+        worker_processes = cast(dict[str, int], client.run(os.getpid))
+        task_stream = get_task_stream(client=client)
+        with task_stream:
+            processes = hebog.find_sources(
+                _request(tmp_path, output_name="processes"),
+                _config(),
+                DaskExecutor(client),
             )
+
+    assert os.getpid() not in worker_processes.values()
+    task_workers = {cast(str, task["worker"]) for task in task_stream.data}
+    assert task_workers
+    assert task_workers <= set(worker_processes)
+    assert product_hashes(processes) == product_hashes(serial)
 
 
 @pytest.mark.integration
