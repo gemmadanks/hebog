@@ -68,6 +68,7 @@ nav:
           - Choose thresholds, a profile and an executor: how-to/configure-a-run.md
           - Use the notebooks and compare finders: how-to/notebooks.md
       - Explanation:
+          - FAQ for astronomers: explanation/astronomer-faq.md
           - How Hebog finds sources: explanation/how-hebog-works.md
           - Hebog and other source finders: explanation/source-finder-comparison.md
       - Reference:

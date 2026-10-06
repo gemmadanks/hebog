@@ -32187,3 +32187,22 @@ the per-worker placement finding.
   added driver work is the 0.14 s above at the largest admitted size), Dask
   process workers beyond the integration suite's executor matrix, and
   Windows.
+
+## 2026-10-06 — Literature-grounded FAQ for astronomers
+
+- **Outcome.** Added an [astronomer FAQ](docs/explanation/astronomer-faq.md)
+  to the documentation home and user-guide navigation. Its 23 questions
+  cover input suitability, thresholds and noise, catalogue populations,
+  flux estimators, uncertainties, missing measurements and evaluation.
+- **Basis.** Reviewed the public finder, input boundary, configuration,
+  catalogue construction, tests and current documentation at `5a028bf2`.
+  The FAQ links nine research papers and the PyBDSF documentation, keeping
+  their methodological evidence separate from Hebog's unqualified status.
+  Independent code and literature reviews corrected small-image noise
+  window wording and the description of Aegean's priorized fitting.
+- **Scope.** Documentation only: no scientific policy, algorithm, threshold,
+  gate or authorized implementation task changes, so the delivery plan is
+  unchanged. Coverage, equivalence campaigns and benchmarks do not apply.
+- **Verification.** The strict documentation build and a check of rendered
+  local fragment links passed; the new page also passed the fast hygiene
+  and spelling hooks.

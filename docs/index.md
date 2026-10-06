@@ -13,6 +13,8 @@ a Dask cluster that you already own.
 
 ## I am an astronomer
 
+- [FAQ for astronomers](explanation/astronomer-faq.md): choosing settings,
+  interpreting catalogues and evaluating the science, with literature links.
 - [Install Hebog](tutorials/index.md) and
   [find sources in your first image](tutorials/find-sources.md).
 - [Choose thresholds and a profile](how-to/configure-a-run.md).
