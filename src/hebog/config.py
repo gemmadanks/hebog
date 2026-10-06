@@ -377,70 +377,6 @@ class CompactDeblendConfig:
 
 
 @dataclass(frozen=True, slots=True)
-class DeferredIslandCompletionConfig:
-    """Hard bound for one compact-deferred membership tile."""
-
-    maximum_tile_pixels: int
-
-    def __post_init__(self) -> None:
-        """Require an explicit positive per-task pixel admission limit."""
-        if (
-            isinstance(self.maximum_tile_pixels, bool)
-            or not isinstance(self.maximum_tile_pixels, Integral)
-            or self.maximum_tile_pixels < 1
-        ):
-            raise ValueError("maximum_tile_pixels must be a positive integer")
-
-
-@dataclass(frozen=True, slots=True)
-class ExtendedEmissionMeasurementConfig:
-    """Governed original-pixel aperture and bounded-work policy."""
-
-    aperture_radius_beams: float
-    maximum_task_pixels: int
-    minimum_shape_pixels: int
-    covariance_relative_tolerance: float
-    denoised_position_maximum_peak_to_mean_ratio: float
-
-    def __post_init__(self) -> None:
-        """Require the reviewed aperture and explicit numerical limits."""
-        if (
-            not isfinite(self.aperture_radius_beams)
-            or self.aperture_radius_beams <= 0
-        ):
-            raise ValueError(
-                "aperture_radius_beams must be finite and positive"
-            )
-        if (
-            isinstance(self.maximum_task_pixels, bool)
-            or not isinstance(self.maximum_task_pixels, Integral)
-            or self.maximum_task_pixels < 1
-        ):
-            raise ValueError("maximum_task_pixels must be a positive integer")
-        if (
-            isinstance(self.minimum_shape_pixels, bool)
-            or not isinstance(self.minimum_shape_pixels, Integral)
-            or self.minimum_shape_pixels < _MINIMUM_SHAPE_PIXELS
-        ):
-            raise ValueError("minimum_shape_pixels must be an integer >= 3")
-        if (
-            not isfinite(self.covariance_relative_tolerance)
-            or not 0 < self.covariance_relative_tolerance < 1
-        ):
-            raise ValueError(
-                "covariance_relative_tolerance must be finite and in (0, 1)"
-            )
-        if (
-            not isfinite(self.denoised_position_maximum_peak_to_mean_ratio)
-            or self.denoised_position_maximum_peak_to_mean_ratio <= 1
-        ):
-            raise ValueError(
-                "denoised_position_maximum_peak_to_mean_ratio must be finite "
-                "and greater than 1"
-            )
-
-
-@dataclass(frozen=True, slots=True)
 class CompactMomentConfig:
     """Numerical availability policy for compact moment ellipses."""
 
@@ -491,9 +427,6 @@ class CompactGaussianFitConfig:
     )
     maximum_gls_pixels: int = 512
     model_selection: Literal["free-only", "beam-or-free"] = "free-only"
-    position_estimator: Literal["selected-model", "bounded-context-free"] = (
-        "selected-model"
-    )
     association_aperture_radius_sigma: float = 3.0
     association_aperture_minimum_fixed_beam_model_fraction: float = 0.9
 
@@ -572,11 +505,6 @@ class CompactGaussianFitConfig:
             raise ValueError("point_estimator is not a supported policy")
         if self.model_selection not in {"free-only", "beam-or-free"}:
             raise ValueError("model_selection is not a supported policy")
-        if self.position_estimator not in {
-            "selected-model",
-            "bounded-context-free",
-        }:
-            raise ValueError("position_estimator is not a supported policy")
         self._validate_association_aperture_policy()
         if (
             isinstance(self.maximum_gls_pixels, bool)
@@ -646,47 +574,4 @@ class CompactGaussianFitConfig:
             raise ValueError(
                 "association aperture minimum fixed-beam model fraction must "
                 "be within (0, 1)"
-            )
-
-
-@dataclass(frozen=True, slots=True)
-class CompactCatalogueConfig:
-    """Bounded compact catalogue assembly and deconvolution policy."""
-
-    maximum_catalogue_records: int
-    deconvolution_relative_tolerance: float
-    extension_significance_sigma: float
-    deconvolution_axis_significance_sigma: float = 5.0
-
-    def __post_init__(self) -> None:
-        """Require an explicit population cap and numerical policies."""
-        if (
-            isinstance(self.maximum_catalogue_records, bool)
-            or not isinstance(self.maximum_catalogue_records, Integral)
-            or self.maximum_catalogue_records < 1
-        ):
-            raise ValueError(
-                "maximum_catalogue_records must be a positive integer"
-            )
-        if (
-            not isfinite(self.deconvolution_relative_tolerance)
-            or not 0 < self.deconvolution_relative_tolerance < 1
-        ):
-            raise ValueError(
-                "deconvolution_relative_tolerance must be finite and in (0, 1)"
-            )
-        if (
-            not isfinite(self.extension_significance_sigma)
-            or self.extension_significance_sigma <= 0
-        ):
-            raise ValueError(
-                "extension_significance_sigma must be finite and positive"
-            )
-        if (
-            not isfinite(self.deconvolution_axis_significance_sigma)
-            or self.deconvolution_axis_significance_sigma <= 0
-        ):
-            raise ValueError(
-                "deconvolution_axis_significance_sigma must be finite and "
-                "positive"
             )

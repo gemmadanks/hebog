@@ -240,34 +240,6 @@ bytes returns the existing product record; a retry that would replace
 different bytes fails with `MaterializedProductConflictError`. Publication
 does not weaken the separate deployment-store concurrency qualification gate.
 
-`hebog.adapters.rapthor_products.materialize_combined_products` stages and
-validates all four new products,
-including the result record, before publishing any of them. Destinations are
-resolved before checking distinctness; existing hard-link aliases and aliases
-of the reused RMS plane are rejected too. Each staged file is on the same
-filesystem as its destination. Publication uses no-overwrite hard links and
-requires filesystem hard-link support. Identical existing products are reused;
-conflicting bytes fail. A caught writer, validation, publication or staging-
-cleanup failure rolls back only files created by that call, preserving existing
-files and the reused RMS. Rollback attempts all registered removals; filesystem
-errors preventing cleanup are propagated rather than hidden.
-
-Because callers may select separate directories/filesystems, this helper does
-not promise crash-atomic or simultaneous cross-file visibility. Consumers must
-wait for its successful return; an abrupt process or host failure still needs
-workflow-level recovery. Empty newly created parent directories may remain
-after a failed call. This differs from `find_sources`, which claims
-one new output directory and moves the complete bundle into it with a single
-rename.
-
-The combined helper
-reuses the exact RMS `MaterializedProduct`; writes the internal
-catalogue and Rapthor compatibility view from the same combined catalogue;
-and writes the source-filtering mask as a bounded row-block union of compact
-and accepted extended support. Compact-only composition rejects an extended
-mask or provenance and reproduces the existing catalogue, mask, diagnostics,
-and Rapthor bytes.
-
 ## Intermediate Zarr generation
 
 The compact-detection stage publishes one immutable Zarr v3 generation with
@@ -300,18 +272,13 @@ reuse at most four validated chunks while assembling multiple compact-island
 windows. The cache is worker-local and cannot grow with the image or island
 count.
 
-Exact deblended-region labels remain transient worker data. A
-`WorkerLocalRegionBatch` aligns immutable float64 physical residual and RMS,
-boolean validity, and int32 region labels with reconciled island and region
-records. It is an in-task scientific-kernel input, not a durable schema or a
-scheduler result. `CompactRegionStageResult` contains only processor-produced
-compact records, deblending summaries, explicit multiscale deferrals, batch
-counts, admitted bounds pixels, and the largest retained processor-array byte
-count. A summary rectangle cannot be deserialized into membership.
+Exact deblended-region labels are published as component label planes and
+read back by the bounded fit tasks; no summary rectangle stands in for
+membership.
 
-The moment processor returns frozen compact records, not a durable
-catalogue schema. `OwnedPixelPhotometry` keeps finite-mask pixel-sum flux
-distinct from fitted-Gaussian flux. A valid result includes a pixel-space
+The moment kernel returns frozen compact records, not a durable catalogue
+schema. `OwnedPixelPhotometry` keeps finite-mask pixel-sum flux distinct
+from fitted-Gaussian flux. A valid result includes a pixel-space
 `GaussianMomentInitializer`; shape-unavailable and fully unavailable union
 members omit invalid fields rather than encoding scientific absence as zero.
 These records contain no image arrays, WCS objects, or scheduler state.
@@ -331,126 +298,36 @@ classified because its flux uncertainty was unavailable.
 WCS objects are reconstructed transiently inside the astrometry boundary and
 never enter a public record or executor result.
 
-`SourceCandidate.association_aperture_integrated_flux_jy` uses the
-restoring-beam ellipse when that contains at least 90% of the fitted model and
-otherwise follows the selected-fit ellipse so rotated and elongated blends are
-not clipped by the restoring beam's narrow axis. `GaussianComponent.flux`
-continues to describe the selected Gaussian model, and materialized Rapthor
-catalogue columns retain their reviewed peak/integrated component semantics.
+`SourceCandidate.association_aperture_integrated_flux_jy` is the source's
+signed aperture over its own footprint, published as
+`ASSOCIATION_APERTURE_FLUX`; no Gaussian fit contributes to it, and the
+compact profile leaves it unavailable. `GaussianComponent.flux` continues to
+describe the selected Gaussian model, and materialized Rapthor catalogue
+columns retain their reviewed peak/integrated component semantics.
 
 ## Multiscale records
 
-The multiscale path adds scheduler-safe scale, association, identity, completion, and
-provenance records without adding image planes to public state.
-`ScaleDetection` describes one finite,
-beam-normalized response and retains its global bounds, valid-support
-fraction, normalized peak response, significance, and contributing scale. A
-`CrossScaleAssociation` canonically joins scale detections and, when present,
-any number of spatially related compact sources. It records the selected
-detection explicitly rather than letting task or scale iteration order choose
-a catalogue representation. `CompactSourceSupport` binds one immutable compact
-source and parent island identity to exact bounded support metadata and an
-image-plane reference position. `CompactExtendedContextEdge` retains the
-per-source containment or overlap relation when one extended association has
-several different compact relationships.
-
-`CombinedIslandIdentity` is the array-free connected-component result. A
-compact-only component keeps its original compact island ID; a mixed or
-extended component uses a namespaced SHA-256 identity over canonical compact
-island and extended-association membership. It also retains the exact compact
-source and Gaussian-component IDs. `ExtendedSourceIdentity` assigns one
-stable source ID to each association independently of its island context.
-Its Gaussian-component list is constrained to be empty: irregular segment
-photometry is not represented as an unperformed Gaussian fit.
-
-`ExtendedEmissionMeasurement` schema version 3 stores a detected-segment flux
-centroid, brightest original-pixel coordinate, and corresponding peak
-brightness as distinct fields. It
-explicitly records that neither is a host position. Its position covariance is
-unavailable until nonlinear segment-selection uncertainty has a validated
-per-source approximation; flux-uncertainty availability remains independent.
-It also stores association-level flux and beam-normalized extent.
-`CrossScaleAssociation` and `CombinedCatalogueState` are schema version 2;
-`ExtendedEmissionMeasurement` is schema version 3; the remaining multiscale
-records are schema version 1.
-`MultiscaleOmission` is a typed fail-closed explanation for unavailable scale
-support, measurement, or association. `CombinedIslandDisposition` gives every
-accepted or deferred island exactly one terminal state. Finally,
-`CombinedCatalogueState` joins the canonical identifiers and makes
-publication eligibility false whenever an omission or incomplete disposition
-remains.
-
-`CombinedCatalogueState` carries the disjoint canonical sets of accepted and
-deferred island IDs, so absence of a disposition is observable rather than
-indistinguishable from completeness. `CombinedCatalogueShard` is one bounded
-coarse-task result. Shards reduce in canonical fan-in-two levels to
-`CombinedCatalogueReduction`, which records depth and maximum input-shard
-size. `CompletedCombinedCatalogueState` can contain only a publication-
-eligible state and retains that reduction evidence. The completion boundary
-also applies an explicit positive cap to all final in-memory state records.
-
-All records are strict, immutable, and scheduler safe. They contain only
-small scalar values and canonical identifiers: worker-local arrays, open
-files, WCS objects, executor clients, and task state remain outside the
-schema. These records freeze meanings for development. Combined identity,
-catalogue-row construction, and atomic publication are implemented.
-
-`reduce_combined_catalogue_shards` sorts only scientifically equivalent
-records; duplicate accepted ownership, accepted/deferred overlap, duplicate
-terminal evidence, or an unknown disposition fails validation rather than
-being resolved by order. `complete_combined_catalogue_state` accepts an empty
-scientific image but rejects any missing terminal disposition, omission,
-failed disposition, or state-record-cap overflow before product publication.
-
-`associate_compact_source_context` consumes aligned bounded scale and compact
-label planes, validates complete one-owner association provenance, and emits
-only annotated associations plus canonical context edges. Reference positions
-are mapped to the nearest integer pixel centre; adjacency uses the reviewed
-ceiling of half the restoring-beam major FWHM. The dilation is graph context,
-not measurement support. Distinct compact sources and distinct extended
-associations therefore remain distinct even in a many-to-many component.
-
-`preserve_unassociated_compact_catalogue` remains the explicit pre-association
-no-op seam. It
-returns the same `CompletedCompactCatalogue` only for `extended-only`
-associations with no compact identities. Compact-touching and ambiguous
-relationships raise a typed association decision error, so pre-association evidence
-cannot silently reconstruct or mutate compact catalogue records.
-
-`derive_combined_identities` validates complete agreement between association
-summaries and per-edge context evidence before deriving any hash. It groups
-compact islands and extended associations by graph connectivity, not by input,
-tile, task, or completion order. Duplicate identities, unknown relationships,
-missing edges, and contradictory aggregate relationships fail closed.
-
-`construct_combined_catalogue` validates exact agreement among the completed
-terminal state, combined identities, associations, measurements, and compact
-catalogue before constructing any row. Compact-only composition returns the
-same `SourceCatalogue` object. Mixed composition remaps retained compact rows
-to their combined islands, adds one irregular source per association, and
-creates no extended Gaussian. Combined-island photometry sums disjoint owned
-compact and extended fluxes and support counts.
+The multiscale path adds scheduler-safe scale and association records
+without adding image planes to public state. `ScaleDetection` describes one
+finite, beam-normalized response and retains its global bounds,
+valid-support fraction, normalized peak response, significance, and
+contributing scale. A `CrossScaleAssociation` canonically joins scale
+detections across adjacent scales and records the selected detection
+explicitly rather than letting task or scale iteration order choose a
+representation. `CrossScaleAssociation` is schema version 2 and
+`ScaleDetection` schema version 1. Both are strict, immutable and contain
+only small scalar values and canonical identifiers.
 
 ## Compatibility
 
 The internal catalogue does not define PyBDSF column names such as
 `Source_id`, `Isl_Total_flux`, or `DC_Maj`. The Rapthor catalogue adapter maps
 the internal records to the eight directly consumed compatibility fields.
-For irregular extended rows, `DC_Maj` carries the beam-scaled segment-moment
-major extent and the internal row carries `major-axis-only` and
-`segment-moment-extent` quality flags. This is a compatibility characteristic
-extent, not a Gaussian deconvolution claim; fitted and deconvolved ellipse
-fields remain null and no Gaussian-component row is fabricated.
 Astropy remains at the FITS I/O boundary; the schema models do not contain
 Astropy tables, open HDUs, NumPy image planes, or scheduler objects.
 
-`CompactCatalogueShard` is one bounded coarse-task result. Shards combine in
-canonical pairwise levels and final in-memory construction has an explicit
-record cap. The current FITS adapter is the Rapthor/PyBDSF compatibility view;
-the richer internal FITS schema remains pipeline-neutral. Durable streaming of
-larger shard populations remains an evidence-driven extension. It must reuse
-the Zarr boundary or receive an ADR amendment rather than adding Arrow or
-Parquet speculatively.
+The current FITS adapter is the Rapthor/PyBDSF compatibility view; the
+richer internal FITS schema remains pipeline-neutral.
 
 See [ADR-006](../architecture/adr/006-isolate-compatibility-with-versioned-schemas.md),
 the [domain glossary](domain-glossary.md), and the

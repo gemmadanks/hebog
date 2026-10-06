@@ -1,30 +1,27 @@
 # Compact moment measurement
 
-The moment oracle is a readable, deterministic measurement of every admitted
-compact island and exact deblended region. It produces owned-pixel photometry
-and a pixel-space Gaussian initializer. The subsequent
-[compact Gaussian fitting](compact-fitting.md) lane consumes this initializer.
-Moment records themselves are not fitted sources or catalogue rows.
+The moment measurement is a readable, deterministic measurement of every
+admitted parent island and its exact deblended regions. It produces
+owned-pixel photometry and a pixel-space Gaussian initializer, which
+[compact Gaussian fitting](compact-fitting.md) consumes. Moment records
+themselves are not fitted sources or catalogue rows.
 
 ## Inputs and ownership
 
-`run_compact_moment_stage` uses the worker-local handoff described in
-[Compact deblending](compact-deblending.md). Each coarse task receives bounded
-float64 physical residual and RMS planes, boolean scientific validity, and
-exact int32 watershed labels. A label-zero pixel is excluded even if it lies
-inside a region's rectangular bounds. The normalized detection plane is not
-used for flux or moments.
+`measure_compact_moments` runs inside the component-fit stage, on the same
+task that fits the parent. It receives bounded float64 physical residual and
+RMS windows, boolean scientific validity, and the exact int32 component
+labels that [deblending](compact-deblending.md) published. A label-zero pixel
+is excluded even if it lies inside a region's rectangular bounds. The
+normalized detection plane is not used for flux or moments.
 
-The processor emits the parent island first and then its deblended regions in
-canonical label order. Only frozen dataclass records cross the executor
-boundary; pixel arrays remain within the existing coarse task. Serial and
-Dask executors must return equal records.
+The kernel emits the parent island first and then its deblended regions in
+canonical label order. Only frozen dataclass records leave the task; pixel
+arrays stay inside it. Serial and Dask executors must return equal records.
 
 The kernel creates only one-dimensional selected-value and coordinate
-workspaces for the target currently being reduced. Their population is no
-larger than `maximum_compact_island_pixels`, while the retained aligned planes
-remain bounded by `maximum_batch_pixels`. Python iteration is over compact
-island/region records, never pixels or RMS windows.
+workspaces for the target currently being reduced. Python iteration is over
+island and region records, never pixels or RMS windows.
 
 ## Photometry
 

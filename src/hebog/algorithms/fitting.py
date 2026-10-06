@@ -2,7 +2,7 @@
 # pyright: reportUnknownArgumentType=false
 # pyright: reportUnknownMemberType=false
 # pyright: reportUnknownVariableType=false
-"""Bounded fit-all compact Gaussian reference using SciPy least squares."""
+"""Bounded joint compact Gaussian fitting with SciPy least squares."""
 
 from __future__ import annotations
 
@@ -18,7 +18,6 @@ from scipy.linalg import solve_triangular
 from scipy.linalg.lapack import dpocon  # type: ignore[attr-defined]
 from scipy.ndimage import map_coordinates
 from scipy.optimize import OptimizeResult, least_squares
-from scipy.special import ndtr
 
 from hebog.algorithms.deblending import DeblendedRegion
 from hebog.algorithms.fft import fftconvolve
@@ -32,10 +31,8 @@ from hebog.data_models.fitting import (
     CompactGaussianFitResult,
     FailedCompactGaussianFit,
     FittedGaussianPixelParameters,
-    GaussianComponentFit,
     GaussianFitDiagnostics,
     GaussianFitUncertainty,
-    GaussianPositionEstimate,
     UnavailableCompactGaussianFit,
     ValidCompactGaussianFit,
 )
@@ -49,7 +46,6 @@ from hebog.data_models.measurement import (
 from hebog.data_models.partitioning import ImageBounds
 
 _NOISE_CORRELATION_TRUNCATION_SIGMA = 4.0
-_TRUNCATED_MOMENT_RESIDUAL_TOLERANCE = 1e-6
 _RELATIVE_BOUND_CONTACT_TOLERANCE = 1e-10
 _FREE_PARAMETER_NAMES = (
     "amplitude",
@@ -74,18 +70,6 @@ _CONSTRAINED_PARAMETER_NAMES = (
 _CONSTRAINED_FIXED_BACKGROUND_PARAMETER_NAMES = _CONSTRAINED_PARAMETER_NAMES[
     :-1
 ]
-_CENTROID_CONSTRAINED_PARAMETER_NAMES = (
-    "amplitude",
-    "forced-centroid-x",
-    "forced-centroid-y",
-    "sigma-first",
-    "sigma-second",
-    "position-angle",
-    "background",
-)
-_CENTROID_CONSTRAINED_FIXED_BACKGROUND_PARAMETER_NAMES = (
-    _CENTROID_CONSTRAINED_PARAMETER_NAMES[:-1]
-)
 _ModelIdentity: TypeAlias = Literal[
     "free-elliptical",
     "beam-constrained",
@@ -146,19 +130,6 @@ class _FitSamples:
     ]
     point_estimator: _PointEstimatorIdentity
     point_estimator_fallback_reason: _PointEstimatorFallback | None
-
-
-@dataclass(frozen=True, slots=True)
-class _ModelSpec:
-    """One bounded nested Gaussian parameterization."""
-
-    identity: _ModelIdentity
-    parameter_names: tuple[str, ...]
-    initial: npt.NDArray[np.float64]
-    lower: npt.NDArray[np.float64]
-    upper: npt.NDArray[np.float64]
-    expand: Callable[[npt.NDArray[np.float64]], npt.NDArray[np.float64]]
-    full_parameter_indices: tuple[int, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -739,90 +710,6 @@ def _fit_samples_from_mask(
     )
 
 
-def _fit_candidate(
-    samples: _FitSamples,
-    spec: _ModelSpec,
-    *,
-    fallback_reason: _FallbackReason | None,
-) -> _FitCandidate:
-    """Optimize one nested model and retain all selection evidence."""
-
-    def weighted_residual(
-        parameters: npt.NDArray[np.float64],
-    ) -> npt.NDArray[np.float64]:
-        full_parameters = spec.expand(parameters)
-        standard_residual = (
-            _gaussian_values(full_parameters, samples.x, samples.y)
-            - samples.values
-        ) / samples.rms
-        return samples.residual_transform(standard_residual)
-
-    def weighted_jacobian(
-        parameters: npt.NDArray[np.float64],
-    ) -> npt.NDArray[np.float64]:
-        full_parameters = spec.expand(parameters)
-        model_jacobian = _gaussian_parameter_jacobian(
-            full_parameters,
-            samples.x,
-            samples.y,
-        )[:, spec.full_parameter_indices]
-        standard_jacobian = model_jacobian / samples.rms[:, np.newaxis]
-        return samples.residual_transform(standard_jacobian)
-
-    result = least_squares(
-        weighted_residual,
-        spec.initial,
-        jac=weighted_jacobian,  # pyright: ignore[reportArgumentType]
-        bounds=(spec.lower, spec.upper),
-        method="trf",
-        x_scale="jac",
-        ftol=samples.config.convergence_tolerance,
-        xtol=samples.config.convergence_tolerance,
-        gtol=samples.config.convergence_tolerance,
-        max_nfev=samples.config.maximum_function_evaluations,
-    )
-    optimizer_parameters = np.asarray(result.x, dtype=np.float64)
-    full_parameters = spec.expand(optimizer_parameters)
-    jacobian = np.asarray(result.jac, dtype=np.float64)
-    diagnostics = _diagnostics(
-        converged=bool(result.success),
-        function_evaluations=int(result.nfev),
-        evidence=_FitEvidence(
-            parameters=optimizer_parameters,
-            lower_bounds=spec.lower,
-            upper_bounds=spec.upper,
-            jacobian=jacobian,
-            x=samples.x,
-            y=samples.y,
-            weighted_residual=weighted_residual(optimizer_parameters),
-            parameter_names=spec.parameter_names,
-            model_identity=spec.identity,
-            full_parameters=full_parameters,
-            fallback_reason=fallback_reason,
-            point_estimator=samples.point_estimator,
-            point_estimator_fallback_reason=(
-                samples.point_estimator_fallback_reason
-            ),
-        ),
-    )
-    covariance = _parameter_covariance(
-        jacobian,
-        np.column_stack((samples.x, samples.y)),
-        samples.geometry,
-        correlated_point_estimator=(
-            samples.point_estimator == "correlated-gls"
-        ),
-    )
-    return _FitCandidate(
-        success=bool(result.success),
-        optimizer_parameters=optimizer_parameters,
-        full_parameters=full_parameters,
-        jacobian=jacobian,
-        covariance=covariance,
-        diagnostics=diagnostics,
-    )
-
-
 def _numerically_valid(
     candidate: _FitCandidate,
     config: CompactGaussianFitConfig,
@@ -864,24 +751,6 @@ def _has_physical_bound_contact(candidate: _FitCandidate) -> bool:
     """Return whether a selected scientific parameter touches its bound."""
     ignored = {"forced-centroid-x", "forced-centroid-y", "position-angle"}
     return bool(set(candidate.diagnostics.bound_parameters) - ignored)
-
-
-def _stable_centroid_retry_template(
-    candidate: _FitCandidate,
-    config: CompactGaussianFitConfig,
-) -> bool:
-    """Accept a converged template whose only ridge is its free centroid."""
-    if not candidate.success or not _numerically_valid(candidate, config):
-        return False
-    physical_bounds = set(candidate.diagnostics.bound_parameters) - {
-        "position-angle"
-    }
-    condition = candidate.diagnostics.information_condition_number
-    return (
-        physical_bounds <= {"centroid-x", "centroid-y"}
-        and condition is not None
-        and condition <= config.maximum_information_condition_number
-    )
 
 
 def _with_rejected_model(
@@ -961,8 +830,8 @@ def _free_preferred_by_bic(
     constrained: _FitCandidate,
     samples: _FitSamples,
     *,
-    free_parameter_count: int | None = None,
-    constrained_parameter_count: int | None = None,
+    free_parameter_count: int,
+    constrained_parameter_count: int,
 ) -> bool:
     """Compare nested models using beam-count-scaled Bayesian information."""
     if (
@@ -982,371 +851,14 @@ def _free_preferred_by_bic(
         independent_samples = max(retained_count / beam_area_pixels, 2.0)
     chi_squared_scale = independent_samples / retained_count
 
-    def bic(candidate: _FitCandidate, parameter_count: int | None) -> float:
+    def bic(candidate: _FitCandidate, parameter_count: int) -> float:
         return candidate.diagnostics.chi_squared * chi_squared_scale + (
-            candidate.optimizer_parameters.size
-            if parameter_count is None
-            else parameter_count
-        ) * np.log(independent_samples)
+            parameter_count * np.log(independent_samples)
+        )
 
     return bic(free, free_parameter_count) < bic(
         constrained, constrained_parameter_count
     )
-
-
-def _free_model_spec(
-    *,
-    identity: Literal["free-elliptical"],
-    initial: npt.NDArray[np.float64],
-    lower: npt.NDArray[np.float64],
-    upper: npt.NDArray[np.float64],
-    fixed_background: bool,
-) -> _ModelSpec:
-    """Build one free elliptical model with explicit background policy."""
-    free_indices = np.arange(6 if fixed_background else 7, dtype=np.int64)
-
-    def expand(
-        parameters: npt.NDArray[np.float64],
-    ) -> npt.NDArray[np.float64]:
-        if fixed_background:
-            return np.asarray([*parameters, 0.0], dtype=np.float64)
-        return np.asarray(parameters, dtype=np.float64)
-
-    return _ModelSpec(
-        identity=identity,
-        parameter_names=(
-            _FREE_FIXED_BACKGROUND_PARAMETER_NAMES
-            if fixed_background
-            else _FREE_PARAMETER_NAMES
-        ),
-        initial=initial[free_indices],
-        lower=lower[free_indices],
-        upper=upper[free_indices],
-        expand=expand,
-        full_parameter_indices=tuple(int(item) for item in free_indices),
-    )
-
-
-def _upper_truncated_normal_location(
-    observed_mean: float,
-    observed_variance: float,
-    upper_bound: float,
-    maximum_sigma: float,
-) -> float | None:
-    """Invert the first two moments of a one-sided truncated normal."""
-    if observed_variance <= 0 or observed_mean >= upper_bound:
-        return None
-    observed_sigma = sqrt(observed_variance)
-
-    def residual(
-        parameters: npt.NDArray[np.float64],
-    ) -> npt.NDArray[np.float64]:
-        location, sigma = parameters
-        standardized_bound = (upper_bound - location) / sigma
-        density = np.exp(-0.5 * standardized_bound**2) / sqrt(2.0 * pi)
-        probability = float(ndtr(standardized_bound))
-        if probability <= np.finfo(np.float64).tiny:
-            return np.asarray((np.inf, np.inf), dtype=np.float64)
-        ratio = density / probability
-        expected_mean = location - sigma * ratio
-        expected_variance = sigma**2 * (
-            1.0 - standardized_bound * ratio - ratio**2
-        )
-        return np.asarray(
-            (
-                expected_mean - observed_mean,
-                expected_variance - observed_variance,
-            ),
-            dtype=np.float64,
-        )
-
-    initial_sigma = min(maximum_sigma, max(observed_sigma * 1.5, 0.2))
-    result = least_squares(
-        residual,
-        np.asarray(
-            (
-                min(upper_bound, observed_mean + observed_sigma),
-                initial_sigma,
-            ),
-            dtype=np.float64,
-        ),
-        bounds=(
-            np.asarray((observed_mean, 0.2), dtype=np.float64),
-            np.asarray((upper_bound, maximum_sigma), dtype=np.float64),
-        ),
-        method="trf",
-        max_nfev=100,
-    )
-    if (
-        not result.success
-        or np.max(np.abs(residual(result.x)))
-        > _TRUNCATED_MOMENT_RESIDUAL_TOLERANCE
-    ):
-        return None
-    return float(result.x[0])
-
-
-def _truncated_moment_centroid(
-    moment: ValidMomentMeasurement,
-    candidate: _FitCandidate,
-    lower: npt.NDArray[np.float64],
-    upper: npt.NDArray[np.float64],
-    config: CompactGaussianFitConfig,
-) -> tuple[float, float] | None:
-    """Correct moment coordinates whose context likelihood hits an edge."""
-    initializer = moment.initializer
-    corrected = list(initializer.centroid_xy)
-    definitions = (
-        (
-            "centroid-x",
-            initializer.centroid_xy[0],
-            initializer.covariance_xx_pixels_squared,
-            1,
-        ),
-        (
-            "centroid-y",
-            initializer.centroid_xy[1],
-            initializer.covariance_yy_pixels_squared,
-            2,
-        ),
-    )
-    bound_parameters = set(candidate.diagnostics.bound_parameters)
-    corrected_any = False
-    for name, observed, variance, parameter_index in definitions:
-        if name not in bound_parameters:
-            corrected[parameter_index - 1] = float(
-                candidate.full_parameters[parameter_index]
-            )
-            continue
-        at_lower = np.isclose(
-            candidate.full_parameters[parameter_index],
-            lower[parameter_index],
-            rtol=0.0,
-            atol=1e-10,
-        )
-        if at_lower:
-            location = _upper_truncated_normal_location(
-                -observed,
-                variance,
-                -float(lower[parameter_index]),
-                config.maximum_sigma_pixels,
-            )
-            location = None if location is None else -location
-        else:
-            location = _upper_truncated_normal_location(
-                observed,
-                variance,
-                float(upper[parameter_index]),
-                config.maximum_sigma_pixels,
-            )
-        if location is None:
-            return None
-        corrected[parameter_index - 1] = location
-        corrected_any = True
-    return (
-        (float(corrected[0]), float(corrected[1])) if corrected_any else None
-    )
-
-
-def _context_position_estimate(  # noqa: PLR0913
-    compact: CompactMomentInput,
-    region: DeblendedRegion,
-    moment: ValidMomentMeasurement,
-    geometry: CompactMeasurementGeometry,
-    config: CompactGaussianFitConfig,
-    *,
-    initial: npt.NDArray[np.float64],
-    lower: npt.NDArray[np.float64],
-    upper: npt.NDArray[np.float64],
-    fixed_background: bool,
-    array_bounds: ImageBounds,
-) -> GaussianPositionEstimate | None:
-    """Fit a full-context centroid independently of owned morphology."""
-    if config.position_estimator != "bounded-context-free":
-        return None
-    labels = np.asarray(compact.region_labels)
-    context_pixels = np.asarray(compact.valid_pixels) & (
-        (labels == 0) | (labels == region.region_label)
-    )
-    samples = _fit_samples_from_mask(
-        compact,
-        context_pixels,
-        array_bounds,
-        geometry,
-        config,
-    )
-    candidate = _fit_candidate(
-        samples,
-        _free_model_spec(
-            identity="free-elliptical",
-            initial=initial,
-            lower=lower,
-            upper=upper,
-            fixed_background=fixed_background,
-        ),
-        fallback_reason=None,
-    )
-    covariance = candidate.covariance
-    if not candidate.success or covariance is None:
-        return None
-    centroid = _truncated_moment_centroid(
-        moment,
-        candidate,
-        lower,
-        upper,
-        config,
-    )
-    estimator: Literal[
-        "bounded-context-free",
-        "bounded-context-truncation-refit",
-    ] = "bounded-context-free"
-    if centroid is not None:
-        retry_initial = np.asarray(initial, dtype=np.float64).copy()
-        retry_lower = np.asarray(lower, dtype=np.float64).copy()
-        retry_upper = np.asarray(upper, dtype=np.float64).copy()
-        retry_initial[1:3] = centroid
-        margin = max(config.center_margin_pixels, 0.5)
-        retry_lower[1:3] = np.minimum(
-            retry_lower[1:3] - margin,
-            np.asarray(centroid, dtype=np.float64) - margin,
-        )
-        retry_upper[1:3] = np.maximum(
-            retry_upper[1:3] + margin,
-            np.asarray(centroid, dtype=np.float64) + margin,
-        )
-        retry = _fit_candidate(
-            samples,
-            _free_model_spec(
-                identity="free-elliptical",
-                initial=retry_initial,
-                lower=retry_lower,
-                upper=retry_upper,
-                fixed_background=fixed_background,
-            ),
-            fallback_reason=None,
-        )
-        if (
-            not retry.success
-            or retry.covariance is None
-            or not _numerically_valid(retry, config)
-            or not _identifiable(retry, config)
-        ):
-            return None
-        candidate = retry
-        covariance = retry.covariance
-        centroid = (
-            float(retry.full_parameters[1]),
-            float(retry.full_parameters[2]),
-        )
-        estimator = "bounded-context-truncation-refit"
-    else:
-        if not _numerically_valid(candidate, config) or not _identifiable(
-            candidate,
-            config,
-        ):
-            return None
-        centroid = (
-            float(candidate.full_parameters[1]),
-            float(candidate.full_parameters[2]),
-        )
-    try:
-        return GaussianPositionEstimate(
-            centroid_xy=centroid,
-            covariance_xx_pixels_squared=float(covariance[1, 1]),
-            covariance_xy_pixels_squared=float(covariance[1, 2]),
-            covariance_yy_pixels_squared=float(covariance[2, 2]),
-            estimator=estimator,
-        )
-    except ValueError:
-        return None
-
-
-def _centroid_constrained_retry(  # noqa: PLR0913
-    samples: _FitSamples,
-    *,
-    free: _FitCandidate,
-    constrained: _FitCandidate,
-    fallback_reason: _FallbackReason,
-    retry_centroid_xy: tuple[float, float] | None,
-    initial: npt.NDArray[np.float64],
-    lower: npt.NDArray[np.float64],
-    upper: npt.NDArray[np.float64],
-    fixed_background: bool,
-) -> _FitCandidate | None:
-    """Retry an unidentifiable free shape at a stable template centroid."""
-    if fallback_reason not in {
-        "free-model-bound-contact",
-        "free-model-ill-conditioned",
-    }:
-        return None
-    config = samples.config
-    if not _stable_centroid_retry_template(constrained, config):
-        return None
-    constrained_parameters = constrained.full_parameters
-    forced_center_tolerance = 1e-7
-    retry_center = np.asarray(
-        retry_centroid_xy if retry_centroid_xy is not None else initial[1:3],
-        dtype=np.float64,
-    )
-    center_x, center_y = retry_center
-    forced_initial = np.asarray(
-        [
-            constrained_parameters[0],
-            center_x,
-            center_y,
-            initial[3],
-            initial[4],
-            initial[5],
-            constrained_parameters[6],
-        ],
-        dtype=np.float64,
-    )
-    forced_lower = np.asarray(lower, dtype=np.float64).copy()
-    forced_upper = np.asarray(upper, dtype=np.float64).copy()
-    forced_lower[1:3] = retry_center - forced_center_tolerance
-    forced_upper[1:3] = retry_center + forced_center_tolerance
-    free_indices = np.arange(6 if fixed_background else 7, dtype=np.int64)
-
-    def expand(
-        parameters: npt.NDArray[np.float64],
-    ) -> npt.NDArray[np.float64]:
-        if fixed_background:
-            return np.asarray([*parameters, 0.0], dtype=np.float64)
-        return np.asarray(parameters, dtype=np.float64)
-
-    forced = _fit_candidate(
-        samples,
-        _ModelSpec(
-            identity="centroid-constrained-elliptical",
-            parameter_names=(
-                _CENTROID_CONSTRAINED_FIXED_BACKGROUND_PARAMETER_NAMES
-                if fixed_background
-                else _CENTROID_CONSTRAINED_PARAMETER_NAMES
-            ),
-            initial=forced_initial[free_indices],
-            lower=forced_lower[free_indices],
-            upper=forced_upper[free_indices],
-            expand=expand,
-            full_parameter_indices=tuple(int(item) for item in free_indices),
-        ),
-        fallback_reason=fallback_reason,
-    )
-    beam_covariance = samples.geometry.restoring_beam_covariance_pixels_squared
-    assert beam_covariance is not None
-    forced_reason = _free_fallback_reason(
-        forced,
-        beam_covariance,
-        config,
-    )
-    if forced_reason is None or (
-        forced_reason == "free-model-not-significantly-extended"
-        and (
-            not _identifiable(constrained, config)
-            or _free_preferred_by_bic(forced, constrained, samples)
-        )
-    ):
-        return _with_rejected_model(forced, free)
-    return None
 
 
 def _unavailable_fit(
@@ -1378,7 +890,6 @@ def _unavailable_fit(
 def _valid_fit_result(
     context: _FitPublicationContext,
     candidate: _FitCandidate,
-    position_estimate: GaussianPositionEstimate | None = None,
 ) -> ValidCompactGaussianFit:
     """Publish one scientifically selected nested-model candidate."""
     compact = context.compact
@@ -1470,7 +981,6 @@ def _valid_fit_result(
                 candidate.diagnostics.point_estimator_fallback_reason
                 is not None,
             ),
-            ("bounded-context-position", position_estimate is not None),
             (
                 "local-rms-region-mean-fallback",
                 local_rms_region_mean_fallback,
@@ -1484,7 +994,6 @@ def _valid_fit_result(
         uncertainty=uncertainty,
         diagnostics=candidate.diagnostics,
         quality_flags=flags,
-        position_estimate=position_estimate,
         association_aperture=_association_aperture_photometry(
             compact,
             context.region,
@@ -1681,8 +1190,6 @@ def _discrete_aperture_model_weight(
 def _selected_fit_result(
     context: _FitPublicationContext,
     candidate: _FitCandidate,
-    position_estimate: GaussianPositionEstimate | None = None,
-    component_candidate: _FitCandidate | None = None,
 ) -> CompactGaussianFitResult:
     """Publish or explicitly fail one scientifically selected candidate."""
     moment = context.moment
@@ -1704,263 +1211,7 @@ def _selected_fit_result(
             diagnostics=candidate.diagnostics,
             quality_flags=("fit-invalid-result", *flags),
         )
-    selected = _valid_fit_result(context, candidate, position_estimate)
-    if component_candidate is None:
-        return selected
-    if (
-        not component_candidate.success
-        or not _numerically_valid(component_candidate, context.config)
-        or not _identifiable(component_candidate, context.config)
-    ):
-        return selected
-    component = _valid_fit_result(context, component_candidate)
-    return replace(
-        selected,
-        gaussian_component_fit=GaussianComponentFit(
-            parameters=component.parameters,
-            uncertainty=component.uncertainty,
-            diagnostics=component.diagnostics,
-            quality_flags=component.quality_flags,
-        ),
-    )
-
-
-def fit_compact_gaussian(
-    compact: CompactMomentInput,
-    region: DeblendedRegion,
-    moment: CompactMomentMeasurement,
-    geometry: CompactMeasurementGeometry,
-    config: CompactGaussianFitConfig,
-) -> CompactGaussianFitResult:
-    """Fit every eligible exact region with bounded SciPy TRF least squares."""
-    unavailable = _unavailable_fit(moment, config)
-    if unavailable is not None:
-        return unavailable
-    valid_moment = cast(ValidMomentMeasurement, moment)
-    if (
-        valid_moment.target.object_kind != "deblended-region"
-        or valid_moment.target.object_id != region.region_id
-    ):
-        raise ValueError("fit moment does not identify the requested region")
-    publication = _FitPublicationContext(
-        compact=compact,
-        region=region,
-        moment=valid_moment,
-        geometry=geometry,
-        config=config,
-    )
-    labels = np.asarray(compact.region_labels)
-    membership = labels == region.region_label
-    support = (
-        membership
-        if config.pixel_support == "owned-region"
-        else membership | (labels == 0)
-    )
-    fit_pixels = np.asarray(compact.valid_pixels) & support
-    array_bounds = getattr(compact, "array_bounds", compact.island.bounds)
-    samples = _fit_samples_from_mask(
-        compact,
-        fit_pixels,
-        array_bounds,
-        geometry,
-        config,
-    )
-    values = samples.values
-    rms = samples.rms
-    initializer = valid_moment.initializer
-    initial = np.asarray(
-        [
-            initializer.amplitude_jy_per_beam,
-            initializer.centroid_xy[0],
-            initializer.centroid_xy[1],
-            np.clip(
-                initializer.major_sigma_pixels,
-                config.minimum_sigma_pixels,
-                config.maximum_sigma_pixels,
-            ),
-            np.clip(
-                initializer.minor_sigma_pixels,
-                config.minimum_sigma_pixels,
-                config.maximum_sigma_pixels,
-            ),
-            np.deg2rad(initializer.major_axis_angle_degrees),
-            0.0,
-        ],
-        dtype=np.float64,
-    )
-    lower = np.asarray(
-        [
-            np.finfo(np.float64).tiny,
-            max(
-                region.bounds.x_start - 0.5 - config.center_margin_pixels,
-                array_bounds.x_start - 0.5,
-            ),
-            max(
-                region.bounds.y_start - 0.5 - config.center_margin_pixels,
-                array_bounds.y_start - 0.5,
-            ),
-            config.minimum_sigma_pixels,
-            config.minimum_sigma_pixels,
-            -pi,
-            -config.maximum_background_offset_sigma * float(np.median(rms)),
-        ],
-        dtype=np.float64,
-    )
-    upper = np.asarray(
-        [
-            max(values) * config.maximum_amplitude_factor,
-            min(
-                region.bounds.x_stop - 0.5 + config.center_margin_pixels,
-                array_bounds.x_stop - 0.5,
-            ),
-            min(
-                region.bounds.y_stop - 0.5 + config.center_margin_pixels,
-                array_bounds.y_stop - 0.5,
-            ),
-            config.maximum_sigma_pixels,
-            config.maximum_sigma_pixels,
-            pi,
-            config.maximum_background_offset_sigma * float(np.median(rms)),
-        ],
-        dtype=np.float64,
-    )
-
-    fixed_background = config.background_model == "fixed-zero"
-
-    free = _fit_candidate(
-        samples,
-        _free_model_spec(
-            identity="free-elliptical",
-            initial=initial,
-            lower=lower,
-            upper=upper,
-            fixed_background=fixed_background,
-        ),
-        fallback_reason=None,
-    )
-    position_estimate = _context_position_estimate(
-        compact,
-        region,
-        valid_moment,
-        geometry,
-        config,
-        initial=initial,
-        lower=lower,
-        upper=upper,
-        fixed_background=fixed_background,
-        array_bounds=array_bounds,
-    )
-    beam_covariance = geometry.restoring_beam_covariance_pixels_squared
-    if config.model_selection == "free-only" or beam_covariance is None:
-        return _selected_fit_result(
-            publication,
-            free,
-            position_estimate,
-        )
-
-    fallback_reason = _free_fallback_reason(free, beam_covariance, config)
-    if fallback_reason is None:
-        return _selected_fit_result(
-            publication,
-            free,
-            position_estimate,
-        )
-
-    beam_major, beam_minor, beam_theta = _beam_shape(beam_covariance)
-
-    def expand_constrained(
-        parameters: npt.NDArray[np.float64],
-    ) -> npt.NDArray[np.float64]:
-        amplitude, center_x, center_y = parameters[:3]
-        background = 0.0 if fixed_background else parameters[3]
-        return np.asarray(
-            [
-                amplitude,
-                center_x,
-                center_y,
-                beam_major,
-                beam_minor,
-                beam_theta,
-                background,
-            ],
-            dtype=np.float64,
-        )
-
-    constrained_indices = np.asarray(
-        [0, 1, 2] if fixed_background else [0, 1, 2, 6],
-        dtype=np.int64,
-    )
-    constrained = _fit_candidate(
-        samples,
-        _ModelSpec(
-            identity="beam-constrained",
-            parameter_names=(
-                _CONSTRAINED_FIXED_BACKGROUND_PARAMETER_NAMES
-                if fixed_background
-                else _CONSTRAINED_PARAMETER_NAMES
-            ),
-            initial=initial[constrained_indices],
-            lower=lower[constrained_indices],
-            upper=upper[constrained_indices],
-            expand=expand_constrained,
-            full_parameter_indices=tuple(
-                int(item) for item in constrained_indices
-            ),
-        ),
-        fallback_reason=fallback_reason,
-    )
-    forced = _centroid_constrained_retry(
-        samples,
-        free=free,
-        constrained=constrained,
-        fallback_reason=fallback_reason,
-        retry_centroid_xy=_truncated_moment_centroid(
-            valid_moment,
-            free,
-            lower,
-            upper,
-            config,
-        ),
-        initial=initial,
-        lower=lower,
-        upper=upper,
-        fixed_background=fixed_background,
-    )
-    constrained_failed = (
-        not constrained.success
-        or not _numerically_valid(constrained, config)
-        or not _identifiable(constrained, config)
-    )
-    retain_free = fallback_reason == (
-        "free-model-not-significantly-extended"
-    ) and (
-        constrained_failed
-        or _free_preferred_by_bic(free, constrained, samples)
-    )
-    selected = (
-        forced
-        if forced is not None
-        else _with_rejected_model(free, constrained)
-        if retain_free
-        else _with_rejected_model(constrained, free)
-    )
-    component_candidate = (
-        free
-        if fallback_reason == "free-model-not-significantly-extended"
-        and selected.diagnostics.model_identity != "free-elliptical"
-        and _significantly_extended(
-            free,
-            beam_covariance,
-            significance_sigma=(config.component_extension_significance_sigma),
-        )
-        else None
-    )
-    return _selected_fit_result(
-        publication,
-        selected,
-        position_estimate,
-        component_candidate,
-    )
+    return _valid_fit_result(context, candidate)
 
 
 def _mixture_initial_bounds(

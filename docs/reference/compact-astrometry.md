@@ -11,9 +11,7 @@ semantics.
 
 Hebog reconstructs an Astropy celestial WCS from the serializable image
 metadata and uses zero-based continuous `(x, y)` pixel coordinates. A centred
-finite difference at the explicit position estimate, or the selected fitted
-centroid when no separate estimator is configured, produces a local
-two-by-two Jacobian
+finite difference at the fitted centroid produces a local two-by-two Jacobian
 from pixel offsets to east/north tangent-plane offsets in degrees. That same
 Jacobian transforms:
 
@@ -90,33 +88,22 @@ and tests it against governed truth.
 
 ## Uncertainty status
 
-The position estimator's nonsingular covariance can be transformed into
+The selected fit's nonsingular centroid covariance can be transformed into
 one-sigma position errors. Both are great-circle angles, because the local
 Jacobian is east/north: `E_RA` is not divided by cos(dec), which matches
 PyBDSF and the fixed angle Rapthor's astrometry check compares it with.
-Flux errors continue to use the selected
-morphology/photometry fit covariance. A declared synthesized-beam correlation
-function produces
-generalized OLS sandwich errors flagged
+Flux errors use the same fit's covariance. A declared synthesized-beam
+correlation function produces generalized OLS sandwich errors flagged
 `correlated-noise-sandwich-errors`; an absent correlation model retains the
 `formal-independent-pixel-errors` fallback. Shape uncertainties remain null
 and carry `shape-uncertainty-unavailable`. If the fit covariance is
 unavailable, position and flux errors are also null and carry
 `position-flux-uncertainty-unavailable`; zero never means unknown.
 
-The bounded-context position path may use a truncated-moment inversion to
-initialize a retry when the first likelihood fit reaches an image edge. The
-published position and covariance then both come from that widened,
-bounded-context likelihood retry. If the retry is not identifiable, Hebog
-falls back to the selected fit rather than attaching the first fit's covariance
-to a different corrected centroid. Already-identifiable edge fits remain
-unchanged; the correction is not applied merely to force a calibration result.
-
-For an unresolved source, the catalogue reports peak flux density as its best
-integrated-flux estimate and uses the peak-flux uncertainty. This avoids the
-well-known upward width/area noise bias in low-SNR free Gaussian fits. For a
-resolved source, the infinite-plane fitted-Gaussian integral remains the
-catalogue value, but its propagated uncertainty is report-only.
+The catalogue publishes a component's infinite-plane fitted-Gaussian integral
+as its integrated flux, resolved or not, so that a source's summed flux
+follows PyBDSF's definition. For a resolved component that integral's
+propagated uncertainty is report-only.
 
 On the paired regression population of 1,600 predeclared point sources and
 200 predeclared clear extensions, point-source statistics span

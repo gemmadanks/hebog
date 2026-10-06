@@ -27,7 +27,7 @@ from hebog.algorithms.astrometry import (
     moment_equivalent_gaussian_shape,
     restoring_beam_in_icrs,
     restoring_beams_in_icrs,
-    transform_compact_gaussian_fit,
+    transform_compact_fit_at_tangent,
 )
 from hebog.data_models.astrometry import CelestialCompactGaussianFit
 from hebog.data_models.catalogues import GaussianShape
@@ -35,7 +35,6 @@ from hebog.data_models.fitting import (
     FittedGaussianPixelParameters,
     GaussianFitDiagnostics,
     GaussianFitUncertainty,
-    GaussianPositionEstimate,
     ValidCompactGaussianFit,
 )
 from hebog.data_models.images import CelestialWcs, ImageMetadata, RestoringBeam
@@ -89,14 +88,13 @@ def _metadata(
     )
 
 
-def _fit(  # noqa: PLR0913
+def _fit(
     *,
     centroid_xy: tuple[float, float] = (49.0, 39.0),
     major_sigma_pixels: float = 2.2,
     minor_sigma_pixels: float = 1.4,
     angle_degrees: float = 0.0,
     uncertainty: GaussianFitUncertainty | None = None,
-    position_estimate: GaussianPositionEstimate | None = None,
 ) -> ValidCompactGaussianFit:
     """Return a valid pixel fit with optional formal position/flux errors."""
     target = MomentTarget(
@@ -146,38 +144,21 @@ def _fit(  # noqa: PLR0913
             parameters_at_bound=False,
         ),
         quality_flags=(),
-        position_estimate=position_estimate,
     )
 
 
-def test_explicit_position_estimator_owns_position_and_covariance() -> None:
-    """Position-only context evidence does not alter flux or morphology."""
-    estimate = GaussianPositionEstimate(
-        centroid_xy=(50.0, 40.0),
-        covariance_xx_pixels_squared=0.01,
-        covariance_xy_pixels_squared=0.0,
-        covariance_yy_pixels_squared=0.04,
+def _transform(
+    fit: ValidCompactGaussianFit,
+    metadata: ImageMetadata,
+    **policy: float,
+) -> CelestialCompactGaussianFit:
+    """Transform one fit at the tangent plane of its published position."""
+    return transform_compact_fit_at_tangent(
+        fit,
+        metadata.beam,
+        local_tangent_plane_transform(metadata, fit.parameters.centroid_xy),
+        **policy,
     )
-
-    result = transform_compact_gaussian_fit(
-        _fit(position_estimate=estimate),
-        _metadata(),
-    )
-    expected = local_tangent_plane_transform(_metadata(), (50.0, 40.0))
-
-    assert result.position.right_ascension_degrees == pytest.approx(
-        expected.position.right_ascension_degrees
-    )
-    assert result.position.declination_degrees == pytest.approx(
-        expected.position.declination_degrees
-    )
-    # A great-circle error, not an error on the RA coordinate: no cos(dec).
-    assert result.position.right_ascension_error_degrees == pytest.approx(
-        0.0001,
-        rel=1e-5,
-    )
-    assert result.position.declination_error_degrees == pytest.approx(0.0002)
-    assert result.flux.peak_flux_jy_per_beam == 0.01
 
 
 def test_local_jacobian_handles_signed_unequal_rotated_wcs_and_ra_wrap() -> (
@@ -288,9 +269,7 @@ def test_transform_uses_xy_centers_east_of_north_and_local_flux_area() -> None:
         )
     )
 
-    result = transform_compact_gaussian_fit(
-        _fit(uncertainty=uncertainty), metadata
-    )
+    result = _transform(_fit(uncertainty=uncertainty), metadata)
 
     assert isinstance(result, CelestialCompactGaussianFit)
     assert result.fitted_shape.major_fwhm_degrees == pytest.approx(
@@ -326,7 +305,7 @@ def test_transform_applies_integrated_flux_bias_correction() -> None:
         integrated_flux_error_jy=0.001,
         integrated_flux_bias_correction_sigma=0.075,
     )
-    uncorrected = transform_compact_gaussian_fit(
+    uncorrected = _transform(
         _fit(
             uncertainty=replace(
                 uncertainty,
@@ -336,7 +315,7 @@ def test_transform_applies_integrated_flux_bias_correction() -> None:
         _metadata(),
     )
 
-    corrected = transform_compact_gaussian_fit(
+    corrected = _transform(
         _fit(uncertainty=uncertainty),
         _metadata(),
     )
@@ -367,7 +346,7 @@ def test_transform_rejects_non_positive_bias_corrected_flux() -> None:
     )
 
     with pytest.raises(ValueError, match="non-positive flux"):
-        transform_compact_gaussian_fit(
+        _transform(
             _fit(uncertainty=uncertainty),
             _metadata(),
         )
@@ -499,7 +478,7 @@ def test_axis_uncertainty_censors_only_unidentified_minor_axis() -> None:
         ),
     )
 
-    result = transform_compact_gaussian_fit(
+    result = _transform(
         _fit(uncertainty=uncertainty),
         _metadata(),
         extension_significance_sigma=2.0,
@@ -516,7 +495,7 @@ def test_axis_uncertainty_censors_only_unidentified_minor_axis() -> None:
 
 def test_missing_formal_covariance_produces_null_errors_and_flag() -> None:
     """Unknown position and flux errors remain absent rather than zero."""
-    result = transform_compact_gaussian_fit(_fit(), _metadata())
+    result = _transform(_fit(), _metadata())
 
     assert result.position.right_ascension_error_degrees is None
     assert result.position.declination_error_degrees is None
@@ -538,7 +517,7 @@ def test_fitted_shape_errors_follow_native_covariance_across_pa_wrap(
         integrated_flux_error_jy=0.0001,
         shape_parameter_covariance=(0.05**2, 0.0, 0.0, 0.03**2, 0.0, 0.01**2),
     )
-    result = transform_compact_gaussian_fit(
+    result = _transform(
         _fit(angle_degrees=angle, uncertainty=uncertainty),
         _metadata(),
     )
@@ -611,7 +590,7 @@ def test_extension_requires_two_sigma_flux_ratio_significance() -> None:
         integrated_flux_error_jy=0.02,
     )
 
-    result = transform_compact_gaussian_fit(
+    result = _transform(
         _fit(uncertainty=uncertain),
         _metadata(),
         extension_significance_sigma=2.0,
@@ -644,7 +623,7 @@ def test_default_extension_policy_requires_five_sigma() -> None:
         integrated_flux_error_jy=0.005,
     )
 
-    result = transform_compact_gaussian_fit(
+    result = _transform(
         _fit(uncertainty=uncertainty),
         _metadata(),
     )
@@ -673,7 +652,7 @@ def test_extension_ratio_uses_amplitude_integral_covariance() -> None:
         ),
     )
 
-    result = transform_compact_gaussian_fit(
+    result = _transform(
         _fit(uncertainty=uncertainty),
         _metadata(),
     )
@@ -693,7 +672,7 @@ def test_geometrically_unresolved_fit_remains_unresolved() -> None:
         integrated_flux_error_jy=0.0002,
     )
 
-    result = transform_compact_gaussian_fit(
+    result = _transform(
         _fit(
             major_sigma_pixels=1.0,
             minor_sigma_pixels=0.8,
@@ -729,7 +708,7 @@ def test_significant_extension_retains_fitted_total_flux_and_shape() -> None:
         ),
     )
 
-    result = transform_compact_gaussian_fit(
+    result = _transform(
         _fit(uncertainty=precise),
         _metadata(),
         extension_significance_sigma=2.0,
@@ -750,7 +729,7 @@ def test_missing_shape_covariance_makes_deconvolution_unavailable() -> None:
         integrated_flux_error_jy=0.0001,
     )
 
-    result = transform_compact_gaussian_fit(
+    result = _transform(
         _fit(uncertainty=uncertainty),
         _metadata(),
         extension_significance_sigma=2.0,
@@ -768,7 +747,7 @@ def test_missing_candidate_uncertainty_makes_classification_unavailable() -> (
     """A noisy candidate without flux errors cannot claim extension."""
     fit = replace(_fit(), quality_flags=("uncertainty-unavailable",))
 
-    result = transform_compact_gaussian_fit(fit, _metadata())
+    result = _transform(fit, _metadata())
 
     assert result.deconvolution_status == "unavailable"
     assert result.deconvolved_shape is None
@@ -781,7 +760,7 @@ def test_transform_rejects_invalid_extension_significance(
 ) -> None:
     """The catalogue boundary uses an explicit positive finite sigma rule."""
     with pytest.raises(ValueError, match="extension_significance_sigma"):
-        transform_compact_gaussian_fit(
+        _transform(
             _fit(),
             _metadata(),
             extension_significance_sigma=value,
@@ -809,16 +788,9 @@ def test_deconvolution_rejects_invalid_relative_tolerance(
         )
 
 
-def test_astrometry_rejects_wrong_unit_or_frame() -> None:
-    """The reviewed compact scope never infers units or coordinate frames."""
+def test_astrometry_rejects_a_frame_other_than_icrs() -> None:
+    """The reviewed compact scope never infers a coordinate frame."""
     metadata = _metadata()
-    wrong_unit = ImageMetadata(
-        shape_yx=metadata.shape_yx,
-        unit="K",
-        beam=metadata.beam,
-        celestial_wcs=metadata.celestial_wcs,
-        reference_frequency_hz=metadata.reference_frequency_hz,
-    )
     wrong_frame = ImageMetadata(
         shape_yx=metadata.shape_yx,
         unit=metadata.unit,
@@ -830,10 +802,8 @@ def test_astrometry_rejects_wrong_unit_or_frame() -> None:
         reference_frequency_hz=metadata.reference_frequency_hz,
     )
 
-    with pytest.raises(ValueError, match="Jy/beam"):
-        transform_compact_gaussian_fit(_fit(), wrong_unit)
     with pytest.raises(ValueError, match="ICRS"):
-        transform_compact_gaussian_fit(_fit(), wrong_frame)
+        _transform(_fit(), wrong_frame)
 
 
 def test_header_text_rebuilds_a_bit_identical_celestial_wcs() -> None:
@@ -1018,13 +988,14 @@ def test_position_errors_are_great_circle_angles(declination: float) -> None:
     1/cos(dec), which is what pinned PyBDSF `c70103be3` does not do and what
     Rapthor's fixed 2-arcsecond astrometry cut does not expect.
     """
-    result = transform_compact_gaussian_fit(
+    result = _transform(
         _fit(
-            position_estimate=GaussianPositionEstimate(
-                centroid_xy=(49.0, 39.0),
-                covariance_xx_pixels_squared=0.25,
-                covariance_xy_pixels_squared=0.0,
-                covariance_yy_pixels_squared=0.25,
+            uncertainty=GaussianFitUncertainty(
+                amplitude_error_jy_per_beam=0.0005,
+                centroid_covariance_xx_pixels_squared=0.25,
+                centroid_covariance_xy_pixels_squared=0.0,
+                centroid_covariance_yy_pixels_squared=0.25,
+                integrated_flux_error_jy=0.001,
             )
         ),
         _metadata(reference_sky_degrees=(180.0, declination)),

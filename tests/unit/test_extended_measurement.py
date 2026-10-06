@@ -13,13 +13,14 @@ import pytest
 from scipy.ndimage import label as ndimage_label
 
 from hebog.algorithms.extended_measurement import (
+    DetectedSegmentPosition,
     SegmentWindow,
     assign_persistent_source_support,
     assign_seeded_multiscale_support,
     clean_detected_segment_labels,
     expand_detected_segment_labels,
     expand_source_measurement_labels,
-    measure_detected_segment_position,
+    measure_segment_position_pixels,
     nearest_source_seed_labels,
     refine_multiscale_segment_labels,
     refine_persistent_publication_labels,
@@ -981,6 +982,16 @@ def test_segment_label_transforms_reject_ambiguous_planes() -> None:
     assert not empty.any()
 
 
+def _segment_position(
+    signal: npt.NDArray[np.float64], support: npt.NDArray[np.bool_]
+) -> DetectedSegmentPosition:
+    """Measure one segment from its support pixels in raster order."""
+    y_pixels, x_pixels = np.nonzero(support)
+    return measure_segment_position_pixels(
+        y_pixels, x_pixels, signal[support], plane_shape_yx=signal.shape
+    )
+
+
 def test_detected_segment_position_uses_only_original_supported_pixels() -> (
     None
 ):
@@ -1000,7 +1011,7 @@ def test_detected_segment_position_uses_only_original_supported_pixels() -> (
         )
     )
 
-    estimate = measure_detected_segment_position(signal, support)
+    estimate = _segment_position(signal, support)
 
     assert estimate.available is True
     assert estimate.centroid_xy == pytest.approx((5.0 / 3.0, 11.0 / 9.0))
@@ -1015,7 +1026,7 @@ def test_detected_segment_peak_ties_use_row_major_first() -> None:
     signal = np.asarray(((0.0, 4.0), (4.0, 0.0)))
     support = np.ones(signal.shape, dtype=np.bool_)
 
-    estimate = measure_detected_segment_position(signal, support)
+    estimate = _segment_position(signal, support)
 
     assert estimate.peak_position_xy == (1, 0)
 
@@ -1024,10 +1035,8 @@ def test_detected_segment_position_reports_typed_unavailability() -> None:
     """Empty and non-positive segments do not emit invented coordinates."""
     signal = np.ones((2, 2), dtype=np.float64)
 
-    empty = measure_detected_segment_position(
-        signal, np.zeros(signal.shape, dtype=np.bool_)
-    )
-    nonpositive = measure_detected_segment_position(
+    empty = _segment_position(signal, np.zeros(signal.shape, dtype=np.bool_))
+    nonpositive = _segment_position(
         -signal, np.ones(signal.shape, dtype=np.bool_)
     )
 
@@ -1039,81 +1048,16 @@ def test_detected_segment_position_reports_typed_unavailability() -> None:
     assert nonpositive.unavailable_reason == "nonpositive-segment-flux"
 
 
-def test_detected_segment_position_rejects_bad_array_contract() -> None:
-    """Only aligned two-dimensional numeric pixels enter the estimator."""
-    with pytest.raises(ValueError, match="aligned two-dimensional"):
-        measure_detected_segment_position(
-            np.ones((2, 2)), np.ones((2, 1), dtype=np.bool_)
-        )
-    with pytest.raises(ValueError, match="boolean"):
-        measure_detected_segment_position(
-            np.ones((2, 2)),
-            cast(
-                npt.NDArray[np.bool_],
-                np.ones((2, 2), dtype=np.int64),
-            ),
-        )
-
-
-def test_segment_position_within_bounds_matches_the_whole_plane() -> None:
-    """A window over the segment's support changes nothing it reports.
-
-    Scanning the whole plane for each segment costs image size times
-    segment count. The window bounds that work, and the estimate must stay
-    identical, including the pixel frame and tie-breaking.
-    """
-    generator = np.random.default_rng(2026091902)
-    signal = generator.uniform(-0.2, 1.0, (64, 96))
-    support = np.zeros(signal.shape, dtype=np.bool_)
-    support[40:47, 70:79] = generator.random((7, 9)) < 0.7
-    support[41, 71] = True
-    signal[np.nonzero(support)[0][0], np.nonzero(support)[1][0]] = 5.0
-
-    crop = (slice(40, 47), slice(70, 79))
-    whole_plane = measure_detected_segment_position(signal, support)
-    windowed = measure_detected_segment_position(
-        signal[crop],
-        support[crop],
-        window=SegmentWindow(origin_yx=(40, 70), plane_shape_yx=signal.shape),
-    )
-
-    assert whole_plane.available is True
-    assert windowed == whole_plane
-
-
-def test_segment_position_window_must_lie_inside_the_plane() -> None:
-    signal = np.ones((4, 5), dtype=np.float64)
-    support = np.ones(signal.shape, dtype=np.bool_)
+def test_segment_window_must_lie_inside_its_plane() -> None:
+    """A window may neither start before its plane nor leave it."""
     with pytest.raises(ValueError, match="stay inside its plane"):
-        measure_detected_segment_position(
-            signal,
-            support,
-            window=SegmentWindow(
-                origin_yx=(2, 0), plane_shape_yx=signal.shape
-            ),
+        SegmentWindow(origin_yx=(2, 0), plane_shape_yx=(4, 5)).require_holds(
+            (4, 5)
         )
     with pytest.raises(ValueError, match="non-negative"):
-        measure_detected_segment_position(
-            signal,
-            support,
-            window=SegmentWindow(origin_yx=(-1, 0), plane_shape_yx=(5, 5)),
+        SegmentWindow(origin_yx=(-1, 0), plane_shape_yx=(5, 5)).require_holds(
+            (4, 5)
         )
-
-
-def test_segment_position_in_a_window_keeps_the_plane_pixel_frame() -> None:
-    """Coordinates name pixels of the plane, not of the window."""
-    signal = np.ones((4, 6), dtype=np.float64)
-    support = np.ones((1, 1), dtype=np.bool_)
-
-    windowed = measure_detected_segment_position(
-        signal[3:4, 5:6],
-        support,
-        window=SegmentWindow(origin_yx=(3, 5), plane_shape_yx=signal.shape),
-    )
-
-    assert windowed.support_pixel_count == 1
-    assert windowed.centroid_xy == pytest.approx((5.0, 3.0))
-    assert windowed.peak_position_xy == (5, 3)
 
 
 def test_connectivity_restores_owners_split_beyond_their_first_support() -> (

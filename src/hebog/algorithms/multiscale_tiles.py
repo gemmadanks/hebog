@@ -5,16 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from itertools import pairwise
 from math import ceil
-from numbers import Integral
-from typing import Literal, TypeVar
+from typing import TypeVar
 
 import numpy as np
 import numpy.typing as npt
 
-from hebog.algorithms.extended_measurement import (
-    extended_measurement_halo_pixels,
-    segment_refinement_halo_pixels,
-)
 from hebog.algorithms.multiscale import (
     BeamShapePixels,
     PreparedScaleInputs,
@@ -29,39 +24,10 @@ from hebog.algorithms.multiscale import (
     residual_atrous_scale_halos_pixels,
     scale_smoothing_halo_pixels,
 )
-from hebog.algorithms.multiscale_association import (
-    compact_context_halo_pixels,
-)
 from hebog.config import (
-    ExtendedEmissionMeasurementConfig,
     ResidualMultiscaleDetectionConfig,
 )
-from hebog.data_models.partitioning import PartitionManifest, TilePartition
-
-HaloStageName = Literal[
-    "matched-filter-seed",
-    "residual-b3-atrous",
-    "segment-labelling",
-    "segment-association",
-    "segment-refinement",
-    "cross-scale-association",
-    "compact-context",
-    "extended-measurement",
-    "combined-reconciliation",
-    "product-materialization",
-]
-HaloBasis = Literal[
-    "four-sigma-gaussian-kernel-radius",
-    "cumulative-b3-spline-support",
-    "boundary-summary-reconciliation",
-    "three-beam-residual-reconstruction-association-dilation",
-    "three-pixel-opening-influence-and-half-beam-recovery",
-    "reconciled-exact-support-records",
-    "half-beam-context-dilation",
-    "one-point-five-beam-nearest-owned-aperture",
-    "array-free-canonical-record-reduction",
-    "bounded-row-block-materialization",
-]
+from hebog.data_models.partitioning import TilePartition
 
 _FROZEN_SCALES: tuple[tuple[int, float], ...] = (
     (1, 1.0),
@@ -69,35 +35,9 @@ _FROZEN_SCALES: tuple[tuple[int, float], ...] = (
     (3, 4.0),
 )
 _FROZEN_FILTER_TRUNCATION_SIGMA = 4.0
-_FROZEN_MEASUREMENT_APERTURE_BEAMS = 1.5
 _FROZEN_SEGMENT_ASSOCIATION_BEAMS = 3.0
 _IMAGE_DIMENSIONS = 2
 _ArrayScalar = TypeVar("_ArrayScalar", bound=np.generic)
-
-
-@dataclass(frozen=True, slots=True)
-class StageHalo:
-    """One stage's worst-case interior read and admission evidence."""
-
-    stage_name: HaloStageName
-    halo_yx: tuple[int, int]
-    read_shape_yx: tuple[int, int]
-    read_pixel_count: int
-    admission_limit_pixels: int
-    basis: HaloBasis
-    scale_halos_pixels: tuple[int, ...] = ()
-
-
-@dataclass(frozen=True, slots=True)
-class StageHaloPlan:
-    """Complete pre-allocation halo plan for the frozen Rapthor profile."""
-
-    tile_core_shape_yx: tuple[int, int]
-    maximum_task_pixels: int
-    stages: tuple[StageHalo, ...]
-    maximum_halo_yx: tuple[int, int]
-    maximum_read_shape_yx: tuple[int, int]
-    maximum_read_pixel_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -198,27 +138,6 @@ def _residual_atrous_array_bytes(result: ResidualAtrousResult) -> int:
             result.scientifically_valid,
         )
     )
-
-
-def _validate_task_limit(maximum_task_pixels: int) -> None:
-    """Require one explicit positive global task-pixel limit."""
-    if (
-        isinstance(maximum_task_pixels, bool)
-        or not isinstance(maximum_task_pixels, Integral)
-        or maximum_task_pixels < 1
-    ):
-        raise ValueError("maximum_task_pixels must be a positive integer")
-
-
-def _validate_core_shape(tile_core_shape_yx: tuple[int, int]) -> None:
-    """Reject non-integral or empty tile cores before arithmetic."""
-    if len(tile_core_shape_yx) != _IMAGE_DIMENSIONS or any(
-        isinstance(value, bool) or not isinstance(value, Integral) or value < 1
-        for value in tile_core_shape_yx
-    ):
-        raise ValueError(
-            "tile_core_shape_yx must contain two positive integers"
-        )
 
 
 def _scale_filter_halos_pixels(
@@ -522,185 +441,4 @@ def evaluate_multiscale_filter_tile(
         read_pixel_count=partition.read_bounds.shape_yx[0]
         * partition.read_bounds.shape_yx[1],
         maximum_filter_evaluation_bytes=maximum_filter_evaluation_bytes,
-    )
-
-
-def _stage_halo(  # noqa: PLR0913
-    stage_name: HaloStageName,
-    *,
-    halo_pixels: int,
-    tile_core_shape_yx: tuple[int, int],
-    admission_limit_pixels: int,
-    basis: HaloBasis,
-    scale_halos_pixels: tuple[int, ...] = (),
-) -> StageHalo:
-    """Validate and record one stage's worst-case interior read."""
-    halo_yx = (halo_pixels, halo_pixels)
-    # Reuse the canonical geometry validator rather than allowing the halo
-    # planner to drift from the partition-manifest guardrail.
-    PartitionManifest.create(
-        image_shape_yx=tile_core_shape_yx,
-        tile_core_shape_yx=tile_core_shape_yx,
-        halo_yx=halo_yx,
-    )
-    read_shape_yx = (
-        tile_core_shape_yx[0] + 2 * halo_yx[0],
-        tile_core_shape_yx[1] + 2 * halo_yx[1],
-    )
-    read_pixel_count = read_shape_yx[0] * read_shape_yx[1]
-    if read_pixel_count > admission_limit_pixels:
-        raise ValueError(
-            f"{stage_name} requires {read_pixel_count} pixels but its "
-            f"admission limit is {admission_limit_pixels}"
-        )
-    return StageHalo(
-        stage_name=stage_name,
-        halo_yx=halo_yx,
-        read_shape_yx=read_shape_yx,
-        read_pixel_count=read_pixel_count,
-        admission_limit_pixels=admission_limit_pixels,
-        basis=basis,
-        scale_halos_pixels=scale_halos_pixels,
-    )
-
-
-def derive_stage_halo_plan(
-    beam: BeamShapePixels,
-    *,
-    tile_core_shape_yx: tuple[int, int],
-    maximum_task_pixels: int,
-    measurement_config: ExtendedEmissionMeasurementConfig,
-) -> StageHaloPlan:
-    """Derive and admit every frozen continuum stage before execution.
-
-    The returned sizes describe worst-case interior tiles. Image-edge reads
-    may be smaller because manifests clip halos to the logical image. Pixel
-    admission is the first bounded-memory guard; measured byte and workspace
-    evidence is recorded by the later Step 5 execution audit.
-    """
-    _validate_core_shape(tile_core_shape_yx)
-    _validate_task_limit(maximum_task_pixels)
-    if (
-        measurement_config.aperture_radius_beams
-        != _FROZEN_MEASUREMENT_APERTURE_BEAMS
-    ):
-        raise ValueError(
-            "stage halo planning requires the reviewed 1.5-beam aperture"
-        )
-    matched_halos = _scale_filter_halos_pixels(beam)
-    atrous_halos = residual_atrous_scale_halos_pixels()
-    measurement_limit = min(
-        maximum_task_pixels,
-        measurement_config.maximum_task_pixels,
-    )
-    definitions: tuple[
-        tuple[
-            HaloStageName,
-            int,
-            int,
-            HaloBasis,
-            tuple[int, ...],
-        ],
-        ...,
-    ] = (
-        (
-            "matched-filter-seed",
-            matched_halos[-1],
-            maximum_task_pixels,
-            "four-sigma-gaussian-kernel-radius",
-            matched_halos,
-        ),
-        (
-            "residual-b3-atrous",
-            atrous_halos[-1],
-            maximum_task_pixels,
-            "cumulative-b3-spline-support",
-            atrous_halos,
-        ),
-        (
-            "segment-labelling",
-            0,
-            maximum_task_pixels,
-            "boundary-summary-reconciliation",
-            (),
-        ),
-        (
-            "segment-association",
-            segment_association_halo_pixels(beam),
-            maximum_task_pixels,
-            "three-beam-residual-reconstruction-association-dilation",
-            (),
-        ),
-        (
-            "segment-refinement",
-            segment_refinement_halo_pixels(beam.major_fwhm_pixels),
-            maximum_task_pixels,
-            "three-pixel-opening-influence-and-half-beam-recovery",
-            (),
-        ),
-        (
-            "cross-scale-association",
-            0,
-            maximum_task_pixels,
-            "reconciled-exact-support-records",
-            (),
-        ),
-        (
-            "compact-context",
-            compact_context_halo_pixels(beam.major_fwhm_pixels),
-            maximum_task_pixels,
-            "half-beam-context-dilation",
-            (),
-        ),
-        (
-            "extended-measurement",
-            extended_measurement_halo_pixels(
-                measurement_config,
-                beam_major_fwhm_pixels=beam.major_fwhm_pixels,
-            ),
-            measurement_limit,
-            "one-point-five-beam-nearest-owned-aperture",
-            (),
-        ),
-        (
-            "combined-reconciliation",
-            0,
-            maximum_task_pixels,
-            "array-free-canonical-record-reduction",
-            (),
-        ),
-        (
-            "product-materialization",
-            0,
-            maximum_task_pixels,
-            "bounded-row-block-materialization",
-            (),
-        ),
-    )
-    stages = tuple(
-        _stage_halo(
-            stage_name,
-            halo_pixels=halo_pixels,
-            tile_core_shape_yx=tile_core_shape_yx,
-            admission_limit_pixels=admission_limit_pixels,
-            basis=basis,
-            scale_halos_pixels=scale_halos_pixels,
-        )
-        for (
-            stage_name,
-            halo_pixels,
-            admission_limit_pixels,
-            basis,
-            scale_halos_pixels,
-        ) in definitions
-    )
-    maximum_halo = max(stage.halo_yx[0] for stage in stages)
-    maximum_stage = max(stages, key=lambda stage: stage.read_pixel_count)
-    return StageHaloPlan(
-        tile_core_shape_yx=tile_core_shape_yx,
-        maximum_task_pixels=maximum_task_pixels,
-        stages=stages,
-        maximum_halo_yx=(maximum_halo, maximum_halo),
-        maximum_read_shape_yx=maximum_stage.read_shape_yx,
-        maximum_read_pixel_count=maximum_stage.read_pixel_count,
     )
