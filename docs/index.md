@@ -25,6 +25,8 @@ a Dask cluster that you already own.
 
 ## I am a pipeline developer or architect
 
+- [Progress against goals](reference/progress-against-goals.md): where
+  Hebog stands against its 1.0.0 definition, on one page.
 - [Integrate Hebog into a pipeline](how-to/integrate-into-a-pipeline.md).
 - [Architecture overview](architecture/index.md) and
   [how Hebog distributes work](architecture/distributed-execution.md).

@@ -1,28 +1,27 @@
 # Source-finding domain model
 
-This page is for developers and architects. It maps the boundaries around
-Hebog in its first intended deployment, inside the Rapthor imaging pipeline.
-It describes ownership and data flow, not class design. Start with the
+This page maps the boundaries around Hebog in its first intended deployment,
+inside the Rapthor imaging pipeline: who owns what and what flows between
+them, not class design. Start with the
 [architecture overview](../architecture/index.md) if you are new to Hebog.
 
 !!! note "Target design"
     The Rapthor integration shown here is the target. Today Hebog implements
     the standalone scientific boundary only; see
-    [capability and status](../reference/release-status.md#integration-status).
+    [progress against goals](../reference/progress-against-goals.md#functionality).
 
-A few domain terms used below (the
-[glossary](../reference/domain-glossary.md) has the rest):
+Terms used below (the [glossary](../reference/domain-glossary.md) has the
+rest):
 
-- A **sky model** is a list of known sources that a calibration pipeline uses
-  to predict what the telescope should see. Rapthor's `filter_skymodel` step
-  keeps only the sky-model entries that lie on real detected emission, which
-  is why it needs a source finder's mask.
-- A telescope is less sensitive away from the centre of its field of view. A
-  **flat-noise** (apparent-sky) image has uniform noise but attenuated
+- A **sky model** is the list of known sources a calibration pipeline uses to
+  predict what the telescope should see. Rapthor's `filter_skymodel` step
+  keeps only the entries that lie on detected emission, which is why it
+  needs a source finder's mask.
+- A **flat-noise** (apparent-sky) image has uniform noise but attenuated
   fluxes; a **true-sky** image has corrected fluxes but noise that rises
   towards the edge. Rapthor uses both.
-- **PyBDSF** is the source finder Rapthor uses today, and **LSMTool** is the
-  library that manipulates its sky models.
+- **PyBDSF** is the source finder Rapthor uses today; **LSMTool** manipulates
+  its sky models.
 
 ## System context
 
@@ -55,24 +54,20 @@ flowchart LR
 ```
 
 Rapthor owns operation ordering, top-level Dask scheduling, retries, restart
-state, and resource admission. Hebog owns scheduler-independent scientific
-configuration and source-finding behaviour. It may use an executor for coarse
-work, but it does not create a hidden cluster or send live scheduler state in
-results.
-
-Other pipelines and science workflows enter through the same public
-scientific boundary and provide their own orchestration, executor, and product
-adapter. Their integration code does not need Rapthor, Prefect, LSMTool, or
-Dask objects when serial execution and Hebog-format products satisfy the
-workflow.
+state and resource admission. Hebog owns scheduler-independent scientific
+configuration and behaviour; it may use an executor for coarse work but
+creates no hidden cluster and returns no live scheduler state. Other
+pipelines enter through the same public boundary with their own
+orchestration, executor and product adapter, and need no Rapthor, Prefect,
+LSMTool or Dask object when serial execution and Hebog-format products
+suffice. PyBDSF is a test oracle and a fallback inside Rapthor, never a
+runtime dependency.
 
 [ADR-006](../architecture/adr/006-isolate-compatibility-with-versioned-schemas.md)
-defines versioned, domain-oriented internal schemas and keeps legacy product
-names, units, suffixes, empty behaviour, and filtering rules in outer
-compatibility adapters. The
+keeps legacy product names, units, suffixes, empty behaviour and filtering
+rules in outer compatibility adapters, and the
 [Rapthor source-finding contract](../reference/rapthor-source-finding-contract.md)
-records the behaviour an adapter must reproduce. PyBDSF is a test oracle and
-a fallback inside Rapthor, never a runtime dependency of Hebog.
+records what an adapter must reproduce.
 
 ## Processing and data flow
 
@@ -111,10 +106,10 @@ flowchart LR
     DG --> OUT
 ```
 
-The true-sky and flat-noise branches may execute concurrently only when
-Rapthor admits their combined CPU and memory demand. Both produce files before
-the diagnostics join, allowing retries and restarts without serializing image
-objects through Dask.
+The true-sky and flat-noise branches may run concurrently only when Rapthor
+admits their combined CPU and memory demand. Both produce files before the
+diagnostics join, so retries and restarts never serialize image objects
+through Dask.
 
 ## Large-image decomposition
 
@@ -136,52 +131,29 @@ flowchart LR
 ```
 
 [How Hebog distributes work](../architecture/distributed-execution.md)
-explains this decomposition in full.
-[ADR-005](../architecture/adr/005-scale-large-images-with-hierarchical-tiles.md)
-makes the partition manifest part of the stable scientific boundary.
-Every tile has a non-overlapping output core and a stage-specific read-only
-halo. Local maps emit bounded boundary summaries; tree reductions reconcile
-global statistics, connected labels, cross-scale sources, and stable
-identifiers without gathering a full plane on the scheduler or one worker.
-The one-tile path uses the same ownership and reconciliation rules as the
-multi-node path.
-
-Each reconciled source has one finite zero-based continuous reference position
-in `(y, x)` pixel order. The partition manifest assigns it to the half-open
-core containing that position; a position exactly on an internal boundary is
-owned by the core that begins there. Emission and fitting windows may cross
-cores and halos, but they do not change catalogue ownership.
-
-Intermediate planes are stored in Zarr
-([ADR-007](../architecture/adr/007-use-zarr-for-intermediate-image-storage.md)).
-FITS compatibility at the Rapthor boundary does not require any internal stage
-to rewrite a complete FITS plane.
-
-Production nodes are expected to have hundreds of GB of RAM. Executor policy
-may use the admitted fraction for larger tile batches and bounded caches, while
-retaining headroom for concurrent Rapthor work. Resource sizing changes
-execution topology, not tile ownership or scientific results.
+explains this in full. Every tile has a non-overlapping output core and a
+stage-specific read-only halo; local maps emit bounded boundary summaries;
+tree reductions reconcile statistics, labels, sources and identifiers
+without gathering a plane on the scheduler or one worker. Each reconciled
+source has one finite reference position in `(y, x)` pixel order and is
+owned by the half-open core containing it; a position exactly on an internal
+boundary belongs to the core that begins there. The one-tile path uses the
+same rules as the multi-node path, and resource sizing changes execution
+topology, never ownership or results.
 
 ## Boundary invariants
 
-- Scientific kernels accept arrays, immutable configuration, and explicit
-  metadata; they do not import Rapthor or a global Dask client.
-- Domain records, algorithms, and the public pipeline do not import Rapthor,
-  Prefect, LSMTool, workflow adapters, or concrete scheduler implementations;
-  adapters depend inward on the public scientific API.
-- Image-sized kernels accept bounded tile cores, explicit halos, and global
-  coordinates; no worker or public record requires a complete large plane.
-- Source membership, stable identifiers, and materialised values are invariant
-  to valid tile geometry, partition origin, worker count, task order, and
-  retries within reviewed numerical tolerances.
-- Production graph size is proportional to tiles and stages, never pixels,
-  RMS windows, or small islands.
-- Public task inputs and results contain paths and small serializable records.
-- Apparent-sky, true-sky, flat-noise, RMS, residual, mask, catalogue, and
-  filtered-model products remain distinguishable.
-- Serial execution defines deterministic Hebog behaviour. Other executors
-  match it before comparison with PyBDSF.
-- Compatibility names remain at the adapter. They do not determine Hebog's
-  internal algorithm or domain model.
-- A product is not considered compatible until schema, units, empty behaviour,
-  and downstream Rapthor decisions pass contract tests.
+- Kernels take arrays, immutable configuration and explicit metadata, and no
+  layer below the adapters imports Rapthor, Prefect, LSMTool or a concrete
+  scheduler.
+- No worker or public record requires a complete large plane, and graph size
+  is proportional to tiles and stages, never pixels, RMS windows or islands.
+- Membership, identifiers and values are invariant to tile geometry,
+  partition origin, worker count, task order and retries within reviewed
+  tolerances; serial execution defines the reference, and other executors
+  match it before any comparison with PyBDSF.
+- Task inputs and results are paths and small serializable records.
+- Apparent-sky, true-sky, flat-noise, RMS, residual, mask, catalogue and
+  filtered-model products stay distinguishable, and a product is compatible
+  only once its schema, units, empty behaviour and downstream Rapthor
+  decisions pass contract tests.

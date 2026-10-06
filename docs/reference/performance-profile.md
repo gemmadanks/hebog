@@ -5,18 +5,17 @@ tags:
 
 # Where Hebog spends its time
 
-This page records what the complete-path profile measures, so that an
-optimization starts from evidence rather than intuition. It describes
-`0.12.0` plus the 21 September 2026 bottleneck work on the tile-native
-composition, measured with `SerialExecutor` on the maintainer's machine.
-
-Read it with the
+This page records what the complete-path profile and the traced-allocation
+harness measure, so that an optimization starts from evidence. Stage shares
+are from the 21 September 2026 profile of the tile-native composition and
+memory figures from 26 to 30 September, both with `SerialExecutor` on the
+maintainer's machine. The gates are in the
 [performance and scalability contracts](performance-scalability-contracts.md),
-which set the gates, and the
-[native-code assessment](../explanation/native-code-assessment.md), whose
-decision gate this page feeds.
+the current position is on
+[progress against goals](progress-against-goals.md), and the dated narrative
+of each change is in `LOG.md`.
 
-## How to reproduce it
+## Reproduce it
 
 ```bash
 just profile-execution --label my-profile --cprofile
@@ -24,34 +23,22 @@ just quick-benchmark --tier large
 just traced-peak --tier large --repetitions 2
 ```
 
-The profiler runs every case in a fresh single-thread process, and a second
-time under `cProfile` when asked. It writes per-stage wall time and the
-`cProfile` statistics under `benchmark-results/profiles/runs/<label>`. A
-profile ranks costs; only the quick benchmark establishes a speedup, and only
-`just traced-peak` establishes what a run allocates.
-
-!!! note "Sizes above the public envelope"
-
-    `find_sources` refuses an image wider than 15,402 pixels with
-    `SourceFinderImageTooLargeError`. The profiler, the quick benchmark and
-    the traced-peak harness raise that limit deliberately so the next tier
-    can be measured before it is admitted. A figure above 15,402 pixels on
-    this page is a measurement, not a supported size; the plan's scalability
-    row states what is supported.
+A profile ranks costs; only the quick benchmark establishes a speedup, and
+only `just traced-peak` establishes what a run allocates. All three raise the
+15,402-pixel public limit deliberately so the next tier can be measured
+before it is admitted: a figure above 15,402 pixels here is a measurement,
+not a supported size.
 
 !!! warning "Measure on a quiet machine"
 
-    The contract requires no concurrent unrelated workload. Runs taken at
-    load average 4 to 7, with an endpoint-security scanner at half a core,
-    disagreed with each other by up to 7% on the 1,024-pixel cases and
-    produced a per-change attribution that was mechanically impossible.
-    Check the load average before quoting a ratio, and prefer comparisons
-    whose endpoints were measured in the same session.
+    Runs taken at load average 4 to 7, with an endpoint-security scanner at
+    half a core, disagreed by up to 7% on the 1,024-pixel cases. Check the
+    load average before quoting a ratio, and compare only endpoints measured
+    in the same session.
 
-## What dominates now
+## What dominates
 
-Shares are self wall time as a fraction of the complete run, from
-`m2-fitting` on 21 September 2026.
+Self wall time as a fraction of the complete run:
 
 | Stage | dense 1,024² | SDC1 crowded 1,024² | SDC1 crowded 2,048² |
 | --- | --- | --- | --- |
@@ -62,307 +49,111 @@ Shares are self wall time as a fraction of the complete run, from
 | Source association and catalogues | 2% | 6% | 6% |
 | Per-parent deblending | <2% | 1% | <1% |
 
-Three observations matter more than the exact numbers.
+The profile is flat: the largest stage is about a fifth of a run and the
+largest single kernel, `fit_compact_gaussian_mixture`, is 5 to 8%, already a
+compiled SciPy least-squares solve. Nothing reaches the
+[native-code assessment](../explanation/native-code-assessment.md)'s 10%
+gate. Every bottleneck removed so far was redundant work rather than slow
+work: a whole-core scan per label, store metadata probes that always missed,
+a protection halo refiltered per cell block, a plane decoded once per sixteen
+objects and a coordinate transform per source. Together they took the
+crowded 2,048² case from 323.5 s to 153.1 s. What the store still costs is
+intrinsic to its policy: one chunk decode and checksum per window read, and
+one atomic file per written chunk.
 
-**No single kernel dominates.** After the 21 September work the largest
-stage is about a fifth of the run, and the profile is flat rather than
-peaked. That is the expected shape once the redundant work has gone, and it
-is why the next gains are structural rather than kernel-level.
+The next gains are structural rather than kernel-level. On large fields about
+half the run is background and RMS, and source association grows faster than
+the image (1, 82 and 479 s for 659, 7,146 and 16,084 sources, about the 2.2
+power); the plan's tasks 54 to 56 address both.
 
-**Deblending is not a cost.** It is about 1% of a crowded field. An earlier
-figure of 11% came from a profile taken before one-pass label extents
-landed; the extent scan, not the deblender, was what that profile measured.
-
-**Coordinate transforms are no longer a concentrated cost.** Astropy's
-`SkyCoord` machinery accounted for 14% of self time, spread over about
-11,000 single-position calls. Every one of those paths now converts a whole
-batch in one call, so the cost follows the batch count rather than the
-source count.
-
-## What the work removed, and why
-
-Each entry is a measured redundancy, not a micro-optimization. The pattern
-repeats: a bounded per-object window is correct, but paying a fixed overhead
-once per object multiplies it by the object count.
-
-| Redundancy | Measured before | After |
-| --- | --- | --- |
-| Whole-core scan per label for its extent | 23% of dense 2,048² | one pass over labelled pixels |
-| Zarr v2 metadata probes that always miss | 1,810 of 6,138 store reads | none |
-| Group metadata rewritten per attribute | 282 of 513 store writes | 84 |
-| Protection halo refiltered per cell block | 22× the image | 3.4× |
-| Plane decoded per 16 objects | 4.06 GiB for a 4 MB image | 0.74 GiB |
-| Frame machinery per measured position | 2.43 ms each | 0.060 ms batched |
-
-## What remains, in priority order
-
-1. **Per-pixel background refinement.** Still 13 to 18% after its batch
-   size was corrected, and again the largest stage now that no per-source
-   Astropy call remains. The remaining cost is the wavelet bank and sigma
-   clipping themselves, which are already vectorised SciPy.
-2. **`fit_compact_gaussian_mixture`.** The genuine nonlinear fit, about 35%
-   of the fitting stage and 5 to 8% of a run. It is already a compiled SciPy
-   least-squares solve.
-
-## What scales with the tile, and what with the image
-
-With 2,048-pixel cores, 2,048² is the last single-tile size. Every image
-the envelope admitted before 22 September 2026 was one tile, so a profile
-inside it could not tell tile-bounded state from image-bounded state: a core
-and a plane were the same array. The ladder therefore carries a 4,096-pixel
-pair, the smallest generated images holding more than one core. The
-envelope now reaches 15,402, which is 64.
-
-| case | megapixels | peak RSS | MiB per megapixel |
-| --- | --- | --- | --- |
-| dense 2,048² | 4.19 | 1,581 MiB | 377 |
-| dense 4,096² | 16.78 | 2,264 MiB | 135 |
-| empty 4,096² | 16.78 | 2,458 MiB | 147 |
-
-Quadrupling the area raises peak RSS by half, not fourfold, and the cost per
-megapixel collapses once the image passes one tile. Read those three figures
-as an envelope, not as measurements: they are RSS, and the warning below
-applies to them.
-
-Counting the arrays is the reliable way to size what grows with the image,
-and the count is measured rather than read off the source: a run walks the
-driver's own locals at the terminal builder and counts the distinct
-image-shaped arrays reachable from them. There are **none**. The count was
-18 at 49 bytes a pixel — 8 `int32` label planes, 9 masks and the position
-signal in `float64`, which would have been 0.41 GiB at 3,000², 4.6 GiB at
-10,000² and 10.8 GiB at LoTSS-DR3 15,402² against 18 GiB of
-development-machine memory. No plane outside a tile scales with the image
-now, yet the traced peak still grows with the image beyond one tile, by
-about 1.7 bytes a pixel of records the passes keep across tiles.
-[What a run allocates](#what-a-run-allocates) has the figures.
-
-One driver term is still bounded by the image rather than the tile. It is a
-declared limit, not part of that count. An object wider than the owner read
-budget is measured from the cores that hold it, and in the island,
-deferred-fit and catalogue-row rounds those cores return the object's own
-pixels, which the driver joins in raster order so the result is the
-window's, bit for bit. Measured with `tracemalloc` on a synthetic
-10⁶-pixel object, the driver reduction costs 81 bytes an object pixel for an
-island row, 121 for a deferred parent's component records and 186 for a
-catalogue row. Each is linear in the object's pixels and no segment's size
-is capped, so a segment filling the field would put about 1.7 GB on the
-driver at 3,000², 19 GB at 10,000², 44 GB at 15,402² and 1.9 TB at
-100,000². One traced case
-takes that path: the generated `wide-objects-10000` image, whose diagonal
-filament of 553,817 pixels cost the driver about 100 MB in the
-catalogue-row round, less than the multiscale stage's peak, so its traced
-peak does not show the term. Nothing at 2,048² or below can take the path, because no window there
-exceeds the budget, and no real LoTSS-DR3 object comes within a factor of
-ten of it. A smooth object wider than the 150-pixel background box is
-absorbed by the background estimate, so what reaches the driver is
-connected structure narrower than the box; a network of such filaments
-could cost up to the field-filling figures. ADR-008 declares this exception
-to its rule that nothing image-sized reaches the driver. Removing it is the
-plan's deferred work, reopened when a tier's traced peak shows the term or
-when the cluster benchmark is planned.
-
-Source support no longer takes part. An unseeded pixel's owner depends only
-on its component's seeds, so the cores return those and the driver sends
-each core back the seeds that can own its pixels, which it assigns itself.
-The driver's share fell from up to 294 bytes a component pixel to 1.0, 9.4
-and 47 when 1%, 10% and 50% of the pixels are seeds: the seeds themselves,
-12 bytes each, and the copies sent back, which came to about three a seed
-across that object's four cores.
-
-The image, the background, the RMS and their residual are all out, and **the
-driver now reads no object window**: its only reads are the final RMS and
-mask products, streamed one full-width canonical tile row at a time rather
-than validated as a whole plane in memory, each direct component's
-association record is built by the fit parent that already reads its
-residual, each catalogue row's local noise is measured by
-the row round that already reads its window, and the detection islands are
-reconciled and measured by a round of their own. Objects are read a batch at a
-time inside those rounds under the owner read budget: the residual is
-assembled from storage chunks far larger than one object, so one read per
-object decodes the same chunks again for every neighbour sharing them, which
-measured 5.5× slower at 111 components and 8.2× at 846.
-
-The store's per-read overhead was the next thing measured, on 27 September
-2026, and it was two redundancies rather than one bottleneck. Every consumer's
-`read_generation` re-read and re-checksummed every chunk of the generation,
-2.6 s of a 14.1 s profiled 1,024² run, although each window read already
-validates the chunk it uses against the manifest's SHA-256; and every task
-session reopened each product array and re-parsed the completion marker,
-693 opens for 1.2 s, because the caches died at the session boundary. The
-sink now validates chunks once at publication and on every read, and caches
-its handles and the parsed marker for its lifetime in one process, with a
-pickled copy starting empty. The profiled run fell to 10.9 s, the `sync()`
-calls from 1,851 to 991 and the file opens from 4,131 to 2,058; the 1,024²
-anchors are 0.81, 0.86 and 0.86 against v0.14.0 and 0.91, 0.91 and 0.90
-against the pre-M2 branch point, all measured in one session, so the 8%
-accepted on 24 September is recovered with margin. What the store still
-costs is intrinsic to its policy: one chunk decode and checksum per window
-read, and one atomic file per written chunk, each open and rename passing
-through this machine's endpoint scanner.
-
-Moving the component records and the owner noise into the passes changed the
-clock by a few tens of milliseconds, which is itself the finding. On the
-1,024² dense LoTSS cut-out, with 111 components and 83 sources, the driver
-spent 0.058 s describing components and 0.027 s collecting owner noise in a
-13.5 s profiled run; inside the passes the same work is 0.019 s and 0.005 s,
-and the row round's read grows by 0.055 s because it now reads the RMS window
-too. Those rounds were never the 8% of wall time the whole-plane removal cost
-at this size: that sat in the store's per-read overhead, which the paragraph
-above records as recovered.
-
-The island round is the one whose move is visible on the clock, because the
-driver was labelling a whole plane to find its objects. It scales with the
-image rather than with a tile, so the gain grows with size: a real 3,000²
-LoTSS field with 814 islands went from 216.4 s to 201.7 s under tracing, about
-7%, while its products stayed bitwise identical.
-
-The background stage was the change that moved the peak, which sits in the
-multiscale pass rather than in anything the catalogue does: returning two
-`bool` masks where three `float64` estimates had been took it down by
-197 MiB at 3,000² across three steps, within 1 MiB of the 198 MiB the
-array arithmetic predicted. That difference was taken with an ad-hoc harness
-before `just traced-peak` existed, before 0.13.0, so the harness cannot
-reproduce it. The stage now returns neither, only whether any pixel has a
-usable local noise estimate, reduced one tile row at a time, and the label,
-mask and position-signal planes followed it out.
-
-Removing the driver's 49 bytes a pixel moved the peak by 2 of them, and that
-is the lesson rather than a disappointment: only the planes alive at the peak
-can lower it, and the peak is in the multiscale pass, before the catalogue
-work allocates the other 47. What the peak does see is the two background
-masks, and it sees them exactly: between 0.13.0 and the tile-native object
-pass `just traced-peak` finds the peak 0.5, 2.0, 8.0 and 17.2 MiB lower at
-512², 1,024², 2,048² and 3,000², which is two bytes a pixel at every tier,
-with every input, setting and dependency identical. The object rounds that
-moved into their own passes since, and those that stopped returning object
-pixels to the driver, run after the peak and do not reach it. The 47 bytes
-show in the envelope instead: they are what the image would have added on
-top of the tile, 4.6 GiB of it at 10,000².
-
-The same removal is worth 4 to 7% of the clock at 1,024², because the checks
-those planes were held for were whole-plane comparisons: medians of five on a
-quiet machine give `dense-field` 9.3 s, `lotss-dr3-1312-sparse` 10.0 s and
-`lotss-dr3-1312-dense` 11.1 s, ratios 0.96, 0.93 and 0.94 against v0.13.0.
+The generated-ladder cost model is
+`fixed + a·megapixels + b·components + c·megapixels·components`; the last
+fit was `11.6 s/Mpx + 25 ms/component + 4.3 ms/(Mpx·component)`. Refit it
+with `just profile-execution` after a change that moves a size or density
+tier.
 
 ## What a run allocates
 
-`just traced-peak` measures it: `tracemalloc` in a fresh single-thread
-process, on the quick benchmark's own inputs and settings, writing one
-`TracedAllocationEvidence` record per case. It is the only committed way to
-produce the figure the envelope gate uses, and it stays out of the timing
-path, because tracing roughly doubles wall time.
+`just traced-peak` measures `tracemalloc`'s peak in a fresh single-thread
+process on the quick benchmark's inputs and settings. Every repetition
+reports the process peak (traced from before Hebog is imported), the peak of
+the `find_sources` call alone and the import floor, a fixed 90.4 MiB that a
+tracer started after the imports cannot see. Measured 26 to 30 September
+2026, two agreeing repetitions each (`LOG.md` names the runs):
 
-A peak means nothing without the span it covers, so every repetition reports
-three figures: the **process peak**, traced from before Hebog is imported; the
-peak of the **`find_sources` call** alone; and the **import floor**, what the
-imported modules still hold when that call begins.
+| case | pixels per side | traced peak | components |
+| --- | --- | --- | --- |
+| generated compact ladder | 512 | 224.7 MiB | 5 |
+| generated dense field | 1,024 | 429.5 MiB | 57 |
+| LoTSS-DR3 sparse | 1,024 | 429.8 MiB | 61 |
+| LoTSS-DR3 dense | 1,024 | 430.3 MiB | 108 |
+| SDC1 crowded | 1,024 | 431.8 MiB | 794 |
+| SDC1 crowded | 2,048 | 1,312.4 MiB | 3,110 |
+| LoTSS-DR3 dense | 3,000 | 1,334.6 MiB | 828 |
+| LoTSS-DR3 dense | 10,000 | 1,489.2 MiB | 9,259 |
+| generated wide objects | 10,000 | 1,447.7 MiB | 10 |
+| LoTSS-DR3 whole mosaic | 15,402 | 1,698.2 MiB | 20,661 |
 
-Measured on 26 September 2026 at `29d2933`, the tile-native object pass,
-two repetitions of each case, in
-`benchmark-results/traced-peak/runs/pr-tip-20260926` and, for the 512² case,
-`pr-tip-20260926-smoke`, beside the same measurement at `0.13.0` (`d70bb56`,
-`admitted-tiers-20260925b`). The two runs share their configuration,
-inputs, thread environment and dependency inventory, so only the code
-differs:
+Three things matter more than the exact figures.
 
-| case | pixels per side | traced peak | at 0.13.0 | components |
-| --- | --- | --- | --- | --- |
-| generated compact ladder | 512 | 224.7 MiB | 225.2 MiB | 5 |
-| generated dense field | 1,024 | 429.5 MiB | 431.5 MiB | 57 |
-| LoTSS-DR3 sparse | 1,024 | 429.8 MiB | 431.8 MiB | 61 |
-| LoTSS-DR3 dense | 1,024 | 430.3 MiB | 432.4 MiB | 108 |
-| SDC1 crowded | 1,024 | 431.8 MiB | 433.9 MiB | 794 |
-| SDC1 crowded | 2,048 | 1,312.4 MiB | 1,320.4 MiB | 3,110 |
-| LoTSS-DR3 dense | 3,000 | 1,334.6 MiB | 1,351.7 MiB | 828 |
-| LoTSS-DR3 dense | 10,000 | 1,489.2 MiB | not admitted | 9,259 |
-| generated wide objects | 10,000 | 1,447.7 MiB | not admitted | 10 |
-| LoTSS-DR3 whole mosaic | 15,402 | 1,698.2 MiB | not admitted | 20,661 |
+**Within one tile, image size governs the peak, not source count.** At 1,024²
+the crowded SDC1 field carries 14 times the components of the dense generated
+field for 2.3 MiB more.
 
-The process peak fell inside the `find_sources` call in every case, so the
-first two spans coincide. Three things in the table matter more than the exact
-figures.
+**The peak crosses the tile boundary almost flat, then grows slowly with the
+image.** With 2,048-pixel cores, 2,048² is the last single-tile size for
+every stage outside background and RMS; from 2,048² to 3,000² the peak adds
+1.7% although the area more than doubles. Above one tile the peak is one
+multiscale tile task, a flat 1,247 MiB, plus what the pass keeps across
+tiles, which grows about 1.7 bytes a pixel: the tile summaries' per-label
+records (every candidate island, with no size cut), the per-tile island
+summaries and the reconciled label mappings, 112, 262 and 489 MiB at the
+three LoTSS sizes. At that slope the peak would be near 2.1 GiB at 22,500²
+and 4.3 GiB at 45,000². Background and RMS, which peak lower, grew about 3
+bytes a pixel (274, 545 and 962 MiB), unattributed on a real image; on
+synthetic grids the local-noise requests account for about 1.9 of it. The
+plan's tasks 53 to 56 bound these terms before the next tier, and
+`scripts/benchmark/attribute_traced_peak.py` attributes a peak to passes,
+tasks and call sites.
 
-**Within one tile, image size governs the peak, not source count.** At
-1,024² the crowded SDC1 field carries 14 times the components of the
-generated dense field for 2.3 MiB more. Above one tile the two have not been
-separated, because the tiers that add area also add sources.
+**No image-sized plane lives on the driver.** A run counts the distinct
+image-shaped arrays reachable from the driver's locals at the terminal
+builder, and there are none; before the tile-native object pass there were
+18, at 49 bytes a pixel. The driver's only reads are the final RMS and mask
+products, streamed one tile row at a time.
 
-**The peak crosses the tile boundary almost flat, then grows slowly with
-the image.** From 1,024² to 2,048² it triples; from 2,048² to 3,000² it adds
-1.7%, although the area more than doubles. 2,048² is the last size every
-stage outside background and RMS runs as one tile, so tile-bounded state is
-image-bounded state there, and at 3,000² the same stages run four tiles. The
-generated 10,000² row was measured on 27 September 2026 at `v0.14.1`
-(`m2-tier-10000-wide`, one repetition). The LoTSS 10,000² and 15,402² rows
-were measured on 30 September 2026
-(`m2-publication-bound-10000-reproduced` and
-`m2-publication-bound-15402-reproduced`, two repetitions each agreeing to
-3.1 and 4.3 KiB), after generation publication stopped reading four
-full-width tile rows at once to check its chunks. Before, the same inputs
-peaked at 1,541.4 and 2,432.0 MiB (reproduced), because that read held about
-1.3 and 1.9 GiB on top of the pass. Now the peak above one tile is one
-multiscale tile task, whose own working set is a flat 1,247 MiB, on top of
-what the pass keeps across tiles, and it grows about 1.7 bytes a pixel: 1.8
-from 3,000² to 10,000² and 1.6 from 10,000² to 15,402², which would put it
-near 2.1 GiB at 22,500² and 4.3 GiB at 45,000².
+### The declared exception
 
-A diagnostic, not this harness, attributes that growth
-(`scripts/benchmark/attribute_traced_peak.py`; `LOG.md`, 29 and
-30 September 2026). What the multiscale pass keeps across tiles, 112, 262
-and 489 MiB at the three LoTSS sizes, is mostly the tile summaries'
-per-label records, which keep every candidate island with no size cut, the
-rounds' per-tile island summaries and the reconciled label mappings.
-Background and RMS, which run first and peak lower, grew about 3 bytes a
-pixel (274, 545 and 962 MiB, measured before publication was bounded), an
-unattributed term that at that slope would overtake the multiscale peak near
-27,000².
-
-**The import floor is fixed.** It is 90.4 MiB in every case from 512² to
-3,000², in both runs, so it is 40% of a 512² run and 7% of a 3,000² one. A tracer started
-after the imports cannot see that floor and reports a peak lower by its size.
+An object wider than a task's read budget is measured from the cores that
+hold it, and in the island, deferred-fit and catalogue-row rounds those cores
+return the object's own pixels, which the driver joins in raster order. On a
+synthetic 10⁶-pixel object that costs 81 bytes an object pixel for an island
+row, 121 for a deferred parent's component records and 186 for a catalogue
+row, with no cap on a segment's size: a field-filling object would put about
+1.7 GB on the driver at 3,000², 19 GB at 10,000², 44 GB at 15,402² and 1.9 TB
+at 100,000². The one measured case, the `wide-objects-10000` filament of
+553,817 pixels, cost about 100 MB, below the multiscale peak. No real
+LoTSS-DR3 object comes within a factor of ten of the budget, and a smooth
+object wider than the 150-pixel background box is absorbed by the background
+estimate, so what can reach the driver is connected structure narrower than
+the box. ADR-008 declares the exception; removing it is deferred work in the
+plan, reopened when a tier's traced peak shows the term or when the cluster
+benchmark is planned.
 
 !!! warning "Peak RSS is an envelope, not a threshold"
 
     Ten runs of identical code at 3,000² gave peak RSS from 1,559 to
-    2,477 MiB, a 42% spread, and the variation tracked machine load rather
-    than the code: `ru_maxrss` is the high-water mark of *resident* pages,
-    so it records how aggressively the operating system reclaimed as much as
-    what Hebog demanded. Quote it as a range, and never gate a change on it.
-
-    The traced peak is what a scaling claim or a tier gate uses. Every
-    figure measured twice repeated to between 0.2 and 12.6 KiB — not to
-    the byte, because the strings, paths and metadata of one run allocate
-    slightly differently in the next, which is why repetitions count as
-    agreeing within a tenth of a mebibyte. Traced evidence records peak RSS
-    beside the peak, but tracing inflates it too, so read it only as an
-    envelope.
-
-!!! warning "Quote only what `just traced-peak` measured"
-
-    Traced peaks quoted before `just traced-peak` existed came from ad-hoc
-    scripts that were never committed, so the span each covered is unknown
-    and none can be reproduced: 2,144, 1,347, 1,342, 1,261.39 and 1,244 MiB
-    were all quoted for 3,000², and 1,539.3 MiB before the background-mask
-    change. The table above replaces them. The 1,261.39 MiB is explained:
-    1,351.7 MiB less the 90.4 MiB import floor is 1,261.3 MiB, so that
-    harness traced the finder call and not the imports. `LOG.md`,
-    25 September 2026, records which harness produced which number.
+    2,477 MiB, a 42% spread that tracked machine load: `ru_maxrss` records
+    how aggressively the operating system reclaimed pages as much as what
+    Hebog demanded. Quote it as a range and never gate a change on it. The
+    traced peak repeats to between 0.2 and 12.6 KiB, which is why
+    repetitions count as agreeing within a tenth of a mebibyte.
 
 !!! warning "Do not extrapolate from inside the envelope"
 
     Fitting the slope below 2,048 pixels gives about 350 MiB per megapixel
-    and predicts 83 GB at LoTSS-DR3 15,402², because in that regime the tile
-    grows with the image; the resident-memory slope just above one tile
-    predicted about 16 GB. The whole mosaic traces 1.7 GiB. Project only
-    from traced peaks across admitted tiers, and treat a linear projection
-    as a floor: before generation publication was bounded, the slope rose
-    from 2.4 to 6.8 bytes a pixel between the last two tiers.
-
-## Cost model
-
-The complete-path profile fits generated cost as
-`fixed + a·megapixels + b·components + c·megapixels·components`. The
-17 September fit, before this work, was
-`11.6 s/Mpx + 25 ms/component + 4.3 ms/(Mpx·component)`, against
-`18.6 + 49 ms + 47 ms` before the bottleneck work began. Refit it with
-`just profile-execution` after any change that moves a size or density tier.
+    and predicts 83 GB at 15,402², because in that regime the tile grows
+    with the image. The whole mosaic traces 1.7 GiB. Project only from
+    traced peaks across admitted tiers, and treat a linear projection as a
+    floor. Peaks quoted before `just traced-peak` existed came from ad-hoc
+    scripts whose span is unknown; the table above replaces them.

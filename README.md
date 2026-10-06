@@ -38,7 +38,10 @@ next generation radio astronomy data processing pipelines such as
   coordinates and at most 15,402 pixels on each side.
 
 [Current capability and release status](https://gemmadanks.github.io/hebog/reference/release-status/)
-lists the full input requirements and known limitations.
+lists the full input requirements and known limitations, and
+[progress against goals](https://gemmadanks.github.io/hebog/reference/progress-against-goals/)
+summarises on one page where development stands against the project's
+telescope, Rapthor, science, performance, scalability and release goals.
 
 ## Installation
 

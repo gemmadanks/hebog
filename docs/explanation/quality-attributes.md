@@ -1,133 +1,77 @@
 # Quality attributes and coding principles
 
-Hebog must remain scientifically trustworthy and fast while still being easy
-to understand, change, test, and embed. Maintainability, extensibility,
-interoperability, and testability are architectural requirements, not later
-cleanup tasks.
+Hebog must stay scientifically trustworthy and fast while remaining easy to
+understand, change, test and embed. Maintainability, extensibility,
+interoperability and testability are architectural requirements with
+enforced gates, not cleanup deferred until after performance work. The rules
+themselves are in
+[`AGENTS.md`](https://github.com/gemmadanks/hebog/blob/main/AGENTS.md); this
+page gives the reasons behind them.
 
-Rapthor is the intended first consumer and defines the initial qualified
-feature set. No Rapthor integration is implemented yet. It does not own Hebog's scientific architecture. Other data
-pipelines and science workflows should be able to call the public API with
-their own inputs, executor, orchestration, and product adapter.
+## Why dependencies point inward
 
-## Dependency direction
+Rapthor is the first consumer and defines the qualified feature set, but it
+does not own Hebog's architecture: other pipelines and science workflows call
+the same public API with their own inputs, executor, orchestration and
+product adapter. So scientific algorithms and domain records import no
+Rapthor, Prefect, LSMTool, workflow adapter or concrete scheduler, read no
+ambient configuration and do no import-time I/O; the public pipeline composes
+explicit dependencies, and adapters translate names, schemas and failure
+behaviour at the edge. The [architecture overview](../architecture/index.md)
+draws the layers and names the test that enforces them.
 
-Dependencies point towards the scientific core:
+Library imports are inert so that a worker process, a notebook and a test can
+import Hebog without side effects, and so that importing `hebog` never pulls
+in Dask; a caller requesting `DaskExecutor` loads it deliberately.
 
-```text
-data pipeline or science workflow
-              |
-              v
-workflow or compatibility adapter
-              |
-              v
-        public pipeline
-          /          \
-         v            v
-domain records and  narrow ports
-scientific algorithms  ^
-                       |
-                  concrete I/O and
-                  executor implementations
-```
+## Why the code looks the way it does
 
-Scientific algorithms and domain records do not import Rapthor, Prefect,
-LSMTool, workflow adapters, or concrete schedulers. They do not read ambient
-process configuration or perform import-time I/O. The public pipeline composes
-explicit dependencies; compatibility adapters translate external names,
-schemas, products, and failure behaviour at the edge.
+- **Names carry science.** Units, coordinate order, shapes and ownership
+  appear in names and types wherever ambiguity could change a result.
+- **Small functions, immutable records, composition.** Dataclasses, context
+  managers, iterators and structural protocols are preferred to inheritance
+  hierarchies and manager objects, because the scientific intent must be
+  obvious to a Python developer reading one function.
+- **Explicit effects.** Side effects, mutation, resource ownership and failure
+  behaviour are visible at the call site; there are no hidden globals,
+  ambient clients, boolean mode flags or broad exception handlers.
+- **Comments explain assumptions, not syntax:** units, tolerances, shapes,
+  halos and trade-offs.
+- **Abstractions wait for variation.** An executor, image-source,
+  product-sink or compatibility protocol exists because a second
+  implementation does; a plugin system, registry or service locator for a
+  hypothetical workflow does not.
+- **No compatibility shims before 1.0.** `0.x` releases change contracts
+  directly and document the break; stale products fail clearly rather than
+  being migrated.
 
-Library-module imports are inert. They may construct types, validators,
-immutable constants, and package metadata, but they do not read or write
-science/workflow data, inspect the filesystem for work, mutate process state,
-access the network, create clients or clusters, or submit computation. The
-explicit `__main__.py` command-line entry point is the exception. Importing the
-public pipeline also does not import the optional concrete Dask runtime; a
-caller requesting `DaskExecutor` loads it deliberately.
+## Why performance stays legible
 
-An executor, image source, product sink, or compatibility protocol is
-appropriate when there is a demonstrated alternate implementation. A generic
-plugin system, global registry, service locator, or abstraction created only
-for a hypothetical future workflow is not.
+Optimization follows profiles and controlled scale evidence, never
+intuition. Clear vectorized NumPy or SciPy comes first; necessary Numba,
+buffer-reuse or scheduler-aware complexity sits behind a small typed
+interface with the deterministic serial implementation kept as the readable
+oracle. An optimization is complete only when the scientific tests, the
+affected performance tiers and review pass, and material complexity needs a
+design note or ADR saying why the simpler version was insufficient. The
+[native-code assessment](native-code-assessment.md) sets the gates for a
+compiled extension.
 
-## Pythonic clean code
+## Enforced gates
 
-Code should make the scientific intent obvious to a Python developer:
+| Gate | Mechanism |
+| --- | --- |
+| Formatting and lint, including import order, complexity, Bugbear and performance idioms | Ruff, in `just check` and pre-commit |
+| Zero type diagnostics over `src/` and `tests/` | Pyright strict |
+| Normal, boundary and failure tests, written test-first where practical | Review against `CODE_REVIEW.md` |
+| At least 80% branch-aware coverage, without weakened assertions or exclusions | `just coverage` and Codecov |
+| One contract suite for every executor, store and adapter | `tests/contract/` and the shared executor fixtures |
+| Allowed imports stated as one table; Rapthor, Prefect and LSMTool absent; Dask inside `executors/`; no import-time I/O | `tests/unit/test_architecture.py` |
+| Documentation current for public behaviour, configuration and schema changes | Strict MkDocs build |
 
-- Use descriptive names from the domain glossary and include units,
-  coordinates, shapes, or ownership in names and types where ambiguity could
-  change a result.
-- Prefer cohesive modules, small focused functions, composition, immutable
-  dataclasses, context managers, iterators, comprehensions, and structural
-  protocols over inheritance hierarchies and generic manager objects.
-- Keep one useful level of abstraction in a function. Refactor complex
-  branching and unclear parameter lists, but do not fragment a readable
-  numerical operation merely to satisfy a metric.
-- Make side effects, mutation, resource ownership, and failure behaviour
-  explicit. Avoid hidden global state, ambient clients, boolean mode flags,
-  and broad exception handling.
-- Use comments and docstrings to explain scientific assumptions, units,
-  numerical tolerances, array shapes, halos, and non-obvious trade-offs. Do
-  not narrate syntax that the code already expresses.
-- Remove accidental duplication after the shared concept is understood. A
-  few explicit lines are preferable to a clever abstraction that hides the
-  science.
-
-Public APIs are deliberately small, typed, documented, and versioned.
-Hebog is pre-production, so `0.x` releases do not preserve backward
-compatibility. Breaking behaviour or schema changes update the current
-contract directly without compatibility shims, migration paths, or
-deprecation periods unless the user explicitly requests them for a particular
-interface. Changes remain visible in current documentation and release notes.
-Public records remain serializable and must not expose open files, mutable
-full-image objects, or scheduler state.
-
-## Performance without opacity
-
-Optimization follows profiles and controlled scale evidence. Prefer clear
-vectorized NumPy or SciPy code first. Isolate necessary Numba, low-level,
-buffer-reuse, or scheduler-aware complexity behind a small typed interface and
-retain the deterministic serial implementation as a readable scientific
-oracle.
-
-An optimization is incomplete until focused scientific tests, the relevant
-performance tiers, and code review pass. Material architectural complexity
-requires a design note or ADR explaining why the simpler implementation was
-insufficient.
-
-Do not add a compiled extension pre-emptively. The
-[native-code assessment](native-code-assessment.md) keeps NumPy/SciPy and then
-Numba as the default path, defines quantitative reconsideration gates, and
-compares Rust/PyO3 with C++/pybind11. Any accepted native kernel remains behind
-a small typed Python boundary and preserves the readable serial oracle.
-
-## Enforced quality gates
-
-Every code change must satisfy:
-
-- Ruff formatting and linting, including import, Pylint, complexity, Bugbear,
-  comprehension, naming, performance-idiom, simplification, and Ruff-specific
-  checks;
-- zero Pyright diagnostics;
-- focused normal, edge, and failure tests written test-first where practical;
-- at least 80% branch-aware project coverage, without weakening meaningful
-  assertions or excluding difficult production code to preserve the number;
-- contract tests for interchangeable executors, storage boundaries, and
-  adapters;
-- architecture checks that state every layer's allowed imports as one table,
-  with each exemption named and required to still match; keep Rapthor,
-  Prefect and LSMTool out of the package and Dask inside the executors;
-  reject import-scope I/O and orchestration calls; and keep concrete
-  schedulers out of public-core imports; and
-- current documentation for public behaviour, configuration, or schema
-  changes, with breaking changes identified but no pre-`1.0` migration
-  guarantee.
-
-Coverage is a floor against erosion, not a completeness claim. Scientific
-oracles, property tests, partition invariance, executor conformance, and
-controlled qualification remain necessary.
-
-Before `1.0.0`, a documented smoke workflow outside Rapthor must use Hebog's
-public API with the serial executor, while its integration code imports or
-constructs no Dask, Prefect, LSMTool, or Rapthor objects. This proves reuse
-through the supported boundary rather than through internal modules.
+Coverage is a floor against erosion, not a completeness claim: scientific
+oracles, property tests, partition invariance, executor conformance and
+controlled qualification remain necessary. Before 1.0.0, a documented
+workflow outside Rapthor must use the public API with the serial executor
+while constructing no Dask, Prefect, LSMTool or Rapthor object, proving reuse
+through the supported boundary.

@@ -127,5 +127,7 @@ All records are in the [ADR index](adr/index.md).
 - [Integrate Hebog into a pipeline](../how-to/integrate-into-a-pipeline.md).
 - [Domain model](../explanation/domain-model.md): system boundary and
   ownership in the Rapthor context.
-- [Implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md):
-  current state, milestones and gates.
+- [Progress against goals](../reference/progress-against-goals.md): where
+  Hebog stands against the 1.0.0 definition, and the
+  [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
+  for the remaining tasks and gates.

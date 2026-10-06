@@ -31061,3 +31061,43 @@ the per-worker placement finding.
   itself timed 6 to 9% slower this evening than then, so the fall
   overstates Hebog's own gain by about that much.
 - **Not measured.** The 10,000² and whole-mosaic anchors.
+
+## 2026-10-06 — Docs: the developer guide condensed, and a progress page
+
+- **Why.** The maintainer found the developer-facing documentation verbose
+  and asked for it to keep only what ongoing and future development needs,
+  and for the key metrics to be visible on one page that answers how Hebog
+  is doing against its goals.
+- **Progress page.** `docs/reference/progress-against-goals.md`, first in
+  the Developer guide, states each 1.0.0 goal, its target, the position on
+  6 October 2026 and a status word, then the measured figures by goal with
+  their dates and run labels: the 11 frozen public behaviours, the
+  scientific gates against their latest values, the three bounded known
+  differences, the 17-case quick science check (`stack-final-decisions`),
+  the whole-mosaic counts, the open defects, the diagnostic and Hebog-curve
+  performance ratios, the traced-peak ladder, the engineering checks, the
+  blockers and the next actions. Every figure comes from the plan, this log
+  or a committed check configuration. The plan's current-state table keeps
+  the candidate, strongest evidence, blockers, next action and deferred work
+  and links to the page for the figures; `AGENTS.md` and the plan say the
+  two change together.
+- **Condensed pages.** The contributing guide (5,238 to about 2,000 words:
+  the test lanes as one table, the four measurement tools kept with their
+  commands, outputs, pass rules and caveats, and the internal-API
+  walkthroughs removed in favour of the internal API reference and the
+  executor and Zarr contracts), the performance profile (3,455 to about
+  1,350: the current shares, the traced-peak table, the declared exception
+  and the three warnings kept; the dated narrative of each change left to
+  this log), the internal schemas (2,523 to about 1,440: a version table
+  from the source, then the rules each record enforces, with the Zarr
+  sink's guarantees moved here from the contributing guide), compact
+  fitting, deblending and astrometry (rationale narratives shortened, every
+  rule and name kept), the dataset manifests (generator versions as one
+  table), the native-code assessment, quality attributes, domain model,
+  comparison reports, evidence documents, contracts, Rapthor contract and
+  release guide. ADRs, the user guide and `AGENTS.md`'s rules are unchanged
+  apart from links. The distributed-execution page no longer says the tile
+  core is sized from admitted memory, which task 17 records as untrue
+  today, and the release status no longer says the whole mosaic is untimed
+  under Dask, which the 0.18.0 release check timed.
+- **Checks.** The strict docs build and `just pre-commit`.

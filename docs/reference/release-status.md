@@ -34,16 +34,16 @@ one tile's working set plus records the passes keep from every tile, which
 still grow about 1.7 bytes a pixel; bounding them, and an unattributed term
 in background and RMS, is planned before much larger images are admitted. A
 four-worker local Dask cluster finishes the 10,000² anchor in 0.61 of the
-serial time with identical products; the whole mosaic has not been timed
-under Dask since that was repaired. Separately, one declared limit remains:
+serial time and the whole mosaic in 0.63, with identical products.
+Separately, one declared limit remains:
 an object wider than a task's read budget is still reduced on the driver
 from its own pixels, so that memory grows with the object rather than the
 tile, by up to 186 bytes an object pixel. One connected object filling a
 15,402-pixel field would need about 44 GB on the driver. No object in the
 real LoTSS-DR3 fields measured comes near that; the widest measured case, a
 generated filament of 553,817 pixels, cost about 100 MB. The
-[performance profile](performance-profile.md#what-scales-with-the-tile-and-what-with-the-image)
-has the figures.
+[performance profile](performance-profile.md#what-a-run-allocates) has the
+figures.
 
 ## Scientific status
 
@@ -52,7 +52,8 @@ and bounded evaluation. It is **not** yet suitable for claiming
 interchangeability with PyBDSF or readiness for a survey.
 
 Development comparisons against PyBDSF and Aegean on simulated and public
-images are recorded in the repository's
+images are summarised on [progress against goals](progress-against-goals.md)
+and recorded in the repository's
 [execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md) and
 [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md).
 They are development evidence, not qualification.

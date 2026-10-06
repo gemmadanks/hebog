@@ -1,138 +1,86 @@
 # Native-code assessment
 
-**Current recommendation:** do not add a Hebog C++ or Rust extension yet.
-Implement the deterministic algorithm in clear Python using vectorized NumPy
-and SciPy, then use Numba for measured custom loops that those libraries do not
-express efficiently. Reassess native code only from end-to-end profiles.
-Hebog does not currently depend on Numba; add it as a runtime dependency
-together with the first profiled kernel that needs it.
+**Recommendation:** do not add a C++ or Rust extension. Implement
+deterministic algorithms in clear Python over vectorized NumPy and SciPy, use
+Numba for a measured custom loop those libraries cannot express, and reassess
+only from end-to-end profiles. Hebog does not depend on Numba today; add it
+with the first profiled kernel that needs it.
 
-This is a deferral with explicit decision gates, not a ban. If a native
-extension becomes justified, prefer Rust for a new self-contained kernel and
-C++ when integrating a mature C/C++ library or when a C++ implementation has a
-clear evidence-backed ecosystem or team advantage.
+This is a deferral with explicit gates, not a ban. If an extension becomes
+justified, prefer Rust for a new self-contained kernel and C++ when
+integrating a mature C/C++ library or when a C++ implementation has a clear
+evidence-backed ecosystem or team advantage.
 
-## The current profile does not open the gate
+## Why the gate is closed
 
-The tile-native composition has now been profiled end to end across the
-generated ladder and the SDC1 and LoTSS cut-outs; see
-[where Hebog spends its time](../reference/performance-profile.md). The
-result argues against a native extension more strongly than the earlier
-deferral did, for three reasons.
+The [performance profile](../reference/performance-profile.md) is flat: the
+largest stage is about a fifth of a run and the largest single kernel,
+`fit_compact_gaussian_mixture`, is 5 to 8%, already a compiled SciPy solve.
+Nothing reaches gate 1 below in one size regime, let alone two. Every
+bottleneck found so far was redundant work (a scan per label, a plane decoded
+per sixteen objects, a coordinate transform per source), which batching and
+vectorisation removed and which a native rewrite would only have made faster.
+Numba is not indicated either: the background refinement, the wavelet bank
+and the fit are already vectorised NumPy or compiled SciPy, so no per-pixel
+Python loop is material.
 
-**No kernel meets gate 1.** After the bottleneck work the profile is flat:
-the largest stage is about a fifth of a run, and the largest single Hebog
-kernel, `fit_compact_gaussian_mixture`, is 5 to 8%. Nothing reaches 10% in
-one size regime, let alone two. The stages that look large are compositions
-of several SciPy calls, not self-contained kernels a native rewrite could
-replace.
-
-**Every bottleneck found so far was redundant work, not slow work.** The six
-changes of 21 September removed a whole-core scan per label, two classes of
-useless store metadata I/O, a protection halo refiltered per cell block, a
-plane decoded once per sixteen objects, and per-position coordinate
-machinery. Each was a structural redundancy that vectorisation, batching or
-a single argument removed, and together they took the crowded 2,048-pixel
-case from 323.5 s to 153.1 s. A native extension would have made the
-redundant work faster instead of removing it.
-
-**The remaining concentrated cost is a third-party library's per-call
-overhead.** Astropy's `SkyCoord` machinery was 14% of self time, and the fix
-is to call it once per batch rather than once per source. That is not a
-candidate for native code; it is a candidate for finishing the batching.
-
-Numba is likewise not yet indicated. It earns its place on a profiled custom
-loop that NumPy and SciPy cannot express, and no such loop is currently
-material: the per-pixel background refinement, the wavelet bank and the fit
-are already vectorised NumPy or compiled SciPy. Reassess Numba first, and
-only for a specific measured loop, when the batching work above is complete
-and the profile is flat at a level the gates still fail.
-
-## Why native code is premature
-
-Hebog's compact and multiscale kernels pass their measurement, fitting, and
-catalogue budgets using Python with vectorized NumPy and SciPy, and no
-profile has identified a self-contained Python kernel that meets the
-native-code decision gate. Complete Rapthor and production-scale profiles
-remain outstanding, so there is no evidence that a project-owned native
-extension would improve the limiting end-to-end path.
-
-NumPy and SciPy already wrap compiled numerical implementations. SciPy
-explicitly describes itself as using optimized Fortran, C, and C++ code, while
-Numba compiles numerical Python with LLVM and can run supported parallel loops
-without the GIL. Rewriting a Python call that already spends its time in a
-compiled SciPy kernel is unlikely to help. At large scale, memory bandwidth,
-array copies, storage throughput, tile geometry, scheduler overhead, and load
-balance may dominate instead.
-
-A native extension would immediately turn Hebog's current universal Python
-wheel into platform-specific binaries. Python packaging guidance requires a
-compiled wheel for each supported interpreter, operating-system, and CPU
-combination unless a stable ABI reduces that matrix. Hebog currently tests
-Python 3.12 through 3.14 on Linux, macOS, and Windows, so build, wheel repair,
-installation, debugging, security, and release work would become materially
-larger.
+A native extension would also turn Hebog's universal wheel into a binary per
+interpreter, operating system and CPU across Python 3.12 to 3.14 on Linux,
+macOS and Windows, and at scale memory bandwidth, copies, storage throughput,
+tile geometry and scheduler overhead are likelier limits than kernel speed.
 
 ## Decision gate
 
-Consider a native prototype only when a profile with representative science
-and data sizes shows one of the following after vectorization, copy removal,
-batching, and a reviewed Numba attempt:
+Consider a native prototype only when a profile on representative science
+and data sizes shows one of these after vectorization, copy removal,
+batching and a reviewed Numba attempt:
 
-1. One self-contained kernel consumes at least 10% of complete end-to-end wall
-   time in two representative size regimes.
-2. The kernel prevents a frozen memory, latency, throughput, or scaling gate
-   from passing even though orchestration and I/O are not the bottleneck.
-3. A mature native library already provides the required reviewed algorithm
-   and replacing it would create more scientific or maintenance risk.
+1. one self-contained kernel takes at least 10% of complete wall time in two
+   representative size regimes;
+2. the kernel prevents a frozen memory, latency, throughput or scaling gate
+   from passing although orchestration and I/O are not the bottleneck; or
+3. a mature native library already provides the reviewed algorithm and
+   replacing it would add scientific or maintenance risk.
 
-The prototype must then demonstrate all of these:
+The prototype must then show all of the following:
 
-- at least a twofold kernel speedup and a statistically supported improvement
-  of at least 5% in complete runtime, unless it instead unlocks a failed memory
-  or scalability gate;
+- at least a twofold kernel speedup and a statistically supported
+  improvement of at least 5% in complete runtime, unless it unlocks a failed
+  memory or scalability gate;
 - no unapproved regression at affected and adjacent performance tiers;
 - identical scientific and partition-invariance results within reviewed
   tolerances;
-- bounded, preferably zero-copy NumPy array exchange with explicit dtype,
-  shape, stride, alignment, ownership, and mutability contracts;
-- release of the Python interpreter during long-running native-only work and
-  no nested thread oversubscription inside Dask workers;
-- deterministic exceptions with no process abort, panic crossing the FFI
-  boundary, undefined behaviour, memory leak, or data race;
-- prebuilt, tested wheels for every supported release platform and Python ABI,
-  plus a verified source distribution and an intentional fallback policy; and
-- a small typed Python wrapper, retained readable serial oracle, focused native
-  tests, sanitizer or equivalent checks, benchmarks, provenance, licensing,
+- bounded, preferably zero-copy array exchange with explicit dtype, shape,
+  stride, alignment, ownership and mutability;
+- release of the interpreter during long native work and no thread
+  oversubscription inside Dask workers;
+- deterministic exceptions, with no abort, panic across the FFI boundary,
+  undefined behaviour, leak or data race;
+- prebuilt tested wheels for every supported platform and Python ABI, a
+  verified source distribution and a fallback policy; and
+- a small typed Python wrapper, the retained readable serial oracle, native
+  tests, sanitizer or equivalent checks, benchmarks, provenance, licensing
   and an accepted ADR.
 
-Measure cold import and compilation/startup costs as well as warm execution.
-The extension boundary must operate on coarse tile arrays or bounded summaries,
-not individual pixels, sources, or Python objects.
+Measure cold import and start-up cost as well as warm execution. The
+boundary operates on coarse tile arrays or bounded summaries, never on
+pixels, sources or Python objects.
 
-## Candidate and non-candidate work
+## Candidates and non-candidates
 
-Potential candidates are custom operations with irregular native loops that
-NumPy/SciPy cannot express efficiently:
+Possible candidates are irregular loops NumPy and SciPy cannot express:
+connected-label and boundary reconciliation, deblending or watershed logic
+when SciPy's semantics do not satisfy the contract, adaptive masked window
+statistics if Numba misses a budget, and variable-size island reductions
+dominated by Python dispatch after batching.
 
-- deterministic connected-label and boundary-equivalence reconciliation;
-- irregular deblending or watershed logic when existing SciPy semantics do not
-  satisfy the scientific contract;
-- adaptive masked window statistics if a Numba implementation misses the
-  component budget; and
-- variable-size island reductions or measurements that remain dominated by
-  Python dispatch after batching.
+Not candidates: FITS, WCS, catalogue, configuration, schema, workflow and
+Dask orchestration; convolution, interpolation, labelling, optimization and
+FFT operations already meeting their gates through NumPy or SciPy; I/O- or
+bandwidth-bound work; and small-input paths where extension import and
+dispatch overhead is material.
 
-Do not start with native implementations of:
-
-- FITS, WCS, catalogue, configuration, schema, workflow, or Dask orchestration;
-- convolution, interpolation, labelling, optimization, or FFT operations
-  already meeting the gates through NumPy or SciPy;
-- I/O- or memory-bandwidth-bound work with no compute headroom; or
-- small-input paths where extension import, conversion, or dispatch overhead
-  is material.
-
-## Rust and C++ comparison
+## Rust and C++
 
 | Criterion | Rust with PyO3/maturin | C++ with pybind11 | Hebog implication |
 | --- | --- | --- | --- |
@@ -144,17 +92,11 @@ Do not start with native implementations of:
 | Maintainability | Compiler-enforced ownership improves long-term safety, but adds Rust expertise and FFI concepts | More contributors may know C++, but memory safety and toolchain complexity raise review cost | Team capability and operational ownership are mandatory selection evidence |
 
 Neither binding makes zero-copy parallelism automatic. `rust-numpy`'s safe
-read-only and read-write NumPy borrow types are not `Send` or `Sync`, so a
-Rayon prototype must prove a safe lifetime and ownership design rather than
-assuming a borrowed Python array can cross threads. In pybind11, `py::array_t`
-can force-cast a non-conforming input by default, which may introduce a copy;
-Hebog must reject, expose, or explicitly budget any such conversion.
-
-The stable ABI is not an automatic solution. PyO3 documents that normal
-extensions are Python-version-specific and that `abi3` has constraints,
-including free-threaded Python considerations. NumPy-facing code must prove
-that the selected binding and ABI combination supports Hebog's Python and
-NumPy matrix rather than assuming one wheel covers everything.
+array borrows are not `Send` or `Sync`, so a Rayon prototype must prove its
+ownership design; pybind11's `py::array_t` can force-cast a non-conforming
+input and copy it, which Hebog must reject or budget. The stable ABI is not
+automatic either: NumPy-facing code must prove its binding and ABI
+combination supports Hebog's Python and NumPy matrix.
 
 ## References
 

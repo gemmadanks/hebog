@@ -1,112 +1,78 @@
 # Compact astrometry and beam deconvolution
 
 The astrometry boundary transforms a valid compact Gaussian fit from global
-pixel coordinates
-to the internal ICRS catalogue model. The transformation is deliberately kept
-separate from fitting: the nonlinear optimizer remains a pure pixel-space
-operation, while this boundary owns WCS, angular geometry, and restoring-beam
-semantics.
+pixel coordinates to the internal ICRS catalogue model. It is kept separate
+from fitting: the optimizer is a pure pixel-space operation, and this
+boundary owns WCS, angular geometry and restoring-beam semantics.
 
 ## Coordinate transformation
 
-Hebog reconstructs an Astropy celestial WCS from the serializable image
-metadata and uses zero-based continuous `(x, y)` pixel coordinates. A centred
-finite difference at the fitted centroid produces a local two-by-two Jacobian
-from pixel offsets to east/north tangent-plane offsets in degrees. That same
-Jacobian transforms:
-
-- the fitted centroid to ICRS right ascension and declination;
-- the fitted pixel covariance to a celestial Gaussian ellipse;
-- the centroid covariance to position errors; and
-- the local pixel area used by fitted and island flux calculations.
-
-Right ascension is canonical in `[0, 360)` degrees. Celestial position angle
-is degrees east of north modulo 180 degrees. The local Jacobian, rather than a
-single header pixel scale, preserves signed and unequal pixel scales, rotation,
-projection effects, and right-ascension wraparound.
+Hebog rebuilds an Astropy celestial WCS from the serializable image metadata
+and uses zero-based continuous `(x, y)` pixel coordinates. A centred finite
+difference at the fitted centroid gives a local two-by-two Jacobian from
+pixel offsets to east/north tangent-plane offsets in degrees, which
+transforms the centroid to ICRS right ascension and declination, the pixel
+covariance to a celestial ellipse, the centroid covariance to position
+errors, and the local pixel area used by fitted and island fluxes. Right
+ascension is canonical in `[0, 360)` and position angle is degrees east of
+north modulo 180. The local Jacobian, rather than one header pixel scale,
+preserves signed and unequal scales, rotation, projection and wraparound.
 
 ## Beam deconvolution
 
-Fitted and restoring-beam ellipses are represented as two-by-two east/north
-covariance matrices. Hebog subtracts the beam covariance from the fitted
-covariance and classifies the eigenvalues:
+Fitted and restoring-beam ellipses are two-by-two east/north covariance
+matrices. Hebog subtracts the beam covariance and classifies the
+eigenvalues: two significant positive intrinsic axes give a resolved
+deconvolved ellipse, none gives unresolved, and one gives `major-axis-only`
+with no minor axis or position angle.
 
-- two positive intrinsic axes produce a resolved deconvolved ellipse;
-- no significant positive intrinsic axis is unresolved; and
-- one significant intrinsic axis produces a `major-axis-only` result with no
-  minor axis or position angle.
+Positive geometric deconvolution is necessary but not sufficient evidence of
+extension. Hebog applies the one-sided
+[ATLAS DR3](https://doi.org/10.1093/mnras/stv1866) statistic,
+`ln(S_integrated / S_peak)` over the quadrature relative uncertainty of the
+two fluxes, at a conservative five sigma rather than ATLAS's two, because a
+false resolved shape is a material catalogue error and the equivalence
+contract requires Hebog to be no worse than released PyBDSF. A geometrically
+resolved fit that fails the test is unresolved with
+`extension-not-significant`; a fit with no flux uncertainty has an
+unavailable classification (`deconvolution-uncertainty-unavailable`); an
+exact analytic fit keeps its geometric result, so noiseless contract cases
+stay exact. For a free noisy fit, a finite-difference delta method
+propagates the covariance of major sigma, minor sigma and angle through the
+WCS and beam subtraction, and each deconvolved eigenvalue must exceed zero at
+the same five-sigma level independently: a significant major with an
+insignificant minor is `major-axis-only`, which keeps the `DC_Maj` that
+Rapthor consumes whenever it is identifiable. A noisy fit with flux
+uncertainty but no usable shape covariance has an unavailable deconvolution
+rather than a falsely precise ellipse.
 
-For a noisy fit, positive geometric deconvolution is necessary but not
-sufficient evidence of physical extension. Hebog uses the standardized
-one-sided [ATLAS DR3](https://doi.org/10.1093/mnras/stv1866) statistic:
-`ln(S_integrated / S_peak)` divided by the quadrature relative uncertainty of
-the two fluxes. ATLAS used a two-sigma decision and explicitly reported a 2.3%
-point-source false-extension probability. Hebog uses a conservative
-five-sigma threshold because a false resolved shape is a material catalogue
-error and the equivalence contract requires Hebog to be no worse than released
-PyBDSF, not merely to pass the 95% absolute specificity floor. A geometrically resolved fit that does not pass is
-reported as unresolved with `extension-not-significant`. If the fit declares
-its flux uncertainty unavailable, the extension classification is also
-unavailable. Exact analytic fits without an uncertainty-unavailable flag
-retain their geometric result so noiseless contract cases remain exact.
+The threshold is explicit configuration. The equivalence contract gates
+point-source specificity and recall for clearly resolved truth, selected from
+injected truth before fitting as a fitted-to-beam area ratio of at least 3 at
+SNR of at least 25; less decisive extension is a predeclared report-only
+population. On the paired regression population of 1,600 point sources and
+200 clear extensions, point-source statistics span −2.08 to 3.38 sigma and
+every clear extension 17.92 to 23.83, so the five-sigma decision separates
+them with a wide margin; this is regression evidence, not qualification.
 
-For a free noisy fit, Hebog also retains the covariance of major sigma, minor
-sigma, and position angle. A finite-difference delta method propagates that
-covariance through the local WCS and restoring-beam subtraction. Each
-deconvolved eigenvalue must independently exceed zero at the same five-sigma
-confidence level. A significant major eigenvalue with an insignificant minor
-one is reported as `major-axis-only`; neither a minor size nor a position angle
-is published. If even the major eigenvalue is insignificant, the source is
-unresolved. If a noisy fit has flux uncertainty but no usable shape covariance,
-its deconvolution is unavailable rather than a falsely precise geometric
-ellipse. This axis test prevents unstable relative errors near zero from being
-mistaken for precise physical sizes while retaining the `DC_Maj` value that
-Rapthor actually consumes whenever it is identifiable.
-
-The classification threshold is explicit runtime configuration. The
-equivalence contract separately gates point-source specificity and recall for
-clearly resolved truth. "Clearly resolved" is selected from injected truth
-before fitting: fitted-to-beam area ratio at least 3 and signal-to-noise ratio
-at least 25. Less decisive injected extension is a predeclared marginal,
-report-only population rather than being retrospectively relabelled after a
-fit. Its integrated-flux catastrophic rate is therefore also report-only;
-position, peak flux, and fitted/deconvolved shape catastrophes remain gated,
-as does integrated flux for point and clearly resolved truth.
-
-An unresolved internal shape is null. A major-axis-only result stores one
-positive major FWHM separately from the absent ellipse. The zero-major-axis
-value expected by the PyBDSF/Rapthor compatibility view is introduced only for
-an explicitly unresolved source and never re-enters a scientific calculation.
-
-The established `radio_beam` package was evaluated for this boundary. Its
-deconvolution utility implements the same small covariance problem but also
-encodes package-specific failure and point-like conventions. Hebog needs the
-explicit three-state policy above and already depends on NumPy, so adding a
-runtime dependency would not reduce the maintained scientific logic. The
-implementation therefore retains the direct, analytic covariance subtraction
-and tests it against governed truth.
+An unresolved internal shape is null, and a major-axis-only result stores one
+positive major FWHM; the zero `DC_Maj` of the PyBDSF/Rapthor view is produced
+only for an explicitly unresolved source and never re-enters a calculation.
+The `radio_beam` package was evaluated and not adopted: it solves the same
+small covariance problem with its own failure conventions, and Hebog needs
+the explicit three-state policy above.
 
 ## Uncertainty status
 
-The selected fit's nonsingular centroid covariance can be transformed into
-one-sigma position errors. Both are great-circle angles, because the local
-Jacobian is east/north: `E_RA` is not divided by cos(dec), which matches
-PyBDSF and the fixed angle Rapthor's astrometry check compares it with.
-Flux errors use the same fit's covariance. A declared synthesized-beam
-correlation function produces generalized OLS sandwich errors flagged
-`correlated-noise-sandwich-errors`; an absent correlation model retains the
-`formal-independent-pixel-errors` fallback. Shape uncertainties remain null
-and carry `shape-uncertainty-unavailable`. If the fit covariance is
-unavailable, position and flux errors are also null and carry
-`position-flux-uncertainty-unavailable`; zero never means unknown.
-
-The catalogue publishes a component's infinite-plane fitted-Gaussian integral
-as its integrated flux, resolved or not, so that a source's summed flux
-follows PyBDSF's definition. For a resolved component that integral's
-propagated uncertainty is report-only.
-
-On the paired regression population of 1,600 predeclared point sources and
-200 predeclared clear extensions, point-source statistics span
-−2.08 to 3.38 sigma and every clear extension spans 17.92 to 23.83 sigma, so
-the five-sigma decision classifies both populations correctly with a wide
-margin. This is regression evidence, not qualification.
+The selected fit's nonsingular centroid covariance gives one-sigma position
+errors. Both are great-circle angles, because the Jacobian is east/north:
+`E_RA` is not divided by cos(dec), matching PyBDSF and the fixed angle
+Rapthor compares it with. Flux errors use the same covariance, flagged
+`correlated-noise-sandwich-errors` with a declared beam correlation and
+`formal-independent-pixel-errors` without one. Shape uncertainties are null
+with `shape-uncertainty-unavailable`; when the fit covariance is unavailable,
+position and flux errors are null with
+`position-flux-uncertainty-unavailable`. Zero never means unknown. A
+component's published integrated flux is its infinite-plane fitted integral,
+resolved or not, so a source's summed flux follows PyBDSF's definition; the
+propagated uncertainty of a resolved component's integral is report-only.
