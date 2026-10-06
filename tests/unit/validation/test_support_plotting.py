@@ -9,7 +9,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from astropy.io import fits
@@ -149,14 +148,13 @@ def test_plot_support_component_diagnostic_renders_support_roles() -> None:
         candidate_name="Hebog",
         reference_name="PyBDSF",
     )
-    try:
-        assert figure.axes[0].get_title() == "Input image"
-        assert any(
-            axis.get_title() == "Support agreement" for axis in figure.axes
-        )
-        assert off_source.pixel_count > 0
-    finally:
-        plt.close(figure)
+    assert figure.axes[0].get_title() == "Input image"
+    assert any(axis.get_title() == "Support agreement" for axis in figure.axes)
+    assert off_source.pixel_count > 0
+    # No pyplot manager means no backend window: a GUI backend's objects
+    # (Tk on Windows) would otherwise outlive the figure and be finalised
+    # in whichever thread next collects garbage.
+    assert figure.canvas.manager is None
 
 
 def test_plotting_api_imports_outside_repository(tmp_path: Path) -> None:
