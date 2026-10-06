@@ -246,7 +246,7 @@ path.
 | --- | --- | --- |
 | Labels, masks, identifiers, catalogue membership and ordering do not depend on tile shape, partition origin, worker count, task order or retries | exact | contract and partition-invariance tests, including sources placed on tile edges and corners, and the complete public product set of an analytic image from one tile against an eight-by-eight grid, the most a 15,402-pixel image runs on, on an image whose last row of tiles is narrower than a filter halo and whose last column ends on a core edge |
 | Continuous filter responses agree across tilings | within 2 × 10⁻¹³ | multiscale partition-equivalence tests, with knife-edge threshold cases |
-| Serial, thread and Dask execution publish the same products | byte-identical scientific products | the shared executor contract suite |
+| Serial, thread and Dask execution publish the same products | byte-identical scientific products | the shared executor contract suite; the public product set under each executor, on small tiles, for fitted fields with injected fit failures, high-threshold controls and the eight-by-eight grid image above; and one run on Dask workers in separate processes, so that every task's arguments and result are serialized |
 | A failed run leaves no partial output | — | write-then-rename publication; the run can be retried with the same request |
 
 ## What is not decided here

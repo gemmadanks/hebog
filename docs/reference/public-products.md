@@ -148,6 +148,11 @@ explicit profile:
   below, as it can where neighbouring sources' wings raise the background,
   the column is empty and the row carries `association-aperture-nonpositive`;
   only a source with an admitted fit has a flux to publish then.
+  `PEAK_FLUX` is the brightest background-subtracted pixel the source owns,
+  not a fitted peak, so it carries that pixel's noise: on the frozen PyBDSF
+  regression input's two unresolved sources, at SNR about 10 and 24, it
+  reads 6% above PyBDSF's fitted peak, while their Gaussian components'
+  fitted peaks agree with PyBDSF's to 0.2%.
 - In `compact`, every published source represents exactly one fitted
   component. `INTEGRATED_FLUX` is its Gaussian-model integral and
   `ASSOCIATION_APERTURE_FLUX` is unavailable.

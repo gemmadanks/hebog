@@ -29393,3 +29393,116 @@ the per-worker placement finding.
 - **Checks.** The strict docs build and `just pre-commit` passed. This
   change edits the plan and this log only, so no coverage run, quick
   science check or benchmark applies to it.
+
+## 2026-10-05 — Task 49: the public finder runs in the equivalence lane, and every executor through real stages
+
+- **Outcome.** The equivalence lane runs `find_sources` on the frozen 256²
+  PyBDSF input under both profiles and compares its catalogue, RMS map and
+  mask with released 1.14.1 and pinned `master`
+  (`tests/equivalence/test_public_reference_products.py`). The public
+  product-hash tests and the eight-by-eight envelope-grid test run under
+  `SerialExecutor`, `ThreadExecutor` (four threads) and in-process Dask
+  through one `each_executor` fixture, and one public run uses two Dask
+  workers in separate processes. Every product hash equals the serial
+  one-tile run's. No production code changed, so no product changed.
+- **Like for like.** Every reference source is a single Gaussian (`S_Code`
+  S), so the published Gaussian components are compared with the reference
+  rows for the fitted model, and the published sources for association,
+  position and `Total_flux`, which both define as the summed fitted flux.
+  The limits are the reviewed Phase 3 and 4 compact-reference gates in
+  `config/contracts`, equal to the plan's isolated SNR ≥ 10 targets, and
+  the plan's source-free RMS target. The two references agree exactly on
+  every compared quantity, so each figure holds for both; position is in
+  4″ beams.
+
+  | Measure | `continuum` | `compact` | Limit |
+  | --- | --- | --- | --- |
+  | Sources matched within 0.5 beam | 3 of 3, none extra | 3 of 3, none extra | all |
+  | Source position, median / p95 | 0.004 / 0.015 | 0.0002 / 0.0006 | 0.02 / 0.10 |
+  | Source `Total_flux`, median / p95 | 0.09% / 0.51% | 0.27% / 0.30% | 5% / 10% |
+  | Source peak, median / p95 | **6.1% / 6.3%** | 0.04% / 0.13% | 2% / 5% |
+  | Component peak, median / p95 | 0.17% / 0.21% | 0.04% / 0.13% | 2% / 5% |
+  | Component fitted axes, median / p95 | 0.12% / 0.21% | 0.12% / 0.27% | 5% / 10% |
+  | Source-free RMS, median / p95 | 1.95% / **5.46%** | 1.57% / 3.12% | 2% / 5% |
+  | Mask precision / recall / IoU | 0.994 / **0.927 / 0.922** | 1.000 / **0.916 / 0.916** | 0.99 / 0.99 / 0.98 |
+  | Matched island IoU, median / minimum | **0.909 / 0.857** | **0.909 / 0.857** | 0.99 / 0.95 |
+
+  Under both profiles the three islands match one to one, and every
+  reference position and published component lies inside both masks. The
+  catalogue tests also apply the gates' fitted and deconvolved position
+  angles, deconvolved axes, classification, availability, association and
+  catastrophic-outlier limits, all met. Rapthor's ≥ 99.5% retained/rejected
+  target concerns the imager's sky-model components, which cover the edge
+  pixels the published mask trims, so this input does not measure it; it
+  stays open for task 21.
+- **Three known differences, bounded rather than gated.** Each bound is the
+  measured value widened by the quick check's 0.02 regression tolerance and
+  rounded outward, so a change that moves one is caught and has to be
+  explained.
+    - *Continuum source peak* (bound 8.1% / 8.3%). A `continuum` source's
+      `PEAK_FLUX` is the brightest background-subtracted pixel it owns
+      (`measure_segment_row_pixels`); PyBDSF's is its single Gaussian's
+      fitted peak. On the two unresolved sources, SNR about 10 and 24, it
+      reads 6% above that fit; the component rows agree to 0.2%, and
+      Rapthor reads neither peak.
+    - *Continuum RMS tail* (bound 7.5% at p95). Local-noise refinement on
+      35-pixel windows scatters more than PyBDSF's 150-pixel box: the
+      `continuum` RMS reads 1.9% low in median and up to 9% low away from
+      the bright source. `compact`, which does not refine, meets the target.
+    - *Mask* (bounds 0.89 on pixel recall and IoU, 0.88 and 0.83 on the
+      matched islands' median and minimum IoU). The published mask is
+      publication support: the boundary rule (3×3 opening, 6σ boundary
+      floor, persistent support, `how-hebog-works.md`) leaves out 13
+      (`continuum`) and 15 (`compact`) of the reference's 178 island
+      pixels, all above the 3σ island threshold and up to 5.7σ.
+      `continuum` adds one pixel at 2.98σ of the reference RMS, 3.02σ of
+      its own.
+- **Executors.** The six fitted cases (shell, ellipse and coarse-protection
+  fields, with injected linear-algebra and inadequate-model failures) and
+  the twelve high-threshold controls each publish one serial reference on
+  the default 128-pixel background tiles, shared by the module, and every
+  executor reruns them on 97 × 111 tiles. The envelope grid compares each
+  executor's 64-tile run with the one-tile run. The wide-object grid test, which sends
+  every object down the paths decided from its cores, stays Serial to keep
+  the portable jobs' cost down: Thread and Dask would add two grid runs,
+  about 80 s of CPU here, so the island, owner, support and segment rounds
+  decided from cores run under Serial only. The process-worker run
+  is the coarse-protection field, 256 × 384 on six background tiles; it
+  also checks that every task ran on a worker whose process is not the
+  test's.
+- **Cost.** The equivalence module adds 18 tests and two serial runs of the
+  256² input, 14 s of CPU here. The changed integration tests took 469 s
+  of CPU with three xdist workers against 286 s for the tests they replace,
+  on a machine at load 22 on 12 cores; about 70 s of the difference is the
+  envelope grid's one-tile reference built again on each worker that runs
+  one of its tests. On CI's two workers that is roughly one to two more
+  minutes per portable job, an estimate rather than a measurement.
+- **Task 58.** The equivalence tests on the lane task 58 removes are
+  `test_compact_catalogue_equivalence.py` (`stages.catalogue`,
+  `algorithms.catalogue`, and the adapter's writer over that lane's
+  catalogue), `test_phase_four_recovery.py` (the same two modules) and
+  `test_generated_measurement_matrix.py` (`stages.fitting`). The new module
+  supersedes `test_compact_catalogue_meets_both_exact_reference_gates`, on
+  the same gates, references and input, except that it compares the
+  reference's `Total_flux` as published, and leaves nothing for
+  `test_pybdsf_unresolved_flux_divergence_is_explicitly_canonicalized` to
+  protect: the public finder's component flux matches that uncanonicalized
+  `Total_flux` to 0.6% at most. It does not replace the Rapthor
+  FITS view's selection test (task 57's codec), generated-truth recovery or
+  the measurement matrix. `test_detection_topology.py` and
+  `test_background_rms.py` compare live stages with the same references
+  and stay as stage-level checks.
+- **Checks on the final code.** The equivalence lane (45 passed, 18 of
+  them new; the new module again after the review's fixes); the changed
+  integration tests (62 passed), and all of `test_public_find_sources.py`
+  with `test_dask_executor.py` (169 passed); `just check`;
+  the strict docs build; `just pre-commit`. Each known-difference bound was
+  tightened below its measured value once to confirm its test fails. An
+  independent review found the island IoU gate missed without a bound, a
+  pixel-agreement assertion that could not fail and five gates of the old
+  compact test not carried over; all three are fixed. It also notes two
+  older public tests, of the corner background and the noiseless edge,
+  that compare Serial with in-process Dask only.
+- **Not run.** The quick science check and `just coverage`: no production
+  code changed. The integration lane beyond the changed tests, and
+  Windows.

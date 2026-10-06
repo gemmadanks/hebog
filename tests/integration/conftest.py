@@ -1,9 +1,10 @@
 # pyright: reportMissingTypeStubs=false
-"""Shared integration helpers for substituting published stage inputs."""
+"""Shared integration helpers: executors, and published stage inputs."""
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Generator, Iterable, Iterator, Mapping
+from contextlib import AbstractContextManager, contextmanager
 from dataclasses import fields, is_dataclass
 from pathlib import Path
 from typing import Any, TypeVar, cast
@@ -11,16 +12,76 @@ from typing import Any, TypeVar, cast
 import numpy as np
 import numpy.typing as npt
 import pytest
+from distributed import Client, LocalCluster
 
+from hebog import SourceFinderResult
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.data_models.partitioning import ImageBounds
 from hebog.data_models.products import ProductChunk
-from hebog.executors import SerialExecutor, TaskRequirement
+from hebog.executors import (
+    DaskExecutor,
+    Executor,
+    SerialExecutor,
+    TaskRequirement,
+    ThreadExecutor,
+)
 from hebog.io.zarr import ZarrProductSink
 
 _BACKGROUND_TILE_SHAPE_YX = (128, 128)
 _Input = TypeVar("_Input")
 _Output = TypeVar("_Output")
+
+
+@contextmanager
+def _serial_executor() -> Generator[Executor]:
+    """Yield the deterministic reference executor."""
+    yield SerialExecutor()
+
+
+@contextmanager
+def _thread_executor() -> Generator[Executor]:
+    """Yield a caller-owned pool of four threads in this process."""
+    with ThreadExecutor(thread_count=4) as executor:
+        yield executor
+
+
+@contextmanager
+def _dask_executor() -> Generator[Executor]:
+    """Yield a caller-owned client of two single-threaded in-process workers.
+
+    In-process workers share this process, so no task result crosses a
+    process boundary; the process-worker run in
+    ``test_public_find_sources.py`` is the one that does.
+    """
+    cluster = LocalCluster(
+        n_workers=2,
+        threads_per_worker=1,
+        processes=False,
+        # A random port, so parallel test workers never contend for one.
+        dashboard_address=":0",
+    )
+    with cluster, Client(cluster) as client:
+        yield DaskExecutor(client)
+
+
+@pytest.fixture(
+    params=(
+        pytest.param(_serial_executor, id="serial"),
+        pytest.param(_thread_executor, id="threads"),
+        pytest.param(_dask_executor, id="dask"),
+    )
+)
+def each_executor(request: pytest.FixtureRequest) -> Iterator[Executor]:
+    """Yield every supported executor in turn, each closed afterwards.
+
+    A product contract that holds for one executor must hold for all of
+    them, so a test of it takes this fixture and runs under each.
+    """
+    open_executor: Callable[[], AbstractContextManager[Executor]] = (
+        request.param
+    )
+    with open_executor() as executor:
+        yield executor
 
 
 def _publish_background_rms(
@@ -122,6 +183,19 @@ def _substituted_background_rms(
 def substituted_background_rms() -> SubstituteBackgroundRms:
     """Return a helper standing in for the whole background/RMS stage."""
     return _substituted_background_rms
+
+
+def product_hashes(result: SourceFinderResult) -> tuple[str, ...]:
+    """Return the content identity of every published product.
+
+    The order is catalogue, RMS, mask and diagnostics.
+    """
+    return (
+        result.catalogue.content_sha256,
+        result.rms.content_sha256,
+        result.mask.content_sha256,
+        result.diagnostics.content_sha256,
+    )
 
 
 def published_plane(
