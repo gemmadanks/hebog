@@ -31044,7 +31044,20 @@ the per-worker placement finding.
   All three pass the regression rule (a lower bound above 1.05 fails), so
   tasks 46 and 61 cost less than the rest of the stack saves. The saving is
   not attributed to a pull request.
-- **Not measured.** The diagnostic `master` ratios: the reference identity
-  no longer matched the cached timings, and the pinned PyBDSF container
-  would not start (Podman's overlay storage in the VM returned an
-  input/output error on every run). The 10,000² and whole-mosaic anchors.
+- **Pinned `master`.** The first run skipped it: the reference identity no
+  longer matched the cached timings, and the container would not start
+  (Podman's overlay storage in the VM returned an input/output error until
+  the Podman machine was restarted). A second run,
+  `pr-stack-2026-10-06-with-master` (load 2.1 to 4.4), timed the stack again
+  and `master` on four container cores, reusing `main`'s timings.
+
+  | Case | Stack median s | `master` s | Diagnostic ratio [95% bounds] | Stack / `main` |
+  | --- | --- | --- | --- | --- |
+  | `dense-field` | 13.4 | 2.6 | 5.21 [4.56, 5.49] | 0.88 [0.77, 0.93] |
+  | `lotss-dr3-1312-sparse` | 13.6 | 4.2 | 3.21 [3.10, 3.36] | 0.88 [0.84, 0.92] |
+  | `lotss-dr3-1312-dense` | 14.7 | 5.4 | 2.69 [2.53, 2.87] | 0.88 [0.82, 0.94] |
+
+  On 27 September the `master` ratios were 5.6, 3.7 and 3.2, but `master`
+  itself timed 6 to 9% slower this evening than then, so the fall
+  overstates Hebog's own gain by about that much.
+- **Not measured.** The 10,000² and whole-mosaic anchors.
