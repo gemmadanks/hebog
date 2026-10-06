@@ -1,12 +1,12 @@
 """Owner-scoped and core-scoped rounds of the tile-native support pass.
 
 ADR-008 splits the support pass because two of its steps are scoped to an
-owner rather than to a bounded neighbourhood: restoring an owner whose refined
-support cleanup would split or remove, and preserving the previously published
-regions that bridge two retained parts of one owner, or all of them when no
-part is retained. Each is decided once per owner, from the window holding that
-owner, and returns a record; the cores then apply those records and write the
-final labels and mask.
+owner rather than to a bounded neighbourhood: restoring an owner that cleanup
+would remove or whose publication it would split, and preserving the
+previously published regions that bridge two retained parts of one owner, or
+all of them when no part is retained. Each is decided once per owner, from
+the window holding that owner, and returns a record; the cores then apply
+those records and write the final labels and mask.
 
 No admission bounds an owner's area, so an owner's window can be wider than
 the read budget. Such an owner is never read whole: both of its questions are
@@ -38,8 +38,10 @@ from hebog.algorithms.extended_measurement import (
     multiscale_recovery_radius_pixels,
     owner_support_needs_restore,
     preserve_owner_publication_bridges,
+    published_owner_labels,
     refine_multiscale_segment_support,
     refine_persistent_publication_support,
+    refinement_kept_labels,
     segment_refinement_halo_pixels,
 )
 from hebog.algorithms.multiscale import BeamShapePixels
@@ -197,7 +199,7 @@ class _OwnerBridgePatch:
 
 @dataclass(frozen=True, slots=True)
 class _RestoreBatchResult:
-    """Owners whose own window shows cleanup split or removed their support."""
+    """Owners whose own window shows cleanup removed them or split them."""
 
     restored_owners: tuple[int, ...]
     maximum_owner_read_pixels: int
@@ -246,9 +248,14 @@ class _PublishedOwnerBatchResult:
 
 @dataclass(frozen=True, slots=True)
 class _WideSplitResult:
-    """The wide owners' refined components each core of one batch holds."""
+    """The wide owners' published components each core of one batch holds.
+
+    ``kept_owners`` names the wide owners refinement keeps any pixel of, on
+    their own evidence, in these cores.
+    """
 
     summaries: tuple[LabelComponentSummary, ...]
+    kept_owners: tuple[int, ...]
     maximum_owner_read_pixels: int
 
 
@@ -374,16 +381,37 @@ def _publication_labels(
     restored_owners: tuple[int, ...],
 ) -> npt.NDArray[np.int32]:
     """Publish immutable direct-owner support over one read."""
-    direct_publication = apply_owner_restores(
-        planes.detection_labels,
-        _refined_support(planes, config),
-        restored_owners,
-    )
-    return np.where(
-        (direct_publication > 0) & (measurement > 0),
+    return published_owner_labels(
+        apply_owner_restores(
+            planes.detection_labels,
+            _refined_support(planes, config),
+            restored_owners,
+        ),
         measurement,
-        0,
-    ).astype(np.int32, copy=False)
+    )
+
+
+def _restore_question_planes(
+    planes: _ReadPlanes,
+    config: PublicationStageConfig,
+    seed_references_yx: tuple[tuple[int, tuple[int, int]], ...],
+) -> tuple[npt.NDArray[np.int32], npt.NDArray[np.int32]]:
+    """Return each owner's publication before restores, over one read.
+
+    Also return the pixels refinement keeps of each owner on its own
+    evidence; together they answer whether an owner needs restoring.
+    """
+    return (
+        _publication_labels(
+            planes,
+            config,
+            measurement=_measurement_labels(
+                planes, config, seed_references_yx
+            ),
+            restored_owners=(),
+        ),
+        refinement_kept_labels(planes.detection_labels, planes.direct_snr),
+    )
 
 
 def _persistent_labels(
@@ -455,18 +483,22 @@ def _decide_restores(
     support_source: _CompletedProductSource,
     config: PublicationStageConfig,
 ) -> _RestoreBatchResult:
-    """Decide, per owner, whether cleanup split or removed its support."""
-    planes = _read_planes(
-        batch.read_bounds,
-        detection_source=detection_source,
-        support_source=support_source,
+    """Decide, per owner, whether cleanup removed it or split its support."""
+    published, kept = _restore_question_planes(
+        _read_planes(
+            batch.read_bounds,
+            detection_source=detection_source,
+            support_source=support_source,
+        ),
+        config,
+        batch.seed_references_yx,
     )
-    refined = _refined_support(planes, config)
     restored = tuple(
         request.label_value
         for request in batch.requests
         if owner_support_needs_restore(
-            refined[_crop(batch.read_bounds, request.window)],
+            published[_crop(batch.read_bounds, request.window)],
+            kept[_crop(batch.read_bounds, request.window)],
             label_value=request.label_value,
         )
     )
@@ -571,32 +603,40 @@ def _observe_wide_splits(
     support_source: _CompletedProductSource,
     config: PublicationStageConfig,
 ) -> _WideSplitResult:
-    """Label the wide owners' refined support in each core of one batch.
+    """Label the wide owners' published support in each core of one batch.
 
-    The read carries the refinement halo, so every core pixel is refined
-    exactly as a window over the owner would refine it.
+    The read carries the refinement halo, so every core pixel is refined and
+    measured exactly as a window over the owner would refine and measure it.
     """
     summaries: list[LabelComponentSummary] = []
+    kept_owners: set[int] = set()
     for request in batch.requests:
         partition = request.partition
-        planes = _read_planes(
-            partition.read_bounds,
-            detection_source=detection_source,
-            support_source=support_source,
+        core = _crop(partition.read_bounds, partition.core_bounds)
+        published, kept = _restore_question_planes(
+            _read_planes(
+                partition.read_bounds,
+                detection_source=detection_source,
+                support_source=support_source,
+            ),
+            config,
+            request.seed_references_yx,
         )
-        refined = _refined_support(planes, config)[
-            _crop(partition.read_bounds, partition.core_bounds)
-        ]
+        wide = np.asarray(request.wide_owners, dtype=np.int32)
         summaries.append(
             label_components(
                 np.where(
-                    np.isin(refined, request.wide_owners), refined, 0
+                    np.isin(published[core], wide), published[core], 0
                 ).astype(np.int32, copy=False),
                 partition,
             ).summary()
         )
+        kept_owners.update(
+            int(value) for value in np.unique(kept[core]) if value in wide
+        )
     return _WideSplitResult(
         summaries=tuple(summaries),
+        kept_owners=tuple(sorted(kept_owners)),
         maximum_owner_read_pixels=max(
             read_pixels(request.partition.read_bounds)
             for request in batch.requests
@@ -1027,14 +1067,14 @@ def run_publication_stage(  # noqa: PLR0913
 ) -> PublicationStageResult:
     """Decide owner connectivity, then publish the final support products.
 
-    Four rounds, in the order ADR-008 sets out: owners whose refined support
-    cleanup would split or remove, the owners published anywhere, the label
-    patches that bridge an owner's support or restore it when persistence
-    keeps none, and the cores that apply all three with the caller's island
-    admission. Only the last round writes.
+    Four rounds, in the order ADR-008 sets out: owners that cleanup would
+    remove or whose publication it would split, the owners published
+    anywhere, the label patches that bridge an owner's support or restore it
+    when persistence keeps none, and the cores that apply all three with the
+    caller's island admission. Only the last round writes.
 
     An owner whose read exceeds ``maximum_batch_read_pixels`` is decided
-    from its cores instead of its window: one round labels its refined
+    from its cores instead of its window: one round labels its published
     support in every core its window reaches, before the scan, and another
     labels its base and candidate support, after it. The write round applies
     each core's share of the decisions. ``wide_owner_count`` reports how many
@@ -1071,6 +1111,16 @@ def run_publication_stage(  # noqa: PLR0913
         ),
         maximum_batch_read_pixels=budget,
     )
+    owner_batches = tuple(
+        _OwnerBatch(
+            requests=batch.requests,
+            read_bounds=batch.read_bounds,
+            seed_references_yx=_seed_shard(
+                detection_islands, batch.read_bounds
+            ),
+        )
+        for batch in owner_batches
+    )
     restore_results = _map_owner_batches(
         executor,
         owner_batches,
@@ -1090,7 +1140,9 @@ def run_publication_stage(  # noqa: PLR0913
         tuple(
             _TileRequest(
                 partition=partition,
-                seed_references_yx=(),
+                seed_references_yx=_seed_shard(
+                    detection_islands, partition.read_bounds
+                ),
                 restored_owners=(),
                 wide_owners=_wide_shard(wide, partition),
             )
@@ -1117,11 +1169,18 @@ def run_publication_stage(  # noqa: PLR0913
         (summary.partition.tile_id for summary in split_summaries),
         question="split",
     )
-    restored = frozenset(
-        owner for result in restore_results for owner in result.restored_owners
-    ) | owners_needing_restore(
-        split_summaries,
-        (request.label_value for request in wide),
+    wide_labels = frozenset(request.label_value for request in wide)
+    kept_wide = frozenset(
+        owner for result in split_results for owner in result.kept_owners
+    )
+    restored = (
+        frozenset(
+            owner
+            for result in restore_results
+            for owner in result.restored_owners
+        )
+        | owners_needing_restore(split_summaries, wide_labels)
+        | (wide_labels - kept_wide)
     )
 
     def tile_request(
@@ -1169,10 +1228,7 @@ def run_publication_stage(  # noqa: PLR0913
             _OwnerBatch(
                 requests=batch.requests,
                 read_bounds=batch.read_bounds,
-                seed_references_yx=_seed_shard(
-                    detection_islands,
-                    batch.read_bounds,
-                ),
+                seed_references_yx=batch.seed_references_yx,
                 restored_owners=_owner_shard(
                     detection_islands,
                     restored,

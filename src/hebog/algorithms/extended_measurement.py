@@ -148,11 +148,11 @@ def clean_detected_segment_labels(
 
 def _owner_windows(
     original_labels: npt.NDArray[np.int64],
-    refined_labels: npt.NDArray[np.int32],
+    published_labels: npt.NDArray[np.int32],
 ) -> dict[int, tuple[slice, slice] | None]:
     """Return the window holding each owner in both label planes."""
     original_windows = label_windows(original_labels)
-    refined_windows = label_windows(refined_labels)
+    published_windows = label_windows(published_labels)
     owners: dict[int, tuple[slice, slice] | None] = {}
     for label_value in np.unique(original_labels):
         value = int(label_value)
@@ -160,7 +160,7 @@ def _owner_windows(
             continue
         crops = [
             windows[value - 1]
-            for windows in (original_windows, refined_windows)
+            for windows in (original_windows, published_windows)
             if value <= len(windows) and windows[value - 1] is not None
         ]
         owners[value] = (
@@ -181,30 +181,74 @@ def _owner_windows(
 
 
 def owner_support_needs_restore(
-    refined_window: npt.NDArray[np.int32],
+    published_window: npt.NDArray[np.int32],
+    kept_window: npt.NDArray[np.int32],
     *,
     label_value: int,
 ) -> bool:
-    """Return whether cleanup split one owner's refined support or removed it.
+    """Return whether cleanup removed one owner or split its publication.
 
-    Refinement may trim an owner's flood, but it must leave one connected
-    part: an owner it splits, or one it removes entirely, such as a compact
-    detection between the detection threshold and the boundary floor whose
-    footprint holds no full opening element, keeps its original support.
+    Refinement may trim an owner's flood, but never remove it or split it.
+    An owner keeps its original support when refinement keeps none of its
+    pixels on its own evidence (``kept_window``, from
+    :func:`refinement_kept_labels`), such as a compact detection between the
+    detection threshold and the boundary floor whose footprint holds no full
+    opening element: pixels recovered only because another owner's opened
+    support lies near do not keep it. It keeps its original support too when
+    the pixels publication would give it (``published_window``, from
+    :func:`published_owner_labels`) are not one connected part.
 
-    The window must hold the owner's original and refined support completely;
-    connectivity cannot be decided from a part of it. Callers that evaluate
-    one owner per task use this decision, and the plane-wide
+    The window must hold the owner's original, refined and published support
+    completely; connectivity cannot be decided from a part of it. Callers
+    that evaluate one owner per task use this decision, and the plane-wide
     :func:`restore_segment_owners` applies it to every owner.
     """
+    if not np.any(np.asarray(kept_window) == label_value):
+        return True
     _, component_count = cast(
         tuple[npt.NDArray[np.int32], int],
         connected_component_labels(
-            np.asarray(refined_window) == label_value,
+            np.asarray(published_window) == label_value,
             structure=np.ones((3, 3), dtype=np.int8),
         ),
     )
     return component_count != 1
+
+
+def refinement_kept_labels(
+    component_labels: npt.ArrayLike,
+    combined_snr: npt.ArrayLike,
+    *,
+    boundary_minimum_snr: float = _MULTISCALE_BOUNDARY_MINIMUM_SNR,
+) -> npt.NDArray[np.int32]:
+    """Return each owner's pixels refinement keeps on its own evidence.
+
+    These are its opened support and its pixels at the boundary floor. Both
+    are bounded by the opening, so a tile evaluates its own core exactly.
+    """
+    labels = _segment_label_plane(component_labels)
+    kept = (clean_detected_segment_labels(labels) > 0) | (
+        (labels > 0)
+        & (np.asarray(combined_snr, dtype=np.float64) >= boundary_minimum_snr)
+    )
+    return np.where(kept, labels, 0).astype(np.int32, copy=False)
+
+
+def published_owner_labels(
+    support_labels: npt.ArrayLike,
+    measurement_labels: npt.ArrayLike,
+) -> npt.NDArray[np.int32]:
+    """Give each pixel of a support plane the owner measurement gives it.
+
+    Publication follows measurement ownership, so a refined pixel is
+    published for its measurement owner, and a pixel no owner measures is
+    not published.
+    """
+    support = np.asarray(support_labels)
+    measurement = np.asarray(measurement_labels)
+    return np.where((support > 0) & (measurement > 0), measurement, 0).astype(
+        np.int32, copy=False
+    )
 
 
 def apply_owner_restores(
@@ -232,28 +276,30 @@ def apply_owner_restores(
 def restore_segment_owners(
     original_labels: npt.NDArray[np.int64],
     refined_labels: npt.NDArray[np.int32],
+    *,
+    published_labels: npt.NDArray[np.int32],
+    kept_labels: npt.NDArray[np.int32],
 ) -> npt.NDArray[np.int32]:
-    """Restore a direct owner only when cleanup would split or remove it.
+    """Restore a direct owner only when cleanup would remove or split it.
 
-    Each owner is examined in the window holding both its original and its
-    refined support, instead of over the whole plane. Refinement recovers
-    multiscale emission, so an owner can reach pixels its original support
-    never covered, and those pixels decide whether cleanup split it.
+    Each owner is examined in the window holding its original and published
+    support, instead of over the whole plane. Refinement recovers multiscale
+    emission, so an owner can reach pixels its original support never
+    covered, and those pixels decide whether cleanup split it. Every
+    decision is taken before any owner is restored.
     """
-    connected = np.asarray(refined_labels, dtype=np.int32).copy()
-    windows = _owner_windows(original_labels, connected)
-    for label_value in np.unique(original_labels):
-        if label_value <= 0:
-            continue
-        crop = windows[int(label_value)]
-        if crop is None:
-            continue
-        if owner_support_needs_restore(
-            connected[crop],
-            label_value=int(label_value),
-        ):
-            connected[crop][original_labels[crop] == label_value] = label_value
-    return connected
+    windows = _owner_windows(original_labels, published_labels)
+    restored = [
+        int(label_value)
+        for label_value, crop in windows.items()
+        if crop is not None
+        and owner_support_needs_restore(
+            published_labels[crop],
+            kept_labels[crop],
+            label_value=label_value,
+        )
+    ]
+    return apply_owner_restores(original_labels, refined_labels, restored)
 
 
 def _dense_label_ranks(
@@ -496,12 +542,13 @@ def refine_multiscale_segment_support(  # noqa: PLR0913
     Sparse boundary pixels remain only at high combined S/N, while adjacent
     significant à trous support may recover coherent emission omitted by the
     original-pixel flood. When ``recovered_minimum_snr`` is supplied, recovered
-    support must also meet that original-pixel S/N floor. Recovered pixels
-    inherit the nearest original segment identity, preserving deterministic
-    ownership without merging or relabelling sources.
+    support must also meet that original-pixel S/N floor. A recovered pixel
+    of an owner's own flood keeps that owner, as publication does; one
+    outside every flood inherits the nearest opened segment identity. This
+    preserves deterministic ownership without merging or relabelling sources.
 
     Every decision here is bounded by the opening and recovery radii, so a
-    tile evaluates its own core exactly. Whether cleanup split or removed an
+    tile evaluates its own core exactly. Whether cleanup removed or split an
     owner is not: :func:`restore_segment_owners` decides that per owner, and
     :func:`refine_multiscale_segment_labels` composes the two.
     """
@@ -581,12 +628,11 @@ def refine_multiscale_segment_support(  # noqa: PLR0913
             return_indices=True,
         ),
     )
-    nearest_labels = cleaned[tuple(nearest_indices)]
-    refined = np.where(dense_core | recovered, nearest_labels, 0)
-    return np.where(high_confidence_boundary, labels, refined).astype(
-        np.int32,
-        copy=False,
+    owners = np.where(
+        original_support, labels, cleaned[tuple(nearest_indices)]
     )
+    retained = dense_core | recovered | high_confidence_boundary
+    return np.where(retained, owners, 0).astype(np.int32, copy=False)
 
 
 def refine_multiscale_segment_labels(  # noqa: PLR0913
@@ -600,19 +646,38 @@ def refine_multiscale_segment_labels(  # noqa: PLR0913
     recovery_radius_beams: float = _MULTISCALE_RECOVERY_RADIUS_BEAMS,
     recovered_minimum_snr: float | None = None,
 ) -> npt.NDArray[np.int32]:
-    """Refine segment support, restoring owners cleanup splits or removes."""
+    """Refine segment support, restoring owners cleanup removes or splits.
+
+    The pixels publication gives each owner come from the whole-plane
+    measurement ownership, so significant support must lie on valid pixels,
+    as the published planes guarantee.
+    """
     labels = _segment_label_plane(component_labels)
+    refined = refine_multiscale_segment_support(
+        component_labels,
+        combined_snr,
+        significant_multiscale_support,
+        beam_major_fwhm_pixels=beam_major_fwhm_pixels,
+        core_minimum_neighbors=core_minimum_neighbors,
+        boundary_minimum_snr=boundary_minimum_snr,
+        recovery_radius_beams=recovery_radius_beams,
+        recovered_minimum_snr=recovered_minimum_snr,
+    )
+    measurement = assign_seeded_multiscale_support(
+        labels,
+        np.asarray(significant_multiscale_support),
+        np.ones(labels.shape, dtype=np.bool_),
+        beam_major_fwhm_pixels=beam_major_fwhm_pixels,
+        recovery_radius_beams=recovery_radius_beams,
+    )
     return restore_segment_owners(
         labels,
-        refine_multiscale_segment_support(
-            component_labels,
+        refined,
+        published_labels=published_owner_labels(refined, measurement),
+        kept_labels=refinement_kept_labels(
+            labels,
             combined_snr,
-            significant_multiscale_support,
-            beam_major_fwhm_pixels=beam_major_fwhm_pixels,
-            core_minimum_neighbors=core_minimum_neighbors,
             boundary_minimum_snr=boundary_minimum_snr,
-            recovery_radius_beams=recovery_radius_beams,
-            recovered_minimum_snr=recovered_minimum_snr,
         ),
     )
 

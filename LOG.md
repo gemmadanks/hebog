@@ -29766,3 +29766,121 @@ the per-worker placement finding.
   changed, so no quick science check or benchmark applies. Not run: the
   workflow itself (it needs GitHub), Windows, and the `requires_data`,
   qualification and scalability lanes.
+
+## 2026-10-05 — Task 61: a split owner is restored, and the bridge round completes
+
+- **Outcome.** The quick check's `crowded-field` input with its left 40
+  columns scaled by 0.2 now completes, Serial and Thread, on one tile or a
+  4×4 grid: the owner the bridge round refused is restored, and its tail
+  joins its body to the pixel that stood apart. Nothing about the input is
+  unsupported, so nothing is refused. No quick-check product changes.
+  Scripts and outputs: `benchmark-results/diagnostics/task61-bridge-round/`.
+- **Decision statement.**
+    - *Observed problem.* The run stopped in the bridge round with a bare
+      `ValueError`: owner 682's earlier publication was its 69-pixel body
+      and one pixel, (382, 42), two rows below it.
+    - *Proposed cause.* Support refinement labelled every recovered pixel
+      with the nearest opened owner, even a pixel of another owner's own
+      flood. The 3×3 opening removes 682's thin tail; multiscale support
+      recovers its last pixel (4.2σ), whose nearest opened pixel is owner
+      688's. The restore round reads those labels, so it saw 682 whole
+      and 688 in two parts, and restored 688. Publication takes each
+      pixel's measurement owner, which for a flood pixel is its own flood:
+      682 was published in two parts. Persistence keeps three pixels around
+      the stray one but not the rows between, so no bridge joined them.
+    - *Independent test.* An analytic owner with a one-pixel tail ending
+      nearer a neighbour reproduces the refusal through the whole-plane
+      chain and the tiled stage; a prototype that keeps each flood pixel
+      with its own owner completes the field. In the 15 non-empty
+      quick-check cases (about 2,900 owners) refinement relabels no flood
+      pixel and recovers no pixel outside a flood, so every restore
+      decision there is unchanged.
+    - *Expected change.* The field completes with 682 restored; every
+      quick-check product is byte-identical.
+    - *Stopping condition.* A changed quick-check product, or a bridge
+      refusal left on a variant, sends it back to diagnosis.
+- **Repair.** The restore round asks its two questions of what each
+  owner keeps:
+    - *Split:* the pixels publication would give the owner, refined
+      support labelled by measurement ownership
+      (`published_owner_labels`), are not one part. The restore round now
+      measures, as the bridge round already did, so its owner batches and
+      wide cores carry the owners' reference pixels.
+    - *Removed:* refinement keeps none of the owner's pixels on its own
+      evidence, its opened support or its pixels at the 6σ floor
+      (`refinement_kept_labels`). Pixels recovered only because another
+      owner's opened support lies near do not keep it, so such an owner is
+      restored whole, as it was before this task.
+    - `refine_multiscale_segment_support` also keeps a recovered pixel of
+      an owner's own flood with that owner, as its docstring promised;
+      only a pixel outside every flood takes the nearest opened owner's
+      label. Both questions are bounded by the existing refinement halo.
+- **Independent review** of the first commit found that the refined-label
+  decision alone stopped restoring an owner the opening removes entirely
+  once a pixel of it was recovered beside a neighbour (a 2×2 flood one row
+  from an 8×8 block kept 1 or 2 of its 4 pixels), and that a recovered
+  pixel outside every flood, labelled by refinement for one owner and by
+  measurement for another, still reached the bridge refusal. Both now have
+  regression tests, red on the first commit.
+- **Variants,** the whole 1,024² field, Serial, before → after:
+
+  | Scaled region and factor | Before | After |
+  | --- | --- | --- |
+  | 20 left columns at 0.1, 0.2, 0.3 or 0.5; 40, 80 or 160 at 0.3 or 0.5 | completes | the same counts |
+  | 40 or 160 left columns, 40 top rows or 40 central columns, at 0.2 | bridge refusal | 1,380, 2,360, 1,630, 1,678 sources |
+  | 80 left columns, 40 right columns or 40 bottom rows, at 0.2 | 1,145, 1,088, 2,111 sources | the same counts, fewer owners restored |
+  | 40, 80 or 160 left columns at 0.1 | component-topology refusal | the same refusal |
+
+  The repaired field is invariant: one tile, a 4×4 grid of 256-pixel
+  cores, four threads, and every owner decided from its cores give
+  byte-identical catalogue, RMS and mask; the last differs in diagnostics
+  only by its wide-object counts.
+- **Found, not repaired.**
+    - *The RMS beside a sharp noise step.* Every refusal above came from
+      a field whose RMS had collapsed beside the quiet region: with 40
+      quiet columns the published RMS over columns 40 to 198 is about
+      3.4×10⁻⁵ Jy/beam where the noise is 10⁻⁴, so the detection
+      threshold there is about 1.7σ of the true noise. The repaired field
+      publishes 1,380 sources against 996 unscaled, 484 of them in columns
+      40 to 200 against 155. With 20 quiet columns the counts are normal
+      (982). Proposed as a task.
+    - *Measurement support joined through other owners.* Measurement gives
+      a significant pixel to the nearest flood pixel of its support
+      component within half a beam, by straight-line distance, so an
+      owner's measurement support need not be connected through its own
+      pixels. At 0.1, parent 709 (91 components in a 143×125 window) holds
+      pixel (585, 96) 2.2 pixels from its flood across unassigned pixels;
+      deblending finds no seed for it and raises a bare `ValueError`.
+      Proposed as a task.
+    - *A residual in publication, from the same attachment.* In the
+      pipeline a recovered pixel outside every flood is at least 3σ, so it
+      never touches a flood pixel, or it would be in that flood. It is
+      published apart from its owner's flood, restoring the owner cannot
+      join them, and only persistence can. None of the 15 cases recovers
+      such a pixel; the variants at 0.2 recover tens and all complete. One
+      persistent and left unjoined would still stop the run with the bridge
+      rule's `ValueError`. Proposed with the attachment task above.
+- **Tests.** Red on `5a028bf` for the stated reason, green after: the
+  tailed owner's refinement, its whole-plane chain, the tiled publication
+  stage over one tile, 17- and 20-pixel cores, reversed completion, a
+  one-pixel budget, threads and Dask, all equal to the chain; and
+  `find_sources` on this input, generated from the recipe. Red on the
+  first commit too: the gap pixel published for the owner measurement
+  gives it, and the 2×2 owner beside a block, restored whole with one or
+  four recovered pixels; at two rows from the block, beyond the recovery
+  radius, it was restored before and after.
+- **Checks on the final code.** `just coverage`: 3,377 passed, 97%
+  branch-aware; `stages/publication.py` and `owner_connectivity.py` at
+  100%, and the seven misses in `extended_measurement.py` are older
+  validation branches. The strict docs build and `just pre-commit` pass.
+  The quick science check `task61-review` reports no regression against
+  `typed-refusals-final`, and equals the first commit's `task61`: every
+  metric of the 17 cases is equal, and catalogue, RMS and mask are
+  byte-identical. On the repaired field, one tile, a 4×4 grid, four
+  threads and the wide path still give identical catalogue, RMS and mask,
+  and the 0.2 variants publish the counts in the table above.
+- **Not run.** A benchmark: the restore round now measures support
+  ownership, as the bridge round already did, so a quiet-machine quick
+  benchmark should confirm its cost. Dask process workers; Windows.
+- **Next.** Human: decide whether the RMS finding and the attachment
+  finding, with the residual it explains, become tasks.

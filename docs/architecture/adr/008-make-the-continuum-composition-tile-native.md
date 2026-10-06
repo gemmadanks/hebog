@@ -225,7 +225,9 @@ extent, never from a guess:
 Two steps of the support pass are scoped to an **owner**, not to a bounded
 neighbourhood, and were found by reading the installed composition rather than
 assumed. `refine_multiscale_segment_labels` ends by restoring an owner's
-original support when cleanup would split it or remove it entirely, and
+original support when refinement keeps none of its pixels on its own evidence
+(its opened support and its pixels at the 6σ floor), or when the pixels
+publication would give it, by measurement ownership, are not one part, and
 `refine_persistent_publication_labels` ends by preserving the previously
 published regions that bridge two retained parts of one owner, or all of them
 when no part is retained. No admitted owner can therefore lose all of its
@@ -243,7 +245,7 @@ Pass C therefore runs as rounds, each cheap relative to pass B's filters:
 | --- | --- | --- | --- |
 | Topology | core, halo 0 | detection labels, reconstruction mask, validity, scale masks | support-union and per-scale island summaries, adjacent-scale label overlaps |
 | Auxiliary publication | core, halo 0 | as above, plus the reconciled mappings | `support-components`, `persistent-support` |
-| Owner connectivity | owner window + refinement halo, or each core a wide owner's window reaches | detection labels, direct signal to noise, reconstruction mask | one restore decision per owner; for a wide owner, its refined support's components in each core |
+| Owner connectivity | owner window + refinement halo, or each core a wide owner's window reaches | detection labels, direct signal to noise, reconstruction mask, validity, support components, owner reference pixels | one restore decision per owner; for a wide owner, its published support's components and whether refinement keeps any of its pixels, in each core |
 | Published owners | core + refinement halo | the published planes, owner reference pixels, restore shard | the owners published in the core |
 | Owner bridges | owner window + refinement halo, or each core a wide owner's window reaches | as above, plus the published-owner shard | a label patch bounded by the owner window; for a wide owner, its base and candidate components in each core |
 | Final write | core + refinement halo | as above, plus the patch, wide-owner and admission shards | `component-labels`, `measurement-labels`, `publication-labels`, `retained-mask` |
