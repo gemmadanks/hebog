@@ -305,12 +305,14 @@ def _largest_local_noise_read(
 def test_the_widest_admitted_beam_fits_the_local_noise_read_on_any_image(
     height: int, width: int
 ) -> None:
-    """The public beam bound is what keeps the stage's bounded read.
+    """Every admitted beam keeps the stage's bounded local-noise read.
 
     Refinement reads a block of noise cells with the widest protection
     filter around it and refuses a read above its bound, after work has
     begun. The read grows with the beam, so the widest admitted beam is the
-    case to check, on every shape the narrow-image rule admits.
+    case to check, on every shape the narrow-image rule admits. The beam
+    limit is set by recovery on injected sources, not by this bound, which
+    leaves a margin: this test fails if the limit is ever raised past it.
     """
     shape_yx = (height, width)
     try:
@@ -324,20 +326,6 @@ def test_the_widest_admitted_beam_fits_the_local_noise_read_on_any_image(
             shape_yx, public_api._MAXIMUM_BEAM_FWHM_PIXELS
         )
         <= background.maximum_constant_map_pixels
-    )
-
-
-def test_the_beam_bound_is_the_widest_whole_pixel_beam_the_stage_serves() -> (
-    None
-):
-    """One more pixel of beam would exceed the read on a large image."""
-    background = source_finder_configs()[0].background_rms
-
-    assert (
-        _largest_local_noise_read(
-            (1_100, 1_100), public_api._MAXIMUM_BEAM_FWHM_PIXELS + 1
-        )
-        > background.maximum_constant_map_pixels
     )
 
 

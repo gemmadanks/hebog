@@ -17,7 +17,7 @@ Hebog accepts one two-dimensional FITS image. The image needs:
 - pixel values in `Jy/beam` (`BUNIT`);
 - an ICRS or FK5 J2000 celestial WCS, with any legacy `CROTA` rotation
   stated [so that it has one reading](../reference/input-header-contract.md#rotation);
-- a restoring beam, `BMAJ`, `BMIN` and `BPA`, no wider than 22 pixels;
+- a restoring beam, `BMAJ`, `BMIN` and `BPA`, no wider than 10 pixels;
 - a reference frequency: `RESTFRQ`, `RESTFREQ` or a frequency axis; and
 - at most 15,402 pixels on each side, and at most 1,000,000 pixels in all if
   the shorter side is under 600. Cut out a region of a larger image, for

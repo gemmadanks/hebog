@@ -2886,26 +2886,27 @@ def test_an_image_on_the_admitted_side_of_the_narrow_rule_is_analysed(
 @pytest.mark.parametrize(
     ("shape_yx", "beam_pixels"),
     (
+        # Just past the limit, and the width at which the limit used to be.
+        ((64, 64), 10.5),
+        ((1100, 1100), 22.0),
         # The width at which local-noise refinement failed mid-run.
         ((1100, 1100), 26.0),
-        ((64, 64), 23.0),
         # A beam given in arcseconds where the header means degrees.
         ((64, 64), 14_400.0),
     ),
 )
-def test_a_beam_wider_than_22_pixels_is_refused_before_analysis(
+def test_a_beam_wider_than_10_pixels_is_refused_before_analysis(
     tmp_path: Path,
     shape_yx: tuple[int, int],
     beam_pixels: float,
     profile: str,
 ) -> None:
-    """Given a restoring beam wider than 22 pixels,
+    """Given a restoring beam wider than 10 pixels,
     when the finder is asked for either profile,
-    then it states the limit and builds nothing for the beam.
+    then it states the limit and its measured reason and builds nothing.
 
-    Local noise is refined from a block of cells with a source-protection
-    filter around it that grows with the beam, and nothing wider is
-    measured correctly.
+    The meshes are fixed in pixels, and on injected sources the continuum
+    profile misses some at 12 pixels of beam.
     """
     _write_empty_image(
         tmp_path / "image.fits", shape_yx, beam_pixels=beam_pixels
@@ -2915,7 +2916,10 @@ def test_a_beam_wider_than_22_pixels_is_refused_before_analysis(
     with pytest.raises(
         UnsupportedSourceFinderConfigurationError,
         match=(
-            f"a restoring beam of at most 22 pixels FWHM, not {beam_pixels:g}$"
+            "a restoring beam of at most 10 pixels FWHM, "
+            f"not {beam_pixels:g}: its background and noise meshes are fixed "
+            "in pixels, and on injected sources they miss sources from 12 "
+            "pixels of beam"
         ),
     ):
         hebog.find_sources(
@@ -2928,9 +2932,12 @@ def test_a_beam_wider_than_22_pixels_is_refused_before_analysis(
 
 @pytest.mark.integration
 @pytest.mark.parametrize("profile", ("continuum", "compact"))
-def test_a_beam_of_22_pixels_is_analysed(tmp_path: Path, profile: str) -> None:
+@pytest.mark.parametrize("shape_yx", ((64, 64), (1100, 1100)))
+def test_a_beam_of_10_pixels_is_analysed(
+    tmp_path: Path, shape_yx: tuple[int, int], profile: str
+) -> None:
     """The stated limit is the widest admitted beam, not the first refused."""
-    _write_empty_image(tmp_path / "image.fits", (1100, 1100), beam_pixels=22.0)
+    _write_empty_image(tmp_path / "image.fits", shape_yx, beam_pixels=10.0)
 
     with pytest.raises(_AnalysisStartedError):
         hebog.find_sources(
