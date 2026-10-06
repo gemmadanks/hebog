@@ -29662,3 +29662,107 @@ the per-worker placement finding.
   `marimo check`, passes without changes.
 - **Not run.** Windows, and the slow lane, which no recipe runs until
   task 50.
+
+## 2026-10-06 — Task 50: every test runs in a lane and fails when it should
+
+- **Outcome.** Every test now runs in some lane, and pytest treats warnings
+  as errors and every `xfail` as strict.
+  - *Doctests.* The unit recipe, `just test-vv`, the pre-commit hook, the
+    CI coverage job and now `just coverage` name `src/hebog tests`, so the
+    19 doctests under `src/` are collected; all pass. The
+    `--doctest-glob="*.py"` flag was dropped: pytest collects `.py` files
+    as modules first, so it matched nothing. `--disable-warnings` was
+    dropped too, since no warning now passes silently.
+  - *Slow lane.* `just test-slow` and `.github/workflows/slow-tests.yaml`
+    (weekly, Mondays 04:00 UTC, and on manual dispatch) run the 113 `slow`
+    tests that are neither qualification, scalability nor `requires_data`.
+    The three `requires_data` representative-detection tests stay with the
+    data-host checks the contributor guide reserves for explicit selection.
+    A separate workflow keeps `ci.yaml`'s triggers and concurrency group
+    unchanged; it carries the same uv pin as the other workflows.
+  - *No known failure.* `test_edge_source_uncertainty_availability_passes_regression`,
+    which gave 247 of 250 edge-source fits an uncertainty (98.8%) against
+    the 99% floor, measured the single-region fitter task 58 removed, and
+    went with it; every test in the lane passes.
+  - *Contract image.* The public-behaviour contracts run on 64² seeded
+    white noise under a 30σ source and a 6.5σ one. The threshold contract
+    now asserts that the faint source is published at 5σ/3σ and not at
+    8σ/6σ, and that every source of the higher run lies within half a beam
+    of one in the lower run; the zero image published no source, so every
+    assertion was vacuous. Noise covers every pixel, so the image holds no
+    constant block for task 46's proposed ingress rule to invalidate.
+  - *Manifest.* `phase-0-public-behaviours.json` is schema 2: each
+    behaviour has a `status` (`implemented` or `strict-xfail`) and the
+    pytest node ID of the test that holds it, and a unit test checks that
+    the named test exists, is marked xfail exactly when its status says so,
+    and that no specification in the two placeholder files is unnamed.
+    Five behaviours are implemented. The two contract tests were already
+    ordinary tests. Three placeholders were removed and the manifest points
+    at the integration tests that already assert them: empty-image products
+    (`test_blank_and_all_nan_inputs_publish_honest_empty_products`, which
+    now also reads the empty catalogue), invalid metadata
+    (`test_invalid_public_inputs_fail_before_publication`) and partition
+    invariance (`test_products_on_the_envelope_grid_equal_one_tile`, which
+    covers tile shape and Serial against two-worker Dask; completion order
+    and batch size are covered stage by stage). Five acceptance scenarios
+    and the bounded-memory contract remain placeholders, their reasons
+    citing tasks 19 and 17.
+- **Warnings found.** The 565 warnings of the portable, equivalence and
+  acceptance lanes on `main` (5 October) had these causes:
+  - *Two tests wrote a two-axis image under a four-axis header*
+    (420 warnings in the noiseless-edge test, 108 in the slow development
+    matrix). They now write the degenerate frequency and Stokes axes the
+    header declares, as the dataset materializer does.
+  - *Every Dask test cluster asked for port 8787.* `dashboard_address=""`
+    and `None` both still bind the HTTP server to 8787, so parallel tests
+    collided, warned, and left an unclosed socket from the failed bind.
+    Every test cluster now passes `":0"`.
+  - *The RMS kernel's `warnings.catch_warnings()` races between Dask
+    threads* (task 46): an all-NaN window's `RuntimeWarning` escaped once.
+    Under the error filter that raises inside the task, so the twelve Dask
+    tests that run the kernel carry `IGNORE_RMS_KERNEL_WARNINGS`
+    (`tests/integration/conftest.py`), to be removed with task 46.
+  - *Astropy and wcslib report on the headers some tests write on
+    purpose*: AIPS-era spellings, empty or unquoted cards, MIGHTEE's
+    declared axes, `MJD-OBS` without `DATE-OBS`, malformed `BLANK`,
+    truncation, rotation fixes and malformed structural cards. Each test
+    now ignores only the reports its own headers provoke, by category and
+    message, replacing five blanket `simplefilter("ignore")` blocks.
+  - *Astropy leaves the file open when `fits.open` raises* on a malformed
+    `BITPIX` or `NAXIS` card, so the refused file closes only when
+    collected; the structural-card test ignores that unraisable warning.
+    Production code is unchanged.
+  - Two global filters remain, each a third-party warning no test can
+    avoid: pytest-benchmark's start-up notice that xdist disables it (no
+    test uses its fixture), and distributed's warning that a worker's
+    scratch directory took over a second to create, which depends on load.
+- **One production change.** On Python 3.12 and 3.13, when Astropy refuses
+  a malformed structural card (`BITPIX`, `NAXIS`, `NAXIS1`) it leaves the
+  file it opened to the collector, and warnings-as-errors turned that into
+  six header-contract failures there; the development machine runs 3.14,
+  where the file is closed. `FitsImageSource` now opens the file itself,
+  closes it when Astropy refuses the header, and otherwise hands it to the
+  HDU list, which closes it. Found by running the lowest-dependency job of
+  task 60 on Python 3.12, where the header-contract and FITS-source files
+  then pass (493 tests).
+- **Collected garbage.** On the stack, one full coverage run failed a
+  test whose `gc.collect()` finalized an input file an earlier test had
+  left to the collector: under any executor a task that raises, even one
+  the finder handles such as an injected linear-algebra failure, can
+  leave a traceback holding that task's handle on the input, and the
+  collector may finalize the file before the source that would close it.
+  Warnings as errors turn that into a failure of whichever test collects
+  it. The `each_executor` fixture now collects at its teardown with
+  `ResourceWarning` ignored, as task 47's failure tests do; closing every
+  task's handle deterministically is left to task 25.
+- **Checks on the final code**, all under the new pytest settings, with
+  three xdist workers on a shared, loaded machine. The portable suite with
+  coverage and the `src/hebog` doctests: 3,394 passed and 1 xfailed, 97.02%
+  branch-aware coverage; `hebog.validation.contracts` misses no line it
+  changes. Equivalence and acceptance: 27 passed, 5 xfailed. Slow lane:
+  114 passed and the edge-source regression xfailed, in 6 min 12 s. The
+  benchmark smoke lane: 2 passed. Ruff, the formatter, strict pyright, the
+  strict docs build and `just pre-commit` passed. No production code
+  changed, so no quick science check or benchmark applies. Not run: the
+  workflow itself (it needs GitHub), Windows, and the `requires_data`,
+  qualification and scalability lanes.

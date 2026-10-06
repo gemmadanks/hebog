@@ -14,7 +14,7 @@ from typing import Any
 import numpy as np
 import pytest
 from astropy.io import fits
-from conftest import estimated_maps
+from conftest import IGNORE_RMS_KERNEL_WARNINGS, estimated_maps
 from distributed import Client
 from scipy.ndimage import gaussian_filter
 
@@ -28,6 +28,7 @@ from hebog.io import read_catalogue_fits_product
 @pytest.mark.integration
 @pytest.mark.parametrize("shape", ((512, 509), (599, 640)))
 @pytest.mark.parametrize("seed", (2026981301, 2026981302))
+@IGNORE_RMS_KERNEL_WARNINGS
 def test_public_corner_sources_survive_background_estimation(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -98,7 +99,7 @@ def test_public_corner_sources_survive_background_estimation(
         processes=False,
         n_workers=2,
         threads_per_worker=1,
-        dashboard_address=None,
+        dashboard_address=":0",
     ) as client:
         distributed = find_sources(
             SourceFinderRequest(path, tmp_path / "dask", "corner-control"),

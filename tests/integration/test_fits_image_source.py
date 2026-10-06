@@ -156,6 +156,11 @@ def test_a_scaled_window_is_read_without_loading_the_plane(
 
 
 @pytest.mark.integration
+# Astropy warns that it will ignore a BLANK card that is not an integer.
+@pytest.mark.filterwarnings(
+    "ignore:Invalid value for 'BLANK' keyword:"
+    "astropy.io.fits.verify.VerifyWarning"
+)
 @pytest.mark.parametrize(
     ("keyword", "value", "message"),
     [
@@ -178,14 +183,18 @@ def test_rejects_a_scaling_card_that_is_not_the_number_it_should_be(
     with fits.open(path, mode="update", do_not_scale_image_data=True) as hdus:
         hdus[0].header[keyword] = value
 
-    with warnings.catch_warnings():
-        # Astropy warns that it will ignore the BLANK card.
-        warnings.simplefilter("ignore")
-        with pytest.raises(InvalidFitsImageError, match=message):
-            FitsImageSource(path).metadata()
+    with pytest.raises(InvalidFitsImageError, match=message):
+        FitsImageSource(path).metadata()
 
 
 @pytest.mark.integration
+# Astropy warns that it ignores this BLANK card, as the finder does.
+@pytest.mark.filterwarnings(
+    "ignore:Invalid value for 'BLANK' keyword:"
+    "astropy.io.fits.verify.VerifyWarning",
+    "ignore:Invalid 'BLANK' keyword in header:"
+    "astropy.io.fits.verify.VerifyWarning",
+)
 def test_a_blank_card_on_floating_point_pixels_is_ignored(
     tmp_path: Path,
 ) -> None:
@@ -195,16 +204,19 @@ def test_a_blank_card_on_floating_point_pixels_is_ignored(
     with fits.open(path, mode="update") as hdus:
         hdus[0].header["BLANK"] = "none"
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        source = FitsImageSource(path)
-        window = source.read_window(ImageBounds(0, 2, 0, 2))
-        source.close()
+    source = FitsImageSource(path)
+    window = source.read_window(ImageBounds(0, 2, 0, 2))
+    source.close()
 
     assert np.all(window.valid_pixels)
 
 
 @pytest.mark.integration
+# Astropy warns that the file may be truncated, and opens it.
+@pytest.mark.filterwarnings(
+    "ignore:File may have been truncated:"
+    "astropy.utils.exceptions.AstropyUserWarning"
+)
 @pytest.mark.parametrize("kept_data_bytes", [0, 128, 252])
 def test_rejects_a_file_that_ends_before_its_last_pixel(
     tmp_path: Path, kept_data_bytes: int
@@ -214,14 +226,16 @@ def test_rejects_a_file_that_ends_before_its_last_pixel(
     _write_image(path, np.zeros((8, 8), dtype=np.float32))
     path.write_bytes(path.read_bytes()[: 2880 + kept_data_bytes])
 
-    with warnings.catch_warnings():
-        # Astropy warns that the file may be truncated, and opens it.
-        warnings.simplefilter("ignore")
-        with pytest.raises(InvalidFitsImageError, match="is truncated"):
-            FitsImageSource(path).metadata()
+    with pytest.raises(InvalidFitsImageError, match="is truncated"):
+        FitsImageSource(path).metadata()
 
 
 @pytest.mark.integration
+# Astropy warns that the file may be truncated, and opens it.
+@pytest.mark.filterwarnings(
+    "ignore:File may have been truncated:"
+    "astropy.utils.exceptions.AstropyUserWarning"
+)
 def test_reads_a_file_whose_last_block_is_not_padded(tmp_path: Path) -> None:
     """Only the pixels are needed, not the padding FITS puts after them."""
     path = tmp_path / "unpadded.fits"
@@ -229,11 +243,9 @@ def test_reads_a_file_whose_last_block_is_not_padded(tmp_path: Path) -> None:
     _write_image(path, values)
     path.write_bytes(path.read_bytes()[: 2880 + values.nbytes])
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        source = FitsImageSource(path)
-        window = source.read_window(ImageBounds(7, 8, 0, 8))
-        source.close()
+    source = FitsImageSource(path)
+    window = source.read_window(ImageBounds(7, 8, 0, 8))
+    source.close()
 
     np.testing.assert_array_equal(window.values, values[7:8])
 
@@ -819,6 +831,12 @@ def test_a_rotation_stated_once_is_read(
 
 
 @pytest.mark.integration
+# wcslib reports that it translated a CD matrix beside CROTA2, and Astropy
+# that the AIPS-era PC spelling is deprecated, before the finder refuses both.
+@pytest.mark.filterwarnings(
+    "ignore:'cdfix' made the change:astropy.wcs.FITSFixedWarning",
+    "ignore:PC001001=:astropy.wcs.FITSFixedWarning",
+)
 @pytest.mark.parametrize(
     ("rotation", "message"),
     [
@@ -846,11 +864,8 @@ def test_a_rotation_the_wcs_standard_would_drop_is_refused(
     with fits.open(path, mode="update") as hdus:
         hdus[0].header.update(rotation)
 
-    with warnings.catch_warnings():
-        # Astropy warns that the AIPS-era PC spelling is deprecated.
-        warnings.simplefilter("ignore")
-        with pytest.raises(InvalidFitsImageError, match=message):
-            FitsImageSource(path).metadata()
+    with pytest.raises(InvalidFitsImageError, match=message):
+        FitsImageSource(path).metadata()
 
 
 @pytest.mark.integration

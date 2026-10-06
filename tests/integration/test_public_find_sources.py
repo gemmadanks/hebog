@@ -20,7 +20,12 @@ from astropy import units
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
-from conftest import SubstituteBackgroundRms, product_hashes, published_plane
+from conftest import (
+    IGNORE_RMS_KERNEL_WARNINGS,
+    SubstituteBackgroundRms,
+    product_hashes,
+    published_plane,
+)
 from distributed import Client, LocalCluster, get_task_stream
 from pytest_mock import MockerFixture
 from scipy import ndimage
@@ -1869,6 +1874,7 @@ def high_threshold_reference(
 
 
 @pytest.mark.integration
+@IGNORE_RMS_KERNEL_WARNINGS
 def test_custom_thresholds_publish_the_serial_products_under_every_executor(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -2070,6 +2076,7 @@ def fitted_reference(
 
 
 @pytest.mark.integration
+@IGNORE_RMS_KERNEL_WARNINGS
 def test_every_executor_on_other_tiles_publishes_the_serial_products(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -2087,6 +2094,7 @@ def test_every_executor_on_other_tiles_publishes_the_serial_products(
 
 
 @pytest.mark.integration
+@IGNORE_RMS_KERNEL_WARNINGS
 def test_dask_process_workers_publish_the_serial_products(
     tmp_path: Path,
 ) -> None:

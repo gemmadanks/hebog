@@ -34,6 +34,7 @@ just test-contract
 just test-integration
 just test-equivalence
 just test-acceptance
+just test-slow
 just test-qualification
 just test-benchmark
 just test-scalability
@@ -59,14 +60,25 @@ and their recorded hashes still require exact equality. When retiring a
 builder, retire its implementation-specific tests with it after checking for
 remaining consumers.
 
-Contract tests hold strict-xfail executable specifications until their planned
-implementation turns them green; an unexpected pass fails CI until the test is
-reviewed and converted to a normal assertion. Integration tests cover Dask,
+`config/contracts/phase-0-public-behaviours.json` lists the frozen public
+behaviours and names the test that holds each one. An implemented behaviour
+names an ordinary test; an unimplemented one names a strict-xfail placeholder
+in the contract or acceptance lane, and an unexpected pass fails CI until the
+placeholder is converted to a normal assertion and the behaviour's status is
+changed to `implemented`. Integration tests cover Dask,
 FITS, and Rapthor boundaries. Equivalence tests
 compare small redistributable cases with frozen PyBDSF products. Acceptance
-tests describe Rapthor-facing behaviour. Qualification, benchmark, and
+tests describe Rapthor-facing behaviour. Tests marked `slow` hold the long
+scientific regressions and development matrices; `just test-slow` runs them,
+and CI runs them weekly and on manual dispatch rather than on every pull
+request. Qualification, benchmark, and
 scalability tests require controlled resources or approved data and are never
 implied by the quick suite.
+
+Pytest treats every warning as an error and every `xfail` as strict. Assert a
+warning that is the behaviour under test with `pytest.warns`; filter only a
+third-party warning that cannot be avoided, on the narrowest test and by
+category and message where the message is stable, with a comment saying why.
 
 ## Run the quick science check
 

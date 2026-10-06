@@ -237,27 +237,28 @@ class ScalabilityContract(_ContractModel):
         return self
 
 
-class BehaviourLane(str, Enum):
-    """Executable lane owning an unimplemented public behaviour."""
-
-    CONTRACT = "contract"
-    ACCEPTANCE = "acceptance"
-
-
 class PublicBehaviour(_ContractModel):
-    """One frozen observable behaviour and its strict-xfail test."""
+    """One frozen observable behaviour and the test that holds it.
+
+    ``test_node_id`` is the pytest node ID of one test function, and its
+    directory is the test's lane. An implemented behaviour names the ordinary
+    test that asserts it. An unimplemented one names a strict-xfail
+    placeholder: when the behaviour starts to pass, the placeholder fails
+    until it becomes a normal assertion and its status ``implemented``.
+    """
 
     identifier: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
-    lane: BehaviourLane
     scenario: str = Field(min_length=1)
-    test_id: str = Field(pattern=r"^test_[a-z0-9_]+$")
-    expected_until_implemented: Literal["strict-xfail"]
+    status: Literal["implemented", "strict-xfail"]
+    test_node_id: str = Field(
+        pattern=r"^tests/[a-z]+/test_[a-z0-9_]+\.py::test_[a-z0-9_]+$"
+    )
 
 
 class PublicBehaviourManifest(_ContractModel):
     """Frozen list of public behaviours that drive red-green-refactor work."""
 
-    schema_version: Literal[1]
+    schema_version: Literal[2]
     manifest_id: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
     status: Literal["frozen-provisional"]
     behaviours: tuple[PublicBehaviour, ...] = Field(min_length=1)
@@ -266,11 +267,11 @@ class PublicBehaviourManifest(_ContractModel):
     def validate_unique_behaviours(self) -> Self:
         """Keep scenario and test ownership unambiguous."""
         identifiers = [behaviour.identifier for behaviour in self.behaviours]
-        test_ids = [behaviour.test_id for behaviour in self.behaviours]
+        node_ids = [behaviour.test_node_id for behaviour in self.behaviours]
         if len(set(identifiers)) != len(identifiers):
             raise ValueError("public behaviour identifiers must be unique")
-        if len(set(test_ids)) != len(test_ids):
-            raise ValueError("public behaviour test IDs must be unique")
+        if len(set(node_ids)) != len(node_ids):
+            raise ValueError("public behaviour test node IDs must be unique")
         return self
 
 

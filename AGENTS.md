@@ -117,6 +117,7 @@ just test-contract      # scheduler-independent public behaviour contracts
 just test-integration   # Dask and FITS integration tests
 just test-equivalence   # frozen PyBDSF comparisons
 just test-acceptance    # Rapthor-facing behaviour scenarios
+just test-slow          # long regressions; CI runs them weekly and on demand
 just test-qualification # held-out scientific cases on an approved data host
 just test-benchmark     # controlled performance runs
 just test-scalability   # controlled 100-to-200-plus-node scale runs
@@ -346,6 +347,13 @@ explain the rationale.
 - Markers are strict and declared in `pyproject.toml`: `contract`,
   `integration`, `equivalence`, `acceptance`, `qualification`, `benchmark`,
   `scalability`, `slow`, and `requires_data`.
+- Pytest treats every warning as an error and every `xfail` as strict. Assert
+  a warning that is the behaviour under test with `pytest.warns`, fix the
+  cause of any other, and filter only a third-party warning that cannot be
+  avoided, on the narrowest test and by category and message where the
+  message is stable, with a comment saying why. Mark a known
+  failure `xfail(strict=True)` with a reason naming the plan entry that owns
+  it.
 - Unit tests must not require a running scheduler, download data, or depend on
   execution order.
 - Use TDD for public contracts, pure scientific kernels, schemas, matching,

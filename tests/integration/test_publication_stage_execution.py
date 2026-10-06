@@ -428,7 +428,7 @@ def test_publication_stage_is_partition_and_executor_invariant(
         processes=False,
         n_workers=2,
         threads_per_worker=1,
-        dashboard_address=None,
+        dashboard_address=":0",
     ) as client:
         _, sink = _run(tmp_path / "dask", executor=DaskExecutor(client))
     published = _published(sink)
@@ -909,7 +909,7 @@ def test_wide_owners_are_executor_invariant(tmp_path: Path) -> None:
         processes=False,
         n_workers=2,
         threads_per_worker=1,
-        dashboard_address=None,
+        dashboard_address=":0",
     ) as client:
         _, sink = _run(
             tmp_path / "dask",

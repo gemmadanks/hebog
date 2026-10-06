@@ -52,7 +52,7 @@ type-check:
 test: test-unit
 
 test-unit:
-    uv run pytest -q -n auto --dist worksteal -m "not slow and not integration and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data" --doctest-modules --doctest-glob="*.py" --maxfail=1 --disable-warnings
+    uv run pytest -q -n auto --dist worksteal -m "not slow and not integration and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data" --doctest-modules --maxfail=1 src/hebog tests
 
 # Run scheduler-independent public behaviour and product contracts
 test-contract:
@@ -73,6 +73,10 @@ test-qualification:
 # Run lightweight Rapthor-facing behaviour scenarios
 test-acceptance:
     uv run pytest -q -m "acceptance and not qualification and not scalability and not slow and not requires_data" tests/
+
+# Run the slow lane: long scientific regressions and development matrices
+test-slow:
+    uv run pytest -q -n auto --dist worksteal -m "slow and not qualification and not scalability and not requires_data" tests/
 
 # Run the fixed-case scientific regression check (local data and Podman)
 quick-science-check *args:
@@ -100,7 +104,7 @@ test-scalability:
 
 # Run tests with verbose output (exclude slow)
 test-vv:
-    uv run pytest -vv -m "not slow and not integration and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data" --doctest-modules --doctest-glob="*.py" --maxfail=1 --disable-warnings
+    uv run pytest -vv -m "not slow and not integration and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data" --doctest-modules --maxfail=1 src/hebog tests
 
 # Run the fast, non-mutating handoff checks
 check: format-check lint type-check test
@@ -115,7 +119,7 @@ notebook-smoke:
 
 # Run the portable unit and integration suite with coverage, in parallel
 coverage:
-    uv run pytest -n auto --dist worksteal -m "not slow and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data" --cov --cov-report=term-missing
+    uv run pytest -n auto --dist worksteal -m "not slow and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data" --doctest-modules --cov --cov-report=term-missing src/hebog tests
 
 # Build docs (MkDocs strict)
 docs-build:

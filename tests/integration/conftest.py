@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import gc
+import warnings
 from collections.abc import Callable, Generator, Iterable, Iterator, Mapping
 from contextlib import AbstractContextManager, contextmanager
 from dataclasses import fields, is_dataclass
@@ -28,6 +30,17 @@ from hebog.executors import (
 from hebog.io.zarr import ZarrProductSink
 
 _BACKGROUND_TILE_SHAPE_YX = (128, 128)
+# The RMS kernel silences its warnings with ``warnings.catch_warnings()``,
+# which is not thread-safe: when Dask threads run the kernel at once, one
+# thread can restore the test's filters while another is still computing, so
+# an all-NaN window's warning escapes and the test's error filter raises it.
+# Plan task 46 removes that silencing; remove this mark with it.
+IGNORE_RMS_KERNEL_WARNINGS = pytest.mark.filterwarnings(
+    "ignore:All-NaN slice encountered:RuntimeWarning",
+    "ignore:Degrees of freedom <= 0 for slice:RuntimeWarning",
+    "ignore:Input data contains invalid values:"
+    "astropy.utils.exceptions.AstropyUserWarning",
+)
 _Input = TypeVar("_Input")
 _Output = TypeVar("_Output")
 
@@ -82,6 +95,13 @@ def each_executor(request: pytest.FixtureRequest) -> Iterator[Executor]:
     )
     with open_executor() as executor:
         yield executor
+    # A task that raised, even one the finder handles, can leave its
+    # traceback holding that task's handle on the input, so the collector
+    # may finalize the file before the source that would close it. Collect
+    # it here, where the run ended, not during whichever test runs next.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", ResourceWarning)
+        gc.collect()
 
 
 def _publish_background_rms(

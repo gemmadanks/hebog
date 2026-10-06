@@ -9,6 +9,7 @@ from functools import partial
 
 import numpy as np
 import pytest
+from conftest import IGNORE_RMS_KERNEL_WARNINGS
 from distributed import Client
 
 from hebog.algorithms.background import BackgroundRmsTile
@@ -45,6 +46,7 @@ from hebog.stages.background import (
 pytestmark = pytest.mark.integration
 
 
+@IGNORE_RMS_KERNEL_WARNINGS
 def test_filtered_response_support_is_serial_dask_retry_invariant() -> None:
     """A negative central depression does not alter executor semantics."""
     yy, xx = np.mgrid[:65, :73]
@@ -68,7 +70,7 @@ def test_filtered_response_support_is_serial_dask_retry_invariant() -> None:
         processes=False,
         n_workers=2,
         threads_per_worker=1,
-        dashboard_address=None,
+        dashboard_address=":0",
     ) as client:
         results = DaskExecutor(client).map_batches(
             evaluate,
@@ -80,6 +82,7 @@ def test_filtered_response_support_is_serial_dask_retry_invariant() -> None:
         np.testing.assert_array_equal(reference, actual)
 
 
+@IGNORE_RMS_KERNEL_WARNINGS
 def test_near_noiseless_filter_is_exact_with_existing_dask() -> None:
     """The precision fallback is deterministic under caller-owned workers."""
     image = np.zeros((73, 79))
@@ -106,7 +109,7 @@ def test_near_noiseless_filter_is_exact_with_existing_dask() -> None:
         processes=False,
         n_workers=2,
         threads_per_worker=1,
-        dashboard_address=None,
+        dashboard_address=":0",
     ) as client:
         results = DaskExecutor(client).map_batches(evaluate, (prepared,) * 2)
     for result in results:
@@ -171,6 +174,7 @@ def _config() -> BackgroundRmsConfig:
 
 
 @pytest.mark.parametrize("keep_source", (False, True))
+@IGNORE_RMS_KERNEL_WARNINGS
 def test_corrected_coarse_anchor_retention_is_exact_with_existing_dask(
     keep_source: bool,
 ) -> None:
@@ -220,7 +224,7 @@ def test_corrected_coarse_anchor_retention_is_exact_with_existing_dask(
         processes=False,
         n_workers=2,
         threads_per_worker=1,
-        dashboard_address=None,
+        dashboard_address=":0",
     ) as client:
         dask = refine(DaskExecutor(client))
     assert (
@@ -253,6 +257,7 @@ def test_corrected_coarse_anchor_retention_is_exact_with_existing_dask(
 
 @pytest.mark.parametrize("noisy_neighbour", (False, True))
 @pytest.mark.parametrize("local_noise", (False, True))
+@IGNORE_RMS_KERNEL_WARNINGS
 def test_zero_noise_region_admission_matches_existing_dask(
     noisy_neighbour: bool, local_noise: bool
 ) -> None:
@@ -288,7 +293,7 @@ def test_zero_noise_region_admission_matches_existing_dask(
         processes=False,
         n_workers=2,
         threads_per_worker=1,
-        dashboard_address=None,
+        dashboard_address=":0",
     ) as client:
         dask = refine(DaskExecutor(client))
     assert (
@@ -322,6 +327,7 @@ def test_zero_noise_region_admission_matches_existing_dask(
     ((False, False), (True, False), (True, True)),
 )
 @pytest.mark.parametrize("protect_coarse", (False, True))
+@IGNORE_RMS_KERNEL_WARNINGS
 def test_dask_and_serial_background_stages_are_equivalent(
     multiscale: bool,
     protect_coarse: bool,
@@ -372,7 +378,7 @@ def test_dask_and_serial_background_stages_are_equivalent(
         processes=False,
         n_workers=2,
         threads_per_worker=1,
-        dashboard_address=None,
+        dashboard_address=":0",
     ) as client:
         dask_executor = DaskExecutor(client)
         dask_grids = grids_for_executor(dask_executor)
@@ -448,6 +454,7 @@ def test_dask_and_serial_background_stages_are_equivalent(
 
 
 @pytest.mark.parametrize("scene", ("too-crowded-to-protect", "no-estimate"))
+@IGNORE_RMS_KERNEL_WARNINGS
 def test_fallbacks_from_whole_image_grids_match_existing_dask(
     scene: str,
 ) -> None:
@@ -521,7 +528,7 @@ def test_fallbacks_from_whole_image_grids_match_existing_dask(
         processes=False,
         n_workers=2,
         threads_per_worker=1,
-        dashboard_address=None,
+        dashboard_address=":0",
     ) as client:
         dask_grids, dask_tiles = run(DaskExecutor(client))
 

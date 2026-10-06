@@ -19,16 +19,22 @@ uv run pytest -q -n auto tests/unit                     # parallel (pytest-xdist
 uv run pytest -q --doctest-modules src/hebog/config.py  # one module's doctests
 ```
 
-- `just test-unit` also collects doctests from `*.py` files and stops at the
+- `just test-unit` also collects the doctests in `src/hebog` and stops at the
   first failure (`--maxfail=1`), so an unrelated broken doctest can hide the
   test you care about. Run the specific file while iterating.
 - `pytest` uses `--strict-markers`. A new marker must be added to
-  `[tool.pytest.ini_options].markers` in `pyproject.toml`.
+  `[tool.pytest.ini_options].markers` in `pyproject.toml`. The same table sets
+  `xfail_strict` and `filterwarnings = ["error"]`, so a new warning fails the
+  test that raises it.
 - Pyright runs in `strict` mode over both `src/` and `tests/`, so test code
   needs type annotations too.
 - Contract tests (`tests/contract/`) mark unimplemented specifications as
   `xfail(strict=True)`. If one starts passing, CI fails. Convert it to a normal
-  assertion; do not remove the test.
+  assertion and set its `status` to `implemented` in
+  `config/contracts/phase-0-public-behaviours.json`; do not remove the test.
+- `just test-slow` runs the `slow` tests; one uncertainty-calibration test
+  takes about three of its few minutes. CI runs them weekly and on manual
+  dispatch (`.github/workflows/slow-tests.yaml`), not on pull requests.
 
 ## Code map
 

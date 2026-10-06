@@ -111,8 +111,9 @@ jobs:
           uv run pytest
           -n 2 --dist worksteal
           -m "not slow and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data"
-          --doctest-modules --doctest-glob="*.py"
+          --doctest-modules
           --cov --cov-branch --cov-report=xml
+          src/hebog tests
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v7
