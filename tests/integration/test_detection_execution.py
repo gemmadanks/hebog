@@ -455,7 +455,7 @@ def test_dask_and_serial_detection_products_are_identical(
         processes=False,
         n_workers=2,
         threads_per_worker=1,
-        dashboard_address=None,
+        dashboard_address=":0",
     ) as client:
         dask, dask_sink = _run(
             tmp_path / "dask.zarr",

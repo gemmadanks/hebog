@@ -44,6 +44,13 @@ from hebog.pipeline import (
 )
 
 pytestmark = pytest.mark.integration
+# Each header is written as its writer leaves it, so Astropy and wcslib report
+# what they repair or read in it. The tests assert what the finder reads and
+# refuses; these marks ignore only the reports a test's headers provoke.
+_AIPS_ERA_SPELLINGS = pytest.mark.filterwarnings(
+    "ignore:PC00:astropy.wcs.FITSFixedWarning",
+    "ignore:PROJP:astropy.wcs.FITSFixedWarning",
+)
 
 _SHAPE_YX = (64, 64)
 _SOURCE_YX = (37.0, 26.0)
@@ -618,6 +625,10 @@ def _request(tmp_path: Path, convention: _Convention) -> SourceFinderRequest:
     )
 
 
+# MIGHTEE declares frequency and Stokes axes on a two-axis image.
+@pytest.mark.filterwarnings(
+    "ignore:The WCS transformation has more axes:astropy.wcs.FITSFixedWarning"
+)
 @pytest.mark.parametrize(
     ("convention", "frame"), _ACCEPTED.values(), ids=_ACCEPTED.keys()
 )
@@ -679,6 +690,7 @@ def test_refused_convention_names_what_is_wrong_before_any_product(
 @pytest.mark.parametrize(
     ("keyword", "convention"), _NUMBER_CARDS.items(), ids=_NUMBER_CARDS.keys()
 )
+@_AIPS_ERA_SPELLINGS
 def test_a_card_that_is_not_a_number_is_refused_by_its_keyword(
     tmp_path: Path,
     keyword: str,
@@ -707,6 +719,7 @@ def test_a_card_that_is_not_a_number_is_refused_by_its_keyword(
     _WCS_NUMBER_CARDS.items(),
     ids=_WCS_NUMBER_CARDS.keys(),
 )
+@_AIPS_ERA_SPELLINGS
 def test_a_wcs_card_without_a_value_is_refused_by_its_keyword(
     tmp_path: Path,
     keyword: str,
@@ -732,6 +745,8 @@ def test_a_wcs_card_without_a_value_is_refused_by_its_keyword(
 @pytest.mark.parametrize(
     ("keyword", "supplied"), _SUPPLIED_FOR.items(), ids=_SUPPLIED_FOR.keys()
 )
+# wcslib reports a frequency card that has no value.
+@pytest.mark.filterwarnings("ignore:RESTFRE?Q *=:astropy.wcs.FITSFixedWarning")
 def test_a_beam_or_frequency_card_without_a_value_is_a_missing_keyword(
     tmp_path: Path,
     keyword: str,
@@ -825,6 +840,8 @@ def test_the_finder_header_keeps_wcslib_reading_of_a_repeated_keyword(
     assert WCS(header).wcs.crval[0] == WCS(written).wcs.crval[0] == 10.0
 
 
+# Astropy reports the unquoted OBSERVER text in several verification warnings.
+@pytest.mark.filterwarnings("ignore::astropy.io.fits.verify.VerifyWarning")
 def test_the_finder_header_leaves_cards_wcslib_does_not_read_as_numbers(
     tmp_path: Path,
 ) -> None:
@@ -874,6 +891,10 @@ def test_the_finder_header_is_the_caller_s_own(tmp_path: Path) -> None:
     assert metadata.unit == "Jy/beam"
 
 
+# wcslib reports that it sets DATE-OBS from MJD-OBS.
+@pytest.mark.filterwarnings(
+    "ignore:'datfix' made the change:astropy.wcs.FITSFixedWarning"
+)
 def test_numbers_with_d_exponents_publish_the_source_where_they_put_it(
     tmp_path: Path,
 ) -> None:
@@ -955,6 +976,17 @@ def test_text_astropy_cannot_parse_is_refused_by_its_keyword(
         ("NAXIS1", "NAXIS1  =                 64.0"),
         ("NAXIS1", "NAXIS1  = 'wide'"),
     ],
+)
+# Astropy reports the cards it cannot verify or decode, and leaves the file
+# open when ``fits.open`` raises, so it is closed only when collected.
+@pytest.mark.filterwarnings(
+    "ignore::astropy.io.fits.verify.VerifyWarning",
+    "ignore:non-ASCII characters are present:"
+    "astropy.utils.exceptions.AstropyUserWarning",
+    "ignore:Header block contains null bytes:"
+    "astropy.utils.exceptions.AstropyUserWarning",
+    "ignore:Exception ignored while finalizing file:"
+    "pytest.PytestUnraisableExceptionWarning",
 )
 def test_a_structural_card_fits_does_not_allow_is_an_invalid_input(
     tmp_path: Path, keyword: str, card: str

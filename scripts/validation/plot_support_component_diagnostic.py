@@ -9,7 +9,6 @@ import dataclasses
 import json
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from hebog.validation.products import load_fits_plane
@@ -83,7 +82,6 @@ def main() -> None:
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(args.output, dpi=180)
-    plt.close(figure)
 
     if args.summary_output is not None:
         evidence = summarize_support_component_evidence(

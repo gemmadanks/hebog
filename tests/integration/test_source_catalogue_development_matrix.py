@@ -440,7 +440,9 @@ def test_joint_geometry_with_controlled_or_public_background(
     header = synthetic_fits_header(dataset)
     beam = dataset.beam
     path = tmp_path / "input.fits"
-    fits.PrimaryHDU(image, header).writeto(path)
+    # The header describes four axes, as a radio image has, so the pixels
+    # carry the two degenerate frequency and Stokes axes too.
+    fits.PrimaryHDU(image[np.newaxis, np.newaxis], header).writeto(path)
     source = FitsImageSource(path)
     metadata = source.metadata()
     if estimate_background:

@@ -14,6 +14,7 @@ import pytest
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
+from conftest import IGNORE_RMS_KERNEL_WARNINGS
 from distributed import Client
 
 from hebog import find_sources
@@ -95,12 +96,17 @@ def edge_blend_input(directory: Path, noise_rms: float) -> Path:
     image = generate_synthetic_image(recipe)
     assert image.shape == (512, 512) and np.isfinite(image).all()
     path = directory / "edge-blend.fits"
-    fits.PrimaryHDU(image, synthetic_fits_header(dataset)).writeto(path)
+    # The header describes four axes, as a radio image has, so the pixels
+    # carry the two degenerate frequency and Stokes axes too.
+    fits.PrimaryHDU(
+        image[np.newaxis, np.newaxis], synthetic_fits_header(dataset)
+    ).writeto(path)
     return path
 
 
 @pytest.mark.integration
 @pytest.mark.parametrize("noise_rms", (0.0, 1e-4))
+@IGNORE_RMS_KERNEL_WARNINGS
 def test_edge_blend_public_capture_matches_existing_dask(
     tmp_path: Path, noise_rms: float
 ) -> None:
@@ -150,7 +156,7 @@ def test_edge_blend_public_capture_matches_existing_dask(
         processes=False,
         n_workers=2,
         threads_per_worker=1,
-        dashboard_address=None,
+        dashboard_address=":0",
     ) as client:
         distributed = find_sources(
             SourceFinderRequest(path, tmp_path / "dask", "edge-blend"),

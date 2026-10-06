@@ -506,7 +506,7 @@ def test_multiscale_stage_is_batch_order_retry_and_executor_invariant(
             processes=False,
             n_workers=worker_count,
             threads_per_worker=1,
-            dashboard_address=None,
+            dashboard_address=":0",
         ) as client:
             outputs.append(
                 _run(

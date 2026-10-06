@@ -365,7 +365,7 @@ def test_islands_are_executor_invariant(
         processes=False,
         n_workers=2,
         threads_per_worker=1,
-        dashboard_address=None,
+        dashboard_address=":0",
     ) as client:
         result = _run(
             tmp_path / "dask",

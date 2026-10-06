@@ -16,7 +16,6 @@ import math
 from pathlib import Path
 from typing import Any
 
-import matplotlib.pyplot as plt
 import numpy as np
 from astropy.io import fits
 from matplotlib.axes import Axes
@@ -233,12 +232,10 @@ def plot_support_component_diagnostic(  # noqa: PLR0913, PLR0915
         beam_area_pixels=beam_area_pixels,
     )
 
-    figure, axes = plt.subplots(
-        2,
-        4,
-        figsize=(20, 10),
-        constrained_layout=True,
-    )
+    # A Figure built without pyplot has no backend window, so none outlives
+    # it or is finalised off the main thread; callers save or display it.
+    figure = Figure(figsize=(20, 10), layout="constrained")
+    axes = figure.subplots(2, 4)
     raw_low, raw_high = _finite_limits(image_cut, 1.0, 99.7)
     _imshow_with_colorbar(
         figure,

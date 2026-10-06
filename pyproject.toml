@@ -65,6 +65,16 @@ show_missing = true
 [tool.pytest.ini_options]
 addopts = "--strict-markers"
 testpaths = ["tests"]
+xfail_strict = true
+filterwarnings = [
+    "error",
+    # pytest-benchmark warns at start-up that xdist disables it. No test
+    # uses its fixture.
+    "ignore:Benchmarks are automatically disabled:pytest_benchmark.logger.PytestBenchmarkWarning",
+    # Distributed warns when a worker's scratch directory takes over a second
+    # to create, which depends on the machine's load, not on the test.
+    "ignore:Creating scratch directories is taking a surprisingly long time:UserWarning",
+]
 markers = [
     "acceptance: Rapthor-facing behaviour scenarios",
     "benchmark: performance regression and scaling tests",

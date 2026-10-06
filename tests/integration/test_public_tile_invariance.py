@@ -27,7 +27,7 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 from astropy.io import fits
-from conftest import product_hashes
+from conftest import IGNORE_RMS_KERNEL_WARNINGS, product_hashes
 
 import hebog
 from hebog import SourceFinderConfig, SourceFinderRequest, public_api
@@ -277,6 +277,7 @@ def test_the_last_row_of_tiles_ends_inside_the_widest_filter_halo() -> None:
     assert 0 < last_row_height < halo
 
 
+@IGNORE_RMS_KERNEL_WARNINGS
 def test_products_on_the_envelope_grid_equal_one_tile(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

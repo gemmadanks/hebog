@@ -300,7 +300,7 @@ def test_support_stage_is_partition_batch_and_executor_invariant(
         processes=False,
         n_workers=2,
         threads_per_worker=1,
-        dashboard_address=None,
+        dashboard_address=":0",
     ) as client:
         _, sink = _run(
             tmp_path / "dask",

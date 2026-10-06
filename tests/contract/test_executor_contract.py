@@ -198,7 +198,7 @@ def dask_executor() -> Generator[Executor, None, None]:
         n_workers=1,
         threads_per_worker=CONCURRENT_THREAD_COUNT,
         processes=False,
-        dashboard_address="",
+        dashboard_address=":0",
     )
     with cluster, Client(cluster) as client:
         yield DaskExecutor(

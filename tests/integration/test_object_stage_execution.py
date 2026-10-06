@@ -556,7 +556,7 @@ def test_component_topology_is_partition_and_executor_invariant(
         processes=False,
         n_workers=2,
         threads_per_worker=1,
-        dashboard_address=None,
+        dashboard_address=":0",
     ) as client:
         _, sink = _run(tmp_path / "dask", executor=DaskExecutor(client))
     published = _published(sink)
@@ -1418,7 +1418,7 @@ def test_component_fits_are_executor_invariant(
         processes=False,
         n_workers=2,
         threads_per_worker=1,
-        dashboard_address=None,
+        dashboard_address=":0",
     ) as client:
         variant = _run_fits(
             tmp_path / "dask",
@@ -2483,7 +2483,7 @@ def test_only_the_parents_the_compact_bounds_admit_are_read(
         processes=False,
         n_workers=2,
         threads_per_worker=1,
-        dashboard_address=None,
+        dashboard_address=":0",
     ) as client:
         _, dask_sink = _run(
             tmp_path / "dask", executor=DaskExecutor(client), config=config

@@ -1,0 +1,53 @@
+name: Slow tests
+
+# The tests marked `slow` (`just test-slow`) are too long for every pull
+# request, so they run weekly and on manual dispatch instead.
+on:
+  workflow_dispatch:
+  schedule:
+    # Mondays at 04:00 UTC.
+    - cron: "0 4 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  # Match ci.yaml: one BLAS thread for each pytest worker.
+  OMP_NUM_THREADS: "1"
+  OPENBLAS_NUM_THREADS: "1"
+  MKL_NUM_THREADS: "1"
+
+jobs:
+  slow:
+    name: Slow lane
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version-file: ".python-version"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          # Keep in step with UV_VERSION in ci.yaml.
+          version: "0.9.4"
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --all-groups
+
+      - name: Run the slow lane
+        run: >-
+          uv run pytest -q
+          -n auto --dist worksteal
+          -m "slow and not qualification and not scalability and not requires_data"
+          tests/

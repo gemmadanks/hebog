@@ -13,6 +13,7 @@ from pydantic import ValidationError
 from hebog.validation.contracts import (
     PerformanceMatrixContract,
     PhaseFourScientificGates,
+    PublicBehaviourManifest,
     ScalabilityContract,
     load_performance_matrix,
     load_phase_four_measurement_contract,
@@ -141,37 +142,126 @@ def test_scalability_contract_rejects_overcommitted_worker_memory() -> None:
         ScalabilityContract.model_validate(payload)
 
 
-def test_every_public_behaviour_has_one_strict_xfail_owner() -> None:
-    """Frozen behaviours start with a failing executable specification."""
-    manifest = load_public_behaviours(_BEHAVIOURS_PATH)
-
-    assert len(manifest.behaviours) == 11
-    assert all(
-        behaviour.expected_until_implemented == "strict-xfail"
-        for behaviour in manifest.behaviours
-    )
-    assert len({item.test_id for item in manifest.behaviours}) == len(
-        manifest.behaviours
-    )
+def _is_xfail_mark(decorator: ast.expr, xfail_names: set[str]) -> bool:
+    """Return whether a decorator is ``pytest.mark.xfail`` or a name for it."""
+    if isinstance(decorator, ast.Name):
+        return decorator.id in xfail_names
+    mark = decorator.func if isinstance(decorator, ast.Call) else decorator
+    return ast.unparse(mark) == "pytest.mark.xfail"
 
 
-def test_public_behaviour_manifest_matches_executable_test_ids() -> None:
-    """Every frozen behaviour names one collected executable test."""
-    manifest = load_public_behaviours(_BEHAVIOURS_PATH)
-    test_paths = (
-        _ROOT / "tests/contract/test_public_behaviours.py",
-        _ROOT / "tests/acceptance/test_acceptance_scaffold.py",
-    )
-    implemented_test_ids = {
-        node.name
-        for path in test_paths
-        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8")))
+def _xfail_by_test_function(path: Path) -> dict[str, bool]:
+    """Map each test function in one file to whether it is marked xfail."""
+    module = ast.parse(path.read_text(encoding="utf-8"))
+    xfail_names = {
+        target.id
+        for node in module.body
+        if isinstance(node, ast.Assign) and _is_xfail_mark(node.value, set())
+        for target in node.targets
+        if isinstance(target, ast.Name)
+    }
+    return {
+        node.name: any(
+            _is_xfail_mark(decorator, xfail_names)
+            for decorator in node.decorator_list
+        )
+        for node in module.body
         if isinstance(node, ast.FunctionDef) and node.name.startswith("test_")
     }
 
-    assert implemented_test_ids == {
-        behaviour.test_id for behaviour in manifest.behaviours
+
+def test_public_behaviours_record_which_are_implemented() -> None:
+    """Five frozen behaviours are asserted and six await their tasks."""
+    manifest = load_public_behaviours(_BEHAVIOURS_PATH)
+
+    assert len(manifest.behaviours) == 11
+    assert {
+        behaviour.identifier
+        for behaviour in manifest.behaviours
+        if behaviour.status == "implemented"
+    } == {
+        "empty-image-products",
+        "invalid-metadata-failure",
+        "partition-invariance",
+        "threshold-monotonicity",
+        "valid-request-products",
     }
+
+
+def test_each_public_behaviour_test_is_marked_as_its_status() -> None:
+    """An implemented behaviour names an assertion, a pending one an xfail."""
+    manifest = load_public_behaviours(_BEHAVIOURS_PATH)
+
+    for behaviour in manifest.behaviours:
+        path, function = behaviour.test_node_id.split("::")
+        marked_xfail = _xfail_by_test_function(_ROOT / path)
+        assert function in marked_xfail, behaviour.test_node_id
+        assert marked_xfail[function] == (
+            behaviour.status == "strict-xfail"
+        ), behaviour.identifier
+
+
+def test_every_behaviour_specification_is_in_the_manifest() -> None:
+    """No test in the specification files is missing from the manifest."""
+    manifest = load_public_behaviours(_BEHAVIOURS_PATH)
+    named = {behaviour.test_node_id for behaviour in manifest.behaviours}
+
+    for path in (
+        "tests/contract/test_public_behaviours.py",
+        "tests/acceptance/test_acceptance_scaffold.py",
+    ):
+        for function in _xfail_by_test_function(_ROOT / path):
+            assert f"{path}::{function}" in named
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("test_node_id", "tests/contract/test_public_behaviours.py", "match"),
+        ("test_node_id", "src/hebog/test_x.py::test_y", "match"),
+        ("status", "passing", "implemented"),
+        ("expected_until_implemented", "strict-xfail", "Extra inputs"),
+    ],
+)
+def test_public_behaviour_rejects_an_unknown_test_or_status(
+    field: str, value: str, message: str
+) -> None:
+    """A behaviour names one test function under ``tests/`` and a status."""
+    manifest = load_public_behaviours(_BEHAVIOURS_PATH)
+    payload = manifest.model_dump(mode="json")
+    payload["behaviours"][0][field] = value
+
+    with pytest.raises(ValidationError, match=message):
+        PublicBehaviourManifest.model_validate(payload)
+
+
+@pytest.mark.parametrize(
+    ("field", "message"),
+    [
+        ("identifier", "identifiers must be unique"),
+        ("test_node_id", "node IDs must be unique"),
+    ],
+)
+def test_public_behaviour_manifest_rejects_a_repeated_behaviour_or_test(
+    field: str, message: str
+) -> None:
+    """Two behaviours cannot share an identifier or be held by one test."""
+    manifest = load_public_behaviours(_BEHAVIOURS_PATH)
+    payload = manifest.model_dump(mode="json")
+    payload["behaviours"][1][field] = payload["behaviours"][0][field]
+
+    with pytest.raises(ValidationError, match=message):
+        PublicBehaviourManifest.model_validate(payload)
+
+
+def test_public_behaviour_manifest_rejects_the_first_schema() -> None:
+    """A version-1 manifest, which recorded no status, fails clearly."""
+    manifest = load_public_behaviours(_BEHAVIOURS_PATH)
+    payload = manifest.model_dump(mode="json")
+    payload["schema_version"] = 1
+
+    with pytest.raises(ValidationError, match="schema_version"):
+        PublicBehaviourManifest.model_validate(payload)
 
 
 def test_phase_three_gates_are_foreground_sensitive_and_role_specific() -> (

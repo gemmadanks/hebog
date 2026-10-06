@@ -596,12 +596,21 @@ class FitsImageSource:
                 # window in ``read_windows``. Astropy cannot map pixels it
                 # scales itself, scales 16-bit ones in single precision and
                 # skips a ``BLANK`` of zero.
-                hdus = fits.open(
-                    self._path,
-                    mode="readonly",
-                    memmap=True,
-                    do_not_scale_image_data=True,
-                )
+                # Astropy leaves a file it opened itself to the collector
+                # when it refuses the header, so the source opens the file
+                # and closes it on that failure; the HDU list closes it
+                # otherwise.
+                file = self._path.open("rb")
+                try:
+                    hdus = fits.open(
+                        file,
+                        mode="readonly",
+                        memmap=True,
+                        do_not_scale_image_data=True,
+                    )
+                except BaseException:
+                    file.close()
+                    raise
             # Astropy raises whatever a malformed BITPIX or NAXIS card
             # first breaks, not one error for a file it cannot open.
             except (KeyError, OSError, TypeError, ValueError) as error:

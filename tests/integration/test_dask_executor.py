@@ -21,7 +21,7 @@ def test_dask_executor_matches_serial_executor() -> None:
         n_workers=1,
         threads_per_worker=1,
         processes=False,
-        dashboard_address="",
+        dashboard_address=":0",
     )
     with cluster, Client(cluster) as client:
         actual = DaskExecutor(client).map_batches(_square, inputs)
