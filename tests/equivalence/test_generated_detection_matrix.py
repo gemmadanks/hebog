@@ -17,6 +17,7 @@ from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.config import (
     AdaptiveRmsConfig,
     BackgroundRmsConfig,
+    DetectionStageConfig,
     RmsGridConfig,
     RmsWindowStatisticsConfig,
     SourceFinderConfig,
@@ -24,7 +25,7 @@ from hebog.config import (
 from hebog.data_models import ImageBounds
 from hebog.executors import SerialExecutor
 from hebog.io import ImageWindow, ZarrProductSink
-from hebog.stages.detection import DetectionStageConfig, run_detection_stage
+from hebog.stages.detection import run_detection_stage
 from hebog.validation.comparison import (
     IslandComparisonReport,
     IslandPopulationReport,

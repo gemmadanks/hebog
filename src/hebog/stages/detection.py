@@ -24,7 +24,11 @@ from hebog.algorithms.reconciliation import (
     reconcile_candidate_tiles,
     reconcile_island_tiles,
 )
-from hebog.config import BackgroundRmsConfig, SourceFinderConfig
+from hebog.config import (
+    BackgroundRmsConfig,
+    DetectionStageConfig,
+    SourceFinderConfig,
+)
 from hebog.data_models.generations import ProductGenerationManifest
 from hebog.data_models.partitioning import (
     ImageBounds,
@@ -102,14 +106,6 @@ class DetectionStageResult:
     boundary_label_count: int
     reconciliation_round_count: int
     separate_candidate_scan: bool
-
-
-@dataclass(frozen=True, slots=True)
-class DetectionStageConfig:
-    """Scientific policies required by the compact-detection stage."""
-
-    background_rms: BackgroundRmsConfig
-    source_finder: SourceFinderConfig
 
 
 def _read_tile_window(

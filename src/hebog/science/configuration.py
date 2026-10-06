@@ -8,11 +8,11 @@ from hebog.config import (
     CompactDeblendConfig,
     CompactGaussianFitConfig,
     CompactMomentConfig,
+    DetectionStageConfig,
     RmsGridConfig,
     RmsWindowStatisticsConfig,
     SourceFinderConfig,
 )
-from hebog.stages.detection import DetectionStageConfig
 
 
 def source_finder_configs() -> tuple[

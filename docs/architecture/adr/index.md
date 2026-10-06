@@ -17,3 +17,4 @@ ADR is kept and marked as superseded.
 | [ADR-006: Isolate compatibility with versioned internal schemas](006-isolate-compatibility-with-versioned-schemas.md) | 🟢 Accepted | Keep domain schemas explicit and map legacy products only at outer adapters |
 | [ADR-007: Use Zarr for intermediate image storage](007-use-zarr-for-intermediate-image-storage.md) | 🟢 Accepted | Keep one maintained intermediate backend and optimize Zarr across all execution tiers |
 | [ADR-008: Make the continuum composition tile-native](008-make-the-continuum-composition-tile-native.md) | 🟢 Accepted | Define the pass structure, halo, ownership, boundary summary and merge of every public continuum stage |
+| [ADR-009: Place the reviewed science below the stages](009-place-the-reviewed-science-below-the-stages.md) | 🟢 Accepted | Redraw the layering as `public_api → stages → science → algorithms` and state every layer's allowed imports in one tested table |

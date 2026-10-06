@@ -347,7 +347,6 @@ def _(mo):
 def _(
     astropy_wcs,
     demonstration_dataset,
-    detection_stage,
     hebog_config,
     np,
 ):
@@ -356,7 +355,7 @@ def _(
         maximum_iterations=10,
         minimum_samples=6,
     )
-    detection_configuration = detection_stage.DetectionStageConfig(
+    detection_configuration = hebog_config.DetectionStageConfig(
         background_rms=hebog_config.BackgroundRmsConfig(
             coarse=hebog_config.RmsGridConfig(
                 window_shape_yx=(150, 150),

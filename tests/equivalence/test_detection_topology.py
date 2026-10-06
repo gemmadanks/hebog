@@ -17,6 +17,7 @@ from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.config import (
     AdaptiveRmsConfig,
     BackgroundRmsConfig,
+    DetectionStageConfig,
     RmsGridConfig,
     RmsWindowStatisticsConfig,
     SourceFinderConfig,
@@ -24,7 +25,6 @@ from hebog.config import (
 from hebog.executors import SerialExecutor
 from hebog.io import FitsImageSource, ZarrProductSink
 from hebog.stages.detection import (
-    DetectionStageConfig,
     DetectionStageResult,
     run_detection_stage,
 )

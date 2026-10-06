@@ -1,57 +1,129 @@
-"""Architecture tests for inward dependency direction."""
+"""Architecture tests for inward dependency direction.
+
+``LAYER_IMPORTS`` is the layering as one table: for every layer of the
+``hebog`` package, a top-level module or subpackage, the other layers its
+modules may import. Every import statement counts, at module scope, in a
+function or under ``TYPE_CHECKING``. The table is acyclic, so it reads as one
+direction, from ``adapters`` through ``pipeline`` and ``public_api`` to
+``stages``, ``science`` and ``algorithms``, with ``data_models`` and
+``config`` shared by every layer. No production layer may import
+``hebog.validation``, which wheels exclude. An import outside the table is
+allowed only by a named exemption, and each exemption must still match.
+"""
 
 from __future__ import annotations
 
 import ast
 import subprocess
 import sys
+from dataclasses import dataclass
+from functools import cache
+from graphlib import TopologicalSorter
 from pathlib import Path
 
 import pytest
 
 PACKAGE_ROOT = Path(__file__).parents[2] / "src" / "hebog"
 
-OUTER_DEPENDENCIES = (
-    "dask",
-    "distributed",
-    "hebog.adapters",
-    "hebog.executors",
-    "hebog.io",
-    "lsmtool",
-    "prefect",
-    "rapthor",
-)
-
-CORE_LAYER_RULES = {
-    "algorithms": OUTER_DEPENDENCIES,
-    "data_models": OUTER_DEPENDENCIES,
-    # Storage boundaries serve adapters and executors, never the reverse.
-    "io": (
-        "dask",
-        "distributed",
-        "hebog.adapters",
-        "hebog.executors",
-        "hebog.validation",
-        "lsmtool",
-        "prefect",
-        "rapthor",
+LAYER_IMPORTS: dict[str, frozenset[str]] = {
+    # Development tooling, excluded from wheels, may use every production
+    # layer but the entry point; no production row names it.
+    "validation": frozenset(
+        {
+            "__init__",
+            "adapters",
+            "algorithms",
+            "cli",
+            "config",
+            "data_models",
+            "executors",
+            "io",
+            "pipeline",
+            "public_api",
+            "public_science",
+            "resources",
+            "science",
+            "stages",
+        }
     ),
+    # The ``python -m hebog`` entry point runs the command line.
+    "__main__": frozenset({"cli"}),
+    "cli": frozenset({"__init__"}),
+    # Adapters translate a consumer's names through the public API, the
+    # shared records and the product files, never the composition.
+    "adapters": frozenset(
+        {"__init__", "config", "data_models", "executors", "io", "pipeline"}
+    ),
+    # The package initializer re-exports the public names.
+    "__init__": frozenset({"config", "data_models", "pipeline"}),
+    # The public entry point and its error types; it reaches the composition
+    # only through a deferred import (``LAYER_EXEMPTIONS``).
+    "pipeline": frozenset({"config", "data_models", "executors"}),
+    # The outer I/O layer validates input and runs the stages in order.
+    "public_api": frozenset(
+        {
+            "algorithms",
+            "config",
+            "data_models",
+            "executors",
+            "io",
+            "pipeline",
+            "public_science",
+            "science",
+            "stages",
+        }
+    ),
+    # Builds the terminal catalogues from the records the stages published.
+    "public_science": frozenset(
+        {"algorithms", "config", "data_models", "science"}
+    ),
+    # Apply the kernels tile by tile through the caller's executor.
+    "stages": frozenset(
+        {"algorithms", "config", "data_models", "executors", "io", "science"}
+    ),
+    # The reviewed profile and configuration, the composition records and
+    # the catalogue-row kernels, which import no stage, executor or io.
+    "science": frozenset({"algorithms", "config", "data_models"}),
+    "algorithms": frozenset({"config", "data_models"}),
+    "executors": frozenset({"config", "data_models"}),
+    "io": frozenset({"config", "data_models"}),
+    # Shared by every layer, so they import none.
+    "config": frozenset(),
+    "data_models": frozenset(),
+    # Packaged data, which public_api reads by name rather than imports.
+    "resources": frozenset(),
 }
 
-PUBLIC_CORE_MODULE_RULES = {
-    "config.py": OUTER_DEPENDENCIES,
-    "pipeline.py": (
-        "dask",
-        "distributed",
-        "hebog.adapters",
-        "hebog.executors.dask",
-        "hebog.executors.serial",
-        "hebog.io",
-        "lsmtool",
-        "prefect",
-        "rapthor",
+LAYER_EXEMPTIONS: dict[tuple[str, str], str] = {
+    ("io/__init__.py", "hebog.algorithms.astrometry"): (
+        "The package re-exports the WCS the image metadata describes, so a "
+        "reader of FitsImageSource takes both from hebog.io; no io module "
+        "calls a kernel."
+    ),
+    ("pipeline.py", "hebog.public_api"): (
+        "find_sources imports the implementation when called, so importing "
+        "hebog loads no FITS, Zarr or scientific module; DEFERRED_IMPORTS "
+        "keeps it deferred."
     ),
 }
+"""Imports outside ``LAYER_IMPORTS``, by module path and imported module."""
+
+DEFERRED_IMPORTS: dict[tuple[str, str], str] = {
+    ("pipeline.py", "hebog.public_api"): (
+        "Importing hebog or hebog.pipeline loads no I/O or scientific code."
+    ),
+    ("executors/__init__.py", "hebog.executors.dask"): (
+        "DaskExecutor loads distributed only when a caller asks for it."
+    ),
+}
+"""Imports that may run only in a function or under ``TYPE_CHECKING``."""
+
+WORKFLOW_PACKAGES = ("lsmtool", "prefect", "rapthor")
+"""Packages no module of ``hebog`` imports, adapters included."""
+
+SCHEDULER_PACKAGES = ("dask", "distributed")
+SCHEDULER_LAYER = "executors"
+"""The only layer that imports a scheduler package."""
 
 FORBIDDEN_IMPORT_CALLS = {
     "atexit.register",
@@ -263,16 +335,85 @@ def _import_scope_side_effects(source: str) -> list[str]:
     return call_visitor.violations
 
 
-def _imported_modules(path: Path) -> set[str]:
-    """Return statically declared imports from one Python module."""
-    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-    modules: set[str] = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            modules.update(alias.name for alias in node.names)
-        elif isinstance(node, ast.ImportFrom) and node.module is not None:
-            modules.add(node.module)
-    return modules
+@dataclass(frozen=True, slots=True)
+class _StaticImport:
+    """One name an import statement binds, and whether it runs on import.
+
+    ``name`` is the imported module, followed for a from-import by the name
+    taken from it, so ``from hebog import validation`` names
+    ``hebog.validation``. A relative import keeps its leading dots.
+    """
+
+    name: str
+    line: int
+    runs_on_import: bool
+
+
+def _is_type_checking(test: ast.expr) -> bool:
+    """Return whether an ``if`` test is ``TYPE_CHECKING``, however named."""
+    return (isinstance(test, ast.Name) and test.id == "TYPE_CHECKING") or (
+        isinstance(test, ast.Attribute) and test.attr == "TYPE_CHECKING"
+    )
+
+
+class _StaticImportVisitor(ast.NodeVisitor):
+    """Collect every import statement in any scope of one module."""
+
+    def __init__(self) -> None:
+        self.imports: list[_StaticImport] = []
+        self._deferred = False
+
+    def _record(self, name: str, node: ast.Import | ast.ImportFrom) -> None:
+        """Record one imported name at the current scope."""
+        self.imports.append(
+            _StaticImport(name, node.lineno, runs_on_import=not self._deferred)
+        )
+
+    def visit_Import(self, node: ast.Import) -> None:
+        """Record each module an import statement names."""
+        for alias in node.names:
+            self._record(alias.name, node)
+
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        """Record each name a from-import takes, under its module."""
+        module = "." * node.level + (node.module or "")
+        separator = "" if module.endswith(".") else "."
+        for alias in node.names:
+            self._record(f"{module}{separator}{alias.name}", node)
+
+    def _visit_deferred(self, nodes: list[ast.stmt]) -> None:
+        """Visit statements that do not run while the module is imported."""
+        deferred = self._deferred
+        self._deferred = True
+        for statement in nodes:
+            self.visit(statement)
+        self._deferred = deferred
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        """A function body runs only when the function is called."""
+        self._visit_deferred(node.body)
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        """A coroutine body runs only when the coroutine is awaited."""
+        self._visit_deferred(node.body)
+
+    def visit_If(self, node: ast.If) -> None:
+        """A ``TYPE_CHECKING`` block never runs; its ``else`` does."""
+        if not _is_type_checking(node.test):
+            self.generic_visit(node)
+            return
+        self._visit_deferred(node.body)
+        for statement in node.orelse:
+            self.visit(statement)
+
+
+def _static_imports(path: Path) -> list[_StaticImport]:
+    """Return every import statement of one module, in any scope."""
+    visitor = _StaticImportVisitor()
+    visitor.visit(
+        ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    )
+    return visitor.imports
 
 
 def _matches_prefix(module: str, prefix: str) -> bool:
@@ -280,39 +421,205 @@ def _matches_prefix(module: str, prefix: str) -> bool:
     return module == prefix or module.startswith(f"{prefix}.")
 
 
-@pytest.mark.parametrize(("layer", "forbidden"), CORE_LAYER_RULES.items())
-def test_core_layers_do_not_depend_on_outer_layers(
-    layer: str,
-    forbidden: tuple[str, ...],
-) -> None:
-    """Scientific core dependencies point towards domain and array code."""
-    violations: list[str] = []
-    for path in sorted((PACKAGE_ROOT / layer).rglob("*.py")):
-        for module in sorted(_imported_modules(path)):
-            if any(_matches_prefix(module, prefix) for prefix in forbidden):
-                relative_path = path.relative_to(PACKAGE_ROOT)
-                violations.append(f"{relative_path}: {module}")
-
-    assert violations == []
+def _relative_path(path: Path) -> str:
+    """Return a module path relative to the package, as POSIX text."""
+    return path.relative_to(PACKAGE_ROOT).as_posix()
 
 
-@pytest.mark.parametrize(
-    ("module_name", "forbidden"),
-    PUBLIC_CORE_MODULE_RULES.items(),
-)
-def test_public_core_does_not_import_outer_implementations(
-    module_name: str,
-    forbidden: tuple[str, ...],
-) -> None:
-    """Configuration and pipeline composition stay adapter-independent."""
-    modules = _imported_modules(PACKAGE_ROOT / module_name)
-    violations = sorted(
-        module
-        for module in modules
-        if any(_matches_prefix(module, prefix) for prefix in forbidden)
+def _layer_of_path(path: Path) -> str:
+    """Return the layer one module of the package belongs to."""
+    return path.relative_to(PACKAGE_ROOT).parts[0].removesuffix(".py")
+
+
+def _package_layers() -> set[str]:
+    """Return every layer the package holds a module in."""
+    return {_layer_of_path(path) for path in PACKAGE_ROOT.rglob("*.py")}
+
+
+def _imported_layer(name: str, layers: set[str]) -> str | None:
+    """Return the ``hebog`` layer an imported name belongs to, if any.
+
+    A name taken from the package itself that is not a layer, such as
+    ``hebog.__version__``, belongs to the package initializer.
+    """
+    parts = name.split(".")
+    if parts[0] != "hebog":
+        return None
+    if len(parts) > 1 and parts[1] in layers:
+        return parts[1]
+    return "__init__"
+
+
+@cache
+def _package_imports() -> tuple[tuple[Path, _StaticImport], ...]:
+    """Return every import statement of every module of the package.
+
+    The package is parsed once a test session; every rule reads this.
+    """
+    return tuple(
+        (path, imported)
+        for path in sorted(PACKAGE_ROOT.rglob("*.py"))
+        for imported in _static_imports(path)
     )
 
+
+def _layer_table_violations() -> list[tuple[str, _StaticImport]]:
+    """Return each import of another layer that ``LAYER_IMPORTS`` rejects."""
+    layers = _package_layers()
+    violations: list[tuple[str, _StaticImport]] = []
+    for path, imported in _package_imports():
+        layer = _layer_of_path(path)
+        target = _imported_layer(imported.name, layers)
+        if (
+            target is not None
+            and target != layer
+            and target not in LAYER_IMPORTS[layer]
+        ):
+            violations.append((_relative_path(path), imported))
+    return violations
+
+
+def _is_exempt(module_path: str, imported: _StaticImport) -> bool:
+    """Return whether a named exemption allows one rejected import."""
+    return any(
+        module_path == exempt_path and _matches_prefix(imported.name, prefix)
+        for exempt_path, prefix in LAYER_EXEMPTIONS
+    )
+
+
+def test_layer_table_names_every_layer_once() -> None:
+    """Every layer has a row, and every row and import names a layer."""
+    assert set(LAYER_IMPORTS) == _package_layers()
+    unknown = {
+        f"{layer}: {target}"
+        for layer, allowed in LAYER_IMPORTS.items()
+        for target in allowed
+        if target not in LAYER_IMPORTS or target == layer
+    }
+    assert unknown == set()
+
+
+def test_layer_table_points_one_way() -> None:
+    """The rows form no cycle, so each named edge forbids its reverse."""
+    TopologicalSorter(LAYER_IMPORTS).prepare()
+
+    assert "pipeline" in LAYER_IMPORTS["adapters"]
+    assert "stages" in LAYER_IMPORTS["public_api"]
+    assert "science" in LAYER_IMPORTS["stages"]
+    assert "algorithms" in LAYER_IMPORTS["science"]
+
+
+def test_no_production_layer_may_import_campaign_validation() -> None:
+    """Wheels exclude ``hebog.validation``, so only it may use itself."""
+    importers = sorted(
+        layer
+        for layer, allowed in LAYER_IMPORTS.items()
+        if "validation" in allowed
+    )
+
+    assert importers == []
+
+
+@pytest.mark.parametrize("layer", sorted(LAYER_IMPORTS))
+def test_layer_imports_only_what_the_table_allows(layer: str) -> None:
+    """Each layer imports only the layers its row names, or an exemption."""
+    violations = [
+        f"{module_path}:{imported.line}: {imported.name}"
+        for module_path, imported in _layer_table_violations()
+        if _layer_of_path(PACKAGE_ROOT / module_path) == layer
+        and not _is_exempt(module_path, imported)
+    ]
+
     assert violations == []
+
+
+@pytest.mark.parametrize(("module_path", "prefix"), sorted(LAYER_EXEMPTIONS))
+def test_layer_exemption_still_matches(module_path: str, prefix: str) -> None:
+    """An exemption that no longer allows an import fails loudly."""
+    assert any(
+        exempt_path == module_path and _matches_prefix(imported.name, prefix)
+        for exempt_path, imported in _layer_table_violations()
+    ), "the exemption allows no import the table rejects; remove it"
+
+
+@pytest.mark.parametrize(("module_path", "prefix"), sorted(DEFERRED_IMPORTS))
+def test_deferred_import_stays_deferred(module_path: str, prefix: str) -> None:
+    """A deferred import still exists and never runs on module import."""
+    imports = [
+        imported
+        for imported in _static_imports(PACKAGE_ROOT / module_path)
+        if _matches_prefix(imported.name, prefix)
+    ]
+
+    assert imports, "the deferred import must still exist"
+    assert [
+        imported.line for imported in imports if imported.runs_on_import
+    ] == []
+
+
+def test_package_imports_its_own_modules_by_absolute_name() -> None:
+    """The layer table reads absolute names, so no import is relative."""
+    relative = [
+        f"{_relative_path(path)}:{imported.line}: {imported.name}"
+        for path, imported in _package_imports()
+        if imported.name.startswith(".")
+    ]
+
+    assert relative == []
+
+
+@pytest.mark.parametrize("package", WORKFLOW_PACKAGES)
+def test_no_module_imports_a_workflow_framework(package: str) -> None:
+    """Rapthor, Prefect and LSMTool stay outside the package, adapters too."""
+    violations = [
+        f"{_relative_path(path)}:{imported.line}: {imported.name}"
+        for path, imported in _package_imports()
+        if _matches_prefix(imported.name, package)
+    ]
+
+    assert violations == []
+
+
+def test_only_the_executors_import_a_scheduler() -> None:
+    """Dask is reached through an executor, never imported elsewhere."""
+    importers = {
+        _layer_of_path(path)
+        for path, imported in _package_imports()
+        if any(
+            _matches_prefix(imported.name, package)
+            for package in SCHEDULER_PACKAGES
+        )
+    }
+
+    assert importers == {SCHEDULER_LAYER}
+
+
+def test_static_imports_mark_deferred_and_relative_imports() -> None:
+    """The import reader sees every scope and keeps a relative import."""
+    source = """
+from typing import TYPE_CHECKING
+from hebog import validation
+from . import sibling
+
+if TYPE_CHECKING:
+    from hebog.stages import detection
+else:
+    import hebog.science
+
+def run() -> None:
+    import hebog.public_api
+"""
+    visitor = _StaticImportVisitor()
+    visitor.visit(ast.parse(source))
+
+    assert visitor.imports == [
+        _StaticImport("typing.TYPE_CHECKING", 2, runs_on_import=True),
+        _StaticImport("hebog.validation", 3, runs_on_import=True),
+        _StaticImport(".sibling", 4, runs_on_import=True),
+        _StaticImport("hebog.stages.detection", 7, runs_on_import=False),
+        _StaticImport("hebog.science", 9, runs_on_import=True),
+        _StaticImport("hebog.public_api", 12, runs_on_import=False),
+    ]
 
 
 def _annotated_fields(path: Path) -> list[tuple[str, str, str]]:
@@ -349,25 +656,6 @@ def test_composition_records_declare_no_image_sized_array() -> None:
     )
 
     assert arrays == []
-
-
-def test_public_science_does_not_depend_on_campaign_validation() -> None:
-    """Installed source finding must not import closed campaign machinery."""
-    paths = [
-        PACKAGE_ROOT / "public_api.py",
-        PACKAGE_ROOT / "public_science.py",
-    ]
-    science_root = PACKAGE_ROOT / "science"
-    if science_root.is_dir():
-        paths.extend(sorted(science_root.rglob("*.py")))
-    violations = [
-        f"{path.relative_to(PACKAGE_ROOT)}: {module}"
-        for path in paths
-        for module in sorted(_imported_modules(path))
-        if _matches_prefix(module, "hebog.validation")
-    ]
-
-    assert violations == []
 
 
 def test_public_science_import_does_not_load_campaign_validation() -> None:
