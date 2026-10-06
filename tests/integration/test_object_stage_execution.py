@@ -838,7 +838,7 @@ def test_parent_extents_merge_in_either_order() -> None:
 
 def _fit_config() -> tuple[CompactMomentConfig, CompactGaussianFitConfig]:
     """Return the reviewed moment and fit policy the public path uses."""
-    _, _, moment_config, fit_config, _ = source_finder_configs()
+    _, _, moment_config, fit_config = source_finder_configs()
     return moment_config, replace(
         fit_config,
         integrated_flux_bias_correction_sigma=0.0,

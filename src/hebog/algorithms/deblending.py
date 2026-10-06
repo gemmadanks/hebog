@@ -14,16 +14,10 @@ import numpy as np
 import numpy.typing as npt
 from scipy import ndimage
 
-from hebog.algorithms.labelling import (
-    LocalIslandSummary,
-    LocalIslandTileSummary,
-)
-from hebog.algorithms.reconciliation import DetectedIsland, ReconciledIslands
-from hebog.config import CompactDeblendConfig, DeferredIslandCompletionConfig
+from hebog.algorithms.reconciliation import DetectedIsland
+from hebog.config import CompactDeblendConfig
 from hebog.data_models.partitioning import (
     ImageBounds,
-    PartitionManifest,
-    TilePartition,
 )
 
 _EIGHT_CONNECTIVITY = np.ones((3, 3), dtype=np.bool_)
@@ -33,124 +27,7 @@ _EIGHT_NEIGHBOUR_OFFSETS = tuple(
     for x_offset in (-1, 0, 1)
     if (y_offset, x_offset) != (0, 0)
 )
-_TOPOGRAPHY_MAXIMUM = np.iinfo(np.uint16).max
 _IMAGE_DIMENSIONS = 2
-
-
-@dataclass(frozen=True, slots=True)
-class CompactDeblendBatch:
-    """A deterministic bounded batch of compact island records."""
-
-    islands: tuple[DetectedIsland, ...]
-    estimated_pixel_count: int
-
-
-@dataclass(frozen=True, slots=True)
-class DeferredDeblendIsland:
-    """An island preserved explicitly for a later partitioned path."""
-
-    island: DetectedIsland
-    reason: Literal["island-pixel-limit", "bounds-pixel-limit"]
-
-
-@dataclass(frozen=True, slots=True)
-class CompactDeblendPlan:
-    """Bounded compact work plus explicit extended-island deferrals."""
-
-    batches: tuple[CompactDeblendBatch, ...]
-    deferred_islands: tuple[DeferredDeblendIsland, ...]
-
-
-@dataclass(frozen=True, slots=True)
-class DeferredIslandShard:
-    """One bounded tile-local fragment of a compact-deferred island."""
-
-    island_id: str
-    partition: TilePartition
-    local_labels: tuple[int, ...]
-    pixel_count: int
-    bounds: ImageBounds
-    first_pixel_yx: tuple[int, int]
-
-    def __post_init__(self) -> None:
-        """Require canonical labels and topology inside the owned tile."""
-        if (
-            not self.local_labels
-            or self.local_labels != tuple(sorted(set(self.local_labels)))
-            or any(label_value < 1 for label_value in self.local_labels)
-        ):
-            raise ValueError(
-                "deferred shard labels must be positive canonical"
-            )
-        core = self.partition.core_bounds
-        core_pixels = core.shape_yx[0] * core.shape_yx[1]
-        if not 0 < self.pixel_count <= core_pixels:
-            raise ValueError("deferred shard pixel count exceeds its tile")
-        if not core.contains(self.bounds):
-            raise ValueError("deferred shard bounds must lie inside its tile")
-        y_pixel, x_pixel = self.first_pixel_yx
-        if not (
-            self.bounds.y_start <= y_pixel < self.bounds.y_stop
-            and self.bounds.x_start <= x_pixel < self.bounds.x_stop
-        ):
-            raise ValueError("deferred shard first pixel must lie in bounds")
-
-
-@dataclass(frozen=True, slots=True)
-class PartitionedDeferredIsland:
-    """Complete exact support ownership without an island-sized array."""
-
-    island: DetectedIsland
-    reason: Literal["island-pixel-limit", "bounds-pixel-limit"]
-    shards: tuple[DeferredIslandShard, ...]
-
-    def __post_init__(self) -> None:
-        """Bind canonical bounded shards to the reconciled parent topology."""
-        if not self.shards:
-            raise ValueError("partitioned deferred island requires shards")
-        ordered = tuple(
-            sorted(
-                self.shards,
-                key=lambda shard: (
-                    shard.partition.tile_y_index,
-                    shard.partition.tile_x_index,
-                ),
-            )
-        )
-        if self.shards != ordered:
-            raise ValueError("deferred island shards must be canonical")
-        if any(shard.island_id != self.island.island_id for shard in ordered):
-            raise ValueError("deferred shard parent identity disagrees")
-        if self.pixel_count != self.island.pixel_count:
-            raise ValueError("deferred shard membership disagrees with island")
-        aggregate_bounds = ImageBounds(
-            min(shard.bounds.y_start for shard in ordered),
-            max(shard.bounds.y_stop for shard in ordered),
-            min(shard.bounds.x_start for shard in ordered),
-            max(shard.bounds.x_stop for shard in ordered),
-        )
-        if aggregate_bounds != self.island.bounds:
-            raise ValueError("deferred shard bounds disagree with island")
-        if min(shard.first_pixel_yx for shard in ordered) != (
-            self.island.first_pixel_yx
-        ):
-            raise ValueError(
-                "deferred shard first pixel disagrees with island"
-            )
-
-    @property
-    def pixel_count(self) -> int:
-        """Return the exact total owned membership."""
-        return sum(shard.pixel_count for shard in self.shards)
-
-    @property
-    def maximum_shard_pixels(self) -> int:
-        """Return the largest tile core admitted to one membership task."""
-        return max(
-            shard.partition.core_bounds.shape_yx[0]
-            * shard.partition.core_bounds.shape_yx[1]
-            for shard in self.shards
-        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -201,315 +78,6 @@ class CompactDeblendSummary:
     island_id: str
     status: Literal["single-region", "deblended"]
     regions: tuple[DeblendedRegion, ...]
-
-
-def _bounds_pixel_count(bounds: ImageBounds) -> int:
-    """Return one half-open rectangle's exact pixel count."""
-    height, width = bounds.shape_yx
-    return height * width
-
-
-def plan_compact_deblend_batches(
-    islands: tuple[DetectedIsland, ...],
-    config: CompactDeblendConfig,
-    *,
-    context_margin_pixels: int = 0,
-    image_shape_yx: tuple[int, int] | None = None,
-) -> CompactDeblendPlan:
-    """Admit compact bounds by cost without creating a task per island."""
-    if context_margin_pixels < 0:
-        raise ValueError("context margin cannot be negative")
-    if context_margin_pixels and image_shape_yx is None:
-        raise ValueError("context margin requires the logical image shape")
-    if context_margin_pixels:
-        assert image_shape_yx is not None
-    ordered = tuple(
-        sorted(
-            islands,
-            key=lambda island: (island.global_label, island.island_id),
-        )
-    )
-    if len({island.island_id for island in ordered}) != len(ordered):
-        raise ValueError("deblend plan island IDs must be unique")
-    batches: list[CompactDeblendBatch] = []
-    deferred: list[DeferredDeblendIsland] = []
-    current: list[DetectedIsland] = []
-    current_pixels = 0
-    for island in ordered:
-        admitted_bounds = (
-            island.bounds
-            if context_margin_pixels == 0
-            else island.bounds.expanded(
-                context_margin_pixels,
-                cast(tuple[int, int], image_shape_yx),
-            )
-        )
-        bounds_pixels = _bounds_pixel_count(admitted_bounds)
-        if island.pixel_count > config.maximum_compact_island_pixels:
-            deferred.append(
-                DeferredDeblendIsland(
-                    island=island,
-                    reason="island-pixel-limit",
-                )
-            )
-            continue
-        if bounds_pixels > config.maximum_compact_bounds_pixels:
-            deferred.append(
-                DeferredDeblendIsland(
-                    island=island,
-                    reason="bounds-pixel-limit",
-                )
-            )
-            continue
-        if current and (
-            current_pixels + bounds_pixels > config.target_batch_pixels
-        ):
-            batches.append(
-                CompactDeblendBatch(
-                    islands=tuple(current),
-                    estimated_pixel_count=current_pixels,
-                )
-            )
-            current = []
-            current_pixels = 0
-        current.append(island)
-        current_pixels += bounds_pixels
-    if current:
-        batches.append(
-            CompactDeblendBatch(
-                islands=tuple(current),
-                estimated_pixel_count=current_pixels,
-            )
-        )
-    return CompactDeblendPlan(
-        batches=tuple(batches),
-        deferred_islands=tuple(deferred),
-    )
-
-
-def extract_island_membership(
-    island: DetectedIsland,
-    accepted_mask: npt.ArrayLike,
-) -> npt.NDArray[np.bool_]:
-    """Select one exact connected island from its bounded boolean window.
-
-    A published source-filtering-mask window can contain disconnected islands
-    whose bounds overlap or nest. The reconciled island's canonical first
-    pixel selects its eight-connected component without requiring a durable
-    global label plane.
-    """
-    mask = np.asarray(accepted_mask)
-    if mask.ndim != _IMAGE_DIMENSIONS:
-        raise ValueError("island mask window must be two-dimensional")
-    if not np.issubdtype(mask.dtype, np.bool_):
-        raise TypeError("island mask window must be boolean")
-    if mask.shape != island.bounds.shape_yx:
-        raise ValueError("island mask window must match island bounds")
-    first_y = island.first_pixel_yx[0] - island.bounds.y_start
-    first_x = island.first_pixel_yx[1] - island.bounds.x_start
-    height, width = mask.shape
-    if not (0 <= first_y < height and 0 <= first_x < width):
-        raise ValueError("island first pixel is outside its bounds")
-    raw_labels, _ = cast(
-        tuple[npt.NDArray[np.int32], int],
-        ndimage.label(mask, structure=_EIGHT_CONNECTIVITY),
-    )
-    labels = np.asarray(raw_labels, dtype=np.int32)
-    selected_label = int(labels[first_y, first_x])
-    if selected_label == 0:
-        raise ValueError("island first pixel is absent from the mask")
-    membership = np.asarray(labels == selected_label, dtype=np.bool_)
-    if int(np.count_nonzero(membership)) != island.pixel_count:
-        raise ValueError("connected mask membership disagrees with island")
-    membership.setflags(write=False)
-    return membership
-
-
-def _summary_bounds(
-    summaries: tuple[LocalIslandSummary, ...],
-) -> ImageBounds:
-    """Return aggregate bounds for objects exposing bounded topology."""
-    return ImageBounds(
-        min(summary.bounds.y_start for summary in summaries),
-        max(summary.bounds.y_stop for summary in summaries),
-        min(summary.bounds.x_start for summary in summaries),
-        max(summary.bounds.x_stop for summary in summaries),
-    )
-
-
-def _same_island_topology(
-    first: DetectedIsland,
-    second: DetectedIsland,
-) -> bool:
-    """Compare identity and membership facts independent of response peaks."""
-    return (
-        first.island_id == second.island_id
-        and first.global_label == second.global_label
-        and first.pixel_count == second.pixel_count
-        and first.bounds == second.bounds
-        and first.first_pixel_yx == second.first_pixel_yx
-        and first.touches_image_edge == second.touches_image_edge
-    )
-
-
-def _validate_deferred_partition_inputs(
-    manifest: PartitionManifest,
-    tiles: tuple[LocalIslandTileSummary, ...],
-    reconciliation: ReconciledIslands,
-    deferred_islands: tuple[DeferredDeblendIsland, ...],
-    config: DeferredIslandCompletionConfig,
-) -> dict[str, LocalIslandTileSummary]:
-    """Validate bounded canonical inputs before constructing any shard."""
-    if any(
-        tile.core_bounds.shape_yx[0] * tile.core_bounds.shape_yx[1]
-        > config.maximum_tile_pixels
-        for tile in manifest.tiles
-    ):
-        raise ValueError("deferred completion tile exceeds its hard bound")
-    tiles_by_id = {tile.partition.tile_id: tile for tile in tiles}
-    expected_tile_ids = {tile.tile_id for tile in manifest.tiles}
-    if len(tiles_by_id) != len(tiles) or set(tiles_by_id) != expected_tile_ids:
-        raise ValueError("deferred completion tiles must be canonical")
-    if any(
-        tiles_by_id[partition.tile_id].partition != partition
-        for partition in manifest.tiles
-    ):
-        raise ValueError("deferred completion tile partition is not canonical")
-    mapping_ids = tuple(
-        mapping.tile_id for mapping in reconciliation.tile_mappings
-    )
-    if (
-        len(set(mapping_ids)) != len(mapping_ids)
-        or set(mapping_ids) != expected_tile_ids
-    ):
-        raise ValueError("deferred reconciliation must cover every tile")
-    if len({item.island.island_id for item in deferred_islands}) != len(
-        deferred_islands
-    ):
-        raise ValueError("deferred island identities must be unique")
-    reconciled_by_id = {
-        island.island_id: island for island in reconciliation.islands
-    }
-    for deferred in deferred_islands:
-        reconciled = reconciled_by_id.get(deferred.island.island_id)
-        if reconciled is None or not _same_island_topology(
-            deferred.island,
-            reconciled,
-        ):
-            raise ValueError("deferred parent is not the reconciled island")
-    return tiles_by_id
-
-
-def partition_deferred_islands(
-    manifest: PartitionManifest,
-    tiles: tuple[LocalIslandTileSummary, ...],
-    reconciliation: ReconciledIslands,
-    deferred_islands: tuple[DeferredDeblendIsland, ...],
-    config: DeferredIslandCompletionConfig,
-) -> tuple[PartitionedDeferredIsland, ...]:
-    """Bind exact deferred membership to canonical bounded tile shards."""
-    tiles_by_id = _validate_deferred_partition_inputs(
-        manifest,
-        tiles,
-        reconciliation,
-        deferred_islands,
-        config,
-    )
-
-    completed: list[PartitionedDeferredIsland] = []
-    for deferred in sorted(
-        deferred_islands,
-        key=lambda item: (item.island.global_label, item.island.island_id),
-    ):
-        island = deferred.island
-        shards: list[DeferredIslandShard] = []
-        for partition in manifest.tiles:
-            tile = tiles_by_id[partition.tile_id]
-            mapping = reconciliation.mapping_for_tile(partition.tile_id)
-            local_labels = tuple(
-                local_label
-                for local_label, global_label in zip(
-                    mapping.local_labels,
-                    mapping.global_labels,
-                    strict=True,
-                )
-                if global_label == island.global_label
-            )
-            if not local_labels:
-                continue
-            summaries_by_label = {
-                summary.local_label: summary for summary in tile.islands
-            }
-            if any(
-                local_label not in summaries_by_label
-                for local_label in local_labels
-            ):
-                raise ValueError(
-                    "deferred reconciliation label is absent from its tile"
-                )
-            selected = tuple(
-                summaries_by_label[local_label] for local_label in local_labels
-            )
-            shards.append(
-                DeferredIslandShard(
-                    island_id=island.island_id,
-                    partition=partition,
-                    local_labels=local_labels,
-                    pixel_count=sum(item.pixel_count for item in selected),
-                    bounds=_summary_bounds(selected),
-                    first_pixel_yx=min(
-                        item.first_pixel_yx for item in selected
-                    ),
-                )
-            )
-        completed.append(
-            PartitionedDeferredIsland(
-                island=island,
-                reason=deferred.reason,
-                shards=tuple(shards),
-            )
-        )
-    return tuple(completed)
-
-
-def extract_deferred_island_shard_membership(
-    shard: DeferredIslandShard,
-    accepted_mask: npt.ArrayLike,
-) -> npt.NDArray[np.bool_]:
-    """Select one exact deferred fragment from a bounded accepted-mask tile."""
-    mask = np.asarray(accepted_mask)
-    if mask.shape != shard.partition.core_bounds.shape_yx:
-        raise ValueError("deferred mask must match its tile core")
-    if not np.issubdtype(mask.dtype, np.bool_):
-        raise TypeError("deferred mask must be boolean")
-    raw_labels, _ = cast(
-        tuple[npt.NDArray[np.int32], int],
-        ndimage.label(mask, structure=_EIGHT_CONNECTIVITY),
-    )
-    membership = np.isin(raw_labels, shard.local_labels)
-    positions = np.argwhere(membership)
-    if positions.size == 0:
-        raise ValueError("deferred shard membership is absent")
-    bounds = shard.partition.core_bounds
-    observed_bounds = ImageBounds(
-        bounds.y_start + int(np.min(positions[:, 0])),
-        bounds.y_start + int(np.max(positions[:, 0])) + 1,
-        bounds.x_start + int(np.min(positions[:, 1])),
-        bounds.x_start + int(np.max(positions[:, 1])) + 1,
-    )
-    observed_first = (
-        int(positions[0, 0]) + bounds.y_start,
-        int(positions[0, 1]) + bounds.x_start,
-    )
-    if (
-        int(np.count_nonzero(membership)) != shard.pixel_count
-        or observed_bounds != shard.bounds
-        or observed_first != shard.first_pixel_yx
-    ):
-        raise ValueError("deferred shard membership disagrees with summary")
-    membership = np.asarray(membership, dtype=np.bool_)
-    membership.setflags(write=False)
-    return membership
 
 
 def _validate_input(
@@ -594,45 +162,6 @@ def _marker_positions(
         )
         for value in np.sort(first_linear)
     )
-
-
-def _marker_distance_basins(
-    membership: npt.NDArray[np.bool_],
-    bounds: ImageBounds,
-    peak_positions_yx: tuple[tuple[int, int], ...],
-) -> npt.NDArray[np.int32]:
-    """Partition one compact island by a watershed of marker distance."""
-    markers = np.zeros(membership.shape, dtype=np.int32)
-    for marker_label, (global_y, global_x) in enumerate(
-        peak_positions_yx,
-        start=1,
-    ):
-        markers[global_y - bounds.y_start, global_x - bounds.x_start] = (
-            marker_label
-        )
-    distance = cast(
-        npt.NDArray[np.float64],
-        ndimage.distance_transform_edt(markers == 0),
-    )
-    maximum_distance = float(np.max(distance[membership]))
-    topography = np.zeros(membership.shape, dtype=np.uint16)
-    if maximum_distance > 0:
-        topography = np.rint(
-            distance / maximum_distance * (_TOPOGRAPHY_MAXIMUM - 1)
-        ).astype(np.uint16)
-    topography[~membership] = _TOPOGRAPHY_MAXIMUM
-    raw = np.asarray(
-        ndimage.watershed_ift(
-            topography,
-            markers,
-            structure=_EIGHT_CONNECTIVITY,
-        ),
-        dtype=np.int32,
-    )
-    labels = np.where(membership & (raw > 0), raw, 0).astype(np.int32)
-    if np.any(membership & (labels == 0)):
-        raise ValueError("watershed did not assign every island pixel")
-    return labels
 
 
 def _ascent_basins(
@@ -973,19 +502,13 @@ def _summarize_regions(
 def deblend_compact_island(
     compact_island: CompactIslandPixels,
     config: CompactDeblendConfig,
-    *,
-    marker_partition: Literal[
-        "marker-distance-watershed", "intensity-watershed"
-    ] = "marker-distance-watershed",
 ) -> CompactDeblendResult:
     """Split one admitted island into deterministic watershed regions.
 
-    ``intensity-watershed`` floods the island's own intensity: every pixel
-    belongs to the peak its steepest ascent reaches, and two peaks are
-    judged at the pass between them, the highest level at which one
-    connected part of the island holds both. The compact measurement path
-    keeps the reviewed ``marker-distance-watershed``, which judges each pair
-    on the boundary of a distance partition.
+    The watershed floods the island's own intensity: every pixel belongs to
+    the peak its steepest ascent reaches, and two peaks are judged at the
+    pass between them, the highest level at which one connected part of the
+    island holds both.
     """
     normalized, membership = _validate_input(compact_island, config)
     bounds = compact_island.island.bounds
@@ -993,11 +516,7 @@ def deblend_compact_island(
     if len(peaks) == 1:
         labels = np.where(membership, 1, 0).astype(np.int32)
     else:
-        basins = (
-            _ascent_basins(normalized, membership, bounds, peaks)
-            if marker_partition == "intensity-watershed"
-            else _marker_distance_basins(membership, bounds, peaks)
-        )
+        basins = _ascent_basins(normalized, membership, bounds, peaks)
         labels = _merge_shallow_regions(
             basins,
             normalized,
@@ -1023,16 +542,3 @@ def deblend_compact_island(
         regions=regions,
         region_labels=labels,
     )
-
-
-def deblend_compact_batch(
-    islands: tuple[CompactIslandPixels, ...],
-    config: CompactDeblendConfig,
-) -> tuple[CompactDeblendResult, ...]:
-    """Deblend one admitted batch without a scheduler task per island."""
-    if (
-        sum(item.normalized_residual.size for item in islands)
-        > config.maximum_batch_pixels
-    ):
-        raise ValueError("compact deblend batch exceeds its admitted limit")
-    return tuple(deblend_compact_island(item, config) for item in islands)

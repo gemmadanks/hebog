@@ -85,8 +85,8 @@ qualification population. Each realization holds 33 observable groups: 32
 individually resolvable sources, eight beam-compatible point sources, one
 clearly resolved source, and one unresolved blend, with a distinct WCS,
 background, noise gradient, invalid region, and a 180-degree mirrored layout.
-`tests/equivalence/test_phase_four_recovery.py` runs selected seeds through
-the compact branch.
+No current test runs it through the finder: the tests that did ran a compact
+measurement path `find_sources` never used, and were removed with it.
 
 Manifest schema 2 also records `association_truth_groups`. Every
 analytic emitter belongs to exactly one canonical group. A singleton group is

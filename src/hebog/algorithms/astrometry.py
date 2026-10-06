@@ -376,18 +376,12 @@ def _position_with_errors(
     1/cos(dec) and drop sources PyBDSF keeps. Measured against pinned PyBDSF
     `c70103be3` on one field at two declinations (`LOG.md`, 24 September).
     """
-    position_estimate = fit.position_estimate
-    if position_estimate is not None:
-        xx = position_estimate.covariance_xx_pixels_squared
-        xy = position_estimate.covariance_xy_pixels_squared
-        yy = position_estimate.covariance_yy_pixels_squared
-    else:
-        uncertainty = fit.uncertainty
-        if uncertainty is None:
-            return transform.position
-        xx = uncertainty.centroid_covariance_xx_pixels_squared
-        xy = uncertainty.centroid_covariance_xy_pixels_squared
-        yy = uncertainty.centroid_covariance_yy_pixels_squared
+    uncertainty = fit.uncertainty
+    if uncertainty is None:
+        return transform.position
+    xx = uncertainty.centroid_covariance_xx_pixels_squared
+    xy = uncertainty.centroid_covariance_xy_pixels_squared
+    yy = uncertainty.centroid_covariance_yy_pixels_squared
     pixel_covariance = np.asarray([[xx, xy], [xy, yy]], dtype=np.float64)
     jacobian = np.asarray(transform.jacobian_degrees_per_pixel)
     tangent_covariance = jacobian @ pixel_covariance @ jacobian.T
@@ -658,36 +652,6 @@ def _axis_significance_classification(  # noqa: PLR0913
             ),
         )
     return deconvolution
-
-
-def transform_compact_gaussian_fit(  # noqa: PLR0913
-    fit: ValidCompactGaussianFit,
-    metadata: ImageMetadata,
-    *,
-    deconvolution_relative_tolerance: float = 1e-10,
-    extension_significance_sigma: float = 5.0,
-    deconvolution_axis_significance_sigma: float = 5.0,
-    celestial_wcs: WCS | None = None,
-) -> CelestialCompactGaussianFit:
-    """Transform a valid pixel fit into reviewed ICRS catalogue quantities."""
-    if metadata.unit != "Jy/beam":
-        raise ValueError("compact measurement requires image unit Jy/beam")
-    position_xy = (
-        fit.position_estimate.centroid_xy
-        if fit.position_estimate is not None
-        else fit.parameters.centroid_xy
-    )
-    transform = local_tangent_plane_transform(
-        metadata, position_xy, celestial_wcs=celestial_wcs
-    )
-    return transform_compact_fit_at_tangent(
-        fit,
-        metadata.beam,
-        transform,
-        deconvolution_relative_tolerance=deconvolution_relative_tolerance,
-        extension_significance_sigma=extension_significance_sigma,
-        deconvolution_axis_significance_sigma=deconvolution_axis_significance_sigma,
-    )
 
 
 def transform_compact_fit_at_tangent(  # noqa: PLR0913

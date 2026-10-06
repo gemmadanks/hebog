@@ -29506,3 +29506,159 @@ the per-worker placement finding.
 - **Not run.** The quick science check and `just coverage`: no production
   code changed. The integration lane beyond the changed tests, and
   Windows.
+
+## 2026-10-06 — Task 58: the code no installed path runs is removed
+
+- **Outcome.** The compact measurement lane `find_sources` never ran is gone,
+  with the combined-product writer that took its catalogue and every function
+  only that lane or tests called. `src/` loses 7,248 lines and gains 51. No
+  module is kept as an oracle; 1,762 lines of test-only code inside live
+  modules stay as the whole-plane oracles that tests of the tiled stages
+  compare against, and task 58's plan row now asks the maintainer to confirm
+  them.
+- **Established by execution.** `find_sources` ran on the 18 quick-check
+  inputs of up to 1,024² under both profiles with Serial, and on three of
+  them with Thread and in-process Dask, each in a fresh interpreter. No run
+  loaded `stages/{catalogue,deblending,fitting,measurement}.py`,
+  `algorithms/{catalogue,combined_catalogue,combined_identity,combined_products,compact_preservation}.py`
+  or `adapters/rapthor_products.py`; `data_models/catalogue_construction.py`
+  loaded only through the package's re-export. A coverage run of the Serial
+  probes and a name-level reachability pass from the public entry points,
+  `hebog.validation` and `scripts/` found the rest.
+- **Removed.**
+    - The nine lane modules (2,875 lines), `adapters/rapthor_products.py`
+      (290) and `data_models/catalogue_construction.py` (91).
+    - What only the lane called: the deblend batch planner and deferred-island
+      shards, the marker-distance watershed (the live path always floods
+      intensity, so `deblend_compact_island` loses its `marker_partition`
+      argument), the single-region fitter `fit_compact_gaussian` with its
+      context-position, truncated-moment and centroid-retry helpers (723
+      lines), the extended-emission tile measurement (882 with helpers),
+      `transform_compact_gaussian_fit`, and the lane's measurement, fitting
+      and combined-catalogue records.
+    - What the removal left dead, found in review: the position-only
+      estimate and the free component fit the single-region fitter attached
+      to a fit (`GaussianPositionEstimate`, `GaussianComponentFit`, their
+      `ValidCompactGaussianFit` fields, the `bounded-context-position` flag,
+      the astrometry branch that read the estimate and
+      `CompactGaussianFitConfig.position_estimator`), and
+      `CompactCatalogueConfig`, which `find_sources` built and discarded.
+      With `DeferredIslandCompletionConfig` and
+      `ExtendedEmissionMeasurementConfig`, three configuration classes go.
+      None of them is part of `SourceFinderConfig` or a published
+      configuration hash.
+    - Association kernels only tests called: the pairwise complete-link
+      association `associate_detection_components` and its reducer (296), and
+      the compact-context association (about 330 of 359 in
+      `multiscale_association.py`). Also the lane-era stage halo planner
+      (264) and `measure_detected_segment_position`.
+    - The adapter's product writer is removed rather than rewired: task 19
+      builds the Rapthor adapter on `find_sources`'s products, and task 57
+      keeps the records and the eight-column codec, which stay.
+- **Breaking.** Found by diffing the public names of `hebog`,
+  `hebog.config`, `hebog.data_models` and `hebog.adapters` and their modules
+  against the parent: `hebog.config` loses three configuration classes and
+  `position_estimator`; `hebog.data_models` no longer exports twelve
+  combined-catalogue and multiscale records; `hebog.data_models` loses its
+  `catalogue_construction` module, eight extended-emission names from
+  `measurement` and three names from `fitting`; and
+  `hebog.adapters.rapthor_products` is removed. The commit footer lists
+  each name.
+- **Kept, for confirmation.** Each is used by a test of a live stage as its
+  oracle, or is the wrapper through which tests reach live logic:
+  `measure_component_models` (273 lines with helpers; fit-parent,
+  component-fit and extended-group stage tests); `deblend_component_topology`
+  (142; component-topology stage); `assign_persistent_source_support`,
+  `refine_multiscale_segment_labels` and `refine_persistent_publication_labels`
+  (205; source-support and publication stages); `detect_residual_multiscale_islands`
+  (111) and `build_scale_detection_plane_from_islands` (103 with
+  `associate_adjacent_scale_detections`; multiscale stage);
+  `summarize_hierarchy_overlaps` and `associate_components_by_multiscale_hierarchy`
+  (385; the overlap stage, and 49 unit tests of the live decision
+  `associate_from_hierarchy_overlaps`); `build_hebog_segment_moment_catalogue`
+  and `build_detection_island_catalogue` (492; segment-row and
+  detection-island stages); `apply_reconciled_labels` and
+  `segment_association_halo_pixels` (one-tile/many-tile multiscale test);
+  `estimate_background_rms_tile` (8; background tests, including the PyBDSF
+  RMS gate); and ten `*_product_names()` accessors (3 lines each).
+- **Tests.** 295 fewer tests are collected (3,528 to 3,233; `slow` 120 to
+  117). Deleted with the lane: three equivalence files and seven unit files.
+  Tests of live logic that reached it through a removed wrapper were kept and
+  pointed at the live function: astrometry tests now call
+  `transform_compact_fit_at_tangent` (17, less one of the position-only
+  estimate that review removed), three `constrain_source_memberships`
+  tests use a hand-built association, five segment-position tests call
+  `measure_segment_position_pixels`, 16 single-region fitting tests pass
+  unchanged as one-component joint fits, and four tests run for both fitters
+  keep their joint case. In review, five more single-fitter tests (12
+  cases) were ported to one-component joint fits, dropping only assertions
+  on what the joint fit does not publish: beam-shaped edge and corner
+  sources (8), the image-footprint bound, a valid free fit surviving a
+  failed beam alternative, bound contact falling back to the beam model,
+  and the iteration limit. The single fitter's centroid retry, truncated
+  context position, lower-significance component ellipse and association
+  aperture tests cover behaviour no installed path has, and stay deleted.
+- **Scientific checks that went with the lane and nothing else covers.**
+  The generated Phase 4 measurement matrix (truth gates, correlated-noise
+  uncertainty calibration and the slow edge-source uncertainty-availability
+  regression, which the plan records as failing at 98.8%: it measured the
+  removed single-region fitter, not `find_sources`); the Phase 4R recovery
+  cases (low-SNR edge fits, mask-aware association aperture in blends,
+  undersized blend children, extension policy, noisy rotated blends); and
+  the Rapthor FITS view's diagnostic selection on the frozen PyBDSF 256²
+  case. Task 49's `find_sources` equivalence tests supersede the
+  frozen-catalogue gates.
+- **Documentation.** The internal API page follows the stages
+  `find_sources` runs and documents the live modules; the deblending,
+  measurement, fitting and astrometry reference pages describe the live
+  path; the compact catalogue page is now the Rapthor catalogue view page;
+  the extended-emission measurement page is removed; the internals notebook
+  deblends with the live kernel and shows the catalogue `find_sources`
+  publishes; `CLAUDE.md`'s code map lists the stages in run order. Three
+  statements were already untrue of `find_sources` and are corrected: it
+  never publishes a centroid-constrained model or the
+  `bounded-context-position` and `centroid-constrained-fit` flags, and a
+  component's integrated flux is its fitted total, never its peak. Review
+  found three more: no fit publishes the 1.5σ association aperture the
+  fitting page, the internal schema page and the glossary described
+  (`ASSOCIATION_APERTURE_FLUX` is the source's own footprint aperture);
+  ADR 008 put segment refinement's halo at 3 pixels for a 5-pixel beam,
+  where `segment_refinement_halo_pixels` gives 5; and the deblend depth's
+  comment compared it with a partition no path uses.
+- **Left for later.** What no installed path selects or reads now: the
+  `fitted-offset` background (the default, which the joint fitter refuses)
+  and `maximum_background_offset_sigma`, read by nothing; the
+  `centroid-constrained-elliptical` model identity and the
+  `centroid-constrained-fit` flag it would set; the peak-as-total `flux` of
+  `CelestialCompactGaussianFit`; the batch fields of `CompactDeblendConfig`;
+  the per-fit association aperture, which the joint fit computes with its
+  two configuration fields and then discards (it predates this change); and
+  `CrossScaleAssociation.compact_source_ids` with every relationship but
+  `extended-only`, which its only constructor never sets. They change class
+  defaults, record fields and the tests built on them, not a published
+  configuration hash, so they are one later change: task 58's plan row
+  carries it.
+- **Evidence the live path is unchanged.** On the 18 inputs, catalogue, RMS
+  and mask SHA-256 are identical before and after under both profiles (36
+  of 36). The quick science check `task58` reports every one of the 370
+  metrics of its 17 cases equal to `typed-refusals-final`; the composition
+  hash changes because its modules' bytes do. After the review repairs the
+  three products are identical again, HEAD's against the repaired code, on
+  `close-blends`, `compact-snr-ladder`, `edges-and-corners`,
+  `extended-gaussians`, `crowded-field` and `lotss-dr3-1312-sparse` under
+  both profiles (12 of 12); the quick science check was not rerun.
+- **Checks on the final code.** Focused unit and integration files; strict
+  pyright and ruff over `src/` and `tests/`; the strict docs build; an HTML
+  export of the internals notebook, before the review repairs, which do not
+  touch it; the package smoke test; the equivalence lane (14 passed) and
+  the acceptance placeholders (7 xfailed); `just check`; `just coverage`,
+  3,089 passed and 2 xfailed at 96.96% branch-aware coverage, against
+  96.91% for the commit before the review repairs under the same three
+  workers (97.14% in the first run's environment, 97.02% before the
+  removal). The changed production files have no new miss: `config.py`,
+  `data_models/fitting.py` and `science/configuration.py` at 100%,
+  `public_api.py` at 99%, `algorithms/fitting.py` and
+  `algorithms/astrometry.py` at 98%. `just pre-commit`, including
+  `marimo check`, passes without changes.
+- **Not run.** Windows, and the slow lane, which no recipe runs until
+  task 50.

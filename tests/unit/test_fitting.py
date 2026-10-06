@@ -3,7 +3,7 @@
 # pyright: reportUnknownArgumentType=false
 # pyright: reportUnknownMemberType=false
 # pyright: reportUnknownVariableType=false
-"""Analytic tests for the fit-all compact Gaussian reference."""
+"""Analytic tests for the compact Gaussian fitter."""
 
 from __future__ import annotations
 
@@ -13,15 +13,11 @@ from typing import Any, Literal
 import numpy as np
 import pytest
 from astropy.modeling import fitting, models
-from scipy.special import ndtr
 from scipy.stats import chi2
 
 from hebog.algorithms import fitting as fitting_algorithm
 from hebog.algorithms.deblending import DeblendedRegion
-from hebog.algorithms.fitting import (
-    fit_compact_gaussian,
-    fit_compact_gaussian_mixture,
-)
+from hebog.algorithms.fitting import fit_compact_gaussian_mixture
 from hebog.algorithms.measurement import measure_compact_moments
 from hebog.algorithms.reconciliation import DetectedIsland
 from hebog.config import CompactGaussianFitConfig, CompactMomentConfig
@@ -29,7 +25,6 @@ from hebog.data_models.fitting import (
     AssociationAperturePhotometry,
     CompactGaussianFitResult,
     FailedCompactGaussianFit,
-    GaussianPositionEstimate,
     UnavailableCompactGaussianFit,
     ValidCompactGaussianFit,
 )
@@ -102,6 +97,7 @@ def _fit_config(**changes: object) -> CompactGaussianFitConfig:
         "maximum_axis_ratio": 20.0,
         "maximum_background_offset_sigma": 3.0,
         "context_margin_pixels": 8,
+        "background_model": "fixed-zero",
     }
     values.update(changes)
     return CompactGaussianFitConfig(**values)  # type: ignore[arg-type]
@@ -202,20 +198,20 @@ def _fit(
     compact: _FitInput,
     config: CompactGaussianFitConfig | None = None,
     geometry: CompactMeasurementGeometry | None = None,
-):
+) -> CompactGaussianFitResult:
+    """Fit the one region of ``compact`` as a joint fit of one component."""
     selected_geometry = geometry or _geometry()
     measurements = measure_compact_moments(
         compact,
         selected_geometry,
         _moment_config(),
     )
-    return fit_compact_gaussian(
+    return fit_compact_gaussian_mixture(
         compact,
-        compact.regions[0],
-        measurements[1],
+        (measurements[1],),
         selected_geometry,
         config or _fit_config(),
-    )
+    )[0]
 
 
 def _joint_input() -> _FitInput:
@@ -1064,6 +1060,7 @@ def test_fit_centroid_cannot_leave_the_sampled_image_footprint() -> None:
 
     assert isinstance(result, FailedCompactGaussianFit)
     assert result.reason == "fit-invalid-result"
+    assert result.quality_flags == ("fit-invalid-result", "joint-gaussian-fit")
     assert result.diagnostics is not None
     assert result.moment is not None
     assert result.diagnostics.parameters_at_bound
@@ -1075,7 +1072,6 @@ def test_fit_centroid_cannot_leave_the_sampled_image_footprint() -> None:
     bound_distances = dict(result.diagnostics.relative_bound_distances)
     assert set(bound_distances) == {
         "amplitude",
-        "background",
         "centroid-x",
         "centroid-y",
         "position-angle",
@@ -1138,6 +1134,7 @@ def test_beam_shaped_edge_and_corner_sources_use_constrained_fit(
     assert result.diagnostics.fallback_reason == (
         "free-model-not-significantly-extended"
     )
+    assert result.diagnostics.rejected_model_identity == "free-elliptical"
     assert result.parameters.centroid_xy == pytest.approx(
         centroid_xy, abs=1e-6
     )
@@ -1145,66 +1142,7 @@ def test_beam_shaped_edge_and_corner_sources_use_constrained_fit(
     assert result.parameters.minor_sigma_pixels == pytest.approx(axes[1])
     assert not result.diagnostics.parameters_at_bound
     assert "beam-constrained-fit" in result.quality_flags
-    assert result.gaussian_component_fit is None
-    assert isinstance(
-        result.association_aperture,
-        AssociationAperturePhotometry,
-    )
-    assert result.association_aperture.radius_sigma == 3.0
-    assert result.association_aperture.integrated_flux_jy == pytest.approx(
-        0.5,
-        rel=1e-6,
-    )
-    assert 0.0 < result.association_aperture.visible_model_fraction <= 1.0
-
-
-def test_component_uses_lower_significance_whole_ellipse(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Marginal component evidence retains every parameter from one fit."""
-    observed_thresholds: list[float] = []
-
-    def significant_at_component_threshold(
-        candidate: object,
-        beam_covariance: object,
-        *,
-        significance_sigma: float,
-    ) -> bool:
-        del candidate, beam_covariance
-        observed_thresholds.append(significance_sigma)
-        return significance_sigma <= 2.0
-
-    monkeypatch.setattr(
-        fitting_algorithm,
-        "_significantly_extended",
-        significant_at_component_threshold,
-    )
-
-    def never_preferred(*_args: object) -> bool:
-        return False
-
-    monkeypatch.setattr(
-        fitting_algorithm,
-        "_free_preferred_by_bic",
-        never_preferred,
-    )
-    result = _fit(
-        _gaussian_input(sigma_axes=(1.7, 0.8)),
-        config=_fit_config(
-            model_selection="beam-or-free",
-            extension_significance_sigma=5.0,
-            component_extension_significance_sigma=2.0,
-        ),
-        geometry=_beam_geometry(),
-    )
-
-    assert isinstance(result, ValidCompactGaussianFit)
-    assert result.diagnostics.model_identity == "beam-constrained"
-    assert result.gaussian_component_fit is not None
-    assert result.gaussian_component_fit.diagnostics.model_identity == (
-        "free-elliptical"
-    )
-    assert observed_thresholds == [5.0, 2.0]
+    assert "joint-gaussian-fit" in result.quality_flags
 
 
 def test_integrated_flux_bias_calibration_is_component_specific() -> None:
@@ -1260,143 +1198,6 @@ def test_clear_extended_source_retains_free_elliptical_fit() -> None:
     assert result.parameters.minor_sigma_pixels == pytest.approx(2.4)
 
 
-@pytest.mark.parametrize(
-    ("pair_angle_degrees", "aperture_model"),
-    (
-        (20.0, "restoring-beam"),
-        (65.0, "selected-fit"),
-        (110.0, "selected-fit"),
-    ),
-)
-def test_association_aperture_recovers_rotated_blend_total_flux(
-    pair_angle_degrees: float,
-    aperture_model: str,
-) -> None:
-    """Association flux follows the observed blend, not a fixed beam mask."""
-    geometry = _beam_geometry()
-    beam_covariance = geometry.restoring_beam_covariance_pixels_squared
-    assert beam_covariance is not None
-    covariance = np.asarray(
-        [
-            [beam_covariance[0], beam_covariance[1]],
-            [beam_covariance[1], beam_covariance[2]],
-        ]
-    )
-    beam_axes = tuple(np.sqrt(np.linalg.eigvalsh(covariance)[::-1]))
-    center_xy = (20.0, 20.0)
-    separation_pixels = 2.5
-    angle = np.deg2rad(pair_angle_degrees)
-    offset_xy = (
-        0.5 * separation_pixels * np.cos(angle),
-        0.5 * separation_pixels * np.sin(angle),
-    )
-    shared = {
-        "sigma_axes": beam_axes,
-        "angle_degrees": 20.0,
-        "shape_yx": (41, 41),
-        "origin_yx": (0, 0),
-        "rms_value": 0.01,
-    }
-    first = _gaussian_input(
-        amplitude=1.0,
-        centroid_xy=(
-            center_xy[0] - offset_xy[0],
-            center_xy[1] - offset_xy[1],
-        ),
-        **shared,  # type: ignore[arg-type]
-    )
-    second = _gaussian_input(
-        amplitude=0.8,
-        centroid_xy=(
-            center_xy[0] + offset_xy[0],
-            center_xy[1] + offset_xy[1],
-        ),
-        **shared,  # type: ignore[arg-type]
-    )
-    blend = replace(
-        first,
-        physical_residual=first.physical_residual + second.physical_residual,
-    )
-
-    result = _fit(
-        blend,
-        config=_fit_config(
-            background_model="fixed-zero",
-            pixel_support="owned-region",
-            model_selection="beam-or-free",
-        ),
-        geometry=geometry,
-    )
-
-    assert isinstance(result, ValidCompactGaussianFit)
-    assert result.diagnostics.model_identity == "free-elliptical"
-    assert result.association_aperture is not None
-    assert result.association_aperture.aperture_model == aperture_model
-    assert result.association_aperture.integrated_flux_jy == pytest.approx(
-        1.8,
-        rel=0.02,
-    )
-
-
-def test_association_aperture_omits_unusable_support(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Empty or non-positive aperture support remains explicit absence."""
-    original = fitting_algorithm._association_aperture_photometry
-    omitted: list[AssociationAperturePhotometry | None] = []
-
-    def probe(
-        compact: _FitInput,
-        region: DeblendedRegion,
-        candidate: fitting_algorithm._FitCandidate,
-        geometry: CompactMeasurementGeometry,
-        config: CompactGaussianFitConfig,
-    ) -> AssociationAperturePhotometry | None:
-        omitted.append(
-            original(
-                replace(
-                    compact,
-                    valid_pixels=np.zeros_like(compact.valid_pixels),
-                ),
-                region,
-                candidate,
-                geometry,
-                config,
-            )
-        )
-        omitted.append(
-            original(
-                replace(
-                    compact,
-                    physical_residual=-np.abs(compact.physical_residual),
-                ),
-                region,
-                candidate,
-                geometry,
-                config,
-            )
-        )
-        return original(
-            compact,
-            region,
-            candidate,
-            geometry,
-            config,
-        )
-
-    monkeypatch.setattr(
-        fitting_algorithm,
-        "_association_aperture_photometry",
-        probe,
-    )
-
-    result = _fit(_gaussian_input(), geometry=_beam_geometry())
-
-    assert isinstance(result, ValidCompactGaussianFit)
-    assert result.association_aperture is not None
-    assert omitted == [None, None]
-
-
 def test_valid_free_fit_survives_failed_smaller_model(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1413,26 +1214,18 @@ def test_valid_free_fit_survives_failed_smaller_model(
         sigma_axes=axes,
         angle_degrees=20.0,
     )
-    original = fitting_algorithm._fit_candidate
+    original = fitting_algorithm.least_squares
     calls = 0
 
-    def fail_smaller_model(*args: object, **kwargs: object):
+    def fail_smaller_model(*args: Any, **kwargs: Any) -> Any:
         nonlocal calls
-        candidate = original(*args, **kwargs)  # type: ignore[arg-type]
         calls += 1
+        result = original(*args, **kwargs)
         if calls == 2:
-            return replace(
-                candidate,
-                success=False,
-                diagnostics=replace(candidate.diagnostics, converged=False),
-            )
-        return candidate
+            result.success = False
+        return result
 
-    monkeypatch.setattr(
-        fitting_algorithm,
-        "_fit_candidate",
-        fail_smaller_model,
-    )
+    monkeypatch.setattr(fitting_algorithm, "least_squares", fail_smaller_model)
 
     result = _fit(
         compact,
@@ -1440,9 +1233,33 @@ def test_valid_free_fit_survives_failed_smaller_model(
         geometry=geometry,
     )
 
+    assert calls == 2
     assert isinstance(result, ValidCompactGaussianFit)
     assert result.diagnostics.model_identity == "free-elliptical"
     assert result.diagnostics.rejected_model_identity == "beam-constrained"
+
+
+def test_bound_contact_is_not_published_as_an_ordinary_free_fit() -> None:
+    """A physical-bound ridge must fall back or fail explicitly."""
+    compact = _gaussian_input(
+        centroid_xy=(160.0, 256.5),
+        shape_yx=(8, 21),
+        origin_yx=(248, 150),
+    )
+
+    result = _fit(
+        compact,
+        config=_fit_config(model_selection="beam-or-free"),
+        geometry=_beam_geometry(),
+    )
+
+    assert isinstance(result, ValidCompactGaussianFit)
+    assert result.diagnostics.model_identity == "beam-constrained"
+    assert result.diagnostics.fallback_reason == "free-model-bound-contact"
+    assert result.diagnostics.rejected_model_identity == "free-elliptical"
+    assert "centroid-y" in result.diagnostics.rejected_model_bound_parameters
+    assert "beam-constrained-fit" in result.quality_flags
+    assert "fit-at-bound" not in result.quality_flags
 
 
 def test_fixed_background_is_an_explicit_smaller_model() -> None:
@@ -1468,36 +1285,10 @@ def test_fixed_background_is_an_explicit_smaller_model() -> None:
     )
 
 
-def test_bound_contact_is_not_published_as_an_ordinary_free_fit() -> None:
-    """A physical-bound ridge must fall back or fail explicitly."""
-    compact = _gaussian_input(
-        centroid_xy=(160.0, 256.5),
-        shape_yx=(8, 21),
-        origin_yx=(248, 150),
-    )
-
-    result = _fit(
-        compact,
-        config=_fit_config(model_selection="beam-or-free"),
-        geometry=_beam_geometry(),
-    )
-
-    assert isinstance(result, ValidCompactGaussianFit)
-    assert result.diagnostics.model_identity == (
-        "centroid-constrained-elliptical"
-    )
-    assert result.diagnostics.fallback_reason == "free-model-bound-contact"
-    assert result.diagnostics.rejected_model_identity == "free-elliptical"
-    assert "centroid-y" in result.diagnostics.rejected_model_bound_parameters
-    assert "centroid-constrained-fit" in result.quality_flags
-    assert "fit-at-bound" not in result.quality_flags
-
-
-@pytest.mark.parametrize("joint", (False, True))
 @pytest.mark.parametrize("center_y", (8.0, 10.0, 15.0))
 @pytest.mark.parametrize("model_selection", ("free-only", "beam-or-free"))
 def test_free_only_does_not_bypass_physical_fit_admission(
-    joint: bool, center_y: float, model_selection: str
+    center_y: float, model_selection: str
 ) -> None:
     """Converged off-image ridges fail the same gate without a beam model."""
     compact = _gaussian_input(
@@ -1512,13 +1303,9 @@ def test_free_only_does_not_bypass_physical_fit_admission(
     config = _fit_config(
         background_model="fixed-zero", model_selection=model_selection
     )
-    result = (
-        fit_compact_gaussian_mixture(compact, moments, geometry, config)[0]
-        if joint
-        else fit_compact_gaussian(
-            compact, compact.regions[0], moments[0], geometry, config
-        )
-    )
+    result = fit_compact_gaussian_mixture(compact, moments, geometry, config)[
+        0
+    ]
     assert isinstance(result, FailedCompactGaussianFit)
     assert result.reason == "fit-invalid-result"
     assert result.moment == moments[0]
@@ -1532,54 +1319,6 @@ def test_free_only_does_not_bypass_physical_fit_admission(
     )
 
 
-def test_centroid_retry_survives_edge_bound_contact_in_both_models() -> None:
-    """A noisy image edge cannot prevent the existing stable-centroid retry."""
-    compact = _gaussian_input(
-        amplitude=0.1,
-        centroid_xy=(254.0, 252.0),
-        sigma_axes=(3.8, 2.4),
-        angle_degrees=20.0,
-        shape_yx=(12, 12),
-        origin_yx=(244, 244),
-        rms_value=0.05,
-    )
-    residual = compact.physical_residual.copy()
-    residual[8:11, -1] += 0.05
-    geometry = _beam_geometry()
-    geometry = replace(
-        geometry,
-        noise_correlation_covariance_pixels_squared=(
-            geometry.restoring_beam_covariance_pixels_squared
-        ),
-    )
-
-    result = _fit(
-        replace(compact, physical_residual=residual),
-        config=_fit_config(
-            model_selection="beam-or-free",
-            point_estimator="correlated-gls",
-        ),
-        geometry=geometry,
-    )
-
-    assert isinstance(result, ValidCompactGaussianFit)
-    assert result.diagnostics.model_identity == (
-        "centroid-constrained-elliptical"
-    )
-    assert result.diagnostics.fallback_reason == "free-model-bound-contact"
-    assert result.diagnostics.rejected_model_identity == "free-elliptical"
-    assert set(result.diagnostics.bound_parameters) == {
-        "forced-centroid-x",
-        "forced-centroid-y",
-    }
-    assert result.diagnostics.point_estimator == "correlated-gls"
-    assert "centroid-constrained-fit" in result.quality_flags
-    assert "fit-at-bound" not in result.quality_flags
-    assert abs(result.parameters.centroid_xy[0] - 254.0) < (
-        abs(result.moment.initializer.centroid_xy[0] - 254.0) - 0.1
-    )
-
-
 def test_default_model_selection_preserves_the_free_fit_oracle() -> None:
     """Ordinary callers retain the established free-elliptical estimator."""
     assert _fit_config().model_selection == "free-only"
@@ -1590,152 +1329,6 @@ def test_default_model_selection_preserves_the_free_fit_oracle() -> None:
 
     assert isinstance(result, ValidCompactGaussianFit)
     assert result.diagnostics.model_identity == "free-elliptical"
-    assert result.position_estimate is None
-
-
-def test_bounded_context_position_is_separate_from_owned_morphology() -> None:
-    """The explicit campaign policy publishes an independent centroid."""
-    result = _fit(
-        _gaussian_input(amplitude=0.5, sigma_axes=(1.9, 1.2)),
-        config=_fit_config(position_estimator="bounded-context-free"),
-        geometry=_beam_geometry(),
-    )
-
-    assert isinstance(result, ValidCompactGaussianFit)
-    assert result.position_estimate is not None
-    assert result.position_estimate.estimator == "bounded-context-free"
-    assert "bounded-context-position" in result.quality_flags
-    assert "beam-constrained-fit" not in result.quality_flags
-
-
-@pytest.mark.parametrize(
-    ("centroid_xy", "origin_yx", "edge_column"),
-    (
-        ((254.0, 252.0), (244, 244), -1),
-        ((1.0, 252.0), (244, 0), 0),
-    ),
-)
-@pytest.mark.parametrize("model_selection", ("free-only", "beam-or-free"))
-def test_truncated_context_position_refits_centroid_and_covariance(
-    centroid_xy: tuple[float, float],
-    origin_yx: tuple[int, int],
-    edge_column: int,
-    model_selection: str,
-) -> None:
-    """An edge correction publishes covariance from its own likelihood fit."""
-    compact = _gaussian_input(
-        amplitude=0.1,
-        centroid_xy=centroid_xy,
-        sigma_axes=(3.8, 2.4),
-        angle_degrees=20.0,
-        shape_yx=(12, 12),
-        origin_yx=origin_yx,
-        rms_value=0.05,
-    )
-    residual = compact.physical_residual.copy()
-    residual[8:11, edge_column] += 0.05
-
-    result = _fit(
-        replace(compact, physical_residual=residual),
-        config=_fit_config(
-            position_estimator="bounded-context-free",
-            model_selection=model_selection,
-        ),
-        geometry=_beam_geometry(),
-    )
-
-    if model_selection == "free-only":
-        # A separately recovered position cannot make a bound-pinned whole
-        # Gaussian valid. The beam-selected path below retains its existing
-        # independently fitted truncation covariance.
-        assert isinstance(result, FailedCompactGaussianFit)
-        assert result.reason == "fit-invalid-result"
-        assert result.diagnostics is not None
-        assert result.diagnostics.parameters_at_bound
-        return
-    assert isinstance(result, ValidCompactGaussianFit)
-    assert result.position_estimate is not None
-    assert result.position_estimate.estimator == (
-        "bounded-context-truncation-refit"
-    )
-    covariance = np.asarray(
-        (
-            (
-                result.position_estimate.covariance_xx_pixels_squared,
-                result.position_estimate.covariance_xy_pixels_squared,
-            ),
-            (
-                result.position_estimate.covariance_xy_pixels_squared,
-                result.position_estimate.covariance_yy_pixels_squared,
-            ),
-        )
-    )
-    assert np.all(np.linalg.eigvalsh(covariance) > 0)
-
-
-def test_truncated_normal_moments_recover_edge_centroid() -> None:
-    """The analytic fallback inverts a known one-sided normal truncation."""
-    location = 254.0
-    sigma = 2.5
-    upper = 255.5
-    standardized = (upper - location) / sigma
-    density = np.exp(-0.5 * standardized**2) / np.sqrt(2.0 * np.pi)
-    ratio = density / ndtr(standardized)
-    observed_mean = location - sigma * ratio
-    observed_variance = sigma**2 * (1.0 - standardized * ratio - ratio**2)
-
-    recovered = fitting_algorithm._upper_truncated_normal_location(
-        observed_mean,
-        observed_variance,
-        upper,
-        30.0,
-    )
-
-    assert recovered == pytest.approx(location, abs=1e-6)
-
-
-@pytest.mark.parametrize(
-    ("observed_mean", "observed_variance"),
-    ((1.0, 0.0), (2.0, 1.0)),
-)
-def test_truncated_normal_moments_reject_invalid_observations(
-    observed_mean: float,
-    observed_variance: float,
-) -> None:
-    """Moment inversion fails closed for degenerate or out-of-bound input."""
-    assert (
-        fitting_algorithm._upper_truncated_normal_location(
-            observed_mean,
-            observed_variance,
-            1.5,
-            30.0,
-        )
-        is None
-    )
-
-
-@pytest.mark.parametrize(
-    "changes",
-    [
-        {"centroid_xy": (float("nan"), 1.0)},
-        {"covariance_xx_pixels_squared": 0.0},
-        {"covariance_xy_pixels_squared": 2.0},
-    ],
-)
-def test_position_estimate_rejects_invalid_evidence(
-    changes: dict[str, object],
-) -> None:
-    """Position-only evidence requires finite positive covariance."""
-    values: dict[str, object] = {
-        "centroid_xy": (1.0, 2.0),
-        "covariance_xx_pixels_squared": 1.0,
-        "covariance_xy_pixels_squared": 0.0,
-        "covariance_yy_pixels_squared": 1.0,
-    }
-    values.update(changes)
-
-    with pytest.raises(ValueError, match="position estimate"):
-        GaussianPositionEstimate(**values)  # type: ignore[arg-type]
 
 
 def test_fit_is_translation_and_positive_scaling_equivariant() -> None:
@@ -1866,11 +1459,10 @@ def test_correlated_gls_falls_back_before_dense_work_exceeds_bound() -> None:
     assert "correlated-gls-fallback" in result.quality_flags
 
 
-@pytest.mark.parametrize("joint", (False, True))
 @pytest.mark.parametrize("sigma", (2.0, 4.0))
 @pytest.mark.parametrize("perturbation", ("none", "mixed-noise", "envelope"))
 def test_oversampled_likelihood_uses_explicit_stable_fallback(
-    joint: bool, sigma: float, perturbation: str
+    sigma: float, perturbation: str
 ) -> None:
     """Roundoff-singular noise cannot be silently turned into exact GLS.
 
@@ -1911,13 +1503,9 @@ def test_oversampled_likelihood_uses_explicit_stable_fallback(
         point_estimator: Literal["diagonal-weighted", "correlated-gls"],
     ) -> CompactGaussianFitResult:
         selected = replace(config, point_estimator=point_estimator)
-        if joint:
-            return fit_compact_gaussian_mixture(
-                observed, moments, geometry, selected
-            )[0]
-        return fit_compact_gaussian(
-            observed, observed.regions[0], moments[0], geometry, selected
-        )
+        return fit_compact_gaussian_mixture(
+            observed, moments, geometry, selected
+        )[0]
 
     expected = fit("diagonal-weighted")
     actual = fit("correlated-gls")
@@ -2344,23 +1932,18 @@ def _bright_fit_scene(scene: str) -> tuple[_FitInput, _FitInput, Any]:
 
 
 @pytest.mark.parametrize(
-    ("scene", "joint"),
+    "scene",
     (
-        ("asymmetric", False),
-        ("asymmetric", True),
-        ("masked", False),
-        ("masked", True),
-        ("masked-centre", False),
-        ("masked-centre", True),
-        ("compact-on-diffuse", False),
-        ("compact-on-diffuse", True),
-        ("edge", False),
-        ("edge", True),
-        ("overlap", True),
+        "asymmetric",
+        "masked",
+        "masked-centre",
+        "compact-on-diffuse",
+        "edge",
+        "overlap",
     ),
 )
 def test_complete_bright_gaussians_agree_with_independent_model(
-    scene: str, joint: bool
+    scene: str,
 ) -> None:
     """Compare entire ellipses, not just positions, on independent scenes.
 
@@ -2389,16 +1972,7 @@ def test_complete_bright_gaussians_agree_with_independent_model(
         model_selection="beam-or-free",
         point_estimator="correlated-gls",
     )
-    if joint:
-        selected = fit_compact_gaussian_mixture(
-            compact, moments, geometry, config
-        )
-    else:
-        selected = (
-            fit_compact_gaussian(
-                compact, compact.regions[0], moments[0], geometry, config
-            ),
-        )
+    selected = fit_compact_gaussian_mixture(compact, moments, geometry, config)
     oracle_fit = fitting.TRFLSQFitter()(
         oracle,
         x[valid],
@@ -2418,10 +1992,7 @@ def test_complete_bright_gaussians_agree_with_independent_model(
         assert actual.diagnostics.point_estimator == "diagonal-weighted"
         assert actual.uncertainty is not None
         assert "correlated-noise-sandwich-errors" in actual.quality_flags
-        component = actual.gaussian_component_fit
-        parameters = (
-            actual.parameters if component is None else component.parameters
-        )
+        parameters = actual.parameters
         assert parameters.centroid_xy == pytest.approx(
             (expected.x_mean.value, expected.y_mean.value), abs=1e-5
         )
@@ -2459,11 +2030,9 @@ def test_complete_bright_gaussians_agree_with_independent_model(
     )
 
 
-@pytest.mark.parametrize("joint", (False, True))
 @pytest.mark.parametrize("initial_angle_offset", (0.0, 90.0))
 @pytest.mark.parametrize("maximum_axis_ratio", (2.0, 4.0))
 def test_axis_ratio_admission_is_independent_of_optimizer_axis_order(
-    joint: bool,
     initial_angle_offset: float,
     maximum_axis_ratio: float,
 ) -> None:
@@ -2490,14 +2059,9 @@ def test_axis_ratio_admission_is_independent_of_optimizer_axis_order(
         background_model="fixed-zero",
         maximum_axis_ratio=maximum_axis_ratio,
     )
-    if joint:
-        result = fit_compact_gaussian_mixture(
-            compact, (moment,), geometry, config
-        )[0]
-    else:
-        result = fit_compact_gaussian(
-            compact, compact.regions[0], moment, geometry, config
-        )
+    result = fit_compact_gaussian_mixture(
+        compact, (moment,), geometry, config
+    )[0]
 
     if maximum_axis_ratio < 3:
         assert isinstance(result, FailedCompactGaussianFit)
@@ -2570,7 +2134,10 @@ def test_iteration_limit_returns_typed_failure_with_initializer() -> None:
     assert all(np.isfinite(result.moment.initializer.centroid_xy))
     assert result.diagnostics is not None
     assert result.diagnostics.function_evaluations == 1
-    assert result.quality_flags == ("fit-non-convergence",)
+    assert result.quality_flags == (
+        "fit-non-convergence",
+        "joint-gaussian-fit",
+    )
 
 
 def test_underdetermined_measurement_is_not_fitted() -> None:
@@ -2655,7 +2222,6 @@ def test_aperture_photometry_rejects_invalid_evidence(
         ({"background_model": "unknown"}, "background_model"),
         ({"point_estimator": "unknown"}, "point_estimator"),
         ({"model_selection": "unknown"}, "model_selection"),
-        ({"position_estimator": "unknown"}, "position_estimator"),
         ({"maximum_gls_pixels": 6}, "maximum_gls_pixels"),
         (
             {"association_aperture_radius_sigma": 0.0},

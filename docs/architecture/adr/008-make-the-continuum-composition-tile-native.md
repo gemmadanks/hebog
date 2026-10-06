@@ -49,14 +49,15 @@ confirmed while preparing this decision:
   objects are label equivalences, per-object record aggregates, and the
   background and RMS grid.
 - The pixel-domain kernels are already halo-bounded, and their halos are
-  small. For a 5-pixel beam, `derive_stage_halo_plan` gives 34 pixels for the
-  matched-filter bank, 14 for the à trous transform, 15 for segment
-  association and 3 for segment refinement. The reviewed noise grids are
-  larger: the 150/50 coarse grid needs about 125 pixels and the adaptive
-  35/7 grid with its 75-pixel influence radius and 20-pixel transition needs
-  about 120. **The noise grid, not the multiscale filters, sets the maximum
-  halo**, and at roughly 125 pixels it sits well inside the quarter-core
-  limit that the
+  small. For a 5-pixel beam, `scale_filter_halo_pixels` gives 34 pixels for
+  the matched-filter bank, `residual_atrous_scale_halos_pixels` at most 14
+  for the à trous transform, `segment_association_halo_pixels` 15 for segment
+  association and `segment_refinement_halo_pixels` 5 for segment
+  refinement. The reviewed noise grids are larger: the 150/50 coarse grid
+  needs about 125 pixels and the adaptive 35/7 grid with its 75-pixel
+  influence radius and 20-pixel transition needs about 120. **The noise
+  grid, not the multiscale filters, sets the maximum halo**, and at roughly
+  125 pixels it sits well inside the quarter-core limit that the
   [scalability contract](../../reference/performance-scalability-contracts.md)
   sets for its smallest admitted core of 2,048 pixels.
 - Several kernels already accept tiled inputs.

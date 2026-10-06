@@ -1180,7 +1180,7 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
         run_fit_parent_stage,
     )
 
-    _, _, moment_config, fit_config, _ = source_finder_configs()
+    _, _, moment_config, fit_config = source_finder_configs()
     fit_config = replace(fit_config, integrated_flux_bias_correction_sigma=0.0)
     atrous_plan = build_residual_atrous_plan(beam, noise_correlation=beam)
     context_margin = int(fit_config.context_margin_pixels)

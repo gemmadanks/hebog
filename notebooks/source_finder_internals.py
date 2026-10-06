@@ -16,16 +16,16 @@ def _(mo):
     mo.md(r"""
     # Hebog source-finder internals and tiling demonstration
 
-    This developer notebook demonstrates compact-source algorithms and the
-    bounded multiscale stage on small, deterministic
-    synthetic radio images. The compact path estimates
-    background and RMS noise, detects connected source islands, reconciles an
-    island that crosses tile boundaries, deblends compact peaks, calculates
-    exact-label moments, fits Gaussian components, transforms them to sky
-    coordinates, deconvolves the beam, and builds a Rapthor-compatible
-    catalogue. A separate residual scene shows how the multiscale
-    matched-filter seed aid and residual B3 à trous representation handle
-    direct, diffuse, edge, invalid-clipped, and tile-crossing emission.
+    This developer notebook demonstrates the first compact stages and the
+    bounded multiscale stage on small, deterministic synthetic radio images.
+    The compact part estimates background and RMS noise, detects connected
+    source islands, reconciles an island that crosses tile boundaries and
+    deblends compact peaks with the kernel `hebog.find_sources()` uses. It
+    then runs `hebog.find_sources()` on the same image to show the catalogue
+    the public finder publishes. A separate residual scene shows how the
+    multiscale matched-filter seed aid and residual B3 à trous representation
+    handle direct, diffuse, edge, invalid-clipped, and tile-crossing
+    emission.
 
     The example uses Hebog's window-readable synthetic source and serial
     executor so it is quick and completely redistributable. Production inputs
@@ -50,39 +50,32 @@ def _():
     import matplotlib.patches as mpl_patches
     import matplotlib.pyplot as plt
     import numpy as np
+    from astropy.io import fits
     from scipy import ndimage
 
-    import hebog.adapters.rapthor_catalogue as rapthor_catalogue_adapter
-    import hebog.algorithms.astrometry as astrometry_algorithms
-    import hebog.algorithms.catalogue as catalogue_algorithms
+    import hebog
+    import hebog.algorithms.deblending as deblending_algorithms
     import hebog.algorithms.multiscale as multiscale_algorithms
     import hebog.algorithms.partitioning as partitioning_algorithms
     import hebog.config as hebog_config
     import hebog.data_models as hebog_models
-    import hebog.data_models.measurement as measurement_models
     import hebog.executors as hebog_executors
     import hebog.io as hebog_io
-    import hebog.stages.catalogue as catalogue_stage
-    import hebog.stages.deblending as deblending_stage
     import hebog.stages.detection as detection_stage
-    import hebog.stages.measurement as measurement_stage
     import hebog.stages.multiscale as multiscale_stage
     import hebog.validation.datasets as validation_datasets
     from hebog.algorithms import multiscale_tiles
 
     return (
-        astrometry_algorithms,
         astropy_wcs,
-        catalogue_algorithms,
-        catalogue_stage,
-        deblending_stage,
+        deblending_algorithms,
         detection_stage,
+        fits,
+        hebog,
         hebog_config,
         hebog_executors,
         hebog_io,
         hebog_models,
-        measurement_models,
-        measurement_stage,
         mpl_patches,
         multiscale_algorithms,
         multiscale_stage,
@@ -92,7 +85,6 @@ def _():
         partitioning_algorithms,
         pathlib,
         plt,
-        rapthor_catalogue_adapter,
         tempfile,
         validation_datasets,
     )
@@ -332,14 +324,15 @@ def _(
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## 2. Run the bounded compact stages
+    ## 2. Run background, noise and detection
 
     The scientific thresholds are explicit: an island includes pixels at or
     above 3 sigma and must contain a seed strictly above 5 sigma. The
     seven-pixel minimum suppresses isolated noise pixels. A high-significance
     scan at 50 sigma requests a finer local RMS grid near a bright source. For
     this visual example, compact peaks at least one pixel apart remain
-    separate when the weaker peak is at least 0.5 sigma above their saddle.
+    separate when the weaker peak is at least 0.5 sigma above the pass
+    between them.
 
     We execute the same image twice:
 
@@ -352,12 +345,10 @@ def _(mo):
 
 @app.cell
 def _(
-    astrometry_algorithms,
     astropy_wcs,
     demonstration_dataset,
     detection_stage,
     hebog_config,
-    hebog_models,
     np,
 ):
     rms_statistics = hebog_config.RmsWindowStatisticsConfig(
@@ -403,25 +394,6 @@ def _(
         target_batch_pixels=250_000,
         maximum_batch_pixels=4_000_000,
     )
-    moment_configuration = hebog_config.CompactMomentConfig(
-        minimum_shape_pixels=3,
-        covariance_relative_tolerance=1e-12,
-    )
-    fit_configuration = hebog_config.CompactGaussianFitConfig(
-        minimum_fit_pixels=7,
-        maximum_function_evaluations=300,
-        minimum_sigma_pixels=0.2,
-        maximum_sigma_pixels=30.0,
-        maximum_amplitude_factor=5.0,
-        center_margin_pixels=1.0,
-        convergence_tolerance=1e-8,
-        maximum_axis_ratio=30.0,
-    )
-    catalogue_configuration = hebog_config.CompactCatalogueConfig(
-        maximum_catalogue_records=10_000,
-        deconvolution_relative_tolerance=1e-10,
-        extension_significance_sigma=5.0,
-    )
     _pixel_scales_degrees = demonstration_dataset.wcs.pixel_scale_degrees_xy
     _reference_x, _reference_y = demonstration_dataset.wcs.reference_pixel_xy
     _sky_ra, _sky_dec = demonstration_dataset.wcs.reference_sky_degrees
@@ -444,64 +416,32 @@ def _(
         ],
     ]
     _beam = demonstration_dataset.beam
-    image_metadata = hebog_models.ImageMetadata(
-        shape_yx=demonstration_dataset.recipe.shape_yx,
-        unit="Jy/beam",
-        beam=hebog_models.RestoringBeam(
-            major_fwhm_degrees=(
-                _beam.major_fwhm_pixels * abs(_pixel_scales_degrees[0])
-            ),
-            minor_fwhm_degrees=(
-                _beam.minor_fwhm_pixels * abs(_pixel_scales_degrees[1])
-            ),
-            position_angle_degrees=_beam.position_angle_degrees,
-        ),
-        celestial_wcs=hebog_models.CelestialWcs(
-            fits_header=_celestial_wcs.to_header().tostring(
-                sep="\n",
-                endcard=False,
-                padding=False,
-            ),
-            coordinate_frame="icrs",
-        ),
-        reference_frequency_hz=150_000_000.0,
+    demonstration_header = _celestial_wcs.to_header()
+    demonstration_header["RADESYS"] = "ICRS"
+    demonstration_header["BUNIT"] = "Jy/beam"
+    demonstration_header["BMAJ"] = _beam.major_fwhm_pixels * abs(
+        _pixel_scales_degrees[0]
     )
-    measurement_geometry = astrometry_algorithms.compact_geometry_at_pixel(
-        image_metadata,
-        (
-            demonstration_dataset.recipe.shape_yx[1] / 2.0,
-            demonstration_dataset.recipe.shape_yx[0] / 2.0,
-        ),
+    demonstration_header["BMIN"] = _beam.minor_fwhm_pixels * abs(
+        _pixel_scales_degrees[1]
     )
+    demonstration_header["BPA"] = _beam.position_angle_degrees
+    demonstration_header["RESTFRQ"] = 150_000_000.0
     return (
-        catalogue_configuration,
         deblend_configuration,
+        demonstration_header,
         detection_configuration,
-        fit_configuration,
-        image_metadata,
-        measurement_geometry,
-        moment_configuration,
     )
 
 
 @app.cell
 def _(
-    catalogue_algorithms,
-    catalogue_configuration,
-    catalogue_stage,
-    deblend_configuration,
-    deblending_stage,
     demonstration_recipe,
     detection_configuration,
     detection_stage,
     hebog_executors,
     hebog_io,
     image_source,
-    fit_configuration,
-    image_metadata,
-    measurement_geometry,
-    measurement_stage,
-    moment_configuration,
     partitioning_algorithms,
     pathlib,
     tempfile,
@@ -521,68 +461,17 @@ def _(
             manifest,
             generation_id=f"marimo-{run_name}",
         )
-        executor = hebog_executors.SerialExecutor()
         detection = detection_stage.run_detection_stage(
             image_source,
             manifest,
             detection_configuration,
-            executor,
+            hebog_executors.SerialExecutor(),
             sink,
         )
-        deblending = deblending_stage.run_compact_deblend_stage(
-            image_source,
-            detection,
-            deblend_configuration,
-            executor,
-            sink,
-        )
-        moments = measurement_stage.run_compact_moment_stage(
-            image_source,
-            detection,
-            deblend_configuration,
-            moment_configuration,
-            measurement_geometry,
-            executor=executor,
-            sink=sink,
-        )
-        catalogue_shards = catalogue_stage.run_compact_catalogue_stage(
-            image_source,
-            detection,
-            deblend_config=deblend_configuration,
-            moment_config=moment_configuration,
-            fit_config=fit_configuration,
-            catalogue_config=catalogue_configuration,
-            geometry=measurement_geometry,
-            metadata=image_metadata,
-            executor=executor,
-            sink=sink,
-        )
-        completed_catalogue = catalogue_algorithms.complete_compact_catalogue(
-            catalogue_id="marimo-compact-demo",
-            metadata=image_metadata,
-            shards=catalogue_shards.records,
-            deferred_island_ids=tuple(
-                item.island.island_id
-                for item in catalogue_shards.deferred_islands
-            ),
-            config=catalogue_configuration,
-        )
-        return (
-            detection,
-            deblending,
-            moments,
-            catalogue_shards,
-            completed_catalogue,
-            manifest,
-            sink,
-        )
+        return detection, manifest, sink
 
     (
         one_tile_detection,
-        one_tile_deblending,
-        one_tile_moments,
-        one_tile_catalogue_shards,
-        one_tile_catalogue,
         one_tile_manifest,
         one_tile_sink,
     ) = execute_detection(
@@ -591,10 +480,6 @@ def _(
     )
     (
         tiled_detection,
-        tiled_deblending,
-        tiled_moments,
-        tiled_catalogue_shards,
-        tiled_catalogue,
         tiled_manifest,
         tiled_sink,
     ) = execute_detection(
@@ -603,18 +488,10 @@ def _(
     )
     return (
         demonstration_workspace,
-        one_tile_deblending,
         one_tile_detection,
-        one_tile_moments,
-        one_tile_catalogue,
-        one_tile_catalogue_shards,
         one_tile_manifest,
         one_tile_sink,
-        tiled_deblending,
         tiled_detection,
-        tiled_moments,
-        tiled_catalogue,
-        tiled_catalogue_shards,
         tiled_manifest,
         tiled_sink,
     )
@@ -795,24 +672,84 @@ def _(
 
 
 @app.cell
-def _(ndimage, np, source_filtering_mask, tiled_deblending):
+def _(
+    background_plane,
+    deblend_configuration,
+    deblending_algorithms,
+    input_image,
+    ndimage,
+    np,
+    one_tile_background,
+    one_tile_detection,
+    one_tile_mask,
+    one_tile_rms,
+    rms_plane,
+    source_filtering_mask,
+    tiled_detection,
+):
+    def deblend_islands(detection, background, rms, mask):
+        normalized = (input_image - background) / rms
+        results = []
+        for island in detection.islands:
+            bounds = island.bounds
+            window = (
+                slice(bounds.y_start, bounds.y_stop),
+                slice(bounds.x_start, bounds.x_stop),
+            )
+            # A window can hold part of another island: keep the connected
+            # part that holds this island's first pixel.
+            parts, _ = ndimage.label(
+                np.asarray(mask[window], dtype=np.bool_),
+                structure=np.ones((3, 3), dtype=np.bool_),
+            )
+            first_y, first_x = island.first_pixel_yx
+            membership = (
+                parts
+                == parts[first_y - bounds.y_start, first_x - bounds.x_start]
+            )
+            results.append(
+                deblending_algorithms.deblend_compact_island(
+                    deblending_algorithms.CompactIslandPixels(
+                        island=island,
+                        normalized_residual=np.asarray(
+                            normalized[window], dtype=np.float64
+                        ),
+                        island_membership=membership,
+                    ),
+                    deblend_configuration,
+                )
+            )
+        return tuple(results)
+
+    tiled_deblended = deblend_islands(
+        tiled_detection, background_plane, rms_plane, source_filtering_mask
+    )
+    one_tile_deblended = deblend_islands(
+        one_tile_detection, one_tile_background, one_tile_rms, one_tile_mask
+    )
     island_label_plane, visual_island_count = ndimage.label(
         source_filtering_mask,
         structure=np.ones((3, 3), dtype=np.bool_),
     )
     region_rows = tuple(
         {
-            "island": summary.island_id,
-            "status": summary.status,
+            "island": result.island_id,
+            "status": result.status,
             "region": region.region_id,
             "pixels": region.pixel_count,
             "peak S/N": round(region.peak_signal_to_noise, 2),
             "peak (y, x)": str(region.peak_position_yx),
         }
-        for summary in tiled_deblending.islands
-        for region in summary.regions
+        for result in tiled_deblended
+        for region in result.regions
     )
-    return island_label_plane, region_rows, visual_island_count
+    return (
+        island_label_plane,
+        one_tile_deblended,
+        region_rows,
+        tiled_deblended,
+        visual_island_count,
+    )
 
 
 @app.cell(hide_code=True)
@@ -824,7 +761,7 @@ def _(
     np,
     plt,
     region_rows,
-    tiled_deblending,
+    tiled_deblended,
     tiled_detection,
     visual_island_count,
 ):
@@ -852,7 +789,7 @@ def _(
     for _region_index, _row in enumerate(region_rows):
         _summary = next(
             item
-            for item in tiled_deblending.islands
+            for item in tiled_deblended
             if item.island_id == _row["island"]
         )
         _region = next(
@@ -880,7 +817,7 @@ def _(
             markersize=8,
         )
     _region_axis.set(
-        title="Compact deblended region bounds and peaks",
+        title="Deblended region bounds and peaks",
         xlabel="x pixel",
         ylabel="y pixel",
     )
@@ -896,8 +833,10 @@ def _(
             ),
             mo.stat(label="Deblended regions", value=str(len(region_rows))),
             mo.stat(
-                label="Deferred islands",
-                value=str(len(tiled_deblending.deferred_islands)),
+                label="Deblended islands",
+                value=str(
+                    sum(item.status == "deblended" for item in tiled_deblended)
+                ),
             ),
         ],
         widths="equal",
@@ -922,14 +861,14 @@ def _(mo, region_rows):
         for row in region_rows
     )
     mo.md(f"""
-    ### Compact deblending summaries
+    ### Deblended regions
 
-    The executor returns these bounded summaries—not per-pixel label arrays—to
-    keep scheduler payloads small. The rectangles in the plot are read and
-    planning bounds, not membership masks: rectangles may overlap or contain
-    pixels assigned to another watershed region. Phase 4 measurement uses the
-    worker-local region processor, which sees the exact labels before reducing
-    them to compact records.
+    These are the region summaries of `deblend_compact_island`, the kernel
+    `hebog.find_sources()` applies to every retained island. The rectangles in
+    the plot are read and planning bounds, not membership masks: rectangles
+    may overlap or contain pixels assigned to another watershed region. The
+    public finder publishes the exact labels as component planes and fits
+    from those.
 
     {_header}
     {_separator}
@@ -938,152 +877,96 @@ def _(mo, region_rows):
     return
 
 
+@app.cell
+def _(
+    demonstration_header,
+    demonstration_workspace,
+    fits,
+    hebog,
+    hebog_executors,
+    hebog_io,
+    input_image,
+    pathlib,
+):
+    _workspace = pathlib.Path(demonstration_workspace.name)
+    _input_path = _workspace / "demonstration.fits"
+    fits.PrimaryHDU(data=input_image, header=demonstration_header).writeto(
+        _input_path
+    )
+    public_result = hebog.find_sources(
+        hebog.SourceFinderRequest(
+            image_path=_input_path,
+            output_directory=_workspace / "public-products",
+            run_id="marimo-internals",
+        ),
+        hebog.SourceFinderConfig(
+            detection_threshold_sigma=5.0,
+            island_threshold_sigma=3.0,
+            minimum_island_pixels=7,
+        ),
+        hebog_executors.SerialExecutor(),
+    )
+    public_catalogue = hebog_io.read_catalogue_fits_product(
+        public_result.catalogue
+    )
+    return (public_catalogue,)
+
+
 @app.cell(hide_code=True)
-def _(measurement_models, mo, tiled_moments):
-    _region_measurements = tuple(
-        record
-        for record in tiled_moments.records
-        if record.target.object_kind == "deblended-region"
-    )
-    _header = (
-        "| Region | Moment shape | Peak (mJy/beam) | "
-        "Owned-pixel flux (mJy) | Centroid (x, y) |"
-    )
-
-    def _row(record):
-        if isinstance(record, measurement_models.UnavailableMomentMeasurement):
-            _status = f"unavailable: {record.reason}"
-            return f"| {record.target.object_id} | {_status} | — | — | — |"
-        _photometry = record.photometry
-        if isinstance(record, measurement_models.ValidMomentMeasurement):
-            _shape = (
-                f"{record.initializer.major_sigma_pixels:.2f} x "
-                f"{record.initializer.minor_sigma_pixels:.2f} px at "
-                f"{record.initializer.major_axis_angle_degrees:.1f}°"
-            )
-            _centroid = (
-                f"({record.initializer.centroid_xy[0]:.2f}, "
-                f"{record.initializer.centroid_xy[1]:.2f})"
-            )
-        else:
-            _shape = f"unavailable: {record.reason}"
-            _centroid = "—"
-        return (
-            f"| {record.target.object_id} | {_shape} | "
-            f"{1e3 * _photometry.peak_brightness_jy_per_beam:.3f} | "
-            f"{1e3 * _photometry.owned_pixel_integrated_flux_jy:.3f} | "
-            f"{_centroid} |"
+def _(mo, public_catalogue):
+    _component_counts = {
+        _source.source_id: sum(
+            _component.source_id == _source.source_id
+            for _component in public_catalogue.gaussian_components
         )
-
-    _rows = "\n".join(_row(record) for record in _region_measurements)
+        for _source in public_catalogue.sources
+    }
+    _rows = "\n".join(
+        f"| `{_source.source_id}` | "
+        f"{_component_counts[_source.source_id]} | "
+        f"{_source.position.right_ascension_degrees:.5f} | "
+        f"{_source.position.declination_degrees:.5f} | "
+        f"{1e3 * _source.flux.peak_flux_jy_per_beam:.3f} | "
+        f"{1e3 * _source.flux.integrated_flux_jy:.3f} |"
+        for _source in public_catalogue.sources
+    )
+    if not _rows:
+        _rows = "| _No accepted sources_ | - | - | - | - | - |"
+    _header = (
+        "| Source | Components | RA (deg) | Dec (deg) | "
+        "Peak (mJy/beam) | Total (mJy) |"
+    )
     mo.md(f"""
-    ## 5. Exact-label moment measurements
+    ## 5. The catalogue `find_sources` publishes
 
     {_header}
-    | --- | --- | ---: | ---: | --- |
+    | --- | ---: | ---: | ---: | ---: | ---: |
     {_rows}
 
-    These are deterministic measurements of only the pixels assigned to each
-    watershed region. The shape is a brightness-weighted pixel-space moment
-    initializer, not a fitted or beam-deconvolved source size. Owned-pixel flux
-    is likewise distinct from the infinite-area flux of a fitted Gaussian.
+    The same image, written as FITS, passes through `hebog.find_sources()`.
+    The public finder runs the stages above on its own tiles, then fits
+    elliptical Gaussians to the deblended components, associates them into
+    sources and measures each source. A source's total flux is the sum of its
+    fitted components. The
+    [output reference](https://gemmadanks.github.io/hebog/reference/public-products/)
+    describes every column.
     """)
     return
 
 
 @app.cell
 def _(
-    demonstration_workspace,
-    pathlib,
-    rapthor_catalogue_adapter,
-    tiled_catalogue,
-):
-    rapthor_catalogue_path = (
-        pathlib.Path(demonstration_workspace.name) / "source_catalog.fits"
-    )
-    rapthor_catalogue_product = (
-        rapthor_catalogue_adapter.write_rapthor_catalogue_fits(
-            rapthor_catalogue_path,
-            tiled_catalogue.catalogue,
-        )
-    )
-    rapthor_catalogue_table = (
-        rapthor_catalogue_adapter.read_rapthor_catalogue_fits(
-            rapthor_catalogue_path
-        )
-    )
-    return rapthor_catalogue_product, rapthor_catalogue_table
-
-
-@app.cell(hide_code=True)
-def _(mo, rapthor_catalogue_product, rapthor_catalogue_table, tiled_catalogue):
-    _sources = tiled_catalogue.catalogue.sources
-
-    def _deconvolved(source):
-        if source.deconvolved_shape is None:
-            return "unresolved"
-        return f"{3600 * source.deconvolved_shape.major_fwhm_degrees:.2f}"
-
-    _rows = "\n".join(
-        (
-            f"| {source.source_id} | "
-            f"{source.position.right_ascension_degrees:.5f} | "
-            f"{source.position.declination_degrees:.5f} | "
-            f"{1e3 * source.flux.peak_flux_jy_per_beam:.3f} | "
-            f"{1e3 * source.flux.integrated_flux_jy:.3f} | "
-            f"{3600 * source.fitted_shape.major_fwhm_degrees:.2f} | "
-            f"{_deconvolved(source)} | "
-            f"{', '.join(source.quality_flags)} |"
-        )
-        for source in _sources
-    )
-    _columns = ", ".join(rapthor_catalogue_table.colnames)
-    _catalogue_header = (
-        "| Source | RA (deg) | Dec (deg) | Peak (mJy/beam) | "
-        "Total (mJy) | Fitted major (arcsec) | "
-        "Deconvolved major (arcsec) | Quality flags |"
-    )
-    _catalogue_separator = (
-        "| --- | ---: | ---: | ---: | ---: | ---: | --- | --- |"
-    )
-    mo.md(f"""
-    ## 6. Fitted sky catalogue and Rapthor view
-
-    {_catalogue_header}
-    {_catalogue_separator}
-    {_rows}
-
-    The fitted pixel ellipses have been transformed through the local WCS and
-    deconvolved from the restoring beam. An unresolved result has no internal
-    physical size; the compatibility writer alone translates it to
-    `DC_Maj = 0`.
-
-    The deterministic FITS product contains **{len(rapthor_catalogue_table)}
-    rows**, **{rapthor_catalogue_product.byte_count} bytes**, and exactly the
-    columns Rapthor reads directly: `{_columns}`.
-    """)
-    return
-
-
-@app.cell
-def _(
+    background_plane,
     np,
     one_tile_background,
-    one_tile_catalogue,
-    one_tile_catalogue_shards,
-    one_tile_deblending,
+    one_tile_deblended,
     one_tile_detection,
     one_tile_mask,
-    one_tile_moments,
     one_tile_rms,
-    source_filtering_mask,
-    tiled_deblending,
-    tiled_detection,
-    tiled_catalogue,
-    tiled_catalogue_shards,
-    tiled_moments,
-    background_plane,
     rms_plane,
+    source_filtering_mask,
+    tiled_deblended,
+    tiled_detection,
 ):
     partition_checks = {
         "Background is identical": np.array_equal(
@@ -1103,15 +986,9 @@ def _(
         "Island summaries are identical": (
             one_tile_detection.islands == tiled_detection.islands
         ),
-        "Deblended summaries are identical": (
-            one_tile_deblending == tiled_deblending
-        ),
-        "Moment records are identical": one_tile_moments == tiled_moments,
-        "Catalogue shards are identical": (
-            one_tile_catalogue_shards == tiled_catalogue_shards
-        ),
-        "Completed catalogues are identical": (
-            one_tile_catalogue == tiled_catalogue
+        "Deblended regions are identical": (
+            tuple(item.regions for item in one_tile_deblended)
+            == tuple(item.regions for item in tiled_deblended)
         ),
     }
     return (partition_checks,)
@@ -1131,7 +1008,7 @@ def _(mo, partition_checks, tiled_detection):
         or "none"
     )
     mo.md(f"""
-    ## 7. Partition invariance
+    ## 6. Partition invariance
 
     | Check | Result |
     | --- | --- |
@@ -1151,7 +1028,7 @@ def _(mo, partition_checks, tiled_detection):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## 8. Recover an extended residual across scales
+    ## 7. Recover an extended residual across scales
 
     The multiscale pass first removes or excludes accepted compact emission.
     This example therefore starts from a compact-clean residual containing four
@@ -1685,11 +1562,10 @@ def _(mo):
     mo.md(r"""
     ## What this internal notebook demonstrates
 
-    The compact scene now exercises threshold inclusion and exclusion,
-    invalid pixels, adaptive RMS, edge truncation, connected-island
-    reconciliation, true two-peak deblending, exact-label moments, Gaussian
-    fitting, WCS/beam transforms, catalogue construction, deterministic FITS,
-    and one-tile/four-tile equality.
+    The compact scene exercises threshold inclusion and exclusion, invalid
+    pixels, adaptive RMS, edge truncation, connected-island reconciliation,
+    true two-peak deblending and one-tile/four-tile equality, and shows the
+    catalogue `hebog.find_sources()` publishes for the same image.
 
     The residual scene executes the latest bounded multiscale stage on
     four tiles. It demonstrates spatial background/RMS preparation,
@@ -1702,9 +1578,7 @@ def _(mo):
 
     The three B3 panels make adjacent-scale persistence auditable, and the two
     final support plots are emitted as a dedicated figure so both remain
-    visible in Marimo app view. Compact Gaussian uncertainties remain
-    calibrated only where the Phase 4 contract permits them; unavailable or
-    report-only quantities are not fabricated.
+    visible in Marimo app view.
 
     This intentionally remains a stage-level developer demonstration. Its
     internal imports expose intermediate products and are not a supported

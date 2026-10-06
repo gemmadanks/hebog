@@ -217,14 +217,13 @@ ellipse.
 
 Fits use original background-subtracted pixels and may be solved jointly where
 component contexts interact; a group too large for one joint fit is fitted
-island by island. An admitted fit can be free elliptical, beam
-constrained, or centroid-constrained elliptical; the exact model and fallback
-evidence live in the component's diagnostic disposition. Failure to admit a
-fit removes the Gaussian row. It does not remove the detection footprint or an
-independently measurable continuum source. An admitted fit is also omitted if
-its parent source measurement cannot be published; the component disposition
-still records that the fit succeeded and sets `catalogue_row_published` to
-false.
+island by island. An admitted fit is free elliptical or beam constrained; the
+exact model and fallback evidence live in the component's diagnostic
+disposition. Failure to admit a fit removes the Gaussian row. It does not
+remove the detection footprint or an independently measurable continuum
+source. An admitted fit is also omitted if its parent source measurement
+cannot be published; the component disposition still records that the fit
+succeeded and sets `catalogue_row_published` to false.
 
 ### Interpreting quality flags
 
@@ -233,11 +232,11 @@ must preserve unknown flags. Common current categories include:
 
 | Examples | Meaning |
 | --- | --- |
-| `original-pixel-gaussian-model`, `joint-gaussian-fit`, `bounded-context-position` | Estimator or fit-context provenance. |
+| `original-pixel-gaussian-model`, `joint-gaussian-fit` | Estimator or fit-context provenance. |
 | `resolved`, `unresolved`, `major-axis-only`, `marginal-deconvolution` | Restoring-beam deconvolution state. |
 | `extension-not-significant`, `major-axis-not-significant`, `minor-axis-not-significant` | Why geometric extension was not fully admitted. |
 | `uncertainty-unavailable`, `shape-uncertainty-unavailable`, `position-flux-uncertainty-unavailable`, `deconvolution-uncertainty-unavailable` | Which uncertainty calculation was unavailable. |
-| `fit-at-bound`, `beam-constrained-fit`, `centroid-constrained-fit`, `free-model-not-significantly-extended` | Selected-model and fallback evidence; consult diagnostics for the structured decision. |
+| `fit-at-bound`, `beam-constrained-fit`, `free-model-not-significantly-extended` | Selected-model and fallback evidence; consult diagnostics for the structured decision. |
 | `reconstructed-catalogue-source`, `shape-unavailable`, `resolution-unavailable`, `ambiguous-multiscale-parent` | Associated-source construction and interpretation. |
 | `aperture-flux-without-fitted-component` | The continuum source has no admitted fit, so `INTEGRATED_FLUX` is its aperture rather than a summed fit. |
 | `association-aperture-nonpositive` | The continuum source's aperture summed to zero or below, so `ASSOCIATION_APERTURE_FLUX` is empty; `INTEGRATED_FLUX` is its summed fit. |

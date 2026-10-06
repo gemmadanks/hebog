@@ -312,7 +312,6 @@ def deblend_parent_components(  # noqa: PLR0913
             island_membership=direct_membership,
         ),
         config,
-        marker_partition="intensity-watershed",
     )
     direct_labels = np.asarray(result.region_labels, dtype=np.int32)
     if len(result.regions) == 1:

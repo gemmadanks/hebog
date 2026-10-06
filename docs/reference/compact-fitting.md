@@ -1,38 +1,41 @@
 # Compact Gaussian fitting
 
-Hebog fits every eligible compact deblended region. The `beam-or-free`
-policy evaluates a nested free-elliptical and restoring-beam-constrained model
-rather than making every source pay the variance of a free shape. Hebog does
-not skip apparently easy regions or substitute moment parameters for fitted
-parameters.
+Hebog fits every eligible compact deblended region. Regions whose fitting
+contexts touch are fitted jointly, so a neighbour's light is modelled rather
+than absorbed. The `beam-or-free` policy evaluates a nested free-elliptical
+and restoring-beam-constrained model rather than making every source pay the
+variance of a free shape. Hebog does not skip apparently easy regions or
+substitute moment parameters for fitted parameters.
 
 ## Numerical model
 
-`run_compact_gaussian_fit_stage` keeps the physical residual, RMS, exact
-watershed membership, moment calculation, and nonlinear fit inside the same
-coarse executor task. A task may contain several islands and regions; Hebog
-does not create one Dask task per source. Retained image arrays stay subject to
-the deblending stage's coarse-batch pixel limit.
+`find_sources` fits in two stages of `hebog.stages.objects`.
+`run_fit_parent_stage` joins the components whose fit contexts touch into fit
+parents, following a chain of any length from per-core summaries; a parent
+with more components or pixels than one joint fit admits, or wider than the
+compact bound on its window, is fitted island by island.
+`run_component_fit_stage` then fits each parent with
+`fit_compact_gaussian_mixture` inside one coarse executor task, which keeps
+the physical residual, RMS, exact component labels, moment calculation and
+nonlinear fit together. A task holds several parents; Hebog does not create
+one Dask task per source.
 
-The full model has positive peak amplitude, global zero-based `(x, y)`
-centroid, two positive pixel sigma axes, pixel-space orientation, and an
-optional bounded local residual-background offset. The smaller model fixes
-the axes and orientation to the restoring beam. The reviewed Rapthor profile
-uses the already background-subtracted residual, fixes the remaining offset to
-zero, and fits exact deblended-region membership; the alternate offset and
-bounded context policies remain explicit development ablations. Moment
-parameters
+The free model has positive peak amplitude, global zero-based `(x, y)`
+centroid, two positive pixel sigma axes and pixel-space orientation, fitted
+to the already background-subtracted residual with no further offset. The
+smaller model fixes the axes and orientation to the restoring beam. The
+reviewed profile fits exact deblended-region membership. Moment parameters
 initialize both fits, and configuration bounds limit centre movement, axes,
-amplitude, background offset, iterations, and convergence tolerance.
+amplitude, iterations, and convergence tolerance.
 
 The axis-ratio limit is a physical ellipse limit: both sigma axes must be
 positive, and `max(sigma_first, sigma_second) / min(...)` must not exceed
 `maximum_axis_ratio`. Optimizer axes are interchangeable when the orientation
 turns by 90 degrees; their temporary ordering must not change admission.
-This check applies to single and joint fits before ordered parameters are
-published. An inadmissible fit retains its initializer and explicit failure
-diagnostics, rather than producing a Gaussian row. Independent source support
-and signed-aperture measurements remain available.
+This check applies to every fit before ordered parameters are published. An
+inadmissible fit retains its initializer and explicit failure diagnostics,
+rather than producing a Gaussian row. Independent source support and
+signed-aperture measurements remain available.
 
 The public continuum profile fits with the diagonal-weighted point estimator:
 each pixel residual is weighted by its local RMS, and uncertainties use the
@@ -70,8 +73,8 @@ No unmeasured white noise is added to make the likelihood invertible.
 This check is independent of source brightness and fitted residuals. It does
 not certify that every converged Gaussian is an adequate physical model, nor
 does it change detection thresholds or replace centroids with pixel peaks.
-The same check applies to single and joint component fits. Source support is
-retained independently of Gaussian measurement availability.
+Source support is retained independently of Gaussian measurement
+availability.
 
 The production implementation uses SciPy's bounded trust-region
 `least_squares` solver. An independent Astropy `Gaussian2D`/TRF fit agrees on
@@ -88,9 +91,6 @@ A valid fitted component reports:
 - global pixel centroid, ordered sigma axes, and orientation;
 - an infinite-plane fitted-Gaussian integral used for resolved-source
   measurement and extension testing;
-- a mask-aware three-sigma association aperture flux for compact-source
-  association, kept distinct from both the Gaussian integral and owned-pixel
-  photometry;
 - bilinearly sampled local RMS at the fitted centroid; and
 - bounded optimizer diagnostics.
 
@@ -100,21 +100,18 @@ uses its generalized-least-squares information and is flagged
 `correlated-noise-gls-errors`. A diagonal point fit with declared correlation
 uses the generalized OLS sandwich covariance and is flagged
 `correlated-noise-sandwich-errors`; an absent correlation retains
-`formal-independent-pixel-errors`. Shape errors remain absent. The powered
-regression found that free-fit integrated-flux uncertainty is not calibrated
-for resolved or marginal sources, so that uncertainty remains report-only.
-Position, peak flux, and the peak-as-total unresolved policy pass their
-applicable regression gates.
+`formal-independent-pixel-errors`. Shape errors remain absent. Free-fit
+integrated-flux uncertainty is not calibrated for resolved or marginal
+sources, so that uncertainty remains report-only.
 
-The pipeline-neutral default is the single free-elliptical fit; the reviewed
+The pipeline-neutral default is the free-elliptical model; the reviewed
 continuum profile explicitly opts into the `beam-or-free` policy, so model
-selection cannot silently change a caller's policy. Every published single or
-joint
-candidate must be finite, away from physical parameter bounds, and sufficiently
-well conditioned under the existing configured information limit. Free-only
-fitting and absent beam metadata do not bypass those checks. A separately
-recovered centroid cannot make an invalid whole Gaussian publishable; source
-support and independent source photometry remain available instead.
+selection cannot silently change a caller's policy. Every published candidate
+must be finite, away from physical parameter bounds, and sufficiently well
+conditioned under the existing configured information limit. Free-only
+fitting and absent beam metadata do not bypass those checks. An invalid
+whole Gaussian is never published; source support and independent source
+photometry remain available instead.
 
 The current public composition additionally checks beam fallbacks selected
 because the free ellipse failed numerical, bound or identifiability admission.
@@ -136,9 +133,8 @@ a new chi-squared cutoff. Independent analytic controls govern it.
 Under `beam-or-free`, a five-sigma log-area test selects clear extension directly.
 Otherwise the nested candidates use BIC with the number of independent
 samples appropriate to their residual model. A free candidate that pins a
-physical bound or is ill conditioned is rejected; Hebog retries a free shape
-at the independently measured intensity-weighted moment centroid and finally
-uses the beam model or reports failure. The selected and rejected model
+physical bound or is ill conditioned is rejected in favour of the beam model,
+or the fit reports failure. The selected and rejected model
 identities, exact bound parameters, bound distances, condition number, visible
 footprint, retained geometry, and fallback reason remain auditable.
 Gaussian-component publication applies a second, explicit whole-model test.
@@ -152,61 +148,30 @@ of mixing free axes with a beam angle. PyBDSF and Aegean likewise represent a
 Gaussian component as one fitted ellipse; Hebog's explicit low-information
 beam fallback is recorded in diagnostics rather than disguised as a free fit.
 
-The association aperture is an explicit configurable radius, currently three
-Gaussian sigmas. Hebog uses the lower-variance restoring-beam ellipse when it
-contains at least 90% of the fitted model. Otherwise it uses the selected-fit
-ellipse so a rotated or elongated unresolved blend is not clipped by the
-beam's narrow axis. The flux is a direct sum of finite background-subtracted
-pixels within the selected ellipse, normalized by the same Gaussian model over
-exactly the same valid, non-competing support. Image edges and invalid pixels
-therefore reduce a recorded visible-model fraction rather than silently losing
-flux. This bounded aperture is used only for association and blend-total
-comparisons; fitted component flux and Rapthor's unresolved peak-as-total
-catalogue convention are unchanged.
-
-Position can also be selected independently from morphology and photometry.
-The selected owned-region model continues to define peak, integrated flux,
-shape, and extension. A second free elliptical likelihood uses all finite
-bounded context belonging to the source or background while excluding pixels
-owned by competitors. This avoids shifting the reported position toward only
-the threshold-selected side of a low-SNR or edge source. The public default
-continues to use the selected model's centroid; the reviewed profile opts in
-with `position_estimator="bounded-context-free"`.
-
-If the context likelihood itself reaches an image boundary, Hebog does not
-publish the clipped coordinate as an ordinary fit. It inverts the analytic
-first two moments of a one-sided truncated normal using the independently
-measured intensity centroid and covariance. The record identifies this rare
-case as `bounded-context-truncated-moment`; its covariance remains the local
-context-likelihood curvature and the separate quality flag keeps that
-approximation auditable. Failure of either estimator leaves the selected
-model centroid in force rather than inventing a coordinate.
+No fit publishes an aperture flux of its own. Every fit `find_sources` makes
+is a joint fit, and an aperture around one component of a joint fit would
+also sum its neighbours' light, so the fit's association aperture is
+discarded. Under the continuum profile a source's `ASSOCIATION_APERTURE_FLUX`
+is measured over the source's own footprint, and the compact profile leaves
+it unavailable, as the [output reference](public-products.md) describes.
 
 Centroid bounds may extend beyond the detected region but never beyond the
-sampled image. Extension classification is repeated at the catalogue boundary
-using the reviewed ATLAS log integrated-to-peak statistic. If it does not pass,
-the source remains unresolved and catalogue integrated flux and error use the
-fitted peak and peak error. The raw fitted total remains available to governed
-unresolved-association diagnostics before that individual-row
-canonicalization.
-
-The source and Gaussian-component flux records are deliberately distinct.
-An unresolved source retains the Rapthor-facing peak-as-total convention,
-while its Gaussian component retains the infinite-plane fitted total for
-like-product component comparisons and downstream fit diagnostics. A finite
-moment measurement whose nonlinear fit is unavailable remains a source with
-an explicit `moment-measurement` and `fitted-shape-unavailable` disposition;
-it does not create a Gaussian component. If the fitted centroid lacks local
-RMS interpolation support, the fit records the already measured finite
+sampled pixels. Extension classification is repeated at the catalogue
+boundary using the reviewed ATLAS log integrated-to-peak statistic; see
+[compact astrometry](compact-astrometry.md). A component publishes the
+infinite-plane fitted total whether or not it is resolved, and a source's
+integrated flux is the sum of its components', as the
+[output reference](public-products.md) describes. A component whose fit is
+not admitted creates no Gaussian row, and a source with no admitted fit
+takes its integrated flux from its own aperture. If the fitted centroid lacks
+local RMS interpolation support, the fit records the already measured finite
 owned-region RMS and `local-rms-region-mean-fallback` instead of publishing a
 NaN or failing the complete catalogue.
 
 Invalid moments and regions with fewer than seven owned pixels return a typed
 unavailable fit. Exhausted iterations and scientifically invalid fitted
 parameters return a typed failed fit that retains the moment initializer and
-diagnostics. Unknown values are never encoded as zero. A normal catalogue may
-only be built when every admitted compact region has a valid fit and there are
-no multiscale deferrals.
+diagnostics. Unknown values are never encoded as zero.
 
 ## Integrated-flux uncertainty calibration
 
@@ -275,6 +240,6 @@ incomplete.
 
 The fit result is a frozen scheduler-safe record. Canonical region order is
 inherited from deblending, and serial and Dask executors produce equal compact
-records. The current compact policy associates one fitted Gaussian and one
-source with each successfully fitted deblended region. Multiscale emission and
-selective fitting are deliberately outside this lane.
+records. Which components form one source is decided afterwards by source
+association, not by the fit; see
+[How Hebog finds sources](../explanation/how-hebog-works.md).

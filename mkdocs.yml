@@ -102,8 +102,7 @@ nav:
               - Compact moment measurement: reference/compact-measurement.md
               - Compact Gaussian fitting: reference/compact-fitting.md
               - Compact astrometry and beam deconvolution: reference/compact-astrometry.md
-              - Compact catalogue and Rapthor FITS view: reference/compact-catalogue.md
-              - Extended-emission measurement: reference/extended-emission-measurement.md
+              - Rapthor FITS catalogue view: reference/rapthor-catalogue-view.md
   - Tags: tags.md
 
 extra_javascript:

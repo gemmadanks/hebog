@@ -425,10 +425,7 @@ def test_rejects_internal_deblender_that_drops_direct_support(
     def malformed_deblend(
         _pixels: object,
         _config: CompactDeblendConfig,
-        *,
-        marker_partition: str,
     ) -> SimpleNamespace:
-        assert marker_partition == "intensity-watershed"
         return SimpleNamespace(
             region_labels=np.zeros(direct[2:9, 2:10].shape, dtype=np.int32),
             regions=(object(),),

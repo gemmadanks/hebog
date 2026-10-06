@@ -39,17 +39,19 @@ The public entry point is `hebog.find_sources(request, config, executor)`.
   scheduler imports. `executors/__init__.py` loads `DaskExecutor` lazily the
   same way (through `__getattr__`). Keep both lazy.
 - `public_api.py` is the outer I/O layer. It reads and validates the FITS
-  input, enforces the bounded preview size limit, plans partitions, estimates
-  background and RMS, calls the science composition, and atomically writes
-  versioned products through `io/`.
+  input, enforces the bounded preview size limit, plans partitions, runs
+  each stage through the executor in turn, hands the stage products to the
+  science composition, and atomically writes versioned products through
+  `io/`.
 - `public_science.py` and `science/` hold the installed scientific
-  composition. They combine multiscale detection, component topology,
-  deblending, measurement, and catalogue construction, using the reviewed
-  profile in `science/profile.py` and `resources/`.
-- `stages/` contains scheduler-facing wrappers around each scientific stage
-  (background, detection, deblending, fitting, measurement, multiscale,
-  catalogue). They handle tiling, cores and halos, and batching through an
-  `Executor`.
+  composition: the reviewed configuration and profile (`science/profile.py`
+  and `resources/`), and the source association and catalogue rows built
+  from the stage products.
+- `stages/` contains the scheduler-facing stages `find_sources` runs, in
+  order: background and detection, multiscale, support, publication,
+  objects (component topology, fit parents, component fits), association,
+  sources, islands and catalogue rows, with `batching.py` shared. They
+  handle tiling, cores and halos, and batching through an `Executor`.
 - `algorithms/` contains pure NumPy/SciPy kernels. They take arrays and
   immutable config and return arrays or records. They must not know about
   schedulers, I/O, or adapters.
@@ -61,9 +63,9 @@ The public entry point is `hebog.find_sources(request, config, executor)`.
 - `io/` holds the image-source protocol (`base.py`), bounded FITS input, the
   Zarr v3 intermediate plane store, and restartable FITS/JSON product
   materialisation.
-- `adapters/` is the Rapthor compatibility boundary: serializable records, a
-  PyBDSF-style catalogue view and combined product publication with that
-  view. It must not import Rapthor, Prefect, or LSMTool.
+- `adapters/` is the Rapthor compatibility boundary: serializable records and
+  the eight-column PyBDSF-style catalogue codec. No adapter runs
+  `find_sources` yet. It must not import Rapthor, Prefect, or LSMTool.
 - `validation/` provides campaign, evidence, comparison, and dataset tooling
   for `scripts/` and tests. No production module outside `validation/` imports
   it, and wheels exclude it. Keep it that way, so the source finder stays

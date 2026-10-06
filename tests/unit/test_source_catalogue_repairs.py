@@ -24,7 +24,7 @@ from hebog.algorithms import fitting as gaussian_fitting
 from hebog.algorithms.component_measurement import ComponentGroupingEvidence
 from hebog.algorithms.extended_measurement import (
     SegmentWindow,
-    measure_detected_segment_position,
+    measure_segment_position_pixels,
 )
 from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.config import CompactGaussianFitConfig, SourceFinderConfig
@@ -954,7 +954,10 @@ def test_collinear_positive_centroid_tolerates_floating_point_roundoff() -> (
     """A single-row source is not unstable because y rounds below its row."""
     signal = np.zeros((20, 10))
     signal[7, 2:5] = 0.1 * np.array((1, 2, 3))
-    estimate = measure_detected_segment_position(signal, signal > 0)
+    y_pixels, x_pixels = np.nonzero(signal > 0)
+    estimate = measure_segment_position_pixels(
+        y_pixels, x_pixels, signal[signal > 0], plane_shape_yx=signal.shape
+    )
     assert estimate.available
     assert estimate.centroid_xy == pytest.approx((10 / 3, 7))
 
@@ -963,7 +966,10 @@ def test_symmetric_numerical_cancellation_is_explicitly_unavailable() -> None:
     """Staying in the image does not excuse a numerically cancelled sum."""
     signal = np.zeros((9, 9))
     signal[4, 2:5] = (1, -2 + 1e-12, 1)
-    estimate = measure_detected_segment_position(signal, signal != 0)
+    y_pixels, x_pixels = np.nonzero(signal != 0)
+    estimate = measure_segment_position_pixels(
+        y_pixels, x_pixels, signal[signal != 0], plane_shape_yx=signal.shape
+    )
     assert not estimate.available
     assert estimate.unavailable_reason == "ill-conditioned-segment-position"
 

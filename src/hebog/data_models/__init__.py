@@ -1,6 +1,5 @@
 """Small serializable scheduler-independent domain records."""
 
-from hebog.data_models.catalogue_construction import CompletedCombinedCatalogue
 from hebog.data_models.catalogues import (
     FluxMeasurement,
     GaussianComponent,
@@ -19,18 +18,7 @@ from hebog.data_models.images import (
     SuppliedImageMetadata,
 )
 from hebog.data_models.multiscale import (
-    CombinedCatalogueReduction,
-    CombinedCatalogueShard,
-    CombinedCatalogueState,
-    CombinedIslandDisposition,
-    CombinedIslandIdentity,
-    CompactExtendedContextEdge,
-    CompactSourceSupport,
-    CompletedCombinedCatalogueState,
     CrossScaleAssociation,
-    ExtendedEmissionMeasurement,
-    ExtendedSourceIdentity,
-    MultiscaleOmission,
     ScaleDetection,
 )
 from hebog.data_models.partitioning import (
@@ -60,20 +48,9 @@ from hebog.data_models.source_finding import (
 __all__ = [
     "CatalogueSourceMembership",
     "CelestialWcs",
-    "CombinedCatalogueReduction",
-    "CombinedCatalogueShard",
-    "CombinedCatalogueState",
-    "CombinedIslandDisposition",
-    "CombinedIslandIdentity",
-    "CompactExtendedContextEdge",
-    "CompactSourceSupport",
-    "CompletedCombinedCatalogue",
-    "CompletedCombinedCatalogueState",
     "ContinuumSourceFindingDiagnostics",
     "CrossScaleAssociation",
     "DetectionComponentRecord",
-    "ExtendedEmissionMeasurement",
-    "ExtendedSourceIdentity",
     "FluxMeasurement",
     "GaussianComponent",
     "GaussianShape",
@@ -81,7 +58,6 @@ __all__ = [
     "ImageMetadata",
     "Island",
     "MaterializedProduct",
-    "MultiscaleOmission",
     "PartitionManifest",
     "ProductChunk",
     "ProductGenerationManifest",

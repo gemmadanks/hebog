@@ -140,8 +140,8 @@ image moments and fitted to the original background-subtracted pixels.
 Neighbouring components whose fitting regions touch are fitted jointly. A fit
 is **admitted** only if it converged, stayed within physical bounds, is well
 conditioned, leaves acceptable residuals and has usable uncertainties.
-Depending on the data, the admitted model is a free ellipse, a beam-shaped
-Gaussian, or an ellipse with a fixed centre.
+Depending on the data, the admitted model is a free ellipse or a
+beam-shaped Gaussian.
 
 Fitting work is bounded. In a crowded field the touching fitting regions can
 chain across the whole image. A chain with more components or pixels than
