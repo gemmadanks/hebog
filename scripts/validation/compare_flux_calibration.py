@@ -1,16 +1,27 @@
 """Compare Hebog and PyBDSF flux calibration on the M1 calibration population.
 
-Reuses the M1 population under ``m1-endpoint-diagonal`` (truth manifests and
-Hebog products) and the PyBDSF catalogues produced by
-``run_pybdsf_calibration.py`` in the reference containers. Matching and the
-per-stratum statistics are the same as in
-``scripts/validation/measure_component_uncertainty_calibration.py``: nearest
-catalogue entry within one beam major FWHM; excess = published / truth - 1.
+Reads one population's truth manifests and Hebog products from a
+``measure_component_uncertainty_calibration.py`` run, and the PyBDSF
+catalogues ``run_pybdsf_calibration.py`` produced from the same images in the
+reference containers. Matching and the per-stratum statistics are the same as
+in that script: nearest catalogue entry within one beam major FWHM;
+excess = published / truth - 1.
+
+The cases are the realizations the Hebog run holds, and each is paired with
+a PyBDSF case only when PyBDSF processed the same image bytes; a missing or
+different case stops the comparison. Truth, noise, beam and size classes are
+read from each case's dataset record.
+
+The paired bounds resample whole realizations, which is valid only if the
+realizations are independent, so the comparison also reports how the same
+grid source's flux excess correlates between realizations.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
+import itertools
 import json
 import math
 from collections.abc import Callable, Iterable
@@ -35,16 +46,53 @@ from hebog.validation.products import (
 )
 
 _DEFAULT_ROOT = Path("benchmark-results/uncertainty-calibration")
-NOISE_RMS = 1e-4
-BEAM_MAJOR_FWHM_PIXELS = 5.0
-PIXEL_SCALE_DEGREES = 1.5 / 3600.0
-BEAM_DEGREES = BEAM_MAJOR_FWHM_PIXELS * PIXEL_SCALE_DEGREES
-SIZE_FACTORS = (1.0, 1.15, 1.3, 1.5)
-CASES = [
-    f"calibration-{noise}-{index}"
-    for noise in ("white", "correlated")
-    for index in range(5)
-]
+_FWHM_PER_SIGMA = 2.0 * math.sqrt(2.0 * math.log(2.0))
+_NOISE_CLASSES = ("white", "correlated")
+
+
+def _cases(hebog_run: Path) -> list[str]:
+    """Return the run's realizations, white before correlated, by index."""
+
+    def order(case: str) -> tuple[int, int]:
+        _, noise, index = case.split("-")
+        return _NOISE_CLASSES.index(noise), int(index)
+
+    cases = sorted(
+        (path.stem for path in hebog_run.glob("calibration-*.json")),
+        key=order,
+    )
+    if not cases:
+        raise SystemExit(f"{hebog_run} holds no calibration case")
+    return cases
+
+
+def _sha256(path: Path) -> str:
+    """Return a file's SHA-256, refusing a missing file by name."""
+    if not path.is_file():
+        raise SystemExit(f"missing {path}")
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _require_reference(
+    hebog_run: Path,
+    reference: Path,
+    image_sha256: dict[str, str],
+) -> None:
+    """Refuse a PyBDSF run that does not hold every case's same image.
+
+    Case names repeat between populations, so a name alone would pair a
+    run of other images with this truth. Every PyBDSF case keeps the copy
+    of the image it processed, which is compared byte for byte.
+    """
+    for case in _cases(hebog_run):
+        for name in ("source_catalog.fits", "gaussian_catalog.fits"):
+            if not (reference / case / name).is_file():
+                raise SystemExit(f"missing {reference / case / name}")
+        if _sha256(reference / case / f"{case}.fits") != image_sha256[case]:
+            raise SystemExit(
+                f"{reference / case} processed a different image from "
+                f"{hebog_run / case}.fits"
+            )
 
 
 @dataclass(frozen=True)
@@ -149,6 +197,9 @@ def _match(
     manifest_path: Path, measured: list[Measured]
 ) -> list[dict[str, Any]]:
     dataset = load_dataset_manifest(manifest_path).datasets[0]
+    beam_degrees = dataset.beam.major_fwhm_pixels * abs(
+        dataset.wcs.pixel_scale_degrees_xy[1]
+    )
     rows: list[dict[str, Any]] = []
     for index, source in enumerate(dataset.recipe.sources):
         truth = phase_four_truth_source(source, dataset, identifier=str(index))
@@ -163,9 +214,14 @@ def _match(
             if separation < best_separation:
                 best, best_separation = item, separation
         record: dict[str, Any] = {
-            "snr": source.peak_flux_jy_per_beam / NOISE_RMS,
-            "size_factor": SIZE_FACTORS[index % len(SIZE_FACTORS)],
-            "matched": best is not None and best_separation < BEAM_DEGREES,
+            "snr": source.peak_flux_jy_per_beam / dataset.recipe.noise_rms,
+            "size_factor": round(
+                source.major_sigma_pixels
+                * _FWHM_PER_SIGMA
+                / dataset.beam.major_fwhm_pixels,
+                2,
+            ),
+            "matched": best is not None and best_separation < beam_degrees,
         }
         if record["matched"]:
             assert best is not None
@@ -177,8 +233,8 @@ def _match(
             }
             record["beam_constrained"] = best.constrained
             record["excesses"] = {
-                "ra": offsets["ra"] / BEAM_DEGREES,
-                "dec": offsets["dec"] / BEAM_DEGREES,
+                "ra": offsets["ra"] / beam_degrees,
+                "dec": offsets["dec"] / beam_degrees,
                 "peak": _excess(best.peak, truth.peak_flux_jy_per_beam),
                 "integrated": _excess(
                     best.integrated, truth.integrated_flux_jy
@@ -253,7 +309,7 @@ def _collect(
     """Match one finder's catalogues to truth over the whole population."""
     rows_by_case = {
         case: _match(hebog_run / f"{case}.json", loader(case))
-        for case in CASES
+        for case in _cases(hebog_run)
     }
     return _strata(rows_by_case)
 
@@ -265,7 +321,7 @@ def _matched_rows(
     """Return each case's matched rows, for resampling whole realizations."""
     return {
         case: _match(hebog_run / f"{case}.json", loader(case))
-        for case in CASES
+        for case in _cases(hebog_run)
     }
 
 
@@ -311,15 +367,16 @@ def _paired_difference(  # noqa: PLR0913
     both finders are evaluated on the same draw.
     """
     generator = np.random.default_rng(seed)
-    white = [case for case in CASES if "white" in case]
-    correlated = [case for case in CASES if "correlated" in case]
+    cases = list(hebog_rows)
+    white = [case for case in cases if "white" in case]
+    correlated = [case for case in cases if "correlated" in case]
     observed = tuple(
         a - b
         for a, b in zip(
             _median_and_tail(
                 _excesses(
                     hebog_rows,
-                    CASES,
+                    cases,
                     signal_to_noise=signal_to_noise,
                     noise=noise,
                 )
@@ -327,7 +384,7 @@ def _paired_difference(  # noqa: PLR0913
             _median_and_tail(
                 _excesses(
                     reference_rows,
-                    CASES,
+                    cases,
                     signal_to_noise=signal_to_noise,
                     noise=noise,
                 )
@@ -370,6 +427,70 @@ def _paired_difference(  # noqa: PLR0913
     }
 
 
+def _realization_correlations(
+    rows_by_case: dict[str, list[dict[str, Any]]],
+) -> dict[str, dict[str, Any]]:
+    """Correlate each grid source's flux excess between realizations.
+
+    Each signal-to-noise and size class is standardized over all of a noise
+    class's realizations first, so shared truth cannot correlate. For
+    independent realizations each pair's correlation is 0 with a standard
+    error of about 1/sqrt(64) = 0.125; one noise field shared between
+    realizations makes it positive.
+    """
+    correlations: dict[str, dict[str, Any]] = {}
+    for noise in ("white", "correlated"):
+        cases = [case for case in rows_by_case if case.split("-")[1] == noise]
+        table = np.asarray(
+            [
+                [
+                    row["excesses"]["integrated"]
+                    if row["matched"]
+                    and row["excesses"]["integrated"] is not None
+                    else np.nan
+                    for row in rows_by_case[case]
+                ]
+                for case in cases
+            ],
+            dtype=np.float64,
+        )
+        classes = [
+            (int(row["snr"]), row["size_factor"])
+            for row in rows_by_case[cases[0]]
+        ]
+        for key in set(classes):
+            members = np.asarray([item == key for item in classes])
+            block = table[:, members]
+            table[:, members] = (block - np.nanmean(block)) / np.nanstd(block)
+        pairs: dict[str, float] = {}
+        for first, second in itertools.combinations(range(len(cases)), 2):
+            finite = np.isfinite(table[first]) & np.isfinite(table[second])
+            pairs[f"{cases[first]} / {cases[second]}"] = float(
+                np.corrcoef(table[first, finite], table[second, finite])[0, 1]
+            )
+        correlations[noise] = {
+            "pairs": pairs,
+            "mean": float(np.mean(list(pairs.values()))),
+            "maximum": max(pairs.values()),
+        }
+    return correlations
+
+
+def _print_realization_correlations(
+    correlations: dict[str, dict[str, dict[str, Any]]],
+) -> None:
+    """Print the mean and largest correlation between realizations."""
+    print("\n=== flux excess correlation between realizations ===")
+    print(f"{'finder / noise':44s}{'mean':>12s}{'maximum':>12s}")
+    for finder, by_noise in correlations.items():
+        for noise, stats in by_noise.items():
+            print(
+                f"{finder + ' / ' + noise:44s}"
+                + f"{stats['mean']:+12.2f}"
+                + f"{stats['maximum']:+12.2f}"
+            )
+
+
 def _clipped_ratio(
     rows_by_case: dict[str, list[dict[str, Any]]],
     *,
@@ -410,17 +531,12 @@ def _clipped_ratios(
         (
             "hebog-sources",
             lambda case: _hebog(hebog_run / f"{case}-products", "sources"),
-        )
+        ),
+        (
+            "pybdsf-master-sources",
+            lambda case: _pybdsf(reference / case, "sources"),
+        ),
     ]
-    if all(
-        (reference / case / "gaussian_catalog.fits").exists() for case in CASES
-    ):
-        loaders.append(
-            (
-                "pybdsf-master-sources",
-                lambda case: _pybdsf(reference / case, "sources"),
-            )
-        )
     clipped: dict[str, dict[str, float]] = {}
     for label, loader in loaders:
         rows = _matched_rows(hebog_run, loader)
@@ -505,10 +621,21 @@ def _parse_args() -> argparse.Namespace:
     """Parse the comparison's population root and bootstrap settings."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=_DEFAULT_ROOT)
+    # No defaults: a Hebog run compared with catalogues of another
+    # population would match them against the wrong truth.
     parser.add_argument(
         "--hebog-run",
-        default="m1-endpoint-diagonal",
+        required=True,
         help="Hebog population directory under --root",
+    )
+    parser.add_argument(
+        "--pybdsf-master-run",
+        required=True,
+        help="pinned PyBDSF master catalogues under --root, same population",
+    )
+    parser.add_argument(
+        "--pybdsf-release-run",
+        help="released PyBDSF catalogues under --root, same population",
     )
     parser.add_argument(
         "--output",
@@ -530,10 +657,14 @@ def main() -> None:
     args = _parse_args()
     root = Path(args.root)
     hebog_run = root / str(args.hebog_run)
-    pybdsf_runs = {
-        "pybdsf-master": root / "m1-endpoint-pybdsf-master",
-        "pybdsf-release": root / "m1-endpoint-pybdsf-release",
+    pybdsf_runs = {"pybdsf-master": root / str(args.pybdsf_master_run)}
+    if args.pybdsf_release_run:
+        pybdsf_runs["pybdsf-release"] = root / str(args.pybdsf_release_run)
+    image_sha256 = {
+        case: _sha256(hebog_run / f"{case}.fits") for case in _cases(hebog_run)
     }
+    for run in pybdsf_runs.values():
+        _require_reference(hebog_run, run, image_sha256)
     finders: dict[str, dict[str, Any]] = {}
     for level in ("components", "sources"):
         finders[f"hebog-{level}"] = _collect(
@@ -543,32 +674,38 @@ def main() -> None:
             ),
         )
         for name, run in pybdsf_runs.items():
-            if not all(
-                (run / case / "gaussian_catalog.fits").exists()
-                for case in CASES
-            ):
-                print(f"skipping {name}: incomplete run")
-                continue
             finders[f"{name}-{level}"] = _collect(
                 hebog_run,
                 lambda case, run=run, level=level: _pybdsf(run / case, level),
             )
-    document: dict[str, Any] = {"finders": finders}
+    document: dict[str, Any] = {
+        "runs": {
+            "root": str(root),
+            "hebog": str(args.hebog_run),
+            "pybdsf_master": str(args.pybdsf_master_run),
+            "pybdsf_release": args.pybdsf_release_run,
+        },
+        "image_sha256": image_sha256,
+        "finders": finders,
+    }
     reference = pybdsf_runs["pybdsf-master"]
     clipped = _clipped_ratios(hebog_run, reference)
     document["clipped_ratio_snr20"] = clipped
-    if not args.skip_bootstrap and all(
-        (reference / case / "gaussian_catalog.fits").exists() for case in CASES
-    ):
+    hebog_rows = _matched_rows(
+        hebog_run,
+        lambda case: _hebog(hebog_run / f"{case}-products", "sources"),
+    )
+    reference_rows = _matched_rows(
+        hebog_run,
+        lambda case: _pybdsf(reference / case, "sources"),
+    )
+    correlations = {
+        "hebog-sources": _realization_correlations(hebog_rows),
+        "pybdsf-master-sources": _realization_correlations(reference_rows),
+    }
+    document["realization_correlation"] = correlations
+    if not args.skip_bootstrap:
         paired: dict[str, dict[str, float]] = {}
-        hebog_rows = _matched_rows(
-            hebog_run,
-            lambda case: _hebog(hebog_run / f"{case}-products", "sources"),
-        )
-        reference_rows = _matched_rows(
-            hebog_run,
-            lambda case: _pybdsf(reference / case, "sources"),
-        )
         for noise in (None, "white", "correlated"):
             for signal_to_noise in (10, 20, 50):
                 key = f"{noise or 'all'}/snr{signal_to_noise}"
@@ -590,6 +727,7 @@ def main() -> None:
     _print_excess_tables(finders)
     _print_pull_table(finders)
     _print_clipped_ratios(clipped)
+    _print_realization_correlations(correlations)
     if "paired_sources_minus_pybdsf_master" in document:
         _print_paired_bounds(document["paired_sources_minus_pybdsf_master"])
     print(f"\nwrote {out}")
