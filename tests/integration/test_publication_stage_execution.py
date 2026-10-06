@@ -19,6 +19,7 @@ from scipy.ndimage import label as ndimage_label
 from hebog.algorithms.extended_measurement import (
     assign_seeded_multiscale_support,
     multiscale_recovery_radius_pixels,
+    published_owner_labels,
     refine_multiscale_segment_labels,
     refine_persistent_publication_labels,
 )
@@ -26,7 +27,13 @@ from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.algorithms.reconciliation import DetectedIsland
 from hebog.data_models.partitioning import ImageBounds, PartitionManifest
-from hebog.executors import DaskExecutor, SerialExecutor, TaskRequirement
+from hebog.executors import (
+    DaskExecutor,
+    Executor,
+    SerialExecutor,
+    TaskRequirement,
+    ThreadExecutor,
+)
 from hebog.io.zarr import ZarrProductSink
 from hebog.stages.batching import read_pixels
 from hebog.stages.publication import (
@@ -52,6 +59,8 @@ _ISLAND_SIGMA = 3.0
 _MINIMUM_ISLAND_PIXELS = 7
 _HIGH_SNR = 8.0
 _WEAK_SNR = 4.0
+# Wide enough that the recovery radius reaches across the gap between owners.
+_TAILED_BEAM = BeamShapePixels(4.0, 4.0, 0.0)
 
 
 class _ReverseCompletionExecutor(SerialExecutor):
@@ -122,9 +131,12 @@ def _planes() -> tuple[
     return labels, direct_snr, reconstruction, valid
 
 
-def _support_planes() -> tuple[npt.NDArray[np.int32], npt.NDArray[np.bool_]]:
-    """Return the reconciled support components and persistent support."""
-    labels, _, reconstruction, valid = _planes()
+def _support_components(
+    labels: npt.NDArray[np.int32],
+    reconstruction: npt.NDArray[np.bool_],
+    valid: npt.NDArray[np.bool_],
+) -> npt.NDArray[np.int32]:
+    """Return the reconciled eight-connected support components."""
     components, _ = cast(
         tuple[npt.NDArray[np.int32], int],
         ndimage_label(
@@ -132,14 +144,27 @@ def _support_planes() -> tuple[npt.NDArray[np.int32], npt.NDArray[np.bool_]]:
             structure=np.ones((3, 3), dtype=np.int8),
         ),
     )
-    return components, np.zeros(_SHAPE_YX, dtype=np.bool_)
+    return components
+
+
+def _support_planes() -> tuple[npt.NDArray[np.int32], npt.NDArray[np.bool_]]:
+    """Return the reconciled support components and persistent support."""
+    labels, _, reconstruction, valid = _planes()
+    return (
+        _support_components(labels, reconstruction, valid),
+        np.zeros(_SHAPE_YX, dtype=np.bool_),
+    )
 
 
 def _detection_islands() -> tuple[DetectedIsland, ...]:
+    """Describe each direct owner of the shared fixture."""
+    return _islands(_planes()[0])
+
+
+def _islands(labels: npt.NDArray[np.int32]) -> tuple[DetectedIsland, ...]:
     """Describe each direct owner the way reconciliation would."""
-    labels, _, _, _ = _planes()
     islands: list[DetectedIsland] = []
-    for label_value in (1, 2, 3, 4):
+    for label_value in (int(value) for value in np.unique(labels[labels > 0])):
         rows, columns = np.nonzero(labels == label_value)
         islands.append(
             DetectedIsland(
@@ -212,6 +237,28 @@ def _sources(
         direct_snr = np.full(_SHAPE_YX, -np.inf, dtype=np.float64)
         reconstruction = np.zeros(_SHAPE_YX, dtype=np.bool_)
         components = np.zeros(_SHAPE_YX, dtype=np.int32)
+    return _publish_planes(
+        root,
+        labels=labels,
+        direct_snr=direct_snr,
+        reconstruction=reconstruction,
+        valid=valid,
+        components=components,
+        persistent=persistent,
+    )
+
+
+def _publish_planes(  # noqa: PLR0913
+    root: Path,
+    *,
+    labels: npt.NDArray[np.int32],
+    direct_snr: npt.NDArray[np.float64],
+    reconstruction: npt.NDArray[np.bool_],
+    valid: npt.NDArray[np.bool_],
+    components: npt.NDArray[np.int32],
+    persistent: npt.NDArray[np.bool_],
+) -> tuple[ZarrProductSink, ZarrProductSink]:
+    """Publish the two generations of planes the support pass reads."""
     return (
         _publish(
             root / "detection.zarr",
@@ -234,12 +281,12 @@ def _sources(
     )
 
 
-def _manifest(core: int) -> PartitionManifest:
+def _manifest(core: int, *, halo: int = 3) -> PartitionManifest:
     """Plan one support partition with the exact refinement halo."""
     return plan_image_partitions(
         image_shape_yx=_SHAPE_YX,
         tile_core_shape_yx=(core, core),
-        halo_yx=(3, 3),
+        halo_yx=(halo, halo),
     )
 
 
@@ -247,10 +294,11 @@ def _config(
     *,
     maximum_tiles_per_batch: int = 2,
     maximum_batch_read_pixels: int = 8192,
+    beam: BeamShapePixels = _BEAM,
 ) -> PublicationStageConfig:
     """Return the reviewed thresholds with bounded task limits."""
     return PublicationStageConfig(
-        beam=_BEAM,
+        beam=beam,
         island_threshold_sigma=_ISLAND_SIGMA,
         minimum_island_pixels=_MINIMUM_ISLAND_PIXELS,
         maximum_island_pixels=None,
@@ -301,27 +349,34 @@ def _published(
 
 
 def _whole_plane_chain() -> dict[str, npt.NDArray[np.generic]]:
+    """Evaluate the support chain over the shared fixture's planes."""
+    return _chain(*_planes(), _support_planes()[1], beam=_BEAM)
+
+
+def _chain(  # noqa: PLR0913
+    labels: npt.NDArray[np.int32],
+    direct_snr: npt.NDArray[np.float64],
+    reconstruction: npt.NDArray[np.bool_],
+    valid: npt.NDArray[np.bool_],
+    persistent: npt.NDArray[np.bool_],
+    *,
+    beam: BeamShapePixels,
+) -> dict[str, npt.NDArray[np.generic]]:
     """Evaluate the support chain over complete planes, as the oracle."""
-    labels, direct_snr, reconstruction, valid = _planes()
-    _, persistent = _support_planes()
     measurement = assign_seeded_multiscale_support(
         labels,
         reconstruction,
         valid,
-        beam_major_fwhm_pixels=_BEAM.major_fwhm_pixels,
+        beam_major_fwhm_pixels=beam.major_fwhm_pixels,
     )
     direct_publication = refine_multiscale_segment_labels(
         labels,
         direct_snr,
         reconstruction,
-        beam_major_fwhm_pixels=_BEAM.major_fwhm_pixels,
+        beam_major_fwhm_pixels=beam.major_fwhm_pixels,
         recovered_minimum_snr=_ISLAND_SIGMA,
     )
-    publication = np.where(
-        (direct_publication > 0) & (measurement > 0),
-        measurement,
-        0,
-    ).astype(np.int32, copy=False)
+    publication = published_owner_labels(direct_publication, measurement)
     final = refine_persistent_publication_labels(
         measurement,
         publication,
@@ -331,7 +386,7 @@ def _whole_plane_chain() -> dict[str, npt.NDArray[np.generic]]:
     accepted = np.asarray(
         [
             island.global_label
-            for island in _detection_islands()
+            for island in _islands(labels)
             if island.pixel_count >= _MINIMUM_ISLAND_PIXELS
         ],
         dtype=np.int32,
@@ -755,36 +810,14 @@ def _edge_owner_sources(
     direct_snr = np.full(_SHAPE_YX, -np.inf, dtype=np.float64)
     direct_snr[(labels > 0) | reconstruction] = _HIGH_SNR
     valid = np.ones(_SHAPE_YX, dtype=np.bool_)
-    components, _ = cast(
-        tuple[npt.NDArray[np.int32], int],
-        ndimage_label(
-            ((labels > 0) | reconstruction) & valid,
-            structure=np.ones((3, 3), dtype=np.int8),
-        ),
-    )
-    return (
-        _publish(
-            root / "detection.zarr",
-            (
-                ("detection-labels", labels, "<i4"),
-                ("direct-snr", direct_snr, "<f8"),
-                ("reconstruction-mask", reconstruction, "bool"),
-                ("valid-pixels", valid, "bool"),
-            ),
-            generation_id="detection-fixture",
-        ),
-        _publish(
-            root / "support.zarr",
-            (
-                ("support-components", components, "<i4"),
-                (
-                    "persistent-support",
-                    np.zeros(_SHAPE_YX, dtype=np.bool_),
-                    "bool",
-                ),
-            ),
-            generation_id="support-fixture",
-        ),
+    return _publish_planes(
+        root,
+        labels=labels,
+        direct_snr=direct_snr,
+        reconstruction=reconstruction,
+        valid=valid,
+        components=_support_components(labels, reconstruction, valid),
+        persistent=np.zeros(_SHAPE_YX, dtype=np.bool_),
     )
 
 
@@ -852,6 +885,133 @@ def test_recovered_support_survives_a_core_edge_its_owner_stops_short_of(
     assert np.all(expected["retained-mask"][20:25, 32])
     for name, values in expected.items():
         np.testing.assert_array_equal(published[name], values, name)
+
+
+def _tailed_owner_planes() -> tuple[
+    npt.NDArray[np.int32],
+    npt.NDArray[np.float64],
+    npt.NDArray[np.bool_],
+    npt.NDArray[np.bool_],
+]:
+    """Return an owner whose thin tail ends nearer a neighbour's block.
+
+    Owner 1 is a 5x5 block with a one-pixel tail four rows long; owner 2 is
+    a block two rows below the tail's end, apart as two flood islands are.
+    All of it is weak, so the opening removes the tail. Multiscale support
+    recovers the tail's last pixel, whose nearest opened pixel is owner 2's,
+    and persists there. 17-pixel cores cut the block and owner 2 at x=17 and
+    put the tail's last pixel in the row of cores below the block; 20-pixel
+    cores cut owner 2 at y=20 and end it exactly on the x=20 edge.
+    """
+    labels = np.zeros(_SHAPE_YX, dtype=np.int32)
+    labels[9:14, 14:19] = 1
+    labels[14:18, 16] = 1
+    labels[19:22, 13:20] = 2
+    direct_snr = np.full(_SHAPE_YX, -np.inf, dtype=np.float64)
+    direct_snr[labels > 0] = _WEAK_SNR
+    reconstruction = np.zeros(_SHAPE_YX, dtype=np.bool_)
+    reconstruction[17, 16] = True
+    valid = np.ones(_SHAPE_YX, dtype=np.bool_)
+    return labels, direct_snr, reconstruction, valid
+
+
+def _run_tailed_owner(
+    root: Path,
+    *,
+    core: int,
+    executor: Executor,
+    maximum_batch_read_pixels: int,
+) -> tuple[PublicationStageResult, dict[str, npt.NDArray[np.generic]]]:
+    """Publish the tailed owner's support over one geometry and executor."""
+    root.mkdir(parents=True, exist_ok=True)
+    labels, direct_snr, reconstruction, valid = _tailed_owner_planes()
+    detection_source, support_source = _publish_planes(
+        root,
+        labels=labels,
+        direct_snr=direct_snr,
+        reconstruction=reconstruction,
+        valid=valid,
+        components=_support_components(labels, reconstruction, valid),
+        persistent=reconstruction,
+    )
+    config = _config(
+        beam=_TAILED_BEAM,
+        maximum_batch_read_pixels=maximum_batch_read_pixels,
+    )
+    manifest = _manifest(core, halo=config.halo_pixels)
+    sink = ZarrProductSink(
+        root / "publication.zarr",
+        manifest,
+        generation_id="publication",
+    )
+    result = run_publication_stage(
+        detection_source,
+        support_source,
+        manifest,
+        detection_islands=_islands(labels),
+        config=config,
+        executor=executor,
+        sink=sink,
+    )
+    return result, _published(sink)
+
+
+def test_a_tailed_owner_is_restored_and_published_in_one_part(
+    tmp_path: Path,
+) -> None:
+    """Every geometry, budget and executor publishes the whole-plane support.
+
+    The tail's last pixel stays owner 1's, so the restore round finds cleanup
+    split owner 1 and restores it, and the bridge round joins the block to
+    that pixel through the restored tail. While refinement gave the pixel to
+    owner 2, owner 1 was published in two parts that nothing joined, and the
+    bridge round refused it.
+    """
+    labels, direct_snr, reconstruction, valid = _tailed_owner_planes()
+    expected = _chain(
+        labels,
+        direct_snr,
+        reconstruction,
+        valid,
+        reconstruction,
+        beam=_TAILED_BEAM,
+    )
+    owner = expected["publication-labels"] == 1
+    _, owner_parts = cast(
+        tuple[npt.NDArray[np.int32], int],
+        ndimage_label(owner, structure=np.ones((3, 3), dtype=np.int8)),
+    )
+    assert owner_parts == 1
+    assert np.all(owner[14:18, 16])
+
+    def check(name: str, core: int, executor: Executor, budget: int) -> None:
+        """Run one variant and require the whole-plane products."""
+        result, published = _run_tailed_owner(
+            tmp_path / name,
+            core=core,
+            executor=executor,
+            maximum_batch_read_pixels=budget,
+        )
+        assert result.restored_owner_count == 1, name
+        assert result.bridged_owner_count == 1, name
+        for product_name, values in expected.items():
+            np.testing.assert_array_equal(
+                published[product_name], values, f"{name}:{product_name}"
+            )
+
+    check("one-tile", 80, SerialExecutor(), 8192)
+    check("cores-17", 17, SerialExecutor(), 8192)
+    check("cores-20-reverse", 20, _ReverseCompletionExecutor(), 8192)
+    check("from-cores", 17, SerialExecutor(), 1)
+    with ThreadExecutor(2) as threads:
+        check("threads", 17, threads, 8192)
+    with Client(
+        processes=False,
+        n_workers=2,
+        threads_per_worker=1,
+        dashboard_address=":0",
+    ) as client:
+        check("dask-from-cores", 17, DaskExecutor(client), 1)
 
 
 def _owner_reads() -> tuple[int, ...]:

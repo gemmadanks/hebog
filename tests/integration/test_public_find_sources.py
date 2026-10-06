@@ -1607,6 +1607,51 @@ def test_compact_sources_in_a_crowded_correlated_field_stay_separate(  # noqa: P
 
 
 @pytest.mark.integration
+def test_a_crowded_field_with_a_quiet_strip_restores_a_split_owner(
+    tmp_path: Path,
+) -> None:
+    """The quick check's crowded field, its left 40 columns scaled by 0.2.
+
+    Support refinement labelled a recovered pixel of one owner's own flood
+    with the neighbouring owner nearest to it, so the restore round saw the
+    owner whole while publication split it into its body and a pixel two
+    rows below, and the bridge round stopped the run with a bare
+    ``ValueError`` (plan task 61). The owner is now restored, and its tail
+    joins that pixel to the body in the published mask.
+    """
+    (dataset,) = (
+        record
+        for record in load_dataset_manifest(_QUICK_CHECK_DATASETS).datasets
+        if record.identifier == "quick-crowded-field"
+    )
+    height, width = dataset.recipe.shape_yx
+    image = generate_synthetic_window(
+        dataset.recipe, y_start=0, y_stop=height, x_start=0, x_stop=width
+    ).astype(np.float32)
+    image[:, :40] *= np.float32(0.2)
+    header = synthetic_fits_header(dataset)
+    del header["HEBOGDS"]
+    del header["HEBOGRCP"]
+    fits.PrimaryHDU(image[np.newaxis, np.newaxis], header=header).writeto(
+        tmp_path / "image.fits"
+    )
+
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+
+    mask = np.asarray(fits.getdata(result.mask_path), dtype=np.bool_)
+    islands, _ = cast(
+        tuple[npt.NDArray[np.int32], int],
+        ndimage.label(mask, structure=np.ones((3, 3), dtype=np.int8)),
+    )
+    # The refused owner's body, and the pixel its tail ends on.
+    body, tail_end = islands[372, 42], islands[382, 42]
+    assert body > 0
+    assert tail_end == body
+
+
+@pytest.mark.integration
 def test_published_rms_streams_the_estimate_across_many_tile_rows(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

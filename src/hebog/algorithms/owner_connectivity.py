@@ -3,8 +3,8 @@
 """Owner connectivity decided from tile cores, exactly.
 
 The support pass asks two questions of every owner that no bounded
-neighbourhood answers: whether cleanup splits or removes its refined
-support, and which earlier published regions bridge the parts of its
+neighbourhood answers: whether cleanup splits its published support or
+removes it, and which earlier published regions bridge the parts of its
 persistent support, or replace it when none is left. Both
 are about the connected components of one label's pixels, and a component
 of one label connects only through pixels of that label, so the island

@@ -164,7 +164,7 @@ def test_joined_components_are_the_whole_plane_components(
     assert owners_needing_restore(summaries, (1, 2, 5, 7)) == frozenset(
         label_value
         for label_value in (1, 2, 5, 7)
-        if owner_support_needs_restore(plane, label_value=label_value)
+        if owner_support_needs_restore(plane, plane, label_value=label_value)
     )
     assert 7 in owners_needing_restore(summaries, (7,))
 

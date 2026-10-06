@@ -22,6 +22,7 @@ from hebog.algorithms.extended_measurement import (
     expand_source_measurement_labels,
     measure_segment_position_pixels,
     nearest_source_seed_labels,
+    published_owner_labels,
     refine_multiscale_segment_labels,
     refine_persistent_publication_labels,
     restore_segment_owners,
@@ -598,6 +599,191 @@ def test_multiscale_refinement_cannot_split_one_direct_component() -> None:
     np.testing.assert_array_equal(refined, labels)
 
 
+def _tailed_owner_beside_a_neighbour() -> tuple[
+    npt.NDArray[np.int32],
+    npt.NDArray[np.float64],
+    npt.NDArray[np.bool_],
+]:
+    """Return an owner whose thin tail ends nearer a neighbour's block.
+
+    Owner 3 is a 5x5 block with a one-pixel tail four rows long, all at
+    4 sigma; owner 8 is a block two rows below the tail's end, apart as two
+    flood islands are. The opening removes the tail, and multiscale support
+    recovers only its last pixel, whose nearest opened pixel is owner 8's.
+    """
+    labels = np.zeros((16, 11), dtype=np.int32)
+    labels[2:7, 2:7] = 3
+    labels[7:11, 4] = 3
+    labels[12:15, 2:9] = 8
+    snr = np.where(labels > 0, 4.0, 0.0)
+    reconstruction = np.zeros(labels.shape, dtype=np.bool_)
+    reconstruction[10, 4] = True
+    return labels, snr, reconstruction
+
+
+def _without_corners(
+    labels: npt.NDArray[np.int32],
+    label_value: int,
+    corners_yx: tuple[tuple[int, int], ...],
+) -> npt.NDArray[np.bool_]:
+    """Return one owner's pixels less the corners the core count drops."""
+    support = labels == label_value
+    for y, x in corners_yx:
+        support[y, x] = False
+    return support
+
+
+def test_multiscale_refinement_keeps_a_recovered_pixel_with_its_owner() -> (
+    None
+):
+    """A recovered pixel of one owner's own support is never another's.
+
+    Labelled by the nearest opened owner, the tail's last pixel became owner
+    8's, so cleanup appeared to split owner 8 and leave owner 3 whole, while
+    publication, which follows each pixel's own owner, published owner 3 in
+    two parts. Kept with owner 3, it shows that cleanup split owner 3, whose
+    whole original support is then restored; owner 8 is only trimmed.
+    """
+    labels, snr, reconstruction = _tailed_owner_beside_a_neighbour()
+
+    refined = refine_multiscale_segment_labels(
+        labels,
+        snr,
+        reconstruction,
+        beam_major_fwhm_pixels=4.0,
+        recovered_minimum_snr=3.0,
+    )
+
+    np.testing.assert_array_equal(refined == 3, labels == 3)
+    np.testing.assert_array_equal(
+        refined == 8,
+        _without_corners(labels, 8, ((12, 2), (12, 8), (14, 2), (14, 8))),
+    )
+
+
+def _whole_plane_publication(
+    labels: npt.NDArray[np.int32],
+    snr: npt.NDArray[np.float64],
+    reconstruction: npt.NDArray[np.bool_],
+) -> npt.NDArray[np.int32]:
+    """Return the support pass's final labels over one complete plane.
+
+    Measurement ownership, refinement with its restores, publication by
+    measurement owner, and persistence with its bridges, with the
+    reconstruction persisting across scales.
+    """
+    measurement = assign_seeded_multiscale_support(
+        labels,
+        reconstruction,
+        np.ones(labels.shape, dtype=np.bool_),
+        beam_major_fwhm_pixels=4.0,
+    )
+    publication = published_owner_labels(
+        refine_multiscale_segment_labels(
+            labels,
+            snr,
+            reconstruction,
+            beam_major_fwhm_pixels=4.0,
+            recovered_minimum_snr=3.0,
+        ),
+        measurement,
+    )
+    return refine_persistent_publication_labels(
+        measurement, publication, snr, reconstruction
+    )
+
+
+def _one_part(support: npt.NDArray[np.bool_]) -> bool:
+    """Return whether a support mask is one eight-connected part."""
+    _, parts = cast(
+        tuple[npt.NDArray[np.int32], int],
+        ndimage_label(support, structure=np.ones((3, 3), dtype=np.int8)),
+    )
+    return parts == 1
+
+
+def test_persistent_publication_bridges_a_tailed_owner_into_one_part() -> None:
+    """The whole-plane chain publishes the tailed owner in one part.
+
+    Persistence keeps the tail's last pixel, apart from the block. While
+    refinement gave that pixel to owner 8, owner 3 was not restored, its
+    publication was the block and that pixel, nothing bridged them, and the
+    bridge rule refused the owner. Restored, its tail bridges the two.
+    """
+    labels, snr, reconstruction = _tailed_owner_beside_a_neighbour()
+
+    final = _whole_plane_publication(labels, snr, reconstruction)
+
+    np.testing.assert_array_equal(
+        final == 3,
+        _without_corners(labels, 3, ((2, 2), (2, 6), (6, 2), (6, 6))),
+    )
+    assert _one_part(final == 3)
+
+
+def test_restore_follows_the_owner_measurement_gives_a_gap_pixel() -> None:
+    """A recovered pixel between two owners counts for its published owner.
+
+    The pixel below the tail's end lies outside both floods. Refinement
+    labels it with owner 8, whose opened block is nearer, but measurement,
+    and so publication, gives it to owner 3, whose tail is as near. Decided
+    on refinement's labels, owner 3 looked whole, was published as its block
+    and that pixel, and the bridge rule refused it. Decided on what
+    publication gives each owner, owner 3 is restored and its tail joins
+    the pixel to the block.
+    """
+    labels, snr, _ = _tailed_owner_beside_a_neighbour()
+    reconstruction = np.zeros(labels.shape, dtype=np.bool_)
+    reconstruction[11, 4] = True
+    snr[11, 4] = 4.0
+
+    final = _whole_plane_publication(labels, snr, reconstruction)
+
+    expected = _without_corners(labels, 3, ((2, 2), (2, 6), (6, 2), (6, 6)))
+    expected[11, 4] = True
+    np.testing.assert_array_equal(final == 3, expected)
+    assert _one_part(final == 3)
+    np.testing.assert_array_equal(
+        final == 8,
+        _without_corners(labels, 8, ((12, 2), (12, 8), (14, 2), (14, 8))),
+    )
+
+
+@pytest.mark.parametrize("gap_rows", [1, 2])
+@pytest.mark.parametrize("recovered_pixels", [1, 4])
+def test_refinement_restores_an_owner_the_opening_removes_entirely(
+    gap_rows: int,
+    recovered_pixels: int,
+) -> None:
+    """Pixels recovered beside another owner's block do not keep an owner.
+
+    A 2x2 flood at 4 sigma holds no opening element and no 6-sigma pixel,
+    so refinement keeps none of it on its own evidence, and it is restored
+    whole, whether or not multiscale support recovers some of it because an
+    8x8 neighbour lies within the recovery radius.
+    """
+    labels = np.zeros((18, 12), dtype=np.int32)
+    labels[2:10, 2:10] = 2
+    owner = (slice(10 + gap_rows, 12 + gap_rows), slice(4, 6))
+    labels[owner] = 1
+    snr = np.where(labels > 0, 4.0, 0.0)
+    reconstruction = np.zeros(labels.shape, dtype=np.bool_)
+    reconstruction[owner] = True
+    if recovered_pixels == 1:
+        reconstruction[owner] = False
+        reconstruction[10 + gap_rows, 4] = True
+
+    refined = refine_multiscale_segment_labels(
+        labels,
+        snr,
+        reconstruction,
+        beam_major_fwhm_pixels=4.0,
+        recovered_minimum_snr=3.0,
+    )
+
+    np.testing.assert_array_equal(refined == 1, labels == 1)
+
+
 def test_persistent_publication_removes_only_one_scale_protrusions() -> None:
     """One-scale boundary noise is removed without weakening dense support."""
     owners = np.zeros((11, 15), dtype=np.int32)
@@ -1065,10 +1251,9 @@ def test_connectivity_restores_owners_split_beyond_their_first_support() -> (
 ):
     """Multiscale recovery can place an owner outside its original box.
 
-    `refine_detected_segment_labels` propagates labels into recovered
-    regions, so a refined owner may reach pixels its original support never
-    covered. Deciding whether cleanup split that owner has to consider
-    those pixels too.
+    Refinement propagates labels into recovered regions, so an owner may be
+    published on pixels its original support never covered. Deciding whether
+    cleanup split that owner has to consider those pixels too.
     """
     original = np.zeros((9, 20), dtype=np.int64)
     original[4, 2:5] = 1
@@ -1076,7 +1261,9 @@ def test_connectivity_restores_owners_split_beyond_their_first_support() -> (
     refined[4, 2:4] = 1
     refined[4, 14:17] = 1
 
-    connected = restore_segment_owners(original, refined)
+    connected = restore_segment_owners(
+        original, refined, published_labels=refined, kept_labels=refined
+    )
 
     assert np.array_equal(
         np.nonzero(connected == 1)[1], np.array([2, 3, 4, 14, 15, 16])
