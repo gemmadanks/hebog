@@ -112,8 +112,16 @@ With `--baseline`, it exits non-zero when any of the following is true:
 
 - a case failed or is missing;
 - a case is not in the baseline, so it was not compared;
+- a case's input differs from the baseline's, so its metrics were measured
+  on other pixels (they are still compared and printed);
 - a metric can no longer be measured; or
 - a metric moved in the worse direction beyond the configured tolerance.
+
+It also names any run identity that differs from the baseline's: the
+scientific composition hash, which changes with any change to the code the
+finder imports or to its packaged resources, the reference identity and the
+case configuration. These explain why metrics may move and are not
+regressions.
 
 PyBDSF runs once per input in the local
 `localhost/hebog-pybdsf-master:c70103be3-reconstructed` Podman image, and its
@@ -125,14 +133,26 @@ code is the worker itself, `hebog.validation.products`,
 `hebog.validation.campaign_runtime` and `hebog.science.catalogue_rows`, which
 defines the catalogue rows. Changing any of these, for example catalogue
 normalisation, reruns the references once, and a cached failure applies only
-to the identity that failed. A release, or a change to Hebog's algorithms or
-to the composition records in `hebog.science.models`, keeps the cached
-references. Remote cut-outs are accepted only when the server returns exactly
-the requested bytes.
-Generated inputs are materialised on first use. The SDC1 cut-outs are cut
-from a local copy of `SKAMid_B2_1000h_v3.fits`. Missing real cut-outs are
-fetched with HTTP range requests only when `--allow-download` is given. Use
-`--cases` to run a subset while iterating.
+to the identity that failed. Only the worker's own exception, exit status
+1, is cached as a failure: that is how PyBDSF's refusal of an input ends,
+and a published result is always preferred to it. Any other exit, such as a
+Podman failure (125 to 127) or a process stopped by a signal, says nothing
+about the input: the check stops and caches nothing, and a failure recorded
+with such a status stops the check until it is deleted. A release, or a
+change to Hebog's algorithms or to the composition records in
+`hebog.science.models`, keeps the cached references. Remote cut-outs are
+accepted only when the server returns exactly the requested bytes.
+Generated inputs are materialised on first use. Every prepared input under
+`benchmark-results/quick-check/inputs` is named by its content: a generated
+image by its recipe, a local crop by its source image's SHA-256 and window,
+and the copy PyBDSF reads, when it needs the beam or frequency Hebog
+resolved, by the input's SHA-256 and the keywords it adds. Each is written
+to a staging file and renamed into place, so a changed image never reuses an
+earlier preparation and no run reads a partial file; a killed run can leave
+a hidden staging directory beside the inputs, which nothing reads. The SDC1
+cut-outs are cut from a local copy of `SKAMid_B2_1000h_v3.fits`. Missing
+real cut-outs are fetched with HTTP range requests only when
+`--allow-download` is given. Use `--cases` to run a subset while iterating.
 
 This is a regression detector, not powered scientific parity. Each case is
 one realization and no confidence interval is claimed.
@@ -202,13 +222,15 @@ A comparison passes when the upper ratio bound is within the limit, fails
 when the lower bound exceeds it, and is otherwise inconclusive. The run exits
 non-zero when a case fails or the previous-release comparison fails.
 
-A baseline that cannot be measured, for example a case that needs a feature
-the previous release lacks, is cached with its error and does not fail the
-run. The report records the error, and the run prints `NOT CHECKED` for each
-case without a previous-release comparison; `--refresh-previous-release`
-retries it. When a case fails, its time is missing from the Hebog total, so
-the report sets `within_budget` to `null` instead of comparing an incomplete
-total with the budget.
+A baseline whose worker raises, as it does when the finder refuses the
+input, for example a case that needs a feature the previous release lacks,
+is cached with its error and does not fail the run. The report records the
+error, and the run prints `NOT CHECKED` for each case without a
+previous-release comparison; `--refresh-previous-release` retries it. A
+container engine failure or a signal exit is not cached: it stops the run.
+When a case fails, its time is missing from the Hebog total, so the report
+sets `within_budget` to `null` instead of comparing an incomplete total with
+the budget.
 
 Cached baselines drift with machine state: the same case can differ by 15%
 between sessions. Before acting on a regression whose CPU time did not change,

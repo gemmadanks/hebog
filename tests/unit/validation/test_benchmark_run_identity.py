@@ -63,7 +63,7 @@ class _Checkout:
             )
         raise AssertionError(f"unexpected git call: {arguments}")
 
-    def source_tree_sha256(self, _package_root: Path) -> str:
+    def source_tree_sha256(self, _repository_root: Path) -> str:
         return self.identity.source_tree_sha256
 
 

@@ -6,14 +6,18 @@
 
 Cases, settings and tolerances come from
 ``config/checks/quick-science-check.json``. Generated inputs are materialised
-and real cut-outs are cropped once, then reused. Pinned PyBDSF ``master``
-runs once per input in its local Podman image and is cached under
-``benchmark-results/quick-check/references``. Hebog runs every time through
-the public API.
+and real cut-outs are cropped once, then reused under names that key their
+content. Pinned PyBDSF ``master`` runs once per input in its local Podman
+image and is cached under ``benchmark-results/quick-check/references``; only
+the worker's own exception, which is how PyBDSF's refusal of an input ends,
+is cached as a failure, and a container engine or signal exit stops the
+check. Hebog runs every time through the public API.
 
 Exit status is 1 when a case fails or, with ``--baseline``, when a metric
-regresses beyond tolerance. The check is a regression detector, not
-scientific qualification.
+regresses beyond tolerance or a case's input differs from the baseline's.
+A changed composition hash, reference identity or configuration is named but
+is not a regression. The check is a regression detector, not scientific
+qualification.
 """
 
 from __future__ import annotations
@@ -43,8 +47,10 @@ from hebog.validation.quick_check import (
     MetricValues,
     PreparedCase,
     QuickCheckConfiguration,
+    changed_identities,
     compare_reports,
     file_sha256,
+    is_worker_exception,
     load_quick_check_configuration,
     map_metrics,
     prepare_case,
@@ -117,6 +123,94 @@ def _default_label() -> str:
     return f"{commit}{'-dirty' if dirty else ''}-{stamp}"
 
 
+def _failure_record(output: Path) -> Path:
+    """Return where a reference's cached failure is recorded."""
+    return output.with_name(f"{output.name}.failed.json")
+
+
+def _cached_failure(output: Path) -> bool:
+    """Return whether the reference worker's own exception is cached.
+
+    A record of any other exit predates the rule that such exits stop the
+    check. It is not a result of the input, so it stops the check until it
+    is deleted rather than hiding the reference.
+    """
+    record = _failure_record(output)
+    if not record.exists():
+        return False
+    status = json.loads(record.read_text(encoding="utf-8"))["exit_status"]
+    if not is_worker_exception(status):
+        raise RuntimeError(
+            f"{record} caches exit status {status}, which is not a reference "
+            "result; delete it to run the reference again"
+        )
+    return True
+
+
+def _run_reference(  # noqa: PLR0913
+    prepared: PreparedCase,
+    *,
+    configuration: QuickCheckConfiguration,
+    identity: dict[str, object],
+    output_root: Path,
+    engine: str,
+    output: Path,
+) -> bool:
+    """Run the reference container once; return whether it has a result.
+
+    The worker's own exception, such as PyBDSF refusing an all-blank image,
+    is cached as the reference's failure for this identity, so later runs do
+    not repeat it. A concurrent run that published the same reference first
+    also makes the worker raise, because it never replaces a result, so the
+    published result is used instead. Any other exit, from the container
+    engine or a signal, says nothing about the input and stops the check
+    with nothing cached.
+    """
+    reference = configuration.reference
+    run_container = runpy.run_path(str(_PREPARE))["_run_container"]
+    try:
+        run_container(
+            repository_root=_ROOT,
+            comparison_root=output_root,
+            engine=engine,
+            image=reference.container_image,
+            input_path=prepared.reference_input_path,
+            output=output,
+            case_id=prepared.case_id,
+            finder_id=reference.finder_id,
+            ncores=reference.ncores,
+        )
+    except subprocess.CalledProcessError as error:
+        if not is_worker_exception(error.returncode):
+            raise RuntimeError(
+                f"{prepared.case_id}: the reference container exited with "
+                f"status {error.returncode}, which is not the worker's own "
+                "exception; nothing was cached"
+            ) from error
+        if (output / "result.json").exists():
+            return True
+        record = _failure_record(output)
+        record.parent.mkdir(parents=True, exist_ok=True)
+        record.write_text(
+            json.dumps(
+                {
+                    "case_id": prepared.case_id,
+                    "finder_id": reference.finder_id,
+                    "identity": identity,
+                    "exit_status": error.returncode,
+                    "note": "the reference worker raised; see the console log",
+                },
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        print(f"{prepared.case_id}: the reference worker raised", flush=True)
+        return False
+    return True
+
+
 def _reference_result(  # noqa: PLR0913
     prepared: PreparedCase,
     *,
@@ -129,10 +223,9 @@ def _reference_result(  # noqa: PLR0913
     """Return a cached reference result, running the container if needed.
 
     The cache directory is keyed by the reference identity, so a new image,
-    finder setting or core count runs the reference again. A reference
-    failure, such as PyBDSF refusing an all-blank image, is cached for the
-    same identity so later runs do not repeat it; the case is then reported
-    without reference metrics.
+    finder setting or core count runs the reference again. A published
+    result is preferred to a cached failure; without either, the case is
+    reported without reference metrics.
     """
     reference = configuration.reference
     reference_input_sha256 = file_sha256(prepared.reference_input_path)
@@ -143,44 +236,19 @@ def _reference_result(  # noqa: PLR0913
         finder_id=reference.finder_id,
         identity=identity,
     )
-    failure = output.with_name(f"{output.name}.failed.json")
-    if failure.exists():
+    if not (output / "result.json").exists() and (
+        _cached_failure(output)
+        or not run_missing
+        or not _run_reference(
+            prepared,
+            configuration=configuration,
+            identity=identity,
+            output_root=output_root,
+            engine=engine,
+            output=output,
+        )
+    ):
         return None
-    if not (output / "result.json").exists():
-        if not run_missing:
-            return None
-        run_container = runpy.run_path(str(_PREPARE))["_run_container"]
-        try:
-            run_container(
-                repository_root=_ROOT,
-                comparison_root=output_root,
-                engine=engine,
-                image=reference.container_image,
-                input_path=prepared.reference_input_path,
-                output=output,
-                case_id=prepared.case_id,
-                finder_id=reference.finder_id,
-                ncores=reference.ncores,
-            )
-        except subprocess.CalledProcessError as error:
-            failure.parent.mkdir(parents=True, exist_ok=True)
-            failure.write_text(
-                json.dumps(
-                    {
-                        "case_id": prepared.case_id,
-                        "finder_id": reference.finder_id,
-                        "identity": identity,
-                        "exit_status": error.returncode,
-                        "note": "reference run failed; see the console log",
-                    },
-                    indent=2,
-                    sort_keys=True,
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-            print(f"{prepared.case_id}: reference run failed", flush=True)
-            return None
     result = cast(
         dict[str, Any], json.loads((output / "result.json").read_text())
     )
@@ -419,6 +487,12 @@ def main() -> int:
                 if case["case_id"] in selected
             ]
         findings = compare_reports(report, baseline, configuration.tolerances)
+        changed = changed_identities(report, baseline)
+        if changed:
+            print(
+                f"Changed since {args.baseline} (not regressions): "
+                + ", ".join(changed)
+            )
         for finding in findings:
             print(
                 f"REGRESSION {finding.case_id} {finding.metric}: "

@@ -138,11 +138,27 @@ def canonical_sha256(value: object) -> str:
 
 
 def source_tree_sha256(repository_root: Path) -> str:
-    """Hash every production Python source used by the isolated runners."""
+    """Hash every file of one checkout's ``src/hebog`` package.
+
+    Resources such as the science profile decide results as much as modules
+    do, so every file counts, whatever its type; only bytecode caches are
+    left out. Paths are hashed relative to the package, so the identity does
+    not depend on where the checkout lives.
+
+    Args:
+        repository_root: Root of the checkout that holds ``src/hebog``.
+
+    Returns:
+        The SHA-256 of each file's package-relative path and bytes, in path
+        order.
+    """
+    package_root = repository_root / "src" / "hebog"
     digest = hashlib.sha256()
-    source_root = repository_root / "src" / "hebog"
-    for path in sorted(source_root.rglob("*.py")):
-        digest.update(path.relative_to(repository_root).as_posix().encode())
+    for path in sorted(package_root.rglob("*")):
+        relative = path.relative_to(package_root)
+        if not path.is_file() or "__pycache__" in relative.parts:
+            continue
+        digest.update(relative.as_posix().encode())
         digest.update(b"\0")
         digest.update(path.read_bytes())
         digest.update(b"\0")

@@ -20,9 +20,11 @@ import json
 import os
 import subprocess
 import sys
-from collections.abc import Mapping, Sequence
+from collections.abc import Generator, Mapping, Sequence
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Annotated, Any, Literal, cast
 
 import numpy as np
@@ -262,6 +264,24 @@ def truth_catalogue(dataset: DatasetRecord) -> tuple[CatalogueSource, ...]:
     )
 
 
+@contextmanager
+def _staged(destination: Path) -> Generator[Path]:
+    """Yield a staging path that becomes ``destination`` only when complete.
+
+    The staging file sits in a hidden directory beside the destination and
+    is renamed into place when the block finishes, so neither an interrupted
+    run nor a concurrent one leaves a partial file under a reused name. Runs
+    that race write the same bytes, because every name keys its content.
+    """
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with TemporaryDirectory(
+        prefix=f".{destination.name}.", dir=destination.parent
+    ) as staging:
+        staged = Path(staging) / destination.name
+        yield staged
+        os.replace(staged, destination)
+
+
 def _write_local_window(
     source: Path, destination: Path, window: ImageWindow
 ) -> None:
@@ -286,24 +306,27 @@ def _write_local_window(
         header = primary.header.copy()
     header["CRPIX1"] = float(header["CRPIX1"]) - window.x_start
     header["CRPIX2"] = float(header["CRPIX2"]) - window.y_start
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    fits.PrimaryHDU(
-        data=values.reshape((1,) * len(leading) + values.shape),
-        header=header,
-    ).writeto(destination)
+    with _staged(destination) as staged:
+        fits.PrimaryHDU(
+            data=values.reshape((1,) * len(leading) + values.shape),
+            header=header,
+        ).writeto(staged)
 
 
 def _reference_input(
     input_path: Path,
+    input_sha256: str,
     supplied: SuppliedImageMetadata | None,
-    destination: Path,
+    case_root: Path,
 ) -> Path:
     """Give PyBDSF the beam and frequency Hebog resolved for the input.
 
     PyBDSF reads frequency only from a spectral axis, ``RESTFREQ`` or
     ``FREQ``, not ``RESTFRQ``, and needs all three beam keywords. When the
     header lacks any of these, a copy with Hebog's resolved values is used,
-    so both finders measure the same physical image.
+    so both finders measure the same physical image. The copy is named by
+    the input's SHA-256 and the values it adds, so a changed image or a
+    changed resolution never reuses an earlier copy.
     """
     header = cast(fits.Header, fits.getheader(input_path))
     axis_count = int(cast(int, header.get("NAXIS", 0)))
@@ -314,27 +337,39 @@ def _reference_input(
     has_frequency = any(kind.startswith("FREQ") for kind in axis_types) or (
         "RESTFREQ" in header or "FREQ" in header
     )
-    has_beam = all(keyword in header for keyword in ("BMAJ", "BMIN", "BPA"))
-    if has_frequency and has_beam:
+    if has_frequency and all(
+        keyword in header for keyword in ("BMAJ", "BMIN", "BPA")
+    ):
         return input_path
+    metadata = FitsImageSource(input_path, supplied).metadata()
+    added: dict[str, float] = (
+        {} if has_frequency else {"RESTFREQ": metadata.reference_frequency_hz}
+    )
+    added |= {
+        keyword: value
+        for keyword, value in (
+            ("BMAJ", metadata.beam.major_fwhm_degrees),
+            ("BMIN", metadata.beam.minor_fwhm_degrees),
+            ("BPA", metadata.beam.position_angle_degrees),
+        )
+        if keyword not in header
+    }
+    key = hashlib.sha256(
+        json.dumps(
+            {"input_sha256": input_sha256, "added": added}, sort_keys=True
+        ).encode()
+    ).hexdigest()
+    destination = case_root / f"reference-input-{key[:16]}.fits"
     if destination.exists():
         return destination
-    metadata = FitsImageSource(input_path, supplied).metadata()
     with fits.open(input_path, mode="readonly") as hdus:
         primary = cast(Any, hdus[0])
         completed = primary.header.copy()
         data = np.asarray(primary.data)
-    if not has_frequency:
-        completed["RESTFREQ"] = metadata.reference_frequency_hz
-    for keyword, value in (
-        ("BMAJ", metadata.beam.major_fwhm_degrees),
-        ("BMIN", metadata.beam.minor_fwhm_degrees),
-        ("BPA", metadata.beam.position_angle_degrees),
-    ):
-        if keyword not in completed:
-            completed[keyword] = value
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    fits.PrimaryHDU(data=data, header=completed).writeto(destination)
+    for keyword, value in added.items():
+        completed[keyword] = value
+    with _staged(destination) as staged:
+        fits.PrimaryHDU(data=data, header=completed).writeto(staged)
     return destination
 
 
@@ -349,7 +384,10 @@ def prepare_case(
     """Materialise, crop or fetch one case input, reusing cached files.
 
     Generated cases name a dataset in ``dataset_manifest``; image paths are
-    relative to ``repository_root``.
+    relative to ``repository_root``. A prepared file is named by what it
+    holds (the recipe, the source image's SHA-256 and window, or the input's
+    SHA-256 and completed keywords) and written atomically, so a cached file
+    is reused only for the same content.
     """
     case_root = inputs_root / case.case_id
     if isinstance(case, GeneratedCase):
@@ -360,8 +398,8 @@ def prepare_case(
         )
         input_path = case_root / f"{dataset.recipe_sha256[:16]}.fits"
         if not input_path.exists():
-            input_path.parent.mkdir(parents=True, exist_ok=True)
-            materialize_dataset(dataset_manifest, case.dataset_id, input_path)
+            with _staged(input_path) as staged:
+                materialize_dataset(dataset_manifest, case.dataset_id, staged)
         return PreparedCase(
             case_id=case.case_id,
             input_path=input_path,
@@ -404,18 +442,18 @@ def prepare_case(
     if case.window is not None:
         window = case.window
         input_path = case_root / (
-            f"x{window.x_start}-y{window.y_start}-s{window.size}.fits"
+            f"{file_sha256(image_path)[:16]}-x{window.x_start}"
+            f"-y{window.y_start}-s{window.size}.fits"
         )
         if not input_path.exists():
             _write_local_window(image_path, input_path, window)
+    input_sha256 = file_sha256(input_path)
     return PreparedCase(
         case_id=case.case_id,
         input_path=input_path,
-        input_sha256=file_sha256(input_path),
+        input_sha256=input_sha256,
         reference_input_path=_reference_input(
-            input_path,
-            case.supplied_metadata,
-            case_root / "reference-input.fits",
+            input_path, input_sha256, case.supplied_metadata, case_root
         ),
         supplied_metadata=case.supplied_metadata,
         truth=None,
@@ -658,7 +696,9 @@ def compare_reports(
     """Return regressions of a report against a baseline report.
 
     A current case absent from the baseline is also a finding: it has not
-    been compared, so the run cannot claim that it did not regress.
+    been compared, so the run cannot claim that it did not regress. So is a
+    case whose input differs from the baseline's, though its metrics are
+    still compared so that what moved stays visible.
     """
     findings: list[RegressionFinding] = []
     current_cases = {case["case_id"]: case for case in current["cases"]}
@@ -691,6 +731,16 @@ def compare_reports(
                 )
             )
             continue
+        if case.get("input_sha256") != baseline_case.get("input_sha256"):
+            findings.append(
+                RegressionFinding(
+                    case_id,
+                    "input_sha256",
+                    baseline_case.get("input_sha256"),
+                    case.get("input_sha256"),
+                    "input differs from the baseline's",
+                )
+            )
         for metric, baseline_value in baseline_case["metrics"].items():
             current_value = case["metrics"].get(metric)
             if baseline_value is None:
@@ -716,6 +766,53 @@ def compare_reports(
                     )
                 )
     return tuple(findings)
+
+
+_RUN_IDENTITIES = (
+    "scientific_composition_sha256",
+    "reference_identity",
+    "configuration_sha256",
+)
+
+
+def changed_identities(
+    current: Mapping[str, Any], baseline: Mapping[str, Any]
+) -> tuple[str, ...]:
+    """Name the run identities that differ from a baseline report's.
+
+    The composition hash changes whenever the finder's code does, and a new
+    reference identity or case configuration can move metrics too. Each
+    explains a change rather than being one, so it is reported beside the
+    comparison and is never a regression finding.
+    """
+    return tuple(
+        name
+        for name in _RUN_IDENTITIES
+        if current.get(name) != baseline.get(name)
+    )
+
+
+WORKER_EXCEPTION_EXIT_STATUS = 1
+"""The only worker exit status that may be cached as a run's result.
+
+A reference or benchmark worker exits with Python's status 1 when it
+raises, which is how it ends when its finder refuses an input, such as
+PyBDSF on an all-blank image. The cache key holds the worker and the code it
+runs, so a cached worker defect is retried once it is fixed. Every other
+status says nothing about the input: 2 is a command-line error, Podman exits
+125 when it fails itself, 126 when the command cannot be invoked and 127
+when it is not found, and a process stopped by a signal ends with minus the
+signal, or 128 plus it when the engine reports it.
+"""
+
+
+def is_worker_exception(exit_status: int) -> bool:
+    """Return whether a worker's exit status is its own raised exception.
+
+    >>> [is_worker_exception(status) for status in (1, 125, 137, -9)]
+    [True, False, False, False]
+    """
+    return exit_status == WORKER_EXCEPTION_EXIT_STATUS
 
 
 def reference_cache_directory(

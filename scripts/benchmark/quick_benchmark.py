@@ -51,6 +51,7 @@ from hebog.validation.evidence import (
     load_evidence,
     write_evidence,
 )
+from hebog.validation.external_runners import source_tree_sha256
 from hebog.validation.quick_benchmark import (
     SINGLE_THREAD_ENVIRONMENT,
     BaselineComparison,
@@ -71,7 +72,6 @@ from hebog.validation.quick_benchmark import (
     measured_wall_seconds,
     physical_memory_bytes,
     run_measured_process,
-    source_tree_sha256,
     summarise_timings,
     tier_cases,
     worker_environment,
@@ -82,6 +82,7 @@ from hebog.validation.quick_check import (
     PreparedCase,
     container_image_identity,
     file_sha256,
+    is_worker_exception,
     prepare_case,
     reference_cache_directory,
     reference_identity,
@@ -237,7 +238,7 @@ def _release_installation(tag: str, output_root: Path) -> _Installation:
         checkout=CheckoutIdentity(
             commit_sha=commit,
             worktree_dirty=False,
-            source_tree_sha256=source_tree_sha256(directory / "src/hebog"),
+            source_tree_sha256=source_tree_sha256(directory),
         ),
     )
 
@@ -397,9 +398,12 @@ def _cached_or_measured(
 ) -> tuple[str, BenchmarkEvidence | None]:
     """Load cached evidence, or measure and cache it, or a cached failure.
 
-    A failure is cached for the same identity, so it is not repeated; the
-    case is then reported without that comparison. ``refresh`` discards the
-    cached evidence or failure and measures again.
+    A worker's own exception, which is how a finder's refusal of the input
+    ends, is cached for the same identity, so it is not repeated; the case
+    is then reported without that comparison. Any other failure, such as a
+    container engine or signal exit, says nothing about the input and
+    propagates uncached. ``refresh`` discards the cached evidence or failure
+    and measures again.
     """
     evidence_path = directory / "evidence.json"
     failure_path = directory / "failure.json"
@@ -414,7 +418,9 @@ def _cached_or_measured(
     directory.mkdir(parents=True, exist_ok=True)
     try:
         evidence = measure()
-    except (subprocess.CalledProcessError, OSError, ValueError) as error:
+    except subprocess.CalledProcessError as error:
+        if not is_worker_exception(error.returncode):
+            raise
         failure_path.write_text(
             json.dumps(
                 {"error": f"{type(error).__name__}: {error}"},

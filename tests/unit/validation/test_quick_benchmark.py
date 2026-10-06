@@ -25,6 +25,7 @@ from hebog.validation.evidence import (
     WorkloadClass,
     load_evidence,
 )
+from hebog.validation.external_runners import source_tree_sha256
 from hebog.validation.quick_benchmark import (
     SINGLE_THREAD_ENVIRONMENT,
     CheckoutIdentity,
@@ -43,7 +44,6 @@ from hebog.validation.quick_benchmark import (
     peak_rss_bytes,
     physical_memory_bytes,
     run_measured_process,
-    source_tree_sha256,
     summarise_timings,
     tier_cases,
     worker_environment,
@@ -289,21 +289,6 @@ def test_evidence_records_every_repetition_as_exploratory(
     assert evidence.measurements[0].stages[0].stage == "find-sources"
 
 
-def test_source_tree_identity_ignores_bytecode_caches(tmp_path: Path) -> None:
-    """Content and paths change the identity; ``__pycache__`` does not."""
-    package = tmp_path / "hebog"
-    package.mkdir()
-    (package / "module.py").write_text("value = 1\n")
-    first = source_tree_sha256(package)
-
-    (package / "__pycache__").mkdir()
-    (package / "__pycache__" / "module.pyc").write_bytes(b"cache")
-    assert source_tree_sha256(package) == first
-
-    (package / "module.py").write_text("value = 2\n")
-    assert source_tree_sha256(package) != first
-
-
 def test_checkout_identity_reads_the_commit_edit_and_tree(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -340,7 +325,7 @@ def test_checkout_identity_reads_the_commit_edit_and_tree(
     assert checkout_identity(tmp_path) == CheckoutIdentity(
         commit_sha=git("rev-parse", "HEAD"),
         worktree_dirty=True,
-        source_tree_sha256=source_tree_sha256(package),
+        source_tree_sha256=source_tree_sha256(tmp_path),
     )
 
 
@@ -353,7 +338,7 @@ def test_checkout_identity_fails_for_a_checkout_that_never_holds_still(
     def git(_repository_root: Path, *arguments: str) -> str:
         return next(commits) if arguments == ("rev-parse", "HEAD") else ""
 
-    def unchanged_tree_sha256(_package_root: Path) -> str:
+    def unchanged_tree_sha256(_repository_root: Path) -> str:
         return _SHA
 
     monkeypatch.setattr(quick_benchmark, "_git_output", git)
@@ -429,6 +414,34 @@ def test_runner_caches_baseline_evidence_and_failures(tmp_path: Path) -> None:
     )
     assert status == "measured"
     assert calls == ["measure", "fail", "measure"]
+
+
+@pytest.mark.parametrize(
+    "error",
+    (
+        subprocess.CalledProcessError(126, ["podman", "run"]),
+        subprocess.CalledProcessError(-9, ["worker"]),
+        FileNotFoundError("podman"),
+    ),
+)
+def test_runner_never_caches_an_engine_or_signal_failure(
+    tmp_path: Path, error: Exception
+) -> None:
+    """Only a finder's refusal is a baseline's result; the rest stop the run.
+
+    A missing or failing container engine, or a process killed by a signal,
+    says nothing about the input, and caching it would hide that baseline
+    until the cache is cleared by hand.
+    """
+    cached_or_measured = _runner()["_cached_or_measured"]
+
+    def fail() -> BenchmarkEvidence:
+        raise error
+
+    with pytest.raises(type(error)):
+        cached_or_measured(tmp_path / "bad", fail, description="bad")
+
+    assert not (tmp_path / "bad" / "failure.json").exists()
 
 
 def _runner() -> dict[str, Any]:
