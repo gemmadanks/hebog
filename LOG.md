@@ -30995,3 +30995,29 @@ the per-worker placement finding.
 - **Open.** `public_science.py` builds the terminal catalogues from science
   records only; it could join `science/`, which would remove one row of the
   table, but the move gains nothing the table needs now.
+
+## 2026-10-06 — Maintainer decisions on the review repairs
+
+- **Why.** The review repairs left eight choices to the maintainer, each
+  measured by its task (`LOG.md`, tasks 46, 48, 49, 58, 59 and 62, 5 and 6
+  October). The maintainer took them as two rounds of questions, each with
+  a recommended option, before any of the twelve pull requests was pushed,
+  and asked for the three that change code or limits to be folded into
+  their own tasks' pull requests (46, 62 and 48).
+- **Decided.**
+
+  | Task | Decision | Declined |
+  | --- | --- | --- |
+  | 46 | Every pixel of any 3×3 square of one repeated value is invalid at ingress, as NaN is, ring included. | A pixel equal to all eight neighbours, whose one-pixel ring stays valid and makes false islands beside a non-zero constant. |
+  | 46 | A window whose clipped spread is no greater than single precision's resolution at its brightest value is unavailable, so a noise-free image whose windows lie within it publishes `unavailable` again; no floor relative to the data catches every noise-free simulation, and the documentation asks for noise in simulations. | Accepting a valid RMS of about 10⁻¹⁵; refusing such an image. |
+  | 62 | A restoring beam wider than 10 pixels FWHM is refused; scaling the meshes with the beam is deferred work. | Scaling the fine mesh above 8 pixels now; refusing with no deferred task; keeping the 22-pixel limit. |
+  | 48 | The `Total_flux` rows bind pooled over both noise classes, as set; the powered study (task 29) adds a per-noise-class check. | Binding each noise class now. |
+  | 58 | The whole-plane oracles task 58 kept stay, each with the tests that use it. | Reviewing them one by one. |
+  | 59 | ADR-009 stands: `public_api → stages → science → algorithms`. | Moving the reviewed science below the stages. |
+  | 49 | A one-Gaussian `continuum` source publishes its component's fitted peak, under task 57's rule. | Keeping the brightest owned pixel. |
+  | Placement | Tasks 46, 62 and 48 carry their decisions in their own pull requests; this record carries the rest. | One follow-up pull request for all of them. |
+
+- **Still the maintainer's.** Requiring the two CI checks task 60 added;
+  the priority of tasks 63 and 64 against tasks 57 and 42.
+- **Checks.** The strict docs build and `just pre-commit`. This change
+  edits the plan and this log only.
