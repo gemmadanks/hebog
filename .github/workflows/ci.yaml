@@ -1,16 +1,23 @@
 name: CI
 
+# A pull request runs CI through its own event, so a push runs it only on main.
 on:
   push:
+    branches: [main]
   pull_request:
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref_name }}
   cancel-in-progress: true
 
 env:
-  # Set uv version
-  UV_VERSION: "0.9.4"
+  # The one uv version. The other workflows, the Dockerfile, the pre-commit
+  # uv-lock hook and .readthedocs.yaml name it too, and
+  # tests/unit/test_uv_version.py holds them equal.
+  UV_VERSION: "0.9.16"
   # Match the controlled replay budget before NumPy/BLAS or workers import.
   OMP_NUM_THREADS: "1"
   OPENBLAS_NUM_THREADS: "1"
@@ -85,6 +92,35 @@ jobs:
       - name: Run portable tests
         run: >-
           uv run pytest
+          -n 2 --dist worksteal
+          -m "not slow and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data"
+
+  lowest-dependencies:
+    name: Portable tests ubuntu-latest / py3.12 / lowest dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install uv and set python version
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: "3.12"
+          enable-cache: true
+          cache-suffix: lowest-dependencies
+
+      # The runtime and dev requirements at their declared floors, and what
+      # they pull in at its newest compatible version. Raise a floor this
+      # job does not pass on.
+      - name: Install the lowest declared dependency versions
+        run: |
+          uv venv
+          uv pip install --resolution lowest-direct --editable . --group dev
+
+      - name: Run portable tests
+        run: >-
+          uv run --no-sync pytest
           -n 2 --dist worksteal
           -m "not slow and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data"
 
@@ -227,10 +263,26 @@ jobs:
           name: docs-html
           path: site
 
+  container:
+    name: Build container images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # The development container builds the dev target.
+      - name: Build the development image
+        run: docker build --target dev --tag hebog-dev .
+
+      - name: Build and start the runtime image
+        run: |
+          docker build --target runtime --tag hebog-runtime .
+          docker run --rm hebog-runtime
+
   package:
     name: Package smoke test
     # Branch protection uses this check as the release gate.
-    needs: [test, coverage]
+    needs: [test, lowest-dependencies, coverage]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

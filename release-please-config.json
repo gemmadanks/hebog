@@ -61,6 +61,18 @@
           "jsonpath": "$.package[?(@.name.value=='hebog')].version",
           "path": "uv.lock",
           "type": "toml"
+        },
+        {
+          "path": "README.md",
+          "type": "generic"
+        },
+        {
+          "path": "docs/tutorials/index.md",
+          "type": "generic"
+        },
+        {
+          "path": "docs/how-to/publish-releases.md",
+          "type": "generic"
         }
       ],
       "include-component-in-tag": false,

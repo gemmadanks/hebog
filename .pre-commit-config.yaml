@@ -99,7 +99,7 @@ repos:
 
 # --- uv: check environment is in sync ---
   - repo: https://github.com/astral-sh/uv-pre-commit
-    # uv version.
-    rev: 0.9.4
+    # UV_VERSION in .github/workflows/ci.yaml
+    rev: 0.9.16
     hooks:
       - id: uv-lock

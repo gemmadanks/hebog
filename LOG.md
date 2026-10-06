@@ -30814,3 +30814,101 @@ the per-worker placement finding.
   fixture now collects that garbage where the failure is expected, and
   the open-file tests count only their own file. Whether a failed run
   should close every task's handle deterministically is left to task 25.
+
+
+## 2026-10-06 — Task 60: CI installs the declared floors, and one uv version
+
+- **Outcome.** Every runtime floor Hebog declares is a version a CI job
+  installs, and that job passes the portable suite on Python 3.12. The
+  metadata names `distributed`, the one Dask package imported, in place of
+  `dask[array,distributed]`, and raises NumPy from 1.26 to 2.0.2 and SciPy
+  from 1.12 to 1.15. The new job, **Portable tests ubuntu-latest / py3.12 /
+  lowest dependencies**, runs `uv pip install --resolution lowest-direct
+  --editable . --group dev`, so the dev group is at its floors too, and
+  **Package smoke test** now waits for it. The install commands in
+  `README.md`, the installation page and the TestPyPI example name `v0.18.0`
+  and are Release Please extra files. CI runs once for each push to a pull
+  request, every workflow defaults to read-only contents with write granted
+  only to the job that pushes or releases, and every file that installs uv
+  names one version, 0.9.16. The new job **Build container images**
+  builds both `Dockerfile` targets and starts the runtime image.
+- **Floors found.** A lowest-direct resolution of the old floors gives NumPy
+  2.0.0 and SciPy 1.13.0: Astropy 8.0.1 and Zarr 3.2.0 need NumPy 2, and
+  SciPy 1.12 needs NumPy below 1.29. On those versions the portable suite,
+  on Python 3.12 and macOS arm64, has 127 failures and 2 errors:
+    - 125 from NumPy 2.0.0, whose `np.unique(..., axis=0,
+      return_inverse=True)` returns an inverse of shape (n, 1), which breaks
+      `np.maximum.at` in the deblending saddle reduction; 2.0.1 returns
+      (n,).
+    - 3 from SciPy 1.13, whose `scipy.stats.bootstrap` has no `rng`
+      argument, which the uncertainty calibration in
+      `hebog.validation.comparison` passes; it arrived in SciPy 1.15. The
+      validation tooling is not in the wheel, but the portable suite tests
+      it, and one floor keeps the job one install.
+    - 1 because the copy the suite ran in had no Git repository.
+
+  At NumPy 2.0.1 and SciPy 1.15, 3,364 tests pass and 4 fail, every one a
+  segmentation fault in `np.unique` on an `int32` label plane
+  (`extended_measurement.py`) in the 600 × 512 cases of the bright-halo
+  attribution test; NumPy 2.0.2 passes the same case. The other floors
+  (Astropy 8.0.1, Dask and `distributed` 2026.7.1, Zarr 3.2.0) are
+  unchanged.
+- **Floors found on the stack.** Run under task 50's warnings-as-errors,
+  the job showed two floors that installed but did not behave: Pydantic
+  2.10 warns about and ignores `Field(exclude_if=...)`, which
+  `hebog.validation.datasets` uses, so a manifest would serialize its
+  default fields (2.12 is the first release with it); and Matplotlib
+  3.10, in the dev group, calls pyparsing names pyparsing 3.3.3
+  deprecates (3.11.0 does not). Pydantic rises to 2.12 and Matplotlib to
+  3.11. The same run found the Python 3.12 file leak task 50 repairs.
+- **Decisions, each easy to reverse.**
+    - *uv 0.9.16*, the version installed locally and in the `Dockerfile`,
+      which writes the current lockfile format (version 1, revision 3).
+      `UV_VERSION` in `ci.yaml` is the pin every CI job uses; the other two
+      workflows, the `Dockerfile`, the pre-commit `uv-lock` hook and
+      `.readthedocs.yaml` (which installed the latest uv) name the same
+      version, and `tests/unit/test_uv_version.py` fails when any differs or
+      a setup-uv step names none. `[tool.uv] required-version` was tried
+      first, since setup-uv reads it and uv enforces it, and dropped:
+      Dependabot runs its own uv, which refuses a project pinned to another
+      version (`dependabot/dependabot-core` issue 13199, open), and
+      Dependabot raises this project's dependencies. The `uv-build` build
+      backend is a separate package that Dependabot raises; it is not a uv
+      pin.
+    - *The `Dockerfile` is kept and built*, because the development
+      container builds its `dev` target. Its `runtime` target failed at
+      `5a028bf2`: the build backend found no `LICENSE`, which the target did
+      not copy. It now copies it, and a `.dockerignore` limits the build
+      context to the files the images copy; the main checkout's ignored
+      benchmark results are 49 GB.
+    - *Pushes run CI only on `main`*; pull requests run on their own event,
+      and no CI job needs a tag.
+- **Evidence.** Lowest-direct resolutions with uv 0.9.16 on Python 3.12;
+  the portable suite in a copy of the worktree at each set of floors (runs
+  above); Podman builds of the `Dockerfile` before and after, with the
+  runtime image printing `hebog 0.18.0` and the dev image holding uv 0.9.16,
+  `just` and Python 3.14; Release Please's generic updater read in its
+  source, which replaces the first version on each line between the
+  markers, and each marked line holds one.
+- **Checks on the final code.** At the declared floors, installed with the
+  new job's command (NumPy 2.0.2, SciPy 1.15.0, Astropy 8.0.1, Dask and
+  `distributed` 2026.7.1, Pydantic 2.10.0, Zarr 3.2.0, pytest 9.1.1), the
+  portable suite passes on Python 3.12, macOS arm64: 3,368 passed and 2
+  xfailed. Two earlier runs at these floors stopped in their last few
+  percent when a concurrent run removed pytest's shared temporary directory
+  and when the shared disk filled; the third ran with its own temporary
+  directory. `tests/unit/test_uv_version.py` fails when the `Dockerfile`
+  names another uv or a `ci.yaml` setup-uv step names none. Podman builds
+  both `Dockerfile` targets; the runtime image prints `hebog 0.18.0` and the
+  dev image holds uv 0.9.16, `just` and Python 3.14. `just check`, `just
+  package-smoke-test`, the strict docs build and `just pre-commit` pass.
+- **Not run.** GitHub Actions: nothing is pushed, so the workflow changes,
+  setup-uv installing the pin, Docker on the runner and Release Please's update
+  of the marked lines first run on the pull request and the next release.
+  The lowest-dependency job was run on macOS arm64, not on the Ubuntu runner
+  it uses. Windows. The quick science check and benchmark: no science or
+  runtime code changed.
+- **For the maintainer.** Require the two new checks in branch protection
+  (the plan's task 60). Existing check names are unchanged.
+- **Stacked on task 50.** Its weekly `slow-tests.yaml` workflow takes the
+  same uv pin, and the pin test covers it.

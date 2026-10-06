@@ -54,9 +54,16 @@ scientific parity or satisfy the later deployment gates.
 
 Use the existing required PR checks as the release validation gate. `main`
 requires up-to-date checks, including **Package smoke test**, which depends on
-the full portable test matrix and exercises the installed public API. Do not
+the full portable test matrix, including the run on the lowest declared
+dependency versions, and exercises the installed public API. Do not
 bypass those checks for release PRs. The publishing workflow relies on this
 branch policy; it does not rerun CI or smoke-test its separately built files.
+
+Besides the version and the changelog, the release PR moves the install
+commands in `README.md`, the [installation page](../tutorials/index.md) and
+the TestPyPI example below to the new tag. Each command sits between
+`x-release-please-start-version` and `x-release-please-end` comments; do not
+change the version inside them by hand.
 
 Release Please uses `GITHUB_TOKEN`, so its automatic PR updates do not start
 CI. If required checks are missing, close and reopen the release PR as a
@@ -88,10 +95,14 @@ To install a TestPyPI upload for a packaging check, fetch the artifact from
 TestPyPI alone, then install that file so its dependencies resolve from PyPI,
 which TestPyPI does not mirror:
 
+<!-- x-release-please-start-version -->
+
 ```console
-pip download --index-url https://test.pypi.org/simple/ --no-deps hebog==0.7.0
-pip install ./hebog-0.7.0-py3-none-any.whl
+pip download --index-url https://test.pypi.org/simple/ --no-deps hebog==0.18.0
+pip install ./hebog-0.18.0-py3-none-any.whl
 ```
+
+<!-- x-release-please-end -->
 
 Do not combine the two indexes with `--extra-index-url`. Pip then considers
 candidates for `hebog` from both and may prefer a same-named project on PyPI,
