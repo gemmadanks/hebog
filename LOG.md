@@ -31583,3 +31583,94 @@ the per-worker placement finding.
 - **Not run.** The quick benchmark: the saving, about 0.6 s of a 4,096²
   run, is below what it resolves. The traced peak, the slow lane, Dask
   process workers and Windows.
+
+## 2026-10-07 — Task 66: the support halo covers persistence at whole-pixel recovery radii
+
+- **Defect.** Found by an independent review. Every round of the support
+  pass read `max(3, ceil(r) + 2)` pixels of halo, `r` being the recovery
+  radius of half a beam. That is refinement's reach. Persistence takes its
+  dense core from a 3x3 opening and a 3x3 count over the measurement
+  labels, three pixels, and measurement gives a pixel to a seed up to `r`
+  away, so persistence reaches `floor(r) + 3`. When `r` is a whole number
+  of pixels, as for every beam an even number of pixels wide, that is one
+  pixel further than the halo. A core then decided a pixel near its edge
+  without the seed that measured a pixel three pixels away, and the
+  published support moved with the tiles. The reviewer's 40×80 fixture
+  with a 4-pixel beam differed at (10, 19) between one tile and 20-pixel
+  cores, both before and after task 64.
+- **Repair.** The halo is now `max(ceil(r) + 2, floor(r) + 3)`, and the
+  docstring and ADR-008 state both reaches. Only whole-pixel radii change:
+  a 2-pixel beam goes from 3 to 4, a 4-pixel beam from 4 to 5 and a
+  10-pixel beam from 7 to 8. Beams of 3 and 5 pixels keep 4 and 5. The
+  support core is `max(2,048, 4 × halo + 1)`, so no admitted partition
+  changes. Only the reads grow, and results can change only where a core
+  edge lies within reach.
+- **Regression test.**
+  `test_persistence_reads_measurement_a_whole_recovery_radius_away` uses a
+  2-pixel beam (`r` = 1). Owner 1's block corner at (10, 19) is the last
+  column of a 20-pixel core. It is dense core only through owner 2's
+  measured column at x=22, whose seed is at x=23.
+    - Before the repair, both `publication-labels` and `retained-mask`
+      dropped that pixel with 20-pixel cores, both from owner windows and
+      at a one-pixel budget from cores. One tile kept it.
+    - Unit tests pin the halo for beams of 0.5 to 10 pixels and a zero
+      radius, and require a `ValueError` for a non-finite or non-positive
+      beam or radius.
+- **Tests whose geometry moved.** A halo must stay below a quarter of its
+  core, so the 2-pixel beam's stage tests need cores of at least 17 pixels
+  and the 4-pixel beam's at least 21.
+    - Shared fixture: the dumbbell's waist is longer, so it spans three
+      17-pixel cores. Its read (645 pixels) still exceeds a haloed core's
+      (625) in the wide-owner test. The faint cross sits on a four-core
+      corner again. The left lobe and owner 2 end exactly on the x=17
+      edge.
+    - The edge owner runs over 32-pixel cores, whose x=32 edge its bounds
+      end on.
+    - The tailed owner moved four pixels down and right, so 21- and
+      24-pixel cores cut it as 17- and 20-pixel cores did.
+    - The halo-rejection test now offers a halo one pixel short.
+    - Mutations: the old formula fails the new test. A halo two pixels
+      short also fails the edge-owner and wide-owner tests. A core-scoped
+      admission shard still fails the edge-owner test.
+- **Quick science check** `support-halo` against `beam-jacobian-base`,
+  which has this change's base scientific composition (`29d8adbc…`): no
+  regression. Every case's catalogue, RMS image and mask is
+  byte-identical, and the diagnostics differ only in the composition hash.
+    - Every case is at most 1,024², which is one core, so the check cannot
+      reach the repaired path; the stage tests do.
+    - The check ran from this branch's script, with the main checkout's
+      cut-outs and cached references (`--skip-references`). The main
+      checkout's script is ahead of this base.
+- **Independent review.** A separate agent, given the request, the diff
+  and `CODE_REVIEW.md`, found nothing at P0 to P2. Its reach trace and a
+  tiled-versus-whole-plane fuzz of the kernels at the new halo found no
+  mismatch for beams of 2 to 6 pixels. A halo one pixel short failed 1 run
+  in 4,500, so a targeted fixture is needed. Its four P3 findings are
+  repaired here:
+    - The regression test now also runs owners from their cores.
+    - "Refinement halo" became "support halo" in ADR-008 and the stage.
+    - The docstring says "even beams" rather than listing four.
+    - The cross is described as reaching three of the four cores at its
+      corner, as it always did.
+- **Checks.** `just coverage`: 3,260 passed and 1 xfailed; TOTAL 97.00%
+  (16,472 statements, 325 missed; 4,332 branches, 251 partial).
+    - The base commit, run the same way from an exported copy, gives
+      16,470, 324 and 250. One test failed there only because the copy is
+      not a Git checkout.
+    - `algorithms/extended_measurement.py` misses the same five lines as
+      before, and every changed line is covered.
+    - The extra miss is `executors/dask.py:182`. Three identical runs of
+      the executor tests cover it in two and miss it in one, so it depends
+      on timing.
+    - `stages/publication.py` is at 100%.
+    - `just test-equivalence` (32 passed) and `just docs-build` pass.
+- **Not run.** The quick benchmark (one more halo pixel at whole-pixel
+  radii only). The 10,000² and whole-mosaic runs, where support cores have
+  edges. The slow and acceptance lanes, and Windows.
+- **Stacked on tasks 64 and 67** (7 October). Written on `main` before
+  them, it was rebased onto them: ADR-008 keeps task 64's seeded-support
+  row and task 67's rounds with this change's halo row; the stage tests
+  share one `_run_planes` helper; and task 64's seam fixture moved its
+  owner bounds from the 17- and 34-pixel core edges to 21 and 42, because
+  the 4-pixel beam's halo now needs cores of at least 21 pixels. The plan
+  drops task 66 and its open defect.
