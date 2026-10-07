@@ -24,6 +24,8 @@ executor. Stages are then timed in the driver, whose process also hosts the
 scheduler, and Dask's task stream records every task's compute interval, so
 each stage also reports how many tasks ran during it and what share of the
 workers they kept busy. That locates where a Dask run waits on its driver.
+The workers share the driver's clock, so they report task times without
+Dask's estimate of their clock offset (``hebog.validation.profile_cluster``).
 The cluster starts before the root stage, so its start-up is not charged to
 the run.
 
@@ -266,23 +268,17 @@ def _executor(
     if dask_workers is None:
         yield SerialExecutor()
         return
-    from distributed import (  # noqa: PLC0415
-        Client,
-        LocalCluster,
-        get_task_stream,
-    )
+    from distributed import Client, get_task_stream  # noqa: PLC0415
 
     from hebog.executors import DaskExecutor  # noqa: PLC0415
+    from hebog.validation.profile_cluster import (  # noqa: PLC0415
+        local_profile_cluster,
+    )
 
     if dask_workers < 1:
         raise SystemExit("--dask-workers must be positive")
     with (
-        LocalCluster(
-            n_workers=dask_workers,
-            threads_per_worker=1,
-            processes=True,
-            dashboard_address="",
-        ) as cluster,
+        local_profile_cluster(dask_workers) as cluster,
         Client(cluster) as client,
     ):
         # The stream collects its records from the scheduler on exit.

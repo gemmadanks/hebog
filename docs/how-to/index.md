@@ -206,11 +206,12 @@ stage on the ladder as a fixed cost plus a cost per megapixel and per fitted
 component. `--dask-workers N` runs the cases on a process-based local Dask
 cluster and matches Dask's task stream against each stage, so a stage with a
 long driver wall time and low worker occupancy is waiting on the driver.
-Each worker's task times are shifted by its heartbeat estimate of its clock's
-offset from the scheduler's; on one host that is estimation error alone, up
-to about 0.3 s while the driver is busy, so tasks are matched to short stage
-calls only that closely, and occupancy never counts more workers busy than
-there are. To profile one input outside the configured cases, run
+A Dask worker normally shifts its task times by a heartbeat estimate of its
+clock's offset from the scheduler's, which on one host is estimation error
+alone, up to about 0.3 s while the driver is busy; the profile's workers
+share the driver's clock and keep that offset at zero, so tasks are matched
+to stage calls on the clock that timed them, and occupancy never counts more
+workers busy than there are. To profile one input outside the configured cases, run
 `scripts/benchmark/profile_complete_execution_worker.py` directly with
 `--input`, `--settings` and `--result`. A profile ranks costs; only the quick
 benchmark establishes a speedup.
