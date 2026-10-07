@@ -30,17 +30,6 @@ from hebog.executors import (
 from hebog.io.zarr import ZarrProductSink
 
 _BACKGROUND_TILE_SHAPE_YX = (128, 128)
-# The RMS kernel silences its warnings with ``warnings.catch_warnings()``,
-# which is not thread-safe: when Dask threads run the kernel at once, one
-# thread can restore the test's filters while another is still computing, so
-# an all-NaN window's warning escapes and the test's error filter raises it.
-# Plan task 46 removes that silencing; remove this mark with it.
-IGNORE_RMS_KERNEL_WARNINGS = pytest.mark.filterwarnings(
-    "ignore:All-NaN slice encountered:RuntimeWarning",
-    "ignore:Degrees of freedom <= 0 for slice:RuntimeWarning",
-    "ignore:Input data contains invalid values:"
-    "astropy.utils.exceptions.AstropyUserWarning",
-)
 _Input = TypeVar("_Input")
 _Output = TypeVar("_Output")
 

@@ -18,7 +18,7 @@ version when results must be repeatable.
 | Beam and frequency | Finite positive `BMAJ` and `BMIN`, a `BPA`, and a positive reference frequency. The request can supply a value the header omits, never one it already has. A beam wider than 22 pixels (FWHM) is refused. |
 | Image size | At most 15,402 pixels on each side, and at most 1,000,000 pixels in all when the shorter side is under 600. Other images fail before analysis. |
 | Pixel values | Any `BITPIX`. Stored integers are scaled by `BSCALE` and `BZERO`. |
-| Invalid pixels | NaN pixels, and stored integers equal to `BLANK`, are excluded from estimation, detection and measurement. |
+| Invalid pixels | NaN pixels, stored integers equal to `BLANK`, and every pixel of a 3×3 square of one repeated value, such as zero padding, are excluded from estimation, detection and measurement. |
 | Profiles | `continuum` (default), or `compact`, which omits extended-source association and reports `extended-emission-incomplete`. |
 | Thresholds | Caller-set detection and island thresholds (island below detection), minimum and optional maximum island size. |
 | Execution | `SerialExecutor`, `ThreadExecutor`, or `DaskExecutor` with a client you own. Dask workers need the image and the output directory's parent on shared storage. All must give the same products. On Windows, threads of one process take turns at FFT convolutions, because SciPy's Windows wheels share an unlocked FFT plan cache. |

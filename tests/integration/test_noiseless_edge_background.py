@@ -14,7 +14,6 @@ import pytest
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
-from conftest import IGNORE_RMS_KERNEL_WARNINGS
 from distributed import Client
 
 from hebog import find_sources
@@ -105,12 +104,18 @@ def edge_blend_input(directory: Path, noise_rms: float) -> Path:
 
 
 @pytest.mark.integration
-@pytest.mark.parametrize("noise_rms", (0.0, 1e-4))
-@IGNORE_RMS_KERNEL_WARNINGS
+@pytest.mark.parametrize("noise_rms", (0.0, 1e-4, 4e-9))
 def test_edge_blend_public_capture_matches_existing_dask(
     tmp_path: Path, noise_rms: float
 ) -> None:
-    """Noise availability and real noisy sources survive both executors."""
+    """Noise availability and real noisy sources survive both executors.
+
+    Without noise, the tails of the two sources are valid pixels whose
+    spread lies far under single precision's resolution at the brightest
+    value of each window, the noise floor, so the image has no noise
+    estimate. Noise of 4e-9, a millionth of the peak and over eight times
+    the floor beside it, is measured.
+    """
     path = edge_blend_input(tmp_path, noise_rms)
     result = find_sources(
         SourceFinderRequest(path, tmp_path / "products", "edge-blend"),

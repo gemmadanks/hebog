@@ -424,8 +424,12 @@ Non-singleton channel or Stokes cubes are rejected until their scientific
 semantics are explicitly supported, as are the other headers the
 [input header contract](../reference/input-header-contract.md) refuses.
 `SuppliedImageMetadata` fills a unit, beam or frequency the header omits.
-NaN and infinite pixels remain in the values array and are marked false in
-`valid_pixels`; kernels must exclude them from scientific calculations. Beam,
+NaN and infinite pixels, and every pixel of a 3×3 square of one repeated
+value, remain in the values array and are marked false in `valid_pixels`;
+kernels must exclude them from scientific calculations. Whether a square of
+one value holds a pixel depends on the pixels up to two away, so each
+window's validity is decided from a read two pixels wider
+(`hebog.io.pixel_validity`). Beam,
 celestial-WCS, coordinate-frame, brightness-unit, and reference-frequency
 metadata remain small serializable values; live Astropy objects stay at the
 I/O boundary.

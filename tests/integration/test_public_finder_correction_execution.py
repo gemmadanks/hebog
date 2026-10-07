@@ -7,7 +7,6 @@ from typing import Any, TypeAlias
 import numpy as np
 import numpy.typing as npt
 import pytest
-from conftest import IGNORE_RMS_KERNEL_WARNINGS
 from distributed import Client, LocalCluster
 
 from hebog.algorithms.extended_measurement import (
@@ -98,7 +97,6 @@ def _stitch(parts: list[npt.NDArray[np.int32]]) -> npt.NDArray[np.int32]:
 
 
 @pytest.mark.integration
-@IGNORE_RMS_KERNEL_WARNINGS
 def test_seed_ownership_is_serial_dask_and_partition_invariant() -> None:
     """Bridge ownership is invariant to executor and exact-halo tiling."""
     batch = _fixture()
@@ -127,7 +125,6 @@ def test_seed_ownership_is_serial_dask_and_partition_invariant() -> None:
 
 
 @pytest.mark.integration
-@IGNORE_RMS_KERNEL_WARNINGS
 def test_source_owned_persistent_support_is_serial_dask_retry_invariant() -> (
     None
 ):
@@ -225,7 +222,6 @@ def _reconstruct_hierarchy(batch: HierarchyBatch) -> SourceAssociationResult:
 
 
 @pytest.mark.integration
-@IGNORE_RMS_KERNEL_WARNINGS
 def test_source_hierarchy_is_serial_dask_order_and_retry_invariant() -> None:
     """Scale-aware parent membership ignores labels, tasks, and order."""
     pixels = ((10, 20), (20, 10), (20, 30), (30, 20))
@@ -293,7 +289,6 @@ def test_source_hierarchy_is_serial_dask_order_and_retry_invariant() -> None:
 
 
 @pytest.mark.integration
-@IGNORE_RMS_KERNEL_WARNINGS
 def test_unseeded_cycle_eligibility_is_serial_dask_invariant() -> None:
     """Persistent geometry never changes membership with execution order."""
     cycle_pixels = ((10, 10), (10, 30), (30, 10), (30, 30))
@@ -368,7 +363,6 @@ def test_unseeded_cycle_eligibility_is_serial_dask_invariant() -> None:
 
 
 @pytest.mark.integration
-@IGNORE_RMS_KERNEL_WARNINGS
 def test_connected_support_is_serial_dask_order_and_retry_invariant() -> None:
     """Persistent-support corroboration and telemetry are invariant."""
     pixels = ((4, 2), (4, 8), (9, 8))
@@ -428,7 +422,6 @@ def test_connected_support_is_serial_dask_order_and_retry_invariant() -> None:
 
 
 @pytest.mark.integration
-@IGNORE_RMS_KERNEL_WARNINGS
 def test_persistent_sibling_pair_is_serial_dask_order_invariant() -> None:
     """Corroborated two-feature parents ignore labels, tasks, and order."""
     pixels = ((10, 5), (10, 15))
@@ -502,7 +495,6 @@ def test_persistent_sibling_pair_is_serial_dask_order_invariant() -> None:
 
 
 @pytest.mark.integration
-@IGNORE_RMS_KERNEL_WARNINGS
 def test_persistent_feature_influence_is_serial_dask_invariant() -> None:
     """A displaced direct owner ignores labels, order, tasks, and retries."""
     pixels = ((10, 5), (10, 17))
@@ -574,7 +566,6 @@ def test_persistent_feature_influence_is_serial_dask_invariant() -> None:
 
 
 @pytest.mark.integration
-@IGNORE_RMS_KERNEL_WARNINGS
 def test_displaced_terminal_persistence_is_serial_dask_invariant() -> None:
     """Bounded displaced children ignore labels, task order, and retries."""
     terminal_pixels = ((10, 10), (10, 30), (30, 10), (30, 30))
@@ -656,7 +647,6 @@ def test_displaced_terminal_persistence_is_serial_dask_invariant() -> None:
 
 
 @pytest.mark.integration
-@IGNORE_RMS_KERNEL_WARNINGS
 def test_missing_child_resilience_is_serial_dask_order_invariant() -> None:
     """Exclusive whole-source recovery ignores labels, order, and retries."""
     terminal_pixels = ((10, 10), (10, 34), (34, 10), (34, 34))

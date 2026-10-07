@@ -675,6 +675,38 @@ def test_mask_product_round_trip_is_binary_and_bounded(tmp_path: Path) -> None:
         assert set(np.unique(hdus[0].data)) <= {0, 1}
 
 
+def test_product_pixels_are_valid_where_finite_whatever_their_neighbours(
+    tmp_path: Path,
+) -> None:
+    """The input image's block rule does not reach products.
+
+    A mask with no source is all zeros, and a noise estimate may be one
+    value over a region; both are the product's values, not padding.
+    """
+    mask = write_mask_fits_product(
+        tmp_path / "mask.fits", _metadata(), (np.zeros((3, 4), np.bool_),)
+    )
+    rms_plane = np.full((3, 4), 0.25, dtype=np.float32)
+    rms_plane[0, 0] = np.nan
+    rms = write_rms_fits_product(
+        tmp_path / "rms.fits",
+        _metadata(),
+        (rms_plane,),
+        dtype=np.dtype("float32"),
+        scientific_status="valid",
+    )
+    bounds = ImageBounds(0, 3, 0, 4)
+
+    mask_window = FitsProductImageSource(mask).read_window(bounds)
+    rms_window = FitsProductImageSource(rms).read_window(bounds)
+
+    np.testing.assert_array_equal(mask_window.valid_pixels, True)
+    np.testing.assert_array_equal(
+        rms_window.valid_pixels, np.isfinite(rms_plane)
+    )
+    assert not rms_window.valid_pixels.flags.writeable
+
+
 def test_mask_writer_and_reader_reject_non_binary_values(
     tmp_path: Path,
 ) -> None:

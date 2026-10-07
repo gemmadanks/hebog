@@ -258,10 +258,31 @@ WCS. It copies the restoring beam and reference frequency metadata and uses:
 | `HBGSTAT` | `VALID` or `UNAVAILABLE` |
 
 For a valid product, finite pixels are non-negative and invalid/unmeasurable
-locations may be NaN. A valid status means that at least one finite estimate
-exists; it does not claim that every image position has independently resolved
-noise information. The continuum estimator can interpolate missing grid cells
-and extend fine-grid edge values under its documented policy.
+locations may be NaN. Every invalid input pixel is NaN: NaN, `BLANK`, and
+every pixel of a block of one repeated value (see the
+[input header contract](input-header-contract.md#invalid-pixels)). A valid
+status means that at least one finite estimate exists; it does not claim that
+every image position has independently resolved noise information. The
+continuum estimator can interpolate missing grid cells and extend fine-grid
+edge values under its documented policy. Towards the image edge the fine
+estimate is held at its edge cells, and the coarse estimate never falls below
+the edge cell, so no extended edge value is lower than the cell beside it.
+
+A noise window measures no noise when its clipped spread is no greater than
+its noise floor: the largest absolute valid value in the window times single
+precision's machine epsilon, 2⁻²³ or about 1.2×10⁻⁷, which is single
+precision's resolution at that value. Samples that all hold one value, such
+as zero rows between NaN rows, fall under it, and so do differences finer
+than single precision resolves beside the window's brightest pixel, such as
+the tails of a noise-free source in a window that holds the source. Such a
+window is dropped, as a window over a protected source is, and takes the
+estimate of its nearest clean window, so a valid product holds no RMS of
+zero or of rounding. Real noise falls under the floor only in a window whose
+brightest pixel is more than eight million times the noise. A noise-free
+image whose windows all fall under the floor publishes an unavailable RMS,
+but a window that holds only a source's far tails, whose spread is close to
+their own values, is measured, so a noise-free image can still publish a
+positive but tiny RMS.
 
 An unavailable RMS product is entirely NaN. In that case the catalogue is
 empty and the source mask is zero because sigma thresholding was not defined.

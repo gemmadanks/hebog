@@ -253,16 +253,16 @@ def _require_estimate_covers_image(
 ) -> None:
     """Require a finite mean and noise wherever this core carries an image.
 
-    The image is the pixels whose brightness is finite, which is what the
-    composition measures; the source's own ``valid_pixels`` narrow detection
-    but not that domain. Every later pass measures inside it, so the
-    estimate has to cover the image rather than narrow it: a pixel the image
-    defines and the estimate does not would be silently dropped from the
-    science instead of reported. Holding this on the core that computed the
-    estimate is what lets the validity planes be derived from the image
-    alone.
+    The image is the pixels the source reports valid, which is what the
+    composition measures: finite, and outside any block of one repeated
+    value (:mod:`hebog.io.pixel_validity`). Every later pass measures inside
+    it, so the estimate has to cover the image rather than narrow it: a
+    pixel the image defines and the estimate does not would be silently
+    dropped from the science instead of reported. Holding this on the core
+    that computed the estimate is what lets the validity planes be derived
+    from the image alone.
 
-    An image with too few finite pixels for any coarse background window
+    An image with too few valid pixels for any coarse background window
     has no estimate at all, not even local noise. That estimate is
     unavailable everywhere and covers no pixel, and the composition reports
     the noise unavailable, as for an all-NaN image.
@@ -271,14 +271,14 @@ def _require_estimate_covers_image(
         ValueError: If an available estimate is not finite wherever the
             image is, or an unavailable one is finite anywhere it is.
     """
-    finite_image = np.isfinite(window.values)
+    image = np.asarray(window.valid_pixels, dtype=np.bool_)
     expected = (
-        finite_image
+        image
         if background_rms.scientifically_available
-        else np.zeros_like(finite_image)
+        else np.zeros_like(image)
     )
     for estimate in (background_rms.background, background_rms.rms):
-        if np.any((finite_image & np.isfinite(estimate)) != expected):
+        if np.any((image & np.isfinite(estimate)) != expected):
             raise ValueError(
                 "background/RMS validity differs from the image on tile "
                 f"{window.bounds}"

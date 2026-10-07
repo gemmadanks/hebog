@@ -61,7 +61,9 @@ admissible. None of the three is automatically one astrophysical object.
 
 Hebog needs pixel values in `Jy/beam`, an ICRS or FK5 J2000 celestial WCS, a
 restoring beam and a reference frequency. NaN pixels are allowed and are
-excluded everywhere. Anything else is rejected before analysis, with an error
+excluded everywhere, as is every pixel of a 3×3 square of one repeated
+value, so zero padding is excluded to its last pixel (see
+[invalid pixels](../reference/input-header-contract.md#invalid-pixels)). Anything else is rejected before analysis, with an error
 that says what is missing. [Capability and status](../reference/release-status.md)
 lists the exact requirements, including the current 15,402-pixel size limit.
 
@@ -80,12 +82,19 @@ separately:
 - At image edges, fine RMS values are extended as constants, never
   extrapolated towards zero. Background and coarse-RMS slopes are taken from
   grid samples at least as far apart as the distance being extrapolated, so a
-  genuine gradient is preserved without amplifying small errors.
+  genuine gradient is preserved without amplifying small errors. A coarse RMS
+  that falls towards the edge is held at the edge cell's value, so it never
+  goes below the edge cell; one that rises, as noise does towards the edge of
+  a primary-beam-corrected image, is extended.
 
 In the reviewed `continuum` profile the coarse grid uses 150-pixel windows
 every 50 pixels and the fine RMS grid 35-pixel windows every 7 pixels.
 Windows that overlap protected sources are dropped and each gap takes the
-value of its nearest clean window, never an invented floor. A field so
+value of its nearest clean window, never an invented floor. A window whose
+clipped spread is no greater than single precision's resolution at its
+brightest valid value (2⁻²³ of that value), as a window of samples that all
+hold one value is, measures no noise and is dropped the same way: the
+published RMS is never zero or rounding. A field so
 crowded that no fine window anywhere is clean is too crowded to protect: it
 keeps the unprotected sigma-clipped coarse statistics for both background
 and RMS, which, like PyBDSF's, include the sources' wings. Background
@@ -96,9 +105,13 @@ not measured.
 
 If no pixel has a finite positive RMS, a sigma threshold has no meaning. Hebog
 then returns an empty catalogue, a zero mask and an all-NaN RMS image marked
-`unavailable`. This is **not** evidence of an empty sky. A noiseless
-simulated image is the usual cause; an image with too few finite pixels for
-any coarse window to measure is another.
+`unavailable`. This is **not** evidence of an empty sky. An image with too
+few valid pixels for any coarse window to measure is a cause, as is a
+noiseless simulation whose windows all fall under the noise floor, as a
+window that holds a source and its tails does. A noiseless simulation is not
+reliably so: a window of a source's far tails alone has a spread close to
+their own values, which is measured as a positive but tiny noise, so add
+noise to a simulation.
 
 ### 3. Detect compact and extended emission
 

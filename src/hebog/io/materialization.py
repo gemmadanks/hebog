@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Callable, Iterable, Sequence
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, Literal, cast
 from uuid import uuid4
@@ -1157,7 +1158,12 @@ class FitsProductImageSource:
             ) from error
 
     def read_window(self, bounds: ImageBounds) -> ImageWindow:
-        """Read and validate one bounded product window."""
+        """Read and validate one bounded product window.
+
+        A product pixel is valid where it is finite. The input image's
+        block rule does not apply: a mask, or a constant noise estimate, is
+        a product's value, not an unobserved region.
+        """
         self._validate()
         try:
             window = FitsImageSource(self._product.path).read_window(bounds)
@@ -1186,7 +1192,9 @@ class FitsProductImageSource:
             raise InvalidMaterializedProductError(
                 "source-filtering mask image must be binary"
             )
-        return window
+        valid_pixels = np.isfinite(window.values)
+        valid_pixels.setflags(write=False)
+        return replace(window, valid_pixels=valid_pixels)
 
 
 def read_diagnostics_product(

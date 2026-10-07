@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from hebog.algorithms.background import (
+    PreparedRmsGrid,
     RmsGridBatchStatistics,
     RmsGridGeometry,
     RmsGridStatistics,
@@ -544,7 +545,11 @@ def test_all_invalid_grid_produces_explicitly_unavailable_nan_tile() -> None:
 
 
 def test_fine_noise_edge_extension_is_positive_and_tile_invariant() -> None:
-    """A positive noisy grid cannot extrapolate into zero edge noise."""
+    """A positive noisy grid cannot extend into zero edge noise.
+
+    The coarse policy's secant falls towards the corner and is held at the
+    corner cell; the fine policy extends every edge cell flat.
+    """
     yy, xx = np.mgrid[:40, :48]
     image = -2 + 0.01 * yy + np.where((xx + yy) % 2, -1.0, 1.0)
     grid = plan_rms_grid(
@@ -564,7 +569,7 @@ def test_fine_noise_edge_extension_is_positive_and_tile_invariant() -> None:
     actual = interpolate_prepared_rms_grid(
         prepared, bounds, valid, extrapolate_rms=False
     )
-    assert coarse_policy.rms[0, 0] == 0
+    assert coarse_policy.rms[0, 0] == 0.1
     assert actual.rms[0, 0] == 0.1
     assert np.all(actual.rms >= 0.1)
     np.testing.assert_array_equal(actual.background, coarse_policy.background)
@@ -582,6 +587,127 @@ def test_fine_noise_edge_extension_is_positive_and_tile_invariant() -> None:
                 corner.y_start : corner.y_stop, corner.x_start : corner.x_stop
             ],
         )
+
+
+def _prepared_rms_grid(
+    rms_cells: np.ndarray,
+    *,
+    image_shape_yx: tuple[int, int],
+) -> PreparedRmsGrid:
+    """Return a 150-pixel grid every 50 pixels holding these RMS cells."""
+    grid = plan_rms_grid(
+        image_shape_yx=image_shape_yx,
+        window_shape_yx=(150, 150),
+        step_yx=(50, 50),
+    )
+    assert rms_cells.shape == grid.shape_yx
+    return prepare_rms_grid_for_interpolation(
+        RmsGridStatistics(
+            geometry=grid,
+            background=np.zeros(grid.shape_yx),
+            rms=rms_cells,
+            available=np.ones(grid.shape_yx, dtype=np.bool_),
+            valid_sample_count=np.ones(grid.shape_yx, dtype=np.int64),
+            retained_sample_count=np.ones(grid.shape_yx, dtype=np.int64),
+        )
+    )
+
+
+def test_coarse_rms_is_never_extrapolated_below_its_defining_cells() -> None:
+    """Noise falling towards the image edge is held at the edge cell.
+
+    Cells of 1.0, 1.6 and 2.5 at x = 74.5, 124.5 and 174.5 fall towards the
+    left edge along the secant through the edge cell and the cell at twice
+    its distance, which reached zero 50 pixels before the edge and was
+    clamped there on 4,800 pixels. The same holds along y and so at the
+    corner.
+    """
+    shape_yx = (600, 600)
+    cells = np.ones((10, 10))
+    cells[:, 1] = 1.6
+    cells[:, 2] = 2.5
+    cells[1, :] = np.maximum(cells[1, :], 1.6)
+    cells[2, :] = np.maximum(cells[2, :], 2.5)
+    prepared = _prepared_rms_grid(cells, image_shape_yx=shape_yx)
+    bounds = ImageBounds(0, 600, 0, 600)
+
+    tile = interpolate_prepared_rms_grid(
+        prepared, bounds, np.ones(shape_yx, dtype=np.bool_)
+    )
+
+    # Bilinear weights between equal samples sum to one within rounding.
+    np.testing.assert_allclose(tile.rms.min(), 1.0, rtol=1e-15)
+    np.testing.assert_allclose(tile.rms[300, :75], 1.0, rtol=1e-15)
+    np.testing.assert_allclose(tile.rms[:75, 300], 1.0, rtol=1e-15)
+    np.testing.assert_allclose(tile.rms[:75, :75], 1.0, rtol=1e-15)
+    for corner in (ImageBounds(0, 100, 0, 100), ImageBounds(37, 61, 0, 13)):
+        local = interpolate_prepared_rms_grid(
+            subset_prepared_rms_grid(prepared, corner),
+            corner,
+            np.ones(corner.shape_yx, dtype=np.bool_),
+        )
+        np.testing.assert_array_equal(
+            local.rms,
+            tile.rms[
+                corner.y_start : corner.y_stop, corner.x_start : corner.x_stop
+            ],
+        )
+
+
+def test_coarse_rms_rising_towards_the_image_edge_is_still_extrapolated() -> (
+    None
+):
+    """Only a falling secant is held: rising noise keeps its edge trend.
+
+    Primary-beam correction raises the noise towards an image edge. The
+    secant runs from the edge cell at x = 74.5 to the cell at twice that
+    distance, x = 174.5, as the background's secants do.
+    """
+    shape_yx = (600, 600)
+    cells = np.ones((10, 10))
+    cells[:, 1] = 1.6
+    cells[:, 0] = 2.5
+    prepared = _prepared_rms_grid(cells, image_shape_yx=shape_yx)
+
+    tile = interpolate_prepared_rms_grid(
+        prepared,
+        ImageBounds(0, 600, 0, 600),
+        np.ones(shape_yx, dtype=np.bool_),
+    )
+
+    slope = (2.5 - 1.0) / (174.5 - 74.5)
+    np.testing.assert_allclose(tile.rms[300, 0], 2.5 + 74.5 * slope)
+    assert tile.rms[300, 0] > tile.rms[300, 74]
+
+
+def test_background_secants_are_not_held_at_the_edge_cell() -> None:
+    """The bound is the noise's: a mean may fall past its edge cell."""
+    shape_yx = (600, 600)
+    grid = plan_rms_grid(
+        image_shape_yx=shape_yx, window_shape_yx=(150, 150), step_yx=(50, 50)
+    )
+    background = np.zeros(grid.shape_yx)
+    background[:, 1] = 0.6
+    background[:, 2] = 1.5
+    prepared = prepare_rms_grid_for_interpolation(
+        RmsGridStatistics(
+            geometry=grid,
+            background=background,
+            rms=np.ones(grid.shape_yx),
+            available=np.ones(grid.shape_yx, dtype=np.bool_),
+            valid_sample_count=np.ones(grid.shape_yx, dtype=np.int64),
+            retained_sample_count=np.ones(grid.shape_yx, dtype=np.int64),
+        )
+    )
+
+    tile = interpolate_prepared_rms_grid(
+        prepared,
+        ImageBounds(0, 600, 0, 600),
+        np.ones(shape_yx, dtype=np.bool_),
+    )
+
+    slope = 1.5 / (174.5 - 74.5)
+    np.testing.assert_allclose(tile.background[300, 0], -74.5 * slope)
 
 
 def test_interpolation_rejects_misaligned_tile_validity() -> None:

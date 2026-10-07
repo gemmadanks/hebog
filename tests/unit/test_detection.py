@@ -252,13 +252,16 @@ def test_detection_rejects_invalid_array_contracts(
 
 def _tile_window(
     values: npt.NDArray[np.float64],
+    valid_pixels: npt.NDArray[np.bool_] | None = None,
 ) -> ImageWindow:
     """Return one owned core window over these brightnesses."""
     bounds = ImageBounds(0, values.shape[0], 0, values.shape[1])
     return ImageWindow(
         bounds=bounds,
         values=values,
-        valid_pixels=np.isfinite(values),
+        valid_pixels=(
+            np.isfinite(values) if valid_pixels is None else valid_pixels
+        ),
     )
 
 
@@ -291,6 +294,29 @@ def test_an_invalid_image_pixel_needs_no_estimate() -> None:
             np.ones((2, 2), dtype=np.float64),
         ),
     )
+
+
+def test_a_finite_pixel_the_source_marks_invalid_needs_no_estimate() -> None:
+    """A block of one repeated value is outside the image, as NaN is.
+
+    The interpolated estimate is NaN wherever the source's validity is
+    false, so the image the estimate must cover is that validity, not the
+    finite values.
+    """
+    values = np.zeros((3, 3), dtype=np.float64)
+    valid = np.ones((3, 3), dtype=np.bool_)
+    valid[1, 1] = False
+    background = np.zeros((3, 3), dtype=np.float64)
+    rms = np.ones((3, 3), dtype=np.float64)
+    background[1, 1] = rms[1, 1] = np.nan
+
+    _require_estimate_covers_image(
+        _tile_window(values, valid), _estimate_tile(values, background, rms)
+    )
+    with pytest.raises(ValueError, match="validity differs from the image"):
+        _require_estimate_covers_image(
+            _tile_window(values), _estimate_tile(values, background, rms)
+        )
 
 
 @pytest.mark.parametrize("missing", ("background", "rms"))
