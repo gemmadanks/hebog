@@ -178,7 +178,8 @@ depend on how the image is tiled.
   across so narrow a strip, and what replaces them reads the whole image in
   one task, which is bounded at that size.
 - **Beam sampling.** A restoring beam wider than 10 pixels (FWHM, major
-  axis) is refused, under either profile and at any image size. The
+  axis, to a thousandth of a pixel) is refused, under either profile and
+  at any image size. The
   background and noise meshes are fixed in pixels, so a narrow noise window
   can take a wide source's emission for noise. On injected isolated sources
   every source at SNR 10 or more was published at beams of 3 to 10 pixels

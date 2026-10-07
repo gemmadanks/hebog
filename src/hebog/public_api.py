@@ -93,6 +93,12 @@ _MAXIMUM_PREVIEW_DIMENSION = 15402
 # deferred, so a wider beam is refused. The limit is well inside the beam at
 # which local-noise refinement would exceed its read bound.
 _MAXIMUM_BEAM_FWHM_PIXELS = 10.0
+# The width in pixels comes through a finite-difference WCS Jacobian whose
+# round-off differs between platforms by up to about a millionth of the
+# width: a beam stated as exactly 10 pixels can read 10.000001 on Linux and
+# 10 on macOS. The limit compares the width to a thousandth of a pixel, so
+# a beam stated at the limit is admitted on every platform.
+_BEAM_LIMIT_DECIMALS = 3
 _TILE_SHAPE_YX = (128, 128)
 ADMITTED_TILE_CORE_PIXELS = 2048
 """Smallest tile core the scalability contract admits, in pixels."""
@@ -324,7 +330,8 @@ def _require_sampled_beam(metadata: ImageMetadata) -> None:
             "centre; check the beam and the pixel scale"
         ) from error
     # Written so that a width that is not a number is refused as well.
-    if not beam.major_fwhm_pixels <= _MAXIMUM_BEAM_FWHM_PIXELS:
+    width = round(beam.major_fwhm_pixels, _BEAM_LIMIT_DECIMALS)
+    if not width <= _MAXIMUM_BEAM_FWHM_PIXELS:
         raise UnsupportedSourceFinderConfigurationError(
             "the public source finder supports a restoring beam of at most "
             f"{_MAXIMUM_BEAM_FWHM_PIXELS:g} pixels FWHM, not "

@@ -2888,6 +2888,8 @@ def test_an_image_on_the_admitted_side_of_the_narrow_rule_is_analysed(
     (
         # Just past the limit, and the width at which the limit used to be.
         ((64, 64), 10.5),
+        # A thousandth of a pixel past it, the precision of the comparison.
+        ((64, 64), 10.001),
         ((1100, 1100), 22.0),
         # The width at which local-noise refinement failed mid-run.
         ((1100, 1100), 26.0),
@@ -2933,11 +2935,22 @@ def test_a_beam_wider_than_10_pixels_is_refused_before_analysis(
 @pytest.mark.integration
 @pytest.mark.parametrize("profile", ("continuum", "compact"))
 @pytest.mark.parametrize("shape_yx", ((64, 64), (1100, 1100)))
-def test_a_beam_of_10_pixels_is_analysed(
-    tmp_path: Path, shape_yx: tuple[int, int], profile: str
+@pytest.mark.parametrize("beam_pixels", (10.0, 10.0004))
+def test_a_beam_at_the_limit_is_analysed(
+    tmp_path: Path,
+    shape_yx: tuple[int, int],
+    profile: str,
+    beam_pixels: float,
 ) -> None:
-    """The stated limit is the widest admitted beam, not the first refused."""
-    _write_empty_image(tmp_path / "image.fits", shape_yx, beam_pixels=10.0)
+    """The stated limit is the widest admitted beam, not the first refused.
+
+    The width is compared to a thousandth of a pixel: the WCS Jacobian it
+    comes through rounds differently by platform, and a beam stated as
+    exactly 10 pixels read 10.000001 on Linux in the beam study's geometry.
+    """
+    _write_empty_image(
+        tmp_path / "image.fits", shape_yx, beam_pixels=beam_pixels
+    )
 
     with pytest.raises(_AnalysisStartedError):
         hebog.find_sources(

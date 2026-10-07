@@ -186,7 +186,7 @@ def test_a_run_beyond_the_beam_limit_is_refused_unless_the_limit_is_lifted(
 
     assert refused["status"] == "refused"
     assert f"at most {installed:g} pixels FWHM" in refused["error"]
-    assert lifted["status"] == "success"
+    assert lifted["status"] == "success", lifted.get("error")
     assert _beam_limit() == installed
 
 

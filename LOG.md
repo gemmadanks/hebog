@@ -30369,7 +30369,12 @@ the per-worker placement finding.
   raised past 22. The companion test that 22 is the widest whole-pixel beam
   the stage serves is removed, since the limit no longer rests on that
   bound. **Breaking:** inputs with beams of 10 to 22 pixels, accepted
-  before, are refused.
+  before, are refused. The width is compared to a thousandth of a pixel:
+  the WCS Jacobian it comes through carries round-off of up to about a
+  millionth of the width that differs by platform, and on Linux a beam
+  stated as 12 pixels in the study's geometry read 12.000001 (10.000001 at
+  10), so the study's lifted-limit test failed on CI and a beam stated at
+  the limit could have been refused on Linux only.
 - **Tests and tools adapted.** The only test that used a beam over 10
   pixels with the public finder was the refusal pair in
   `tests/integration/test_public_find_sources.py`. The refusal test is now
