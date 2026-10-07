@@ -31177,3 +31177,97 @@ the per-worker placement finding.
   65 is added; the next-action row and the progress page follow the order.
 - **Checks.** The strict docs build and `just pre-commit`. This change edits
   the plan, the progress page and this log only.
+
+## 2026-10-07 — Task 57: a one-Gaussian source publishes its Gaussian, and the codec reads the finder's catalogue
+
+- **Outcome.** Under `continuum`, a source whose membership is one
+  component with an admitted fit is published as that Gaussian: its
+  position, position errors, peak and its error, and fitted and deconvolved
+  shape are the fit's, with the flags that qualify them, including
+  `original-pixel-gaussian-model`. It keeps its own identity, island and
+  aperture, and its flux was already the fit's. A source of several
+  components, or of one fitted and others not, keeps its aperture row. The
+  finder and the Rapthor codec share one epoch constant,
+  `POSITION_EPOCH = "J2000.0"`, so the codec, which refused the finder's
+  epoch, now writes and reads the catalogue `find_sources` publishes.
+- **Decision (6 October).** The 5 October rule named the position errors,
+  deconvolved size and fitted peak, not the position. Measured first: on
+  the LoTSS-DR3 and SDC1 sparse cut-outs, 56 of 59 and 551 of 561 sources
+  are one Gaussian, and their centroid lies a median 0.6σ of the fit's own
+  error from the fit, beyond 1σ for 27 to 29% of them, 2.5 to 4.5σ at the
+  95th percentile and up to 71σ. The fit's errors would understate the
+  uncertainty of a centroid position, and the position-uncertainty
+  calibration was measured on fitted positions. The maintainer chose the
+  whole fitted model. Declined: only the named fields with the centroid
+  kept; the named fields plus the fitted shape.
+- **Rule.** `_one_gaussian_source_row` in `science/catalogues.py`, applied
+  in `_reconstructed_source_rows` when a membership has one component and
+  it is fitted. The aperture row's centroid and shape flags
+  (`position-denoised`, `position-signed-original`,
+  `position-uncertainty-unavailable`, `shape-unavailable`,
+  `resolution-unavailable`) are dropped and the Gaussian's flags, except
+  `detection-component`, are added. The centroid stays in the source
+  disposition's position diagnostics, and the disposition's estimator stays
+  `summed-fitted-component-flux`, which names the flux. Aperture rows no
+  longer keep the moment shape's `marginal-deconvolution` when its
+  `major-axis-only` is dropped, which the review found: it could stand
+  beside a Gaussian's `unresolved` on a one-Gaussian row, and already stood
+  beside `shape-unavailable` on the rest.
+- **Tests.** Unit: a one-Gaussian source equals its Gaussian field for field;
+  a source of one fitted and one unfitted member, and six-component shells,
+  keep their aperture rows; a source states only its Gaussian's
+  deconvolution, in each of the four states, beside an aperture row whose
+  moments were `major-axis-only` and `marginal-deconvolution`. Integration:
+  `find_sources` catalogues, empty and with four isolated sources, under
+  both profiles, pass through the codec with every derived column equal to
+  the catalogue's, and Rapthor's cuts keep every source. Four existing
+  tests that asserted the aperture row on one-Gaussian sources now assert
+  the Gaussian; the edge-clipped case finds its observable centroid in the
+  position diagnostics.
+- **Equivalence.** Task 49's bound on the `continuum` source peak is gone:
+  sources are held to the component gate and the fitted-model gate under
+  both profiles. On the frozen 256² input the `continuum` source position
+  agrees with both references to 0.0003 / 0.0005 beam (from 0.004 /
+  0.015) and the source peak to 0.17% / 0.21% (from 6.1% / 6.3%), the
+  component figures. `compact` is unchanged.
+- **Quick check** `task57` against `stack-final-decisions`: 56 of 370
+  metrics change, all in the source rows' agreement with pinned `master`.
+  The median separation improves in all 14 cases with a reference (for
+  example `edges-and-corners` 0.198 to 0.006 beam, `lotss-dr3-1312-sparse`
+  0.030 to 0.010) and its 95th percentile in 13 (`white-noise-snr-ladder`
+  0.035 to 0.038). The median peak difference improves in 10 of 14 and
+  its 95th percentile in 8. Six peak metrics cross the 0.02 tolerance:
+  `varying-noise` p50 0.009 to 0.046 and p95 0.013 to 0.081,
+  `compact-snr-ladder` p95 0.010 to 0.036, and `extended-gaussians`,
+  `dense-field` and `sdc1-b2-1000h-sparse` p95 by 0.020 to 0.050. Cause:
+  at SNR 7 to 13 Hebog keeps a beam-shaped model when the free fit is not
+  significantly extended, where PyBDSF keeps its free fit, whose noisy
+  6.9″ to 8.7″ axes against a 7.5″ beam move its peak several percent; the
+  component rows always differed so, and the source rows now show it.
+  Against injected truth the fitted source peak beats the old pixel peak in
+  7 of 11 generated cases (`white-noise-snr-ladder` median 6.1% to 1.4%,
+  `crowded-field` 3.1% to 1.6%) and is worse in 4 (`varying-noise` 2.3%
+  to 6.4% on four sources). Rapthor reads no peak. The maintainer approved
+  the six (7 October), and `task57` is the next baseline.
+- **Independent review.** A separate agent found nothing at P0 or P1, and
+  confirmed by mutation that each new test fails without the behaviour it
+  names. Changed from its findings: the stale `marginal-deconvolution` and
+  its four-state test, every derived codec column checked rather than two,
+  and stale sentences in `how-hebog-works.md`, `configure-a-run.md` and a
+  docstring.
+- **Open.** A one-Gaussian source whose aperture row cannot be measured
+  still has no row, although its fit gives a position; no case has one.
+  A one-Gaussian source whose extension is not significant publishes
+  `DC_Maj` 0 however wide its fit (a curved filament fitted at 62.8″ by
+  7.8″ with a 4″ beam), so it passes Rapthor's 10″ cut where PyBDSF's
+  fitted size would not; task 21 measures it. Commit type: `fix`, not
+  breaking, because no field, schema or API changes, only the estimator
+  of the `continuum` one-Gaussian rows.
+- **Checks on the final code.** The portable suite under coverage: 3,409
+  passed and 1 xfailed, 97% branch-aware project coverage; every changed
+  line of the four changed production files is covered, and their misses
+  are in unchanged functions. The equivalence lane: 33 passed. `just
+  check`, the strict docs build and `just pre-commit`.
+- **Not run.** The slow lane, the quick benchmark (no timed path changed:
+  the rule replaces fields of rows already built), Dask beyond the
+  integration suite's executor matrix, and Windows.

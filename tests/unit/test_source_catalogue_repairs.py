@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import replace
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import pytest
@@ -59,7 +59,9 @@ def test_clipped_gaussian_source_keeps_observable_domain() -> None:
     The source flux is the summed fitted component flux (23 September
     decision), which integrates the sky beyond the image edge and so exceeds
     the observable truth. The observable quantity stays published as the
-    association aperture, which is what this guards.
+    association aperture, which is what this guards. A source of one
+    Gaussian publishes the fit's position (task 57), and the observable
+    centroid stays in its position diagnostics.
     """
     yy, xx = np.mgrid[:49, :65]
     signal = 10 * np.exp(-0.5 * (((xx - 0.7) / 6) ** 2 + ((yy - 24) / 4) ** 2))
@@ -71,7 +73,6 @@ def test_clipped_gaussian_source_keeps_observable_domain() -> None:
     assert len(products.catalogue) == len(products.component_catalogue) == 1
     source, component = products.catalogue[0], products.component_catalogue[0]
     assert "original-pixel-gaussian-model" in component.quality_flags
-    assert "original-pixel-gaussian-model" not in source.quality_flags
     assert source.association_integrated_flux_jy == pytest.approx(
         observed_truth_flux, rel=0.001
     )
@@ -88,9 +89,17 @@ def test_clipped_gaussian_source_keeps_observable_domain() -> None:
             0,
         )
     )
-    assert positions[0, 0] > 3
+    np.testing.assert_array_equal(positions[0], positions[1])
     assert positions[1, 0] == pytest.approx(0.7, abs=0.001)
-    assert source.deconvolution_status == "unavailable"
+    (source_position,) = (
+        entry.position_diagnostics
+        for entry in products.measurement_dispositions
+        if entry.object_kind == "source"
+    )
+    assert source_position is not None
+    assert source_position.selected_xy is not None
+    assert source_position.selected_xy[0] > 3
+    assert source.deconvolution_status == component.deconvolution_status
     assert source.integrated_flux_error_jy == pytest.approx(
         component.integrated_flux_error_jy
     )
@@ -325,6 +334,13 @@ def test_nonpositive_aperture_withholds_only_a_source_without_a_fit() -> None:
         identifier=f"hebog-segment-{label}",
         integrated_flux_jy=0.5,
         association_integrated_flux_jy=0.5,
+        right_ascension_error_degrees=None,
+        declination_error_degrees=None,
+        peak_flux_error_jy_per_beam=None,
+        fitted_shape=None,
+        deconvolved_shape=None,
+        deconvolved_major_fwhm_degrees=None,
+        deconvolution_status="unavailable",
         quality_flags=(
             "aperture-flux-uncertainty-unavailable",
             "association-aperture-nonpositive",
@@ -389,6 +405,268 @@ def test_nonpositive_aperture_withholds_only_a_source_without_a_fit() -> None:
             "positive-exact-owner-flux",
         } & set(row.quality_flags)
     assert unfitted == ()
+
+
+# The row fields a one-Gaussian source takes from its Gaussian (task 57).
+_FITTED_MODEL_FIELDS = (
+    "right_ascension_degrees",
+    "declination_degrees",
+    "right_ascension_error_degrees",
+    "declination_error_degrees",
+    "peak_flux_jy_per_beam",
+    "peak_flux_error_jy_per_beam",
+    "integrated_flux_jy",
+    "integrated_flux_error_jy",
+    "fitted_shape",
+    "deconvolved_shape",
+    "deconvolved_major_fwhm_degrees",
+    "deconvolution_status",
+)
+# Flags that describe the centroid and the absent shape of an aperture row.
+_APERTURE_POSITION_AND_SHAPE_FLAGS = {
+    "position-denoised",
+    "position-signed-original",
+    "position-uncertainty-unavailable",
+    "shape-unavailable",
+    "resolution-unavailable",
+}
+
+
+def test_one_gaussian_source_publishes_its_gaussian() -> None:
+    """A source of one Gaussian is that Gaussian, as PyBDSF publishes it.
+
+    Its position, errors, peak and fitted and deconvolved shape are the
+    fit's, so the errors describe the position it publishes (task 57); it
+    keeps its own identity, island and aperture.
+    """
+    yy, xx = np.mgrid[:49, :49]
+    products = _products(
+        10 * np.exp(-((xx - 24.3) ** 2 + (yy - 23.6) ** 2) / 8)
+    )
+
+    (source,) = products.catalogue
+    (component,) = products.component_catalogue
+
+    assert source.component_count == 1
+    for field in _FITTED_MODEL_FIELDS:
+        assert getattr(source, field) == getattr(component, field), field
+    assert source.right_ascension_error_degrees is not None
+    assert source.fitted_shape is not None
+    assert source.deconvolution_status != "unavailable"
+    assert source.identifier != component.identifier
+    assert source.association_integrated_flux_jy is not None
+    flags = set(source.quality_flags)
+    assert {
+        "original-pixel-gaussian-model",
+        "reconstructed-catalogue-source",
+        "source-owned-signed-aperture",
+    } <= flags
+    assert "detection-component" not in flags
+    assert not flags & _APERTURE_POSITION_AND_SHAPE_FLAGS
+
+
+def test_a_source_of_several_components_keeps_its_aperture_row() -> None:
+    """Only a source of one fitted component takes a Gaussian's model.
+
+    A source of several components, or of one fitted and one unfitted,
+    keeps its centroid and leaves its errors and shapes empty: task 21
+    measures what that costs before the rule is extended.
+    """
+    yy, xx = np.mgrid[:49, :49]
+    products = _products(10 * np.exp(-((xx - 24) ** 2 + (yy - 24) ** 2) / 8))
+    association = products.source_association
+    memberships = dict(enumerate(association.memberships, start=1))
+    label = next(iter(memberships))
+    measured = replace(
+        products.catalogue[0],
+        identifier=f"hebog-segment-{label}",
+        right_ascension_degrees=products.catalogue[0].right_ascension_degrees
+        + 1e-4,
+        right_ascension_error_degrees=None,
+        declination_error_degrees=None,
+        peak_flux_error_jy_per_beam=None,
+        fitted_shape=None,
+        deconvolved_shape=None,
+        deconvolved_major_fwhm_degrees=None,
+        deconvolution_status="unavailable",
+        quality_flags=(
+            "aperture-flux-uncertainty-unavailable",
+            "position-signed-original",
+            "position-uncertainty-unavailable",
+            "source-owned-signed-aperture",
+        ),
+    )
+    (fitted,) = products.component_catalogue
+    unfitted = replace(
+        measured,
+        identifier=f"{fitted.identifier}-moments",
+        quality_flags=("segment-moment-equivalent-shape",),
+    )
+    membership = memberships[label]
+
+    (one_fitted_of_two,) = product_builder._reconstructed_source_rows(
+        (measured,),
+        (fitted, unfitted),
+        {
+            label: replace(
+                membership,
+                component_ids=tuple(
+                    sorted((*membership.component_ids, unfitted.identifier))
+                ),
+            )
+        },
+        association,
+        require_signed_aperture=True,
+    )
+    (one_fitted,) = product_builder._reconstructed_source_rows(
+        (measured,),
+        (fitted,),
+        memberships,
+        association,
+        require_signed_aperture=True,
+    )
+
+    assert one_fitted_of_two.right_ascension_degrees == pytest.approx(
+        measured.right_ascension_degrees
+    )
+    assert one_fitted_of_two.right_ascension_error_degrees is None
+    assert one_fitted_of_two.fitted_shape is None
+    assert one_fitted_of_two.deconvolution_status == "unavailable"
+    assert {"shape-unavailable", "position-signed-original"} <= set(
+        one_fitted_of_two.quality_flags
+    )
+    assert one_fitted_of_two.integrated_flux_jy == fitted.integrated_flux_jy
+    for field in _FITTED_MODEL_FIELDS:
+        assert getattr(one_fitted, field) == getattr(fitted, field), field
+
+
+# A row's deconvolution state as flags, which must agree with its fields.
+_DECONVOLUTION_FLAGS = {
+    "resolved",
+    "unresolved",
+    "major-axis-only",
+    "marginal-deconvolution",
+}
+_DECONVOLUTION_STATE_FLAGS: dict[str, set[str]] = {
+    "resolved": {"resolved"},
+    "unresolved": {"unresolved"},
+    "major-axis-only": {"major-axis-only", "marginal-deconvolution"},
+    "unavailable": set(),
+}
+
+
+@pytest.mark.parametrize(
+    "state", ("resolved", "unresolved", "major-axis-only", "unavailable")
+)
+def test_a_source_states_only_its_gaussians_deconvolution(
+    state: Literal["resolved", "unresolved", "major-axis-only", "unavailable"],
+) -> None:
+    """A source's deconvolution flags are its Gaussian's, never its moments'.
+
+    The aperture row carries a moment shape's ``major-axis-only`` and
+    ``marginal-deconvolution``, which describe threshold-support moments; a
+    source of one Gaussian takes that Gaussian's state instead, and a source
+    of several components states none.
+    """
+    yy, xx = np.mgrid[:49, :49]
+    products = _products(10 * np.exp(-((xx - 24) ** 2 + (yy - 24) ** 2) / 8))
+    association = products.source_association
+    memberships = dict(enumerate(association.memberships, start=1))
+    label = next(iter(memberships))
+    (fitted,) = products.component_catalogue
+    shape = fitted.fitted_shape
+    assert shape is not None
+    gaussian = replace(
+        fitted,
+        deconvolved_shape=shape if state == "resolved" else None,
+        deconvolved_major_fwhm_degrees=(
+            shape.major_fwhm_degrees / 2
+            if state == "major-axis-only"
+            else None
+        ),
+        deconvolution_status=state,
+        quality_flags=tuple(
+            sorted(
+                (set(fitted.quality_flags) - _DECONVOLUTION_FLAGS)
+                | _DECONVOLUTION_STATE_FLAGS[state]
+            )
+        ),
+    )
+    measured = replace(
+        products.catalogue[0],
+        identifier=f"hebog-segment-{label}",
+        right_ascension_error_degrees=None,
+        declination_error_degrees=None,
+        peak_flux_error_jy_per_beam=None,
+        fitted_shape=None,
+        deconvolved_shape=None,
+        deconvolved_major_fwhm_degrees=shape.major_fwhm_degrees / 3,
+        deconvolution_status="major-axis-only",
+        quality_flags=(
+            "major-axis-only",
+            "marginal-deconvolution",
+            "position-signed-original",
+            "position-uncertainty-unavailable",
+            "segment-moment-equivalent-shape",
+            "source-owned-signed-aperture",
+        ),
+    )
+    unfitted = replace(measured, identifier=f"{fitted.identifier}-moments")
+    membership = memberships[label]
+
+    (one_gaussian,) = product_builder._reconstructed_source_rows(
+        (measured,),
+        (gaussian,),
+        memberships,
+        association,
+        require_signed_aperture=True,
+    )
+    (several,) = product_builder._reconstructed_source_rows(
+        (measured,),
+        (gaussian, unfitted),
+        {
+            label: replace(
+                membership,
+                component_ids=tuple(
+                    sorted((*membership.component_ids, unfitted.identifier))
+                ),
+            )
+        },
+        association,
+        require_signed_aperture=True,
+    )
+
+    assert one_gaussian.deconvolution_status == state
+    assert (
+        set(one_gaussian.quality_flags) & _DECONVOLUTION_FLAGS
+        == _DECONVOLUTION_STATE_FLAGS[state]
+    )
+    assert several.deconvolution_status == "unavailable"
+    assert not set(several.quality_flags) & _DECONVOLUTION_FLAGS
+
+
+def test_resolved_loops_keep_their_aperture_rows() -> None:
+    """Six-component shells publish their centroids and no claimed shape."""
+    yy, xx = np.mgrid[:97, :193]
+    image = np.zeros_like(xx, dtype=float)
+    for center_x in (48, 144):
+        radius = np.hypot(xx - center_x, yy - 48)
+        angle = np.arctan2(yy - 48, xx - center_x)
+        image += (
+            6
+            * (1 + 0.6 * np.cos(6 * angle))
+            * np.exp(-0.5 * ((radius - 18) / 2) ** 2)
+        )
+
+    products = _products(image)
+
+    for row in products.catalogue:
+        assert row.component_count == 6
+        assert row.right_ascension_error_degrees is None
+        assert row.fitted_shape is None
+        assert row.deconvolution_status == "unavailable"
+        assert "shape-unavailable" in row.quality_flags
+        assert "original-pixel-gaussian-model" not in row.quality_flags
 
 
 def test_compact_neighbour_remains_separate_from_a_core_and_halo() -> None:
@@ -636,15 +914,21 @@ def test_extended_single_source_survives_compact_separation(
         for item in result.measurement_dispositions
         if item.object_kind == "source"
     )
-    # The source's flux is its components' summed fitted flux, but the
-    # source itself still claims no Gaussian shape of its own.
+    # The source's flux is its components' summed fitted flux. A source of
+    # several components claims no Gaussian shape of its own; the filament
+    # is one Gaussian, which it publishes (task 57).
     assert source_disposition.estimator == "summed-fitted-component-flux"
-    assert (
-        "original-pixel-gaussian-model"
-        not in result.catalogue[0].quality_flags
-    )
-    assert result.catalogue[0].fitted_shape is None
-    assert result.catalogue[0].deconvolution_status == "unavailable"
+    source = result.catalogue[0]
+    if morphology == "shell":
+        assert "original-pixel-gaussian-model" not in source.quality_flags
+        assert source.fitted_shape is None
+        assert source.deconvolution_status == "unavailable"
+    else:
+        assert len(result.component_catalogue) == 1
+        component = result.component_catalogue[0]
+        assert "original-pixel-gaussian-model" in source.quality_flags
+        assert source.fitted_shape == component.fitted_shape
+        assert source.deconvolution_status == component.deconvolution_status
 
 
 def test_valid_fit_survives_unavailable_aperture_moment_row(
@@ -903,13 +1187,15 @@ def test_compact_shape_is_not_a_threshold_truncated_moment(
     result = _products(signal)
 
     assert len(result.catalogue) == len(result.component_catalogue) == 1
-    assert result.catalogue[0].fitted_shape is None
-    # The source claims no shape of its own, but its flux is its component's
-    # fitted flux, so it carries that component's uncertainty.
+    # A source of one Gaussian publishes that Gaussian's shape and flux, with
+    # their uncertainties (task 57).
+    assert result.catalogue[0].fitted_shape == (
+        result.component_catalogue[0].fitted_shape
+    )
     assert result.catalogue[0].integrated_flux_error_jy == pytest.approx(
         result.component_catalogue[0].integrated_flux_error_jy
     )
-    for row in result.component_catalogue:
+    for row in (*result.catalogue, *result.component_catalogue):
         assert row.fitted_shape is not None
         np.testing.assert_allclose(
             (

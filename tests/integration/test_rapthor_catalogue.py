@@ -10,18 +10,22 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 import pytest
 from astropy.io import fits
 from astropy.table import Table
 
+import hebog
+from hebog import SourceFinderConfig, SourceFinderRequest
 from hebog.adapters.rapthor_catalogue import (
     RAPTHOR_CATALOGUE_COLUMNS,
     read_rapthor_catalogue_fits,
     write_rapthor_catalogue_fits,
 )
 from hebog.data_models.catalogues import (
+    POSITION_EPOCH,
     FluxMeasurement,
     GaussianShape,
     Island,
@@ -30,6 +34,8 @@ from hebog.data_models.catalogues import (
     SourceCatalogue,
     SpectralModel,
 )
+from hebog.executors import SerialExecutor
+from hebog.io import read_catalogue_fits_product
 from hebog.io.materialization import MaterializedProductConflictError
 
 pytestmark = pytest.mark.integration
@@ -41,7 +47,7 @@ def _catalogue(*, empty: bool = False) -> SourceCatalogue:
         return SourceCatalogue.create(
             catalogue_id="compact-empty",
             coordinate_frame="icrs",
-            position_epoch="J2000",
+            position_epoch=POSITION_EPOCH,
             reference_frequency_hz=150_000_000.0,
             islands=(),
             sources=(),
@@ -135,7 +141,7 @@ def _catalogue(*, empty: bool = False) -> SourceCatalogue:
     return SourceCatalogue.create(
         catalogue_id="compact-reference",
         coordinate_frame="icrs",
-        position_epoch="J2000",
+        position_epoch=POSITION_EPOCH,
         reference_frequency_hz=150_000_000.0,
         islands=islands,
         sources=(second, first),
@@ -241,7 +247,7 @@ def test_writer_rejects_non_j2000_catalogue(tmp_path: Path) -> None:
     """The minimal Rapthor view cannot hide an unsupported position epoch."""
     catalogue = _catalogue().model_copy(update={"position_epoch": "B1950"})
 
-    with pytest.raises(ValueError, match="J2000"):
+    with pytest.raises(ValueError, match=POSITION_EPOCH):
         write_rapthor_catalogue_fits(tmp_path / "b1950.fits", catalogue)
 
 
@@ -307,3 +313,152 @@ def test_reader_translates_unreadable_fits_to_boundary_error(
 
     with pytest.raises(ValueError, match="cannot read"):
         read_rapthor_catalogue_fits(path)
+
+
+# Rapthor keeps a source for its checks when its deconvolved major axis is
+# under 10 arcsec and both position errors are under 2 arcsec
+# (`docs/reference/rapthor-source-finding-contract.md`).
+_RAPTHOR_MAXIMUM_DECONVOLVED_MAJOR_DEGREES = 10.0 / 3600.0
+_RAPTHOR_MAXIMUM_POSITION_ERROR_DEGREES = 2.0 / 3600.0
+
+
+def _rapthor_kept(path: Path) -> np.ndarray:
+    """Apply Rapthor's cuts to the raw columns, where NaN fails each one."""
+    table = fits.getdata(path, 1)
+    assert table is not None
+    return (
+        (
+            np.asarray(table["DC_Maj"])
+            < _RAPTHOR_MAXIMUM_DECONVOLVED_MAJOR_DEGREES
+        )
+        & (np.asarray(table["E_RA"]) < _RAPTHOR_MAXIMUM_POSITION_ERROR_DEGREES)
+        & (
+            np.asarray(table["E_DEC"])
+            < _RAPTHOR_MAXIMUM_POSITION_ERROR_DEGREES
+        )
+    )
+
+
+def _write_finder_input(path: Path, *, with_sources: bool) -> None:
+    """Write unit white noise, with four isolated unresolved sources or none.
+
+    The 4-arcsec beam spans 4 pixels, and the sources sit at signal-to-noise
+    ratios of 20 to 100, so each is one Gaussian well inside Rapthor's cuts.
+    """
+    shape_yx = (96, 128)
+    y_pixels, x_pixels = np.mgrid[: shape_yx[0], : shape_yx[1]]
+    values = np.random.default_rng(57).normal(0.0, 1.0, shape_yx)
+    if with_sources:
+        sigma_pixels = 4.0 / np.sqrt(8.0 * np.log(2.0))
+        for amplitude, (x_centre, y_centre) in zip(
+            (20.0, 40.0, 60.0, 100.0),
+            ((30.3, 30.6), (95.2, 28.1), (33.7, 70.4), (90.5, 66.8)),
+            strict=True,
+        ):
+            values += amplitude * np.exp(
+                -0.5
+                * ((x_pixels - x_centre) ** 2 + (y_pixels - y_centre) ** 2)
+                / sigma_pixels**2
+            )
+    header = fits.Header()
+    header["BUNIT"] = "Jy/beam"
+    header["BMAJ"] = header["BMIN"] = 4.0 / 3600.0
+    header["BPA"] = 0.0
+    header["RADESYS"] = "ICRS"
+    header["CTYPE1"] = "RA---TAN"
+    header["CTYPE2"] = "DEC--TAN"
+    header["CRPIX1"] = shape_yx[1] / 2 + 1
+    header["CRPIX2"] = shape_yx[0] / 2 + 1
+    header["CRVAL1"] = 180.0
+    header["CRVAL2"] = -30.0
+    header["CDELT1"] = -1.0 / 3600.0
+    header["CDELT2"] = 1.0 / 3600.0
+    header["CUNIT1"] = header["CUNIT2"] = "deg"
+    header["RESTFRQ"] = 150_000_000.0
+    fits.PrimaryHDU(data=values, header=header).writeto(path)
+
+
+@pytest.mark.parametrize("profile", ("continuum", "compact"))
+@pytest.mark.parametrize("with_sources", (True, False))
+def test_find_sources_catalogue_passes_through_the_view_and_the_cuts(
+    tmp_path: Path,
+    profile: Literal["continuum", "compact"],
+    *,
+    with_sources: bool,
+) -> None:
+    """Given a catalogue ``find_sources`` published, empty or not,
+    when the view is written and read back,
+    then every row carries the published position, fluxes and errors, and
+    Rapthor keeps every isolated unresolved source.
+
+    A ``continuum`` source of one Gaussian publishes that Gaussian's errors
+    and deconvolved size, so its row passes the cuts as a ``compact`` row
+    does (task 57).
+    """
+    image = tmp_path / "image.fits"
+    _write_finder_input(image, with_sources=with_sources)
+    result = hebog.find_sources(
+        SourceFinderRequest(image, tmp_path / "products", f"view-{profile}"),
+        SourceFinderConfig(5.0, 3.0, 7, profile=profile),
+        SerialExecutor(),
+    )
+    catalogue = read_catalogue_fits_product(result.catalogue)
+    view = tmp_path / "source_catalog.fits"
+
+    write_rapthor_catalogue_fits(view, catalogue)
+    table = read_rapthor_catalogue_fits(view)
+
+    expected_count = 4 if with_sources else 0
+    assert result.source_count == len(table) == expected_count
+    assert tuple(table.colnames) == RAPTHOR_CATALOGUE_COLUMNS
+    np.testing.assert_array_equal(table["Source_id"], np.arange(len(table)))
+    islands = {island.island_id: island for island in catalogue.islands}
+    raw = fits.getdata(view, 1)
+    assert raw is not None
+    for column, published in (
+        (
+            "RA",
+            [
+                row.position.right_ascension_degrees
+                for row in catalogue.sources
+            ],
+        ),
+        (
+            "DEC",
+            [row.position.declination_degrees for row in catalogue.sources],
+        ),
+        (
+            "Isl_Total_flux",
+            [
+                islands[row.island_id].integrated_flux_jy
+                for row in catalogue.sources
+            ],
+        ),
+        (
+            "Total_flux",
+            [row.flux.integrated_flux_jy for row in catalogue.sources],
+        ),
+        (
+            "E_RA",
+            [
+                row.position.right_ascension_error_degrees
+                for row in catalogue.sources
+            ],
+        ),
+        (
+            "E_DEC",
+            [
+                row.position.declination_error_degrees
+                for row in catalogue.sources
+            ],
+        ),
+    ):
+        np.testing.assert_array_equal(
+            raw[column],
+            np.asarray(
+                [np.nan if value is None else value for value in published],
+                dtype=np.float64,
+            ),
+            err_msg=column,
+        )
+    assert np.count_nonzero(_rapthor_kept(view)) == expected_count

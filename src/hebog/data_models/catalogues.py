@@ -6,9 +6,13 @@ import json
 import re
 from collections.abc import Iterable
 from math import isfinite
-from typing import Literal, Self
+from typing import Final, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+
+POSITION_EPOCH: Final = "J2000.0"
+"""The epoch of every position the public finder publishes, and the one
+the Rapthor catalogue view accepts."""
 
 _DOMAIN_IDENTIFIER = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*")
 _FULL_CIRCLE_DEGREES = 360
