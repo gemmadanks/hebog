@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import pytest
@@ -29,6 +30,7 @@ from hebog.validation.datasets import (
 _DATASET_DIRECTORY = Path(__file__).parents[3] / "config" / "datasets"
 MANIFEST_PATH = _DATASET_DIRECTORY / "phase-0-development.json"
 _PHASE_FOUR_POWERED_SAMPLE_COUNT = 1_600
+_GeneratorVersion = Literal[1, 2, 3, 4]
 
 
 def _phase_five_qualification_payload() -> dict[str, Any]:
@@ -989,13 +991,14 @@ def test_version_two_generation_adds_partition_invariant_noise_and_masks() -> (
     assert np.all(np.isfinite(unaffected))
 
 
-def test_version_three_generates_partition_invariant_correlated_noise() -> (
-    None
-):
+@pytest.mark.parametrize("version", [3, 4])
+def test_correlated_noise_is_normalized_and_partition_invariant(
+    version: _GeneratorVersion,
+) -> None:
     """Beam-correlated noise is normalized and independent of window layout."""
     recipe = SyntheticRecipe(
         generator="hebog.synthetic.gaussian-noise",
-        generator_version=3,
+        generator_version=version,
         seed=2026080301,
         shape_yx=(512, 512),
         background=0.0,
@@ -1045,11 +1048,11 @@ def test_version_three_generates_partition_invariant_correlated_noise() -> (
                 minor_fwhm_pixels=2.0,
                 position_angle_degrees=0.0,
             ),
-            "only in generator version 3",
+            "requires generator version 3 or later",
         ),
     ],
 )
-def test_correlated_noise_requires_generator_version_three(
+def test_correlated_noise_requires_generator_version_three_or_later(
     version: int,
     correlation: SyntheticNoiseCorrelation | None,
     message: str,
@@ -1065,6 +1068,271 @@ def test_correlated_noise_requires_generator_version_three(
 
     with pytest.raises(ValidationError, match=message):
         SyntheticRecipe.model_validate(payload)
+
+
+_SEED = 2026100501
+# Seeds whose XOR with _SEED is 3, 2 and 7: under versions 1 and 2 each moves
+# every pixel within its aligned block of four or eight.
+_NEARBY_SEEDS = (_SEED + 1, _SEED + 2, _SEED ^ 7)
+_INDEPENDENT_CORRELATION_LIMIT = 0.2
+
+
+def _noise_recipe(
+    version: _GeneratorVersion,
+    seed: int,
+    *,
+    correlated: bool = False,
+) -> SyntheticRecipe:
+    """Return a 128-square unit-RMS noise recipe of one generator version."""
+    return SyntheticRecipe(
+        generator="hebog.synthetic.gaussian-noise",
+        generator_version=version,
+        seed=seed,
+        shape_yx=(128, 128),
+        background=0.0,
+        noise_rms=1.0,
+        noise_correlation=(
+            SyntheticNoiseCorrelation(
+                major_fwhm_pixels=5.0,
+                minor_fwhm_pixels=4.0,
+                position_angle_degrees=0.0,
+            )
+            if correlated
+            else None
+        ),
+    )
+
+
+def _block_sum_correlation(
+    first: np.ndarray[Any, np.dtype[np.float64]],
+    second: np.ndarray[Any, np.dtype[np.float64]],
+) -> float:
+    """Correlate the sums of aligned 16-pixel row blocks of two planes."""
+    first_sums = first.reshape(-1, 16).sum(axis=1)
+    second_sums = second.reshape(-1, 16).sum(axis=1)
+    return float(np.corrcoef(first_sums, second_sums)[0, 1])
+
+
+@pytest.mark.parametrize("version", [1, 2])
+def test_versions_one_and_two_give_one_noise_field_for_every_seed(
+    version: _GeneratorVersion,
+) -> None:
+    """Seeds of versions 1 and 2 only rearrange one field, kept as frozen.
+
+    Both combine the seed and the plane address with XOR before mixing, so
+    seed ``s ^ d`` gives seed ``s``'s field with the value at address ``a``
+    moved to ``a ^ d``. This is why they refuse noise realization seeds; the
+    behaviour itself stays, so their frozen recipes rebuild unchanged.
+    """
+    first = generate_synthetic_image(_noise_recipe(version, _SEED)).ravel()
+    addresses = np.arange(first.size)
+    for seed in _NEARBY_SEEDS:
+        second = generate_synthetic_image(_noise_recipe(version, seed))
+
+        np.testing.assert_array_equal(
+            second.ravel(),
+            first[addresses ^ (_SEED ^ seed)],
+        )
+        assert _block_sum_correlation(first, second) == pytest.approx(1.0)
+
+
+@pytest.mark.parametrize(
+    ("version", "correlated"),
+    [(3, True), (4, False), (4, True)],
+)
+def test_noise_realization_seeds_give_independent_fields(
+    version: _GeneratorVersion,
+    *,
+    correlated: bool,
+) -> None:
+    """Nearby seeds of a version that admits realizations share no noise."""
+    first = generate_synthetic_image(
+        _noise_recipe(version, _SEED, correlated=correlated)
+    )
+    for seed in _NEARBY_SEEDS:
+        second = generate_synthetic_image(
+            _noise_recipe(version, seed, correlated=correlated)
+        )
+
+        assert np.intersect1d(first, second).size == 0
+        assert (
+            abs(_block_sum_correlation(first, second))
+            < _INDEPENDENT_CORRELATION_LIMIT
+        )
+        assert (
+            abs(float(np.corrcoef(first.ravel(), second.ravel())[0, 1]))
+            < _INDEPENDENT_CORRELATION_LIMIT
+        )
+
+
+@pytest.mark.parametrize(
+    ("version", "correlated", "expected"),
+    [
+        (
+            1,
+            False,
+            (
+                0.4797449048638065,
+                -0.7023664926655648,
+                -0.5564925605522104,
+                0.8298340579483507,
+            ),
+        ),
+        (
+            2,
+            False,
+            (
+                0.4797449048638065,
+                -0.7023664926655648,
+                -0.5564925605522104,
+                0.8298340579483507,
+            ),
+        ),
+        (
+            3,
+            True,
+            (
+                -1.0822968406896785,
+                -0.9699367309435571,
+                -1.1986299246307932,
+                -0.8372602318837913,
+            ),
+        ),
+    ],
+)
+def test_earlier_generator_versions_reproduce_their_frozen_noise(
+    version: _GeneratorVersion,
+    *,
+    correlated: bool,
+    expected: tuple[float, ...],
+) -> None:
+    """Adding a version leaves every earlier version's pixels unchanged.
+
+    The values were generated before version 4 existed. A relative tolerance
+    of 1e-12 admits the last-bit differences of transcendental functions
+    between platforms and nothing a changed stream could produce.
+    """
+    window = generate_synthetic_window(
+        _noise_recipe(version, _SEED, correlated=correlated),
+        y_start=10,
+        y_stop=12,
+        x_start=15,
+        x_stop=17,
+    )
+
+    np.testing.assert_allclose(window.ravel(), expected, rtol=1e-12, atol=0)
+
+
+def test_version_four_white_noise_is_partition_invariant_and_unit() -> None:
+    """Uncorrelated version 4 noise stitches exactly and is unit normal."""
+    recipe = _noise_recipe(4, _SEED)
+
+    whole = generate_synthetic_image(recipe)
+    quarters = np.block(
+        [
+            [
+                generate_synthetic_window(
+                    recipe,
+                    y_start=y_start,
+                    y_stop=y_stop,
+                    x_start=x_start,
+                    x_stop=x_stop,
+                )
+                for x_start, x_stop in ((0, 45), (45, 128))
+            ]
+            for y_start, y_stop in ((0, 77), (77, 128))
+        ]
+    )
+
+    np.testing.assert_array_equal(quarters, whole)
+    # 16,384 unit normals: the mean and lag-one products have a standard
+    # error of 0.008 and the standard deviation one of 0.006.
+    assert float(np.mean(whole)) == pytest.approx(0.0, abs=0.04)
+    assert float(np.std(whole)) == pytest.approx(1.0, abs=0.03)
+    assert float(np.mean(whole[:, :-1] * whole[:, 1:])) == pytest.approx(
+        0.0, abs=0.04
+    )
+    assert float(np.mean(whole[:-1, :] * whole[1:, :])) == pytest.approx(
+        0.0, abs=0.04
+    )
+
+
+@pytest.mark.parametrize("seed", [0, 2**64 - 1])
+@pytest.mark.parametrize("correlated", [False, True])
+def test_version_four_accepts_the_extreme_seeds(
+    seed: int,
+    *,
+    correlated: bool,
+) -> None:
+    """The seed key wraps in uint64 without an overflow warning."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        image = generate_synthetic_image(
+            _noise_recipe(4, seed, correlated=correlated)
+        )
+
+    assert np.all(np.isfinite(image))
+    assert float(np.std(image)) == pytest.approx(1.0, abs=0.1)
+
+
+def test_version_four_checksum_distinguishes_white_and_correlated_noise() -> (
+    None
+):
+    """Version 4 provenance records whether its noise is correlated."""
+    white = _noise_recipe(4, _SEED)
+    correlated = _noise_recipe(4, _SEED, correlated=True)
+
+    assert recipe_sha256(white) != recipe_sha256(correlated)
+    assert recipe_sha256(white) == recipe_sha256(
+        SyntheticRecipe.model_validate(white.model_dump(mode="json"))
+    )
+
+
+def _dataset_payload(
+    version: int,
+    seeds: tuple[int, ...],
+) -> dict[str, Any]:
+    """Return the noisy Phase 0 development record at one version."""
+    dataset = load_dataset_manifest(MANIFEST_PATH).datasets[1]
+    payload = dataset.model_dump(mode="json")
+    payload["recipe"]["generator_version"] = version
+    if version == 3:
+        payload["recipe"]["noise_correlation"] = {
+            "major_fwhm_pixels": 3.0,
+            "minor_fwhm_pixels": 3.0,
+            "position_angle_degrees": 0.0,
+        }
+    recipe = SyntheticRecipe.model_validate(payload["recipe"])
+    payload["recipe_sha256"] = recipe_sha256(recipe)
+    payload["noise_realization_seeds"] = list(seeds)
+    return payload
+
+
+@pytest.mark.parametrize("version", [1, 2])
+def test_versions_one_and_two_refuse_noise_realization_seeds(
+    version: int,
+) -> None:
+    """A version whose seeds share one field cannot define realizations."""
+    single_seed = DatasetRecord.model_validate(_dataset_payload(version, ()))
+
+    assert iter_dataset_recipes(single_seed) == (single_seed.recipe,)
+    with pytest.raises(
+        ValidationError,
+        match="generator versions 1 and 2 cannot record noise realization",
+    ):
+        DatasetRecord.model_validate(_dataset_payload(version, (101,)))
+
+
+@pytest.mark.parametrize("version", [3, 4])
+def test_versions_three_and_four_admit_noise_realization_seeds(
+    version: int,
+) -> None:
+    """Versions whose seeds give independent fields admit realizations."""
+    record = DatasetRecord.model_validate(
+        _dataset_payload(version, (101, 102))
+    )
+
+    assert record.noise_realization_seeds == (101, 102)
 
 
 def test_invalid_rectangle_requires_increasing_bounds() -> None:
@@ -1091,12 +1359,9 @@ def test_dataset_realization_seeds_expand_without_changing_base_truth() -> (
     None
 ):
     """A governed campaign varies only noise seed across exact truth."""
-    dataset = load_dataset_manifest(MANIFEST_PATH).datasets[0]
-    expanded_dataset = dataset.model_copy(
-        update={"noise_realization_seeds": (101, 102)}
-    )
+    dataset = DatasetRecord.model_validate(_dataset_payload(4, (101, 102)))
 
-    recipes = tuple(iter_dataset_recipes(expanded_dataset))
+    recipes = iter_dataset_recipes(dataset)
 
     assert [recipe.seed for recipe in recipes] == [
         dataset.recipe.seed,
@@ -1178,7 +1443,7 @@ def test_version_two_recipe_rejects_invalid_variation(
     ("seeds", "message"),
     [
         ((101, 101), "must be unique"),
-        ((0,), "must not repeat"),
+        ((20260718,), "must not repeat"),
         ((2**64,), "must fit uint64"),
     ],
 )
@@ -1187,12 +1452,11 @@ def test_dataset_rejects_invalid_noise_realization_seeds(
     message: str,
 ) -> None:
     """A governed noise campaign has distinct uint64 seeds."""
-    dataset = load_dataset_manifest(MANIFEST_PATH).datasets[0]
-    payload = dataset.model_dump(mode="json")
-    payload["noise_realization_seeds"] = seeds
+    payload = _dataset_payload(4, seeds)
 
+    assert payload["recipe"]["seed"] == 20260718
     with pytest.raises(ValidationError, match=message):
-        type(dataset).model_validate(payload)
+        DatasetRecord.model_validate(payload)
 
 
 def test_version_one_dataset_rejects_rotated_wcs() -> None:

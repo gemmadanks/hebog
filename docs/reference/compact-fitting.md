@@ -176,12 +176,14 @@ diagnostics. Unknown values are never encoded as zero.
 ## Integrated-flux uncertainty calibration
 
 The correlated-noise sandwich covariance of the diagonal-weighted fit is the
-formal one-sigma uncertainty. On seed-disjoint isolated sources with
-beam-correlated noise, its pulls against injected truth have a standard
-deviation of about one for position, peak flux and fitted axes (0.72 to 1.10).
-The former GLS covariance was overconfident there, with pull standard
+formal one-sigma uncertainty. On the M1 calibration population
+(`config/datasets/m1-flux-calibration.json`: isolated sources in five
+independent realizations of each noise class), its pulls against injected
+truth on beam-correlated noise have a standard deviation of about one for
+position, peak flux and fitted axes (0.96 to 1.02) and 1.08 for integrated
+flux. The former GLS covariance was overconfident there, with pull standard
 deviations up to 2. On pixel-independent noise the uncertainties are
-conservative (pull standard deviation 0.25 to 0.55), because they assume
+conservative (pull standard deviation 0.32 to 0.57), because they assume
 beam-correlated noise, as Condon-style errors do.
 
 Pulls describe only the components that publish an uncertainty. A shape

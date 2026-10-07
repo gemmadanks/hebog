@@ -66,7 +66,15 @@ truth, image geometry, background, RMS field, masks, beam, and WCS remain
 identical while only the deterministic noise realization changes. Use
 `iter_dataset_recipes` to expand the campaign. Seeds are unique, do not repeat
 the base seed, and remain part of manifest provenance even though the base
-recipe SHA-256 continues to identify the shared truth recipe.
+recipe SHA-256 continues to identify the shared truth recipe. Only generator
+versions 3 and 4 accept them: under versions 1 and 2 two seeds give one noise
+field with its pixels rearranged, so a record of those versions that lists
+noise realization seeds is refused (see
+[independent realizations](#independent-realizations)). The rule is checked
+when a record is validated, as every manifest rule is, so
+`model_copy(update=...)` skips it, and it cannot see a population built from
+separate single-seed records of those versions. Draw any new population
+with version 4.
 
 `validation_strata` names possibly overlapping sets of analytic source
 indices. These declarations keep SNR, shape, blend, edge, or other governed
@@ -111,6 +119,33 @@ window. The result has the requested RMS and stitches exactly across arbitrary
 window layouts, including image edges. The compact datasets use the
 restoring-beam covariance as this correlation function; generator versions 1 and 2 and their
 checksums remain unchanged.
+
+Generator version 4 gives every seed an independent noise realization, with
+or without a noise correlation. It accepts every version 2 and version 3
+field, and its checksum covers the whole recipe, including whether the noise
+is correlated. Use it for every new population; earlier versions remain so
+that their frozen recipes rebuild exactly.
+
+## Independent realizations
+
+Every pixel's noise is a hash of the seed and the pixel address. Versions 1
+and 2 address the plane row by row and combine that address with the seed by
+XOR before hashing. Two seeds that differ by `d` in their bits then give one
+field, with the value at address `a` moved to address `a ^ d`: seeds 1000 and
+1001 swap neighbouring pixels, and seeds whose XOR is below 16 give identical
+sums over aligned 16-pixel blocks. A source's measured flux error is
+therefore correlated between such images, and they are not independent
+samples. The 23 September flux-calibration population drew its white-noise
+images this way, with seeds 2 apart; `m1-flux-calibration.json` holds its
+replacement, drawn with version 4.
+
+Version 3 hashes the row and the column separately before combining them
+with the seed, so the address is a pseudo-random 64-bit value and a seed
+difference moves a pixel's value to an address that almost never belongs to
+the same image. Version 4 hashes the seed as well, so seeds that differ in a
+few bits enter the hash as unrelated keys. For both versions the unit tests
+check that nearby seeds share no noise value and that their 16-pixel block
+sums are uncorrelated.
 
 ## Deterministic generation
 

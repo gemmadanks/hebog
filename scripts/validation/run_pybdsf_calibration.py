@@ -2,10 +2,13 @@
 
 Runs inside the reference-finder container. Each image is copied into its
 own writable case directory before processing, because PyBDSF writes its
-log next to the input and the repository is mounted read-only.
+log next to the input and the repository is mounted read-only. The copy stays
+there, and ``run.json`` records its SHA-256, so a case is reused only for the
+same image bytes and the comparison can prove which image it paired.
 """
 
 import argparse
+import hashlib
 import importlib.metadata
 import json
 import shutil
@@ -45,7 +48,13 @@ def main() -> None:
     version = importlib.metadata.version("bdsf")
     for image in sorted(args.input_dir.glob("calibration-*.fits")):
         case = args.output_dir / image.stem
-        if (case / "run.json").exists():
+        image_sha256 = hashlib.sha256(image.read_bytes()).hexdigest()
+        record = case / "run.json"
+        if (
+            record.exists()
+            and json.loads(record.read_text()).get("image_sha256")
+            == image_sha256
+        ):
             print(f"{image.name}: cached", flush=True)
             continue
         case.mkdir(exist_ok=True)
@@ -72,6 +81,7 @@ def main() -> None:
                 {
                     "bdsf_version": version,
                     "image": image.name,
+                    "image_sha256": image_sha256,
                     "options": {
                         key: list(value) if isinstance(value, tuple) else value
                         for key, value in OPTIONS.items()

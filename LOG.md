@@ -30408,3 +30408,145 @@ the per-worker placement finding.
   this branch predates; that file only prepares and compares cases. The
   equivalence test of the public finder against both PyBDSF references
   passes.
+
+## 2026-10-05 — Task 48: every seed draws its own noise, and the `Total_flux` limits hold on independent realizations
+
+- **Outcome.** Generator version 4 gives every seed an independent noise
+  realization, and a dataset of version 1 or 2 that lists noise realization
+  seeds is refused. The M1 calibration population is redrawn with version 4
+  and checked in as `config/datasets/m1-flux-calibration.json`. On it every
+  binding `Total_flux` row passes against pinned `master`, the white stratum
+  included, and the white-noise pulls are unchanged. The maintainer's
+  disposition is open (task 48).
+- **Cause.** Versions 1 and 2 hash `seed XOR (y × width + x)`, so seed
+  `s ^ d` gives seed `s`'s field with the value at address `a` moved to
+  `a ^ d`. The 23 September white-noise images (version 2, seeds 2026091700
+  to 2026091708 in steps of 2) were one field rearranged within blocks of up
+  to 16 pixels: their beam-smoothed noise correlates up to +0.80 between
+  realizations, and a grid source's flux excess up to +0.45 for Hebog and
+  +0.48 for `master`. Version 3 hashes the row and the column before the
+  seed enters, so its beam-correlated realizations were already
+  independent: their beam-smoothed noise correlates within ±0.01.
+- **Version 4.** The seed is hashed into a key with the same splitmix64
+  mixer, combined with version 3's hashed row and column, and hashed again
+  for each uniform of the Box–Muller pair. Every input passes its own round
+  before they are combined, so nearby seeds give unrelated keys, and windows
+  stay exact because each pixel depends only on the seed and its address.
+  Noise correlation is optional, and the checksum covers the whole recipe.
+  NumPy's keyed `Philox` was considered: it yields a sequential stream, so
+  exact windows would need per-row counter arithmetic, where this is one
+  vectorised expression on the mixer already in use. Versions 1 to 3 are
+  bitwise unchanged: 760 windows across every checked-in manifest match
+  `main`, the 13 generated quick-check inputs rebuild byte-identically and
+  the 10,000² tier input matches by windows at its stored `float32`, and a
+  unit test pins values of each earlier version to 1e-12.
+- **The refusal.** It is a `DatasetRecord` rule: no checked-in manifest
+  lists seeds under version 1 or 2, so none breaks, and a single-seed record
+  of either version still validates and rebuilds. It runs when a record is
+  validated, so `model_copy(update=...)` skips it, and it cannot see a
+  population assembled from separate single-seed records, which is how the
+  calibration script built the 23 September images; the script now reads
+  the checked-in population instead. The quick check's white-noise case
+  stays on version 2 only so that its frozen cached input is unchanged.
+- **The population.** Same design as `m1-endpoint-summed-fit`: ten 1,024²
+  realizations, five white and five beam-correlated, each with 64 isolated
+  sources at SNR 10, 20 and 50 and 1 to 1.5 beams wide. Seeds 2026100510 to
+  2026100519, disjoint from every manifest and from the superseded
+  population; recipe checksums are in the manifest, which
+  `scripts/validation/build_flux_calibration_datasets.py` writes and a unit
+  test holds equal to its builder. The measurement and comparison scripts
+  read noise, beam and size classes from each record instead of constants,
+  and the measurement records the population's path and SHA-256. The
+  comparison takes its cases from the Hebog run and its PyBDSF runs as
+  required arguments, refuses a PyBDSF case that processed other image
+  bytes or lacks a catalogue (names repeat between populations, so a stale
+  run would otherwise match the new truth), records which runs and image
+  hashes it paired, and reports how a grid source's flux excess correlates
+  between realizations. The PyBDSF runner reuses a case only for the same
+  image hash.
+- **Attribution.** The current composition (`3ab699b02b9dec79`) run on the
+  23 September images reproduces every 23 September `Total_flux` statistic
+  and every 24 September pull to the digits recorded, so the changes below
+  come from the realizations, not the code.
+- **Re-measured**, Hebog sources against pinned `master` (`c70103b`, three
+  container cores), in percentage points of `published / truth - 1`:
+
+  | Gate, SNR 10 / 20 / 50 | Limit | 23 September | Independent |
+  | --- | --- | --- | --- |
+  | Median excess | ≤ +14 / +3.5 / +1 | +13.5 / +2.5 / +0.4 | +12.8 / +2.0 / +0.3 |
+  | Absolute p95 | ≤ 35 / 12 / 6 | 29.4 / 11.0 / 4.6 | 31.0 / 10.9 / 4.3 |
+  | Paired bound, median | ≤ +1 | +0.4 / −0.2 / +0.1 | −0.1 / −0.2 / +0.0 |
+  | Paired bound, p95 | ≤ +1 | +0.1 / +0.1 / −0.3 | −3.5 / +0.1 / −0.1 |
+  | Clipped ratio, SNR ≥ 20 | 1 ± 0.03, scatter ≤ 0.05 | 1.014, 0.035 | 1.012, 0.029 |
+
+  The paired bound is upper one-sided 95%, 4,000 resamples of whole
+  realizations within noise class. The 23 September figures are recomputed
+  from the retained products with the checked-in script and match every
+  value recorded then. By noise class, which the gate pools:
+
+  | Paired bound, median / p95 | White, 23 September | White, independent | Correlated, 23 September | Correlated, independent |
+  | --- | --- | --- | --- | --- |
+  | SNR 10 | +0.1 / +0.3 | −0.6 / −5.5 | +1.1 / +1.7 | +0.0 / +4.0 |
+  | SNR 20 | −0.3 / +0.1 | −0.3 / −0.1 | +0.5 / +0.4 | +0.2 / +1.3 |
+  | SNR 50 | −0.0 / −0.1 | +0.0 / −0.1 | +0.4 / −0.2 | +0.2 / +0.3 |
+
+- **Independence, confirmed.** A grid source's standardized flux excess
+  correlates between white-noise realizations at a mean of −0.09 for Hebog
+  and −0.03 for `master` over the ten pairs, largest +0.11, against +0.14
+  and +0.10, largest +0.45 and +0.48, on 23 September; independent pairs
+  give 0 ± 0.125. Beam-smoothed version 4 noise correlates within ±0.01
+  between realizations of either class.
+- **The beam-correlated SNR 10 cell.** Its +4.0-point p95 bound comes from
+  an observed +1.5 points (Hebog 37.3%, `master` 35.8%) resampled over five
+  realizations. Fifteen more realizations a class of the same design (seeds
+  2026100520 to 2026100549, a diagnostic outside the manifest, regenerated
+  as realizations 5 to 19 by `build_flux_calibration_datasets.py
+  --realizations 20 --output <path>`) give, over
+  twenty a class, an observed −0.9 points and a bound of +1.6, with every
+  pooled row passing by a wider margin (bounds −0.7 / −0.3 / −0.0 on the
+  median and −2.9 / +0.1 / −0.1 on the p95). The five-realization figure is
+  sampling width, not a Hebog tail.
+- **Where `master`'s white tail comes from.** It splits white-noise SNR 10
+  sources into several Gaussians: on four, the source's summed flux exceeds
+  truth by 89% to 192% while its nearest Gaussian holds about a fifth of it,
+  against one such source on 23 September. Hebog's largest white SNR 10
+  excess is +37%. That is why the pooled SNR 10 p95 bound is −3.5 points and
+  why `master` itself reads 39.3% there, above the 35% absolute limit set
+  from its 34.4% (35.3% over twenty realizations a class).
+- **White-noise pulls**, Hebog components, standard deviation / median /
+  fraction within one sigma, 24 September against independent:
+  RA 0.348 / +0.027 / 0.994 against 0.351 / +0.007 / 0.988; Dec 0.334 /
+  +0.023 / 0.997 against 0.319 / +0.017 / 0.997; peak 0.41 / −0.25 / 0.96
+  against 0.45 / −0.25 / 0.95; integrated 0.50 / +0.44 / 0.79 against
+  0.53 / +0.47 / 0.81. Still conservative by two to three times, as
+  Condon-style errors are on white noise. Beam-correlated: RA 0.99, Dec
+  0.96, peak 0.97, integrated 1.08, axes 1.02 and 1.01. The compact-fitting
+  reference now quotes these.
+- **For the maintainer.** Whether the 23 September rows stand as pooled
+  strata, now supported by independent realizations of both noise classes,
+  or bind each noise class, under which the correlated SNR 10 p95 cell needs
+  the M6 powered study or more realizations to show ≤ +1 point.
+  Recommended: keep them pooled and assert per noise class at M6.
+- **Evidence.** `benchmark-results/uncertainty-calibration/`:
+  `task48-independent-v4` and `…-pybdsf-master`,
+  `task48-current-on-23-september`, `task48-supplementary` with
+  `task48-supplementary-extension` and `…-pybdsf-master`, and the
+  comparisons, independence and input checks in `task48-comparisons`. The
+  `*-paired.json` comparisons, rerun with the final script, record their
+  runs and image hashes and reproduce every figure above exactly.
+- **Checks.** Focused unit tests fail on `main` for the stated reason (a
+  version 1 or 2 record with seeds is accepted) and pass after. The quick
+  science check `task48` reports no regression against
+  `typed-refusals-final`, with every field but timing equal. `just coverage`
+  gives 96.9% project coverage, with every changed line of
+  `validation/datasets.py` covered (97%, the misses pre-existing raises);
+  its 27 failures were a full disk on the shared machine and pass when run
+  again. `just check` and the strict docs build pass. An independent
+  review found nothing at P0; its findings on run pairing, silent skips,
+  copied constants and recorded provenance are fixed above. Not run:
+  Windows, and Dask, since no stage or executor changed.
+- **Decided (maintainer, 6 October).** The `Total_flux` rows bind pooled
+  over white and beam-correlated noise, as set on 23 September, and the
+  powered study (task 29) adds a per-noise-class check. Declined: binding
+  each noise class now, which the beam-correlated SNR 10 p95 cell would
+  pass only with more realizations.

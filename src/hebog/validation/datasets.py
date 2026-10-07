@@ -5,6 +5,14 @@
 The generator is deliberately stateless at the pixel level. Generating any
 window produces the same values as slicing a plane generated in one call, so
 large validation images do not depend on a particular partition layout.
+
+Every pixel's noise is a hash of the seed and the pixel address. Versions 1
+and 2 combine the seed with the plane address by XOR before hashing, so two
+seeds give one noise field with its pixels rearranged; they remain only so
+their frozen recipes rebuild exactly, and refuse noise realization seeds.
+Version 3 hashes the row and the column before the seed enters, and version
+4 hashes the seed too, so each of their seeds gives an independent
+realization.
 """
 
 from __future__ import annotations
@@ -21,12 +29,14 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from scipy.ndimage import correlate
 
 _CORRELATED_NOISE_GENERATOR_VERSION = 3
+_SEED_KEYED_GENERATOR_VERSION = 4
 
 _UINT64_LIMIT = 2**64 - 1
 _FIRST_RANDOM_STREAM = np.uint64(0xD1B54A32D192ED03)
 _SECOND_RANDOM_STREAM = np.uint64(0x94D049BB133111EB)
 _Y_COORDINATE_STREAM = np.uint64(0x8CB92BA72F3D8DD7)
 _X_COORDINATE_STREAM = np.uint64(0xDB4F0B9175AE2165)
+_SEED_STREAM = np.uint64(0xA0761D6478BD642F)
 _MANTISSA_SCALE = 1.0 / 2**53
 _MINIMUM_DECLINATION_DEGREES = -90.0
 _MAXIMUM_DECLINATION_DEGREES = 90.0
@@ -176,7 +186,7 @@ class SyntheticRecipe(_ManifestModel):
     """Complete inputs to one version of the synthetic image generator."""
 
     generator: Literal["hebog.synthetic.gaussian-noise"]
-    generator_version: Literal[1, 2, 3]
+    generator_version: Literal[1, 2, 3, 4]
     seed: int = Field(ge=0, le=_UINT64_LIMIT)
     shape_yx: tuple[int, int]
     background: float = Field(allow_inf_nan=False)
@@ -209,7 +219,7 @@ class SyntheticRecipe(_ManifestModel):
             and self.noise_correlation is not None
         ):
             raise ValueError(
-                "noise correlation is available only in generator version 3"
+                "noise correlation requires generator version 3 or later"
             )
         if (
             self.generator_version == _CORRELATED_NOISE_GENERATOR_VERSION
@@ -488,6 +498,15 @@ class DatasetRecord(_ManifestModel):
             and self.wcs.rotation_degrees_counterclockwise != 0.0
         ):
             raise ValueError("generator version 1 cannot use rotated WCS")
+        if (
+            self.recipe.generator_version < _CORRELATED_NOISE_GENERATOR_VERSION
+            and self.noise_realization_seeds
+        ):
+            raise ValueError(
+                "generator versions 1 and 2 cannot record noise realization "
+                "seeds: their seeds rearrange one noise field rather than "
+                "drawing independent ones; use generator version 4"
+            )
         if len(set(self.noise_realization_seeds)) != len(
             self.noise_realization_seeds
         ):
@@ -801,13 +820,24 @@ def _splitmix64(values: npt.NDArray[np.uint64]) -> npt.NDArray[np.uint64]:
     return mixed ^ (mixed >> np.uint64(31))
 
 
+def _seed_bits(recipe: SyntheticRecipe) -> npt.NDArray[np.uint64]:
+    """Return the bits a recipe's seed contributes to every pixel's hash.
+
+    Before version 4 these are the seed itself. Version 4 hashes the seed
+    first, so seeds that differ in a few bits give unrelated keys.
+    """
+    seed = np.full(1, recipe.seed, dtype=np.uint64)
+    if recipe.generator_version < _SEED_KEYED_GENERATOR_VERSION:
+        return seed
+    return _splitmix64(seed ^ _SEED_STREAM)
+
+
 def _standard_normal_from_addresses(
     addresses: npt.NDArray[np.uint64],
     *,
-    seed: int,
+    seed_bits: npt.NDArray[np.uint64],
 ) -> npt.NDArray[np.float64]:
     """Map deterministic integer addresses to one standard-normal stream."""
-    seed_bits = np.uint64(seed)
     first_bits = _splitmix64(addresses ^ seed_bits ^ _FIRST_RANDOM_STREAM)
     second_bits = _splitmix64(addresses ^ seed_bits ^ _SECOND_RANDOM_STREAM)
     first_uniform = (first_bits >> np.uint64(11)).astype(np.float64) + 0.5
@@ -827,7 +857,13 @@ def _coordinate_normal_noise(
     x_start: int,
     x_stop: int,
 ) -> npt.NDArray[np.float64]:
-    """Generate deterministic noise on the unbounded integer pixel lattice."""
+    """Generate deterministic noise on the unbounded integer pixel lattice.
+
+    The row and the column are hashed separately before they are combined
+    with the seed bits, so the address is a pseudo-random 64-bit value: a
+    seed difference relates a pixel only to an address that almost never
+    lies in the same image.
+    """
     y_coordinates = np.arange(y_start, y_stop, dtype=np.int64).view(np.uint64)
     x_coordinates = np.arange(x_start, x_stop, dtype=np.int64).view(np.uint64)
     y_addresses = _splitmix64(
@@ -838,7 +874,7 @@ def _coordinate_normal_noise(
     )
     return _standard_normal_from_addresses(
         y_addresses ^ x_addresses,
-        seed=recipe.seed,
+        seed_bits=_seed_bits(recipe),
     )
 
 
@@ -909,7 +945,7 @@ def _normal_noise(
     width = x_stop - x_start
     if recipe.noise_rms == 0:
         return np.zeros((height, width), dtype=np.float64)
-    if recipe.generator_version == _CORRELATED_NOISE_GENERATOR_VERSION:
+    if recipe.noise_correlation is not None:
         return _correlated_normal_noise(
             recipe,
             y_start=y_start,
@@ -917,14 +953,24 @@ def _normal_noise(
             x_start=x_start,
             x_stop=x_stop,
         )
+    if recipe.generator_version >= _SEED_KEYED_GENERATOR_VERSION:
+        return _coordinate_normal_noise(
+            recipe,
+            y_start=y_start,
+            y_stop=y_stop,
+            x_start=x_start,
+            x_stop=x_stop,
+        )
 
+    # Versions 1 and 2 address the plane row-major, which is why their seeds
+    # only rearrange one field.
     full_width = np.uint64(recipe.shape_yx[1])
     y_indices = np.arange(y_start, y_stop, dtype=np.uint64)[:, np.newaxis]
     x_indices = np.arange(x_start, x_stop, dtype=np.uint64)[np.newaxis, :]
     addresses = y_indices * full_width + x_indices
     return _standard_normal_from_addresses(
         addresses,
-        seed=recipe.seed,
+        seed_bits=_seed_bits(recipe),
     )
 
 
