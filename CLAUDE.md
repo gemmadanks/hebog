@@ -46,18 +46,22 @@ The public entry point is `hebog.find_sources(request, config, executor)`.
   same way (through `__getattr__`). Keep both lazy.
 - `public_api.py` is the outer I/O layer. It reads and validates the FITS
   input, enforces the bounded preview size limit, plans partitions, runs
-  each stage through the executor in turn, hands the stage products to the
-  science composition, and atomically writes versioned products through
-  `io/`.
-- `public_science.py` and `science/` hold the installed scientific
-  composition: the reviewed configuration and profile (`science/profile.py`
-  and `resources/`), and the source association and catalogue rows built
-  from the stage products.
+  each stage through the executor in turn, hands the published records to
+  `public_science.py` for the terminal catalogues, and atomically writes
+  versioned products through `io/`.
+- `science/` holds the reviewed science the stages apply: the configuration
+  and profile (`science/configuration.py`, `science/profile.py` and
+  `resources/`), the composition records (`science/models.py`,
+  `science/catalogue_rows.py`) and the catalogue-row kernels
+  (`science/catalogues.py`). It imports no stage, executor or `io` module.
+  `public_science.py` builds the terminal catalogues from the records the
+  stages published.
 - `stages/` contains the scheduler-facing stages `find_sources` runs, in
   order: background and detection, multiscale, support, publication,
   objects (component topology, fit parents, component fits), association,
   sources, islands and catalogue rows, with `batching.py` shared. They
-  handle tiling, cores and halos, and batching through an `Executor`.
+  apply the kernels of `algorithms/` and `science/` with tiling, cores and
+  halos, and batching through an `Executor`.
 - `algorithms/` contains pure NumPy/SciPy kernels. They take arrays and
   immutable config and return arrays or records. They must not know about
   schedulers, I/O, or adapters.
@@ -78,8 +82,12 @@ The public entry point is `hebog.find_sources(request, config, executor)`.
   independent of campaign validation.
 
 Dependencies point inward:
-`adapters → pipeline/public_api → science → stages → algorithms`, with
-`data_models` and `config` shared by all layers.
+`adapters → pipeline/public_api → stages → science → algorithms`, with
+`public_api → public_science → science`, `executors` and `io` used by
+`stages` and `public_api`, and `data_models` and `config` shared by all
+layers (ADR-009). `LAYER_IMPORTS` in `tests/unit/test_architecture.py` states
+the allowed imports of every layer as one table; an import outside it needs
+a named exemption there.
 
 ## Repository notes
 

@@ -24,6 +24,7 @@ from hebog.config import (
     AdaptiveRmsConfig,
     BackgroundRmsConfig,
     CompactDeblendConfig,
+    DetectionStageConfig,
     RmsGridConfig,
     RmsWindowStatisticsConfig,
     SourceFinderConfig,
@@ -34,7 +35,6 @@ from hebog.executors.base import TaskRequirement
 from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
 from hebog.stages.detection import (
-    DetectionStageConfig,
     DetectionStageResult,
     run_detection_from_coarse_grids,
     run_detection_stage,

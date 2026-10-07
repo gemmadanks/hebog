@@ -239,6 +239,14 @@ maximum_island_pixels=None, profile='continuum')
 
 
 @dataclass(frozen=True, slots=True)
+class DetectionStageConfig:
+    """Scientific policies required by the compact-detection stage."""
+
+    background_rms: BackgroundRmsConfig
+    source_finder: SourceFinderConfig
+
+
+@dataclass(frozen=True, slots=True)
 class ResidualMultiscaleDetectionConfig:
     """Promoted residual-B3 segmentation thresholds and topology rules."""
 

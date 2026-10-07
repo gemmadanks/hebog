@@ -30912,3 +30912,86 @@ the per-worker placement finding.
   (the plan's task 60). Existing check names are unchanged.
 - **Stacked on task 50.** Its weekly `slow-tests.yaml` workflow takes the
   same uv pin, and the pin test covers it.
+
+## 2026-10-06 — Task 59: the layering is one table
+
+- **Outcome.** The documented direction and the code agree. The direction
+  is redrawn as `adapters → pipeline/public_api → stages → science →
+  algorithms`, with `public_api → public_science → science`, `executors` and
+  `io` used by `stages` and `public_api`, and `data_models` and `config`
+  shared by every layer ([ADR-009](docs/architecture/adr/009-place-the-reviewed-science-below-the-stages.md)).
+  `LAYER_IMPORTS` in `tests/unit/test_architecture.py` states, as one table,
+  the `hebog` layers each of the 16 layers may import, and each exemption
+  names its reason and must still match. One class moved:
+  `DetectionStageConfig`, from `stages/detection.py` to `config.py`, beside
+  the other per-stage configurations. No module moved.
+- **Measured graph.** Every import statement of `src/hebog` at `9043b1db`,
+  at module scope, in a function or under `TYPE_CHECKING`. Against the old
+  direction, four imports from `stages` into `science`:
+  `stages/catalogue_rows.py` takes `science.catalogue_rows` and
+  `science.catalogues`, and `stages/islands.py` takes `science.catalogues`
+  and `science.models`. Against the redrawn one, one import:
+  `science/configuration.py` took `DetectionStageConfig` from
+  `stages.detection`. Outside any rule: `io/__init__.py` re-exports
+  `algorithms.astrometry.celestial_wcs_from_metadata`, and `pipeline.py`
+  imports `public_api` in a function while `public_api` imports the error
+  types from `pipeline`. No module imported Rapthor, Prefect or LSMTool,
+  only `executors/dask.py` imported `distributed`, and no production module
+  imported `hebog.validation`.
+- **Choice.** Redrawing needs one class move; moving the science below the
+  stages needs three module moves. `science/models.py` imports two algorithm
+  modules, so the records could not join `data_models`, which `algorithms`
+  imports, without a cycle; the row kernels would join `algorithms` under a
+  name that no longer says they are the reviewed catalogue; moving
+  `science/catalogue_rows.py` would rerun every PyBDSF reference once; and
+  `science` would still not compose the stages, which `public_api` does.
+  Redrawing describes what the packages already were: `science` holds the
+  reviewed profile and configuration, the composition records and the
+  catalogue-row kernels that the stages apply. Keeping the old direction
+  with the four stage imports exempted would leave a cycle, so the table
+  would describe no direction.
+- **The table and its rules.** Every layer has a row; the rows form no
+  cycle (`graphlib`), and `adapters` may import `pipeline`, `public_api`
+  `stages`, `stages` `science` and `science` `algorithms`, so no reverse
+  edge can be added; no production row names `validation`; and every
+  import of another layer must be in the importer's row. Two exemptions:
+  `io/__init__.py`'s re-export, and `pipeline.py`'s import of `public_api`,
+  which must also stay deferred. `executors/__init__.py`'s import of the
+  Dask executor must stay deferred too. Rapthor, Prefect and LSMTool are
+  refused in every module, `dask` and `distributed` everywhere but
+  `executors`, which must still import one, and relative imports, because
+  the table reads absolute names. The old rule that `pipeline.py` import
+  neither `executors.serial` nor `executors.dask` is now the layer rule
+  `pipeline → executors`: the Dask half stays enforced by the scheduler rule
+  and by the runtime test that importing `hebog.pipeline` loads no Dask,
+  and `executors/__init__.py` already imports the serial executor. Every
+  other earlier rule is now stricter; `algorithms`, for example, could
+  import `stages` before.
+- **The test fails for the intended reasons.** On the base code it failed
+  only on `science/configuration.py:18`. In a scratch copy of the final
+  code it failed on each of five injected violations: a stage importing
+  `hebog.validation` in a function, an adapter importing `rapthor.lib`, a
+  module-level import of `public_api` in `pipeline.py`, a `TYPE_CHECKING`
+  import of `distributed` in `science`, and a removed `io` re-export, whose
+  exemption then stopped matching.
+- **Products.** `find_sources` on four quick-check inputs (`close-blends`,
+  `edges-and-corners`, `extended-gaussians` and the sparse LoTSS-DR3 1312
+  window) under both profiles, before and after: all 24 FITS products
+  byte-identical, and the eight diagnostics files differ only in
+  `scientific_composition_sha256`, which binds the three changed modules.
+- **Quick check.** Not run: the products are byte-identical, and no module
+  of `REFERENCE_CODE` changed, so the cached PyBDSF references stay valid
+  and none reruns. Task 51's open point, a dedicated worker exit status for
+  the finder's own refusal, counted on task 59 to rerun the references
+  once; it now carries that rerun itself.
+- **Checks.** The portable suite with branch coverage: 3,139 passed and 2
+  xfailed, project coverage 97%; the moved class and every changed line are
+  covered, and the misses left in the changed files are lines this change
+  does not touch. The detection equivalence and integration tests, the
+  strict docs build, the Marimo check and notebook smoke run, the package
+  smoke test, `just check` and `just pre-commit` passed.
+- **Not run.** The quick science check and the quick benchmark: the
+  products are byte-identical and no timed path changed. Windows.
+- **Open.** `public_science.py` builds the terminal catalogues from science
+  records only; it could join `science/`, which would remove one row of the
+  table, but the move gains nothing the table needs now.

@@ -114,10 +114,11 @@ Every code change must satisfy:
   assertions or excluding difficult production code to preserve the number;
 - contract tests for interchangeable executors, storage boundaries, and
   adapters;
-- architecture checks that prevent workflow and scheduler dependencies from
-  leaking into algorithms and domain records, reject import-scope I/O and
-  orchestration calls, and keep concrete schedulers out of public-core imports;
-  and
+- architecture checks that state every layer's allowed imports as one table,
+  with each exemption named and required to still match; keep Rapthor,
+  Prefect and LSMTool out of the package and Dask inside the executors;
+  reject import-scope I/O and orchestration calls; and keep concrete
+  schedulers out of public-core imports; and
 - current documentation for public behaviour, configuration, or schema
   changes, with breaking changes identified but no pre-`1.0` migration
   guarantee.

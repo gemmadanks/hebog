@@ -63,16 +63,19 @@ Dependencies point inward. An inner layer never imports an outer one.
 ```mermaid
 flowchart TD
     adapters["adapters/<br/>Rapthor-compatible records and catalogue view"]
-    api["pipeline.py · public_api.py<br/>validation, I/O, atomic publication"]
-    science["science/ · public_science.py<br/>composition of the scientific stages"]
+    api["pipeline.py · public_api.py<br/>validation, I/O, the stages in order, atomic publication"]
+    public_science["public_science.py<br/>terminal catalogues from the published records"]
     stages["stages/<br/>tiling, halos, batching through an Executor"]
+    science["science/<br/>reviewed profile and configuration, records, catalogue-row kernels"]
     algorithms["algorithms/<br/>pure NumPy/SciPy kernels"]
     shared["data_models/ · config.py<br/>immutable records shared by every layer"]
     executors["executors/<br/>Serial · Thread · Dask"]
     io["io/<br/>FITS input, Zarr planes, product files"]
 
-    adapters --> api --> science --> stages --> algorithms
+    adapters --> api --> stages --> science --> algorithms
+    api --> public_science --> science
     api --> io
+    api --> executors
     stages --> executors
     stages --> io
     science -.-> shared
@@ -83,16 +86,25 @@ flowchart TD
 | Layer | Responsibility | Must not |
 | --- | --- | --- |
 | `algorithms/` | Arrays and immutable configuration in, arrays or records out | know about schedulers, files or adapters |
-| `stages/` | Wrap each kernel with tiles, halos and coarse batches | hold scheduler-specific objects |
-| `science/` | Compose stages into the reviewed scientific pipeline | depend on adapters or a concrete scheduler |
-| `public_api.py` | Validate input, plan tiles, run the composition, publish products atomically | leak open files or arrays into results |
+| `science/` | The reviewed profile and configuration, the composition records and the catalogue-row kernels | import stages, executors, `io` or adapters |
+| `stages/` | Apply the kernels of `algorithms/` and `science/` over tiles, halos and coarse batches | hold scheduler-specific objects |
+| `public_science.py` | Build the terminal catalogues from the records the stages published | run stages or read planes |
+| `public_api.py` | Validate input, plan tiles, run the stages in order, publish products atomically | leak open files or arrays into results |
 | `executors/` | Run batches serially, on threads, or on a caller-owned Dask client | create clusters |
 | `io/` | FITS windows in, Zarr intermediate planes, FITS and JSON products out | — |
 | `adapters/` | Translate to a consumer's names and formats | be imported by inner layers |
 
+`LAYER_IMPORTS` in `tests/unit/test_architecture.py` states, as one table,
+which layers each layer may import. An import outside it needs a named
+exemption with its reason, and the test fails when an exemption stops
+matching. The same test keeps Rapthor, Prefect and LSMTool out of the
+package, adapters included, and Dask inside `executors/`.
+[ADR-009](adr/009-place-the-reviewed-science-below-the-stages.md) records
+why `science/` sits below `stages/`.
+
 Importing `hebog` performs no I/O and does not import Dask; `DaskExecutor`
 loads only when requested. `hebog.validation` is development tooling and is
-excluded from wheels.
+excluded from wheels; no production layer imports it.
 
 ## Key decisions
 
@@ -102,6 +114,7 @@ excluded from wheels.
 | Large images are split into tiles with halos and reconciled hierarchically | [ADR-005](adr/005-scale-large-images-with-hierarchical-tiles.md), [ADR-008](adr/008-make-the-continuum-composition-tile-native.md) |
 | Zarr is the only intermediate image store; FITS is for input and final products | [ADR-007](adr/007-use-zarr-for-intermediate-image-storage.md) |
 | Internal schemas are versioned; compatibility formats live in adapters | [ADR-006](adr/006-isolate-compatibility-with-versioned-schemas.md) |
+| The reviewed science sits below the stages that apply it | [ADR-009](adr/009-place-the-reviewed-science-below-the-stages.md) |
 | Scope is limited to what the first consumer needs | [ADR-003](adr/003-limit-hebog-to-rapthor-source-finding-contract.md) |
 | Native code only after measured gates | [Native-code assessment](../explanation/native-code-assessment.md) |
 
