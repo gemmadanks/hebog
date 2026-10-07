@@ -27,12 +27,27 @@ class SourceFinderImageTooLargeError(SourceFinderError):
     """An input exceeds the public finder's bounded image-size envelope."""
 
 
+class SourceFinderStagingWarning(UserWarning):
+    """An earlier run left a hidden staging directory beside the output.
+
+    A run that is killed cannot remove its staging directory. The next run
+    to the same output removes one whose owner has provably stopped and
+    leaves any other in place; it reports each with this warning.
+    """
+
+
 def find_sources(
     request: SourceFinderRequest,
     config: SourceFinderConfig,
     executor: Executor,
 ) -> SourceFinderResult:
     """Analyse one supported FITS image and atomically publish its products.
+
+    A failed run raises only once no task it submitted is still running,
+    and removes everything it staged. A killed run leaves a hidden
+    staging directory, which the next run to the same output removes once
+    its owner has provably stopped or reports with a
+    ``SourceFinderStagingWarning``.
 
     The implementation is imported only when called so importing the public
     scheduler-independent API never loads a concrete I/O or scheduler layer.

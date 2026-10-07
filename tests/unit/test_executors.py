@@ -218,7 +218,6 @@ class _StubFuture:
         self.status = "error" if error is not None else "pending"
         self._value = value
         self._error = error
-        self.cancelled = False
 
     def settle(self) -> None:
         """Mark this task finished, as waiting on a cluster would."""
@@ -230,12 +229,6 @@ class _StubFuture:
         if self._error is not None:
             raise self._error
         return self._value
-
-    def cancel(self) -> None:
-        """Release this task, as cancelling on a cluster would."""
-        self.cancelled = True
-        if self.status == "pending":
-            self.status = "cancelled"
 
 
 class _StubClient:
@@ -519,7 +512,7 @@ def test_dask_reduction_counts_combines_against_the_in_flight_bound(
 def test_dask_reduction_stops_mapping_when_a_combine_fails(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A failed combine cancels the plan instead of waiting for the value."""
+    """A failed combine stops the plan instead of waiting for the value."""
     client = _StubClient()
     _patch_wait(monkeypatch, client)
 
@@ -561,3 +554,100 @@ def test_dask_reduction_releases_combines_when_it_succeeds(
     )
 
     assert client.outstanding() == 0
+
+
+def _fail_first_batch(value: int) -> int:
+    """Fail batch 0 and square every other batch."""
+    if value == 0:
+        raise RuntimeError("batch 0 failed")
+    return value**2
+
+
+def test_failed_dask_map_waits_for_every_task_it_submitted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Dask cannot stop a started task, so none is cancelled and left running.
+
+    Only a wait proves a task has stopped: a cancelled task a worker has
+    started keeps running, and writing, after the call returns.
+    """
+    client = _StubClient()
+    _patch_wait(monkeypatch, client)
+
+    with pytest.raises(RuntimeError, match="batch 0 failed"):
+        _stub_reduction_executor(client).map_batches(
+            _fail_first_batch, list(range(8))
+        )
+
+    # The window held three tasks when batch 0 failed; nothing more was
+    # submitted, and the two still pending were waited for.
+    assert [future.status for future in client.futures] == [
+        "error",
+        "finished",
+        "finished",
+    ]
+
+
+def test_dask_reduction_waits_for_its_mappers_when_a_combine_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A combine failing in the fold settles the mappers still in flight.
+
+    With every batch submitted, the failure surfaces in the reduction's
+    fold rather than in the mapper loop, while the last mapper is pending.
+    """
+    client = _StubClient()
+    _patch_wait(monkeypatch, client)
+    executor = _stub_executor(
+        client,
+        capacity=ExecutorCapacity(
+            worker_count=1,
+            threads_per_worker=1,
+            maximum_tasks_in_flight=4,
+        ),
+    )
+
+    with pytest.raises(RuntimeError, match="combine failed"):
+        executor.reduce_batches(_square, list(range(5)), _fail_to_combine)
+
+    assert {future.status for future in client.futures} <= {
+        "error",
+        "finished",
+    }
+
+
+def test_a_wait_the_client_cancels_keeps_the_failing_batch_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Losing the scheduler while a failed call waits keeps its own error.
+
+    The client cancels every future when it loses the scheduler, and a
+    cancelled future counts as settled, so the batch failure propagates
+    rather than the cancellation.
+    """
+    from distributed.client import FuturesCancelledError  # noqa: PLC0415
+
+    from hebog.executors import dask as dask_module  # noqa: PLC0415
+
+    client = _StubClient()
+
+    def cancel_while_waiting(futures: Iterable[Any], **keywords: Any) -> None:
+        del keywords
+        pending = [future for future in futures if future.status == "pending"]
+        for future in pending:
+            future.status = "cancelled"
+        if pending:
+            raise FuturesCancelledError([])
+
+    monkeypatch.setattr(dask_module, "wait", cancel_while_waiting)
+
+    with pytest.raises(RuntimeError, match="batch 0 failed"):
+        _stub_reduction_executor(client).map_batches(
+            _fail_first_batch, list(range(8))
+        )
+
+    assert [future.status for future in client.futures] == [
+        "error",
+        "cancelled",
+        "cancelled",
+    ]

@@ -217,6 +217,11 @@ All executors obey the same rules, so a defect shows up on a laptop under
 - Submission is bounded by `capacity.maximum_tasks_in_flight`. A
   `TaskRequirement` (memory and threads) narrows that bound and is refused up
   front if one task cannot fit one worker.
+- After a failure nothing more is submitted, and the call raises the first
+  failing batch's own error only once no task it submitted is still running,
+  so none writes into a work directory the caller is removing. Dask cannot
+  stop a task a worker has started, so `DaskExecutor` waits for every task
+  in flight rather than cancelling it.
 - Tasks are idempotent, so a `retry_limit` above zero is safe.
 
 Tasks are **coarse batches** of tiles or objects. Graph size scales with the
@@ -247,7 +252,8 @@ path.
 | Labels, masks, identifiers, catalogue membership and ordering do not depend on tile shape, partition origin, worker count, task order or retries | exact | contract and partition-invariance tests, including sources placed on tile edges and corners, and the complete public product set of an analytic image from one tile against an eight-by-eight grid, the most a 15,402-pixel image runs on, on an image whose last row of tiles is narrower than a filter halo and whose last column ends on a core edge |
 | Continuous filter responses agree across tilings | within 2 × 10⁻¹³ | multiscale partition-equivalence tests, with knife-edge threshold cases |
 | Serial, thread and Dask execution publish the same products | byte-identical scientific products | the shared executor contract suite; the public product set under each executor, on small tiles, for fitted fields with injected fit failures, high-threshold controls and the eight-by-eight grid image above; and one run on Dask workers in separate processes, so that every task's arguments and result are serialized |
-| A failed run leaves no partial output | — | write-then-rename publication; the run can be retried with the same request |
+| A failed run leaves no partial output, and nothing beside it | — | write-then-rename publication, so the run can be retried with the same request; the contract suite's failure tests, and a public run failing under each executor while another task writes |
+| A killed run's staging directory is reclaimed once its owner has provably stopped, and reported otherwise | — | owner-record and lock tests, and a `slow` test in the weekly slow lane that kills the owning process |
 
 ## What is not decided here
 

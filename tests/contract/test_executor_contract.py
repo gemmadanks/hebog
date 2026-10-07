@@ -49,6 +49,9 @@ class _Tracker:
     attempts: dict[int, int] = field(default_factory=dict[int, int])
     failing: frozenset[int] = frozenset()
     transient_failures: int = 0
+    later_batch_running: threading.Event = field(
+        default_factory=threading.Event
+    )
 
     def reset(self) -> None:
         """Forget every observation so tests cannot depend on order."""
@@ -59,6 +62,7 @@ class _Tracker:
             self.attempts = {}
             self.failing = frozenset()
             self.transient_failures = 0
+            self.later_batch_running = threading.Event()
 
     def enter(self, value: int) -> int:
         """Record one started call and return its attempt number."""
@@ -123,6 +127,44 @@ def fail_on_selected(value: int) -> int:
         return value**2
     finally:
         TRACKER.leave()
+
+
+# Long enough that a failure reaches the caller while a later batch still
+# runs, so a call returning without waiting for it is observable.
+_OUTLIVING_BATCH_SECONDS = 0.3
+# The serial reference never runs a later batch beside the failing one, so
+# the failing batch waits for one only this long.
+_LATER_BATCH_WAIT_SECONDS = 0.2
+
+
+def fail_first_while_later_batches_run(value: int) -> int:
+    """Fail batch 0 once a later batch runs, which outlives the failure."""
+    TRACKER.enter(value)
+    try:
+        if value == 0:
+            TRACKER.later_batch_running.wait(_LATER_BATCH_WAIT_SECONDS)
+            raise ProbeError("batch 0 failed")
+        TRACKER.later_batch_running.set()
+        threading.Event().wait(_OUTLIVING_BATCH_SECONDS)
+        return value**2
+    finally:
+        TRACKER.leave()
+
+
+def slow_label(value: int) -> str:
+    """Return one label, the later batches outliving a failed combine."""
+    TRACKER.enter(value)
+    try:
+        if value >= 2:
+            threading.Event().wait(_OUTLIVING_BATCH_SECONDS)
+        return f"[{value}]"
+    finally:
+        TRACKER.leave()
+
+
+def fail_to_concatenate(first: str, second: str) -> str:
+    """Fail every combine, so a reduction fails while mappers run."""
+    raise ProbeError(f"combine of {first} and {second} failed")
 
 
 def fail_transiently(value: int) -> int:
@@ -308,7 +350,7 @@ def test_executor_raises_the_lowest_index_failure(
 def test_executor_stops_submitting_after_a_failure(
     executor: Executor,
 ) -> None:
-    """A failure cancels the remaining plan instead of running it."""
+    """A failure stops the plan: nothing more is submitted after it."""
     TRACKER.failing = frozenset({0})
 
     with pytest.raises(ProbeError, match="batch 0 failed"):
@@ -319,6 +361,39 @@ def test_executor_stops_submitting_after_a_failure(
         # The failing batch may be retried up to the configured limit.
         + 1
     )
+
+
+def test_failed_map_returns_only_after_its_running_tasks_finish(
+    executor: Executor,
+) -> None:
+    """No task a failed call started may still run, and write, after it.
+
+    A caller removes its work directory when the call raises, so a task
+    still running then would recreate it with late writes.
+    """
+    with pytest.raises(ProbeError, match="batch 0 failed"):
+        executor.map_batches(
+            fail_first_while_later_batches_run, list(range(8))
+        )
+
+    assert TRACKER.active == 0
+    assert len(TRACKER.started) <= (
+        executor.capacity.maximum_tasks_in_flight
+        # The failing batch may be retried up to the configured limit.
+        + 1
+    )
+
+
+def test_failed_reduction_returns_only_after_its_running_tasks_finish(
+    executor: Executor,
+) -> None:
+    """A combine that fails while mappers run waits for them to finish."""
+    with pytest.raises(ProbeError, match="combine of"):
+        executor.reduce_batches(
+            slow_label, list(range(8)), fail_to_concatenate
+        )
+
+    assert TRACKER.active == 0
 
 
 def test_executor_retries_a_transient_failure(executor: Executor) -> None:

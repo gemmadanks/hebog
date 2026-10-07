@@ -1180,8 +1180,12 @@ def test_dropping_a_source_leaves_no_open_file(tmp_path: Path) -> None:
         del source
         gc.collect()
 
+    # Only this source's file counts: the collection can also finalize
+    # garbage an earlier test left on this worker.
     assert [
-        str(item.message) for item in log if item.category is ResourceWarning
+        str(item.message)
+        for item in log
+        if item.category is ResourceWarning and path.name in str(item.message)
     ] == []
 
 
@@ -1249,8 +1253,12 @@ def test_closing_releases_files_opened_on_other_threads(
         source.close()
         gc.collect()
 
+    # Only this source's file counts: the collection can also finalize
+    # garbage an earlier test left on this worker.
     assert [
-        str(item.message) for item in log if item.category is ResourceWarning
+        str(item.message)
+        for item in log
+        if item.category is ResourceWarning and path.name in str(item.message)
     ] == []
     np.testing.assert_array_equal(
         source.read_window(ImageBounds(0, 2, 0, 2)).values, [[0, 1], [4, 5]]

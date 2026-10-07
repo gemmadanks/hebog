@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 from collections import deque
-from collections.abc import Callable, Iterable, Iterator
+from collections.abc import Callable, Generator, Iterable
+from contextlib import suppress
 from typing import Any, TypeVar, cast
 
 from distributed import (
     Client,
     wait,  # pyright: ignore[reportUnknownVariableType]
 )
+from distributed.client import FuturesCancelledError
 
 from hebog.executors.base import (
     ExecutorCapacity,
@@ -26,6 +28,22 @@ Output = TypeVar("Output")
 # Enough runnable work to keep every admitted thread busy while one batch
 # waits on storage, without publishing the whole plan to the scheduler.
 _TASKS_IN_FLIGHT_PER_THREAD = 2
+
+
+def _wait_for_submitted(futures: Iterable[Any]) -> None:
+    """Return once no task behind ``futures`` can still be running.
+
+    Dask cannot stop a task a worker has started, and a future does not say
+    whether its task has started, so every pending task is waited for:
+    cancelling one would leave it running unobserved. A future already
+    settled, cancelled included, is not waited for again, and one the
+    client cancels during the wait, as it does when it loses the scheduler,
+    counts as settled, so the failure that started the wait propagates.
+    """
+    pending = [future for future in futures if future.status == "pending"]
+    if pending:
+        with suppress(FuturesCancelledError):
+            wait(pending)
 
 
 class _BoundedWindow:
@@ -72,9 +90,8 @@ class _BoundedWindow:
         self._reserved.append(future)
 
     def release_reserved(self) -> None:
-        """Release combines whose result no caller will read."""
-        for future in self._reserved:
-            future.cancel()
+        """Wait for every combine still running, then release them all."""
+        _wait_for_submitted(self._reserved)
         self._reserved = []
 
 
@@ -155,14 +172,14 @@ class DaskExecutor:
         requirement: TaskRequirement | None,
         *,
         window: _BoundedWindow | None = None,
-    ) -> Iterator[Any]:
+    ) -> Generator[Any]:
         """Yield completed futures in input order, bounding submission.
 
         A reduction passes its own window, so its combines occupy the same
         bound as its mappers. When the window is full this loop consumes a
         mapper, or waits for a combine when no mapper is in flight; it never
-        submits past the bound. Counting combines may raise, which cancels
-        the rest of the plan exactly as a failed mapper does.
+        submits past the bound. Counting combines may raise, which stops
+        the plan exactly as a failed mapper does.
         """
         self.capacity.admit(requirement)
         prepared = require_serializable_payloads(function, batches)
@@ -194,10 +211,11 @@ class DaskExecutor:
                     future.result()
                 yield future
         finally:
-            # Release the rest of the plan rather than running work whose
-            # result no caller will read.
-            for remaining in window.mappers:
-                remaining.cancel()
+            # Nothing more of the plan is submitted, and the call returns only
+            # once no task it submitted can still be running, so none writes
+            # into storage its caller is already removing. The in-flight
+            # bound limits that wait.
+            _wait_for_submitted(window.mappers)
             window.mappers.clear()
 
     def map_batches(
@@ -227,8 +245,9 @@ class DaskExecutor:
         bound as the mappers, so a reduction never runs more tasks than the
         caller admitted. They are checked for failure as the reduction
         proceeds, so a failed combine stops submission instead of surfacing
-        only when the final value is gathered, and every combine still
-        running is released when the reduction ends, however it ends.
+        only when the final value is gathered. However the reduction ends,
+        it waits for every mapper and combine it submitted and then releases
+        them.
         """
         require_serializable(combine, name="combine")
         window = _BoundedWindow(
@@ -247,15 +266,15 @@ class DaskExecutor:
             window.reserve(future)
             return future
 
+        mapped = self._ordered_futures(
+            function, batches, requirement, window=window
+        )
         try:
-            reduced = reduce_in_canonical_order(
-                self._ordered_futures(
-                    function, batches, requirement, window=window
-                ),
-                combine_on_worker,
-            )
+            reduced = reduce_in_canonical_order(mapped, combine_on_worker)
             return cast(Output, reduced.result())
         finally:
-            # A failed or gathered reduction releases its combines rather
-            # than leaving worker-side work nobody will read.
+            # A combine can fail while mappers run. Closing the generator
+            # settles them now rather than whenever it is collected; the
+            # combines are settled and released after them.
+            mapped.close()
             window.release_reserved()

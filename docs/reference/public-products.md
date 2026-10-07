@@ -455,6 +455,51 @@ existing-output failures do not publish the requested bundle. Analysis or
 product-validation failures use the same all-or-nothing directory boundary,
 so the caller can retry after addressing the cause.
 
+### What a failed or killed run leaves
+
+A run builds its work planes and its product bundle in a hidden staging
+directory beside the output, `.<output name>.<random>`, and removes it before
+`find_sources()` returns or raises. A failure inside an executor task reaches
+the caller as that task's own exception, and only once no task the run
+submitted is still running, so no late write can recreate the staging
+directory: an executor submits nothing more after a failure, cancels what
+has not started and waits for what has. Dask cannot stop a task a worker has
+started, and a Dask future does not say whether its task has started, so
+`DaskExecutor` waits for every task it has in flight, at most
+`capacity.maximum_tasks_in_flight`. A task that never finishes holds the
+call open, as it would in a successful run; a caller that needs a deadline
+sets one around the call and stops the process when it passes.
+
+A process that is killed cannot remove its staging directory, so the
+directory records its owner. `owner.json` names the output, the run
+identifier, the host, the process identifier and the start time, and the
+owner holds an exclusive lock on `owner.lock` while it runs. The operating
+system releases that lock when the process ends, however it ends. Before it
+starts, the next run to the same output inspects each staging directory
+beside it:
+
+| Staging directory found | What the next run does |
+| --- | --- |
+| Recorded on this host, and its lock is free | Removes it: the owner has stopped. |
+| Its owner still holds the lock | Leaves it in place: the owner is running. |
+| Recorded on another host, or by an owner whose filesystem could not lock | Leaves it in place: a lock seen from here proves nothing about that owner. |
+| No owner record this version of Hebog reads | Leaves it in place. |
+
+Each is reported with a `SourceFinderStagingWarning` naming the directory,
+and its owner when one is recorded, and the run continues in a staging
+directory of its own. Only a run to the same output looks: a retry under a
+new output name leaves an earlier attempt's directory unreported. A
+directory left in place stays until its owner finishes or someone removes
+it; remove one only once the run it names has stopped. A killed run
+publishes nothing, so the same request can run again.
+
+The lock proves only that the process that called `find_sources()` has
+stopped. Tasks it had already submitted to a Dask cluster that outlives it
+still run to completion and may write into the directory after the next run
+has removed it. What they recreate holds no owner record, so it is reported
+and left in place. Before running the request again after killing the
+process, let the cluster finish those tasks or restart its workers.
+
 ## Evaluation checklist for astronomers
 
 Before using a bundle as scientific evidence:

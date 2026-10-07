@@ -30714,3 +30714,103 @@ the per-worker placement finding.
   `test_generated_measurement_matrix.py`, which no lane runs until task
   50. The calibration script itself, ten 1,024² runs; its read-back is
   tested on a 128² run, though not the summary `main` writes. Windows.
+
+## 2026-10-06 — Task 47: a failed run waits for its tasks, and a killed run's staging names its owner
+
+- **Outcome.** A failed `find_sources` raises the failing task's own error
+  only once no task it submitted is still running, under Serial, Thread and
+  Dask execution, so nothing is left beside the output. The hidden staging
+  directory records its owner. The next run to the same output removes one
+  whose owner has provably stopped, and reports every one it finds with a
+  new public `SourceFinderStagingWarning`. The product reference's
+  failure-handling section says what a failure and a kill leave.
+- **Cause.** On a failure the thread and Dask executors cancelled their
+  in-flight futures and returned, but neither can stop a task that has
+  started, so its later writes recreated the staging directory
+  `find_sources` had just removed. A combine that failed in the thread
+  reduction left its generator suspended, so even the batches not yet
+  started were cancelled only when it was collected. The new public test
+  shows two symptoms on the previous executors: under threads the caller
+  saw `OSError: Directory not empty` from the cleanup racing a late write
+  instead of the task's error, and under Dask a write was still running
+  when the call raised.
+- **Decisions, proposed and easy to change.**
+    - *Waiting.* `ThreadExecutor` cancels what has not started and waits
+      for what has. A Dask future does not say whether its task has
+      started, so `DaskExecutor` cancels nothing and waits for every task
+      it has in flight, at most the admitted in-flight bound; nothing more
+      is submitted. Cancelling only queued Dask tasks would need a
+      scheduler query that races with the start, or a cluster-wide event
+      that every task checks. A task that never finishes holds the call
+      open, as it would in a successful run: the caller sets any deadline
+      around the call, and a stopped process leaves a staging directory
+      the next run handles. A wait the client cancels, as it does when it
+      loses the scheduler, counts as settled, so the task's own error still
+      reaches the caller.
+    - *Ownership.* `owner.json` records the output, run, host, process,
+      UTC start and whether the owner holds the lock, under schema
+      version 1; the owner holds an exclusive lock on `owner.lock` for as
+      long as the record exists, through `fcntl.flock` on POSIX and
+      `msvcrt.locking` on Windows, both standard library. The record is
+      written after the lock is taken and removed before it is released,
+      so a run scanning while another starts or finishes never takes it for
+      a stopped one. The operating
+      system releases the lock however the process ends, so a lock this
+      host can take proves the owner has stopped. A process-identifier
+      check was declined: `os.kill(pid, 0)` terminates the process on
+      Windows, a reused identifier looks alive, and a container sharing
+      the host name but not the process namespace would see a live owner
+      as gone and remove its planes. A directory is reclaimed only when
+      its record names this output and this host and says the owner held
+      the lock; a shared filesystem may keep locks per host. A filesystem
+      that cannot lock does not stop a run, and its directory is reported,
+      never reclaimed. Only a run to the same output looks, so a retry
+      under a new output name must remove a killed attempt's directory
+      itself; the pipeline guide says so.
+    - *Limit.* The lock proves only that the calling process stopped.
+      Tasks it had submitted to a Dask cluster that outlives it still run,
+      and may recreate the directory after it is reclaimed, without a
+      record, so it is then reported and never removed. The product
+      reference tells the caller to let such tasks finish, or restart the
+      workers, before rerunning; making an orphaned write fail instead is
+      possible but not done.
+    - *Report.* A Python warning, one per leftover, attributed to the
+      caller's line. A leftover never stops the run, and the result record
+      and products are unchanged.
+- **Evidence.** The review's reproductions, run from a scratch copy against
+  this tree: the three late writes of the thread case now finish before
+  the caller sees the failure, and the directory stays absent; the Dask
+  case with two process workers leaves nothing. The new contract, stub and
+  public tests fail on the previous executors for the stated reason and
+  pass now. A `slow` test kills a process holding a staging directory: the
+  scan leaves it while the process runs and reclaims it once it is dead.
+  An independent review found no P0 or P1 issue; its P2, the orphaned
+  Dask writes above, is documented, and its P3 findings are fixed: the
+  owner unlocks explicitly before closing, the lock no longer waits, the
+  record goes before the lock, the cancelled wait keeps the task's error,
+  and two tests were tightened.
+- **Checks on the final code.** `just coverage`: 3,398 passed and 2
+  xfailed, 97% branch-aware; `executors/base.py`, `executors/threads.py`
+  and `pipeline.py` at 100%, `executors/dask.py` 97% and `public_api.py`
+  99% with only lines already missed before, and `io/staging.py` 93%,
+  missing only the Windows branch. `just pre-commit` (Ruff, strict
+  Pyright, the unit tests and the strict docs build) passes without
+  changes.
+- **Not run.** Windows: CI runs the portable lane there, `msvcrt` lock
+  included, but coverage is measured on Linux, so that four-line branch is
+  uncovered, as `rename_without_replacement`'s is. The quick science check
+  and benchmarks: no science changed, and a successful run only adds a
+  small record and a lock; a failed run waits for at most one in-flight
+  window. The `slow` kill test runs in the weekly slow lane task 50 added.
+- **Scope.** `find_sources` is the only writer that stages products: task
+  58 removed the Rapthor adapter's combined product writer, which staged
+  with a plain temporary directory.
+- **Found on the stack.** Under task 50's warnings-as-errors, one full
+  coverage run reported this test's input left open and finalized by the
+  collector during a later test; three focused reruns did not reproduce
+  it. A failed task's traceback can keep its handle on the input alive
+  past the run, and in a reference cycle the collector may finalize the
+  file before the source that would close it. The test's executor
+  fixture now collects that garbage where the failure is expected, and
+  the open-file tests count only their own file. Whether a failed run
+  should close every task's handle deterministically is left to task 25.

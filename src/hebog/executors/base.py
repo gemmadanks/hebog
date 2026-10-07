@@ -4,7 +4,8 @@ One contract governs the serial reference, a caller-owned thread pool and a
 caller-owned Dask client: results follow input order, submission and gathering
 stay bounded, reductions combine in one partition-independent tree, payloads
 must be serializable, idempotent tasks may be retried, the first failing batch
-by index propagates and the remaining plan is cancelled.
+by index propagates, the rest of the plan is not submitted, and a call returns
+or raises only once no task it submitted is still running.
 """
 
 from __future__ import annotations
