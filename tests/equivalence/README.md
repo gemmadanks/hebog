@@ -11,10 +11,11 @@ products.
 
 The independent comparison primitives and their analytic unit tests live in
 `hebog.validation.comparison` and `tests/unit/validation/test_comparison.py`.
-The one-to-one catalogue assignment maximizes match count, then matched
-integrated flux, then angular proximity. Product readers and frozen-reference
-tests must call this implementation rather than reproduce matching or report
-calculations in an integration test.
+The one-to-one catalogue assignment maximizes match count, then minimizes
+total angular separation, and uses integrated-flux agreement only to break
+ties. Product readers and frozen-reference tests must call this
+implementation rather than reproduce matching or report calculations in an
+integration test.
 
 Persist each released-PyBDSF, pinned-`master`, and Hebog/reference comparison
 as a separate `ScientificComparisonEvidence` document. Candidate/reference

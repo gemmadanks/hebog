@@ -101,6 +101,15 @@ one-tile overhead record uses the separate strict model in
 the committed records are complete typed evidence rather than copied console
 summaries.
 
+A unit test loads every typed record through its model and requires every
+file in the directory to have a model or to be one of the three inventories
+without one (`phase-0-reference-environments.json`,
+`phase-0-representative-dataset.json` and `phase-0-starting-revisions.json`),
+whose tests read the fields they bind. The master-versus-release comparison
+is written by `scripts/validation/compare_reference_products.py`, and the
+equivalence lane reruns that script and requires the committed record, so a
+change to the comparison oracle that moves it fails there.
+
 ::: hebog.validation.evidence
     options:
       show_symbol_type_toc: true

@@ -554,7 +554,13 @@ def truth_metrics(
     maximum_separation_beams: float,
     noise_rms_jy_per_beam: float,
 ) -> MetricValues:
-    """Compare published Gaussian components with injected truth."""
+    """Compare published Gaussian components with injected truth.
+
+    ``truth.snr10_completeness`` is the fraction of truth sources with a
+    peak of at least ten times the noise that the full assignment pairs with
+    a component, so a component paired with a fainter neighbour does not
+    also count as recovering a bright source.
+    """
     report = compare_catalogues(
         truth,
         components,
@@ -566,19 +572,15 @@ def truth_metrics(
         report, "right-ascension"
     )
     metrics["truth.declination_coverage"] = _coverage(report, "declination")
-    bright = [
-        source
+    matched = {match.reference_identifier for match in report.matches}
+    bright_recovered = [
+        source.identifier in matched
         for source in truth
         if source.peak_flux_jy_per_beam >= _SNR_BRIGHT * noise_rms_jy_per_beam
     ]
     metrics["truth.snr10_completeness"] = (
-        compare_catalogues(
-            bright,
-            components,
-            beam_fwhm_degrees=beam_fwhm_degrees,
-            maximum_separation_beams=maximum_separation_beams,
-        ).completeness
-        if bright
+        sum(bright_recovered) / len(bright_recovered)
+        if bright_recovered
         else None
     )
     return metrics

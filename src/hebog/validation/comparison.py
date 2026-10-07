@@ -5,8 +5,9 @@
 """Independent scientific comparison reports for governed validation.
 
 Catalogue matching uses canonical degrees and janskys. It maximizes the number
-of valid matches, then total matched integrated flux, then angular proximity.
-Array reports never broadcast inputs and state how many pixels were excluded.
+of pairs inside the separation gate, then minimizes their total angular
+separation, and uses integrated-flux agreement only to break ties. Array
+reports never broadcast inputs and state how many pixels were excluded.
 """
 
 from __future__ import annotations
@@ -76,6 +77,11 @@ _UNCERTAINTY_METRICS: tuple[UncertaintyMetric, ...] = (
     "deconvolved-minor-axis",
     "deconvolved-position-angle",
 )
+# Flux agreement breaks separation ties. Each pair's cost carries this weight,
+# in beam FWHM, times a flux difference below one: far below any separation a
+# catalogue resolves, and far above the solver's rounding, which scales with
+# the outside-gate cost of (pairs + 1) * (gate + 1) beams.
+_FLUX_TIE_BREAK_BEAMS = 1e-9
 _MINIMUM_MEAN_INTERVAL_SAMPLES = 2
 _MINIMUM_DISPERSION_INTERVAL_SAMPLES = 3
 _MINIMUM_INTERVAL_CLUSTERS = 2
@@ -407,7 +413,22 @@ def _match_indices(
     beam_fwhm_degrees: float,
     maximum_separation_beams: float,
 ) -> tuple[tuple[int, int, float], ...]:
-    """Assign valid pairs using the documented lexicographic objectives."""
+    """Pair rows one to one inside the gate, nearest first.
+
+    The assignment maximizes the number of pairs separated by at most
+    ``maximum_separation_beams``, then minimizes the sum of their
+    separations. Each pair's cost also carries
+    ``_FLUX_TIE_BREAK_BEAMS`` times its symmetric integrated-flux
+    difference ``|c - r| / (c + r)``, which lies in [0, 1), so flux agreement
+    decides only between pairings whose separation sums differ by less than
+    that weight per pair. Pairings tied on both are resolved
+    deterministically for a given input order.
+
+    The solver pairs as many rows as the shorter catalogue holds. A pair
+    outside the gate is not reported, and costs more than any set of pairs
+    inside it, so an assignment with one more pair inside the gate always
+    costs less: the count comes first.
+    """
     if len(reference) == 0 or len(candidate) == 0:
         return ()
     separations_beams = (
@@ -422,22 +443,21 @@ def _match_indices(
         [source.integrated_flux_jy for source in candidate],
         dtype=np.float64,
     )[np.newaxis, :]
-    matched_flux = np.minimum(reference_flux, candidate_flux)
-
-    total_flux_bound = float(reference_flux.sum() + candidate_flux.sum())
-    match_count_bonus = total_flux_bound + 1.0
-    proximity_scale = match_count_bonus * np.finfo(np.float64).eps * 16.0
-    normalized_separation = separations_beams / maximum_separation_beams
-    scores = match_count_bonus + matched_flux
-    scores -= proximity_scale * normalized_separation
-    invalid_score = -match_count_bonus * (
-        min(len(reference), len(candidate)) + 1
+    # Fluxes are positive, so the sum is never zero.
+    flux_difference = np.abs(candidate_flux - reference_flux) / (
+        candidate_flux + reference_flux
     )
-    scores = np.where(valid_pairs, scores, invalid_score)
+    pair_limit = min(len(reference), len(candidate))
+    outside_gate_cost = (pair_limit + 1) * (maximum_separation_beams + 1.0)
+    costs = np.where(
+        valid_pairs,
+        separations_beams + _FLUX_TIE_BREAK_BEAMS * flux_difference,
+        outside_gate_cost,
+    )
 
     reference_indices, candidate_indices = _linear_sum_assignment(
-        scores,
-        maximize=True,
+        costs,
+        maximize=False,
     )
     return tuple(
         (

@@ -20,13 +20,21 @@ components, or another row type before constructing these records; those
 concepts are not interchangeable.
 
 `compare_catalogues` forms all pairs inside the caller's beam-normalized
-angular-separation gate and uses a global one-to-one assignment. The assignment
-objectives are lexicographic:
+angular-separation gate, the boundary included, and uses a global one-to-one
+assignment. The assignment objectives are lexicographic:
 
-1. maximize the number of valid pairs;
-2. maximize the sum of the smaller reference/candidate integrated flux in each
-   pair, resolving blend ambiguities without rewarding flux duplication;
-3. minimize great-circle angular separation.
+1. maximize the number of pairs inside the gate;
+2. minimize the sum of their great-circle angular separations;
+3. break ties by integrated-flux agreement: the smallest sum of the symmetric
+   flux difference `|candidate - reference| / (candidate + reference)`.
+
+Position decides before flux, so two objects sharing a gate are paired by the
+smallest total separation even when the crossed pairing would agree better in
+flux; the flux errors then report the disagreement rather than hide it. Flux
+enters each pair's cost with a weight of 10⁻⁹ beam, so it decides only
+between pairings whose separation sums differ by less than that per pair,
+which covers coincident rows and differences of rounding. Pairings tied on
+both are resolved deterministically for a given input order.
 
 Right ascension wraps at 360 degrees. Reported positions are separations in
 beam FWHM; flux differences are signed fractions of the reference value, with

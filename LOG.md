@@ -30635,3 +30635,82 @@ the per-worker placement finding.
   once, and is the natural place. Prepared remote cut-outs are still found
   by their configured path, so a changed remote window under one path
   reuses the old cut-out.
+
+## 2026-10-05 — Task 52: the matcher pairs by position first
+
+- **Outcome.** `compare_catalogues` maximizes the number of pairs inside
+  the gate, then minimizes their total separation, and uses
+  integrated-flux agreement only to break ties, as the maintainer decided
+  on 5 October. The quick check's bright completeness comes from the full
+  assignment, the calibration script records the point estimator each run
+  used, and every `config/baselines` file loads through its model or is a
+  named inventory without one.
+- **Decision statement.** Observed: the old objective maximized the summed
+  smaller flux of each pair ahead of separation, so two candidates exactly
+  on two truth positions were crossed at 0.60 beam when that agreed better
+  in flux (review, 4 October). Cause: the order of the objectives.
+  Expected change: none on today's cases, where no generated truth source
+  has another inside the gate. Independent test: the review's crossed pair
+  is now paired at 0 beam.
+- **Matcher.** One `scipy.optimize.linear_sum_assignment` minimizes, over
+  pairs inside the gate, the separation in beams plus 10⁻⁹ beam times the
+  symmetric flux difference |c − r| / (c + r), which lies in [0, 1). A
+  pair outside the gate costs more than any set of pairs inside it, so the
+  count comes first, and flux decides only between pairings whose
+  separation sums differ by less than 10⁻⁹ beam a pair: coincident rows
+  and rounding. Tests cover the crossed pair, a global assignment beating
+  nearest-first, count before separation, an exact tie in every input
+  order, flux outweighing a separation excess of 1.4 × 10⁻¹² beam but not
+  one of 1.4 × 10⁻⁴, and the inclusive gate boundary, set to the oracle's
+  own separation so that no platform's trigonometry decides it.
+- **Bright completeness.** `truth.snr10_completeness` is the fraction of
+  SNR ≥ 10 truth sources the full assignment pairs. The review's case, one
+  component on a faint neighbour inside an undetected bright source's
+  gate, now gives 0 instead of 1.
+- **Calibration script.** `measure_component_uncertainty_calibration.py`
+  records `requested_point_estimator` and, from each run's diagnostics,
+  `point_estimators_run` and `point_estimator_fallbacks` over the
+  published components' fits; the old `point_estimator` key held the
+  request. An integration test runs a 128² image under `correlated-gls`
+  and reads back two correlated-GLS fits with no fallback.
+- **The baseline that did not load.**
+  `phase-0-pybdsf-master-vs-release-comparison.json` predated the shape,
+  association and uncertainty fields of the catalogue report, and its
+  generator, `scripts/validation/compare_reference_products.py`, raised
+  because PyBDSF rows carry shapes and the oracle requires an explicit
+  position-angle population. The generator now passes 1.1, the compact
+  contract's ratio, and rewrote the file. Every value the file held is
+  unchanged except the two product-set digests, which
+  `canonical_product_set_sha256` computes through a model that has since
+  gained `source_tree_sha256` (null here). The product files and their
+  manifest checksums are unchanged.
+- **No committed baseline moves.** The regenerated comparison keeps its
+  three pairs at 0 beam, and a new equivalence test reruns its generator
+  and requires the committed record. A unit test loads the seven typed
+  baselines through their models and requires the directory to equal them
+  plus the three inventories without a model. The quick science check
+  `task52` reports all 370 metrics of its 17 cases equal to
+  `typed-refusals-final`. No other committed record comes from this
+  matcher: the calibration scripts match each truth source to its nearest
+  catalogue entry within a beam, on isolated grids.
+- **Independent review.** A separate agent, given the request, the diff
+  and `CODE_REVIEW.md`, found nothing at P0 or P1; with the old matcher
+  patched in only the crossed-pair test failed, and a 3,500-row stress case
+  resolved 1,500 exact ties by flux. Its findings changed the tests: the
+  boundary case had relied on 0.5° surviving the great-circle formula
+  exactly, which another platform's trigonometry need not do, and the
+  "tie within rounding" case was an exact tie, so neither tested what it
+  named. Both are replaced as described above.
+- **Checks on the final code.** The portable suite under coverage, run
+  before the review's test replacements, which changed no production code:
+  3,393 passed and 2 xfailed, 97% branch-aware project coverage, with
+  every changed line and branch of `comparison.py` and `quick_check.py`
+  covered (both files 95%; the misses are in unchanged functions). The
+  equivalence lane: 28 passed. `just check` on the final code: lint,
+  format and strict types clean, 2,194 unit tests passed and 2 xfailed.
+  The strict docs build and `just pre-commit` passed.
+- **Not run.** The slow lane's matcher users, the correlated-noise
+  calibration and edge-source availability tests in
+  `test_generated_measurement_matrix.py`, which no lane runs until task
+  50. The calibration script itself, ten 1,024² runs; its read-back is
+  tested on a 128² run, though not the summary `main` writes. Windows.
