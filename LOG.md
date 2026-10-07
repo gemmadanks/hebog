@@ -31271,3 +31271,80 @@ the per-worker placement finding.
 - **Not run.** The slow lane, the quick benchmark (no timed path changed:
   the rule replaces fields of rows already built), Dask beyond the
   integration suite's executor matrix, and Windows.
+
+## 2026-10-07 — Task 63: the RMS beside a noise step reads the noise there
+
+- **Outcome.** The rule the maintainer chose on 7 October is implemented.
+  A bright-region fine cell whose nearest clean window lies more than one
+  fine window (35 pixels) away has no fine RMS, so the coarse RMS stands
+  there (`prepare_refinement_rms_grid`); the background is filled as
+  before. The bright-region refinement only raises the RMS above the
+  coarse estimate (`blend_adaptive_background_rms`). Local noise is
+  unchanged (task 65). The reach is the configured fine window, passed by
+  `_refine_bright_regions`; the protected coarse grid keeps its unbounded
+  fill. Implemented by the agent that diagnosed it, reviewed and stacked
+  here.
+- **Figures.** On the `crowded-field` input with its left 40 columns scaled
+  by 0.2, the RMS over columns 40 to 198 has a median of 1.02×10⁻⁴, a 5th
+  percentile of 8.5×10⁻⁵ and a minimum of 8.3×10⁻⁵ (10⁻⁴ true), and the
+  field publishes 985 sources, 159 beside the strip (994 and 155 unscaled;
+  1,364 and 484 before). Ten other step variants (scale 0.1, 0.2 and 0.3;
+  20, 40, 80 and 160 columns; top, bottom, right and central strips)
+  publish 977 to 989 sources with the RMS beside the step at 5.9×10⁻⁵ or
+  more; the 0.1/40 input, which task 64's refusal stopped, completes. A
+  quiet strip narrower than the 150-pixel coarse window reads the coarse
+  mixture, 6.4 to 9.9×10⁻⁵ against 2×10⁻⁵ (PyBDSF 6.1×10⁻⁵ on 0.2/40); the
+  160-column strip reads 2.3×10⁻⁵. Serial on default and 97×111 cores,
+  four threads and in-process Dask publish identical catalogue, RMS and
+  mask hashes on the 0.2/40 input.
+- **`compact`.** It shares the blend, so its RMS also rises where the fine
+  estimate read lower. On five quick-check inputs (`compact-snr-ladder`,
+  `dense-field`, both sparse cut-outs and `crowded-field`) 0 to 58% of
+  pixels rise, by a median of 1.7 to 6.6% where they do; sources and islands are unchanged except
+  `crowded-field` (994 to 987). Against pinned `master`'s RMS map the
+  `compact` difference falls or holds (LoTSS-DR3 sparse p95 7.2% to 6.5%,
+  SDC1 sparse 5.7% to 4.5%, `compact-snr-ladder` 1.8% to 1.7%) except on
+  `crowded-field` (p95 21.5% to 22.7%; median 2.6% to 2.4%).
+- **Tests.** Integration: the 0.2/40 field's RMS beside the strip and its
+  source counts, within the bounds the plan set (median within 10% of
+  10⁻⁴, 5th percentile at least 7×10⁻⁵, minimum at least 5×10⁻⁵, at most
+  175 sources beside the strip and 1,050 in all), which failed on the old
+  code at a median of 3.4477×10⁻⁵; the bounded fill under Serial, threads
+  and Dask on 13×11 cores. Unit: the reach's boundary on an axis and a
+  diagonal, the nearer of two clean windows, no change within reach, an
+  unavailable grid, invalid reaches and an unavailable coarse grid, and the
+  raise-only blend against the old one and never below the coarse RMS;
+  each fails with the old blend or fill restored.
+- **Changed tests.** Task 61's quiet-strip reproduction reached its
+  split-owner round only through the collapsed RMS, so it now stands that
+  estimate in through the substituted background stage; with it the code
+  before task 61 still refuses. The 512-pixel correlated crowded field
+  publishes 233 islands for 231, each change within a pixel of an injected
+  source, and compact source 61 leaves the exempted join, which is now
+  `{76, 77}`: the noise there is the coarse estimate, 6 to 10% higher.
+- **Plan.** Task 63 is removed. Task 64's reproduction, the 0.1/40 input,
+  now completes, so its regression test stands in the old estimate as task
+  61's does.
+- **Quick check** `task63`, stacked on task 57, against `task57`: no
+  regression, and only `crowded-field` changes: 994 sources and 995
+  components (996 and 999), reliability against truth 0.999 to 1.000,
+  completeness against truth 0.975 to 0.972 and against `master` 0.986 to
+  0.985, and the RMS against `master` 5.6% to 4.6% in median and 26.7% to
+  24.7% at p95. `task63` is the next baseline.
+- **Independent review.** Before stacking, the `compact` measurement above
+  and a read of the kernels, wiring and the two changed tests; nothing to
+  change.
+- **Docs.** `how-hebog-works.md` and `public-products.md` describe the
+  reach and the raise-only rule; `how-hebog-works.md` and
+  `configure-a-run.md` no longer say only `continuum` refines near bright
+  sources, which `compact` also does with unprotected windows.
+- **Checks on the stacked code.** The portable suite under coverage: 3,424
+  passed and 1 xfailed, 97% branch-aware project coverage; every changed
+  line of `algorithms/background.py` and `stages/background.py` is
+  covered, and their misses are existing validation branches. The
+  equivalence lane: 33 passed. `just check`, the strict docs build and
+  `just pre-commit`.
+- **Not run.** The slow lane, Dask process workers, the quick benchmark (a
+  distance transform and one interpolation on the bright-region grid, and
+  an elementwise comparison in the blend; the quick check's Hebog time was
+  150 s against 166 s for `task57`, on a shared machine) and Windows.

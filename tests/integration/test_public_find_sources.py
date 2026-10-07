@@ -1588,7 +1588,7 @@ def _correlated_crowded_field(
     ("size", "spacing", "islands", "fitted_compact", "compact_joins"),
     (
         (256, 24, 105, 80, set[frozenset[int]]()),
-        (512, 32, 231, 190, {frozenset({61, 76, 77})}),
+        (512, 32, 233, 190, {frozenset({76, 77})}),
     ),
 )
 def test_compact_sources_in_a_crowded_correlated_field_stay_separate(  # noqa: PLR0913, PLR0917
@@ -1614,8 +1614,10 @@ def test_compact_sources_in_a_crowded_correlated_field_stay_separate(  # noqa: P
     injected source, with one exception: in the 512-pixel field resolved
     source 60 lies on the wing of the much brighter resolved source 76 with
     no peak of its own, so it gets no component, and its residual joins the
-    compact sources 61 and 77 beside 76 to it; without source 60 all three
-    stay apart. Residual and arc evidence still join a few resolved
+    compact source 77 beside 76 to it; without source 60 the two stay apart.
+    (Compact source 61, beside them, shared their island and source until
+    plan task 63 raised the noise there to the coarse estimate, which splits
+    it off.) Residual and arc evidence still join a few resolved
     sources. The test exempts them and that one group, and fails once
     either exemption no longer matches.
     """
@@ -1685,18 +1687,16 @@ def test_compact_sources_in_a_crowded_correlated_field_stay_separate(  # noqa: P
     assert any(not group & compact for group in joined)
 
 
-@pytest.mark.integration
-def test_a_crowded_field_with_a_quiet_strip_restores_a_split_owner(
-    tmp_path: Path,
-) -> None:
-    """The quick check's crowded field, its left 40 columns scaled by 0.2.
+_QUIET_STRIP_COLUMNS = 40
+_CROWDED_FIELD_NOISE_JY_PER_BEAM = 1e-4
 
-    Support refinement labelled a recovered pixel of one owner's own flood
-    with the neighbouring owner nearest to it, so the restore round saw the
-    owner whole while publication split it into its body and a pixel two
-    rows below, and the bridge round stopped the run with a bare
-    ``ValueError`` (plan task 61). The owner is now restored, and its tail
-    joins that pixel to the body in the published mask.
+
+def _write_quiet_strip_field(directory: Path) -> npt.NDArray[np.float32]:
+    """Write the quick check's crowded field with a quiet strip.
+
+    The left 40 columns, sources included, are scaled by 0.2, so the noise
+    steps from 2e-5 to 1e-4 Jy/beam at column 40. The written plane is
+    returned.
     """
     (dataset,) = (
         record
@@ -1707,12 +1707,63 @@ def test_a_crowded_field_with_a_quiet_strip_restores_a_split_owner(
     image = generate_synthetic_window(
         dataset.recipe, y_start=0, y_stop=height, x_start=0, x_stop=width
     ).astype(np.float32)
-    image[:, :40] *= np.float32(0.2)
+    image[:, :_QUIET_STRIP_COLUMNS] *= np.float32(0.2)
     header = synthetic_fits_header(dataset)
     del header["HEBOGDS"]
     del header["HEBOGRCP"]
     fits.PrimaryHDU(image[np.newaxis, np.newaxis], header=header).writeto(
-        tmp_path / "image.fits"
+        directory / "image.fits"
+    )
+    return image
+
+
+@pytest.fixture(scope="module")
+def quiet_strip_field(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> _SerialReference:
+    """Publish the crowded field with a quiet strip, serially."""
+    directory = tmp_path_factory.mktemp("quiet-strip")
+    _write_quiet_strip_field(directory)
+    config = _config()
+    result = hebog.find_sources(_request(directory), config, SerialExecutor())
+    return _SerialReference(directory / "image.fits", config, result)
+
+
+@pytest.mark.integration
+def test_a_crowded_field_with_a_quiet_strip_restores_a_split_owner(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    substituted_background_rms: SubstituteBackgroundRms,
+) -> None:
+    """The quick check's crowded field, its left 40 columns scaled by 0.2.
+
+    Support refinement labelled a recovered pixel of one owner's own flood
+    with the neighbouring owner nearest to it, so the restore round saw the
+    owner whole while publication split it into its body and a pixel two
+    rows below, and the bridge round stopped the run with a bare
+    ``ValueError`` (plan task 61). The owner is now restored, and its tail
+    joins that pixel to the body in the published mask.
+
+    The field reached that round through the noise it published before plan
+    task 63: about a third of the noise beside the strip. That estimate is
+    stood in for here, by column, so the round is still reached; on the code
+    before task 61 it gives the same refusal.
+    """
+    image = np.asarray(_write_quiet_strip_field(tmp_path), dtype=np.float64)
+    columns = np.arange(image.shape[1])
+    collapsed_rms = np.where(
+        columns < _QUIET_STRIP_COLUMNS,
+        2e-5,
+        np.where(columns < 199, 3.4477e-5, _CROWDED_FIELD_NOISE_JY_PER_BEAM),
+    )
+    monkeypatch.setattr(
+        public_api,
+        "_estimate_background_rms",
+        substituted_background_rms(
+            image,
+            np.zeros_like(image),
+            np.array(np.broadcast_to(collapsed_rms, image.shape)),
+        ),
     )
 
     result = hebog.find_sources(
@@ -1728,6 +1779,45 @@ def test_a_crowded_field_with_a_quiet_strip_restores_a_split_owner(
     body, tail_end = islands[372, 42], islands[382, 42]
     assert body > 0
     assert tail_end == body
+
+
+@pytest.mark.integration
+def test_the_rms_beside_a_noise_step_reads_the_noise_there(
+    quiet_strip_field: _SerialReference,
+) -> None:
+    """The noise beside a quiet strip is published as that noise.
+
+    Nearly every fine window of this field's bright-region grid touches
+    protected support. A few came clean inside the quiet strip, and every
+    other cell took the nearest of them, so columns 40 to 198 published
+    3.4e-5 Jy/beam where the noise is 1e-4, and the field 1,364 sources,
+    484 of them in columns 40 to 199 against 155 unscaled (plan task 63).
+    """
+    result = quiet_strip_field.result
+    noise = _CROWDED_FIELD_NOISE_JY_PER_BEAM
+
+    rms = np.asarray(fits.getdata(result.rms.path), dtype=np.float64)
+    beside = rms[:, _QUIET_STRIP_COLUMNS:199]
+    celestial = WCS(fits.getheader(quiet_strip_field.image_path)).celestial
+    columns = np.array(
+        [
+            celestial.world_to_pixel_values(
+                row.position.right_ascension_degrees,
+                row.position.declination_degrees,
+            )[0]
+            for row in read_catalogue_fits_product(result.catalogue).sources
+        ]
+    )
+
+    assert np.median(beside) == pytest.approx(noise, rel=0.1)
+    assert np.percentile(beside, 5) >= 0.7 * noise
+    assert np.min(beside) >= 0.5 * noise
+    # 155 sources lie in these columns of the unscaled field, 996 in all.
+    assert (
+        np.count_nonzero((columns >= _QUIET_STRIP_COLUMNS) & (columns < 200))
+        <= 175
+    )
+    assert result.source_count <= 1050
 
 
 @pytest.mark.integration

@@ -9,6 +9,16 @@ from typing import TypeVar
 import numpy as np
 import pytest
 
+from hebog.algorithms.background import (
+    BackgroundRmsTile,
+    PreparedRmsGrid,
+    RmsGridStatistics,
+    blend_adaptive_background_rms,
+    interpolate_prepared_rms_grid,
+    plan_rms_grid,
+    prepare_refinement_rms_grid,
+    prepare_rms_grid_for_interpolation,
+)
 from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.config import (
@@ -675,6 +685,356 @@ def test_output_is_invariant_to_tile_shape_and_partition_origin(
 
     np.testing.assert_allclose(actual[0], expected[0], atol=1e-12)
     np.testing.assert_allclose(actual[1], expected[1], atol=1e-12)
+
+
+def _coarse_grid(image_shape_yx: tuple[int, int]) -> PreparedRmsGrid:
+    """Return a 150-pixel coarse grid every 50 pixels, its RMS rising in x."""
+    grid = plan_rms_grid(
+        image_shape_yx=image_shape_yx,
+        window_shape_yx=(150, 150),
+        step_yx=(50, 50),
+    )
+    rms = np.broadcast_to(
+        1.0 + 0.1 * np.arange(grid.shape_yx[1]), grid.shape_yx
+    )
+    return prepare_rms_grid_for_interpolation(
+        RmsGridStatistics(
+            geometry=grid,
+            background=np.zeros(grid.shape_yx),
+            rms=np.array(rms, dtype=np.float64),
+            available=np.ones(grid.shape_yx, dtype=np.bool_),
+            valid_sample_count=np.ones(grid.shape_yx, dtype=np.int64),
+            retained_sample_count=np.ones(grid.shape_yx, dtype=np.int64),
+        )
+    )
+
+
+def _fine_statistics(
+    image_shape_yx: tuple[int, int],
+    clean_rms: dict[tuple[int, int], float],
+) -> RmsGridStatistics:
+    """Return a 35-pixel grid every 7 pixels whose only clean cells are these.
+
+    Every clean cell has a background of 0.5.
+    """
+    grid = plan_rms_grid(
+        image_shape_yx=image_shape_yx,
+        window_shape_yx=(35, 35),
+        step_yx=(7, 7),
+    )
+    available = np.zeros(grid.shape_yx, dtype=np.bool_)
+    rms = np.full(grid.shape_yx, np.nan)
+    for cell, value in clean_rms.items():
+        available[cell] = True
+        rms[cell] = value
+    samples = np.where(available, 35 * 35, 0).astype(np.int64)
+    return RmsGridStatistics(
+        geometry=grid,
+        background=np.where(available, 0.5, np.nan),
+        rms=rms,
+        available=available,
+        valid_sample_count=samples,
+        retained_sample_count=samples,
+    )
+
+
+def _coarse_rms_at_cell(
+    coarse: PreparedRmsGrid,
+    statistics: RmsGridStatistics,
+    cell: tuple[int, int],
+) -> float:
+    """Return the coarse RMS published at one fine cell's centre pixel."""
+    y = int(statistics.geometry.sample_coordinates_y[cell[0]])
+    x = int(statistics.geometry.sample_coordinates_x[cell[1]])
+    return float(
+        interpolate_prepared_rms_grid(
+            coarse,
+            ImageBounds(y, y + 1, x, x + 1),
+            np.ones((1, 1), dtype=np.bool_),
+        ).rms[0, 0]
+    )
+
+
+def test_a_refinement_cell_takes_a_clean_window_only_within_one_window() -> (
+    None
+):
+    """A fine RMS fills cells up to one fine window from where it was made.
+
+    The one clean window is cell (20, 20), centred on pixel (157, 157), and
+    the reach is its 35-pixel width. Cells exactly 35 pixels away, along an
+    axis or a 21-28-35 diagonal, take its RMS; cells 42 or 39.6 pixels away,
+    and the far corners, keep the coarse RMS at their centres, which rises
+    along x. The background is filled from the clean window, as before
+    (plan task 63).
+    """
+    shape_yx = (300, 300)
+    coarse = _coarse_grid(shape_yx)
+    statistics = _fine_statistics(shape_yx, {(20, 20): 0.25})
+
+    prepared = prepare_refinement_rms_grid(
+        statistics, coarse, fill_reach_pixels=35.0
+    )
+
+    for within in ((20, 20), (20, 25), (20, 15), (25, 20), (23, 24), (17, 16)):
+        assert prepared.rms[within] == 0.25
+    for beyond in ((20, 26), (24, 24), (0, 0), (38, 38)):
+        assert prepared.rms[beyond] == pytest.approx(
+            _coarse_rms_at_cell(coarse, statistics, beyond), rel=1e-12
+        )
+    assert prepared.rms[20, 26] != prepared.rms[20, 38]
+    np.testing.assert_array_equal(prepared.background, 0.5)
+    np.testing.assert_array_equal(
+        prepared.fallback_cells, ~statistics.available
+    )
+    assert prepared.scientifically_available
+
+
+def test_a_refinement_cell_within_reach_takes_its_nearest_clean_window() -> (
+    None
+):
+    """Between two clean windows a cell takes the nearer one's RMS."""
+    shape_yx = (300, 300)
+    statistics = _fine_statistics(shape_yx, {(20, 20): 0.25, (20, 28): 0.75})
+
+    prepared = prepare_refinement_rms_grid(
+        statistics, _coarse_grid(shape_yx), fill_reach_pixels=35.0
+    )
+
+    assert prepared.rms[20, 23] == 0.25
+    assert prepared.rms[20, 25] == 0.75
+
+
+def test_a_refinement_grid_within_reach_everywhere_is_filled_as_before() -> (
+    None
+):
+    """With every cell within reach, the bounded fill is the nearest fill."""
+    shape_yx = (60, 60)
+    statistics = _fine_statistics(shape_yx, {(2, 2): 0.25, (4, 1): 0.5})
+
+    bounded = prepare_refinement_rms_grid(
+        statistics, _coarse_grid(shape_yx), fill_reach_pixels=35.0
+    )
+    nearest = prepare_rms_grid_for_interpolation(statistics)
+
+    np.testing.assert_array_equal(bounded.rms, nearest.rms)
+    np.testing.assert_array_equal(bounded.background, nearest.background)
+
+
+def test_a_refinement_grid_without_a_clean_window_stays_unavailable() -> None:
+    """No clean window means no fine estimate anywhere, not a coarse copy."""
+    shape_yx = (300, 300)
+
+    prepared = prepare_refinement_rms_grid(
+        _fine_statistics(shape_yx, {}),
+        _coarse_grid(shape_yx),
+        fill_reach_pixels=35.0,
+    )
+
+    assert not prepared.scientifically_available
+    assert np.all(np.isnan(prepared.rms))
+
+
+@pytest.mark.parametrize("reach", (-1.0, float("nan"), float("inf")))
+def test_a_refinement_fill_rejects_an_unbounded_or_negative_reach(
+    reach: float,
+) -> None:
+    """The reach is a finite, non-negative distance in pixels."""
+    shape_yx = (300, 300)
+    with pytest.raises(ValueError, match="fill_reach_pixels"):
+        prepare_refinement_rms_grid(
+            _fine_statistics(shape_yx, {(20, 20): 0.25}),
+            _coarse_grid(shape_yx),
+            fill_reach_pixels=reach,
+        )
+
+
+def test_a_refinement_fill_needs_an_available_coarse_grid() -> None:
+    """A fine estimate never stands in for a missing coarse estimate."""
+    shape_yx = (300, 300)
+    coarse = replace(_coarse_grid(shape_yx), scientifically_available=False)
+
+    with pytest.raises(ValueError, match="available coarse grid"):
+        prepare_refinement_rms_grid(
+            _fine_statistics(shape_yx, {(20, 20): 0.25}),
+            coarse,
+            fill_reach_pixels=35.0,
+        )
+
+
+def _tile(
+    bounds: ImageBounds,
+    background: np.ndarray,
+    rms: np.ndarray,
+) -> BackgroundRmsTile:
+    """Return one available interpolated tile holding these planes."""
+    return BackgroundRmsTile(
+        bounds=bounds,
+        background=np.asarray(background, dtype=np.float64),
+        rms=np.asarray(rms, dtype=np.float64),
+        scientifically_available=True,
+        fallback_cell_count=0,
+    )
+
+
+def _candidate_weight(
+    bounds: ImageBounds,
+    positions_yx: tuple[tuple[float, float], ...],
+    *,
+    influence_radius_pixels: float,
+    transition_width_pixels: float,
+) -> np.ndarray:
+    """Return the smooth-step weight of the nearest bright candidate."""
+    y, x = np.mgrid[
+        bounds.y_start : bounds.y_stop, bounds.x_start : bounds.x_stop
+    ]
+    distance = np.min(
+        [np.hypot(y - py, x - px) for py, px in positions_yx], axis=0
+    )
+    transition = np.clip(
+        (influence_radius_pixels - distance) / transition_width_pixels,
+        0.0,
+        1.0,
+    )
+    return transition * transition * (3.0 - 2.0 * transition)
+
+
+def test_the_bright_region_rms_only_raises_the_coarse_rms() -> None:
+    """A fine RMS above the coarse one is blended in; one below is not.
+
+    Around the candidate the fine RMS reads half the coarse RMS to the left
+    and twice it to the right. To the right the blend is the weighted mean it
+    always was; to the left the coarse RMS stands, so a quieter fine estimate
+    never lowers the noise (plan task 63). The background blends both ways.
+    """
+    bounds = ImageBounds(0, 40, 0, 40)
+    columns = np.broadcast_to(np.arange(40), (40, 40))
+    coarse = _tile(bounds, np.zeros((40, 40)), np.ones((40, 40)))
+    fine = _tile(bounds, np.ones((40, 40)), np.where(columns < 20, 0.5, 2.0))
+    weight = _candidate_weight(
+        bounds,
+        ((20.0, 20.0),),
+        influence_radius_pixels=12.0,
+        transition_width_pixels=4.0,
+    )
+
+    blended = blend_adaptive_background_rms(
+        coarse,
+        fine,
+        ((20.0, 20.0),),
+        influence_radius_pixels=12.0,
+        transition_width_pixels=4.0,
+    )
+
+    right = columns >= 20
+    np.testing.assert_array_equal(
+        blended.rms[right], ((1.0 - weight) * 1.0 + weight * 2.0)[right]
+    )
+    np.testing.assert_array_equal(blended.rms[~right], 1.0)
+    np.testing.assert_array_equal(blended.background, weight)
+    assert np.any(weight[~right] > 0.0)
+
+
+def test_the_blended_rms_never_falls_below_the_coarse_rms() -> None:
+    """Over random estimates and three candidates, coarse is the floor.
+
+    Where the fine RMS is no higher the coarse RMS stands exactly; where it
+    is higher the blend is the weighted mean, never below the coarse RMS.
+    """
+    generator = np.random.default_rng(63)
+    bounds = ImageBounds(5, 45, 3, 51)
+    shape = bounds.shape_yx
+    coarse = _tile(
+        bounds,
+        generator.normal(size=shape),
+        generator.uniform(0.5, 2.0, shape),
+    )
+    fine = _tile(
+        bounds,
+        generator.normal(size=shape),
+        generator.uniform(0.5, 2.0, shape),
+    )
+    positions = ((10.0, 12.0), (30.0, 40.0), (44.0, 4.0))
+    weight = _candidate_weight(
+        bounds,
+        positions,
+        influence_radius_pixels=9.0,
+        transition_width_pixels=3.0,
+    )
+
+    blended = blend_adaptive_background_rms(
+        coarse,
+        fine,
+        positions,
+        influence_radius_pixels=9.0,
+        transition_width_pixels=3.0,
+    )
+
+    assert np.all(blended.rms >= coarse.rms)
+    lower = fine.rms <= coarse.rms
+    np.testing.assert_array_equal(blended.rms[lower], coarse.rms[lower])
+    higher = ~lower & (weight > 0.0)
+    assert np.any(higher) and np.any(lower & (weight > 0.0))
+    np.testing.assert_allclose(
+        blended.rms[higher],
+        ((1.0 - weight) * coarse.rms + weight * fine.rms)[higher],
+        rtol=1e-15,
+    )
+
+
+def test_a_bright_region_far_from_any_clean_window_keeps_the_coarse_rms() -> (
+    None
+):
+    """Fine cells beyond one fine window from a clean one leave coarse noise.
+
+    A bright disc of radius 6 protects the fine windows within about 10
+    pixels of its centre, more than the 5-pixel fine window from the nearest
+    clean one, so the coarse RMS stands at the centre, where the nearest
+    clean window's RMS once did (plan task 63). Every tiling, in reverse
+    order, publishes the one-tile planes, and no pixel's noise falls below
+    the coarse RMS.
+    """
+    y, x = np.indices((96, 96))
+    image = np.random.default_rng(6363).normal(0.0, 1.0, (96, 96))
+    image[(y - 48) ** 2 + (x - 48) ** 2 <= 6**2] += 30.0
+    image[48, 48] += 100.0
+    config = _source_protection_config()
+    source = _ArrayImageSource(image)
+    grids = estimate_background_rms_grids(
+        source,
+        image.shape,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=((48.0, 48.0),),
+        source_protection_island_threshold_sigma=3.0,
+    )
+    whole = plan_image_partitions(
+        image_shape_yx=image.shape,
+        tile_core_shape_yx=image.shape,
+        halo_yx=(0, 0),
+    )
+    tiled = plan_image_partitions(
+        image_shape_yx=image.shape,
+        tile_core_shape_yx=(13, 11),
+        halo_yx=(0, 0),
+        partition_origin_yx=(5, 3),
+    )
+    coarse = interpolate_prepared_rms_grid(
+        grids.coarse,
+        ImageBounds(0, 96, 0, 96),
+        np.ones(image.shape, dtype=np.bool_),
+    )
+
+    expected = _assemble_tiles(source, grids, config, whole.tiles)
+    actual = _assemble_tiles(
+        source, grids, config, tuple(reversed(tiled.tiles))
+    )
+
+    (region,) = grids.adaptive_regions
+    assert not np.all(region.grid.fallback_cells)
+    np.testing.assert_allclose(actual[0], expected[0], atol=1e-12)
+    np.testing.assert_allclose(actual[1], expected[1], atol=1e-12)
+    assert np.all(expected[1] >= coarse.rms)
+    assert expected[1][48, 48] == coarse.rms[48, 48]
 
 
 def test_no_candidates_skip_adaptive_reads_and_match_coarse_only() -> None:

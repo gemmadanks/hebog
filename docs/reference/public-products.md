@@ -270,9 +270,14 @@ every pixel of a block of one repeated value (see the
 status means that at least one finite estimate exists; it does not claim that
 every image position has independently resolved noise information. The
 continuum estimator can interpolate missing grid cells and extend fine-grid
-edge values under its documented policy. Towards the image edge the fine
-estimate is held at its edge cells, and the coarse estimate never falls below
-the edge cell, so no extended edge value is lower than the cell beside it.
+edge values under its documented policy. Around bright sources the fine grid
+only raises the coarse RMS, and carries a clean window's RMS at most one fine
+window (35 pixels): a fine cell farther than that from every clean window
+keeps the coarse RMS. Beside a sharp step in the noise of a crowded field the
+RMS is therefore the coarse estimate, which mixes the two sides over about
+half a coarse window. Towards the image edge the fine estimate is held at its
+edge cells, and the coarse estimate never falls below the edge cell, so no
+extended edge value is lower than the cell beside it.
 
 A noise window measures no noise when its clipped spread is no greater than
 its noise floor: the largest absolute valid value in the window times single
@@ -282,9 +287,10 @@ as zero rows between NaN rows, fall under it, and so do differences finer
 than single precision resolves beside the window's brightest pixel, such as
 the tails of a noise-free source in a window that holds the source. Such a
 window is dropped, as a window over a protected source is, and takes the
-estimate of its nearest clean window, so a valid product holds no RMS of
-zero or of rounding. Real noise falls under the floor only in a window whose
-brightest pixel is more than eight million times the noise. A noise-free
+estimate of its nearest clean window (around a bright source, within the
+reach above), so a valid product holds no RMS of zero or of rounding. Real
+noise falls under the floor only in a window whose brightest pixel is more
+than eight million times the noise. A noise-free
 image whose windows all fall under the floor publishes an unavailable RMS,
 but a window that holds only a source's far tails, whose spread is close to
 their own values, is measured, so a noise-free image can still publish a

@@ -11,7 +11,10 @@ import numpy as np
 import pytest
 from distributed import Client
 
-from hebog.algorithms.background import BackgroundRmsTile
+from hebog.algorithms.background import (
+    BackgroundRmsTile,
+    interpolate_prepared_rms_grid,
+)
 from hebog.algorithms.component_measurement import (
     _persistent_measurement_support,
 )
@@ -453,6 +456,88 @@ def test_dask_and_serial_background_stages_are_equivalent(
             serial_tile.background,
         )
         np.testing.assert_array_equal(dask_tile.rms, serial_tile.rms)
+
+
+def test_bright_region_noise_beyond_a_fine_window_matches_every_executor(
+    each_executor: Executor,
+) -> None:
+    """The coarse RMS kept beyond a clean window's reach is executor-free.
+
+    A bright disc protects the fine windows within about 10 pixels of its
+    centre, beyond the 5-pixel reach of the nearest clean one, so the coarse
+    RMS stands at the centre (plan task 63). Every executor publishes the
+    serial grids and tiles on cores that do not divide the image.
+    """
+    y, x = np.indices((96, 96))
+    image = np.random.default_rng(6363).normal(0.0, 1.0, (96, 96))
+    image[(y - 48) ** 2 + (x - 48) ** 2 <= 6**2] += 30.0
+    image[48, 48] += 100.0
+    source = _ArrayImageSource(image)
+    config = BackgroundRmsConfig(
+        coarse=_grid(31, 10),
+        adaptive=AdaptiveRmsConfig(
+            grid=_grid(5, 2),
+            candidate_threshold_sigma=20.0,
+            influence_radius_pixels=12.0,
+            transition_width_pixels=4.0,
+        ),
+        maximum_spatial_window_fraction=0.5,
+        maximum_constant_map_pixels=4096,
+    )
+    manifest = plan_image_partitions(
+        image_shape_yx=image.shape,
+        tile_core_shape_yx=(13, 11),
+        halo_yx=(0, 0),
+        partition_origin_yx=(5, 3),
+    )
+
+    def run(
+        executor: Executor,
+    ) -> tuple[BackgroundRmsGrids, list[BackgroundRmsTile]]:
+        grids = estimate_background_rms_grids(
+            source,
+            image.shape,
+            config,
+            executor,
+            bright_candidate_positions_yx=((48.0, 48.0),),
+            source_protection_island_threshold_sigma=3.0,
+        )
+        tiles = executor.map_batches(
+            partial(estimate_background_rms_tile, source),
+            tuple(
+                prepare_background_rms_tile_request(tile, grids, config)
+                for tile in manifest.tiles
+            ),
+        )
+        return grids, tiles
+
+    serial_grids, serial_tiles = run(SerialExecutor())
+    grids, tiles = run(each_executor)
+
+    (serial_region,) = serial_grids.adaptive_regions
+    (region,) = grids.adaptive_regions
+    np.testing.assert_array_equal(region.grid.rms, serial_region.grid.rms)
+    np.testing.assert_array_equal(
+        region.grid.background, serial_region.grid.background
+    )
+    for serial_tile, tile in zip(serial_tiles, tiles, strict=True):
+        assert tile.bounds == serial_tile.bounds
+        np.testing.assert_array_equal(tile.rms, serial_tile.rms)
+        np.testing.assert_array_equal(tile.background, serial_tile.background)
+    (centre,) = (
+        tile
+        for tile in tiles
+        if tile.bounds.y_start <= 48 < tile.bounds.y_stop
+        and tile.bounds.x_start <= 48 < tile.bounds.x_stop
+    )
+    coarse = interpolate_prepared_rms_grid(
+        grids.coarse,
+        centre.bounds,
+        np.ones(centre.bounds.shape_yx, dtype=np.bool_),
+    )
+    assert np.all(centre.rms >= coarse.rms)
+    centre_pixel = (48 - centre.bounds.y_start, 48 - centre.bounds.x_start)
+    assert centre.rms[centre_pixel] == coarse.rms[centre_pixel]
 
 
 @pytest.mark.parametrize("scene", ("too-crowded-to-protect", "no-estimate"))
