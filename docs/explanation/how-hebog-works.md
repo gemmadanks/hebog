@@ -200,9 +200,12 @@ neighbouring sources' wings raise the background, a source with an admitted
 fit keeps its summed flux and leaves `ASSOCIATION_APERTURE_FLUX` empty, while
 a source without one gets no catalogue row: Hebog does not substitute a
 positive-only estimate. A source whose aperture or position cannot be
-measured at all gets no row either. The source position comes from the
-detection footprint, not from faint measurement-only wings, so a centroid can
-lie between two peaks or inside a ring.
+measured at all gets no row either. A source of one fitted component is
+published as that Gaussian: its position, position errors, peak and shapes
+are the fit's, as PyBDSF publishes a single-Gaussian source. Any other
+source's position comes from the detection footprint, not from faint
+measurement-only wings, so its centroid can lie between two peaks or inside
+a ring.
 
 In the `compact` profile, association is skipped: every fitted component is
 its own source and carries its Gaussian measurement. Diagnostics then declare
@@ -348,8 +351,9 @@ flowchart TD
 - Use the catalogue and `diagnostics.json` together. The diagnostics list
   every detected component and source, including those without a catalogue
   row.
-- Do not infer a Gaussian fit from a source row, or a blank sky from an empty
-  catalogue.
+- Do not infer a Gaussian fit from a source row unless it carries
+  `original-pixel-gaussian-model`, as a source of one fitted component does,
+  and do not infer a blank sky from an empty catalogue.
 - To compare with a PyBDSF or Aegean component list, use
   `GAUSSIAN_COMPONENTS`, not `SOURCES`.
 - A successful run is not scientific qualification; see

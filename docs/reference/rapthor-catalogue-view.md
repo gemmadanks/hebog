@@ -2,11 +2,10 @@
 
 `hebog.adapters.rapthor_catalogue` is the eight-column catalogue codec for
 Rapthor's `filter_skymodel` diagnostics. It writes and reads the smallest
-FITS table Rapthor reads directly. It is a compatibility boundary, not yet a
-Rapthor backend: no adapter runs `find_sources` or writes its products, and
-the codec does not yet read the catalogue `find_sources` publishes (plan
-task 57). The internal catalogue is described in the
-[output reference](public-products.md).
+FITS table Rapthor reads directly, from the catalogue `find_sources`
+publishes. It is a compatibility boundary, not yet a Rapthor backend: no
+adapter runs `find_sources` or writes its products. The internal catalogue is
+described in the [output reference](public-products.md).
 
 ## Columns
 
@@ -31,6 +30,14 @@ check compares against; a source with no admitted fit carries its signed
 aperture. `Isl_Total_flux` is the island sum, which Rapthor carries only
 through its astrometry check.
 
+`DC_Maj`, `E_RA` and `E_DEC` are what Rapthor cuts on: it keeps a source
+for its checks when `DC_Maj` is under 10 arcsec and both errors are under
+2 arcsec. Under `continuum` a source of one fitted Gaussian publishes that
+Gaussian's values, so it passes the cuts as a `compact` row does; a source
+of several components has no position error and no deconvolved size, so
+Rapthor leaves it out of those checks, and plan task 21 measures what that
+costs agreement.
+
 Rapthor reads the FITS table with Astropy. Its diagnostic conversion then
 writes `Source_id`, `RA`, `DEC`, and the selected flux to a minimal
 makesourcedb text model, which LSMTool loads. LSMTool does not directly read
@@ -43,7 +50,8 @@ Internal null deconvolved shapes with the `unresolved` flag become the
 PyBDSF-compatible `DC_Maj = 0` sentinel only in this view. Unavailable errors
 become FITS NaN values and read back as masked Astropy values; they are never
 serialized as zero. The empty catalogue retains all eight columns and zero
-rows. The writer requires a `J2000` position epoch.
+rows. The writer requires the `J2000.0` position epoch the finder publishes
+(`hebog.data_models.catalogues.POSITION_EPOCH`).
 
 ## Publication
 

@@ -1540,6 +1540,56 @@ def _publishable_source_row(
     )
 
 
+# Flags an aperture row carries for its centroid and its absent shape, which
+# a source that publishes its one Gaussian's model no longer describes.
+_APERTURE_POSITION_AND_SHAPE_FLAGS = frozenset(
+    {
+        "position-denoised",
+        "position-signed-original",
+        "position-uncertainty-unavailable",
+        "shape-unavailable",
+        "resolution-unavailable",
+    }
+)
+
+
+def _one_gaussian_source_row(
+    source: CatalogueSource, gaussian: CatalogueSource
+) -> CatalogueSource:
+    """Publish a source of one fitted Gaussian as that Gaussian.
+
+    PyBDSF publishes such a source as its Gaussian, and Rapthor cuts on its
+    position errors and deconvolved size. The fit's errors describe the
+    fit's position, not the centroid, which can lie several of them away,
+    so the source takes the whole model: position, errors, peak and the
+    fitted and deconvolved shape, with the flags that qualify them. It keeps
+    its own identity, aperture and flux, which for one Gaussian is already
+    the fit's; the centroid stays in the position diagnostics.
+    """
+    return replace(
+        source,
+        right_ascension_degrees=gaussian.right_ascension_degrees,
+        declination_degrees=gaussian.declination_degrees,
+        right_ascension_error_degrees=gaussian.right_ascension_error_degrees,
+        declination_error_degrees=gaussian.declination_error_degrees,
+        peak_flux_jy_per_beam=gaussian.peak_flux_jy_per_beam,
+        peak_flux_error_jy_per_beam=gaussian.peak_flux_error_jy_per_beam,
+        fitted_shape=gaussian.fitted_shape,
+        deconvolved_shape=gaussian.deconvolved_shape,
+        deconvolved_major_fwhm_degrees=gaussian.deconvolved_major_fwhm_degrees,
+        deconvolution_status=gaussian.deconvolution_status,
+        quality_flags=tuple(
+            sorted(
+                (
+                    set(source.quality_flags)
+                    - _APERTURE_POSITION_AND_SHAPE_FLAGS
+                )
+                | (set(gaussian.quality_flags) - {"detection-component"})
+            )
+        ),
+    )
+
+
 def _reconstructed_source_rows(
     measured_sources: tuple[CatalogueSource, ...],
     components: tuple[CatalogueSource, ...],
@@ -1548,7 +1598,11 @@ def _reconstructed_source_rows(
     *,
     require_signed_aperture: bool,
 ) -> tuple[CatalogueSource, ...]:
-    """Choose each source's own estimator, independently of auxiliary rows."""
+    """Choose each source's own estimator, independently of auxiliary rows.
+
+    A source of one fitted component publishes that Gaussian; any other
+    publishes its aperture row with no claimed shape.
+    """
     measured_by_label: dict[int, CatalogueSource] = {}
     for row in measured_sources:
         prefix = "hebog-segment-"
@@ -1592,6 +1646,7 @@ def _reconstructed_source_rows(
                                 "resolved",
                                 "unresolved",
                                 "major-axis-only",
+                                "marginal-deconvolution",
                             }
                         )
                         | {"shape-unavailable", "resolution-unavailable"}
@@ -1600,7 +1655,8 @@ def _reconstructed_source_rows(
             )
         flags = {*source.quality_flags, "reconstructed-catalogue-source"}
         # A component's fitted estimator and uncertainties do not describe
-        # a source-owned aperture. Retain them with their component context.
+        # a source-owned aperture. Retain them with their component context;
+        # only a source of one Gaussian takes them as its own, below.
         flags.update(
             f"member-{flag}"
             for component_id in membership.component_ids
@@ -1622,17 +1678,21 @@ def _reconstructed_source_rows(
                 )
             else:
                 flags.add("aperture-flux-without-fitted-component")
-        output.append(
-            replace(
-                source,
-                identifier=membership.source_id,
-                island_identifier=membership.source_id,
-                component_count=len(membership.component_ids),
-                integrated_flux_jy=integrated_flux_jy,
-                integrated_flux_error_jy=integrated_flux_error_jy,
-                quality_flags=tuple(sorted(flags)),
-            )
+        row = replace(
+            source,
+            identifier=membership.source_id,
+            island_identifier=membership.source_id,
+            component_count=len(membership.component_ids),
+            integrated_flux_jy=integrated_flux_jy,
+            integrated_flux_error_jy=integrated_flux_error_jy,
+            quality_flags=tuple(sorted(flags)),
         )
+        # A source of several components, or of one fitted and others not,
+        # keeps its aperture row: task 21 measures what that costs Rapthor's
+        # agreement before the rule is extended.
+        if len(membership.component_ids) == 1 and len(fitted_members) == 1:
+            row = _one_gaussian_source_row(row, fitted_members[0])
+        output.append(row)
     return tuple(sorted(output, key=lambda item: item.identifier))
 
 

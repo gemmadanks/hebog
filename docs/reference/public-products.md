@@ -148,11 +148,15 @@ explicit profile:
   below, as it can where neighbouring sources' wings raise the background,
   the column is empty and the row carries `association-aperture-nonpositive`;
   only a source with an admitted fit has a flux to publish then.
-  `PEAK_FLUX` is the brightest background-subtracted pixel the source owns,
-  not a fitted peak, so it carries that pixel's noise: on the frozen PyBDSF
-  regression input's two unresolved sources, at SNR about 10 and 24, it
-  reads 6% above PyBDSF's fitted peak, while their Gaussian components'
-  fitted peaks agree with PyBDSF's to 0.2%.
+  A source of one component with an admitted fit is published as that
+  Gaussian, as PyBDSF publishes a single-Gaussian source: its position,
+  position errors, `PEAK_FLUX` and its error, and fitted and deconvolved
+  shape are the component's, with the flags that qualify them, including
+  `original-pixel-gaussian-model`. The errors then describe the position
+  published. Any other source, of several components or of one without a
+  fit, keeps its centroid, no position errors and no claimed shape, and its
+  `PEAK_FLUX` is the brightest background-subtracted pixel it owns, not a
+  fitted peak.
 - In `compact`, every published source represents exactly one fitted
   component. `INTEGRATED_FLUX` is its Gaussian-model integral and
   `ASSOCIATION_APERTURE_FLUX` is unavailable.
@@ -191,16 +195,18 @@ Source apertures are formed from source ownership and adjacent-scale
 persistent support, then expanded by a bounded aperture. Competing
 source apertures are non-overlapping: each observable pixel contributes to at
 most one source. Measurement-only wings can contribute flux but do not move
-the position footprint. The source position is selected from signed original
-pixels or the denoised residual according to the recorded position rule. It
-may lie between peaks or in the centre of a shell; it is not a host-galaxy
-identification.
+the position footprint. The position of a source of several components is
+selected from signed original pixels or the denoised residual according to
+the recorded position rule. It may lie between peaks or in the centre of a
+shell; it is not a host-galaxy identification. A source of one fitted
+component publishes the fit's position instead, and its source disposition
+still records the centroid it would have had.
 
-Continuum source rows do not claim a Gaussian shape when the source is
-described by an irregular signed aperture. `FITTED_*` and `DECONVOLVED_*` can
-therefore be unavailable even when the source flux and position are valid. A
-non-positive or otherwise unavailable signed measurement is not replaced by
-positive-only photometry. Where only the aperture sum is non-positive, a
+Continuum source rows of several components do not claim a Gaussian shape,
+because an irregular signed aperture describes them. `FITTED_*` and
+`DECONVOLVED_*` are therefore unavailable on them even when the source flux
+and position are valid. A non-positive or otherwise unavailable signed
+measurement is not replaced by positive-only photometry. Where only the aperture sum is non-positive, a
 fitted source keeps its summed fit, as above, and a source without an
 admitted fit has no flux and no row. A source whose position cannot be
 measured has no row, fitted or not. Diagnostics retain the identity and

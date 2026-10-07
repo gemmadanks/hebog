@@ -8,8 +8,9 @@ PyBDSF 1.14.1 and with pinned ``master`` (``tests/data/README.md``). Every
 comparison is like for like:
 
 - published sources against the reference's sources, for association,
-  position and integrated flux, which both define as the sum of the source's
-  fitted Gaussians;
+  position, flux and the fitted model: a source of one Gaussian publishes
+  that Gaussian's fit, as the reference does, and both define a source's
+  integrated flux as the sum of its fitted Gaussians;
 - published Gaussian components against the reference's source rows, for the
   fitted model: every reference source is a single Gaussian (``S_Code`` S),
   so its row is that Gaussian's fit;
@@ -18,11 +19,11 @@ comparison is like for like:
 
 The limits are the reviewed compact-reference gates of Phases 3 and 4 in
 ``config/contracts``, which for position and flux are also the plan's isolated
-SNR >= 10 targets, and the plan's source-free RMS target. Three differences
-are by design: the continuum source peak, the continuum RMS tail and the
-mask's extent. Each has its own bounds below, the values measured on
-5 October 2026 (``LOG.md``, task 49) widened by the quick science check's
-regression tolerance of 0.02 and rounded outward.
+SNR >= 10 targets, and the plan's source-free RMS target. Two differences
+are by design: the continuum RMS tail and the mask's extent. Each has its
+own bounds below, the values measured on 5 October 2026 (``LOG.md``, task
+49) widened by the quick science check's regression tolerance of 0.02 and
+rounded outward.
 """
 
 from __future__ import annotations
@@ -90,13 +91,9 @@ _OUTLIERS = load_phase_four_scientific_gates(
 _RMS_MEDIAN = 0.02
 _RMS_PERCENTILE_95 = 0.05
 
-# Known differences, each the 5 October measurement plus 0.02. A continuum
-# source's PEAK_FLUX is its brightest owned pixel, not a fitted peak: 6.1%
-# and 6.3% above the reference's fitted peaks, against 2% and 5%.
-_CONTINUUM_SOURCE_PEAK_MEDIAN = 0.081
-_CONTINUUM_SOURCE_PEAK_PERCENTILE_95 = 0.083
-# Continuum noise is refined on 35-pixel windows, which scatter more than
-# PyBDSF's 150-pixel box: a 95th percentile of 5.5% against 5%.
+# Known differences, each the 5 October measurement plus 0.02. Continuum
+# noise is refined on 35-pixel windows, which scatter more than PyBDSF's
+# 150-pixel box: a 95th percentile of 5.5% against 5%.
 _CONTINUUM_RMS_PERCENTILE_95 = 0.075
 # The mask is publication support, which the boundary rule trims of sparse
 # pixels below 6 sigma: it holds 92.7% (continuum) and 91.6% (compact) of the
@@ -266,15 +263,9 @@ def _require_association(
 
 
 def _require_position_and_flux(
-    report: CatalogueComparisonReport,
-    gate: PhaseFourCatalogueGate,
-    *,
-    peak_limits: tuple[float, float],
+    report: CatalogueComparisonReport, gate: PhaseFourCatalogueGate
 ) -> None:
-    """Positions and fluxes agree within the gate, peaks within the limits.
-
-    ``peak_limits`` are the median and 95th-percentile limits on the peak.
-    """
+    """Positions, peaks and integrated fluxes agree within the gate."""
     limits = (
         (
             report.median_separation_beam_fwhm,
@@ -285,7 +276,8 @@ def _require_position_and_flux(
         (
             report.median_absolute_peak_flux_fractional_difference,
             report.percentile_95_absolute_peak_flux_fractional_difference,
-            *peak_limits,
+            gate.maximum_median_peak_flux_fractional_difference,
+            gate.maximum_percentile_95_peak_flux_fractional_difference,
         ),
         (
             report.median_absolute_integrated_flux_fractional_difference,
@@ -399,30 +391,16 @@ def test_every_reference_source_is_one_gaussian(reference: str) -> None:
 def test_published_sources_match_the_reference_sources(
     published: _Published, reference: str
 ) -> None:
-    """Association, position and integrated flux meet the compact gates.
+    """Every source meets the compact gates under both profiles.
 
-    Under ``continuum`` a source's peak is its brightest owned pixel, a
-    different estimator from the reference's fitted peak, so it has its own
-    bound; under ``compact`` a source is its one Gaussian.
+    Every source here is one Gaussian, which a source row publishes as its
+    fit under both profiles (task 57), as the reference does.
     """
     report = _compare(reference, published.catalogue, "sources")
 
     _require_association(report, _CATALOGUE_GATE)
-    _require_position_and_flux(
-        report,
-        _CATALOGUE_GATE,
-        peak_limits=(
-            (
-                _CONTINUUM_SOURCE_PEAK_MEDIAN,
-                _CONTINUUM_SOURCE_PEAK_PERCENTILE_95,
-            )
-            if published.profile == "continuum"
-            else (
-                _CATALOGUE_GATE.maximum_median_peak_flux_fractional_difference,
-                _CATALOGUE_GATE.maximum_percentile_95_peak_flux_fractional_difference,
-            )
-        ),
-    )
+    _require_position_and_flux(report, _CATALOGUE_GATE)
+    _require_fitted_model(report, _CATALOGUE_GATE)
 
 
 @pytest.mark.parametrize("reference", _REFERENCES)
@@ -433,14 +411,7 @@ def test_published_components_match_the_reference_gaussians(
     report = _compare(reference, published.catalogue, "components")
 
     _require_association(report, _CATALOGUE_GATE)
-    _require_position_and_flux(
-        report,
-        _CATALOGUE_GATE,
-        peak_limits=(
-            _CATALOGUE_GATE.maximum_median_peak_flux_fractional_difference,
-            _CATALOGUE_GATE.maximum_percentile_95_peak_flux_fractional_difference,
-        ),
-    )
+    _require_position_and_flux(report, _CATALOGUE_GATE)
     _require_fitted_model(report, _CATALOGUE_GATE)
 
 

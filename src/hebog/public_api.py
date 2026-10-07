@@ -48,6 +48,7 @@ from hebog.data_models import (
     SpectralModel,
     WideObjectCounts,
 )
+from hebog.data_models.catalogues import POSITION_EPOCH
 from hebog.data_models.images import ImageMetadata, RestoringBeam
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
 from hebog.executors import Executor
@@ -1756,7 +1757,7 @@ def _empty_catalogue(
     return SourceCatalogue.create(
         catalogue_id=f"catalogue-{hashlib.sha256(run_id.encode()).hexdigest()}",
         coordinate_frame="icrs",
-        position_epoch="J2000.0",
+        position_epoch=POSITION_EPOCH,
         reference_frequency_hz=reference_frequency_hz,
         islands=(),
         sources=(),
@@ -1924,7 +1925,7 @@ def _projected_catalogue(
     catalogue = SourceCatalogue.create(
         catalogue_id=f"catalogue-{hashlib.sha256(run_id.encode()).hexdigest()}",
         coordinate_frame="icrs",
-        position_epoch="J2000.0",
+        position_epoch=POSITION_EPOCH,
         reference_frequency_hz=metadata.reference_frequency_hz,
         islands=islands,
         sources=source_candidates,

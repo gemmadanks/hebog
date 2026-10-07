@@ -23,7 +23,11 @@ import numpy as np
 from astropy.io import fits
 from astropy.table import Table
 
-from hebog.data_models.catalogues import SourceCandidate, SourceCatalogue
+from hebog.data_models.catalogues import (
+    POSITION_EPOCH,
+    SourceCandidate,
+    SourceCatalogue,
+)
 from hebog.data_models.source_finding import MaterializedProduct
 from hebog.io.materialization import MaterializedProductConflictError
 
@@ -95,8 +99,10 @@ def _deconvolved_major(source: SourceCandidate) -> float:
 
 def _catalogue_hdus(catalogue: SourceCatalogue) -> fits.HDUList:
     """Build the exact eight-column Rapthor compatibility view."""
-    if catalogue.position_epoch != "J2000":
-        raise ValueError("Rapthor catalogue compatibility requires J2000")
+    if catalogue.position_epoch != POSITION_EPOCH:
+        raise ValueError(
+            f"Rapthor catalogue compatibility requires {POSITION_EPOCH}"
+        )
     sources = catalogue.sources
     islands = {island.island_id: island for island in catalogue.islands}
     primary = fits.PrimaryHDU()
@@ -204,7 +210,7 @@ def read_rapthor_catalogue_fits(path: Path) -> Table:
                 or hdus[0].header.get("HBGROLE") != "RAPTHOR"
                 or hdus[0].header.get("HBGSCHE") != 1
                 or hdus[0].header.get("HBGFRAME") != "icrs"
-                or hdus[0].header.get("HBGEPCH") != "J2000"
+                or hdus[0].header.get("HBGEPCH") != POSITION_EPOCH
                 or tuple(hdus[1].columns.names) != RAPTHOR_CATALOGUE_COLUMNS
             ):
                 raise ValueError("Rapthor catalogue FITS schema is invalid")
