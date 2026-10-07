@@ -30995,3 +30995,69 @@ the per-worker placement finding.
 - **Open.** `public_science.py` builds the terminal catalogues from science
   records only; it could join `science/`, which would remove one row of the
   table, but the move gains nothing the table needs now.
+
+## 2026-10-06 — Maintainer decisions on the review repairs
+
+- **Why.** The review repairs left eight choices to the maintainer, each
+  measured by its task (`LOG.md`, tasks 46, 48, 49, 58, 59 and 62, 5 and 6
+  October). The maintainer took them as two rounds of questions, each with
+  a recommended option, before any of the twelve pull requests was pushed,
+  and asked for the three that change code or limits to be folded into
+  their own tasks' pull requests (46, 62 and 48).
+- **Decided.**
+
+  | Task | Decision | Declined |
+  | --- | --- | --- |
+  | 46 | Every pixel of any 3×3 square of one repeated value is invalid at ingress, as NaN is, ring included. | A pixel equal to all eight neighbours, whose one-pixel ring stays valid and makes false islands beside a non-zero constant. |
+  | 46 | A window whose clipped spread is no greater than single precision's resolution at its brightest value is unavailable, so a noise-free image whose windows lie within it publishes `unavailable` again; no floor relative to the data catches every noise-free simulation, and the documentation asks for noise in simulations. | Accepting a valid RMS of about 10⁻¹⁵; refusing such an image. |
+  | 62 | A restoring beam wider than 10 pixels FWHM is refused; scaling the meshes with the beam is deferred work. | Scaling the fine mesh above 8 pixels now; refusing with no deferred task; keeping the 22-pixel limit. |
+  | 48 | The `Total_flux` rows bind pooled over both noise classes, as set; the powered study (task 29) adds a per-noise-class check. | Binding each noise class now. |
+  | 58 | The whole-plane oracles task 58 kept stay, each with the tests that use it. | Reviewing them one by one. |
+  | 59 | ADR-009 stands: `public_api → stages → science → algorithms`. | Moving the reviewed science below the stages. |
+  | 49 | A one-Gaussian `continuum` source publishes its component's fitted peak, under task 57's rule. | Keeping the brightest owned pixel. |
+  | Placement | Tasks 46, 62 and 48 carry their decisions in their own pull requests; this record carries the rest. | One follow-up pull request for all of them. |
+
+- **Still the maintainer's.** Requiring the two CI checks task 60 added;
+  the priority of tasks 63 and 64 against tasks 57 and 42.
+- **Checks.** The strict docs build and `just pre-commit`. This change
+  edits the plan and this log only.
+
+## 2026-10-06 — Quick benchmark of the review-repair stack
+
+- **Why.** Tasks 46 and 61 add work to every run: task 46 reads each
+  window two pixels wider and adds the block rule's comparisons and a
+  dilation, and task 61's restore round measures ownership. Their entries,
+  and those of tasks 51 and 59, left the quick benchmark not run.
+- **Run.** `just quick-benchmark --previous-release 5a028bf2
+  --refresh-previous-release --no-reference`, default tier, the top of the
+  stack (`b1e00fcf`, clean) against `main` at `5a028bf2` (0.18.0 and two
+  refusal fixes) measured in the same session; one warm-up and five
+  measured repetitions each; run `pr-stack-2026-10-06-vs-5a028bf2-no-reference`.
+  Load averaged 1.7 to 3.7 (the scanner, a browser and the desktop app).
+
+  | Case | Stack median s (range) | `main` s | Ratio [95% bounds] | CPU s, stack / `main` | Peak RSS MiB, stack / `main` |
+  | --- | --- | --- | --- | --- | --- |
+  | `dense-field` | 13.5 (12.6–14.7) | 15.3 | 0.89 [0.82, 0.97] | 9.4 / 10.7 | 663 / 709 |
+  | `lotss-dr3-1312-sparse` | 14.2 (13.6–14.5) | 15.5 | 0.92 [0.88, 0.94] | 10.1 / 11.2 | 669 / 723 |
+  | `lotss-dr3-1312-dense` | 15.7 (14.0–16.8) | 16.7 | 0.94 [0.84, 1.00] | 11.5 / 12.3 | 689 / 701 |
+
+  All three pass the regression rule (a lower bound above 1.05 fails), so
+  tasks 46 and 61 cost less than the rest of the stack saves. The saving is
+  not attributed to a pull request.
+- **Pinned `master`.** The first run skipped it: the reference identity no
+  longer matched the cached timings, and the container would not start
+  (Podman's overlay storage in the VM returned an input/output error until
+  the Podman machine was restarted). A second run,
+  `pr-stack-2026-10-06-with-master` (load 2.1 to 4.4), timed the stack again
+  and `master` on four container cores, reusing `main`'s timings.
+
+  | Case | Stack median s | `master` s | Diagnostic ratio [95% bounds] | Stack / `main` |
+  | --- | --- | --- | --- | --- |
+  | `dense-field` | 13.4 | 2.6 | 5.21 [4.56, 5.49] | 0.88 [0.77, 0.93] |
+  | `lotss-dr3-1312-sparse` | 13.6 | 4.2 | 3.21 [3.10, 3.36] | 0.88 [0.84, 0.92] |
+  | `lotss-dr3-1312-dense` | 14.7 | 5.4 | 2.69 [2.53, 2.87] | 0.88 [0.82, 0.94] |
+
+  On 27 September the `master` ratios were 5.6, 3.7 and 3.2, but `master`
+  itself timed 6 to 9% slower this evening than then, so the fall
+  overstates Hebog's own gain by about that much.
+- **Not measured.** The 10,000² and whole-mosaic anchors.
