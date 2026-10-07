@@ -3,7 +3,7 @@
 This page answers one question: how far is Hebog from the goal its
 [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
 defines for 1.0.0? It is updated whenever the plan's current state changes,
-and was last updated on **6 October 2026** for the source checkout after the
+and was last updated on **7 October 2026** for the source checkout after the
 0.18.0 review repairs. Every figure is development evidence from the
 maintainer's machine, dated and traceable to an entry in the repository's
 [execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md); none is
@@ -16,7 +16,7 @@ scientific qualification. User-facing limits are in
 | --- | --- | --- | --- |
 | Telescopes | Standard FITS continuum images from any telescope under a documented header contract, validated first on LOFAR, SKA-Low and SKA-Mid | The [input header contract](input-header-contract.md) is defined and tested. LOFAR (LoTSS-DR3 and LoTSS-DR2) and SKA-Mid (SDC1 simulation) images run, and the LOFAR-HD mosaics are the next scale tiers; SKA-Low has no public image, so MWA GLEAM-X precursor data is planned. A beam wider than 10 pixels is refused. A position-dependent PSF is undecided (task 15). | In progress |
 | Functionality | A feature-flagged backend for Rapthor's `filter_skymodel` at pinned Rapthor and LSMTool revisions | A complete standalone finder under Serial, Thread and caller-owned Dask executors. No Rapthor adapter, profile or flat-noise branch exists; 5 of the 11 frozen public behaviours are implemented and 6 are strict-xfail placeholders. | Adapter not started |
-| Science | ≥99.5% Rapthor retained/rejected agreement and a powered, held-out parity study against pinned PyBDSF `master` | Isolated-source position, flux and axis limits are met against both PyBDSF references on the frozen input; the `Total_flux` limits hold on independent realizations. Three bounded known differences, three open defects and the unmeasured Rapthor agreement remain. | Development evidence only |
+| Science | ≥99.5% Rapthor retained/rejected agreement and a powered, held-out parity study against pinned PyBDSF `master` | Isolated-source position, flux and axis limits are met against both PyBDSF references on the frozen input; the `Total_flux` limits hold on independent realizations. Three bounded known differences, four open defects and the unmeasured Rapthor agreement remain. | Development evidence only |
 | Performance | Matched complete `filter_skymodel` median ≤0.50 of pinned PyBDSF `master` | Not measurable until the adapter exists. Diagnostic ratios against `master` on 1,024² fields are 2.7 to 5.2 (Hebog on one native thread against `master` on four container cores); on the 3,000² LoTSS field the two use the same CPU time, so the gap is parallel occupancy. No regression on the Hebog curve. | Gate not yet measurable |
 | Scalability | 45,000² on the 18 GiB development machine with tile-bounded memory; 90,000² on a 1 to 10-node cluster; planner bounds for 100,000² on 100 to 200+ nodes | Public envelope 15,402². Every stage runs tiled through the executor and products are byte-identical across tilings and executors. The traced peak is 1.7 GiB on the whole 15,402² mosaic and still grows about 1.7 bytes a pixel. Nothing beyond one machine has run. | 15,402 of 45,000 pixels |
 | Release | PyPI, with portability, security, licensing, documentation and independent acceptance | v0.18.0 (5 October 2026) is tagged on GitHub and uploaded to TestPyPI; CI runs on Linux, macOS and Windows for Python 3.12 to 3.14. | Experimental `0.x` |
@@ -118,9 +118,13 @@ catalogue has 22,420 sources and 28,559 Gaussians (5 October).
   collapses, every component falls back to a beam-shaped Gaussian and
   resolved ones can be left unpublished: 39 fall back and 15 are unpublished
   on the sparse SDC1 cut-out.
-- **RMS beside a sharp noise step (task 63).** Beside a step in the noise,
-  the published RMS reads about a third of the noise over about 160 columns,
-  so spurious sources are published there.
+- **RMS beside a sharp noise step (tasks 63 and 65).** In a crowded field,
+  where bright-region refinement covers the image, one clean window
+  straddling a noise step sets the RMS of about 160 columns beside it, at a
+  third of the noise, so spurious sources are published there; a quiet strip
+  160 columns wide instead reads five times its noise and loses sources.
+  Task 63's rule is chosen. On the normal local-noise path, windows
+  straddling a step read low within about 20 pixels of it (task 65).
 - **Owner support connected through other pixels (task 64).** A pixel can
   attach to its owner across unassigned pixels, and one such input raises a
   bare `ValueError`.
@@ -185,7 +189,8 @@ The next actions, as the plan orders them:
 
 1. Human: release the merged task 44 and 45 repairs; require the two CI
    checks task 60 added.
-2. Agent: tasks 63 and 64, then task 57 and the measured options for task 42.
+2. Agent: task 57 and task 63, under the rule chosen on 7 October, then
+   task 64, the measured options for task 42 and task 65.
 3. Agent: tasks 53 to 56, bounding the terms that grow with the image, before
    the 22,500² (task 11) and 45,000² (task 12) tier gates.
 

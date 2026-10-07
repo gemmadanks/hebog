@@ -31101,3 +31101,79 @@ the per-worker placement finding.
   today, and the release status no longer says the whole mosaic is untimed
   under Dask, which the 0.18.0 release check timed.
 - **Checks.** The strict docs build and `just pre-commit`.
+
+## 2026-10-07 — Maintainer decisions: the work after the review repairs, and task 63's rule
+
+- **Why.** With the review-repair stack waiting to merge, the maintainer
+  asked what the agent could do meanwhile. The plan's next-action row put
+  tasks 63 and 64 first "in the order decided on 5 October", which predates
+  them, and the 6 October decisions left their priority open. Task 63's
+  diagnosis then reported its candidate rules. Both were put as question
+  rounds with a recommended option.
+- **Decided.**
+
+  | Question | Decision | Declined |
+  | --- | --- | --- |
+  | Order | Task 57 now, which touches nothing the stack changed, with task 63's diagnosis alongside; then task 63's rule, task 64, the measured options for task 42 and task 65. | Tasks 63 and 64 first; tasks 57 and 42 first. |
+  | Task 63 | A bright-region fine cell with no clean window within one fine window has no fine estimate, so the coarse estimate stands; the bright-region refinement may only raise the RMS above the coarse estimate (rules B and A below). | A alone, B alone, C. |
+  | Local-noise step | A new task (65): agent diagnoses, maintainer decides the rule. | Folding it into task 63; deferring it. |
+
+- **Task 63's diagnosis** (a separate agent, on the stack at `c0098627`).
+  - *Reproduced.* The `crowded-field` input with its left 40 columns
+    scaled by 0.2 publishes 1,364 sources (996 unscaled), 484 in columns
+    40 to 200 (155), and one RMS value, 3.448×10⁻⁵, over columns 40 to
+    198. Before task 46 (`0558fd95`) it published 1,380, the plan's
+    figure. Task 46 also reversed the 160-column case: that strip now
+    reads 1.04×10⁻⁴ against a true 2×10⁻⁵ and the field publishes 926
+    sources, so the plan's "160 quiet columns do the same" was stale.
+  - *Cause.* Local noise refines none of the field's 20,449 fine windows,
+    bright candidates at 75σ or more merge into a region covering the
+    image, and only 37 windows, in one clump, are clean of protection. The
+    nearest-window fill (`prepare_rms_grid_for_interpolation`) copies a
+    clean window to every cell however far, and the blend gives the filled
+    grid full weight within 55 pixels of any candidate, which is nearly
+    every pixel. The step's coarse windows read the quiet strip high, so
+    protection there shrinks and nine windows come clean; the one that
+    straddles columns 14 to 48 sets columns 40 to 198. Whether a clean
+    window lands in the quiet strip decides the sign, which is why 20 and
+    160 columns differ from 40.
+  - *PyBDSF `master` (`c70103b`) and practice.* PyBDSF clips every box
+    rather than blanking it, fills only boxes with fewer than five valid
+    pixels from the nearest ring, and uses the small box only near bright
+    islands, where it can only raise the noise. On the 0.2/40 input it
+    publishes 1,004 sources, 158 beside the step, with an RMS there of
+    1.04×10⁻⁴ (5th percentile 8.1×10⁻⁵). SExtractor, BANE and SoFiA-2
+    likewise estimate every mesh; none carries one estimate hundreds of
+    pixels.
+  - *Rules measured* on eleven variants, with the quick check against
+    `stack-final-decisions` (runs `task63-*`):
+
+    | Rule | RMS beside, median / 5th pct | Sources / beside | Quick check |
+    | --- | --- | --- | --- |
+    | Current | 3.45×10⁻⁵ / 3.45×10⁻⁵ | 1,364 / 484 | — |
+    | A: raise-only bright blend | 1.03×10⁻⁴ / 8.5×10⁻⁵ | 984 / 159 | only `crowded-field` changes, no regression |
+    | B: fill bounded to one fine window | 1.02×10⁻⁴ / 8.4×10⁻⁵ | 993 / 166 | only `crowded-field` changes, no regression |
+    | C: protected cells take the unprotected pilot | 1.03×10⁻⁴ / 8.4×10⁻⁵ | 993 / 155 | `crowded-field` mask IoU against `master` 0.887 to 0.775, reliability 0.999 to 0.988 |
+    | B and A | 1.02×10⁻⁴ / 8.5×10⁻⁵ | 985 / 159 | only `crowded-field` changes, no regression |
+
+    B and A keeps the RMS beside the step at 5.9×10⁻⁵ or more on all
+    eleven variants and lets the 0.1/40 input, which task 64's refusal
+    stops today, complete; its cost is that a quiet strip narrower than the
+    150-pixel coarse window reads the coarse mixture, 6 to 9×10⁻⁵ against
+    2×10⁻⁵ (PyBDSF 6.1×10⁻⁵). Tiling and four threads give identical
+    hashes on the 0.2/40 input.
+  - *Found.* On `dense-field` with the same step, local noise is measured
+    and 35-pixel windows straddling the step read 5.7×10⁻⁵ there: 87
+    sources against 59, 30 of them within 20 pixels beyond the step against
+    2. Bounding the fill on the local-noise path too improved RMS agreement
+    on the real cut-outs (SDC1 sparse against `master` 5.2% to 3.0%) but
+    changed every case and flagged four metrics; a 5×5 maximum filter on
+    the local-noise grid raised uniform noise by 7.7% and flagged eight.
+    This is task 65.
+  - *Evidence.* Prototype patch, scripts and per-variant grids under
+    `benchmark-results/diagnostics/task-63/` of the diagnosis worktree,
+    outside Git.
+- **Plan.** Task 63's row states the rule and the corrected figures; task
+  65 is added; the next-action row and the progress page follow the order.
+- **Checks.** The strict docs build and `just pre-commit`. This change edits
+  the plan, the progress page and this log only.
