@@ -133,7 +133,7 @@ _STAGES = (
     (
         "hebog.public_api",
         "reduce_support_topology",
-        "support component and persistence reductions",
+        "adjacent-scale persistence reduction",
     ),
     (
         "hebog.public_api",

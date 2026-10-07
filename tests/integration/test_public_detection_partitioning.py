@@ -5,14 +5,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import cast
 
 import numpy as np
 import numpy.typing as npt
 import pytest
 from astropy.io import fits
 from conftest import published_plane
-from scipy.ndimage import label
 
 from hebog.algorithms.extended_measurement import (
     assign_seeded_multiscale_support,
@@ -175,10 +173,6 @@ def test_published_passes_are_one_tile_many_tile_equal(
         atol=_TOLERANCE,
     )
     np.testing.assert_array_equal(
-        published_plane(many.support_source, "support-components"),
-        published_plane(one.support_source, "support-components"),
-    )
-    np.testing.assert_array_equal(
         published_plane(many.support_source, "persistent-support"),
         published_plane(one.support_source, "persistent-support"),
     )
@@ -223,15 +217,6 @@ def test_published_passes_cover_labelled_edge_and_corner_sources(
     assert all(
         islands for islands in published.multiscale.scale_islands_by_order[:2]
     )
-    components = published_plane(
-        published.support_source, "support-components"
-    )
-    assert int(components.max()) > 1
-    np.testing.assert_array_equal(
-        components > 0,
-        (labels > 0)
-        | published_plane(published.detection_source, "reconstruction-mask"),
-    )
     assert np.any(
         published_plane(published.support_source, "persistent-support")
     )
@@ -263,23 +248,10 @@ def test_published_passes_cover_labelled_edge_and_corner_sources(
 def test_published_support_matches_the_whole_plane_reduction(
     tmp_path: Path,
 ) -> None:
-    """The tiled reductions reproduce the whole-plane kernels exactly."""
+    """The tiled reduction reproduces the whole-plane kernel exactly."""
     published = _detect(_image(), tmp_path / "one", tile_core_pixels=4096)
     multiscale = published.multiscale
-    detection_labels = published_plane(
-        published.detection_source, "detection-labels"
-    )
-    reconstruction = published_plane(
-        published.detection_source, "reconstruction-mask"
-    )
 
-    expected_components, _ = cast(
-        tuple[npt.NDArray[np.int32], int],
-        label(
-            (detection_labels > 0) | reconstruction,
-            structure=np.ones((3, 3), dtype=np.int8),
-        ),
-    )
     expected_persistent = persistent_adjacent_scale_support(
         tuple(
             build_scale_detection_plane_from_islands(
@@ -306,10 +278,6 @@ def test_published_support_matches_the_whole_plane_reduction(
         )
     )
 
-    np.testing.assert_array_equal(
-        published_plane(published.support_source, "support-components"),
-        expected_components,
-    )
     np.testing.assert_array_equal(
         published_plane(published.support_source, "persistent-support"),
         expected_persistent,

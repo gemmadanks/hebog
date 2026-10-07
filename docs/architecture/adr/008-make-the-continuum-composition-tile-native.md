@@ -122,8 +122,9 @@ before the next stage can decide anything.
   cross-scale persistence and island admission, using globally reconciled
   label mappings sharded per tile. Final labels and mask are written here.
   Pass C is several rounds rather than one, because two of its steps are
-  scoped to an owner and two of its inputs are global reductions; the rounds
-  are listed under *Owner-scoped connectivity* below.
+  scoped to an owner and two of its inputs are global reductions,
+  adjacent-scale persistence and the set of owners published anywhere; the
+  rounds are listed under *Owner-scoped connectivity* below.
 - **Pass D — objects.** Deblending, compact measurement and fitting, extended
   measurement, source association and catalogue rows, as bounded per-object
   tasks reduced hierarchically. Like pass C it is several rounds, because
@@ -238,24 +239,23 @@ set of owners published anywhere, which decides which owners persistent
 support may restore. Which seed a support pixel is attached to is not: the
 pixel takes the seed nearest to it along a path through the support, within
 half a beam, so every pixel of that path takes the same seed and an owner's
-support is connected through its own pixels. The connected components of
-`(direct support ∪ significant multiscale support) ∩ valid` are still
-reconciled and published, but no round reads them.
+support is connected through its own pixels. The connected components of the
+whole support are therefore neither reconciled nor stored.
 
 Pass C therefore runs as rounds, each cheap relative to pass B's filters:
 
 | Round | Scope | Reads | Writes or returns |
 | --- | --- | --- | --- |
-| Topology | core, halo 0 | detection labels, reconstruction mask, validity, scale masks | support-union and per-scale island summaries, adjacent-scale label overlaps |
-| Auxiliary publication | core, halo 0 | as above, plus the reconciled mappings | `support-components`, `persistent-support` |
+| Topology | core, halo 0 | scale masks | per-scale island summaries, adjacent-scale label overlaps |
+| Persistence publication | core, halo 0 | scale masks, plus each core's persistent scale labels | `persistent-support` |
 | Owner connectivity | owner window + refinement halo, or each core a wide owner's window reaches | detection labels, direct signal to noise, reconstruction mask, validity, owner reference pixels | one restore decision per owner; for a wide owner, its published support's components and whether refinement keeps any of its pixels, in each core |
 | Published owners | core + refinement halo | the published planes, owner reference pixels, restore shard | the owners published in the core |
 | Owner bridges | owner window + refinement halo, or each core a wide owner's window reaches | as above, plus the published-owner shard | a label patch bounded by the owner window; for a wide owner, its base and candidate components in each core |
 | Final write | core + refinement halo | as above, plus the patch, wide-owner and admission shards | `component-labels`, `measurement-labels`, `publication-labels`, `retained-mask` |
 
-Only the last round writes. Each pixel quantity is recomputed in the round
-that needs it, which costs a bounded repeat of cheap neighbourhood work and
-saves three intermediate label planes.
+Of the owner rounds, only the last writes. Each pixel quantity is
+recomputed in the round that needs it, which costs a bounded repeat of cheap
+neighbourhood work and saves three intermediate label planes.
 
 The refinement pixel work needs the opening influence **and** the recovery
 radius together, not their maximum: a pixel recovered at the recovery radius
@@ -293,10 +293,10 @@ steps, and they set the round boundaries:
 - **Fit parents.** `_measurement_fit_parents` dilates the measurement support
   by the fit context margin and labels the result, so owners whose contexts
   touch are fitted jointly. That connectivity follows a chain of any length,
-  exactly like pass C's support components, and must be reconciled before any
-  fit runs. A parent of several owners that no joint fit can hold, by the
-  fit's work limits on its owners and their direct pixels or by the compact
-  bound on its window, is fitted island by island: its islands, the
+  exactly like an island's, and must be reconciled before any fit runs. A
+  parent of several owners that no joint fit can hold, by the fit's work
+  limits on its owners and their direct pixels or by the compact bound on its
+  window, is fitted island by island: its islands, the
   zero-margin contexts joined by owner, are reconciled in a further round
   that runs only when such a parent exists.
 - **Measurement support.** Each fit parent contributes persistent measurement

@@ -2,7 +2,7 @@
 # pyright: reportPrivateUsage=false
 # pyright: reportUnknownMemberType=false
 # pyright: reportUnknownVariableType=false
-"""Executor, batching and product contracts for the support reductions."""
+"""Executor, batching and product contracts for the persistence reduction."""
 
 from __future__ import annotations
 
@@ -96,21 +96,8 @@ class _EmptyExecutor(SerialExecutor):
         return []
 
 
-def _planes() -> tuple[
-    npt.NDArray[np.float64],
-    npt.NDArray[np.bool_],
-    npt.NDArray[np.int32],
-    npt.NDArray[np.bool_],
-    tuple[npt.NDArray[np.bool_], ...],
-]:
-    """Return detection products whose support spans several tile cores."""
-    detection_labels = np.zeros(_SHAPE_YX, dtype=np.int32)
-    detection_labels[10, 5] = 1
-    detection_labels[10, 55] = 2
-    detection_labels[40, 30] = 3
-    reconstruction = np.zeros(_SHAPE_YX, dtype=np.bool_)
-    reconstruction[10, 5:56] = True
-    reconstruction[38:43, 28:33] = True
+def _scale_masks() -> tuple[npt.NDArray[np.bool_], ...]:
+    """Return significant scale masks whose features span several cores."""
     scale_masks = (
         np.zeros(_SHAPE_YX, dtype=np.bool_),
         np.zeros(_SHAPE_YX, dtype=np.bool_),
@@ -120,21 +107,11 @@ def _planes() -> tuple[
     scale_masks[1][10, 20:40] = True
     scale_masks[2][10, 25:35] = True
     scale_masks[2][38:43, 28:33] = True
-    valid = np.ones(_SHAPE_YX, dtype=np.bool_)
-    valid[40, 41] = False
-    reconstruction[40, 41] = True
-    return (
-        np.ones(_SHAPE_YX, dtype=np.float64),
-        valid,
-        detection_labels,
-        reconstruction,
-        scale_masks,
-    )
+    return scale_masks
 
 
 def _publish_detection(root: Path) -> ZarrProductSink:
-    """Publish one detection generation the support stage can read."""
-    _, valid, detection_labels, reconstruction, scale_masks = _planes()
+    """Publish only the detection planes the support stage reads."""
     manifest = plan_image_partitions(
         image_shape_yx=_SHAPE_YX,
         tile_core_shape_yx=(32, 32),
@@ -145,23 +122,15 @@ def _publish_detection(root: Path) -> ZarrProductSink:
         manifest,
         generation_id="detection-fixture",
     )
-    products: tuple[
-        tuple[str, npt.NDArray[np.generic], np.dtype[np.generic]], ...
-    ] = (
-        ("detection-labels", detection_labels, np.dtype("<i4")),
-        ("reconstruction-mask", reconstruction, np.dtype(np.bool_)),
-        ("valid-pixels", valid, np.dtype(np.bool_)),
-        *(
-            (
-                f"scale-{order}-significant",
-                mask,
-                np.dtype(np.bool_),
-            )
-            for order, mask in zip(_SCALE_ORDERS, scale_masks, strict=True)
-        ),
+    products = tuple(
+        (f"scale-{order}-significant", mask)
+        for order, mask in zip(_SCALE_ORDERS, _scale_masks(), strict=True)
     )
-    for product_name, _, dtype in products:
-        sink.initialize_product(product_name=product_name, dtype=dtype)
+    for product_name, _ in products:
+        sink.initialize_product(
+            product_name=product_name,
+            dtype=np.dtype(np.bool_),
+        )
     chunks = [
         sink.write_chunk(
             product_name=product_name,
@@ -174,10 +143,10 @@ def _publish_detection(root: Path) -> ZarrProductSink:
             ),
         )
         for tile in manifest.tiles
-        for product_name, values, _ in products
+        for product_name, values in products
     ]
     sink.publish_generation(
-        product_names=tuple(name for name, _, _ in products),
+        product_names=tuple(name for name, _ in products),
         chunks=chunks,
     )
     return sink
@@ -221,37 +190,15 @@ def _run(
     return result, sink
 
 
-def _published(
-    sink: ZarrProductSink,
-) -> tuple[npt.NDArray[np.int32], npt.NDArray[np.bool_]]:
-    """Read both published support planes over the whole image."""
-    bounds = ImageBounds(0, _SHAPE_YX[0], 0, _SHAPE_YX[1])
-    return (
-        np.asarray(
-            sink.read_completed_window("support-components", bounds),
-            dtype=np.int32,
+def _published(sink: ZarrProductSink) -> npt.NDArray[np.bool_]:
+    """Read the published persistent support over the whole image."""
+    return np.asarray(
+        sink.read_completed_window(
+            "persistent-support",
+            ImageBounds(0, _SHAPE_YX[0], 0, _SHAPE_YX[1]),
         ),
-        np.asarray(
-            sink.read_completed_window("persistent-support", bounds),
-            dtype=np.bool_,
-        ),
+        dtype=np.bool_,
     )
-
-
-def test_support_components_join_a_path_no_single_core_contains(
-    tmp_path: Path,
-) -> None:
-    """A component crossing several cores reconciles into one label."""
-    result, sink = _run(tmp_path / "run", manifest=_manifest((16, 16)))
-
-    components, _ = _published(sink)
-
-    assert components[10, 5] == components[10, 55]
-    assert components[10, 5] != components[40, 30]
-    assert components[40, 41] == 0
-    assert result.support_component_count == 2
-    assert result.partition_count == len(_manifest((16, 16)).tiles)
-    assert result.reconciliation_round_count > 0
 
 
 def test_persistent_support_keeps_only_corroborated_scale_features(
@@ -261,23 +208,28 @@ def test_persistent_support_keeps_only_corroborated_scale_features(
 
     The finest, middle and coarsest features of the band overlap in one
     chain, so the group spans three scale orders; the coarse blob below it is
-    seen at one scale only.
+    seen at one scale only. The finest feature crosses four 16-pixel cores
+    and meets the middle one in two of them, so its far ends are persistent
+    only through the reconciled labels.
     """
     result, sink = _run(tmp_path / "run", manifest=_manifest((16, 16)))
 
-    _, persistent = _published(sink)
+    persistent = _published(sink)
 
     assert bool(persistent[10, 30])
-    assert bool(persistent[10, 6])
+    assert bool(persistent[10, 5])
+    assert bool(persistent[10, 55])
     assert not bool(persistent[38, 28])
     assert result.persistent_detection_count == 3
+    assert result.partition_count == len(_manifest((16, 16)).tiles)
+    assert result.reconciliation_round_count > 0
 
 
 def test_support_stage_is_partition_batch_and_executor_invariant(
     tmp_path: Path,
 ) -> None:
     """One published generation survives geometry, batching and workers."""
-    expected_components, expected_persistent = _published(
+    expected = _published(
         _run(tmp_path / "reference", manifest=_manifest((64, 64)))[1]
     )
     variants: list[tuple[str, PartitionManifest, object, int]] = [
@@ -292,9 +244,7 @@ def test_support_stage_is_partition_batch_and_executor_invariant(
             executor=executor,
             tiles_per_batch=batch_size,
         )
-        components, persistent = _published(sink)
-        np.testing.assert_array_equal(components, expected_components, name)
-        np.testing.assert_array_equal(persistent, expected_persistent, name)
+        np.testing.assert_array_equal(_published(sink), expected, name)
 
     with Client(
         processes=False,
@@ -307,23 +257,20 @@ def test_support_stage_is_partition_batch_and_executor_invariant(
             manifest=_manifest((16, 16)),
             executor=DaskExecutor(client),
         )
-    components, persistent = _published(sink)
-    np.testing.assert_array_equal(components, expected_components)
-    np.testing.assert_array_equal(persistent, expected_persistent)
+    np.testing.assert_array_equal(_published(sink), expected)
 
 
 def test_support_stage_publishes_the_canonical_product_set(
     tmp_path: Path,
 ) -> None:
-    """The generation carries exactly one chunk per product and core."""
+    """The generation carries persistent support alone, one chunk a core."""
     manifest = _manifest((16, 16))
 
     result, _ = _run(tmp_path / "run", manifest=manifest)
 
-    assert set(result.generation.product_names) == set(support_product_names())
-    assert len(result.generation.chunks) == len(support_product_names()) * len(
-        manifest.tiles
-    )
+    assert support_product_names() == ("persistent-support",)
+    assert set(result.generation.product_names) == {"persistent-support"}
+    assert len(result.generation.chunks) == len(manifest.tiles)
     assert result.executor_task_count > 0
     assert result.maximum_graph_width > 0
     assert result.maximum_read_pixel_count > 0
@@ -419,7 +366,7 @@ def test_support_stage_requires_a_matching_sink_and_generation(
 def test_support_stage_requires_the_detection_products_it_reads(
     tmp_path: Path,
 ) -> None:
-    """A generation without the detection planes is rejected up front."""
+    """A generation missing one scale's significance is rejected up front."""
     manifest = _manifest((16, 16))
     incomplete = ZarrProductSink(
         tmp_path / "incomplete.zarr",
@@ -427,22 +374,22 @@ def test_support_stage_requires_the_detection_products_it_reads(
         generation_id="incomplete",
     )
     incomplete.initialize_product(
-        product_name="detection-labels",
-        dtype=np.dtype("<i4"),
+        product_name="scale-1-significant",
+        dtype=np.dtype(np.bool_),
     )
     incomplete.publish_generation(
-        product_names=("detection-labels",),
+        product_names=("scale-1-significant",),
         chunks=[
             incomplete.write_chunk(
-                product_name="detection-labels",
+                product_name="scale-1-significant",
                 tile=tile,
-                values=np.zeros(tile.core_bounds.shape_yx, dtype=np.int32),
+                values=np.zeros(tile.core_bounds.shape_yx, dtype=np.bool_),
             )
             for tile in manifest.tiles
         ],
     )
 
-    with pytest.raises(ValueError, match="labels, support and scales"):
+    with pytest.raises(ValueError, match="every scale's significance"):
         run_support_topology_stage(
             incomplete,
             manifest,

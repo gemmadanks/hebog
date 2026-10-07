@@ -31530,3 +31530,56 @@ the per-worker placement finding.
   docs build and `just pre-commit`.
 - **Not run.** The slow lane, the quick benchmark and traced peak, Dask
   process workers and Windows.
+
+## 2026-10-07 — Task 67: the support stage stops reconciling the support components
+
+- **Change.** Since task 64 no round reads `support-components`, the
+  reconciled connected components of the direct support unioned with the
+  significant multiscale support. The support stage
+  (`run_support_topology_stage`) now reads only each scale's significance
+  plane, reconciles only the scale features, and writes only
+  `persistent-support`: it no longer reads `detection-labels`,
+  `reconstruction-mask` and `valid-pixels`, labels the support union twice
+  per core, reconciles its summaries or writes an `int32` plane.
+  `SupportTopologyStageResult.support_component_count` and
+  `_PublicationTileRequest.support_mapping` are removed, and the stage
+  requires only every scale's significance plane. ADR-008's pass C table
+  shows the two rounds' new reads and writes.
+- **Products.** The quick check `task67` against `task67-base`, a run of
+  task 64's commit `ba06a5e9` the same afternoon: no regressions; every
+  catalogue, RMS and mask byte-identical in all 17 cases, and each
+  `diagnostics.json` differs only in `provenance.scientific_composition_sha256`,
+  which hashes `stages/support.py`. The whole `persistent-support` plane of
+  a complete `find_sources` run hashes identically under both codes on the
+  crowded and dense fields, both LoTSS-DR3 1,024² cut-outs, the SDC1
+  crowded 2,048² cut-out and the LoTSS-DR3 3,000² input.
+- **Stage profile.** `just profile-execution` on the 4,096² ladder images
+  (`benchmark-results/profiles/runs/task67-base-dense`, `-base-empty`, on
+  `ba06a5e9` in its own environment, against `task67-dense` and
+  `task67-empty`; one run each, under load from other work): the stage's
+  Zarr plane reads fall from 48 to 24 and its chunk writes from 8 to 4. Its
+  CPU time fell from 1.07 to 0.63 s on the empty image but was unresolved
+  on the dense one (1.65 against 1.63 s), where one code had varied by 40%
+  between two runs. Timed alone on each image's saved detection
+  generation, the two codes alternating over three rounds of five
+  single-threaded repetitions, the stage's median fell from 1.77 to
+  1.11 s wall (1.60 to 1.04 s CPU) on the dense image and from 1.39 to
+  0.76 s (1.19 to 0.68 s CPU) on the empty one: about 0.6 s of runs of 115
+  and 320 s. The profile runner's worker drops `PYTHONPATH`, so a first
+  baseline that relied on it measured the new code and was discarded.
+- **Tests.** The support-stage fixture publishes only the scale planes, so
+  a read of any other plane fails; persistence across four 16-pixel cores,
+  partition, batching, reversed completion and Dask invariance, a
+  generation of `persistent-support` alone, and the refusal of a
+  generation missing one scale's plane. The one-tile/many-tile
+  and whole-plane checks of the public detection pass, and the publication
+  stage's fixtures, no longer read the removed plane.
+- **Checks.** The portable suite under coverage: 3,530 passed and 1
+  xfailed, 97% branch-aware project coverage, `stages/support.py` 100%.
+  `just check`, the strict docs build and `just pre-commit`. An
+  independent review found nothing at P0 to P2; its two P3 findings, that
+  ADR-008's pass C summary did not name its two global inputs and that the
+  product-set test compared the stage with its own constant, were fixed.
+- **Not run.** The quick benchmark: the saving, about 0.6 s of a 4,096²
+  run, is below what it resolves. The traced peak, the slow lane, Dask
+  process workers and Windows.
