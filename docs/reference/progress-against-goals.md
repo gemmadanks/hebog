@@ -116,11 +116,17 @@ catalogue has 22,420 sources and 28,559 Gaussians (5 October).
 
 ### Open scientific defects
 
-- **Local-noise RMS beside a sharp noise step (task 65).** On the normal
-  local-noise path, 35-pixel windows straddling a step in the noise read
-  low within about 20 pixels of it, so spurious sources are published there.
-  Task 63 corrected the crowded-field case, where one clean window set the
-  RMS of about 160 columns.
+- **Local-noise RMS beside a sharp noise step (task 65, rule chosen).** A
+  local-noise cell whose window touches source support takes its nearest
+  clean cell's noise. Beside a sharp step that cell can lie on the quiet
+  side: on `dense-field` with 40 columns scaled by 0.2, 29 spurious sources
+  are published within 20 pixels of the step, against 0 to 5 for pinned
+  `master` (7 October). The chosen rule floors that fill at 0.8 of the
+  coarse RMS. Task 63 corrected the crowded-field case, where one clean
+  window set the RMS of about 160 columns.
+- **Clipped RMS reads low (task 68).** The clipped window RMS has no
+  truncation correction: on noise alone it reads 1.6% low on white noise
+  and 3.2 to 3.9% low on beam-correlated noise (7 October).
 - **Fixed meshes (task 62, deferred).** Beams wider than 10 pixels are
   refused; scaling the meshes with the beam would recover sources to 22
   pixels at about 2.5 times the local-noise read.
@@ -182,7 +188,7 @@ The next actions, as the plan orders them:
 
 1. Human: release the merged task 44 and 45 repairs; require the two CI
    checks task 60 added.
-2. Agent: task 65's diagnosis.
+2. Agent: task 65 under the chosen rule, then task 68's measurement.
 3. Agent: tasks 53 to 56, bounding the terms that grow with the image, before
    the 22,500² (task 11) and 45,000² (task 12) tier gates.
 
