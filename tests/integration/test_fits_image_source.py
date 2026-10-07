@@ -1186,6 +1186,49 @@ def test_dropping_a_source_leaves_no_open_file(tmp_path: Path) -> None:
 
 
 @pytest.mark.integration
+def test_a_source_freed_from_a_reference_cycle_closes_its_file_first(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A source the collector frees from a cycle closes its file first.
+
+    Dask keeps task functions, and the sources bound into them, in reference
+    cycles. The collector finalizes the objects of a cycle in no defined
+    order, so a source that closed its file only in its own finalizer could
+    leave the file to be reported unclosed in whichever later test happened
+    to collect it.
+    """
+    path = tmp_path / "cycle.fits"
+    _write_image(path, np.arange(16, dtype=np.float32).reshape(4, 4))
+    opened: list[Any] = []
+    original = fits.open
+
+    def recorded(file: Any, *arguments: Any, **keywords: Any) -> Any:
+        opened.append(file)
+        return original(file, *arguments, **keywords)
+
+    monkeypatch.setattr(fits_module.fits, "open", recorded)
+    open_when_finalized: list[bool] = []
+
+    class CycleMember:
+        """Records whether the file is open when this member is finalized."""
+
+        def __init__(self) -> None:
+            self.cycle: list[object] = [self]
+
+        def __del__(self) -> None:
+            open_when_finalized.append(not opened[0].closed)
+
+    member = CycleMember()
+    source = FitsImageSource(path)
+    source.read_window(ImageBounds(0, 2, 0, 2))
+    member.cycle.append(source)
+    del member, source
+    gc.collect()
+
+    assert open_when_finalized == [False]
+
+
+@pytest.mark.integration
 def test_closing_releases_files_opened_on_other_threads(
     tmp_path: Path,
 ) -> None:

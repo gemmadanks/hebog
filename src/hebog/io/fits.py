@@ -9,6 +9,7 @@ from __future__ import annotations
 import math
 import re
 import threading
+import weakref
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
@@ -541,6 +542,17 @@ def _metadata(
     )
 
 
+def _close_open_files(
+    open_files: dict[int, Any], lock: threading.Lock
+) -> None:
+    """Close and forget every open file in ``open_files``."""
+    with lock:
+        held = list(open_files.values())
+        open_files.clear()
+    for hdus in held:
+        hdus.close()
+
+
 class FitsImageSource:
     """Read validated logical image planes through bounded FITS sections.
 
@@ -559,6 +571,15 @@ class FitsImageSource:
         self._metadata: ImageMetadata | None = None
         self._open_files: dict[int, Any] = {}
         self._open_files_lock = threading.Lock()
+        # A caller that simply drops a source, as scripts and workers do,
+        # would otherwise leave its files to the garbage collector. Dask
+        # also keeps sources in reference cycles, whose objects the
+        # collector finalizes in no defined order; it runs weakref callbacks
+        # before any finalizer, so the files close before they could be
+        # finalized and reported unclosed.
+        weakref.finalize(
+            self, _close_open_files, self._open_files, self._open_files_lock
+        )
 
     def __getstate__(self) -> dict[str, Any]:
         """Serialize the request to read a file, never what it once held.
@@ -628,19 +649,7 @@ class FitsImageSource:
         Worker threads each open the file, so one close frees them all. The
         source stays usable and opens the file again when it is next read.
         """
-        with self._open_files_lock:
-            open_files, self._open_files = self._open_files, {}
-        for hdus in open_files.values():
-            hdus.close()
-
-    def __del__(self) -> None:
-        """Release open files when the last reference goes away.
-
-        Callers that simply drop a source, as scripts and workers do, would
-        otherwise leave the file to the garbage collector, which reports it
-        as an unclosed file.
-        """
-        self.close()
+        _close_open_files(self._open_files, self._open_files_lock)
 
     def header(self) -> fits.Header:
         """Return the primary header as the finder reads it.

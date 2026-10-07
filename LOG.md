@@ -29754,7 +29754,11 @@ the per-worker placement finding.
   Warnings as errors turn that into a failure of whichever test collects
   it. The `each_executor` fixture now collects at its teardown with
   `ResourceWarning` ignored, as task 47's failure tests do; closing every
-  task's handle deterministically is left to task 25.
+  task's handle deterministically is left to task 25. On 7 October the
+  same warning failed pull request #109's CI in a Dask test, from sources
+  Dask held in reference cycles; `FitsImageSource` now closes its files
+  through `weakref.finalize`, whose callback the collector runs before
+  any finalizer, so a source freed from a cycle closes them first.
 - **Checks on the final code**, all under the new pytest settings, with
   three xdist workers on a shared, loaded machine. The portable suite with
   coverage and the `src/hebog` doctests: 3,394 passed and 1 xfailed, 97.02%
