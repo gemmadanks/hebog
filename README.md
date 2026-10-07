@@ -43,13 +43,17 @@ lists the full input requirements and known limitations.
 ## Installation
 
 Hebog is not on PyPI yet: its public input envelope is still too small to be
-generally useful. Install a tagged release from GitHub into a Python 3.12 to
-3.14 environment, replacing the tag with the
+generally useful. Install the latest tagged release from GitHub into a
+Python 3.12 to 3.14 environment, or replace the tag with the
 [release](https://github.com/gemmadanks/hebog/releases) you want:
 
+<!-- x-release-please-start-version -->
+
 ```shell
-pip install git+https://github.com/gemmadanks/hebog@v0.12.0
+pip install git+https://github.com/gemmadanks/hebog@v0.18.0
 ```
+
+<!-- x-release-please-end -->
 
 Releases are also uploaded to
 [TestPyPI](https://test.pypi.org/project/hebog/) to exercise the publishing

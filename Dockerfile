@@ -1,4 +1,6 @@
-# Multi-stage development and runtime image for Hebog.
+# Multi-stage development and runtime image for Hebog. The development
+# container builds the `dev` target, and CI builds both targets.
+# UV_VERSION in .github/workflows/ci.yaml
 ARG UV_VERSION=0.9.16
 ARG PYTHON_VERSION=3.14
 FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv-bin
@@ -31,7 +33,7 @@ CMD ["bash"]
 
 FROM base AS runtime
 
-COPY pyproject.toml uv.lock README.md ./
+COPY pyproject.toml uv.lock README.md LICENSE ./
 RUN uv sync --frozen --no-install-project --no-dev
 COPY src/ ./src/
 RUN uv sync --frozen --no-dev

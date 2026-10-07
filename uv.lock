@@ -434,14 +434,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/7e/5f/7c22733da92b3a6cc4dddcaa8731089d213c2790bbc997e51c429a4e8f8b/dask-2026.7.1-py3-none-any.whl", hash = "sha256:985ffd6c5e9d7979ede515e84ae8d39b647d6aa64f77600f15714ff65f578fe6", size = 1496882, upload-time = "2026-07-14T01:06:20.341Z" },
 ]
 
-[package.optional-dependencies]
-array = [
-    { name = "numpy" },
-]
-distributed = [
-    { name = "distributed" },
-]
-
 [[package]]
 name = "distlib"
 version = "0.4.3"
@@ -624,7 +616,7 @@ version = "0.18.0"
 source = { editable = "." }
 dependencies = [
     { name = "astropy" },
-    { name = "dask", extra = ["array", "distributed"] },
+    { name = "distributed" },
     { name = "numpy" },
     { name = "pydantic" },
     { name = "scipy" },
@@ -654,10 +646,10 @@ docs = [
 [package.metadata]
 requires-dist = [
     { name = "astropy", specifier = ">=8.0.1,<9" },
-    { name = "dask", extras = ["array", "distributed"], specifier = ">=2026.7.1,<2027" },
-    { name = "numpy", specifier = ">=1.26,<3" },
-    { name = "pydantic", specifier = ">=2.10,<3" },
-    { name = "scipy", specifier = ">=1.12,<2" },
+    { name = "distributed", specifier = ">=2026.7.1,<2027" },
+    { name = "numpy", specifier = ">=2.0.2,<3" },
+    { name = "pydantic", specifier = ">=2.12,<3" },
+    { name = "scipy", specifier = ">=1.15,<2" },
     { name = "zarr", specifier = ">=3.2,<3.3" },
 ]
 
@@ -665,7 +657,7 @@ requires-dist = [
 dev = [
     { name = "hypothesis", specifier = ">=6.163.0,<7" },
     { name = "marimo", specifier = ">=0.23.15" },
-    { name = "matplotlib", specifier = ">=3.10,<4" },
+    { name = "matplotlib", specifier = ">=3.11,<4" },
     { name = "pre-commit", specifier = ">=4.6.1,<5.0.0" },
     { name = "pyright", specifier = ">=1.1.411,<2.0.0" },
     { name = "pytest", specifier = ">=9.1.1,<10.0.0" },

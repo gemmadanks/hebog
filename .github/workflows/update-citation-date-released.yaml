@@ -7,7 +7,7 @@ on:
       - main
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: update-citation-date
@@ -17,6 +17,8 @@ jobs:
   update-citation-date:
     if: startsWith(github.head_ref, 'release-please--branches--main')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # needed to push the date to the release branch
     steps:
       - name: Checkout release branch
         uses: actions/checkout@v7

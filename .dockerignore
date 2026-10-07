@@ -1,0 +1,8 @@
+# The images copy only these files, so nothing else (the virtual environment,
+# benchmark results, data) is sent as build context.
+*
+!LICENSE
+!README.md
+!pyproject.toml
+!src
+!uv.lock

@@ -39,7 +39,7 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           # Keep in step with UV_VERSION in ci.yaml.
-          version: "0.9.4"
+          version: "0.9.16"  # UV_VERSION in ci.yaml
           enable-cache: true
 
       - name: Install dependencies

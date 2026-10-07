@@ -2,14 +2,18 @@
 
 Hebog needs Python 3.12, 3.13 or 3.14 on Linux, macOS or Windows.
 
-Hebog is not on PyPI yet. Install a tagged
-[release](https://github.com/gemmadanks/hebog/releases) from GitHub, replacing
-the tag with the version you want:
+Hebog is not on PyPI yet. Install the latest tagged release from GitHub, or
+replace the tag with the [release](https://github.com/gemmadanks/hebog/releases)
+you want:
+
+<!-- x-release-please-start-version -->
 
 ```console
-pip install git+https://github.com/gemmadanks/hebog@v0.12.0
+pip install git+https://github.com/gemmadanks/hebog@v0.18.0
 hebog --version
 ```
+
+<!-- x-release-please-end -->
 
 Pin the exact version in your environment. Hebog is experimental, and `0.x`
 releases can change the API, the output format and the measurements. Releases
