@@ -16,7 +16,7 @@ import numpy.typing as npt
 from astropy import units as u
 from astropy.io import fits
 from astropy.wcs import WCS
-from astropy.wcs.utils import wcs_to_celestial_frame
+from astropy.wcs.utils import proj_plane_pixel_scales, wcs_to_celestial_frame
 
 from hebog.algorithms.measurement import (
     fitted_gaussian_integrated_flux_jy,
@@ -36,7 +36,20 @@ from hebog.data_models.fitting import ValidCompactGaussianFit
 from hebog.data_models.images import ImageMetadata, RestoringBeam
 from hebog.data_models.measurement import CompactMeasurementGeometry
 
-_FINITE_DIFFERENCE_STEP_PIXELS = 1e-3
+# A central difference loses accuracy two ways. wcslib returns sky
+# coordinates in degrees, good to about a unit in their last place (3e-14
+# degree at a right ascension of 180), and the difference divides that by
+# the step; the projection's curvature adds an error that grows with the
+# step squared. A step of 2 arcsec balances the two at about 1e-10 of the
+# local scale whatever the pixel scale, wherever the projection and any
+# distortion are close to linear over it, so the step is an angle,
+# converted to pixels per axis. Curvature grows near the horizon of a SIN
+# image (1e-7 at 82 degrees from its reference), and a point within the
+# step of that horizon has no Jacobian. A step of 1e-3 pixel left 2e-8 at
+# 1.5 arcsec pixels and up to 1e-6 at 0.1 arcsec, by amounts that differed
+# between Linux and macOS, whose maths libraries round that last place
+# differently.
+_FINITE_DIFFERENCE_STEP_DEGREES = 2.0 / 3600.0
 _FWHM_PER_SIGMA = 2.0 * sqrt(2.0 * log(2.0))
 _SHAPE_AXIS_PARAMETER_COUNT = 2
 
@@ -96,19 +109,19 @@ def local_tangent_plane_transform_from_wcs(
         raise ValueError("astrometry requires a celestial WCS")
     x, y = position_xy
     wcs = celestial_wcs.celestial
-    step = _FINITE_DIFFERENCE_STEP_PIXELS
+    step_x, step_y = _finite_difference_steps_pixels(wcs)
     # One conversion for the centre and the four finite-difference
     # neighbours together. Converting them one at a time builds five sky
     # coordinates and five frame transforms per measured source, which
     # costs more than everything else in the catalogue.
     sampled = wcs.pixel_to_world(
-        np.asarray([x, x + step, x - step, x, x], dtype=np.float64),
-        np.asarray([y, y, y, y + step, y - step], dtype=np.float64),
+        np.asarray([x, x + step_x, x - step_x, x, x], dtype=np.float64),
+        np.asarray([y, y, y, y + step_y, y - step_y], dtype=np.float64),
     ).icrs
     center = sampled[0]
     east, north = center.spherical_offsets_to(sampled[1:])
     columns: list[tuple[float, float]] = []
-    for plus, minus in ((0, 1), (2, 3)):
+    for plus, minus, step in ((0, 1, step_x), (2, 3, step_y)):
         columns.append(
             (
                 (east[plus].degree - east[minus].degree) / (2.0 * step),
@@ -127,6 +140,24 @@ def local_tangent_plane_transform_from_wcs(
             declination_error_degrees=None,
         ),
         jacobian_degrees_per_pixel=jacobian,
+    )
+
+
+def _finite_difference_steps_pixels(wcs: WCS) -> tuple[float, float]:
+    """Return the x and y pixel steps that each span the angular step.
+
+    The scales are those of the linear transform at the reference pixel.
+    The step need only be close to the angular step, so distortion and
+    distance from the reference are left out of its size.
+    """
+    scale_x, scale_y = (float(scale) for scale in proj_plane_pixel_scales(wcs))
+    if not all(
+        isfinite(scale) and scale > 0.0 for scale in (scale_x, scale_y)
+    ):
+        raise ValueError("astrometry requires a finite, positive pixel scale")
+    return (
+        _FINITE_DIFFERENCE_STEP_DEGREES / scale_x,
+        _FINITE_DIFFERENCE_STEP_DEGREES / scale_y,
     )
 
 
@@ -795,16 +826,18 @@ def local_tangent_plane_transforms_from_wcs(
     """
     if not celestial_wcs.has_celestial:
         raise ValueError("astrometry requires a celestial WCS")
+    wcs = celestial_wcs.celestial
+    # Size the step before the empty batch returns, so an unusable pixel
+    # scale fails closed whether or not this batch holds an object.
+    step_x, step_y = _finite_difference_steps_pixels(wcs)
     if not positions_xy:
         return ()
-    wcs = celestial_wcs.celestial
-    step = _FINITE_DIFFERENCE_STEP_PIXELS
     xs = np.asarray([x for x, _ in positions_xy], dtype=np.float64)
     ys = np.asarray([y for _, y in positions_xy], dtype=np.float64)
     count = xs.size
     sampled = wcs.pixel_to_world(
-        np.concatenate((xs, xs + step, xs - step, xs, xs)),
-        np.concatenate((ys, ys, ys, ys + step, ys - step)),
+        np.concatenate((xs, xs + step_x, xs - step_x, xs, xs)),
+        np.concatenate((ys, ys, ys, ys + step_y, ys - step_y)),
     ).icrs
     centers = sampled[:count]
     offsets = [
@@ -829,21 +862,21 @@ def local_tangent_plane_transforms_from_wcs(
                 (
                     float(
                         (east_degrees[0][index] - east_degrees[1][index])
-                        / (2.0 * step)
+                        / (2.0 * step_x)
                     ),
                     float(
                         (east_degrees[2][index] - east_degrees[3][index])
-                        / (2.0 * step)
+                        / (2.0 * step_y)
                     ),
                 ),
                 (
                     float(
                         (north_degrees[0][index] - north_degrees[1][index])
-                        / (2.0 * step)
+                        / (2.0 * step_x)
                     ),
                     float(
                         (north_degrees[2][index] - north_degrees[3][index])
-                        / (2.0 * step)
+                        / (2.0 * step_y)
                     ),
                 ),
             ),

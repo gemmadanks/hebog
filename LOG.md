@@ -31674,3 +31674,187 @@ the per-worker placement finding.
   owner bounds from the 17- and 34-pixel core edges to 21 and 42, because
   the 4-pixel beam's halo now needs cores of at least 21 pixels. The plan
   drops task 66 and its open defect.
+
+## 2026-10-07 — The restoring beam's pixel axes no longer depend on the platform
+
+- **Outcome.** The WCS Jacobian's central difference now steps 2 arcsec on
+  the sky, converted to pixels per axis from the pixel scales
+  (`astrometry._FINITE_DIFFERENCE_STEP_DEGREES`), instead of 10⁻³ pixel.
+  Whole-pixel beams round to exactly N on macOS arm64, Linux arm64 and
+  Linux x86-64, so `ceil(1.5 * major)` and `ceil(0.5 * major)` no longer
+  depend on the platform. The 10⁻⁶ pixel quantisation stays, with a margin
+  of about 1,000. A pixel scale that is zero or not finite once Astropy
+  squares it (CDELT 10⁻³⁰⁰ or 10²⁰⁰) is still refused as a beam with no
+  finite size in pixels, now before any division. No plan task: found on
+  `fix/refuse-wide-beams` (task 62), whose `_BEAM_LIMIT_DECIMALS` guards
+  the refusal on its own.
+- **Decision statement.** Observed (7 October, while fixing CI on
+  `fix/refuse-wide-beams`): on the beam-sampling study's geometry (SIN,
+  ICRS, 1.5 arcsec pixels, reference at RA 180, Dec 45 on the image centre)
+  a 10-pixel beam reads 10.000000194 pixels on macOS arm64 and 10.000000508
+  on Linux arm64, which the 1e-6 quantisation turns into 10.0 and
+  10.000001. `ceil(1.5 * major)` (the segment-row aperture radius) and
+  `ceil(0.5 * major)` (the multiscale recovery radius, and through it the
+  segment-refinement and publication halos, the support dilation and the
+  owner-window read budget) land exactly on an integer for every even
+  whole-pixel beam, so the two platforms publish from different apertures
+  and halos. This is a correctness defect: a supported output that depends
+  on the platform. Proposed cause: the WCS Jacobian's central difference
+  steps 10⁻³ pixel, so it divides wcslib's coordinates, good to about one
+  unit in the last place of a degree value (3×10⁻¹⁴ degree at RA 180), by a
+  displacement of 8×10⁻⁷ degree; the two maths libraries differ in that
+  last place. Independent test: the beam-pixel width against the exact
+  value N on whole-pixel beams with the reference pixel at the image
+  centre, where the Jacobian is the CD matrix, on both platforms (Linux in
+  the Aegean reference container, which imports `hebog.algorithms`), and
+  with the step varied. Expected: an error falling as 1/step until the
+  projection's curvature takes over, and a step that leaves every
+  whole-pixel beam exact on both platforms with a wide margin. Stop when
+  whole-pixel beams are exact on both platforms over the supported pixel
+  scales, the quick science check shows no regression, and the
+  equivalence lane passes.
+- **Cause.** The WCS is sound: wcslib's coordinates are within 0.1 to 3.4
+  units in the last place of an extended-precision SIN deprojection
+  (`mpmath`, 40 digits). The step amplifies them. On the study geometry
+  the Jacobian's error falls as 1/step, from 2.2×10⁻⁷ at 10⁻⁴ pixel to
+  5×10⁻¹¹ at 1 pixel, then rises as the step squared (5.6×10⁻¹⁰ at 8
+  pixels, 9.0×10⁻⁹ at 32), which is SIN's curvature, (step × scale)²/6.
+  `.icrs` changes nothing on an ICRS WCS. Plain coordinate differences in
+  place of `spherical_offsets_to` lower the error at 10⁻³ pixel from
+  1.9×10⁻⁸ to 3.9×10⁻⁹, but it still scales as 1/step, so the offsets add
+  round-off without being its cause. On Linux, NumPy 1.26 with OpenBLAS 0.3.23
+  and NumPy 2.5 with scipy-openblas 0.3.34 give identical values, which
+  points to the C maths library beneath wcslib and Astropy rather than
+  NumPy or the BLAS. A 0.1 arcsec pixel was worse: 10 pixels read
+  10.00000098 on macOS and 10.0000124 on Linux, and both round away
+  from 10.
+- **The step.** 400 random whole-pixel geometries: SIN, TAN, ARC, ZEA and
+  STG; pixel scales log-uniform from 0.05 to 60 arcsec; the reference
+  anywhere on the sky and at the image centre; beams of 2 to 22 pixels.
+  They ran on macOS arm64 and in the Aegean reference container on Linux
+  arm64, whose Python imports `hebog.algorithms`. Worst relative error of
+  either axis, the same on both:
+  - at 10⁻³ pixel, 1.8×10⁻⁶, with 144 of the 400 not N after rounding;
+  - at 1 pixel, 2.0×10⁻⁸ (curvature at 60 arcsec pixels), which is
+    3.5×10⁻⁷ pixel on a 22-pixel beam and too close to the 5×10⁻⁷
+    rounding margin;
+  - at 1, 2, 4 and 8 arcsec, 1.9×10⁻¹⁰, 8.6×10⁻¹¹, 1.5×10⁻¹⁰ and
+    5.1×10⁻¹⁰;
+  - with Richardson extrapolation at 60 and 300 arcsec, 4×10⁻¹².
+
+  A fixed angle makes the error independent of the pixel scale. 2 arcsec
+  balances round-off and curvature. Richardson extrapolation would double
+  the samples and reach arcminutes away for accuracy the quantum does not
+  need. Reading the pixel scales costs 5 µs against 2.3 ms a transform.
+- **Three platforms.** A standalone copy of the Jacobian and beam
+  arithmetic, which imports no Hebog module because neither container can
+  import `hebog.public_api`, ran the same 400 geometries and the unit
+  test's on three platforms: macOS arm64 (NumPy 2.4.6, Astropy 8.0.1);
+  Linux arm64 in the Aegean container (NumPy 2.5.2, Astropy 7.2.2); and
+  Linux x86-64 in the Rapthor development container under emulation
+  (NumPy 2.5.3, Astropy 8.0.1).
+  - Old step: 116, 116 and 115 of 400 major axes are not N after rounding.
+    Between pairs of platforms, the rounded axis differs in 16 to 26
+    geometries and `ceil(1.5F)` or `ceil(0.5F)` in 1 or 2. The study
+    geometry's 10 pixels read 10.000000194, 10.000000508 and 10.000000482.
+  - New step: none inexact and none different after rounding. The worst
+    error is 7.3×10⁻¹¹ and the largest difference between platforms
+    7×10⁻¹⁰ pixel. The study geometry's 10 pixels read 10.0000000002 on
+    all three, and 10.000000000183 through `FitsImageSource` and
+    `_beam_shape_pixels` on macOS.
+- **Tests.**
+  - `test_local_jacobian_matches_the_projection_to_round_off` checks the
+    singular values against SIN's and TAN's analytic radial and tangential
+    stretches to 10⁻⁹, at and far from the reference, through the single
+    and batched entry points. With the old step it fails on macOS for all
+    four geometries.
+  - `test_a_whole_pixel_beam_is_exactly_whole_in_pixels` covers three
+    geometries and beams of 3, 4, 10 and 22 pixels. With the old step it
+    fails on macOS for 0.1 arcsec pixels at 4, 10 and 22 pixels. By the
+    standalone copy it fails in 6 cases on Linux arm64, including the
+    study geometry at 10 and 22, and in 5 on x86-64, including the study
+    geometry at 22. CI on Linux and Windows should confirm.
+  - One test's premise moved:
+    `test_hebog_segment_moment_catalogue_publishes_sky_shape_and_round_trips`
+    expected a position angle within 10⁻¹² degree of 0. The old Jacobian's
+    off-diagonal there, −4×10⁻¹⁰ of the scale, gave 179.99999995, which
+    the moment shape's 180-to-0 rule turned into 0. The new one, +4×10⁻¹³,
+    gives 5×10⁻¹¹ degree. The test now allows 10⁻⁹ degree, and
+    `test_moment_shape_reads_a_north_axis_as_zero_on_either_side` covers
+    the 180-to-0 rule directly; before, that test covered the rule only
+    by accident.
+  - The scale guard is covered through both entry points for an underflow
+    and an overflow, and through `_require_sampled_beam` for an underflow.
+    The old code refused both inputs too, through a singular or NaN
+    Jacobian; the overflow then also warned about dividing zero by zero.
+- **Quick science check** `beam-jacobian` against `beam-jacobian-base`:
+  no regression, and every reported metric is identical. The baseline is
+  `origin/main` (`29157d26`), run the same day in a scratch worktree with
+  the cached references.
+  - RMS images and source masks are byte-identical in all 17 cases. The
+    generated beams round to 5.0 and 4.0 under both steps (5.0000000968
+    before, 4.99999999994 now), so no stage extent changes.
+  - Catalogues on the generated and LoTSS cases change by at most
+    7×10⁻⁷ relative, mostly near 10⁻⁷. Positions move by at most
+    0.86 µas, and aperture fluxes are identical.
+  - On the SDC1 cut-outs (0.24 arcsec pixels, where the old Jacobian was
+    6×10⁻⁸ out), the rounded beam moved by one 10⁻⁶ quantum (sparse major
+    2.482424 to 2.482423; crowded minor 2.482421 to 2.482420), so their
+    fitted axes and fluxes move by up to 1.0×10⁻⁶ and aperture fluxes by
+    4×10⁻⁷.
+  - The published fitted position angle moves by more than 0.1 degree
+    only for components whose fitted axes agree to 3.5×10⁻⁶: 42, 17, 153
+    and 96 of them on the LoTSS and SDC1 cut-outs. Their angle is the
+    round-off of a circular shape, as is the pixel beam's angle on those
+    images (SDC1 crowded moved from 131.8 to 135.0 degrees, with axes
+    10⁻⁶ apart).
+  - `extension-not-significant` crosses its threshold for 3 of 999
+    `crowded-field` components, 8 of 170 on LoTSS and 25 of 1,480 on
+    SDC1, in both directions. No deconvolution status changes.
+- **Equivalence** (`just test-equivalence`): 32 passed.
+- **Checks.**
+  - The last `just coverage` run, on the final code, passed 3,275 tests
+    with 1 xfailed. TOTAL is 97.00% (16,475 statements, 325 missed; 4,334
+    branches, 251 partial).
+  - `origin/main`, run the same day, had 16,470 statements and 324 missed,
+    with 4,332 branches and 250 partial: 97.01%.
+  - The one extra miss and partial branch are `executors/dask.py` line
+    182, a branch of the Dask submission window that depends on
+    scheduling timing. Two of the four full runs on this branch covered
+    it. One of those had exactly `origin/main`'s misses (97.01%).
+  - `astrometry.py` and `public_api.py` miss only lines they missed
+    before, shifted.
+  - One earlier full run failed
+    `test_dask_profile_attributes_every_task_to_the_run`: its stage worker
+    occupancy read 1.056 against a bound of 1 while another process loaded
+    the machine. It passed three times when run alone and in every other
+    full run, and is suggested as its own task.
+  - `just test-equivalence`, `just check` (2,070 passed, 1 xfailed),
+    `just docs-build` and `just pre-commit` pass.
+- **Independent review** (a separate agent given the request, the diff
+  and `CODE_REVIEW.md`) found two P3 issues, both fixed.
+  - The batched transform returned an empty batch before checking the
+    pixel scale. It now checks first, as the beam rotation checks the
+    frame, and the refusal tests run through the single call, a batch and
+    an empty batch.
+  - The documentation claimed 10⁻¹⁰ everywhere. The step is deterministic,
+    so the cross-platform result holds everywhere, but its curvature error
+    grows where the projection is not close to linear over 2 arcsec. On a
+    SIN image the error is 1.2×10⁻⁹ at a plane radius of 0.9, 1.2×10⁻⁷ at
+    0.99 (82 degrees out) and 1.2×10⁻⁵ at 0.999, where the old step gave
+    5×10⁻¹⁰ and 10⁻⁸. A point within 2 arcsec (in the plane) of the
+    horizon has no Jacobian, where the old step left 10⁻³ pixel. TAN with
+    SIP terms at 0.05 arcsec pixels (a 40-pixel step) gives 3×10⁻⁷.
+    ZEA, CAR, AIT and TAN out to 85 degrees stay within 7×10⁻¹⁰. The
+    reference page and the comment now say so. All-sky SIN images are not
+    in the evaluated envelope, so this is recorded rather than repaired.
+
+  The reviewer also noted that a beam axis that is not whole and lies
+  within about 10⁻⁹ pixel of a rounding half-step can still round
+  differently between platforms. A `ceil` flips only if that axis is also
+  near the `ceil` boundary, which is negligible. The pixel beam's angle
+  for axes one quantum apart also remains round-off.
+- **Not run.** Windows and the CI runners on real x86-64 hardware (the
+  x86-64 figures above are emulated), the slow and acceptance lanes, and
+  the quick benchmark: reading the pixel scales adds 5 µs to a 2.3 ms
+  transform, and no performance claim is made.

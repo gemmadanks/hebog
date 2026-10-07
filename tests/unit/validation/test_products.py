@@ -404,7 +404,11 @@ def test_hebog_segment_moment_catalogue_publishes_sky_shape_and_round_trips(
         2.0 * np.sqrt(2.0 * np.log(2.0)) * 3.0,
         rel=2e-6,
     )
-    assert source.fitted_shape.position_angle_degrees == pytest.approx(0.0)
+    # The WCS Jacobian's round-off, about 1e-12 of the scale off its
+    # diagonal, turns the axes by a few 1e-11 degrees.
+    assert source.fitted_shape.position_angle_degrees == pytest.approx(
+        0.0, abs=1e-9
+    )
     assert source.deconvolution_status == "resolved"
     assert source.deconvolved_shape is not None
     assert "segment-moment-equivalent-shape" in source.quality_flags
