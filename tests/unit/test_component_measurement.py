@@ -31,7 +31,9 @@ from hebog.data_models.fitting import (
     ValidCompactGaussianFit,
 )
 from hebog.data_models.images import RestoringBeam
+from hebog.data_models.measurement import CompactMeasurementGeometry
 from hebog.data_models.partitioning import ImageBounds
+from hebog.science.configuration import source_finder_configs
 
 
 @pytest.mark.parametrize("residual_value", (-1.0, 0.0, 1.0))
@@ -435,6 +437,93 @@ def test_fallback_adequacy_uses_the_declared_likelihood_domain(
     else:
         assert isinstance(actual, FailedCompactGaussianFit)
         assert actual.reason == "fit-model-inadequate"
+
+
+def _resolved_source_beside_a_ridge(
+    seed: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """A 20-sigma resolved source beside a component owning a thin ridge.
+
+    Component 1 is a Gaussian of sigma 3.5 by 2 pixels at 30 degrees;
+    component 2 owns a one-pixel-wide column of nine pixels and one beside
+    it, which cannot fix its width. Unit white noise drawn from ``seed``.
+    """
+    shape = (32, 40)
+    yy, xx = np.mgrid[: shape[0], : shape[1]]
+    angle = np.deg2rad(30.0)
+    along = np.cos(angle) * (xx - 14.0) + np.sin(angle) * (yy - 16.0)
+    across = -np.sin(angle) * (xx - 14.0) + np.cos(angle) * (yy - 16.0)
+    resolved = 20.0 * np.exp(-0.5 * ((along / 3.5) ** 2 + (across / 2.0) ** 2))
+    image = resolved + np.random.default_rng(seed).normal(size=shape)
+    ridge = np.zeros(shape, dtype=np.bool_)
+    ridge[12:21, 26] = True
+    ridge[19, 27] = True
+    image[14:19, 26] += 6.0
+    image[ridge] = np.abs(image[ridge]) + 0.5
+    labels = np.zeros(shape, dtype=np.int32)
+    labels[(resolved > 3.0) & (image > 0.0)] = 1
+    labels[ridge] = 2
+    return image, labels
+
+
+# Draws whose joint free fit is singular and whose ridge is then published
+# with the beam shape, so every component of the parent has a fit.
+@pytest.mark.parametrize("seed", (3, 8))
+def test_a_degenerate_neighbour_leaves_a_resolved_source_adequate(
+    seed: int,
+) -> None:
+    """The resolved source keeps its shape, its model and its group.
+
+    The ridge's collapse makes the joint free fit singular. Only the ridge
+    takes the beam, so the resolved source keeps a free ellipse that
+    describes it, is not inadequate, and its parent reaches grouping.
+    """
+    image, labels = _resolved_source_beside_a_ridge(seed)
+    _, _, moment_config, fit_config = source_finder_configs()
+    beam = BeamShapePixels(2.48, 2.48, 0.0)
+    sigma = 2.48 / (2.0 * np.sqrt(2.0 * np.log(2.0)))
+    parents = measurement._bounded_fit_parents(
+        labels,
+        labels,
+        context_margin_pixels=fit_config.context_margin_pixels,
+        read_margin_pixels=0,
+        maximum_bounds_pixels=10_000,
+    )
+    assert set(np.unique(parents[labels > 0]).tolist()) == {1}
+
+    measured = measurement.measure_fit_parent_components(
+        image,
+        np.ones_like(image),
+        np.ones(image.shape, dtype=np.bool_),
+        parents,
+        labels,
+        labels,
+        CompactMeasurementGeometry(
+            pixel_solid_angle_steradians=1.0,
+            restoring_beam_solid_angle_steradians=2.0 * np.pi * sigma**2,
+            restoring_beam_covariance_pixels_squared=(sigma**2, 0.0, sigma**2),
+        ),
+        moment_config,
+        fit_config,
+        parent_index=1,
+        bounds=ImageBounds(0, image.shape[0], 0, image.shape[1]),
+        image_shape_yx=image.shape,
+        detection_sigma=5.0,
+        island_sigma=3.0,
+        minimum_pixels=7,
+        maximum_bounds_pixels=10_000,
+        atrous_plan=build_residual_atrous_plan(beam, noise_correlation=beam),
+        minimum_support_fraction=0.5,
+    )
+
+    fits = dict(measured.fits)
+    resolved, ridge = fits[1], fits[2]
+    assert isinstance(resolved, ValidCompactGaussianFit)
+    assert resolved.diagnostics.model_identity == "free-elliptical"
+    assert isinstance(ridge, ValidCompactGaussianFit)
+    assert ridge.diagnostics.model_identity == "beam-constrained"
+    assert ridge.diagnostics.fallback_reason == "free-model-ill-conditioned"
+    assert frozenset((1,)) in measured.compact_groups
 
 
 def test_parent_work_deferral_does_not_allocate_a_fit() -> None:

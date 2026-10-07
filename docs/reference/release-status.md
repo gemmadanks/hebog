@@ -87,12 +87,6 @@ Known limitations when interpreting results:
   peaking at 7 or more times the noise without one, 2 lie on a brighter
   source's wing and 2 are not detected. The field's 963 islands become 996
   sources where PyBDSF finds 1,006, and 2 of them join 4 injected sources.
-- Neighbouring components are fitted jointly, and the joint fit is judged
-  well conditioned as a whole. When one component collapses or spreads into
-  diffuse emission, every component in that fit falls back to a beam-shaped
-  Gaussian, and resolved ones can then be left unpublished as inadequate. On
-  the sparse SDC1 cut-out 39 components fall back this way and 15 are left
-  unpublished.
 - The `compact` profile is not a general continuum catalogue.
 - Completeness, reliability, astrometry and photometry must be evaluated on
   data representative of your use.

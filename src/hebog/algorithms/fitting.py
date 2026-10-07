@@ -295,6 +295,101 @@ def _information_condition(jacobian: np.ndarray) -> float | None:
     return condition if isfinite(condition) else None
 
 
+def _normalized_information(
+    jacobian: npt.NDArray[np.float64],
+) -> npt.NDArray[np.float64]:
+    """Return the information matrix of unit-norm parameter columns.
+
+    Its diagonal is one for every column with information, so its condition
+    number is the one :func:`_information_condition` judges. A column with
+    no finite positive norm carries no information: its row and column are
+    zero, which makes any set of parameters holding it singular.
+    """
+    norms = np.linalg.norm(jacobian, axis=0)
+    informative = np.isfinite(norms) & (norms > 0.0)
+    normalized = np.where(
+        informative, jacobian / np.where(informative, norms, 1.0), 0.0
+    )
+    return normalized.T @ normalized
+
+
+def _degenerate_components(  # noqa: PLR0913
+    information: npt.NDArray[np.float64],
+    column_counts: tuple[int, ...],
+    *,
+    judged: frozenset[int],
+    removable: frozenset[int],
+    canonical_keys: tuple[tuple[int, int], ...],
+    maximum_condition: float,
+) -> frozenset[int] | None:
+    """Find the components that leave a joint fit's information singular.
+
+    ``information`` is :func:`_normalized_information` of a joint Jacobian
+    holding ``column_counts[i]`` consecutive columns for component ``i``.
+    Starting from the ``judged`` components, each step leaves out the
+    ``removable`` component whose absence leaves the fewest directions the
+    rest cannot identify, those whose eigenvalue is no more than the largest
+    over ``maximum_condition``; among those that leave none, the one leaving
+    the smallest condition number, compared on a log scale rounded to nine
+    decimals. Every remaining tie goes to the smallest ``canonical_keys``
+    entry, so the choice does not depend on component order. A condition
+    number decides only where the rest is identifiable: where it is not,
+    the number sits at the limit of double precision and ranks the trials
+    by rounding noise, and rounding makes analytically equal trials tie.
+    Returns the components left out once the rest is identifiable, none
+    when the judged components already are, or ``None`` when leaving out
+    every removable one is not enough.
+
+    A left-out component's rows and columns are replaced by the identity
+    rather than deleted, so every trial is a matrix of one size and all are
+    decomposed in one stacked call. The identity only adds eigenvalues of
+    one, which lie between the extreme eigenvalues of any matrix with a unit
+    diagonal, so the spectrum's extremes, and with them both criteria, are
+    those of the rest.
+    """
+    owners = np.repeat(np.arange(len(column_counts)), column_counts)
+    identity = np.eye(information.shape[0])
+    kept = set(judged)
+    left_out: set[int] = set()
+    while True:
+        options = sorted(removable & kept, key=canonical_keys.__getitem__)
+        trials = np.zeros((len(options) + 1, len(column_counts)), np.bool_)
+        trials[:, sorted(kept)] = True
+        trials[np.arange(1, len(options) + 1), options] = False
+        columns = trials[:, owners]
+        eigenvalues = np.linalg.eigvalsh(
+            np.where(
+                columns[:, :, None] & columns[:, None, :],
+                information,
+                identity,
+            )
+        )
+        largest = eigenvalues[:, -1]
+        unidentified = np.count_nonzero(
+            eigenvalues * maximum_condition <= largest[:, None], axis=1
+        )
+        if unidentified[0] == 0:
+            return frozenset(left_out)
+        if not options:
+            return None
+        smallest = eigenvalues[:, 0]
+        identified = (unidentified == 0) & (smallest > 0.0)
+        log_conditions = np.full_like(largest, np.inf)
+        np.log10(
+            largest / np.where(identified, smallest, 1.0),
+            out=log_conditions,
+            where=identified,
+        )
+        # lexsort is stable and the options are in canonical order, so a tie
+        # goes to the first of them.
+        ranked = np.lexsort(
+            (np.round(log_conditions[1:], 9), unidentified[1:])
+        )
+        chosen = options[int(ranked[0])]
+        kept.remove(chosen)
+        left_out.add(chosen)
+
+
 def _diagnostics(
     *,
     converged: bool,
@@ -734,15 +829,22 @@ def _identifiable(
     config: CompactGaussianFitConfig,
 ) -> bool:
     """Reject non-periodic bound contact and ill-conditioned information."""
-    physical_bound_parameters = set(candidate.diagnostics.bound_parameters) - {
-        "forced-centroid-x",
-        "forced-centroid-y",
-        "position-angle",
-    }
+    return not _has_physical_bound_contact(
+        candidate
+    ) and _joint_information_identifiable(candidate, config)
+
+
+def _joint_information_identifiable(
+    candidate: _FitCandidate,
+    config: CompactGaussianFitConfig,
+) -> bool:
+    """Return whether the candidate's whole joint fit is well conditioned.
+
+    Every component of one joint solve carries that solve's condition.
+    """
     condition = candidate.diagnostics.information_condition_number
     return (
-        not physical_bound_parameters
-        and condition is not None
+        condition is not None
         and condition <= config.maximum_information_condition_number
     )
 
@@ -751,6 +853,18 @@ def _has_physical_bound_contact(candidate: _FitCandidate) -> bool:
     """Return whether a selected scientific parameter touches its bound."""
     ignored = {"forced-centroid-x", "forced-centroid-y", "position-angle"}
     return bool(set(candidate.diagnostics.bound_parameters) - ignored)
+
+
+def _invalid_free_reason(
+    candidate: _FitCandidate,
+    config: CompactGaussianFitConfig,
+) -> _FallbackReason | None:
+    """Return why a component's own free solution is unusable, if it is."""
+    if not _numerically_valid(candidate, config):
+        return "free-model-invalid-result"
+    if _has_physical_bound_contact(candidate):
+        return "free-model-bound-contact"
+    return None
 
 
 def _with_rejected_model(
@@ -805,16 +919,10 @@ def _free_fallback_reason(
     """Return why the free model cannot own the published measurement."""
     if not candidate.success:
         return "free-model-non-convergence"
-    if not _numerically_valid(candidate, config):
-        return "free-model-invalid-result"
-    physical_bound_parameters = set(candidate.diagnostics.bound_parameters) - {
-        "forced-centroid-x",
-        "forced-centroid-y",
-        "position-angle",
-    }
-    if physical_bound_parameters:
-        return "free-model-bound-contact"
-    if not _identifiable(candidate, config):
+    invalid = _invalid_free_reason(candidate, config)
+    if invalid is not None:
+        return invalid
+    if not _joint_information_identifiable(candidate, config):
         return "free-model-ill-conditioned"
     if not _significantly_extended(
         candidate,
@@ -1349,29 +1457,55 @@ def _precision_to_ellipse_differential(parameters: np.ndarray) -> np.ndarray:
     return transform
 
 
-def _recover_joint_shape_information(
+def _cartesian_information_blocks(
     samples: _FitSamples,
     candidates: tuple[_FitCandidate, ...],
-) -> tuple[_FitCandidate, ...]:
-    """Recover angular-coordinate singularities without masking true blends."""
-    blocks = tuple(
-        _precision_shape_jacobian(
-            candidate.full_parameters, samples.x, samples.y
+) -> tuple[npt.NDArray[np.float64], ...]:
+    """Return each component's weighted Jacobian, free shapes in precision.
+
+    Free blocks are differentiated in Cartesian inverse-covariance
+    coordinates, which stay identifiable at a circle, and whitened like the
+    objective; constrained blocks already are the exact objective's.
+    """
+    return tuple(
+        samples.residual_transform(
+            _precision_shape_jacobian(
+                candidate.full_parameters, samples.x, samples.y
+            )
+            / samples.rms[:, None]
         )
         if candidate.optimizer_parameters.size
         == len(_FREE_FIXED_BACKGROUND_PARAMETER_NAMES)
         else candidate.jacobian
         for candidate in candidates
     )
-    # Only free blocks need re-whitening; constrained blocks already use the
-    # exact objective's transformed Jacobian.
-    weighted = tuple(
-        samples.residual_transform(block / samples.rms[:, None])
-        if candidate.optimizer_parameters.size
-        == len(_FREE_FIXED_BACKGROUND_PARAMETER_NAMES)
-        else block
-        for candidate, block in zip(candidates, blocks, strict=True)
-    )
+
+
+def _identifiability_blocks(
+    samples: _FitSamples,
+    candidates: tuple[_FitCandidate, ...],
+) -> tuple[npt.NDArray[np.float64], ...]:
+    """Return the weighted Jacobian blocks in the basis judged identifiable.
+
+    That is the optimizer's, unless the joint fit recovered its information
+    in Cartesian precision coordinates or found none in either basis; then
+    precision coordinates keep a round component from looking degenerate.
+    """
+    diagnostics = candidates[0].diagnostics
+    if (
+        diagnostics.covariance_parameterization == "optimizer"
+        and diagnostics.information_condition_number is not None
+    ):
+        return tuple(candidate.jacobian for candidate in candidates)
+    return _cartesian_information_blocks(samples, candidates)
+
+
+def _recover_joint_shape_information(
+    samples: _FitSamples,
+    candidates: tuple[_FitCandidate, ...],
+) -> tuple[_FitCandidate, ...]:
+    """Recover angular-coordinate singularities without masking true blends."""
+    weighted = _cartesian_information_blocks(samples, candidates)
     covariance = _parameter_covariance(
         np.column_stack(weighted),
         np.column_stack((samples.x, samples.y)),
@@ -1641,7 +1775,16 @@ def _solve_joint_components(
         free = _joint_candidates(
             samples, initial_bounds, (None,) * len(contexts)
         )
-        selected = _select_joint_candidates(samples, initial_bounds, free)
+        selected = _select_joint_candidates(
+            samples,
+            initial_bounds,
+            free,
+            # Regions are disjoint, so a region's first owned pixel names it
+            # whatever order the caller listed the components in.
+            canonical_keys=tuple(
+                context.region.first_pixel_yx for context in contexts
+            ),
+        )
         return tuple(
             _publish_mixture_component(context, candidate)
             for context, candidate in zip(contexts, selected, strict=True)
@@ -1664,17 +1807,47 @@ def _select_joint_candidates(
     samples: _FitSamples,
     initial_bounds: tuple[tuple[np.ndarray, np.ndarray, np.ndarray], ...],
     free: tuple[_FitCandidate, ...],
+    *,
+    canonical_keys: tuple[tuple[int, int], ...],
 ) -> tuple[_FitCandidate, ...]:
     """Compare coherent nested joint models with the existing evidence rule.
 
     Significantly extended neighbours keep free shapes in both models. Other
     components share one beam-constrained alternative, so selection is
-    permutation invariant and requires at most two bounded joint solves.
-    The BIC counts every fitted parameter once and the joint residual once.
+    permutation invariant and, for a well-conditioned free model, requires
+    at most two bounded joint solves. The BIC counts every fitted parameter
+    once and the joint residual once.
+
+    A converged free model whose joint information is ill conditioned is
+    first repaired: only the components that make it so take the beam, as
+    :func:`_repair_degenerate_components` describes, ties between them
+    broken on ``canonical_keys``. When no component can be found to
+    constrain, a refit does not converge or a decomposition fails, every
+    component falls back.
     """
     beam = samples.geometry.restoring_beam_covariance_pixels_squared
     if samples.config.model_selection == "free-only" or beam is None:
         return free
+    if free[0].success and not _joint_information_identifiable(
+        free[0], samples.config
+    ):
+        try:
+            repaired = _repair_degenerate_components(
+                samples, initial_bounds, free, beam, canonical_keys
+            )
+        except np.linalg.LinAlgError:
+            # A decomposition that fails while repairing leaves the whole-fit
+            # fallback below, which judges the fit on its own solve.
+            repaired = None
+        if repaired is not None:
+            # A component that stays free had no alternative of its own; only
+            # a constrained one rejected its free model.
+            return tuple(
+                _with_rejected_model(chosen, other)
+                if chosen.diagnostics.model_identity == "beam-constrained"
+                else chosen
+                for chosen, other in zip(repaired, free, strict=True)
+            )
     reasons: tuple[_FallbackReason | None, ...] = tuple(
         _free_fallback_reason(item, beam, samples.config) for item in free
     )
@@ -1712,6 +1885,177 @@ def _select_joint_candidates(
     return tuple(
         _with_rejected_model(chosen, other)
         for chosen, other in zip(selected, rejected, strict=True)
+    )
+
+
+def _repair_degenerate_components(
+    samples: _FitSamples,
+    initial_bounds: tuple[tuple[np.ndarray, np.ndarray, np.ndarray], ...],
+    free: tuple[_FitCandidate, ...],
+    beam_covariance: tuple[float, float, float],
+    canonical_keys: tuple[tuple[int, int], ...],
+) -> tuple[_FitCandidate, ...] | None:
+    """Beam-constrain only the components that leave a joint fit singular.
+
+    ``free`` converged but its joint information is ill conditioned. One
+    component that collapses onto a few owned pixels can do that alone; its
+    neighbours' shapes are still determined. The components whose own free
+    solution is invalid or at a bound, and those
+    :func:`_degenerate_components` finds, take the beam while the rest stay
+    free in one joint refit, which is judged the same way until it is
+    identifiable. Its free components that are not significantly extended
+    then take the beam too, as they do beside a bound contact. The result is
+    one joint solution, published only if it meets the same condition limit
+    as any other; when every component ends up constrained it is the beam
+    model the whole fit would have fallen back to, each component under its
+    own reason.
+
+    Each refit constrains more components than the model before it, so with
+    the free solve and any whole-fit fallback a joint fit of ``n``
+    components takes at most ``n + 1`` solves unless a decomposition fails.
+    Returns ``None`` when no further component can be constrained to make a
+    refit identifiable, or a refit fails to converge; the caller then sends
+    every component to the beam.
+    """
+    config = samples.config
+    repaired, reasons = _identifiable_refit(
+        samples,
+        initial_bounds,
+        free,
+        tuple(_invalid_free_reason(item, config) for item in free),
+        canonical_keys,
+    )
+    if repaired is None or all(reasons):
+        return repaired
+    unresolved = frozenset(
+        index
+        for index, item in enumerate(repaired)
+        if reasons[index] is None
+        and not _significantly_extended(
+            item,
+            beam_covariance,
+            significance_sigma=config.extension_significance_sigma,
+        )
+    )
+    if not unresolved:
+        return repaired
+    return _identifiable_refit(
+        samples,
+        initial_bounds,
+        repaired,
+        _with_reason(
+            reasons, unresolved, "free-model-not-significantly-extended"
+        ),
+        canonical_keys,
+    )[0]
+
+
+def _identifiable_refit(
+    samples: _FitSamples,
+    initial_bounds: tuple[tuple[np.ndarray, np.ndarray, np.ndarray], ...],
+    model: tuple[_FitCandidate, ...],
+    reasons: tuple[_FallbackReason | None, ...],
+    canonical_keys: tuple[tuple[int, int], ...],
+) -> tuple[
+    tuple[_FitCandidate, ...] | None,
+    tuple[_FallbackReason | None, ...],
+]:
+    """Refit with every reasoned component constrained until identifiable.
+
+    While ``model`` is ill conditioned, the degenerate components among those
+    without a reason take ``free-model-ill-conditioned``; a refit that puts
+    a free component at a bound or out of range constrains it too. Returns
+    the identifiable refit, or the all-beam solve once every component has a
+    reason, with the reasons it was solved under; or no model when no
+    further component can be constrained or a refit fails to converge.
+    """
+    config = samples.config
+    # Each refit constrains more components than the model before it, so
+    # there are fewer refits than components and the loop ends.
+    while True:
+        if not _joint_information_identifiable(model[0], config):
+            degenerate = _degenerate_free_components(
+                samples, model, reasons, canonical_keys
+            )
+            if degenerate is None:
+                return None, reasons
+            reasons = _with_reason(
+                reasons, degenerate, "free-model-ill-conditioned"
+            )
+            if not _constrains_a_free_component(model, reasons):
+                return None, reasons
+        model = _joint_candidates(samples, initial_bounds, reasons)
+        if all(reasons):
+            return model, reasons
+        if not model[0].success:
+            return None, reasons
+        invalid: tuple[_FallbackReason | None, ...] = tuple(
+            _invalid_free_reason(item, config) if reason is None else reason
+            for item, reason in zip(model, reasons, strict=True)
+        )
+        if invalid == reasons and _joint_information_identifiable(
+            model[0], config
+        ):
+            return model, reasons
+        reasons = invalid
+
+
+def _constrains_a_free_component(
+    model: tuple[_FitCandidate, ...],
+    reasons: tuple[_FallbackReason | None, ...],
+) -> bool:
+    """Return whether ``reasons`` constrain a component ``model`` left free."""
+    return any(
+        reason is not None
+        and item.optimizer_parameters.size
+        == len(_FREE_FIXED_BACKGROUND_PARAMETER_NAMES)
+        for item, reason in zip(model, reasons, strict=True)
+    )
+
+
+def _with_reason(
+    reasons: tuple[_FallbackReason | None, ...],
+    indexes: frozenset[int],
+    reason: _FallbackReason,
+) -> tuple[_FallbackReason | None, ...]:
+    """Give the components at ``indexes`` one fallback reason."""
+    return tuple(
+        reason if index in indexes else current
+        for index, current in enumerate(reasons)
+    )
+
+
+def _degenerate_free_components(
+    samples: _FitSamples,
+    model: tuple[_FitCandidate, ...],
+    reasons: tuple[_FallbackReason | None, ...],
+    canonical_keys: tuple[tuple[int, int], ...],
+) -> frozenset[int] | None:
+    """Find the free components that leave one joint solve singular.
+
+    Components with no fallback reason may be constrained. Those already
+    beam-constrained in ``model`` stay in the judgement; those set aside but
+    still free in it take the beam in the next refit, so their free shapes
+    are not judged, and setting them aside may be enough. ``None`` when
+    constraining every component without a reason is not.
+    """
+    blocks = _identifiability_blocks(samples, model)
+    removable = frozenset(
+        index for index, reason in enumerate(reasons) if reason is None
+    )
+    constrained = frozenset(
+        index
+        for index, item in enumerate(model)
+        if item.optimizer_parameters.size
+        == len(_CONSTRAINED_FIXED_BACKGROUND_PARAMETER_NAMES)
+    )
+    return _degenerate_components(
+        _normalized_information(np.column_stack(blocks)),
+        tuple(block.shape[1] for block in blocks),
+        judged=removable | constrained,
+        removable=removable,
+        canonical_keys=canonical_keys,
+        maximum_condition=samples.config.maximum_information_condition_number,
     )
 
 

@@ -164,7 +164,11 @@ Neighbouring components whose fitting regions touch are fitted jointly. A fit
 is **admitted** only if it converged, stayed within physical bounds, is well
 conditioned, leaves acceptable residuals and has usable uncertainties.
 Depending on the data, the admitted model is a free ellipse or a
-beam-shaped Gaussian.
+beam-shaped Gaussian. When one or more components of a joint fit cannot
+be fitted with a free shape, for instance because their own pixels lie
+along a line, those components take the beam shape and the rest are
+refitted free; any of these then not significantly extended take the beam
+too.
 
 Fitting work is bounded. In a crowded field the touching fitting regions can
 chain across the whole image. A chain with more components or pixels than
