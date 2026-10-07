@@ -84,12 +84,21 @@ if TYPE_CHECKING:  # pragma: no cover - import-time typing only
     from hebog.science.profile import ContinuumScienceProfile
 
 _MAXIMUM_PREVIEW_DIMENSION = 15402
-# The widest restoring beam, in whole pixels of FWHM, for which the continuum
-# profile's local-noise refinement reads at most its million-pixel bound on
-# every admitted image shape: the read is a block of noise cells with the
-# widest source-protection filter around it, and that filter grows with the
-# beam. Nothing wider is known to be measured correctly under either profile.
-_MAXIMUM_BEAM_FWHM_PIXELS = 22.0
+# The widest restoring beam, in pixels of FWHM along its major axis, that the
+# finder is measured to serve. The background and noise meshes are fixed in
+# pixels, and on injected isolated sources every source at SNR 10 or more is
+# published at beams of 3 to 10 pixels under both profiles; from 12 pixels the
+# continuum profile misses some, because a fine noise window that holds a
+# source takes its emission for noise. Scaling the meshes with the beam is
+# deferred, so a wider beam is refused. The limit is well inside the beam at
+# which local-noise refinement would exceed its read bound.
+_MAXIMUM_BEAM_FWHM_PIXELS = 10.0
+# The width in pixels comes through a finite-difference WCS Jacobian whose
+# round-off differs between platforms by up to about a millionth of the
+# width: a beam stated as exactly 10 pixels can read 10.000001 on Linux and
+# 10 on macOS. The limit compares the width to a thousandth of a pixel, so
+# a beam stated at the limit is admitted on every platform.
+_BEAM_LIMIT_DECIMALS = 3
 _TILE_SHAPE_YX = (128, 128)
 ADMITTED_TILE_CORE_PIXELS = 2048
 """Smallest tile core the scalability contract admits, in pixels."""
@@ -308,7 +317,7 @@ def _require_bounded_shape(image_shape_yx: tuple[int, int]) -> None:
 
 
 def _require_sampled_beam(metadata: ImageMetadata) -> None:
-    """Refuse a restoring beam too wide in pixels for the stages to serve.
+    """Refuse a restoring beam wider in pixels than the finder is measured for.
 
     The check comes before any filter is built: a beam given in the wrong
     unit, or a pixel scale that is nearly zero, is thousands of pixels wide.
@@ -321,11 +330,15 @@ def _require_sampled_beam(metadata: ImageMetadata) -> None:
             "centre; check the beam and the pixel scale"
         ) from error
     # Written so that a width that is not a number is refused as well.
-    if not beam.major_fwhm_pixels <= _MAXIMUM_BEAM_FWHM_PIXELS:
+    width = round(beam.major_fwhm_pixels, _BEAM_LIMIT_DECIMALS)
+    if not width <= _MAXIMUM_BEAM_FWHM_PIXELS:
         raise UnsupportedSourceFinderConfigurationError(
             "the public source finder supports a restoring beam of at most "
             f"{_MAXIMUM_BEAM_FWHM_PIXELS:g} pixels FWHM, not "
-            f"{beam.major_fwhm_pixels:g}"
+            f"{beam.major_fwhm_pixels:g}: its background and noise meshes "
+            "are fixed in pixels, and on injected sources they miss sources "
+            "from 12 pixels of beam; see the limitations in the input header "
+            "contract"
         )
 
 

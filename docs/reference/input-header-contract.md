@@ -15,7 +15,7 @@ read as a FITS image.
 | Stokes parameter | A `STOKES` axis's world value at the plane, so a writer that encodes it in `CRPIX` rather than `CRVAL` is read correctly. No `STOKES` axis means Stokes I. | Any parameter other than I is refused: Q, U and V, and instrumental planes such as `XX` or `RR`. A value that is not an integer parameter code, such as `1.4`, is refused as malformed. |
 | Pixel values | The plane's pixels in any `BITPIX`. A stored value is scaled by `BSCALE` and `BZERO`. A stored integer equal to `BLANK` is an invalid pixel, as NaN is, and so is every pixel of a block of one repeated value; see [Invalid pixels](#invalid-pixels). | A file that ends before its last pixel is refused as truncated. `BSCALE`, `BZERO` and an integer image's `BLANK` must be numbers; see [Numbers](#numbers). |
 | Pixel unit | `BUNIT`. `JY/BEAM` and other spellings of Jy/beam are accepted. | A supplied `brightness_unit`, else refused. The public finder measures `Jy/beam` only. A value without its quotes, which Astropy cannot parse, is refused. |
-| Restoring beam | `BMAJ`, `BMIN` and `BPA`, in degrees. | A supplied value for each missing keyword, else refused. A card that is not a number is refused; see [Numbers](#numbers). A beam wider than 22 pixels (FWHM) is refused; see [Limitations](#limitations). |
+| Restoring beam | `BMAJ`, `BMIN` and `BPA`, in degrees. | A supplied value for each missing keyword, else refused. A card that is not a number is refused; see [Numbers](#numbers). A beam wider than 10 pixels (FWHM) is refused; see [Limitations](#limitations). |
 | Reference frequency | `RESTFRQ`, then `RESTFREQ`, then the first `FREQ` axis's `CRVAL`. | A supplied `reference_frequency_hz`, else refused. A card that is not a number is refused. |
 | Celestial WCS | Astropy's reading of the header: any projection it supports (`SIN`, `TAN`, `ZEA` and others), with `CDELT`, a `PC` or `CD` matrix, or a legacy `CROTA`. | Refused when absent. A card that is not a number, and a rotation Astropy would silently drop, are refused; see [Numbers](#numbers) and [Rotation](#rotation). |
 | Coordinate frame | The celestial axis types, which must be `RA`/`DEC` or `GLON`/`GLAT`, then `RADESYS`, `EQUINOX` and `EPOCH`. With none of the three, the frame is ICRS, as the WCS standard defines. `EQUINOX` or `EPOCH` of 2000 without `RADESYS` is FK5 J2000. | Only ICRS and FK5 J2000 are accepted; the error names the frame found, such as `GALACTIC` or `FK4, equinox 1950`. Other celestial axes, such as ecliptic `ELON`/`ELAT` or supergalactic `SLON`/`SLAT`, are refused by their axis types, because Astropy would read ecliptic coordinates as ICRS. Catalogue positions are always ICRS. |
@@ -177,13 +177,19 @@ depend on how the image is tiled.
   hold at most 1,000,000 pixels. The 150-pixel background meshes do not fit
   across so narrow a strip, and what replaces them reads the whole image in
   one task, which is bounded at that size.
-- **Beam sampling.** A restoring beam wider than 22 pixels (FWHM, major
-  axis) is refused. Local noise is refined from a window that grows with
-  the beam, and 22 is the largest whole number of pixels whose window stays
-  within its bound of 1,000,000 pixels. The limit is not a measure of where the finder
-  is valid: the background and noise meshes are fixed in pixels, and in
-  tests with beams of 18 to 20 pixels it has missed bright sources. Which
-  sampling to support is the plan's task 62.
+- **Beam sampling.** A restoring beam wider than 10 pixels (FWHM, major
+  axis, to a thousandth of a pixel) is refused, under either profile and
+  at any image size. The
+  background and noise meshes are fixed in pixels, so a narrow noise window
+  can take a wide source's emission for noise. On injected isolated sources
+  every source at SNR 10 or more was published at beams of 3 to 10 pixels
+  under both profiles; from 12 to 14 pixels the continuum profile missed
+  some, and from 16 the compact profile. The limit is the widest beam
+  measured with every such source published, not a bound on the cost of the
+  analysis; beams between 10 and 12 pixels were not measured. Scaling the
+  meshes with the beam would admit wider beams, and is deferred work. The
+  measurement used circular beams and isolated sources; elliptical beams,
+  blended or extended sources and crowded fields are not covered.
 - **Repeated keywords.** FITS does not define a keyword that appears twice,
   and Hebog does not refuse one. The WCS, including a frequency taken from
   its `FREQ` axis, is read from the last card of a repeated keyword, as

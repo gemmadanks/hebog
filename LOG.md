@@ -30214,3 +30214,197 @@ the per-worker placement finding.
   wider and adds a dilation, and each RMS window one reduction, so it needs
   one on a quiet machine. The whole-mosaic and 10,000² runs, the slow and
   acceptance lanes, and Windows.
+
+## 2026-10-06 — Task 62: sources are recovered to 10 pixels of beam, and to 22 with a scaled fine mesh
+
+- **Question.** Against injected truth, at which restoring-beam width does
+  the public finder stop publishing sources at SNR 10 and above, under each
+  profile, and does a fine mesh scaled with the beam restore them? The
+  plan's target for SNR ≥ 10 completeness is 99%.
+- **Design.** `scripts/validation/measure_beam_sampling.py` at `5a028bf2`
+  (0.18.0, composition `3ab699b0…`). Isolated circular-beam sources on a
+  centred 192-pixel grid, at least 112 pixels from every edge and jittered
+  by up to 8: 25 on a 1,000² image, 4 on 512² and 1 on 256². Peak SNR
+  against the per-pixel noise cycles through 5, 10, 30, 100 and 300. Noise
+  is generator version 3, correlated at the beam or white (a 0.01-pixel
+  correlation, whose filter is a unit impulse); each image's seed is the
+  first 8 bytes of SHA-256 of its size, beam, noise and realization, and
+  both profiles and both mesh variants analyse the same image.
+  `find_sources` with `SourceFinderConfig(5, 3, 7)`, Serial; published
+  sources are matched to truth within one beam FWHM by the project's
+  matcher, and a false detection is a published source matched to no
+  truth. 563 runs at three processes on the loaded development machine,
+  none refused or failed; raw records and summaries are outside Git under
+  `benchmark-results/beam-sampling-2026-10-05/` (`default-1000`,
+  `default-small`, `scaled`). Intervals are 95% Wilson.
+- **Recovery of SNR ≥ 10, 1,000², beam-correlated noise, default meshes**
+  (4 realizations, 8 at 8 to 14 pixels):
+
+  | Beam FWHM, pixels | 2 | 3 | 4 | 6 | 8 | 10 | 12 | 14 | 16 | 18 | 20 | 22 |
+  | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+  | Continuum | 68/80 | 80/80 | 80/80 | 80/80 | 160/160 | 160/160 | 159/160 | 149/160 | 68/80 | 34/80 | 11/80 | 1/80 |
+  | Compact | 68/80 | 80/80 | 80/80 | 80/80 | 160/160 | 160/160 | 160/160 | 160/160 | 79/80 | 50/80 | 40/80 | 40/80 |
+
+  160/160 bounds completeness above 0.977, and 80/80 above 0.954. The
+  continuum profile loses the faintest first: SNR 10 is 39/40 at 12 pixels,
+  29/40 at 14 and 8/20 at 16, and SNR 30 goes at 18. The compact profile
+  keeps SNR 10 and 30 to 22 pixels and loses the brightest: SNR 300 is
+  19/20 at 16, and SNR 100 and 300 are 0/20 from 20. Recovered SNR ≥ 100
+  sources under compact lose flux first: median ratio to truth 0.99 at 12
+  pixels, 0.96 to 0.97 at 14 and 0.91 to 0.92 at 16. Elsewhere matched
+  SNR ≥ 100 fluxes are within 1.3% of truth, SNR 30 within 3%, and the
+  median offset is under 0.04 beam.
+- **White noise** (2 realizations, 40 sources at SNR ≥ 10 a cell): both
+  profiles keep 40/40 from 3 to 14 pixels; continuum has 33/40 at 16 and
+  none from 20, compact 40/40 at 16 and 14/40 at 22.
+- **Image size** (beam-correlated noise, sources at SNR ≥ 10): 512², 16 a
+  cell, and 256², 8 a cell, are complete from 4 to 14 pixels under both
+  profiles; at 16 pixels 512² has 15/16 under each, and at 20 pixels
+  continuum has 5/16 and 0/8, compact 8/16 and 4/8. The samples are small,
+  but no onset below the 1,000² one appears, although below 600 pixels the
+  continuum profile shrinks its coarse mesh to a quarter of the image.
+- **Mechanism.** The published RMS at a missed source is its own peak
+  divided by about 3.7, whatever its SNR: a 35-pixel fine noise window
+  that holds the source takes its emission for noise. Under continuum the
+  fine grid refines local noise everywhere, so every SNR is exposed: at 16
+  pixels the RMS at SNR 10 sources is 2.2 times the truth. Under compact
+  the fine grid serves only bright-source refinement, which starts at 75σ:
+  the RMS at SNR 300 sources is 1.7 times the truth at 10 pixels, 5 at 12,
+  16 at 14 and 37 at 16. The same window also biases the continuum RMS map
+  low on beam-correlated noise, because it holds few independent beams:
+  the median map RMS is 0.974 of truth at 4 pixels, 0.953 at 8, 0.917 at
+  12 and 0.81 at 22, against 0.98 to 0.99 under compact and on white noise.
+  False detections follow: under continuum 0 to 0.6 an image up to 10
+  pixels and 2.0 at 12 (0.07 and 0.33 per thousand beam areas); under
+  compact at most 0.5 up to 14 and 8.0 at 16. Located on single images,
+  six of seven at compact 16 pixels lie within 1.2 beams of a bright source,
+  remnants of the source the background took, and the three at continuum
+  12 pixels lie 2 to 5 beams from a source, published at 2.8 to 4.6 times
+  the true noise.
+- **Two pixels.** At a 2-pixel beam only 8 of 20 SNR 10 sources are
+  published on beam-correlated noise and 3 of 10 on white, under either
+  profile, because a source that narrow has fewer than 7 pixels above the
+  island threshold: on two continuum images, 3 of 10 at
+  `minimum_island_pixels=7` and 10 of 10 at 3. That cut is the caller's
+  setting, not the finder's meshes.
+- **Scaled fine mesh.** The fine window, step, influence radius and
+  transition width multiplied by `max(1, FWHM / 8)`, so the window stays
+  at least 4.4 beams wide; the coarse mesh is unchanged. Under both
+  profiles every source at SNR ≥ 10 is published at 10 to 22 pixels: 80/80
+  a beam at 1,000², 16/16 at 512² and 8/8 at 256². Matched fluxes have
+  medians of 0.99 to 1.00, the continuum map RMS is 0.94 to 0.99 of truth,
+  and false detections are 0 to 1.0 an image. Results at 8 pixels and
+  below are unchanged by construction. A one-image probe that also scaled
+  the coarse mesh published the same sources.
+- **What the scaled mesh costs.** Local-noise refinement reads each block
+  of fine cells with the coarse window, half a fine window and the
+  protection filter around it. From the stage's own plan on a 6,000²
+  image: today a 22-pixel beam reads at most 996,004 pixels a task and
+  8.2 times the image in all (5.5 at 8 pixels). Scaled above 8 pixels, a
+  22-pixel beam's 48-by-48-cell block reads 2.84 Mpx, over the one-million
+  bound, so the block must shrink with the beam: 11 by 11 cells fits, and
+  then the tasks read 20.5 times the image, in 841 tasks against 324. A
+  30-pixel beam would need 2-by-2 blocks and 332 times the image. The study
+  ran on images of at most one million pixels, so no read exceeded the
+  bound.
+- **PyBDSF, for context.** Pinned `c70103b` derives boxes when `rms_box`
+  is not given (`rmsimage.py`): at least `9 × beam σ`, about 3.8 FWHM; the
+  bright box at least twice the largest bright island; the large box at
+  least five times the largest 10σ island and a tenth of the image; steps
+  a third of the box. Rapthor fixes `(150, 50)` and `(35, 7)`
+  ([Rapthor contract](docs/reference/rapthor-source-finding-contract.md)),
+  so PyBDSF under Rapthor would read wide beams with the same windows; that
+  was not measured.
+- **Established.** On isolated injected sources, every source at SNR ≥ 10
+  is published from 3 to 10 pixels of beam under both profiles at every
+  size tried; continuum starts missing them at 12 to 14 pixels and compact
+  at 16; scaling the fine mesh with the beam restores them to 22 pixels.
+  **Not established:** 99% completeness itself, which 160 sources a cell
+  cannot bound above 0.977; elliptical beams, extended or blended sources,
+  crowded fields and real images; images above one million pixels with
+  the scaled mesh; timings, which this loaded machine cannot give.
+- **Options for the maintainer.**
+  1. *Refuse a beam wider than 10 pixels.* The constant, its property
+     test and the header contract change; nothing else does. Every beam
+     admitted then recovers on this population; the widest of the 42 real
+     headers kept locally is 9 pixels. The continuum RMS remains 2 to 6%
+     low from 4 to 10 pixels.
+  2. *Scale the fine mesh above 8 pixels and keep 22.* Recovers to 22 at
+     a 2.5-fold local-noise read at 22 pixels, needs the block size
+     derived from the beam and a new property test of the read bound,
+     changes nothing at 8 pixels and below (the quick check's beam is 5 by
+     4), and departs from Rapthor's fixed boxes, so it needs scientific
+     review.
+  3. *Refuse above 10 now and record the scaled mesh as deferred work*,
+     reopened when a target pipeline produces wider beams.
+  4. *Keep the 22-pixel refusal unchanged.* Leaves known missed sources
+     from 12 pixels in a supported envelope, which the plan treats as a
+     release blocker.
+- **Records.** The header contract and the release status now state the
+  measured onset; the rule they state changed on 6 October (below).
+- **Checks.** The study script's helpers have unit tests
+  (`tests/unit/validation/test_beam_sampling_script.py`); the strict docs
+  build, `just check` and `just pre-commit` passed. The finder's behaviour
+  is unchanged, so no quick science check or coverage run applies.
+- **Decision (6 October, maintainer).** Refuse a restoring beam wider than
+  10 pixels FWHM on its major axis, under either profile and at any image
+  size, now. Scaling the background and local-noise meshes with the beam is
+  deferred work, reopened when a target pipeline produces wider beams.
+  Declined: scaling the fine mesh above 8 pixels now (option 2); refusing
+  above 10 pixels with no deferred task (option 1 as written); keeping the
+  22-pixel refusal (option 4). Evidence: the tables above, every source at
+  SNR ≥ 10 published at 3 to 10 pixels under both profiles, the continuum
+  profile missing some from 12 to 14 pixels and the compact from 16, and
+  the widest of the 42 real headers kept locally at 9 pixels.
+- **Change.** `_MAXIMUM_BEAM_FWHM_PIXELS` in `public_api.py` is 10 pixels,
+  from 22. The error is still the typed
+  `UnsupportedSourceFinderConfigurationError`, decided before the analysis,
+  and now states the measured reason (fixed meshes, sources missed on
+  injected sources from 12 pixels of beam) and points to the header
+  contract; it no longer mentions the read bound. The read-bound property
+  (`test_the_widest_admitted_beam_fits_the_local_noise_read_on_any_image`)
+  is kept as a guard: at 10 pixels the largest local-noise read on the
+  shapes tried is 695,556 pixels, 70% of the 1,000,000-pixel bound (652,864
+  at 8), so it holds with margin and would fail only if the limit were
+  raised past 22. The companion test that 22 is the widest whole-pixel beam
+  the stage serves is removed, since the limit no longer rests on that
+  bound. **Breaking:** inputs with beams of 10 to 22 pixels, accepted
+  before, are refused. The width is compared to a thousandth of a pixel:
+  the WCS Jacobian it comes through carries round-off of up to about a
+  millionth of the width that differs by platform, and on Linux a beam
+  stated as 12 pixels in the study's geometry read 12.000001 (10.000001 at
+  10), so the study's lifted-limit test failed on CI and a beam stated at
+  the limit could have been refused on Linux only.
+- **Tests and tools adapted.** The only test that used a beam over 10
+  pixels with the public finder was the refusal pair in
+  `tests/integration/test_public_find_sources.py`. The refusal test is now
+  `test_a_beam_wider_than_10_pixels_is_refused_before_analysis`, with
+  10.5 pixels on 64², 22 and 26 on 1,100² (22 was the old limit) and a
+  beam given in arcseconds where the header means degrees (14,400); it
+  asserts the message states the rule and the measured reason, the
+  executor receives no work and no products appear. The admitted-beam test
+  is now at 10 pixels, on 64² and 1,100², under both profiles. No other
+  test, notebook, script or checked-in dataset configuration has a beam over
+  10 pixels: tests use 3.4 to 5, the notebooks 4 to 4.7, the dataset
+  configurations at most 6.3 and the campaign generators 5. The study
+  script `scripts/validation/measure_beam_sampling.py` now defaults to
+  2 to 10 pixels, and `--lift-beam-limit-to P` replaces the finder's limit
+  for the run so that wider beams can be measured; it is a
+  measurement-only override of the private constant, scoped by
+  `lifted_beam_limit` and recorded in each run. Reproducing the 12 to 22
+  pixel columns above needs `--beams 12 14 16 18 20 22
+  --lift-beam-limit-to 22`; beams over 22 pixels can fail mid-run. Two new
+  tests cover the override's scope and that a beam over the limit is
+  refused, then measured when the limit is lifted.
+- **Checks on the change.** `just coverage` passes (3,230 tests and 2
+  expected failures, total 97.01%); every changed line of `public_api.py`
+  is covered, and its three missed lines are defensive raises the change
+  did not touch. The strict docs build passes. The quick science check
+  `decision62` reports no regression against `stack-final`, with every
+  metric of its 17 cases equal and only the scientific composition hash
+  changed. It ran the stack's script (`stack-script/quick_science_check.py`)
+  from the main checkout with this branch's `src` and the stack tip's
+  `hebog/validation/quick_check.py`, which the script's imports need and
+  this branch predates; that file only prepares and compares cases. The
+  equivalence test of the public finder against both PyBDSF references
+  passes.

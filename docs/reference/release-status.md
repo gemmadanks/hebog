@@ -15,7 +15,7 @@ version when results must be repeatable.
 | Input | One two-dimensional FITS image; leading axes of length one are allowed, and a Stokes axis must select Stokes I. The [input header contract](input-header-contract.md) lists what each common imager writes and what to supply. |
 | Units | `BUNIT=Jy/beam`, or a supplied unit when the header has no `BUNIT`. |
 | Coordinates | ICRS or FK5 J2000 celestial WCS. A header with `EQUINOX = 2000` and no `RADESYS`, as written by WSClean, is FK5 J2000. Catalogue positions are always ICRS. Other frames are rejected. |
-| Beam and frequency | Finite positive `BMAJ` and `BMIN`, a `BPA`, and a positive reference frequency. The request can supply a value the header omits, never one it already has. A beam wider than 22 pixels (FWHM) is refused. |
+| Beam and frequency | Finite positive `BMAJ` and `BMIN`, a `BPA`, and a positive reference frequency. The request can supply a value the header omits, never one it already has. A beam wider than 10 pixels (FWHM) is refused. |
 | Image size | At most 15,402 pixels on each side, and at most 1,000,000 pixels in all when the shorter side is under 600. Other images fail before analysis. |
 | Pixel values | Any `BITPIX`. Stored integers are scaled by `BSCALE` and `BZERO`. |
 | Invalid pixels | NaN pixels, stored integers equal to `BLANK`, and every pixel of a 3×3 square of one repeated value, such as zero padding, are excluded from estimation, detection and measurement. |
@@ -68,8 +68,12 @@ Known limitations when interpreting results:
 - An image with no usable positive RMS yields an all-NaN RMS product, an empty
   catalogue and a zero mask. This is not evidence of an empty sky.
 - The background and noise meshes are fixed in pixels, so a beam many pixels
-  wide is not measured well: with beams of 18 to 20 pixels bright sources
-  have been missed. Beams above 22 pixels are refused.
+  wide is not measured well: on injected isolated sources at SNR 10 or
+  more, the continuum profile misses some from 12 to 14 pixels and the
+  compact profile from 16. Beams above 10 pixels are refused, and at every
+  admitted beam every such injected source was published. A pipeline whose
+  images have wider beams needs the meshes scaled with the beam, which is
+  deferred work.
 - In a field so crowded that no fine noise window lies clear of its sources,
   the background and RMS are the unprotected sigma-clipped coarse estimate,
   which includes the sources' wings.

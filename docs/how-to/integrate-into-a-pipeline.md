@@ -88,7 +88,7 @@ oversubscribed.
 | Exception | Meaning | Typical response |
 | --- | --- | --- |
 | `InvalidSourceFinderInputError` | Missing, unreadable, truncated or malformed FITS input, including a header that lacks a unit, beam or frequency the request does not supply | fix the file or supply the metadata, see the [tutorial](../tutorials/find-sources.md#prepare-the-input); do not retry unchanged |
-| `UnsupportedSourceFinderConfigurationError` | Readable file, but a unit other than `Jy/beam`, an unsupported coordinate frame, or a beam wider than 22 pixels | convert or regrid the image; see the [input header contract](../reference/input-header-contract.md) |
+| `UnsupportedSourceFinderConfigurationError` | Readable file, but a unit other than `Jy/beam`, an unsupported coordinate frame, or a beam wider than 10 pixels | convert or regrid the image; see the [input header contract](../reference/input-header-contract.md) |
 | `SourceFinderImageTooLargeError` | Image exceeds a current size limit | cut the image or wait for a later release |
 | `SourceFinderOutputExistsError` | Output directory already exists | choose a new directory |
 
