@@ -820,7 +820,7 @@ def reduce_support_topology(  # noqa: PLR0913
     arbitrary length, and adjacent-scale persistence is a record graph over
     the whole image. Both are reconciled from compact per-core summaries and
     published as owned cores, and the generation is returned so the support
-    rounds read them by window.
+    rounds read the persistence by window; no round reads the components.
     """
     from hebog.stages.support import (  # noqa: PLC0415
         SupportTopologyStageConfig,

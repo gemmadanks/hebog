@@ -17,7 +17,7 @@ from hebog.algorithms.deblending import (
     deblend_compact_island,
 )
 from hebog.algorithms.extended_measurement import (
-    assign_seeded_multiscale_support,
+    assign_nearest_seed_support,
 )
 from hebog.algorithms.reconciliation import DetectedIsland
 from hebog.config import CompactDeblendConfig
@@ -156,14 +156,18 @@ def _assign_parent_measurement_support(
     measurement_support: npt.NDArray[np.bool_],
     valid_pixels: npt.NDArray[np.bool_],
 ) -> npt.NDArray[np.int32]:
-    """Partition one parent's complete support among deblended seeds."""
+    """Partition one parent's complete support among deblended seeds.
+
+    Measurement joins every pixel of a parent's support to that parent's
+    flood through the parent's own pixels, and the deblended seeds cover the
+    flood, so every pixel has a seed in its own support component.
+    """
     height, width = direct_labels.shape
-    assigned = assign_seeded_multiscale_support(
+    assigned = assign_nearest_seed_support(
         direct_labels,
         measurement_support,
         valid_pixels,
-        beam_major_fwhm_pixels=1.0,
-        recovery_radius_beams=hypot(height, width) + 1.0,
+        maximum_distance_pixels=hypot(height, width) + 1.0,
     )
     if not np.array_equal(assigned > 0, measurement_support):
         raise ValueError(

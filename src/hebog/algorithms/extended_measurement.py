@@ -7,9 +7,9 @@ from __future__ import annotations
 
 from collections.abc import Collection, Mapping
 from dataclasses import dataclass
-from math import ceil, isfinite
+from math import ceil, hypot, isfinite
 from numbers import Integral
-from typing import Literal, Protocol, cast
+from typing import Any, Literal, Protocol, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -237,18 +237,64 @@ def refinement_kept_labels(
 def published_owner_labels(
     support_labels: npt.ArrayLike,
     measurement_labels: npt.ArrayLike,
+    *,
+    flood_labels: npt.ArrayLike,
 ) -> npt.NDArray[np.int32]:
     """Give each pixel of a support plane the owner measurement gives it.
 
-    Publication follows measurement ownership, so a refined pixel is
-    published for its measurement owner, and a pixel no owner measures is
-    not published.
+    A refined pixel of a flood is published for that flood's owner, which
+    measurement gives it. A refined pixel outside every flood is published
+    for its measurement owner only where it touches that owner's flood, one
+    step from it, so an owner restored whole is published in one part. A
+    pixel no owner measures is not published.
+
+    Recovery at the island threshold never keeps a pixel touching a flood
+    outside it, as that pixel would be in the flood, so in the source finder
+    no recovered pixel outside every flood is published; persistence alone
+    can join one to its owner, with the pixels between.
     """
     support = np.asarray(support_labels)
     measurement = np.asarray(measurement_labels)
-    return np.where((support > 0) & (measurement > 0), measurement, 0).astype(
-        np.int32, copy=False
-    )
+    floods = np.asarray(flood_labels)
+    if (
+        measurement.ndim != _IMAGE_DIMENSIONS
+        or support.shape != measurement.shape
+        or floods.shape != measurement.shape
+    ):
+        raise ValueError(
+            "support, measurement and flood labels must be aligned "
+            "two-dimensional planes"
+        )
+    attached = (floods > 0) | _touches_own_label(floods, measurement)
+    return np.where(
+        (support > 0) & (measurement > 0) & attached, measurement, 0
+    ).astype(np.int32, copy=False)
+
+
+def _touches_own_label(
+    neighbour_labels: npt.NDArray[np.integer[Any]],
+    owner_labels: npt.NDArray[np.integer[Any]],
+) -> npt.NDArray[np.bool_]:
+    """Return where an eight-connected neighbour carries the pixel's owner.
+
+    Both planes are aligned; a pixel with no owner touches nothing, and
+    pixels beyond the plane carry no owner. One comparison per neighbour
+    offset covers the whole plane.
+    """
+    height, width = owner_labels.shape
+    padded = np.pad(neighbour_labels, 1)
+    touches = np.zeros(owner_labels.shape, dtype=np.bool_)
+    for offset_y in (-1, 0, 1):
+        for offset_x in (-1, 0, 1):
+            if offset_y or offset_x:
+                touches |= (
+                    padded[
+                        1 + offset_y : 1 + offset_y + height,
+                        1 + offset_x : 1 + offset_x + width,
+                    ]
+                    == owner_labels
+                )
+    return touches & (owner_labels > 0)
 
 
 def apply_owner_restores(
@@ -673,7 +719,9 @@ def refine_multiscale_segment_labels(  # noqa: PLR0913
     return restore_segment_owners(
         labels,
         refined,
-        published_labels=published_owner_labels(refined, measurement),
+        published_labels=published_owner_labels(
+            refined, measurement, flood_labels=labels
+        ),
         kept_labels=refinement_kept_labels(
             labels,
             combined_snr,
@@ -799,66 +847,18 @@ def _nearest_canonical_seed_ranks(
     return minimum_distances, owner_ranks
 
 
-def _support_components(
-    support_component_labels: npt.ArrayLike | None,
-    *,
-    eligible_support: npt.NDArray[np.bool_],
-) -> npt.NDArray[np.int32]:
-    """Return the support components a caller supplied, or derive them."""
-    if support_component_labels is None:
-        derived, _ = cast(
-            tuple[npt.NDArray[np.int32], int],
-            connected_component_labels(
-                eligible_support,
-                structure=np.ones((3, 3), dtype=np.int8),
-            ),
-        )
-        return derived
-    components = np.asarray(support_component_labels)
-    if (
-        components.shape != eligible_support.shape
-        or not np.issubdtype(components.dtype, np.integer)
-        or bool(np.any(components < 0))
-    ):
-        raise ValueError(
-            "support components must be one aligned non-negative label plane"
-        )
-    if bool(np.any((components > 0) != eligible_support)):
-        raise ValueError(
-            "support components must label exactly the eligible support"
-        )
-    return np.asarray(components, dtype=np.int32)
-
-
-def assign_seeded_multiscale_support(  # noqa: PLR0913
-    component_labels: npt.ArrayLike,
-    significant_multiscale_support: npt.ArrayLike,
+def _validated_seed_planes(
+    seed_labels: npt.ArrayLike,
+    significant_support: npt.ArrayLike,
     valid_pixels: npt.ArrayLike,
-    *,
-    beam_major_fwhm_pixels: float,
-    recovery_radius_beams: float = _MULTISCALE_RECOVERY_RADIUS_BEAMS,
-    canonical_seed_references_yx: (
-        Mapping[int, tuple[int, int]] | None
-    ) = None,
-    support_component_labels: npt.ArrayLike | None = None,
-) -> npt.NDArray[np.int32]:
-    """Attach bounded multiscale support without merging direct seed owners.
-
-    Positive input labels are authoritative direct-residual source identities.
-    Eligible support is assigned to the nearest exact seed pixel of its own
-    support component. Equal distances use the owner whose globally row-major
-    seed reference appears first, independently of task-local label integers
-    or completion order.
-
-    Tiled callers must pass the global reference pixel of every owner present
-    in the tile, and ``support_component_labels``: the globally reconciled
-    eight-connected components of ``(labels > 0 | significant) & valid``. That
-    connectivity is not bounded by any halo, so a tile that labelled its own
-    read would separate support a longer path joins. A complete-plane call may
-    omit both and have them derived here.
-    """
-    labels = _segment_label_plane(component_labels)
-    significant = np.asarray(significant_multiscale_support)
+) -> tuple[
+    npt.NDArray[np.int64],
+    npt.NDArray[np.bool_],
+    npt.NDArray[np.bool_],
+]:
+    """Return aligned seed labels, significant support and valid pixels."""
+    labels = _segment_label_plane(seed_labels)
+    significant = np.asarray(significant_support)
     valid = np.asarray(valid_pixels)
     if (
         significant.ndim != _IMAGE_DIMENSIONS
@@ -880,6 +880,47 @@ def assign_seeded_multiscale_support(  # noqa: PLR0913
         )
     if np.any((labels > 0) & ~valid):
         raise ValueError("direct seed pixels must be scientifically valid")
+    return labels, significant, valid
+
+
+def assign_seeded_multiscale_support(  # noqa: PLR0913
+    component_labels: npt.ArrayLike,
+    significant_multiscale_support: npt.ArrayLike,
+    valid_pixels: npt.ArrayLike,
+    *,
+    beam_major_fwhm_pixels: float,
+    recovery_radius_beams: float = _MULTISCALE_RECOVERY_RADIUS_BEAMS,
+    canonical_seed_references_yx: (
+        Mapping[int, tuple[int, int]] | None
+    ) = None,
+) -> npt.NDArray[np.int32]:
+    """Attach bounded multiscale support to its owner along its own pixels.
+
+    Positive input labels are authoritative direct-residual source identities
+    and keep their pixels. Each other valid significant pixel takes the owner
+    of the seed pixel nearest to it along an eight-connected path through
+    valid significant pixels, in axial steps of one pixel and diagonal steps
+    of the square root of two, when that path is no longer than the recovery
+    radius. Equal lengths use the owner whose globally row-major seed
+    reference appears first, independently of task-local label integers or
+    completion order. Every pixel on such a shortest path takes the same
+    owner, so each owner's support is connected through its own pixels, and
+    a pixel its owner reaches only across unsupported or invalid pixels, or
+    through another owner's, is not attached to it. Within four pixels, path
+    length orders the offsets as straight-line distance does, so without
+    such obstacles a pixel takes its straight-line nearest owner; only the
+    reach can differ, a path off the axes and diagonals being the longer
+    (2.41 pixels to an offset of one by two, against 2.24).
+
+    A pixel's owner depends only on the planes within the radius, so a
+    tiled caller needs that halo and the global reference pixel of every
+    owner present in its read.
+    """
+    labels, significant, valid = _validated_seed_planes(
+        component_labels,
+        significant_multiscale_support,
+        valid_pixels,
+    )
     if (
         isinstance(beam_major_fwhm_pixels, bool)
         or not isfinite(beam_major_fwhm_pixels)
@@ -893,27 +934,166 @@ def assign_seeded_multiscale_support(  # noqa: PLR0913
     ):
         raise ValueError("recovery radius must be finite and non-negative")
     output = np.asarray(labels, dtype=np.int32).copy()
-    seed_points = np.column_stack(np.nonzero(labels > 0))
-    if not seed_points.size:
-        return output
-    connected_labels = _support_components(
-        support_component_labels,
-        eligible_support=((labels > 0) | significant) & valid,
-    )
-    candidate_points = np.column_stack(
-        np.nonzero(significant & valid & (labels == 0))
-    )
-    if not candidate_points.size:
+    candidates = significant & valid & (labels == 0)
+    if not np.any(labels > 0) or not np.any(candidates):
         return output
     seed_ranks, labels_by_rank = _canonical_seed_ranks(
         labels,
         canonical_seed_references_yx,
     )
+    rank_plane = np.full(labels.shape, -1, dtype=np.int32)
+    rank_plane[labels > 0] = seed_ranks
+    nearest = _nearest_seed_ranks_along_paths(
+        rank_plane,
+        candidates,
+        maximum_length=recovery_radius_beams * beam_major_fwhm_pixels,
+    )
+    attached = candidates & (nearest >= 0)
+    output[attached] = labels_by_rank[nearest[attached]].astype(
+        np.int32, copy=False
+    )
+    return output
+
+
+_PATH_STEPS = tuple(
+    (offset_y, offset_x, hypot(offset_y, offset_x))
+    for offset_y in (-1, 0, 1)
+    for offset_x in (-1, 0, 1)
+    if offset_y or offset_x
+)
+# Distinct path lengths a + b * sqrt(2) within any supported radius differ by
+# far more than this, while equal ones summed in another order differ by
+# rounding alone.
+_PATH_LENGTH_TOLERANCE = 1e-9
+
+
+def _nearest_seed_ranks_along_paths(
+    seed_ranks: npt.NDArray[np.int32],
+    passable: npt.NDArray[np.bool_],
+    *,
+    maximum_length: float,
+) -> npt.NDArray[np.int32]:
+    """Return the rank of each passable pixel's nearest seed along a path.
+
+    ``seed_ranks`` holds each seed pixel's rank and -1 elsewhere. A path
+    starts at a seed and enters only passable pixels, by axial steps of one
+    pixel and diagonal steps of the square root of two. A passable pixel
+    takes the smallest rank among the seeds its shortest paths start from,
+    when they are no longer than ``maximum_length``, and -1 otherwise.
+
+    Each pass extends every path by one step over the whole plane, and a
+    path that short has at most ``maximum_length`` steps, so that many
+    passes settle every pixel. The passes reuse a fixed set of planes:
+    about 45 bytes a pixel.
+    """
+    height, width = seed_ranks.shape
+    no_rank = np.iinfo(np.int32).max
+    limit = maximum_length + _PATH_LENGTH_TOLERANCE
+    # No step from a pixel no path reaches can bring a path within the limit.
+    unreached = maximum_length + 2.0
+    seeds = seed_ranks >= 0
+    length = np.where(seeds, 0.0, unreached)
+    rank = np.where(seeds, seed_ranks, no_rank).astype(np.int32, copy=False)
+    next_length = np.empty_like(length)
+    next_rank = np.empty_like(rank)
+    through = np.empty_like(length)
+    gap = np.empty_like(length)
+    reached = np.empty(seeds.shape, dtype=np.bool_)
+    shorter = np.empty_like(reached)
+    tied = np.empty_like(reached)
+    lower = np.empty_like(reached)
+    for _ in range(int(maximum_length)):
+        np.copyto(next_length, length)
+        np.copyto(next_rank, rank)
+        for offset_y, offset_x, step in _PATH_STEPS:
+            # Each target pixel's neighbour at the offset is its source.
+            target = (
+                slice(max(-offset_y, 0), height - max(offset_y, 0)),
+                slice(max(-offset_x, 0), width - max(offset_x, 0)),
+            )
+            source = (
+                slice(max(offset_y, 0), height + min(offset_y, 0)),
+                slice(max(offset_x, 0), width + min(offset_x, 0)),
+            )
+            path = through[target]
+            difference = gap[target]
+            reach = reached[target]
+            better = shorter[target]
+            equal = tied[target]
+            smaller = lower[target]
+            np.add(length[source], step, out=path)
+            np.less_equal(path, limit, out=reach)
+            reach &= passable[target]
+            np.subtract(path, next_length[target], out=difference)
+            np.less(difference, -_PATH_LENGTH_TOLERANCE, out=better)
+            better &= reach
+            np.abs(difference, out=difference)
+            np.less_equal(difference, _PATH_LENGTH_TOLERANCE, out=equal)
+            equal &= reach
+            np.less(rank[source], next_rank[target], out=smaller)
+            equal &= smaller
+            np.copyto(next_length[target], path, where=better)
+            better |= equal
+            np.copyto(next_rank[target], rank[source], where=better)
+        if np.array_equal(next_rank, rank) and np.array_equal(
+            next_length, length
+        ):
+            break
+        length, next_length = next_length, length
+        rank, next_rank = next_rank, rank
+    rank[rank == no_rank] = -1
+    return rank
+
+
+def assign_nearest_seed_support(
+    seed_labels: npt.ArrayLike,
+    significant_support: npt.ArrayLike,
+    valid_pixels: npt.ArrayLike,
+    *,
+    maximum_distance_pixels: float,
+) -> npt.NDArray[np.int32]:
+    """Give significant support the nearest seed pixel of its own component.
+
+    Positive input labels are the seeds and keep their pixels. A valid
+    significant pixel takes the label of the nearest seed pixel, by
+    straight-line distance, among the seeds of its own eight-connected
+    component of seeds and support, when that seed lies within
+    ``maximum_distance_pixels``. Equal distances use the label whose first
+    row-major seed pixel comes first. The components are labelled here, so
+    the planes must hold every pixel of the support being partitioned.
+    """
+    labels, significant, valid = _validated_seed_planes(
+        seed_labels,
+        significant_support,
+        valid_pixels,
+    )
+    if (
+        isinstance(maximum_distance_pixels, bool)
+        or not isfinite(maximum_distance_pixels)
+        or maximum_distance_pixels < 0.0
+    ):
+        raise ValueError(
+            "maximum seed distance must be finite and non-negative"
+        )
+    output = np.asarray(labels, dtype=np.int32).copy()
+    seed_points = np.column_stack(np.nonzero(labels > 0))
+    candidate_points = np.column_stack(
+        np.nonzero(significant & valid & (labels == 0))
+    )
+    if not seed_points.size or not candidate_points.size:
+        return output
+    connected_labels, _ = cast(
+        tuple[npt.NDArray[np.int32], int],
+        connected_component_labels(
+            ((labels > 0) | significant) & valid,
+            structure=np.ones((3, 3), dtype=np.int8),
+        ),
+    )
+    seed_ranks, labels_by_rank = _canonical_seed_ranks(labels, None)
     seed_components = connected_labels[seed_points[:, 0], seed_points[:, 1]]
     candidate_components = connected_labels[
         candidate_points[:, 0], candidate_points[:, 1]
     ]
-    maximum_distance = recovery_radius_beams * beam_major_fwhm_pixels
     for component in sorted({int(value) for value in seed_components}):
         local_seed = seed_components == component
         local_candidate = candidate_components == component
@@ -925,7 +1105,7 @@ def assign_seeded_multiscale_support(  # noqa: PLR0913
             points,
             seed_ranks[local_seed],
         )
-        eligible = distances <= maximum_distance
+        eligible = distances <= maximum_distance_pixels
         eligible_points = points[eligible]
         output[eligible_points[:, 0], eligible_points[:, 1]] = labels_by_rank[
             owner_ranks[eligible]

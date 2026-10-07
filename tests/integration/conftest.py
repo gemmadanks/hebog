@@ -188,7 +188,7 @@ def _substituted_background_rms(
     return estimate
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def substituted_background_rms() -> SubstituteBackgroundRms:
     """Return a helper standing in for the whole background/RMS stage."""
     return _substituted_background_rms

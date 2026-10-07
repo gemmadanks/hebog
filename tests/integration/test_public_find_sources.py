@@ -8,11 +8,13 @@ from __future__ import annotations
 
 import ast
 import gc
+import inspect
 import os
 import subprocess
 import sys
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, replace
+from functools import partial
 from pathlib import Path
 from typing import Any, TypeVar, cast
 
@@ -1799,12 +1801,14 @@ _QUIET_STRIP_COLUMNS = 40
 _CROWDED_FIELD_NOISE_JY_PER_BEAM = 1e-4
 
 
-def _write_quiet_strip_field(directory: Path) -> npt.NDArray[np.float32]:
+def _write_quiet_strip_field(
+    directory: Path, *, scale: float = 0.2
+) -> npt.NDArray[np.float32]:
     """Write the quick check's crowded field with a quiet strip.
 
-    The left 40 columns, sources included, are scaled by 0.2, so the noise
-    steps from 2e-5 to 1e-4 Jy/beam at column 40. The written plane is
-    returned.
+    The left 40 columns, sources included, are scaled by ``scale``, so the
+    noise steps from ``scale`` times 1e-4 Jy/beam to 1e-4 Jy/beam at column
+    40. The written plane is returned.
     """
     (dataset,) = (
         record
@@ -1815,7 +1819,7 @@ def _write_quiet_strip_field(directory: Path) -> npt.NDArray[np.float32]:
     image = generate_synthetic_window(
         dataset.recipe, y_start=0, y_stop=height, x_start=0, x_stop=width
     ).astype(np.float32)
-    image[:, :_QUIET_STRIP_COLUMNS] *= np.float32(0.2)
+    image[:, :_QUIET_STRIP_COLUMNS] *= np.float32(scale)
     header = synthetic_fits_header(dataset)
     del header["HEBOGDS"]
     del header["HEBOGRCP"]
@@ -1887,6 +1891,140 @@ def test_a_crowded_field_with_a_quiet_strip_restores_a_split_owner(
     body, tail_end = islands[372, 42], islands[382, 42]
     assert body > 0
     assert tail_end == body
+
+
+_QUIETER_STRIP_SCALE = 0.1
+
+
+def _stand_in_the_quieter_strip_estimate(
+    patch: pytest.MonkeyPatch,
+    substitute: SubstituteBackgroundRms,
+    image: npt.NDArray[np.float32],
+) -> None:
+    """Stand in the estimate the 0.1 field published before plan task 63.
+
+    To column 198 it is its median beside the strip, 1.2639e-5 Jy/beam on a
+    background of 2.5916e-6 Jy/beam, where the noise is 1e-4 (1e-5 in the
+    strip); beyond, the noise itself on a zero background. The 0.2 field's
+    figures, which task 61's test stands in, do not reach the refusal here.
+    """
+    values = np.asarray(image, dtype=np.float64)
+    near = np.arange(values.shape[1]) < 199
+    patch.setattr(
+        public_api,
+        "_estimate_background_rms",
+        substitute(
+            values,
+            np.array(
+                np.broadcast_to(np.where(near, 2.5916e-6, 0.0), values.shape)
+            ),
+            np.array(
+                np.broadcast_to(
+                    np.where(
+                        near, 1.2639e-5, _CROWDED_FIELD_NOISE_JY_PER_BEAM
+                    ),
+                    values.shape,
+                )
+            ),
+        ),
+    )
+
+
+@pytest.mark.integration
+def test_a_crowded_field_with_a_quieter_strip_keeps_each_owner_connected(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    substituted_background_rms: SubstituteBackgroundRms,
+) -> None:
+    """The quick check's crowded field, its left 40 columns scaled by 0.1.
+
+    Measurement gave a significant pixel to the nearest flood pixel of its
+    support component within half a beam, by straight-line distance. One
+    owner was given pixel (585, 96), 2.2 pixels from its flood across pixels
+    no owner measures and joined to it only through a neighbour's support,
+    so deblending found no seed for that pixel and component topology
+    stopped the run with a bare ``ValueError`` (plan task 64). A pixel now
+    attaches only along a path inside its owner's support, so this one is
+    measured for no owner and the field completes.
+
+    The field reached that owner through the estimate it published before
+    plan task 63, which is stood in for here.
+    """
+    image = _write_quiet_strip_field(tmp_path, scale=_QUIETER_STRIP_SCALE)
+    _stand_in_the_quieter_strip_estimate(
+        monkeypatch, substituted_background_rms, image
+    )
+
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+
+    assert result.source_count > 0
+    mask = np.asarray(fits.getdata(result.mask_path), dtype=np.bool_)
+    # The pixel stays unpublished; its owner's flood beside it is published.
+    assert not mask[585, 96]
+    assert mask[584, 93]
+
+
+@pytest.fixture(scope="module")
+def quieter_strip_field(
+    tmp_path_factory: pytest.TempPathFactory,
+    substituted_background_rms: SubstituteBackgroundRms,
+) -> _SerialReference:
+    """Publish the field with a 0.1 quiet strip serially, as before task 63."""
+    directory = tmp_path_factory.mktemp("quieter-strip")
+    image = _write_quiet_strip_field(directory, scale=_QUIETER_STRIP_SCALE)
+    config = _config()
+    with pytest.MonkeyPatch.context() as patch:
+        _stand_in_the_quieter_strip_estimate(
+            patch, substituted_background_rms, image
+        )
+        result = hebog.find_sources(
+            _request(directory), config, SerialExecutor()
+        )
+    return _SerialReference(directory / "image.fits", config, result)
+
+
+_QUIETER_STRIP_CORE_PIXELS = 256
+
+
+@pytest.mark.integration
+def test_a_crowded_field_with_a_quieter_strip_is_executor_and_tile_invariant(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    substituted_background_rms: SubstituteBackgroundRms,
+    quieter_strip_field: _SerialReference,
+    each_executor: Executor,
+) -> None:
+    """Every executor on a four-by-four grid publishes the serial products.
+
+    Every tiled pass runs on 256-pixel cores, so the owners near the strip
+    are decided from several cores; a pixel's owner depends only on the
+    support within half a beam of it, so no core or task order changes it.
+    """
+    image = np.asarray(
+        fits.getdata(quieter_strip_field.image_path), dtype=np.float32
+    )[0, 0]
+    _stand_in_the_quieter_strip_estimate(
+        monkeypatch, substituted_background_rms, image
+    )
+    for name, function in list(vars(public_api).items()):
+        if (
+            inspect.isfunction(function)
+            and function.__module__ == public_api.__name__
+            and "tile_core_pixels" in inspect.signature(function).parameters
+        ):
+            monkeypatch.setattr(
+                public_api,
+                name,
+                partial(function, tile_core_pixels=_QUIETER_STRIP_CORE_PIXELS),
+            )
+
+    tiled = _run_on_small_tiles(
+        quieter_strip_field, tmp_path / "products", each_executor, monkeypatch
+    )
+
+    assert product_hashes(tiled) == product_hashes(quieter_strip_field.result)
 
 
 @pytest.mark.integration

@@ -1,12 +1,14 @@
 """Global support reductions the tile-native support pass depends on.
 
-ADR-008's pass C needs two quantities that no bounded halo can supply: the
-connected components of the direct support unioned with the significant
-multiscale support, which decide which seed a support pixel may attach to,
-and the adjacent-scale persistence of the multiscale features, which decides
-which recovered support may stay published. Both are reconciled here from
-compact per-core summaries and written back as owned cores, so the composition
-reads them by window instead of computing them over whole planes.
+ADR-008's pass C needs the adjacent-scale persistence of the multiscale
+features, which decides which recovered support may stay published, and no
+bounded halo can supply it. It is reconciled here from compact per-core
+summaries and written back as owned cores, so the composition reads it by
+window instead of computing it over whole planes. The connected components of
+the direct support unioned with the significant multiscale support are
+reconciled and published the same way, but no round reads them: a support
+pixel attaches to its seed along a path within half a beam, which a bounded
+read decides.
 """
 
 from __future__ import annotations

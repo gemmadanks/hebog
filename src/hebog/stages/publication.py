@@ -283,7 +283,6 @@ class _ReadPlanes:
     direct_snr: npt.NDArray[np.float64]
     reconstruction_mask: npt.NDArray[np.bool_]
     valid_pixels: npt.NDArray[np.bool_]
-    support_components: npt.NDArray[np.int32]
     persistent_support: npt.NDArray[np.bool_]
 
 
@@ -329,10 +328,6 @@ def _read_planes(
             detection_source.read_completed_window("valid-pixels", bounds),
             dtype=np.bool_,
         ),
-        support_components=np.asarray(
-            support_source.read_completed_window("support-components", bounds),
-            dtype=np.int32,
-        ),
         persistent_support=np.asarray(
             support_source.read_completed_window("persistent-support", bounds),
             dtype=np.bool_,
@@ -367,7 +362,6 @@ def _measurement_labels(
             planes.valid_pixels,
             beam_major_fwhm_pixels=config.beam.major_fwhm_pixels,
             canonical_seed_references_yx=dict(seed_references_yx),
-            support_component_labels=planes.support_components,
         ),
         dtype=np.int32,
     )
@@ -388,6 +382,7 @@ def _publication_labels(
             restored_owners,
         ),
         measurement,
+        flood_labels=planes.detection_labels,
     )
 
 
@@ -1043,7 +1038,7 @@ def _validate_stage_inputs(
                 "valid-pixels",
             ),
         ),
-        (support_source, ("support-components", "persistent-support")),
+        (support_source, ("persistent-support",)),
     ):
         if source.manifest.image_shape_yx != manifest.image_shape_yx:
             raise ValueError(

@@ -121,9 +121,9 @@ catalogue has 22,420 sources and 28,559 Gaussians (5 October).
   low within about 20 pixels of it, so spurious sources are published there.
   Task 63 corrected the crowded-field case, where one clean window set the
   RMS of about 160 columns.
-- **Owner support connected through other pixels (task 64).** A pixel can
-  attach to its owner across unassigned pixels, and one such input raises a
-  bare `ValueError`.
+- **Publication halo at whole-number half beams (task 66).** For a beam
+  of 4, 6, 8 or 10 pixels the publication halo is one pixel short of
+  persistence's reach, so products can differ across a core seam.
 - **Fixed meshes (task 62, deferred).** Beams wider than 10 pixels are
   refused; scaling the meshes with the beam would recover sources to 22
   pixels at about 2.5 times the local-noise read.
@@ -185,7 +185,7 @@ The next actions, as the plan orders them:
 
 1. Human: release the merged task 44 and 45 repairs; require the two CI
    checks task 60 added.
-2. Agent: task 64, then task 65.
+2. Agent: task 65's diagnosis, then tasks 66 and 67.
 3. Agent: tasks 53 to 56, bounding the terms that grow with the image, before
    the 22,500² (task 11) and 45,000² (task 12) tier gates.
 
