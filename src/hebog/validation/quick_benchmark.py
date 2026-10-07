@@ -14,7 +14,6 @@ Loading this module never reads data or starts work.
 
 from __future__ import annotations
 
-import hashlib
 import os
 import platform
 import subprocess
@@ -45,6 +44,7 @@ from hebog.validation.evidence import (
     UnavailableMetric,
     WorkloadClass,
 )
+from hebog.validation.external_runners import source_tree_sha256
 from hebog.validation.quick_check import (
     HebogSettings,
     QuickCheckCase,
@@ -538,21 +538,6 @@ def machine_identity() -> dict[str, object]:
     }
 
 
-def source_tree_sha256(package_root: Path) -> str:
-    """Hash every file of one package tree, ignoring bytecode caches."""
-    digest = hashlib.sha256()
-    for path in sorted(
-        item
-        for item in package_root.rglob("*")
-        if item.is_file() and "__pycache__" not in item.parts
-    ):
-        digest.update(path.relative_to(package_root).as_posix().encode())
-        digest.update(b"\0")
-        digest.update(path.read_bytes())
-        digest.update(b"\0")
-    return digest.hexdigest()
-
-
 @dataclass(frozen=True, slots=True)
 class CheckoutIdentity:
     """The Hebog source a run measures: one state of its Git checkout.
@@ -560,7 +545,8 @@ class CheckoutIdentity:
     Attributes:
         commit_sha: The checked-out commit.
         worktree_dirty: Whether the working tree had uncommitted changes.
-        source_tree_sha256: The ``source_tree_sha256`` of ``src/hebog``.
+        source_tree_sha256: The checkout's
+            :func:`~hebog.validation.external_runners.source_tree_sha256`.
     """
 
     commit_sha: str
@@ -588,7 +574,7 @@ def _read_checkout(repository_root: Path) -> CheckoutIdentity:
         worktree_dirty=bool(
             _git_output(repository_root, "status", "--porcelain")
         ),
-        source_tree_sha256=source_tree_sha256(repository_root / "src/hebog"),
+        source_tree_sha256=source_tree_sha256(repository_root),
     )
 
 

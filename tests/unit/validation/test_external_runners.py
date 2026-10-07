@@ -14,6 +14,7 @@ from hebog.validation.external_runners import (
     ExternalRuntimeIdentity,
     file_sha256,
     load_external_run_result,
+    source_tree_sha256,
 )
 
 _SHA256 = "0" * 64
@@ -125,3 +126,55 @@ def test_saved_external_run_rejects_ambiguous_outcomes(
     """A result cannot claim success without products or hide a failure."""
     with pytest.raises(ValueError, match=message):
         _result(status=status, artifacts=artifacts, failure=failure)
+
+
+def _checkout(root: Path) -> Path:
+    """Write a checkout whose package holds one module and one resource."""
+    package = root / "src" / "hebog"
+    (package / "resources").mkdir(parents=True)
+    (package / "module.py").write_text("value = 1\n", encoding="utf-8")
+    (package / "resources" / "profile.json").write_text("{}", encoding="utf-8")
+    return package
+
+
+@pytest.mark.parametrize(
+    "edit",
+    ("module", "resource", "added file", "renamed file"),
+)
+def test_source_tree_identity_binds_every_file_of_the_package(
+    tmp_path: Path, edit: str
+) -> None:
+    """Any edit to the package changes the identity, whatever the file type.
+
+    The notebook refresh once hashed only Python files, so a changed science
+    profile resource reused the identity of the code that preceded it.
+    """
+    package = _checkout(tmp_path)
+    original = source_tree_sha256(tmp_path)
+
+    if edit == "module":
+        (package / "module.py").write_text("value = 2\n", encoding="utf-8")
+    elif edit == "resource":
+        (package / "resources" / "profile.json").write_text(
+            '{"a": 1}', encoding="utf-8"
+        )
+    elif edit == "added file":
+        (package / "py.typed").write_text("", encoding="utf-8")
+    else:
+        (package / "module.py").rename(package / "renamed.py")
+
+    assert source_tree_sha256(tmp_path) != original
+
+
+def test_source_tree_identity_ignores_bytecode_caches_and_other_trees(
+    tmp_path: Path,
+) -> None:
+    """Bytecode caches and files outside ``src/hebog`` are not the source."""
+    package = _checkout(tmp_path)
+    original = source_tree_sha256(tmp_path)
+
+    (package / "__pycache__").mkdir()
+    (package / "__pycache__" / "module.cpython-312.pyc").write_bytes(b"cache")
+    (tmp_path / "README.md").write_text("notes\n", encoding="utf-8")
+
+    assert source_tree_sha256(tmp_path) == original

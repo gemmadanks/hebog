@@ -30550,3 +30550,88 @@ the per-worker placement finding.
   powered study (task 29) adds a per-noise-class check. Declined: binding
   each noise class now, which the beam-correlated SNR 10 p95 cell would
   pass only with more realizations.
+
+## 2026-10-05 — Task 51: every identity hash binds what decides the result
+
+- **Outcome.** `scientific_composition_sha256` binds every Hebog module the
+  finder imports, 67 of the 69 in its import closure, and every file of
+  `hebog.resources`. The notebook refresh and the quick benchmark share one
+  source-tree hash over every file of `src/hebog`. The quick check names
+  each prepared input by its content and writes it atomically, stops
+  instead of caching a container engine or signal exit, and reports a case
+  whose input differs from the baseline's.
+- **Composition hash.** The list stays written out in `public_api.py`,
+  because deriving it when a run starts would parse every module, about
+  half a second a process. A unit test derives the closure from every
+  import statement of `hebog.public_api` and the modules it reaches,
+  function-level and `TYPE_CHECKING` imports and parent packages included,
+  and requires the list to equal it less `_UNBOUND_MODULES`; a second test
+  requires each exemption to be still imported and unbound. Two are exempt,
+  each with its reason: the `hebog` package initializer, which only
+  re-exports and holds the version Release Please rewrites at every
+  release, and `algorithms.partitioning`, outside as before because
+  products are tile-invariant. An integration test runs `find_sources`
+  under both profiles in a fresh interpreter and requires every Hebog
+  module it loads to be bound or exempt. Modules are now located with
+  `find_spec`, not imported, so hashing no longer loads `public_science`
+  early and never loads the Dask executor. The profile resource was
+  already bound by `scientific_profile_sha256`, but the quick check and the
+  notebook runner record only the composition hash.
+- **Source-tree hash.** `external_runners.source_tree_sha256` hashed
+  `src/hebog/**/*.py`, so a changed profile resource kept the identity of
+  the code before it; the quick benchmark had its own copy over every file.
+  One function now takes the checkout root and hashes every file but
+  bytecode caches, relative to the package, so quick-benchmark values do
+  not change. `prepare_notebook_comparison.py` is unchanged, because its
+  bytes are part of the cached PyBDSF reference identity.
+- **Quick check.** The completed copy PyBDSF reads was reused by case name:
+  the shared cache held one `reference-input.fits` for each image case. It
+  is now named by the input's SHA-256 and the keywords it adds, a local crop
+  by its source's SHA-256 and window, and every prepared file is written
+  through a hidden staging directory and `os.replace`. For the four image
+  cases the new copies are byte-identical to the old ones, so the cached
+  references still apply; the old files can be deleted. Only exit status 1,
+  the worker's own exception, is cached as a failure; any other status
+  stops the check, and a failure recorded with one stops it until the
+  record is deleted. The shared caches held 16 quick-check and six
+  quick-benchmark failures with Podman's 126, all under earlier identities;
+  none is current. The quick benchmark's runner caches only the worker's
+  exception too. `compare_reports` reports an input mismatch as a finding
+  and still compares the metrics, and the run names a changed composition
+  hash, reference identity or configuration without failing.
+- **Independent review.** A separate agent, given the request, the diff and
+  `CODE_REVIEW.md`, found nothing at P0 or P1. Its P2: exit status 1 is any
+  exception the worker raises, not only PyBDSF's refusal. Two runs of one
+  missing reference made the slower worker raise, because it never
+  replaces a result, and that run cached a failure that hid the published
+  result from then on. A published result is now preferred to a cached
+  failure and checked for before one is written, the wording says what is
+  cached, and making the cached failure exactly PyBDSF's refusal is left to
+  a worker change (below). Its P3s led to nested resource files being
+  hashed and to corrected counts and documentation. A changed supplied
+  value is named through the case configuration's hash, not as an input
+  mismatch, so comparisons with earlier baselines still work.
+- **Evidence.** The quick science check `task51`, run by this branch's
+  script against the main checkout's caches with this branch's `src` first
+  on the path, so the reference worker and `REFERENCE_CODE` were the main
+  checkout's and unchanged, against `typed-refusals-final`: no regression,
+  all 17 cases with equal input hashes, reference availability and every
+  metric; the only difference named is `scientific_composition_sha256`. No
+  PyBDSF reference ran again. `task51-final`, on the final code, is the
+  same: every metric of the 17 cases equal and only the composition hash
+  named.
+- **Checks on the final code.** The portable suite with branch coverage:
+  3,364 passed and 2 xfailed, with 37 integration tests failing only
+  because the shared disk filled (`ENOSPC`); all 37 passed when run again.
+  Project coverage stays 97%. Every changed line is covered; the misses
+  left in the changed files are lines this change does not touch. The
+  strict docs build, `just check` and `just pre-commit` passed.
+- **Not run.** The quick benchmark: the hash reads 69 files instead of 39
+  once a process, and the quick check's change touches no timed path. A
+  PyBDSF container run: no reference identity changed. Windows.
+- **Open.** A dedicated worker exit status for the finder's own refusal
+  would make the cached failure exactly that; it changes the reference
+  worker, so every reference runs again once. Task 59 already reruns them
+  once, and is the natural place. Prepared remote cut-outs are still found
+  by their configured path, so a changed remote window under one path
+  reuses the old cut-out.

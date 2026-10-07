@@ -286,9 +286,9 @@ looks for a sibling `hebog-refreshes/` directory.
 | LoTSS service unavailable or incomplete download | Retry the downloader. Use `--overwrite` to replace a bad cached file, or select an offline synthetic field. |
 | Image exceeds 15,402 pixels in the workbench | Choose a smaller cutout. Larger campaign diagnostics do not imply public finder support for the same size. |
 
-The refresh's preflight records the checkout, source-tree, runner and
-configuration identities and checks the input and reference records; it is not
-a scientific qualification or a guarantee that every numerical fit will
+The refresh's preflight records the checkout, source-tree (every file of
+`src/hebog`), runner and configuration identities and checks the input and
+reference records; it is not a scientific qualification or a guarantee that every numerical fit will
 succeed. Each Hebog result also records its scientific-composition digest. Saved comparisons distinguish sources from Gaussian components and
 retain explicit unavailable measurements. Finder agreement is diagnostic,
 not ground truth, and these runs make no qualified performance claim.

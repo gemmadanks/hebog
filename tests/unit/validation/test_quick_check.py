@@ -37,6 +37,7 @@ from hebog.data_models import (
     SuppliedImageMetadata,
 )
 from hebog.science.catalogue_rows import CatalogueSource
+from hebog.validation import quick_check
 from hebog.validation.quick_benchmark import (
     load_quick_benchmark_configuration,
 )
@@ -46,8 +47,12 @@ from hebog.validation.quick_check import (
     REFERENCE_WORKER,
     GeneratedCase,
     ImageCase,
+    PreparedCase,
     RegressionTolerances,
+    changed_identities,
     compare_reports,
+    file_sha256,
+    is_worker_exception,
     load_quick_check_configuration,
     map_metrics,
     prepare_case,
@@ -878,3 +883,355 @@ def test_reference_identity_names_image_settings_cores_and_code(
     )
     engine.write_text("#!/bin/sh\necho image-two\n")
     assert identity()["container_image_id"] == "image-two"
+
+
+def _prepare_image(
+    tmp_path: Path, root: Path, case: dict[str, Any]
+) -> PreparedCase:
+    """Prepare one image case from a configuration holding only it."""
+    configuration = _image_configuration(tmp_path, case)
+    return prepare_case(
+        configuration.cases[0],
+        dataset_manifest=_ROOT / configuration.dataset_manifest,
+        repository_root=root,
+        inputs_root=tmp_path / "inputs",
+    )
+
+
+@pytest.mark.parametrize(
+    "window", (None, {"x_start": 2, "y_start": 3, "size": 4})
+)
+def test_a_changed_image_never_reuses_an_earlier_prepared_input(
+    tmp_path: Path, window: dict[str, int] | None
+) -> None:
+    """Given new pixels under one case and path, both finders read them.
+
+    The review found the completed reference copy reused by case name, so a
+    changed image was compared with a reference run on the old one. The
+    crop and the completed copy are therefore named by what they hold.
+    """
+    root = tmp_path / "repository"
+    root.mkdir()
+    _write_radio_image(root / "image.fits", with_bpa=False)
+    case: dict[str, Any] = {
+        "kind": "image",
+        "case_id": "changing",
+        "image": "image.fits",
+        "supplied_metadata": {"beam_position_angle_degrees": 0.0},
+    }
+    if window is not None:
+        case["window"] = window
+    first = _prepare_image(tmp_path, root, case)
+    with fits.open(root / "image.fits", mode="update") as hdus:
+        hdus[0].data = hdus[0].data + 1000.0
+
+    second = _prepare_image(tmp_path, root, case)
+    again = _prepare_image(tmp_path, root, case)
+
+    assert second.input_sha256 != first.input_sha256
+    assert second.reference_input_path != first.reference_input_path
+    np.testing.assert_array_equal(
+        fits.getdata(second.reference_input_path),
+        fits.getdata(second.input_path),
+    )
+    assert np.asarray(fits.getdata(second.input_path)).min() >= 1000.0
+    assert again == second
+
+
+def test_a_header_pybdsf_can_read_is_its_own_reference_input(
+    tmp_path: Path,
+) -> None:
+    """With ``RESTFREQ`` and all three beam keywords, no copy is written."""
+    root = tmp_path / "repository"
+    root.mkdir()
+    _write_radio_image(root / "image.fits", with_bpa=True)
+    with fits.open(root / "image.fits", mode="update") as hdus:
+        hdus[0].header["RESTFREQ"] = 144e6
+
+    prepared = _prepare_image(
+        tmp_path,
+        root,
+        {"kind": "image", "case_id": "complete", "image": "image.fits"},
+    )
+
+    assert prepared.reference_input_path == prepared.input_path
+    assert not (tmp_path / "inputs" / "complete").exists()
+
+
+def test_a_changed_completion_never_reuses_the_reference_copy(
+    tmp_path: Path,
+) -> None:
+    """A changed supplied value gives PyBDSF a new copy of the same image."""
+    root = tmp_path / "repository"
+    root.mkdir()
+    _write_radio_image(root / "image.fits", with_bpa=False)
+    case: dict[str, Any] = {
+        "kind": "image",
+        "case_id": "completed",
+        "image": "image.fits",
+        "supplied_metadata": {"beam_position_angle_degrees": 0.0},
+    }
+    first = _prepare_image(tmp_path, root, case)
+    case["supplied_metadata"] = {"beam_position_angle_degrees": 30.0}
+
+    second = _prepare_image(tmp_path, root, case)
+
+    assert second.input_path == first.input_path
+    assert second.reference_input_path != first.reference_input_path
+    assert fits.getheader(first.reference_input_path)["BPA"] == 0.0
+    assert fits.getheader(second.reference_input_path)["BPA"] == 30.0
+
+
+def test_an_interrupted_preparation_leaves_nothing_a_later_run_reuses(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A write that fails part-way publishes no file and no staging debris.
+
+    Concurrent runs share the inputs directory, so a later run must never
+    find a truncated input under the name of a complete one.
+    """
+    configuration = load_quick_check_configuration(_CONFIGURATION)
+    case = next(
+        case
+        for case in configuration.cases
+        if isinstance(case, GeneratedCase) and case.case_id == "close-blends"
+    )
+
+    def interrupted(
+        _manifest: Path, _dataset_id: str, output_path: Path
+    ) -> str:
+        output_path.write_bytes(b"SIMPLE  =                    T")
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(quick_check, "materialize_dataset", interrupted)
+    with pytest.raises(KeyboardInterrupt):
+        prepare_case(
+            case,
+            dataset_manifest=_ROOT / configuration.dataset_manifest,
+            repository_root=_ROOT,
+            inputs_root=tmp_path,
+        )
+
+    assert list((tmp_path / case.case_id).iterdir()) == []
+
+
+@pytest.mark.parametrize(
+    ("exit_status", "refusal"),
+    (
+        (1, True),
+        (2, False),
+        (125, False),
+        (126, False),
+        (127, False),
+        (137, False),
+        (143, False),
+        (-9, False),
+        (-15, False),
+    ),
+)
+def test_only_the_workers_own_exception_may_be_cached(
+    exit_status: int, refusal: bool
+) -> None:
+    """Engine, usage and signal exits say nothing about the input."""
+    assert is_worker_exception(exit_status) is refusal
+
+
+def _write_reference_input(path: Path) -> PreparedCase:
+    """Write a stand-in input that is its own reference input."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b"reference input")
+    return PreparedCase(
+        case_id="case",
+        input_path=path,
+        input_sha256="0" * 64,
+        reference_input_path=path,
+        supplied_metadata=None,
+        truth=None,
+        noise_rms_jy_per_beam=None,
+        published_rms_path=None,
+        published_mask_path=None,
+    )
+
+
+_IDENTITY: dict[str, object] = {"ncores": 4}
+
+
+def _reference_check(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    run_container: Any,
+) -> tuple[Any, Path]:
+    """Return the check's reference lookup and its cache directory.
+
+    The container is replaced by ``run_container``, which receives the
+    keyword arguments the check passes to the real runner.
+    """
+    script = runpy.run_path(
+        str(_ROOT / "scripts/validation/quick_science_check.py")
+    )
+
+    def run_path(_path: str) -> dict[str, object]:
+        return {"_run_container": run_container}
+
+    monkeypatch.setattr(runpy, "run_path", run_path)
+    prepared = _write_reference_input(tmp_path / "inputs" / "image.fits")
+    configuration = load_quick_check_configuration(_CONFIGURATION)
+
+    def reference() -> Any:
+        return script["_reference_result"](
+            prepared,
+            configuration=configuration,
+            identity=_IDENTITY,
+            output_root=tmp_path,
+            engine="podman",
+            run_missing=True,
+        )
+
+    output = reference_cache_directory(
+        tmp_path / "references",
+        case_id=prepared.case_id,
+        reference_input_sha256=file_sha256(prepared.reference_input_path),
+        finder_id=configuration.reference.finder_id,
+        identity=_IDENTITY,
+    )
+    return reference, output
+
+
+def _publish_result(output: Path) -> dict[str, Any]:
+    """Publish the result a successful reference run leaves."""
+    result: dict[str, Any] = {
+        "status": "success",
+        "case_id": "case",
+        "finder_id": "pinned-pybdsf-master",
+        "input_sha256": file_sha256(
+            output.parents[3] / "inputs" / "image.fits"
+        ),
+    }
+    output.mkdir(parents=True)
+    (output / "result.json").write_text(json.dumps(result), encoding="utf-8")
+    return result
+
+
+@pytest.mark.parametrize(
+    ("exit_status", "cached"), ((1, True), (126, False), (-9, False))
+)
+def test_the_check_caches_only_the_workers_own_exception(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    exit_status: int,
+    cached: bool,
+) -> None:
+    """A container engine or signal exit stops the check uncached.
+
+    Caching it would report every later run without that reference, under
+    an identity that fixing the engine does not change.
+    """
+    calls: list[int] = []
+
+    def run_container(**_arguments: object) -> None:
+        calls.append(exit_status)
+        raise subprocess.CalledProcessError(exit_status, ["podman", "run"])
+
+    reference, output = _reference_check(tmp_path, monkeypatch, run_container)
+
+    if cached:
+        assert reference() is None
+        assert reference() is None
+        assert calls == [exit_status]
+    else:
+        with pytest.raises(RuntimeError, match=f"status {exit_status}"):
+            reference()
+        assert not output.with_name(f"{output.name}.failed.json").exists()
+
+
+def test_a_result_a_concurrent_run_published_is_never_cached_as_failed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Given two runs of one reference, the slower one uses the result.
+
+    The worker never replaces a published result, so the slower run's
+    worker raises; that exception is about the cache, not the input.
+    """
+
+    def run_container(*, output: Path, **_arguments: object) -> None:
+        _publish_result(output)
+        raise subprocess.CalledProcessError(1, ["podman", "run"])
+
+    reference, output = _reference_check(tmp_path, monkeypatch, run_container)
+
+    assert reference() == (
+        output,
+        json.loads((output / "result.json").read_text()),
+    )
+    assert not output.with_name(f"{output.name}.failed.json").exists()
+
+
+@pytest.mark.parametrize(("exit_status", "stops"), ((1, False), (126, True)))
+def test_a_cached_failure_yields_to_a_result_and_must_be_a_worker_exception(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    exit_status: int,
+    stops: bool,
+) -> None:
+    """A published result wins; an engine failure recorded earlier stops.
+
+    Records written before engine and signal exits stopped the check could
+    hold such a status, which is not a result of the input.
+    """
+
+    def run_container(**_arguments: object) -> None:
+        raise AssertionError("a cached reference must not run again")
+
+    reference, output = _reference_check(tmp_path, monkeypatch, run_container)
+    failure = output.with_name(f"{output.name}.failed.json")
+    failure.parent.mkdir(parents=True)
+    failure.write_text(
+        json.dumps({"exit_status": exit_status}), encoding="utf-8"
+    )
+
+    if stops:
+        with pytest.raises(RuntimeError, match="delete it"):
+            reference()
+    else:
+        assert reference() is None
+    result = _publish_result(output)
+    assert reference() == (output, result)
+
+
+def test_a_case_whose_input_differs_from_the_baseline_is_reported() -> None:
+    """Metrics measured on different pixels are not a comparison.
+
+    The metrics are still compared, so what moved stays visible.
+    """
+    baseline = _report({"truth.completeness": 1.0})
+    baseline["cases"][0]["input_sha256"] = "a" * 64
+    current = _report({"truth.completeness": 0.5})
+    current["cases"][0]["input_sha256"] = "b" * 64
+
+    findings = compare_reports(current, baseline, _TOLERANCES)
+
+    assert [(item.metric, item.reason) for item in findings] == [
+        ("input_sha256", "input differs from the baseline's"),
+        ("truth.completeness", "dropped by 0.500"),
+    ]
+    current["cases"][0]["input_sha256"] = "a" * 64
+    assert [
+        item.metric for item in compare_reports(current, baseline, _TOLERANCES)
+    ] == ["truth.completeness"]
+
+
+def test_changed_run_identities_are_named_but_are_not_regressions() -> None:
+    """A new composition hash explains moved metrics; it is not a failure."""
+    baseline: dict[str, Any] = {
+        "scientific_composition_sha256": "a" * 64,
+        "reference_identity": {"ncores": 4},
+        "configuration_sha256": "c" * 64,
+        "cases": [],
+    }
+    current = dict(baseline, scientific_composition_sha256="b" * 64)
+
+    assert changed_identities(current, baseline) == (
+        "scientific_composition_sha256",
+    )
+    assert changed_identities(baseline, baseline) == ()
+    assert not compare_reports(current, baseline, _TOLERANCES)

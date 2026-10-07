@@ -6,8 +6,11 @@
 
 from __future__ import annotations
 
+import ast
 import gc
 import os
+import subprocess
+import sys
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -3102,6 +3105,52 @@ def test_an_identity_that_cannot_be_computed_stops_the_run_before_analysis(
 
     assert executor.batch_counts == []
     assert not (tmp_path / "products").exists()
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("profile", ("continuum", "compact"))
+def test_every_module_a_run_loads_is_bound_or_named_exempt(
+    tmp_path: Path, profile: str
+) -> None:
+    """The composition hash covers what a real run executes.
+
+    The unit tests derive the hash's module list from import statements, so
+    a module loaded by name at run time would escape them. A run in a fresh
+    interpreter must load no Hebog module that is neither bound nor exempt;
+    the resource package it loads by name is bound file by file.
+    """
+    _write_image(tmp_path / "image.fits", _ring_image())
+    script = (
+        "import sys\n"
+        "from pathlib import Path\n"
+        "import hebog\n"
+        "from hebog.executors import SerialExecutor\n"
+        "root = Path(sys.argv[1])\n"
+        "hebog.find_sources(\n"
+        "    hebog.SourceFinderRequest(\n"
+        "        root / 'image.fits', root / 'products', 'modules'\n"
+        "    ),\n"
+        "    hebog.SourceFinderConfig(5.0, 3.0, 7, profile=sys.argv[2]),\n"
+        "    SerialExecutor(),\n"
+        ")\n"
+        "print(sorted(name for name in sys.modules\n"
+        "    if name.split('.')[0] == 'hebog'))\n"
+    )
+
+    completed = subprocess.run(
+        [sys.executable, "-c", script, str(tmp_path), profile],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    loaded = set(ast.literal_eval(completed.stdout.splitlines()[-1]))
+    resources = public_api._SCIENTIFIC_RESOURCES  # pyright: ignore[reportPrivateUsage]
+    bound = set(public_api._SCIENTIFIC_MODULES)  # pyright: ignore[reportPrivateUsage]
+    exempt = set(public_api._UNBOUND_MODULES)  # pyright: ignore[reportPrivateUsage]
+
+    assert resources in loaded
+    assert loaded - {resources} <= bound | exempt
+    assert "hebog.public_science" in loaded
 
 
 def _write_refused_image(path: Path, refusal: str) -> None:

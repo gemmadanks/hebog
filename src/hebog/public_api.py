@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 import hashlib
-import importlib
+import importlib.util
 import json
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import asdict, dataclass, field, replace
@@ -70,6 +70,8 @@ from hebog.pipeline import (
 from hebog.stages.detection import run_detection_stage
 
 if TYPE_CHECKING:  # pragma: no cover - import-time typing only
+    from importlib.resources.abc import Traversable
+
     from hebog.algorithms.multiscale_association import ScaleDetections
     from hebog.algorithms.source_association import HierarchyOverlaps
     from hebog.data_models.source_association import (
@@ -125,6 +127,7 @@ _FWHM_PER_SIGMA = 2.0 * np.sqrt(2.0 * np.log(2.0))
 # aperture radii and kernel halos cannot flip with a sub-mas WCS change.
 _BEAM_AXIS_DECIMALS = 6
 _SCIENTIFIC_MODULES = (
+    "hebog.algorithms",
     "hebog.algorithms.astrometry",
     "hebog.algorithms.background",
     "hebog.algorithms.component_measurement",
@@ -132,6 +135,7 @@ _SCIENTIFIC_MODULES = (
     "hebog.algorithms.deblending",
     "hebog.algorithms.detection",
     "hebog.algorithms.extended_measurement",
+    "hebog.algorithms.fft",
     "hebog.algorithms.fitting",
     "hebog.algorithms.label_groups",
     "hebog.algorithms.labelling",
@@ -142,21 +146,46 @@ _SCIENTIFIC_MODULES = (
     "hebog.algorithms.owner_connectivity",
     "hebog.algorithms.reconciliation",
     "hebog.algorithms.source_association",
+    "hebog.config",
+    "hebog.data_models",
+    "hebog.data_models.astrometry",
     "hebog.data_models.catalogues",
     "hebog.data_models.fitting",
+    "hebog.data_models.generations",
+    "hebog.data_models.images",
+    "hebog.data_models.measurement",
     "hebog.data_models.measurement_diagnostics",
+    "hebog.data_models.multiscale",
+    "hebog.data_models.partitioning",
+    "hebog.data_models.products",
+    "hebog.data_models.source_association",
     "hebog.data_models.source_finding",
+    "hebog.executors",
+    "hebog.executors.base",
+    "hebog.executors.dask",
+    "hebog.executors.serial",
+    "hebog.executors.threads",
+    "hebog.io",
+    "hebog.io.base",
+    "hebog.io.filesystem",
+    "hebog.io.fits",
+    "hebog.io.materialization",
     "hebog.io.pixel_validity",
+    "hebog.io.zarr",
+    "hebog.pipeline",
     "hebog.public_api",
     "hebog.public_science",
+    "hebog.science",
     "hebog.science.catalogue_rows",
     "hebog.science.catalogues",
     "hebog.science.configuration",
     "hebog.science.continuum",
     "hebog.science.models",
     "hebog.science.profile",
+    "hebog.stages",
     "hebog.stages.association",
     "hebog.stages.background",
+    "hebog.stages.batching",
     "hebog.stages.catalogue_rows",
     "hebog.stages.detection",
     "hebog.stages.islands",
@@ -166,6 +195,31 @@ _SCIENTIFIC_MODULES = (
     "hebog.stages.sources",
     "hebog.stages.support",
 )
+"""Every module the finder imports, less ``_UNBOUND_MODULES``.
+
+A unit test derives the finder's import closure from its import statements
+and requires this list to equal it less the exemptions, so a module the
+finder starts to import fails that test until it is bound or exempted. The
+list is written out rather than derived when a run starts, because parsing
+every module's imports would add about half a second to each run.
+"""
+_UNBOUND_MODULES = {
+    "hebog": (
+        "The package initializer only re-exports the public names and holds "
+        "the version that Release Please rewrites at every release."
+    ),
+    "hebog.algorithms.partitioning": (
+        "It plans tile geometry only, and every product is required to be "
+        "the same on any tile grid, which the tile-invariance tests assert."
+    ),
+}
+"""Modules the finder imports that the composition hash leaves out, and why.
+
+Each must be shown not to decide a result. A unit test requires each to be
+still imported and not bound, and the public product reference names them.
+"""
+_SCIENTIFIC_RESOURCES = "hebog.resources"
+"""Package whose every data file the composition hash binds."""
 
 
 class _WindowReadable(Protocol):
@@ -389,25 +443,53 @@ def _header_with_metadata(
 
 def _profile_bytes() -> bytes:
     """Read the immutable reviewed science profile from the installed wheel."""
-    return files("hebog.resources").joinpath(_PROFILE_RESOURCE).read_bytes()
+    return (
+        files(_SCIENTIFIC_RESOURCES).joinpath(_PROFILE_RESOURCE).read_bytes()
+    )
 
 
 @lru_cache(maxsize=1)
 def _scientific_composition_sha256() -> str:
-    """Bind every module that implements the evaluated terminal composition."""
+    """Bind the finder's modules and every packaged resource.
+
+    The modules are every one the finder imports except the named
+    exemptions. They are located rather than imported, so hashing never
+    loads the optional Dask executor. The hash is computed once a process,
+    when the first run records its provenance.
+    """
     digest = hashlib.sha256()
+    for name, content in _scientific_composition_sources():
+        digest.update(name.encode())
+        digest.update(b"\0")
+        digest.update(content)
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def _scientific_composition_sources() -> Iterator[tuple[str, bytes]]:
+    """Yield each bound module's and resource's name and bytes, in order."""
     for module_name in _SCIENTIFIC_MODULES:
-        module = importlib.import_module(module_name)
-        module_path_value = getattr(module, "__file__", None)
-        if module_path_value is None:
+        specification = importlib.util.find_spec(module_name)
+        if specification is None or specification.origin is None:
             raise SourceFinderError(
                 f"cannot identify scientific module {module_name}"
             )
-        digest.update(module_name.encode())
-        digest.update(b"\0")
-        digest.update(Path(module_path_value).read_bytes())
-        digest.update(b"\0")
-    return digest.hexdigest()
+        yield module_name, Path(specification.origin).read_bytes()
+    yield from _resource_files(
+        files(_SCIENTIFIC_RESOURCES), _SCIENTIFIC_RESOURCES
+    )
+
+
+def _resource_files(
+    directory: Traversable, name: str
+) -> Iterator[tuple[str, bytes]]:
+    """Yield every file below one resource directory, by path, in order."""
+    for item in sorted(directory.iterdir(), key=lambda item: item.name):
+        path = f"{name}/{item.name}"
+        if not item.is_dir():
+            yield path, item.read_bytes()
+        elif item.name != "__pycache__":
+            yield from _resource_files(item, path)
 
 
 def _beam_shape_pixels(metadata: ImageMetadata) -> BeamShapePixels:

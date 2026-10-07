@@ -4,10 +4,11 @@
 
 from __future__ import annotations
 
+import ast
 import hashlib
-import importlib.util
-import re
+import subprocess
 import sys
+from collections.abc import Iterator
 from dataclasses import replace
 from importlib.resources import files
 from math import prod
@@ -17,6 +18,7 @@ import pytest
 from hypothesis import example, given, settings
 from hypothesis import strategies as st
 
+import hebog
 from hebog import public_api
 from hebog.algorithms.background import plan_rms_grid
 from hebog.algorithms.multiscale import BeamShapePixels
@@ -27,7 +29,7 @@ from hebog.data_models import (
     WideObjectCounts,
 )
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
-from hebog.pipeline import SourceFinderImageTooLargeError
+from hebog.pipeline import SourceFinderError, SourceFinderImageTooLargeError
 from hebog.science.configuration import source_finder_configs
 from hebog.stages import background as background_stage
 
@@ -86,122 +88,191 @@ def test_repaired_science_cannot_inherit_reference_qualification() -> None:
     } <= set(public_api._SCIENTIFIC_MODULES)
 
 
-# Tiling geometry is deliberately outside the fingerprint: every result is
-# required to be partition-invariant, and that contract is tested on its own,
-# so planning a different partition must not read as a scientific change.
-_UNBOUND_BY_DESIGN = frozenset({"hebog.algorithms.partitioning"})
+_PACKAGE_ROOT = Path(hebog.__file__).parent
 
 
-def _module_source(module_name: str) -> str:
-    """Return one installed module's source without importing it."""
-    specification = importlib.util.find_spec(module_name)
-    assert specification is not None, module_name
-    assert specification.origin is not None, module_name
-    return Path(specification.origin).read_text(encoding="utf-8")
+def _source_file(module_name: str) -> Path | None:
+    """Return a Hebog module's source file, or None for a name in a module."""
+    path = _PACKAGE_ROOT.joinpath(*module_name.split(".")[1:])
+    if (path / "__init__.py").is_file():
+        return path / "__init__.py"
+    module = path.parent / f"{path.name}.py"
+    return module if module.is_file() else None
 
 
-def _imported_submodules(source: str, package: str) -> set[str]:
-    """Return the ``hebog.<package>`` submodules one source file imports."""
-    return {
-        f"hebog.{package}.{match.group(1)}"
-        for match in re.finditer(
-            rf"from hebog\.{package}\.(\w+) import", source
-        )
-    }
+def _imported_names(source_file: Path) -> Iterator[str]:
+    """Yield every dotted name one source file imports, wherever it does.
+
+    Imports inside functions and under ``TYPE_CHECKING`` count too: a
+    function-level import runs when the finder calls the function, and
+    including the rest only binds more.
+    """
+    tree = ast.parse(source_file.read_text(encoding="utf-8"))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            yield from (alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            assert node.level == 0, f"relative import in {source_file}"
+            assert node.module is not None, source_file
+            yield node.module
+            yield from (f"{node.module}.{alias.name}" for alias in node.names)
 
 
-def _bound(package: str) -> set[str]:
-    """Return the fingerprint's modules from one package."""
-    prefix = f"hebog.{package}."
-    return {
-        name
-        for name in public_api._SCIENTIFIC_MODULES
-        if name.startswith(prefix)
-    }
+def _import_closure(module_name: str) -> set[str]:
+    """Return every Hebog module that running one module can execute.
+
+    A package's ``__init__`` runs before any of its submodules, so each
+    imported module brings its parent packages with it.
+    """
+    closure: set[str] = set()
+    pending = [module_name]
+    while pending:
+        name = pending.pop()
+        if name in closure:
+            continue
+        closure.add(name)
+        source_file = _source_file(name)
+        assert source_file is not None, name
+        for imported in _imported_names(source_file):
+            parts = imported.split(".")
+            if parts[0] == "hebog" and _source_file(imported) is not None:
+                pending.extend(
+                    ".".join(parts[:end]) for end in range(1, len(parts) + 1)
+                )
+    return closure
 
 
-def test_composition_fingerprint_binds_every_stage_the_public_path_runs() -> (
+def test_composition_fingerprint_binds_the_configuration_and_fft_kernels() -> (
     None
 ):
-    """A stage the public path imports must reach the recorded fingerprint.
+    """A changed stage default or FFT kernel must change the fingerprint.
 
-    The fingerprint identifies the implementation that produced a result, so a
-    scientific change in any stage the public path runs has to change it. The
-    expectation is derived from the imports themselves, so adding a stage
-    without binding it fails here instead of silently reusing a digest.
+    The 4 October review found both imported by the finder and missing from
+    the fingerprint, so a run with changed defaults kept the old identity.
     """
-    imported = _imported_submodules(
-        _module_source("hebog.public_api"), "stages"
+    assert {"hebog.config", "hebog.algorithms.fft"} <= set(
+        public_api._SCIENTIFIC_MODULES
     )
 
-    assert imported, "no stage import was found to derive the expectation from"
-    assert imported == _bound("stages")
 
-
-def test_composition_fingerprint_binds_the_algorithms_those_stages_reach() -> (
+def test_composition_fingerprint_binds_the_finders_whole_import_closure() -> (
     None
 ):
-    """An algorithm is no less scientific for being reached through a stage.
+    """Every module the finder imports is bound unless it is named exempt.
 
-    Binding only what the driver imports directly leaves a kernel that decides
-    fitting windows or ownership unbound as soon as a stage, rather than the
-    driver, is the one that calls it. The expectation therefore follows the
-    imports one level in, through every bound stage and science module.
+    The expectation is the import closure itself, so a module the finder
+    starts to import changes the fingerprint, or fails here until it is bound
+    or exempted with a reason.
     """
-    reached: set[str] = set()
-    sources = ["hebog.public_api", *_bound("stages"), *_bound("science")]
-    for module_name in sources:
-        reached |= _imported_submodules(
-            _module_source(module_name), "algorithms"
-        )
+    closure = _import_closure("hebog.public_api")
 
-    assert reached, "no algorithm import was found to derive from"
-    assert reached - _UNBOUND_BY_DESIGN <= _bound("algorithms")
-
-
-def test_composition_fingerprint_binds_the_science_modules_it_reaches() -> (
-    None
-):
-    """A science module the public path imports must reach the fingerprint.
-
-    Science modules hold records whose validation and normalisation decide
-    what the catalogue publishes, such as the catalogue rows, so a module
-    split out of a bound one stays part of the composition.
-    """
-    reached: set[str] = set()
-    sources = [
-        "hebog.public_api",
-        "hebog.public_science",
-        *_bound("stages"),
-        *_bound("science"),
-    ]
-    for module_name in sources:
-        reached |= _imported_submodules(_module_source(module_name), "science")
-
-    assert reached, "no science import was found to derive from"
-    assert reached <= _bound("science")
+    assert set(public_api._SCIENTIFIC_MODULES) == closure - set(
+        public_api._UNBOUND_MODULES
+    )
+    assert list(public_api._SCIENTIFIC_MODULES) == sorted(
+        set(public_api._SCIENTIFIC_MODULES)
+    )
 
 
-def test_every_algorithm_left_out_of_the_fingerprint_is_still_left_out() -> (
-    None
-):
+@pytest.mark.parametrize("module_name", sorted(public_api._UNBOUND_MODULES))
+def test_every_module_left_out_of_the_fingerprint_is_still_imported(
+    module_name: str,
+) -> None:
     """An exemption that stops matching must fail, not quietly widen.
 
-    A stale entry here would exempt nothing while looking deliberate, and an
-    entry that someone has since bound would hide that the rule changed.
+    A stale entry would exempt nothing while looking deliberate, and an entry
+    that someone has since bound would hide that the rule changed.
     """
-    reached: set[str] = set()
-    sources = ["hebog.public_api", *_bound("stages"), *_bound("science")]
-    for module_name in sources:
-        reached |= _imported_submodules(
-            _module_source(module_name), "algorithms"
-        )
+    assert module_name in _import_closure("hebog.public_api")
+    assert module_name not in public_api._SCIENTIFIC_MODULES
+    assert public_api._UNBOUND_MODULES[module_name].strip()
 
-    for module_name in _UNBOUND_BY_DESIGN:
-        assert module_name in reached, f"{module_name} is no longer imported"
-        assert module_name not in _bound("algorithms"), (
-            f"{module_name} is bound now, so its exemption is obsolete"
-        )
+
+def _composition_sha256() -> str:
+    """Compute the fingerprint afresh, bypassing the process-wide cache."""
+    return public_api._scientific_composition_sha256.__wrapped__()
+
+
+def test_composition_fingerprint_binds_every_packaged_resource(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A changed or added resource file changes the fingerprint, at any depth.
+
+    The reviewed profile decides results as much as the code does, and the
+    quick check and notebook runner record only this fingerprint.
+    """
+    resources = tmp_path / "resources"
+    resources.mkdir()
+    (resources / "profile.json").write_text("{}", encoding="utf-8")
+    (resources / "__pycache__").mkdir()
+
+    def packaged(_package: str) -> Path:
+        return resources
+
+    monkeypatch.setattr(public_api, "files", packaged)
+    original = _composition_sha256()
+
+    (resources / "__pycache__" / "profile.cpython.pyc").write_bytes(b"cache")
+    unchanged = _composition_sha256()
+    (resources / "profile.json").write_text('{"a": 1}', encoding="utf-8")
+    changed = _composition_sha256()
+    (resources / "profile.json").write_text("{}", encoding="utf-8")
+    (resources / "extra.json").write_text("{}", encoding="utf-8")
+    added = _composition_sha256()
+    (resources / "extra.json").unlink()
+    (resources / "tables").mkdir()
+    (resources / "tables" / "beam.json").write_text("{}", encoding="utf-8")
+    nested = _composition_sha256()
+
+    assert unchanged == original
+    assert len({original, changed, added, nested}) == 4
+
+
+def test_a_module_that_cannot_be_located_stops_the_fingerprint(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A bound module missing from the installation is not skipped."""
+    monkeypatch.setattr(
+        public_api,
+        "_SCIENTIFIC_MODULES",
+        ("hebog.config", "hebog.not_installed"),
+    )
+
+    with pytest.raises(
+        SourceFinderError,
+        match=r"cannot identify scientific module hebog\.not_installed",
+    ):
+        _composition_sha256()
+
+
+def test_composition_fingerprint_reads_modules_without_importing_them() -> (
+    None
+):
+    """Hashing locates sources, so the optional Dask executor stays unloaded.
+
+    The fingerprint binds ``hebog.executors.dask``, which the finder reaches
+    only when a caller asks for it, and computing the fingerprint must not
+    import it or its scheduler.
+    """
+    script = (
+        "import sys\n"
+        "from hebog import public_api\n"
+        "public_api._scientific_composition_sha256()\n"
+        "print(sorted(name for name in sys.modules\n"
+        "    if name.split('.')[0] in {'hebog', 'distributed'}))\n"
+    )
+    completed = subprocess.run(
+        [sys.executable, "-c", script],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    loaded = set(ast.literal_eval(completed.stdout))
+
+    assert "hebog.executors.dask" in public_api._SCIENTIFIC_MODULES
+    assert "hebog.executors.dask" not in loaded
+    assert "distributed" not in loaded
+    assert "hebog.public_science" not in loaded
 
 
 def test_intermediate_mesh_cannot_bypass_the_bounded_read_admission() -> None:
