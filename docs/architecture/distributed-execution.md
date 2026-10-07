@@ -10,23 +10,18 @@ astronomy background. The decisions behind it are recorded in
 [ADR-008](adr/008-make-the-continuum-composition-tile-native.md).
 
 !!! note "Current status"
-    Every scientific step already runs as tiled tasks through an executor and
+    Every scientific step runs as tiled tasks through an executor and
     exchanges image planes through Zarr, and the driver holds no image-sized
-    plane. The public API limits images to 15,402 pixels per side: each
-    larger tier is admitted only once its traced memory peak and tiled
-    invariance have been measured, and one declared driver term, an object
-    wider than a task's read budget, still scales with that object rather
-    than the tile (ADR-008). The traced memory peak also still grows with
-    the image beyond one tile, by the records the passes keep from every
-    tile (see the
-    [performance profile](../reference/performance-profile.md#what-a-run-allocates)).
-    Background and RMS estimation always tiles, on 128-pixel cores;
-    every other stage uses 2,048-pixel cores, so an image up to 2,048 pixels
-    is one tile there, 3,000 is the first size that reconciles those stages
-    across tiles, 10,000 is a five-by-five grid of them and 15,402 an
-    eight-by-eight grid. The design target is 100,000 × 100,000 pixels
-    on hundreds of nodes; scale beyond one machine has not been demonstrated
-    yet.
+    plane. Background and RMS estimation tiles on 128-pixel cores; every
+    other stage uses 2,048-pixel cores, so 3,000 pixels is the first size
+    that reconciles those stages across tiles and 15,402 is an eight-by-eight
+    grid. The public API admits 15,402 pixels per side, and each larger tier
+    is admitted once its traced memory peak and tiled invariance are
+    measured. One declared driver term, an object wider than a task's read
+    budget, still scales with that object rather than the tile (ADR-008),
+    and scale beyond one machine has not been demonstrated.
+    [Progress against goals](../reference/progress-against-goals.md#scalability)
+    has the figures.
 
 ## The problem in one paragraph
 
@@ -259,8 +254,10 @@ path.
 
 Hebog does not choose worker counts, memory limits, spill policy or task
 placement; those belong to the cluster's owner. It attaches no Dask resource
-annotations. Tile core size is chosen from the memory the caller admits and
-may change batching, never results.
+annotations. Tile cores are fixed per stage today, and no stage yet declares
+a task's memory, so the admitted budget has no effect until the plan's
+task 17 decides how it reaches the scheduler; when it does, it may change
+batching, never results.
 
 See [Integrate Hebog into a pipeline](../how-to/integrate-into-a-pipeline.md)
 for the practical steps.

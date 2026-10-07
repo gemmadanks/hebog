@@ -188,9 +188,3 @@ products yet.
 ::: hebog.adapters.rapthor_catalogue
     options:
       show_symbol_type_toc: true
-
-## Validation contracts
-
-::: hebog.validation.contracts
-    options:
-      show_symbol_type_toc: true

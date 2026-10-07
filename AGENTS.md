@@ -65,7 +65,9 @@ Never hard-code those paths in package code or normal tests.
 - Use the lightest planning level in `PLAN.md`. Keep the source-finder plan
   concise and forward-looking: its current-state summary identifies the
   candidate, strongest applicable evidence, known blockers, authorized next
-  action, and deferred work. Update it when scope, sequencing, a milestone,
+  action, and deferred work, and the measured figures behind it are
+  published on `docs/reference/progress-against-goals.md`; update the two
+  together. Update it when scope, sequencing, a milestone,
   benchmark baseline, scientific threshold, gate, architecture decision, or
   risk changes, and record significant architecture or scientific decisions
   there before spreading them through the implementation.
