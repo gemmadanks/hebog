@@ -271,9 +271,17 @@ def task_occupancy_by_stage(
     stage's task time is the time integral of the number of running tasks
     over its calls, so a task straddling a stage boundary counts only its
     overlap; a task is counted in a stage when it starts during one of its
-    calls. Occupancy is that task time over the stage's wall time times
-    ``worker_count``, the share of the executor's single-threaded workers
-    the stage kept busy.
+    calls. Occupancy is the integral of the number of busy workers over the
+    stage's calls, divided by the stage's wall time times ``worker_count``:
+    the share of the executor's single-threaded workers the stage kept busy.
+
+    A single-threaded worker runs one task at a time, so no more than
+    ``worker_count`` workers count as busy even where more tasks appear to
+    run, and occupancy is at most 1 up to floating-point rounding. Dask's
+    task records do appear that way: each worker adds its latest heartbeat
+    estimate of its clock's offset from the scheduler's to the times of its
+    tasks, and the estimate changes from one heartbeat to the next, so one
+    worker's consecutive tasks can be recorded overlapping.
 
     Raises:
         ValueError: If ``worker_count`` is not positive or an interval ends
@@ -297,31 +305,45 @@ def task_occupancy_by_stage(
     starts = np.sort(
         np.array([start for start, _ in task_intervals], float) - origin
     )
-    stops = np.sort(
-        np.array([stop for _, stop in task_intervals], float) - origin
+    stops = np.array([stop for _, stop in task_intervals], float) - origin
+    # The number of running tasks steps up at each start and down at each
+    # stop; no more workers can be busy than there are.
+    event_times = np.concatenate((starts, stops))
+    order = np.argsort(event_times)
+    event_times = event_times[order]
+    running_tasks = np.cumsum(np.repeat([1.0, -1.0], starts.size)[order])
+    # Row 0 counts running tasks and row 1 busy workers. Each count holds
+    # from one event to the next and is zero before the first and after the
+    # last; ``integrals`` holds their time integrals up to every event.
+    counts = np.stack((running_tasks, np.minimum(running_tasks, worker_count)))
+    integrals = np.concatenate(
+        (
+            np.zeros((2, 1)),
+            np.cumsum(counts[:, :-1] * np.diff(event_times), axis=1),
+        ),
+        axis=1,
     )
-    start_sums = np.concatenate(([0.0], np.cumsum(starts)))
-    stop_sums = np.concatenate(([0.0], np.cumsum(stops)))
 
-    def running_task_seconds(
+    def seconds_until(
         times: npt.NDArray[np.float64],
     ) -> npt.NDArray[np.float64]:
-        # Each started task contributes (t - start) and each finished one
-        # takes back (t - stop), leaving min(t, stop) - start per task.
-        started = np.searchsorted(starts, times, side="right")
-        finished = np.searchsorted(stops, times, side="right")
-        return (started * times - start_sums[started]) - (
-            finished * times - stop_sums[finished]
+        # Both counts' integrals from the first event up to each time.
+        if not event_times.size:
+            return np.zeros((2, times.size))
+        last = np.maximum(
+            np.searchsorted(event_times, times, side="right") - 1, 0
         )
+        elapsed = np.maximum(times - event_times[last], 0.0)
+        return integrals[:, last] + counts[:, last] * elapsed
 
     occupancies: list[TaskOccupancy] = []
     for stage, calls in sorted(stage_intervals.items()):
         call_starts = np.array([start for start, _ in calls], float) - origin
         call_stops = np.array([stop for _, stop in calls], float) - origin
-        task_seconds = float(
-            np.sum(
-                running_task_seconds(call_stops)
-                - running_task_seconds(call_starts)
+        task_seconds, busy_worker_seconds = (
+            float(seconds)
+            for seconds in np.sum(
+                seconds_until(call_stops) - seconds_until(call_starts), axis=1
             )
         )
         task_count = int(
@@ -337,7 +359,9 @@ def task_occupancy_by_stage(
                 task_count=task_count,
                 task_seconds=task_seconds,
                 worker_occupancy=(
-                    task_seconds / (wall * worker_count) if wall > 0 else 0.0
+                    busy_worker_seconds / (wall * worker_count)
+                    if wall > 0
+                    else 0.0
                 ),
             )
         )

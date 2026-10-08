@@ -31858,3 +31858,61 @@ the per-worker placement finding.
   x86-64 figures above are emulated), the slow and acceptance lanes, and
   the quick benchmark: reading the pixel scales adds 5 µs to a 2.3 ms
   transform, and no performance claim is made.
+
+## 2026-10-07 — Dask profile occupancy is at most one by construction
+
+- **Observed.** A full `just coverage` run on a loaded machine, with
+  another agent running pytest, failed
+  `tests/integration/test_profile_worker.py::test_dask_profile_attributes_every_task_to_the_run`:
+  one stage's `worker_occupancy` was 1.056 on two single-threaded workers.
+  The test then passed three times alone.
+- **Cause.** Dask's task records. Each worker adds `scheduler_delay`, its
+  latest heartbeat estimate of its clock's offset from the scheduler's, to
+  the start and stop of every task it runs (`distributed` 2026.7.1,
+  `_run_task_simple`), and re-estimates it from the asymmetry of each
+  heartbeat round trip, every 0.5 s on a small cluster. On one host the
+  true offset is zero, so the estimate is error alone, and the
+  `LocalCluster` scheduler shares the driver's process and interpreter
+  lock. A scratch probe with three lock-holding threads in the driver
+  measured estimates of 2 to 287 ms; among 2,000 back-to-back 5 ms tasks,
+  it recorded two pairs on one single-threaded worker overlapping, by up to
+  1.3 ms, where the estimate fell between them. `task_occupancy_by_stage`
+  integrated the number of running tasks, so during such an overlap three
+  tasks counted as three busy workers out of two, and a short stage call
+  inside one exceeded 1. The other candidates are excluded: driver and
+  workers read the same `time.time` epoch clock, a task's start and stop
+  shift together so its duration is exact, and rounding is many orders of
+  magnitude smaller.
+- **Decision.** The measurement was wrong, not the bound: occupancy is a
+  share of single-threaded workers. It now integrates busy workers, the
+  running tasks capped at `worker_count`, so it is at most 1 by
+  construction, up to floating-point rounding. Task time still integrates
+  every running task, so a stage's task seconds stay the sum of its tasks'
+  exact durations within its calls. Merging each worker's own intervals
+  instead was not chosen: it needs worker identities in the input, still
+  needs the cap when a restarted worker returns under a new address, and
+  the extra overlap it would remove where another worker is idle is
+  milliseconds, below the placement error below. The integration test's
+  bound is unchanged; its 1e-9 allowance covers rounding only.
+- **Tests.** `test_overlapping_task_records_count_no_more_busy_workers_than_exist`
+  feeds one worker's overlapping records straight to the function: a call
+  inside the overlap had occupancy 1.125 before the change and is 1 now,
+  and a longer call in which one worker goes idle is 0.75 rather than
+  0.8125. A Hypothesis property over whole-second intervals, where every
+  sum is exact, requires occupancy in [0, 1] for up to 20 tasks, 4 calls
+  and 4 workers; before the change it found two identical tasks on one
+  worker at 2.0.
+- **Remaining risk, not repaired.** The same estimate places tasks against
+  the driver's stage calls only to within its error. In three runs of the
+  integration test's case at load 6, the first task's recorded start came
+  53 to 122 ms after the root stage began and the last task's recorded stop
+  177 to 220 ms before it ended, against estimates of up to 287 ms in the
+  probe. A larger estimate would move a task outside the root stage and
+  fail the test's task-count and task-seconds equalities; this has not
+  been observed. The how-to now says Dask stage attribution is approximate
+  by that error.
+- **Checks.** `just coverage` passes (3,269 tests and 1 expected failure,
+  total 97.01%), with `execution_profile.py` at full line and branch
+  coverage; `just check` and `just pre-commit` pass, and the profile
+  worker's integration tests pass at load 6. The quick science check and
+  the quick benchmark do not apply: the finder is unchanged.

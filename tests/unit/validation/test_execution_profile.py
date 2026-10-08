@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 
 from hebog.validation.datasets import (
     DatasetManifest,
@@ -177,6 +179,64 @@ def test_a_task_is_counted_in_the_stage_it_starts_in() -> None:
     # 1.5 s of the long first task and all 8 s of the third, on 2 workers.
     assert second.task_seconds == pytest.approx(9.5)
     assert second.worker_occupancy == pytest.approx(9.5 / (9.5 * 2))
+
+
+def test_overlapping_task_records_count_no_more_busy_workers_than_exist() -> (
+    None
+):
+    """A single-threaded worker's tasks can be recorded overlapping.
+
+    Each Dask worker adds its latest heartbeat estimate of its clock's
+    offset from the scheduler's to every task time it reports. The estimate
+    changes at each heartbeat, so a worker's next task can be stamped as
+    starting before its previous one stopped: here the first worker's two
+    tasks overlap from 9 to 10 s, when three tasks appear to run on two
+    workers. Task time keeps every task's whole duration, but no more
+    workers count as busy than there are.
+    """
+    occupancies = task_occupancy_by_stage(
+        {("overlap",): ((8.0, 12.0),), ("longer",): ((8.0, 16.0),)},
+        # The first worker's two tasks, then the second worker's one.
+        ((0.0, 10.0), (9.0, 20.0), (0.0, 12.0)),
+        worker_count=2,
+    )
+
+    by_stage = {item.stage: item for item in occupancies}
+    overlap, longer = by_stage[("overlap",)], by_stage[("longer",)]
+    # 2 + 3 + 2 * 2 s of tasks in 4 s, with both workers busy throughout.
+    assert overlap.task_seconds == pytest.approx(9.0)
+    assert overlap.worker_occupancy == 1.0
+    # From 12 to 16 s only the first worker is busy: 8 + 4 of 2 * 8 s.
+    assert longer.task_seconds == pytest.approx(13.0)
+    assert longer.worker_occupancy == pytest.approx(12.0 / 16.0)
+
+
+_WHOLE_SECONDS = st.integers(min_value=0, max_value=1_000)
+_INTERVALS = st.tuples(_WHOLE_SECONDS, _WHOLE_SECONDS).map(
+    lambda pair: (float(min(pair)), float(max(pair)))
+)
+
+
+@given(
+    tasks=st.lists(_INTERVALS, max_size=20),
+    calls=st.lists(_INTERVALS, min_size=1, max_size=4),
+    worker_count=st.integers(min_value=1, max_value=4),
+)
+def test_occupancy_is_a_share_whatever_the_task_records(
+    tasks: list[tuple[float, float]],
+    calls: list[tuple[float, float]],
+    worker_count: int,
+) -> None:
+    """Occupancy lies in [0, 1] however the task records overlap.
+
+    Whole seconds keep every sum exact, so the bound is the construction's,
+    not a tolerance for rounding.
+    """
+    (occupancy,) = task_occupancy_by_stage(
+        {("stage",): tuple(calls)}, tuple(tasks), worker_count=worker_count
+    )
+
+    assert 0.0 <= occupancy.worker_occupancy <= 1.0
 
 
 def test_a_stage_without_tasks_or_wall_time_reports_zero() -> None:
