@@ -32191,12 +32191,13 @@ the per-worker placement finding.
 ## 2026-10-08 — Two FAQs that answer only what other pages do not
 
 - **Outcome.** Added an [astronomer FAQ](docs/explanation/astronomer-faq.md),
-  linked from the documentation home and the user-guide navigation. It maps
-  22 common questions to the pages that answer them, then answers the nine
-  no other page does: using a primary-beam-corrected image, threshold
-  defaults, external noise maps, what a threshold guarantees, measuring
-  completeness and reliability, disagreement with PyBDSF, what the errors
-  leave out, work across epochs or frequencies, and what to report.
+  linked from the documentation home, the README and the user-guide
+  navigation. It maps 22 common questions to the pages that answer them,
+  then answers the nine no other page does: using a primary-beam-corrected
+  image, threshold defaults, external noise maps, what a threshold
+  guarantees, measuring completeness and reliability, disagreement with
+  PyBDSF, what the errors leave out, work across epochs or frequencies, and
+  what to report.
 - **Revision.** First drafted on 6 October at `5a028bf2` with 23 full
   answers, it was revised on 8 October against `c2ed1dab`, replacing each
   answer the other pages give with a link. Three answers had become wrong:
@@ -32207,7 +32208,8 @@ the per-worker placement finding.
   covariance (`correlated-noise-sandwich-errors`).
 - **Developers and architects.** A
   [second FAQ](docs/explanation/developer-faq.md), first in the developer
-  guide, assumes no radio astronomy. It maps 35 questions on calling Hebog,
+  guide and linked from the documentation home and the README, assumes no
+  radio astronomy. It maps 35 questions on calling Hebog,
   its design and working on it to the pages that answer them, and answers
   three no page does: a plain-language glossary of the radio terms in the
   code and products, how results are checked without an answer key, and the

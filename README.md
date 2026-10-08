@@ -91,11 +91,13 @@ explains the settings, the products and how to run on Dask.
 
 ## Documentation
 
+- [FAQ for astronomers](https://gemmadanks.github.io/hebog/explanation/astronomer-faq/)
 - [Find sources in a FITS image](https://gemmadanks.github.io/hebog/tutorials/find-sources/)
 - [How Hebog finds sources](https://gemmadanks.github.io/hebog/explanation/how-hebog-works/)
 - [Hebog and other source finders](https://gemmadanks.github.io/hebog/explanation/source-finder-comparison/)
 - [Catalogue, image and diagnostic outputs](https://gemmadanks.github.io/hebog/reference/public-products/)
 - [Interactive notebooks](https://gemmadanks.github.io/hebog/how-to/notebooks/)
+- [FAQ for developers and architects](https://gemmadanks.github.io/hebog/explanation/developer-faq/)
 - [Architecture](https://gemmadanks.github.io/hebog/architecture/)
 - [How Hebog distributes work](https://gemmadanks.github.io/hebog/architecture/distributed-execution/)
 - [Integrate Hebog into a pipeline](https://gemmadanks.github.io/hebog/how-to/integrate-into-a-pipeline/)
