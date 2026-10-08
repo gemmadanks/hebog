@@ -79,7 +79,7 @@ separately:
   noise estimate around itself.
 - Near bright sources, where noise changes quickly because of imaging
   artefacts, both profiles switch to a finer RMS grid, whose windows the
-  `continuum` profile also protects from sources. That grid
+  `continuum` profile also protects from sources. That bright-region grid
   only raises the noise: where it reads lower than the coarse grid, the
   coarse RMS stands, much as PyBDSF applies its small box near a bright
   source only out to where it stops reading well above its large one.
@@ -94,7 +94,19 @@ separately:
 In the reviewed `continuum` profile the coarse grid uses 150-pixel windows
 every 50 pixels and the fine RMS grid 35-pixel windows every 7 pixels.
 Windows that overlap protected sources are dropped and each gap takes the
-value of its nearest clean window, never an invented floor. Around bright
+value of its nearest clean window. On images at least 150 pixels on a side,
+the `continuum` profile also measures the fine grid across the whole image
+(local noise), and wherever one of its windows came clean, its RMS is the one
+published. There a gap never reads below 0.8 of the coarse RMS at its centre,
+or of the largest clean window within half a coarse window if that is lower.
+Beside a sharp step in the noise the nearest clean window can lie on the
+quieter side and would lower the noise beside the step; on images whose
+shorter side is 600 pixels or more the coarse grid is not protected, and
+over extended emission its RMS keeps emission that no clean window nearby
+reads. A window that was
+measured keeps its own value, so a quieter region still reads its own noise;
+within about half a fine window of a step, windows that straddle it read a
+mixture of both levels, as any windowed estimate does. Around bright
 sources a gap takes a clean window's RMS only within one fine window
 (35 pixels) of it; farther away the coarse RMS stands, so in a crowded field,
 where few fine windows are clean, one window's noise is not carried across

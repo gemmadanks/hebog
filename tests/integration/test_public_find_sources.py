@@ -1799,12 +1799,16 @@ def test_compact_sources_in_a_crowded_correlated_field_stay_separate(  # noqa: P
 
 _QUIET_STRIP_COLUMNS = 40
 _CROWDED_FIELD_NOISE_JY_PER_BEAM = 1e-4
+_DENSE_FIELD_NOISE_JY_PER_BEAM = 1e-4
 
 
 def _write_quiet_strip_field(
-    directory: Path, *, scale: float = 0.2
+    directory: Path,
+    *,
+    scale: float = 0.2,
+    dataset_identifier: str = "quick-crowded-field",
 ) -> npt.NDArray[np.float32]:
-    """Write the quick check's crowded field with a quiet strip.
+    """Write a quick-check field, the crowded one by default, quiet at left.
 
     The left 40 columns, sources included, are scaled by ``scale``, so the
     noise steps from ``scale`` times 1e-4 Jy/beam to 1e-4 Jy/beam at column
@@ -1813,7 +1817,7 @@ def _write_quiet_strip_field(
     (dataset,) = (
         record
         for record in load_dataset_manifest(_QUICK_CHECK_DATASETS).datasets
-        if record.identifier == "quick-crowded-field"
+        if record.identifier == dataset_identifier
     )
     height, width = dataset.recipe.shape_yx
     image = generate_synthetic_window(
@@ -2044,16 +2048,7 @@ def test_the_rms_beside_a_noise_step_reads_the_noise_there(
 
     rms = np.asarray(fits.getdata(result.rms.path), dtype=np.float64)
     beside = rms[:, _QUIET_STRIP_COLUMNS:199]
-    celestial = WCS(fits.getheader(quiet_strip_field.image_path)).celestial
-    columns = np.array(
-        [
-            celestial.world_to_pixel_values(
-                row.position.right_ascension_degrees,
-                row.position.declination_degrees,
-            )[0]
-            for row in read_catalogue_fits_product(result.catalogue).sources
-        ]
-    )
+    columns = _source_columns(quiet_strip_field)
 
     assert np.median(beside) == pytest.approx(noise, rel=0.1)
     assert np.percentile(beside, 5) >= 0.7 * noise
@@ -2064,6 +2059,94 @@ def test_the_rms_beside_a_noise_step_reads_the_noise_there(
         <= 175
     )
     assert result.source_count <= 1050
+
+
+def _source_columns(reference: _SerialReference) -> npt.NDArray[np.float64]:
+    """Return the image column of every published source."""
+    celestial = WCS(fits.getheader(reference.image_path)).celestial
+    return np.array(
+        [
+            celestial.world_to_pixel_values(
+                row.position.right_ascension_degrees,
+                row.position.declination_degrees,
+            )[0]
+            for row in read_catalogue_fits_product(
+                reference.result.catalogue
+            ).sources
+        ],
+        dtype=np.float64,
+    )
+
+
+@pytest.fixture(scope="module")
+def measured_quiet_strip_field(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> _SerialReference:
+    """Publish the dense field with a quiet strip, serially."""
+    directory = tmp_path_factory.mktemp("measured-quiet-strip")
+    _write_quiet_strip_field(directory, dataset_identifier="quick-dense-field")
+    config = _config()
+    result = hebog.find_sources(_request(directory), config, SerialExecutor())
+    return _SerialReference(directory / "image.fits", config, result)
+
+
+@pytest.mark.integration
+def test_the_rms_beside_a_noise_step_in_a_measured_field_reads_the_noise(
+    measured_quiet_strip_field: _SerialReference,
+) -> None:
+    """Local noise beside a quiet strip does not take the strip's noise.
+
+    Local noise measures this field almost everywhere, but a fine window
+    that touches a source's guarded support has no estimate of its own. Such
+    a cell took its nearest clean window's, which beside the strip often lay
+    inside it, so cells up to 20 pixels beyond the step took a fifth of the
+    noise there, and the field published 87 sources, 30 of them in columns
+    40 to 59, against 59 and 2 unscaled (plan task 65). Such a cell now
+    never reads below 0.8 of the coarse RMS at its centre, and a cell a clean
+    window measured keeps its own estimate, so the strip reads its noise.
+    """
+    result = measured_quiet_strip_field.result
+    noise = _DENSE_FIELD_NOISE_JY_PER_BEAM
+
+    rms = np.asarray(fits.getdata(result.rms.path), dtype=np.float64)
+    beside = rms[:, _QUIET_STRIP_COLUMNS : _QUIET_STRIP_COLUMNS + 20]
+    columns = _source_columns(measured_quiet_strip_field)
+
+    # Windows that straddle the step read a mixture of both noise levels, as
+    # any windowed estimate does; on the noise alone that reaches 0.47.
+    assert np.percentile(beside, 5) >= 0.5 * noise
+    assert np.min(beside) >= 0.4 * noise
+    assert np.median(rms[:, :_QUIET_STRIP_COLUMNS]) <= 0.3 * noise
+    # 2 sources lie in these columns of the unscaled field, 59 in all.
+    beside_step = (columns >= _QUIET_STRIP_COLUMNS) & (
+        columns < _QUIET_STRIP_COLUMNS + 20
+    )
+    assert np.count_nonzero(beside_step) <= 4
+    assert result.source_count <= 65
+
+
+@pytest.mark.integration
+def test_a_measured_field_with_a_quiet_strip_is_executor_and_tile_invariant(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    measured_quiet_strip_field: _SerialReference,
+    each_executor: Executor,
+) -> None:
+    """Every executor on 97-by-111 background tiles publishes the products.
+
+    The local-noise grid, its fill and the coarse RMS that bounds the fill
+    below are whole-image summaries, so no tile or task order changes them.
+    """
+    tiled = _run_on_small_tiles(
+        measured_quiet_strip_field,
+        tmp_path / "products",
+        each_executor,
+        monkeypatch,
+    )
+
+    assert product_hashes(tiled) == product_hashes(
+        measured_quiet_strip_field.result
+    )
 
 
 @pytest.mark.integration

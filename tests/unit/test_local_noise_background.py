@@ -13,7 +13,11 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 
-from hebog.algorithms.background import PreparedRmsGrid
+from hebog.algorithms.background import (
+    PreparedRmsGrid,
+    RmsGridStatistics,
+    prepare_rms_grid_for_interpolation,
+)
 from hebog.algorithms.multiscale import (
     BeamShapePixels,
     PreparedScaleInputs,
@@ -862,3 +866,91 @@ def test_local_noise_grid_does_not_depend_on_the_context_batch_size(
     assert protected > 0, "the scene must exercise source protection"
     np.testing.assert_array_equal(many_batches, one_batch)
     assert protected == also_protected
+
+
+@pytest.mark.parametrize("protect_coarse", (False, True))
+def test_local_noise_fill_is_floored_against_the_coarse_it_was_measured_on(
+    monkeypatch: pytest.MonkeyPatch, protect_coarse: bool
+) -> None:
+    """The stage floors the local-noise fill against its own coarse grid.
+
+    A source beside a quiet strip blanks windows whose nearest clean window
+    lies inside the strip (plan task 65). The stage gives the kernel the
+    coarse grid the local noise was measured against, protected or not, the
+    reviewed fraction and half a coarse window in fine cells (16 pixels at a
+    3-pixel step), and publishes what it returns, which raises some fills.
+    """
+    yy, xx = np.mgrid[:80, :96]
+    image: npt.NDArray[np.float64] = np.random.default_rng(65).normal(
+        size=(80, 96)
+    )
+    image[:, :24] *= 0.2
+    image += 30 * np.exp(-0.5 * ((yy - 40) ** 2 + (xx - 30) ** 2) / 2**2)
+    config = _config()
+    source = _Source(image)
+    coarse = estimate_background_rms_grids(
+        source,
+        image.shape,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=(),
+    )
+    calls: list[
+        tuple[RmsGridStatistics, PreparedRmsGrid, float, tuple[int, int]]
+    ] = []
+    floored: list[PreparedRmsGrid] = []
+    kernel = background_stage.prepare_local_noise_rms_grid
+
+    def recording_kernel(
+        statistics: RmsGridStatistics,
+        coarse_grid: PreparedRmsGrid,
+        *,
+        minimum_coarse_fraction: float,
+        clean_cell_reach_yx: tuple[int, int],
+    ) -> PreparedRmsGrid:
+        calls.append(
+            (
+                statistics,
+                coarse_grid,
+                minimum_coarse_fraction,
+                clean_cell_reach_yx,
+            )
+        )
+        floored.append(
+            kernel(
+                statistics,
+                coarse_grid,
+                minimum_coarse_fraction=minimum_coarse_fraction,
+                clean_cell_reach_yx=clean_cell_reach_yx,
+            )
+        )
+        return floored[-1]
+
+    monkeypatch.setattr(
+        background_stage, "prepare_local_noise_rms_grid", recording_kernel
+    )
+
+    refined = refine_background_rms_grids(
+        source,
+        coarse,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=(),
+        source_protection_island_threshold_sigma=3,
+        multiscale_protection=_policy(),
+        protect_coarse_source_support=protect_coarse,
+        refine_local_noise=True,
+    )
+
+    ((statistics, coarse_grid, fraction, reach),) = calls
+    assert fraction == 0.8
+    assert reach == (5, 5)
+    assert coarse_grid is refined.coarse
+    assert (refined.coarse is not coarse.coarse) == protect_coarse
+    assert refined.local_noise is floored[0]
+    nearest = prepare_rms_grid_for_interpolation(statistics)
+    assert np.any(floored[0].rms > nearest.rms)
+    np.testing.assert_array_equal(
+        floored[0].rms[statistics.available],
+        statistics.rms[statistics.available],
+    )

@@ -270,7 +270,15 @@ every pixel of a block of one repeated value (see the
 status means that at least one finite estimate exists; it does not claim that
 every image position has independently resolved noise information. The
 continuum estimator can interpolate missing grid cells and extend fine-grid
-edge values under its documented policy. Around bright sources the fine grid
+edge values under its documented policy. Where it measures local noise (the
+`continuum` profile on images at least 150 pixels on a side), a fine cell
+whose window overlaps a protected source takes its nearest clean window's
+RMS, but never less than 0.8 of the coarse RMS at its centre, or of the
+largest clean window within half a coarse window if that is lower. So a
+quieter region's noise is not carried across a sharp step in the noise
+beside it, and extended emission that an unprotected coarse window keeps is
+not taken for noise; a cell a clean window measured keeps its own RMS.
+Around bright sources the fine grid
 only raises the coarse RMS, and carries a clean window's RMS at most one fine
 window (35 pixels): a fine cell farther than that from every clean window
 keeps the coarse RMS. Beside a sharp step in the noise of a crowded field the
@@ -287,8 +295,8 @@ as zero rows between NaN rows, fall under it, and so do differences finer
 than single precision resolves beside the window's brightest pixel, such as
 the tails of a noise-free source in a window that holds the source. Such a
 window is dropped, as a window over a protected source is, and takes the
-estimate of its nearest clean window (around a bright source, within the
-reach above), so a valid product holds no RMS of zero or of rounding. Real
+estimate of its nearest clean window under the floor and reach above, so a
+valid product holds no RMS of zero or of rounding. Real
 noise falls under the floor only in a window whose brightest pixel is more
 than eight million times the noise. A noise-free
 image whose windows all fall under the floor publishes an unavailable RMS,

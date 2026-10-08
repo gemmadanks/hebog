@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from dataclasses import replace
-from typing import TypeVar
+from typing import TypeVar, cast
 
 import numpy as np
 import pytest
@@ -16,6 +16,7 @@ from hebog.algorithms.background import (
     blend_adaptive_background_rms,
     interpolate_prepared_rms_grid,
     plan_rms_grid,
+    prepare_local_noise_rms_grid,
     prepare_refinement_rms_grid,
     prepare_rms_grid_for_interpolation,
 )
@@ -858,6 +859,231 @@ def test_a_refinement_fill_needs_an_available_coarse_grid() -> None:
             _fine_statistics(shape_yx, {(20, 20): 0.25}),
             coarse,
             fill_reach_pixels=35.0,
+        )
+
+
+# Half a 150-pixel coarse window in 7-pixel fine cells.
+_HALF_COARSE_WINDOW_CELLS = (10, 10)
+
+
+def _floor_reference(
+    coarse: PreparedRmsGrid,
+    statistics: RmsGridStatistics,
+    cell: tuple[int, int],
+) -> float:
+    """Return the smaller of the coarse RMS and the largest clean cell nearby.
+
+    A clean cell is nearby within 10 cells along each axis; with none, the
+    coarse RMS stands.
+    """
+    reach_y, reach_x = _HALF_COARSE_WINDOW_CELLS
+    nearby = (
+        slice(max(cell[0] - reach_y, 0), cell[0] + reach_y + 1),
+        slice(max(cell[1] - reach_x, 0), cell[1] + reach_x + 1),
+    )
+    clean = statistics.rms[nearby][statistics.available[nearby]]
+    coarse_rms = _coarse_rms_at_cell(coarse, statistics, cell)
+    return min(coarse_rms, float(clean.max())) if clean.size else coarse_rms
+
+
+def test_a_local_noise_fill_never_falls_below_most_of_the_coarse_rms() -> None:
+    """A cell no clean window measured reads at least 0.8 of the coarse RMS.
+
+    Cell (20, 20) measured a quiet 0.25 and cell (20, 30) a noisy 1.5,
+    against a coarse RMS of 1.17 and 1.31 there. A cell filled from the quiet
+    one is raised to 0.8 of the coarse RMS at its own centre, which rises
+    along x; a cell filled from the noisy one keeps 1.5; each measured cell
+    keeps its own estimate. The background is filled as before (plan task
+    65).
+    """
+    shape_yx = (300, 300)
+    coarse = _coarse_grid(shape_yx)
+    statistics = _fine_statistics(shape_yx, {(20, 20): 0.25, (20, 30): 1.5})
+
+    prepared = prepare_local_noise_rms_grid(
+        statistics,
+        coarse,
+        minimum_coarse_fraction=0.8,
+        clean_cell_reach_yx=_HALF_COARSE_WINDOW_CELLS,
+    )
+
+    assert prepared.rms[20, 20] == 0.25
+    assert prepared.rms[20, 30] == 1.5
+    for quiet_side in ((20, 21), (20, 24), (0, 0), (38, 10)):
+        assert prepared.rms[quiet_side] == pytest.approx(
+            0.8 * _coarse_rms_at_cell(coarse, statistics, quiet_side),
+            rel=1e-12,
+        )
+    assert prepared.rms[20, 21] < prepared.rms[20, 24]
+    for noisy_side in ((20, 26), (20, 31), (38, 38)):
+        assert prepared.rms[noisy_side] == 1.5
+    np.testing.assert_array_equal(prepared.background, 0.5)
+    np.testing.assert_array_equal(
+        prepared.fallback_cells, ~statistics.available
+    )
+    assert prepared.scientifically_available
+
+
+@pytest.mark.parametrize("fraction", (0.0, 0.5, 0.8, 1.0))
+def test_a_local_noise_fill_is_the_larger_of_the_nearest_and_the_floor(
+    fraction: float,
+) -> None:
+    """Every filled cell is its nearest fill or the floor, whichever is larger.
+
+    The cell (5, 5), at 0.5, caps the floor of the cells within its reach,
+    where the coarse RMS is higher; with no floor the grid is the
+    nearest-window fill unchanged.
+    """
+    shape_yx = (300, 300)
+    coarse = _coarse_grid(shape_yx)
+    statistics = _fine_statistics(
+        shape_yx, {(5, 5): 0.5, (20, 20): 0.9, (35, 33): 1.3}
+    )
+
+    prepared = prepare_local_noise_rms_grid(
+        statistics,
+        coarse,
+        minimum_coarse_fraction=fraction,
+        clean_cell_reach_yx=_HALF_COARSE_WINDOW_CELLS,
+    )
+    nearest = prepare_rms_grid_for_interpolation(statistics)
+
+    filled = ~statistics.available
+    floor = np.array(
+        [
+            fraction * _floor_reference(coarse, statistics, cell)
+            for cell in zip(*np.nonzero(filled), strict=True)
+        ]
+    )
+    np.testing.assert_allclose(
+        prepared.rms[filled],
+        np.maximum(nearest.rms[filled], floor),
+        rtol=1e-12,
+    )
+    np.testing.assert_array_equal(
+        prepared.rms[~filled], statistics.rms[~filled]
+    )
+    np.testing.assert_array_equal(prepared.background, nearest.background)
+    if fraction == 0.0:
+        np.testing.assert_array_equal(prepared.rms, nearest.rms)
+    else:
+        assert np.any(prepared.rms[filled] > nearest.rms[filled])
+
+
+def test_a_local_noise_floor_never_exceeds_the_clean_windows_nearby() -> None:
+    """Clean windows that all read below the coarse RMS bound the floor.
+
+    A coarse window over extended emission keeps emission the clipping does
+    not remove, so its RMS can exceed every clean fine window around it.
+    Here the clean cells (20, 20) and (22, 24) read 0.6 where the coarse RMS
+    is 1.17 and 1.22: a filled cell within 10 cells of them is floored at 0.8
+    of 0.6, not of the coarse RMS, and one beyond their reach at 0.8 of the
+    coarse RMS (plan task 65).
+    """
+    shape_yx = (300, 300)
+    coarse = _coarse_grid(shape_yx)
+    statistics = _fine_statistics(shape_yx, {(20, 20): 0.6, (22, 24): 0.6})
+
+    prepared = prepare_local_noise_rms_grid(
+        statistics,
+        coarse,
+        minimum_coarse_fraction=0.8,
+        clean_cell_reach_yx=_HALF_COARSE_WINDOW_CELLS,
+    )
+
+    for within in ((20, 21), (30, 30), (10, 14), (21, 34)):
+        assert prepared.rms[within] == 0.6
+    for beyond in ((0, 0), (38, 38), (21, 35)):
+        assert prepared.rms[beyond] == pytest.approx(
+            0.8 * _coarse_rms_at_cell(coarse, statistics, beyond), rel=1e-12
+        )
+        assert prepared.rms[beyond] > 0.6
+
+
+@pytest.mark.parametrize(
+    "reach", ((-1, 10), (10, -1), (10,), (10, 10, 10), (True, 10))
+)
+def test_a_local_noise_floor_rejects_a_reach_that_is_not_two_cell_counts(
+    reach: tuple[int, ...],
+) -> None:
+    """The reach is a non-negative whole number of cells along each axis."""
+    shape_yx = (300, 300)
+    with pytest.raises(ValueError, match="clean_cell_reach_yx"):
+        prepare_local_noise_rms_grid(
+            _fine_statistics(shape_yx, {(20, 20): 0.25}),
+            _coarse_grid(shape_yx),
+            minimum_coarse_fraction=0.8,
+            clean_cell_reach_yx=cast(tuple[int, int], reach),
+        )
+
+
+def test_a_local_noise_grid_with_every_cell_measured_is_unchanged() -> None:
+    """A grid of measured cells keeps every estimate, however low."""
+    shape_yx = (60, 60)
+    grid = plan_rms_grid(
+        image_shape_yx=shape_yx, window_shape_yx=(35, 35), step_yx=(7, 7)
+    )
+    statistics = _fine_statistics(
+        shape_yx,
+        {
+            (y, x): 0.1 + 0.01 * (y + x)
+            for y in range(grid.shape_yx[0])
+            for x in range(grid.shape_yx[1])
+        },
+    )
+
+    prepared = prepare_local_noise_rms_grid(
+        statistics,
+        _coarse_grid(shape_yx),
+        minimum_coarse_fraction=0.8,
+        clean_cell_reach_yx=_HALF_COARSE_WINDOW_CELLS,
+    )
+
+    np.testing.assert_array_equal(prepared.rms, statistics.rms)
+
+
+def test_a_local_noise_grid_without_a_clean_window_stays_unavailable() -> None:
+    """No clean window means no local noise, and no coarse estimate is read."""
+    shape_yx = (300, 300)
+    coarse = replace(_coarse_grid(shape_yx), scientifically_available=False)
+
+    prepared = prepare_local_noise_rms_grid(
+        _fine_statistics(shape_yx, {}),
+        coarse,
+        minimum_coarse_fraction=0.8,
+        clean_cell_reach_yx=_HALF_COARSE_WINDOW_CELLS,
+    )
+
+    assert not prepared.scientifically_available
+    assert np.all(np.isnan(prepared.rms))
+
+
+@pytest.mark.parametrize("fraction", (-0.1, 1.1, float("nan"), float("inf")))
+def test_a_local_noise_floor_rejects_a_fraction_outside_zero_to_one(
+    fraction: float,
+) -> None:
+    """The floor is a finite fraction of the coarse RMS from 0 to 1."""
+    shape_yx = (300, 300)
+    with pytest.raises(ValueError, match="minimum_coarse_fraction"):
+        prepare_local_noise_rms_grid(
+            _fine_statistics(shape_yx, {(20, 20): 0.25}),
+            _coarse_grid(shape_yx),
+            minimum_coarse_fraction=fraction,
+            clean_cell_reach_yx=_HALF_COARSE_WINDOW_CELLS,
+        )
+
+
+def test_a_local_noise_floor_needs_an_available_coarse_grid() -> None:
+    """A fill is never floored against a missing coarse estimate."""
+    shape_yx = (300, 300)
+    coarse = replace(_coarse_grid(shape_yx), scientifically_available=False)
+
+    with pytest.raises(ValueError, match="available coarse grid"):
+        prepare_local_noise_rms_grid(
+            _fine_statistics(shape_yx, {(20, 20): 0.25}),
+            coarse,
+            minimum_coarse_fraction=0.8,
+            clean_cell_reach_yx=_HALF_COARSE_WINDOW_CELLS,
         )
 
 

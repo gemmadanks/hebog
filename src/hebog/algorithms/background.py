@@ -14,7 +14,7 @@ import numpy as np
 import numpy.typing as npt
 from astropy.stats import sigma_clip
 from scipy.interpolate import RegularGridInterpolator
-from scipy.ndimage import distance_transform_edt
+from scipy.ndimage import distance_transform_edt, maximum_filter
 
 from hebog.config import RmsWindowStatisticsConfig
 from hebog.data_models.partitioning import ImageBounds
@@ -22,6 +22,7 @@ from hebog.data_models.partitioning import ImageBounds
 _WINDOW_DIMENSIONS = 3
 _STATISTIC_AXES = (-2, -1)
 _MINIMUM_LINEAR_SAMPLES = 2
+_REACH_AXES = 2
 # The finest spread a window measures as noise, as a fraction of the
 # window's largest absolute valid value: single precision's machine epsilon,
 # 2**-23 (see estimate_rms_window_statistics).
@@ -588,6 +589,106 @@ def prepare_refinement_rms_grid(
         dtype=np.float64,
     )
     rms = np.where(beyond_reach, coarse_rms, prepared.rms)
+    return replace(
+        prepared,
+        rms=cast(npt.NDArray[np.float64], _read_only(rms)),
+    )
+
+
+def prepare_local_noise_rms_grid(
+    statistics: RmsGridStatistics,
+    coarse: PreparedRmsGrid,
+    *,
+    minimum_coarse_fraction: float,
+    clean_cell_reach_yx: tuple[int, int],
+) -> PreparedRmsGrid:
+    """Fill a local-noise grid without letting a fill fall far below its noise.
+
+    Cells are filled from their nearest available cell, as
+    :func:`prepare_rms_grid_for_interpolation` fills any grid, except that a
+    filled cell's RMS never falls below ``minimum_coarse_fraction`` times a
+    reference: the coarse RMS at its centre, or the largest available cell
+    within ``clean_cell_reach_yx`` cells of it if that is smaller. Local
+    noise blanks every window that touches guarded source support, and
+    beside a sharp step in the noise the nearest clean window can lie on the
+    quieter side, where its estimate would lower the noise beside the step.
+    A coarse window over extended emission includes emission the clipping
+    keeps, so where no clean window nearby reads as high as the coarse RMS,
+    the excess is not noise and the clean windows set the reference. A cell
+    that a clean window measured keeps its own estimate, however low, since
+    that is what local noise measures. The background is filled as before,
+    and an unavailable grid stays unavailable.
+
+    Args:
+        statistics: The local-noise grid's assembled window statistics.
+        coarse: The prepared coarse grid of the same image, available.
+        minimum_coarse_fraction: The fraction of the reference below which a
+            filled cell's RMS never falls, from 0, no floor, to 1.
+        clean_cell_reach_yx: How many cells along each axis, either side of
+            a filled cell, a clean cell may lie and still cap its reference.
+
+    Raises:
+        ValueError: If the fraction is not finite or lies outside 0 to 1, a
+            reach is not a non-negative integer, or the local-noise grid is
+            available and the coarse grid is not.
+    """
+    if (
+        not isfinite(minimum_coarse_fraction)
+        or not 0 <= minimum_coarse_fraction <= 1
+    ):
+        raise ValueError(
+            "minimum_coarse_fraction must be finite and between 0 and 1"
+        )
+    if len(clean_cell_reach_yx) != _REACH_AXES or any(
+        isinstance(reach, bool) or not isinstance(reach, Integral) or reach < 0
+        for reach in clean_cell_reach_yx
+    ):
+        raise ValueError(
+            "clean_cell_reach_yx must be two non-negative integers"
+        )
+    prepared = prepare_rms_grid_for_interpolation(statistics)
+    if not prepared.scientifically_available:
+        return prepared
+    if not coarse.scientifically_available:
+        raise ValueError("a local-noise grid needs an available coarse grid")
+    filled_y, filled_x = np.nonzero(~statistics.available)
+    if filled_y.size == 0:
+        return prepared
+    reach_y, reach_x = (int(reach) for reach in clean_cell_reach_yx)
+    largest_clean = np.asarray(
+        maximum_filter(
+            np.where(statistics.available, statistics.rms, -np.inf),
+            size=(2 * reach_y + 1, 2 * reach_x + 1),
+            mode="constant",
+            cval=-np.inf,
+        ),
+        dtype=np.float64,
+    )[filled_y, filled_x]
+    # The coarse RMS is evaluated at filled cells only, so the driver holds
+    # one point per filled cell, not two coordinates per cell of the grid.
+    centres = np.stack(
+        (
+            np.asarray(
+                statistics.geometry.sample_coordinates_y, dtype=np.float64
+            )[filled_y],
+            np.asarray(
+                statistics.geometry.sample_coordinates_x, dtype=np.float64
+            )[filled_x],
+        ),
+        axis=-1,
+    )
+    coarse_rms = np.asarray(
+        _extended_rms_interpolator(coarse)(centres), dtype=np.float64
+    )
+    # With no clean cell in reach the maximum is -inf and the coarse stands.
+    reference = np.minimum(
+        coarse_rms,
+        np.where(np.isfinite(largest_clean), largest_clean, np.inf),
+    )
+    rms = np.array(prepared.rms, copy=True)
+    rms[filled_y, filled_x] = np.maximum(
+        rms[filled_y, filled_x], minimum_coarse_fraction * reference
+    )
     return replace(
         prepared,
         rms=cast(npt.NDArray[np.float64], _read_only(rms)),

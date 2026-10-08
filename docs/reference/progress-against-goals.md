@@ -60,7 +60,7 @@ is checked once before 1.0.0. The limits are the plan's
 | Measurement | Target | Latest | Date and source |
 | --- | --- | --- | --- |
 | Rapthor retained/rejected components | ≥99.5% agreement | Not measured; needs the Rapthor profile and adapter | task 21 |
-| Reference recovery at SNR ≥10 | ≥99% | 1.000 on every generated quick-check case with truth, 0.998 on the crowded field | 7 October, quick check `task42` |
+| Reference recovery at SNR ≥10 | ≥99% | 1.000 on every generated quick-check case with truth, 0.998 on the crowded field | 8 October, quick check `task65-final` |
 | Isolated SNR ≥10 position, median / p95 | ≤0.02 / 0.10 beam | 0.0003 / 0.0005 (`continuum`), 0.0002 / 0.0006 (`compact`) | 6 October, equivalence lane on the frozen 256² input, task 57 |
 | Isolated SNR ≥10 source and component peak flux, median / p95 | ≤2% / 5% | 0.17% / 0.21% (`continuum`), 0.04% / 0.13% (`compact`) | same |
 | Isolated SNR ≥10 source `Total_flux`, median / p95 | ≤5% / 10% | 0.09% / 0.51% | 5 October, equivalence lane |
@@ -84,8 +84,9 @@ explained (task 49):
 
 The quick science check is the everyday regression detector: 17 fixed cases,
 each one realization, compared with injected truth and with pinned `master`
-on the fields Rapthor consumes. Run `task42` on 7 October 2026, Hebog
-0.18.0 plus the review repairs and tasks 57, 63 and 42. Completeness and
+on the fields Rapthor consumes. Run `task65-final` on 8 October 2026, Hebog
+0.18.0 plus the review repairs, tasks 42, 57 and 63 to 67 and the
+whole-pixel beam repair. Completeness and
 reliability
 compare source rows; an extended object that one finder splits into several
 rows lowers the figure without being a missed source.
@@ -107,7 +108,7 @@ rows lowers the figure without being a missed source.
 | `crowded-field` | 994 | 0.998 | 1.000 | 0.985 | 0.997 | 0.888 |
 | `sdc1-b2-1000h-sparse` | 573 | – | – | 0.933 | 0.972 | 0.816 |
 | `sdc1-b2-1000h-crowded` | 897 | – | – | no `master` reference | – | – |
-| `lotss-dr3-1312-sparse` | 59 | – | – | 0.857 | 0.915 | 0.819 |
+| `lotss-dr3-1312-sparse` | 59 | – | – | 0.857 | 0.915 | 0.834 |
 | `lotss-dr3-1312-dense` | 105 | – | – | 0.807 | 0.914 | 0.793 |
 
 On the whole 15,402² LoTSS-DR3 mosaic 1312 the 0.18.0 candidate publishes
@@ -116,14 +117,6 @@ catalogue has 22,420 sources and 28,559 Gaussians (5 October).
 
 ### Open scientific defects
 
-- **Local-noise RMS beside a sharp noise step (task 65, rule chosen).** A
-  local-noise cell whose window touches source support takes its nearest
-  clean cell's noise. Beside a sharp step that cell can lie on the quiet
-  side: on `dense-field` with 40 columns scaled by 0.2, 29 spurious sources
-  are published within 20 pixels of the step, against 0 to 5 for pinned
-  `master` (7 October). The chosen rule floors that fill at 0.8 of the
-  coarse RMS. Task 63 corrected the crowded-field case, where one clean
-  window set the RMS of about 160 columns.
 - **Clipped RMS reads low (task 68).** The clipped window RMS has no
   truncation correction: on noise alone it reads 1.6% low on white noise
   and 3.2 to 3.9% low on beam-correlated noise (7 October).
@@ -188,7 +181,7 @@ The next actions, as the plan orders them:
 
 1. Human: release the merged task 44 and 45 repairs; require the two CI
    checks task 60 added.
-2. Agent: task 65 under the chosen rule, then task 68's measurement.
+2. Agent: task 68's measurement.
 3. Agent: tasks 53 to 56, bounding the terms that grow with the image, before
    the 22,500² (task 11) and 45,000² (task 12) tier gates.
 
