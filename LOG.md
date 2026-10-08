@@ -32188,21 +32188,23 @@ the per-worker placement finding.
   process workers beyond the integration suite's executor matrix, and
   Windows.
 
-## 2026-10-06 — Literature-grounded FAQ for astronomers
+## 2026-10-08 — An astronomer FAQ that answers only what other pages do not
 
-- **Outcome.** Added an [astronomer FAQ](docs/explanation/astronomer-faq.md)
-  to the documentation home and user-guide navigation. Its 23 questions
-  cover input suitability, thresholds and noise, catalogue populations,
-  flux estimators, uncertainties, missing measurements and evaluation.
-- **Basis.** Reviewed the public finder, input boundary, configuration,
-  catalogue construction, tests and current documentation at `5a028bf2`.
-  The FAQ links nine research papers and the PyBDSF documentation, keeping
-  their methodological evidence separate from Hebog's unqualified status.
-  Independent code and literature reviews corrected small-image noise
-  window wording and the description of Aegean's priorized fitting.
-- **Scope.** Documentation only: no scientific policy, algorithm, threshold,
-  gate or authorized implementation task changes, so the delivery plan is
-  unchanged. Coverage, equivalence campaigns and benchmarks do not apply.
-- **Verification.** The strict documentation build and a check of rendered
-  local fragment links passed; the new page also passed the fast hygiene
-  and spelling hooks.
+- **Outcome.** Added an [astronomer FAQ](docs/explanation/astronomer-faq.md),
+  linked from the documentation home and the user-guide navigation. It maps
+  22 common questions to the pages that answer them, then answers the nine
+  no other page does: using a primary-beam-corrected image, threshold
+  defaults, external noise maps, what a threshold guarantees, measuring
+  completeness and reliability, disagreement with PyBDSF, what the errors
+  leave out, work across epochs or frequencies, and what to report.
+- **Revision.** First drafted on 6 October at `5a028bf2` with 23 full
+  answers, it was revised on 8 October against `c2ed1dab`, replacing each
+  answer the other pages give with a link. Three answers had become wrong:
+  the beam limit (22 pixels, 10 since #110), constant regions (blanked since
+  #109) and continuum source rows (a source of one Gaussian publishes that
+  Gaussian since #119). One was misleading: public fits weight pixels by
+  their local RMS, but their errors use the beam-correlated sandwich
+  covariance (`correlated-noise-sandwich-errors`).
+- **Checks.** The strict docs build; each of the FAQ's 37 internal links
+  resolves to an anchor in the built site; the rendered page was inspected;
+  `just pre-commit`. Documentation only, so the plan is unchanged.
