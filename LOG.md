@@ -31976,3 +31976,214 @@ the per-worker placement finding.
   module imports it, and a parametrized test fails if the exemption stops
   matching. Declined: moving the cluster to `scripts/`, outside the tested
   package, or to `executors/`, which would make the library own a cluster.
+
+## 2026-10-07 — Task 65's diagnosis and the maintainer's rule
+
+- **Why.** Task 63's diagnosis found that on the quick check's `dense-field`
+  input with its left 40 columns scaled by 0.2, where local noise is
+  measured, the field publishes about 30 extra sources within 20 pixels
+  beyond the step. Task 65 asked for the cause and a rule for the
+  maintainer to choose. Diagnosed on the stack at `c252635a`.
+- **Reproduced.** 87 sources against 59 unscaled; 29 of them match no
+  injected source within 2.5 pixels, all 29 within 20 pixels beyond the
+  step. Within 20 pixels beyond it the published RMS has a median of 0.63
+  to 0.90 of the noise there and a 5th percentile of 0.20 to 0.24, the
+  quiet strip's own level.
+- **Cause.** Not the windows that straddle the step. The same step on the
+  input's noise alone (same seed, sources removed) publishes one spurious
+  source, and its RMS beside the step falls no lower than 0.47 of the noise
+  (5th percentile 0.54 within 5 pixels): every 35-pixel window there reads
+  the mixture of both levels, the ramp any windowed estimator has. With the
+  sources present, local noise blanks every fine window that touches
+  guarded source support, about 38% of them, and fills each blanked cell
+  from the nearest clean cell (`prepare_rms_grid_for_interpolation`). Beside
+  the step the nearest clean cell is often a window wholly inside the quiet
+  strip, so cells centred 5 to 20 pixels beyond the step take a fifth of
+  the noise: 28, 17 and 7 cells in the columns centred at x = 45, 52 and 59
+  fill below half the noise, none on the noise alone. The reach is short,
+  so task 63's bound of one fine window (35 pixels) does not stop it.
+- **Independent test.** The blanked cells given the raw cells of the
+  noise-only run, everything else unchanged: 62 sources, 3 spurious.
+- **PyBDSF `master` (`c70103b`) and practice.** On the same input it
+  publishes 63 sources, 3 spurious (2 beside the step) and all 60 injected
+  sources. Its 150-pixel box reads the quiet strip at 3.2 to 3.5 times its
+  noise and the 40 pixels beside it at 0.71 to 0.82, the same ramp, wider.
+  It does not blank sources' boxes, so it has no fill to carry. Across ten
+  downward-step variants it publishes 0 to 5 spurious sources beside the
+  step, and inside a strip scaled by 5 it publishes 14, because its box
+  dilutes the noisier strip: the failure local noise was adopted to avoid
+  (10 September).
+- **Rules measured** on fifteen variants of `dense-field` (left, right, top
+  and bottom strips; scales 0.1, 0.2, 0.3 and 0.5; widths 20 to 160;
+  noisier strips scaled 2 and 5; the noise alone), and with the quick
+  check against `task65-base`, the stack top. Spurious sources within 20
+  pixels beyond downward steps of 0.1 to 0.3:
+
+  | Rule | Spurious beside the step | Quick check |
+  | --- | --- | --- |
+  | Current: nearest clean cell | 4 to 29 | — |
+  | Fill bounded to 35 pixels, coarse beyond (task 63's B) | 4 to 28 | four flags; removes 14 and 45 real SDC1 sources |
+  | Median of clean cells within 35 pixels | 4 to 36 | two flags |
+  | Coarse RMS in every blanked cell | 0 to 4; 43 inside the ×5 strip | six flags |
+  | Floor at the unprotected pilot | 0 to 1 | 24 flags: `extended-gaussians` reliability 0.75, mask IoU 0.33 |
+  | Floor at the coarse RMS | 0 to 3 | four flags; removes 21 and 45 real SDC1 sources |
+  | Floor at 0.9 of the coarse RMS | 0 to 4 | two flags; removes 2 real SDC1 crowded sources |
+  | Floor at 0.8 of the coarse RMS | 0 to 4 | no flag; 14 of 17 cases byte-identical |
+
+  The floors fill a blanked cell from its nearest clean cell as now, but
+  never below the given fraction of the coarse RMS at its centre; a cell a
+  window measured keeps its value, so the quiet strip still reads its own
+  noise. Inside the strip scaled by 5 each coarse floor publishes one
+  spurious source, as the current rule does. Inside an 80-pixel quiet strip
+  each coarse floor finds 1 of its 4 injected sources against 2, because
+  the strip beside the step reads higher; a 160-pixel strip keeps 7 of 8.
+- **SDC1 truth.** A source is real when an SDC1 B2 truth source whose
+  apparent flux (true flux times the primary beam) is at least 3 times the
+  published RMS lies within one beam; the criterion matches 2 to 4% of
+  sources moved six beams away. The full coarse floor removes 21 sources
+  from the sparse cut-out and 46 from the crowded one, of which 21 and 45
+  are real. Its closer agreement with `master` there (RMS p50 5.2% to
+  2.5%, reliability 0.972 to 0.987, completeness 0.933 to 0.916) is bought
+  by dropping real faint sources, on balance 10 that `master` also
+  publishes and 9 that it does not.
+- **Why 0.8.** Over every blanked cell of the quick check's generated
+  fields and both SDC1 cut-outs, the nearest-cell fill is at
+  least 0.806 of the coarse RMS at the 0.1% quantile; beside a 0.2 step,
+  2.7 to 4.4% of blanked cells fill below 0.7, the lowest 1% at 0.23 to
+  0.38. The LoTSS-DR3 cut-outs vary more (6.0% of the sparse cut-out's
+  blanked cells and 3.5% of the dense one's below 0.8), and the floor
+  raises 3.3% and 2.9% of their pixels by a median 1.8% and 1.6%, with
+  sources unchanged and the RMS closer to LoTSS-DR3's published maps (p95 20.9% to
+  20.4%, 18.8% to 18.5%). At a 10 by 8 pixel beam, the widest admitted,
+  window estimates scatter more: 8.6% of blanked cells of the unscaled
+  field fill below 0.8, the floor raises them, and the injected sources
+  found are unchanged (57).
+- **Decided** (question round, recommended options taken):
+
+  | Question | Decision | Declined |
+  | --- | --- | --- |
+  | Task 65's rule | A local-noise cell that no clean window measured is filled from its nearest clean cell, but never below 0.8 of the coarse RMS at its centre. | The floor at the coarse RMS; the floor at 0.9; documenting the limitation unchanged. |
+  | Clipping bias | A new task (68), measured before any change. | Recording it as a known difference only; folding it into task 65. |
+  | Next | Implement task 65 now. | Recording only. |
+
+- **Separate finding: the clipped RMS reads low.** The window statistic
+  clips at 3σ around the median for up to ten iterations and takes the
+  standard deviation of what remains, with no correction for the
+  truncation. On the generated noise alone, 35-pixel windows read 1.6% low
+  on white noise and 3.2 to 3.9% low on beam-correlated noise, and
+  `empty-noise`
+  publishes 0.959 of the injected noise; PyBDSF's `bstat` applies the PySE
+  correction, about 1.4% at κ = 3. This is task 68.
+- **Evidence.** Scripts, the prototype patch (`prototypes.patch`), runs and
+  PyBDSF outputs under `benchmark-results/diagnostics/task-65/` of the
+  `fix/local-noise-step` worktree, outside Git; quick-check runs
+  `task65-base` and `task65-<rule>`.
+- **Plan.** Task 65 states the rule; task 68 is added; the current-state
+  rows and the progress page give the corrected cause.
+- **Checks.** The strict docs build and `just pre-commit`. This change edits
+  the plan, the progress page and this log only.
+
+## 2026-10-08 — Maintainer decision: task 65's floor is capped by the clean windows nearby
+
+- **Why.** The rule chosen on 7 October, a floor at 0.8 of the coarse RMS,
+  failed `test_bright_halo_is_not_background_but_noise_inflation_is_retained`
+  on its 600 by 640 cases under `just coverage`: the RMS over a broad 12σ
+  halo read 1.33 and 1.36 of the noise against a bound of 1.25. The coarse
+  grid is protected only when the shorter image side is under 600 pixels,
+  where the coarse window shrinks; above that it is the sigma-clipped
+  150-pixel estimate, which keeps a broad halo and read 1.70 of the noise
+  there while every clean fine window nearby read about 1.0. The floor
+  carried that emission into the blanked cells over the halo. The 599-pixel
+  and 384-pixel cases, with a protected coarse grid, passed. An independent
+  review of the change found the same unprotected coarse grid.
+- **Rules measured** on the step variants, the quick check against
+  `task65-base` and the halo, background and step controls:
+
+  | Floor reference | Spurious beside downward steps | Halo control | Quick check |
+  | --- | --- | --- | --- |
+  | Coarse RMS (the 7 October rule) | 0 to 4 | fails at 600 by 640 | no flag, 14 of 17 identical |
+  | Mean of the clean cells within half a coarse window | 1 to 2 beside 20 to 40 columns; 10 to 12 beside 80 and 160 | passes | no flag, 13 of 17 identical |
+  | Largest clean cell within half a coarse window, at 0.7 | 0 to 1; finds 54 of 57 injected sources beside a strip scaled by 5 | passes | one flag, 9 of 17 identical |
+  | The smaller of the coarse RMS and that largest clean cell | 0 to 4, identical to the coarse floor on all 22 variants | passes | no flag, 14 of 17 identical |
+
+  The mean is pulled down by a wide quiet region's own cells, and the
+  largest clean cell is biased high and lifts cells beside a noisier region.
+  The smaller of the two references acts as the coarse floor wherever some
+  clean window nearby reads as high as the coarse RMS, which holds at every
+  step measured, and caps it where none does.
+- **Decided** (question round, recommended option taken):
+
+  | Question | Decision | Declined |
+  | --- | --- | --- |
+  | Task 65's floor | A local-noise cell no clean window measured is filled from its nearest clean cell, but never below 0.8 of the smaller of the coarse RMS at its centre and the largest clean cell within half a coarse window (75 pixels) of it. | The mean of the clean cells nearby; keeping the coarse floor and rescoping the halo control; no floor. |
+
+## 2026-10-08 — Task 65: the local-noise fill never reads far below the noise nearby
+
+- **Outcome.** The amended rule is implemented. A local-noise cell whose
+  window touches guarded source support is filled from its nearest clean
+  cell, as before, but never below 0.8 of a reference: the coarse RMS at
+  its centre, or the largest clean cell within half a coarse window if that
+  is smaller (`prepare_local_noise_rms_grid`; the fraction is
+  `_LOCAL_NOISE_MINIMUM_COARSE_FRACTION` and the reach, 10 cells at the
+  reviewed 150-pixel window and 7-pixel step, comes from the configuration).
+  The coarse grid is the one the local noise was measured against:
+  protected when the shorter side is under 600 pixels, unprotected above.
+  A cell a clean window measured keeps its estimate, and the bright-region
+  path is unchanged. The floor is applied once to the whole-image grid on
+  the driver, so tiles and executors see the same values.
+- **Figures.** On `dense-field` with its left 40 columns scaled by 0.2 the
+  field publishes 59 sources, 2 of them in columns 40 to 59, as unscaled
+  (87 and 30 before). The RMS in those columns has a 5th percentile of 0.62
+  of the noise (0.21 before) and a minimum of 0.47, the ramp of the windows
+  that straddle the step, which the noise alone also shows. The halo
+  control passes at every shape, and the products equal the diagnosis's
+  run of the same rule.
+- **Tests.** Unit: a filled cell beside a quiet clean window rises to 0.8 of
+  the coarse RMS at its own centre while one beside a noisier window and
+  each measured cell keep their values; where the clean cells nearby all
+  read below the coarse RMS they set the floor, and beyond their reach the
+  coarse RMS does; every filled cell is the larger of its nearest fill and
+  the floor for fractions 0, 0.5, 0.8 and 1, and 0 gives the old fill; a
+  fully measured grid is unchanged; an unavailable grid stays unavailable
+  without reading the coarse grid; a fraction or reach out of range and a
+  missing coarse grid are refused. Without the floor seven of them fail,
+  the stage test included, and without the cap four. A stage test, with the coarse grid protected and not,
+  checks that `refine_background_rms_grids` passes the kernel the coarse
+  grid it measured against, 0.8 and half a coarse window, and publishes the
+  floored grid. Integration: on the 0.2/40 dense field, the RMS and source
+  count beside the step and the strip's own noise (on the old code the 5th
+  percentile was 2.1×10⁻⁵ against the 5×10⁻⁵ bound), and every executor on
+  97 by 111 background tiles publishes the serial products; the existing
+  halo control covers the cap.
+- **Quick check** `task65-final` against `task65-base`: no regression. 14 of
+  17 cases are byte-identical; `dense-field` and both LoTSS-DR3 cut-outs
+  change. On LoTSS sparse the mask IoU against `master` rises from 0.819 to
+  0.834, the RMS against the published map at p95 falls from 20.9% to
+  20.4%, and the Gaussian components fall from 61 to 59 with sources
+  unchanged at 59; LoTSS dense keeps 105 sources and 109 components.
+  `task65-final` is the next baseline.
+- **Equivalence.** The lane passes (39 tests).
+- **Cost.** On the local-noise grid of a 15,402² image (2,197² cells, 40%
+  of them filled), the fill takes 0.57 s against 0.43 s, and its traced
+  peak on the driver is 262 MiB against 157 MiB: the largest clean cell is
+  taken over the whole grid, and the coarse RMS only at filled cells. The
+  traced peak of a whole run was not measured.
+- **Independent review.** A separate agent found nothing at P0 to P2. Fixed
+  from its P3 findings: lint, the missing stage test, this log's claim that
+  the coarse grid was protected, the unrecorded component change, the
+  documents' unstated condition and unqualified raise-only statement, a
+  stale quick-check label on the progress page and a comment's quantile.
+- **Docs.** `how-hebog-works.md` and `public-products.md` state when local
+  noise applies, the floor and its cap, and that the raise-only rule is the
+  bright-region path's.
+- **Plan.** Task 65 is removed; the current-state rows and the progress page
+  no longer list the defect.
+- **Checks on the final code.** `just coverage`: 3,603 passed and 1
+  xfailed, 97% branch-aware project coverage, with every changed line of
+  the two production files covered (their misses are the lines missed
+  before). The equivalence lane, `just check`, the strict docs build and
+  `just pre-commit`.
+- **Not run.** The slow lane, the quick benchmark and the traced peak (the
+  added driver work is the 0.14 s above at the largest admitted size), Dask
+  process workers beyond the integration suite's executor matrix, and
+  Windows.

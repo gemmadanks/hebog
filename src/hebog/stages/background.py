@@ -27,6 +27,7 @@ from hebog.algorithms.background import (
     interpolate_prepared_rms_grid,
     plan_rms_grid,
     plan_rms_window_batches,
+    prepare_local_noise_rms_grid,
     prepare_refinement_rms_grid,
     prepare_rms_grid_for_interpolation,
     subset_prepared_rms_grid,
@@ -62,6 +63,14 @@ from hebog.io.base import ImageWindow
 # still bounded by the same context admission, and the owned cells decide the
 # result, so this trades occupancy for work rather than changing any value.
 _LOCAL_NOISE_CONTEXT_CELLS = 2304
+# A local-noise cell whose window touches guarded source support takes its
+# nearest clean window's RMS, but never below this fraction of the coarse RMS
+# at its centre, or of the largest clean window within half a coarse window
+# if that is smaller: beside a sharp step in the noise the nearest clean
+# window can lie on the quieter side. On the quick check's generated fields
+# and SDC1 cut-outs the 0.1% quantile of the nearest fill is at least 0.806
+# of the coarse RMS, so the floor acts beyond that scatter (plan task 65).
+_LOCAL_NOISE_MINIMUM_COARSE_FRACTION = 0.8
 
 
 class _WindowReadable(Protocol):
@@ -779,6 +788,16 @@ def _local_noise_context_halo(config: BackgroundRmsConfig) -> int:
     )
 
 
+def _half_coarse_window_cells(config: BackgroundRmsConfig) -> tuple[int, int]:
+    """Return the fine cells along each axis within half a coarse window."""
+    assert config.adaptive is not None
+    (window_y, window_x), (step_y, step_x) = (
+        config.coarse.window_shape_yx,
+        config.adaptive.grid.step_yx,
+    )
+    return window_y // 2 // step_y, window_x // 2 // step_x
+
+
 def _local_noise_contexts(
     grid: RmsGridGeometry,
     config: BackgroundRmsConfig,
@@ -1150,7 +1169,12 @@ def refine_background_rms_grids(  # noqa: PLR0913
             executor,
             policy=multiscale_protection,
         )
-        local_noise = prepare_rms_grid_for_interpolation(statistics)
+        local_noise = prepare_local_noise_rms_grid(
+            statistics,
+            coarse_grids.coarse,
+            minimum_coarse_fraction=_LOCAL_NOISE_MINIMUM_COARSE_FRACTION,
+            clean_cell_reach_yx=_half_coarse_window_cells(config),
+        )
         # A field so crowded that no fine window anywhere clears source
         # support is too crowded to protect: a protected coarse estimate there
         # rests on the few pixels farthest from every source. The unprotected
