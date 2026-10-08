@@ -4,10 +4,10 @@
 
 Cases come from ``config/benchmarks/complete-execution-profile.json``. The
 ``ladder`` group is a generated grid of noise-only and dense images at 512,
-1,024 and 2,048 pixels per side with the same source density at every size
-(``build_profile_datasets.py``); the ``real`` group holds LoTSS-DR3 and SDC1
-cut-outs. Each case runs ``profile_complete_execution_worker.py`` once in a
-fresh single-thread process, and with ``--cprofile`` a second time under
+1,024, 2,048 and 4,096 pixels per side with the same source density at every
+size (``build_profile_datasets.py``); the ``real`` group holds LoTSS-DR3 and
+SDC1 cut-outs. Each case runs ``profile_complete_execution_worker.py`` once
+in a fresh single-thread process, and with ``--cprofile`` a second time under
 ``cProfile``. ``--dask-workers N`` runs every case on a local Dask cluster of
 ``N`` single-threaded workers instead of the serial executor, and each stage
 then also reports the tasks that ran during it and the share of the workers

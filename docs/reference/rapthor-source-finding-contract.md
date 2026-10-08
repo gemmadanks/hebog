@@ -47,7 +47,7 @@ the production profile:
 | Threshold mode | Hard | Thresholds are not false-discovery-rate derived |
 | Wavelet processing | Enabled, three scales | Extended/multiscale emission is in scope |
 | Filter by mask | Enabled | Components outside detected islands are removed |
-| Source finder | `bdsf` | Released PyBDSF is the compatibility oracle; pinned `master` is the performance comparator |
+| Source finder | `bdsf` | Pinned PyBDSF `master` is the binding scientific and performance reference; released 1.14.1 is checked once (the plan's task 31) |
 | Rapthor core count | `15` | Execution input, not a scientific result |
 
 ## Materialised products

@@ -18,7 +18,7 @@ choice cannot silently create photometry.
   brighter one is at least `minimum_saddle_depth_sigma` (1.5 in the reviewed
   profile); an exactly equal boundary survives;
 - after prominence merging, a basin smaller than `minimum_region_pixels`
-  (seven, the pixels a seven-parameter Gaussian needs) joins its neighbour
+  (seven, the fewest pixels the Gaussian fit accepts) joins its neighbour
   across the highest shared saddle, so deblending cannot make a child that
   cannot be fitted; and
 - region identifiers and labels follow the first global member pixel, never
@@ -26,9 +26,9 @@ choice cannot silently create photometry.
 
 Pixels outside the accepted parent island are label zero, and every accepted
 pixel belongs to exactly one region. Invalid member pixels fail closed, as
-does an island with no eligible marker. Masked pixels are maximum-cost
-barriers, not competing markers, so holes cannot flood or leave pixels
-unassigned.
+does an island with no eligible marker. Pixels outside the island take no
+part in the steepest-ascent flood, so a hole carries no basin across it and
+leaves no member pixel unassigned.
 
 ## Partition
 

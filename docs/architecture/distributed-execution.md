@@ -17,9 +17,13 @@ astronomy background. The decisions behind it are recorded in
     that reconciles those stages across tiles and 15,402 is an eight-by-eight
     grid. The public API admits 15,402 pixels per side, and each larger tier
     is admitted once its traced memory peak and tiled invariance are
-    measured. One declared driver term, an object wider than a task's read
-    budget, still scales with that object rather than the tile (ADR-008),
-    and scale beyond one machine has not been demonstrated.
+    measured. Three terms are not yet bounded by the tile: an object wider
+    than a task's read budget is reduced on the driver from its own pixels
+    (ADR-008), chained bright-source regions make one background task read
+    their whole bounding box (the plan's task 53), and no stage declares its
+    memory (task 17). The records the passes keep from every tile also still
+    grow with the image, and scale beyond one machine has not been
+    demonstrated.
     [Progress against goals](../reference/progress-against-goals.md#scalability)
     has the figures.
 
@@ -143,14 +147,14 @@ flowchart TD
     end
     subgraph B["Pass B · detection"]
         b1["Tile tasks: filter, threshold,<br/>label pixels locally"] --> b2["Boundary summaries"]
-        b2 --> b3["Tree reduction:<br/>union–find joins labels across edges"]
+        b2 --> b3["Pairwise tree on the driver:<br/>union–find joins labels across edges"]
     end
     subgraph C["Pass C · support"]
         c1["Tile tasks: apply global label map,<br/>grow and refine object footprints"] --> c2[("labels, mask")]
     end
     subgraph D["Pass D · objects"]
         d1["Object tasks: split blends, fit models,<br/>measure, associate"] --> d2["Catalogue shards"]
-        d2 --> d3["Hierarchical shard reduction"]
+        d2 --> d3["Canonical merge of shards<br/>on the driver"]
     end
     out[("catalogue, rms, mask, diagnostics")]
 
@@ -166,12 +170,15 @@ flowchart TD
 
 ### Joining objects across tile edges
 
-A tile labels connected pixels using local integers. It then reports, for each
-label that touches an edge, which pixels it touches and a few additive
-aggregates (pixel count, sum, bounding box, first pixel). A union–find
-reduction joins labels that meet across an edge. The reduction runs as a tree,
-so no node sees every summary at once. The resulting global label map is
-**sharded**: each tile receives only the entries for labels it contains.
+A tile labels connected pixels using local integers. It returns the labels
+along each edge of its core and, for every label, a few mergeable facts:
+pixel count, bounding box, peak, first pixel and whether it holds a detection
+seed. A union–find reduction joins labels that meet across an edge, combining
+tiles pairwise in a tree fixed by their order, so the result does not depend
+on completion order. Today that reduction runs on the driver, which holds
+every tile's summaries; running it through the executor is the plan's
+task 17. The resulting global label map is **sharded**: each tile receives
+only the entries for labels it contains.
 
 ### Objects larger than a halo
 
@@ -219,9 +226,11 @@ All executors obey the same rules, so a defect shows up on a laptop under
   in flight rather than cancelling it.
 - Tasks are idempotent, so a `retry_limit` above zero is safe.
 
-Tasks are **coarse batches** of tiles or objects. Graph size scales with the
-number of tiles and stages, never with pixels or detected objects, which keeps
-scheduler overhead bounded.
+Tasks are **coarse batches** of tiles or objects: an object round puts up to
+256 objects in one task. Graph size therefore scales with the number of tiles
+and stages, and in an object round with the number of objects over that batch
+size, never with pixels. At 100,000 pixels a side one object round would
+still exceed the planned task bound, which the plan's task 54 addresses.
 
 ## Storage
 
@@ -233,8 +242,8 @@ scheduler overhead bounded.
 
 Only planes that a later pass or a product needs are stored. Filter responses
 and other transient arrays stay in task memory. Science planes are `float64`;
-a 2,048-pixel core with its halo is about 42 MB per plane, so a task holding
-ten planes needs roughly 420 MB whatever the image size.
+a 2,048-pixel core with its halo is about 42 MB per plane, so ten planes of
+one core take roughly 420 MB whatever the image size.
 
 On a multi-node cluster, the input image and the parent of the output
 directory must be on storage every worker can reach with the same absolute
@@ -255,9 +264,10 @@ path.
 Hebog does not choose worker counts, memory limits, spill policy or task
 placement; those belong to the cluster's owner. It attaches no Dask resource
 annotations. Tile cores are fixed per stage today, and no stage yet declares
-a task's memory, so the admitted budget has no effect until the plan's
-task 17 decides how it reaches the scheduler; when it does, it may change
-batching, never results.
+a task's memory, so the admitted memory and threads have no effect until the
+plan's task 17 decides how they reach the scheduler; only
+`maximum_tasks_in_flight` bounds submission. When they do take effect, they
+may change batching, never results.
 
 See [Integrate Hebog into a pipeline](../how-to/integrate-into-a-pipeline.md)
 for the practical steps.

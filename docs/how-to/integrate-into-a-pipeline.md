@@ -60,9 +60,12 @@ executor = DaskExecutor(
 )
 ```
 
-Hebog bounds how many tasks are in flight but does not pin tasks to workers
-and adds no Dask resource annotations. Per-worker memory limits and spill
-policy stay under your control.
+Today only `maximum_tasks_in_flight` changes what Hebog does: it bounds how
+many tasks are submitted at once. No stage yet declares its memory, so the
+worker, thread and memory fields are recorded but not used (the plan's
+task 17). Hebog does not pin tasks to workers and adds no Dask resource
+annotations. Per-worker memory limits and spill policy stay under your
+control.
 
 ## 2. Put files where workers can reach them
 

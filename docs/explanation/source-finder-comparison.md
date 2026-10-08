@@ -91,9 +91,10 @@ PyBDSF is the reference Hebog is developed against, because Rapthor uses it.
 Aegean's curvature-based component finding and covariance-aware fitting are
 known for low flux scatter on compact sources, and its priorized fitting is
 the standard tool for light curves and multi-frequency catalogues. Hebog has
-no forced-fitting mode and does not yet model pixel covariance in its default
-fit. Aegean has no extended-emission treatment; Hebog's `continuum` profile
-does. Hebog's development comparisons include Aegean as a second reference.
+no forced-fitting mode, and its default fit weights each pixel by its local
+noise rather than modelling the correlation between pixels, although its
+published errors allow for that correlation. Aegean has no extended-emission
+treatment; Hebog's `continuum` profile does. Hebog's development comparisons include Aegean as a second reference.
 
 ### Selavy and CAESAR
 

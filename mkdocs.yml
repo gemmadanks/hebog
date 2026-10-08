@@ -68,6 +68,7 @@ nav:
           - Choose thresholds, a profile and an executor: how-to/configure-a-run.md
           - Use the notebooks and compare finders: how-to/notebooks.md
       - Explanation:
+          - FAQ for astronomers: explanation/astronomer-faq.md
           - How Hebog finds sources: explanation/how-hebog-works.md
           - Hebog and other source finders: explanation/source-finder-comparison.md
       - Reference:
@@ -77,6 +78,7 @@ nav:
           - Python API: reference/index.md
           - Glossary: reference/domain-glossary.md
   - Developer guide:
+      - FAQ for developers and architects: explanation/developer-faq.md
       - Progress against goals: reference/progress-against-goals.md
       - Integrate Hebog into a pipeline: how-to/integrate-into-a-pipeline.md
       - Architecture:

@@ -13,9 +13,11 @@ evidence-backed ecosystem or team advantage.
 
 ## Why the gate is closed
 
-The [performance profile](../reference/performance-profile.md) is flat: the
-largest stage is about a fifth of a run and the largest single kernel,
-`fit_compact_gaussian_mixture`, is 5 to 8%, already a compiled SciPy solve.
+The [performance profile](../reference/performance-profile.md) is flat on
+fields up to 2,048 pixels a side: the largest stage is about a fifth of a run
+and the largest single kernel, `fit_compact_gaussian_mixture`, is 5 to 8%,
+already a compiled SciPy solve. On large fields about half the run is
+background and RMS, and still no single kernel reaches 10%.
 Nothing reaches gate 1 below in one size regime, let alone two. Every
 bottleneck found so far was redundant work (a scan per label, a plane decoded
 per sixteen objects, a coordinate transform per source), which batching and

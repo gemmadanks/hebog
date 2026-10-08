@@ -71,8 +71,8 @@ Known limitations when interpreting results:
 - The background and noise meshes are fixed in pixels, so a beam many pixels
   wide is not measured well: on injected isolated sources at SNR 10 or
   more, the continuum profile misses some from 12 to 14 pixels and the
-  compact profile from 16. Beams above 10 pixels are refused, and at every
-  admitted beam every such injected source was published. A pipeline whose
+  compact profile from 16. Beams above 10 pixels are refused; at every beam
+  measured from 3 to 10 pixels every such injected source was published. A pipeline whose
   images have wider beams needs the meshes scaled with the beam, which is
   deferred work.
 - In a field so crowded that no fine noise window lies clear of its sources,
@@ -82,11 +82,9 @@ Known limitations when interpreting results:
   gets no component. Its flux stays in the residual, which can join the
   brighter source and that source's other neighbours into one source. In a
   generated 1,024-pixel field with a source every 32 pixels, one in ten of
-  them resolved, 998 of 1,024 injected sources have a published Gaussian,
-  where PyBDSF publishes one for 1,005. Of the 4 injected sources there
-  peaking at 7 or more times the noise without one, 2 lie on a brighter
-  source's wing and 2 are not detected. The field's 963 islands become 996
-  sources where PyBDSF finds 1,006, and 2 of them join 4 injected sources.
+  them resolved, 995 of 1,024 injected sources have a published Gaussian,
+  where PyBDSF publishes one for 1,005, and the field's 960 islands become
+  994 sources where PyBDSF finds 1,006.
 - The `compact` profile is not a general continuum catalogue.
 - Completeness, reliability, astrometry and photometry must be evaluated on
   data representative of your use.

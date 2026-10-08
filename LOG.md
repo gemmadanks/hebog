@@ -32187,3 +32187,34 @@ the per-worker placement finding.
   added driver work is the 0.14 s above at the largest admitted size), Dask
   process workers beyond the integration suite's executor matrix, and
   Windows.
+
+## 2026-10-08 — Two FAQs that answer only what other pages do not
+
+- **Outcome.** Added an [astronomer FAQ](docs/explanation/astronomer-faq.md),
+  linked from the documentation home, the README and the user-guide
+  navigation. It maps 22 common questions to the pages that answer them,
+  then answers the nine no other page does: using a primary-beam-corrected
+  image, threshold defaults, external noise maps, what a threshold
+  guarantees, measuring completeness and reliability, disagreement with
+  PyBDSF, what the errors leave out, work across epochs or frequencies, and
+  what to report.
+- **Revision.** First drafted on 6 October at `5a028bf2` with 23 full
+  answers, it was revised on 8 October against `c2ed1dab`, replacing each
+  answer the other pages give with a link. Three answers had become wrong:
+  the beam limit (22 pixels, 10 since #110), constant regions (blanked since
+  #109) and continuum source rows (a source of one Gaussian publishes that
+  Gaussian since #119). One was misleading: public fits weight pixels by
+  their local RMS, but their errors use the beam-correlated sandwich
+  covariance (`correlated-noise-sandwich-errors`).
+- **Developers and architects.** A
+  [second FAQ](docs/explanation/developer-faq.md), first in the developer
+  guide and linked from the documentation home and the README, assumes no
+  radio astronomy. It maps 35 questions on calling Hebog,
+  its design and working on it to the pages that answer them, and answers
+  three no page does: a plain-language glossary of the radio terms in the
+  code and products, how results are checked without an answer key, and the
+  six runtime dependencies and what each is for.
+- **Checks.** The strict docs build; each of the two pages' internal links
+  (37 and 61) resolves to an anchor in the built site; both rendered pages
+  were inspected; `just pre-commit`. Documentation only, so the plan is
+  unchanged.

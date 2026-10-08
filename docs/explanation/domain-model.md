@@ -143,9 +143,14 @@ topology, never ownership or results.
 
 ## Boundary invariants
 
-- Kernels take arrays, immutable configuration and explicit metadata, and no
-  layer below the adapters imports Rapthor, Prefect, LSMTool or a concrete
-  scheduler.
+These are the rules the design holds the code to. Where the code does not
+yet meet one, the
+[implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
+names the task that closes the gap.
+
+- Kernels take arrays, immutable configuration and explicit metadata. No
+  Hebog module imports Rapthor, Prefect or LSMTool, and only the executors
+  import a concrete scheduler.
 - No worker or public record requires a complete large plane, and graph size
   is proportional to tiles and stages, never pixels, RMS windows or islands.
 - Membership, identifiers and values are invariant to tile geometry,

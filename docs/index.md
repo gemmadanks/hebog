@@ -13,6 +13,9 @@ a Dask cluster that you already own.
 
 ## I am an astronomer
 
+- [FAQ for astronomers](explanation/astronomer-faq.md): where each common
+  question is answered, and how to judge what a catalogue supports, with
+  literature links.
 - [Install Hebog](tutorials/index.md) and
   [find sources in your first image](tutorials/find-sources.md).
 - [Choose thresholds and a profile](how-to/configure-a-run.md).
@@ -25,6 +28,8 @@ a Dask cluster that you already own.
 
 ## I am a pipeline developer or architect
 
+- [FAQ for developers and architects](explanation/developer-faq.md): where
+  each common question is answered, with background for non-astronomers.
 - [Progress against goals](reference/progress-against-goals.md): where
   Hebog stands against its 1.0.0 definition, on one page.
 - [Integrate Hebog into a pipeline](how-to/integrate-into-a-pipeline.md).

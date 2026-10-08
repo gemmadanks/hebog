@@ -66,7 +66,7 @@ compiled extension.
 | Normal, boundary and failure tests, written test-first where practical | Review against `CODE_REVIEW.md` |
 | At least 80% branch-aware coverage, without weakened assertions or exclusions | `just coverage` and Codecov |
 | One contract suite for every executor, store and adapter | `tests/contract/` and the shared executor fixtures |
-| Allowed imports stated as one table; Rapthor, Prefect and LSMTool absent; Dask inside `executors/`; no import-time I/O | `tests/unit/test_architecture.py` |
+| Allowed imports stated as one table; Rapthor, Prefect and LSMTool absent; Dask inside `executors/` but for named exemptions; no import-time I/O | `tests/unit/test_architecture.py` |
 | Documentation current for public behaviour, configuration and schema changes | Strict MkDocs build |
 
 Coverage is a floor against erosion, not a completeness claim: scientific
