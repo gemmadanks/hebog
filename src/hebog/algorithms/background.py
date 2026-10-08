@@ -5,8 +5,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from math import isqrt
+from dataclasses import dataclass, replace
+from math import isfinite, isqrt
 from numbers import Integral
 from typing import Any, cast
 
@@ -472,12 +472,11 @@ def assemble_rms_grid_statistics(
     )
 
 
-def _nearest_available_values(
-    values: npt.NDArray[np.float64],
+def _nearest_available_indices(
     available: npt.NDArray[np.bool_],
-) -> npt.NDArray[np.float64]:
-    """Fill unavailable coarse cells from their nearest available neighbour."""
-    nearest_indices = cast(
+) -> npt.NDArray[np.intp]:
+    """Return each cell's nearest available cell as a ``(2, y, x)`` index."""
+    return cast(
         npt.NDArray[np.intp],
         distance_transform_edt(
             ~available,
@@ -485,6 +484,14 @@ def _nearest_available_values(
             return_indices=True,
         ),
     )
+
+
+def _nearest_available_values(
+    values: npt.NDArray[np.float64],
+    available: npt.NDArray[np.bool_],
+) -> npt.NDArray[np.float64]:
+    """Fill unavailable coarse cells from their nearest available neighbour."""
+    nearest_indices = _nearest_available_indices(available)
     return np.asarray(values[tuple(nearest_indices)], dtype=np.float64)
 
 
@@ -520,6 +527,70 @@ def prepare_rms_grid_for_interpolation(
             _read_only(np.array(fallback_cells, copy=True)),
         ),
         scientifically_available=scientifically_available,
+    )
+
+
+def prepare_refinement_rms_grid(
+    statistics: RmsGridStatistics,
+    coarse: PreparedRmsGrid,
+    *,
+    fill_reach_pixels: float,
+) -> PreparedRmsGrid:
+    """Fill a refinement grid without carrying its RMS beyond a reach.
+
+    Cells are filled from their nearest available cell, as
+    :func:`prepare_rms_grid_for_interpolation` fills any grid, except that a
+    cell whose nearest available cell's centre lies more than
+    ``fill_reach_pixels`` from its own has no fine RMS: it takes the coarse
+    RMS at its centre, so the coarse estimate stands there. A refinement grid
+    over a crowded field keeps few windows clear of protected sources, and
+    without the reach one of them would set the noise hundreds of pixels
+    from where it was measured, across any step in the noise between. The
+    background is filled as before, and an unavailable grid stays
+    unavailable.
+
+    Args:
+        statistics: The refinement grid's assembled window statistics.
+        coarse: The prepared coarse grid of the same image, available.
+        fill_reach_pixels: The farthest distance, in pixels between window
+            centres, over which a clean window's RMS fills another cell; a
+            cell exactly at it is filled.
+
+    Raises:
+        ValueError: If the reach is negative or not finite, or the
+            refinement grid is available and the coarse grid is not.
+    """
+    if not isfinite(fill_reach_pixels) or fill_reach_pixels < 0:
+        raise ValueError("fill_reach_pixels must be finite and non-negative")
+    prepared = prepare_rms_grid_for_interpolation(statistics)
+    if not prepared.scientifically_available:
+        return prepared
+    if not coarse.scientifically_available:
+        raise ValueError("a refinement grid needs an available coarse grid")
+    nearest_y, nearest_x = _nearest_available_indices(statistics.available)
+    sample_y = np.asarray(
+        statistics.geometry.sample_coordinates_y, dtype=np.float64
+    )
+    sample_x = np.asarray(
+        statistics.geometry.sample_coordinates_x, dtype=np.float64
+    )
+    cell_y, cell_x = np.meshgrid(sample_y, sample_x, indexing="ij")
+    beyond_reach = (
+        np.hypot(sample_y[nearest_y] - cell_y, sample_x[nearest_x] - cell_x)
+        > fill_reach_pixels
+    )
+    if not np.any(beyond_reach):
+        return prepared
+    coarse_rms = np.asarray(
+        _extended_rms_interpolator(coarse)(
+            np.stack((cell_y, cell_x), axis=-1)
+        ),
+        dtype=np.float64,
+    )
+    rms = np.where(beyond_reach, coarse_rms, prepared.rms)
+    return replace(
+        prepared,
+        rms=cast(npt.NDArray[np.float64], _read_only(rms)),
     )
 
 
@@ -782,6 +853,30 @@ def _extend_grid_to_image_edges(
     return extended_y, extended_x, values
 
 
+def _extended_rms_interpolator(
+    grid: PreparedRmsGrid,
+) -> RegularGridInterpolator:
+    """Return the linear RMS interpolant extended to the image edges.
+
+    It takes ``(..., 2)`` points of global ``(y, x)`` pixel coordinates.
+    """
+    sample_y, sample_x, _, cell_rms = _expand_singleton_grid_axes(grid)
+    rms_y, rms_x, rms_samples = _extend_grid_to_image_edges(
+        sample_y,
+        sample_x,
+        cell_rms,
+        grid.geometry.image_shape_yx,
+        bounded_below_by_edge_cell=True,
+    )
+    return RegularGridInterpolator(
+        (rms_y, rms_x),
+        rms_samples,
+        method="linear",
+        bounds_error=False,
+        fill_value=None,  # pyright: ignore[reportArgumentType]
+    )
+
+
 def interpolate_prepared_rms_grid(
     grid: PreparedRmsGrid,
     bounds: ImageBounds,
@@ -844,16 +939,16 @@ def interpolate_prepared_rms_grid(
             dtype=np.float64,
         )
         if extrapolate_rms:
-            rms_y, rms_x, rms_samples = _extend_grid_to_image_edges(
-                sample_y,
-                sample_x,
-                coarse_rms,
-                image_shape_yx,
-                bounded_below_by_edge_cell=True,
-            )
+            rms_interpolator = _extended_rms_interpolator(grid)
             rms_points = query_points
         else:
-            rms_y, rms_x, rms_samples = sample_y, sample_x, coarse_rms
+            rms_interpolator = RegularGridInterpolator(
+                (sample_y, sample_x),
+                coarse_rms,
+                method="linear",
+                bounds_error=False,
+                fill_value=None,  # pyright: ignore[reportArgumentType]
+            )
             rms_points = np.stack(
                 (
                     np.clip(y_coordinates, sample_y[0], sample_y[-1]),
@@ -861,16 +956,7 @@ def interpolate_prepared_rms_grid(
                 ),
                 axis=-1,
             )
-        rms = np.asarray(
-            RegularGridInterpolator(
-                (rms_y, rms_x),
-                rms_samples,
-                method="linear",
-                bounds_error=False,
-                fill_value=None,  # pyright: ignore[reportArgumentType]
-            )(rms_points),
-            dtype=np.float64,
-        )
+        rms = np.asarray(rms_interpolator(rms_points), dtype=np.float64)
         # Every sample is a non-negative cell value or an extension held at
         # or above one, so this only guards the interpolation's rounding.
         np.maximum(rms, 0.0, out=rms)
@@ -896,7 +982,16 @@ def blend_adaptive_background_rms(
     influence_radius_pixels: float,
     transition_width_pixels: float,
 ) -> BackgroundRmsTile:
-    """Blend cached fine estimates smoothly around bright candidates."""
+    """Blend cached fine estimates smoothly around bright candidates.
+
+    The background is blended both ways. The fine RMS only raises the
+    coarse one: near a bright source it measures the raised noise of its
+    artefacts, which a coarse window dilutes, and where it reads lower the
+    coarse RMS stands. PyBDSF's adaptive small box likewise applies near a
+    bright source only out to where it stops reading well above its large
+    one. So a quieter region's noise, measured by a fine window that missed
+    the protected sources there, never lowers the noise beside it.
+    """
     if coarse.bounds != adaptive.bounds:
         raise ValueError("coarse and adaptive RMS tiles must share bounds")
     if not positions_yx or not adaptive.scientifically_available:
@@ -935,9 +1030,18 @@ def blend_adaptive_background_rms(
     ) * coarse.background[use_adaptive] + weight[
         use_adaptive
     ] * adaptive.background[use_adaptive]
-    rms[use_adaptive] = (1.0 - weight[use_adaptive]) * coarse.rms[
-        use_adaptive
-    ] + weight[use_adaptive] * adaptive.rms[use_adaptive]
+    fine_weight = weight[use_adaptive]
+    coarse_rms = coarse.rms[use_adaptive]
+    fine_rms = adaptive.rms[use_adaptive]
+    rms[use_adaptive] = np.where(
+        fine_rms > coarse_rms,
+        # The floor only absorbs the blend's rounding.
+        np.maximum(
+            (1.0 - fine_weight) * coarse_rms + fine_weight * fine_rms,
+            coarse_rms,
+        ),
+        coarse_rms,
+    )
     return BackgroundRmsTile(
         bounds=bounds,
         background=cast(

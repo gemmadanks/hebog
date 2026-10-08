@@ -27,6 +27,7 @@ from hebog.algorithms.background import (
     interpolate_prepared_rms_grid,
     plan_rms_grid,
     plan_rms_window_batches,
+    prepare_refinement_rms_grid,
     prepare_rms_grid_for_interpolation,
     subset_prepared_rms_grid,
     subset_rms_grid_geometry,
@@ -700,15 +701,22 @@ def _estimate_source_protected_region_statistics(
     return statistics, int(np.count_nonzero(protected))
 
 
-def _estimate_source_protected_adaptive_region(
+def _estimate_source_protected_adaptive_region(  # noqa: PLR0913
     request: _AdaptiveRegionRequest,
     *,
     source: _WindowReadable,
     config: RmsGridConfig,
     island_threshold_sigma: float,
     multiscale_protection: MultiscaleSourceProtection | None = None,
+    rms_fill_reach_pixels: float | None = None,
 ) -> AdaptiveRmsRegion:
-    """Prepare one candidate region after all its raw statistics exist."""
+    """Prepare one candidate region after all its raw statistics exist.
+
+    With ``rms_fill_reach_pixels``, a cell farther than it from every clean
+    window keeps the coarse RMS (:func:`prepare_refinement_rms_grid`);
+    without it, as for a protected coarse grid, every cell takes its nearest
+    clean window's.
+    """
     statistics, protected_pixel_count = (
         _estimate_source_protected_region_statistics(
             request,
@@ -719,7 +727,15 @@ def _estimate_source_protected_adaptive_region(
         )
     )
     return AdaptiveRmsRegion(
-        grid=prepare_rms_grid_for_interpolation(statistics),
+        grid=(
+            prepare_rms_grid_for_interpolation(statistics)
+            if rms_fill_reach_pixels is None
+            else prepare_refinement_rms_grid(
+                statistics,
+                request.coarse,
+                fill_reach_pixels=rms_fill_reach_pixels,
+            )
+        ),
         bright_candidate_positions_yx=request.positions_yx,
         protected_pixel_count=protected_pixel_count,
         protected_window_count=statistics.protected_window_count,
@@ -1173,7 +1189,11 @@ def _refine_bright_regions(  # noqa: PLR0913
     source_protection_island_threshold_sigma: float | None,
     multiscale_protection: MultiscaleSourceProtection | None,
 ) -> BackgroundRmsGrids:
-    """Refine bright-source background without changing the noise policy."""
+    """Estimate the fine grids that refine the estimate around bright sources.
+
+    The tile blend uses them for the background both ways and for the RMS
+    only upwards (``blend_adaptive_background_rms``).
+    """
     adaptive_config = config.adaptive
     assert adaptive_config is not None
     global_adaptive_geometry = plan_rms_grid(
@@ -1223,6 +1243,8 @@ def _refine_bright_regions(  # noqa: PLR0913
         config=adaptive_config.grid,
         island_threshold_sigma=source_protection_island_threshold_sigma,
         multiscale_protection=multiscale_protection,
+        # A fine RMS reaches one fine window from where it was measured.
+        rms_fill_reach_pixels=float(max(adaptive_config.grid.window_shape_yx)),
     )
     adaptive_regions = tuple(executor.map_batches(estimate_region, requests))
     return replace(

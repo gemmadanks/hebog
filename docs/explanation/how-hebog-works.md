@@ -78,7 +78,11 @@ separately:
   from the statistics, so bright or extended emission does not inflate the
   noise estimate around itself.
 - Near bright sources, where noise changes quickly because of imaging
-  artefacts, the `continuum` profile switches to a finer RMS grid.
+  artefacts, both profiles switch to a finer RMS grid, whose windows the
+  `continuum` profile also protects from sources. That grid
+  only raises the noise: where it reads lower than the coarse grid, the
+  coarse RMS stands, much as PyBDSF applies its small box near a bright
+  source only out to where it stops reading well above its large one.
 - At image edges, fine RMS values are extended as constants, never
   extrapolated towards zero. Background and coarse-RMS slopes are taken from
   grid samples at least as far apart as the distance being extrapolated, so a
@@ -90,14 +94,20 @@ separately:
 In the reviewed `continuum` profile the coarse grid uses 150-pixel windows
 every 50 pixels and the fine RMS grid 35-pixel windows every 7 pixels.
 Windows that overlap protected sources are dropped and each gap takes the
-value of its nearest clean window, never an invented floor. A window whose
-clipped spread is no greater than single precision's resolution at its
-brightest valid value (2⁻²³ of that value), as a window of samples that all
-hold one value is, measures no noise and is dropped the same way: the
-published RMS is never zero or rounding. A field so
-crowded that no fine window anywhere is clean is too crowded to protect: it
-keeps the unprotected sigma-clipped coarse statistics for both background
-and RMS, which, like PyBDSF's, include the sources' wings. Background
+value of its nearest clean window, never an invented floor. Around bright
+sources a gap takes a clean window's RMS only within one fine window
+(35 pixels) of it; farther away the coarse RMS stands, so in a crowded field,
+where few fine windows are clean, one window's noise is not carried across
+the image or across a step in the noise. Beside such a step in a crowded
+field the published noise is then the coarse estimate, which mixes the two
+sides over about half a coarse window. A window whose clipped spread is no
+greater than single precision's resolution at its brightest valid value
+(2⁻²³ of that value), as a window of samples that all hold one value is,
+measures no noise and is dropped the same way: the published RMS is never
+zero or rounding. A field so crowded that no fine window anywhere is clean
+is too crowded to protect: it keeps the unprotected sigma-clipped coarse
+statistics for both background and RMS, which, like PyBDSF's, include the
+sources' wings. Background
 refinement around bright sources is triggered at 75σ, or at your detection
 threshold if your island threshold is higher than that. This never changes
 your detection or island thresholds. Noise structure finer than the grid is
