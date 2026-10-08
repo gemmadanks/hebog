@@ -131,31 +131,6 @@ def _planes() -> tuple[
     return labels, direct_snr, reconstruction, valid
 
 
-def _support_components(
-    labels: npt.NDArray[np.int32],
-    reconstruction: npt.NDArray[np.bool_],
-    valid: npt.NDArray[np.bool_],
-) -> npt.NDArray[np.int32]:
-    """Return the reconciled eight-connected support components."""
-    components, _ = cast(
-        tuple[npt.NDArray[np.int32], int],
-        ndimage_label(
-            ((labels > 0) | reconstruction) & valid,
-            structure=np.ones((3, 3), dtype=np.int8),
-        ),
-    )
-    return components
-
-
-def _support_planes() -> tuple[npt.NDArray[np.int32], npt.NDArray[np.bool_]]:
-    """Return the reconciled support components and persistent support."""
-    labels, _, reconstruction, valid = _planes()
-    return (
-        _support_components(labels, reconstruction, valid),
-        np.zeros(_SHAPE_YX, dtype=np.bool_),
-    )
-
-
 def _detection_islands() -> tuple[DetectedIsland, ...]:
     """Describe each direct owner of the shared fixture."""
     return _islands(_planes()[0])
@@ -231,20 +206,17 @@ def _sources(
 ) -> tuple[ZarrProductSink, ZarrProductSink]:
     """Publish the detection and support generations this pass reads."""
     labels, direct_snr, reconstruction, valid = _planes()
-    components, persistent = _support_planes()
     if empty:
         labels = np.zeros(_SHAPE_YX, dtype=np.int32)
         direct_snr = np.full(_SHAPE_YX, -np.inf, dtype=np.float64)
         reconstruction = np.zeros(_SHAPE_YX, dtype=np.bool_)
-        components = np.zeros(_SHAPE_YX, dtype=np.int32)
     return _publish_planes(
         root,
         labels=labels,
         direct_snr=direct_snr,
         reconstruction=reconstruction,
         valid=valid,
-        components=components,
-        persistent=persistent,
+        persistent=np.zeros(_SHAPE_YX, dtype=np.bool_),
     )
 
 
@@ -255,7 +227,6 @@ def _publish_planes(  # noqa: PLR0913
     direct_snr: npt.NDArray[np.float64],
     reconstruction: npt.NDArray[np.bool_],
     valid: npt.NDArray[np.bool_],
-    components: npt.NDArray[np.int32],
     persistent: npt.NDArray[np.bool_],
 ) -> tuple[ZarrProductSink, ZarrProductSink]:
     """Publish the two generations of planes the support pass reads."""
@@ -272,10 +243,7 @@ def _publish_planes(  # noqa: PLR0913
         ),
         _publish(
             root / "support.zarr",
-            (
-                ("support-components", components, "<i4"),
-                ("persistent-support", persistent, "bool"),
-            ),
+            (("persistent-support", persistent, "bool"),),
             generation_id="support-fixture",
         ),
     )
@@ -350,7 +318,7 @@ def _published(
 
 def _whole_plane_chain() -> dict[str, npt.NDArray[np.generic]]:
     """Evaluate the support chain over the shared fixture's planes."""
-    return _chain(*_planes(), _support_planes()[1], beam=_BEAM)
+    return _chain(*_planes(), np.zeros(_SHAPE_YX, dtype=np.bool_), beam=_BEAM)
 
 
 def _chain(  # noqa: PLR0913
@@ -694,14 +662,14 @@ def test_publication_stage_requires_the_planes_and_shape_it_reads(
         generation_id="incomplete",
     )
     incomplete.initialize_product(
-        product_name="support-components",
+        product_name="detection-labels",
         dtype=np.dtype("<i4"),
     )
     incomplete.publish_generation(
-        product_names=("support-components",),
+        product_names=("detection-labels",),
         chunks=[
             incomplete.write_chunk(
-                product_name="support-components",
+                product_name="detection-labels",
                 tile=tile,
                 values=np.zeros(tile.core_bounds.shape_yx, dtype=np.int32),
             )
@@ -818,7 +786,6 @@ def _edge_owner_sources(
         direct_snr=direct_snr,
         reconstruction=reconstruction,
         valid=valid,
-        components=_support_components(labels, reconstruction, valid),
         persistent=np.zeros(_SHAPE_YX, dtype=np.bool_),
     )
 
@@ -943,7 +910,6 @@ def _run_wide_beam_planes(  # noqa: PLR0913
         direct_snr=direct_snr,
         reconstruction=reconstruction,
         valid=valid,
-        components=_support_components(labels, reconstruction, valid),
         persistent=persistent,
     )
     config = _config(

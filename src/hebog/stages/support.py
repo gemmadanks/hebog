@@ -1,14 +1,10 @@
-"""Global support reductions the tile-native support pass depends on.
+"""The global support reduction the tile-native support pass depends on.
 
 ADR-008's pass C needs the adjacent-scale persistence of the multiscale
 features, which decides which recovered support may stay published, and no
 bounded halo can supply it. It is reconciled here from compact per-core
 summaries and written back as owned cores, so the composition reads it by
-window instead of computing it over whole planes. The connected components of
-the direct support unioned with the significant multiscale support are
-reconciled and published the same way, but no round reads them: a support
-pixel attaches to its seed along a path within half a beam, which a bounded
-read decides.
+window instead of computing it over whole planes.
 """
 
 from __future__ import annotations
@@ -31,7 +27,6 @@ from hebog.algorithms.labelling import (
 from hebog.algorithms.reconciliation import (
     ReconciledIslands,
     TileLabelMapping,
-    apply_tile_label_mapping,
     reconcile_candidate_tiles,
 )
 from hebog.data_models.generations import ProductGenerationManifest
@@ -44,7 +39,7 @@ from hebog.data_models.products import ProductChunk
 from hebog.executors.base import Executor
 from hebog.io.zarr import ZarrProductSink
 
-_SUPPORT_PRODUCT_NAMES = ("persistent-support", "support-components")
+_SUPPORT_PRODUCT_NAMES = ("persistent-support",)
 _MINIMUM_PERSISTENT_SCALE_COUNT = 2
 
 
@@ -96,10 +91,9 @@ class SupportTopologyStageConfig:
 
 @dataclass(frozen=True, slots=True)
 class SupportTopologyStageResult:
-    """Published support planes and scalar execution evidence."""
+    """The published persistence plane and scalar execution evidence."""
 
     generation: ProductGenerationManifest
-    support_component_count: int
     persistent_detection_count: int
     partition_count: int
     executor_task_count: int
@@ -123,7 +117,6 @@ class _TileTopology:
     """Compact per-core topology safe to return through an executor."""
 
     partition: TilePartition
-    support_summary: LocalIslandTileSummary
     scale_summaries: tuple[LocalIslandTileSummary, ...]
     overlaps: tuple[_ScaleOverlap, ...]
 
@@ -151,10 +144,9 @@ class _TopologyBatchResult:
 
 @dataclass(frozen=True, slots=True)
 class _PublicationTileRequest:
-    """One second-pass tile and its accepted global support mappings."""
+    """One second-pass tile and its persistent local labels per scale."""
 
     partition: TilePartition
-    support_mapping: TileLabelMapping
     persistent_local_labels: tuple[tuple[int, ...], ...]
 
 
@@ -183,65 +175,26 @@ def support_product_names() -> tuple[str, ...]:
     return _SUPPORT_PRODUCT_NAMES
 
 
-def _product_dtype(product_name: str) -> np.dtype[np.generic]:
-    """Return the stored element type of one published support plane."""
-    return (
-        np.dtype("<i4")
-        if product_name == "support-components"
-        else np.dtype(np.bool_)
-    )
-
-
-@dataclass(frozen=True, slots=True)
-class _CoreMasks:
-    """The exact core masks both support rounds derive from one read."""
-
-    support_union: npt.NDArray[np.bool_]
-    scale_masks: tuple[npt.NDArray[np.bool_], ...]
-
-
-def _read_core_masks(
+def _read_scale_masks(
     partition: TilePartition,
     *,
     detection_source: _CompletedProductSource,
     scale_orders: tuple[int, ...],
-) -> _CoreMasks:
-    """Derive one core's support union and per-scale masks from one read.
+) -> tuple[npt.NDArray[np.bool_], ...]:
+    """Read one core's significant mask at every scale order.
 
-    Both rounds derive the same masks from the same published planes, so the
-    second round recomputes them instead of persisting the first round's
-    local labels. The detection pass publishes the exact domain it ran over,
-    so this pass never re-derives validity from the image and its noise.
+    Both rounds read the same published planes, so the second round labels
+    them again instead of persisting the first round's local labels.
     """
-    bounds = partition.core_bounds
-    scientifically_valid = np.asarray(
-        detection_source.read_completed_window("valid-pixels", bounds),
-        dtype=np.bool_,
-    )
-    detection_labels = np.asarray(
-        detection_source.read_completed_window("detection-labels", bounds),
-        dtype=np.int32,
-    )
-    reconstruction_mask = np.asarray(
-        detection_source.read_completed_window("reconstruction-mask", bounds),
-        dtype=np.bool_,
-    )
-    return _CoreMasks(
-        support_union=np.asarray(
-            ((detection_labels > 0) | reconstruction_mask)
-            & scientifically_valid,
+    return tuple(
+        np.asarray(
+            detection_source.read_completed_window(
+                f"scale-{order}-significant",
+                partition.core_bounds,
+            ),
             dtype=np.bool_,
-        ),
-        scale_masks=tuple(
-            np.asarray(
-                detection_source.read_completed_window(
-                    f"scale-{order}-significant",
-                    bounds,
-                ),
-                dtype=np.bool_,
-            )
-            for order in scale_orders
-        ),
+        )
+        for order in scale_orders
     )
 
 
@@ -313,28 +266,21 @@ def _scan_topology_batch(
     image_shape_yx: tuple[int, int],
     scale_orders: tuple[int, ...],
 ) -> _TopologyBatchResult:
-    """Return compact support and scale topology for one bounded batch."""
+    """Return compact scale topology for one bounded batch."""
     tiles: list[_TileTopology] = []
     maximum_read_pixels = 0
     summary_bytes = 0
     for partition in batch.partitions:
-        masks = _read_core_masks(
-            partition,
-            detection_source=detection_source,
-            scale_orders=scale_orders,
-        )
-        support = _label_core(
-            masks.support_union,
-            partition,
-            image_shape_yx=image_shape_yx,
-        )
         scale_tiles = tuple(
             _label_core(mask, partition, image_shape_yx=image_shape_yx)
-            for mask in masks.scale_masks
+            for mask in _read_scale_masks(
+                partition,
+                detection_source=detection_source,
+                scale_orders=scale_orders,
+            )
         )
         topology = _TileTopology(
             partition=partition,
-            support_summary=support.compact_summary(),
             scale_summaries=tuple(
                 tile.compact_summary() for tile in scale_tiles
             ),
@@ -345,7 +291,7 @@ def _scan_topology_batch(
             maximum_read_pixels,
             int(np.prod(partition.core_bounds.shape_yx)),
         )
-        summary_bytes += _summary_array_bytes(topology.support_summary) + sum(
+        summary_bytes += sum(
             _summary_array_bytes(summary)
             for summary in topology.scale_summaries
         )
@@ -441,15 +387,13 @@ def _global_label(mapping: TileLabelMapping, local_label: int) -> int:
 
 def _publication_requests(
     tiles: tuple[_TileTopology, ...],
-    support: ReconciledIslands,
     scale_reconciliations: tuple[ReconciledIslands, ...],
     persistent_nodes: frozenset[tuple[int, int]],
 ) -> tuple[_PublicationTileRequest, ...]:
-    """Shard the accepted support labels to the tiles that hold them."""
+    """Shard the persistent scale labels to the tiles that hold them."""
     return tuple(
         _PublicationTileRequest(
             partition=tile.partition,
-            support_mapping=support.mapping_for_tile(tile.partition.tile_id),
             persistent_local_labels=tuple(
                 tuple(
                     local_label
@@ -478,30 +422,18 @@ def _publish_batch(
     image_shape_yx: tuple[int, int],
     scale_orders: tuple[int, ...],
 ) -> _PublicationBatchResult:
-    """Write the accepted support planes for one bounded batch of cores."""
+    """Write the persistent support of one bounded batch of cores."""
     chunks: list[ProductChunk] = []
     maximum_read_pixels = 0
     for request in batch.requests:
         partition = request.partition
-        masks = _read_core_masks(
-            partition,
-            detection_source=detection_source,
-            scale_orders=scale_orders,
-        )
-        components = np.asarray(
-            apply_tile_label_mapping(
-                _label_core(
-                    masks.support_union,
-                    partition,
-                    image_shape_yx=image_shape_yx,
-                ),
-                request.support_mapping,
-            ),
-            dtype=np.int32,
-        )
-        persistent = np.zeros(components.shape, dtype=np.bool_)
+        persistent = np.zeros(partition.core_bounds.shape_yx, dtype=np.bool_)
         for mask, local_labels in zip(
-            masks.scale_masks,
+            _read_scale_masks(
+                partition,
+                detection_source=detection_source,
+                scale_orders=scale_orders,
+            ),
             request.persistent_local_labels,
             strict=True,
         ):
@@ -516,15 +448,11 @@ def _publish_batch(
                 labels,
                 np.asarray(local_labels, dtype=np.int32),
             )
-        chunks.extend(
+        chunks.append(
             sink.write_chunk(
-                product_name=product_name,
+                product_name="persistent-support",
                 tile=partition,
-                values=values,
-            )
-            for product_name, values in (
-                ("persistent-support", persistent),
-                ("support-components", components),
+                values=persistent,
             )
         )
         maximum_read_pixels = max(
@@ -580,15 +508,10 @@ def _validate_stage_inputs(
         raise ValueError(
             "detection generation must match the support image shape"
         )
-    required = {
-        "detection-labels",
-        "reconstruction-mask",
-        "valid-pixels",
-        *(f"scale-{order}-significant" for order in config.scale_orders),
-    }
+    required = {f"scale-{order}-significant" for order in config.scale_orders}
     if not required.issubset(detection_source.read_generation().product_names):
         raise ValueError(
-            "detection generation must publish labels, support and scales"
+            "detection generation must publish every scale's significance"
         )
 
 
@@ -600,13 +523,13 @@ def run_support_topology_stage(
     executor: Executor,
     sink: ZarrProductSink,
 ) -> SupportTopologyStageResult:
-    """Reconcile the support pass's global topology and publish its planes.
+    """Reconcile adjacent-scale persistence and publish its plane.
 
-    The first round returns only compact per-core summaries and the
+    The first round returns only compact per-scale core summaries and the
     adjacent-scale label overlaps each core observes. After reconciliation the
-    second round recomputes the same core masks, applies stable global label
-    mappings, and writes the accepted cores. No scientific array is returned
-    through the executor.
+    second round labels the same core masks again and writes the scale
+    features corroborated at an adjacent scale. No scientific array is
+    returned through the executor.
     """
     _validate_stage_inputs(detection_source, manifest, config, sink)
     scan = partial(
@@ -623,10 +546,6 @@ def run_support_topology_stage(
     if not topology_results:
         raise ValueError("executor returned no support topology results")
     tiles = tuple(tile for result in topology_results for tile in result.tiles)
-    support = reconcile_candidate_tiles(
-        manifest,
-        tuple(tile.support_summary for tile in tiles),
-    )
     scale_reconciliations = tuple(
         reconcile_candidate_tiles(
             manifest,
@@ -635,15 +554,13 @@ def run_support_topology_stage(
         for index in range(len(config.scale_orders))
     )
     persistent_nodes = _persistent_global_nodes(tiles, scale_reconciliations)
-    for product_name in _SUPPORT_PRODUCT_NAMES:
-        sink.initialize_product(
-            product_name=product_name,
-            dtype=_product_dtype(product_name),
-        )
+    sink.initialize_product(
+        product_name="persistent-support",
+        dtype=np.dtype(np.bool_),
+    )
     publication_batches = _publication_batches(
         _publication_requests(
             tiles,
-            support,
             scale_reconciliations,
             persistent_nodes,
         ),
@@ -671,7 +588,6 @@ def run_support_topology_stage(
     )
     return SupportTopologyStageResult(
         generation=generation,
-        support_component_count=len(support.islands),
         persistent_detection_count=len(persistent_nodes),
         partition_count=len(manifest.tiles),
         executor_task_count=len(partition_batches) + len(publication_batches),
@@ -695,10 +611,7 @@ def run_support_topology_stage(
             result.summary_array_bytes for result in topology_results
         ),
         reconciliation_round_count=max(
-            support.reduction_round_count,
-            *(
-                reconciliation.reduction_round_count
-                for reconciliation in scale_reconciliations
-            ),
+            reconciliation.reduction_round_count
+            for reconciliation in scale_reconciliations
         ),
     )

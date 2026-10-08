@@ -814,13 +814,12 @@ def reduce_support_topology(  # noqa: PLR0913
     generation_id: str,
     tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
 ) -> ZarrProductSink:
-    """Reconcile the support pass's global topology and read its planes.
+    """Reconcile adjacent-scale persistence and return its plane's store.
 
-    Neither reduction is bounded by a halo: support components follow paths of
-    arbitrary length, and adjacent-scale persistence is a record graph over
-    the whole image. Both are reconciled from compact per-core summaries and
-    published as owned cores, and the generation is returned so the support
-    rounds read the persistence by window; no round reads the components.
+    Persistence is not bounded by a halo: it is a record graph over the whole
+    image. It is reconciled from compact per-core summaries and published as
+    owned cores, and the generation is returned so the support rounds read it
+    by window.
     """
     from hebog.stages.support import (  # noqa: PLC0415
         SupportTopologyStageConfig,

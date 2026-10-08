@@ -185,7 +185,7 @@ The next actions, as the plan orders them:
 
 1. Human: release the merged task 44 and 45 repairs; require the two CI
    checks task 60 added.
-2. Agent: task 65's diagnosis, then tasks 66 and 67.
+2. Agent: task 65's diagnosis, then task 66.
 3. Agent: tasks 53 to 56, bounding the terms that grow with the image, before
    the 22,500² (task 11) and 45,000² (task 12) tier gates.
 
