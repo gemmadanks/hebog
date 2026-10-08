@@ -28,6 +28,8 @@ a Dask cluster that you already own.
 
 ## I am a pipeline developer or architect
 
+- [FAQ for developers and architects](explanation/developer-faq.md): where
+  each common question is answered, with background for non-astronomers.
 - [Progress against goals](reference/progress-against-goals.md): where
   Hebog stands against its 1.0.0 definition, on one page.
 - [Integrate Hebog into a pipeline](how-to/integrate-into-a-pipeline.md).

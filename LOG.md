@@ -32188,7 +32188,7 @@ the per-worker placement finding.
   process workers beyond the integration suite's executor matrix, and
   Windows.
 
-## 2026-10-08 — An astronomer FAQ that answers only what other pages do not
+## 2026-10-08 — Two FAQs that answer only what other pages do not
 
 - **Outcome.** Added an [astronomer FAQ](docs/explanation/astronomer-faq.md),
   linked from the documentation home and the user-guide navigation. It maps
@@ -32205,6 +32205,14 @@ the per-worker placement finding.
   Gaussian since #119). One was misleading: public fits weight pixels by
   their local RMS, but their errors use the beam-correlated sandwich
   covariance (`correlated-noise-sandwich-errors`).
-- **Checks.** The strict docs build; each of the FAQ's 37 internal links
-  resolves to an anchor in the built site; the rendered page was inspected;
-  `just pre-commit`. Documentation only, so the plan is unchanged.
+- **Developers and architects.** A
+  [second FAQ](docs/explanation/developer-faq.md), first in the developer
+  guide, assumes no radio astronomy. It maps 35 questions on calling Hebog,
+  its design and working on it to the pages that answer them, and answers
+  three no page does: a plain-language glossary of the radio terms in the
+  code and products, how results are checked without an answer key, and the
+  six runtime dependencies and what each is for.
+- **Checks.** The strict docs build; each of the two pages' internal links
+  (37 and 61) resolves to an anchor in the built site; both rendered pages
+  were inspected; `just pre-commit`. Documentation only, so the plan is
+  unchanged.

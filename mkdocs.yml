@@ -78,6 +78,7 @@ nav:
           - Python API: reference/index.md
           - Glossary: reference/domain-glossary.md
   - Developer guide:
+      - FAQ for developers and architects: explanation/developer-faq.md
       - Progress against goals: reference/progress-against-goals.md
       - Integrate Hebog into a pipeline: how-to/integrate-into-a-pipeline.md
       - Architecture:
