@@ -1,6 +1,8 @@
 """Tests for the immutable scientific profile shipped in the wheel."""
 
 # pyright: reportPrivateUsage=false
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUnknownMemberType=false
 
 from __future__ import annotations
 
@@ -13,8 +15,11 @@ from dataclasses import replace
 from importlib.resources import files
 from math import prod
 from pathlib import Path
+from typing import cast
 
 import pytest
+from astropy.io import fits
+from astropy.wcs import WCS
 from hypothesis import example, given, settings
 from hypothesis import strategies as st
 
@@ -28,8 +33,13 @@ from hebog.data_models import (
     PublicSourceFindingProvenance,
     WideObjectCounts,
 )
+from hebog.data_models.images import CelestialWcs, ImageMetadata, RestoringBeam
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
-from hebog.pipeline import SourceFinderError, SourceFinderImageTooLargeError
+from hebog.pipeline import (
+    SourceFinderError,
+    SourceFinderImageTooLargeError,
+    UnsupportedSourceFinderConfigurationError,
+)
 from hebog.science.configuration import source_finder_configs
 from hebog.stages import background as background_stage
 
@@ -452,6 +462,99 @@ def test_custom_threshold_does_not_enable_disabled_adaptive_background(
     )
     assert repaired.adaptive is None
     assert original.adaptive is None
+
+
+def _centred_metadata(
+    *,
+    projection: str,
+    reference_sky_degrees: tuple[float, float],
+    pixel_scale_arcsec: float,
+    beam_pixels: float,
+) -> ImageMetadata:
+    """Return 256² ICRS metadata whose reference pixel is the image centre.
+
+    The local scale there is the pixel scale, so a beam a whole number of
+    pixels wide is exactly that wide in pixels. The header text is what
+    FITS ingress keeps.
+    """
+    scale = pixel_scale_arcsec / 3600.0
+    wcs = WCS(naxis=2)
+    wcs.wcs.ctype = [f"RA---{projection}", f"DEC--{projection}"]
+    wcs.wcs.crpix = [128.5, 128.5]
+    wcs.wcs.crval = reference_sky_degrees
+    wcs.wcs.cdelt = [-scale, scale]
+    wcs.wcs.radesys = "ICRS"
+    header = cast(fits.Header, wcs.to_header(relax=True))
+    return ImageMetadata(
+        shape_yx=(256, 256),
+        unit="Jy/beam",
+        beam=RestoringBeam(beam_pixels * scale, beam_pixels * scale, 0.0),
+        celestial_wcs=CelestialWcs(
+            fits_header=header.tostring(
+                sep="\n", endcard=False, padding=False
+            ),
+            coordinate_frame="icrs",
+        ),
+        reference_frequency_hz=150e6,
+    )
+
+
+@pytest.mark.parametrize("beam_pixels", (3.0, 4.0, 10.0, 22.0))
+@pytest.mark.parametrize(
+    ("projection", "reference_sky_degrees", "pixel_scale_arcsec"),
+    (
+        # The beam-sampling study's geometry, where a 1e-3 pixel Jacobian
+        # step read 10 pixels as 10.000000508 on Linux.
+        ("SIN", (180.0, 45.0), 1.5),
+        ("SIN", (359.9, 60.0), 0.1),
+        ("TAN", (250.0, 85.0), 60.0),
+    ),
+)
+def test_a_whole_pixel_beam_is_exactly_whole_in_pixels(
+    projection: str,
+    reference_sky_degrees: tuple[float, float],
+    pixel_scale_arcsec: float,
+    beam_pixels: float,
+) -> None:
+    """Given a beam N pixels wide where the scale is the pixel scale,
+    when the finder derives its beam in pixels,
+    then both axes are exactly N, on every platform.
+
+    ``ceil(1.5 * N)`` sets the segment-row aperture radius and
+    ``ceil(0.5 * N)`` the recovery radius and the halos; both land on an
+    integer for an even N, so an axis rounded to N plus 1e-6 on one
+    platform would publish from a different aperture and halo.
+    """
+    beam = public_api._beam_shape_pixels(
+        _centred_metadata(
+            projection=projection,
+            reference_sky_degrees=reference_sky_degrees,
+            pixel_scale_arcsec=pixel_scale_arcsec,
+            beam_pixels=beam_pixels,
+        )
+    )
+
+    assert (
+        beam.major_fwhm_pixels,
+        beam.minor_fwhm_pixels,
+        beam.position_angle_degrees,
+    ) == (beam_pixels, beam_pixels, 0.0)
+
+
+def test_a_pixel_scale_that_underflows_is_refused_before_analysis() -> None:
+    """A beam with no finite size in pixels is refused, as the rule says."""
+    metadata = _centred_metadata(
+        projection="SIN",
+        reference_sky_degrees=(180.0, 45.0),
+        pixel_scale_arcsec=1e-300,
+        beam_pixels=4.0,
+    )
+
+    with pytest.raises(
+        UnsupportedSourceFinderConfigurationError,
+        match="no finite size in pixels",
+    ):
+        public_api._require_sampled_beam(metadata)
 
 
 def _provenance() -> PublicSourceFindingProvenance:

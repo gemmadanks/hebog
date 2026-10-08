@@ -9,8 +9,13 @@ boundary owns WCS, angular geometry and restoring-beam semantics.
 
 Hebog rebuilds an Astropy celestial WCS from the serializable image metadata
 and uses zero-based continuous `(x, y)` pixel coordinates. A centred finite
-difference at the fitted centroid gives a local two-by-two Jacobian from
-pixel offsets to east/north tangent-plane offsets in degrees, which
+difference at the fitted centroid, with a step of 2 arcseconds on the sky
+converted to pixels for each axis, gives a local two-by-two Jacobian from
+pixel offsets to east/north tangent-plane offsets in degrees. It is within
+about 10⁻¹⁰ of the local scale at any pixel scale and on every platform,
+wherever the projection and any distortion are close to linear over 2
+arcseconds; the error grows near the horizon of a SIN image (about 10⁻⁷ at
+82 degrees from its reference) and with strong distortion. The Jacobian
 transforms the centroid to ICRS right ascension and declination, the pixel
 covariance to a celestial ellipse, the centroid covariance to position
 errors, and the local pixel area used by fitted and island fluxes. Right

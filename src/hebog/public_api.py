@@ -125,9 +125,11 @@ _MINIMUM_ISLAND_PIXELS = 7
 _COMPOSITION_NAME = "phase-5-evidence-bound-public-catalogue-v22"
 _PROFILE_RESOURCE = "reviewed_continuum_profile.json"
 _FWHM_PER_SIGMA = 2.0 * np.sqrt(2.0 * np.log(2.0))
-# Finite-difference WCS Jacobians carry ~1e-8 pixel round-off. Quantising the
-# derived beam axes to 1e-6 pixel keeps whole-pixel beams exact, so ``ceil``
-# aperture radii and kernel halos cannot flip with a sub-mas WCS change.
+# The finite-difference WCS Jacobian is good to about 1e-10 of the local
+# scale, and its round-off differs between platforms. Quantising the derived
+# beam axes to 1e-6 pixel keeps whole-pixel beams exact on every platform,
+# so ``ceil`` aperture radii and kernel halos cannot flip with the platform
+# or a sub-mas WCS change.
 _BEAM_AXIS_DECIMALS = 6
 _SCIENTIFIC_MODULES = (
     "hebog.algorithms",

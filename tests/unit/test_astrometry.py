@@ -29,7 +29,10 @@ from hebog.algorithms.astrometry import (
     restoring_beams_in_icrs,
     transform_compact_fit_at_tangent,
 )
-from hebog.data_models.astrometry import CelestialCompactGaussianFit
+from hebog.data_models.astrometry import (
+    CelestialCompactGaussianFit,
+    LocalTangentPlaneTransform,
+)
 from hebog.data_models.catalogues import GaussianShape
 from hebog.data_models.fitting import (
     FittedGaussianPixelParameters,
@@ -201,6 +204,152 @@ def test_local_jacobian_handles_signed_unequal_rotated_wcs_and_ra_wrap() -> (
     assert np.linalg.det(covariance) > 0
 
 
+_ZENITHAL_REFERENCE_PIXEL = 1000.0
+
+
+def _zenithal_wcs(
+    projection: str,
+    reference_sky_degrees: tuple[float, float],
+    pixel_scale_degrees: float,
+) -> WCS:
+    """Return an ICRS zenithal WCS whose reference is pixel (1000, 1000)."""
+    wcs = WCS(naxis=2)
+    wcs.wcs.ctype = [f"RA---{projection}", f"DEC--{projection}"]
+    wcs.wcs.crpix = [_ZENITHAL_REFERENCE_PIXEL + 1.0] * 2
+    wcs.wcs.crval = reference_sky_degrees
+    wcs.wcs.cdelt = [-pixel_scale_degrees, pixel_scale_degrees]
+    wcs.wcs.radesys = "ICRS"
+    return wcs
+
+
+def _zenithal_stretches(
+    projection: str, plane_radius_radians: float
+) -> tuple[float, float]:
+    """Return the sky's radial and tangential stretch of the plane, sorted.
+
+    A plane radius ``r`` lies ``atan(r)`` from the reference for TAN and
+    ``asin(r)`` for SIN, so a radial step is stretched by the derivative of
+    that angle and a tangential one by the angle's sine over ``r``.
+    """
+    if projection == "TAN":
+        cosine = 1.0 / np.hypot(1.0, plane_radius_radians)
+        stretches = (cosine**2, cosine)
+    else:
+        stretches = (1.0 / np.sqrt(1.0 - plane_radius_radians**2), 1.0)
+    return (min(stretches), max(stretches))
+
+
+@pytest.mark.parametrize("batched", (False, True), ids=("single", "batched"))
+@pytest.mark.parametrize(
+    ("projection", "reference_sky_degrees", "pixel_scale_arcsec"),
+    (
+        # The beam-sampling study's geometry.
+        ("SIN", (180.0, 45.0), 1.5),
+        ("SIN", (359.9, 60.0), 0.1),
+        ("TAN", (12.3, -30.0), 6.0),
+        ("TAN", (250.0, 85.0), 60.0),
+    ),
+)
+def test_local_jacobian_matches_the_projection_to_round_off(
+    projection: str,
+    reference_sky_degrees: tuple[float, float],
+    pixel_scale_arcsec: float,
+    batched: bool,
+) -> None:
+    """The finite difference is good to 1e-9 of the scale on any platform.
+
+    Zenithal projections stretch the sky by known factors of the plane
+    radius, so the Jacobian's singular values are known at every pixel, and
+    at the reference pixel it is the CD matrix itself. A step of 1e-3 pixel
+    was 2e-8 out on the study geometry and up to 1e-6 at 0.1 arcsec pixels,
+    by amounts that differed between Linux and macOS.
+    """
+    scale = pixel_scale_arcsec / 3600.0
+    wcs = _zenithal_wcs(projection, reference_sky_degrees, scale)
+    reference = _ZENITHAL_REFERENCE_PIXEL
+    positions = (
+        (reference, reference),
+        (reference + 0.5, reference - 0.25),
+        (reference + 700.0, reference - 300.0),
+        (0.0, 0.0),
+        (2 * reference, 2 * reference),
+    )
+
+    transforms = (
+        local_tangent_plane_transforms_from_wcs(wcs, positions)
+        if batched
+        else tuple(
+            local_tangent_plane_transform_from_wcs(wcs, position)
+            for position in positions
+        )
+    )
+
+    np.testing.assert_allclose(
+        np.asarray(transforms[0].jacobian_degrees_per_pixel) / scale,
+        ((-1.0, 0.0), (0.0, 1.0)),
+        rtol=0.0,
+        atol=1e-9,
+    )
+    for (x, y), transform in zip(positions, transforms, strict=True):
+        plane_radius = np.hypot(x - reference, y - reference) * np.deg2rad(
+            scale
+        )
+        stretches = np.linalg.svd(
+            np.asarray(transform.jacobian_degrees_per_pixel) / scale,
+            compute_uv=False,
+        )
+        np.testing.assert_allclose(
+            np.sort(stretches),
+            _zenithal_stretches(projection, plane_radius),
+            rtol=1e-9,
+        )
+
+
+_ENTRY_POINTS = ("single", "batched", "empty-batch")
+
+
+def _tangent_transforms(
+    wcs: WCS, entry_point: str
+) -> tuple[LocalTangentPlaneTransform, ...]:
+    """Return the transforms at the origin through one entry point.
+
+    An empty batch converts nothing but still checks the pixel scale, as
+    the beam rotation checks the frame.
+    """
+    if entry_point == "single":
+        return (local_tangent_plane_transform_from_wcs(wcs, (0.0, 0.0)),)
+    positions = ((0.0, 0.0),) if entry_point == "batched" else ()
+    return local_tangent_plane_transforms_from_wcs(wcs, positions)
+
+
+@pytest.mark.parametrize("entry_point", _ENTRY_POINTS)
+def test_local_jacobian_refuses_a_pixel_scale_that_underflows(
+    entry_point: str,
+) -> None:
+    """A zero scale has no step in pixels, so it is refused."""
+    wcs = _zenithal_wcs("SIN", (10.0, 20.0), 1e-300)
+
+    with pytest.raises(ValueError, match="finite, positive pixel scale"):
+        _tangent_transforms(wcs, entry_point)
+
+
+@pytest.mark.parametrize("entry_point", _ENTRY_POINTS)
+def test_local_jacobian_refuses_a_pixel_scale_that_overflows(
+    entry_point: str,
+) -> None:
+    """An infinite scale makes a zero step, so it is refused, not divided by.
+
+    NumPy reports the overflow while Astropy squares the scale matrix.
+    """
+    wcs = _zenithal_wcs("SIN", (10.0, 20.0), 1e200)
+
+    with (
+        pytest.warns(RuntimeWarning, match="overflow"),
+        pytest.raises(ValueError, match="finite, positive pixel scale"),
+    ):
+        _tangent_transforms(wcs, entry_point)
+
+
 def test_moment_shape_uses_explicit_local_wcs_covariance() -> None:
     """A non-square local Jacobian maps pixel moments into sky axes."""
     transform = local_tangent_plane_transform(_metadata(), (50.0, 40.0))
@@ -228,6 +377,24 @@ def test_moment_shape_preserves_a_circular_covariance() -> None:
         2.0 * _FWHM_PER_SIGMA * 0.001
     )
     assert shape.minor_fwhm_degrees == pytest.approx(shape.major_fwhm_degrees)
+
+
+@pytest.mark.parametrize("east_per_north_pixel", (-1e-12, 1e-12))
+def test_moment_shape_reads_a_north_axis_as_zero_on_either_side(
+    east_per_north_pixel: float,
+) -> None:
+    """A major axis a round-off either side of north is 0, never 180."""
+    transform = replace(
+        local_tangent_plane_transform(_metadata(), (50.0, 40.0)),
+        jacobian_degrees_per_pixel=(
+            (-0.001, east_per_north_pixel),
+            (0.0, 0.001),
+        ),
+    )
+
+    shape = moment_equivalent_gaussian_shape(np.diag((4.0, 9.0)), transform)
+
+    assert shape.position_angle_degrees == pytest.approx(0.0, abs=1e-6)
 
 
 @pytest.mark.parametrize(
@@ -928,7 +1095,7 @@ def test_batched_geometries_equal_one_call_each() -> None:
 
 
 def test_batched_astrometry_of_no_positions_is_empty() -> None:
-    """A batch with no objects must not reach Astropy at all."""
+    """A batch with no objects converts no coordinates."""
     wcs = _fk5_celestial_wcs()
     beam = RestoringBeam(
         major_fwhm_degrees=0.004,
