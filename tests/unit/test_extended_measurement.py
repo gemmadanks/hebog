@@ -5,16 +5,21 @@
 
 from __future__ import annotations
 
+from math import sqrt
 from typing import cast
 
 import numpy as np
 import numpy.typing as npt
 import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
+from scipy.ndimage import distance_transform_edt
 from scipy.ndimage import label as ndimage_label
 
 from hebog.algorithms.extended_measurement import (
     DetectedSegmentPosition,
     SegmentWindow,
+    assign_nearest_seed_support,
     assign_persistent_source_support,
     assign_seeded_multiscale_support,
     clean_detected_segment_labels,
@@ -308,7 +313,12 @@ def test_seeded_multiscale_tie_uses_global_seed_identity_not_label_value() -> (
 
 
 def test_seeded_multiscale_tie_considers_every_equidistant_seed() -> None:
-    """A high-order lattice tie still selects the first global identity."""
+    """A high-order lattice tie still selects the first global identity.
+
+    The twelve seeds lie five pixels from the centre in a straight line; the
+    four on the axes are also five pixels away along a path, the others
+    5.24. Both rules choose the first seed in row-major order.
+    """
     seeds = np.zeros((13, 13), dtype=np.int32)
     centre_yx = (6, 6)
     offsets = (
@@ -338,8 +348,15 @@ def test_seeded_multiscale_tie_considers_every_equidistant_seed() -> None:
         np.ones(seeds.shape, dtype=np.bool_),
         beam_major_fwhm_pixels=10.0,
     )
+    straight = assign_nearest_seed_support(
+        seeds,
+        significant,
+        np.ones(seeds.shape, dtype=np.bool_),
+        maximum_distance_pixels=5.0,
+    )
 
     assert owned[centre_yx] == seeds[1, 6]
+    assert straight[centre_yx] == seeds[1, 6]
 
 
 def test_seeded_multiscale_tie_uses_carried_global_reference() -> None:
@@ -450,6 +467,338 @@ def test_seeded_multiscale_ownership_rejects_invalid_contracts() -> None:
     )
     assert not empty.any()
     np.testing.assert_array_equal(no_candidates, labels)
+
+
+def _owner_parts_reach_their_seeds(
+    seeds: npt.NDArray[np.int32],
+    owned: npt.NDArray[np.int32],
+) -> bool:
+    """Return whether every owned pixel joins its owner's seeds through it.
+
+    Each owner's pixels are labelled into eight-connected parts, and every
+    part must hold a seed pixel of that owner.
+    """
+    for owner in (int(value) for value in np.unique(owned[owned > 0])):
+        parts = _labelled(owned == owner)
+        seeded = np.unique(parts[seeds == owner])
+        if set(np.unique(parts[parts > 0])) - set(seeded):
+            return False
+    return True
+
+
+def _labelled(mask: npt.NDArray[np.bool_]) -> npt.NDArray[np.int32]:
+    """Return eight-connected labels of one analytic support mask."""
+    labels, _ = cast(
+        tuple[npt.NDArray[np.int32], int],
+        ndimage_label(mask, structure=np.ones((3, 3), dtype=np.int8)),
+    )
+    return labels
+
+
+def _obstructed_owner() -> tuple[
+    npt.NDArray[np.int32],
+    npt.NDArray[np.bool_],
+    npt.NDArray[np.bool_],
+]:
+    """Return an owner beside a pixel its support reaches only the long way.
+
+    Owner 3 is a block in columns 0 to 2. Pixel (4, 4) lies two pixels from
+    it in a straight line, across a column no support covers, and joins it
+    only along a strand to owner 5 and a detour back along row 8, as an
+    owner of the quick check's crowded field with a 0.1 quiet strip held a
+    pixel 2.2 pixels from its flood (plan task 64).
+    """
+    seeds = np.zeros((9, 14), dtype=np.int32)
+    seeds[1:8, 0:3] = 3
+    seeds[4, 12] = 5
+    significant = np.zeros(seeds.shape, dtype=np.bool_)
+    significant[4, 4:12] = True
+    significant[5:9, 12] = True
+    significant[8, 3:13] = True
+    return seeds, significant, np.ones(seeds.shape, dtype=np.bool_)
+
+
+def test_seeded_support_attaches_only_along_its_owners_support() -> None:
+    """A pixel near an owner only in a straight line is not its owner's.
+
+    By straight-line distance pixel (4, 4) is owner 3's, which then holds it
+    apart from its flood: deblending finds no seed for it. Along the support
+    it is eight pixels from owner 5 and farther from owner 3, so it is
+    nobody's, while (8, 4) joins owner 3 along the detour within half a beam.
+    """
+    seeds, significant, valid = _obstructed_owner()
+
+    owned = assign_seeded_multiscale_support(
+        seeds, significant, valid, beam_major_fwhm_pixels=5.0
+    )
+
+    straight = assign_nearest_seed_support(
+        seeds, significant, valid, maximum_distance_pixels=2.5
+    )
+    assert straight[4, 4] == 3
+    assert owned[4, 4] == 0
+    assert owned[8, 4] == 3
+    assert owned[8, 5] == 0
+    assert owned[4, 10] == owned[4, 11] == 5
+    assert _owner_parts_reach_their_seeds(seeds, owned)
+    assert not _owner_parts_reach_their_seeds(seeds, straight)
+
+
+@pytest.mark.parametrize(
+    ("beam_major_fwhm_pixels", "attached"),
+    [(5.0, False), (5.65, False), (4.0 * sqrt(2.0), True), (6.0, True)],
+)
+def test_seeded_support_reach_is_measured_along_the_support(
+    beam_major_fwhm_pixels: float,
+    attached: bool,
+) -> None:
+    """A pixel two pixels from its seed across a gap is 2.83 away by path.
+
+    The straight line crosses an unsupported pixel, and the path around it
+    takes two diagonal steps, so it attaches only when half a beam reaches
+    that length, here exactly at a beam of four times the square root of two.
+    """
+    seeds = np.zeros((3, 3), dtype=np.int32)
+    seeds[1, 0] = 7
+    significant = np.zeros(seeds.shape, dtype=np.bool_)
+    significant[0, 1] = True
+    significant[1, 2] = True
+
+    owned = assign_seeded_multiscale_support(
+        seeds,
+        significant,
+        np.ones(seeds.shape, dtype=np.bool_),
+        beam_major_fwhm_pixels=beam_major_fwhm_pixels,
+    )
+
+    assert owned[0, 1] == 7
+    assert bool(owned[1, 2] == 7) is attached
+
+
+@pytest.mark.parametrize(
+    ("beam_major_fwhm_pixels", "reached"), [(3.99, 1), (4.0, 2), (6.0, 3)]
+)
+def test_seeded_support_reaches_exactly_half_a_beam(
+    beam_major_fwhm_pixels: float,
+    reached: int,
+) -> None:
+    """Along a straight strand the reach is half a beam, boundary included."""
+    seeds = np.zeros((1, 6), dtype=np.int32)
+    seeds[0, 0] = 2
+    significant = np.ones(seeds.shape, dtype=np.bool_)
+
+    owned = assign_seeded_multiscale_support(
+        seeds,
+        significant,
+        np.ones(seeds.shape, dtype=np.bool_),
+        beam_major_fwhm_pixels=beam_major_fwhm_pixels,
+    )
+
+    np.testing.assert_array_equal(
+        np.flatnonzero(owned[0] == 2), np.arange(reached + 1)
+    )
+
+
+def test_seeded_support_no_path_reaches_stays_unattached() -> None:
+    """Support no short path joins to a seed is given to no owner.
+
+    Every candidate lies within half a beam in a straight line, so the
+    straight-line rule would have attached all of them.
+    """
+    seeds = np.zeros((3, 5), dtype=np.int32)
+    seeds[1, 0] = 4
+    significant = np.zeros(seeds.shape, dtype=np.bool_)
+    significant[:, 2] = True
+
+    owned = assign_seeded_multiscale_support(
+        seeds,
+        significant,
+        np.ones(seeds.shape, dtype=np.bool_),
+        beam_major_fwhm_pixels=5.0,
+    )
+
+    np.testing.assert_array_equal(owned, seeds)
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+def test_seeded_support_is_exact_from_cores_with_a_half_beam_halo(
+    axis: int,
+) -> None:
+    """Each core decides its pixels from a read half a beam wider.
+
+    Owner 3's flood, its detour and the pixel it cannot reach cross every
+    split in turn; each pixel's owner depends only on the pixels within half
+    a beam, rounded down, so every geometry stitches the whole-plane answer.
+    """
+    seeds, significant, valid = _obstructed_owner()
+    beam = 5.0
+    references = {3: (1, 0), 5: (4, 12)}
+    expected = assign_seeded_multiscale_support(
+        seeds, significant, valid, beam_major_fwhm_pixels=beam
+    )
+    halo = int(beam / 2.0)
+
+    for split in range(1, seeds.shape[axis]):
+        stitched = np.zeros_like(expected)
+        for start, stop in ((0, split), (split, seeds.shape[axis])):
+            read = slice(max(start - halo, 0), stop + halo)
+            core = slice(start - read.start, stop - read.start)
+            window = (read, slice(None)) if axis == 0 else (slice(None), read)
+            owned = assign_seeded_multiscale_support(
+                seeds[window],
+                significant[window],
+                valid[window],
+                beam_major_fwhm_pixels=beam,
+                canonical_seed_references_yx=references,
+            )
+            target = (
+                (slice(start, stop), slice(None))
+                if axis == 0
+                else (slice(None), slice(start, stop))
+            )
+            local = (core, slice(None)) if axis == 0 else (slice(None), core)
+            stitched[target] = owned[local]
+        np.testing.assert_array_equal(stitched, expected, f"split {split}")
+
+
+def _random_seeded_planes(
+    random: np.random.Generator,
+) -> tuple[npt.NDArray[np.int32], npt.NDArray[np.bool_]]:
+    """Return a few seed blocks and sparse random support around them."""
+    seeds = np.zeros((14, 16), dtype=np.int32)
+    for label in range(1, int(random.integers(1, 4)) + 1):
+        y, x = random.integers(0, 12), random.integers(0, 14)
+        height, width = random.integers(1, 3, size=2)
+        seeds[y : y + height, x : x + width] = label
+    significant = random.random(seeds.shape) < 0.6
+    return seeds, significant
+
+
+@settings(max_examples=60, deadline=None)
+@given(
+    seed=st.integers(min_value=0, max_value=2**32 - 1),
+    radius=st.sampled_from([0.5, 1.0, 1.5, 2.3, 2.5, 3.0, 4.0, 5.0]),
+)
+def test_seeded_support_joins_every_pixel_to_its_owner_through_its_own(
+    seed: int,
+    radius: float,
+) -> None:
+    """Every attached pixel is joined to its own seeds, within half a beam.
+
+    The path that attaches a pixel runs through pixels of the same owner,
+    and a path is never shorter than the straight line, so each attached
+    pixel also lies within the radius of one of its owner's seeds.
+    """
+    seeds, significant = _random_seeded_planes(np.random.default_rng(seed))
+    valid = np.ones(seeds.shape, dtype=np.bool_)
+
+    owned = assign_seeded_multiscale_support(
+        seeds, significant, valid, beam_major_fwhm_pixels=2.0 * radius
+    )
+
+    assert _owner_parts_reach_their_seeds(seeds, owned)
+    np.testing.assert_array_equal(owned[seeds > 0], seeds[seeds > 0])
+    assert not np.any(owned[(seeds == 0) & ~significant])
+    for owner in (int(value) for value in np.unique(seeds[seeds > 0])):
+        attached = (owned == owner) & (seeds == 0)
+        distance = cast(
+            npt.NDArray[np.float64],
+            distance_transform_edt(seeds != owner),
+        )
+        assert np.all(distance[attached] <= radius)
+
+
+@settings(max_examples=60, deadline=None)
+@given(
+    seed=st.integers(min_value=0, max_value=2**32 - 1),
+    radius=st.sampled_from([1.0, 1.24, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]),
+)
+def test_seeded_support_without_obstacles_takes_the_straight_line_owner(
+    seed: int,
+    radius: float,
+) -> None:
+    """With every pixel supported, path and straight line agree.
+
+    Within four pixels path length orders the offsets as straight-line
+    distance does, so only seeds of other owners can stand in a path, and
+    then they are nearer. At these radii the reach agrees too.
+    """
+    seeds, _ = _random_seeded_planes(np.random.default_rng(seed))
+    significant = np.ones(seeds.shape, dtype=np.bool_)
+    valid = np.ones(seeds.shape, dtype=np.bool_)
+
+    owned = assign_seeded_multiscale_support(
+        seeds, significant, valid, beam_major_fwhm_pixels=2.0 * radius
+    )
+
+    np.testing.assert_array_equal(
+        owned,
+        assign_nearest_seed_support(
+            seeds, significant, valid, maximum_distance_pixels=radius
+        ),
+    )
+
+
+def test_seeded_support_reach_off_the_axes_is_the_path_length() -> None:
+    """A one-by-two offset is 2.24 pixels away in a line, 2.41 by path."""
+    seeds = np.zeros((3, 3), dtype=np.int32)
+    seeds[0, 0] = 6
+    significant = np.ones(seeds.shape, dtype=np.bool_)
+    valid = np.ones(seeds.shape, dtype=np.bool_)
+
+    owned = assign_seeded_multiscale_support(
+        seeds, significant, valid, beam_major_fwhm_pixels=4.6
+    )
+
+    assert owned[1, 2] == 0
+    assert (
+        assign_nearest_seed_support(
+            seeds, significant, valid, maximum_distance_pixels=2.3
+        )[1, 2]
+        == 6
+    )
+
+
+def test_nearest_seed_support_partitions_each_component_alone() -> None:
+    """Support takes a seed of its own component, however near another is.
+
+    A seed whose component holds no support keeps only its own pixels.
+    """
+    seeds = np.zeros((3, 7), dtype=np.int32)
+    seeds[1, 0] = 1
+    seeds[1, 6] = 2
+    support = np.zeros(seeds.shape, dtype=np.bool_)
+    support[1, 3:6] = True
+
+    owned = assign_nearest_seed_support(
+        seeds,
+        support,
+        np.ones(seeds.shape, dtype=np.bool_),
+        maximum_distance_pixels=10.0,
+    )
+
+    np.testing.assert_array_equal(np.flatnonzero(owned[1] == 1), [0])
+    np.testing.assert_array_equal(np.flatnonzero(owned[1] == 2), [3, 4, 5, 6])
+
+
+def test_nearest_seed_support_rejects_an_invalid_distance() -> None:
+    """The straight-line partition never infers its reach."""
+    seeds = np.zeros((3, 3), dtype=np.int32)
+    seeds[1, 1] = 1
+    support = np.ones(seeds.shape, dtype=np.bool_)
+
+    for distance in (-1.0, np.inf, True):
+        with pytest.raises(ValueError, match="maximum seed distance"):
+            assign_nearest_seed_support(
+                seeds,
+                support,
+                support,
+                maximum_distance_pixels=distance,
+            )
+    with pytest.raises(ValueError, match="valid pixels"):
+        assign_nearest_seed_support(
+            seeds, support, support[:-1], maximum_distance_pixels=1.0
+        )
 
 
 def test_segment_cleanup_removes_only_sub_beam_protrusions() -> None:
@@ -687,6 +1036,7 @@ def _whole_plane_publication(
             recovered_minimum_snr=3.0,
         ),
         measurement,
+        flood_labels=labels,
     )
     return refine_persistent_publication_labels(
         measurement, publication, snr, reconstruction
@@ -747,6 +1097,84 @@ def test_restore_follows_the_owner_measurement_gives_a_gap_pixel() -> None:
         final == 8,
         _without_corners(labels, 8, ((12, 2), (12, 8), (14, 2), (14, 8))),
     )
+
+
+def test_publication_gives_a_pixel_outside_every_flood_only_beside_it() -> (
+    None
+):
+    """Outside every flood, publication follows the owner it touches.
+
+    A refined pixel touching its measurement owner's flood is published for
+    that owner. One measured for the owner but apart from its flood, or
+    touching only another owner's flood, would be published apart from the
+    owner, so it is not published.
+    """
+    floods = np.zeros((5, 9), dtype=np.int32)
+    floods[1:4, 1:3] = 1
+    floods[1:4, 7:9] = 2
+    measurement = floods.copy()
+    measurement[2, 3] = 1
+    measurement[2, 5] = 1
+    measurement[2, 6] = 1
+    support = measurement.copy()
+
+    published = published_owner_labels(
+        support, measurement, flood_labels=floods
+    )
+
+    expected = floods.copy()
+    expected[2, 3] = 1
+    np.testing.assert_array_equal(published, expected)
+    with pytest.raises(ValueError, match="aligned two-dimensional planes"):
+        published_owner_labels(
+            support, measurement, flood_labels=floods[:, :-1]
+        )
+
+
+def test_a_recovered_pixel_apart_from_its_flood_is_not_published_for_it() -> (
+    None
+):
+    """A pixel at the island threshold outside every flood stays unpublished.
+
+    It lies two pixels from its owner's block across a significant pixel
+    below the island threshold, which measurement crosses and refinement
+    does not keep. Published for its owner, it split the owner's
+    publication; persistence kept it but not the pixel between, and the
+    bridge round stopped with a bare ``ValueError`` (plan task 64). Not
+    published, it is dropped by the bridge round as a part apart from the
+    owner's earlier support.
+    """
+    labels = np.zeros((9, 12), dtype=np.int32)
+    labels[2:7, 2:7] = 1
+    snr = np.where(labels > 0, 8.0, 0.0)
+    reconstruction = np.zeros(labels.shape, dtype=np.bool_)
+    reconstruction[4, 7:9] = True
+    snr[4, 7] = 2.0
+    snr[4, 8] = 4.0
+    persistent = np.zeros(labels.shape, dtype=np.bool_)
+    persistent[4, 8] = True
+    valid = np.ones(labels.shape, dtype=np.bool_)
+
+    measurement = assign_seeded_multiscale_support(
+        labels, reconstruction, valid, beam_major_fwhm_pixels=4.0
+    )
+    refined = refine_multiscale_segment_labels(
+        labels,
+        snr,
+        reconstruction,
+        beam_major_fwhm_pixels=4.0,
+        recovered_minimum_snr=3.0,
+    )
+    publication = published_owner_labels(
+        refined, measurement, flood_labels=labels
+    )
+    final = refine_persistent_publication_labels(
+        measurement, publication, snr, persistent
+    )
+
+    assert measurement[4, 8] == refined[4, 8] == 1
+    np.testing.assert_array_equal(publication, labels)
+    np.testing.assert_array_equal(final, labels)
 
 
 @pytest.mark.parametrize("gap_rows", [1, 2])
@@ -1268,97 +1696,6 @@ def test_connectivity_restores_owners_split_beyond_their_first_support() -> (
     assert np.array_equal(
         np.nonzero(connected == 1)[1], np.array([2, 3, 4, 14, 15, 16])
     )
-
-
-def _labelled(mask: npt.NDArray[np.bool_]) -> npt.NDArray[np.int32]:
-    """Return eight-connected labels of one analytic support mask."""
-    labels, _ = cast(
-        tuple[npt.NDArray[np.int32], int],
-        ndimage_label(mask, structure=np.ones((3, 3), dtype=np.int8)),
-    )
-    return labels
-
-
-def _bridged_support() -> tuple[
-    npt.NDArray[np.int32],
-    npt.NDArray[np.bool_],
-    npt.NDArray[np.bool_],
-]:
-    """Return two seeds joined only by a long path of diffuse support."""
-    seeds = np.zeros((11, 13), dtype=np.int32)
-    seeds[5, 1] = 4
-    seeds[5, 11] = 2
-    significant = np.zeros(seeds.shape, dtype=np.bool_)
-    significant[5, 1:12] = True
-    return seeds, significant, np.ones(seeds.shape, dtype=np.bool_)
-
-
-def test_supplied_support_components_reproduce_the_derived_assignment() -> (
-    None
-):
-    """A caller's reconciled components give the whole-plane result."""
-    seeds, significant, valid = _bridged_support()
-    components = _labelled(((seeds > 0) | significant) & valid)
-
-    supplied = assign_seeded_multiscale_support(
-        seeds,
-        significant,
-        valid,
-        beam_major_fwhm_pixels=6.0,
-        support_component_labels=components,
-    )
-
-    np.testing.assert_array_equal(
-        supplied,
-        assign_seeded_multiscale_support(
-            seeds,
-            significant,
-            valid,
-            beam_major_fwhm_pixels=6.0,
-        ),
-    )
-    assert set(np.unique(supplied)) == {0, 2, 4}
-
-
-def test_tile_local_support_components_would_separate_joined_support() -> None:
-    """The supplied components are what makes a tiled call exact."""
-    seeds, significant, valid = _bridged_support()
-    severed = ((seeds > 0) | significant) & valid
-    severed[5, 6] = False
-    tile_local = _labelled(severed)
-
-    with pytest.raises(ValueError, match="exactly the eligible support"):
-        assign_seeded_multiscale_support(
-            seeds,
-            significant,
-            valid,
-            beam_major_fwhm_pixels=6.0,
-            support_component_labels=tile_local,
-        )
-
-
-@pytest.mark.parametrize(
-    "components",
-    [
-        np.zeros((3, 3), dtype=np.int32),
-        np.zeros((11, 13), dtype=np.float64),
-        np.full((11, 13), -1, dtype=np.int32),
-    ],
-)
-def test_supplied_support_components_must_be_an_aligned_label_plane(
-    components: npt.NDArray[np.generic],
-) -> None:
-    """A misaligned, real or negative component plane fails closed."""
-    seeds, significant, valid = _bridged_support()
-
-    with pytest.raises(ValueError, match="aligned non-negative label plane"):
-        assign_seeded_multiscale_support(
-            seeds,
-            significant,
-            valid,
-            beam_major_fwhm_pixels=6.0,
-            support_component_labels=components,
-        )
 
 
 def test_a_candidate_goes_to_its_nearest_seed_and_ties_to_the_smaller_label():

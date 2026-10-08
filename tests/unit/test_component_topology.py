@@ -394,15 +394,14 @@ def test_rejects_measurement_pixels_unreachable_from_deblended_seeds(
         _measurement_support: np.ndarray,
         _valid_pixels: np.ndarray,
         *,
-        beam_major_fwhm_pixels: float,
-        recovery_radius_beams: float,
+        maximum_distance_pixels: float,
     ) -> np.ndarray:
-        del beam_major_fwhm_pixels, recovery_radius_beams
+        del maximum_distance_pixels
         return np.zeros(measurement.shape, dtype=np.int32)
 
     monkeypatch.setattr(
         component_topology,
-        "assign_seeded_multiscale_support",
+        "assign_nearest_seed_support",
         unreachable_assignment,
     )
 

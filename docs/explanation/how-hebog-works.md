@@ -145,9 +145,11 @@ can be smaller. Your `minimum_island_pixels` and optional
 `maximum_island_pixels` are applied afterwards.
 
 Diffuse multiscale emission can enlarge the region used to measure a nearby
-detection, but it is assigned to the nearest detection and cannot merge two
-detections merely because their faint wings touch. Multiscale support is kept
-only when it persists at an adjacent wavelet scale.
+detection, but it cannot merge two detections merely because their faint
+wings touch. Each pixel of it goes to the detection nearest along the
+emission itself, within half a beam, so a detection's region is connected
+through its own pixels; a pixel no detection reaches that way is left out.
+Multiscale support is kept only when it persists at an adjacent wavelet scale.
 
 ### 4. Deblend and fit Gaussians
 
@@ -232,7 +234,9 @@ the catalogue's islands. Publication smooths each detection's noisy edge with
 a 3×3 opening and keeps sparse edge pixels only at 6σ, but it never removes an
 accepted detection: one the smoothing would remove entirely, such as a 5–6σ
 point source in a beam only a few pixels wide, keeps its whole thresholded
-footprint. A component whose own pixels fall outside the mask, such as a faint
+footprint. Multiscale emission is published with a detection only where it
+joins that detection's footprint, so no detection is published in parts. A
+component whose own pixels fall outside the mask, such as a faint
 companion on a brighter source's rim, belongs to the islands of the detection
 it was split from. A Gaussian row is published only with its parent source
 row. All four files are written to a private directory, validated, and
@@ -289,7 +293,7 @@ flowchart TD
     drop_unseeded[Discard unseeded region]
     area{Meets multiscale area rule or has a direct detection-threshold pixel?}
     drop_area[Discard unsupported sub-area region]
-    own[Keep direct labels; assign nearby significant multiscale support to nearest seed owner]
+    own[Keep direct labels; assign significant multiscale support within half a beam along it to the nearest seed owner]
     boundary[Refine boundaries with original-pixel S/N and adjacent-scale persistence; preserve owner bridges]
     configured_size{Within caller minimum and optional maximum pixel count?}
     drop_size[Discard component]

@@ -16,6 +16,7 @@ from scipy.ndimage import label
 
 from hebog.algorithms.extended_measurement import (
     assign_seeded_multiscale_support,
+    published_owner_labels,
     refine_multiscale_segment_labels,
     refine_persistent_publication_labels,
 )
@@ -353,11 +354,9 @@ def test_published_labels_match_the_whole_plane_support_chain(
         beam_major_fwhm_pixels=_BEAM.major_fwhm_pixels,
         recovered_minimum_snr=island_sigma,
     )
-    publication = np.where(
-        (direct_publication > 0) & (measurement > 0),
-        measurement,
-        0,
-    ).astype(np.int32, copy=False)
+    publication = published_owner_labels(
+        direct_publication, measurement, flood_labels=detection_labels
+    )
     expected = refine_persistent_publication_labels(
         measurement,
         publication,

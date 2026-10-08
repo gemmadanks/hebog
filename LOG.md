@@ -31457,3 +31457,76 @@ the per-worker placement finding.
   four extra joint solves on an ill-conditioned parent only; about 0.3 to
   0.5 s more joint-fit time on the SDC1 sparse cut-out, on a shared
   machine) and Windows.
+
+## 2026-10-07 — Task 64: a pixel attaches to its owner only through the owner's support
+
+- **Cause.** `assign_seeded_multiscale_support` gave a significant pixel to
+  the nearest seed of its reconciled support component by straight-line
+  distance within half a beam, so an owner could hold a pixel it reached
+  only across other pixels. On the `crowded-field` input with its left 40
+  columns scaled by 0.1, under the RMS that field published before task 63,
+  parent 709 held pixel (585, 96), 2.236 pixels from its flood at
+  (584, 94) across pixels that are not significant and reachable only
+  through owner 1044's support; component topology then raised a bare
+  `ValueError` (`component_topology.py:169`). The plan's stand-in figures
+  were the 0.2 field's (3.4477×10⁻⁵ beside the strip) and do not reproduce
+  it; the 0.1 field published 1.2639×10⁻⁵ there on a background of
+  2.5916×10⁻⁶, which the regression test stands in.
+- **Rule.** A significant pixel takes the seed nearest along an 8-connected
+  path through valid significant pixels (steps of 1 and √2) no longer than
+  half a beam; ties go to the global seed reference
+  (`_nearest_seed_ranks_along_paths`, at most ⌊half a beam⌋ vectorised
+  passes over shifted planes). Every pixel on a shortest path has the same
+  owner, so each owner's support is connected through its own pixels; a
+  pixel no such path reaches is measured for no owner, as one beyond half
+  a beam already was. Ownership depends only on the planes within
+  ⌊half a beam⌋, so the halo is unchanged, and publication no longer reads
+  `support-components`. Without obstacles it equals the straight-line rule
+  to 4 pixels and differs only in reach off the axes and diagonals at some
+  radii (2.41 against 2.24 pixels to a 1×2 offset), which no quick-check
+  beam (2.5, 3.0 and 1.24 pixels of half beam) reaches. A refined pixel
+  outside every flood is published only where it touches its measurement
+  owner's flood, so the bridge round's bare `ValueError`s cannot be
+  reached; no refusal was needed.
+- **Products.** The quick check `task64-final` against `task63`: every
+  catalogue, RMS and mask byte-identical in all 17 cases. The quiet-strip
+  variants at 0.2 and 0.1 over 40, 80 and 160 columns are byte-identical
+  under the current RMS; under the pre-task-63 estimate the 0.2/40 and
+  0.2/80 fields change a few rows (fluxes by at most about 0.1%; mask 3
+  pixels smaller on 0.2/80).
+- **Memory.** The measurement's working set is about 64 bytes a pixel of
+  the window, against 189 on a dense 2,048² field (and 3.4 s to 0.45 s)
+  but 19 on a sparse one. The traced peak is not re-measured; the next
+  tier gate's `just traced-peak` records it.
+- **Tests.** The regression on the 0.1 field under its stood-in estimate,
+  which raised the bare `ValueError` before; Serial, threads and Dask on
+  256-pixel cores against the serial hashes; kernel tests for a path that
+  leaves the support, a detour along it, the half-beam boundary, an
+  unreachable support, a seam splitting the obstructed owner at every row
+  and column, and Hypothesis properties (connected through its own
+  pixels, within half a beam, equal to the straight-line rule without
+  obstacles); the publication touch rule; and a stage seam test with owner
+  bounds on 17-pixel core edges under several cores, reversed completion,
+  a one-pixel budget, threads and Dask.
+- **Found.** The support stage still reconciles and writes
+  `support-components`, which nothing reads now (task 67). The publication
+  halo, max(3, ⌈r⌉ + 2) for half a beam r in pixels, is one pixel short of
+  persistence's ⌊r⌋ + 3 when r is a whole number (beams of 4, 6, 8 and 10
+  pixels); an agent reproduced a seam difference at stage level with a
+  4-pixel beam on 20-pixel cores, on the code before this change too (task
+  66).
+- **Independent review.** A separate agent found nothing at P0 or P1; its
+  P3 findings (docstrings, the kernel's memory from about 98 to 64 bytes a
+  pixel, a matrix test that did not vary its cores, the ADR's halo cell)
+  were fixed.
+- **Checks on the stacked code** (tasks 57, 63, 42 and 64 on the review
+  stack with the beam-limit tolerance commit). The quick check
+  `stack-2026-10-07` against `task42`: no metric and no count changes, so
+  `task42`'s figures stand. The portable suite under coverage: 3,531
+  passed and 1 xfailed, 97% branch-aware project coverage;
+  `component_topology.py`, `stages/publication.py` and `stages/support.py`
+  100%, `extended_measurement.py` 98% with its misses in unchanged
+  functions. The equivalence lane: 33 passed. `just check`, the strict
+  docs build and `just pre-commit`.
+- **Not run.** The slow lane, the quick benchmark and traced peak, Dask
+  process workers and Windows.

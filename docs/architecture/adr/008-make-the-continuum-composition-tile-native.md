@@ -183,7 +183,7 @@ Halo values are for a 5-pixel beam and the reviewed 150/50 and 35/7 grids.
 | Residual B3 à trous | 14 (frozen cumulative) | pixel core | none | none |
 | Island labelling | 0 | pixel core; labels tile-local | edge label runs, per-label pixel count, sum, bounding box, canonical pixel | union–find over boundary equivalences, tree-reduced; aggregates summed |
 | Island admission | 0 | reconciled island | accepted-label set | area and pixel-count predicates on merged aggregates; the accept map is sharded per tile |
-| Seeded multiscale support | 15 (3 beams) | support pixel owned by its nearest global seed reference | global seed references of owners present in the read | none; the read carries globally reconciled support components, and ties are broken by row-major seed reference in-read |
+| Seeded multiscale support | 2 (half a beam, rounded down), within the refinement halo | support pixel owned by the seed nearest to it along the support, within half a beam | global seed references of owners present in the read | none; a pixel's owner depends only on the support within half a beam of it, and ties are broken by row-major seed reference in-read |
 | Segment refinement, pixel work | 3x3 opening influence + 0.5-beam recovery | pixel core | none | none |
 | Segment refinement, owner connectivity | owner window | owner canonical pixel | one restore decision per owner | none; decisions are applied in the core round |
 | Cross-scale association | 0 | scale detection owned by its canonical pixel | per-scale label overlaps observed in the core | union of edge sets, then persistence per connected group |
@@ -233,11 +233,14 @@ published regions that bridge two retained parts of one owner, or all of them
 when no part is retained. No admitted owner can therefore lose all of its
 published support. Both iterate
 over the window holding an owner, so neither can be decided inside a tile core
-whose halo is smaller than that owner. Two further quantities are global: the
-connected components of `(direct support ∪ significant multiscale support) ∩
-valid`, which decide which seed a support pixel may be attached to, and the
+whose halo is smaller than that owner. One further quantity is global: the
 set of owners published anywhere, which decides which owners persistent
-support may restore.
+support may restore. Which seed a support pixel is attached to is not: the
+pixel takes the seed nearest to it along a path through the support, within
+half a beam, so every pixel of that path takes the same seed and an owner's
+support is connected through its own pixels. The connected components of
+`(direct support ∪ significant multiscale support) ∩ valid` are still
+reconciled and published, but no round reads them.
 
 Pass C therefore runs as rounds, each cheap relative to pass B's filters:
 
@@ -245,7 +248,7 @@ Pass C therefore runs as rounds, each cheap relative to pass B's filters:
 | --- | --- | --- | --- |
 | Topology | core, halo 0 | detection labels, reconstruction mask, validity, scale masks | support-union and per-scale island summaries, adjacent-scale label overlaps |
 | Auxiliary publication | core, halo 0 | as above, plus the reconciled mappings | `support-components`, `persistent-support` |
-| Owner connectivity | owner window + refinement halo, or each core a wide owner's window reaches | detection labels, direct signal to noise, reconstruction mask, validity, support components, owner reference pixels | one restore decision per owner; for a wide owner, its published support's components and whether refinement keeps any of its pixels, in each core |
+| Owner connectivity | owner window + refinement halo, or each core a wide owner's window reaches | detection labels, direct signal to noise, reconstruction mask, validity, owner reference pixels | one restore decision per owner; for a wide owner, its published support's components and whether refinement keeps any of its pixels, in each core |
 | Published owners | core + refinement halo | the published planes, owner reference pixels, restore shard | the owners published in the core |
 | Owner bridges | owner window + refinement halo, or each core a wide owner's window reaches | as above, plus the published-owner shard | a label patch bounded by the owner window; for a wide owner, its base and candidate components in each core |
 | Final write | core + refinement halo | as above, plus the patch, wide-owner and admission shards | `component-labels`, `measurement-labels`, `publication-labels`, `retained-mask` |

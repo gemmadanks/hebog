@@ -320,7 +320,8 @@ photometric aperture. Connected `1` pixels define catalogue islands, but
 source association is independent of mask connectivity.
 
 Invalid input pixels cannot be members. Persistent multiscale support is
-admitted only under the governed boundary and ownership rules; it does not
+admitted only under the governed boundary and ownership rules, and joins a
+detection's footprint only through that detection's own pixels; it does not
 mean every low-surface-brightness pixel near a source is included. Those rules
 trim a detection's footprint but never remove an accepted detection: one they
 would remove entirely keeps its whole thresholded footprint.

@@ -376,7 +376,9 @@ def _chain(  # noqa: PLR0913
         beam_major_fwhm_pixels=beam.major_fwhm_pixels,
         recovered_minimum_snr=_ISLAND_SIGMA,
     )
-    publication = published_owner_labels(direct_publication, measurement)
+    publication = published_owner_labels(
+        direct_publication, measurement, flood_labels=labels
+    )
     final = refine_persistent_publication_labels(
         measurement,
         publication,
@@ -915,16 +917,26 @@ def _tailed_owner_planes() -> tuple[
     return labels, direct_snr, reconstruction, valid
 
 
-def _run_tailed_owner(
+_Planes = tuple[
+    npt.NDArray[np.int32],
+    npt.NDArray[np.float64],
+    npt.NDArray[np.bool_],
+    npt.NDArray[np.bool_],
+]
+
+
+def _run_wide_beam_planes(  # noqa: PLR0913
     root: Path,
+    planes: _Planes,
+    persistent: npt.NDArray[np.bool_],
     *,
     core: int,
     executor: Executor,
     maximum_batch_read_pixels: int,
 ) -> tuple[PublicationStageResult, dict[str, npt.NDArray[np.generic]]]:
-    """Publish the tailed owner's support over one geometry and executor."""
+    """Publish one fixture's support under the wider beam, as configured."""
     root.mkdir(parents=True, exist_ok=True)
-    labels, direct_snr, reconstruction, valid = _tailed_owner_planes()
+    labels, direct_snr, reconstruction, valid = planes
     detection_source, support_source = _publish_planes(
         root,
         labels=labels,
@@ -932,7 +944,7 @@ def _run_tailed_owner(
         reconstruction=reconstruction,
         valid=valid,
         components=_support_components(labels, reconstruction, valid),
-        persistent=reconstruction,
+        persistent=persistent,
     )
     config = _config(
         beam=_TAILED_BEAM,
@@ -986,14 +998,95 @@ def test_a_tailed_owner_is_restored_and_published_in_one_part(
 
     def check(name: str, core: int, executor: Executor, budget: int) -> None:
         """Run one variant and require the whole-plane products."""
-        result, published = _run_tailed_owner(
+        result, published = _run_wide_beam_planes(
             tmp_path / name,
+            _tailed_owner_planes(),
+            reconstruction,
             core=core,
             executor=executor,
             maximum_batch_read_pixels=budget,
         )
         assert result.restored_owner_count == 1, name
         assert result.bridged_owner_count == 1, name
+        for product_name, values in expected.items():
+            np.testing.assert_array_equal(
+                published[product_name], values, f"{name}:{product_name}"
+            )
+
+    check("one-tile", 80, SerialExecutor(), 8192)
+    check("cores-17", 17, SerialExecutor(), 8192)
+    check("cores-20-reverse", 20, _ReverseCompletionExecutor(), 8192)
+    check("from-cores", 17, SerialExecutor(), 1)
+    with ThreadExecutor(2) as threads:
+        check("threads", 17, threads, 8192)
+    with Client(
+        processes=False,
+        n_workers=2,
+        threads_per_worker=1,
+        dashboard_address=":0",
+    ) as client:
+        check("dask-from-cores", 17, DaskExecutor(client), 1)
+
+
+def _support_apart_from_owners() -> _Planes:
+    """Return two owners with significant support apart from their floods.
+
+    Owner 1 is a block whose bounds end on the x=17 core edge. One pixel
+    beyond them at 2 sigma, significant at 4 sigma, is a recovered pixel
+    outside every flood two pixels from the block. Owner 3, whose bounds end
+    on the x=34 core edge, has pixel (25, 35) two pixels away in a straight
+    line across an unsupported column; the support joins it to owner 3 only
+    along a strand to owner 5's block and a detour back along row 29.
+    """
+    labels = np.zeros(_SHAPE_YX, dtype=np.int32)
+    labels[12:17, 12:17] = 1
+    labels[22:29, 31:34] = 3
+    labels[24:27, 43:46] = 5
+    direct_snr = np.full(_SHAPE_YX, -np.inf, dtype=np.float64)
+    direct_snr[labels > 0] = _HIGH_SNR
+    reconstruction = np.zeros(_SHAPE_YX, dtype=np.bool_)
+    reconstruction[14, 17:19] = True
+    reconstruction[25, 35:43] = True
+    reconstruction[27:30, 44] = True
+    reconstruction[29, 34:45] = True
+    direct_snr[reconstruction] = 2.0
+    direct_snr[14, 18] = _WEAK_SNR
+    valid = np.ones(_SHAPE_YX, dtype=np.bool_)
+    return labels, direct_snr, reconstruction, valid
+
+
+def test_support_apart_from_an_owner_is_neither_measured_nor_published_for_it(
+    tmp_path: Path,
+) -> None:
+    """Every geometry, budget and executor attaches support along owners.
+
+    By straight-line distance, measurement gave pixel (25, 35) to owner 3,
+    which held it apart from its flood, and publication gave the recovered
+    pixel (14, 18) to owner 1 apart from its block; persisting without the
+    pixel between, it stopped the bridge round with a bare ``ValueError``
+    (plan task 64). Neither is attached now, from any core geometry.
+    """
+    planes = _support_apart_from_owners()
+    persistent = np.zeros(_SHAPE_YX, dtype=np.bool_)
+    persistent[14, 18] = True
+    expected = _chain(*planes, persistent, beam=_TAILED_BEAM)
+    assert expected["measurement-labels"][14, 18] == 1
+    assert expected["measurement-labels"][25, 35] == 0
+    np.testing.assert_array_equal(
+        np.asarray(expected["publication-labels"], dtype=np.int32) > 0,
+        planes[0] > 0,
+    )
+
+    def check(name: str, core: int, executor: Executor, budget: int) -> None:
+        """Run one variant and require the whole-plane products."""
+        _, published = _run_wide_beam_planes(
+            tmp_path / name,
+            planes,
+            persistent,
+            core=core,
+            executor=executor,
+            maximum_batch_read_pixels=budget,
+        )
         for product_name, values in expected.items():
             np.testing.assert_array_equal(
                 published[product_name], values, f"{name}:{product_name}"
