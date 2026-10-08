@@ -720,6 +720,114 @@ def test_a_compact_source_beside_a_brighter_broad_one_gets_a_gaussian(
         assert np.min(np.hypot(positions[:, 0] - x, positions[:, 1] - y)) < 1
 
 
+def _resolved_source_among_faint_neighbours() -> npt.NDArray[np.float64]:
+    """Return a 20-sigma resolved source with five faint neighbours.
+
+    The resolved Gaussian, sigma 3.5 by 2 pixels at 30 degrees, is centred
+    at (x, y) = (24, 32) of a 64-pixel image with a 2.48-pixel beam, as on
+    the SDC1 cut-outs. Five beam-shaped sources of 4.5 to 6.5 sigma lie 3 to
+    8 pixels from it, in noise correlated over the beam with unit RMS, all
+    drawn from seed 44: the first of 80 draws of this recipe in which a
+    neighbour's owned pixels cannot fix its shape, so the joint free fit
+    holding the resolved source is singular.
+    """
+    rng = np.random.default_rng(44)
+    yy, xx = np.mgrid[:64, :64]
+    angle = np.deg2rad(30.0)
+    along = np.cos(angle) * (xx - 24.0) + np.sin(angle) * (yy - 32.0)
+    across = -np.sin(angle) * (xx - 24.0) + np.cos(angle) * (yy - 32.0)
+    image = 20.0 * np.exp(-0.5 * ((along / 3.5) ** 2 + (across / 2.0) ** 2))
+    beam_sigma = 2.48 / (2.0 * np.sqrt(2.0 * np.log(2.0)))
+    for _ in range(5):
+        radius, bearing = rng.uniform(3.0, 8.0), rng.uniform(0.0, 2.0 * np.pi)
+        x = 24.0 + radius * np.cos(bearing)
+        y = 32.0 + radius * np.sin(bearing)
+        image += rng.uniform(4.5, 6.5) * np.exp(
+            -((xx - x) ** 2 + (yy - y) ** 2) / (2.0 * beam_sigma**2)
+        )
+    noise = ndimage.gaussian_filter(
+        rng.normal(size=image.shape), beam_sigma / np.sqrt(2.0)
+    )
+    return np.asarray(image + noise / noise.std(), dtype=np.float64)
+
+
+def test_a_resolved_source_keeps_its_shape_beside_a_degenerate_neighbour(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    substituted_background_rms: SubstituteBackgroundRms,
+) -> None:
+    """A neighbour that collapses in the joint fit takes only its own beam.
+
+    The joint free fit holding the resolved source is singular, and the
+    resolved source is still published with a free shape, well wider than
+    the beam, which cannot describe it.
+    """
+    image = _resolved_source_among_faint_neighbours()
+    header = _header(image.shape)
+    header["BMAJ"] = header["BMIN"] = 2.48 / 3600.0
+    fits.PrimaryHDU(data=image, header=header).writeto(tmp_path / "image.fits")
+    monkeypatch.setattr(
+        public_api,
+        "_estimate_background_rms",
+        substituted_background_rms(
+            image, np.zeros_like(image), np.ones_like(image)
+        ),
+    )
+    singular: list[int] = []
+    solve = fitting_algorithm._joint_candidates  # pyright: ignore[reportPrivateUsage]
+
+    def record_singular_free_fits(
+        samples: Any, bounds: Any, reasons: Any
+    ) -> Any:
+        candidates = solve(samples, bounds, reasons)
+        condition = candidates[0].diagnostics.information_condition_number
+        if (
+            not any(reasons)
+            and len(reasons) > 1
+            and (
+                condition is None
+                or condition
+                > samples.config.maximum_information_condition_number
+            )
+        ):
+            singular.append(len(reasons))
+        return candidates
+
+    monkeypatch.setattr(
+        fitting_algorithm, "_joint_candidates", record_singular_free_fits
+    )
+
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+
+    assert singular
+    components = read_catalogue_fits_product(
+        result.catalogue
+    ).gaussian_components
+    x, y = (
+        np.asarray(
+            WCS(header).celestial.all_world2pix(
+                [
+                    (
+                        row.position.right_ascension_degrees,
+                        row.position.declination_degrees,
+                    )
+                    for row in components
+                ],
+                0,
+            )
+        )
+        .reshape(-1, 2)
+        .T
+    )
+    distances = np.hypot(x - 24.0, y - 32.0)
+    assert distances.size and distances.min() < 1.0
+    resolved = components[int(np.argmin(distances))]
+    assert "beam-constrained-fit" not in resolved.quality_flags
+    assert 3600.0 * resolved.fitted_shape.major_fwhm_degrees > 2.0 * 2.48
+
+
 @pytest.mark.integration
 def test_current_projection_rejects_inconsistent_public_evidence(
     tmp_path: Path,

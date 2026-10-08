@@ -9,7 +9,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import TypeVar, cast
+from typing import TypeAlias, TypeVar, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -51,6 +51,10 @@ from hebog.config import (
     CompactDeblendConfig,
     CompactGaussianFitConfig,
     CompactMomentConfig,
+)
+from hebog.data_models.fitting import (
+    FailedCompactGaussianFit,
+    ValidCompactGaussianFit,
 )
 from hebog.data_models.images import RestoringBeam
 from hebog.data_models.partitioning import ImageBounds, PartitionManifest
@@ -865,13 +869,16 @@ def _measurement_header() -> fits.Header:
     return header
 
 
-def _measurement_inputs() -> tuple[
+_MeasurementInputs: TypeAlias = tuple[
     npt.NDArray[np.float64],
     npt.NDArray[np.float64],
     npt.NDArray[np.bool_],
     npt.NDArray[np.int32],
     npt.NDArray[np.int32],
-]:
+]
+
+
+def _measurement_inputs() -> _MeasurementInputs:
     """Return the residual, RMS and component planes the fits measure."""
     signal, _, _, valid = _planes()
     topology = deblend_component_topology(
@@ -899,9 +906,12 @@ def _measurement_sources(
     root: Path,
     *,
     valid_pixels: npt.NDArray[np.bool_] | None = None,
+    inputs: _MeasurementInputs | None = None,
 ) -> tuple[ZarrProductSink, ...]:
     """Publish every generation the fit rounds read."""
-    _, rms, valid, direct, measurement = _measurement_inputs()
+    _, rms, valid, direct, measurement = (
+        _measurement_inputs() if inputs is None else inputs
+    )
     if valid_pixels is not None:
         valid = valid_pixels
     return (
@@ -951,12 +961,14 @@ def _run_fits(  # noqa: PLR0913
     maximum_bounds_pixels: int | None = None,
     valid_pixels: npt.NDArray[np.bool_] | None = None,
     image_source: object | None = None,
+    inputs: _MeasurementInputs | None = None,
 ) -> _PublishedFits:
     """Reconcile the fit parents, then measure them, in isolation."""
     root.mkdir(parents=True, exist_ok=True)
-    residual, _, _, _, _ = _measurement_inputs()
+    planes = _measurement_inputs() if inputs is None else inputs
+    residual = planes[0]
     background_source, detection_source, component_source = (
-        _measurement_sources(root, valid_pixels=valid_pixels)
+        _measurement_sources(root, valid_pixels=valid_pixels, inputs=planes)
     )
     moment_config, fit_config = _fit_config()
     atrous_plan = build_residual_atrous_plan(
@@ -1029,7 +1041,7 @@ def _run_fits(  # noqa: PLR0913
             maximum_tiles_per_batch=2,
             maximum_batch_read_pixels=maximum_batch_read_pixels,
         ),
-        component_count=_component_count(),
+        component_count=int(planes[3].max()),
         wcs_header_text=_measurement_header().tostring(),
         beam=RestoringBeam(4.0 / 3600.0, 4.0 / 3600.0, 0.0),
         executor=resolved,  # type: ignore[arg-type]
@@ -1048,9 +1060,12 @@ def _run_fits(  # noqa: PLR0913
 
 def _whole_plane_measurements(
     maximum_bounds_pixels: int | None = None,
+    inputs: _MeasurementInputs | None = None,
 ) -> ComponentMeasurements:
     """Measure every fit parent over complete planes, as the oracle."""
-    residual, rms, valid, direct, measurement = _measurement_inputs()
+    residual, rms, valid, direct, measurement = (
+        _measurement_inputs() if inputs is None else inputs
+    )
     moment_config, fit_config = _fit_config()
     return measure_component_models(
         residual,
@@ -1471,6 +1486,86 @@ def test_component_fits_are_partition_and_batch_invariant(
             )
         ),
     )
+
+
+def _ridge_parent_inputs() -> _MeasurementInputs:
+    """Return one fit parent whose joint free fit is singular.
+
+    A 20-sigma source, sigma 3.5 by 2 pixels at 30 degrees, centred at
+    x = 42, owns its positive pixels above 3 sigma; its neighbour owns a
+    one-pixel-wide ridge at x = 54 whose pixels cannot fix its width. The
+    parent crosses x = 48, a core seam at 16 and 24 pixels, and x = 40 at
+    20. Unit white noise covers the 32 by 40 pixels around them.
+    """
+    yy, xx = np.mgrid[: _SHAPE_YX[0], : _SHAPE_YX[1]]
+    angle = np.deg2rad(30.0)
+    along = np.cos(angle) * (xx - 42.0) + np.sin(angle) * (yy - 24.0)
+    across = -np.sin(angle) * (xx - 42.0) + np.cos(angle) * (yy - 24.0)
+    resolved = 20.0 * np.exp(-0.5 * ((along / 3.5) ** 2 + (across / 2.0) ** 2))
+    residual = resolved.copy()
+    residual[8:40, 28:68] += np.random.default_rng(3).normal(size=(32, 40))
+    ridge = np.zeros(_SHAPE_YX, dtype=np.bool_)
+    ridge[20:29, 54] = True
+    ridge[27, 55] = True
+    residual[22:27, 54] += 6.0
+    residual[ridge] = np.abs(residual[ridge]) + 0.5
+    labels = np.zeros(_SHAPE_YX, dtype=np.int32)
+    labels[(resolved > 3.0) & (residual > 0.0)] = 1
+    labels[ridge] = 2
+    return (
+        residual,
+        np.ones(_SHAPE_YX, dtype=np.float64),
+        np.ones(_SHAPE_YX, dtype=np.bool_),
+        labels,
+        labels,
+    )
+
+
+@pytest.mark.parametrize("variant", ("core-16", "core-20", "core-24", "dask"))
+def test_a_repaired_joint_fit_is_partition_and_executor_invariant(
+    tmp_path: Path, variant: str
+) -> None:
+    """A joint fit repaired around a degenerate component crosses seams.
+
+    The singular joint fit keeps its resolved component free and gives the
+    ridge the beam, the same on every core size and executor, and as the
+    whole-plane oracle measures it.
+    """
+    inputs = _ridge_parent_inputs()
+    reference = _run_fits(tmp_path / "reference", core=64, inputs=inputs)
+    if variant == "dask":
+        with Client(
+            processes=False,
+            n_workers=2,
+            threads_per_worker=1,
+            dashboard_address=":0",
+        ) as client:
+            measured = _run_fits(
+                tmp_path / variant,
+                executor=DaskExecutor(client),
+                inputs=inputs,
+            )
+    else:
+        measured = _run_fits(
+            tmp_path / variant,
+            core=int(variant.removeprefix("core-")),
+            maximum_batch_read_pixels=1,
+            inputs=inputs,
+        )
+
+    _assert_parents_equal(measured.result.parents, reference.result.parents)
+    (parent,) = reference.result.parents
+    resolved, ridge = (fit for _, fit in parent.fits)
+    assert isinstance(resolved, ValidCompactGaussianFit)
+    assert resolved.diagnostics.model_identity == "free-elliptical"
+    assert isinstance(
+        ridge, ValidCompactGaussianFit | FailedCompactGaussianFit
+    )
+    assert ridge.diagnostics is not None
+    assert ridge.diagnostics.model_identity == "beam-constrained"
+    assert ridge.diagnostics.fallback_reason == "free-model-ill-conditioned"
+    oracle = _whole_plane_measurements(inputs=inputs)
+    assert tuple(parent.fits) == oracle.fits
 
 
 class _ShiftedBoundsSource:

@@ -31348,3 +31348,112 @@ the per-worker placement finding.
   distance transform and one interpolation on the bright-region grid, and
   an elementwise comparison in the blend; the quick check's Hebog time was
   150 s against 166 s for `task57`, on a shared machine) and Windows.
+
+## 2026-10-07 — Task 42: a joint fit keeps its well-constrained components when one degenerates
+
+- **Diagnosis** (an agent, on the stack with task 57). A joint fit's free
+  model was judged on one information condition number (limit 10⁸), which
+  `_joint_candidates` stamped on every candidate, so one degenerate
+  component flagged all of them `free-model-ill-conditioned`, every one
+  took the beam, and `_admit_fallbacks` left resolved beam fallbacks with
+  residual emission unpublished as `fit-model-inadequate`. On the SDC1
+  sparse cut-out that gave 39 fallbacks and 15 unpublished, from four
+  multi-component parents and two single-component ones; on the crowded
+  one 45 and 10. Every multi-component case began with a collapse: one or
+  two components owning 7 to 19 positive pixels at 4.5 to 12.4σ, minor
+  axis 0.2 to 0.9 of the beam σ, own information block singular (condition
+  6×10⁷ to 3×10¹⁷), and leaving that component out dropped the joint
+  condition below the limit (parent 114: 5.8×10¹⁴ to 2.5×10⁴, its healthy
+  siblings at block condition 6 to 7). Spreading to the 30-pixel size
+  bound alone did not cause it; bound contact is already judged per
+  component.
+- **Practice.** PyBDSF `master` (`c70103b`) flags each Gaussian after
+  each of up to five fits and refits only the unflagged ones
+  (`gausfit.py:367-382`, `821-928`), with no condition-number test, and
+  drops to fixed-shape Gaussians when degrees of freedom run short
+  (`765-791`). Aegean 2.3.5 bounds each component's width at 0.8 of the
+  PSF minor σ and fixes summits of six pixels or fewer to the PSF
+  (`source_finder.py:385-407`, `534-541`). Neither sends every component
+  to the beam on one global number.
+- **Decision (7 October).** Measured on the quick check and SDC1 truth:
+
+  | Rule | SDC1 sparse fallbacks / unpublished | Quick check against `task57` | Changed Gaussians against SDC1 truth, flux bias (dex) |
+  | --- | --- | --- | --- |
+  | Current | 39 / 15 | — | −0.072 |
+  | A: beam-constrain the degenerate components, refit the rest free | 7 / 0 | no flag; sparse completeness against `master` 0.910 to 0.933 | +0.010 |
+  | B: drop them and refit, as PyBDSF | 7 / 1, 5 invalid | no flag; drops 6 Gaussians with a truth counterpart | −0.008 |
+  | C: σ floor at 0.8 of the beam's minor σ, as Aegean | 15 / 5 | 3 flags (SDC1 sparse flux and peak p95, LoTSS dense flux p95) | unchanged |
+
+  The maintainer chose A. Declined: B and C.
+- **Rule.** `_select_joint_candidates` in `algorithms/fitting.py` calls
+  `_repair_degenerate_components` only when the joint free fit converged
+  and is ill-conditioned; a well-conditioned fit takes the old path
+  exactly. `_degenerate_components` searches greedily, leaving one
+  component out at a time from the column-normalised information matrix,
+  in the basis the acceptance judges, and ranks by fewest unidentified
+  directions, then condition number; an exact tie goes to the component
+  whose first owned pixel comes first, so the result does not depend on
+  component order. The degenerate components, and any whose own free
+  solution is invalid or at a bound, take the beam, and the rest are
+  refitted free in one joint solve and judged again until identifiable;
+  the existing extension test then runs. The published model is one joint
+  solution accepted on the same 10⁸ condition. When the search finds
+  nothing new to constrain or a refit fails, the old whole-fit fallback
+  runs. A condition number ranks a trial only where the rest is
+  identifiable, compared on a log scale rounded to nine digits, because an
+  unidentifiable trial's condition is rounding noise: ranking on it alone
+  removed healthy components where two were singular (SDC1 crowded parent
+  74). The repair takes at most n + 1 joint solves; a decomposition that
+  fails while repairing falls back to the old path. In a repaired fit only
+  components that take the beam record the free model they rejected.
+- **Figures** (`task63` to `task42`): SDC1 sparse, ill-conditioned
+  fallbacks 39 to 7, unpublished 15 to 0, Gaussians 574 to 589, sources
+  561 to 573; SDC1 crowded 45 to 11, 12 to 0, 906 to 918 and 886 to 897.
+  The seven left are the degenerate components and two single-component
+  fits. For the Gaussians changed in place, flux bias against SDC1 truth
+  moves from −0.072 to +0.010 dex (sparse) and −0.081 to −0.016 (crowded),
+  and the median absolute flux error from 0.099 to 0.044 and 0.081 to
+  0.042 dex; truth matching is indicative (primary-beam-corrected truth,
+  non-Gaussian sources, brightest truth source within a beam).
+- **Quick check** `task42` against `task63`: no regression. Only the SDC1
+  catalogues change; every other case's catalogue, RMS and mask is
+  byte-identical. Sparse against `master`: completeness 0.910 to 0.933,
+  reliability 0.968 to 0.972, integrated-flux p95 0.746 to 0.741, peak p95
+  0.709 to 0.699, separation p95 0.118 to 0.121 beam. `task42` is the next
+  baseline.
+- **Tests.** A resolved 20σ source beside a one-pixel-wide ten-pixel
+  ridge stays a free ellipse within 5% in axes and 7% in flux over nine
+  singular draws (beam-constrained before); order invariance; a degenerate
+  single-component fit still takes the beam; well-conditioned fits never
+  enter the repair; the search's ranking, ties under every order, two
+  singular components and agreement with a brute-force search over 20
+  seeds; refit failures fall back; through `measure_fit_parent_components`
+  the sibling is not inadequate and the parent reaches grouping; the
+  parent across core seams on three core sizes and under Dask; and
+  `find_sources` publishes the sibling's free shape, which it did not.
+- **Independent review.** A separate agent found nothing at P0 or P1. From
+  its findings: the ranking above, after its fuzz showed the choice
+  depending on component order in tied and multi-singular problems (51 of
+  1,500 permutations); tests for a bound-contact and an invalid sibling,
+  for each information basis, for two singular components over 600 seeds
+  and for permutation invariance over 600 problems; the decomposition
+  fallback; and the rejected-model fields. Each of its seven mutations now
+  fails a test. The quick check `task42-review` equals `task42` in every
+  catalogue, RMS, mask and metric; only the diagnostics' rejected-model
+  fields of 30 and 28 retained components change.
+- **Open.** If one component's moments are unavailable, every peer in its
+  joint fit becomes `joint-peer-unavailable`; seen in one synthetic draw,
+  in no quick-check case. The search does not prune its left-out set
+  backwards, so it can constrain more than the fewest components, and a
+  repair can still end in the whole-fit fallback when a beam-constrained
+  block reaches a bound (one synthetic 12-component scene).
+- **Checks on the stacked code.** The portable suite under coverage: 3,507
+  passed and 1 xfailed, 97% branch-aware project coverage;
+  `algorithms/component_measurement.py` 100% and `algorithms/fitting.py`
+  98%, whose seven misses lie outside the changed lines. The equivalence
+  lane: 33 passed. `just check`, the strict docs build and `just
+  pre-commit`.
+- **Not run.** The slow lane, the quick benchmark and traced peak (two to
+  four extra joint solves on an ill-conditioned parent only; about 0.3 to
+  0.5 s more joint-fit time on the SDC1 sparse cut-out, on a shared
+  machine) and Windows.

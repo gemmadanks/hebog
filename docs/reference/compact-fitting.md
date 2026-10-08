@@ -78,13 +78,41 @@ Under `beam-or-free`, a five-sigma log-area test selects clear extension
 directly; otherwise the nested candidates are compared by BIC with the
 number of independent samples appropriate to their residual model. A free
 candidate that pins a bound or is ill conditioned yields to the beam model,
-or the fit fails. Gaussian publication applies a second whole-model test: a
+or the fit fails; in a joint fit only the components responsible yield, as
+described below. Gaussian publication applies a second whole-model test: a
 free component rejected at the five-sigma boundary is still published when
 its log-area extension exceeds 1.5 standard errors, otherwise the complete
 beam ellipse is published, so axes, angle, centroid and total always come
 from one selected fit and a free axis is never mixed with a beam angle. The
 selected and rejected models, bound distances, condition number and fallback
 reason stay in the diagnostics.
+
+A joint fit is judged well conditioned on one information condition number
+for all its components, but one component can make it singular alone: one
+that owns a few pixels along a line, say, cannot fix its own width. When a
+converged joint free fit is ill conditioned, Hebog finds such components by
+leaving out, one at a time, the component whose absence leaves the fewest
+directions the rest cannot identify and, among those that leave none, the
+best-conditioned information, compared on a log scale to nine decimals so
+that equal trials tie; every tie goes to the component whose first owned
+pixel comes first, until the rest is within the limit. Those components,
+and any whose own free solution is invalid or at a bound, take the beam with
+`free-model-ill-conditioned` or their own reason, while the others stay free
+in one joint refit. The refit is judged the same way until it is well
+conditioned, and its free components that are not significantly extended
+then take the beam too, as beside a bound contact. Every component keeps
+its parameters and covariance from that one solution. Each refit
+constrains more components than the model before it, so a joint fit of
+`n` components takes at most `n + 1` solves, free and fallback included,
+unless a decomposition fails.
+When no component can be found to constrain, a refit does not converge or
+a decomposition fails, every component of the fit takes the beam; that
+can still happen after a repair starts, for instance when a
+beam-constrained component's own block reaches a bound and leaves the
+refit singular. In a repaired fit only a component that takes the beam
+records the free model it rejected. PyBDSF likewise judges each
+Gaussian of an island fit on its own and refits the others without the
+flagged ones, and Aegean bounds each component's shape.
 
 A beam fallback chosen because the free ellipse failed admission is also
 checked for residual adequacy on the joint model's likelihood pixels.
@@ -94,9 +122,7 @@ pixels, the residual à trous scales or a matched-filter scale, and attributed
 to the nearest component. Unexplained emission makes that Gaussian
 `fit-model-inadequate` rather than an unresolved measurement; its identity,
 support and source aperture remain, and valid neighbours keep their
-parameters from the same joint solution. The plan's task 42 concerns the
-case where one degenerate component sends every component of a joint fit to
-this fallback.
+parameters from the same joint solution.
 
 No fit publishes an aperture flux of its own: every fit is a joint fit, and
 an aperture around one component would sum its neighbours' light, so the

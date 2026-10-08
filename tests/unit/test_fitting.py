@@ -25,6 +25,7 @@ from hebog.data_models.fitting import (
     AssociationAperturePhotometry,
     CompactGaussianFitResult,
     FailedCompactGaussianFit,
+    GaussianFitDiagnostics,
     UnavailableCompactGaussianFit,
     ValidCompactGaussianFit,
 )
@@ -619,6 +620,996 @@ def test_failed_beam_alternative_keeps_a_valid_joint_free_fit(
         and result.diagnostics.model_identity == "free-elliptical"
         for result in results
     )
+
+
+# A 2.48-pixel FWHM beam, as on the SDC1 cut-outs: barely Nyquist sampled.
+_UNDERSAMPLED_BEAM_SIGMA = 2.48 / (2.0 * np.sqrt(2.0 * np.log(2.0)))
+_RESOLVED_AMPLITUDE = 20.0
+_RESOLVED_SIGMA_AXES = (3.5, 2.0)
+# Noise draws of `_degenerate_neighbour_input` in which the thin
+# component's owned pixels cannot constrain its own width, so the joint
+# free fit has no identifiable solution. In draws 1, 4 and 6 they can.
+_DEGENERATE_DRAWS = (0, 2, 3, 5, 7, 8, 9, 10, 11)
+
+
+def _labelled_region(
+    labels: np.ndarray, label: int, signal: np.ndarray, island_id: str
+) -> DeblendedRegion:
+    """Describe one owned label as the deblender would."""
+    support = labels == label
+    ys, xs = np.nonzero(support)
+    peak = np.unravel_index(
+        np.argmax(np.where(support, signal, -np.inf)), signal.shape
+    )
+    return DeblendedRegion(
+        region_id=f"component-{label}",
+        region_label=label,
+        island_id=island_id,
+        pixel_count=int(support.sum()),
+        bounds=ImageBounds(
+            int(ys.min()), int(ys.max() + 1), int(xs.min()), int(xs.max() + 1)
+        ),
+        peak_signal_to_noise=float(signal[peak]),
+        peak_position_yx=(int(peak[0]), int(peak[1])),
+        first_pixel_yx=(int(ys[0]), int(xs[0])),
+    )
+
+
+def _degenerate_neighbour_input(
+    seed: int, labels_kept: tuple[int, ...] = (1, 2)
+) -> tuple[_FitInput, CompactMeasurementGeometry, CompactGaussianFitConfig]:
+    """A resolved source beside a component that owns a one-pixel ridge.
+
+    Component 1 is a 20-sigma Gaussian, sigma 3.5 by 2 pixels at 30
+    degrees, owning its positive pixels above 3 sigma. Component 2 owns a
+    one-pixel-wide column of nine positive pixels, five of them raised by
+    6 sigma, and one pixel beside it: its own pixels sample it along a line,
+    so they cannot constrain its width, as for the components that sent
+    joint fits on the SDC1 cut-outs singular. Components named in
+    ``labels_kept`` beyond these are added to the image: 3 is a 12-sigma
+    point source well apart from both; 4 owns only the right flank of a
+    15-sigma Gaussian of sigma 2.5 pixels centred 2 pixels left of its
+    pixels, so its free centroid stops at the region's margin. The noise is
+    white with unit RMS; ``seed`` draws it.
+    """
+    shape = (32, 40)
+    yy, xx = np.mgrid[: shape[0], : shape[1]]
+    angle = np.deg2rad(30.0)
+    along = np.cos(angle) * (xx - 14.0) + np.sin(angle) * (yy - 16.0)
+    across = -np.sin(angle) * (xx - 14.0) + np.cos(angle) * (yy - 16.0)
+    resolved = _RESOLVED_AMPLITUDE * np.exp(
+        -0.5
+        * (
+            (along / _RESOLVED_SIGMA_AXES[0]) ** 2
+            + (across / _RESOLVED_SIGMA_AXES[1]) ** 2
+        )
+    )
+    image = resolved + np.random.default_rng(seed).normal(size=shape)
+    ridge = np.zeros(shape, dtype=np.bool_)
+    ridge[12:21, 26] = True
+    ridge[19, 27] = True
+    image[14:19, 26] += 6.0
+    image[ridge] = np.abs(image[ridge]) + 0.5
+    point = 12.0 * np.exp(
+        -0.5
+        * ((xx - 5.0) ** 2 + (yy - 6.0) ** 2)
+        / _UNDERSAMPLED_BEAM_SIGMA**2
+    )
+    if 3 in labels_kept:
+        image += point
+    flank = 15.0 * np.exp(-0.5 * ((xx - 3.0) ** 2 + (yy - 26.0) ** 2) / 2.5**2)
+    if 4 in labels_kept:
+        image += flank
+    labels = np.zeros(shape, dtype=np.int32)
+    labels[(resolved > 3.0) & (image > 0.0)] = 1
+    labels[ridge] = 2
+    labels[(point > 3.0) & (image > 0.0)] = 3
+    labels[(flank > 3.0) & (xx >= 5) & (image > 0.0)] = 4
+    labels[~np.isin(labels, labels_kept)] = 0
+    bounds = ImageBounds(0, shape[0], 0, shape[1])
+    owned = labels > 0
+    peak = np.unravel_index(np.argmax(np.where(owned, image, -np.inf)), shape)
+    ys, xs = np.nonzero(owned)
+    island = DetectedIsland(
+        island_id="island-00001",
+        global_label=1,
+        pixel_count=int(owned.sum()),
+        bounds=bounds,
+        peak_signal_to_noise=float(image[peak]),
+        peak_position_yx=(int(peak[0]), int(peak[1])),
+        first_pixel_yx=(int(ys[0]), int(xs[0])),
+        touches_image_edge=False,
+    )
+    compact = _FitInput(
+        island=island,
+        array_bounds=bounds,
+        regions=tuple(
+            _labelled_region(labels, label, image, island.island_id)
+            for label in labels_kept
+        ),
+        physical_residual=image,
+        rms=np.ones(shape, dtype=np.float64),
+        valid_pixels=np.ones(shape, dtype=np.bool_),
+        region_labels=labels,
+    )
+    beam_variance = _UNDERSAMPLED_BEAM_SIGMA**2
+    geometry = CompactMeasurementGeometry(
+        pixel_solid_angle_steradians=1.0,
+        restoring_beam_solid_angle_steradians=2.0 * np.pi * beam_variance,
+        restoring_beam_covariance_pixels_squared=(
+            beam_variance,
+            0.0,
+            beam_variance,
+        ),
+    )
+    # The installed component policy, with its 1.5-sigma extension test.
+    config = _fit_config(
+        maximum_sigma_pixels=30.0,
+        maximum_axis_ratio=30.0,
+        convergence_tolerance=1e-8,
+        extension_significance_sigma=1.5,
+        component_extension_significance_sigma=1.5,
+        pixel_support="owned-region",
+        model_selection="beam-or-free",
+    )
+    return compact, geometry, config
+
+
+def _free_joint_conditions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> list[float | None]:
+    """Record the information condition of every joint free solve."""
+    conditions: list[float | None] = []
+    original = fitting_algorithm._joint_candidates
+
+    def record(samples: Any, bounds: Any, reasons: Any) -> Any:
+        candidates = original(samples, bounds, reasons)
+        if not any(reasons):
+            conditions.append(
+                candidates[0].diagnostics.information_condition_number
+            )
+        return candidates
+
+    monkeypatch.setattr(fitting_algorithm, "_joint_candidates", record)
+    return conditions
+
+
+@pytest.mark.parametrize("seed", _DEGENERATE_DRAWS)
+def test_a_degenerate_component_keeps_its_resolved_neighbour_free(
+    monkeypatch: pytest.MonkeyPatch, seed: int
+) -> None:
+    """Only the component whose pixels cannot fix its shape takes the beam.
+
+    The joint free fit has no identifiable solution because component 2
+    collapses onto its ridge. The 20-sigma resolved neighbour keeps its own
+    free ellipse, with its size and flux, and records no rejected model of
+    its own; the ridge takes the beam, published or failed at a bound.
+    """
+    compact, geometry, config = _degenerate_neighbour_input(seed)
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+    free_conditions = _free_joint_conditions(monkeypatch)
+
+    resolved, degenerate = fit_compact_gaussian_mixture(
+        compact, moments, geometry, config
+    )
+
+    condition = free_conditions[0]
+    assert (
+        condition is None
+        or condition > config.maximum_information_condition_number
+    )
+    assert isinstance(resolved, ValidCompactGaussianFit)
+    assert resolved.diagnostics.model_identity == "free-elliptical"
+    assert resolved.diagnostics.fallback_reason is None
+    published = resolved.diagnostics.information_condition_number
+    assert published is not None
+    assert published <= config.maximum_information_condition_number
+    assert (
+        resolved.parameters.major_sigma_pixels,
+        resolved.parameters.minor_sigma_pixels,
+    ) == pytest.approx(_RESOLVED_SIGMA_AXES, rel=0.05)
+    true_flux = (
+        _RESOLVED_AMPLITUDE
+        * 2.0
+        * np.pi
+        * np.prod(_RESOLVED_SIGMA_AXES)
+        / geometry.restoring_beam_solid_angle_steradians
+    )
+    assert resolved.parameters.integrated_flux_jy == pytest.approx(
+        true_flux, rel=0.07
+    )
+    assert resolved.diagnostics.rejected_model_identity is None
+    assert resolved.diagnostics.rejected_model_bound_parameters == ()
+    if isinstance(degenerate, FailedCompactGaussianFit):
+        assert degenerate.reason == "fit-invalid-result"
+    diagnostics = _fit_diagnostics(degenerate)
+    assert diagnostics.model_identity == "beam-constrained"
+    assert diagnostics.fallback_reason == "free-model-ill-conditioned"
+    assert diagnostics.rejected_model_identity == "free-elliptical"
+
+
+def _fit_diagnostics(
+    result: CompactGaussianFitResult,
+) -> GaussianFitDiagnostics:
+    """Return a fitted or failed result's diagnostics, which it must have."""
+    assert not isinstance(result, UnavailableCompactGaussianFit)
+    assert result.diagnostics is not None
+    return result.diagnostics
+
+
+def _fit_degenerate_neighbours(
+    seed: int, *, reverse: bool = False
+) -> tuple[CompactGaussianFitResult, ...]:
+    """Fit `_degenerate_neighbour_input`, in region order or reversed."""
+    compact, geometry, config = _degenerate_neighbour_input(seed)
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+    if not reverse:
+        return fit_compact_gaussian_mixture(compact, moments, geometry, config)
+    return fit_compact_gaussian_mixture(
+        replace(compact, regions=compact.regions[::-1]),
+        moments[::-1],
+        geometry,
+        config,
+    )[::-1]
+
+
+@pytest.mark.parametrize("seed", _DEGENERATE_DRAWS[:3])
+def test_a_repaired_joint_fit_does_not_depend_on_component_order(
+    seed: int,
+) -> None:
+    """Listing the components the other way round repairs the same fit."""
+    forward = _fit_degenerate_neighbours(seed)
+    backward = _fit_degenerate_neighbours(seed, reverse=True)
+
+    for first, second in zip(forward, backward, strict=True):
+        assert type(first) is type(second)
+        if isinstance(first, ValidCompactGaussianFit):
+            assert isinstance(second, ValidCompactGaussianFit)
+            assert first.diagnostics.model_identity == (
+                second.diagnostics.model_identity
+            )
+            assert first.diagnostics.fallback_reason == (
+                second.diagnostics.fallback_reason
+            )
+            assert first.parameters.centroid_xy == pytest.approx(
+                second.parameters.centroid_xy, abs=1e-5
+            )
+            assert first.parameters.integrated_flux_jy == pytest.approx(
+                second.parameters.integrated_flux_jy, rel=1e-5
+            )
+
+
+@pytest.mark.parametrize("seed", _DEGENERATE_DRAWS[:3])
+def test_a_degenerate_single_component_still_takes_the_beam(
+    monkeypatch: pytest.MonkeyPatch, seed: int
+) -> None:
+    """With no neighbour to keep free, the component falls back as before."""
+    compact, geometry, config = _degenerate_neighbour_input(
+        seed, labels_kept=(2,)
+    )
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+    free_conditions = _free_joint_conditions(monkeypatch)
+
+    (fitted,) = fit_compact_gaussian_mixture(
+        compact, moments, geometry, config
+    )
+
+    condition = free_conditions[0]
+    assert (
+        condition is None
+        or condition > config.maximum_information_condition_number
+    )
+    diagnostics = _fit_diagnostics(fitted)
+    assert diagnostics.model_identity == "beam-constrained"
+    assert diagnostics.fallback_reason == "free-model-ill-conditioned"
+
+
+@pytest.mark.parametrize("seed", (1, 4, 6))
+@pytest.mark.parametrize("fixture", ("ridge", "pair", "mixed"))
+def test_a_well_conditioned_joint_fit_keeps_the_existing_selection(
+    monkeypatch: pytest.MonkeyPatch, seed: int, fixture: str
+) -> None:
+    """Only an unidentifiable joint free fit is repaired.
+
+    In these draws the ridge's pixels do fix its shape, and the analytic
+    pairs are well conditioned, so the nested free and beam models are
+    compared as before, in at most two joint solves.
+    """
+    if fixture == "ridge":
+        compact, geometry, config = _degenerate_neighbour_input(seed)
+    else:
+        compact = _joint_input()
+        if fixture == "mixed":
+            yy, xx = np.mgrid[:25, :33]
+            compact = replace(
+                compact,
+                physical_residual=50
+                * np.exp(
+                    -0.5 * (((xx - 12) / 2) ** 2 + ((yy - 12) / 1.5) ** 2)
+                )
+                + 50
+                * np.exp(
+                    -0.5 * (((xx - 19) / 3.2) ** 2 + ((yy - 12) / 2.2) ** 2)
+                ),
+            )
+        geometry = replace(
+            _geometry(),
+            restoring_beam_covariance_pixels_squared=(4.0, 0.0, 2.25),
+        )
+        config = _fit_config(
+            background_model="fixed-zero", model_selection="beam-or-free"
+        )
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+    solves = 0
+    original = fitting_algorithm.least_squares
+
+    def counted(*args: Any, **kwargs: Any) -> Any:
+        nonlocal solves
+        solves += 1
+        return original(*args, **kwargs)
+
+    def no_repair(*_args: Any, **_kwargs: Any) -> None:
+        raise AssertionError("a well-conditioned joint fit was repaired")
+
+    monkeypatch.setattr(fitting_algorithm, "least_squares", counted)
+    monkeypatch.setattr(
+        fitting_algorithm, "_repair_degenerate_components", no_repair
+    )
+
+    fitted = fit_compact_gaussian_mixture(compact, moments, geometry, config)
+
+    assert solves <= 2
+    assert all(isinstance(item, ValidCompactGaussianFit) for item in fitted)
+
+
+def test_a_repair_that_finds_nothing_falls_back_at_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """No component to constrain sends every component to the beam at once.
+
+    Here the joint covariance is unavailable although the information is
+    well conditioned, so no component makes it singular and no refit is
+    tried before the whole-fit fallback.
+    """
+    compact = _joint_input()
+    geometry = replace(
+        _geometry(), restoring_beam_covariance_pixels_squared=(4.0, 0.0, 2.25)
+    )
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+    solves = 0
+    original = fitting_algorithm.least_squares
+
+    def counted(*args: Any, **kwargs: Any) -> Any:
+        nonlocal solves
+        solves += 1
+        return original(*args, **kwargs)
+
+    def unavailable_covariance(*_args: Any, **_kwargs: Any) -> None:
+        return None
+
+    monkeypatch.setattr(fitting_algorithm, "least_squares", counted)
+    monkeypatch.setattr(
+        fitting_algorithm, "_parameter_covariance", unavailable_covariance
+    )
+
+    fitted = fit_compact_gaussian_mixture(
+        compact,
+        moments,
+        geometry,
+        _fit_config(
+            background_model="fixed-zero", model_selection="beam-or-free"
+        ),
+    )
+
+    assert solves == 2
+    assert all(
+        isinstance(item, FailedCompactGaussianFit)
+        and item.diagnostics is not None
+        and item.diagnostics.model_identity == "beam-constrained"
+        for item in fitted
+    )
+
+
+def _repaired_ridge_with(
+    monkeypatch: pytest.MonkeyPatch, name: str, replacement: Any
+) -> tuple[CompactGaussianFitResult, ...]:
+    """Fit the first degenerate ridge draw with one kernel replaced."""
+    monkeypatch.setattr(fitting_algorithm, name, replacement)
+    return _fit_degenerate_neighbours(_DEGENERATE_DRAWS[0])
+
+
+def test_a_repaired_neighbour_that_is_not_extended_takes_the_beam(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The refit's free components face the extension test.
+
+    Judged not significantly extended in the refit, the neighbour takes
+    the beam as it would beside a bound contact, under that reason rather
+    than the degenerate component's.
+    """
+
+    def never_extended(*_args: Any, **_kwargs: Any) -> bool:
+        return False
+
+    resolved, degenerate = _repaired_ridge_with(
+        monkeypatch, "_significantly_extended", never_extended
+    )
+
+    assert isinstance(resolved, ValidCompactGaussianFit)
+    assert resolved.diagnostics.model_identity == "beam-constrained"
+    assert resolved.diagnostics.fallback_reason == (
+        "free-model-not-significantly-extended"
+    )
+    assert _fit_diagnostics(degenerate).fallback_reason == (
+        "free-model-ill-conditioned"
+    )
+
+
+def test_an_unresolved_neighbour_takes_the_beam_beside_a_resolved_one() -> (
+    None
+):
+    """Extension is judged once; the resolved neighbour stays free.
+
+    A 12-sigma point source joins the resolved source and the ridge. Once
+    the ridge takes the beam, the point source is not significantly
+    extended in the refit, so it takes the beam too and the next refit,
+    with only the resolved source free, is published.
+    """
+    compact, geometry, config = _degenerate_neighbour_input(
+        _DEGENERATE_DRAWS[0], labels_kept=(1, 2, 3)
+    )
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+
+    resolved, degenerate, point = fit_compact_gaussian_mixture(
+        compact, moments, geometry, config
+    )
+
+    assert isinstance(resolved, ValidCompactGaussianFit)
+    assert resolved.diagnostics.model_identity == "free-elliptical"
+    assert isinstance(point, ValidCompactGaussianFit)
+    assert point.diagnostics.model_identity == "beam-constrained"
+    assert point.diagnostics.fallback_reason == (
+        "free-model-not-significantly-extended"
+    )
+    assert _fit_diagnostics(degenerate).fallback_reason == (
+        "free-model-ill-conditioned"
+    )
+
+
+@pytest.mark.parametrize(
+    "failure", ("non-convergence", "invalid", "singular", "irreparable")
+)
+def test_a_refit_that_cannot_be_accepted_falls_back_for_every_component(
+    monkeypatch: pytest.MonkeyPatch, failure: str
+) -> None:
+    """A refit that fails, or leaves nothing free, ends in the beam fallback.
+
+    The refit keeping the resolved neighbour free is made to fail to
+    converge, to put that neighbour at a bound, to be singular again
+    through the free neighbour, or to be singular through the beam model
+    itself, which constraining the neighbour cannot repair. In each case no
+    component is left free, so both take the beam.
+    """
+    solver = fitting_algorithm.least_squares
+    solves = 0
+
+    def second_solve(*args: Any, **kwargs: Any) -> Any:
+        nonlocal solves
+        solves += 1
+        result = solver(*args, **kwargs)
+        if solves == 2 and failure == "non-convergence":
+            result.success = False
+        if solves == 2 and failure == "singular":
+            result.jac[:, -1] = result.jac[:, 0]
+        if solves == 2 and failure == "irreparable":
+            result.jac[:, -1] = 0.0
+        return result
+
+    invalid = fitting_algorithm._invalid_free_reason
+
+    def bound_in_refit(candidate: Any, config: Any) -> Any:
+        if failure == "invalid" and solves == 2:
+            return "free-model-bound-contact"
+        return invalid(candidate, config)
+
+    monkeypatch.setattr(fitting_algorithm, "least_squares", second_solve)
+    fitted = _repaired_ridge_with(
+        monkeypatch, "_invalid_free_reason", bound_in_refit
+    )
+
+    assert all(
+        _fit_diagnostics(item).model_identity == "beam-constrained"
+        for item in fitted
+    )
+    resolved_reason = (
+        "free-model-bound-contact"
+        if failure == "invalid"
+        else "free-model-ill-conditioned"
+    )
+    assert tuple(
+        _fit_diagnostics(item).fallback_reason for item in fitted
+    ) == (
+        resolved_reason,
+        "free-model-ill-conditioned",
+    )
+
+
+def test_a_decomposition_failure_while_repairing_falls_back(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A refit's linear-algebra failure leaves the whole-fit fallback.
+
+    The failure is not a failure of the joint fit itself, so every
+    component takes the beam rather than failing with the decomposition.
+    """
+    solver = fitting_algorithm.least_squares
+    solves = 0
+
+    def second_solve_fails(*args: Any, **kwargs: Any) -> Any:
+        nonlocal solves
+        solves += 1
+        if solves == 2:
+            raise np.linalg.LinAlgError("SVD did not converge")
+        return solver(*args, **kwargs)
+
+    fitted = _repaired_ridge_with(
+        monkeypatch, "least_squares", second_solve_fails
+    )
+
+    assert solves == 3
+    assert all(
+        _fit_diagnostics(item).model_identity == "beam-constrained"
+        and _fit_diagnostics(item).fallback_reason
+        == "free-model-ill-conditioned"
+        for item in fitted
+    )
+
+
+@pytest.mark.parametrize("seed", (0, 3, 8))
+def test_a_neighbour_at_a_bound_takes_the_beam_in_the_first_refit(
+    monkeypatch: pytest.MonkeyPatch, seed: int
+) -> None:
+    """A component already at a bound is constrained, not judged.
+
+    The flank component's free centroid stops at its region's margin in the
+    singular free fit, so the first refit gives it the beam together with
+    the degenerate ridge, and one refit settles the fit.
+    """
+    compact, geometry, config = _degenerate_neighbour_input(
+        seed, labels_kept=(1, 2, 4)
+    )
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+    free_conditions = _free_joint_conditions(monkeypatch)
+    solver = fitting_algorithm.least_squares
+    solves = 0
+
+    def counted(*args: Any, **kwargs: Any) -> Any:
+        nonlocal solves
+        solves += 1
+        return solver(*args, **kwargs)
+
+    monkeypatch.setattr(fitting_algorithm, "least_squares", counted)
+
+    resolved, ridge, flank = fit_compact_gaussian_mixture(
+        compact, moments, geometry, config
+    )
+
+    condition = free_conditions[0]
+    assert (
+        condition is None
+        or condition > config.maximum_information_condition_number
+    )
+    assert solves == 2
+    assert isinstance(resolved, ValidCompactGaussianFit)
+    assert resolved.diagnostics.model_identity == "free-elliptical"
+    assert _fit_diagnostics(ridge).fallback_reason == (
+        "free-model-ill-conditioned"
+    )
+    assert _fit_diagnostics(flank).model_identity == "beam-constrained"
+    assert _fit_diagnostics(flank).fallback_reason == (
+        "free-model-bound-contact"
+    )
+
+
+@pytest.mark.parametrize("seed", (2, 3, 8))
+def test_a_degenerate_component_with_an_invalid_shape_keeps_that_reason(
+    seed: int,
+) -> None:
+    """An invalid free solution takes the beam for that reason first.
+
+    Under an axis-ratio limit of 2 the ridge's collapsed free ellipse is
+    invalid as well as degenerate, so it is set aside as invalid before any
+    search, and the resolved neighbour, alone well conditioned, stays free.
+    """
+    compact, geometry, config = _degenerate_neighbour_input(seed)
+    config = replace(config, maximum_axis_ratio=2.0)
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+
+    resolved, ridge = fit_compact_gaussian_mixture(
+        compact, moments, geometry, config
+    )
+
+    assert isinstance(resolved, ValidCompactGaussianFit)
+    assert resolved.diagnostics.model_identity == "free-elliptical"
+    assert _fit_diagnostics(ridge).model_identity == "beam-constrained"
+    assert _fit_diagnostics(ridge).fallback_reason == (
+        "free-model-invalid-result"
+    )
+
+
+def _basis_candidates(*, round_component: bool) -> tuple[Any, tuple[Any, ...]]:
+    """Return fit samples and two free candidates of one joint fit.
+
+    The first is the 20-sigma source, exactly round when asked, so its
+    optimizer angle column is zero; the second has collapsed onto the
+    ridge, its minor sigma 0.2 pixels across a one-pixel-wide column. Each
+    candidate carries its exact optimizer-basis Jacobian.
+    """
+    compact, geometry, config = _degenerate_neighbour_input(0)
+    valid = compact.region_labels > 0
+    samples = fitting_algorithm._fit_samples_from_mask(
+        compact, valid, compact.array_bounds, geometry, config
+    )
+    rows = (
+        (20.0, 14.0, 16.0, 3.0, 3.0 if round_component else 2.0, 0.5, 0.0),
+        (6.5, 26.0, 16.0, 2.5, 0.2, 0.5 * np.pi, 0.0),
+    )
+    candidates = []
+    for row in rows:
+        full = np.asarray(row, dtype=np.float64)
+        jacobian = samples.residual_transform(
+            fitting_algorithm._gaussian_parameter_jacobian(
+                full, samples.x, samples.y
+            )[:, :6]
+            / samples.rms[:, None]
+        )
+        candidates.append(
+            fitting_algorithm._FitCandidate(
+                success=True,
+                optimizer_parameters=full[:6],
+                full_parameters=full,
+                jacobian=jacobian,
+                covariance=None,
+                diagnostics=GaussianFitDiagnostics(
+                    converged=True,
+                    function_evaluations=1,
+                    chi_squared=1.0,
+                    degrees_of_freedom=1,
+                    reduced_chi_squared=1.0,
+                    parameters_at_bound=False,
+                ),
+            )
+        )
+    return samples, tuple(candidates)
+
+
+def test_a_round_component_is_judged_in_precision_coordinates() -> None:
+    """A circle's undefined angle does not make its component degenerate.
+
+    The optimizer basis holds a zero angle column for the round source, so
+    judged there it would be left out too; with no identifiable optimizer
+    information the search judges Cartesian precision coordinates, where
+    only the collapsed ridge is degenerate.
+    """
+    samples, candidates = _basis_candidates(round_component=True)
+    assert not np.any(candidates[0].jacobian[:, 5])
+
+    degenerate = fitting_algorithm._degenerate_free_components(
+        samples, candidates, (None, None), ((16, 14), (12, 26))
+    )
+
+    assert degenerate == frozenset({1})
+
+
+@pytest.mark.parametrize(
+    ("parameterization", "condition", "expected"),
+    (
+        ("optimizer", 1e12, frozenset({0})),
+        ("cartesian-precision", 1e12, frozenset()),
+        ("optimizer", None, frozenset()),
+    ),
+)
+def test_the_degenerate_search_judges_the_basis_the_fit_was_judged_in(
+    parameterization: Literal["optimizer", "cartesian-precision"],
+    condition: float | None,
+    expected: frozenset[int],
+) -> None:
+    """The search uses the basis that judged the joint fit ill conditioned.
+
+    The source's optimizer Jacobian is made singular by repeating its
+    amplitude column, while its exact Cartesian blocks, rebuilt from its
+    parameters, are not. A condition the optimizer basis gave is judged
+    there and finds the source; one recovered in precision coordinates, or
+    none found in either basis, is judged in precision coordinates, where
+    the ridge-free pair is identifiable.
+    """
+    samples, (source, _) = _basis_candidates(round_component=False)
+    jacobian = source.jacobian.copy()
+    jacobian[:, 1] = jacobian[:, 0]
+    diagnostics = replace(
+        source.diagnostics,
+        covariance_parameterization=parameterization,
+        information_condition_number=condition,
+    )
+    elongated = replace(source, jacobian=jacobian, diagnostics=diagnostics)
+    other = replace(
+        source,
+        full_parameters=np.asarray(
+            (8.0, 22.0, 20.0, 2.0, 1.5, 0.3, 0.0), dtype=np.float64
+        ),
+    )
+    other = replace(
+        other,
+        jacobian=samples.residual_transform(
+            fitting_algorithm._gaussian_parameter_jacobian(
+                other.full_parameters, samples.x, samples.y
+            )[:, :6]
+            / samples.rms[:, None]
+        ),
+    )
+
+    degenerate = fitting_algorithm._degenerate_free_components(
+        samples, (elongated, other), (None, None), ((16, 14), (20, 22))
+    )
+
+    assert degenerate == expected
+
+
+def _unit_information(jacobian: np.ndarray) -> np.ndarray:
+    """Normalize columns as the joint fit does before conditioning."""
+    return fitting_algorithm._normalized_information(jacobian)
+
+
+def test_the_degenerate_search_leaves_out_the_singular_component() -> None:
+    """A component whose own columns coincide is the one left out."""
+    rng = np.random.default_rng(3)
+    jacobian = rng.normal(size=(40, 6))
+    jacobian[:, 3] = jacobian[:, 2]
+
+    left_out = fitting_algorithm._degenerate_components(
+        _unit_information(jacobian),
+        (2, 2, 2),
+        judged=frozenset({0, 1, 2}),
+        removable=frozenset({0, 1, 2}),
+        canonical_keys=((0, 0), (0, 1), (0, 2)),
+        maximum_condition=1e8,
+    )
+
+    assert left_out == frozenset({1})
+
+
+@pytest.mark.parametrize(
+    "order", ((0, 1, 2), (1, 0, 2), (2, 1, 0), (1, 2, 0), (2, 0, 1))
+)
+def test_the_degenerate_search_breaks_ties_on_the_canonical_key(
+    order: tuple[int, int, int],
+) -> None:
+    """Two components that duplicate each other: leave out the first named.
+
+    Leaving out either restores the same condition number exactly, so the
+    choice falls to the component whose canonical key sorts first, however
+    the components are listed.
+    """
+    rng = np.random.default_rng(5)
+    columns = rng.normal(size=(30, 3))
+    columns[:, 1] = columns[:, 0]
+    keys = ((7, 3), (2, 9), (4, 4))
+
+    left_out = fitting_algorithm._degenerate_components(
+        _unit_information(columns[:, list(order)]),
+        (1, 1, 1),
+        judged=frozenset({0, 1, 2}),
+        removable=frozenset({0, 1, 2}),
+        canonical_keys=tuple(keys[index] for index in order),
+        maximum_condition=1e8,
+    )
+
+    assert left_out == frozenset({order.index(1)})
+
+
+def _singular_components(
+    rng: np.random.Generator, singular: tuple[int, ...]
+) -> np.ndarray:
+    """Return five three-column components; those named are each singular."""
+    jacobian = rng.normal(size=(80, 15))
+    for index in singular:
+        jacobian[:, 3 * index + 1] = jacobian[:, 3 * index]
+    return jacobian
+
+
+@pytest.mark.parametrize("pair", ((1, 4), (0, 2), (3, 4)))
+def test_the_degenerate_search_leaves_out_two_singular_components(
+    pair: tuple[int, int],
+) -> None:
+    """Each of two components alone singular: both, and only both, go.
+
+    With either left, the rest's condition number sits at the limit of
+    double precision whichever other component is left out, so ranking on
+    it alone left out healthy components in many draws, as on the crowded
+    SDC1 cut-out; counting unidentified directions does not.
+    """
+    keys = ((0, 4), (0, 3), (0, 2), (0, 1), (0, 0))
+    wrong = [
+        seed
+        for seed in range(200)
+        if fitting_algorithm._degenerate_components(
+            _unit_information(
+                _singular_components(np.random.default_rng(seed), pair)
+            ),
+            (3, 3, 3, 3, 3),
+            judged=frozenset(range(5)),
+            removable=frozenset(range(5)),
+            canonical_keys=keys,
+            maximum_condition=1e8,
+        )
+        != frozenset(pair)
+    ]
+
+    assert wrong == []
+
+
+def _permutation_problem(
+    rng: np.random.Generator, *, tied: bool
+) -> list[np.ndarray]:
+    """Return the column blocks of three to seven components.
+
+    A tied problem repeats one component's whole block as another's, so
+    leaving out either leaves the same matrix; otherwise two to five
+    columns repeat others, within or across components, so several
+    directions are singular at once.
+    """
+    count = int(rng.integers(3, 8))
+    widths = rng.integers(2, 4, size=count)
+    jacobian = rng.normal(size=(60, int(widths.sum())))
+    if tied:
+        first, second = (int(item) for item in rng.choice(count, 2, False))
+        widths[second] = widths[first]
+        jacobian = rng.normal(size=(60, int(widths.sum())))
+        starts = np.concatenate(((0,), np.cumsum(widths)[:-1]))
+        jacobian[:, starts[second] : starts[second] + widths[second]] = (
+            jacobian[:, starts[first] : starts[first] + widths[first]]
+        )
+    else:
+        for _ in range(int(rng.integers(2, 6))):
+            source, target = rng.choice(jacobian.shape[1], 2, False)
+            jacobian[:, target] = jacobian[:, source]
+    return np.split(jacobian, np.cumsum(widths)[:-1], axis=1)
+
+
+@pytest.mark.parametrize("tied", (True, False))
+def test_the_degenerate_search_does_not_depend_on_component_order(
+    tied: bool,
+) -> None:
+    """Listing components in any order leaves out the same components.
+
+    Over 300 seeded problems and three orders each: an exactly tied pair of
+    components, whose choice rounding noise in the eigenvalues would
+    otherwise decide, and several singular directions at once, where every
+    trial's condition number is noise.
+    """
+    changed = []
+    for seed in range(300):
+        rng = np.random.default_rng(seed)
+        blocks = _permutation_problem(rng, tied=tied)
+        keys = tuple((int(key), 0) for key in rng.permutation(len(blocks)))
+
+        def left_out(
+            order: np.ndarray,
+            blocks: list[np.ndarray] = blocks,
+            keys: tuple[tuple[int, int], ...] = keys,
+        ) -> frozenset[int] | None:
+            found = fitting_algorithm._degenerate_components(
+                _unit_information(
+                    np.column_stack([blocks[index] for index in order])
+                ),
+                tuple(blocks[index].shape[1] for index in order),
+                judged=frozenset(range(len(order))),
+                removable=frozenset(range(len(order))),
+                canonical_keys=tuple(keys[index] for index in order),
+                maximum_condition=1e8,
+            )
+            return (
+                None
+                if found is None
+                else frozenset(int(order[index]) for index in found)
+            )
+
+        reference = left_out(np.arange(len(blocks)))
+        if any(
+            left_out(rng.permutation(len(blocks))) != reference
+            for _ in range(3)
+        ):
+            changed.append(seed)
+
+    assert changed == []
+
+
+def test_the_degenerate_search_cannot_remove_a_component_it_may_not() -> None:
+    """A singularity in a component that must stay cannot be repaired."""
+    rng = np.random.default_rng(7)
+    jacobian = rng.normal(size=(40, 4))
+    jacobian[:, 0] = 0.0
+
+    assert (
+        fitting_algorithm._degenerate_components(
+            _unit_information(jacobian),
+            (2, 2),
+            judged=frozenset({0, 1}),
+            removable=frozenset({1}),
+            canonical_keys=((0, 0), (0, 1)),
+            maximum_condition=1e8,
+        )
+        is None
+    )
+
+
+def test_the_degenerate_search_leaves_out_nothing_when_none_is_needed() -> (
+    None
+):
+    """Judged components that are already identifiable stay as they are."""
+    jacobian = np.random.default_rng(9).normal(size=(40, 4))
+
+    assert (
+        fitting_algorithm._degenerate_components(
+            _unit_information(jacobian),
+            (2, 2),
+            judged=frozenset({0, 1}),
+            removable=frozenset({0, 1}),
+            canonical_keys=((0, 0), (0, 1)),
+            maximum_condition=1e8,
+        )
+        == frozenset()
+    )
+
+
+@pytest.mark.parametrize("seed", range(20))
+def test_the_degenerate_search_matches_deleting_the_left_out_columns(
+    seed: int,
+) -> None:
+    """Identity padding judges each trial as the deleted submatrix does.
+
+    A brute-force greedy search that deletes the left-out components'
+    columns and decomposes what remains chooses the same components.
+    """
+    rng = np.random.default_rng(seed)
+    counts = tuple(int(item) for item in rng.integers(1, 4, size=5))
+    jacobian = rng.normal(size=(60, sum(counts)))
+    for _ in range(2):
+        first, second = rng.choice(sum(counts), size=2, replace=False)
+        jacobian[:, second] = jacobian[:, first] + 1e-6 * rng.normal(size=60)
+    information = _unit_information(jacobian)
+    owners = np.repeat(np.arange(len(counts)), counts)
+    keys = tuple((int(item), 0) for item in rng.permutation(len(counts)))
+
+    def judgement(kept: set[int]) -> tuple[int, float]:
+        """Rank as the search does: unidentified directions, then the
+        condition number on a rounded log scale where there are none."""
+        columns = np.flatnonzero(np.isin(owners, sorted(kept)))
+        if columns.size == 0:
+            return 0, 0.0
+        values = np.linalg.eigvalsh(information[np.ix_(columns, columns)])
+        unidentified = int(np.count_nonzero(values * 1e8 <= values[-1]))
+        if unidentified:
+            return unidentified, float("inf")
+        return 0, round(float(np.log10(values[-1] / values[0])), 9)
+
+    kept = set(range(len(counts)))
+    expected: set[int] = set()
+    while judgement(kept)[0]:
+        chosen = min(
+            kept, key=lambda index: (*judgement(kept - {index}), keys[index])
+        )
+        kept.remove(chosen)
+        expected.add(chosen)
+
+    assert fitting_algorithm._degenerate_components(
+        information,
+        counts,
+        judged=frozenset(range(len(counts))),
+        removable=frozenset(range(len(counts))),
+        canonical_keys=keys,
+        maximum_condition=1e8,
+    ) == frozenset(expected)
 
 
 @pytest.mark.slow
