@@ -36,7 +36,8 @@ integration locally. The demonstration notebook is
 | `just test-contract`, `just test-integration`, `just test-acceptance` | Public behaviour contracts; Dask, FITS and Rapthor boundaries; Rapthor-facing scenarios | Changes to the public API, executors, I/O or products |
 | `just test-equivalence` | `find_sources` and its stages against frozen PyBDSF products | Scientific changes |
 | `just test-slow` | Long regressions and development matrices; CI runs them weekly and on dispatch | Before a release that changes science |
-| `just test-qualification`, `just test-benchmark`, `just test-scalability` | Controlled lanes that need approved data or hardware | Only when the plan names them |
+| `just test-benchmark` | The quick-benchmark and traced-peak smoke tests, which CI runs on every pull request | Changes to the benchmark tooling |
+| `just test-qualification`, `just test-scalability` | Controlled lanes that need approved data or hardware | Only when the plan names them |
 | `just pre-commit` | Every hook, slow ones included | Before staging a commit |
 
 Rules the test configuration enforces:
@@ -44,8 +45,10 @@ Rules the test configuration enforces:
 - Markers are strict and declared in `pyproject.toml`; every warning is an
   error and every `xfail` is strict.
 - Unit tests need no scheduler, network or downloaded data. A test that
-  needs local products uses `integration` and `requires_data` and fails,
-  rather than skips, when the data is missing or changed.
+  needs data outside the repository is marked `requires_data`, which every
+  routine lane excludes: it runs in the qualification or scalability lane or
+  when called directly, skips when its input is not configured, and fails
+  when the configured file is missing.
 - `config/contracts/phase-0-public-behaviours.json` names the test that
   holds each frozen public behaviour. An unimplemented behaviour is a
   strict-xfail placeholder; when it starts passing, convert the test to a

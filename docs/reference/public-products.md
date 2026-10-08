@@ -185,10 +185,11 @@ the quantity you want, and `INTEGRATED_FLUX` when PyBDSF-comparable
 photometry is.
 
 Free Gaussian fitting also carries a signal-to-noise-dependent positive
-bias, inherent to the estimator rather than to Hebog: about +14% at SNR 10,
-+3.5% at SNR 20 and +1% at SNR 50 in median excess over injected truth, with
-pinned PyBDSF `master` measured at the same size on the same population. It
-is documented rather than corrected; the 3σ-clipped mean ratio to truth is
+bias, inherent to the estimator rather than to Hebog: a median excess over
+injected truth of +12.8% at SNR 10, +2.0% at SNR 20 and +0.3% at SNR 50 on
+independent noise realizations, within the plan's limits of +14%, +3.5% and
++1%, with pinned PyBDSF `master` measured on the same population. It is
+documented rather than corrected; the 3σ-clipped mean ratio to truth is
 within 2% at SNR ≥ 20.
 
 Source apertures are formed from source ownership and adjacent-scale
@@ -379,7 +380,7 @@ including objects with no published catalogue row.
 | --- | --- |
 | `object_kind`, `object_id` | `component` or `source`, and its stable identity. |
 | `status` | `measured`, `unavailable`, or `deferred`. |
-| `estimator` | `original-pixel-gaussian-model` for a measured component; for a measured source, `summed-fitted-component-flux`, or `source-owned-signed-aperture` when it has no admitted fit; otherwise null. |
+| `estimator` | `original-pixel-gaussian-model` for a measured component. For a measured `continuum` source, `summed-fitted-component-flux`, or `source-owned-signed-aperture` when it has no admitted fit; a `compact` source's disposition is its one component's, with the component's identity and estimator. Otherwise null. |
 | `reason` | Null for a measurement; explicit cause for unavailable/deferred work. |
 | `member_component_ids` | Complete canonical membership for a source; empty for a component. Source memberships partition the component population. |
 | `catalogue_row_published` | Whether this exact identity appears in its corresponding FITS table. |

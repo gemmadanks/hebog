@@ -34,8 +34,8 @@ with no minor axis or position angle.
 Positive geometric deconvolution is necessary but not sufficient evidence of
 extension. Hebog applies the one-sided
 [ATLAS DR3](https://doi.org/10.1093/mnras/stv1866) statistic,
-`ln(S_integrated / S_peak)` over the quadrature relative uncertainty of the
-two fluxes, at a conservative five sigma rather than ATLAS's two, because a
+`ln(S_integrated / S_peak)` over the relative uncertainty of the two
+fluxes, combined in quadrature less their covariance when the fit gives it, at a conservative five sigma rather than ATLAS's two, because a
 false resolved shape is a material catalogue error and the equivalence
 contract requires Hebog to be no worse than released PyBDSF. A geometrically
 resolved fit that fails the test is unresolved with
@@ -74,8 +74,10 @@ errors. Both are great-circle angles, because the Jacobian is east/north:
 `E_RA` is not divided by cos(dec), matching PyBDSF and the fixed angle
 Rapthor compares it with. Flux errors use the same covariance, flagged
 `correlated-noise-sandwich-errors` with a declared beam correlation and
-`formal-independent-pixel-errors` without one. Shape uncertainties are null
-with `shape-uncertainty-unavailable`; when the fit covariance is unavailable,
+`formal-independent-pixel-errors` without one. Fitted-shape uncertainties
+come from the same covariance for a free fit whose shape block is usable;
+for a beam-constrained or circular fit, or an unusable block, they are null
+with `shape-uncertainty-unavailable`. When the fit covariance is unavailable,
 position and flux errors are null with
 `position-flux-uncertainty-unavailable`. Zero never means unknown. A
 component's published integrated flux is its infinite-plane fitted integral,

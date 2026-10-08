@@ -35,7 +35,7 @@ Rapthor/PyBDSF/LSMTool vocabulary onto it.
 | Moment initializer | Brightness-weighted pixel centroid and covariance reduced over exact owned pixels to initialize a nonlinear fit. Its axes and pixel-space angle are not fitted or beam-deconvolved source shape. |
 | Detected-segment flux centroid | Brightness-weighted coordinate inside one accepted extended-source segment. Compact-dominated segments use original background-subtracted pixels; diffuse segments use the already-computed denoised residual-B3 reconstruction when their measured peak-to-mean ratio is at most 3.0. It is conditioned on the detection/island threshold, reported separately from the brightest pixel and fitted Gaussian centres, and is not a host-galaxy position. |
 | Extended-source peak | Global `(x, y)` coordinate of the brightest original background-subtracted pixel owned by an extended-source segment, with deterministic row-major tie-breaking. It is a location descriptor, not a fitted component or host-galaxy position. |
-| Fitted-Gaussian integrated flux | Infinite-plane integral of a fitted Gaussian component, calculated from its fitted amplitude and Gaussian area relative to the restoring beam. A Gaussian-component product retains it for both resolved and unresolved fits. The source product uses it only for significantly resolved sources and uses peak flux for unresolved sources. Never copy owned-pixel flux into this field. |
+| Fitted-Gaussian integrated flux | Infinite-plane integral of a fitted Gaussian component, calculated from its fitted amplitude and Gaussian area relative to the restoring beam. A Gaussian-component row publishes it for resolved and unresolved fits alike. A continuum source's `INTEGRATED_FLUX` is the sum of its components' integrals, and a compact source's is its one component's. Never copy owned-pixel flux into this field. |
 | Association aperture flux | Signed background-subtracted pixel sum over a continuum source's own footprint, published as `ASSOCIATION_APERTURE_FLUX` beside the summed-fit `INTEGRATED_FLUX`. It is observed flux inside the footprint, not a fitted-Gaussian integral, and no fit contributes to it; the compact profile leaves it unavailable. Use `association_aperture_integrated_flux_jy`. |
 | Extension significance | Evidence that a geometrically deconvolved Gaussian is measurably larger than the restoring beam. Hebog requires the log integrated-to-peak flux ratio to exceed five times its propagated uncertainty; positive deconvolution alone is not sufficient for noisy data. |
 | Gaussian component | One fitted Gaussian belonging to a PyBDSF source. Use the full qualifier; bare `component` is ambiguous. |
@@ -105,8 +105,9 @@ Rapthor/PyBDSF/LSMTool vocabulary onto it.
   plus the spectral-model convention when applicable.
 - Use `catalogue` in Hebog prose and internal modules. Preserve `catalog` in
   external field names and filenames when compatibility requires it.
-- Use `serial`, `local`, and `dask` for executor modes. Do not use `parallel`
-  as a mode name because it does not identify ownership or resource policy.
+- Use `serial`, `thread`, and `dask` for executor modes, as the executor
+  classes are named. Do not use `parallel` as a mode name because it does
+  not identify ownership or resource policy.
 - Use `tile_y_index`, `tile_x_index`, `core_bounds`, and stage-qualified halo
   names such as `detection_halo_pixels`. Do not use “chunk” and “tile”
   interchangeably: a chunk is a storage unit; a tile is a scientific work and

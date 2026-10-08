@@ -12,7 +12,7 @@ is layered on top and never changes these calculations.
 `CatalogueSource` stores ICRS positions in degrees, peak flux density in
 Jy/beam and integrated flux density in Jy, and can carry candidate-reported
 one-sigma errors, fitted and deconvolved `CatalogueEllipse` records, an
-explicit resolved/unresolved/unavailable state, parent-island identity,
+explicit resolved, major-axis-only, unresolved or unavailable state, parent-island identity,
 component count and canonical quality flags; `from_units` accepts degrees or
 arcseconds and Jy or mJy. The caller decides whether it is comparing
 sources, Gaussian components or another row type first; the concepts are not

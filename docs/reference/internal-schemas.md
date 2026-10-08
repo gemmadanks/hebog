@@ -72,7 +72,8 @@ The catalogue FITS file has exactly three binary tables, `ISLANDS`,
 explicit units. At this boundary only, an unavailable float is NaN and reads
 back as `None`; for a major-axis-only result `DECONVOLVED_MAJOR` is positive
 while the minor axis and angle are NaN, and the reader rebuilds the one-axis
-state from the quality flag. Spectral coefficients are fixed-width float64
+state from that pattern; the record requires the `major-axis-only` flag to
+match it. Spectral coefficients are fixed-width float64
 vectors padded with trailing NaN rather than variable-length heap columns, so
 identical retries are byte-identical on every platform. Every HDU carries
 `CHECKSUM` and `DATASUM` with a fixed provenance comment instead of Astropy's

@@ -3,8 +3,8 @@
 This page answers one question: how far is Hebog from the goal its
 [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
 defines for 1.0.0? It is updated whenever the plan's current state changes,
-and was last updated on **7 October 2026** for the source checkout after the
-0.18.0 review repairs. Every figure is development evidence from the
+and was last updated on **8 October 2026** for the source checkout after the
+0.18.0 review repairs and tasks 63 to 67. Every figure is development evidence from the
 maintainer's machine, dated and traceable to an entry in the repository's
 [execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md); none is
 scientific qualification. User-facing limits are in
@@ -12,7 +12,7 @@ scientific qualification. User-facing limits are in
 
 ## At a glance
 
-| 1.0.0 goal | Target | Position on 6 October 2026 | Status |
+| 1.0.0 goal | Target | Position on 8 October 2026 | Status |
 | --- | --- | --- | --- |
 | Telescopes | Standard FITS continuum images from any telescope under a documented header contract, validated first on LOFAR, SKA-Low and SKA-Mid | The [input header contract](input-header-contract.md) is defined and tested. LOFAR (LoTSS-DR3 and LoTSS-DR2) and SKA-Mid (SDC1 simulation) images run, and the LOFAR-HD mosaics are the next scale tiers; SKA-Low has no public image, so MWA GLEAM-X precursor data is planned. A beam wider than 10 pixels is refused. A position-dependent PSF is undecided (task 15). | In progress |
 | Functionality | A feature-flagged backend for Rapthor's `filter_skymodel` at pinned Rapthor and LSMTool revisions | A complete standalone finder under Serial, Thread and caller-owned Dask executors. No Rapthor adapter, profile or flat-noise branch exists; 5 of the 11 frozen public behaviours are implemented and 6 are strict-xfail placeholders. | Adapter not started |
@@ -166,8 +166,8 @@ readiness.
 
 | Check | Latest |
 | --- | --- |
-| Portable suite | 3,398 passed and 2 xfailed, 97% branch-aware coverage against an 80% floor (6 October) |
-| Equivalence lane | 45 tests, including `find_sources` against both PyBDSF references under both profiles |
+| Portable suite | 3,603 passed and 1 xfailed, 97% branch-aware coverage against an 80% floor (8 October) |
+| Equivalence lane | 39 tests, including `find_sources` against both PyBDSF references under both profiles |
 | CI matrix | Linux, macOS and Windows on Python 3.12 to 3.14, plus a lowest-dependency job and a container build (not yet required on `main`, task 60) |
 | Architecture | Every layer's allowed imports are one tested table; Rapthor, Prefect and LSMTool are absent from the package and Dask is confined to `executors/`, apart from the execution profiler's local cluster in `validation/`, which wheels exclude |
 

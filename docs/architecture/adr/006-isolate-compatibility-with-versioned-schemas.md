@@ -11,7 +11,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-07-18 |
-| **Last Updated** | 2026-08-01 |
+| **Last Updated** | 2026-10-08 (the catalogue schema's current version and what the architecture test checks) |
 | **Deciders** | Gemma Danks |
 | **Tags** | compatibility, schemas, Rapthor, PyBDSF, interoperability |
 
@@ -35,8 +35,8 @@ materialised results. Large images also require chunk and catalogue-shard
 records that do not exist in the current PyBDSF product model.
 
 Phase 1 has now defined the initial internal catalogue and materialised-result
-fields, null representation, ordering, relationship validation, on-disk FITS
-and JSON representations, and migration tests. They remain provisional until
+fields, null representation, ordering, relationship validation, and on-disk
+FITS and JSON representations. They remain provisional until
 the Phase 0 human scientific sign-off; the boundary and evolution strategy in
 this ADR remain unchanged.
 
@@ -81,12 +81,12 @@ The choice of dataclass, Pydantic model, FITS table representation, or another
 implementation mechanism is made per concrete Phase 1 contract; this ADR does
 not require one schema library everywhere.
 
-Catalogue schema version 1 uses strict immutable Pydantic records and
-canonical JSON. It distinguishes islands, source candidates, and fitted
+The catalogue schema, now version 3, uses strict immutable Pydantic records
+and canonical JSON. It distinguishes islands, source candidates, and fitted
 Gaussian components; uses ICRS degrees, Jy, Jy/beam, hertz, explicit position
 epoch, and an explicit spectral convention; represents unavailable values as
-`None`; and requires stable unique canonical identities. The first version is
-MFS-only and rejects mixed reference frequencies.
+`None`; and requires stable unique canonical identities. It is MFS-only and
+rejects mixed reference frequencies.
 
 `SourceFinderResult` schema version 2 replaces its earlier path-only scaffold.
 Each concrete materialised product now records a role, media type, content
@@ -146,8 +146,9 @@ runtime dependency.
 
 ## Confirmation
 
-- Architecture tests reject imports of Rapthor, Prefect, LSMTool, PyBDSF, and
-  concrete schedulers from algorithms and domain records.
+- Architecture tests reject imports of Rapthor, Prefect and LSMTool from
+  every module, adapters included, and of a concrete scheduler outside the
+  executors except for named exemptions.
 - Phase 1 schema tests cover version validation, physical domains, nulls,
   ordering, referential integrity, empty catalogues, product roles and status,
   unsupported versions, and deterministic serialization.

@@ -61,9 +61,11 @@ fitted-Gaussian integral; the bilinearly sampled local RMS at the centroid,
 or the owned-region mean with `local-rms-region-mean-fallback` when the
 centroid lacks interpolation support; and bounded optimizer diagnostics.
 Position and flux covariance is retained only when the information matrix is
-nonsingular with finite positive variances; shape errors are absent, and the
-free fit's integrated-flux uncertainty is report-only for resolved or
-marginal sources.
+nonsingular with finite positive variances. A free fit also keeps its shape
+covariance when that block is usable, and its fitted axes and angle then
+carry errors; a beam-constrained or circular fit has none. The free fit's
+integrated-flux uncertainty is report-only for resolved or marginal
+sources.
 
 Every published candidate must be finite, away from its physical bounds and
 well conditioned under the configured information limit, whether fitted free
@@ -163,10 +165,11 @@ beam-constrained only at SNR 10, and then for 10% of them. The
 integrated-flux tail is the wider concern: the 95th percentile of absolute
 excess is 29 to 58% at SNR 10, 11 to 14% at SNR 20 and 5 to 6% at SNR 50. The
 plan's `Total_flux` gates bound these against pinned PyBDSF `master`. The
-reviewed external component profile applies an explicit 0.075-sigma
-downward correction to the fitted total before publication, flagged
+fit can apply an explicit downward correction to the fitted total, flagged
 `fitted-integrated-flux-bias-corrected`, leaving amplitude, axes, angle,
-centroid and covariance unchanged; the pipeline-neutral default is zero.
+centroid and covariance unchanged. `find_sources` sets it to zero, so no
+published row is corrected; the reviewed component configuration's
+0.075-sigma value is not used.
 PyBDSF documents Condon (1997) errors; Hebog does not claim the same
 implementation. See
 [Condon (1997)](https://adsabs.harvard.edu/pdf/1997PASP..109..166C) and the

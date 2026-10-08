@@ -12,7 +12,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-09-18 |
-| **Last Updated** | 2026-09-27 (the wide-object exception is carried as deferred work, with its one measurement distinguished from the field-filling limit) |
+| **Last Updated** | 2026-10-08 (statements of the current implementation brought in line with the code: the support rounds, what the driver gathers, the position signal, pass D's planes and the tests) |
 | **Deciders** | Gemma Danks |
 | **Tags** | tiling, halos, ownership, reconciliation, memory, invariance |
 
@@ -191,10 +191,10 @@ Halo values are for a 5-pixel beam and the reviewed 150/50 and 35/7 grids.
 | Persistent publication, owner bridges | owner window | owner canonical pixel | label patch bounded by the owner window | patches applied in the core round |
 | Compact deblending | parent window within the admission limit | parent canonical pixel | each parent's component count | canonical numbering by first pixel; each core relabels or re-deblends the parents it holds from its own window |
 | Compact measurement and fitting | fit-parent support + the reviewed context margin | fit-parent canonical pixel | fit records, groups and component records | none; each core derives a parent's measurement support again from the published planes |
-| Extended measurement | 8 (1.5 beams) per owned core | object canonical pixel; each intersected core contributes | additive moment and photometry accumulators, bounding box | accumulators summed at the owner |
+| Extended measurement | 8 (1.5 beams) per owned core | object canonical pixel; each intersected core contributes | today the object's pixels from each core, when its window exceeds the read budget; additive accumulators are deferred | reduced on the driver in raster order (see *Objects wider than the read budget*) |
 | Position à trous filter | 14 | pixel core | none | none; see below |
 | Source association | one feature's window plus its B3 footprint, or each core that window reaches | feature canonical pixel | hierarchy overlap records | `associate_from_hierarchy_overlaps` over the reduced records; see *Extended association* |
-| Source measurement and rows | 8 (1.5-beam aperture) | source canonical pixel | catalogue shard | hierarchical shard reduction rejecting duplicates |
+| Source measurement and rows | 8 (1.5-beam aperture) | source canonical pixel | catalogue shard | shards ordered canonically on the driver |
 | Product materialisation | 0 | row block | written chunk identity | ordered chunk index |
 
 ### Objects larger than one halo
@@ -211,7 +211,10 @@ extent, never from a guess:
   Each intersected core contributes its part in global coordinates and the
   owner sums them. The result equals the T1 result up to floating-point
   summation order, which is fixed by reducing contributions in canonical
-  core order.
+  core order. No round accumulates this way yet: each returns the object's
+  own pixels from its cores and the driver reduces them, as *Objects wider
+  than the read budget* describes, and moving those reductions onto the
+  cores is deferred work.
 - **T3, irreducible.** The quantity needs a simultaneous view of the whole
   object, such as a joint non-linear multi-Gaussian fit across an object
   larger than the admitted task. The object is **not** fitted. It is measured
@@ -248,7 +251,7 @@ Pass C therefore runs as rounds, each cheap relative to pass B's filters:
 | --- | --- | --- | --- |
 | Topology | core, halo 0 | scale masks | per-scale island summaries, adjacent-scale label overlaps |
 | Persistence publication | core, halo 0 | scale masks, plus each core's persistent scale labels | `persistent-support` |
-| Owner connectivity | owner window + refinement halo, or each core a wide owner's window reaches | detection labels, direct signal to noise, reconstruction mask, validity, owner reference pixels | one restore decision per owner; for a wide owner, its published support's components and whether refinement keeps any of its pixels, in each core |
+| Owner connectivity | owner window + refinement halo, or each core a wide owner's window reaches | detection labels, direct signal to noise, reconstruction mask, validity, persistent support, owner reference pixels | one restore decision per owner; for a wide owner, its published support's components and whether refinement keeps any of its pixels, in each core |
 | Published owners | core + refinement halo | the published planes, owner reference pixels, restore shard | the owners published in the core |
 | Owner bridges | owner window + refinement halo, or each core a wide owner's window reaches | as above, plus the published-owner shard | a label patch bounded by the owner window; for a wide owner, its base and candidate components in each core |
 | Final write | core + refinement halo | as above, plus the patch, wide-owner and admission shards | `component-labels`, `measurement-labels`, `publication-labels`, `retained-mask` |
@@ -310,14 +313,16 @@ steps, and they set the round boundaries:
   the fit, so each core the window reaches derives it again from the
   published planes and writes its own pixels; the fit round returns records
   only.
-- **Cross-parent loops.** `_cross_parent_loop_groups` labels the *accumulated*
+- **Cross-parent loops.** The loop search, `_loop_groups_in_feature` in
+  `hebog.algorithms.component_measurement`, works on the *accumulated*
   measurement support and reconciles resolved loops that span several fit
   parents, so it can only run once every parent's patch is known.
 
-The extended-residual search, `_extended_residual_groups`, labels the same
-accumulated support with the same connectivity and works feature by feature,
-so it shares that work unit rather than adding a fourth. One round evaluates
-both steps inside one support feature's window, reading the window once. A
+The extended-residual search, `_residual_groups_in_feature`, works on the
+same accumulated support with the same connectivity, feature by feature, so
+it shares that work unit rather than adding a fourth. One round evaluates
+both steps inside one support feature's window, reading the window once
+(`group_support_feature_components`). A
 feature is therefore the object of the last grouping round, exactly as a
 parent is the object of the deblend round.
 
@@ -341,18 +346,17 @@ that only one round reads would cost a generation for nothing.
 | Parent extents | core, halo 0 | `component-labels`, `measurement-labels` | each parent's bounds and first pixel in both planes, and its direct size |
 | Deblend | parent window, for an admitted parent only | `direct-snr`, `valid-pixels`, both label planes | each parent's component count |
 | Component write | core, halo 0, then the window of each parent it holds that splits | both label planes; `direct-snr` and `valid-pixels` in a splitting parent's window | `component-direct-labels`, `component-measurement-labels` |
-| Fit parents | core, halo 0 | `component-measurement-labels`, `component-direct-labels` | context island summaries, owners, direct pixel counts and support bounds; island summaries when a parent no joint fit can hold is split; then `fit-parent-labels` |
-| Component fits | fit-parent window + margin, or a deferred parent's cores | residual, RMS, validity, both component planes | fit records, groups, grouping evidence, each owned component's association record |
+| Fit parents | core + the 8-pixel fit context margin | `component-measurement-labels`, `component-direct-labels` | context island summaries, owners, direct pixel counts and support bounds; island summaries when a parent no joint fit can hold is split; then `fit-parent-labels` |
+| Component fits | fit-parent window + margin, or a deferred parent's cores | residual, RMS, validity, `fit-parent-labels`, both component planes | fit records, groups, grouping evidence, each owned component's association record |
 | Support write | core, halo 0, then the window of each measured parent it holds | residual, RMS, validity, `fit-parent-labels` | `measurement-support` |
 | Support features | core, halo 0 | `measurement-support`, `valid-pixels`, `component-measurement-labels` | feature island summaries and each measurement label's bounds |
 | Cross-parent loops and extended residual | support-feature window + margin | residual, RMS, validity, `measurement-support`, `component-measurement-labels`, the sharded fit records | extended group records and grouping evidence |
-| Scale feature labels | core, halo 0 | the reconciled per-scale mappings | `scale-{order}-labels` |
-| Hierarchy overlaps | core, halo 0, then one feature's window plus its B3 footprint, or each core that work reaches, under twice the widest B3 radius, when the window exceeds the read budget | `component-direct-labels`, `valid-pixels`, `reconstruction-mask`, the scale label planes | component, feature, support and envelope overlap records |
+| Hierarchy overlaps | core, halo 0, then one feature's window plus its B3 footprint, or each core that work reaches, under twice the widest B3 radius, when the window exceeds the read budget | `component-direct-labels`, `valid-pixels`, `reconstruction-mask`, the scale label planes | component, feature, support and envelope overlap records; then `persistent-scale-support` |
 | Source labels | core, halo 0 | `component-measurement-labels`, the sharded owner-to-source map | `source-labels` |
-| Source support | core, halo 0, then the window of each connected support component it holds, or a component's cores when that window exceeds the read budget | `source-labels`, `persistent-scale-support`, `measurement-support` | support island summaries, then a wide component's seeds, then `source-measurement-labels` |
-| Source apertures | core, halo 1.5 beams | `source-measurement-labels` | `source-aperture-labels` |
+| Source support | core, halo 0, then the window of each connected support component it holds, or a component's cores when that window exceeds the read budget | `source-labels`, `persistent-scale-support`, `measurement-support`, `valid-pixels` | support island summaries, then a wide component's seeds, then `source-measurement-labels` |
+| Source apertures | core, halo 1.5 beams | `source-measurement-labels` | `aperture-labels` |
 | Source rows | source window + 1.5-beam aperture, or its cores when that window exceeds the read budget | image, background, RMS, validity, source labels, position signal | catalogue shards, each segment's local noise |
-| Detection island rows | core, halo 0, then one island's window, or the island's cores when that window exceeds the read budget | `retained-mask`, `component-measurement-labels`; then image, background, RMS, `retained-mask` | island boundary summaries and owner-to-island pairs; then catalogue island rows, or a wide island's pixels from each core |
+| Detection island rows | core, halo 0, then one island's window, or the island's cores when that window exceeds the read budget | `retained-mask`, `component-measurement-labels`, `measurement-labels`; then image, background, RMS, `retained-mask` | island boundary summaries and owner-to-island pairs; then catalogue island rows, or a wide island's pixels from each core |
 
 Component numbering is canonical because the driver offsets each parent's
 local labels by the components every earlier parent produced, in ascending
@@ -454,10 +458,10 @@ as the serial oracle. Envelope masks never cross the executor boundary: a
 feature's task derives its own influence set and its envelope's overlaps
 inside the pair box, and returns records.
 
-The driver never gathers the component set. Records live in owner-tile shards
-and reduce hierarchically. Each record is built by the fit parent that already
-reads that component's residual and validity, so describing a component costs
-no round and no read of its own.
+The fit-parent tasks return the component records, and the driver holds
+them all, ordered by canonical first pixel; they carry no array. Each record
+is built by the fit parent that already reads that component's residual and
+validity, so describing a component costs no round and no read of its own.
 
 Every overlap above is stated between *globally* labelled features, so the
 scale feature labels must be readable by window. The detection pass already
@@ -470,19 +474,17 @@ pass D, would repeat a reduction pass B has already performed.
 
 ### The à trous position filter
 
-The public path currently evaluates the à trous transform a second time to
-build the position signal. Under this decision the transform is evaluated once
-per tile in pass B and the position signal is written as a stored plane in
-pass C, so pass D reads it by window with the object it measures. Where the
-14-pixel halo is clipped by the image edge, the denoised value stays unavailable
-and the signed residual remains the documented fallback, which is the existing
-behaviour and is not a reason to discard an edge source.
+The à trous transform is evaluated once per tile in pass B, and the position
+signal is written there as a stored plane, so pass D reads it by window with
+the object it measures. Where the 14-pixel halo is clipped by the image edge,
+the denoised value stays unavailable and the signed residual is the
+documented fallback, which is not a reason to discard an edge source.
 
 ### The continuum catalogue
 
 Source rows are built by owner tasks from the source label plane and the
-stored position signal, and merged as catalogue shards through the existing
-hierarchical reduction. Row order in the published catalogue is canonical, by
+stored position signal, and returned as catalogue shards that the driver
+orders canonically. Row order in the published catalogue is canonical, by
 source identity, not by completion order. Measurement dispositions and support
 stages accompany the rows as records, not as planes.
 
@@ -551,7 +553,8 @@ responses and à trous coefficients are not stored, the number of stored planes
 does not grow with the number of stages. Every stage after the noise pass
 uses the contract's smallest admitted core, 2,048 pixels, and the noise pass
 keeps 128-pixel cores because they are its grid cells, not a memory choice;
-batches, not cores, are sized from admitted memory today. Choosing a larger
+batches use fixed limits too, and no stage reads the admitted memory yet (the
+plan's task 17). Choosing a larger
 core from admitted memory within the contract's 2,048–8,192 range remains the
 intent, and a resource choice may change batch size and core size, but never
 ownership or results.
@@ -658,11 +661,13 @@ milestone: the executor work comes before the convergence it enables.
   their rounds exchange and require them to carry no array but the support
   scan's core boundary labels.
 - A stage-halo admission test proves every declared halo is below one quarter
-  of the admitted core, and that a plan exceeding the admitted memory is
-  rejected before submission rather than during it.
-- Escalation tests place an object larger than the admitted task limit across
-  several cores and assert that T2 accumulation reproduces the T1 result and
-  that a T3 case publishes a disposition rather than a truncated measurement.
+  of the admitted core. The executor contract refuses, before submitting
+  anything, a task requirement no worker can hold, but no stage declares a
+  requirement yet (the plan's task 17).
+- Escalation tests place an object wider than the read budget across several
+  cores and assert that the cores' path reproduces the window's result, and
+  that a T3 case publishes a disposition rather than a truncated
+  measurement.
 - Traced-allocation peaks (`just traced-peak`, the only reproducible figure;
   peak RSS varied 42% with machine load) across the size ladder show memory
   scaling with tile size, not image size, as each envelope tier is raised.

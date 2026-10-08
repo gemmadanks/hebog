@@ -1,7 +1,7 @@
 # Evidence documents
 
-Benchmark and scientific-validation outputs use the strict versioned models
-in `hebog.validation.evidence`, so measurements keep their provenance without
+Benchmark, traced-allocation and scientific-validation outputs use the
+strict versioned models in `hebog.validation.evidence`, so measurements keep their provenance without
 implying that an exploratory run passed a gate. `hebog.validation` is
 repository tooling, not installed from the wheel; use it from a source
 checkout after `uv sync --all-groups`.
@@ -58,7 +58,12 @@ reloaded = load_evidence(Path("benchmark-results/run.json"))
 
 The writer sorts keys, rejects non-finite values, appends a final newline and
 replaces the destination only after writing a temporary file.
-`load_evidence` accepts benchmark and scientific-comparison documents only.
+`load_evidence` accepts benchmark, scientific-comparison and
+traced-allocation documents. A traced-allocation document, which
+`just traced-peak` writes, records each repetition's traced process peak, the
+peak of the `find_sources` call alone and the import floor; the
+[contribution guide](../how-to/index.md#measure-the-traced-allocation-peak)
+says when it counts as reviewed.
 Raw evidence stays under the ignored `benchmark-results/` directory or
 controlled external storage; commit only compact reviewed summaries and
 reproduction metadata. The models expose `model_json_schema()`, and a
