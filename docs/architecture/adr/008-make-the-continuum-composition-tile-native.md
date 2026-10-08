@@ -185,7 +185,7 @@ Halo values are for a 5-pixel beam and the reviewed 150/50 and 35/7 grids.
 | Island labelling | 0 | pixel core; labels tile-local | edge label runs, per-label pixel count, sum, bounding box, canonical pixel | union–find over boundary equivalences, tree-reduced; aggregates summed |
 | Island admission | 0 | reconciled island | accepted-label set | area and pixel-count predicates on merged aggregates; the accept map is sharded per tile |
 | Seeded multiscale support | 2 (half a beam, rounded down), within the refinement halo | support pixel owned by the seed nearest to it along the support, within half a beam | global seed references of owners present in the read | none; a pixel's owner depends only on the support within half a beam of it, and ties are broken by row-major seed reference in-read |
-| Segment refinement, pixel work | 3x3 opening influence + 0.5-beam recovery | pixel core | none | none |
+| Segment refinement and persistence, pixel work | 5 (the larger of ⌈r⌉ + 2 and ⌊r⌋ + 3, for the 0.5-beam recovery radius r) | pixel core | none | none |
 | Segment refinement, owner connectivity | owner window | owner canonical pixel | one restore decision per owner | none; decisions are applied in the core round |
 | Cross-scale association | 0 | scale detection owned by its canonical pixel | per-scale label overlaps observed in the core | union of edge sets, then persistence per connected group |
 | Persistent publication, owner bridges | owner window | owner canonical pixel | label patch bounded by the owner window | patches applied in the core round |
@@ -261,7 +261,12 @@ The refinement pixel work needs the opening influence **and** the recovery
 radius together, not their maximum: a pixel recovered at the recovery radius
 is labelled from opened support that must itself be correct there. A 3x3
 binary opening erodes then dilates, so its influence is two pixels, and the
-dense-core count reaches one further. Recomputing the refinement in a later
+dense-core count reaches one further. Persistence adds the same way: its
+dense core is a 3x3 opening and count over the measurement labels, three
+pixels, and measurement gives a pixel to a seed up to the recovery radius
+`r` away. The halo is therefore the larger of `ceil(r) + 2` and
+`floor(r) + 3`, which is one pixel more than refinement alone needs when
+`r` is a whole number of pixels. Recomputing the refinement in a later
 round is preferred to storing it, exactly as pass B recomputes its filters
 rather than persisting a response bank.
 

@@ -55,6 +55,8 @@ _Input = TypeVar("_Input")
 _Output = TypeVar("_Output")
 _SHAPE_YX = (40, 80)
 _BEAM = BeamShapePixels(2.0, 1.6, 0.0)
+# The smallest core above four times the beam's 4-pixel support halo.
+_CORE = 17
 _ISLAND_SIGMA = 3.0
 _MINIMUM_ISLAND_PIXELS = 7
 _HIGH_SNR = 8.0
@@ -107,26 +109,28 @@ def _planes() -> tuple[
     The dumbbell's waist is a single pixel of weak signal to noise, so the
     3x3 opening removes it and refinement splits the owner. That is what the
     owner rounds exist to notice: the split is only visible from the window
-    holding both lobes, which crosses several tile cores. The faint cross,
+    holding both lobes, which spans three 17-pixel cores; the left lobe ends
+    exactly on the x=17 edge, as the compact owner 2 does. The faint cross,
     owner 4, is a narrow-beam detection below the 6-sigma boundary floor
     with no 3x3 block, so refinement and then persistence would each remove
-    it entirely; it straddles the corner of four 16-pixel cores.
+    it entirely; it sits on the corner where four 17-pixel cores meet and
+    reaches three of them.
     """
     labels = np.zeros(_SHAPE_YX, dtype=np.int32)
     labels[8:13, 8:17] = 1
-    labels[8:13, 24:33] = 1
-    labels[10, 17:24] = 1
+    labels[8:13, 32:41] = 1
+    labels[10, 17:32] = 1
     labels[25:31, 10:17] = 2
     labels[33, 60:63] = 3
-    labels[30:35, 48] = 4
-    labels[32, 46:51] = 4
+    labels[32:37, 51] = 4
+    labels[34, 49:54] = 4
     direct_snr = np.full(_SHAPE_YX, -np.inf, dtype=np.float64)
     direct_snr[labels > 0] = _HIGH_SNR
-    direct_snr[10, 17:24] = _WEAK_SNR
+    direct_snr[10, 17:32] = _WEAK_SNR
     direct_snr[labels == 4] = _WEAK_SNR
     reconstruction = np.zeros(_SHAPE_YX, dtype=np.bool_)
     reconstruction[7:14, 7:18] = True
-    reconstruction[7:14, 23:34] = True
+    reconstruction[7:14, 31:42] = True
     valid = np.ones(_SHAPE_YX, dtype=np.bool_)
     return labels, direct_snr, reconstruction, valid
 
@@ -249,8 +253,9 @@ def _publish_planes(  # noqa: PLR0913
     )
 
 
-def _manifest(core: int, *, halo: int = 3) -> PartitionManifest:
-    """Plan one support partition with the exact refinement halo."""
+def _manifest(core: int, *, halo: int | None = None) -> PartitionManifest:
+    """Plan one support partition with the exact support halo."""
+    halo = _config().halo_pixels if halo is None else halo
     return plan_image_partitions(
         image_shape_yx=_SHAPE_YX,
         tile_core_shape_yx=(core, core),
@@ -278,7 +283,7 @@ def _config(
 def _run(
     root: Path,
     *,
-    core: int = 16,
+    core: int = _CORE,
     executor: object | None = None,
     config: PublicationStageConfig | None = None,
 ) -> tuple[PublicationStageResult, ZarrProductSink]:
@@ -424,15 +429,15 @@ def test_publication_stage_is_partition_and_executor_invariant(
     """One published generation survives geometry, batching and workers."""
     expected = _published(_run(tmp_path / "reference", core=64)[1])
     variants: list[tuple[str, int, object, PublicationStageConfig]] = [
-        ("cores-16", 16, SerialExecutor(), _config()),
+        ("cores-17", _CORE, SerialExecutor(), _config()),
         ("cores-20", 20, SerialExecutor(), _config(maximum_tiles_per_batch=1)),
         (
             "owner-batches",
-            16,
+            _CORE,
             SerialExecutor(),
             _config(maximum_batch_read_pixels=1),
         ),
-        ("reverse", 16, _ReverseCompletionExecutor(), _config()),
+        ("reverse", _CORE, _ReverseCompletionExecutor(), _config()),
     ]
     for name, core, executor, config in variants:
         _, sink = _run(
@@ -483,7 +488,7 @@ def test_publication_stage_publishes_the_canonical_product_set(
     tmp_path: Path,
 ) -> None:
     """The generation carries exactly one chunk per product and core."""
-    manifest = _manifest(16)
+    manifest = _manifest(_CORE)
 
     result, _ = _run(tmp_path / "run")
 
@@ -501,14 +506,14 @@ def test_publication_stage_publishes_the_canonical_product_set(
 def test_publication_stage_rejects_a_manifest_without_the_support_halo(
     tmp_path: Path,
 ) -> None:
-    """A halo smaller than the refinement reach cannot decide a core."""
+    """A halo one pixel short of the support reach cannot decide a core.
+
+    At the 2-pixel beam that is the refinement's own reach, which leaves
+    persistence one pixel short.
+    """
     tmp_path.mkdir(parents=True, exist_ok=True)
     detection_source, support_source = _sources(tmp_path)
-    manifest = plan_image_partitions(
-        image_shape_yx=_SHAPE_YX,
-        tile_core_shape_yx=(16, 16),
-        halo_yx=(1, 1),
-    )
+    manifest = _manifest(_CORE, halo=_config().halo_pixels - 1)
 
     with pytest.raises(ValueError, match="exact support halo"):
         run_publication_stage(
@@ -633,7 +638,7 @@ def test_publication_stage_requires_a_matching_sink(tmp_path: Path) -> None:
         run_publication_stage(
             detection_source,
             support_source,
-            _manifest(16),
+            _manifest(_CORE),
             detection_islands=_detection_islands(),
             config=_config(),
             executor=SerialExecutor(),
@@ -651,14 +656,15 @@ def test_publication_stage_requires_the_planes_and_shape_it_reads(
     """Both published generations are checked before any product exists."""
     tmp_path.mkdir(parents=True, exist_ok=True)
     detection_source, support_source = _sources(tmp_path)
+    halo = _config().halo_pixels
     other_shape = plan_image_partitions(
         image_shape_yx=(24, 24),
-        tile_core_shape_yx=(16, 16),
-        halo_yx=(3, 3),
+        tile_core_shape_yx=(_CORE, _CORE),
+        halo_yx=(halo, halo),
     )
     incomplete = ZarrProductSink(
         tmp_path / "incomplete.zarr",
-        _manifest(16),
+        _manifest(_CORE),
         generation_id="incomplete",
     )
     incomplete.initialize_product(
@@ -673,7 +679,7 @@ def test_publication_stage_requires_the_planes_and_shape_it_reads(
                 tile=tile,
                 values=np.zeros(tile.core_bounds.shape_yx, dtype=np.int32),
             )
-            for tile in _manifest(16).tiles
+            for tile in _manifest(_CORE).tiles
         ],
     )
 
@@ -695,13 +701,13 @@ def test_publication_stage_requires_the_planes_and_shape_it_reads(
         run_publication_stage(
             detection_source,
             incomplete,
-            _manifest(16),
+            _manifest(_CORE),
             detection_islands=_detection_islands(),
             config=_config(),
             executor=SerialExecutor(),
             sink=ZarrProductSink(
                 tmp_path / "publication-incomplete.zarr",
-                _manifest(16),
+                _manifest(_CORE),
                 generation_id="publication",
             ),
         )
@@ -713,7 +719,7 @@ def test_publication_stage_publishes_an_empty_image_without_owner_work(
     """An image with no detected island still publishes a complete core set."""
     tmp_path.mkdir(parents=True, exist_ok=True)
     detection_source, support_source = _sources(tmp_path, empty=True)
-    manifest = _manifest(16)
+    manifest = _manifest(_CORE)
     sink = ZarrProductSink(
         tmp_path / "publication.zarr",
         manifest,
@@ -746,7 +752,7 @@ def test_publication_stage_requires_records_for_every_published_owner(
     """Island records that do not describe the planes fail loudly."""
     tmp_path.mkdir(parents=True, exist_ok=True)
     detection_source, support_source = _sources(tmp_path)
-    manifest = _manifest(16)
+    manifest = _manifest(_CORE)
 
     with pytest.raises(ValueError, match="identify every local owner"):
         run_publication_stage(
@@ -767,7 +773,7 @@ def test_publication_stage_requires_records_for_every_published_owner(
 def _edge_owner_sources(
     root: Path,
 ) -> tuple[ZarrProductSink, ZarrProductSink]:
-    """Publish one owner whose direct support stops at a 16-pixel core edge.
+    """Publish one owner whose direct support stops at a 32-pixel core edge.
 
     The owner's reconciled bounds end at column 32, so they do not intersect
     the core starting there, while its significant multiscale support reaches
@@ -842,7 +848,7 @@ def test_recovered_support_survives_a_core_edge_its_owner_stops_short_of(
     clear the column of support refinement recovered for it.
     """
     expected = _run_edge_owner(tmp_path / "one-tile", core=64)
-    published = _run_edge_owner(tmp_path / "cores-16", core=16)
+    published = _run_edge_owner(tmp_path / "cores-32", core=32)
 
     # The recovered column belongs to the owner in both geometries.
     for name in ("measurement-labels", "publication-labels"):
@@ -856,30 +862,35 @@ def test_recovered_support_survives_a_core_edge_its_owner_stops_short_of(
         np.testing.assert_array_equal(published[name], values, name)
 
 
-def _tailed_owner_planes() -> tuple[
+def _dense_core_reach_planes() -> tuple[
     npt.NDArray[np.int32],
     npt.NDArray[np.float64],
     npt.NDArray[np.bool_],
     npt.NDArray[np.bool_],
 ]:
-    """Return an owner whose thin tail ends nearer a neighbour's block.
+    """Return a corner whose dense core rests on another owner's measurement.
 
-    Owner 1 is a 5x5 block with a one-pixel tail four rows long; owner 2 is
-    a block two rows below the tail's end, apart as two flood islands are.
-    All of it is weak, so the opening removes the tail. Multiscale support
-    recovers the tail's last pixel, whose nearest opened pixel is owner 2's,
-    and persists there. 17-pixel cores cut the block and owner 2 at x=17 and
-    put the tail's last pixel in the row of cores below the block; 20-pixel
-    cores cut owner 2 at y=20 and end it exactly on the x=20 edge.
+    Owner 1 is a 5x6 block with a one-pixel arm on rows 8 to 10 at x=20;
+    owner 2 is a block from x=23. The 2-pixel beam's recovery radius is
+    exactly one pixel, so measurement gives the significant column at x=21
+    to owner 1 and the one at x=22 to owner 2, whose seed is one pixel
+    further. With them, the opening of the measurement support covers x=20
+    to 22 on rows 8 to 10, which puts two more opened pixels in the 3x3
+    count around (10, 19), the block's corner, and makes it dense core.
+    Nothing else keeps that pixel: it is weak and not persistent. So
+    persistence at x=19 depends on owner 2's seed at x=23, four pixels away,
+    and 20-pixel cores end at x=19.
     """
     labels = np.zeros(_SHAPE_YX, dtype=np.int32)
-    labels[9:14, 14:19] = 1
-    labels[14:18, 16] = 1
-    labels[19:22, 13:20] = 2
+    labels[10:15, 14:20] = 1
+    labels[8:11, 20] = 1
+    labels[8:11, 23:28] = 2
     direct_snr = np.full(_SHAPE_YX, -np.inf, dtype=np.float64)
-    direct_snr[labels > 0] = _WEAK_SNR
+    direct_snr[labels > 0] = _HIGH_SNR
+    direct_snr[10, 19] = _WEAK_SNR
     reconstruction = np.zeros(_SHAPE_YX, dtype=np.bool_)
-    reconstruction[17, 16] = True
+    reconstruction[8:11, 21:23] = True
+    reconstruction[10, 19] = True
     valid = np.ones(_SHAPE_YX, dtype=np.bool_)
     return labels, direct_snr, reconstruction, valid
 
@@ -892,16 +903,59 @@ _Planes = tuple[
 ]
 
 
-def _run_wide_beam_planes(  # noqa: PLR0913
+def test_persistence_reads_measurement_a_whole_recovery_radius_away(
+    tmp_path: Path,
+) -> None:
+    """A core edge four pixels from a deciding seed keeps the corner pixel.
+
+    The dense core counts a 3x3 opening of the measurement labels, three
+    pixels, and measurement reaches seeds up to the recovery radius further.
+    When that radius is a whole number of pixels, the read must reach one
+    pixel beyond the refinement's own reach, or the core at x=0 to 19 drops
+    (10, 19) that the whole plane keeps, whether owners are decided from
+    their windows or, at a one-pixel budget, from their cores.
+    """
+    planes = _dense_core_reach_planes()
+    persistent = np.zeros(_SHAPE_YX, dtype=np.bool_)
+    radius = 0.5 * _BEAM.major_fwhm_pixels
+    assert multiscale_recovery_radius_pixels(_BEAM.major_fwhm_pixels) == radius
+    expected = _chain(*planes, persistent, beam=_BEAM)
+    np.testing.assert_array_equal(
+        expected["measurement-labels"][8:11, 21:23],
+        np.tile(np.asarray([1, 2], dtype=np.int32), (3, 1)),
+    )
+    assert expected["publication-labels"][10, 19] == 1
+
+    for name, core, budget in (
+        ("one-tile", 80, 8192),
+        ("cores-20", 20, 8192),
+        ("from-cores", 20, 1),
+    ):
+        _, published = _run_planes(
+            tmp_path / name,
+            planes,
+            persistent=persistent,
+            beam=_BEAM,
+            core=core,
+            maximum_batch_read_pixels=budget,
+        )
+        for product_name, values in expected.items():
+            np.testing.assert_array_equal(
+                published[product_name], values, f"{name}:{product_name}"
+            )
+
+
+def _run_planes(  # noqa: PLR0913
     root: Path,
     planes: _Planes,
-    persistent: npt.NDArray[np.bool_],
     *,
+    persistent: npt.NDArray[np.bool_],
+    beam: BeamShapePixels,
     core: int,
-    executor: Executor,
-    maximum_batch_read_pixels: int,
+    executor: Executor | None = None,
+    maximum_batch_read_pixels: int = 8192,
 ) -> tuple[PublicationStageResult, dict[str, npt.NDArray[np.generic]]]:
-    """Publish one fixture's support under the wider beam, as configured."""
+    """Publish one fixture's support over one geometry, budget and executor."""
     root.mkdir(parents=True, exist_ok=True)
     labels, direct_snr, reconstruction, valid = planes
     detection_source, support_source = _publish_planes(
@@ -913,7 +967,7 @@ def _run_wide_beam_planes(  # noqa: PLR0913
         persistent=persistent,
     )
     config = _config(
-        beam=_TAILED_BEAM,
+        beam=beam,
         maximum_batch_read_pixels=maximum_batch_read_pixels,
     )
     manifest = _manifest(core, halo=config.halo_pixels)
@@ -928,10 +982,58 @@ def _run_wide_beam_planes(  # noqa: PLR0913
         manifest,
         detection_islands=_islands(labels),
         config=config,
-        executor=executor,
+        executor=SerialExecutor() if executor is None else executor,
         sink=sink,
     )
     return result, _published(sink)
+
+
+def _tailed_owner_planes() -> tuple[
+    npt.NDArray[np.int32],
+    npt.NDArray[np.float64],
+    npt.NDArray[np.bool_],
+    npt.NDArray[np.bool_],
+]:
+    """Return an owner whose thin tail ends nearer a neighbour's block.
+
+    Owner 1 is a 5x5 block with a one-pixel tail four rows long; owner 2 is
+    a block two rows below the tail's end, apart as two flood islands are.
+    All of it is weak, so the opening removes the tail. Multiscale support
+    recovers the tail's last pixel, whose nearest opened pixel is owner 2's,
+    and persists there. 21-pixel cores cut the block and owner 2 at x=21 and
+    put the tail's last pixel in the row of cores below the block; 24-pixel
+    cores cut owner 2 at y=24 and end it exactly on the x=24 edge.
+    """
+    labels = np.zeros(_SHAPE_YX, dtype=np.int32)
+    labels[13:18, 18:23] = 1
+    labels[18:22, 20] = 1
+    labels[23:26, 17:24] = 2
+    direct_snr = np.full(_SHAPE_YX, -np.inf, dtype=np.float64)
+    direct_snr[labels > 0] = _WEAK_SNR
+    reconstruction = np.zeros(_SHAPE_YX, dtype=np.bool_)
+    reconstruction[21, 20] = True
+    valid = np.ones(_SHAPE_YX, dtype=np.bool_)
+    return labels, direct_snr, reconstruction, valid
+
+
+def _run_tailed_owner(
+    root: Path,
+    *,
+    core: int,
+    executor: Executor,
+    maximum_batch_read_pixels: int,
+) -> tuple[PublicationStageResult, dict[str, npt.NDArray[np.generic]]]:
+    """Publish the tailed owner's support over one geometry and executor."""
+    planes = _tailed_owner_planes()
+    return _run_planes(
+        root,
+        planes,
+        persistent=planes[2],
+        beam=_TAILED_BEAM,
+        core=core,
+        executor=executor,
+        maximum_batch_read_pixels=maximum_batch_read_pixels,
+    )
 
 
 def test_a_tailed_owner_is_restored_and_published_in_one_part(
@@ -960,14 +1062,12 @@ def test_a_tailed_owner_is_restored_and_published_in_one_part(
         ndimage_label(owner, structure=np.ones((3, 3), dtype=np.int8)),
     )
     assert owner_parts == 1
-    assert np.all(owner[14:18, 16])
+    assert np.all(owner[18:22, 20])
 
     def check(name: str, core: int, executor: Executor, budget: int) -> None:
         """Run one variant and require the whole-plane products."""
-        result, published = _run_wide_beam_planes(
+        result, published = _run_tailed_owner(
             tmp_path / name,
-            _tailed_owner_planes(),
-            reconstruction,
             core=core,
             executor=executor,
             maximum_batch_read_pixels=budget,
@@ -980,43 +1080,44 @@ def test_a_tailed_owner_is_restored_and_published_in_one_part(
             )
 
     check("one-tile", 80, SerialExecutor(), 8192)
-    check("cores-17", 17, SerialExecutor(), 8192)
-    check("cores-20-reverse", 20, _ReverseCompletionExecutor(), 8192)
-    check("from-cores", 17, SerialExecutor(), 1)
+    check("cores-21", 21, SerialExecutor(), 8192)
+    check("cores-24-reverse", 24, _ReverseCompletionExecutor(), 8192)
+    check("from-cores", 21, SerialExecutor(), 1)
     with ThreadExecutor(2) as threads:
-        check("threads", 17, threads, 8192)
+        check("threads", 21, threads, 8192)
     with Client(
         processes=False,
         n_workers=2,
         threads_per_worker=1,
         dashboard_address=":0",
     ) as client:
-        check("dask-from-cores", 17, DaskExecutor(client), 1)
+        check("dask-from-cores", 21, DaskExecutor(client), 1)
 
 
 def _support_apart_from_owners() -> _Planes:
     """Return two owners with significant support apart from their floods.
 
-    Owner 1 is a block whose bounds end on the x=17 core edge. One pixel
-    beyond them at 2 sigma, significant at 4 sigma, is a recovered pixel
-    outside every flood two pixels from the block. Owner 3, whose bounds end
-    on the x=34 core edge, has pixel (25, 35) two pixels away in a straight
-    line across an unsupported column; the support joins it to owner 3 only
-    along a strand to owner 5's block and a detour back along row 29.
+    Owner 1 is a block whose bounds end on the x=21 and y=21 core edges.
+    One pixel beyond them at 2 sigma, significant at 4 sigma, is a recovered
+    pixel outside every flood two pixels from the block. Owner 3, whose
+    bounds end on the x=42 core edge, has pixel (25, 43) two pixels away in
+    a straight line across an unsupported column; the support joins it to
+    owner 3 only along a strand to owner 5's block and a detour back along
+    row 29.
     """
     labels = np.zeros(_SHAPE_YX, dtype=np.int32)
-    labels[12:17, 12:17] = 1
-    labels[22:29, 31:34] = 3
-    labels[24:27, 43:46] = 5
+    labels[16:21, 16:21] = 1
+    labels[22:29, 39:42] = 3
+    labels[24:27, 51:54] = 5
     direct_snr = np.full(_SHAPE_YX, -np.inf, dtype=np.float64)
     direct_snr[labels > 0] = _HIGH_SNR
     reconstruction = np.zeros(_SHAPE_YX, dtype=np.bool_)
-    reconstruction[14, 17:19] = True
-    reconstruction[25, 35:43] = True
-    reconstruction[27:30, 44] = True
-    reconstruction[29, 34:45] = True
+    reconstruction[18, 21:23] = True
+    reconstruction[25, 43:51] = True
+    reconstruction[27:30, 52] = True
+    reconstruction[29, 42:53] = True
     direct_snr[reconstruction] = 2.0
-    direct_snr[14, 18] = _WEAK_SNR
+    direct_snr[18, 22] = _WEAK_SNR
     valid = np.ones(_SHAPE_YX, dtype=np.bool_)
     return labels, direct_snr, reconstruction, valid
 
@@ -1026,18 +1127,18 @@ def test_support_apart_from_an_owner_is_neither_measured_nor_published_for_it(
 ) -> None:
     """Every geometry, budget and executor attaches support along owners.
 
-    By straight-line distance, measurement gave pixel (25, 35) to owner 3,
+    By straight-line distance, measurement gave pixel (25, 43) to owner 3,
     which held it apart from its flood, and publication gave the recovered
-    pixel (14, 18) to owner 1 apart from its block; persisting without the
+    pixel (18, 22) to owner 1 apart from its block; persisting without the
     pixel between, it stopped the bridge round with a bare ``ValueError``
     (plan task 64). Neither is attached now, from any core geometry.
     """
     planes = _support_apart_from_owners()
     persistent = np.zeros(_SHAPE_YX, dtype=np.bool_)
-    persistent[14, 18] = True
+    persistent[18, 22] = True
     expected = _chain(*planes, persistent, beam=_TAILED_BEAM)
-    assert expected["measurement-labels"][14, 18] == 1
-    assert expected["measurement-labels"][25, 35] == 0
+    assert expected["measurement-labels"][18, 22] == 1
+    assert expected["measurement-labels"][25, 43] == 0
     np.testing.assert_array_equal(
         np.asarray(expected["publication-labels"], dtype=np.int32) > 0,
         planes[0] > 0,
@@ -1045,10 +1146,11 @@ def test_support_apart_from_an_owner_is_neither_measured_nor_published_for_it(
 
     def check(name: str, core: int, executor: Executor, budget: int) -> None:
         """Run one variant and require the whole-plane products."""
-        _, published = _run_wide_beam_planes(
+        _, published = _run_planes(
             tmp_path / name,
             planes,
-            persistent,
+            persistent=persistent,
+            beam=_TAILED_BEAM,
             core=core,
             executor=executor,
             maximum_batch_read_pixels=budget,
@@ -1059,22 +1161,22 @@ def test_support_apart_from_an_owner_is_neither_measured_nor_published_for_it(
             )
 
     check("one-tile", 80, SerialExecutor(), 8192)
-    check("cores-17", 17, SerialExecutor(), 8192)
-    check("cores-20-reverse", 20, _ReverseCompletionExecutor(), 8192)
-    check("from-cores", 17, SerialExecutor(), 1)
+    check("cores-21", 21, SerialExecutor(), 8192)
+    check("cores-24-reverse", 24, _ReverseCompletionExecutor(), 8192)
+    check("from-cores", 21, SerialExecutor(), 1)
     with ThreadExecutor(2) as threads:
-        check("threads", 17, threads, 8192)
+        check("threads", 21, threads, 8192)
     with Client(
         processes=False,
         n_workers=2,
         threads_per_worker=1,
         dashboard_address=":0",
     ) as client:
-        check("dask-from-cores", 17, DaskExecutor(client), 1)
+        check("dask-from-cores", 21, DaskExecutor(client), 1)
 
 
 def _owner_reads() -> tuple[int, ...]:
-    """Return every owner's read size: its window and the refinement halo."""
+    """Return every owner's read size: its window and the support halo."""
     recovery = multiscale_recovery_radius_pixels(_BEAM.major_fwhm_pixels)
     halo = _config().halo_pixels
     return tuple(
@@ -1095,18 +1197,18 @@ def test_an_owner_wider_than_the_budget_is_decided_from_its_cores(
     Both are questions about the connected components of one owner's
     pixels, so each core labels its own and the components join across core
     edges. The budget is the second-widest owner's read, so only the
-    dumbbell, which spans three 13-pixel cores and is both split by cleanup
+    dumbbell, which spans three 17-pixel cores and is both split by cleanup
     and bridged, takes that path; every read stays within one haloed core or
     a narrow owner's window, below the dumbbell's own window.
     """
     reads = sorted(_owner_reads())
     assert reads[-1] > reads[-2], "the fixture must hold one widest owner"
-    core_read = (13 + 2 * _config().halo_pixels) ** 2
+    core_read = (_CORE + 2 * _config().halo_pixels) ** 2
     assert core_read < reads[-1], "a core read must be narrower than it"
 
     result, sink = _run(
         tmp_path / "run",
-        core=13,
+        core=_CORE,
         config=_config(maximum_batch_read_pixels=reads[-2]),
     )
 
@@ -1163,7 +1265,7 @@ def test_every_wide_owner_round_fails_closed_on_a_silent_executor(
 
 def test_every_core_a_wide_owner_reaches_must_answer() -> None:
     """A component count taken from part of the cores could be wrong."""
-    partition = _manifest(16).tiles[0]
+    partition = _manifest(_CORE).tiles[0]
     batches = (
         _TileBatch(
             requests=(

@@ -600,7 +600,7 @@ def _observe_wide_splits(
 ) -> _WideSplitResult:
     """Label the wide owners' published support in each core of one batch.
 
-    The read carries the refinement halo, so every core pixel is refined and
+    The read carries the support halo, so every core pixel is refined and
     measured exactly as a window over the owner would refine and measure it.
     """
     summaries: list[LabelComponentSummary] = []

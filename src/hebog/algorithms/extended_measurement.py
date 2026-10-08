@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Collection, Mapping
 from dataclasses import dataclass
-from math import ceil, hypot, isfinite
+from math import ceil, floor, hypot, isfinite
 from numbers import Integral
 from typing import Any, Literal, Protocol, cast
 
@@ -88,20 +88,31 @@ def segment_refinement_halo_pixels(
     *,
     recovery_radius_beams: float = _MULTISCALE_RECOVERY_RADIUS_BEAMS,
 ) -> int:
-    """Return the halo covering opening and multiscale support recovery.
+    """Return the halo covering refinement and persistence of the support.
 
-    The two radii add rather than compete: a pixel recovered at the recovery
-    radius takes its identity from opened support, which must itself be
-    correct that far out. The dense-core count sets the floor when the
-    recovery radius is small.
+    Two reaches set it, and in each the radii add rather than compete.
+    Refinement recovers a pixel from opened support up to the recovery
+    radius ``r`` away, which it rounds up, and that opened support depends on
+    labels two pixels further: ``ceil(r) + 2``. Persistence takes its dense
+    core from a 3x3 opening and a 3x3 count over the measurement labels,
+    three pixels, and measurement gives a pixel to a seed at most ``r``
+    away, so at most ``floor(r)`` pixels along either axis:
+    ``floor(r) + 3``. The two agree unless ``r`` is a whole number of
+    pixels, as it is at the default half-beam radius for any beam an even
+    number of pixels wide, where persistence needs one pixel more. The
+    second also covers refinement's own dense-core count, three pixels, when
+    the recovery radius is small.
     """
+    recovery_pixels = multiscale_recovery_radius_pixels(
+        beam_major_fwhm_pixels,
+        recovery_radius_beams=recovery_radius_beams,
+    )
+    measurement_reach_pixels = floor(
+        recovery_radius_beams * beam_major_fwhm_pixels
+    )
     return max(
-        _DENSE_CORE_INFLUENCE_PIXELS,
-        multiscale_recovery_radius_pixels(
-            beam_major_fwhm_pixels,
-            recovery_radius_beams=recovery_radius_beams,
-        )
-        + _OPENING_INFLUENCE_PIXELS,
+        recovery_pixels + _OPENING_INFLUENCE_PIXELS,
+        measurement_reach_pixels + _DENSE_CORE_INFLUENCE_PIXELS,
     )
 
 
