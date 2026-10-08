@@ -278,10 +278,12 @@ def task_occupancy_by_stage(
     A single-threaded worker runs one task at a time, so no more than
     ``worker_count`` workers count as busy even where more tasks appear to
     run, and occupancy is at most 1 up to floating-point rounding. Dask's
-    task records do appear that way: each worker adds its latest heartbeat
+    task records can appear that way: a worker adds its latest heartbeat
     estimate of its clock's offset from the scheduler's to the times of its
-    tasks, and the estimate changes from one heartbeat to the next, so one
-    worker's consecutive tasks can be recorded overlapping.
+    tasks, and the estimate changes from one heartbeat to the next, so its
+    consecutive tasks can be recorded overlapping. The profile's own workers
+    share the driver's clock and keep that estimate at zero
+    (``hebog.validation.profile_cluster``).
 
     Raises:
         ValueError: If ``worker_count`` is not positive or an interval ends

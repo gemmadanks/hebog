@@ -170,7 +170,7 @@ readiness.
 | Portable suite | 3,398 passed and 2 xfailed, 97% branch-aware coverage against an 80% floor (6 October) |
 | Equivalence lane | 45 tests, including `find_sources` against both PyBDSF references under both profiles |
 | CI matrix | Linux, macOS and Windows on Python 3.12 to 3.14, plus a lowest-dependency job and a container build (not yet required on `main`, task 60) |
-| Architecture | Every layer's allowed imports are one tested table; Rapthor, Prefect and LSMTool are absent from the package and Dask is confined to `executors/` |
+| Architecture | Every layer's allowed imports are one tested table; Rapthor, Prefect and LSMTool are absent from the package and Dask is confined to `executors/`, apart from the execution profiler's local cluster in `validation/`, which wheels exclude |
 
 ## Blockers and next steps
 

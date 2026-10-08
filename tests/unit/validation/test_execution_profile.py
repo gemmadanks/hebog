@@ -186,7 +186,7 @@ def test_overlapping_task_records_count_no_more_busy_workers_than_exist() -> (
 ):
     """A single-threaded worker's tasks can be recorded overlapping.
 
-    Each Dask worker adds its latest heartbeat estimate of its clock's
+    A default Dask worker adds its latest heartbeat estimate of its clock's
     offset from the scheduler's to every task time it reports. The estimate
     changes at each heartbeat, so a worker's next task can be stamped as
     starting before its previous one stopped: here the first worker's two

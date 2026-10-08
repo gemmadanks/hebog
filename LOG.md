@@ -31916,3 +31916,63 @@ the per-worker placement finding.
   coverage; `just check` and `just pre-commit` pass, and the profile
   worker's integration tests pass at load 6. The quick science check and
   the quick benchmark do not apply: the finder is unchanged.
+
+## 2026-10-07 — Profile workers report task times on the driver's clock
+
+- **Decision.** This repairs the remaining risk recorded in the previous
+  entry, at its source. The execution profile's local Dask cluster now runs
+  `SharedClockWorker` (`hebog.validation.profile_cluster`), a worker whose
+  `scheduler_delay` reads zero and which discards every heartbeat estimate
+  assigned to it. Driver and workers share one host and `time.time`, the
+  clock `distributed` 2026.7.1 reads on macOS and Linux, so each task is
+  recorded when it ran, on the clock that times the stage calls. The
+  integration test's root-stage task-count and task-seconds equalities then
+  hold under any load, and one worker's consecutive tasks no longer appear
+  to overlap. The occupancy cap stays, because it defines occupancy and
+  records from other clusters still carry the estimate.
+- **Alternatives rejected.** `distributed` has no configuration that turns
+  the estimate off: the scheduler sets the heartbeat interval, and the first
+  estimate is taken at registration. Its own
+  `distributed.utils_test.NoSchedulerDelayWorker` overrides the attribute
+  the same way for its timing tests, but that module loads pytest, test
+  fixtures, a helper thread and an IPv6 probe into every process that
+  unpickles it, so the profile keeps its own ten-line subclass. A shift
+  cannot be undone afterwards, because a record does not carry the estimate
+  applied to it. A test tolerance (options b and c) has no deterministic
+  bound: an estimate's error is at most half its heartbeat's round trip,
+  and load lengthens the round trip without limit.
+- **Coupling.** The override depends on `Worker.scheduler_delay`, an
+  internal attribute. The regression test's control row fails if a later
+  `distributed` stops shifting task records by it.
+- **Side change.** The cluster's dashboard now takes a random port (`:0`),
+  as the integration tests' clusters do. The empty address bound every
+  interface at port 8787 and warned when another cluster held it; under
+  pytest's warnings-as-errors that warning would fail a test that starts
+  the cluster in-process.
+- **Tests.** `test_profile_workers_ignore_their_clock_offset_estimate`
+  assigns a 1,000 s estimate to each worker, as a heartbeat does, and
+  requires each task's own `time.time` reading to lie inside its recorded
+  compute interval, on the profile's process cluster and on one in-process
+  `SharedClockWorker`. Before the override, both rows recorded tasks
+  1,000 s late. In the control row, an in-process worker that keeps a
+  1,000 s estimate records every reading shifted by exactly that amount.
+- **Load probe.** On the integration test's two-source case, with four busy
+  processes plus three driver threads contending for the interpreter lock
+  in 50 ms bursts, three runs on each cluster recorded no same-worker
+  overlap, and root-stage margins were 0.6 to 3.3 s on both. This load slows the driver
+  by seconds, so the probe neither reproduces the risk nor tells the two
+  clusters apart; the deterministic test is the evidence.
+- **Checks.** `just coverage` passes (3,272 tests and 1 expected failure,
+  total 97.01%), with `profile_cluster.py` and `execution_profile.py` at
+  full line and branch coverage; the profile worker's tests also pass on
+  Python 3.12. `just check` and `just pre-commit` pass. The quick science
+  check and the quick benchmark do not apply: the finder is unchanged.
+- **Stacked on the layering table** (7 October). Written on `main` before
+  task 59, the new `validation/profile_cluster.py` imports `distributed`,
+  which the architecture test allows only in `executors/`. The maintainer
+  chose a named exemption: `SCHEDULER_EXEMPTIONS` in
+  `tests/unit/test_architecture.py` allows that one module to import
+  `distributed`, because wheels exclude `hebog.validation` and no production
+  module imports it, and a parametrized test fails if the exemption stops
+  matching. Declined: moving the cluster to `scripts/`, outside the tested
+  package, or to `executors/`, which would make the library own a cluster.

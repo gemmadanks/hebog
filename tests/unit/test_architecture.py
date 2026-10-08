@@ -123,7 +123,16 @@ WORKFLOW_PACKAGES = ("lsmtool", "prefect", "rapthor")
 
 SCHEDULER_PACKAGES = ("dask", "distributed")
 SCHEDULER_LAYER = "executors"
-"""The only layer that imports a scheduler package."""
+"""The only layer that imports a scheduler package, but for exemptions."""
+
+SCHEDULER_EXEMPTIONS: dict[tuple[str, str], str] = {
+    ("validation/profile_cluster.py", "distributed"): (
+        "The execution profiler's local cluster keeps every worker's clock "
+        "offset at zero, which no executor option sets; wheels exclude "
+        "hebog.validation and no production module imports it."
+    ),
+}
+"""Scheduler imports outside ``SCHEDULER_LAYER``, by module and package."""
 
 FORBIDDEN_IMPORT_CALLS = {
     "atexit.register",
@@ -580,18 +589,45 @@ def test_no_module_imports_a_workflow_framework(package: str) -> None:
     assert violations == []
 
 
-def test_only_the_executors_import_a_scheduler() -> None:
-    """Dask is reached through an executor, never imported elsewhere."""
-    importers = {
-        _layer_of_path(path)
+def _scheduler_imports() -> list[tuple[str, _StaticImport]]:
+    """Return every import of a scheduler package, by module path."""
+    return [
+        (_relative_path(path), imported)
         for path, imported in _package_imports()
         if any(
             _matches_prefix(imported.name, package)
             for package in SCHEDULER_PACKAGES
         )
+    ]
+
+
+def test_only_the_executors_import_a_scheduler() -> None:
+    """Dask is reached through an executor, or a named exemption."""
+    importers = {
+        _layer_of_path(PACKAGE_ROOT / module_path)
+        for module_path, imported in _scheduler_imports()
+        if not any(
+            module_path == exempt_path
+            and _matches_prefix(imported.name, prefix)
+            for exempt_path, prefix in SCHEDULER_EXEMPTIONS
+        )
     }
 
     assert importers == {SCHEDULER_LAYER}
+
+
+@pytest.mark.parametrize(
+    ("module_path", "prefix"), sorted(SCHEDULER_EXEMPTIONS)
+)
+def test_scheduler_exemption_still_matches(
+    module_path: str, prefix: str
+) -> None:
+    """A scheduler exemption that no longer allows an import fails loudly."""
+    assert _layer_of_path(PACKAGE_ROOT / module_path) != SCHEDULER_LAYER
+    assert any(
+        exempt_path == module_path and _matches_prefix(imported.name, prefix)
+        for exempt_path, imported in _scheduler_imports()
+    ), "the exemption allows no scheduler import; remove it"
 
 
 def test_static_imports_mark_deferred_and_relative_imports() -> None:
