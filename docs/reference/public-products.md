@@ -274,11 +274,14 @@ continuum estimator can interpolate missing grid cells and extend fine-grid
 edge values under its documented policy. Where it measures local noise (the
 `continuum` profile on images at least 150 pixels on a side), a fine cell
 whose window overlaps a protected source takes its nearest clean window's
-RMS, but never less than 0.8 of the coarse RMS at its centre, or of the
-largest clean window within half a coarse window if that is lower. So a
-quieter region's noise is not carried across a sharp step in the noise
-beside it, and extended emission that an unprotected coarse window keeps is
-not taken for noise; a cell a clean window measured keeps its own RMS.
+RMS, but, while a clean window lies within half a coarse window of it,
+never less than 0.8 of the coarse RMS at its centre or of the largest such
+clean window if that is lower. So a quieter region's noise is not carried
+across a sharp step in the noise beside it, and extended emission that an
+unprotected coarse window keeps is not taken for noise: a cell beyond every
+clean window's reach, as inside a source wider than a coarse window, keeps
+its nearest clean window's RMS, and a cell a clean window measured keeps
+its own.
 Around bright sources the fine grid
 only raises the coarse RMS, and carries a clean window's RMS at most one fine
 window (35 pixels): a fine cell farther than that from every clean window

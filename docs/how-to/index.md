@@ -65,12 +65,14 @@ ten minutes once its references are cached:
 just quick-science-check --baseline benchmark-results/quick-check/runs/<earlier-run>/report.json
 ```
 
-The 17 cases in `config/checks/quick-science-check.json` are thirteen
+The 18 cases in `config/checks/quick-science-check.json` are fourteen
 generated images with injected truth
 (`config/datasets/quick-science-check.json`), two SDC1 cut-outs and two
 LoTSS-DR3 cut-outs with their published PyBDSF RMS and mask maps. For each
 case it reports completeness, reliability, position and flux errors and
-position-uncertainty coverage against truth, the same against pinned PyBDSF
+position-uncertainty coverage against truth, the median and 95th-percentile
+RMS error and the mask recall over the injected emission at least three
+times the noise, the same catalogue comparisons against pinned PyBDSF
 `master`, and RMS and mask agreement. It prints a summary and writes
 `report.json` under `benchmark-results/quick-check/runs/<label>/`.
 

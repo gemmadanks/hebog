@@ -1099,6 +1099,43 @@ def generate_synthetic_window(
     return np.asarray(image, dtype=np.float64)
 
 
+def generate_synthetic_emission(
+    recipe: SyntheticRecipe,
+) -> npt.NDArray[np.float64]:
+    """Return the injected emission alone: no background, no noise.
+
+    Invalid rectangles are NaN, as in the image. The plane is bounded by the
+    same in-memory limit as :func:`generate_synthetic_image`.
+    """
+    height, width = recipe.shape_yx
+    if height * width > _DEFAULT_MAXIMUM_IN_MEMORY_PIXELS:
+        raise ValueError(
+            "complete synthetic emission exceeds the in-memory limit"
+        )
+    emission = recipe.model_copy(update={"background": 0.0, "noise_rms": 0.0})
+    return generate_synthetic_window(
+        emission, y_start=0, y_stop=height, x_start=0, x_stop=width
+    )
+
+
+def generate_synthetic_noise_rms(
+    recipe: SyntheticRecipe,
+) -> npt.NDArray[np.float64]:
+    """Return the injected noise RMS at every pixel, gradient included."""
+    height, width = recipe.shape_yx
+    if height * width > _DEFAULT_MAXIMUM_IN_MEMORY_PIXELS:
+        raise ValueError(
+            "complete synthetic noise RMS exceeds the in-memory limit"
+        )
+    return np.asarray(
+        recipe.noise_rms
+        * _noise_rms_scale(
+            recipe, y_start=0, y_stop=height, x_start=0, x_stop=width
+        ),
+        dtype=np.float64,
+    )
+
+
 def generate_synthetic_image(
     recipe: SyntheticRecipe,
     *,

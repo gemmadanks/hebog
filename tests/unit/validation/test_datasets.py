@@ -20,7 +20,9 @@ from hebog.validation.datasets import (
     SyntheticNoiseCorrelation,
     SyntheticRecipe,
     SyntheticSource,
+    generate_synthetic_emission,
     generate_synthetic_image,
+    generate_synthetic_noise_rms,
     generate_synthetic_window,
     iter_dataset_recipes,
     load_dataset_manifest,
@@ -873,6 +875,61 @@ def test_recipe_checksum_is_canonical() -> None:
     reloaded = SyntheticRecipe.model_validate(recipe.model_dump(mode="json"))
 
     assert recipe_sha256(recipe) == recipe_sha256(reloaded)
+
+
+def test_synthetic_emission_and_noise_rms_follow_the_recipe() -> None:
+    """The emission plane holds the sources alone; the noise plane the RMS."""
+    recipe = SyntheticRecipe(
+        generator="hebog.synthetic.gaussian-noise",
+        generator_version=2,
+        seed=7,
+        shape_yx=(32, 48),
+        background=3.0,
+        noise_rms=0.5,
+        noise_rms_fractional_gradient_xy=(0.4, 0.0),
+        sources=(
+            SyntheticSource(
+                x_pixel=24.0,
+                y_pixel=16.0,
+                peak_flux_jy_per_beam=10.0,
+                major_sigma_pixels=2.0,
+                minor_sigma_pixels=2.0,
+            ),
+        ),
+        invalid_rectangles=(
+            SyntheticInvalidRectangle(
+                y_start=0, y_stop=4, x_start=0, x_stop=4
+            ),
+        ),
+    )
+
+    emission = generate_synthetic_emission(recipe)
+    noise = generate_synthetic_noise_rms(recipe)
+
+    assert emission.shape == noise.shape == (32, 48)
+    assert emission[16, 24] == pytest.approx(10.0)
+    assert emission[0, 47] == pytest.approx(0.0, abs=1e-12)
+    assert np.all(np.isnan(emission[:4, :4]))
+    assert noise[:, 0].min() == pytest.approx(0.4)
+    assert noise[:, -1].max() == pytest.approx(0.6)
+    assert np.all(np.isfinite(noise))
+
+
+def test_synthetic_emission_and_noise_rms_refuse_an_unbounded_plane() -> None:
+    """Both planes share the in-memory limit of the complete image."""
+    recipe = SyntheticRecipe(
+        generator="hebog.synthetic.gaussian-noise",
+        generator_version=1,
+        seed=1,
+        shape_yx=(4097, 4096),
+        background=0.0,
+        noise_rms=1.0,
+    )
+
+    with pytest.raises(ValueError, match="in-memory limit"):
+        generate_synthetic_emission(recipe)
+    with pytest.raises(ValueError, match="in-memory limit"):
+        generate_synthetic_noise_rms(recipe)
 
 
 def test_synthetic_generation_is_repeatable_and_seeded() -> None:

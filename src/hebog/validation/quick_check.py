@@ -42,7 +42,13 @@ from hebog.validation.comparison import (
     compare_masks,
     compare_rms_maps,
 )
-from hebog.validation.datasets import DatasetRecord, load_dataset_manifest
+from hebog.validation.datasets import (
+    DatasetRecord,
+    SyntheticRecipe,
+    generate_synthetic_emission,
+    generate_synthetic_noise_rms,
+    load_dataset_manifest,
+)
 from hebog.validation.materialization import materialize_dataset
 from hebog.validation.products import load_fits_plane
 from hebog.validation.remote_cutouts import fetch_remote_cutout
@@ -229,6 +235,7 @@ class PreparedCase:
     noise_rms_jy_per_beam: float | None
     published_rms_path: Path | None
     published_mask_path: Path | None
+    recipe: SyntheticRecipe | None = None
 
 
 def file_sha256(path: Path) -> str:
@@ -410,6 +417,7 @@ def prepare_case(
             noise_rms_jy_per_beam=dataset.recipe.noise_rms,
             published_rms_path=None,
             published_mask_path=None,
+            recipe=dataset.recipe,
         )
     image_path = repository_root / case.image
     for remote, local in (
@@ -586,6 +594,47 @@ def truth_metrics(
     return metrics
 
 
+_SUPPORT_SIGMA = 3.0
+
+
+def support_metrics(
+    recipe: SyntheticRecipe,
+    *,
+    rms_path: Path,
+    mask_path: Path,
+) -> MetricValues:
+    """Compare the RMS and mask with the emission the recipe injects.
+
+    The support is every valid pixel whose injected emission, without noise
+    or background, is at least three times the injected noise RMS there.
+    ``truth.support_rms_error_p50`` and ``truth.support_rms_error_p95`` are
+    the median and 95th percentile over the support of the published RMS's
+    fractional error against the injected noise, so an RMS that reads the
+    emission as noise, as inside a source wider than the local-noise floor's
+    reach, shows as a tail error of order one even where the median, set by
+    the source's periphery, stays small. ``truth.support_recall`` is the
+    fraction of the support inside the published mask. All three are
+    ``None`` when the recipe injects no emission above that level.
+    """
+    emission = generate_synthetic_emission(recipe)
+    noise = generate_synthetic_noise_rms(recipe)
+    support = np.isfinite(emission) & (emission >= _SUPPORT_SIGMA * noise)
+    if not np.any(support):
+        return {
+            "truth.support_rms_error_p50": None,
+            "truth.support_rms_error_p95": None,
+            "truth.support_recall": None,
+        }
+    rms = load_fits_plane(rms_path)
+    mask = np.nan_to_num(load_fits_plane(mask_path)) > 0
+    error = np.abs(rms[support] / noise[support] - 1)
+    return {
+        "truth.support_rms_error_p50": float(np.nanmedian(error)),
+        "truth.support_rms_error_p95": float(np.nanpercentile(error, 95)),
+        "truth.support_recall": float(np.mean(mask[support])),
+    }
+
+
 def map_metrics(
     prefix: str,
     *,
@@ -641,6 +690,7 @@ _HIGHER_IS_BETTER = (
     "completeness",
     "reliability",
     "mask_iou",
+    "support_recall",
 )
 _LOWER_IS_BETTER_SEPARATION = ("separation_p50_beams", "separation_p95_beams")
 _LOWER_IS_BETTER_FRACTION = (
@@ -650,6 +700,8 @@ _LOWER_IS_BETTER_FRACTION = (
     "integrated_flux_error_p95",
     "rms_error_p50",
     "rms_error_p95",
+    "support_rms_error_p50",
+    "support_rms_error_p95",
 )
 _COVERAGE = ("right_ascension_coverage", "declination_coverage")
 
