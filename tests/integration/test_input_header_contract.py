@@ -397,7 +397,7 @@ _REFUSED: dict[str, tuple[_Convention, type[SourceFinderError], str]] = {
     "lofar-hd-mosaic": (
         _Convention(_lofar_hd_mosaic()),
         InvalidSourceFinderInputError,
-        "requires a reference frequency in RESTFRQ, RESTFREQ or a FREQ axis",
+        "requires a reference frequency in a FREQ axis, RESTFRQ or RESTFREQ",
     ),
     "oskar": (
         _Convention(_oskar(), (1,)),
