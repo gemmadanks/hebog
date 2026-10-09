@@ -27,7 +27,7 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from functools import partial
 from numbers import Integral
-from typing import Protocol, TypeVar
+from typing import TypeVar
 
 import numpy as np
 import numpy.typing as npt
@@ -65,6 +65,7 @@ from hebog.data_models.partitioning import (
 )
 from hebog.data_models.products import ProductChunk
 from hebog.executors.base import Executor
+from hebog.io.base import CompletedProductSource
 from hebog.io.zarr import ZarrProductSink
 from hebog.stages.batching import batch_object_windows, map_round, read_pixels
 
@@ -80,27 +81,6 @@ _PUBLICATION_PRODUCT_NAMES = (
     "publication-labels",
     "retained-mask",
 )
-
-
-class _CompletedProductSource(Protocol):
-    """Read checksum-validated windows from one published generation."""
-
-    @property
-    def manifest(self) -> PartitionManifest:
-        """Return the source generation's canonical partition."""
-        ...
-
-    def read_generation(self) -> ProductGenerationManifest:
-        """Validate and return the published completion record."""
-        ...
-
-    def read_completed_window(
-        self,
-        product_name: str,
-        bounds: ImageBounds,
-    ) -> npt.NDArray[np.generic]:
-        """Read one validated bounded product window."""
-        ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -303,8 +283,8 @@ def _product_dtype(product_name: str) -> np.dtype[np.generic]:
 def _read_planes(
     bounds: ImageBounds,
     *,
-    detection_source: _CompletedProductSource,
-    support_source: _CompletedProductSource,
+    detection_source: CompletedProductSource,
+    support_source: CompletedProductSource,
 ) -> _ReadPlanes:
     """Read one bounded window of every plane this pass decides from."""
     return _ReadPlanes(
@@ -474,8 +454,8 @@ def _crop(bounds: ImageBounds, window: ImageBounds) -> tuple[slice, slice]:
 def _decide_restores(
     batch: _OwnerBatch,
     *,
-    detection_source: _CompletedProductSource,
-    support_source: _CompletedProductSource,
+    detection_source: CompletedProductSource,
+    support_source: CompletedProductSource,
     config: PublicationStageConfig,
 ) -> _RestoreBatchResult:
     """Decide, per owner, whether cleanup removed it or split its support."""
@@ -506,8 +486,8 @@ def _decide_restores(
 def _scan_published_owners(
     batch: _TileBatch,
     *,
-    detection_source: _CompletedProductSource,
-    support_source: _CompletedProductSource,
+    detection_source: CompletedProductSource,
+    support_source: CompletedProductSource,
     config: PublicationStageConfig,
 ) -> _PublishedOwnerBatchResult:
     """Return the owners published inside the cores of one batch."""
@@ -539,8 +519,8 @@ def _scan_published_owners(
 def _decide_bridges(
     batch: _OwnerBatch,
     *,
-    detection_source: _CompletedProductSource,
-    support_source: _CompletedProductSource,
+    detection_source: CompletedProductSource,
+    support_source: CompletedProductSource,
     config: PublicationStageConfig,
     image_width: int,
 ) -> _BridgeBatchResult:
@@ -594,8 +574,8 @@ def _decide_bridges(
 def _observe_wide_splits(
     batch: _TileBatch,
     *,
-    detection_source: _CompletedProductSource,
-    support_source: _CompletedProductSource,
+    detection_source: CompletedProductSource,
+    support_source: CompletedProductSource,
     config: PublicationStageConfig,
 ) -> _WideSplitResult:
     """Label the wide owners' published support in each core of one batch.
@@ -654,8 +634,8 @@ def _wide_bridge_planes(
 def _observe_wide_bridges(
     batch: _TileBatch,
     *,
-    detection_source: _CompletedProductSource,
-    support_source: _CompletedProductSource,
+    detection_source: CompletedProductSource,
+    support_source: CompletedProductSource,
     config: PublicationStageConfig,
 ) -> _WideBridgeResult:
     """Label the wide owners' base and candidate support in each core.
@@ -745,8 +725,8 @@ def _owner_patch(
 def _publish_batch(  # noqa: PLR0913
     batch: _TileBatch,
     *,
-    detection_source: _CompletedProductSource,
-    support_source: _CompletedProductSource,
+    detection_source: CompletedProductSource,
+    support_source: CompletedProductSource,
     sink: ZarrProductSink,
     config: PublicationStageConfig,
     image_width: int,
@@ -1014,8 +994,8 @@ def _accepted_islands(
 
 
 def _validate_stage_inputs(
-    detection_source: _CompletedProductSource,
-    support_source: _CompletedProductSource,
+    detection_source: CompletedProductSource,
+    support_source: CompletedProductSource,
     manifest: PartitionManifest,
     config: PublicationStageConfig,
     sink: ZarrProductSink,
@@ -1051,8 +1031,8 @@ def _validate_stage_inputs(
 
 
 def run_publication_stage(  # noqa: PLR0913
-    detection_source: _CompletedProductSource,
-    support_source: _CompletedProductSource,
+    detection_source: CompletedProductSource,
+    support_source: CompletedProductSource,
     manifest: PartitionManifest,
     *,
     detection_islands: tuple[DetectedIsland, ...],

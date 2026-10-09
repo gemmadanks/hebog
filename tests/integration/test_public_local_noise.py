@@ -21,6 +21,7 @@ from hebog import public_api
 from hebog.config import SourceFinderConfig
 from hebog.executors import SerialExecutor
 from hebog.io import FitsImageSource
+from hebog.stages import composition
 
 pytestmark = pytest.mark.integration
 
@@ -43,12 +44,18 @@ def _public_maps(
     fits.PrimaryHDU(image, header).writeto(input_path)
     source = FitsImageSource(input_path)
     metadata = source.metadata()
-    sink, _ = public_api._estimate_background_rms(
+    config = SourceFinderConfig(5.0, 3.0, 7)
+    beam, review = public_api._stage_inputs(  # pyright: ignore[reportPrivateUsage]
+        metadata, config
+    )
+    sink, _ = composition.estimate_background_rms(
         source,
         metadata,
-        SourceFinderConfig(5.0, 3.0, 7),
+        config,
         SerialExecutor(),
         tmp_path / "work",
+        beam=beam,
+        review=review,
         generation_id="noise-fixture",
     )
     return estimated_maps(sink, metadata.shape_yx)

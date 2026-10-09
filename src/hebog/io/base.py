@@ -8,8 +8,9 @@ from typing import Protocol
 import numpy as np
 import numpy.typing as npt
 
+from hebog.data_models.generations import ProductGenerationManifest
 from hebog.data_models.images import ImageMetadata
-from hebog.data_models.partitioning import ImageBounds
+from hebog.data_models.partitioning import ImageBounds, PartitionManifest
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,4 +44,37 @@ class ImageSource(Protocol):
         window and keeps only the window, so any tiling decides the same
         pixels.
         """
+        ...
+
+
+class WindowReadable(Protocol):
+    """Read bounded global image windows without scheduler state.
+
+    The read-only part of :class:`ImageSource` that a stage task needs; a
+    task never needs the image metadata.
+    """
+
+    def read_window(self, bounds: ImageBounds) -> ImageWindow:
+        """Read one bounded global window."""
+        ...
+
+
+class CompletedProductSource(Protocol):
+    """Read checksum-validated windows from one published generation."""
+
+    @property
+    def manifest(self) -> PartitionManifest:
+        """Return the canonical partition the generation was written on."""
+        ...
+
+    def read_generation(self) -> ProductGenerationManifest:
+        """Validate and return the published completion record."""
+        ...
+
+    def read_completed_window(
+        self,
+        product_name: str,
+        bounds: ImageBounds,
+    ) -> npt.NDArray[np.generic]:
+        """Read one validated bounded product window."""
         ...

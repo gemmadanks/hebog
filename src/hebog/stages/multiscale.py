@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from functools import partial
 from numbers import Integral
-from typing import Protocol
 
 import numpy as np
 import numpy.typing as npt
@@ -38,13 +37,12 @@ from hebog.algorithms.reconciliation import (
 from hebog.config import ResidualMultiscaleDetectionConfig
 from hebog.data_models.generations import ProductGenerationManifest
 from hebog.data_models.partitioning import (
-    ImageBounds,
     PartitionManifest,
     TilePartition,
 )
 from hebog.data_models.products import ProductChunk
 from hebog.executors.base import Executor
-from hebog.io.base import ImageWindow
+from hebog.io.base import CompletedProductSource, ImageWindow, WindowReadable
 from hebog.io.zarr import ZarrProductSink
 
 _SCALE_ORDERS = (1, 2, 3)
@@ -62,35 +60,6 @@ _MULTISCALE_PRODUCT_NAMES = tuple(
         )
     )
 )
-
-
-class _WindowReadable(Protocol):
-    """Read bounded global image windows without scheduler state."""
-
-    def read_window(self, bounds: ImageBounds) -> ImageWindow:
-        """Read one bounded global window."""
-        ...
-
-
-class _CompletedProductSource(Protocol):
-    """Read checksum-validated windows from one published generation."""
-
-    @property
-    def manifest(self) -> PartitionManifest:
-        """Return the source generation's canonical partition."""
-        ...
-
-    def read_generation(self) -> ProductGenerationManifest:
-        """Validate and return the published completion record."""
-        ...
-
-    def read_completed_window(
-        self,
-        product_name: str,
-        bounds: ImageBounds,
-    ) -> npt.NDArray[np.generic]:
-        """Read one validated bounded product window."""
-        ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -230,7 +199,7 @@ def _require_image_window(
 
 
 def _read_image_window(
-    source: _WindowReadable,
+    source: WindowReadable,
     partition: TilePartition,
 ) -> ImageWindow:
     """Read and validate one exact halo window."""
@@ -241,7 +210,7 @@ def _read_image_window(
 
 
 def _read_image_batch(
-    source: _WindowReadable,
+    source: WindowReadable,
     partitions: tuple[TilePartition, ...],
 ) -> tuple[ImageWindow, ...]:
     """Use one optional bounded batch read or the scalar source contract."""
@@ -269,8 +238,8 @@ def _image_batch_bytes(windows: tuple[ImageWindow, ...]) -> int:
 def _evaluate_tile(  # noqa: PLR0913
     partition: TilePartition,
     *,
-    source: _WindowReadable,
-    background_rms_source: _CompletedProductSource,
+    source: WindowReadable,
+    background_rms_source: CompletedProductSource,
     image_shape_yx: tuple[int, int],
     beam: BeamShapePixels,
     detection: ResidualMultiscaleDetectionConfig,
@@ -376,8 +345,8 @@ def _product_array_bytes(
 def _scan_topology_batch(  # noqa: PLR0913
     batch: _PartitionBatch,
     *,
-    source: _WindowReadable,
-    background_rms_source: _CompletedProductSource,
+    source: WindowReadable,
+    background_rms_source: CompletedProductSource,
     image_shape_yx: tuple[int, int],
     beam: BeamShapePixels,
     detection: ResidualMultiscaleDetectionConfig,
@@ -396,8 +365,8 @@ def _scan_topology_batch(  # noqa: PLR0913
 def _scan_topology_batch_in_session(  # noqa: PLR0913
     batch: _PartitionBatch,
     *,
-    source: _WindowReadable,
-    background_rms_source: _CompletedProductSource,
+    source: WindowReadable,
+    background_rms_source: CompletedProductSource,
     image_shape_yx: tuple[int, int],
     beam: BeamShapePixels,
     detection: ResidualMultiscaleDetectionConfig,
@@ -656,8 +625,8 @@ def _publish_scale_labels(
 def _publish_batch(  # noqa: PLR0913
     batch: _PublicationBatch,
     *,
-    source: _WindowReadable,
-    background_rms_source: _CompletedProductSource,
+    source: WindowReadable,
+    background_rms_source: CompletedProductSource,
     sink: ZarrProductSink,
     image_shape_yx: tuple[int, int],
     beam: BeamShapePixels,
@@ -678,8 +647,8 @@ def _publish_batch(  # noqa: PLR0913
 def _publish_batch_in_session(  # noqa: PLR0913
     batch: _PublicationBatch,
     *,
-    source: _WindowReadable,
-    background_rms_source: _CompletedProductSource,
+    source: WindowReadable,
+    background_rms_source: CompletedProductSource,
     sink: ZarrProductSink,
     image_shape_yx: tuple[int, int],
     beam: BeamShapePixels,
@@ -868,7 +837,7 @@ def _publication_batches(
 
 
 def _validate_stage_inputs(
-    background_rms_source: _CompletedProductSource,
+    background_rms_source: CompletedProductSource,
     manifest: PartitionManifest,
     config: MultiscaleStageConfig,
     sink: ZarrProductSink,
@@ -896,8 +865,8 @@ def _validate_stage_inputs(
 
 
 def run_multiscale_stage(  # noqa: PLR0913
-    source: _WindowReadable,
-    background_rms_source: _CompletedProductSource,
+    source: WindowReadable,
+    background_rms_source: CompletedProductSource,
     manifest: PartitionManifest,
     *,
     config: MultiscaleStageConfig,

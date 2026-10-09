@@ -22,7 +22,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from functools import partial
 from numbers import Integral
-from typing import Protocol, cast
+from typing import cast
 
 import numpy as np
 import numpy.typing as npt
@@ -83,7 +83,7 @@ from hebog.data_models.partitioning import (
 from hebog.data_models.products import ProductChunk
 from hebog.data_models.source_association import DetectionComponentRecord
 from hebog.executors.base import Executor
-from hebog.io.base import ImageWindow
+from hebog.io.base import CompletedProductSource, WindowReadable
 from hebog.io.zarr import ZarrProductSink
 from hebog.stages.batching import (
     WindowBatch,
@@ -96,35 +96,6 @@ _TOPOLOGY_PRODUCT_NAMES = (
     "component-direct-labels",
     "component-measurement-labels",
 )
-
-
-class _WindowReadable(Protocol):
-    """Read bounded global image windows without scheduler state."""
-
-    def read_window(self, bounds: ImageBounds) -> ImageWindow:
-        """Read one bounded global window."""
-        ...
-
-
-class _CompletedProductSource(Protocol):
-    """Read checksum-validated windows from one published generation."""
-
-    @property
-    def manifest(self) -> PartitionManifest:
-        """Return the source generation's canonical partition."""
-        ...
-
-    def read_generation(self) -> ProductGenerationManifest:
-        """Validate and return the published completion record."""
-        ...
-
-    def read_completed_window(
-        self,
-        product_name: str,
-        bounds: ImageBounds,
-    ) -> npt.NDArray[np.generic]:
-        """Read one validated bounded product window."""
-        ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -340,7 +311,7 @@ def _label_extents(
 def _scan_extents(
     batch: _TileBatch,
     *,
-    support_source: _CompletedProductSource,
+    support_source: CompletedProductSource,
 ) -> _ExtentBatchResult:
     """Observe every parent's extent inside the cores of one batch."""
     extents: list[_CoreExtent] = []
@@ -510,8 +481,8 @@ def _crop(bounds: ImageBounds, window: ImageBounds) -> tuple[slice, slice]:
 def _deblend_parents(
     batch: _ParentBatch,
     *,
-    support_source: _CompletedProductSource,
-    detection_source: _CompletedProductSource,
+    support_source: CompletedProductSource,
+    detection_source: CompletedProductSource,
     deblend: CompactDeblendConfig,
     image_shape_yx: tuple[int, int],
 ) -> tuple[ParentComponentMembership, ...]:
@@ -563,8 +534,8 @@ def _deblend_parents(
 def _deblend_batch(
     batch: _ParentBatch,
     *,
-    support_source: _CompletedProductSource,
-    detection_source: _CompletedProductSource,
+    support_source: CompletedProductSource,
+    detection_source: CompletedProductSource,
     config: ComponentTopologyStageConfig,
     image_shape_yx: tuple[int, int],
 ) -> _DeblendBatchResult:
@@ -709,8 +680,8 @@ def _write_deblended_parents(  # noqa: PLR0913
     core: ImageBounds,
     deblended_parents: tuple[_NumberedParent, ...],
     *,
-    support_source: _CompletedProductSource,
-    detection_source: _CompletedProductSource,
+    support_source: CompletedProductSource,
+    detection_source: CompletedProductSource,
     config: ComponentTopologyStageConfig,
     image_shape_yx: tuple[int, int],
 ) -> int:
@@ -759,8 +730,8 @@ def _write_deblended_parents(  # noqa: PLR0913
 def _publish_batch(  # noqa: PLR0913
     batch: _TileBatch,
     *,
-    support_source: _CompletedProductSource,
-    detection_source: _CompletedProductSource,
+    support_source: CompletedProductSource,
+    detection_source: CompletedProductSource,
     sink: ZarrProductSink,
     config: ComponentTopologyStageConfig,
     image_shape_yx: tuple[int, int],
@@ -860,8 +831,8 @@ def _tile_batches(
 
 
 def _validate_stage_inputs(
-    support_source: _CompletedProductSource,
-    detection_source: _CompletedProductSource,
+    support_source: CompletedProductSource,
+    detection_source: CompletedProductSource,
     manifest: PartitionManifest,
     sink: ZarrProductSink,
 ) -> None:
@@ -912,8 +883,8 @@ def _require_matching_component_identities(
 
 
 def run_component_topology_stage(  # noqa: PLR0913
-    support_source: _CompletedProductSource,
-    detection_source: _CompletedProductSource,
+    support_source: CompletedProductSource,
+    detection_source: CompletedProductSource,
     manifest: PartitionManifest,
     *,
     config: ComponentTopologyStageConfig,
@@ -1165,7 +1136,7 @@ class _ContextPublicationBatch:
 def _fit_context_core(
     partition: TilePartition,
     *,
-    component_source: _CompletedProductSource,
+    component_source: CompletedProductSource,
     context_margin_pixels: int,
 ) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.int32]]:
     """Return one core's fit-context mask and its measurement owners.
@@ -1201,7 +1172,7 @@ def _fit_context_core(
 def _label_contexts(
     partition: TilePartition,
     *,
-    component_source: _CompletedProductSource,
+    component_source: CompletedProductSource,
     image_shape_yx: tuple[int, int],
     context_margin_pixels: int,
 ) -> tuple[LocalIslandTile, npt.NDArray[np.int32], tuple[_ContextLink, ...]]:
@@ -1249,7 +1220,7 @@ def _label_contexts(
 def _scan_contexts(
     batch: _ContextPublicationBatch,
     *,
-    component_source: _CompletedProductSource,
+    component_source: CompletedProductSource,
     image_shape_yx: tuple[int, int],
     context_margin_pixels: int,
 ) -> _ContextBatchResult:
@@ -1294,7 +1265,7 @@ def _scan_contexts(
 def _scan_islands(
     batch: _ContextPublicationBatch,
     *,
-    component_source: _CompletedProductSource,
+    component_source: CompletedProductSource,
     image_shape_yx: tuple[int, int],
 ) -> _ContextBatchResult:
     """Label each core's islands, its zero-margin contexts, and owners."""
@@ -1321,7 +1292,7 @@ def _direct_pixel_counts(
     support: npt.NDArray[np.bool_],
     partition: TilePartition,
     *,
-    component_source: _CompletedProductSource,
+    component_source: CompletedProductSource,
 ) -> tuple[tuple[int, int], ...]:
     """Count the direct component pixels each local context holds."""
     direct = np.asarray(
@@ -1540,7 +1511,7 @@ def _global_context(mapping: TileLabelMapping, local_label: int) -> int:
 def _publish_fit_parents(
     batch: _ContextPublicationBatch,
     *,
-    component_source: _CompletedProductSource,
+    component_source: CompletedProductSource,
     sink: ZarrProductSink,
     image_shape_yx: tuple[int, int],
     context_margin_pixels: int,
@@ -1618,7 +1589,7 @@ def _context_batches(
 
 
 def run_fit_parent_stage(
-    component_source: _CompletedProductSource,
+    component_source: CompletedProductSource,
     manifest: PartitionManifest,
     *,
     config: FitParentStageConfig,
@@ -1945,7 +1916,7 @@ class _DeferredBatchResult:
 def _scan_fit_parent_extents(
     batch: _SupportBatch,
     *,
-    fit_parent_source: _CompletedProductSource,
+    fit_parent_source: CompletedProductSource,
 ) -> _ExtentBatchResult:
     """Observe every fit parent's extent inside the cores of one batch."""
     extents: list[_CoreExtent] = []
@@ -2013,11 +1984,11 @@ def _fit_batches(
 def _fit_batch(  # noqa: PLR0913
     batch: _FitBatch,
     *,
-    source: _WindowReadable,
-    background_rms_source: _CompletedProductSource,
-    detection_source: _CompletedProductSource,
-    component_source: _CompletedProductSource,
-    fit_parent_source: _CompletedProductSource,
+    source: WindowReadable,
+    background_rms_source: CompletedProductSource,
+    detection_source: CompletedProductSource,
+    component_source: CompletedProductSource,
+    fit_parent_source: CompletedProductSource,
     config: ComponentFitStageConfig,
     wcs_header_text: str,
     beam: RestoringBeam,
@@ -2184,11 +2155,11 @@ def _deferred_batches(
 def _gather_deferred_components(  # noqa: PLR0913
     batch: _DeferredBatch,
     *,
-    source: _WindowReadable,
-    background_rms_source: _CompletedProductSource,
-    detection_source: _CompletedProductSource,
-    component_source: _CompletedProductSource,
-    fit_parent_source: _CompletedProductSource,
+    source: WindowReadable,
+    background_rms_source: CompletedProductSource,
+    detection_source: CompletedProductSource,
+    component_source: CompletedProductSource,
+    fit_parent_source: CompletedProductSource,
     image_width: int,
 ) -> _DeferredBatchResult:
     """Return the direct pixels of deferred parents' components, per core.
@@ -2318,10 +2289,10 @@ class _SupportPublishResult:
 def _publish_support(  # noqa: PLR0913
     batch: _SupportBatch,
     *,
-    source: _WindowReadable,
-    background_rms_source: _CompletedProductSource,
-    detection_source: _CompletedProductSource,
-    fit_parent_source: _CompletedProductSource,
+    source: WindowReadable,
+    background_rms_source: CompletedProductSource,
+    detection_source: CompletedProductSource,
+    fit_parent_source: CompletedProductSource,
     config: ComponentFitStageConfig,
     sink: ZarrProductSink,
 ) -> _SupportPublishResult:
@@ -2472,11 +2443,11 @@ def _reduce_component_records(
 
 
 def run_component_fit_stage(  # noqa: PLR0913, PLR0917
-    source: _WindowReadable,
-    background_rms_source: _CompletedProductSource,
-    detection_source: _CompletedProductSource,
-    component_source: _CompletedProductSource,
-    fit_parent_source: _CompletedProductSource,
+    source: WindowReadable,
+    background_rms_source: CompletedProductSource,
+    detection_source: CompletedProductSource,
+    component_source: CompletedProductSource,
+    fit_parent_source: CompletedProductSource,
     manifest: PartitionManifest,
     *,
     config: ComponentFitStageConfig,
@@ -2882,9 +2853,9 @@ def _feature_scan_batches(
 def _scan_support_features(
     batch: _FeatureScanBatch,
     *,
-    detection_source: _CompletedProductSource,
-    component_source: _CompletedProductSource,
-    measurement_source: _CompletedProductSource,
+    detection_source: CompletedProductSource,
+    component_source: CompletedProductSource,
+    measurement_source: CompletedProductSource,
     image_shape_yx: tuple[int, int],
 ) -> _FeatureBatchResult:
     """Label each core's support features and observe the owners inside."""
@@ -3070,11 +3041,11 @@ def _sharded_batch(
 def _group_batch(  # noqa: PLR0913
     batch: _GroupBatch,
     *,
-    source: _WindowReadable,
-    background_rms_source: _CompletedProductSource,
-    detection_source: _CompletedProductSource,
-    component_source: _CompletedProductSource,
-    measurement_source: _CompletedProductSource,
+    source: WindowReadable,
+    background_rms_source: CompletedProductSource,
+    detection_source: CompletedProductSource,
+    component_source: CompletedProductSource,
+    measurement_source: CompletedProductSource,
     config: ExtendedGroupStageConfig,
     wcs_header_text: str,
     beam: RestoringBeam,
@@ -3168,11 +3139,11 @@ def _feature_mask(
 
 
 def run_extended_group_stage(  # noqa: PLR0913, PLR0917
-    source: _WindowReadable,
-    background_rms_source: _CompletedProductSource,
-    detection_source: _CompletedProductSource,
-    component_source: _CompletedProductSource,
-    measurement_source: _CompletedProductSource,
+    source: WindowReadable,
+    background_rms_source: CompletedProductSource,
+    detection_source: CompletedProductSource,
+    component_source: CompletedProductSource,
+    measurement_source: CompletedProductSource,
     manifest: PartitionManifest,
     *,
     config: ExtendedGroupStageConfig,

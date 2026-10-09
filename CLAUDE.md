@@ -45,10 +45,9 @@ The public entry point is `hebog.find_sources(request, config, executor)`.
   scheduler imports. `executors/__init__.py` loads `DaskExecutor` lazily the
   same way (through `__getattr__`). Keep both lazy.
 - `public_api.py` is the outer I/O layer. It reads and validates the FITS
-  input, enforces the bounded preview size limit, plans partitions, runs
-  each stage through the executor in turn, hands the published records to
-  `public_science.py` for the terminal catalogues, and atomically writes
-  versioned products through `io/`.
+  input, enforces the bounded preview size limit, runs the stage sequence,
+  hands the published records to `public_science.py` for the terminal
+  catalogues, and atomically writes versioned products through `io/`.
 - `science/` holds the reviewed science the stages apply: the configuration
   and profile (`science/configuration.py`, `science/profile.py` and
   `resources/`), the composition records (`science/models.py`,
@@ -59,9 +58,12 @@ The public entry point is `hebog.find_sources(request, config, executor)`.
 - `stages/` contains the scheduler-facing stages `find_sources` runs, in
   order: background and detection, multiscale, support, publication,
   objects (component topology, fit parents, component fits), association,
-  sources, islands and catalogue rows, with `batching.py` shared. They
-  apply the kernels of `algorithms/` and `science/` with tiling, cores and
-  halos, and batching through an `Executor`.
+  sources, islands and catalogue rows, with `batching.py` shared.
+  `composition.py` runs them in that order: one runner per stage plans its
+  tile grid and opens its generation, and `run_stages_from_background`
+  runs every stage after a published background and RMS. They apply the
+  kernels of `algorithms/` and `science/` with tiling, cores and halos, and
+  batching through an `Executor`.
 - `algorithms/` contains pure NumPy/SciPy kernels. They take arrays and
   immutable config and return arrays or records. They must not know about
   schedulers, I/O, or adapters.
@@ -70,9 +72,9 @@ The public entry point is `hebog.find_sources(request, config, executor)`.
   by the caller.
 - `data_models/` contains serializable public records. `config.py` holds the
   immutable `SourceFinderConfig` and the per-stage configs.
-- `io/` holds the image-source protocol (`base.py`), bounded FITS input, the
-  Zarr v3 intermediate plane store, and restartable FITS/JSON product
-  materialisation.
+- `io/` holds the image-source and stage-read protocols (`base.py`),
+  bounded FITS input, the Zarr v3 intermediate plane store, and restartable
+  FITS/JSON product materialisation.
 - `adapters/` is the Rapthor compatibility boundary: serializable records and
   the eight-column PyBDSF-style catalogue codec. No adapter runs
   `find_sources` yet. It must not import Rapthor, Prefect, or LSMTool.

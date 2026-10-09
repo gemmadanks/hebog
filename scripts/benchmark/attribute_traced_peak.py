@@ -5,7 +5,8 @@ A diagnostic beside ``just traced-peak``, which alone produces the gate
 figure: this process also holds the attribution's own wrappers and records,
 so its peak is a little higher. Tracing starts before Hebog is imported,
 with ``--frames`` frames a traceback. Every function of ``hebog.public_api``
-and every serial executor task is measured as a nested call (see
+and ``hebog.stages.composition``, which holds the stage runners, and every
+serial executor task is measured as a nested call (see
 ``hebog.validation.traced_attribution``), and inside the call named by
 ``--snapshot-within`` the task that begins holding most is snapshotted and
 reduced to the call sites holding that memory. ``--wrap-module`` adds the
@@ -73,6 +74,7 @@ def main() -> None:
     from hebog import public_api  # noqa: PLC0415
     from hebog.config import SourceFinderConfig  # noqa: PLC0415
     from hebog.executors import SerialExecutor, serial  # noqa: PLC0415
+    from hebog.stages import composition  # noqa: PLC0415
     from hebog.validation.traced_attribution import (  # noqa: PLC0415
         TracedPeakTracker,
         serial_tasks_measured,
@@ -85,9 +87,13 @@ def main() -> None:
     tracker = TracedPeakTracker(
         snapshot_within=args.snapshot_within, site_limit=args.sites
     )
-    wrapped = wrap_module_functions(tracker, public_api) + sum(
-        wrap_module_functions(tracker, importlib.import_module(name))
-        for name in args.wrap_module
+    wrapped = (
+        wrap_module_functions(tracker, public_api)
+        + wrap_module_functions(tracker, composition)
+        + sum(
+            wrap_module_functions(tracker, importlib.import_module(name))
+            for name in args.wrap_module
+        )
     )
     started = time.perf_counter()
     with (
@@ -109,7 +115,11 @@ def main() -> None:
         "traceback_frames": args.frames,
         "import_bytes": import_bytes,
         "wall_seconds": time.perf_counter() - started,
-        "wrapped_modules": ["hebog.public_api", *args.wrap_module],
+        "wrapped_modules": [
+            "hebog.public_api",
+            "hebog.stages.composition",
+            *args.wrap_module,
+        ],
         "wrapped_bindings": wrapped,
         "source_count": result.source_count,
         "gaussian_component_count": result.gaussian_component_count,

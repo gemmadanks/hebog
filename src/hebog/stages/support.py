@@ -13,7 +13,6 @@ from dataclasses import dataclass
 from functools import partial
 from itertools import pairwise
 from numbers import Integral
-from typing import Protocol
 
 import numpy as np
 import numpy.typing as npt
@@ -31,37 +30,16 @@ from hebog.algorithms.reconciliation import (
 )
 from hebog.data_models.generations import ProductGenerationManifest
 from hebog.data_models.partitioning import (
-    ImageBounds,
     PartitionManifest,
     TilePartition,
 )
 from hebog.data_models.products import ProductChunk
 from hebog.executors.base import Executor
+from hebog.io.base import CompletedProductSource
 from hebog.io.zarr import ZarrProductSink
 
 _SUPPORT_PRODUCT_NAMES = ("persistent-support",)
 _MINIMUM_PERSISTENT_SCALE_COUNT = 2
-
-
-class _CompletedProductSource(Protocol):
-    """Read checksum-validated windows from one published generation."""
-
-    @property
-    def manifest(self) -> PartitionManifest:
-        """Return the source generation's canonical partition."""
-        ...
-
-    def read_generation(self) -> ProductGenerationManifest:
-        """Validate and return the published completion record."""
-        ...
-
-    def read_completed_window(
-        self,
-        product_name: str,
-        bounds: ImageBounds,
-    ) -> npt.NDArray[np.generic]:
-        """Read one validated bounded product window."""
-        ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -178,7 +156,7 @@ def support_product_names() -> tuple[str, ...]:
 def _read_scale_masks(
     partition: TilePartition,
     *,
-    detection_source: _CompletedProductSource,
+    detection_source: CompletedProductSource,
     scale_orders: tuple[int, ...],
 ) -> tuple[npt.NDArray[np.bool_], ...]:
     """Read one core's significant mask at every scale order.
@@ -262,7 +240,7 @@ def _summary_array_bytes(summary: LocalIslandTileSummary) -> int:
 def _scan_topology_batch(
     batch: _PartitionBatch,
     *,
-    detection_source: _CompletedProductSource,
+    detection_source: CompletedProductSource,
     image_shape_yx: tuple[int, int],
     scale_orders: tuple[int, ...],
 ) -> _TopologyBatchResult:
@@ -417,7 +395,7 @@ def _publication_requests(
 def _publish_batch(
     batch: _PublicationBatch,
     *,
-    detection_source: _CompletedProductSource,
+    detection_source: CompletedProductSource,
     sink: ZarrProductSink,
     image_shape_yx: tuple[int, int],
     scale_orders: tuple[int, ...],
@@ -494,7 +472,7 @@ def _publication_batches(
 
 
 def _validate_stage_inputs(
-    detection_source: _CompletedProductSource,
+    detection_source: CompletedProductSource,
     manifest: PartitionManifest,
     config: SupportTopologyStageConfig,
     sink: ZarrProductSink,
@@ -516,7 +494,7 @@ def _validate_stage_inputs(
 
 
 def run_support_topology_stage(
-    detection_source: _CompletedProductSource,
+    detection_source: CompletedProductSource,
     manifest: PartitionManifest,
     *,
     config: SupportTopologyStageConfig,
