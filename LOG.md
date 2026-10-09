@@ -32218,3 +32218,155 @@ the per-worker placement finding.
   (37 and 61) resolves to an anchor in the built site; both rendered pages
   were inspected; `just pre-commit`. Documentation only, so the plan is
   unchanged.
+
+## 2026-10-08 — M2: the release check for 0.19.0
+
+- **Candidate.** `main` at `4855398`, the merge of pull request 129 (docs,
+  plus eight lines of `scripts/benchmark/profile_complete_execution.py`) on
+  `0a33be2`, run in the main checkout from 22:02 to 01:08 local time with a
+  clean tree, unchanged at the end. Logs, records and the two runner scripts:
+  `benchmark-results/release-check/0.19.0/`. Release Please's pull request
+  102 proposes 0.19.0 from the 28 commits since v0.18.0: 20 fixes, three
+  refactors including the breaking removal of the compact lane (pull
+  request 106, whose squash dropped the footer that listed the removed
+  names; the task 58 entry of 6 October has them), one build change and
+  tests.
+- **Change check.** `just ci` passed in 13.4 minutes and left the checkout
+  unchanged: the pre-commit hooks, 3,603 portable tests and one expected
+  failure at 97.16% branch coverage, the 39 equivalence tests, the five
+  acceptance placeholders as strict xfails, `marimo check`, the notebook
+  smoke test, the strict docs build and the package smoke test, whose
+  isolated wheel install runs the blank, all-NaN, continuum, compact and
+  custom public workflows.
+- **Quick science check** `release-0.19.0`. Catalogue, RMS and mask
+  products are byte-identical to `task65-final` (8 October, the stack
+  before its merge) in all 17 cases; each `diagnostics.json` differs only
+  in `scientific_composition_sha256`, because that run preceded its
+  commit's review fixes to comments by 26 minutes. Against the
+  `release-0.18.0` baseline the check exits 1 on six metrics, every one a
+  peak-flux difference against pinned `master`: `compact-snr-ladder` p95
+  0.010 to 0.036, `extended-gaussians` p95 0.046 to 0.066, `varying-noise`
+  p50 0.009 to 0.046 and p95 0.013 to 0.081, `dense-field` p95 0.052 to
+  0.073 and `sdc1-b2-1000h-sparse` p95 0.659 to 0.699. They are the six
+  task 57 recorded and the maintainer approved on 7 October, when a
+  one-Gaussian source began publishing its fitted peak: the intermediate
+  runs show the step at `task57`, and the only later moves are the
+  improvements tasks 42 (SDC1 sparse 0.709 to 0.699) and 65 (LoTSS sparse
+  0.132 to 0.119) logged. No other metric crossed its tolerance.
+- **Quick benchmark,** default tier, medians of five, v0.18.0 installed
+  from its tag and measured in the same session (`release-0.19.0`):
+  `dense-field` 0.87 [0.83, 1.00], `lotss-dr3-1312-sparse` 0.91
+  [0.85, 0.95], `lotss-dr3-1312-dense` 0.94 [0.89, 0.98], all passing the
+  ≤1.05 rule; peak RSS 709, 734 and 736 MiB, as in the 0.18.0 check. Load
+  was 3.6 to 7.2, so the absolute times (12 to 16 s) are not quiet-machine
+  figures. Tasks 42, 46, 61 and 63 to 66 had merged with the benchmark
+  not run; this is their first measurement, pooled.
+- **Anchor.** The 10,000² LoTSS-DR3 anchor `lotss-dr3-1312-dense-10000`,
+  run ID `release-anchor`, single-threaded numerical libraries, the plan's
+  size for the release check's hour (the 0.18.0 check ran the whole
+  mosaic):
+
+  | Executor | Wall time | Peak RSS | Sources, Gaussians, islands |
+  | --- | --- | --- | --- |
+  | Serial | 1,259 s | 2,576 MiB | 8,546, 9,342, 8,899 |
+  | Dask, four one-thread process workers | 741 s (0.59) | driver 1,569 MiB, largest worker 1,829 MiB | the same |
+
+  Catalogue, diagnostics, RMS and mask are byte-identical between the two.
+  Serial equals the 28 September figure (1,259 s). Against the last
+  recorded run of this anchor (7,146 sources and 9,259 Gaussians at the
+  29 September traced peak) fewer Gaussians are joined into one source, as
+  the 0.18.0 check found on the whole mosaic.
+- **Traced peak.** The whole 15,402² mosaic, `just traced-peak` run
+  `release-0.19.0`, one repetition: 1,692.5 MiB, against 1,698.2 MiB in
+  the two agreeing repetitions of 29 September (−5.7 MiB), with peak RSS
+  3,709 MiB, 19,104 sources and 20,792 Gaussians (19,189 and 21,010 in
+  the 0.18.0 check). Task 65's local-noise fill, whose driver peak rose
+  from 157 to 262 MiB on this grid, does not reach the whole-run peak,
+  which stays one multiscale tile task plus the kept records. The run
+  took 6,041 s traced.
+- **Notebook comparison.** `refresh_public_notebook_hebog.py` ran the 13
+  saved SDC1, Hydra and LoTSS-DR2 inputs in 27 minutes, every case
+  successful, as `Release 0.19.0 candidate`
+  (`phase-5/hebog-notebook-refreshes/4855398-c55e3ae9b465-9add3ef0`, now
+  `latest`), reusing the saved released-PyBDSF and Aegean results. Hebog
+  sources against the 0.18.0 refresh (`5ff636f`), beside the two
+  references' source rows:
+
+  | Case | Hebog | PyBDSF 1.14.1 | Aegean |
+  | --- | --- | --- | --- |
+  | SDC1 sparse | 2,254 → 2,274 | 2,403 | 2,530 |
+  | SDC1 ordinary | 2,779 → 2,780 | 2,833 | 3,073 |
+  | SDC1 crowded | 3,291 → 3,338 | 3,498 | 3,708 |
+  | SDC1 resolved | 2,197 → 2,217 | 2,604 | 2,465 |
+  | SDC1 close pair | 2,426 → 2,430 | 2,713 | 2,709 |
+  | SDC1 high dynamic range | 3,275 → 3,180 | 3,268 | 3,605 |
+  | SDC1 low apparent S/N | 3,043 → 3,074 | 3,481 | 3,422 |
+  | SDC1 primary-beam boundary | 2,189 → 2,206 | 2,487 | 2,434 |
+  | Hydra deep | 4,341 → 4,191 | 4,197 | 3,996 |
+  | Hydra shallow | 613 → 573 | 590 | 604 |
+  | LoTSS-DR2 90′ field | 1,563 → 1,553 | 1,505 | 1,538 |
+  | LoTSS-DR2 3C 295 | 21 → 20 | 136 | 16 |
+  | LoTSS-DR2 M51 | 167 → 138 | 123 | 131 |
+
+  Counts only, not matched; the notebook shows the overlays. The SDC1
+  tiles gain a few sources each except the high-dynamic-range tile, and
+  the real LOFAR and ASKAP fields lose some: Hydra deep now sits just
+  below PyBDSF where it was above, and M51 remains above both references.
+  The change is not attributed task by task. One case warns of
+  unavailable Gaussians (close pair, 6, as in the 0.18.0 refresh); Hydra
+  deep, which warned of 12, no longer does.
+- **Documentation.** The release status gains the clipped-RMS limitation
+  (task 68) and the anchor's Dask ratio; the progress page and the plan's
+  next-action row follow this check.
+- **Not run.** The whole-mosaic Serial and Dask runs, replaced by the
+  10,000² anchor under the release-check budget; the `master` timings,
+  which are diagnostic only; the slow lane; and Windows.
+- **Next.** Human: inspect the refresh. (Superseded the same morning: the
+  inspection found the regression below, and the release is held.)
+
+## 2026-10-09 — The 0.19.0 candidate loses extended emission; release held, task 69
+
+- **Why.** Inspecting the release check's notebook refresh, the maintainer
+  found that the candidate, while closer to PyBDSF in counts, captures less
+  of large extended sources than 0.18.0, with M51, the SDC1 ordinary tile's
+  edge source and the SDC1 high-dynamic-range complex as examples, and
+  asked that such cases be held to injected truth rather than to PyBDSF,
+  whose islands do not capture the emission either.
+- **Measured** on the two refreshes' products (`mask_coverage.py` and the
+  lost-pixel comparison, scratch scripts): between the 0.18.0 and 0.19.0
+  refreshes the mask loses 28,699 pixels on M51 (48,137 to 19,459), 41,449
+  on the SDC1 high-dynamic-range tile and 12,696 on the SDC1 ordinary tile,
+  each as one blob of 24,100, 35,405 and 12,406 pixels, with the new RMS
+  over the lost pixels 7.5, 8.4 and 16.9 times the old at the median; Hydra
+  deep and shallow lose 31,421 and 10,449 pixels in blobs of up to 548 at
+  1.2 times; 3C 295, the LoTSS 90′ field and five SDC1 tiles are unchanged
+  or within 1,111 pixels. Of PyBDSF's M51 island (5,683 pixels) the mask
+  covers 0.379 against 1.000 before, and of its 805-pixel companion 0.057.
+- **Attributed by bisection** on the M51 field through the nine science
+  commits since v0.18.0 (`run_case.py` with each commit's checkout on
+  `PYTHONPATH`): tasks 46, 57, 63, 42, 64, 66 and the beam repair all give
+  48,152 mask pixels and an RMS over the galaxy of 1.2 times the map's
+  median; task 65 (`0a33be2`) alone gives 19,459 pixels and 12.3 times, and
+  138 sources against 168.
+- **Cause.** `prepare_local_noise_rms_grid` floors a filled cell at 0.8 of
+  the smaller of the coarse RMS and the largest clean cell within 75
+  pixels, and "with no clean cell in reach the coarse stands". Inside a
+  source wider than 150 pixels no clean cell is in reach, and on images
+  whose shorter side is 600 pixels or more the coarse grid is the
+  unprotected clipped estimate (protection applies only where the coarse
+  window shrinks, and is bounded by whole-plane admission), so over an
+  extended source it is mostly the source's emission. The halo control that
+  guarded the rule reaches halos of 10 to 24 pixels only, and no quick-check
+  case has a bright extended source wider than 150 pixels on an image of
+  600 pixels or more.
+- **Decided** (question round, recommended options taken):
+
+  | Question | Decision | Declined |
+  | --- | --- | --- |
+  | 0.19.0 | Held until task 69 merges; the release check runs again on the repaired candidate. | Releasing with task 65 reverted; releasing as is with the limitation documented. |
+  | Regression | A generated quick-check case and an analytic integration test, both of at least 600 pixels with a bright extended source wider than 150 pixels and faint outskirts, binding the RMS over the source to within 1.25 of the injected noise and the mask's recall of truth pixels above 3σ, with injected truth and not PyBDSF as the reference. | An integration test alone; a quick-check case alone. |
+  | Repair | Rules A (the coarse RMS alone is never a reference) and B (a lower statistic of the clean cells in reach) are prototyped and measured on M51, the two SDC1 tiles, Hydra deep, the noise-step tests, the halo control and the new regression before the rule decision. | Protecting the coarse grid on large images first, a tiled design task; reverting task 65 and reopening it. |
+
+- **Plan.** Task 69 is added before task 68; the next-action row, the
+  release status's position on the progress page and its open defects
+  follow.
