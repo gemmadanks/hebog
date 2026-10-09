@@ -1,25 +1,47 @@
 # Rapthor source-finding contract
 
-This inventory records the behaviour Rapthor consumes from its PyBDSF/LSMTool
-source-finding path, traced at Rapthor commit
-`b1a64674b1022476cf052fc2d06ee3b16f031ecd` on its
-`gec-468-ai-migrate-to-prefect` branch, which owns the Prefect/Dask task
-runner that will schedule Hebog. That branch merged into Rapthor's `main` on
-9 October 2026 (`c6196cb4`); `main` runs the step in a fresh interpreter per
-sector and selects the finder through LSMTool's `filter_skymodel`
-`source_finder` registry. The exact revisions are in
-[`config/baselines/phase-0-starting-revisions.json`](https://github.com/gemmadanks/hebog/blob/main/config/baselines/phase-0-starting-revisions.json);
-the plan's task 16 moves the pins forward and refreshes this page against
-`main`. It fixes
-what must be tested without requiring Hebog to copy PyBDSF internals, and a
-compatibility observation here is not a scientific endorsement.
+This inventory records the behaviour Rapthor consumes from its
+source-finding step, traced at these revisions on 9 October 2026:
+
+| Component | Revision | Role |
+| --- | --- | --- |
+| Rapthor | `main` at `c6196cb4` (the Prefect/Dask merge of 9 October 2026) | Schedules the step; `master` is the CWL/Toil release line and not a target |
+| LSMTool | `master` at `9bac2f7` (v1.9.0 plus 15 commits) | Runs the finder and filters the sky model |
+| PyBDSF | `master` at `c70103b` | The binding scientific and performance reference |
+
+The pins move forward only at the points the plan names: before the
+Rapthor patch (task 20), before the matched benchmarks (task 23) and at the
+freeze (task 28). The page fixes what must be tested without requiring
+Hebog to copy PyBDSF internals, and a compatibility observation here is not
+a scientific endorsement.
 
 ## Invocation boundary
 
-Rapthor schedules one `filter_skymodel` task per image sector after WSClean
-has written its image and source-list products, passing paths and scalar
-configuration and receiving serializable file records. Image diagnostics run
-as a separate dependent task.
+Rapthor schedules one Prefect `filter_skymodel` task per image sector after
+WSClean has written its image and source-list products. The task runs on
+Rapthor's Dask task runner (`local_dask`, or `external_dask` on a cluster
+whose workers run one task each with `--nthreads 1`), but does no science
+itself: it starts a fresh Python interpreter
+(`python -m rapthor.execution.image.skymodel_filter_cli`) with
+`OMP_NUM_THREADS`, `OPENBLAS_NUM_THREADS`, `MKL_NUM_THREADS` and
+`BLIS_NUM_THREADS` set to 1, so that native thread pools do not multiply
+the finder's own parallelism. That interpreter calls LSMTool's
+`filter_skymodel(..., source_finder=..., ncores=...)`, which dispatches
+through its `KNOWN_SOURCE_FINDERS` registry: `bdsf`, plus `sofia` when its
+optional extra is installed. `ncores` is the parset's
+`filter_skymodel_ncores` (default 15; 0 means `max_threads`), and PyBDSF
+uses it as its count of fitting processes. No Dask client is in reach of
+the finder. The task returns serializable file records, and image
+diagnostics run as a separate dependent task.
+
+A backend is therefore an entry in LSMTool's registry whose function takes
+the `bdsf` backend's arguments: the two images, the two input sky models,
+the two output sky-model paths, `vertices_file`, `beam_ms`,
+`input_bright_skymodel`, the thresholds and RMS options below, `keep_mask`,
+`output_catalog`, `output_flat_noise_rms`, `output_true_rms` and `ncores`,
+returning the source count. (The registry calls every backend with those
+arguments; `sofia`'s function takes fewer and could not be called that
+way at `9bac2f7`.)
 
 | Input | Meaning |
 | --- | --- |
@@ -41,18 +63,52 @@ the production profile:
 | Initial/normalization and early self-calibration cycles | `5.0` sigma | `4.0` sigma |
 | `filter_image_skymodel` helper fallback | `7.5` sigma | `5.0` sigma |
 
-| Setting | Value | Contract significance |
-| --- | ---: | --- |
-| RMS box | `(150, 50)` pixels | Normal window width and step |
-| Bright-source RMS box | `(35, 7)` pixels | Adaptive width and step near bright emission |
-| Adaptive RMS threshold | `75.0` sigma | Selects the smaller RMS box |
-| Background mean map | Zero | The imaging path assumes zero background |
-| RMS map | Enabled | Spatially varying noise is part of the contract |
-| Threshold mode | Hard | Thresholds are not false-discovery-rate derived |
-| Wavelet processing | Enabled, three scales | Extended/multiscale emission is in scope |
-| Filter by mask | Enabled | Components outside detected islands are removed |
-| Source finder | `bdsf` | Pinned PyBDSF `master` is the binding scientific and performance reference; released 1.14.1 is checked once (the plan's task 31) |
-| Rapthor core count | `15` | Execution input, not a scientific result |
+## What LSMTool asks of PyBDSF, and what Hebog does instead
+
+LSMTool's `bdsf` backend calls `bdsf.process_image` on the true-sky image
+(the flat-noise image when no beam Measurement Set is given) with the
+options below, and a second time on the flat-noise image with the same
+options and `stop_at="isl"`. Rapthor passes the thresholds, `ncores`,
+`keep_mask=True` and the RMS options at its own defaults, which equal
+LSMTool's; the rest are LSMTool's.
+
+| PyBDSF behaviour | Value | Hebog | Status |
+| --- | --- | --- | --- |
+| `mean_map` | `"zero"`: no background is subtracted | A background is estimated on the same meshes and subtracted | **Gap.** A real difference; near zero on the images Rapthor makes. Task 18 decides whether the Rapthor profile keeps a zero background |
+| `rms_map`, `rms_box` | On, `(150, 50)` | The coarse RMS grid is 150-pixel windows on a 50-pixel step | Implemented |
+| `adaptive_rms_box`, `rms_box_bright`, `adaptive_thresh` | On, `(35, 7)`, `75.0` | Bright-region refinement on 35-pixel windows on a 7-pixel step around candidates at 75σ or more, plus local-noise refinement on the same windows everywhere | Implemented, with two bounded differences: the `continuum` RMS tail (task 49) and a clipped RMS 1.6 to 3.9% low on noise alone (task 68) |
+| `thresh`, `thresh_pix`, `thresh_isl` | `"hard"`; Rapthor's 5/3, 5/4 or the helper's 7.5/5 | `SourceFinderConfig`'s detection and island thresholds, executed exactly | Implemented |
+| `atrous_do`, `atrous_jmax` | On, 3 scales | Three residual multiscale scales in `continuum`; `compact` omits them | Implemented as Hebog's own multiscale association, not PyBDSF's wavelet decomposition |
+| Catalogue | `write_catalog(format="fits", catalog_type="srl", force_output=True)` | `catalogue.fits`; the eight-column view Rapthor reads ([Rapthor catalogue view](rapthor-catalogue-view.md)) | Implemented; the adapter writes it under Rapthor's name (task 19) |
+| True-sky RMS | `export_image(img_type="rms")` | `rms.fits` | Implemented |
+| Island mask | `export_image(img_type="island_mask")` as `<image>.mask.fits` | `source-mask.fits`, the publication support | Implemented, with a bounded difference: about 92% of PyBDSF's island pixels (task 49). LSMTool groups components into patches by the mask's islands, so the mask's connectivity, not only its coverage, reaches the sky model (task 21 measures it) |
+| Flat-noise RMS | A second pass with `stop_at="isl"`, RMS only | — | **Gap**: task 18's flat-noise branch |
+| Source count | `img.nsrc` | `SourceFinderResult.source_count` | Implemented |
+| All pixels blanked | `RuntimeError("All pixels in the image are blanked.")` from `collapse.py` | An empty catalogue, an all-NaN RMS and a zero mask, without an error | **Gap**: the adapter must raise that error or write the products Rapthor writes for it (task 19) |
+| Reference frequency | The frequency axis at the image plane, then `RESTFREQ`, then a `FREQ` keyword | The frequency axis at the image plane, then `RESTFRQ`, then `RESTFREQ`; a supplied value when the header has none | Implemented (task 16). Hebog also reads the standard `RESTFRQ`, which PyBDSF ignores, and refuses rather than reads a non-standard `FREQ` keyword |
+| `ncores` | Fitting processes | `ThreadExecutor` workers, if the first backend runs in Rapthor's subprocess (see below) | Decision pending |
+
+`RapthorCompatibilityConfig` holds only what the finder can honour: the
+`SourceFinderConfig` thresholds and LSMTool's `filter_by_mask`. The other
+options are fixed by Hebog's reviewed science.
+
+## Sector image sizes
+
+Rapthor sizes each sector from its polygon at `cellsize_arcsec`
+(default 1.5″). With no grid width set, one sector covers 1.7 times the
+primary-beam FWHM, which Rapthor computes as 1.1 λ/D over the sine of the
+mean elevation from the first antenna's dish diameter.
+
+| Configuration | Sector size | Source |
+| --- | --- | --- |
+| Default, LOFAR HBA near 144 MHz | about 17,000 to 20,000 pixels a side, depending on elevation | Rapthor `main`'s sizing rule |
+| Rapthor's Prefect demonstration strategy (1.25°, 1.5″) | 3,000 × 3,000 | `examples/prefect_demo_strategy.py` and its parset |
+| The ical benchmark runs on the development cluster (10° at 2″) | 18,000 × 18,000, and a 17,060 × 20,428 full-field image | Rapthor logs of September 2026 |
+
+PyBDSF's `filter_skymodel` command took between 298 and 2,955 s per
+18,000² sector in one three-node benchmark run (16 and 17 September 2026).
+The default and benchmarked sector sizes exceed Hebog's 15,402-pixel
+envelope; the plan's task 22 freezes the deployment envelope from them.
 
 ## Materialised products
 
@@ -66,7 +122,7 @@ for every successful sector; the mask is returned only when its file exists.
 | True-sky RMS image | `.true_sky_rms.fits` | RMS statistics and true-sky dynamic range |
 | Flat-noise RMS image | `.flat_noise_rms.fits` | RMS statistics, local dynamic range and facet diagnostics |
 | Source catalogue | `.source_catalog.fits` | Source count, photometry, astrometry and preview selection |
-| Island mask | `<true-sky-image>.mask.fits` | Sky-model membership and grouping; supplementary output |
+| Island mask | `<basename of the true-sky image>.mask.fits`, in the working directory | Sky-model membership and patch grouping; supplementary output |
 | Diagnostics | `.image_diagnostics.json` | Starts with `nsources`, then receives image-quality metrics |
 
 The filtered model image is a later Rapthor product rebuilt from the
@@ -126,18 +182,24 @@ boundary and represents unavailable RMS explicitly in the scientific core.
 Missing inputs and unexpected errors fail the task rather than producing a
 silent empty result.
 
-## Execution constraints
+## How the first backend runs (maintainer decision, task 16)
 
 Rapthor owns the Prefect/Dask graph, retries, resource admission and the
-restartable file lifecycle. Its PyBDSF path runs a subprocess when multi-core
-PyBDSF would otherwise run inside a daemon worker; Hebog removes that escape
-while keeping coarse task boundaries, serializable path-based results,
-deterministic ordering and explicit CPU and memory budgets. For large images
-one admitted operation may expand into the haloed-tile and
-hierarchical-reconciliation subgraph of
-[ADR-005](../architecture/adr/005-scale-large-images-with-hierarchical-tiles.md),
-using Rapthor's existing client and never a private cluster or a complete
-plane on one worker.
+restartable file lifecycle, and Hebog never starts a private cluster. Two
+models fit that:
+
+| | A. Thread executor in Rapthor's subprocess (recommended) | B. Rapthor runs Hebog on its own Dask workers |
+| --- | --- | --- |
+| How | The registry entry calls a Hebog adapter in the per-sector interpreter, which runs `find_sources` under `ThreadExecutor(ncores)` | Rapthor calls Hebog inside the Prefect task with its Dask client; Hebog's `DaskExecutor` submits tile tasks to the same cluster |
+| Rapthor change | Accept `source_finder = hebog` | Run the step in-process rather than in a subprocess, hand Hebog the client, and keep a worker from deadlocking while its task waits on subtasks |
+| Resource accounting | Matches PyBDSF's `ncores` and Rapthor's per-node `cpus_per_task`: one sector on one node | Tile tasks compete with DP3 and WSClean tasks that Rapthor sized to one per worker |
+| Largest sector | Bounded by one node's memory; the tiled stages already bound memory by the tile, and nodes hold hundreds of GB | One sector can spread across nodes |
+| Gate comparison | Like for like with PyBDSF on the same cores | Hebog on several nodes against PyBDSF on one |
+| Architecture records | ADR-004 already allows a local executor; an amendment records that the first backend runs one inside Rapthor's subprocess rather than on Rapthor's client | ADR-004's model as written |
+
+A wins on every point the first backend needs; B pays only when a sector
+needs more than one node, which no traced configuration does. Hebog's
+`DaskExecutor` stays the path for that case and for the cluster benchmark.
 
 Reference comparisons use the explicit `5.0/3.0` profile with clean Rapthor
 and LSMTool checkouts at their recorded commits. Released and pinned-`master`

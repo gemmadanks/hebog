@@ -32748,6 +32748,71 @@ the per-worker placement finding.
   were fixed. The profiler's stage entries and the traced-peak attribution
   now name `hebog.stages.composition`.
 
+## 2026-10-09 — Task 16: Rapthor and LSMTool pinned, the contract refreshed
+
+- **Pins.** Rapthor `main` at `c6196cb4` (the Prefect/Dask merge, still the
+  head on 9 October) and LSMTool `master` at `9bac2f7` (v1.9.0 plus 15
+  commits); PyBDSF stays at `c70103b`. The dated Phase 0 evidence records
+  that name the earlier trace (`b1a6467`) are left as captured.
+- **Invocation, traced.** Rapthor's Prefect `filter_skymodel` task runs on
+  its Dask task runner but starts a fresh interpreter
+  (`rapthor.execution.image.skymodel_filter_cli`) with OpenMP, OpenBLAS, MKL
+  and BLIS pinned to one thread, passing `--ncores` from
+  `filter_skymodel_ncores` (default 15; 0 means `max_threads`). The CLI calls
+  LSMTool's `filter_skymodel`, which dispatches through
+  `KNOWN_SOURCE_FINDERS`; Rapthor catches PyBDSF's `RuntimeError("All pixels
+  in the image are blanked.")` (raised in `bdsf/collapse.py`) and writes
+  placeholder products. LSMTool's `sofia` entry takes fewer arguments than
+  the registry passes, so the `bdsf` signature is the registry's real
+  contract. LSMTool groups sky-model components into patches by the island
+  mask's islands, so the mask's connectivity reaches the sky model.
+- **Sector sizes.** With no grid width, Rapthor images 1.7 times the
+  primary-beam FWHM (1.1 λ/D over the sine of the mean elevation) at 1.5″:
+  about 17,000 to 20,000 pixels a side for LOFAR HBA near 144 MHz. The
+  ical benchmark runs on the development cluster in September 2026 used
+  10° sectors at 2″ (18,000², with a 17,060 × 20,428 full-field image),
+  where PyBDSF's filter command took 298 to 2,955 s per sector in one
+  three-node run. Rapthor's Prefect demonstration strategy (1.25° at 1.5″)
+  is the 3,000² case the plan called representative. The plan's premise
+  that the 15,402² envelope covers Rapthor's sectors holds only for that
+  demonstration; the maintainer is asked whether the tiers above 15,402²
+  must precede the deployment gate.
+- **Behaviour map.** The contract page maps each PyBDSF option LSMTool
+  passes to Hebog's behaviour. Gaps: PyBDSF's zero mean map, where Hebog
+  estimates and subtracts a background (task 18 decides the Rapthor
+  profile); the island-stop flat-noise pass (task 18); the blanked-image
+  error, which Hebog answers with empty products instead (task 19).
+- **Reference frequency in PyBDSF's order.** The frequency axis now comes
+  before `RESTFRQ` and `RESTFREQ`, and is read at the image plane, the
+  axis's first pixel, as PyBDSF reads it; that is its `CRVAL` only when
+  `CRPIX` is 1, as WSClean writes it. WCSLIB's transform is used from the
+  reference point, because Astropy's `sub()` and array transforms refuse an
+  axis declared without `NAXISn` (MIGHTEE mosaics). Two new tests failed
+  first: the axis over each rest-frequency keyword, and the plane rather
+  than `CRVAL`. Hebog still reads the standard `RESTFRQ`, which PyBDSF
+  ignores, and still refuses a non-standard `FREQ` keyword. Quick check
+  `task16` and `task16-compact` against `task70` and `task70-compact`: no
+  regression, catalogue, RMS and mask byte-identical on all 18 cases under
+  both profiles (54 of 54 each); no case has an axis that disagrees with
+  its rest frequency.
+- **`RapthorCompatibilityConfig` narrowed** to `source_finder` and
+  `filter_sky_model_by_mask`. The RMS boxes, the bright-source threshold,
+  the multiscale switch and depth and the background switch were fields
+  nothing read, and Hebog's reviewed science fixes them;
+  `estimate_background=False` described a zero background Hebog does not
+  use.
+- **Execution model, for the maintainer.** The contract page compares
+  Hebog's thread executor inside Rapthor's subprocess (recommended: no
+  Rapthor change beyond the finder name, PyBDSF's `ncores` accounting,
+  a like-for-like gate) with Rapthor running Hebog on its Dask workers
+  (ADR-004's model; needs a Rapthor change and deadlock-safe nested
+  submission, and pays only when a sector needs more than one node).
+- **Checks.** `just coverage`, 3,602 passed and 1 xfailed at 97%;
+  `io/fits.py` and `adapters/rapthor.py` at 100% on a focused rerun (the
+  full run reported `io/fits.py` against a docstring edited while it ran);
+  the header-contract and FITS-source integration tests; the contract
+  tests; the strict docs build; `just check`.
+
 ## 2026-10-10 — Shorten PR CI feedback without reducing the test matrix
 
 - **Decision and scope.** The [44½-minute PR run](https://github.com/gemmadanks/hebog/actions/runs/38031868877)

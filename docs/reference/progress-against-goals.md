@@ -187,15 +187,17 @@ memory and disk, and SKA-Low coverage without public SKA-Low images.
 
 The next actions, as the plan orders them on 9 October:
 
-1. Agent: task 16, pinning Rapthor `main` and LSMTool and refreshing the
-   contract.
-2. Human: at task 16, decide whether the first backend runs Hebog's thread
-   executor inside Rapthor's per-sector subprocess, as recommended, or
-   Rapthor changes to run Hebog on its Dask workers.
-3. Agent: the Rapthor profile, the flat-noise branch and the LSMTool backend
+1. Human: decide whether the first backend runs Hebog's thread executor
+   inside Rapthor's per-sector subprocess, as recommended, or Rapthor
+   changes to run Hebog on its Dask workers (task 16; the comparison is on
+   the [Rapthor contract page](rapthor-source-finding-contract.md)). Also
+   decide whether the tiers above 15,402² precede the deployment gate:
+   Rapthor's default and benchmarked LOFAR sectors are 17,000 to 20,000
+   pixels a side.
+2. Agent: the Rapthor profile, the flat-noise branch and the LSMTool backend
    (tasks 18 to 21), then the deployment envelope and the first matched
    `filter_skymodel` benchmark (tasks 22 and 23).
-4. Agent: task 71's module splits, then tasks 53 to 56, bounding the terms
+3. Agent: task 71's module splits, then tasks 53 to 56, bounding the terms
    that grow with the image, before the 22,500² (task 11) and 45,000² (task
    12) tier gates. Scientific improvements (tasks 15 and 68) wait until this
    work is complete unless an output is confirmed incorrect.
