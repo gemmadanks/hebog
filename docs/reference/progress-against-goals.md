@@ -3,8 +3,8 @@
 This page answers one question: how far is Hebog from the goal its
 [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
 defines for 1.0.0? It is updated whenever the plan's current state changes,
-and was last updated on **9 October 2026** after the 0.19.0 release check
-of the repaired candidate.
+and was last updated on **9 October 2026**, after v0.19.0 was released and
+the plan's tasks were reordered around the Rapthor integration.
 Every figure is development evidence from the
 maintainer's machine, dated and traceable to an entry in the repository's
 [execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md); none is
@@ -16,11 +16,11 @@ scientific qualification. User-facing limits are in
 | 1.0.0 goal | Target | Position on 9 October 2026 | Status |
 | --- | --- | --- | --- |
 | Telescopes | Standard FITS continuum images from any telescope under a documented header contract, validated first on LOFAR, SKA-Low and SKA-Mid | The [input header contract](input-header-contract.md) is defined and tested. LOFAR (LoTSS-DR3 and LoTSS-DR2) and SKA-Mid (SDC1 simulation) images run, and the LOFAR-HD mosaics are the next scale tiers; SKA-Low has no public image, so MWA GLEAM-X precursor data is planned. A beam wider than 10 pixels is refused. A position-dependent PSF is undecided (task 15). | In progress |
-| Functionality | A feature-flagged backend for Rapthor's `filter_skymodel` at pinned Rapthor and LSMTool revisions | A complete standalone finder under Serial, Thread and caller-owned Dask executors. No Rapthor adapter, profile or flat-noise branch exists; 5 of the 11 frozen public behaviours are implemented and 6 are strict-xfail placeholders. | Adapter not started |
+| Functionality | A feature-flagged backend for Rapthor's `filter_skymodel` at pinned Rapthor and LSMTool revisions | A complete standalone finder under Serial, Thread and caller-owned Dask executors. No Rapthor backend, profile or flat-noise branch exists; 5 of the 11 frozen public behaviours are implemented and 6 are strict-xfail placeholders. Rapthor's `main` branch, Prefect and Dask since 9 October 2026, selects the finder through LSMTool's `filter_skymodel` registry in a fresh interpreter per sector, so the backend will be a registry entry calling a Hebog adapter (the plan's tasks 16 to 20, now the next milestone). | Backend not started |
 | Science | ≥99.5% Rapthor retained/rejected agreement and a powered, held-out parity study against pinned PyBDSF `master` | Isolated-source position, flux and axis limits are met against both PyBDSF references on the frozen input, for sources and components under both profiles; the `Total_flux` limits hold on independent realizations. Two bounded known differences, one open defect and the unmeasured Rapthor agreement remain. | Development evidence only |
 | Performance | Matched complete `filter_skymodel` median ≤0.50 of pinned PyBDSF `master` | Not measurable until the adapter exists. Diagnostic ratios against `master` on 1,024² fields are 2.7 to 5.2 (Hebog on one native thread against `master` on four container cores); on the 3,000² LoTSS field the two use the same CPU time, so the gap is parallel occupancy. No regression on the Hebog curve. | Gate not yet measurable |
 | Scalability | 45,000² on the 18 GiB development machine with tile-bounded memory; 90,000² on a 1 to 10-node cluster; planner bounds for 100,000² on 100 to 200+ nodes | Public envelope 15,402². Every stage runs tiled through the executor and products are byte-identical across tilings and executors. The traced peak is 1.7 GiB on the whole 15,402² mosaic and still grows about 1.7 bytes a pixel. Nothing beyond one machine has run. | 15,402 of 45,000 pixels |
-| Release | PyPI, with portability, security, licensing, documentation and independent acceptance | v0.18.0 (5 October 2026) is tagged on GitHub and uploaded to TestPyPI. The 0.19.0 candidate passed its release check on 8 October, was held for task 69, and passed the shortened check again on 9 October once repaired; CI runs on Linux, macOS and Windows for Python 3.12 to 3.14. | Experimental `0.x` |
+| Release | PyPI, with portability, security, licensing, documentation and independent acceptance | v0.19.0 (9 October 2026) is tagged on GitHub and uploaded to TestPyPI, after its release check passed on 8 October, was held for task 69 and passed again on the repaired candidate on 9 October. CI runs on Linux, macOS and Windows for Python 3.12 to 3.14, and `main` requires the lowest-dependency and container checks. | Experimental `0.x` |
 
 ## Functionality
 
@@ -176,7 +176,7 @@ readiness.
 | --- | --- |
 | Portable suite | 3,617 passed and 1 xfailed, 97% branch-aware coverage against an 80% floor (9 October) |
 | Equivalence lane | 39 tests, including `find_sources` against both PyBDSF references under both profiles |
-| CI matrix | Linux, macOS and Windows on Python 3.12 to 3.14, plus a lowest-dependency job and a container build (not yet required on `main`, task 60) |
+| CI matrix | Linux, macOS and Windows on Python 3.12 to 3.14, plus a lowest-dependency job and a container build, both required on `main` since 9 October |
 | Architecture | Every layer's allowed imports are one tested table; Rapthor, Prefect and LSMTool are absent from the package and Dask is confined to `executors/`, apart from the execution profiler's local cluster in `validation/`, which wheels exclude |
 
 ## Blockers and next steps
@@ -185,13 +185,21 @@ The largest risks to 1.0.0 are the performance gap, the traced peak's growth
 with the image, the wide-object driver term, the development machine's
 memory and disk, and SKA-Low coverage without public SKA-Low images.
 
-The next actions, as the plan orders them:
+The next actions, as the plan orders them on 9 October:
 
-1. Human: cut 0.19.0, whose shortened release check passed on the repaired
-   candidate on 9 October, with the two CI checks task 60 added required.
-2. Agent: task 68's measurement.
-3. Agent: tasks 53 to 56, bounding the terms that grow with the image, before
-   the 22,500² (task 11) and 45,000² (task 12) tier gates.
+1. Agent: task 58's follow-up and task 70, the stage-sequence refactor, with
+   products unchanged; task 16 alongside, pinning Rapthor `main` and LSMTool
+   and refreshing the contract.
+2. Human: at task 16, decide whether the first backend runs Hebog's thread
+   executor inside Rapthor's per-sector subprocess, as recommended, or
+   Rapthor changes to run Hebog on its Dask workers.
+3. Agent: the Rapthor profile, the flat-noise branch and the LSMTool backend
+   (tasks 18 to 21), then the deployment envelope and the first matched
+   `filter_skymodel` benchmark (tasks 22 and 23).
+4. Agent: task 71's module splits, then tasks 53 to 56, bounding the terms
+   that grow with the image, before the 22,500² (task 11) and 45,000² (task
+   12) tier gates. Scientific improvements (tasks 15 and 68) wait until this
+   work is complete unless an output is confirmed incorrect.
 
 ## Keeping this page current
 

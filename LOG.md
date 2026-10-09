@@ -32549,3 +32549,93 @@ the per-worker placement finding.
 - **Next.** Human: cut 0.19.0: require the two CI checks task 60 added,
   close and reopen pull request 102 so CI runs on it, merge it and check
   the TestPyPI upload.
+
+## 2026-10-09 — Plan: the Rapthor integration moves ahead of the size ladder, science improvements wait
+
+- **Why.** With 0.19.0 released, the maintainer asked for the remaining
+  tasks reordered by recommended priority: scientific improvements deferred
+  until the scaling and Rapthor work is done unless an output is confirmed
+  incorrect, the Rapthor integration considered first because it may need
+  changes the plan had not considered, and the code cleaned up and made more
+  readable where needed. Task 60 is complete: `main` requires the
+  lowest-dependency and container checks (maintainer, 9 October).
+- **Found in the reference checkouts.** Rapthor's `main`
+  (`~/Projects/sdp/rapthor`, `origin/main` at `c6196cb4`, 9 October 2026)
+  merged GEC-468, "Replace CWL/Toil workflows with Prefect and Dask";
+  `origin/master` (`ef76dd5c`, v2.2rc1) is the CWL/Toil release line, and
+  the Phase 0 trace `b1a6467` is an ancestor of `main`. On `main` the
+  image flow submits one Prefect task `filter_skymodel` per sector to a
+  `DaskTaskRunner` (`local_dask` or `external_dask`; Dask worker threads
+  set how many Prefect task engines run at once), and the task always
+  starts a fresh interpreter (`rapthor/execution/image/outputs.py`,
+  `filter_skymodel_products`) with `--source_finder=`, `--ncores=` and the
+  native thread pools pinned to one, which calls LSMTool's
+  `filter_skymodel(... source_finder=..., ncores=...)`. LSMTool `master`
+  (v1.9.0 plus seven commits) dispatches through
+  `KNOWN_SOURCE_FINDERS = {"bdsf": ...}` plus `sofia` behind an optional
+  extra (`lsmtool/filter_skymodel/__init__.py`); its `bdsf` backend runs
+  PyBDSF on the true-sky image (the flat-noise image without beam
+  Measurement Sets), writes the `srl` catalogue, both RMS maps and the
+  island mask at `<image>.mask.fits`, then `filter_sources` clips, filters
+  and groups the sky models, or `create_dummy_skymodel` when no island is
+  found, and returns the source count. Rapthor's `skymodel_filter.py`
+  catches a `RuntimeError` containing "All pixels in the image are
+  blanked" and writes blank products. Rapthor pins `lsmtool>=1.9.0`,
+  `prefect[dask,shell]>=3.4.11,<4` and `prefect-dask`; its parset already
+  has `source_finder = bdsf`.
+- **What this changes.** The Rapthor adapter the plan described (a Rapthor
+  task calling `find_sources` with Rapthor's Dask client, the model of
+  ADR-004 and the contract page's "Hebog removes that escape") is not how
+  `main` runs the step. A Hebog backend is an LSMTool registry entry
+  calling a Hebog adapter, in a subprocess with `ncores` and no Dask client
+  in reach. The first backend can therefore run Hebog's thread executor on
+  `ncores`, matching PyBDSF's `ncores` and Rapthor's `cpus_per_task`
+  accounting with no Rapthor change beyond accepting the finder name; using
+  Rapthor's cluster from inside the step needs a Rapthor change and an
+  ADR-004 amendment. That decision is the maintainer's at task 16, from a
+  written comparison, and task 23 measures whichever model is chosen. The
+  performance gate is unchanged in substance: Hebog against pinned `master`
+  through the same LSMTool `filter_skymodel` call in the same container.
+- **Order decided** (plan, "Path to 1.0.0"): clean-up and refactoring
+  (tasks 58 and 70), then the Rapthor integration (16, 18, 19, 20, 21), the
+  deployment gate on the integrated step (22, 13, 23), the size ladder with
+  its growth terms (71, 53 to 56, 11, 12), scale beyond one machine (17, 24
+  to 27), the deferred science before the freeze (15, 68) and M6. Reasons:
+  the 15,402² envelope already covers the representative 3,000² sector, so
+  the integration waits on no tier; the integration's execution model should
+  be known before optimizing for one; task 23's first matched measurement
+  comes before tasks 54 and 55 so their share is measured on the deployed
+  step; and a scientific improvement that is not a confirmed incorrect
+  supported output waits. Task 17 moves from the integration to M5 because
+  Hebog's own Dask executor meets a cluster first there if the subprocess
+  model is kept.
+- **Tasks added.** Task 70, the stage sequence and the shared tile plumbing
+  out of `public_api.py` (2,241 lines; `_WindowReadable` is defined 7 times
+  and `_CompletedProductSource` 8 across the stages), placed before task 18
+  because the flat-noise branch must call the sequence with shared reads.
+  Task 71, `stages/objects.py` (3,295 lines, four stages),
+  `algorithms/source_association.py` (2,120) and `science/catalogues.py`
+  (1,794) split along their seams, the integration tests' copied helpers
+  shared, and frozen records for the argument groups behind the 110
+  `PLR0913` suppressions in `src/`, placed before tasks 54 and 55 rewrite
+  association. Both were the structural changes the 4 October review
+  deferred "until a task rewrites the module"; the maintainer now wants them
+  scheduled. A new sequence rule binds every refactor to byte-identical
+  quick-check products and no lost coverage.
+- **Tasks amended.** 16 (pin `main`, record the invocation, decide the
+  execution model), 19 (the LSMTool backend function, with the `bdsf`
+  backend's signature and product names), 20 (an LSMTool registration patch
+  behind an optional extra plus the Rapthor patch), 22 and 23 (measured
+  through LSMTool under the chosen model), 13 (after task 22), 17 (M5), 58
+  (the oracle confirmation is done). Task 60 is removed as complete. Task
+  15 moves from M3 to the deferred-science group. The "Rapthor revisions"
+  rule names `main`, the 1.0.0 functionality definition names LSMTool's
+  `source_finder`, two risks are added (the subprocess execution model; the
+  upstream patches) and the churn risk is reworded.
+- **Also updated.** The current-state table (release v0.19.0, the
+  functionality row's Rapthor finding, next action, deferred row), the
+  progress page's at-a-glance and next steps, and one status sentence on
+  the contract page; ADR-004 and the distributed-execution page are left for
+  task 16's decision.
+- **Checks.** The strict docs build and `just pre-commit`. This change
+  edits the plan, the progress page, the contract page and this log only.
