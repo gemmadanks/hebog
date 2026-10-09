@@ -32321,6 +32321,52 @@ the per-worker placement finding.
 - **Not run.** The whole-mosaic Serial and Dask runs, replaced by the
   10,000² anchor under the release-check budget; the `master` timings,
   which are diagnostic only; the slow lane; and Windows.
-- **Next.** Human: inspect the refresh; require the two CI checks task 60
-  added, close and reopen pull request 102 so CI runs on it, merge it and
-  check the TestPyPI upload.
+- **Next.** Human: inspect the refresh. (Superseded the same morning: the
+  inspection found the regression below, and the release is held.)
+
+## 2026-10-09 — The 0.19.0 candidate loses extended emission; release held, task 69
+
+- **Why.** Inspecting the release check's notebook refresh, the maintainer
+  found that the candidate, while closer to PyBDSF in counts, captures less
+  of large extended sources than 0.18.0, with M51, the SDC1 ordinary tile's
+  edge source and the SDC1 high-dynamic-range complex as examples, and
+  asked that such cases be held to injected truth rather than to PyBDSF,
+  whose islands do not capture the emission either.
+- **Measured** on the two refreshes' products (`mask_coverage.py` and the
+  lost-pixel comparison, scratch scripts): between the 0.18.0 and 0.19.0
+  refreshes the mask loses 28,699 pixels on M51 (48,137 to 19,459), 41,449
+  on the SDC1 high-dynamic-range tile and 12,696 on the SDC1 ordinary tile,
+  each as one blob of 24,100, 35,405 and 12,406 pixels, with the new RMS
+  over the lost pixels 7.5, 8.4 and 16.9 times the old at the median; Hydra
+  deep and shallow lose 31,421 and 10,449 pixels in blobs of up to 548 at
+  1.2 times; 3C 295, the LoTSS 90′ field and five SDC1 tiles are unchanged
+  or within 1,111 pixels. Of PyBDSF's M51 island (5,683 pixels) the mask
+  covers 0.379 against 1.000 before, and of its 805-pixel companion 0.057.
+- **Attributed by bisection** on the M51 field through the nine science
+  commits since v0.18.0 (`run_case.py` with each commit's checkout on
+  `PYTHONPATH`): tasks 46, 57, 63, 42, 64, 66 and the beam repair all give
+  48,152 mask pixels and an RMS over the galaxy of 1.2 times the map's
+  median; task 65 (`0a33be2`) alone gives 19,459 pixels and 12.3 times, and
+  138 sources against 168.
+- **Cause.** `prepare_local_noise_rms_grid` floors a filled cell at 0.8 of
+  the smaller of the coarse RMS and the largest clean cell within 75
+  pixels, and "with no clean cell in reach the coarse stands". Inside a
+  source wider than 150 pixels no clean cell is in reach, and on images
+  whose shorter side is 600 pixels or more the coarse grid is the
+  unprotected clipped estimate (protection applies only where the coarse
+  window shrinks, and is bounded by whole-plane admission), so over an
+  extended source it is mostly the source's emission. The halo control that
+  guarded the rule reaches halos of 10 to 24 pixels only, and no quick-check
+  case has a bright extended source wider than 150 pixels on an image of
+  600 pixels or more.
+- **Decided** (question round, recommended options taken):
+
+  | Question | Decision | Declined |
+  | --- | --- | --- |
+  | 0.19.0 | Held until task 69 merges; the release check runs again on the repaired candidate. | Releasing with task 65 reverted; releasing as is with the limitation documented. |
+  | Regression | A generated quick-check case and an analytic integration test, both of at least 600 pixels with a bright extended source wider than 150 pixels and faint outskirts, binding the RMS over the source to within 1.25 of the injected noise and the mask's recall of truth pixels above 3σ, with injected truth and not PyBDSF as the reference. | An integration test alone; a quick-check case alone. |
+  | Repair | Rules A (the coarse RMS alone is never a reference) and B (a lower statistic of the clean cells in reach) are prototyped and measured on M51, the two SDC1 tiles, Hydra deep, the noise-step tests, the halo control and the new regression before the rule decision. | Protecting the coarse grid on large images first, a tiled design task; reverting task 65 and reopening it. |
+
+- **Plan.** Task 69 is added before task 68; the next-action row, the
+  release status's position on the progress page and its open defects
+  follow.

@@ -19,7 +19,7 @@ scientific qualification. User-facing limits are in
 | Science | ≥99.5% Rapthor retained/rejected agreement and a powered, held-out parity study against pinned PyBDSF `master` | Isolated-source position, flux and axis limits are met against both PyBDSF references on the frozen input, for sources and components under both profiles; the `Total_flux` limits hold on independent realizations. Two bounded known differences, one open defect and the unmeasured Rapthor agreement remain. | Development evidence only |
 | Performance | Matched complete `filter_skymodel` median ≤0.50 of pinned PyBDSF `master` | Not measurable until the adapter exists. Diagnostic ratios against `master` on 1,024² fields are 2.7 to 5.2 (Hebog on one native thread against `master` on four container cores); on the 3,000² LoTSS field the two use the same CPU time, so the gap is parallel occupancy. No regression on the Hebog curve. | Gate not yet measurable |
 | Scalability | 45,000² on the 18 GiB development machine with tile-bounded memory; 90,000² on a 1 to 10-node cluster; planner bounds for 100,000² on 100 to 200+ nodes | Public envelope 15,402². Every stage runs tiled through the executor and products are byte-identical across tilings and executors. The traced peak is 1.7 GiB on the whole 15,402² mosaic and still grows about 1.7 bytes a pixel. Nothing beyond one machine has run. | 15,402 of 45,000 pixels |
-| Release | PyPI, with portability, security, licensing, documentation and independent acceptance | v0.18.0 (5 October 2026) is tagged on GitHub and uploaded to TestPyPI, and the 0.19.0 candidate passed its release check on 8 October; CI runs on Linux, macOS and Windows for Python 3.12 to 3.14. | Experimental `0.x` |
+| Release | PyPI, with portability, security, licensing, documentation and independent acceptance | v0.18.0 (5 October 2026) is tagged on GitHub and uploaded to TestPyPI. The 0.19.0 candidate passed its release check on 8 October, and is held for task 69; CI runs on Linux, macOS and Windows for Python 3.12 to 3.14. | Experimental `0.x` |
 
 ## Functionality
 
@@ -119,6 +119,11 @@ survey's PyBDSF catalogue has 22,420 sources and 28,559 Gaussians
 
 ### Open scientific defects
 
+- **The local-noise floor inflates the RMS over wide extended sources
+  (task 69).** Over a source wider than 150 pixels on an image of 600
+  pixels or more, task 65's floor is the unprotected coarse RMS, which is
+  the source's emission: 12 times the noise over M51, where the mask fell
+  from 48,152 to 19,459 pixels (9 October). Holds the 0.19.0 release.
 - **Clipped RMS reads low (task 68).** The clipped window RMS has no
   truncation correction: on noise alone it reads 1.6% low on white noise
   and 3.2 to 3.9% low on beam-correlated noise (7 October).
@@ -180,11 +185,12 @@ memory and disk, and SKA-Low coverage without public SKA-Low images.
 
 The next actions, as the plan orders them:
 
-1. Human: cut 0.19.0, whose release check passed on 8 October: require the
-   two CI checks task 60 added, close and reopen the Release Please pull
-   request so CI runs on it, merge it and check the TestPyPI upload.
-2. Agent: task 68's measurement.
-3. Agent: tasks 53 to 56, bounding the terms that grow with the image, before
+1. Agent: task 69, which holds the 0.19.0 release: the local-noise floor
+   inflates the RMS over extended sources wider than 150 pixels; a
+   truth-based regression first, then the rule, then the release check again.
+2. Human: require the two CI checks task 60 added before the release.
+3. Agent: task 68's measurement.
+4. Agent: tasks 53 to 56, bounding the terms that grow with the image, before
    the 22,500² (task 11) and 45,000² (task 12) tier gates.
 
 ## Keeping this page current
