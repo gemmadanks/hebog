@@ -873,8 +873,8 @@ def _floor_reference(
 ) -> float:
     """Return the smaller of the coarse RMS and the largest clean cell nearby.
 
-    A clean cell is nearby within 10 cells along each axis; with none, the
-    coarse RMS stands.
+    A clean cell is nearby within 10 cells along each axis; with none there
+    is no floor (plan task 69).
     """
     reach_y, reach_x = _HALF_COARSE_WINDOW_CELLS
     nearby = (
@@ -883,18 +883,19 @@ def _floor_reference(
     )
     clean = statistics.rms[nearby][statistics.available[nearby]]
     coarse_rms = _coarse_rms_at_cell(coarse, statistics, cell)
-    return min(coarse_rms, float(clean.max())) if clean.size else coarse_rms
+    return min(coarse_rms, float(clean.max())) if clean.size else 0.0
 
 
-def test_a_local_noise_fill_never_falls_below_most_of_the_coarse_rms() -> None:
-    """A cell no clean window measured reads at least 0.8 of the coarse RMS.
+def test_a_fill_near_a_clean_window_reads_most_of_the_coarse_rms() -> None:
+    """A filled cell within reach of a clean window reads 0.8 of the coarse.
 
     Cell (20, 20) measured a quiet 0.25 and cell (20, 30) a noisy 1.5,
     against a coarse RMS of 1.17 and 1.31 there. A cell filled from the quiet
-    one is raised to 0.8 of the coarse RMS at its own centre, which rises
-    along x; a cell filled from the noisy one keeps 1.5; each measured cell
-    keeps its own estimate. The background is filled as before (plan task
-    65).
+    one within 10 cells of either is raised to 0.8 of the coarse RMS at its
+    own centre, which rises along x; a cell filled from the noisy one keeps
+    1.5; each measured cell keeps its own estimate; and a cell beyond the
+    reach of both keeps its nearest fill (plan tasks 65 and 69). The
+    background is filled as before.
     """
     shape_yx = (300, 300)
     coarse = _coarse_grid(shape_yx)
@@ -909,14 +910,19 @@ def test_a_local_noise_fill_never_falls_below_most_of_the_coarse_rms() -> None:
 
     assert prepared.rms[20, 20] == 0.25
     assert prepared.rms[20, 30] == 1.5
-    for quiet_side in ((20, 21), (20, 24), (0, 0), (38, 10)):
+    for quiet_side in ((20, 21), (20, 24), (14, 24), (28, 22)):
         assert prepared.rms[quiet_side] == pytest.approx(
             0.8 * _coarse_rms_at_cell(coarse, statistics, quiet_side),
             rel=1e-12,
         )
     assert prepared.rms[20, 21] < prepared.rms[20, 24]
-    for noisy_side in ((20, 26), (20, 31), (38, 38)):
+    for noisy_side in ((20, 26), (20, 31), (29, 38)):
         assert prepared.rms[noisy_side] == 1.5
+    for beyond_reach in ((0, 0), (38, 10), (5, 20)):
+        assert prepared.rms[beyond_reach] == 0.25
+        assert prepared.rms[beyond_reach] < 0.8 * _coarse_rms_at_cell(
+            coarse, statistics, beyond_reach
+        )
     np.testing.assert_array_equal(prepared.background, 0.5)
     np.testing.assert_array_equal(
         prepared.fallback_cells, ~statistics.available
@@ -966,7 +972,7 @@ def test_a_local_noise_fill_is_the_larger_of_the_nearest_and_the_floor(
     np.testing.assert_array_equal(prepared.background, nearest.background)
     if fraction == 0.0:
         np.testing.assert_array_equal(prepared.rms, nearest.rms)
-    else:
+    elif fraction >= 0.8:
         assert np.any(prepared.rms[filled] > nearest.rms[filled])
 
 
@@ -977,8 +983,8 @@ def test_a_local_noise_floor_never_exceeds_the_clean_windows_nearby() -> None:
     not remove, so its RMS can exceed every clean fine window around it.
     Here the clean cells (20, 20) and (22, 24) read 0.6 where the coarse RMS
     is 1.17 and 1.22: a filled cell within 10 cells of them is floored at 0.8
-    of 0.6, not of the coarse RMS, and one beyond their reach at 0.8 of the
-    coarse RMS (plan task 65).
+    of 0.6, not of the coarse RMS, and one beyond their reach has no floor
+    and keeps its nearest fill (plan tasks 65 and 69).
     """
     shape_yx = (300, 300)
     coarse = _coarse_grid(shape_yx)
@@ -994,10 +1000,41 @@ def test_a_local_noise_floor_never_exceeds_the_clean_windows_nearby() -> None:
     for within in ((20, 21), (30, 30), (10, 14), (21, 34)):
         assert prepared.rms[within] == 0.6
     for beyond in ((0, 0), (38, 38), (21, 35)):
-        assert prepared.rms[beyond] == pytest.approx(
-            0.8 * _coarse_rms_at_cell(coarse, statistics, beyond), rel=1e-12
+        assert prepared.rms[beyond] == 0.6
+        assert prepared.rms[beyond] < 0.8 * _coarse_rms_at_cell(
+            coarse, statistics, beyond
         )
-        assert prepared.rms[beyond] > 0.6
+
+
+def test_a_fill_inside_a_wide_source_keeps_its_nearest_window() -> None:
+    """Beyond every clean window's reach the coarse RMS floors nothing.
+
+    A source wider than twice the reach blanks every window over it, and
+    the unprotected coarse window there holds the source's emission. Here
+    the only clean cells, at 0.3, lie on the grid's left edge, and the coarse
+    RMS rises to 1.4 on the right: cells within 10 of the clean column are
+    floored at 0.8 of the smaller of the coarse RMS and 0.3, which is 0.24,
+    below their fill, and every cell further right keeps the fill of 0.3
+    although 0.8 of the coarse RMS there is more than twice that (plan task
+    69).
+    """
+    shape_yx = (300, 300)
+    coarse = _coarse_grid(shape_yx)
+    statistics = _fine_statistics(
+        shape_yx, {(row, 0): 0.3 for row in range(0, 40, 4)}
+    )
+
+    prepared = prepare_local_noise_rms_grid(
+        statistics,
+        coarse,
+        minimum_coarse_fraction=0.8,
+        clean_cell_reach_yx=_HALF_COARSE_WINDOW_CELLS,
+    )
+
+    np.testing.assert_array_equal(prepared.rms[~statistics.available], 0.3)
+    for far in ((20, 20), (20, 37), (0, 37)):
+        assert 0.8 * _coarse_rms_at_cell(coarse, statistics, far) > 0.6
+    assert prepared.scientifically_available
 
 
 @pytest.mark.parametrize(

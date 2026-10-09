@@ -58,6 +58,7 @@ from hebog.validation.quick_check import (
     reference_cache_directory,
     reference_identity,
     reference_metrics,
+    support_metrics,
     truth_metrics,
     write_report,
 )
@@ -70,6 +71,8 @@ _SUMMARY_METRICS = (
     "truth.completeness",
     "truth.reliability",
     "truth.integrated_flux_error_p95",
+    "truth.support_rms_error_p95",
+    "truth.support_recall",
     "pybdsf_master.completeness",
     "pybdsf_master.reliability",
     "pybdsf_master.integrated_flux_error_p50",
@@ -293,6 +296,12 @@ def _case_metrics(
             beam_fwhm_degrees=beam_fwhm_degrees,
             maximum_separation_beams=separation,
             noise_rms_jy_per_beam=prepared.noise_rms_jy_per_beam,
+        )
+    if prepared.recipe is not None:
+        metrics |= support_metrics(
+            prepared.recipe,
+            rms_path=finder_result.rms_path,
+            mask_path=finder_result.mask_path,
         )
     if reference is not None:
         root, result = reference

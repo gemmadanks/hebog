@@ -137,6 +137,28 @@ def _crowded_field(size: int, spacing: float) -> list[dict[str, float]]:
     return sources
 
 
+def _wide_extended_source(x: float, y: float) -> list[dict[str, float]]:
+    """Return a knotted disc wider than the local-noise floor's reach."""
+    knots = [
+        _ellipse(
+            x + (30.0 + 10.0 * index) * np.cos(index * np.pi / 8),
+            y + (30.0 + 10.0 * index) * np.sin(index * np.pi / 8),
+            50.0,
+            10.0,
+            10.0,
+            0.0,
+        )
+        for index in range(16)
+    ]
+    return [
+        _ellipse(x, y, 40.0, 45.0, 35.0, 30.0),
+        *knots,
+        _point(x, y, 300.0),
+        _point(x + 55.0, y - 20.0, 40.0),
+        _point(x - 250.0, y + 150.0, 40.0),
+    ]
+
+
 def _cases() -> list[dict[str, Any]]:
     """Return the ordered case definitions before provenance is added."""
     blend_offsets = (1.0, 1.5, 2.5)
@@ -359,6 +381,21 @@ def _cases() -> list[dict[str, Any]]:
             ),
             "shape_yx": (1024, 1024),
             "sources": _crowded_field(1024, 32.0),
+        },
+        {
+            "identifier": "wide-extended-source",
+            "purpose": (
+                "A disc narrower than the background box with sixteen "
+                "bright knots along two arms out to 180 pixels, wider than "
+                "twice the local-noise floor's clean-cell reach, a bright "
+                "core and two compact companions, as a nearby spiral galaxy "
+                "appears. The coarse clipped estimate over it is many times "
+                "the noise; the published RMS over its emission must stay "
+                "near the injected noise and the mask must keep that "
+                "emission (task 69)."
+            ),
+            "shape_yx": (1024, 1024),
+            "sources": _wide_extended_source(512.0, 512.0),
         },
     ]
 

@@ -2101,9 +2101,11 @@ def test_the_rms_beside_a_noise_step_in_a_measured_field_reads_the_noise(
     a cell took its nearest clean window's, which beside the strip often lay
     inside it, so cells up to 20 pixels beyond the step took a fifth of the
     noise there, and the field published 87 sources, 30 of them in columns
-    40 to 59, against 59 and 2 unscaled (plan task 65). Such a cell now
-    never reads below 0.8 of the coarse RMS at its centre, and a cell a clean
-    window measured keeps its own estimate, so the strip reads its noise.
+    40 to 59, against 59 and 2 unscaled (plan task 65). Such a cell, with a
+    clean window within reach, now never reads below 0.8 of the coarse RMS
+    at its centre, and a cell a clean window measured keeps its own estimate,
+    so the strip reads its noise. Beyond every clean window's reach, as
+    inside a wide source, the fill stands (plan task 69).
     """
     result = measured_quiet_strip_field.result
     noise = _DENSE_FIELD_NOISE_JY_PER_BEAM

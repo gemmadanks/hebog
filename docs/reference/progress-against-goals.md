@@ -19,7 +19,7 @@ scientific qualification. User-facing limits are in
 | Science | ≥99.5% Rapthor retained/rejected agreement and a powered, held-out parity study against pinned PyBDSF `master` | Isolated-source position, flux and axis limits are met against both PyBDSF references on the frozen input, for sources and components under both profiles; the `Total_flux` limits hold on independent realizations. Two bounded known differences, one open defect and the unmeasured Rapthor agreement remain. | Development evidence only |
 | Performance | Matched complete `filter_skymodel` median ≤0.50 of pinned PyBDSF `master` | Not measurable until the adapter exists. Diagnostic ratios against `master` on 1,024² fields are 2.7 to 5.2 (Hebog on one native thread against `master` on four container cores); on the 3,000² LoTSS field the two use the same CPU time, so the gap is parallel occupancy. No regression on the Hebog curve. | Gate not yet measurable |
 | Scalability | 45,000² on the 18 GiB development machine with tile-bounded memory; 90,000² on a 1 to 10-node cluster; planner bounds for 100,000² on 100 to 200+ nodes | Public envelope 15,402². Every stage runs tiled through the executor and products are byte-identical across tilings and executors. The traced peak is 1.7 GiB on the whole 15,402² mosaic and still grows about 1.7 bytes a pixel. Nothing beyond one machine has run. | 15,402 of 45,000 pixels |
-| Release | PyPI, with portability, security, licensing, documentation and independent acceptance | v0.18.0 (5 October 2026) is tagged on GitHub and uploaded to TestPyPI. The 0.19.0 candidate passed its release check on 8 October, and is held for task 69; CI runs on Linux, macOS and Windows for Python 3.12 to 3.14. | Experimental `0.x` |
+| Release | PyPI, with portability, security, licensing, documentation and independent acceptance | v0.18.0 (5 October 2026) is tagged on GitHub and uploaded to TestPyPI. The 0.19.0 candidate passed its release check on 8 October and was held for task 69, now repaired; CI runs on Linux, macOS and Windows for Python 3.12 to 3.14. | Experimental `0.x` |
 
 ## Functionality
 
@@ -60,7 +60,7 @@ is checked once before 1.0.0. The limits are the plan's
 | Measurement | Target | Latest | Date and source |
 | --- | --- | --- | --- |
 | Rapthor retained/rejected components | ≥99.5% agreement | Not measured; needs the Rapthor profile and adapter | task 21 |
-| Reference recovery at SNR ≥10 | ≥99% | 1.000 on every generated quick-check case with truth, 0.998 on the crowded field | 8 October, quick check `release-0.19.0` |
+| Reference recovery at SNR ≥10 | ≥99% | 1.000 on every generated quick-check case with compact truth, 0.998 on the crowded field; the wide extended source's disc and knots are not fitted one by one (0.300), which this gate does not cover | 9 October, quick check `task69-final` |
 | Isolated SNR ≥10 position, median / p95 | ≤0.02 / 0.10 beam | 0.0003 / 0.0005 (`continuum`), 0.0002 / 0.0006 (`compact`) | 6 October, equivalence lane on the frozen 256² input, task 57 |
 | Isolated SNR ≥10 source and component peak flux, median / p95 | ≤2% / 5% | 0.17% / 0.21% (`continuum`), 0.04% / 0.13% (`compact`) | same |
 | Isolated SNR ≥10 source `Total_flux`, median / p95 | ≤5% / 10% | 0.09% / 0.51% | 5 October, equivalence lane |
@@ -82,12 +82,16 @@ explained (task 49):
 
 ### Quick science check
 
-The quick science check is the everyday regression detector: 17 fixed cases,
+The quick science check is the everyday regression detector: 18 fixed cases,
 each one realization, compared with injected truth and with pinned `master`
-on the fields Rapthor consumes. Run `release-0.19.0` on 8 October 2026, the
-0.19.0 release check on `main` at `4855398`, whose catalogue, RMS and mask
-products are byte-identical to the `task65-final` baseline in every case.
-Completeness and
+on the fields Rapthor consumes. Run `task69-final` on 9 October 2026, the
+0.19.0 candidate with task 69, whose catalogue, RMS and mask products are
+byte-identical to the release check's `release-0.19.0` run in 16 of the 17
+earlier cases; `lotss-dr3-1312-dense` changes 0.25% of its RMS pixels by at
+most 9% with its sources unchanged. Every generated case also reports the
+RMS error and the mask recall over the injected emission at least three
+times the noise (`truth.support_rms_error_p50`, `_p95` and
+`truth.support_recall`). Completeness and
 reliability
 compare source rows; an extended object that one finder splits into several
 rows lowers the figure without being a missed source.
@@ -107,6 +111,7 @@ rows lowers the figure without being a missed source.
 | `empty-noise` | 0 | – | 1.000 | 1.000 | 1.000 | 1.000 |
 | `all-invalid` | 0 | – | 1.000 | – | – | – |
 | `crowded-field` | 994 | 0.998 | 1.000 | 0.985 | 0.997 | 0.888 |
+| `wide-extended-source` | 7 | 0.300 | 1.000 | 0.375 | 0.857 | 0.482 |
 | `sdc1-b2-1000h-sparse` | 573 | – | – | 0.933 | 0.972 | 0.816 |
 | `sdc1-b2-1000h-crowded` | 897 | – | – | no `master` reference | – | – |
 | `lotss-dr3-1312-sparse` | 59 | – | – | 0.857 | 0.915 | 0.834 |
@@ -119,11 +124,6 @@ survey's PyBDSF catalogue has 22,420 sources and 28,559 Gaussians
 
 ### Open scientific defects
 
-- **The local-noise floor inflates the RMS over wide extended sources
-  (task 69).** Over a source wider than 150 pixels on an image of 600
-  pixels or more, task 65's floor is the unprotected coarse RMS, which is
-  the source's emission: 12 times the noise over M51, where the mask fell
-  from 48,152 to 19,459 pixels (9 October). Holds the 0.19.0 release.
 - **Clipped RMS reads low (task 68).** The clipped window RMS has no
   truncation correction: on noise alone it reads 1.6% low on white noise
   and 3.2 to 3.9% low on beam-correlated noise (7 October).
@@ -185,12 +185,11 @@ memory and disk, and SKA-Low coverage without public SKA-Low images.
 
 The next actions, as the plan orders them:
 
-1. Agent: task 69, which holds the 0.19.0 release: the local-noise floor
-   inflates the RMS over extended sources wider than 150 pixels; a
-   truth-based regression first, then the rule, then the release check again.
-2. Human: require the two CI checks task 60 added before the release.
-3. Agent: task 68's measurement.
-4. Agent: tasks 53 to 56, bounding the terms that grow with the image, before
+1. Human: merge task 69; agent: the release check again on the merged
+   candidate, without the traced peak; then the human cuts 0.19.0 with the
+   two CI checks task 60 added required.
+2. Agent: task 68's measurement.
+3. Agent: tasks 53 to 56, bounding the terms that grow with the image, before
    the 22,500² (task 11) and 45,000² (task 12) tier gates.
 
 ## Keeping this page current

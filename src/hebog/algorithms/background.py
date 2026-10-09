@@ -606,18 +606,21 @@ def prepare_local_noise_rms_grid(
 
     Cells are filled from their nearest available cell, as
     :func:`prepare_rms_grid_for_interpolation` fills any grid, except that a
-    filled cell's RMS never falls below ``minimum_coarse_fraction`` times a
-    reference: the coarse RMS at its centre, or the largest available cell
-    within ``clean_cell_reach_yx`` cells of it if that is smaller. Local
-    noise blanks every window that touches guarded source support, and
-    beside a sharp step in the noise the nearest clean window can lie on the
-    quieter side, where its estimate would lower the noise beside the step.
-    A coarse window over extended emission includes emission the clipping
-    keeps, so where no clean window nearby reads as high as the coarse RMS,
-    the excess is not noise and the clean windows set the reference. A cell
-    that a clean window measured keeps its own estimate, however low, since
-    that is what local noise measures. The background is filled as before,
-    and an unavailable grid stays unavailable.
+    filled cell with an available cell within ``clean_cell_reach_yx`` cells
+    of it never falls below ``minimum_coarse_fraction`` times a reference:
+    the coarse RMS at its centre, or the largest available cell in that
+    reach if that is smaller. Local noise blanks every window that touches
+    guarded source support, and beside a sharp step in the noise the nearest
+    clean window can lie on the quieter side, where its estimate would lower
+    the noise beside the step. A coarse window over extended emission
+    includes emission the clipping keeps, so where no clean window nearby
+    reads as high as the coarse RMS, the excess is not noise and the clean
+    windows set the reference; and a cell with no clean window in reach,
+    as inside a source wider than twice the reach, keeps its nearest fill,
+    because the coarse RMS alone is not a reference there. A cell that a
+    clean window measured keeps its own estimate, however low, since that
+    is what local noise measures. The background is filled as before, and
+    an unavailable grid stays unavailable.
 
     Args:
         statistics: The local-noise grid's assembled window statistics.
@@ -625,7 +628,8 @@ def prepare_local_noise_rms_grid(
         minimum_coarse_fraction: The fraction of the reference below which a
             filled cell's RMS never falls, from 0, no floor, to 1.
         clean_cell_reach_yx: How many cells along each axis, either side of
-            a filled cell, a clean cell may lie and still cap its reference.
+            a filled cell, a clean cell may lie and still floor it and cap
+            its reference.
 
     Raises:
         ValueError: If the fraction is not finite or lies outside 0 to 1, a
@@ -680,10 +684,14 @@ def prepare_local_noise_rms_grid(
     coarse_rms = np.asarray(
         _extended_rms_interpolator(coarse)(centres), dtype=np.float64
     )
-    # With no clean cell in reach the maximum is -inf and the coarse stands.
-    reference = np.minimum(
-        coarse_rms,
-        np.where(np.isfinite(largest_clean), largest_clean, np.inf),
+    # With no clean cell in reach the maximum is -inf and there is no floor:
+    # the coarse RMS alone is not a reference, because over a source wider
+    # than the reach the unprotected coarse window holds the source's
+    # emission.
+    reference = np.where(
+        np.isfinite(largest_clean),
+        np.minimum(coarse_rms, largest_clean),
+        0.0,
     )
     rms = np.array(prepared.rms, copy=True)
     rms[filled_y, filled_x] = np.maximum(

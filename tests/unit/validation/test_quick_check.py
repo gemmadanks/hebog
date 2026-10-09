@@ -38,6 +38,12 @@ from hebog.data_models import (
 )
 from hebog.science.catalogue_rows import CatalogueSource
 from hebog.validation import quick_check
+from hebog.validation.datasets import (
+    SyntheticRecipe,
+    SyntheticSource,
+    generate_synthetic_emission,
+    generate_synthetic_noise_rms,
+)
 from hebog.validation.quick_benchmark import (
     load_quick_benchmark_configuration,
 )
@@ -61,6 +67,7 @@ from hebog.validation.quick_check import (
     reference_code_sha256,
     reference_identity,
     supplied_metadata_values,
+    support_metrics,
     truth_metrics,
     write_report,
 )
@@ -262,6 +269,179 @@ def test_map_metrics_ignore_invalid_reference_pixels(tmp_path: Path) -> None:
     assert metrics["published.mask_iou"] == pytest.approx(0.5)
 
 
+def test_support_metrics_compare_rms_and_mask_with_injected_emission(
+    tmp_path: Path,
+) -> None:
+    """The support is the emission at least three times the noise there.
+
+    One Gaussian of peak 10 on noise 1 with a 20% gradient along x: the
+    support is where the model reaches 3 times the local noise. The RMS
+    reads 1.3 times the noise over the left half of the support and the
+    noise over the right, so the median error is the smaller of the two
+    halves' errors when they are equal in size; the mask covers the left
+    half only.
+    """
+    recipe = SyntheticRecipe(
+        generator="hebog.synthetic.gaussian-noise",
+        generator_version=2,
+        seed=3,
+        shape_yx=(64, 64),
+        background=0.5,
+        noise_rms=1.0,
+        noise_rms_fractional_gradient_xy=(0.2, 0.0),
+        sources=(
+            SyntheticSource(
+                x_pixel=32.0,
+                y_pixel=32.0,
+                peak_flux_jy_per_beam=10.0,
+                major_sigma_pixels=6.0,
+                minor_sigma_pixels=6.0,
+            ),
+        ),
+    )
+    emission = generate_synthetic_emission(recipe)
+    noise = generate_synthetic_noise_rms(recipe)
+    support = emission >= 3.0 * noise
+    assert emission.max() == pytest.approx(10.0)
+    assert noise[:, 0].min() == pytest.approx(0.9)
+    assert noise[:, -1].max() == pytest.approx(1.1)
+    assert 0 < np.count_nonzero(support) < emission.size
+    rms = noise.copy()
+    rms[:, :32] *= 1.3
+    mask = np.zeros(emission.shape, dtype=np.uint8)
+    mask[:, :32] = 1
+    rms_path = tmp_path / "rms.fits"
+    mask_path = tmp_path / "mask.fits"
+    fits.PrimaryHDU(rms).writeto(rms_path)
+    fits.PrimaryHDU(mask).writeto(mask_path)
+
+    metrics = support_metrics(recipe, rms_path=rms_path, mask_path=mask_path)
+
+    left = np.count_nonzero(support[:, :32])
+    expected_recall = left / np.count_nonzero(support)
+    assert metrics["truth.support_recall"] == pytest.approx(expected_recall)
+    errors = np.where(support[:, :32], 0.3, np.nan)
+    errors = np.concatenate(
+        [
+            errors[np.isfinite(errors)],
+            np.zeros(np.count_nonzero(support) - left),
+        ]
+    )
+    assert metrics["truth.support_rms_error_p50"] == pytest.approx(
+        float(np.median(errors))
+    )
+    assert metrics["truth.support_rms_error_p95"] == pytest.approx(
+        float(np.percentile(errors, 95))
+    )
+
+
+def test_support_metrics_are_unmeasurable_on_a_non_finite_rms(
+    tmp_path: Path,
+) -> None:
+    """A published RMS that is not finite over the support is not skipped.
+
+    Every support pixel is a valid injected pixel, so one NaN there makes
+    the error metrics unmeasurable, which a baseline comparison reports,
+    rather than a better median from the pixels that remain; the recall is
+    still measured.
+    """
+    recipe = SyntheticRecipe(
+        generator="hebog.synthetic.gaussian-noise",
+        generator_version=1,
+        seed=5,
+        shape_yx=(32, 32),
+        background=0.0,
+        noise_rms=1.0,
+        sources=(
+            SyntheticSource(
+                x_pixel=16.0,
+                y_pixel=16.0,
+                peak_flux_jy_per_beam=20.0,
+                major_sigma_pixels=3.0,
+                minor_sigma_pixels=3.0,
+            ),
+        ),
+    )
+    rms = np.ones((32, 32))
+    rms[16, 16] = np.nan
+    mask = np.ones((32, 32), dtype=np.uint8)
+    rms_path = tmp_path / "rms.fits"
+    mask_path = tmp_path / "mask.fits"
+    fits.PrimaryHDU(rms).writeto(rms_path)
+    fits.PrimaryHDU(mask).writeto(mask_path)
+
+    metrics = support_metrics(recipe, rms_path=rms_path, mask_path=mask_path)
+
+    assert metrics == {
+        "truth.support_rms_error_p50": None,
+        "truth.support_rms_error_p95": None,
+        "truth.support_recall": 1.0,
+    }
+    findings = compare_reports(
+        _report(metrics),
+        _report({"truth.support_rms_error_p95": 0.1}),
+        _TOLERANCES,
+    )
+    assert [finding.reason for finding in findings] == ["no longer measurable"]
+
+
+def test_support_metrics_need_noise_and_emission_above_it() -> None:
+    """A recipe without noise, without sources, or with only a faint one."""
+    recipe = SyntheticRecipe(
+        generator="hebog.synthetic.gaussian-noise",
+        generator_version=1,
+        seed=1,
+        shape_yx=(16, 16),
+        background=0.0,
+        noise_rms=0.0,
+        sources=(
+            SyntheticSource(
+                x_pixel=8.0,
+                y_pixel=8.0,
+                peak_flux_jy_per_beam=20.0,
+                major_sigma_pixels=2.0,
+                minor_sigma_pixels=2.0,
+            ),
+        ),
+    )
+    assert support_metrics(
+        recipe, rms_path=Path("unused.fits"), mask_path=Path("unused.fits")
+    ) == {
+        "truth.support_rms_error_p50": None,
+        "truth.support_rms_error_p95": None,
+        "truth.support_recall": None,
+    }
+    for sources in (
+        (),
+        (
+            SyntheticSource(
+                x_pixel=8.0,
+                y_pixel=8.0,
+                peak_flux_jy_per_beam=2.0,
+                major_sigma_pixels=2.0,
+                minor_sigma_pixels=2.0,
+            ),
+        ),
+    ):
+        recipe = SyntheticRecipe(
+            generator="hebog.synthetic.gaussian-noise",
+            generator_version=1,
+            seed=1,
+            shape_yx=(16, 16),
+            background=0.0,
+            noise_rms=1.0,
+            sources=sources,
+        )
+        metrics = support_metrics(
+            recipe, rms_path=Path("unused.fits"), mask_path=Path("unused.fits")
+        )
+        assert metrics == {
+            "truth.support_rms_error_p50": None,
+            "truth.support_rms_error_p95": None,
+            "truth.support_recall": None,
+        }
+
+
 @pytest.mark.parametrize(
     ("metric", "baseline", "current", "regressed"),
     [
@@ -274,6 +454,12 @@ def test_map_metrics_ignore_invalid_reference_pixels(tmp_path: Path) -> None:
         ("truth.right_ascension_coverage", 0.68, 0.9, True),
         ("truth.right_ascension_coverage", 0.5, 0.66, False),
         ("truth.reference_count", 6.0, 1.0, False),
+        ("truth.support_recall", 0.9, 0.85, True),
+        ("truth.support_recall", 0.9, 0.95, False),
+        ("truth.support_rms_error_p50", 0.05, 0.1, True),
+        ("truth.support_rms_error_p50", 0.1, 0.05, False),
+        ("truth.support_rms_error_p95", 0.1, 0.5, True),
+        ("truth.support_rms_error_p95", 0.5, 0.1, False),
     ],
 )
 def test_regressions_follow_each_metric_direction(

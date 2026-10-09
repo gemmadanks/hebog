@@ -97,8 +97,11 @@ Windows that overlap protected sources are dropped and each gap takes the
 value of its nearest clean window. On images at least 150 pixels on a side,
 the `continuum` profile also measures the fine grid across the whole image
 (local noise), and wherever one of its windows came clean, its RMS is the one
-published. There a gap never reads below 0.8 of the coarse RMS at its centre,
-or of the largest clean window within half a coarse window if that is lower.
+published. There a gap with a clean window within half a coarse window never
+reads below 0.8 of the coarse RMS at its centre, or of the largest such clean
+window if that is lower; a gap beyond every clean window's reach, as inside
+a source wider than a coarse window, keeps its nearest clean window's RMS,
+because the unprotected coarse window there holds the source's emission.
 Beside a sharp step in the noise the nearest clean window can lie on the
 quieter side and would lower the noise beside the step; on images whose
 shorter side is 600 pixels or more the coarse grid is not protected, and

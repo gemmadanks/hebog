@@ -32370,3 +32370,100 @@ the per-worker placement finding.
 - **Plan.** Task 69 is added before task 68; the next-action row, the
   release status's position on the progress page and its open defects
   follow.
+
+## 2026-10-09 — Task 69: the local-noise floor stops at the clean windows' reach
+
+- **Outcome.** A local-noise cell no clean window measured is floored only
+  while a clean cell lies within half a coarse window of it (10 cells at
+  the reviewed geometry); beyond every clean cell's reach it keeps its
+  nearest clean cell's RMS, because the coarse RMS alone is no reference
+  there: on images whose shorter side is 600 pixels or more the coarse grid
+  is unprotected, and inside a source wider than twice the reach it holds
+  the source's emission (`prepare_local_noise_rms_grid`). Within reach the
+  rule of task 65 stands, 0.8 of the smaller of the coarse RMS at the
+  cell's centre and the largest clean cell in reach.
+- **Regression first.**
+  `test_wide_extended_emission_keeps_its_noise_and_support`, beside the
+  halo control: a 40σ disc narrower than the background box with sixteen
+  50σ knots along two arms out to a radius of 180 pixels, a 300σ core and
+  two compact companions, on 800² and 640 by 1,024 images, where the coarse
+  clipped estimate over the disc is many times the noise. It requires the
+  published RMS over the emission above 3σ to be within 0.25 of the noise at
+  the median and under 1.5 at the 95th percentile, and the retained mask to
+  keep at least 0.7 of that emission. On the 0.19.0 candidate the 95th
+  percentile reads 11.2 and 11.3 times the noise; on the code before task
+  65 and on the repair it passes, with recall 0.80 and 0.74. The quick
+  check gains the generated case `wide-extended-source` (1,024², the same
+  scene at the check's beam and noise) and, for every generated case, the
+  truth metrics `truth.support_rms_error_p50` and `_p95`, the median and
+  95th-percentile fractional error of the published RMS against the
+  injected noise over the emission at least three times the noise, and
+  `truth.support_recall`, the fraction of that emission inside the mask; a
+  worse change beyond 0.02 flags. On the new case the candidate reads 1.07
+  times the noise at the median but 10.9 at the 95th percentile, with
+  recall 0.527; the repair reads 0.99 and 1.09 with recall 0.737. The
+  earlier generated cases read median errors of 0.018 to 0.080 and recalls
+  of 0.72 to 0.96.
+- **Rules measured** on the fields the maintainer named, with a prototype
+  switch in the kernel and products compared with the 0.18.0 and 0.19.0
+  refreshes (scratch scripts, not kept):
+
+  | Measure | 0.18.0 | 0.19.0 candidate | A: no clean cell in reach, no floor | B: median of the clean cells in reach |
+  | --- | --- | --- | --- | --- |
+  | M51 mask pixels, sources | 48,137, 167 | 19,459, 138 | 48,082, 165 | 48,152, 168 |
+  | SDC1 high-dynamic-range mask pixels, sources | 154,398, 3,275 | 112,968, 3,180 | 165,062, 3,184 | 165,511, 3,185 |
+  | SDC1 ordinary mask pixels | 83,950 | 71,254 | 92,873 | 92,873 |
+  | Hydra deep mask pixels lost against 0.18.0, sources | 0, 4,341 | 31,421, 4,191 | 11,898, 4,288 | not measured, 4,332 |
+  | Spurious sources beside a 40 / 80 / 160-column quiet strip of `dense-field` | 29 / 21 / 19 | 0 / 2 / 4 | 0 / 2 / 4 | 1 / 21 / 12 |
+  | Wide-source regression | passes | fails | passes | not run |
+
+  Under A the RMS over 0.18.0's mask of the four fields is within 0.3% of
+  0.18.0's at the median. The SDC1 tiles' gains over 0.18.0 lie at the image
+  edge beside the bright source, where the RMS reads 7% below 0.18.0
+  through tasks 46 to 66, not through the floor. The existing step, halo
+  and executor tests pass under both rules.
+- **Decided** (question round, 9 October, recommended options taken): rule
+  A, and after the merge the release check runs again without the traced
+  peak, since the change adds no memory. Declined: B, which reintroduces
+  the step artefact beside strips wider than 80 columns, as the mean did on
+  8 October; protecting the coarse grid on large images first, a tiled
+  design task because whole-plane protection is admission-bounded;
+  reverting task 65.
+- **Quick check** `task69-final` against `release-0.19.0`: no regression.
+  Sixteen of the 17 earlier cases are byte-identical in catalogue, RMS and
+  mask; `lotss-dr3-1312-dense` changes 2,592 RMS pixels (0.25%) by 0.91 to
+  1.00 with its 105 sources and 109 Gaussians unchanged and no metric
+  beyond tolerance. The new case publishes 7 sources; 6 of its 20 truth
+  emitters are matched by components (`truth.completeness` 0.300), since
+  the disc and knots are not fitted one by one; its mask IoU against
+  `master` is 0.482, PyBDSF capturing less of the disc, and binds nothing.
+  `task69-final` is the next baseline.
+- **Tests.** Kernel: a filled cell within reach of a clean cell still reads
+  0.8 of the coarse RMS, or of the largest clean cell nearby; beyond every
+  clean cell's reach it keeps its nearest fill although 0.8 of the coarse
+  RMS is more than twice that; the fill is the larger of the nearest and the
+  floor for fractions 0 to 1; the clean windows nearby cap the floor and
+  beyond their reach there is none. Validation: `support_metrics` on a
+  recipe with a noise gradient against a known plane; unmeasurable
+  without noise or emission above it, and unmeasurable error metrics,
+  which a baseline comparison reports, when the published RMS is not
+  finite over the support, as a review found that `nanmedian` would have
+  hidden; and the metric directions. Integration: the regression above.
+- **Docs.** `how-hebog-works.md` and `public-products.md` state the reach
+  condition; the how-to's quick-check description has 18 cases, fourteen
+  generated, and the support metrics.
+- **Checks.** `just coverage`: 3,616 passed and 1 expected failure, 97.15%
+  branch-aware project coverage (97.16% at the release check), with
+  `background.py`, `datasets.py` and `quick_check.py` at 98%, 97% and 97%
+  and no new missed line; an earlier run under a concurrent quick check
+  reported `quick_check.py` at 82%, a merge artefact of the parallel
+  workers that a single-process run of its tests did not reproduce. The
+  quick check above, `just check`'s format, lint and type checks, the
+  strict docs build and `just pre-commit`.
+- **Not run.** The quick benchmark: the kernel evaluates the same arrays
+  and no timed path changes. The traced peak, the notebook refresh and the
+  Serial/Dask anchor, which the release check repeats on the merged
+  candidate. The slow lane, and Windows.
+- **Plan.** Task 69 is removed; the next action is the release check on
+  the merged candidate; the progress page's open defects, quick-check table
+  and next steps follow.
