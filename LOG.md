@@ -32467,3 +32467,85 @@ the per-worker placement finding.
 - **Plan.** Task 69 is removed; the next action is the release check on
   the merged candidate; the progress page's open defects, quick-check table
   and next steps follow.
+
+## 2026-10-09 — M2: the release check for 0.19.0 after task 69
+
+- **Candidate.** `main` at `d8fe206`, the squash merge of task 69 (pull
+  request 136) on the release-check record (pull request 135), run in the
+  main checkout from 12:56 local time with a clean tree, unchanged at the
+  end. The check is the shortened one the maintainer chose on 9 October:
+  every step of the 8 October check but the traced peak, which the repair
+  cannot move. Logs, records and the runner scripts:
+  `benchmark-results/release-check/0.19.0-rc2/`. The machine was not quiet:
+  a video call took half a core throughout, and the load averaged 5 to 10
+  against 3 to 7 on 8 October, so every wall time below reads high.
+- **Change check.** `just ci` passed in 13.2 minutes and left the checkout
+  unchanged: 3,617 portable tests and one expected failure at 97.17%
+  branch coverage, the 39 equivalence tests, the five acceptance
+  placeholders, `marimo check`, the notebook smoke test, the strict docs
+  build and the package smoke test's five installed public workflows.
+- **Quick science check** `release-0.19.0-rc2`: catalogue, RMS, mask and
+  diagnostics byte-identical to `task69-final` in all 18 cases, so `main`
+  runs exactly the code task 69 validated. Against the 8 October
+  `release-0.19.0` baseline the only finding is the new case
+  `wide-extended-source`, absent from that baseline, the designed exit;
+  no metric moved. `release-0.19.0-rc2` is the next baseline.
+- **Quick benchmark,** default tier, medians of five, v0.18.0 measured
+  again in the same session (`release-0.19.0-rc2`):
+  `lotss-dr3-1312-sparse` 0.88 [0.82, 0.91] and `lotss-dr3-1312-dense` 0.91
+  [0.86, 0.94] pass; `dense-field` 0.99 [0.96, 1.05] is inconclusive, its
+  upper bound on the margin. Its repetitions were steady (13.6 to 14.9 s
+  against 14.0 to 14.5 s for v0.18.0) and the current build is timed
+  before the previous release, so the load at the start biases the ratio
+  against it; task 69 changes nothing that case computes, and its products
+  are byte-identical to the 8 October run. Timed again alone once the
+  call had ended, at load 4.3 to 5.2 (`release-0.19.0-rc2-dense`): 0.97
+  [0.89, 1.04], a pass, so every case passes against v0.18.0.
+- **Anchor.** The 10,000² LoTSS-DR3 anchor, run ID `release-anchor` as on
+  8 October so the products compare, single-threaded numerical libraries:
+
+  | Executor | Wall time | Peak RSS | Sources, Gaussians, islands |
+  | --- | --- | --- | --- |
+  | Serial | 1,579 s (1,259 s on 8 October, at load 3) | 2,198 MiB | 8,547, 9,348, 8,901 |
+  | Dask, four one-thread process workers | 872 s (0.55) | driver 1,397 MiB, largest worker 1,720 MiB | the same |
+
+  Catalogue, diagnostics, RMS and mask are byte-identical between the two.
+  Against the 8 October Serial run of the same ID, task 69 lowers the RMS
+  on 45,001 pixels (0.045% of the field) by a median 5% and at most to 0.36
+  of its value, in 101 regions of up to 3,662 pixels, and adds 897 mask
+  pixels while losing none; the field gains one source, six Gaussians and
+  two islands (8,546, 9,342 and 8,899 before).
+- **Notebook comparison.** `refresh_public_notebook_hebog.py` ran the 13
+  saved inputs in 29 minutes, every case successful, as `Release 0.19.0
+  candidate, task 69` (`phase-5/hebog-notebook-refreshes/d8fe206-7d2ba5fc1d8d-9add3ef0`,
+  now `latest`). Hebog sources beside the 0.18.0 refresh and the 8 October
+  candidate's:
+
+  | Case | 0.18.0 | 8 October | Repaired |
+  | --- | --- | --- | --- |
+  | SDC1 sparse | 2,254 | 2,274 | 2,274 |
+  | SDC1 ordinary | 2,779 | 2,780 | 2,790 |
+  | SDC1 crowded | 3,291 | 3,338 | 3,338 |
+  | SDC1 resolved | 2,197 | 2,217 | 2,217 |
+  | SDC1 close pair | 2,426 | 2,430 | 2,430 |
+  | SDC1 high dynamic range | 3,275 | 3,180 | 3,329 |
+  | SDC1 low apparent S/N | 3,043 | 3,074 | 3,081 |
+  | SDC1 primary-beam boundary | 2,189 | 2,206 | 2,206 |
+  | Hydra deep | 4,341 | 4,191 | 4,286 |
+  | Hydra shallow | 613 | 573 | 573 |
+  | LoTSS-DR2 90′ field | 1,563 | 1,553 | 1,547 |
+  | LoTSS-DR2 3C 295 | 21 | 20 | 20 |
+  | LoTSS-DR2 M51 | 167 | 138 | 165 |
+
+  Counts only, not matched; the notebook shows the overlays. The three
+  fields the maintainer flagged on 9 October recover: M51, the SDC1
+  high-dynamic-range complex and Hydra deep. Hydra shallow and the LoTSS
+  90′ field stay below 0.18.0 by 40 and 16 sources, which task 69's
+  bisection on M51 does not attribute; the floor leaves them unchanged.
+  The close-pair tile warns of 6 unavailable Gaussians, as in both earlier
+  refreshes.
+- **Not run.** The traced peak, by the 9 October decision; the `master`
+  timings; the slow lane; Windows.
+- **Next.** Human: cut 0.19.0: require the two CI checks task 60 added,
+  close and reopen pull request 102 so CI runs on it, merge it and check
+  the TestPyPI upload.
