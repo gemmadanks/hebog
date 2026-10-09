@@ -53,7 +53,7 @@ Python 3.12 to 3.14 environment, or replace the tag with the
 <!-- x-release-please-start-version -->
 
 ```shell
-pip install git+https://github.com/gemmadanks/hebog@v0.18.0
+pip install git+https://github.com/gemmadanks/hebog@v0.19.0
 ```
 
 <!-- x-release-please-end -->
