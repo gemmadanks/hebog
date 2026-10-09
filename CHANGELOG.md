@@ -2,6 +2,65 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.19.0](https://github.com/gemmadanks/hebog/compare/v0.18.0...v0.19.0) (2026-10-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove the compact lane find_sources never ran ([#106](https://github.com/gemmadanks/hebog/issues/106))
+
+### 🐛 Bug Fixes
+
+* attach a pixel to its owner only through the owner's support ([#122](https://github.com/gemmadanks/hebog/issues/122)) ([9bd91a1](https://github.com/gemmadanks/hebog/commit/9bd91a10823c4c0360af8879dcfdc85278a05b05))
+* bind every identity hash to what decides the result ([#112](https://github.com/gemmadanks/hebog/issues/112)) ([b788c0e](https://github.com/gemmadanks/hebog/commit/b788c0ee54623af99d287e93130c2b1af5a73dc1))
+* decide every input refusal before the analysis ([#103](https://github.com/gemmadanks/hebog/issues/103)) ([97b7f2e](https://github.com/gemmadanks/hebog/commit/97b7f2e3367c7b243b497708cf6bd3f2f0c99420))
+* give each noise seed an independent realization ([#111](https://github.com/gemmadanks/hebog/issues/111)) ([4b44d9e](https://github.com/gemmadanks/hebog/commit/4b44d9e70271ba2f4bb2f7adc3d4c9ef69932e14))
+* keep a joint fit's well-constrained components when one degenerates ([#121](https://github.com/gemmadanks/hebog/issues/121)) ([145f7e5](https://github.com/gemmadanks/hebog/commit/145f7e573c875b17a4a2b48e1f0b7c888c16d40b))
+* keep Dask profile worker occupancy at or below one ([#126](https://github.com/gemmadanks/hebog/issues/126)) ([01d9c45](https://github.com/gemmadanks/hebog/commit/01d9c4570ef0567f0284c6e7f77584f42ab6c0ad))
+* keep the local-noise floor off extended emission ([#136](https://github.com/gemmadanks/hebog/issues/136)) ([d8fe206](https://github.com/gemmadanks/hebog/commit/d8fe2065e6d5e28daf142c46a668018a6176c199))
+* keep the local-noise RMS beside a noise step near the noise there ([#128](https://github.com/gemmadanks/hebog/issues/128)) ([0a33be2](https://github.com/gemmadanks/hebog/commit/0a33be2c2a96f0e1e9c3b3cc54dff5add8677971))
+* keep the RMS beside a noise step at the noise there ([#120](https://github.com/gemmadanks/hebog/issues/120)) ([9467914](https://github.com/gemmadanks/hebog/commit/9467914be660d9432af7a6a7d6feb18235884eaa))
+* keep the RMS map off zero and blank constant-valued regions ([#109](https://github.com/gemmadanks/hebog/issues/109)) ([29157d2](https://github.com/gemmadanks/hebog/commit/29157d267f2314d8c087e9339da9d545de8d6f82))
+* keep whole-pixel beams exact on every platform ([#125](https://github.com/gemmadanks/hebog/issues/125)) ([c2ed1da](https://github.com/gemmadanks/hebog/commit/c2ed1dab8a232bcb582f4f66d6b167a0462157c0))
+* match catalogues by position first ([#113](https://github.com/gemmadanks/hebog/issues/113)) ([e38e89d](https://github.com/gemmadanks/hebog/commit/e38e89dd67f425158a892bded6019d4cc353551c))
+* one gaussian source row ([#119](https://github.com/gemmadanks/hebog/issues/119)) ([b4be22b](https://github.com/gemmadanks/hebog/commit/b4be22b544640712ea0f25a3e248a77387bfda5a))
+* read a header number written with a D exponent ([3b52720](https://github.com/gemmadanks/hebog/commit/3b52720e83bcb3a3d293ed8bb55ec7315e0907cc))
+* record Dask profile task times on the driver's clock ([#127](https://github.com/gemmadanks/hebog/issues/127)) ([cd7e5f7](https://github.com/gemmadanks/hebog/commit/cd7e5f73c03e48ee7f2e7ae12c0f411cdcbb6d81))
+* refuse a header card that is not a number ([3b52720](https://github.com/gemmadanks/hebog/commit/3b52720e83bcb3a3d293ed8bb55ec7315e0907cc))
+* refuse a restoring beam wider than 10 pixels ([#110](https://github.com/gemmadanks/hebog/issues/110)) ([3af734f](https://github.com/gemmadanks/hebog/commit/3af734fd549d74bcfa6570dca3a59fe0dfbd331f))
+* refuse malformed header cards ([#101](https://github.com/gemmadanks/hebog/issues/101)) ([3b52720](https://github.com/gemmadanks/hebog/commit/3b52720e83bcb3a3d293ed8bb55ec7315e0907cc))
+* restore an owner split by support refinement instead of failing ([#108](https://github.com/gemmadanks/hebog/issues/108)) ([2a22089](https://github.com/gemmadanks/hebog/commit/2a2208964fca37cc2d05a3ceb39cbdc5a1676e6e))
+* wait for running tasks after a failure and reclaim staging a killed run left ([#114](https://github.com/gemmadanks/hebog/issues/114)) ([440d3b5](https://github.com/gemmadanks/hebog/commit/440d3b5f3f65323dd68ace8597c6c9e5ef82353d))
+* widen the support halo to cover persistence at whole-pixel radii ([#124](https://github.com/gemmadanks/hebog/issues/124)) ([3f00991](https://github.com/gemmadanks/hebog/commit/3f0099149642f308af50e3e0c954b84613ad4700))
+
+
+### 🧹 Refactoring
+
+* enforce the layering as one table ([#116](https://github.com/gemmadanks/hebog/issues/116)) ([4568fa6](https://github.com/gemmadanks/hebog/commit/4568fa6b56ec1687757d7f3cafda09c140c1b463))
+* remove the compact lane find_sources never ran ([#106](https://github.com/gemmadanks/hebog/issues/106)) ([49f82c3](https://github.com/gemmadanks/hebog/commit/49f82c3634e2502b01f60b4460b0b7b908c3863f))
+* remove the support components no round reads ([#123](https://github.com/gemmadanks/hebog/issues/123)) ([e0046ea](https://github.com/gemmadanks/hebog/commit/e0046eaa98828621304b1276c5678b9231120ba8))
+
+
+### 📚 Documentation
+
+* add FAQs and update documentation ([#129](https://github.com/gemmadanks/hebog/issues/129)) ([4855398](https://github.com/gemmadanks/hebog/commit/485539831fd26688966955b0dfc1631bcb7e4c5d))
+* condense the developer guide and add a progress page ([#118](https://github.com/gemmadanks/hebog/issues/118)) ([d67fdec](https://github.com/gemmadanks/hebog/commit/d67fdec0840fb808d63b5b96f7e96735d6b65cc8))
+* record decisions on the review tasks ([#104](https://github.com/gemmadanks/hebog/issues/104)) ([5a028bf](https://github.com/gemmadanks/hebog/commit/5a028bf26b3b80bd1136926e37148798de7f884d))
+* record repair decisions ([#117](https://github.com/gemmadanks/hebog/issues/117)) ([d585832](https://github.com/gemmadanks/hebog/commit/d5858325729fe31c93ddebb34af771c7cdd60083))
+* record the 0.19.0 release check after task 69 ([#137](https://github.com/gemmadanks/hebog/issues/137)) ([2c913ea](https://github.com/gemmadanks/hebog/commit/2c913ead01ad3b676fd1ba5a28bade6b84accaa9))
+* release 0.19.0 check ([#135](https://github.com/gemmadanks/hebog/issues/135)) ([45e14c3](https://github.com/gemmadanks/hebog/commit/45e14c3698afea507d78a0c9c085a65441acebd4))
+
+
+### 📦 Build
+
+* declare dependency floors that CI installs and tests ([#115](https://github.com/gemmadanks/hebog/issues/115)) ([6f9b1dc](https://github.com/gemmadanks/hebog/commit/6f9b1dcf882a69255260b12c11fafaa28f27bec9))
+
+
+### 🧪 Tests
+
+* check the public finder against PyBDSF and under every executor ([#105](https://github.com/gemmadanks/hebog/issues/105)) ([d2e1852](https://github.com/gemmadanks/hebog/commit/d2e1852022b72a0dc05983c1d2820eeea0e4b001))
+* run every test ([#107](https://github.com/gemmadanks/hebog/issues/107)) ([3912b99](https://github.com/gemmadanks/hebog/commit/3912b99693992d0c8f5aaf67c8740797e434d7f8))
+
 ## [0.18.0](https://github.com/gemmadanks/hebog/compare/v0.17.0...v0.18.0) (2026-10-05)
 
 
