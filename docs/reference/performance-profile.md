@@ -79,7 +79,8 @@ process on the quick benchmark's inputs and settings. Every repetition
 reports the process peak (traced from before Hebog is imported), the peak of
 the `find_sources` call alone and the import floor, a fixed 90.4 MiB that a
 tracer started after the imports cannot see. Measured 26 to 30 September
-2026, two agreeing repetitions each (`LOG.md` names the runs):
+2026, two agreeing repetitions each, and the whole mosaic once more in the
+0.19.0 release check of 8 October (`LOG.md` names the runs):
 
 | case | pixels per side | traced peak | components |
 | --- | --- | --- | --- |
@@ -93,6 +94,7 @@ tracer started after the imports cannot see. Measured 26 to 30 September
 | LoTSS-DR3 dense | 10,000 | 1,489.2 MiB | 9,259 |
 | generated wide objects | 10,000 | 1,447.7 MiB | 10 |
 | LoTSS-DR3 whole mosaic | 15,402 | 1,698.2 MiB | 20,661 |
+| LoTSS-DR3 whole mosaic, 0.19.0 release check (one repetition) | 15,402 | 1,692.5 MiB | 20,792 |
 
 Three things matter more than the exact figures.
 

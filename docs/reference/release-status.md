@@ -29,11 +29,12 @@ image larger than 2,048 pixels on either side is reconciled across several
 tiles rather than held as one, and the driver holds no image-sized plane. The
 size limit rises one tier at a time, as each tier's memory and invariance
 evidence is measured. A serial run of the whole 15,402² LoTSS-DR3 mosaic 1312
-allocates at most 1.7 GiB, traced in two agreeing repetitions. That peak is
+allocates at most 1.7 GiB: 1,692 MiB traced on 8 October, after 1,698 MiB
+in two agreeing repetitions on 29 September. That peak is
 one tile's working set plus records the passes keep from every tile, which
 still grow about 1.7 bytes a pixel; bounding them, and an unattributed term
 in background and RMS, is planned before much larger images are admitted. A
-four-worker local Dask cluster finishes the 10,000² anchor in 0.61 of the
+four-worker local Dask cluster finishes the 10,000² anchor in 0.59 of the
 serial time and the whole mosaic in 0.63, with identical products.
 Separately, one declared limit remains:
 an object wider than a task's read budget is still reduced on the driver
@@ -75,6 +76,12 @@ Known limitations when interpreting results:
   measured from 3 to 10 pixels every such injected source was published. A pipeline whose
   images have wider beams needs the meshes scaled with the beam, which is
   deferred work.
+- The published RMS reads slightly low on pure noise. Each noise window is
+  clipped at three standard deviations and the standard deviation of what
+  remains is published without a correction for the truncation: about 1.6%
+  low on white noise and 3 to 4% low on beam-correlated noise. PyBDSF
+  applies a correction of about 1.4%. Whether to apply one is being
+  measured.
 - In a field so crowded that no fine noise window lies clear of its sources,
   the background and RMS are the unprotected sigma-clipped coarse estimate,
   which includes the sources' wings.
