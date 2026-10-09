@@ -32444,9 +32444,11 @@ the per-worker placement finding.
   RMS is more than twice that; the fill is the larger of the nearest and the
   floor for fractions 0 to 1; the clean windows nearby cap the floor and
   beyond their reach there is none. Validation: `support_metrics` on a
-  recipe with a noise gradient against a known plane, none without
-  emission above the noise, and the metric directions. Integration: the
-  regression above.
+  recipe with a noise gradient against a known plane; unmeasurable
+  without noise or emission above it, and unmeasurable error metrics,
+  which a baseline comparison reports, when the published RMS is not
+  finite over the support, as a review found that `nanmedian` would have
+  hidden; and the metric directions. Integration: the regression above.
 - **Docs.** `how-hebog-works.md` and `public-products.md` state the reach
   condition; the how-to's quick-check description has 18 cases, fourteen
   generated, and the support metrics.

@@ -335,8 +335,82 @@ def test_support_metrics_compare_rms_and_mask_with_injected_emission(
     )
 
 
-def test_support_metrics_need_emission_above_the_noise() -> None:
-    """A recipe with no source, or only a faint one, has no support."""
+def test_support_metrics_are_unmeasurable_on_a_non_finite_rms(
+    tmp_path: Path,
+) -> None:
+    """A published RMS that is not finite over the support is not skipped.
+
+    Every support pixel is a valid injected pixel, so one NaN there makes
+    the error metrics unmeasurable, which a baseline comparison reports,
+    rather than a better median from the pixels that remain; the recall is
+    still measured.
+    """
+    recipe = SyntheticRecipe(
+        generator="hebog.synthetic.gaussian-noise",
+        generator_version=1,
+        seed=5,
+        shape_yx=(32, 32),
+        background=0.0,
+        noise_rms=1.0,
+        sources=(
+            SyntheticSource(
+                x_pixel=16.0,
+                y_pixel=16.0,
+                peak_flux_jy_per_beam=20.0,
+                major_sigma_pixels=3.0,
+                minor_sigma_pixels=3.0,
+            ),
+        ),
+    )
+    rms = np.ones((32, 32))
+    rms[16, 16] = np.nan
+    mask = np.ones((32, 32), dtype=np.uint8)
+    rms_path = tmp_path / "rms.fits"
+    mask_path = tmp_path / "mask.fits"
+    fits.PrimaryHDU(rms).writeto(rms_path)
+    fits.PrimaryHDU(mask).writeto(mask_path)
+
+    metrics = support_metrics(recipe, rms_path=rms_path, mask_path=mask_path)
+
+    assert metrics == {
+        "truth.support_rms_error_p50": None,
+        "truth.support_rms_error_p95": None,
+        "truth.support_recall": 1.0,
+    }
+    findings = compare_reports(
+        _report(metrics),
+        _report({"truth.support_rms_error_p95": 0.1}),
+        _TOLERANCES,
+    )
+    assert [finding.reason for finding in findings] == ["no longer measurable"]
+
+
+def test_support_metrics_need_noise_and_emission_above_it() -> None:
+    """A recipe without noise, without sources, or with only a faint one."""
+    recipe = SyntheticRecipe(
+        generator="hebog.synthetic.gaussian-noise",
+        generator_version=1,
+        seed=1,
+        shape_yx=(16, 16),
+        background=0.0,
+        noise_rms=0.0,
+        sources=(
+            SyntheticSource(
+                x_pixel=8.0,
+                y_pixel=8.0,
+                peak_flux_jy_per_beam=20.0,
+                major_sigma_pixels=2.0,
+                minor_sigma_pixels=2.0,
+            ),
+        ),
+    )
+    assert support_metrics(
+        recipe, rms_path=Path("unused.fits"), mask_path=Path("unused.fits")
+    ) == {
+        "truth.support_rms_error_p50": None,
+        "truth.support_rms_error_p95": None,
+        "truth.support_recall": None,
+    }
     for sources in (
         (),
         (

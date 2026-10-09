@@ -614,24 +614,35 @@ def support_metrics(
     reach, shows as a tail error of order one even where the median, set by
     the source's periphery, stays small. ``truth.support_recall`` is the
     fraction of the support inside the published mask. All three are
-    ``None`` when the recipe injects no emission above that level.
+    ``None`` when the recipe injects no noise, since no error against it
+    exists, or no emission above that level. Every support pixel is a valid
+    injected pixel, so a published RMS that is not finite there is a defect
+    rather than a pixel to skip: the two error metrics are then ``None``,
+    which a baseline comparison reports as no longer measurable, and the
+    recall is still measured.
     """
+    unmeasurable: MetricValues = {
+        "truth.support_rms_error_p50": None,
+        "truth.support_rms_error_p95": None,
+        "truth.support_recall": None,
+    }
+    if recipe.noise_rms == 0:
+        return unmeasurable
     emission = generate_synthetic_emission(recipe)
     noise = generate_synthetic_noise_rms(recipe)
     support = np.isfinite(emission) & (emission >= _SUPPORT_SIGMA * noise)
     if not np.any(support):
-        return {
-            "truth.support_rms_error_p50": None,
-            "truth.support_rms_error_p95": None,
-            "truth.support_recall": None,
-        }
-    rms = load_fits_plane(rms_path)
+        return unmeasurable
+    rms = load_fits_plane(rms_path)[support]
     mask = np.nan_to_num(load_fits_plane(mask_path)) > 0
-    error = np.abs(rms[support] / noise[support] - 1)
+    recall = float(np.mean(mask[support]))
+    if not np.all(np.isfinite(rms)):
+        return unmeasurable | {"truth.support_recall": recall}
+    error = np.abs(rms / noise[support] - 1)
     return {
-        "truth.support_rms_error_p50": float(np.nanmedian(error)),
-        "truth.support_rms_error_p95": float(np.nanpercentile(error, 95)),
-        "truth.support_recall": float(np.mean(mask[support])),
+        "truth.support_rms_error_p50": float(np.median(error)),
+        "truth.support_rms_error_p95": float(np.percentile(error, 95)),
+        "truth.support_recall": recall,
     }
 
 
