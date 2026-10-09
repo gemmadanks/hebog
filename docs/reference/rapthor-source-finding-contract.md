@@ -4,9 +4,13 @@ This inventory records the behaviour Rapthor consumes from its PyBDSF/LSMTool
 source-finding path, traced at Rapthor commit
 `b1a64674b1022476cf052fc2d06ee3b16f031ecd` on its
 `gec-468-ai-migrate-to-prefect` branch, which owns the Prefect/Dask task
-runner that will schedule Hebog. The exact revisions are in
+runner that will schedule Hebog. That branch merged into Rapthor's `main` on
+9 October 2026 (`c6196cb4`); `main` runs the step in a fresh interpreter per
+sector and selects the finder through LSMTool's `filter_skymodel`
+`source_finder` registry. The exact revisions are in
 [`config/baselines/phase-0-starting-revisions.json`](https://github.com/gemmadanks/hebog/blob/main/config/baselines/phase-0-starting-revisions.json);
-the plan's task 16 moves the pins forward and refreshes this page. It fixes
+the plan's task 16 moves the pins forward and refreshes this page against
+`main`. It fixes
 what must be tested without requiring Hebog to copy PyBDSF internals, and a
 compatibility observation here is not a scientific endorsement.
 

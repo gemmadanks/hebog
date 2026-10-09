@@ -1,6 +1,6 @@
 # Hebog implementation plan
 
-Authoritative remaining-work plan. Updated **8 October 2026**.
+Authoritative remaining-work plan. Updated **9 October 2026**.
 Current user-facing capability is in
 [release status](../docs/reference/release-status.md); execution history,
 evidence identities and completed decisions are in [`LOG.md`](../LOG.md).
@@ -15,15 +15,15 @@ the two change together.
 
 | Item | Current position |
 | --- | --- |
-| Release | v0.18.0 (5 October 2026), on TestPyPI: crowded fields are measured instead of refused, and a 15,402-pixel envelope. Experimental and scientifically unqualified. |
+| Release | v0.19.0 (9 October 2026), on TestPyPI: the 4 October review's repairs, the compact lane `find_sources` never ran removed, and the local-noise RMS kept off extended emission. Experimental and scientifically unqualified. |
 | Candidate | Public composition v22: diagonal-weighted component fits, detection through the tiled pass. Development-unqualified. |
-| Functionality | Standalone FITS-to-products finder (background/RMS, compact and multiscale detection, deblending, fitting, association; catalogue, mask, RMS and diagnostics) under Serial, Thread and caller-owned Dask executors, within the [input header contract](../docs/reference/input-header-contract.md). No Rapthor backend: `hebog.adapters` holds records and the eight-column catalogue codec only, five acceptance scenarios are strict-xfail placeholders, no flat-noise branch or LSMTool filtering has run on Hebog products. The codec reads the catalogue `find_sources` writes; a `continuum` source of one fitted Gaussian publishes that Gaussian, so its row passes Rapthor's three cuts, and a source of several components leaves those columns empty (task 21 measures the cost). |
+| Functionality | Standalone FITS-to-products finder (background/RMS, compact and multiscale detection, deblending, fitting, association; catalogue, mask, RMS and diagnostics) under Serial, Thread and caller-owned Dask executors, within the [input header contract](../docs/reference/input-header-contract.md). No Rapthor backend: `hebog.adapters` holds records and the eight-column catalogue codec only, five acceptance scenarios are strict-xfail placeholders, no flat-noise branch or LSMTool filtering has run on Hebog products. The codec reads the catalogue `find_sources` writes; a `continuum` source of one fitted Gaussian publishes that Gaussian, so its row passes Rapthor's three cuts, and a source of several components leaves those columns empty (task 21 measures the cost). Rapthor's `main` branch, which merged its Prefect/Dask workflow on 9 October 2026 (`c6196cb4`), selects the finder through LSMTool's `filter_skymodel(source_finder=...)` registry and runs that call in a fresh interpreter per sector with `ncores` and single native threads, so a Hebog backend is a registry entry calling a Hebog adapter, with no Dask client in reach unless Rapthor changes how it runs the step (task 16 pins and decides). |
 | Scalability | v0.18.0 admits ≤15,402 pixels per side. Every stage runs through the executor on tiles (background/RMS on 128-pixel cores, everything else on 2,048) and publishes to Zarr; products are byte-identical on one tile and on the tile grid and between Serial and four-worker Dask on the whole 15,402² mosaic; the driver holds no image-sized plane. The traced peak (1,692 MiB on the whole mosaic on 8 October) is one multiscale tile task plus kept records growing about 1.7 bytes a pixel and background/RMS growing about 3 (task 56). Three terms are bounded by something other than the tile: an object wider than the read budget brings its own pixels to the driver (deferred below; ADR-008, *Objects wider than the read budget*), chained bright-candidate regions make one background task read their whole bounding box (task 53), and no stage declares a task's memory, so executor admission has no effect yet (task 17). |
 | Performance | No matched `filter_skymodel` benchmark exists; the gate needs the Rapthor adapter (task 19). The quick-benchmark anchors show no regression on the Hebog curve. Against pinned `master`, Hebog on one thread against `master` on four container cores, the diagnostic ratios are 2.7 to 5.2 at 1,024² and 0.88 on the crowded 2,048² field, and on the 3,000² LoTSS field the two use the same CPU time: there the gap to the ≤0.50 gate is parallel occupancy, not the amount of work. About half of a large run is background/RMS and most of the growth beyond area is source association (risks below); four-worker Dask finishes the 10,000² and 15,402² anchors in about 0.6 of the Serial time, and background refinement's roughly 69,000 small tasks are the next occupancy cost. No kernel reaches the native-code assessment's 10% gate. |
-| Science | Strongest evidence: the v15 campaign, which failed only against the earlier Hebog incumbent and not against released PyBDSF, PyBDSF `master` or Aegean, on images of ≤1,024². Since then, focused regression, Serial/Thread/Dask, equivalence and installed-wheel evidence only. The CI equivalence lane runs `find_sources` on the frozen 256² input against both PyBDSF references under both profiles; the isolated-source gates pass on sources and components under both profiles, with two bounded known differences: the `continuum` RMS tail is 5.5% at p95 against 5%, and the published mask holds about 92% of PyBDSF's island pixels (task 49). Source `Total_flux` is the summed fitted component flux and meets every binding limit against pinned `master` on independent realizations of both noise classes (`config/datasets/m1-flux-calibration.json`), binding pooled over the two (task 48). `E_RA` is a great-circle angle, as PyBDSF publishes it; its calibration passes on beam-correlated noise and is unqualified on a real high-declination field. The clipped window RMS has no truncation correction and reads 1.6 to 3.9% low on noise alone (task 68). Whether the public finder shares the removed single-region fitter's edge-source uncertainty shortfall (98.8% against 99%, task 58) is unmeasured. The meshes are fixed in pixels, so a beam wider than 10 pixels is refused (task 62). |
-| Blockers to 1.0.0 | Every task in the [path below](#path-to-100). Largest risks: the performance gap, the traced peak's growth with the image, the wide-object driver term above 3,000², the development machine's memory and disk, and SKA-Low coverage without public SKA-Low images. |
-| Next action | Human: cut 0.19.0, whose shortened release check passed on the repaired candidate on 9 October (`LOG.md`): require the two CI checks task 60 added, close and reopen the Release Please pull request so CI runs on it, merge it and check the TestPyPI upload; file the Astropy report drafted on 5 October. Agent: task 68's measurement; task 58's follow-up fitted in; tasks 53 to 56 and the kept records before task 12, and task 11 under the tier gate's own check level. Task 11's disk condition is met: 63 GiB free on 8 October. |
-| Deferred | Scaling the background and local-noise meshes with the restoring beam, which would let beams wider than 10 pixels FWHM be supported: task 62 recovered every SNR ≥ 10 source to 22 pixels with the fine mesh scaled by FWHM/8, at about 2.5 times the local-noise read; reopen it when a target pipeline produces such beams. Moving the wide-object reductions onto the cores: the island, deferred-fit and catalogue-row rounds as associative partial sums, with summation-order rounding accepted, and a reviewed design for the local-noise median, which has no associative form. Reopen it when a tier's traced peak shows the term or when the cluster benchmark is planned, whichever comes first. Aegean comparisons (paused; reconsidered in the task 29 design), optional comparison finders such as ProFound or 2D SoFiA (see the [notebook guide](../docs/how-to/notebooks.md)), general science improvements outside Rapthor-consumed outputs, and native code without a passing profile gate. A counterpart to PyBDSF's second grouping rule, which joins two Gaussians in one island when the flux falls steadily from one peak to the other; reconsider with the Rapthor profile (task 18). The structural changes the 4 October review named and no task needs (shared stage tile plumbing, records for the long parameter lists, the stage wiring in `public_api.py`, three module splits and shared test helpers), each taken when a task already rewrites the module. Reopen a deferred issue if it becomes a confirmed incorrect supported output. |
+| Science | Strongest evidence: the v15 campaign, which failed only against the earlier Hebog incumbent and not against released PyBDSF, PyBDSF `master` or Aegean, on images of ≤1,024². Since then, focused regression, Serial/Thread/Dask, equivalence and installed-wheel evidence only. The CI equivalence lane runs `find_sources` on the frozen 256² input against both PyBDSF references under both profiles; the isolated-source gates pass on sources and components under both profiles, with two bounded known differences: the `continuum` RMS tail is 5.5% at p95 against 5%, and the published mask holds about 92% of PyBDSF's island pixels (task 49). Source `Total_flux` is the summed fitted component flux and meets every binding limit against pinned `master` on independent realizations of both noise classes (`config/datasets/m1-flux-calibration.json`), binding pooled over the two (task 48). `E_RA` is a great-circle angle, as PyBDSF publishes it; its calibration passes on beam-correlated noise and is unqualified on a real high-declination field. The clipped window RMS has no truncation correction and reads 1.6 to 3.9% low on noise alone (task 68, deferred until the integration and scaling work is done). Whether the public finder shares the removed single-region fitter's edge-source uncertainty shortfall (98.8% against 99%, task 58) is unmeasured. The meshes are fixed in pixels, so a beam wider than 10 pixels is refused (task 62). |
+| Blockers to 1.0.0 | Every task in the [path below](#path-to-100). Largest risks: the performance gap, the traced peak's growth with the image, the wide-object driver term above 3,000², the development machine's memory and disk, SKA-Low coverage without public SKA-Low images, and churn in Rapthor's `main` after its 9 October merge. |
+| Next action | Agent: task 58's follow-up, then task 70; task 16 alongside, since it reads and pins only. Human: file the Astropy report drafted on 5 October; at task 16, decide the first backend's execution model from the agent's written comparison. Task 11's disk condition is met (63 GiB free on 8 October), but the ladder now follows the integration (order of 9 October, `LOG.md`). |
+| Deferred | Scientific improvements that are not confirmed incorrect supported outputs, until the Rapthor integration and the scaling work are complete (decision of 9 October): the clipped-RMS truncation correction (task 68) and the position-dependent PSF (task 15) sit before the freeze, and the rest is here. Scaling the background and local-noise meshes with the restoring beam, which would let beams wider than 10 pixels FWHM be supported: task 62 recovered every SNR ≥ 10 source to 22 pixels with the fine mesh scaled by FWHM/8, at about 2.5 times the local-noise read; reopen it when a target pipeline produces such beams. Moving the wide-object reductions onto the cores: the island, deferred-fit and catalogue-row rounds as associative partial sums, with summation-order rounding accepted, and a reviewed design for the local-noise median, which has no associative form. Reopen it when a tier's traced peak shows the term or when the cluster benchmark is planned, whichever comes first. Aegean comparisons (paused; reconsidered in the task 29 design), optional comparison finders such as ProFound or 2D SoFiA (see the [notebook guide](../docs/how-to/notebooks.md)), general science improvements outside Rapthor-consumed outputs, and native code without a passing profile gate. A counterpart to PyBDSF's second grouping rule, which joins two Gaussians in one island when the flux falls steadily from one peak to the other; reconsider with the Rapthor profile (task 18). Reopen a deferred issue if it becomes a confirmed incorrect supported output. |
 
 ## Definition of 1.0.0
 
@@ -36,7 +36,8 @@ with every claim bound to reviewed evidence for that exact candidate:
   their imager conventions (WSClean, CASA and SKA SDP products) or rejects
   them with a specific error.
 - **Functionality.** Hebog is a supported, feature-flagged backend for
-  Rapthor's `filter_skymodel` at a pinned Rapthor and LSMTool revision:
+  Rapthor's `filter_skymodel`, selected through LSMTool's `source_finder`,
+  at a pinned Rapthor and LSMTool revision:
   true-sky and flat-noise branches, the Rapthor profile, native catalogue,
   mask, RMS and source-count products, empty and blanked-image paths, retry
   and restart, and PyBDSF fallback. The standalone public API remains usable
@@ -88,7 +89,9 @@ operational soak of the 1.0.0 backend; the PyBDSF fallback remains until then.
   representative two-branch Rapthor input. SDC1 cut-outs serve science
   checks for SKA-Mid. See [reference images](#reference-images).
 - **Rapthor revisions.** At task 16, pin the latest commits of Rapthor's
-  Prefect branch and of LSMTool's default branch, replacing the Phase 0 trace
+  `main` branch, the Prefect/Dask line since its 9 October 2026 merge
+  (`c6196cb4`; `master` is the CWL/Toil release line and not a target), and
+  of LSMTool's `master` at or after 1.9.0, replacing the Phase 0 trace
   (`b1a6467`). Pins move forward only at the checkpoints listed under
   [Risks](#risks). If Rapthor declares a different LSMTool revision, record
   both and test the latest LSMTool.
@@ -205,47 +208,97 @@ These rules govern agent work on this plan and are referenced from
 
 ## Path to 1.0.0
 
-The tasks below are numbered in the order they are expected to finish, and
-a number is a stable identifier: a completed task is removed and its number
-is not reused. Each is a bounded work item that merges, and normally releases as a `0.x`
-increment, within the iteration budgets; split a task when a measured result
-reveals independent changes. Unless a task says otherwise, the agent
-implements and validates on the development machine and the human merges. A
-qualification, scale or deployment task authorizes only its stated claim and
-still needs the named human decision.
+The tasks below are numbered in the order they were created, and a number is
+a stable identifier: a completed task is removed and its number is not
+reused. The sections, and the rows within them, are in the order the tasks
+are expected to finish. Each is a bounded work item that merges, and
+normally releases as a `0.x` increment, within the iteration budgets; split a
+task when a measured result reveals independent changes. Unless a task says
+otherwise, the agent implements and validates on the development machine and
+the human merges. A qualification, scale or deployment task authorizes only
+its stated claim and still needs the named human decision.
 
-Two rules govern the sequence. **Measure before changing:** nothing is
+Three rules govern the sequence. **Measure before changing:** nothing is
 optimized or re-architected without a profile, and no science-touching change
 merges without `just quick-science-check`. **One tier and one release at a
 time:** the public envelope rises only through its tier gate, and every raise
-is a release.
+is a release. **Products unchanged through a refactor:** a change made for
+readability or structure leaves the quick check's catalogue, RMS and mask
+byte-identical, with only the composition hash moving, and no production
+file loses coverage.
 
-M2 climbs the local size ladder (tasks 11–13). M3 does not depend on tiling and runs alongside M2; its adapter
-(task 19) and the envelope tier that covers the frozen deployment sectors are
-what M4 needs. M5 runs on the development
-machine at any time, except that its dry run (task 27) needs the 22,500² and
-45,000² tiers. M6 starts when everything before it is done and the candidate
-is frozen.
+The order below was set on 9 October 2026 (`LOG.md`):
 
-Tasks 46 to 60 come from the whole-codebase review of 4 October, task 62
+1. **Clean-up and refactoring first** (tasks 58 and 70). They are small,
+   leave products unchanged, and make the stage sequence composable before
+   the Rapthor branches reuse it.
+2. **Rapthor integration before the size ladder** (tasks 16 and 18 to 21).
+   The 15,402² envelope already covers the representative 3,000² sector, so
+   the integration waits on no tier. Rapthor's `main` branch, which merged
+   its Prefect/Dask workflow on 9 October 2026, selects the source finder
+   through LSMTool's `filter_skymodel` registry and runs it in a fresh
+   interpreter per sector: an execution model that neither the adapter tasks
+   nor ADR-004 assumed. Learning what the integration needs comes before
+   optimizing for a model that may not be the deployed one. Task 16 reads
+   and pins only, and may run alongside task 70.
+3. **The deployment performance gate on the integrated step** (tasks 22, 13
+   and 23). Its first matched measurement precedes the optimizations below,
+   so their share is measured on the deployed step.
+4. **The size ladder and the terms that grow with the image** (tasks 71, 53
+   to 56, 11 and 12), with task 71's module splits taken before tasks 54 and
+   55 rewrite association; then scale beyond one machine (tasks 17 and 24 to
+   27).
+5. **Scientific improvements are deferred** until the integration and
+   scaling work above is complete: tasks 15 and 68 sit before the freeze and
+   the deferred row holds the rest. A confirmed incorrect supported output
+   reopens its item at once; a documented bias or limitation does not.
+
+Tasks 53 to 58 come from the whole-codebase review of 4 October, tasks 70
+and 71 from the structural changes that review named, task 62's deferral
 from task 45's repair and task 68 from task 65's diagnosis (`LOG.md`).
-Tasks 58, 60 and 68 belong to no milestone and merge as ordinary changes.
-Task 60 waits only on the maintainer's branch protection. Task 68 comes
-first; task 58's follow-up is fitted in. Tasks 53 to 56 are M2's and
-precede task 12.
 
-### Review repairs
+### Clean-up and refactoring
 
-Each task starts with the regression test that fails for the reason its row
-states. The review's figures come from small synthetic inputs unless a row
-says otherwise, so a task that changes cost or memory confirms its figure on
-a real anchor before it closes.
+A removal starts with the test that fails for the reason its row states. A
+refactor starts with the quick check and the module's tests passing before
+and after, merges as a `refactor:` commit, and releases only when it changes
+a public name. The review's figures come from small synthetic inputs, so a
+task that changes cost or memory confirms its figure on a real anchor before
+it closes.
 
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
-| 58 | Agent | Remove what the unused lane left that no installed path selects or reads. | The 1,762 lines of whole-plane oracles task 58 kept, which only tests of tiled stages call, are confirmed as oracles (`LOG.md`, 6 October). What remains is the `fitted-offset` background and its offset bound, the `centroid-constrained-elliptical` identity and its flag, the peak-as-total `flux` of `CelestialCompactGaussianFit`, the batch fields of `CompactDeblendConfig`, the per-fit association aperture the joint fit computes and discards, and `CrossScaleAssociation.compact_source_ids` with every relationship but `extended-only`. Done when each is removed with the products unchanged. |
-| 60 | Human | Require the lowest-dependency and container checks in CI. | Branch protection on `main` does not yet require the two checks this task added (`LOG.md`, 6 October): **Portable tests ubuntu-latest / py3.12 / lowest dependencies**, which installs the declared runtime and dev floors, and **Build container images**, which builds both `Dockerfile` targets. Done when `main` requires both. |
-| 68 | Agent measures, human decides | Measure a truncation correction for the clipped window RMS. | The window statistic clips at 3σ around the median and takes the standard deviation of what remains, with no correction for the truncation: 35-pixel windows read 1.6% low on white noise and 3.2 to 3.9% low on beam-correlated noise, and `empty-noise` publishes 0.959 of the injected noise. PyBDSF applies the PySE correction, about 1.4% at κ = 3 (`LOG.md`, task 65 diagnosis). Done when the correction's effect on the quick check, the equivalence lane and the position and flux uncertainty calibration is measured, and the maintainer has decided whether to apply it. |
+| 58 | Agent | Remove what the unused lane left that no installed path selects or reads. | The whole-plane oracles task 58 kept are confirmed as oracles (`LOG.md`, 6 October). What remains is the `fitted-offset` background and its offset bound, the `centroid-constrained-elliptical` identity and its flag, the peak-as-total `flux` of `CelestialCompactGaussianFit`, the batch fields of `CompactDeblendConfig`, the per-fit association aperture the joint fit computes and discards, and `CrossScaleAssociation.compact_source_ids` with every relationship but `extended-only`. Done when each is removed with the products unchanged. |
+| 70 | Agent | Move the stage sequence and the shared tile plumbing out of `public_api.py` and the stages. | `public_api.py` (2,241 lines) keeps the public boundary: request and header validation, admission, the output bundle and provenance. The sequence of stage calls in `_analyse_image` and the eight `publish_*` stage runners move to one `stages/` composition module that task 18's flat-noise branch can call with shared reads, and the window-readable and completed-product-source protocols, defined 7 and 8 times across the stages, live in one module. Done when the quick check's products are byte-identical, `LAYER_IMPORTS` and the code map describe the new modules, and no production file loses coverage. |
+| 71 | Agent | Split the three largest modules along their seams, share the integration tests' copied helpers, and give the recurring parameter groups records. | `stages/objects.py` (3,295 lines) holds four stages; `algorithms/source_association.py` (2,120) holds the record builders, the envelope geometry and the hierarchy decision; `science/catalogues.py` (1,794) holds segment rows and detection islands. Each becomes one module per seam, with the names the tests import kept or moved with their tests. The helpers copied between the integration test files share one module. Where the same group of arguments recurs behind the 110 `PLR0913` suppressions in `src/`, it becomes a frozen record, so the count falls and no new suppression is added. Done when products are byte-identical on the quick check, `LAYER_IMPORTS` and the code map are current, and the split has landed before tasks 54 and 55. |
+
+### M3 — Rapthor integration
+
+Rapthor's `main` runs one Prefect `filter_skymodel` task per sector on a
+Dask task runner (`local_dask` or `external_dask`); the task starts a fresh
+interpreter that calls LSMTool's `filter_skymodel(source_finder=...,
+ncores=...)` with native threads pinned to one, and LSMTool dispatches
+through `KNOWN_SOURCE_FINDERS`, `bdsf` plus `sofia` as an optional extra. A
+Hebog backend is therefore an entry in that registry calling a Hebog
+adapter, with no Dask client in reach unless Rapthor changes how it runs the
+step. The milestone's first task decides the execution model; nothing else
+in it assumes one.
+
+| # | Owner | Task | Done when |
+| --- | --- | --- | --- |
+| 16 | Agent pins and audits, human decides the execution model | Pin Rapthor `main` and LSMTool `master`, refresh the Rapthor contract, and decide how the first backend runs. | The [contract page](../docs/reference/rapthor-source-finding-contract.md) traces Rapthor `main` at or after `c6196cb4` (the 9 October 2026 Prefect/Dask merge; `master` is the CWL/Toil release line and not a target) and LSMTool at or after 1.9.0; records Rapthor's production sector image sizes and the step's invocation (the subprocess, `ncores`, single native threads, the blanked-image `RuntimeError` Rapthor catches, and the product names LSMTool's `filter_sources` reads); and maps each PyBDSF behaviour LSMTool uses (zero mean map, adaptive RMS boxes 150/50 and 35/7 at threshold 75, hard thresholds at the traced 5/3, 5/4 and 7.5/5 profiles, three wavelet scales, island-stop flat-noise pass, `srl` catalogue, island mask, both RMS maps, source count and the blanked-image path) to an existing Hebog behaviour or a listed gap. The audit also moves the reference frequency to PyBDSF's order, the frequency axis before `RESTFRQ` and `RESTFREQ`, where Hebog reads `RESTFRQ` first today, and narrows `RapthorCompatibilityConfig` to the options the finder can honour. The maintainer decides, from a written comparison, whether the first backend runs Hebog's thread executor on `ncores` inside Rapthor's subprocess (recommended: it matches PyBDSF's `ncores` and Rapthor's `cpus_per_task` accounting and needs no Rapthor change) or Rapthor is changed to run Hebog in the Dask worker with its client, ADR-004's model, which an ADR amendment then records. |
+| 18 | Agent | Implement the Rapthor profile and the flat-noise RMS branch. | Profile outputs are tested on analytic and generated truth; the flat-noise branch shares products and reads through task 70's composition module rather than running a second full analysis. |
+| 19 | Agent | Implement the Hebog backend for LSMTool's `filter_skymodel` and exercise pinned LSMTool on its products. | `hebog.adapters.rapthor` exposes the function the LSMTool registry calls, with the `bdsf` backend's signature: it runs the two-branch analysis on the true-sky and flat-noise images, writes the catalogue (through the eight-column codec, which reads the public catalogue), both RMS maps and the island mask under the names LSMTool's `filter_sources` reads, returns the source count, and reports a blanked image the way Rapthor's `skymodel_filter` expects. The adapter imports no Rapthor, Prefect or LSMTool; LSMTool runs in the integration container. Pinned LSMTool clips, groups and transfers names on Hebog products for true-sky and apparent-sky inputs, with the LoTSS-Deep DR2 ELAIS-N1 pair as the representative input. The five acceptance scenarios become passing tests (backend products, retry reuse, worker loss, fallback and dual run). |
+| 20 | Agent prepares, human pushes | Register the backend in LSMTool and select it in Rapthor, with fallback and dual-run reporting. | A patch against pinned LSMTool adds `hebog` to `KNOWN_SOURCE_FINDERS` behind an optional extra, as `sofia` is. A patch against pinned Rapthor accepts `source_finder = hebog`, passes `ncores` (and the client, if task 16 chose the in-process model), maps Hebog's typed failures to the PyBDSF fallback, respects the caller's resource budget and reports dual-run differences. Until the patches merge upstream, the container installs the patched forks at recorded commits. |
+| 21 | Agent, human dispositions | Measure Rapthor-profile agreement within the release-check budget, using cached reference outputs. | Retained/rejected agreement against pinned `master` on true/apparent, bright, extended, edge, masked, sparse and crowded populations. It also measures two things the `continuum` rows decide: a source of several components has no position error or deconvolved size, so Rapthor's cuts drop it, and a source of one Gaussian whose extension is not significant publishes `DC_Maj` 0 however wide its fit (a curved filament fitted at 63″ by 8″ with a 4″ beam does), so it passes the 10″ cut that PyBDSF's fitted size would fail. Choose `compact` only with ≥99.5% overall agreement and every safety stratum passing; otherwise `continuum`. |
+
+### M4 — Deployment performance gate
+
+| # | Owner | Task | Done when |
+| --- | --- | --- | --- |
+| 22 | Agent proposes, human freezes | Freeze the initial deployment envelope. | Sizes and workloads match Rapthor's production sectors (task 16) and fit the development machine, and the envelope tier that covers them is admitted; the representative sector is 3,000², within today's 15,402² envelope, so no tier is expected to come first. |
+| 13 | Human | Switch uploads from TestPyPI to PyPI. | The frozen envelope (task 22) covers Rapthor's production sector sizes. The Trusted Publisher, `pypi` environment, publishing job, installation instructions and release status change together, as in the [publishing guide](../docs/how-to/publish-releases.md). |
+| 23 | Agent | Run matched complete `filter_skymodel` benchmarks, then optimize until the runtime gate passes. | Hebog and pinned `master` run through LSMTool's `filter_skymodel` in the same Linux container on the development machine, under the execution model task 16 chose, with cached reference timings. The first measurement is recorded before tasks 54 and 55, so their share of the step is measured. The ratio and its upper one-sided 95% bound pass on every envelope cell; memory and Hebog-curve non-regression and the quick science check pass. Native code enters only through the native-code gates and an accepted ADR. |
 
 ### M2 — Climb the local size ladder
 
@@ -262,41 +315,34 @@ LOFAR-HD PyBDSF catalogues, with global invariants, as in ADR-005.
 
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
-| 11 | Human frees disk, agent raises | Raise to 22,500² on the LOFAR-HD ELAIS-N1 mosaic. | About 60 GB of disk is free before the run, and the mosaic's restoring beam is read and recorded first: its name suggests about 3 pixels a beam, where the support pass's opening used to remove most 5 to 6σ compact sources (`LOG.md`, 4 October). The tier gate passes and the raise is a release. |
 | 53 | Agent | Bound the bright-region refinement read. | Candidate boxes at 75σ or more merge into their bounding box with no size check. Sources 150 pixels apart on a 2,000² image make one task read the whole image, 993 MiB traced, and between 2,000 and 4,000 uniformly placed candidates at 15,402² merge into one image-sized region. The density of real fields is unknown, because the candidate count is not published; the whole LoTSS-DR3 mosaic ran below it. Done when bright-region fine cells are estimated through bounded contexts, as the local-noise path does, or a region above the admission bound is refused with a typed error; diagnostics publish the candidate count and the largest region read; and bright sources on a lattice across several tiles are a test. Task 11's gate records both figures. |
 | 54 | Agent | Read object rounds by tile core, and send each task only its own labels. | `batch_object_windows` keeps raster order, so one batch's read is a strip across the image. For synthetic objects at the mosaic's density, one round at 15,402² decodes 656 chunks of a 64-chunk plane, against 268 when objects are ordered by core first; at 100,000² a round is about 156,000 batches, above task 24's bound. Association tasks also carry the whole component label table, which ADR-008's rule 4 forbids, and two publication tasks scan a full core once for every label. Done when batches are ordered by core and then raster with byte-identical products, each task carries only the labels its shard names, the per-label scans are one pass, and stage profiles of the 10,000² and 15,402² anchors record the change. |
 | 55 | Agent | Make the hierarchy decision and the label reconciliation linear. | `_components_for_feature_group` and `_hierarchy_groups` scan every component for every feature: on synthetic input, 0.11 s at 500 components and 6.6 s at 4,000, where one inverted index gives the identical result in 0.08 s. The reconciliation tree redoes every seam at every level: 8.8 s against 0.7 s for one pass at 14,641 cells. Done when both are linear with identical results on the serial oracle and the quick science check, and profiles of the 10,000² and 15,402² anchors show what share of association's recorded growth they were. |
 | 56 | Agent | Stop per-task and driver costs growing with the image. | The local-noise round builds every request before submitting any, each with its own subset of the pilot grid: on synthetic grids, about 1.9 of background/RMS's 3 bytes a pixel. Under Dask every task parses the completion marker of each generation it reads again, 16 MB and 0.42 s at 15,402². Done when the pilot grid is published once and read by window, or requests are built within the in-flight window; a parsed generation is cached for the process; `scripts/benchmark/attribute_traced_peak.py` confirms the background/RMS slope on the 10,000² anchor; and Serial and Dask products stay byte-identical. |
+| 11 | Human frees disk, agent raises | Raise to 22,500² on the LOFAR-HD ELAIS-N1 mosaic. | About 60 GB of disk is free before the run, and the mosaic's restoring beam is read and recorded first: its name suggests about 3 pixels a beam, where the support pass's opening used to remove most 5 to 6σ compact sources (`LOG.md`, 4 October). The tier gate passes and the raise is a release. |
 | 12 | Agent, human approves | Raise to 45,000² on the LOFAR-HD mosaic. | The tier gate passes and the raise is a release. This is the out-of-core demonstration: the run completes on 18 GiB with the traced peak bounded by tile size although one `float64` copy of the image (16 GB) would not fit. The local ladder ends here. |
-| 13 | Human | Switch uploads from TestPyPI to PyPI. | The envelope covers Rapthor's production sector sizes, which task 16 records. The Trusted Publisher, `pypi` environment, publishing job, installation instructions and release status change together, as in the [publishing guide](../docs/how-to/publish-releases.md). |
-
-### M3 — Telescope coverage and Rapthor functionality
-
-| # | Owner | Task | Done when |
-| --- | --- | --- | --- |
-| 15 | Agent, human dispositions | Decide how to handle a point-spread function that varies across the field. | LOFAR facets and MWA mosaics (which ship PSF maps) have a PSF the header beam cannot describe. Measure the effect on fluxes and sizes with injected truth, then accept a PSF map input or document the limitation with its measured effect. |
-| 16 | Agent | Pin the latest Rapthor Prefect-branch and LSMTool commits, refresh the Rapthor contract and audit the profile. | The [contract page](../docs/reference/rapthor-source-finding-contract.md) traces the pinned revisions and records Rapthor's production sector image sizes. Each PyBDSF behaviour LSMTool uses (zero mean map, adaptive RMS boxes 150/50 and 35/7 at threshold 75, hard thresholds at the traced 5/3, 5/4 and 7.5/5 profiles, three wavelet scales, island-stop flat-noise pass, `srl` catalogue, island mask, both RMS maps, source count and the blanked-image path) maps to an existing Hebog behaviour or a listed gap. The audit also moves the reference frequency to PyBDSF's order, the frequency axis before `RESTFRQ` and `RESTFREQ`, where Hebog reads `RESTFRQ` first today, and narrows `RapthorCompatibilityConfig` to the options the finder can honour. |
-| 17 | Agent, human dispositions | Decide how a task's declared memory reaches the Dask scheduler. | No stage declares a `TaskRequirement` or reads the executor's capacity, so admission and `memory_bytes_per_worker` have no effect yet, and `reduce_batches` has no caller. First declare requirements on the heavy rounds, whose working sets are measured, and use or remove `reduce_batches`. Admission then proves one task fits one worker and the in-flight window bounds concurrency, but Hebog pins no task to a worker, so a scheduler may co-locate admitted tasks past one worker's memory. With the Rapthor cluster pinned, either its workers declare a resource Hebog can annotate, or the limitation is documented with its measured spill and worker-loss behaviour on the deployment envelope. |
-| 18 | Agent | Implement the Rapthor profile and the flat-noise RMS branch. | Profile outputs are tested on analytic and generated truth; the flat-noise branch shares products and reads rather than running a second full analysis. |
-| 19 | Agent | Implement the Rapthor adapter and exercise LSMTool on Hebog products. | The adapter is built on the public products, through the eight-column codec, which reads them. Pinned LSMTool clips, groups and transfers names on Hebog catalogue, mask and RMS products for true-sky and apparent-sky inputs, with the LoTSS-Deep DR2 ELAIS-N1 pair as the representative input. The five acceptance scenarios become passing tests (adapter products, retry reuse, worker loss, fallback and dual run). The adapter imports no Rapthor, Prefect or LSMTool in library code. |
-| 20 | Agent prepares, human pushes | Add Rapthor backend selection, fallback and dual-run reporting in Rapthor. | A Rapthor patch against the current pin selects the backend by flag, respects the caller's resource budget and reports dual-run differences. |
-| 21 | Agent, human dispositions | Measure Rapthor-profile agreement within the release-check budget, using cached reference outputs. | Retained/rejected agreement against pinned `master` on true/apparent, bright, extended, edge, masked, sparse and crowded populations. It also measures two things the `continuum` rows decide: a source of several components has no position error or deconvolved size, so Rapthor's cuts drop it, and a source of one Gaussian whose extension is not significant publishes `DC_Maj` 0 however wide its fit (a curved filament fitted at 63″ by 8″ with a 4″ beam does), so it passes the 10″ cut that PyBDSF's fitted size would fail. Choose `compact` only with ≥99.5% overall agreement and every safety stratum passing; otherwise `continuum`. |
-
-### M4 — Deployment performance gate
-
-| # | Owner | Task | Done when |
-| --- | --- | --- | --- |
-| 22 | Agent proposes, human freezes | Freeze the initial deployment envelope. | Sizes and workloads match Rapthor's production sectors (task 16) and fit the development machine, and the envelope tier that covers them is admitted. |
-| 23 | Agent | Run matched complete `filter_skymodel` benchmarks and optimize until the runtime gate passes. | Hebog and pinned `master` run in the same Linux container on the development machine, with cached reference timings. The ratio and its upper one-sided 95% bound pass on every envelope cell; memory and Hebog-curve non-regression and the quick science check pass. Native code enters only through the native-code gates and an accepted ADR. |
 
 ### M5 — Prepare scale beyond one machine
 
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
+| 17 | Agent, human dispositions | Decide how a task's declared memory reaches the Dask scheduler. | Hebog's own Dask executor meets a cluster first here if task 16 keeps the subprocess model, which is why this decision follows the integration. No stage declares a `TaskRequirement` or reads the executor's capacity, so admission and `memory_bytes_per_worker` have no effect yet, and `reduce_batches` has no caller. First declare requirements on the heavy rounds, whose working sets are measured, and use or remove `reduce_batches`. Admission then proves one task fits one worker and the in-flight window bounds concurrency, but Hebog pins no task to a worker, so a scheduler may co-locate admitted tasks past one worker's memory. With the Rapthor cluster pinned, either its workers declare a resource Hebog can annotate, or the limitation is documented with its measured spill and worker-loss behaviour on the deployment envelope. |
 | 24 | Agent | Bound the graph for 100,000² at 10 and at 200 nodes without running the science. | Planner tests show at most 50,000 tasks, bounded reduction depth, bounded driver memory and a valid memory admission for both topologies. |
 | 25 | Agent | Qualify the Zarr store and the restart and recovery path locally. | Atomicity, owned-chunk writes from concurrent local workers, codec and chunk geometry, missing chunks and injected failures pass within an admitted memory budget. Shared-storage throughput is left to the cluster benchmark. |
 | 26 | Agent proposes, human approves | Amend the scalability contract. | `config/benchmarks/phase-0-scalability.json`, the performance and scalability contracts page and the `test-scalability` recipe describe the development-machine tier and the final 1, 2, 5 and 10-node benchmark. The 50, 100 and 200-node gates are kept as design targets, not deleted. |
 | 27 | Agent | Package the cluster benchmark. | One command and a short guide run the 90,000² LOFAR-HD mosaic at 1, 2, 5 and 10 nodes, plus the 22,500² and 45,000² versions for size scaling, and record evidence, the hardware and a scaling-model fit. A dry run with a local Dask cluster at small sizes passes, so the cluster session measures rather than debugs. |
+
+### Deferred science, before the freeze
+
+These are scientific improvements, not confirmed incorrect outputs, and wait
+until the milestones above are complete (decision of 9 October); a confirmed
+incorrect supported output reopens its item at once. Both must close before
+the candidate is frozen (task 28).
+
+| # | Owner | Task | Done when |
+| --- | --- | --- | --- |
+| 15 | Agent, human dispositions | Decide how to handle a point-spread function that varies across the field. | LOFAR facets and MWA mosaics (which ship PSF maps) have a PSF the header beam cannot describe. Measure the effect on fluxes and sizes with injected truth, then accept a PSF map input or document the limitation with its measured effect. |
+| 68 | Agent measures, human decides | Measure a truncation correction for the clipped window RMS. | The window statistic clips at 3σ around the median and takes the standard deviation of what remains, with no correction for the truncation: 35-pixel windows read 1.6% low on white noise and 3.2 to 3.9% low on beam-correlated noise, and `empty-noise` publishes 0.959 of the injected noise. PyBDSF applies the PySE correction, about 1.4% at κ = 3 (`LOG.md`, task 65 diagnosis). Done when the correction's effect on the quick check, the equivalence lane and the position and flux uncertainty calibration is measured, and the maintainer has decided whether to apply it. |
 
 ### M6 — Qualification and 1.0.0
 
@@ -320,12 +366,14 @@ LOFAR-HD PyBDSF catalogues, with global invariants, as in ADR-005.
 | Scheduler, reduction or storage bottlenecks appear only above 10 nodes. | A later deployment at 100+ nodes fails or scales poorly. | Planner bounds for 200 nodes, a scaling model fitted to the cluster benchmark, and an explicit "not demonstrated" statement in release notes. |
 | Large public images have minimal or non-standard headers; the HD mosaic is published "for browsing only". | Anchors cannot run unmodified, or their science comparison is weak. | Headers checked 16 and 28 September against the input header contract; explicit request metadata; per-facet HD images and catalogues for science; LoTSS-DR3 mosaics as the fallback scale anchors. |
 | No large public SKA-Low image exists. | SKA-Low coverage relies on MWA precursor data. | GLEAM-X DR1 with its PSF maps (its Aegean catalogue is diagnostic only), and SKA-Low science-verification data once released (expected from 2027). |
-| Rapthor and LSMTool change frequently. | Adapter, contract and benchmark churn, or a backend that only works on a stale revision. | Pin the latest commits at task 16 and move both pins forward only before the Rapthor patch (task 20), before the matched benchmarks (task 23) and at the freeze (task 28), rerunning the contract audit, the acceptance scenarios and the profile-agreement check each time and recording the revisions in `LOG.md`. |
+| Rapthor and LSMTool change frequently; Rapthor's `main` merged its Prefect/Dask workflow on 9 October 2026 and is still settling. | Adapter, contract and benchmark churn, or a backend that only works on a stale revision. | Pin Rapthor `main` and LSMTool `master` at task 16 and move both pins forward only before the patches (task 20), before the matched benchmarks (task 23) and at the freeze (task 28), rerunning the contract audit, the acceptance scenarios and the profile-agreement check each time and recording the revisions in `LOG.md`. |
 | The passes keep records from every tile: the tile summaries' per-label records, which keep every candidate island, the per-tile island summaries and the reconciled label mappings grow the traced peak about 1.7 bytes a pixel, and background/RMS grew about 3 bytes a pixel, unattributed on a real image (29 and 30 September); on synthetic grids the local-noise requests account for about 1.9 of it (4 October). | At those slopes the multiscale peak reaches about 2.1 GiB at 22,500² and 4.3 GiB at 45,000², and background/RMS overtakes it near 27,000² and reaches about 6 GiB at 45,000²; task 12 fits 18 GiB only while resident memory stays within about three times the traced peak, and at 100,000² the driver could not hold them. | Before task 12, task 56 stops the driver holding the local-noise requests and attributes the term on a real anchor with `scripts/benchmark/attribute_traced_peak.py`; shard, stream or drop the kept records, such as candidates that can never become islands; task 24's planner bounds include them. |
 | The development machine's 18 GiB RAM and free disk limit local tiers. | Tiers above 22,500² stall, or runs spill to disk and slow iteration. | Tile-bounded memory, once the traced peak's growth above is bounded; about 60 GB of free disk before tiers above 22,500²; 90,000² only on the cluster. |
 | Source association costs more than the image grows: 1, 82 and 479 s traced for 659, 7,146 and 16,084 sources, about the 2.2 power (29 September). | At 45,000² and its roughly 140,000 sources association alone could take many hours, making the tier gate impractical. | Tasks 54 and 55 remove two causes found on synthetic input: batch reads that are strips across the image, and a hierarchy decision that is quadratic in components. Profile the 10,000² and 15,402² anchors before and after them to measure their share, before task 12 and within task 23's optimization. |
 | Bright sources dense enough to chain make one background task read their whole bounding box, because candidate regions merge without a size limit. | A deep or crowded field exhausts a worker or stalls a tier: uniformly placed candidates at 75σ or more merge into one image-sized region between 2,000 and 4,000 of them at 15,402², at about 260 bytes a pixel read, and the real count is not published. | Task 53 bounds the read; each tier gate records the candidate count and the largest region read. |
 | Short checks miss a rare regression, or scientific campaigns absorb the schedule again. | A defect reaches a `0.x` release, or performance and scale slip. | Releases stay experimental and each escaped defect adds a fixed case; iteration budgets, cached references and endpoints limited to Rapthor-consumed fields hold the schedule; the one powered study at task 29 is the backstop. |
+| Rapthor runs the filter step in a fresh interpreter per sector, with `ncores` and single native threads, so Hebog's Dask executor cannot reach Rapthor's cluster from there. | The first backend parallelises within `ncores` threads and the deployment gate is measured that way; ADR-004's in-process subgraph on Rapthor's client needs a Rapthor change; the thread executor's occupancy on a 3,000² sector is unmeasured. | Task 16 decides the execution model from a written comparison, the subprocess model recommended; task 23 measures the model chosen; an ADR-004 amendment records an in-process choice; the Dask executor stays the scale path for standalone and cluster use (M5). |
+| The LSMTool and Rapthor patches depend on upstream acceptance. | The backend cannot be selected from a released LSMTool or Rapthor until they merge. | The LSMTool registration is a few lines behind an optional extra, as `sofia` is, and Hebog ships the backend function itself; the container installs the patched forks at recorded commits until the patches merge. |
 
 ## Scientific gates
 
