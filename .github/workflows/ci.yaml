@@ -17,7 +17,7 @@ env:
   # The one uv version. The other workflows, the Dockerfile, the pre-commit
   # uv-lock hook and .readthedocs.yaml name it too, and
   # tests/unit/test_uv_version.py holds them equal.
-  UV_VERSION: "0.9.16"
+  UV_VERSION: "0.13.0"
   # Match the controlled replay budget before NumPy/BLAS or workers import.
   OMP_NUM_THREADS: "1"
   OPENBLAS_NUM_THREADS: "1"

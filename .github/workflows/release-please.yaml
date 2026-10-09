@@ -52,7 +52,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v7
         with:
-          version: "0.9.16"  # UV_VERSION in ci.yaml
+          version: "0.13.0"  # UV_VERSION in ci.yaml
 
       - name: Build wheel and source distribution
         run: uv build --no-sources
