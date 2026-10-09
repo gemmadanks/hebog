@@ -947,7 +947,7 @@ def _(mo, public_catalogue):
     elliptical Gaussians to the deblended components, associates them into
     sources and measures each source. A source's total flux is the sum of its
     fitted components. The
-    [output reference](https://gemmadanks.github.io/hebog/reference/public-products/)
+    [output reference](https://open-research.gemmadanks.com/hebog/reference/public-products/)
     describes every column.
     """)
     return
