@@ -1,6 +1,6 @@
 site_name: Hebog Documentation
 site_description: A scalable, Dask-aware source finder for radio-continuum images
-site_url: https://gemmadanks.github.io/hebog/
+site_url: https://open-research.gemmadanks.com/hebog/
 repo_url: https://github.com/gemmadanks/hebog
 repo_name: gemmadanks/hebog
 

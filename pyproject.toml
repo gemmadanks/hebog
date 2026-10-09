@@ -19,8 +19,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://gemmadanks.github.io/hebog/"
-Documentation = "https://gemmadanks.github.io/hebog/"
+Homepage = "https://open-research.gemmadanks.com/hebog/"
+Documentation = "https://open-research.gemmadanks.com/hebog/"
 Repository = "https://github.com/gemmadanks/hebog"
 Issues = "https://github.com/gemmadanks/hebog/issues"
 Changelog = "https://github.com/gemmadanks/hebog/releases"
