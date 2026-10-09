@@ -6,6 +6,10 @@ updates:
     schedule:
       interval: "daily"
     versioning-strategy: "increase"   # allow minor/patch bumps
+    groups:
+      uv:
+        patterns:
+          - "*"
     commit-message:
       prefix: "build(deps)"
     labels:
