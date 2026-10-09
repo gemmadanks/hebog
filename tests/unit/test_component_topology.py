@@ -22,8 +22,6 @@ def _config(**replacements: object) -> CompactDeblendConfig:
         "minimum_region_pixels": 7,
         "maximum_compact_island_pixels": 10_000,
         "maximum_compact_bounds_pixels": 10_000,
-        "target_batch_pixels": 10_000,
-        "maximum_batch_pixels": 10_000,
     }
     values.update(replacements)
     return CompactDeblendConfig(**values)  # type: ignore[arg-type]

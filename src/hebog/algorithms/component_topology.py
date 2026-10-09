@@ -227,7 +227,7 @@ def parent_is_deferred(
     pixels, so no task has to read a deferred parent's window.
 
     Examples:
-        >>> bounds = CompactDeblendConfig(5.0, 2, 1.0, 7, 100, 250, 250, 250)
+        >>> bounds = CompactDeblendConfig(5.0, 2, 1.0, 7, 100, 250)
         >>> parent_is_deferred(ImageBounds(0, 10, 0, 10), 60, bounds)
         False
         >>> parent_is_deferred(ImageBounds(0, 3, 0, 90), 60, bounds)

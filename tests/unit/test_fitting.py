@@ -7,8 +7,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
-from typing import Any, Literal
+from dataclasses import dataclass, fields, replace
+from typing import Any, Literal, get_args, get_type_hints
 
 import numpy as np
 import pytest
@@ -22,7 +22,6 @@ from hebog.algorithms.measurement import measure_compact_moments
 from hebog.algorithms.reconciliation import DetectedIsland
 from hebog.config import CompactGaussianFitConfig, CompactMomentConfig
 from hebog.data_models.fitting import (
-    AssociationAperturePhotometry,
     CompactGaussianFitResult,
     FailedCompactGaussianFit,
     GaussianFitDiagnostics,
@@ -96,9 +95,7 @@ def _fit_config(**changes: object) -> CompactGaussianFitConfig:
         "center_margin_pixels": 1.0,
         "convergence_tolerance": 1e-10,
         "maximum_axis_ratio": 20.0,
-        "maximum_background_offset_sigma": 3.0,
         "context_margin_pixels": 8,
-        "background_model": "fixed-zero",
     }
     values.update(changes)
     return CompactGaussianFitConfig(**values)  # type: ignore[arg-type]
@@ -283,7 +280,7 @@ def test_joint_fit_separates_neighbour_flux_and_keeps_marginal_errors() -> (
     geometry = _geometry()
     moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
     fits = fit_compact_gaussian_mixture(
-        compact, moments, geometry, _fit_config(background_model="fixed-zero")
+        compact, moments, geometry, _fit_config()
     )
     for fitted, amplitude, center in zip(
         fits, (10.0, 7.0), (12.0, 19.0), strict=True
@@ -301,7 +298,6 @@ def test_joint_fit_separates_neighbour_flux_and_keeps_marginal_errors() -> (
             fitted.diagnostics.degrees_of_freedom
             == compact.physical_residual.size - 12
         )
-        assert fitted.association_aperture is None
         assert "joint-gaussian-fit" in fitted.quality_flags
 
 
@@ -369,7 +365,7 @@ def test_joint_unidentifiable_information_cannot_publish_components(
         fitting_algorithm, "_parameter_covariance", unavailable_covariance
     )
     fitted = fit_compact_gaussian_mixture(
-        compact, moments, geometry, _fit_config(background_model="fixed-zero")
+        compact, moments, geometry, _fit_config()
     )
     assert len(fitted) == len(compact.regions)
     assert all(
@@ -397,7 +393,7 @@ def test_joint_condition_cannot_be_replaced_by_marginal_conditions(
 
     monkeypatch.setattr(fitting_algorithm, "least_squares", ill_conditioned)
     fitted = fit_compact_gaussian_mixture(
-        compact, moments, geometry, _fit_config(background_model="fixed-zero")
+        compact, moments, geometry, _fit_config()
     )
     assert all(isinstance(item, FailedCompactGaussianFit) for item in fitted)
 
@@ -461,9 +457,7 @@ def test_joint_solver_honours_beam_or_free_policy(joint: bool) -> None:
         compact,
         moments,
         geometry,
-        _fit_config(
-            background_model="fixed-zero", model_selection="beam-or-free"
-        ),
+        _fit_config(model_selection="beam-or-free"),
     )
     for fitted in fits:
         assert isinstance(fitted, ValidCompactGaussianFit)
@@ -482,7 +476,6 @@ def test_joint_owned_region_gls_ignores_adequacy_context() -> None:
     )
     moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
     config = _fit_config(
-        background_model="fixed-zero",
         pixel_support="owned-region",
         point_estimator="correlated-gls",
     )
@@ -522,9 +515,7 @@ def test_joint_mixed_model_selection_is_order_invariant(
     geometry = replace(
         _geometry(), restoring_beam_covariance_pixels_squared=(4.0, 0.0, 2.25)
     )
-    config = _fit_config(
-        background_model="fixed-zero", model_selection="beam-or-free"
-    )
+    config = _fit_config(model_selection="beam-or-free")
     if recover_mixed_information:
         original = fitting_algorithm._parameter_covariance
         mixed_calls = 0
@@ -610,9 +601,7 @@ def test_failed_beam_alternative_keeps_a_valid_joint_free_fit(
         compact,
         moments,
         geometry,
-        _fit_config(
-            background_model="fixed-zero", model_selection="beam-or-free"
-        ),
+        _fit_config(model_selection="beam-or-free"),
     )
     assert calls == 2
     assert all(
@@ -936,9 +925,7 @@ def test_a_well_conditioned_joint_fit_keeps_the_existing_selection(
             _geometry(),
             restoring_beam_covariance_pixels_squared=(4.0, 0.0, 2.25),
         )
-        config = _fit_config(
-            background_model="fixed-zero", model_selection="beam-or-free"
-        )
+        config = _fit_config(model_selection="beam-or-free")
     moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
     solves = 0
     original = fitting_algorithm.least_squares
@@ -996,9 +983,7 @@ def test_a_repair_that_finds_nothing_falls_back_at_once(
         compact,
         moments,
         geometry,
-        _fit_config(
-            background_model="fixed-zero", model_selection="beam-or-free"
-        ),
+        _fit_config(model_selection="beam-or-free"),
     )
 
     assert solves == 2
@@ -1664,7 +1649,6 @@ def test_joint_corner_covariance_matches_correlated_noise_ensemble(
             moments,
             geometry,
             _fit_config(
-                background_model="fixed-zero",
                 pixel_support="owned-region",
                 point_estimator="correlated-gls",
             ),
@@ -1752,7 +1736,7 @@ def test_joint_initial_orientation_is_periodic(turn: float) -> None:
         compact,
         (shifted,),
         geometry,
-        _fit_config(background_model="fixed-zero"),
+        _fit_config(),
     )[0]
     assert isinstance(fitted, ValidCompactGaussianFit)
     assert fitted.parameters.major_axis_angle_degrees % 180 == pytest.approx(
@@ -1807,7 +1791,7 @@ def test_joint_fit_admits_work_before_allocating_optimizer(
         compact,
         moments,
         geometry,
-        _fit_config(background_model="fixed-zero"),
+        _fit_config(),
         **limits,
     )
     assert all(
@@ -1826,9 +1810,7 @@ def test_joint_iteration_limit_preserves_typed_failure() -> None:
         compact,
         moments,
         geometry,
-        _fit_config(
-            background_model="fixed-zero", maximum_function_evaluations=1
-        ),
+        _fit_config(maximum_function_evaluations=1),
     )
     assert all(
         isinstance(fitted, FailedCompactGaussianFit)
@@ -1857,7 +1839,7 @@ def test_joint_linear_algebra_failure_preserves_every_component(
         compact,
         tuple(reversed(moments)),
         geometry,
-        _fit_config(background_model="fixed-zero"),
+        _fit_config(),
     )
     assert len(fitted) == len(moments)
     for result, moment in zip(fitted, moments, strict=True):
@@ -1887,7 +1869,7 @@ def test_joint_solver_does_not_hide_programming_errors(
             compact,
             moments,
             geometry,
-            _fit_config(background_model="fixed-zero"),
+            _fit_config(),
         )
 
 
@@ -1903,7 +1885,7 @@ def test_joint_fit_does_not_ignore_an_unmeasurable_neighbour() -> None:
         compact,
         (moments[0], missing),
         geometry,
-        _fit_config(background_model="fixed-zero"),
+        _fit_config(),
     )
     assert isinstance(fitted[0], UnavailableCompactGaussianFit)
     assert fitted[0].reason == "joint-peer-unavailable"
@@ -1912,10 +1894,10 @@ def test_joint_fit_does_not_ignore_an_unmeasurable_neighbour() -> None:
 
 
 def test_joint_empty_and_invalid_invocations_fail_before_fitting() -> None:
-    """Joint work requires an exact component census and fixed background."""
+    """Joint work requires an exact component census and bounded work."""
     compact = _joint_input()
     geometry = _geometry()
-    config = _fit_config(background_model="fixed-zero")
+    config = _fit_config()
     moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
     assert (
         fit_compact_gaussian_mixture(
@@ -1942,13 +1924,54 @@ def test_joint_empty_and_invalid_invocations_fail_before_fitting() -> None:
                 config,
                 **limits,  # pyright: ignore[reportArgumentType]
             )
-    with pytest.raises(ValueError, match="fixed-zero"):
-        fit_compact_gaussian_mixture(
-            compact,
-            moments,
-            geometry,
-            replace(config, background_model="fitted-offset"),
-        )
+
+
+def test_default_fit_policy_is_one_the_joint_fitter_accepts() -> None:
+    """The only fitter fixes the background, so the default policy fits."""
+    compact = _joint_input()
+    geometry = _geometry()
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+    config = CompactGaussianFitConfig(7, 300, 0.2, 20.0, 5.0, 1.0, 1e-10, 20.0)
+
+    fits = fit_compact_gaussian_mixture(compact, moments, geometry, config)
+
+    assert len(fits) == 2
+    assert all(isinstance(fitted, ValidCompactGaussianFit) for fitted in fits)
+
+
+@pytest.mark.parametrize(
+    ("record", "unread"),
+    [
+        (
+            CompactGaussianFitConfig,
+            {
+                "background_model",
+                "maximum_background_offset_sigma",
+                "association_aperture_radius_sigma",
+                "association_aperture_minimum_fixed_beam_model_fraction",
+            },
+        ),
+        (ValidCompactGaussianFit, {"association_aperture"}),
+    ],
+)
+def test_fit_records_hold_nothing_the_joint_fit_never_reads(
+    record: type[object], unread: set[str]
+) -> None:
+    """A fitted background offset and a per-fit aperture have no reader."""
+    assert unread.isdisjoint(
+        field.name
+        for field in fields(record)  # pyright: ignore[reportArgumentType]
+    )
+
+
+def test_no_fit_identifies_a_centroid_constrained_model() -> None:
+    """The joint fit selects only a free or a beam-constrained ellipse."""
+    hints = get_type_hints(GaussianFitDiagnostics)
+
+    assert get_args(hints["model_identity"]) == (
+        "free-elliptical",
+        "beam-constrained",
+    )
 
 
 def test_joint_context_requires_more_pixels_than_parameters() -> None:
@@ -1962,7 +1985,7 @@ def test_joint_context_requires_more_pixels_than_parameters() -> None:
         replace(compact, valid_pixels=valid),
         moments,
         geometry,
-        _fit_config(background_model="fixed-zero"),
+        _fit_config(),
     )
     assert all(
         isinstance(item, UnavailableCompactGaussianFit)
@@ -1994,7 +2017,7 @@ def test_joint_measurements_with_varying_noise_invalids_and_signed_context(
         compact,
         tuple(reversed(moments)),
         geometry,
-        _fit_config(background_model="fixed-zero"),
+        _fit_config(),
     )
     assert np.any(signal[valid] < 0)
     for result, amplitude, center in zip(
@@ -2260,7 +2283,6 @@ def test_fixed_background_is_an_explicit_smaller_model() -> None:
     result = _fit(
         compact,
         config=_fit_config(
-            background_model="fixed-zero",
             model_selection="beam-or-free",
         ),
         geometry=_beam_geometry(),
@@ -2291,9 +2313,7 @@ def test_free_only_does_not_bypass_physical_fit_admission(
     )
     geometry = _geometry()
     moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
-    config = _fit_config(
-        background_model="fixed-zero", model_selection=model_selection
-    )
+    config = _fit_config(model_selection=model_selection)
     result = fit_compact_gaussian_mixture(compact, moments, geometry, config)[
         0
     ]
@@ -2486,9 +2506,7 @@ def test_oversampled_likelihood_uses_explicit_stable_fallback(
     observed = replace(
         compact, physical_residual=compact.physical_residual + offset
     )
-    config = _fit_config(
-        background_model="fixed-zero", pixel_support="owned-region"
-    )
+    config = _fit_config(pixel_support="owned-region")
 
     def fit(
         point_estimator: Literal["diagonal-weighted", "correlated-gls"],
@@ -2634,7 +2652,6 @@ def test_unresolved_gls_fallback_retains_correlated_error_calibration() -> (
     factor = eigenvectors * np.sqrt(np.maximum(eigenvalues, 0))
     moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
     config = _fit_config(
-        background_model="fixed-zero",
         pixel_support="owned-region",
         point_estimator="correlated-gls",
     )
@@ -2959,7 +2976,6 @@ def test_complete_bright_gaussians_agree_with_independent_model(
         initialization, geometry, _moment_config()
     )[1:]
     config = _fit_config(
-        background_model="fixed-zero",
         model_selection="beam-or-free",
         point_estimator="correlated-gls",
     )
@@ -3047,7 +3063,6 @@ def test_axis_ratio_admission_is_independent_of_optimizer_axis_order(
         ),
     )
     config = _fit_config(
-        background_model="fixed-zero",
         maximum_axis_ratio=maximum_axis_ratio,
     )
     result = fit_compact_gaussian_mixture(
@@ -3145,36 +3160,6 @@ def test_underdetermined_measurement_is_not_fitted() -> None:
 @pytest.mark.parametrize(
     ("changes", "message"),
     [
-        ({"radius_sigma": float("nan")}, "radius"),
-        ({"integrated_flux_jy": 0.0}, "flux"),
-        ({"integrated_flux_jy": float("inf")}, "flux"),
-        ({"visible_model_fraction": 0.0}, "fraction"),
-        ({"visible_model_fraction": 1.01}, "fraction"),
-        ({"retained_pixel_count": 0}, "pixel count"),
-        ({"aperture_model": "unknown"}, "model"),
-    ],
-)
-def test_aperture_photometry_rejects_invalid_evidence(
-    changes: dict[str, object],
-    message: str,
-) -> None:
-    """Published aperture evidence remains finite and physically bounded."""
-    values: dict[str, object] = {
-        "radius_sigma": 3.0,
-        "integrated_flux_jy": 0.5,
-        "visible_model_fraction": 0.8,
-        "retained_pixel_count": 20,
-        "aperture_model": "selected-fit",
-    }
-    values.update(changes)
-
-    with pytest.raises(ValueError, match=message):
-        AssociationAperturePhotometry(**values)  # type: ignore[arg-type]
-
-
-@pytest.mark.parametrize(
-    ("changes", "message"),
-    [
         ({"minimum_fit_pixels": 6}, "minimum_fit_pixels"),
         ({"maximum_function_evaluations": 0}, "function_evaluations"),
         ({"minimum_sigma_pixels": 0.0}, "sigma"),
@@ -3183,7 +3168,6 @@ def test_aperture_photometry_rejects_invalid_evidence(
         ({"center_margin_pixels": -1.0}, "center_margin"),
         ({"convergence_tolerance": 0.0}, "convergence"),
         ({"maximum_axis_ratio": 1.0}, "axis_ratio"),
-        ({"maximum_background_offset_sigma": 0.0}, "background_offset"),
         ({"context_margin_pixels": -1}, "context_margin"),
         ({"extension_significance_sigma": 0.0}, "extension_significance"),
         (
@@ -3210,22 +3194,9 @@ def test_aperture_photometry_rejects_invalid_evidence(
             "information_condition",
         ),
         ({"pixel_support": "unknown"}, "pixel_support"),
-        ({"background_model": "unknown"}, "background_model"),
         ({"point_estimator": "unknown"}, "point_estimator"),
         ({"model_selection": "unknown"}, "model_selection"),
         ({"maximum_gls_pixels": 6}, "maximum_gls_pixels"),
-        (
-            {"association_aperture_radius_sigma": 0.0},
-            "association_aperture_radius_sigma",
-        ),
-        (
-            {"association_aperture_minimum_fixed_beam_model_fraction": 1.0},
-            "minimum fixed-beam model fraction",
-        ),
-        (
-            {"association_aperture_minimum_fixed_beam_model_fraction": 0.0},
-            "minimum fixed-beam model fraction",
-        ),
     ],
 )
 def test_fit_policy_rejects_invalid_bounds(

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import isfinite
 from typing import Literal, TypeAlias
 
 from hebog.data_models.measurement import (
@@ -45,36 +44,6 @@ class GaussianFitUncertainty:
 
 
 @dataclass(frozen=True, slots=True)
-class AssociationAperturePhotometry:
-    """Mask-aware flux within a data-selected compact association aperture."""
-
-    radius_sigma: float
-    integrated_flux_jy: float
-    visible_model_fraction: float
-    retained_pixel_count: int
-    aperture_model: Literal["restoring-beam", "selected-fit"]
-
-    def __post_init__(self) -> None:
-        """Require finite positive photometry and bounded visibility."""
-        if not isfinite(self.radius_sigma) or self.radius_sigma <= 0:
-            raise ValueError("aperture radius must be finite and positive")
-        if (
-            not isfinite(self.integrated_flux_jy)
-            or self.integrated_flux_jy <= 0
-        ):
-            raise ValueError("aperture flux must be finite and positive")
-        if (
-            not isfinite(self.visible_model_fraction)
-            or not 0 < self.visible_model_fraction <= 1
-        ):
-            raise ValueError("visible model fraction must be within (0, 1]")
-        if self.retained_pixel_count <= 0:
-            raise ValueError("aperture retained pixel count must be positive")
-        if self.aperture_model not in {"restoring-beam", "selected-fit"}:
-            raise ValueError("aperture model is not supported")
-
-
-@dataclass(frozen=True, slots=True)
 class GaussianFitDiagnostics:
     """Bounded optimizer work and weighted-residual evidence."""
 
@@ -87,7 +56,6 @@ class GaussianFitDiagnostics:
     model_identity: Literal[
         "free-elliptical",
         "beam-constrained",
-        "centroid-constrained-elliptical",
     ] = "free-elliptical"
     bound_parameters: tuple[str, ...] = ()
     relative_bound_distances: tuple[tuple[str, float], ...] = ()
@@ -126,7 +94,6 @@ class GaussianFitDiagnostics:
         Literal[
             "free-elliptical",
             "beam-constrained",
-            "centroid-constrained-elliptical",
         ]
         | None
     ) = None
@@ -142,7 +109,6 @@ class ValidCompactGaussianFit:
     uncertainty: GaussianFitUncertainty | None
     diagnostics: GaussianFitDiagnostics
     quality_flags: tuple[str, ...]
-    association_aperture: AssociationAperturePhotometry | None = None
     status: Literal["valid"] = "valid"
 
 

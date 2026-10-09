@@ -9,7 +9,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from itertools import pairwise
-from math import ceil, floor, isfinite, pi, sqrt
+from math import isfinite, pi
 from typing import Literal, TypeAlias, cast
 
 import numpy as np
@@ -27,7 +27,6 @@ from hebog.algorithms.measurement import (
 )
 from hebog.config import CompactGaussianFitConfig
 from hebog.data_models.fitting import (
-    AssociationAperturePhotometry,
     CompactGaussianFitResult,
     FailedCompactGaussianFit,
     FittedGaussianPixelParameters,
@@ -73,7 +72,6 @@ _CONSTRAINED_FIXED_BACKGROUND_PARAMETER_NAMES = _CONSTRAINED_PARAMETER_NAMES[
 _ModelIdentity: TypeAlias = Literal[
     "free-elliptical",
     "beam-constrained",
-    "centroid-constrained-elliptical",
 ]
 _FallbackReason: TypeAlias = Literal[
     "free-model-bound-contact",
@@ -93,7 +91,6 @@ _PointEstimatorFallback: TypeAlias = Literal[
     "correlation-ill-conditioned",
     "retained-region-exceeds-gls-limit",
 ]
-_ApertureModel: TypeAlias = Literal["restoring-beam", "selected-fit"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -153,16 +150,6 @@ class _FitPublicationContext:
     moment: ValidMomentMeasurement
     geometry: CompactMeasurementGeometry
     config: CompactGaussianFitConfig
-
-
-@dataclass(frozen=True, slots=True)
-class _ApertureGeometry:
-    """One candidate aperture model evaluated on the retained image grid."""
-
-    model: _ApertureModel
-    squared_radius: npt.NDArray[np.float64]
-    weights: npt.NDArray[np.float64]
-    total_weight: float
 
 
 def _local_rms_at_centroid(
@@ -1056,11 +1043,6 @@ def _valid_fit_result(
                 candidate.diagnostics.model_identity == "beam-constrained",
             ),
             (
-                "centroid-constrained-fit",
-                candidate.diagnostics.model_identity
-                == "centroid-constrained-elliptical",
-            ),
-            (
                 candidate.diagnostics.fallback_reason or "",
                 candidate.diagnostics.fallback_reason is not None,
             ),
@@ -1102,196 +1084,6 @@ def _valid_fit_result(
         uncertainty=uncertainty,
         diagnostics=candidate.diagnostics,
         quality_flags=flags,
-        association_aperture=_association_aperture_photometry(
-            compact,
-            context.region,
-            candidate,
-            geometry,
-            context.config,
-        ),
-    )
-
-
-def _association_aperture_photometry(
-    compact: CompactMomentInput,
-    region: DeblendedRegion,
-    candidate: _FitCandidate,
-    geometry: CompactMeasurementGeometry,
-    config: CompactGaussianFitConfig,
-) -> AssociationAperturePhotometry | None:
-    """Select a bounded low-variance aperture that contains the fit model."""
-    (
-        _,
-        center_x,
-        center_y,
-        sigma_first,
-        sigma_second,
-        theta,
-        _,
-    ) = candidate.full_parameters
-    major = np.asarray([np.cos(theta), np.sin(theta)], dtype=np.float64)
-    minor = np.asarray([-np.sin(theta), np.cos(theta)], dtype=np.float64)
-    fitted_covariance = sigma_first**2 * np.outer(
-        major, major
-    ) + sigma_second**2 * np.outer(minor, minor)
-    radius_sigma = config.association_aperture_radius_sigma
-    array_bounds = getattr(compact, "array_bounds", compact.island.bounds)
-    local_y, local_x = np.indices(
-        compact.physical_residual.shape,
-        dtype=np.float64,
-    )
-    offsets = np.stack(
-        (
-            local_x + array_bounds.x_start - center_x,
-            local_y + array_bounds.y_start - center_y,
-        ),
-        axis=-1,
-    )
-    fitted = _aperture_geometry(
-        offsets,
-        model="selected-fit",
-        center_xy=(float(center_x), float(center_y)),
-        covariance=fitted_covariance,
-    )
-    labels = np.asarray(compact.region_labels)
-    admitted = np.asarray(compact.valid_pixels) & (
-        (labels == 0) | (labels == region.region_label)
-    )
-    selected_geometry = fitted
-    beam_covariance_values = geometry.restoring_beam_covariance_pixels_squared
-    if beam_covariance_values is not None:
-        covariance_xx, covariance_xy, covariance_yy = beam_covariance_values
-        beam_covariance = np.asarray(
-            [
-                [covariance_xx, covariance_xy],
-                [covariance_xy, covariance_yy],
-            ],
-            dtype=np.float64,
-        )
-        beam = _aperture_geometry(
-            offsets,
-            model="restoring-beam",
-            center_xy=(float(center_x), float(center_y)),
-            covariance=beam_covariance,
-        )
-        beam_support = admitted & (
-            beam.squared_radius <= radius_sigma * radius_sigma
-        )
-        fitted_fraction_in_beam = float(
-            np.sum(fitted.weights[beam_support], dtype=np.float64)
-            / fitted.total_weight
-        )
-        if (
-            fitted_fraction_in_beam
-            >= config.association_aperture_minimum_fixed_beam_model_fraction
-        ):
-            selected_geometry = beam
-    selected = admitted & (
-        selected_geometry.squared_radius <= radius_sigma * radius_sigma
-    )
-    retained_pixel_count = int(np.count_nonzero(selected))
-    if retained_pixel_count == 0:
-        return None
-    visible_model_weight = float(
-        np.sum(selected_geometry.weights[selected], dtype=np.float64)
-    )
-    visible_model_fraction = float(
-        visible_model_weight / selected_geometry.total_weight
-    )
-    selected_brightness = float(
-        np.sum(
-            np.asarray(compact.physical_residual)[selected], dtype=np.float64
-        )
-    )
-    integrated_flux = (
-        selected_brightness / visible_model_weight
-        if selected_geometry.model == "restoring-beam"
-        else selected_brightness
-        * geometry.pixel_solid_angle_steradians
-        / geometry.restoring_beam_solid_angle_steradians
-        / visible_model_fraction
-    )
-    if (
-        not isfinite(visible_model_fraction)
-        or not 0 < visible_model_fraction <= 1
-        or not isfinite(integrated_flux)
-        or integrated_flux <= 0
-    ):
-        return None
-    return AssociationAperturePhotometry(
-        radius_sigma=radius_sigma,
-        integrated_flux_jy=integrated_flux,
-        visible_model_fraction=visible_model_fraction,
-        retained_pixel_count=retained_pixel_count,
-        aperture_model=selected_geometry.model,
-    )
-
-
-def _aperture_geometry(
-    offsets: npt.NDArray[np.float64],
-    *,
-    model: _ApertureModel,
-    center_xy: tuple[float, float],
-    covariance: npt.NDArray[np.float64],
-) -> _ApertureGeometry:
-    """Evaluate one Gaussian aperture model on the image and full lattice."""
-    inverse_covariance = np.asarray(
-        np.linalg.inv(covariance),
-        dtype=np.float64,
-    )
-    squared_radius = np.einsum(
-        "...i,ij,...j->...",
-        offsets,
-        inverse_covariance,
-        offsets,
-        optimize=True,
-    )
-    return _ApertureGeometry(
-        model=model,
-        squared_radius=squared_radius,
-        weights=np.exp(-0.5 * squared_radius),
-        total_weight=_discrete_aperture_model_weight(
-            center_xy=center_xy,
-            covariance=covariance,
-            inverse_covariance=inverse_covariance,
-            radius_sigma=8.0,
-        ),
-    )
-
-
-def _discrete_aperture_model_weight(
-    *,
-    center_xy: tuple[float, float],
-    covariance: npt.NDArray[np.float64],
-    inverse_covariance: npt.NDArray[np.float64],
-    radius_sigma: float,
-) -> float:
-    """Integrate a Gaussian model over a bounded complete pixel lattice."""
-    center_x, center_y = center_xy
-    extent_x = radius_sigma * sqrt(float(covariance[0, 0]))
-    extent_y = radius_sigma * sqrt(float(covariance[1, 1]))
-    aperture_x = np.arange(
-        floor(center_x - extent_x),
-        ceil(center_x + extent_x) + 1,
-        dtype=np.float64,
-    )
-    aperture_y = np.arange(
-        floor(center_y - extent_y),
-        ceil(center_y + extent_y) + 1,
-        dtype=np.float64,
-    )
-    grid_x, grid_y = np.meshgrid(aperture_x, aperture_y)
-    offsets = np.stack((grid_x - center_x, grid_y - center_y), axis=-1)
-    squared_radius = np.einsum(
-        "...i,ij,...j->...",
-        offsets,
-        inverse_covariance,
-        offsets,
-        optimize=True,
-    )
-    selected = squared_radius <= radius_sigma * radius_sigma
-    return float(
-        np.sum(np.exp(-0.5 * squared_radius[selected]), dtype=np.float64)
     )
 
 
@@ -1625,8 +1417,6 @@ def _publish_mixture_component(
         quality_flags=tuple(
             sorted({*fitted.quality_flags, "joint-gaussian-fit"})
         ),
-        # A neighbour-contaminated per-component aperture is not joint flux.
-        association_aperture=None,
     )
 
 
@@ -1670,10 +1460,6 @@ def fit_compact_gaussian_mixture(  # noqa: PLR0913
     Work admission precedes allocation of the joint Jacobian. The background
     is fixed at the caller's independently estimated background map.
     """
-    if config.background_model != "fixed-zero":
-        raise ValueError(
-            "joint compact fitting requires fixed-zero background"
-        )
     if (
         type(maximum_parameters) is not int
         or type(maximum_jacobian_elements) is not int

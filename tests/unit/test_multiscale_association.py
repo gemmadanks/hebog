@@ -264,9 +264,11 @@ def test_repeated_detection_over_three_scales_forms_one_association() -> None:
     )
     assert association.contributing_scale_orders == (1, 2, 3)
     assert association.selected_scale_detection_id == "scale-detection-0003"
-    assert association.relationship == "extended-only"
-    assert association.compact_source_ids == ()
-    assert association.schema_version == 2
+    # Only scale features are associated, so no compact relationship exists.
+    assert {"relationship", "compact_source_ids"}.isdisjoint(
+        type(association).model_fields
+    )
+    assert association.schema_version == 3
 
 
 def test_persistent_support_excludes_single_scale_features() -> None:
