@@ -687,6 +687,52 @@ def test_uses_a_frequency_axis_when_rest_frequency_is_absent(
 
 
 @pytest.mark.integration
+@pytest.mark.parametrize("keyword", ["RESTFRQ", "RESTFREQ"])
+def test_a_frequency_axis_takes_precedence_over_a_rest_frequency(
+    tmp_path: Path, keyword: str
+) -> None:
+    """PyBDSF reads the frequency axis first, so the catalogue does too.
+
+    A rest frequency is a spectral-line keyword; the axis says where the
+    image plane is in frequency, so it wins when the two disagree.
+    """
+    path = tmp_path / "axis-and-rest-frequency.fits"
+    _write_image(
+        path,
+        np.zeros((1, 1, 2, 2), dtype=np.float32),
+        reference_frequency_hz=None,
+    )
+    with fits.open(path, mode="update") as hdus:
+        hdus[0].header[keyword] = 140_000_000.0
+
+    metadata = FitsImageSource(path).metadata()
+
+    assert metadata.reference_frequency_hz == 150_000_000.0
+
+
+@pytest.mark.integration
+def test_a_frequency_axis_is_read_at_the_image_plane(tmp_path: Path) -> None:
+    """The plane's frequency is the axis at pixel 1, not at its CRVAL.
+
+    The two agree when CRPIX3 is 1, as WSClean writes it; PyBDSF reads the
+    axis at the plane, so a reference pixel elsewhere moves the value by
+    whole channels.
+    """
+    path = tmp_path / "offset-frequency-axis.fits"
+    _write_image(
+        path,
+        np.zeros((1, 1, 2, 2), dtype=np.float32),
+        reference_frequency_hz=None,
+    )
+    with fits.open(path, mode="update") as hdus:
+        hdus[0].header["CRPIX3"] = 3.0
+
+    metadata = FitsImageSource(path).metadata()
+
+    assert metadata.reference_frequency_hz == 148_000_000.0
+
+
+@pytest.mark.integration
 @pytest.mark.parametrize("frequency", [None, 0.0, -150_000_000.0])
 def test_rejects_missing_or_invalid_reference_frequency(
     tmp_path: Path,

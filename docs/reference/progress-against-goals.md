@@ -185,19 +185,21 @@ The largest risks to 1.0.0 are the performance gap, the traced peak's growth
 with the image, the wide-object driver term, the development machine's
 memory and disk, and SKA-Low coverage without public SKA-Low images.
 
-The next actions, as the plan orders them on 9 October:
+The next actions, as the plan orders them on 10 October:
 
-1. Agent: task 16, pinning Rapthor `main` and LSMTool and refreshing the
-   contract.
-2. Human: at task 16, decide whether the first backend runs Hebog's thread
-   executor inside Rapthor's per-sector subprocess, as recommended, or
-   Rapthor changes to run Hebog on its Dask workers.
-3. Agent: the Rapthor profile, the flat-noise branch and the LSMTool backend
-   (tasks 18 to 21), then the deployment envelope and the first matched
-   `filter_skymodel` benchmark (tasks 22 and 23).
-4. Agent: task 71's module splits, then tasks 53 to 56, bounding the terms
-   that grow with the image, before the 22,500² (task 11) and 45,000² (task
-   12) tier gates. Scientific improvements (tasks 15 and 68) wait until this
+1. Agent: the Rapthor profile and the flat-noise branch (task 18), the
+   in-process backend (task 19), memory declarations (task 17), the native
+   Prefect task in Rapthor and the profile agreement (tasks 20 and 21), and a first
+   matched `filter_skymodel` measurement on Rapthor's 3,000² demonstration
+   sector.
+2. Agent: one sector across the cluster. Measure how a sector scales with
+   Dask workers and where its serial share lies (task 73), cut that share
+   (task 74, with tasks 71 and 53 to 56), then fit Hebog's tasks to
+   Rapthor's workers (task 72); beside it, the 22,500² tier (task 11), since
+   Rapthor's usual sector is 17,000 to 20,000 pixels a side.
+3. Agent: the deployment envelope and the gate (tasks 22 and 23), on one
+   node; one sector across several nodes is measured by the cluster
+   benchmark. Scientific improvements (tasks 15 and 68) wait until this
    work is complete unless an output is confirmed incorrect.
 
 ## Keeping this page current

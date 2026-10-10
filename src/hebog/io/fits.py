@@ -432,7 +432,10 @@ def _header_reference_frequency_hz(
     header: Any,
     path: Path,
 ) -> float | None:
-    """Read an optional RESTFRQ or RESTFREQ before WCS parsing."""
+    """Read and validate an optional RESTFRQ or RESTFREQ before WCS parsing.
+
+    The value is used only when the image has no frequency axis.
+    """
     for keyword in ("RESTFRQ", "RESTFREQ"):
         frequency_hz = _header_number(header, keyword, path)
         if frequency_hz is not None:
@@ -441,15 +444,29 @@ def _header_reference_frequency_hz(
 
 
 def _wcs_reference_frequency_hz(image_wcs: WCS, path: Path) -> float | None:
-    """Read reference frequency from the first explicit WCS frequency axis."""
+    """Read the image plane's frequency from the first WCS frequency axis.
+
+    The plane is the axis's first pixel, as PyBDSF reads it; that is the
+    axis's ``CRVAL`` only when its ``CRPIX`` is 1.
+    """
     for axis_index, physical_type in enumerate(
         image_wcs.world_axis_physical_types
     ):
         if physical_type == "em.freq":
             axis_unit = image_wcs.world_axis_units[axis_index] or "Hz"
-            frequency_hz: Any = (
-                float(image_wcs.wcs.crval[axis_index]) * units.Unit(axis_unit)
-            ).to_value(units.Hz)
+            # WCSLIB's own transform, from the reference point moved to the
+            # plane along this axis only: a declared axis need not have an
+            # NAXISn, and Astropy's array-shape checks would refuse it.
+            pixel = np.asarray(image_wcs.wcs.crpix, dtype=np.float64) - 1.0
+            pixel[axis_index] = 0.0
+            plane_value = float(
+                image_wcs.wcs.p2s(pixel[np.newaxis, :], 0)["world"][0][
+                    axis_index
+                ]
+            )
+            frequency_hz: Any = (plane_value * units.Unit(axis_unit)).to_value(
+                units.Hz
+            )
             return _positive_frequency_hz(float(frequency_hz), path)
     return None
 
@@ -475,8 +492,8 @@ def _reference_frequency_hz(
     )
     if frequency_hz is None:
         raise InvalidFitsImageError(
-            "FITS image requires a reference frequency in RESTFRQ, RESTFREQ "
-            f"or a FREQ axis, or a supplied one: {path}"
+            "FITS image requires a reference frequency in a FREQ axis, "
+            f"RESTFRQ or RESTFREQ, or a supplied one: {path}"
         )
     return frequency_hz
 
@@ -524,13 +541,15 @@ def _metadata(
         )
     _require_readable_pixels(primary_hdu, path)
     unit = _brightness_unit(header, path, supplied)
-    header_frequency_hz = _header_reference_frequency_hz(header, path)
+    rest_frequency_hz = _header_reference_frequency_hz(header, path)
     beam = _restoring_beam(header, path, supplied)
     image_wcs, celestial_wcs = _celestial_wcs(header, path)
     _require_one_rotation(header, image_wcs, path)
     _require_total_intensity(image_wcs, path)
+    # PyBDSF's order: the frequency axis, then a rest frequency.
+    header_frequency_hz = _wcs_reference_frequency_hz(image_wcs, path)
     if header_frequency_hz is None:
-        header_frequency_hz = _wcs_reference_frequency_hz(image_wcs, path)
+        header_frequency_hz = rest_frequency_hz
     return ImageMetadata(
         shape_yx=shape_yx,
         unit=unit,

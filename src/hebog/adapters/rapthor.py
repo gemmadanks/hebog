@@ -15,51 +15,21 @@ from typing import Literal
 from hebog.config import SourceFinderConfig
 
 
-def _validate_rms_box(value: tuple[int, int], name: str) -> None:
-    """Validate a positive RMS window width and step."""
-    width, step = value
-    if width <= 0 or step <= 0:
-        raise ValueError(f"{name} width and step must be positive")
-    if step > width:
-        raise ValueError(f"{name} step cannot exceed its width")
-
-
 @dataclass(frozen=True, slots=True)
 class RapthorCompatibilityConfig:
     """Rapthor/LSMTool choices kept outside the scientific API.
 
-    Rapthor supplies detection and island thresholds through its imaging
-    strategy. The remaining values reproduce the currently traced LSMTool
-    compatibility profile and are not universal Hebog defaults.
+    Rapthor supplies the detection and island thresholds through its imaging
+    strategy, and LSMTool's ``filter_by_mask`` decides whether sky-model
+    components outside the island mask are removed. The other options
+    LSMTool passes to PyBDSF (the RMS boxes, the bright-source threshold,
+    the wavelet scales and the zero mean map) are fixed by Hebog's reviewed
+    science, so the profile does not offer them; the Rapthor
+    source-finding contract maps each to the behaviour that replaces it.
     """
 
     source_finder: SourceFinderConfig
-    rms_box_pixels: tuple[int, int] = (150, 50)
-    bright_source_rms_box_pixels: tuple[int, int] = (35, 7)
-    adaptive_rms_threshold_sigma: float = 75.0
-    estimate_background: bool = False
-    use_spatial_rms: bool = True
-    use_adaptive_rms: bool = True
-    use_multiscale: bool = True
-    multiscale_levels: int = 3
     filter_sky_model_by_mask: bool = True
-
-    def __post_init__(self) -> None:
-        """Validate compatibility values before workflow execution."""
-        _validate_rms_box(self.rms_box_pixels, "rms_box_pixels")
-        _validate_rms_box(
-            self.bright_source_rms_box_pixels,
-            "bright_source_rms_box_pixels",
-        )
-        if (
-            not isfinite(self.adaptive_rms_threshold_sigma)
-            or self.adaptive_rms_threshold_sigma <= 0
-        ):
-            raise ValueError(
-                "adaptive_rms_threshold_sigma must be finite and positive"
-            )
-        if self.multiscale_levels < 1:
-            raise ValueError("multiscale_levels must be positive")
 
 
 @dataclass(frozen=True, slots=True)

@@ -32748,6 +32748,272 @@ the per-worker placement finding.
   were fixed. The profiler's stage entries and the traced-peak attribution
   now name `hebog.stages.composition`.
 
+## 2026-10-09 — Task 16: Rapthor and LSMTool pinned, the contract refreshed
+
+- **Pins.** Rapthor `main` at `c6196cb4` (the Prefect/Dask merge, still the
+  head on 9 October) and LSMTool `master` at `9bac2f7` (v1.9.0 plus 15
+  commits); PyBDSF stays at `c70103b`. The dated Phase 0 evidence records
+  that name the earlier trace (`b1a6467`) are left as captured.
+- **Invocation, traced.** Rapthor's Prefect `filter_skymodel` task runs on
+  its Dask task runner but starts a fresh interpreter
+  (`rapthor.execution.image.skymodel_filter_cli`) with OpenMP, OpenBLAS, MKL
+  and BLIS pinned to one thread, passing `--ncores` from
+  `filter_skymodel_ncores` (default 15; 0 means `max_threads`). The CLI calls
+  LSMTool's `filter_skymodel`, which dispatches through
+  `KNOWN_SOURCE_FINDERS`; Rapthor catches PyBDSF's `RuntimeError("All pixels
+  in the image are blanked.")` (raised in `bdsf/collapse.py`) and writes
+  placeholder products. LSMTool's `sofia` entry takes fewer arguments than
+  the registry passes, so the `bdsf` signature is the registry's real
+  contract. LSMTool groups sky-model components into patches by the island
+  mask's islands, so the mask's connectivity reaches the sky model.
+- **Sector sizes.** With no grid width, Rapthor images 1.7 times the
+  primary-beam FWHM (1.1 λ/D over the sine of the mean elevation) at 1.5″:
+  about 17,000 to 20,000 pixels a side for LOFAR HBA near 144 MHz. The
+  ical benchmark runs on the development cluster in September 2026 used
+  10° sectors at 2″ (18,000², with a 17,060 × 20,428 full-field image),
+  where PyBDSF's filter command took 298 to 2,955 s per sector in one
+  three-node run. Rapthor's Prefect demonstration strategy (1.25° at 1.5″)
+  is the 3,000² case the plan called representative. The plan's premise
+  that the 15,402² envelope covers Rapthor's sectors holds only for that
+  demonstration; the maintainer is asked whether the tiers above 15,402²
+  must precede the deployment gate.
+- **Behaviour map.** The contract page maps each PyBDSF option LSMTool
+  passes to Hebog's behaviour. Gaps: PyBDSF's zero mean map, where Hebog
+  estimates and subtracts a background (task 18 decides the Rapthor
+  profile); the island-stop flat-noise pass (task 18); the blanked-image
+  error, which Hebog answers with empty products instead (task 19).
+- **Reference frequency in PyBDSF's order.** The frequency axis now comes
+  before `RESTFRQ` and `RESTFREQ`, and is read at the image plane, the
+  axis's first pixel, as PyBDSF reads it; that is its `CRVAL` only when
+  `CRPIX` is 1, as WSClean writes it. WCSLIB's transform is used from the
+  reference point, because Astropy's `sub()` and array transforms refuse an
+  axis declared without `NAXISn` (MIGHTEE mosaics). Two new tests failed
+  first: the axis over each rest-frequency keyword, and the plane rather
+  than `CRVAL`. Hebog still reads the standard `RESTFRQ`, which PyBDSF
+  ignores, and still refuses a non-standard `FREQ` keyword. Quick check
+  `task16` and `task16-compact` against `task70` and `task70-compact`: no
+  regression, catalogue, RMS and mask byte-identical on all 18 cases under
+  both profiles (54 of 54 each); no case has an axis that disagrees with
+  its rest frequency.
+- **`RapthorCompatibilityConfig` narrowed** to `source_finder` and
+  `filter_sky_model_by_mask`. The RMS boxes, the bright-source threshold,
+  the multiscale switch and depth and the background switch were fields
+  nothing read, and Hebog's reviewed science fixes them;
+  `estimate_background=False` described a zero background Hebog does not
+  use.
+- **Execution model, for the maintainer.** The contract page compares
+  Hebog's thread executor inside Rapthor's subprocess (recommended: no
+  Rapthor change beyond the finder name, PyBDSF's `ncores` accounting,
+  a like-for-like gate) with Rapthor running Hebog on its Dask workers
+  (ADR-004's model; needs a Rapthor change and deadlock-safe nested
+  submission, and pays only when a sector needs more than one node).
+- **Checks.** `just coverage`, 3,602 passed and 1 xfailed at 97%;
+  `io/fits.py` and `adapters/rapthor.py` at 100% on a focused rerun (the
+  full run reported `io/fits.py` against a docstring edited while it ran);
+  the header-contract and FITS-source integration tests; the contract
+  tests; the strict docs build; `just check`.
+
+## 2026-10-10 — Maintainer decision: Hebog runs inside Rapthor's Dask worker
+
+- **Decision.** For `source_finder = hebog`, Rapthor replaces its
+  subprocess call to LSMTool's `filter_skymodel` with a native Prefect task
+  that runs Hebog in-process on the Dask worker, then LSMTool's
+  `filter_sources`; the PyBDSF subprocess stays for `bdsf` and as the
+  fallback. Rapthor is usually run with one sector, so one sector across the
+  cluster is the initial performance focus; several sectors must still be
+  supported. Rapthor runs one Dask worker a node today and will run several.
+- **Declined.** Task 16's recommendation, Hebog's thread executor inside
+  Rapthor's existing per-sector subprocess: it cannot use more than one
+  node for a sector, which is the usual case. Registering `hebog` in
+  LSMTool's registry is deferred, as Rapthor no longer needs it.
+- **Consequences recorded.** ADR-004 gains a dated amendment: the executor
+  follows the topology, a thread executor on the worker's cores for a
+  sector with a node to itself and Rapthor's client otherwise. New task 72
+  makes Hebog's executors fit Rapthor's workers: seceding while an
+  analysis waits on its tile tasks (otherwise concurrent sectors can
+  deadlock workers that run one task each), threads inside each Dask task
+  sized to the worker's declared cores (otherwise a node with one
+  single-threaded worker does one core's work), and a Dask resource
+  annotation. Tasks 19 and 20 are rewritten for the in-process adapter and
+  the native task; task 17's memory declarations become required before
+  several workers share a node; the cluster benchmark (task 27) adds one
+  Rapthor sector across 1 to 10 nodes.
+- **Order amended.** The 22,500² tier (task 11, with tasks 71 and 53 to 56)
+  now precedes the deployment gate, because Rapthor's usual single sector is
+  17,000 to 20,000 pixels a side (task 16). Task 23's first matched
+  measurement moves to Rapthor's 3,000² demonstration sector straight after
+  the integration, so the share of tasks 54 and 55 is still measured on
+  the integrated step. The gate itself stays single-node and like for like
+  with PyBDSF's `ncores`; one sector across several nodes is a separate
+  claim the cluster benchmark measures.
+
+## 2026-10-10 — Maintainer decision: one sector across the cluster, Dask-native
+
+- **Context.** Rapthor's nodes reach 192 cores and its clusters tens of
+  nodes, and the maintainer wants one sector to use them where that speeds
+  the work, with a simple design that makes the best use of Dask.
+- **Decision.** Hebog's tile tasks stay single-threaded and numerous, and
+  Dask schedules every core: tile cores are sized from the cores the
+  executor declares, Hebog's tasks carry a resource annotation, and the
+  analysis secedes while it waits. Several worker processes of a few
+  threads a node, not one of 192 threads, are recommended to Rapthor, so
+  Python's global lock does not throttle a node. This replaces the
+  threads-inside-each-Dask-task design of task 72 in the entry above.
+- **Serial share first.** Four local Dask workers take about 0.6 of the
+  serial time on the 15,402² mosaic; read as Amdahl's law with nothing else
+  limiting, that is a serial share near half the run, which would cap one
+  sector's speed-up near two. New task 73 measures the curve and the serial
+  share by stage, and new task 74 cuts it (driver reductions onto workers,
+  background refinement's roughly 69,000 small tasks batched, with tasks 54
+  to 56), before task 72 tunes the topology. The target is a strong-scaling
+  curve for one sector, not the use of every core.
+- **Dask arrays: no.** ADR-004 and ADR-005 rejected a Dask-array scientific
+  API. At this scale it would still not help: the limit is the serial share
+  and the object-level reconciliation of islands, components and sources
+  across tiles, which Dask arrays do not provide; it would tie every kernel
+  to one scheduler, break the Serial and Thread references and the
+  byte-identical tiling guarantee, and grow the graph with every array
+  operation.
+- **Records.** The plan gains the section "One sector across the cluster"
+  (tasks 73, 74 and 72) and an amended sequence; task 20 starts on a
+  thread executor; ADR-004's amendment, the contract page and the progress
+  page describe the Dask-native design.
+
+## 2026-10-10 — Maintainer: three use cases, each a performance target
+
+- **Use cases.** One Rapthor sector across a cluster (the usual run and the
+  first focus); one Rapthor sector on one node (the other main run, and the
+  gate's like-for-like comparison); and standalone use on a local machine
+  with smaller images, through the Serial or Thread executor. Several
+  sectors stay supported. The plan's scope rules now name them, and none
+  may be optimized by regressing another.
+- **Executor rule restated.** In Rapthor the executor follows Rapthor's
+  workers, not the count of sectors: Rapthor's client when its workers
+  expose the cores Hebog may use (several worker processes a node, or a
+  sector across nodes), otherwise a thread executor inside the worker's
+  task, because one single-threaded worker a node would run one Hebog task
+  at a time through Dask. Task 73 now measures the thread executor beside
+  local Dask workers at 1 to 12, since a node's two paths are both live
+  for use case 2; task 72 keeps a small image one tile with no scheduler
+  overhead for use case 3.
+
+## 2026-10-10 — Rapthor's Dask layouts drawn; the executor rule corrected
+
+- **Page.** `docs/architecture/rapthor-execution-layouts.md` draws one
+  sector on four layouts: one node with one worker, one node with several
+  workers, several nodes with one worker each, and the recommended several
+  nodes with a command worker and compute workers each. The maintainer can
+  change how Rapthor sets up its cluster; today's setup is the initial one.
+- **Constraint traced.** Rapthor's local cluster fixes
+  `threads_per_worker=1`, because Prefect cannot run two tasks safely in one
+  worker process, and gives every worker the node's whole
+  `mem_per_node_gb` as its memory limit.
+- **Correction.** The rule of the entry above said Rapthor's client serves
+  "a sector across nodes"; with one single-threaded worker a node, Dask
+  would give Hebog one task a node at a time, so in that layout one sector
+  runs a thread executor on one node. The plan, ADR-004's amendment and the
+  contract page now say so.
+- **Recommended layout.** On each node, a single-threaded command worker
+  for Rapthor's Prefect tasks and whole-node commands, and compute workers
+  of a few threads each for Hebog's tile tasks, kept apart by `command` and
+  `hebog` Dask resources. A local check with `distributed` 2026.7.1 showed
+  a task submitted under `dask.annotate(resources={"hebog": 1})` running on
+  a worker that holds the resource and waiting on one that does not;
+  `prefect-dask` 0.3.7's client passes `resources` through on submission.
+  The filter task waits on its command worker, so it cannot starve its own
+  tiles, and the command slot keeps whole-node commands one at a time.
+- **Workers during a flow.** Dask adds and removes workers at any time
+  (`LocalCluster.scale` and `adapt`, a later `dask worker`,
+  `Client.retire_workers`), but a worker's threads and resources are fixed
+  at start, and Hebog sizes its tiles from the capacity present when an
+  analysis starts. Starting the compute workers with the cluster is
+  recommended. Tasks 72 and 20 now carry the layout.
+
+## 2026-10-10 — Rapthor's layouts: one worker design for every task
+
+- **Layout 3 clarified.** With one single-threaded worker a node across M
+  nodes, Hebog on Rapthor's client runs one tile a node at a time, M cores
+  in all (ten of 1,920 on ten 192-core nodes); a thread executor in the
+  filter task runs up to 192 threads on one node. Hebog takes the second;
+  the page now shows both rather than saying the other nodes wait.
+- **Recommended layout replaced.** The maintainer prefers several Dask
+  workers a node for DP3 and WSClean as well, which replaces the command
+  and compute workers of the entry above with one rule: each worker has T
+  threads and declares `cores: T` and `prefect: 1`; every Rapthor Prefect
+  task requests `prefect: 1` and the cores it uses (DP3 and WSClean all T,
+  the filter task one), and every Hebog tile task one core. A local check
+  with `distributed` 2026.7.1 on one four-thread worker: two Prefect tasks
+  ran in 1.0 s of 0.5 s each (serially), four single-core tiles in 0.5 s
+  (together), two whole-worker commands in 1.0 s (serially), and a 1.0 s
+  Prefect task beside six 0.5 s tiles finished in 1.0 s (three tiles at a
+  time). The worker size T is Rapthor's trade-off: external commands want
+  it large, Hebog's tiles in one Python process want it small enough for
+  the global lock, which task 73 measures.
+
+## 2026-10-10 — Maintainer decision: Hebog scales independently of its integrations (ADR-010)
+
+- **Decision.** Rapthor keeps responsibility for its Dask workers and how
+  they serve DP3, WSClean and Hebog. DP3's chunks change in number, size
+  and memory with each self-calibration cycle's solution intervals, so
+  Rapthor may scale workers dynamically; WSClean runs across nodes with MPI
+  and needs few Dask workers for now. Hebog defines what it needs from a
+  Dask cluster to scale, independently of Rapthor, because it may run alone
+  and may later handle spectral cubes or a time axis; Rapthor may change to
+  accommodate Hebog. ADR-010 records it.
+- **What Hebog needs**, for any caller: a client it does not own, worker
+  task slots across processes and nodes, storage every worker reads, and
+  Dask resource annotations for its tasks' core and memory whose names and
+  amounts the caller configures. Hebog defines no resource of the
+  caller's; the `cores` and `prefect` scheme of the entry above is now one
+  way Rapthor could provide several task slots a node, Rapthor's choice.
+- **Dimensions.** The target stays two-dimensional continuum images;
+  partitions, halos and reconciliation are two-dimensional and stay so
+  until a cube or time-axis use case exists, which a new ADR decides. The
+  executor protocol is blind to dimensions, tasks carry bounds and
+  generation names, and Zarr is N-dimensional, which keeps that open.
+- **Records.** A fourth use case, Hebog standalone on a cluster; task 72
+  rewritten as scaling on any Dask cluster, with caller-configured resource
+  names and workers joining between analyses tested; task 20 provides
+  Hebog's needs with Rapthor's own layout; the cluster benchmark (task 27)
+  runs Hebog standalone on the LOFAR-HD mosaic on a cluster its guide
+  starts. ADR-004's amendment, the layouts page and the contract page now
+  state Hebog's needs and leave Rapthor's layout to Rapthor. The layouts
+  page no longer claims a task lost with a worker reruns to the same
+  products; task 19's worker-loss scenario is to show it.
+
+## 2026-10-10 — Design review folded in
+
+The maintainer accepted a review of the distributed design. The changes,
+recorded in ADR-010, ADR-004's amendment, the layouts and contract pages
+and the plan:
+
+- **The caller builds the executor.** Hebog's adapter no longer chooses
+  between Rapthor's client and a thread executor from Rapthor's layout;
+  Rapthor builds it and passes it in (tasks 19, 20 and 72). Inside
+  Rapthor the thread path is retired once each node has several task
+  slots, so the single-node gate (task 23) measures the path Rapthor
+  deploys.
+- **A core budget.** The caller states the cores Hebog may use, defaulting
+  to the client's capacity, which also counts threads other work holds;
+  the run's timing record states the tiling chosen, leaving the product
+  hashes unchanged.
+- **Parallelism by batching as well as tile size.** Each stage chooses its
+  tile core from its halo and its task count from batching, by a cost
+  model fitted to task 73's measurements, so small cores do not multiply
+  halo overhead (task 72).
+- **Memory first.** Task 17 moves from M5 to the integration, before task
+  20, and covers the analysis's own memory on its worker (1.7 GiB traced at
+  15,402²) as well as the heavy rounds, under caller-named resources.
+- **Concurrent branches.** Task 18 runs the true-sky and flat-noise
+  branches on one executor at the same time, filling each branch's
+  stage-boundary waits with the other's tasks.
+- **Native threads and cancellation.** ADR-010's needs add workers that
+  limit native thread pools to their declared cores, and cancellation that
+  stops an analysis's tile tasks; task 19 adds a cancellation acceptance
+  scenario.
+- **Shared storage.** Task 73 records the number of chunk files, and task 25
+  evaluates Zarr v3's sharding codec before the cluster benchmark.
+
 ## 2026-10-10 — Shorten PR CI feedback without reducing the test matrix
 
 - **Decision and scope.** The [44½-minute PR run](https://github.com/gemmadanks/hebog/actions/runs/38031868877)

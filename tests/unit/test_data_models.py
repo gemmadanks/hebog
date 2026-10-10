@@ -2,7 +2,7 @@
 
 import json
 import pickle
-from dataclasses import replace
+from dataclasses import fields, replace
 from pathlib import Path
 from typing import Any, Literal
 
@@ -275,14 +275,21 @@ def test_rapthor_records_expose_two_branch_compatibility_products() -> None:
     assert pickle.loads(pickle.dumps(result)) == result
 
 
-def test_rapthor_profile_composes_explicit_scientific_thresholds() -> None:
-    """Workflow compatibility options do not become universal defaults."""
+def test_rapthor_profile_holds_only_the_options_the_finder_honours() -> None:
+    """The finder's thresholds and LSMTool's mask filter, nothing it ignores.
+
+    The RMS boxes, the bright-source threshold, the multiscale depth and
+    the background handling are Hebog's reviewed science, which a caller
+    cannot change, so the compatibility profile does not offer them.
+    """
     config = _rapthor_config()
 
+    assert {field.name for field in fields(config)} == {
+        "source_finder",
+        "filter_sky_model_by_mask",
+    }
     assert config.source_finder.detection_threshold_sigma == 5.0
-    assert config.rms_box_pixels == (150, 50)
-    assert config.bright_source_rms_box_pixels == (35, 7)
-    assert config.adaptive_rms_threshold_sigma == 75.0
+    assert config.filter_sky_model_by_mask
 
 
 @pytest.mark.parametrize(
@@ -434,36 +441,6 @@ def test_rapthor_result_rejects_invalid_metadata(
     """Rapthor result metadata fails at the compatibility boundary."""
     with pytest.raises(ValueError, match=message):
         replace(_rapthor_result(), **changes)
-
-
-@pytest.mark.parametrize(
-    ("changes", "message"),
-    [
-        ({"rms_box_pixels": (0, 1)}, "width and step must be positive"),
-        ({"rms_box_pixels": (1, 0)}, "width and step must be positive"),
-        ({"rms_box_pixels": (1, 2)}, "step cannot exceed its width"),
-        (
-            {"bright_source_rms_box_pixels": (0, 1)},
-            "bright_source_rms_box_pixels",
-        ),
-        (
-            {"adaptive_rms_threshold_sigma": float("nan")},
-            "adaptive_rms_threshold_sigma",
-        ),
-        (
-            {"adaptive_rms_threshold_sigma": 0.0},
-            "adaptive_rms_threshold_sigma",
-        ),
-        ({"multiscale_levels": 0}, "multiscale_levels must be positive"),
-    ],
-)
-def test_rapthor_profile_rejects_invalid_compatibility_values(
-    changes: dict[str, object],
-    message: str,
-) -> None:
-    """Invalid workflow compatibility values fail before execution."""
-    with pytest.raises(ValueError, match=message):
-        replace(_rapthor_config(), **changes)
 
 
 def test_image_metadata_is_small_and_pickle_serializable() -> None:

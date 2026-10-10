@@ -10,7 +10,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-07-18 |
-| **Last Updated** | 2026-07-18 |
+| **Last Updated** | 2026-10-10 |
 | **Deciders** | Gemma Danks |
 | **Tags** | Dask, execution, Rapthor, resources |
 
@@ -63,6 +63,46 @@ pipeline boundary, and cancellation.
 
 The serial executor is the deterministic reference. Local and Dask executors
 must match its membership, ordering, outputs, and tolerances.
+
+### Amendment of 10 October 2026: Hebog runs inside Rapthor's Dask worker
+
+Rapthor's `main` (`c6196cb4`, 9 October 2026) runs its filter step in a
+fresh interpreter per sector through LSMTool, with no Dask client in reach
+of the finder. The maintainer decided that Rapthor replaces that call, for
+`source_finder = hebog`, with a native Prefect task that runs Hebog
+in-process on the Dask worker, keeping the PyBDSF subprocess as the
+fallback. The decision above stands: Rapthor still owns the cluster, and
+Hebog uses only the executor it is given.
+
+Three uses are performance targets: one Rapthor sector across a cluster,
+the usual run and the first focus; one sector on one node; and standalone
+use on a local machine with smaller images, through the Serial or Thread
+executor. Several sectors in flight stay supported, and Hebog also runs
+alone on a cluster. Hebog defines what it needs from a Dask cluster to
+scale and Rapthor provides it, changing its setup if it must
+([ADR-010](010-scale-hebog-independently-of-its-integrations.md)). Rapthor
+builds Hebog's executor from its own workers and passes it in, with the
+cores Hebog may use:
+
+- when its workers give each node several task slots, the target, Rapthor
+  passes its client: Hebog's tile tasks stay single-threaded and numerous,
+  each stage choosing its tile core and task count within the core budget,
+  so Dask schedules every core; its tasks declare the core and memory they
+  use under resource names Rapthor configures; and the analysis waits on
+  one slot, seceding where it would otherwise hold its worker's only
+  thread;
+- while each node has one single-threaded worker, today's layout, Rapthor
+  passes a thread executor that runs inside the worker's task, and one
+  sector uses one node; Rapthor retires this path once the target is in
+  place.
+
+How Rapthor's workers serve DP3, WSClean and Hebog together, and when it
+scales them, is Rapthor's decision. [How Hebog runs on Rapthor's Dask
+layouts](../rapthor-execution-layouts.md) draws each layout and one way to
+provide several task slots a node. No thread pool is nested inside a Dask
+task, and Hebog's arrays stay NumPy behind the executor rather than Dask
+arrays. One sector's speed-up is bounded by its serial share, which the
+plan measures and cuts before tuning the topology (tasks 73, 74 and 72).
 
 ## Consequences
 
