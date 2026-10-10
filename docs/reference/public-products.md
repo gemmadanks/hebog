@@ -16,18 +16,34 @@ the selected thresholds or algorithms are qualified for a survey.
 | `catalogue.fits` | `source-catalogue`, FITS schema 4 | What islands, associated sources, and admitted Gaussian components were measured? |
 | `rms.fits` | `rms`, FITS image schema 1 | What local RMS did thresholding and reported local-noise fields use? |
 | `source-mask.fits` | `source-filtering-mask`, FITS image schema 1 | Which input-aligned pixels belong to retained published detections? |
-| `diagnostics.json` | `diagnostics`, JSON schema 11 | What was omitted, deferred, selected, or unavailable, and exactly which science produced the bundle? |
+| `diagnostics.json` | `diagnostics`, JSON schema 12 | What was omitted, deferred, selected, or unavailable, and exactly which science produced the bundle? |
+| `flat-noise-rms.fits` | `rms`, FITS image schema 1; only when the request names a flat-noise image | What local RMS does the sector's flat-noise image have? |
 
-Use all four together. In particular, `catalogue.fits` contains only published
+Use the first four together. In particular, `catalogue.fits` contains only published
 measurements, while `diagnostics.json` is the census of measured and
 unmeasurable component/source identities.
 
 ## The returned result record
 
-`SourceFinderResult` schema 2 is an immutable, scheduler-safe summary. It
+`SourceFinderResult` schema 3 is an immutable, scheduler-safe summary. It
 contains `run_id`, `source_count`, `gaussian_component_count`, `island_count`,
-`wall_seconds`, and four `MaterializedProduct` records named `catalogue`,
-`rms`, `mask`, and `diagnostics`.
+`wall_seconds`, four `MaterializedProduct` records named `catalogue`, `rms`,
+`mask`, and `diagnostics`, and `flat_noise_rms`, the flat-noise image's RMS
+product or `null` when the request named no flat-noise image.
+
+### A sector's flat-noise image
+
+`SourceFinderRequest` schema 2 accepts `flat_noise_image_path`: the
+primary-beam-uncorrected image of the same sector, as Rapthor's imaging
+writes it beside the primary-beam-corrected one. It must share the true-sky
+image's shape and celestial WCS, or the run stops before any product is
+written, and `supplied_metadata` applies to both. The run analyses the
+true-sky image as usual, then estimates the flat-noise image's background
+and RMS on the same executor and with the same configuration, and publishes
+its RMS as `flat-noise-rms.fits`. Nothing else is measured on the flat-noise
+image, as PyBDSF's second pass in Rapthor publishes only its RMS. The
+catalogue, RMS and mask do not depend on whether a flat-noise image is
+given.
 
 Every `MaterializedProduct` contains:
 
@@ -255,7 +271,7 @@ availability, estimator, model selection, or association.
 ## RMS FITS image
 
 `rms.fits` is a two-dimensional float64 image aligned with the input celestial
-WCS. It copies the restoring beam and reference frequency metadata and uses:
+WCS; `flat-noise-rms.fits` has the same form, from the flat-noise image. It copies the restoring beam and reference frequency metadata and uses:
 
 | Header | Value or meaning |
 | --- | --- |
@@ -356,19 +372,20 @@ newline. Schema 11 rejects unknown fields and contains:
 | `measurement_dispositions` | Complete structured census described below. |
 | `rms_scientific_status` | `valid` or `unavailable`, matching the RMS product. |
 | `provenance` | Exact input, configuration, science-profile, and implementation identities, and any caller-supplied image metadata. |
-| `schema_version` | `11`. |
+| `schema_version` | `12`. |
 
 ### Provenance
 
 | Field | Meaning |
 | --- | --- |
 | `input_sha256` | Bytes of the input FITS file. |
+| `flat_noise_input_sha256` | Bytes of the flat-noise image, or `null` when the request named none. |
 | `configuration_sha256` | Canonical complete `SourceFinderConfig`, including thresholds, size limits, and profile. |
 | `scientific_profile_sha256` | Exact installed science-configuration resource. |
 | `scientific_composition` | Opaque implementation label. Preserve it for provenance; users do not need to interpret it. |
 | `scientific_composition_sha256` | Exact identity of the implementation: every Hebog module the finder imports, except the package initializer and tile planning, and every packaged resource file. |
 | `supplied_image_metadata` | `null`, or the `SuppliedImageMetadata` values the request supplied for keywords the input header omits: `reference_frequency_hz`, `beam_major_fwhm_degrees`, `beam_minor_fwhm_degrees`, `beam_position_angle_degrees` and `brightness_unit`, each `null` when not supplied. The input SHA-256 alone does not identify a run that used supplied metadata. |
-| `schema_version` | `3` for the nested provenance record. |
+| `schema_version` | `4` for the nested provenance record. |
 
 Two runs should be treated as the same scientific computation only after the
 relevant identities, software/environment context, and product bytes have been

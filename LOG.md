@@ -33080,3 +33080,50 @@ and the plan:
   invariant. `just check` passes with 2,442 tests and one strict xfail;
   workflow syntax and expressions pass actionlint. The hosted matrix must
   rerun on the repaired commit before the PR can be considered passing.
+
+## 2026-10-10 — Task 18, first half: the flat-noise RMS branch
+
+- **Outcome.** `SourceFinderRequest` schema 2 accepts
+  `flat_noise_image_path`, the primary-beam-uncorrected image of the same
+  sector. The run analyses the true-sky image as before, then estimates the
+  flat-noise image's background and RMS with the same configuration and
+  executor (`composition.estimate_background_rms`), and publishes its RMS
+  as `flat-noise-rms.fits` in the same atomically published bundle. That is
+  all PyBDSF's second, `stop_at="isl"` pass contributes to Rapthor, so
+  nothing else is measured on the flat-noise image. The image must share
+  the true-sky shape and celestial WCS, or the run stops before writing;
+  `supplied_metadata` applies to both.
+- **Schemas.** Request 2, `SourceFinderResult` 3 (`flat_noise_rms`, an
+  `rms`-role product or `null`), provenance 4 (`flat_noise_input_sha256`)
+  and public diagnostics 12. No new product role: the flat-noise RMS is an
+  RMS image, written and read by the existing RMS code.
+- **Sequential, not concurrent.** The plan asked for the two branches to
+  submit tasks concurrently. A driver thread would do that, but
+  `test_library_never_creates_its_own_workers` forbids thread pools outside
+  the thread executor, and rightly: under the serial executor the thread
+  would compute in parallel, which the caller did not ask for, and the
+  serial reference would no longer be single-threaded. The branches run one
+  after the other; concurrency moves to task 72, through the executor.
+  Background and RMS are about half of a large run, so this costs Rapthor
+  until then.
+- **Plan correction.** Task 18's row said the flat-noise branch would run
+  through `run_stages_from_background`; it needs only the background stage,
+  as PyBDSF's flat-noise pass publishes only its RMS. Task 18 is now the
+  Rapthor profile decision: the zero mean map, the threshold mapping, and
+  PyBDSF's second grouping rule, each measured before the maintainer
+  decides.
+- **Tests.** Eight integration tests failed first on the missing request
+  field: under Serial, Thread and Dask the flat-noise RMS equals a
+  standalone run on the flat-noise image and the true-sky catalogue, RMS
+  and mask equal a run without it; no flat-noise RMS without the field; the
+  provenance binds both inputs; a flat-noise image of another shape or grid
+  is refused before any product; and a failed flat-noise estimate fails the
+  run with nothing published or staged. Unit tests cover a misdescribed or
+  unavailable flat-noise product and a malformed checksum.
+- **Evidence.** Quick check `task18` and `task18-compact` against `task16`
+  and `task16-compact`: no regression, catalogue, RMS and mask
+  byte-identical on all 18 cases under both profiles (54 of 54 each).
+- **Checks.** The integration suite, 1,261 passed; the equivalence and
+  acceptance lanes; `just coverage`, 3,610 passed and 1 xfailed at 97%,
+  `public_api.py` and `data_models/source_finding.py` at 99% with no miss
+  in the changed code; strict pyright and ruff.

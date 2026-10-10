@@ -68,6 +68,7 @@ from hebog.pipeline import (
     SourceFinderStagingWarning,
     UnsupportedSourceFinderConfigurationError,
 )
+from hebog.stages import composition
 from hebog.stages.composition import (
     restoring_beam_from_header,
     run_stages,
@@ -230,6 +231,20 @@ class _ScientificProducts:
     wide_object_counts: WideObjectCounts = field(
         default_factory=WideObjectCounts
     )
+    flat_noise: _NoiseEstimate | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class _NoiseEstimate:
+    """One image's published background/RMS and whether any pixel can use it.
+
+    The flat-noise image of a Rapthor sector needs nothing more: PyBDSF's
+    second pass on it publishes only its RMS map.
+    """
+
+    metadata: ImageMetadata
+    background_rms_source: ZarrProductSink
+    rms_scientific_status: Literal["valid", "unavailable"]
 
 
 def _require_unclaimed_output(output: Path) -> None:
@@ -541,7 +556,82 @@ def _stage_inputs(
     )
 
 
+def _estimate_noise(  # noqa: PLR0913
+    source: WindowReadable,
+    metadata: ImageMetadata,
+    executor: Executor,
+    work_directory: Path,
+    *,
+    config: SourceFinderConfig,
+    generation_id: str,
+) -> _NoiseEstimate:
+    """Estimate one image's background and RMS as the analysis does."""
+    beam, review = _stage_inputs(metadata, config)
+    background_rms_source, usable_noise = composition.estimate_background_rms(
+        source,
+        metadata,
+        config,
+        executor,
+        work_directory,
+        beam=beam,
+        review=review,
+        generation_id=generation_id,
+    )
+    return _NoiseEstimate(
+        metadata=metadata,
+        background_rms_source=background_rms_source,
+        rms_scientific_status="valid" if usable_noise else "unavailable",
+    )
+
+
 def _analyse_image(  # noqa: PLR0913
+    request: SourceFinderRequest,
+    source: FitsImageSource,
+    metadata: ImageMetadata,
+    executor: Executor,
+    work_directory: Path,
+    *,
+    config: SourceFinderConfig,
+    header: fits.Header,
+    flat_noise: tuple[FitsImageSource, ImageMetadata] | None = None,
+) -> _ScientificProducts:
+    """Run the stage sequence and build the terminal catalogues it feeds.
+
+    With a flat-noise image, its background and RMS are then estimated on
+    the same executor, as the true-sky analysis estimates its own. The two
+    run one after the other: the caller's executor is the only source of
+    parallelism, so the serial reference stays single-threaded.
+    """
+    products = _analyse_true_sky(
+        request,
+        source,
+        metadata,
+        executor,
+        work_directory,
+        config=config,
+        header=header,
+    )
+    if flat_noise is None:
+        return products
+    return replace(
+        products,
+        flat_noise=_estimate_noise(
+            flat_noise[0],
+            flat_noise[1],
+            executor,
+            work_directory / "flat-noise",
+            config=config,
+            generation_id=_generation_id(request),
+        ),
+    )
+
+
+def _generation_id(request: SourceFinderRequest) -> str:
+    """Name the run's intermediate generations after its run identifier."""
+    return f"public-{hashlib.sha256(request.run_id.encode()).hexdigest()}"
+
+
+def _analyse_true_sky(  # noqa: PLR0913
     request: SourceFinderRequest,
     source: FitsImageSource,
     metadata: ImageMetadata,
@@ -567,9 +657,7 @@ def _analyse_image(  # noqa: PLR0913
         restoring_beam=restoring_beam_from_header(header),
         beam=beam,
         review=review,
-        generation_id=(
-            f"public-{hashlib.sha256(request.run_id.encode()).hexdigest()}"
-        ),
+        generation_id=_generation_id(request),
     )
     published = stages.published
     if published is None:
@@ -955,8 +1043,7 @@ def _mask_row_blocks(
 
 
 def _rms_row_blocks(
-    products: _ScientificProducts,
-    metadata: ImageMetadata,
+    estimate: _NoiseEstimate,
 ) -> Iterator[npt.NDArray[np.float64]]:
     """Yield the published RMS as full-width row blocks of one tile row.
 
@@ -965,12 +1052,12 @@ def _rms_row_blocks(
     rather than read back from a store that holds the unusable estimate.
     Either way the block held at once grows with image width alone.
     """
-    height, width = metadata.shape_yx
+    height, width = estimate.metadata.shape_yx
     block_rows = min(
         height,
-        products.background_rms_source.manifest.tile_core_shape_yx[0],
+        estimate.background_rms_source.manifest.tile_core_shape_yx[0],
     )
-    if products.rms_scientific_status == "unavailable":
+    if estimate.rms_scientific_status == "unavailable":
         for start in range(0, height, block_rows):
             yield np.full(
                 (min(block_rows, height - start), width),
@@ -978,7 +1065,7 @@ def _rms_row_blocks(
                 dtype=np.float64,
             )
         return
-    for block in products.background_rms_source.iter_completed_row_blocks(
+    for block in estimate.background_rms_source.iter_completed_row_blocks(
         "rms",
         max_block_bytes=block_rows * width * np.dtype(np.float64).itemsize,
     ):
@@ -1010,9 +1097,24 @@ def _materialize_bundle(  # noqa: PLR0913
     rms_product = write_rms_fits_product(
         unpublished / "rms.fits",
         metadata,
-        _rms_row_blocks(products, metadata),
+        _rms_row_blocks(
+            _NoiseEstimate(
+                metadata, products.background_rms_source, rms_status
+            )
+        ),
         dtype=np.dtype("float64"),
         scientific_status=rms_status,
+    )
+    flat_noise_rms_product = (
+        None
+        if products.flat_noise is None
+        else write_rms_fits_product(
+            unpublished / "flat-noise-rms.fits",
+            products.flat_noise.metadata,
+            _rms_row_blocks(products.flat_noise),
+            dtype=np.dtype("float64"),
+            scientific_status=products.flat_noise.rms_scientific_status,
+        )
     )
     mask_product = write_mask_fits_product(
         unpublished / "source-mask.fits",
@@ -1063,6 +1165,11 @@ def _materialize_bundle(  # noqa: PLR0913
         gaussian_component_count=len(catalogue.gaussian_components),
         island_count=len(catalogue.islands),
         wall_seconds=wall_seconds,
+        flat_noise_rms=(
+            None
+            if flat_noise_rms_product is None
+            else _final_product(flat_noise_rms_product, output)
+        ),
     )
 
 
@@ -1085,6 +1192,30 @@ def _read_input(
         ) from error
 
 
+def _read_flat_noise_input(
+    source: FitsImageSource,
+    image_path: Path,
+    true_sky: ImageMetadata,
+) -> tuple[FitsImageSource, ImageMetadata]:
+    """Read and admit a sector's flat-noise image on the true-sky grid.
+
+    Raises:
+        InvalidSourceFinderInputError: If the image cannot be read, or its
+            shape or celestial WCS differs from the true-sky image's.
+    """
+    metadata, _ = _read_input(source, image_path)
+    _qualified_metadata(metadata)
+    if (
+        metadata.shape_yx != true_sky.shape_yx
+        or metadata.celestial_wcs != true_sky.celestial_wcs
+    ):
+        raise InvalidSourceFinderInputError(
+            "the flat-noise image must share the true-sky image's pixel "
+            f"grid: {image_path}"
+        )
+    return source, metadata
+
+
 def _provenance(
     request: SourceFinderRequest,
     config: SourceFinderConfig,
@@ -1096,9 +1227,14 @@ def _provenance(
     """
     try:
         input_sha256 = _file_sha256(request.image_path)
+        flat_noise_input_sha256 = (
+            None
+            if request.flat_noise_image_path is None
+            else _file_sha256(request.flat_noise_image_path)
+        )
     except OSError as error:
         raise InvalidSourceFinderInputError(
-            f"invalid FITS source-finder input: {request.image_path}"
+            f"invalid FITS source-finder input: {error.filename}"
         ) from error
     return PublicSourceFindingProvenance(
         input_sha256=input_sha256,
@@ -1107,6 +1243,7 @@ def _provenance(
         scientific_composition_sha256=_scientific_composition_sha256(),
         scientific_composition=_COMPOSITION_NAME,
         supplied_image_metadata=request.supplied_metadata,
+        flat_noise_input_sha256=flat_noise_input_sha256,
     )
 
 
@@ -1137,11 +1274,33 @@ def find_sources(
     output = Path(request.output_directory).absolute()
     _require_unclaimed_output(output)
     image_path = Path(request.image_path).absolute()
-    request = replace(request, image_path=image_path, output_directory=output)
+    flat_noise_path = (
+        None
+        if request.flat_noise_image_path is None
+        else Path(request.flat_noise_image_path).absolute()
+    )
+    request = replace(
+        request,
+        image_path=image_path,
+        output_directory=output,
+        flat_noise_image_path=flat_noise_path,
+    )
     source = FitsImageSource(image_path, request.supplied_metadata)
+    flat_noise_source = (
+        None
+        if flat_noise_path is None
+        else FitsImageSource(flat_noise_path, request.supplied_metadata)
+    )
     try:
         metadata, header = _read_input(source, image_path)
         _qualified_metadata(metadata)
+        flat_noise = (
+            None
+            if flat_noise_source is None or flat_noise_path is None
+            else _read_flat_noise_input(
+                flat_noise_source, flat_noise_path, metadata
+            )
+        )
         provenance = _provenance(request, config)
         output.parent.mkdir(parents=True, exist_ok=True)
         _report_leftover_staging(output)
@@ -1155,6 +1314,7 @@ def find_sources(
                 temporary / "work",
                 config=config,
                 header=header,
+                flat_noise=flat_noise,
             )
             unpublished = temporary / "bundle"
             unpublished.mkdir()
@@ -1173,4 +1333,6 @@ def find_sources(
         # when the run ends, or is refused, rather than leaving it to the
         # collector: a caller handling the error may want to move the file.
         source.close()
+        if flat_noise_source is not None:
+            flat_noise_source.close()
     return result.model_copy(update={"wall_seconds": monotonic() - started})
