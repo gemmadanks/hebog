@@ -547,7 +547,7 @@ experimental standalone release.
 - Compute reference-finder timings once per input, revision and host and
   reuse them; rerun them only when one of those changes.
 - Match environments and record evidence as
-  [`AGENTS.md`](../AGENTS.md#performance-validation) requires: matched
+  [`AGENTS.md`](../AGENTS.md#scientific-and-performance-gates) requires: matched
   inputs, revisions, output mode, host, threads, workers, memory and storage;
   one warm-up and at least five measured repetitions with every value
   retained; the full instrumentation list, with scale evidence adding
