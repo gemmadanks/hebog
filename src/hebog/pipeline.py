@@ -12,7 +12,7 @@ class SourceFinderError(Exception):
 
 
 class SourceFinderOutputExistsError(SourceFinderError):
-    """The caller-owned output destination already exists."""
+    """The output destination exists without this request's products."""
 
 
 class InvalidSourceFinderInputError(SourceFinderError):
@@ -43,11 +43,13 @@ def find_sources(
 ) -> SourceFinderResult:
     """Analyse one supported FITS image and atomically publish its products.
 
-    A failed run raises only once no task it submitted is still running,
-    and removes everything it staged. A killed run leaves a hidden
-    staging directory, which the next run to the same output removes once
-    its owner has provably stopped or reports with a
-    ``SourceFinderStagingWarning``.
+    When the output already holds the products of a finished run of the
+    same request, with the same run ID, inputs, configuration and science,
+    they are returned without analysing the image again. A failed run
+    raises only once no task it submitted is still running, and removes
+    everything it staged. A killed run leaves a hidden staging directory,
+    which the next run to the same output removes once its owner has
+    provably stopped or reports with a ``SourceFinderStagingWarning``.
 
     The implementation is imported only when called so importing the public
     scheduler-independent API never loads a concrete I/O or scheduler layer.

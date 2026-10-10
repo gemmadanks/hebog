@@ -484,7 +484,7 @@ text:
 
 | Exception | Meaning |
 | --- | --- |
-| `SourceFinderOutputExistsError` | The caller-owned output path already exists; Hebog will not overwrite it. Publication claims the destination atomically, so a path another writer creates while the analysis runs is reported here rather than replaced. Products then appear in one rename; treat a successful return, not the directory's existence, as the completion boundary. |
+| `SourceFinderOutputExistsError` | The caller-owned output path already exists and does not hold this request's finished products ([running a finished request again](#running-a-finished-request-again)); Hebog will not overwrite it. Publication claims the destination atomically, so a path another writer creates while the analysis runs is reported here rather than replaced. Products then appear in one rename; treat a successful return, not the directory's existence, as the completion boundary. |
 | `InvalidSourceFinderInputError` | The FITS file cannot be read as a supported image: it is missing, truncated or not FITS, it is not one plane, or a header card the finder reads is missing, malformed or ambiguous. The message names the keyword or layout. A unit, beam or frequency that the header lacks and the request does not supply is reported here. |
 | `UnsupportedSourceFinderConfigurationError` | The image is readable but outside what the requested science runs on: a unit other than `Jy/beam`, a celestial frame other than ICRS or FK5 J2000, or a restoring beam wider than 10 pixels. |
 | `SourceFinderImageTooLargeError` | A spatial dimension exceeds 15,402 pixels, or the shorter side is under 600 pixels and the image holds more than 1,000,000. |
@@ -541,6 +541,20 @@ still run to completion and may write into the directory after the next run
 has removed it. What they recreate holds no owner record, so it is reported
 and left in place. Before running the request again after killing the
 process, let the cluster finish those tasks or restart its workers.
+
+### Running a finished request again
+
+A bundle is published in one rename, so one in place is complete. When a
+request runs again after its run finished, as when a workflow retries a
+task that failed after the finder returned, `find_sources()` returns the
+products already published and analyses nothing. The request must be the
+same one: the same run ID, and the same provenance, which binds the input
+bytes (and the flat-noise image's), the configuration and the science
+composition. Each product it should hold is validated as its writer
+validated it, and the returned records equal the first run's apart from
+`wall_seconds`. A bundle of another request, or one missing or damaging a
+product, raises `SourceFinderOutputExistsError` and is kept. A run that
+failed part-way published nothing, so its retry analyses the image again.
 
 ## Evaluation checklist for astronomers
 
