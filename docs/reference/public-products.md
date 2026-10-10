@@ -509,8 +509,17 @@ has not started and waits for what has. Dask cannot stop a task a worker has
 started, and a Dask future does not say whether its task has started, so
 `DaskExecutor` waits for every task it has in flight, at most
 `capacity.maximum_tasks_in_flight`. A task that never finishes holds the
-call open, as it would in a successful run; a caller that needs a deadline
-sets one around the call and stops the process when it passes.
+call open, as it would in a successful run.
+
+A caller's deadline ends a run the same way when it raises in the thread
+that called `find_sources()`, as a Prefect task timeout does off the main
+thread: the run raises the caller's exception once no task it started is
+still running, starts none afterwards, and removes its staging directory.
+`ThreadExecutor` holds each call's tasks behind a guard, so even a task the
+pool queued as the exception arrived never runs. With `DaskExecutor`, an
+exception that arrives while a task is being handed to the scheduler can
+leave that one task running unobserved; one that arrives while the run
+waits, where it spends its time, cannot.
 
 A process that is killed cannot remove its staging directory, so the
 directory records its owner. `owner.json` names the output, the run

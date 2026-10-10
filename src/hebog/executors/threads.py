@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import threading
 from collections import deque
 from collections.abc import Callable, Generator, Iterable
-from concurrent.futures import Future, ThreadPoolExecutor, wait
+from concurrent.futures import CancelledError, Future, ThreadPoolExecutor
 from contextlib import closing
 from types import TracebackType
 from typing import TypeVar
@@ -21,6 +22,47 @@ from hebog.executors.base import (
 
 Input = TypeVar("Input")
 Output = TypeVar("Output")
+
+
+class _CallGuard:
+    """Let one call's tasks start only while the call goes on.
+
+    A task enters before it runs and leaves when it ends. Once the call
+    stops, no task enters, and stopping waits for every task that entered.
+    This covers a task whose future the driver never held: a caller's
+    deadline, raised in the driving thread as Prefect raises it, can arrive
+    inside ``submit`` after the pool queued the task.
+    """
+
+    def __init__(self) -> None:
+        """Start with the call going on and no task running."""
+        self._condition = threading.Condition()
+        self._stopped = False
+        self._running = 0
+
+    def run(
+        self,
+        function: Callable[[Input], Output],
+        batch: Input,
+        retry_limit: int,
+    ) -> Output:
+        """Run one task, unless its call has stopped."""
+        with self._condition:
+            if self._stopped:
+                raise CancelledError
+            self._running += 1
+        try:
+            return call_with_retries(function, batch, retry_limit=retry_limit)
+        finally:
+            with self._condition:
+                self._running -= 1
+                self._condition.notify_all()
+
+    def stop(self) -> None:
+        """Start no more tasks, and return once none is running."""
+        with self._condition:
+            self._stopped = True
+            self._condition.wait_for(lambda: self._running == 0)
 
 
 class ThreadExecutor:
@@ -88,6 +130,7 @@ class ThreadExecutor:
         self._capacity.admit(requirement)
         prepared = require_serializable_payloads(function, batches)
         limit = admitted_tasks_in_flight(self._capacity, requirement)
+        guard = _CallGuard()
         pending: deque[Future[Output]] = deque()
         submitted = 0
         try:
@@ -95,10 +138,10 @@ class ThreadExecutor:
                 while len(pending) < limit and submitted < len(prepared):
                     pending.append(
                         self._pool.submit(
-                            call_with_retries,
+                            guard.run,
                             function,
                             prepared[submitted],
-                            retry_limit=self._retry_limit,
+                            self._retry_limit,
                         )
                     )
                     submitted += 1
@@ -106,14 +149,14 @@ class ThreadExecutor:
                     return
                 yield pending.popleft().result()
         finally:
-            # A failure or an abandoned reduction cancels the batches that
-            # have not started, rather than running work whose result nobody
-            # will read, and waits for those that have: a task still running
-            # after the call returns could write into storage its caller is
-            # already removing.
+            # A failure, an abandoned reduction or the caller's deadline
+            # cancels the batches that have not started, rather than running
+            # work whose result nobody will read, and waits for those that
+            # have: a task still running after the call returns could write
+            # into storage its caller is already removing.
             for future in pending:
                 future.cancel()
-            wait(pending)
+            guard.stop()
 
     def map_batches(
         self,
