@@ -184,9 +184,11 @@ catalogue-row kernels; it imports no stage.
 
 ## Workflow adapters
 
-`hebog.adapters` holds the Rapthor compatibility records and the
-eight-column catalogue codec. No adapter runs `find_sources` or writes its
-products yet.
+`hebog.adapters.rapthor` runs one Rapthor sector through `find_sources` and
+writes the files Rapthor's `filter_skymodel` step reads, under Rapthor's
+names; `hebog.adapters.rapthor_catalogue` holds the eight-column catalogue
+codec it writes them with. Rapthor does not call the adapter yet (plan task
+20).
 
 ::: hebog.adapters.rapthor
     options:

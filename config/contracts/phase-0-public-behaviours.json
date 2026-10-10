@@ -8,9 +8,9 @@
     },
     {
       "identifier": "rapthor-adapter-products",
-      "scenario": "A valid Rapthor adapter request composes the primary-beam-corrected and flat-noise analyses and returns both RMS images, the catalogue, optional compatibility mask, filtered intrinsic/apparent sky models, diagnostics, and timing as versioned paths.",
-      "status": "strict-xfail",
-      "test_node_id": "tests/acceptance/test_acceptance_scaffold.py::test_rapthor_adapter_materialises_compatibility_products"
+      "scenario": "A Rapthor sector of a true-sky and a flat-noise image, run on the caller's executor, writes the eight-column catalogue, both RMS images and the four-axis island mask under the names Rapthor's PyBDSF step uses, and returns their paths, Hebog's bundle and the source count.",
+      "status": "implemented",
+      "test_node_id": "tests/acceptance/test_rapthor_scenarios.py::test_a_sector_run_writes_the_products_rapthor_reads"
     },
     {
       "identifier": "empty-image-products",
@@ -45,26 +45,32 @@
     {
       "identifier": "restart-products",
       "scenario": "Given valid completed stage products, retry resumes without recomputing or publishing a partial replacement.",
-      "status": "strict-xfail",
-      "test_node_id": "tests/acceptance/test_acceptance_scaffold.py::test_retry_reuses_valid_stage_products"
+      "status": "implemented",
+      "test_node_id": "tests/acceptance/test_rapthor_scenarios.py::test_a_retried_task_reuses_the_finished_analysis"
     },
     {
       "identifier": "worker-retry",
       "scenario": "Given a retryable worker loss, idempotent chunks are retried and the final deterministic products match the no-failure run.",
-      "status": "strict-xfail",
-      "test_node_id": "tests/acceptance/test_acceptance_scaffold.py::test_worker_loss_preserves_final_products"
+      "status": "implemented",
+      "test_node_id": "tests/acceptance/test_rapthor_scenarios.py::test_a_lost_task_is_retried_and_the_products_are_unchanged"
     },
     {
       "identifier": "rapthor-fallback",
       "scenario": "Given a Hebog failure behind the Rapthor feature flag, the workflow can select the pinned PyBDSF fallback without treating partial Hebog products as complete.",
-      "status": "strict-xfail",
-      "test_node_id": "tests/acceptance/test_acceptance_scaffold.py::test_rapthor_can_fallback_to_pybdsf"
+      "status": "implemented",
+      "test_node_id": "tests/acceptance/test_rapthor_scenarios.py::test_a_refused_sector_leaves_rapthor_free_to_fall_back"
     },
     {
       "identifier": "dual-run-report",
       "scenario": "Given dual-run mode, Hebog and PyBDSF products remain separate and produce a provenance-bound comparison report before either is selected.",
       "status": "strict-xfail",
-      "test_node_id": "tests/acceptance/test_acceptance_scaffold.py::test_dual_run_keeps_products_and_reports_separate"
+      "test_node_id": "tests/acceptance/test_rapthor_scenarios.py::test_dual_run_keeps_products_and_reports_separate"
+    },
+    {
+      "identifier": "analysis-cancellation",
+      "scenario": "Given an analysis whose tasks are running, when the caller's deadline raises in the thread that drives it, the call raises only once every task it started has finished, no task it submitted starts afterwards, and its staging directory and Rapthor's files are removed.",
+      "status": "implemented",
+      "test_node_id": "tests/acceptance/test_rapthor_scenarios.py::test_a_cancelled_analysis_stops_its_tasks_and_removes_its_staging"
     }
   ],
   "manifest_id": "phase-0-public-behaviours",

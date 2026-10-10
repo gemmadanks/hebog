@@ -135,14 +135,15 @@ that as "no sources exist". See the
 Hebog analyses one image. Your pipeline remains responsible for:
 
 - scheduling, retries across tasks and resource admission;
-- combining several images, for example primary-beam-corrected and flat-noise
-  versions of the same field;
+- combining several images, apart from a field's flat-noise image, whose
+  RMS one run publishes beside the primary-beam-corrected image's products;
 - filtering or grouping an existing sky model with the mask; and
 - translating products into another tool's file names or column conventions.
 
-A Rapthor-specific adapter for the last two items is planned but not yet
-implemented; see the
-[Rapthor source-finding contract](../reference/rapthor-source-finding-contract.md).
+For Rapthor, `hebog.adapters.find_sector_sources` writes Rapthor's file names
+and catalogue columns, and LSMTool's `filter_sources` filters and groups the
+sky model with the island mask; see the
+[Rapthor source-finding contract](../reference/rapthor-source-finding-contract.md#how-hebog-runs-inside-rapthor).
 
 ## Versioning
 

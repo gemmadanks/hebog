@@ -217,10 +217,10 @@ Scaling is Rapthor's decision, for example to give DP3 more or fewer
 workers as its chunks change between self-calibration cycles. Hebog
 tolerates it: it chooses its tiling from the core budget when an analysis
 starts, a worker that joins during an analysis receives tasks without
-changing the tiling, and Dask reruns a task lost with its worker (the
-plan's worker-loss acceptance scenario, task 19, is to show the products
-unchanged). Scaling between steps rather than during Hebog's analysis
-keeps its tiling matched to the cores it runs on. Rapthor's local cluster
+changing the tiling, and Dask reruns a task lost with its worker; the
+worker-loss acceptance scenario shows the products unchanged when every
+task's first attempt is lost. Scaling between steps rather than during
+Hebog's analysis keeps its tiling matched to the cores it runs on. Rapthor's local cluster
 now gives every worker the whole node's `mem_per_node_gb` as its memory
 limit; with several workers a node, the node's memory must be divided
 between them, and declared as a resource too (plan task 17).

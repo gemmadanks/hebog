@@ -2,7 +2,7 @@
 
 import json
 import pickle
-from dataclasses import fields, replace
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, Literal
 
@@ -11,12 +11,6 @@ from pydantic import ValidationError
 
 import hebog.data_models as domain_models
 from hebog import SourceFinderRequest, SourceFinderResult
-from hebog.adapters.rapthor import (
-    RapthorCompatibilityConfig,
-    RapthorSourceFindingRequest,
-    RapthorSourceFindingResult,
-)
-from hebog.config import SourceFinderConfig
 from hebog.data_models import (
     CelestialWcs,
     ImageMetadata,
@@ -100,43 +94,6 @@ def _source_finding_diagnostics() -> SourceFindingDiagnostics:
         gaussian_component_count=3,
         island_count=1,
         rms_scientific_status="valid",
-    )
-
-
-def _rapthor_request() -> RapthorSourceFindingRequest:
-    """Return one valid Rapthor request for mutation tests."""
-    return RapthorSourceFindingRequest(
-        flat_noise_image_path=Path("apparent.fits"),
-        primary_beam_corrected_image_path=Path("pb.fits"),
-        sector_vertices_path=Path("vertices.npy"),
-        output_directory=Path("products"),
-        run_id="rapthor-sector-1",
-    )
-
-
-def _rapthor_result() -> RapthorSourceFindingResult:
-    """Return one valid Rapthor result for mutation tests."""
-    return RapthorSourceFindingResult(
-        catalogue_path=Path("source_catalog.fits"),
-        primary_beam_corrected_rms_path=Path("true_sky_rms.fits"),
-        flat_noise_rms_path=Path("flat_noise_rms.fits"),
-        source_filtering_mask_path=Path("mask.fits"),
-        filtered_intrinsic_sky_model_path=Path("true_sky.txt"),
-        filtered_apparent_sky_model_path=Path("apparent_sky.txt"),
-        diagnostics_path=Path("diagnostics.json"),
-        source_count=2,
-        wall_seconds=3.0,
-    )
-
-
-def _rapthor_config() -> RapthorCompatibilityConfig:
-    """Return one valid compatibility profile for mutation tests."""
-    return RapthorCompatibilityConfig(
-        source_finder=SourceFinderConfig(
-            detection_threshold_sigma=5.0,
-            island_threshold_sigma=3.0,
-            minimum_island_pixels=6,
-        )
     )
 
 
@@ -244,52 +201,6 @@ def test_source_finding_diagnostics_rejects_inconsistent_counts(
 
     with pytest.raises(ValidationError, match=message):
         SourceFindingDiagnostics.model_validate(document)
-
-
-def test_rapthor_records_expose_two_branch_compatibility_products() -> None:
-    """The adapter, rather than the scientific API, owns Rapthor products."""
-    request = RapthorSourceFindingRequest(
-        flat_noise_image_path=Path("apparent.fits"),
-        primary_beam_corrected_image_path=Path("pb.fits"),
-        sector_vertices_path=Path("vertices.npy"),
-        output_directory=Path("products"),
-        run_id="rapthor-sector-1",
-        apparent_sky_model_path=Path("apparent.txt"),
-        intrinsic_sky_model_path=Path("intrinsic.txt"),
-        beam_measurement_set_paths=(Path("observation.ms"),),
-    )
-    result = RapthorSourceFindingResult(
-        catalogue_path=Path("source_catalog.fits"),
-        primary_beam_corrected_rms_path=Path("true_sky_rms.fits"),
-        flat_noise_rms_path=Path("flat_noise_rms.fits"),
-        source_filtering_mask_path=Path("mask.fits"),
-        filtered_intrinsic_sky_model_path=Path("true_sky.txt"),
-        filtered_apparent_sky_model_path=Path("apparent_sky.txt"),
-        diagnostics_path=Path("diagnostics.json"),
-        source_count=2,
-        wall_seconds=3.0,
-    )
-
-    assert request.schema_version == result.schema_version == 1
-    assert pickle.loads(pickle.dumps(request)) == request
-    assert pickle.loads(pickle.dumps(result)) == result
-
-
-def test_rapthor_profile_holds_only_the_options_the_finder_honours() -> None:
-    """The finder's thresholds and LSMTool's mask filter, nothing it ignores.
-
-    The RMS boxes, the bright-source threshold, the multiscale depth and
-    the background handling are Hebog's reviewed science, which a caller
-    cannot change, so the compatibility profile does not offer them.
-    """
-    config = _rapthor_config()
-
-    assert {field.name for field in fields(config)} == {
-        "source_finder",
-        "filter_sky_model_by_mask",
-    }
-    assert config.source_finder.detection_threshold_sigma == 5.0
-    assert config.filter_sky_model_by_mask
 
 
 @pytest.mark.parametrize(
@@ -407,40 +318,6 @@ def test_result_rejects_wrong_roles_paths_statuses_and_counts() -> None:
         document.update(changes)
         with pytest.raises(ValidationError, match=message):
             SourceFinderResult.model_validate(document)
-
-
-@pytest.mark.parametrize(
-    ("changes", "message"),
-    [
-        ({"schema_version": 2}, "unsupported Rapthor request"),
-        ({"run_id": ""}, "run_id must not be empty"),
-    ],
-)
-def test_rapthor_request_rejects_invalid_metadata(
-    changes: dict[str, object],
-    message: str,
-) -> None:
-    """Rapthor request metadata fails at the compatibility boundary."""
-    with pytest.raises(ValueError, match=message):
-        replace(_rapthor_request(), **changes)
-
-
-@pytest.mark.parametrize(
-    ("changes", "message"),
-    [
-        ({"schema_version": 2}, "unsupported Rapthor result"),
-        ({"source_count": -1}, "source_count cannot be negative"),
-        ({"wall_seconds": float("nan")}, "wall_seconds must be finite"),
-        ({"wall_seconds": -1.0}, "wall_seconds must be finite"),
-    ],
-)
-def test_rapthor_result_rejects_invalid_metadata(
-    changes: dict[str, object],
-    message: str,
-) -> None:
-    """Rapthor result metadata fails at the compatibility boundary."""
-    with pytest.raises(ValueError, match=message):
-        replace(_rapthor_result(), **changes)
 
 
 def test_image_metadata_is_small_and_pickle_serializable() -> None:

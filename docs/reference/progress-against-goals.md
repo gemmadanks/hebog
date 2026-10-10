@@ -25,7 +25,7 @@ none is scientific qualification. User-facing limits are in
 
 ## Functionality
 
-The 11 frozen public behaviours in
+The 12 frozen public behaviours in
 `config/contracts/phase-0-public-behaviours.json` each name the test that
 holds them. A placeholder is a strict xfail, so CI fails the day one starts
 passing.
@@ -38,14 +38,17 @@ passing.
 | Raising a threshold cannot create a source | Implemented |
 | Tile shape, worker count, completion order and batch size do not change the products | Implemented |
 | No worker materialises a complete large plane and admitted memory bounds the peak | Placeholder (task 17) |
-| Rapthor adapter products for the true-sky and flat-noise pair | Placeholder (task 19) |
-| Retry reuses valid stage products | Placeholder (task 19) |
-| Worker loss is retried to the same deterministic products | Placeholder (task 19) |
-| Rapthor can fall back to pinned PyBDSF behind the feature flag | Placeholder (task 19) |
+| Rapthor adapter products for the true-sky and flat-noise pair | Implemented |
+| Retry reuses valid stage products | Implemented |
+| Worker loss is retried to the same deterministic products | Implemented |
+| Rapthor can fall back to pinned PyBDSF behind the feature flag | Implemented: a refused sector leaves none of Rapthor's files |
 | Dual-run mode keeps products separate and reports differences | Placeholder (task 19) |
+| A cancelled analysis stops its tasks and removes its staging | Implemented, under the Thread and Dask executors |
 
-`hebog.adapters` holds the Rapthor records and the eight-column catalogue
-codec only. The codec reads the catalogue `find_sources` writes. A
+`hebog.adapters.find_sector_sources` runs one Rapthor sector on the
+caller's executor and writes Rapthor's four files; Rapthor does not call it
+yet (task 20). Its eight-column codec reads the catalogue `find_sources`
+writes. A
 `continuum` source of one fitted Gaussian publishes that Gaussian, so its
 row passes the three cuts Rapthor applies (`DC_Maj`, `E_RA`, `E_DEC`), as a
 `compact` row does; a source of several components leaves them empty, and
