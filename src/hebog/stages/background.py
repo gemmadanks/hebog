@@ -7,7 +7,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from functools import partial
 from math import ceil, floor, isfinite, prod
-from typing import Literal, Protocol, cast
+from typing import Literal, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -53,7 +53,7 @@ from hebog.config import (
 )
 from hebog.data_models.partitioning import ImageBounds, TilePartition
 from hebog.executors.base import Executor
-from hebog.io.base import ImageWindow
+from hebog.io.base import ImageWindow, WindowReadable
 
 # Every local-noise batch reads its own cells plus the protection halo, and
 # re-derives the wavelet bank over that whole context, so halo pixels are paid
@@ -71,14 +71,6 @@ _LOCAL_NOISE_CONTEXT_CELLS = 2304
 # and SDC1 cut-outs the 0.1% quantile of the nearest fill is at least 0.806
 # of the coarse RMS, so the floor acts beyond that scatter (plan task 65).
 _LOCAL_NOISE_MINIMUM_COARSE_FRACTION = 0.8
-
-
-class _WindowReadable(Protocol):
-    """Read bounded global image windows without requiring metadata access."""
-
-    def read_window(self, bounds: ImageBounds) -> ImageWindow:
-        """Read one bounded global window."""
-        ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -220,7 +212,7 @@ def _filter_read_bounds(grid: RmsGridGeometry, halo: int) -> ImageBounds:
 def _estimate_source_batch(
     batch: RmsWindowBatch,
     *,
-    source: _WindowReadable,
+    source: WindowReadable,
     grid: RmsGridGeometry,
     config: RmsGridConfig,
 ) -> RmsGridBatchStatistics:
@@ -243,7 +235,7 @@ def _estimate_source_batch(
 
 
 def estimate_rms_grid(
-    source: _WindowReadable,
+    source: WindowReadable,
     grid: RmsGridGeometry,
     config: RmsGridConfig,
     executor: Executor,
@@ -371,7 +363,7 @@ def _merge_candidate_regions(
 
 
 def estimate_background_rms_grids(  # noqa: PLR0913
-    source: _WindowReadable,
+    source: WindowReadable,
     image_shape_yx: tuple[int, int],
     config: BackgroundRmsConfig,
     executor: Executor,
@@ -551,7 +543,7 @@ def _guard_source_protection(
 def _estimate_source_protected_region_statistics(
     request: _AdaptiveRegionRequest,
     *,
-    source: _WindowReadable,
+    source: WindowReadable,
     config: RmsGridConfig,
     island_threshold_sigma: float,
     multiscale_protection: MultiscaleSourceProtection | None = None,
@@ -713,7 +705,7 @@ def _estimate_source_protected_region_statistics(
 def _estimate_source_protected_adaptive_region(  # noqa: PLR0913
     request: _AdaptiveRegionRequest,
     *,
-    source: _WindowReadable,
+    source: WindowReadable,
     config: RmsGridConfig,
     island_threshold_sigma: float,
     multiscale_protection: MultiscaleSourceProtection | None = None,
@@ -754,7 +746,7 @@ def _estimate_source_protected_adaptive_region(  # noqa: PLR0913
 def _estimate_local_noise_batch(
     request: _LocalNoiseRequest,
     *,
-    source: _WindowReadable,
+    source: WindowReadable,
     config: RmsGridConfig,
     policy: MultiscaleSourceProtection,
 ) -> RmsGridBatchStatistics:
@@ -831,7 +823,7 @@ def _local_noise_contexts(
 
 
 def _estimate_local_noise_grid(  # noqa: PLR0913
-    source: _WindowReadable,
+    source: WindowReadable,
     coarse: PreparedRmsGrid,
     pilot: PreparedRmsGrid,
     config: BackgroundRmsConfig,
@@ -895,7 +887,7 @@ def _adaptive_region_request(
 
 
 def _estimate_unprotected_adaptive_regions(
-    source: _WindowReadable,
+    source: WindowReadable,
     candidate_regions: tuple[_CandidateRegion, ...],
     global_geometry: RmsGridGeometry,
     config: RmsGridConfig,
@@ -974,7 +966,7 @@ def _require_bounded_coarse_protection(
 def _supported_candidate_positions(
     request: tuple[_CandidateRegion, PreparedRmsGrid],
     *,
-    source: _WindowReadable,
+    source: WindowReadable,
     island_threshold_sigma: float,
 ) -> tuple[tuple[float, float], ...]:
     """Revalidate sparse work anchors against a changed coarse estimate."""
@@ -1010,7 +1002,7 @@ def _adopt_protected_coarse(  # noqa: PLR0913
     protected: AdaptiveRmsRegion,
     unprotected: BackgroundRmsGrids,
     candidate_regions: tuple[_CandidateRegion, ...],
-    source: _WindowReadable,
+    source: WindowReadable,
     executor: Executor,
     *,
     island_threshold_sigma: float,
@@ -1056,7 +1048,7 @@ def _adopt_protected_coarse(  # noqa: PLR0913
 
 
 def refine_background_rms_grids(  # noqa: PLR0913
-    source: _WindowReadable,
+    source: WindowReadable,
     coarse_grids: BackgroundRmsGrids,
     config: BackgroundRmsConfig,
     executor: Executor,
@@ -1204,7 +1196,7 @@ def refine_background_rms_grids(  # noqa: PLR0913
 
 
 def _refine_bright_regions(  # noqa: PLR0913
-    source: _WindowReadable,
+    source: WindowReadable,
     coarse_grids: BackgroundRmsGrids,
     candidate_regions: tuple[_CandidateRegion, ...],
     config: BackgroundRmsConfig,
@@ -1334,7 +1326,7 @@ def prepare_background_rms_tile_request(
 
 
 def estimate_background_rms_tile(
-    source: _WindowReadable,
+    source: WindowReadable,
     request: BackgroundRmsTileRequest,
 ) -> BackgroundRmsTile:
     """Read validity and interpolate one deterministic owned output core."""

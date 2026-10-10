@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import partial
-from typing import Protocol
 
 import numpy as np
 
@@ -31,13 +30,12 @@ from hebog.config import (
 )
 from hebog.data_models.generations import ProductGenerationManifest
 from hebog.data_models.partitioning import (
-    ImageBounds,
     PartitionManifest,
     TilePartition,
 )
 from hebog.data_models.products import ProductChunk
 from hebog.executors.base import Executor
-from hebog.io.base import ImageWindow
+from hebog.io.base import ImageWindow, WindowReadable
 from hebog.io.zarr import ZarrProductSink
 from hebog.stages.background import (
     BackgroundRmsGrids,
@@ -71,14 +69,6 @@ def _cell_blocks[T](cells: Sequence[T]) -> tuple[tuple[T, ...], ...]:
     )
 
 
-class _WindowReadable(Protocol):
-    """Read bounded global image windows without opening scheduler state."""
-
-    def read_window(self, bounds: ImageBounds) -> ImageWindow:
-        """Read one bounded global window."""
-        ...
-
-
 @dataclass(frozen=True, slots=True)
 class _DetectionTileProducts:
     """Compact scheduler result from one first-pass detection tile."""
@@ -109,7 +99,7 @@ class DetectionStageResult:
 
 
 def _read_tile_window(
-    source: _WindowReadable,
+    source: WindowReadable,
     partition: TilePartition,
 ) -> ImageWindow:
     """Read and validate one owned core before scientific processing."""
@@ -128,7 +118,7 @@ def _read_tile_window(
 def _scan_candidate_tile(
     request: BackgroundRmsTileRequest,
     *,
-    source: _WindowReadable,
+    source: WindowReadable,
     threshold_sigma: float,
     image_shape_yx: tuple[int, int],
 ) -> LocalIslandTileSummary:
@@ -150,7 +140,7 @@ def _scan_candidate_tile(
 
 
 def discover_adaptive_candidates(
-    source: _WindowReadable,
+    source: WindowReadable,
     manifest: PartitionManifest,
     coarse_grids: BackgroundRmsGrids,
     config: BackgroundRmsConfig,
@@ -183,7 +173,7 @@ def discover_adaptive_candidates(
 def _detect_and_write_background_rms(
     request: BackgroundRmsTileRequest,
     *,
-    source: _WindowReadable,
+    source: WindowReadable,
     sink: ZarrProductSink,
     config: SourceFinderConfig,
     image_shape_yx: tuple[int, int],
@@ -225,7 +215,7 @@ def _detect_and_write_background_rms(
 def _detect_and_write_cells(
     requests: tuple[BackgroundRmsTileRequest, ...],
     *,
-    source: _WindowReadable,
+    source: WindowReadable,
     sink: ZarrProductSink,
     config: SourceFinderConfig,
     image_shape_yx: tuple[int, int],
@@ -284,7 +274,7 @@ def _require_estimate_covers_image(
 def _write_source_filtering_mask(
     request: _MaskTileRequest,
     *,
-    source: _WindowReadable,
+    source: WindowReadable,
     sink: ZarrProductSink,
     config: SourceFinderConfig,
     image_shape_yx: tuple[int, int],
@@ -322,7 +312,7 @@ def _write_source_filtering_mask(
 def _write_source_filtering_masks(
     requests: tuple[_MaskTileRequest, ...],
     *,
-    source: _WindowReadable,
+    source: WindowReadable,
     sink: ZarrProductSink,
     config: SourceFinderConfig,
     image_shape_yx: tuple[int, int],
@@ -341,7 +331,7 @@ def _write_source_filtering_masks(
 
 
 def run_detection_stage(  # noqa: PLR0913
-    source: _WindowReadable,
+    source: WindowReadable,
     manifest: PartitionManifest,
     config: DetectionStageConfig,
     executor: Executor,
@@ -383,7 +373,7 @@ def run_detection_stage(  # noqa: PLR0913
 
 
 def run_detection_from_coarse_grids(  # noqa: PLR0913
-    source: _WindowReadable,
+    source: WindowReadable,
     manifest: PartitionManifest,
     coarse_grids: BackgroundRmsGrids,
     *,

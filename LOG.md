@@ -32691,3 +32691,59 @@ the per-worker placement finding.
   two compact relationships, and nothing in `src/` builds that record; only
   the materialization test does. It is a persisted schema outside the
   task's list, so it was not changed here.
+
+## 2026-10-09 — Task 70: the stage sequence moves into `stages/composition.py`
+
+- **Outcome.** `public_api.py` (2,241 lines before task 58, 1,176 now)
+  keeps the public boundary: request and header validation, admission, the
+  output bundle and provenance. The stage sequence and the runners, one per
+  stage, which plan its tile grid, open its generation and run it through
+  the executor, moved with the tile and batch constants to
+  `stages/composition.py`. `run_stages` estimates the background and RMS
+  and calls `run_stages_from_background`, which runs every later stage on a
+  published background and RMS and returns the generations and the records
+  the catalogues are built from. `public_api._analyse_image` hands those
+  records to `public_science`, as before. `src/` is 111 lines shorter.
+- **Second copy of the sequence removed.**
+  `hebog.validation.tiled_detection.publish_continuum_inputs` called every
+  runner in the same order with the same arguments, differing only in the
+  tile cores; it now calls `run_stages_from_background` with its cores
+  (398 lines to 232). Task 18's flat-noise branch can call the same
+  function on a background and RMS it already holds.
+- **Protocols.** `WindowReadable` and `CompletedProductSource` live once in
+  `io/base.py`, beside `ImageSource`, replacing 7 and 8 identical private
+  copies across `public_api.py` and the stages.
+- **Boundary changes inside the package.** The runners take the header
+  text and the restoring beam instead of a FITS header, as tasks already
+  received them. One `public_api.py` call converts the header; with every
+  call moved below it, strict pyright inferred Astropy's unstubbed
+  `Header.tostring` as partially unknown at 19 test call sites.
+  `restoring_beam_from_header` replaces three copies of the beam lookup.
+  `_analyse_image` now derives the beam in pixel axes and the configured
+  profile before the background stage rather than after the usable-noise
+  check; both are deterministic and read only validated metadata and the
+  packaged profile. The row-coverage invariant of the usable-noise
+  reduction now raises `ValueError`, as other stage invariants do, because
+  `stages` may not import `pipeline`'s `SourceFinderError`; it was
+  unreachable and untested, and a unit test now pins it.
+- **Evidence the products are unchanged.** The quick science check `task70`
+  and `task70-compact` against `task58-followup` and
+  `task58-followup-compact`: no regression, only the composition hash
+  changed, and the catalogue, RMS and mask are byte-identical on all 18
+  cases under both profiles (54 of 54 each).
+- **Tests.** Monkeypatches of moved names point at the composition module.
+  Two tests that put every pass on small tiles by scanning `public_api` for
+  runners would have matched nothing after the move and passed vacuously;
+  they now set the cores of `run_stages_from_background`, and the
+  quieter-strip test asserts the small core was planned. The tile
+  invariance test drops its count of nine passes: its plan recorder
+  already requires every non-background partition on the grid.
+- **Checks.** Strict pyright and ruff; the integration suite, 1,246 passed
+  with the four tests above failing on the stale patch, which passed on
+  rerun after the fix; `just coverage`, 3,603
+  passed and 1 xfailed at 97%, with `public_api.py` and
+  `stages/composition.py` at 99% (the composition's one miss, the row
+  check, is now covered by the new unit test); the strict docs build;
+  `just check`; an independent review, whose docstring and naming findings
+  were fixed. The profiler's stage entries and the traced-peak attribution
+  now name `hebog.stages.composition`.

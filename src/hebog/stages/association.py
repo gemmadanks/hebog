@@ -18,7 +18,6 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from functools import partial
 from numbers import Integral
-from typing import Protocol
 
 import numpy as np
 import numpy.typing as npt
@@ -59,6 +58,7 @@ from hebog.data_models.partitioning import (
 from hebog.data_models.products import ProductChunk
 from hebog.data_models.source_association import DetectionComponentRecord
 from hebog.executors.base import Executor
+from hebog.io.base import CompletedProductSource
 from hebog.io.zarr import ZarrProductSink
 from hebog.stages.batching import (
     batch_object_windows,
@@ -67,27 +67,6 @@ from hebog.stages.batching import (
 )
 
 _SCALE_ORDERS = (1, 2, 3)
-
-
-class _CompletedProductSource(Protocol):
-    """Read checksum-validated windows from one published generation."""
-
-    @property
-    def manifest(self) -> PartitionManifest:
-        """Return the canonical partition the generation was written on."""
-        ...
-
-    def read_generation(self) -> ProductGenerationManifest:
-        """Return the published generation this source reads."""
-        ...
-
-    def read_completed_window(
-        self,
-        product_name: str,
-        bounds: ImageBounds,
-    ) -> npt.NDArray[np.generic]:
-        """Read one checksum-validated bounded window."""
-        ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -265,8 +244,8 @@ def _core_batches(
 def _scan_core_overlaps(
     batch: _CoreBatch,
     *,
-    detection_source: _CompletedProductSource,
-    component_source: _CompletedProductSource,
+    detection_source: CompletedProductSource,
+    component_source: CompletedProductSource,
     image_shape_yx: tuple[int, int],
 ) -> _CoreBatchResult:
     """Observe every overlap one core can see, as array-free records."""
@@ -480,8 +459,8 @@ def _read_batch(
     bounds: ImageBounds,
     scale_orders: frozenset[int],
     *,
-    detection_source: _CompletedProductSource,
-    component_source: _CompletedProductSource | None = None,
+    detection_source: CompletedProductSource,
+    component_source: CompletedProductSource | None = None,
 ) -> _Read:
     """Read every plane one batch needs, once, over its own window."""
     return _Read(
@@ -534,8 +513,8 @@ def _feature_envelope(
 def _influence_batch(
     batch: _InfluenceBatch,
     *,
-    detection_source: _CompletedProductSource,
-    component_source: _CompletedProductSource,
+    detection_source: CompletedProductSource,
+    component_source: CompletedProductSource,
     image_shape_yx: tuple[int, int],
     component_id_by_label: Mapping[int, str],
 ) -> _InfluenceBatchResult:
@@ -689,7 +668,7 @@ def _pair_read_bounds(
 def _pair_batch(
     batch: _PairBatch,
     *,
-    detection_source: _CompletedProductSource,
+    detection_source: CompletedProductSource,
 ) -> _PairBatchResult:
     """Decide each candidate pair inside the box that holds both envelopes.
 
@@ -739,8 +718,8 @@ def _scale_radius(scale_order: int) -> int:
 def _wide_overlap_batch(
     batch: _WideBatch,
     *,
-    detection_source: _CompletedProductSource,
-    component_source: _CompletedProductSource,
+    detection_source: CompletedProductSource,
+    component_source: CompletedProductSource,
     image_shape_yx: tuple[int, int],
     component_id_by_label: Mapping[int, str],
 ) -> _WideBatchResult:
@@ -1162,7 +1141,7 @@ class _SupportBatchResult:
 def _publish_persistent_support(
     batch: _SupportBatch,
     *,
-    detection_source: _CompletedProductSource,
+    detection_source: CompletedProductSource,
     sink: ZarrProductSink,
 ) -> _SupportBatchResult:
     """Write the support whose features persist to an adjacent scale.
@@ -1196,8 +1175,8 @@ def _publish_persistent_support(
 
 
 def _require_overlap_inputs(
-    detection_source: _CompletedProductSource,
-    component_source: _CompletedProductSource,
+    detection_source: CompletedProductSource,
+    component_source: CompletedProductSource,
     manifest: PartitionManifest,
 ) -> None:
     """Check every identity before any round is submitted."""
@@ -1232,7 +1211,7 @@ def _publish_persistent_scale_support(  # noqa: PLR0913
     parent_edges: tuple[tuple[str, str], ...],
     *,
     maximum_tiles_per_batch: int,
-    detection_source: _CompletedProductSource,
+    detection_source: CompletedProductSource,
     executor: Executor,
     sink: ZarrProductSink,
 ) -> ProductGenerationManifest:
@@ -1279,8 +1258,8 @@ def _publish_persistent_scale_support(  # noqa: PLR0913
 
 
 def run_hierarchy_overlap_stage(  # noqa: PLR0913
-    detection_source: _CompletedProductSource,
-    component_source: _CompletedProductSource,
+    detection_source: CompletedProductSource,
+    component_source: CompletedProductSource,
     manifest: PartitionManifest,
     *,
     config: HierarchyOverlapStageConfig,

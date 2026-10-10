@@ -42,6 +42,7 @@ from hebog.pipeline import (
 )
 from hebog.science.configuration import source_finder_configs
 from hebog.stages import background as background_stage
+from hebog.stages import composition
 
 _ROOT = Path(__file__).parents[2]
 
@@ -63,7 +64,7 @@ def test_public_background_mesh_is_bounded_by_image_capacity(
 ) -> None:
     """Only intermediate images need a smaller spatial coarse mesh."""
     original = source_finder_configs()[0].background_rms
-    repaired = public_api._public_background_config(
+    repaired = composition._public_background_config(
         shape, original, source_finder=SourceFinderConfig(5.0, 3.0, 7)
     )
     assert repaired.coarse.window_shape_yx == (window, window)
@@ -289,7 +290,7 @@ def test_intermediate_mesh_cannot_bypass_the_bounded_read_admission() -> None:
     """A skinny, very long image cannot introduce an unbounded mask read."""
     original = source_finder_configs()[0].background_rms
     with pytest.raises(ValueError, match="bounded image admission"):
-        public_api._public_background_config(
+        composition._public_background_config(
             (150, 10_000),
             original,
             source_finder=SourceFinderConfig(5.0, 3.0, 7),
@@ -301,7 +302,7 @@ def _stages_refuse(shape_yx: tuple[int, int], profile: str) -> bool:
     background = source_finder_configs()[0].background_rms
     if profile == "continuum":
         try:
-            background = public_api._public_background_config(
+            background = composition._public_background_config(
                 shape_yx,
                 background,
                 source_finder=SourceFinderConfig(5.0, 3.0, 7),
@@ -432,7 +433,7 @@ def test_private_background_trigger_respects_custom_island_threshold(
     """Refinement seeds must belong to support grown at caller thresholds."""
     original = source_finder_configs()[0].background_rms
     caller = SourceFinderConfig(detection, island, 7)
-    repaired = public_api._public_background_config(
+    repaired = composition._public_background_config(
         shape, original, source_finder=caller
     )
 
@@ -457,7 +458,7 @@ def test_custom_threshold_does_not_enable_disabled_adaptive_background(
         source_finder_configs()[0].background_rms,
         adaptive=None,
     )
-    repaired = public_api._public_background_config(
+    repaired = composition._public_background_config(
         shape, original, source_finder=SourceFinderConfig(100.0, 80.0, 7)
     )
     assert repaired.adaptive is None

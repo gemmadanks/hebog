@@ -16,9 +16,7 @@ run's.
 
 from __future__ import annotations
 
-import inspect
 import math
-from collections.abc import Callable, Iterator
 from functools import partial
 from pathlib import Path
 from typing import Any
@@ -41,6 +39,7 @@ from hebog.data_models import (
 from hebog.executors import Executor, SerialExecutor
 from hebog.io import read_diagnostics_product
 from hebog.pipeline import SourceFinderResult
+from hebog.stages import composition
 
 pytestmark = pytest.mark.integration
 
@@ -177,25 +176,31 @@ def _header(shape_yx: tuple[int, int]) -> fits.Header:
     return header
 
 
-def _tiled_passes() -> Iterator[tuple[str, Callable[..., Any]]]:
-    """Yield every public pass whose output cores a caller can choose."""
-    for name, function in vars(public_api).items():
-        if (
-            inspect.isfunction(function)
-            and function.__module__ == public_api.__name__
-            and "tile_core_pixels" in inspect.signature(function).parameters
-        ):
-            yield name, function
+def _put_passes_on_grid(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Run every pass after the background on the grid's cores.
+
+    The sequence gives every later pass its core; the plan recorder checks
+    that each of them, including any pass added later, was planned on it.
+    """
+    monkeypatch.setattr(
+        composition,
+        "run_stages_from_background",
+        partial(
+            composition.run_stages_from_background,
+            multiscale_tile_core_pixels=_CORE_PIXELS,
+            support_tile_core_pixels=_CORE_PIXELS,
+        ),
+    )
 
 
 class _PlanRecorder:
     """Record the tile count of every partition the public path plans."""
 
     def __init__(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Wrap the planner the public module calls."""
+        """Wrap the planner the stage sequence calls."""
         self.tile_counts: list[int] = []
-        self._plan = public_api.plan_image_partitions
-        monkeypatch.setattr(public_api, "plan_image_partitions", self)
+        self._plan = composition.plan_image_partitions
+        monkeypatch.setattr(composition, "plan_image_partitions", self)
 
     def __call__(self, **arguments: Any) -> PartitionManifest:
         """Plan as the public path asked, keeping the object-pass counts."""
@@ -242,13 +247,7 @@ def one_tile(tmp_path_factory: pytest.TempPathFactory) -> SourceFinderResult:
 
 def _grid_cores(monkeypatch: pytest.MonkeyPatch) -> _PlanRecorder:
     """Run every tiled public pass on the eight-by-eight grid's cores."""
-    passes = dict(_tiled_passes())
-    # The composition's nine tiled passes; a new one must join this grid.
-    assert len(passes) == 9
-    for name, function in passes.items():
-        monkeypatch.setattr(
-            public_api, name, partial(function, tile_core_pixels=_CORE_PIXELS)
-        )
+    _put_passes_on_grid(monkeypatch)
     return _PlanRecorder(monkeypatch)
 
 
@@ -256,7 +255,9 @@ def test_the_grid_is_the_largest_the_envelope_admits() -> None:
     """A raise that adds tiles per side must widen this grid with it."""
     envelope = public_api._MAXIMUM_PREVIEW_DIMENSION  # pyright: ignore[reportPrivateUsage]
 
-    tiles_per_side = math.ceil(envelope / public_api.ADMITTED_TILE_CORE_PIXELS)
+    tiles_per_side = math.ceil(
+        envelope / composition.ADMITTED_TILE_CORE_PIXELS
+    )
 
     assert tiles_per_side == _TILES_PER_SIDE
     for side in _SHAPE_YX:
@@ -324,7 +325,7 @@ def test_wide_objects_decided_on_the_grid_cores_publish_one_tile_products(
     down (``LOG.md``, task 49).
     """
     recorder = _grid_cores(monkeypatch)
-    monkeypatch.setattr(public_api, "_OWNER_BATCH_READ_PIXELS", 1)
+    monkeypatch.setattr(composition, "_OWNER_BATCH_READ_PIXELS", 1)
 
     wide = _find_sources(
         _shared_input(one_tile), tmp_path / "products", SerialExecutor()
@@ -396,13 +397,9 @@ def test_constant_blocks_across_seams_publish_the_one_tile_products(
     one_tile = _find_sources(
         tmp_path / "image.fits", tmp_path / "one-tile", SerialExecutor()
     )
-    passes = dict(_tiled_passes())
-    for name, function in passes.items():
-        monkeypatch.setattr(
-            public_api, name, partial(function, tile_core_pixels=_CORE_PIXELS)
-        )
+    _put_passes_on_grid(monkeypatch)
     monkeypatch.setattr(
-        public_api, "_TILE_SHAPE_YX", _BLOCKED_BACKGROUND_CORE_YX
+        composition, "_TILE_SHAPE_YX", _BLOCKED_BACKGROUND_CORE_YX
     )
 
     grid = _find_sources(

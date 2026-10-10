@@ -10,7 +10,7 @@ reimplements the detection science it is checking.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -21,16 +21,9 @@ from astropy.io import fits
 
 from hebog.algorithms.component_measurement import (
     ComponentMeasurements,
-    reconcile_component_measurements,
 )
 from hebog.algorithms.multiscale import BeamShapePixels
-from hebog.algorithms.multiscale_association import ScaleDetections
 from hebog.algorithms.partitioning import plan_image_partitions
-from hebog.algorithms.source_association import (
-    HierarchyOverlaps,
-    associate_from_hierarchy_overlaps,
-    constrain_source_memberships,
-)
 from hebog.config import SourceFinderConfig
 from hebog.data_models.measurement_diagnostics import (
     SourcePositionDiagnostics,
@@ -38,32 +31,23 @@ from hebog.data_models.measurement_diagnostics import (
 from hebog.data_models.partitioning import ImageBounds
 from hebog.data_models.products import ProductChunk
 from hebog.data_models.source_association import (
-    DetectionComponentRecord,
     SourceAssociationResult,
 )
 from hebog.executors import Executor, SerialExecutor
 from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
-from hebog.public_api import (
-    ADMITTED_TILE_CORE_PIXELS,
-    detect_multiscale_products,
-    publish_component_fits,
-    publish_component_topology,
-    publish_detection_islands,
-    publish_hierarchy_overlaps,
-    publish_segment_rows,
-    publish_source_planes,
-    publish_support_labels,
-    reduce_support_topology,
-)
 from hebog.science.catalogue_rows import CatalogueSource
-from hebog.science.continuum import retained_scale_detections
 from hebog.science.models import (
     CatalogueIsland,
     TiledComponentTopology,
     TiledMultiscaleDetection,
 )
 from hebog.science.profile import ContinuumScienceProfile
+from hebog.stages.composition import (
+    ADMITTED_TILE_CORE_PIXELS,
+    restoring_beam_from_header,
+    run_stages_from_background,
+)
 
 _BACKGROUND_TILE_SHAPE_YX = (128, 128)
 
@@ -175,32 +159,6 @@ class PublishedContinuumInputs:
     island_ids_by_owner: Mapping[int, tuple[str, ...]]
 
 
-def _source_association(
-    records: tuple[DetectionComponentRecord, ...],
-    scale_detections: Sequence[ScaleDetections],
-    overlaps: HierarchyOverlaps,
-    groups: tuple[frozenset[int], ...],
-) -> tuple[SourceAssociationResult, SourceAssociationResult]:
-    """Decide source membership, or nothing when no owner remains.
-
-    The terminal composition publishes nothing for an image whose admitted
-    islands are all rejected, and the hierarchy has no direct component to
-    describe, so the decision is skipped rather than fabricated.
-    """
-    if not records:
-        empty = SourceAssociationResult(
-            components=(),
-            edges=(),
-            memberships=(),
-            ambiguous_component_ids=(),
-        )
-        return empty, empty
-    hierarchy = associate_from_hierarchy_overlaps(
-        records, tuple(scale_detections), overlaps
-    )
-    return hierarchy, constrain_source_memberships(hierarchy, groups)
-
-
 def publish_continuum_inputs(  # noqa: PLR0913
     image_jy_per_beam: npt.NDArray[np.float64],
     valid_pixels: npt.NDArray[np.bool_],
@@ -217,7 +175,12 @@ def publish_continuum_inputs(  # noqa: PLR0913
     tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
     support_tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
 ) -> PublishedContinuumInputs:
-    """Publish and read every pass the composition consumes."""
+    """Publish and read every pass the composition consumes.
+
+    The supplied background and RMS are published as the background stage
+    would publish them, and every later stage then runs exactly as
+    ``find_sources`` runs it.
+    """
     work_directory.mkdir(parents=True, exist_ok=True)
     image_source = ArrayImageSource(image_jy_per_beam, valid_pixels)
     background_rms_source = publish_background_rms(
@@ -226,173 +189,44 @@ def publish_continuum_inputs(  # noqa: PLR0913
         rms_jy_per_beam,
         generation_id=generation_id,
     )
-    resolved_executor = SerialExecutor() if executor is None else executor
-    detection_source, multiscale = detect_multiscale_products(
+    published = run_stages_from_background(
         image_source,
         background_rms_source,
-        resolved_executor,
-        work_directory,
-        image_shape_yx=image_jy_per_beam.shape,
-        beam=beam,
-        review=review,
-        generation_id=generation_id,
-        tile_core_pixels=tile_core_pixels,
-    )
-    support_source = reduce_support_topology(
-        detection_source,
-        resolved_executor,
-        work_directory,
-        image_shape_yx=image_jy_per_beam.shape,
-        scale_orders=tuple(
-            range(1, len(multiscale.scale_islands_by_order) + 1)
-        ),
-        generation_id=generation_id,
-        tile_core_pixels=support_tile_core_pixels,
-    )
-    accepted_island_count, _, labels_source = publish_support_labels(
-        detection_source,
-        support_source,
-        resolved_executor,
-        work_directory,
-        image_shape_yx=image_jy_per_beam.shape,
-        beam=beam,
-        detection_islands=multiscale.detection_islands,
-        config=config,
-        review=review,
-        generation_id=generation_id,
-        tile_core_pixels=support_tile_core_pixels,
-    )
-    component_source, topology = publish_component_topology(
-        labels_source,
-        detection_source,
-        resolved_executor,
+        SerialExecutor() if executor is None else executor,
         work_directory,
         image_shape_yx=image_jy_per_beam.shape,
         config=config,
-        generation_id=generation_id,
-        tile_core_pixels=support_tile_core_pixels,
-    )
-    scale_detections = retained_scale_detections(multiscale)
-    component_fits, fit_source = publish_component_fits(
-        image_source,
-        background_rms_source,
-        detection_source,
-        component_source,
-        resolved_executor,
-        work_directory,
-        image_shape_yx=image_jy_per_beam.shape,
+        wcs_header_text=header.tostring(),
+        restoring_beam=restoring_beam_from_header(header),
         beam=beam,
-        header=header,
-        config=config,
         review=review,
-        component_count=topology.component_count,
         generation_id=generation_id,
-        tile_core_pixels=support_tile_core_pixels,
+        multiscale_tile_core_pixels=tile_core_pixels,
+        support_tile_core_pixels=support_tile_core_pixels,
     )
-    records = component_fits.component_records
-    overlaps, hierarchy_source = publish_hierarchy_overlaps(
-        detection_source,
-        component_source,
-        resolved_executor,
-        work_directory,
-        image_shape_yx=image_jy_per_beam.shape,
-        records=records,
-        scale_detections=scale_detections,
-        generation_id=generation_id,
-        tile_core_pixels=support_tile_core_pixels,
-    )
-    measurements = reconcile_component_measurements(
-        parents=component_fits.parents,
-        features=component_fits.features,
-    )
-    hierarchy, association = _source_association(
-        records,
-        scale_detections,
-        overlaps,
-        (*measurements.compact_groups, *measurements.extended_groups),
-    )
-    source_label_source, source_support_source, _ = publish_source_planes(
-        component_source,
-        detection_source,
-        hierarchy_source,
-        fit_source,
-        resolved_executor,
-        work_directory,
-        image_shape_yx=image_jy_per_beam.shape,
-        association=association,
-        generation_id=generation_id,
-        tile_core_pixels=support_tile_core_pixels,
-    )
-    islands, island_ids_by_owner, _ = publish_detection_islands(
-        image_source,
-        background_rms_source,
-        labels_source,
-        component_source,
-        resolved_executor,
-        image_shape_yx=image_jy_per_beam.shape,
-        beam=beam,
-        tile_core_pixels=support_tile_core_pixels,
-    )
-    component_rows, component_local_rms, _, _ = publish_segment_rows(
-        image_source,
-        background_rms_source,
-        detection_source,
-        component_source,
-        component_source,
-        resolved_executor,
-        work_directory,
-        image_shape_yx=image_jy_per_beam.shape,
-        beam=beam,
-        header=header,
-        label_product_name="component-measurement-labels",
-        centroid_product_name="component-measurement-labels",
-        aperture_tie_policy="nearest-support",
-        with_position_diagnostics=False,
-        generation_id=generation_id,
-        sink_name="component-rows",
-        tile_core_pixels=support_tile_core_pixels,
-    )
-    source_rows, source_local_rms, source_positions, _ = publish_segment_rows(
-        image_source,
-        background_rms_source,
-        detection_source,
-        source_support_source,
-        source_label_source,
-        resolved_executor,
-        work_directory,
-        image_shape_yx=image_jy_per_beam.shape,
-        beam=beam,
-        header=header,
-        label_product_name="source-measurement-labels",
-        centroid_product_name="source-labels",
-        aperture_tie_policy="canonical-source",
-        with_position_diagnostics=True,
-        generation_id=generation_id,
-        sink_name="source-rows",
-        tile_core_pixels=support_tile_core_pixels,
-    )
+    records = published.records
     return PublishedContinuumInputs(
         image_source=image_source,
         background_rms=background_rms_source,
-        accepted_island_count=accepted_island_count,
-        detection_source=detection_source,
-        support_source=support_source,
-        labels_source=labels_source,
-        component_source=component_source,
-        fit_source=fit_source,
-        hierarchy_source=hierarchy_source,
-        source_label_source=source_label_source,
-        source_support_source=source_support_source,
-        component_rows=component_rows,
-        source_rows=source_rows,
-        source_positions=source_positions,
-        component_local_rms=component_local_rms,
-        source_local_rms=source_local_rms,
-        islands=islands,
-        island_ids_by_owner=island_ids_by_owner,
-        measurements=measurements,
-        association=association,
-        hierarchy=hierarchy,
-        multiscale=multiscale,
-        topology=topology,
+        accepted_island_count=records.accepted_island_count,
+        detection_source=published.detection_source,
+        support_source=published.support_source,
+        labels_source=published.publication_source,
+        component_source=published.component_source,
+        fit_source=published.fit_source,
+        hierarchy_source=published.hierarchy_source,
+        source_label_source=published.source_label_source,
+        source_support_source=published.source_support_source,
+        component_rows=records.component_rows,
+        source_rows=records.source_rows,
+        source_positions=records.source_positions,
+        component_local_rms=records.component_local_rms,
+        source_local_rms=records.source_local_rms,
+        islands=records.islands,
+        island_ids_by_owner=records.island_ids_by_owner,
+        measurements=records.measurements,
+        association=records.association,
+        hierarchy=records.hierarchy,
+        multiscale=published.multiscale,
+        topology=records.topology,
     )

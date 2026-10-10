@@ -22,7 +22,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from functools import partial
 from numbers import Integral
-from typing import Protocol, cast
+from typing import cast
 
 import numpy as np
 import numpy.typing as npt
@@ -40,14 +40,13 @@ from hebog.algorithms.reconciliation import (
     apply_tile_label_mapping,
     reconcile_candidate_tiles,
 )
-from hebog.data_models.generations import ProductGenerationManifest
 from hebog.data_models.partitioning import (
     ImageBounds,
     PartitionManifest,
     TilePartition,
 )
 from hebog.executors.base import Executor
-from hebog.io.base import ImageWindow
+from hebog.io.base import CompletedProductSource, WindowReadable
 from hebog.science.catalogues import (
     detection_island_identifier,
     island_ids_by_component,
@@ -61,35 +60,6 @@ from hebog.stages.batching import (
     cores_holding,
     read_pixels,
 )
-
-
-class _WindowReadable(Protocol):
-    """Read bounded global image windows without scheduler state."""
-
-    def read_window(self, bounds: ImageBounds) -> ImageWindow:
-        """Read one bounded global window."""
-        ...
-
-
-class _CompletedProductSource(Protocol):
-    """Read checksum-validated windows from one published generation."""
-
-    @property
-    def manifest(self) -> PartitionManifest:
-        """Return the canonical partition the generation was written on."""
-        ...
-
-    def read_generation(self) -> ProductGenerationManifest:
-        """Return the published generation this source reads."""
-        ...
-
-    def read_completed_window(
-        self,
-        product_name: str,
-        bounds: ImageBounds,
-    ) -> npt.NDArray[np.generic]:
-        """Read one checksum-validated bounded window."""
-        ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -299,8 +269,8 @@ def _summary_array_bytes(summary: LocalIslandTileSummary) -> int:
 def _scan_islands(
     batch: _CoreBatch,
     *,
-    publication_source: _CompletedProductSource,
-    component_source: _CompletedProductSource,
+    publication_source: CompletedProductSource,
+    component_source: CompletedProductSource,
     image_shape_yx: tuple[int, int],
 ) -> _ScanBatchResult:
     """Label each core's islands and observe the owners they hold.
@@ -510,9 +480,9 @@ def _island_mask(
 def _read_island_planes(
     bounds: ImageBounds,
     *,
-    source: _WindowReadable,
-    background_rms_source: _CompletedProductSource,
-    publication_source: _CompletedProductSource,
+    source: WindowReadable,
+    background_rms_source: CompletedProductSource,
+    publication_source: CompletedProductSource,
 ) -> tuple[
     npt.NDArray[np.float64],
     npt.NDArray[np.float64],
@@ -546,9 +516,9 @@ def _read_island_planes(
 def _measure_islands(
     batch: _IslandBatch,
     *,
-    source: _WindowReadable,
-    background_rms_source: _CompletedProductSource,
-    publication_source: _CompletedProductSource,
+    source: WindowReadable,
+    background_rms_source: CompletedProductSource,
+    publication_source: CompletedProductSource,
     config: DetectionIslandStageConfig,
 ) -> _RowBatchResult:
     """Measure every island of one batch inside its own window."""
@@ -584,9 +554,9 @@ def _measure_islands(
 def _gather_island_pixels(
     batch: _SpanningBatch,
     *,
-    source: _WindowReadable,
-    background_rms_source: _CompletedProductSource,
-    publication_source: _CompletedProductSource,
+    source: WindowReadable,
+    background_rms_source: CompletedProductSource,
+    publication_source: CompletedProductSource,
     image_shape_yx: tuple[int, int],
 ) -> _PixelBatchResult:
     """Return each wide island's pixels from the cores that hold them.
@@ -701,9 +671,9 @@ def _spanning_rows(
 
 
 def _require_island_inputs(
-    background_rms_source: _CompletedProductSource,
-    publication_source: _CompletedProductSource,
-    component_source: _CompletedProductSource,
+    background_rms_source: CompletedProductSource,
+    publication_source: CompletedProductSource,
+    component_source: CompletedProductSource,
     manifest: PartitionManifest,
 ) -> None:
     """Check every identity before any round is submitted."""
@@ -727,10 +697,10 @@ def _require_island_inputs(
 
 
 def run_detection_island_stage(  # noqa: PLR0913
-    source: _WindowReadable,
-    background_rms_source: _CompletedProductSource,
-    publication_source: _CompletedProductSource,
-    component_source: _CompletedProductSource,
+    source: WindowReadable,
+    background_rms_source: CompletedProductSource,
+    publication_source: CompletedProductSource,
+    component_source: CompletedProductSource,
     manifest: PartitionManifest,
     *,
     config: DetectionIslandStageConfig,

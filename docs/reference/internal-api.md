@@ -9,9 +9,16 @@ explains the science.
 The sections follow the order in which `hebog.find_sources` runs the stages.
 Each stage module applies pure kernels from `hebog.algorithms` and
 `hebog.science` with tiles, halos and executor batches, and
-`hebog.public_api` runs the stages in order. `hebog.science` holds the
+`hebog.stages.composition` runs the stages in order; its first section
+documents it. `hebog.science` holds the
 reviewed profile and configuration, the composition records and the
 catalogue-row kernels; it imports no stage.
+
+## The stage sequence
+
+::: hebog.stages.composition
+    options:
+      show_symbol_type_toc: true
 
 ## Configuration and the reviewed profile
 

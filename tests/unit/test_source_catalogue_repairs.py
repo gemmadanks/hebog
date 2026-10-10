@@ -47,7 +47,7 @@ from hebog.science.profile import (
     configured_science_profile,
     load_continuum_science_profile,
 )
-from hebog.validation import tiled_detection
+from hebog.stages import composition
 from hebog.validation.tiled_detection import publish_continuum_inputs
 
 _ROOT = Path(__file__).parents[2]
@@ -184,7 +184,7 @@ def test_public_merge_evidence_cannot_join_foreign_source_owners(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Corrupt grouping attribution fails before publishing a false claim."""
-    original = tiled_detection.reconcile_component_measurements
+    original = composition.reconcile_component_measurements
 
     def invalid_evidence(*args: Any, **kwargs: Any):
         result = original(*args, **kwargs)
@@ -201,7 +201,7 @@ def test_public_merge_evidence_cannot_join_foreign_source_owners(
         )
 
     monkeypatch.setattr(
-        tiled_detection,
+        composition,
         "reconcile_component_measurements",
         invalid_evidence,
     )
@@ -941,7 +941,7 @@ def test_valid_fit_survives_unavailable_aperture_moment_row(
     measured nothing.
     """
 
-    original = tiled_detection.publish_segment_rows
+    original = composition.publish_segment_rows
 
     def missing_source_rows(*args: Any, **kwargs: Any):
         rows, local_rms, positions, wide = original(*args, **kwargs)
@@ -950,7 +950,7 @@ def test_valid_fit_survives_unavailable_aperture_moment_row(
         return rows, local_rms, positions, wide
 
     monkeypatch.setattr(
-        tiled_detection, "publish_segment_rows", missing_source_rows
+        composition, "publish_segment_rows", missing_source_rows
     )
     yy, xx = np.mgrid[:65, :65]
     signal = 10 * np.exp(-((xx - 32) ** 2 / 8 + (yy - 32) ** 2 / 5))

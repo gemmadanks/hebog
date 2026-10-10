@@ -63,9 +63,9 @@ Dependencies point inward. An inner layer never imports an outer one.
 ```mermaid
 flowchart TD
     adapters["adapters/<br/>Rapthor-compatible records and catalogue view"]
-    api["pipeline.py · public_api.py<br/>validation, I/O, the stages in order, atomic publication"]
+    api["pipeline.py · public_api.py<br/>validation, admission, I/O, atomic publication"]
     public_science["public_science.py<br/>terminal catalogues from the published records"]
-    stages["stages/<br/>tiling, halos, batching through an Executor"]
+    stages["stages/<br/>the stage sequence; tiling, halos, batching through an Executor"]
     science["science/<br/>reviewed profile and configuration, records, catalogue-row kernels"]
     algorithms["algorithms/<br/>pure NumPy/SciPy kernels"]
     shared["data_models/ · config.py<br/>immutable records shared by every layer"]
@@ -87,9 +87,9 @@ flowchart TD
 | --- | --- | --- |
 | `algorithms/` | Arrays and immutable configuration in, arrays or records out | know about schedulers, files or adapters |
 | `science/` | The reviewed profile and configuration, the composition records and the catalogue-row kernels | import stages, executors, `io` or adapters |
-| `stages/` | Apply the kernels of `algorithms/` and `science/` over tiles, halos and coarse batches | hold scheduler-specific objects |
+| `stages/` | Apply the kernels of `algorithms/` and `science/` over tiles, halos and coarse batches; `composition.py` runs the stages in order | hold scheduler-specific objects |
 | `public_science.py` | Build the terminal catalogues from the records the stages published | run stages or read planes |
-| `public_api.py` | Validate input, plan tiles, run the stages in order, publish products atomically | leak open files or arrays into results |
+| `public_api.py` | Validate and admit the input, run the stage sequence, publish products atomically | leak open files or arrays into results |
 | `executors/` | Run batches serially, on threads, or on a caller-owned Dask client | create clusters |
 | `io/` | FITS windows in, Zarr intermediate planes, FITS and JSON products out | — |
 | `adapters/` | Translate to a consumer's names and formats | be imported by inner layers |

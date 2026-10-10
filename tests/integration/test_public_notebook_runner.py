@@ -22,6 +22,7 @@ from conftest import SubstituteBackgroundRms
 
 from hebog import public_api
 from hebog.algorithms import fitting as fitting_algorithm
+from hebog.stages import composition
 from hebog.validation.external_runners import canonical_sha256
 
 _ROOT = Path(__file__).parents[2]
@@ -247,8 +248,8 @@ def test_notebook_native_measurements_preserve_rotated_unequal_pixel_geometry(
     )
 
     monkeypatch.setattr(
-        public_api,
-        "_estimate_background_rms",
+        composition,
+        "estimate_background_rms",
         substituted_background_rms(
             image, np.zeros_like(image), np.ones_like(image)
         ),

@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from functools import partial
 from math import hypot
 from numbers import Integral
-from typing import Protocol, cast
+from typing import cast
 
 import numpy as np
 import numpy.typing as npt
@@ -46,6 +46,7 @@ from hebog.data_models.partitioning import (
 )
 from hebog.data_models.products import ProductChunk
 from hebog.executors.base import Executor
+from hebog.io.base import CompletedProductSource
 from hebog.io.zarr import ZarrProductSink
 from hebog.stages.batching import (
     HeldObjects,
@@ -67,27 +68,6 @@ def source_label_product_names() -> tuple[str, ...]:
 def source_support_product_names() -> tuple[str, ...]:
     """Return the canonical published source-support product set."""
     return _SUPPORT_PRODUCT_NAMES
-
-
-class _CompletedProductSource(Protocol):
-    """Read checksum-validated windows from one published generation."""
-
-    @property
-    def manifest(self) -> PartitionManifest:
-        """Return the canonical partition the generation was written on."""
-        ...
-
-    def read_generation(self) -> ProductGenerationManifest:
-        """Return the published generation this source reads."""
-        ...
-
-    def read_completed_window(
-        self,
-        product_name: str,
-        bounds: ImageBounds,
-    ) -> npt.NDArray[np.generic]:
-        """Read one checksum-validated bounded window."""
-        ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -180,7 +160,7 @@ def _core_batches[T](
 def _scan_owners(
     batch: _OwnerScanBatch,
     *,
-    component_source: _CompletedProductSource,
+    component_source: CompletedProductSource,
 ) -> _OwnerScanResult:
     """Observe which component owners each core holds."""
     owners: list[tuple[str, tuple[int, ...]]] = []
@@ -206,7 +186,7 @@ def _scan_owners(
 def _publish_source_labels(
     batch: _LabelWriteBatch,
     *,
-    component_source: _CompletedProductSource,
+    component_source: CompletedProductSource,
     sink: ZarrProductSink,
 ) -> _WriteBatchResult:
     """Write the source each core's component owners belong to."""
@@ -237,7 +217,7 @@ def _publish_source_labels(
 
 
 def run_source_label_stage(  # noqa: PLR0913
-    component_source: _CompletedProductSource,
+    component_source: CompletedProductSource,
     manifest: PartitionManifest,
     *,
     config: SourceLabelStageConfig,
@@ -521,9 +501,9 @@ class _SupportWriteResult:
 def _persistent_window(
     bounds: ImageBounds,
     *,
-    detection_source: _CompletedProductSource,
-    scale_support_source: _CompletedProductSource,
-    measurement_support_source: _CompletedProductSource,
+    detection_source: CompletedProductSource,
+    scale_support_source: CompletedProductSource,
+    measurement_support_source: CompletedProductSource,
 ) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.bool_]]:
     """Read one window's validity and the persistent support it carries."""
     valid = np.asarray(
@@ -568,10 +548,10 @@ def _label_support(
 def _scan_support(  # noqa: PLR0913
     batch: _SupportScanBatch,
     *,
-    label_source: _CompletedProductSource,
-    detection_source: _CompletedProductSource,
-    scale_support_source: _CompletedProductSource,
-    measurement_support_source: _CompletedProductSource,
+    label_source: CompletedProductSource,
+    detection_source: CompletedProductSource,
+    scale_support_source: CompletedProductSource,
+    measurement_support_source: CompletedProductSource,
     image_shape_yx: tuple[int, int],
 ) -> _SupportScanResult:
     """Label the support each core carries, as compact summaries."""
@@ -631,10 +611,10 @@ def _assign_batches(
 def _assigned_patches(
     batch: _AssignBatch,
     *,
-    label_source: _CompletedProductSource,
-    detection_source: _CompletedProductSource,
-    scale_support_source: _CompletedProductSource,
-    measurement_support_source: _CompletedProductSource,
+    label_source: CompletedProductSource,
+    detection_source: CompletedProductSource,
+    scale_support_source: CompletedProductSource,
+    measurement_support_source: CompletedProductSource,
 ) -> tuple[npt.NDArray[np.int32], ...]:
     """Assign each component's unseeded support inside its own window.
 
@@ -753,10 +733,10 @@ def _wide_component_labels(
 def _gather_wide_support(  # noqa: PLR0913
     batch: _WideSupportBatch,
     *,
-    label_source: _CompletedProductSource,
-    detection_source: _CompletedProductSource,
-    scale_support_source: _CompletedProductSource,
-    measurement_support_source: _CompletedProductSource,
+    label_source: CompletedProductSource,
+    detection_source: CompletedProductSource,
+    scale_support_source: CompletedProductSource,
+    measurement_support_source: CompletedProductSource,
     image_shape_yx: tuple[int, int],
 ) -> _WideSupportResult:
     """Return each wide component's seeds, core by core.
@@ -958,10 +938,10 @@ def _assign_wide_share(  # noqa: PLR0913
 def _publish_source_support(  # noqa: PLR0913
     batch: _SupportWriteBatch,
     *,
-    label_source: _CompletedProductSource,
-    detection_source: _CompletedProductSource,
-    scale_support_source: _CompletedProductSource,
-    measurement_support_source: _CompletedProductSource,
+    label_source: CompletedProductSource,
+    detection_source: CompletedProductSource,
+    scale_support_source: CompletedProductSource,
+    measurement_support_source: CompletedProductSource,
     sink: ZarrProductSink,
     config: SourceSupportStageConfig,
     image_shape_yx: tuple[int, int],
@@ -1036,10 +1016,10 @@ def _publish_source_support(  # noqa: PLR0913
 
 
 def run_source_support_stage(  # noqa: PLR0913
-    label_source: _CompletedProductSource,
-    detection_source: _CompletedProductSource,
-    scale_support_source: _CompletedProductSource,
-    measurement_support_source: _CompletedProductSource,
+    label_source: CompletedProductSource,
+    detection_source: CompletedProductSource,
+    scale_support_source: CompletedProductSource,
+    measurement_support_source: CompletedProductSource,
     manifest: PartitionManifest,
     *,
     config: SourceSupportStageConfig,

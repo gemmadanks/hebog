@@ -15,7 +15,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from functools import partial
 from numbers import Integral
-from typing import Any, Literal, Protocol
+from typing import Any, Literal
 
 import numpy as np
 import numpy.typing as npt
@@ -43,7 +43,7 @@ from hebog.data_models.partitioning import (
 )
 from hebog.data_models.products import ProductChunk
 from hebog.executors.base import Executor
-from hebog.io.base import ImageWindow
+from hebog.io.base import CompletedProductSource, WindowReadable
 from hebog.io.zarr import ZarrProductSink
 from hebog.science.catalogue_rows import CatalogueSource
 from hebog.science.catalogues import (
@@ -71,35 +71,6 @@ _PRODUCT_NAMES = ("aperture-labels",)
 def segment_row_product_names() -> tuple[str, ...]:
     """Return the canonical published segment-row product set."""
     return _PRODUCT_NAMES
-
-
-class _WindowReadable(Protocol):
-    """Read bounded global image windows without scheduler state."""
-
-    def read_window(self, bounds: ImageBounds) -> ImageWindow:
-        """Read one bounded global window."""
-        ...
-
-
-class _CompletedProductSource(Protocol):
-    """Read checksum-validated windows from one published generation."""
-
-    @property
-    def manifest(self) -> PartitionManifest:
-        """Return the canonical partition the generation was written on."""
-        ...
-
-    def read_generation(self) -> ProductGenerationManifest:
-        """Return the published generation this source reads."""
-        ...
-
-    def read_completed_window(
-        self,
-        product_name: str,
-        bounds: ImageBounds,
-    ) -> npt.NDArray[np.generic]:
-        """Read one checksum-validated bounded window."""
-        ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -295,9 +266,9 @@ def _core_batches(
 def _measurable_window(
     bounds: ImageBounds,
     *,
-    source: _WindowReadable,
-    background_rms_source: _CompletedProductSource,
-    detection_source: _CompletedProductSource,
+    source: WindowReadable,
+    background_rms_source: CompletedProductSource,
+    detection_source: CompletedProductSource,
 ) -> tuple[
     npt.NDArray[np.float64],
     npt.NDArray[np.float64],
@@ -322,10 +293,10 @@ def _measurable_window(
 def _publish_apertures(  # noqa: PLR0913
     batch: _CoreBatch,
     *,
-    source: _WindowReadable,
-    background_rms_source: _CompletedProductSource,
-    detection_source: _CompletedProductSource,
-    label_source: _CompletedProductSource,
+    source: WindowReadable,
+    background_rms_source: CompletedProductSource,
+    detection_source: CompletedProductSource,
+    label_source: CompletedProductSource,
     config: SegmentRowStageConfig,
     image_shape_yx: tuple[int, int],
     sink: ZarrProductSink,
@@ -408,8 +379,8 @@ def _label_bounds(
 def _scan_windows(
     batch: _CoreBatch,
     *,
-    label_source: _CompletedProductSource,
-    aperture_source: _CompletedProductSource,
+    label_source: CompletedProductSource,
+    aperture_source: CompletedProductSource,
     label_product_name: str,
 ) -> _WindowBatchResult:
     """Observe the bounds each core holds for its segments and apertures."""
@@ -491,13 +462,13 @@ class _RowRead:
 def _read_rows(  # noqa: PLR0913
     bounds: ImageBounds,
     *,
-    source: _WindowReadable,
-    background_rms_source: _CompletedProductSource,
-    detection_source: _CompletedProductSource,
-    label_source: _CompletedProductSource,
-    centroid_source: _CompletedProductSource,
-    aperture_source: _CompletedProductSource,
-    position_source: _CompletedProductSource,
+    source: WindowReadable,
+    background_rms_source: CompletedProductSource,
+    detection_source: CompletedProductSource,
+    label_source: CompletedProductSource,
+    centroid_source: CompletedProductSource,
+    aperture_source: CompletedProductSource,
+    position_source: CompletedProductSource,
     config: SegmentRowStageConfig,
 ) -> _RowRead:
     """Read every plane one batch of segments needs, once."""
@@ -660,13 +631,13 @@ def _shaped_rows(
 def _row_batch(  # noqa: PLR0913
     batch: _RowBatch,
     *,
-    source: _WindowReadable,
-    background_rms_source: _CompletedProductSource,
-    detection_source: _CompletedProductSource,
-    label_source: _CompletedProductSource,
-    centroid_source: _CompletedProductSource,
-    aperture_source: _CompletedProductSource,
-    position_source: _CompletedProductSource,
+    source: WindowReadable,
+    background_rms_source: CompletedProductSource,
+    detection_source: CompletedProductSource,
+    label_source: CompletedProductSource,
+    centroid_source: CompletedProductSource,
+    aperture_source: CompletedProductSource,
+    position_source: CompletedProductSource,
     config: SegmentRowStageConfig,
     wcs_header_text: str,
     beam: RestoringBeam,
@@ -769,13 +740,13 @@ def _wide_segment_batches(
 def _gather_wide_segments(  # noqa: PLR0913
     batch: _WideSegmentBatch,
     *,
-    source: _WindowReadable,
-    background_rms_source: _CompletedProductSource,
-    detection_source: _CompletedProductSource,
-    label_source: _CompletedProductSource,
-    centroid_source: _CompletedProductSource,
-    aperture_source: _CompletedProductSource,
-    position_source: _CompletedProductSource,
+    source: WindowReadable,
+    background_rms_source: CompletedProductSource,
+    detection_source: CompletedProductSource,
+    label_source: CompletedProductSource,
+    centroid_source: CompletedProductSource,
+    aperture_source: CompletedProductSource,
+    position_source: CompletedProductSource,
     config: SegmentRowStageConfig,
     image_width: int,
 ) -> _WideSegmentResult:
@@ -943,11 +914,11 @@ def _wide_rows(  # noqa: PLR0913
 
 
 def _require_row_inputs(  # noqa: PLR0913, PLR0917
-    background_rms_source: _CompletedProductSource,
-    detection_source: _CompletedProductSource,
-    label_source: _CompletedProductSource,
-    centroid_source: _CompletedProductSource,
-    position_source: _CompletedProductSource,
+    background_rms_source: CompletedProductSource,
+    detection_source: CompletedProductSource,
+    label_source: CompletedProductSource,
+    centroid_source: CompletedProductSource,
+    position_source: CompletedProductSource,
     manifest: PartitionManifest,
     config: SegmentRowStageConfig,
 ) -> None:
@@ -988,12 +959,12 @@ def _segments(
 
 
 def run_segment_row_stage(  # noqa: PLR0913, PLR0917
-    source: _WindowReadable,
-    background_rms_source: _CompletedProductSource,
-    detection_source: _CompletedProductSource,
-    label_source: _CompletedProductSource,
-    centroid_source: _CompletedProductSource,
-    position_source: _CompletedProductSource,
+    source: WindowReadable,
+    background_rms_source: CompletedProductSource,
+    detection_source: CompletedProductSource,
+    label_source: CompletedProductSource,
+    centroid_source: CompletedProductSource,
+    position_source: CompletedProductSource,
     manifest: PartitionManifest,
     *,
     config: SegmentRowStageConfig,

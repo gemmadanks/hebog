@@ -77,7 +77,7 @@ _STAGES = (
     ("hebog.public_api", "_file_sha256", "input hashing"),
     ("hebog.io.fits", "FitsImageSource.read_window", "FITS window read"),
     (
-        "hebog.public_api",
+        "hebog.stages.composition",
         "run_detection_stage",
         "background, RMS and first-pass detection",
     ),
@@ -113,7 +113,7 @@ _STAGES = (
         "Zarr plane read",
     ),
     (
-        "hebog.public_api",
+        "hebog.stages.composition",
         "detect_multiscale_products",
         "tiled multiscale detection pass",
     ),
@@ -133,12 +133,12 @@ _STAGES = (
         "continuum science",
     ),
     (
-        "hebog.public_api",
+        "hebog.stages.composition",
         "reduce_support_topology",
         "adjacent-scale persistence reduction",
     ),
     (
-        "hebog.public_api",
+        "hebog.stages.composition",
         "publish_support_labels",
         "tiled support pass",
     ),
@@ -148,12 +148,12 @@ _STAGES = (
         "owner connectivity and final labels",
     ),
     (
-        "hebog.public_api",
+        "hebog.stages.composition",
         "publish_detection_islands",
         "reconciled detection island rows",
     ),
     (
-        "hebog.public_api",
+        "hebog.stages.composition",
         "publish_component_topology",
         "tiled component topology",
     ),
@@ -163,7 +163,7 @@ _STAGES = (
         "per-parent deblending",
     ),
     (
-        "hebog.public_api",
+        "hebog.stages.composition",
         "publish_component_fits",
         "tiled component fits",
     ),
@@ -183,12 +183,12 @@ _STAGES = (
         "per-feature cross-parent grouping",
     ),
     (
-        "hebog.public_api",
+        "hebog.stages.composition",
         "publish_source_planes",
         "tiled source labels and owned support",
     ),
     (
-        "hebog.public_api",
+        "hebog.stages.composition",
         "publish_segment_rows",
         "tiled catalogue rows",
     ),
@@ -208,7 +208,7 @@ _STAGES = (
         "per-component source support assignment",
     ),
     (
-        "hebog.public_api",
+        "hebog.stages.composition",
         "publish_hierarchy_overlaps",
         "tiled source hierarchy overlaps",
     ),

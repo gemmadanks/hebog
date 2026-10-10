@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import ast
 import gc
-import inspect
 import os
 import subprocess
 import sys
@@ -44,6 +43,7 @@ from hebog import (
 from hebog.algorithms import fitting as fitting_algorithm
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.data_models import PublicSourceFindingDiagnostics, WideObjectCounts
+from hebog.data_models.partitioning import PartitionManifest
 from hebog.executors import (
     DaskExecutor,
     Executor,
@@ -65,6 +65,7 @@ from hebog.pipeline import (
 )
 from hebog.science import continuum
 from hebog.science.models import TiledComponentFits
+from hebog.stages import composition
 from hebog.stages import detection as detection_stage
 from hebog.stages.background import BackgroundRmsGrids
 from hebog.validation.datasets import (
@@ -347,8 +348,8 @@ def test_a_measured_source_without_an_island_fails_closed(
         return _pruned_products(result, mask, tmp_path / "pruned.zarr")
 
     monkeypatch.setattr(
-        public_api,
-        "_estimate_background_rms",
+        composition,
+        "estimate_background_rms",
         substituted_background_rms(
             signal, np.zeros_like(signal), np.ones_like(signal)
         ),
@@ -390,8 +391,8 @@ def test_a_compact_detection_below_the_boundary_floor_is_published(
         tmp_path / "image.fits"
     )
     monkeypatch.setattr(
-        public_api,
-        "_estimate_background_rms",
+        composition,
+        "estimate_background_rms",
         substituted_background_rms(
             signal, np.zeros_like(signal), np.ones_like(signal)
         ),
@@ -459,8 +460,8 @@ def test_public_degenerate_owner_does_not_abort_a_healthy_neighbour(
     monkeypatch.setattr(public_api, "_public_catalogue", projected_catalogue)
 
     monkeypatch.setattr(
-        public_api,
-        "_estimate_background_rms",
+        composition,
+        "estimate_background_rms",
         substituted_background_rms(
             signal, np.zeros_like(signal), np.ones_like(signal)
         ),
@@ -540,8 +541,8 @@ def test_a_measured_gaussian_without_an_island_fails_closed(
         return _pruned_products(products, mask, tmp_path / "pruned.zarr")
 
     monkeypatch.setattr(
-        public_api,
-        "_estimate_background_rms",
+        composition,
+        "estimate_background_rms",
         substituted_background_rms(
             signal, np.zeros_like(signal), np.ones_like(signal)
         ),
@@ -571,8 +572,8 @@ def test_two_sources_share_one_actual_detection_island(
     _write_image(tmp_path / "image.fits", signal)
 
     monkeypatch.setattr(
-        public_api,
-        "_estimate_background_rms",
+        composition,
+        "estimate_background_rms",
         substituted_background_rms(
             signal, np.zeros_like(signal), np.ones_like(signal)
         ),
@@ -615,8 +616,8 @@ def test_projection_accepts_a_source_standing_on_a_shared_island(
     )
     _write_image(path, signal)
     monkeypatch.setattr(
-        public_api,
-        "_estimate_background_rms",
+        composition,
+        "estimate_background_rms",
         substituted_background_rms(
             signal, np.zeros_like(signal), np.ones_like(signal)
         ),
@@ -690,8 +691,8 @@ def test_a_compact_source_beside_a_brighter_broad_one_gets_a_gaussian(
     )
     _write_image(tmp_path / "image.fits", signal)
     monkeypatch.setattr(
-        public_api,
-        "_estimate_background_rms",
+        composition,
+        "estimate_background_rms",
         substituted_background_rms(
             signal, np.zeros_like(signal), np.ones_like(signal)
         ),
@@ -769,8 +770,8 @@ def test_a_resolved_source_keeps_its_shape_beside_a_degenerate_neighbour(
     header["BMAJ"] = header["BMIN"] = 2.48 / 3600.0
     fits.PrimaryHDU(data=image, header=header).writeto(tmp_path / "image.fits")
     monkeypatch.setattr(
-        public_api,
-        "_estimate_background_rms",
+        composition,
+        "estimate_background_rms",
         substituted_background_rms(
             image, np.zeros_like(image), np.ones_like(image)
         ),
@@ -843,8 +844,8 @@ def test_current_projection_rejects_inconsistent_public_evidence(
     _write_image(path, signal)
 
     monkeypatch.setattr(
-        public_api,
-        "_estimate_background_rms",
+        composition,
+        "estimate_background_rms",
         substituted_background_rms(
             signal, np.zeros_like(signal), np.ones_like(signal)
         ),
@@ -965,8 +966,8 @@ def test_signed_aperture_failure_never_becomes_positive_only_flux(
     _write_image(tmp_path / "image.fits", signal)
 
     monkeypatch.setattr(
-        public_api,
-        "_estimate_background_rms",
+        composition,
+        "estimate_background_rms",
         substituted_background_rms(
             signal, np.zeros_like(signal), np.ones_like(signal)
         ),
@@ -1026,8 +1027,8 @@ def test_fitted_source_publishes_when_its_aperture_sums_below_zero(
     signal += 8 * np.exp(-((xx - 20) ** 2 + (yy - 32) ** 2) / 8)
     _write_image(tmp_path / "image.fits", signal)
     monkeypatch.setattr(
-        public_api,
-        "_estimate_background_rms",
+        composition,
+        "estimate_background_rms",
         substituted_background_rms(
             signal, np.zeros_like(signal), np.ones_like(signal)
         ),
@@ -1156,7 +1157,7 @@ def test_public_wide_object_counts_record_every_round_decided_from_cores(
         _config(),
         SerialExecutor(),
     )
-    monkeypatch.setattr(public_api, "_OWNER_BATCH_READ_PIXELS", 1)
+    monkeypatch.setattr(composition, "_OWNER_BATCH_READ_PIXELS", 1)
 
     result = hebog.find_sources(
         _request(tmp_path, output_name="wide"), _config(), SerialExecutor()
@@ -1234,11 +1235,11 @@ def test_public_wide_object_counts_map_each_round_to_its_own_field(
     rounds, component rows and source rows, are the one field that sums.
     """
     _write_image(tmp_path / "image.fits", _ring_image())
-    support_labels = public_api.publish_support_labels
-    source_planes = public_api.publish_source_planes
-    component_fits = public_api.publish_component_fits
-    detection_islands = public_api.publish_detection_islands
-    segment_rows = public_api.publish_segment_rows
+    support_labels = composition.publish_support_labels
+    source_planes = composition.publish_source_planes
+    component_fits = composition.publish_component_fits
+    detection_islands = composition.publish_detection_islands
+    segment_rows = composition.publish_segment_rows
     segment_sentinels = {"component-rows": 50, "source-rows": 7}
 
     def owners(*args: Any, **kwargs: Any) -> tuple[int, int, ZarrProductSink]:
@@ -1270,11 +1271,11 @@ def test_public_wide_object_counts_map_each_round_to_its_own_field(
             segment_sentinels[kwargs["sink_name"]],
         )
 
-    monkeypatch.setattr(public_api, "publish_support_labels", owners)
-    monkeypatch.setattr(public_api, "publish_source_planes", components)
-    monkeypatch.setattr(public_api, "publish_component_fits", parents)
-    monkeypatch.setattr(public_api, "publish_detection_islands", islands)
-    monkeypatch.setattr(public_api, "publish_segment_rows", segments)
+    monkeypatch.setattr(composition, "publish_support_labels", owners)
+    monkeypatch.setattr(composition, "publish_source_planes", components)
+    monkeypatch.setattr(composition, "publish_component_fits", parents)
+    monkeypatch.setattr(composition, "publish_detection_islands", islands)
+    monkeypatch.setattr(composition, "publish_segment_rows", segments)
 
     result = hebog.find_sources(
         _request(tmp_path), _config(), SerialExecutor()
@@ -1318,14 +1319,20 @@ def test_continuum_mesh_repair_does_not_change_compact_background_policy(
         assert not kwargs["refine_local_noise"]
         raise RuntimeError("compact policy inspected")
 
-    monkeypatch.setattr(public_api, "run_detection_stage", inspect_stage)
+    monkeypatch.setattr(composition, "run_detection_stage", inspect_stage)
     with pytest.raises(RuntimeError, match="compact policy inspected"):
-        public_api._estimate_background_rms(  # pyright: ignore[reportPrivateUsage]
+        metadata = source.metadata()
+        beam, review = public_api._stage_inputs(  # pyright: ignore[reportPrivateUsage]
+            metadata, config
+        )
+        composition.estimate_background_rms(
             source,
-            source.metadata(),
+            metadata,
             config,
             SerialExecutor(),
             tmp_path / "work",
+            beam=beam,
+            review=review,
             generation_id="compact-policy",
         )
 
@@ -1873,8 +1880,8 @@ def test_a_crowded_field_with_a_quiet_strip_restores_a_split_owner(
         np.where(columns < 199, 3.4477e-5, _CROWDED_FIELD_NOISE_JY_PER_BEAM),
     )
     monkeypatch.setattr(
-        public_api,
-        "_estimate_background_rms",
+        composition,
+        "estimate_background_rms",
         substituted_background_rms(
             image,
             np.zeros_like(image),
@@ -1915,8 +1922,8 @@ def _stand_in_the_quieter_strip_estimate(
     values = np.asarray(image, dtype=np.float64)
     near = np.arange(values.shape[1]) < 199
     patch.setattr(
-        public_api,
-        "_estimate_background_rms",
+        composition,
+        "estimate_background_rms",
         substitute(
             values,
             np.array(
@@ -2012,22 +2019,31 @@ def test_a_crowded_field_with_a_quieter_strip_is_executor_and_tile_invariant(
     _stand_in_the_quieter_strip_estimate(
         monkeypatch, substituted_background_rms, image
     )
-    for name, function in list(vars(public_api).items()):
-        if (
-            inspect.isfunction(function)
-            and function.__module__ == public_api.__name__
-            and "tile_core_pixels" in inspect.signature(function).parameters
-        ):
-            monkeypatch.setattr(
-                public_api,
-                name,
-                partial(function, tile_core_pixels=_QUIETER_STRIP_CORE_PIXELS),
-            )
+    monkeypatch.setattr(
+        composition,
+        "run_stages_from_background",
+        partial(
+            composition.run_stages_from_background,
+            multiscale_tile_core_pixels=_QUIETER_STRIP_CORE_PIXELS,
+            support_tile_core_pixels=_QUIETER_STRIP_CORE_PIXELS,
+        ),
+    )
+    planned_cores: list[tuple[int, int]] = []
+    plan = composition.plan_image_partitions
+
+    def recording_plan(**arguments: Any) -> PartitionManifest:
+        manifest = plan(**arguments)
+        planned_cores.append(manifest.tile_core_shape_yx)
+        return manifest
+
+    monkeypatch.setattr(composition, "plan_image_partitions", recording_plan)
 
     tiled = _run_on_small_tiles(
         quieter_strip_field, tmp_path / "products", each_executor, monkeypatch
     )
 
+    # The small cores reached the passes, so the comparison is not vacuous.
+    assert (_QUIETER_STRIP_CORE_PIXELS,) * 2 in planned_cores
     assert product_hashes(tiled) == product_hashes(quieter_strip_field.result)
 
 
@@ -2170,8 +2186,8 @@ def test_published_rms_streams_the_estimate_across_many_tile_rows(
     zero_background = np.zeros_like(signal)
 
     monkeypatch.setattr(
-        public_api,
-        "_estimate_background_rms",
+        composition,
+        "estimate_background_rms",
         substituted_background_rms(signal, zero_background, estimate),
     )
 
@@ -2204,8 +2220,8 @@ def test_catalogue_local_rms_reads_each_owner_own_store_window(
     zero_background = np.zeros_like(signal)
 
     monkeypatch.setattr(
-        public_api,
-        "_estimate_background_rms",
+        composition,
+        "estimate_background_rms",
         substituted_background_rms(signal, zero_background, estimate),
     )
 
@@ -2373,7 +2389,7 @@ def _run_on_small_tiles(
     monkeypatch: pytest.MonkeyPatch,
 ) -> SourceFinderResult:
     """Run the reference's input again, on 97-by-111 background tiles."""
-    monkeypatch.setattr(public_api, "_TILE_SHAPE_YX", (97, 111))
+    monkeypatch.setattr(composition, "_TILE_SHAPE_YX", (97, 111))
     return hebog.find_sources(
         SourceFinderRequest(
             reference.image_path, output_directory, reference.result.run_id

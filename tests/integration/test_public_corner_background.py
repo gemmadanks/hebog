@@ -18,11 +18,12 @@ from conftest import estimated_maps
 from distributed import Client
 from scipy.ndimage import gaussian_filter
 
-from hebog import find_sources, public_api
+from hebog import find_sources
 from hebog.config import SourceFinderConfig
 from hebog.data_models import SourceFinderRequest
 from hebog.executors import DaskExecutor, SerialExecutor
 from hebog.io import read_catalogue_fits_product
+from hebog.stages import composition
 
 
 @pytest.mark.integration
@@ -71,7 +72,7 @@ def test_public_corner_sources_survive_background_estimation(
     )
     path = tmp_path / "corners.fits"
     fits.PrimaryHDU(image, header).writeto(path)
-    original_estimator = public_api._estimate_background_rms
+    original_estimator = composition.estimate_background_rms
     maps: list[tuple[np.ndarray, np.ndarray]] = []
 
     def capture_maps(*args: Any, **kwargs: Any):
@@ -79,7 +80,7 @@ def test_public_corner_sources_survive_background_estimation(
         maps.append(estimated_maps(result[0], args[1].shape_yx))
         return result
 
-    monkeypatch.setattr(public_api, "_estimate_background_rms", capture_maps)
+    monkeypatch.setattr(composition, "estimate_background_rms", capture_maps)
     config = SourceFinderConfig(5.0, 3.0, 7)
     serial = find_sources(
         SourceFinderRequest(path, tmp_path / "serial", "corner-control"),

@@ -59,7 +59,8 @@ LAYER_IMPORTS: dict[str, frozenset[str]] = {
     # The public entry point and its error types; it reaches the composition
     # only through a deferred import (``LAYER_EXEMPTIONS``).
     "pipeline": frozenset({"config", "data_models", "executors"}),
-    # The outer I/O layer validates input and runs the stages in order.
+    # The outer I/O layer validates and admits input, calls the stage
+    # sequence and publishes the products.
     "public_api": frozenset(
         {
             "algorithms",
@@ -77,7 +78,8 @@ LAYER_IMPORTS: dict[str, frozenset[str]] = {
     "public_science": frozenset(
         {"algorithms", "config", "data_models", "science"}
     ),
-    # Apply the kernels tile by tile through the caller's executor.
+    # Apply the kernels tile by tile through the caller's executor, and
+    # run the stages in order (``stages/composition.py``).
     "stages": frozenset(
         {"algorithms", "config", "data_models", "executors", "io", "science"}
     ),
