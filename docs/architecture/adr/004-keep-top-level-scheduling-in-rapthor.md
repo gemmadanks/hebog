@@ -80,14 +80,16 @@ use on a local machine with smaller images, through the Serial or Thread
 executor. Several sectors in flight stay supported. In Rapthor the executor
 follows Rapthor's workers:
 
-- when they give each node several task slots, as compute workers beside a
-  command worker on each node (recommended) or several workers on one node,
+- when they give each node several task slots, as several workers a node
+  of several threads each (recommended) or several single-threaded workers,
   Hebog runs on Rapthor's client: its tile
   tasks stay single-threaded and numerous, with tile cores sized from the
   cores the executor declares, so Dask schedules every core; its tasks
-  carry a resource annotation that keeps them on the compute workers; and
-  the analysis, where it shares workers with its tiles, secedes from its
-  slot while it waits on them;
+  request one `cores` resource each, while every Rapthor Prefect task,
+  DP3 and WSClean included, requests `prefect: 1` and the cores it uses,
+  so one worker never runs two Prefect tasks and a command never shares
+  its cores; and the analysis waits on one core, seceding where it would
+  otherwise hold its worker's only thread;
 - otherwise, as with today's single single-threaded worker a node, Hebog
   runs a thread executor inside the worker's task, and one sector uses one
   node.

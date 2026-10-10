@@ -32929,6 +32929,27 @@ the per-worker placement finding.
   analysis starts. Starting the compute workers with the cluster is
   recommended. Tasks 72 and 20 now carry the layout.
 
+## 2026-10-10 — Rapthor's layouts: one worker design for every task
+
+- **Layout 3 clarified.** With one single-threaded worker a node across M
+  nodes, Hebog on Rapthor's client runs one tile a node at a time, M cores
+  in all (ten of 1,920 on ten 192-core nodes); a thread executor in the
+  filter task runs up to 192 threads on one node. Hebog takes the second;
+  the page now shows both rather than saying the other nodes wait.
+- **Recommended layout replaced.** The maintainer prefers several Dask
+  workers a node for DP3 and WSClean as well, which replaces the command
+  and compute workers of the entry above with one rule: each worker has T
+  threads and declares `cores: T` and `prefect: 1`; every Rapthor Prefect
+  task requests `prefect: 1` and the cores it uses (DP3 and WSClean all T,
+  the filter task one), and every Hebog tile task one core. A local check
+  with `distributed` 2026.7.1 on one four-thread worker: two Prefect tasks
+  ran in 1.0 s of 0.5 s each (serially), four single-core tiles in 0.5 s
+  (together), two whole-worker commands in 1.0 s (serially), and a 1.0 s
+  Prefect task beside six 0.5 s tiles finished in 1.0 s (three tiles at a
+  time). The worker size T is Rapthor's trade-off: external commands want
+  it large, Hebog's tiles in one Python process want it small enough for
+  the global lock, which task 73 measures.
+
 ## 2026-10-10 — Shorten PR CI feedback without reducing the test matrix
 
 - **Decision and scope.** The [44½-minute PR run](https://github.com/gemmadanks/hebog/actions/runs/38031868877)
