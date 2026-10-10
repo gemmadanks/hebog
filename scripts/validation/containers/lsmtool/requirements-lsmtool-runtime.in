@@ -1,0 +1,14 @@
+# LSMTool 9bac2f7 [project.dependencies], verbatim. The image runs LSMTool
+# only; Hebog runs on the host and its products are bind-mounted.
+astropy>=3.2
+everybeam>=0.6.1
+lofar-parameterset>=1.1
+matplotlib
+mocpy
+numpy<2.5
+python-casacore
+pyvo
+scipy>=0.11
+shapely
+Pillow>11.1
+bdsf
