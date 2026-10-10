@@ -169,7 +169,7 @@ def test_result_exposes_one_pipeline_neutral_product_set() -> None:
     """One scientific analysis returns one catalogue, RMS, and mask set."""
     result = _source_finder_result()
 
-    assert result.schema_version == 2
+    assert result.schema_version == 3
     assert result.catalogue_path == Path("catalogue.fits")
     assert result.rms_path == Path("rms.fits")
     assert result.mask_path == Path("mask.fits")
@@ -295,7 +295,7 @@ def test_rapthor_profile_holds_only_the_options_the_finder_honours() -> None:
 @pytest.mark.parametrize(
     ("changes", "message"),
     [
-        ({"schema_version": 2}, "unsupported source-finder request"),
+        ({"schema_version": 1}, "unsupported source-finder request"),
         ({"run_id": ""}, "run_id must not be empty"),
     ],
 )
@@ -733,8 +733,73 @@ def test_source_finder_request_carries_supplied_metadata() -> None:
 def test_source_finder_request_keeps_its_positional_schema_version() -> None:
     """Adding supplied metadata does not reinterpret positional arguments."""
     request = SourceFinderRequest(
-        Path("image.fits"), Path("products"), "run", 1
+        Path("image.fits"), Path("products"), "run", 2
     )
 
-    assert request.schema_version == 1
+    assert request.schema_version == 2
     assert request.supplied_metadata is None
+
+
+@pytest.mark.parametrize(
+    ("flat_noise_rms", "message"),
+    [
+        (
+            _materialized_product("diagnostics", "flat-noise-rms.json"),
+            "flat_noise_rms product role must be rms",
+        ),
+        (
+            _materialized_product("rms", "rms.fits"),
+            "paths must be distinct",
+        ),
+    ],
+)
+def test_result_rejects_a_misdescribed_flat_noise_rms(
+    flat_noise_rms: MaterializedProduct, message: str
+) -> None:
+    """The flat-noise RMS is an RMS image with a path of its own."""
+    with pytest.raises(ValueError, match=message):
+        _replaced_result(
+            _source_finder_result(), flat_noise_rms=flat_noise_rms
+        )
+
+
+def test_result_accepts_an_unavailable_flat_noise_rms() -> None:
+    """Like the true-sky RMS, the flat-noise RMS may hold no usable noise."""
+    result = _replaced_result(
+        _source_finder_result(),
+        flat_noise_rms=_materialized_product(
+            "rms", "flat-noise-rms.fits", scientific_status="unavailable"
+        ),
+    )
+
+    assert result.flat_noise_rms is not None
+    assert result.flat_noise_rms.scientific_status == "unavailable"
+
+
+def test_provenance_requires_a_sha256_flat_noise_input() -> None:
+    """A flat-noise input identity is a SHA-256 or absent."""
+    values: dict[str, Any] = {
+        "input_sha256": "1" * 64,
+        "configuration_sha256": "2" * 64,
+        "scientific_profile_sha256": "3" * 64,
+        "scientific_composition_sha256": "4" * 64,
+        "scientific_composition": (
+            "phase-5-evidence-bound-public-catalogue-v22"
+        ),
+    }
+
+    assert (
+        domain_models.PublicSourceFindingProvenance(
+            **values, flat_noise_input_sha256="5" * 64
+        ).flat_noise_input_sha256
+        == "5" * 64
+    )
+    with pytest.raises(ValidationError, match="SHA-256"):
+        domain_models.PublicSourceFindingProvenance(
+            **values, flat_noise_input_sha256="not-a-digest"
+        )
+
+
+def _replaced_result(result: SourceFinderResult, **changes: Any) -> Any:
+    """Return a copy of a result with changed fields, validated again."""
+    return SourceFinderResult.model_validate(result.model_dump() | changes)

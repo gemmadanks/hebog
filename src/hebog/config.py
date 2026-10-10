@@ -130,9 +130,12 @@ class BackgroundRmsConfig:
     adaptive: AdaptiveRmsConfig | None
     maximum_spatial_window_fraction: float
     maximum_constant_map_pixels: int
+    background: Literal["estimated", "zero"] = "estimated"
 
     def __post_init__(self) -> None:
         """Validate automatic constant-map fallback and its memory bound."""
+        if self.background not in {"estimated", "zero"}:
+            raise ValueError("background must be 'estimated' or 'zero'")
         if (
             not isfinite(self.maximum_spatial_window_fraction)
             or not 0 < self.maximum_spatial_window_fraction <= 1
@@ -175,8 +178,10 @@ class SourceFinderConfig:
     Island-size cuts are likewise explicit pixel counts; a compatibility
     adapter may derive them from reviewed beam metadata before constructing
     this scheduler-independent configuration.
-    Workflow-specific background, RMS, and filtering choices belong to
-    compatibility configuration at the adapter boundary. The residual
+    ``background`` is ``estimated``, Hebog's spatial background, or
+    ``zero``, which subtracts nothing while the RMS is still estimated, as
+    PyBDSF's ``mean_map="zero"`` does; which one a workflow uses is that
+    workflow's adapter's choice, as are its filtering options. The residual
     multiscale segmentation policy has its own explicit configuration because
     its area and support rules use beam rather than pixel units.
     ``continuum`` is the general source-association profile; ``compact`` is an
@@ -189,7 +194,7 @@ class SourceFinderConfig:
     >>> SourceFinderConfig(5, 3, 7)
     SourceFinderConfig(detection_threshold_sigma=5.0, \
 island_threshold_sigma=3.0, minimum_island_pixels=7, \
-maximum_island_pixels=None, profile='continuum')
+maximum_island_pixels=None, profile='continuum', background='estimated')
     """
 
     detection_threshold_sigma: float
@@ -197,12 +202,17 @@ maximum_island_pixels=None, profile='continuum')
     minimum_island_pixels: int
     maximum_island_pixels: int | None = None
     profile: Literal["continuum", "compact"] = "continuum"
+    background: Literal["estimated", "zero"] = "estimated"
 
     def __post_init__(self) -> None:
         """Validate thresholds and pixel cuts, and hold plain values."""
         if self.profile not in {"continuum", "compact"}:
             raise ValueError(
                 "source-finder profile must be 'continuum' or 'compact'"
+            )
+        if self.background not in {"estimated", "zero"}:
+            raise ValueError(
+                "source-finder background must be 'estimated' or 'zero'"
             )
         for name in ("detection_threshold_sigma", "island_threshold_sigma"):
             object.__setattr__(

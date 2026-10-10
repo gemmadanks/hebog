@@ -243,14 +243,17 @@ def estimate_background_rms(  # noqa: PLR0913
     detection_config = replace(
         candidate_detection,
         source_finder=config,
-        background_rms=(
-            _public_background_config(
-                metadata.shape_yx,
-                candidate_detection.background_rms,
-                source_finder=config,
-            )
-            if config.profile == "continuum"
-            else candidate_detection.background_rms
+        background_rms=replace(
+            (
+                _public_background_config(
+                    metadata.shape_yx,
+                    candidate_detection.background_rms,
+                    source_finder=config,
+                )
+                if config.profile == "continuum"
+                else candidate_detection.background_rms
+            ),
+            background=config.background,
         ),
     )
     run_detection_stage(

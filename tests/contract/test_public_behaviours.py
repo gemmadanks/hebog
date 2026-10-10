@@ -158,7 +158,7 @@ def test_valid_request_materialises_versioned_products(tmp_path: Path) -> None:
     assert expected.mask_path.is_file()
     assert expected.diagnostics_path.is_file()
     assert expected.run_id == "contract"
-    assert expected.schema_version == 2
+    assert expected.schema_version == 3
     assert (
         expected.catalogue.product_role,
         expected.rms.product_role,

@@ -220,6 +220,7 @@ def test_numpy_scalars_are_held_as_the_python_numbers_they_equal() -> None:
         int,
         int,
         str,
+        str,
     ]
 
 
@@ -241,3 +242,13 @@ def test_rejects_a_threshold_that_is_not_a_real_number(
             minimum_island_pixels=7,
             **thresholds,  # type: ignore[arg-type]
         )
+
+
+def test_source_finder_background_is_estimated_unless_set_to_zero() -> None:
+    """Hebog estimates a background by default; zero matches PyBDSF's call."""
+    assert SourceFinderConfig(5.0, 3.0, 7).background == "estimated"
+    assert SourceFinderConfig(5.0, 3.0, 7, background="zero").background == (
+        "zero"
+    )
+    with pytest.raises(ValueError, match="background must be"):
+        SourceFinderConfig(5.0, 3.0, 7, background="mean")  # type: ignore[arg-type]
