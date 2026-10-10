@@ -6,12 +6,19 @@ This file applies to the entire repository.
 
 Hebog is a Dask-aware source finder for large radio-continuum survey images.
 It should work on images from any radio telescope, with LOFAR, SKA-Low and
-SKA-Mid as the priority instruments. Its intended first consumer is Rapthor's `filter_skymodel` step; no Rapthor
-integration is implemented yet. It is intentionally narrower than PyBDSF:
+SKA-Mid as the priority instruments. Its intended first consumer is Rapthor's
+`filter_skymodel` step. The public `find_sources(request, config, executor)`
+runs under Serial, Thread and caller-owned Dask execution and can publish an
+optional flat-noise RMS alongside the true-sky products. Rapthor records and
+a catalogue codec exist; the complete Rapthor backend is still planned.
+It is intentionally narrower than PyBDSF:
 reproduce the behaviour and products Rapthor uses, demonstrate scientific
-equivalence, and meet the performance gate below. The architecture must scale out of core
-to 100,000-by-100,000 images across 100 to several hundred nodes through
-Rapthor's existing Dask cluster; production nodes have hundreds of GB of RAM.
+equivalence, and meet the performance gate below. The architecture must support
+out-of-core 100,000-by-100,000 images across 100 to several hundred nodes;
+these are design targets, not demonstrated capabilities. The plan governs
+the smaller development ladder and qualification runs. Hebog defines its
+resource needs; Rapthor or another caller supplies the cluster
+([ADR-010](docs/architecture/adr/010-scale-hebog-independently-of-its-integrations.md)).
 Maintainability, extensibility, and interoperability are primary architecture
 qualities: the scientific library must remain usable from other pipelines and
 science workflows without importing Rapthor, Prefect, or LSMTool.
@@ -20,6 +27,9 @@ science workflows without importing Rapthor, Prefect, or LSMTool.
 is the authoritative delivery plan; `PLAN.md` is the reusable template for
 other work plans. Git history records completed work; [`LOG.md`](LOG.md) is
 a historical archive and receives no new entries.
+Read [capability and status](docs/reference/release-status.md) and the plan
+for current limits and evidence; do not infer release readiness from an
+architecture target, passing tests, or work on an unmerged branch.
 
 The repository contains:
 
@@ -41,6 +51,11 @@ Never hard-code those paths in package code or normal tests.
 - Make the smallest coherent change that satisfies the task. Preserve
   unrelated work: inspect `git diff` before and after editing, and do not
   revert changes you did not make.
+- Carry authorization forward within the agreed scope. Own routine
+  investigation, fixes and checks; ask for a new decision only when scope,
+  scientific disposition, resources or an external action requires it.
+  Explain that boundary and present a concrete recommendation. Continue
+  independent work while clarifying a missing detail.
 - Follow the existing structure and naming conventions instead of introducing
   a second tool or parallel configuration.
 - Prefer the simplest solution that meets the requirement and reads clearly.
@@ -124,7 +139,11 @@ just test-acceptance    # Rapthor-facing behaviour scenarios
 just test-slow          # long regressions; CI runs them weekly and on demand
 just test-qualification # held-out scientific cases on an approved data host
 just test-benchmark     # controlled performance runs
-just test-scalability   # controlled 100-to-200-plus-node scale runs
+just test-scalability   # controlled large-image and multi-node checks
+just quick-science-check # bounded regression screen; local data and Podman
+just quick-benchmark    # bounded end-to-end benchmark; plan-defined tiers
+just profile-execution  # complete-path profiling, with arguments as needed
+just traced-peak        # deterministic allocation evidence for envelope raises
 just coverage           # portable suite with branch coverage
 just check              # format-check, lint, type-check, unit tests
 just pre-commit-fast    # lint, formatting and hygiene hooks, with fixes
@@ -133,7 +152,7 @@ just docs-build         # strict MkDocs build
 just marimo-check       # validate Marimo notebooks
 just notebook-smoke     # execute the offline notebooks
 just package-smoke-test # build and import the wheel in isolation
-just ci                 # comprehensive local CI equivalent
+just ci                 # comprehensive local checks; CI adds the OS matrix
 ```
 
 For a focused test, run pytest through uv, for example
@@ -141,6 +160,13 @@ For a focused test, run pytest through uv, for example
 the corresponding command from the `justfile`. PyBDSF equivalence and Rapthor
 end-to-end runs may require a separate integration container; do not add
 heavyweight production tools to the core runtime solely for tests.
+
+Use focused checks and `just pre-commit-fast` while iterating; run the full
+hooks once the final diff is ready. Reuse passing results for the same code,
+configuration and environment; repeat checks when an edit, conflict
+resolution or environment change invalidates them. Reserve `just ci` and
+long campaigns for the plan's named gates. Local checks do not establish
+that the hosted platform matrix passed.
 
 ## Architecture rules
 
@@ -165,8 +191,9 @@ heavyweight production tools to the core runtime solely for tests.
   eagerly import a concrete scheduler; optional executors load only when
   requested.
 - Do not start a private Dask cluster or multiprocessing pool inside the
-  library by default; Rapthor owns the top-level scheduler and resource
-  budget. Algorithms accept an executor rather than importing a global client.
+  library by default; the caller owns the top-level scheduler and resource
+  budget. Public orchestration and stages accept an executor; algorithms and
+  `science/` remain independent of executors, schedulers and I/O.
   A Dask executor may receive an existing client, but never send open files,
   scheduler clients, mutable pipeline state, or repeatedly embedded full
   images through tasks. Public requests and results remain small and
@@ -176,7 +203,16 @@ heavyweight production tools to the core runtime solely for tests.
   Astropy re-serializes a `WCS` through a header it reformats itself.
 - Maintain `SerialExecutor` as the deterministic reference. Alternate
   executors, stores, and workflow adapters must pass the same contract suite
-  and produce equivalent results.
+  and produce equivalent results. Exercise Serial, Thread and Dask through
+  the parametrized executor contracts; Dask cases belong to integration.
+- Keep the stage sequence in `stages/composition.py`, scientific composition
+  and records in `science/`, and public validation and publication in
+  `public_api.py`. `tests/unit/test_architecture.py` enforces the layer map;
+  update it with a justified design change rather than bypassing it.
+- Follow ADR-010: the caller supplies shared storage, a core budget, native
+  thread limits and resources under caller-configured names. Size work from
+  admitted capacity without assuming a fixed or dedicated worker layout.
+  Keep stages and the executor protocol independent of Rapthor's topology.
 - Prefer coarse Dask batches that amortise scheduler and I/O overhead while
   leaving enough runnable work for occupancy; memory-rich scale runs may use
   larger batches. Graph size scales with tiles and scientific stages, never
@@ -206,6 +242,14 @@ heavyweight production tools to the core runtime solely for tests.
   catalogue entry.
 - Version output schemas. Rapthor-facing outputs use paths and plain metadata
   so tasks can be retried and resumed.
+- Preserve the public publication contract: claim a new destination without
+  overwriting it, publish the bundle atomically, and cancel or drain submitted
+  work before returning failure and removing staging. Product readers verify
+  schemas, roles and checksums. A directory's existence is not completion;
+  see [public products](docs/reference/public-products.md).
+- An optional flat-noise input contributes its own RMS and provenance; it
+  must not change the true-sky catalogue, RMS or mask. Keep pair validation
+  and compatibility choices at their documented public or adapter boundary.
 - Add extension seams only at demonstrated variation points. Prefer a narrow
   executor, image-source, product-sink, or compatibility protocol over a
   generic plugin framework, registry, service locator, or conditionals spread
@@ -235,9 +279,9 @@ heavyweight production tools to the core runtime solely for tests.
   beams, WCS orientations, pixel scales, and image units; sources and islands
   crossing tile edges and corners; and partition, tile-shape, worker-count,
   task-order, and retry invariance.
-- Compare Dask results against the serial reference before comparing either
-  with PyBDSF. Report low-SNR threshold crossings as completeness and
-  reliability changes rather than hiding them as unmatched rows.
+- Compare Thread and Dask results against the serial reference before
+  comparing with PyBDSF. Report low-SNR threshold crossings as completeness
+  and reliability changes rather than hiding them as unmatched rows.
 - Before a long scientific campaign or replacement replay, run the bounded
   development screen defined in the plan's scientific gates.
 
@@ -274,10 +318,11 @@ heavyweight production tools to the core runtime solely for tests.
   with an explicit reason, never a fabricated zero, and label evidence
   `reviewed` only after its protocol, environment, and scientific results pass
   review.
-- The controlled matrix spans 256, 512, 1,024, 3,000, 8,000, 10,000, 30,000,
-  and 100,000 pixels per side, both sides of every measured execution
-  crossover, and empty or sparse, normal, and dense or extended workloads. Do
-  not optimize one size tier by regressing another: benchmark affected and
+- Use the frozen ladder in `config/benchmarks/phase-0-performance.json`, the
+  controlled subset and resource budgets in the plan, both sides of every
+  measured execution crossover, and empty or sparse, normal, and dense or
+  extended workloads. Distinguish measured tiers from larger design targets.
+  Do not optimize one size tier by regressing another: benchmark affected and
   adjacent anchors against the previous reviewed Hebog curve, and refresh the
   full frozen ladder at milestone qualification. A statistically supported
   regression greater than 5% at any tier requires an approved, documented
@@ -351,6 +396,10 @@ explain the rationale.
 - Markers are strict and declared in `pyproject.toml`: `contract`,
   `integration`, `equivalence`, `acceptance`, `qualification`, `benchmark`,
   `scalability`, `slow`, and `requires_data`.
+- `config/contracts/phase-0-public-behaviours.json` maps frozen behaviours to
+  tests. When a placeholder starts passing, replace its strict xfail with a
+  normal assertion and mark the manifest entry `implemented` in the same
+  commit. Scaffolding or records alone do not implement a public behaviour.
 - Pytest treats every warning as an error and every `xfail` as strict. Assert
   a warning that is the behaviour under test with `pytest.warns`, fix the
   cause of any other, and filter only a third-party warning that cannot be
@@ -437,6 +486,13 @@ explain the rationale.
   `uv add --dev <package>`, or `uv add --group docs <package>`. Run `uv lock`
   after manual metadata changes and `uv lock --upgrade` only when an upgrade
   is intended. Commit `pyproject.toml` and `uv.lock` changes together.
+- Keep every uv installer and hook aligned with the CI pin;
+  `tests/unit/test_uv_version.py` inventories them, including reusable
+  workflows. Respect the build-backend bounds in `pyproject.toml`, and do
+  not update unrelated tool pins or lockfile versions during another task.
+- `hebog.validation` is source-checkout tooling excluded from the wheel.
+  Production code must not import it. Verify packaged profiles and resources
+  through the installed-wheel smoke test when packaging boundaries change.
 
 ## Documentation and notebooks
 
@@ -457,10 +513,11 @@ explain the rationale.
 - Prefer frequent, coherent experimental `0.x` releases, following the plan's
   delivery policy and its separate merge, package, scientific-qualification,
   and Rapthor-deployment checklists.
-- Ownership is fixed. Agents investigate, implement, validate, update
+- Agents investigate, implement, validate, update
   documentation and the plan, create local commits, and prepare
-  review material and recommendations. Humans push, open and merge pull
-  requests, run and manually inspect notebook comparison refreshes, make
+  review material and recommendations. Humans publish by default; explicit
+  user authorization can delegate a push or PR update as described below.
+  Humans merge pull requests, run and inspect notebook refreshes, make
   scientific dispositions and priority decisions, and configure release
   infrastructure. Release Please updates versions, the changelog and release
   notes and creates tags and GitHub releases; neither agents nor humans edit
@@ -468,10 +525,8 @@ explain the rationale.
   Mark each plan task with its owner.
 - Create a local commit for each coherent, validated, reviewable change, with
   its implementation, tests, and documentation together. Do not combine
-  unrelated milestones or experiments. Never push commits or tags.
-- Use `--no-track` when creating a feature branch or worktree from a remote
-  branch, so it does not inherit that branch as its upstream. Its upstream
-  should be the matching feature branch when a human publishes it.
+  unrelated milestones or experiments. Publish commits or tags only with
+  explicit user authorization.
 - Preserve a feature-flagged PyBDSF fallback in Rapthor until the complete
   acceptance matrix passes.
 - Lead handoffs with the observable outcome, what the checks establish, the
@@ -480,6 +535,33 @@ explain the rationale.
   scientific results. Test counts, coverage, successful execution, and
   historical stage passes do not establish current parity or release
   readiness.
+
+### Branches, worktrees and pull requests
+
+- Before editing, check the worktree path, branch, HEAD, upstream and diff.
+  Fetch current refs when comparing with `main` or diagnosing a PR. Reuse
+  the task's clean worktree or create an isolated one; preserve other active
+  worktrees and their changes. Worktrees share refs and Git configuration.
+- Use `--no-track` when creating a feature branch or worktree from a remote
+  branch, so it does not inherit that branch as its upstream. Its upstream
+  should be the matching feature branch when published; verify it before
+  recommending a push, especially through LazyGit.
+- For stacked PRs, identify the PR's own commits and which parent commits
+  are already on `main`. Replay only the remaining work. Preserve each side's
+  intent when resolving conflicts, and use `git range-diff` plus the final
+  diff against the target base to detect dropped or duplicated changes.
+- Investigate CI failures on the PR's current head: inspect the failed job,
+  logs and reusable workflows, then reproduce the narrow failure locally.
+  Check the aggregate required checks as well as shards; an old failure or
+  a passing unit job does not establish that the current PR passes CI.
+- Humans publish by default. An explicit user request can authorize an agent
+  to push or update a PR within that scope; never infer publishing authority
+  from a request to implement, review or commit. If an authorized rebase
+  requires a force push, use an explicit lease against the verified remote
+  tip and stop if it changed; never use plain `--force`.
+- Handoffs name the worktree, branch, commit and publication status. Prepare
+  a copyable squash message for the complete final PR, including earlier
+  related commits, so the human does not have to reconstruct its context.
 
 ### Commit messages
 
@@ -520,13 +602,15 @@ Before handing off a meaningful change:
 2. Run the narrowest relevant tests and linter while iterating.
 3. Run `just coverage` for production changes and check project and patch
    coverage as described under Tests.
-4. Run equivalence tests for scientific changes, serial and Dask execution
+4. Run equivalence tests for scientific changes, Serial/Thread/Dask execution
    for scheduler-facing changes, and reproducible before/after benchmarks for
    performance claims.
 5. Build docs for public API, configuration, plan, or workflow changes.
 6. Update the plan and current evidence summaries when required by Working
    principles; record completed work in the commit without adding log entries.
-7. Run `just check`, plus `just package-smoke-test` for packaging changes.
+7. Run `just check` or its equivalent checks in the final `just pre-commit`;
+   do not repeat identical checks on an unchanged tree. Run
+   `just package-smoke-test` for packaging changes.
 8. Self-review the final diff against `CODE_REVIEW.md`, fix each finding,
    and rerun the checks the fixes invalidate.
 9. Run `just pre-commit` after all final edits and immediately before staging.
@@ -536,4 +620,4 @@ Before handing off a meaningful change:
    they invalidate, and rerun `just pre-commit` until it passes without
    modifying anything. Never commit a known-failing hook state.
 10. Create the atomic local commit, then inspect the commit and working tree.
-    Do not push it.
+    Push only when explicitly authorized.

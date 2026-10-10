@@ -22,8 +22,9 @@ uv sync --all-groups
 just check
 ```
 
-`just --list` shows every recipe and `just ci` reproduces continuous
-integration locally. The demonstration notebook is
+`just --list` shows every recipe and `just ci` runs comprehensive local
+checks; hosted CI also covers the supported platform matrix. The
+demonstration notebook is
 `uv run marimo edit notebooks/source_finder_demo.py`; the
 [notebook guide](notebooks.md) covers the rest.
 
@@ -31,7 +32,7 @@ integration locally. The demonstration notebook is
 
 | Recipe | What it runs | When |
 | --- | --- | --- |
-| `just check` | Ruff format and lint, strict Pyright over `src/` and `tests/`, unit tests and doctests | Every change |
+| `just check` | Ruff format and lint, strict Pyright over `src/` and `tests/`, unit tests and doctests | Final changes; equivalent passing checks in `just pre-commit` suffice |
 | `just coverage` | The portable unit and integration suite with branch coverage; the floor is 80% | Production changes |
 | `just test-contract`, `just test-integration`, `just test-acceptance` | Public behaviour contracts; Dask, FITS and Rapthor boundaries; Rapthor-facing scenarios | Changes to the public API, executors, I/O or products |
 | `just test-equivalence` | `find_sources` and its stages against frozen PyBDSF products | Scientific changes |

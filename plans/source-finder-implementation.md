@@ -200,10 +200,11 @@ The four levels of done stay distinct:
   behaviour, complete-path performance and operational acceptance, with the
   feature-flagged PyBDSF fallback retained until the acceptance matrix passes.
 
-Ownership is fixed, as
-[`AGENTS.md`](../AGENTS.md#changes-releases-and-handoff) states: the agent
+Ownership follows
+[`AGENTS.md`](../AGENTS.md#changes-releases-and-handoff): the agent
 implements, validates, documents and commits locally; the human pushes,
-merges, runs notebook refreshes and makes scientific and priority decisions;
+merges, runs notebook refreshes and makes scientific and priority decisions.
+Explicit user authorization may delegate a push or PR update to the agent.
 Release Please alone edits versions, the changelog and release notes.
 
 ## Collaboration and repair decisions
@@ -236,8 +237,9 @@ These rules govern agent work on this plan and are referenced from
   preparation and present a concrete recommendation before requesting a new
   scientific or resource decision. Explain the exact boundary requiring that
   decision; do not add approval steps for routine reversible work.
-- At milestone reviews, use the existing log to assess time to actionable
-  diagnosis, avoidable campaign interruptions, repairs without useful change
+- At milestone reviews, use Git history, PR discussion and existing evidence
+  to assess time to actionable diagnosis, avoidable campaign interruptions,
+  repairs without useful change
   and user effort needed to recover status or scope. Use these observations
   to improve the workflow, not commit counts, test totals or documentation
   volume as productivity targets. Do not introduce a separate tracking
