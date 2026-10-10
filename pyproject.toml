@@ -122,7 +122,11 @@ known-first-party = ["hebog"]
 "tests/**" = ["PLR2004"]
 
 [build-system]
-requires = ["uv-build>=0.12.1,<1.0"]
+# uv_build 0.13 writes source distributions as PAX tar archives, which uv
+# releases before 0.13 cannot extract, so building or installing the sdist
+# with an older uv fails. Lift the cap only when every supported installer
+# reads them.
+requires = ["uv-build>=0.12.1,<0.13"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
