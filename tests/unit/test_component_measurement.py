@@ -156,7 +156,6 @@ def _measure(  # noqa: PLR0913
         center_margin_pixels=1.0,
         convergence_tolerance=1e-10,
         maximum_axis_ratio=20.0,
-        background_model="fixed-zero",
         pixel_support=pixel_support,
     )
     return measure_component_models(

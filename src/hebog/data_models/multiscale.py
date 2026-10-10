@@ -84,21 +84,15 @@ class ScaleDetection(_MultiscaleModel):
 
 
 class CrossScaleAssociation(_MultiscaleModel):
-    """Deterministic association of scale and optional compact detections."""
+    """Deterministic association of persistent scale detections."""
 
     association_id: str
     scale_detection_ids: tuple[str, ...] = Field(min_length=1)
-    compact_source_ids: tuple[str, ...]
     selected_scale_detection_id: str
     contributing_scale_orders: tuple[int, ...] = Field(min_length=1)
-    relationship: Literal[
-        "extended-only",
-        "contains-compact-support",
-        "overlaps-compact-support",
-    ]
-    schema_version: Literal[2] = 2
+    schema_version: Literal[3] = 3
 
-    @field_validator("scale_detection_ids", "compact_source_ids")
+    @field_validator("scale_detection_ids")
     @classmethod
     def validate_identifiers(
         cls,
@@ -123,13 +117,4 @@ class CrossScaleAssociation(_MultiscaleModel):
             sorted(set(self.contributing_scale_orders))
         ) or any(order < 1 for order in self.contributing_scale_orders):
             raise ValueError("contributing scale orders must be canonical")
-        has_compact_context = self.relationship != "extended-only"
-        if has_compact_context and not self.compact_source_ids:
-            raise ValueError(
-                "compact-support association requires a compact source"
-            )
-        if not has_compact_context and self.compact_source_ids:
-            raise ValueError(
-                "extended-only association cannot name a compact source"
-            )
         return self

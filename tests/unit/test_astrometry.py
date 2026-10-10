@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 import pickle
-from dataclasses import replace
+from dataclasses import fields, replace
 
 import numpy as np
 import pytest
@@ -453,11 +453,11 @@ def test_transform_uses_xy_centers_east_of_north_and_local_flux_area() -> None:
         rel=1e-5,
     )
     assert result.position.declination_error_degrees == pytest.approx(0.0003)
-    assert result.flux.peak_flux_error_jy_per_beam == 0.0005
-    assert result.flux.integrated_flux_error_jy == pytest.approx(
-        0.001 * result.flux.integrated_flux_jy / 0.02
+    assert result.fitted_flux.peak_flux_error_jy_per_beam == 0.0005
+    assert result.fitted_flux.integrated_flux_error_jy == pytest.approx(
+        0.001 * result.fitted_flux.integrated_flux_jy / 0.02
     )
-    assert result.flux.local_rms_jy_per_beam == 0.0015
+    assert result.fitted_flux.local_rms_jy_per_beam == 0.0015
     assert result.fitted_shape.major_fwhm_error_degrees is None
     assert "shape-uncertainty-unavailable" in result.quality_flags
 
@@ -666,8 +666,8 @@ def test_missing_formal_covariance_produces_null_errors_and_flag() -> None:
 
     assert result.position.right_ascension_error_degrees is None
     assert result.position.declination_error_degrees is None
-    assert result.flux.peak_flux_error_jy_per_beam is None
-    assert result.flux.integrated_flux_error_jy is None
+    assert result.fitted_flux.peak_flux_error_jy_per_beam is None
+    assert result.fitted_flux.integrated_flux_error_jy is None
     assert "position-flux-uncertainty-unavailable" in result.quality_flags
 
 
@@ -766,12 +766,10 @@ def test_extension_requires_two_sigma_flux_ratio_significance() -> None:
     assert result.deconvolution_status == "unresolved"
     assert result.deconvolved_shape is None
     assert "extension-not-significant" in result.quality_flags
-    assert result.flux.integrated_flux_jy == (
-        result.flux.peak_flux_jy_per_beam
-    )
-    assert result.flux.integrated_flux_error_jy == (
-        result.flux.peak_flux_error_jy_per_beam
-    )
+    # An unresolved fit still publishes its fitted total, never its peak.
+    assert "flux" not in {
+        field.name for field in fields(CelestialCompactGaussianFit)
+    }
     assert result.fitted_flux.integrated_flux_jy > (
         result.fitted_flux.peak_flux_jy_per_beam
     )
@@ -851,7 +849,6 @@ def test_geometrically_unresolved_fit_remains_unresolved() -> None:
     assert result.deconvolution_status == "unresolved"
     assert result.quality_flags.count("unresolved") == 1
     assert "extension-not-significant" not in result.quality_flags
-    assert result.flux.integrated_flux_jy == result.flux.peak_flux_jy_per_beam
     assert result.fitted_flux.integrated_flux_jy != (
         result.fitted_flux.peak_flux_jy_per_beam
     )
@@ -883,7 +880,10 @@ def test_significant_extension_retains_fitted_total_flux_and_shape() -> None:
 
     assert result.deconvolution_status == "resolved"
     assert result.deconvolved_shape is not None
-    assert result.flux.integrated_flux_jy > result.flux.peak_flux_jy_per_beam
+    assert (
+        result.fitted_flux.integrated_flux_jy
+        > result.fitted_flux.peak_flux_jy_per_beam
+    )
 
 
 def test_missing_shape_covariance_makes_deconvolution_unavailable() -> None:

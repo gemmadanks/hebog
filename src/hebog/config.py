@@ -321,8 +321,6 @@ class CompactDeblendConfig:
     minimum_region_pixels: int
     maximum_compact_island_pixels: int
     maximum_compact_bounds_pixels: int
-    target_batch_pixels: int
-    maximum_batch_pixels: int
 
     def __post_init__(self) -> None:
         """Require explicit finite science cuts and bounded region costs."""
@@ -365,8 +363,6 @@ class CompactDeblendConfig:
                 self.maximum_compact_bounds_pixels,
                 "maximum_compact_bounds_pixels",
             ),
-            (self.target_batch_pixels, "target_batch_pixels"),
-            (self.maximum_batch_pixels, "maximum_batch_pixels"),
         ):
             if (
                 isinstance(value, bool)
@@ -374,14 +370,6 @@ class CompactDeblendConfig:
                 or value < 1
             ):
                 raise ValueError(f"{name} must be a positive integer")
-        if self.maximum_batch_pixels < self.maximum_compact_bounds_pixels:
-            raise ValueError(
-                "maximum_batch_pixels must admit one compact bounds region"
-            )
-        if self.target_batch_pixels > self.maximum_batch_pixels:
-            raise ValueError(
-                "target_batch_pixels cannot exceed maximum_batch_pixels"
-            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -420,13 +408,11 @@ class CompactGaussianFitConfig:
     center_margin_pixels: float
     convergence_tolerance: float
     maximum_axis_ratio: float
-    maximum_background_offset_sigma: float = 3.0
     context_margin_pixels: int = 8
     extension_significance_sigma: float = 5.0
     component_extension_significance_sigma: float = 5.0
     integrated_flux_bias_correction_sigma: float = 0.0
     maximum_information_condition_number: float = 1e8
-    background_model: Literal["fitted-offset", "fixed-zero"] = "fitted-offset"
     pixel_support: Literal["bounded-context", "owned-region"] = (
         "bounded-context"
     )
@@ -435,8 +421,6 @@ class CompactGaussianFitConfig:
     )
     maximum_gls_pixels: int = 512
     model_selection: Literal["free-only", "beam-or-free"] = "free-only"
-    association_aperture_radius_sigma: float = 3.0
-    association_aperture_minimum_fixed_beam_model_fraction: float = 0.9
 
     def __post_init__(self) -> None:
         """Validate scientific parameter bounds and finite work limits."""
@@ -484,13 +468,6 @@ class CompactGaussianFitConfig:
         ):
             raise ValueError("maximum_axis_ratio must be finite and > 1")
         if (
-            not isfinite(self.maximum_background_offset_sigma)
-            or self.maximum_background_offset_sigma <= 0
-        ):
-            raise ValueError(
-                "maximum_background_offset_sigma must be finite and positive"
-            )
-        if (
             isinstance(self.context_margin_pixels, bool)
             or not isinstance(self.context_margin_pixels, Integral)
             or self.context_margin_pixels < 0
@@ -502,8 +479,6 @@ class CompactGaussianFitConfig:
 
     def _validate_selection_policy(self) -> None:
         """Validate extension evidence and identifiability thresholds."""
-        if self.background_model not in {"fitted-offset", "fixed-zero"}:
-            raise ValueError("background_model is not a supported policy")
         if self.pixel_support not in {"bounded-context", "owned-region"}:
             raise ValueError("pixel_support is not a supported policy")
         if self.point_estimator not in {
@@ -513,7 +488,6 @@ class CompactGaussianFitConfig:
             raise ValueError("point_estimator is not a supported policy")
         if self.model_selection not in {"free-only", "beam-or-free"}:
             raise ValueError("model_selection is not a supported policy")
-        self._validate_association_aperture_policy()
         if (
             isinstance(self.maximum_gls_pixels, bool)
             or not isinstance(self.maximum_gls_pixels, Integral)
@@ -564,22 +538,4 @@ class CompactGaussianFitConfig:
             raise ValueError(
                 "component_extension_significance_sigma cannot exceed "
                 "extension_significance_sigma"
-            )
-
-    def _validate_association_aperture_policy(self) -> None:
-        """Validate association-aperture geometry and model selection."""
-        if (
-            not isfinite(self.association_aperture_radius_sigma)
-            or self.association_aperture_radius_sigma <= 0
-        ):
-            raise ValueError(
-                "association_aperture_radius_sigma must be finite and positive"
-            )
-        model_fraction = (
-            self.association_aperture_minimum_fixed_beam_model_fraction
-        )
-        if not isfinite(model_fraction) or not 0 < model_fraction < 1:
-            raise ValueError(
-                "association aperture minimum fixed-beam model fraction must "
-                "be within (0, 1)"
             )

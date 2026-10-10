@@ -21,7 +21,7 @@ records enforce.
 | `SourceFinderResult`, `MaterializedProduct`, `SourceFinderRequest` | 2, 1, 1 | `hebog.data_models.source_finding` |
 | `PublicSourceFindingDiagnostics` (the diagnostics product) | 11 | `hebog.data_models.source_finding` |
 | `PublicSourceFindingProvenance`, `ContinuumSourceFindingDiagnostics`, `SourceFindingDiagnostics`, `SourceScaleProvenance` | 3, 2, 1, 1 | `hebog.data_models.source_finding` |
-| `ScaleDetection`, `CrossScaleAssociation` | 1, 2 | `hebog.data_models.multiscale` |
+| `ScaleDetection`, `CrossScaleAssociation` | 1, 3 | `hebog.data_models.multiscale` |
 | `ProductChunk`, Zarr storage schema, generation marker | 2, 3, 1 | `hebog.data_models.products`, `hebog.io.zarr`, `hebog.data_models.generations` |
 | Partition manifest | 1 | `hebog.data_models.partitioning` |
 | Staging owner record | 1 | `hebog.io.staging` |

@@ -622,12 +622,10 @@ def _build_association(
     return CrossScaleAssociation(
         association_id=_association_id(detection_ids),
         scale_detection_ids=detection_ids,
-        compact_source_ids=(),
         selected_scale_detection_id=selected.detection_id,
         contributing_scale_orders=tuple(
             sorted({detection.scale_order for detection in detections})
         ),
-        relationship="extended-only",
     )
 
 

@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import fields, replace
 from typing import cast
 
 import numpy as np
@@ -34,16 +34,16 @@ def _config(**replacements: object) -> CompactDeblendConfig:
         "minimum_region_pixels": 1,
         "maximum_compact_island_pixels": 64,
         "maximum_compact_bounds_pixels": 128,
-        "target_batch_pixels": 64,
-        "maximum_batch_pixels": 256,
     }
-    if (
-        "maximum_batch_pixels" in replacements
-        and "target_batch_pixels" not in replacements
-    ):
-        values["target_batch_pixels"] = replacements["maximum_batch_pixels"]
     values.update(replacements)
     return CompactDeblendConfig(**values)  # type: ignore[arg-type]
+
+
+def test_deblend_policy_holds_no_batch_size_the_kernel_never_reads() -> None:
+    """Nothing reads a deblend batch size; the kernel bounds one region."""
+    assert {"target_batch_pixels", "maximum_batch_pixels"}.isdisjoint(
+        field.name for field in fields(CompactDeblendConfig)
+    )
 
 
 def _compact_island(
@@ -105,22 +105,6 @@ def _compact_island(
         ({"minimum_region_pixels": 0}, "region_pixels"),
         ({"maximum_compact_island_pixels": 0}, "island_pixels"),
         ({"maximum_compact_bounds_pixels": 0}, "bounds_pixels"),
-        ({"target_batch_pixels": 0}, "target_batch_pixels"),
-        ({"maximum_batch_pixels": 0}, "batch_pixels"),
-        (
-            {
-                "target_batch_pixels": 300,
-                "maximum_batch_pixels": 256,
-            },
-            "target_batch_pixels",
-        ),
-        (
-            {
-                "maximum_compact_bounds_pixels": 20,
-                "maximum_batch_pixels": 10,
-            },
-            "admit one compact",
-        ),
     ],
 )
 def test_rejects_invalid_compact_deblend_configuration(
@@ -196,8 +180,6 @@ def test_intensity_watershed_keeps_two_dimensional_peaks() -> None:
             minimum_region_pixels=7,
             maximum_compact_island_pixels=2_000,
             maximum_compact_bounds_pixels=2_000,
-            target_batch_pixels=2_000,
-            maximum_batch_pixels=2_000,
         ),
     )
 
@@ -423,7 +405,6 @@ def test_two_peaks_split_exactly_when_the_weaker_clears_their_pass(
             minimum_region_pixels=1,
             maximum_compact_island_pixels=1_000,
             maximum_compact_bounds_pixels=1_000,
-            maximum_batch_pixels=1_000,
         ),
     )
 
@@ -605,6 +586,5 @@ def test_rejects_bounds_above_compact_kernel_admission() -> None:
             compact,
             _config(
                 maximum_compact_bounds_pixels=8,
-                maximum_batch_pixels=8,
             ),
         )

@@ -187,7 +187,7 @@ memory and disk, and SKA-Low coverage without public SKA-Low images.
 
 The next actions, as the plan orders them on 9 October:
 
-1. Agent: task 58's follow-up and task 70, the stage-sequence refactor, with
+1. Agent: task 70, the stage-sequence refactor, with
    products unchanged; task 16 alongside, pinning Rapthor `main` and LSMTool
    and refreshing the contract.
 2. Human: at task 16, decide whether the first backend runs Hebog's thread
