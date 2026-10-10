@@ -73,6 +73,22 @@ operational soak of the 1.0.0 backend; the PyBDSF fallback remains until then.
 
 ## Scope and resource rules
 
+- **Use cases** (maintainer, 10 October 2026). Three, each a performance
+  target; none may be optimized by regressing another:
+    1. *One Rapthor sector across a cluster* of nodes with up to 192 cores,
+       tens of nodes possible: the usual Rapthor run and the first
+       performance focus.
+    2. *One Rapthor sector on one node*: the other main Rapthor run, and the
+       deployment gate's like-for-like comparison with PyBDSF.
+    3. *Standalone use on a local machine* with smaller images, through the
+       public API and the Serial or Thread executor, where setup and
+       scheduler overhead dominate.
+
+  Several Rapthor sectors at once stay supported. In Rapthor, Hebog's
+  executor follows Rapthor's workers: Rapthor's client when its workers
+  expose the cores Hebog may use (several worker processes a node, or a
+  sector across nodes), otherwise a thread executor inside the worker's
+  task (one single-threaded worker a node, today's layout).
 - **Compute.** Development, checks and benchmarks run on the maintainer's
   machine (Apple M3 Pro, 12 logical CPUs, 18 GiB RAM). A cluster of up to 10
   nodes runs one final benchmark for 1.0.0 and never blocks development.
@@ -318,9 +334,9 @@ one stops scaling.
 
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
-| 73 | Agent | Measure how one sector scales with Dask workers. | On the development machine, the 10,000² anchor and the 15,402² mosaic run under a local Dask cluster of 1, 2, 4, 8 and 12 single-threaded workers, recording each stage's wall time, driver time, summed task time, task count and Zarr read volume, with `just profile-execution`. Done when the curve, the serial share and each stage's parallel efficiency are in `LOG.md` and on the progress page, with the largest serial terms named. |
+| 73 | Agent | Measure how one sector scales with Dask workers. | On the development machine, the 10,000² anchor and the 15,402² mosaic run under a local Dask cluster of 1, 2, 4, 8 and 12 single-threaded workers and under the thread executor at the same counts, so one node's two paths are compared (use case 2), recording each stage's wall time, driver time, summed task time, task count and Zarr read volume, with `just profile-execution`. Done when the curve, the serial share and each stage's parallel efficiency are in `LOG.md` and on the progress page, with the largest serial terms named. |
 | 74 | Agent | Cut the serial share of one sector's run. | Starting from the largest terms task 73 names: driver-side reductions move onto the workers (reopening the deferred wide-object reductions if they are among them), background refinement's roughly 69,000 small tasks become coarse batches, and tasks 54 to 56 take the association and per-task costs they own. Done when task 73's curve, re-measured, shows the serial share reduced, the quick check's products are byte-identical, Serial and Dask products are identical, and no production file loses coverage. |
-| 72 | Agent | Make Hebog's tasks fit Rapthor's Dask workers. | Tile cores are chosen from the executor's declared capacity, so each stage has a few tasks per core within a stated halo-overhead bound (products do not depend on tile size); Hebog's tasks carry a configurable Dask resource annotation; an analysis started inside a worker task secedes while it waits on its tile tasks, so concurrent sectors cannot deadlock workers that run one task each; and the recommended worker layout for 192-core nodes, several worker processes of a few threads each rather than one process of 192 threads, is documented for Rapthor's patch (task 20). In-process native thread pools are limited without the subprocess's environment. Done when products are byte-identical across the thread and Dask paths in the executor contract suite, a local multi-worker Dask cluster runs one sector and several concurrent sectors without deadlock, and task 73's curve is re-measured with capacity-sized tiles. |
+| 72 | Agent | Make Hebog's tasks fit Rapthor's Dask workers. | Tile cores are chosen from the executor's declared capacity, so each stage has a few tasks per core within a stated halo-overhead bound (products do not depend on tile size); Hebog's tasks carry a configurable Dask resource annotation; an analysis started inside a worker task secedes while it waits on its tile tasks, so concurrent sectors cannot deadlock workers that run one task each; the recommended worker layout for 192-core nodes, several worker processes of a few threads each rather than one process of 192 threads, is documented for Rapthor's patch (task 20); and the adapter takes Rapthor's client when Rapthor's workers expose the cores Hebog may use and a thread executor otherwise. A small image stays one tile with no scheduler overhead (use case 3). In-process native thread pools are limited without the subprocess's environment. Done when products are byte-identical across the thread and Dask paths in the executor contract suite, a local multi-worker Dask cluster runs one sector and several concurrent sectors without deadlock, and task 73's curve is re-measured with capacity-sized tiles. |
 
 ### M4 — Deployment performance gate
 

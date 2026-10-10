@@ -32879,6 +32879,24 @@ the per-worker placement finding.
   thread executor; ADR-004's amendment, the contract page and the progress
   page describe the Dask-native design.
 
+## 2026-10-10 — Maintainer: three use cases, each a performance target
+
+- **Use cases.** One Rapthor sector across a cluster (the usual run and the
+  first focus); one Rapthor sector on one node (the other main run, and the
+  gate's like-for-like comparison); and standalone use on a local machine
+  with smaller images, through the Serial or Thread executor. Several
+  sectors stay supported. The plan's scope rules now name them, and none
+  may be optimized by regressing another.
+- **Executor rule restated.** In Rapthor the executor follows Rapthor's
+  workers, not the count of sectors: Rapthor's client when its workers
+  expose the cores Hebog may use (several worker processes a node, or a
+  sector across nodes), otherwise a thread executor inside the worker's
+  task, because one single-threaded worker a node would run one Hebog task
+  at a time through Dask. Task 73 now measures the thread executor beside
+  local Dask workers at 1 to 12, since a node's two paths are both live
+  for use case 2; task 72 keeps a small image one tile with no scheduler
+  overhead for use case 3.
+
 ## 2026-10-10 — Shorten PR CI feedback without reducing the test matrix
 
 - **Decision and scope.** The [44½-minute PR run](https://github.com/gemmadanks/hebog/actions/runs/38031868877)

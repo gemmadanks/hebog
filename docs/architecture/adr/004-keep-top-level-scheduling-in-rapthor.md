@@ -74,17 +74,20 @@ in-process on the Dask worker, keeping the PyBDSF subprocess as the
 fallback. The decision above stands: Rapthor still owns the cluster, and
 Hebog uses only the executor it is given.
 
-Rapthor usually images one sector, so one sector across the cluster is the
-performance focus; several sectors in flight stay supported. The executor
-follows the topology:
+Three uses are performance targets: one Rapthor sector across a cluster,
+the usual run and the first focus; one sector on one node; and standalone
+use on a local machine with smaller images, through the Serial or Thread
+executor. Several sectors in flight stay supported. In Rapthor the executor
+follows Rapthor's workers:
 
-- a sector with a node to itself runs on a thread executor sized to the
-  worker's cores, with no scheduler overhead; and
-- a sector that can use more than a node runs on Rapthor's client: Hebog's
-  tile tasks stay single-threaded and numerous, with tile cores sized from
-  the cores the executor declares, so Dask schedules every core; Hebog's
-  tasks carry a resource annotation; and the analysis secedes from its
-  worker slot while it waits on them.
+- when they expose the cores Hebog may use, as several worker processes a
+  node or a sector across nodes, Hebog runs on Rapthor's client: its tile
+  tasks stay single-threaded and numerous, with tile cores sized from the
+  cores the executor declares, so Dask schedules every core; its tasks
+  carry a resource annotation; and the analysis secedes from its worker
+  slot while it waits on them;
+- otherwise, as with today's single single-threaded worker a node, Hebog
+  runs a thread executor inside the worker's task.
 
 Rapthor's nodes reach 192 cores, and Rapthor runs one Dask worker a node
 with `--nthreads 1` today and will run several. Several worker processes of

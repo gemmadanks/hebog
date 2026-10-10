@@ -194,13 +194,14 @@ PyBDSF subprocess stays for `bdsf` and as the fallback
 ([ADR-004](../architecture/adr/004-keep-top-level-scheduling-in-rapthor.md),
 amendment of 10 October).
 
-Rapthor usually images one sector, so one sector across the cluster is the
-performance focus, and several sectors stay supported:
+Rapthor usually images one sector across a cluster, the first performance
+focus; one sector on one node is the other main run, and several sectors
+stay supported. The executor follows Rapthor's workers:
 
-| Situation | Executor | Why |
+| Rapthor's workers | Executor | Why |
 | --- | --- | --- |
-| A sector with a node to itself | `ThreadExecutor`, sized to the worker's cores | No scheduler overhead; like for like with PyBDSF's `ncores` |
-| One sector, or fewer sectors than nodes | `DaskExecutor` on Rapthor's client | The filter step would otherwise leave the other nodes idle, for as long as one sector keeps scaling (plan tasks 73 and 74 measure and cut its serial share) |
+| Expose the cores Hebog may use: several worker processes a node, or a sector across nodes | `DaskExecutor` on Rapthor's client | Dask schedules every core, on one node or many, for as long as one sector keeps scaling (plan tasks 73 and 74 measure and cut its serial share) |
+| One single-threaded worker a node, today's layout | `ThreadExecutor` inside the worker's task, sized to the node's cores | Through Dask that worker would run one Hebog task at a time |
 
 Rapthor's nodes reach 192 cores, and its workers run one task each with
 `--nthreads 1`, one a node today. On Rapthor's client, Hebog's tile tasks
