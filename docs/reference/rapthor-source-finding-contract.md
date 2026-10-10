@@ -34,14 +34,15 @@ uses it as its count of fitting processes. No Dask client is in reach of
 the finder. The task returns serializable file records, and image
 diagnostics run as a separate dependent task.
 
-A backend is therefore an entry in LSMTool's registry whose function takes
-the `bdsf` backend's arguments: the two images, the two input sky models,
+A registry backend, the route this step offers today, takes the `bdsf`
+backend's arguments: the two images, the two input sky models,
 the two output sky-model paths, `vertices_file`, `beam_ms`,
 `input_bright_skymodel`, the thresholds and RMS options below, `keep_mask`,
 `output_catalog`, `output_flat_noise_rms`, `output_true_rms` and `ncores`,
 returning the source count. (The registry calls every backend with those
 arguments; `sofia`'s function takes fewer and could not be called that
-way at `9bac2f7`.)
+way at `9bac2f7`.) Rapthor will instead call Hebog from a native task; see
+[How Hebog runs inside Rapthor](#how-hebog-runs-inside-rapthor).
 
 | Input | Meaning |
 | --- | --- |
@@ -86,7 +87,7 @@ LSMTool's; the rest are LSMTool's.
 | Source count | `img.nsrc` | `SourceFinderResult.source_count` | Implemented |
 | All pixels blanked | `RuntimeError("All pixels in the image are blanked.")` from `collapse.py` | An empty catalogue, an all-NaN RMS and a zero mask, without an error | **Gap**: the adapter must raise that error or write the products Rapthor writes for it (task 19) |
 | Reference frequency | The frequency axis at the image plane, then `RESTFREQ`, then a `FREQ` keyword | The frequency axis at the image plane, then `RESTFRQ`, then `RESTFREQ`; a supplied value when the header has none | Implemented (task 16). Hebog also reads the standard `RESTFRQ`, which PyBDSF ignores, and refuses rather than reads a non-standard `FREQ` keyword |
-| `ncores` | Fitting processes | `ThreadExecutor` workers, if the first backend runs in Rapthor's subprocess (see below) | Decision pending |
+| `ncores` | Fitting processes | The cores the Dask worker declares, used by the thread executor or by each Dask task's threads (see below) | Task 72 |
 
 `RapthorCompatibilityConfig` holds only what the finder can honour: the
 `SourceFinderConfig` thresholds and LSMTool's `filter_by_mask`. The other
@@ -182,24 +183,32 @@ boundary and represents unavailable RMS explicitly in the scientific core.
 Missing inputs and unexpected errors fail the task rather than producing a
 silent empty result.
 
-## How the first backend runs (maintainer decision, task 16)
+## How Hebog runs inside Rapthor
 
 Rapthor owns the Prefect/Dask graph, retries, resource admission and the
-restartable file lifecycle, and Hebog never starts a private cluster. Two
-models fit that:
+restartable file lifecycle, and Hebog never starts a private cluster. On
+10 October 2026 the maintainer decided that, for `source_finder = hebog`,
+Rapthor replaces the subprocess call with a native Prefect task that runs
+Hebog in-process on its Dask worker, then LSMTool's `filter_sources`; the
+PyBDSF subprocess stays for `bdsf` and as the fallback
+([ADR-004](../architecture/adr/004-keep-top-level-scheduling-in-rapthor.md),
+amendment of 10 October).
 
-| | A. Thread executor in Rapthor's subprocess (recommended) | B. Rapthor runs Hebog on its own Dask workers |
+Rapthor usually images one sector, so one sector across the cluster is the
+performance focus, and several sectors stay supported:
+
+| Situation | Executor | Why |
 | --- | --- | --- |
-| How | The registry entry calls a Hebog adapter in the per-sector interpreter, which runs `find_sources` under `ThreadExecutor(ncores)` | Rapthor calls Hebog inside the Prefect task with its Dask client; Hebog's `DaskExecutor` submits tile tasks to the same cluster |
-| Rapthor change | Accept `source_finder = hebog` | Run the step in-process rather than in a subprocess, hand Hebog the client, and keep a worker from deadlocking while its task waits on subtasks |
-| Resource accounting | Matches PyBDSF's `ncores` and Rapthor's per-node `cpus_per_task`: one sector on one node | Tile tasks compete with DP3 and WSClean tasks that Rapthor sized to one per worker |
-| Largest sector | Bounded by one node's memory; the tiled stages already bound memory by the tile, and nodes hold hundreds of GB | One sector can spread across nodes |
-| Gate comparison | Like for like with PyBDSF on the same cores | Hebog on several nodes against PyBDSF on one |
-| Architecture records | ADR-004 already allows a local executor; an amendment records that the first backend runs one inside Rapthor's subprocess rather than on Rapthor's client | ADR-004's model as written |
+| A sector with a node to itself | `ThreadExecutor`, sized to the worker's cores | No scheduler overhead; like for like with PyBDSF's `ncores` |
+| One sector, or fewer sectors than nodes | `DaskExecutor` on Rapthor's client | The filter step would otherwise leave the other nodes idle |
 
-A wins on every point the first backend needs; B pays only when a sector
-needs more than one node, which no traced configuration does. Hebog's
-`DaskExecutor` stays the path for that case and for the cluster benchmark.
+Rapthor's workers run one task each with `--nthreads 1`, one a node today.
+On that cluster a Hebog analysis must step out of its worker slot while it
+waits on its tile tasks, or concurrent sectors deadlock, and each tile task
+must run threads sized to its worker's declared cores, or a node does one
+core's work. The plan's task 72 adds both, with a Dask resource annotation
+that also serves several workers a node later. The registry route, a
+`hebog` entry in LSMTool's `KNOWN_SOURCE_FINDERS`, is deferred.
 
 Reference comparisons use the explicit `5.0/3.0` profile with clean Rapthor
 and LSMTool checkouts at their recorded commits. Released and pinned-`master`

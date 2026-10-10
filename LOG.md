@@ -32813,6 +32813,40 @@ the per-worker placement finding.
   the header-contract and FITS-source integration tests; the contract
   tests; the strict docs build; `just check`.
 
+## 2026-10-10 — Maintainer decision: Hebog runs inside Rapthor's Dask worker
+
+- **Decision.** For `source_finder = hebog`, Rapthor replaces its
+  subprocess call to LSMTool's `filter_skymodel` with a native Prefect task
+  that runs Hebog in-process on the Dask worker, then LSMTool's
+  `filter_sources`; the PyBDSF subprocess stays for `bdsf` and as the
+  fallback. Rapthor is usually run with one sector, so one sector across the
+  cluster is the initial performance focus; several sectors must still be
+  supported. Rapthor runs one Dask worker a node today and will run several.
+- **Declined.** Task 16's recommendation, Hebog's thread executor inside
+  Rapthor's existing per-sector subprocess: it cannot use more than one
+  node for a sector, which is the usual case. Registering `hebog` in
+  LSMTool's registry is deferred, as Rapthor no longer needs it.
+- **Consequences recorded.** ADR-004 gains a dated amendment: the executor
+  follows the topology, a thread executor on the worker's cores for a
+  sector with a node to itself and Rapthor's client otherwise. New task 72
+  makes Hebog's executors fit Rapthor's workers: seceding while an
+  analysis waits on its tile tasks (otherwise concurrent sectors can
+  deadlock workers that run one task each), threads inside each Dask task
+  sized to the worker's declared cores (otherwise a node with one
+  single-threaded worker does one core's work), and a Dask resource
+  annotation. Tasks 19 and 20 are rewritten for the in-process adapter and
+  the native task; task 17's memory declarations become required before
+  several workers share a node; the cluster benchmark (task 27) adds one
+  Rapthor sector across 1 to 10 nodes.
+- **Order amended.** The 22,500² tier (task 11, with tasks 71 and 53 to 56)
+  now precedes the deployment gate, because Rapthor's usual single sector is
+  17,000 to 20,000 pixels a side (task 16). Task 23's first matched
+  measurement moves to Rapthor's 3,000² demonstration sector straight after
+  the integration, so the share of tasks 54 and 55 is still measured on
+  the integrated step. The gate itself stays single-node and like for like
+  with PyBDSF's `ncores`; one sector across several nodes is a separate
+  claim the cluster benchmark measures.
+
 ## 2026-10-10 — Shorten PR CI feedback without reducing the test matrix
 
 - **Decision and scope.** The [44½-minute PR run](https://github.com/gemmadanks/hebog/actions/runs/38031868877)

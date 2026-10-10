@@ -185,21 +185,19 @@ The largest risks to 1.0.0 are the performance gap, the traced peak's growth
 with the image, the wide-object driver term, the development machine's
 memory and disk, and SKA-Low coverage without public SKA-Low images.
 
-The next actions, as the plan orders them on 9 October:
+The next actions, as the plan orders them on 10 October:
 
-1. Human: decide whether the first backend runs Hebog's thread executor
-   inside Rapthor's per-sector subprocess, as recommended, or Rapthor
-   changes to run Hebog on its Dask workers (task 16; the comparison is on
-   the [Rapthor contract page](rapthor-source-finding-contract.md)). Also
-   decide whether the tiers above 15,402² precede the deployment gate:
-   Rapthor's default and benchmarked LOFAR sectors are 17,000 to 20,000
-   pixels a side.
-2. Agent: the Rapthor profile, the flat-noise branch and the LSMTool backend
-   (tasks 18 to 21), then the deployment envelope and the first matched
-   `filter_skymodel` benchmark (tasks 22 and 23).
-3. Agent: task 71's module splits, then tasks 53 to 56, bounding the terms
-   that grow with the image, before the 22,500² (task 11) and 45,000² (task
-   12) tier gates. Scientific improvements (tasks 15 and 68) wait until this
+1. Agent: the Rapthor profile and the flat-noise branch (task 18), the
+   in-process backend (task 19) and executors that fit Rapthor's Dask
+   workers (task 72), then the native Prefect task in Rapthor and the
+   profile agreement (tasks 20 and 21), and a first matched
+   `filter_skymodel` measurement on Rapthor's 3,000² demonstration sector.
+2. Agent: task 71's module splits and tasks 53 to 56, then the 22,500² tier
+   (task 11): Rapthor usually images one sector, 17,000 to 20,000 pixels a
+   side by default, so the gate is measured at that size.
+3. Agent: the deployment envelope and the gate (tasks 22 and 23), on one
+   node; one sector across several nodes is measured by the cluster
+   benchmark. Scientific improvements (tasks 15 and 68) wait until this
    work is complete unless an output is confirmed incorrect.
 
 ## Keeping this page current

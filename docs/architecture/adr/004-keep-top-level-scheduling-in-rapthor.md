@@ -10,7 +10,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-07-18 |
-| **Last Updated** | 2026-07-18 |
+| **Last Updated** | 2026-10-10 |
 | **Deciders** | Gemma Danks |
 | **Tags** | Dask, execution, Rapthor, resources |
 
@@ -63,6 +63,32 @@ pipeline boundary, and cancellation.
 
 The serial executor is the deterministic reference. Local and Dask executors
 must match its membership, ordering, outputs, and tolerances.
+
+### Amendment of 10 October 2026: Hebog runs inside Rapthor's Dask worker
+
+Rapthor's `main` (`c6196cb4`, 9 October 2026) runs its filter step in a
+fresh interpreter per sector through LSMTool, with no Dask client in reach
+of the finder. The maintainer decided that Rapthor replaces that call, for
+`source_finder = hebog`, with a native Prefect task that runs Hebog
+in-process on the Dask worker, keeping the PyBDSF subprocess as the
+fallback. The decision above stands: Rapthor still owns the cluster, and
+Hebog uses only the executor it is given.
+
+Rapthor usually images one sector, so one sector across the cluster is the
+performance focus; several sectors in flight stay supported. The executor
+follows the topology:
+
+- a sector with a node to itself runs on a thread executor sized to the
+  worker's cores, with no scheduler overhead; and
+- a sector sharing fewer nodes than it could use runs on Rapthor's client,
+  with Hebog's analysis seceding from its worker slot while it waits on its
+  tile tasks, and each tile task running threads sized to the cores its
+  worker declares, which Hebog annotates as a Dask resource.
+
+Rapthor runs one Dask worker a node with `--nthreads 1` today and will run
+several. The thread counts therefore come from what a worker declares, not
+from the machine, and memory joins cores as a declared resource before
+several workers share a node (plan tasks 72 and 17).
 
 ## Consequences
 
