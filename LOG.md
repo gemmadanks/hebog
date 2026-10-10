@@ -33127,3 +33127,36 @@ and the plan:
   acceptance lanes; `just coverage`, 3,610 passed and 1 xfailed at 97%,
   `public_api.py` and `data_models/source_finding.py` at 99% with no miss
   in the changed code; strict pyright and ruff.
+
+## 2026-10-10 — Task 18: the zero mean map measured
+
+- **Question.** LSMTool runs PyBDSF with `mean_map="zero"`: PyBDSF still
+  estimates its RMS map on the 150/50 and 35/7 windows, then sets the
+  background to zero everywhere (`bdsf/rmsimage.py`). Hebog estimates and
+  subtracts a background.
+- **Prototype, not committed.** A scratch runner wrapped
+  `interpolate_background_rms_tile` to return a zero background wherever
+  Hebog's is defined, leaving Hebog's RMS unchanged, so the first-pass mask
+  and every later stage saw zero; it ran the quick check as
+  `task18-zero-background` and `task18-zero-background-compact` against
+  `task18` and `task18-compact`.
+- **Against injected truth, zero is worse.** On `negative-background`
+  support recall falls from 0.89 to 0.58 and flux errors rise from about 5%
+  to 30 to 41% at the median, under both profiles; on
+  `wide-extended-source` reliability falls from 1.0 to 0.63 (`continuum`)
+  and positions worsen (`compact`). Elsewhere truth metrics are unchanged.
+- **Against pinned `master`, mixed.** The median integrated-flux difference
+  falls on every real cut-out, SDC1 sparse 8.3% to 0.4% (`continuum`) and
+  LoTSS-DR3 sparse 5.8% to 3.7%, and mask IoU rises slightly on the LoTSS
+  cut-outs; but SDC1 sparse completeness against `master` falls from 0.93
+  to 0.86 under both profiles, and `wide-extended-source` agrees less. One
+  reading, not yet tested: on confused fields Hebog's background absorbs
+  faint emission and lowers fluxes relative to `master`.
+- **Threshold mapping, traced.** Rapthor passes `threshpix` and
+  `threshisl` as PyBDSF's `thresh_pix` and `thresh_isl`, Hebog's detection
+  and island thresholds. LSMTool leaves `minpix_isl` unset, so PyBDSF uses
+  `max(6, int(beam area in pixels / 3))` (`bdsf/islands.py`): 6 for a
+  LOFAR 6″ beam at 1.5″ pixels, where Hebog's examples and the quick check
+  use 7.
+- **Next.** The maintainer decides the zero mean map, the minimum island
+  size and whether PyBDSF's second grouping rule is reconsidered now.
