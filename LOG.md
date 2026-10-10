@@ -32796,6 +32796,21 @@ the per-worker placement finding.
   these figures. The Codecov patch report and hosted Windows run are not
   available locally. `just check` passes (2,442 tests, 1 strict xfail).
   A clean final `just pre-commit` run is required immediately before staging.
-- **Next action (human).** Push and open the PR; compare hosted shard timings,
+- **Next action (human).** Review PR #150; compare hosted shard timings,
   the longest individual tests, queueing and memory before further fixture
   or concurrency changes. Windows remains required on code-changing PRs.
+
+## 2026-10-10 — Align the shard workflow's uv pin after merging main
+
+- **Diagnosis.** [PR #150's failed run](https://github.com/gemmadanks/hebog/actions/runs/38043698533)
+  reports the same uv-version invariant failure in the unit lane and every
+  portable environment. The merge of the uv upgrade from `main` updated the
+  existing installation sites to 0.13.0 but left the new reusable workflow
+  at 0.9.16. The aggregate checks correctly rejected those failed suites.
+- **Repair.** Align the reusable workflow with the repository's 0.13.0 pin.
+  The existing regression test reproduces the mismatch before the repair;
+  scheduling, test selection, scientific code and coverage gates do not change.
+- **Validation.** All 91 focused CI tests pass, including the version
+  invariant. `just check` passes with 2,442 tests and one strict xfail;
+  workflow syntax and expressions pass actionlint. The hosted matrix must
+  rerun on the repaired commit before the PR can be considered passing.

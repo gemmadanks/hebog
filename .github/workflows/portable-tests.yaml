@@ -33,7 +33,7 @@ permissions:
 
 env:
   # Held equal to ci.yaml by test_uv_version.py.
-  UV_VERSION: "0.9.16"
+  UV_VERSION: "0.13.0"
   OMP_NUM_THREADS: "1"
   OPENBLAS_NUM_THREADS: "1"
   MKL_NUM_THREADS: "1"
