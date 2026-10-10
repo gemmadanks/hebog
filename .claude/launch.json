@@ -1,0 +1,13 @@
+{
+  "configurations": [
+    {
+      "name": "docs",
+      "port": 8000,
+      "runtimeArgs": [
+        "docs-serve"
+      ],
+      "runtimeExecutable": "just"
+    }
+  ],
+  "version": "0.0.1"
+}
