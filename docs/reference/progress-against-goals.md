@@ -42,7 +42,7 @@ passing.
 | Retry reuses valid stage products | Implemented |
 | Worker loss is retried to the same deterministic products | Implemented |
 | Rapthor can fall back to pinned PyBDSF behind the feature flag | Implemented: a refused sector leaves none of Rapthor's files |
-| Dual-run mode keeps products separate and reports differences | Placeholder (task 19) |
+| Dual-run mode keeps products separate and reports differences | Implemented: Hebog's comparison report; Rapthor's dual-run mode is task 20 |
 | A cancelled analysis stops its tasks and removes its staging | Implemented, under the Thread and Dask executors |
 
 `hebog.adapters.find_sector_sources` runs one Rapthor sector on the

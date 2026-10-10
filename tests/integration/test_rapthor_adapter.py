@@ -14,11 +14,13 @@ same files from one Hebog analysis of the sector's two images.
 
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 import numpy as np
 import pytest
 from astropy.io import fits
+from astropy.table import Table
 from astropy.wcs import WCS
 
 from hebog import SourceFinderConfig, SourceFinderRequest
@@ -30,10 +32,24 @@ from hebog.adapters.rapthor import (
     RapthorSourceFindingResult,
     find_sector_sources,
 )
-from hebog.adapters.rapthor_catalogue import write_rapthor_catalogue_fits
-from hebog.data_models import PublicSourceFindingDiagnostics
+from hebog.adapters.rapthor_catalogue import (
+    read_rapthor_catalogue_fits,
+    write_rapthor_catalogue_fits,
+)
+from hebog.adapters.rapthor_comparison import (
+    RapthorSectorProducts,
+    compare_sector_products,
+)
+from hebog.data_models import (
+    PublicSourceFindingDiagnostics,
+    SourceFindingDiagnostics,
+)
 from hebog.executors import Executor, SerialExecutor
-from hebog.io import read_catalogue_fits_product, read_diagnostics_product
+from hebog.io import (
+    read_catalogue_fits_product,
+    read_diagnostics_product,
+    write_diagnostics_product,
+)
 from hebog.pipeline import (
     InvalidSourceFinderInputError,
     SourceFinderOutputExistsError,
@@ -407,3 +423,156 @@ def test_a_relative_output_root_names_absolute_products(
     assert result.source_catalog_path == _rapthor_names(absolute)[0]
     assert result.mask_path == _rapthor_names(absolute)[3]
     assert result.products_directory.is_absolute()
+
+
+def _pybdsf_products(
+    directory: Path,
+    request: RapthorSourceFindingRequest,
+    *,
+    positions_deg: list[tuple[float, float]],
+    rms: float,
+    shape_yx: tuple[int, int] = _SHAPE_YX,
+) -> RapthorSectorProducts:
+    """Write a PyBDSF-style sector under its own root, as PyBDSF lays it out.
+
+    The catalogue holds the columns the report reads; the RMS maps and the
+    mask have PyBDSF's four axes, the mask's ones on the left half.
+    """
+    products = RapthorSectorProducts.named(
+        directory / "sector_1", request.true_sky_image_path
+    )
+    directory.mkdir(parents=True, exist_ok=True)
+    Table(
+        {
+            "Source_id": np.arange(len(positions_deg), dtype=np.int32),
+            "RA": np.array([ra for ra, _ in positions_deg], dtype=float),
+            "DEC": np.array([dec for _, dec in positions_deg], dtype=float),
+            "Total_flux": np.full(len(positions_deg), 2.0),
+        }
+    ).write(products.source_catalog_path, format="fits")
+    for path in (products.true_sky_rms_path, products.flat_noise_rms_path):
+        fits.PrimaryHDU(
+            np.full((1, 1, *shape_yx), rms, dtype=np.float32)
+        ).writeto(path)
+    mask = np.zeros((1, 1, *shape_yx), dtype=np.float32)
+    mask[..., : shape_yx[1] // 2] = 1.0
+    fits.PrimaryHDU(mask).writeto(products.mask_path)
+    return products
+
+
+def _catalogue_positions(path: Path) -> list[tuple[float, float]]:
+    table = read_rapthor_catalogue_fits(path)
+    right_ascensions = np.asarray(table["RA"], dtype=np.float64)
+    declinations = np.asarray(table["DEC"], dtype=np.float64)
+    return [
+        (float(ra), float(dec))
+        for ra, dec in zip(right_ascensions, declinations, strict=True)
+    ]
+
+
+def test_the_dual_run_report_matches_mutual_nearest_sources_in_half_a_beam(
+    tmp_path: Path,
+) -> None:
+    """A source matches only its own nearest neighbour, and only nearby.
+
+    PyBDSF's list holds each Hebog source, a second entry 0.5 arcsec from
+    the first, which only one of the two can match, and one 1.5 arcsec
+    from the second source, beyond half the 4-arcsec beam.
+    """
+    request = _sector(tmp_path / "run")
+    hebog = find_sector_sources(request, _config(), SerialExecutor())
+    found = _catalogue_positions(hebog.source_catalog_path)
+    near = (found[0][0], found[0][1] + 0.5 / 3600.0)
+    far = (found[1][0], found[1][1] + 2.5 / 3600.0)
+    pybdsf = _pybdsf_products(
+        tmp_path / "pybdsf",
+        request,
+        positions_deg=[found[0], near, far, found[2]],
+        rms=2.0,
+    )
+
+    report = compare_sector_products(hebog, pybdsf, tmp_path / "report.json")
+
+    assert report.match_radius_arcsec == pytest.approx(2.0)
+    assert report.matched_source_count == 2
+    assert report.pybdsf.source_count == 4
+    assert report.pybdsf_mask_pixel_count == _SHAPE_YX[0] * (_SHAPE_YX[1] // 2)
+    assert report.shared_mask_pixel_count <= report.hebog_mask_pixel_count
+
+
+def test_the_dual_run_report_states_what_it_could_not_compare(
+    tmp_path: Path,
+) -> None:
+    """With no source or no comparable RMS pixel, a ratio is ``None``."""
+    request = _sector(tmp_path / "run")
+    hebog = find_sector_sources(request, _config(), SerialExecutor())
+    pybdsf = _pybdsf_products(
+        tmp_path / "pybdsf", request, positions_deg=[], rms=np.nan
+    )
+
+    report = compare_sector_products(hebog, pybdsf, tmp_path / "report.json")
+
+    assert report.matched_source_count == 0
+    assert report.median_total_flux_ratio is None
+    assert report.true_sky_rms_median_ratio is None
+    assert report.flat_noise_rms_median_ratio is None
+
+
+@pytest.mark.parametrize("product", ["rms", "mask"])
+def test_the_dual_run_report_refuses_products_on_another_grid(
+    tmp_path: Path, product: str
+) -> None:
+    """Pixel statistics need one grid, so different grids are refused."""
+    request = _sector(tmp_path / "run")
+    hebog = find_sector_sources(request, _config(), SerialExecutor())
+    pybdsf = _pybdsf_products(
+        tmp_path / "pybdsf",
+        request,
+        positions_deg=[],
+        rms=1.0,
+        shape_yx=(_SHAPE_YX[0], _SHAPE_YX[1] + 1),
+    )
+    if product == "mask":
+        for path in (pybdsf.true_sky_rms_path, pybdsf.flat_noise_rms_path):
+            shutil.copyfile(hebog.true_sky_rms_path, path)
+    else:
+        shutil.copyfile(hebog.mask_path, pybdsf.mask_path)
+
+    with pytest.raises(
+        ValueError, match=f"(?i){product}.* on different pixel grids"
+    ):
+        compare_sector_products(hebog, pybdsf, tmp_path / "report.json")
+
+    assert not (tmp_path / "report.json").exists()
+
+
+def test_the_dual_run_report_needs_hebogs_provenance(tmp_path: Path) -> None:
+    """A bundle without public diagnostics cannot bind the report."""
+    request = _sector(tmp_path / "run")
+    hebog = find_sector_sources(request, _config(), SerialExecutor())
+    pybdsf = _pybdsf_products(
+        tmp_path / "pybdsf", request, positions_deg=[], rms=1.0
+    )
+    diagnostics = hebog.products_directory / "diagnostics.json"
+    diagnostics.unlink()
+    write_diagnostics_product(
+        diagnostics,
+        SourceFindingDiagnostics(
+            run_id=request.run_id,
+            source_count=0,
+            gaussian_component_count=0,
+            island_count=0,
+            rms_scientific_status="valid",
+        ),
+    )
+    unchanged = _contents(pybdsf.paths())
+
+    with pytest.raises(ValueError, match="no public diagnostics"):
+        compare_sector_products(hebog, pybdsf, tmp_path / "report.json")
+
+    assert _contents(pybdsf.paths()) == unchanged
+    assert not (tmp_path / "report.json").exists()
+
+
+def _contents(paths: tuple[Path, ...]) -> tuple[bytes, ...]:
+    return tuple(path.read_bytes() for path in paths)

@@ -171,7 +171,7 @@ def _xfail_by_test_function(path: Path) -> dict[str, bool]:
 
 
 def test_public_behaviours_record_which_are_implemented() -> None:
-    """Ten behaviours are asserted and two await their tasks."""
+    """Eleven behaviours are asserted and one awaits its task."""
     manifest = load_public_behaviours(_BEHAVIOURS_PATH)
 
     assert len(manifest.behaviours) == 12
@@ -179,7 +179,7 @@ def test_public_behaviours_record_which_are_implemented() -> None:
         behaviour.identifier
         for behaviour in manifest.behaviours
         if behaviour.status != "implemented"
-    } == {"bounded-worker-memory", "dual-run-report"}
+    } == {"bounded-worker-memory"}
 
 
 def test_each_public_behaviour_test_is_marked_as_its_status() -> None:

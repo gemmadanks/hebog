@@ -16,6 +16,7 @@ from __future__ import annotations
 import ctypes
 import hashlib
 import pickle
+import shutil
 import threading
 import time
 from collections.abc import Callable, Generator, Iterable
@@ -39,6 +40,12 @@ from hebog.adapters.rapthor_catalogue import (
     RAPTHOR_CATALOGUE_COLUMNS,
     read_rapthor_catalogue_fits,
 )
+from hebog.adapters.rapthor_comparison import (
+    RapthorDualRunReport,
+    RapthorSectorProducts,
+    compare_sector_products,
+)
+from hebog.data_models import PublicSourceFindingDiagnostics
 from hebog.executors import (
     DaskExecutor,
     Executor,
@@ -47,6 +54,7 @@ from hebog.executors import (
     TaskRequirement,
     ThreadExecutor,
 )
+from hebog.io import read_diagnostics_product
 from hebog.pipeline import SourceFinderError, SourceFinderImageTooLargeError
 
 pytestmark = pytest.mark.acceptance
@@ -490,10 +498,77 @@ def test_a_cancelled_analysis_stops_its_tasks_and_removes_its_staging(
     assert not any(path.exists() for path in _rapthor_names(request))
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="the dual-run comparison report makes this pass (plan task 19)",
-)
-def test_dual_run_keeps_products_and_reports_separate() -> None:
-    """Given dual-run mode, then products and reports retain provenance."""
-    pytest.fail("not implemented")
+def test_dual_run_keeps_products_and_reports_separate(tmp_path: Path) -> None:
+    """Given dual-run mode, then products and reports retain provenance.
+
+    Given one sector run by Hebog and by pinned PyBDSF ``master``, each
+    under its own output root, when the two are compared, then neither
+    product set changes, and the report binds the bytes of all eight files
+    and Hebog's provenance, beside the agreement it measured, before Rapthor
+    selects either.
+    """
+    reference = Path(__file__).parents[1] / "data" / "pybdsf"
+    image = reference / "pybdsf-compact-reference-256" / "input.fits"
+    pybdsf_run = reference / "pybdsf-compact-reference-256" / "master"
+    hebog = find_sector_sources(
+        RapthorSourceFindingRequest(
+            true_sky_image_path=image,
+            flat_noise_image_path=image,
+            output_root=tmp_path / "hebog" / "sector_1",
+            run_id="image_1-sector_1",
+        ),
+        _config(),
+        SerialExecutor(),
+    )
+    pybdsf = RapthorSectorProducts.named(
+        tmp_path / "pybdsf" / "sector_1", image
+    )
+    pybdsf.mask_path.parent.mkdir(parents=True)
+    for name, path in (
+        ("source_catalog.fits", pybdsf.source_catalog_path),
+        ("true_sky_rms.fits", pybdsf.true_sky_rms_path),
+        ("flat_noise_rms.fits", pybdsf.flat_noise_rms_path),
+        ("source_filter_mask.fits", pybdsf.mask_path),
+    ):
+        shutil.copyfile(pybdsf_run / name, path)
+    both = (*_rapthor_files(hebog), *pybdsf.paths())
+    before = _contents(both)
+
+    report = compare_sector_products(
+        hebog, pybdsf, tmp_path / "sector_1.dual_run.json"
+    )
+
+    assert _contents(both) == before
+    assert (
+        RapthorDualRunReport.model_validate_json(
+            (tmp_path / "sector_1.dual_run.json").read_bytes()
+        )
+        == report
+    )
+    for identity, path in zip(
+        (
+            report.hebog.source_catalog,
+            report.hebog.true_sky_rms,
+            report.hebog.flat_noise_rms,
+            report.hebog.mask,
+            report.pybdsf.source_catalog,
+            report.pybdsf.true_sky_rms,
+            report.pybdsf.flat_noise_rms,
+            report.pybdsf.mask,
+        ),
+        both,
+        strict=True,
+    ):
+        assert identity.path == path.as_posix()
+        assert identity.sha256 == hashlib.sha256(path.read_bytes()).hexdigest()
+    diagnostics = read_diagnostics_product(
+        hebog.products_directory / "diagnostics.json"
+    )
+    assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
+    assert report.hebog_provenance == diagnostics.provenance
+    assert report.hebog.source_count == hebog.source_count
+    assert report.pybdsf.source_count == 3
+    assert report.matched_source_count == 3
+    assert report.median_total_flux_ratio == pytest.approx(1.0, abs=0.1)
+    assert report.true_sky_rms_median_ratio == pytest.approx(1.0, abs=0.1)
+    assert report.shared_mask_pixel_count > 0

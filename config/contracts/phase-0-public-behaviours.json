@@ -63,7 +63,7 @@
     {
       "identifier": "dual-run-report",
       "scenario": "Given dual-run mode, Hebog and PyBDSF products remain separate and produce a provenance-bound comparison report before either is selected.",
-      "status": "strict-xfail",
+      "status": "implemented",
       "test_node_id": "tests/acceptance/test_rapthor_scenarios.py::test_dual_run_keeps_products_and_reports_separate"
     },
     {

@@ -187,10 +187,15 @@ catalogue-row kernels; it imports no stage.
 `hebog.adapters.rapthor` runs one Rapthor sector through `find_sources` and
 writes the files Rapthor's `filter_skymodel` step reads, under Rapthor's
 names; `hebog.adapters.rapthor_catalogue` holds the eight-column catalogue
-codec it writes them with. Rapthor does not call the adapter yet (plan task
-20).
+codec it writes them with, and `hebog.adapters.rapthor_comparison` compares
+one sector's Hebog and PyBDSF products for Rapthor's dual-run mode. Rapthor
+does not call the adapter yet (plan task 20).
 
 ::: hebog.adapters.rapthor
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.adapters.rapthor_comparison
     options:
       show_symbol_type_toc: true
 

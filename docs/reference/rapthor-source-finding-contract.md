@@ -260,6 +260,19 @@ when the result reports an island, LSMTool's
 writes Hebog's own bundle, with its diagnostics and provenance, in
 `<root>.hebog`.
 
+In dual-run mode Rapthor runs both finders on the sector, each under its
+own root, and calls
+`hebog.adapters.rapthor_comparison.compare_sector_products(result, pybdsf,
+report_path)` before selecting one product set. The report reads both sets
+and changes neither. It binds the path, size and SHA-256 of all eight files
+and Hebog's provenance, and records each finder's source count, the sources
+that are each other's nearest within half the restoring beam's major axis,
+the median ratio of their `Total_flux`, the median ratio of each pair of RMS
+maps on every sixteenth pixel of each axis, and the island pixels each mask
+holds and both hold. On the frozen 256² input against pinned `master`, all
+three sources match, the flux ratio is 1.000, the RMS ratio is 0.981 and
+Hebog's mask holds 165 of PyBDSF's 178 island pixels and one more of its own.
+
 Reference comparisons use the explicit `5.0/3.0` profile with clean Rapthor
 and LSMTool checkouts at their recorded commits. Released and pinned-`master`
 PyBDSF do not produce identical catalogues on the same image, so neither is
