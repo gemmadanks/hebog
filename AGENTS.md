@@ -467,6 +467,9 @@ explain the rationale.
 - Create a local commit for each coherent, validated, reviewable change, with
   its implementation, tests, and documentation together. Do not combine
   unrelated milestones or experiments. Never push commits or tags.
+- Use `--no-track` when creating a feature branch or worktree from a remote
+  branch, so it does not inherit that branch as its upstream. Its upstream
+  should be the matching feature branch when a human publishes it.
 - Preserve a feature-flagged PyBDSF fallback in Rapthor until the complete
   acceptance matrix passes.
 - Lead handoffs with the observable outcome, what the checks establish, the
