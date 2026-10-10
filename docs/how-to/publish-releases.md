@@ -71,8 +71,8 @@ reserve.
 <!-- x-release-please-start-version -->
 
 ```console
-pip download --index-url https://test.pypi.org/simple/ --no-deps hebog==0.19.0
-pip install ./hebog-0.19.0-none-any.whl
+pip download --index-url https://test.pypi.org/simple/ --no-deps hebog==0.20.0
+pip install ./hebog-0.20.0-any.whl
 ```
 
 <!-- x-release-please-end -->
