@@ -188,8 +188,8 @@ memory and disk, and SKA-Low coverage without public SKA-Low images.
 The next actions, as the plan orders them on 10 October:
 
 1. Agent: the Rapthor profile and the flat-noise branch (task 18), the
-   in-process backend (task 19), the native Prefect task in Rapthor on a
-   thread executor and the profile agreement (tasks 20 and 21), and a first
+   in-process backend (task 19), memory declarations (task 17), the native
+   Prefect task in Rapthor and the profile agreement (tasks 20 and 21), and a first
    matched `filter_skymodel` measurement on Rapthor's 3,000² demonstration
    sector.
 2. Agent: one sector across the cluster. Measure how a sector scales with

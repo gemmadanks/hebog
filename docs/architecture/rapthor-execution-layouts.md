@@ -29,21 +29,30 @@ as Dask task slots: more workers, or more threads a worker.
 ## What Hebog needs from any cluster
 
 Hebog asks the same of every cluster, Rapthor's or one a standalone user
-starts: a client it does not own; worker task slots, across processes and
-nodes, which are its parallelism; storage every worker can read; and a way
-to say what its tasks use. Its tile tasks each use one core and an admitted
-amount of memory, and carry Dask resource annotations whose names the
-caller configures. Hebog sizes its tiles from the capacity the client
-reports when an analysis starts, and assumes nothing about the rest of the
-cluster.
+starts ([ADR-010](adr/010-scale-hebog-independently-of-its-integrations.md)):
+
+- an executor the caller builds, usually a Dask client it does not own;
+  Hebog never chooses one from the caller's layout;
+- a core budget, the cores Hebog may use, defaulting to the client's
+  capacity; each stage chooses its tile core and task count within it;
+- worker task slots across processes and nodes, which are its
+  parallelism, and storage every worker can read;
+- resources named by the caller: each tile task declares a core and its
+  admitted memory, and Hebog states the memory its analysis holds;
+- native thread pools limited to each worker's declared cores; and
+- cancellation that reaches the tile tasks an analysis submitted.
+
+Hebog assumes nothing else about the cluster. Rapthor builds the executor
+from its layout and passes it in; the layouts below show what each layout
+gives a sector.
 
 ## 1. One node, one worker
 
 Rapthor's `local_dask` default starts one worker process with one thread.
-Hebog runs a thread executor inside the filter task, sized to the node's
-cores. There is no scheduler traffic, which suits small and medium images,
-but every thread shares one Python process, so stages that run Python
-rather than NumPy and SciPy code do not gain from more threads.
+Rapthor passes a thread executor, which runs inside the filter task, sized
+to the node's cores. There is no scheduler traffic, which suits small and
+medium images, but every thread shares one Python process, so stages that
+run Python rather than NumPy and SciPy code do not gain from more threads.
 
 ```mermaid
 flowchart TB
@@ -65,7 +74,7 @@ or Thread executor and no Dask at all.
 ## 2. One node, several single-threaded workers
 
 With `local_dask_workers` set, Rapthor starts several worker processes of
-one thread each. Hebog runs on Rapthor's client: the filter task submits
+one thread each. Rapthor passes its client: the filter task submits
 tile tasks, and Dask places one on each free worker. Separate processes do
 not share Python's global lock.
 
@@ -110,8 +119,9 @@ Hebog has two choices, and neither uses the cluster:
   the node that holds the task, in one Python process, while the other
   nodes run nothing for Hebog.
 
-Hebog uses the thread executor here, because one node's threads beat one
-core a node.
+Rapthor passes the thread executor here, because one node's threads beat
+one core a node. Once each node has several task slots, as in layout 4,
+Rapthor retires this path and every sector runs on its client.
 
 ```mermaid
 flowchart TB
@@ -187,9 +197,9 @@ Dask workers for now. The worker size T is a trade-off Rapthor chooses. DP3 and 
 external processes, so they use T cores without Python's global lock and
 want T large. Hebog's tiles share one Python process per worker, so they
 want T small enough that the lock does not throttle them; the plan's task
-73 measures how far threads in one process scale. Hebog sizes its tile
-cores from the cores the client reports, so each stage has a few tasks per
-core, while a small image stays one tile. How far one sector gains from
+73 measures how far threads in one process scale. Hebog chooses each
+stage's tile core and task count within the core budget Rapthor states,
+so each stage has a few tasks per core, while a small image stays one tile. How far one sector gains from
 more cores depends on the share of its run that does not parallelise,
 which the plan measures and reduces first (tasks 73 and 74); beyond that
 point, the cores serve other sectors.
@@ -205,7 +215,7 @@ not more threads in an existing one.
 
 Scaling is Rapthor's decision, for example to give DP3 more or fewer
 workers as its chunks change between self-calibration cycles. Hebog
-tolerates it: it sizes its tiles from the capacity present when an analysis
+tolerates it: it chooses its tiling from the core budget when an analysis
 starts, a worker that joins during an analysis receives tasks without
 changing the tiling, and Dask reruns a task lost with its worker (the
 plan's worker-loss acceptance scenario, task 19, is to show the products

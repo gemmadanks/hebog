@@ -61,16 +61,29 @@ caller's scheduler.
 We will use **option A**. Hebog defines what it needs from a Dask cluster
 to scale, and states it once, in terms any caller can provide:
 
-- **A client and workers.** Hebog runs on a client the caller owns, never
-  one it starts. More worker task slots, across processes and nodes, give
-  it more parallelism; Hebog sizes its tiles from the capacity the client
-  reports when an analysis starts.
+- **An executor the caller builds.** Hebog runs on the executor it is
+  given, a Dask client the caller owns or a thread or serial executor, and
+  never chooses one from the caller's layout. More worker task slots,
+  across processes and nodes, give it more parallelism.
+- **A core budget.** The caller states how many cores Hebog may use,
+  defaulting to the client's capacity, which also counts threads other
+  work holds. Each stage chooses its tile core from its halo and its task
+  count from batching within that budget, and the run's timing record
+  states the choice; the products do not depend on it.
 - **Shared storage.** Workers read the input and the intermediate Zarr
   generations from a filesystem every node can see.
 - **Declared resources, named by the caller.** Hebog's tasks state what
   they use, a core and an admitted memory size, as Dask resource
-  annotations whose names and amounts the caller configures. Hebog defines
-  no resource of the caller's, such as a Prefect slot.
+  annotations whose names and amounts the caller configures, and Hebog
+  states the memory its analysis holds on the worker that runs it, for
+  the caller to reserve. Hebog defines no resource of the caller's, such
+  as a Prefect slot.
+- **Native threads within the budget.** Workers limit the thread pools of
+  NumPy's and SciPy's native libraries to their declared cores, so many
+  workers a node do not oversubscribe it.
+- **Cancellation reaches Hebog's tasks.** When the caller cancels or times
+  out an analysis, every tile task it submitted stops and its staging is
+  removed.
 - **No assumptions about the rest of the cluster.** Hebog does not rely on
   a fixed worker count, on workers being dedicated to it, or on workers
   staying for a whole run.
@@ -104,6 +117,9 @@ N-dimensional.
 - Risk: a resource name or a memory amount that the caller declares
   wrongly lets Dask co-locate too much work; Hebog's admission checks
   what it can (plan task 17).
+- Risk: thousands of tasks on a shared filesystem mean many small chunk
+  files; plan task 25 evaluates Zarr v3's sharding codec, and the cluster
+  benchmark measures the filesystem.
 - Risk: cubes or a time axis may need halos and reconciliation along a new
   axis, which the two-dimensional partitioning cannot express; that is the
   later ADR's to decide, not a reason to generalize now.

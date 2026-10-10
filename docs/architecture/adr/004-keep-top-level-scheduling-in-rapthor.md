@@ -80,18 +80,21 @@ use on a local machine with smaller images, through the Serial or Thread
 executor. Several sectors in flight stay supported, and Hebog also runs
 alone on a cluster. Hebog defines what it needs from a Dask cluster to
 scale and Rapthor provides it, changing its setup if it must
-([ADR-010](010-scale-hebog-independently-of-its-integrations.md)). In
-Rapthor the executor follows Rapthor's workers:
+([ADR-010](010-scale-hebog-independently-of-its-integrations.md)). Rapthor
+builds Hebog's executor from its own workers and passes it in, with the
+cores Hebog may use:
 
-- when they give each node several task slots, Hebog runs on Rapthor's
-  client: its tile tasks stay single-threaded and numerous, with tile
-  cores sized from the cores the client reports, so Dask schedules every
-  core; its tasks declare the core and memory they use under resource
-  names Rapthor configures; and the analysis waits on one slot, seceding
-  where it would otherwise hold its worker's only thread;
-- otherwise, as with today's single single-threaded worker a node, Hebog
-  runs a thread executor inside the worker's task, and one sector uses one
-  node.
+- when its workers give each node several task slots, the target, Rapthor
+  passes its client: Hebog's tile tasks stay single-threaded and numerous,
+  each stage choosing its tile core and task count within the core budget,
+  so Dask schedules every core; its tasks declare the core and memory they
+  use under resource names Rapthor configures; and the analysis waits on
+  one slot, seceding where it would otherwise hold its worker's only
+  thread;
+- while each node has one single-threaded worker, today's layout, Rapthor
+  passes a thread executor that runs inside the worker's task, and one
+  sector uses one node; Rapthor retires this path once the target is in
+  place.
 
 How Rapthor's workers serve DP3, WSClean and Hebog together, and when it
 scales them, is Rapthor's decision. [How Hebog runs on Rapthor's Dask

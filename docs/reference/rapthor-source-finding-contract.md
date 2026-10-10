@@ -198,25 +198,28 @@ Rapthor usually images one sector across a cluster, the first performance
 focus; one sector on one node is the other main run, and several sectors
 stay supported. The executor follows Rapthor's workers:
 
-| Rapthor's workers | Executor | Why |
+| Rapthor's workers | Executor Rapthor passes | Why |
 | --- | --- | --- |
 | Give each node several task slots, in a layout Rapthor chooses | `DaskExecutor` on Rapthor's client | Dask schedules every free core, on one node or many, for as long as one sector keeps scaling (plan tasks 73 and 74 measure and cut its serial share) |
-| One single-threaded worker a node, today's layout | `ThreadExecutor` inside the worker's task, sized to the node's cores | Through Dask that worker would run one Hebog task at a time; one sector uses one node |
+| One single-threaded worker a node, today's layout | `ThreadExecutor` inside the worker's task, sized to the node's cores | Through Dask that worker would run one Hebog task at a time; one sector uses one node. Retired inside Rapthor once each node has several task slots |
 
 Rapthor's nodes reach 192 cores, and its workers run one task each with
 `--nthreads 1`, one a node today. On Rapthor's client, Hebog's tile tasks
-stay single-threaded and numerous, with tile cores sized from the cores the
-executor declares, so Dask schedules every core; several worker processes
-of a few threads each a node, rather than one process of 192 threads, keep
-Python's global lock from throttling a node. Hebog's analysis steps out of
-its worker slot while it waits on its tile tasks, so concurrent sectors
-cannot deadlock, and its tasks carry Dask resource annotations whose names
-Rapthor configures (plan task 72). [How Hebog runs on Rapthor's Dask layouts](../architecture/rapthor-execution-layouts.md)
-draws each layout and one way to provide several task slots a node;
+stay single-threaded and numerous, with each stage's tile core and task
+count chosen within the core budget Rapthor states, so Dask schedules every
+core; several worker processes of a few threads each a node, rather than one
+process of 192 threads, keep Python's global lock from throttling a node.
+Hebog's analysis steps out of its worker slot while it waits on its tile
+tasks, so concurrent sectors cannot deadlock, and its tasks carry Dask
+resource annotations whose names Rapthor configures (plan task 72).
+Rapthor's workers must limit their native thread pools to their declared
+cores, because Hebog runs in-process without the subprocess's single-thread
+settings. [How Hebog runs on Rapthor's Dask
+layouts](../architecture/rapthor-execution-layouts.md) draws each layout and
+one way to provide several task slots a node;
 [ADR-010](../architecture/adr/010-scale-hebog-independently-of-its-integrations.md)
-states what Hebog needs from any cluster.
-The registry route, a `hebog` entry in LSMTool's `KNOWN_SOURCE_FINDERS`,
-is deferred.
+states what Hebog needs from any cluster. The registry route, a `hebog`
+entry in LSMTool's `KNOWN_SOURCE_FINDERS`, is deferred.
 
 Reference comparisons use the explicit `5.0/3.0` profile with clean Rapthor
 and LSMTool checkouts at their recorded commits. Released and pinned-`master`

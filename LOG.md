@@ -32981,6 +32981,39 @@ the per-worker placement finding.
   page no longer claims a task lost with a worker reruns to the same
   products; task 19's worker-loss scenario is to show it.
 
+## 2026-10-10 — Design review folded in
+
+The maintainer accepted a review of the distributed design. The changes,
+recorded in ADR-010, ADR-004's amendment, the layouts and contract pages
+and the plan:
+
+- **The caller builds the executor.** Hebog's adapter no longer chooses
+  between Rapthor's client and a thread executor from Rapthor's layout;
+  Rapthor builds it and passes it in (tasks 19, 20 and 72). Inside
+  Rapthor the thread path is retired once each node has several task
+  slots, so the single-node gate (task 23) measures the path Rapthor
+  deploys.
+- **A core budget.** The caller states the cores Hebog may use, defaulting
+  to the client's capacity, which also counts threads other work holds;
+  the run's timing record states the tiling chosen, leaving the product
+  hashes unchanged.
+- **Parallelism by batching as well as tile size.** Each stage chooses its
+  tile core from its halo and its task count from batching, by a cost
+  model fitted to task 73's measurements, so small cores do not multiply
+  halo overhead (task 72).
+- **Memory first.** Task 17 moves from M5 to the integration, before task
+  20, and covers the analysis's own memory on its worker (1.7 GiB traced at
+  15,402²) as well as the heavy rounds, under caller-named resources.
+- **Concurrent branches.** Task 18 runs the true-sky and flat-noise
+  branches on one executor at the same time, filling each branch's
+  stage-boundary waits with the other's tasks.
+- **Native threads and cancellation.** ADR-010's needs add workers that
+  limit native thread pools to their declared cores, and cancellation that
+  stops an analysis's tile tasks; task 19 adds a cancellation acceptance
+  scenario.
+- **Shared storage.** Task 73 records the number of chunk files, and task 25
+  evaluates Zarr v3's sharding codec before the cluster benchmark.
+
 ## 2026-10-10 — Shorten PR CI feedback without reducing the test matrix
 
 - **Decision and scope.** The [44½-minute PR run](https://github.com/gemmadanks/hebog/actions/runs/38031868877)
