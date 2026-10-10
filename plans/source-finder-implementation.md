@@ -2,8 +2,10 @@
 
 Authoritative remaining-work plan. Updated **10 October 2026**.
 Current user-facing capability is in
-[release status](../docs/reference/release-status.md); execution history,
-evidence identities and completed decisions are in [`LOG.md`](../LOG.md).
+[release status](../docs/reference/release-status.md). Git history records
+completed work, rationale, validation and evidence references; ADRs record
+significant architecture decisions. [`LOG.md`](../LOG.md) is a historical
+archive and receives no new entries.
 Closed Phase 5 contracts, reviews and campaign tooling are in Git history at
 `4babf0b`.
 
@@ -198,10 +200,11 @@ The four levels of done stay distinct:
   behaviour, complete-path performance and operational acceptance, with the
   feature-flagged PyBDSF fallback retained until the acceptance matrix passes.
 
-Ownership is fixed, as
-[`AGENTS.md`](../AGENTS.md#changes-releases-and-handoff) states: the agent
+Ownership follows
+[`AGENTS.md`](../AGENTS.md#changes-releases-and-handoff): the agent
 implements, validates, documents and commits locally; the human pushes,
-merges, runs notebook refreshes and makes scientific and priority decisions;
+merges, runs notebook refreshes and makes scientific and priority decisions.
+Explicit user authorization may delegate a push or PR update to the agent.
 Release Please alone edits versions, the changelog and release notes.
 
 ## Collaboration and repair decisions
@@ -234,8 +237,9 @@ These rules govern agent work on this plan and are referenced from
   preparation and present a concrete recommendation before requesting a new
   scientific or resource decision. Explain the exact boundary requiring that
   decision; do not add approval steps for routine reversible work.
-- At milestone reviews, use the existing log to assess time to actionable
-  diagnosis, avoidable campaign interruptions, repairs without useful change
+- At milestone reviews, use Git history, PR discussion and existing evidence
+  to assess time to actionable diagnosis, avoidable campaign interruptions,
+  repairs without useful change
   and user effort needed to recover status or scope. Use these observations
   to improve the workflow, not commit counts, test totals or documentation
   volume as productivity targets. Do not introduce a separate tracking
@@ -344,7 +348,7 @@ one stops scaling.
 
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
-| 73 | Agent | Measure how one sector scales with Dask workers. | On the development machine, the 10,000² anchor and the 15,402² mosaic run under a local Dask cluster of 1, 2, 4, 8 and 12 single-threaded workers and under the thread executor at the same counts, so one node's two paths are compared (use case 2), recording each stage's wall time, driver time, summed task time, task count, Zarr read volume and the number of chunk files, with `just profile-execution`. Done when the curve, the serial share and each stage's parallel efficiency are in `LOG.md` and on the progress page, with the largest serial terms named. |
+| 73 | Agent | Measure how one sector scales with Dask workers. | On the development machine, the 10,000² anchor and the 15,402² mosaic run under a local Dask cluster of 1, 2, 4, 8 and 12 single-threaded workers and under the thread executor at the same counts, so one node's two paths are compared (use case 2), recording each stage's wall time, driver time, summed task time, task count, Zarr read volume and the number of chunk files, with `just profile-execution`. Done when the curve, the serial share and each stage's parallel efficiency are in versioned evidence records or controlled storage and summarised on the progress page, with exact evidence references in the commit and the largest serial terms named. |
 | 74 | Agent | Cut the serial share of one sector's run. | Starting from the largest terms task 73 names: driver-side reductions move onto the workers (reopening the deferred wide-object reductions if they are among them), background refinement's roughly 69,000 small tasks become coarse batches, and tasks 54 to 56 take the association and per-task costs they own. Done when task 73's curve, re-measured, shows the serial share reduced, the quick check's products are byte-identical, Serial and Dask products are identical, and no production file loses coverage. |
 | 72 | Agent | Make Hebog's tasks scale on any Dask cluster, Rapthor's included. | The caller builds the executor and states the cores Hebog may use, defaulting to the client's capacity, since a client's capacity counts threads that DP3 or another analysis holds. Each stage chooses its tile core from its halo and its task count from batching, by a stated cost model fitted to task 73's measurements, so parallelism rises without small cores multiplying halo overhead (products do not depend on either). Hebog's tasks declare their core and memory (task 17) under resource names the caller configures; an analysis started inside a worker task secedes while it waits on its tile tasks; and the run's timing record states the tiling and core budget chosen, leaving the product hashes unchanged. What Hebog needs from a cluster is documented for any caller ([ADR-010](../docs/architecture/adr/010-scale-hebog-independently-of-its-integrations.md)), including that workers limit their native thread pools to their declared cores, with one way Rapthor can provide it beside DP3 and WSClean for its patch (task 20). A small image stays one tile with no scheduler overhead (use case 3). The true-sky analysis and the flat-noise estimate submit their tile tasks to the executor together, through the executor rather than a thread of Hebog's own, so the serial reference stays single-threaded; today they run one after the other. Done when products are byte-identical across the thread and Dask paths in the executor contract suite, a local multi-worker Dask cluster runs one analysis, several concurrent analyses and workers joining between analyses without deadlock or changed products, and task 73's curve is re-measured with the cost model's tiling. |
 
@@ -421,7 +425,7 @@ the candidate is frozen (task 28).
 | Scheduler, reduction or storage bottlenecks appear only above 10 nodes. | A later deployment at 100+ nodes fails or scales poorly. | Planner bounds for 200 nodes, a scaling model fitted to the cluster benchmark, and an explicit "not demonstrated" statement in release notes. |
 | Large public images have minimal or non-standard headers; the HD mosaic is published "for browsing only". | Anchors cannot run unmodified, or their science comparison is weak. | Headers checked 16 and 28 September against the input header contract; explicit request metadata; per-facet HD images and catalogues for science; LoTSS-DR3 mosaics as the fallback scale anchors. |
 | No large public SKA-Low image exists. | SKA-Low coverage relies on MWA precursor data. | GLEAM-X DR1 with its PSF maps (its Aegean catalogue is diagnostic only), and SKA-Low science-verification data once released (expected from 2027). |
-| Rapthor and LSMTool change frequently; Rapthor's `main` merged its Prefect/Dask workflow on 9 October 2026 and is still settling. | Adapter, contract and benchmark churn, or a backend that only works on a stale revision. | Pin Rapthor `main` and LSMTool `master` at task 16 and move both pins forward only before the patches (task 20), before the matched benchmarks (task 23) and at the freeze (task 28), rerunning the contract audit, the acceptance scenarios and the profile-agreement check each time and recording the revisions in `LOG.md`. |
+| Rapthor and LSMTool change frequently; Rapthor's `main` merged its Prefect/Dask workflow on 9 October 2026 and is still settling. | Adapter, contract and benchmark churn, or a backend that only works on a stale revision. | Pin Rapthor `main` and LSMTool `master` at task 16 and move both pins forward only before the patches (task 20), before the matched benchmarks (task 23) and at the freeze (task 28), rerunning the contract audit, the acceptance scenarios and the profile-agreement check each time and recording the revisions and audit outcomes in the commit, with exact contract and evidence references. |
 | The passes keep records from every tile: the tile summaries' per-label records, which keep every candidate island, the per-tile island summaries and the reconciled label mappings grow the traced peak about 1.7 bytes a pixel, and background/RMS grew about 3 bytes a pixel, unattributed on a real image (29 and 30 September); on synthetic grids the local-noise requests account for about 1.9 of it (4 October). | At those slopes the multiscale peak reaches about 2.1 GiB at 22,500² and 4.3 GiB at 45,000², and background/RMS overtakes it near 27,000² and reaches about 6 GiB at 45,000²; task 12 fits 18 GiB only while resident memory stays within about three times the traced peak, and at 100,000² the driver could not hold them. | Before task 12, task 56 stops the driver holding the local-noise requests and attributes the term on a real anchor with `scripts/benchmark/attribute_traced_peak.py`; shard, stream or drop the kept records, such as candidates that can never become islands; task 24's planner bounds include them. |
 | The development machine's 18 GiB RAM and free disk limit local tiers. | Tiers above 22,500² stall, or runs spill to disk and slow iteration. | Tile-bounded memory, once the traced peak's growth above is bounded; about 60 GB of free disk before tiers above 22,500²; 90,000² only on the cluster. |
 | Source association costs more than the image grows: 1, 82 and 479 s traced for 659, 7,146 and 16,084 sources, about the 2.2 power (29 September). | At 45,000² and its roughly 140,000 sources association alone could take many hours, making the tier gate impractical. | Tasks 54 and 55 remove two causes found on synthetic input: batch reads that are strips across the image, and a hierarchy decision that is quadratic in components. Profile the 10,000² and 15,402² anchors before and after them to measure their share, before task 12 and within task 23's optimization. |
@@ -543,7 +547,7 @@ experimental standalone release.
 - Compute reference-finder timings once per input, revision and host and
   reuse them; rerun them only when one of those changes.
 - Match environments and record evidence as
-  [`AGENTS.md`](../AGENTS.md#performance-validation) requires: matched
+  [`AGENTS.md`](../AGENTS.md#scientific-and-performance-gates) requires: matched
   inputs, revisions, output mode, host, threads, workers, memory and storage;
   one warm-up and at least five measured repetitions with every value
   retained; the full instrumentation list, with scale evidence adding
@@ -606,6 +610,7 @@ The [architecture](../docs/architecture/index.md),
 Keep the README, docs home, release status, progress page and tutorial
 focused on current behaviour, replacing stale summaries when status changes;
 the [progress page](../docs/reference/progress-against-goals.md) and the
-current-state table above change together. Record chronology in `LOG.md` or
-Git history, not as another "latest" section in user guidance. Removing a
+current-state table above change together. Record completed work in Git
+history with exact evidence references, not as another "latest" section in
+user guidance. Keep `LOG.md` as a historical archive. Removing a
 historical narrative never changes a closed result.

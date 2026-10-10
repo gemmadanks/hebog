@@ -4,8 +4,9 @@ The machine-readable gates are `config/benchmarks/phase-0-performance.json`
 and `config/benchmarks/phase-0-scalability.json`. They stop implementation
 and tuning from selecting favourable inputs or hardware. Both have
 `frozen-provisional` status: changing a gate needs a reviewed plan decision
-and a `LOG.md` entry, and passing the file schema does not claim the gate has
-been demonstrated. Matched PyBDSF reference timings are under
+and a commit recording its rationale and evidence references, and passing
+the file schema does not claim the gate has been demonstrated. Matched
+PyBDSF reference timings are under
 `config/baselines/`, and the current position against every gate is on
 [progress against goals](progress-against-goals.md).
 

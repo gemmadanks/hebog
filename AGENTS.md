@@ -1,505 +1,336 @@
 # AGENTS.md
 
-This file applies to the entire repository.
+Applies to the entire repository. Follow the linked guidance for the work at
+hand; this file holds common rules and points to detailed contracts.
 
 ## Repository overview
 
-Hebog is a Dask-aware source finder for large radio-continuum survey images.
-It should work on images from any radio telescope, with LOFAR, SKA-Low and
-SKA-Mid as the priority instruments. Its intended first consumer is Rapthor's `filter_skymodel` step; no Rapthor
-integration is implemented yet. It is intentionally narrower than PyBDSF:
-reproduce the behaviour and products Rapthor uses, demonstrate scientific
-equivalence, and meet the performance gate below. The architecture must scale out of core
-to 100,000-by-100,000 images across 100 to several hundred nodes through
-Rapthor's existing Dask cluster; production nodes have hundreds of GB of RAM.
-Maintainability, extensibility, and interoperability are primary architecture
-qualities: the scientific library must remain usable from other pipelines and
-science workflows without importing Rapthor, Prefect, or LSMTool.
+Hebog is a Dask-aware radio-continuum source finder for any telescope, prioritising
+LOFAR, SKA-Low and SKA-Mid. Its first intended consumer is Rapthor's `filter_skymodel`:
+reproduce the PyBDSF behaviour/products that step needs, prove scientific equivalence,
+and meet the runtime gate. Maintainability, extensibility and interoperability are
+requirements; the scientific library must work without Rapthor, Prefect or LSMTool.
 
-[`plans/source-finder-implementation.md`](plans/source-finder-implementation.md)
-is the authoritative delivery plan; `PLAN.md` is the reusable template for
-other work plans; [`LOG.md`](LOG.md) is the chronological execution record.
+`find_sources(request, config, executor)` supports Serial, Thread and caller-owned
+Dask execution, including optional flat-noise RMS products. Rapthor records and a
+catalogue codec exist; the full backend is planned. Out-of-core 100,000² images across
+100 to several hundred nodes are design targets, not demonstrated capabilities.
+Read the [delivery plan](plans/source-finder-implementation.md) and
+[capability status](docs/reference/release-status.md) for current limits/evidence;
+unmerged work or passing tests do not establish readiness.
 
-The repository contains:
-
-- the Python package in `src/hebog/`: public API and pipeline, `science/`
-  composition, scheduler-facing `stages/`, pure `algorithms/`, `executors/`,
-  `data_models/`, `io/`, compatibility `adapters/`, and campaign
-  `validation/` tooling;
-- tests in `tests/` and reproducible tooling in `scripts/benchmark/` and
-  `scripts/validation/`;
-- checked-in algorithm, dataset, contract, and benchmark configuration in
-  `config/`;
-- MkDocs documentation in `docs/` and Marimo notebooks in `notebooks/`.
-
-Adjacent checkouts of PyBDSF and Rapthor are development references only.
-Never hard-code those paths in package code or normal tests.
+Code: `src/hebog/`; tests: `tests/`; runners: `scripts/benchmark/` and
+`scripts/validation/`; configuration: `config/`; MkDocs: `docs/`; Marimo: `notebooks/`.
+Adjacent PyBDSF/Rapthor checkouts are references only: never hard-code their paths
+in package code or normal tests.
 
 ## Working principles
 
-- Make the smallest coherent change that satisfies the task. Preserve
-  unrelated work: inspect `git diff` before and after editing, and do not
-  revert changes you did not make.
-- Follow the existing structure and naming conventions instead of introducing
-  a second tool or parallel configuration.
-- Prefer the simplest solution that meets the requirement and reads clearly.
-  Before a low-level, platform-specific or clever mechanism (`ctypes`, raw
-  syscalls, metaprogramming, a bespoke protocol), check whether a standard
-  library or existing dependency primitive already gives the guarantee. Use
-  the complex mechanism only when the simple one demonstrably cannot, and
-  record why. Replace a working implementation when a materially simpler
-  equivalent exists.
-- Add or update tests when behaviour changes. Update user-facing documentation
-  when public APIs, setup steps, output schemas, or workflows change.
-- Hebog is pre-production and provides no backward-compatibility guarantee
-  between `0.x` releases. Prefer the cleanest current design: change or remove
-  obsolete Hebog APIs, schemas, development stores, and configuration
-  directly, and make tests and documentation describe only the current
-  contract. Do not add compatibility shims, deprecation periods, legacy
-  readers, migration code, or old-version tests unless the user explicitly
-  requests them for a particular interface. Mark breaking changes clearly in
-  current documentation and the Conventional Commit, and make stale persisted
-  artifacts fail clearly. This policy does not weaken the PyBDSF/Rapthor
-  compatibility target, scientific reproducibility, or the supported platform
-  matrix.
-- Use the lightest planning level in `PLAN.md`. Keep the source-finder plan
-  concise and forward-looking: its current-state summary identifies the
-  candidate, strongest applicable evidence, known blockers, authorized next
-  action, and deferred work, and the measured figures behind it are
-  published on `docs/reference/progress-against-goals.md`; update the two
-  together. Update it when scope, sequencing, a milestone,
-  benchmark baseline, scientific threshold, gate, architecture decision, or
-  risk changes, and record significant architecture or scientific decisions
-  there before spreading them through the implementation.
-- The plan holds only current state, remaining tasks, and the rules and gates
-  that govern future work. Keep historical information in `LOG.md`: execution
-  narratives, repair diagnoses, test counts, commit and evidence identities,
-  and dated decision records. When a task completes, record its outcome in
-  `LOG.md` and remove the task from the plan rather than marking it done and
-  annotating it. Restate a past decision in the plan only as the current
-  rule or constraint it imposes. Never grow a task with progress notes.
-- Append to `LOG.md` only material plan execution, scientific and performance
-  evidence, gate outcomes, deviations, cross-commit decisions, and next steps.
-  Link exact evidence identities rather than repeating them. Use Git history
-  for routine implementation detail and release notes for user-visible
-  changes. When status changes, update or replace existing status summaries;
-  do not leave contradictory "current" positions in project records.
-- Favour fast iterations and frequent small releases. Development, checks and
-  routine benchmarks run on the maintainer's local machine within the plan's
-  iteration budgets. Reserve long campaigns and cluster benchmarks for the
-  qualification steps the plan names, and never let them block development.
-- Use one writing agent by default. Delegate only independent, bounded work.
-- Record architecturally significant decisions with an ADR based on
-  `docs/architecture/adr/template.md`.
-- Before a scientific or campaign repair, follow the
-  [collaboration and repair decision rules](plans/source-finder-implementation.md#collaboration-and-repair-decisions)
-  in the plan: agent-owned routine checks, a decision statement before each
-  repair, reassessment after two ineffective repairs, and carrying
-  authorization forward within scope.
-- Keep generated FITS products, catalogues, benchmark results, profiles,
-  production data, `site/`, `dist/`, and `build/` out of Git. Small
-  redistributable fixtures may be added under `tests/data/` with provenance.
-  Never add credentials, private dataset locations, cluster secrets, or
-  tokens; use documented environment variables and ignored local config.
+- Make the smallest coherent change; follow existing structure/naming. Inspect
+  diffs before/after editing and preserve unrelated work.
+- Carry authorization forward within scope; own routine investigation, fixes and
+  checks. When scope, scientific disposition, resources or an external action needs
+  a new decision, explain the boundary and recommend a concrete action. Continue
+  independent work while clarifying. Use one writing agent by default; delegate
+  only independent, bounded work.
+- Prefer simple stdlib/existing-dependency primitives before platform-specific
+  tricks, raw syscalls, `ctypes`, metaprogramming or custom protocols. Use complexity
+  only for a demonstrated unmet guarantee, record why, and replace it when a
+  materially simpler equivalent exists.
+- Change tests with behaviour and user docs with APIs, schemas, setup or workflows.
+  Pre-production `0.x` has no backward-compatibility guarantee: remove obsolete APIs,
+  stores, configuration and tests directly. No shims, deprecation periods, legacy
+  readers or migrations unless explicitly requested for an interface. Document
+  breaking changes and make stale artifacts fail clearly; preserve scientific
+  compatibility, reproducibility and the supported platform matrix.
+- Keep generated FITS/catalogues/results/profiles/production data, `site/`, `dist/`
+  and `build/` out of Git. Small redistributable `tests/data/` fixtures need provenance.
+  Keep credentials, tokens, private dataset locations and cluster secrets in
+  documented environment variables or ignored local configuration.
 
-## Setup and commands
+## Plans and records
 
-Dependencies and environments are managed with uv:
+- Use the lightest planning level in `PLAN.md`. The source-finder plan is authoritative:
+  keep current state, remaining tasks and governing rules, not execution narratives
+  or task progress annotations. Remove completed tasks; record outcome, rationale and
+  checks in commits. Restate historical decisions only as current constraints.
+- Update the plan for changes to scope, sequencing, milestones, baselines, scientific
+  thresholds, gates, architecture or risks. Record significant scientific/architecture
+  decisions before implementation; use the [ADR template](docs/architecture/adr/template.md).
+- Update the plan summary and [progress against goals](docs/reference/progress-against-goals.md)
+  together: candidate, strongest applicable evidence, blockers, authorized next action
+  and deferred work. Replace stale summaries rather than contradicting them. Store
+  measurements in versioned evidence/controlled storage; commits link exact identities
+  and scoped gate outcomes.
+- `LOG.md` is a historical archive: **do not add entries**. Git records completed
+  work, repairs, deviations and decisions; ADRs record architecture decisions;
+  release notes describe user-visible changes.
+- Iterate locally within plan budgets; reserve long campaigns/cluster benchmarks for
+  named qualification steps without blocking development. Before scientific/campaign
+  repairs follow the [repair rules](plans/source-finder-implementation.md#collaboration-and-repair-decisions):
+  state the decision before each repair, reassess after two ineffective repairs,
+  and carry authorization forward within scope.
 
-```bash
-uv sync --all-groups
-```
+## Setup and checks
 
-Prefer the `just` recipes because they document the intended workflow;
-`just --list` shows all of them. The main ones are:
+Run `uv sync --all-groups`. Prefer `just` recipes (`just --list`); the
+[contributor guide](docs/how-to/index.md#checks-and-test-lanes) describes lanes/commands.
+If `just` is unavailable, use its `justfile` command. Focused tests use
+`uv run pytest -q <test-path>`.
 
-```bash
-just test-unit          # fast deterministic tests and doctests
-just test-contract      # scheduler-independent public behaviour contracts
-just test-integration   # Dask and FITS integration tests
-just test-equivalence   # frozen PyBDSF comparisons
-just test-acceptance    # Rapthor-facing behaviour scenarios
-just test-slow          # long regressions; CI runs them weekly and on demand
-just test-qualification # held-out scientific cases on an approved data host
-just test-benchmark     # controlled performance runs
-just test-scalability   # controlled 100-to-200-plus-node scale runs
-just coverage           # portable suite with branch coverage
-just check              # format-check, lint, type-check, unit tests
-just pre-commit-fast    # lint, formatting and hygiene hooks, with fixes
-just pre-commit         # fast hooks first, then type, docs, notebook and tests
-just docs-build         # strict MkDocs build
-just marimo-check       # validate Marimo notebooks
-just notebook-smoke     # execute the offline notebooks
-just package-smoke-test # build and import the wheel in isolation
-just ci                 # comprehensive local CI equivalent
-```
-
-For a focused test, run pytest through uv, for example
-`uv run pytest -q tests/unit/test_config.py`. If `just` is unavailable, run
-the corresponding command from the `justfile`. PyBDSF equivalence and Rapthor
-end-to-end runs may require a separate integration container; do not add
+Use focused checks and `just pre-commit-fast` while iterating, then final
+`just pre-commit`. Reuse passes for unchanged code/config/environment; rerun checks
+invalidated by edits, conflicts or environment changes. Reserve `just ci` and long
+campaigns for named gates. Local checks do not establish hosted platform-matrix
+success. Equivalence/Rapthor runs may need an integration container; do not add
 heavyweight production tools to the core runtime solely for tests.
 
-## Architecture rules
+## Architecture and Python
 
-- Keep scientific functions pure where practical: arrays and immutable
-  configuration in, arrays or records out. Production kernels use vectorised
-  NumPy/SciPy or measured compiled, GIL-releasing kernels, never Python loops
-  over pixels or RMS windows.
-- Dependencies point inward. Algorithms and domain records know nothing about
-  orchestration frameworks, compatibility adapters, concrete schedulers, or
-  process-wide configuration; adapters may depend on the stable scientific
-  API, never the reverse. Keep FITS, catalogue, Rapthor, and scheduler
-  integration at explicit boundaries, and put Rapthor/LSMTool names,
-  filtering rules, filenames, and failure translations in a versioned
-  compatibility adapter. A non-Rapthor workflow must be able to use the
-  public API and serial executor without importing or constructing Dask,
-  Prefect, LSMTool, or Rapthor objects.
-- Keep library-module imports inert: they may define types and immutable
-  constants but must not read or write science/workflow data, inspect the
-  filesystem for work, change process state, access the network, create
-  clients or clusters, or submit computation. `__main__.py` is the explicit
-  CLI entry-point exception. Importing `hebog` or `hebog.pipeline` must not
-  eagerly import a concrete scheduler; optional executors load only when
-  requested.
-- Do not start a private Dask cluster or multiprocessing pool inside the
-  library by default; Rapthor owns the top-level scheduler and resource
-  budget. Algorithms accept an executor rather than importing a global client.
-  A Dask executor may receive an existing client, but never send open files,
-  scheduler clients, mutable pipeline state, or repeatedly embedded full
-  images through tasks. Public requests and results remain small and
-  serializable. Every value a task carries must also survive serialization
-  exactly, or results stop being executor-invariant: send an Astropy `WCS` as
-  the header text it was built from and rebuild it on the worker, because
-  Astropy re-serializes a `WCS` through a header it reformats itself.
-- Maintain `SerialExecutor` as the deterministic reference. Alternate
-  executors, stores, and workflow adapters must pass the same contract suite
-  and produce equivalent results.
-- Prefer coarse Dask batches that amortise scheduler and I/O overhead while
-  leaving enough runnable work for occupancy; memory-rich scale runs may use
-  larger batches. Graph size scales with tiles and scientific stages, never
-  with pixels, RMS windows, or small islands, and reductions stay
-  hierarchical rather than gathering image-sized state on the scheduler.
-- Never require a complete large plane on one worker or publish a complete
-  100,000-by-100,000 plane to Dask. A small image is one tile; large images
-  give every tile a deterministic non-overlapping output core, explicit global
-  coordinates, the smallest reviewed stage-specific halo, bounded summaries,
-  and hierarchical reconciliation. Reconcile labels, sources, and products
-  independently of worker count and task order.
-- Use Zarr as the sole backend for intermediate image planes; FITS remains an
-  ingress and final compatibility format. Bounded small work uses one Zarr
-  chunk and serial execution; reduce Zarr initialization, codec, and
-  materialisation overhead instead of adding another intermediate backend.
-- Read each image once where possible. Reuse background, RMS, convolution,
-  WCS, and beam products across stages and wavelet scales.
-- Size tile batches and worker caches from admitted memory metadata. Exploit
-  memory-rich nodes while reserving headroom for concurrent work; do not
-  hard-code one tiny tile size or let resource sizing change scientific
-  ownership and results.
-- Control array dtype and copies deliberately. A change from `float64` to
-  `float32` requires scientific-equivalence evidence, not only a performance
-  result.
-- Batch nonlinear fits by estimated island cost. Use moments for
-  initialization and avoid fitting pixels that cannot affect an accepted
-  catalogue entry.
-- Version output schemas. Rapthor-facing outputs use paths and plain metadata
-  so tasks can be retried and resumed.
-- Add extension seams only at demonstrated variation points. Prefer a narrow
-  executor, image-source, product-sink, or compatibility protocol over a
-  generic plugin framework, registry, service locator, or conditionals spread
-  across scientific modules.
+Follow the [architecture](docs/architecture/index.md),
+[distributed execution contract](docs/architecture/distributed-execution.md) and
+[quality principles](docs/explanation/quality-attributes.md).
 
-## Scientific validation
+- Dependencies point inward. Algorithms, domain records and `science/` know no
+  executors, I/O, adapters, orchestration frameworks or process-wide configuration.
+  Stages/public orchestration accept an executor. Keep sequencing in
+  `stages/composition.py`, scientific composition/records in `science/`, and public
+  validation/publication in `public_api.py`. Justify layer changes in
+  `tests/unit/test_architecture.py`; do not bypass it.
+- Keep FITS/catalogue/scheduler integration at explicit boundaries. Rapthor/LSMTool
+  names, filters, filenames and failure translations belong in a versioned adapter
+  depending on the scientific API. A serial workflow must not import/construct
+  Dask, Prefect, Rapthor or LSMTool objects.
+- Library imports define types/immutable constants without data I/O, work discovery,
+  process changes, networking, clients/clusters or computation. `__main__.py` is the CLI
+  exception. Importing `hebog`/`hebog.pipeline` must defer concrete schedulers.
+- Keep science pure where practical: arrays/immutable configuration in, arrays/records
+  out. Use vectorised NumPy/SciPy or measured compiled, GIL-releasing kernels; no Python
+  pixel/RMS-window loops. Read images once where possible; reuse background, RMS,
+  convolution, WCS and beam products across stages/scales. Control copies/dtypes;
+  `float64` to `float32` needs scientific-equivalence evidence.
+- Callers own schedulers/resource budgets; no private clusters/multiprocessing pools
+  by default. Follow [ADR-010](docs/architecture/adr/010-scale-hebog-independently-of-its-integrations.md):
+  shared storage, admitted core/memory budgets, native thread limits and caller-named
+  resources, without fixed/dedicated worker assumptions. Size batches/caches with
+  concurrency headroom; no hard-coded tiny tiles or resource-dependent science.
+- Keep requests/results/tasks small and exactly serializable: no open files, clients,
+  mutable pipeline state or repeatedly embedded full images. Send WCS as its original
+  header text and rebuild on workers; Astropy serialization reformats the header.
+- `SerialExecutor` is the deterministic reference. Executors/stores/adapters share
+  contracts/results; exercise Serial, Thread and Dask in parametrized contracts,
+  with Dask cases in integration tests.
+- Batch coarsely for occupancy and scheduler/I/O amortization. Graphs scale with
+  tiles/stages, not pixels, RMS windows or small islands. Use bounded summaries and
+  hierarchical reduction/reconciliation, never image-sized scheduler state or a full
+  large plane on one worker/in Dask. Tiles have deterministic non-overlapping cores,
+  global coordinates and the smallest reviewed stage halo; reconcile labels/sources/
+  products independently of worker count/order.
+- Zarr is the sole intermediate-plane backend; FITS is ingress/final format. Small
+  inputs use one tile/chunk and serial execution; reduce Zarr overhead rather than
+  adding a backend. Batch nonlinear fits by island cost, use moments to initialize,
+  and skip pixels irrelevant to accepted catalogue entries.
+- Version output schemas; use paths/plain metadata for retry/resume. Follow
+  [public products](docs/reference/public-products.md): claim new destinations without
+  overwrite, publish atomically, cancel/drain work before failure cleanup, and verify
+  schemas/roles/checksums when reading. Directory existence is not completion. Optional
+  flat-noise input supplies its own RMS/provenance without changing true-sky catalogue/
+  RMS/mask; pair validation and compatibility belong at public/adapter boundaries.
+- Add narrow executor/image-source/product-sink/compatibility seams only at demonstrated
+  variation points; avoid speculative registries, plugin frameworks, service locators
+  and scattered integration conditionals.
+- Support Python 3.12–3.14, not just `.python-version`. Annotate new/changed functions;
+  use absolute `hebog` imports in tests/examples. Prefer small functions, composition,
+  `Path`, context managers, iterators/comprehensions, dataclasses and structural protocols
+  over Java-style getters/services/factories/interfaces. Small public records are immutable.
+- Use descriptive glossary names, not unexplained abbreviations, generic `data`/`manager`
+  or unclear booleans. Keep cohesive modules and one useful abstraction level per
+  function, without metric-driven splitting. Expose dependencies, effects, units,
+  coordinates, shapes, ownership, mutability and failures; no hidden globals or
+  environment-driven science. Remove accidental duplication; abstract stable concepts.
+- Keep public APIs small, typed, documented and versioned; export from `__init__.py`
+  only intentionally. Use Google-style docstrings and valid doctests; comments explain
+  numerical assumptions, units, shapes, halos and resource constraints. Readability,
+  maintainability, extensibility and testability are acceptance criteria, including
+  for performance changes.
 
-- Scientific equivalence means matching the behaviour Rapthor requires, not
-  bitwise equality with PyBDSF. Do not claim it from a single image or
-  source-count comparison; use the dataset matrix and metrics in the plan.
-- Keep scientific choices within the community best-practice envelope of
-  peer-reviewed literature and source-finder challenges. Treat consensus
-  across established observatory pipelines as a strong guide, not a vote that
-  overrides governed truth; no single pipeline or source finder is ground
-  truth. Document any deliberate departure, justify it with analytic or
-  injected-truth evidence, and obtain renewed human scientific review before
-  promotion.
-- Do not copy PyBDSF implementation code. Reimplement documented scientific
-  behaviour with new, independently structured code and retain attribution
-  for papers, algorithms, and test data.
-- Do not weaken detection thresholds, skip extended-source processing, or
-  silently change output semantics to meet a runtime target.
-- Every algorithm milestone needs tests for empty and all-NaN images; negative
-  backgrounds and invalid pixels; isolated compact sources over a range of
-  signal-to-noise ratios; close blends and multi-component islands; extended
-  and multiscale emission; edge sources and non-square images; different
-  beams, WCS orientations, pixel scales, and image units; sources and islands
-  crossing tile edges and corners; and partition, tile-shape, worker-count,
-  task-order, and retry invariance.
-- Compare Dask results against the serial reference before comparing either
-  with PyBDSF. Report low-SNR threshold crossings as completeness and
-  reliability changes rather than hiding them as unmatched rows.
-- Before a long scientific campaign or replacement replay, run the bounded
-  development screen defined in the plan's scientific gates.
+## Test-driven development and validation
 
-## Performance validation
+**Use TDD** for public contracts, pure scientific kernels, schemas, matching, errors
+and executor semantics. Write and run a test failing for the intended missing
+behaviour, not an import/fixture/environment failure; implement the smallest serial
+behaviour, refactor, then add executor conformance and scientific comparisons.
+Before bug fixes, add regression tests at the escaped boundary when practical.
+If test-first is impractical, record why in the plan/handoff and add the behavioural
+test in the same commit. Never commit red unless explicitly requested. See
+[Develop test-first](docs/how-to/index.md#develop-test-first).
 
-- The primary gate is the matched median wall time of Rapthor's complete
-  `filter_skymodel` step: at least 50% faster than the pinned PyBDSF `master`
-  reference, under the plan's confidence rule. That reference was faster than
-  the released PyBDSF Rapthor installs, and the plan confirms the release
-  ratio once before 1.0.0. This is a minimum deployment gate, not an
-  optimization stopping point; optimize complete latency and throughput across
-  the supported size range, including small inputs dominated by setup and
-  scheduler overhead.
-- Isolated kernel timing never establishes a speedup. End-to-end runs include
-  FITS I/O, catalogue generation, Dask overhead, and Rapthor filtering.
-  Benchmark the exact pinned PyBDSF revision in an isolated, matched
-  environment; never substitute another revision or a release for it.
-- Optimize only from profiles or scale evidence. Isolate unavoidable low-level
-  complexity behind a clear typed function, retain a readable serial oracle,
-  and document why the complexity is necessary. An optimization is acceptable
-  only when the relevant scientific suite passes.
-- Record dataset identity and checksums; Hebog, PyBDSF, Rapthor, Python, and
-  dependency revisions; configuration and output mode; workers, threads, CPU
-  affinity, and memory limits; wall time, CPU time, peak RSS, task count, and
-  Dask transfer/spill metrics; logical image and plane sizes, tile cores and
-  halos, partition count, boundary-summary volume, scheduler load, worker
-  occupancy, storage throughput, RAM headroom, and strong/weak-scaling
-  efficiency; and the warm-up policy and every measured repetition.
-- Use at least five measured repetitions after warm-up, compare medians,
-  report dispersion, and avoid concurrent unrelated workloads. Serialize runs
-  with `hebog.validation.evidence` under the ignored `benchmark-results/`
-  directory or controlled external storage; commit only compact JSON
-  summaries and reproducible commands. Record unavailable instrumentation
-  with an explicit reason, never a fabricated zero, and label evidence
-  `reviewed` only after its protocol, environment, and scientific results pass
-  review.
-- The controlled matrix spans 256, 512, 1,024, 3,000, 8,000, 10,000, 30,000,
-  and 100,000 pixels per side, both sides of every measured execution
-  crossover, and empty or sparse, normal, and dense or extended workloads. Do
-  not optimize one size tier by regressing another: benchmark affected and
-  adjacent anchors against the previous reviewed Hebog curve, and refresh the
-  full frozen ladder at milestone qualification. A statistically supported
-  regression greater than 5% at any tier requires an approved, documented
-  trade-off.
+- Use `tests/unit/`, `contract/`, `integration/` (Dask/FITS), `equivalence/` (PyBDSF),
+  `acceptance/` (Rapthor) and `benchmark/` (timing/scalability). Strict markers are in
+  `pyproject.toml`: `contract`, `integration`, `equivalence`, `acceptance`,
+  `qualification`, `benchmark`, `scalability`, `slow`, `requires_data`.
+  Units require no scheduler, downloads or test order.
+- Public-behaviour placeholders become normal assertions and `implemented` manifest
+  entries in the same commit (`config/contracts/phase-0-public-behaviours.json`);
+  records/scaffolding alone do not implement behaviour.
+- Warnings are errors and xfails strict. Use `pytest.warns` for expected warnings;
+  fix others. Filter only unavoidable third-party warnings on the narrowest test,
+  by category/stable message, with explanation. Known xfails name their owning plan
+  entry. Exemptions/allow-lists must assert they still match, preventing vacuous rules.
+- Test observable behaviour/errors/public validation, including a small complete
+  API/product workflow early in each milestone/repair. Assert every contract behaviour
+  through every implementation/entry point, preferably parametrized. Use Given/When/Then
+  acceptance tests; no Gherkin unless domain experts will author/review feature files.
+- Use analytic truth before generated truth, serial before executor comparisons,
+  and frozen PyBDSF only for compatibility. Test matchers/reports independently;
+  use physically bounded property-based numerical invariants/boundary combinations.
+- Milestones cover empty/all-NaN images, negative backgrounds/invalid pixels, compact
+  sources across SNR, blends/multi-component islands, extended/multiscale emission,
+  edges/non-square images, varied beams/WCS/pixel scales/units, and tile-edge/corner
+  crossings. Prove one/many-tile equivalence on small analytic data before scaling;
+  vary partition origin, tile shape, workers, completion order and retries.
+  Use deterministic fault injection; reserve worker termination, spilling, private
+  data and wall-time gates for controlled runners.
+- Give datasets development/regression/qualification roles; never tune on held-out
+  qualification results. Record generator version, config and seeds. Frozen expectations
+  stay immutable during tests; regenerate separately with documented commands,
+  checksums, revisions and scientific review.
+- CI covers Linux/macOS/Windows; Windows is not exercised locally. Compare paths with
+  `Path.as_posix()`, not literal separators or `str(path)`; avoid line-ending,
+  temp-layout and filename-case assumptions.
+- Keep ≥80% branch-aware project coverage. Reducing project/patch coverage needs an
+  explicit documented human-approved exception. Run `just coverage` for production,
+  validation-rule or control-flow changes; inspect changed files' line/branch misses
+  and Codecov patch reports when available. Cover normal/boundary/failure/short-circuit
+  paths; never weaken assertions, exclude coverage or delete meaningful tests for a number.
 
-## Native code
+## Scientific and performance gates
 
-Follow the [native-code assessment](docs/explanation/native-code-assessment.md).
+- Follow the plan's dataset matrix/metrics and bounded development screen before long
+  campaigns/replays. Equivalence means Rapthor-required behaviour, not bitwise PyBDSF
+  equality, single-image agreement or counts. Compare Thread/Dask with Serial first;
+  report low-SNR crossings as completeness/reliability changes, not hidden unmatched rows.
+- Follow peer-reviewed best practice and source-finder challenges. Observatory consensus
+  guides but does not override governed truth; no pipeline is ground truth. Document
+  departures with analytic/injected-truth evidence and renewed human scientific review
+  before promotion. Independently reimplement documented behaviour; never copy PyBDSF
+  code, and retain paper/algorithm/data attribution. Never weaken thresholds, omit
+  extended processing or silently change semantics for speed.
+- Optimize from profiles/scale evidence, with typed boundaries, a readable serial oracle
+  and recorded reasons for complexity; scientific suites must pass. Minimum deployment
+  gate: ≥50% faster matched median for complete Rapthor `filter_skymodel` against exact
+  pinned PyBDSF `master`, under the plan's confidence rule; confirm its release ratio
+  once before 1.0. Optimize latency/throughput across sizes beyond that minimum.
+  Kernel timing is insufficient: include FITS, catalogues, Dask and filtering in isolated,
+  matched environments; never substitute a reference revision/release.
+- Use ≥5 measured repetitions after warm-up, medians and dispersion, without unrelated
+  workloads. Use the frozen performance ladder, plan-controlled subset/budgets, both
+  sides of crossovers and sparse/normal/dense/extended workloads. Compare affected/adjacent
+  anchors with the reviewed Hebog curve; refresh the full ladder at qualification.
+  Statistically supported >5% tier regressions need approved documented trade-offs.
+- Follow [evidence records](docs/reference/evidence-documents.md): dataset identities/
+  checksums; Hebog/PyBDSF/Rapthor/Python/dependency revisions; config/output mode;
+  workers/threads/affinity/memory; wall/CPU time, peak RSS, tasks/transfers/spill;
+  logical image/plane sizes, cores/halos/partitions, boundary volume, scheduler load,
+  occupancy/storage throughput/
+  headroom/scaling; warm-up policy and every run. Use `hebog.validation.evidence` in
+  ignored `benchmark-results/` or controlled storage; commit compact JSON summaries and
+  reproducing commands. Missing instrumentation needs a reason, never fabricated zero.
+  `reviewed` requires protocol, environment and scientific-result review.
+- For native code, follow the [assessment](docs/explanation/native-code-assessment.md):
+  NumPy/SciPy, then profiled Numba; 10% profile, 2× kernel and 5% end-to-end gates unless
+  resolving failed memory/scalability; accepted ADR selecting Rust/PyO3/maturin for new
+  kernels or C++/pybind11 for mature libraries. Coarse typed array boundaries specify
+  dtype/shape/strides/alignment, ownership/mutability/errors/copy permission, with GIL
+  release and thread budgets. Preserve Python/Numba oracle/contracts, exception safety
+  and sanitizer/Miri or equivalent evidence. Native code cannot become mandatory before
+  wheels, isolated installs, source builds, licence/provenance and fallback pass all
+  supported platforms/Python ABIs/NumPy versions; normal installs need no compiler.
+  Keep FITS, WCS, schemas, config, adapters, workflows and Dask graphs in Python.
 
-- Use NumPy/SciPy first and Numba for profiled custom loops. A C++, Rust,
-  Cython, or other compiled candidate must remain material after
-  vectorization, copy removal, batching, and Numba, and pass the 10% profile,
-  2x kernel, and 5% end-to-end gates unless it unlocks a failed memory or
-  scalability requirement. Record the Rust (PyO3/maturin, for a new
-  self-contained kernel) or C++ (pybind11, for a mature C/C++ library)
-  selection in an accepted ADR before production use.
-- Keep native boundaries small, typed, coarse-grained, and array-oriented,
-  specifying dtype, shape, strides, alignment, ownership, mutability, errors,
-  and copy permission; never call native code per pixel or source. Release the
-  interpreter during long native work and prevent internal thread pools from
-  oversubscribing a Dask worker.
-- Preserve the Python/Numba serial oracle with identical scientific contract
-  tests, no uncaught Rust panic or C++ exception, and appropriate sanitizer,
-  Miri, or equivalent safety evidence. Native code may not become mandatory
-  until wheels, isolated installs, source builds, licensing/provenance review,
-  and fallback pass for every supported platform, Python ABI, and NumPy
-  version; a normal install must never need a compiler.
-- Keep FITS, WCS, schemas, configuration, adapters, workflow orchestration,
-  and Dask graph construction in Python.
+## Dependencies and documentation
 
-## Python conventions
-
-Treat readability, maintainability, extensibility, and testability as
-acceptance requirements, not cleanup deferred until after performance work.
-The [quality attributes and coding principles](docs/explanation/quality-attributes.md)
-explain the rationale.
-
-- Python 3.12 through 3.14 is supported; do not rely only on the version in
-  `.python-version`. Add type annotations to new or changed functions. Use
-  absolute `hebog` imports in tests and examples.
-- Prefer standard protocols and the data model (`pathlib.Path`, context
-  managers, iterators, comprehensions, dataclasses, structural `Protocol`
-  types), composition, and small functions. Use immutable dataclasses for
-  small public records. Do not reproduce Java-style getters, service classes,
-  factories, or interfaces when a function, dataclass, callable, or protocol
-  suffices.
-- Use descriptive glossary names. Avoid unexplained abbreviations, generic
-  names such as `data` or `manager`, and boolean arguments whose meaning is
-  unclear at the call site.
-- Keep modules cohesive and functions at one useful level of abstraction; do
-  not split code only to satisfy a metric. Make dependencies, side effects,
-  units, coordinate systems, array shapes, mutability, ownership, and failure
-  behaviour explicit, with no hidden global state or environment-dependent
-  scientific behaviour.
-- Remove accidental duplication, but wait for a stable shared concept before
-  extracting an abstraction.
-- Keep public APIs deliberately small, typed, documented, and versioned.
-  Export names from `src/hebog/__init__.py` only when intentionally part of the
-  top-level public API.
-- Follow Google-style docstrings. Python examples are collected as doctests
-  and must remain valid. Keep comments focused on numerical assumptions,
-  units, array shape, halo requirements, and scheduler/resource constraints.
-
-## Tests
-
-- Place unit tests in `tests/unit/`, public behaviour contracts in
-  `tests/contract/`, Dask/FITS boundary tests in `tests/integration/`, PyBDSF
-  comparisons in `tests/equivalence/`, Rapthor-facing scenarios in
-  `tests/acceptance/`, and timing and controlled scalability tests in
-  `tests/benchmark/`.
-- Markers are strict and declared in `pyproject.toml`: `contract`,
-  `integration`, `equivalence`, `acceptance`, `qualification`, `benchmark`,
-  `scalability`, `slow`, and `requires_data`.
-- Pytest treats every warning as an error and every `xfail` as strict. Assert
-  a warning that is the behaviour under test with `pytest.warns`, fix the
-  cause of any other, and filter only a third-party warning that cannot be
-  avoided, on the narrowest test and by category and message where the
-  message is stable, with a comment saying why. Mark a known
-  failure `xfail(strict=True)` with a reason naming the plan entry that owns
-  it.
-- Unit tests must not require a running scheduler, download data, or depend on
-  execution order.
-- Use TDD for public contracts, pure scientific kernels, schemas, matching,
-  error behaviour, and executor semantics: write a test that fails for the
-  intended reason (not an import, fixture, or environment failure), implement
-  the smallest serial behaviour, refactor, then add executor conformance and
-  scientific comparisons. Add a regression test before fixing incorrect
-  behaviour when practical, at the boundary where the defect escaped. If
-  test-first development is genuinely impractical, record why in the plan or
-  handoff and add the behavioural test in the same commit. Do not commit a red
-  state unless the user explicitly requests it.
-- Use analytic truth before generated truth, the serial implementation before
-  executor comparisons, and frozen PyBDSF products only as a compatibility
-  oracle. Test matchers and comparison reports independently.
-- Use property-based tests for numerical invariants and boundary combinations,
-  bounded to physically meaningful ranges.
-- Test one-tile versus many-tile equivalence on small analytic data before
-  using the controlled scalability lane. Put sources on every edge/corner
-  topology and vary partition origin, tile shape, completion order, and retry.
-- Give every dataset a `development`, `regression`, or `qualification` role.
-  Do not tune with held-out qualification results. Store generator version,
-  configuration, and random seeds. Frozen expected products are immutable
-  during tests; regenerate them only through a separate documented command
-  with checksums, tool revisions, and scientific review.
-- Test observable behaviour, error messages, and public-boundary validation.
-  Exercise a small complete user workflow through the public API and emitted
-  products early in each milestone and repair cycle; complement stage-level
-  tests with checks of their composition.
-- Write lightweight acceptance tests in Given/When/Then form. Do not add a
-  Gherkin framework unless domain experts will review or author feature files.
-- Use deterministic fault injection for normal executor tests; reserve actual
-  worker termination, spilling, private data, and wall-time gates for
-  controlled runners.
-- When one contract covers several implementations or entry points, assert
-  every behaviour of that contract through every one of them, and prefer a
-  parametrized suite that makes the behaviour-by-entry-point matrix explicit.
-  An invariant proved only through the entry point a change happens to be
-  written around is unproven for the rest, and that is where defects survive
-  review.
-- CI runs the portable tests on Linux, macOS and Windows, and Windows is the
-  only supported platform never exercised on the development machine. Keep
-  platform-dependent values out of tests: compare paths as POSIX text through
-  `Path.as_posix()` rather than `str(path)`, never write a separator into a
-  literal or a comparison, and do not assert on line endings,
-  temporary-directory layout or filename case.
-- A test that exempts or allow-lists something must also assert that its
-  exemption still matches, so a stale or unmatched entry fails loudly instead
-  of silently making the rule vacuous.
-- Maintain at least 80% branch-aware project coverage and do not reduce
-  project or patch coverage without an explicit, documented, human-approved
-  exception. Run `just coverage` after changing production code, validation
-  rules, or control flow, and inspect line and branch misses in every changed
-  production file and the Codecov patch report when available. New or
-  modified behaviour needs focused normal, boundary, failure, and
-  short-circuit tests. Never weaken assertions, add coverage exclusions, or
-  remove meaningful tests to improve the number.
-
-## Dependencies and lockfiles
-
-- Prefer established standards, the standard library, and mature, actively
-  maintained libraries over custom infrastructure or algorithms. Evaluate
-  reuse before implementing a significant storage format, serializer,
-  scheduler primitive, protocol, or numerical utility.
-- Reuse is not automatic dependency approval. Before adding a library, assess
-  scientific semantics, performance and memory behaviour, scalability,
-  platform and Python support, maintenance health, security, licence,
-  interoperability, worker-image cost, serialization behaviour, and whether
-  existing dependencies or the standard library suffice. Additions need a
-  reason and compatibility bounds.
-- Write custom code only when established options fail a concrete requirement
-  or a small implementation is materially clearer and lower risk. Record the
-  comparison in the plan, `LOG.md`, or an ADR in proportion to its
-  significance, and hide unavoidable custom infrastructure behind a narrow
-  tested boundary.
-- Declare dependencies only in `pyproject.toml` (no `requirements.txt`,
-  Poetry, or other environment manager). Use `uv add <package>`,
-  `uv add --dev <package>`, or `uv add --group docs <package>`. Run `uv lock`
-  after manual metadata changes and `uv lock --upgrade` only when an upgrade
-  is intended. Commit `pyproject.toml` and `uv.lock` changes together.
-
-## Documentation and notebooks
-
-- Keep documentation within the Diátaxis sections: `tutorials/`, `how-to/`,
-  `reference/`, and `explanation/`. Add pages to `mkdocs.yml` navigation; the
-  strict `just docs-build` treats warnings as failures. Keep API paths aligned
-  with importable modules under `src/hebog/`.
-- Keep interactive examples exclusively as Marimo Python files under
-  `notebooks/`, validated with `just marimo-check`. Keep astronomer workflows
-  short and based on the public API; do not assemble internal scientific
-  stages to compensate for a missing public boundary. Use runnable examples to
-  expose integration gaps early, and inspect rendered outputs when changing
-  plots or notebook behaviour; visual inspection is diagnostic, not
-  qualification.
+- Evaluate standards, stdlib and mature maintained libraries before custom formats,
+  serializers, scheduler primitives, protocols or numerical utilities. Assess science,
+  speed/memory/scale, platform/Python support, maintenance, security/licence,
+  interoperability, worker-image cost and serialization. New libraries need rationale/
+  bounds; custom code needs an unmet concrete requirement or a materially clearer,
+  safer small implementation. Record comparisons in commits/ADRs; keep it narrow/tested.
+- Declare dependencies only in `pyproject.toml` using `uv add` (or `--dev`/`--group docs`).
+  Run `uv lock` after manual metadata edits; upgrade only intentionally. Commit metadata/
+  lock together; no alternate environment manager. Align uv installers/hooks with CI
+  and `tests/unit/test_uv_version.py`, including reusable workflows; respect build bounds
+  and avoid unrelated pins/lock upgrades. `hebog.validation` is checkout-only, excluded
+  from wheels and forbidden in production imports.
+- Use Diátaxis docs, `mkdocs.yml` navigation, strict `just docs-build` and importable API
+  paths. Interactive examples are Marimo Python files only in `notebooks/`, checked with
+  `just marimo-check`. Keep astronomer workflows short and public-API based; do not use
+  internal stages to compensate for missing public boundaries. Use runnable examples
+  to reveal gaps; inspect rendered plot/notebook changes, without claiming qualification.
 
 ## Changes, releases, and handoff
 
-- Prefer frequent, coherent experimental `0.x` releases, following the plan's
-  delivery policy and its separate merge, package, scientific-qualification,
-  and Rapthor-deployment checklists.
-- Ownership is fixed. Agents investigate, implement, validate, update
-  documentation, `LOG.md` and the plan, create local commits, and prepare
-  review material and recommendations. Humans push, open and merge pull
-  requests, run and manually inspect notebook comparison refreshes, make
-  scientific dispositions and priority decisions, and configure release
-  infrastructure. Release Please updates versions, the changelog and release
-  notes and creates tags and GitHub releases; neither agents nor humans edit
-  release-managed files by hand unless the task is about the release tooling.
-  Mark each plan task with its owner.
-- Create a local commit for each coherent, validated, reviewable change, with
-  its implementation, tests, and documentation together. Do not combine
-  unrelated milestones or experiments. Never push commits or tags.
-- Use short, imperative, user-informative Conventional Commit subjects, for
-  example `feat: add catalogue comparison reports`; Release Please builds
-  release notes from them. Add a concise developer body covering motivation,
-  design or compatibility consequences, and validation performed. Keep
-  scientific datasets, measurements, and gate evidence in `LOG.md`.
-- Preserve a feature-flagged PyBDSF fallback in Rapthor until the complete
-  acceptance matrix passes.
-- Lead handoffs with the observable outcome, what the checks establish, the
-  remaining uncertainty, checks not run, and the next authorized action or
-  required decision. State the candidate and evidence scope when interpreting
-  scientific results. Test counts, coverage, successful execution, and
-  historical stage passes do not establish current parity or release
-  readiness.
+Agents investigate, implement, validate, update docs/plans, create coherent local
+commits and prepare review material. Humans publish by default; only explicit user
+requests delegate pushes/PR updates. Humans merge, run/inspect notebook refreshes,
+decide science/priorities and configure release infrastructure. Mark plan-task owners.
+Release Please owns versions, changelog, release notes, tags and GitHub releases;
+edit release-managed files only for release-tooling tasks. Prefer small experimental
+`0.x` releases using separate plan merge/package/scientific/deployment checklists.
+Retain Rapthor's feature-flagged PyBDSF fallback until the acceptance matrix passes.
+
+### Branches, worktrees and pull requests
+
+- Check path/branch/HEAD/upstream/diff before editing. Fetch current refs for main/PR
+  comparisons. Reuse the task's clean worktree or isolate it; preserve other worktrees,
+  remembering shared refs/configuration. Use `--no-track` for feature branches/worktrees
+  from remote branches; published upstreams match the feature branch. Verify before
+  recommending a push, especially LazyGit.
+- For stacks, identify own commits/parents already on main; replay only remaining work.
+  Preserve both sides' intent in conflicts; check `git range-diff` and the final base
+  diff for dropped/duplicated changes. Diagnose CI on the current PR head: failed jobs/
+  logs, reusable workflows, narrow reproduction, aggregate required checks and shards.
+  Old failures/passing unit jobs do not establish current CI success.
+- Never infer publishing authority from implementation/review/commit requests. Authorized
+  rebase pushes use an explicit lease against the verified remote tip; stop if it changed,
+  and never use plain `--force`.
+
+### Commit messages
+
+Write concise, self-contained messages for **future developers: our future selves
+and reviewers**, without assuming they read the conversation.
+
+- Use short imperative Conventional Commit subjects naming the change; Release Please
+  uses them. Avoid vague titles/task numbers alone. After a blank line, explain problem,
+  resulting behaviour and rationale; a trigger/before-after example can help. Obvious
+  typos need no body. Include consequential trade-offs, decisions, compatibility and
+  limitations, not file inventories or irrelevant abandoned work.
+- State validation commands/results and material omissions/reasons. Science/performance
+  claims need baseline, config, key result, gate/scope and exact evidence links, not full
+  reports. Historical LOG references remain valid. Link useful issues/PRs/ADRs while
+  summarising context; cite commits by hash/subject and use searchable domain names.
+- Mark breaking changes with `!` or `BREAKING CHANGE:` and explain contracts/caller actions.
+  Keep implementation/tests/docs in one atomic validated commit; do not combine
+  unrelated milestones or experiments.
+- Prepare a copyable squash subject/body for the complete final PR, including earlier
+  related commits, in the handoff/PR description. Humans check the actual message retains
+  problem, outcome, rationale, decisions/breaking changes, validation/omissions and
+  references. Do not assume GitHub preserves branch messages; describe the final change
+  coherently for future developers.
 
 Before handing off a meaningful change:
 
-1. Inspect the full diff and remove unrelated or generated files.
-2. Run the narrowest relevant tests and linter while iterating.
-3. Run `just coverage` for production changes and check project and patch
-   coverage as described under Tests.
-4. Run equivalence tests for scientific changes, serial and Dask execution
-   for scheduler-facing changes, and reproducible before/after benchmarks for
-   performance claims.
-5. Build docs for public API, configuration, plan, or workflow changes.
-6. Update `LOG.md` and the plan as described under Working principles.
-7. Run `just check`, plus `just package-smoke-test` for packaging changes.
-8. Self-review the final diff against `CODE_REVIEW.md`, fix each finding,
-   and rerun the checks the fixes invalidate.
-9. Run `just pre-commit` after all final edits and immediately before staging.
-   It applies the fast lint and formatting fixers until they pass before running
-   the slow hooks; while iterating, run `just pre-commit-fast` alone.
-   Inspect hook-applied changes, including JSON formatting, rerun validation
-   they invalidate, and rerun `just pre-commit` until it passes without
-   modifying anything. Never commit a known-failing hook state.
-10. Create the atomic local commit, then inspect the commit and working tree.
-    Do not push it.
+1. Inspect the full diff; remove unrelated/generated changes. Update required plan/status/
+   evidence summaries; record completed work in commits, not LOG.
+2. Run focused tests/lint while iterating; coverage for production/validation/control flow,
+   equivalence for science, Serial/Thread/Dask for schedulers, before/after benchmarks
+   for performance claims, docs for API/config/plan/workflows, and installed-wheel smoke
+   for packaging. Run `just check` or equivalent final pre-commit checks once.
+3. Self-review against `CODE_REVIEW.md`, fix findings and rerun invalidated checks.
+4. Immediately before staging, run `just pre-commit` after all edits. Inspect fixer changes
+   (including JSON), rerun invalidated checks and repeat until it passes without changes.
+   Never commit failing hooks. Create the atomic local commit; inspect it and the tree.
+5. Push only if explicitly authorized. Handoff outcome, checks/what they establish,
+   uncertainty, omissions/reasons, next action/decision, worktree, branch, commit,
+   publication status and squash draft. Interpret science with candidate/evidence scope;
+   counts, coverage and historical passes do not prove current parity/readiness.

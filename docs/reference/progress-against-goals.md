@@ -3,12 +3,13 @@
 This page answers one question: how far is Hebog from the goal its
 [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
 defines for 1.0.0? It is updated whenever the plan's current state changes,
-and was last updated on **10 October 2026** for the PR CI scheduling policy.
+and was last updated on **10 October 2026** for the PR CI scheduling and
+project-history policies.
 The scientific and performance measurements retain their original dates.
 Every figure is development evidence from the
 maintainer's machine, dated and traceable to an entry in the repository's
-[execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md); none is
-scientific qualification. User-facing limits are in
+[archived execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md);
+none is scientific qualification. User-facing limits are in
 [capability and status](release-status.md).
 
 ## At a glance
@@ -209,6 +210,7 @@ after a release check, a tier gate, a new quick-check baseline or a repaired
 defect. The commands that produce the figures are
 `just quick-science-check`, `just quick-benchmark` and `just traced-peak`,
 described in [Contribute to Hebog](../how-to/index.md); the equivalence lane
-is `just test-equivalence`. Record the run label and date beside each figure,
-and move replaced figures to `LOG.md` rather than keeping two current
-positions.
+is `just test-equivalence`. Record the run label and date beside each figure
+and replace stale figures. Keep measurements in existing versioned evidence
+records or controlled storage, with exact identities linked from the commit.
+Git history preserves previous summaries; `LOG.md` receives no new entries.

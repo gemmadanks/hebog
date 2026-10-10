@@ -21,11 +21,7 @@ ENTRYPOINT ["tini", "-g", "--"]
 FROM base AS dev
 
 RUN apt-get update \
-    && apt-get --no-install-recommends install -y curl \
-    && curl -fsSL https://just.systems/install.sh \
-        -o /tmp/install-just.sh \
-    && bash /tmp/install-just.sh --to /usr/local/bin \
-    && rm /tmp/install-just.sh \
+    && apt-get --no-install-recommends install -y just \
     && rm -rf /var/lib/apt/lists/*
 COPY pyproject.toml uv.lock README.md ./
 RUN uv sync --frozen --no-install-project --all-groups
