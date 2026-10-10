@@ -13,7 +13,8 @@ maintainer's machine. The gates are in the
 [performance and scalability contracts](performance-scalability-contracts.md),
 the current position is on
 [progress against goals](progress-against-goals.md), and the dated narrative
-of each change is in `LOG.md`.
+of those changes is in the archived `LOG.md`. New changes record rationale,
+validation and exact evidence references in Git history.
 
 ## Reproduce it
 

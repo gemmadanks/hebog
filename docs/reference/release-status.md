@@ -55,7 +55,8 @@ interchangeability with PyBDSF or readiness for a survey.
 Development comparisons against PyBDSF and Aegean on simulated and public
 images are summarised on [progress against goals](progress-against-goals.md)
 and recorded in the repository's
-[execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md) and
+[archived execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md)
+and
 [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md).
 They are development evidence, not qualification.
 

@@ -18,7 +18,8 @@ science workflows without importing Rapthor, Prefect, or LSMTool.
 
 [`plans/source-finder-implementation.md`](plans/source-finder-implementation.md)
 is the authoritative delivery plan; `PLAN.md` is the reusable template for
-other work plans; [`LOG.md`](LOG.md) is the chronological execution record.
+other work plans. Git history records completed work; [`LOG.md`](LOG.md) is
+a historical archive and receives no new entries.
 
 The repository contains:
 
@@ -72,18 +73,19 @@ Never hard-code those paths in package code or normal tests.
   risk changes, and record significant architecture or scientific decisions
   there before spreading them through the implementation.
 - The plan holds only current state, remaining tasks, and the rules and gates
-  that govern future work. Keep historical information in `LOG.md`: execution
-  narratives, repair diagnoses, test counts, commit and evidence identities,
-  and dated decision records. When a task completes, record its outcome in
-  `LOG.md` and remove the task from the plan rather than marking it done and
-  annotating it. Restate a past decision in the plan only as the current
-  rule or constraint it imposes. Never grow a task with progress notes.
-- Append to `LOG.md` only material plan execution, scientific and performance
-  evidence, gate outcomes, deviations, cross-commit decisions, and next steps.
-  Link exact evidence identities rather than repeating them. Use Git history
-  for routine implementation detail and release notes for user-visible
-  changes. When status changes, update or replace existing status summaries;
-  do not leave contradictory "current" positions in project records.
+  that govern future work. When a task completes, record its outcome,
+  rationale and validation in the commit and remove it from the plan rather
+  than marking it done and annotating it. Restate a past decision in the plan
+  only as the current rule or constraint it imposes. Never grow a task with
+  progress notes.
+- Keep `LOG.md` as a historical archive; do not append new entries. Use Git
+  history for completed work, repair diagnoses, deviations and decision
+  context; ADRs for significant architecture decisions; existing versioned
+  evidence records or controlled storage for scientific and performance
+  measurements; and release notes for user-visible changes. Commits link
+  exact evidence identities and state gate outcomes and their scope. When
+  status changes, update or replace existing status summaries; do not leave
+  contradictory "current" positions in project records.
 - Favour fast iterations and frequent small releases. Development, checks and
   routine benchmarks run on the maintainer's local machine within the plan's
   iteration budgets. Reserve long campaigns and cluster benchmarks for the
@@ -427,7 +429,7 @@ explain the rationale.
   reason and compatibility bounds.
 - Write custom code only when established options fail a concrete requirement
   or a small implementation is materially clearer and lower risk. Record the
-  comparison in the plan, `LOG.md`, or an ADR in proportion to its
+  comparison in the commit or an ADR in proportion to its
   significance, and hide unavoidable custom infrastructure behind a narrow
   tested boundary.
 - Declare dependencies only in `pyproject.toml` (no `requirements.txt`,
@@ -456,7 +458,7 @@ explain the rationale.
   delivery policy and its separate merge, package, scientific-qualification,
   and Rapthor-deployment checklists.
 - Ownership is fixed. Agents investigate, implement, validate, update
-  documentation, `LOG.md` and the plan, create local commits, and prepare
+  documentation and the plan, create local commits, and prepare
   review material and recommendations. Humans push, open and merge pull
   requests, run and manually inspect notebook comparison refreshes, make
   scientific dispositions and priority decisions, and configure release
@@ -497,16 +499,20 @@ on the intent and outcome of the change.
   omit file inventories and abandoned attempts unless they explain a choice.
 - State relevant validation commands and results, plus material checks not
   run and why. For scientific or performance claims, identify the baseline,
-  configuration, key result and evidence scope; link exact evidence records
-  in `LOG.md` or controlled storage rather than copying full reports.
+  configuration, key result, gate outcome and evidence scope; link exact
+  versioned evidence records or controlled storage rather than copying full
+  reports. Existing `LOG.md` entries remain valid historical references.
 - Reference related issues, PRs, ADRs and evidence identities where useful,
   while summarising the essential context in the message. When citing a
   commit, include its hash and subject. Use stable domain names for searching.
 - Mark breaking changes with `!` or a `BREAKING CHANGE:` footer and explain
   the affected contract and what callers must change.
-- For squash merges, prepare a final message retaining the rationale,
-  validation and references. Do not assume the selected squash-message format
-  retains branch messages; replace fixup chatter with a coherent account.
+- For squash merges, agents prepare a proposed final subject and body in the
+  PR description or handoff. Humans review and edit the actual squash message
+  before merging. Retain the problem, resulting behaviour, rationale,
+  consequential decisions or breaking changes, validation and omissions,
+  and issue, ADR and evidence references. Do not assume GitHub retains branch
+  messages; write a coherent account of the final change for future developers.
 
 Before handing off a meaningful change:
 
@@ -518,7 +524,8 @@ Before handing off a meaningful change:
    for scheduler-facing changes, and reproducible before/after benchmarks for
    performance claims.
 5. Build docs for public API, configuration, plan, or workflow changes.
-6. Update `LOG.md` and the plan as described under Working principles.
+6. Update the plan and current evidence summaries when required by Working
+   principles; record completed work in the commit without adding log entries.
 7. Run `just check`, plus `just package-smoke-test` for packaging changes.
 8. Self-review the final diff against `CODE_REVIEW.md`, fix each finding,
    and rerun the checks the fixes invalidate.

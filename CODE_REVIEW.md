@@ -21,6 +21,13 @@ than a change (a deferred risk, an accepted limitation) still goes in the
 pull request description with where the decision is recorded, so a reviewer
 does not have to rediscover it.
 
+Review the proposed squash message against `AGENTS.md`: it must preserve the
+problem, outcome, rationale, consequential decisions or breaking changes,
+validation and omissions, and relevant issue, ADR and evidence references
+for future developers. The human merging the PR checks the actual message;
+do not rely on branch messages surviving the squash. `LOG.md` is a historical
+archive and new entries are not required.
+
 ## Review priorities
 
 Review in this order:
