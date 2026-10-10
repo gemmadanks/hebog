@@ -10,6 +10,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 # installs the latest uv.
 UV_VERSION_PATTERNS = {
     ".github/workflows/ci.yaml": r'UV_VERSION: "([^"]+)"',
+    ".github/workflows/portable-tests.yaml": r'UV_VERSION: "([^"]+)"',
     ".github/workflows/docs-pages.yaml": r'(?m)^\s+version: "([^"]+)"',
     ".github/workflows/release-please.yaml": r'(?m)^\s+version: "([^"]+)"',
     ".github/workflows/slow-tests.yaml": r'(?m)^\s+version: "([^"]+)"',
@@ -21,6 +22,9 @@ UV_VERSION_PATTERNS = {
 }
 SETUP_UV_VERSION_INPUTS = {
     ".github/workflows/ci.yaml": (
+        r"(?m)^\s+version: \$\{\{ env\.UV_VERSION \}\}$"
+    ),
+    ".github/workflows/portable-tests.yaml": (
         r"(?m)^\s+version: \$\{\{ env\.UV_VERSION \}\}$"
     ),
     ".github/workflows/docs-pages.yaml": r'(?m)^\s+version: "',

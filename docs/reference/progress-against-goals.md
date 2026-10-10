@@ -3,8 +3,8 @@
 This page answers one question: how far is Hebog from the goal its
 [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
 defines for 1.0.0? It is updated whenever the plan's current state changes,
-and was last updated on **9 October 2026**, after v0.19.0 was released and
-the plan's tasks were reordered around the Rapthor integration.
+and was last updated on **10 October 2026** for the PR CI scheduling policy.
+The scientific and performance measurements retain their original dates.
 Every figure is development evidence from the
 maintainer's machine, dated and traceable to an entry in the repository's
 [execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md); none is
@@ -174,9 +174,9 @@ readiness.
 
 | Check | Latest |
 | --- | --- |
-| Portable suite | 3,617 passed and 1 xfailed, 97% branch-aware coverage against an 80% floor (9 October) |
+| Portable suite | 3,692 passed and 1 xfailed, 97.15% branch-aware coverage against an 80% floor (10 October, CI scheduling change); the repository CI helper separately has 100% statement and branch coverage |
 | Equivalence lane | 39 tests, including `find_sources` against both PyBDSF references under both profiles |
-| CI matrix | Linux, macOS and Windows on Python 3.12 to 3.14, plus a lowest-dependency job and a container build, both required on `main` since 9 October |
+| CI matrix | Linux, macOS and Windows on Python 3.12 to 3.14, plus lowest-dependency and container checks required on `main`. The source workflow shards the complete suites, combines coverage, provides early unit feedback and limits execution skips to [documentation-only PRs](../how-to/index.md#pull-request-feedback); hosted latency after this change is not yet measured. |
 | Architecture | Every layer's allowed imports are one tested table; Rapthor, Prefect and LSMTool are absent from the package and Dask is confined to `executors/`, apart from the execution profiler's local cluster in `validation/`, which wheels exclude |
 
 ## Blockers and next steps

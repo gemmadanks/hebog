@@ -1,6 +1,6 @@
 # Hebog implementation plan
 
-Authoritative remaining-work plan. Updated **9 October 2026**.
+Authoritative remaining-work plan. Updated **10 October 2026**.
 Current user-facing capability is in
 [release status](../docs/reference/release-status.md); execution history,
 evidence identities and completed decisions are in [`LOG.md`](../LOG.md).
@@ -144,6 +144,14 @@ level; its budget is not silently extended. PyBDSF outputs and timings are
 computed once for each input, reference revision and host, cached outside Git
 with checksums, and reused. A defect that escapes the quick checks adds its
 case to the fixed case set.
+
+PR CI shards the complete supported-platform suite, reports a separate unit
+check early, and combines branch coverage before applying the project floor.
+Only the narrowly defined documentation-only path may omit execution jobs;
+every `main` push runs full CI. Existing required check names remain gates
+over the applicable jobs. The [contribution guide](../docs/how-to/index.md#pull-request-feedback)
+defines the matrix, timing cache and routing rule. Hosted timings guide CI
+scheduling only; they do not change the scientific or performance gates.
 
 The four levels of done stay distinct:
 

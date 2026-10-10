@@ -24,8 +24,51 @@ env:
   MKL_NUM_THREADS: "1"
 
 jobs:
+  changes:
+    name: Classify changes and freeze test timings
+    runs-on: ubuntu-latest
+    outputs:
+      full: ${{ steps.paths.outputs.full }}
+    steps:
+      - name: Checkout the complete diff, including deleted and renamed paths
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Classify the change
+        id: paths
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: >-
+          python scripts/ci.py changes
+          --event "$EVENT" --base "$BASE_SHA" --output "$GITHUB_OUTPUT"
+
+      - name: Restore the last completed main timing baseline
+        if: steps.paths.outputs.full == 'true'
+        uses: actions/cache/restore@v5
+        with:
+          path: test-results/durations.json
+          key: ci-test-durations-v1-${{ github.sha }}
+          restore-keys: ci-test-durations-v1-
+
+      - name: Initialize an absent timing baseline
+        if: steps.paths.outputs.full == 'true'
+        run: |
+          mkdir -p test-results
+          test -f test-results/durations.json || echo '{}' > test-results/durations.json
+
+      - name: Publish one identical timing snapshot for all shards
+        if: steps.paths.outputs.full == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-duration-baseline
+          path: test-results/durations.json
+          if-no-files-found: error
+
   pre-commit:
     name: Pre-commit hooks (lint/format/spell/type, all files)
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -43,7 +86,7 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --all-groups
+        run: uv sync --frozen --all-groups
 
       # The dedicated jobs below cover pre-push tests, docs, and notebooks.
       - name: Run pre-commit hooks
@@ -52,81 +95,13 @@ jobs:
           extra_args: --all-files --hook-stage pre-commit
 
       - name: Run type checking
+        if: needs.changes.outputs.full == 'true'
         run: uv run pyright
 
-  test:
-    name: Portable tests ${{ matrix.os }} / py${{ matrix.python }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        # The coverage job supplies Ubuntu/Python 3.14. Together these jobs
-        # exercise every supported operating system and Python version.
-        include:
-          - os: ubuntu-latest
-            python: "3.12"
-          - os: ubuntu-latest
-            python: "3.13"
-          - os: macos-14
-            python: "3.14"
-          - os: windows-latest
-            python: "3.14"
-    defaults:
-      run:
-        shell: bash
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Install uv and set python version
-        uses: astral-sh/setup-uv@v7
-        with:
-          version: ${{ env.UV_VERSION }}
-          python-version: ${{ matrix.python }}
-          enable-cache: true
-
-      - name: Install dependencies
-        run: uv sync --all-groups
-
-      - name: Run portable tests
-        run: >-
-          uv run pytest
-          -n 2 --dist worksteal
-          -m "not slow and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data"
-
-  lowest-dependencies:
-    name: Portable tests ubuntu-latest / py3.12 / lowest dependencies
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Install uv and set python version
-        uses: astral-sh/setup-uv@v7
-        with:
-          version: ${{ env.UV_VERSION }}
-          python-version: "3.12"
-          enable-cache: true
-          cache-suffix: lowest-dependencies
-
-      # The runtime and dev requirements at their declared floors, and what
-      # they pull in at its newest compatible version. Raise a floor this
-      # job does not pass on.
-      - name: Install the lowest declared dependency versions
-        run: |
-          uv venv
-          uv pip install --resolution lowest-direct --editable . --group dev
-
-      - name: Run portable tests
-        run: >-
-          uv run --no-sync pytest
-          -n 2 --dist worksteal
-          -m "not slow and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data"
-
-  coverage:
-    # Preserve the existing check name for branch-protection compatibility.
-    name: Portable tests ubuntu-latest / py3.14
+  unit:
+    name: Fast unit tests
+    needs: changes
+    if: needs.changes.outputs.full == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -140,22 +115,186 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --all-groups
+        run: uv sync --frozen --all-groups
 
-      - name: Run complete portable suite with coverage
-        run: >-
-          uv run pytest
-          -n 2 --dist worksteal
-          -m "not slow and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data"
-          --doctest-modules
-          --cov --cov-branch --cov-report=xml
-          src/hebog tests
+      - name: Run unit tests and doctests before integration finishes
+        run: |
+          mkdir -p test-results
+          uv run pytest -n 4 --dist worksteal \
+            -m "not slow and not integration and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data" \
+            --doctest-modules --durations=50 --junitxml=test-results/junit.xml \
+            --store-durations --clean-durations --durations-path=test-results/durations.json \
+            src/hebog tests
+
+      - name: Upload test results even after a test failure
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-unit
+          path: test-results
+          if-no-files-found: error
+
+  portable:
+    name: Portable execution ${{ matrix.id }}
+    needs: changes
+    if: needs.changes.outputs.full == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: linux-312
+            os: ubuntu-latest
+            python: "3.12"
+            workers: 4
+            splits: 2
+            groups: '[1,2]'
+            coverage: false
+          - id: linux-313
+            os: ubuntu-latest
+            python: "3.13"
+            workers: 4
+            splits: 2
+            groups: '[1,2]'
+            coverage: false
+          - id: linux-314
+            os: ubuntu-latest
+            python: "3.14"
+            workers: 4
+            splits: 2
+            groups: '[1,2]'
+            coverage: true
+          - id: macos-314
+            os: macos-14
+            python: "3.14"
+            workers: 2
+            splits: 2
+            groups: '[1,2]'
+            coverage: false
+          - id: windows-314
+            os: windows-latest
+            python: "3.14"
+            workers: 4
+            splits: 4
+            groups: '[1,2,3,4]'
+            coverage: false
+    uses: ./.github/workflows/portable-tests.yaml
+    with:
+      id: ${{ matrix.id }}
+      os: ${{ matrix.os }}
+      python: ${{ matrix.python }}
+      workers: ${{ matrix.workers }}
+      splits: ${{ matrix.splits }}
+      groups: ${{ matrix.groups }}
+      coverage: ${{ matrix.coverage }}
+
+  lowest-shards:
+    name: Lowest dependency execution
+    needs: changes
+    if: needs.changes.outputs.full == 'true'
+    uses: ./.github/workflows/portable-tests.yaml
+    with:
+      id: lowest-312
+      os: ubuntu-latest
+      python: "3.12"
+      workers: 4
+      splits: 2
+      groups: '[1,2]'
+      lowest: true
+
+  test:
+    name: Portable tests ${{ matrix.os }} / py${{ matrix.python }}
+    # Preserve the required check name and reject unexpected skipped checks.
+    needs: [changes, portable, unit]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: "3.12"
+          - os: ubuntu-latest
+            python: "3.13"
+          - os: macos-14
+            python: "3.14"
+          - os: windows-latest
+            python: "3.14"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Verify prerequisite results
+        env:
+          FULL_CI: ${{ needs.changes.outputs.full }}
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: python scripts/ci.py gate --required changes --conditional portable unit
+
+  lowest-dependencies:
+    name: Portable tests ubuntu-latest / py3.12 / lowest dependencies
+    # Preserve the required check name and reject unexpected skipped checks.
+    needs: [changes, lowest-shards]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Verify prerequisite results
+        env:
+          FULL_CI: ${{ needs.changes.outputs.full }}
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: python scripts/ci.py gate --required changes --conditional lowest-shards
+
+  coverage:
+    name: Portable tests ubuntu-latest / py3.14
+    # Preserve the required check name and reject unexpected skipped checks.
+    needs: [changes, portable]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Verify prerequisite results
+        env:
+          FULL_CI: ${{ needs.changes.outputs.full }}
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: python scripts/ci.py gate --required changes --conditional portable
+
+      - name: Install uv and set python version
+        if: needs.changes.outputs.full == 'true'
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: "3.14"
+          enable-cache: true
+
+      - name: Install dependencies
+        if: needs.changes.outputs.full == 'true'
+        run: uv sync --frozen --all-groups
+
+      - name: Download every coverage shard
+        if: needs.changes.outputs.full == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          pattern: coverage-*
+          path: coverage-data
+          merge-multiple: true
+
+      - name: Combine branch coverage and enforce the project floor
+        if: needs.changes.outputs.full == 'true'
+        run: |
+          uv run coverage combine coverage-data
+          uv run coverage report
+          uv run coverage xml
 
       - name: Upload coverage reports to Codecov
+        if: needs.changes.outputs.full == 'true'
         uses: codecov/codecov-action@v7
 
   scientific-validation:
     name: Small scientific and acceptance suites
+    needs: changes
+    if: needs.changes.outputs.full == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -173,15 +312,25 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --all-groups
+        run: uv sync --frozen --all-groups
 
       - name: Run redistributable scientific and acceptance tests
         run: >-
-          uv run pytest -q
+          uv run pytest -q --durations=50 --junitxml=test-results/junit.xml
           -m "(equivalence or acceptance) and not qualification and not scalability and not slow and not requires_data"
+
+      - name: Upload test results even after a test failure
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-scientific-validation
+          path: test-results
+          if-no-files-found: error
 
   quick-benchmark-smoke:
     name: Quick benchmark smoke
+    needs: changes
+    if: needs.changes.outputs.full == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -199,15 +348,25 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --all-groups
+        run: uv sync --frozen --all-groups
 
       # Hosted-runner timings are not evidence; this checks the timing and
       # traced-peak measurement paths end to end on the smoke case.
       - name: Run the measurement smoke tier
-        run: uv run pytest -q -m "benchmark and not scalability" tests/benchmark
+        run: uv run pytest -q --durations=50 --junitxml=test-results/junit.xml -m "benchmark and not scalability" tests/benchmark
+
+      - name: Upload test results even after a test failure
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-quick-benchmark-smoke
+          path: test-results
+          if-no-files-found: error
 
   notebooks:
     name: Validate Marimo notebooks
+    needs: changes
+    if: needs.changes.outputs.full == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -225,7 +384,7 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --all-groups
+        run: uv sync --frozen --all-groups
 
       - name: Validate Marimo notebooks
         run: uv run marimo check --strict notebooks/*.py
@@ -235,6 +394,7 @@ jobs:
 
   docs:
     name: Build docs (mkdocs)
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -252,7 +412,7 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --group docs
+        run: uv sync --frozen --group docs
 
       - name: Build HTML (fail on warnings)
         run: uv run mkdocs build --strict
@@ -263,8 +423,10 @@ jobs:
           name: docs-html
           path: site
 
-  container:
-    name: Build container images
+  container-build:
+    name: Build container images (execution)
+    needs: changes
+    if: needs.changes.outputs.full == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -279,10 +441,26 @@ jobs:
           docker build --target runtime --tag hebog-runtime .
           docker run --rm hebog-runtime
 
-  package:
-    name: Package smoke test
-    # Branch protection uses this check as the release gate.
-    needs: [test, lowest-dependencies, coverage]
+  container:
+    name: Build container images
+    # Preserve the required check name and reject unexpected skipped checks.
+    needs: [changes, container-build]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Verify prerequisite results
+        env:
+          FULL_CI: ${{ needs.changes.outputs.full }}
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: python scripts/ci.py gate --required changes --conditional container-build
+
+  package-build:
+    name: Build and exercise the installed wheel
+    needs: changes
+    if: needs.changes.outputs.full == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -300,7 +478,62 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --all-groups
+        run: uv sync --frozen --all-groups
 
       - name: Build, install, and import package
         run: uv run --no-sync python scripts/package_smoke_test.py
+
+  timings:
+    name: Refresh test timing hints
+    needs: [changes, portable, lowest-shards, unit]
+    if: needs.changes.outputs.full == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Download measured test results
+        uses: actions/download-artifact@v8
+        with:
+          pattern: test-results-*
+          path: test-results
+
+      - name: Merge measured shard durations
+        run: >-
+          python scripts/ci.py durations --input test-results
+          --output test-results/durations.json
+
+      # Only main publishes cache hints reusable by other PRs. Each run's
+      # shards have already consumed their own immutable baseline artifact.
+      - name: Save the main timing baseline
+        if: github.event_name == 'push'
+        uses: actions/cache/save@v5
+        with:
+          path: test-results/durations.json
+          key: ci-test-durations-v1-${{ github.sha }}
+
+      - name: Upload merged timing hints
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-measured-durations
+          path: test-results/durations.json
+          if-no-files-found: error
+
+  package:
+    name: Package smoke test
+    # Preserve the required check name and reject unexpected skipped checks.
+    needs: [changes, pre-commit, docs, test, lowest-dependencies, coverage, scientific-validation, quick-benchmark-smoke, notebooks, container, package-build, timings]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Verify prerequisite results
+        env:
+          FULL_CI: ${{ needs.changes.outputs.full }}
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: >-
+          python scripts/ci.py gate
+          --required changes pre-commit docs test lowest-dependencies coverage container
+          --conditional scientific-validation quick-benchmark-smoke notebooks package-build timings

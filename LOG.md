@@ -32747,3 +32747,55 @@ the per-worker placement finding.
   `just check`; an independent review, whose docstring and naming findings
   were fixed. The profiler's stage entries and the traced-peak attribution
   now name `hebog.stages.composition`.
+
+## 2026-10-10 — Shorten PR CI feedback without reducing the test matrix
+
+- **Decision and scope.** The [44½-minute PR run](https://github.com/gemmadanks/hebog/actions/runs/38031868877)
+  spent 43 minutes in Windows pytest; its last 2% took about 15½ minutes.
+  Dependency installation took seconds. The repair changes CI scheduling,
+  observability and documentation-only routing, not scientific behaviour or
+  validation thresholds. No hosted speedup is claimed before the new workflow
+  runs. Shared scientific fixtures are left intact until individual timings
+  establish which ones justify a change.
+- **Execution.** Windows uses four duration-based shards; the other portable
+  environments and the lowest-dependency lane use two. Linux and Windows
+  use four pytest workers per shard, macOS two, with BLAS threads still one.
+  A separate unit/doctest check reports early, while those tests remain in
+  the full portable matrix. Every pytest job publishes JUnit results and
+  its 50 slowest phases; portable shards record measured durations. Every
+  shard consumes the same immutable timing artifact. Successful portable
+  suites on `main` merge the slowest measurement per test into an ignored
+  scheduling cache; the first uncached run splits by count.
+- **Required checks.** Existing required names remain explicit result gates,
+  including the lowest-dependency, container and package checks. The wheel
+  exercise runs independently; the package gate requires every applicable
+  suite. Missing, cancelled, failed or unexpectedly skipped results fail.
+  Documentation-only PRs retain lint, spelling and the strict docs build;
+  deleted or renamed code, release metadata and all configuration changes
+  require full CI. Every `main` push runs full CI. Partial coverage files
+  are combined before applying the unchanged 80% branch-aware project floor.
+- **Reuse assessment.** `pytest-split` 0.11 is a development-only, pure-Python,
+  MIT-licensed pytest plugin with pytest 9 and Python 3.14 support, no new
+  transitive runtime dependency, and duration-based splitting already tested
+  upstream. It avoids a custom sharding protocol. Runtime scientific imports,
+  serialization, worker images and public products do not change. The uv
+  version invariant now covers the reusable shard workflow too.
+- **Validation.** Routing and gate tests started red for their intended
+  behaviour. Regression cases cover empty diffs, malformed routing, omitted
+  prerequisites, cancelled jobs, deleted/renamed code, invalid timing values,
+  the complete matrix and real plugin selection. The real portable collection
+  was partitioned into two and four shards with every selected test exactly
+  once. A two-shard/xdist coverage exercise fails its fixture's 100% floor
+  on one partial shard and passes at 100% after combination. The CI helper
+  has 100% statement and branch coverage with no exclusions. Actionlint,
+  focused type/lint checks, the strict docs build and the installed-wheel
+  workflows pass. Final portable coverage: 3,692 passed, 1 strict xfail,
+  97.15% branch-aware project coverage, with the CI helper separately at
+  100%. The initial coverage diagnostic shared a filename with the portable
+  run; it was isolated and the full portable suite rerun before accepting
+  these figures. The Codecov patch report and hosted Windows run are not
+  available locally. `just check` passes (2,442 tests, 1 strict xfail).
+  A clean final `just pre-commit` run is required immediately before staging.
+- **Next action (human).** Push and open the PR; compare hosted shard timings,
+  the longest individual tests, queueing and memory before further fixture
+  or concurrency changes. Windows remains required on code-changing PRs.
