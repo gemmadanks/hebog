@@ -133,6 +133,7 @@ class BackgroundRmsTileRequest:
     influence_radius_pixels: float | None
     transition_width_pixels: float | None
     local_noise: PreparedRmsGrid | None = None
+    background: Literal["estimated", "zero"] = "estimated"
 
 
 @dataclass(frozen=True, slots=True)
@@ -1290,6 +1291,7 @@ def prepare_background_rms_tile_request(
             influence_radius_pixels=None,
             transition_width_pixels=None,
             local_noise=local_noise,
+            background=config.background,
         )
     bounds = partition.core_bounds
     radius = adaptive_config.influence_radius_pixels
@@ -1322,6 +1324,7 @@ def prepare_background_rms_tile_request(
             else None
         ),
         local_noise=local_noise,
+        background=config.background,
     )
 
 
@@ -1394,5 +1397,14 @@ def interpolate_background_rms_tile(
             rms=noise.rms,
             fallback_cell_count=result.fallback_cell_count
             + noise.fallback_cell_count,
+        )
+    if request.background == "zero":
+        # PyBDSF's mean_map="zero": the RMS above stands, and nothing is
+        # subtracted where a background was defined.
+        result = replace(
+            result,
+            background=np.where(
+                np.isfinite(result.background), 0.0, result.background
+            ),
         )
     return result

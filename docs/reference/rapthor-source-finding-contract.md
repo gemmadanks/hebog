@@ -75,10 +75,11 @@ LSMTool's; the rest are LSMTool's.
 
 | PyBDSF behaviour | Value | Hebog | Status |
 | --- | --- | --- | --- |
-| `mean_map` | `"zero"`: no background is subtracted | A background is estimated on the same meshes and subtracted | **Gap.** A real difference; near zero on the images Rapthor makes. Task 18 decides whether the Rapthor profile keeps a zero background |
+| `mean_map` | `"zero"`: no background is subtracted | `SourceFinderConfig.background`: `estimated` (default) subtracts Hebog's spatial background; `zero` subtracts nothing and keeps the RMS estimate, as PyBDSF does | Implemented as a setting (task 18). Against injected truth zero is worse; against pinned `master` it gives closer fluxes and lower SDC1 completeness; task 21 decides the Rapthor profile's value from retained-component agreement |
 | `rms_map`, `rms_box` | On, `(150, 50)` | The coarse RMS grid is 150-pixel windows on a 50-pixel step | Implemented |
 | `adaptive_rms_box`, `rms_box_bright`, `adaptive_thresh` | On, `(35, 7)`, `75.0` | Bright-region refinement on 35-pixel windows on a 7-pixel step around candidates at 75σ or more, plus local-noise refinement on the same windows everywhere | Implemented, with two bounded differences: the `continuum` RMS tail (task 49) and a clipped RMS 1.6 to 3.9% low on noise alone (task 68) |
 | `thresh`, `thresh_pix`, `thresh_isl` | `"hard"`; Rapthor's 5/3, 5/4 or the helper's 7.5/5 | `SourceFinderConfig`'s detection and island thresholds, executed exactly | Implemented |
+| `minpix_isl` | Unset, so `max(6, int(beam area in pixels / 3))` | `SourceFinderConfig.minimum_island_pixels`, which Rapthor's adapter sets by PyBDSF's rule from each image's beam | Decided (task 18); the adapter applies it (task 19) |
 | `atrous_do`, `atrous_jmax` | On, 3 scales | Three residual multiscale scales in `continuum`; `compact` omits them | Implemented as Hebog's own multiscale association, not PyBDSF's wavelet decomposition |
 | Catalogue | `write_catalog(format="fits", catalog_type="srl", force_output=True)` | `catalogue.fits`; the eight-column view Rapthor reads ([Rapthor catalogue view](rapthor-catalogue-view.md)) | Implemented; the adapter writes it under Rapthor's name (task 19) |
 | True-sky RMS | `export_image(img_type="rms")` | `rms.fits` | Implemented |

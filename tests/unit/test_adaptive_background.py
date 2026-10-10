@@ -212,6 +212,16 @@ def _source_protection_config() -> BackgroundRmsConfig:
             ),
             "maximum_constant_map_pixels",
         ),
+        (
+            lambda: BackgroundRmsConfig(
+                coarse=_grid((5, 5), (2, 2)),
+                adaptive=None,
+                maximum_spatial_window_fraction=0.25,
+                maximum_constant_map_pixels=10,
+                background="mean",  # type: ignore[arg-type]
+            ),
+            "background must be",
+        ),
     ],
 )
 def test_rejects_invalid_background_configuration(

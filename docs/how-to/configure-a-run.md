@@ -20,6 +20,7 @@ config = hebog.SourceFinderConfig(
 | `island_threshold_sigma` | Islands grow to this lower level; must be below the detection threshold | `thresh_isl` |
 | `minimum_island_pixels` | Smallest island kept | `minpix_isl` |
 | `maximum_island_pixels` | Optional largest island kept | — |
+| `background` | `estimated` (default) subtracts Hebog's spatial background; `zero` subtracts nothing while the RMS is still estimated | `mean_map` (`zero` is `mean_map="zero"`, as LSMTool sets it) |
 
 Raise the detection threshold for fewer false detections; lower it for
 completeness at the cost of reliability. The same values are used throughout
@@ -31,6 +32,9 @@ positive integer, NumPy scalars included. Each is held as the Python `float` or 
 `SourceFinderConfig(5, 3, 10)` and `SourceFinderConfig(5.0, 3.0, 10)` are one
 configuration with one identity in the diagnostics.
 
+Keep the estimated background unless you need PyBDSF's zero mean map: on
+injected truth it recovers sources on a real background offset far better,
+while zero agrees more closely with PyBDSF's fluxes on confused fields.
 All other algorithm settings, such as noise-grid sizes, wavelet scales and
 fitting bounds, are fixed by the selected profile so that results are
 reproducible. Every configuration is labelled `development-unqualified` or

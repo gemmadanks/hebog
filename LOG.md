@@ -33160,3 +33160,36 @@ and the plan:
   use 7.
 - **Next.** The maintainer decides the zero mean map, the minimum island
   size and whether PyBDSF's second grouping rule is reconsidered now.
+
+## 2026-10-10 — Task 18: the Rapthor profile decided
+
+- **Decisions (maintainer).** The background: offer both Hebog's estimate
+  and PyBDSF's zero mean map, and choose the Rapthor profile's value at task
+  21 from retained-component agreement and its safety strata (declined:
+  keeping only the estimate; adopting zero now). The minimum island size:
+  PyBDSF's rule, `max(6, int(beam area in pixels / 3))`, applied by the
+  Rapthor adapter from each image's beam, with `threshpix` and `threshisl`
+  as the detection and island thresholds (declined: a fixed 7 pixels).
+  PyBDSF's second grouping rule: deferred until task 21 shows whether it
+  changes what Rapthor keeps (declined: implementing it now).
+- **Implemented.** `SourceFinderConfig.background`, `estimated` by default
+  or `zero`, carried to the background stage as
+  `BackgroundRmsConfig.background`; with `zero`, each tile's interpolated
+  background is zero wherever it was defined, after the RMS is complete, so
+  the RMS is unchanged, as in PyBDSF. The new field enters every run's
+  configuration hash, so the diagnostics of a default run change; its
+  catalogue, RMS and mask do not.
+- **Tests.** Failing first: the configuration's default and validation,
+  and, under Serial, Thread and Dask, a source on a 0.5 Jy/beam offset
+  recovers its injected peak within 3% with the estimate and rises by at
+  least the offset with zero, whose RMS map equals the estimate's. The rise
+  is about 1.0, twice the offset, because the joint fit holds its own
+  background at zero.
+- **Evidence.** Quick check `task18-setting` and `task18-setting-compact`
+  against `task18` and `task18-compact`: no regression, catalogue, RMS and
+  mask byte-identical on all 18 cases under both profiles. Task 18 closes;
+  task 19 carries the threshold mapping and task 21 the background choice.
+- **Checks.** `just coverage`, 3,618 passed and 1 xfailed at 97%, after
+  one test that spells out the configuration dictionary gained the new
+  key; the background stage keeps its seven defensive misses and the new
+  branch is covered; `just check`; strict pyright and ruff.

@@ -19,7 +19,7 @@ version when results must be repeatable.
 | Image size | At most 15,402 pixels on each side, and at most 1,000,000 pixels in all when the shorter side is under 600. Other images fail before analysis. |
 | Pixel values | Any `BITPIX`. Stored integers are scaled by `BSCALE` and `BZERO`. |
 | Invalid pixels | NaN pixels, stored integers equal to `BLANK`, and every pixel of a 3×3 square of one repeated value, such as zero padding, are excluded from estimation, detection and measurement. |
-| Profiles | `continuum` (default), or `compact`, which omits extended-source association and reports `extended-emission-incomplete`. |
+| Profiles | `continuum` (default), or `compact`, which omits extended-source association and reports `extended-emission-incomplete`. The background is estimated (default) or, as PyBDSF's zero mean map, zero. |
 | Thresholds | Caller-set detection and island thresholds (island below detection), minimum and optional maximum island size. |
 | Execution | `SerialExecutor`, `ThreadExecutor`, or `DaskExecutor` with a client you own. Dask workers need the image and the output directory's parent on shared storage. All must give the same products. On Windows, threads of one process take turns at FFT convolutions, because SciPy's Windows wheels share an unlocked FFT plan cache. |
 | Output | A new directory with `catalogue.fits`, `rms.fits`, `source-mask.fits` and `diagnostics.json`, and `flat-noise-rms.fits` when the request names the sector's flat-noise image. Existing directories are never overwritten. |

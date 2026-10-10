@@ -3516,6 +3516,7 @@ def test_numpy_configuration_values_publish_under_the_plain_identity(
                 "minimum_island_pixels": 7,
                 "maximum_island_pixels": None,
                 "profile": "continuum",
+                "background": "estimated",
             }
         )
     )
