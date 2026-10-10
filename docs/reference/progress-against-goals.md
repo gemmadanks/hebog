@@ -188,13 +188,15 @@ memory and disk, and SKA-Low coverage without public SKA-Low images.
 The next actions, as the plan orders them on 10 October:
 
 1. Agent: the Rapthor profile and the flat-noise branch (task 18), the
-   in-process backend (task 19) and executors that fit Rapthor's Dask
-   workers (task 72), then the native Prefect task in Rapthor and the
-   profile agreement (tasks 20 and 21), and a first matched
-   `filter_skymodel` measurement on Rapthor's 3,000² demonstration sector.
-2. Agent: task 71's module splits and tasks 53 to 56, then the 22,500² tier
-   (task 11): Rapthor usually images one sector, 17,000 to 20,000 pixels a
-   side by default, so the gate is measured at that size.
+   in-process backend (task 19), the native Prefect task in Rapthor on a
+   thread executor and the profile agreement (tasks 20 and 21), and a first
+   matched `filter_skymodel` measurement on Rapthor's 3,000² demonstration
+   sector.
+2. Agent: one sector across the cluster. Measure how a sector scales with
+   Dask workers and where its serial share lies (task 73), cut that share
+   (task 74, with tasks 71 and 53 to 56), then fit Hebog's tasks to
+   Rapthor's workers (task 72); beside it, the 22,500² tier (task 11), since
+   Rapthor's usual sector is 17,000 to 20,000 pixels a side.
 3. Agent: the deployment envelope and the gate (tasks 22 and 23), on one
    node; one sector across several nodes is measured by the cluster
    benchmark. Scientific improvements (tasks 15 and 68) wait until this

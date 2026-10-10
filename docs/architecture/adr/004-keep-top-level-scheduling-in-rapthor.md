@@ -80,15 +80,20 @@ follows the topology:
 
 - a sector with a node to itself runs on a thread executor sized to the
   worker's cores, with no scheduler overhead; and
-- a sector sharing fewer nodes than it could use runs on Rapthor's client,
-  with Hebog's analysis seceding from its worker slot while it waits on its
-  tile tasks, and each tile task running threads sized to the cores its
-  worker declares, which Hebog annotates as a Dask resource.
+- a sector that can use more than a node runs on Rapthor's client: Hebog's
+  tile tasks stay single-threaded and numerous, with tile cores sized from
+  the cores the executor declares, so Dask schedules every core; Hebog's
+  tasks carry a resource annotation; and the analysis secedes from its
+  worker slot while it waits on them.
 
-Rapthor runs one Dask worker a node with `--nthreads 1` today and will run
-several. The thread counts therefore come from what a worker declares, not
-from the machine, and memory joins cores as a declared resource before
-several workers share a node (plan tasks 72 and 17).
+Rapthor's nodes reach 192 cores, and Rapthor runs one Dask worker a node
+with `--nthreads 1` today and will run several. Several worker processes of
+a few threads each, not one of 192 threads, keep Python's global lock from
+throttling a node. No thread pool is nested inside a Dask task, and Hebog's
+arrays stay NumPy behind the executor rather than Dask arrays. One sector's
+speed-up is bounded by its serial share, which the plan measures and cuts
+before tuning the topology (tasks 73, 74 and 72); memory joins cores as a
+declared resource before several workers share a node (task 17).
 
 ## Consequences
 

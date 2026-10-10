@@ -200,15 +200,18 @@ performance focus, and several sectors stay supported:
 | Situation | Executor | Why |
 | --- | --- | --- |
 | A sector with a node to itself | `ThreadExecutor`, sized to the worker's cores | No scheduler overhead; like for like with PyBDSF's `ncores` |
-| One sector, or fewer sectors than nodes | `DaskExecutor` on Rapthor's client | The filter step would otherwise leave the other nodes idle |
+| One sector, or fewer sectors than nodes | `DaskExecutor` on Rapthor's client | The filter step would otherwise leave the other nodes idle, for as long as one sector keeps scaling (plan tasks 73 and 74 measure and cut its serial share) |
 
-Rapthor's workers run one task each with `--nthreads 1`, one a node today.
-On that cluster a Hebog analysis must step out of its worker slot while it
-waits on its tile tasks, or concurrent sectors deadlock, and each tile task
-must run threads sized to its worker's declared cores, or a node does one
-core's work. The plan's task 72 adds both, with a Dask resource annotation
-that also serves several workers a node later. The registry route, a
-`hebog` entry in LSMTool's `KNOWN_SOURCE_FINDERS`, is deferred.
+Rapthor's nodes reach 192 cores, and its workers run one task each with
+`--nthreads 1`, one a node today. On Rapthor's client, Hebog's tile tasks
+stay single-threaded and numerous, with tile cores sized from the cores the
+executor declares, so Dask schedules every core; several worker processes
+of a few threads each a node, rather than one process of 192 threads, keep
+Python's global lock from throttling a node. Hebog's analysis steps out of
+its worker slot while it waits on its tile tasks, so concurrent sectors
+cannot deadlock, and its tasks carry a Dask resource annotation (plan task
+72). The registry route, a `hebog` entry in LSMTool's
+`KNOWN_SOURCE_FINDERS`, is deferred.
 
 Reference comparisons use the explicit `5.0/3.0` profile with clean Rapthor
 and LSMTool checkouts at their recorded commits. Released and pinned-`master`

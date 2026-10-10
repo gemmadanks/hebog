@@ -32847,6 +32847,38 @@ the per-worker placement finding.
   with PyBDSF's `ncores`; one sector across several nodes is a separate
   claim the cluster benchmark measures.
 
+## 2026-10-10 — Maintainer decision: one sector across the cluster, Dask-native
+
+- **Context.** Rapthor's nodes reach 192 cores and its clusters tens of
+  nodes, and the maintainer wants one sector to use them where that speeds
+  the work, with a simple design that makes the best use of Dask.
+- **Decision.** Hebog's tile tasks stay single-threaded and numerous, and
+  Dask schedules every core: tile cores are sized from the cores the
+  executor declares, Hebog's tasks carry a resource annotation, and the
+  analysis secedes while it waits. Several worker processes of a few
+  threads a node, not one of 192 threads, are recommended to Rapthor, so
+  Python's global lock does not throttle a node. This replaces the
+  threads-inside-each-Dask-task design of task 72 in the entry above.
+- **Serial share first.** Four local Dask workers take about 0.6 of the
+  serial time on the 15,402² mosaic; read as Amdahl's law with nothing else
+  limiting, that is a serial share near half the run, which would cap one
+  sector's speed-up near two. New task 73 measures the curve and the serial
+  share by stage, and new task 74 cuts it (driver reductions onto workers,
+  background refinement's roughly 69,000 small tasks batched, with tasks 54
+  to 56), before task 72 tunes the topology. The target is a strong-scaling
+  curve for one sector, not the use of every core.
+- **Dask arrays: no.** ADR-004 and ADR-005 rejected a Dask-array scientific
+  API. At this scale it would still not help: the limit is the serial share
+  and the object-level reconciliation of islands, components and sources
+  across tiles, which Dask arrays do not provide; it would tie every kernel
+  to one scheduler, break the Serial and Thread references and the
+  byte-identical tiling guarantee, and grow the graph with every array
+  operation.
+- **Records.** The plan gains the section "One sector across the cluster"
+  (tasks 73, 74 and 72) and an amended sequence; task 20 starts on a
+  thread executor; ADR-004's amendment, the contract page and the progress
+  page describe the Dask-native design.
+
 ## 2026-10-10 — Shorten PR CI feedback without reducing the test matrix
 
 - **Decision and scope.** The [44½-minute PR run](https://github.com/gemmadanks/hebog/actions/runs/38031868877)
