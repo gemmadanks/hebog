@@ -2,6 +2,56 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.20.0](https://github.com/gemmadanks/hebog/compare/v0.19.0...v0.20.0) (2026-10-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* SourceFinderRequest is schema 2 and gains flat_noise_image_path; SourceFinderResult is schema 3 and gains flat_noise_rms; PublicSourceFindingProvenance is schema 4 and gains flat_noise_input_sha256; the diagnostics product is schema 12. Readers refuse the earlier versions.
+* hebog.adapters.RapthorCompatibilityConfig no longer has rms_box_pixels, bright_source_rms_box_pixels, adaptive_rms_threshold_sigma, estimate_background, use_spatial_rms, use_adaptive_rms, use_multiscale or multiscale_levels.
+* hebog.config.CompactGaussianFitConfig no longer has background_model, maximum_background_offset_sigma, association_aperture_radius_sigma or association_aperture_minimum_fixed_beam_model_fraction. hebog.config.CompactDeblendConfig no longer has target_batch_pixels or maximum_batch_pixels, so its positional constructor takes six arguments. hebog.data_models.fitting.AssociationAperturePhotometry and ValidCompactGaussianFit.association_aperture are removed, and GaussianFitDiagnostics no longer admits centroid-constrained-elliptical. hebog.data_models.astrometry.CelestialCompactGaussianFit.flux is removed. hebog.data_models.CrossScaleAssociation no longer has compact_source_ids or relationship and is schema version 3.
+
+### 🚀 Features
+
+* offer PyBDSF's zero mean map as a background setting ([e77df4b](https://github.com/gemmadanks/hebog/commit/e77df4b7d3ef9cb00c91498b0a83098216602db7))
+* rapthor profile flat noise ([#151](https://github.com/gemmadanks/hebog/issues/151)) ([e77df4b](https://github.com/gemmadanks/hebog/commit/e77df4b7d3ef9cb00c91498b0a83098216602db7))
+
+
+### 🐛 Bug Fixes
+
+* read the reference frequency in PyBDSF's order ([a8269b0](https://github.com/gemmadanks/hebog/commit/a8269b067e9872e1f281d65008ffa1bb35d7d7e4))
+
+
+### 🧹 Refactoring
+
+* move the stage sequence into stages/composition.py ([#147](https://github.com/gemmadanks/hebog/issues/147)) ([9c74f15](https://github.com/gemmadanks/hebog/commit/9c74f15b2a1de5bef90e6eabf3365777312ff837))
+* remove the last leftovers of the unused compact lane ([#145](https://github.com/gemmadanks/hebog/issues/145)) ([a05f124](https://github.com/gemmadanks/hebog/commit/a05f1245a173811d9088cda9d3e8ae802d352e77))
+
+
+### 📚 Documentation
+
+* pin Rapthor and LSMTool and refresh the Rapthor contract ([a8269b0](https://github.com/gemmadanks/hebog/commit/a8269b067e9872e1f281d65008ffa1bb35d7d7e4))
+* plan one sector across the cluster with a Dask-native design ([a8269b0](https://github.com/gemmadanks/hebog/commit/a8269b067e9872e1f281d65008ffa1bb35d7d7e4))
+* preserve project history in commit messages ([#152](https://github.com/gemmadanks/hebog/issues/152)) ([0ff1fe5](https://github.com/gemmadanks/hebog/commit/0ff1fe52dd1f5e6b9d37a5a9375a71a4862abe11))
+* put the Rapthor integration ahead of the size ladder in the plan ([#138](https://github.com/gemmadanks/hebog/issues/138)) ([a27a167](https://github.com/gemmadanks/hebog/commit/a27a167a5ef479fc649b0f7643050a0915026199))
+* rapthor contract pins ([#149](https://github.com/gemmadanks/hebog/issues/149)) ([a8269b0](https://github.com/gemmadanks/hebog/commit/a8269b067e9872e1f281d65008ffa1bb35d7d7e4))
+* record the zero-mean-map measurement for the Rapthor profile ([e77df4b](https://github.com/gemmadanks/hebog/commit/e77df4b7d3ef9cb00c91498b0a83098216602db7))
+* scale Hebog independently of its integrations (ADR-010) ([a8269b0](https://github.com/gemmadanks/hebog/commit/a8269b067e9872e1f281d65008ffa1bb35d7d7e4))
+* update site url ([#139](https://github.com/gemmadanks/hebog/issues/139)) ([972940a](https://github.com/gemmadanks/hebog/commit/972940a5abe7c865bbc50335df7e95940c010916))
+
+
+### 🧩 CI
+
+* group uv Dependabot updates into one pull request ([#142](https://github.com/gemmadanks/hebog/issues/142)) ([432a2e1](https://github.com/gemmadanks/hebog/commit/432a2e1314351bdaed1bac723cad8f76e4e4794a))
+* shard portable tests to shorten PR feedback ([#150](https://github.com/gemmadanks/hebog/issues/150)) ([4b7ebf7](https://github.com/gemmadanks/hebog/commit/4b7ebf7062be180314a0329ce5950b00b169ec6e))
+* upgrade the pinned uv from 0.9.16 to 0.13.0 ([#148](https://github.com/gemmadanks/hebog/issues/148)) ([78ce62c](https://github.com/gemmadanks/hebog/commit/78ce62c26996238da7245ca30fc4de24c0c82243))
+
+
+### 📦 Build
+
+* cap the uv build backend below 0.13 ([#146](https://github.com/gemmadanks/hebog/issues/146)) ([ffb762c](https://github.com/gemmadanks/hebog/commit/ffb762cdd3a8a9bb4343872ae31501ec9a67c68d))
+* **deps:** update hypothesis, matplotlib, pydantic, pyright and ruff ([#141](https://github.com/gemmadanks/hebog/issues/141)) ([bbce9a6](https://github.com/gemmadanks/hebog/commit/bbce9a69b5dbc812a224826a9758550a71fe14fe))
+
 ## [0.19.0](https://github.com/gemmadanks/hebog/compare/v0.18.0...v0.19.0) (2026-10-09)
 
 
