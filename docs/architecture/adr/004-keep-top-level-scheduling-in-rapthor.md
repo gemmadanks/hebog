@@ -80,14 +80,20 @@ use on a local machine with smaller images, through the Serial or Thread
 executor. Several sectors in flight stay supported. In Rapthor the executor
 follows Rapthor's workers:
 
-- when they expose the cores Hebog may use, as several worker processes a
-  node or a sector across nodes, Hebog runs on Rapthor's client: its tile
+- when they give each node several task slots, as compute workers beside a
+  command worker on each node (recommended) or several workers on one node,
+  Hebog runs on Rapthor's client: its tile
   tasks stay single-threaded and numerous, with tile cores sized from the
   cores the executor declares, so Dask schedules every core; its tasks
-  carry a resource annotation; and the analysis secedes from its worker
+  carry a resource annotation that keeps them on the compute workers; and
+  the analysis, where it shares workers with its tiles, secedes from its
   slot while it waits on them;
 - otherwise, as with today's single single-threaded worker a node, Hebog
-  runs a thread executor inside the worker's task.
+  runs a thread executor inside the worker's task, and one sector uses one
+  node.
+
+[How Hebog runs on Rapthor's Dask layouts](../rapthor-execution-layouts.md)
+draws each layout.
 
 Rapthor's nodes reach 192 cores, and Rapthor runs one Dask worker a node
 with `--nthreads 1` today and will run several. Several worker processes of

@@ -200,8 +200,8 @@ stay supported. The executor follows Rapthor's workers:
 
 | Rapthor's workers | Executor | Why |
 | --- | --- | --- |
-| Expose the cores Hebog may use: several worker processes a node, or a sector across nodes | `DaskExecutor` on Rapthor's client | Dask schedules every core, on one node or many, for as long as one sector keeps scaling (plan tasks 73 and 74 measure and cut its serial share) |
-| One single-threaded worker a node, today's layout | `ThreadExecutor` inside the worker's task, sized to the node's cores | Through Dask that worker would run one Hebog task at a time |
+| Give each node several task slots: compute workers beside a command worker on each node (recommended), or several workers on one node | `DaskExecutor` on Rapthor's client | Dask schedules every compute core, on one node or many, for as long as one sector keeps scaling (plan tasks 73 and 74 measure and cut its serial share) |
+| One single-threaded worker a node, today's layout | `ThreadExecutor` inside the worker's task, sized to the node's cores | Through Dask that worker would run one Hebog task at a time; one sector uses one node |
 
 Rapthor's nodes reach 192 cores, and its workers run one task each with
 `--nthreads 1`, one a node today. On Rapthor's client, Hebog's tile tasks
@@ -211,8 +211,10 @@ of a few threads each a node, rather than one process of 192 threads, keep
 Python's global lock from throttling a node. Hebog's analysis steps out of
 its worker slot while it waits on its tile tasks, so concurrent sectors
 cannot deadlock, and its tasks carry a Dask resource annotation (plan task
-72). The registry route, a `hebog` entry in LSMTool's
-`KNOWN_SOURCE_FINDERS`, is deferred.
+72). [How Hebog runs on Rapthor's Dask layouts](../architecture/rapthor-execution-layouts.md)
+draws each layout, including the recommended command and compute workers.
+The registry route, a `hebog` entry in LSMTool's `KNOWN_SOURCE_FINDERS`,
+is deferred.
 
 Reference comparisons use the explicit `5.0/3.0` profile with clean Rapthor
 and LSMTool checkouts at their recorded commits. Released and pinned-`master`

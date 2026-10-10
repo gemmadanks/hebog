@@ -32897,6 +32897,38 @@ the per-worker placement finding.
   for use case 2; task 72 keeps a small image one tile with no scheduler
   overhead for use case 3.
 
+## 2026-10-10 — Rapthor's Dask layouts drawn; the executor rule corrected
+
+- **Page.** `docs/architecture/rapthor-execution-layouts.md` draws one
+  sector on four layouts: one node with one worker, one node with several
+  workers, several nodes with one worker each, and the recommended several
+  nodes with a command worker and compute workers each. The maintainer can
+  change how Rapthor sets up its cluster; today's setup is the initial one.
+- **Constraint traced.** Rapthor's local cluster fixes
+  `threads_per_worker=1`, because Prefect cannot run two tasks safely in one
+  worker process, and gives every worker the node's whole
+  `mem_per_node_gb` as its memory limit.
+- **Correction.** The rule of the entry above said Rapthor's client serves
+  "a sector across nodes"; with one single-threaded worker a node, Dask
+  would give Hebog one task a node at a time, so in that layout one sector
+  runs a thread executor on one node. The plan, ADR-004's amendment and the
+  contract page now say so.
+- **Recommended layout.** On each node, a single-threaded command worker
+  for Rapthor's Prefect tasks and whole-node commands, and compute workers
+  of a few threads each for Hebog's tile tasks, kept apart by `command` and
+  `hebog` Dask resources. A local check with `distributed` 2026.7.1 showed
+  a task submitted under `dask.annotate(resources={"hebog": 1})` running on
+  a worker that holds the resource and waiting on one that does not;
+  `prefect-dask` 0.3.7's client passes `resources` through on submission.
+  The filter task waits on its command worker, so it cannot starve its own
+  tiles, and the command slot keeps whole-node commands one at a time.
+- **Workers during a flow.** Dask adds and removes workers at any time
+  (`LocalCluster.scale` and `adapt`, a later `dask worker`,
+  `Client.retire_workers`), but a worker's threads and resources are fixed
+  at start, and Hebog sizes its tiles from the capacity present when an
+  analysis starts. Starting the compute workers with the cluster is
+  recommended. Tasks 72 and 20 now carry the layout.
+
 ## 2026-10-10 — Shorten PR CI feedback without reducing the test matrix
 
 - **Decision and scope.** The [44½-minute PR run](https://github.com/gemmadanks/hebog/actions/runs/38031868877)
