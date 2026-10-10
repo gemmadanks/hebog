@@ -23,6 +23,8 @@ _PRODUCT_MEDIA_TYPES = {
     "diagnostics": "application/json",
 }
 
+_REQUEST_SCHEMA_VERSION = 2
+
 ProductRole = Literal[
     "source-catalogue",
     "rms",
@@ -246,7 +248,8 @@ class PublicSourceFindingProvenance(BaseModel):
         "phase-5-evidence-bound-public-catalogue-v22"
     ]
     supplied_image_metadata: SuppliedImageMetadata | None = None
-    schema_version: Literal[3] = 3
+    flat_noise_input_sha256: str | None = None
+    schema_version: Literal[4] = 4
 
     @model_validator(mode="after")
     def _validate_provenance(self) -> Self:
@@ -256,6 +259,11 @@ class PublicSourceFindingProvenance(BaseModel):
             self.configuration_sha256,
             self.scientific_profile_sha256,
             self.scientific_composition_sha256,
+            *(
+                ()
+                if self.flat_noise_input_sha256 is None
+                else (self.flat_noise_input_sha256,)
+            ),
         )
         if any(_SHA256.fullmatch(identity) is None for identity in identities):
             raise ValueError("public provenance identities must be SHA-256")
@@ -324,7 +332,7 @@ class PublicSourceFindingDiagnostics(BaseModel):
     measurement_dispositions: tuple[MeasurementDisposition, ...] = ()
     rms_scientific_status: Literal["valid", "unavailable"]
     provenance: PublicSourceFindingProvenance
-    schema_version: Literal[11] = 11
+    schema_version: Literal[12] = 12
 
     @model_validator(mode="after")
     def _validate_diagnostics(self) -> Self:
@@ -412,17 +420,24 @@ DiagnosticsProduct = (
 
 @dataclass(frozen=True, slots=True)
 class SourceFinderRequest:
-    """Inputs for one independent source-finding analysis."""
+    """Inputs for one independent source-finding analysis.
+
+    ``flat_noise_image_path`` names the primary-beam-uncorrected image of the
+    same sector, on the same pixel grid; when it is given, the run also
+    estimates that image's background and RMS and publishes its RMS map.
+    ``supplied_metadata`` applies to both images.
+    """
 
     image_path: Path
     output_directory: Path
     run_id: str
-    schema_version: Literal[1] = 1
+    schema_version: Literal[2] = 2
     supplied_metadata: SuppliedImageMetadata | None = None
+    flat_noise_image_path: Path | None = None
 
     def __post_init__(self) -> None:
         """Reject unsupported schema versions and empty run identifiers."""
-        if self.schema_version != 1:
+        if self.schema_version != _REQUEST_SCHEMA_VERSION:
             raise ValueError(
                 "unsupported source-finder request schema version"
             )
@@ -483,7 +498,8 @@ class SourceFinderResult(BaseModel):
     gaussian_component_count: int
     island_count: int
     wall_seconds: float
-    schema_version: Literal[2] = 2
+    flat_noise_rms: MaterializedProduct | None = None
+    schema_version: Literal[3] = 3
 
     @model_validator(mode="after")
     def _validate_result(self) -> Self:
@@ -511,6 +527,11 @@ class SourceFinderResult(BaseModel):
             ("rms", self.rms, "rms"),
             ("mask", self.mask, "source-filtering-mask"),
             ("diagnostics", self.diagnostics, "diagnostics"),
+            *(
+                ()
+                if self.flat_noise_rms is None
+                else (("flat_noise_rms", self.flat_noise_rms, "rms"),)
+            ),
         )
         for name, product, expected_role in expected_roles:
             if product.product_role != expected_role:

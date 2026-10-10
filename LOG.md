@@ -33080,3 +33080,116 @@ and the plan:
   invariant. `just check` passes with 2,442 tests and one strict xfail;
   workflow syntax and expressions pass actionlint. The hosted matrix must
   rerun on the repaired commit before the PR can be considered passing.
+
+## 2026-10-10 — Task 18, first half: the flat-noise RMS branch
+
+- **Outcome.** `SourceFinderRequest` schema 2 accepts
+  `flat_noise_image_path`, the primary-beam-uncorrected image of the same
+  sector. The run analyses the true-sky image as before, then estimates the
+  flat-noise image's background and RMS with the same configuration and
+  executor (`composition.estimate_background_rms`), and publishes its RMS
+  as `flat-noise-rms.fits` in the same atomically published bundle. That is
+  all PyBDSF's second, `stop_at="isl"` pass contributes to Rapthor, so
+  nothing else is measured on the flat-noise image. The image must share
+  the true-sky shape and celestial WCS, or the run stops before writing;
+  `supplied_metadata` applies to both.
+- **Schemas.** Request 2, `SourceFinderResult` 3 (`flat_noise_rms`, an
+  `rms`-role product or `null`), provenance 4 (`flat_noise_input_sha256`)
+  and public diagnostics 12. No new product role: the flat-noise RMS is an
+  RMS image, written and read by the existing RMS code.
+- **Sequential, not concurrent.** The plan asked for the two branches to
+  submit tasks concurrently. A driver thread would do that, but
+  `test_library_never_creates_its_own_workers` forbids thread pools outside
+  the thread executor, and rightly: under the serial executor the thread
+  would compute in parallel, which the caller did not ask for, and the
+  serial reference would no longer be single-threaded. The branches run one
+  after the other; concurrency moves to task 72, through the executor.
+  Background and RMS are about half of a large run, so this costs Rapthor
+  until then.
+- **Plan correction.** Task 18's row said the flat-noise branch would run
+  through `run_stages_from_background`; it needs only the background stage,
+  as PyBDSF's flat-noise pass publishes only its RMS. Task 18 is now the
+  Rapthor profile decision: the zero mean map, the threshold mapping, and
+  PyBDSF's second grouping rule, each measured before the maintainer
+  decides.
+- **Tests.** Eight integration tests failed first on the missing request
+  field: under Serial, Thread and Dask the flat-noise RMS equals a
+  standalone run on the flat-noise image and the true-sky catalogue, RMS
+  and mask equal a run without it; no flat-noise RMS without the field; the
+  provenance binds both inputs; a flat-noise image of another shape or grid
+  is refused before any product; and a failed flat-noise estimate fails the
+  run with nothing published or staged. Unit tests cover a misdescribed or
+  unavailable flat-noise product and a malformed checksum.
+- **Evidence.** Quick check `task18` and `task18-compact` against `task16`
+  and `task16-compact`: no regression, catalogue, RMS and mask
+  byte-identical on all 18 cases under both profiles (54 of 54 each).
+- **Checks.** The integration suite, 1,261 passed; the equivalence and
+  acceptance lanes; `just coverage`, 3,610 passed and 1 xfailed at 97%,
+  `public_api.py` and `data_models/source_finding.py` at 99% with no miss
+  in the changed code; strict pyright and ruff.
+
+## 2026-10-10 — Task 18: the zero mean map measured
+
+- **Question.** LSMTool runs PyBDSF with `mean_map="zero"`: PyBDSF still
+  estimates its RMS map on the 150/50 and 35/7 windows, then sets the
+  background to zero everywhere (`bdsf/rmsimage.py`). Hebog estimates and
+  subtracts a background.
+- **Prototype, not committed.** A scratch runner wrapped
+  `interpolate_background_rms_tile` to return a zero background wherever
+  Hebog's is defined, leaving Hebog's RMS unchanged, so the first-pass mask
+  and every later stage saw zero; it ran the quick check as
+  `task18-zero-background` and `task18-zero-background-compact` against
+  `task18` and `task18-compact`.
+- **Against injected truth, zero is worse.** On `negative-background`
+  support recall falls from 0.89 to 0.58 and flux errors rise from about 5%
+  to 30 to 41% at the median, under both profiles; on
+  `wide-extended-source` reliability falls from 1.0 to 0.63 (`continuum`)
+  and positions worsen (`compact`). Elsewhere truth metrics are unchanged.
+- **Against pinned `master`, mixed.** The median integrated-flux difference
+  falls on every real cut-out, SDC1 sparse 8.3% to 0.4% (`continuum`) and
+  LoTSS-DR3 sparse 5.8% to 3.7%, and mask IoU rises slightly on the LoTSS
+  cut-outs; but SDC1 sparse completeness against `master` falls from 0.93
+  to 0.86 under both profiles, and `wide-extended-source` agrees less. One
+  reading, not yet tested: on confused fields Hebog's background absorbs
+  faint emission and lowers fluxes relative to `master`.
+- **Threshold mapping, traced.** Rapthor passes `threshpix` and
+  `threshisl` as PyBDSF's `thresh_pix` and `thresh_isl`, Hebog's detection
+  and island thresholds. LSMTool leaves `minpix_isl` unset, so PyBDSF uses
+  `max(6, int(beam area in pixels / 3))` (`bdsf/islands.py`): 6 for a
+  LOFAR 6″ beam at 1.5″ pixels, where Hebog's examples and the quick check
+  use 7.
+- **Next.** The maintainer decides the zero mean map, the minimum island
+  size and whether PyBDSF's second grouping rule is reconsidered now.
+
+## 2026-10-10 — Task 18: the Rapthor profile decided
+
+- **Decisions (maintainer).** The background: offer both Hebog's estimate
+  and PyBDSF's zero mean map, and choose the Rapthor profile's value at task
+  21 from retained-component agreement and its safety strata (declined:
+  keeping only the estimate; adopting zero now). The minimum island size:
+  PyBDSF's rule, `max(6, int(beam area in pixels / 3))`, applied by the
+  Rapthor adapter from each image's beam, with `threshpix` and `threshisl`
+  as the detection and island thresholds (declined: a fixed 7 pixels).
+  PyBDSF's second grouping rule: deferred until task 21 shows whether it
+  changes what Rapthor keeps (declined: implementing it now).
+- **Implemented.** `SourceFinderConfig.background`, `estimated` by default
+  or `zero`, carried to the background stage as
+  `BackgroundRmsConfig.background`; with `zero`, each tile's interpolated
+  background is zero wherever it was defined, after the RMS is complete, so
+  the RMS is unchanged, as in PyBDSF. The new field enters every run's
+  configuration hash, so the diagnostics of a default run change; its
+  catalogue, RMS and mask do not.
+- **Tests.** Failing first: the configuration's default and validation,
+  and, under Serial, Thread and Dask, a source on a 0.5 Jy/beam offset
+  recovers its injected peak within 3% with the estimate and rises by at
+  least the offset with zero, whose RMS map equals the estimate's. The rise
+  is about 1.0, twice the offset, because the joint fit holds its own
+  background at zero.
+- **Evidence.** Quick check `task18-setting` and `task18-setting-compact`
+  against `task18` and `task18-compact`: no regression, catalogue, RMS and
+  mask byte-identical on all 18 cases under both profiles. Task 18 closes;
+  task 19 carries the threshold mapping and task 21 the background choice.
+- **Checks.** `just coverage`, 3,618 passed and 1 xfailed at 97%, after
+  one test that spells out the configuration dictionary gained the new
+  key; the background stage keeps its seven defensive misses and the new
+  branch is covered; `just check`; strict pyright and ruff.
