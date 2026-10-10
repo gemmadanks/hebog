@@ -390,8 +390,6 @@ def _(
         minimum_region_pixels=7,
         maximum_compact_island_pixels=250_000,
         maximum_compact_bounds_pixels=1_000_000,
-        target_batch_pixels=250_000,
-        maximum_batch_pixels=4_000_000,
     )
     _pixel_scales_degrees = demonstration_dataset.wcs.pixel_scale_degrees_xy
     _reference_x, _reference_y = demonstration_dataset.wcs.reference_pixel_xy
