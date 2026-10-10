@@ -467,11 +467,6 @@ explain the rationale.
 - Create a local commit for each coherent, validated, reviewable change, with
   its implementation, tests, and documentation together. Do not combine
   unrelated milestones or experiments. Never push commits or tags.
-- Use short, imperative, user-informative Conventional Commit subjects, for
-  example `feat: add catalogue comparison reports`; Release Please builds
-  release notes from them. Add a concise developer body covering motivation,
-  design or compatibility consequences, and validation performed. Keep
-  scientific datasets, measurements, and gate evidence in `LOG.md`.
 - Preserve a feature-flagged PyBDSF fallback in Rapthor until the complete
   acceptance matrix passes.
 - Lead handoffs with the observable outcome, what the checks establish, the
@@ -480,6 +475,35 @@ explain the rationale.
   scientific results. Test counts, coverage, successful execution, and
   historical stage passes do not establish current parity or release
   readiness.
+
+### Commit messages
+
+Write for future developers: our future selves and reviewers who have not
+read the conversation. Keep messages concise, self-contained, and focused
+on the intent and outcome of the change.
+
+- Use a short, imperative Conventional Commit subject naming the concrete
+  change, for example `fix(io): prefer the FITS frequency axis`. Release
+  Please uses these subjects; avoid vague titles or task numbers alone.
+- Separate the subject and body with a blank line. For meaningful changes,
+  explain the problem, the resulting behaviour, and why this approach was
+  chosen. Include a trigger or before/after example when it clarifies the
+  change; an obvious typo fix needs no body.
+- Record consequential trade-offs, review decisions, compatibility effects,
+  and remaining limitations when applicable. Describe the final change;
+  omit file inventories and abandoned attempts unless they explain a choice.
+- State relevant validation commands and results, plus material checks not
+  run and why. For scientific or performance claims, identify the baseline,
+  configuration, key result and evidence scope; link exact evidence records
+  in `LOG.md` or controlled storage rather than copying full reports.
+- Reference related issues, PRs, ADRs and evidence identities where useful,
+  while summarising the essential context in the message. When citing a
+  commit, include its hash and subject. Use stable domain names for searching.
+- Mark breaking changes with `!` or a `BREAKING CHANGE:` footer and explain
+  the affected contract and what callers must change.
+- For squash merges, prepare a final message retaining the rationale,
+  validation and references. Do not assume the selected squash-message format
+  retains branch messages; replace fixup chatter with a coherent account.
 
 Before handing off a meaningful change:
 
