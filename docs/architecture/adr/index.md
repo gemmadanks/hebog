@@ -18,3 +18,4 @@ ADR is kept and marked as superseded.
 | [ADR-007: Use Zarr for intermediate image storage](007-use-zarr-for-intermediate-image-storage.md) | 🟢 Accepted | Keep one maintained intermediate backend and optimize Zarr across all execution tiers |
 | [ADR-008: Make the continuum composition tile-native](008-make-the-continuum-composition-tile-native.md) | 🟢 Accepted | Define the pass structure, halo, ownership, boundary summary and merge of every public continuum stage |
 | [ADR-009: Place the reviewed science below the stages](009-place-the-reviewed-science-below-the-stages.md) | 🟢 Accepted | Redraw the layering as `public_api → stages → science → algorithms` and state every layer's allowed imports in one tested table |
+| [ADR-010: Scale Hebog independently of its integrations](010-scale-hebog-independently-of-its-integrations.md) | 🟢 Accepted | Hebog defines what it needs from a Dask cluster to scale; Rapthor and other callers provide it |

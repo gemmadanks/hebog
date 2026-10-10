@@ -77,34 +77,29 @@ Hebog uses only the executor it is given.
 Three uses are performance targets: one Rapthor sector across a cluster,
 the usual run and the first focus; one sector on one node; and standalone
 use on a local machine with smaller images, through the Serial or Thread
-executor. Several sectors in flight stay supported. In Rapthor the executor
-follows Rapthor's workers:
+executor. Several sectors in flight stay supported, and Hebog also runs
+alone on a cluster. Hebog defines what it needs from a Dask cluster to
+scale and Rapthor provides it, changing its setup if it must
+([ADR-010](010-scale-hebog-independently-of-its-integrations.md)). In
+Rapthor the executor follows Rapthor's workers:
 
-- when they give each node several task slots, as several workers a node
-  of several threads each (recommended) or several single-threaded workers,
-  Hebog runs on Rapthor's client: its tile
-  tasks stay single-threaded and numerous, with tile cores sized from the
-  cores the executor declares, so Dask schedules every core; its tasks
-  request one `cores` resource each, while every Rapthor Prefect task,
-  DP3 and WSClean included, requests `prefect: 1` and the cores it uses,
-  so one worker never runs two Prefect tasks and a command never shares
-  its cores; and the analysis waits on one core, seceding where it would
-  otherwise hold its worker's only thread;
+- when they give each node several task slots, Hebog runs on Rapthor's
+  client: its tile tasks stay single-threaded and numerous, with tile
+  cores sized from the cores the client reports, so Dask schedules every
+  core; its tasks declare the core and memory they use under resource
+  names Rapthor configures; and the analysis waits on one slot, seceding
+  where it would otherwise hold its worker's only thread;
 - otherwise, as with today's single single-threaded worker a node, Hebog
   runs a thread executor inside the worker's task, and one sector uses one
   node.
 
-[How Hebog runs on Rapthor's Dask layouts](../rapthor-execution-layouts.md)
-draws each layout.
-
-Rapthor's nodes reach 192 cores, and Rapthor runs one Dask worker a node
-with `--nthreads 1` today and will run several. Several worker processes of
-a few threads each, not one of 192 threads, keep Python's global lock from
-throttling a node. No thread pool is nested inside a Dask task, and Hebog's
-arrays stay NumPy behind the executor rather than Dask arrays. One sector's
-speed-up is bounded by its serial share, which the plan measures and cuts
-before tuning the topology (tasks 73, 74 and 72); memory joins cores as a
-declared resource before several workers share a node (task 17).
+How Rapthor's workers serve DP3, WSClean and Hebog together, and when it
+scales them, is Rapthor's decision. [How Hebog runs on Rapthor's Dask
+layouts](../rapthor-execution-layouts.md) draws each layout and one way to
+provide several task slots a node. No thread pool is nested inside a Dask
+task, and Hebog's arrays stay NumPy behind the executor rather than Dask
+arrays. One sector's speed-up is bounded by its serial share, which the
+plan measures and cuts before tuning the topology (tasks 73, 74 and 72).
 
 ## Consequences
 

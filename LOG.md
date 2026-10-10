@@ -32950,6 +32950,37 @@ the per-worker placement finding.
   it large, Hebog's tiles in one Python process want it small enough for
   the global lock, which task 73 measures.
 
+## 2026-10-10 — Maintainer decision: Hebog scales independently of its integrations (ADR-010)
+
+- **Decision.** Rapthor keeps responsibility for its Dask workers and how
+  they serve DP3, WSClean and Hebog. DP3's chunks change in number, size
+  and memory with each self-calibration cycle's solution intervals, so
+  Rapthor may scale workers dynamically; WSClean runs across nodes with MPI
+  and needs few Dask workers for now. Hebog defines what it needs from a
+  Dask cluster to scale, independently of Rapthor, because it may run alone
+  and may later handle spectral cubes or a time axis; Rapthor may change to
+  accommodate Hebog. ADR-010 records it.
+- **What Hebog needs**, for any caller: a client it does not own, worker
+  task slots across processes and nodes, storage every worker reads, and
+  Dask resource annotations for its tasks' core and memory whose names and
+  amounts the caller configures. Hebog defines no resource of the
+  caller's; the `cores` and `prefect` scheme of the entry above is now one
+  way Rapthor could provide several task slots a node, Rapthor's choice.
+- **Dimensions.** The target stays two-dimensional continuum images;
+  partitions, halos and reconciliation are two-dimensional and stay so
+  until a cube or time-axis use case exists, which a new ADR decides. The
+  executor protocol is blind to dimensions, tasks carry bounds and
+  generation names, and Zarr is N-dimensional, which keeps that open.
+- **Records.** A fourth use case, Hebog standalone on a cluster; task 72
+  rewritten as scaling on any Dask cluster, with caller-configured resource
+  names and workers joining between analyses tested; task 20 provides
+  Hebog's needs with Rapthor's own layout; the cluster benchmark (task 27)
+  runs Hebog standalone on the LOFAR-HD mosaic on a cluster its guide
+  starts. ADR-004's amendment, the layouts page and the contract page now
+  state Hebog's needs and leave Rapthor's layout to Rapthor. The layouts
+  page no longer claims a task lost with a worker reruns to the same
+  products; task 19's worker-loss scenario is to show it.
+
 ## 2026-10-10 — Shorten PR CI feedback without reducing the test matrix
 
 - **Decision and scope.** The [44½-minute PR run](https://github.com/gemmadanks/hebog/actions/runs/38031868877)

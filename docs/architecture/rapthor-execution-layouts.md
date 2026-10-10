@@ -6,8 +6,10 @@ orchestrates several sectors, so every layout here holds one sector. The
 decision behind it is the amendment of 10 October 2026 to
 [ADR-004](adr/004-keep-top-level-scheduling-in-rapthor.md); the
 [Rapthor contract](../reference/rapthor-source-finding-contract.md#how-hebog-runs-inside-rapthor)
-records the interface. Rapthor's current cluster setup is its first one,
-and the maintainer can change it.
+records the interface. Hebog defines what it needs from a Dask cluster to
+scale, and Rapthor provides it ([ADR-010](adr/010-scale-hebog-independently-of-its-integrations.md)):
+Rapthor owns its workers, and may change its current setup, its first one,
+to run DP3, WSClean and Hebog together.
 
 In every layout, Rapthor's Prefect `filter_skymodel` task calls Hebog
 in-process on the Dask worker that runs it, then LSMTool's `filter_sources`.
@@ -22,7 +24,18 @@ as Dask task slots: more workers, or more threads a worker.
 | 1. One node, one worker | Thread executor in the task | Up to 192, in one Python process | Rapthor's `local_dask` today |
 | 2. One node, several single-threaded workers | Rapthor's client | One per worker | `local_dask_workers` today, with two problems |
 | 3. Several nodes, one single-threaded worker each | Thread executor in the task | Up to 192, on one node; on the client, one per node | Rapthor's `external_dask` today |
-| 4. Several workers a node, each with several threads and two resources | Rapthor's client | Every core no other task holds, on every node | Recommended target |
+| 4. Several workers a node, each with several threads | Rapthor's client | Every core no other task holds, on every node | One way for Rapthor to provide what Hebog needs |
+
+## What Hebog needs from any cluster
+
+Hebog asks the same of every cluster, Rapthor's or one a standalone user
+starts: a client it does not own; worker task slots, across processes and
+nodes, which are its parallelism; storage every worker can read; and a way
+to say what its tasks use. Its tile tasks each use one core and an admitted
+amount of memory, and carry Dask resource annotations whose names the
+caller configures. Hebog sizes its tiles from the capacity the client
+reports when an analysis starts, and assumes nothing about the rest of the
+cluster.
 
 ## 1. One node, one worker
 
@@ -119,10 +132,11 @@ flowchart TB
     scheduler --> wm
 ```
 
-## 4. Several workers a node, each with several threads and two resources (recommended)
+## 4. Several workers a node, each with several threads
 
-Every node runs several worker processes, for Hebog and for Rapthor's own
-DP3 and WSClean commands alike. Each worker has T threads and declares two
+This is one way Rapthor can provide that beside its own tools; the choice
+is Rapthor's. Every node runs several worker processes, for Hebog and for
+Rapthor's own DP3 and WSClean commands alike. Each worker has T threads and declares two
 Dask resources: `cores`, equal to T, and `prefect`, equal to 1. Every task
 says what it uses:
 
@@ -166,7 +180,10 @@ flowchart TB
     scheduler --> amt
 ```
 
-The worker size T is a trade-off Rapthor chooses. DP3 and WSClean run as
+Rapthor owns the rest. DP3's chunks change in number, size and memory with
+each self-calibration cycle's solution intervals, so Rapthor may scale its
+workers between steps; WSClean runs across nodes with MPI and needs few
+Dask workers for now. The worker size T is a trade-off Rapthor chooses. DP3 and WSClean run as
 external processes, so they use T cores without Python's global lock and
 want T large. Hebog's tiles share one Python process per worker, so they
 want T small enough that the lock does not throttle them; the plan's task
@@ -186,10 +203,14 @@ Dask lets workers join or leave a running scheduler at any time:
 and resources are fixed when it starts, so more cores means more workers,
 not more threads in an existing one.
 
-Starting all workers with the cluster is simpler, and is the
-recommendation: idle workers cost only their memory, and Hebog sizes its
-tiles from the capacity present when an analysis starts, so workers that
-join mid-analysis receive tasks but do not change the tiling. Rapthor's
-local cluster now gives every worker the whole node's `mem_per_node_gb` as
-its memory limit; with several workers a node, the node's memory must be
-divided between them, and declared as a resource too (plan task 17).
+Scaling is Rapthor's decision, for example to give DP3 more or fewer
+workers as its chunks change between self-calibration cycles. Hebog
+tolerates it: it sizes its tiles from the capacity present when an analysis
+starts, a worker that joins during an analysis receives tasks without
+changing the tiling, and Dask reruns a task lost with its worker (the
+plan's worker-loss acceptance scenario, task 19, is to show the products
+unchanged). Scaling between steps rather than during Hebog's analysis
+keeps its tiling matched to the cores it runs on. Rapthor's local cluster
+now gives every worker the whole node's `mem_per_node_gb` as its memory
+limit; with several workers a node, the node's memory must be divided
+between them, and declared as a resource too (plan task 17).

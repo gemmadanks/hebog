@@ -73,7 +73,7 @@ operational soak of the 1.0.0 backend; the PyBDSF fallback remains until then.
 
 ## Scope and resource rules
 
-- **Use cases** (maintainer, 10 October 2026). Three, each a performance
+- **Use cases** (maintainer, 10 October 2026). Four, each a performance
   target; none may be optimized by regressing another:
     1. *One Rapthor sector across a cluster* of nodes with up to 192 cores,
        tens of nodes possible: the usual Rapthor run and the first
@@ -83,14 +83,22 @@ operational soak of the 1.0.0 backend; the PyBDSF fallback remains until then.
     3. *Standalone use on a local machine* with smaller images, through the
        public API and the Serial or Thread executor, where setup and
        scheduler overhead dominate.
+    4. *Standalone use on a cluster*, for an image too large for one node,
+       on a Dask cluster the user starts.
 
-  Several Rapthor sectors at once stay supported. In Rapthor, Hebog's
-  executor follows Rapthor's workers: Rapthor's client when they give each
-  node several task slots, ideally several workers a node of several
-  threads each with `cores` and `prefect` resources for every task, DP3 and
-  WSClean included; otherwise a thread executor inside the worker's task
-  (one single-threaded worker a node, today's layout). The layouts are drawn on
+  Several Rapthor sectors at once stay supported. Hebog defines what it
+  needs from a Dask cluster to scale, and Rapthor or the user provides it;
+  Rapthor may change its setup to do so, and owns how its workers serve
+  DP3, WSClean and Hebog together
+  ([ADR-010](../docs/architecture/adr/010-scale-hebog-independently-of-its-integrations.md)).
+  In Rapthor, Hebog's executor follows Rapthor's workers: Rapthor's client
+  when they give each node several task slots, otherwise a thread executor
+  inside the worker's task (one single-threaded worker a node, today's
+  layout). The layouts are drawn on
   [How Hebog runs on Rapthor's Dask layouts](../docs/architecture/rapthor-execution-layouts.md).
+  The target is two-dimensional continuum images; spectral cubes and a time
+  axis may follow, so the executor protocol stays blind to the image's
+  dimensions, and adding an axis is a new ADR.
 - **Compute.** Development, checks and benchmarks run on the maintainer's
   machine (Apple M3 Pro, 12 logical CPUs, 18 GiB RAM). A cluster of up to 10
   nodes runs one final benchmark for 1.0.0 and never blocks development.
@@ -319,7 +327,7 @@ Rapthor runs one Dask worker a node today and will run several.
 | --- | --- | --- | --- |
 | 18 | Agent | Implement the Rapthor profile and the flat-noise RMS branch. | Profile outputs are tested on analytic and generated truth; the flat-noise branch shares products and reads through `run_stages_from_background` in `stages/composition.py` rather than running a second full analysis. |
 | 19 | Agent | Implement the Hebog backend for Rapthor's filter step and exercise pinned LSMTool on its products. | `hebog.adapters.rapthor` exposes one in-process function that takes the caller's executor and runs the two-branch analysis on the true-sky and flat-noise images; it writes the catalogue (through the eight-column codec, which reads the public catalogue), both RMS maps and the island mask under the names LSMTool's `filter_sources` reads, returns the source count, and reports a blanked image the way Rapthor's step expects. The adapter imports no Rapthor, Prefect or LSMTool; LSMTool runs in the integration container. Pinned LSMTool's `filter_sources` clips, groups and transfers names on Hebog products for true-sky and apparent-sky inputs, with the LoTSS-Deep DR2 ELAIS-N1 pair as the representative input, under Serial, Thread and Dask executors. The five acceptance scenarios become passing tests (backend products, retry reuse, worker loss, fallback and dual run). |
-| 20 | Agent prepares, human pushes | Replace Rapthor's filter call with a native Prefect task, with fallback and dual-run reporting. | A patch against pinned Rapthor adds `source_finder = hebog`, whose Prefect task calls the task 19 adapter in-process on its Dask worker, on a thread executor sized to the worker's cores until task 72 adds Rapthor's client, and then LSMTool's `filter_sources`, keeps the PyBDSF subprocess for `bdsf` and as the fallback for Hebog's typed failures, can start the workers and annotate the tasks as task 72 documents, respects the caller's resource budget and reports dual-run differences. Registering `hebog` in LSMTool's `KNOWN_SOURCE_FINDERS` is deferred, as Rapthor no longer needs it. Until the patch merges upstream, the container installs the patched fork at a recorded commit. |
+| 20 | Agent prepares, human pushes | Replace Rapthor's filter call with a native Prefect task, with fallback and dual-run reporting. | A patch against pinned Rapthor adds `source_finder = hebog`, whose Prefect task calls the task 19 adapter in-process on its Dask worker, on a thread executor sized to the worker's cores until task 72 adds Rapthor's client, and then LSMTool's `filter_sources`, keeps the PyBDSF subprocess for `bdsf` and as the fallback for Hebog's typed failures, provides what task 72 documents Hebog needs, with Rapthor's own choice of worker layout and resource names beside DP3 and WSClean, respects the caller's resource budget and reports dual-run differences. Registering `hebog` in LSMTool's `KNOWN_SOURCE_FINDERS` is deferred, as Rapthor no longer needs it. Until the patch merges upstream, the container installs the patched fork at a recorded commit. |
 | 21 | Agent, human dispositions | Measure Rapthor-profile agreement within the release-check budget, using cached reference outputs. | Retained/rejected agreement against pinned `master` on true/apparent, bright, extended, edge, masked, sparse and crowded populations. It also measures two things the `continuum` rows decide: a source of several components has no position error or deconvolved size, so Rapthor's cuts drop it, and a source of one Gaussian whose extension is not significant publishes `DC_Maj` 0 however wide its fit (a curved filament fitted at 63″ by 8″ with a 4″ beam does), so it passes the 10″ cut that PyBDSF's fitted size would fail. Choose `compact` only with ≥99.5% overall agreement and every safety stratum passing; otherwise `continuum`. |
 
 ### One sector across the cluster
@@ -338,7 +346,7 @@ one stops scaling.
 | --- | --- | --- | --- |
 | 73 | Agent | Measure how one sector scales with Dask workers. | On the development machine, the 10,000² anchor and the 15,402² mosaic run under a local Dask cluster of 1, 2, 4, 8 and 12 single-threaded workers and under the thread executor at the same counts, so one node's two paths are compared (use case 2), recording each stage's wall time, driver time, summed task time, task count and Zarr read volume, with `just profile-execution`. Done when the curve, the serial share and each stage's parallel efficiency are in `LOG.md` and on the progress page, with the largest serial terms named. |
 | 74 | Agent | Cut the serial share of one sector's run. | Starting from the largest terms task 73 names: driver-side reductions move onto the workers (reopening the deferred wide-object reductions if they are among them), background refinement's roughly 69,000 small tasks become coarse batches, and tasks 54 to 56 take the association and per-task costs they own. Done when task 73's curve, re-measured, shows the serial share reduced, the quick check's products are byte-identical, Serial and Dask products are identical, and no production file loses coverage. |
-| 72 | Agent | Make Hebog's tasks fit Rapthor's Dask workers. | Tile cores are chosen from the executor's declared capacity, so each stage has a few tasks per core within a stated halo-overhead bound (products do not depend on tile size); Hebog's tasks carry a configurable Dask resource annotation; an analysis started inside a worker task secedes while it waits on its tile tasks, so concurrent sectors cannot deadlock workers that run one task each; the recommended layout is documented for Rapthor's patch (task 20): several workers a node, each of T threads declaring `cores: T` and `prefect: 1`, with every Prefect task requesting `prefect: 1` and its cores (DP3 and WSClean all T, the filter task one) and Hebog's tile tasks one core (verified locally: Prefect tasks stay one a worker, tiles fill the free cores); and the adapter takes Rapthor's client when Rapthor's workers expose the cores Hebog may use and a thread executor otherwise. A small image stays one tile with no scheduler overhead (use case 3). In-process native thread pools are limited without the subprocess's environment. Done when products are byte-identical across the thread and Dask paths in the executor contract suite, a local multi-worker Dask cluster runs one sector and several concurrent sectors without deadlock, and task 73's curve is re-measured with capacity-sized tiles. |
+| 72 | Agent | Make Hebog's tasks scale on any Dask cluster, Rapthor's included. | Tile cores are chosen from the capacity the client reports, so each stage has a few tasks per core within a stated halo-overhead bound (products do not depend on tile size); Hebog's tasks declare the core and admitted memory they use as Dask resource annotations whose names and amounts the caller configures, defining no resource of the caller's; an analysis started inside a worker task secedes while it waits on its tile tasks, so it cannot hold a slot its tiles need; and the adapter takes Rapthor's client when Rapthor's workers give each node several task slots and a thread executor otherwise. What Hebog needs from a cluster is documented for any caller ([ADR-010](../docs/architecture/adr/010-scale-hebog-independently-of-its-integrations.md)), with one way Rapthor can provide it beside DP3 and WSClean for its patch (task 20). A small image stays one tile with no scheduler overhead (use case 3). In-process native thread pools are limited without the subprocess's environment. Done when products are byte-identical across the thread and Dask paths in the executor contract suite, a local multi-worker Dask cluster runs one analysis, several concurrent analyses and workers joining between analyses without deadlock or changed products, and task 73's curve is re-measured with capacity-sized tiles. |
 
 ### M4 — Deployment performance gate
 
@@ -378,7 +386,7 @@ LOFAR-HD PyBDSF catalogues, with global invariants, as in ADR-005.
 | 24 | Agent | Bound the graph for 100,000² at 10 and at 200 nodes without running the science. | Planner tests show at most 50,000 tasks, bounded reduction depth, bounded driver memory and a valid memory admission for both topologies. |
 | 25 | Agent | Qualify the Zarr store and the restart and recovery path locally. | Atomicity, owned-chunk writes from concurrent local workers, codec and chunk geometry, missing chunks and injected failures pass within an admitted memory budget. Shared-storage throughput is left to the cluster benchmark. |
 | 26 | Agent proposes, human approves | Amend the scalability contract. | `config/benchmarks/phase-0-scalability.json`, the performance and scalability contracts page and the `test-scalability` recipe describe the development-machine tier and the final 1, 2, 5 and 10-node benchmark. The 50, 100 and 200-node gates are kept as design targets, not deleted. |
-| 27 | Agent | Package the cluster benchmark. | One command and a short guide run one Rapthor sector at its default size through Rapthor's native task, and the 90,000² LOFAR-HD mosaic, at 1, 2, 5 and 10 nodes, plus the 22,500² and 45,000² versions for size scaling, and record evidence, the hardware and a scaling-model fit. A dry run with a local Dask cluster at small sizes passes, so the cluster session measures rather than debugs. |
+| 27 | Agent | Package the cluster benchmark. | One command and a short guide run one Rapthor sector at its default size through Rapthor's native task, and Hebog standalone on the 90,000² LOFAR-HD mosaic on a cluster the guide starts (use case 4), at 1, 2, 5 and 10 nodes, plus the 22,500² and 45,000² versions for size scaling, and record evidence, the hardware and a scaling-model fit. A dry run with a local Dask cluster at small sizes passes, so the cluster session measures rather than debugs. |
 
 ### Deferred science, before the freeze
 
