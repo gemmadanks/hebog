@@ -126,11 +126,10 @@ to the nearest component. Unexplained emission makes that Gaussian
 support and source aperture remain, and valid neighbours keep their
 parameters from the same joint solution.
 
-No fit publishes an aperture flux of its own: every fit is a joint fit, and
-an aperture around one component would sum its neighbours' light, so the
-fit's aperture is discarded. A component publishes the infinite-plane fitted
-total whether or not it is resolved, a source's integrated flux is the sum of
-its components', and a source with no admitted fit takes its own aperture
+No fit computes an aperture flux of its own: every fit is a joint fit, and
+an aperture around one component would sum its neighbours' light. A
+component publishes the infinite-plane fitted total whether or not it is
+resolved, a source's integrated flux is the sum of its components', and a source with no admitted fit takes its own aperture
 (see the [output reference](public-products.md)). Extension is classified
 again at the catalogue boundary with the ATLAS log integrated-to-peak
 statistic ([compact astrometry](compact-astrometry.md)).

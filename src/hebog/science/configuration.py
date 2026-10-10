@@ -51,8 +51,6 @@ def source_finder_configs() -> tuple[
             7,
             100_000,
             250_000,
-            8_000,
-            500_000,
         ),
         CompactMomentConfig(3, 1e-12),
         CompactGaussianFitConfig(
@@ -66,13 +64,11 @@ def source_finder_configs() -> tuple[
             30.0,
             component_extension_significance_sigma=1.5,
             integrated_flux_bias_correction_sigma=0.075,
-            background_model="fixed-zero",
             pixel_support="owned-region",
             # Beam-correlated GLS weighting amplifies pixel-independent
             # noise and lost most components on such images; diagonal
             # weighting is robust to either noise model.
             point_estimator="diagonal-weighted",
             model_selection="beam-or-free",
-            association_aperture_radius_sigma=1.5,
         ),
     )

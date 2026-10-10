@@ -778,18 +778,6 @@ def transform_compact_fit_at_tangent(  # noqa: PLR0913
         integrated_flux_error_jy=integrated_flux_error,
         local_rms_jy_per_beam=parameters.local_rms_jy_per_beam,
     )
-    if deconvolution.status == "unresolved":
-        flux = FluxMeasurement(
-            peak_flux_jy_per_beam=fitted_flux.peak_flux_jy_per_beam,
-            peak_flux_error_jy_per_beam=(
-                fitted_flux.peak_flux_error_jy_per_beam
-            ),
-            integrated_flux_jy=fitted_flux.peak_flux_jy_per_beam,
-            integrated_flux_error_jy=(fitted_flux.peak_flux_error_jy_per_beam),
-            local_rms_jy_per_beam=fitted_flux.local_rms_jy_per_beam,
-        )
-    else:
-        flux = fitted_flux
     flags = set(fit.quality_flags)
     if fitted_shape.major_fwhm_error_degrees is None:
         flags.add("shape-uncertainty-unavailable")
@@ -801,7 +789,6 @@ def transform_compact_fit_at_tangent(  # noqa: PLR0913
     return CelestialCompactGaussianFit(
         pixel_fit=fit,
         position=_position_with_errors(transform, fit),
-        flux=flux,
         fitted_flux=fitted_flux,
         fitted_shape=fitted_shape,
         deconvolution_status=deconvolution.status,

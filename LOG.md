@@ -32639,3 +32639,55 @@ the per-worker placement finding.
   task 16's decision.
 - **Checks.** The strict docs build and `just pre-commit`. This change
   edits the plan, the progress page, the contract page and this log only.
+
+## 2026-10-09 — Task 58: the unused lane's last leftovers are removed
+
+- **Outcome.** Everything task 58's first change left for later is gone,
+  and with it the task. `src/` loses 333 lines and gains 6; no installed path changes.
+    - `CompactGaussianFitConfig` loses `background_model`, whose default
+      `fitted-offset` the joint fitter refused, the offset bound
+      `maximum_background_offset_sigma`, and the two association-aperture
+      fields. The joint fitter's fixed-background refusal goes with them,
+      so a default-constructed fit policy now fits.
+    - `ValidCompactGaussianFit.association_aperture`,
+      `AssociationAperturePhotometry` and the fitter's aperture helpers
+      (about 200 lines) go: the joint fit computed the aperture for every
+      component and then set it to `None`.
+    - The `centroid-constrained-elliptical` model identity and the
+      `centroid-constrained-fit` flag go; the joint fit selects only a free
+      or a beam-constrained ellipse.
+    - `CelestialCompactGaussianFit.flux`, which substituted the peak for
+      the total on an unresolved fit, goes; catalogue rows already read
+      `fitted_flux` only.
+    - `CompactDeblendConfig` loses `target_batch_pixels` and
+      `maximum_batch_pixels`, which nothing read.
+    - `CrossScaleAssociation` loses `compact_source_ids` and
+      `relationship`, whose only constructor always set `()` and
+      `extended-only`; its schema version is 3. The records are not
+      persisted.
+- **Breaking.** Public names in `hebog.config` and `hebog.data_models`
+  change as above; `CompactDeblendConfig`'s positional constructor loses
+  its last two arguments. No published configuration hash changes: the
+  diagnostics hash only `SourceFinderConfig`.
+- **Tests.** Each removal started with a test that failed for the stated
+  reason (seven): the default fit policy fits jointly, the fit, deblend
+  and association records hold none of the removed fields, and the model
+  identity admits only the two selected models. Tests of the removed
+  validation and aperture record were deleted; astrometry tests that read
+  `flux` read `fitted_flux`, which equals it wherever they asserted.
+- **Evidence the products are unchanged.** The quick science check from a
+  detached `origin/main` worktree (`task58-followup-base`) and from this
+  change (`task58-followup`) report no regression, only the composition
+  hash changed, and the catalogue, RMS and mask of all 18 cases are
+  byte-identical (54 of 54). The same check with the profile set to
+  `compact` (`task58-followup-base-compact`, `task58-followup-compact`) is
+  byte-identical too (54 of 54).
+- **Checks.** Strict pyright and ruff; `just coverage`, 3,603 passed and 1
+  xfailed at 97% branch-aware coverage, with no miss in the changed code;
+  the strict docs build; `just check`; an independent review, whose stale
+  sentence on the fitting page was fixed.
+- **Left for later.** `SourceScaleProvenance.relationship` in the
+  persisted `ContinuumSourceFindingDiagnostics` schema still admits the
+  two compact relationships, and nothing in `src/` builds that record; only
+  the materialization test does. It is a persisted schema outside the
+  task's list, so it was not changed here.

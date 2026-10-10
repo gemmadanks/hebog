@@ -492,10 +492,8 @@ def test_scale_records_survive_a_scheduler_round_trip() -> None:
     association = domain_models.CrossScaleAssociation(
         association_id="scale-association-0001",
         scale_detection_ids=(detection.detection_id,),
-        compact_source_ids=("source-0001",),
         selected_scale_detection_id=detection.detection_id,
         contributing_scale_orders=(2,),
-        relationship="contains-compact-support",
     )
 
     assert pickle.loads(pickle.dumps(detection)) == detection
@@ -592,10 +590,8 @@ def test_cross_scale_association_requires_selected_detection_membership() -> (
         domain_models.CrossScaleAssociation(
             association_id="scale-association-0001",
             scale_detection_ids=("scale-detection-0001",),
-            compact_source_ids=(),
             selected_scale_detection_id="scale-detection-0002",
             contributing_scale_orders=(1,),
-            relationship="extended-only",
         )
 
 
@@ -649,18 +645,6 @@ def test_scale_detection_rejects_invalid_geometry(
         ),
         ({"association_id": "bad ID"}, "domain identifier"),
         ({"contributing_scale_orders": (2, 1)}, "canonical"),
-        (
-            {"relationship": "contains-compact-support"},
-            "requires a compact source",
-        ),
-        (
-            {"relationship": "overlaps-compact-support"},
-            "requires a compact source",
-        ),
-        (
-            {"compact_source_ids": ("source-0001",)},
-            "cannot name a compact source",
-        ),
     ],
 )
 def test_cross_scale_association_rejects_noncanonical_inputs(
@@ -671,10 +655,8 @@ def test_cross_scale_association_rejects_noncanonical_inputs(
     payload: dict[str, object] = {
         "association_id": "scale-association-0001",
         "scale_detection_ids": ("scale-detection-0001",),
-        "compact_source_ids": (),
         "selected_scale_detection_id": "scale-detection-0001",
         "contributing_scale_orders": (1,),
-        "relationship": "extended-only",
     }
     payload.update(update)
 
