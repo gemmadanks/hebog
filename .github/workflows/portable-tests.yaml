@@ -1,0 +1,114 @@
+name: Portable test shards
+
+on:
+  workflow_call:
+    inputs:
+      id:
+        type: string
+        required: true
+      os:
+        type: string
+        required: true
+      python:
+        type: string
+        required: true
+      groups:
+        type: string
+        required: true
+      splits:
+        type: number
+        required: true
+      workers:
+        type: number
+        required: true
+      coverage:
+        type: boolean
+        default: false
+      lowest:
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  # Held equal to ci.yaml by test_uv_version.py.
+  UV_VERSION: "0.13.0"
+  OMP_NUM_THREADS: "1"
+  OPENBLAS_NUM_THREADS: "1"
+  MKL_NUM_THREADS: "1"
+
+jobs:
+  shard:
+    name: ${{ inputs.id }} / shard ${{ matrix.group }}
+    runs-on: ${{ inputs.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        group: ${{ fromJSON(inputs.groups) }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      COVERAGE_FILE: .coverage.shard-${{ matrix.group }}
+      COVERAGE_ARGS: ${{ inputs.coverage && '--doctest-modules --cov --cov-branch --cov-report= --cov-fail-under=0 src/hebog tests' || 'tests' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install uv and set python version
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ inputs.python }}
+          enable-cache: true
+          cache-suffix: ${{ inputs.lowest && 'lowest-dependencies' || 'locked' }}
+
+      - name: Install locked development dependencies
+        if: ${{ !inputs.lowest }}
+        run: uv sync --frozen --all-groups
+
+      - name: Install the lowest declared dependency versions
+        if: ${{ inputs.lowest }}
+        run: |
+          uv venv
+          uv pip install --resolution lowest-direct --editable . --group dev
+
+      # Download one immutable snapshot from the routing job. Independent
+      # cache restores in shards could disagree while another run saves one.
+      - name: Download the shared timing snapshot
+        uses: actions/download-artifact@v8
+        with:
+          name: ci-duration-baseline
+          path: test-results
+
+      - name: Run portable tests
+        run: >-
+          uv run --no-sync pytest
+          -n ${{ inputs.workers }} --dist worksteal
+          -m "not slow and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data"
+          --splits ${{ inputs.splits }} --group ${{ matrix.group }}
+          --splitting-algorithm least_duration
+          --durations=50 --junitxml=test-results/junit.xml
+          --store-durations --clean-durations
+          --durations-path=test-results/durations.json
+          $COVERAGE_ARGS
+
+      - name: Upload test results even after a test failure
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ inputs.id }}-${{ matrix.group }}
+          path: test-results
+          if-no-files-found: error
+
+      # A shard cannot meet the project coverage floor on its own. The
+      # coverage job combines every shard before enforcing the same floor.
+      - name: Upload branch coverage
+        if: ${{ !cancelled() && inputs.coverage }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-${{ matrix.group }}
+          path: .coverage.shard-${{ matrix.group }}
+          include-hidden-files: true
+          if-no-files-found: error

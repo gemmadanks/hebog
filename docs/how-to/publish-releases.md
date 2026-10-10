@@ -43,7 +43,8 @@ Before merging the Release Please PR, review the
 [release boundaries](../reference/release-status.md#release-boundaries) and
 the release's supported envelope and limitations; experimental releases stay
 explicitly unqualified. The required PR checks on `main`, including
-**Package smoke test** over the full portable matrix, are the release gate:
+**Package smoke test** over the full portable matrix and all applicable
+checks, are the release gate (see [PR feedback](index.md#pull-request-feedback)):
 the publishing workflow does not rerun CI. Release Please uses
 `GITHUB_TOKEN`, so its PR updates do not start CI; if checks are missing,
 close and reopen the PR as a maintainer

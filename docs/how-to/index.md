@@ -36,7 +36,7 @@ integration locally. The demonstration notebook is
 | `just test-contract`, `just test-integration`, `just test-acceptance` | Public behaviour contracts; Dask, FITS and Rapthor boundaries; Rapthor-facing scenarios | Changes to the public API, executors, I/O or products |
 | `just test-equivalence` | `find_sources` and its stages against frozen PyBDSF products | Scientific changes |
 | `just test-slow` | Long regressions and development matrices; CI runs them weekly and on dispatch | Before a release that changes science |
-| `just test-benchmark` | The quick-benchmark and traced-peak smoke tests, which CI runs on every pull request | Changes to the benchmark tooling |
+| `just test-benchmark` | The quick-benchmark and traced-peak smoke tests, which CI runs on code-changing pull requests | Changes to the benchmark tooling |
 | `just test-qualification`, `just test-scalability` | Controlled lanes that need approved data or hardware | Only when the plan names them |
 | `just pre-commit` | Every hook, slow ones included | Before staging a commit |
 
@@ -55,6 +55,62 @@ Rules the test configuration enforces:
   normal assertion and set the behaviour's status to `implemented`.
 - A pass with local `benchmark-results/` present does not prove CI
   portability; run the quick lane from a clean checkout too.
+
+### Pull-request feedback
+
+Code-changing PRs and every push to `main` run the full portable suite on
+the existing operating-system/Python matrix. The **Fast unit tests** check
+reports unit tests and doctests before the integration suite finishes;
+those tests also remain in the portable matrix. Scientific comparisons,
+acceptance tests, measurement smoke tests, notebooks, docs, containers and
+the installed-wheel workflow still run.
+
+| Environment | Shards | Pytest workers per shard |
+| --- | ---: | ---: |
+| Ubuntu / Python 3.12, 3.13 and 3.14 | 2 each | 4 |
+| Ubuntu / Python 3.12 / lowest declared dependencies | 2 | 4 |
+| macOS / Python 3.14 | 2 | 2 |
+| Windows / Python 3.14 | 4 | 4 |
+
+Each shard uses `pytest-split`'s `least_duration` algorithm and the same
+timing snapshot. A run without a cached snapshot divides tests by count.
+Successful portable suites on `main` cache the slowest measured time per test
+across the matrix for future runs. New tests receive the plugin's average-time
+estimate. Timings are scheduling hints, not scientific performance evidence.
+All selected tests run once per environment, and Ubuntu/Python 3.14 branch
+coverage is combined before enforcing the unchanged 80% project floor.
+
+Existing required portable-test names are aggregate checks over the whole
+matrix; shard logs are under **Portable execution**. **Package smoke test**
+is the final gate over all applicable checks; the actual wheel exercise
+runs independently under **Build and exercise the installed wheel**. The
+required check names stay unchanged, including the lowest-dependency and
+container checks. Failed, cancelled, missing or unexpectedly skipped checks
+cannot pass a gate.
+
+PRs changing only `README.md`, `LOG.md`, Markdown under `plans/`, or Markdown
+and images under `docs/` run lint, spelling and the strict docs build. The
+aggregate checks explicitly permit the omitted jobs for this path. Any
+other changed path, including deleted or renamed code, MkDocs configuration,
+notebooks, dependencies, packaging, CI, release metadata or repository
+instructions, runs full CI. Empty diffs also run full CI.
+
+To investigate the expensive tail, download `test-results-*` artifacts:
+they contain JUnit XML and, for portable shards and the fast unit check,
+`durations.json`. Pytest also prints its 50 slowest phases. The merged
+`ci-measured-durations` artifact can reproduce a shard locally:
+
+```console
+uv run pytest -n 4 --dist worksteal --splits 4 --group 1 \
+  --splitting-algorithm least_duration --durations-path=/path/to/durations.json \
+  -m "not slow and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data" tests
+```
+
+More shards consume more runner slots, and individual long tests still set
+a lower bound on latency. Compare hosted timings and memory after the first
+runs before increasing worker counts further or changing expensive fixtures.
+Do not move Windows coverage off PRs: it is the supported platform the
+development machine does not exercise.
 
 ## Run the quick science check
 
