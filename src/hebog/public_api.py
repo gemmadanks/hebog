@@ -31,6 +31,7 @@ from hebog.algorithms.astrometry import (
 from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.config import SourceFinderConfig
 from hebog.data_models import (
+    BrightRegionCounts,
     CatalogueSourceMembership,
     FluxMeasurement,
     GaussianComponent,
@@ -108,7 +109,7 @@ _DIAGNOSTICS_NAME = "diagnostics.json"
 _DETECTION_THRESHOLD_SIGMA = 5.0
 _ISLAND_THRESHOLD_SIGMA = 3.0
 _MINIMUM_ISLAND_PIXELS = 7
-_COMPOSITION_NAME = "phase-5-evidence-bound-public-catalogue-v22"
+_COMPOSITION_NAME = "phase-5-evidence-bound-public-catalogue-v23"
 _PROFILE_RESOURCE = "reviewed_continuum_profile.json"
 _FWHM_PER_SIGMA = 2.0 * np.sqrt(2.0 * np.log(2.0))
 # The finite-difference WCS Jacobian is good to about 1e-10 of the local
@@ -239,6 +240,9 @@ class _ScientificProducts:
     wide_object_counts: WideObjectCounts = field(
         default_factory=WideObjectCounts
     )
+    bright_regions: BrightRegionCounts = field(
+        default_factory=BrightRegionCounts
+    )
     flat_noise: _NoiseEstimate | None = None
 
 
@@ -253,6 +257,9 @@ class _NoiseEstimate:
     metadata: ImageMetadata
     background_rms_source: ZarrProductSink
     rms_scientific_status: Literal["valid", "unavailable"]
+    bright_regions: BrightRegionCounts = field(
+        default_factory=BrightRegionCounts
+    )
 
 
 def _output_exists_error(output: Path) -> SourceFinderOutputExistsError:
@@ -634,7 +641,7 @@ def _estimate_noise(  # noqa: PLR0913
 ) -> _NoiseEstimate:
     """Estimate one image's background and RMS as the analysis does."""
     beam, review = _stage_inputs(metadata, config)
-    background_rms_source, usable_noise = composition.estimate_background_rms(
+    estimate = composition.estimate_background_rms(
         source,
         metadata,
         config,
@@ -646,8 +653,11 @@ def _estimate_noise(  # noqa: PLR0913
     )
     return _NoiseEstimate(
         metadata=metadata,
-        background_rms_source=background_rms_source,
-        rms_scientific_status="valid" if usable_noise else "unavailable",
+        background_rms_source=estimate.source,
+        rms_scientific_status=(
+            "valid" if estimate.usable_noise else "unavailable"
+        ),
+        bright_regions=estimate.bright_regions,
     )
 
 
@@ -735,6 +745,7 @@ def _analyse_true_sky(  # noqa: PLR0913
             component_source=None,
             rms_scientific_status=stages.rms_scientific_status,
             terminal=None,
+            bright_regions=stages.bright_regions,
         )
     records = published.records
     terminal = build_configured_continuum_products(
@@ -760,6 +771,7 @@ def _analyse_true_sky(  # noqa: PLR0913
         rms_scientific_status=stages.rms_scientific_status,
         terminal=terminal,
         wide_object_counts=published.wide_object_counts,
+        bright_regions=stages.bright_regions,
     )
 
 
@@ -1211,6 +1223,12 @@ def _materialize_bundle(  # noqa: PLR0913
             else 0
         ),
         wide_object_counts=products.wide_object_counts,
+        bright_regions=products.bright_regions,
+        flat_noise_bright_regions=(
+            None
+            if products.flat_noise is None
+            else products.flat_noise.bright_regions
+        ),
         measurement_dispositions=_public_dispositions(
             products.terminal, catalogue, config.profile
         ),

@@ -77,7 +77,7 @@ def test_public_corner_sources_survive_background_estimation(
 
     def capture_maps(*args: Any, **kwargs: Any):
         result = original_estimator(*args, **kwargs)
-        maps.append(estimated_maps(result[0], args[1].shape_yx))
+        maps.append(estimated_maps(result.source, args[1].shape_yx))
         return result
 
     monkeypatch.setattr(composition, "estimate_background_rms", capture_maps)

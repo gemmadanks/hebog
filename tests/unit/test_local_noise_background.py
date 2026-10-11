@@ -67,7 +67,10 @@ class _Source:
 
 
 class _ReverseRetryExecutor(SerialExecutor):
-    """Reorder completed blocks and repeat one without duplicating results."""
+    """Reorder completed blocks and repeat one without duplicating results.
+
+    Results come back in input order, as the executor protocol promises.
+    """
 
     def map_batches(
         self,
@@ -76,12 +79,16 @@ class _ReverseRetryExecutor(SerialExecutor):
         *,
         requirement: TaskRequirement | None = None,
     ) -> list[Output]:
-        """Reverse completion order and retry the first block."""
+        """Retry the first block, then complete the rest in reverse."""
         inputs = list(batches)
         if inputs:
             super().map_batches(function, inputs[:1])
-        return super().map_batches(
-            function, list(reversed(inputs)), requirement=requirement
+        return list(
+            reversed(
+                super().map_batches(
+                    function, list(reversed(inputs)), requirement=requirement
+                )
+            )
         )
 
 
@@ -462,11 +469,33 @@ def test_truncated_noise_protection_context_retains_boundary_support() -> None:
         (),
         island_threshold_sigma=3,
         source_finder=SourceFinderConfig(5, 3, 7),
-        protect_context_boundary=True,
-        image_shape_yx=(200, 300),
+        context_limit=ImageBounds(0, 200, 0, 300),
     )
     expected = np.zeros(residual.shape, dtype=np.bool_)
     expected[:12, 4:6] = True
+    np.testing.assert_array_equal(actual, expected)
+
+
+def test_a_side_on_the_context_limit_cuts_off_no_support() -> None:
+    """Only a side inside the limit can cut a source off from its seed.
+
+    A bright region's blocks are limited to the region's own read, so
+    support touching that read's edge is judged as one read of the whole
+    region judges it, while support crossing into the next block is kept.
+    """
+    residual = np.zeros((20, 24))
+    residual[0:12, 4:6] = 4
+    residual[8:20, 17:20] = 4
+    actual = _connected_source_protection(
+        residual,
+        np.ones(residual.shape, dtype=np.bool_),
+        ImageBounds(100, 120, 200, 224),
+        (),
+        island_threshold_sigma=3,
+        context_limit=ImageBounds(100, 140, 150, 224),
+    )
+    expected = np.zeros(residual.shape, dtype=np.bool_)
+    expected[8:20, 17:20] = True
     np.testing.assert_array_equal(actual, expected)
 
 
@@ -481,19 +510,9 @@ def test_observed_image_edge_is_not_a_truncated_source_seed_search() -> None:
         (),
         island_threshold_sigma=3,
         source_finder=SourceFinderConfig(5, 3, 7),
-        protect_context_boundary=True,
-        image_shape_yx=residual.shape,
+        context_limit=ImageBounds(0, 20, 0, 24),
     )
     assert not actual.any()
-    with pytest.raises(ValueError, match="full image shape"):
-        _connected_source_protection(
-            residual,
-            np.ones(residual.shape, dtype=np.bool_),
-            ImageBounds(0, 20, 0, 24),
-            (),
-            island_threshold_sigma=3,
-            protect_context_boundary=True,
-        )
 
 
 def test_oversize_noise_context_is_rejected_before_region_reads() -> None:
@@ -552,8 +571,8 @@ def test_the_planned_local_noise_contexts_are_the_windows_tasks_read() -> None:
     )
 
     planned = [
-        bounds
-        for _, _, bounds in background_stage._local_noise_contexts(
+        block.read_bounds
+        for block in background_stage._local_noise_contexts(
             pilot.geometry, config, _policy()
         )
     ]
@@ -830,7 +849,7 @@ def _refined_local_noise(
         bright_candidate_positions_yx=(),
     )
     monkeypatch.setattr(
-        background_stage, "_LOCAL_NOISE_CONTEXT_CELLS", context_cells
+        background_stage, "_PROTECTED_CONTEXT_CELLS", context_cells
     )
     refined = refine_background_rms_grids(
         source,

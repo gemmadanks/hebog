@@ -34,6 +34,7 @@ from hebog.data_models.source_association import (
     SourceAssociationResult,
 )
 from hebog.data_models.source_finding import (
+    BrightRegionCounts,
     ContinuumSourceFindingDiagnostics,
     MaterializedProduct,
     PublicSourceFindingDiagnostics,
@@ -46,6 +47,7 @@ from hebog.data_models.source_finding import (
 )
 
 __all__ = [
+    "BrightRegionCounts",
     "CatalogueSourceMembership",
     "CelestialWcs",
     "ContinuumSourceFindingDiagnostics",

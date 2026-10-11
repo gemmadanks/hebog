@@ -15,7 +15,7 @@ from dataclasses import replace
 from importlib.resources import files
 from math import prod
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 import pytest
 from astropy.io import fits
@@ -29,6 +29,7 @@ from hebog.algorithms.background import plan_rms_grid
 from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.config import SourceFinderConfig
 from hebog.data_models import (
+    BrightRegionCounts,
     PublicSourceFindingDiagnostics,
     PublicSourceFindingProvenance,
     WideObjectCounts,
@@ -87,7 +88,7 @@ def test_repaired_science_cannot_inherit_reference_qualification() -> None:
         == "development-unqualified"
     )
     assert public_api._COMPOSITION_NAME == (
-        "phase-5-evidence-bound-public-catalogue-v22"
+        "phase-5-evidence-bound-public-catalogue-v23"
     )
     assert {
         "hebog.algorithms.component_measurement",
@@ -367,8 +368,8 @@ def _largest_local_noise_read(
         0.5,
     )
     return max(
-        prod(bounds.shape_yx)
-        for _, _, bounds in background_stage._local_noise_contexts(
+        prod(block.read_bounds.shape_yx)
+        for block in background_stage._local_noise_contexts(
             grid, background, policy
         )
     )
@@ -565,7 +566,7 @@ def _provenance() -> PublicSourceFindingProvenance:
         configuration_sha256="2" * 64,
         scientific_profile_sha256="3" * 64,
         scientific_composition_sha256="4" * 64,
-        scientific_composition=("phase-5-evidence-bound-public-catalogue-v22"),
+        scientific_composition=("phase-5-evidence-bound-public-catalogue-v23"),
     )
 
 
@@ -609,7 +610,7 @@ def test_public_diagnostics_round_trip_exact_provenance() -> None:
         )
         == diagnostics
     )
-    assert diagnostics.schema_version == 12
+    assert diagnostics.schema_version == 13
     assert diagnostics.deblended_parent_count == 1
     assert diagnostics.deferred_deblend_parent_count == 0
 
@@ -763,3 +764,55 @@ def test_wide_object_counts_default_to_zero_and_reject_negatives() -> None:
     )
     with pytest.raises(ValueError, match="negative"):
         WideObjectCounts(segments=-1)
+
+
+@pytest.mark.parametrize(
+    "counts",
+    ({"candidate_count": -1}, {"largest_read_pixels": -1}),
+)
+def test_bright_region_counts_default_to_zero_and_reject_negatives(
+    counts: dict[str, int],
+) -> None:
+    """An estimate with no bright candidate records none and read nothing."""
+    assert BrightRegionCounts() == BrightRegionCounts(
+        candidate_count=0, largest_read_pixels=0
+    )
+    with pytest.raises(ValueError, match="negative"):
+        BrightRegionCounts(**counts)
+
+
+@pytest.mark.parametrize("flat_noise_input", (False, True))
+def test_flat_noise_bright_regions_are_recorded_exactly_with_its_input(
+    flat_noise_input: bool,
+) -> None:
+    """Counts for a flat-noise image the run never read are refused."""
+    provenance = _provenance().model_copy(
+        update={
+            "flat_noise_input_sha256": "5" * 64 if flat_noise_input else None
+        }
+    )
+    values: dict[str, Any] = {
+        "run_id": "public-test",
+        "profile": "continuum",
+        "profile_limitations": (),
+        "configuration_qualification": "development-unqualified",
+        "source_count": 0,
+        "gaussian_component_count": 0,
+        "island_count": 0,
+        "rms_scientific_status": "unavailable",
+        "provenance": provenance,
+    }
+    recorded = BrightRegionCounts() if flat_noise_input else None
+    assert (
+        PublicSourceFindingDiagnostics(
+            **values, flat_noise_bright_regions=recorded
+        ).flat_noise_bright_regions
+        == recorded
+    )
+    with pytest.raises(ValueError, match="flat-noise bright-region counts"):
+        PublicSourceFindingDiagnostics(
+            **values,
+            flat_noise_bright_regions=(
+                None if flat_noise_input else BrightRegionCounts()
+            ),
+        )

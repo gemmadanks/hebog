@@ -48,7 +48,7 @@ def _public_maps(
     beam, review = public_api._stage_inputs(  # pyright: ignore[reportPrivateUsage]
         metadata, config
     )
-    sink, _ = composition.estimate_background_rms(
+    estimate = composition.estimate_background_rms(
         source,
         metadata,
         config,
@@ -58,7 +58,7 @@ def _public_maps(
         review=review,
         generation_id="noise-fixture",
     )
-    return estimated_maps(sink, metadata.shape_yx)
+    return estimated_maps(estimate.source, metadata.shape_yx)
 
 
 @pytest.mark.parametrize("width", (18, 40, 80))
