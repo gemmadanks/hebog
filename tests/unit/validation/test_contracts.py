@@ -171,21 +171,15 @@ def _xfail_by_test_function(path: Path) -> dict[str, bool]:
 
 
 def test_public_behaviours_record_which_are_implemented() -> None:
-    """Five frozen behaviours are asserted and six await their tasks."""
+    """Eleven behaviours are asserted and one awaits its task."""
     manifest = load_public_behaviours(_BEHAVIOURS_PATH)
 
-    assert len(manifest.behaviours) == 11
+    assert len(manifest.behaviours) == 12
     assert {
         behaviour.identifier
         for behaviour in manifest.behaviours
-        if behaviour.status == "implemented"
-    } == {
-        "empty-image-products",
-        "invalid-metadata-failure",
-        "partition-invariance",
-        "threshold-monotonicity",
-        "valid-request-products",
-    }
+        if behaviour.status != "implemented"
+    } == {"bounded-worker-memory"}
 
 
 def test_each_public_behaviour_test_is_marked_as_its_status() -> None:
@@ -208,7 +202,7 @@ def test_every_behaviour_specification_is_in_the_manifest() -> None:
 
     for path in (
         "tests/contract/test_public_behaviours.py",
-        "tests/acceptance/test_acceptance_scaffold.py",
+        "tests/acceptance/test_rapthor_scenarios.py",
     ):
         for function in _xfail_by_test_function(_ROOT / path):
             assert f"{path}::{function}" in named

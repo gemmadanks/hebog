@@ -1266,3 +1266,42 @@ def write_diagnostics_product(
         scientific_status="valid",
         content_schema_version=diagnostics.schema_version,
     )
+
+
+def describe_published_product(
+    path: Path,
+    *,
+    role: ProductRole,
+) -> MaterializedProduct:
+    """Validate one product a finished run published, and describe it.
+
+    Each product is read as its writer validated it before publishing it: a
+    catalogue and diagnostics in full, an image by its header. The record is
+    the one the writer returned, so a caller can resume from it.
+    """
+    path = Path(path)
+    if role == "source-catalogue":
+        read_catalogue_fits_product(path)
+        return _product_record(
+            path,
+            role=role,
+            media_type=_CATALOGUE_MEDIA_TYPE,
+            scientific_status="valid",
+        )
+    if role == "diagnostics":
+        diagnostics = read_diagnostics_product(path)
+        return _product_record(
+            path,
+            role=role,
+            media_type=_DIAGNOSTICS_MEDIA_TYPE,
+            scientific_status="valid",
+            content_schema_version=diagnostics.schema_version,
+        )
+    status = _image_header_status(path, role)
+    _validate_image_path(path, role=role, scientific_status=status)
+    return _product_record(
+        path,
+        role=role,
+        media_type=_IMAGE_MEDIA_TYPE,
+        scientific_status=status,
+    )

@@ -109,14 +109,18 @@ The standalone API is implemented and tested as an independent library.
 Requests and results hold paths and small serializable records, never open
 files, image arrays or scheduler clients. Distinct exception types separate
 invalid input, unsupported metadata, oversized images and existing output
-directories.
+directories, and a retried request returns the products its finished run
+published.
 
-One call analyses one image. Hebog does **not**:
+`hebog.adapters.find_sector_sources` runs one Rapthor sector, its true-sky
+and flat-noise images, on the executor Rapthor builds, and writes the
+catalogue, the two RMS maps and the island mask under the names Rapthor's
+PyBDSF step uses. Rapthor does not call it yet. Hebog does **not**:
 
 - measure sources on a sector's flat-noise image, of which it publishes
   only the RMS map;
-- filter or group a sky model;
-- write Rapthor or LSMTool file names or tables;
+- filter or group a sky model, which LSMTool's `filter_sources` does with
+  the island mask;
 - manage retries, scheduling or cluster resources; or
 - provide a qualified replacement for Rapthor's complete `filter_skymodel`
   step.

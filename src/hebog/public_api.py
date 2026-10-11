@@ -54,6 +54,8 @@ from hebog.io import FitsImageSource, InvalidFitsImageError, ZarrProductSink
 from hebog.io.base import WindowReadable
 from hebog.io.filesystem import rename_without_replacement
 from hebog.io.materialization import (
+    describe_published_product,
+    read_diagnostics_product,
     write_catalogue_fits_product,
     write_diagnostics_product,
     write_mask_fits_product,
@@ -97,6 +99,12 @@ _MAXIMUM_BEAM_FWHM_PIXELS = 10.0
 # a beam stated at the limit is admitted on every platform.
 _BEAM_LIMIT_DECIMALS = 3
 _MASK_BLOCK_ROWS = 128
+# The files of a published bundle.
+_CATALOGUE_NAME = "catalogue.fits"
+_RMS_NAME = "rms.fits"
+_FLAT_NOISE_RMS_NAME = "flat-noise-rms.fits"
+_MASK_NAME = "source-mask.fits"
+_DIAGNOSTICS_NAME = "diagnostics.json"
 _DETECTION_THRESHOLD_SIGMA = 5.0
 _ISLAND_THRESHOLD_SIGMA = 3.0
 _MINIMUM_ISLAND_PIXELS = 7
@@ -247,12 +255,73 @@ class _NoiseEstimate:
     rms_scientific_status: Literal["valid", "unavailable"]
 
 
+def _output_exists_error(output: Path) -> SourceFinderOutputExistsError:
+    return SourceFinderOutputExistsError(
+        f"source-finder output already exists: {output}"
+    )
+
+
 def _require_unclaimed_output(output: Path) -> None:
-    """Reject any existing destination, including a dangling symlink."""
-    if output.exists() or output.is_symlink():
-        raise SourceFinderOutputExistsError(
-            f"source-finder output already exists: {output}"
+    """Reject an existing destination that cannot hold a finished bundle.
+
+    A dangling symlink, a file, or a directory without diagnostics is
+    refused before the input is read; a bundle is compared with the request
+    once its provenance is known.
+    """
+    if (output.exists() or output.is_symlink()) and not (
+        output / _DIAGNOSTICS_NAME
+    ).is_file():
+        raise _output_exists_error(output)
+
+
+def _finished_result(
+    request: SourceFinderRequest,
+    output: Path,
+    provenance: PublicSourceFindingProvenance,
+) -> SourceFinderResult:
+    """Return the products a finished run of this request published.
+
+    A bundle is published in one rename, so one in place is complete. It is
+    this request's when its diagnostics record the same run ID and the same
+    provenance, which binds the input bytes, the configuration and the
+    science; every product it should hold is then validated as its writer
+    validated it. Anything else is refused and kept.
+    """
+    try:
+        diagnostics_product = describe_published_product(
+            output / _DIAGNOSTICS_NAME, role="diagnostics"
         )
+        diagnostics = read_diagnostics_product(diagnostics_product)
+        if not (
+            isinstance(diagnostics, PublicSourceFindingDiagnostics)
+            and diagnostics.run_id == request.run_id
+            and diagnostics.provenance == provenance
+        ):
+            raise _output_exists_error(output)
+        return SourceFinderResult(
+            run_id=request.run_id,
+            catalogue=describe_published_product(
+                output / _CATALOGUE_NAME, role="source-catalogue"
+            ),
+            rms=describe_published_product(output / _RMS_NAME, role="rms"),
+            mask=describe_published_product(
+                output / _MASK_NAME, role="source-filtering-mask"
+            ),
+            diagnostics=diagnostics_product,
+            source_count=diagnostics.source_count,
+            gaussian_component_count=diagnostics.gaussian_component_count,
+            island_count=diagnostics.island_count,
+            wall_seconds=0.0,
+            flat_noise_rms=(
+                None
+                if request.flat_noise_image_path is None
+                else describe_published_product(
+                    output / _FLAT_NOISE_RMS_NAME, role="rms"
+                )
+            ),
+        )
+    except (OSError, ValueError) as error:
+        raise _output_exists_error(output) from error
 
 
 def _report_leftover_staging(output: Path) -> None:
@@ -280,9 +349,7 @@ def _publish_bundle(unpublished: Path, output: Path) -> None:
     try:
         rename_without_replacement(unpublished, output)
     except FileExistsError as error:
-        raise SourceFinderOutputExistsError(
-            f"source-finder output already exists: {output}"
-        ) from error
+        raise _output_exists_error(output) from error
 
 
 def _file_sha256(path: Path) -> str:
@@ -1091,11 +1158,11 @@ def _materialize_bundle(  # noqa: PLR0913
     )
     rms_status = products.rms_scientific_status
     catalogue_product = write_catalogue_fits_product(
-        unpublished / "catalogue.fits",
+        unpublished / _CATALOGUE_NAME,
         catalogue,
     )
     rms_product = write_rms_fits_product(
-        unpublished / "rms.fits",
+        unpublished / _RMS_NAME,
         metadata,
         _rms_row_blocks(
             _NoiseEstimate(
@@ -1109,7 +1176,7 @@ def _materialize_bundle(  # noqa: PLR0913
         None
         if products.flat_noise is None
         else write_rms_fits_product(
-            unpublished / "flat-noise-rms.fits",
+            unpublished / _FLAT_NOISE_RMS_NAME,
             products.flat_noise.metadata,
             _rms_row_blocks(products.flat_noise),
             dtype=np.dtype("float64"),
@@ -1117,7 +1184,7 @@ def _materialize_bundle(  # noqa: PLR0913
         )
     )
     mask_product = write_mask_fits_product(
-        unpublished / "source-mask.fits",
+        unpublished / _MASK_NAME,
         metadata,
         _mask_row_blocks(products, metadata),
     )
@@ -1151,7 +1218,7 @@ def _materialize_bundle(  # noqa: PLR0913
         provenance=provenance,
     )
     diagnostics_product = write_diagnostics_product(
-        unpublished / "diagnostics.json",
+        unpublished / _DIAGNOSTICS_NAME,
         diagnostics,
     )
     output = request.output_directory
@@ -1264,6 +1331,11 @@ def find_sources(
     unqualified science. ``compact`` intentionally omits extended-emission
     association.
 
+    When the output already holds the products of a finished run of the
+    same request, with the same run ID, input bytes, configuration and
+    science, they are returned without analysing the image again; any other
+    existing output is refused.
+
     The run stages its work in a hidden directory beside the output, which
     records its owner. A failed run raises only once no task it submitted
     is still running, and removes everything it staged. A killed run
@@ -1302,9 +1374,14 @@ def find_sources(
             )
         )
         provenance = _provenance(request, config)
+        started = monotonic()
+        if output.exists() or output.is_symlink():
+            finished = _finished_result(request, output, provenance)
+            return finished.model_copy(
+                update={"wall_seconds": monotonic() - started}
+            )
         output.parent.mkdir(parents=True, exist_ok=True)
         _report_leftover_staging(output)
-        started = monotonic()
         with staging_directory(output, run_id=request.run_id) as temporary:
             scientific = _analyse_image(
                 request,

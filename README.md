@@ -85,7 +85,8 @@ result = find_sources(request, config, SerialExecutor())
 print(result.catalogue_path, result.source_count)
 ```
 
-The output directory must not already exist. The
+The output directory must not already exist; running the same request again
+returns the products already there. The
 [source-finding tutorial](https://open-research.gemmadanks.com/hebog/tutorials/find-sources/)
 explains the settings, the products and how to run on Dask.
 

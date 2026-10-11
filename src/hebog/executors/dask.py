@@ -203,12 +203,16 @@ class DaskExecutor:
                     submitted += 1
                 if not window.mappers:
                     return
-                future = window.mappers.popleft()
+                # The future stays in the window until it has settled, so an
+                # exception that reaches the driver while it waits, as a
+                # caller's deadline does, still waits for this task below.
+                future = window.mappers[0]
                 wait([future])
                 if future.status == "error":
                     # Futures are consumed in input order, so the first
                     # failure observed is the first failing batch.
                     future.result()
+                window.mappers.popleft()
                 yield future
         finally:
             # Nothing more of the plan is submitted, and the call returns only

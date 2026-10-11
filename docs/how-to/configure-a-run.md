@@ -107,8 +107,11 @@ use Dask workers in separate processes rather than threads.
   killed process has provably stopped, and warns with
   `hebog.SourceFinderStagingWarning` about each one it finds; see
   [failure handling](../reference/public-products.md#what-a-failed-or-killed-run-leaves).
-- An existing output directory raises `hebog.SourceFinderOutputExistsError`.
-  Remove or rename it yourself, or choose another directory; Hebog never
+- Running a request again after its run finished returns the products it
+  published without analysing the image again, when the run ID, the input
+  bytes, the configuration and the Hebog science are the same.
+- Any other existing output directory raises
+  `hebog.SourceFinderOutputExistsError`. Remove or rename it yourself, or choose another directory; Hebog never
   deletes your files, only the staging directories its own stopped runs
   left.
 - To repeat a result exactly, pin the Hebog version and compare

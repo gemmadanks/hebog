@@ -79,20 +79,23 @@ LSMTool's; the rest are LSMTool's.
 | `rms_map`, `rms_box` | On, `(150, 50)` | The coarse RMS grid is 150-pixel windows on a 50-pixel step | Implemented |
 | `adaptive_rms_box`, `rms_box_bright`, `adaptive_thresh` | On, `(35, 7)`, `75.0` | Bright-region refinement on 35-pixel windows on a 7-pixel step around candidates at 75σ or more, plus local-noise refinement on the same windows everywhere | Implemented, with two bounded differences: the `continuum` RMS tail (task 49) and a clipped RMS 1.6 to 3.9% low on noise alone (task 68) |
 | `thresh`, `thresh_pix`, `thresh_isl` | `"hard"`; Rapthor's 5/3, 5/4 or the helper's 7.5/5 | `SourceFinderConfig`'s detection and island thresholds, executed exactly | Implemented |
-| `minpix_isl` | Unset, so `max(6, int(beam area in pixels / 3))` | `SourceFinderConfig.minimum_island_pixels`, which Rapthor's adapter sets by PyBDSF's rule from each image's beam | Decided (task 18); the adapter applies it (task 19) |
+| `minpix_isl` | Unset, so `max(6, int(beam area in pixels / 3))` | `SourceFinderConfig.minimum_island_pixels`, which the adapter sets by PyBDSF's rule from the true-sky image's beam | Implemented (task 19). Hebog applies one configuration to both images, so a flat-noise image whose beam gives another minimum is refused; WSClean writes both from one restoring beam |
 | `atrous_do`, `atrous_jmax` | On, 3 scales | Three residual multiscale scales in `continuum`; `compact` omits them | Implemented as Hebog's own multiscale association, not PyBDSF's wavelet decomposition |
-| Catalogue | `write_catalog(format="fits", catalog_type="srl", force_output=True)` | `catalogue.fits`; the eight-column view Rapthor reads ([Rapthor catalogue view](rapthor-catalogue-view.md)) | Implemented; the adapter writes it under Rapthor's name (task 19) |
-| True-sky RMS | `export_image(img_type="rms")` | `rms.fits` | Implemented |
-| Island mask | `export_image(img_type="island_mask")` as `<image>.mask.fits` | `source-mask.fits`, the publication support | Implemented, with a bounded difference: about 92% of PyBDSF's island pixels (task 49). LSMTool groups components into patches by the mask's islands, so the mask's connectivity, not only its coverage, reaches the sky model (task 21 measures it) |
-| Flat-noise RMS | A second pass with `stop_at="isl"`, RMS only | The request's `flat_noise_image_path`: the run estimates that image's background and RMS with the same configuration and publishes `flat-noise-rms.fits` | Implemented (task 18); the two branches run one after the other until the executor can run them together (task 72) |
+| Catalogue | `write_catalog(format="fits", catalog_type="srl", force_output=True)` | `catalogue.fits`; the adapter writes the eight-column view Rapthor reads ([Rapthor catalogue view](rapthor-catalogue-view.md)) as `<root>.source_catalog.fits` | Implemented |
+| True-sky RMS | `export_image(img_type="rms")` | `rms.fits`, copied to `<root>.true_sky_rms.fits`; a two-axis `float64` image, which Rapthor's `FITSImage` reads | Implemented |
+| Island mask | `export_image(img_type="island_mask")` as `<image>.mask.fits` | `source-mask.fits`, the publication support, which the adapter writes as `<true-sky image name>.mask.fits` in PyBDSF's layout: `float32` ones and zeros on two celestial axes, then a Stokes and a frequency axis of one pixel each. LSMTool's polygon clipping indexes `data[0, 0]` and its grouping reads the mask through casacore, so a two-axis mask fails there | Implemented, with a bounded difference: about 92% of PyBDSF's island pixels (task 49). LSMTool groups components into patches by the mask's islands, so the mask's connectivity, not only its coverage, reaches the sky model (task 21 measures it) |
+| Flat-noise RMS | A second pass with `stop_at="isl"`, RMS only | The request's `flat_noise_image_path`: the run estimates that image's background and RMS with the same configuration and publishes `flat-noise-rms.fits`, which the adapter copies to `<root>.flat_noise_rms.fits` | Implemented (task 18); the two branches run one after the other until the executor can run them together (task 72) |
 | Source count | `img.nsrc` | `SourceFinderResult.source_count` | Implemented |
-| All pixels blanked | `RuntimeError("All pixels in the image are blanked.")` from `collapse.py` | An empty catalogue, an all-NaN RMS and a zero mask, without an error | **Gap**: the adapter must raise that error or write the products Rapthor writes for it (task 19) |
+| All pixels blanked | `RuntimeError("All pixels in the image are blanked.")` from `collapse.py` | `find_sources` publishes an empty catalogue, an all-NaN RMS and a zero mask; the adapter then raises `RapthorBlankedImageError`, a `RuntimeError` carrying PyBDSF's message, for an image of either branch with no pixel to measure. Hebog also counts a pixel inside a 3×3 square of one value as blank, as imagers fill blanked regions, so an image of one value is blanked too | Implemented (task 19); Rapthor's existing handler writes its empty products |
 | Reference frequency | The frequency axis at the image plane, then `RESTFREQ`, then a `FREQ` keyword | The frequency axis at the image plane, then `RESTFRQ`, then `RESTFREQ`; a supplied value when the header has none | Implemented (task 16). Hebog also reads the standard `RESTFRQ`, which PyBDSF ignores, and refuses rather than reads a non-standard `FREQ` keyword |
 | `ncores` | Fitting processes | The cores the Dask worker declares, used by the thread executor or by each Dask task's threads (see below) | Task 72 |
 
-`RapthorCompatibilityConfig` holds only what the finder can honour: the
-`SourceFinderConfig` thresholds and LSMTool's `filter_by_mask`. The other
-options are fixed by Hebog's reviewed science.
+`RapthorCompatibilityConfig` holds what the finder honours, under Rapthor's
+names: `threshpix` and `threshisl`, and Hebog's `profile` and `background`,
+whose Rapthor values task 21 decides. The minimum island follows PyBDSF's
+rule, LSMTool's `filter_by_mask` stays with Rapthor's call to
+`filter_sources`, and the other options are fixed by Hebog's reviewed
+science.
 
 ## Sector image sizes
 
@@ -181,6 +184,30 @@ Two empty paths must be represented explicitly in tests:
 
 The reviewed policy keeps any required dummy component at the adapter
 boundary and represents unavailable RMS explicitly in the scientific core.
+With Hebog, the first path stays Rapthor's: when the adapter reports no
+island (`island_count` 0), Rapthor's task writes LSMTool's dummy component
+rather than calling `filter_sources` (plan task 20). For the second, the
+adapter raises `RapthorBlankedImageError`, which Rapthor's step handles as
+it handles PyBDSF's error.
+
+The adapter fails in ways Rapthor can act on:
+
+- Hebog's refusals are typed `SourceFinderError`s: an unreadable or
+  unsupported image, an image above Hebog's size envelope, images whose
+  beams give different minimum islands, or another run's bundle at
+  `<root>.hebog`. Before the analysis starts the adapter removes the four
+  files Rapthor reads, and a failure while writing them removes those it
+  wrote, so a fallback to PyBDSF never finds Hebog's files beside its own.
+- A retried task with the same request and run ID reuses Hebog's finished
+  bundle without analysing the images again, and writes Rapthor's files
+  from it once more, so a mask LSMTool has already clipped is replaced.
+- An executor retries a lost task, and the products equal those of a run
+  that lost none.
+- When the caller's deadline raises in the thread running the analysis, as
+  a Prefect task timeout does, every task the analysis started finishes
+  before the error propagates, none starts afterwards, and its staging
+  directory is removed.
+
 Missing inputs and unexpected errors fail the task rather than producing a
 silent empty result.
 
@@ -221,6 +248,30 @@ one way to provide several task slots a node;
 [ADR-010](../architecture/adr/010-scale-hebog-independently-of-its-integrations.md)
 states what Hebog needs from any cluster. The registry route, a `hebog`
 entry in LSMTool's `KNOWN_SOURCE_FINDERS`, is deferred.
+
+Rapthor's task builds a `RapthorSourceFindingRequest` from the sector's two
+images, its `<working directory>/<image name>` root and a run ID that a
+retry repeats, and a `RapthorCompatibilityConfig` from its strategy's
+`threshpix` and `threshisl`. It calls
+`hebog.adapters.find_sector_sources(request, config, executor)` and then,
+when the result reports an island, LSMTool's
+`filter_sources(result.mask_path, vertices_file, ...)` with
+`keep_mask=True`. The adapter imports no Rapthor, Prefect or LSMTool, and
+writes Hebog's own bundle, with its diagnostics and provenance, in
+`<root>.hebog`.
+
+In dual-run mode Rapthor runs both finders on the sector, each under its
+own root, and calls
+`hebog.adapters.rapthor_comparison.compare_sector_products(result, pybdsf,
+report_path)` before selecting one product set. The report reads both sets
+and changes neither. It binds the path, size and SHA-256 of all eight files
+and Hebog's provenance, and records each finder's source count, the sources
+that are each other's nearest within half the restoring beam's major axis,
+the median ratio of their `Total_flux`, the median ratio of each pair of RMS
+maps on every sixteenth pixel of each axis, and the island pixels each mask
+holds and both hold. On the frozen 256² input against pinned `master`, all
+three sources match, the flux ratio is 1.000, the RMS ratio is 0.981 and
+Hebog's mask holds 165 of PyBDSF's 178 island pixels and one more of its own.
 
 Reference comparisons use the explicit `5.0/3.0` profile with clean Rapthor
 and LSMTool checkouts at their recorded commits. Released and pinned-`master`

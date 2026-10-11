@@ -8,7 +8,9 @@ which needs a running scheduler.
 
 from __future__ import annotations
 
+import threading
 from collections.abc import Callable, Iterable, Iterator
+from concurrent.futures import CancelledError
 from typing import Any
 
 import pytest
@@ -26,6 +28,9 @@ from hebog.executors.base import (
     admitted_tasks_in_flight,
     call_with_retries,
     require_serializable_payloads,
+)
+from hebog.executors.threads import (
+    _CallGuard,  # pyright: ignore[reportPrivateUsage]
 )
 
 
@@ -651,3 +656,102 @@ def test_a_wait_the_client_cancels_keeps_the_failing_batch_error(
         "cancelled",
         "cancelled",
     ]
+
+
+class _CallerDeadlineError(Exception):
+    """A caller's deadline, raised in the thread that drives the call."""
+
+
+_SLOW_LOG_LOCK = threading.Lock()
+_SLOW_STARTED: list[int] = []
+_SLOW_FINISHED: list[int] = []
+
+
+def _logged_slow(value: int) -> int:
+    """Record when one batch starts and ends, around a short wait."""
+    with _SLOW_LOG_LOCK:
+        _SLOW_STARTED.append(value)
+    threading.Event().wait(0.05)
+    with _SLOW_LOG_LOCK:
+        _SLOW_FINISHED.append(value)
+    return value
+
+
+def test_a_task_orphaned_by_an_interrupted_submission_never_runs_late(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An exception that reaches the driver inside ``submit`` leaves no task.
+
+    A deadline the caller enforces by raising in the driving thread, as
+    Prefect does, can arrive after the pool queued a task but before the
+    driver holds its future. That task has either finished when the call
+    raises, or never runs, so nothing writes after the caller cleans up.
+    """
+    _SLOW_STARTED.clear()
+    _SLOW_FINISHED.clear()
+    executor = ThreadExecutor(1)
+    pool = executor._pool  # pyright: ignore[reportPrivateUsage]
+    submit = pool.submit
+    submissions: list[object] = []
+
+    def submit_until_the_deadline(*arguments: Any, **keywords: Any) -> Any:
+        future = submit(*arguments, **keywords)
+        submissions.append(future)
+        if len(submissions) == 2:
+            raise _CallerDeadlineError
+        return future
+
+    monkeypatch.setattr(pool, "submit", submit_until_the_deadline)
+
+    with executor:
+        with pytest.raises(_CallerDeadlineError):
+            executor.map_batches(_logged_slow, [0, 1, 2, 3])
+        with _SLOW_LOG_LOCK:
+            started_when_raised = sorted(_SLOW_STARTED)
+            finished_when_raised = sorted(_SLOW_FINISHED)
+        threading.Event().wait(0.3)
+
+    assert started_when_raised == finished_when_raised
+    assert sorted(_SLOW_STARTED) == started_when_raised
+
+
+def test_a_dask_call_interrupted_while_waiting_still_waits_for_that_task(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A deadline raised as the driver waits on a batch leaves none running.
+
+    The batch being waited for is still in flight when the exception
+    arrives, so the call waits for it as well as for the others before the
+    exception propagates.
+    """
+    from hebog.executors import dask as dask_module  # noqa: PLC0415
+
+    client = _StubClient()
+    waits: list[int] = []
+
+    def deadline_on_the_first_wait(
+        futures: Iterable[Any], **keywords: Any
+    ) -> None:
+        del keywords
+        waits.append(len(waits))
+        if len(waits) == 1:
+            raise _CallerDeadlineError
+        for future in futures:
+            future.settle()
+
+    monkeypatch.setattr(dask_module, "wait", deadline_on_the_first_wait)
+
+    with pytest.raises(_CallerDeadlineError):
+        _stub_reduction_executor(client).map_batches(_square, list(range(8)))
+
+    assert [future.status for future in client.futures] == ["finished"] * 3
+
+
+def test_a_task_of_a_stopped_thread_call_never_runs() -> None:
+    """Once a call has stopped, a task the pool still holds does nothing."""
+    guard = _CallGuard()
+    assert guard.run(_square, 3, 0) == 9
+    guard.stop()
+
+    with pytest.raises(CancelledError):
+        guard.run(_square, 2, 0)

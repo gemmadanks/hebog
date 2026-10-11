@@ -25,7 +25,7 @@ records enforce.
 | `ProductChunk`, Zarr storage schema, generation marker | 2, 3, 1 | `hebog.data_models.products`, `hebog.io.zarr`, `hebog.data_models.generations` |
 | Partition manifest | 1 | `hebog.data_models.partitioning` |
 | Staging owner record | 1 | `hebog.io.staging` |
-| Rapthor adapter records | 1 | `hebog.adapters.rapthor` |
+| Rapthor adapter records | 2 | `hebog.adapters.rapthor` |
 
 ## Source catalogue
 

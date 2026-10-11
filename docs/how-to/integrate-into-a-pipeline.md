@@ -77,8 +77,12 @@ oversubscribed.
 
 ## 3. Treat the output directory as one atomic product
 
-- The output directory must not exist. Hebog raises
-  `SourceFinderOutputExistsError` instead of overwriting.
+- The output directory must not exist, unless it holds the finished
+  products of the same request: the same run ID, inputs, configuration and
+  Hebog science. Then `find_sources` returns them without analysing the
+  image again, so a task retried after the finder returned resumes at once.
+  For any other existing path Hebog raises `SourceFinderOutputExistsError`
+  instead of overwriting.
 - Products are written to a private sibling directory, validated, and moved
   into place with one rename. A successful return, not the existence of the
   directory, means the products are ready.
@@ -103,7 +107,7 @@ oversubscribed.
 | `InvalidSourceFinderInputError` | Missing, unreadable, truncated or malformed FITS input, including a header that lacks a unit, beam or frequency the request does not supply | fix the file or supply the metadata, see the [tutorial](../tutorials/find-sources.md#prepare-the-input); do not retry unchanged |
 | `UnsupportedSourceFinderConfigurationError` | Readable file, but a unit other than `Jy/beam`, an unsupported coordinate frame, or a beam wider than 10 pixels | convert or regrid the image; see the [input header contract](../reference/input-header-contract.md) |
 | `SourceFinderImageTooLargeError` | Image exceeds a current size limit | cut the image or wait for a later release |
-| `SourceFinderOutputExistsError` | Output directory already exists | choose a new directory |
+| `SourceFinderOutputExistsError` | Output directory exists and does not hold this request's finished products | choose a new directory |
 
 All derive from `SourceFinderError`. An image with no detectable sources is
 **not** an error: it returns an empty catalogue.
@@ -131,14 +135,15 @@ that as "no sources exist". See the
 Hebog analyses one image. Your pipeline remains responsible for:
 
 - scheduling, retries across tasks and resource admission;
-- combining several images, for example primary-beam-corrected and flat-noise
-  versions of the same field;
+- combining several images, apart from a field's flat-noise image, whose
+  RMS one run publishes beside the primary-beam-corrected image's products;
 - filtering or grouping an existing sky model with the mask; and
 - translating products into another tool's file names or column conventions.
 
-A Rapthor-specific adapter for the last two items is planned but not yet
-implemented; see the
-[Rapthor source-finding contract](../reference/rapthor-source-finding-contract.md).
+For Rapthor, `hebog.adapters.find_sector_sources` writes Rapthor's file names
+and catalogue columns, and LSMTool's `filter_sources` filters and groups the
+sky model with the island mask; see the
+[Rapthor source-finding contract](../reference/rapthor-source-finding-contract.md#how-hebog-runs-inside-rapthor).
 
 ## Versioning
 

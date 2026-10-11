@@ -75,9 +75,10 @@ The public entry point is `hebog.find_sources(request, config, executor)`.
 - `io/` holds the image-source and stage-read protocols (`base.py`),
   bounded FITS input, the Zarr v3 intermediate plane store, and restartable
   FITS/JSON product materialisation.
-- `adapters/` is the Rapthor compatibility boundary: serializable records and
-  the eight-column PyBDSF-style catalogue codec. No adapter runs
-  `find_sources` yet. It must not import Rapthor, Prefect, or LSMTool.
+- `adapters/` is the Rapthor compatibility boundary: `find_sector_sources`
+  runs one sector through `find_sources` and writes Rapthor's files, with
+  the eight-column PyBDSF-style catalogue codec and the dual-run comparison
+  report. It must not import Rapthor, Prefect, or LSMTool.
 - `validation/` provides campaign, evidence, comparison, and dataset tooling
   for `scripts/` and tests. No production module outside `validation/` imports
   it, and wheels exclude it. Keep it that way, so the source finder stays

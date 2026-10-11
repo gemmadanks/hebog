@@ -1,0 +1,61 @@
+# Pinned LSMTool, to run its filter_sources on products Hebog wrote on the
+# host. Hebog itself is not installed: its products are bind-mounted.
+#
+# Platform: linux/amd64. bdsf, python-casacore and everybeam publish Linux
+# wheels for x86-64 only, as Rapthor deploys; on Apple silicon the image runs
+# under Podman's Rosetta emulation. LSMTool imports bdsf and casacore when
+# filter_skymodel is imported, but filter_sources with no beam Measurement
+# Set never calls either, and never imports everybeam.
+#
+# The build context holds lsmtool.tar, `git archive` of LSMTool commit
+# 9bac2f7fabdc15cd9490acfeb9c292aa72af59b7; the host checks the archive's
+# commit with `git get-tar-commit-id` before building (README.md).
+
+# Ubuntu 24.04 (Python 3.12.3), the linux/amd64 manifest of the ubuntu:24.04
+# index sha256:224a1869083a311ef3f13648a154ba79832fbef6364d31493642ca03082da254.
+FROM docker.io/library/ubuntu@sha256:a61567bd31828687156d735ea8eb01ba4e37636e225dd6a48ba94136a70d9d61 AS base
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        python3 \
+        python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+# LSMTool builds with scikit-build-core, and BUILD_EXTENSIONS is OFF at this
+# commit, so the wheel is pure Python and needs no compiler. The archive has
+# no .git, so setuptools-scm is given the version `git describe` derives.
+FROM base AS lsmtool-wheel
+
+RUN python3 -m venv /opt/build-venv
+ENV PATH="/opt/build-venv/bin:${PATH}"
+COPY requirements-lsmtool-build.txt /tmp/requirements-lsmtool-build.txt
+RUN python -m pip install --no-cache-dir --require-hashes \
+        --requirement /tmp/requirements-lsmtool-build.txt
+COPY lsmtool.tar /tmp/lsmtool.tar
+RUN mkdir /tmp/lsmtool \
+    && tar -xf /tmp/lsmtool.tar -C /tmp/lsmtool \
+    && SETUPTOOLS_SCM_PRETEND_VERSION_FOR_LSMTOOL=1.9.1.dev15+g9bac2f7 \
+        python -m pip wheel --no-cache-dir --no-build-isolation --no-deps \
+        --wheel-dir /wheels /tmp/lsmtool
+
+FROM base AS runtime
+
+RUN python3 -m venv /opt/lsmtool
+ENV PATH="/opt/lsmtool/bin:${PATH}" \
+    PYTHONUNBUFFERED=1 \
+    MPLBACKEND=Agg
+COPY requirements-lsmtool-runtime.txt /tmp/requirements-lsmtool-runtime.txt
+RUN python -m pip install --no-cache-dir --require-hashes \
+        --requirement /tmp/requirements-lsmtool-runtime.txt \
+    && rm /tmp/requirements-lsmtool-runtime.txt
+COPY --from=lsmtool-wheel /wheels/ /tmp/wheels/
+RUN python -m pip install --no-cache-dir --no-deps /tmp/wheels/lsmtool-*.whl \
+    && rm -r /tmp/wheels \
+    && python -m pip check \
+    && python -c "import importlib.metadata as m; assert m.version('lsmtool') == '1.9.1.dev15+g9bac2f7'" \
+    && python -c "from lsmtool.filter_skymodel.bdsf import filter_sources"
+WORKDIR /work
+LABEL org.hebog.purpose="lsmtool-integration" \
+      org.hebog.lsmtool-revision="9bac2f7fabdc15cd9490acfeb9c292aa72af59b7"
