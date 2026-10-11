@@ -13,7 +13,9 @@ from the serial run's island mask, and the LSMTool container
 products with them, as Rapthor's step will after calling the adapter. The
 check passes when LSMTool keeps, groups and transfers exactly what the mask
 decides and every executor's products give the same result; it writes
-``report.json`` in the output directory and exits 1 otherwise::
+``report.json`` in the output directory and exits 1 otherwise. An output
+directory that holds a finished run is reused through the adapter's retry
+reuse::
 
     uv run python scripts/validation/check_lsmtool_filter.py \\
         --true-sky TRUE.fits --flat-noise FLAT.fits --output DIRECTORY
@@ -142,15 +144,24 @@ def main() -> int:
     parser.add_argument("--threshpix", type=float, default=5.0)
     parser.add_argument("--threshisl", type=float, default=3.0)
     parser.add_argument("--margin", type=float, default=0.1)
+    parser.add_argument("--islands", type=int, default=2_000)
+    parser.add_argument("--decoys", type=int, default=20)
+    parser.add_argument(
+        "--executors",
+        default="serial,threads,dask",
+        help="comma-separated executors; the first one's mask is planned",
+    )
     arguments = parser.parse_args()
     output = arguments.output.absolute()
-    output.mkdir(parents=True)
+    # A finished run in an existing output is reused, not recomputed.
+    output.mkdir(parents=True, exist_ok=True)
     config = RapthorCompatibilityConfig(
         threshpix=arguments.threshpix, threshisl=arguments.threshisl
     )
     results: dict[str, RapthorSourceFindingResult] = {}
-    for name, make in _executors(arguments.cores).items():
-        with make() as executor:
+    executors = _executors(arguments.cores)
+    for name in arguments.executors.split(","):
+        with executors[name]() as executor:
             results[name] = find_sector_sources(
                 RapthorSourceFindingRequest(
                     true_sky_image_path=arguments.true_sky,
@@ -168,11 +179,13 @@ def main() -> int:
         )
     inputs = output / "inputs"
     plan = plan_filter_inputs(
-        results["serial"].mask_path,
+        next(iter(results.values())).mask_path,
         arguments.true_sky,
         arguments.flat_noise,
         inputs,
         margin_fraction=arguments.margin,
+        island_limit=arguments.islands,
+        decoy_count=arguments.decoys,
     )
     outcomes = {}
     filter_seconds = {}

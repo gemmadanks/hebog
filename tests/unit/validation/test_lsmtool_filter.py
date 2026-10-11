@@ -55,7 +55,9 @@ def _write(path: Path, plane: np.ndarray, *, mask: bool) -> Path:
 _BLANKED_FROM_ROW = 90
 
 
-def _plan(tmp_path: Path, *, decoy_count: int = 12) -> FilterPlan:
+def _plan(
+    tmp_path: Path, *, decoy_count: int = 12, island_limit: int = 2_000
+) -> FilterPlan:
     """Plan for islands A and B inside the polygon and C in its margin.
 
     A one-pixel line is too thin to hold a component, and the true-sky
@@ -76,6 +78,7 @@ def _plan(tmp_path: Path, *, decoy_count: int = 12) -> FilterPlan:
         _write(tmp_path / "flat-noise.fits", flat_noise, mask=False),
         tmp_path / "inputs",
         margin_fraction=0.1,
+        island_limit=island_limit,
         decoy_count=decoy_count,
     )
 
@@ -259,3 +262,22 @@ def test_the_worker_summary_reads_as_an_outcome(tmp_path: Path) -> None:
     assert outcome.apparent_patches == {"a": "mask_patch_1"}
     assert outcome.apparent_fluxes_jy == {"a": 0.5}
     assert outcome.groups() == {frozenset({"a", "b"})}
+
+
+def test_a_plan_samples_islands_evenly_up_to_its_limit(
+    tmp_path: Path,
+) -> None:
+    """A sector-sized mask gives components to a bounded share of islands.
+
+    Of the four islands, numbered C, A, B and the line in raster order, a
+    limit of three takes the first, the middle and the last; the line is
+    too thin, so only A's two components remain to be kept.
+    """
+    plan = _plan(tmp_path, island_limit=3, decoy_count=0)
+
+    assert {component.name for component in plan.components} == {
+        "island1a",
+        "island2a",
+        "island2b",
+    }
+    assert plan.kept() == {"island2a", "island2b"}

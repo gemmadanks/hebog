@@ -21,7 +21,9 @@ polygon border cannot change the outcome.
 
 from __future__ import annotations
 
+import hashlib
 import json
+import math
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -42,6 +44,9 @@ _INTERIOR_PIXELS = 2.0
 _DECOY_CLEARANCE_PIXELS = 3.0
 _POLYGON_CLEARANCE_PIXELS = 2.0
 _QUARTER_PIXEL = 0.25
+# Decoys are drawn from a grid of about this many points, so a sector-sized
+# mask is never searched pixel by pixel.
+_DECOY_GRID_POINTS = 10_000
 _FLUX_RELATIVE_TOLERANCE = 1e-5
 _SKY_MODEL_FORMAT = (
     "FORMAT = Name, Type, Ra, Dec, I, SpectralIndex, LogarithmicSI, "
@@ -128,9 +133,17 @@ class FilterOutcome:
         return frozenset(frozenset(names) for names in patches.values())
 
 
-def _plane(data: Any) -> npt.NDArray[np.float64]:
-    """Return the image plane of a FITS array with leading axes of one."""
-    return np.asarray(data[(0,) * (data.ndim - 2)], dtype=np.float64)
+def _nonzero_plane(data: Any) -> npt.NDArray[np.bool_]:
+    """Return where a FITS mask's image plane is not zero."""
+    return np.asarray(data[(0,) * (data.ndim - 2)] != 0, dtype=np.bool_)
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def _inset_rectangle(
@@ -170,20 +183,26 @@ def _inside(
     )
 
 
+def _rectangle(
+    polygon: tuple[tuple[float, float], ...],
+) -> tuple[slice, slice]:
+    """Return the slices of the pixels whose centres the rectangle holds."""
+    xs = [corner[0] for corner in polygon]
+    ys = [corner[1] for corner in polygon]
+    return (
+        slice(max(0, math.ceil(min(ys))), max(0, math.floor(max(ys)) + 1)),
+        slice(max(0, math.ceil(min(xs))), max(0, math.floor(max(xs)) + 1)),
+    )
+
+
 def _clipped(
     mask: npt.NDArray[np.bool_], polygon: tuple[tuple[float, float], ...]
 ) -> npt.NDArray[np.bool_]:
     """Return the mask with every pixel outside the rectangle cleared."""
-    y_pixels, x_pixels = np.mgrid[: mask.shape[0], : mask.shape[1]]
-    xs = [corner[0] for corner in polygon]
-    ys = [corner[1] for corner in polygon]
-    inside = (
-        (x_pixels >= min(xs))
-        & (x_pixels <= max(xs))
-        & (y_pixels >= min(ys))
-        & (y_pixels <= max(ys))
-    )
-    return mask & inside
+    clipped = np.zeros_like(mask)
+    inside = _rectangle(polygon)
+    clipped[inside] = mask[inside]
+    return clipped
 
 
 def _islands(
@@ -204,43 +223,83 @@ def _distance_to_edge(
     return np.asarray(ndimage.distance_transform_edt(region), dtype=np.float64)
 
 
+def _island_sites(
+    labels: npt.NDArray[np.int32], label: int, box: tuple[slice, slice]
+) -> list[tuple[str, int, int]]:
+    """Return an island's deepest pixel, and one three pixels from it.
+
+    The depth is measured within the island's bounding box, padded so the
+    box edge counts as outside the island.
+    """
+    depth = _distance_to_edge(np.pad(labels[box] == label, 1))[1:-1, 1:-1]
+    candidates = np.argwhere(depth >= _INTERIOR_PIXELS)
+    if not len(candidates):
+        return []
+    candidates += np.array([box[0].start, box[1].start])
+    depths = depth[depth >= _INTERIOR_PIXELS]
+    first = candidates[int(np.argmax(depths))]
+    sites = [(f"island{label}a", int(first[1]), int(first[0]))]
+    apart = np.hypot(*(candidates - first).T) >= _DECOY_CLEARANCE_PIXELS
+    if apart.any():
+        second = candidates[apart][int(np.argmax(depths[apart]))]
+        sites.append((f"island{label}b", int(second[1]), int(second[0])))
+    return sites
+
+
+def _decoy_sites(
+    mask: npt.NDArray[np.bool_], decoy_count: int
+) -> list[tuple[str, int, int]]:
+    """Return background points with no island pixel within three pixels.
+
+    They are spread evenly over a grid of about 10,000 points.
+    """
+    height, width = mask.shape
+    radius = int(_DECOY_CLEARANCE_PIXELS)
+    step = max(1, math.isqrt(mask.size // _DECOY_GRID_POINTS))
+    clear = [
+        (x, y)
+        for y in range(radius, height - radius, step)
+        for x in range(radius, width - radius, step)
+        if not mask[
+            y - radius : y + radius + 1, x - radius : x + radius + 1
+        ].any()
+    ]
+    if not decoy_count or not clear:
+        return []
+    chosen = np.unique(np.linspace(0, len(clear) - 1, decoy_count).astype(int))
+    return [
+        (f"decoy{index}", *clear[int(row)]) for index, row in enumerate(chosen)
+    ]
+
+
 def _component_sites(
     mask: npt.NDArray[np.bool_],
     polygon: tuple[tuple[float, float], ...],
+    *,
+    island_limit: int,
     decoy_count: int,
 ) -> list[tuple[str, int, int]]:
     """Choose interior island pixels and clear background pixels.
 
-    Each island large enough gets its deepest pixel, and a second one at
-    least three pixels away when it has one, so grouping joins two
-    components. Decoys are spread evenly through the background pixels at
-    least three pixels from every island, both inside and outside the
-    polygon.
+    Up to ``island_limit`` islands, spread evenly through their raster
+    order, each get their deepest pixel, and a second one at least three
+    pixels away when they have one, so grouping joins two components.
+    Decoys sit at least three pixels from every island, both inside and
+    outside the polygon.
     """
     labels, count = _islands(mask)
-    depth = _distance_to_edge(mask)
-    sites: list[tuple[str, int, int]] = []
-    for label in range(1, count + 1):
-        candidates = np.argwhere(
-            (labels == label) & (depth >= _INTERIOR_PIXELS)
-        )
-        if not len(candidates):
-            continue
-        depths = depth[candidates[:, 0], candidates[:, 1]]
-        first = candidates[int(np.argmax(depths))]
-        sites.append((f"island{label}a", int(first[1]), int(first[0])))
-        apart = np.hypot(*(candidates - first).T) >= _DECOY_CLEARANCE_PIXELS
-        if apart.any():
-            second = candidates[apart][int(np.argmax(depths[apart]))]
-            sites.append((f"island{label}b", int(second[1]), int(second[0])))
-    clearance = _distance_to_edge(~mask)
-    background = np.argwhere(clearance >= _DECOY_CLEARANCE_PIXELS)
-    if decoy_count and len(background):
-        chosen = np.linspace(0, len(background) - 1, decoy_count).astype(int)
-        sites.extend(
-            (f"decoy{index}", int(background[row][1]), int(background[row][0]))
-            for index, row in enumerate(np.unique(chosen))
-        )
+    boxes = ndimage.find_objects(labels)
+    chosen = (
+        np.unique(np.linspace(1, count, min(count, island_limit)).astype(int))
+        if count and island_limit
+        else np.empty(0, dtype=int)
+    )
+    sites = [
+        site
+        for label in chosen
+        for site in _island_sites(labels, int(label), boxes[int(label) - 1])
+    ]
+    sites.extend(_decoy_sites(mask, decoy_count))
     return [
         site
         for site in sites
@@ -270,19 +329,22 @@ def plan_filter_inputs(  # noqa: PLR0913
     directory: Path,
     *,
     margin_fraction: float = 0.1,
+    island_limit: int = 2_000,
     decoy_count: int = 20,
 ) -> FilterPlan:
     """Write a sector polygon and sky models whose outcome the mask decides.
 
     The polygon is the image inset by ``margin_fraction`` of each side, so
-    islands in the margin are clipped away. Each true-sky component's
+    islands in the margin are clipped away. At most ``island_limit`` islands
+    carry components, which keeps LSMTool's per-component mask lookups
+    bounded on a sector-sized mask. Each true-sky component's
     apparent flux is its true flux times the primary-beam attenuation at its
     pixel, the flat-noise image over the true-sky image.
     """
     directory.mkdir(parents=True, exist_ok=True)
-    with fits.open(mask_path) as hdus:
+    with fits.open(mask_path, memmap=True) as hdus:
         header = hdus[0].header
-        mask = _plane(hdus[0].data) != 0
+        mask = _nonzero_plane(hdus[0].data)
     celestial = WCS(header).celestial
     frequency = float(header["CRVAL4"])
     polygon = _inset_rectangle(mask.shape, margin_fraction)
@@ -295,7 +357,12 @@ def plan_filter_inputs(  # noqa: PLR0913
         flat_plane = flat_noise[0].data[(0,) * (flat_noise[0].data.ndim - 2)]
         components = []
         for index, (name, x, y) in enumerate(
-            _component_sites(mask, polygon, decoy_count)
+            _component_sites(
+                mask,
+                polygon,
+                island_limit=island_limit,
+                decoy_count=decoy_count,
+            )
         ):
             attenuation = float(flat_plane[y, x]) / float(true_plane[y, x])
             if not (np.isfinite(attenuation) and attenuation > 0):
@@ -394,19 +461,19 @@ def filter_failures(
         ):
             failures.append(f"{executor}: apparent-sky fluxes changed")
     for executor, path in clipped_masks.items():
-        with fits.open(path) as hdus:
-            clipped = _plane(hdus[0].data) != 0
-        outside = clipped & ~_clipped(
-            np.ones_like(clipped), _inset_by(plan.polygon_pixels, -1.0)
+        with fits.open(path, memmap=True) as hdus:
+            clipped = _nonzero_plane(hdus[0].data)
+        inside = _rectangle(_inset_by(plan.polygon_pixels, -1.0))
+        outside = int(np.count_nonzero(clipped)) - int(
+            np.count_nonzero(clipped[inside])
         )
-        if outside.any():
+        if outside:
             failures.append(
-                f"{executor}: {int(outside.sum())} mask pixels lie outside "
-                "the polygon"
+                f"{executor}: {outside} mask pixels lie outside the polygon"
             )
     if len({_canonical(outcome) for outcome in outcomes.values()}) > 1:
         failures.append("the executors' filtered sky models differ")
-    if len({path.read_bytes() for path in clipped_masks.values()}) > 1:
+    if len({_file_sha256(path) for path in clipped_masks.values()}) > 1:
         failures.append("the executors' clipped masks differ")
     return failures
 
