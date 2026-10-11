@@ -245,7 +245,7 @@ class PublicSourceFindingProvenance(BaseModel):
     scientific_profile_sha256: str
     scientific_composition_sha256: str
     scientific_composition: Literal[
-        "phase-5-evidence-bound-public-catalogue-v22"
+        "phase-5-evidence-bound-public-catalogue-v23"
     ]
     supplied_image_metadata: SuppliedImageMetadata | None = None
     flat_noise_input_sha256: str | None = None
@@ -310,8 +310,37 @@ class WideObjectCounts(BaseModel):
         return self
 
 
+class BrightRegionCounts(BaseModel):
+    """How far one background estimate refined around bright candidates.
+
+    ``candidate_count`` counts the bright candidates the estimate found, at
+    or above its bright-candidate threshold. The estimate refines the noise
+    around each; candidates close enough to chain merge into one region,
+    which can span the image, and its fine cells are estimated in bounded
+    blocks. ``largest_read_pixels`` is the most pixels one of those tasks
+    read, zero when none read any.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+
+    candidate_count: int = 0
+    largest_read_pixels: int = 0
+
+    @model_validator(mode="after")
+    def _validate_counts(self) -> Self:
+        """Reject a negative count."""
+        if min(self.candidate_count, self.largest_read_pixels) < 0:
+            raise ValueError("bright-region counts cannot be negative")
+        return self
+
+
 class PublicSourceFindingDiagnostics(BaseModel):
-    """Public-run diagnostics retain explicit measurement dispositions."""
+    """Public-run diagnostics retain explicit measurement dispositions.
+
+    ``bright_regions`` describes the true-sky background estimate and
+    ``flat_noise_bright_regions`` the flat-noise image's, present exactly
+    when the run had one.
+    """
 
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
@@ -329,10 +358,14 @@ class PublicSourceFindingDiagnostics(BaseModel):
     wide_object_counts: WideObjectCounts = Field(
         default_factory=WideObjectCounts
     )
+    bright_regions: BrightRegionCounts = Field(
+        default_factory=BrightRegionCounts
+    )
+    flat_noise_bright_regions: BrightRegionCounts | None = None
     measurement_dispositions: tuple[MeasurementDisposition, ...] = ()
     rms_scientific_status: Literal["valid", "unavailable"]
     provenance: PublicSourceFindingProvenance
-    schema_version: Literal[12] = 12
+    schema_version: Literal[13] = 13
 
     @model_validator(mode="after")
     def _validate_diagnostics(self) -> Self:
@@ -357,6 +390,13 @@ class PublicSourceFindingDiagnostics(BaseModel):
         if self.profile_limitations != expected_limitations:
             raise ValueError(
                 "public diagnostics limitations must match the profile"
+            )
+        if (self.flat_noise_bright_regions is None) != (
+            self.provenance.flat_noise_input_sha256 is None
+        ):
+            raise ValueError(
+                "flat-noise bright-region counts must match the flat-noise "
+                "input"
             )
         entries = self.measurement_dispositions
         identities = tuple(

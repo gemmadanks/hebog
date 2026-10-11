@@ -18,6 +18,7 @@ from distributed import Client, LocalCluster
 
 from hebog import SourceFinderResult
 from hebog.algorithms.partitioning import plan_image_partitions
+from hebog.data_models import BrightRegionCounts
 from hebog.data_models.partitioning import ImageBounds
 from hebog.data_models.products import ProductChunk
 from hebog.executors import (
@@ -28,6 +29,7 @@ from hebog.executors import (
     ThreadExecutor,
 )
 from hebog.io.zarr import ZarrProductSink
+from hebog.stages.composition import BackgroundEstimate
 
 _BACKGROUND_TILE_SHAPE_YX = (128, 128)
 _Input = TypeVar("_Input")
@@ -143,7 +145,7 @@ def _publish_background_rms(
     return sink
 
 
-EstimatedNoise = tuple[ZarrProductSink, bool]
+EstimatedNoise = BackgroundEstimate
 
 SubstituteBackgroundRms = Callable[
     [
@@ -183,7 +185,7 @@ def _substituted_background_rms(
         usable = bool(
             np.any(np.isfinite(image_jy_per_beam) & (rms_jy_per_beam > 0.0))
         )
-        return sink, usable
+        return BackgroundEstimate(sink, usable, BrightRegionCounts())
 
     return estimate
 

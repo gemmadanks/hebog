@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from functools import partial
+from itertools import islice
 from math import ceil, floor, isfinite, prod
 from typing import Literal, cast
 
@@ -55,14 +56,17 @@ from hebog.data_models.partitioning import ImageBounds, TilePartition
 from hebog.executors.base import Executor
 from hebog.io.base import ImageWindow, WindowReadable
 
-# Every local-noise batch reads its own cells plus the protection halo, and
-# re-derives the wavelet bank over that whole context, so halo pixels are paid
-# for once per batch. The halo is many cell strides wide, which makes small
-# batches overwhelmingly halo: 16-by-16 cells filtered 22 times the image on a
-# dense 1,024-pixel case, against 3.4 times at 48 by 48. Larger batches are
-# still bounded by the same context admission, and the owned cells decide the
-# result, so this trades occupancy for work rather than changing any value.
-_LOCAL_NOISE_CONTEXT_CELLS = 2304
+# Every protected block, of local-noise cells or of a bright region's fine
+# cells, reads its own cells plus the protection halo, and re-derives the
+# wavelet bank over that whole context, so halo pixels are paid for once per
+# block. The halo is many cell strides wide, which makes small blocks
+# overwhelmingly halo: 16-by-16 cells filtered 22 times the image on a dense
+# 1,024-pixel case, against 3.4 times at 48 by 48. Larger blocks are still
+# bounded by the same context admission. The owned cells decide the result,
+# except where emission a block's side cuts off reaches across the halo into
+# them (see `_labels_cut_off_by_the_read`), so this trades occupancy for
+# work and moves a value only beside such emission.
+_PROTECTED_CONTEXT_CELLS = 2304
 # A local-noise cell whose window touches guarded source support takes its
 # nearest clean window's RMS, but never below this fraction of the coarse RMS
 # at its centre, or of the largest clean window within half a coarse window
@@ -85,13 +89,18 @@ class AdaptiveRmsRegion:
 
 @dataclass(frozen=True, slots=True)
 class BackgroundRmsGrids:
-    """Prepared coarse and optional sparse adaptive interpolation caches."""
+    """Prepared coarse and optional sparse adaptive interpolation caches.
+
+    ``largest_bright_region_read_pixels`` is the most pixels one task read
+    to estimate the fine grids around bright candidates, zero if none did.
+    """
 
     coarse: PreparedRmsGrid
     adaptive_regions: tuple[AdaptiveRmsRegion, ...]
     coarse_protected_pixel_count: int = 0
     local_noise: PreparedRmsGrid | None = None
     local_noise_protected_window_count: int = 0
+    largest_bright_region_read_pixels: int = 0
 
     @property
     def adaptive_estimated_cell_count(self) -> int:
@@ -146,7 +155,15 @@ class _CandidateRegion:
 
 @dataclass(frozen=True, slots=True)
 class _AdaptiveRegionRequest:
-    """Bounded inputs for one source-protected adaptive grid."""
+    """Bounded inputs for one source-protected grid or block of its cells.
+
+    A block reads its cells' windows widened by the filter and context halos
+    and clipped to ``context_limit``. Emission that a side of the read inside
+    the limit cuts off may belong to a source the block cannot see, so it is
+    protected (:func:`_labels_cut_off_by_the_read`). ``counted_bounds`` are
+    the pixels whose protection the block reports, so that blocks sharing
+    pixels count each once; without them the whole read is counted.
+    """
 
     grid: RmsGridGeometry
     coarse: PreparedRmsGrid
@@ -157,14 +174,26 @@ class _AdaptiveRegionRequest:
     guard_window_shape_yx: tuple[int, int] | None = None
     detection_rms: PreparedRmsGrid | None = None
     context_halo_pixels: int = 0
+    context_limit: ImageBounds | None = None
+    counted_bounds: ImageBounds | None = None
 
 
 @dataclass(frozen=True, slots=True)
-class _LocalNoiseRequest:
+class _ProtectedBlockRequest:
     """One globally owned fine-cell block and its bounded protection input."""
 
     batch: RmsWindowBatch
     region: _AdaptiveRegionRequest
+
+
+@dataclass(frozen=True, slots=True)
+class _ContextBlock:
+    """One block of cells, the window it reads and the pixels it counts."""
+
+    batch: RmsWindowBatch
+    cells: RmsGridGeometry
+    read_bounds: ImageBounds
+    counted_bounds: ImageBounds
 
 
 @dataclass(frozen=True, slots=True)
@@ -198,15 +227,22 @@ def _protection_filter_bank(
     )
 
 
-def _filter_read_bounds(grid: RmsGridGeometry, halo: int) -> ImageBounds:
-    """Include filtering context beyond the fine estimator windows."""
+def _filter_read_bounds(
+    grid: RmsGridGeometry, halo: int, limit: ImageBounds | None = None
+) -> ImageBounds:
+    """Include filtering context beyond the fine estimator windows.
+
+    The context is clipped to ``limit``, or to the image without one.
+    """
     bounds = _grid_read_bounds(grid)
-    height, width = grid.image_shape_yx
+    if limit is None:
+        height, width = grid.image_shape_yx
+        limit = ImageBounds(0, height, 0, width)
     return ImageBounds(
-        max(0, bounds.y_start - halo),
-        min(height, bounds.y_stop + halo),
-        max(0, bounds.x_start - halo),
-        min(width, bounds.x_stop + halo),
+        max(limit.y_start, bounds.y_start - halo),
+        min(limit.y_stop, bounds.y_stop + halo),
+        max(limit.x_start, bounds.x_start - halo),
+        min(limit.x_stop, bounds.x_stop + halo),
     )
 
 
@@ -427,6 +463,40 @@ def _grid_read_bounds(grid: RmsGridGeometry) -> ImageBounds:
     )
 
 
+def _labels_cut_off_by_the_read(
+    labels: npt.NDArray[np.int32],
+    bounds: ImageBounds,
+    limit: ImageBounds | None,
+) -> set[int]:
+    """Return the labels on a side of the read that lies inside ``limit``.
+
+    Such a label may continue past the read to a source seed the task cannot
+    see, so a bounded block protects it. A side on the limit is where the
+    image ends, or where one read of a whole bright region would end, so no
+    label continues past it that such a read would have seen. A read
+    without a limit is a whole grid's, which no side cuts.
+    """
+    if limit is None:
+        return set()
+    cut_sides = (
+        bounds.y_start > limit.y_start,
+        bounds.y_stop < limit.y_stop,
+        bounds.x_start > limit.x_start,
+        bounds.x_stop < limit.x_stop,
+    )
+    return {
+        int(value)
+        for cut, edge in zip(
+            cut_sides,
+            (labels[0], labels[-1], labels[:, 0], labels[:, -1]),
+            strict=True,
+        )
+        if cut
+        for value in np.unique(edge)
+        if value > 0
+    }
+
+
 def _connected_source_protection(  # noqa: PLR0913
     normalized_residual: npt.NDArray[np.float64],
     scientifically_valid: npt.NDArray[np.bool_],
@@ -435,10 +505,13 @@ def _connected_source_protection(  # noqa: PLR0913
     *,
     island_threshold_sigma: float,
     source_finder: SourceFinderConfig | None = None,
-    protect_context_boundary: bool = False,
-    image_shape_yx: tuple[int, int] | None = None,
+    context_limit: ImageBounds | None = None,
 ) -> npt.NDArray[np.bool_]:
-    """Return candidate-connected public-island support in one bounded read."""
+    """Return candidate-connected public-island support in one bounded read.
+
+    With ``context_limit``, support cut off by a side of the read inside it
+    is protected too (:func:`_labels_cut_off_by_the_read`).
+    """
     membership = scientifically_valid & (
         normalized_residual >= island_threshold_sigma
     )
@@ -489,26 +562,9 @@ def _connected_source_protection(  # noqa: PLR0913
             if label > 0
             and counts[label] >= source_finder.minimum_island_pixels
         )
-    if protect_context_boundary:
-        if image_shape_yx is None:
-            raise ValueError(
-                "boundary protection requires the full image shape"
-            )
-        internal_sides = (
-            bounds.y_start > 0,
-            bounds.y_stop < image_shape_yx[0],
-            bounds.x_start > 0,
-            bounds.x_stop < image_shape_yx[1],
-        )
-        for internal, edge in zip(
-            internal_sides,
-            (labels[0], labels[-1], labels[:, 0], labels[:, -1]),
-            strict=True,
-        ):
-            if internal:
-                candidate_labels.update(
-                    int(value) for value in np.unique(edge) if value > 0
-                )
+    candidate_labels |= _labels_cut_off_by_the_read(
+        labels, bounds, context_limit
+    )
     protected = np.isin(labels, tuple(sorted(candidate_labels)))
     protected.setflags(write=False)
     return np.asarray(protected, dtype=np.bool_)
@@ -559,6 +615,7 @@ def _estimate_source_protected_region_statistics(
         request.grid,
         (bank.maximum_halo_pixels if bank is not None else 0)
         + request.context_halo_pixels,
+        request.context_limit,
     )
     image_window = source.read_window(bounds)
     if image_window.bounds != bounds:
@@ -603,8 +660,7 @@ def _estimate_source_protected_region_statistics(
             and multiscale_protection is not None
             else None
         ),
-        protect_context_boundary=request.protection == "local-noise-windows",
-        image_shape_yx=request.grid.image_shape_yx,
+        context_limit=request.context_limit,
     )
     if multiscale_protection is not None and bank is not None:
         policy = multiscale_protection
@@ -640,8 +696,15 @@ def _estimate_source_protected_region_statistics(
                     persistent | connected_protection, np.ones((3, 3))
                 ),
             )
-            selected = np.unique(labels[connected_protection])
-            connected_protection = np.isin(labels, selected[selected > 0])
+            selected = {
+                int(label)
+                for label in np.unique(labels[connected_protection])
+                if label > 0
+            }
+            selected |= _labels_cut_off_by_the_read(
+                labels, bounds, request.context_limit
+            )
+            connected_protection = np.isin(labels, tuple(sorted(selected)))
         if request.protection == "local-noise-windows":
             # A protection context is not a source catalogue: components
             # whose seed search is truncated must not contaminate statistics.
@@ -655,8 +718,7 @@ def _estimate_source_protected_region_statistics(
                     bounds,
                     (),
                     island_threshold_sigma=island_threshold_sigma,
-                    protect_context_boundary=True,
-                    image_shape_yx=request.grid.image_shape_yx,
+                    context_limit=request.context_limit,
                 )
     protected = _guard_source_protection(
         connected_protection,
@@ -700,24 +762,28 @@ def _estimate_source_protected_region_statistics(
             )
         )
     statistics = assemble_rms_grid_statistics(request.grid, results)
-    return statistics, int(np.count_nonzero(protected))
+    counted = (
+        bounds if request.counted_bounds is None else request.counted_bounds
+    )
+    counted_protection = protected[
+        counted.y_start - bounds.y_start : counted.y_stop - bounds.y_start,
+        counted.x_start - bounds.x_start : counted.x_stop - bounds.x_start,
+    ]
+    return statistics, int(np.count_nonzero(counted_protection))
 
 
-def _estimate_source_protected_adaptive_region(  # noqa: PLR0913
+def _estimate_source_protected_grid(
     request: _AdaptiveRegionRequest,
     *,
     source: WindowReadable,
     config: RmsGridConfig,
     island_threshold_sigma: float,
     multiscale_protection: MultiscaleSourceProtection | None = None,
-    rms_fill_reach_pixels: float | None = None,
 ) -> AdaptiveRmsRegion:
-    """Prepare one candidate region after all its raw statistics exist.
+    """Prepare one protected grid after all its raw statistics exist.
 
-    With ``rms_fill_reach_pixels``, a cell farther than it from every clean
-    window keeps the coarse RMS (:func:`prepare_refinement_rms_grid`);
-    without it, as for a protected coarse grid, every cell takes its nearest
-    clean window's.
+    Every cell takes its nearest clean window's statistics, as a protected
+    coarse grid needs.
     """
     statistics, protected_pixel_count = (
         _estimate_source_protected_region_statistics(
@@ -729,50 +795,52 @@ def _estimate_source_protected_adaptive_region(  # noqa: PLR0913
         )
     )
     return AdaptiveRmsRegion(
-        grid=(
-            prepare_rms_grid_for_interpolation(statistics)
-            if rms_fill_reach_pixels is None
-            else prepare_refinement_rms_grid(
-                statistics,
-                request.coarse,
-                fill_reach_pixels=rms_fill_reach_pixels,
-            )
-        ),
+        grid=prepare_rms_grid_for_interpolation(statistics),
         bright_candidate_positions_yx=request.positions_yx,
         protected_pixel_count=protected_pixel_count,
         protected_window_count=statistics.protected_window_count,
     )
 
 
-def _estimate_local_noise_batch(
-    request: _LocalNoiseRequest,
+def _estimate_protected_block(
+    request: _ProtectedBlockRequest,
     *,
     source: WindowReadable,
     config: RmsGridConfig,
-    policy: MultiscaleSourceProtection,
-) -> RmsGridBatchStatistics:
-    """Return raw owned cells, never a block-local interpolated fallback."""
-    statistics, _ = _estimate_source_protected_region_statistics(
-        request.region,
-        source=source,
-        config=config,
-        island_threshold_sigma=policy.source_finder.island_threshold_sigma,
-        multiscale_protection=policy,
+    island_threshold_sigma: float,
+    multiscale_protection: MultiscaleSourceProtection | None,
+) -> tuple[RmsGridBatchStatistics, int]:
+    """Return raw owned cells and the protected pixels the block counts.
+
+    The cells are never a block-local interpolated fallback: the caller
+    fills them once the whole grid is assembled.
+    """
+    statistics, protected_pixel_count = (
+        _estimate_source_protected_region_statistics(
+            request.region,
+            source=source,
+            config=config,
+            island_threshold_sigma=island_threshold_sigma,
+            multiscale_protection=multiscale_protection,
+        )
     )
-    return RmsGridBatchStatistics(
-        batch=request.batch,
-        statistics=RmsWindowStatistics(
-            background=statistics.background,
-            rms=statistics.rms,
-            available=statistics.available,
-            valid_sample_count=statistics.valid_sample_count,
-            retained_sample_count=statistics.retained_sample_count,
+    return (
+        RmsGridBatchStatistics(
+            batch=request.batch,
+            statistics=RmsWindowStatistics(
+                background=statistics.background,
+                rms=statistics.rms,
+                available=statistics.available,
+                valid_sample_count=statistics.valid_sample_count,
+                retained_sample_count=statistics.retained_sample_count,
+            ),
+            protected_window_count=statistics.protected_window_count,
         ),
-        protected_window_count=statistics.protected_window_count,
+        protected_pixel_count,
     )
 
 
-def _local_noise_context_halo(config: BackgroundRmsConfig) -> int:
+def _protection_context_halo(config: BackgroundRmsConfig) -> int:
     """Return the coarse and fine window context around a block of cells."""
     assert config.adaptive is not None
     return (
@@ -791,36 +859,88 @@ def _half_coarse_window_cells(config: BackgroundRmsConfig) -> tuple[int, int]:
     return window_y // 2 // step_y, window_x // 2 // step_x
 
 
-def _local_noise_contexts(
-    grid: RmsGridGeometry,
-    config: BackgroundRmsConfig,
-    policy: MultiscaleSourceProtection,
-) -> list[tuple[RmsWindowBatch, RmsGridGeometry, ImageBounds]]:
-    """Plan each block of fine cells with the window its task reads.
+def _counted_span(
+    window_starts: tuple[int, ...],
+    first_cell: int,
+    stop_cell: int,
+    limit: tuple[int, int],
+) -> tuple[int, int]:
+    """Return the pixels a block of cells counts along one axis.
 
-    A task reads its cells with the coarse and fine windows and the widest
-    protection filter around them. The filter grows with the beam, so the
-    window does too, until the image clips it.
+    They run from the block's first window start to the next block's, with
+    the first and last blocks reaching ``limit``, so the blocks along an
+    axis count each pixel within it once.
     """
-    halo = (
-        _local_noise_context_halo(config)
-        + _protection_filter_bank(policy).maximum_halo_pixels
+    return (
+        limit[0] if first_cell == 0 else window_starts[first_cell],
+        limit[1]
+        if stop_cell == len(window_starts)
+        else window_starts[stop_cell],
     )
-    contexts: list[tuple[RmsWindowBatch, RmsGridGeometry, ImageBounds]] = []
+
+
+def _context_blocks(
+    grid: RmsGridGeometry, halo: int, limit: ImageBounds
+) -> list[_ContextBlock]:
+    """Plan each block of a grid's cells with the window its task reads.
+
+    A block reads its cells' windows widened by ``halo`` and clipped to
+    ``limit``, which holds every window of the grid.
+    """
+    blocks: list[_ContextBlock] = []
     for batch in plan_rms_window_batches(
-        grid, maximum_cells=_LOCAL_NOISE_CONTEXT_CELLS
+        grid, maximum_cells=_PROTECTED_CONTEXT_CELLS
     ):
         yy = slice(batch.grid_y_start, batch.grid_y_stop)
         xx = slice(batch.grid_x_start, batch.grid_x_stop)
-        owned = replace(
+        cells = replace(
             grid,
             window_starts_y=grid.window_starts_y[yy],
             window_starts_x=grid.window_starts_x[xx],
             sample_coordinates_y=grid.sample_coordinates_y[yy],
             sample_coordinates_x=grid.sample_coordinates_x[xx],
         )
-        contexts.append((batch, owned, _filter_read_bounds(owned, halo)))
-    return contexts
+        y_start, y_stop = _counted_span(
+            grid.window_starts_y,
+            batch.grid_y_start,
+            batch.grid_y_stop,
+            (limit.y_start, limit.y_stop),
+        )
+        x_start, x_stop = _counted_span(
+            grid.window_starts_x,
+            batch.grid_x_start,
+            batch.grid_x_stop,
+            (limit.x_start, limit.x_stop),
+        )
+        blocks.append(
+            _ContextBlock(
+                batch,
+                cells,
+                _filter_read_bounds(cells, halo, limit),
+                ImageBounds(y_start, y_stop, x_start, x_stop),
+            )
+        )
+    return blocks
+
+
+def _local_noise_contexts(
+    grid: RmsGridGeometry,
+    config: BackgroundRmsConfig,
+    policy: MultiscaleSourceProtection,
+) -> list[_ContextBlock]:
+    """Plan each block of fine cells with the window its task reads.
+
+    A task reads its cells with the coarse and fine windows and the widest
+    protection filter around them. The filter grows with the beam, so the
+    window does too, until the image clips it.
+    """
+    height, width = grid.image_shape_yx
+    return _context_blocks(
+        grid,
+        _protection_context_halo(config)
+        + _protection_filter_bank(policy).maximum_halo_pixels,
+        ImageBounds(0, height, 0, width),
+    )
 
 
 def _estimate_local_noise_grid(  # noqa: PLR0913
@@ -836,61 +956,52 @@ def _estimate_local_noise_grid(  # noqa: PLR0913
     assert config.adaptive is not None
     fine = config.adaptive.grid
     grid = pilot.geometry
-    context_halo = _local_noise_context_halo(config)
-    requests: list[_LocalNoiseRequest] = []
-    for batch, owned, bounds in _local_noise_contexts(grid, config, policy):
-        if prod(bounds.shape_yx) > config.maximum_constant_map_pixels:
+    context_halo = _protection_context_halo(config)
+    height, width = grid.image_shape_yx
+    requests: list[_ProtectedBlockRequest] = []
+    for block in _local_noise_contexts(grid, config, policy):
+        if (
+            prod(block.read_bounds.shape_yx)
+            > config.maximum_constant_map_pixels
+        ):
             raise ValueError(
                 "local noise context exceeds bounded read admission"
             )
         requests.append(
-            _LocalNoiseRequest(
-                batch,
+            _ProtectedBlockRequest(
+                block.batch,
                 _AdaptiveRegionRequest(
-                    grid=owned,
-                    coarse=subset_prepared_rms_grid(coarse, bounds),
+                    grid=block.cells,
+                    coarse=subset_prepared_rms_grid(coarse, block.read_bounds),
                     positions_yx=(),
-                    detection_rms=subset_prepared_rms_grid(pilot, bounds),
+                    detection_rms=subset_prepared_rms_grid(
+                        pilot, block.read_bounds
+                    ),
                     context_halo_pixels=context_halo,
                     protection="local-noise-windows",
+                    context_limit=ImageBounds(0, height, 0, width),
                 ),
             )
         )
     results = executor.map_batches(
         partial(
-            _estimate_local_noise_batch,
+            _estimate_protected_block,
             source=source,
             config=fine,
-            policy=policy,
+            island_threshold_sigma=policy.source_finder.island_threshold_sigma,
+            multiscale_protection=policy,
         ),
         requests,
     )
-    return assemble_rms_grid_statistics(grid, results)
-
-
-def _adaptive_region_request(
-    region: _CandidateRegion,
-    *,
-    global_geometry: RmsGridGeometry,
-    coarse: PreparedRmsGrid,
-    filter_halo_pixels: int = 0,
-) -> _AdaptiveRegionRequest:
-    """Bind one candidate region to its fine and coarse bounded summaries."""
-    fine_grid = subset_rms_grid_geometry(global_geometry, region.bounds)
-    return _AdaptiveRegionRequest(
-        grid=fine_grid,
-        coarse=subset_prepared_rms_grid(
-            coarse,
-            _filter_read_bounds(fine_grid, filter_halo_pixels),
-        ),
-        positions_yx=region.positions_yx,
+    return assemble_rms_grid_statistics(
+        grid, (statistics for statistics, _ in results)
     )
 
 
 def _estimate_unprotected_adaptive_regions(
     source: WindowReadable,
     candidate_regions: tuple[_CandidateRegion, ...],
-    global_geometry: RmsGridGeometry,
+    region_grids: tuple[RmsGridGeometry, ...],
     config: RmsGridConfig,
     executor: Executor,
 ) -> tuple[AdaptiveRmsRegion, ...]:
@@ -898,21 +1009,27 @@ def _estimate_unprotected_adaptive_regions(
     return tuple(
         AdaptiveRmsRegion(
             grid=prepare_rms_grid_for_interpolation(
-                estimate_rms_grid(
-                    source,
-                    subset_rms_grid_geometry(
-                        global_geometry,
-                        region.bounds,
-                    ),
-                    config,
-                    executor,
-                )
+                estimate_rms_grid(source, region_grid, config, executor)
             ),
             bright_candidate_positions_yx=region.positions_yx,
             protected_pixel_count=0,
             protected_window_count=0,
         )
-        for region in candidate_regions
+        for region, region_grid in zip(
+            candidate_regions, region_grids, strict=True
+        )
+    )
+
+
+def _positions_inside(
+    positions_yx: tuple[tuple[float, float], ...], bounds: ImageBounds
+) -> tuple[tuple[float, float], ...]:
+    """Return the candidates whose nearest pixel lies inside ``bounds``."""
+    return tuple(
+        (y, x)
+        for y, x in positions_yx
+        if bounds.y_start <= round(y) < bounds.y_stop
+        and bounds.x_start <= round(x) < bounds.x_stop
     )
 
 
@@ -1124,7 +1241,7 @@ def refine_background_rms_grids(  # noqa: PLR0913
     if protect_coarse_source_support:
         assert source_protection_island_threshold_sigma is not None
         estimate_coarse = partial(
-            _estimate_source_protected_adaptive_region,
+            _estimate_source_protected_grid,
             source=source,
             config=config.coarse,
             island_threshold_sigma=source_protection_island_threshold_sigma,
@@ -1209,7 +1326,21 @@ def _refine_bright_regions(  # noqa: PLR0913
     """Estimate the fine grids that refine the estimate around bright sources.
 
     The tile blend uses them for the background both ways and for the RMS
-    only upwards (``blend_adaptive_background_rms``).
+    only upwards (``blend_adaptive_background_rms``). Candidates close
+    enough to chain merge into one region, which can span the image, so a
+    protected region's cells are estimated in blocks. Each block reads the
+    context a local-noise block reads, clipped to the window one read of the
+    whole region would take, and protects emission its sides cut off from a
+    candidate (:func:`_labels_cut_off_by_the_read`). A region of one block
+    is read exactly as a whole. A larger one can protect more than one read
+    of it would, never less: emission from a block's side that reaches its
+    cells without reaching any candidate. On the ELAIS-N1 deep field's
+    central 5,000², one region of 951 candidates, that is 117 of 505,521
+    fine windows, all beside block seams.
+
+    Raises:
+        ValueError: If a block's read would exceed the admitted read, before
+            any block is read.
     """
     adaptive_config = config.adaptive
     assert adaptive_config is not None
@@ -1218,55 +1349,125 @@ def _refine_bright_regions(  # noqa: PLR0913
         window_shape_yx=adaptive_config.grid.window_shape_yx,
         step_yx=adaptive_config.grid.step_yx,
     )
+    region_grids = tuple(
+        subset_rms_grid_geometry(global_adaptive_geometry, region.bounds)
+        for region in candidate_regions
+    )
     if source_protection_island_threshold_sigma is None:
         return replace(
             coarse_grids,
             adaptive_regions=_estimate_unprotected_adaptive_regions(
                 source,
                 candidate_regions,
-                global_adaptive_geometry,
+                region_grids,
                 adaptive_config.grid,
                 executor,
             ),
-        )
-    requests = tuple(
-        _adaptive_region_request(
-            region,
-            global_geometry=global_adaptive_geometry,
-            coarse=coarse_grids.coarse,
-            filter_halo_pixels=(
-                _protection_filter_bank(
-                    multiscale_protection
-                ).maximum_halo_pixels
-                if multiscale_protection is not None
-                else 0
+            largest_bright_region_read_pixels=max(
+                (
+                    prod(batch.read_bounds.shape_yx)
+                    for region_grid in region_grids
+                    for batch in plan_rms_window_batches(
+                        region_grid,
+                        maximum_cells=adaptive_config.grid.maximum_batch_cells,
+                    )
+                ),
+                default=0,
             ),
         )
-        for region in candidate_regions
+    filter_halo = (
+        _protection_filter_bank(multiscale_protection).maximum_halo_pixels
+        if multiscale_protection is not None
+        else 0
     )
-    # Source protection can leave a defined zero-variance coarse estimate.
-    # Old bright-region work anchors then have no sigma-domain support. Keep
-    # that noise availability instead of re-estimating unprotected source
-    # emission as noise; admit other independently usable regions unchanged.
-    requests = tuple(
-        request
-        for request in requests
-        if request.coarse.scientifically_available
-        and np.any(np.isfinite(request.coarse.rms) & (request.coarse.rms > 0))
+    context_halo = _protection_context_halo(config)
+    planned: list[
+        tuple[_CandidateRegion, RmsGridGeometry, PreparedRmsGrid, int]
+    ] = []
+    requests: list[_ProtectedBlockRequest] = []
+    largest_read = 0
+    for region, region_grid in zip(
+        candidate_regions, region_grids, strict=True
+    ):
+        limit = _filter_read_bounds(region_grid, filter_halo)
+        region_coarse = subset_prepared_rms_grid(coarse_grids.coarse, limit)
+        # Source protection can leave a defined zero-variance coarse
+        # estimate. Old bright-region work anchors then have no sigma-domain
+        # support. Keep that noise availability instead of re-estimating
+        # unprotected source emission as noise; admit other independently
+        # usable regions unchanged.
+        if not region_coarse.scientifically_available or not np.any(
+            np.isfinite(region_coarse.rms) & (region_coarse.rms > 0)
+        ):
+            continue
+        blocks = _context_blocks(
+            region_grid, filter_halo + context_halo, limit
+        )
+        for block in blocks:
+            read_pixels = prod(block.read_bounds.shape_yx)
+            if read_pixels > config.maximum_constant_map_pixels:
+                raise ValueError(
+                    "bright region context exceeds bounded read admission"
+                )
+            largest_read = max(largest_read, read_pixels)
+            requests.append(
+                _ProtectedBlockRequest(
+                    block.batch,
+                    _AdaptiveRegionRequest(
+                        grid=block.cells,
+                        coarse=subset_prepared_rms_grid(
+                            coarse_grids.coarse, block.read_bounds
+                        ),
+                        positions_yx=_positions_inside(
+                            region.positions_yx, block.read_bounds
+                        ),
+                        context_halo_pixels=context_halo,
+                        context_limit=limit,
+                        counted_bounds=block.counted_bounds,
+                    ),
+                )
+            )
+        planned.append((region, region_grid, region_coarse, len(blocks)))
+    results = iter(
+        executor.map_batches(
+            partial(
+                _estimate_protected_block,
+                source=source,
+                config=adaptive_config.grid,
+                island_threshold_sigma=source_protection_island_threshold_sigma,
+                multiscale_protection=multiscale_protection,
+            ),
+            requests,
+        )
     )
-    estimate_region = partial(
-        _estimate_source_protected_adaptive_region,
-        source=source,
-        config=adaptive_config.grid,
-        island_threshold_sigma=source_protection_island_threshold_sigma,
-        multiscale_protection=multiscale_protection,
-        # A fine RMS reaches one fine window from where it was measured.
-        rms_fill_reach_pixels=float(max(adaptive_config.grid.window_shape_yx)),
-    )
-    adaptive_regions = tuple(executor.map_batches(estimate_region, requests))
+    adaptive_regions: list[AdaptiveRmsRegion] = []
+    for region, region_grid, region_coarse, block_count in planned:
+        region_results = tuple(islice(results, block_count))
+        statistics = assemble_rms_grid_statistics(
+            region_grid, (block for block, _ in region_results)
+        )
+        adaptive_regions.append(
+            AdaptiveRmsRegion(
+                # A fine RMS reaches one fine window from where it was
+                # measured.
+                grid=prepare_refinement_rms_grid(
+                    statistics,
+                    region_coarse,
+                    fill_reach_pixels=float(
+                        max(adaptive_config.grid.window_shape_yx)
+                    ),
+                ),
+                bright_candidate_positions_yx=region.positions_yx,
+                protected_pixel_count=sum(
+                    count for _, count in region_results
+                ),
+                protected_window_count=statistics.protected_window_count,
+            )
+        )
     return replace(
         coarse_grids,
-        adaptive_regions=adaptive_regions,
+        adaptive_regions=tuple(adaptive_regions),
+        largest_bright_region_read_pixels=largest_read,
     )
 
 

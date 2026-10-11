@@ -31,7 +31,11 @@ from hebog.algorithms.component_measurement import (
 from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.config import BackgroundRmsConfig, SourceFinderConfig
-from hebog.data_models import ImageBounds, WideObjectCounts
+from hebog.data_models import (
+    BrightRegionCounts,
+    ImageBounds,
+    WideObjectCounts,
+)
 from hebog.data_models.images import ImageMetadata, RestoringBeam
 from hebog.executors import Executor
 from hebog.io import ZarrProductSink
@@ -125,6 +129,20 @@ class PublishedStages:
 
 
 @dataclass(frozen=True, slots=True)
+class BackgroundEstimate:
+    """One image's published background and RMS and what they record.
+
+    ``usable_noise`` is whether any pixel has a usable local noise estimate,
+    and ``bright_regions`` how far the estimate refined around bright
+    candidates.
+    """
+
+    source: ZarrProductSink
+    usable_noise: bool
+    bright_regions: BrightRegionCounts
+
+
+@dataclass(frozen=True, slots=True)
 class StageSequenceResult:
     """The background and RMS generation and what the later stages published.
 
@@ -136,6 +154,7 @@ class StageSequenceResult:
     background_rms_source: ZarrProductSink
     rms_scientific_status: Literal["valid", "unavailable"]
     published: PublishedStages | None
+    bright_regions: BrightRegionCounts
 
 
 def restoring_beam_from_header(header: fits.Header) -> RestoringBeam:
@@ -214,13 +233,14 @@ def estimate_background_rms(  # noqa: PLR0913
     beam: BeamShapePixels,
     review: ContinuumScienceProfile,
     generation_id: str,
-) -> tuple[ZarrProductSink, bool]:
+) -> BackgroundEstimate:
     """Run the exact candidate-owned bounded background/RMS stage.
 
     The stage publishes the background and the RMS as tiled planes, and the
     generation is what comes back: every later pass reads it by window. The
     one fact the composition needs about the estimate is whether any pixel
     can use it, which is reduced while streaming rather than kept as a mask.
+    The diagnostics also record how far it refined around bright candidates.
     """
     from hebog.science.configuration import (  # noqa: PLC0415
         source_finder_configs,
@@ -256,7 +276,7 @@ def estimate_background_rms(  # noqa: PLR0913
             background=config.background,
         ),
     )
-    run_detection_stage(
+    detection = run_detection_stage(
         source,
         manifest,
         detection_config,
@@ -282,7 +302,16 @@ def estimate_background_rms(  # noqa: PLR0913
             else None
         ),
     )
-    return sink, estimate_has_usable_noise(source, sink, metadata)
+    return BackgroundEstimate(
+        source=sink,
+        usable_noise=estimate_has_usable_noise(source, sink, metadata),
+        bright_regions=BrightRegionCounts(
+            candidate_count=len(detection.adaptive_candidate_positions_yx),
+            largest_read_pixels=(
+                detection.background_rms_grids.largest_bright_region_read_pixels
+            ),
+        ),
+    )
 
 
 def estimate_has_usable_noise(
@@ -1054,7 +1083,7 @@ def run_stages(  # noqa: PLR0913
     planes to a generation below ``work_directory`` named by
     ``generation_id``, and later stages read them by window.
     """
-    background_rms_source, usable_noise = estimate_background_rms(
+    estimate = estimate_background_rms(
         source,
         metadata,
         config,
@@ -1064,18 +1093,20 @@ def run_stages(  # noqa: PLR0913
         review=review,
         generation_id=generation_id,
     )
-    if not usable_noise:
+    if not estimate.usable_noise:
         return StageSequenceResult(
-            background_rms_source=background_rms_source,
+            background_rms_source=estimate.source,
             rms_scientific_status="unavailable",
             published=None,
+            bright_regions=estimate.bright_regions,
         )
     return StageSequenceResult(
-        background_rms_source=background_rms_source,
+        background_rms_source=estimate.source,
         rms_scientific_status="valid",
+        bright_regions=estimate.bright_regions,
         published=run_stages_from_background(
             source,
-            background_rms_source,
+            estimate.source,
             executor,
             work_directory,
             image_shape_yx=metadata.shape_yx,

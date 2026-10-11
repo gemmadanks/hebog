@@ -661,7 +661,7 @@ def test_provenance_requires_a_sha256_flat_noise_input() -> None:
         "scientific_profile_sha256": "3" * 64,
         "scientific_composition_sha256": "4" * 64,
         "scientific_composition": (
-            "phase-5-evidence-bound-public-catalogue-v22"
+            "phase-5-evidence-bound-public-catalogue-v23"
         ),
     }
 

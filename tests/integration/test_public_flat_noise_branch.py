@@ -22,7 +22,10 @@ from conftest import product_hashes
 
 import hebog
 from hebog import SourceFinderConfig, SourceFinderRequest
-from hebog.data_models import PublicSourceFindingDiagnostics
+from hebog.data_models import (
+    BrightRegionCounts,
+    PublicSourceFindingDiagnostics,
+)
 from hebog.executors import Executor, SerialExecutor
 from hebog.io.materialization import read_diagnostics_product
 from hebog.pipeline import InvalidSourceFinderInputError
@@ -184,6 +187,49 @@ def test_the_provenance_binds_the_flat_noise_input(tmp_path: Path) -> None:
     assert provenance.input_sha256 == (
         hashlib.sha256(true_sky.read_bytes()).hexdigest()
     )
+
+
+def test_each_image_records_its_own_bright_regions(tmp_path: Path) -> None:
+    """Given a bright source in only the true-sky image, only it counts one.
+
+    The flat-noise image's estimate is recorded beside the true-sky one,
+    and a run without a flat-noise image records none.
+    """
+    true_sky = _true_sky_image(_flat_noise_image())
+    true_sky[40, 50] += 2_000.0
+    true_sky_path = _write(tmp_path / "true-sky.fits", true_sky)
+    flat_noise_path = _write(
+        tmp_path / "flat-noise.fits",
+        np.random.default_rng(11).normal(0.0, 1.0, _SHAPE_YX),
+    )
+
+    paired = hebog.find_sources(
+        SourceFinderRequest(
+            true_sky_path,
+            tmp_path / "paired",
+            "sector-0",
+            flat_noise_image_path=flat_noise_path,
+        ),
+        _config(),
+        SerialExecutor(),
+    )
+    alone = hebog.find_sources(
+        SourceFinderRequest(true_sky_path, tmp_path / "alone", "sector-0"),
+        _config(),
+        SerialExecutor(),
+    )
+
+    paired_diagnostics = read_diagnostics_product(paired.diagnostics)
+    alone_diagnostics = read_diagnostics_product(alone.diagnostics)
+    assert isinstance(paired_diagnostics, PublicSourceFindingDiagnostics)
+    assert isinstance(alone_diagnostics, PublicSourceFindingDiagnostics)
+    assert paired_diagnostics.bright_regions.candidate_count == 1
+    assert paired_diagnostics.bright_regions.largest_read_pixels > 0
+    assert (
+        paired_diagnostics.bright_regions == alone_diagnostics.bright_regions
+    )
+    assert paired_diagnostics.flat_noise_bright_regions == BrightRegionCounts()
+    assert alone_diagnostics.flat_noise_bright_regions is None
 
 
 @pytest.mark.parametrize("difference", ["shape", "grid"])

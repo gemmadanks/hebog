@@ -17,13 +17,11 @@ astronomy background. The decisions behind it are recorded in
     that reconciles those stages across tiles and 15,402 is an eight-by-eight
     grid. The public API admits 15,402 pixels per side, and each larger tier
     is admitted once its traced memory peak and tiled invariance are
-    measured. Three terms are not yet bounded by the tile: an object wider
+    measured. Two terms are not yet bounded by the tile: an object wider
     than a task's read budget is reduced on the driver from its own pixels
-    (ADR-008), chained bright-source regions make one background task read
-    their whole bounding box (the plan's task 53), and no stage declares its
-    memory (task 17). The records the passes keep from every tile also still
-    grow with the image, and scale beyond one machine has not been
-    demonstrated.
+    (ADR-008), and no stage declares its memory (task 17). The records the
+    passes keep from every tile also still grow with the image, and scale
+    beyond one machine has not been demonstrated.
     [Progress against goals](../reference/progress-against-goals.md#scalability)
     has the figures.
 

@@ -16,7 +16,7 @@ the selected thresholds or algorithms are qualified for a survey.
 | `catalogue.fits` | `source-catalogue`, FITS schema 4 | What islands, associated sources, and admitted Gaussian components were measured? |
 | `rms.fits` | `rms`, FITS image schema 1 | What local RMS did thresholding and reported local-noise fields use? |
 | `source-mask.fits` | `source-filtering-mask`, FITS image schema 1 | Which input-aligned pixels belong to retained published detections? |
-| `diagnostics.json` | `diagnostics`, JSON schema 12 | What was omitted, deferred, selected, or unavailable, and exactly which science produced the bundle? |
+| `diagnostics.json` | `diagnostics`, JSON schema 13 | What was omitted, deferred, selected, or unavailable, and exactly which science produced the bundle? |
 | `flat-noise-rms.fits` | `rms`, FITS image schema 1; only when the request names a flat-noise image | What local RMS does the sector's flat-noise image have? |
 
 Use the first four together. In particular, `catalogue.fits` contains only published
@@ -357,7 +357,7 @@ would remove entirely keeps its whole thresholded footprint.
 ## Diagnostics JSON
 
 `diagnostics.json` is canonical UTF-8 JSON with sorted keys and one final
-newline. Schema 11 rejects unknown fields and contains:
+newline. Schema 13 rejects unknown fields and contains:
 
 | Field | Meaning |
 | --- | --- |
@@ -369,10 +369,12 @@ newline. Schema 11 rejects unknown fields and contains:
 | `deblended_parent_count` | Retained connected parents split by bounded deblending. |
 | `deferred_deblend_parent_count` | Parents preserved because they exceeded the bounded deblend envelope. |
 | `wide_object_counts` | How many objects each round decided from the cores that hold them rather than from one window. `publication_owners`, `support_components`, `islands` and `segments` count objects whose window exceeded a task's read budget; the driver then holds those objects' own pixels or seeds, the one term that grows with an object rather than a tile. `deferred_fit_parents` answers to a different bound: it counts parents the fit stage deferred because their direct window exceeded the science profile's compact admission bound (`maximum_compact_bounds_pixels`), whatever the read budget. Such a parent's component records are gathered from the cores, no Gaussian model is fitted to it, and its components carry `deferred` measurement dispositions. All zero for any image within the public envelope observed so far. |
+| `bright_regions` | How far the true-sky background estimate refined the noise around bright sources. `candidate_count` counts the bright candidates it found, at or above its bright-candidate threshold, 75σ for any island threshold below that. Candidates close enough to chain merge into one region, which can span the image; its fine cells are estimated in blocks that each read a bounded context, and `largest_read_pixels` is the most pixels one of those tasks read, zero when none read any. Both figures are evidence for the memory a bright, crowded field needs, not science. |
+| `flat_noise_bright_regions` | The same record for the flat-noise image's estimate; present exactly when the request named one. |
 | `measurement_dispositions` | Complete structured census described below. |
 | `rms_scientific_status` | `valid` or `unavailable`, matching the RMS product. |
 | `provenance` | Exact input, configuration, science-profile, and implementation identities, and any caller-supplied image metadata. |
-| `schema_version` | `12`. |
+| `schema_version` | `13`. |
 
 ### Provenance
 

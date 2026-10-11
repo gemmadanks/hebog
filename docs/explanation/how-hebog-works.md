@@ -83,6 +83,12 @@ separately:
   only raises the noise: where it reads lower than the coarse grid, the
   coarse RMS stands, much as PyBDSF applies its small box near a bright
   source only out to where it stops reading well above its large one.
+  Bright sources close together share one region, which in a crowded deep
+  field can cover the whole image; its fine grid is estimated in blocks of
+  bounded size, so the memory one task needs does not grow with the region.
+  Emission cut off at a block's edge is protected in case it belongs to a
+  bright source beyond, so a block can exclude slightly more than one read
+  of the whole region would.
 - At image edges, fine RMS values are extended as constants, never
   extrapolated towards zero. Background and coarse-RMS slopes are taken from
   grid samples at least as far apart as the distance being extrapolated, so a
