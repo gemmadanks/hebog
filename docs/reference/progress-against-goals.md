@@ -191,12 +191,11 @@ memory and disk, and SKA-Low coverage without public SKA-Low images.
 
 The next actions, as the plan orders them on 10 October:
 
-1. Agent: memory declarations (task 17), the native Prefect task in
-   Rapthor and the profile agreement under both background settings (tasks
-   20 and 21), and a first matched `filter_skymodel` measurement on
-   Rapthor's 3,000² demonstration sector. Human: decide whether the
-   bright-region read (task 53) and the linear association (task 55) come
-   first, since the ELAIS-N1 deep field shows both on a Rapthor-sized
+1. Agent: bound the bright-region read (task 53), which fails 4.5 GiB
+   Dask workers on the ELAIS-N1 deep field, then memory declarations (task
+   17), the native Prefect task in Rapthor and the profile agreement under
+   both background settings (tasks 20 and 21), and a first matched
+   `filter_skymodel` measurement on Rapthor's 3,000² demonstration
    sector.
 2. Agent: one sector across the cluster. Measure how a sector scales with
    Dask workers and where its serial share lies (task 73), cut that share
