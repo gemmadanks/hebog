@@ -12,8 +12,9 @@ and meet the runtime gate. Maintainability, extensibility and interoperability a
 requirements; the scientific library must work without Rapthor, Prefect or LSMTool.
 
 `find_sources(request, config, executor)` supports Serial, Thread and caller-owned
-Dask execution, including optional flat-noise RMS products. Rapthor records and a
-catalogue codec exist; the full backend is planned. Out-of-core 100,000² images across
+Dask execution, including optional flat-noise RMS products. The Rapthor adapter
+`hebog.adapters.find_sector_sources` writes the files Rapthor's filter step reads;
+Rapthor's native task calling it is planned. Out-of-core 100,000² images across
 100 to several hundred nodes are design targets, not demonstrated capabilities.
 Read the [delivery plan](plans/source-finder-implementation.md) and
 [capability status](docs/reference/release-status.md) for current limits/evidence;
