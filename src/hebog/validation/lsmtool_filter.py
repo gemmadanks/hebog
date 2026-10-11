@@ -31,8 +31,6 @@ from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
-from astropy import units
-from astropy.coordinates import Angle
 from astropy.io import fits
 from astropy.wcs import WCS
 from scipy import ndimage
@@ -44,6 +42,9 @@ _INTERIOR_PIXELS = 2.0
 _DECOY_CLEARANCE_PIXELS = 3.0
 _POLYGON_CLEARANCE_PIXELS = 2.0
 _QUARTER_PIXEL = 0.25
+_MICROSECONDS = 1_000_000
+# A right ascension of 15 degrees is one hour, 3,600 seconds of time.
+_SECONDS_PER_DEGREE_OF_RIGHT_ASCENSION = 3600.0 / 15.0
 # Decoys are drawn from a grid of about this many points, so a sector-sized
 # mask is never searched pixel by pixel.
 _DECOY_GRID_POINTS = 10_000
@@ -308,15 +309,49 @@ def _component_sites(
     ]
 
 
+def _sexagesimal(seconds: float) -> tuple[int, int, int, int]:
+    """Split seconds into units, minutes, seconds and microseconds.
+
+    ``seconds`` is non-negative. It is rounded to the microsecond once, as an
+    integer, so a rounded-up second carries into the minute and the minute
+    into the unit.
+    """
+    whole, microseconds = divmod(round(seconds * _MICROSECONDS), _MICROSECONDS)
+    minutes, second = divmod(whole, 60)
+    unit, minute = divmod(minutes, 60)
+    return unit, minute, second, microseconds
+
+
+def _right_ascension_text(ra_deg: float) -> str:
+    """Return a right ascension as makesourcedb's ``hh:mm:ss.ssssss``.
+
+    The text is formatted with integer arithmetic rather than Astropy's
+    vectorised ``Angle.to_string``, which raised a spurious floating-point
+    ``invalid`` warning on Linux x86-64 under Python 3.14.
+    """
+    hours, minutes, seconds, microseconds = _sexagesimal(
+        (ra_deg % 360.0) * _SECONDS_PER_DEGREE_OF_RIGHT_ASCENSION
+    )
+    return f"{hours % 24:02d}:{minutes:02d}:{seconds:02d}.{microseconds:06d}"
+
+
+def _declination_text(dec_deg: float) -> str:
+    """Return a declination as makesourcedb's ``+dd.mm.ss.ssssss``."""
+    degrees, arcminutes, arcseconds, microseconds = _sexagesimal(
+        abs(dec_deg) * 3600.0
+    )
+    sign = "-" if dec_deg < 0 else "+"
+    return (
+        f"{sign}{degrees:02d}.{arcminutes:02d}.{arcseconds:02d}."
+        f"{microseconds:06d}"
+    )
+
+
 def _sky_model_line(
     name: str, ra_deg: float, dec_deg: float, flux_jy: float, frequency: float
 ) -> str:
-    ra = Angle(ra_deg, units.deg).to_string(
-        unit=units.hourangle, sep=":", precision=6, pad=True
-    )
-    dec = Angle(dec_deg, units.deg).to_string(
-        unit=units.deg, sep=".", precision=6, alwayssign=True, pad=True
-    )
+    ra = _right_ascension_text(ra_deg)
+    dec = _declination_text(dec_deg)
     return (
         f"{name},POINT,{ra},{dec},{flux_jy!r},[-0.7],false,{frequency!r},,,\n"
     )

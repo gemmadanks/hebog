@@ -16,6 +16,8 @@ from astropy.io import fits
 from hebog.validation.lsmtool_filter import (
     FilterOutcome,
     FilterPlan,
+    _declination_text,  # pyright: ignore[reportPrivateUsage]
+    _right_ascension_text,  # pyright: ignore[reportPrivateUsage]
     filter_failures,
     plan_filter_inputs,
 )
@@ -281,3 +283,38 @@ def test_a_plan_samples_islands_evenly_up_to_its_limit(
         "island2b",
     }
     assert plan.kept() == {"island2a", "island2b"}
+
+
+@pytest.mark.parametrize(
+    ("ra_deg", "expected"),
+    [
+        (242.75, "16:11:00.000000"),
+        (0.0, "00:00:00.000000"),
+        (359.9999999999, "00:00:00.000000"),
+        # 15 degrees less a part in 10^12 rounds up to the next hour.
+        (15.0 - 1e-12, "01:00:00.000000"),
+        (242.77695709037, "16:11:06.469702"),
+    ],
+)
+def test_a_right_ascension_is_written_as_makesourcedb_reads_it(
+    ra_deg: float, expected: str
+) -> None:
+    """Hours, minutes and seconds to the microsecond, carried exactly."""
+    assert _right_ascension_text(ra_deg) == expected
+
+
+@pytest.mark.parametrize(
+    ("dec_deg", "expected"),
+    [
+        (54.95, "+54.57.00.000000"),
+        (-30.5, "-30.30.00.000000"),
+        (0.0, "+00.00.00.000000"),
+        (-(1.0 - 1e-12), "-01.00.00.000000"),
+        (-0.0000001, "-00.00.00.000360"),
+    ],
+)
+def test_a_declination_is_written_as_makesourcedb_reads_it(
+    dec_deg: float, expected: str
+) -> None:
+    """A sign, then degrees, arcminutes and arcseconds to the microsecond."""
+    assert _declination_text(dec_deg) == expected
