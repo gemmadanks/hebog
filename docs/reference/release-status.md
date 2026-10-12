@@ -119,10 +119,16 @@ published.
 `hebog.adapters.find_sector_sources` runs one Rapthor sector, its true-sky
 and flat-noise images, on the executor Rapthor builds, and writes the
 catalogue, the two RMS maps and the island mask under the names Rapthor's
-PyBDSF step uses. Rapthor does not call it yet. Hebog does **not**:
+PyBDSF step uses. A [prepared Rapthor patch](https://github.com/gemmadanks/hebog/blob/main/scripts/validation/patches/README.md)
+calls it from the existing Prefect task with a ThreadExecutor on Rapthor's
+current one-single-threaded-worker-per-node layout. It includes memory
+admission, typed PyBDSF fallback and dual-run diagnostics; upstream
+publication and merge are pending. Its distributed path is future work.
+When no beam Measurement Set is supplied, the patch passes the flat image
+as both inputs, matching LSMTool's detection and RMS convention. Hebog does **not**:
 
-- measure sources on a sector's flat-noise image, of which it publishes
-  only the RMS map;
+- measure sources independently on the optional flat-noise input, of
+  which it publishes only the RMS map;
 - filter or group a sky model, which LSMTool's `filter_sources` does with
   the island mask;
 - manage retries, scheduling or cluster resources; or

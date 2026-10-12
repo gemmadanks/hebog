@@ -5,7 +5,9 @@ Rapthor's `filter_skymodel` diagnostics. It writes and reads the smallest
 FITS table Rapthor reads directly, from the catalogue `find_sources`
 publishes. `hebog.adapters.find_sector_sources` writes it as
 `<root>.source_catalog.fits` beside Rapthor's other files; Rapthor's own
-task that calls the adapter is plan task 20. The internal catalogue is
+task that calls the adapter is available in the
+[prepared local patch](https://github.com/gemmadanks/hebog/blob/main/scripts/validation/patches/README.md),
+awaiting upstream publication and merge. The internal catalogue is
 described in the [output reference](public-products.md).
 
 ## Columns

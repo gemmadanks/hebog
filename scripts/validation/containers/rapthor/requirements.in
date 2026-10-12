@@ -1,0 +1,46 @@
+# Rapthor c6196cb4, Hebog 0.21.0 and LSMTool 9bac2f7 dependencies,
+# plus optional native thread control and the isolated validation tools.
+astropy
+bdsf
+bokeh>=3.1.0
+dask[distributed]
+fastapi<0.137
+h5py
+losoto>=2.4.3
+matplotlib
+mocpy
+numpy
+prefect[dask,shell]>=3.4.11,<4.0.0
+prefect-dask
+prefect-shell
+psutil
+python-casacore
+python-dateutil
+reproject
+requests
+Rtree
+scipy
+shapely
+astropy>=8.0.1,<9
+distributed>=2026.7.1,<2027
+numpy>=2.0.2,<3
+pydantic>=2.12,<3
+scipy>=1.15,<2
+zarr>=3.2,<3.3
+threadpoolctl>=3.6,<4
+pytest>=9,<10
+pytest-cov>=7,<8
+pytest-mock>=3.15,<4
+pytest-xdist>=3.8,<4
+pytest-socket
+mock
+setuptools>=64
+setuptools-scm>=6.2
+wheel
+astropy >= 3.2
+everybeam >= 0.6.1
+lofar-parameterset >= 1.1
+numpy < 2.5
+pyvo
+scipy >= 0.11
+Pillow > 11.1

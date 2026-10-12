@@ -189,7 +189,9 @@ writes the files Rapthor's `filter_skymodel` step reads, under Rapthor's
 names; `hebog.adapters.rapthor_catalogue` holds the eight-column catalogue
 codec it writes them with, and `hebog.adapters.rapthor_comparison` compares
 one sector's Hebog and PyBDSF products for Rapthor's dual-run mode. Rapthor
-does not call the adapter yet (plan task 20).
+calls the adapter in the
+[prepared local patch](https://github.com/gemmadanks/hebog/blob/main/scripts/validation/patches/README.md),
+awaiting upstream publication and merge.
 
 ::: hebog.adapters.rapthor
     options:
