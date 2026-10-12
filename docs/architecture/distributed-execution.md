@@ -17,10 +17,12 @@ astronomy background. The decisions behind it are recorded in
     that reconciles those stages across tiles and 15,402 is an eight-by-eight
     grid. The public API admits 15,402 pixels per side, and each larger tier
     is admitted once its traced memory peak and tiled invariance are
-    measured. Two terms are not yet bounded by the tile: an object wider
-    than a task's read budget is reduced on the driver from its own pixels
-    (ADR-008), and no stage declares its memory (task 17). The records the
-    passes keep from every tile also still grow with the image, and scale
+    measured. Every task declares the memory it holds, bounded by its tile,
+    halo, batch and storage chunk. Two terms of the analysis itself are not
+    yet bounded by the tile: an object wider than a task's read budget is
+    reduced on the driver from its own pixels (ADR-008), and the records the
+    passes keep grow with the sources found, which
+    `hebog.analysis_memory_bytes` states for the caller to reserve. Scale
     beyond one machine has not been demonstrated.
     [Progress against goals](../reference/progress-against-goals.md#scalability)
     has the figures.
@@ -174,9 +176,9 @@ pixel count, bounding box, peak, first pixel and whether it holds a detection
 seed. A union–find reduction joins labels that meet across an edge, combining
 tiles pairwise in a tree fixed by their order, so the result does not depend
 on completion order. Today that reduction runs on the driver, which holds
-every tile's summaries; running it through the executor is the plan's
-task 17. The resulting global label map is **sharded**: each tile receives
-only the entries for labels it contains.
+every tile's summaries; moving driver-side reductions onto the workers is
+part of the plan's task 74. The resulting global label map is **sharded**:
+each tile receives only the entries for labels it contains.
 
 ### Objects larger than a halo
 
@@ -193,30 +195,25 @@ deferred detection instead of consuming unbounded memory.
 
 ## The executor contract
 
-Hebog's scientific code depends on a three-member protocol, not on Dask:
+Hebog's scientific code depends on a two-member protocol, not on Dask:
 
 ```python
 class Executor(Protocol):
     @property
     def capacity(self) -> ExecutorCapacity: ...
     def map_batches(self, function, batches, *, requirement=None) -> list: ...
-    def reduce_batches(
-        self, function, batches, combine, *, requirement=None
-    ): ...
 ```
 
 All executors obey the same rules, so a defect shows up on a laptop under
 `SerialExecutor` rather than only on a cluster:
 
 - Results follow input order, whatever order tasks complete in.
-- `reduce_batches` combines results in a tree fixed by input index, so even
-  floating-point sums do not depend on completion order. `DaskExecutor` runs
-  the combines on workers and gathers one value.
 - Payloads must be serializable. Every executor checks this before submitting,
   so a lambda or an open file fails immediately, even serially.
 - Submission is bounded by `capacity.maximum_tasks_in_flight`. A
   `TaskRequirement` (memory and threads) narrows that bound and is refused up
-  front if one task cannot fit one worker.
+  front if one task cannot fit one worker. Every round declares one, as
+  described [below](#memory).
 - After a failure nothing more is submitted, and the call raises the first
   failing batch's own error only once no task it submitted is still running,
   so none writes into a work directory the caller is removing. Dask cannot
@@ -257,15 +254,46 @@ path.
 | A failed run leaves no partial output, and nothing beside it | — | write-then-rename publication, so the run can be retried with the same request; the contract suite's failure tests, and a public run failing under each executor while another task writes |
 | A killed run's staging directory is reclaimed once its owner has provably stopped, and reported otherwise | — | owner-record and lock tests, and a `slow` test in the weekly slow lane that kills the owning process |
 
+## Memory
+
+Every round declares the memory each of its tasks holds, as a
+`TaskRequirement`. A task holds what it reads and what it derives per pixel
+read, so a round declares its own measured cost per pixel for the largest
+window any of its tasks reads: a tile with its halo, or an object batch's
+read. Zarr decodes whole chunks, and a store's chunks are its stage's tile
+cores, so a read of an intermediate plane counts as at least one chunk. The
+costs are the largest traced task peaks on the reference anchors, with a
+fixed allowance and a quarter of headroom added (plan task 17). A
+declaration is therefore bounded by tile, halo, batch and chunk, and the
+public contract suite checks that no task holds more than it declared.
+
+The executor uses the declaration three ways. It refuses a task larger
+than a worker admits before submitting anything. It narrows the in-flight
+window so that concurrent tasks fit the admitted memory, which is what
+bounds a `ThreadExecutor`. And a `DaskExecutor` built with
+`memory_resource` and `core_resource` attaches the declared bytes and
+threads to every task under those Dask resource names, so Dask starts a
+task only on a worker with that much of each still free; the names, and
+each worker's amounts, are the caller's. When resources are named, the
+workers' declared amounts are also the admitted budget, and a round that
+no current worker could run is refused rather than left waiting.
+
+The analysis itself holds Hebog's modules and the records each pass
+returns, in the process that calls `find_sources`. Those records grow with
+the sources it finds, about 40 KB each, and not measurably with the pixels:
+the dense ELAIS-N1 central 5,000² held three times what the 10,000² LoTSS
+anchor did. `hebog.analysis_memory_bytes(shape_yx, expected_sources=...)`
+states it for an upper estimate of the source count, fitted to the traced
+peak between tasks on the same anchors, so the caller can reserve it for
+the task that calls `find_sources`.
+
 ## What is not decided here
 
 Hebog does not choose worker counts, memory limits, spill policy or task
-placement; those belong to the cluster's owner. It attaches no Dask resource
-annotations. Tile cores are fixed per stage today, and no stage yet declares
-a task's memory, so the admitted memory and threads have no effect until the
-plan's task 17 decides how they reach the scheduler; only
-`maximum_tasks_in_flight` bounds submission. When they do take effect, they
-may change batching, never results.
+placement; those belong to the cluster's owner. It names no Dask resource:
+the caller chooses the resource names and each worker's amounts. Tile cores
+are fixed per stage today; the plan's task 72 chooses them from the core
+budget. Declarations may change batching and placement, never results.
 
 See [Integrate Hebog into a pipeline](../how-to/integrate-into-a-pipeline.md)
 for the practical steps.

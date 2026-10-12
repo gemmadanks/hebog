@@ -24,7 +24,7 @@ from hebog.data_models.partitioning import (
     PartitionManifest,
     TilePartition,
 )
-from hebog.executors.base import Executor
+from hebog.executors.base import Executor, TaskRequirement
 
 
 @dataclass(frozen=True, slots=True)
@@ -162,11 +162,13 @@ def map_round[Batch, Result](
     batches: tuple[Batch, ...],
     *,
     round_name: str,
+    requirement: TaskRequirement,
 ) -> tuple[Result, ...]:
     """Evaluate one round of object work, which may have none to do.
 
     A round with no batch submits nothing, so an image without such objects
-    costs no task.
+    costs no task. Every task declares ``requirement``, the memory the
+    round's largest read needs (``hebog.stages.task_memory``).
 
     Raises:
         ValueError: If the executor returns nothing for work it was given,
@@ -174,7 +176,9 @@ def map_round[Batch, Result](
     """
     if not batches:
         return ()
-    results = tuple(executor.map_batches(function, batches))
+    results = tuple(
+        executor.map_batches(function, batches, requirement=requirement)
+    )
     if len(results) != len(batches):
         if not results:
             raise ValueError(f"executor returned no {round_name} results")

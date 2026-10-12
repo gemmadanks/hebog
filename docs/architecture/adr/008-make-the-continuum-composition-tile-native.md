@@ -12,7 +12,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-09-18 |
-| **Last Updated** | 2026-10-08 (statements of the current implementation brought in line with the code: the support rounds, what the driver gathers, the position signal, pass D's planes and the tests) |
+| **Last Updated** | 2026-10-11 (every round declares its tasks' memory, plan task 17) |
 | **Deciders** | Gemma Danks |
 | **Tags** | tiling, halos, ownership, reconciliation, memory, invariance |
 
@@ -553,8 +553,9 @@ responses and à trous coefficients are not stored, the number of stored planes
 does not grow with the number of stages. Every stage after the noise pass
 uses the contract's smallest admitted core, 2,048 pixels, and the noise pass
 keeps 128-pixel cores because they are its grid cells, not a memory choice;
-batches use fixed limits too, and no stage reads the admitted memory yet (the
-plan's task 17). Choosing a larger
+batches use fixed limits too. Every round declares its tasks' memory, but
+no stage yet chooses its core from the admitted memory (the plan's task
+72). Choosing a larger
 core from admitted memory within the contract's 2,048–8,192 range remains the
 intent, and a resource choice may change batch size and core size, but never
 ownership or results.
@@ -662,8 +663,8 @@ milestone: the executor work comes before the convergence it enables.
   scan's core boundary labels.
 - A stage-halo admission test proves every declared halo is below one quarter
   of the admitted core. The executor contract refuses, before submitting
-  anything, a task requirement no worker can hold, but no stage declares a
-  requirement yet (the plan's task 17).
+  anything, a task requirement no worker can hold, and every round declares
+  one that the public contract suite checks no task exceeds.
 - Escalation tests place an object wider than the read budget across several
   cores and assert that the cores' path reproduces the window's result, and
   that a T3 case publishes a disposition rather than a truncated

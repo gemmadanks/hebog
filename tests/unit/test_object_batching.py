@@ -15,6 +15,7 @@ from hebog.stages.batching import batch_object_windows, map_round, read_pixels
 
 _Input = TypeVar("_Input")
 _Output = TypeVar("_Output")
+_REQUIREMENT = TaskRequirement(memory_bytes=1)
 
 
 def _square(y: int, x: int, side: int) -> ImageBounds:
@@ -180,20 +181,79 @@ class _SilentExecutor(SerialExecutor):
         return []
 
 
+class _ShortExecutor(SerialExecutor):
+    """Return the first result only, as a partly lost round would."""
+
+    def __init__(self) -> None:
+        """Start with no requirement seen."""
+        super().__init__()
+        self.requirements: list[TaskRequirement | None] = []
+
+    def map_batches(
+        self,
+        function: Callable[[_Input], _Output],
+        batches: Iterable[_Input],
+        *,
+        requirement: TaskRequirement | None = None,
+    ) -> list[_Output]:
+        """Run the batches but keep only the first result."""
+        self.requirements.append(requirement)
+        return super().map_batches(function, batches)[:1]
+
+
+def test_a_round_declares_its_requirement_to_the_executor() -> None:
+    """Every task of a round asks for the memory the round declared."""
+    executor = _ShortExecutor()
+
+    map_round(executor, str, (1,), round_name="one", requirement=_REQUIREMENT)
+
+    assert executor.requirements == [_REQUIREMENT]
+
+
+def test_a_partly_lost_round_fails_closed() -> None:
+    """Fewer results than batches would publish an incomplete result."""
+    with pytest.raises(ValueError, match="1 short results for 2 batches"):
+        map_round(
+            _ShortExecutor(),
+            str,
+            (1, 2),
+            round_name="short",
+            requirement=_REQUIREMENT,
+        )
+
+
 def test_a_round_with_no_work_submits_nothing() -> None:
     """An image with no such object costs no task."""
-    assert map_round(_SilentExecutor(), str, (), round_name="empty") == ()
+    assert (
+        map_round(
+            _SilentExecutor(),
+            str,
+            (),
+            round_name="empty",
+            requirement=_REQUIREMENT,
+        )
+        == ()
+    )
 
 
 def test_a_round_returns_one_result_per_batch() -> None:
     """The executor's results come back in batch order."""
-    assert map_round(SerialExecutor(), str, (1, 2), round_name="numbers") == (
-        "1",
-        "2",
-    )
+    assert map_round(
+        SerialExecutor(),
+        str,
+        (1, 2),
+        round_name="numbers",
+        requirement=_REQUIREMENT,
+    ) == ("1", "2")
 
 
 def test_a_silent_round_fails_closed() -> None:
     """Nothing back for work given would publish an incomplete result."""
     with pytest.raises(ValueError, match="executor returned no lost results"):
-        map_round(_SilentExecutor(), str, (1,), round_name="lost")
+        map_round(
+            _SilentExecutor(),
+            str,
+            (1,),
+            round_name="lost",
+            requirement=_REQUIREMENT,
+        )

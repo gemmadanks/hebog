@@ -55,9 +55,21 @@ from hebog.stages.batching import (
     map_round,
     read_pixels,
 )
+from hebog.stages.task_memory import read_requirement
 
 _LABEL_PRODUCT_NAMES = ("source-labels",)
 _SUPPORT_PRODUCT_NAMES = ("source-measurement-labels",)
+# Each round's cost per pixel of its largest read, which a task declares
+# (``hebog.stages.task_memory``): the largest traced task peak over that read
+# on the 3,000-, 10,000- and 15,402-pixel LoTSS-DR3 anchors and the dense
+# ELAIS-N1 central 5,000 pixels, rounded up to eight bytes (plan task 17).
+_OWNER_SCAN_BYTES_PER_READ_PIXEL = 24
+_LABEL_WRITE_BYTES_PER_READ_PIXEL = 24
+_SUPPORT_SCAN_BYTES_PER_READ_PIXEL = 40
+# No anchor held an object wider than the read budget, so this round
+# takes the cost of the narrow round it stands in for.
+_WIDE_SUPPORT_BYTES_PER_READ_PIXEL = 56
+_SUPPORT_WRITE_BYTES_PER_READ_PIXEL = 56
 
 
 def source_label_product_names() -> tuple[str, ...]:
@@ -256,6 +268,11 @@ def run_source_label_stage(  # noqa: PLR0913
         executor.map_batches(
             partial(_scan_owners, component_source=component_source),
             scan_batches,
+            requirement=read_requirement(
+                _OWNER_SCAN_BYTES_PER_READ_PIXEL,
+                (partition.read_bounds for partition in manifest.tiles),
+                chunk_shape_yx=manifest.tile_core_shape_yx,
+            ),
         )
     )
     if not scan_results:
@@ -294,6 +311,11 @@ def run_source_label_stage(  # noqa: PLR0913
                 sink=sink,
             ),
             write_batches,
+            requirement=read_requirement(
+                _LABEL_WRITE_BYTES_PER_READ_PIXEL,
+                (partition.read_bounds for partition in manifest.tiles),
+                chunk_shape_yx=manifest.tile_core_shape_yx,
+            ),
         )
     )
     if not write_results:
@@ -1081,6 +1103,11 @@ def run_source_support_stage(  # noqa: PLR0913
                 image_shape_yx=manifest.image_shape_yx,
             ),
             scan_batches,
+            requirement=read_requirement(
+                _SUPPORT_SCAN_BYTES_PER_READ_PIXEL,
+                (partition.read_bounds for partition in manifest.tiles),
+                chunk_shape_yx=manifest.tile_core_shape_yx,
+            ),
         )
     )
     if not scan_results:
@@ -1135,6 +1162,11 @@ def run_source_support_stage(  # noqa: PLR0913
         ),
         wide_batches,
         round_name="wide support",
+        requirement=read_requirement(
+            _WIDE_SUPPORT_BYTES_PER_READ_PIXEL,
+            (core.partition.read_bounds for core in wide_cores),
+            chunk_shape_yx=manifest.tile_core_shape_yx,
+        ),
     )
     wide_seeds = _wide_seed_shards(
         wide_batches, wide_results, image_width=image_width
@@ -1180,6 +1212,11 @@ def run_source_support_stage(  # noqa: PLR0913
                 image_shape_yx=manifest.image_shape_yx,
             ),
             write_batches,
+            requirement=read_requirement(
+                _SUPPORT_WRITE_BYTES_PER_READ_PIXEL,
+                (partition.read_bounds for partition in manifest.tiles),
+                chunk_shape_yx=manifest.tile_core_shape_yx,
+            ),
         )
     )
     if not write_results:
