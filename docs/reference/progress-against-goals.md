@@ -3,7 +3,7 @@
 This page answers one question: how far is Hebog from the goal its
 [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
 defines for 1.0.0? It is updated whenever the plan's current state changes,
-and was last updated on **12 October 2026** for task memory declarations (task 17).
+and was last updated on **12 October 2026** for release v0.21.0, task 17's memory declarations.
 The scientific and performance measurements retain their original dates.
 Every figure is development evidence from the
 maintainer's machine, dated and traceable to an entry in the repository's
@@ -20,14 +20,14 @@ none is scientific qualification. User-facing limits are in
 | Science | ≥99.5% Rapthor retained/rejected agreement and a powered, held-out parity study against pinned PyBDSF `master` | Isolated-source position, flux and axis limits are met against both PyBDSF references on the frozen input, for sources and components under both profiles; the `Total_flux` limits hold on independent realizations. Two bounded known differences, one open defect and the unmeasured Rapthor agreement remain. | Development evidence only |
 | Performance | Matched complete `filter_skymodel` median ≤0.50 of pinned PyBDSF `master` | Not measurable until Rapthor's native task runs the adapter (task 20). The dense 14,175² ELAIS-N1 sector took 8.5 h serially, mostly in association. Diagnostic ratios against `master` on 1,024² fields are 2.7 to 5.2 (Hebog on one native thread against `master` on four container cores); on the 3,000² LoTSS field the two use the same CPU time, so the gap is parallel occupancy. No regression on the Hebog curve. | Gate not yet measurable |
 | Scalability | 45,000² on the 18 GiB development machine with tile-bounded memory; 90,000² on a 1 to 10-node cluster; planner bounds for 100,000² on 100 to 200+ nodes | Public envelope 15,402². Every stage runs tiled through the executor and products are byte-identical across tilings and executors. The traced peak is 1.7 GiB on the whole 15,402² mosaic and still grows about 1.7 bytes a pixel. Every task declares its memory, and the analysis's own records grow with the sources found, about 42 KB each. Bright regions are refined in bounded blocks, so the ELAIS-N1 deep field's central 5,000², where 951 bright candidates chain across the image, completes under four 4.5 GiB Dask workers. Nothing beyond one machine has run. | 15,402 of 45,000 pixels |
-| Release | PyPI, with portability, security, licensing, documentation and independent acceptance | v0.20.0 (11 October 2026) is tagged on GitHub and uploaded to TestPyPI without a release check of its own (maintainer's decision); the latest release check passed on v0.19.0's repaired candidate on 9 October. CI runs on Linux, macOS and Windows for Python 3.12 to 3.14, and `main` requires the lowest-dependency and container checks. | Experimental `0.x` |
+| Release | PyPI, with portability, security, licensing, documentation and independent acceptance | v0.21.0 (12 October 2026) is tagged on GitHub and uploaded to TestPyPI; it changes no product, and neither it nor v0.20.0 (11 October, maintainer's decision) had a release check of its own, so the latest passed on v0.19.0's repaired candidate on 9 October. CI runs on Linux, macOS and Windows for Python 3.12 to 3.14, and `main` requires the lowest-dependency and container checks. | Experimental `0.x` |
 
 ## Functionality
 
 The 12 frozen public behaviours in
 `config/contracts/phase-0-public-behaviours.json` each name the test that
-holds them. A placeholder is a strict xfail, so CI fails the day one starts
-passing.
+holds them, and all 12 are implemented. A placeholder would be a strict
+xfail, so CI fails the day one starts passing.
 
 | Behaviour | Status |
 | --- | --- |
@@ -179,7 +179,7 @@ readiness.
 
 | Check | Latest |
 | --- | --- |
-| Portable suite | 3,692 passed and 1 xfailed, 97.15% branch-aware coverage against an 80% floor (10 October, CI scheduling change); the repository CI helper separately has 100% statement and branch coverage |
+| Portable suite | 3,787 passed and none xfailed, 97.30% branch-aware coverage against an 80% floor (12 October, the local coverage lane on task 17's change, whose merge then passed CI on every platform); the repository CI helper separately has 100% statement and branch coverage |
 | Equivalence lane | 39 tests, including `find_sources` against both PyBDSF references under both profiles |
 | CI matrix | Linux, macOS and Windows on Python 3.12 to 3.14, plus lowest-dependency and container checks required on `main`. The source workflow shards the complete suites, combines coverage, provides early unit feedback and limits execution skips to [documentation-only PRs](../how-to/index.md#pull-request-feedback); hosted latency after this change is not yet measured. |
 | Architecture | Every layer's allowed imports are one tested table; Rapthor, Prefect and LSMTool are absent from the package and Dask is confined to `executors/`, apart from the execution profiler's local cluster in `validation/`, which wheels exclude |
@@ -190,10 +190,11 @@ The largest risks to 1.0.0 are the performance gap, the traced peak's growth
 with the image, the wide-object driver term, the development machine's
 memory and disk, and SKA-Low coverage without public SKA-Low images.
 
-The next actions, as the plan orders them on 11 October:
+The next actions, as the plan orders them on 12 October:
 
-1. Agent: the native Prefect task in Rapthor and the profile agreement
-   under both background settings (tasks 20 and 21), and a first matched
+1. Agent: the native Prefect task in Rapthor, starting by moving the
+   Rapthor and LSMTool pins forward (task 20), and the profile agreement
+   under both background settings (task 21), then a first matched
    `filter_skymodel` measurement on Rapthor's 3,000² demonstration sector.
 2. Agent: one sector across the cluster. Measure how a sector scales with
    Dask workers and where its serial share lies (task 73), cut that share
