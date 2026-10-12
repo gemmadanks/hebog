@@ -9,7 +9,7 @@ you want:
 <!-- x-release-please-start-version -->
 
 ```console
-pip install git+https://github.com/gemmadanks/hebog@v0.20.0
+pip install git+https://github.com/gemmadanks/hebog@v0.21.0
 hebog --version
 ```
 

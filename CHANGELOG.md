@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.21.0](https://github.com/gemmadanks/hebog/compare/v0.20.0...v0.21.0) (2026-10-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* Executor.reduce_batches, its three implementations and hebog.executors.reduce_in_canonical_order are removed; nothing called them, and plan task 74 can bring back a reduction if its profile needs one. map_round requires a requirement. hebog.stages.task_memory is left out of the composition hash, since it decides placement, never a result.
+
+### 🚀 Features
+
+* declare every task's memory and the analysis's own ([#157](https://github.com/gemmadanks/hebog/issues/157)) ([1172b1c](https://github.com/gemmadanks/hebog/commit/1172b1cef97e78be5e9c259c52bb38cd34e20a9d))
+
 ## [0.20.0](https://github.com/gemmadanks/hebog/compare/v0.19.0...v0.20.0) (2026-10-11)
 
 
