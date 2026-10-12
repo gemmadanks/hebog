@@ -8,8 +8,10 @@ each behaviour; an unimplemented one is a strict-xfail placeholder.
 
 from __future__ import annotations
 
+import tracemalloc
+from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import Protocol, cast
+from typing import Protocol, TypeVar, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -17,9 +19,14 @@ import pytest
 from astropy.io import fits
 from astropy.wcs import WCS
 
-from hebog import SourceFinderConfig, SourceFinderRequest, SourceFinderResult
+from hebog import (
+    SourceFinderConfig,
+    SourceFinderRequest,
+    SourceFinderResult,
+    analysis_memory_bytes,
+)
 from hebog.data_models import MaterializedProduct
-from hebog.executors import SerialExecutor
+from hebog.executors import SerialExecutor, TaskRequirement
 from hebog.io import read_catalogue_fits_product
 from hebog.pipeline import find_sources
 
@@ -31,6 +38,9 @@ _NOISE_JY_PER_BEAM = 1e-3
 # five-sigma detection threshold and the raised eight-sigma one.
 _BRIGHT_SOURCE = (20.0, 20.0, 30.0)
 _NEAR_THRESHOLD_SOURCE = (44.0, 40.0, 6.5)
+
+_Input = TypeVar("_Input")
+_Output = TypeVar("_Output")
 
 
 class _ExpectedResult(Protocol):
@@ -214,11 +224,84 @@ def test_threshold_increase_cannot_create_source(
     assert higher.source_count < reference.source_count
 
 
+class _MemoryAuditExecutor(SerialExecutor):
+    """Serial reference that traces every task against its declaration.
+
+    Each batch runs as its own call, so ``tracemalloc``'s peak above what
+    the run held when the task began is that task's working set.
+    """
+
+    def __init__(self) -> None:
+        """Start with no task observed."""
+        super().__init__()
+        self.undeclared_rounds: list[str] = []
+        self.overruns: list[tuple[str, int, int]] = []
+        self.task_count = 0
+        self.held_between_tasks = 0
+
+    def map_batches(
+        self,
+        function: Callable[[_Input], _Output],
+        batches: Iterable[_Input],
+        *,
+        requirement: TaskRequirement | None = None,
+    ) -> list[_Output]:
+        """Run each batch alone and compare its peak with the declaration."""
+        name = getattr(function, "func", function).__name__
+        if requirement is None:
+            self.undeclared_rounds.append(name)
+        results: list[_Output] = []
+        for batch in batches:
+            held, analysis_peak = tracemalloc.get_traced_memory()
+            self.held_between_tasks = max(
+                self.held_between_tasks, analysis_peak
+            )
+            tracemalloc.reset_peak()
+            results += super().map_batches(
+                function, [batch], requirement=requirement
+            )
+            _, peak = tracemalloc.get_traced_memory()
+            self.task_count += 1
+            if requirement is not None and (
+                peak - held > requirement.memory_bytes
+            ):
+                self.overruns.append(
+                    (name, peak - held, requirement.memory_bytes)
+                )
+            # The analysis's own peak is measured between tasks.
+            tracemalloc.reset_peak()
+        return results
+
+
 @pytest.mark.contract
-@pytest.mark.xfail(
-    strict=True,
-    reason="no stage declares its memory yet (plan task 17)",
-)
-def test_large_request_respects_worker_memory_budget() -> None:
-    """Large work remains bounded by admitted tile and batch memory."""
-    pytest.fail("no stage declares a task's memory requirement")
+def test_large_request_respects_worker_memory_budget(tmp_path: Path) -> None:
+    """Every task declares its working set, and holds no more than that.
+
+    A round declares from the largest window one of its tasks reads, a
+    tile with its halo or an object batch's read, measured in the storage
+    chunks it touches, so the declaration is bounded by tile, halo and
+    batch, never by the image. The executor admits it, narrows its
+    in-flight window by it and hands it to Dask as a resource, which keeps
+    a worker within the memory it declares only if no task holds more than
+    its round declared. The analysis itself holds no more than
+    ``analysis_memory_bytes`` tells its caller to reserve for the sources
+    it publishes.
+    """
+    executor = _MemoryAuditExecutor()
+    tracing = tracemalloc.is_tracing()
+    if not tracing:
+        tracemalloc.start()
+    try:
+        tracemalloc.reset_peak()
+        result = find_sources(_request(tmp_path), _config(), executor)
+        _, analysis_tail = tracemalloc.get_traced_memory()
+    finally:
+        if not tracing:
+            tracemalloc.stop()
+
+    assert executor.task_count > 0
+    assert executor.undeclared_rounds == []
+    assert executor.overruns == []
+    assert max(executor.held_between_tasks, analysis_tail) <= (
+        analysis_memory_bytes(_SHAPE_YX, expected_sources=result.source_count)
+    )

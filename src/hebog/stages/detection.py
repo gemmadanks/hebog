@@ -47,6 +47,7 @@ from hebog.stages.background import (
     prepare_background_rms_tile_request,
     refine_background_rms_grids,
 )
+from hebog.stages.task_memory import read_requirement
 
 # Background and RMS cells are 128 pixels, about 10 ms of work each, so one
 # task a cell would spend the executor's fixed cost of a task on little
@@ -54,6 +55,13 @@ from hebog.stages.background import (
 # cell is still read, estimated and written on its own, so the block size
 # changes scheduling only.
 _CELLS_PER_TASK = 64
+# Each round's cost per pixel of its largest read, which a task declares
+# (``hebog.stages.task_memory``): the largest traced task peak over that read
+# on the 3,000-, 10,000- and 15,402-pixel LoTSS-DR3 anchors and the dense
+# ELAIS-N1 central 5,000 pixels, rounded up to eight bytes (plan task 17).
+_CANDIDATE_SCAN_BYTES_PER_READ_PIXEL = 104
+_DETECTION_BYTES_PER_READ_PIXEL = 368
+_MASK_BYTES_PER_READ_PIXEL = 224
 
 
 def _cell_blocks[T](cells: Sequence[T]) -> tuple[tuple[T, ...], ...]:
@@ -162,7 +170,17 @@ def discover_adaptive_candidates(
         threshold_sigma=adaptive.candidate_threshold_sigma,
         image_shape_yx=manifest.image_shape_yx,
     )
-    summaries = tuple(executor.map_batches(scan, requests))
+    summaries = tuple(
+        executor.map_batches(
+            scan,
+            requests,
+            requirement=read_requirement(
+                _CANDIDATE_SCAN_BYTES_PER_READ_PIXEL,
+                (request.partition.read_bounds for request in requests),
+                chunk_shape_yx=manifest.tile_core_shape_yx,
+            ),
+        )
+    )
     candidates = reconcile_candidate_tiles(manifest, summaries)
     return tuple(
         (float(island.peak_position_yx[0]), float(island.peak_position_yx[1]))
@@ -446,7 +464,15 @@ def run_detection_from_coarse_grids(  # noqa: PLR0913
     )
     tile_products = tuple(
         product
-        for block in executor.map_batches(detect, _cell_blocks(requests))
+        for block in executor.map_batches(
+            detect,
+            _cell_blocks(requests),
+            requirement=read_requirement(
+                _DETECTION_BYTES_PER_READ_PIXEL,
+                (request.partition.read_bounds for request in requests),
+                chunk_shape_yx=manifest.tile_core_shape_yx,
+            ),
+        )
         for product in block
     )
     summaries = tuple(result.summary for result in tile_products)
@@ -473,7 +499,13 @@ def run_detection_from_coarse_grids(  # noqa: PLR0913
     mask_chunks = tuple(
         chunk
         for block in executor.map_batches(
-            write_mask, _cell_blocks(mask_requests)
+            write_mask,
+            _cell_blocks(mask_requests),
+            requirement=read_requirement(
+                _MASK_BYTES_PER_READ_PIXEL,
+                (request.partition.read_bounds for request in requests),
+                chunk_shape_yx=manifest.tile_core_shape_yx,
+            ),
         )
         for chunk in block
     )

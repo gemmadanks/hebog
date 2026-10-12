@@ -10,7 +10,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-10-10 |
-| **Last Updated** | 2026-10-10 |
+| **Last Updated** | 2026-10-11 |
 | **Deciders** | Gemma Danks |
 | **Tags** | Dask, scalability, Rapthor, extensibility |
 
@@ -116,7 +116,8 @@ N-dimensional.
   documents what it must provide.
 - Risk: a resource name or a memory amount that the caller declares
   wrongly lets Dask co-locate too much work; Hebog's admission checks
-  what it can (plan task 17).
+  what it can: it refuses a task larger than the workers declare, and a
+  round no worker declares the named resources for.
 - Risk: thousands of tasks on a shared filesystem mean many small chunk
   files; plan task 25 evaluates Zarr v3's sharding codec, and the cluster
   benchmark measures the filesystem.
@@ -127,9 +128,12 @@ N-dimensional.
 ## Confirmation
 
 The executor contract suite runs the same products on Serial, Thread and
-Dask executors; task 72 adds Hebog's resource annotations with
-caller-configured names, and the cluster benchmark runs Hebog standalone
-on a multi-node cluster as well as through Rapthor. The architecture tests
+Dask executors. Every task declares its memory, the public contract suite
+checks that none holds more, and on a local multi-worker cluster the
+resource annotations, under caller-configured names, keep Dask from
+co-locating tasks past a worker's declared memory (plan task 17). The
+cluster benchmark runs Hebog standalone on a multi-node cluster as well as
+through Rapthor. The architecture tests
 keep Rapthor, Prefect and LSMTool out of the package.
 
 ## Links

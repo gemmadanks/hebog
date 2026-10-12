@@ -15,6 +15,7 @@ from hebog.pipeline import (
     SourceFinderOutputExistsError,
     SourceFinderStagingWarning,
     UnsupportedSourceFinderConfigurationError,
+    analysis_memory_bytes,
     find_sources,
 )
 
@@ -35,5 +36,6 @@ __all__ = [
     "SuppliedImageMetadata",
     "UnsupportedSourceFinderConfigurationError",
     "__version__",
+    "analysis_memory_bytes",
     "find_sources",
 ]

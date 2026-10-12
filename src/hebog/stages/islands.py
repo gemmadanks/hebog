@@ -60,6 +60,17 @@ from hebog.stages.batching import (
     cores_holding,
     read_pixels,
 )
+from hebog.stages.task_memory import read_requirement
+
+# Each round's cost per pixel of its largest read, which a task declares
+# (``hebog.stages.task_memory``): the largest traced task peak over that read
+# on the 3,000-, 10,000- and 15,402-pixel LoTSS-DR3 anchors and the dense
+# ELAIS-N1 central 5,000 pixels, rounded up to eight bytes (plan task 17).
+_SCAN_BYTES_PER_READ_PIXEL = 40
+_ROW_BYTES_PER_READ_PIXEL = 56
+# No anchor held an object wider than the read budget, so this round
+# takes the cost of the narrow round it stands in for.
+_SPANNING_BYTES_PER_READ_PIXEL = 56
 
 
 @dataclass(frozen=True, slots=True)
@@ -742,6 +753,11 @@ def run_detection_island_stage(  # noqa: PLR0913
                 image_shape_yx=manifest.image_shape_yx,
             ),
             core_batches,
+            requirement=read_requirement(
+                _SCAN_BYTES_PER_READ_PIXEL,
+                (partition.read_bounds for partition in manifest.tiles),
+                chunk_shape_yx=manifest.tile_core_shape_yx,
+            ),
         )
     )
     if not scan_results:
@@ -782,6 +798,11 @@ def run_detection_island_stage(  # noqa: PLR0913
                     config=config,
                 ),
                 row_batches,
+                requirement=read_requirement(
+                    _ROW_BYTES_PER_READ_PIXEL,
+                    (batch.read_bounds for batch in row_batches),
+                    chunk_shape_yx=manifest.tile_core_shape_yx,
+                ),
             )
         )
         if not row_results:
@@ -813,6 +834,11 @@ def run_detection_island_stage(  # noqa: PLR0913
                     image_shape_yx=manifest.image_shape_yx,
                 ),
                 pixel_batches,
+                requirement=read_requirement(
+                    _SPANNING_BYTES_PER_READ_PIXEL,
+                    (core.partition.read_bounds for core in spanning_cores),
+                    chunk_shape_yx=manifest.tile_core_shape_yx,
+                ),
             )
         )
         if not pixel_results:

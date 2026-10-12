@@ -242,6 +242,27 @@ measured as a nested call, and a `tracemalloc` snapshot inside
 tiles. It is a diagnostic, not the gate; `--frames 1` is nearly as fast as
 the harness when call sites are not needed.
 
+### Audit task memory
+
+Every round declares the memory its tasks hold, from its own measured cost
+per read pixel (`hebog.stages.task_memory`), and
+`hebog.analysis_memory_bytes` states what the analysis holds between tasks
+for the sources it publishes.
+After changing what a round reads or keeps, or a tile core, audit both on
+the anchors the costs were measured on (3,000² and 10,000² LoTSS-DR3, and
+the dense ELAIS-N1 central 5,000² with its flat-noise image):
+
+```console
+uv run python scripts/benchmark/audit_task_memory.py \
+  --input <image.fits> [--flat-noise <flat-noise.fits>] \
+  --settings '<finder JSON>' --result <audit.json>
+```
+
+Each round's *load* is its largest task peak over its declaration. A cost
+measured on an anchor reads at most 0.8 there, because declarations carry a
+quarter of headroom; above one the runner fails, and the round's cost in its
+stage module needs raising.
+
 ## Profile complete execution
 
 Profile before optimizing. The profile splits one complete run into its

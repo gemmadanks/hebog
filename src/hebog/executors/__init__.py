@@ -8,7 +8,6 @@ from hebog.executors.base import (
     ExecutorCapacity,
     ExecutorPayloadError,
     TaskRequirement,
-    reduce_in_canonical_order,
 )
 from hebog.executors.serial import SerialExecutor
 from hebog.executors.threads import ThreadExecutor
@@ -25,7 +24,6 @@ __all__ = [
     "SerialExecutor",
     "TaskRequirement",
     "ThreadExecutor",
-    "reduce_in_canonical_order",
 ]
 
 

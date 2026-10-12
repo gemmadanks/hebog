@@ -44,8 +44,17 @@ from hebog.data_models.products import ProductChunk
 from hebog.executors.base import Executor
 from hebog.io.base import CompletedProductSource, ImageWindow, WindowReadable
 from hebog.io.zarr import ZarrProductSink
+from hebog.stages.task_memory import read_requirement
 
 _SCALE_ORDERS = (1, 2, 3)
+# Each round's cost per pixel of its largest read, which a task declares
+# (``hebog.stages.task_memory``): the largest traced task peak over that read
+# on the 3,000-, 10,000- and 15,402-pixel LoTSS-DR3 anchors and the dense
+# ELAIS-N1 central 5,000 pixels, rounded up to eight bytes (plan task 17).
+# Both filter rounds recompute every scale's wavelet planes over one tile and
+# its halo.
+_FILTER_BYTES_PER_READ_PIXEL = 296
+_SCALE_LABEL_BYTES_PER_READ_PIXEL = 32
 _MULTISCALE_PRODUCT_NAMES = tuple(
     sorted(
         (
@@ -899,7 +908,18 @@ def run_multiscale_stage(  # noqa: PLR0913
         beam=config.beam,
         detection=config.detection,
     )
-    topology_results = tuple(executor.map_batches(scan, partition_batches))
+    tile_reads = tuple(partition.read_bounds for partition in manifest.tiles)
+    topology_results = tuple(
+        executor.map_batches(
+            scan,
+            partition_batches,
+            requirement=read_requirement(
+                _FILTER_BYTES_PER_READ_PIXEL,
+                tile_reads,
+                chunk_shape_yx=manifest.tile_core_shape_yx,
+            ),
+        )
+    )
     if not topology_results:
         raise ValueError("executor returned no multiscale topology results")
     reconstruction = reconcile_candidate_tiles(
@@ -964,7 +984,15 @@ def run_multiscale_stage(  # noqa: PLR0913
         detection=config.detection,
     )
     publication_results = tuple(
-        executor.map_batches(publish, publication_batches)
+        executor.map_batches(
+            publish,
+            publication_batches,
+            requirement=read_requirement(
+                _FILTER_BYTES_PER_READ_PIXEL,
+                tile_reads,
+                chunk_shape_yx=manifest.tile_core_shape_yx,
+            ),
+        )
     )
     if not publication_results:
         raise ValueError("executor returned no multiscale publication results")
@@ -1025,6 +1053,11 @@ def run_multiscale_stage(  # noqa: PLR0913
                 image_shape_yx=manifest.image_shape_yx,
             ),
             scale_label_batches,
+            requirement=read_requirement(
+                _SCALE_LABEL_BYTES_PER_READ_PIXEL,
+                tile_reads,
+                chunk_shape_yx=manifest.tile_core_shape_yx,
+            ),
         )
     )
     if not scale_label_results:

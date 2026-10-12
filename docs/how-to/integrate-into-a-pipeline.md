@@ -60,12 +60,49 @@ executor = DaskExecutor(
 )
 ```
 
-Today only `maximum_tasks_in_flight` changes what Hebog does: it bounds how
-many tasks are submitted at once. No stage yet declares its memory, so the
-worker, thread and memory fields are recorded but not used (the plan's
-task 17). Hebog does not pin tasks to workers and adds no Dask resource
-annotations. Per-worker memory limits and spill policy stay under your
-control.
+`maximum_tasks_in_flight` bounds how many tasks are submitted at once.
+Every Hebog task also declares the memory it holds, so Hebog narrows that
+bound until the tasks in flight fit `memory_bytes_per_worker` on
+`worker_count` workers, and refuses a task larger than one worker's memory
+before anything runs. A `ThreadExecutor` takes the same budget:
+`ThreadExecutor(4, memory_bytes_per_worker=8 * 1024**3)`.
+
+On a cluster, name Dask worker resources so that Dask itself keeps each
+worker within its memory:
+
+```bash
+dask worker tcp://scheduler:8786 --nthreads 4 --resources "memory=16e9,cores=4"
+```
+
+```python
+executor = DaskExecutor(client, memory_resource="memory", core_resource="cores")
+```
+
+Each task then requests its declared bytes of `memory` and its one thread
+of `cores`, and Dask starts it only on a worker with that much of both
+still free. The names are yours, so they can match resources your own
+tasks already request. Hebog reads the workers' amounts as its budget, and
+refuses to start when no worker declares them, since Dask would otherwise
+hold the tasks forever. Hebog does not pin tasks to workers; spill policy
+stays under your control.
+
+Reserve memory for the analysis itself too. `find_sources` holds Hebog's
+modules and the records every pass keeps for each source in the process
+that calls it, so what it holds grows with the sources it finds, about
+40 KB each, rather than with the image. `hebog.analysis_memory_bytes` states
+how much for an upper estimate of the source count, such as a sky model's
+count for the field. When `find_sources` runs inside a Dask task, request
+it there:
+
+```python
+import hebog
+
+reserve = hebog.analysis_memory_bytes((20_000, 20_000), expected_sources=40_000)
+client.submit(run_finder, request, resources={"memory": reserve, "cores": 1})
+```
+
+With a serial or thread executor the tasks run in the calling process, so
+reserve their admitted memory on top.
 
 ## 2. Put files where workers can reach them
 

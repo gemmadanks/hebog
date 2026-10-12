@@ -91,6 +91,24 @@ from hebog.stages.batching import (
     map_round,
     read_pixels,
 )
+from hebog.stages.task_memory import read_requirement
+
+# Each round's cost per pixel of its largest read, which a task declares
+# (``hebog.stages.task_memory``): the largest traced task peak over that read
+# on the 3,000-, 10,000- and 15,402-pixel LoTSS-DR3 anchors and the dense
+# ELAIS-N1 central 5,000 pixels, rounded up to eight bytes (plan task 17).
+_EXTENT_SCAN_BYTES_PER_READ_PIXEL = 16
+_DEBLEND_BYTES_PER_READ_PIXEL = 168
+_TOPOLOGY_PUBLICATION_BYTES_PER_READ_PIXEL = 96
+_CONTEXT_BYTES_PER_READ_PIXEL = 64
+_FIT_PARENT_PUBLICATION_BYTES_PER_READ_PIXEL = 72
+_FIT_BYTES_PER_READ_PIXEL = 128
+# No anchor held a deferred fit parent, so this round takes the cost of the
+# component fits it stands in for.
+_DEFERRED_BYTES_PER_READ_PIXEL = 128
+_SUPPORT_PUBLICATION_BYTES_PER_READ_PIXEL = 80
+_FEATURE_SCAN_BYTES_PER_READ_PIXEL = 40
+_GROUP_BYTES_PER_READ_PIXEL = 112
 
 _TOPOLOGY_PRODUCT_NAMES = (
     "component-direct-labels",
@@ -919,6 +937,11 @@ def run_component_topology_stage(  # noqa: PLR0913
         executor.map_batches(
             partial(_scan_extents, support_source=support_source),
             scan_batches,
+            requirement=read_requirement(
+                _EXTENT_SCAN_BYTES_PER_READ_PIXEL,
+                (partition.read_bounds for partition in manifest.tiles),
+                chunk_shape_yx=manifest.tile_core_shape_yx,
+            ),
         )
     )
     if not scan_results:
@@ -944,6 +967,11 @@ def run_component_topology_stage(  # noqa: PLR0913
         ),
         parent_batches,
         round_name="component deblend",
+        requirement=read_requirement(
+            _DEBLEND_BYTES_PER_READ_PIXEL,
+            (batch.read_bounds for batch in parent_batches),
+            chunk_shape_yx=manifest.tile_core_shape_yx,
+        ),
     )
     counts = {
         count.parent_label: count
@@ -979,6 +1007,16 @@ def run_component_topology_stage(  # noqa: PLR0913
                 image_shape_yx=manifest.image_shape_yx,
             ),
             publish_batches,
+            # A parent that splits is deblended again inside its own window,
+            # which its round bounded as it bounds the deblend batches.
+            requirement=read_requirement(
+                _TOPOLOGY_PUBLICATION_BYTES_PER_READ_PIXEL,
+                (
+                    *(partition.read_bounds for partition in manifest.tiles),
+                    *(batch.read_bounds for batch in parent_batches),
+                ),
+                chunk_shape_yx=manifest.tile_core_shape_yx,
+            ),
         )
     )
     if not publish_results:
@@ -1635,6 +1673,9 @@ def run_fit_parent_stage(
         ),
         maximum_tiles_per_batch=config.maximum_tiles_per_batch,
     )
+    context_reads = tuple(
+        partition.read_bounds for partition in manifest.tiles
+    )
     scan_results = tuple(
         executor.map_batches(
             partial(
@@ -1644,6 +1685,11 @@ def run_fit_parent_stage(
                 context_margin_pixels=config.context_margin_pixels,
             ),
             scan_batches,
+            requirement=read_requirement(
+                _CONTEXT_BYTES_PER_READ_PIXEL,
+                context_reads,
+                chunk_shape_yx=manifest.tile_core_shape_yx,
+            ),
         )
     )
     if not scan_results:
@@ -1675,6 +1721,11 @@ def run_fit_parent_stage(
                     image_shape_yx=manifest.image_shape_yx,
                 ),
                 scan_batches,
+                requirement=read_requirement(
+                    _CONTEXT_BYTES_PER_READ_PIXEL,
+                    context_reads,
+                    chunk_shape_yx=manifest.tile_core_shape_yx,
+                ),
             )
         )
         if not island_results:
@@ -1730,6 +1781,11 @@ def run_fit_parent_stage(
                 context_margin_pixels=config.context_margin_pixels,
             ),
             publish_batches,
+            requirement=read_requirement(
+                _FIT_PARENT_PUBLICATION_BYTES_PER_READ_PIXEL,
+                context_reads,
+                chunk_shape_yx=manifest.tile_core_shape_yx,
+            ),
         )
     )
     if not publish_results:
@@ -2524,6 +2580,11 @@ def run_component_fit_stage(  # noqa: PLR0913, PLR0917
                 fit_parent_source=fit_parent_source,
             ),
             scan_batches,
+            requirement=read_requirement(
+                _EXTENT_SCAN_BYTES_PER_READ_PIXEL,
+                (partition.read_bounds for partition in manifest.tiles),
+                chunk_shape_yx=manifest.tile_core_shape_yx,
+            ),
         )
     )
     if not scan_results:
@@ -2575,6 +2636,11 @@ def run_component_fit_stage(  # noqa: PLR0913, PLR0917
         ),
         fit_batches,
         round_name="component fit",
+        requirement=read_requirement(
+            _FIT_BYTES_PER_READ_PIXEL,
+            (batch.read_bounds for batch in fit_batches),
+            chunk_shape_yx=manifest.tile_core_shape_yx,
+        ),
     )
     deferred_batches = _deferred_batches(
         deferred,
@@ -2595,6 +2661,15 @@ def run_component_fit_stage(  # noqa: PLR0913, PLR0917
         ),
         deferred_batches,
         round_name="deferred component",
+        requirement=read_requirement(
+            _DEFERRED_BYTES_PER_READ_PIXEL,
+            (
+                core.partition.read_bounds
+                for batch in deferred_batches
+                for core in batch.cores
+            ),
+            chunk_shape_yx=manifest.tile_core_shape_yx,
+        ),
     )
     measured = tuple(
         sorted(
@@ -2663,6 +2738,14 @@ def run_component_fit_stage(  # noqa: PLR0913, PLR0917
                 sink=sink,
             ),
             publish_batches,
+            requirement=read_requirement(
+                _SUPPORT_PUBLICATION_BYTES_PER_READ_PIXEL,
+                (
+                    *(partition.read_bounds for partition in manifest.tiles),
+                    *(extent.read_bounds for extent in supported),
+                ),
+                chunk_shape_yx=manifest.tile_core_shape_yx,
+            ),
         )
     )
     if not publish_results:
@@ -3196,6 +3279,11 @@ def run_extended_group_stage(  # noqa: PLR0913, PLR0917
                 manifest.tiles,
                 maximum_tiles_per_batch=config.maximum_tiles_per_batch,
             ),
+            requirement=read_requirement(
+                _FEATURE_SCAN_BYTES_PER_READ_PIXEL,
+                (partition.read_bounds for partition in manifest.tiles),
+                chunk_shape_yx=manifest.tile_core_shape_yx,
+            ),
         )
     )
     if not scan_results:
@@ -3240,6 +3328,11 @@ def run_extended_group_stage(  # noqa: PLR0913, PLR0917
                     beam=beam,
                 ),
                 batches,
+                requirement=read_requirement(
+                    _GROUP_BYTES_PER_READ_PIXEL,
+                    (batch.read_bounds for batch in batches),
+                    chunk_shape_yx=manifest.tile_core_shape_yx,
+                ),
             )
         )
         if not group_results:

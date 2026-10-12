@@ -9,8 +9,6 @@ from hebog.executors.base import (
     ExecutorCapacity,
     TaskRequirement,
     call_with_retries,
-    reduce_in_canonical_order,
-    require_serializable,
     require_serializable_payloads,
 )
 
@@ -28,8 +26,8 @@ class SerialExecutor:
     """Run batches serially for testing and scientific reference results.
 
     This executor defines the behaviour every other policy must reproduce:
-    input ordering, the canonical reduction tree, payload validation, retry
-    of idempotent tasks and the first failing batch by index.
+    input ordering, payload validation, retry of idempotent tasks and the
+    first failing batch by index.
     """
 
     def __init__(
@@ -71,17 +69,3 @@ class SerialExecutor:
     ) -> list[Output]:
         """Apply ``function`` to each batch in input order."""
         return list(self._results(function, batches, requirement))
-
-    def reduce_batches(
-        self,
-        function: Callable[[Input], Output],
-        batches: Iterable[Input],
-        combine: Callable[[Output, Output], Output],
-        *,
-        requirement: TaskRequirement | None = None,
-    ) -> Output:
-        """Map batches and combine them in the canonical reduction tree."""
-        require_serializable(combine, name="combine")
-        return reduce_in_canonical_order(
-            self._results(function, batches, requirement), combine
-        )

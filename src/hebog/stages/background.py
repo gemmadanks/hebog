@@ -55,6 +55,7 @@ from hebog.config import (
 from hebog.data_models.partitioning import ImageBounds, TilePartition
 from hebog.executors.base import Executor
 from hebog.io.base import ImageWindow, WindowReadable
+from hebog.stages.task_memory import read_requirement
 
 # Every protected block, of local-noise cells or of a bright region's fine
 # cells, reads its own cells plus the protection halo, and re-derives the
@@ -75,6 +76,15 @@ _PROTECTED_CONTEXT_CELLS = 2304
 # and SDC1 cut-outs the 0.1% quantile of the nearest fill is at least 0.806
 # of the coarse RMS, so the floor acts beyond that scatter (plan task 65).
 _LOCAL_NOISE_MINIMUM_COARSE_FRACTION = 0.8
+# Each round's cost per pixel of its largest read, which a task declares
+# (``hebog.stages.task_memory``): the largest traced task peak over that read
+# on the 3,000-, 10,000- and 15,402-pixel LoTSS-DR3 anchors and the dense
+# ELAIS-N1 central 5,000 pixels, rounded up to eight bytes (plan task 17).
+_SOURCE_BATCH_BYTES_PER_READ_PIXEL = 152
+_PROTECTED_BYTES_PER_READ_PIXEL = 272
+# No anchor retired a bright candidate, so this round takes the cost of
+# the source batches, which read the same input.
+_CANDIDATE_SUPPORT_BYTES_PER_READ_PIXEL = 152
 
 
 @dataclass(frozen=True, slots=True)
@@ -288,7 +298,14 @@ def estimate_rms_grid(
         grid=grid,
         config=config,
     )
-    results = executor.map_batches(estimate_batch, batches)
+    results = executor.map_batches(
+        estimate_batch,
+        batches,
+        requirement=read_requirement(
+            _SOURCE_BATCH_BYTES_PER_READ_PIXEL,
+            (batch.read_bounds for batch in batches),
+        ),
+    )
     return assemble_rms_grid_statistics(grid, results)
 
 
@@ -959,6 +976,7 @@ def _estimate_local_noise_grid(  # noqa: PLR0913
     context_halo = _protection_context_halo(config)
     height, width = grid.image_shape_yx
     requests: list[_ProtectedBlockRequest] = []
+    reads: list[ImageBounds] = []
     for block in _local_noise_contexts(grid, config, policy):
         if (
             prod(block.read_bounds.shape_yx)
@@ -967,6 +985,7 @@ def _estimate_local_noise_grid(  # noqa: PLR0913
             raise ValueError(
                 "local noise context exceeds bounded read admission"
             )
+        reads.append(block.read_bounds)
         requests.append(
             _ProtectedBlockRequest(
                 block.batch,
@@ -992,6 +1011,7 @@ def _estimate_local_noise_grid(  # noqa: PLR0913
             multiscale_protection=policy,
         ),
         requests,
+        requirement=read_requirement(_PROTECTED_BYTES_PER_READ_PIXEL, reads),
     )
     return assemble_rms_grid_statistics(
         grid, (statistics for statistics, _ in results)
@@ -1151,6 +1171,10 @@ def _adopt_protected_coarse(  # noqa: PLR0913
             (region, subset_prepared_rms_grid(coarse, region.bounds))
             for region in candidate_regions
         ),
+        requirement=read_requirement(
+            _CANDIDATE_SUPPORT_BYTES_PER_READ_PIXEL,
+            (region.bounds for region in candidate_regions),
+        ),
     )
     protected_grids = BackgroundRmsGrids(
         coarse=coarse,
@@ -1247,6 +1271,7 @@ def refine_background_rms_grids(  # noqa: PLR0913
             island_threshold_sigma=source_protection_island_threshold_sigma,
             multiscale_protection=multiscale_protection,
         )
+        image_height, image_width = coarse_grids.coarse.geometry.image_shape_yx
         (protected_coarse,) = executor.map_batches(
             estimate_coarse,
             (
@@ -1258,6 +1283,12 @@ def refine_background_rms_grids(  # noqa: PLR0913
                     guard_window_shape_yx=adaptive_config.grid.window_shape_yx,
                     detection_rms=detection_rms,
                 ),
+            ),
+            # The protected coarse grid is estimated over the whole image in
+            # one task, so it declares the whole image.
+            requirement=read_requirement(
+                _PROTECTED_BYTES_PER_READ_PIXEL,
+                (ImageBounds(0, image_height, 0, image_width),),
             ),
         )
         coarse_grids, candidate_regions = _adopt_protected_coarse(
@@ -1385,6 +1416,7 @@ def _refine_bright_regions(  # noqa: PLR0913
         tuple[_CandidateRegion, RmsGridGeometry, PreparedRmsGrid, int]
     ] = []
     requests: list[_ProtectedBlockRequest] = []
+    reads: list[ImageBounds] = []
     largest_read = 0
     for region, region_grid in zip(
         candidate_regions, region_grids, strict=True
@@ -1410,6 +1442,7 @@ def _refine_bright_regions(  # noqa: PLR0913
                     "bright region context exceeds bounded read admission"
                 )
             largest_read = max(largest_read, read_pixels)
+            reads.append(block.read_bounds)
             requests.append(
                 _ProtectedBlockRequest(
                     block.batch,
@@ -1438,6 +1471,9 @@ def _refine_bright_regions(  # noqa: PLR0913
                 multiscale_protection=multiscale_protection,
             ),
             requests,
+            requirement=read_requirement(
+                _PROTECTED_BYTES_PER_READ_PIXEL, reads
+            ),
         )
     )
     adaptive_regions: list[AdaptiveRmsRegion] = []

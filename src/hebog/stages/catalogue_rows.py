@@ -64,8 +64,19 @@ from hebog.stages.batching import (
     map_round,
     read_pixels,
 )
+from hebog.stages.task_memory import read_requirement
 
 _PRODUCT_NAMES = ("aperture-labels",)
+# Each round's cost per pixel of its largest read, which a task declares
+# (``hebog.stages.task_memory``): the largest traced task peak over that read
+# on the 3,000-, 10,000- and 15,402-pixel LoTSS-DR3 anchors and the dense
+# ELAIS-N1 central 5,000 pixels, rounded up to eight bytes (plan task 17).
+_APERTURE_BYTES_PER_READ_PIXEL = 152
+_WINDOW_SCAN_BYTES_PER_READ_PIXEL = 16
+_ROW_BYTES_PER_READ_PIXEL = 200
+# No anchor held an object wider than the read budget, so this round
+# takes the cost of the narrow round it stands in for.
+_WIDE_SEGMENT_BYTES_PER_READ_PIXEL = 200
 
 
 def segment_row_product_names() -> tuple[str, ...]:
@@ -1005,6 +1016,7 @@ def run_segment_row_stage(  # noqa: PLR0913, PLR0917
         manifest.tiles,
         maximum_tiles_per_batch=config.maximum_tiles_per_batch,
     )
+    tile_reads = tuple(partition.read_bounds for partition in manifest.tiles)
     sink.initialize_product(
         product_name="aperture-labels",
         dtype=np.dtype("<i4"),
@@ -1022,6 +1034,11 @@ def run_segment_row_stage(  # noqa: PLR0913, PLR0917
                 sink=sink,
             ),
             core_batches,
+            requirement=read_requirement(
+                _APERTURE_BYTES_PER_READ_PIXEL,
+                tile_reads,
+                chunk_shape_yx=manifest.tile_core_shape_yx,
+            ),
         )
     )
     if not aperture_results:
@@ -1043,6 +1060,11 @@ def run_segment_row_stage(  # noqa: PLR0913, PLR0917
                 label_product_name=config.label_product_name,
             ),
             core_batches,
+            requirement=read_requirement(
+                _WINDOW_SCAN_BYTES_PER_READ_PIXEL,
+                tile_reads,
+                chunk_shape_yx=manifest.tile_core_shape_yx,
+            ),
         )
     )
     if not window_results:
@@ -1076,6 +1098,11 @@ def run_segment_row_stage(  # noqa: PLR0913, PLR0917
         ),
         row_batches,
         round_name="segment row",
+        requirement=read_requirement(
+            _ROW_BYTES_PER_READ_PIXEL,
+            (batch.read_bounds for batch in row_batches),
+            chunk_shape_yx=manifest.tile_core_shape_yx,
+        ),
     )
     wide_segments = tuple(
         segment for segment in segments if read_pixels(segment.bounds) > budget
@@ -1106,6 +1133,15 @@ def run_segment_row_stage(  # noqa: PLR0913, PLR0917
         ),
         wide_batches,
         round_name="wide segment",
+        requirement=read_requirement(
+            _WIDE_SEGMENT_BYTES_PER_READ_PIXEL,
+            (
+                core.partition.read_bounds
+                for batch in wide_batches
+                for core in batch.cores
+            ),
+            chunk_shape_yx=manifest.tile_core_shape_yx,
+        ),
     )
     row_results = (
         *row_results,

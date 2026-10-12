@@ -68,6 +68,7 @@ from hebog.executors.base import Executor
 from hebog.io.base import CompletedProductSource
 from hebog.io.zarr import ZarrProductSink
 from hebog.stages.batching import batch_object_windows, map_round, read_pixels
+from hebog.stages.task_memory import read_requirement
 
 _OwnerResult = TypeVar(
     "_OwnerResult",
@@ -75,6 +76,12 @@ _OwnerResult = TypeVar(
     "_BridgeBatchResult",
 )
 
+# Each round's cost per pixel of its largest read, which a task declares
+# (``hebog.stages.task_memory``): the largest traced task peak over that read
+# on the 3,000-, 10,000- and 15,402-pixel LoTSS-DR3 anchors and the dense
+# ELAIS-N1 central 5,000 pixels, rounded up to eight bytes (plan task 17).
+_OWNER_BYTES_PER_READ_PIXEL = 168
+_TILE_BYTES_PER_READ_PIXEL = 104
 _PUBLICATION_PRODUCT_NAMES = (
     "component-labels",
     "measurement-labels",
@@ -1105,6 +1112,7 @@ def run_publication_stage(  # noqa: PLR0913
             support_source=support_source,
             config=config,
         ),
+        chunk_shape_yx=manifest.tile_core_shape_yx,
     )
     wide_cores = tuple(
         partition
@@ -1135,6 +1143,11 @@ def run_publication_stage(  # noqa: PLR0913
         ),
         split_batches,
         round_name="wide owner split",
+        requirement=read_requirement(
+            _TILE_BYTES_PER_READ_PIXEL,
+            (partition.read_bounds for partition in wide_cores),
+            chunk_shape_yx=manifest.tile_core_shape_yx,
+        ),
     )
     split_summaries = tuple(
         summary for result in split_results for summary in result.summaries
@@ -1190,6 +1203,11 @@ def run_publication_stage(  # noqa: PLR0913
                 config=config,
             ),
             scan_batches,
+            requirement=read_requirement(
+                _TILE_BYTES_PER_READ_PIXEL,
+                (partition.read_bounds for partition in manifest.tiles),
+                chunk_shape_yx=manifest.tile_core_shape_yx,
+            ),
         )
     )
     if not scan_results:
@@ -1224,6 +1242,7 @@ def run_publication_stage(  # noqa: PLR0913
             config=config,
             image_width=image_width,
         ),
+        chunk_shape_yx=manifest.tile_core_shape_yx,
     )
     # Patches apply in canonical owner order, whichever batch decided them.
     patches = tuple(
@@ -1257,6 +1276,11 @@ def run_publication_stage(  # noqa: PLR0913
         ),
         wide_bridge_batches,
         round_name="wide owner bridge",
+        requirement=read_requirement(
+            _TILE_BYTES_PER_READ_PIXEL,
+            (partition.read_bounds for partition in wide_cores),
+            chunk_shape_yx=manifest.tile_core_shape_yx,
+        ),
     )
     bridge_cores = tuple(
         core for result in wide_bridge_results for core in result.cores
@@ -1316,6 +1340,11 @@ def run_publication_stage(  # noqa: PLR0913
                 image_width=image_width,
             ),
             publish_batches,
+            requirement=read_requirement(
+                _TILE_BYTES_PER_READ_PIXEL,
+                (partition.read_bounds for partition in manifest.tiles),
+                chunk_shape_yx=manifest.tile_core_shape_yx,
+            ),
         )
     )
     if not publish_results:
@@ -1369,11 +1398,23 @@ def _map_owner_batches(
     executor: Executor,
     batches: tuple[_OwnerBatch, ...],
     function: Callable[[_OwnerBatch], _OwnerResult],
+    *,
+    chunk_shape_yx: tuple[int, int],
 ) -> tuple[_OwnerResult, ...]:
     """Evaluate owner work, tolerating an image with no owner at all."""
     if not batches:
         return ()
-    results = tuple(executor.map_batches(function, batches))
+    results = tuple(
+        executor.map_batches(
+            function,
+            batches,
+            requirement=read_requirement(
+                _OWNER_BYTES_PER_READ_PIXEL,
+                (batch.read_bounds for batch in batches),
+                chunk_shape_yx=chunk_shape_yx,
+            ),
+        )
+    )
     if not results:
         raise ValueError("executor returned no owner-decision results")
     return results

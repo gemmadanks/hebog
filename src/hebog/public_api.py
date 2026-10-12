@@ -206,6 +206,12 @@ _UNBOUND_MODULES = {
         "It plans tile geometry only, and every product is required to be "
         "the same on any tile grid, which the tile-invariance tests assert."
     ),
+    "hebog.stages.task_memory": (
+        "It sizes the memory each task declares to the executor, which may "
+        "narrow the in-flight window and place tasks, never decide a result: "
+        "the executor contract suite asserts the same results under every "
+        "in-flight bound."
+    ),
 }
 """Modules the finder imports that the composition hash leaves out, and why.
 

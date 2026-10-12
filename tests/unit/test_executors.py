@@ -1,15 +1,15 @@
 """Unit tests for execution policies and the shared executor contract.
 
 Behaviour shared by every policy lives in the executor contract suite. These
-tests cover the pieces each policy owns: budget validation, the canonical
-reduction shape, thread-pool lifetime and bounded Dask submission, none of
-which needs a running scheduler.
+tests cover the pieces each policy owns: budget validation, thread-pool
+lifetime and bounded Dask submission, none of which needs a running
+scheduler.
 """
 
 from __future__ import annotations
 
 import threading
-from collections.abc import Callable, Iterable, Iterator
+from collections.abc import Callable, Iterable
 from concurrent.futures import CancelledError
 from typing import Any
 
@@ -22,7 +22,6 @@ from hebog.executors import (
     SerialExecutor,
     TaskRequirement,
     ThreadExecutor,
-    reduce_in_canonical_order,
 )
 from hebog.executors.base import (
     admitted_tasks_in_flight,
@@ -34,16 +33,6 @@ from hebog.executors.threads import (
 )
 
 
-def _label(value: int) -> str:
-    """Return one element that records how it was combined."""
-    return str(value)
-
-
-def _combine(first: str, second: str) -> str:
-    """Record the association of one combine without commuting it."""
-    return f"({first}+{second})"
-
-
 def _square(value: int) -> int:
     """Return one square from a module-level serializable function."""
     return value**2
@@ -52,63 +41,6 @@ def _square(value: int) -> int:
 def _identity(value: object) -> object:
     """Return one payload unchanged for serialization checks."""
     return value
-
-
-@pytest.mark.parametrize(
-    ("count", "expected"),
-    [
-        (1, "0"),
-        (2, "(0+1)"),
-        (3, "((0+1)+2)"),
-        (4, "((0+1)+(2+3))"),
-        (5, "(((0+1)+(2+3))+4)"),
-        (6, "(((0+1)+(2+3))+(4+5))"),
-        (7, "((((0+1)+(2+3))+(4+5))+6)"),
-        (8, "(((0+1)+(2+3))+((4+5)+(6+7)))"),
-    ],
-)
-def test_canonical_reduction_pairs_by_position(
-    count: int,
-    expected: str,
-) -> None:
-    """The reduction tree is decided by input index alone."""
-    values = [_label(value) for value in range(count)]
-
-    assert reduce_in_canonical_order(values, _combine) == expected
-
-
-def test_canonical_reduction_rejects_no_values() -> None:
-    """A reduction without an identity element refuses to guess one."""
-    with pytest.raises(ValueError, match="at least one batch"):
-        reduce_in_canonical_order([], _combine)
-
-
-def test_canonical_reduction_holds_one_value_per_level() -> None:
-    """Reduction memory grows with the tree depth, not the batch count."""
-    count = 64
-    alive = 0
-    peak = 0
-    combines = 0
-
-    def values() -> Iterator[str]:
-        """Yield labels lazily so held accumulators can be counted."""
-        nonlocal alive, peak
-        for value in range(count):
-            alive += 1
-            peak = max(peak, alive)
-            yield _label(value)
-
-    def measure(first: str, second: str) -> str:
-        """Combine two accumulators into one and record the count."""
-        nonlocal alive, combines
-        alive -= 1
-        combines += 1
-        return _combine(first, second)
-
-    reduce_in_canonical_order(values(), measure)
-
-    assert combines == count - 1
-    assert peak <= count.bit_length()
 
 
 @pytest.mark.parametrize(
@@ -239,12 +171,19 @@ class _StubFuture:
 class _StubClient:
     """Record the submission sequence of one caller-owned client."""
 
-    def __init__(self, *, nthreads: int = 4) -> None:
-        """Describe one worker and start an empty submission log."""
+    def __init__(
+        self,
+        *,
+        nthreads: int = 4,
+        resources: tuple[dict[str, float], ...] = ({}, {}),
+    ) -> None:
+        """Describe two workers and start an empty submission log."""
         self.events: list[str] = []
         self.futures: list[_StubFuture] = []
         self.outstanding_at_submit: list[int] = []
+        self.submitted_resources: list[dict[str, float] | None] = []
         self._nthreads = nthreads
+        self._resources = resources
 
     def outstanding(self) -> int:
         """Return how many submitted tasks have not settled."""
@@ -254,14 +193,14 @@ class _StubClient:
         """Report the budget a caller-owned cluster would report."""
         return {
             "workers": {
-                "tcp://worker-1": {
+                f"tcp://worker-{index}": {
                     "nthreads": self._nthreads,
-                    "memory_limit": 2_000,
-                },
-                "tcp://worker-2": {
-                    "nthreads": self._nthreads,
-                    "memory_limit": 4_000,
-                },
+                    "memory_limit": memory_limit,
+                    "resources": resources,
+                }
+                for index, (memory_limit, resources) in enumerate(
+                    zip((2_000, 4_000), self._resources, strict=True), start=1
+                )
             }
         }
 
@@ -272,19 +211,11 @@ class _StubClient:
         **keywords: Any,
     ) -> _StubFuture:
         """Evaluate one task eagerly and record its submission."""
-        del keywords
+        self.submitted_resources.append(keywords.get("resources"))
         self.events.append(f"submit:{function.__name__}")
         self.outstanding_at_submit.append(self.outstanding())
-        # A real client resolves future arguments to their values before the
-        # task runs, so combines see results rather than futures.
-        values = [
-            argument.result()
-            if isinstance(argument, _StubFuture)
-            else argument
-            for argument in arguments
-        ]
         try:
-            future = _StubFuture(function(*values))
+            future = _StubFuture(function(*arguments))
         except Exception as error:
             future = _StubFuture(None, error)
         self.futures.append(future)
@@ -306,6 +237,153 @@ def test_dask_executor_reads_the_cluster_budget() -> None:
     assert capacity.threads_per_worker == 4
     assert capacity.maximum_tasks_in_flight == 16
     assert capacity.memory_bytes_per_worker == 2_000
+
+
+_NAMED_RESOURCES = (
+    {"memory": 3_000.0, "cores": 4.0},
+    {"memory": 5_000.0, "cores": 2.0},
+)
+
+
+def test_dask_executor_attaches_no_resources_unless_named(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A caller who names no resource gets Dask's default placement."""
+    client = _StubClient()
+    _patch_wait(monkeypatch, client)
+
+    _stub_executor(client).map_batches(
+        _square, [1, 2], requirement=TaskRequirement(memory_bytes=1_000)
+    )
+
+    assert client.submitted_resources == [None, None]
+
+
+def test_dask_executor_declares_each_task_under_the_named_resources(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Every task asks Dask for its declared memory and threads."""
+    client = _StubClient(resources=_NAMED_RESOURCES)
+    _patch_wait(monkeypatch, client)
+    executor = _stub_executor(
+        client, memory_resource="memory", core_resource="cores"
+    )
+
+    results = executor.map_batches(
+        _square,
+        [1, 2, 3],
+        requirement=TaskRequirement(memory_bytes=1_500, threads=2),
+    )
+
+    assert results == [1, 4, 9]
+    assert client.submitted_resources == [{"memory": 1_500, "cores": 2}] * 3
+
+
+def test_dask_executor_declares_one_core_for_an_undeclared_task(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A task without a requirement still occupies one named core."""
+    client = _StubClient(resources=_NAMED_RESOURCES)
+    _patch_wait(monkeypatch, client)
+    executor = _stub_executor(
+        client, memory_resource="memory", core_resource="cores"
+    )
+
+    executor.map_batches(_square, [1])
+
+    assert client.submitted_resources == [{"cores": 1}]
+
+
+def test_dask_executor_reads_its_budget_from_the_named_resources() -> None:
+    """The admitted budget is what the workers declare, not their limits.
+
+    A worker's thread count and memory limit include what other work, such
+    as DP3, holds, so the named resources are the budget when they exist.
+    """
+    capacity = _stub_executor(
+        _StubClient(resources=_NAMED_RESOURCES),
+        memory_resource="memory",
+        core_resource="cores",
+    ).capacity
+
+    assert capacity.worker_count == 2
+    assert capacity.threads_per_worker == 2
+    assert capacity.memory_bytes_per_worker == 3_000
+    assert capacity.maximum_tasks_in_flight == 12
+
+
+def test_dask_executor_counts_only_workers_declaring_every_resource() -> None:
+    """A worker without the named resources never runs Hebog's tasks."""
+    capacity = _stub_executor(
+        _StubClient(resources=({"memory": 3_000.0, "cores": 4.0}, {})),
+        memory_resource="memory",
+        core_resource="cores",
+    ).capacity
+
+    assert capacity.worker_count == 1
+    assert capacity.threads_per_worker == 4
+    assert capacity.memory_bytes_per_worker == 3_000
+
+
+def test_dask_executor_refuses_resources_no_worker_declares() -> None:
+    """A task no worker could ever run fails at once instead of waiting."""
+    client = _StubClient()
+    executor = _stub_executor(client, memory_resource="hebog-memory")
+
+    with pytest.raises(ExecutorAdmissionError, match="hebog-memory"):
+        executor.map_batches(_square, [1])
+
+    assert client.submitted_resources == []
+
+
+def test_dask_executor_refuses_a_task_larger_than_its_workers_declare() -> (
+    None
+):
+    """Admission compares a task with the memory the workers declare."""
+    client = _StubClient(resources=_NAMED_RESOURCES)
+    executor = _stub_executor(
+        client, memory_resource="memory", core_resource="cores"
+    )
+
+    with pytest.raises(ExecutorAdmissionError, match="3000 bytes"):
+        executor.map_batches(
+            _square, [1], requirement=TaskRequirement(memory_bytes=3_001)
+        )
+
+    assert client.submitted_resources == []
+
+
+@pytest.mark.parametrize(
+    "resources",
+    [({}, {}), ({"memory": 1_000.0}, {"memory": 1_499.0})],
+    ids=["undeclared", "too-small"],
+)
+def test_dask_executor_checks_the_workers_under_a_declared_budget(
+    resources: tuple[dict[str, float], ...],
+) -> None:
+    """A declared budget does not stand in for the workers' resources.
+
+    The task fits the budget, but no worker declares enough memory for it,
+    so Dask would hold it forever.
+    """
+    client = _StubClient(resources=resources)
+    executor = _stub_executor(
+        client,
+        capacity=ExecutorCapacity(
+            worker_count=2,
+            threads_per_worker=4,
+            maximum_tasks_in_flight=8,
+            memory_bytes_per_worker=10_000,
+        ),
+        memory_resource="memory",
+    )
+
+    with pytest.raises(ExecutorAdmissionError, match="1500 memory"):
+        executor.map_batches(
+            _square, [1], requirement=TaskRequirement(memory_bytes=1_500)
+        )
+
+    assert client.submitted_resources == []
 
 
 def test_dask_executor_bounds_submission(
@@ -447,18 +525,7 @@ def _peak_in_flight(events: list[str]) -> int:
     return peak
 
 
-def _sum_values(first: int, second: int) -> int:
-    """Combine two mapped values on a worker."""
-    return first + second
-
-
-def _fail_to_combine(first: int, second: int) -> int:
-    """Fail every combine so the reduction cannot finish."""
-    del first, second
-    raise RuntimeError("combine failed")
-
-
-def _stub_reduction_executor(client: _StubClient) -> Any:
+def _stub_bounded_executor(client: _StubClient) -> Any:
     """Build one Dask executor with a small explicit in-flight bound."""
     return _stub_executor(
         client,
@@ -486,81 +553,6 @@ def _patch_wait(
     monkeypatch.setattr(dask_module, "wait", record_wait)
 
 
-def test_dask_reduction_counts_combines_against_the_in_flight_bound(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Mappers wait for in-flight combines instead of running past them."""
-    client = _StubClient()
-    _patch_wait(monkeypatch, client)
-
-    reduced = _stub_reduction_executor(client).reduce_batches(
-        _square, list(range(9)), _sum_values
-    )
-
-    assert reduced == sum(value**2 for value in range(9))
-    # Mappers and combines share one window: nothing is submitted while the
-    # admitted number is already outstanding, and the reduction still
-    # completes, because waiting on a combine always makes progress.
-    # Exactly at the bound: the window is genuinely reached, so the test
-    # cannot pass by never filling it.
-    assert max(client.outstanding_at_submit) == 2
-    assert (
-        sum(
-            1
-            for event in client.events
-            if event == f"submit:{_square.__name__}"
-        )
-        == 9
-    )
-
-
-def test_dask_reduction_stops_mapping_when_a_combine_fails(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """A failed combine stops the plan instead of waiting for the value."""
-    client = _StubClient()
-    _patch_wait(monkeypatch, client)
-
-    with pytest.raises(RuntimeError, match="combine failed"):
-        _stub_reduction_executor(client).reduce_batches(
-            _square, list(range(32)), _fail_to_combine
-        )
-
-    submitted = sum(
-        1 for event in client.events if event == f"submit:{_square.__name__}"
-    )
-    assert submitted < 32
-
-
-def test_dask_reduction_releases_combines_when_one_fails(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """A failed reduction leaves no combine running on the cluster."""
-    client = _StubClient()
-    _patch_wait(monkeypatch, client)
-
-    with pytest.raises(RuntimeError, match="combine failed"):
-        _stub_reduction_executor(client).reduce_batches(
-            _square, list(range(32)), _fail_to_combine
-        )
-
-    assert client.outstanding() == 0
-
-
-def test_dask_reduction_releases_combines_when_it_succeeds(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """A gathered reduction leaves no combine holding worker memory."""
-    client = _StubClient()
-    _patch_wait(monkeypatch, client)
-
-    _stub_reduction_executor(client).reduce_batches(
-        _square, list(range(9)), _sum_values
-    )
-
-    assert client.outstanding() == 0
-
-
 def _fail_first_batch(value: int) -> int:
     """Fail batch 0 and square every other batch."""
     if value == 0:
@@ -580,7 +572,7 @@ def test_failed_dask_map_waits_for_every_task_it_submitted(
     _patch_wait(monkeypatch, client)
 
     with pytest.raises(RuntimeError, match="batch 0 failed"):
-        _stub_reduction_executor(client).map_batches(
+        _stub_bounded_executor(client).map_batches(
             _fail_first_batch, list(range(8))
         )
 
@@ -591,34 +583,6 @@ def test_failed_dask_map_waits_for_every_task_it_submitted(
         "finished",
         "finished",
     ]
-
-
-def test_dask_reduction_waits_for_its_mappers_when_a_combine_fails(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """A combine failing in the fold settles the mappers still in flight.
-
-    With every batch submitted, the failure surfaces in the reduction's
-    fold rather than in the mapper loop, while the last mapper is pending.
-    """
-    client = _StubClient()
-    _patch_wait(monkeypatch, client)
-    executor = _stub_executor(
-        client,
-        capacity=ExecutorCapacity(
-            worker_count=1,
-            threads_per_worker=1,
-            maximum_tasks_in_flight=4,
-        ),
-    )
-
-    with pytest.raises(RuntimeError, match="combine failed"):
-        executor.reduce_batches(_square, list(range(5)), _fail_to_combine)
-
-    assert {future.status for future in client.futures} <= {
-        "error",
-        "finished",
-    }
 
 
 def test_a_wait_the_client_cancels_keeps_the_failing_batch_error(
@@ -647,7 +611,7 @@ def test_a_wait_the_client_cancels_keeps_the_failing_batch_error(
     monkeypatch.setattr(dask_module, "wait", cancel_while_waiting)
 
     with pytest.raises(RuntimeError, match="batch 0 failed"):
-        _stub_reduction_executor(client).map_batches(
+        _stub_bounded_executor(client).map_batches(
             _fail_first_batch, list(range(8))
         )
 
@@ -742,7 +706,7 @@ def test_a_dask_call_interrupted_while_waiting_still_waits_for_that_task(
     monkeypatch.setattr(dask_module, "wait", deadline_on_the_first_wait)
 
     with pytest.raises(_CallerDeadlineError):
-        _stub_reduction_executor(client).map_batches(_square, list(range(8)))
+        _stub_bounded_executor(client).map_batches(_square, list(range(8)))
 
     assert [future.status for future in client.futures] == ["finished"] * 3
 

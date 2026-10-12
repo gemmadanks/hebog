@@ -31,7 +31,7 @@ _SHAPE_YX = (64, 72)
 
 
 class _CountingExecutor(SerialExecutor):
-    """Serial executor that counts every map and reduction it is given."""
+    """Serial executor that counts every map it is given."""
 
     def __init__(self) -> None:
         """Start with no calls."""
@@ -48,20 +48,6 @@ class _CountingExecutor(SerialExecutor):
         """Count the call, then run it in order."""
         self.calls += 1
         return super().map_batches(function, batches, requirement=requirement)
-
-    def reduce_batches(
-        self,
-        function: Callable[[_Input], _Output],
-        batches: Iterable[_Input],
-        combine: Callable[[_Output, _Output], _Output],
-        *,
-        requirement: TaskRequirement | None = None,
-    ) -> _Output:
-        """Count the call, then run it in order."""
-        self.calls += 1
-        return super().reduce_batches(
-            function, batches, combine, requirement=requirement
-        )
 
 
 def _write(path: Path, values: np.ndarray, **cards: object) -> Path:

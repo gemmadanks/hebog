@@ -37,9 +37,16 @@ from hebog.data_models.products import ProductChunk
 from hebog.executors.base import Executor
 from hebog.io.base import CompletedProductSource
 from hebog.io.zarr import ZarrProductSink
+from hebog.stages.task_memory import read_requirement
 
 _SUPPORT_PRODUCT_NAMES = ("persistent-support",)
 _MINIMUM_PERSISTENT_SCALE_COUNT = 2
+# Each round's cost per pixel of its largest read, which a task declares
+# (``hebog.stages.task_memory``): the largest traced task peak over that read
+# on the 3,000-, 10,000- and 15,402-pixel LoTSS-DR3 anchors and the dense
+# ELAIS-N1 central 5,000 pixels, rounded up to eight bytes (plan task 17).
+_TOPOLOGY_BYTES_PER_READ_PIXEL = 48
+_PUBLICATION_BYTES_PER_READ_PIXEL = 32
 
 
 @dataclass(frozen=True, slots=True)
@@ -520,7 +527,18 @@ def run_support_topology_stage(
         manifest,
         maximum_tiles_per_batch=config.maximum_tiles_per_batch,
     )
-    topology_results = tuple(executor.map_batches(scan, partition_batches))
+    tile_reads = tuple(partition.read_bounds for partition in manifest.tiles)
+    topology_results = tuple(
+        executor.map_batches(
+            scan,
+            partition_batches,
+            requirement=read_requirement(
+                _TOPOLOGY_BYTES_PER_READ_PIXEL,
+                tile_reads,
+                chunk_shape_yx=manifest.tile_core_shape_yx,
+            ),
+        )
+    )
     if not topology_results:
         raise ValueError("executor returned no support topology results")
     tiles = tuple(tile for result in topology_results for tile in result.tiles)
@@ -552,7 +570,15 @@ def run_support_topology_stage(
         scale_orders=config.scale_orders,
     )
     publication_results = tuple(
-        executor.map_batches(publish, publication_batches)
+        executor.map_batches(
+            publish,
+            publication_batches,
+            requirement=read_requirement(
+                _PUBLICATION_BYTES_PER_READ_PIXEL,
+                tile_reads,
+                chunk_shape_yx=manifest.tile_core_shape_yx,
+            ),
+        )
     )
     if not publication_results:
         raise ValueError("executor returned no support publication results")

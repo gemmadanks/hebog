@@ -238,8 +238,9 @@ count chosen within the core budget Rapthor states, so Dask schedules every
 core; several worker processes of a few threads each a node, rather than one
 process of 192 threads, keep Python's global lock from throttling a node.
 Hebog's analysis steps out of its worker slot while it waits on its tile
-tasks, so concurrent sectors cannot deadlock, and its tasks carry Dask
-resource annotations whose names Rapthor configures (plan task 72).
+tasks, so concurrent sectors cannot deadlock (plan task 72), and its tasks
+carry their declared memory and cores as Dask resource annotations under the
+names Rapthor gives `DaskExecutor`.
 Rapthor's workers must limit their native thread pools to their declared
 cores, because Hebog runs in-process without the subprocess's single-thread
 settings. [How Hebog runs on Rapthor's Dask

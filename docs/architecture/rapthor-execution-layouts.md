@@ -146,16 +146,20 @@ flowchart TB
 
 This is one way Rapthor can provide that beside its own tools; the choice
 is Rapthor's. Every node runs several worker processes, for Hebog and for
-Rapthor's own DP3 and WSClean commands alike. Each worker has T threads and declares two
-Dask resources: `cores`, equal to T, and `prefect`, equal to 1. Every task
-says what it uses:
+Rapthor's own DP3 and WSClean commands alike. Each worker has T threads and declares three
+Dask resources: `cores`, equal to T, `prefect`, equal to 1, and `memory`,
+the worker's share of the node's memory in bytes. Every task says what it
+uses:
 
 | Task | Resources it requests | Effect on its worker |
 | --- | --- | --- |
 | A DP3 or WSClean command | `prefect: 1`, `cores: T` | Runs alone on the worker |
 | Another Rapthor Prefect task | `prefect: 1`, the cores it uses | Never beside a second Prefect task |
-| Rapthor's `filter_skymodel`, running Hebog | `prefect: 1`, `cores: 1` | Waits on one core, leaving T − 1 to tiles |
-| A Hebog tile task | `cores: 1` | Runs on any free core of any worker |
+| Rapthor's `filter_skymodel`, running Hebog | `prefect: 1`, `cores: 1`, `memory: hebog.analysis_memory_bytes(shape, expected_sources=...)`, from the sector sky model's count | Waits on one core, leaving T − 1 to tiles |
+| A Hebog tile task | `cores: 1`, `memory:` its declared bytes | Runs on any worker with a free core and that much memory |
+
+Hebog's tile tasks request `cores` and `memory` under the names Rapthor
+gives `DaskExecutor(client, core_resource="cores", memory_resource="memory")`.
 
 `prefect: 1` keeps Rapthor's rule that one worker process runs one Prefect
 task at a time, and `cores` stops a command from sharing its cores. A local
@@ -223,4 +227,4 @@ task's first attempt is lost. Scaling between steps rather than during
 Hebog's analysis keeps its tiling matched to the cores it runs on. Rapthor's local cluster
 now gives every worker the whole node's `mem_per_node_gb` as its memory
 limit; with several workers a node, the node's memory must be divided
-between them, and declared as a resource too (plan task 17).
+between them, and declared as the `memory` resource Hebog's tasks request.

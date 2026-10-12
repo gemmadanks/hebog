@@ -35,7 +35,14 @@ one tile's working set plus records the passes keep from every tile, which
 still grow about 1.7 bytes a pixel; bounding them, and an unattributed term
 in background and RMS, is planned before much larger images are admitted. A
 four-worker local Dask cluster finishes the 10,000² anchor in 0.59 of the
-serial time and the whole mosaic in 0.63, with identical products.
+serial time and the whole mosaic in 0.63, with identical products. Every
+task declares the memory it holds, so an executor with a memory budget runs
+only as many at once as fit, and a `DaskExecutor` given the names of the
+workers' memory and core resources lets Dask place each task only where
+that much is free; `hebog.analysis_memory_bytes` states what the analysis
+itself holds, which grows with the sources it finds, for the caller to
+reserve
+([integrate Hebog into a pipeline](../how-to/integrate-into-a-pipeline.md)).
 Separately, one declared limit remains:
 an object wider than a task's read budget is still reduced on the driver
 from its own pixels, so that memory grows with the object rather than the

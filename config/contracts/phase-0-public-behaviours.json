@@ -39,7 +39,7 @@
     {
       "identifier": "bounded-worker-memory",
       "scenario": "No worker materialises a complete large-image plane and admitted peak memory remains bounded by tile, halo, and batch metadata.",
-      "status": "strict-xfail",
+      "status": "implemented",
       "test_node_id": "tests/contract/test_public_behaviours.py::test_large_request_respects_worker_memory_budget"
     },
     {

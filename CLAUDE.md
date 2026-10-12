@@ -58,7 +58,8 @@ The public entry point is `hebog.find_sources(request, config, executor)`.
 - `stages/` contains the scheduler-facing stages `find_sources` runs, in
   order: background and detection, multiscale, support, publication,
   objects (component topology, fit parents, component fits), association,
-  sources, islands and catalogue rows, with `batching.py` shared.
+  sources, islands and catalogue rows, with `batching.py` and
+  `task_memory.py` (each round's declared memory) shared.
   `composition.py` runs them in that order: one runner per stage plans its
   tile grid and opens its generation, and `run_stages_from_background`
   runs every stage after a published background and RMS. They apply the

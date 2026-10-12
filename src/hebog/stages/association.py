@@ -65,8 +65,20 @@ from hebog.stages.batching import (
     map_round,
     read_pixels,
 )
+from hebog.stages.task_memory import read_requirement
 
 _SCALE_ORDERS = (1, 2, 3)
+# Each round's cost per pixel of its largest read, which a task declares
+# (``hebog.stages.task_memory``): the largest traced task peak over that read
+# on the 3,000-, 10,000- and 15,402-pixel LoTSS-DR3 anchors and the dense
+# ELAIS-N1 central 5,000 pixels, rounded up to eight bytes (plan task 17).
+_SUPPORT_BYTES_PER_READ_PIXEL = 16
+_OVERLAP_SCAN_BYTES_PER_READ_PIXEL = 56
+_INFLUENCE_BYTES_PER_READ_PIXEL = 88
+_PAIR_BYTES_PER_READ_PIXEL = 88
+# No anchor held an object wider than the read budget, so this round
+# takes the cost of the narrow round it stands in for.
+_WIDE_OVERLAP_BYTES_PER_READ_PIXEL = 88
 
 
 @dataclass(frozen=True, slots=True)
@@ -1245,6 +1257,11 @@ def _publish_persistent_scale_support(  # noqa: PLR0913
                     0, len(manifest.tiles), maximum_tiles_per_batch
                 )
             ),
+            requirement=read_requirement(
+                _SUPPORT_BYTES_PER_READ_PIXEL,
+                (partition.read_bounds for partition in manifest.tiles),
+                chunk_shape_yx=manifest.tile_core_shape_yx,
+            ),
         )
     )
     if not results:
@@ -1295,6 +1312,11 @@ def run_hierarchy_overlap_stage(  # noqa: PLR0913
             _core_batches(
                 manifest.tiles,
                 maximum_tiles_per_batch=config.maximum_tiles_per_batch,
+            ),
+            requirement=read_requirement(
+                _OVERLAP_SCAN_BYTES_PER_READ_PIXEL,
+                (partition.read_bounds for partition in manifest.tiles),
+                chunk_shape_yx=manifest.tile_core_shape_yx,
             ),
         )
     )
@@ -1347,6 +1369,11 @@ def run_hierarchy_overlap_stage(  # noqa: PLR0913
         ),
         influence_batches,
         round_name="feature influence",
+        requirement=read_requirement(
+            _INFLUENCE_BYTES_PER_READ_PIXEL,
+            (batch.read_bounds for batch in influence_batches),
+            chunk_shape_yx=manifest.tile_core_shape_yx,
+        ),
     )
     pairs = _candidate_pairs(
         features,
@@ -1366,6 +1393,11 @@ def run_hierarchy_overlap_stage(  # noqa: PLR0913
         partial(_pair_batch, detection_source=detection_source),
         pair_batches,
         round_name="envelope pair",
+        requirement=read_requirement(
+            _PAIR_BYTES_PER_READ_PIXEL,
+            (batch.read_bounds for batch in pair_batches),
+            chunk_shape_yx=manifest.tile_core_shape_yx,
+        ),
     )
     wide_batches = _wide_batches(
         tuple(
@@ -1393,6 +1425,15 @@ def run_hierarchy_overlap_stage(  # noqa: PLR0913
         ),
         wide_batches,
         round_name="wide overlap",
+        requirement=read_requirement(
+            _WIDE_OVERLAP_BYTES_PER_READ_PIXEL,
+            (
+                core.partition.read_bounds
+                for batch in wide_batches
+                for core in batch.cores
+            ),
+            chunk_shape_yx=manifest.tile_core_shape_yx,
+        ),
     )
     wide_influence, wide_edges = _reduce_wide_results(
         wide_batches, wide_results

@@ -6,7 +6,6 @@ import threading
 from collections import deque
 from collections.abc import Callable, Generator, Iterable
 from concurrent.futures import CancelledError, Future, ThreadPoolExecutor
-from contextlib import closing
 from types import TracebackType
 from typing import TypeVar
 
@@ -15,8 +14,6 @@ from hebog.executors.base import (
     TaskRequirement,
     admitted_tasks_in_flight,
     call_with_retries,
-    reduce_in_canonical_order,
-    require_serializable,
     require_serializable_payloads,
 )
 
@@ -71,8 +68,8 @@ class ThreadExecutor:
     The pool exists for the lifetime of this executor, so tasks never create
     a nested pool and no stage starts threads of its own. Batches are
     submitted in input order within a bounded window and consumed in that
-    same order, which keeps results, reductions and the propagated failure
-    identical to the serial reference.
+    same order, which keeps results and the propagated failure identical to
+    the serial reference.
     """
 
     def __init__(
@@ -149,11 +146,11 @@ class ThreadExecutor:
                     return
                 yield pending.popleft().result()
         finally:
-            # A failure, an abandoned reduction or the caller's deadline
-            # cancels the batches that have not started, rather than running
-            # work whose result nobody will read, and waits for those that
-            # have: a task still running after the call returns could write
-            # into storage its caller is already removing.
+            # A failure or the caller's deadline cancels the batches that
+            # have not started, rather than running work whose result nobody
+            # will read, and waits for those that have: a task still running
+            # after the call returns could write into storage its caller is
+            # already removing.
             for future in pending:
                 future.cancel()
             guard.stop()
@@ -167,18 +164,3 @@ class ThreadExecutor:
     ) -> list[Output]:
         """Apply ``function`` to each batch and return ordered results."""
         return list(self._results(function, batches, requirement))
-
-    def reduce_batches(
-        self,
-        function: Callable[[Input], Output],
-        batches: Iterable[Input],
-        combine: Callable[[Output, Output], Output],
-        *,
-        requirement: TaskRequirement | None = None,
-    ) -> Output:
-        """Map batches and combine them in the canonical reduction tree."""
-        require_serializable(combine, name="combine")
-        # Closing settles the running batches when ``combine`` fails, rather
-        # than whenever the suspended generator is collected.
-        with closing(self._results(function, batches, requirement)) as results:
-            return reduce_in_canonical_order(results, combine)

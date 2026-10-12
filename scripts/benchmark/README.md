@@ -240,6 +240,23 @@ path in `tests/benchmark/test_traced_peak_smoke.py`, which CI runs.
 Tracing roughly doubles wall time, so this runner never times anything for
 comparison and the quick benchmark never traces.
 
+## Task memory audit
+
+`audit_task_memory.py` traces one serial run and compares each round's
+largest task peak with the memory the round declares, and the analysis's
+peak between tasks with `hebog.analysis_memory_bytes` for the sources the run
+published. It exits with status
+1 when a round declares nothing or a peak exceeds its declaration. The
+tracing executor and the document live in `hebog.validation.task_memory_audit`,
+with unit tests in `tests/unit/validation/test_task_memory_audit.py`; the
+[development workflow guide](../../docs/how-to/index.md#audit-task-memory)
+describes when to run it:
+
+```console
+uv run python scripts/benchmark/audit_task_memory.py \
+  --input <image.fits> --settings '<finder JSON>' --result <audit.json>
+```
+
 ## Complete-execution profile
 
 `profile_complete_execution.py` profiles complete runs by stage on the cases

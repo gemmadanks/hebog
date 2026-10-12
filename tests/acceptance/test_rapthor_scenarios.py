@@ -215,24 +215,9 @@ class _WrappingExecutor:
             self._wrap(function), batches, requirement=requirement
         )
 
-    def reduce_batches(
-        self,
-        function: Callable[[_Input], _Output],
-        batches: Iterable[_Input],
-        combine: Callable[[_Output, _Output], _Output],
-        *,
-        requirement: TaskRequirement | None = None,
-    ) -> _Output:
-        return self._inner.reduce_batches(
-            self._wrap(function),
-            batches,
-            self._wrap(combine),
-            requirement=requirement,
-        )
-
 
 class _CountingExecutor(SerialExecutor):
-    """Serial executor that counts the maps and reductions it is given."""
+    """Serial executor that counts the maps it is given."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -247,19 +232,6 @@ class _CountingExecutor(SerialExecutor):
     ) -> list[_Output]:
         self.calls += 1
         return super().map_batches(function, batches, requirement=requirement)
-
-    def reduce_batches(
-        self,
-        function: Callable[[_Input], _Output],
-        batches: Iterable[_Input],
-        combine: Callable[[_Output, _Output], _Output],
-        *,
-        requirement: TaskRequirement | None = None,
-    ) -> _Output:
-        self.calls += 1
-        return super().reduce_batches(
-            function, batches, combine, requirement=requirement
-        )
 
 
 class _WorkerLostError(ConnectionError):

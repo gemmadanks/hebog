@@ -2,10 +2,10 @@
 
 One contract governs the serial reference, a caller-owned thread pool and a
 caller-owned Dask client: results follow input order, submission and gathering
-stay bounded, reductions combine in one partition-independent tree, payloads
-must be serializable, idempotent tasks may be retried, the first failing batch
-by index propagates, the rest of the plan is not submitted, and a call returns
-or raises only once no task it submitted is still running.
+stay bounded, payloads must be serializable, idempotent tasks may be retried,
+the first failing batch by index propagates, the rest of the plan is not
+submitted, and a call returns or raises only once no task it submitted is
+still running.
 """
 
 from __future__ import annotations
@@ -18,7 +18,6 @@ from typing import Protocol, TypeVar
 
 Input = TypeVar("Input")
 Output = TypeVar("Output")
-Value = TypeVar("Value")
 
 
 class ExecutorAdmissionError(ValueError):
@@ -173,36 +172,6 @@ def call_with_retries(
             attempt += 1
 
 
-def reduce_in_canonical_order(
-    values: Iterable[Value],
-    combine: Callable[[Value, Value], Value],
-) -> Value:
-    """Combine values in one partition-independent binary tree.
-
-    Values are consumed in index order and combined as adjacent pairs of
-    equal height, so the association is decided by position alone. Every
-    executor uses this shape, which keeps floating-point summation and
-    non-commutative merges identical whatever the completion order is. At
-    most one accumulator per tree level is held, so a reduction never holds
-    one value per batch.
-    """
-    carry: list[tuple[int, Value]] = []
-    for value in values:
-        level = 0
-        current = value
-        while carry and carry[-1][0] == level:
-            previous = carry.pop()[1]
-            current = combine(previous, current)
-            level += 1
-        carry.append((level, current))
-    if not carry:
-        raise ValueError("a reduction requires at least one batch")
-    result = carry[0][1]
-    for _, value in carry[1:]:
-        result = combine(result, value)
-    return result
-
-
 class Executor(Protocol):
     """Execute coarse batches without exposing scheduler-specific objects."""
 
@@ -219,20 +188,4 @@ class Executor(Protocol):
         requirement: TaskRequirement | None = None,
     ) -> list[Output]:
         """Apply ``function`` to each batch and return ordered results."""
-        ...
-
-    def reduce_batches(
-        self,
-        function: Callable[[Input], Output],
-        batches: Iterable[Input],
-        combine: Callable[[Output, Output], Output],
-        *,
-        requirement: TaskRequirement | None = None,
-    ) -> Output:
-        """Map batches and combine them without gathering every result.
-
-        ``combine`` must be deterministic and serializable; it need not be
-        commutative or associative, because the reduction tree is fixed by
-        input order.
-        """
         ...

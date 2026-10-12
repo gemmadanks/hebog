@@ -24,7 +24,6 @@ from hebog.executors import (
     SerialExecutor,
     TaskRequirement,
     ThreadExecutor,
-    reduce_in_canonical_order,
 )
 
 if TYPE_CHECKING:
@@ -151,22 +150,6 @@ def fail_first_while_later_batches_run(value: int) -> int:
         TRACKER.leave()
 
 
-def slow_label(value: int) -> str:
-    """Return one label, the later batches outliving a failed combine."""
-    TRACKER.enter(value)
-    try:
-        if value >= 2:
-            threading.Event().wait(_OUTLIVING_BATCH_SECONDS)
-        return f"[{value}]"
-    finally:
-        TRACKER.leave()
-
-
-def fail_to_concatenate(first: str, second: str) -> str:
-    """Fail every combine, so a reduction fails while mappers run."""
-    raise ProbeError(f"combine of {first} and {second} failed")
-
-
 def fail_transiently(value: int) -> int:
     """Fail the configured number of early attempts, then succeed."""
     attempt = TRACKER.enter(value)
@@ -176,26 +159,6 @@ def fail_transiently(value: int) -> int:
         return value**2
     finally:
         TRACKER.leave()
-
-
-def label(value: int) -> str:
-    """Return one non-commutative reduction element."""
-    return f"[{value}]"
-
-
-def concatenate(first: str, second: str) -> str:
-    """Combine two labels without commuting them."""
-    return first + second
-
-
-def blend(first: float, second: float) -> float:
-    """Combine two values without associating or commuting them."""
-    return (first + 2.0 * second) / 3.0
-
-
-def as_float(value: int) -> float:
-    """Return one reduction element for the non-associative combine."""
-    return float(value)
 
 
 def open_lock(value: object) -> int:
@@ -299,44 +262,6 @@ def test_executor_bounds_concurrent_tasks(executor: Executor) -> None:
     assert TRACKER.peak_active <= executor.capacity.maximum_tasks_in_flight
 
 
-def test_executor_reduces_in_canonical_order(executor: Executor) -> None:
-    """Reduction shape follows input index, not completion order."""
-    batches = list(range(7))
-
-    reduced = executor.reduce_batches(label, batches, concatenate)
-
-    assert reduced == reduce_in_canonical_order(
-        [label(value) for value in batches], concatenate
-    )
-    assert reduced == "[0][1][2][3][4][5][6]"
-
-
-def test_executor_reduction_associates_like_the_reference(
-    executor: Executor,
-) -> None:
-    """A non-associative combine gives the serial reference's value."""
-    batches = list(range(6))
-
-    reduced = executor.reduce_batches(as_float, batches, blend)
-
-    assert reduced == reduce_in_canonical_order(
-        [as_float(value) for value in batches], blend
-    )
-
-
-def test_executor_reduction_of_one_batch_is_its_mapped_value(
-    executor: Executor,
-) -> None:
-    """A single batch reduces to its own mapped result."""
-    assert executor.reduce_batches(label, [4], concatenate) == "[4]"
-
-
-def test_executor_reduction_rejects_no_batches(executor: Executor) -> None:
-    """An empty reduction has no identity and is refused."""
-    with pytest.raises(ValueError, match="at least one batch"):
-        executor.reduce_batches(label, [], concatenate)
-
-
 def test_executor_raises_the_lowest_index_failure(
     executor: Executor,
 ) -> None:
@@ -382,18 +307,6 @@ def test_failed_map_returns_only_after_its_running_tasks_finish(
         # The failing batch may be retried up to the configured limit.
         + 1
     )
-
-
-def test_failed_reduction_returns_only_after_its_running_tasks_finish(
-    executor: Executor,
-) -> None:
-    """A combine that fails while mappers run waits for them to finish."""
-    with pytest.raises(ProbeError, match="combine of"):
-        executor.reduce_batches(
-            slow_label, list(range(8)), fail_to_concatenate
-        )
-
-    assert TRACKER.active == 0
 
 
 def test_executor_retries_a_transient_failure(executor: Executor) -> None:
@@ -485,20 +398,6 @@ def test_executor_narrows_concurrency_to_a_declared_thread_count(
     assert TRACKER.peak_active == 1
 
 
-def test_executor_rejects_an_unserializable_combine(
-    executor: Executor,
-) -> None:
-    """A reduction validates its combine before it maps anything."""
-    with pytest.raises(ExecutorPayloadError, match="combine"):
-        executor.reduce_batches(
-            tracked_square,
-            [1, 2, 3],
-            lambda first, second: first + second,
-        )
-
-    assert TRACKER.started == []
-
-
 def test_executor_runs_an_admitted_requirement(executor: Executor) -> None:
     """A task within the admitted budget runs unchanged."""
     results = executor.map_batches(
@@ -523,6 +422,3 @@ def test_executor_agrees_with_the_serial_reference(
     assert executor.map_batches(square, batches) == reference.map_batches(
         square, batches
     )
-    assert executor.reduce_batches(
-        label, batches, concatenate
-    ) == reference.reduce_batches(label, batches, concatenate)
