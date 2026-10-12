@@ -18,8 +18,10 @@ writes a catalogue, a noise image, a mask and a diagnostics file. It is
 designed to be embedded in a larger data-processing pipeline that already owns
 a Dask cluster. Its first intended consumer is
 [Rapthor](https://github.com/darafferty/rapthor), a LOFAR imaging pipeline,
-where it would replace [PyBDSF](https://github.com/lofar-astron/PyBDSF) in one
-step. That integration is not implemented yet.
+where it replaces [PyBDSF](https://github.com/lofar-astron/PyBDSF) in one
+step. The adapter that runs one Rapthor sector and writes Rapthor's files,
+`hebog.adapters.find_sector_sources`, is implemented; Rapthor's own task
+that calls it is not yet.
 
 ## Quality goals
 

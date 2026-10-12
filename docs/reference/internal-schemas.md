@@ -19,13 +19,14 @@ records enforce.
 | `SourceCatalogue` | 3 | `hebog.data_models.catalogues` |
 | Catalogue FITS encoding (`HBGSCHE` header card) | 4 | `hebog.io.materialization` |
 | `SourceFinderResult`, `MaterializedProduct`, `SourceFinderRequest` | 3, 1, 2 | `hebog.data_models.source_finding` |
-| `PublicSourceFindingDiagnostics` (the diagnostics product) | 12 | `hebog.data_models.source_finding` |
+| `PublicSourceFindingDiagnostics` (the diagnostics product) | 13 | `hebog.data_models.source_finding` |
 | `PublicSourceFindingProvenance`, `ContinuumSourceFindingDiagnostics`, `SourceFindingDiagnostics`, `SourceScaleProvenance` | 4, 2, 1, 1 | `hebog.data_models.source_finding` |
 | `ScaleDetection`, `CrossScaleAssociation` | 1, 3 | `hebog.data_models.multiscale` |
 | `ProductChunk`, Zarr storage schema, generation marker | 2, 3, 1 | `hebog.data_models.products`, `hebog.io.zarr`, `hebog.data_models.generations` |
 | Partition manifest | 1 | `hebog.data_models.partitioning` |
 | Staging owner record | 1 | `hebog.io.staging` |
 | Rapthor adapter records | 2 | `hebog.adapters.rapthor` |
+| Rapthor dual-run comparison report | 1 | `hebog.adapters.rapthor_comparison` |
 
 ## Source catalogue
 
@@ -82,14 +83,15 @@ wall-clock comment, and `ADDITIONAL_ISLAND_IDS` preserves multi-island links.
 ## Result and diagnostics
 
 `SourceFinderResult` holds the run ID, the source, Gaussian and island
-counts, finite wall time and exactly four `MaterializedProduct` records, each
-with path, byte count, SHA-256, media type, content schema version and
-scientific status:
+counts, finite wall time and four `MaterializedProduct` records, plus a
+fifth, `flat_noise_rms`, when the request named a flat-noise image. Each
+record has a path, byte count, SHA-256, media type, content schema version
+and scientific status:
 
 | Role | Media type | Scientific status |
 | --- | --- | --- |
 | `source-catalogue` | `application/fits` | `valid` |
-| `rms` | `image/fits` | `valid` or `unavailable` |
+| `rms` (the image's RMS, and the flat-noise image's) | `image/fits` | `valid` or `unavailable` |
 | `source-filtering-mask` | `image/fits` | `valid` |
 | `diagnostics` | `application/json` | `valid` |
 
