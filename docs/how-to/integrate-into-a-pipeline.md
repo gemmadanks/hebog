@@ -187,7 +187,9 @@ single-task worker layout. It runs the caller-owned ThreadExecutor inside
 the Prefect task, admits memory, and retains the PyBDSF fallback. Set
 `hebog_dual_run = True` to retain both filtered product sets and place their
 comparison in ordinary image diagnostics. The patch is local and awaits
-upstream publication/merge; its defaults are not a qualified Rapthor profile,
+upstream publication/merge. The adapter defaults to the `compact` profile
+with a zero background, Rapthor's choice from plan task 21, which the
+patch adopts before publication; neither is a qualified Rapthor profile,
 and a distributed Hebog subgraph needs the later worker-layout change.
 
 ## Versioning

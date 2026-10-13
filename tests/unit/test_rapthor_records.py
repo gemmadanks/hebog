@@ -123,7 +123,9 @@ def test_rapthor_settings_hold_only_what_the_finder_honours() -> None:
 
     The RMS boxes, the bright-source threshold and the multiscale depth are
     Hebog's reviewed science, and LSMTool's mask filter is LSMTool's, so
-    the settings do not offer them.
+    the settings do not offer them. Rapthor runs ``compact`` with PyBDSF's
+    zero mean map unless it asks otherwise: the profile closest to pinned
+    PyBDSF ``master`` in what Rapthor keeps (plan task 21).
     """
     config = RapthorCompatibilityConfig(threshpix=5.0, threshisl=4.0)
 
@@ -134,12 +136,12 @@ def test_rapthor_settings_hold_only_what_the_finder_honours() -> None:
         "background",
     }
     assert config.source_finder_config(minimum_island_pixels=9) == (
-        SourceFinderConfig(5.0, 4.0, 9, profile="continuum")
+        SourceFinderConfig(5.0, 4.0, 9, profile="compact", background="zero")
     )
     assert RapthorCompatibilityConfig(
-        5.0, 3.0, profile="compact", background="zero"
+        5.0, 3.0, profile="continuum", background="estimated"
     ).source_finder_config(minimum_island_pixels=6) == SourceFinderConfig(
-        5.0, 3.0, 6, profile="compact", background="zero"
+        5.0, 3.0, 6, profile="continuum", background="estimated"
     )
 
 

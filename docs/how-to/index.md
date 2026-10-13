@@ -39,6 +39,7 @@ demonstration notebook is
 | `just test-slow` | Long regressions and development matrices; CI runs them weekly and on dispatch | Before a release that changes science |
 | `just test-benchmark` | The quick-benchmark and traced-peak smoke tests, which CI runs on code-changing pull requests | Changes to the benchmark tooling |
 | `just test-qualification`, `just test-scalability` | Controlled lanes that need approved data or hardware | Only when the plan names them |
+| `just rapthor-agreement` | Rapthor's retained/rejected agreement with pinned `master` for each Hebog profile and background (task 21; [below](#measure-rapthor-profile-agreement)) | Science changes and pin moves that can change what Rapthor keeps |
 | `uv run python scripts/validation/check_lsmtool_filter.py` | Pinned LSMTool's `filter_sources` in its container (`scripts/validation/containers/lsmtool`) on the Rapthor adapter's products under the Serial, Thread and Dask executors | Changes to the adapter's products or the LSMTool pin |
 | `just pre-commit` | Every hook, slow ones included | Before staging a commit |
 
@@ -153,6 +154,49 @@ SDC1 cut-outs are cut from a local copy of `SKAMid_B2_1000h_v3.fits`.
 
 This is a regression detector, not powered scientific parity: each case is
 one realization and no confidence interval is claimed.
+
+## Measure Rapthor-profile agreement
+
+Plan task 21 chooses the Hebog profile and background Rapthor runs by how
+often Rapthor's filter step keeps the same sky-model components with
+Hebog's mask as with pinned PyBDSF `master`'s. Rerun it when the science,
+the Rapthor or LSMTool pins, or the reference changes:
+
+```console
+just rapthor-agreement --jobs 4
+```
+
+`config/checks/rapthor-agreement.json` adds a 3,000² window of the
+LoTSS-DR3 mosaic and the LoTSS-Deep DR2 ELAIS-N1 true-sky and apparent
+images, 2,048² at their centre, to the quick check's cases, and reuses the
+quick check's inputs and cached `master` references. The ELAIS-N1 pair is
+read from `benchmark-results/datasets/lotss-deep-dr2-elais-n1/`. Each of the
+four lanes, `continuum` or `compact` with an `estimated` or `zero`
+background, runs `find_sources` with the configuration the Rapthor adapter
+builds; released PyBDSF 1.14.1 runs as a control, from the notebook's
+`localhost/hebog-notebook-pybdsf:1.14.1` image.
+
+LSMTool keeps a component where the mask is set at `mask[int(y), int(x)]`
+and groups the kept ones by the mask's 8-connected islands. WSClean's
+component lists are not available for these images, so the population is
+every distinct pixel holding the centre of a Gaussian that `master` or any
+lane fitted, the same set for every lane. Each component is tagged bright
+(at least 75 times `master`'s RMS), edge (within three beam FWHM of the
+border), masked (within three FWHM of a blank pixel), crowded (another
+component within two FWHM) or sparse, extended (on an island of all the
+masks together larger than ten beam areas), and true-sky or apparent.
+A lane passes at 99.5% agreement overall and in every stratum, and the
+rule chooses `compact` for a background only when its lane passes.
+
+The report, `benchmark-results/rapthor-agreement/runs/<label>/report.json`,
+also gives each lane's agreement with `master` on two diagnostic
+populations, injected truth and every pixel WSClean's auto-threshold would
+clean (at least 1 sigma, connected to a 5-sigma peak); how its patches
+group; compact's decisions against continuum's; and Rapthor's catalogue
+cuts on matched sources (`DC_Maj` below 10″ and `E_RA`, `E_DEC` below 2″),
+counting the sources a lane drops because they have several components
+and those it keeps as unresolved from a fit 10″ or wider. Use `--cases` for
+a subset and `--skip-references` to use cached references only.
 
 ## Run the quick benchmark
 
