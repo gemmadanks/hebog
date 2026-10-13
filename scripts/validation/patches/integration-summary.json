@@ -1,27 +1,32 @@
 {
   "container": {
     "build_lock_sha256": "58817cda7d033ed54f70a93941aaaa7753fcefed02523cada221c532261fb10d",
-    "dependency_inventory_sha256": "f1b70d0a8d5210b151289b1d4642f48141022e52d95e5cdcd546729d57ddc702",
-    "hebog_wheel_sha256": "6268476c2c50a959c95f7123e5f9caa16f341b2f3907dcce68bec6d5b6471ced",
-    "image_id": "da50e47df10580e3f179481e5ce5f291250f7198f43f3e149983f68a8fcb7cd9",
+    "dependency_inventory_sha256": "b27931122ec06d1e7f58aea2c2b261f39160d9b929d88ab15a4c5fe097eedf5f",
+    "hebog_wheel_sha256": "df4aa9cdb8fad8a193332846a608e443ae045f3247ee82c79059f89e460582f5",
+    "image_id": "fe6ce84001ddc1fa11413564c6ffb4e2b88cbeb7c09b2932015875d1bdc9f93a",
     "lsmtool_version": "1.9.1.dev15+g9bac2f7",
     "pip_check": "No broken requirements found",
     "platform": "Linux x86-64, Python 3.12.3, Podman/Rosetta on Apple M3 Pro",
     "pybdsf_scope": "Released integration dependency only, not the pinned-master performance gate",
     "pybdsf_version": "1.14.1",
-    "rapthor_archive_sha256": "2bd18c1f3f64c0f35c6119a19d76a7d9a40d68c8099363002841a8d358910b72",
+    "rapthor_archive_sha256": "c7f308258447858ec106aafac97829ed0d40d0d0a3ab06133c6402aaa9fea2d1",
     "runtime_lock_sha256": "881dcbcbf28061e404dc1ad05302e912435497059f452398eea56fb9ab0ff569"
   },
-  "date": "2026-10-12",
+  "date": "2026-10-13",
+  "defaults": {
+    "background": "zero",
+    "decision": "Maintainer's interim choice of 13 October 2026 from Hebog plan task 21: closest of the four lanes to pinned PyBDSF master's sky-model filtering (92.8% agreement against a 99.5% target; released PyBDSF 99.29%); decided again after plan task 75",
+    "profile": "compact"
+  },
   "implementation": {
     "distributed_path": "Deferred to source-finder plan task 72 by maintainer approval on 2026-10-12",
-    "hebog_science_commit": "ab62da0a45f3a1a8da6ab3bcd38621bcb55d2426",
+    "hebog_science_commit": "17b280ba819ae6b0a01edf4e1266f0a0a2552e67",
     "hebog_version": "0.21.0",
     "layout": "One single-threaded Dask worker per node; native ThreadExecutor inside the Prefect task",
-    "patch_sha256": "b5297b8f66ac3197e24ade7b630fc435bef54026e8cb44c4b1090f06b21a0f42",
+    "patch_sha256": "d1131cd33d86f65f7d3f6efe5afccde1868f54daad83575ab816f29da5272b89",
     "publication": "Local commits only; upstream publication and merge pending",
-    "rapthor_commit": "6dd9f409392c1eb9f155151e53b341cefe3a18bc",
-    "rapthor_tree": "4368ad709140f0b7465764421ea0e1d7aa153059"
+    "rapthor_commit": "52e52930987a9c306629933bb30dc9e97ec81ae3",
+    "rapthor_tree": "8cd47691b4efe6c314db2f4380df11b8423e4e3d"
   },
   "profile_smoke": {
     "dataset": "pybdsf-compact-reference-256",
@@ -116,17 +121,18 @@
     "quick_science": "just quick-science-check --label task20-recheck --baseline benchmark-results/quick-check/runs/t17-declared/report.json --skip-references"
   },
   "schema_version": 1,
-  "scope": "Task 20 current-layout integration; no scientific or performance qualification",
+  "scope": "Task 20 current-layout integration with task 21's compact/zero defaults; no scientific or performance qualification",
   "status": "exploratory",
   "upstream_audit": {
     "lsmtool": "9bac2f7fabdc15cd9490acfeb9c292aa72af59b7",
+    "observed_on_2026_10_13": "Rapthor main moved to d0e7e148aa127838e9d4c91472c88ab992b4f29f (one commit, 'Reduce default frequency BDA'); the patch applies to it unchanged with git am. The pin stays at c6196cb4 until task 23's checkpoint; LSMTool master is unchanged.",
     "rapthor": "c6196cb4b6046ad1060a0034d2a4b741afd8a74c",
-    "result": "Authoritative ASTRON main/master tips unchanged at the task-20 checkpoint"
+    "result": "Authoritative ASTRON main/master tips unchanged at the task-20 checkpoint (12 October)"
   },
   "validation": {
     "archived_container_tests": {
-      "command": "podman run --rm --platform linux/amd64 --workdir /opt/rapthor-source localhost/hebog-rapthor:task20-final python -m pytest -q tests/execution/test_hebog_filter.py tests/execution/test_skymodel_filter.py",
-      "passed": 35,
+      "command": "podman run --rm --platform linux/amd64 --workdir /opt/rapthor-source localhost/hebog-rapthor:task21-defaults python -m pytest -q tests/execution/test_hebog_filter.py tests/execution/test_skymodel_filter.py",
+      "passed": 36,
       "scope": "No checkout mount; committed source and installed dependencies from the final image"
     },
     "hebog_acceptance": {
@@ -135,25 +141,25 @@
     },
     "hebog_coverage": {
       "command": "just coverage",
-      "coverage_percent": 97.3,
-      "result": "3786 passed; baseline inventory rejected the new exploratory summary placed in config/baselines. Moved the summary beside the patch (it is not a scientific baseline); all 20 tests/unit/validation/test_baselines.py tests then passed. Production code unchanged."
+      "coverage_percent": 97.34,
+      "result": "3815 passed on the task-21 change; this change touches no package code"
     },
     "hebog_final_checks": {
       "checks": "Ruff, hygiene, Marimo, Pyright, strict MkDocs, quick pytest and uv lock",
       "command": "just pre-commit",
-      "quick_tests_passed": 2494
+      "quick_tests_passed": 2522
     },
-    "installed_workflow": "Outside the archived checkout, both modules import from site-packages and the complete native plus PyBDSF dual-run test passes; see the container README for the exact command.",
+    "installed_workflow": "Outside the archived checkout, both modules import from site-packages, and the dual-run and default-profile native tests pass; see the container README for the exact command.",
     "native_parset_cli": {
       "command": "python -m pytest -q tests/execution/test_hebog_filter.py tests/execution/test_skymodel_filter.py tests/lib/test_parset.py tests/lib/test_parset_option_behavior.py tests/lib/test_parset_option_coverage.py --cov=rapthor.execution.image.hebog_filter --cov-branch",
-      "includes": "Actual production Prefect task on process Dask worker; real LSMTool; released PyBDSF fallback and dual subprocesses; blank, dummy, retries, memory/core limits, configuration",
+      "includes": "Actual production Prefect task on process Dask worker; real LSMTool; released PyBDSF fallback and dual subprocesses; blank, dummy, retries, memory/core limits, configuration; compact/zero defaults from the parset, the image payload and the native task",
       "module_line_branch_coverage_percent": 100,
-      "passed": 90
+      "passed": 91
     },
     "omitted": [
       "Full Rapthor/hosted Python/platform matrix",
       "Production Measurement Set/EveryBeam operational trial",
-      "Task 21 retained/rejected agreement matrix and profile decision",
+      "Retained/rejected correctness against truth (Hebog plan task 76)",
       "Matched complete-step performance against pinned PyBDSF master",
       "Multi-slot distributed executor path"
     ],
@@ -161,8 +167,12 @@
       "command": "python -m pytest -q tests/execution/test_image_flow.py tests/execution/test_hebog_filter.py -k 'hebog_options or invalid_worker_admission'",
       "passed": 8
     },
-    "patch_replay": "git am on c6196cb4 reproduced tree 4368ad709140f0b7465764421ea0e1d7aa153059 exactly",
-    "rapthor_docs": "Sphinx rendered; strict build reports four pre-existing duplicate explicit target warnings for here in unchanged docs/source/strategy.rst",
-    "rapthor_lint": "Ruff 0.15.20 production lint, changed-file import ordering and formatting pass"
+    "patch_replay": "git am on c6196cb4 reproduced tree 8cd47691b4efe6c314db2f4380df11b8423e4e3d exactly",
+    "rapthor_broader_suites": {
+      "command": "podman run --rm --platform linux/amd64 --workdir /opt/rapthor-source localhost/hebog-rapthor:task21-defaults python -m pytest -q -n 4 tests/lib tests/operations tests/execution/test_image_flow.py",
+      "passed": 662
+    },
+    "rapthor_docs": "Strict Sphinx 9.1.0 build (-W --keep-going) of the archived patched source in the image succeeds with no warning",
+    "rapthor_lint": "Ruff 0.15.20 lint and format check of the changed Python files and git diff --check pass"
   }
 }

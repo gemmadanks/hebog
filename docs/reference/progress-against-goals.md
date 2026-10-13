@@ -51,8 +51,10 @@ adds the native task on today's worker layout; task 72 owns its future
 distributed path. The [integration evidence](https://github.com/gemmadanks/hebog/blob/main/scripts/validation/patches/integration-summary.json)
 records the upstream audit, real Prefect/LSMTool/subprocess tests and the
 frozen-field checkpoint under both profiles and background settings. The final
-container passes 35 native/CLI tests; the broader native/settings suite passes
-90, with full branch-aware coverage of the new native module. The 18-case
+container passes 36 native/CLI tests; the broader native/settings suite passes
+91, with full branch-aware coverage of the new native module, and Rapthor's
+library, operation and image-flow suites pass 662. Its parset defaults to
+task 21's `compact` profile with a zero background. The 18-case
 quick science check has no regressions and all 54 FITS products match the
 previous baseline byte for byte. That
 three-source smoke check did not decide the profile; task 21 did, below.
@@ -259,12 +261,12 @@ memory and disk, and SKA-Low coverage without public SKA-Low images.
 
 The next actions, as the plan orders them on 13 October:
 
-1. Agent: the prepared Rapthor patch adopts task 21's `compact` profile and
-   zero background; then a first matched `filter_skymodel` measurement on a
-   sector imaged at real resolution (task 23), with the agreement check's
-   truth measures (task 76) alongside. Human:
-   publish/review the prepared Rapthor patch; its authoritative upstream
-   pins were unchanged at the 12 October checkpoint.
+1. Agent: a first matched `filter_skymodel` measurement on a sector imaged
+   at real resolution (task 23), moving the Rapthor pin to its current
+   `main` first, with the agreement check's truth measures (task 76)
+   alongside. Human: publish/review the prepared Rapthor patch, which
+   defaults to task 21's `compact` profile with a zero background and
+   applies unchanged to Rapthor's `main` of 13 October (`d0e7e148`).
 2. Agent: one sector across the cluster. Measure how a sector scales with
    Dask workers and where its serial share lies (task 73), cut that share
    (task 74, with tasks 71 and 54 to 56), then fit Hebog's tasks to

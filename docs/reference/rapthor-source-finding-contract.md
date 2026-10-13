@@ -2,7 +2,11 @@
 
 This inventory records the behaviour Rapthor consumes from its
 source-finding step, traced at these revisions on 9 October 2026 and
-re-audited on 12 October; the authoritative upstream tips were unchanged:
+re-audited on 12 October; the authoritative upstream tips were unchanged.
+On 13 October Rapthor's `main` had moved one commit, to `d0e7e148`
+("Reduce default frequency BDA"), which leaves the source-finding step
+alone; the prepared patch applies to it unchanged, and the pin moves at
+plan task 23:
 
 | Component | Revision | Role |
 | --- | --- | --- |
@@ -260,9 +264,9 @@ The no-beam branch supplies the flat image as both adapter inputs, as pinned
 LSMTool does. A configured missing peeled model is an error. Native selection
 and memory/configuration details live in `<root>.image_diagnostics.json` and
 survive Rapthor's normal diagnostic update and restart reuse. The patch's
-parset defaults are still `continuum`/`estimated`; task 21 chose
-`compact`/`zero`, which the adapter now defaults to and the patch is to
-adopt. Either can be selected explicitly, and invalid settings fail
+parset defaults are `hebog_profile = compact` and `hebog_background = zero`,
+task 21's interim choice, which the adapter also defaults to. Either
+setting can be changed in the parset, and invalid settings fail
 validation.
 
 Rapthor usually images one sector across a cluster, the first performance
