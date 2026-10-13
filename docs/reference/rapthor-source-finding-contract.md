@@ -113,12 +113,17 @@ mean elevation from the first antenna's dish diameter.
 
 The demonstration sector's restoring beam is about 45″ by 43″, 30 pixels
 at 1.5″, in every imaging cycle of the local demonstration runs of 15 and
-18 September 2026 and in the Phase 0 representative sector (44.8″). The
-public finder refuses a beam wider than 10 pixels, so the adapter refuses
-that sector with `UnsupportedSourceFinderConfigurationError` and the
-patched task falls back to PyBDSF; scaling the meshes with the beam is
-deferred (plan task 62). A LOFAR sector at the default 1.5″ cell has a
-beam of about 6″, 4 pixels.
+18 September 2026 and in the Phase 0 representative sector (44.8″): the
+demonstration's data generator places synthetic antennas within 2,500
+wavelengths of the centre, so its longest baselines, about 5,000
+wavelengths, resolve about 41″. The public finder refuses a beam wider
+than 10 pixels, so the adapter refuses that sector with
+`UnsupportedSourceFinderConfigurationError` and the patched task falls back
+to PyBDSF; scaling the meshes with the beam is deferred (plan task 62).
+Every real Rapthor image in the archived cluster runs of September and
+October 2026 (P113+24, the ical benchmark, NGC6338 and AA2) is at most
+about 7 pixels: its sector images have 1.5″ cells and 4 to 10″ beams, and
+its normalization images 5.9″ cells and 20 to 36″ beams.
 
 PyBDSF's `filter_skymodel` command took between 298 and 2,955 s per
 18,000² sector in one three-node benchmark run (16 and 17 September 2026).

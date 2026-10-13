@@ -15,10 +15,10 @@ none is scientific qualification. User-facing limits are in
 
 | 1.0.0 goal | Target | Position on 13 October 2026 | Status |
 | --- | --- | --- | --- |
-| Telescopes | Standard FITS continuum images from any telescope under a documented header contract, validated first on LOFAR, SKA-Low and SKA-Mid | The [input header contract](input-header-contract.md) is defined and tested. LOFAR (LoTSS-DR3 and LoTSS-DR2) and SKA-Mid (SDC1 simulation) images run, and the LOFAR-HD mosaics are the next scale tiers; SKA-Low has no public image, so MWA GLEAM-X precursor data is planned. A beam wider than 10 pixels is refused, which Rapthor's demonstration sector (30 pixels) needs, so task 62 is reopened. A position-dependent PSF is undecided (task 15). | In progress |
+| Telescopes | Standard FITS continuum images from any telescope under a documented header contract, validated first on LOFAR, SKA-Low and SKA-Mid | The [input header contract](input-header-contract.md) is defined and tested. LOFAR (LoTSS-DR3 and LoTSS-DR2) and SKA-Mid (SDC1 simulation) images run, and the LOFAR-HD mosaics are the next scale tiers; SKA-Low has no public image, so MWA GLEAM-X precursor data is planned. A beam wider than 10 pixels is refused; every real Rapthor image in the archived cluster runs is at most about 7 pixels, and only Rapthor's synthetic demonstration sector (30 pixels) exceeds the limit. A position-dependent PSF is undecided (task 15). | In progress |
 | Functionality | A feature-flagged backend for Rapthor's `filter_skymodel` at pinned Rapthor and LSMTool revisions | A complete standalone finder under Serial, Thread and caller-owned Dask executors, and the in-process Rapthor adapter: `hebog.adapters.find_sector_sources` runs a sector's true-sky and flat-noise images on the caller's executor and writes the files Rapthor's `filter_skymodel` step reads, by default with the `compact` profile and a zero background, Rapthor's choice from task 21, and pinned LSMTool's `filter_sources` filters by its mask as the mask decides, on the LoTSS-Deep DR2 ELAIS-N1 pair: its central 5,000² under all three executors with byte-identical products, and the full 14,175² sector's serial products. All 12 frozen public behaviours are implemented. A local Rapthor patch calls the adapter in-process with a ThreadExecutor, memory admission, typed PyBDSF fallback and dual runs, tested through its real Prefect task on a single-threaded Dask worker. | Patch prepared; upstream publication and merge pending |
 | Science | ≥99.5% Rapthor retained/rejected agreement and a powered, held-out parity study against pinned PyBDSF `master` | Isolated-source position, flux and axis limits are met against both PyBDSF references on the frozen input, for sources and components under both profiles; the `Total_flux` limits hold on independent realizations. Two bounded known differences and one open defect remain. Rapthor keeps or rejects alike with Hebog's mask and pinned `master`'s 92.8% of sky-model components under the chosen `compact` profile with a zero background, against the 99.5% target; released PyBDSF reaches 99.29%. | Development evidence only |
-| Performance | Matched complete `filter_skymodel` median ≤0.50 of pinned PyBDSF `master` | The local native task can support a matched measurement, but none has run: the finder refuses Rapthor's 3,000² demonstration sector, whose 45″ beam is 30 pixels, until task 62; the integration container uses released PyBDSF, not the gate's pinned `master`. The dense 14,175² ELAIS-N1 sector took 8.5 h serially, mostly in association. Diagnostic ratios against `master` on 1,024² fields are 2.7 to 5.2 (Hebog on one native thread against `master` on four container cores); on the 3,000² LoTSS field the two use the same CPU time, so the gap is parallel occupancy. No regression on the Hebog curve. | Gate unmeasured |
+| Performance | Matched complete `filter_skymodel` median ≤0.50 of pinned PyBDSF `master` | The local native task can support a matched measurement, but none has run: the finder refuses Rapthor's synthetic 3,000² demonstration sector, whose 45″ beam is 30 pixels, so task 23 uses a sector imaged at real resolution; the integration container uses released PyBDSF, not the gate's pinned `master`. The dense 14,175² ELAIS-N1 sector took 8.5 h serially, mostly in association. Diagnostic ratios against `master` on 1,024² fields are 2.7 to 5.2 (Hebog on one native thread against `master` on four container cores); on the 3,000² LoTSS field the two use the same CPU time, so the gap is parallel occupancy. No regression on the Hebog curve. | Gate unmeasured |
 | Scalability | 45,000² on the 18 GiB development machine with tile-bounded memory; 90,000² on a 1 to 10-node cluster; planner bounds for 100,000² on 100 to 200+ nodes | Public envelope 15,402². Every stage runs tiled through the executor and products are byte-identical across tilings and executors. The traced peak is 1.7 GiB on the whole 15,402² mosaic and still grows about 1.7 bytes a pixel. Every task declares its memory, and the analysis's own records grow with the sources found, about 42 KB each. Bright regions are refined in bounded blocks, so the ELAIS-N1 deep field's central 5,000², where 951 bright candidates chain across the image, completes under four 4.5 GiB Dask workers. Nothing beyond one machine has run. | 15,402 of 45,000 pixels |
 | Release | PyPI, with portability, security, licensing, documentation and independent acceptance | v0.21.0 (12 October 2026) is tagged on GitHub and uploaded to TestPyPI; it changes no product, and neither it nor v0.20.0 (11 October, maintainer's decision) had a release check of its own, so the latest passed on v0.19.0's repaired candidate on 9 October. CI runs on Linux, macOS and Windows for Python 3.12 to 3.14, and `main` requires the lowest-dependency and container checks. | Experimental `0.x` |
 
@@ -171,8 +171,28 @@ keeps because they have several components, and every lane publishes `DC_Maj` 0
 for about 1,700 fits of 10″ or more, against `master`'s 439, so 255 to 343
 matched sources that `master`'s cuts drop pass them as unresolved. No lane passes the
 99.5% gate, so the plan's rule falls back to `continuum`; the maintainer
-chose `compact` with a zero background instead, and task 29 decides the
-gate's binding form, since the release control misses it too.
+chose `compact` with a zero background instead, as an interim choice to be
+made again after task 75, and task 29 decides the gate's binding form,
+since the release control misses it too.
+
+Agreement with `master` is compatibility, not correctness. Exploratory
+scripts on 13 October, which task 76 makes part of the check, measured
+three things `master` cannot tell:
+
+| Measure | `master` | `continuum`, estimated | `compact`, zero |
+| --- | --- | --- | --- |
+| Generated cases: emission at 3σ or more inside the mask | 0.76 | 0.87 | 0.64 |
+| Generated cases: mask on no emission | 0.77% | 0.05% | 0.07% |
+| Generated cases: injected sources at SNR ≥ 5 kept, of 1,133 | 1,121 | 1,115 | 1,111 |
+| ELAIS-N1 2,048²: islands, and false islands on the negated image | 5,762, 34 | 5,101, 9 | 5,665, 55 |
+
+`master` covers 38% of the wide extended source, where `continuum` covers
+74% with the estimated background, and a fifth of its mask on the
+`varying-noise` case holds no emission. On ELAIS-N1 the islands `continuum`
+loses peak at a median 7.3 times the RMS of negative pixels, which faint
+sources cannot inflate, and 96% at 5 or more, while `continuum`'s RMS there
+is 2.3 times that noise and `master`'s 1.13 times: they are real sources,
+lost to the local-noise defect (task 75).
 
 ### Open scientific defects
 
@@ -240,9 +260,9 @@ memory and disk, and SKA-Low coverage without public SKA-Low images.
 The next actions, as the plan orders them on 13 October:
 
 1. Agent: the prepared Rapthor patch adopts task 21's `compact` profile and
-   zero background; task 62 scales the meshes with the beam so the finder
-   accepts Rapthor's demonstration sector; then a first matched
-   `filter_skymodel` measurement on that 3,000² sector (task 23). Human:
+   zero background; then a first matched `filter_skymodel` measurement on a
+   sector imaged at real resolution (task 23), with the agreement check's
+   truth measures (task 76) alongside. Human:
    publish/review the prepared Rapthor patch; its authoritative upstream
    pins were unchanged at the 12 October checkpoint.
 2. Agent: one sector across the cluster. Measure how a sector scales with
