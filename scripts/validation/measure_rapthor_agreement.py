@@ -33,6 +33,7 @@ case unmeasured, and 0 otherwise, whatever the gate decides::
 from __future__ import annotations
 
 import argparse
+import os
 import runpy
 import subprocess
 import time
@@ -60,6 +61,7 @@ from hebog.validation.products import (
     load_mask_plane,
     load_pybdsf_gaussian_catalogue,
 )
+from hebog.validation.quick_benchmark import SINGLE_THREAD_ENVIRONMENT
 from hebog.validation.quick_check import (
     ContainerReference,
     GeneratedCase,
@@ -220,7 +222,14 @@ def _run_lanes(
     run_root: Path,
     jobs: int,
 ) -> dict[tuple[str, str], LaneRun]:
-    """Run every lane on every case, ``jobs`` processes at a time."""
+    """Run every lane on every case, ``jobs`` processes at a time.
+
+    Each lane runs in a worker process with one native thread: a threaded
+    BLAS reduces in an order that depends on the machine's load, so the
+    last bits of a fit, and with them a component's pixel, would otherwise
+    differ between runs. The variables must be set before a worker imports
+    NumPy, so even one job runs in a worker.
+    """
     work = [
         (case_id, lane) for case_id in prepared for lane in configuration.lanes
     ]
@@ -234,11 +243,9 @@ def _run_lanes(
         )
         for case_id, lane in work
     ]
-    if jobs > 1:
-        with ProcessPoolExecutor(max_workers=jobs) as pool:
-            runs = list(pool.map(_run_lane, *zip(*arguments, strict=True)))
-    else:
-        runs = [_run_lane(*item) for item in arguments]
+    os.environ.update(SINGLE_THREAD_ENVIRONMENT)
+    with ProcessPoolExecutor(max_workers=jobs) as pool:
+        runs = list(pool.map(_run_lane, *zip(*arguments, strict=True)))
     for (case_id, lane), run in zip(work, runs, strict=True):
         print(
             f"{case_id} {lane.name}: {run.status} in {run.seconds:.1f} s",
