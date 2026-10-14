@@ -217,6 +217,9 @@ The adapter fails in ways Rapthor can act on:
   `<root>.hebog`. Before the analysis starts the adapter removes the four
   files Rapthor reads, and a failure while writing them removes those it
   wrote, so a fallback to PyBDSF never finds Hebog's files beside its own.
+- A task that declares more memory than the executor admits raises
+  `ExecutorAdmissionError` before it is submitted, and the analysis stops
+  as on any other failure; the prepared patch falls back on it too.
 - A retried task with the same request and run ID reuses Hebog's finished
   bundle without analysing the images again, and writes Rapthor's files
   from it once more, so a mask LSMTool has already clipped is replaced.
@@ -252,17 +255,18 @@ On the current layout the task caps its ThreadExecutor by the filter core
 request, sector `max_threads` and configured `cpus_per_task`. It limits native
 thread pools to one and subtracts `hebog.analysis_memory_bytes` and resident
 process RSS from the smaller configured/worker memory budget before admitting
-tile tasks. The source estimate counts the true-sky and peeled component
-lists; without the primary model it conservatively reserves one source per
-pixel. An unsupported worker layout or insufficient budget fails explicitly.
-A component list is far longer than the source list: on plan task 23's
-3,000² sector 101,144 components reserved 5.9 GB for 890 sources, and a
-list on every 1σ pixel refused a 15.6 GB machine, so plan task 77 sizes the
-reservation from the image and makes an insufficient budget a typed refusal
-that falls back to PyBDSF. The
-whole task occupies the worker's only task slot, so its analysis reservation
-does not require Dask resource annotations on this interim path. Synchronous
-runs also respect host available memory and container/process memory limits.
+tile tasks. It reserves for the sources `hebog.expected_source_count`
+estimates from the detection image at `threshpix`; peeled sources are not in
+the image and reserve nothing. A component list is far longer than the source
+list: on plan task 23's 3,000² sector WSClean's 101,144 components reserved
+5.9 GB for 890 sources, where the image's 1,155 peaks reserve 0.27 GB. When
+no memory remains for the tile tasks, or one needs more than remains, Hebog's
+`ExecutorAdmissionError` is a typed refusal and the task falls back to
+PyBDSF, recording the reason in the image diagnostics; an unsupported worker
+layout fails explicitly. The whole task occupies the worker's only task
+slot, so its analysis reservation does not require Dask resource annotations
+on this interim path. Synchronous runs also respect host available memory and
+container/process memory limits.
 
 The no-beam branch supplies the flat image as both adapter inputs, as pinned
 LSMTool does. A configured missing peeled model is an error. Native selection

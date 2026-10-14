@@ -40,7 +40,7 @@ xfail, so CI fails the day one starts passing.
 | Rapthor adapter products for the true-sky and flat-noise pair | Implemented |
 | Retry reuses valid stage products | Implemented |
 | Worker loss is retried to the same deterministic products | Implemented |
-| Rapthor can fall back to pinned PyBDSF behind the feature flag | Implemented: a refused sector leaves none of Rapthor's files |
+| Rapthor can fall back to pinned PyBDSF behind the feature flag | Implemented: a refused sector leaves none of Rapthor's files, and the prepared patch also falls back when its worker cannot hold the analysis |
 | Dual-run mode keeps products separate and reports differences | Implemented in the prepared Rapthor patch; reports both filtered product sets and retains their originals |
 | A cancelled analysis stops its tasks and removes its staging | Implemented, under the Thread and Dask executors |
 
@@ -51,9 +51,9 @@ adds the native task on today's worker layout; task 72 owns its future
 distributed path. The [integration evidence](https://github.com/gemmadanks/hebog/blob/main/scripts/validation/patches/integration-summary.json)
 records the upstream audit, real Prefect/LSMTool/subprocess tests and the
 frozen-field checkpoint under both profiles and background settings. The final
-container passes 36 native/CLI tests; the broader native/settings suite passes
-91, with full branch-aware coverage of the new native module, and Rapthor's
-library, operation and image-flow suites pass 662. Its parset defaults to
+container passes 39 native/CLI tests; the broader native/settings suite passes
+94, with full branch-aware coverage of the new native module, and Rapthor's
+library, operation and image-flow suites pass 662 (14 October, task 77). Its parset defaults to
 task 21's `compact` profile with a zero background. The 18-case
 quick science check has no regressions and all 54 FITS products match the
 previous baseline byte for byte. That
@@ -238,7 +238,7 @@ shares and the memory figures.
 | Tiling and executor invariance | Byte-identical products from one tile and the 8×8 grid, and under Serial, Thread and Dask, including the whole mosaic | Exact |
 | Declared limit | An object wider than a task's read budget is reduced on the driver at up to 186 bytes an object pixel; about 44 GB for a field-filling object at 15,402². No real LoTSS-DR3 object comes within a factor of ten of the budget | Deferred; reopened when a tier's traced peak shows it |
 | Memory admission | Every task declares its memory from its read: the multiscale tile tasks are the largest, 1,247 MiB traced for a 2,048-pixel core with its halo, and object batches reach 774 MiB on the whole mosaic. A memory budget narrows the in-flight window, and a `DaskExecutor` given the caller's resource names attaches each declaration to its task; on a local two-worker cluster that keeps a second task off a worker without the memory (12 October, task 17) | Bounded by the tile |
-| Analysis memory | Traced between tasks with Hebog's modules, about 42 KB a published source plus 0.17 bytes a pixel over a fixed 142 MiB: 179 MiB at 3,000² (783 sources), 492 MiB at 10,000² (8,547), 978 MiB on the whole 15,402² mosaic (19,103) and 1,557 MiB on the ELAIS-N1 deep field's central 5,000² (34,092). `hebog.analysis_memory_bytes` states it from an expected source count (12 October, task 17) | Bounded before task 12 (task 56) |
+| Analysis memory | Traced between tasks with Hebog's modules, about 42 KB a published source plus 0.17 bytes a pixel over a fixed 142 MiB: 179 MiB at 3,000² (783 sources), 492 MiB at 10,000² (8,547), 978 MiB on the whole 15,402² mosaic (19,103) and 1,557 MiB on the ELAIS-N1 deep field's central 5,000² (34,092). `hebog.analysis_memory_bytes` states it from an expected source count (12 October, task 17). `hebog.expected_source_count` estimates that count from the image's 5σ local maxima: it bounded the published count on all 21 quick-check, agreement and benchmark cases, at 1.0 to 21 times (1.1 to 1.9 on the LOFAR and simulated SKA fields; 1,155 for 890 on task 23's sector, where WSClean's list held 101,144 components), and reads the whole 15,402² mosaic in 28 s (14 October, task 77) | Bounded before task 12 (task 56) |
 | Beyond one machine | Not run; planner bounds for 100,000² not yet written | tasks 24, 27 and 30 |
 
 ## Engineering health
@@ -261,17 +261,16 @@ memory and disk, and SKA-Low coverage without public SKA-Low images.
 
 The next actions, as the plan orders them on 14 October:
 
-1. Agent: size the native task's memory from the image and fall back to
-   PyBDSF when it does not fit (task 77), before the patch is published,
-   with the agreement check's truth measures (task 76) alongside. Human:
-   publish/review the prepared Rapthor patch after task 77; it targets
-   Rapthor's `main` at `d0e7e148`, the pin since task 23's checkpoint, and
-   defaults to task 21's `compact` profile with a zero background.
-2. Agent: one sector across the cluster. Measure how a sector scales with
+1. Agent: one sector across the cluster. Measure how a sector scales with
    Dask workers and where its serial share lies (task 73), cut that share
    (task 74, with tasks 71 and 54 to 56), then fit Hebog's tasks to
    Rapthor's workers (task 72); beside it, the 22,500² tier (task 11), since
-   Rapthor's usual sector is 17,000 to 20,000 pixels a side.
+   Rapthor's usual sector is 17,000 to 20,000 pixels a side. The agreement
+   check's truth measures (task 76) may run alongside.
+2. Human: publish/review the prepared Rapthor patch. It targets Rapthor's
+   `main` at `d0e7e148`, the pin since task 23's checkpoint, defaults to
+   task 21's `compact` profile with a zero background, and needs the Hebog
+   release carrying `hebog.expected_source_count`.
 3. Agent: the deployment envelope and the gate (tasks 22 and 23), on one
    node; one sector across several nodes is measured by the cluster
    benchmark. Scientific improvements (tasks 15 and 68) wait until this
