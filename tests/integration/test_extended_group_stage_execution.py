@@ -6,18 +6,24 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import TypeVar, cast
+from typing import TypeVar
 
 import numpy as np
 import numpy.typing as npt
 import pytest
 from astropy.io import fits
 from astropy.wcs import WCS
+from conftest import (
+    DropNthMapExecutor,
+    ShiftedBoundsSource,
+    core_partitions,
+    eight_connected_labels,
+    publish_planes,
+    reviewed_deblend_config,
+)
 from distributed import Client
-from scipy.ndimage import label as ndimage_label
 
 from hebog.algorithms.component_measurement import (
     ComponentMeasurements,
@@ -31,28 +37,27 @@ from hebog.algorithms.multiscale import (
     build_residual_atrous_plan,
 )
 from hebog.algorithms.partitioning import plan_image_partitions
-from hebog.config import CompactDeblendConfig
 from hebog.data_models.images import RestoringBeam
 from hebog.data_models.partitioning import ImageBounds, PartitionManifest
-from hebog.executors import DaskExecutor, SerialExecutor, TaskRequirement
-from hebog.io.base import ImageWindow
+from hebog.executors import DaskExecutor, SerialExecutor
 from hebog.io.zarr import ZarrProductSink
 from hebog.science.configuration import source_finder_configs
 from hebog.stages.batching import read_pixels
-from hebog.stages.objects import (
+from hebog.stages.component_fits import (
     ComponentFitStageConfig,
+    run_component_fit_stage,
+)
+from hebog.stages.extended_groups import (
     ExtendedGroupStageConfig,
     ExtendedGroupStageResult,
-    FitParentStageConfig,
     SupportFeature,
     _feature_mask,
     _FeatureScanBatch,
     _group_batches,
     _GroupBatch,
-    run_component_fit_stage,
     run_extended_group_stage,
-    run_fit_parent_stage,
 )
+from hebog.stages.fit_parents import FitParentStageConfig, run_fit_parent_stage
 from hebog.validation.tiled_detection import ArrayImageSource
 
 pytestmark = pytest.mark.integration
@@ -63,60 +68,6 @@ _SHAPE_YX = (97, 145)
 _DETECTION_SIGMA = 5.0
 _BEAM = BeamShapePixels(4.0, 4.0, 0.0)
 _RESTORING_BEAM = RestoringBeam(4.0 / 3600.0, 4.0 / 3600.0, 0.0)
-
-
-class _DropNthMapExecutor(SerialExecutor):
-    """Complete every round but one, to prove each fails closed."""
-
-    def __init__(self, dropped_round: int) -> None:
-        """Count maps so one chosen round can return nothing."""
-        super().__init__()
-        self._dropped_round = dropped_round
-        self._call_count = 0
-
-    def map_batches(
-        self,
-        function: Callable[[_Input], _Output],
-        batches: Iterable[_Input],
-        *,
-        requirement: TaskRequirement | None = None,
-    ) -> list[_Output]:
-        """Run every round except the chosen one."""
-        self._call_count += 1
-        if self._call_count == self._dropped_round:
-            return []
-        return super().map_batches(function, batches, requirement=requirement)
-
-
-class _ShiftedBoundsSource:
-    """An image source that answers with bounds it was not asked for."""
-
-    def __init__(self, source: ArrayImageSource) -> None:
-        """Retain the source whose honest answers are then corrupted."""
-        self._source = source
-
-    def read_window(self, bounds: ImageBounds) -> ImageWindow:
-        """Return the asked-for pixels under one narrower bound."""
-        window = self._source.read_window(bounds)
-        return ImageWindow(
-            bounds=ImageBounds(
-                bounds.y_start,
-                bounds.y_stop,
-                bounds.x_start,
-                max(bounds.x_start + 1, bounds.x_stop - 1),
-            ),
-            values=window.values,
-            valid_pixels=window.valid_pixels,
-        )
-
-
-def _labelled(mask: npt.NDArray[np.bool_]) -> npt.NDArray[np.int32]:
-    """Return eight-connected labels of one analytic mask."""
-    labels, _ = cast(
-        "tuple[npt.NDArray[np.int32], int]",
-        ndimage_label(mask, structure=np.ones((3, 3), dtype=np.int8)),
-    )
-    return labels
 
 
 def _signal() -> npt.NDArray[np.float64]:
@@ -151,12 +102,12 @@ def _planes() -> tuple[
     valid = np.ones(_SHAPE_YX, dtype=np.bool_)
     direct = np.zeros(_SHAPE_YX, dtype=np.int32)
     measurement = np.zeros(_SHAPE_YX, dtype=np.int32)
-    labelled = _labelled(signal >= 3.0)
+    labelled = eight_connected_labels(signal >= 3.0)
     for index, value in enumerate(
         sorted({int(item) for item in np.unique(labelled) if item}), start=1
     ):
         direct[labelled == value] = index
-    support = _labelled(signal >= 2.0)
+    support = eight_connected_labels(signal >= 2.0)
     for value in np.unique(support):
         if value <= 0:
             continue
@@ -170,7 +121,7 @@ def _planes() -> tuple[
         direct,
         measurement,
         valid,
-        _deblend_config(),
+        reviewed_deblend_config(_DETECTION_SIGMA),
     )
     return (
         signal,
@@ -178,16 +129,6 @@ def _planes() -> tuple[
         valid,
         np.asarray(topology.direct_component_labels, dtype=np.int32),
         np.asarray(topology.measurement_component_labels, dtype=np.int32),
-    )
-
-
-def _deblend_config() -> CompactDeblendConfig:
-    """Return the reviewed compact deblending policy the public path uses."""
-    return replace(
-        source_finder_configs()[1],
-        minimum_peak_signal_to_noise=float(
-            np.nextafter(_DETECTION_SIGMA, -np.inf)
-        ),
     )
 
 
@@ -224,48 +165,6 @@ def _atrous_plan() -> object:
     return build_residual_atrous_plan(_BEAM, noise_correlation=_BEAM)
 
 
-def _manifest(core: int) -> PartitionManifest:
-    """Plan one core-only partition of the fixture image."""
-    return plan_image_partitions(
-        image_shape_yx=_SHAPE_YX,
-        tile_core_shape_yx=(core, core),
-        halo_yx=(0, 0),
-    )
-
-
-def _publish(
-    root: Path,
-    products: tuple[tuple[str, npt.NDArray[np.generic], str], ...],
-    *,
-    generation_id: str,
-) -> ZarrProductSink:
-    """Publish one generation of analytic planes over 16-pixel cores."""
-    manifest = _manifest(16)
-    sink = ZarrProductSink(root, manifest, generation_id=generation_id)
-    for product_name, _, dtype in products:
-        sink.initialize_product(
-            product_name=product_name, dtype=np.dtype(dtype)
-        )
-    sink.publish_generation(
-        product_names=tuple(name for name, _, _ in products),
-        chunks=[
-            sink.write_chunk(
-                product_name=product_name,
-                tile=tile,
-                values=np.asarray(
-                    values[
-                        tile.core_bounds.y_start : tile.core_bounds.y_stop,
-                        tile.core_bounds.x_start : tile.core_bounds.x_stop,
-                    ]
-                ),
-            )
-            for tile in manifest.tiles
-            for product_name, values, _ in products
-        ],
-    )
-    return sink
-
-
 @dataclass(frozen=True, slots=True)
 class _Published:
     """Everything the fit rounds published, for the grouping round."""
@@ -281,7 +180,7 @@ def _run_fits(root: Path) -> _Published:
     """Publish the measurement support the grouping round reads."""
     root.mkdir(parents=True, exist_ok=True)
     residual, rms, valid, direct, measurement = _planes()
-    background_source = _publish(
+    background_source = publish_planes(
         root / "background.zarr",
         (
             ("background", np.zeros(_SHAPE_YX, dtype=np.float64), "<f8"),
@@ -289,12 +188,12 @@ def _run_fits(root: Path) -> _Published:
         ),
         generation_id="background-fixture",
     )
-    detection_source = _publish(
+    detection_source = publish_planes(
         root / "detection.zarr",
         (("valid-pixels", valid, "bool"),),
         generation_id="detection-fixture",
     )
-    component_source = _publish(
+    component_source = publish_planes(
         root / "components.zarr",
         (
             ("component-direct-labels", direct, "<i4"),
@@ -324,13 +223,15 @@ def _run_fits(root: Path) -> _Published:
                 _atrous_plan(),  # type: ignore[arg-type]
             ),
             maximum_bounds_pixels=(
-                _deblend_config().maximum_compact_bounds_pixels
+                reviewed_deblend_config(
+                    _DETECTION_SIGMA
+                ).maximum_compact_bounds_pixels
             ),
         ),
         executor=SerialExecutor(),
         sink=parent_sink,
     )
-    manifest = _manifest(32)
+    manifest = core_partitions(_SHAPE_YX, 32)
     support_sink = ZarrProductSink(
         root / "fits.zarr", manifest, generation_id="fits"
     )
@@ -349,7 +250,9 @@ def _run_fits(root: Path) -> _Published:
             island_sigma=3.0,
             minimum_pixels=7,
             maximum_bounds_pixels=(
-                _deblend_config().maximum_compact_bounds_pixels
+                reviewed_deblend_config(
+                    _DETECTION_SIGMA
+                ).maximum_compact_bounds_pixels
             ),
             minimum_support_fraction=0.5,
             maximum_tiles_per_batch=2,
@@ -378,7 +281,9 @@ def _group_config(**overrides: object) -> ExtendedGroupStageConfig:
         "island_sigma": 3.0,
         "minimum_pixels": 7,
         "maximum_bounds_pixels": (
-            _deblend_config().maximum_compact_bounds_pixels
+            reviewed_deblend_config(
+                _DETECTION_SIGMA
+            ).maximum_compact_bounds_pixels
         ),
         "minimum_support_fraction": 0.5,
         "maximum_tiles_per_batch": 2,
@@ -406,7 +311,7 @@ def _run_groups(
         published.detection_source,
         published.component_source,
         published.support_sink,
-        _manifest(core),
+        core_partitions(_SHAPE_YX, core),
         config=_group_config(**overrides),
         parents=published.parents,  # type: ignore[arg-type]
         wcs_header_text=_header().tostring(),
@@ -443,7 +348,9 @@ def _whole_plane() -> ComponentMeasurements:
         island_sigma=3.0,
         minimum_pixels=7,
         maximum_bounds_pixels=(
-            _deblend_config().maximum_compact_bounds_pixels
+            reviewed_deblend_config(
+                _DETECTION_SIGMA
+            ).maximum_compact_bounds_pixels
         ),
         atrous_plan=_atrous_plan(),  # type: ignore[arg-type]
         minimum_support_fraction=0.5,
@@ -523,7 +430,7 @@ def test_grouping_publishes_scalar_execution_evidence(
 
     result = _run_groups(published)
 
-    assert result.partition_count == len(_manifest(16).tiles)
+    assert result.partition_count == len(core_partitions(_SHAPE_YX, 16).tiles)
     assert result.executor_task_count > result.feature_batch_count
     assert result.maximum_graph_width > 0
     assert result.maximum_feature_read_pixels > 0
@@ -579,7 +486,7 @@ def test_every_grouping_round_fails_closed_on_a_silent_executor(
     published = _run_fits(tmp_path / "run")
 
     with pytest.raises(ValueError, match=message):
-        _run_groups(published, executor=_DropNthMapExecutor(dropped_round))
+        _run_groups(published, executor=DropNthMapExecutor(dropped_round))
 
 
 def test_grouping_requires_matching_generations_and_a_core_manifest(
@@ -587,7 +494,7 @@ def test_grouping_requires_matching_generations_and_a_core_manifest(
 ) -> None:
     """Identities are checked before any round is submitted."""
     published = _run_fits(tmp_path / "run")
-    incomplete = _publish(
+    incomplete = publish_planes(
         tmp_path / "incomplete.zarr",
         (("rms", _planes()[1], "<f8"),),
         generation_id="incomplete",
@@ -629,11 +536,11 @@ def test_grouping_requires_matching_generations_and_a_core_manifest(
     with pytest.raises(ValueError, match="match the grouping image shape"):
         run(other_shape)
     with pytest.raises(ValueError, match="every grouping plane read"):
-        run(_manifest(16), background_source=incomplete)
+        run(core_partitions(_SHAPE_YX, 16), background_source=incomplete)
     with pytest.raises(ValueError, match="different group-read bounds"):
         _run_groups(
             published,
-            image_source=_ShiftedBoundsSource(
+            image_source=ShiftedBoundsSource(
                 ArrayImageSource(_planes()[0], _planes()[2])
             ),
         )
@@ -666,7 +573,7 @@ def test_grouping_publishes_an_image_with_no_support_feature(
     """An image whose support is empty reduces to no feature records."""
     tmp_path.mkdir(parents=True, exist_ok=True)
     published = _run_fits(tmp_path / "run")
-    empty = _publish(
+    empty = publish_planes(
         tmp_path / "empty.zarr",
         (
             (
@@ -684,7 +591,7 @@ def test_grouping_publishes_an_image_with_no_support_feature(
         published.detection_source,
         published.component_source,
         empty,
-        _manifest(16),
+        core_partitions(_SHAPE_YX, 16),
         config=_group_config(),
         parents=published.parents,  # type: ignore[arg-type]
         wcs_header_text=_header().tostring(),
@@ -732,7 +639,7 @@ def _feature_windows(published: _Published) -> tuple[ImageBounds, ...]:
         dtype=np.bool_,
     )
     margin = _group_config().margin_pixels
-    labels = _labelled(support)
+    labels = eight_connected_labels(support)
     return tuple(
         ImageBounds(
             int(rows.min()),

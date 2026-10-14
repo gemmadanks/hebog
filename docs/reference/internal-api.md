@@ -130,13 +130,37 @@ catalogue-row kernels; it imports no stage.
     options:
       show_symbol_type_toc: true
 
-::: hebog.stages.objects
+::: hebog.stages.object_extents
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.stages.component_topology
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.stages.fit_parents
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.stages.component_fits
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.stages.extended_groups
     options:
       show_symbol_type_toc: true
 
 ## Source association
 
 ::: hebog.algorithms.multiscale_association
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.algorithms.component_records
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.algorithms.feature_envelopes
     options:
       show_symbol_type_toc: true
 
@@ -149,6 +173,10 @@ catalogue-row kernels; it imports no stage.
       show_symbol_type_toc: true
 
 ::: hebog.stages.sources
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.science.detection_islands
     options:
       show_symbol_type_toc: true
 
@@ -167,6 +195,10 @@ catalogue-row kernels; it imports no stage.
       show_symbol_type_toc: true
 
 ::: hebog.science.catalogue_rows
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.science.segment_rows
     options:
       show_symbol_type_toc: true
 

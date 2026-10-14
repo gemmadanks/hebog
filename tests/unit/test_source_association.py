@@ -8,11 +8,11 @@ from itertools import pairwise
 import numpy as np
 import pytest
 
-from hebog.algorithms.source_association import (
+from hebog.algorithms.component_records import (
     build_detection_component_record,
     build_detection_component_records,
-    constrain_source_memberships,
 )
+from hebog.algorithms.source_association import constrain_source_memberships
 from hebog.data_models.source_association import (
     CatalogueSourceMembership,
     DetectionComponentRecord,

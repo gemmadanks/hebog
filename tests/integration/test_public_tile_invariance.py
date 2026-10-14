@@ -25,7 +25,10 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 from astropy.io import fits
-from conftest import product_hashes
+from conftest import (
+    product_hashes,
+    radio_header,
+)
 
 import hebog
 from hebog import SourceFinderConfig, SourceFinderRequest, public_api
@@ -153,29 +156,6 @@ def _masked_around(
     return block.size > 0 and bool(block.all())
 
 
-def _header(shape_yx: tuple[int, int]) -> fits.Header:
-    """Return one valid ICRS header with a four-pixel beam."""
-    height, width = shape_yx
-    header = fits.Header()
-    header["BUNIT"] = "Jy/beam"
-    header["BMAJ"] = _BEAM_FWHM_PIXELS / 3600.0
-    header["BMIN"] = _BEAM_FWHM_PIXELS / 3600.0
-    header["BPA"] = 0.0
-    header["RADESYS"] = "ICRS"
-    header["CTYPE1"] = "RA---TAN"
-    header["CTYPE2"] = "DEC--TAN"
-    header["CRPIX1"] = width / 2 + 1
-    header["CRPIX2"] = height / 2 + 1
-    header["CRVAL1"] = 180.0
-    header["CRVAL2"] = -30.0
-    header["CDELT1"] = -1.0 / 3600.0
-    header["CDELT2"] = 1.0 / 3600.0
-    header["CUNIT1"] = "deg"
-    header["CUNIT2"] = "deg"
-    header["RESTFRQ"] = 150_000_000.0
-    return header
-
-
 def _put_passes_on_grid(monkeypatch: pytest.MonkeyPatch) -> None:
     """Run every pass after the background on the grid's cores.
 
@@ -233,7 +213,7 @@ def one_tile(tmp_path_factory: pytest.TempPathFactory) -> SourceFinderResult:
     """Write the shared input and publish its products from one tile."""
     directory = tmp_path_factory.mktemp("tile-grid")
     image = _image()
-    fits.PrimaryHDU(data=image, header=_header(image.shape)).writeto(
+    fits.PrimaryHDU(data=image, header=radio_header(image.shape)).writeto(
         directory / "image.fits"
     )
     with pytest.MonkeyPatch.context() as monkeypatch:
@@ -391,7 +371,7 @@ def test_constant_blocks_across_seams_publish_the_one_tile_products(
     every block pixel is NaN in the RMS and no pixel's noise is zero.
     """
     image = _blocked_image()
-    fits.PrimaryHDU(data=image, header=_header(image.shape)).writeto(
+    fits.PrimaryHDU(data=image, header=radio_header(image.shape)).writeto(
         tmp_path / "image.fits"
     )
     one_tile = _find_sources(

@@ -264,7 +264,7 @@ memory and disk, and SKA-Low coverage without public SKA-Low images.
 The next actions, as the plan orders them on 15 October:
 
 1. Agent: one sector across the cluster. Cut the serial share task 73
-   measured (task 74, with tasks 71 and 54 to 56), starting from
+   measured (task 74, with tasks 54 to 56), starting from
    `find_sources`' untimed driver work, 70 s at 10,000² and 320 s on the
    mosaic, then fit Hebog's tasks to Rapthor's workers
    (task 72), sizing workers by the memory a core needs as well as by cores;

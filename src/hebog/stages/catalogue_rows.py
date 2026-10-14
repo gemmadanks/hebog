@@ -46,7 +46,7 @@ from hebog.executors.base import Executor
 from hebog.io.base import CompletedProductSource, WindowReadable
 from hebog.io.zarr import ZarrProductSink
 from hebog.science.catalogue_rows import CatalogueSource
-from hebog.science.catalogues import (
+from hebog.science.segment_rows import (
     SegmentPixels,
     SegmentRowMeasurement,
     measure_segment_row,

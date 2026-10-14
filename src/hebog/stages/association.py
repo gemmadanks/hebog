@@ -23,6 +23,17 @@ import numpy as np
 import numpy.typing as npt
 
 from hebog.algorithms.detection import DetectionThresholdMasks
+from hebog.algorithms.feature_envelopes import (
+    FeatureOverlaps,
+    HierarchyOverlaps,
+    envelope_pair_is_needed,
+    influence_candidate_feature_ids,
+    scale_feature_envelope_bounds,
+    scale_feature_envelope_support,
+    scale_feature_envelopes_overlap,
+    scale_feature_influence_bounds,
+    scale_feature_influence_component_ids,
+)
 from hebog.algorithms.labelling import (
     LocalIslandTileSummary,
     label_detection_tile,
@@ -37,17 +48,6 @@ from hebog.algorithms.reconciliation import (
     ReconciledIslands,
     TileLabelMapping,
     reconcile_candidate_tiles,
-)
-from hebog.algorithms.source_association import (
-    FeatureOverlaps,
-    HierarchyOverlaps,
-    envelope_pair_is_needed,
-    influence_candidate_feature_ids,
-    scale_feature_envelope_bounds,
-    scale_feature_envelope_support,
-    scale_feature_envelopes_overlap,
-    scale_feature_influence_bounds,
-    scale_feature_influence_component_ids,
 )
 from hebog.data_models.generations import ProductGenerationManifest
 from hebog.data_models.partitioning import (

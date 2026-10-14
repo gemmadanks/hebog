@@ -9,14 +9,15 @@ parameters never stand in for fitted ones.
 
 ## Numerical model
 
-`find_sources` fits in two stages of `hebog.stages.objects`.
-`run_fit_parent_stage` joins components whose fit contexts touch into fit
-parents, following a chain of any length from per-core summaries; a parent
-with more components or pixels than one joint fit admits, or wider than the
-compact bound, is fitted island by island. `run_component_fit_stage` fits
-each parent with `fit_compact_gaussian_mixture` inside one coarse executor
-task that holds the residual, RMS, exact component labels, moments and
-nonlinear fit together; a task holds several parents, and there is never one
+`find_sources` fits in two stages. `run_fit_parent_stage`
+(`hebog.stages.fit_parents`) joins components whose fit contexts touch into
+fit parents, following a chain of any length from per-core summaries; a
+parent with more components or pixels than one joint fit admits, or wider
+than the compact bound, is fitted island by island.
+`run_component_fit_stage` (`hebog.stages.component_fits`) fits each parent
+with `fit_compact_gaussian_mixture` inside one coarse executor task that
+holds the residual, RMS, exact component labels, moments and nonlinear fit
+together; a task holds several parents, and there is never one
 Dask task per source.
 
 The free model has a positive peak, a global zero-based `(x, y)` centroid,

@@ -6,25 +6,29 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
-from dataclasses import replace
 from math import ceil, log, pi
 from pathlib import Path
-from typing import TypeVar, cast
+from typing import TypeVar
 
 import numpy as np
 import numpy.typing as npt
 import pytest
 from astropy.io import fits
+from conftest import (
+    DropNthMapExecutor,
+    ShiftedBoundsSource,
+    core_partitions,
+    eight_connected_labels,
+    publish_planes,
+)
 from distributed import Client
-from scipy.ndimage import label as ndimage_label
 
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.data_models.images import RestoringBeam
 from hebog.data_models.partitioning import ImageBounds, PartitionManifest
-from hebog.executors import DaskExecutor, SerialExecutor, TaskRequirement
+from hebog.executors import DaskExecutor, SerialExecutor
 from hebog.io.zarr import ZarrProductSink
-from hebog.science.catalogues import (
+from hebog.science.segment_rows import (
     build_hebog_segment_moment_catalogue,
     segment_local_rms,
 )
@@ -53,38 +57,6 @@ _BEAM_MINOR = 3.0
 _APERTURE_BEAMS = 1.5
 
 
-class _DropNthMapExecutor(SerialExecutor):
-    """Complete every round but one, to prove each fails closed."""
-
-    def __init__(self, dropped_round: int) -> None:
-        """Count maps so one chosen round can return nothing."""
-        super().__init__()
-        self._dropped_round = dropped_round
-        self._call_count = 0
-
-    def map_batches(
-        self,
-        function: Callable[[_Input], _Output],
-        batches: Iterable[_Input],
-        *,
-        requirement: TaskRequirement | None = None,
-    ) -> list[_Output]:
-        """Run every round except the chosen one."""
-        self._call_count += 1
-        if self._call_count == self._dropped_round:
-            return []
-        return super().map_batches(function, batches, requirement=requirement)
-
-
-def _labelled(mask: npt.NDArray[np.bool_]) -> npt.NDArray[np.int32]:
-    """Return eight-connected labels of one analytic mask."""
-    labels, _ = cast(
-        "tuple[npt.NDArray[np.int32], int]",
-        ndimage_label(mask, structure=np.ones((3, 3), dtype=np.int8)),
-    )
-    return labels
-
-
 def _planes() -> tuple[
     npt.NDArray[np.float64],
     npt.NDArray[np.float64],
@@ -109,7 +81,7 @@ def _planes() -> tuple[
     )
     background = np.zeros(_SHAPE_YX, dtype=np.float64)
     valid = np.ones(_SHAPE_YX, dtype=np.bool_)
-    return image, background, valid, _labelled(image >= 5.0)
+    return image, background, valid, eight_connected_labels(image >= 5.0)
 
 
 def _header() -> fits.Header:
@@ -146,48 +118,6 @@ def _beam_area_pixels() -> float:
     return 2.0 * pi / (8.0 * log(2.0)) * _BEAM_MAJOR * _BEAM_MINOR
 
 
-def _manifest(core: int) -> PartitionManifest:
-    """Plan one core-only partition of the fixture image."""
-    return plan_image_partitions(
-        image_shape_yx=_SHAPE_YX,
-        tile_core_shape_yx=(core, core),
-        halo_yx=(0, 0),
-    )
-
-
-def _publish(
-    root: Path,
-    products: tuple[tuple[str, npt.NDArray[np.generic], str], ...],
-    *,
-    generation_id: str,
-) -> ZarrProductSink:
-    """Publish one generation of analytic planes over 16-pixel cores."""
-    manifest = _manifest(16)
-    sink = ZarrProductSink(root, manifest, generation_id=generation_id)
-    for product_name, _, dtype in products:
-        sink.initialize_product(
-            product_name=product_name, dtype=np.dtype(dtype)
-        )
-    sink.publish_generation(
-        product_names=tuple(name for name, _, _ in products),
-        chunks=[
-            sink.write_chunk(
-                product_name=product_name,
-                tile=tile,
-                values=np.asarray(
-                    values[
-                        tile.core_bounds.y_start : tile.core_bounds.y_stop,
-                        tile.core_bounds.x_start : tile.core_bounds.x_stop,
-                    ]
-                ),
-            )
-            for tile in manifest.tiles
-            for product_name, values, _ in products
-        ],
-    )
-    return sink
-
-
 def _rms() -> npt.NDArray[np.float64]:
     """Return one local-noise plane that varies across the image.
 
@@ -209,7 +139,7 @@ def _sources(
     root.mkdir(parents=True, exist_ok=True)
     image, background, valid, labels = _planes()
     return (
-        _publish(
+        publish_planes(
             root / "background.zarr",
             (
                 ("background", background, "<f8"),
@@ -217,7 +147,7 @@ def _sources(
             ),
             generation_id="background-fixture",
         ),
-        _publish(
+        publish_planes(
             root / "detection.zarr",
             (
                 ("valid-pixels", valid, "bool"),
@@ -225,7 +155,7 @@ def _sources(
             ),
             generation_id="detection-fixture",
         ),
-        _publish(
+        publish_planes(
             root / "labels.zarr",
             (("segment-labels", labels, "<i4"),),
             generation_id="label-fixture",
@@ -263,7 +193,7 @@ def _run(
     """Measure every segment's row, in isolation."""
     background, detection, labels = _sources(root, rms)
     image, _, valid, _ = _planes()
-    manifest = _manifest(core)
+    manifest = core_partitions(_SHAPE_YX, core)
     return run_segment_row_stage(
         ArrayImageSource(image, valid),
         background,
@@ -418,8 +348,10 @@ def test_the_row_stage_publishes_canonical_products(tmp_path: Path) -> None:
 
     assert segment_row_product_names() == ("aperture-labels",)
     assert set(result.generation.product_names) == {"aperture-labels"}
-    assert len(result.generation.chunks) == len(_manifest(16).tiles)
-    assert result.partition_count == len(_manifest(16).tiles)
+    assert len(result.generation.chunks) == len(
+        core_partitions(_SHAPE_YX, 16).tiles
+    )
+    assert result.partition_count == len(core_partitions(_SHAPE_YX, 16).tiles)
     assert result.measured_segment_count == len(result.rows)
     # Two core rounds at two tiles a batch, plus the row round.
     core_batches = ceil(result.partition_count / 2)
@@ -471,7 +403,7 @@ def test_every_row_round_fails_closed_on_a_silent_executor(
     with pytest.raises(ValueError, match=message):
         _run(
             tmp_path / f"round-{dropped_round}",
-            executor=_DropNthMapExecutor(dropped_round),
+            executor=DropNthMapExecutor(dropped_round),
         )
 
 
@@ -481,7 +413,7 @@ def test_the_row_stage_requires_matching_sinks_and_generations(
     """Identities are checked before any product is initialized."""
     background, detection, labels = _sources(tmp_path / "run")
     image, _, valid, _ = _planes()
-    manifest = _manifest(16)
+    manifest = core_partitions(_SHAPE_YX, 16)
     other_shape = plan_image_partitions(
         image_shape_yx=(32, 32),
         tile_core_shape_yx=(16, 16),
@@ -536,7 +468,7 @@ def test_an_image_with_no_segment_publishes_an_empty_catalogue(
     root = tmp_path / "run"
     root.mkdir(parents=True, exist_ok=True)
     image, background_plane, valid, _ = _planes()
-    background = _publish(
+    background = publish_planes(
         root / "background.zarr",
         (
             ("background", background_plane, "<f8"),
@@ -544,7 +476,7 @@ def test_an_image_with_no_segment_publishes_an_empty_catalogue(
         ),
         generation_id="background-fixture",
     )
-    detection = _publish(
+    detection = publish_planes(
         root / "detection.zarr",
         (
             ("valid-pixels", valid, "bool"),
@@ -552,12 +484,12 @@ def test_an_image_with_no_segment_publishes_an_empty_catalogue(
         ),
         generation_id="detection-fixture",
     )
-    labels = _publish(
+    labels = publish_planes(
         root / "labels.zarr",
         (("segment-labels", np.zeros(_SHAPE_YX, dtype=np.int32), "<i4"),),
         generation_id="label-fixture",
     )
-    manifest = _manifest(16)
+    manifest = core_partitions(_SHAPE_YX, 16)
 
     result = run_segment_row_stage(
         ArrayImageSource(image, valid),
@@ -583,38 +515,17 @@ def test_an_image_with_no_segment_publishes_an_empty_catalogue(
     assert len(result.generation.chunks) == len(manifest.tiles)
 
 
-class _ShiftedBoundsSource:
-    """An image source that answers with bounds it was not asked for."""
-
-    def __init__(self, source: ArrayImageSource) -> None:
-        """Retain the source whose honest answers are then corrupted."""
-        self._source = source
-
-    def read_window(self, bounds: ImageBounds):
-        """Return the asked-for pixels under one narrower bound."""
-        window = self._source.read_window(bounds)
-        return replace(
-            window,
-            bounds=ImageBounds(
-                bounds.y_start,
-                bounds.y_stop,
-                bounds.x_start,
-                max(bounds.x_start + 1, bounds.x_stop - 1),
-            ),
-        )
-
-
 def test_a_read_that_answers_different_bounds_fails_closed(
     tmp_path: Path,
 ) -> None:
     """A segment is never measured from pixels it did not ask for."""
     background, detection, labels = _sources(tmp_path / "run")
     image, _, valid, _ = _planes()
-    manifest = _manifest(16)
+    manifest = core_partitions(_SHAPE_YX, 16)
 
     with pytest.raises(ValueError, match="different segment bounds"):
         run_segment_row_stage(
-            _ShiftedBoundsSource(ArrayImageSource(image, valid)),
+            ShiftedBoundsSource(ArrayImageSource(image, valid)),
             background,
             detection,
             labels,
@@ -649,7 +560,7 @@ def test_an_unmeasurable_segment_publishes_no_row(
     hidden = int(labels_plane[60, 20])
     assert hidden > 0
     masked = valid & (labels_plane != hidden)
-    background = _publish(
+    background = publish_planes(
         root / "background.zarr",
         (
             ("background", background_plane, "<f8"),
@@ -657,7 +568,7 @@ def test_an_unmeasurable_segment_publishes_no_row(
         ),
         generation_id="background-fixture",
     )
-    detection = _publish(
+    detection = publish_planes(
         root / "detection.zarr",
         (
             ("valid-pixels", masked, "bool"),
@@ -665,12 +576,12 @@ def test_an_unmeasurable_segment_publishes_no_row(
         ),
         generation_id="detection-fixture",
     )
-    labels = _publish(
+    labels = publish_planes(
         root / "labels.zarr",
         (("segment-labels", labels_plane, "<i4"),),
         generation_id="label-fixture",
     )
-    manifest = _manifest(16)
+    manifest = core_partitions(_SHAPE_YX, 16)
 
     result = run_segment_row_stage(
         ArrayImageSource(image, masked),
@@ -855,7 +766,7 @@ def test_the_wide_segment_round_fails_closed_on_a_silent_executor(
     with pytest.raises(ValueError, match="no wide segment results"):
         _run(
             tmp_path / "run",
-            executor=_DropNthMapExecutor(3),
+            executor=DropNthMapExecutor(3),
             maximum_batch_read_pixels=1,
         )
 
@@ -866,7 +777,8 @@ def test_every_core_holding_a_wide_segment_must_answer() -> None:
         _WideSegmentBatch(
             cores=(
                 _WideSegmentCore(
-                    partition=_manifest(16).tiles[0], label_values=(1,)
+                    partition=core_partitions(_SHAPE_YX, 16).tiles[0],
+                    label_values=(1,),
                 ),
             )
         ),

@@ -47,7 +47,7 @@ from hebog.data_models.partitioning import (
 )
 from hebog.executors.base import Executor
 from hebog.io.base import CompletedProductSource, WindowReadable
-from hebog.science.catalogues import (
+from hebog.science.detection_islands import (
     detection_island_identifier,
     island_ids_by_component,
     measure_detection_island,

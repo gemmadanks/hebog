@@ -288,13 +288,12 @@ The order below was set on 9 October 2026 and amended on 10, 13 and
    to PyBDSF when its worker cannot hold the analysis (decision of
    14 October).
 2. **One sector across the cluster** (tasks 74 and 72), with the size
-   ladder to 22,500² (tasks 71, 54 to 56 and 11) beside it. Rapthor usually
+   ladder to 22,500² (tasks 54 to 56 and 11) beside it. Rapthor usually
    images one sector, 17,000 to 20,000 pixels a side by default (task 16),
    on nodes of up to 192 cores and tens of nodes. Task 73 measured a
    serial share of 23 to 29% on the local Dask curve, flattening at four
    workers where memory runs out, so the serial share is cut before the
-   Dask topology is tuned (decision of 10 October); task 71's module splits
-   come before tasks 54 and 55 rewrite association.
+   Dask topology is tuned (decision of 10 October).
 3. **The deployment performance gate on the integrated step** (tasks 22, 13
    and 23), then the 45,000² tier (task 12) and scale beyond one machine
    (tasks 24 to 27).
@@ -303,10 +302,9 @@ The order below was set on 9 October 2026 and amended on 10, 13 and
    the deferred row holds the rest. A confirmed incorrect supported output
    reopens its item at once; a documented bias or limitation does not.
 
-Tasks 54 to 56 come from the whole-codebase review of 4 October, task 71
-from the structural changes that review named, task 62's deferral from
-task 45's repair, task 68 from task 65's diagnosis (`LOG.md`), and tasks
-75 and 76 from task 21's measurement.
+Tasks 54 to 56 come from the whole-codebase review of 4 October, task 62's
+deferral from task 45's repair, task 68 from task 65's diagnosis
+(`LOG.md`), and tasks 75 and 76 from task 21's measurement.
 
 ### Clean-up and refactoring
 
@@ -316,10 +314,6 @@ and after, merges as a `refactor:` commit, and releases only when it changes
 a public name. The review's figures come from small synthetic inputs, so a
 task that changes cost or memory confirms its figure on a real anchor before
 it closes.
-
-| # | Owner | Task | Done when |
-| --- | --- | --- | --- |
-| 71 | Agent | Split the three largest modules along their seams, share the integration tests' copied helpers, and give the recurring parameter groups records. | `stages/objects.py` (3,295 lines) holds four stages; `algorithms/source_association.py` (2,120) holds the record builders, the envelope geometry and the hierarchy decision; `science/catalogues.py` (1,794) holds segment rows and detection islands. Each becomes one module per seam, with the names the tests import kept or moved with their tests. The helpers copied between the integration test files share one module. Where the same group of arguments recurs behind the 110 `PLR0913` suppressions in `src/`, it becomes a frozen record, so the count falls and no new suppression is added. Done when products are byte-identical on the quick check, `LAYER_IMPORTS` and the code map are current, and the split has landed before tasks 54 and 55. |
 
 ### M3 — Rapthor integration
 

@@ -13,6 +13,9 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 from astropy.io import fits
+from conftest import (
+    radio_header,
+)
 
 import hebog
 from hebog.data_models import SourceFindingDiagnostics
@@ -30,29 +33,6 @@ _RUNNER = runpy.run_path(
 )
 _NOISE_RMS = 1e-4
 _BEAM_FWHM_PIXELS = 4.0
-
-
-def _header(shape_yx: tuple[int, int]) -> fits.Header:
-    """Return one valid ICRS radio-continuum FITS header."""
-    height, width = shape_yx
-    header = fits.Header()
-    header["BUNIT"] = "Jy/beam"
-    header["BMAJ"] = _BEAM_FWHM_PIXELS / 3600.0
-    header["BMIN"] = _BEAM_FWHM_PIXELS / 3600.0
-    header["BPA"] = 0.0
-    header["RADESYS"] = "ICRS"
-    header["CTYPE1"] = "RA---TAN"
-    header["CTYPE2"] = "DEC--TAN"
-    header["CRPIX1"] = width / 2 + 1
-    header["CRPIX2"] = height / 2 + 1
-    header["CRVAL1"] = 180.0
-    header["CRVAL2"] = -30.0
-    header["CDELT1"] = -1.0 / 3600.0
-    header["CDELT2"] = 1.0 / 3600.0
-    header["CUNIT1"] = "deg"
-    header["CUNIT2"] = "deg"
-    header["RESTFRQ"] = 150_000_000.0
-    return header
 
 
 def _two_beam_sized_sources() -> npt.NDArray[np.float64]:
@@ -99,7 +79,7 @@ def test_runner_reads_the_point_estimator_back_from_the_run(
     ] = _RUNNER["_point_estimators_run"]
     image_path = tmp_path / "image.fits"
     image = _two_beam_sized_sources()
-    fits.PrimaryHDU(data=image, header=_header(image.shape)).writeto(
+    fits.PrimaryHDU(data=image, header=radio_header(image.shape)).writeto(
         image_path
     )
 

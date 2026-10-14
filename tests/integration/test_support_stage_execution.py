@@ -6,19 +6,23 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import TypeVar
 
 import numpy as np
 import numpy.typing as npt
 import pytest
+from conftest import (
+    EmptyAfterFirstMapExecutor,
+    EmptyExecutor,
+    ReverseCompletionExecutor,
+)
 from distributed import Client
 
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.algorithms.reconciliation import TileLabelMapping
 from hebog.data_models.partitioning import ImageBounds, PartitionManifest
-from hebog.executors import DaskExecutor, SerialExecutor, TaskRequirement
+from hebog.executors import DaskExecutor, SerialExecutor
 from hebog.io.zarr import ZarrProductSink
 from hebog.stages.support import (
     SupportTopologyStageConfig,
@@ -37,63 +41,6 @@ _Input = TypeVar("_Input")
 _Output = TypeVar("_Output")
 _SHAPE_YX = (48, 61)
 _SCALE_ORDERS = (1, 2, 3)
-
-
-class _ReverseCompletionExecutor(SerialExecutor):
-    """Return completed task records in reverse order."""
-
-    def map_batches(
-        self,
-        function: Callable[[_Input], _Output],
-        batches: Iterable[_Input],
-        *,
-        requirement: TaskRequirement | None = None,
-    ) -> list[_Output]:
-        """Evaluate canonically but expose reverse completion order."""
-        return list(
-            reversed(
-                super().map_batches(function, batches, requirement=requirement)
-            )
-        )
-
-
-class _EmptySecondPassExecutor(SerialExecutor):
-    """Complete topology but drop every publication result."""
-
-    def __init__(self) -> None:
-        """Count maps so the second one can publish nothing."""
-        super().__init__()
-        self._call_count = 0
-
-    def map_batches(
-        self,
-        function: Callable[[_Input], _Output],
-        batches: Iterable[_Input],
-        *,
-        requirement: TaskRequirement | None = None,
-    ) -> list[_Output]:
-        """Run the first map and return nothing from the second."""
-        self._call_count += 1
-        if self._call_count == 1:
-            return super().map_batches(
-                function, batches, requirement=requirement
-            )
-        return []
-
-
-class _EmptyExecutor(SerialExecutor):
-    """Drop every submitted result for fail-closed executor testing."""
-
-    def map_batches(
-        self,
-        function: Callable[[_Input], _Output],
-        batches: Iterable[_Input],
-        *,
-        requirement: TaskRequirement | None = None,
-    ) -> list[_Output]:
-        """Return no result without evaluating work."""
-        del function, batches, requirement
-        return []
 
 
 def _scale_masks() -> tuple[npt.NDArray[np.bool_], ...]:
@@ -235,7 +182,7 @@ def test_support_stage_is_partition_batch_and_executor_invariant(
     variants: list[tuple[str, PartitionManifest, object, int]] = [
         ("cores-16", _manifest((16, 16)), SerialExecutor(), 1),
         ("cores-24", _manifest((24, 20)), SerialExecutor(), 3),
-        ("reverse", _manifest((16, 16)), _ReverseCompletionExecutor(), 2),
+        ("reverse", _manifest((16, 16)), ReverseCompletionExecutor(), 2),
     ]
     for name, manifest, executor, batch_size in variants:
         _, sink = _run(
@@ -297,7 +244,7 @@ def test_support_stage_fails_closed_on_a_silent_executor(
         _run(
             tmp_path / "run",
             manifest=_manifest((16, 16)),
-            executor=_EmptyExecutor(),
+            executor=EmptyExecutor(),
         )
 
 
@@ -330,7 +277,7 @@ def test_support_stage_fails_closed_on_a_silent_publication(
         _run(
             tmp_path / "run",
             manifest=_manifest((16, 16)),
-            executor=_EmptySecondPassExecutor(),
+            executor=EmptyAfterFirstMapExecutor(),
         )
 
 

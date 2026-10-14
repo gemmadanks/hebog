@@ -28,6 +28,7 @@ from conftest import (
     SubstituteBackgroundRms,
     product_hashes,
     published_plane,
+    radio_header,
 )
 from distributed import Client, LocalCluster, get_task_stream
 from pytest_mock import MockerFixture
@@ -165,29 +166,6 @@ class _RecordingExecutor(SerialExecutor):
         return super().map_batches(function, items, requirement=requirement)
 
 
-def _header(shape_yx: tuple[int, int]) -> fits.Header:
-    """Return one valid ICRS radio-continuum FITS header."""
-    height, width = shape_yx
-    header = fits.Header()
-    header["BUNIT"] = "Jy/beam"
-    header["BMAJ"] = 4.0 / 3600.0
-    header["BMIN"] = 4.0 / 3600.0
-    header["BPA"] = 0.0
-    header["RADESYS"] = "ICRS"
-    header["CTYPE1"] = "RA---TAN"
-    header["CTYPE2"] = "DEC--TAN"
-    header["CRPIX1"] = width / 2 + 1
-    header["CRPIX2"] = height / 2 + 1
-    header["CRVAL1"] = 180.0
-    header["CRVAL2"] = -30.0
-    header["CDELT1"] = -1.0 / 3600.0
-    header["CDELT2"] = 1.0 / 3600.0
-    header["CUNIT1"] = "deg"
-    header["CUNIT2"] = "deg"
-    header["RESTFRQ"] = 150_000_000.0
-    return header
-
-
 def _ring_image() -> np.ndarray:
     """Return a small four-lobe shell exercising source association."""
     y_pixels, x_pixels = np.mgrid[:81, :81]
@@ -203,7 +181,9 @@ def _ring_image() -> np.ndarray:
 
 def _write_image(path: Path, values: np.ndarray) -> None:
     """Write one two-dimensional supported public input."""
-    fits.PrimaryHDU(data=values, header=_header(values.shape)).writeto(path)
+    fits.PrimaryHDU(data=values, header=radio_header(values.shape)).writeto(
+        path
+    )
 
 
 def _config(*, profile: str = "continuum") -> SourceFinderConfig:
@@ -385,7 +365,7 @@ def test_a_compact_detection_below_the_boundary_floor_is_published(
         signal += peak * np.exp(
             -((yy - y) ** 2 + (xx - x) ** 2) / (2.0 * sigma**2)
         )
-    header = _header(shape_yx)
+    header = radio_header(shape_yx)
     header["BMAJ"] = header["BMIN"] = beam_pixels / 3600.0
     fits.PrimaryHDU(data=signal, header=header).writeto(
         tmp_path / "image.fits"
@@ -451,7 +431,7 @@ def test_public_degenerate_owner_does_not_abort_a_healthy_neighbour(
                 products.terminal,
                 catalogue,
                 _published_mask(products),
-                _header(signal.shape),
+                radio_header(signal.shape),
                 owner_labels=_owner_labels(products),
             )
         )
@@ -624,7 +604,7 @@ def test_projection_accepts_a_source_standing_on_a_shared_island(
     )
     source = FitsImageSource(path)
     metadata = source.metadata()
-    header = _header(signal.shape)
+    header = radio_header(signal.shape)
     products = public_api._analyse_image(  # pyright: ignore[reportPrivateUsage]
         _request(tmp_path),
         source,
@@ -706,7 +686,7 @@ def test_a_compact_source_beside_a_brighter_broad_one_gets_a_gaussian(
         result.catalogue
     ).gaussian_components
     positions = np.asarray(
-        WCS(_header(signal.shape)).celestial.all_world2pix(
+        WCS(radio_header(signal.shape)).celestial.all_world2pix(
             [
                 (
                     row.position.right_ascension_degrees,
@@ -766,7 +746,7 @@ def test_a_resolved_source_keeps_its_shape_beside_a_degenerate_neighbour(
     the beam, which cannot describe it.
     """
     image = _resolved_source_among_faint_neighbours()
-    header = _header(image.shape)
+    header = radio_header(image.shape)
     header["BMAJ"] = header["BMIN"] = 2.48 / 3600.0
     fits.PrimaryHDU(data=image, header=header).writeto(tmp_path / "image.fits")
     monkeypatch.setattr(
@@ -852,7 +832,7 @@ def test_current_projection_rejects_inconsistent_public_evidence(
     )
     source = FitsImageSource(path)
     metadata = source.metadata()
-    header = _header(signal.shape)
+    header = radio_header(signal.shape)
     products = public_api._analyse_image(  # pyright: ignore[reportPrivateUsage]
         _request(tmp_path),
         source,
@@ -1047,7 +1027,7 @@ def test_fitted_source_publishes_when_its_aperture_sums_below_zero(
         for entry in diagnostics.measurement_dispositions
         if entry.object_kind == "source"
     )
-    world = WCS(_header(signal.shape)).celestial
+    world = WCS(radio_header(signal.shape)).celestial
     gaussian = min(
         catalogue.gaussian_components,
         key=lambda row: float(
@@ -2481,7 +2461,7 @@ def test_unsupported_public_unit_fails_before_publication(
     tmp_path: Path,
 ) -> None:
     """A readable but unevaluated physical unit is a configuration error."""
-    header = _header((8, 8))
+    header = radio_header((8, 8))
     header["BUNIT"] = "Jy"
     fits.PrimaryHDU(np.zeros((8, 8)), header).writeto(tmp_path / "image.fits")
 
@@ -2729,7 +2709,7 @@ def test_invalid_public_inputs_fail_before_publication(
     if defect == "corrupt":
         image_path.write_bytes(b"not a FITS file")
     else:
-        header = _header((8, 8))
+        header = radio_header((8, 8))
         if defect == "unit":
             del header["BUNIT"]
         elif defect == "beam":
@@ -2821,7 +2801,7 @@ def test_isolated_sources_on_uncorrelated_noise_publish_their_components(
         )
     path = tmp_path / "image.fits"
     _write_image(path, image)
-    header = _header(image.shape)
+    header = radio_header(image.shape)
     celestial = WCS(header).celestial
 
     result = hebog.find_sources(
@@ -2866,7 +2846,7 @@ def test_fk5_j2000_input_publishes_the_same_icrs_sky(
     _write_image(tmp_path / "image.fits", image)
     reference = SkyCoord(180.0 * units.deg, -30.0 * units.deg, frame="icrs")
     fk5: Any = reference.transform_to("fk5")
-    header = _header(image.shape)
+    header = radio_header(image.shape)
     header["CRVAL1"] = fk5.ra.deg
     header["CRVAL2"] = fk5.dec.deg
     del header["RADESYS"]
@@ -2944,7 +2924,7 @@ def test_supplied_metadata_publishes_the_same_science_as_a_complete_header(
     """
     image = _ring_image()
     _write_image(tmp_path / "image.fits", image)
-    header = _header(image.shape)
+    header = radio_header(image.shape)
     del header["RESTFRQ"]
     if missing_card == "absent":
         del header["BPA"]
@@ -3003,7 +2983,7 @@ def test_other_celestial_frames_fail_before_publication(
     equinox: float | None,
 ) -> None:
     """Only ICRS and FK5 J2000 are inside the public input envelope."""
-    header = _header((8, 8))
+    header = radio_header((8, 8))
     if radesys == "GALACTIC":
         del header["RADESYS"]
         header["CTYPE1"] = "GLON-TAN"
@@ -3128,7 +3108,7 @@ def test_whole_pixel_beam_is_invariant_to_sub_milliarcsecond_reference_shift(
     fluxes: list[list[float | None]] = []
     fitted: list[list[float]] = []
     for index, reference_ra in enumerate((180.0, 180.0 + 2e-7)):
-        header = _header(image.shape)
+        header = radio_header(image.shape)
         header["CRVAL1"] = reference_ra
         path = tmp_path / f"image-{index}.fits"
         fits.PrimaryHDU(data=image, header=header).writeto(path)
@@ -3264,7 +3244,7 @@ def _write_empty_image(
     path: Path, shape_yx: tuple[int, int], *, beam_pixels: float = 4.0
 ) -> None:
     """Write blank sky with one-arcsecond pixels and a circular beam."""
-    header = _header(shape_yx)
+    header = radio_header(shape_yx)
     header["BMAJ"] = header["BMIN"] = beam_pixels / 3600.0
     fits.PrimaryHDU(
         data=np.zeros(shape_yx, dtype=np.float32), header=header
@@ -3403,7 +3383,7 @@ def test_a_beam_with_no_size_in_pixels_is_refused_before_analysis(
     tmp_path: Path,
 ) -> None:
     """A pixel scale of nearly zero gives the beam no finite pixel width."""
-    header = _header((64, 64))
+    header = radio_header((64, 64))
     header["CDELT1"], header["CDELT2"] = -1e-12, 1e-12
     fits.PrimaryHDU(data=np.zeros((64, 64)), header=header).writeto(
         tmp_path / "image.fits"
@@ -3445,7 +3425,7 @@ def test_scaled_integer_pixels_publish_the_sources_of_the_same_floats(
     scale, zero = 2e-3, 30.0
     stored = np.round((_ring_image() - zero) / scale).astype(np.int16)
     _write_image(tmp_path / "image.fits", zero + scale * stored)
-    fits.PrimaryHDU(data=stored, header=_header(stored.shape)).writeto(
+    fits.PrimaryHDU(data=stored, header=radio_header(stored.shape)).writeto(
         tmp_path / "integers.fits"
     )
     with fits.open(
@@ -3596,7 +3576,7 @@ def _write_refused_image(path: Path, refusal: str) -> None:
     if refusal == "narrow":
         _write_empty_image(path, (400, 2600))
         return
-    header = _header((8, 8))
+    header = radio_header((8, 8))
     if refusal == "missing-unit":
         del header["BUNIT"]
     elif refusal == "frame":

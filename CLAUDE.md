@@ -51,13 +51,16 @@ The public entry point is `hebog.find_sources(request, config, executor)`.
 - `science/` holds the reviewed science the stages apply: the configuration
   and profile (`science/configuration.py`, `science/profile.py` and
   `resources/`), the composition records (`science/models.py`,
-  `science/catalogue_rows.py`) and the catalogue-row kernels
+  `science/catalogue_rows.py`) and the catalogue-row kernels: segment rows
+  (`science/segment_rows.py`), detection islands
+  (`science/detection_islands.py`) and reconstructed sources
   (`science/catalogues.py`). It imports no stage, executor or `io` module.
   `public_science.py` builds the terminal catalogues from the records the
   stages published.
 - `stages/` contains the scheduler-facing stages `find_sources` runs, in
   order: background and detection, multiscale, support, publication,
-  objects (component topology, fit parents, component fits), association,
+  component topology, fit parents, component fits and extended groups (the
+  per-object stages, which share `object_extents.py`), association,
   sources, islands and catalogue rows, with `batching.py` and
   `task_memory.py` (each round's declared memory) shared.
   `composition.py` runs them in that order: one runner per stage plans its
