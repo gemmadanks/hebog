@@ -1,0 +1,44 @@
+{
+  "cases": [
+    {
+      "case": {
+        "case_id": "lotss-dr3-1312-dense-10000",
+        "image": "benchmark-results/quick-benchmark/cutouts/lotss-dr3-1312-dense-10000/image.fits",
+        "kind": "image",
+        "remote_source": {
+          "url": "https://lofar-surveys.org/public/DR3/healpix_mosaics/1312/mosaic.fits",
+          "window": {
+            "size": 10000,
+            "x_start": 2000,
+            "y_start": 4500
+          }
+        }
+      },
+      "group": "real"
+    },
+    {
+      "case": {
+        "case_id": "lotss-dr3-1312-15402",
+        "image": "benchmark-results/quick-benchmark/cutouts/lotss-dr3-1312-15402/image.fits",
+        "kind": "image",
+        "remote_source": {
+          "url": "https://lofar-surveys.org/public/DR3/healpix_mosaics/1312/mosaic.fits",
+          "window": {
+            "size": 15402,
+            "x_start": 0,
+            "y_start": 0
+          }
+        }
+      },
+      "group": "real"
+    }
+  ],
+  "dataset_manifest": "config/datasets/quick-science-check.json",
+  "hebog": {
+    "detection_threshold_sigma": 5.0,
+    "island_threshold_sigma": 3.0,
+    "minimum_island_pixels": 7,
+    "profile": "continuum"
+  },
+  "schema_version": 1
+}

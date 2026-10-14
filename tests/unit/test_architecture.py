@@ -129,9 +129,14 @@ SCHEDULER_LAYER = "executors"
 
 SCHEDULER_EXEMPTIONS: dict[tuple[str, str], str] = {
     ("validation/profile_cluster.py", "distributed"): (
-        "The execution profiler's local cluster keeps every worker's clock "
-        "offset at zero, which no executor option sets; wheels exclude "
+        "The execution profiler builds the local cluster it measures, whose "
+        "workers' memory limits are its task budget; wheels exclude "
         "hebog.validation and no production module imports it."
+    ),
+    ("validation/profile_cluster.py", "dask"): (
+        "The execution profiler turns off Dask's spilling, pausing and "
+        "restarting for its workers, which hold no data between tasks, "
+        "and no executor option sets that; wheels exclude hebog.validation."
     ),
 }
 """Scheduler imports outside ``SCHEDULER_LAYER``, by module and package."""

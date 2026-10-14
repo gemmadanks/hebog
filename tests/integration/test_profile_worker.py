@@ -1,6 +1,6 @@
 # pyright: reportMissingTypeStubs=false
 # pyright: reportUnknownMemberType=false
-"""Complete-execution profile worker contract under both executors."""
+"""Complete-execution profile worker contract under every executor."""
 
 from __future__ import annotations
 
@@ -8,8 +8,6 @@ import importlib.util
 import json
 import subprocess
 import sys
-import time
-from collections.abc import Callable
 from pathlib import Path
 from typing import Any, cast
 
@@ -17,12 +15,6 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 from astropy.io import fits
-from distributed import Client, LocalCluster, Worker, get_task_stream
-
-from hebog.validation.profile_cluster import (
-    SharedClockWorker,
-    local_profile_cluster,
-)
 
 _ROOT = Path(__file__).parents[2]
 _WORKER = _ROOT / "scripts/benchmark/profile_complete_execution_worker.py"
@@ -33,8 +25,6 @@ _SETTINGS = {
     "profile": "continuum",
 }
 _ROOT_STAGE = ["find_sources"]
-# Far beyond any task here, so a shifted record cannot contain its reading.
-_FORCED_ESTIMATE_SECONDS = 1000.0
 
 pytestmark = [
     pytest.mark.integration,
@@ -104,125 +94,125 @@ def _profile(tmp_path: Path, *arguments: str) -> dict[str, Any]:
     return cast(dict[str, Any], json.loads(result.read_text("utf-8")))
 
 
-def test_serial_profile_records_no_tasks(tmp_path: Path) -> None:
-    record = _profile(tmp_path)
+_EXECUTORS = pytest.mark.parametrize(
+    ("arguments", "executor"),
+    [
+        pytest.param((), {"kind": "serial", "workers": 1}, id="serial"),
+        pytest.param(
+            ("--threads", "2", "--memory-budget-bytes", "4000000000"),
+            {
+                "kind": "threads",
+                "workers": 2,
+                "threads_per_worker": 1,
+                "memory_budget_bytes": 4_000_000_000,
+            },
+            id="threads",
+        ),
+        pytest.param(
+            ("--dask-workers", "2", "--memory-budget-bytes", "4000000000"),
+            {
+                "kind": "dask",
+                "workers": 2,
+                "threads_per_worker": 1,
+                "memory_budget_bytes": 4_000_000_000,
+                "worker_memory_limit_bytes": 2_000_000_000,
+            },
+            id="dask",
+        ),
+    ],
+)
 
-    assert record["executor"] == {"kind": "serial"}
-    assert record["tasks"] is None
-    assert record["source_count"] == 2
 
-
-def test_dask_profile_attributes_every_task_to_the_run(tmp_path: Path) -> None:
+@_EXECUTORS
+def test_every_task_is_recorded_and_attributed_to_the_run(
+    tmp_path: Path, arguments: tuple[str, ...], executor: dict[str, Any]
+) -> None:
     """Every task runs inside the root stage, so all are attributed to it.
 
-    The workers report task times on the driver's clock, so this holds
-    however loaded the machine is. Stage timing still happens in the driver,
-    and each stage's occupancy is the share of the two workers its tasks
-    kept busy, so it lies in [0, 1].
+    Tasks time themselves where they run, on the host's clock, so this holds
+    for inline, pool-thread and worker-process tasks however loaded the
+    machine is. Stage timing happens in the driver, and each stage's
+    occupancy is the share of the workers its tasks kept busy.
     """
-    record = _profile(tmp_path, "--dask-workers", "2")
+    record = _profile(tmp_path, *arguments)
 
-    assert record["executor"] == {
-        "kind": "dask",
-        "workers": 2,
-        "threads_per_worker": 1,
-    }
+    described = dict(record["executor"])
+    if executor["kind"] == "dask":
+        assert described.pop("largest_worker_peak_rss_bytes") > 0
+    assert described == executor
     assert record["source_count"] == 2
     tasks = record["tasks"]
     assert tasks["count"] > 0
-    assert tasks["compute_seconds"] > 0.0
+    assert tasks["task_seconds"] > 0.0
     stages = {tuple(item["stage"]): item for item in tasks["stages"]}
     assert set(stages) == {tuple(item["stage"]) for item in record["stages"]}
     root = stages[tuple(_ROOT_STAGE)]
     assert root["task_count"] == tasks["count"]
-    assert root["task_seconds"] == pytest.approx(tasks["compute_seconds"])
+    assert root["task_seconds"] == pytest.approx(tasks["task_seconds"])
+    assert root["zarr_io"]["written_chunks"] > 0
+    assert root["zarr_io"]["read_bytes"] > 0
     for item in stages.values():
         assert 0.0 <= item["worker_occupancy"] <= 1.0 + 1e-9
+        assert item["executor_idle_seconds"] >= 0.0
 
 
-class _FixedOffsetWorker(Worker):
-    """A worker whose clock-offset estimate stays at the forced value."""
+def test_every_executor_runs_and_records_the_same_tasks(
+    tmp_path: Path,
+) -> None:
+    """The same plan runs everywhere, so its tasks and chunks are the same.
 
-    @property
-    def scheduler_delay(self) -> float:
-        return _FORCED_ESTIMATE_SECONDS
+    A worker process that failed to count its own I/O, or a task the
+    recording missed, would make one executor's totals differ.
+    """
+    totals = []
+    for index, arguments in enumerate(
+        ((), ("--threads", "2"), ("--dask-workers", "2"))
+    ):
+        directory = tmp_path / str(index)
+        directory.mkdir()
+        record = _profile(directory, *arguments)
+        root = next(
+            item
+            for item in record["tasks"]["stages"]
+            if item["stage"] == _ROOT_STAGE
+        )
+        rounds = sorted(
+            (item["round"], item["task_count"])
+            for item in record["tasks"]["rounds"]
+        )
+        totals.append((record["tasks"]["count"], rounds, root["zarr_io"]))
 
-    @scheduler_delay.setter
-    def scheduler_delay(self, estimate: float) -> None:  # pyright: ignore[reportIncompatibleVariableOverride]
-        del estimate
+    assert totals[0] == totals[1] == totals[2]
 
 
-def _in_process_cluster(worker_class: type[Worker]) -> LocalCluster:
-    """Return one single-threaded ``worker_class`` worker in this process."""
-    return LocalCluster(
-        n_workers=1,
-        threads_per_worker=1,
-        processes=False,
-        dashboard_address=":0",
-        worker_class=worker_class,
+def test_profile_workers_admit_by_their_limit_and_never_pause_or_restart() -> (
+    None
+):
+    """The limit is what Hebog admits tasks by, and nothing else.
+
+    Hebog's workers hold no data between tasks, so Dask's spilling, pausing
+    and restarting would act on the allocator's retained pages instead of
+    on Hebog. A limit far below a worker's own memory would otherwise pause
+    or restart it before any task runs.
+    """
+    from distributed import Client  # noqa: PLC0415
+
+    from hebog.validation.profile_cluster import (  # noqa: PLC0415
+        local_profile_cluster,
     )
 
+    def memory_policy(dask_worker: Any) -> tuple[int, list[object]]:
+        import dask.config  # noqa: PLC0415
 
-@pytest.mark.parametrize(
-    ("open_cluster", "recorded_shift_seconds"),
-    [
-        pytest.param(
-            lambda: local_profile_cluster(1), 0.0, id="profile cluster"
-        ),
-        pytest.param(
-            lambda: _in_process_cluster(SharedClockWorker),
-            0.0,
-            id="shared-clock worker",
-        ),
-        # The control: a worker that keeps an estimate shifts its records by
-        # it, so the rows above would fail had their workers kept theirs.
-        pytest.param(
-            lambda: _in_process_cluster(_FixedOffsetWorker),
-            _FORCED_ESTIMATE_SECONDS,
-            id="fixed-offset worker",
-        ),
-    ],
-)
-def test_profile_workers_ignore_their_clock_offset_estimate(
-    open_cluster: Callable[[], LocalCluster], recorded_shift_seconds: float
-) -> None:
-    """A profile worker reports task times on the driver's clock.
+        return dask_worker.memory_manager.memory_limit, [
+            dask.config.get(f"distributed.worker.memory.{name}")
+            for name in ("target", "spill", "pause", "terminate")
+        ]
 
-    A Dask worker adds ``scheduler_delay``, its heartbeat estimate of its
-    clock's offset from the scheduler's, to the times of the tasks it runs.
-    On one host the true offset is zero, so the profile's workers discard
-    every estimate, here one far larger than any heartbeat would make.
-    """
-
-    def force_estimate(dask_worker: Worker) -> None:
-        # What every heartbeat does with its new estimate.
-        dask_worker.scheduler_delay = _FORCED_ESTIMATE_SECONDS
-
-    cluster = open_cluster()
+    cluster = local_profile_cluster(2, memory_limit_bytes=1_000)
     with cluster, Client(cluster, timeout="60s") as client:
-        client.run(force_estimate)
-        task_stream = get_task_stream(client=client)
-        with task_stream:
-            futures = [client.submit(time.time, pure=False) for _ in range(4)]
-            readings = dict(
-                zip(
-                    (cast(str, future.key) for future in futures),
-                    cast(list[float], client.gather(futures)),
-                    strict=True,
-                )
-            )
-    steps = [
-        (cast(str, task["key"]), cast(dict[str, Any], step))
-        for task in cast(list[dict[str, Any]], task_stream.data)
-        for step in task["startstops"]
-        if step["action"] == "compute"
-    ]
-
-    assert sorted(key for key, _ in steps) == sorted(readings)
-    for key, step in steps:
-        # The task read the clock between its recorded start and stop.
-        assert (
-            step["start"]
-            <= readings[key] + recorded_shift_seconds
-            <= step["stop"]
+        policies = cast(
+            dict[str, tuple[int, list[object]]], client.run(memory_policy)
         )
+
+    assert sorted(policies.values()) == [(1_000, [False] * 4)] * 2

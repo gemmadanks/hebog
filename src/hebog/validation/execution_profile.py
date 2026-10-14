@@ -15,6 +15,7 @@ from __future__ import annotations
 import functools
 import importlib
 import sys
+import threading
 import time
 from collections.abc import Callable, Generator, Mapping, Sequence
 from contextlib import contextmanager
@@ -69,6 +70,8 @@ class StageRecord:
     self_wall_seconds: float
     cpu_seconds: float
     self_cpu_seconds: float
+    driver_cpu_seconds: float
+    self_driver_cpu_seconds: float
     peak_rss_bytes: int
     peak_rss_increase_bytes: int
     block_inputs: int
@@ -83,6 +86,8 @@ class StageRecord:
             "self_wall_seconds": self.self_wall_seconds,
             "cpu_seconds": self.cpu_seconds,
             "self_cpu_seconds": self.self_cpu_seconds,
+            "driver_cpu_seconds": self.driver_cpu_seconds,
+            "self_driver_cpu_seconds": self.self_driver_cpu_seconds,
             "peak_rss_bytes": self.peak_rss_bytes,
             "peak_rss_increase_bytes": self.peak_rss_increase_bytes,
             "block_inputs": self.block_inputs,
@@ -97,8 +102,10 @@ class _StageTotals:
     calls: int = 0
     wall_seconds: float = 0.0
     cpu_seconds: float = 0.0
+    driver_cpu_seconds: float = 0.0
     child_wall_seconds: float = 0.0
     child_cpu_seconds: float = 0.0
+    child_driver_cpu_seconds: float = 0.0
     peak_rss_bytes: int = 0
     peak_rss_increase_bytes: int = 0
     block_inputs: int = 0
@@ -146,28 +153,39 @@ def current_peak_rss_bytes() -> int:
 
 
 class StageRecorder:
-    """Accumulate nested stage usage for one single-threaded run.
+    """Accumulate nested stage usage for the run's driving thread.
 
     Stage paths record nesting, so a parent's self time excludes the stages
-    it called. Block-I/O counters come from ``resource`` and stay zero on
-    platforms that do not count them, which is a measured zero, not an
-    absence of device I/O.
+    it called. Only the thread that created the recorder is timed: a thread
+    pool runs the run's tasks on other threads, and a wrapped function a
+    task calls there passes through untimed, as it does in a Dask worker,
+    since the recording executor times tasks
+    (``hebog.validation.task_recording``). CPU time is the process's, every
+    thread included; driver CPU time is the recording thread's alone.
+    Block-I/O counters come from ``resource`` and stay zero on platforms
+    that do not count them, which is a measured zero, not an absence of
+    device I/O.
     """
 
     def __init__(self) -> None:
-        """Start with no active stage and no totals."""
+        """Start with no active stage and no totals, on this thread."""
+        self._thread = threading.get_ident()
         self._path: tuple[str, ...] = ()
         self._totals: dict[tuple[str, ...], _StageTotals] = {}
 
     @contextmanager
     def stage(self, name: str) -> Generator[None]:
         """Measure one call of ``name`` under the active stage."""
+        if threading.get_ident() != self._thread:
+            yield
+            return
         parent = self._path
         path = (*parent, name)
         before = _process_usage()
         clock_started = time.time()
         wall_started = time.perf_counter()
         cpu_started = time.process_time()
+        driver_cpu_started = time.thread_time()
         self._path = path
         try:
             yield
@@ -175,12 +193,14 @@ class StageRecorder:
             self._path = parent
             wall = time.perf_counter() - wall_started
             cpu = time.process_time() - cpu_started
+            driver_cpu = time.thread_time() - driver_cpu_started
             after = _process_usage()
             totals = self._totals.setdefault(path, _StageTotals())
             totals.intervals.append((clock_started, time.time()))
             totals.calls += 1
             totals.wall_seconds += wall
             totals.cpu_seconds += cpu
+            totals.driver_cpu_seconds += driver_cpu
             totals.peak_rss_bytes = max(
                 totals.peak_rss_bytes, peak_rss_bytes(after.ru_maxrss)
             )
@@ -193,6 +213,7 @@ class StageRecorder:
                 parent_totals = self._totals.setdefault(parent, _StageTotals())
                 parent_totals.child_wall_seconds += wall
                 parent_totals.child_cpu_seconds += cpu
+                parent_totals.child_driver_cpu_seconds += driver_cpu
 
     def wrap(self, function: Callable[..., Any], name: str) -> Any:
         """Return ``function`` timed as stage ``name``."""
@@ -217,6 +238,10 @@ class StageRecorder:
                 cpu_seconds=totals.cpu_seconds,
                 self_cpu_seconds=(
                     totals.cpu_seconds - totals.child_cpu_seconds
+                ),
+                driver_cpu_seconds=totals.driver_cpu_seconds,
+                self_driver_cpu_seconds=(
+                    totals.driver_cpu_seconds - totals.child_driver_cpu_seconds
                 ),
                 peak_rss_bytes=totals.peak_rss_bytes,
                 peak_rss_increase_bytes=totals.peak_rss_increase_bytes,
@@ -248,6 +273,7 @@ class TaskOccupancy:
     task_count: int
     task_seconds: float
     worker_occupancy: float
+    executor_idle_seconds: float
 
     def document(self) -> dict[str, Any]:
         """Return one JSON-serializable record."""
@@ -256,6 +282,7 @@ class TaskOccupancy:
             "task_count": self.task_count,
             "task_seconds": self.task_seconds,
             "worker_occupancy": self.worker_occupancy,
+            "executor_idle_seconds": self.executor_idle_seconds,
         }
 
 
@@ -274,6 +301,9 @@ def task_occupancy_by_stage(
     calls. Occupancy is the integral of the number of busy workers over the
     stage's calls, divided by the stage's wall time times ``worker_count``:
     the share of the executor's single-threaded workers the stage kept busy.
+    Its executor idle time is its calls' wall time during which no task ran:
+    the driver's own work, and its waits on anything but a task, which more
+    workers cannot shorten.
 
     A single-threaded worker runs one task at a time, so no more than
     ``worker_count`` workers count as busy even where more tasks appear to
@@ -314,13 +344,20 @@ def task_occupancy_by_stage(
     order = np.argsort(event_times)
     event_times = event_times[order]
     running_tasks = np.cumsum(np.repeat([1.0, -1.0], starts.size)[order])
-    # Row 0 counts running tasks and row 1 busy workers. Each count holds
-    # from one event to the next and is zero before the first and after the
-    # last; ``integrals`` holds their time integrals up to every event.
-    counts = np.stack((running_tasks, np.minimum(running_tasks, worker_count)))
+    # Row 0 counts running tasks, row 1 busy workers and row 2 whether any
+    # task runs. Each count holds from one event to the next and is zero
+    # before the first and after the last; ``integrals`` holds their time
+    # integrals up to every event.
+    counts = np.stack(
+        (
+            running_tasks,
+            np.minimum(running_tasks, worker_count),
+            np.minimum(running_tasks, 1.0),
+        )
+    )
     integrals = np.concatenate(
         (
-            np.zeros((2, 1)),
+            np.zeros((3, 1)),
             np.cumsum(counts[:, :-1] * np.diff(event_times), axis=1),
         ),
         axis=1,
@@ -331,7 +368,7 @@ def task_occupancy_by_stage(
     ) -> npt.NDArray[np.float64]:
         # Both counts' integrals from the first event up to each time.
         if not event_times.size:
-            return np.zeros((2, times.size))
+            return np.zeros((3, times.size))
         last = np.maximum(
             np.searchsorted(event_times, times, side="right") - 1, 0
         )
@@ -342,7 +379,7 @@ def task_occupancy_by_stage(
     for stage, calls in sorted(stage_intervals.items()):
         call_starts = np.array([start for start, _ in calls], float) - origin
         call_stops = np.array([stop for _, stop in calls], float) - origin
-        task_seconds, busy_worker_seconds = (
+        task_seconds, busy_worker_seconds, busy_executor_seconds = (
             float(seconds)
             for seconds in np.sum(
                 seconds_until(call_stops) - seconds_until(call_starts), axis=1
@@ -365,6 +402,7 @@ def task_occupancy_by_stage(
                     if wall > 0
                     else 0.0
                 ),
+                executor_idle_seconds=max(wall - busy_executor_seconds, 0.0),
             )
         )
     return tuple(occupancies)
@@ -382,6 +420,8 @@ def stage_records(
             self_wall_seconds=float(document["self_wall_seconds"]),
             cpu_seconds=float(document["cpu_seconds"]),
             self_cpu_seconds=float(document["self_cpu_seconds"]),
+            driver_cpu_seconds=float(document["driver_cpu_seconds"]),
+            self_driver_cpu_seconds=float(document["self_driver_cpu_seconds"]),
             peak_rss_bytes=int(document["peak_rss_bytes"]),
             peak_rss_increase_bytes=int(document["peak_rss_increase_bytes"]),
             block_inputs=int(document["block_inputs"]),

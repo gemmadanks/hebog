@@ -82,6 +82,47 @@ def test_nested_stages_report_time_under_their_parent() -> None:
 
 
 @_needs_usage
+def test_only_the_recording_thread_is_timed() -> None:
+    """A thread pool runs tasks on other threads, and they are tasks.
+
+    A wrapped function a task calls on a pool thread passes through untimed,
+    so the driver's stage nesting is never interleaved with another
+    thread's calls.
+    """
+    import threading  # noqa: PLC0415
+
+    recorder = StageRecorder()
+
+    def task() -> None:
+        with recorder.stage("task stage"):
+            _busy(0.001)
+
+    with recorder.stage("driver"):
+        worker = threading.Thread(target=task)
+        worker.start()
+        worker.join()
+
+    assert [record.stage for record in recorder.records()] == [("driver",)]
+
+
+@_needs_usage
+def test_driver_cpu_counts_only_the_recording_thread() -> None:
+    """Process CPU includes every thread; the driver's own CPU does not."""
+    import threading  # noqa: PLC0415
+
+    recorder = StageRecorder()
+    with recorder.stage("waits on a busy thread"):
+        worker = threading.Thread(target=_busy, args=(0.3,))
+        worker.start()
+        worker.join()
+
+    (record,) = recorder.records()
+    assert record.cpu_seconds >= 0.2
+    assert record.driver_cpu_seconds < 0.1
+    assert record.self_driver_cpu_seconds == record.driver_cpu_seconds
+
+
+@_needs_usage
 def test_stage_records_survive_the_worker_result_document() -> None:
     """The driver rebuilds stages from the worker's JSON, so both agree."""
     recorder = StageRecorder()
@@ -239,6 +280,21 @@ def test_occupancy_is_a_share_whatever_the_task_records(
     assert 0.0 <= occupancy.worker_occupancy <= 1.0
 
 
+def test_executor_idle_time_is_a_calls_time_with_no_task_running() -> None:
+    """The driver alone runs when no task does: the run's serial part.
+
+    Of the call from 0 to 20 s, tasks run from 2 to 8 s and, two at once,
+    from 5 to 12 s, so the executor is idle for 2 + 8 s.
+    """
+    (occupancy,) = task_occupancy_by_stage(
+        {("stage",): ((0.0, 20.0),)},
+        ((2.0, 8.0), (5.0, 12.0)),
+        worker_count=2,
+    )
+
+    assert occupancy.executor_idle_seconds == pytest.approx(10.0)
+
+
 def test_a_stage_without_tasks_or_wall_time_reports_zero() -> None:
     occupancies = task_occupancy_by_stage(
         {("idle",): ((0.0, 5.0),), ("instant",): ((1.0, 1.0),)},
@@ -252,12 +308,14 @@ def test_a_stage_without_tasks_or_wall_time_reports_zero() -> None:
             "task_count": 0,
             "task_seconds": 0.0,
             "worker_occupancy": 0.0,
+            "executor_idle_seconds": 5.0,
         },
         {
             "stage": ["instant"],
             "task_count": 0,
             "task_seconds": 0.0,
             "worker_occupancy": 0.0,
+            "executor_idle_seconds": 0.0,
         },
     ]
 
