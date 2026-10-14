@@ -24,34 +24,31 @@ version when results must be repeatable.
 | Execution | `SerialExecutor`, `ThreadExecutor`, or `DaskExecutor` with a client you own. Dask workers need the image and the output directory's parent on shared storage. All must give the same products. On Windows, threads of one process take turns at FFT convolutions, because SciPy's Windows wheels share an unlocked FFT plan cache. |
 | Output | A new directory with `catalogue.fits`, `rms.fits`, `source-mask.fits` and `diagnostics.json`, and `flat-noise-rms.fits` when the request names the sector's flat-noise image. Existing directories are never overwritten. |
 
-Every scientific step already runs on bounded tiles through the executor, an
-image larger than 2,048 pixels on either side is reconciled across several
-tiles rather than held as one, and the driver holds no image-sized plane. The
+Every scientific step runs on bounded tiles through the executor, an image
+larger than 2,048 pixels on either side is reconciled across several tiles
+rather than held as one, and the driver holds no image-sized plane. The
 size limit rises one tier at a time, as each tier's memory and invariance
-evidence is measured. A serial run of the whole 15,402² LoTSS-DR3 mosaic 1312
-allocates at most 1.7 GiB: 1,692 MiB traced on 8 October, after 1,698 MiB
-in two agreeing repetitions on 29 September. That peak is
-one tile's working set plus records the passes keep from every tile, which
-still grow about 1.7 bytes a pixel; bounding them, and an unattributed term
-in background and RMS, is planned before much larger images are admitted. A
-four-worker local Dask cluster finishes the 10,000² anchor in 0.59 of the
-serial time and the whole mosaic in 0.63, with identical products. Every
-task declares the memory it holds, so an executor with a memory budget runs
-only as many at once as fit, and a `DaskExecutor` given the names of the
-workers' memory and core resources lets Dask place each task only where
-that much is free; `hebog.analysis_memory_bytes` states what the analysis
-itself holds, which grows with the sources it finds, for the caller to
-reserve
-([integrate Hebog into a pipeline](../how-to/integrate-into-a-pipeline.md)).
-Separately, one declared limit remains:
-an object wider than a task's read budget is still reduced on the driver
-from its own pixels, so that memory grows with the object rather than the
-tile, by up to 186 bytes an object pixel. One connected object filling a
-15,402-pixel field would need about 44 GB on the driver. No object in the
-real LoTSS-DR3 fields measured comes near that; the widest measured case, a
-generated filament of 553,817 pixels, cost about 100 MB. The
-[performance profile](performance-profile.md#what-a-run-allocates) has the
-figures.
+evidence is measured. A serial run of the whole 15,402² LoTSS-DR3 mosaic
+allocates at most 1.7 GiB: one tile's working set plus the records the
+passes keep from every tile, which still grow about 1.7 bytes a pixel.
+Bounding them is planned before much larger images are admitted. A
+four-worker local Dask cluster finishes that mosaic and the 10,000² anchor
+in about 0.6 of the serial time, with identical products.
+
+Every task declares the memory it holds, so an executor with a memory
+budget runs only as many at once as fit, and a `DaskExecutor` given the
+names of the workers' memory and core resources lets Dask place each task
+only where that much is free. `hebog.analysis_memory_bytes` states what the
+analysis itself holds, which grows with the sources it finds, for the caller
+to reserve ([integrate Hebog into a pipeline](../how-to/integrate-into-a-pipeline.md)).
+One declared limit remains: an object wider than a task's read budget is
+reduced on the driver from its own pixels, so that memory grows with the
+object rather than the tile. A connected object filling a 15,402-pixel
+field would need about 44 GB on the driver; no object in the real LoTSS-DR3
+fields measured comes within a factor of ten of the budget. The
+[performance profile](performance-profile.md#what-a-run-allocates) and
+[progress against goals](progress-against-goals.md#scalability) have the
+dated figures.
 
 ## Scientific status
 
@@ -122,10 +119,16 @@ published.
 `hebog.adapters.find_sector_sources` runs one Rapthor sector, its true-sky
 and flat-noise images, on the executor Rapthor builds, and writes the
 catalogue, the two RMS maps and the island mask under the names Rapthor's
-PyBDSF step uses. Rapthor does not call it yet. Hebog does **not**:
+PyBDSF step uses. A [prepared Rapthor patch](https://github.com/gemmadanks/hebog/blob/main/scripts/validation/patches/README.md)
+calls it from the existing Prefect task with a ThreadExecutor on Rapthor's
+current one-single-threaded-worker-per-node layout. It includes memory
+admission, typed PyBDSF fallback and dual-run diagnostics; upstream
+publication and merge are pending. Its distributed path is future work.
+When no beam Measurement Set is supplied, the patch passes the flat image
+as both inputs, matching LSMTool's detection and RMS convention. Hebog does **not**:
 
-- measure sources on a sector's flat-noise image, of which it publishes
-  only the RMS map;
+- measure sources independently on the optional flat-noise input, of
+  which it publishes only the RMS map;
 - filter or group a sky model, which LSMTool's `filter_sources` does with
   the island mask;
 - manage retries, scheduling or cluster resources; or

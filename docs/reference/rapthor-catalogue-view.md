@@ -3,8 +3,11 @@
 `hebog.adapters.rapthor_catalogue` is the eight-column catalogue codec for
 Rapthor's `filter_skymodel` diagnostics. It writes and reads the smallest
 FITS table Rapthor reads directly, from the catalogue `find_sources`
-publishes. It is a compatibility boundary, not yet a Rapthor backend: no
-adapter runs `find_sources` or writes its products. The internal catalogue is
+publishes. `hebog.adapters.find_sector_sources` writes it as
+`<root>.source_catalog.fits` beside Rapthor's other files; Rapthor's own
+task that calls the adapter is available in the
+[prepared local patch](https://github.com/gemmadanks/hebog/blob/main/scripts/validation/patches/README.md),
+awaiting upstream publication and merge. The internal catalogue is
 described in the [output reference](public-products.md).
 
 ## Columns

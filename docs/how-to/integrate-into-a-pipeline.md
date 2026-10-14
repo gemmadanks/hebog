@@ -181,6 +181,14 @@ For Rapthor, `hebog.adapters.find_sector_sources` writes Rapthor's file names
 and catalogue columns, and LSMTool's `filter_sources` filters and groups the
 sky model with the island mask; see the
 [Rapthor source-finding contract](../reference/rapthor-source-finding-contract.md#how-hebog-runs-inside-rapthor).
+The [prepared native Rapthor patch and container guide](https://github.com/gemmadanks/hebog/blob/main/scripts/validation/patches/README.md)
+show how to install and test `source_finder = hebog` on Rapthor's current
+single-task worker layout. It runs the caller-owned ThreadExecutor inside
+the Prefect task, admits memory, and retains the PyBDSF fallback. Set
+`hebog_dual_run = True` to retain both filtered product sets and place their
+comparison in ordinary image diagnostics. The patch is local and awaits
+upstream publication/merge; its defaults are not a qualified Rapthor profile,
+and a distributed Hebog subgraph needs the later worker-layout change.
 
 ## Versioning
 

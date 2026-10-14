@@ -1,7 +1,8 @@
 # Rapthor source-finding contract
 
 This inventory records the behaviour Rapthor consumes from its
-source-finding step, traced at these revisions on 9 October 2026:
+source-finding step, traced at these revisions on 9 October 2026 and
+re-audited on 12 October; the authoritative upstream tips were unchanged:
 
 | Component | Revision | Role |
 | --- | --- | --- |
@@ -17,7 +18,7 @@ a scientific endorsement.
 
 ## Invocation boundary
 
-Rapthor schedules one Prefect `filter_skymodel` task per image sector after
+Unpatched Rapthor schedules one Prefect `filter_skymodel` task per image sector after
 WSClean has written its image and source-list products. The task runs on
 Rapthor's Dask task runner (`local_dask`, or `external_dask` on a cluster
 whose workers run one task each with `--nthreads 1`), but does no science
@@ -41,7 +42,7 @@ the two output sky-model paths, `vertices_file`, `beam_ms`,
 `output_catalog`, `output_flat_noise_rms`, `output_true_rms` and `ncores`,
 returning the source count. (The registry calls every backend with those
 arguments; `sofia`'s function takes fewer and could not be called that
-way at `9bac2f7`.) Rapthor will instead call Hebog from a native task; see
+way at `9bac2f7`.) The prepared Rapthor patch instead calls Hebog from the native task; see
 [How Hebog runs inside Rapthor](#how-hebog-runs-inside-rapthor).
 
 | Input | Meaning |
@@ -186,7 +187,8 @@ The reviewed policy keeps any required dummy component at the adapter
 boundary and represents unavailable RMS explicitly in the scientific core.
 With Hebog, the first path stays Rapthor's: when the adapter reports no
 island (`island_count` 0), Rapthor's task writes LSMTool's dummy component
-rather than calling `filter_sources` (plan task 20). For the second, the
+rather than calling `filter_sources`. The patch also preserves this dummy
+path when neither a true-sky nor a bright sky model is present. For the second, the
 adapter raises `RapthorBlankedImageError`, which Rapthor's step handles as
 it handles PyBDSF's error.
 
@@ -221,6 +223,31 @@ Hebog in-process on its Dask worker, then LSMTool's `filter_sources`; the
 PyBDSF subprocess stays for `bdsf` and as the fallback
 ([ADR-004](../architecture/adr/004-keep-top-level-scheduling-in-rapthor.md),
 amendment of 10 October).
+
+The [prepared patch](https://github.com/gemmadanks/hebog/blob/main/scripts/validation/patches/README.md)
+implements today's one-single-threaded-worker-per-node path, as scoped by the
+maintainer on 12 October. Its real Prefect task, native Hebog and LSMTool
+filtering, fallback and dual subprocess runs pass in the pinned Linux
+integration container. Upstream publication and merge remain pending. Task 72
+owns the future distributed layout and resource annotations described below.
+
+On the current layout the task caps its ThreadExecutor by the filter core
+request, sector `max_threads` and configured `cpus_per_task`. It limits native
+thread pools to one and subtracts `hebog.analysis_memory_bytes` and resident
+process RSS from the smaller configured/worker memory budget before admitting
+tile tasks. The source estimate counts the true-sky and peeled component
+lists; without the primary model it conservatively reserves one source per
+pixel. An unsupported worker layout or insufficient budget fails explicitly. The
+whole task occupies the worker's only task slot, so its analysis reservation
+does not require Dask resource annotations on this interim path. Synchronous
+runs also respect host available memory and container/process memory limits.
+
+The no-beam branch supplies the flat image as both adapter inputs, as pinned
+LSMTool does. A configured missing peeled model is an error. Native selection
+and memory/configuration details live in `<root>.image_diagnostics.json` and
+survive Rapthor's normal diagnostic update and restart reuse. The defaults
+remain `continuum`/`estimated` pending task 21; `compact`/`zero` can be selected
+explicitly, and invalid settings fail validation.
 
 Rapthor usually images one sector across a cluster, the first performance
 focus; one sector on one node is the other main run, and several sectors
@@ -262,9 +289,13 @@ writes Hebog's own bundle, with its diagnostics and provenance, in
 `<root>.hebog`.
 
 In dual-run mode Rapthor runs both finders on the sector, each under its
-own root, and calls
+own root under `<root>.source-finders/`, and calls
 `hebog.adapters.rapthor_comparison.compare_sector_products(result, pybdsf,
-report_path)` before selecting one product set. The report reads both sets
+report_path)` after LSMTool filtering, then selects the Hebog products for
+Rapthor. The full comparison is embedded in ordinary image diagnostics.
+Blanked images keep both empty sets and record why comparison is unavailable.
+Private input symlinks isolate PyBDSF masks, which it writes beside its input
+filename irrespective of the subprocess working directory. The report reads both sets
 and changes neither. It binds the path, size and SHA-256 of all eight files
 and Hebog's provenance, and records each finder's source count, the sources
 that are each other's nearest within half the restoring beam's major axis,

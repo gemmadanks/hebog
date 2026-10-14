@@ -25,6 +25,8 @@ a Dask cluster that you already own.
   how it compares with PyBDSF, Aegean, Selavy and others.
 - [Output reference](reference/public-products.md): every column, unit and
   flag.
+- [Glossary](reference/domain-glossary.md): what island, source, Gaussian
+  component, RMS, tile and the other terms mean here.
 
 ## I am a pipeline developer or architect
 
@@ -36,6 +38,8 @@ a Dask cluster that you already own.
 - [Architecture overview](architecture/index.md) and
   [how Hebog distributes work](architecture/distributed-execution.md).
 - [Python API](reference/index.md).
+- [Glossary](reference/domain-glossary.md), including the execution terms
+  tile, core, halo, pass and round.
 - [Contribute to Hebog](how-to/index.md).
 
 ## How this documentation is organised
