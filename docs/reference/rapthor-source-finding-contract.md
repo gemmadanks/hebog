@@ -1,16 +1,15 @@
 # Rapthor source-finding contract
 
 This inventory records the behaviour Rapthor consumes from its
-source-finding step, traced at these revisions on 9 October 2026 and
-re-audited on 12 October; the authoritative upstream tips were unchanged.
-On 13 October Rapthor's `main` had moved one commit, to `d0e7e148`
-("Reduce default frequency BDA"), which leaves the source-finding step
-alone; the prepared patch applies to it unchanged, and the pin moves at
-plan task 23:
+source-finding step, traced on 9 October 2026 at Rapthor `c6196cb4` and
+re-audited at plan task 23's checkpoint on 13 October, when the pin moved
+to `d0e7e148`. That one commit, "Reduce default frequency BDA", changes the
+calibration and imaging BDA defaults and leaves the source-finding step
+alone; LSMTool's `master` had not moved:
 
 | Component | Revision | Role |
 | --- | --- | --- |
-| Rapthor | `main` at `c6196cb4` (the Prefect/Dask merge of 9 October 2026) | Schedules the step; `master` is the CWL/Toil release line and not a target |
+| Rapthor | `main` at `d0e7e148` (13 October 2026; one commit after the Prefect/Dask merge `c6196cb4` of 9 October) | Schedules the step; `master` is the CWL/Toil release line and not a target |
 | LSMTool | `master` at `9bac2f7` (v1.9.0 plus 15 commits) | Runs the finder and filters the sky model |
 | PyBDSF | `master` at `c70103b` | The binding scientific and performance reference |
 
@@ -255,7 +254,12 @@ thread pools to one and subtracts `hebog.analysis_memory_bytes` and resident
 process RSS from the smaller configured/worker memory budget before admitting
 tile tasks. The source estimate counts the true-sky and peeled component
 lists; without the primary model it conservatively reserves one source per
-pixel. An unsupported worker layout or insufficient budget fails explicitly. The
+pixel. An unsupported worker layout or insufficient budget fails explicitly.
+A component list is far longer than the source list: on plan task 23's
+3,000² sector 101,144 components reserved 5.9 GB for 890 sources, and a
+list on every 1σ pixel refused a 15.6 GB machine, so plan task 77 sizes the
+reservation from the image and makes an insufficient budget a typed refusal
+that falls back to PyBDSF. The
 whole task occupies the worker's only task slot, so its analysis reservation
 does not require Dask resource annotations on this interim path. Synchronous
 runs also respect host available memory and container/process memory limits.

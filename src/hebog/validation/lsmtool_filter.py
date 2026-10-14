@@ -24,7 +24,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
@@ -357,6 +357,45 @@ def _sky_model_line(
     )
 
 
+def sky_model_text(
+    names: Sequence[str],
+    positions_degrees: npt.ArrayLike,
+    fluxes_jy: Sequence[float],
+    frequency: float,
+) -> str:
+    """Return point components in WSClean's ``-save-source-list`` format.
+
+    ``positions_degrees`` holds one ``(right ascension, declination)`` row
+    for each name.
+    """
+    positions = np.asarray(positions_degrees, dtype=np.float64).reshape(-1, 2)
+    return _SKY_MODEL_FORMAT.format(frequency=frequency) + "".join(
+        _sky_model_line(name, float(ra), float(dec), float(flux), frequency)
+        for name, (ra, dec), flux in zip(
+            names, positions, fluxes_jy, strict=True
+        )
+    )
+
+
+def sector_vertices(
+    celestial: WCS, shape_yx: tuple[int, int], margin_fraction: float
+) -> npt.NDArray[np.float64]:
+    """Return a sector polygon inset from the image's border, in degrees.
+
+    The rows are the closed rectangle's corners as ``(right ascension,
+    declination)``, the layout of Rapthor's ``vertices_file``.
+    """
+    return np.asarray(
+        celestial.wcs_pix2world(
+            np.asarray(
+                _inset_rectangle(shape_yx, margin_fraction), dtype=np.float64
+            ),
+            0,
+        ),
+        dtype=np.float64,
+    )
+
+
 def plan_filter_inputs(  # noqa: PLR0913
     mask_path: Path,
     true_sky_image_path: Path,
@@ -414,10 +453,7 @@ def plan_filter_inputs(  # noqa: PLR0913
                     clipped=bool(mask[y, x]) and not labels[y, x],
                 )
             )
-    vertices = np.asarray(
-        celestial.wcs_pix2world(np.asarray(polygon, dtype=np.float64), 0),
-        dtype=np.float64,
-    )
+    vertices = sector_vertices(celestial, mask.shape, margin_fraction)
     plan = FilterPlan(
         vertices_path=directory / "vertices.npy",
         true_sky_model_path=directory / "true-sky-sources.txt",
@@ -429,26 +465,19 @@ def plan_filter_inputs(  # noqa: PLR0913
     positions = celestial.wcs_pix2world(
         np.asarray([[c.x, c.y] for c in components], dtype=np.float64), 0
     )
-    for path, apparent in (
-        (plan.true_sky_model_path, False),
-        (plan.apparent_sky_model_path, True),
+    names = [component.name for component in components]
+    for path, fluxes in (
+        (
+            plan.true_sky_model_path,
+            [component.true_flux_jy for component in components],
+        ),
+        (
+            plan.apparent_sky_model_path,
+            [component.apparent_flux_jy for component in components],
+        ),
     ):
         path.write_text(
-            _SKY_MODEL_FORMAT.format(frequency=frequency)
-            + "".join(
-                _sky_model_line(
-                    component.name,
-                    float(ra),
-                    float(dec),
-                    component.apparent_flux_jy
-                    if apparent
-                    else component.true_flux_jy,
-                    frequency,
-                )
-                for component, (ra, dec) in zip(
-                    components, positions, strict=True
-                )
-            ),
+            sky_model_text(names, positions, fluxes, frequency),
             encoding="utf-8",
         )
     return plan

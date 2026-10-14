@@ -245,6 +245,29 @@ gate: Hebog runs natively on one thread and PyBDSF in a Linux container with
 four cores. Only the matched `filter_skymodel` benchmark can pass or fail
 that gate.
 
+## Run the matched filter_skymodel benchmark
+
+Plan task 23's deployment gate compares Rapthor's complete `filter_skymodel`
+step with Hebog's native task against the same step with pinned PyBDSF
+`master`, in one Linux container on the same cores. Build the
+[benchmark image](https://github.com/gemmadanks/hebog/blob/main/scripts/benchmark/containers/filter-skymodel/README.md)
+on the Rapthor integration image, then:
+
+```console
+uv run python scripts/benchmark/measure_filter_skymodel.py \
+  --beam-ms <Measurement Set> --label <label>
+```
+
+It writes the sector's inputs from the LoTSS-DR3 3,000² window of the
+Rapthor agreement check, runs one warm-up and five measured repetitions of
+each finder in fresh containers, alternating them, and writes one evidence
+document per finder and `report.json` under
+`benchmark-results/filter-skymodel/runs/<label>/`, with the ratio of medians
+and its one-sided 95% bounds against the gate. The image runs under Rosetta
+on Apple silicon, so only the ratio is matched; see the
+[benchmark guide](https://github.com/gemmadanks/hebog/blob/main/scripts/benchmark/README.md#matched-filter_skymodel-benchmark)
+for the inputs it constructs.
+
 ## Measure the traced-allocation peak
 
 Measure it before raising the public envelope and whenever a change can move

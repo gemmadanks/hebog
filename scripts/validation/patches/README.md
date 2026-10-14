@@ -1,10 +1,12 @@
 # Native Hebog task for Rapthor
 
 Task 20 prepares this upstream patch for human publication. It targets Rapthor
-`main` at `c6196cb4b6046ad1060a0034d2a4b741afd8a74c`; ASTRON's authoritative
-`main` and LSMTool `master` were fetched on 12 October 2026 and still point to
-that revision and `9bac2f7fabdc15cd9490acfeb9c292aa72af59b7` respectively.
-The contract audit found no upstream changes. Rapthor declares `lsmtool>=1.9.0`;
+`main` at `d0e7e148aa127838e9d4c91472c88ab992b4f29f`, the pin plan task 23's
+checkpoint moved to on 13 October 2026, when ASTRON's authoritative `main`
+and LSMTool `master` pointed to it and to
+`9bac2f7fabdc15cd9490acfeb9c292aa72af59b7`. The one commit since the earlier
+pin, `c6196cb4`, changes calibration and imaging BDA defaults; the contract
+audit found nothing that touches the filter step. Rapthor declares `lsmtool>=1.9.0`;
 validation uses the latest pinned `master`, as the plan requires.
 
 The patch adds `source_finder = hebog` to Rapthor's existing Prefect filter
@@ -25,7 +27,7 @@ that writer rather than duplicating its output format.
 Use a clean Rapthor checkout or a new worktree. Do not apply over unrelated work:
 
 ```bash
-git switch --no-track -c feat/hebog-native-task c6196cb4b6046ad1060a0034d2a4b741afd8a74c
+git switch --no-track -c feat/hebog-native-task d0e7e148aa127838e9d4c91472c88ab992b4f29f
 git am /path/to/hebog/scripts/validation/patches/rapthor-native-hebog.patch
 ```
 
@@ -39,11 +41,6 @@ the adapter also defaults to: of the four settings, they made LSMTool keep
 the sky-model components pinned PyBDSF `master`'s mask keeps most often.
 They are not scientifically qualified, and task 23 owns matched
 complete-step performance.
-
-On 13 October Rapthor's `main` had moved one commit beyond the pin, to
-`d0e7e148` ("Reduce default frequency BDA"). The patch applies to it
-unchanged with `git am`; the pin stays at `c6196cb4` until task 23's
-checkpoint.
 
 ## Frozen-field checkpoint
 

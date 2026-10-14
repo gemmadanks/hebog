@@ -1,15 +1,15 @@
 {
   "container": {
     "build_lock_sha256": "58817cda7d033ed54f70a93941aaaa7753fcefed02523cada221c532261fb10d",
-    "dependency_inventory_sha256": "b27931122ec06d1e7f58aea2c2b261f39160d9b929d88ab15a4c5fe097eedf5f",
+    "dependency_inventory_sha256": "5b031df4813365cfa7783ddfa3f4991c2fb99345a80d5db55254abb3f1944cbd",
     "hebog_wheel_sha256": "df4aa9cdb8fad8a193332846a608e443ae045f3247ee82c79059f89e460582f5",
-    "image_id": "fe6ce84001ddc1fa11413564c6ffb4e2b88cbeb7c09b2932015875d1bdc9f93a",
+    "image_id": "3a7c51f89c5e88bf981e82417f75b5dcb0445d8f8f3403ac578c31dd7780e24a",
     "lsmtool_version": "1.9.1.dev15+g9bac2f7",
     "pip_check": "No broken requirements found",
     "platform": "Linux x86-64, Python 3.12.3, Podman/Rosetta on Apple M3 Pro",
     "pybdsf_scope": "Released integration dependency only, not the pinned-master performance gate",
     "pybdsf_version": "1.14.1",
-    "rapthor_archive_sha256": "c7f308258447858ec106aafac97829ed0d40d0d0a3ab06133c6402aaa9fea2d1",
+    "rapthor_archive_sha256": "c081d66f9b4e8cf59f09a8aa9a69cba540aabbd0b86992039c79c776d043aa03",
     "runtime_lock_sha256": "881dcbcbf28061e404dc1ad05302e912435497059f452398eea56fb9ab0ff569"
   },
   "date": "2026-10-13",
@@ -23,10 +23,10 @@
     "hebog_science_commit": "17b280ba819ae6b0a01edf4e1266f0a0a2552e67",
     "hebog_version": "0.21.0",
     "layout": "One single-threaded Dask worker per node; native ThreadExecutor inside the Prefect task",
-    "patch_sha256": "d1131cd33d86f65f7d3f6efe5afccde1868f54daad83575ab816f29da5272b89",
+    "patch_sha256": "1972b3d4c53f37efd18cc493cd6e56852aa829ed063ed3302a182b10c8c06ff5",
     "publication": "Local commits only; upstream publication and merge pending",
-    "rapthor_commit": "52e52930987a9c306629933bb30dc9e97ec81ae3",
-    "rapthor_tree": "8cd47691b4efe6c314db2f4380df11b8423e4e3d"
+    "rapthor_commit": "35c1a4ca24df392091ab6d4038abd8f4a7ef942e",
+    "rapthor_tree": "61d0eaaaee64f9cb2c886cf5b07db15bf950b5a5"
   },
   "profile_smoke": {
     "dataset": "pybdsf-compact-reference-256",
@@ -121,17 +121,16 @@
     "quick_science": "just quick-science-check --label task20-recheck --baseline benchmark-results/quick-check/runs/t17-declared/report.json --skip-references"
   },
   "schema_version": 1,
-  "scope": "Task 20 current-layout integration with task 21's compact/zero defaults; no scientific or performance qualification",
+  "scope": "Task 20 current-layout integration with task 21's compact/zero defaults, replayed at task 23's Rapthor pin; no scientific or performance qualification",
   "status": "exploratory",
   "upstream_audit": {
     "lsmtool": "9bac2f7fabdc15cd9490acfeb9c292aa72af59b7",
-    "observed_on_2026_10_13": "Rapthor main moved to d0e7e148aa127838e9d4c91472c88ab992b4f29f (one commit, 'Reduce default frequency BDA'); the patch applies to it unchanged with git am. The pin stays at c6196cb4 until task 23's checkpoint; LSMTool master is unchanged.",
-    "rapthor": "c6196cb4b6046ad1060a0034d2a4b741afd8a74c",
-    "result": "Authoritative ASTRON main/master tips unchanged at the task-20 checkpoint (12 October)"
+    "rapthor": "d0e7e148aa127838e9d4c91472c88ab992b4f29f",
+    "result": "Task 23's checkpoint (13 October 2026, evening): authoritative ASTRON Rapthor main at d0e7e148, one commit after the earlier pin c6196cb4 that changes the calibration and imaging frequency-BDA defaults and nothing in the filter step; LSMTool master unchanged. The patch rebases onto it without conflict."
   },
   "validation": {
     "archived_container_tests": {
-      "command": "podman run --rm --platform linux/amd64 --workdir /opt/rapthor-source localhost/hebog-rapthor:task21-defaults python -m pytest -q tests/execution/test_hebog_filter.py tests/execution/test_skymodel_filter.py",
+      "command": "podman run --rm --platform linux/amd64 --workdir /opt/rapthor-source localhost/hebog-rapthor:task23-pin python -m pytest -q tests/execution/test_hebog_filter.py tests/execution/test_skymodel_filter.py",
       "passed": 36,
       "scope": "No checkout mount; committed source and installed dependencies from the final image"
     },
@@ -165,14 +164,15 @@
     ],
     "option_admission_boundaries": {
       "command": "python -m pytest -q tests/execution/test_image_flow.py tests/execution/test_hebog_filter.py -k 'hebog_options or invalid_worker_admission'",
-      "passed": 8
+      "passed": 8,
+      "scope": "Run at 52e52930; at the task-23 checkpoint the whole of test_image_flow.py and test_hebog_filter.py, which hold these cases, passed"
     },
-    "patch_replay": "git am on c6196cb4 reproduced tree 8cd47691b4efe6c314db2f4380df11b8423e4e3d exactly",
+    "patch_replay": "git am on d0e7e148 reproduced tree 61d0eaaaee64f9cb2c886cf5b07db15bf950b5a5 exactly",
     "rapthor_broader_suites": {
-      "command": "podman run --rm --platform linux/amd64 --workdir /opt/rapthor-source localhost/hebog-rapthor:task21-defaults python -m pytest -q -n 4 tests/lib tests/operations tests/execution/test_image_flow.py",
+      "command": "podman run --rm --platform linux/amd64 --workdir /opt/rapthor-source localhost/hebog-rapthor:task23-pin python -m pytest -q -p no:cacheprovider tests/lib tests/operations tests/execution/test_image_flow.py",
       "passed": 662
     },
-    "rapthor_docs": "Strict Sphinx 9.1.0 build (-W --keep-going) of the archived patched source in the image succeeds with no warning",
-    "rapthor_lint": "Ruff 0.15.20 lint and format check of the changed Python files and git diff --check pass"
+    "rapthor_docs": "Strict Sphinx 9.1.0 build (-W --keep-going) of the archived patched source in the image succeeds with no warning (at 52e52930; the rebase changes no patch hunk)",
+    "rapthor_lint": "Ruff 0.15.20 lint and format check of the changed Python files and git diff --check pass (at 52e52930; the rebase changes no patch hunk)"
   }
 }

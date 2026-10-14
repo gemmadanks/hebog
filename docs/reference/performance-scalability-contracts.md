@@ -30,7 +30,9 @@ The deployment gate is the single `pybdsf_master` record: the upper one-sided
 against pinned PyBDSF `master` (`c70103b`) on matched complete
 `filter_skymodel` runs. Released 1.14.1 is checked once before 1.0.0 and is
 not a gate in this file. The
-[quick benchmark](../how-to/index.md#run-the-quick-benchmark) reads its
+[matched benchmark](../how-to/index.md#run-the-matched-filter_skymodel-benchmark)
+applies this rule to Rapthor's complete step, both finders in one container.
+The [quick benchmark](../how-to/index.md#run-the-quick-benchmark) reads its
 repetition counts and both comparison rules from this file; its `master`
 ratio is diagnostic because the environments are not matched.
 
