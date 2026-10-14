@@ -388,7 +388,7 @@ newline. Schema 13 rejects unknown fields and contains:
 | `configuration_sha256` | Canonical complete `SourceFinderConfig`, including thresholds, size limits, and profile. |
 | `scientific_profile_sha256` | Exact installed science-configuration resource. |
 | `scientific_composition` | Opaque implementation label. Preserve it for provenance; users do not need to interpret it. |
-| `scientific_composition_sha256` | Exact identity of the implementation: every Hebog module the finder imports, except the package initializer, tile planning and the tasks' memory declarations, and every packaged resource file. |
+| `scientific_composition_sha256` | Exact identity of the implementation: every Hebog module the finder imports, except the package initializer, tile planning, the tasks' memory declarations and the source-count estimate a caller runs before an analysis, and every packaged resource file. |
 | `supplied_image_metadata` | `null`, or the `SuppliedImageMetadata` values the request supplied for keywords the input header omits: `reference_frequency_hz`, `beam_major_fwhm_degrees`, `beam_minor_fwhm_degrees`, `beam_position_angle_degrees` and `brightness_unit`, each `null` when not supplied. The input SHA-256 alone does not identify a run that used supplied metadata. |
 | `schema_version` | `4` for the nested provenance record. |
 

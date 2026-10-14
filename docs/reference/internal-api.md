@@ -182,6 +182,16 @@ catalogue-row kernels; it imports no stage.
     options:
       show_symbol_type_toc: true
 
+## Source-count estimate
+
+`hebog.expected_source_count` counts an image's bright local maxima before
+an analysis, so that a caller can reserve `hebog.analysis_memory_bytes`
+for them; these are its kernels.
+
+::: hebog.algorithms.source_count
+    options:
+      show_symbol_type_toc: true
+
 ## Workflow adapters
 
 `hebog.adapters.rapthor` runs one Rapthor sector through `find_sources` and

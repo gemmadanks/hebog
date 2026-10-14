@@ -90,14 +90,17 @@ Reserve memory for the analysis itself too. `find_sources` holds Hebog's
 modules and the records every pass keeps for each source in the process
 that calls it, so what it holds grows with the sources it finds, about
 40 KB each, rather than with the image. `hebog.analysis_memory_bytes` states
-how much for an upper estimate of the source count, such as a sky model's
-count for the field. When `find_sources` runs inside a Dask task, request
-it there:
+how much for an upper estimate of the source count, which
+`hebog.expected_source_count` makes from the image at your detection
+threshold, reading it in bounded blocks. A deconvolution model's component
+list is no such estimate: it holds many components for each source. When
+`find_sources` runs inside a Dask task, request it there:
 
 ```python
 import hebog
 
-reserve = hebog.analysis_memory_bytes((20_000, 20_000), expected_sources=40_000)
+expected = hebog.expected_source_count(image_path, detection_threshold_sigma=5.0)
+reserve = hebog.analysis_memory_bytes((20_000, 20_000), expected_sources=expected)
 client.submit(run_finder, request, resources={"memory": reserve, "cores": 1})
 ```
 

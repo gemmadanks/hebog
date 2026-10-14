@@ -285,7 +285,8 @@ the dense ELAIS-N1 central 5,000² held three times what the 10,000² LoTSS
 anchor did. `hebog.analysis_memory_bytes(shape_yx, expected_sources=...)`
 states it for an upper estimate of the source count, fitted to the traced
 peak between tasks on the same anchors, so the caller can reserve it for
-the task that calls `find_sources`.
+the task that calls `find_sources`. `hebog.expected_source_count` makes
+that estimate from the image's bright local maxima, in bounded blocks.
 
 ## What is not decided here
 
