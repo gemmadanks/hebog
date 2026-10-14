@@ -25,7 +25,7 @@ from contextlib import contextmanager
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Annotated, Any, Literal, cast
+from typing import Annotated, Any, Literal, Protocol, cast
 
 import numpy as np
 from astropy.io import fits
@@ -178,6 +178,25 @@ class HebogSettings(_QuickCheckModel):
     island_threshold_sigma: float
     minimum_island_pixels: int
     profile: Literal["continuum", "compact"]
+
+
+class ContainerReference(Protocol):
+    """A containerised reference finder: what runs it and what it is."""
+
+    @property
+    def finder_id(self) -> str:
+        """Return the finder's identifier in the notebook comparison."""
+        ...
+
+    @property
+    def container_image(self) -> str:
+        """Return the local image the finder runs in."""
+        ...
+
+    @property
+    def ncores(self) -> int:
+        """Return the cores the container may use."""
+        ...
 
 
 class ReferenceSettings(_QuickCheckModel):
@@ -957,7 +976,7 @@ def container_image_identity(engine: str, image: str) -> str:
 
 
 def reference_identity(
-    reference: ReferenceSettings, *, engine: str, repository_root: Path
+    reference: ContainerReference, *, engine: str, repository_root: Path
 ) -> dict[str, object]:
     """Describe everything that can change a reference result or timing.
 

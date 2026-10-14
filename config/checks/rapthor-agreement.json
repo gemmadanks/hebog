@@ -1,0 +1,91 @@
+{
+  "agreement_threshold": 0.995,
+  "budget_seconds": 3600.0,
+  "cases": [
+    {
+      "case": {
+        "case_id": "lotss-dr3-1312-3000",
+        "image": "benchmark-results/quick-benchmark/cutouts/lotss-dr3-1312-15402/image.fits",
+        "kind": "image",
+        "remote_source": {
+          "url": "https://lofar-surveys.org/public/DR3/healpix_mosaics/1312/mosaic.fits",
+          "window": {
+            "size": 15402,
+            "x_start": 0,
+            "y_start": 0
+          }
+        },
+        "window": {
+          "size": 3000,
+          "x_start": 3000,
+          "y_start": 9000
+        }
+      }
+    },
+    {
+      "case": {
+        "case_id": "elais-n1-true-sky-2048",
+        "image": "benchmark-results/datasets/lotss-deep-dr2-elais-n1/image_full_ampphase_di_m_withoutbad.NS_shift.int.facetRestored.scaled.blanked.fits",
+        "kind": "image",
+        "window": {
+          "size": 2048,
+          "x_start": 6063,
+          "y_start": 6063
+        }
+      },
+      "image_kind": "true-sky"
+    },
+    {
+      "case": {
+        "case_id": "elais-n1-apparent-2048",
+        "image": "benchmark-results/datasets/lotss-deep-dr2-elais-n1/image_full_ampphase_di_m_withoutbad.NS_shift.app.facetRestored.scaled.blanked.fits",
+        "kind": "image",
+        "window": {
+          "size": 2048,
+          "x_start": 6063,
+          "y_start": 6063
+        }
+      },
+      "image_kind": "apparent"
+    }
+  ],
+  "check_id": "rapthor-agreement",
+  "control": {
+    "container_image": "localhost/hebog-notebook-pybdsf:1.14.1",
+    "finder_id": "released-pybdsf",
+    "ncores": 4
+  },
+  "emission": {
+    "floor_sigma": 1.0,
+    "seed_sigma": 5.0
+  },
+  "lanes": [
+    {
+      "background": "estimated",
+      "profile": "continuum"
+    },
+    {
+      "background": "zero",
+      "profile": "continuum"
+    },
+    {
+      "background": "estimated",
+      "profile": "compact"
+    },
+    {
+      "background": "zero",
+      "profile": "compact"
+    }
+  ],
+  "quick_check": "config/checks/quick-science-check.json",
+  "schema_version": 1,
+  "strata": {
+    "bright_snr": 75.0,
+    "crowded_beams": 2.0,
+    "edge_beams": 3.0,
+    "extended_beam_areas": 10.0,
+    "masked_beams": 3.0
+  },
+  "threshisl": 3.0,
+  "threshpix": 5.0
+}

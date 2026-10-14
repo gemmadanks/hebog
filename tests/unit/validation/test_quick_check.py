@@ -1312,7 +1312,7 @@ def _reference_check(
     def reference() -> Any:
         return script["_reference_result"](
             prepared,
-            configuration=configuration,
+            reference=configuration.reference,
             identity=_IDENTITY,
             output_root=tmp_path,
             engine="podman",

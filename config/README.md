@@ -25,7 +25,9 @@ one-tile overhead budgets and the pinned-PyBDSF-`master` deployment gate
 (`phase-0-performance.json`), the provisional 100,000-square resource and
 scaling gates (`phase-0-scalability.json`), the quick benchmark's cases
 (`quick-benchmark.json`) and the complete-execution profile's cases
-(`complete-execution-profile.json`). `checks/` contains the quick science check's cases.
+(`complete-execution-profile.json`). `checks/` contains the quick science
+check's cases and the Rapthor-profile agreement check's lanes, strata, gate
+and added cases (`rapthor-agreement.json`).
 `contracts/` contains the public-behaviour ownership manifest, the Phase 3 and
 Phase 4 scientific gates and measurement semantics used by the equivalence
 tests, and `phase-5-corrective-a-review.json`, which the installed science

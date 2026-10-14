@@ -44,6 +44,7 @@ from hebog.io import (
 from hebog.validation.products import load_pybdsf_catalogue
 from hebog.validation.quick_check import (
     REFERENCE_CONTAINER_COMMAND,
+    ContainerReference,
     MetricValues,
     PreparedCase,
     QuickCheckConfiguration,
@@ -153,7 +154,7 @@ def _cached_failure(output: Path) -> bool:
 def _run_reference(  # noqa: PLR0913
     prepared: PreparedCase,
     *,
-    configuration: QuickCheckConfiguration,
+    reference: ContainerReference,
     identity: dict[str, object],
     output_root: Path,
     engine: str,
@@ -169,7 +170,6 @@ def _run_reference(  # noqa: PLR0913
     engine or a signal, says nothing about the input and stops the check
     with nothing cached.
     """
-    reference = configuration.reference
     run_container = runpy.run_path(str(_PREPARE))["_run_container"]
     try:
         run_container(
@@ -217,7 +217,7 @@ def _run_reference(  # noqa: PLR0913
 def _reference_result(  # noqa: PLR0913
     prepared: PreparedCase,
     *,
-    configuration: QuickCheckConfiguration,
+    reference: ContainerReference,
     identity: dict[str, object],
     output_root: Path,
     engine: str,
@@ -230,7 +230,6 @@ def _reference_result(  # noqa: PLR0913
     result is preferred to a cached failure; without either, the case is
     reported without reference metrics.
     """
-    reference = configuration.reference
     reference_input_sha256 = file_sha256(prepared.reference_input_path)
     output = reference_cache_directory(
         output_root / "references",
@@ -244,7 +243,7 @@ def _reference_result(  # noqa: PLR0913
         or not run_missing
         or not _run_reference(
             prepared,
-            configuration=configuration,
+            reference=reference,
             identity=identity,
             output_root=output_root,
             engine=engine,
@@ -443,7 +442,7 @@ def main() -> int:
         )
         reference = _reference_result(
             prepared,
-            configuration=configuration,
+            reference=configuration.reference,
             identity=identity,
             output_root=output_root,
             engine=args.engine,

@@ -33,9 +33,11 @@ A replayed commit can have a different committer/hash. Record its actual
 identity when archiving it for the [container](../containers/rapthor/README.md).
 The versioned integration summary records the originally tested commit and
 tree. The patch is prepared locally; upstream publication and merge remain
-human actions. Its profile and background defaults remain experimental and
-unqualified; task 21 decides the Rapthor science profile, and task 23 owns
-matched complete-step performance.
+human actions. Its parset defaults are still `continuum` and `estimated`;
+task 21 chose the `compact` profile with a zero background for Rapthor,
+which the adapter defaults to and the patch adopts before publication.
+Neither is scientifically qualified, and task 23 owns matched complete-step
+performance.
 
 ## Frozen-field checkpoint
 
