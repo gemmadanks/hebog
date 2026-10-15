@@ -8,7 +8,7 @@ packages to Hebog's dependencies. The patch and its provenance are in
 
 Build the `localhost/hebog-lsmtool:9bac2f7` base using
 [the LSMTool recipe](../lsmtool/README.md) first. Its upstream pin was checked
-again on 12 October 2026 and remained unchanged. The runtime dependency lock
+again on 13 October 2026 and remained unchanged. The runtime dependency lock
 includes LSMTool's `numpy<2.5` constraint. The native thread limit uses
 `threadpoolctl`, already a mature dependency in the scientific Python stack;
 Rapthor makes it an optional dependency beside Hebog. PyBDSF here is the

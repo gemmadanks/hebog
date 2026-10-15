@@ -33,11 +33,17 @@ A replayed commit can have a different committer/hash. Record its actual
 identity when archiving it for the [container](../containers/rapthor/README.md).
 The versioned integration summary records the originally tested commit and
 tree. The patch is prepared locally; upstream publication and merge remain
-human actions. Its parset defaults are still `continuum` and `estimated`;
-task 21 chose the `compact` profile with a zero background for Rapthor,
-which the adapter defaults to and the patch adopts before publication.
-Neither is scientifically qualified, and task 23 owns matched complete-step
-performance.
+human actions. Its parset defaults, `hebog_profile = compact` and
+`hebog_background = zero`, are task 21's interim choice for Rapthor, which
+the adapter also defaults to: of the four settings, they made LSMTool keep
+the sky-model components pinned PyBDSF `master`'s mask keeps most often.
+They are not scientifically qualified, and task 23 owns matched
+complete-step performance.
+
+On 13 October Rapthor's `main` had moved one commit beyond the pin, to
+`d0e7e148` ("Reduce default frequency BDA"). The patch applies to it
+unchanged with `git am`; the pin stays at `c6196cb4` until task 23's
+checkpoint.
 
 ## Frozen-field checkpoint
 

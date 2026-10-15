@@ -1,4 +1,4 @@
-From 6dd9f409392c1eb9f155151e53b341cefe3a18bc Mon Sep 17 00:00:00 2001
+From 52e52930987a9c306629933bb30dc9e97ec81ae3 Mon Sep 17 00:00:00 2001
 From: Gemma Danks <gemma.danks@skao.int>
 Date: Mon, 12 Oct 2026 22:21:50 +0100
 Subject: [PATCH] feat: run optional Hebog source finding inside the Prefect
@@ -19,14 +19,21 @@ visible. Normalize the subprocess's empty beam-list argument and isolate its
 input-name-derived masks for fallback and dual runs.
 
 The maintainer approved this current-layout scope for Hebog plan task 20 on
-12 October 2026. Multi-slot distributed execution belongs to task 72; neither
-continuum/estimated defaults nor the runtime gate are qualified here. No
+12 October 2026. Multi-slot distributed execution belongs to task 72. Hebog
+runs its compact profile with PyBDSF's zero mean map unless the parset says
+otherwise: in Hebog plan task 21's comparison its mask made LSMTool keep or
+reject the same sky-model components as pinned PyBDSF master's most often
+(92.8%, below Hebog's 99.5% target; released PyBDSF reaches 99.3%), the
+maintainer's interim choice of 13 October 2026. Neither these defaults nor
+the runtime gate are qualified here. No
 LSMTool registry change or new dependency in the standalone Hebog library.
 Target Rapthor c6196cb4 and LSMTool 9bac2f7; their authoritative upstream tips
 were unchanged at the checkpoint. Hebog science remains 0.21.0.
 
 Validation: intended in-process regression failed before implementation;
-review regressions failed before the memory and stale-mask fixes. Native,
+review regressions failed before the memory and stale-mask fixes, and the
+default-profile tests (parset contents, image payload, native task) failed
+before the compact/zero defaults. Native,
 skymodel CLI and parset suites pass in the Linux integration container,
 including real Prefect/Dask, LSMTool, PyBDSF fallback and dual runs; the native
 module has full line/branch coverage. Affected non-Prefect image-flow cases and the final option/admission
@@ -37,10 +44,10 @@ No production Measurement Set/EveryBeam trial, full platform matrix, held-out
 science qualification or matched performance run was attempted.
 ---
  docs/source/development/architecture.rst      |  11 +
- docs/source/parset.rst                        |  51 ++
+ docs/source/parset.rst                        |  54 ++
  pyproject.toml                                |   2 +
  rapthor/execution/image/builders.py           |   3 +
- rapthor/execution/image/hebog_filter.py       | 288 +++++++++++
+ rapthor/execution/image/hebog_filter.py       | 288 ++++++++++
  rapthor/execution/image/outputs.py            | 106 +++-
  rapthor/execution/image/payloads.py           |   3 +
  .../execution/image/skymodel_filter_cli.py    |   2 +-
@@ -48,17 +55,17 @@ science qualification or matched performance run was attempted.
  rapthor/operations/image/base.py              |   3 +
  rapthor/settings/defaults.json                |   3 +
  rapthor/settings/defaults.parset              |   4 +
- tests/execution/test_hebog_filter.py          | 480 ++++++++++++++++++
- tests/execution/test_image_flow.py            |  37 ++
+ tests/execution/test_hebog_filter.py          | 490 ++++++++++++++++++
+ tests/execution/test_image_flow.py            |  46 ++
  tests/execution/test_skymodel_filter.py       |  10 +
  .../rapthor_complete.parset_dict.template     |   3 +
  .../rapthor_minimal.parset_dict.template      |   3 +
- 17 files changed, 992 insertions(+), 25 deletions(-)
+ 17 files changed, 1014 insertions(+), 25 deletions(-)
  create mode 100644 rapthor/execution/image/hebog_filter.py
  create mode 100644 tests/execution/test_hebog_filter.py
 
 diff --git a/docs/source/development/architecture.rst b/docs/source/development/architecture.rst
-index 4dab35e12..d23c5d8e7 100644
+index 4dab35e1..d23c5d8e 100644
 --- a/docs/source/development/architecture.rst
 +++ b/docs/source/development/architecture.rst
 @@ -474,3 +474,14 @@ changed. The following policies apply:
@@ -77,10 +84,10 @@ index 4dab35e12..d23c5d8e7 100644
 +imports no Rapthor, Prefect or LSMTool. The current one-task-per-worker layout
 +remains unchanged; a distributed Hebog subgraph needs a later layout change.
 diff --git a/docs/source/parset.rst b/docs/source/parset.rst
-index 95d6b0757..28e81605f 100644
+index 95d6b075..8342bc81 100644
 --- a/docs/source/parset.rst
 +++ b/docs/source/parset.rst
-@@ -1068,3 +1068,54 @@ for how these options are used.
+@@ -1068,3 +1068,57 @@ for how these options are used.
          :term:`generate_initial_skymodel` = ``True``. If photometry and/or astrometry
          skymodels are not provided, then these will not be downloaded and the image
          diagnostics will not be generated.
@@ -113,15 +120,18 @@ index 95d6b0757..28e81605f 100644
 +
 +The following ``[imaging]`` settings apply only to the native backend:
 +
-+* ``hebog_profile = continuum`` (default), or ``compact``.
-+* ``hebog_background = estimated`` (default), or ``zero``.
++* ``hebog_profile = compact`` (default), or ``continuum``.
++* ``hebog_background = zero`` (default), or ``estimated``.
 +* ``hebog_dual_run = False`` (default). If true, both finders run and Hebog's
 +  products are selected. Their complete product sets remain in separate
 +  directories under ``<root>.source-finders/``. The ordinary image diagnostics
 +  include the comparison, exact file hashes, finder selection and admission
 +  estimates, so normal diagnostics/restart handling retains them.
 +
-+Neither profile/background combination is scientifically qualified for Rapthor.
++The defaults, Hebog's compact profile with PyBDSF's zero mean map, are the
++combination whose island mask made LSMTool keep the same sky-model components
++as PyBDSF's most often in Hebog's comparison. No combination is scientifically
++qualified for Rapthor yet.
 +Dual-run differences are observations, not an automatic acceptance decision.
 +Both backends use the flat image for detection when no beam Measurement Set is
 +given; otherwise they use the true-sky image. LSMTool still filters, groups and
@@ -136,7 +146,7 @@ index 95d6b0757..28e81605f 100644
 +repeat filtering. Keep the bundle and dual-run directories with their cycle's
 +working products until restart and comparison inspection are no longer needed.
 diff --git a/pyproject.toml b/pyproject.toml
-index ad4cbddb4..65e6ef38e 100644
+index ad4cbddb..65e6ef38 100644
 --- a/pyproject.toml
 +++ b/pyproject.toml
 @@ -62,6 +62,8 @@ rapthor = "rapthor.cli:main"
@@ -149,22 +159,22 @@ index ad4cbddb4..65e6ef38e 100644
      "tox",
  ]
 diff --git a/rapthor/execution/image/builders.py b/rapthor/execution/image/builders.py
-index 24fae74ed..536d351a1 100644
+index 24fae74e..e9ee0c4a 100644
 --- a/rapthor/execution/image/builders.py
 +++ b/rapthor/execution/image/builders.py
 @@ -413,6 +413,9 @@ def image_payload_from_inputs(
                  "join_polarizations": bool(input_parms["join_polarizations"]),
                  "filter_by_mask": bool(input_parms["filter_by_mask"]),
                  "source_finder": str(input_parms["source_finder"]),
-+                "hebog_profile": input_parms.get("hebog_profile", "continuum"),
-+                "hebog_background": input_parms.get("hebog_background", "estimated"),
++                "hebog_profile": input_parms.get("hebog_profile", "compact"),
++                "hebog_background": input_parms.get("hebog_background", "zero"),
 +                "hebog_dual_run": input_parms.get("hebog_dual_run", False),
                  "apply_time_frequency_smearing": bool(input_parms["apply_time_frequency_smearing"]),
                  "max_threads": int(input_parms["max_threads"]),
                  "filter_skymodel_ncores": int(
 diff --git a/rapthor/execution/image/hebog_filter.py b/rapthor/execution/image/hebog_filter.py
 new file mode 100644
-index 000000000..9b8272ab1
+index 00000000..9b8272ab
 --- /dev/null
 +++ b/rapthor/execution/image/hebog_filter.py
 @@ -0,0 +1,288 @@
@@ -457,7 +467,7 @@ index 000000000..9b8272ab1
 +    if dual_run:
 +        _select_products(inputs, original)
 diff --git a/rapthor/execution/image/outputs.py b/rapthor/execution/image/outputs.py
-index 7624e9566..b271f012a 100644
+index 7624e956..e49d56c4 100644
 --- a/rapthor/execution/image/outputs.py
 +++ b/rapthor/execution/image/outputs.py
 @@ -268,31 +268,89 @@ def filter_skymodel_products(
@@ -561,8 +571,8 @@ index 7624e9566..b271f012a 100644
 +            compatibility=RapthorCompatibilityConfig(
 +                threshpix=threshpix,
 +                threshisl=threshisl,
-+                profile=sector.get("hebog_profile", "continuum"),
-+                background=sector.get("hebog_background", "estimated"),
++                profile=sector.get("hebog_profile", "compact"),
++                background=sector.get("hebog_background", "zero"),
 +            ),
 +            ncores=ncores,
 +            filter_by_mask=filter_by_mask,
@@ -575,7 +585,7 @@ index 7624e9566..b271f012a 100644
      filtered_true_sky = require_file(
          os.path.join(pipeline_working_dir, f"{image_name}.true_sky.txt"),
 diff --git a/rapthor/execution/image/payloads.py b/rapthor/execution/image/payloads.py
-index bfef9986f..79448fe5e 100644
+index bfef9986..79448fe5 100644
 --- a/rapthor/execution/image/payloads.py
 +++ b/rapthor/execution/image/payloads.py
 @@ -119,6 +119,9 @@ class ImageSectorPayload(TypedDict):
@@ -589,7 +599,7 @@ index bfef9986f..79448fe5e 100644
      max_threads: int
      filter_skymodel_ncores: int
 diff --git a/rapthor/execution/image/skymodel_filter_cli.py b/rapthor/execution/image/skymodel_filter_cli.py
-index dbea288d5..e16403740 100644
+index dbea288d..e1640374 100644
 --- a/rapthor/execution/image/skymodel_filter_cli.py
 +++ b/rapthor/execution/image/skymodel_filter_cli.py
 @@ -140,7 +140,7 @@ def run(argv: Optional[Sequence[str]] = None) -> None:
@@ -602,16 +612,16 @@ index dbea288d5..e16403740 100644
          threshisl=args.threshisl,
          threshpix=args.threshpix,
 diff --git a/rapthor/execution/image/validation.py b/rapthor/execution/image/validation.py
-index 4469d4994..a4956349a 100644
+index 4469d499..81dc755a 100644
 --- a/rapthor/execution/image/validation.py
 +++ b/rapthor/execution/image/validation.py
 @@ -103,6 +103,14 @@ def _validate_image_sector(sector: Mapping[str, object], index: int) -> ImageSec
              raise ValueError(f"sectors[{index}].image_cube_specs[{spec_index}] must be a mapping")
          image_cube_specs.append(_validate_image_cube_spec(spec, index, spec_index))
  
-+    if sector.get("hebog_profile", "continuum") not in ("continuum", "compact"):
++    if sector.get("hebog_profile", "compact") not in ("continuum", "compact"):
 +        raise ValueError("hebog_profile must be continuum or compact")
-+    if sector.get("hebog_background", "estimated") not in ("estimated", "zero"):
++    if sector.get("hebog_background", "zero") not in ("estimated", "zero"):
 +        raise ValueError("hebog_background must be estimated or zero")
 +    if not isinstance(sector.get("hebog_dual_run", False), bool):
 +        raise ValueError("hebog_dual_run must be a boolean")
@@ -621,35 +631,35 @@ index 4469d4994..a4956349a 100644
      validated_sector["prepare_tasks"] = prepare_tasks
      validated_sector["image_cube_specs"] = image_cube_specs
 diff --git a/rapthor/operations/image/base.py b/rapthor/operations/image/base.py
-index 7d0e4c877..96e382e47 100644
+index 7d0e4c87..4942d95f 100644
 --- a/rapthor/operations/image/base.py
 +++ b/rapthor/operations/image/base.py
 @@ -540,6 +540,9 @@ class Image(FlowOperation):
              "threshpix": [sector.threshpix for sector in self.imaging_sectors],
              "filter_by_mask": self.imaging_parameters["filter_skymodel"],
              "source_finder": self.imaging_parameters["source_finder"],
-+            "hebog_profile": self.imaging_parameters.get("hebog_profile", "continuum"),
-+            "hebog_background": self.imaging_parameters.get("hebog_background", "estimated"),
++            "hebog_profile": self.imaging_parameters.get("hebog_profile", "compact"),
++            "hebog_background": self.imaging_parameters.get("hebog_background", "zero"),
 +            "hebog_dual_run": self.imaging_parameters.get("hebog_dual_run", False),
              "do_multiscale": [sector.multiscale for sector in self.imaging_sectors],
              "dd_psf_grid": [sector.dd_psf_grid for sector in self.imaging_sectors],
              "apply_time_frequency_smearing": self.field.correct_smearing_in_imaging,
 diff --git a/rapthor/settings/defaults.json b/rapthor/settings/defaults.json
-index 21c028fa1..c0680cec4 100644
+index 21c028fa..96f6fbb2 100644
 --- a/rapthor/settings/defaults.json
 +++ b/rapthor/settings/defaults.json
 @@ -79,6 +79,9 @@
          "dde_method": "full",
          "filter_skymodel": true,
          "source_finder": "bdsf",
-+        "hebog_profile": "continuum",
-+        "hebog_background": "estimated",
++        "hebog_profile": "compact",
++        "hebog_background": "zero",
 +        "hebog_dual_run": false,
          "save_filtered_model_image": false,
          "model_mosaic_method": "wsclean",
          "save_visibilities": false,
 diff --git a/rapthor/settings/defaults.parset b/rapthor/settings/defaults.parset
-index 13efe9068..00ea8ffaa 100644
+index 13efe906..a0458e74 100644
 --- a/rapthor/settings/defaults.parset
 +++ b/rapthor/settings/defaults.parset
 @@ -214,6 +214,10 @@ dde_method = full
@@ -657,18 +667,18 @@ index 13efe9068..00ea8ffaa 100644
  filter_skymodel = True
  source_finder = bdsf
 +# Optional native Hebog settings; science remains development-unqualified.
-+hebog_profile = continuum
-+hebog_background = estimated
++hebog_profile = compact
++hebog_background = zero
 +hebog_dual_run = False
  save_filtered_model_image = False
  
  # Method used to generate model mosaics from multiple imaging sectors. The
 diff --git a/tests/execution/test_hebog_filter.py b/tests/execution/test_hebog_filter.py
 new file mode 100644
-index 000000000..7957cbc52
+index 00000000..b34471dc
 --- /dev/null
 +++ b/tests/execution/test_hebog_filter.py
-@@ -0,0 +1,480 @@
+@@ -0,0 +1,490 @@
 +"""Native Hebog filtering on Rapthor's current one-task-per-worker layout."""
 +
 +import json
@@ -789,6 +799,16 @@ index 000000000..7957cbc52
 +    return FilterInputs(
 +        flat, true, model, apparent, directory / "sector", directory / "vertices.npy", []
 +    )
++
++
++def test_hebog_defaults_to_compact_with_zero_background(tmp_path):
++    """Hebog's agreement with PyBDSF's sky-model filtering chose these (Hebog plan task 21)."""
++    sector, inputs = sector_inputs(tmp_path)
++    for setting in ("hebog_profile", "hebog_background"):
++        sector.pop(setting, None)
++    result = invoke(tmp_path, sector, inputs)
++    summary = json.loads(Path(result[2]["path"]).read_text())["source_finding"]
++    assert (summary["profile"], summary["background"]) == ("compact", "zero")
 +
 +
 +@pytest.mark.parametrize("profile", ["continuum", "compact"])
@@ -1150,10 +1170,10 @@ index 000000000..7957cbc52
 +            run_reference=lambda root: pytest.fail("must validate first"),
 +        )
 diff --git a/tests/execution/test_image_flow.py b/tests/execution/test_image_flow.py
-index 737c08be3..6927c2eee 100644
+index 737c08be..fd44eb50 100644
 --- a/tests/execution/test_image_flow.py
 +++ b/tests/execution/test_image_flow.py
-@@ -3651,3 +3651,40 @@ def test_image_normalize_finalizer_accepts_prefect_outputs(tmp_path):
+@@ -3651,3 +3651,49 @@ def test_image_normalize_finalizer_accepts_prefect_outputs(tmp_path):
      assert field.normalize_flux_scale is False
      assert field.apply_normalizations is True
      assert Path(operation.done_file).is_file()
@@ -1171,6 +1191,15 @@ index 737c08be3..6927c2eee 100644
 +        "zero",
 +        True,
 +    )
++
++
++def test_image_payload_defaults_hebog_to_compact_with_zero_background(tmp_path):
++    parameters = _image_input_parms()
++    parameters.update(source_finder="hebog")
++    for setting in ("hebog_profile", "hebog_background"):
++        parameters.pop(setting, None)
++    sector = image_payload_from_inputs(parameters, tmp_path)["sectors"][0]
++    assert (sector["hebog_profile"], sector["hebog_background"]) == ("compact", "zero")
 +
 +
 +@pytest.mark.parametrize(
@@ -1195,7 +1224,7 @@ index 737c08be3..6927c2eee 100644
 +    with pytest.raises(ValueError, match="hebog_dual_run requires source_finder = hebog"):
 +        validate_image_payload(image_payload_from_inputs(parameters, tmp_path))
 diff --git a/tests/execution/test_skymodel_filter.py b/tests/execution/test_skymodel_filter.py
-index 2e7570a67..a9d8b2d46 100644
+index 2e7570a6..a9d8b2d4 100644
 --- a/tests/execution/test_skymodel_filter.py
 +++ b/tests/execution/test_skymodel_filter.py
 @@ -161,3 +161,13 @@ def test_filter_skymodel_cli_matches_function_for_all_blank_image(tmp_path, monk
@@ -1213,29 +1242,29 @@ index 2e7570a67..a9d8b2d46 100644
 +    cli.run(["flat.fits", "true.fits", "true.txt", "apparent.txt", "sector", "v.npy", ""])
 +    assert calls[0][6] == []
 diff --git a/tests/resources/rapthor_complete.parset_dict.template b/tests/resources/rapthor_complete.parset_dict.template
-index 5c615ee55..f88df3c22 100644
+index 5c615ee5..d6d82697 100644
 --- a/tests/resources/rapthor_complete.parset_dict.template
 +++ b/tests/resources/rapthor_complete.parset_dict.template
 @@ -88,6 +88,9 @@
                        'dde_method': 'single',
                        'filter_skymodel': False,
                        'source_finder': 'bdsf',
-+                      'hebog_profile': 'continuum',
-+                      'hebog_background': 'estimated',
++                      'hebog_profile': 'compact',
++                      'hebog_background': 'zero',
 +                      'hebog_dual_run': False,
                        'do_multiscale_clean': False,
                        'grid_center_dec': 35.50875555555555,
                        'grid_center_ra': 220.25785,
 diff --git a/tests/resources/rapthor_minimal.parset_dict.template b/tests/resources/rapthor_minimal.parset_dict.template
-index 80bed8798..f8ac11560 100644
+index 80bed879..68243cd4 100644
 --- a/tests/resources/rapthor_minimal.parset_dict.template
 +++ b/tests/resources/rapthor_minimal.parset_dict.template
 @@ -88,6 +88,9 @@
                        'dde_method': 'full',
                        'filter_skymodel': True,
                        'source_finder': 'bdsf',
-+                      'hebog_profile': 'continuum',
-+                      'hebog_background': 'estimated',
++                      'hebog_profile': 'compact',
++                      'hebog_background': 'zero',
 +                      'hebog_dual_run': False,
                        'do_multiscale_clean': True,
                        'grid_center_dec': None,
