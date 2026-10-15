@@ -3,7 +3,7 @@
 This page answers one question: how far is Hebog from the goal its
 [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
 defines for 1.0.0? It is updated whenever the plan's current state changes,
-and was last updated on **13 October 2026** for the Rapthor-profile agreement and profile decision (task 21).
+and was last updated on **14 October 2026** for the first matched `filter_skymodel` measurement (task 23).
 The scientific and performance measurements retain their original dates.
 Every figure is development evidence from the
 maintainer's machine, dated and traceable to versioned evidence and Git
@@ -13,12 +13,12 @@ none is scientific qualification. User-facing limits are in
 
 ## At a glance
 
-| 1.0.0 goal | Target | Position on 13 October 2026 | Status |
+| 1.0.0 goal | Target | Position on 14 October 2026 | Status |
 | --- | --- | --- | --- |
 | Telescopes | Standard FITS continuum images from any telescope under a documented header contract, validated first on LOFAR, SKA-Low and SKA-Mid | The [input header contract](input-header-contract.md) is defined and tested. LOFAR (LoTSS-DR3 and LoTSS-DR2) and SKA-Mid (SDC1 simulation) images run, and the LOFAR-HD mosaics are the next scale tiers; SKA-Low has no public image, so MWA GLEAM-X precursor data is planned. A beam wider than 10 pixels is refused; every real Rapthor image in the archived cluster runs is at most about 7 pixels, and only Rapthor's synthetic demonstration sector (30 pixels) exceeds the limit. A position-dependent PSF is undecided (task 15). | In progress |
 | Functionality | A feature-flagged backend for Rapthor's `filter_skymodel` at pinned Rapthor and LSMTool revisions | A complete standalone finder under Serial, Thread and caller-owned Dask executors, and the in-process Rapthor adapter: `hebog.adapters.find_sector_sources` runs a sector's true-sky and flat-noise images on the caller's executor and writes the files Rapthor's `filter_skymodel` step reads, by default with the `compact` profile and a zero background, Rapthor's choice from task 21, and pinned LSMTool's `filter_sources` filters by its mask as the mask decides, on the LoTSS-Deep DR2 ELAIS-N1 pair: its central 5,000² under all three executors with byte-identical products, and the full 14,175² sector's serial products. All 12 frozen public behaviours are implemented. A local Rapthor patch calls the adapter in-process with a ThreadExecutor, memory admission, typed PyBDSF fallback and dual runs, tested through its real Prefect task on a single-threaded Dask worker. | Patch prepared; upstream publication and merge pending |
 | Science | ≥99.5% Rapthor retained/rejected agreement and a powered, held-out parity study against pinned PyBDSF `master` | Isolated-source position, flux and axis limits are met against both PyBDSF references on the frozen input, for sources and components under both profiles; the `Total_flux` limits hold on independent realizations. Two bounded known differences and one open defect remain. Rapthor keeps or rejects alike with Hebog's mask and pinned `master`'s 92.8% of sky-model components under the chosen `compact` profile with a zero background, against the 99.5% target; released PyBDSF reaches 99.29%. | Development evidence only |
-| Performance | Matched complete `filter_skymodel` median ≤0.50 of pinned PyBDSF `master` | The local native task can support a matched measurement, but none has run: the finder refuses Rapthor's synthetic 3,000² demonstration sector, whose 45″ beam is 30 pixels, so task 23 uses a sector imaged at real resolution; the integration container uses released PyBDSF, not the gate's pinned `master`. The dense 14,175² ELAIS-N1 sector took 8.5 h serially, mostly in association. Diagnostic ratios against `master` on 1,024² fields are 2.7 to 5.2 (Hebog on one native thread against `master` on four container cores); on the 3,000² LoTSS field the two use the same CPU time, so the gap is parallel occupancy. No regression on the Hebog curve. | Gate unmeasured |
+| Performance | Matched complete `filter_skymodel` median ≤0.50 of pinned PyBDSF `master` | The first matched measurement (13 October) puts Rapthor's complete step at 2.03 times pinned `master`'s with Hebog's native task (186 s against 92 s on a 3,000² LoTSS-DR3 window, four cores, emulated x86-64): both use about the same CPU time, but Hebog keeps 1.1 of its four cores busy, and LSMTool's filtering, 24 s of either step, puts a floor of 0.26 under the ratio. The dense 14,175² ELAIS-N1 sector took 8.5 h serially, mostly in association. Diagnostic ratios against `master` on 1,024² fields are 2.7 to 5.2 (Hebog on one native thread against `master` on four container cores); on the 3,000² LoTSS field the two use the same CPU time, so the gap is parallel occupancy. No regression on the Hebog curve. | Gate failing (first measurement) |
 | Scalability | 45,000² on the 18 GiB development machine with tile-bounded memory; 90,000² on a 1 to 10-node cluster; planner bounds for 100,000² on 100 to 200+ nodes | Public envelope 15,402². Every stage runs tiled through the executor and products are byte-identical across tilings and executors. The traced peak is 1.7 GiB on the whole 15,402² mosaic and still grows about 1.7 bytes a pixel. Every task declares its memory, and the analysis's own records grow with the sources found, about 42 KB each. Bright regions are refined in bounded blocks, so the ELAIS-N1 deep field's central 5,000², where 951 bright candidates chain across the image, completes under four 4.5 GiB Dask workers. Nothing beyond one machine has run. | 15,402 of 45,000 pixels |
 | Release | PyPI, with portability, security, licensing, documentation and independent acceptance | v0.21.0 (12 October 2026) is tagged on GitHub and uploaded to TestPyPI; it changes no product, and neither it nor v0.20.0 (11 October, maintainer's decision) had a release check of its own, so the latest passed on v0.19.0's repaired candidate on 9 October. CI runs on Linux, macOS and Windows for Python 3.12 to 3.14, and `main` requires the lowest-dependency and container checks. | Experimental `0.x` |
 
@@ -207,12 +207,12 @@ lost to the local-noise defect (task 75).
 
 ## Performance
 
-The deployment gate cannot be measured until Rapthor's native task runs the
-adapter (tasks 20 and 23). Everything below is diagnostic.
+The matched `filter_skymodel` row measures the deployment gate on one
+sector; everything else below is diagnostic.
 
 | Measurement | Latest | Date and source |
 | --- | --- | --- |
-| Hebog / pinned `master`, matched `filter_skymodel` | Not measured; gate ≤0.50 | task 23 |
+| Hebog / pinned `master`, matched `filter_skymodel` | 2.03, one-sided 95% bounds 1.99 to 2.05, against the ≤0.50 gate: medians of 186.0 s and 91.6 s for Rapthor's complete step on a 3,000² LoTSS-DR3 window with 101,144 WSClean-like components, in Rapthor's two-pass mode on four cores. Finder parts 162.4 s and 66.9 s, LSMTool's filtering 23.6 s and 24.5 s; CPU 211 s and 202 s; peak RSS 3.45 and 1.48 GB; Hebog's analysis reserved 5.9 GB. Hebog's serial stage profile of the window: background and RMS 25%, component fits 23%, multiscale pass 14%, association 5%. One x86-64 container under Rosetta, so only the ratio is matched | 13 October, `scripts/benchmark/measure_filter_skymodel.py` run `task23-first`; Rapthor `d0e7e148` with the patch, LSMTool `9bac2f7`, Hebog 0.21.0 `compact`/zero |
 | Hebog / `master`, 1,024² quick-benchmark cases, Hebog on one native thread against `master` on four container cores | 5.21 (`dense-field`), 3.21 (LoTSS sparse), 2.69 (LoTSS dense); upper bounds 5.49, 3.36, 2.87 | 6 October, `pr-stack-2026-10-06-with-master` |
 | The same ratio on larger fields | 0.88 on the crowded 2,048² SDC1 cut-out; 3.05 on the 3,000² LoTSS field, where both use the same CPU time | 26 September, large tier on a quiet machine |
 | Hebog curve, repaired 0.19.0 candidate against 0.18.0, same session | 0.97, 0.88, 0.91 at 1,024², upper bounds 1.04, 0.91 and 0.94, all passing the ≤1.05 regression rule; `dense-field` was timed again alone after reading an inconclusive 0.99 [0.96, 1.05] under a video call | 9 October, release check |
@@ -259,14 +259,14 @@ The largest risks to 1.0.0 are the performance gap, the retained/rejected
 agreement gap, the traced peak's growth with the image, the wide-object driver term, the development machine's
 memory and disk, and SKA-Low coverage without public SKA-Low images.
 
-The next actions, as the plan orders them on 13 October:
+The next actions, as the plan orders them on 14 October:
 
-1. Agent: a first matched `filter_skymodel` measurement on a sector imaged
-   at real resolution (task 23), moving the Rapthor pin to its current
-   `main` first, with the agreement check's truth measures (task 76)
-   alongside. Human: publish/review the prepared Rapthor patch, which
-   defaults to task 21's `compact` profile with a zero background and
-   applies unchanged to Rapthor's `main` of 13 October (`d0e7e148`).
+1. Agent: size the native task's memory from the image and fall back to
+   PyBDSF when it does not fit (task 77), before the patch is published,
+   with the agreement check's truth measures (task 76) alongside. Human:
+   publish/review the prepared Rapthor patch after task 77; it targets
+   Rapthor's `main` at `d0e7e148`, the pin since task 23's checkpoint, and
+   defaults to task 21's `compact` profile with a zero background.
 2. Agent: one sector across the cluster. Measure how a sector scales with
    Dask workers and where its serial share lies (task 73), cut that share
    (task 74, with tasks 71 and 54 to 56), then fit Hebog's tasks to

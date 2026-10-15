@@ -1,0 +1,9 @@
+# The helpers build_pybdsf_master_wheel.py pinned for the Phase 0 master
+# wheel, plus the CMake, Ninja and wheel it found on its build host.
+cmake==3.31.10
+meson==1.8.3
+ninja==1.13.0
+scikit-build==0.18.1
+setuptools==80.9.0
+setuptools-scm==9.2.2
+wheel==0.47.0

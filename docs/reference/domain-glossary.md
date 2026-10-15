@@ -187,7 +187,7 @@ matters most.
 | Acceptance test | A Given/When/Then test in `tests/acceptance/` of a Rapthor-facing scenario. |
 | Anchor | A fixed input the performance and memory figures are measured on, such as the 10,000² LoTSS-DR3 cut-out and the whole 15,402² mosaic. |
 | Performance ladder | The frozen list of image sizes and workloads a release is timed on. See the [performance contracts](performance-scalability-contracts.md). |
-| Matched benchmark | The deployment gate: Hebog's complete `filter_skymodel` step against pinned PyBDSF `master` on the same hardware and inputs. Not yet measurable. |
+| Matched benchmark | The deployment gate: Rapthor's complete `filter_skymodel` step with Hebog's native task against the same step with pinned PyBDSF `master`, in one container on the same cores and inputs. Measured by `scripts/benchmark/measure_filter_skymodel.py` ([how to](../how-to/index.md#run-the-matched-filter_skymodel-benchmark)). |
 | Dataset role | `development` for routine work, `regression` to preserve a decided case, or `qualification`, held out from tuning. See [dataset manifests](dataset-manifests.md). |
 | Evidence record | A versioned JSON document from `hebog.validation.evidence` that binds a measurement to its inputs, software and environment. `reviewed` only after its protocol and results pass review. |
 | Qualification | Reviewed evidence that a frozen candidate meets the plan's gates on held-out data. No Hebog release has it; passing tests and development comparisons do not establish it. |

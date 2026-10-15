@@ -1,4 +1,4 @@
-From 52e52930987a9c306629933bb30dc9e97ec81ae3 Mon Sep 17 00:00:00 2001
+From 35c1a4ca24df392091ab6d4038abd8f4a7ef942e Mon Sep 17 00:00:00 2001
 From: Gemma Danks <gemma.danks@skao.int>
 Date: Mon, 12 Oct 2026 22:21:50 +0100
 Subject: [PATCH] feat: run optional Hebog source finding inside the Prefect
@@ -27,8 +27,9 @@ reject the same sky-model components as pinned PyBDSF master's most often
 maintainer's interim choice of 13 October 2026. Neither these defaults nor
 the runtime gate are qualified here. No
 LSMTool registry change or new dependency in the standalone Hebog library.
-Target Rapthor c6196cb4 and LSMTool 9bac2f7; their authoritative upstream tips
-were unchanged at the checkpoint. Hebog science remains 0.21.0.
+Target Rapthor d0e7e148 and LSMTool 9bac2f7, the authoritative upstream tips
+at the 13 October 2026 evening checkpoint; d0e7e148 changes only frequency-BDA
+defaults since c6196cb4, outside the filter step. Hebog science remains 0.21.0.
 
 Validation: intended in-process regression failed before implementation;
 review regressions failed before the memory and stale-mask fixes, and the
@@ -84,10 +85,10 @@ index 4dab35e1..d23c5d8e 100644
 +imports no Rapthor, Prefect or LSMTool. The current one-task-per-worker layout
 +remains unchanged; a distributed Hebog subgraph needs a later layout change.
 diff --git a/docs/source/parset.rst b/docs/source/parset.rst
-index 95d6b075..8342bc81 100644
+index d709cfc6..4e969800 100644
 --- a/docs/source/parset.rst
 +++ b/docs/source/parset.rst
-@@ -1068,3 +1068,57 @@ for how these options are used.
+@@ -1058,3 +1058,57 @@ for how these options are used.
          :term:`generate_initial_skymodel` = ``True``. If photometry and/or astrometry
          skymodels are not provided, then these will not be downloaded and the image
          diagnostics will not be generated.
@@ -645,7 +646,7 @@ index 7d0e4c87..4942d95f 100644
              "dd_psf_grid": [sector.dd_psf_grid for sector in self.imaging_sectors],
              "apply_time_frequency_smearing": self.field.correct_smearing_in_imaging,
 diff --git a/rapthor/settings/defaults.json b/rapthor/settings/defaults.json
-index 21c028fa..96f6fbb2 100644
+index 9f3894f1..3aa273e9 100644
 --- a/rapthor/settings/defaults.json
 +++ b/rapthor/settings/defaults.json
 @@ -79,6 +79,9 @@
@@ -659,10 +660,10 @@ index 21c028fa..96f6fbb2 100644
          "model_mosaic_method": "wsclean",
          "save_visibilities": false,
 diff --git a/rapthor/settings/defaults.parset b/rapthor/settings/defaults.parset
-index 13efe906..a0458e74 100644
+index 5078df5a..bb99c68a 100644
 --- a/rapthor/settings/defaults.parset
 +++ b/rapthor/settings/defaults.parset
-@@ -214,6 +214,10 @@ dde_method = full
+@@ -216,6 +216,10 @@ dde_method = full
  # an image of the filtered model can be saved
  filter_skymodel = True
  source_finder = bdsf
@@ -1256,7 +1257,7 @@ index 5c615ee5..d6d82697 100644
                        'grid_center_dec': 35.50875555555555,
                        'grid_center_ra': 220.25785,
 diff --git a/tests/resources/rapthor_minimal.parset_dict.template b/tests/resources/rapthor_minimal.parset_dict.template
-index 80bed879..68243cd4 100644
+index c9614af5..7a74a301 100644
 --- a/tests/resources/rapthor_minimal.parset_dict.template
 +++ b/tests/resources/rapthor_minimal.parset_dict.template
 @@ -88,6 +88,9 @@

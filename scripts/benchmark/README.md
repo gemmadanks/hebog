@@ -110,6 +110,42 @@ that every component was measured or that scientific parity passed. Existing
 availability gates continue to count those missing measurements. The solver,
 fit bounds and detection thresholds are unchanged.
 
+## Matched filter_skymodel benchmark
+
+`measure_filter_skymodel.py` is plan task 23's matched benchmark of
+Rapthor's complete `filter_skymodel` step: Rapthor's native Hebog task
+against its PyBDSF subprocess with pinned `master`, in one
+[benchmark image](containers/filter-skymodel/README.md) on the same cores.
+It writes one sector's inputs from a real image with
+`hebog.validation.filter_benchmark`: the image twice in WSClean's four-axis
+layout, a polygon inset 5% from its border, and WSClean-style component
+lists with a point component on every island pixel (3 sigma, connected to
+5 sigma), since Rapthor's WSClean cleans to 1 sigma inside the previous
+cycle's island mask. A Measurement Set given with `--beam-ms` selects
+Rapthor's production two-pass mode. Each warm-up
+and measured repetition runs `filter_skymodel_worker.py` in a fresh
+container, alternating the finders, and the report applies the deployment
+gate's ratio rule to the measured wall times:
+
+```console
+mkdir -p benchmark-results/filter-skymodel/beam
+git -C <LSMTool checkout> show \
+  9bac2f7fabdc15cd9490acfeb9c292aa72af59b7:tests/resources/test_midbands.ms.tgz \
+  | tar -xz -C benchmark-results/filter-skymodel/beam
+uv run python scripts/benchmark/measure_filter_skymodel.py \
+  --beam-ms benchmark-results/filter-skymodel/beam/test_midbands.ms \
+  --label <label>
+```
+
+`test_midbands.ms` is pinned LSMTool's 16 MB test Measurement Set; with
+the apparent component list supplied, LSMTool reads only its times, and
+EveryBeam, which fails under Rosetta, is never imported.
+
+The image runs under Rosetta on Apple silicon, so the ratio is matched but
+the times are emulated.
+
+## Phase 0 PyBDSF baselines
+
 `run_phase0_pybdsf_baseline.py` starts a fresh local Podman container for every
 warm-up or measured repetition. Release 1.14.1 uses the PyBDSF already present
 in the immutable container. The master campaign installs a separately built
