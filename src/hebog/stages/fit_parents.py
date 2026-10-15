@@ -26,6 +26,7 @@ from hebog.algorithms.labelling import (
     LocalIslandTile,
     LocalIslandTileSummary,
     label_detection_tile,
+    relabelled,
 )
 from hebog.algorithms.reconciliation import (
     ReconciledIslands,
@@ -577,10 +578,9 @@ def _publish_fit_parents(
             partition,
             image_shape_yx=image_shape_yx,
         )
-        numbers = dict(request.fit_parent_by_local_label)
-        values = np.zeros(contexts.shape, dtype=np.int32)
-        for local_label, fit_parent in numbers.items():
-            values[local.labels == local_label] = fit_parent
+        values = relabelled(
+            local.labels, dict(request.fit_parent_by_local_label)
+        )
         if request.fit_parent_by_local_island_label:
             local_islands = label_detection_tile(
                 DetectionThresholdMasks(
@@ -595,11 +595,11 @@ def _publish_fit_parents(
                 partition,
                 image_shape_yx=image_shape_yx,
             )
-            for (
-                local_label,
-                fit_parent,
-            ) in request.fit_parent_by_local_island_label:
-                values[local_islands.labels == local_label] = fit_parent
+            values = relabelled(
+                local_islands.labels,
+                dict(request.fit_parent_by_local_island_label),
+                otherwise=values,
+            )
         chunks.append(
             sink.write_chunk(
                 product_name="fit-parent-labels",

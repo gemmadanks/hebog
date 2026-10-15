@@ -32,6 +32,7 @@ from hebog.algorithms.labelling import (
     LocalIslandTile,
     LocalIslandTileSummary,
     label_detection_tile,
+    relabelled,
 )
 from hebog.algorithms.reconciliation import (
     TileLabelMapping,
@@ -211,9 +212,7 @@ def _publish_source_labels(
             ),
             dtype=np.int32,
         )
-        values = np.zeros(labels.shape, dtype=np.int32)
-        for owner, source_label in request.source_by_owner:
-            values[labels == owner] = source_label
+        values = relabelled(labels, dict(request.source_by_owner))
         if bool(np.any((labels > 0) & (values == 0))):
             raise ValueError(
                 "source memberships must own every component pixel"
