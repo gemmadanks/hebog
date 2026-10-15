@@ -225,8 +225,9 @@ All executors obey the same rules, so a defect shows up on a laptop under
 Tasks are **coarse batches** of tiles or objects: an object round puts up to
 256 objects in one task. Graph size therefore scales with the number of tiles
 and stages, and in an object round with the number of objects over that batch
-size, never with pixels. At 100,000 pixels a side one object round would
-still exceed the planned task bound, which the plan's task 54 addresses.
+size, never with pixels. Objects are batched a storage core at a time, so
+at 100,000 pixels a side one object round of the 15,402² mosaic's density
+is about 4,700 tasks rather than the 156,000 raster order made.
 
 ## Storage
 
