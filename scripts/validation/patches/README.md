@@ -17,7 +17,7 @@ admission, blank/empty paths and retry reuse. It reserves the analysis
 memory for the sources `hebog.expected_source_count` estimates from the
 detection image, and falls back to PyBDSF when the worker cannot hold the
 analysis and a tile task (plan task 77). Its `rapthor[hebog]` extra needs
-Hebog 0.22, the first release with that function. The maintainer scoped the work
+Hebog 0.22, the first release with that function and the first on PyPI. The maintainer scoped the work
 to this layout on 12 October; task 72 owns the distributed executor and
 resource annotations. No LSMTool registry entry is needed.
 

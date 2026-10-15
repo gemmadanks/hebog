@@ -161,6 +161,7 @@ equivalence with another finder, qualification for a survey, support beyond
 the table above, Rapthor integration, a demonstrated speed advantage, or
 compatibility with later releases.
 
-Releases are tagged on GitHub and uploaded to TestPyPI to exercise
-[publishing](../how-to/publish-releases.md). Uploads will move to PyPI once
-the size limit is useful beyond cut-outs.
+Releases are tagged on GitHub and, from 0.22.0,
+[published to PyPI](../how-to/publish-releases.md), so that Rapthor's
+optional Hebog dependency installs normally. Being on PyPI changes none of
+the above: every `0.x` release is experimental.

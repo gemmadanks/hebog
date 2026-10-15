@@ -9,6 +9,11 @@ license = "BSD-3-Clause"
 license-files = ["LICENSE"]
 readme = "README.md"
 requires-python = ">=3.12"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Astronomy",
+]
 dependencies = [
     "astropy>=8.0.1,<9",
     "distributed>=2026.7.1,<2027",

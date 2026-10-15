@@ -2,23 +2,21 @@
 
 Hebog needs Python 3.12, 3.13 or 3.14 on Linux, macOS or Windows.
 
-Hebog is not on PyPI yet. Install the latest tagged release from GitHub, or
-replace the tag with the [release](https://github.com/gemmadanks/hebog/releases)
-you want:
+Install the latest release from [PyPI](https://pypi.org/project/hebog/)
+(releases before 0.22.0 are on
+[GitHub](https://github.com/gemmadanks/hebog/releases) only):
 
 <!-- x-release-please-start-version -->
 
 ```console
-pip install git+https://github.com/gemmadanks/hebog@v0.21.0
+pip install hebog==0.21.0
 hebog --version
 ```
 
 <!-- x-release-please-end -->
 
 Pin the exact version in your environment. Hebog is experimental, and `0.x`
-releases can change the API, the output format and the measurements. Releases
-also appear on TestPyPI, but only to test packaging; do not install from there
-for scientific work.
+releases can change the API, the output format and the measurements.
 
 Dask is installed with Hebog. To run on a Dask cluster, install the same
 Hebog version on the client and on every worker.
