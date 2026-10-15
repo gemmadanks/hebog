@@ -6,6 +6,9 @@
 
 from __future__ import annotations
 
+import pickle
+from collections.abc import Callable, Iterable
+from dataclasses import replace
 from pathlib import Path
 from typing import TypeVar
 
@@ -42,7 +45,7 @@ from hebog.algorithms.source_association import (
 )
 from hebog.data_models.partitioning import ImageBounds, PartitionManifest
 from hebog.data_models.source_association import DetectionComponentRecord
-from hebog.executors import DaskExecutor, SerialExecutor
+from hebog.executors import DaskExecutor, SerialExecutor, TaskRequirement
 from hebog.io.zarr import ZarrProductSink
 from hebog.stages.association import (
     HierarchyOverlapStageConfig,
@@ -214,6 +217,7 @@ def _run(
     *,
     core: int = 16,
     executor: object | None = None,
+    records: tuple[DetectionComponentRecord, ...] | None = None,
     **overrides: int,
 ) -> HierarchyOverlapStageResult:
     """Reduce every overlap the hierarchy decision needs, in isolation."""
@@ -224,7 +228,7 @@ def _run(
         component,
         manifest,
         config=_config(**overrides),
-        records=_records(),
+        records=_records() if records is None else records,
         scale_detections=_scale_records(_scale_planes()),
         executor=SerialExecutor() if executor is None else executor,  # type: ignore[arg-type]
         sink=ZarrProductSink(
@@ -640,6 +644,66 @@ def test_narrow_and_wide_work_decide_one_answer(tmp_path: Path) -> None:
 
     assert result.overlaps == reference.overlaps
     assert result.maximum_feature_read_pixels <= (16 + 2 * _HALO) ** 2
+
+
+class _FunctionRecordingExecutor(SerialExecutor):
+    """Run every round serially and keep the function its tasks received."""
+
+    def __init__(self) -> None:
+        """Start with no round seen."""
+        super().__init__()
+        self.functions: list[Callable[..., object]] = []
+
+    def map_batches(
+        self,
+        function: Callable[[_Input], _Output],
+        batches: Iterable[_Input],
+        *,
+        requirement: TaskRequirement | None = None,
+    ) -> list[_Output]:
+        """Keep the function, then run the round."""
+        self.functions.append(function)
+        return super().map_batches(function, batches, requirement=requirement)
+
+
+@pytest.mark.parametrize("budget", [65_536, 1], ids=["influence", "wide"])
+def test_no_task_carries_the_component_table(
+    tmp_path: Path, budget: int
+) -> None:
+    """A task names the owners it finds by label, as the core scans do.
+
+    The influence and wide rounds bound every component's identifier to
+    their function, so each task carried 1.38 MiB at 16,084 components,
+    which ADR-008's rule 4 forbids. Components the image never shows must
+    not change what any task is sent. The fixture's windows all fit the
+    larger budget, which runs the influence round, and none fits one
+    pixel, which runs the wide round.
+    """
+    records = _records()
+    unseen = tuple(
+        replace(
+            records[0],
+            component_id=f"unseen-{index:05d}",
+            label_value=10_000 + index,
+        )
+        for index in range(2_000)
+    )
+
+    def submitted_bytes(
+        root: Path, records: tuple[DetectionComponentRecord, ...]
+    ) -> list[int]:
+        executor = _FunctionRecordingExecutor()
+        _run(
+            root,
+            executor=executor,
+            records=records,
+            maximum_batch_read_pixels=budget,
+        )
+        return [len(pickle.dumps(function)) for function in executor.functions]
+
+    assert submitted_bytes(tmp_path / "few", records) == submitted_bytes(
+        tmp_path / "all", records + unseen
+    )
 
 
 def test_wide_work_is_executor_invariant(tmp_path: Path) -> None:

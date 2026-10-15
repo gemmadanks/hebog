@@ -184,19 +184,19 @@ def scale_feature_influence_bounds(
     )
 
 
-def scale_feature_influence_component_ids(
+def scale_feature_influence_component_labels(
     envelope_seed: npt.NDArray[np.bool_],
     valid: npt.NDArray[np.bool_],
     component_labels: npt.NDArray[np.int64],
     *,
     scale_order: int,
-    component_id_by_label: Mapping[int, str],
-) -> frozenset[str]:
-    """Return owners within the symmetric reviewed B3 influence support.
+) -> frozenset[int]:
+    """Return the owner labels within the symmetric reviewed B3 influence.
 
     Every array covers the influence box that
     :func:`scale_feature_influence_bounds` returns, with the envelope support
-    already placed at its offset inside ``envelope_seed``.
+    already placed at its offset inside ``envelope_seed``. The labels are
+    those of ``component_labels``; the caller names their components.
     """
     radius = residual_atrous_scale_halos_pixels()[scale_order - 1]
     influence = np.asarray(
@@ -209,7 +209,7 @@ def scale_feature_influence_component_ids(
         dtype=np.bool_,
     )
     return frozenset(
-        component_id_by_label[int(label_value)]
+        int(label_value)
         for label_value in np.unique(component_labels[influence])
         if int(label_value) > 0
     )
@@ -331,12 +331,14 @@ def _feature_influence_component_ids(
         x0 - box.x_start : x1 - box.x_start,
     ] = envelope.support
     window = np.s_[box.y_start : box.y_stop, box.x_start : box.x_stop]
-    return scale_feature_influence_component_ids(
-        seed,
-        valid[window],
-        labels[window],
-        scale_order=plane.scale_order,
-        component_id_by_label=component_id_by_label,
+    return frozenset(
+        component_id_by_label[label_value]
+        for label_value in scale_feature_influence_component_labels(
+            seed,
+            valid[window],
+            labels[window],
+            scale_order=plane.scale_order,
+        )
     )
 
 
