@@ -3,7 +3,7 @@
 This page answers one question: how far is Hebog from the goal its
 [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
 defines for 1.0.0? It is updated whenever the plan's current state changes,
-and was last updated on **15 October 2026** for one sector's curve with tasks 74 and 55, which closed task 74.
+and was last updated on **15 October 2026** for object rounds read a core at a time (task 54).
 The scientific and performance measurements retain their original dates.
 Every figure is development evidence from the
 maintainer's machine, dated and traceable to versioned evidence and Git
@@ -224,6 +224,7 @@ sector; everything else below is diagnostic.
 | One sector, coarser background batches | The 10,000² anchor takes 1,423, 580, 515 and 596 s on 1, 4, 6 and 8 workers, 21 to 32% less than above; background takes 622 s instead of 1,235 s on one worker, in 780 tasks instead of 69,150. Over 1, 4 and 8 workers the serial term is 404 s against 478 s, a share of 29% against 24%, because the parallel work fell further. `find_sources`' driver work outside the profiled stages takes 70 s here and 320 s on the mosaic (task 73), at every worker count. The two-worker run (903 s) overlapped a burst of three to five cores in the Podman VM; eight workers swapped up to 22 GB | 15 October, `just profile-scaling` run `task74`, `benchmark-results/profiles/runs/task74/scaling.json` (sha256 `cdf0386d…`), Hebog `caedd2d4` |
 | Linear hierarchy decision and reconciliation | One worker, with task 74's batches beneath: the driver work outside the profiled stages, which holds the hierarchy decision, takes 16 s instead of 70 s on the 10,000² anchor and 50 s instead of 320 s on the whole mosaic. The mosaic takes 3,783 s instead of 5,032 s, in 22,057 tasks instead of 184,900, and no task runs for 6% of either run (83 s and 223 s). The mosaic's other stages ran up to 22% slower than task 73's overnight run on a busier machine; on the anchor, measured right after task 74's run, they are unchanged | 15 October, `just profile-scaling` run `task55`, `benchmark-results/profiles/runs/task55/scaling.json` (sha256 `48a37e2b…`), Hebog `149ed8da` |
 | One sector with tasks 74 and 55 | The 10,000² anchor takes 1,357, 749, 490, 429 and 438 s on 1, 2, 4, 6 and 8 workers (speed-ups 1.81, 2.77, 3.16 and 3.10), 43% less than task 73 at the best point. No task runs for 77 s at one worker and 67 to 70 s at more, against 349 s and 158 to 209 s in task 73; over 1, 4 and 8 workers the serial term is 263 s, a share of 20% against 24%. Eight workers swapped up to 24 GB; the Podman VM stayed idle | 15 October, `just profile-scaling` run `task74-stack`, `benchmark-results/profiles/runs/task74-stack/scaling.json` (sha256 `4c06424a…`), Hebog `17dbaeb8` |
+| Object rounds a core at a time (task 54) | One worker, with tasks 74 and 55 beneath: the 10,000² anchor takes 1,305 s instead of 1,356 s and the whole mosaic 3,452 s instead of 3,790 s, decoding 154 GB from Zarr instead of 213 GB and 393 GB instead of 703 GB. On the mosaic the hierarchy overlap stage takes 73 s instead of 163 s and source labels 38 s instead of 65 s; the island round runs 32 more tasks for 12 s more. Products byte-identical | 15 October, `just profile-scaling` run `task54`, `benchmark-results/profiles/runs/task54/scaling.json` (sha256 `49525d36…`), Hebog `222ff3b1` |
 | Profile shape | The largest stage is about a fifth of a run and the largest kernel 5 to 8%, so no kernel reaches the native-code assessment's 10% gate | 21 September |
 
 About half of a large run is background and RMS estimation, and most of the
@@ -265,8 +266,8 @@ memory and disk, and SKA-Low coverage without public SKA-Low images.
 
 The next actions, as the plan orders them on 15 October:
 
-1. Agent: one sector across the cluster. Read object rounds by tile core
-   (task 54), then fit Hebog's tasks to Rapthor's workers
+1. Agent: one sector across the cluster. Record the whole ELAIS-N1 sector
+   run that closes task 54, then fit Hebog's tasks to Rapthor's workers
    (task 72), sizing workers by the memory a core needs as well as by
    cores; then the 22,500² tier (tasks 56 and 11), since Rapthor's usual
    sector is 17,000 to 20,000 pixels a side. The agreement check's truth measures

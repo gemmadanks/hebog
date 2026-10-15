@@ -67,8 +67,10 @@ half the run is background and RMS, and source association grows faster than
 the image (1, 82 and 479 s for 659, 7,146 and 16,084 sources, about the 2.2
 power). Task 74 batched background refinement coarsely and task 55 made the
 association's hierarchy decision linear, which together took the whole
-15,402² mosaic from 5,032 s to 3,783 s on one Dask worker; the plan's tasks
-54 and 56 address the rest.
+15,402² mosaic from 5,032 s to 3,783 s on one Dask worker. Task 54's object
+rounds, read a storage core at a time, took it to 3,452 s and its decoded
+reads from 703 GB to 393 GB; the plan's task 56 addresses the per-task
+costs that remain.
 
 The generated-ladder cost model is
 `fixed + a·megapixels + b·components + c·megapixels·components`; the last
