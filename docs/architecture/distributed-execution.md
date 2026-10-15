@@ -176,8 +176,9 @@ pixel count, bounding box, peak, first pixel and whether it holds a detection
 seed. A union–find reduction joins labels that meet across an edge, combining
 tiles pairwise in a tree fixed by their order, so the result does not depend
 on completion order. Today that reduction runs on the driver, which holds
-every tile's summaries; moving driver-side reductions onto the workers is
-part of the plan's task 74. The resulting global label map is **sharded**:
+every tile's summaries; it compares each seam once, so its cost grows with
+the tiles, and the plan's risks track the summaries the driver keeps. The
+resulting global label map is **sharded**:
 each tile receives only the entries for labels it contains.
 
 ### Objects larger than a halo
