@@ -1,22 +1,33 @@
-From 35c1a4ca24df392091ab6d4038abd8f4a7ef942e Mon Sep 17 00:00:00 2001
+From d830c1c85fa8144d6cc4851e8556ef5a532a3479 Mon Sep 17 00:00:00 2001
 From: Gemma Danks <gemma.danks@skao.int>
 Date: Mon, 12 Oct 2026 22:21:50 +0100
 Subject: [PATCH] feat: run optional Hebog source finding inside the Prefect
  task
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
 The filter task previously reached every finder through LSMTool in a fresh
 interpreter. Add source_finder=hebog through the public Hebog adapter and
 LSMTool filtering on a Rapthor-owned ThreadExecutor. Keep the PyBDSF default
-and subprocess fallback for typed Hebog refusals, and retain separate dual
-products with comparisons in normal image diagnostics.
+and the subprocess as the fallback for typed Hebog refusals, and retain
+separate dual products with comparisons in normal image diagnostics.
 
-Admit analysis and task memory within the current single-threaded Dask worker,
-cap cores and native threads, and respect container limits for synchronous
-runs. Preserve no-beam detection, no-model dummy, blank and retry semantics;
-clear normalized masks on blank retries and use a conservative source bound
-without the primary component list. Keep missing inputs and unexpected errors
-visible. Normalize the subprocess's empty beam-list argument and isolate its
-input-name-derived masks for fallback and dual runs.
+Reserve Hebog's analysis memory for the sources hebog.expected_source_count
+estimates from the detection image at threshpix, then admit tile tasks only
+into what the single-threaded Dask worker has left; cap cores and native
+threads, and respect container limits for synchronous runs. WSClean's
+component list is no such estimate: on Hebog plan task 23's 3,000² sector
+its 101,144 components reserved 5.9 GB for 890 sources, where the image's
+1,155 peaks reserve 0.27 GB, and peeled sources are not in the image. When
+no memory remains for the tile tasks, or one needs more than remains,
+Hebog's ExecutorAdmissionError falls back to PyBDSF and records the reason,
+as a typed refusal does (Hebog plan task 77, decided 14 October 2026); an
+invalid worker layout still fails. Preserve no-beam detection, no-model
+dummy, blank and retry semantics; clear normalized masks on blank retries.
+Keep missing inputs and unexpected errors visible. Normalize the
+subprocess's empty beam-list argument and isolate its input-name-derived
+masks for fallback and dual runs.
 
 The maintainer approved this current-layout scope for Hebog plan task 20 on
 12 October 2026. Multi-slot distributed execution belongs to task 72. Hebog
@@ -25,27 +36,30 @@ otherwise: in Hebog plan task 21's comparison its mask made LSMTool keep or
 reject the same sky-model components as pinned PyBDSF master's most often
 (92.8%, below Hebog's 99.5% target; released PyBDSF reaches 99.3%), the
 maintainer's interim choice of 13 October 2026. Neither these defaults nor
-the runtime gate are qualified here. No
-LSMTool registry change or new dependency in the standalone Hebog library.
-Target Rapthor d0e7e148 and LSMTool 9bac2f7, the authoritative upstream tips
-at the 13 October 2026 evening checkpoint; d0e7e148 changes only frequency-BDA
-defaults since c6196cb4, outside the filter step. Hebog science remains 0.21.0.
+the runtime gate are qualified here. No LSMTool registry change or new
+dependency in the standalone Hebog library. Target Rapthor d0e7e148 and
+LSMTool 9bac2f7, the authoritative upstream tips at the 13 October 2026
+evening checkpoint; d0e7e148 changes only frequency-BDA defaults since
+c6196cb4, outside the filter step. The rapthor[hebog] extra needs Hebog
+0.22, the first release with expected_source_count; Hebog's science is
+0.21.0's.
 
 Validation: intended in-process regression failed before implementation;
-review regressions failed before the memory and stale-mask fixes, and the
+review regressions failed before the memory and stale-mask fixes; the
 default-profile tests (parset contents, image payload, native task) failed
-before the compact/zero defaults. Native,
-skymodel CLI and parset suites pass in the Linux integration container,
-including real Prefect/Dask, LSMTool, PyBDSF fallback and dual runs; the native
-module has full line/branch coverage. Affected non-Prefect image-flow cases and the final option/admission
-boundary checks pass. Ruff 0.15.20 lint, imports,
-format and git diff --check pass. Sphinx renders, but strict build has four
-pre-existing duplicate 'here' targets in unchanged docs/source/strategy.rst.
-No production Measurement Set/EveryBeam trial, full platform matrix, held-out
-science qualification or matched performance run was attempted.
+before the compact/zero defaults; and the reservation tests failed before
+it came from the image (a 50-component model and the no-model bound
+reserved 50 and 7,857 sources for one), as did the memory-fallback tests
+before admission refusals fell back. Native, skymodel CLI and parset suites
+pass in the Linux integration container, including real Prefect/Dask,
+LSMTool, PyBDSF fallback on too little memory, and dual runs; the native
+module has full line/branch coverage. Rapthor's library, operation and
+image-flow suites pass. Ruff 0.15.20 lint and format and git diff --check
+pass. No production Measurement Set/EveryBeam trial, full platform matrix,
+held-out science qualification or matched performance run was attempted.
 ---
- docs/source/development/architecture.rst      |  11 +
- docs/source/parset.rst                        |  54 ++
+ docs/source/development/architecture.rst      |  12 +
+ docs/source/parset.rst                        |  56 ++
  pyproject.toml                                |   2 +
  rapthor/execution/image/builders.py           |   3 +
  rapthor/execution/image/hebog_filter.py       | 288 ++++++++++
@@ -56,20 +70,20 @@ science qualification or matched performance run was attempted.
  rapthor/operations/image/base.py              |   3 +
  rapthor/settings/defaults.json                |   3 +
  rapthor/settings/defaults.parset              |   4 +
- tests/execution/test_hebog_filter.py          | 490 ++++++++++++++++++
+ tests/execution/test_hebog_filter.py          | 512 ++++++++++++++++++
  tests/execution/test_image_flow.py            |  46 ++
  tests/execution/test_skymodel_filter.py       |  10 +
  .../rapthor_complete.parset_dict.template     |   3 +
  .../rapthor_minimal.parset_dict.template      |   3 +
- 17 files changed, 1014 insertions(+), 25 deletions(-)
+ 17 files changed, 1039 insertions(+), 25 deletions(-)
  create mode 100644 rapthor/execution/image/hebog_filter.py
  create mode 100644 tests/execution/test_hebog_filter.py
 
 diff --git a/docs/source/development/architecture.rst b/docs/source/development/architecture.rst
-index 4dab35e1..d23c5d8e 100644
+index 4dab35e1..935719da 100644
 --- a/docs/source/development/architecture.rst
 +++ b/docs/source/development/architecture.rst
-@@ -474,3 +474,14 @@ changed. The following policies apply:
+@@ -474,3 +474,15 @@ changed. The following policies apply:
  Changes of this kind are recorded with the command in
  ``dir_working/logs/commands.jsonl``; a variable that was removed is shown
  with the value ``null``.
@@ -80,15 +94,16 @@ index 4dab35e1..d23c5d8e 100644
 +For ``source_finder = hebog``, the existing Prefect filter task calls the
 +optional ``execution.image.hebog_filter`` module in-process, on a
 +Rapthor-owned thread executor, then LSMTool. The module owns memory admission,
-+blank handling and dual-run comparison; ``image.outputs`` keeps subprocess
-+execution for PyBDSF and typed refusals. Hebog owns scientific products and
++sized from Hebog's source-count estimate for the image, blank handling and
++dual-run comparison; ``image.outputs`` keeps subprocess execution for PyBDSF,
++typed refusals and memory too small for the analysis. Hebog owns scientific products and
 +imports no Rapthor, Prefect or LSMTool. The current one-task-per-worker layout
 +remains unchanged; a distributed Hebog subgraph needs a later layout change.
 diff --git a/docs/source/parset.rst b/docs/source/parset.rst
-index d709cfc6..4e969800 100644
+index d709cfc6..cbb3aa70 100644
 --- a/docs/source/parset.rst
 +++ b/docs/source/parset.rst
-@@ -1058,3 +1058,57 @@ for how these options are used.
+@@ -1058,3 +1058,59 @@ for how these options are used.
          :term:`generate_initial_skymodel` = ``True``. If photometry and/or astrometry
          skymodels are not provided, then these will not be downloaded and the image
          diagnostics will not be generated.
@@ -97,7 +112,7 @@ index d709cfc6..4e969800 100644
 +------------------------------------------
 +
 +Install the optional ``rapthor[hebog]`` dependency on Python 3.12 or newer,
-+using an exact Hebog 0.21.x wheel (currently distributed on TestPyPI). Set
++using an exact Hebog 0.22.x wheel (currently distributed on TestPyPI). Set
 +``source_finder = hebog`` in ``[imaging]``. PyBDSF remains the default and
 +runs in its existing subprocess; Hebog runs inside the Prefect filter task.
 +
@@ -109,15 +124,17 @@ index d709cfc6..4e969800 100644
 +on one node with overlapping core or memory allocations. The distributed
 +Hebog task path on a multi-slot layout is not implemented here.
 +
-+The task reserves ``hebog.analysis_memory_bytes`` using the true-sky component
-+count plus peeled components, then admits tile tasks only into the memory left
-+after that estimate and the process's current RSS. The budget is the smaller
-+of the worker's memory limit and a nonzero ``mem_per_node_gb``. In synchronous
-+execution, available machine memory and container/process limits also bound it.
-+These are estimates: WSClean's component count must bound the sources Hebog finds.
-+Without the primary true-sky model,
-+the conservative bound is one source per image pixel, which can refuse large
-+fields. Insufficient memory or an invalid worker layout fails the task.
++The task reserves ``hebog.analysis_memory_bytes`` for the sources
++``hebog.expected_source_count`` estimates from the detection image at
++``threshpix``, then admits tile tasks only into the memory left after that
++estimate and the process's current RSS. The budget is the smaller of the
++worker's memory limit and a nonzero ``mem_per_node_gb``. In synchronous
++execution, available machine memory and container/process limits also bound
++it. The estimate counts the image's local maxima ``threshpix`` times the noise
++above the background, so it errs high; peeled sources are not in the image and
++reserve nothing. If no memory remains for the tile tasks, or one needs more
++than remains, the task runs PyBDSF instead. An invalid worker layout fails the
++task.
 +
 +The following ``[imaging]`` settings apply only to the native backend:
 +
@@ -140,14 +157,14 @@ index d709cfc6..4e969800 100644
 +component; an all-blank image uses Rapthor's existing header-only models and
 +placeholder RMS copies.
 +
-+A typed Hebog ``SourceFinderError`` invokes the PyBDSF subprocess and records
-+its reason in the image diagnostics. Missing dependencies, missing configured
-+peeled-source models, resource errors, cancellation and unexpected exceptions
-+fail the task. Retries reuse Hebog's validated bundle, restore its mask, then
++A typed Hebog ``SourceFinderError`` or ``ExecutorAdmissionError`` invokes the
++PyBDSF subprocess and records its reason in the image diagnostics. Missing
++dependencies, missing configured peeled-source models, an invalid worker
++layout, cancellation and unexpected exceptions fail the task. Retries reuse Hebog's validated bundle, restore its mask, then
 +repeat filtering. Keep the bundle and dual-run directories with their cycle's
 +working products until restart and comparison inspection are no longer needed.
 diff --git a/pyproject.toml b/pyproject.toml
-index ad4cbddb..65e6ef38 100644
+index ad4cbddb..64f8d9a9 100644
 --- a/pyproject.toml
 +++ b/pyproject.toml
 @@ -62,6 +62,8 @@ rapthor = "rapthor.cli:main"
@@ -155,7 +172,7 @@ index ad4cbddb..65e6ef38 100644
  
  [project.optional-dependencies]
 +# Hebog requires Python >=3.12; the default backend keeps Rapthor's Python range.
-+hebog = ["hebog>=0.21,<0.22", "threadpoolctl>=3.6,<4"]
++hebog = ["hebog>=0.22,<0.23", "threadpoolctl>=3.6,<4"]
  test = [
      "tox",
  ]
@@ -175,14 +192,16 @@ index 24fae74e..e9ee0c4a 100644
                  "filter_skymodel_ncores": int(
 diff --git a/rapthor/execution/image/hebog_filter.py b/rapthor/execution/image/hebog_filter.py
 new file mode 100644
-index 00000000..9b8272ab
+index 00000000..6bb6fc52
 --- /dev/null
 +++ b/rapthor/execution/image/hebog_filter.py
 @@ -0,0 +1,288 @@
 +"""Optional native source finding on Rapthor's one-task-per-worker layout.
 +
-+Rapthor owns the thread pool and reserves the analysis memory before admitting
-+Hebog's tile tasks. The scientific package knows no Prefect or LSMTool objects.
++Rapthor owns the thread pool and reserves the analysis memory, sized from the
++image's estimated source count, before admitting Hebog's tile tasks. A worker
++too small for them runs PyBDSF instead. The scientific package knows no
++Prefect or LSMTool objects.
 +"""
 +
 +from __future__ import annotations
@@ -195,12 +214,11 @@ index 00000000..9b8272ab
 +from pathlib import Path
 +from uuid import NAMESPACE_URL, uuid5
 +
-+import lsmtool
 +import psutil
 +from astropy.io import fits
 +from astropy.wcs import WCS
 +from distributed import get_worker, system
-+from hebog import SourceFinderError, analysis_memory_bytes
++from hebog import SourceFinderError, analysis_memory_bytes, expected_source_count
 +from hebog.adapters import (
 +    RapthorBlankedImageError,
 +    RapthorCompatibilityConfig,
@@ -209,7 +227,7 @@ index 00000000..9b8272ab
 +    find_sector_sources,
 +)
 +from hebog.adapters.rapthor_comparison import RapthorSectorProducts, compare_sector_products
-+from hebog.executors import ThreadExecutor
++from hebog.executors import ExecutorAdmissionError, ThreadExecutor
 +from lsmtool.filter_skymodel.bdsf import create_dummy_skymodel, filter_sources
 +from threadpoolctl import threadpool_limits
 +
@@ -251,22 +269,11 @@ index 00000000..9b8272ab
 +        return float(ra), float(dec)
 +
 +
-+def _expected_sources(inputs: FilterInputs) -> int:
-+    """Use WSClean's component count, including peeled sources, as an upper estimate."""
-+    paths = [
-+        path
-+        for path in (inputs.true_sky_skymodel, inputs.bright_true_sky_skymodel)
-+        if path is not None
-+    ]
-+    for path in paths:
-+        if not path.is_file():
++def _require_sky_models(inputs: FilterInputs) -> None:
++    """Fail on a missing sky model before Hebog runs, not after."""
++    for path in (inputs.true_sky_skymodel, inputs.bright_true_sky_skymodel):
++        if path is not None and not path.is_file():
 +            raise FileNotFoundError(path)
-+    if inputs.true_sky_skymodel is None:
-+        # Peeled components alone do not bound the whole field. One per
-+        # pixel is conservative; large fields will refuse this memory budget.
-+        header = fits.getheader(inputs.detection_image)
-+        return header["NAXIS1"] * header["NAXIS2"]
-+    return sum(len(lsmtool.load(str(path))) for path in paths)
 +
 +
 +def _thread_budget(config: ExecutionConfig, ncores: int, reserved_bytes: int) -> int:
@@ -291,7 +298,9 @@ index 00000000..9b8272ab
 +    # is additional to the analysis estimate and the tile-task declarations.
 +    remaining = min(limits) - reserved_bytes - psutil.Process().memory_info().rss
 +    if remaining <= 0:
-+        raise ValueError("No memory remains for Hebog tasks after reserving the analysis")
++        raise ExecutorAdmissionError(
++            "No memory remains for Hebog tasks after reserving the analysis"
++        )
 +    return remaining
 +
 +
@@ -330,7 +339,12 @@ index 00000000..9b8272ab
 +    filter_by_mask: bool,
 +) -> tuple[RapthorSourceFindingResult, dict]:
 +    header = fits.getheader(inputs.detection_image)
-+    expected_sources = _expected_sources(inputs)
++    _require_sky_models(inputs)
++    # The image's peaks bound what Hebog publishes; peeled bright sources
++    # are already subtracted from it and hold no analysis memory.
++    expected_sources = expected_source_count(
++        inputs.detection_image, detection_threshold_sigma=compatibility.threshpix
++    )
 +    reserved = analysis_memory_bytes(
 +        (header["NAXIS2"], header["NAXIS1"]),
 +        expected_sources=expected_sources,
@@ -404,11 +418,14 @@ index 00000000..9b8272ab
 +) -> None:
 +    """Run in-process, falling back only on Hebog's typed refusals.
 +
-+    Blank images use Rapthor's existing empty products. Import/configuration,
-+    missing-file, cancellation and unexpected failures propagate to Prefect.
-+    Dual runs select Hebog, compare the two *filtered* masks, and retain both
-+    complete sets under ``<root>.source-finders/``. The comparison lives in the
-+    ordinary image diagnostics and is not an automatic science decision.
++    A refusal is an image or setting Hebog does not support, or a memory budget
++    that cannot admit the analysis or one of its tasks: PyBDSF then runs as it
++    would without Hebog. Blank images use Rapthor's existing empty products.
++    Import, worker-configuration, missing-file, cancellation and unexpected
++    failures propagate to Prefect. Dual runs select Hebog, compare the two
++    *filtered* masks, and retain both complete sets under
++    ``<root>.source-finders/``. The comparison lives in the ordinary image
++    diagnostics and is not an automatic science decision.
 +    """
 +    if not isinstance(dual_run, bool):
 +        raise ValueError("hebog_dual_run must be a boolean")
@@ -439,7 +456,7 @@ index 00000000..9b8272ab
 +            run_reference(reference_root)
 +            details["comparison_unavailable"] = "blanked: no Hebog mask or measurable RMS"
 +        _diagnostics(inputs.output_root, 0, details)
-+    except SourceFinderError as error:
++    except (SourceFinderError, ExecutorAdmissionError) as error:
 +        logger.warning("Hebog refused the sector; falling back to PyBDSF: %s", error)
 +        run_reference(original.output_root)
 +        path = Path(f"{original.output_root}.image_diagnostics.json")
@@ -676,10 +693,10 @@ index 5078df5a..bb99c68a 100644
  # Method used to generate model mosaics from multiple imaging sectors. The
 diff --git a/tests/execution/test_hebog_filter.py b/tests/execution/test_hebog_filter.py
 new file mode 100644
-index 00000000..b34471dc
+index 00000000..851e9486
 --- /dev/null
 +++ b/tests/execution/test_hebog_filter.py
-@@ -0,0 +1,490 @@
+@@ -0,0 +1,512 @@
 +"""Native Hebog filtering on Rapthor's current one-task-per-worker layout."""
 +
 +import json
@@ -695,7 +712,7 @@ index 00000000..b34471dc
 +from rapthor.lib.records import file_record
 +
 +pytest.importorskip("hebog", reason="native source finder requires rapthor[hebog]")
-+from hebog import SourceFinderImageTooLargeError
++from hebog import SourceFinderImageTooLargeError, expected_source_count
 +from hebog.adapters import RapthorCompatibilityConfig
 +from hebog.executors import ExecutorAdmissionError
 +from threadpoolctl import threadpool_info
@@ -783,14 +800,14 @@ index 00000000..b34471dc
 +    assert diagnostics["source_finding"]["analysis_memory_bytes"] > 0
 +
 +
-+def invoke(directory, sector, inputs, **config_options):
++def invoke(directory, sector, inputs, *, mem_per_node_gb=4, **config_options):
 +    return outputs.filter_skymodel_products(
 +        sector,
 +        "sector",
 +        *inputs,
 +        str(directory),
 +        execution_config=ExecutionConfig(
-+            task_runner="sync", cpus_per_task=2, mem_per_node_gb=4, **config_options
++            task_runner="sync", cpus_per_task=2, mem_per_node_gb=mem_per_node_gb, **config_options
 +        ),
 +    )
 +
@@ -884,7 +901,15 @@ index 00000000..b34471dc
 +    assert result == retried
 +
 +
-+@pytest.mark.parametrize("error", [SourceFinderImageTooLargeError("too wide"), RuntimeError("bug")])
++@pytest.mark.parametrize(
++    "error",
++    [
++        SourceFinderImageTooLargeError("too wide"),
++        ExecutorAdmissionError("too wide for the admitted memory"),
++        RuntimeError("bug"),
++        ValueError("bug"),
++    ],
++)
 +def test_only_typed_hebog_refusals_use_the_reference(tmp_path, monkeypatch, error):
 +    _, records = sector_inputs(tmp_path)
 +    inputs = native_inputs(tmp_path, records)
@@ -906,7 +931,7 @@ index 00000000..b34471dc
 +        run_reference=reference,
 +    )
 +    config = ExecutionConfig(task_runner="sync", cpus_per_task=2, mem_per_node_gb=4)
-+    if isinstance(error, SourceFinderImageTooLargeError):
++    if isinstance(error, (SourceFinderImageTooLargeError, ExecutorAdmissionError)):
 +        run_hebog_filter(inputs, config, **arguments)
 +        assert called == [inputs.output_root]
 +        summary = json.loads(Path(f"{inputs.output_root}.image_diagnostics.json").read_text())
@@ -914,26 +939,20 @@ index 00000000..b34471dc
 +        assert summary["source_finding"]["selected"] == "bdsf"
 +        assert "too wide" in summary["source_finding"]["fallback_reason"]
 +    else:
-+        with pytest.raises(RuntimeError, match="bug"):
++        with pytest.raises(type(error), match="bug"):
 +            run_hebog_filter(inputs, config, **arguments)
 +        assert not called
 +
 +
-+def test_insufficient_task_memory_fails_without_fallback(tmp_path, monkeypatch):
++def test_insufficient_memory_falls_back_to_pybdsf(tmp_path):
++    """A worker that cannot hold the analysis and a tile task runs PyBDSF instead."""
 +    sector, inputs = sector_inputs(tmp_path)
-+    monkeypatch.setattr(
-+        outputs, "run_external_command", lambda *a, **kw: pytest.fail("unsafe fallback")
-+    )
-+    with pytest.raises((ValueError, ExecutorAdmissionError), match="memory|admitted"):
-+        outputs.filter_skymodel_products(
-+            sector,
-+            "sector",
-+            *inputs,
-+            str(tmp_path),
-+            execution_config=ExecutionConfig(
-+                task_runner="sync", cpus_per_task=2, mem_per_node_gb=1
-+            ),
-+        )
++    result = invoke(tmp_path, sector, inputs, command_profile="off", mem_per_node_gb=1)
++    summary = json.loads(Path(result[2]["path"]).read_text())
++    assert summary["source_finding"]["selected"] == "bdsf"
++    assert summary["source_finding"]["fallback_reason"].startswith("ExecutorAdmissionError")
++    assert summary["nsources"] == 1
++    assert all(Path(record["path"]).is_file() for record in result)
 +    assert not (tmp_path / "sector.hebog").exists()
 +
 +
@@ -1028,22 +1047,36 @@ index 00000000..b34471dc
 +    assert summary["source_finding"]["cores"] == 2
 +
 +
-+def test_native_no_model_reserves_a_conservative_source_bound(tmp_path):
++def test_reservation_counts_the_image_sources_not_the_sky_model(tmp_path):
++    """WSClean's model holds many components per source; the image bounds Hebog's."""
++    sector, inputs = sector_inputs(tmp_path)
++    rows = "".join(f"c{index}, POINT, 180, 45, 0.01\n" for index in range(50))
++    for model in inputs[2:]:
++        Path(model["path"]).write_text("FORMAT = Name, Type, Ra, Dec, I\n" + rows)
++    result = invoke(tmp_path, sector, inputs)
++    summary = json.loads(Path(result[2]["path"]).read_text())["source_finding"]
++    assert summary["expected_sources"] == expected_source_count(
++        Path(inputs[0]["path"]), detection_threshold_sigma=sector["threshpix"]
++    )
++    assert summary["expected_sources"] == 1
++
++
++def test_native_no_model_reserves_from_the_image(tmp_path):
 +    sector, inputs = sector_inputs(tmp_path)
 +    sector["save_source_list"] = False
 +    result = invoke(tmp_path, sector, inputs)
 +    summary = json.loads(Path(result[2]["path"]).read_text())
-+    assert summary["source_finding"]["expected_sources"] == 81 * 97
++    assert summary["source_finding"]["expected_sources"] == 1
 +    assert summary["nsources"] == 1
 +    assert "0.00000001" in Path(result[0]["path"]).read_text()
 +
 +
-+def test_peeled_sources_alone_do_not_bound_the_full_image_source_count(tmp_path):
++def test_peeled_sources_are_not_in_the_image_and_reserve_nothing(tmp_path):
 +    sector, inputs = sector_inputs(tmp_path)
 +    sector.update(save_source_list=False, bright_skymodel_pb=inputs[3]["path"])
 +    result = invoke(tmp_path, sector, inputs)
 +    summary = json.loads(Path(result[2]["path"]).read_text())
-+    assert summary["source_finding"]["expected_sources"] == 81 * 97
++    assert summary["source_finding"]["expected_sources"] == 1
 +    assert "centre" in Path(result[0]["path"]).read_text()
 +
 +
@@ -1080,18 +1113,24 @@ index 00000000..b34471dc
 +
 +
 +@pytest.mark.parametrize(
-+    "threads,memory,configured,match",
-+    [(2, 4e9, 4, "one task thread"), (1, 0, 0, "finite worker"), (1, 1, 0, "No memory remains")],
++    "threads,memory,configured,error,match",
++    [
++        (2, 4e9, 4, ValueError, "one task thread"),
++        (1, 0, 0, ValueError, "finite worker"),
++        (1, 1, 0, ExecutorAdmissionError, "No memory remains"),
++    ],
 +)
-+def test_invalid_worker_admission_fails(threads, memory, configured, match, monkeypatch):
++def test_invalid_worker_admission_fails(threads, memory, configured, error, match, monkeypatch):
++    """A misconfigured worker fails; one too small for the analysis is a typed refusal."""
 +    from types import SimpleNamespace
 +
 +    worker = SimpleNamespace(
 +        state=SimpleNamespace(nthreads=threads), memory_manager=SimpleNamespace(memory_limit=memory)
 +    )
 +    monkeypatch.setattr(hebog_filter, "get_worker", lambda: worker)
-+    with pytest.raises(ValueError, match=match):
++    with pytest.raises(ValueError, match=match) as raised:
 +        hebog_filter._thread_budget(ExecutionConfig(mem_per_node_gb=configured), 2, 1)
++    assert (raised.type is ExecutorAdmissionError) == (error is ExecutorAdmissionError)
 +
 +
 +def test_configured_dask_task_must_really_run_on_a_worker():

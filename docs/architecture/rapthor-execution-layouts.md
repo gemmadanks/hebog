@@ -155,7 +155,7 @@ uses:
 | --- | --- | --- |
 | A DP3 or WSClean command | `prefect: 1`, `cores: T` | Runs alone on the worker |
 | Another Rapthor Prefect task | `prefect: 1`, the cores it uses | Never beside a second Prefect task |
-| Rapthor's `filter_skymodel`, running Hebog | `prefect: 1`, `cores: 1`, `memory: hebog.analysis_memory_bytes(shape, expected_sources=...)`, from the sector sky model's count | Waits on one core, leaving T − 1 to tiles |
+| Rapthor's `filter_skymodel`, running Hebog | `prefect: 1`, `cores: 1`, `memory: hebog.analysis_memory_bytes(shape, expected_sources=...)`, with `hebog.expected_source_count` for the sector image, counted before the task is submitted | Waits on one core, leaving T − 1 to tiles |
 | A Hebog tile task | `cores: 1`, `memory:` its declared bytes | Runs on any worker with a free core and that much memory |
 
 Hebog's tile tasks request `cores` and `memory` under the names Rapthor

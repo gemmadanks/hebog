@@ -1,18 +1,18 @@
 {
   "container": {
     "build_lock_sha256": "58817cda7d033ed54f70a93941aaaa7753fcefed02523cada221c532261fb10d",
-    "dependency_inventory_sha256": "5b031df4813365cfa7783ddfa3f4991c2fb99345a80d5db55254abb3f1944cbd",
-    "hebog_wheel_sha256": "df4aa9cdb8fad8a193332846a608e443ae045f3247ee82c79059f89e460582f5",
-    "image_id": "3a7c51f89c5e88bf981e82417f75b5dcb0445d8f8f3403ac578c31dd7780e24a",
+    "dependency_inventory_sha256": "161cc973676f48c6875c42305f27c2687f7e9ce456ecbe3ac0f96f7ce2236102",
+    "hebog_wheel_sha256": "45b1a667c7bab4add0d0fb84e3fdb6a42303d89ca2afe55d97a6526087d43898",
+    "image_id": "69a7a60fbfcdc8f875e4fae6d83eda37c500dd726da91ec19e143afe52942a10",
     "lsmtool_version": "1.9.1.dev15+g9bac2f7",
     "pip_check": "No broken requirements found",
     "platform": "Linux x86-64, Python 3.12.3, Podman/Rosetta on Apple M3 Pro",
     "pybdsf_scope": "Released integration dependency only, not the pinned-master performance gate",
     "pybdsf_version": "1.14.1",
-    "rapthor_archive_sha256": "c081d66f9b4e8cf59f09a8aa9a69cba540aabbd0b86992039c79c776d043aa03",
+    "rapthor_archive_sha256": "28b5ec1136b43832e8b8f85a98887eaf573314b4dc53188a0f2a73857c9048c2",
     "runtime_lock_sha256": "881dcbcbf28061e404dc1ad05302e912435497059f452398eea56fb9ab0ff569"
   },
-  "date": "2026-10-13",
+  "date": "2026-10-14",
   "defaults": {
     "background": "zero",
     "decision": "Maintainer's interim choice of 13 October 2026 from Hebog plan task 21: closest of the four lanes to pinned PyBDSF master's sky-model filtering (92.8% agreement against a 99.5% target; released PyBDSF 99.29%); decided again after plan task 75",
@@ -20,13 +20,26 @@
   },
   "implementation": {
     "distributed_path": "Deferred to source-finder plan task 72 by maintainer approval on 2026-10-12",
-    "hebog_science_commit": "17b280ba819ae6b0a01edf4e1266f0a0a2552e67",
-    "hebog_version": "0.21.0",
+    "hebog_science_commit": "def67253e56f75443264fa5a932b0bb0fc464b0a",
+    "hebog_version": "0.21.0 wheel metadata with hebog.expected_source_count; the rapthor[hebog] extra requires 0.22, the first release carrying it",
     "layout": "One single-threaded Dask worker per node; native ThreadExecutor inside the Prefect task",
-    "patch_sha256": "1972b3d4c53f37efd18cc493cd6e56852aa829ed063ed3302a182b10c8c06ff5",
+    "memory_reservation": "hebog.analysis_memory_bytes for the sources hebog.expected_source_count estimates from the detection image at threshpix; an ExecutorAdmissionError, when no memory remains for the tile tasks or one needs more than remains, falls back to PyBDSF (Hebog plan task 77, decided 14 October 2026)",
+    "patch_sha256": "6f45389922211ebb43faafe70b47b30fca2dadeb5617b842d91a76028cf799c0",
     "publication": "Local commits only; upstream publication and merge pending",
-    "rapthor_commit": "35c1a4ca24df392091ab6d4038abd8f4a7ef942e",
-    "rapthor_tree": "61d0eaaaee64f9cb2c886cf5b07db15bf950b5a5"
+    "rapthor_commit": "d830c1c85fa8144d6cc4851e8556ef5a532a3479",
+    "rapthor_tree": "9ecaeb6955acc132411c2c79f40c846285e4e9f9"
+  },
+  "memory_estimate": {
+    "bound": "Bounded the most sources any profile/background lane published on all 21 quick-check, Rapthor-agreement and task-23 cases, at 1.0 to 21 times; 1.1 to 1.9 on the LOFAR and simulated SKA fields; 21 on wide-extended-source",
+    "scope": "Development machine, native macOS; the agreement lanes from run task23-pin-st and the benchmark count from run task23-first; no separate evidence record",
+    "task23_sector": {
+      "analysis_memory_bytes": 267091540,
+      "estimate": 1155,
+      "estimate_seconds": 0.87,
+      "previous_analysis_memory_bytes": 5898472020,
+      "previous_expected_sources": 101144,
+      "published_sources": 890
+    }
   },
   "profile_smoke": {
     "dataset": "pybdsf-compact-reference-256",
@@ -121,7 +134,7 @@
     "quick_science": "just quick-science-check --label task20-recheck --baseline benchmark-results/quick-check/runs/t17-declared/report.json --skip-references"
   },
   "schema_version": 1,
-  "scope": "Task 20 current-layout integration with task 21's compact/zero defaults, replayed at task 23's Rapthor pin; no scientific or performance qualification",
+  "scope": "Task 20 current-layout integration with task 21's compact/zero defaults and task 77's image-sized memory reservation and PyBDSF fallback, at task 23's Rapthor pin; no scientific or performance qualification",
   "status": "exploratory",
   "upstream_audit": {
     "lsmtool": "9bac2f7fabdc15cd9490acfeb9c292aa72af59b7",
@@ -130,8 +143,8 @@
   },
   "validation": {
     "archived_container_tests": {
-      "command": "podman run --rm --platform linux/amd64 --workdir /opt/rapthor-source localhost/hebog-rapthor:task23-pin python -m pytest -q tests/execution/test_hebog_filter.py tests/execution/test_skymodel_filter.py",
-      "passed": 36,
+      "command": "podman run --rm --platform linux/amd64 --workdir /opt/rapthor-source localhost/hebog-rapthor:task77 python -m pytest -q tests/execution/test_hebog_filter.py tests/execution/test_skymodel_filter.py",
+      "passed": 39,
       "scope": "No checkout mount; committed source and installed dependencies from the final image"
     },
     "hebog_acceptance": {
@@ -140,39 +153,39 @@
     },
     "hebog_coverage": {
       "command": "just coverage",
-      "coverage_percent": 97.34,
-      "result": "3815 passed on the task-21 change; this change touches no package code"
+      "coverage_percent": 97,
+      "result": "3,837 passed and 3 composition-hash tests failed until the estimate's kernel module was exempted, which pass since; the new module and pipeline.py 100%, public_api.py 99% (one earlier miss); not rerun after the one-line early refusal, which every estimate test executes"
     },
     "hebog_final_checks": {
       "checks": "Ruff, hygiene, Marimo, Pyright, strict MkDocs, quick pytest and uv lock",
       "command": "just pre-commit",
       "quick_tests_passed": 2522
     },
-    "installed_workflow": "Outside the archived checkout, both modules import from site-packages, and the dual-run and default-profile native tests pass; see the container README for the exact command.",
+    "installed_workflow": "Outside the archived checkout, both modules import from site-packages, and the dual-run, default-profile, memory-fallback and image-reservation native tests pass; see the container README for the exact command.",
     "native_parset_cli": {
       "command": "python -m pytest -q tests/execution/test_hebog_filter.py tests/execution/test_skymodel_filter.py tests/lib/test_parset.py tests/lib/test_parset_option_behavior.py tests/lib/test_parset_option_coverage.py --cov=rapthor.execution.image.hebog_filter --cov-branch",
-      "includes": "Actual production Prefect task on process Dask worker; real LSMTool; released PyBDSF fallback and dual subprocesses; blank, dummy, retries, memory/core limits, configuration; compact/zero defaults from the parset, the image payload and the native task",
+      "includes": "Actual production Prefect task on process Dask worker; real LSMTool; released PyBDSF fallback and dual subprocesses; blank, dummy, retries, memory/core limits, configuration; image-sized reservation and PyBDSF fallback on too little memory; compact/zero defaults from the parset, the image payload and the native task",
       "module_line_branch_coverage_percent": 100,
-      "passed": 91
+      "passed": 94
     },
     "omitted": [
       "Full Rapthor/hosted Python/platform matrix",
       "Production Measurement Set/EveryBeam operational trial",
       "Retained/rejected correctness against truth (Hebog plan task 76)",
-      "Matched complete-step performance against pinned PyBDSF master",
-      "Multi-slot distributed executor path"
+      "Multi-slot distributed executor path",
+      "Matched complete-step performance with this patch: task 23's run task23-first measured the previous patch, 35c1a4ca, in the benchmark image, which was not rebuilt"
     ],
     "option_admission_boundaries": {
       "command": "python -m pytest -q tests/execution/test_image_flow.py tests/execution/test_hebog_filter.py -k 'hebog_options or invalid_worker_admission'",
       "passed": 8,
-      "scope": "Run at 52e52930; at the task-23 checkpoint the whole of test_image_flow.py and test_hebog_filter.py, which hold these cases, passed"
+      "scope": "Run at 52e52930; at task 77 the whole of test_image_flow.py and test_hebog_filter.py, which hold these cases, passed"
     },
-    "patch_replay": "git am on d0e7e148 reproduced tree 61d0eaaaee64f9cb2c886cf5b07db15bf950b5a5 exactly",
+    "patch_replay": "git am on d0e7e148 reproduced tree 9ecaeb6955acc132411c2c79f40c846285e4e9f9 exactly",
     "rapthor_broader_suites": {
-      "command": "podman run --rm --platform linux/amd64 --workdir /opt/rapthor-source localhost/hebog-rapthor:task23-pin python -m pytest -q -p no:cacheprovider tests/lib tests/operations tests/execution/test_image_flow.py",
+      "command": "podman run --rm --platform linux/amd64 --workdir /opt/rapthor-source localhost/hebog-rapthor:task77 python -m pytest -q -p no:cacheprovider tests/lib tests/operations tests/execution/test_image_flow.py",
       "passed": 662
     },
-    "rapthor_docs": "Strict Sphinx 9.1.0 build (-W --keep-going) of the archived patched source in the image succeeds with no warning (at 52e52930; the rebase changes no patch hunk)",
-    "rapthor_lint": "Ruff 0.15.20 lint and format check of the changed Python files and git diff --check pass (at 52e52930; the rebase changes no patch hunk)"
+    "rapthor_docs": "Strict Sphinx 9.1.0 build (-W --keep-going) of the archived patched source in the image succeeds with no warning",
+    "rapthor_lint": "Ruff 0.15.20 lint and format check of the changed Python files and git diff --check pass"
   }
 }

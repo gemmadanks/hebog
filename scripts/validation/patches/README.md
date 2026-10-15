@@ -13,7 +13,11 @@ The patch adds `source_finder = hebog` to Rapthor's existing Prefect filter
 task, using a caller-owned ThreadExecutor on its current one-single-threaded-
 worker-per-node layout. It retains the PyBDSF subprocess for the default
 backend and typed Hebog refusals, and adds dual-run reporting, memory
-admission, blank/empty paths and retry reuse. The maintainer scoped the work
+admission, blank/empty paths and retry reuse. It reserves the analysis
+memory for the sources `hebog.expected_source_count` estimates from the
+detection image, and falls back to PyBDSF when the worker cannot hold the
+analysis and a tile task (plan task 77). Its `rapthor[hebog]` extra needs
+Hebog 0.22, the first release with that function. The maintainer scoped the work
 to this layout on 12 October; task 72 owns the distributed executor and
 resource annotations. No LSMTool registry entry is needed.
 

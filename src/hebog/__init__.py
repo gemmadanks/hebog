@@ -16,6 +16,7 @@ from hebog.pipeline import (
     SourceFinderStagingWarning,
     UnsupportedSourceFinderConfigurationError,
     analysis_memory_bytes,
+    expected_source_count,
     find_sources,
 )
 
@@ -37,5 +38,6 @@ __all__ = [
     "UnsupportedSourceFinderConfigurationError",
     "__version__",
     "analysis_memory_bytes",
+    "expected_source_count",
     "find_sources",
 ]

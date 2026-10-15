@@ -40,7 +40,8 @@ budget runs only as many at once as fit, and a `DaskExecutor` given the
 names of the workers' memory and core resources lets Dask place each task
 only where that much is free. `hebog.analysis_memory_bytes` states what the
 analysis itself holds, which grows with the sources it finds, for the caller
-to reserve ([integrate Hebog into a pipeline](../how-to/integrate-into-a-pipeline.md)).
+to reserve, and `hebog.expected_source_count` estimates those sources from
+the image ([integrate Hebog into a pipeline](../how-to/integrate-into-a-pipeline.md)).
 One declared limit remains: an object wider than a task's read budget is
 reduced on the driver from its own pixels, so that memory grows with the
 object rather than the tile. A connected object filling a 15,402-pixel
