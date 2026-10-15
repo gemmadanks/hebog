@@ -3,7 +3,7 @@
 This page answers one question: how far is Hebog from the goal its
 [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
 defines for 1.0.0? It is updated whenever the plan's current state changes,
-and was last updated on **15 October 2026** for a linear hierarchy decision and island reconciliation (task 55).
+and was last updated on **15 October 2026** for the scaling decisions of that day, after a linear hierarchy decision and island reconciliation (task 55).
 The scientific and performance measurements retain their original dates.
 Every figure is development evidence from the
 maintainer's machine, dated and traceable to versioned evidence and Git
@@ -264,13 +264,12 @@ memory and disk, and SKA-Low coverage without public SKA-Low images.
 
 The next actions, as the plan orders them on 15 October:
 
-1. Agent: one sector across the cluster. Cut the serial share task 73
-   measured (task 74, with tasks 54 and 56), re-measuring the 10,000²
-   anchor's curve now that no task runs for only 6% of a one-worker run,
-   then fit Hebog's tasks to Rapthor's workers
-   (task 72), sizing workers by the memory a core needs as well as by cores;
-   beside it, the 22,500² tier (task 11), since Rapthor's usual sector is
-   17,000 to 20,000 pixels a side. The agreement check's truth measures
+1. Agent: one sector across the cluster. Close task 74 with the 10,000²
+   anchor's curve re-measured on the stack, then read object rounds by
+   tile core (task 54) and fit Hebog's tasks to Rapthor's workers
+   (task 72), sizing workers by the memory a core needs as well as by
+   cores; then the 22,500² tier (tasks 56 and 11), since Rapthor's usual
+   sector is 17,000 to 20,000 pixels a side. The agreement check's truth measures
    (task 76) may run alongside.
 2. Human: publish/review the prepared Rapthor patch. It targets Rapthor's
    `main` at `d0e7e148`, the pin since task 23's checkpoint, defaults to
