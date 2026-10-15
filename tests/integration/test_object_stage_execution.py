@@ -2454,7 +2454,10 @@ def test_a_fit_parent_beyond_the_reviewed_bound_is_never_batched() -> None:
 
     with pytest.raises(ValueError, match="wider than the read budget"):
         _fit_batches(
-            (parent,), maximum_batch_read_pixels=8, maximum_bounds_pixels=15
+            (parent,),
+            core_shape_yx=(16, 16),
+            maximum_batch_read_pixels=8,
+            maximum_bounds_pixels=15,
         )
 
 
@@ -2562,6 +2565,7 @@ def test_a_deferred_parent_is_never_batched() -> None:
     with pytest.raises(ValueError, match="wider than the read budget"):
         _parent_batches(
             (parent,),
+            core_shape_yx=(16, 16),
             maximum_batch_read_pixels=8,
             deblend=replace(
                 reviewed_deblend_config(_DETECTION_SIGMA),

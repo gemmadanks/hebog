@@ -246,6 +246,7 @@ def _deferred(parent: ParentExtent, deblend: CompactDeblendConfig) -> bool:
 def _parent_batches(
     parents: tuple[ParentExtent, ...],
     *,
+    core_shape_yx: tuple[int, int],
     maximum_batch_read_pixels: int,
     deblend: CompactDeblendConfig,
 ) -> tuple[_ParentBatch, ...]:
@@ -269,6 +270,7 @@ def _parent_batches(
         for batch in batch_object_windows(
             parents,
             window=lambda parent: parent.measurement_bounds,
+            core_shape_yx=core_shape_yx,
             maximum_batch_read_pixels=maximum_batch_read_pixels,
             bounded_by_admission=lambda parent: not _deferred(parent, deblend),
         )
@@ -481,6 +483,7 @@ def _write_deblended_parents(  # noqa: PLR0913
     detection_source: CompletedProductSource,
     config: ComponentTopologyStageConfig,
     image_shape_yx: tuple[int, int],
+    core_shape_yx: tuple[int, int],
 ) -> int:
     """Decide each deblended parent again and write the part a core owns.
 
@@ -494,6 +497,7 @@ def _write_deblended_parents(  # noqa: PLR0913
     widest_read = 0
     for batch in _parent_batches(
         tuple(numbered.parent for numbered in deblended_parents),
+        core_shape_yx=core_shape_yx,
         maximum_batch_read_pixels=config.maximum_batch_read_pixels,
         deblend=config.deblend,
     ):
@@ -532,6 +536,7 @@ def _publish_batch(  # noqa: PLR0913
     sink: ZarrProductSink,
     config: ComponentTopologyStageConfig,
     image_shape_yx: tuple[int, int],
+    core_shape_yx: tuple[int, int],
 ) -> PublishBatchResult:
     """Write the component labels each core of one batch owns.
 
@@ -581,6 +586,7 @@ def _publish_batch(  # noqa: PLR0913
                     detection_source=detection_source,
                     config=config,
                     image_shape_yx=image_shape_yx,
+                    core_shape_yx=core_shape_yx,
                 ),
             )
         valid = np.asarray(
@@ -732,6 +738,7 @@ def run_component_topology_stage(  # noqa: PLR0913
             for parent in parents
             if not _deferred(parent, config.deblend)
         ),
+        core_shape_yx=manifest.tile_core_shape_yx,
         maximum_batch_read_pixels=config.maximum_batch_read_pixels,
         deblend=config.deblend,
     )
@@ -784,6 +791,7 @@ def run_component_topology_stage(  # noqa: PLR0913
                 sink=sink,
                 config=config,
                 image_shape_yx=manifest.image_shape_yx,
+                core_shape_yx=manifest.tile_core_shape_yx,
             ),
             publish_batches,
             # A parent that splits is deblended again inside its own window,

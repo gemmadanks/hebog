@@ -364,12 +364,13 @@ def _influence_batches(
     maximum_features_per_batch: int,
     maximum_batch_read_pixels: int,
     image_shape_yx: tuple[int, int],
+    core_shape_yx: tuple[int, int],
 ) -> tuple[_InfluenceBatch, ...]:
     """Group enveloped features into bounded coarse influence tasks.
 
-    Features are grouped in canonical order so that neighbours share one
-    read, which is what keeps a task's window opens proportional to the work
-    it does rather than to the number of features.
+    Neighbouring features share one read, which is what keeps a task's
+    window opens proportional to the work it does rather than to the number
+    of features.
     """
     window = partial(_influence_window, image_shape_yx=image_shape_yx)
     return tuple(
@@ -382,6 +383,7 @@ def _influence_batches(
         for group in _spatial_groups(
             features,
             window=window,
+            core_shape_yx=core_shape_yx,
             maximum_objects_per_batch=maximum_features_per_batch,
             maximum_batch_read_pixels=maximum_batch_read_pixels,
         )
@@ -418,13 +420,11 @@ def _spatial_groups[T](
     objects: tuple[T, ...],
     *,
     window: Callable[[T], ImageBounds],
+    core_shape_yx: tuple[int, int],
     maximum_objects_per_batch: int,
     maximum_batch_read_pixels: int,
 ) -> tuple[tuple[T, ...], ...]:
     """Group objects so one read serves several, within both budgets.
-
-    Objects are visited in raster order of their windows, so a batch covers a
-    compact region.
 
     Raises:
         ValueError: If one object's own window exceeds the read budget. Such
@@ -433,11 +433,9 @@ def _spatial_groups[T](
     return tuple(
         batch.objects
         for batch in batch_object_windows(
-            sorted(
-                objects,
-                key=lambda item: (window(item).y_start, window(item).x_start),
-            ),
+            objects,
             window=window,
+            core_shape_yx=core_shape_yx,
             maximum_batch_read_pixels=maximum_batch_read_pixels,
             maximum_objects_per_batch=maximum_objects_per_batch,
         )
@@ -645,6 +643,7 @@ def _pair_batches(
     *,
     maximum_pairs_per_batch: int,
     maximum_batch_read_pixels: int,
+    core_shape_yx: tuple[int, int],
 ) -> tuple[_PairBatch, ...]:
     """Group candidate pairs so one read serves several, within the budget."""
     return tuple(
@@ -652,6 +651,7 @@ def _pair_batches(
         for group in _spatial_groups(
             pairs,
             window=_pair_read_bounds_of,
+            core_shape_yx=core_shape_yx,
             maximum_objects_per_batch=maximum_pairs_per_batch,
             maximum_batch_read_pixels=maximum_batch_read_pixels,
         )
@@ -1357,6 +1357,7 @@ def run_hierarchy_overlap_stage(  # noqa: PLR0913
         maximum_features_per_batch=config.maximum_features_per_batch,
         maximum_batch_read_pixels=budget,
         image_shape_yx=manifest.image_shape_yx,
+        core_shape_yx=manifest.tile_core_shape_yx,
     )
     influence_results = map_round(
         executor,
@@ -1387,6 +1388,7 @@ def run_hierarchy_overlap_stage(  # noqa: PLR0913
         ),
         maximum_pairs_per_batch=config.maximum_pairs_per_batch,
         maximum_batch_read_pixels=budget,
+        core_shape_yx=manifest.tile_core_shape_yx,
     )
     pair_results = map_round(
         executor,

@@ -3,7 +3,9 @@
 Each round of ADR-008's object pass reads one window per object, and groups
 neighbouring objects so that one read serves several: storage chunks are far
 larger than most objects, and a read per object would decode the chunks its
-neighbours share again for each of them.
+neighbours share again for each of them. Objects are taken a storage core at
+a time, in raster order within each core, so a batch's read covers a compact
+region rather than a strip across the image's chunks.
 
 A batch closes before its read would exceed ``maximum_batch_read_pixels``.
 An object whose own window already exceeds that budget is never batched with
@@ -107,29 +109,46 @@ def union_bounds(first: ImageBounds, second: ImageBounds) -> ImageBounds:
     )
 
 
-def batch_object_windows[T](
+def batch_object_windows[T](  # noqa: PLR0913
     objects: Sequence[T],
     *,
     window: Callable[[T], ImageBounds],
+    core_shape_yx: tuple[int, int],
     maximum_batch_read_pixels: int,
     maximum_objects_per_batch: int | None = None,
     bounded_by_admission: Callable[[T], bool] | None = None,
 ) -> tuple[WindowBatch[T], ...]:
-    """Group objects, in the order given, so one read serves several.
+    """Group objects a core at a time so one read serves several.
 
-    Objects keep the caller's order, so a round that numbers its results in
-    batch order still numbers them canonically. ``bounded_by_admission``
-    names the objects whose own window a reviewed admission rule limits;
-    such an object may be wider than the budget and is then read alone.
+    Objects are ordered by the storage core, of ``core_shape_yx`` pixels,
+    that their window starts in, then in raster order of that start; objects
+    starting at one pixel keep the caller's order. Ordered by raster alone,
+    a batch would be a strip across every core in its rows and decode each
+    of their chunks. A round therefore keys its results by object, not by
+    batch order.
+    ``bounded_by_admission`` names the objects whose own window a reviewed
+    admission rule limits; such an object may be wider than the budget and
+    is then read alone.
 
     Raises:
         ValueError: If an object's own window exceeds the budget and no
             admission rule bounds it.
     """
+    core_height, core_width = core_shape_yx
+
+    def core_raster_order(item: T) -> tuple[int, int, int, int]:
+        start = window(item)
+        return (
+            start.y_start // core_height,
+            start.x_start // core_width,
+            start.y_start,
+            start.x_start,
+        )
+
     batches: list[WindowBatch[T]] = []
     grouped: list[T] = []
     read: ImageBounds | None = None
-    for item in objects:
+    for item in sorted(objects, key=core_raster_order):
         own = window(item)
         if read_pixels(own) > maximum_batch_read_pixels:
             if bounded_by_admission is None or not bounded_by_admission(item):

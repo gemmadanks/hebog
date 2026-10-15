@@ -1240,4 +1240,6 @@ def test_an_owner_window_wider_than_the_budget_is_never_batched() -> None:
     )
 
     with pytest.raises(ValueError, match="wider than the read budget"):
-        _owner_batches((wide,), maximum_batch_read_pixels=8)
+        _owner_batches(
+            (wide,), core_shape_yx=(16, 16), maximum_batch_read_pixels=8
+        )

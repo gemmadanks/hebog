@@ -334,6 +334,7 @@ def _support_features(
 def _group_batches(  # noqa: PLR0913
     features: tuple[SupportFeature, ...],
     *,
+    core_shape_yx: tuple[int, int],
     maximum_batch_read_pixels: int,
     maximum_bounds_pixels: int,
     fits: tuple[tuple[int, CompactGaussianFitResult], ...],
@@ -363,6 +364,7 @@ def _group_batches(  # noqa: PLR0913
         for batch in batch_object_windows(
             features,
             window=lambda feature: feature.window,
+            core_shape_yx=core_shape_yx,
             maximum_batch_read_pixels=maximum_batch_read_pixels,
             bounded_by_admission=lambda feature: compact_window_is_admitted(
                 feature.window, maximum_bounds_pixels=maximum_bounds_pixels
@@ -578,6 +580,7 @@ def run_extended_group_stage(  # noqa: PLR0913, PLR0917
     )
     batches = _group_batches(
         features,
+        core_shape_yx=manifest.tile_core_shape_yx,
         maximum_batch_read_pixels=config.maximum_batch_read_pixels,
         maximum_bounds_pixels=config.maximum_bounds_pixels,
         fits=tuple(item for parent in parents for item in parent.fits),

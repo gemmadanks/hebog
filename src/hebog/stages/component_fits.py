@@ -273,6 +273,7 @@ def _scan_fit_parent_extents(
 def _fit_batches(
     parents: tuple[_FitParentExtent, ...],
     *,
+    core_shape_yx: tuple[int, int],
     maximum_batch_read_pixels: int,
     maximum_bounds_pixels: int,
 ) -> tuple[_FitBatch, ...]:
@@ -293,6 +294,7 @@ def _fit_batches(
         for batch in batch_object_windows(
             parents,
             window=lambda parent: parent.read_bounds,
+            core_shape_yx=core_shape_yx,
             maximum_batch_read_pixels=maximum_batch_read_pixels,
             bounded_by_admission=lambda parent: compact_window_is_admitted(
                 parent.read_bounds,
@@ -605,6 +607,7 @@ def _publish_support(  # noqa: PLR0913
     fit_parent_source: CompletedProductSource,
     config: ComponentFitStageConfig,
     sink: ZarrProductSink,
+    core_shape_yx: tuple[int, int],
 ) -> _SupportPublishResult:
     """Derive each measured parent's support again and write the core's share.
 
@@ -625,6 +628,7 @@ def _publish_support(  # noqa: PLR0913
         values = np.zeros(core.shape_yx, dtype=np.bool_)
         for read in _fit_batches(
             request.parents,
+            core_shape_yx=core_shape_yx,
             maximum_batch_read_pixels=config.maximum_batch_read_pixels,
             maximum_bounds_pixels=config.maximum_bounds_pixels,
         ):
@@ -861,6 +865,7 @@ def run_component_fit_stage(  # noqa: PLR0913, PLR0917
     )
     fit_batches = _fit_batches(
         fitted,
+        core_shape_yx=manifest.tile_core_shape_yx,
         maximum_batch_read_pixels=config.maximum_batch_read_pixels,
         maximum_bounds_pixels=config.maximum_bounds_pixels,
     )
@@ -982,6 +987,7 @@ def run_component_fit_stage(  # noqa: PLR0913, PLR0917
                 fit_parent_source=fit_parent_source,
                 config=config,
                 sink=sink,
+                core_shape_yx=manifest.tile_core_shape_yx,
             ),
             publish_batches,
             requirement=read_requirement(

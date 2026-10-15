@@ -606,6 +606,7 @@ def _scan_support(  # noqa: PLR0913
 def _assign_batches(
     components: tuple[_SupportComponent, ...],
     *,
+    core_shape_yx: tuple[int, int],
     maximum_objects_per_batch: int,
     maximum_batch_read_pixels: int,
 ) -> tuple[_AssignBatch, ...]:
@@ -619,11 +620,9 @@ def _assign_batches(
     return tuple(
         _AssignBatch(components=batch.objects, read_bounds=batch.read_bounds)
         for batch in batch_object_windows(
-            sorted(
-                components,
-                key=lambda item: (item.bounds.y_start, item.bounds.x_start),
-            ),
+            components,
             window=lambda component: component.bounds,
+            core_shape_yx=core_shape_yx,
             maximum_batch_read_pixels=maximum_batch_read_pixels,
             maximum_objects_per_batch=maximum_objects_per_batch,
         )
@@ -967,6 +966,7 @@ def _publish_source_support(  # noqa: PLR0913
     sink: ZarrProductSink,
     config: SourceSupportStageConfig,
     image_shape_yx: tuple[int, int],
+    core_shape_yx: tuple[int, int],
 ) -> _SupportWriteResult:
     """Assign the support each core holds and write it over its seeds.
 
@@ -988,6 +988,7 @@ def _publish_source_support(  # noqa: PLR0913
         values = np.array(seeds, copy=True)
         for assign_batch in _assign_batches(
             request.components,
+            core_shape_yx=core_shape_yx,
             maximum_objects_per_batch=config.maximum_objects_per_batch,
             maximum_batch_read_pixels=config.maximum_batch_read_pixels,
         ):
@@ -1210,6 +1211,7 @@ def run_source_support_stage(  # noqa: PLR0913
                 sink=sink,
                 config=config,
                 image_shape_yx=manifest.image_shape_yx,
+                core_shape_yx=manifest.tile_core_shape_yx,
             ),
             write_batches,
             requirement=read_requirement(

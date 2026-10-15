@@ -690,6 +690,7 @@ def test_a_feature_beyond_the_reviewed_bound_is_never_batched() -> None:
     with pytest.raises(ValueError, match="wider than the read budget"):
         _group_batches(
             (feature,),
+            core_shape_yx=(16, 16),
             maximum_batch_read_pixels=8,
             maximum_bounds_pixels=15,
             fits=(),

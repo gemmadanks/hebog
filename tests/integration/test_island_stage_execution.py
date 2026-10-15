@@ -593,10 +593,16 @@ def test_one_read_serves_several_islands_within_the_budget() -> None:
     )
 
     shared = _island_batches(
-        islands, maximum_objects_per_batch=8, maximum_batch_read_pixels=64
+        islands,
+        core_shape_yx=(32, 32),
+        maximum_objects_per_batch=8,
+        maximum_batch_read_pixels=64,
     )
     split = _island_batches(
-        islands, maximum_objects_per_batch=1, maximum_batch_read_pixels=64
+        islands,
+        core_shape_yx=(32, 32),
+        maximum_objects_per_batch=1,
+        maximum_batch_read_pixels=64,
     )
 
     assert [batch.read_bounds for batch in shared] == [
@@ -609,7 +615,10 @@ def test_one_read_serves_several_islands_within_the_budget() -> None:
     assert len(split) == len(islands)
     assert (
         _island_batches(
-            (), maximum_objects_per_batch=1, maximum_batch_read_pixels=1
+            (),
+            core_shape_yx=(32, 32),
+            maximum_objects_per_batch=1,
+            maximum_batch_read_pixels=1,
         )
         == ()
     )
@@ -625,7 +634,10 @@ def test_a_window_is_never_wider_than_the_read_budget() -> None:
 
     with pytest.raises(ValueError, match="wider than the read budget"):
         _island_batches(
-            (wide,), maximum_objects_per_batch=1, maximum_batch_read_pixels=8
+            (wide,),
+            core_shape_yx=(32, 32),
+            maximum_objects_per_batch=1,
+            maximum_batch_read_pixels=8,
         )
 
 
