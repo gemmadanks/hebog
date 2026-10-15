@@ -145,6 +145,7 @@ class _HierarchyAttachments:
 
     features_by_component: Mapping[str, tuple[str, ...]]
     lineages_by_component: Mapping[str, tuple[str, ...]]
+    components_by_feature: Mapping[str, frozenset[str]]
     ambiguous_component_ids: frozenset[str]
     unattached_count: int
     multiple_attachment_count: int
@@ -277,6 +278,7 @@ def _hierarchy_attachments(
     return _HierarchyAttachments(
         features_by_component=features_by_component,
         lineages_by_component=lineages_by_component,
+        components_by_feature=_components_by_feature(lineages_by_component),
         ambiguous_component_ids=frozenset(ambiguous),
         unattached_count=unattached_count,
         multiple_attachment_count=multiple_attachment_count,
@@ -344,16 +346,33 @@ def _isolated_sibling_feature_pairs(
     return tuple(sorted(pairs, key=lambda item: tuple(sorted(item))))
 
 
+def _components_by_feature(
+    lineages_by_component: Mapping[str, tuple[str, ...]],
+) -> dict[str, frozenset[str]]:
+    """Index each feature's components: those whose lineage holds it."""
+    components: dict[str, set[str]] = {}
+    for component_id, lineage in lineages_by_component.items():
+        for feature_id in lineage:
+            components.setdefault(feature_id, set()).add(component_id)
+    return {
+        feature_id: frozenset(component_ids)
+        for feature_id, component_ids in components.items()
+    }
+
+
 def _components_for_feature_group(
     feature_ids: frozenset[str],
     attachments: _HierarchyAttachments,
 ) -> frozenset[str]:
-    """Map one feature group to unambiguous attached direct components."""
-    return frozenset(
-        component_id
-        for component_id, lineage in attachments.lineages_by_component.items()
-        if component_id not in attachments.ambiguous_component_ids
-        and not feature_ids.isdisjoint(lineage)
+    """Map one feature group to unambiguous attached direct components.
+
+    Only unambiguous components have a lineage, so the index holds no other.
+    """
+    return frozenset[str]().union(
+        *(
+            attachments.components_by_feature.get(feature_id, frozenset())
+            for feature_id in feature_ids
+        )
     )
 
 
@@ -933,12 +952,10 @@ def _hierarchy_groups(
         feature_index,
         key=lambda item: (feature_index[item][0], item),
     ):
-        members = {
-            component_id
-            for component_id in unassigned
-            if feature_id
-            in attachments.lineages_by_component.get(component_id, ())
-        }
+        members = (
+            attachments.components_by_feature.get(feature_id, frozenset())
+            & unassigned
+        )
         if len(members) < _MINIMUM_SOURCE_MEMBERS:
             continue
         corroborated = feature_id in parents_by_id or all(

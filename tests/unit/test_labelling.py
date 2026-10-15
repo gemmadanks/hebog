@@ -6,6 +6,7 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 
+from hebog.algorithms import reconciliation as reconciliation_module
 from hebog.algorithms.detection import detect_threshold_masks
 from hebog.algorithms.labelling import LocalIslandTile, label_detection_tile
 from hebog.algorithms.partitioning import plan_image_partitions
@@ -189,6 +190,42 @@ def test_side_and_four_tile_corner_connections_reconcile_once() -> None:
         _mask_from_tiles(manifest, tiles, reconciliation),
         normalized >= 3.0,
     )
+
+
+def test_each_seam_is_reconciled_once_however_deep_the_tree(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A round joins two halves through the seams between them alone.
+
+    Reconciling every seam of the merged tiles at every round made the tree
+    cost the seams times its depth. A 4-by-4 grid has 12 side seams across
+    and 12 down, each compared along three aligned relations.
+    """
+    normalized = np.zeros((12, 12), dtype=np.float64)
+    normalized[1::3, :] = 6.0
+    normalized[:, 1::3] = 6.0
+    manifest, tiles = _label_tiles(normalized, tile_shape_yx=(3, 3))
+    whole_manifest, whole_tiles = _label_tiles(
+        normalized, tile_shape_yx=(12, 12)
+    )
+    compared = 0
+    positive_pairs = reconciliation_module._positive_pairs  # pyright: ignore[reportPrivateUsage]
+
+    def counted(
+        first: npt.NDArray[np.int32], second: npt.NDArray[np.int32]
+    ) -> tuple[tuple[int, int], ...]:
+        nonlocal compared
+        compared += 1
+        return positive_pairs(first, second)
+
+    monkeypatch.setattr(reconciliation_module, "_positive_pairs", counted)
+
+    reconciliation = reconcile_island_tiles(manifest, tiles, _config())
+
+    assert compared == 3 * (12 + 12)
+    assert reconciliation.reduction_round_count == 4
+    whole = reconcile_island_tiles(whole_manifest, whole_tiles, _config())
+    assert reconciliation.islands == whole.islands
 
 
 def test_partition_shape_origin_and_result_order_preserve_islands() -> None:
