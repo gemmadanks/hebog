@@ -65,7 +65,10 @@ one atomic file per written chunk.
 The next gains are structural rather than kernel-level. On large fields about
 half the run is background and RMS, and source association grows faster than
 the image (1, 82 and 479 s for 659, 7,146 and 16,084 sources, about the 2.2
-power); the plan's tasks 54 to 56 address both.
+power). Task 74 batched background refinement coarsely and task 55 made the
+association's hierarchy decision linear, which together took the whole
+15,402² mosaic from 5,032 s to 3,783 s on one Dask worker; the plan's tasks
+54 and 56 address the rest.
 
 The generated-ladder cost model is
 `fixed + a·megapixels + b·components + c·megapixels·components`; the last
