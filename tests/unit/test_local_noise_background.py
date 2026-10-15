@@ -417,7 +417,12 @@ def test_local_noise_is_not_estimated_without_a_coarse_estimate(
     assert np.isnan(tile.rms).all()
 
 
-def test_local_noise_contexts_are_bounded_and_execution_invariant() -> None:
+def test_local_noise_contexts_are_bounded_and_execution_invariant(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # The pilot's tasks read one square of batches each, which would be
+    # this whole image at the production width.
+    monkeypatch.setattr(background_stage, "_SOURCE_READ_SIDE_PIXELS", 64)
     yy, xx = np.mgrid[:320, :384]
     image = np.where((yy + xx) % 2, -1.0, 1.0) * np.where(xx < 160, 1, 2)
     image += 20 * np.exp(-0.5 * ((yy - 100) ** 2 + (xx - 200) ** 2) / 5**2)
@@ -447,8 +452,9 @@ def test_local_noise_contexts_are_bounded_and_execution_invariant() -> None:
         )
         assert grids.local_noise is not None
         results.append(grids.local_noise)
-        # Neither pilot nor protection reads a complete image; filter/context
-        # halos are bounded by the scientific window sizes, not image size.
+        # Neither pilot nor protection reads a complete image: the pilot's
+        # reads are bounded by its squares, and the filter and context halos
+        # by the scientific window sizes, not the image size.
         assert max(max(bounds.shape_yx) for bounds in source.bounds) < min(
             image.shape
         )
