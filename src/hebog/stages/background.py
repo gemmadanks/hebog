@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from functools import partial
-from itertools import islice
+from itertools import chain, islice
 from math import ceil, floor, isfinite, prod
 from typing import Literal, cast
 
@@ -21,10 +21,12 @@ from hebog.algorithms.background import (
     RmsGridGeometry,
     RmsGridStatistics,
     RmsWindowBatch,
+    RmsWindowBatchGroup,
     RmsWindowStatistics,
     assemble_rms_grid_statistics,
     blend_adaptive_background_rms,
     estimate_rms_grid_batch,
+    group_rms_window_batches,
     interpolate_prepared_rms_grid,
     plan_rms_grid,
     plan_rms_window_batches,
@@ -85,6 +87,19 @@ _PROTECTED_BYTES_PER_READ_PIXEL = 272
 # No anchor retired a bright candidate, so this round takes the cost of
 # the source batches, which read the same input.
 _CANDIDATE_SUPPORT_BYTES_PER_READ_PIXEL = 152
+# One task estimates the window batches whose reads start in one square this
+# wide, from one read of their union, running the kernel a batch at a time,
+# which bounds its memory. One task a batch spent more on overhead than on
+# work: on the 10,000-pixel anchor the fine pilot's 32-cell batches made
+# 69,150 tasks of 2 ms on a thread, and under Dask each also opened and
+# validated the FITS file again, about 6 ms, since a task's source arrives
+# unopened, and waited about 3 ms on the scheduler (plan task 73). A square
+# holds about 180 fine batches, so a task's overhead is a few per cent, the
+# anchor still has hundreds of tasks for the workers, and each pixel is read
+# about once rather than three times. The batches' cost per read pixel above
+# still bounds a group's: it adds the reads, which cost the same per pixel,
+# and one batch's kernel, which is no larger than the group.
+_SOURCE_READ_SIDE_PIXELS = 512
 
 
 @dataclass(frozen=True, slots=True)
@@ -256,29 +271,46 @@ def _filter_read_bounds(
     )
 
 
-def _estimate_source_batch(
-    batch: RmsWindowBatch,
+def _estimate_source_batches(
+    group: RmsWindowBatchGroup,
     *,
     source: WindowReadable,
     grid: RmsGridGeometry,
     config: RmsGridConfig,
-) -> RmsGridBatchStatistics:
-    """Read one bounded source block before applying the pure batch kernel."""
-    image_window = source.read_window(batch.read_bounds)
-    if image_window.bounds != batch.read_bounds:
+) -> tuple[RmsGridBatchStatistics, ...]:
+    """Read one group's window, then apply the pure kernel to each batch.
+
+    A source gives a pixel the same value and validity however large the
+    window that holds it, so each batch sees exactly what its own read would.
+    """
+    bounds = group.read_bounds
+    image_window = source.read_window(bounds)
+    if image_window.bounds != bounds:
         raise ValueError("image source returned different window bounds")
     if (
-        image_window.values.shape != batch.read_bounds.shape_yx
-        or image_window.valid_pixels.shape != batch.read_bounds.shape_yx
+        image_window.values.shape != bounds.shape_yx
+        or image_window.valid_pixels.shape != bounds.shape_yx
     ):
         raise ValueError("image source returned a misaligned window")
-    return estimate_rms_grid_batch(
-        np.asarray(image_window.values),
-        np.asarray(image_window.valid_pixels),
-        grid,
-        batch,
-        config.statistics,
-    )
+    values = np.asarray(image_window.values)
+    valid_pixels = np.asarray(image_window.valid_pixels)
+    results: list[RmsGridBatchStatistics] = []
+    for batch in group.batches:
+        read = batch.read_bounds
+        selection = (
+            slice(read.y_start - bounds.y_start, read.y_stop - bounds.y_start),
+            slice(read.x_start - bounds.x_start, read.x_stop - bounds.x_start),
+        )
+        results.append(
+            estimate_rms_grid_batch(
+                values[selection],
+                valid_pixels[selection],
+                grid,
+                batch,
+                config.statistics,
+            )
+        )
+    return tuple(results)
 
 
 def estimate_rms_grid(
@@ -287,26 +319,33 @@ def estimate_rms_grid(
     config: RmsGridConfig,
     executor: Executor,
 ) -> RmsGridStatistics:
-    """Estimate one complete coarse grid through bounded executor batches."""
-    batches = plan_rms_window_batches(
-        grid,
-        maximum_cells=config.maximum_batch_cells,
+    """Estimate one complete coarse grid through bounded executor batches.
+
+    One task estimates the batches whose reads start in one square of
+    ``_SOURCE_READ_SIDE_PIXELS``, from one read.
+    """
+    groups = group_rms_window_batches(
+        plan_rms_window_batches(
+            grid,
+            maximum_cells=config.maximum_batch_cells,
+        ),
+        read_side_pixels=_SOURCE_READ_SIDE_PIXELS,
     )
-    estimate_batch = partial(
-        _estimate_source_batch,
+    estimate_batches = partial(
+        _estimate_source_batches,
         source=source,
         grid=grid,
         config=config,
     )
     results = executor.map_batches(
-        estimate_batch,
-        batches,
+        estimate_batches,
+        groups,
         requirement=read_requirement(
             _SOURCE_BATCH_BYTES_PER_READ_PIXEL,
-            (batch.read_bounds for batch in batches),
+            (group.read_bounds for group in groups),
         ),
     )
-    return assemble_rms_grid_statistics(grid, results)
+    return assemble_rms_grid_statistics(grid, chain.from_iterable(results))
 
 
 def _use_constant_map(

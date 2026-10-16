@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from math import isfinite, isqrt
 from numbers import Integral
@@ -242,6 +243,56 @@ def plan_rms_window_batches(
                 )
             )
     return tuple(batches)
+
+
+@dataclass(frozen=True, slots=True)
+class RmsWindowBatchGroup:
+    """Neighbouring window batches estimated from one read of their union."""
+
+    batches: tuple[RmsWindowBatch, ...]
+    read_bounds: ImageBounds
+
+
+def group_rms_window_batches(
+    batches: Sequence[RmsWindowBatch],
+    *,
+    read_side_pixels: int,
+) -> tuple[RmsWindowBatchGroup, ...]:
+    """Group batches whose reads start in the same square of the image.
+
+    The squares are ``read_side_pixels`` wide from the image origin. A
+    group's read is the union of its batches' reads, which tile a
+    rectangle of the grid, so it is at most one batch read wider than the
+    square along each axis. Groups follow the raster order of their
+    squares, and batches keep their order within a group. The cells a
+    batch estimates come from its own windows only, so grouping changes
+    the reads and the tasks, never a statistic.
+    """
+    if (
+        isinstance(read_side_pixels, bool)
+        or not isinstance(read_side_pixels, Integral)
+        or read_side_pixels < 1
+    ):
+        raise ValueError("read_side_pixels must be a positive integer")
+    squares: dict[tuple[int, int], list[RmsWindowBatch]] = {}
+    for batch in batches:
+        square = (
+            batch.read_bounds.y_start // read_side_pixels,
+            batch.read_bounds.x_start // read_side_pixels,
+        )
+        squares.setdefault(square, []).append(batch)
+    return tuple(
+        RmsWindowBatchGroup(
+            batches=tuple(members),
+            read_bounds=ImageBounds(
+                min(batch.read_bounds.y_start for batch in members),
+                max(batch.read_bounds.y_stop for batch in members),
+                min(batch.read_bounds.x_start for batch in members),
+                max(batch.read_bounds.x_stop for batch in members),
+            ),
+        )
+        for _, members in sorted(squares.items())
+    )
 
 
 def _require_canonical_batch(

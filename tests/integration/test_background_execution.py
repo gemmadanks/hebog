@@ -13,6 +13,8 @@ from distributed import Client
 
 from hebog.algorithms.background import (
     BackgroundRmsTile,
+    RmsWindowBatch,
+    RmsWindowBatchGroup,
     interpolate_prepared_rms_grid,
 )
 from hebog.algorithms.component_measurement import (
@@ -36,6 +38,7 @@ from hebog.config import (
 from hebog.data_models import ImageBounds
 from hebog.executors import DaskExecutor, Executor, SerialExecutor
 from hebog.io.base import ImageWindow
+from hebog.stages import background as background_stage
 from hebog.stages.background import (
     BackgroundRmsGrids,
     MultiscaleSourceProtection,
@@ -334,11 +337,28 @@ def test_zero_noise_region_admission_matches_existing_dask(
 )
 @pytest.mark.parametrize("protect_coarse", (False, True))
 def test_dask_and_serial_background_stages_are_equivalent(
+    monkeypatch: pytest.MonkeyPatch,
     multiscale: bool,
     protect_coarse: bool,
     local_noise: bool,
 ) -> None:
     """Executor choice does not alter grids or owned tile outputs."""
+    # Squares this narrow split the grids' window batches into several
+    # tasks, as the production width does on a large image.
+    monkeypatch.setattr(background_stage, "_SOURCE_READ_SIDE_PIXELS", 16)
+    group_counts: list[int] = []
+    group = background_stage.group_rms_window_batches
+
+    def counted_groups(
+        batches: tuple[RmsWindowBatch, ...], *, read_side_pixels: int
+    ) -> tuple[RmsWindowBatchGroup, ...]:
+        groups = group(batches, read_side_pixels=read_side_pixels)
+        group_counts.append(len(groups))
+        return groups
+
+    monkeypatch.setattr(
+        background_stage, "group_rms_window_batches", counted_groups
+    )
     y, x = np.indices((40, 44), dtype=np.float64)
     image = 1.0 + 0.01 * y + np.where((x + y) % 2 == 0, -1.0, 1.0)
     image[15:26, 17:28] *= 4.0
@@ -378,6 +398,7 @@ def test_dask_and_serial_background_stages_are_equivalent(
 
     serial_grids = grids_for_executor(SerialExecutor())
     assert (serial_grids.coarse_protected_pixel_count > 0) == protect_coarse
+    assert max(group_counts) > 1
 
     with Client(
         processes=False,
