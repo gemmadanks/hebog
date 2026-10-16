@@ -14,8 +14,8 @@ alone; LSMTool's `master` had not moved:
 | PyBDSF | `master` at `c70103b` | The binding scientific and performance reference |
 
 The pins move forward only at the points the plan names: before the
-Rapthor patch (task 20), before the matched benchmarks (task 23) and at the
-freeze (task 28). The page fixes what must be tested without requiring
+Rapthor patch is published (task 79), before the matched benchmarks
+(task 23) and at the freeze (task 28). The page fixes what must be tested without requiring
 Hebog to copy PyBDSF internals, and a compatibility observation here is not
 a scientific endorsement.
 

@@ -13,7 +13,7 @@ none is scientific qualification. User-facing limits are in
 
 ## At a glance
 
-| 1.0.0 goal | Target | Position on 15 October 2026 | Status |
+| 1.0.0 goal | Target | Position on 16 October 2026 | Status |
 | --- | --- | --- | --- |
 | Telescopes | Standard FITS continuum images from any telescope under a documented header contract, validated first on LOFAR, SKA-Low and SKA-Mid | The [input header contract](input-header-contract.md) is defined and tested. LOFAR (LoTSS-DR3 and LoTSS-DR2) and SKA-Mid (SDC1 simulation) images run, and the LOFAR-HD mosaics are the next scale tiers; SKA-Low has no public image, so MWA GLEAM-X precursor data is planned. A beam wider than 10 pixels is refused; every real Rapthor image in the archived cluster runs is at most about 7 pixels, and only Rapthor's synthetic demonstration sector (30 pixels) exceeds the limit. A position-dependent PSF is undecided (task 15). | In progress |
 | Functionality | A feature-flagged backend for Rapthor's `filter_skymodel` at pinned Rapthor and LSMTool revisions | A complete standalone finder under Serial, Thread and caller-owned Dask executors, and the in-process Rapthor adapter: `hebog.adapters.find_sector_sources` runs a sector's true-sky and flat-noise images on the caller's executor and writes the files Rapthor's `filter_skymodel` step reads, by default with the `compact` profile and a zero background, Rapthor's choice from task 21, and pinned LSMTool's `filter_sources` filters by its mask as the mask decides, on the LoTSS-Deep DR2 ELAIS-N1 pair: its central 5,000² under all three executors with byte-identical products, and the full 14,175² sector's serial products. All 12 frozen public behaviours are implemented. A local Rapthor patch calls the adapter in-process with a ThreadExecutor, memory admission, typed PyBDSF fallback and dual runs, tested through its real Prefect task on a single-threaded Dask worker. | Patch prepared; upstream publication and merge pending |
@@ -259,28 +259,30 @@ readiness.
 
 ## Blockers and next steps
 
-The largest risks to 1.0.0 are the performance gap, the retained/rejected
-agreement gap, the traced peak's growth with the image, the wide-object driver term, the development machine's
-memory and disk, and SKA-Low coverage without public SKA-Low images.
+The largest risks to 1.0.0 are the performance gap, the form of the
+retained/rejected agreement gate, memory that grows with the image and the
+sources found, the wide-object driver term, the development machine's
+memory, disk and container VM, SKA-Low coverage without public SKA-Low
+images, upstream churn and cluster availability. The plan's
+[decisions pending](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md#decisions-pending)
+list what the maintainer has still to decide, each with a recommendation.
 
-The next actions, as the plan orders them on 15 October:
+The next actions, as the plan orders them on 16 October:
 
-1. Agent: one sector across the cluster. Fit Hebog's tasks to Rapthor's
-   workers (task 72), sizing workers by the memory a core needs as well as
-   by cores; then the 22,500² tier (tasks 56 and 11), since Rapthor's usual
-   sector is 17,000 to 20,000 pixels a side. The agreement check's truth measures
-   (task 76) may run alongside.
-2. Human: merge the stack of tasks 73, 74, 71, 55 and 54, add PyPI's
-   Trusted Publisher and merge the switch to PyPI, then the 0.22.0
-   release, whose check passed on 15 October (task 13); then publish/review the prepared Rapthor
-   patch. It targets Rapthor's `main` at `d0e7e148`, the pin since task
-   23's checkpoint, defaults to task 21's `compact` profile with a zero
-   background, and needs that release, the first carrying
-   `hebog.expected_source_count`.
+1. Agent: read the production-size screening pair and the like-for-like
+   ELAIS-N1 run (task 78, overnight on 16 to 17 October) and apply its
+   rule; add the truth measures to the agreement check (task 76); raise
+   the 22,500² tier unattended (task 11); then one sector across the
+   cluster (task 72), sizing tiles and task counts from the core budget
+   and the memory a core needs, in four increments that each release.
+2. Human: add PyPI's Trusted Publisher, merge the stack and the 0.22.0
+   release (task 13); publish the prepared Rapthor patch upstream with the
+   Rapthor and LSMTool pins moved (task 79); file the Astropy report
+   drafted on 5 October; take the pending decisions.
 3. Agent: the deployment envelope and the gate (tasks 22 and 23), on one
    node; one sector across several nodes is measured by the cluster
-   benchmark. Scientific improvements (tasks 15 and 68) wait until this
-   work is complete unless an output is confirmed incorrect.
+   benchmark. Scientific improvements (tasks 75, 68 and 15) wait until
+   this work is complete unless an output is confirmed incorrect.
 
 ## Keeping this page current
 
