@@ -112,7 +112,7 @@ index d709cfc6..cbb3aa70 100644
 +------------------------------------------
 +
 +Install the optional ``rapthor[hebog]`` dependency on Python 3.12 or newer,
-+using an exact Hebog 0.22.x wheel (currently distributed on TestPyPI). Set
++using an exact Hebog 0.22.x release from PyPI. Set
 +``source_finder = hebog`` in ``[imaging]``. PyBDSF remains the default and
 +runs in its existing subprocess; Hebog runs inside the Prefect filter task.
 +

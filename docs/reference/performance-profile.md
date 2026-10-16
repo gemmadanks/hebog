@@ -86,7 +86,8 @@ reports the process peak (traced from before Hebog is imported), the peak of
 the `find_sources` call alone and the import floor, a fixed 90.4 MiB that a
 tracer started after the imports cannot see. Measured 26 to 30 September
 2026, two agreeing repetitions each, and the whole mosaic once more in the
-0.19.0 release check of 8 October (`LOG.md` names the runs):
+0.19.0 and 0.22.0 release checks of 8 and 15 October (`traced-peak` runs
+`release-0.19.0` and `release-0.22.0`):
 
 | case | pixels per side | traced peak | components |
 | --- | --- | --- | --- |
@@ -101,6 +102,7 @@ tracer started after the imports cannot see. Measured 26 to 30 September
 | generated wide objects | 10,000 | 1,447.7 MiB | 10 |
 | LoTSS-DR3 whole mosaic | 15,402 | 1,698.2 MiB | 20,661 |
 | LoTSS-DR3 whole mosaic, 0.19.0 release check (one repetition) | 15,402 | 1,692.5 MiB | 20,792 |
+| LoTSS-DR3 whole mosaic, 0.22.0 release check (one repetition) | 15,402 | 1,692.6 MiB | 20,794 |
 
 Three things matter more than the exact figures.
 

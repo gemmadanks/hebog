@@ -1,26 +1,25 @@
-# Publish releases to TestPyPI
+# Publish releases to PyPI
 
 Release Please publishes each release through
-`.github/workflows/release-please.yaml`. Uploads go to
-[TestPyPI](https://test.pypi.org/project/hebog/), not PyPI, while the public
-envelope is 15,402 pixels a side: that exercises the complete release path
-without presenting Hebog as ready for general installation, and the
-installable artifact for users is the tagged GitHub release. The plan's task
-13 moves uploads to PyPI.
+`.github/workflows/release-please.yaml` to
+[PyPI](https://pypi.org/project/hebog/). Releases up to 0.21.0 went to
+TestPyPI only; from 0.22.0 they go to PyPI, still as experimental `0.x`
+releases with an alpha classifier, so that Rapthor's optional Hebog
+dependency installs from the usual index and the name is held (plan task 13,
+decision of 15 October 2026).
 
 ## Configure Trusted Publishing once
 
-1. In the repository's **Settings → Environments**, create `testpypi`,
+1. In the repository's **Settings → Environments**, create `pypi`,
    restrict its deployment branches to `main` (the workflow runs from `main`
    although it checks out the released commit) and leave required reviewers
    unset.
-2. TestPyPI accounts are separate from PyPI accounts. Add a pending publisher
-   in your
-   [account Publishing settings](https://test.pypi.org/manage/account/publishing/)
-   or, if the `hebog` project already exists under your control, in its
-   [Publishing settings](https://test.pypi.org/manage/project/hebog/settings/publishing/).
+2. Add a pending publisher in your PyPI
+   [account Publishing settings](https://pypi.org/manage/account/publishing/)
+   or, once the `hebog` project exists, in its
+   [Publishing settings](https://pypi.org/manage/project/hebog/settings/publishing/).
    A pending publisher creates the project on the first upload; it does not
-   reserve the name.
+   reserve the name, so publish the first release soon after adding it.
 3. Choose GitHub Actions and enter these values. No token is needed: GitHub
    supplies a short-lived identity token to the publishing job.
 
@@ -30,12 +29,13 @@ installable artifact for users is the tagged GitHub release. The plan's task
    | Repository owner | `gemmadanks` |
    | Repository name | `hebog` |
    | Workflow filename | `release-please.yaml` |
-   | Environment name | `testpypi` |
+   | Environment name | `pypi` |
 
-PyPI's instructions for
+PyPI's instructions cover
 [existing projects](https://docs.pypi.org/trusted-publishers/adding-a-publisher/)
-and [pending publishers](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/)
-apply unchanged to TestPyPI.
+and [pending publishers](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/).
+The `testpypi` environment and TestPyPI publisher are no longer used and can
+be deleted.
 
 ## Publish a release
 
@@ -56,23 +56,17 @@ their `x-release-please` markers; never edit those versions by hand.
 After the merge, Release Please creates the tag and GitHub release; a build
 job checks out the released commit, runs `uv build --no-sources` and keeps
 the wheel and source distribution as the `pypi-distributions` artifact; and
-the `testpypi` job uploads that artifact with the PyPA publishing action, its
+the `pypi` job uploads that artifact with the PyPA publishing action, its
 metadata checks and default attestations. A build or upload failure leaves
-the GitHub release in place. Check the **publish-testpypi** job and the
-TestPyPI project page afterwards. `bump-minor-pre-major` keeps breaking
-changes on minor bumps below 1.0.0.
-
-To check a TestPyPI upload, download it from TestPyPI alone and install the
-file so that its dependencies resolve from PyPI, which TestPyPI does not
-mirror. Never combine the indexes with `--extra-index-url`: pip may then
-prefer a same-named PyPI project, which the pending publisher does not
-reserve.
+the GitHub release in place. Check the **publish-pypi** job and the PyPI
+project page afterwards, then install the release into a fresh environment.
+`bump-minor-pre-major` keeps breaking changes on minor bumps below 1.0.0.
 
 <!-- x-release-please-start-version -->
 
 ```console
-pip download --index-url https://test.pypi.org/simple/ --no-deps hebog==0.21.0
-pip install ./hebog-0.21.0
+pip install hebog==0.21.0
+hebog --version
 ```
 
 <!-- x-release-please-end -->
@@ -83,19 +77,8 @@ For a build or publisher-configuration failure, fix the cause and choose
 **Re-run failed jobs** on the original run, which keeps the release identity;
 re-running every job or pushing another commit may find no new release and
 skip publication. If a code change is needed, prepare a new release and never
-move the tag. If an upload partially succeeded, compare the TestPyPI file
-hashes with the retained artifact first: an uploaded file cannot be
+move the tag. If an upload partially succeeded, compare the PyPI file hashes
+with the retained artifact first: an uploaded file cannot be
 overwritten, so recover only the missing files from the original artifact
 through a maintainer-reviewed upload, or release a new version. Never delete
 and recreate a tag to retry an upload.
-
-## Move to PyPI
-
-Add the PyPI Trusted Publisher and GitHub environment with the same values,
-rename the `publish-testpypi` job and its environment to `pypi` in the
-workflow, point the environment URL at `https://pypi.org/project/hebog/`,
-remove the publishing step's `repository-url`, and update the installation
-instructions in `README.md`, the installation page and the
-[release status](../reference/release-status.md) in the same change. A
-version already on TestPyPI can be uploaded to PyPI unchanged; the indexes
-are independent.
