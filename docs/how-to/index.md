@@ -354,15 +354,31 @@ process creation and shutdown.
 
 `summary.json` under `benchmark-results/profiles/runs/<label>/` fits each
 stage on the ladder as a fixed cost plus a cost per megapixel and per fitted
-component. `--dask-workers N` runs the cases on a process-based local Dask
-cluster and matches Dask's task stream against each stage, so a stage with a
-long driver wall time and low worker occupancy is waiting on the driver.
-A Dask worker normally shifts its task times by a heartbeat estimate of its
-clock's offset from the scheduler's, which on one host is estimation error
-alone, up to about 0.3 s while the driver is busy; the profile's workers
-share the driver's clock and keep that offset at zero, so tasks are matched
-to stage calls on the clock that timed them, and occupancy never counts more
-workers busy than there are. To profile one input outside the configured cases, run
+component. `--threads N` runs the cases on a thread executor and
+`--dask-workers N` on a process-based local Dask cluster of single-threaded
+workers; `--memory-budget-bytes` is the memory admitted to tasks, split
+evenly into the Dask workers' memory limits. Those limits are what Hebog
+admits tasks by: Dask's spilling, pausing and restarting are off, since
+Hebog's workers hold no data between tasks. Stages are timed on the
+driver's thread, and every task times itself where it runs and counts the
+Zarr chunks it reads and writes (`hebog.validation.task_recording`), so
+each stage reports its tasks, the share of the workers they kept busy, the
+time no task ran and its Zarr I/O, and each round its tasks, under every
+executor. A stage with long idle time is waiting on the driver.
+
+`just profile-scaling --label <label> --memory-budget-bytes <bytes>` runs
+the cases in `config/benchmarks/sector-scaling-profile.json`, the 10,000²
+anchor and the whole 15,402² mosaic, at each of `--thread-workers` and
+`--dask-workers` (1, 2, 4, 8 and 12 by default; none skips the executor),
+on `--thread-cases` and `--dask-cases` (every case by default), within one
+budget, resuming where an interrupted sweep stopped. Its `scaling.json`
+reports each curve's speedup, its serial share as an Amdahl fit, each
+stage's parallel efficiency and serial seconds, and each round's task-time
+inflation; a run whose Dask workers' share of the budget admits no task of
+the largest round is recorded as refused. Plan task 73's sweep, Dask at
+every count on both cases and threads at 1 and 12 on the anchor, takes
+about five hours on the development machine. To profile one
+input outside the configured cases, run
 `scripts/benchmark/profile_complete_execution_worker.py` directly with
 `--input`, `--settings` and `--result`. A profile ranks costs; only the quick
 benchmark establishes a speedup.

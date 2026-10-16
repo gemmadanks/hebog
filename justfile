@@ -94,6 +94,10 @@ quick-benchmark *args:
 profile-execution *args:
     uv run python scripts/benchmark/profile_complete_execution.py {{args}}
 
+# Profile one sector's run across thread and Dask worker counts (task 73)
+profile-scaling *args:
+    uv run python scripts/benchmark/profile_scaling.py {{args}}
+
 # Measure the deterministic traced-allocation peak that gates envelope raises
 traced-peak *args:
     uv run python scripts/benchmark/measure_traced_peak.py {{args}}

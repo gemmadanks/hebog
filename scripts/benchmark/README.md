@@ -302,10 +302,15 @@ is the single-thread process it starts for each case, and
 `build_profile_datasets.py` writes the generated size and density ladder. The
 timing, stage splitting and cost model live in
 `hebog.validation.execution_profile`, with unit tests in
-`tests/unit/validation/test_execution_profile.py`. The
+`tests/unit/validation/test_execution_profile.py`.
+`hebog.validation.task_recording` times every task where it runs, under the
+serial, thread or Dask executor. `profile_scaling.py` runs one sector at
+several thread and Dask worker counts and summarises the curves with
+`hebog.validation.scaling_profile`. The
 [development workflow guide](../../docs/how-to/index.md#profile-complete-execution)
 describes the cases and outputs:
 
 ```console
 just profile-execution --label <label> --cprofile
+just profile-scaling --label <label> --memory-budget-bytes 16000000000
 ```
