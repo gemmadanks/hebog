@@ -22,7 +22,7 @@ from hebog import public_api
 from hebog.algorithms import astrometry
 from hebog.data_models import ImageBounds
 from hebog.data_models.images import CelestialWcs, ImageMetadata, RestoringBeam
-from hebog.science import catalogues
+from hebog.science import segment_rows
 from hebog.validation import public_measurement_projection
 from hebog.validation.comparison import CatalogueSource
 
@@ -92,7 +92,7 @@ def test_source_aperture_positions_are_icrs(frame: str) -> None:
     header = _header(frame)
     image = np.zeros((25, 33))
     image[11:14, 15:18] = 5
-    rows = catalogues.build_hebog_segment_catalogue(
+    rows = segment_rows.build_hebog_segment_catalogue(
         image,
         np.zeros_like(image),
         np.ones_like(image, dtype=bool),

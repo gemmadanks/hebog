@@ -6,13 +6,17 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import TypeVar, cast
 
 import numpy as np
 import numpy.typing as npt
 import pytest
+from conftest import (
+    DropNthMapExecutor,
+    EmptyExecutor,
+    ReverseCompletionExecutor,
+)
 from distributed import Client
 from scipy.ndimage import label as ndimage_label
 
@@ -31,7 +35,6 @@ from hebog.executors import (
     DaskExecutor,
     Executor,
     SerialExecutor,
-    TaskRequirement,
     ThreadExecutor,
 )
 from hebog.io.zarr import ZarrProductSink
@@ -63,39 +66,6 @@ _HIGH_SNR = 8.0
 _WEAK_SNR = 4.0
 # Wide enough that the recovery radius reaches across the gap between owners.
 _TAILED_BEAM = BeamShapePixels(4.0, 4.0, 0.0)
-
-
-class _ReverseCompletionExecutor(SerialExecutor):
-    """Return completed task records in reverse order."""
-
-    def map_batches(
-        self,
-        function: Callable[[_Input], _Output],
-        batches: Iterable[_Input],
-        *,
-        requirement: TaskRequirement | None = None,
-    ) -> list[_Output]:
-        """Evaluate canonically but expose reverse completion order."""
-        return list(
-            reversed(
-                super().map_batches(function, batches, requirement=requirement)
-            )
-        )
-
-
-class _EmptyExecutor(SerialExecutor):
-    """Drop every submitted result for fail-closed executor testing."""
-
-    def map_batches(
-        self,
-        function: Callable[[_Input], _Output],
-        batches: Iterable[_Input],
-        *,
-        requirement: TaskRequirement | None = None,
-    ) -> list[_Output]:
-        """Return no result without evaluating work."""
-        del function, batches, requirement
-        return []
 
 
 def _planes() -> tuple[
@@ -437,7 +407,7 @@ def test_publication_stage_is_partition_and_executor_invariant(
             SerialExecutor(),
             _config(maximum_batch_read_pixels=1),
         ),
-        ("reverse", _CORE, _ReverseCompletionExecutor(), _config()),
+        ("reverse", _CORE, ReverseCompletionExecutor(), _config()),
     ]
     for name, core, executor, config in variants:
         _, sink = _run(
@@ -536,7 +506,7 @@ def test_publication_stage_fails_closed_on_a_silent_executor(
 ) -> None:
     """A dropped result is never published as a complete generation."""
     with pytest.raises(ValueError, match="no owner-decision results"):
-        _run(tmp_path / "run", executor=_EmptyExecutor())
+        _run(tmp_path / "run", executor=EmptyExecutor())
 
 
 @pytest.mark.parametrize(
@@ -563,29 +533,6 @@ def test_publication_stage_rejects_invalid_configuration(
         )
 
 
-class _DropNthMapExecutor(SerialExecutor):
-    """Complete every round but one, to prove each fails closed."""
-
-    def __init__(self, dropped_round: int) -> None:
-        """Count maps so one chosen round can return nothing."""
-        super().__init__()
-        self._dropped_round = dropped_round
-        self._call_count = 0
-
-    def map_batches(
-        self,
-        function: Callable[[_Input], _Output],
-        batches: Iterable[_Input],
-        *,
-        requirement: TaskRequirement | None = None,
-    ) -> list[_Output]:
-        """Run every round except the chosen one."""
-        self._call_count += 1
-        if self._call_count == self._dropped_round:
-            return []
-        return super().map_batches(function, batches, requirement=requirement)
-
-
 @pytest.mark.parametrize(
     "dropped_round, message",
     [
@@ -604,7 +551,7 @@ def test_every_round_fails_closed_on_a_silent_executor(
     with pytest.raises(ValueError, match=message):
         _run(
             tmp_path / f"round-{dropped_round}",
-            executor=_DropNthMapExecutor(dropped_round),
+            executor=DropNthMapExecutor(dropped_round),
         )
 
 
@@ -1081,7 +1028,7 @@ def test_a_tailed_owner_is_restored_and_published_in_one_part(
 
     check("one-tile", 80, SerialExecutor(), 8192)
     check("cores-21", 21, SerialExecutor(), 8192)
-    check("cores-24-reverse", 24, _ReverseCompletionExecutor(), 8192)
+    check("cores-24-reverse", 24, ReverseCompletionExecutor(), 8192)
     check("from-cores", 21, SerialExecutor(), 1)
     with ThreadExecutor(2) as threads:
         check("threads", 21, threads, 8192)
@@ -1162,7 +1109,7 @@ def test_support_apart_from_an_owner_is_neither_measured_nor_published_for_it(
 
     check("one-tile", 80, SerialExecutor(), 8192)
     check("cores-21", 21, SerialExecutor(), 8192)
-    check("cores-24-reverse", 24, _ReverseCompletionExecutor(), 8192)
+    check("cores-24-reverse", 24, ReverseCompletionExecutor(), 8192)
     check("from-cores", 21, SerialExecutor(), 1)
     with ThreadExecutor(2) as threads:
         check("threads", 21, threads, 8192)
@@ -1258,7 +1205,7 @@ def test_every_wide_owner_round_fails_closed_on_a_silent_executor(
     with pytest.raises(ValueError, match=message):
         _run(
             tmp_path / "run",
-            executor=_DropNthMapExecutor(dropped_round),
+            executor=DropNthMapExecutor(dropped_round),
             config=_config(maximum_batch_read_pixels=1),
         )
 
@@ -1293,4 +1240,6 @@ def test_an_owner_window_wider_than_the_budget_is_never_batched() -> None:
     )
 
     with pytest.raises(ValueError, match="wider than the read budget"):
-        _owner_batches((wide,), maximum_batch_read_pixels=8)
+        _owner_batches(
+            (wide,), core_shape_yx=(16, 16), maximum_batch_read_pixels=8
+        )

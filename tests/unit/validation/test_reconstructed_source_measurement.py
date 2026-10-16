@@ -13,17 +13,19 @@ import pytest
 from astropy.io import fits  # pyright: ignore[reportMissingTypeStubs]
 from astropy.wcs import WCS  # pyright: ignore[reportMissingTypeStubs]
 
+from hebog.algorithms.component_records import (
+    build_detection_component_records,
+)
 from hebog.algorithms.extended_measurement import (
     assign_persistent_source_support,
 )
+from hebog.algorithms.feature_envelopes import summarize_hierarchy_overlaps
 from hebog.algorithms.multiscale_association import (
     ScaleDetectionPlane,
     persistent_adjacent_scale_support,
 )
 from hebog.algorithms.source_association import (
     associate_from_hierarchy_overlaps,
-    build_detection_component_records,
-    summarize_hierarchy_overlaps,
 )
 from hebog.data_models.measurement_diagnostics import (
     SourcePositionDiagnostics,
@@ -35,9 +37,11 @@ from hebog.data_models.source_association import (
 from hebog.science import catalogues as product_builder
 from hebog.science.catalogues import (
     build_hebog_reconstructed_source_catalogues,
+    source_label_by_owner,
+)
+from hebog.science.segment_rows import (
     build_hebog_segment_catalogue,
     build_hebog_segment_moment_catalogue,
-    source_label_by_owner,
 )
 
 

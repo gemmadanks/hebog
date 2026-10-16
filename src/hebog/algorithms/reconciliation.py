@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Set
 from dataclasses import dataclass
 
 import numpy as np
@@ -132,11 +133,31 @@ def _union_scalar_pair(
 
 def _reconcile_boundaries(
     disjoint_set: _DisjointSet,
-    tiles_by_index: dict[tuple[int, int], _ReconciliationTile],
+    tiles_by_index: Mapping[tuple[int, int], _ReconciliationTile],
+    first_indices: Set[tuple[int, int]],
 ) -> None:
-    """Union eight-connected labels across sides and four-tile corners."""
-    for (tile_y_index, tile_x_index), tile in sorted(tiles_by_index.items()):
-        right = tiles_by_index.get((tile_y_index, tile_x_index + 1))
+    """Union eight-connected labels across the seams between two tile groups.
+
+    Only sides and four-tile corners joining a tile in ``first_indices`` to
+    one outside it are compared, so each seam is reconciled in the round
+    that first brings its two tiles together.
+    """
+
+    def neighbour_in_other_group(
+        tile_index: tuple[int, int], neighbour_index: tuple[int, int]
+    ) -> _ReconciliationTile | None:
+        neighbour = tiles_by_index.get(neighbour_index)
+        if neighbour is None or (tile_index in first_indices) == (
+            neighbour_index in first_indices
+        ):
+            return None
+        return neighbour
+
+    for tile_index, tile in sorted(tiles_by_index.items()):
+        tile_y_index, tile_x_index = tile_index
+        right = neighbour_in_other_group(
+            tile_index, (tile_y_index, tile_x_index + 1)
+        )
         if right is not None:
             first = tile.boundary_labels.right
             second = right.boundary_labels.left
@@ -162,7 +183,9 @@ def _reconcile_boundaries(
                 second[:-1],
             )
 
-        below = tiles_by_index.get((tile_y_index + 1, tile_x_index))
+        below = neighbour_in_other_group(
+            tile_index, (tile_y_index + 1, tile_x_index)
+        )
         if below is not None:
             first = tile.boundary_labels.bottom
             second = below.boundary_labels.top
@@ -188,7 +211,9 @@ def _reconcile_boundaries(
                 second[:-1],
             )
 
-        below_right = tiles_by_index.get((tile_y_index + 1, tile_x_index + 1))
+        below_right = neighbour_in_other_group(
+            tile_index, (tile_y_index + 1, tile_x_index + 1)
+        )
         if below_right is not None:
             _union_scalar_pair(
                 disjoint_set,
@@ -197,7 +222,9 @@ def _reconcile_boundaries(
                 below_right.partition.tile_id,
                 below_right.boundary_labels.top[0],
             )
-        below_left = tiles_by_index.get((tile_y_index + 1, tile_x_index - 1))
+        below_left = neighbour_in_other_group(
+            tile_index, (tile_y_index + 1, tile_x_index - 1)
+        )
         if below_left is not None:
             _union_scalar_pair(
                 disjoint_set,
@@ -276,7 +303,6 @@ class _MergedIsland:
 class _ReconciliationState:
     """Compact merge state containing no image-sized label core."""
 
-    tiles: tuple[LocalIslandTileSummary, ...]
     components: tuple[_MergedIsland, ...]
     reduction_round_count: int
 
@@ -288,98 +314,70 @@ def _compact_tile(tile: _ReconciliationTile) -> LocalIslandTileSummary:
     return tile
 
 
-def _state_for_tile(tile: LocalIslandTileSummary) -> _ReconciliationState:
-    """Create one leaf state from independently reduced local islands."""
-    return _ReconciliationState(
-        tiles=(tile,),
-        components=tuple(
-            _MergedIsland(
-                member_keys=((tile.partition.tile_id, island.local_label),),
-                summary=island,
-            )
-            for island in tile.islands
-        ),
-        reduction_round_count=0,
-    )
-
-
-def _combine_states(
-    first: _ReconciliationState,
-    second: _ReconciliationState,
-) -> _ReconciliationState:
-    """Merge topology and component reductions at one tree level."""
-    components = (*first.components, *second.components)
-    keys = tuple(
-        sorted(
-            key for component in components for key in component.member_keys
-        )
-    )
-    disjoint_set = _DisjointSet(keys)
-    for component in components:
-        for key in component.member_keys[1:]:
-            disjoint_set.union(component.root_key, key)
-    tiles = tuple(
-        sorted(
-            (*first.tiles, *second.tiles),
-            key=lambda tile: (
-                tile.partition.tile_y_index,
-                tile.partition.tile_x_index,
-            ),
-        )
-    )
-    _reconcile_boundaries(
-        disjoint_set,
-        {
-            (tile.partition.tile_y_index, tile.partition.tile_x_index): tile
-            for tile in tiles
-        },
-    )
-    components_by_root: dict[_LocalIslandKey, list[_MergedIsland]] = {}
-    for component in components:
-        root = disjoint_set.find(component.root_key)
-        components_by_root.setdefault(root, []).append(component)
-    merged = tuple(
-        _MergedIsland(
-            member_keys=tuple(
-                sorted(
-                    key
-                    for component in grouped
-                    for key in component.member_keys
-                )
-            ),
-            summary=_aggregate_group(
-                tuple(component.summary for component in grouped)
-            ),
-        )
-        for _, grouped in sorted(components_by_root.items())
-    )
-    return _ReconciliationState(
-        tiles=tiles,
-        components=merged,
-        reduction_round_count=(
-            max(first.reduction_round_count, second.reduction_round_count) + 1
-        ),
-    )
+def _tile_index(tile: LocalIslandTileSummary) -> tuple[int, int]:
+    """Return a tile's row and column in the partition grid."""
+    return (tile.partition.tile_y_index, tile.partition.tile_x_index)
 
 
 def _reduce_states(
     tiles: tuple[LocalIslandTileSummary, ...],
 ) -> _ReconciliationState:
-    """Reduce tile summaries through a deterministic pairwise tree."""
+    """Reduce tile summaries through a deterministic pairwise tree.
+
+    Each round joins neighbouring groups of the tree through the seams
+    between them, in one disjoint set over every local island, so a seam is
+    compared once however deep the tree. Each connected set of fragments is
+    aggregated once at the end; the aggregate is associative, so it matches
+    a reduction level by level.
+    """
     if not tiles:
         raise ValueError("island summary reduction requires at least one tile")
-    states = [_state_for_tile(tile) for tile in tiles]
-    while len(states) > 1:
-        next_states: list[_ReconciliationState] = []
-        for index in range(0, len(states), 2):
-            if index + 1 == len(states):
-                next_states.append(states[index])
+    disjoint_set = _DisjointSet(
+        tuple(
+            sorted(
+                (tile.partition.tile_id, island.local_label)
+                for tile in tiles
+                for island in tile.islands
+            )
+        )
+    )
+    groups = [{_tile_index(tile): tile} for tile in tiles]
+    reduction_round_count = 0
+    while len(groups) > 1:
+        next_groups: list[dict[tuple[int, int], LocalIslandTileSummary]] = []
+        for index in range(0, len(groups), 2):
+            if index + 1 == len(groups):
+                next_groups.append(groups[index])
             else:
-                next_states.append(
-                    _combine_states(states[index], states[index + 1])
-                )
-        states = next_states
-    return states[0]
+                first, second = groups[index], groups[index + 1]
+                joined = first | second
+                _reconcile_boundaries(disjoint_set, joined, first.keys())
+                next_groups.append(joined)
+        groups = next_groups
+        reduction_round_count += 1
+
+    fragments_by_root: dict[
+        _LocalIslandKey,
+        list[tuple[_LocalIslandKey, LocalIslandSummary]],
+    ] = {}
+    for tile in tiles:
+        for island in tile.islands:
+            key = (tile.partition.tile_id, island.local_label)
+            fragments_by_root.setdefault(disjoint_set.find(key), []).append(
+                (key, island)
+            )
+    return _ReconciliationState(
+        components=tuple(
+            _MergedIsland(
+                member_keys=tuple(sorted(key for key, _ in fragments)),
+                summary=_aggregate_group(
+                    tuple(summary for _, summary in fragments)
+                ),
+            )
+            for _, fragments in sorted(fragments_by_root.items())
+        ),
+        reduction_round_count=reduction_round_count,
+    )
 
 
 def _reconcile_island_tiles(

@@ -15,6 +15,11 @@ from typing import TypeVar
 import numpy as np
 import numpy.typing as npt
 import pytest
+from conftest import (
+    EmptyAfterFirstMapExecutor,
+    EmptyExecutor,
+    ReverseCompletionExecutor,
+)
 from distributed import Client
 
 from hebog.algorithms.multiscale import (
@@ -43,6 +48,7 @@ from hebog.stages.multiscale import (
     _evaluate_tile,
     _publication_products,
     _ScaleLabelBatch,
+    _TileInputs,
     multiscale_product_names,
     run_multiscale_stage,
 )
@@ -110,24 +116,6 @@ class _InvalidImageSource(_ArrayImageSource):
         )
 
 
-class _ReverseCompletionExecutor(SerialExecutor):
-    """Return completed task records in reverse order."""
-
-    def map_batches(
-        self,
-        function: Callable[[_Input], _Output],
-        batches: Iterable[_Input],
-        *,
-        requirement: TaskRequirement | None = None,
-    ) -> list[_Output]:
-        """Evaluate canonically but expose reverse completion order."""
-        return list(
-            reversed(
-                super().map_batches(function, batches, requirement=requirement)
-            )
-        )
-
-
 class _RetryExecutor(SerialExecutor):
     """Retry every batch identically before returning one result."""
 
@@ -146,21 +134,6 @@ class _RetryExecutor(SerialExecutor):
                 super().map_batches(function, [batch], requirement=requirement)
             )
         return results
-
-
-class _EmptyExecutor(SerialExecutor):
-    """Drop every submitted result for fail-closed executor testing."""
-
-    def map_batches(
-        self,
-        function: Callable[[_Input], _Output],
-        batches: Iterable[_Input],
-        *,
-        requirement: TaskRequirement | None = None,
-    ) -> list[_Output]:
-        """Return no result without evaluating work."""
-        del function, batches, requirement
-        return []
 
 
 class _EmptyNthPassExecutor(SerialExecutor):
@@ -184,30 +157,6 @@ class _EmptyNthPassExecutor(SerialExecutor):
         if self._call_count == self._dropped_round:
             return []
         return super().map_batches(function, batches, requirement=requirement)
-
-
-class _EmptySecondPassExecutor(SerialExecutor):
-    """Complete topology but drop every publication result."""
-
-    def __init__(self) -> None:
-        """Count maps so the second one can publish nothing."""
-        super().__init__()
-        self._call_count = 0
-
-    def map_batches(
-        self,
-        function: Callable[[_Input], _Output],
-        batches: Iterable[_Input],
-        *,
-        requirement: TaskRequirement | None = None,
-    ) -> list[_Output]:
-        """Run the first map and return nothing from the second."""
-        self._call_count += 1
-        if self._call_count == 1:
-            return super().map_batches(
-                function, batches, requirement=requirement
-            )
-        return []
 
 
 @dataclass(frozen=True, slots=True)
@@ -488,7 +437,7 @@ def test_multiscale_stage_is_batch_order_retry_and_executor_invariant(
     variants: list[tuple[str, object, int]] = [
         ("serial-one", SerialExecutor(), 1),
         ("serial-all", SerialExecutor(), len(manifest.tiles)),
-        ("reverse", _ReverseCompletionExecutor(), 2),
+        ("reverse", ReverseCompletionExecutor(), 2),
         ("retry", _RetryExecutor(), 2),
     ]
     outputs = [
@@ -770,11 +719,13 @@ def test_a_scale_claiming_an_unusable_pixel_fails_closed(
     partition = manifest.tiles[0]
     result, evidence = _evaluate_tile(
         partition,
-        source=_ArrayImageSource(*_planes()[:2]),
-        background_rms_source=_background_source(tmp_path / "background"),
-        image_shape_yx=_planes()[0].shape,
-        beam=_beam(),
-        detection=_detection_config(),
+        inputs=_TileInputs(
+            source=_ArrayImageSource(*_planes()[:2]),
+            background_rms_source=_background_source(tmp_path / "background"),
+            image_shape_yx=_planes()[0].shape,
+            beam=_beam(),
+            detection=_detection_config(),
+        ),
     )
     unusable = ~result.prepared_inputs.scientifically_valid
     assert np.any(unusable), "the fixture must hold an unusable pixel"
@@ -807,11 +758,13 @@ def test_a_scale_mask_of_another_shape_fails_closed(
     manifest = _manifest((129, 137))
     result, evidence = _evaluate_tile(
         manifest.tiles[0],
-        source=_ArrayImageSource(*_planes()[:2]),
-        background_rms_source=_background_source(tmp_path / "background"),
-        image_shape_yx=_planes()[0].shape,
-        beam=_beam(),
-        detection=_detection_config(),
+        inputs=_TileInputs(
+            source=_ArrayImageSource(*_planes()[:2]),
+            background_rms_source=_background_source(tmp_path / "background"),
+            image_shape_yx=_planes()[0].shape,
+            beam=_beam(),
+            detection=_detection_config(),
+        ),
     )
     shape = result.prepared_inputs.scientifically_valid.shape
     row = np.zeros((1, shape[1]), dtype=np.bool_)
@@ -978,8 +931,8 @@ def test_multiscale_stage_rejects_noncomposable_generations(
 @pytest.mark.parametrize(
     ("executor", "message"),
     (
-        (_EmptyExecutor(), "no multiscale topology results"),
-        (_EmptySecondPassExecutor(), "no multiscale publication results"),
+        (EmptyExecutor(), "no multiscale topology results"),
+        (EmptyAfterFirstMapExecutor(), "no multiscale publication results"),
         (_EmptyNthPassExecutor(3), "no scale label results"),
     ),
 )

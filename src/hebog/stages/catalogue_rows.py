@@ -46,7 +46,7 @@ from hebog.executors.base import Executor
 from hebog.io.base import CompletedProductSource, WindowReadable
 from hebog.io.zarr import ZarrProductSink
 from hebog.science.catalogue_rows import CatalogueSource
-from hebog.science.catalogues import (
+from hebog.science.segment_rows import (
     SegmentPixels,
     SegmentRowMeasurement,
     measure_segment_row,
@@ -431,6 +431,7 @@ def _union(first: ImageBounds | None, second: ImageBounds) -> ImageBounds:
 def _row_batches(
     segments: tuple[_Segment, ...],
     *,
+    core_shape_yx: tuple[int, int],
     maximum_objects_per_batch: int,
     maximum_batch_read_pixels: int,
 ) -> tuple[_RowBatch, ...]:
@@ -444,11 +445,9 @@ def _row_batches(
     return tuple(
         _RowBatch(segments=batch.objects, read_bounds=batch.read_bounds)
         for batch in batch_object_windows(
-            sorted(
-                segments,
-                key=lambda item: (item.bounds.y_start, item.bounds.x_start),
-            ),
+            segments,
             window=lambda segment: segment.bounds,
+            core_shape_yx=core_shape_yx,
             maximum_batch_read_pixels=maximum_batch_read_pixels,
             maximum_objects_per_batch=maximum_objects_per_batch,
         )
@@ -1077,6 +1076,7 @@ def run_segment_row_stage(  # noqa: PLR0913, PLR0917
             for segment in segments
             if read_pixels(segment.bounds) <= budget
         ),
+        core_shape_yx=manifest.tile_core_shape_yx,
         maximum_objects_per_batch=config.maximum_objects_per_batch,
         maximum_batch_read_pixels=budget,
     )

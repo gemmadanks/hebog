@@ -6,8 +6,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
-from dataclasses import replace
 from math import log, pi
 from pathlib import Path
 from typing import TypeVar, cast
@@ -15,15 +13,21 @@ from typing import TypeVar, cast
 import numpy as np
 import numpy.typing as npt
 import pytest
+from conftest import (
+    DropNthMapExecutor,
+    ShiftedBoundsSource,
+    core_partitions,
+    publish_planes,
+)
 from distributed import Client
 from scipy import ndimage
 
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.algorithms.reconciliation import TileLabelMapping
 from hebog.data_models.partitioning import ImageBounds, PartitionManifest
-from hebog.executors import DaskExecutor, SerialExecutor, TaskRequirement
+from hebog.executors import DaskExecutor, SerialExecutor
 from hebog.io.zarr import ZarrProductSink
-from hebog.science.catalogues import build_detection_island_catalogue
+from hebog.science.detection_islands import build_detection_island_catalogue
 from hebog.stages.islands import (
     DetectionIslandStageConfig,
     DetectionIslandStageResult,
@@ -48,29 +52,6 @@ _Output = TypeVar("_Output")
 _SHAPE_YX = (64, 96)
 _BEAM_MAJOR = 4.0
 _BEAM_MINOR = 3.0
-
-
-class _DropNthMapExecutor(SerialExecutor):
-    """Complete every round but one, to prove each fails closed."""
-
-    def __init__(self, dropped_round: int) -> None:
-        """Count maps so one chosen round can return nothing."""
-        super().__init__()
-        self._dropped_round = dropped_round
-        self._call_count = 0
-
-    def map_batches(
-        self,
-        function: Callable[[_Input], _Output],
-        batches: Iterable[_Input],
-        *,
-        requirement: TaskRequirement | None = None,
-    ) -> list[_Output]:
-        """Run every round except the chosen one."""
-        self._call_count += 1
-        if self._call_count == self._dropped_round:
-            return []
-        return super().map_batches(function, batches, requirement=requirement)
 
 
 def _planes() -> tuple[
@@ -132,48 +113,6 @@ def _beam_area_pixels() -> float:
     return pi * _BEAM_MAJOR * _BEAM_MINOR / (4.0 * log(2.0))
 
 
-def _manifest(core: int) -> PartitionManifest:
-    """Plan one core-only partition of the fixture image."""
-    return plan_image_partitions(
-        image_shape_yx=_SHAPE_YX,
-        tile_core_shape_yx=(core, core),
-        halo_yx=(0, 0),
-    )
-
-
-def _publish(
-    root: Path,
-    products: tuple[tuple[str, npt.NDArray[np.generic], str], ...],
-    *,
-    generation_id: str,
-) -> ZarrProductSink:
-    """Publish one generation of analytic planes over 16-pixel cores."""
-    manifest = _manifest(16)
-    sink = ZarrProductSink(root, manifest, generation_id=generation_id)
-    for product_name, _, dtype in products:
-        sink.initialize_product(
-            product_name=product_name, dtype=np.dtype(dtype)
-        )
-    sink.publish_generation(
-        product_names=tuple(name for name, _, _ in products),
-        chunks=[
-            sink.write_chunk(
-                product_name=product_name,
-                tile=tile,
-                values=np.asarray(
-                    values[
-                        tile.core_bounds.y_start : tile.core_bounds.y_stop,
-                        tile.core_bounds.x_start : tile.core_bounds.x_stop,
-                    ]
-                ),
-            )
-            for tile in manifest.tiles
-            for product_name, values, _ in products
-        ],
-    )
-    return sink
-
-
 def _sources(
     root: Path,
     *,
@@ -184,7 +123,7 @@ def _sources(
     root.mkdir(parents=True, exist_ok=True)
     _, rms, mask, owner_labels = _planes()
     return (
-        _publish(
+        publish_planes(
             root / "background.zarr",
             (
                 ("background", np.zeros(_SHAPE_YX, dtype=np.float64), "<f8"),
@@ -192,7 +131,7 @@ def _sources(
             ),
             generation_id="background-fixture",
         ),
-        _publish(
+        publish_planes(
             root / "publication.zarr",
             (
                 (
@@ -208,7 +147,7 @@ def _sources(
             ),
             generation_id="publication-fixture",
         ),
-        _publish(
+        publish_planes(
             root / "components.zarr",
             (
                 (
@@ -253,7 +192,7 @@ def _run(
         background,
         publication,
         components,
-        _manifest(core),
+        core_partitions(_SHAPE_YX, core),
         config=_config(**overrides),
         executor=SerialExecutor() if executor is None else executor,  # type: ignore[arg-type]
     )
@@ -423,7 +362,7 @@ def test_the_island_stage_publishes_no_plane(tmp_path: Path) -> None:
     result = _run(tmp_path / "run")
 
     assert result.island_count == len(result.islands)
-    assert result.partition_count == len(_manifest(16).tiles)
+    assert result.partition_count == len(core_partitions(_SHAPE_YX, 16).tiles)
     assert result.executor_task_count > result.partition_count // 2
     assert result.maximum_graph_width > 0
     assert result.maximum_island_read_pixels > 0
@@ -482,7 +421,7 @@ def test_every_island_round_fails_closed_on_a_silent_executor(
     ):
         _run(
             tmp_path / f"dropped-{dropped_round}",
-            executor=_DropNthMapExecutor(dropped_round),
+            executor=DropNthMapExecutor(dropped_round),
             maximum_objects_per_batch=8,
             maximum_batch_read_pixels=64,
         )
@@ -554,28 +493,7 @@ def test_the_island_stage_requires_matching_generations(
     with pytest.raises(ValueError, match="match the island image shape"):
         run(other_shape)
     with pytest.raises(ValueError, match="every island plane read"):
-        run(_manifest(16), publication_source=background)
-
-
-class _ShiftedBoundsSource:
-    """An image source that answers with bounds it was not asked for."""
-
-    def __init__(self, source: ArrayImageSource) -> None:
-        """Retain the source whose honest answers are then corrupted."""
-        self._source = source
-
-    def read_window(self, bounds: ImageBounds):
-        """Return the asked-for pixels under one narrower bound."""
-        window = self._source.read_window(bounds)
-        return replace(
-            window,
-            bounds=ImageBounds(
-                bounds.y_start,
-                bounds.y_stop,
-                bounds.x_start,
-                max(bounds.x_start + 1, bounds.x_stop - 1),
-            ),
-        )
+        run(core_partitions(_SHAPE_YX, 16), publication_source=background)
 
 
 def test_a_read_that_answers_different_bounds_fails_closed(
@@ -587,13 +505,13 @@ def test_a_read_that_answers_different_bounds_fails_closed(
 
     with pytest.raises(ValueError, match="different island bounds"):
         run_detection_island_stage(
-            _ShiftedBoundsSource(
+            ShiftedBoundsSource(
                 ArrayImageSource(image, np.ones(_SHAPE_YX, dtype=np.bool_))
             ),
             background,
             publication,
             components,
-            _manifest(16),
+            core_partitions(_SHAPE_YX, 16),
             config=_config(),
             executor=SerialExecutor(),
         )
@@ -643,7 +561,7 @@ def test_an_unreconciled_island_observation_fails_closed(
     dropped one would otherwise leave an owner naming nothing.
     """
     _, publication, components = _sources(tmp_path / "run")
-    manifest = _manifest(64)
+    manifest = core_partitions(_SHAPE_YX, 64)
     scanned = _scan_islands(
         _CoreBatch(partitions=manifest.tiles),
         publication_source=publication,
@@ -675,10 +593,16 @@ def test_one_read_serves_several_islands_within_the_budget() -> None:
     )
 
     shared = _island_batches(
-        islands, maximum_objects_per_batch=8, maximum_batch_read_pixels=64
+        islands,
+        core_shape_yx=(32, 32),
+        maximum_objects_per_batch=8,
+        maximum_batch_read_pixels=64,
     )
     split = _island_batches(
-        islands, maximum_objects_per_batch=1, maximum_batch_read_pixels=64
+        islands,
+        core_shape_yx=(32, 32),
+        maximum_objects_per_batch=1,
+        maximum_batch_read_pixels=64,
     )
 
     assert [batch.read_bounds for batch in shared] == [
@@ -691,7 +615,10 @@ def test_one_read_serves_several_islands_within_the_budget() -> None:
     assert len(split) == len(islands)
     assert (
         _island_batches(
-            (), maximum_objects_per_batch=1, maximum_batch_read_pixels=1
+            (),
+            core_shape_yx=(32, 32),
+            maximum_objects_per_batch=1,
+            maximum_batch_read_pixels=1,
         )
         == ()
     )
@@ -707,7 +634,10 @@ def test_a_window_is_never_wider_than_the_read_budget() -> None:
 
     with pytest.raises(ValueError, match="wider than the read budget"):
         _island_batches(
-            (wide,), maximum_objects_per_batch=1, maximum_batch_read_pixels=8
+            (wide,),
+            core_shape_yx=(32, 32),
+            maximum_objects_per_batch=1,
+            maximum_batch_read_pixels=8,
         )
 
 

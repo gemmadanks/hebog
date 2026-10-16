@@ -35,17 +35,18 @@ from hebog.data_models.images import RestoringBeam
 from hebog.data_models.measurement import ValidMomentMeasurement
 from hebog.public_science import build_configured_continuum_products
 from hebog.science import catalogues as product_builder
-from hebog.science.catalogues import (
-    _segment_pixel_moment_covariance,
-    _segment_position,
-    moment_shape_fields_at,
-    unavailable_moment_shape_fields,
-)
+from hebog.science import segment_rows
 from hebog.science.models import ContinuumProducts
 from hebog.science.profile import (
     ContinuumScienceProfile,
     configured_science_profile,
     load_continuum_science_profile,
+)
+from hebog.science.segment_rows import (
+    _segment_pixel_moment_covariance,
+    _segment_position,
+    moment_shape_fields_at,
+    unavailable_moment_shape_fields,
 )
 from hebog.stages import composition
 from hebog.validation.tiled_detection import publish_continuum_inputs
@@ -1406,14 +1407,14 @@ def test_merge_attribution_does_not_change_measurements(
 )
 def test_centroid_owner_domain_rejects_invalid_labels(bad: np.ndarray) -> None:
     with pytest.raises(ValueError, match="aligned non-negative integers"):
-        product_builder._validated_centroid_labels(
+        segment_rows._validated_centroid_labels(
             bad, np.ones((3, 3), dtype=np.int64)
         )
 
 
 def test_centroid_owner_domain_rejects_foreign_owner() -> None:
     with pytest.raises(ValueError, match="subset of aperture ownership"):
-        product_builder._validated_centroid_labels(
+        segment_rows._validated_centroid_labels(
             np.full((3, 3), 2), np.ones((3, 3), dtype=np.int64)
         )
 
@@ -1437,7 +1438,7 @@ def test_centroid_attribution_separates_mask_background_and_aperture(
     aperture_labels[4, 1:6] = 1
     denoised = np.full(signal.shape, 2.0)
     records = {}
-    rows = product_builder.build_hebog_segment_catalogue(
+    rows = segment_rows.build_hebog_segment_catalogue(
         signal,
         background,
         valid,

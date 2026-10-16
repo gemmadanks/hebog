@@ -6,7 +6,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
 from math import ceil
 from pathlib import Path
 from typing import TypeVar, cast
@@ -14,9 +13,15 @@ from typing import TypeVar, cast
 import numpy as np
 import numpy.typing as npt
 import pytest
-from conftest import RecordingExecutor, carried_array_bytes
+from conftest import (
+    DropNthMapExecutor,
+    RecordingExecutor,
+    carried_array_bytes,
+    core_partitions,
+    eight_connected_labels,
+    publish_planes,
+)
 from distributed import Client
-from scipy.ndimage import label as ndimage_label
 
 from hebog.algorithms.extended_measurement import (
     assign_persistent_source_support,
@@ -25,7 +30,7 @@ from hebog.algorithms.labelling import TileBoundaryLabels
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.algorithms.reconciliation import TileLabelMapping
 from hebog.data_models.partitioning import ImageBounds, PartitionManifest
-from hebog.executors import DaskExecutor, SerialExecutor, TaskRequirement
+from hebog.executors import DaskExecutor, SerialExecutor
 from hebog.io.zarr import ZarrProductSink
 from hebog.stages.batching import HeldObjects, read_pixels
 from hebog.stages.sources import (
@@ -56,38 +61,6 @@ _Output = TypeVar("_Output")
 _SHAPE_YX = (80, 112)
 
 
-class _DropNthMapExecutor(SerialExecutor):
-    """Complete every round but one, to prove each fails closed."""
-
-    def __init__(self, dropped_round: int) -> None:
-        """Count maps so one chosen round can return nothing."""
-        super().__init__()
-        self._dropped_round = dropped_round
-        self._call_count = 0
-
-    def map_batches(
-        self,
-        function: Callable[[_Input], _Output],
-        batches: Iterable[_Input],
-        *,
-        requirement: TaskRequirement | None = None,
-    ) -> list[_Output]:
-        """Run every round except the chosen one."""
-        self._call_count += 1
-        if self._call_count == self._dropped_round:
-            return []
-        return super().map_batches(function, batches, requirement=requirement)
-
-
-def _labelled(mask: npt.NDArray[np.bool_]) -> npt.NDArray[np.int32]:
-    """Return eight-connected labels of one analytic mask."""
-    labels, _ = cast(
-        "tuple[npt.NDArray[np.int32], int]",
-        ndimage_label(mask, structure=np.ones((3, 3), dtype=np.int8)),
-    )
-    return labels
-
-
 def _planes() -> tuple[
     npt.NDArray[np.int32],
     npt.NDArray[np.bool_],
@@ -114,7 +87,7 @@ def _planes() -> tuple[
         + 10.0
         * np.exp(-0.5 * (((xx - 16) / 2.0) ** 2 + ((yy - 70) / 2.0) ** 2))
     )
-    owners = np.asarray(_labelled(signal >= 8.0), dtype=np.int32)
+    owners = np.asarray(eight_connected_labels(signal >= 8.0), dtype=np.int32)
     valid = np.ones(_SHAPE_YX, dtype=np.bool_)
     scale_support = (signal >= 2.0) & (signal < 6.0)
     measurement_support = (signal >= 6.0) & (signal < 8.0)
@@ -134,69 +107,27 @@ def _source_by_owner() -> dict[int, int]:
     }
 
 
-def _manifest(core: int) -> PartitionManifest:
-    """Plan one core-only partition of the fixture image."""
-    return plan_image_partitions(
-        image_shape_yx=_SHAPE_YX,
-        tile_core_shape_yx=(core, core),
-        halo_yx=(0, 0),
-    )
-
-
-def _publish(
-    root: Path,
-    products: tuple[tuple[str, npt.NDArray[np.generic], str], ...],
-    *,
-    generation_id: str,
-) -> ZarrProductSink:
-    """Publish one generation of analytic planes over 16-pixel cores."""
-    manifest = _manifest(16)
-    sink = ZarrProductSink(root, manifest, generation_id=generation_id)
-    for product_name, _, dtype in products:
-        sink.initialize_product(
-            product_name=product_name, dtype=np.dtype(dtype)
-        )
-    sink.publish_generation(
-        product_names=tuple(name for name, _, _ in products),
-        chunks=[
-            sink.write_chunk(
-                product_name=product_name,
-                tile=tile,
-                values=np.asarray(
-                    values[
-                        tile.core_bounds.y_start : tile.core_bounds.y_stop,
-                        tile.core_bounds.x_start : tile.core_bounds.x_stop,
-                    ]
-                ),
-            )
-            for tile in manifest.tiles
-            for product_name, values, _ in products
-        ],
-    )
-    return sink
-
-
 def _sources(root: Path) -> tuple[ZarrProductSink, ...]:
     """Publish every generation the source rounds read."""
     root.mkdir(parents=True, exist_ok=True)
     owners, valid, scale_support, measurement_support = _planes()
     return (
-        _publish(
+        publish_planes(
             root / "components.zarr",
             (("component-measurement-labels", owners, "<i4"),),
             generation_id="component-fixture",
         ),
-        _publish(
+        publish_planes(
             root / "detection.zarr",
             (("valid-pixels", valid, "bool"),),
             generation_id="detection-fixture",
         ),
-        _publish(
+        publish_planes(
             root / "hierarchy.zarr",
             (("persistent-scale-support", scale_support, "bool"),),
             generation_id="hierarchy-fixture",
         ),
-        _publish(
+        publish_planes(
             root / "fits.zarr",
             (("measurement-support", measurement_support, "bool"),),
             generation_id="fits-fixture",
@@ -228,7 +159,7 @@ def _run_support(
     """Publish both source planes, and keep the support round's evidence."""
     component, detection, hierarchy, fits = _sources(root)
     resolved = SerialExecutor() if executor is None else executor
-    manifest = _manifest(core)
+    manifest = core_partitions(_SHAPE_YX, core)
     label_sink = ZarrProductSink(
         root / "labels.zarr", manifest, generation_id="labels"
     )
@@ -415,7 +346,7 @@ def test_source_planes_are_executor_invariant(
 def test_source_stages_publish_canonical_products(tmp_path: Path) -> None:
     """Each generation carries exactly one chunk per product and core."""
     component, detection, hierarchy, fits = _sources(tmp_path / "run")
-    manifest = _manifest(16)
+    manifest = core_partitions(_SHAPE_YX, 16)
     label_sink = ZarrProductSink(
         tmp_path / "run" / "labels.zarr", manifest, generation_id="labels"
     )
@@ -550,7 +481,7 @@ def test_every_source_round_fails_closed_on_a_silent_executor(
     with pytest.raises(ValueError, match=message):
         _run(
             tmp_path / f"round-{dropped_round}",
-            executor=_DropNthMapExecutor(dropped_round),
+            executor=DropNthMapExecutor(dropped_round),
         )
 
 
@@ -559,7 +490,7 @@ def test_source_stages_require_matching_sinks_and_generations(
 ) -> None:
     """Identities are checked before any product is initialized."""
     component, detection, hierarchy, fits = _sources(tmp_path / "run")
-    manifest = _manifest(16)
+    manifest = core_partitions(_SHAPE_YX, 16)
     other_shape = plan_image_partitions(
         image_shape_yx=(32, 32),
         tile_core_shape_yx=(16, 16),
@@ -570,7 +501,7 @@ def test_source_stages_require_matching_sinks_and_generations(
         tile_core_shape_yx=(32, 32),
         halo_yx=(2, 2),
     )
-    incomplete = _publish(
+    incomplete = publish_planes(
         tmp_path / "incomplete.zarr",
         (("valid-pixels", _planes()[1], "bool"),),
         generation_id="incomplete",
@@ -652,7 +583,7 @@ def test_source_stages_require_matching_sinks_and_generations(
     with pytest.raises(ValueError, match="every support plane read"):
         support(
             manifest,
-            detection_source=_publish(
+            detection_source=publish_planes(
                 tmp_path / "no-validity.zarr",
                 (("persistent-scale-support", _planes()[2], "bool"),),
                 generation_id="no-validity",
@@ -666,7 +597,7 @@ def test_a_source_membership_must_own_every_component_pixel(
 ) -> None:
     """An owner the memberships omit is a defect, not an unlabelled pixel."""
     component, _, _, _ = _sources(tmp_path / "run")
-    manifest = _manifest(16)
+    manifest = core_partitions(_SHAPE_YX, 16)
     partial_map = dict(_source_by_owner())
     partial_map.pop(max(partial_map))
 
@@ -691,27 +622,27 @@ def test_an_image_with_no_support_publishes_only_its_seeds(
     root.mkdir(parents=True, exist_ok=True)
     owners, valid, _, _ = _planes()
     empty = np.zeros(_SHAPE_YX, dtype=np.bool_)
-    component = _publish(
+    component = publish_planes(
         root / "components.zarr",
         (("component-measurement-labels", owners, "<i4"),),
         generation_id="component-fixture",
     )
-    detection = _publish(
+    detection = publish_planes(
         root / "detection.zarr",
         (("valid-pixels", valid, "bool"),),
         generation_id="detection-fixture",
     )
-    hierarchy = _publish(
+    hierarchy = publish_planes(
         root / "hierarchy.zarr",
         (("persistent-scale-support", empty, "bool"),),
         generation_id="hierarchy-fixture",
     )
-    fits = _publish(
+    fits = publish_planes(
         root / "fits.zarr",
         (("measurement-support", empty, "bool"),),
         generation_id="fits-fixture",
     )
-    manifest = _manifest(16)
+    manifest = core_partitions(_SHAPE_YX, 16)
     label_sink = ZarrProductSink(
         root / "labels.zarr", manifest, generation_id="labels"
     )
@@ -758,12 +689,12 @@ def test_an_image_with_no_source_at_all_assigns_nothing(
     root.mkdir(parents=True, exist_ok=True)
     empty_labels = np.zeros(_SHAPE_YX, dtype=np.int32)
     empty_mask = np.zeros(_SHAPE_YX, dtype=np.bool_)
-    manifest = _manifest(16)
+    manifest = core_partitions(_SHAPE_YX, 16)
     label_sink = ZarrProductSink(
         root / "labels.zarr", manifest, generation_id="labels"
     )
     run_source_label_stage(
-        _publish(
+        publish_planes(
             root / "components.zarr",
             (("component-measurement-labels", empty_labels, "<i4"),),
             generation_id="component-fixture",
@@ -780,17 +711,17 @@ def test_an_image_with_no_source_at_all_assigns_nothing(
 
     result = run_source_support_stage(
         label_sink,
-        _publish(
+        publish_planes(
             root / "detection.zarr",
             (("valid-pixels", _planes()[1], "bool"),),
             generation_id="detection-fixture",
         ),
-        _publish(
+        publish_planes(
             root / "hierarchy.zarr",
             (("persistent-scale-support", empty_mask, "bool"),),
             generation_id="hierarchy-fixture",
         ),
-        _publish(
+        publish_planes(
             root / "fits.zarr",
             (("measurement-support", empty_mask, "bool"),),
             generation_id="fits-fixture",
@@ -814,7 +745,9 @@ def test_an_image_with_no_source_at_all_assigns_nothing(
 def _component_windows() -> tuple[int, ...]:
     """Return every connected support component's window size."""
     owners, _, scale_support, measurement_support = _planes()
-    labels = _labelled((owners > 0) | scale_support | measurement_support)
+    labels = eight_connected_labels(
+        (owners > 0) | scale_support | measurement_support
+    )
     windows: list[int] = []
     for value in range(1, int(labels.max()) + 1):
         rows, columns = np.nonzero(labels == value)
@@ -936,14 +869,14 @@ def test_the_wide_support_round_fails_closed_on_a_silent_executor(
     with pytest.raises(ValueError, match="no wide support results"):
         _run(
             tmp_path / "run",
-            executor=_DropNthMapExecutor(4),
+            executor=DropNthMapExecutor(4),
             maximum_batch_read_pixels=1,
         )
 
 
 def test_every_core_holding_a_wide_component_must_answer() -> None:
     """A component assigned from part of its seeds could move its owners."""
-    partition = _manifest(16).tiles[0]
+    partition = core_partitions(_SHAPE_YX, 16).tiles[0]
     batches = (
         _WideSupportBatch(
             cores=(
@@ -970,7 +903,7 @@ def test_a_wide_component_without_seeds_or_candidates_assigns_nothing() -> (
 
     A component whose pixels are all seeds has nothing to assign either.
     """
-    partition = _manifest(16).tiles[0]
+    partition = core_partitions(_SHAPE_YX, 16).tiles[0]
     batches = (
         _WideSupportBatch(
             cores=(
@@ -1018,7 +951,7 @@ def test_only_a_core_with_unseeded_support_gets_seeds_back() -> None:
     The seeds it returned still reach the core that holds the unseeded
     pixels, so the component is assigned once, from all of them.
     """
-    seeded_core, unseeded_core = _manifest(16).tiles[:2]
+    seeded_core, unseeded_core = core_partitions(_SHAPE_YX, 16).tiles[:2]
     batches = (
         _WideSupportBatch(
             cores=tuple(

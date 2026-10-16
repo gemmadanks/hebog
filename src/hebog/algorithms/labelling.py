@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -15,6 +16,9 @@ from scipy import ndimage
 
 from hebog.algorithms.detection import DetectionThresholdMasks
 from hebog.data_models.partitioning import ImageBounds, TilePartition
+
+_RELABEL_BLOCK_ROWS = 256
+"""Rows looked up at once, so the lookup's 8-byte indices cover one block."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -256,3 +260,44 @@ def label_detection_tile(
             ),
         ),
     )
+
+
+def relabelled(
+    labels: npt.NDArray[np.integer[Any]],
+    value_by_label: Mapping[int, int],
+    *,
+    otherwise: npt.NDArray[np.int32] | None = None,
+) -> npt.NDArray[np.int32]:
+    """Return the value each pixel's label maps to, in one pass over them.
+
+    A pixel whose label maps to nothing keeps its value in ``otherwise``, or
+    0 when none is given. Comparing the plane with each label in turn costs a
+    full pass per label, and a core holds thousands; this looks every pixel
+    up once, a block of rows at a time, so the lookup adds memory for one
+    block rather than for the plane.
+
+    Examples:
+        >>> relabelled(
+        ...     np.array([[0, 3], [5, 3]], dtype=np.int32), {3: 7, 5: 9}
+        ... ).tolist()
+        [[0, 7], [9, 7]]
+    """
+    keys = np.array(sorted(value_by_label), dtype=np.int64)
+    values = np.array(
+        [value_by_label[int(key)] for key in keys], dtype=np.int32
+    )
+    result = (
+        np.zeros(labels.shape, dtype=np.int32)
+        if otherwise is None
+        else np.array(otherwise, dtype=np.int32, copy=True)
+    )
+    if not keys.size:
+        return result
+    for start in range(0, labels.shape[0], _RELABEL_BLOCK_ROWS):
+        block = labels[start : start + _RELABEL_BLOCK_ROWS]
+        position = np.minimum(np.searchsorted(keys, block), keys.size - 1)
+        found = keys[position] == block
+        result[start : start + _RELABEL_BLOCK_ROWS][found] = values[
+            position[found]
+        ]
+    return result

@@ -176,8 +176,9 @@ pixel count, bounding box, peak, first pixel and whether it holds a detection
 seed. A union–find reduction joins labels that meet across an edge, combining
 tiles pairwise in a tree fixed by their order, so the result does not depend
 on completion order. Today that reduction runs on the driver, which holds
-every tile's summaries; moving driver-side reductions onto the workers is
-part of the plan's task 74. The resulting global label map is **sharded**:
+every tile's summaries; it compares each seam once, so its cost grows with
+the tiles, and the plan's risks track the summaries the driver keeps. The
+resulting global label map is **sharded**:
 each tile receives only the entries for labels it contains.
 
 ### Objects larger than a halo
@@ -224,8 +225,9 @@ All executors obey the same rules, so a defect shows up on a laptop under
 Tasks are **coarse batches** of tiles or objects: an object round puts up to
 256 objects in one task. Graph size therefore scales with the number of tiles
 and stages, and in an object round with the number of objects over that batch
-size, never with pixels. At 100,000 pixels a side one object round would
-still exceed the planned task bound, which the plan's task 54 addresses.
+size, never with pixels. Objects are batched a storage core at a time, so
+at 100,000 pixels a side one object round of the 15,402² mosaic's density
+is about 4,700 tasks rather than the 156,000 raster order made.
 
 ## Storage
 

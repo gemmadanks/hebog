@@ -6,7 +6,7 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 
-from hebog.science.catalogues import (
+from hebog.science.detection_islands import (
     build_detection_island_catalogue,
     detection_island_identifier,
     island_ids_by_component,

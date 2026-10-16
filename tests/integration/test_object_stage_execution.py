@@ -6,7 +6,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import TypeAlias, TypeVar, cast
@@ -16,7 +15,15 @@ import numpy.typing as npt
 import pytest
 from astropy.io import fits
 from astropy.wcs import WCS
-from conftest import RecordingExecutor, carried_array_bytes
+from conftest import (
+    DropNthMapExecutor,
+    RecordingExecutor,
+    ReverseCompletionExecutor,
+    ShiftedBoundsSource,
+    carried_array_bytes,
+    core_partitions,
+    reviewed_deblend_config,
+)
 from distributed import Client
 from scipy.ndimage import label as ndimage_label
 
@@ -28,6 +35,9 @@ from hebog.algorithms.component_measurement import (
     fit_parent_margin_pixels,
     measure_component_models,
     reconcile_component_measurements,
+)
+from hebog.algorithms.component_records import (
+    build_detection_component_records,
 )
 from hebog.algorithms.component_topology import deblend_component_topology
 from hebog.algorithms.labelling import (
@@ -44,9 +54,6 @@ from hebog.algorithms.reconciliation import (
     ReconciledIslands,
     TileLabelMapping,
 )
-from hebog.algorithms.source_association import (
-    build_detection_component_records,
-)
 from hebog.config import (
     CompactDeblendConfig,
     CompactGaussianFitConfig,
@@ -59,50 +66,58 @@ from hebog.data_models.fitting import (
 from hebog.data_models.images import RestoringBeam
 from hebog.data_models.partitioning import ImageBounds, PartitionManifest
 from hebog.data_models.source_association import DetectionComponentRecord
-from hebog.executors import DaskExecutor, SerialExecutor, TaskRequirement
+from hebog.executors import DaskExecutor, SerialExecutor
 from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
 from hebog.science.configuration import source_finder_configs
 from hebog.stages.batching import read_pixels
-from hebog.stages.objects import (
+from hebog.stages.component_fits import (
     ComponentFitStageConfig,
     ComponentFitStageResult,
+    _deferred_component_records,
+    _DeferredBatch,
+    _DeferredCore,
+    _fit_batches,
+    _FitBatch,
+    _FitParentExtent,
+    _reduce_component_records,
+    _SupportBatch,
+    component_fit_product_names,
+    run_component_fit_stage,
+)
+from hebog.stages.component_topology import (
     ComponentTopologyStageConfig,
     ComponentTopologyStageResult,
+    _parent_batches,
+    _ParentBatch,
+    _require_matching_component_identities,
+    _TileBatch,
+    _write_owned_components,
+    component_topology_product_names,
+    run_component_topology_stage,
+)
+from hebog.stages.extended_groups import (
     ExtendedGroupStageConfig,
     ExtendedGroupStageResult,
+    run_extended_group_stage,
+)
+from hebog.stages.fit_parents import (
     FitParentStageConfig,
     FitParentStageResult,
     _ContextLink,
     _ContextPublicationBatch,
     _ContextTile,
-    _deferred_component_records,
-    _DeferredBatch,
-    _DeferredCore,
     _DisjointContexts,
-    _fit_batches,
     _fit_parent_numbers,
-    _FitBatch,
-    _FitParentExtent,
     _global_context,
-    _parent_batches,
-    _ParentBatch,
-    _ParentExtent,
     _parents_to_fit_by_island,
-    _PublishBatchResult,
-    _reduce_component_records,
-    _require_matching_component_identities,
-    _SupportBatch,
-    _TileBatch,
-    _union_bounds,
-    _write_owned_components,
-    component_fit_product_names,
-    component_topology_product_names,
     fit_parent_product_names,
-    run_component_fit_stage,
-    run_component_topology_stage,
-    run_extended_group_stage,
     run_fit_parent_stage,
+)
+from hebog.stages.object_extents import (
+    ParentExtent,
+    PublishBatchResult,
+    union_bounds,
 )
 from hebog.validation.tiled_detection import ArrayImageSource
 
@@ -113,47 +128,6 @@ _Output = TypeVar("_Output")
 _SHAPE_YX = (48, 96)
 _DETECTION_SIGMA = 5.0
 _MEASUREMENT_BEAM = BeamShapePixels(4.0, 4.0, 0.0)
-
-
-class _ReverseCompletionExecutor(SerialExecutor):
-    """Return completed task records in reverse order."""
-
-    def map_batches(
-        self,
-        function: Callable[[_Input], _Output],
-        batches: Iterable[_Input],
-        *,
-        requirement: TaskRequirement | None = None,
-    ) -> list[_Output]:
-        """Evaluate canonically but expose reverse completion order."""
-        return list(
-            reversed(
-                super().map_batches(function, batches, requirement=requirement)
-            )
-        )
-
-
-class _DropNthMapExecutor(SerialExecutor):
-    """Complete every round but one, to prove each fails closed."""
-
-    def __init__(self, dropped_round: int) -> None:
-        """Count maps so one chosen round can return nothing."""
-        super().__init__()
-        self._dropped_round = dropped_round
-        self._call_count = 0
-
-    def map_batches(
-        self,
-        function: Callable[[_Input], _Output],
-        batches: Iterable[_Input],
-        *,
-        requirement: TaskRequirement | None = None,
-    ) -> list[_Output]:
-        """Run every round except the chosen one."""
-        self._call_count += 1
-        if self._call_count == self._dropped_round:
-            return []
-        return super().map_batches(function, batches, requirement=requirement)
 
 
 def _labelled(mask: npt.NDArray[np.bool_]) -> npt.NDArray[np.int32]:
@@ -271,25 +245,6 @@ def _sources(root: Path) -> tuple[ZarrProductSink, ZarrProductSink]:
     )
 
 
-def _deblend_config() -> CompactDeblendConfig:
-    """Return the reviewed compact deblending policy the public path uses."""
-    return replace(
-        source_finder_configs()[1],
-        minimum_peak_signal_to_noise=float(
-            np.nextafter(_DETECTION_SIGMA, -np.inf)
-        ),
-    )
-
-
-def _manifest(core: int) -> PartitionManifest:
-    """Plan one core-only component partition."""
-    return plan_image_partitions(
-        image_shape_yx=_SHAPE_YX,
-        tile_core_shape_yx=(core, core),
-        halo_yx=(0, 0),
-    )
-
-
 def _config(
     *,
     maximum_tiles_per_batch: int = 2,
@@ -297,7 +252,7 @@ def _config(
 ) -> ComponentTopologyStageConfig:
     """Return the reviewed policy with bounded task limits."""
     return ComponentTopologyStageConfig(
-        deblend=_deblend_config(),
+        deblend=reviewed_deblend_config(_DETECTION_SIGMA),
         maximum_tiles_per_batch=maximum_tiles_per_batch,
         maximum_batch_read_pixels=maximum_batch_read_pixels,
     )
@@ -313,7 +268,7 @@ def _run(
     """Execute one isolated component-topology variant."""
     root.mkdir(parents=True, exist_ok=True)
     support_source, detection_source = _sources(root)
-    manifest = _manifest(core)
+    manifest = core_partitions(_SHAPE_YX, core)
     sink = ZarrProductSink(
         root / "components.zarr",
         manifest,
@@ -356,7 +311,9 @@ def _whole_plane_topology(
         direct,
         measurement,
         valid,
-        _deblend_config() if deblend is None else deblend,
+        reviewed_deblend_config(_DETECTION_SIGMA)
+        if deblend is None
+        else deblend,
     )
     return {
         "component-direct-labels": np.asarray(
@@ -448,7 +405,7 @@ def test_a_direct_owner_outside_valid_measurement_support_fails_closed(
         (("direct-snr", signal, "<f8"), ("valid-pixels", valid, "bool")),
         generation_id="detection-fixture",
     )
-    manifest = _manifest(16)
+    manifest = core_partitions(_SHAPE_YX, 16)
 
     with pytest.raises(ValueError, match="valid subset"):
         run_component_topology_stage(
@@ -457,7 +414,8 @@ def test_a_direct_owner_outside_valid_measurement_support_fails_closed(
             manifest,
             config=ComponentTopologyStageConfig(
                 deblend=replace(
-                    _deblend_config(), maximum_compact_bounds_pixels=1
+                    reviewed_deblend_config(_DETECTION_SIGMA),
+                    maximum_compact_bounds_pixels=1,
                 ),
                 maximum_tiles_per_batch=2,
                 maximum_batch_read_pixels=8192,
@@ -506,13 +464,13 @@ def test_both_published_planes_must_name_the_same_components() -> None:
     from two whole planes, so this checks that reduction directly.
     """
     complete = (
-        _PublishBatchResult(
+        PublishBatchResult(
             product_chunks=(),
             observed_labels=((1, 0), (1, 1), (2, 0), (2, 1)),
         ),
     )
     missing_measurement = (
-        _PublishBatchResult(
+        PublishBatchResult(
             product_chunks=(),
             observed_labels=((1, 0), (1, 1), (2, 0)),
         ),
@@ -539,7 +497,7 @@ def test_component_topology_is_partition_and_executor_invariant(
             SerialExecutor(),
             _config(maximum_batch_read_pixels=1),
         ),
-        ("reverse", 16, _ReverseCompletionExecutor(), _config()),
+        ("reverse", 16, ReverseCompletionExecutor(), _config()),
     ]
     for name, core, executor, config in variants:
         _, sink = _run(
@@ -574,7 +532,7 @@ def test_component_topology_defers_a_parent_above_the_compact_bound(
     """An oversized parent stays one explicit component, never truncated."""
     config = ComponentTopologyStageConfig(
         deblend=replace(
-            _deblend_config(),
+            reviewed_deblend_config(_DETECTION_SIGMA),
             maximum_compact_island_pixels=4,
         ),
         maximum_tiles_per_batch=2,
@@ -596,7 +554,7 @@ def test_component_topology_publishes_the_canonical_product_set(
     tmp_path: Path,
 ) -> None:
     """The generation carries exactly one chunk per product and core."""
-    manifest = _manifest(16)
+    manifest = core_partitions(_SHAPE_YX, 16)
 
     result, _ = _run(tmp_path / "run")
 
@@ -629,7 +587,7 @@ def test_every_round_fails_closed_on_a_silent_executor(
     with pytest.raises(ValueError, match=message):
         _run(
             tmp_path / f"round-{dropped_round}",
-            executor=_DropNthMapExecutor(dropped_round),
+            executor=DropNthMapExecutor(dropped_round),
         )
 
 
@@ -681,7 +639,7 @@ def test_component_topology_rejects_invalid_configuration(
     """Configuration is validated before any product is initialized."""
     with pytest.raises(ValueError, match=message):
         ComponentTopologyStageConfig(
-            deblend=_deblend_config(),
+            deblend=reviewed_deblend_config(_DETECTION_SIGMA),
             maximum_tiles_per_batch=maximum_tiles_per_batch,
             maximum_batch_read_pixels=maximum_batch_read_pixels,
         )
@@ -707,7 +665,7 @@ def test_component_topology_publishes_an_image_with_no_parent(
         (("direct-snr", signal, "<f8"), ("valid-pixels", valid, "bool")),
         generation_id="detection-fixture",
     )
-    manifest = _manifest(16)
+    manifest = core_partitions(_SHAPE_YX, 16)
     sink = ZarrProductSink(
         tmp_path / "components.zarr",
         manifest,
@@ -752,7 +710,7 @@ def test_component_topology_requires_direct_support_for_every_parent(
         (("direct-snr", signal, "<f8"), ("valid-pixels", valid, "bool")),
         generation_id="detection-fixture",
     )
-    manifest = _manifest(16)
+    manifest = core_partitions(_SHAPE_YX, 16)
 
     with pytest.raises(ValueError, match="must own direct support"):
         run_component_topology_stage(
@@ -775,7 +733,7 @@ def test_component_topology_requires_a_matching_sink_and_generations(
     """Identities are checked before any product is initialized."""
     tmp_path.mkdir(parents=True, exist_ok=True)
     support_source, detection_source = _sources(tmp_path)
-    manifest = _manifest(16)
+    manifest = core_partitions(_SHAPE_YX, 16)
     other_shape = plan_image_partitions(
         image_shape_yx=(32, 32),
         tile_core_shape_yx=(16, 16),
@@ -796,7 +754,7 @@ def test_component_topology_requires_a_matching_sink_and_generations(
             executor=SerialExecutor(),
             sink=ZarrProductSink(
                 tmp_path / "mismatched.zarr",
-                _manifest(32),
+                core_partitions(_SHAPE_YX, 32),
                 generation_id="mismatched",
             ),
         )
@@ -833,11 +791,11 @@ def test_parent_extents_merge_in_either_order() -> None:
     first = ImageBounds(4, 8, 4, 8)
     second = ImageBounds(6, 12, 2, 5)
 
-    assert _union_bounds(None, first) == first
-    assert _union_bounds(first, None) == first
-    assert _union_bounds(first, second) == ImageBounds(4, 12, 2, 8)
-    assert _union_bounds(second, first) == ImageBounds(4, 12, 2, 8)
-    assert _union_bounds(None, None) is None
+    assert union_bounds(None, first) == first
+    assert union_bounds(first, None) == first
+    assert union_bounds(first, second) == ImageBounds(4, 12, 2, 8)
+    assert union_bounds(second, first) == ImageBounds(4, 12, 2, 8)
+    assert union_bounds(None, None) is None
 
 
 def _fit_config() -> tuple[CompactMomentConfig, CompactGaussianFitConfig]:
@@ -886,7 +844,7 @@ def _measurement_inputs() -> _MeasurementInputs:
         _planes()[1],
         _planes()[2],
         valid,
-        _deblend_config(),
+        reviewed_deblend_config(_DETECTION_SIGMA),
     )
     return (
         signal,
@@ -1000,7 +958,9 @@ def _run_fits(  # noqa: PLR0913
                 fit_config, atrous_plan
             ),
             maximum_bounds_pixels=(
-                _deblend_config().maximum_compact_bounds_pixels
+                reviewed_deblend_config(
+                    _DETECTION_SIGMA
+                ).maximum_compact_bounds_pixels
                 if maximum_bounds_pixels is None
                 else maximum_bounds_pixels
             ),
@@ -1008,7 +968,7 @@ def _run_fits(  # noqa: PLR0913
         executor=resolved,  # type: ignore[arg-type]
         sink=fit_parent_sink,
     )
-    manifest = _manifest(core)
+    manifest = core_partitions(_SHAPE_YX, core)
     sink = ZarrProductSink(
         root / "fits.zarr",
         manifest,
@@ -1033,7 +993,9 @@ def _run_fits(  # noqa: PLR0913
             island_sigma=3.0,
             minimum_pixels=7,
             maximum_bounds_pixels=(
-                _deblend_config().maximum_compact_bounds_pixels
+                reviewed_deblend_config(
+                    _DETECTION_SIGMA
+                ).maximum_compact_bounds_pixels
                 if maximum_bounds_pixels is None
                 else maximum_bounds_pixels
             ),
@@ -1081,7 +1043,9 @@ def _whole_plane_measurements(
         island_sigma=3.0,
         minimum_pixels=7,
         maximum_bounds_pixels=(
-            _deblend_config().maximum_compact_bounds_pixels
+            reviewed_deblend_config(
+                _DETECTION_SIGMA
+            ).maximum_compact_bounds_pixels
             if maximum_bounds_pixels is None
             else maximum_bounds_pixels
         ),
@@ -1104,7 +1068,9 @@ def _group_config(**overrides: object) -> ExtendedGroupStageConfig:
         "island_sigma": 3.0,
         "minimum_pixels": 7,
         "maximum_bounds_pixels": (
-            _deblend_config().maximum_compact_bounds_pixels
+            reviewed_deblend_config(
+                _DETECTION_SIGMA
+            ).maximum_compact_bounds_pixels
         ),
         "minimum_support_fraction": 0.5,
         "maximum_tiles_per_batch": 2,
@@ -1129,7 +1095,7 @@ def _run_groups(
         published.detection_source,
         published.component_source,
         published.sink,
-        _manifest(core),
+        core_partitions(_SHAPE_YX, core),
         config=_group_config(**overrides),
         parents=published.result.parents,
         wcs_header_text=_measurement_header().tostring(),
@@ -1258,7 +1224,7 @@ class _LaterShiftedBoundsSource:
     def __init__(self, source: ArrayImageSource, *, honest_reads: int) -> None:
         """Answer ``honest_reads`` reads truthfully before corrupting them."""
         self._source = source
-        self._shifted = _ShiftedBoundsSource(source)
+        self._shifted = ShiftedBoundsSource(source)
         self._remaining = honest_reads
 
     def read_window(self, bounds: ImageBounds) -> ImageWindow:
@@ -1374,7 +1340,7 @@ def test_a_fit_parent_read_that_misses_a_component_fails_closed(
         executor=SerialExecutor(),
         sink=parent_sink,
     )
-    manifest = _manifest(16)
+    manifest = core_partitions(_SHAPE_YX, 16)
 
     with pytest.raises(ValueError, match="every published component"):
         run_component_fit_stage(
@@ -1568,28 +1534,6 @@ def test_a_repaired_joint_fit_is_partition_and_executor_invariant(
     assert tuple(parent.fits) == oracle.fits
 
 
-class _ShiftedBoundsSource:
-    """An image source that answers with bounds it was not asked for."""
-
-    def __init__(self, source: ArrayImageSource) -> None:
-        """Retain the source whose honest answers are then corrupted."""
-        self._source = source
-
-    def read_window(self, bounds: ImageBounds) -> ImageWindow:
-        """Return the asked-for pixels under one narrower bound."""
-        window = self._source.read_window(bounds)
-        return ImageWindow(
-            bounds=ImageBounds(
-                bounds.y_start,
-                bounds.y_stop,
-                bounds.x_start,
-                max(bounds.x_start + 1, bounds.x_stop - 1),
-            ),
-            values=window.values,
-            valid_pixels=window.valid_pixels,
-        )
-
-
 def _fit_parent_margin() -> int:
     """Return the fit-context margin the reviewed policy asks for."""
     return int(_fit_config()[1].context_margin_pixels)
@@ -1619,7 +1563,9 @@ def _fit_parent_config(**overrides: int) -> FitParentStageConfig:
                 ),
             ),
             "maximum_bounds_pixels": (
-                _deblend_config().maximum_compact_bounds_pixels
+                reviewed_deblend_config(
+                    _DETECTION_SIGMA
+                ).maximum_compact_bounds_pixels
             ),
             **overrides,
         }
@@ -1716,7 +1662,7 @@ def _tiled_fit_parents(
         components,
         manifest,
         config=config,
-        executor=_ReverseCompletionExecutor(),
+        executor=ReverseCompletionExecutor(),
         sink=sink,
     )
     height, width = measurement.shape
@@ -1932,7 +1878,9 @@ def test_component_fit_stage_rejects_invalid_configuration(
             island_sigma=3.0,
             minimum_pixels=7,
             maximum_bounds_pixels=(
-                _deblend_config().maximum_compact_bounds_pixels
+                reviewed_deblend_config(
+                    _DETECTION_SIGMA
+                ).maximum_compact_bounds_pixels
             ),
             minimum_support_fraction=0.5,
             maximum_tiles_per_batch=maximum_tiles_per_batch,
@@ -2086,7 +2034,7 @@ def test_every_fit_round_fails_closed_on_a_silent_executor(
     with pytest.raises(ValueError, match=message):
         _run_fits(
             tmp_path / f"round-{dropped_round}",
-            executor=_DropNthMapExecutor(dropped_round),
+            executor=DropNthMapExecutor(dropped_round),
         )
 
 
@@ -2158,7 +2106,9 @@ def _fit_stage_config(**overrides: object) -> ComponentFitStageConfig:
         "island_sigma": 3.0,
         "minimum_pixels": 7,
         "maximum_bounds_pixels": (
-            _deblend_config().maximum_compact_bounds_pixels
+            reviewed_deblend_config(
+                _DETECTION_SIGMA
+            ).maximum_compact_bounds_pixels
         ),
         "minimum_support_fraction": 0.5,
         "maximum_tiles_per_batch": 2,
@@ -2195,7 +2145,7 @@ def test_component_fit_stage_requires_matching_sinks_and_generations(
     source = ArrayImageSource(
         _measurement_inputs()[0], np.ones(_SHAPE_YX, dtype=np.bool_)
     )
-    manifest = _manifest(16)
+    manifest = core_partitions(_SHAPE_YX, 16)
     other_shape = plan_image_partitions(
         image_shape_yx=(32, 32),
         tile_core_shape_yx=(16, 16),
@@ -2236,7 +2186,11 @@ def test_component_fit_stage_requires_matching_sinks_and_generations(
         )
 
     with pytest.raises(ValueError, match="must use the stage manifest"):
-        run(manifest, sink_manifest=_manifest(32), name="mismatched")
+        run(
+            manifest,
+            sink_manifest=core_partitions(_SHAPE_YX, 32),
+            name="mismatched",
+        )
     with pytest.raises(ValueError, match="cores without a halo"):
         run(_fit_parent_manifest(), name="haloed")
     with pytest.raises(ValueError, match="match the fit image shape"):
@@ -2246,13 +2200,13 @@ def test_component_fit_stage_requires_matching_sinks_and_generations(
     with pytest.raises(ValueError, match="different fit-read bounds"):
         run(
             manifest,
-            image_source=_ShiftedBoundsSource(source),
+            image_source=ShiftedBoundsSource(source),
             name="shifted",
         )
     with pytest.raises(ValueError, match="different fit-read bounds"):
         run(
             manifest,
-            image_source=_ShiftedBoundsSource(source),
+            image_source=ShiftedBoundsSource(source),
             name="shifted-deferred",
             config=_fit_stage_config(maximum_bounds_pixels=1),
         )
@@ -2292,7 +2246,7 @@ def test_fit_rounds_publish_an_image_with_no_fit_parent(
         parent_manifest,
         generation_id="fit-parents",
     )
-    manifest = _manifest(16)
+    manifest = core_partitions(_SHAPE_YX, 16)
     sink = ZarrProductSink(
         tmp_path / "fits.zarr", manifest, generation_id="fits"
     )
@@ -2439,7 +2393,7 @@ def test_the_deferred_round_fails_closed_on_a_silent_executor(
     with pytest.raises(ValueError, match="no deferred component results"):
         _run_fits(
             tmp_path / "run",
-            executor=_DropNthMapExecutor(5),
+            executor=DropNthMapExecutor(5),
             maximum_bounds_pixels=1,
         )
 
@@ -2451,14 +2405,14 @@ def test_the_island_round_fails_closed_on_a_silent_executor(
     with pytest.raises(ValueError, match="no fit-island results"):
         _run_fits(
             tmp_path / "run",
-            executor=_DropNthMapExecutor(2),
+            executor=DropNthMapExecutor(2),
             maximum_bounds_pixels=1,
         )
 
 
 def test_every_core_holding_a_deferred_parent_must_answer() -> None:
     """A component described from part of its pixels would be wrong."""
-    partition = _manifest(16).tiles[0]
+    partition = core_partitions(_SHAPE_YX, 16).tiles[0]
     batches = (
         _DeferredBatch(
             cores=(_DeferredCore(partition=partition, parent_indexes=(1,)),)
@@ -2500,7 +2454,10 @@ def test_a_fit_parent_beyond_the_reviewed_bound_is_never_batched() -> None:
 
     with pytest.raises(ValueError, match="wider than the read budget"):
         _fit_batches(
-            (parent,), maximum_batch_read_pixels=8, maximum_bounds_pixels=15
+            (parent,),
+            core_shape_yx=(16, 16),
+            maximum_batch_read_pixels=8,
+            maximum_bounds_pixels=15,
         )
 
 
@@ -2524,7 +2481,10 @@ def test_a_deferred_parent_is_published_without_reading_its_window(
     fixture parent over the bounds bound, the published planes equal the
     whole-plane deblender's and no parent window is read at all.
     """
-    deblend = replace(_deblend_config(), maximum_compact_bounds_pixels=1)
+    deblend = replace(
+        reviewed_deblend_config(_DETECTION_SIGMA),
+        maximum_compact_bounds_pixels=1,
+    )
 
     result, sink = _run(
         tmp_path / "run",
@@ -2557,7 +2517,8 @@ def test_only_the_parents_the_compact_bounds_admit_are_read(
     _, direct, measurement, _ = _planes()
     sizes = np.bincount(direct.ravel())[1:]
     deblend = replace(
-        _deblend_config(), maximum_compact_island_pixels=int(sizes.max()) - 1
+        reviewed_deblend_config(_DETECTION_SIGMA),
+        maximum_compact_island_pixels=int(sizes.max()) - 1,
     )
     config = ComponentTopologyStageConfig(
         deblend=deblend,
@@ -2593,7 +2554,7 @@ def test_only_the_parents_the_compact_bounds_admit_are_read(
 
 def test_a_deferred_parent_is_never_batched() -> None:
     """Such a parent needs no read, so a batch holding it has no bound."""
-    parent = _ParentExtent(
+    parent = ParentExtent(
         parent_label=1,
         direct_bounds=ImageBounds(0, 4, 0, 4),
         measurement_bounds=ImageBounds(0, 4, 0, 4),
@@ -2604,8 +2565,10 @@ def test_a_deferred_parent_is_never_batched() -> None:
     with pytest.raises(ValueError, match="wider than the read budget"):
         _parent_batches(
             (parent,),
+            core_shape_yx=(16, 16),
             maximum_batch_read_pixels=8,
             deblend=replace(
-                _deblend_config(), maximum_compact_bounds_pixels=15
+                reviewed_deblend_config(_DETECTION_SIGMA),
+                maximum_compact_bounds_pixels=15,
             ),
         )

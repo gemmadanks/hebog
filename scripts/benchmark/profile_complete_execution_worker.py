@@ -173,7 +173,7 @@ _STAGES = (
         "tiled component topology",
     ),
     (
-        "hebog.stages.objects",
+        "hebog.stages.component_topology",
         "run_component_topology_stage",
         "per-parent deblending",
     ),
@@ -183,17 +183,17 @@ _STAGES = (
         "tiled component fits",
     ),
     (
-        "hebog.stages.objects",
+        "hebog.stages.fit_parents",
         "run_fit_parent_stage",
         "fit-context reconciliation",
     ),
     (
-        "hebog.stages.objects",
+        "hebog.stages.component_fits",
         "run_component_fit_stage",
         "per-parent moments and fitting",
     ),
     (
-        "hebog.stages.objects",
+        "hebog.stages.extended_groups",
         "run_extended_group_stage",
         "per-feature cross-parent grouping",
     ),

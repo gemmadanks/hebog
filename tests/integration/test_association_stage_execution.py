@@ -6,16 +6,32 @@
 
 from __future__ import annotations
 
+import pickle
 from collections.abc import Callable, Iterable
+from dataclasses import replace
 from pathlib import Path
-from typing import TypeVar, cast
+from typing import TypeVar
 
 import numpy as np
 import numpy.typing as npt
 import pytest
+from conftest import (
+    DropNthMapExecutor,
+    core_partitions,
+    eight_connected_labels,
+    publish_planes,
+)
 from distributed import Client
-from scipy.ndimage import label as ndimage_label
 
+from hebog.algorithms.component_records import (
+    build_detection_component_records,
+)
+from hebog.algorithms.feature_envelopes import (
+    HierarchyOverlaps,
+    scale_feature_envelope_bounds,
+    scale_feature_influence_bounds,
+    summarize_hierarchy_overlaps,
+)
 from hebog.algorithms.multiscale_association import (
     ScaleDetectionPlane,
     ScaleDetectionRecords,
@@ -25,12 +41,7 @@ from hebog.algorithms.multiscale_association import (
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.algorithms.reconciliation import TileLabelMapping
 from hebog.algorithms.source_association import (
-    HierarchyOverlaps,
     associate_from_hierarchy_overlaps,
-    build_detection_component_records,
-    scale_feature_envelope_bounds,
-    scale_feature_influence_bounds,
-    summarize_hierarchy_overlaps,
 )
 from hebog.data_models.partitioning import ImageBounds, PartitionManifest
 from hebog.data_models.source_association import DetectionComponentRecord
@@ -59,38 +70,6 @@ _Input = TypeVar("_Input")
 _Output = TypeVar("_Output")
 _SHAPE_YX = (96, 120)
 _SCALE_ORDERS = (1, 2, 3)
-
-
-class _DropNthMapExecutor(SerialExecutor):
-    """Complete every round but one, to prove each fails closed."""
-
-    def __init__(self, dropped_round: int) -> None:
-        """Count maps so one chosen round can return nothing."""
-        super().__init__()
-        self._dropped_round = dropped_round
-        self._call_count = 0
-
-    def map_batches(
-        self,
-        function: Callable[[_Input], _Output],
-        batches: Iterable[_Input],
-        *,
-        requirement: TaskRequirement | None = None,
-    ) -> list[_Output]:
-        """Run every round except the chosen one."""
-        self._call_count += 1
-        if self._call_count == self._dropped_round:
-            return []
-        return super().map_batches(function, batches, requirement=requirement)
-
-
-def _labelled(mask: npt.NDArray[np.bool_]) -> npt.NDArray[np.int32]:
-    """Return eight-connected labels of one analytic mask."""
-    labels, _ = cast(
-        "tuple[npt.NDArray[np.int32], int]",
-        ndimage_label(mask, structure=np.ones((3, 3), dtype=np.int8)),
-    )
-    return labels
 
 
 def _signal() -> npt.NDArray[np.float64]:
@@ -128,7 +107,7 @@ def _planes() -> tuple[
     """Return the residual, validity, support and per-scale masks."""
     signal = _signal()
     valid = np.ones(_SHAPE_YX, dtype=np.bool_)
-    direct = np.asarray(_labelled(signal >= 5.0), dtype=np.int64)
+    direct = np.asarray(eight_connected_labels(signal >= 5.0), dtype=np.int64)
     scale_masks = [signal >= threshold for threshold in (6.0, 3.0, 1.0)]
     scale_masks[-1] = scale_masks[-1] | _distant_corner_features()
     for mask in scale_masks:
@@ -185,54 +164,12 @@ def _records() -> tuple[DetectionComponentRecord, ...]:
     return build_detection_component_records(direct, signal, valid)
 
 
-def _manifest(core: int) -> PartitionManifest:
-    """Plan one core-only partition of the fixture image."""
-    return plan_image_partitions(
-        image_shape_yx=_SHAPE_YX,
-        tile_core_shape_yx=(core, core),
-        halo_yx=(0, 0),
-    )
-
-
-def _publish(
-    root: Path,
-    products: tuple[tuple[str, npt.NDArray[np.generic], str], ...],
-    *,
-    generation_id: str,
-) -> ZarrProductSink:
-    """Publish one generation of analytic planes over 16-pixel cores."""
-    manifest = _manifest(16)
-    sink = ZarrProductSink(root, manifest, generation_id=generation_id)
-    for product_name, _, dtype in products:
-        sink.initialize_product(
-            product_name=product_name, dtype=np.dtype(dtype)
-        )
-    sink.publish_generation(
-        product_names=tuple(name for name, _, _ in products),
-        chunks=[
-            sink.write_chunk(
-                product_name=product_name,
-                tile=tile,
-                values=np.asarray(
-                    values[
-                        tile.core_bounds.y_start : tile.core_bounds.y_stop,
-                        tile.core_bounds.x_start : tile.core_bounds.x_stop,
-                    ]
-                ),
-            )
-            for tile in manifest.tiles
-            for product_name, values, _ in products
-        ],
-    )
-    return sink
-
-
 def _sources(root: Path) -> tuple[ZarrProductSink, ZarrProductSink]:
     """Publish the generations the overlap rounds read."""
     root.mkdir(parents=True, exist_ok=True)
     _, valid, significant, direct, _ = _planes()
     planes = _scale_planes()
-    detection = _publish(
+    detection = publish_planes(
         root / "detection.zarr",
         (
             ("valid-pixels", valid, "bool"),
@@ -248,7 +185,7 @@ def _sources(root: Path) -> tuple[ZarrProductSink, ZarrProductSink]:
         ),
         generation_id="detection-fixture",
     )
-    component = _publish(
+    component = publish_planes(
         root / "components.zarr",
         (
             (
@@ -280,17 +217,18 @@ def _run(
     *,
     core: int = 16,
     executor: object | None = None,
+    records: tuple[DetectionComponentRecord, ...] | None = None,
     **overrides: int,
 ) -> HierarchyOverlapStageResult:
     """Reduce every overlap the hierarchy decision needs, in isolation."""
     detection, component = _sources(root)
-    manifest = _manifest(core)
+    manifest = core_partitions(_SHAPE_YX, core)
     return run_hierarchy_overlap_stage(
         detection,
         component,
         manifest,
         config=_config(**overrides),
-        records=_records(),
+        records=_records() if records is None else records,
         scale_detections=_scale_records(_scale_planes()),
         executor=SerialExecutor() if executor is None else executor,  # type: ignore[arg-type]
         sink=ZarrProductSink(
@@ -403,8 +341,10 @@ def test_overlap_stage_publishes_scalar_execution_evidence(
     assert set(result.generation.product_names) == set(
         hierarchy_overlap_product_names()
     )
-    assert len(result.generation.chunks) == len(_manifest(16).tiles)
-    assert result.partition_count == len(_manifest(16).tiles)
+    assert len(result.generation.chunks) == len(
+        core_partitions(_SHAPE_YX, 16).tiles
+    )
+    assert result.partition_count == len(core_partitions(_SHAPE_YX, 16).tiles)
     assert result.feature_count > 0
     assert result.enveloped_feature_count == result.feature_count
     assert result.candidate_pair_count > len(result.overlaps.envelope_edges)
@@ -460,7 +400,7 @@ def test_every_overlap_round_fails_closed_on_a_silent_executor(
     with pytest.raises(ValueError, match=message):
         _run(
             tmp_path / f"round-{dropped_round}",
-            executor=_DropNthMapExecutor(dropped_round),
+            executor=DropNthMapExecutor(dropped_round),
         )
 
 
@@ -469,7 +409,7 @@ def test_overlap_stage_requires_matching_generations_and_a_core_manifest(
 ) -> None:
     """Identities are checked before any round is submitted."""
     detection, component = _sources(tmp_path / "run")
-    incomplete = _publish(
+    incomplete = publish_planes(
         tmp_path / "incomplete.zarr",
         (("valid-pixels", _planes()[1], "bool"),),
         generation_id="incomplete",
@@ -510,7 +450,7 @@ def test_overlap_stage_requires_matching_generations_and_a_core_manifest(
     with pytest.raises(ValueError, match="match the overlap image shape"):
         run(other_shape)
     with pytest.raises(ValueError, match="every overlap plane read"):
-        run(_manifest(16), detection_source=incomplete)
+        run(core_partitions(_SHAPE_YX, 16), detection_source=incomplete)
 
 
 def test_an_unmapped_support_label_fails_closed() -> None:
@@ -541,7 +481,7 @@ def test_an_image_with_no_scale_feature_reduces_to_nothing(
     tmp_path.mkdir(parents=True, exist_ok=True)
     _, valid, _, direct, _ = _planes()
     empty = np.zeros(_SHAPE_YX, dtype=np.bool_)
-    detection = _publish(
+    detection = publish_planes(
         tmp_path / "detection.zarr",
         (
             ("valid-pixels", valid, "bool"),
@@ -557,7 +497,7 @@ def test_an_image_with_no_scale_feature_reduces_to_nothing(
         ),
         generation_id="empty-detection",
     )
-    component = _publish(
+    component = publish_planes(
         tmp_path / "components.zarr",
         (
             (
@@ -572,7 +512,7 @@ def test_an_image_with_no_scale_feature_reduces_to_nothing(
     result = run_hierarchy_overlap_stage(
         detection,
         component,
-        _manifest(16),
+        core_partitions(_SHAPE_YX, 16),
         config=_config(),
         records=_records(),
         scale_detections=tuple(
@@ -581,7 +521,9 @@ def test_an_image_with_no_scale_feature_reduces_to_nothing(
         ),
         executor=SerialExecutor(),
         sink=ZarrProductSink(
-            tmp_path / "hierarchy.zarr", _manifest(16), generation_id="empty"
+            tmp_path / "hierarchy.zarr",
+            core_partitions(_SHAPE_YX, 16),
+            generation_id="empty",
         ),
     )
 
@@ -608,7 +550,7 @@ def test_the_published_support_is_the_whole_plane_persistence(
     published = np.asarray(
         ZarrProductSink(
             tmp_path / "run" / "hierarchy.zarr",
-            _manifest(16),
+            core_partitions(_SHAPE_YX, 16),
             generation_id="hierarchy",
         ).read_completed_window(
             "persistent-scale-support",
@@ -704,6 +646,66 @@ def test_narrow_and_wide_work_decide_one_answer(tmp_path: Path) -> None:
     assert result.maximum_feature_read_pixels <= (16 + 2 * _HALO) ** 2
 
 
+class _FunctionRecordingExecutor(SerialExecutor):
+    """Run every round serially and keep the function its tasks received."""
+
+    def __init__(self) -> None:
+        """Start with no round seen."""
+        super().__init__()
+        self.functions: list[Callable[..., object]] = []
+
+    def map_batches(
+        self,
+        function: Callable[[_Input], _Output],
+        batches: Iterable[_Input],
+        *,
+        requirement: TaskRequirement | None = None,
+    ) -> list[_Output]:
+        """Keep the function, then run the round."""
+        self.functions.append(function)
+        return super().map_batches(function, batches, requirement=requirement)
+
+
+@pytest.mark.parametrize("budget", [65_536, 1], ids=["influence", "wide"])
+def test_no_task_carries_the_component_table(
+    tmp_path: Path, budget: int
+) -> None:
+    """A task names the owners it finds by label, as the core scans do.
+
+    The influence and wide rounds bound every component's identifier to
+    their function, so each task carried 1.38 MiB at 16,084 components,
+    which ADR-008's rule 4 forbids. Components the image never shows must
+    not change what any task is sent. The fixture's windows all fit the
+    larger budget, which runs the influence round, and none fits one
+    pixel, which runs the wide round.
+    """
+    records = _records()
+    unseen = tuple(
+        replace(
+            records[0],
+            component_id=f"unseen-{index:05d}",
+            label_value=10_000 + index,
+        )
+        for index in range(2_000)
+    )
+
+    def submitted_bytes(
+        root: Path, records: tuple[DetectionComponentRecord, ...]
+    ) -> list[int]:
+        executor = _FunctionRecordingExecutor()
+        _run(
+            root,
+            executor=executor,
+            records=records,
+            maximum_batch_read_pixels=budget,
+        )
+        return [len(pickle.dumps(function)) for function in executor.functions]
+
+    assert submitted_bytes(tmp_path / "few", records) == submitted_bytes(
+        tmp_path / "all", records + unseen
+    )
+
+
 def test_wide_work_is_executor_invariant(tmp_path: Path) -> None:
     """Workers decide the cores' parts exactly as one process does."""
     reference = _run(tmp_path / "reference", maximum_batch_read_pixels=1)
@@ -733,7 +735,7 @@ def test_the_wide_round_fails_closed_on_a_silent_executor(
     with pytest.raises(ValueError, match="no wide overlap results"):
         _run(
             tmp_path / "run",
-            executor=_DropNthMapExecutor(2),
+            executor=DropNthMapExecutor(2),
             maximum_batch_read_pixels=1,
         )
 
@@ -744,7 +746,9 @@ def test_every_core_that_wide_work_reaches_must_answer() -> None:
         _WideBatch(
             cores=(
                 _WideCore(
-                    partition=_manifest(16).tiles[0], features=(), pairs=()
+                    partition=core_partitions(_SHAPE_YX, 16).tiles[0],
+                    features=(),
+                    pairs=(),
                 ),
             )
         ),

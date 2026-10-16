@@ -16,6 +16,8 @@ from hebog.stages.batching import batch_object_windows, map_round, read_pixels
 _Input = TypeVar("_Input")
 _Output = TypeVar("_Output")
 _REQUIREMENT = TaskRequirement(memory_bytes=1)
+_CORE = (16, 16)
+"""A storage core wider than every window the tests below place."""
 
 
 def _square(y: int, x: int, side: int) -> ImageBounds:
@@ -28,7 +30,7 @@ def _identity(bounds: ImageBounds) -> ImageBounds:
     return bounds
 
 
-def test_one_read_serves_neighbours_in_the_given_order() -> None:
+def test_one_read_serves_neighbours_in_raster_order() -> None:
     """Neighbours share a read until it would pass the budget."""
     windows = (
         _square(0, 0, 2),
@@ -38,7 +40,10 @@ def test_one_read_serves_neighbours_in_the_given_order() -> None:
     )
 
     batches = batch_object_windows(
-        windows, window=_identity, maximum_batch_read_pixels=16
+        windows,
+        window=_identity,
+        core_shape_yx=_CORE,
+        maximum_batch_read_pixels=16,
     )
 
     assert [batch.objects for batch in batches] == [
@@ -60,6 +65,7 @@ def test_a_batch_holds_no_more_objects_than_admitted() -> None:
     batches = batch_object_windows(
         windows,
         window=_identity,
+        core_shape_yx=_CORE,
         maximum_batch_read_pixels=100,
         maximum_objects_per_batch=2,
     )
@@ -70,7 +76,12 @@ def test_a_batch_holds_no_more_objects_than_admitted() -> None:
 def test_no_object_means_no_batch() -> None:
     """An image with no object submits no work."""
     assert (
-        batch_object_windows((), window=_identity, maximum_batch_read_pixels=1)
+        batch_object_windows(
+            (),
+            window=_identity,
+            core_shape_yx=_CORE,
+            maximum_batch_read_pixels=1,
+        )
         == ()
     )
 
@@ -87,22 +98,20 @@ def test_an_object_wider_than_the_budget_is_refused_without_admission() -> (
         batch_object_windows(
             (_square(0, 0, 1), _square(0, 4, 3)),
             window=_identity,
+            core_shape_yx=_CORE,
             maximum_batch_read_pixels=8,
         )
 
 
 def test_an_admitted_object_wider_than_the_budget_is_read_alone() -> None:
-    """A window the admission bounds may pass the budget, but shares nothing.
-
-    The order the caller gave is kept, so a round that numbers its results
-    by batch order still numbers them canonically.
-    """
+    """A window the admission bounds may pass the budget, but is read alone."""
     wide = _square(0, 4, 3)
     windows = (_square(0, 0, 1), _square(0, 1, 1), wide, _square(0, 8, 1))
 
     batches = batch_object_windows(
         windows,
         window=_identity,
+        core_shape_yx=_CORE,
         maximum_batch_read_pixels=8,
         bounded_by_admission=lambda bounds: bounds == wide,
     )
@@ -115,12 +124,52 @@ def test_an_admitted_object_wider_than_the_budget_is_read_alone() -> None:
     assert batches[1].read_bounds == wide
 
 
+def test_objects_are_batched_a_core_at_a_time() -> None:
+    """A batch's read stays in one core rather than a strip across cores.
+
+    In raster order, two rows of objects across two cores side by side
+    would be batched row by row, so each read would decode both cores'
+    storage chunks, and a round at 15,402² decoded 656 chunks of a
+    64-chunk plane.
+    """
+    windows = tuple(_square(y, x, 2) for y in (0, 4) for x in (0, 4, 8, 12))
+
+    batches = batch_object_windows(
+        windows,
+        window=_identity,
+        core_shape_yx=(8, 8),
+        maximum_batch_read_pixels=48,
+    )
+
+    assert [batch.read_bounds for batch in batches] == [
+        ImageBounds(0, 6, 0, 6),
+        ImageBounds(0, 6, 8, 14),
+    ]
+
+
+def test_objects_starting_at_the_same_pixel_keep_the_given_order() -> None:
+    """Order is decided by where windows start, and ties are left alone."""
+    first = ImageBounds(0, 2, 0, 1)
+    second = ImageBounds(0, 1, 0, 2)
+
+    batches = batch_object_windows(
+        (first, second),
+        window=_identity,
+        core_shape_yx=_CORE,
+        maximum_batch_read_pixels=1,
+        bounded_by_admission=lambda _: True,
+    )
+
+    assert [batch.objects for batch in batches] == [(first,), (second,)]
+
+
 def test_the_admission_must_name_every_wide_object() -> None:
     """An admission rule that does not bound this object bounds nothing."""
     with pytest.raises(ValueError, match="wider than the read budget"):
         batch_object_windows(
             (_square(0, 0, 3),),
             window=_identity,
+            core_shape_yx=_CORE,
             maximum_batch_read_pixels=8,
             bounded_by_admission=lambda _: False,
         )
@@ -149,13 +198,24 @@ def test_every_object_is_batched_once_and_no_shared_read_passes_the_budget(
     batches = batch_object_windows(
         windows,
         window=_identity,
+        core_shape_yx=_CORE,
         maximum_batch_read_pixels=budget,
         maximum_objects_per_batch=maximum_objects_per_batch,
         bounded_by_admission=lambda _: True,
     )
 
     assert tuple(item for batch in batches for item in batch.objects) == (
-        windows
+        tuple(
+            sorted(
+                windows,
+                key=lambda window: (
+                    window.y_start // _CORE[0],
+                    window.x_start // _CORE[1],
+                    window.y_start,
+                    window.x_start,
+                ),
+            )
+        )
     )
     for batch in batches:
         assert 0 < len(batch.objects) <= maximum_objects_per_batch
