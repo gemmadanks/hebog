@@ -113,7 +113,7 @@ fit bounds and detection thresholds are unchanged.
 ## Matched filter_skymodel benchmark
 
 `measure_filter_skymodel.py` is plan task 23's matched benchmark of
-Rapthor's complete `filter_skymodel` step: Rapthor's native Hebog task
+Rapthor's `filter_skymodel` step: Rapthor's native Hebog task
 against its PyBDSF subprocess with pinned `master`, in one
 [benchmark image](containers/filter-skymodel/README.md) on the same cores.
 It writes one sector's inputs from a real image with
@@ -125,7 +125,9 @@ cycle's island mask. A Measurement Set given with `--beam-ms` selects
 Rapthor's production two-pass mode. Each warm-up
 and measured repetition runs `filter_skymodel_worker.py` in a fresh
 container, alternating the finders, and the report applies the deployment
-gate's ratio rule to the measured wall times:
+gate's ratio rule to the source-finding part of each run, from the task's
+start to LSMTool's `filter_sources` call, the span the finder controls, and
+reports the complete step's ratio beside it:
 
 ```console
 mkdir -p benchmark-results/filter-skymodel/beam

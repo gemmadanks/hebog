@@ -247,9 +247,11 @@ that gate.
 
 ## Run the matched filter_skymodel benchmark
 
-Plan task 23's deployment gate compares Rapthor's complete `filter_skymodel`
-step with Hebog's native task against the same step with pinned PyBDSF
-`master`, in one Linux container on the same cores. Build the
+Plan task 23's deployment gate compares the source-finding part of
+Rapthor's `filter_skymodel` step, from the task's start to LSMTool's
+`filter_sources` call, with Hebog's native task against the same span with
+pinned PyBDSF `master`, in one Linux container on the same cores; the
+complete step is reported beside it. Build the
 [benchmark image](https://github.com/gemmadanks/hebog/blob/main/scripts/benchmark/containers/filter-skymodel/README.md)
 on the Rapthor integration image, then:
 
@@ -262,8 +264,9 @@ It writes the sector's inputs from the LoTSS-DR3 3,000² window of the
 Rapthor agreement check, runs one warm-up and five measured repetitions of
 each finder in fresh containers, alternating them, and writes one evidence
 document per finder and `report.json` under
-`benchmark-results/filter-skymodel/runs/<label>/`, with the ratio of medians
-and its one-sided 95% bounds against the gate. `--hebog-dask-workers`
+`benchmark-results/filter-skymodel/runs/<label>/`, with the ratio of
+finder-part medians and its one-sided 95% bounds against the gate and the
+complete step's ratio beside it. `--hebog-dask-workers`
 runs Hebog on Dask workers instead of Rapthor's threads, a screening
 measurement the gate does not count. The image runs under Rosetta
 on Apple silicon, so only the ratio is matched; see the

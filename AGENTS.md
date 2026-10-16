@@ -219,11 +219,14 @@ test in the same commit. Never commit red unless explicitly requested. See
   extended processing or silently change semantics for speed.
 - Optimize from profiles/scale evidence, with typed boundaries, a readable serial oracle
   and recorded reasons for complexity; scientific suites must pass. Minimum deployment
-  gate: ≥50% faster matched median for complete Rapthor `filter_skymodel` against exact
-  pinned PyBDSF `master`, under the plan's confidence rule; confirm its release ratio
-  once before 1.0. Optimize latency/throughput across sizes beyond that minimum.
-  Kernel timing is insufficient: include FITS, catalogues, Dask and filtering in isolated,
-  matched environments; never substitute a reference revision/release.
+  gate: ≥50% faster matched median for the source-finding part of Rapthor's
+  `filter_skymodel` step (the task from its start to LSMTool's `filter_sources` call)
+  against exact pinned PyBDSF `master`, under the plan's confidence rule, with the
+  complete step reported beside it; confirm its release ratio once before 1.0.
+  Optimize latency/throughput across sizes beyond that minimum. Kernel timing is
+  insufficient: include FITS reads, product writes and Dask in isolated, matched
+  environments, with LSMTool's filtering measured beside them; never substitute a
+  reference revision/release.
 - Use ≥5 measured repetitions after warm-up, medians and dispersion, without unrelated
   workloads. Use the frozen performance ladder, plan-controlled subset/budgets, both
   sides of crossovers and sparse/normal/dense/extended workloads. Compare affected/adjacent
