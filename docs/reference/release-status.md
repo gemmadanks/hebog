@@ -32,8 +32,11 @@ evidence is measured. A serial run of the whole 15,402² LoTSS-DR3 mosaic
 allocates at most 1.7 GiB: one tile's working set plus the records the
 passes keep from every tile, which still grow about 1.7 bytes a pixel.
 Bounding them is planned before much larger images are admitted. A
-four-worker local Dask cluster finishes that mosaic and the 10,000² anchor
-in about 0.6 of the serial time, with identical products.
+four-worker local Dask cluster finishes the 10,000² LoTSS-DR3 anchor in
+about 0.4 of the serial time, with identical products. Threads in one
+process barely speed a run up, because Python's global lock holds them:
+twelve took 0.84 of one thread's time on that anchor. Run in parallel with
+Dask workers in separate processes.
 
 Every task declares the memory it holds, so an executor with a memory
 budget runs only as many at once as fit, and a `DaskExecutor` given the
