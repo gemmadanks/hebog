@@ -3,7 +3,7 @@
 This page answers one question: how far is Hebog from the goal its
 [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
 defines for 1.0.0? It is updated whenever the plan's current state changes,
-and was last updated on **15 October 2026** for the whole ELAIS-N1 sector run that closed task 54.
+and was last updated on **16 October 2026** after the 0.22.0 release check.
 The scientific and performance measurements retain their original dates.
 Every figure is development evidence from the
 maintainer's machine, dated and traceable to versioned evidence and Git
@@ -20,7 +20,7 @@ none is scientific qualification. User-facing limits are in
 | Science | ≥99.5% Rapthor retained/rejected agreement and a powered, held-out parity study against pinned PyBDSF `master` | Isolated-source position, flux and axis limits are met against both PyBDSF references on the frozen input, for sources and components under both profiles; the `Total_flux` limits hold on independent realizations. Two bounded known differences and one open defect remain. Rapthor keeps or rejects alike with Hebog's mask and pinned `master`'s 92.8% of sky-model components under the chosen `compact` profile with a zero background, against the 99.5% target; released PyBDSF reaches 99.29%. | Development evidence only |
 | Performance | Matched complete `filter_skymodel` median ≤0.50 of pinned PyBDSF `master` | The first matched measurement (13 October) puts Rapthor's complete step at 2.03 times pinned `master`'s with Hebog's native task (186 s against 92 s on a 3,000² LoTSS-DR3 window, four cores, emulated x86-64): both use about the same CPU time, but Hebog keeps 1.1 of its four cores busy, and LSMTool's filtering, 24 s of either step, puts a floor of 0.26 under the ratio. The dense 14,175² ELAIS-N1 sector took 8.5 h serially on 11 October, mostly in association, and 1.3 h on 15 October with tasks 74, 55 and 54, though under the `compact` default adopted in between. Diagnostic ratios against `master` on 1,024² fields are 2.7 to 5.2 (Hebog on one native thread against `master` on four container cores); on the 3,000² LoTSS field the two use the same CPU time, so the gap is parallel occupancy. On a local Dask cluster one sector speeds up 2.4 to 2.7 times by four workers and no further, with a serial share of 23 to 29%, and twelve threads are barely faster than one (task 73). Coarser background batches made the 10,000² anchor 21 to 32% faster, 515 s at best on six workers, but left a serial share of 29% (task 74), and a linear hierarchy decision cut the driver's own work on the whole 15,402² mosaic from 320 s to 50 s (task 55); with both, the anchor takes 429 s at best, against 754 s, with a serial share of 20%. No regression on the Hebog curve. | Gate failing (first measurement) |
 | Scalability | 45,000² on the 18 GiB development machine with tile-bounded memory; 90,000² on a 1 to 10-node cluster; planner bounds for 100,000² on 100 to 200+ nodes | Public envelope 15,402². Every stage runs tiled through the executor and products are byte-identical across tilings and executors. The traced peak is 1.7 GiB on the whole 15,402² mosaic and still grows about 1.7 bytes a pixel. Every task declares its memory, and the analysis's own records grow with the sources found, about 42 KB each. Bright regions are refined in bounded blocks, so the ELAIS-N1 deep field's central 5,000², where 951 bright candidates chain across the image, completes under four 4.5 GiB Dask workers. Nothing beyond one machine has run. | 15,402 of 45,000 pixels |
-| Release | PyPI, with portability, security, licensing, documentation and independent acceptance | v0.21.0 (12 October 2026) is tagged on GitHub and uploaded to TestPyPI, and releases go to PyPI from 0.22.0 (decision of 15 October); it changes no product, and neither it nor v0.20.0 (11 October, maintainer's decision) had a release check of its own, so the latest passed on v0.19.0's repaired candidate on 9 October. CI runs on Linux, macOS and Windows for Python 3.12 to 3.14, and `main` requires the lowest-dependency and container checks. | Experimental `0.x` |
+| Release | PyPI, with portability, security, licensing, documentation and independent acceptance | v0.21.0 (12 October 2026) is tagged on GitHub and uploaded to TestPyPI, and releases go to PyPI from 0.22.0 (decision of 15 October); it changes no product, and neither it nor v0.20.0 (11 October, maintainer's decision) had a release check of its own. The 0.22.0 candidate passed its release check on 15 October. CI runs on Linux, macOS and Windows for Python 3.12 to 3.14, and `main` requires the lowest-dependency and container checks. | Experimental `0.x` |
 
 ## Functionality
 
@@ -102,12 +102,11 @@ explained (task 49):
 
 The quick science check is the everyday regression detector: 18 fixed cases,
 each one realization, compared with injected truth and with pinned `master`
-on the fields Rapthor consumes. Run `release-0.19.0-rc2` on 9 October
-2026, the release check of the repaired 0.19.0 candidate on `main` at
-`d8fe206`, whose products are byte-identical to task 69's `task69-final`
-in every case and to the 8 October release check in 16 of the 17 earlier
-cases; `lotss-dr3-1312-dense` changes 0.25% of its RMS pixels by at most
-9% with its sources unchanged. Every generated case also reports the
+on the fields Rapthor consumes. Run `release-0.22.0` on 15 October 2026,
+the release check of the 0.22.0 candidate `0aa1a829`, whose products are
+byte-identical to task 54's `t54` run in every case and whose metrics equal
+the 9 October `release-0.19.0-rc2` baseline's to floating-point rounding.
+Every generated case also reports the
 RMS error and the mask recall over the injected emission at least three
 times the noise (`truth.support_rms_error_p50`, `_p95` and
 `truth.support_recall`). Completeness and
@@ -215,10 +214,10 @@ sector; everything else below is diagnostic.
 | Hebog / pinned `master`, matched `filter_skymodel` | 2.03, one-sided 95% bounds 1.99 to 2.05, against the ≤0.50 gate: medians of 186.0 s and 91.6 s for Rapthor's complete step on a 3,000² LoTSS-DR3 window with 101,144 WSClean-like components, in Rapthor's two-pass mode on four cores. Finder parts 162.4 s and 66.9 s, LSMTool's filtering 23.6 s and 24.5 s; CPU 211 s and 202 s; peak RSS 3.45 and 1.48 GB; Hebog's analysis reserved 5.9 GB. Hebog's serial stage profile of the window: background and RMS 25%, component fits 23%, multiscale pass 14%, association 5%. One x86-64 container under Rosetta, so only the ratio is matched | 13 October, `scripts/benchmark/measure_filter_skymodel.py` run `task23-first`; Rapthor `d0e7e148` with the patch, LSMTool `9bac2f7`, Hebog 0.21.0 `compact`/zero |
 | Hebog / `master`, 1,024² quick-benchmark cases, Hebog on one native thread against `master` on four container cores | 5.21 (`dense-field`), 3.21 (LoTSS sparse), 2.69 (LoTSS dense); upper bounds 5.49, 3.36, 2.87 | 6 October, `pr-stack-2026-10-06-with-master` |
 | The same ratio on larger fields | 0.88 on the crowded 2,048² SDC1 cut-out; 3.05 on the 3,000² LoTSS field, where both use the same CPU time | 26 September, large tier on a quiet machine |
-| Hebog curve, repaired 0.19.0 candidate against 0.18.0, same session | 0.97, 0.88, 0.91 at 1,024², upper bounds 1.04, 0.91 and 0.94, all passing the ≤1.05 regression rule; `dense-field` was timed again alone after reading an inconclusive 0.99 [0.96, 1.05] under a video call | 9 October, release check |
-| Absolute wall time, 1,024² cases, Serial | 12 to 18 s a run at loads of 3.6 to 10 across the two checks | 8 and 9 October, release checks |
-| Serial anchors | 1,259 s at 10,000², the same as on 28 September, and 1,579 s on 9 October under a video call; 3,410 s on the whole 15,402² mosaic (3,362 s in the 0.18.0 release check) | 8 and 9 October; 29 September and 5 October |
-| Four-worker Dask against Serial | 0.59 at 10,000² (741 s), and 0.55 under load on 9 October (872 s); 0.63 on the whole mosaic (2,116 s); byte-identical products in every run | 8 and 9 October; 5 October |
+| Hebog curve, 0.22.0 candidate against 0.21.0, same session | 0.96, 0.96, 0.99 at 1,024² (`dense-field`, LoTSS sparse, LoTSS dense), upper bounds 0.99, 1.03 and 1.03, all passing the ≤1.05 regression rule; `dense-field` and LoTSS dense were timed again alone after reading inconclusive 0.95 [0.77, 1.05] and 1.01 [0.95, 1.06], the first from v0.21.0's noisy repetitions (11.3 to 15.5 s) | 15 and 16 October, release check `release-0.22.0` and `release-0.22.0-inconclusive` |
+| Absolute wall time, 1,024² cases, Serial | 10.6 to 14.4 s a run at loads of 2.4 to 4.5 | 15 and 16 October, release check |
+| Serial anchors | 1,140 s at 10,000² against 1,259 s in the 0.19.0 release check; 3,410 s on the whole 15,402² mosaic (3,362 s in the 0.18.0 release check) | 15 and 8 October; 29 September and 5 October |
+| Four-worker Dask against Serial | 0.41 at 10,000² (462 s) against 0.59 (741 s) in the 0.19.0 release check; 0.63 on the whole mosaic (2,116 s, 5 October); byte-identical products in every run | 15 and 8 October; 5 October |
 | LoTSS-Deep DR2 ELAIS-N1, a dense deep field | 30,745 s Serial for 123,186 sources on the whole 14,175² sector, about 7.4 h of it after component fitting; on its central 5,000², 2,138 s Serial, 1,974 s on four threads and 1,871 s on two 9 GiB Dask workers, after four 4.5 GiB workers failed; with bright regions in bounded blocks (v23), 2,137 s Serial, 1,986 s on four threads and 1,543 s on four 4.5 GiB Dask workers, byte-identical; with tasks 74 and 55, under the `compact` default of 13 October (35,065 sources against 34,040), 1,126 s Serial and 523 s on four Dask workers, byte-identical; the whole sector with task 54 too, 4,652 s Serial for 118,929 sources against 30,745 s for 123,186 | 10, 11 and 15 October, `scripts/validation/check_lsmtool_filter.py` reports in `benchmark-results/lsmtool-check-elais-n1*` (`-central-5000-t55` at Hebog `17dbaeb8`, `-t54` at `222ff3b1`) |
 | One sector across workers | Local Dask cluster of single-threaded workers, 16 GB task-memory budget: the 10,000² anchor takes 2,036, 1,107, 767 and 754 s on 1, 2, 4 and 8 workers and the 15,402² mosaic 5,032, 3,009, 2,097 and 2,101 s; 12 workers are refused (1.33 GB each against the multiscale tasks' 1.70 GB). Serial share 23% and 29% by Amdahl fit; eight workers swap 15 to 35 GB on the 18 GiB machine and their heaviest-reading tasks run five to seven times slower. One and twelve threads: 1,329 and 1,119 s, tasks 8.6 times slower under the global lock. Largest serial terms: background refinement's 69,150 small batches (164,704 on the mosaic), which under Dask each reopen the FITS file; the multiscale pass; catalogue rows; component fits; the driver's RMS FITS write (13 and 35 s). 213 GB decoded from Zarr and 19,373 chunk files a run at 10,000², 703 GB and 45,587 on the mosaic | 14 and 15 October, `just profile-scaling` run `task73-quiet`, `benchmark-results/profiles/runs/task73-quiet/scaling.json` (sha256 `6ac94088…`), Hebog `f514d067`; a repetition under memory pressure agreed within 3% |
 | One sector, coarser background batches | The 10,000² anchor takes 1,423, 580, 515 and 596 s on 1, 4, 6 and 8 workers, 21 to 32% less than above; background takes 622 s instead of 1,235 s on one worker, in 780 tasks instead of 69,150. Over 1, 4 and 8 workers the serial term is 404 s against 478 s, a share of 29% against 24%, because the parallel work fell further. `find_sources`' driver work outside the profiled stages takes 70 s here and 320 s on the mosaic (task 73), at every worker count. The two-worker run (903 s) overlapped a burst of three to five cores in the Podman VM; eight workers swapped up to 22 GB | 15 October, `just profile-scaling` run `task74`, `benchmark-results/profiles/runs/task74/scaling.json` (sha256 `cdf0386d…`), Hebog `caedd2d4` |
@@ -237,9 +236,9 @@ shares and the memory figures.
 | Measurement | Latest | Target |
 | --- | --- | --- |
 | Public envelope | 15,402 pixels a side | 45,000² locally (task 12), 90,000² on the cluster (task 30) |
-| Traced allocation peak, Serial | 430 MiB at 1,024²; 1,312 MiB at 2,048²; 1,335 MiB at 3,000²; 1,489 MiB at 10,000²; 1,692 MiB at 15,402² (8 October, one repetition; 1,698 MiB in two agreeing repetitions on 29 September) | Bounded by the tile |
+| Traced allocation peak, Serial | 430 MiB at 1,024²; 1,312 MiB at 2,048²; 1,335 MiB at 3,000²; 1,489 MiB at 10,000²; 1,692 MiB at 15,402² (one repetition each on 8 and 15 October, 0.1 MiB apart; 1,698 MiB in two agreeing repetitions on 29 September) | Bounded by the tile |
 | Growth beyond one tile | About 1.7 bytes a pixel in the multiscale pass and about 3 in background/RMS; at those slopes about 2.1 GiB at 22,500² and 4.3 GiB at 45,000² | Bounded before task 12 (tasks 53 to 56) |
-| Peak RSS | Whole mosaic: 3,101 MiB Serial; 2,531 MiB driver and 2,429 MiB largest worker under Dask. 10,000² anchor: 2,576 MiB Serial; 1,569 MiB driver and 1,829 MiB largest worker under Dask (an envelope, not a gate) | – |
+| Peak RSS | Whole mosaic: 3,101 MiB Serial; 2,531 MiB driver and 2,429 MiB largest worker under Dask; under the tracer 4,312 MiB on 15 October against 3,709 MiB on 8 October, unexplained while the traced peak is unchanged. 10,000² anchor: 2,670 MiB Serial; 1,056 MiB driver and 1,838 MiB largest worker under Dask (15 October; an envelope, not a gate) | – |
 | Tiling and executor invariance | Byte-identical products from one tile and the 8×8 grid, and under Serial, Thread and Dask, including the whole mosaic | Exact |
 | Declared limit | An object wider than a task's read budget is reduced on the driver at up to 186 bytes an object pixel; about 44 GB for a field-filling object at 15,402². No real LoTSS-DR3 object comes within a factor of ten of the budget | Deferred; reopened when a tier's traced peak shows it |
 | Memory admission | Every task declares its memory from its read: the multiscale tile tasks are the largest, 1,247 MiB traced for a 2,048-pixel core with its halo, and object batches reach 774 MiB on the whole mosaic. A memory budget narrows the in-flight window, and a `DaskExecutor` given the caller's resource names attaches each declaration to its task; on a local two-worker cluster that keeps a second task off a worker without the memory (12 October, task 17) | Bounded by the tile |
@@ -253,7 +252,7 @@ readiness.
 
 | Check | Latest |
 | --- | --- |
-| Portable suite | 3,787 passed and none xfailed, 97.30% branch-aware coverage against an 80% floor (12 October, the local coverage lane on task 17's change, whose merge then passed CI on every platform); the repository CI helper separately has 100% statement and branch coverage |
+| Portable suite | 3,894 passed and none xfailed, 97.40% branch-aware coverage against an 80% floor (15 October, `just ci` in the 0.22.0 release check, with 39 equivalence and 11 acceptance tests); the repository CI helper separately has 100% statement and branch coverage |
 | Equivalence lane | 39 tests, including `find_sources` against both PyBDSF references under both profiles |
 | CI matrix | Linux, macOS and Windows on Python 3.12 to 3.14, plus lowest-dependency and container checks required on `main`. The source workflow shards the complete suites, combines coverage, provides early unit feedback and limits execution skips to [documentation-only PRs](../how-to/index.md#pull-request-feedback); hosted latency after this change is not yet measured. |
 | Architecture | Every layer's allowed imports are one tested table; Rapthor, Prefect and LSMTool are absent from the package and Dask is confined to `executors/`, apart from the execution profiler's local cluster in `validation/`, which wheels exclude |
@@ -271,8 +270,9 @@ The next actions, as the plan orders them on 15 October:
    by cores; then the 22,500² tier (tasks 56 and 11), since Rapthor's usual
    sector is 17,000 to 20,000 pixels a side. The agreement check's truth measures
    (task 76) may run alongside.
-2. Human: add PyPI's Trusted Publisher and merge the switch to PyPI, then
-   the 0.22.0 release (task 13); then publish/review the prepared Rapthor
+2. Human: merge the stack of tasks 73, 74, 71, 55 and 54, add PyPI's
+   Trusted Publisher and merge the switch to PyPI, then the 0.22.0
+   release, whose check passed on 15 October (task 13); then publish/review the prepared Rapthor
    patch. It targets Rapthor's `main` at `d0e7e148`, the pin since task
    23's checkpoint, defaults to task 21's `compact` profile with a zero
    background, and needs that release, the first carrying
