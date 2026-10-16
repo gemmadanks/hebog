@@ -11,7 +11,7 @@ tags:
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-10-06 |
 | **Last Updated** | 2026-10-09 |
-| **Deciders** | Gemma Danks, through plan task 59, which allowed either direction |
+| **Deciders** | Gemma Danks |
 | **Tags** | layering, dependencies, architecture tests |
 
 ---
@@ -86,8 +86,8 @@ byte-identical.
 
 - Good, because the documented direction describes what the code does, and
   names one place where the stages are composed: `public_api.py` when this
-  was decided, and `stages/composition.py` since plan task 70 moved the
-  sequence below the public boundary on 9 October 2026, within the same
+  was decided, and `stages/composition.py` since the sequence moved below the public
+  boundary on 9 October 2026, within the same
   layering.
 - Good, because one class moved: no module path changed, and the quick
   check's PyBDSF references stay valid.

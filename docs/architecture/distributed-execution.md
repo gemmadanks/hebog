@@ -265,7 +265,7 @@ window any of its tasks reads: a tile with its halo, or an object batch's
 read. Zarr decodes whole chunks, and a store's chunks are its stage's tile
 cores, so a read of an intermediate plane counts as at least one chunk. The
 costs are the largest traced task peaks on the reference anchors, with a
-fixed allowance and a quarter of headroom added (plan task 17). A
+fixed allowance and a quarter of headroom added. A
 declaration is therefore bounded by tile, halo, batch and chunk, and the
 public contract suite checks that no task holds more than it declared.
 
@@ -295,8 +295,8 @@ that estimate from the image's bright local maxima, in bounded blocks.
 Hebog does not choose worker counts, memory limits, spill policy or task
 placement; those belong to the cluster's owner. It names no Dask resource:
 the caller chooses the resource names and each worker's amounts. Tile cores
-are fixed per stage today; the plan's task 72 chooses them from the core
-budget. Declarations may change batching and placement, never results.
+are fixed per stage today; choosing them from the core budget is planned.
+Declarations may change batching and placement, never results.
 
 See [Integrate Hebog into a pipeline](../how-to/integrate-into-a-pipeline.md)
 for the practical steps.

@@ -191,7 +191,7 @@ the Prefect task, admits memory, and retains the PyBDSF fallback. Set
 `hebog_dual_run = True` to retain both filtered product sets and place their
 comparison in ordinary image diagnostics. The patch is local and awaits
 upstream publication/merge. The adapter defaults to the `compact` profile
-with a zero background, Rapthor's interim choice from plan task 21, and
+with a zero background, Rapthor's interim choice, and
 the patch's parset defaults to them too; neither is a qualified Rapthor
 profile,
 and a distributed Hebog subgraph needs the later worker-layout change.

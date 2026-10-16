@@ -12,7 +12,7 @@ def create_parser() -> argparse.ArgumentParser:
     """Create the command-line argument parser."""
     parser = argparse.ArgumentParser(
         prog="hebog",
-        description="Dask-aware source finding for SKA SDP pipelines.",
+        description="A scalable radio-continuum source finder.",
     )
     parser.add_argument(
         "--version",

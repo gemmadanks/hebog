@@ -5,7 +5,7 @@ hand; this file holds common rules and points to detailed contracts.
 
 ## Repository overview
 
-Hebog is a Dask-aware radio-continuum source finder for any telescope, prioritising
+Hebog is a scalable radio-continuum source finder for any telescope, prioritising
 LOFAR, SKA-Low and SKA-Mid. Its first intended consumer is Rapthor's `filter_skymodel`:
 reproduce the PyBDSF behaviour/products that step needs, prove scientific equivalence,
 and meet the runtime gate. Maintainability, extensibility and interoperability are
