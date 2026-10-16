@@ -144,6 +144,12 @@ EveryBeam, which fails under Rosetta, is never imported.
 The image runs under Rosetta on Apple silicon, so the ratio is matched but
 the times are emulated.
 
+`--case` also takes the sector scaling profile's 10,000² anchor and 15,402²
+mosaic. `--hebog-dask-workers N` runs the native task's Hebog work on N
+single-threaded Dask worker processes instead of Rapthor's threads. The
+patched Rapthor has no Dask path for Hebog yet (task 72), so such a run
+screens what one could give and never counts towards the gate.
+
 ## Phase 0 PyBDSF baselines
 
 `run_phase0_pybdsf_baseline.py` starts a fresh local Podman container for every

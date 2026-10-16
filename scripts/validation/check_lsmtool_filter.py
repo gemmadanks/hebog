@@ -13,7 +13,9 @@ from the serial run's island mask, and the LSMTool container
 products with them, as Rapthor's step will after calling the adapter. The
 check passes when LSMTool keeps, groups and transfers exactly what the mask
 decides and every executor's products give the same result; it writes
-``report.json`` in the output directory and exits 1 otherwise. An output
+``report.json`` in the output directory and exits 1 otherwise. The adapter
+runs with its default profile and background unless ``--profile`` or
+``--background`` chooses another. An output
 directory that holds a finished run is reused through the adapter's retry
 reuse::
 
@@ -28,8 +30,9 @@ import hashlib
 import json
 import subprocess
 import sys
-from collections.abc import Callable, Generator
+from collections.abc import Callable, Generator, Sequence
 from contextlib import AbstractContextManager, contextmanager
+from dataclasses import replace
 from pathlib import Path
 from time import monotonic
 
@@ -131,8 +134,7 @@ def _filter(
     return FilterOutcome.read(summary / "summary.json")
 
 
-def main() -> int:
-    """Run the check and report it."""
+def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(__doc__ or "").splitlines()[0]
     )
@@ -151,13 +153,40 @@ def main() -> int:
         default="serial,threads,dask",
         help="comma-separated executors; the first one's mask is planned",
     )
-    arguments = parser.parse_args()
+    parser.add_argument(
+        "--profile",
+        choices=("compact", "continuum"),
+        help="Hebog's science profile; by default the adapter's",
+    )
+    parser.add_argument(
+        "--background",
+        choices=("zero", "estimated"),
+        help="Hebog's background; by default the adapter's",
+    )
+    return parser.parse_args(argv)
+
+
+def _compatibility(
+    arguments: argparse.Namespace,
+) -> RapthorCompatibilityConfig:
+    """Return the adapter settings the check runs every executor with."""
+    defaults = RapthorCompatibilityConfig(
+        threshpix=arguments.threshpix, threshisl=arguments.threshisl
+    )
+    return replace(
+        defaults,
+        profile=arguments.profile or defaults.profile,
+        background=arguments.background or defaults.background,
+    )
+
+
+def main() -> int:
+    """Run the check and report it."""
+    arguments = _parse_args()
     output = arguments.output.absolute()
     # A finished run in an existing output is reused, not recomputed.
     output.mkdir(parents=True, exist_ok=True)
-    config = RapthorCompatibilityConfig(
-        threshpix=arguments.threshpix, threshisl=arguments.threshisl
-    )
+    config = _compatibility(arguments)
     results: dict[str, RapthorSourceFindingResult] = {}
     executors = _executors(arguments.cores)
     for name in arguments.executors.split(","):
@@ -212,6 +241,10 @@ def main() -> int:
             "true_sky": arguments.true_sky.as_posix(),
             "flat_noise": arguments.flat_noise.as_posix(),
             "output": output.as_posix(),
+        },
+        "compatibility": {
+            "profile": config.profile,
+            "background": config.background,
         },
         "executors": {
             name: {

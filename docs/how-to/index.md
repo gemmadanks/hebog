@@ -263,7 +263,9 @@ Rapthor agreement check, runs one warm-up and five measured repetitions of
 each finder in fresh containers, alternating them, and writes one evidence
 document per finder and `report.json` under
 `benchmark-results/filter-skymodel/runs/<label>/`, with the ratio of medians
-and its one-sided 95% bounds against the gate. The image runs under Rosetta
+and its one-sided 95% bounds against the gate. `--hebog-dask-workers`
+runs Hebog on Dask workers instead of Rapthor's threads, a screening
+measurement the gate does not count. The image runs under Rosetta
 on Apple silicon, so only the ratio is matched; see the
 [benchmark guide](https://github.com/gemmadanks/hebog/blob/main/scripts/benchmark/README.md#matched-filter_skymodel-benchmark)
 for the inputs it constructs.

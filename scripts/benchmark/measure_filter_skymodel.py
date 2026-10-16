@@ -47,6 +47,7 @@ from hebog.validation.evidence import (
     WorkloadClass,
     write_evidence,
 )
+from hebog.validation.execution_profile import load_profile_configuration
 from hebog.validation.filter_benchmark import SectorInputs, write_sector_inputs
 from hebog.validation.quick_benchmark import (
     ProcessUsage,
@@ -57,6 +58,8 @@ from hebog.validation.quick_benchmark import (
     summarise_timings,
 )
 from hebog.validation.quick_check import (
+    GeneratedCase,
+    ImageCase,
     file_sha256,
     load_quick_check_configuration,
     prepare_case,
@@ -66,6 +69,7 @@ from hebog.validation.rapthor_agreement import load_agreement_configuration
 _ROOT = Path(__file__).resolve().parents[2]
 _WORKER = Path(__file__).with_name("filter_skymodel_worker.py")
 _AGREEMENT = _ROOT / "config/checks/rapthor-agreement.json"
+_SCALING_PROFILE = _ROOT / "config/benchmarks/sector-scaling-profile.json"
 _PERFORMANCE = _ROOT / "config/benchmarks/phase-0-performance.json"
 _DEFAULT_CASE = "lotss-dr3-1312-3000"
 _FINDERS = ("bdsf", "hebog")
@@ -80,14 +84,17 @@ _STABLE_PRODUCTS = (
 _BOOTSTRAP_RESAMPLES = 10_000
 
 
-def _parse_args() -> argparse.Namespace:
+def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(__doc__ or "").splitlines()[0]
     )
     parser.add_argument(
         "--case",
         default=_DEFAULT_CASE,
-        help="an image case of the Rapthor agreement configuration",
+        help=(
+            "an image case of the Rapthor agreement configuration or of the "
+            "sector scaling profile"
+        ),
     )
     parser.add_argument(
         "--beam-ms",
@@ -111,19 +118,43 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--island-sigma", type=float, default=3.0)
     parser.add_argument("--peak-sigma", type=float, default=5.0)
     parser.add_argument("--margin", type=float, default=0.05)
-    return parser.parse_args()
+    parser.add_argument(
+        "--hebog-dask-workers",
+        type=int,
+        help=(
+            "run Hebog's native task on this many single-threaded Dask "
+            "worker processes instead of Rapthor's threads (a screening "
+            "measurement: Rapthor has no Dask path for Hebog yet)"
+        ),
+    )
+    return parser.parse_args(argv)
+
+
+def _case(case_id: str) -> tuple[GeneratedCase | ImageCase, Path]:
+    """Return one image case and the dataset manifest that identifies it."""
+    agreement = load_agreement_configuration(_AGREEMENT)
+    quick_check = load_quick_check_configuration(_ROOT / agreement.quick_check)
+    profile = load_profile_configuration(_SCALING_PROFILE)
+    cases: dict[str, tuple[GeneratedCase | ImageCase, Path]] = {
+        item.case.case_id: (item.case, _ROOT / quick_check.dataset_manifest)
+        for item in agreement.cases
+    } | {
+        item.case.case_id: (item.case, _ROOT / profile.dataset_manifest)
+        for item in profile.cases
+    }
+    if case_id not in cases:
+        raise ValueError(
+            f"unknown case {case_id}; choose one of {', '.join(cases)}"
+        )
+    return cases[case_id]
 
 
 def _case_image(case_id: str) -> Path:
-    """Return the prepared input of one agreement-configuration case."""
-    agreement = load_agreement_configuration(_AGREEMENT)
-    quick_check = load_quick_check_configuration(_ROOT / agreement.quick_check)
-    case = next(
-        item.case for item in agreement.cases if item.case.case_id == case_id
-    )
+    """Return the prepared input of one image case."""
+    case, dataset_manifest = _case(case_id)
     return prepare_case(
         case,
-        dataset_manifest=_ROOT / quick_check.dataset_manifest,
+        dataset_manifest=dataset_manifest,
         repository_root=_ROOT,
         inputs_root=_ROOT / "benchmark-results/quick-check/inputs",
     ).input_path
@@ -180,6 +211,33 @@ def _run(
 ) -> dict[str, Any]:
     """Run one repetition of one finder in a fresh container."""
     shutil.copytree(sector.directory, directory)
+    if beam_ms is not None:
+        shutil.copytree(beam_ms, directory / "beam.ms")
+    subprocess.run(
+        _container_command(
+            args, directory, finder, beam_ms=beam_ms is not None
+        ),
+        check=True,
+    )
+    run: dict[str, Any] = json.loads(
+        (directory / "run.json").read_text(encoding="utf-8")
+    )
+    print(
+        f"{directory.name}: {run['wall_seconds']:.1f} s, "
+        f"{run['nsources']} sources",
+        flush=True,
+    )
+    return run
+
+
+def _container_command(
+    args: argparse.Namespace, directory: Path, finder: str, *, beam_ms: bool
+) -> list[str]:
+    """Return the command that runs one finder's filter step in a container.
+
+    ``directory`` holds the sector's inputs, and with ``beam_ms`` its
+    Measurement Set as ``beam.ms``.
+    """
     command = [
         "podman",
         "run",
@@ -207,19 +265,11 @@ def _run(
         "--threshisl",
         str(args.threshisl),
     ]
-    if beam_ms is not None:
-        shutil.copytree(beam_ms, directory / "beam.ms")
+    if beam_ms:
         command += ["--beam-ms", "/sector/beam.ms"]
-    subprocess.run(command, check=True)
-    run: dict[str, Any] = json.loads(
-        (directory / "run.json").read_text(encoding="utf-8")
-    )
-    print(
-        f"{directory.name}: {run['wall_seconds']:.1f} s, "
-        f"{run['nsources']} sources",
-        flush=True,
-    )
-    return run
+    if finder == "hebog" and args.hebog_dask_workers is not None:
+        command += ["--dask-workers", str(args.hebog_dask_workers)]
+    return command
 
 
 def _tree_sha256(directory: Path) -> str:
@@ -316,6 +366,7 @@ def main() -> int:
             "tree_sha256": _tree_sha256(args.beam_ms),
         },
         "command_profile": "off",
+        "hebog_dask_workers": args.hebog_dask_workers,
     }
     configuration_sha256 = canonical_sha256(configuration)
     dataset = DatasetIdentity(
