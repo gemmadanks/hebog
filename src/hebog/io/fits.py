@@ -2,7 +2,7 @@
 # pyright: reportUnknownArgumentType=false
 # pyright: reportUnknownMemberType=false
 # pyright: reportUnknownVariableType=false
-"""Bounded FITS image input for radio-continuum planes."""
+"""Bounded FITS image input for radio continuum planes."""
 
 from __future__ import annotations
 

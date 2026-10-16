@@ -1,7 +1,7 @@
 # Hebog and other source finders
 
 This page helps you decide whether Hebog suits your work, by comparing it with
-the source finders most used for radio-continuum images. It describes methods
+the source finders most used for radio continuum images. It describes methods
 and software properties, not measured accuracy.
 
 !!! warning "Hebog is experimental"

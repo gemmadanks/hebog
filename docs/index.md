@@ -1,6 +1,6 @@
 # Hebog
 
-Hebog is a scalable radio-continuum source finder, and it is
+Hebog is a scalable source finder for radio continuum images, and it is
 **experimental**. Given a FITS image it estimates the background and noise, detects compact and extended
 emission, fits Gaussians, and publishes a source catalogue, an RMS image, a
 source mask and diagnostics. The same code runs in a single process or across

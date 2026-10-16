@@ -51,7 +51,7 @@ class _CountingExecutor(SerialExecutor):
 
 
 def _write(path: Path, values: np.ndarray, **cards: object) -> Path:
-    """Write one valid ICRS radio-continuum image."""
+    """Write one valid ICRS radio continuum image."""
     height, width = values.shape
     header = fits.Header()
     header["BUNIT"] = "Jy/beam"

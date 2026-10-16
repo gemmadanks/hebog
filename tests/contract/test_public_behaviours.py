@@ -102,7 +102,7 @@ def _image() -> npt.NDArray[np.float64]:
 
 
 def _request(tmp_path: Path, run_id: str = "contract") -> SourceFinderRequest:
-    """Create a request for the two-source radio-continuum image."""
+    """Create a request for the two-source radio continuum image."""
     image_path = tmp_path / f"{run_id}.fits"
     fits.PrimaryHDU(_image(), _header()).writeto(image_path)
     return SourceFinderRequest(

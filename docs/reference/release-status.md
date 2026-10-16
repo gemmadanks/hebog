@@ -1,7 +1,7 @@
 # Capability and status
 
-Hebog is a scalable radio-continuum source finder. It is **experimental**:
-it runs a complete standalone analysis on the inputs below, but is not
+Hebog is a scalable source finder for radio continuum images. It is
+**experimental**: it runs a complete standalone analysis on the inputs below, but is not
 scientifically qualified for survey use and is not a production Rapthor
 backend.
 

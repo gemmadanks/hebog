@@ -22,7 +22,7 @@ _PROFILE_SHA256 = (
 
 
 def _header() -> fits.Header:
-    """Return a minimal qualified radio-continuum image header."""
+    """Return a minimal qualified radio continuum image header."""
     header = fits.Header()
     header["BUNIT"] = "Jy/beam"
     header["BMAJ"] = 4.0 / 3600.0

@@ -1,4 +1,4 @@
-"""A scalable radio-continuum source finder."""
+"""A scalable source finder for radio continuum images."""
 
 from importlib.metadata import PackageNotFoundError, version
 

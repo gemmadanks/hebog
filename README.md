@@ -6,8 +6,8 @@
 [![codecov](https://codecov.io/gh/gemmadanks/hebog/graph/badge.svg)](https://codecov.io/gh/gemmadanks/hebog)
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://github.com/gemmadanks/hebog/blob/main/LICENSE)
 
-Hebog is a scalable radio-continuum source finder. It is **experimental**,
-and runs in a single process or on a Dask cluster. For each FITS image it:
+Hebog is a scalable source finder for radio continuum images. It is
+**experimental**, and runs in a single process or on a Dask cluster. For each FITS image it:
 
 1. estimates the background and noise;
 2. detects compact and extended emission;
