@@ -7,7 +7,7 @@ All notable changes to this project will be documented in this file.
 
 ### ⚠ BREAKING CHANGES
 
-* Executor.reduce_batches, its three implementations and hebog.executors.reduce_in_canonical_order are removed; nothing called them, and plan task 74 can bring back a reduction if its profile needs one. map_round requires a requirement. hebog.stages.task_memory is left out of the composition hash, since it decides placement, never a result.
+* Executor.reduce_batches, its three implementations and hebog.executors.reduce_in_canonical_order are removed. map_round requires a requirement. hebog.stages.task_memory is left out of the composition hash, since it decides placement, never a result.
 
 ### 🚀 Features
 
