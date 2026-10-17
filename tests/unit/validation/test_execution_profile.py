@@ -50,11 +50,16 @@ _needs_usage = pytest.mark.skipif(
 
 
 def _busy(seconds: float) -> None:
-    """Spend at least ``seconds`` of wall and CPU time."""
-    from time import perf_counter  # noqa: PLC0415
+    """Spend at least ``seconds`` of wall and CPU time.
 
-    deadline = perf_counter() + seconds
-    while perf_counter() < deadline:
+    The loop watches the calling thread's CPU clock, not the wall clock: a
+    busy CI runner deschedules the thread, and a wall-clock deadline then
+    passes with less CPU spent than the tests assert.
+    """
+    from time import thread_time  # noqa: PLC0415
+
+    deadline = thread_time() + seconds
+    while thread_time() < deadline:
         pass
 
 
